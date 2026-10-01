@@ -40,6 +40,9 @@
             if (source.classList.contains('box-labels')) {
                 style.textContent += `@page{size:Letter portrait;margin:5mm 3mm} .delivery-note.box-labels{width:210mm!important;max-width:none!important;padding:0!important} .label-page{width:210mm!important;height:267mm!important;min-height:0!important;break-after:page} .label-page:last-child{break-after:auto} .label-pair{break-inside:avoid} @media print{.delivery-note.box-labels{width:210mm!important}}`;
             }
+            if (source.classList.contains('case-labels')) {
+                style.textContent += '@page{size:Letter portrait;margin:10mm} .delivery-note.case-labels{width:190mm!important;max-width:none!important;margin:0!important} .case-label{width:190mm!important;break-after:page} .case-label:last-child{break-after:auto} tr{break-inside:avoid}';
+            }
             doc.head.append(style);
             const toolbar = doc.createElement('div'); toolbar.className='print-tools';
             const print = doc.createElement('button'); print.type='button'; print.textContent=text("print");

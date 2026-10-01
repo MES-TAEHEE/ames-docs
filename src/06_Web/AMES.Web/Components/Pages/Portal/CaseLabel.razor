@@ -1,0 +1,56 @@
+@page "/portal/case-label/{Number}"
+@layout EmptyLayout
+@rendermode InteractiveServer
+@inject ScmRepository Scm
+@inject AuthenticationStateProvider Authentication
+@inject ILogger<CaseLabel> Logger
+@inject PortalQuantityFormat QtyFormat
+
+<PageTitle>Case Label · @Number</PageTitle>
+<DeliveryPrintMessages />
+<div class="label-tools">
+    <a href="/portal/deliveries">Delivery Management</a>
+    @if (_case is not null)
+    {
+        <button data-delivery-note-print>Print / Save PDF</button>
+        <button data-delivery-note-download="@Number">Download Printable File</button>
+    }
+    <p role="alert" data-delivery-note-status>@_message</p>
+</div>
+@if (_case is not null)
+{
+    <article class="delivery-note case-labels">
+    @foreach (var page in _case.Boxes.GroupBy(b => new { b.Item, b.Name, b.Unit })
+        .Select(g => new { g.Key.Item, g.Key.Name, g.Key.Unit, Boxes = g.Count(), Qty = g.Sum(b => b.Quantity) }).Chunk(14))
+    {
+        <section class="case-label">
+            <header><strong>CASE</strong><span>@_case.VendorName</span></header>
+            <div class="case-barcode"><Code128Barcode Value="@_case.Number" Height="85" /><strong>@_case.Number</strong></div>
+            <div class="case-info"><span>PO: <strong>@_case.Order</strong></span><span>Boxes: <strong>@_case.Boxes.Count</strong></span></div>
+            @if(_case.NoteNumber.Length>0) { <div>Delivery Note: @_case.NoteNumber</div> }
+            <table><thead><tr><th>Part No</th><th>Part Name</th><th>Boxes</th><th>Qty</th><th>Unit</th></tr></thead>
+                <tbody>@foreach (var item in page) { <tr><td>@item.Item</td><td>@item.Name</td><td>@item.Boxes</td><td>@QtyFormat.Text(item.Qty,item.Unit)</td><td>@item.Unit</td></tr> }</tbody>
+            </table>
+            <footer>Created @_case.CreatedAt.ToString("yyyy-MM-dd HH:mm") · Receive by CASE NO after shipment.</footer>
+        </section>
+    }
+    </article>
+}
+@code {
+    [Parameter] public string Number { get; set; } = "";
+    ScmRepository.DeliveryCase? _case;
+    string _message = "";
+    protected override async Task OnParametersSetAsync()
+    {
+        _case = null; _message = "";
+        var u = (await Authentication.GetAuthenticationStateAsync()).User;
+        var id = u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!PortalAuth.IsPortalUser(u) || string.IsNullOrWhiteSpace(id)) { _message = "Access denied."; return; }
+        try
+        {
+            _case = Scm.GetDeliveryCase(Number, id);
+            if (_case is null || _case.Boxes.Count == 0) { _case = null; _message = "Case not found or access denied."; }
+        }
+        catch (Exception ex) { Logger.LogError(ex, "Case label lookup failed"); _message = "Unable to load this case label."; }
+    }
+}

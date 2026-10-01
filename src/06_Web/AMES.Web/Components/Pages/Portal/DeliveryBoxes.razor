@@ -6,11 +6,16 @@
 @inject NavigationManager Nav
 @inject ILogger<DeliveryBoxes> Logger
 @inject IStringLocalizer<SharedResources> L
+@if(!Embedded)
+{
 <PageTitle>@L["Portal.Text.BoxBarcodePrinting"] · AMES</PageTitle>
 <AmesPageHeader Code="PORTAL-003" Title='@L["Portal.Text.BoxBarcodePrinting"]' />
 <div class="box-toolbar"><RadzenButton Text='@L["Portal.Text.BackToDeliveryManagement"]' Icon="arrow_back" Click="BackToDeliveries" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" /><RadzenButton Text='@L["Btn.Refresh"]' Icon="refresh" Click="Load" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
+}
 @if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_error</RadzenAlert>}
-<div class="box-layout">
+<div class="box-layout @(Embedded?"embedded":"")">
+    @if(!Embedded)
+    {
     <div class="ames-card">
         <div class="ames-card-h">@L["Portal.Text.Deliveries"] · @_rows.Count</div>
         <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.DeliveryBoxes.Ph.Search"]' aria-label='@L["Portal.Text.SearchDeliveries"]' class="ames-rz-input" Style="width:100%" />
@@ -22,6 +27,7 @@
             </Columns>
         </RadzenDataGrid>
     </div>
+    }
     <div class="ames-card">
         <div class="ames-card-h">@L["Portal.Text.Boxes"] @(_document?.Number) · @_boxes.Count</div>
         <div class="box-toolbar">
@@ -46,7 +52,8 @@
 </div>
 @code {
     void BackToDeliveries() => Nav.NavigateTo("/portal/deliveries");
-    [SupplyParameterFromQuery] public string? Number {get;set;}
+    [Parameter] public bool Embedded {get;set;}
+    [Parameter, SupplyParameterFromQuery] public string? Number {get;set;}
     List<ScmRepository.BoxDelivery> _rows=[];
     List<ScmRepository.DeliveryBox> _boxes=[];
     ScmRepository.BoxDelivery? _document;

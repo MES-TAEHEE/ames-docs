@@ -14,7 +14,7 @@
 </HeadContent>
 <DeliveryPrintMessages />
 <div class="note-toolbar">
-    <a href="/portal/delivery-notes">@L["Portal.Note.Back"]</a>
+    <a href="/portal/deliveries">@L["Portal.Note.Back"]</a>
     @if (_note is not null)
     {
         <div class="note-actions">
@@ -38,11 +38,11 @@
             <dt>@L["Portal.Note.Buyer"]</dt><dd>@n.Buyer</dd>
             <dt>@L["Portal.Note.Destination"]</dt><dd>@n.Destination</dd>
             <dt>@L["Portal.Text.PurchaseOrder"]</dt><dd>@n.OrderNumber</dd>
-            <dt>@L["Scm.Text.ShipDate"]</dt><dd>@string.Join(", ", n.Lines.Select(l => (l.ShipDate ?? n.ShipDate).ToString("yyyy-MM-dd")).Distinct())</dd>
+            <dt>@L["Scm.Text.DeliveryDate"]</dt><dd>@string.Join(", ", n.Lines.Select(l => (l.ShipDate ?? n.ShipDate).ToString("yyyy-MM-dd")).Distinct())</dd>
             <dt>@L["Portal.Note.IssuedAt"]</dt><dd>@n.IssuedAt.ToString("yyyy-MM-dd HH:mm:ss")</dd>
         </dl>
         <table>
-            <thead><tr><th>@L["Portal.Note.OrderLine"]</th><th>@L["Portal.Text.ItemCode"]</th><th>@L["Portal.Text.Description"]</th><th>@L["Scm.Text.Unit"]</th><th>@L["Portal.Note.ShippedQuantity"]</th></tr></thead>
+            <thead><tr><th>@L["Portal.Note.OrderLine"]</th><th>@L["Portal.Text.ItemCode"]</th><th>@L["Portal.Text.Description"]</th><th>@L["Scm.Text.Unit"]</th><th>@L["Scm.Text.Quantity"]</th></tr></thead>
             <tbody>@foreach (var group in n.Lines.GroupBy(l => l.DeliveryNumber))
             {
                 @if (!string.IsNullOrEmpty(group.Key))

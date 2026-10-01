@@ -1,0 +1,24 @@
+.case-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:12px 0; }
+.case-context { justify-content:space-between; border-bottom:1px solid var(--ames-bd-white-a12); }
+.case-context strong { margin-left:8px; }
+.case-section-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+.case-box-actions { padding:12px 16px; }
+.ames-card { min-width:0; margin-bottom:16px; }
+.case-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,180px)); gap:14px; padding:16px; }
+.case-cards:empty { display:none; }
+.case-tile { aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--ames-bd-white-a12); border-radius:4px; background:var(--ames-sf-0d1b2e); color:var(--ames-tx-white); cursor:pointer; font:inherit; overflow-wrap:anywhere; }
+.case-tile:hover,.case-tile.active { border-color:var(--ames-tx-blue-400); background:var(--ames-sf-0f172a); }
+.case-tile:focus-visible { outline:2px solid var(--ames-tx-blue-400); outline-offset:2px; }
+.case-tile ::deep .rzi { font-size:34px; color:var(--ames-tx-blue-400); }
+.case-tile span { color:var(--ames-tx-slate-400); }
+.case-detail { padding:0 16px 16px; border-top:1px solid var(--ames-bd-white-a12); }
+.case-empty { padding:16px; }
+.case-table-scroll { overflow:auto; max-height:460px; }
+.case-table-scroll td { overflow-wrap:anywhere; }
+.case-table-scroll input:not([type="checkbox"]) { max-width:100%; min-width:100px; }
+.case-quantity-editor { width:140px; max-width:100%; }
+.case-quantity-editor input.ames-input { min-width:80px; width:110px; text-align:center; font-size:18px; font-weight:600; border-radius:3px; }
+.case-quantity-editor input[aria-invalid="true"] { border-color:#f87171; }
+.case-input-message { max-width:260px; margin-top:6px; color:var(--ames-tx-slate-400); font-size:12px; }
+.case-quantity-editor input:disabled { opacity:.55; cursor:not-allowed; }
+.case-table-scroll th { position:sticky; top:0; background:var(--ames-sf-0d1b2e); }

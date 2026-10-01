@@ -11,7 +11,6 @@
 <PageTitle>@L["Portal.Text.BoxLabels"] · AMES</PageTitle>
 <div class="label-tools">
     <a href="/portal/deliveries">@L["Portal.Text.BackToDeliveryManagement"]</a>
-    <a href="/portal/delivery-boxes">@L["Portal.Text.BackToBoxList"]</a>
     @if(_boxes.Count>0){
         <button data-delivery-note-print>@L["Portal.Text.PrintSavePDF"]</button>
         <button data-delivery-note-download="@($"BOX-LABELS-{Selection.Delivery}")">@L["Portal.Text.DownloadPrintableFile"]</button>
