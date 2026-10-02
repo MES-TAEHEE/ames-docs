@@ -1,8 +1,8 @@
 -- ════════════════════════════════════════════════════════════════════════
 -- migrate_inj_agent.sql — 사출 PLC 자동수집 (AMES.InjAgent)
 -- PR_InjLot(원천 LOT 확장) / MD_InjCondItem /
--- PR_InjCondLog / PR_RobotInspection + 시뮬레이터 금형 시드
--- (금형→품번 매핑 MD_MoldItem 시드는 dist/migrate_mold_master.sql 에서 수행)
+-- PR_InjCondLog / PR_RobotInspection + 사출조건 항목 시드
+-- (금형 마스터 MD_Mold·MD_MoldItem·MD_MoldLine 은 dist/seed_md_mold_master.sql — 10-02 부터 여기서 금형을 시드하지 않는다)
 -- 적용: sqlcmd -S localhost,1433 -U sa -P AmesDev!2026Sa -d AMES_DEV -f 65001 -i dist/migrate_inj_agent.sql
 -- ════════════════════════════════════════════════════════════════════════
 
@@ -105,18 +105,8 @@ CREATE INDEX IX_PR_RobotInspection_Lot ON dbo.PR_RobotInspection([LotID]);
 GO
 
 -- ════════════════════════════════════════════════════════════════════════
--- 시드: 시뮬레이터 검증 금형코드 4종 (MEADTRCTNNB / NEAFUCNNB / LQ2DTMDCBK / LQ2DTRUCBK)
---   색상코드 = 뒤 3자리, 금형코드 = 나머지 (원본 Main.cs 규칙)
---   품번은 AMES_Schema.sql 시드의 실존 MD_Item 사용
+-- 시드: 사출조건 항목 (금형은 10-02 부터 dist/seed_md_mold_master.sql 이 정본 — 시뮬레이터용 금형 4종 시드 폐지)
 -- ════════════════════════════════════════════════════════════════════════
-DELETE FROM dbo.MD_Mold WHERE MoldID IN ('LQ2-DTMD','LQ2-DTRU','MEA-DTRCT','NEA-FUC');
-GO
-INSERT INTO dbo.MD_Mold (MoldID, MoldName, RatedShots, CurrentShots, CavityCount, Tonnage, Status, CreatedBy, CreatedTS) VALUES
-  ('LQ2-DTMD',  N'LQ2 Door Trim MD (2-cav)',  500000, 0, 2, 650, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('LQ2-DTRU',  N'LQ2 Door Trim RU (2-cav)',  500000, 0, 2, 650, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('MEA-DTRCT', N'MEA Door Trim CT (1-cav)',  300000, 0, 1, 650, 'ACTIVE', 'admin', SYSDATETIME()),
-  ('NEA-FUC',   N'NEA FUC (1-cav)',           300000, 0, 1, 650, 'ACTIVE', 'admin', SYSDATETIME());
-GO
 INSERT INTO dbo.MD_InjCondItem (LineID, ItemCode, ItemName, SetAddress, ActualAddress, DataType, CreatedBy) VALUES
   ('LINE-INJ-01', 'TEMP',  N'배럴온도', 5400, 5404, 'FLOAT', 'admin'),
   ('LINE-INJ-01', 'PRESS', N'사출압력', 5410, 5414, 'LONG',  'admin');
