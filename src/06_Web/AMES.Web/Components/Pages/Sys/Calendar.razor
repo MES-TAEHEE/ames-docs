@@ -278,7 +278,7 @@
                                 <RadzenNumeric TValue="int" @bind-Value="_genShifts[i].BreakMin" Min="0" Max="120" Disabled="@(!_genShifts[i].Active)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                             </td>
                             <td class="num dim">
-                                @(_genShifts[i].Active ? CalcNet(_genShifts[i].Start, _genShifts[i].End, _genShifts[i].BreakMin).ToString("0.0") : "—")
+                                @(_genShifts[i].Active ? CalcNet(_genShifts[i].Start, _genShifts[i].End, _genShifts[i].BreakMin).ToString("0.00") : "—")
                             </td>
                         </tr>
                     }
@@ -394,7 +394,7 @@
                                 <RadzenNumeric TValue="int" @bind-Value="_editShifts[i].BreakMin" Min="0" Max="120" Disabled="@timeDis" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                             </td>
                             <td class="num dim">
-                                @(timeDis ? "—" : CalcNet(_editShifts[i].Start, _editShifts[i].End, _editShifts[i].BreakMin).ToString("0.0"))
+                                @(timeDis ? "—" : CalcNet(_editShifts[i].Start, _editShifts[i].End, _editShifts[i].BreakMin).ToString("0.00"))
                             </td>
                         </tr>
                     }
@@ -458,12 +458,38 @@
     DateTime      _genTo           = DbClock.Today.AddMonths(1).AddDays(-1);
     string        _genPlant        = "";
     bool          _genSkipExisting = true;
-    ShiftGenRow[] _genShifts       = new[]
+    ShiftGenRow[] _genShifts       = Array.Empty<ShiftGenRow>();
+
+    // 교대 기본 시각 = 공통코드 WORK_SHIFT.Attribute2(실제 생산 시간, 'HHMM-HHMM'). 비었거나 형식이 틀리면 아래 값.
+    // 휴게(분)는 공통코드에 자리가 없어 교대별 기본값으로 둔다(사용자 결정 10-03: A 65 · B 65 · C 0).
+    static readonly (string Code, bool Active, string Start, string End)[] ShiftFallback =
     {
-        new ShiftGenRow("A", true,  "08:00", "16:00", 60),
-        new ShiftGenRow("B", true,  "16:00", "00:00", 60),
-        new ShiftGenRow("C", false, "00:00", "08:00", 60),
+        ("A", true,  "07:30", "16:30"),
+        ("B", true,  "16:30", "01:30"),
+        ("C", false, "02:00", "07:00"),
     };
+    static readonly Dictionary<string, int> DefaultBreakMin = new(StringComparer.OrdinalIgnoreCase) { ["A"] = 65, ["B"] = 65, ["C"] = 0 };
+    Dictionary<string, (string Start, string End)> _shiftTimes = new(StringComparer.OrdinalIgnoreCase);
+
+    static int BreakOf(string code) => DefaultBreakMin.TryGetValue(code, out var m) ? m : 0;
+
+    (string Start, string End) ShiftTime(string code)
+        => _shiftTimes.TryGetValue(code, out var t) ? t : ShiftFallback.Where(f => f.Code == code).Select(f => (f.Start, f.End)).FirstOrDefault();
+
+    void LoadShiftTimes()
+    {
+        _shiftTimes.Clear();
+        try
+        {
+            foreach (var w in MD.ListCodeItems("WORK_SHIFT").Where(w => w.UseFlag && !string.IsNullOrEmpty(w.CodeValue)))
+                if (AMES.Data.Services.ProdCalendar.TryParseWindow(w.Attribute2, out var s, out var e))
+                    _shiftTimes[w.CodeValue!] = (MinToHHmm(s), MinToHHmm(e));
+        }
+        catch { }
+        _genShifts = ShiftFallback.Select(f => { var t = ShiftTime(f.Code); return new ShiftGenRow(f.Code, f.Active, t.Start, t.End, BreakOf(f.Code)); }).ToArray();
+    }
+
+    static string MinToHHmm(int m) => $"{m / 60 % 24:00}:{m % 60:00}";
     List<HolidayEntry> _genHolidays = new();
 
     // ── Init ─────────────────────────────────────────────────────────────
@@ -475,6 +501,7 @@
         _canEdit = PermSvc.CanEdit("sys/calendar");
         try { _dayTypes = MD.ListCodeItems("DAY_TYPE"); } catch { }
         try { _plants = MD.ListCodeItems("PLANT"); } catch { }
+        LoadShiftTimes();
         if (_dayTypes.Count == 0)
             _dayTypes = new()
             {
@@ -539,6 +566,7 @@
     {
         _modalErr = ""; _confirmDelete = false;
         _genHolidays.Clear();
+        LoadShiftTimes();   // 열 때마다 WORK_SHIFT 를 다시 읽어 기본값으로 되돌린다
         if (string.IsNullOrEmpty(_genPlant))
             _genPlant = _plants.FirstOrDefault()?.CodeValue ?? "";
         _modal = "create";
@@ -556,9 +584,9 @@
         _editHolidayName = shifts.FirstOrDefault()?.HolidayName ?? "";
         _editShifts = new[]
         {
-            MakeShiftRow("A", "08:00", "16:00", shifts),
-            MakeShiftRow("B", "16:00", "00:00", shifts),
-            MakeShiftRow("C", "00:00", "08:00", shifts),
+            MakeShiftRow("A", shifts),
+            MakeShiftRow("B", shifts),
+            MakeShiftRow("C", shifts),
         };
         _confirmDelete = false; _modalErr = "";
         _modal = "edit";
@@ -704,12 +732,14 @@
         if (!TimeSpan.TryParse(start, out var s) || !TimeSpan.TryParse(end, out var e)) return 0m;
         var diff = e - s;
         if (diff < TimeSpan.Zero) diff += TimeSpan.FromHours(24);
-        return Math.Round((decimal)(diff.TotalHours - breakMin / 60.0), 1);
+        // NetWorkHours decimal(4,2) — 소수 2자리, 반올림은 SQL ROUND·SP_SYS_FactoryCalendar_Fill 과 같게
+        return Math.Round((decimal)(diff.TotalHours - breakMin / 60.0), 2, MidpointRounding.AwayFromZero);
     }
 
-    static ShiftRow MakeShiftRow(string code, string defStart, string defEnd,
-        List<SysRepository.CalendarRow> existing)
+    // 그 날 저장된 교대가 있으면 저장값, 없으면 WORK_SHIFT.Attribute2 시각 + 교대별 기본 휴게
+    ShiftRow MakeShiftRow(string code, List<SysRepository.CalendarRow> existing)
     {
+        var (defStart, defEnd) = ShiftTime(code);
         var found = existing.FirstOrDefault(r => r.ShiftCode == code);
         return found is not null
             ? new ShiftRow
@@ -717,9 +747,9 @@
                 Code = code, Active = true, ExistingId = found.FactoryCalendarId,
                 Start = found.StartTime?.ToString(@"hh\:mm") ?? defStart,
                 End   = found.EndTime?.ToString(@"hh\:mm")   ?? defEnd,
-                BreakMin = found.BreakMinutes ?? 30
+                BreakMin = found.BreakMinutes ?? BreakOf(code)
             }
-            : new ShiftRow { Code = code, Active = false, Start = defStart, End = defEnd, BreakMin = 60 };
+            : new ShiftRow { Code = code, Active = false, Start = defStart, End = defEnd, BreakMin = BreakOf(code) };
     }
 
     string DayTypeName(string? code)

@@ -1893,7 +1893,7 @@ SYS: { cols: 3, tables: [
     ['StartTime','TIME',''],
     ['EndTime','TIME',''],
     ['BreakMinutes','INT',''],
-    ['NetWorkHours','DECIMAL(4,1)',''],
+    ['NetWorkHours','DECIMAL(4,2)',''],
     ['CalendarYear','INT',''],
     ['Plant','VARCHAR(20)','']
   ]}

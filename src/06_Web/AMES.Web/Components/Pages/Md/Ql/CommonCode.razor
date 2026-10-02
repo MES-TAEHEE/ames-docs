@@ -42,7 +42,8 @@
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
-<div style="display:flex;gap:16px;height:calc(100vh - 200px);">
+@* 높이 고정 — 좌측 그룹 목록 GrpPageSize 행이 스크롤 없이 다 들어가는 높이(BOP 화면과 같은 방식), 우측은 같은 높이 *@
+<div style="@($"display:flex;gap:16px;height:{GrpPanelHeight}px;")">
 
     @* ── 좌: 코드 그룹 ────────────────────────────────────────────────── *@
     <div style="flex:0 0 480px;display:flex;flex-direction:column;min-height:0;">
@@ -126,8 +127,12 @@
                         <RadzenDataGridColumn Property="CodeNameEn" Title='@L["MD.CommonCode.Lbl.CodeNameEn"]'>
                             <Template Context="i"><span class="dim">@i.CodeNameEn</span></Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn Property="Attribute1" Title='@L["Col.Attr1"]' Width="100px">
-                            <Template Context="i"><span class="dim">@i.Attribute1</span></Template>
+                        @* 최장 실데이터 25자(약 190px) 기준 220px 고정, 더 길면 말줄임 + 툴팁(컬럼은 200자까지) *@
+                        <RadzenDataGridColumn Property="Attribute1" Title='@L["Col.Attr1"]' Width="220px" MinWidth="220px">
+                            <Template Context="i"><div class="dim" style="max-width:204px;overflow:hidden;text-overflow:ellipsis;" title="@i.Attribute1">@i.Attribute1</div></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn Property="Attribute2" Title='@L["Col.Attr2"]' Width="220px" MinWidth="220px">
+                            <Template Context="i"><div class="dim" style="max-width:204px;overflow:hidden;text-overflow:ellipsis;" title="@i.Attribute2">@i.Attribute2</div></Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="70px" TextAlign="TextAlign.Center">
                             <Template Context="i">
@@ -269,27 +274,34 @@
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="12">
+                <RadzenColumn Size="8">
                     <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.ParentCode"]} {L["MD.CommonCode.Lbl.ParentCodeOpt"]}")' />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_fItem.ParentCodeId" Data="@(_items.Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.SortOrder"]' />
+                    <RadzenNumeric TValue="int" @bind-Value="_fItem.SortOrder" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.SortOrder"]' />
-                    <RadzenNumeric TValue="int" @bind-Value="_fItem.SortOrder" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="12">
                     <RadzenLabel Text='@L["Col.Attr1"]' />
-                    <RadzenTextBox @bind-Value="_fItem.Attribute1" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_fItem.Attribute1" MaxLength="200" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="12">
+                    <RadzenLabel Text='@L["Col.Attr2"]' />
+                    <RadzenTextBox @bind-Value="_fItem.Attribute2" MaxLength="200" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text='@L["MD.CommonCode.Lbl.Description"]' />
-                    <RadzenTextBox @bind-Value="_fItem.Description" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_fItem.Description" MaxLength="500" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -339,27 +351,34 @@
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="12">
+                <RadzenColumn Size="8">
                     <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.ParentCode"]} {L["MD.CommonCode.Lbl.ParentCodeOpt"]}")' />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_fItem.ParentCodeId" Data="@(_items.Where(i => i.CodeID != _fItem.CodeId).Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.SortOrder"]' />
+                    <RadzenNumeric TValue="int" @bind-Value="_fItem.SortOrder" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text='@L["MD.CommonCode.Lbl.SortOrder"]' />
-                    <RadzenNumeric TValue="int" @bind-Value="_fItem.SortOrder" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="12">
                     <RadzenLabel Text='@L["Col.Attr1"]' />
-                    <RadzenTextBox @bind-Value="_fItem.Attribute1" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_fItem.Attribute1" MaxLength="200" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="12">
+                    <RadzenLabel Text='@L["Col.Attr2"]' />
+                    <RadzenTextBox @bind-Value="_fItem.Attribute2" MaxLength="200" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text='@L["MD.CommonCode.Lbl.Description"]' />
-                    <RadzenTextBox @bind-Value="_fItem.Description" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_fItem.Description" MaxLength="500" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -393,6 +412,8 @@
 
 @code {
     const int GrpPageSize = 24;
+    // 카드 높이 = 카드 여백·검색줄·헤더·페이저·테두리(152px, 2560×1305 실측) + 행 40px × 행 수
+    const int GrpPanelHeight = 152 + GrpPageSize * 40;
 
     List<MasterDataRepository.CodeGroupRow> _allGroups = new();
     List<MasterDataRepository.CodeGroupRow> _groups = new();
@@ -604,6 +625,7 @@
             ParentCodeId = item.ParentCodeID,
             SortOrder    = item.SortOrder    ?? 0,
             Attribute1   = item.Attribute1   ?? "",
+            Attribute2   = item.Attribute2   ?? "",
             UseFlag      = item.UseFlag,
             Description  = item.Description  ?? "",
         };
@@ -625,7 +647,7 @@
             if (MD.CodeItemExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
             MD.InsertCodeItem(id, _selGroup!.GroupCode, _fItem.CodeValue.Trim(), _fItem.CodeName.Trim(),
                 NE(_fItem.CodeNameEn), _fItem.SortOrder, NE(_fItem.Attribute1), _fItem.UseFlag, NE(_fItem.Description), _actor,
-                _fItem.ParentCodeId);
+                _fItem.ParentCodeId, NE(_fItem.Attribute2));
             Audit.Created("MD-030", "MD_CodeItem", id, Snap(_fItem, _selGroup?.GroupCode));
             LoadItems(); CloseModal();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
@@ -644,7 +666,7 @@
         {
             MD.UpdateCodeItem(_fItem.CodeId, _fItem.CodeValue.Trim(), _fItem.CodeName.Trim(),
                 NE(_fItem.CodeNameEn), _fItem.SortOrder, NE(_fItem.Attribute1), _fItem.UseFlag, NE(_fItem.Description), _actor,
-                _fItem.ParentCodeId);
+                _fItem.ParentCodeId, NE(_fItem.Attribute2));
             Audit.Updated("MD-030", "MD_CodeItem", _fItem.CodeId, Snap(_items.FirstOrDefault(i => i.CodeID == _fItem.CodeId), _selGroup?.GroupCode), Snap(_fItem, _selGroup?.GroupCode));
             LoadItems(); CloseModal();
             ShowMsg($"{_fItem.CodeId} {L["Msg.Updated"]}", false);
@@ -695,6 +717,7 @@
         public string? ParentCodeId { get; set; }
         public int     SortOrder    { get; set; } = 0;
         public string  Attribute1   { get; set; } = "";
+        public string  Attribute2   { get; set; } = "";
         public bool    UseFlag      { get; set; } = true;
         public string  Description  { get; set; } = "";
     }

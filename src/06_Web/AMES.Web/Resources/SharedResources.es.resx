@@ -2841,6 +2841,9 @@
   <data name="Col.Attr1" xml:space="preserve">
     <value>Atributo1</value>
   </data>
+  <data name="Col.Attr2" xml:space="preserve">
+    <value>Atributo2</value>
+  </data>
   <data name="Col.CustomerId" xml:space="preserve">
     <value>ID de Cliente</value>
   </data>
@@ -3356,6 +3359,12 @@
   </data>
   <data name="MD.Items.Hint.Tote" xml:space="preserve">
     <value>Se envía en cajas tote, no en palés</value>
+  </data>
+  <data name="MD.Items.Col.Inj" xml:space="preserve">
+    <value>Inyección</value>
+  </data>
+  <data name="MD.Items.Hint.InjSubOnly" xml:space="preserve">
+    <value>Solo tipo SUB</value>
   </data>
   <data name="MD.Items.Lbl.SafetyStock" xml:space="preserve">
     <value>Stock de Seguridad</value>
@@ -4730,6 +4739,24 @@
   </data>
   <data name="MD.LineTimePattern.Unsaved" xml:space="preserve">
     <value>Sin Guardar</value>
+  </data>
+  <data name="MD.LineTimePattern.Realigned" xml:space="preserve">
+    <value>Realineado a los turnos</value>
+  </data>
+  <data name="MD.LineTimePattern.RealignedHint" xml:space="preserve">
+    <value>Los horarios de WORK_SHIFT cambiaron, por lo que el horario guardado se reajustó a los nuevos límites de turno. Las franjas pintadas (descanso, inspección, paro planificado, etc.) conservan su hora y el resto se llena con el estado por defecto del turno. Guarde para aplicar.</value>
+  </data>
+  <data name="MD.LineTimePattern.Outdated" xml:space="preserve">
+    <value>Turnos cambiados</value>
+  </data>
+  <data name="MD.LineTimePattern.OutdatedHint" xml:space="preserve">
+    <value>El horario guardado no coincide con los turnos actuales (WORK_SHIFT) ni con los turnos del patrón (SHIFT_PATTERN). Los datos guardados no cambian; ábralo en el editor, revíselo y guarde para aplicar.</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.ShiftCoverage" xml:space="preserve">
+    <value>Los turnos (Attribute1 del código común WORK_SHIFT) no cubren las 24 horas del día sin huecos ni solapes, por lo que no se pueden guardar horarios. Huecos: {0} / Solapes: {1}</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.Coverage" xml:space="preserve">
+    <value>El horario no cubre las 24 horas del día sin huecos ni solapes y no se puede guardar. Huecos: {0} / Solapes: {1}</value>
   </data>
   <data name="MD.LineTimePattern.Modal.CloseDirty" xml:space="preserve">
     <value>Tiene cambios sin guardar. ¿Cerrar de todos modos?</value>

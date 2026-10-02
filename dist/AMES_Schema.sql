@@ -256,6 +256,7 @@ DROP TABLE IF EXISTS [dbo].[SYS_LotSeq];
 DROP TABLE IF EXISTS [dbo].[SYS_NotificationChannel];
 DROP TABLE IF EXISTS [dbo].[SYS_NotificationHistory];
 DROP TABLE IF EXISTS [dbo].[SYS_NotificationRule];
+DROP TABLE IF EXISTS [dbo].[SYS_PublicHoliday];
 DROP TABLE IF EXISTS [dbo].[SYS_RolePermission];
 DROP TABLE IF EXISTS [dbo].[SYS_Screen];
 DROP TABLE IF EXISTS [dbo].[SYS_UserProfile];
@@ -1517,6 +1518,7 @@ CREATE TABLE [dbo].[MD_CodeItem](
 	[ParentCodeID] [varchar](41) COLLATE Korean_Wansung_CI_AS NULL,
 	[SortOrder] [int] NULL,
 	[Attribute1] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
+	[Attribute2] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[UseFlag] [bit] NULL,
 	[Description] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -1548,6 +1550,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sort Order · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'SortOrder'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Attribute1 · nvarchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'Attribute1'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Attribute2 · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'Attribute2'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Use Flag · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_CodeItem', @level2type=N'COLUMN',@level2name=N'UseFlag'
 GO
@@ -1924,6 +1928,7 @@ CREATE TABLE [dbo].[MD_Item](
 	[ItemNameEN] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[ItemType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ItemCategory] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
+	[InjFlag] [bit] NOT NULL,
 	[DefaultUOM] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[RoutingType] [char](1) COLLATE Korean_Wansung_CI_AS NULL,
 	[MinStock] [decimal](14, 4) NULL,
@@ -1955,6 +1960,8 @@ CREATE TABLE [dbo].[MD_Item](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
+ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((0)) FOR [InjFlag]
+GO
 ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((0)) FOR [ToteFlag]
 GO
 ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((1)) FOR [ActiveFlag]
@@ -1970,6 +1977,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품목 유형 — CK 제약: RAW·FABRIC·POWDER·PAINT·SEMI·FINISHED.  · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ItemType'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품목 분류 (도어트림·콘솔·범퍼 등).  · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ItemCategory'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사출품 여부 — 품목 유형 SUB 만 1 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'InjFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'기본 단위 → MD_UOM(UOMCode).  · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'DefaultUOM'
 GO
@@ -8732,7 +8741,7 @@ CREATE TABLE [dbo].[SYS_FactoryCalendar](
 	[StartTime] [time](7) NULL,
 	[EndTime] [time](7) NULL,
 	[BreakMinutes] [int] NULL,
-	[NetWorkHours] [decimal](4, 1) NULL,
+	[NetWorkHours] [decimal](4, 2) NULL,
 	[CalendarYear] [int] NULL,
 	[PlantCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -8765,7 +8774,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'End Time · ti
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Break Minutes · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'BreakMinutes'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Net Work Hours · decimal(4,1)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'NetWorkHours'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Net Work Hours · decimal(4,2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'NetWorkHours'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Calendar Year · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_FactoryCalendar', @level2type=N'COLUMN',@level2name=N'CalendarYear'
 GO
@@ -9016,6 +9025,52 @@ GO
 ALTER TABLE [dbo].[SYS_NotificationRule] ADD  DEFAULT ('system') FOR [CreatedBy]
 GO
 ALTER TABLE [dbo].[SYS_NotificationRule] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+-- Table: dbo.SYS_PublicHoliday
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SYS_PublicHoliday](
+	[CountryCode] [varchar](2) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[HolidayDate] [date] NOT NULL,
+	[HolidayName] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[ActualDate] [date] NOT NULL,
+	[ActiveFlag] [bit] NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
+ CONSTRAINT [PK_SYS_PublicHoliday] PRIMARY KEY CLUSTERED
+(
+	[CountryCode] ASC,
+	[HolidayDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SYS_PublicHoliday] ADD  CONSTRAINT [DF_SYS_PublicHoliday_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[SYS_PublicHoliday] ADD  CONSTRAINT [DF_SYS_PublicHoliday_CreatedTS]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Public holiday master per country — no screen, maintained by SQL. Used by SP_SYS_FactoryCalendar_Fill' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Country Code (ISO 3166-1 alpha-2) · varchar(2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday', @level2type=N'COLUMN',@level2name=N'CountryCode'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Holiday Date (day off; observed date when the actual day is a weekend) · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday', @level2type=N'COLUMN',@level2name=N'HolidayDate'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Holiday Name (SYS_FactoryCalendar.HolidayName) · nvarchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday', @level2type=N'COLUMN',@level2name=N'HolidayName'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Actual Date (the holiday itself) · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday', @level2type=N'COLUMN',@level2name=N'ActualDate'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Active Flag (0 = plant works on this holiday) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Created By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Created TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday', @level2type=N'COLUMN',@level2name=N'CreatedTS'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Modified By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Modified TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_PublicHoliday', @level2type=N'COLUMN',@level2name=N'ModifiedTS'
 GO
 -- Table: dbo.SYS_RolePermission
 SET ANSI_NULLS ON

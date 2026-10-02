@@ -114,7 +114,7 @@ public sealed class MasterDataRepository
         => Query("""
             SELECT CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,
                    ParentCodeID, ISNULL(SortOrder,0) AS SortOrder,
-                   Attribute1, ISNULL(UseFlag,1) AS UseFlag, Description,
+                   Attribute1, Attribute2, ISNULL(UseFlag,1) AS UseFlag, Description,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_CodeItem
             WHERE  GroupCode=@G
@@ -133,7 +133,8 @@ public sealed class MasterDataRepository
                 r["CreatedBy"]    as string,
                 r["CreatedTS"]    is DateTime ct ? ct : null,
                 r["ModifiedBy"]   as string,
-                r["ModifiedTS"]   is DateTime mt ? mt : null),
+                r["ModifiedTS"]   is DateTime mt ? mt : null,
+                r["Attribute2"]   as string),
             ("@G", groupCode));
 
     public CodeItemRow? FindActiveCodeItem(string groupCode, string codeValue)
@@ -164,13 +165,13 @@ public sealed class MasterDataRepository
     public void InsertCodeItem(string codeId, string groupCode, string? codeValue,
         string? codeName, string? codeNameEn, int sortOrder,
         string? attribute1, bool useFlag, string? description, string createdBy,
-        string? parentCodeId = null)
+        string? parentCodeId = null, string? attribute2 = null)
         => Exec("""
             INSERT INTO dbo.MD_CodeItem
                    (CodeID,GroupCode,CodeValue,CodeName,CodeNameEn,
-                    SortOrder,Attribute1,UseFlag,Description,ParentCodeID,CreatedBy,CreatedTS)
+                    SortOrder,Attribute1,Attribute2,UseFlag,Description,ParentCodeID,CreatedBy,CreatedTS)
             VALUES (@ID,@Group,@Val,@Name,@NameEn,
-                    @Sort,@Attr,@UseFlag,@Desc,@ParentID,@By,SYSDATETIME())
+                    @Sort,@Attr,@Attr2,@UseFlag,@Desc,@ParentID,@By,SYSDATETIME())
             """,
             ("@ID",       codeId),
             ("@Group",    groupCode),
@@ -179,6 +180,7 @@ public sealed class MasterDataRepository
             ("@NameEn",   codeNameEn),
             ("@Sort",     sortOrder),
             ("@Attr",     attribute1),
+            ("@Attr2",    attribute2),
             ("@UseFlag",  useFlag),
             ("@Desc",     description),
             ("@ParentID", (object?)parentCodeId ?? DBNull.Value),
@@ -187,11 +189,11 @@ public sealed class MasterDataRepository
     public void UpdateCodeItem(string codeId, string? codeValue, string? codeName,
         string? codeNameEn, int sortOrder, string? attribute1,
         bool useFlag, string? description, string modifiedBy,
-        string? parentCodeId = null)
+        string? parentCodeId = null, string? attribute2 = null)
         => Exec("""
             UPDATE dbo.MD_CodeItem
             SET    CodeValue=@Val, CodeName=@Name, CodeNameEn=@NameEn,
-                   SortOrder=@Sort, Attribute1=@Attr, UseFlag=@UseFlag,
+                   SortOrder=@Sort, Attribute1=@Attr, Attribute2=@Attr2, UseFlag=@UseFlag,
                    Description=@Desc, ParentCodeID=@ParentID,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  CodeID=@ID
@@ -202,6 +204,7 @@ public sealed class MasterDataRepository
             ("@NameEn",   codeNameEn),
             ("@Sort",     sortOrder),
             ("@Attr",     attribute1),
+            ("@Attr2",    attribute2),
             ("@UseFlag",  useFlag),
             ("@Desc",     description),
             ("@ParentID", (object?)parentCodeId ?? DBNull.Value),
@@ -214,7 +217,7 @@ public sealed class MasterDataRepository
     public List<ItemRow> ListItems(string? search = null, string? itemType = null)
     {
         var sql = """
-            SELECT ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM,
+            SELECT ItemNo, ItemName, ItemType, ItemCategory, InjFlag, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
                    PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
@@ -233,6 +236,7 @@ public sealed class MasterDataRepository
             r.GetString("ItemName"),
             r["ItemType"]      as string,
             r["ItemCategory"]  as string,
+            (bool)r["InjFlag"],
             r["CarType"]       as string,
             r["DefaultUOM"]    as string,
             r["RoutingType"]   as string,
@@ -282,23 +286,31 @@ public sealed class MasterDataRepository
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
+    // InjFlag(사출품 여부)는 품목 유형 SUB 만 가진다.
+    public const string ItemTypeSub = "SUB";
+
+    /// <summary>SUB 가 아닌 품목은 사출품 여부를 끈다 — 저장 직전에 적용.</summary>
+    public static bool NormalizeInjFlag(string? itemType, bool injFlag)
+        => injFlag && string.Equals(itemType?.Trim(), ItemTypeSub, StringComparison.OrdinalIgnoreCase);
+
     public void InsertItem(string itemNo, string itemName,
-        string? itemType, string? itemCategory, string? carType, string? defaultUom,
+        string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
         bool activeFlag, string createdBy)
         => Exec("""
             INSERT INTO dbo.MD_Item
-                   (ItemNo,ItemName,ItemType,ItemCategory,CarType,DefaultUOM,
+                   (ItemNo,ItemName,ItemType,ItemCategory,InjFlag,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
                     PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS)
-            VALUES (@No,@Name,@Type,@Cat,@Car,@Uom,
+            VALUES (@No,@Name,@Type,@Cat,@Inj,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
                     @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME())
             """,
             ("@No",     itemNo),   ("@Name",   itemName),
             ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
+            ("@Inj",    NormalizeInjFlag(itemType, injFlag)),
             ("@Uom",    defaultUom),
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
             ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
@@ -307,7 +319,7 @@ public sealed class MasterDataRepository
             ("@By",     createdBy));
 
     public void UpdateItem(string itemNo, string itemName,
-        string? itemType, string? itemCategory, string? carType, string? defaultUom,
+        string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
@@ -315,7 +327,7 @@ public sealed class MasterDataRepository
         => Exec("""
             UPDATE dbo.MD_Item
             SET    ItemName=@Name, ItemType=@Type,
-                   ItemCategory=@Cat, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
+                   ItemCategory=@Cat, InjFlag=@Inj, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
                    PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
                    PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote,
@@ -324,6 +336,7 @@ public sealed class MasterDataRepository
             """,
             ("@No",     itemNo),   ("@Name",   itemName),
             ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
+            ("@Inj",    NormalizeInjFlag(itemType, injFlag)),
             ("@Uom",    defaultUom),
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
             ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
@@ -684,7 +697,7 @@ public sealed class MasterDataRepository
 
     public record ItemRow(
         string ItemNo, string ItemName,
-        string? ItemType, string? ItemCategory, string? CarType, string? DefaultUOM,
+        string? ItemType, string? ItemCategory, bool InjFlag, string? CarType, string? DefaultUOM,
         string? RoutingType,
         decimal? MinStock, decimal? MaxStock, decimal? SafetyStock, decimal? UnitCost,
         string? PGN, string? ALC, string? DrawingNo,
@@ -698,7 +711,8 @@ public sealed class MasterDataRepository
         string? CodeName, string? CodeNameEn, string? ParentCodeID,
         int? SortOrder, string? Attribute1, bool UseFlag, string? Description,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS);
+        string? ModifiedBy, DateTime? ModifiedTS,
+        string? Attribute2 = null);   // DB 순서는 Attribute1 다음 — 위치 생성자 호출을 깨지 않으려고 맨 뒤에 둔다
 
     /// <summary>현재 UI 문화권(ko/en)에 맞는 CodeName을 반환합니다.</summary>
     public static string LocalName(CodeItemRow r) =>
@@ -4551,10 +4565,18 @@ public sealed class MasterDataRepository
     }
 
     // 편집기 드래프트 전체 저장: 기존 세그먼트 삭제 후 전달된 세그먼트로 재구성(트랜잭션).
-    // 화면에서 겹침을 이미 정리한 상태로 넘겨받으며, 병합·SeqNo·헤더 합계·플래그는 여기서 재계산.
+    // 하루 00:00–24:00 을 빈틈·겹침 없이 덮어야 하며(LineTimeLayout.CoverageIssues), 아니면 아무것도 지우지 않고 거부한다.
+    // 병합·SeqNo·헤더 합계·플래그는 여기서 재계산.
     public void SaveLineTimeSegments(string patternId,
         IEnumerable<(int Start, int End, string State, string? Reason, string? Shift, string? Description)> segments, string actor)
     {
+        var list = segments.ToList();
+        var issues = LineTimeLayout.CoverageIssues(list.Where(s => s.End > s.Start).Select(s => (s.Start, s.End)));
+        if (issues.Count > 0)
+            throw new InvalidOperationException(
+                $"Line time segments must cover 00:00-24:00 exactly once. Gaps: [{LineTimeLayout.Describe(issues.Where(x => !x.Overlap))}] Overlaps: [{LineTimeLayout.Describe(issues.Where(x => x.Overlap))}]");
+        segments = list;
+
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
@@ -4681,9 +4703,9 @@ public sealed class MasterDataRepository
         RebuildMinuteFlags(patternId, actor, conn, tx);
     }
 
-    // 분단위(1440) 플래그 재생성 — WORK_SHIFT 정렬순(A,B,C)으로 각 교대 창을 이어붙임.
-    //   SEGMENT_STATE.Attribute1 = 'op:seg' 에서 ':' 앞 → OperatingFlag, ':' 뒤 → SegmentFlag.
-    //   교대 창을 못 채운 자리·창 미정의는 '0', 전체 1440자로 패딩.
+    // 분단위(1440) 플래그 재생성 — 글자 위치 = 하루 분(0 = 00:00, PP-LSB 발행 스냅샷 SnapshotCalendarOverride 와 같은 기준).
+    //   세그먼트는 하루 분(0~1440, 자정을 넘는 교대는 두 조각)으로 저장되므로 그 위치에 그대로 칠한다.
+    //   SEGMENT_STATE.Attribute1 = 'op:seg' 에서 ':' 앞 → OperatingFlag, ':' 뒤 → SegmentFlag. 세그먼트가 없는 분은 '0'.
     private static void RebuildMinuteFlags(string patternId, string? actor, SqlConnection conn, SqlTransaction tx)
     {
         // SEGMENT_STATE 코드 → (op, seg) 문자 맵
@@ -4703,19 +4725,8 @@ public sealed class MasterDataRepository
                 stateMap[cv] = (op, sg);
             }
 
-        // WORK_SHIFT 창(정렬순: A,B,C). Attribute1 'HHMM-HHMM'
-        var shifts = new List<(string Code, int Start, int End)>();
-        using (var cmd = new SqlCommand("SELECT CodeValue, Attribute1 FROM dbo.MD_CodeItem WHERE GroupCode='WORK_SHIFT' AND ISNULL(UseFlag,1)=1 ORDER BY ISNULL(SortOrder,0), CodeValue;", conn, tx))
-        using (var rdr = cmd.ExecuteReader())
-            while (rdr.Read())
-            {
-                if (rdr["CodeValue"] as string is not { } code) continue;
-                if (ProdCalendar.TryParseWindow(rdr["Attribute1"] as string, out int s, out int e) && e > s)
-                    shifts.Add((code, s, e));
-            }
-
-        var segs = new List<(int Start, int End, string? State, string? Shift)>();
-        using (var cmd = new SqlCommand("SELECT StartMin, EndMin, SegmentState, ShiftCode FROM dbo.MD_LineTimeSegment WHERE PatternID=@P;", conn, tx))
+        var segs = new List<(int Start, int End, string? State)>();
+        using (var cmd = new SqlCommand("SELECT StartMin, EndMin, SegmentState FROM dbo.MD_LineTimeSegment WHERE PatternID=@P;", conn, tx))
         {
             cmd.Parameters.Add("@P", SqlDbType.VarChar, 20).Value = patternId;
             using var rdr = cmd.ExecuteReader();
@@ -4723,27 +4734,17 @@ public sealed class MasterDataRepository
                 segs.Add((
                     rdr["StartMin"] is short a ? a : 0,
                     rdr["EndMin"]   is short b ? b : 0,
-                    rdr["SegmentState"] as string,
-                    rdr["ShiftCode"]    as string));
+                    rdr["SegmentState"] as string));
         }
 
-        var opSb = new System.Text.StringBuilder(1440);
-        var sgSb = new System.Text.StringBuilder(1440);
-        foreach (var sh in shifts)
-            for (int m = sh.Start; m < sh.End; m++)
-            {
-                char op = '0', sg = '0';
-                foreach (var s in segs)
-                    if (string.Equals(s.Shift, sh.Code, StringComparison.Ordinal)
-                        && s.Start <= m && m < s.End
-                        && s.State is not null && stateMap.TryGetValue(s.State, out var f))
-                    { op = f.Op; sg = f.Seg; break; }
-                opSb.Append(op); sgSb.Append(sg);
-            }
-
-        string opStr = opSb.ToString(), sgStr = sgSb.ToString();
-        opStr = opStr.Length < 1440 ? opStr.PadRight(1440, '0') : opStr[..1440];
-        sgStr = sgStr.Length < 1440 ? sgStr.PadRight(1440, '0') : sgStr[..1440];
+        var opArr = Enumerable.Repeat('0', 1440).ToArray();
+        var sgArr = Enumerable.Repeat('0', 1440).ToArray();
+        foreach (var s in segs)
+        {
+            if (s.State is null || !stateMap.TryGetValue(s.State, out var f)) continue;
+            for (int m = Math.Max(0, s.Start); m < Math.Min(1440, s.End); m++) { opArr[m] = f.Op; sgArr[m] = f.Seg; }
+        }
+        string opStr = new(opArr), sgStr = new(sgArr);
 
         using (var cmd = new SqlCommand("UPDATE dbo.MD_LineTimePattern SET OperatingFlag=@O, SegmentFlag=@S, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE PatternID=@P;", conn, tx))
         {

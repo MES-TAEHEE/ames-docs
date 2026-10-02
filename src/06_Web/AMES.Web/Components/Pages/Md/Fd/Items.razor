@@ -53,7 +53,7 @@
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fActiveOnly" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             @if (_canEdit)
             {
                 <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
@@ -77,6 +77,11 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@L["Col.Category"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="item"><span class="dim">@CategoryName(item.ItemCategory)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="InjFlag" Title="@L["MD.Items.Col.Inj"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="item">
+                    @if (item.InjFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="CarType" Title="@L["Col.CarType"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="item"><span class="code dim">@(item.CarType ?? "—")</span></Template>
@@ -255,6 +260,14 @@
         if (registered && !CategoriesFor(_f.ItemType).Any(c => c.CodeValue == _f.ItemCategory))
             _f.ItemCategory = "";
     }
+    // 사출품 여부는 SUB 유형만 지정한다 — 유형을 바꾸면 끈다(저장 때도 MasterDataRepository.NormalizeInjFlag 가 같은 규칙)
+    bool InjEnabled => string.Equals(_f.ItemType, MasterDataRepository.ItemTypeSub, StringComparison.OrdinalIgnoreCase);
+
+    void OnItemTypeChanged()
+    {
+        NormalizeCategory();
+        if (!InjEnabled) _f.InjFlag = false;
+    }
     private IEnumerable<DropDownItem> RoutingOptions => _routingItems.Where(r => r.UseFlag).Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
     private IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
     // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
@@ -339,6 +352,7 @@
             ItemName     = r.ItemName,
             ItemType     = r.ItemType ?? "",
             ItemCategory = r.ItemCategory ?? "",
+            InjFlag      = r.InjFlag,
             CarType      = r.CarType ?? "",
             Uom          = r.DefaultUOM ?? "",
             RoutingType  = r.RoutingType ?? "",
@@ -374,7 +388,7 @@
             if (MD.ItemExists(no)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], no); return; }
             NormalizeCategory();
             MD.InsertItem(no, _f.ItemName.Trim(), N(_f.ItemType),
-                N(_f.ItemCategory), N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
+                N(_f.ItemCategory), InjEnabled && _f.InjFlag, N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
@@ -396,7 +410,7 @@
         {
             NormalizeCategory();
             MD.UpdateItem(_f.ItemNo, _f.ItemName.Trim(), N(_f.ItemType),
-                N(_f.ItemCategory), N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
+                N(_f.ItemCategory), InjEnabled && _f.InjFlag, N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
@@ -443,15 +457,22 @@
         </RadzenRow>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
-            <RadzenColumn Size="4">
+            <RadzenColumn Size="3">
                 <RadzenLabel Text="@L["MD.Items.Lbl.ItemType"]" />
-                <RadzenDropDown @bind-Value="_f.ItemType" Data="@ItemTypeOptions" Change="@(_ => NormalizeCategory())" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_f.ItemType" Data="@ItemTypeOptions" Change="@(_ => OnItemTypeChanged())" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
-            <RadzenColumn Size="4">
+            <RadzenColumn Size="3">
                 <RadzenLabel Text="@L["MD.Items.Lbl.Category"]" />
                 <RadzenDropDown @bind-Value="_f.ItemCategory" Data="@CategoryOptions" Disabled="@(!CategoryEnabled)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
-            <RadzenColumn Size="4">
+            <RadzenColumn Size="3">
+                <RadzenLabel Text="@L["MD.Items.Col.Inj"]" Component="ItemChkInj" />
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="height:32px;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.InjFlag" Disabled="@(!InjEnabled)" Name="ItemChkInj" />
+                    @if (!InjEnabled) { <span class="dim">@L["MD.Items.Hint.InjSubOnly"]</span> }
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="3">
                 <RadzenLabel Text="@L["Col.Routing"]" />
                 <RadzenDropDown @bind-Value="_f.RoutingType" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
@@ -535,6 +556,7 @@
         public string  ItemName     { get; set; } = "";
         public string  ItemType     { get; set; } = "";
         public string  ItemCategory { get; set; } = "";
+        public bool    InjFlag      { get; set; }
         public string  CarType      { get; set; } = "";
         public string  Uom          { get; set; } = "";
         public string  RoutingType  { get; set; } = "";

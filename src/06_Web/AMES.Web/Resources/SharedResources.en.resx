@@ -2844,6 +2844,9 @@
   <data name="Col.Attr1" xml:space="preserve">
     <value>Attribute1</value>
   </data>
+  <data name="Col.Attr2" xml:space="preserve">
+    <value>Attribute2</value>
+  </data>
   <data name="Col.CustomerId" xml:space="preserve">
     <value>Customer ID</value>
   </data>
@@ -3359,6 +3362,12 @@
   </data>
   <data name="MD.Items.Hint.Tote" xml:space="preserve">
     <value>Ships in tote boxes, not pallets</value>
+  </data>
+  <data name="MD.Items.Col.Inj" xml:space="preserve">
+    <value>Injection</value>
+  </data>
+  <data name="MD.Items.Hint.InjSubOnly" xml:space="preserve">
+    <value>SUB type only</value>
   </data>
   <data name="MD.Items.Lbl.SafetyStock" xml:space="preserve">
     <value>Safety Stock</value>
@@ -4733,6 +4742,24 @@
   </data>
   <data name="MD.LineTimePattern.Unsaved" xml:space="preserve">
     <value>Unsaved</value>
+  </data>
+  <data name="MD.LineTimePattern.Realigned" xml:space="preserve">
+    <value>Re-aligned to shift times</value>
+  </data>
+  <data name="MD.LineTimePattern.RealignedHint" xml:space="preserve">
+    <value>The WORK_SHIFT times changed, so the saved schedule was re-aligned to the new shift boundaries. Painted bands (break, inspection, planned downtime, etc.) keep their clock times and the rest is filled with each shift's default state. Save to apply.</value>
+  </data>
+  <data name="MD.LineTimePattern.Outdated" xml:space="preserve">
+    <value>Shift times changed</value>
+  </data>
+  <data name="MD.LineTimePattern.OutdatedHint" xml:space="preserve">
+    <value>The saved schedule does not match the current shift times (WORK_SHIFT) or the pattern shifts (SHIFT_PATTERN). The saved data is unchanged; open it in the schedule editor, review and save to apply.</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.ShiftCoverage" xml:space="preserve">
+    <value>The shift windows (Attribute1 of common code WORK_SHIFT) do not cover the 24-hour day exactly once, so schedules cannot be saved. Gaps: {0} / Overlaps: {1}</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.Coverage" xml:space="preserve">
+    <value>The schedule does not cover the 24-hour day exactly once and cannot be saved. Gaps: {0} / Overlaps: {1}</value>
   </data>
   <data name="MD.LineTimePattern.Modal.CloseDirty" xml:space="preserve">
     <value>You have unsaved changes. Close anyway?</value>

@@ -82,6 +82,10 @@ FILES=(
   migrate_pr_result_prod_shift.sql    # PR_ProductionResult.ProdDate·ShiftCode + 백필 (순서 무관)
   migrate_day_cutoff_config.sql       # 전기일 기준 시각 공통코드 DAY_CUTOFF → SYS_Config.DAY_CUTOFF_TIME 이관 (재실행 안전)
   migrate_bom_status_code.sql         # BOM 버전 상태 공통코드 BOM_STATUS + 기간 지난 승인 버전 EXPIRED (재실행 안전)
+  migrate_md_codeitem_attribute2.sql  # MD_CodeItem.Attribute2 nvarchar(200) (Attribute1 다음, 재생성 — 스키마에 이미 있으면 건너뜀)
+  migrate_md_item_inj_flag.sql        # MD_Item.InjFlag 사출품 여부 bit (ItemCategory 다음, 재생성 — 스키마에 이미 있으면 건너뜀)
+  migrate_sys_factory_calendar_net_hours.sql # SYS_FactoryCalendar.NetWorkHours decimal(4,1) → (4,2) (스키마에 이미 있으면 건너뜀)
+  migrate_sys_public_holiday.sql      # SYS_PublicHoliday(미국 연방 공휴일 2026–2030) + SP_SYS_FactoryCalendar_Fill (에이전트 작업은 setup_job_factory_calendar_fill.sql, sysadmin)
   migrate_pp_mrp_result.sql           # PP-005 MRP 결과 스냅샷 PP_MRPResult/Wo + MD_Item.LeadTimeDays (순서 무관)
   migrate_pp_pr_send.sql              # PP-006 구매요청 SAP 전송 상태 컬럼 + 상태 어휘 이관 (순서 무관)
   migrate_andon_workflow.sql          # 안돈 워크플로: MD_LineSupervisor·PR_AndonDeptCall·PR_AndonCall.SupervisorName·공통코드 (순서 무관)
@@ -152,6 +156,12 @@ for f in "${FILES[@]}"; do
   echo "  -> $f"
   run_file "$f"
 done
+
+# 4) SQL Server 에이전트 작업 "[AMES] Factory Calendar Fill"(매월 1일, 공장 달력 3개월 채우기) — msdb 는 DB 를 지워도
+#    남으므로 매번 다시 등록한다(재실행 안전). 컨테이너에서 작업이 실제로 돌려면 MSSQL_AGENT_ENABLED=true 로 만든
+#    컨테이너여야 한다. 등록 실패는 재구축을 막지 않는다.
+echo "[4/4] 에이전트 작업 등록 (setup_job_factory_calendar_fill.sql)..."
+run_file setup_job_factory_calendar_fill.sql || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_factory_calendar_fill.sql 을 다시 실행하세요"
 
 echo ""
 echo "✅ $DB rebuild 완료. 검증:"
