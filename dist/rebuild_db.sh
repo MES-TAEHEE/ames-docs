@@ -61,13 +61,14 @@ FILES=(
   seed_md_customer_seoyon.sql         # 고객 마스터 = Seoyon 세 플랜트(SAV·GEO·AUB), 데모 OEM 삭제
   seed_md_routing_step.sql            # 라우팅 템플릿(A/B) 시드 (테이블은 AMES_Schema.sql)
   seed_md_item_bom_master_list.sql    # 품목·BOM 정본 (docs/260828 BOM Master List.xlsx → tools/gen_md_item_bom_seed.py 생성) — MD_Item/MD_Bom 전체 재적재, FG_* 시드(PDA_SEED) 이전이어야 한다
-  migrate_inj_agent.sql               # 사출: MD_Mold 4종 + 사출조건 시드
-  migrate_mold_master.sql             # 금형: 매핑/색상/라인 시드 + FK 3종
+  migrate_inj_agent.sql               # 사출: PR_InjLot·사출조건 테이블 + 사출조건 시드 (금형 시드는 seed_md_mold_master)
+  migrate_mold_master.sql             # 금형: 자식 3종 → MD_Mold FK (시드 없음)
   migrate_mold_change_plan.sql        # 금형 교체 시간: MD_Mold.MoldChangeMin + PP_LineSchedule.MoldID (순서 무관)
   migrate_routing_step.sql            # 라우팅: MD_RoutingStep 생성 + A/B 시퀀스 시드 (seed_admin_permissions 이후 — Admin 권한 필요)
   migrate_wo_step_line.sql            # WO 공정 단계: PP_WorkOrderRouting CompletedQty·TerminalLock·인덱스 + 백필 (migrate_routing_step 이후)
   migrate_wo_step_item.sql            # WO 단계 생산 품번: PP_WorkOrderRouting.ItemNo (INJ 단계 = BOM 코어) + (LineID, ItemNo) 인덱스 (migrate_wo_step_line 이후)
-  seed_inj_img_master_dev.sql         #   → 개발용 코어 금형·MoldItem·MoldLine + INJ(코어)/IMG(완제품) 스테이션 BOP (품목 시드·migrate_mold_master 이후, 운영 금지)
+  seed_inj_img_master_dev.sql         #   → 개발용 INJ(코어)/IMG(완제품) 스테이션 BOP (품목 시드 이후, 운영 금지)
+  seed_md_mold_master.sql             # 금형 마스터 정본 — MD_Item 사출 성형 SUB(코어·레일) 기준 MD_Mold·MoldItem·MoldColor·MoldLine 전체 재적재 (품목 시드·migrate_mold_master·migrate_mold_change_plan 이후)
   seed_pp_customer_order_dev.sql      #   → 개발용 가상 수주 231건(ASSY 77 × 3회차, Confirmed) — seed_md_customer_seoyon 이 먼저여야 함
   migrate_wo_prod_deadline.sql        # WO 생산 마감일 컬럼 + PP_PROD_BUFFER_WORKDAYS 설정 (순서 무관)
   migrate_mnt_failure_severity.sql    # MNT 고장 등록: Urgency → Severity 컬럼명 변경 (순서 무관)
