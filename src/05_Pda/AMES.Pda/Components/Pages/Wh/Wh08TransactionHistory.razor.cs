@@ -96,8 +96,9 @@ public partial class Wh08TransactionHistory
 
     private async Task PrepareDetailedHistory(string search = PptHistoryLot)
     {
-        _dateFrom = DateTime.Today;
-        _dateTo = DateTime.Today;
+        _databaseToday = (await Api.DatabaseTimeAsync()).Date;
+        _dateFrom = _databaseToday;
+        _dateTo = _databaseToday;
         _search = search;
         _worker = "";
         _reason = "";
@@ -113,14 +114,14 @@ public partial class Wh08TransactionHistory
         switch (CurrentDetailedTestScenario.No)
         {
             case 6:
-                _dateFrom = DateTime.Today;
-                _dateTo = DateTime.Today.AddDays(-1);
+                _dateFrom = _databaseToday;
+                _dateTo = _databaseToday.AddDays(-1);
                 _search = PptHistoryLot;
                 _worker = _reason = _type = "";
                 await Load();
                 break;
             case 8:
-                _dateFrom = _dateTo = DateTime.Today.AddDays(-1);
+                _dateFrom = _dateTo = _databaseToday.AddDays(-1);
                 _search = PptHistoryLot;
                 _worker = _reason = _type = "";
                 await Load();
@@ -159,15 +160,15 @@ public partial class Wh08TransactionHistory
         }
         if (value.Action == "INVALID_DATE")
         {
-            _dateFrom = DateTime.Today;
-            _dateTo = DateTime.Today.AddDays(-1);
+            _dateFrom = _databaseToday;
+            _dateTo = _databaseToday.AddDays(-1);
             _search = PptHistoryLot;
             await Load();
             return;
         }
         if (value.Action == "YESTERDAY")
         {
-            _dateFrom = _dateTo = DateTime.Today.AddDays(-1);
+            _dateFrom = _dateTo = _databaseToday.AddDays(-1);
             _search = PptHistoryLot;
             await Load();
             return;
@@ -196,8 +197,9 @@ public partial class Wh08TransactionHistory
     private Task ResetPptHistory() => IsFinishedGoods ? FgApi.FgResetPptTestAsync("history") : Api.WhResetPptTestAsync("history");
     private async Task PreparePptRows()
     {
-        _dateFrom = DateTime.Today;
-        _dateTo = DateTime.Today;
+        _databaseToday = (await Api.DatabaseTimeAsync()).Date;
+        _dateFrom = _databaseToday;
+        _dateTo = _databaseToday;
         _search = ActivePptLot;
         _worker = "";
         _reason = "";
@@ -226,7 +228,7 @@ public partial class Wh08TransactionHistory
         await EnsurePptData();
         await PreparePptRows();
         if (command is "IN" or "OUT" or "PICK" or "LOAD" or "RETURN" or "ADJ" or "ALL") { SetType(command == "ALL" ? "" : command); return; }
-        if (command == "YESTERDAY") { _dateFrom = DateTime.Today.AddDays(-1); _dateTo = _dateFrom; }
+        if (command == "YESTERDAY") { _dateFrom = _databaseToday.AddDays(-1); _dateTo = _dateFrom; }
         if (command == "PART") _search = IsFinishedGoods ? "PPT-FG-HIST" : "PPT-WH-HIST-01";
         if (IsFinishedGoods && command == "STOCK") _search = "FG-PPT-STK-970001";
         if (IsFinishedGoods && command == "SLIP") _search = "2609089005";

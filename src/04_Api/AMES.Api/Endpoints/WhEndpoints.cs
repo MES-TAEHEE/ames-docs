@@ -1284,7 +1284,7 @@ public static class WhEndpoints
         string? vendorId,
         string? lang)
     {
-        var today = DateTime.Today;
+        var today = AMES.Data.Services.DbClock.ReadNow(factory).Date;
         var queryYear = year ?? today.Year;
         var queryQuarter = quarter ?? ((today.Month - 1) / 3) + 1;
         var language = string.IsNullOrWhiteSpace(lang) ? "EN" : lang;
@@ -1751,9 +1751,9 @@ public static class WhEndpoints
         cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
             string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
         cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value =
-            dateFrom.HasValue ? dateFrom.Value.Date : DateTime.Today.AddDays(-30);
+            (object?)dateFrom?.Date ?? DBNull.Value;
         cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value =
-            dateTo.HasValue ? dateTo.Value.Date : DateTime.Today;
+            (object?)dateTo?.Date ?? DBNull.Value;
 
         using var rdr = cmd.ExecuteReader();
         var rows = new List<WarehouseTransactionRow>();

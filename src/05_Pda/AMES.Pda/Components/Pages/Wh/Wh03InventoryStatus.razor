@@ -1639,7 +1639,7 @@
             }
 
             _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure, AreaScope);
-            _lastSyncAt = DateTime.Now;
+            _lastSyncAt = await Api.DatabaseTimeAsync();
             if (!StockStatuses.Contains(_statusFilter, StringComparer.OrdinalIgnoreCase))
                 _statusFilter = "ALL";
 
@@ -1688,7 +1688,7 @@
         try
         {
             _lotStatuses = await Api.WhLotStatusesAsync(_q, AreaScope);
-            _lastSyncAt = DateTime.Now;
+            _lastSyncAt = await Api.DatabaseTimeAsync();
         }
         finally
         {
