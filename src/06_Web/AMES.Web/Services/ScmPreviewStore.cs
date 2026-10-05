@@ -11,7 +11,8 @@ public sealed class ScmPreviewStore
         public decimal UnshippedQuantity => Math.Max(0, Quantity - ShippedQuantity);
         public decimal RegisteredDelivery { get; set; }
         public decimal PendingDelivery { get; set; }
-        public decimal AvailableDelivery => Math.Max(0, Quantity - Received - PendingDelivery);
+        public decimal PreparedQuantity { get; set; }
+        public decimal AvailableDelivery => Math.Max(0, Quantity - Received - PendingDelivery - PreparedQuantity);
         public int Id { get; set; } = 1;
         public string Item { get; set; } = "";
         public string Name { get; set; } = "";

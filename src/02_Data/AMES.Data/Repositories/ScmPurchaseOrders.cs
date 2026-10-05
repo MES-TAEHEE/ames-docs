@@ -5,21 +5,26 @@ namespace AMES.Data.Repositories;
 public sealed partial class ScmRepository
 {
     public record PurchaseLine(int Id, string Item, string Name, string Unit, decimal Quantity,
-        decimal Price, decimal Received, int PoID = 0, string Version = "");
+        decimal Price, decimal Received, int PoID = 0, string Version = "", bool ItemExists = true);
     public record PurchaseOrder(string Number, string Vendor, DateTime Ordered, DateTime Due,
         string Destination, string Status, string Currency, List<PurchaseLine> Lines, string VendorName = "",
         DateTime? SupplierConfirmedAt = null, string? SupplierConfirmedBy = null);
 
-    public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null)
+    public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null, bool confirmedOnly = false)
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
             SELECT p.PoID,p.PoNumber,p.PoLineNo,p.VendorID,p.ItemNo,i.ItemName,p.UnitCode,
                    p.OrderQty,p.UnitPrice,p.ReceivedQty,p.OrderDate,p.DueDate,p.Status,
-                   p.Currency,p.DeliveryDestination,p.ScmRowVersion,v.VendorName,p.SupplierConfirmedAt,p.SupplierConfirmedBy
+                   p.Currency,p.DeliveryDestination,p.ScmRowVersion,v.VendorName,p.SupplierConfirmedAt,p.SupplierConfirmedBy,
+                   CAST(CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS bit)
             FROM dbo.WH_PurchaseOrder p LEFT JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo
             LEFT JOIN dbo.MD_Vendor v ON v.VendorID=p.VendorID
             WHERE NULLIF(p.PoNumber,'') IS NOT NULL
+              AND (@ConfirmedOnly=0 OR (p.SupplierConfirmedAt IS NOT NULL
+                  AND p.Status IN ('Open','Partial','Complete','Received')
+                  AND NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber
+                      AND (d.SupplierConfirmedAt IS NULL OR d.Status IS NULL OR d.Status NOT IN ('Open','Partial','Complete','Received')))))
               AND (@Portal=0 OR (
                   p.Status IN ('Open','Partial','Complete','Received','Cancelled')
                   AND NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber AND (d.Status='Draft' OR d.Status IS NULL))
@@ -32,7 +37,7 @@ public sealed partial class ScmRepository
               ))
             ORDER BY p.PoNumber DESC,p.PoLineNo,p.PoID;
             """, conn);
-        Add(cmd,("@Portal",portal),("@UserID",portalUserId ?? ""));
+        Add(cmd,("@Portal",portal),("@UserID",portalUserId ?? ""),("@ConfirmedOnly",confirmedOnly));
         using var r = cmd.ExecuteReader();
         var orders = new Dictionary<string, PurchaseOrder>();
         while (r.Read())
@@ -51,7 +56,7 @@ public sealed partial class ScmRepository
             if (order.Status != S(12)) orders[number] = order = order with { Status = "Partial" };
             if (r.IsDBNull(17)) orders[number] = order = order with { SupplierConfirmedAt = null, SupplierConfirmedBy = null };
             order.Lines.Add(new(r.IsDBNull(2) ? r.GetInt32(0) : r.GetInt32(2), S(4), S(5), S(6),
-                D(7), D(8), D(9), r.GetInt32(0), Convert.ToHexString((byte[])r[15])));
+                D(7), D(8), D(9), r.GetInt32(0), Convert.ToHexString((byte[])r[15]),r.GetBoolean(19)));
         }
         return orders.Values.ToList();
     }
@@ -112,6 +117,9 @@ public sealed partial class ScmRepository
                     WHERE m.UserID=@User AND m.VendorID=p.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1
                 )
             ) THROW 50031,'No confirmation permission.',1;
+            IF EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder p WHERE p.PoNumber=@Number
+                AND NOT EXISTS(SELECT 1 FROM dbo.MD_Item i WITH(HOLDLOCK) WHERE i.ItemNo=p.ItemNo))
+                THROW 50032,'Order contains an item missing from Item Master. Ask EOS to correct the order.',1;
             IF NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber=@Number AND SupplierConfirmedAt IS NULL)
             BEGIN SELECT CAST(0 AS bit); RETURN; END;
             DECLARE @Now datetime2(7)=SYSDATETIME();

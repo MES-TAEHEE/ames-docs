@@ -8,6 +8,8 @@
 .scm-scroll .num, .scm-scroll th.num { text-align:right; white-space:nowrap; }
 .scm-log { line-height:1.9; font-size:.92em; }
 .scm-act { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.scm-creation-actions { display:flex; flex-wrap:nowrap; align-items:center; gap:10px; margin:0 0 12px; overflow-x:auto; }
+.scm-creation-actions ::deep button { flex-shrink:0; white-space:nowrap; }
 .scm-line-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .scm-lines { width:100%; }
 .scm-lines td:nth-child(2) { min-width:240px; }

@@ -34,6 +34,15 @@ public sealed partial class ScmRepository
         IReadOnlyList<string>? caseNumbers = null,
         IReadOnlyList<IReadOnlyList<CaseBoxInput>>? draftCases = null)
     {
+        using var conn=factory.OpenConnection(); using var tx=conn.BeginTransaction();
+        var result=RegisterSupplierDelivery(conn,tx,number,date,items,versions,requestId,userId,actor,caseNumbers,draftCases);
+        tx.Commit(); return result;
+    }
+
+    static string RegisterSupplierDelivery(SqlConnection conn,SqlTransaction tx,string number,DateTime date,
+        IReadOnlyList<DeliveryInput> items,IReadOnlyDictionary<int,string> versions,Guid requestId,string userId,string actor,
+        IReadOnlyList<string>? caseNumbers=null,IReadOnlyList<IReadOnlyList<CaseBoxInput>>? draftCases=null,bool caseBatch=false)
+    {
         if(requestId==Guid.Empty || items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
             items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity))
             throw new ArgumentException("Select lines and positive quantities with up to three decimal places.");
@@ -41,7 +50,6 @@ public sealed partial class ScmRepository
         if(draftCases is not null && (caseNumbers is not null || draftCases.Count is <1 or >1000
             || draftCases.Any(c=>c is null || c.Count==0) || draftCases.Sum(c=>c.Count)>1000))
             throw new ArgumentException("Create 1 to 1,000 cases containing at most 1,000 boxes.");
-        using var conn=factory.OpenConnection(); using var tx=conn.BeginTransaction();
         // Serialize all registrations and cancellations for this PO before checking balances.
         using(var gate=new SqlCommand("SELECT PoID FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK) WHERE PoNumber=@N",conn,tx))
         { Add(gate,("@N",number)); using var reader=gate.ExecuteReader(); while(reader.Read()){} }
@@ -59,7 +67,7 @@ public sealed partial class ScmRepository
             """,conn,tx))
         {
             Add(auth,("@N",number),("@U",userId),("@Request",requestId));
-            if(auth.ExecuteScalar() is string previous){tx.Commit();return previous;}
+            if(auth.ExecuteScalar() is string previous)return previous;
         }
         var locked=LockPurchaseOrder(conn,tx,number,versions);
         if(locked.Any(x=>x.Status is not ("Open" or "Partial" or "Complete" or "Received")))
@@ -71,7 +79,7 @@ public sealed partial class ScmRepository
         {Add(confirmed,("@N",number),("@Date",date.Date));if((int)confirmed.ExecuteScalar()!>0)throw new InvalidOperationException("Confirm the order and check the delivery date.");}
         if(draftCases is not null)
             caseNumbers=draftCases.Select(boxes=>CreatePreparedCase(conn,tx,number,boxes,userId)).ToArray();
-        if(caseNumbers is not null) ValidatePreparedCases(conn,tx,number,caseNumbers,items);
+        if(caseNumbers is not null) ValidatePreparedCases(conn,tx,number,caseNumbers,items,caseBatch);
         foreach(var item in items)
         {
             if(caseNumbers is null)
@@ -91,7 +99,8 @@ public sealed partial class ScmRepository
                     WHERE l.PoID=p.PoID AND d.Status<>'Cancelled'),0)
                     -CASE WHEN @FromCases=1 THEN 0 ELSE COALESCE((SELECT SUM(b.Quantity) FROM dbo.SCM_DeliveryBox b
                         WHERE b.PoID=p.PoID AND b.CaseNo IS NOT NULL AND b.DeliveryLineID IS NULL AND b.ActiveFlag=1),0) END
-                FROM dbo.WH_PurchaseOrder p WHERE p.PoID=@ID AND p.PoNumber=@N AND p.Status IN ('Open','Partial');
+                FROM dbo.WH_PurchaseOrder p JOIN dbo.MD_Item i WITH(HOLDLOCK) ON i.ItemNo=p.ItemNo
+                WHERE p.PoID=@ID AND p.PoNumber=@N AND p.Status IN ('Open','Partial');
                 """,conn,tx);
             Add(available,("@ID",item.PoID),("@N",number),("@FromCases",caseNumbers is not null));
             if(available.ExecuteScalar() is not decimal remaining || item.Quantity>remaining)
@@ -113,10 +122,10 @@ public sealed partial class ScmRepository
             Add(line,("@D",id),("@P",item.PoID),("@Q",item.Quantity),("@Lot",DeliveryLot(item,date)),("@Prod",(item.ProductionDate??date).Date));line.ExecuteNonQuery();
         }
         if(caseNumbers is null) SyncDeliveryBoxes(conn,tx,id);
-        else AttachPreparedCases(conn,tx,id,caseNumbers);
+        else AttachPreparedCases(conn,tx,id,caseNumbers,!caseBatch);
         using var touch=new SqlCommand("UPDATE dbo.WH_PurchaseOrder SET ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE PoNumber=@N",conn,tx);
         Add(touch,("@Actor",actor),("@N",number));touch.ExecuteNonQuery();
-        tx.Commit(); return deliveryNumber;
+        return deliveryNumber;
     }
     public void UpdateSupplierDelivery(string deliveryNumber, DateTime date, IReadOnlyList<DeliveryInput> items,
         string version, IReadOnlyDictionary<int,string> orderVersions, string userId, string actor,
@@ -212,6 +221,17 @@ public sealed partial class ScmRepository
         if(!cancel && !ship) SyncDeliveryBoxes(conn,tx,id);
         if(cancel)
         {
+            using var sharedCase=new SqlCommand("""
+                SELECT COUNT(*) FROM dbo.SCM_DeliveryBox b
+                JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID
+                WHERE l.DeliveryID=@ID AND b.ActiveFlag=1 AND EXISTS(
+                    SELECT 1 FROM dbo.SCM_DeliveryBox otherBox
+                    JOIN dbo.SCM_DeliveryLine otherLine ON otherLine.DeliveryLineID=otherBox.DeliveryLineID
+                    WHERE otherBox.CaseNo=b.CaseNo AND otherBox.ActiveFlag=1 AND otherLine.DeliveryID<>@ID);
+                """,conn,tx);
+            Add(sharedCase,("@ID",id));
+            if((int)sharedCase.ExecuteScalar()!>0)
+                throw new InvalidOperationException("This delivery shares a Case with another PO. It cannot be cancelled separately.");
             // Keep the cancelled document links for history; do not leave orphaned prepared cases.
             using var voidBoxes=new SqlCommand("UPDATE b SET ActiveFlag=0,VoidedTS=SYSDATETIME() FROM dbo.SCM_DeliveryBox b JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID WHERE l.DeliveryID=@ID AND b.ActiveFlag=1",conn,tx);
             Add(voidBoxes,("@ID",id));voidBoxes.ExecuteNonQuery();
