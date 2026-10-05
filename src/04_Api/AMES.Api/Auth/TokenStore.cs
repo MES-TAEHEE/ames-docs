@@ -9,7 +9,7 @@ namespace AMES.Api.Auth;
 /// Tokens live until ExpiresAt elapses or /auth/logout removes them.
 /// Singleton — registered in Program.cs.
 /// </summary>
-public sealed class TokenStore
+public sealed class TokenStore(Func<DateTime> databaseNow)
 {
     private readonly ConcurrentDictionary<string, (PopSessionDto Session, DateTime Expires)> _map = new();
 
@@ -23,7 +23,7 @@ public sealed class TokenStore
     public PopSessionDto? Resolve(string? token)
     {
         if (string.IsNullOrEmpty(token) || !_map.TryGetValue(token, out var entry)) return null;
-        if (entry.Expires < DateTime.UtcNow) { _map.TryRemove(token, out _); return null; }
+        if (entry.Expires <= databaseNow()) { _map.TryRemove(token, out _); return null; }
         return entry.Session;
     }
 

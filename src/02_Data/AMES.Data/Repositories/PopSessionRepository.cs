@@ -3,7 +3,6 @@ using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
-using AMES.Data.Services;
 
 namespace AMES.Data.Repositories;
 
@@ -33,17 +32,15 @@ public sealed class PopSessionRepository
         string shiftCode,
         AuthMethod method)
     {
-        var startedAt  = DbClock.Now;
-        var expiresAt  = startedAt + DefaultLifetime;
-
         const string sql = """
+            DECLARE @Now datetime2 = SYSDATETIME();
             INSERT INTO dbo.PR_PopSession
                 (OperatorID, TerminalID, LineID, ShiftCode, AuthMethod,
                  StartedAt, ExpiresAt, CreatedBy, CreatedTS)
-            OUTPUT INSERTED.SessionID
+            OUTPUT INSERTED.SessionID, INSERTED.StartedAt, INSERTED.ExpiresAt
             VALUES
                 (@OperatorID, @TerminalID, @LineID, @ShiftCode, @AuthMethod,
-                 @StartedAt, @ExpiresAt, @CreatedBy, SYSDATETIME());
+                 @Now, DATEADD(second, @Lifetime, @Now), @CreatedBy, @Now);
             """;
 
         using var conn = _connFactory.OpenConnection();
@@ -55,11 +52,18 @@ public sealed class PopSessionRepository
         cmd.Parameters.Add("@LineID",     SqlDbType.VarChar,   20 ).Value = lineId;
         cmd.Parameters.Add("@ShiftCode",  SqlDbType.VarChar,   10 ).Value = shiftCode;
         cmd.Parameters.Add("@AuthMethod", SqlDbType.VarChar,   20 ).Value = method.ToString();
-        cmd.Parameters.Add("@StartedAt",  SqlDbType.DateTime2     ).Value = startedAt;
-        cmd.Parameters.Add("@ExpiresAt",  SqlDbType.DateTime2     ).Value = expiresAt;
+        cmd.Parameters.Add("@Lifetime", SqlDbType.Int).Value = (int)DefaultLifetime.TotalSeconds;
         cmd.Parameters.Add("@CreatedBy",  SqlDbType.VarChar,    20).Value = profile.EmployeeNo;
 
-        var sessionId = (int)cmd.ExecuteScalar()!;
+        int sessionId;
+        DateTime startedAt, expiresAt;
+        using (var reader = cmd.ExecuteReader())
+        {
+            if (!reader.Read()) throw new InvalidOperationException("Session was not created.");
+            sessionId = reader.GetInt32(0);
+            startedAt = reader.GetDateTime(1);
+            expiresAt = reader.GetDateTime(2);
+        }
 
         using var roleCmd = new SqlCommand("""
             SELECT CAST(CASE WHEN EXISTS (

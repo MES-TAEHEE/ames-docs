@@ -33,7 +33,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<PoSyncWorker>());
 builder.Services.AddHostedService<AMES.Api.Workers.LineReplenishmentWorker>();
 
 // ── Auth token registry ─────────────────────────────────────────────────
-var tokens = new TokenStore();
+var tokens = new TokenStore(() => DbClock.ReadNow(factory));
 builder.Services.AddSingleton(tokens);
 
 // ── CORS — PDA clients come from arbitrary devices on the LAN ───────────
@@ -90,7 +90,9 @@ app.UseSwaggerUI(c =>
 });
 
 // ── Endpoints ───────────────────────────────────────────────────────────
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.UtcNow }));
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DbClock.ReadNow(factory) }));
+app.MapGet("/api/time", () => Results.Ok(DbClock.ReadNow(factory)))
+    .WithTags("Shared").WithSummary("Current database local time for PDA dates and elapsed-day displays");
 app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens);
 app.MapWh(factory);
 app.MapFg(factory);

@@ -20,7 +20,14 @@ public static class BearerAuth
             if (auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 var token = auth["Bearer ".Length..].Trim();
-                var session = store.Resolve(token);
+                PopSessionDto? session;
+                try { session = store.Resolve(token); }
+                catch (Microsoft.Data.SqlClient.SqlException)
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                    await ctx.Response.WriteAsJsonAsync(new { message = "Database time is unavailable. Please retry." });
+                    return;
+                }
                 if (session is not null) ctx.Items[SessionKey] = session;
             }
             await next();
