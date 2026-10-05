@@ -56,6 +56,11 @@
                 </div>
                 <span class="wh-home-tile-go">&gt;</span>
             </button>
+            <button class="pda-tile sm wh-home-tile adjust" @onclick='@(() => Nav.NavigateTo("/wh/03?tab=adjust&scope=line"))'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="precision_manufacturing" /></span>
+                <div class="wh-home-tile-copy"><div class="pda-tile-cap">Line Adjust</div></div>
+                <span class="wh-home-tile-go">&gt;</span>
+            </button>
             }
             <button class="pda-tile sm wh-home-tile transactions" @onclick='@(() => Nav.NavigateTo("/wh/08"))'>
                 <span class="wh-home-tile-ic"><RadzenIcon Icon="history" /></span>

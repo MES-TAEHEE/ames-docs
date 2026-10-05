@@ -6,6 +6,9 @@ namespace AMES.Pda.Services;
 public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi spareParts,
     FinishedGoodsApi fgApi) : PdaApi(http, auth)
 {
+    public Task<List<string>> WhAdjustmentLinesAsync() => GetRequiredAsync<List<string>>(
+        "/api/wh/adjust/lines", "Line inventory service is unavailable.");
+
     public Task<List<InboundRow>>         WhInboundTodayAsync()    => Get<List<InboundRow>>("/api/wh/inbound/today");
     public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null,
         bool simulateFailure = false, string? areaCode = null)
@@ -66,7 +69,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
             return await spareParts.LocationsAsync();
 
         return FilterByArea(
-            await GetRequiredAsync<List<LocationRow>>("/api/wh/locations", "Location service is unavailable."),
+            await GetRequiredAsync<List<LocationRow>>("/api/wh/inventory/location-list", "Location service is unavailable."),
             row => row.AreaCode, areaCode);
     }
     public async Task<List<LocationRow>> WhLocationMapAsync()
@@ -147,6 +150,8 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
             return null;
         }
     }
+    public Task<List<OpenPickingOrderRow>> WhOpenPickingOrdersAsync()
+        => Get<List<OpenPickingOrderRow>>("/api/wh/release/picking-orders");
     public Task<List<ReleasePickLineRow>> WhReleaseLinesAsync(string pickSlipNo)
         => Get<List<ReleasePickLineRow>>($"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo)}/lines");
     public async Task<List<ReleaseFifoLotRow>> WhReleaseFifoLotsAsync(string pickSlipNo, string? areaCode = null)

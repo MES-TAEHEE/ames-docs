@@ -15,6 +15,13 @@ namespace AMES.Data.Services;
 /// </summary>
 public static class DbClock
 {
+    public static DateTime ReadNow(AmesConnectionFactory factory)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT SYSDATETIME();", conn);
+        return DateTime.SpecifyKind((DateTime)cmd.ExecuteScalar()!, DateTimeKind.Unspecified);
+    }
+
     private static AmesConnectionFactory? _factory;
     private static long _offsetTicks;
     private static long _syncedAtTick = -1;          // Environment.TickCount64 (호스트 시계 변경에 영향받지 않는 단조 시계)

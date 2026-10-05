@@ -11,3 +11,16 @@
 .receipt-detail ::deep .rz-grid-table td.receipt-wrap, .receipt-detail ::deep .rz-grid-table td.receipt-wrap .rz-cell-data { white-space:normal; overflow-wrap:anywhere; }
 /* 줄바꿈은 유연 열(품목명)만 — 번호·코드 열은 너비를 내용에 맞춰 두고 한 줄로 */
 .receipt-list ::deep .rz-grid-table td.receipt-wrap, .receipt-list ::deep .rz-grid-table td.receipt-wrap .rz-cell-data { white-space:normal; overflow-wrap:anywhere; }
+.scm-discrepancies { width:min(1250px,96vw); max-width:96vw; max-height:90vh; display:flex; flex-direction:column; }
+.scm-discrepancies .ames-modal-h { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.scm-discrepancy-content { padding:16px; overflow:auto; min-height:0; }
+.scm-discrepancy-scroll { overflow:auto; }
+.scm-discrepancy-scroll table { min-width:1000px; }
+.scm-discrepancy-scroll td { white-space:normal; overflow-wrap:anywhere; }
+.scm-shortage { color:var(--ames-tx-red-400,#f87171); }
+.scm-overage { color:var(--ames-tx-blue-400,#60a5fa); }
+.receipt-mismatch,
+.receipt-mismatch:disabled { border:0; background:transparent; box-shadow:none; padding:0; color:var(--ames-tx-red-400,#f87171); opacity:1; font:inherit; font-weight:600; cursor:pointer; }
+.receipt-mismatch:disabled { cursor:default; }
+.receipt-mismatch:not(:disabled):hover { text-decoration:underline; }
+.receipt-mismatch:focus-visible { outline:2px solid currentColor; outline-offset:3px; }

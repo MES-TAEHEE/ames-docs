@@ -10,7 +10,7 @@
 <PageTitle>@L["Scm.Text.ReceiptStatus"] · AMES</PageTitle>
 <AmesPageHeader Code="PORTAL-004" Title='@L["Scm.Text.ReceiptStatus"]' />
 <div class="ames-kpis">
-    <div class="ames-kpi info"><div class="ames-kpi-l">@L["Portal.Text.Deliveries.0b0751"]</div><div class="ames-kpi-v">@DeliveryCount</div></div>
+    <div class="ames-kpi info"><div class="ames-kpi-l">@L["Portal.Text.DeliveryNote"]</div><div class="ames-kpi-v">@Rows.Count</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["Portal.Text.NotReceived"]</div><div class="ames-kpi-v">@CountStatus("미입고")</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Portal.Text.PartiallyReceived"]</div><div class="ames-kpi-v">@CountStatus("부분입고")</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["Portal.Text.Received"]</div><div class="ames-kpi-v">@CountStatus("입고완료")</div></div>
@@ -30,27 +30,29 @@
             <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" Click="Reset" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim receipt-hint">ℹ @L["Portal.Text.ViewReceivedAndRemainingQuantitiesByDeliveryItemReceipt"]</div>
+    <div class="dim receipt-hint">ℹ Select a Delivery Note to view PO and item receipt details.</div>
     @if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false">@_error</RadzenAlert>}
     @if(_from>_to){<RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@L["Portal.Text.CheckTheShipDateRange"]</RadzenAlert>}
-    <div class="receipt-totals dim">@L["Portal.Text.ReceivedQuantity"] @Totals(Rows,true) <span>·</span> @L["Portal.Text.OutstandingQuantity"] @Totals(Rows,false)</div>
-<RadzenDataGrid @ref="_grid" TItem="ScmRepository.PortalReceiptLine" Data="@Rows" AllowPaging="true" PageSize="25" AllowSorting="true"
+    <div class="receipt-totals dim">@L["Portal.Text.ReceivedQuantity"] @Totals(Rows.SelectMany(r=>r.Lines),true) <span>·</span> @L["Portal.Text.RemainingQuantity"] @Totals(Rows.SelectMany(r=>r.Lines),false)</div>
+<RadzenDataGrid @ref="_grid" TItem="ScmRepository.PortalReceiptDocument" Data="@Rows" AllowPaging="true" PageSize="25" AllowSorting="true"
     PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat='@L["Portal.Text.Page0Of12Items"]' PageSizeText='@L["Portal.Text.PerPage"]'
-    RowClick="@(args => { if (args.Data is not null) Select(args.Data); })" RowRender="RowLink" EmptyText='@L["Scm.Text.NoResults"]' PageSizeChanged="@(s => _pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+    RowClick="@(args => { if (args.Data is not null) Select(args.Data.First); })" RowRender="RowLink" EmptyText='@L["Scm.Text.NoResults"]' PageSizeChanged="@(s => _pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
     <Columns>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="60px" MinWidth="60px" Title="No." TextAlign="TextAlign.Center" Sortable="false"><Template Context="r"><span class="dim">@GridRowNo.Of(_grid,r)</span></Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Property="Note" Title='@L["Portal.Text.DeliveryNote"]'><Template Context="r">@(r.Note.Length==0?L["Portal.Text.NotIssued"]:r.Note)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Property="Delivery" Title='@L["Portal.Text.DeliveryNumber"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="150px" MinWidth="150px" Property="VendorName" Title='@L["Scm.Text.Supplier"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Order" Title='@L["Portal.Text.PurchaseOrder"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Property="Item" Title='@L["Portal.Text.ItemCode"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" MinWidth="200px" CssClass="receipt-wrap" Property="Name" Title='@L["Portal.Text.Description"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="150px" MinWidth="150px" TextAlign="TextAlign.Center" Property="ShipDate" Title='@L["Scm.Text.ShipDate"]' FormatString="{0:yyyy-MM-dd}" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="140px" MinWidth="140px" TextAlign="TextAlign.Right" Property="Quantity" Title='@L["Portal.Receipts.Col.DeliveredQty"]'><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="140px" MinWidth="140px" TextAlign="TextAlign.Right" Property="Received" Title='@L["Portal.Receipts.Col.ReceivedQty"]'><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Property="Remaining" Title='@L["Portal.Receipts.Col.OpenQty"]'><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="100px" MinWidth="100px" TextAlign="TextAlign.Center" Property="Unit" Title='@L["Scm.Text.Unit"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="190px" MinWidth="190px" Property="ReceiptStatus" Title='@L["Portal.Text.ReceiptStatus"]' TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@ReceiptLabel(r.ReceiptStatus)</span></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" Title="No." Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false"><Template Context="r"><span class="dim">@GridRowNo.Of(_grid,r)</span></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Property="Note" Title='@L["Portal.Text.DeliveryNote"]'><Template Context="r">@(r.Note.Length==0?$"{r.First.Delivery} ({L["Portal.Text.NotIssued"]})":r.Note)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" MinWidth="150px" Property="VendorName" Title='@L["Scm.Text.Supplier"]' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" Width="90px" MinWidth="90px" Property="ItemCount" Title="Items" TextAlign="TextAlign.Right" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" Width="150px" MinWidth="150px" TextAlign="TextAlign.Center" Property="ShipDate" Title='@L["Scm.Text.ShipDate"]' FormatString="{0:yyyy-MM-dd}" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" Width="140px" MinWidth="140px" CssClass="receipt-wrap" TextAlign="TextAlign.Right" Sortable="false" Title='@L["Portal.Receipts.Col.DeliveredQty"]'><Template Context="r">@QuantityTotals(r.Lines)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" Width="140px" MinWidth="140px" CssClass="receipt-wrap" TextAlign="TextAlign.Right" Sortable="false" Title='@L["Portal.Receipts.Col.ReceivedQty"]'><Template Context="r">@Totals(r.Lines,true)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" Width="140px" MinWidth="140px" CssClass="receipt-wrap" TextAlign="TextAlign.Right" Sortable="false" Title='@L["Portal.Text.RemainingQuantity"]'><Template Context="r">@Totals(r.Lines,false)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" Title="Qty Mismatch" Width="130px" MinWidth="130px" TextAlign="TextAlign.Center" Sortable="false">
+            <Template Context="r"><div @onclick:stopPropagation="true" title="Quantity adjustment events for this Delivery Note, not outstanding units">
+                <button type="button" class="receipt-mismatch" aria-label="@($"Quantity mismatch details for {(r.Note.Length>0?r.Note:r.First.Delivery)}")"
+                    disabled="@(_discrepancyError.Length==0 && DiscrepancyCount(r.First)==0)" @onclick="()=>OpenDiscrepancies(r.First)">@(_discrepancyError.Length>0?"Unavailable":DiscrepancyCount(r.First).ToString())</button>
+            </div></Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptDocument" Width="190px" MinWidth="190px" Property="ReceiptStatus" Title='@L["Portal.Text.ReceiptStatus"]' TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@ReceiptLabel(r.ReceiptStatus)</span></Template></RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
 </div>
@@ -62,7 +64,7 @@
             <div class="receipt-tile"><div class="receipt-label">@L["Portal.Text.ReceiptStatus"]</div><span class="pill @Badge(GroupStatus(_details))">@ReceiptLabel(GroupStatus(_details))</span></div>
             <div class="receipt-tile"><div class="receipt-label">@L["Scm.Text.Supplier"]</div><div class="receipt-value">@_details[0].VendorName</div></div>
             <div class="receipt-tile"><div class="receipt-label">@L["Portal.Text.ReceivedQuantity"]</div><div class="receipt-value">@Totals(_details,true)</div></div>
-            <div class="receipt-tile"><div class="receipt-label">@L["Portal.Text.OutstandingQuantity"]</div><div class="receipt-value">@Totals(_details,false)</div></div>
+            <div class="receipt-tile"><div class="receipt-label">@L["Portal.Text.RemainingQuantity"]</div><div class="receipt-value">@Totals(_details,false)</div></div>
         </div>
         <div class="dim receipt-hint">ℹ @L["Portal.Text.TheStatusIsAwaitingReceiptPartiallyReceivedOrFully"]</div>
         <RadzenDataGrid TItem="ScmRepository.PortalReceiptLine" Data="@_details" AllowPaging="true" PageSize="10" Class="ames-rz-grid" ShowPagingSummary="true" PagingSummaryFormat='@L["Portal.Text.Page0Of12Items"]'>
@@ -83,27 +85,85 @@
         <RadzenButton Text='@L["Btn.Close"]' Icon="close" Click="Close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
     </div></div>
 }
+    @if(_allowed && _discrepancyKey is not null)
+    {
+        <div class="ames-modal-bg" @onclick="CloseDiscrepancies">
+            <div class="ames-modal scm-discrepancies" role="dialog" aria-modal="true" aria-labelledby="discrepancy-title" @onclick:stopPropagation="true">
+                <div class="ames-modal-h" id="discrepancy-title">
+                    <span>Quantity Mismatch · @_discrepancyTitle</span>
+                    <RadzenButton Text="Close" Icon="close" Click="CloseDiscrepancies" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
+                </div>
+                <div class="scm-discrepancy-content">
+                    <div class="scm-act"><span>@DiscrepancyRows.Count adjustment(s) · @string.Join(", ",DiscrepancyRows.Select(r=>r.Note).Where(n=>n.Length>0).Distinct())</span>
+                        <RadzenButton Text="Refresh" Icon="refresh" Click="LoadDiscrepancies" Size="ButtonSize.Small" /></div>
+                    <p class="dim">Warehouse quantity adjustments. Original delivery and receipt quantities are unchanged; supplier responsibility has not been determined.</p>
+                    @if(_discrepancyError.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_discrepancyError</RadzenAlert>}
+                    else if(DiscrepancyRows.Count==0){<p>No quantity mismatches.</p>}
+                    else
+                    {
+                        <div class="scm-discrepancy-scroll"><table class="ames-table">
+                            <thead><tr><th>Adjusted At</th><th>Box / LOT</th><th>Part No / Name</th><th>Before</th><th>After</th><th>Difference</th><th>Reason / Note</th></tr></thead>
+                            <tbody>@foreach(var row in DiscrepancyRows)
+                            {
+                                <tr @key="row.TransactionId"><td>@row.OccurredAt.ToString("yyyy-MM-dd HH:mm:ss")</td><td>@row.Lot</td>
+                                    <td>@row.Item<div class="dim">@row.Name</div><div class="dim">PO: @row.Order</div></td>
+                                    <td>@QtyFormat.Text(row.Before,row.Unit) @row.Unit</td><td>@QtyFormat.Text(row.After,row.Unit) @row.Unit</td>
+                                    <td class="@(row.Change<0?"scm-shortage":"scm-overage")"><strong>@(row.Change>0?"+":"")@QtyFormat.Text(row.Change,row.Unit) @row.Unit</strong><div>@(row.Change<0?"Shortage":"Overage")</div></td>
+                                    <td>@row.Reason<div class="dim">@row.Comment</div></td></tr>
+                            }</tbody>
+                        </table></div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
 @code {
     string ReceiptLabel(string status) => status switch { "미입고" => L["Portal.Text.NotReceived"], "부분입고" => L["Portal.Text.PartiallyReceived"], "입고완료" => L["Portal.Text.Received"], _ => status };
 
-    RadzenDataGrid<ScmRepository.PortalReceiptLine>? _grid;
+    RadzenDataGrid<ScmRepository.PortalReceiptDocument>? _grid;
     readonly int[] _pageSizeOptions=[10,25,50,100];
     int _pageRows=25;
     record StatusOption(string Text,string Value);
     StatusOption[] _statuses=>[new(L["Scm.Text.All"],""),new(L["Portal.Text.NotReceived"],"미입고"),new(L["Portal.Text.PartiallyReceived"],"부분입고"),new(L["Portal.Text.Received"],"입고완료")];
-    int DeliveryCount=>Rows.Select(r=>r.Delivery).Distinct().Count();
-    int CountStatus(string status)=>Rows.GroupBy(r=>r.Delivery).Count(g=>GroupStatus(_rows.Where(r=>r.Delivery==g.Key).ToList())==status);
+    int CountStatus(string status)=>Rows.Count(r=>r.ReceiptStatus==status);
     static string Badge(string status)=>status=="입고완료"?"ok":status=="부분입고"?"warn":"info";
-    void RowLink(RowRenderEventArgs<ScmRepository.PortalReceiptLine> args)=>args.Attributes["style"]="cursor:pointer";
+    void RowLink(RowRenderEventArgs<ScmRepository.PortalReceiptDocument> args)=>args.Attributes["style"]="cursor:pointer";
     List<ScmRepository.PortalReceiptLine> _rows=[],_details=[];
     DateTime? _from,_to;
     string _user="",_search="",_status="",_error="",_detailTitle="";
     bool _allowed;
-    List<ScmRepository.PortalReceiptLine> Rows=>_rows.Where(r=>(_status==""||r.ReceiptStatus==_status)
+    string? _discrepancyKey;
+    string _discrepancyTitle="",_discrepancyError="";
+    List<ScmRepository.PortalDiscrepancy> _discrepancies=[];
+    Dictionary<string,int> _discrepancyCounts=new(StringComparer.OrdinalIgnoreCase);
+    static string DiscrepancyKey(string note,string delivery)=>note.Length>0?$"N:{note}":$"D:{delivery}";
+    int DiscrepancyCount(ScmRepository.PortalReceiptLine row)=>_discrepancyCounts.GetValueOrDefault(DiscrepancyKey(row.Note,row.Delivery));
+    List<ScmRepository.PortalDiscrepancy> DiscrepancyRows=>_discrepancies.Where(r=>DiscrepancyKey(r.Note,r.Delivery)==_discrepancyKey).ToList();
+    void LoadDiscrepancies()
+    {
+        _discrepancies=[];_discrepancyCounts.Clear();_discrepancyError="";
+        if(!_allowed || _user.Length==0)return;
+        try
+        {
+            _discrepancies=Scm.ListPortalDeliveryDiscrepancies(_user);
+            _discrepancyCounts=_discrepancies.GroupBy(r=>DiscrepancyKey(r.Note,r.Delivery)).ToDictionary(g=>g.Key,g=>g.Count(),StringComparer.OrdinalIgnoreCase);
+        }
+        catch(Exception ex){Logger.LogError(ex,"Portal discrepancy load failed");_discrepancyError="Unable to load quantity discrepancies. Refresh to retry.";}
+    }
+    void OpenDiscrepancies(ScmRepository.PortalReceiptLine row)
+    {
+        Load();
+        var current=_rows.Find(r=>r.Id==row.Id);if(current is null)return;
+        _discrepancyKey=DiscrepancyKey(current.Note,current.Delivery);
+        _discrepancyTitle=current.Note.Length>0?current.Note:current.Delivery;
+    }
+    void CloseDiscrepancies()=>_discrepancyKey=null;
+    List<ScmRepository.PortalReceiptDocument> Rows=>ScmRepository.GroupReceiptDocuments(_rows).Where(r=>(_status==""||r.ReceiptStatus==_status)
         && (!_from.HasValue||r.ShipDate?.Date>=_from.Value.Date) && (!_to.HasValue||r.ShipDate?.Date<=_to.Value.Date)
-        && string.Join(" ",r.Note,r.Delivery,r.Order,r.Item,r.Name,r.Vendor,r.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
+        && r.Lines.Any(l=>string.Join(" ",l.Note,l.Delivery,l.Order,l.Item,l.Name,l.Vendor,l.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase))).ToList();
+    string QuantityTotals(IEnumerable<ScmRepository.PortalReceiptLine> rows)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>$"{QtyFormat.Text(g.Sum(r=>r.Quantity),g.Key)} {g.Key}"));
     string Totals(IEnumerable<ScmRepository.PortalReceiptLine> rows,bool received)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>$"{QtyFormat.Text(g.Sum(r=>received?r.Received:r.Remaining),g.Key)} {g.Key}"));
-    static string GroupStatus(List<ScmRepository.PortalReceiptLine> rows)=>rows.All(r=>r.Received<=0)?"미입고":rows.All(r=>r.Remaining==0)?"입고완료":"부분입고";
+    static string GroupStatus(List<ScmRepository.PortalReceiptLine> rows)=>new ScmRepository.PortalReceiptDocument(rows).ReceiptStatus;
     protected override async Task OnInitializedAsync()
     {
         var u=(await Authentication.GetAuthenticationStateAsync()).User;
@@ -112,7 +172,7 @@
     }
     void Load()
     {
-        Close();_rows=[];_error="";
+        Close();CloseDiscrepancies();_rows=[];_error="";LoadDiscrepancies();
         if(!_allowed||_user.Length==0){_error=L["Portal.Text.YouDoNotHavePermissionToViewThisPage"];return;}
         try{_rows=Scm.ListPortalReceiptResults(_user);}
         catch(Exception ex){Logger.LogWarning(ex,"Portal receipt load failed");_error=L["Portal.Text.UnableToLoadReceiptResults"];}
@@ -122,7 +182,7 @@
         Load(); // Refresh quantities and vendor access before opening the complete document.
         var current=_rows.Find(r=>r.Id==row.Id);if(current is null)return;
         _detailTitle=current.Note.Length>0?current.Note:current.Delivery;
-        _details=_rows.Where(r=>current.Note.Length>0?r.Note==current.Note:r.Delivery==current.Delivery).ToList();
+        _details=_rows.Where(r=>string.Equals(DiscrepancyKey(r.Note,r.Delivery),DiscrepancyKey(current.Note,current.Delivery),StringComparison.OrdinalIgnoreCase)).ToList();
     }
     void Reset(){_search=_status="";_from=_to=null;Load();}
     void Close(){_details=[];}

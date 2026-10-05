@@ -39,6 +39,13 @@
         <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" AllowClose="false">@_message</RadzenAlert>
     }
 
+    @if(IsPortal && Mode=="Due" && _isExternalPortalUser)
+    {
+        <div class="scm-creation-actions">
+            <RadzenButton Text="Create Case" Icon="inventory_2" Size="ButtonSize.Small" Click="@(()=>RegisterReadyOrder(""))" />
+            <RadzenButton Text="Create Delivery Note" Icon="description" Size="ButtonSize.Small" Click="OpenCaseSelection" />
+        </div>
+    }
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">▼ @Title · @(Mode is "Deliveries" or "Receipts" ? DeliveryRows.Count : Rows.Count) @L["Scm.Text.Items"]</span>
@@ -120,8 +127,7 @@
         }
         else if(IsPortal && Mode=="Due")
         {
-            <RadzenDataGrid TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="25" AllowSorting="true" EmptyText="@Empty" Class="ames-rz-grid"
-                RowClick="@(args=>{if(args.Data is not null)RegisterReadyOrder(args.Data.Number);})" RowRender="RowLinkOrder">
+            <RadzenDataGrid TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="25" AllowSorting="true" EmptyText="@Empty" Class="ames-rz-grid">
                 <Columns>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="190px" MinWidth="190px" TextAlign="TextAlign.Center" Property="Number" Title="PO No" />
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Center" Property="Due" Title="Due Date" FormatString="{0:yyyy-MM-dd}" />
@@ -130,10 +136,6 @@
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Title="Order Qty"><Template Context="o">@Quantities(o,l=>l.Quantity)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Right" Title="Registered Qty"><Template Context="o">@Quantities(o,l=>l.RegisteredDelivery)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Right" Title="Remaining Qty"><Template Context="o">@Quantities(o,l=>l.AvailableDelivery)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="180px" MinWidth="180px" Title="" TextAlign="TextAlign.Center" Sortable="false"><Template Context="o">
-                        <span @onclick:stopPropagation="true"><RadzenButton Text='@L["Scm.Text.CreateDelivery"]' Icon="add" Size="ButtonSize.Small" Click="@(()=>RegisterReadyOrder(o.Number))"
-                            Disabled="@(o.Status is not ("Published" or "Confirmed") || !o.Lines.Any(l=>l.AvailableDelivery>0))" /></span>
-                    </Template></RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
         }
@@ -221,13 +223,13 @@
     @if (IsPortal && Mode=="Due" && _creationOrder is not null)
     {
         <div class="ames-modal-bg">
-            <div class="ames-modal" role="dialog" aria-modal="true" aria-label="Create Case and Delivery" style="width:min(1500px,96vw);max-width:96vw;max-height:92vh;display:flex;flex-direction:column;">
+            <div class="ames-modal" role="dialog" aria-modal="true" aria-label="@(_createNote?"Create Delivery Note":"Create Case")" style="width:min(1500px,96vw);max-width:96vw;max-height:92vh;display:flex;flex-direction:column;">
                 <div class="ames-modal-h" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-                    <span>Create Case / Delivery · @_creationOrder</span>
+                    <span>@(_createNote?"Create Delivery Note":"Create Case") @(_creationOrder.Length>0?$"· {_creationOrder}":"")</span>
                     <RadzenButton Icon="close" aria-label="Close creation" ButtonStyle="ButtonStyle.Light" Click="CloseCreation" />
                 </div>
                 <div class="ames-modal-body" style="overflow:auto;min-height:0;">
-                    <AMES.Web.Components.Pages.Portal.DeliveryCases @key="_creationOrder" Embedded="true" InitialOrder="@_creationOrder" />
+                    <AMES.Web.Components.Pages.Portal.DeliveryCases @key="(_creationOrder,_createNote)" Embedded="true" InitialOrder="@_creationOrder" NoteMode="@_createNote" Changed="RefreshCreation" />
                 </div>
             </div>
         </div>
@@ -465,7 +467,7 @@
     {
         if(!IsPortal || Mode!="Deliveries" || !_isExternalPortalUser || string.IsNullOrEmpty(_portalUserId) || delivery.Status=="Cancelled")return;
         _printingDelivery=delivery;_printingCases=[];_printingError="";_message="";
-        try{_printingCases=Scm.ListDeliveryCases(delivery.OrderNumber,_portalUserId).Where(c=>c.Delivery==delivery.Number).ToList();}
+        try{_printingCases=Scm.ListDeliveryCases(null,_portalUserId,delivery:delivery.Number);}
         catch(Exception ex){Logger.LogWarning(ex,"Print case list failed");_printingError="Unable to load cases for this delivery.";}
     }
     void OpenNote(string number) => Nav.NavigateTo("/portal/delivery-note/"+Uri.EscapeDataString(number));
@@ -534,7 +536,10 @@
         .Where(o => string.IsNullOrWhiteSpace(_search) || (o.Number + " " + o.Item + " " + o.Name).Contains(_search, StringComparison.OrdinalIgnoreCase))
         .OrderBy(o => Mode == "Due" ? o.Due : o.Ordered).ThenBy(o => o.Number).ToList();
     string? _creationOrder;
-    void RegisterReadyOrder(string number) { _creationOrder=number; }
+    bool _createNote;
+    void RegisterReadyOrder(string number) { _createNote=false;_creationOrder=number; }
+    void OpenCaseSelection() { _createNote=true;_creationOrder=""; }
+    void RefreshCreation() { ReloadOrders(); }
     void CloseCreation() { _creationOrder=null; ReloadOrders(); }
     List<ScmPreviewStore.Delivery> DeliveryRows => Store.Deliveries
         .Where(d=>_dbOrders.Any(o=>o.Number==d.OrderNumber))
@@ -577,7 +582,7 @@
         _assignedCases=[];
         if(IsPortal)
         {
-            try { _assignedCases=Scm.ListDeliveryCases(d.OrderNumber,_portalUserId!).Where(c=>c.Delivery==d.Number).ToList(); }
+            try { _assignedCases=Scm.ListDeliveryCases(null,_portalUserId!,delivery:d.Number); }
             catch(Exception ex) { Logger.LogWarning(ex,"Unable to load delivery CASEs"); _message="Unable to load CASE information. Check the CASE schema and connection."; }
         }
     }
@@ -778,9 +783,13 @@
                 Number=o.Number,Vendor=o.Vendor,VendorName=o.VendorName,SupplierConfirmedAt=o.SupplierConfirmedAt,SupplierConfirmedBy=o.SupplierConfirmedBy,Ordered=o.Ordered,Due=o.Due,Destination=o.Destination,Currency=o.Currency,Persistent=true,
                 Status=o.Status switch { "Open" => "Published", "Partial" => "Confirmed", "Complete" or "Received" => "Closed", "Draft" => "Draft", "Cancelled" => "Cancelled", _ => o.Status },
                 Versions=o.Lines.ToDictionary(l => l.PoID,l => l.Version),
-                Lines=o.Lines.Select(l => new ScmPreviewStore.OrderLine {PoID=l.PoID,Id=l.Id,Item=l.Item,Name=l.Name,Unit=l.Unit,Quantity=l.Quantity,Price=l.Price,Received=l.Received}).ToList()
-            }).ToList();
+                Lines=o.Lines.Where(l=>!(IsPortal && Mode=="Due") || l.ItemExists).Select(l => new ScmPreviewStore.OrderLine {PoID=l.PoID,Id=l.Id,Item=l.Item,Name=l.Name,Unit=l.Unit,Quantity=l.Quantity,Price=l.Price,Received=l.Received}).ToList()
+            }).Where(o=>!(IsPortal && Mode=="Due") || o.Lines.Count>0).ToList();
             var deliveries = Scm.ListSupplierDeliveries(IsPortal, _portalUserId);
+            var prepared=IsPortal && Mode=="Due" && _isExternalPortalUser
+                ? Scm.ListDeliveryCases(null,_portalUserId!).Where(c=>c.Status=="Prepared" && c.NoteNumber.Length==0 && c.Delivery is null)
+                    .SelectMany(c=>c.Boxes).GroupBy(b=>b.PoID).ToDictionary(g=>g.Key,g=>g.Sum(b=>b.Quantity))
+                : new Dictionary<int,decimal>();
             Store.Deliveries.Clear();
             Store.Deliveries.AddRange(deliveries.Select(d => new ScmPreviewStore.Delivery {
                 Number=d.Number,OrderNumber=d.OrderNumber,PoID=d.PoID,LineId=d.LineId,Item=d.Item,Unit=d.Unit,
@@ -793,6 +802,7 @@
                     line.RegisteredDelivery=active.Sum(d=>d.Quantity);
                     line.ShippedQuantity=active.Where(d=>d.ShippedAt.HasValue || d.Status is "Shipped" or "Received").Sum(d=>d.Quantity);
                     line.PendingDelivery=active.Sum(d=>d.Quantity-d.Received);
+                    line.PreparedQuantity=prepared.GetValueOrDefault(line.PoID);
                 }
             _selected = _dbOrders.Find(o => o.Number == selectedNumber);
             LoadNotes();

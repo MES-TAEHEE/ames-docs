@@ -45,10 +45,16 @@ public sealed partial class ScmRepository
 
     public DeliveryNote IssueDeliveryNote(IReadOnlyList<string> deliveries, string userId, string actor)
     {
+        using var c=factory.OpenConnection(); using var tx=c.BeginTransaction();
+        var result=IssueDeliveryNote(c,tx,deliveries,userId,actor);
+        tx.Commit(); return result;
+    }
+
+    static DeliveryNote IssueDeliveryNote(SqlConnection c,SqlTransaction tx,IReadOnlyList<string> deliveries,string userId,string actor)
+    {
         var numbers = deliveries.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x=>x,StringComparer.Ordinal).ToArray();
         if(numbers.Length==0 || numbers.Length>100 || numbers.Length!=deliveries.Count || string.IsNullOrWhiteSpace(actor) || actor.Length>20)
             throw new ArgumentException("Select 1–100 different deliveries.");
-        using var c=factory.OpenConnection(); using var tx=c.BeginTransaction();
         var ids=new List<int>(); var vendors=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var linked=new HashSet<int>(); var lines=new List<DeliveryNoteLine>();
         string vendorName=""; DateTime at;
@@ -81,7 +87,7 @@ public sealed partial class ScmRepository
             using(var r=previous.ExecuteReader()) while(r.Read()) existing.Add(r.GetInt32(0));
             if(!existing.SetEquals(ids)) throw new InvalidOperationException("이미 발행된 납품서는 다른 문서에 중복 포함할 수 없습니다.");
             using var read=new SqlCommand("SELECT Snapshot FROM dbo.SCM_DeliveryNote WHERE NoteID=@ID",c,tx); Add(read,("@ID",linked.Single()));
-            var result=DeserializeDeliveryNote((string)read.ExecuteScalar()!); tx.Commit(); return result;
+            return DeserializeDeliveryNote((string)read.ExecuteScalar()!);
         }
         foreach(var id in ids)
         {
@@ -113,6 +119,6 @@ public sealed partial class ScmRepository
             using var link=new SqlCommand("INSERT dbo.SCM_DeliveryNoteDelivery(DeliveryID,NoteID) VALUES(@D,@N)",c,tx);
             Add(link,("@D",id),("@N",noteId)); link.ExecuteNonQuery();
         }
-        tx.Commit(); return note;
+        return note;
     }
 }

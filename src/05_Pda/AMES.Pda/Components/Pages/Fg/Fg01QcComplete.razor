@@ -66,7 +66,7 @@
     private bool _isLoading;
     private bool _loadError;
     private string _message = "Loading...";
-    private DateTime _asOf = DateTime.Now;
+    private DateTime _asOf;
     private bool IsOverDays(PdaApi.FgPutAwayWaitingRow row, int days) => row.ReadyAt < _asOf.AddDays(-days);
     private int OverDaysCount(int days) => _rows.Count(row => IsOverDays(row, days));
     private string AgeClass(PdaApi.FgPutAwayWaitingRow row) =>
@@ -89,7 +89,7 @@
                 .ThenBy(x => x.ProducedAt ?? DateTime.MaxValue)
                 .ThenBy(x => x.LotId)
                 .ToList();
-            _asOf = DateTime.Now;
+            _asOf = await Api.DatabaseTimeAsync();
             _message = _rows.Count == 0 ? "No finished goods are waiting for put-away." : "";
         }
         catch (Exception ex)

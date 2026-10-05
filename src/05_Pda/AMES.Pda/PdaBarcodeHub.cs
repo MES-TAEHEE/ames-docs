@@ -4,7 +4,7 @@ public static class PdaBarcodeHub
 {
     public static event Action<string>? Scanned;
     private static string _lastValue = "";
-    private static DateTime _lastAt = DateTime.MinValue;
+    private static long _lastAt;
 
     public static void Publish(string? barcode)
     {
@@ -14,8 +14,8 @@ public static class PdaBarcodeHub
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            var now = DateTime.UtcNow;
-            if (string.Equals(value, _lastValue, StringComparison.Ordinal) && now - _lastAt < TimeSpan.FromMilliseconds(900))
+            var now = Environment.TickCount64;
+            if (string.Equals(value, _lastValue, StringComparison.Ordinal) && now - _lastAt < 900)
                 return;
 
             _lastValue = value;

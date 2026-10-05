@@ -5,3 +5,6 @@
 .ames-card ::deep .rz-data-cell { white-space:normal !important; }
 /* 협력업체는 코드·이름을 한 줄로 */
 .ames-card ::deep td.packing-nowrap, .ames-card ::deep td.packing-nowrap .rz-cell-data { white-space:nowrap !important; overflow-wrap:normal; }
+.packing-create { width:min(560px,95vw); }
+.packing-create-body { display:grid; gap:12px; padding:20px; }
+.packing-issue { color:var(--ames-warning, #b87316); font-size:.85rem; margin-top:4px; overflow-wrap:anywhere; }

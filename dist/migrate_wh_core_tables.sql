@@ -718,7 +718,8 @@ BEGIN
           ON I.ItemNo COLLATE DATABASE_DEFAULT = W.PartNo COLLATE DATABASE_DEFAULT
         LEFT JOIN dbo.MD_Location L
           ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
-        WHERE W.Qty>0 AND W.PartNo IS NOT NULL AND COALESCE(L.AreaCode,'')<>'FG_AREA'
+        WHERE W.Qty>0 AND W.PartNo IS NOT NULL
+          AND NOT (UPPER(COALESCE(L.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
           AND (@AreaCode IS NULL OR L.AreaCode=@AreaCode)
           AND (@StockDateFrom IS NULL OR CONVERT(date,W.ReceivedAt)>=@StockDateFrom)
           AND (@StockDateTo IS NULL OR CONVERT(date,W.ReceivedAt)<=@StockDateTo)
@@ -739,8 +740,12 @@ BEGIN
              WHEN S.MaxQty>0 AND S.SumQty>S.MaxQty THEN N'Over Max' ELSE N'Normal' END STATUSNM
     FROM S
     OUTER APPLY(SELECT TOP(1) W.LotNo,W.LocationNo FROM dbo.WH_Inventory W
+      LEFT JOIN dbo.MD_Location PL
+        ON PL.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
       WHERE W.PartNo COLLATE DATABASE_DEFAULT = S.PartNo COLLATE DATABASE_DEFAULT
-        AND W.Qty>0 ORDER BY W.ReceivedAt,W.LotNo) P
+        AND W.Qty>0
+        AND NOT (UPPER(COALESCE(PL.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+      ORDER BY W.ReceivedAt,W.LotNo) P
     ORDER BY S.PartNo;
 END;
 GO
@@ -760,7 +765,8 @@ BEGIN
       ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
     LEFT JOIN dbo.MD_CodeItem WC ON WC.GroupCode='WH_CODE' AND WC.CodeValue=L.WhCode
     LEFT JOIN dbo.MD_CodeItem AC ON AC.GroupCode='WH_AREA' AND AC.CodeValue=L.AreaCode
-    WHERE W.PartNo=@ItemNo AND W.Qty>0 AND COALESCE(L.AreaCode,'')<>'FG_AREA'
+    WHERE W.PartNo=@ItemNo AND W.Qty>0
+      AND NOT (UPPER(COALESCE(L.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
       AND (@AreaCode IS NULL OR L.AreaCode=@AreaCode)
       AND (@StockDateFrom IS NULL OR CONVERT(date,W.ReceivedAt)>=@StockDateFrom)
       AND (@StockDateTo IS NULL OR CONVERT(date,W.ReceivedAt)<=@StockDateTo)

@@ -244,7 +244,7 @@
                 <div class="wh03-work-head">
                     <div>
                         <span>@_workTab.ToUpperInvariant()</span>
-                        <strong>@(IsAdjustTab ? IsFinishedGoodsAdjust ? "Finished Goods Quantity Adjustment" : IsSpareParts ? "Spare Parts Quantity Adjustment" : "Warehouse Quantity Adjustment" : "Inventory Location Change")</strong>
+                        <strong>@(IsLineAdjust ? "Line Quantity Adjustment" : IsAdjustTab ? IsFinishedGoodsAdjust ? "Finished Goods Quantity Adjustment" : IsSpareParts ? "Spare Parts Quantity Adjustment" : "Warehouse Quantity Adjustment" : "Inventory Location Change")</strong>
                     </div>
                     @if (!IsAdjustTab)
                     {
@@ -260,6 +260,18 @@
                     </div>
                 }
 
+                @if (IsLineAdjust)
+                {
+                    <div class="pda-fld">
+                        <label>LINE</label>
+                        <RadzenDropDown TValue="string" Data="_adjustLines" Value="_adjustLine"
+                            Change="SelectAdjustLine" Placeholder="Select Line" Disabled="@InventoryBusy"
+                            class="pda-input" Style="width:100%" />
+                        @if (_adjustLines.Count == 0) { <small>No line inventory found.</small> }
+                    </div>
+                }
+                else
+                {
                 <div class="@($"wh03-work-scan {ScanPanelClass}")">
                     <div class="pda-fld">
                         <label>@(IsSpareParts ? IsAdjustTab ? "LOCATION / EOS SP NO" : "EOS SP NO" : IsAdjustTab ? "LOCATION / LOT SCAN" : "LOT NO SCAN")</label>
@@ -274,6 +286,7 @@
                         <RadzenButton class="wh03-work-scan-btn" Click="@ScanInventoryLot" Disabled="@DisableInventoryScan" Text="SCAN" />
                     }
                 </div>
+                }
             </RadzenCard>
 
             @if (IsAdjustTab && _adjustLocation is not null)
@@ -930,6 +943,19 @@
     private bool HasDateFilter => DateFrom.HasValue || DateTo.HasValue;
     private bool IsSearchTab => string.Equals(_workTab, "Search", StringComparison.OrdinalIgnoreCase);
     private bool IsAdjustTab => string.Equals(_workTab, "Adjust", StringComparison.OrdinalIgnoreCase);
+    private bool IsLineAdjust => IsAdjustTab && !IsSpareParts && !IsFinishedGoodsAdjust
+        && Nav.ToAbsoluteUri(Nav.Uri).Query.Contains("scope=line", StringComparison.OrdinalIgnoreCase);
+    private List<string> _adjustLines = [];
+    private string? _adjustLine;
+
+    private async Task SelectAdjustLine(object value)
+    {
+        if (InventoryBusy) return;
+        ClearInventoryWork();
+        _adjustLine = value as string;
+        _invBarcode = _adjustLine ?? "";
+        await ScanInventoryLot();
+    }
     private bool IsLocatingTab => string.Equals(_workTab, "Locating", StringComparison.OrdinalIgnoreCase);
     private bool IsInventoryStatusView => string.Equals(_inventoryView, "Status", StringComparison.OrdinalIgnoreCase);
     private bool IsInventoryLocationView => string.Equals(_inventoryView, "Location", StringComparison.OrdinalIgnoreCase);
@@ -1331,6 +1357,7 @@
         try
         {
             AdjustReasons = await Api.CodeItemsAsync("INV_ADJUST_REASON");
+            if (IsLineAdjust) _adjustLines = await Api.WhAdjustmentLinesAsync();
             if (!AdjustReasons.Any(x => string.Equals(x.CodeValue, _invAdjustReason, StringComparison.OrdinalIgnoreCase)))
                 _invAdjustReason = "";
         }
@@ -1612,7 +1639,7 @@
             }
 
             _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure, AreaScope);
-            _lastSyncAt = DateTime.Now;
+            _lastSyncAt = await Api.DatabaseTimeAsync();
             if (!StockStatuses.Contains(_statusFilter, StringComparer.OrdinalIgnoreCase))
                 _statusFilter = "ALL";
 
@@ -1661,7 +1688,7 @@
         try
         {
             _lotStatuses = await Api.WhLotStatusesAsync(_q, AreaScope);
-            _lastSyncAt = DateTime.Now;
+            _lastSyncAt = await Api.DatabaseTimeAsync();
         }
         finally
         {
@@ -1866,6 +1893,7 @@
 
     private void ClearInventoryWork()
     {
+        _adjustLine = null;
         _adjustLocation = null;
         _invBarcode = "";
         _invLocationNo = "";
@@ -1911,6 +1939,13 @@
                 _adjustLocation = await Api.ScanAdjustmentLocationAsync(_invBarcode, IsFinishedGoodsAdjust, AreaScope);
                 if (_adjustLocation is not null)
                 {
+                    if (IsLineAdjust && !_adjustLines.Contains(_adjustLocation.LocationId))
+                    {
+                        _adjustLocation = null;
+                        RejectInventoryScan("Select a production line first.");
+                        return;
+                    }
+                    if (IsLineAdjust) _adjustLine = _adjustLocation.LocationId;
                     _invMsg = _adjustLocation.Items.Count == 0 ? "No adjustable stock at this location." : "Select stock from the location list.";
                     _invCls = _adjustLocation.Items.Count == 0 ? "dim" : "ok";
                     return;
@@ -1926,6 +1961,12 @@
                 return;
             }
 
+            if (IsLineAdjust && (string.IsNullOrEmpty(_adjustLine)
+                || !string.Equals(row.ReceivedLocation, _adjustLine, StringComparison.OrdinalIgnoreCase)))
+            {
+                RejectInventoryScan("This LOT is not at the selected line. Select the line again.");
+                return;
+            }
             _invScan = row;
             _invBarcode = row.Barcode;
 
@@ -2062,7 +2103,9 @@
                 deltaQty,
                 _invAdjustReason,
                 _invAdjustNote,
-                SimulateFailure: ShouldSimulateAdjustApiFailure);
+                SimulateFailure: ShouldSimulateAdjustApiFailure,
+                ExpectedQty: IsSpareParts || IsFinishedGoodsAdjust ? null : InventoryBeforeQty,
+                ExpectedLocation: IsSpareParts || IsFinishedGoodsAdjust ? null : _invScan.ReceivedLocation);
             var result = IsFinishedGoodsAdjust
                 ? await FgApi.FgSaveAdjustQtyAsync(request)
                 : IsSpareParts
@@ -2079,6 +2122,9 @@
 
             var adjusted = result.Row ?? _invScan! with { Qty = InventoryAfterQty };
             _invScan = adjusted;
+            if (_adjustLocation is not null)
+                _adjustLocation = _adjustLocation with { Items = _adjustLocation.Items.Select(x =>
+                    x.LotNo == adjusted.LotNo ? x with { Qty = adjusted.Qty } : x).ToList() };
             _invBarcode = adjusted.Barcode;
             _adjustedLabelLotNo = IsSpareParts || deltaQty >= 0 ? null : adjusted.LotNo;
             ResetInventoryAdjust();
