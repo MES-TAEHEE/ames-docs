@@ -9,52 +9,88 @@
 <PageTitle>@L["Portal.Text.PackingQuantities"] · AMES</PageTitle>
 <AmesPageHeader Code="PORTAL-005" Title='@L["Portal.Text.PackingQuantities"]' />
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["Portal.Text.LinkedItems"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Portal.Text.PackingQuantitySet"]</div><div class="ames-kpi-v">@_rows.Count(r=>r.Source.PackingQty.HasValue)</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Portal.Text.NotSet"]</div><div class="ames-kpi-v">@_rows.Count(r=>!r.Source.PackingQty.HasValue)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">PO / Linked Items</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Portal.Text.PackingQuantitySet"]</div><div class="ames-kpi-v">@_rows.Count(r=>r.Source.CanSave && r.Source.PackingQty>0)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">Needs Setup</div><div class="ames-kpi-v">@_rows.Count(r=>!r.Source.CanSave || r.Source.PackingQty is null or <=0)</div></div>
 </div>
 @if (_message.Length>0) { <RadzenAlert AlertStyle="@(_error?AlertStyle.Warning:AlertStyle.Success)" Variant="Variant.Flat">@_message</RadzenAlert> }
 <div class="ames-card">
     <div class="ames-card-h packing-toolbar">
         <span>▼ @L["Portal.Text.PackingQuantities"] · @Rows.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenButton Text="Create" Icon="add" Click="OpenCreate" Disabled="@(!_allowed)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
             <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.PackingQty.Ph.Search"]' aria-label='@L["Portal.Text.SearchItems"]' InputSize="InputSize.Small" class="ames-rz-input" />
             <RadzenButton Text='@L["Btn.Refresh"]' Icon="refresh" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="packing-hint dim">@L["Portal.Text.EnterPackingQuantitiesForLinkedItemsAndSaveEach"]</div>
+    <div class="packing-hint dim">Set Qty / Box for your PO or linked items registered in Item Master.</div>
     <RadzenDataGrid @ref="_grid" TItem="EditRow" Data="@Rows" AllowSorting="true" AllowPaging="true" PageSize="25" PageSizeOptions="@(new int[]{10,25,50,100})" PagerHorizontalAlign="HorizontalAlign.Center"
         ShowPagingSummary="true" PagingSummaryFormat='@L["Portal.Text.Page0Of12Items"]' PageSizeText='@L["Portal.Text.PerPage"]' EmptyText='@L["Portal.Text.NoLinkedItems"]' Class="ames-rz-grid ames-grid-fixed" PageSizeChanged="@(n=>_pageRows=n)" Style="@($"--ames-page-rows:{_pageRows}")">
         <Columns>
             <RadzenDataGridColumn TItem="EditRow" Title="No." Width="45px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Property="Source.VendorName" Title='@L["Scm.Text.Supplier"]' Width="150px"><Template Context="r"><span class="code">@r.Source.VendorID</span><br />@r.Source.VendorName</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemNo" Title='@L["Portal.Text.ItemCode"]' Width="130px"><Template Context="r"><span class="code">@r.Source.ItemNo</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemName" Title='@L["Scm.Text.Description"]' />
+            <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemName" Title='@L["Scm.Text.Description"]'>
+                <Template Context="r">@r.Source.ItemName
+                    @if(!r.Source.CanSave){<div class="packing-issue" role="status">@r.Source.Issue</div>}
+                    else if(r.Source.PackingQty is null or <=0){<div class="dim">Packing quantity not set. Enter Qty / Box and save.</div>}
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Property="Source.Unit" Title='@L["Scm.Text.Unit"]' Width="55px" TextAlign="TextAlign.Center" />
             <RadzenDataGridColumn TItem="EditRow" Title='@L["Scm.Text.PackingQuantity"]' Width="130px" Sortable="false">
-                <Template Context="r"><RadzenNumeric TValue="decimal?" @bind-Value="r.Quantity" Format="@QtyFormat.Format(r.Source.Unit)" Min="0.001m" Max="999999999999999.999m" Step="0.001" ShowUpDown="false" Placeholder='@L["Portal.Text.NotSet"]' aria-label='@L["Portal.Accessibility.PackingQuantity", r.Source.ItemNo]' Style="width:100%;" class="ames-rz-input" /></Template>
+                <Template Context="r"><RadzenNumeric TValue="decimal?" @bind-Value="r.Quantity" Disabled="@(!r.Source.CanSave)" Format="@QtyFormat.Format(r.Source.Unit)" Min="0.001m" Max="999999999999999.999m" Step="0.001" ShowUpDown="false" Placeholder='@L["Portal.Text.NotSet"]' aria-label='@L["Portal.Accessibility.PackingQuantity", r.Source.ItemNo]' Style="width:100%;" class="ames-rz-input" /></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Title="" Width="120px" Sortable="false">
                 <Template Context="r">
-                    <RadzenButton Text='@L["Btn.Save"]' Icon="save" Click="@(()=>Save(r))" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Btn.Save"]' Icon="save" Click="@(()=>Save(r))" Disabled="@(!r.Dirty || !r.Source.CanSave)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
                     <RadzenButton Icon="undo" aria-label='@L["Portal.Text.DiscardChanges"]' Click="@(()=>r.Quantity=r.Source.PackingQty)" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </div>
+@if(_creating)
+{
+    <div class="ames-modal-bg" @onclick="CloseCreate">
+        <div class="ames-modal packing-create" role="dialog" aria-modal="true" aria-labelledby="packing-create-title" @onclick:stopPropagation="true">
+            <div class="ames-modal-h" id="packing-create-title">Create Packing Quantity</div>
+            <div class="packing-create-body">
+                @if(_createError.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_createError</RadzenAlert>}
+                <label for="packing-item">Part / Supplier</label>
+                <RadzenDropDown TValue="string" @bind-Value="_newKey" Data="@_candidates" TextProperty="Label" ValueProperty="Key"
+                    AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="Select part" Name="packing-item" Style="width:100%" />
+                @if(_candidates.FirstOrDefault(r=>r.Key==_newKey) is { Source.CanSave: false } blocked)
+                {<div class="packing-issue" role="status">@blocked.Source.Issue</div>}
+                <label for="packing-quantity">Qty / Box @(_candidates.FirstOrDefault(r=>r.Key==_newKey)?.Source.Unit)</label>
+                <RadzenNumeric TValue="decimal?" @bind-Value="_newQuantity" Disabled="@(!CanCreate)" Min="0.001m" Max="999999999999999.999m" Step="0.001" ShowUpDown="false" Name="packing-quantity" Style="width:100%" />
+                @if(_candidates.Count==0){<p>No parts available. Packing quantities are already set, or no linked / PO items are available for your supplier.</p>}
+            </div>
+            <div class="ames-modal-footer">
+                <RadzenButton Text="Cancel" Click="CloseCreate" ButtonStyle="ButtonStyle.Light" />
+                <RadzenButton Text="Create" Icon="add" Click="Create" Disabled="@(!CanCreate)" />
+            </div>
+        </div>
+    </div>
+}
 @code {
     sealed class EditRow(ScmRepository.PackingQuantityRow source)
     {
         public ScmRepository.PackingQuantityRow Source { get; set; }=source;
         public decimal? Quantity { get; set; }=source.PackingQty;
         public bool Dirty=>Quantity!=Source.PackingQty;
+        public string Key=>$"{Source.VendorID}|{Source.ItemNo}";
+        public string Label=>$"{Source.ItemNo} · {Source.ItemName} · {Source.VendorName}";
     }
     List<EditRow> _rows=[];
     RadzenDataGrid<EditRow>? _grid;
     int _pageRows=25;
     string _user="",_search="",_message="";
     bool _allowed,_error;
+    bool _creating;
+    List<EditRow> _candidates=[];
+    string _newKey="",_createError="";
+    decimal? _newQuantity;
+    bool CanCreate=>_candidates.FirstOrDefault(r=>r.Key==_newKey)?.Source.CanSave==true;
     List<EditRow> Rows=>_rows.Where(r=>string.Join(" ",r.Source.ItemNo,r.Source.ItemName,r.Source.VendorID,r.Source.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
     protected override async Task OnInitializedAsync()
     {
@@ -72,17 +108,52 @@
     }
     void Save(EditRow row)
     {
-        if(!_allowed||!row.Dirty)return;
+        if(!_allowed||!row.Dirty||!row.Source.CanSave)return;
         _error=true;
         if(row.Quantity is null or <=0 || decimal.Round(row.Quantity.Value,3)!=row.Quantity.Value)
         {_message=L["Portal.Text.EnterAPositivePackingQuantityWithUpToThree"];return;}
         try
         {
-            if(!Scm.SavePortalPackingQuantity(_user,row.Source.ItemNo,row.Source.VendorID,row.Quantity,row.Source.PackingQty))
+            var saved=!row.Source.Linked || row.Source.PackingQty is null or <=0
+                ? Scm.CreatePortalPackingQuantity(_user,row.Source.ItemNo,row.Source.VendorID,row.Quantity.Value)
+                : Scm.SavePortalPackingQuantity(_user,row.Source.ItemNo,row.Source.VendorID,row.Quantity,row.Source.PackingQty);
+            if(!saved)
             {_message=L["Portal.Text.TheItemMappingOrPackingQuantityChangedDiscardChanges"];return;}
-            row.Source=row.Source with {PackingQty=row.Quantity};
+            row.Source=row.Source with {PackingQty=row.Quantity,Linked=true};
             _error=false;_message=L["Portal.Text.Saved"];
         }
         catch(Exception ex){Logger.LogError(ex,"Packing quantity save failed");_message=L["Portal.Text.UnableToSaveCheckYourEntriesAndRetry"];}
+    }
+    void OpenCreate()
+    {
+        if(!_allowed)return;
+        _newKey="";_newQuantity=null;_createError="";
+        try
+        {
+            _candidates=Scm.ListPortalPackingQuantities(_user,forCreate:true).Select(r=>new EditRow(r)).ToList();
+            _creating=true;
+        }
+        catch(Exception ex){Logger.LogError(ex,"Packing quantity candidates failed");_error=true;_message=L["Portal.Text.UnableToLoadDataPleaseRetry"];}
+    }
+    void CloseCreate()=>_creating=false;
+    void Create()
+    {
+        if(!_allowed)return;
+        var selected=_candidates.FirstOrDefault(r=>r.Key==_newKey);
+        if(selected is null){_createError="Select a part.";return;}
+        if(!selected.Source.CanSave){_createError=selected.Source.Issue;return;}
+        if(_newQuantity is null or <=0 or >999999999999999.999m || decimal.Round(_newQuantity.Value,3)!=_newQuantity.Value)
+        {_createError=L["Portal.Text.EnterAPositivePackingQuantityWithUpToThree"];return;}
+        try
+        {
+            if(!Scm.CreatePortalPackingQuantity(_user,selected.Source.ItemNo,selected.Source.VendorID,_newQuantity.Value))
+            {_createError="The packing quantity is already set or this item is no longer available. Close and refresh the list.";return;}
+            var source=selected.Source with {PackingQty=_newQuantity,Linked=true};
+            var existing=_rows.FirstOrDefault(r=>r.Key==selected.Key);
+            if(existing is null)_rows.Add(new EditRow(source));
+            else{existing.Source=source;existing.Quantity=_newQuantity;}
+            _creating=false;_error=false;_message=L["Portal.Text.Saved"];
+        }
+        catch(Exception ex){Logger.LogError(ex,"Packing quantity create failed");_createError=L["Portal.Text.UnableToSaveCheckYourEntriesAndRetry"];}
     }
 }

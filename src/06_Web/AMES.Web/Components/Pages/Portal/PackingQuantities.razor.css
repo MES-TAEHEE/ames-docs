@@ -3,3 +3,6 @@
 .ames-card ::deep .ames-rz-grid .rz-data-grid-data > table { table-layout:fixed !important; }
 .ames-card ::deep .rz-cell-data { white-space:normal !important; overflow-wrap:anywhere; }
 .ames-card ::deep .rz-data-cell { white-space:normal !important; }
+.packing-create { width:min(560px,95vw); }
+.packing-create-body { display:grid; gap:12px; padding:20px; }
+.packing-issue { color:var(--ames-warning, #b87316); font-size:.85rem; margin-top:4px; overflow-wrap:anywhere; }
