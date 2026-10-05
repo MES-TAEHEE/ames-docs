@@ -38,6 +38,40 @@
             }
         </RadzenCard>
 
+        @if (!HasReleaseWork)
+        {
+            <section class="wh07-order-panel">
+                <div class="wh07-order-head">
+                    <div><strong>PICKING LIST</strong><span>OPEN / PARTIAL</span></div>
+                    <button type="button" @onclick="LoadOpenPickingOrdersAsync" disabled="@_isBusy">REFRESH</button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_pickingListError))
+                {
+                    <div class="wh07-order-empty error">@_pickingListError</div>
+                }
+                else if (_openPickingOrders.Count == 0)
+                {
+                    <div class="wh07-order-empty">No open picking orders.</div>
+                }
+                else
+                {
+                    <div class="wh07-order-list">
+                        @foreach (var order in _openPickingOrders)
+                        {
+                            <button type="button" class="wh07-order-row" @onclick="@(() => SelectPickingOrderAsync(order))" disabled="@_isBusy">
+                                <div class="wh07-order-main"><strong>@PickingOrderTitle(order)</strong><span>@Text(order.RequestLocation)</span></div>
+                                <div class="wh07-order-progress">
+                                    <strong>@order.PickedQty.ToString("N0") / @order.RequestedQty.ToString("N0") @order.QuantityUnit</strong>
+                                    <span>@order.LineCount MATERIALS · @order.Status.ToUpperInvariant()</span>
+                                </div>
+                                <span class="wh07-order-go">›</span>
+                            </button>
+                        }
+                    </div>
+                }
+            </section>
+        }
+
         <div class="wh07-result-scroll">
             @if (_lines.Count > 0)
             {
@@ -50,9 +84,13 @@
                                 <div class="wh07-line-main">
                                     <strong>@line.ItemNo</strong>
                                     <span class="wh07-line-name">@Text(line.ItemName)</span>
+                                    <div class="wh07-pick-from">
+                                        <span>PICK FROM</span>
+                                        <strong>@PickingLocations(line.ItemNo)</strong>
+                                    </div>
                                     <div class="wh07-line-qty">
-                                        <span>REQUESTED <strong>@line.RequestBoxQty.ToString("N0")</strong></span>
-                                        <span>PICKED <strong>@DisplayPickedBox(line).ToString("N0")</strong></span>
+                                        <span>REQUESTED <strong>@line.RequestBoxQty.ToString("N0") @line.QuantityUnit</strong></span>
+                                        <span>PICKED <strong>@DisplayPickedQuantity(line).ToString("N0") @line.QuantityUnit</strong></span>
                                     </div>
                                 </div>
                             </div>
@@ -165,7 +203,7 @@
                                 <strong>@line.ItemNo</strong>
                                 <div class="wh07-line-qty">
                                     <span>REQ BOX <strong>@line.RequestBoxQty.ToString("N0")</strong></span>
-                                    <span>PICKED BOX <strong>@DisplayPickedBox(line).ToString("N0")</strong></span>
+                                    <span>PICKED BOX <strong>@DisplayPickedQuantity(line).ToString("N0")</strong></span>
                                     @if (IsScannedLine(line))
                                     {
                                         <span class="wh07-check">✓ CHECKED</span>
@@ -354,6 +392,8 @@
     private List<PdaApi.ReleasePickLineRow> _lines = new();
     private List<PdaApi.ReleaseFifoLotRow> _fifoLots = new();
     private List<PdaApi.ReleaseLotRow> _pendingPicks = new();
+    private List<PdaApi.OpenPickingOrderRow> _openPickingOrders = new();
+    private string _pickingListError = "";
     private PdaApi.ReleaseLotRow? _scan;
     private PdaApi.DirectOutgoingLotRow? _directLot;
     private decimal _directQty = 1;
@@ -444,11 +484,28 @@
             return;
         }
 
+        await LoadOpenPickingOrdersAsync();
+
         if (!string.IsNullOrWhiteSpace(PickSlipNo))
         {
             _pickSlipNo = PickSlipNo.Trim();
             await LoadSlip();
         }
+    }
+
+    private async Task LoadOpenPickingOrdersAsync()
+    {
+        _pickingListError = "";
+        try { _openPickingOrders = await Api.WhOpenPickingOrdersAsync(); }
+        catch (Exception ex) { _openPickingOrders.Clear(); _pickingListError = ex.Message; }
+    }
+
+    private async Task SelectPickingOrderAsync(PdaApi.OpenPickingOrderRow order)
+    {
+        if (_isBusy) return;
+        ClearRelease();
+        _pickSlipNo = order.PickSlipNo;
+        await LoadSlip();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -576,6 +633,7 @@
         => barcode.StartsWith("PS-", StringComparison.OrdinalIgnoreCase)
            || barcode.Length > 2 && barcode.StartsWith("PS", StringComparison.OrdinalIgnoreCase) && barcode[2..].All(char.IsDigit)
            || barcode.StartsWith("RS-", StringComparison.OrdinalIgnoreCase)
+           || barcode.StartsWith("PA-", StringComparison.OrdinalIgnoreCase)
            || barcode.StartsWith("PDA-FIFO-", StringComparison.OrdinalIgnoreCase)
            || barcode.StartsWith("PDA-REL-TEST-", StringComparison.OrdinalIgnoreCase)
            || string.IsNullOrWhiteSpace(_loadedSlipNo) && barcode.Length == 10 && barcode.All(char.IsDigit);
@@ -638,6 +696,10 @@
                 ShowModal("No Lines Found", "No release lines were found for this Pick Slip.", "warn");
                 _loadedSlipNo = null;
             }
+            else
+            {
+                _outgoingType = "PRODUCTION";
+            }
         }
         catch (Exception ex)
         {
@@ -654,6 +716,12 @@
 
     private async Task ScanAndPickAsync(string scanText)
     {
+        if (_pendingPicks.Count > 0)
+        {
+            ShowModal("BOX Already Scanned", "Release the scanned BOX before scanning another one.", "warn");
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_loadedSlipNo))
         {
             ShowModal("Missing Pick Slip", "Scan a Pick Slip before scanning a LOT.", "warn");
@@ -684,7 +752,7 @@
                 var fifoBlocked = _scan.Message?.Contains("FIFO", StringComparison.OrdinalIgnoreCase) == true;
                 ShowModal(alreadySufficient ? "Already Sufficient" : fifoBlocked ? "FIFO Order" : "Pick Blocked",
                     alreadySufficient
-                        ? "This part already has all requested boxes picked."
+                        ? "The requested quantity for this part has already been picked."
                         : fifoBlocked
                             ? FifoBlockedMessage(_scan)
                             : _scan.Message ?? "This LOT cannot be picked.",
@@ -694,7 +762,7 @@
 
             if (IsPartAlreadySufficient(_scan.ItemNo))
             {
-                ShowModal("Already Sufficient", "This part already has all requested boxes picked.", "warn");
+                ShowModal("Already Sufficient", "The requested quantity for this part has already been picked.", "warn");
                 return;
             }
 
@@ -706,7 +774,11 @@
 
             _scan = _scan with { IsValid = true, Message = "LOT added. It will be saved when RELEASE is pressed." };
             _pendingPicks.Add(_scan);
-            if (CanCompleteRelease)
+            var line = _lines.First(x => string.Equals(x.ItemNo, _scan.ItemNo, StringComparison.OrdinalIgnoreCase));
+            var excess = DisplayPickedQuantity(line) - line.RequestBoxQty;
+            if (line.QuantityUnit == "EA" && excess > 0)
+                ShowModal("Extra Quantity", $"The full final box was added. Requested: {line.RequestBoxQty:N0} EA. Picked: {DisplayPickedQuantity(line):N0} EA. Extra: {excess:N0} EA.", "warn");
+            if (CanCompleteRelease && string.IsNullOrWhiteSpace(_outgoingType))
             {
                 _highlightOutgoingType = true;
                 _scrollOutgoingTypeAfterRender = true;
@@ -754,7 +826,7 @@
 
     private string LineCardClass(PdaApi.ReleasePickLineRow line)
     {
-        var picked = DisplayPickedBox(line);
+        var picked = DisplayPickedQuantity(line);
         return picked >= line.RequestBoxQty
             ? "wh07-line-card picked"
             : picked > 0 ? "wh07-line-card partial" : "wh07-line-card open";
@@ -762,6 +834,20 @@
 
     private IEnumerable<PdaApi.ReleaseFifoLotRow> DisplayFifoLotsFor(string itemNo)
         => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
+
+    private string PickingLocations(string itemNo)
+    {
+        var locations = DisplayFifoLotsFor(itemNo)
+            .Select(lot => lot.LocationNo)
+            .Where(location => !string.IsNullOrWhiteSpace(location))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        return string.Join(" · ", locations) is { Length: > 0 } value ? value : "NO STOCK LOCATION";
+    }
+
+    private static string PickingOrderTitle(PdaApi.OpenPickingOrderRow order)
+        => order.PickSlipNo.StartsWith("PA-", StringComparison.OrdinalIgnoreCase) && order.PickSlipNo.Length > 25
+            ? $"AUTO PICK · {Text(order.RequestDate)}"
+            : order.PickSlipNo;
 
     private bool IsPendingPick(string lotNo)
         => _pendingPicks.Any(pick => string.Equals(pick.LotNo, lotNo, StringComparison.OrdinalIgnoreCase));
@@ -771,12 +857,13 @@
                                   && !_pendingPicks.Any(pick => string.Equals(pick.LotNo, lot.LotNo, StringComparison.OrdinalIgnoreCase)))
                     .ToList();
 
-    private decimal DisplayPickedBox(PdaApi.ReleasePickLineRow line)
-        => line.PickedBoxQty + _pendingPicks.Count(pick => string.Equals(pick.ItemNo, line.ItemNo, StringComparison.OrdinalIgnoreCase));
+    private decimal DisplayPickedQuantity(PdaApi.ReleasePickLineRow line)
+        => line.PickedBoxQty + _pendingPicks.Where(pick => string.Equals(pick.ItemNo, line.ItemNo, StringComparison.OrdinalIgnoreCase))
+            .Sum(pick => line.QuantityUnit == "EA" ? pick.Qty : 1);
 
     private bool IsPartAlreadySufficient(string? itemNo)
         => _lines.FirstOrDefault(line => string.Equals(line.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)) is { } line
-           && DisplayPickedBox(line) >= line.RequestBoxQty;
+           && DisplayPickedQuantity(line) >= line.RequestBoxQty;
 
     private bool CanAcceptPendingFifoFollowUp(PdaApi.ReleaseLotRow row)
     {
@@ -799,7 +886,7 @@
             : $"Scan {expected.LotNo} first. Location: {expected.LocationNo ?? "-"}.";
     }
 
-    private bool CanCompleteRelease => _lines.Count > 0 && _lines.All(line => line.RequestBoxQty > 0 && DisplayPickedBox(line) >= line.RequestBoxQty);
+    private bool CanCompleteRelease => _lines.Count > 0 && _pendingPicks.Count == 1;
 
     private bool CanChooseOutgoingType => CanCompleteRelease || _directLot?.IsValid == true;
     private bool HasReleaseWork => _lines.Count > 0 || _directLot is not null;
@@ -852,7 +939,8 @@
                 _fifoLots.Clear();
                 _pendingPicks.Clear();
                 _highlightOutgoingType = false;
-                ShowModal("Release Complete", $"{completedSlip} has been completed.", "ok");
+                await LoadOpenPickingOrdersAsync();
+                ShowModal("BOX Released", $"{completedSlip}\n{result.Message}", "ok");
             }
             else
             {

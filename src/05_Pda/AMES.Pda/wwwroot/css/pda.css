@@ -12999,3 +12999,165 @@ body .pda-shell.wh.wh03-shell.sp-screen.inventory-browser-shell .inventory-back 
   font-weight: 800;
   line-height: 1.3;
 }
+
+body .pda-shell.wh.wh07-shell .wh07-order-panel {
+  border: 1px solid rgba(148, 163, 184, .28);
+  border-radius: 7px;
+  background: #111c2f;
+  overflow: hidden;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-head {
+  min-height: 42px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(148, 163, 184, .20);
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-head > div {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-head strong {
+  color: #f1f5f9;
+  font-size: 13px;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-head span {
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-head button {
+  border: 1px solid rgba(96, 165, 250, .38);
+  border-radius: 5px;
+  background: #182842;
+  color: #93c5fd;
+  padding: 6px 8px;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-list {
+  max-height: 176px;
+  overflow-y: auto;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-row {
+  width: 100%;
+  min-height: 57px;
+  padding: 7px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, .9fr) 12px;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, .14);
+  background: transparent;
+  color: #e2e8f0;
+  text-align: left;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-row:last-child {
+  border-bottom: 0;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-row:active {
+  background: #1a2d49;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-main,
+body .pda-shell.wh.wh07-shell .wh07-order-progress {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-main strong {
+  color: #f8fafc;
+  font-size: 11px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-main span,
+body .pda-shell.wh.wh07-shell .wh07-order-progress span {
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-progress {
+  text-align: right;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-progress strong {
+  color: #93c5fd;
+  font-size: 11px;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-go {
+  color: #60a5fa;
+  font-size: 21px;
+  line-height: 1;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-empty {
+  padding: 16px 10px;
+  color: #94a3b8;
+  font-size: 11px;
+  text-align: center;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-order-empty.error {
+  color: #fca5a5;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-scan-panel.rz-card {
+  padding: 5px 8px !important;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-scan-panel .pda-fld {
+  gap: 3px !important;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-scan-panel .pda-fld label {
+  font-size: 8px !important;
+  line-height: 1 !important;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-scan-panel .wh07-barcode-input.rz-textbox {
+  height: 34px !important;
+  min-height: 34px !important;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+  font-size: 12px !important;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-pick-from {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-pick-from > span {
+  flex: 0 0 auto;
+  color: #7ea9ff;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+body .pda-shell.wh.wh07-shell .wh07-pick-from > strong {
+  min-width: 0;
+  color: #f8fafc;
+  font-size: 12px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}

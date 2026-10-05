@@ -30,6 +30,7 @@ builder.Services.AddSingleton<IPoSource>(sp => new HttpPoSource(
     sp.GetRequiredService<IConfiguration>()));
 builder.Services.AddSingleton<PoSyncWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PoSyncWorker>());
+builder.Services.AddHostedService<AMES.Api.Workers.LineReplenishmentWorker>();
 
 // ── Auth token registry ─────────────────────────────────────────────────
 var tokens = new TokenStore();

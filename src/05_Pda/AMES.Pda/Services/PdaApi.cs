@@ -114,9 +114,12 @@ public abstract class PdaApi
     public sealed record InventoryTestChangeResult(bool Success, string Message, string LotNo, decimal Qty);
     public sealed record ReleaseSlipStatusRow(string PickSlipNo, bool Exists, bool IsClosed, int LineCount,
         string? RequestLocation, DateTime? RequestDate, DateTime? CloseDate, string Message);
+    public sealed record OpenPickingOrderRow(string PickSlipNo, string? RequestLocation, string? RequestDate,
+        int LineCount, decimal RequestedQty, decimal PickedQty, string Status, string QuantityUnit);
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
         decimal RequestBoxQty, decimal PickedBoxQty, decimal PickedQty, string? RequestUserId,
-        string? SuggestedLocation1, string? SuggestedLocation2, string? SuggestedLocation3, string Status);
+        string? SuggestedLocation1, string? SuggestedLocation2, string? SuggestedLocation3, string Status,
+        string QuantityUnit = "BOX");
     public sealed record ReleaseLotRow(string PickSlipNo, string LotNo, string? ItemNo, string? ItemName,
         decimal Qty, string? Unit, string? LocationNo, string? LocationName, string? ZoneCode,
         string? InvStatus, string? ProdDate, string? RcvDate, bool IsFifoSuggested, bool IsValid,
@@ -163,7 +166,7 @@ public abstract class PdaApi
         List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false);
     public sealed record PutAwayConfirmReq(List<string> Barcodes, string LocationId, bool Relocate = false);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote, bool SimulateFailure = false);
+        string? ReasonNote, bool SimulateFailure = false, decimal? ExpectedQty = null, string? ExpectedLocation = null);
     public sealed record AdjustTestResetResult(bool Success, string Message, string LotNo, decimal Qty);
     public sealed record InboundReceiveResult(bool Success, string Message, InboundScanRow? Row);
     public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);

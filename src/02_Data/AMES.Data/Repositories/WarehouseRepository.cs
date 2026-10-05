@@ -5,7 +5,7 @@ using AMES.Data.Services;
 
 namespace AMES.Data.Repositories;
 
-public sealed class WarehouseRepository
+public sealed partial class WarehouseRepository
 {
     private const string DefaultNormalColor = "#16A34A";
 
@@ -87,7 +87,8 @@ public sealed class WarehouseRepository
         decimal ReqBoxQty,
         decimal PickedQty,
         string? FirstPartNo,
-        string? FirstPartName);
+        string? FirstPartName,
+        string QuantityUnit = "BOX");
 
     public record PickingSlipLineRow(
         string PickSlipNo,
@@ -106,7 +107,8 @@ public sealed class WarehouseRepository
         decimal Loc02Qty,
         string? Loc03,
         decimal Loc03Qty,
-        string Status);
+        string Status,
+        string QuantityUnit = "BOX");
 
     public record PickingSlipCandidateRow(
         DateTime ReqDate,
@@ -794,6 +796,7 @@ public sealed class WarehouseRepository
                     O.PickSlipID,
                     O.ItemNo,
                     I.ItemName,
+                    CASE WHEN O.CreatedBy='WH-AUTO' THEN 'EA' ELSE 'BOX' END AS QUANTITY_UNIT,
                     COALESCE(O.DemandQty, 0) AS REQ_BOX_QTY,
                     COALESCE(O.PickedQty, 0) AS PICKED_QTY,
                     CASE
@@ -848,6 +851,7 @@ public sealed class WarehouseRepository
                 G.LINE_COUNT,
                 G.REQ_BOX_QTY,
                 G.PICKED_QTY,
+                L.QUANTITY_UNIT,
                 L.ItemNo AS FIRST_PARTNO,
                 L.ItemName AS FIRST_PARTNM,
                 CASE
@@ -883,7 +887,8 @@ public sealed class WarehouseRepository
                 GetDecimal(r, "REQ_BOX_QTY"),
                 GetDecimal(r, "PICKED_QTY"),
                 GetString(r, "FIRST_PARTNO"),
-                GetString(r, "FIRST_PARTNM")),
+                GetString(r, "FIRST_PARTNM"),
+                GetString(r, "QUANTITY_UNIT") ?? "BOX"),
             ("@Search", like),
             ("@IncludeClosed", includeClosed));
     }
@@ -904,7 +909,8 @@ public sealed class WarehouseRepository
                     COALESCE(NULLIF(RS.ReqUserId, N''), RS.CreatedBy) AS RequestUserId,
                     NULLIF(RS.ReqLocation, N'') AS LineCode,
                     COALESCE(ML.LineName, NULLIF(RS.ReqLocation, N'')) AS LineName,
-                    RS.Status
+                    RS.Status,
+                    CASE WHEN RS.CreatedBy='WH-AUTO' THEN 'EA' ELSE 'BOX' END AS QUANTITY_UNIT
                 FROM dbo.WH_PickSlip RS
                 LEFT JOIN dbo.MD_Item I
                        ON I.ItemNo = RS.ItemNo
@@ -926,6 +932,7 @@ public sealed class WarehouseRepository
                 B.SEQNO,
                 B.ItemNo AS PARTNO,
                 B.ItemName AS PARTNM,
+                B.QUANTITY_UNIT,
                 B.DemandQty AS REQ_BOX_QTY,
                 B.PickedQty AS PICKED_BOX_QTY,
                 COALESCE(P.PickedQty, 0) AS PICKED_QTY,
@@ -965,7 +972,8 @@ public sealed class WarehouseRepository
                 GetDecimal(r, "LOC_02_QTY"),
                 GetString(r, "LOC_03"),
                 GetDecimal(r, "LOC_03_QTY"),
-                GetString(r, "STATUS") ?? "Open"),
+                GetString(r, "STATUS") ?? "Open",
+                GetString(r, "QUANTITY_UNIT") ?? "BOX"),
             ("@PickSlipNo", pickSlipNo.Trim()));
     }
 
