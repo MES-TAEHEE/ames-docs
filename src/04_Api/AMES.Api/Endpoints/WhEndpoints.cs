@@ -743,6 +743,49 @@ public static class WhEndpoints
             return Results.Ok(QueryInventoryLocations(factory, itemNo, dateFrom, dateTo, areaCode));
         });
 
+        g.MapGet("/inventory/location-list", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            const string sql = """
+                SELECT W.LocationNo AS LocationID,
+                       COALESCE(NULLIF(L.LocationName,N''),NULLIF(ML.LineName,N''),
+                                NULLIF(ML.LineNameEn,N''),W.LocationNo) AS LocationName,
+                       COALESCE(NULLIF(L.ZoneCode,N''),CASE WHEN ML.LineID IS NOT NULL THEN N'LINE' END) AS ZoneCode,
+                       COUNT(DISTINCT W.LotNo) AS LineCount,
+                       SUM(W.Qty) AS TotalQty,
+                       COALESCE(NULLIF(L.WhCode,N''),N'EOS') AS WarehouseCode,
+                       COALESCE(WC.CodeName,NULLIF(L.WhCode,N''),N'EOS') AS WarehouseName,
+                       L.AreaCode,
+                       COALESCE(AC.CodeName,L.AreaCode,CASE WHEN ML.LineID IS NOT NULL THEN N'Production Line' END) AS AreaName,
+                       COALESCE(NULLIF(L.ZoneCode,N''),CASE WHEN ML.LineID IS NOT NULL THEN N'LINE' END) AS ZoneName,
+                       L.Aisle,L.Bay,L.Slot,
+                       COALESCE(L.PlantCode,ML.PlantCode) AS PlantCode,
+                       COALESCE(NULLIF(L.LocationType,N''),CASE WHEN ML.LineID IS NOT NULL THEN N'PRODUCTION_LINE' END) AS LocationType,
+                       L.Capacity,
+                       CASE WHEN COUNT(DISTINCT NULLIF(I.DefaultUOM,N''))=1 THEN MAX(I.DefaultUOM)
+                            WHEN COUNT(DISTINCT NULLIF(I.DefaultUOM,N''))>1 THEN N'MIXED' END AS Unit
+                FROM dbo.WH_Inventory W
+                LEFT JOIN dbo.MD_Location L
+                  ON L.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT
+                LEFT JOIN dbo.MD_Line ML
+                  ON ML.LotPrefix COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT
+                 AND LEN(ML.LotPrefix)=2
+                 AND UPPER(COALESCE(ML.Status,'ACTIVE')) NOT IN ('INACTIVE','CLOSED')
+                LEFT JOIN dbo.MD_CodeItem WC
+                  ON WC.GroupCode='WH_CODE' AND WC.CodeValue=COALESCE(NULLIF(L.WhCode,''),'EOS')
+                LEFT JOIN dbo.MD_CodeItem AC
+                  ON AC.GroupCode='WH_AREA' AND AC.CodeValue=L.AreaCode
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=W.PartNo COLLATE DATABASE_DEFAULT
+                WHERE W.Qty>0 AND NULLIF(W.LocationNo,N'') IS NOT NULL
+                  AND NOT (UPPER(COALESCE(L.AreaCode,N''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+                GROUP BY W.LocationNo,L.LocationName,ML.LineName,ML.LineNameEn,ML.LineID,
+                         L.ZoneCode,L.WhCode,WC.CodeName,L.AreaCode,AC.CodeName,L.Aisle,L.Bay,L.Slot,
+                         L.PlantCode,ML.PlantCode,L.LocationType,L.Capacity
+                ORDER BY COALESCE(NULLIF(L.ZoneCode,N''),CASE WHEN ML.LineID IS NOT NULL THEN N'LINE' END),W.LocationNo;
+                """;
+            return Query(factory, sql, ReadLocationRow);
+        });
+
         g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
@@ -3160,6 +3203,10 @@ public static class WhEndpoints
         if (dboLocation is not null)
             return dboLocation;
 
+        var lineLocation = QueryLineLocation(conn, locationId);
+        if (lineLocation is not null)
+            return lineLocation;
+
         if (!TableExists(conn, null, "SIS_TEST", "WMS1040"))
             return null;
 
@@ -3310,6 +3357,48 @@ public static class WhEndpoints
 
         using var dboRdr = dboCmd.ExecuteReader();
         return dboRdr.Read() ? ReadLocationRow(dboRdr) : null;
+    }
+
+    private static LocationRow? QueryLineLocation(SqlConnection conn, string locationId)
+    {
+        if (!TableExists(conn, null, "dbo", "MD_Line") || !TableExists(conn, null, "dbo", "WH_Inventory"))
+            return null;
+
+        using var cmd = new SqlCommand("""
+            SELECT TOP (1)
+                L.LotPrefix AS LocationID,
+                COALESCE(NULLIF(L.LineName,N''),NULLIF(L.LineNameEn,N''),L.LineID) AS LocationName,
+                N'LINE' AS ZoneCode,
+                N'EOS' AS WarehouseCode,
+                COALESCE(W.CodeName,N'EOS') AS WarehouseName,
+                CAST(NULL AS varchar(20)) AS AreaCode,
+                N'Production Line' AS AreaName,
+                N'LINE' AS ZoneName,
+                CAST(NULL AS varchar(20)) AS Aisle,
+                CAST(NULL AS varchar(20)) AS Bay,
+                CAST(NULL AS varchar(20)) AS Slot,
+                L.PlantCode,
+                N'PRODUCTION_LINE' AS LocationType,
+                CAST(NULL AS decimal(18,3)) AS Capacity,
+                COUNT(I.LotNo) AS LineCount,
+                COALESCE(SUM(I.Qty),0) AS TotalQty
+            FROM dbo.MD_Line L
+            LEFT JOIN dbo.MD_CodeItem W ON W.GroupCode='WH_CODE' AND W.CodeValue='EOS'
+            LEFT JOIN dbo.WH_Inventory I
+              ON I.LocationNo COLLATE DATABASE_DEFAULT=L.LotPrefix COLLATE DATABASE_DEFAULT
+             AND I.Qty>0
+            WHERE LEN(L.LotPrefix)=2
+              AND UPPER(COALESCE(L.Status,'ACTIVE')) NOT IN ('INACTIVE','CLOSED')
+              AND UPPER(L.LotPrefix)=UPPER(@LocationID)
+            GROUP BY L.LotPrefix,L.LineName,L.LineNameEn,L.LineID,L.PlantCode,W.CodeName;
+            """, conn)
+        {
+            CommandTimeout = 15
+        };
+        cmd.Parameters.Add("@LocationID", SqlDbType.VarChar, 30).Value = locationId.Trim();
+
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read() ? ReadLocationRow(rdr) : null;
     }
 
     private static string WarehouseProcedureMessage(Exception ex)

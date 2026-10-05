@@ -69,7 +69,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
             return await spareParts.LocationsAsync();
 
         return FilterByArea(
-            await GetRequiredAsync<List<LocationRow>>("/api/wh/locations", "Location service is unavailable."),
+            await GetRequiredAsync<List<LocationRow>>("/api/wh/inventory/location-list", "Location service is unavailable."),
             row => row.AreaCode, areaCode);
     }
     public async Task<List<LocationRow>> WhLocationMapAsync()

@@ -38,7 +38,7 @@ Check(components.All(source => !source.Contains("@inject PdaApi", StringComparis
 var endpoints = Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs");
 var fgEndpoints = Read("src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs");
 var apiProgram = Read("src/04_Api/AMES.Api/Program.cs");
-foreach (var route in new[] { "/api/wh/inventory", "/api/wh/inventory/scan", "/api/wh/inventory/locations", "/api/wh/locations", "/api/wh/inventory/lots" })
+foreach (var route in new[] { "/api/wh/inventory", "/api/wh/inventory/scan", "/api/wh/inventory/locations", "/api/wh/inventory/location-list", "/api/wh/locations", "/api/wh/inventory/lots" })
     Check(warehouseClient.Contains(route, StringComparison.Ordinal), $"WarehouseApi uses API route {route}");
 Check(authClient.Contains("/api/auth/login", StringComparison.Ordinal), "AuthApi owns authentication calls");
 Check(finishedGoodsClient.Contains("/api/fg/inventory", StringComparison.Ordinal), "FinishedGoodsApi owns FG calls");
@@ -47,8 +47,11 @@ Check(!sharedClient.Contains("/api/auth/", StringComparison.Ordinal)
       && !sharedClient.Contains("/api/wh/", StringComparison.Ordinal)
       && !sharedClient.Contains("/api/fg/", StringComparison.Ordinal),
     "PdaApi contains no domain endpoint implementation");
-foreach (var route in new[] { "MapGet(\"/inventory\"", "MapGet(\"/inventory/scan\"", "MapGet(\"/inventory/locations\"" })
+foreach (var route in new[] { "MapGet(\"/inventory\"", "MapGet(\"/inventory/scan\"", "MapGet(\"/inventory/locations\"", "MapGet(\"/inventory/location-list\"" })
     Check(endpoints.Contains(route, StringComparison.Ordinal), $"API exposes {route[8..^1]}");
+Check(endpoints.Contains("FROM dbo.WH_Inventory W", StringComparison.Ordinal)
+      && endpoints.Contains("='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%'", StringComparison.Ordinal),
+    "Warehouse inventory location list reads WH_Inventory and excludes FG locations");
 Check(apiProgram.Contains("CustomSchemaIds", StringComparison.Ordinal)
       && apiProgram.Contains("UseSwaggerUI", StringComparison.Ordinal),
     "Swagger supports duplicate PDA DTO names and exposes its UI");
