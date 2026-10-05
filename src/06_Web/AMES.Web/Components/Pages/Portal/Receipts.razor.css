@@ -2,10 +2,12 @@
 .receipt-card-header > span { white-space:nowrap; }
 .receipt-hint { font-size:var(--ames-fs-hint); padding:0 0 6px; }
 .receipt-totals { display:flex; flex-wrap:wrap; gap:8px; padding:4px 0 10px; font-size:var(--ames-fs-hint); }
-.ames-modal.receipt-detail { max-width:1200px; min-width:0; box-sizing:border-box; }
+.ames-modal.receipt-detail { max-width:min(1480px, 96vw); width:min(1480px, 96vw); min-width:0; box-sizing:border-box; }
 .receipt-detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin:4px 0 12px; }
 .receipt-tile { padding:8px 10px; border:1px solid rgba(148,163,184,.22); border-radius:6px; background:rgba(148,163,184,.06); }
 .receipt-label { font-size:var(--ames-fs-hint,12px); color:var(--rz-text-secondary-color,var(--ames-tx-slate-400)); margin-bottom:3px; }
 .receipt-value { font-weight:600; overflow-wrap:anywhere; }
 .receipt-footer { display:flex; justify-content:flex-end; align-items:center; gap:12px; }
-.receipt-detail ::deep .rz-grid-table td { white-space:normal; overflow-wrap:anywhere; }
+.receipt-detail ::deep .rz-grid-table td.receipt-wrap, .receipt-detail ::deep .rz-grid-table td.receipt-wrap .rz-cell-data { white-space:normal; overflow-wrap:anywhere; }
+/* 줄바꿈은 유연 열(품목명)만 — 번호·코드 열은 너비를 내용에 맞춰 두고 한 줄로 */
+.receipt-list ::deep .rz-grid-table td.receipt-wrap, .receipt-list ::deep .rz-grid-table td.receipt-wrap .rz-cell-data { white-space:normal; overflow-wrap:anywhere; }

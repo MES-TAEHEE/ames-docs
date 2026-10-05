@@ -9,10 +9,19 @@
     <div class="ames-body">
         <NavMenu />
         <main class="ames-main">
+            <SessionGuard />
             <div class="ames-content @SectionClass()">
                 @if (_allowed)
                 {
                     @Body
+                }
+                else if (_dbDown)
+                {
+                    <div class="ames-db-down-page">
+                        <div class="ames-db-down-page-t">⚠ @L["App.DbDown.Title"]</div>
+                        <div class="dim">@L["App.DbDown.Page"]</div>
+                        <a class="ames-btn ok" href="@Nav.Uri" data-enhance-nav="false">@L["App.DbDown.Retry"]</a>
+                    </div>
                 }
             </div>
         </main>
@@ -29,7 +38,7 @@
 
 @code {
     [CascadingParameter] Task<AuthenticationState>? AuthState { get; set; }
-    bool _allowed;
+    bool _allowed, _dbDown;
 
     // 화면 읽기 권한(R) 공통 검사 — 라우터가 정적이라 화면 이동마다 이 레이아웃이 서버에서 먼저 돈다.
     // 화면마다 검사를 넣지 않아도 SYS_Screen 에 등록된 내부 화면은 모두 막히고, 권한이 없으면 화면 본문을 그리지 않는다.
@@ -43,6 +52,8 @@
             await PermSvc.EnsureAsync(AuthState!);
             if (!PermSvc.CanOpen(Nav.ToBaseRelativePath(Nav.Uri)))
             {
+                // 권한을 못 읽은 원인이 DB 장애면 "권한 없음" 대신 장애 안내를 그린다
+                if (PermSvc.LoadFailed && AMES.Data.Connection.DbHealth.IsDown) { _dbDown = true; return; }
                 Nav.NavigateTo("/unauthorized", replace: true);
                 return;
             }

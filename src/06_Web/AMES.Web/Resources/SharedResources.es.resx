@@ -261,6 +261,12 @@
   <data name="Msg.Saving" xml:space="preserve">
     <value>Guardando…</value>
   </data>
+  <data name="Msg.Applying" xml:space="preserve">
+    <value>Aplicando…</value>
+  </data>
+  <data name="Msg.Publishing" xml:space="preserve">
+    <value>Publicando…</value>
+  </data>
   <data name="Msg.Saved" xml:space="preserve">
     <value>Guardado correctamente.</value>
   </data>
@@ -5038,7 +5044,7 @@
     <value>{0} ~ {1}</value>
   </data>
   <data name="PP.Downtime.Hint.Edit" xml:space="preserve">
-    <value>Haga clic en una fila para editar motivo, causa y comentario</value>
+    <value>Haga clic en una fila para editar · Registros de POP (andon): solo causa y observación</value>
   </data>
   <data name="PP.Downtime.Ph.Reason" xml:space="preserve">
     <value>Seleccionar motivo…</value>
@@ -9594,5 +9600,71 @@
   </data>
   <data name="SYS.Config.Err.TimeFormat" xml:space="preserve">
     <value>{0}: introduzca la hora con el formato 00:00 (00:00–23:59).</value>
+  </data>
+  <data name="PP.Downtime.Err.LineRequired" xml:space="preserve">
+    <value>Seleccione una línea</value>
+  </data>
+  <data name="PP.Downtime.Err.StartRequired" xml:space="preserve">
+    <value>Ingrese la hora de inicio</value>
+  </data>
+  <data name="PP.Downtime.Err.EndBeforeStart" xml:space="preserve">
+    <value>El fin debe ser posterior al inicio</value>
+  </data>
+  <data name="PP.Downtime.Err.Future" xml:space="preserve">
+    <value>No se pueden ingresar horas posteriores a ahora</value>
+  </data>
+  <data name="PP.Downtime.Err.Overlap" xml:space="preserve">
+    <value>Se superpone con otro registro de paro de la misma línea</value>
+  </data>
+  <data name="PP.Downtime.Err.NotEditable" xml:space="preserve">
+    <value>Registros de POP: solo se pueden editar la causa y la observación</value>
+  </data>
+  <data name="PP.Downtime.Err.NotFound" xml:space="preserve">
+    <value>Registro no encontrado. Vuelva a buscar</value>
+  </data>
+  <data name="PP.Downtime.Err.CommentRequired" xml:space="preserve">
+    <value>Esta causa requiere una observación</value>
+  </data>
+  <data name="PP.Downtime.Hint.PopOnly" xml:space="preserve">
+    <value>Registrado en POP (andon). Solo se pueden editar la causa y la observación</value>
+  </data>
+  <data name="PP.Downtime.Ph.Cause" xml:space="preserve">
+    <value>Seleccione la causa</value>
+  </data>
+  <data name="PP.Downtime.Src.Pop" xml:space="preserve">
+    <value>POP</value>
+  </data>
+  <data name="PP.Downtime.Src.Web" xml:space="preserve">
+    <value>Web</value>
+  </data>
+  <data name="PP.Downtime.Ok.Created" xml:space="preserve">
+    <value>Registrado</value>
+  </data>
+  <data name="App.DbDown.Title" xml:space="preserve">
+    <value>Falla de conexión a la base de datos</value>
+  </data>
+  <data name="App.DbDown.Msg" xml:space="preserve">
+    <value>No se puede conectar al servidor de base de datos. Las listas pueden aparecer vacías y los cambios pueden no guardarse. Este aviso desaparece al restablecerse la conexión.</value>
+  </data>
+  <data name="App.DbDown.Page" xml:space="preserve">
+    <value>No se puede abrir esta pantalla porque el servidor de base de datos no responde. Inténtelo de nuevo en unos momentos.</value>
+  </data>
+  <data name="App.DbDown.Retry" xml:space="preserve">
+    <value>Reintentar</value>
+  </data>
+  <data name="App.DbDown.Login" xml:space="preserve">
+    <value>No se puede iniciar sesión porque el servidor de base de datos no responde. Inténtelo de nuevo en unos momentos.</value>
+  </data>
+  <data name="Portal.Receipts.Col.DeliveredQty" xml:space="preserve">
+    <value>Ctd. entreg.</value>
+  </data>
+  <data name="Portal.Receipts.Col.ReceivedQty" xml:space="preserve">
+    <value>Ctd. recib.</value>
+  </data>
+  <data name="Portal.Receipts.Col.OpenQty" xml:space="preserve">
+    <value>Ctd. pend.</value>
+  </data>
+  <data name="Portal.Receipts.Col.RemainingQty" xml:space="preserve">
+    <value>Ctd. rest.</value>
   </data>
 </root>

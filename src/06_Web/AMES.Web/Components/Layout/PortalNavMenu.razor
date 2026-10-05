@@ -1,71 +1,177 @@
 @rendermode InteractiveServer
 @inject IStringLocalizer<SharedResources> L
+@inject IJSRuntime JS
 @inject AMES.Web.Services.MenuCatalog Catalog
+@inject AMES.Web.Services.AppLanguageState Lang
 @using AMES.Web.Services
+@using System.Globalization
+@using System.Net
+@using System.Text.Json
 
-@*  외부 포탈 좌측 메뉴 — 내부 NavMenu 와 같은 클래스. 검색·카테고리 접기·메뉴 접기가 동작하도록 대화형 컴포넌트로 분리했다.
-    포탈 화면은 RBAC 대상이 아니라 SYS_Screen 에 등록된 PORTAL 화면을 모두 보인다. *@
+@*  외부 포탈 좌측 메뉴 — 내부 NavMenu 와 같은 마크업·클래스(주/보조 언어 두 줄 표기·즐겨찾기·접힘 기억)로 그린다.
+    포탈 화면은 RBAC 대상이 아니라 SYS_Screen 에 등록된 PORTAL 화면을 모두 보인다. 즐겨찾기·접힘은 내부와 다른 저장 키를 쓴다. *@
 
 <aside class="ames-side portal-side @(_collapsed ? "ames-side--collapsed" : "")">
     <div class="ames-nav-top">
         <div class="ames-nav-search">
             <span class="ames-nav-search-ic">🔍</span>
-            <input type="text" value="@_query" @oninput="e => _query = e.Value?.ToString() ?? string.Empty"
+            <input type="text" value="@_query" @oninput="e => _query = e.Value?.ToString() ?? string.Empty" @onkeydown="OnQueryKeydown"
                    placeholder="@L["Portal.Nav.Search"]" aria-label="@L["Portal.Nav.Search"]" />
             @if (!string.IsNullOrEmpty(_query))
             {
                 <button class="ames-nav-search-x" @onclick="() => _query = string.Empty" aria-label="clear">✕</button>
             }
         </div>
-        <button class="ames-side-toggle" @onclick="() => _collapsed = !_collapsed">@(_collapsed ? "▶" : "◀")</button>
+        <button class="ames-side-toggle" @onclick="ToggleSide">@(_collapsed ? "▶" : "◀")</button>
     </div>
 
     <div class="ames-nav">
         <NavLink class="ames-nav-home" href="@PortalAuth.HomePath.TrimStart('/')" Match="NavLinkMatch.All">
             <span class="ames-nav-ic">⌂</span>
-            <span>@L["Portal.Nav.Home"]</span>
+            <span>@NL("홈", "Home", "Inicio")</span>
         </NavLink>
 
-        <div class="ames-nav-section portal @(_open ? "open" : "")" @onclick="() => _open = !_open">
-            <span class="ames-nav-section-ic">🌐</span>
-            <span class="ames-nav-section-t">PORTAL · @L["Portal.Sub"]</span>
-            <span class="ames-nav-section-n">@Filtered.Count</span>
-            <span class="ames-nav-chevron">@(_open ? "▾" : "▸")</span>
-        </div>
-        @if (_open)
+        @if (!string.IsNullOrWhiteSpace(_query))
         {
-            @foreach (var it in Filtered)
-            {
-                <div class="ames-nav-row">
-                    <NavLink class="ames-nav-link" href="@it.Href">
-                        <span class="lid">@it.Lid</span>
-                        <span>@Label(it)</span>
-                    </NavLink>
-                </div>
-            }
-            @if (Filtered.Count == 0)
+            if (Filtered.Count == 0)
             {
                 <div class="ames-nav-empty">@L["Portal.Nav.Empty"]</div>
+            }
+            else
+            {
+                <div class="ames-nav-results">
+                    @foreach (var it in Filtered)
+                    {
+                        @RenderRow(it)
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            var favs = _items.Where(i => _favorites.Contains(i.Href)).ToList();
+            @if (favs.Count > 0)
+            {
+                <div class="ames-nav-section ames-nav-fav" @onclick="ToggleFav">
+                    <span class="ames-nav-section-ic">⭐</span>
+                    <span class="ames-nav-section-t">@SL("즐겨찾기", "Favorites", "Favoritos")</span>
+                    <span class="ames-nav-section-n">@favs.Count</span>
+                    <span class="ames-nav-chevron">@(_favOpen ? "▾" : "▸")</span>
+                </div>
+                @if (_favOpen)
+                {
+                    @foreach (var it in favs)
+                    {
+                        @RenderRow(it)
+                    }
+                }
+            }
+
+            <div class="ames-nav-section portal @(_open ? "open" : "")" @onclick="() => _open = !_open">
+                <span class="ames-nav-section-ic">🌐</span>
+                <span class="ames-nav-section-t">@L["Portal.Sub"]</span>
+                <span class="ames-nav-section-n">@_items.Count</span>
+                <span class="ames-nav-chevron">@(_open ? "▾" : "▸")</span>
+            </div>
+            @if (_open)
+            {
+                @foreach (var it in _items)
+                {
+                    @RenderRow(it)
+                }
+                @if (_items.Count == 0)
+                {
+                    <div class="ames-nav-empty">@L["Portal.Nav.Empty"]</div>
+                }
             }
         }
     </div>
 </aside>
 
 @code {
-    bool _open = true, _collapsed;
-    string _query = "";
+    bool _open = true, _collapsed, _favOpen = true, _bilingual = true, _loaded;
+    string _query = "", _lang = "ko";
     List<MenuCatalog.Item> _items = new();
+    HashSet<string> _favorites = new();
 
-    List<MenuCatalog.Item> Filtered => string.IsNullOrWhiteSpace(_query)
-        ? _items
-        : _items.Where(i => i.Ko.Contains(_query, StringComparison.OrdinalIgnoreCase) || i.En.Contains(_query, StringComparison.OrdinalIgnoreCase) || i.Lid.Contains(_query, StringComparison.OrdinalIgnoreCase)).ToList();
+    const string KeyCollapsed = "ames.portal.nav.collapsed";
+    const string KeyFavorites = "ames.portal.nav.favorites";
+    const string KeyFavOpen   = "ames.portal.nav.favopen";
+
+    List<MenuCatalog.Item> Filtered => _items.Where(i => i.Ko.Contains(_query, StringComparison.OrdinalIgnoreCase)
+        || i.En.Contains(_query, StringComparison.OrdinalIgnoreCase)
+        || (MenuCatalog.EsFor(i.Href)?.Contains(_query, StringComparison.OrdinalIgnoreCase) ?? false)
+        || i.Lid.Contains(_query, StringComparison.OrdinalIgnoreCase)).ToList();
 
     protected override void OnInitialized()
     {
+        _lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        _bilingual = Lang.SwitcherVisible;
         Catalog.Load();
         _items = Catalog.SectionItems(MenuCatalog.PortalSection).ToList();
     }
 
-    string Label(MenuCatalog.Item it)
-        => MenuCatalog.Label(it, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var favJson = await JS.InvokeAsync<string?>("localStorage.getItem", KeyFavorites);
+            if (!string.IsNullOrWhiteSpace(favJson)) _favorites = JsonSerializer.Deserialize<HashSet<string>>(favJson) ?? new();
+            var collapsed = await JS.InvokeAsync<string?>("localStorage.getItem", KeyCollapsed);
+            if (collapsed is not null) _collapsed = collapsed == "1";
+            var favOpen = await JS.InvokeAsync<string?>("localStorage.getItem", KeyFavOpen);
+            if (favOpen is not null) _favOpen = favOpen == "1";
+        }
+        catch (JsonException) { }
+        catch (JSException) { }
+        _loaded = true;
+        StateHasChanged();
+    }
+
+    RenderFragment RenderRow(MenuCatalog.Item it) => __builder =>
+    {
+        var isFav = _favorites.Contains(it.Href);
+        <div class="ames-nav-row @(isFav ? "is-fav" : "")">
+            <NavLink class="ames-nav-link" href="@it.Href">
+                <span class="lid">@it.Lid</span>
+                <span>@NL(it.Ko, it.En, MenuCatalog.EsFor(it.Href))</span>
+            </NavLink>
+            <button class="ames-nav-star" @onclick="() => ToggleFavorite(it.Href)"
+                    title="@SL(isFav ? "즐겨찾기 해제" : "즐겨찾기 추가", isFav ? "Remove favorite" : "Add favorite", isFav ? "Quitar de favoritos" : "Añadir a favoritos")"
+                    aria-label="@SL("즐겨찾기", "Favorite", "Favorito")">@(isFav ? "★" : "☆")</button>
+        </div>
+    };
+
+    void OnQueryKeydown(KeyboardEventArgs e) { if (e.Key == "Escape") _query = ""; }
+    void ToggleSide() { _collapsed = !_collapsed; _ = Save(KeyCollapsed, _collapsed ? "1" : "0"); }
+    void ToggleFav() { _favOpen = !_favOpen; _ = Save(KeyFavOpen, _favOpen ? "1" : "0"); }
+    void ToggleFavorite(string href)
+    {
+        if (!_favorites.Remove(href)) _favorites.Add(href);
+        _ = Save(KeyFavorites, JsonSerializer.Serialize(_favorites));
+    }
+
+    async Task Save(string key, string value)
+    {
+        if (!_loaded) return;   // 초기 복원 전엔 기본값으로 덮어쓰지 않음
+        try { await JS.InvokeVoidAsync("localStorage.setItem", key, value); }
+        catch (JSException) { }
+    }
+
+    // 내부 NavMenu 와 같은 표기 규칙: ko=한/영, en=영/한, es=서/영(서문 없으면 영문)
+    (string Primary, string Secondary) LangPair(string ko, string en, string? es) => _lang switch
+    {
+        "en" => (en, ko),
+        "es" => (string.IsNullOrEmpty(es) ? en : es!, en),
+        _    => (ko, en),
+    };
+    string SL(string ko, string en, string es) => _lang switch { "en" => en, "es" => es, _ => ko };
+    MarkupString NL(string ko, string en, string? es)
+    {
+        var (p, s) = LangPair(ko, en, es);
+        return _bilingual
+            ? new MarkupString($"{WebUtility.HtmlEncode(p)}<span class=\"ames-nav-alt\">{WebUtility.HtmlEncode(s)}</span>")
+            : new MarkupString(WebUtility.HtmlEncode(p));
+    }
 }

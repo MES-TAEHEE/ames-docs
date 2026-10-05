@@ -97,7 +97,10 @@
     public async Task LoginUser()
     {
         // 내부 계정만 — 외부 사용자(SCM-004 등록 계정)는 외부 로그인(/portal/login)에서만 로그인한다
-        var result = await SignIn.SignInInternalAsync(HttpContext, Input.Email, Input.Password, Input.RememberMe, ReturnUrl);
+        var signIn = SignIn.SignInInternalAsync(HttpContext, Input.Email, Input.Password, Input.RememberMe, ReturnUrl);
+        try { await signIn; }
+        catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsSqlFailure(ex)) { errorMessage = L["App.DbDown.Login"]; return; }
+        var result = signIn.Result;
         if (!result.Succeeded) { errorMessage = L[result.ErrorKey!]; return; }
 
         // Persist RememberMe choice for next visit

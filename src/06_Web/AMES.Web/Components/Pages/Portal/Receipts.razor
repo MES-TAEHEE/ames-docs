@@ -15,7 +15,7 @@
     <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Portal.Text.PartiallyReceived"]</div><div class="ames-kpi-v">@CountStatus("부분입고")</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["Portal.Text.Received"]</div><div class="ames-kpi-v">@CountStatus("입고완료")</div></div>
 </div>
-<div class="ames-card">
+<div class="ames-card receipt-list">
     <div class="ames-card-h receipt-card-header">
         <span>▼ @L["Scm.Text.ReceiptStatus"] · @Rows.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
@@ -26,7 +26,7 @@
             <RadzenDatePicker TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" aria-label='@L["Portal.Text.ShipDateFrom"]' />
             <span class="dim">~</span>
             <RadzenDatePicker TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" aria-label='@L["Portal.Text.ShipDateTo"]' />
-            <RadzenButton Text='@L["Btn.Refresh"]' Icon="refresh" Click="Load" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Load" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
             <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" Click="Reset" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
@@ -38,19 +38,19 @@
     PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat='@L["Portal.Text.Page0Of12Items"]' PageSizeText='@L["Portal.Text.PerPage"]'
     RowClick="@(args => { if (args.Data is not null) Select(args.Data); })" RowRender="RowLink" EmptyText='@L["Scm.Text.NoResults"]' PageSizeChanged="@(s => _pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
     <Columns>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Title="No." Width="60px" TextAlign="TextAlign.Center" Sortable="false"><Template Context="r"><span class="dim">@GridRowNo.Of(_grid,r)</span></Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Note" Title='@L["Portal.Text.DeliveryNote"]'><Template Context="r">@(r.Note.Length==0?L["Portal.Text.NotIssued"]:r.Note)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Delivery" Title='@L["Portal.Text.DeliveryNumber"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="VendorName" Title='@L["Scm.Text.Supplier"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Order" Title='@L["Portal.Text.PurchaseOrder"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title='@L["Portal.Text.ItemCode"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title='@L["Portal.Text.Description"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ShipDate" Title='@L["Scm.Text.ShipDate"]' FormatString="{0:yyyy-MM-dd}" />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Quantity" Title='@L["Portal.Text.DeliveryQuantity"]'><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Received" Title='@L["Portal.Text.ReceivedQuantity"]'><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Remaining" Title='@L["Portal.Text.OutstandingQuantity"]'><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title='@L["Scm.Text.Unit"]' />
-        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title='@L["Portal.Text.ReceiptStatus"]' TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@ReceiptLabel(r.ReceiptStatus)</span></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="60px" MinWidth="60px" Title="No." TextAlign="TextAlign.Center" Sortable="false"><Template Context="r"><span class="dim">@GridRowNo.Of(_grid,r)</span></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Property="Note" Title='@L["Portal.Text.DeliveryNote"]'><Template Context="r">@(r.Note.Length==0?L["Portal.Text.NotIssued"]:r.Note)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Property="Delivery" Title='@L["Portal.Text.DeliveryNumber"]' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="150px" MinWidth="150px" Property="VendorName" Title='@L["Scm.Text.Supplier"]' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Order" Title='@L["Portal.Text.PurchaseOrder"]' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Property="Item" Title='@L["Portal.Text.ItemCode"]' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" MinWidth="200px" CssClass="receipt-wrap" Property="Name" Title='@L["Portal.Text.Description"]' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="150px" MinWidth="150px" TextAlign="TextAlign.Center" Property="ShipDate" Title='@L["Scm.Text.ShipDate"]' FormatString="{0:yyyy-MM-dd}" />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="140px" MinWidth="140px" TextAlign="TextAlign.Right" Property="Quantity" Title='@L["Portal.Receipts.Col.DeliveredQty"]'><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="140px" MinWidth="140px" TextAlign="TextAlign.Right" Property="Received" Title='@L["Portal.Receipts.Col.ReceivedQty"]'><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Property="Remaining" Title='@L["Portal.Receipts.Col.OpenQty"]'><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="100px" MinWidth="100px" TextAlign="TextAlign.Center" Property="Unit" Title='@L["Scm.Text.Unit"]' />
+        <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="190px" MinWidth="190px" Property="ReceiptStatus" Title='@L["Portal.Text.ReceiptStatus"]' TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@ReceiptLabel(r.ReceiptStatus)</span></Template></RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
 </div>
@@ -67,15 +67,15 @@
         <div class="dim receipt-hint">ℹ @L["Portal.Text.TheStatusIsAwaitingReceiptPartiallyReceivedOrFully"]</div>
         <RadzenDataGrid TItem="ScmRepository.PortalReceiptLine" Data="@_details" AllowPaging="true" PageSize="10" Class="ames-rz-grid" ShowPagingSummary="true" PagingSummaryFormat='@L["Portal.Text.Page0Of12Items"]'>
             <Columns>
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Delivery" Title='@L["Portal.Text.Delivery"]' />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Order" Title='@L["Portal.Text.PurchaseOrder"]' />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Item" Title='@L["Portal.Text.ItemCode"]' />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Name" Title='@L["Portal.Text.Description"]' />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Quantity" Title='@L["Portal.Text.DeliveryQuantity"]'><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Received" Title='@L["Portal.Text.ReceivedQuantity"]'><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" TextAlign="TextAlign.Right" Property="Remaining" Title='@L["Portal.Text.RemainingQuantity"]'><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="Unit" Title='@L["Scm.Text.Unit"]' />
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Property="ReceiptStatus" Title='@L["Portal.Text.ReceiptStatus"]' TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@ReceiptLabel(r.ReceiptStatus)</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Property="Delivery" Title='@L["Portal.Text.Delivery"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Property="Order" Title='@L["Portal.Text.PurchaseOrder"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Item" Title='@L["Portal.Text.ItemCode"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" MinWidth="190px" CssClass="receipt-wrap" Property="Name" Title='@L["Portal.Text.Description"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Property="Quantity" Title='@L["Portal.Receipts.Col.DeliveredQty"]'><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Property="Received" Title='@L["Portal.Receipts.Col.ReceivedQty"]'><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="130px" MinWidth="130px" TextAlign="TextAlign.Right" Property="Remaining" Title='@L["Portal.Receipts.Col.RemainingQty"]'><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center" Property="Unit" Title='@L["Scm.Text.Unit"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="170px" MinWidth="170px" Property="ReceiptStatus" Title='@L["Portal.Text.ReceiptStatus"]' TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@ReceiptLabel(r.ReceiptStatus)</span></Template></RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
         <div class="ames-modal-footer receipt-footer">

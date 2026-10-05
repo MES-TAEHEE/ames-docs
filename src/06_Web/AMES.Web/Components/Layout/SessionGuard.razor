@@ -1,0 +1,70 @@
+@rendermode InteractiveServer
+@implements IDisposable
+@inject AuthenticationStateProvider AuthPrvd
+@inject NavigationManager Nav
+@inject AMES.Data.Connection.AmesConnectionFactory Db
+@inject IStringLocalizer<SharedResources> L
+
+@*  레이아웃(정적)에 두는 대화형 감시 — ① 회로 재검증이 인증을 풀면(잠금·비활성·보안 스탬프 변경) 열린 화면도 로그인으로 보낸다.
+    라우터가 정적이라 인증 상태가 바뀌어도 열린 화면은 다시 그려지지 않아 이 구독이 없으면 화면이 그대로 남는다.
+    ② DB 연결 장애 배너 — 화면들이 DB 오류를 빈 목록으로 삼키므로 장애를 따로 알린다. *@
+@if (_dbDown)
+{
+    <div class="ames-db-down" role="alert">
+        <span class="ames-db-down-icon">⚠</span>
+        <strong>@L["App.DbDown.Title"]</strong>
+        <span>@L["App.DbDown.Msg"]</span>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Portal { get; set; }
+
+    bool _dbDown, _disposed;
+    int  _probing, _tick;
+    Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        AuthPrvd.AuthenticationStateChanged += OnAuthChanged;
+        _dbDown = AMES.Data.Connection.DbHealth.IsDown;
+        _timer = new Timer(_ => _ = InvokeAsync(Check), null, 3000, 3000);
+    }
+
+    async void OnAuthChanged(Task<AuthenticationState> task)
+    {
+        try
+        {
+            var state = await task;
+            if (state.User.Identity?.IsAuthenticated == true || _disposed) return;
+            await InvokeAsync(() =>
+            {
+                var back = Uri.EscapeDataString("/" + Nav.ToBaseRelativePath(Nav.Uri));
+                Nav.NavigateTo(Portal ? "portal/login" : $"Account/Login?ReturnUrl={back}", forceLoad: true);
+            });
+        }
+        catch { /* 회로가 이미 닫혔으면 할 일이 없다 */ }
+    }
+
+    void Check()
+    {
+        if (_disposed) return;
+        // 장애 중에는 9초마다 직접 연결해 본다 — 화면이 DB 를 부르지 않으면 성공 기록이 생기지 않아 배너가 남는다.
+        // 연결 시도는 최대 Connect Timeout 만큼 걸리므로 회로 스레드가 아니라 스레드 풀에서 돌린다.
+        if (AMES.Data.Connection.DbHealth.IsDown && ++_tick % 3 == 0 && Interlocked.CompareExchange(ref _probing, 1, 0) == 0)
+            _ = Task.Run(() =>
+            {
+                try { using var c = Db.OpenConnection(); } catch { }
+                finally { Interlocked.Exchange(ref _probing, 0); }
+            });
+        var down = AMES.Data.Connection.DbHealth.IsDown;
+        if (down != _dbDown) { _dbDown = down; StateHasChanged(); }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _timer?.Dispose();
+        AuthPrvd.AuthenticationStateChanged -= OnAuthChanged;
+    }
+}

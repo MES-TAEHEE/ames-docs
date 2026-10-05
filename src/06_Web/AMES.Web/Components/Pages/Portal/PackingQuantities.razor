@@ -19,22 +19,22 @@
         <span>▼ @L["Portal.Text.PackingQuantities"] · @Rows.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.PackingQty.Ph.Search"]' aria-label='@L["Portal.Text.SearchItems"]' InputSize="InputSize.Small" class="ames-rz-input" />
-            <RadzenButton Text='@L["Btn.Refresh"]' Icon="refresh" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     <div class="packing-hint dim">@L["Portal.Text.EnterPackingQuantitiesForLinkedItemsAndSaveEach"]</div>
     <RadzenDataGrid @ref="_grid" TItem="EditRow" Data="@Rows" AllowSorting="true" AllowPaging="true" PageSize="25" PageSizeOptions="@(new int[]{10,25,50,100})" PagerHorizontalAlign="HorizontalAlign.Center"
         ShowPagingSummary="true" PagingSummaryFormat='@L["Portal.Text.Page0Of12Items"]' PageSizeText='@L["Portal.Text.PerPage"]' EmptyText='@L["Portal.Text.NoLinkedItems"]' Class="ames-rz-grid ames-grid-fixed" PageSizeChanged="@(n=>_pageRows=n)" Style="@($"--ames-page-rows:{_pageRows}")">
         <Columns>
-            <RadzenDataGridColumn TItem="EditRow" Title="No." Width="45px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EditRow" Property="Source.VendorName" Title='@L["Scm.Text.Supplier"]' Width="150px"><Template Context="r"><span class="code">@r.Source.VendorID</span><br />@r.Source.VendorName</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemNo" Title='@L["Portal.Text.ItemCode"]' Width="130px"><Template Context="r"><span class="code">@r.Source.ItemNo</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemName" Title='@L["Scm.Text.Description"]' />
-            <RadzenDataGridColumn TItem="EditRow" Property="Source.Unit" Title='@L["Scm.Text.Unit"]' Width="55px" TextAlign="TextAlign.Center" />
-            <RadzenDataGridColumn TItem="EditRow" Title='@L["Scm.Text.PackingQuantity"]' Width="130px" Sortable="false">
+            <RadzenDataGridColumn TItem="EditRow" Width="60px" MinWidth="60px" Title="No." Sortable="false" TextAlign="TextAlign.Center"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EditRow" MinWidth="160px" CssClass="packing-nowrap" Property="Source.VendorName" Title='@L["Scm.Text.Supplier"]'><Template Context="r"><span class="code">@r.Source.VendorID</span> @r.Source.VendorName</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EditRow" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Property="Source.ItemNo" Title='@L["Portal.Text.ItemCode"]'><Template Context="r"><span class="code">@r.Source.ItemNo</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EditRow" MinWidth="200px" Property="Source.ItemName" Title='@L["Scm.Text.Description"]' />
+            <RadzenDataGridColumn TItem="EditRow" Width="100px" MinWidth="100px" Property="Source.Unit" Title='@L["Scm.Text.Unit"]' TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="EditRow" Width="240px" MinWidth="240px" Title='@L["Scm.Text.PackingQuantity"]' Sortable="false">
                 <Template Context="r"><RadzenNumeric TValue="decimal?" @bind-Value="r.Quantity" Format="@QtyFormat.Format(r.Source.Unit)" Min="0.001m" Max="999999999999999.999m" Step="0.001" ShowUpDown="false" Placeholder='@L["Portal.Text.NotSet"]' aria-label='@L["Portal.Accessibility.PackingQuantity", r.Source.ItemNo]' Style="width:100%;" class="ames-rz-input" /></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EditRow" Title="" Width="120px" Sortable="false">
+            <RadzenDataGridColumn TItem="EditRow" Width="130px" MinWidth="130px" Title="" Sortable="false">
                 <Template Context="r">
                     <RadzenButton Text='@L["Btn.Save"]' Icon="save" Click="@(()=>Save(r))" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
                     <RadzenButton Icon="undo" aria-label='@L["Portal.Text.DiscardChanges"]' Click="@(()=>r.Quantity=r.Source.PackingQty)" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />

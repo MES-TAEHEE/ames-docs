@@ -55,6 +55,7 @@
                 <RadzenDatePicker TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
                 <span class="dim">~</span>
                 <RadzenDatePicker TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+                <RadzenButton Text='@L["Btn.Search"]' Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
                 <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="Reset" class="ames-rz-btn" />
                 @if (!IsPortal && Mode == "Orders" && CanEdit)
                 {
@@ -81,39 +82,39 @@
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
                             RowClick="@(args => { if (args.Data is not null) SelectDelivery(args.Data); })" RowRender="@RowLinkDelivery" EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="60px" Title="No." MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                        <Template Context="d"><span class="dim">@GridRowNo.Of(_deliveryGrid, d)</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="150px" MinWidth="150px" TextAlign="TextAlign.Center" Property="Number" Title='@L["Scm.Text.DeliveryNote"]'>
+                        <Template Context="d"><span class="code">@d.Number</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Property="OrderNumber" Title='@L["Scm.Text.Order"]'>
+                        <Template Context="d"><span class="code">@d.OrderNumber</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" MinWidth="200px" Title='@L["Scm.Text.ItemLabel"]'><Template Context="d">@d.Item</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="170px" MinWidth="170px" Property="Date" Title='@L["Scm.Text.DeliveryDate.246618"]' TextAlign="TextAlign.Center">
+                        <Template Context="d">@d.Date.ToString(DateFmt.Date)</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="170px" MinWidth="170px" Title='@L["Scm.Text.Quantity"]' TextAlign="TextAlign.Right"><Template Context="d">@DeliveryQuantities(d.Number)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="150px" MinWidth="150px" TextAlign="TextAlign.Center" Property="ShipDate" FormatString="{0:yyyy-MM-dd}" Title='@L["Scm.Text.ShipDate"]' />
+                    @if (Mode == "Receipts")
+                    {
+                        <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="120px" MinWidth="120px" Property="Accepted" Title='@L["Scm.Text.Accepted"]' TextAlign="TextAlign.Right" />
+                        <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="130px" MinWidth="130px" Property="Rejected" Title='@L["Scm.Text.Rejected"]' TextAlign="TextAlign.Right" />
+                    }
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="120px" MinWidth="120px" Title='@L["Col.Status"]' TextAlign="TextAlign.Center">
+                        <Template Context="d"><span class="pill @Badge(d.Status)">@Status(d.Status)</span></Template>
+                    </RadzenDataGridColumn>
                     @if (IsPortal && Mode=="Deliveries" && _isExternalPortalUser)
                     {
-                        <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Title="Printing" Width="130px" Sortable="false" Filterable="false">
+                        <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="130px" MinWidth="130px" Title='@L["Btn.Print"]' TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                             <Template Context="d">
                                 <div @onclick:stopPropagation="true">
-                                    <RadzenButton Text="Printing" Icon="print" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" Disabled="@(_noteBusy || d.Status=="Cancelled")" Click="@(()=>OpenPrinting(d))" />
+                                    <RadzenButton Text='@L["Btn.Print"]' Icon="print" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" Disabled="@(_noteBusy || d.Status=="Cancelled")" Click="@(()=>OpenPrinting(d))" />
                                 </div>
                             </Template>
                         </RadzenDataGridColumn>
                     }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Title="No." Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
-                        <Template Context="d"><span class="dim">@GridRowNo.Of(_deliveryGrid, d)</span></Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Property="Number" Title='@L["Scm.Text.DeliveryNote"]' Width="150px">
-                        <Template Context="d"><span class="code">@d.Number</span></Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Property="OrderNumber" Title='@L["Scm.Text.Order"]' Width="150px">
-                        <Template Context="d"><span class="code">@d.OrderNumber</span></Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Title='@L["Scm.Text.ItemLabel"]'><Template Context="d">@d.Item</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Property="Date" Title='@L["Scm.Text.DeliveryDate.246618"]' TextAlign="TextAlign.Center" Width="120px">
-                        <Template Context="d">@d.Date.ToString(DateFmt.Date)</Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Title='@L["Scm.Text.Quantity"]' TextAlign="TextAlign.Right" Width="140px"><Template Context="d">@DeliveryQuantities(d.Number)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Property="ShipDate" FormatString="{0:yyyy-MM-dd}" Title='@L["Scm.Text.ShipDate"]' Width="120px" />
-                    @if (Mode == "Receipts")
-                    {
-                        <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Property="Accepted" Title='@L["Scm.Text.Accepted"]' TextAlign="TextAlign.Right" Width="110px" />
-                        <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Property="Rejected" Title='@L["Scm.Text.Rejected"]' TextAlign="TextAlign.Right" Width="110px" />
-                    }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Title='@L["Col.Status"]' TextAlign="TextAlign.Center" Width="110px">
-                        <Template Context="d"><span class="pill @Badge(d.Status)">@Status(d.Status)</span></Template>
-                    </RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
         }
@@ -122,15 +123,15 @@
             <RadzenDataGrid TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="25" AllowSorting="true" EmptyText="@Empty" Class="ames-rz-grid"
                 RowClick="@(args=>{if(args.Data is not null)RegisterReadyOrder(args.Data.Number);})" RowRender="RowLinkOrder">
                 <Columns>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Number" Title="PO No" Width="190px" />
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Due" Title="Due Date" FormatString="{0:yyyy-MM-dd}" Width="130px" />
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="VendorName" Title="Supplier" />
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title="Items" Width="85px"><Template Context="o">@o.Lines.Count</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title="Order Qty"><Template Context="o">@Quantities(o,l=>l.Quantity)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title="Registered Qty"><Template Context="o">@Quantities(o,l=>l.RegisteredDelivery)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title="Remaining Qty"><Template Context="o">@Quantities(o,l=>l.AvailableDelivery)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title="" Width="175px" Sortable="false"><Template Context="o">
-                        <span @onclick:stopPropagation="true"><RadzenButton Text="Create Delivery" Icon="add" Size="ButtonSize.Small" Click="@(()=>RegisterReadyOrder(o.Number))"
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="190px" MinWidth="190px" TextAlign="TextAlign.Center" Property="Number" Title="PO No" />
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Center" Property="Due" Title="Due Date" FormatString="{0:yyyy-MM-dd}" />
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" MinWidth="160px" Property="VendorName" Title="Supplier" />
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="90px" MinWidth="90px" TextAlign="TextAlign.Right" Title="Items"><Template Context="o">@o.Lines.Count</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Title="Order Qty"><Template Context="o">@Quantities(o,l=>l.Quantity)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Right" Title="Registered Qty"><Template Context="o">@Quantities(o,l=>l.RegisteredDelivery)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Right" Title="Remaining Qty"><Template Context="o">@Quantities(o,l=>l.AvailableDelivery)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="180px" MinWidth="180px" Title="" TextAlign="TextAlign.Center" Sortable="false"><Template Context="o">
+                        <span @onclick:stopPropagation="true"><RadzenButton Text='@L["Scm.Text.CreateDelivery"]' Icon="add" Size="ButtonSize.Small" Click="@(()=>RegisterReadyOrder(o.Number))"
                             Disabled="@(o.Status is not ("Published" or "Confirmed") || !o.Lines.Any(l=>l.AvailableDelivery>0))" /></span>
                     </Template></RadzenDataGridColumn>
                 </Columns>
@@ -142,32 +143,32 @@
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
                             RowClick="@(args => { if (args.Data is not null) Select(args.Data); })" RowRender="@RowLinkOrder" EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title="No." Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="60px" Title="No." MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                         <Template Context="o"><span class="dim">@GridRowNo.Of(_orderGrid, o)</span></Template>
                     </RadzenDataGridColumn>
-                    @if (Mode == "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Due" Title='@L["Scm.Text.DueDate"]' TextAlign="TextAlign.Center" Width="120px"><Template Context="o">@o.Due.ToString(DateFmt.Date)</Template></RadzenDataGridColumn> }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Number" Title='@L["Scm.Text.Order"]' Width="160px">
+                    @if (Mode == "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" Property="Due" Title='@L["Scm.Text.DueDate"]' TextAlign="TextAlign.Center"><Template Context="o">@o.Due.ToString(DateFmt.Date)</Template></RadzenDataGridColumn> }
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Property="Number" Title='@L["Scm.Text.Order"]'>
                         <Template Context="o"><span class="code">@o.Number</span></Template>
                     </RadzenDataGridColumn>
-                    @if (!IsPortal) { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Vendor" Title='@L["Scm.Text.Supplier"]' Width="220px"><Template Context="order"><span class="code">@order.Vendor</span><span class="dim" style="font-size:.8em;margin-left:4px;">@VendorName(order.Vendor)</span></Template></RadzenDataGridColumn> }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Item" Title='@L["Scm.Text.Item"]' Width="170px"><Template Context="o"><span class="code">@(o.Lines.FirstOrDefault()?.Item)</span>@if (o.LineCount > 1) { <span class="pill info" style="margin-left:6px;" title="@o.Item">+@(o.LineCount - 1)</span> }</Template></RadzenDataGridColumn>
+                    @if (!IsPortal) { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" MinWidth="160px" Property="Vendor" Title='@L["Scm.Text.Supplier"]'><Template Context="order"><span class="code">@order.Vendor</span><span class="dim" style="font-size:.8em;margin-left:4px;">@VendorName(order.Vendor)</span></Template></RadzenDataGridColumn> }
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="210px" MinWidth="210px" TextAlign="TextAlign.Center" Property="Item" Title='@L["Scm.Text.Item"]'><Template Context="o"><span class="code">@(o.Lines.FirstOrDefault()?.Item)</span>@if (o.LineCount > 1) { <span class="pill info" style="margin-left:6px;" title="@o.Item">+@(o.LineCount - 1)</span> }</Template></RadzenDataGridColumn>
                     @if(Mode!="Progress")
                     {
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Name" Title='@L["Scm.Text.Description"]'><Template Context="o"><span title="@o.Name">@(o.Lines.FirstOrDefault()?.Name)</span></Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="LineCount" Title='@L["Scm.Text.Lines"]' TextAlign="TextAlign.Right" Width="90px" />
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" MinWidth="200px" Property="Name" Title='@L["Scm.Text.Description"]'><Template Context="o"><span title="@o.Name">@(o.Lines.FirstOrDefault()?.Name)</span></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="90px" MinWidth="90px" Property="LineCount" Title='@L["Scm.Text.Lines"]' TextAlign="TextAlign.Right" />
                     }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@L["Scm.Text.Ordered"]' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o, l => l.Quantity)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Title='@L["Scm.Text.Ordered"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => l.Quantity)</Template></RadzenDataGridColumn>
                     @if(Mode=="Progress")
                     {
-                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@L["Scm.Text.Registered"]' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o,l=>l.RegisteredDelivery)</Template></RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@L["Scm.Text.Shipped.f4dea6"]' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o,l=>l.ShippedQuantity)</Template></RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@L["Scm.Text.NotYetShipped"]' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o,l=>l.UnshippedQuantity)</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Title='@L["Scm.Text.Registered"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o,l=>l.RegisteredDelivery)</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Title='@L["Scm.Text.Shipped.f4dea6"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o,l=>l.ShippedQuantity)</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="160px" MinWidth="160px" Title='@L["Scm.Text.NotYetShipped"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o,l=>l.UnshippedQuantity)</Template></RadzenDataGridColumn>
                     }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@L["Scm.Text.Received.2c7750"]' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o, l => Store.Delivered(o, l))</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@L["Scm.Text.Remaining"]' TextAlign="TextAlign.Right" Width="140px"><Template Context="o">@Quantities(o, l => Store.Remaining(o, l))</Template></RadzenDataGridColumn>
-                    @if (Mode != "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Property="Due" Title='@L["Scm.Text.DueDate"]' TextAlign="TextAlign.Center" Width="120px"><Template Context="o">@o.Due.ToString(DateFmt.Date)</Template></RadzenDataGridColumn> }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@L["Col.Status"]' TextAlign="TextAlign.Center" Width="110px"><Template Context="o"><span class="pill @Badge(o.Status)">@(Mode=="Progress" ? ProgressStatus(o) : Status(o.Status))</span></Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Title='@L["Scm.Text.SupplierConfirmation"]' Width="130px"><Template Context="o">@ConfirmationLabel(o) @if(Mode=="Progress" && o.SupplierConfirmedAt.HasValue){<div class="dim">@o.SupplierConfirmedAt.Value.ToString("yyyy-MM-dd HH:mm")</div>}</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Title='@L["Scm.Text.Received.2c7750"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => Store.Delivered(o, l))</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Title='@L["Scm.Text.Remaining"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => Store.Remaining(o, l))</Template></RadzenDataGridColumn>
+                    @if (Mode != "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" Property="Due" Title='@L["Scm.Text.DueDate"]' TextAlign="TextAlign.Center"><Template Context="o">@o.Due.ToString(DateFmt.Date)</Template></RadzenDataGridColumn> }
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="180px" MinWidth="180px" Title='@L["Col.Status"]' TextAlign="TextAlign.Center"><Template Context="o"><span class="pill @Badge(o.Status)">@(Mode=="Progress" ? ProgressStatus(o) : Status(o.Status))</span></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Title='@L["Scm.Text.SupplierConfirmation"]'><Template Context="o">@if(o.SupplierConfirmedAt.HasValue || o.Status is "Published" or "Confirmed"){<span class="pill @ConfirmationBadge(o)">@ConfirmationLabel(o)</span>}else{<span class="dim">—</span>} @if(Mode=="Progress" && o.SupplierConfirmedAt.HasValue){<div class="dim">@o.SupplierConfirmedAt.Value.ToString("yyyy-MM-dd HH:mm")</div>}</Template></RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
         }
@@ -508,6 +509,7 @@
     string ConfirmationLabel(ScmPreviewStore.Order o) => o.SupplierConfirmedAt.HasValue
         ? L["Scm.Text.Confirmed"] : o.Status is "Published" or "Confirmed"
         ? L["Scm.Text.AwaitingConfirmation.6a70d7"] : "—";
+    static string ConfirmationBadge(ScmPreviewStore.Order o) => o.SupplierConfirmedAt.HasValue ? "ok" : "warn";
     bool CanApprove => Permissions.CanApprove(Href);
     bool DeliveryEditable => IsPortal && Mode == "Deliveries"
         && _isExternalPortalUser && !string.IsNullOrEmpty(_portalUserId)
@@ -558,6 +560,8 @@
         ReloadOrders();
         _ready = true;
     }
+    // 필터는 입력 즉시 적용된다 — 조회는 조건을 둔 채 DB 에서 다시 읽는다(다른 사용자·외부 변경분 반영)
+    void Search() { _message = ""; ReloadOrders(); }
     void Reset() { _confirmPrompt = false; _search = _vendor = _message = ""; _status=IsPortal && Mode=="Due" ? "Outstanding" : ""; _from = _to = null; _selected = _edit = null; _delivery = null; if (_ready) ReloadOrders(); }
     void Select(ScmPreviewStore.Order o) { _confirmPrompt = false; _selected = o; _delivery = null; _deliveryLineId = o.Lines.FirstOrDefault(l => Store.Remaining(o, l) > 0)?.Id ?? 0; SelectDeliveryLine(); _message = ""; }
     List<ScmPreviewStore.Delivery> _deliveryEditLines = new();

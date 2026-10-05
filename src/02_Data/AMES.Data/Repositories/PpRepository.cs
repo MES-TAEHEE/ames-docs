@@ -86,7 +86,16 @@ public sealed class PpRepository
         decimal Availability, decimal Performance, decimal Quality, decimal OEE);
 
     public sealed record DowntimeRow(int DowntimeId, string? LineId, DateTime? StartTs, DateTime? EndTs,
-        int DurationMin, string? ReasonCode, string? CauseCode, string? Comment, int? WoId);
+        int DurationMin, string? ReasonCode, string? CauseCode, string? Comment, int? WoId, int? AndonId = null)
+    {
+        public bool IsPop => AMES.Data.Services.DowntimeEntryRules.IsPopRow(AndonId);
+    }
+
+    /// <summary>PP-DTL 웹 등록·수정 입력. EndTs 없음 = 진행 중.</summary>
+    public sealed record DowntimeEntry(string LineId, DateTime StartTs, DateTime? EndTs,
+        string ReasonCode, string? CauseCode, string? Comment);
+
+    public enum DowntimeSaveResult { Ok, Overlap, NotEditable, NotFound }
 
     public sealed record LineStateRow(string? LineId, DateTime? MinuteTs, string? State,
         string? PlanState, bool RunFlag, int? WoId);
@@ -1538,7 +1547,7 @@ public sealed class PpRepository
         var sql = $"""
             SELECT TOP (@Limit) DowntimeID, LineID, StartTS, EndTS,
                    ISNULL(DurationMin,0) AS DurationMin,
-                   ReasonCode, CauseCode, Comment, WoID
+                   ReasonCode, CauseCode, Comment, WoID, AndonID
             FROM   dbo.PP_LineDowntimeLog
             WHERE  1=1
             {(lineId     != null ? "AND LineID     = @LineId "      : "")}
@@ -1564,7 +1573,7 @@ public sealed class PpRepository
                 rdr["StartTS"] as DateTime?, rdr["EndTS"] as DateTime?,
                 (int)rdr["DurationMin"], rdr["ReasonCode"] as string,
                 rdr["CauseCode"] as string, rdr["Comment"] as string,
-                rdr["WoID"] as int?));
+                rdr["WoID"] as int?, rdr["AndonID"] as int?));
         return list;
     }
 
@@ -1613,6 +1622,109 @@ public sealed class PpRepository
         cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 500).Value  = (object?)comment    ?? DBNull.Value;
         cmd.Parameters.Add("@By",      SqlDbType.VarChar,   20).Value  = string.IsNullOrWhiteSpace(modifiedBy) ? "web" : modifiedBy;
         cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>PP-DTL 웹 등록. 같은 라인의 기존 비가동(진행 중 포함)과 겹치면 넣지 않는다 — OEE 가 비가동을 두 번 센다.</summary>
+    public (DowntimeSaveResult Result, int Id) InsertDowntime(DowntimeEntry e, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        if (HasDowntimeOverlap(conn, tx, e.LineId, e.StartTs, e.EndTs, exceptId: null)) { tx.Rollback(); return (DowntimeSaveResult.Overlap, 0); }
+
+        const string sql = """
+            INSERT INTO dbo.PP_LineDowntimeLog
+                   (LineID, StartTS, EndTS, DurationMin, ReasonCode, CauseCode, Comment, LoggedBy, CreatedBy, CreatedTS)
+            OUTPUT INSERTED.DowntimeID
+            VALUES (@LineId, @Start, @End,
+                    CASE WHEN @End IS NULL THEN NULL ELSE DATEDIFF(minute, @Start, @End) END,
+                    @Reason, @Cause, @Comment, @By, @By, SYSDATETIME());
+            """;
+        using var cmd = new SqlCommand(sql, conn, tx);
+        AddDowntimeEntryParams(cmd, e, actor);
+        var id = (int)cmd.ExecuteScalar()!;
+        tx.Commit();
+        return (DowntimeSaveResult.Ok, id);
+    }
+
+    /// <summary>PP-DTL 웹 등록분 수정(라인은 고정). POP(안돈) 행은 <see cref="UpdateDowntimeCauseComment"/> 로 원인·비고만 고친다.</summary>
+    public DowntimeSaveResult UpdateDowntimeEntry(int downtimeId, DowntimeEntry e, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        int? andonId;
+        using (var chk = new SqlCommand("SELECT AndonID FROM dbo.PP_LineDowntimeLog WITH (UPDLOCK, HOLDLOCK) WHERE DowntimeID = @Id;", conn, tx))
+        {
+            chk.Parameters.Add("@Id", SqlDbType.Int).Value = downtimeId;
+            var v = chk.ExecuteScalar();
+            if (v is null) { tx.Rollback(); return DowntimeSaveResult.NotFound; }
+            andonId = v as int?;
+        }
+        if (AMES.Data.Services.DowntimeEntryRules.IsPopRow(andonId)) { tx.Rollback(); return DowntimeSaveResult.NotEditable; }
+        if (HasDowntimeOverlap(conn, tx, e.LineId, e.StartTs, e.EndTs, exceptId: downtimeId)) { tx.Rollback(); return DowntimeSaveResult.Overlap; }
+
+        const string sql = """
+            UPDATE dbo.PP_LineDowntimeLog
+            SET StartTS     = @Start,
+                EndTS       = @End,
+                DurationMin = CASE WHEN @End IS NULL THEN NULL ELSE DATEDIFF(minute, @Start, @End) END,
+                ReasonCode  = @Reason,
+                CauseCode   = @Cause,
+                Comment     = @Comment,
+                ModifiedBy  = @By,
+                ModifiedTS  = SYSDATETIME()
+            WHERE DowntimeID = @Id AND AndonID IS NULL;
+            """;
+        using var cmd = new SqlCommand(sql, conn, tx);
+        AddDowntimeEntryParams(cmd, e, actor);
+        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = downtimeId;
+        cmd.ExecuteNonQuery();
+        tx.Commit();
+        return DowntimeSaveResult.Ok;
+    }
+
+    /// <summary>PP-DTL 원인·비고만 수정 — POP(안돈) 행에 웹이 고칠 수 있는 칸. 시각·사유는 안돈 기록과 묶여 있어 건드리지 않는다.</summary>
+    public DowntimeSaveResult UpdateDowntimeCauseComment(int downtimeId, string? causeCode, string? comment, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.PP_LineDowntimeLog
+            SET CauseCode = @Cause, Comment = @Comment, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE DowntimeID = @Id;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Id",      SqlDbType.Int).Value            = downtimeId;
+        cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)causeCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 1000).Value = (object?)comment ?? DBNull.Value;
+        cmd.Parameters.Add("@By",      SqlDbType.VarChar,   20).Value  = string.IsNullOrWhiteSpace(actor) ? "web" : actor;
+        return cmd.ExecuteNonQuery() > 0 ? DowntimeSaveResult.Ok : DowntimeSaveResult.NotFound;
+    }
+
+    static bool HasDowntimeOverlap(SqlConnection conn, SqlTransaction tx, string lineId, DateTime start, DateTime? end, int? exceptId)
+    {
+        const string sql = """
+            SELECT TOP 1 1 FROM dbo.PP_LineDowntimeLog WITH (UPDLOCK, HOLDLOCK)
+            WHERE  LineID = @LineId
+              AND  (@Except IS NULL OR DowntimeID <> @Except)
+              AND  StartTS < ISNULL(@End, '9999-12-31')
+              AND  ISNULL(EndTS, '9999-12-31') > @Start;
+            """;
+        using var cmd = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@Start",  SqlDbType.DateTime2).Value   = start;
+        cmd.Parameters.Add("@End",    SqlDbType.DateTime2).Value   = (object?)end ?? DBNull.Value;
+        cmd.Parameters.Add("@Except", SqlDbType.Int).Value         = (object?)exceptId ?? DBNull.Value;
+        return cmd.ExecuteScalar() is not null;
+    }
+
+    static void AddDowntimeEntryParams(SqlCommand cmd, DowntimeEntry e, string actor)
+    {
+        cmd.Parameters.Add("@LineId",  SqlDbType.VarChar,   20).Value  = e.LineId;
+        cmd.Parameters.Add("@Start",   SqlDbType.DateTime2).Value      = e.StartTs;
+        cmd.Parameters.Add("@End",     SqlDbType.DateTime2).Value      = (object?)e.EndTs     ?? DBNull.Value;
+        cmd.Parameters.Add("@Reason",  SqlDbType.VarChar,   20).Value  = e.ReasonCode;
+        cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)e.CauseCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 1000).Value = (object?)e.Comment   ?? DBNull.Value;
+        cmd.Parameters.Add("@By",      SqlDbType.VarChar,   20).Value  = string.IsNullOrWhiteSpace(actor) ? "web" : actor;
     }
 
     /// <summary>PP-DTL 사유 필터 옵션 — 공통코드 그룹이 없어 실데이터의 DISTINCT 값을 쓴다.</summary>

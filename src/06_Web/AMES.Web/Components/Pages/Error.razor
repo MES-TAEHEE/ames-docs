@@ -5,7 +5,15 @@
 <PageTitle>@L["App.ErrorPage.Title"]</PageTitle>
 
 <h1 class="text-danger">@L["App.ErrorPage.Title"]</h1>
-<h2 class="text-danger">@L["App.ErrorPage.Msg"]</h2>
+@if (AMES.Data.Connection.DbHealth.IsDown)
+{
+    <h2 class="text-danger">⚠ @L["App.DbDown.Title"]</h2>
+    <p>@L["App.DbDown.Page"]</p>
+}
+else
+{
+    <h2 class="text-danger">@L["App.ErrorPage.Msg"]</h2>
+}
 
 @if (ShowRequestId)
 {

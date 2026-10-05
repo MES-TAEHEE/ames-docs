@@ -29,6 +29,7 @@ public sealed class PermissionService
     private DateTime _loadedAt;
     private long _loadedVersion;
     private bool _loadFailed;                       // 처음 읽기 실패 — 다음 EnsureAsync 에서 다시 시도
+    public bool LoadFailed => _loadFailed;
     private Task? _refreshing;                      // 진행 중인 다시 읽기(메뉴·홈이 같은 알림으로 동시에 불러도 한 번만)
 
     public PermissionService(SysRepository sys, ScreenCatalogNotifier notifier)

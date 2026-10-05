@@ -261,6 +261,12 @@
   <data name="Msg.Saving" xml:space="preserve">
     <value>저장 중…</value>
   </data>
+  <data name="Msg.Applying" xml:space="preserve">
+    <value>적용 중…</value>
+  </data>
+  <data name="Msg.Publishing" xml:space="preserve">
+    <value>발행 중…</value>
+  </data>
   <data name="Msg.Saved" xml:space="preserve">
     <value>저장되었습니다.</value>
   </data>
@@ -5038,7 +5044,7 @@
     <value>{0} ~ {1}</value>
   </data>
   <data name="PP.Downtime.Hint.Edit" xml:space="preserve">
-    <value>행을 클릭하면 사유·원인·비고를 수정합니다</value>
+    <value>행을 클릭하면 수정합니다 · POP(안돈) 등록분은 원인·비고만 수정</value>
   </data>
   <data name="PP.Downtime.Ph.Reason" xml:space="preserve">
     <value>사유 선택…</value>
@@ -9594,5 +9600,71 @@
   </data>
   <data name="SYS.Config.Err.TimeFormat" xml:space="preserve">
     <value>{0}: 시각은 00:00 형식(00:00~23:59)으로 입력하세요.</value>
+  </data>
+  <data name="PP.Downtime.Err.LineRequired" xml:space="preserve">
+    <value>라인을 선택하세요</value>
+  </data>
+  <data name="PP.Downtime.Err.StartRequired" xml:space="preserve">
+    <value>시작 일시를 입력하세요</value>
+  </data>
+  <data name="PP.Downtime.Err.EndBeforeStart" xml:space="preserve">
+    <value>종료는 시작보다 뒤여야 합니다</value>
+  </data>
+  <data name="PP.Downtime.Err.Future" xml:space="preserve">
+    <value>현재보다 뒤의 시각은 등록할 수 없습니다</value>
+  </data>
+  <data name="PP.Downtime.Err.Overlap" xml:space="preserve">
+    <value>같은 라인의 다른 비가동 이력과 시간이 겹칩니다</value>
+  </data>
+  <data name="PP.Downtime.Err.NotEditable" xml:space="preserve">
+    <value>POP 에서 등록한 이력은 원인·비고만 수정할 수 있습니다</value>
+  </data>
+  <data name="PP.Downtime.Err.NotFound" xml:space="preserve">
+    <value>이력을 찾을 수 없습니다. 다시 조회하세요</value>
+  </data>
+  <data name="PP.Downtime.Err.CommentRequired" xml:space="preserve">
+    <value>이 원인은 비고를 입력해야 합니다</value>
+  </data>
+  <data name="PP.Downtime.Hint.PopOnly" xml:space="preserve">
+    <value>POP(안돈)에서 등록한 이력입니다. 원인·비고만 수정할 수 있습니다</value>
+  </data>
+  <data name="PP.Downtime.Ph.Cause" xml:space="preserve">
+    <value>원인 선택</value>
+  </data>
+  <data name="PP.Downtime.Src.Pop" xml:space="preserve">
+    <value>POP</value>
+  </data>
+  <data name="PP.Downtime.Src.Web" xml:space="preserve">
+    <value>웹</value>
+  </data>
+  <data name="PP.Downtime.Ok.Created" xml:space="preserve">
+    <value>등록했습니다</value>
+  </data>
+  <data name="App.DbDown.Title" xml:space="preserve">
+    <value>데이터베이스 연결 장애</value>
+  </data>
+  <data name="App.DbDown.Msg" xml:space="preserve">
+    <value>데이터베이스 서버에 연결할 수 없습니다. 조회 결과가 비어 보이거나 저장되지 않을 수 있습니다. 연결이 돌아오면 이 안내는 자동으로 사라집니다.</value>
+  </data>
+  <data name="App.DbDown.Page" xml:space="preserve">
+    <value>데이터베이스 서버에 연결할 수 없어 이 화면을 열 수 없습니다. 잠시 후 다시 시도하세요.</value>
+  </data>
+  <data name="App.DbDown.Retry" xml:space="preserve">
+    <value>다시 시도</value>
+  </data>
+  <data name="App.DbDown.Login" xml:space="preserve">
+    <value>데이터베이스 서버에 연결할 수 없어 로그인할 수 없습니다. 잠시 후 다시 시도하세요.</value>
+  </data>
+  <data name="Portal.Receipts.Col.DeliveredQty" xml:space="preserve">
+    <value>납품수량</value>
+  </data>
+  <data name="Portal.Receipts.Col.ReceivedQty" xml:space="preserve">
+    <value>입고수량</value>
+  </data>
+  <data name="Portal.Receipts.Col.OpenQty" xml:space="preserve">
+    <value>미입고 잔량</value>
+  </data>
+  <data name="Portal.Receipts.Col.RemainingQty" xml:space="preserve">
+    <value>잔량</value>
   </data>
 </root>

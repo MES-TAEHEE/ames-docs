@@ -24,7 +24,9 @@ public sealed class AmesConnectionFactory
     public SqlConnection OpenConnection()
     {
         var conn = new SqlConnection(_connectionString);
-        conn.Open();
+        try { conn.Open(); }
+        catch { DbHealth.RecordFailure(); conn.Dispose(); throw; }
+        DbHealth.RecordSuccess();
         return conn;
     }
 

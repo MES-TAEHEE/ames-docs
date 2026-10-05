@@ -14,10 +14,13 @@ namespace AMES.Web.Components.Account;
 internal sealed class IdentityRevalidatingAuthenticationStateProvider(
         ILoggerFactory loggerFactory,
         IServiceScopeFactory scopeFactory,
-        IOptions<IdentityOptions> options)
+        IOptions<IdentityOptions> options,
+        IConfiguration configuration)
     : RevalidatingServerAuthenticationStateProvider(loggerFactory)
 {
-    protected override TimeSpan RevalidationInterval => TimeSpan.FromMinutes(30);
+    // 설정 Auth:RevalidationMinutes(기본 30, 1 미만은 30) — 운영은 기본값, 끊김 검증 때만 짧게 준다
+    protected override TimeSpan RevalidationInterval =>
+        TimeSpan.FromMinutes(configuration.GetValue<int?>("Auth:RevalidationMinutes") is int m && m >= 1 ? m : 30);
 
     protected override async Task<bool> ValidateAuthenticationStateAsync(
         AuthenticationState authenticationState, CancellationToken cancellationToken)

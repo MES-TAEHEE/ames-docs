@@ -75,7 +75,7 @@
             @* 초기화: 수정 권한 + 오늘 이후 날짜에서만 노출, 적용됐지만 미발행(DRAFT)일 때만 활성 → 저장 스케줄 삭제 *@
             @if (_canEdit && _date.Date >= ServerNow.Date)
             {
-                <RadzenButton Text="@L["Btn.Reset"]" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="@(_savedStatus != "DRAFT")" Click="@(() => _confirmReset = true)" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Reset"]" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Disabled="@(_busy is not null || _savedStatus != "DRAFT")" Click="@(() => _confirmReset = true)" class="ames-rz-btn" />
             }
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -84,9 +84,9 @@
             {
                 @* PM 등록: 패턴 선택 + 금일 이후에만. 예방보전 밴드를 가동시간대에 추가 *@
                 <RadzenButton Text="@L["PP.LineSchedule.Btn.AddPm"]" Icon="build" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Disabled="@(!Editable || string.IsNullOrEmpty(_patternId))" Click="@OpenPmModal" class="ames-rz-btn" />
-                <RadzenButton Text="@L["PP.LineSchedule.Btn.Apply"]" Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Disabled="@(string.IsNullOrEmpty(_patternId) || _date.Date < ServerNow.Date)" Click="@Apply" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy == "apply" ? L["Msg.Applying"] : L["PP.LineSchedule.Btn.Apply"])" Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Disabled="@(_busy is not null || string.IsNullOrEmpty(_patternId) || _date.Date < ServerNow.Date)" Click="@Apply" class="ames-rz-btn" />
                 @* 발행: DB에 적용(저장)된 Draft 상태이고 미변경일 때만 활성화 *@
-                <RadzenButton Text="@L["PP.LineSchedule.Btn.Publish"]" Icon="publish" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Disabled="@(_savedStatus != "DRAFT" || _dirty || _date.Date < ServerNow.Date)" Click="@Publish" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy == "publish" ? L["Msg.Publishing"] : L["PP.LineSchedule.Btn.Publish"])" Icon="publish" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Disabled="@(_busy is not null || _savedStatus != "DRAFT" || _dirty || _date.Date < ServerNow.Date)" Click="@Publish" class="ames-rz-btn" />
             }
         </div>
     </div>
@@ -384,7 +384,7 @@
                 @L["PP.LineSchedule.Confirm.Reset"]
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@L["Btn.Confirm"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@Reset" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy == "reset" ? L["Msg.Deleting"] : L["Btn.Confirm"])" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Disabled="@(_busy is not null)" Click="@Reset" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _confirmReset = false)" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -562,6 +562,7 @@
     string?   _bandWindow;
     bool      _modalBgDown;
     bool      _confirmReset;   // 초기화(삭제) 확인창
+    string?   _busy;           // 적용·발행·초기화 처리 중(apply/publish/reset) — 버튼을 끄고 "…중" 으로 보인다
 
     // ── PM(예방보전) 밴드 스테이징 ──
     List<LineScheduleRepository.PmCandidate> _pmCandidates = new();
@@ -824,18 +825,21 @@
     }
 
     // 초기화: 적용됐지만 미발행(DRAFT)인 경우, 해당 라인+일자의 저장 스케줄을 삭제해 초기화 (확인창 후)
-    void Reset()
+    async Task Reset()
     {
         _err = "";
         _confirmReset = false;
-        if (!_canEdit || string.IsNullOrEmpty(_lineId) || _savedStatus != "DRAFT") return;
+        if (!_canEdit || _busy is not null || string.IsNullOrEmpty(_lineId) || _savedStatus != "DRAFT") return;
+        var (line, date) = (_lineId, _date);
+        _busy = "reset";
         try
         {
-            LSB.DeleteSchedule(_lineId, _date);
+            await Task.Run(() => LSB.DeleteSchedule(line, date));
             ShowMsg(L["PP.LineSchedule.Ok.Reset"].Value);
             LoadData();
         }
         catch (Exception ex) { _err = ex.Message; }
+        finally { _busy = null; }
     }
 
     void OnPatternChanged()
@@ -1140,40 +1144,35 @@
     }
 
     // ── 적용 / 발행 ───────────────────────────────────────────────────────
-    void Apply()
-    {
-        _err = "";
-        if (_date.Date < ServerNow.Date) { _err = L["PP.LineSchedule.Err.PastDate"]; return; }
-        if (string.IsNullOrEmpty(_patternId)) { _err = L["PP.LineSchedule.Err.NoPattern"]; return; }
-        try
-        {
-            LSB.SaveSchedule(_lineId, _date, _patternId,
-                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)),
-                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor,
-                _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)));
-            ShowMsg(L["PP.LineSchedule.Ok.Applied"].Value);
-            LoadData();
-        }
-        catch (Exception ex) { _err = ex.Message; }
-    }
+    // DB 저장은 회로 밖(Task.Run)에서 — 누르는 즉시 버튼이 꺼진 상태(…중)로 그려지고 처리 중 재클릭은 무시된다
+    Task Apply() => SaveAndReload("apply", publish: false);
+    Task Publish() => SaveAndReload("publish", publish: true);
 
-    void Publish()
+    async Task SaveAndReload(string busy, bool publish)
     {
         _err = "";
+        if (!_canEdit || _busy is not null) return;
         if (_date.Date < ServerNow.Date) { _err = L["PP.LineSchedule.Err.PastDate"]; return; }
         if (string.IsNullOrEmpty(_patternId)) { _err = L["PP.LineSchedule.Err.NoPattern"]; return; }
-        if (ConflictIds.Count > 0) { _err = string.Format(L["PP.LineSchedule.Err.ConflictSummary"].Value, ConflictIds.Count); return; }
+        if (publish && ConflictIds.Count > 0) { _err = string.Format(L["PP.LineSchedule.Err.ConflictSummary"].Value, ConflictIds.Count); return; }
+
+        var (line, date, pattern, actor) = (_lineId, _date, _patternId, _actor);
+        var slots = _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)).ToList();
+        var pms   = _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)).ToList();
+        var mcs   = _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)).ToList();
+        _busy = busy;
         try
         {
-            LSB.SaveSchedule(_lineId, _date, _patternId,
-                _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)),
-                _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)), _actor,
-                _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)));
-            LSB.PublishSchedule(_lineId, _date, _actor);
-            ShowMsg(L["PP.LineSchedule.Ok.Published"].Value);
+            await Task.Run(() =>
+            {
+                LSB.SaveSchedule(line, date, pattern, slots, pms, actor, mcs);
+                if (publish) LSB.PublishSchedule(line, date, actor);
+            });
+            ShowMsg(L[publish ? "PP.LineSchedule.Ok.Published" : "PP.LineSchedule.Ok.Applied"].Value);
             LoadData();
         }
         catch (Exception ex) { _err = ex.Message; }
+        finally { _busy = null; }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────

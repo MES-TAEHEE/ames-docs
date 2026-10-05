@@ -261,6 +261,12 @@
   <data name="Msg.Saving" xml:space="preserve">
     <value>Saving…</value>
   </data>
+  <data name="Msg.Applying" xml:space="preserve">
+    <value>Applying…</value>
+  </data>
+  <data name="Msg.Publishing" xml:space="preserve">
+    <value>Publishing…</value>
+  </data>
   <data name="Msg.Saved" xml:space="preserve">
     <value>Saved successfully.</value>
   </data>
@@ -5065,7 +5071,7 @@
     <value>{0} ~ {1}</value>
   </data>
   <data name="PP.Downtime.Hint.Edit" xml:space="preserve">
-    <value>Click a row to edit reason, cause and comment</value>
+    <value>Click a row to edit · POP (andon) records: cause and remark only</value>
   </data>
   <data name="PP.Downtime.Ph.Reason" xml:space="preserve">
     <value>Select reason…</value>
@@ -9594,5 +9600,71 @@
   </data>
   <data name="SYS.Config.Err.TimeFormat" xml:space="preserve">
     <value>{0}: enter the time as 00:00 (00:00–23:59).</value>
+  </data>
+  <data name="PP.Downtime.Err.LineRequired" xml:space="preserve">
+    <value>Select a line</value>
+  </data>
+  <data name="PP.Downtime.Err.StartRequired" xml:space="preserve">
+    <value>Enter the start time</value>
+  </data>
+  <data name="PP.Downtime.Err.EndBeforeStart" xml:space="preserve">
+    <value>End must be after start</value>
+  </data>
+  <data name="PP.Downtime.Err.Future" xml:space="preserve">
+    <value>Times later than now cannot be entered</value>
+  </data>
+  <data name="PP.Downtime.Err.Overlap" xml:space="preserve">
+    <value>Overlaps another downtime record on the same line</value>
+  </data>
+  <data name="PP.Downtime.Err.NotEditable" xml:space="preserve">
+    <value>Records entered on POP: only the cause and remark can be edited</value>
+  </data>
+  <data name="PP.Downtime.Err.NotFound" xml:space="preserve">
+    <value>Record not found. Search again</value>
+  </data>
+  <data name="PP.Downtime.Err.CommentRequired" xml:space="preserve">
+    <value>This cause requires a remark</value>
+  </data>
+  <data name="PP.Downtime.Hint.PopOnly" xml:space="preserve">
+    <value>Entered on POP (andon). Only the cause and remark can be edited</value>
+  </data>
+  <data name="PP.Downtime.Ph.Cause" xml:space="preserve">
+    <value>Select cause</value>
+  </data>
+  <data name="PP.Downtime.Src.Pop" xml:space="preserve">
+    <value>POP</value>
+  </data>
+  <data name="PP.Downtime.Src.Web" xml:space="preserve">
+    <value>Web</value>
+  </data>
+  <data name="PP.Downtime.Ok.Created" xml:space="preserve">
+    <value>Registered</value>
+  </data>
+  <data name="App.DbDown.Title" xml:space="preserve">
+    <value>Database connection failure</value>
+  </data>
+  <data name="App.DbDown.Msg" xml:space="preserve">
+    <value>Cannot connect to the database server. Lists may appear empty and changes may not be saved. This notice disappears when the connection is restored.</value>
+  </data>
+  <data name="App.DbDown.Page" xml:space="preserve">
+    <value>This screen cannot be opened because the database server is unreachable. Please try again shortly.</value>
+  </data>
+  <data name="App.DbDown.Retry" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="App.DbDown.Login" xml:space="preserve">
+    <value>Cannot sign in because the database server is unreachable. Please try again shortly.</value>
+  </data>
+  <data name="Portal.Receipts.Col.DeliveredQty" xml:space="preserve">
+    <value>Delivered Qty</value>
+  </data>
+  <data name="Portal.Receipts.Col.ReceivedQty" xml:space="preserve">
+    <value>Received Qty</value>
+  </data>
+  <data name="Portal.Receipts.Col.OpenQty" xml:space="preserve">
+    <value>Open Qty</value>
+  </data>
+  <data name="Portal.Receipts.Col.RemainingQty" xml:space="preserve">
+    <value>Remaining Qty</value>
   </data>
 </root>

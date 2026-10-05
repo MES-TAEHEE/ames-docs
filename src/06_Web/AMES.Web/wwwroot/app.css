@@ -5757,3 +5757,18 @@ html[data-theme="light"] .portal-shell { background: linear-gradient(180deg, #ec
 html[data-theme="light"] .portal-shell .ames-topbar.portal-top { background: #ffffffe6; border-bottom-color: #0d9488; }
 html[data-theme="light"] .portal-shell .ames-side { background: #ffffffcc; border-right-color: rgba(13,148,136,.25); }
 html[data-theme="light"] .portal-shell .ames-brand-logo, html[data-theme="light"] .portal-shell .ames-brand-sub, html[data-theme="light"] .portal-shell .ames-nav-section.portal { color: #0f766e; }
+
+/* ── DB 연결 장애 안내(SessionGuard 배너 · MainLayout 화면 대체) ── */
+.ames-db-down {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin: 8px 16px 0; padding: 8px 12px; border-radius: 6px;
+    border: 1px solid rgba(239, 68, 68, .45); background: rgba(239, 68, 68, .12);
+    color: var(--ames-tx-red-400); font-size: calc(13px + var(--ames-fs-bump));
+}
+.ames-db-down span:last-child { color: var(--ames-tx-slate-300); }
+.ames-db-down-icon { font-size: 1.1em; }
+.ames-db-down-page {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    min-height: 50vh; text-align: center;
+}
+.ames-db-down-page-t { font-size: 1.4rem; font-weight: 700; color: var(--ames-tx-red-400); }

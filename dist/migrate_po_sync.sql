@@ -3,7 +3,7 @@
 --  고객사 SRM 구매오더(MM31006 INQUERY) 자동 수집 — 공통코드 설정 기반
 --
 --  1) 공통코드 그룹 SW_POSYNC(전역) · SW_POSYNC_SOURCE(고객사) · SW_POSYNC_URL · SW_POSYNC_AUTH
---     ScheduledWorker 설정 그룹은 "SW_" + Worker Code, 이름은 "ScheduledWorker · " 로 시작한다(MD-26 에서 SW_ 로 모아 찾는다).
+--     ScheduledWorker 설정 그룹은 "SW_" + Worker Code 로 시작한다(MD-26 에서 SW_ 로 모아 찾는다). 그룹 이름에는 접두어를 붙이지 않는다(10-05).
 --  2) 구 이름 PO_SYNC* 로 적용된 DB 이관 — 항목을 새 그룹으로 옮기고 CodeID 접두어도 바꾼 뒤(MD-26 은 CodeID 를
 --     GroupCode_CodeValue 로 만든다) 비게 된 구 그룹을 지운다. 새 CodeID 가 이미 있는 항목은 옮기지 않고 경고만 남긴다.
 --  3) SW_POSYNC 항목 INTERVAL=30(분) · WINDOW=-60,0(발주일 창)
@@ -23,13 +23,13 @@ GO
 -- ── 1. 공통코드 그룹 ─────────────────────────────────────────────────
 MERGE dbo.MD_CodeGroup AS tgt
 USING (VALUES
-    ('SW_POSYNC',        N'ScheduledWorker · PO 자동수집 설정',   N'ScheduledWorker · PO Sync Settings',
+    ('SW_POSYNC',        N'PO 자동수집 설정',   N'PO Sync Settings',
      N'INTERVAL: Attribute1=기본 주기(분, 0=전체 중지) / WINDOW: Attribute1=발주일(PO_DATE) 창 "-N,M"(오늘-N ~ 오늘+M일) / 선택 TICK_SEC·STARTUP_DELAY_SEC·TIMEOUT_SEC: Attribute1=초, 없으면 Api appsettings ScheduledWorker 기본값'),
-    ('SW_POSYNC_SOURCE', N'ScheduledWorker · PO 자동수집 고객사', N'ScheduledWorker · PO Sync Sources',
+    ('SW_POSYNC_SOURCE', N'PO 자동수집 고객사', N'PO Sync Sources',
      N'CodeValue=소스 키(13자 이하). Attribute1=귀속 MD_Customer.CustomerID. Description="CORCD=;BIZCD=;VENDCD=;PURC_ORG=" 필수, "WINDOW=-N,M" 선택(주기는 전역 INTERVAL 만). UseFlag=0 이면 건너뜀'),
-    ('SW_POSYNC_URL',    N'ScheduledWorker · PO 자동수집 URL',    N'ScheduledWorker · PO Sync Endpoints',
+    ('SW_POSYNC_URL',    N'PO 자동수집 URL',    N'PO Sync Endpoints',
      N'CodeValue=소스 키. Description=엔드포인트 절대 URL'),
-    ('SW_POSYNC_AUTH',   N'ScheduledWorker · PO 자동수집 인증',   N'ScheduledWorker · PO Sync Auth',
+    ('SW_POSYNC_AUTH',   N'PO 자동수집 인증',   N'PO Sync Auth',
      N'CodeValue=소스 키. Attribute1=Query:{매개변수이름} | Bearer | Basic | Header:{헤더이름}. Description=키 | 토큰 | user:pw | 헤더값. 행이 없으면 인증 없이 호출. 예약 행 AMES_SERVICE_KEY=Web→Api 수동 실행 키(16자 이상)')
 ) AS src(GroupCode, GroupName, GroupNameEn, Description)
 ON tgt.GroupCode = src.GroupCode

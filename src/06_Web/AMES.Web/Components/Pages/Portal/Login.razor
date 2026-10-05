@@ -58,7 +58,10 @@
     // 계정 종류로 갈린다 — 내부 사용자는 이 화면에서 로그인해도 내부 쿠키를 받아 내부 화면으로 간다
     public async Task LoginUser()
     {
-        var result = await SignIn.SignInPortalAsync(HttpContext, Input.Email, Input.Password, ReturnUrl);
+        var signIn = SignIn.SignInPortalAsync(HttpContext, Input.Email, Input.Password, ReturnUrl);
+        try { await signIn; }
+        catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsSqlFailure(ex)) { errorMessage = L["App.DbDown.Login"]; return; }
+        var result = signIn.Result;
         if (!result.Succeeded) { errorMessage = L[result.ErrorKey!]; return; }
         HttpContext.Response.Redirect(result.Redirect!);
     }
