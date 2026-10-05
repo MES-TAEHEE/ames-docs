@@ -7986,9 +7986,6 @@
   <data name="WH.Picking.Ph.AllLines" xml:space="preserve">
     <value>Todas las líneas</value>
   </data>
-  <data name="WH.Picking.Ph.Part" xml:space="preserve">
-    <value>N.º o nombre de pieza</value>
-  </data>
   <data name="WH.Picking.Ph.Search" xml:space="preserve">
     <value>Hoja/N.º Pieza/Ubicación</value>
   </data>

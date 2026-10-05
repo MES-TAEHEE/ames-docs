@@ -7986,9 +7986,6 @@
   <data name="WH.Picking.Ph.AllLines" xml:space="preserve">
     <value>All lines</value>
   </data>
-  <data name="WH.Picking.Ph.Part" xml:space="preserve">
-    <value>Part No or name</value>
-  </data>
   <data name="WH.Picking.Ph.Search" xml:space="preserve">
     <value>Pick Slip/Part No/Location</value>
   </data>

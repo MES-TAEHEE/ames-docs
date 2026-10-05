@@ -7986,9 +7986,6 @@
   <data name="WH.Picking.Ph.AllLines" xml:space="preserve">
     <value>전체 라인</value>
   </data>
-  <data name="WH.Picking.Ph.Part" xml:space="preserve">
-    <value>품번 또는 품명</value>
-  </data>
   <data name="WH.Picking.Ph.Search" xml:space="preserve">
     <value>전표번호/품번/위치</value>
   </data>

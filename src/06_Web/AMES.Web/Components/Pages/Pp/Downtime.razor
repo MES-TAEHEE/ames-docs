@@ -339,8 +339,8 @@
             var all = MD.ListReasonCodes();
             _causes = all.Where(c => string.Equals(c.ReasonType, CauseReasonType, StringComparison.OrdinalIgnoreCase)).ToList();
             _causeNames = new(StringComparer.OrdinalIgnoreCase);
-            foreach (var a in MD.ListCodeItems("ANDON_CAUSE"))
-                _causeNames[a.CodeValue] = MasterDataRepository.LocalName(a.CodeName, a.CodeNameEn);
+            foreach (var a in MD.ListCodeItems("ANDON_CAUSE").Where(a => !string.IsNullOrEmpty(a.CodeValue)))
+                _causeNames[a.CodeValue!] = MasterDataRepository.LocalName(a.CodeName, a.CodeNameEn);
             foreach (var c in all.Where(c => c.ReasonName is { Length: > 0 }))
                 _causeNames[c.ReasonCode] = c.ReasonName!;
         }
