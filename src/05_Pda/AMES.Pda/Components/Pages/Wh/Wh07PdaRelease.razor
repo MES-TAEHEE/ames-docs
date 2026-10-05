@@ -716,12 +716,6 @@
 
     private async Task ScanAndPickAsync(string scanText)
     {
-        if (_pendingPicks.Count > 0)
-        {
-            ShowModal("BOX Already Scanned", "Release the scanned BOX before scanning another one.", "warn");
-            return;
-        }
-
         if (string.IsNullOrWhiteSpace(_loadedSlipNo))
         {
             ShowModal("Missing Pick Slip", "Scan a Pick Slip before scanning a LOT.", "warn");
@@ -886,7 +880,7 @@
             : $"Scan {expected.LotNo} first. Location: {expected.LocationNo ?? "-"}.";
     }
 
-    private bool CanCompleteRelease => _lines.Count > 0 && _pendingPicks.Count == 1;
+    private bool CanCompleteRelease => _lines.Count > 0 && _pendingPicks.Count > 0;
 
     private bool CanChooseOutgoingType => CanCompleteRelease || _directLot?.IsValid == true;
     private bool HasReleaseWork => _lines.Count > 0 || _directLot is not null;
@@ -940,7 +934,7 @@
                 _pendingPicks.Clear();
                 _highlightOutgoingType = false;
                 await LoadOpenPickingOrdersAsync();
-                ShowModal("BOX Released", $"{completedSlip}\n{result.Message}", "ok");
+                ShowModal("BOX Release", $"{completedSlip}\n{result.Message}", "ok");
             }
             else
             {

@@ -1083,9 +1083,7 @@ public static class WhEndpoints
             if (string.IsNullOrWhiteSpace(pickSlipNo))
                 return Results.BadRequest(new ReleaseCompleteResult(false, "Pick Slip No is required."));
             if (body.Lots is not { Count: > 0 })
-                return Results.BadRequest(new ReleaseCompleteResult(false, "Scan one BOX before Release."));
-            if (body.Lots.Count != 1)
-                return Results.BadRequest(new ReleaseCompleteResult(false, "Release one BOX at a time."));
+                return Results.BadRequest(new ReleaseCompleteResult(false, "Scan at least one BOX before Release."));
 
             var outgoingType = master.FindActiveCodeItem("WH_OUTGOING_TYPE", body.OutgoingType?.Trim() ?? "");
             var reasonCode = outgoingType?.Attribute1;
@@ -2553,7 +2551,8 @@ public static class WhEndpoints
 
     private sealed record ReleaseBatchLot(
         int PickSlipId, string LotNo, string ItemNo,
-        string? LocationId, decimal Qty, DateTime? ReceivedDate, string? LineDestination = null);
+        string? LocationId, decimal Qty, DateTime? ReceivedDate, DateTime? CreatedDate,
+        string? LineDestination = null);
 
     private static ReleaseCompleteResult ExecuteReleaseBatch(
         AmesConnectionFactory factory,
@@ -2571,8 +2570,6 @@ public static class WhEndpoints
             .ToList();
         if (normalized.Count == 0)
             return new ReleaseCompleteResult(false, "No scanned LOTs were supplied.");
-        if (normalized.Count != 1)
-            return new ReleaseCompleteResult(false, "Release one BOX at a time.");
         if (normalized.Select(x => x.LotNo).Distinct(StringComparer.OrdinalIgnoreCase).Count() != normalized.Count)
             return new ReleaseCompleteResult(false, "The same LOT was scanned more than once.");
 
@@ -2609,7 +2606,7 @@ public static class WhEndpoints
                 using var lotCmd = new SqlCommand($"""
                     SELECT TOP (1)
                         RS.PickSlipID,W.LotNo,W.PartNo AS ItemNo,
-                        W.LocationNo AS LocationID,W.Qty,W.ReceivedAt,
+                        W.LocationNo AS LocationID,W.Qty,W.ReceivedAt,W.CreatedAt,
                         CASE WHEN RS.CreatedBy='WH-AUTO' THEN RS.ReqLocation END AS LineDestination,
                         CONVERT(bit,CASE WHEN EXISTS
                             (SELECT 1 FROM dbo.MD_Line ML WHERE LEN(ML.LotPrefix)=2
@@ -2638,6 +2635,7 @@ public static class WhEndpoints
                     rdr.IsDBNull(rdr.GetOrdinal("LocationID")) ? null : rdr.GetString(rdr.GetOrdinal("LocationID")),
                     rdr.GetDecimal(rdr.GetOrdinal("Qty")),
                     rdr.IsDBNull(rdr.GetOrdinal("ReceivedAt")) ? null : rdr.GetDateTime(rdr.GetOrdinal("ReceivedAt")),
+                    rdr.IsDBNull(rdr.GetOrdinal("CreatedAt")) ? null : rdr.GetDateTime(rdr.GetOrdinal("CreatedAt")),
                     rdr["LineDestination"] as string);
                 if (lot.LineDestination is not null
                     && (!rdr.GetBoolean(rdr.GetOrdinal("ValidLineDestination"))
@@ -2661,10 +2659,15 @@ public static class WhEndpoints
                     if (remaining <= 0)
                         return new ReleaseCompleteResult(false, $"{line.Key}: requested EA is already covered.");
                     if (quantity > remaining)
+                    {
+                        var finalBox = selected.OrderBy(x => x.ReceivedDate).ThenBy(x => x.CreatedDate).ThenBy(x => x.LotNo).Last();
+                        if (quantity - finalBox.Qty >= remaining)
+                            return new ReleaseCompleteResult(false, $"{line.Key}: requested EA is already covered. Remove extra boxes.");
                         excessMessages.Add($"{line.Key}: {quantity:N0} EA picked, {quantity - remaining:N0} EA above the remaining request (full final box).");
+                    }
                 }
-                else if (remaining <= 0)
-                    return new ReleaseCompleteResult(false, $"{line.Key}: requested boxes are already covered.");
+                else if (remaining <= 0 || selected.Count > remaining)
+                    return new ReleaseCompleteResult(false, $"{line.Key}: requested boxes are already covered. Remove extra boxes.");
             }
 
             var selectedLotNos = lots.Select(x => x.LotNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -2767,7 +2770,8 @@ public static class WhEndpoints
             var completed = lines.All(line => line.Value.Picked + lots
                 .Where(lot => string.Equals(lot.ItemNo, line.Key, StringComparison.OrdinalIgnoreCase))
                 .Sum(lot => line.Value.IsEa ? lot.Qty : 1) >= line.Value.Demand);
-            var message = completed ? "BOX released. Picking order completed." : "BOX released. Picking order remains Partial.";
+            var released = lots.Count == 1 ? "BOX released." : $"{lots.Count} BOXES released.";
+            var message = completed ? $"{released} Picking order completed." : $"{released} Picking order remains Partial.";
             return new ReleaseCompleteResult(true, message + (excessMessages.Count == 0 ? "" : "\n" + string.Join("\n", excessMessages)));
         }
         catch (Exception ex)

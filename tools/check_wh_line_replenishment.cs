@@ -117,13 +117,9 @@ try
     Check(repository.ListPickingSlipFifoLots(header.PickSlipNo).Select(x => x.LotNo).SequenceEqual(new[] { "BOX-1", "BOX-2", "BOX-3" }),
         "80 EA demand recommends three 30 EA boxes, including only the final excess box");
     var ninety = Enumerable.Range(1, 3).Select(i => new WhEndpoints.ReleasePickInput("BOX-" + i, 30)).ToList();
-    Check(!((WhEndpoints.ReleaseCompleteResult)Invoke("ExecuteReleaseBatch", factory, header.PickSlipNo, ninety.Take(2).ToList(), "LINE", "TEST", "TEST", false)).Success,
-        "Reject multiple boxes in one release");
-    foreach (var lot in ninety.Take(2))
-    {
-        var partial = (WhEndpoints.ReleaseCompleteResult)Invoke("ExecuteReleaseBatch", factory, header.PickSlipNo, new[] { lot }, "LINE", "TEST", "TEST", false);
-        Check(partial.Success && partial.Message.Contains("Partial"), "Release one box and keep the order Partial: " + partial.Message);
-    }
+    var partial = (WhEndpoints.ReleaseCompleteResult)Invoke("ExecuteReleaseBatch", factory, header.PickSlipNo, ninety.Take(2).ToList(), "LINE", "TEST", "TEST", false);
+    Check(partial.Success && partial.Message.Contains("2 BOXES") && partial.Message.Contains("Partial"),
+        "Release multiple scanned boxes and keep the order Partial: " + partial.Message);
     var extraComplete = (WhEndpoints.ReleaseCompleteResult)Invoke("ExecuteReleaseBatch", factory, header.PickSlipNo, new[] { ninety[2] }, "LINE", "TEST", "TEST", false);
     Check(extraComplete.Success && extraComplete.Message.Contains("10 EA above") && extraComplete.Message.Contains("completed"),
         "Whole final box completes the order with excess notification: " + extraComplete.Message);
@@ -179,7 +175,7 @@ try
     var adjusted = (WhEndpoints.InboundReceiveResult)Invoke("ExecuteAdjustSave", factory, stale with { ExpectedQty = 20 }, "TEST", false);
     Check(adjusted.Success && adjusted.Row?.Qty == 15, "Save line adjustment with canonical procedure: " + adjusted.Message);
     Check(repository.GenerateLinePickingOrders().Orders == 1, "A new shortage after completed replenishment generates next order");
-    Console.WriteLine("PASS: EA demand, readable numbering, grouping, concurrency, FIFO, single-box partial release, final-box excess, line transfer, rollback, history and adjustment concurrency.");
+    Console.WriteLine("PASS: EA demand, readable numbering, grouping, concurrency, FIFO, single-or-multiple-box partial release, final-box excess, line transfer, rollback, history and adjustment concurrency.");
 }
 finally
 {
