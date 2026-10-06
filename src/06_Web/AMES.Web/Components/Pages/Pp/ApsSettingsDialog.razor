@@ -20,7 +20,7 @@
 
     @* ── APS_SETTING 값 · APS_COVER_TIER 구간 — E 권한이면 인라인 편집 (공통코드 행 직접 수정, MD-26 과 같은 데이터) ── *@
     <div style="display:grid;grid-template-columns:3fr 2fr;gap:12px;">
-        <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;">
+        <div style="border:1px solid var(--ames-bd-white-a12);border-radius:8px;overflow:hidden;">
             <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
                 <span>@L["PP.Aps.Settings.Codes"]@(_canEdit ? "" : " · " + L["PP.Aps.Settings.ReadOnly"])</span>
                 <a class="code" href="md/ql/common-code" target="_blank" style="font-size:.85em;">@L["PP.Aps.Settings.Link"] ↗</a>
@@ -54,7 +54,7 @@
             </table>
             @if (_canEdit)
             {
-                <div style="padding:8px 14px;border-top:1px solid rgba(255,255,255,.08);">
+                <div style="padding:8px 14px;border-top:1px solid var(--ames-bd-white-a08);">
                     @if (!string.IsNullOrEmpty(_codeErr)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_codeErr</RadzenAlert> }
                     <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
                         <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["PP.Aps.Settings.Btn.SaveCodes"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="SaveCodes" Disabled="@_busy" />
@@ -62,7 +62,7 @@
                 </div>
             }
         </div>
-        <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;">
+        <div style="border:1px solid var(--ames-bd-white-a12);border-radius:8px;overflow:hidden;">
             <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
                 <span>@L["PP.Aps.Settings.Tiers"]</span>
                 @if (_canEdit)
@@ -93,7 +93,7 @@
             </table>
             @if (_canEdit)
             {
-                <div style="padding:8px 14px;border-top:1px solid rgba(255,255,255,.08);">
+                <div style="padding:8px 14px;border-top:1px solid var(--ames-bd-white-a08);">
                     @if (!string.IsNullOrEmpty(_tierErr)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_tierErr</RadzenAlert> }
                     <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
                         <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["PP.Aps.Settings.Btn.SaveTiers"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="SaveTiers" Disabled="@_busy" />
@@ -104,7 +104,7 @@
     </div>
 
     @* ── MD_ApsLineStage CRUD ── *@
-    <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;">
+    <div style="border:1px solid var(--ames-bd-white-a12);border-radius:8px;overflow:hidden;">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
             <span>@L["PP.Aps.Settings.Stages"]@(_canEdit ? "" : " · " + L["PP.Aps.Settings.ReadOnly"])</span>
             @if (_canEdit)

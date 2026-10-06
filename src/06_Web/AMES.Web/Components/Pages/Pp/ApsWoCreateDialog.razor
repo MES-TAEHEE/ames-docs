@@ -6,11 +6,11 @@
 @using AMES.Data.Repositories
 
 <div style="display:flex;flex-direction:column;gap:10px;min-width:900px;">
-    <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 14px;">
-        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+    <div style="border:1px solid var(--ames-bd-white-a12);border-radius:8px;padding:4px 14px;">
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--ames-bd-white-a12);">
             <span class="dim">@L["PP.Aps.Wo.Run"]</span><span class="code">#@RunId</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--ames-bd-white-a12);">
             <span class="dim">@L["PP.Aps.Wo.Targets"]</span><span class="code">@_rows.Count</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;@(_alreadyIssued > 0 ? "border-bottom:1px dashed rgba(255,255,255,.12);" : "")">
@@ -25,7 +25,7 @@
 
     @if (_result is null)
     {
-        <div style="max-height:260px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:8px;">
+        <div style="max-height:260px;overflow:auto;border:1px solid var(--ames-bd-white-a12);border-radius:8px;">
             <table class="ames-table" style="width:100%;table-layout:fixed;">
                 <thead>
                     <tr>
@@ -76,7 +76,7 @@
         {
             <div class="ames-alert bad">@L["PP.Aps.Wo.Err.PreviewStale"]</div>
         }
-        <div style="max-height:320px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:8px;">
+        <div style="max-height:320px;overflow:auto;border:1px solid var(--ames-bd-white-a12);border-radius:8px;">
             <table class="ames-table" style="width:100%;table-layout:fixed;">
                 <thead>
                     <tr>

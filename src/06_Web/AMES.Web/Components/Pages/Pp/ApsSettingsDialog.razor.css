@@ -16,8 +16,8 @@
 .aps-set ::deep .aps-stage-grid .rz-cell-data { white-space: normal; overflow-wrap: anywhere; }
 .aps-set ::deep .aps-stage-grid .rz-grid-table td { vertical-align: middle; }
 .aps-set ::deep .aps-stage-grid .ames-rz-btn + .ames-rz-btn { margin-left: 4px; }
-.aps-set ::deep .aps-stage-grid .code { font-family: var(--ames-font-mono); color: #93c5fd; font-weight: 700; }
-.aps-set ::deep .aps-stage-grid .dim  { color: rgba(255,255,255,.5); font-size: 13px; }
+.aps-set ::deep .aps-stage-grid .code { font-family: var(--ames-font-mono); color: var(--ames-tx-blue-300); font-weight: 700; }
+.aps-set ::deep .aps-stage-grid .dim  { color: var(--ames-tx-white-a50); font-size: 13px; }
 .aps-set ::deep .aps-stage-grid .num  { font-family: var(--ames-font-mono); font-weight: 600; }
 html[data-theme="light"] .aps-set ::deep .aps-stage-grid .code { color: var(--ames-accent); }
 html[data-theme="light"] .aps-set ::deep .aps-stage-grid .dim  { color: var(--ames-text-dim, rgba(0,0,0,.55)); }
