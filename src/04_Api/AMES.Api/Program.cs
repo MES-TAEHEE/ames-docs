@@ -1,9 +1,11 @@
 using AMES.Api.Auth;
 using AMES.Api.Endpoints;
+using AMES.Api.Workers.DemandPlanSync;
 using AMES.Api.Workers.PoSync;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using AMES.Data.Services;
+using AMES.Data.Services.DemandPlan;
 using AMES.Data.Services.PoSync;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,6 +33,14 @@ builder.Services.AddSingleton<IPoSource>(sp => new HttpPoSource(
 builder.Services.AddSingleton<PoSyncWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PoSyncWorker>());
 builder.Services.AddHostedService<AMES.Api.Workers.LineReplenishmentWorker>();
+
+// Demand plan sync — 고객사 SRM 일별 구매계획(MM30011) 자동 수집
+builder.Services.AddHttpClient(HttpDemandPlanSource.ClientName);
+builder.Services.AddSingleton<IDemandPlanSource>(sp => new HttpDemandPlanSource(
+    sp.GetRequiredService<IHttpClientFactory>(),
+    sp.GetRequiredService<IConfiguration>()));
+builder.Services.AddSingleton<DemandPlanSyncWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DemandPlanSyncWorker>());
 
 // ── Auth token registry ─────────────────────────────────────────────────
 var tokens = new TokenStore(() => DbClock.ReadNow(factory));

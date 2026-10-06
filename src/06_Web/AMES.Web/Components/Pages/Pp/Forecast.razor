@@ -4,6 +4,7 @@
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository MD
 @inject AMES.Web.Services.PermissionService PermSvc
+@inject AMES.Web.Services.UomFormat UomFmt
 @inject AuthenticationStateProvider AuthPrvd
 @inject NavigationManager Nav
 @inject DialogService Dialog
@@ -108,6 +109,88 @@
     </div>
     </AmesTab>
 
+    <AmesTab Title="@L["PP.Forecast.Tab.Daily"].Value">
+    <div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.Forecast.Tab.Daily"] · @L["PP.DemandPlan.Kpi.Items"] @_dItems.Count · @L["PP.DemandPlan.Kpi.Days"] @_dDates.Count · @L["PP.DemandPlan.Kpi.TotalQty"] @UomFmt.Qty(_dItems.Sum(i => i.Qty.Values.Sum()), null) · @L["PP.DemandPlan.Kpi.Unmatched"] @_dItems.Count(i => !i.ItemExists)</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Customer"]" />
+            <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                            @bind-Value="_dCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
+            <RadzenDatePicker @bind-Value="_dFrom" DateFormat="MM/dd/yyyy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <span class="dim">~</span>
+            <RadzenDatePicker @bind-Value="_dTo" DateFormat="MM/dd/yyyy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenLabel Text="@L["Col.PartNo"]" />
+            <RadzenTextBox @bind-Value="_dPartNo" @bind-Value:after="ApplyDailyPartNo"
+                           Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="SearchDaily" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.DemandPlan.Btn.Upload"].Value" Icon="upload"
+                              ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenDailyUpload" />
+                <RadzenButton Text="@L["PP.DemandPlan.Btn.Api"].Value" Icon="cloud_download"
+                              ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenDailySync" />
+            }
+        </RadzenStack>
+    </div>
+
+    <div class="ames-grid-virtual">
+    @if (_dItems.Count == 0)
+    {
+        <div class="ames-empty">@L["PP.DemandPlan.Empty"]</div>
+    }
+    else
+    {
+        <RadzenDataGrid Data="_dView" TItem="DailyVm" AllowVirtualization="true" Style="height:100%"
+                        AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
+                        AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
+                        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                        class="ames-rz-grid">
+            <Columns>
+                @if (_dShowCustomer)
+                {
+                    <RadzenDataGridColumn TItem="DailyVm" Property="CustomerId" Title="@L["Col.Customer"].Value"
+                                          Frozen="true" Width="120px" />
+                }
+                <RadzenDataGridColumn TItem="DailyVm" Property="ItemNo" Title="@L["Col.PartNo"].Value"
+                                      Frozen="true" Width="170px">
+                    <Template Context="it">
+                        <span class="code">@it.ItemNo</span>
+                        @if (!it.ItemExists)
+                        {
+                            <span class="badge-bad">@L["PP.Forecast.Badge.Unregistered"]</span>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="DailyVm" Property="Name" Title="@L["Col.PartName"].Value" Width="200px" />
+                <RadzenDataGridColumn TItem="DailyVm" Title="@L["PP.DemandPlan.Col.Pack"].Value"
+                                      Filterable="false" TextAlign="TextAlign.Right" Width="140px">
+                    <Template Context="it">
+                        @UomFmt.Qty(it.PackQty, it.Unit)
+                        @if (it.PackMismatch)
+                        {
+                            <span class="badge-bad">@L["PP.DemandPlan.Badge.PackMismatch"]</span>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                @foreach (var d in _dDates)
+                {
+                    var date = d;
+                    <RadzenDataGridColumn TItem="DailyVm" Title="@date.ToString("MM/dd")" Sortable="false"
+                                          Filterable="false" TextAlign="TextAlign.Right" Width="70px">
+                        <Template Context="it">@(it.Qty.TryGetValue(date, out var q) && q != 0 ? UomFmt.Qty(q, it.Unit) : "—")</Template>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+    }
+    </div>
+    </div>
+    </AmesTab>
+
     <AmesTab Title="@L["PP.Forecast.Tab.History"].Value">
     <div class="ames-card ames-card-fill">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -170,6 +253,52 @@
         }
         </div>
     </div>
+
+    <div class="ames-card" style="margin-top:12px;">
+        <div class="ames-card-h">▼ @L["PP.DemandPlan.Hist.Title"] · @_dBatches.Count</div>
+        <div class="ames-grid-virtual" style="height:260px">
+        @if (_dBatches.Count == 0)
+        {
+            <div class="ames-empty">@L["PP.Forecast.Hist.Empty"]</div>
+        }
+        else
+        {
+            <RadzenDataGrid Data="_dBatches" TItem="PpRepository.DemandPlanBatchRow"
+                            AllowVirtualization="true" Style="height:100%" AllowSorting="true" EmptyText="@L["Grid.Empty"].Value"
+                            AllowColumnResize="true" Density="Density.Compact"
+                            class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="CustomerId"
+                                          Title="@L["Col.Customer"].Value" Width="120px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="Source"
+                                          Title="@L["PP.DemandPlan.Hist.Source"].Value" Width="90px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Title="@L["PP.DemandPlan.Hist.File"].Value" Width="220px">
+                        <Template Context="b">@(b.FileName ?? b.SourceKey ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Title="@L["PP.Forecast.Hist.Period"].Value"
+                                          Sortable="false" Width="190px">
+                        <Template Context="b">@b.DateFrom.ToString("yyyy-MM-dd") ~ @b.DateTo.ToString("yyyy-MM-dd")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="ItemCount"
+                                          Title="@L["PP.Forecast.Hist.Items"].Value" TextAlign="TextAlign.Right" Width="80px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="RowCount"
+                                          Title="@L["PP.Forecast.Hist.Rows"].Value" TextAlign="TextAlign.Right" Width="80px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="UnmatchedItems"
+                                          Title="@L["PP.DemandPlan.Hist.Unmatched"].Value" TextAlign="TextAlign.Right" Width="90px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="PackMismatch"
+                                          Title="@L["PP.DemandPlan.Hist.Mismatch"].Value" TextAlign="TextAlign.Right" Width="100px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="ImportedBy"
+                                          Title="@L["PP.Forecast.Hist.By"].Value" Width="140px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="ImportedAt"
+                                          Title="@L["PP.Forecast.Hist.Uploaded"].Value" Width="160px"
+                                          SortOrder="SortOrder.Descending">
+                        <Template Context="b">@b.ImportedAt.ToString("yyyy-MM-dd HH:mm")</Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+        </div>
+    </div>
     </AmesTab>
 </AmesTabs>
 </div>
@@ -198,6 +327,16 @@
     List<ItemVm>   _view  = new();   // Part No 검색 적용된 표시용
     List<PpRepository.WeeklyImportBatch> _batches = new();
 
+    // 일별 구매계획(MM30011) 탭 — 조회 필터·표시 모델
+    record DailyVm(string? CustomerId, string ItemNo, string Name, string? Unit, decimal? PackQty, decimal? BoxQty, bool ItemExists, Dictionary<DateOnly, decimal> Qty)
+    { public bool PackMismatch => PackQty is > 0 && BoxQty is > 0 && PackQty != BoxQty; }
+    string _dCustomer = "", _dPartNo = "";
+    DateTime _dFrom = DbClock.Today, _dTo = DbClock.Today.AddDays(30);
+    List<DateOnly> _dDates = new();
+    List<DailyVm> _dItems = new(), _dView = new();
+    List<PpRepository.DemandPlanBatchRow> _dBatches = new();
+    bool _dShowCustomer;
+
     string _msg = "";
     bool   _isErr;
 
@@ -217,6 +356,7 @@
         try { _customers = MD.ListCustomers(); } catch { }
         Search();
         SearchHistory();
+        SearchDaily();
     }
 
     // 업로드 이력 조회 — 자체 필터(고객사·업로드 일시)로 로드.
@@ -224,6 +364,55 @@
     {
         try   { _batches = Pp.ListWeeklyImportBatches(_hCustomer ?? "", _hFrom, _hTo); }
         catch { _batches = new(); }
+        SearchDailyHistory();
+    }
+
+    // ── 일별 구매계획(MM30011) 조회 ──────────────────────────────
+    void SearchDaily()
+    {
+        List<PpRepository.DemandPlanCellRow> cells;
+        try   { cells = Pp.ListDemandPlan(_dCustomer ?? "", DateOnly.FromDateTime(_dFrom), DateOnly.FromDateTime(_dTo)); }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); cells = new(); }
+        _dShowCustomer = string.IsNullOrEmpty(_dCustomer);
+        _dDates = cells.Select(c => c.PlanDate).Distinct().Order().ToList();
+        _dItems = cells.GroupBy(c => (c.CustomerId, c.ItemNo))
+            .Select(g => new DailyVm(g.Key.CustomerId, g.Key.ItemNo, g.First().ItemName ?? g.First().PartName ?? g.Key.ItemNo, g.First().Unit,
+                g.First().PackQty, g.First().BoxQty, g.First().ItemExists, g.ToDictionary(c => c.PlanDate, c => c.ScheduledQty)))
+            .OrderBy(i => i.CustomerId).ThenBy(i => i.ItemNo).ToList();
+        ApplyDailyPartNo();
+        SearchDailyHistory();
+    }
+
+    void ApplyDailyPartNo() => _dView = string.IsNullOrWhiteSpace(_dPartNo) ? _dItems
+        : _dItems.Where(i => i.ItemNo.Contains(_dPartNo, StringComparison.OrdinalIgnoreCase) || i.Name.Contains(_dPartNo, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    void SearchDailyHistory() { try { _dBatches = Pp.ListDemandPlanBatches(_hCustomer ?? "", _hFrom, _hTo); } catch { _dBatches = new(); } }
+
+    async Task OpenDailyUpload()
+    {
+        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+        var result = await Dialog.OpenAsync<DemandPlanUploadDialog>(L["PP.DemandPlan.Upload.Title"].Value, new Dictionary<string, object?> { ["Customers"] = _customers });
+        if (result is ValueTuple<PpRepository.DemandPlanImportResult, string> t)
+        {
+            var (r, cust) = t;
+            ShowMsg(string.Format(L["PP.DemandPlan.Ok.Imported"].Value, r.ItemCount, r.RowCount, r.UnmatchedItems, r.PackMismatch), r.UnmatchedItems > 0 || r.PackMismatch > 0);
+            _dCustomer = cust;
+            _dFrom = r.From.ToDateTime(TimeOnly.MinValue); _dTo = r.To.ToDateTime(TimeOnly.MinValue);
+            SearchDaily();   // 이력 탭의 일별 배치 표는 SearchDaily() 끝의 SearchDailyHistory() 로 함께 갱신된다 — 주간 이력 필터(_h*)는 건드리지 않는다
+        }
+    }
+
+    async Task OpenDailySync()
+    {
+        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+        var result = await Dialog.OpenAsync<DemandPlanSyncDialog>(L["PP.DemandPlan.Api.Title"].Value);
+        if (result is AMES.Data.Services.DemandPlan.DemandPlanRunResult { Ok: true } r)
+        {
+            ShowMsg(string.Format(L["PP.DemandPlan.Api.Ok"].Value, r.Items, r.Cells, r.Unmatched, r.PackMismatch), r.Unmatched > 0 || r.PackMismatch > 0);
+            if (r.From is { } from && r.To is { } to) { _dFrom = from.ToDateTime(TimeOnly.MinValue); _dTo = to.ToDateTime(TimeOnly.MinValue); }
+        }
+        // X 로 닫으면 결과가 안 넘어온다 — 실행했을 수 있으니 항상 다시 읽는다
+        SearchDaily();
     }
 
     // ── 업로드 다이얼로그 ────────────────────────────────────────

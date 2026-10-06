@@ -1,0 +1,488 @@
+@using AMES.Data.Aps
+@using AMES.Data.Repositories
+@inject ApsRepository Aps
+@inject MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.AuditLogger Audit
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+<div class="aps-set">
+    @if (!string.IsNullOrEmpty(_err))
+    {
+        <div class="ames-alert bad">@_err</div>
+    }
+    @if (!string.IsNullOrEmpty(_ok))
+    {
+        <div class="ames-alert ok">@_ok</div>
+    }
+
+    @* ── APS_SETTING 값 · APS_COVER_TIER 구간 — E 권한이면 인라인 편집 (공통코드 행 직접 수정, MD-26 과 같은 데이터) ── *@
+    <div style="display:grid;grid-template-columns:3fr 2fr;gap:12px;">
+        <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;">
+            <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>@L["PP.Aps.Settings.Codes"]@(_canEdit ? "" : " · " + L["PP.Aps.Settings.ReadOnly"])</span>
+                <a class="code" href="md/ql/common-code" target="_blank" style="font-size:.85em;">@L["PP.Aps.Settings.Link"] ↗</a>
+            </div>
+            <table class="ames-table" style="width:100%;">
+                <thead><tr><th style="width:200px;">@L["PP.Aps.Settings.Col.Key"]</th><th style="width:230px;text-align:right;">@L["PP.Aps.Settings.Col.Value"]</th><th>@L["PP.Aps.Settings.Col.Name"]</th></tr></thead>
+                <tbody>
+                    @foreach (var e in _codeEdits)
+                    {
+                        <tr class="@(e.Row is { UseFlag: false } ? "dim" : "")">
+                            <td class="code">@e.Key</td>
+                            <td class="num">
+                                @if (e.Kind == ApsSettingsLoader.SettingKind.Pattern)
+                                {
+                                    @* 기본 가동 시간 패턴 — 전역(LineID 없음) ACTIVE 패턴만 후보. 비우면 라인 지정 없는 사출 라인은 조회가 막힌다(2026-10-06) *@
+                                    @if (!_canEdit) { <span class="@(string.IsNullOrEmpty(e.Row?.Attribute1) ? "pill warn" : "code")">@PatternLabel(e.Row?.Attribute1)</span> }
+                                    else { <RadzenDropDown TValue="string" @bind-Value="e.Value" Data="@_globalPatternOpts" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true"
+                                                           Placeholder="@L["PP.Aps.Settings.Pattern.None"]" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /> }
+                                }
+                                else if (!_canEdit) { @(e.Row?.Attribute1 ?? "—") }
+                                else if (e.Kind == ApsSettingsLoader.SettingKind.Flag) { <RadzenCheckBox TValue="bool" @bind-Value="e.Flag" Name="@("ApsSet_" + e.Key)" Disabled="@_busy" /> }
+                                else { <RadzenTextBox @bind-Value="e.Value" MaxLength="40" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;text-align:right;" /> }
+                            </td>
+                            <td class="dim">
+                                @if (e.Row is null) { <span class="pill warn">@L["PP.Aps.Settings.Missing"]</span> }
+                                else { @MasterDataRepository.LocalName(e.Row)@(e.Row.UseFlag ? "" : " · " + L["Lbl.Inactive"]) }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (_canEdit)
+            {
+                <div style="padding:8px 14px;border-top:1px solid rgba(255,255,255,.08);">
+                    @if (!string.IsNullOrEmpty(_codeErr)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_codeErr</RadzenAlert> }
+                    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
+                        <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["PP.Aps.Settings.Btn.SaveCodes"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="SaveCodes" Disabled="@_busy" />
+                    </RadzenStack>
+                </div>
+            }
+        </div>
+        <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;">
+            <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>@L["PP.Aps.Settings.Tiers"]</span>
+                @if (_canEdit)
+                {
+                    <RadzenButton Text="@L["PP.Aps.Settings.Btn.AddTier"].Value" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" Click="@(() => _tierEdits.Add(new TierEdit()))" Disabled="@_busy" />
+                }
+            </div>
+            <table class="ames-table" style="width:100%;">
+                <thead><tr><th style="text-align:right;">@L["PP.Aps.Settings.Col.MinDemand"]</th><th style="text-align:right;">@L["PP.Aps.Settings.Col.Cover"]</th>@if (_canEdit) { <th style="width:44px;"></th> }</tr></thead>
+                <tbody>
+                    @if (_tierEdits.Count == 0) { <tr><td colspan="3" class="dim">—</td></tr> }
+                    @foreach (var t in _tierEdits)
+                    {
+                        <tr class="@(t.Row is { UseFlag: false } ? "dim" : "")">
+                            @if (!_canEdit)
+                            {
+                                <td class="num">@t.Min</td><td class="num">@t.Cover</td>
+                            }
+                            else
+                            {
+                                <td class="num"><RadzenTextBox @bind-Value="t.Min" MaxLength="20" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;text-align:right;" /></td>
+                                <td class="num"><RadzenTextBox @bind-Value="t.Cover" MaxLength="20" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;text-align:right;" /></td>
+                                <td><RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" Click="@(() => RemoveTier(t))" Disabled="@_busy" /></td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (_canEdit)
+            {
+                <div style="padding:8px 14px;border-top:1px solid rgba(255,255,255,.08);">
+                    @if (!string.IsNullOrEmpty(_tierErr)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_tierErr</RadzenAlert> }
+                    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
+                        <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["PP.Aps.Settings.Btn.SaveTiers"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="SaveTiers" Disabled="@_busy" />
+                    </RadzenStack>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ── MD_ApsLineStage CRUD ── *@
+    <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>@L["PP.Aps.Settings.Stages"]@(_canEdit ? "" : " · " + L["PP.Aps.Settings.ReadOnly"])</span>
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.Aps.Settings.Btn.Add"].Value" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" Click="AddRow" Disabled="@(_busy || _editingRow is not null)" />
+            }
+        </div>
+        @if (!string.IsNullOrEmpty(_modalErr))
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" AllowClose="false">@_modalErr</RadzenAlert>
+        }
+        @* 행 안에서 바로 고친다(사용자 요청 10-06) — EditMode.Single: 한 번에 한 행, 저장은 SaveLineStage, 취소는 수정 전 값 복원. 라인 키는 새 행에서만 고른다 *@
+        <RadzenDataGrid @ref="_grid" TItem="StageEdit" Data="@_stageEdits" EditMode="DataGridEditMode.Single" AllowPaging="false" AllowSorting="false"
+                        Density="Density.Compact" EmptyText="@L["PP.Aps.Settings.Empty"]" class="aps-stage-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="StageEdit" Title="@L["Col.Line"]">
+                    <Template Context="s">
+                        <span class="code">@s.LineId</span> <span class="dim">@s.LineName</span>
+                        <span class="pill @(s.LineType == ApsRepository.LineTypeInjection ? "info" : "warn")">@(s.LineType == ApsRepository.LineTypeInjection ? L["PP.Aps.Type.injection"] : L["PP.Aps.Type.assembly"])</span>
+                    </Template>
+                    <EditTemplate Context="s">
+                        @if (s.IsNew)
+                        {
+                            <RadzenDropDown TValue="string" Value="@s.LineId" ValueChanged="@((string v) => PickLine(s, v))" Data="@_lineOpts" TextProperty="Text" ValueProperty="Value"
+                                            AllowFiltering="true" Disabled="@_busy" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        }
+                        else
+                        {
+                            <span class="code">@s.LineId</span> <span class="dim">@s.LineName</span>
+                        }
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StageEdit" Title="@L["PP.Aps.Settings.Col.Offset"]" Width="96px" TextAlign="TextAlign.Right">
+                    <Template Context="s"><span class="num">@s.OffsetDays</span></Template>
+                    <EditTemplate Context="s">
+                        <RadzenNumeric TValue="int" @bind-Value="s.OffsetDays" Min="0" Max="30" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StageEdit" Title="@L["PP.Aps.Settings.Col.UseStock"]" Width="96px" TextAlign="TextAlign.Center">
+                    <Template Context="s">@(s.UseStock ? "✓" : "—")</Template>
+                    <EditTemplate Context="s"><RadzenCheckBox TValue="bool" @bind-Value="s.UseStock" Name="@("ApsStageUseStock_" + s.LineId)" Disabled="@_busy" /></EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StageEdit" Title="@L["PP.Aps.Settings.Col.Pattern"]" Width="260px">
+                    <Template Context="s">
+                        @if (string.IsNullOrEmpty(s.PatternId)) { <span class="dim">@L["PP.Aps.Settings.Pattern.Default"]</span> }
+                        else { <span class="ellip" title="@PatternLabel(s.PatternId)"><span class="code">@s.PatternId</span> <span class="dim">@PatternName(s.PatternId)</span></span> }
+                    </Template>
+                    <EditTemplate Context="s">
+                        @* 후보 = 그 라인 전용 + 전역 ACTIVE 패턴(PP-LSB PatternOptions 와 같은 범위). 비우면 기본 패턴(DEFAULT_PATTERN)을 따른다 *@
+                        <RadzenDropDown TValue="string" @bind-Value="s.PatternId" Data="@PatternOptsFor(s.LineId)" TextProperty="Text" ValueProperty="Value"
+                                        AllowClear="true" AllowFiltering="true" Disabled="@_busy" Placeholder="@L["PP.Aps.Settings.Pattern.Default"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="StageEdit" Title="@L["PP.Aps.Settings.Col.Note"]" Width="170px">
+                    <Template Context="s"><span class="dim">@(s.Note ?? "—")</span></Template>
+                    <EditTemplate Context="s"><RadzenTextBox @bind-Value="s.Note" MaxLength="200" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></EditTemplate>
+                </RadzenDataGridColumn>
+                @if (_canEdit)
+                {
+                    <RadzenDataGridColumn TItem="StageEdit" Title="" Width="96px" TextAlign="TextAlign.Center">
+                        <Template Context="s">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" Click="@(() => BeginEdit(s))" Disabled="@(_busy || _editingRow is not null)" />
+                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" Click="@(() => { _confirmDelete = s; _err = ""; })" Disabled="@(_busy || _editingRow is not null)" />
+                        </Template>
+                        <EditTemplate Context="s">
+                            <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" title="@L["Btn.Save"]" Click="@(() => SaveRow(s))" Disabled="@_busy" />
+                            <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" title="@L["Btn.Cancel"]" Click="@(() => CancelRow(s))" Disabled="@_busy" />
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+
+        @if (_confirmDelete is { } del)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm" Style="padding:8px 14px;">
+                <span>@string.Format(L["PP.Aps.Settings.ConfirmDelete"].Value, del.LineId)</span>
+                <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _confirmDelete = null)" class="ames-rz-btn" />
+                <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(() => Delete(del))" Disabled="@_busy" class="ames-rz-btn" />
+            </RadzenStack>
+        }
+    </div>
+
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Light" Click="@(() => Dialog.Close(_changed ? true : null))" Disabled="@_busy" />
+    </div>
+</div>
+
+@code {
+    const string Href = "pp/aps-plan";
+    bool _canEdit, _busy, _changed;
+    string _err = "", _ok = "", _modalErr = "", _actor = "system";
+
+    string _codeErr = "", _tierErr = "";
+
+    /// APS_SETTING 한 행의 편집 상태 — Row 가 null 이면 미등록 키(저장 시 기본값으로 INSERT). Flag 종류는 체크박스(Flag), 나머지는 Value 문자열.
+    sealed class CodeEdit
+    {
+        public MasterDataRepository.CodeItemRow? Row { get; init; }
+        public string Key { get; init; } = "";
+        public ApsSettingsLoader.SettingKind Kind { get; init; }
+        public string? Value { get; set; } = "";   // Pattern 콤보를 비우면 null
+        public bool Flag { get; set; }
+        public string NewValue => Kind == ApsSettingsLoader.SettingKind.Flag ? (Flag ? "1" : "0") : (Value ?? "").Trim();
+        public bool Changed => Row is null || (Kind == ApsSettingsLoader.SettingKind.Flag ? IsTrue(Row.Attribute1) != Flag : (Row.Attribute1 ?? "").Trim() != NewValue);
+        public static bool IsTrue(string? raw) => (raw ?? "").Trim().ToUpperInvariant() is "1" or "TRUE" or "Y" or "YES";
+    }
+    /// APS_COVER_TIER 한 행 — Row 가 null 이면 「구간 추가」로 생긴 새 행.
+    sealed class TierEdit
+    {
+        public MasterDataRepository.CodeItemRow? Row { get; init; }
+        public string Min { get; set; } = "";
+        public string Cover { get; set; } = "";
+    }
+    List<CodeEdit> _codeEdits = new();
+    List<TierEdit> _tierEdits = new();
+    readonly List<MasterDataRepository.CodeItemRow> _tierDeleted = new();   // 「구간 저장」 때 DELETE 할 기존 행
+    /// 라인 행의 그리드 편집 모델 — Source 는 수정 전 스냅샷(취소 복원·Audit.Updated 의 before). IsNew 는 「추가」로 들어온 행(라인 콤보가 열린다).
+    sealed class StageEdit
+    {
+        public ApsRepository.ApsLineStageRow? Source { get; init; }
+        public bool IsNew => Source is null;
+        public string LineId { get; set; } = "";
+        public string? LineName { get; set; }
+        public string LineType { get; set; } = ApsRepository.LineTypeAssembly;
+        public int OffsetDays { get; set; } = 1;
+        public bool UseStock { get; set; } = true;
+        public string? PatternId { get; set; }
+        public string? Note { get; set; }
+
+        public static StageEdit From(ApsRepository.ApsLineStageRow r) => new()
+        {
+            Source = r, LineId = r.LineId, LineName = r.LineName, LineType = r.LineType,
+            OffsetDays = r.OffsetDays, UseStock = r.UseStock, PatternId = r.PatternId, Note = r.Note,
+        };
+        public void Revert()
+        {
+            if (Source is null) return;
+            OffsetDays = Source.OffsetDays; UseStock = Source.UseStock; PatternId = Source.PatternId; Note = Source.Note;
+        }
+    }
+    List<StageEdit> _stageEdits = new();
+    StageEdit? _editingRow;      // EditMode.Single — 편집 중인 행 하나(다른 행의 수정·삭제·추가 버튼을 막는다)
+    StageEdit? _confirmDelete;
+    RadzenDataGrid<StageEdit>? _grid;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    List<DropDownItem> _lineOpts = new();
+    List<ApsRepository.LineChoice> _lines = new();   // 새 행이 라인을 고를 때 이름·유형을 채운다
+    List<MasterDataRepository.LineTimePatternRow> _patterns = new();   // MD_LineTimePattern 전체 — ACTIVE 만 후보, 이름 표시는 전체
+    List<DropDownItem> _globalPatternOpts = new();
+
+    static bool IsActive(MasterDataRepository.LineTimePatternRow p) => p.Status is null or "ACTIVE";
+    DropDownItem PatternItem(MasterDataRepository.LineTimePatternRow p) => new()
+    {
+        Value = p.PatternID,
+        Text  = $"[{p.PatternID}] {p.PatternName}" + (string.IsNullOrEmpty(p.LineID) ? $" · {L["MD.LineTimePattern.Global"].Value}" : "") + (p.DayType is null ? "" : $" · {p.DayType}"),
+    };
+    /// 라인 행 콤보 후보 = 그 라인 전용 + 전역 ACTIVE 패턴, 라인 전용 먼저(PP-LSB PatternOptions 와 같은 순서)
+    IEnumerable<DropDownItem> PatternOptsFor(string lineId) =>
+        _patterns.Where(p => IsActive(p) && (string.IsNullOrEmpty(p.LineID) || string.Equals(p.LineID, lineId, StringComparison.OrdinalIgnoreCase)))
+                 .OrderBy(p => string.IsNullOrEmpty(p.LineID) ? 1 : 0).ThenBy(p => p.PatternID, StringComparer.Ordinal)
+                 .Select(PatternItem);
+    string PatternLabel(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return L["PP.Aps.Settings.Pattern.None"].Value;
+        var p = _patterns.FirstOrDefault(x => string.Equals(x.PatternID, id.Trim(), StringComparison.OrdinalIgnoreCase));
+        return p is null ? id.Trim() : $"[{p.PatternID}] {p.PatternName}";
+    }
+
+    string? PatternName(string? id) =>
+        _patterns.FirstOrDefault(x => string.Equals(x.PatternID, (id ?? "").Trim(), StringComparison.OrdinalIgnoreCase))?.PatternName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit(Href);
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+        Load();
+    }
+
+    void Load()
+    {
+        try
+        {
+            var settings = MD.ListCodeItems(ApsSettingsLoader.GroupSetting);
+            _codeEdits = ApsSettingsLoader.KnownSettings
+                .Select(k => (Key: k.Key, Kind: k.Kind, Row: settings.LastOrDefault(c => string.Equals((c.CodeValue ?? "").Trim(), k.Key, StringComparison.OrdinalIgnoreCase)), Default: k.Default))   // 같은 키 행이 둘이면 Parse 와 같이 마지막 행
+                .Concat(settings.Where(c => ApsSettingsLoader.KindOf(c.CodeValue ?? "") == ApsSettingsLoader.SettingKind.Text && !ApsSettingsLoader.IsRetired(c.CodeValue ?? ""))   // 폐기 키(SHIFT_DAY_H/NIGHT_H)는 행이 남아 있어도 숨긴다
+                                .Select(c => (Key: (c.CodeValue ?? "").Trim(), Kind: ApsSettingsLoader.SettingKind.Text, Row: (MasterDataRepository.CodeItemRow?)c, Default: "")))
+                .Select(x => new CodeEdit { Key = x.Key, Kind = x.Kind, Row = x.Row, Value = x.Row?.Attribute1 ?? x.Default, Flag = CodeEdit.IsTrue(x.Row?.Attribute1 ?? x.Default) })
+                .ToList();
+            // 구간표는 일수요 하한(CodeValue) 내림차순으로 첫 매치(ApsSettingsLoader) — 화면도 그 순서
+            _tierEdits = MD.ListCodeItems(ApsSettingsLoader.GroupCoverTier)
+                .OrderByDescending(c => double.TryParse(c.CodeValue, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : double.NegativeInfinity)
+                .Select(c => new TierEdit { Row = c, Min = c.CodeValue ?? "", Cover = c.Attribute1 ?? "" })
+                .ToList();
+            _tierDeleted.Clear();
+            _patterns = MD.ListLineTimePatterns();
+            // 기본 패턴 후보 = 전역(LineID 없음) ACTIVE 패턴만 — 라인 전용 패턴을 기본으로 두면 다른 라인에 그 라인 시간이 번진다
+            _globalPatternOpts = _patterns.Where(p => IsActive(p) && string.IsNullOrEmpty(p.LineID)).OrderBy(p => p.PatternID, StringComparer.Ordinal).Select(PatternItem).ToList();
+            _stageEdits = Aps.ListLineStages().Select(StageEdit.From).ToList();
+            _editingRow = null;
+            _lines    = Aps.ListLines();
+            _lineOpts = _lines
+                .Select(l => new DropDownItem { Value = l.LineId, Text = $"{l.LineId} · {l.LineName} [{(l.Type == ApsRepository.LineTypeInjection ? L["PP.Aps.Type.injection"].Value : L["PP.Aps.Type.assembly"].Value)}]" })
+                .ToList();
+        }
+        catch (Exception ex) { _err = ex.Message; }
+    }
+
+    void SaveCodes()
+    {
+        if (!_canEdit) return;
+        _codeErr = ""; _err = ""; _ok = "";
+        foreach (var e in _codeEdits)
+            if (ApsSettingsLoader.ValidateSetting(e.Key, e.NewValue) is { } bad) { _codeErr = bad; return; }
+        var changed = _codeEdits.Where(e => e.Changed).ToList();
+        if (changed.Count == 0) { _codeErr = L["PP.Aps.Settings.NoChange"]; return; }
+        _busy = true;
+        try
+        {
+            foreach (var e in changed)
+            {
+                var sort = ApsSettingsLoader.KnownSettings.ToList().FindIndex(k => k.Key == e.Key) + 1;
+                if (e.Row is null)
+                {
+                    var id = ApsSettingsLoader.GroupSetting + "_" + e.Key;
+                    MD.InsertCodeItem(id, ApsSettingsLoader.GroupSetting, e.Key, e.Key, e.Key, sort, e.NewValue, true, null, _actor);
+                    Audit.Created("PP-APS", "MD_CodeItem", id, new { GroupCode = ApsSettingsLoader.GroupSetting, CodeValue = e.Key, Attribute1 = e.NewValue });
+                }
+                else
+                {
+                    var r = e.Row;
+                    MD.UpdateCodeItem(r.CodeID, r.CodeValue, r.CodeName, r.CodeNameEn, r.SortOrder ?? 0, e.NewValue, r.UseFlag, r.Description, _actor, r.ParentCodeID);
+                    Audit.Updated("PP-APS", "MD_CodeItem", r.CodeID, new { r.GroupCode, r.CodeValue, r.Attribute1 }, new { r.GroupCode, r.CodeValue, Attribute1 = e.NewValue });
+                }
+            }
+            _ok = string.Format(L["PP.Aps.Settings.Ok.Codes"].Value, changed.Count);
+            _changed = true;
+            Load();
+        }
+        catch (Exception ex) { _codeErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void RemoveTier(TierEdit t)
+    {
+        _tierEdits.Remove(t);
+        if (t.Row is not null) _tierDeleted.Add(t.Row);
+    }
+
+    static string TierKey(string raw) => double.Parse(raw.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture)
+                                              .ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+
+    void SaveTiers()
+    {
+        if (!_canEdit) return;
+        _tierErr = ""; _err = ""; _ok = "";
+        foreach (var t in _tierEdits)
+            if (ApsSettingsLoader.ValidateTier(t.Min, t.Cover) is { } bad) { _tierErr = bad; return; }
+        var dup = _tierEdits.GroupBy(t => TierKey(t.Min)).FirstOrDefault(g => g.Count() > 1);
+        if (dup is not null) { _tierErr = string.Format(L["PP.Aps.Settings.Err.DupTier"].Value, dup.Key); return; }
+        _busy = true;
+        try
+        {
+            foreach (var r in _tierDeleted)
+            {
+                MD.DeleteCodeItem(r.CodeID);
+                Audit.Deleted("PP-APS", "MD_CodeItem", r.CodeID, new { r.GroupCode, r.CodeValue, r.Attribute1 });
+            }
+            // SortOrder = 하한 오름차순 순위(마이그레이션 §5 와 같은 관례: 0→1, 20→2, 100→3) — 해석은 CodeValue 로 하므로 표시 순서용
+            var ordered = _tierEdits.OrderBy(t => double.Parse(TierKey(t.Min), System.Globalization.CultureInfo.InvariantCulture)).ToList();
+            for (var i = 0; i < ordered.Count; i++)
+            {
+                var t = ordered[i]; var min = TierKey(t.Min); var cover = TierKey(t.Cover); var sort = i + 1;
+                if (t.Row is null)
+                {
+                    var id = ApsSettingsLoader.GroupCoverTier + "_" + min;
+                    while (MD.CodeItemExists(id)) id += "_";
+                    MD.InsertCodeItem(id, ApsSettingsLoader.GroupCoverTier, min, $"일수요 {min} 이상", $"Daily demand >= {min}", sort, cover, true, null, _actor);
+                    Audit.Created("PP-APS", "MD_CodeItem", id, new { GroupCode = ApsSettingsLoader.GroupCoverTier, CodeValue = min, Attribute1 = cover });
+                }
+                else
+                {
+                    var r = t.Row;
+                    bool changed = (r.CodeValue ?? "").Trim() != min || (r.Attribute1 ?? "").Trim() != cover;
+                    if (!changed && (r.SortOrder ?? 0) == sort) continue;
+                    MD.UpdateCodeItem(r.CodeID, min, r.CodeName, r.CodeNameEn, sort, cover, r.UseFlag, r.Description, _actor, r.ParentCodeID);
+                    if (changed) Audit.Updated("PP-APS", "MD_CodeItem", r.CodeID, new { r.GroupCode, r.CodeValue, r.Attribute1 }, new { r.GroupCode, CodeValue = min, Attribute1 = cover });
+                }
+            }
+            _ok = L["PP.Aps.Settings.Ok.Tiers"];
+            _changed = true;
+            Load();
+        }
+        catch (Exception ex) { _tierErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // ── 라인 행 인라인 편집 (RadzenDataGrid EditMode.Single) ──
+    async Task AddRow()
+    {
+        if (!_canEdit || _grid is null || _editingRow is not null) return;
+        _modalErr = ""; _confirmDelete = null;
+        var row = new StageEdit();            // IsNew — 라인 콤보가 열리고 저장 때 INSERT
+        _editingRow = row;
+        await _grid.InsertRow(row);           // 그리드 맨 위에 편집 상태로(Data 에는 저장 뒤 Load 로 들어온다)
+    }
+
+    async Task BeginEdit(StageEdit s)
+    {
+        if (!_canEdit || _grid is null || _editingRow is not null) return;
+        _modalErr = ""; _confirmDelete = null;
+        _editingRow = s;
+        await _grid.EditRow(s);
+    }
+
+    /// 새 행이 라인을 고르면 이름·유형을 채우고, 그 라인 후보에 없는 패턴 지정은 비운다
+    void PickLine(StageEdit s, string lineId)
+    {
+        s.LineId = lineId ?? "";
+        var l = _lines.FirstOrDefault(x => string.Equals(x.LineId, s.LineId, StringComparison.OrdinalIgnoreCase));
+        s.LineName = l?.LineName; s.LineType = l?.Type ?? ApsRepository.LineTypeAssembly;
+        if (!string.IsNullOrEmpty(s.PatternId) && !PatternOptsFor(s.LineId).Any(o => o.Value == s.PatternId)) s.PatternId = null;
+    }
+
+    async Task SaveRow(StageEdit s)
+    {
+        if (!_canEdit || _grid is null) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+        _modalErr = ""; _err = ""; _ok = "";
+        if (string.IsNullOrWhiteSpace(s.LineId)) { _modalErr = L["PP.Aps.Err.NoLine"]; return; }
+        if (s.IsNew && _stageEdits.Any(x => string.Equals(x.LineId, s.LineId, StringComparison.OrdinalIgnoreCase)))
+        { _modalErr = string.Format(L["Err.AlreadyExistsFmt"].Value, s.LineId); return; }
+        _busy = true;
+        try
+        {
+            var note    = string.IsNullOrWhiteSpace(s.Note) ? null : s.Note.Trim();
+            var pattern = string.IsNullOrWhiteSpace(s.PatternId) ? null : s.PatternId.Trim();
+            Aps.SaveLineStage(s.LineId, s.OffsetDays, s.UseStock, note, pattern, _actor);
+            var after = new { s.LineId, s.OffsetDays, s.UseStock, Note = note, PatternId = pattern };
+            if (s.IsNew) Audit.Created("PP-APS", "MD_ApsLineStage", s.LineId, after);
+            else         Audit.Updated("PP-APS", "MD_ApsLineStage", s.LineId, s.Source, after);
+            _ok = string.Format(L["PP.Aps.Settings.Ok.Saved"].Value, s.LineId);
+            _changed = true;
+            _grid.CancelEditRow(s);            // 편집 상태를 닫고(새 행은 그리드에서 빠진다) 저장본으로 다시 읽는다
+            Load();
+            await _grid.Reload();
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void CancelRow(StageEdit s)
+    {
+        if (_grid is null) return;
+        _modalErr = "";
+        s.Revert();                            // 기존 행은 수정 전 값으로(새 행은 CancelEditRow 가 지운다)
+        _grid.CancelEditRow(s);
+        _editingRow = null;
+    }
+
+    async Task Delete(StageEdit s)
+    {
+        if (!_canEdit) return;
+        _busy = true;
+        try
+        {
+            Aps.DeleteLineStage(s.LineId);
+            Audit.Deleted("PP-APS", "MD_ApsLineStage", s.LineId, s.Source);
+            _ok = string.Format(L["PP.Aps.Settings.Ok.Deleted"].Value, s.LineId);
+            _changed = true;
+            _confirmDelete = null;
+            Load();
+            if (_grid is not null) await _grid.Reload();
+        }
+        catch (Exception ex) { _err = ex.Message; }
+        finally { _busy = false; }
+    }
+}

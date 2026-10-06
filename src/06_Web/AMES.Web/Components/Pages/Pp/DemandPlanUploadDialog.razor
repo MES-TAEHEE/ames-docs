@@ -1,0 +1,93 @@
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.AuditLogger Audit
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Repositories
+@using AMES.Data.Services.DemandPlan
+@using AMES.Web.Services
+
+<div style="display:flex;flex-direction:column;gap:6px;min-width:480px;">
+    <label>① @L["Col.Customer"]</label>
+    <RadzenDropDown AllowFiltering="true" Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                    @bind-Value="_customer" Disabled="_busy" AllowClear="true" Placeholder="—" Style="width:100%" />
+    <label>② @L["PP.Forecast.Upload.File"]</label>
+    <InputFile OnChange="OnFile" accept=".xls,.xlsx" disabled="@_busy" />
+    <span class="dim" style="font-size:.8em;">@L["PP.DemandPlan.Upload.Hint"]</span>
+    <label>③ @L["PP.Forecast.Upload.ParseResult"]</label>
+    <div style="border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
+        @if (_plan is null) { <span class="dim">@L["PP.Forecast.Upload.NoFile"]</span> }
+        else
+        {
+            <div>✔ @string.Format(L["PP.DemandPlan.Preview.Summary"].Value, _plan.Items.Count, _plan.From.ToString("yyyy-MM-dd"), _plan.To.ToString("yyyy-MM-dd"), _plan.Days, _cells)</div>
+            @if (_unmatched.Count > 0)
+            {
+                <div style="color:#f87171;margin-top:6px;">⚠ @string.Format(L["PP.DemandPlan.Preview.Unmatched"].Value, _unmatched.Count)<br />
+                    <span class="dim" style="font-size:.85em;">@string.Join(", ", _unmatched.Take(5))@(_unmatched.Count > 5 ? " …" : "")</span></div>
+            }
+            @if (_mismatch.Count > 0)
+            {
+                <div style="color:#fbbf24;margin-top:6px;">⚠ @string.Format(L["PP.DemandPlan.Preview.PackMismatch"].Value, _mismatch.Count)<br />
+                    <span class="dim" style="font-size:.85em;">@string.Join(", ", _mismatch.Take(5))@(_mismatch.Count > 5 ? " …" : "")</span></div>
+            }
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(_err)) { <div class="ames-alert bad">@_err</div> }
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy" Click="@(() => Dialog.Close(null))" />
+        <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.Forecast.Btn.RunUpload"].Value)"
+                      Disabled="@(_busy || _plan is null || string.IsNullOrEmpty(_customer))" Click="DoUpload" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<MasterDataRepository.CustomerRow> Customers { get; set; } = new();
+    const long MaxBytes = 10 * 1024 * 1024;
+    string _customer = "", _err = "", _fileName = "";
+    bool _busy;
+    DailyPlan? _plan;
+    int _cells;
+    List<string> _unmatched = new(), _mismatch = new();
+
+    async Task OnFile(InputFileChangeEventArgs e)
+    {
+        _err = ""; _plan = null; _unmatched = new(); _mismatch = new();
+        try
+        {
+            using var ms = new MemoryStream();
+            await using (var s = e.File.OpenReadStream(MaxBytes)) await s.CopyToAsync(ms);
+            ms.Position = 0;
+            var plan = DailyPlanParser.Parse(ms, DateOnly.FromDateTime(DbClock.Today));
+            _fileName = e.File.Name;
+            _cells = plan.Items.Sum(i => i.Scheduled.Count(q => q != 0));
+            var found = Pp.ListExistingItemNos(plan.Items.Select(i => i.PartNo));
+            _unmatched = plan.Items.Where(i => !found.Contains(i.PartNo)).Select(i => i.PartNo).ToList();
+            var box = Pp.ListItemBoxQty(plan.Items.Select(i => i.PartNo));
+            _mismatch = plan.Items.Where(i => i.PackQty > 0 && box.TryGetValue(i.PartNo, out var b) && b > 0 && b != i.PackQty)
+                                  .Select(i => $"{i.PartNo} ({i.PackQty:0.###} ≠ {box[i.PartNo]:0.###})").ToList();
+            _plan = plan;
+        }
+        catch (IOException)        { _err = L["PP.Forecast.Err.TooLarge"]; }
+        catch (FormatException fx) { _err = $"{L["PP.Forecast.Err.Parse"]} — {fx.Message}"; }
+        catch (Exception ex)       { _err = ex.Message; }
+    }
+
+    async Task DoUpload()
+    {
+        if (_plan is null || string.IsNullOrEmpty(_customer)) return;
+        _busy = true;
+        try
+        {
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
+            var actor = ActorCode.Of(auth.User, "system");
+            var batch = "DP" + DbClock.Now.ToString("yyyyMMddHHmmssfff");
+            var cells = _plan.Items.SelectMany(it => Enumerable.Range(0, _plan.Days).Select(k =>
+                new PpRepository.DemandPlanCell(it.PartNo, it.PartName, it.Unit, it.PackQty > 0 ? it.PackQty : null, _plan.From.AddDays(k), it.Scheduled[k], it.Po[k]))).ToList();
+            var r = Pp.ReplaceDemandPlan(_customer, batch, PpRepository.DemandPlanSourceUpload, null, _fileName, _plan.From, _plan.To, cells, actor);
+            Audit.Log("PP-001", "IMPORT", "PP_DemandPlan", batch, null, new { r.ItemCount, r.RowCount, r.UnmatchedItems, r.PackMismatch, From = r.From.ToString("yyyy-MM-dd"), To = r.To.ToString("yyyy-MM-dd"), _fileName });
+            // DemandPlanImportResult 에는 고객이 없어 페이지가 필터를 맞추려면 고객을 같이 돌려줘야 한다.
+            Dialog.Close((r, _customer));
+        }
+        catch (Exception ex) { _err = ex.Message; _busy = false; }
+    }
+}

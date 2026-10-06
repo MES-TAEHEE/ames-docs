@@ -1,5 +1,6 @@
 using AMES.Api.Auth;
 using AMES.Api.Workers;
+using AMES.Api.Workers.DemandPlanSync;
 using AMES.Api.Workers.PoSync;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
@@ -75,5 +76,13 @@ public static class PpEndpoints
             }))
          .WithDescription("고객사 SRM PO 수집을 즉시 실행. source 생략 시 활성 소스 전부. " +
                           "Bearer 세션 또는 X-AMES-Service-Key(공통코드 SW_POSYNC_AUTH / AMES_SERVICE_KEY) 필요.");
+
+        g.MapPost("/demand-plan-sync/run", (HttpContext ctx, string? source, DemandPlanSyncWorker worker, CancellationToken ct) =>
+            ScheduledWorkerEndpoints.RunAsync(ctx, worker, source, ct, () =>
+            {
+                using var conn = factory.OpenConnection();
+                return PoSyncConfig.LoadServiceKey(conn);   // 서비스 키는 PO Sync 것을 같이 쓴다(스펙 §6)
+            }))
+         .WithDescription("고객사 SRM 일별 구매계획(MM30011) 수집을 즉시 실행. source 생략 시 활성 소스 전부. Bearer 세션 또는 X-AMES-Service-Key 필요.");
     }
 }

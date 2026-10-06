@@ -13,7 +13,8 @@ public static class MoldResolver
     public static bool NeedsMold(string? processCode) => CoreItemResolver.IsCoreProcess(processCode);
 
     /// <param name="ChangeMin">그 라인에서 이 금형으로 바꿀 때 걸리는 분 — COALESCE(MD_MoldLine.PrepTime, MD_Mold.MoldChangeMin, 0) 올림.</param>
-    public sealed record MoldCandidate(string MoldId, bool AssignedToLine, int ChangeMin);
+    /// <param name="Color">이 품번이 그 금형에서 찍히는 색상(MD_MoldItem.Color) — 선택에는 안 쓰고, APS WO 생성이 형제(동시 취출) 그룹을 금형 × 색상으로 묶을 때 쓴다.</param>
+    public sealed record MoldCandidate(string MoldId, bool AssignedToLine, int ChangeMin, string? Color = null);
 
     public static MoldCandidate? Choose(IReadOnlyList<MoldCandidate> candidates, string? prevMoldId)
     {

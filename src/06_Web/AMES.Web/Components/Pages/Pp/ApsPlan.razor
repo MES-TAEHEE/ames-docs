@@ -1,0 +1,779 @@
+@page "/pp/aps-plan"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Data.Aps
+@using AMES.Data.Aps.Contracts
+@using Radzen
+
+@attribute [Authorize]
+
+@inject ApsRepository Aps
+@inject PpRepository Pp
+@inject MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthPrvd
+@inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
+@inject AMES.Web.Services.AuditLogger Audit
+@inject AMES.Web.Services.ActorNames Actors
+@inject DialogService Dialog
+
+<PageTitle>PP-APS @L["PP.Aps.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="PP-APS" TitleKey="PP.Aps.Title" />
+
+<div class="ames-page-fill">
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
+}
+
+@* ── 설정 미완료 차단(2026-10-06): 사출 라인의 APS 가동 시간 패턴이 없으면 조회·WO 생성이 ApsConfigurationException 으로 막힌다 — 라인 목록 + 설정 열기 ── *@
+@if (_configProblems.Count > 0)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" AllowClose="false">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div>
+                <div style="font-weight:600;">@L["PP.Aps.Err.Config"]</div>
+                <ul style="margin:6px 0 0 18px;padding:0;">
+                    @foreach (var p in _configProblems) { <li>@p</li> }
+                </ul>
+            </div>
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.Aps.Btn.OpenSettings"].Value" Icon="settings" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenSettings" Disabled="@_busy" />
+            }
+        </div>
+    </RadzenAlert>
+}
+
+@* ── 경고 배너 — 어댑터·엔진 경고 전문 (조용히 0 으로 만들지 않는다) ── *@
+@if (_state is not null && WarnCount > 0)
+{
+    <div class="aps-warn">
+        <div class="aps-warn-h" @onclick="() => _warnOpen = !_warnOpen">
+            <span>⚠ @string.Format(L["PP.Aps.Warn.Title"].Value, WarnCount)</span>
+            <span class="dim">@(_warnOpen ? "▲" : "▼")</span>
+        </div>
+        @if (_warnOpen)
+        {
+            <ul class="aps-warn-list">
+                @foreach (var w in _state.AllWarnings) { <li>@w</li> }
+            </ul>
+        }
+    </div>
+}
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
+<div class="ames-kpis compact">
+    <div class="ames-kpi @(ShortItems > 0 ? "bad" : "ok")"><div class="ames-kpi-l">@L["PP.Aps.Kpi.Short"]</div><div class="ames-kpi-v">@ShortItems</div></div>
+    <div class="ames-kpi @(OverPresses > 0 ? "warn" : "ok")"><div class="ames-kpi-l">@L["PP.Aps.Kpi.Over"]</div><div class="ames-kpi-v">@OverPresses</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.Aps.Kpi.Supply"]</div><div class="ames-kpi-v">@Q(TotalSupply, null)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.Aps.Kpi.InjPlan"]</div><div class="ames-kpi-v">@Q(TotalInjPlan, null)</div></div>
+    <div class="ames-kpi @(WarnCount > 0 ? "warn" : "")"><div class="ames-kpi-l">@L["PP.Aps.Kpi.Warn"]</div><div class="ames-kpi-v">@WarnCount</div></div>
+</div>
+
+@* ── 필터 카드 헤더 ─────────────────────────────────────────────── *@
+<div class="ames-card" style="margin-bottom:8px;">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["PP.Aps.Lbl.Line"]" />
+            <RadzenDropDown TValue="string" @bind-Value="_fLine" Data="@_lineOpts" TextProperty="Text" ValueProperty="Value"
+                            AllowFiltering="true" Placeholder="@L["PP.Aps.Ph.Line"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px" Disabled="@_busy" />
+            <RadzenLabel Text="@L["PP.Aps.Lbl.BaseDate"]" />
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_fBase" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" Disabled="@_busy" />
+            <RadzenLabel Text="@L["PP.Aps.Lbl.Days"]" />
+            <RadzenNumeric TValue="int" @bind-Value="_fDays" Min="1" Max="30" Step="1" ShowUpDown="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:80px" Disabled="@_busy" />
+            <RadzenLabel Text="@L["PP.Aps.Lbl.Customer"]" />
+            <RadzenDropDown TValue="string" @bind-Value="_fCust" Data="@_custOpts" TextProperty="Text" ValueProperty="Value"
+                            AllowClear="true" AllowFiltering="true" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px" Disabled="@_busy" />
+            <RadzenCheckBox TValue="bool" @bind-Value="_fOpen" Name="ApsChkOpen" Disabled="@_busy" />
+            <RadzenLabel Text="@L["PP.Aps.Lbl.IncludeOpen"]" Component="ApsChkOpen" />
+            <RadzenCheckBox TValue="bool" @bind-Value="_fDaily" Name="ApsChkDaily" Disabled="@_busy" />
+            <RadzenLabel Text="@L["PP.Aps.Lbl.IncludeDailyPlan"]" Component="ApsChkDaily" />
+            <RadzenButton Text="@L["PP.Aps.Btn.Query"].Value" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="Query" Disabled="@_busy" />
+        </RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            @if (_state is not null)
+            {
+                <span class="pill info">@LineLabel(_state.Bundle.Line.LineCd) · @TypeText(_state.Bundle.Line.Type)</span>
+                <span class="pill mute">@_state.Bundle.Dates.Count @L["PP.Aps.Lbl.Days"]</span>
+                @if (_state.Query.IncludeDailyPlan) { <span class="pill mute">@L["PP.Aps.Lbl.DailyPlanOn"]</span> }
+                @if (_state.Dirty) { <span class="pill warn">@L["PP.Aps.Lbl.Dirty"]</span> }
+            }
+            @if (_state?.SavedRunId is { } rid)
+            {
+                <span class="pill @(_state.IsReleased ? "ok" : "info")" title="@L["PP.Aps.Lbl.LastSaved"]">#@rid · @(_state.Query.BaseDate.ToString(DateFmt.Date))@(_state.IsReleased ? " · Released" : "")</span>
+            }
+            @if (_state?.Restored == true)
+            {
+                <span class="pill warn">@L["PP.Aps.Lbl.Restored"]</span>
+            }
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.Aps.Btn.Autofill"].Value" Icon="auto_fix_high" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="RunAutofill" Disabled="@(!CanEditCells)" />
+                <RadzenButton Text="@L["PP.Aps.Btn.Reschedule"].Value" Icon="swap_horiz" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reschedule" Disabled="@(!CanEditCells)" />
+                <RadzenButton Text="@L["PP.Aps.Btn.Recompute"].Value" Icon="calculate" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Recompute" Disabled="@(!CanEditCells)" />
+                <RadzenButton Text="@L["Btn.Save"].Value" Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Click="Save" Disabled="@(!CanEditCells)" />
+                @if (_state is { SavedRunId: not null, IsReleased: false })
+                {
+                    <RadzenButton Text="@L["PP.Aps.Btn.CreateWo"].Value" Icon="factory" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenWoCreate" Disabled="@_busy" />
+                }
+            }
+            <RadzenButton Text="@L["PP.Aps.Btn.History"].Value" Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenHistory" Disabled="@_busy" />
+            <RadzenButton Text="@L["PP.Aps.Btn.Settings"].Value" Icon="settings" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenSettings" Disabled="@_busy" />
+        </RadzenStack>
+    </div>
+    @if (_busy)
+    {
+        <div class="aps-busybar">
+            <span>@L["PP.Aps.Busy"]</span>
+            <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" ShowValue="false" Style="flex:1;height:8px;" />
+        </div>
+    }
+</div>
+
+@if (_state is null)
+{
+    <div class="ames-card ames-card-fill"><div class="ames-empty">@L["PP.Aps.Empty"]</div></div>
+}
+else
+{
+    <AmesTabs>
+        <AmesTab Title="@L["PP.Aps.Tab.Asm"].Value">
+            <div class="ames-card ames-card-fill">
+                <div class="ames-card-h">▼ @L["PP.Aps.Tab.Asm"] · @_asmRows.Count @L["Lbl.Items"]</div>
+                <div class="ames-grid-virtual">
+                @if (_asmRows.Count == 0)
+                {
+                    <div class="ames-empty">@L["PP.Aps.NoRows"]</div>
+                }
+                else
+                {
+                    <RadzenDataGrid @key="_gridKey" Data="_asmRows" TItem="AsmVm" AllowVirtualization="true" Style="height:100%"
+                                    AllowSorting="false" AllowColumnResize="true" Density="Density.Compact" EmptyText="@L["Grid.Empty"].Value" class="ames-rz-grid aps-grid">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="AsmVm" Title="@L["PP.Aps.Col.Item"].Value" Frozen="true" Width="300px" Sortable="false">
+                                <Template Context="r">
+                                    <div class="aps-item">
+                                        <div><span class="code">@r.Row.PartNo</span> <span class="dim">@r.Row.PartName</span> <span class="pill info">@r.Row.LineCd</span></div>
+                                        <div class="aps-meta">
+                                            @if (!string.IsNullOrEmpty(r.Row.Alc)) { <span class="pill mute">@r.Row.Alc</span> }
+                                            @if (!string.IsNullOrEmpty(r.Row.Pgn)) { <span class="pill mute">@r.Row.Pgn</span> }
+                                            <span>@L["PP.Aps.Col.Stock"] <b>@Q(r.Row.OpeningStock, r.Row.PartNo)</b></span>
+                                            <span>@L["PP.Aps.Col.Safety"] <b>@Q(r.Row.SafetyStock, r.Row.PartNo)</b></span>
+                                        </div>
+                                        <div class="aps-meta dim">
+                                            <span>@L["PP.Aps.Col.D1Prod"] @QD(r.Actual?.Produced, r.Row.PartNo)</span>
+                                            <span>@L["PP.Aps.Col.D1Ship"] @QD(r.Actual?.Shipped, r.Row.PartNo)</span>
+                                        </div>
+                                    </div>
+                                </Template>
+                            </RadzenDataGridColumn>
+                            @for (int i = 0; i < Dates.Count; i++)
+                            {
+                                var idx = i; var date = Dates[i];
+                                <RadzenDataGridColumn TItem="AsmVm" Title="@DateTitle(date)" Width="170px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
+                                    <Template Context="r">
+                                        @{
+                                            var d = idx < r.Row.Days.Count ? r.Row.Days[idx] : null;
+                                            var c = r.Res is not null && idx < r.Res.Cells.Count ? r.Res.Cells[idx] : null;
+                                        }
+                                        @if (d is null) { <span class="dim">—</span> }
+                                        else
+                                        {
+                                            <div class="aps-cell st-@(c?.Status ?? "ok") @(IsSelected(ApsRepository.KindAsm, r.Row.PartNo, date) ? "sel" : "")"
+                                                 @onclick="() => SelectCell(ApsRepository.KindAsm, r.Row.PartNo, date)">
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Demand"]</span><span>@Q(d.Demand, r.Row.PartNo)@if (PlanPart(r.Row.PartNo, idx) is > 0 and var pd) { <span class="dim"> · @L["PP.Aps.Cell.PlanDemand"] @Q(pd, r.Row.PartNo)</span> }</span></div>
+                                                @{ var woA = _state!.WoIssued(ApsRepository.KindAsm, r.Row.PartNo, date, L["PP.Aps.Cell.Unplaced"].Value); }
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Wo"]</span><span class="@(woA.Count == 0 ? "dim" : "aps-wo")" title="@woA.Title">@Q(woA.Qty, r.Row.PartNo)@if (woA.Unplaced > 0) { <span class="aps-wo-unplaced"> · @string.Format(L["PP.Aps.Cell.WoUnplaced"].Value, Q(woA.Unplaced, r.Row.PartNo))</span> }@if (woA.Count > 1) { <span class="dim"> (@woA.Count)</span> }</span></div>
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Supply"]</span>
+                                                    @if (CanEditCells && !d.Locked)
+                                                    {
+                                                        <span @onclick:stopPropagation="true">
+                                                            <RadzenNumeric TValue="double" Value="@d.Supply" Change="@((double v) => SetSupply(d, v))"
+                                                                           Min="0" Step="1" Format="#,##0.##" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input aps-num" />
+                                                        </span>
+                                                    }
+                                                    else { <span class="@(d.Locked ? "aps-locked" : "")">@Q(d.Supply, r.Row.PartNo)</span> }
+                                                </div>
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Stock"]</span><span class="@(c?.Status == "short" ? "aps-neg" : "")">@Q(c?.Stock ?? 0, r.Row.PartNo)</span></div>
+                                                <div class="aps-l aps-foot"><span class="pill @StCls(c?.Status)">@StText(c?.Status)</span>
+                                                    @if (_state!.IsPlanLocked(ApsRepository.KindAsm, r.Row.PartNo, date))
+                                                    {
+                                                        @* 등록 계획 잠금 — 풀 수 있다(사용자 결정 10-05). 푼 뒤 값이 실제 슬롯 수량과 다르면 ≠ 표식 *@
+                                                        @if (CanEditCells) { <button type="button" class="aps-lock plan @(d.Locked ? "on" : "")" title="@L["PP.Aps.Lock.Plan"]" @onclick="() => ToggleLock(d)" @onclick:stopPropagation="true">@(d.Locked ? "🔒" : "🔓")</button> }
+                                                        else { <span class="aps-lock plan @(d.Locked ? "on" : "")">@(d.Locked ? "🔒" : "🔓")</span> }
+                                                        @if (!d.Locked && Math.Abs(d.Supply - woA.Qty) > 0.0005) { <span class="aps-wodiff" title="@string.Format(L["PP.Aps.Cell.WoDiff"].Value, Q(woA.Qty, r.Row.PartNo))">≠</span> }
+                                                    }
+                                                    else if (CanEditCells) { <button type="button" class="aps-lock @(d.Locked ? "on" : "")" title="@L["PP.Aps.Lock.Toggle"]" @onclick="() => ToggleLock(d)" @onclick:stopPropagation="true">@(d.Locked ? "🔒" : "🔓")</button> }
+                                                    else if (d.Locked) { <span class="aps-lock on">🔒</span> }
+                                                </div>
+                                            </div>
+                                        }
+                                    </Template>
+                                </RadzenDataGridColumn>
+                            }
+                        </Columns>
+                    </RadzenDataGrid>
+                }
+                </div>
+            </div>
+        </AmesTab>
+        <AmesTab Title="@L["PP.Aps.Tab.Inj"].Value">
+            <div class="ames-card ames-card-fill">
+                <div class="ames-card-h">▼ @L["PP.Aps.Tab.Inj"] · @_injRows.Count @L["Lbl.Items"]</div>
+                <div class="ames-grid-virtual">
+                @if (_injRows.Count == 0)
+                {
+                    <div class="ames-empty">@L["PP.Aps.NoRows"]</div>
+                }
+                else
+                {
+                    <RadzenDataGrid @key="_gridKey" Data="_injRows" TItem="InjVm" AllowVirtualization="true" Style="height:100%"
+                                    AllowSorting="false" AllowColumnResize="true" Density="Density.Compact" EmptyText="@L["Grid.Empty"].Value" class="ames-rz-grid aps-grid">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="InjVm" Title="@L["PP.Aps.Col.Item"].Value" Frozen="true" Width="320px" Sortable="false">
+                                <Template Context="r">
+                                    <div class="aps-item">
+                                        <div><span class="code">@r.Row.PartNo</span> <span class="dim">@r.Row.PartName</span> <span class="pill info">@r.Row.LineCd</span></div>
+                                        <div class="aps-meta">
+                                            <span>@L["PP.Aps.Col.Mold"] <b class="code">@(r.Row.MoldCode ?? "—")</b></span>
+                                            @if (r.Row.SiblingPartNos.Count > 0) { <span>@L["PP.Aps.Col.Siblings"] <b>@string.Join(", ", r.Row.SiblingPartNos)</b></span> }
+                                            <span>@L["PP.Aps.Col.Cavity"] <b>@(r.Row.Cavity?.ToString() ?? "—")</b></span>
+                                            <span>@L["PP.Aps.Col.Uph"] <b>@r.Row.Uph.ToString("0.##")</b></span>
+                                            <span>@L["PP.Aps.Col.Pack"] <b>@r.Row.PackSize</b></span>
+                                        </div>
+                                        <div class="aps-meta dim">
+                                            <span>@L["PP.Aps.Col.Stock"] <b>@Q(r.Row.OpeningStock, r.Row.PartNo)</b></span>
+                                            <span>@L["PP.Aps.Col.D1Prod"] @QD(r.Actual?.Produced, r.Row.PartNo)</span>
+                                            <span>@L["PP.Aps.Col.D1Used"] @QD(r.Actual?.Used, r.Row.PartNo)</span>
+                                        </div>
+                                    </div>
+                                </Template>
+                            </RadzenDataGridColumn>
+                            @for (int i = 0; i < Dates.Count; i++)
+                            {
+                                var idx = i; var date = Dates[i];
+                                <RadzenDataGridColumn TItem="InjVm" Title="@DateTitle(date)" Width="190px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
+                                    <Template Context="r">
+                                        @{
+                                            var d = idx < r.Row.Days.Count ? r.Row.Days[idx] : null;
+                                            var c = r.Res is not null && idx < r.Res.Cells.Count ? r.Res.Cells[idx] : null;
+                                        }
+                                        @if (d is null) { <span class="dim">—</span> }
+                                        else
+                                        {
+                                            <div class="aps-cell st-@(c?.Status ?? "ok") @(IsSelected(ApsRepository.KindInj, r.Row.PartNo, date) ? "sel" : "")"
+                                                 @onclick="() => SelectCell(ApsRepository.KindInj, r.Row.PartNo, date)">
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Req"]</span><span>@Q(c?.Requirement ?? d.Requirement, r.Row.PartNo)</span></div>
+                                                @{ var woI = _state!.WoIssued(ApsRepository.KindInj, r.Row.PartNo, date, L["PP.Aps.Cell.Unplaced"].Value); }
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Wo"]</span><span class="@(woI.Count == 0 ? "dim" : "aps-wo")" title="@woI.Title">@Q(woI.Qty, r.Row.PartNo)@if (woI.Unplaced > 0) { <span class="aps-wo-unplaced"> · @string.Format(L["PP.Aps.Cell.WoUnplaced"].Value, Q(woI.Unplaced, r.Row.PartNo))</span> }@if (woI.Count > 1) { <span class="dim"> (@woI.Count)</span> }</span></div>
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Day"]</span>
+                                                    @if (CanEditCells && !d.Locked)
+                                                    {
+                                                        <span @onclick:stopPropagation="true">
+                                                            <RadzenNumeric TValue="double" Value="@d.PlanDay" Change="@((double v) => SetPlanDay(d, v))"
+                                                                           Min="0" Step="1" Format="#,##0.##" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input aps-num" />
+                                                        </span>
+                                                    }
+                                                    else { <span class="@(d.Locked ? "aps-locked" : "")">@Q(d.PlanDay, r.Row.PartNo)</span> }
+                                                </div>
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Night"]</span>
+                                                    @if (CanEditCells && !d.Locked)
+                                                    {
+                                                        <span @onclick:stopPropagation="true">
+                                                            <RadzenNumeric TValue="double" Value="@d.PlanNight" Change="@((double v) => SetPlanNight(d, v))"
+                                                                           Min="0" Step="1" Format="#,##0.##" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input aps-num" />
+                                                        </span>
+                                                    }
+                                                    else { <span class="@(d.Locked ? "aps-locked" : "")">@Q(d.PlanNight, r.Row.PartNo)</span> }
+                                                </div>
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Remain"]</span><span class="@(c?.Status == "short" ? "aps-neg" : "")">@Q(c?.Remain ?? 0, r.Row.PartNo)</span></div>
+                                                <div class="aps-l aps-hint"><span>@L["PP.Aps.Cell.Shots"] @(c?.Shots is { } sh ? sh.ToString("#,##0.##") : "—")</span><span>@L["PP.Aps.Cell.Hours"] @(c?.RunHours is { } rh ? rh.ToString("0.00") : "—")</span></div>
+                                                <div class="aps-l aps-foot"><span class="pill @StCls(c?.Status)">@StText(c?.Status)</span>
+                                                    @if (_state!.IsPlanLocked(ApsRepository.KindInj, r.Row.PartNo, date))
+                                                    {
+                                                        @if (CanEditCells) { <button type="button" class="aps-lock plan @(d.Locked ? "on" : "")" title="@L["PP.Aps.Lock.Plan"]" @onclick="() => ToggleLock(d)" @onclick:stopPropagation="true">@(d.Locked ? "🔒" : "🔓")</button> }
+                                                        else { <span class="aps-lock plan @(d.Locked ? "on" : "")">@(d.Locked ? "🔒" : "🔓")</span> }
+                                                        @if (!d.Locked && Math.Abs(d.PlanDay + d.PlanNight - woI.Qty) > 0.0005) { <span class="aps-wodiff" title="@string.Format(L["PP.Aps.Cell.WoDiff"].Value, Q(woI.Qty, r.Row.PartNo))">≠</span> }
+                                                    }
+                                                    else if (CanEditCells) { <button type="button" class="aps-lock @(d.Locked ? "on" : "")" title="@L["PP.Aps.Lock.Toggle"]" @onclick="() => ToggleLock(d)" @onclick:stopPropagation="true">@(d.Locked ? "🔒" : "🔓")</button> }
+                                                    else if (d.Locked) { <span class="aps-lock on">🔒</span> }
+                                                </div>
+                                            </div>
+                                        }
+                                    </Template>
+                                </RadzenDataGridColumn>
+                            }
+                        </Columns>
+                    </RadzenDataGrid>
+                }
+                </div>
+            </div>
+        </AmesTab>
+        <AmesTab Title="@L["PP.Aps.Tab.Load"].Value">
+            <div class="ames-card ames-card-fill">
+                <div class="ames-card-h">▼ @L["PP.Aps.Tab.Load"] · @_loadRows.Count @L["Lbl.Items"]</div>
+                <div class="ames-grid-virtual">
+                @if (_loadRows.Count == 0)
+                {
+                    <div class="ames-empty">@L["PP.Aps.NoRows"]</div>
+                }
+                else
+                {
+                    <RadzenDataGrid @key="_gridKey" Data="_loadRows" TItem="LoadVm" AllowVirtualization="true" Style="height:100%"
+                                    AllowSorting="false" AllowColumnResize="true" Density="Density.Compact" EmptyText="@L["Grid.Empty"].Value" class="ames-rz-grid aps-grid">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="LoadVm" Title="@L["Col.Line"].Value" Frozen="true" Width="180px" Sortable="false">
+                                <Template Context="r"><span class="code">@r.LineCd</span></Template>
+                            </RadzenDataGridColumn>
+                            @foreach (var date in Dates)
+                            {
+                                var dt = date;
+                                <RadzenDataGridColumn TItem="LoadVm" Title="@DateTitle(dt)" Width="170px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
+                                    <Template Context="r">
+                                        @{ var l = r.ByDate.GetValueOrDefault(dt); }
+                                        @if (l is null) { <span class="dim">—</span> }
+                                        else
+                                        {
+                                            <div class="aps-cell aps-load @(l.Over ? "over st-short" : "st-ok")">
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Load.Hours"]</span><span>@l.Hours.ToString("0.00")</span></div>
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Load.Day"]</span><span>@l.DayHours.ToString("0.00")</span></div>
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Load.Night"]</span><span>@l.NightHours.ToString("0.00")</span></div>
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Load.Cap"]</span><span>@l.Capacity.ToString("0.00")</span></div>
+                                                <div class="aps-l aps-foot"><span class="aps-k">@L["PP.Aps.Load.Rate"]</span><span class="aps-rate @(l.Over ? "over" : "")">@l.Rate.ToString("0")%@(l.Over ? " · " + L["PP.Aps.Load.Over"] : "")</span></div>
+                                            </div>
+                                        }
+                                    </Template>
+                                </RadzenDataGridColumn>
+                            }
+                        </Columns>
+                    </RadzenDataGrid>
+                }
+                </div>
+            </div>
+        </AmesTab>
+        <AmesTab Title="@L["PP.Aps.Sum.Title"].Value">
+            @* 요약은 항상 보이는 하단 표였으나 10-05 사용자 요청으로 네 번째 탭 *@
+            <div class="ames-card ames-card-fill">
+                <div class="ames-card-h">▼ @L["PP.Aps.Sum.Title"]</div>
+                @if (_state.Result is { } res && res.Summary.Count > 0)
+                {
+                    <div class="aps-summary">
+                        <table>
+                            <thead>
+                                <tr><th>@L["PP.Aps.Sum.Title"]</th>@foreach (var s in res.Summary) { <th style="text-align:right;">@DateTitle(s.Date)</th> }</tr>
+                            </thead>
+                            <tbody>
+                                <tr><th>@L["PP.Aps.Sum.Demand"]</th>@foreach (var s in res.Summary) { <td>@Q(s.AssemblyDemand, null)</td> }</tr>
+                                <tr><th>@L["PP.Aps.Sum.Supply"]</th>@foreach (var s in res.Summary) { <td>@Q(s.AssemblySupply, null)</td> }</tr>
+                                <tr><th>@L["PP.Aps.Sum.InjReq"]</th>@foreach (var s in res.Summary) { <td>@Q(s.InjectionRequirement, null)</td> }</tr>
+                                <tr><th>@L["PP.Aps.Sum.InjPlan"]</th>@foreach (var s in res.Summary) { <td>@Q(s.InjectionPlan, null)</td> }</tr>
+                                <tr><th>@L["PP.Aps.Sum.Hours"]</th>@foreach (var s in res.Summary) { <td>@s.RunHours.ToString("0.00")</td> }</tr>
+                                <tr><th>@L["PP.Aps.Sum.Short"]</th>@foreach (var s in res.Summary) { <td class="@(s.ShortageCount > 0 ? "bad" : "")">@s.ShortageCount</td> }</tr>
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else { <div class="ames-empty">@L["PP.Aps.Empty"]</div> }
+            </div>
+        </AmesTab>
+    </AmesTabs>
+    @if (_state.SelectedCell is { } sel)
+    {
+        <ApsTraceDrawer Kind="@sel.Kind" PartNo="@sel.ItemNo" Date="@sel.Date" Uom="@Uom(sel.ItemNo)"
+                        Autofill="@(sel.Kind == ApsRepository.KindAsm ? _state.AutofillTraces.FirstOrDefault(t => string.Equals(t.PartNo, sel.ItemNo, StringComparison.OrdinalIgnoreCase) && t.Date == sel.Date) : null)"
+                        Schedule="@(sel.Kind == ApsRepository.KindInj ? _state.Traces.FirstOrDefault(t => string.Equals(t.PartNo, sel.ItemNo, StringComparison.OrdinalIgnoreCase) && t.Date == sel.Date) : null)"
+                        PlanDemand="@PlanPart(sel.ItemNo, Dates.IndexOf(sel.Date))"
+                        OnClose="CloseDrawer" />
+    }
+}
+</div>
+
+@code {
+    // ── 상태 ─────────────────────────────────────────────────────────
+    ApsPlanState? _state;
+    string _msg = "", _actor = "system";
+    bool   _busy, _isErr, _warnOpen = true;
+    List<string> _configProblems = new();   // ApsConfigurationException.Lines — 조회 성공·설정 변경 때 비운다
+    int    _gridKey;   // 조회마다 증가 — 날짜 컬럼이 바뀌므로 그리드를 새로 만든다
+
+    // 필터
+    string   _fLine = "", _fCust = "";
+    DateTime _fBase = DbClock.Today;
+    int      _fDays = 5;   // 기본 계획 일수(사용자 결정 10-05: 7 → 5)
+    bool     _fOpen;
+    bool     _fDaily = true;
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    List<DropDownItem> _lineOpts = new();
+    List<DropDownItem> _custOpts = new();
+    Dictionary<string, string?> _uomByItem = new(StringComparer.OrdinalIgnoreCase);
+    bool _uomLoaded;
+
+    // 그리드 뷰모델
+    sealed record AsmVm(AssemblyRow Row, AssemblyResult? Res, ApsActualInfo? Actual);
+    sealed record InjVm(InjectionRow Row, InjectionResult? Res, ApsActualInfo? Actual);
+    sealed record LoadVm(string LineCd, Dictionary<string, LoadRow> ByDate);
+    List<AsmVm>  _asmRows  = new();
+    List<InjVm>  _injRows  = new();
+    List<LoadVm> _loadRows = new();
+    List<string> Dates => _state?.Bundle.Dates ?? new();
+
+    // 권한 키(SYS_Screen.HRef) — R = 조회, E = 계산·편집·저장·WO 생성
+    const string Href = "pp/aps-plan";
+    bool _canEdit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+        LoadOptions();
+    }
+
+    void LoadOptions()
+    {
+        try
+        {
+            _lineOpts = Aps.ListLines()
+                .Select(l => new DropDownItem { Value = l.LineId, Text = $"{l.LineId} · {l.LineName} [{TypeText(l.Type)}]" })
+                .Prepend(new DropDownItem { Value = ApsRepository.AllLines, Text = $"{L["PP.Aps.Line.All"]} [{TypeText(ApsRepository.LineTypeAssembly)}]" })
+                .ToList();
+            _custOpts = MD.ListCustomers()
+                .Select(c => new DropDownItem { Value = c.CustomerID, Text = $"{c.CustomerID} · {c.CustomerName}" })
+                .ToList();
+        }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+    }
+
+    // 품번별 단위 — 엔진은 단위를 모르므로 MD_Item.DefaultUOM 을 한 번만 읽어 둔다.
+    // 실패는 숨기지 않고 알린 뒤 빈 사전(단위 없이 표시)으로 계속한다 — 다음 조회 때 다시 읽는다.
+    void LoadUoms()
+    {
+        if (_uomLoaded) return;
+        try
+        {
+            _uomByItem = MD.ListItems().GroupBy(i => i.ItemNo, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First().DefaultUOM, StringComparer.OrdinalIgnoreCase);
+            _uomLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            _uomByItem = new(StringComparer.OrdinalIgnoreCase);
+            ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true);
+        }
+    }
+
+    // ── 조회 ─────────────────────────────────────────────────────────
+    async Task Query()
+    {
+        if (string.IsNullOrEmpty(_fLine)) { ShowMsg(L["PP.Aps.Err.NoLine"], true); return; }
+        if (_busy) return;
+        if (_state?.Dirty == true && !await ConfirmDiscard()) return;
+        _busy = true;
+        try
+        {
+            var q = new ApsQuery(_fLine, DateOnly.FromDateTime(_fBase.Date), Math.Clamp(_fDays, 1, 30),
+                                 string.IsNullOrEmpty(_fCust) ? null : _fCust, _fOpen, _fDaily);
+            // 어댑터 DB 왕복과 첫 계산(PlanCalc·Explain)은 기간이 길면 오래 걸려 스레드풀로 넘기고 진행 표시를 유지한다
+            _state = await Task.Run(() => ApsPlanState.Create(q, Aps.BuildBundle(q)));
+            _configProblems = new();
+            _warnOpen = WarnCount <= 8;   // 긴 경고 목록은 접어 두고 그리드를 먼저 보인다(건수는 헤더에 남는다)
+            LoadUoms();
+            Rebuild();
+        }
+        catch (ApsConfigurationException ex) { BlockOnConfig(ex); }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        finally { _busy = false; }
+    }
+
+    // 설정 미완료 — 결과를 비우고(이전 결과로 WO 생성 등을 이어가지 않게) 라인 목록 배너를 띄운다
+    void BlockOnConfig(ApsConfigurationException ex)
+    {
+        _configProblems = ex.Lines.ToList();
+        _state = null;
+        Rebuild();
+    }
+
+    async Task<bool> ConfirmDiscard()
+    {
+        var ok = await Dialog.Confirm(L["PP.Aps.Confirm.Discard"].Value, L["PP.Aps.Confirm.Title"].Value,
+            new ConfirmOptions { OkButtonText = L["Msg.Yes"].Value, CancelButtonText = L["Msg.No"].Value });
+        return ok == true;
+    }
+
+    // 계산 결과가 바뀔 때마다 그리드 뷰모델을 다시 만든다
+    void Rebuild()
+    {
+        if (_state is null) { _asmRows = new(); _injRows = new(); _loadRows = new(); return; }
+        var asmRes = (_state.Result?.Assembly  ?? new()).GroupBy(a => a.PartNo, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var injRes = (_state.Result?.Injection ?? new()).GroupBy(a => a.PartNo, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        // 같은 품번이 완제품·사출 행에 모두 있으면 Actuals 에 완제품 항목이 먼저 온다 — 완제품 표는 첫 항목, 사출 표는 마지막 항목
+        var byItem = _state.Build.Actuals.GroupBy(a => a.ItemNo, StringComparer.OrdinalIgnoreCase).ToList();
+        var actAsm = byItem.ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var actInj = byItem.ToDictionary(g => g.Key, g => g.Last(),  StringComparer.OrdinalIgnoreCase);
+        _asmRows  = _state.Bundle.Assembly.Select(r => new AsmVm(r, asmRes.GetValueOrDefault(r.PartNo), actAsm.GetValueOrDefault(r.PartNo))).ToList();
+        _injRows  = _state.Bundle.Injection.Select(r => new InjVm(r, injRes.GetValueOrDefault(r.PartNo), actInj.GetValueOrDefault(r.PartNo))).ToList();
+        if (_state.Bundle.Line.LineCd == ApsRepository.AllLines)   // 전체 라인 모드: 라인별로 묶어 보인다(안정 정렬이라 라인 안 순서는 그대로)
+        {
+            _asmRows = _asmRows.OrderBy(v => v.Row.LineCd ?? "", StringComparer.Ordinal).ToList();
+            _injRows = _injRows.OrderBy(v => v.Row.LineCd ?? "", StringComparer.Ordinal).ToList();
+        }
+        _loadRows = _state.Loads.GroupBy(l => l.LineCd, StringComparer.OrdinalIgnoreCase)
+                    .Select(g => new LoadVm(g.Key, g.GroupBy(l => l.Date).ToDictionary(d => d.Key, d => d.First())))
+                    .OrderBy(l => l.LineCd, StringComparer.Ordinal).ToList();
+        _gridKey++;
+    }
+
+    // ── 근거 drawer ───────────────────────────────────────────────────
+    bool IsSelected(string kind, string partNo, string date) =>
+        _state?.SelectedCell is { } s && s.Kind == kind && string.Equals(s.ItemNo, partNo, StringComparison.OrdinalIgnoreCase) && s.Date == date;
+    void SelectCell(string kind, string partNo, string date) { if (_state is not null) _state.SelectedCell = (kind, partNo, date); }
+    void CloseDrawer() { if (_state is not null) _state.SelectedCell = null; }
+
+    // ── KPI ──────────────────────────────────────────────────────────
+    int    ShortItems   => _state?.Result?.Assembly.Count(a => a.Cells.Any(c => c.Status == "short")) ?? 0;
+    int    OverPresses  => _state?.Loads.Where(l => l.Over).Select(l => l.LineCd).Distinct(StringComparer.OrdinalIgnoreCase).Count() ?? 0;
+    double TotalSupply  => _state?.Bundle.Assembly.Sum(a => a.Days.Sum(d => d.Supply)) ?? 0;
+    double TotalInjPlan => _state?.Bundle.Injection.Sum(a => a.Days.Sum(d => d.PlanDay + d.PlanNight)) ?? 0;
+    int    WarnCount    => _state?.AllWarnings.Count() ?? 0;
+
+    // ── 편집·계산 (E) ─────────────────────────────────────────────────
+    // 재현·발행 상태는 읽기 전용, 계산 중에는 잠근다
+    bool CanEditCells => _canEdit && _state is not null && !_state.ReadOnly && !_busy;
+
+    void SetSupply(AssemblyDay d, double v)
+    {
+        if (!CanEditCells || d.Locked) return;
+        d.Supply = Math.Max(0, v); _state!.Dirty = true;
+    }
+    void SetPlanDay(InjectionDay d, double v)
+    {
+        if (!CanEditCells || d.Locked) return;
+        d.PlanDay = Math.Max(0, v); _state!.Dirty = true;
+    }
+    void SetPlanNight(InjectionDay d, double v)
+    {
+        if (!CanEditCells || d.Locked) return;
+        d.PlanNight = Math.Max(0, v); _state!.Dirty = true;
+    }
+    // 사용자 잠금 — 엔진(Autofill·Reschedule)이 그 칸을 건드리지 않는다. 등록 계획 잠금은 버튼이 없어 여기 오지 않는다
+    void ToggleLock(AssemblyDay d) { if (!CanEditCells) return; d.Locked = !d.Locked; _state!.Dirty = true; }
+    void ToggleLock(InjectionDay d) { if (!CanEditCells) return; d.Locked = !d.Locked; _state!.Dirty = true; }
+
+    bool GuardEdit()
+    {
+        if (!_canEdit) return false;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+        if (_state is null || _busy) return false;
+        if (_state.ReadOnly) { ShowMsg(L["PP.Aps.Err.ReadOnly"], true); return false; }
+        return true;
+    }
+
+    async Task RunAutofill()
+    {
+        if (!GuardEdit()) return;
+        var s = _state!;
+        _busy = true;
+        try
+        {
+            await Task.Run(() => s.RunAutofill());
+            Rebuild();
+            ShowMsg(string.Format(L["PP.Aps.Ok.Autofill"].Value, s.ScheduleWarnings.Count), s.ScheduleWarnings.Count > 0);
+        }
+        catch (Exception ex)
+        {
+            s.Dirty = true;   // 엔진이 중간까지 칸을 고쳤을 수 있다 — 버리기 전에 확인을 받게 한다
+            ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true);
+        }
+        finally { _busy = false; }
+    }
+
+    async Task Reschedule()
+    {
+        if (!GuardEdit()) return;
+        var s = _state!;
+        _busy = true;
+        try
+        {
+            await Task.Run(() => s.Reschedule());
+            Rebuild();
+            ShowMsg(string.Format(L["PP.Aps.Ok.Reschedule"].Value, s.ScheduleWarnings.Count), s.ScheduleWarnings.Count > 0);
+        }
+        catch (Exception ex)
+        {
+            s.Dirty = true;   // 엔진이 중간까지 칸을 고쳤을 수 있다 — 버리기 전에 확인을 받게 한다
+            ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true);
+        }
+        finally { _busy = false; }
+    }
+
+    // 편집한 값 그대로 PlanCalc + Explain — 계획 수량은 바꾸지 않는다
+    async Task Recompute()
+    {
+        if (!GuardEdit()) return;
+        var s = _state!;
+        _busy = true;
+        try
+        {
+            await Task.Run(() => s.Compute());
+            Rebuild();
+            ShowMsg(L["PP.Aps.Ok.Recompute"], false);
+        }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        finally { _busy = false; }
+    }
+
+    // ── 저장 · 실행 이력 ─────────────────────────────────────────────
+    // 저장할 때마다 새 실행 행을 만든다 — 같은 라인·기준일 실행이 있어도 덮어쓰지 않는다(이력, 스펙 §7)
+    async Task Save()
+    {
+        if (!_canEdit || _state is null || _busy) return;
+        // 버튼은 읽기 전용이면 비활성이지만 핸들러에서 한 번 더 막고 이유를 보인다
+        if (_state.IsReleased) { await Refuse("PP.Aps.Err.Released"); return; }
+        if (_state.Restored)   { await Refuse("PP.Aps.Err.RestoredSave"); return; }
+        var s = _state;
+        _busy = true;
+        try
+        {
+            // 편집 직후 바로 저장해도 ResultJson·계획 행 Stock/Status 가 편집을 반영하게 「재계산」과 같은 Compute 를 먼저 돈다.
+            // 계산·JSON 3개 직렬화·계획 행 INSERT 는 기간이 길면 무거워 스레드풀로 넘긴다
+            var save  = await Task.Run(() => { s.Compute(); return s.ToSave(); });
+            Rebuild();   // 화면도 저장본과 같은 계산 결과를 보이게
+            var runId = await Task.Run(() => Aps.SaveRun(save, _actor));
+            s.SavedRunId = runId;
+            s.Dirty = false;
+            Audit.Log("PP-APS", "SAVE", "PP_ApsRun", runId, null,
+                new { save.Query.LineId, BaseDate = save.Query.BaseDate.ToString("yyyy-MM-dd"), save.Query.Days, save.Query.CustomerId, save.Query.IncludeOpen, save.Query.IncludeDailyPlan, Lines = save.Lines.Count, save.WarningCount });
+            ShowMsg(string.Format(L["PP.Aps.Ok.Saved"].Value, runId), false);
+        }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        finally { _busy = false; }
+    }
+
+    Task Refuse(string key) =>
+        Dialog.Alert(L[key].Value, L["PP.Aps.Confirm.Title"].Value, new AlertOptions { OkButtonText = L["Btn.Confirm"].Value });
+
+    async Task OpenHistory()
+    {
+        if (_busy) return;
+        var result = await Dialog.OpenAsync<ApsRunHistoryDialog>(
+            L["PP.Aps.History"].Value,
+            new Dictionary<string, object?>(),
+            new DialogOptions { Width = "900px" });
+        if (result is not ApsRunHistoryDialog.Choice c) return;
+        if (_state?.Dirty == true && !await ConfirmDiscard()) return;
+        await OpenRun(c.RunId, c.Recalculate);
+    }
+
+    // 재현(recalculate=false) = 저장된 JSON 그대로, 재계산 없음 — BuildBundle 은 Rules·Stages·Calendar·Actuals 를 빌리려고만 돈다.
+    // 재계산(true) = 필터만 그 실행과 같게 맞추고 현재 데이터로 새로 조회한다.
+    async Task OpenRun(int runId, bool recalculate = false)
+    {
+        if (_busy) return;
+        _busy = true;
+        var requery = false;
+        try
+        {
+            var run = await Task.Run(() => Aps.LoadRun(runId));
+            if (run is null) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, $"#{runId}"), true); return; }
+            var row = run.Row;
+            // 필터를 그 실행과 같게 맞춘다 — 재계산이든 재현이든 화면 필터가 상태와 어긋나지 않게.
+            // 재현이 실패하면 이전 상태가 남으므로 필터도 그대로 둔다(새 상태가 확정된 뒤에만 바꾼다)
+            void SyncFilters()
+            {
+                _fLine = row.LineId; _fBase = row.BaseDate.ToDateTime(TimeOnly.MinValue); _fDays = row.Days;
+                _fCust = row.CustomerId ?? ""; _fOpen = row.IncludeOpen; _fDaily = row.IncludeDailyPlan;
+            }
+
+            if (recalculate)
+            {
+                SyncFilters();
+                _state = null;   // 버리기 확인은 OpenHistory 가 받았다 — Query 가 다시 묻지 않게
+                Rebuild();
+                requery = true;
+            }
+            else
+            {
+                var q = new ApsQuery(row.LineId, row.BaseDate, row.Days, row.CustomerId, row.IncludeOpen, row.IncludeDailyPlan);
+                var fresh = await Task.Run(() => Aps.BuildBundle(q));
+                _state = ApsPlanState.Restore(q, run, fresh);
+                _configProblems = new();
+                SyncFilters();
+                LoadUoms();
+                Rebuild();
+                ShowMsg(string.Format(L["PP.Aps.Hist.Open"].Value, runId), false);
+            }
+        }
+        catch (ApsConfigurationException ex) { BlockOnConfig(ex); }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+        finally { _busy = false; }
+        if (requery) await Query();
+    }
+
+    // ── WO 생성 (스펙 §8) ──────────────────────────────────────────────
+    // 저장된 실행의 계획 행이 대상이다(화면 편집본이 아니다). 실행은 다이얼로그의 미리보기(dryRun) 뒤에만 된다
+    async Task OpenWoCreate()
+    {
+        if (!_canEdit || _busy || _state is not { SavedRunId: int runId, IsReleased: false } s) return;
+        // 버튼은 막지 않는다 — 저장된 실행을 그대로 발행하려는 경우도 있다
+        if (s.Dirty)
+        {
+            var go = await Dialog.Confirm(string.Format(L["PP.Aps.Confirm.WoUsesSaved"].Value, runId), L["PP.Aps.Confirm.Title"].Value,
+                new ConfirmOptions { OkButtonText = L["Msg.Yes"].Value, CancelButtonText = L["Msg.No"].Value });
+            if (go != true) return;
+        }
+        List<ApsRepository.ApsPlanLineRow> lines;
+        try { lines = Aps.ListPlanLines(runId); }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); return; }
+
+        // 닫기 버튼만으로 닫히게 한다 — 실행 결과를 받아야 칩·편집 잠금을 DB 상태로 맞출 수 있다
+        var result = await Dialog.OpenAsync<ApsWoCreateDialog>(
+            L["PP.Aps.Wo.Title"].Value,
+            new Dictionary<string, object?> { ["RunId"] = runId, ["PlanLines"] = lines, ["Actor"] = _actor },
+            new DialogOptions { Width = "1000px", ShowClose = false, CloseDialogOnEsc = false });
+        if (result is not PpRepository.ApsWoResult r) return;
+
+        // 대상 행이 모두 WO 로 이어졌을 때만 Released 가 된다(거부·미선택 행이 남으면 Saved)
+        try { s.IsReleased = string.Equals(Aps.LoadRun(runId)?.Row.Status, ApsRepository.StatusReleased, StringComparison.OrdinalIgnoreCase); }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); return; }
+        ShowMsg(string.Format(L["PP.Aps.Wo.Ok"].Value, r.Created, r.Late, r.Short, r.RejectedCount), r.Short > 0 || r.RejectedCount > 0);
+    }
+
+    // ── 설정 (읽기 전용 공통코드 + MD_ApsLineStage CRUD) ────────────────
+    async Task OpenSettings()
+    {
+        if (_busy) return;
+        var result = await Dialog.OpenAsync<ApsSettingsDialog>(
+            L["PP.Aps.Settings.Title"].Value,
+            new Dictionary<string, object?>(),
+            new DialogOptions { Width = "1120px" });   // 설정 표 3열 + 라인 표 6열이 잘리지 않는 폭(10-06)
+        // 선행일·재고 사용 예외는 BuildBundle 때 읽히므로 이미 조회된 상태에는 반영되지 않는다 — 다음 조회부터
+        if (result is true) ShowMsg(L["PP.Aps.Settings.Changed"], false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── 표시 헬퍼 ─────────────────────────────────────────────────────
+    string? Uom(string? partNo) => partNo is not null && _uomByItem.TryGetValue(partNo, out var u) ? u : null;
+    // 엔진 수치는 double — 표시 직전에만 decimal 로 바꾼다(단위 자릿수는 MD_Uom.DecimalPrec)
+    string Q(double v, string? partNo) => UomFmt.Qty(double.IsFinite(v) ? (decimal)v : 0m, Uom(partNo));
+    string QD(decimal? v, string? partNo) => UomFmt.Qty(v, Uom(partNo));
+    // 일별 계획 몫(스펙 2026-09-29 §7) — 조회 시 IncludeDailyPlan 이 꺼져 있으면 Build.PlanDemand 가 null
+    double PlanPart(string partNo, int idx) => idx >= 0 && _state?.Build.PlanDemand is { } pd && pd.TryGetValue(partNo, out var arr) && idx < arr.Length ? arr[idx] : 0;
+    string TypeText(string? type) => type == ApsRepository.LineTypeInjection ? L["PP.Aps.Type.injection"] : L["PP.Aps.Type.assembly"];
+    string LineLabel(string? lineCd) => lineCd == ApsRepository.AllLines ? L["PP.Aps.Line.All"].Value : lineCd ?? "";
+    static string DateTitle(string iso) => DateOnly.TryParseExact(iso, "yyyy-MM-dd", out var d) ? $"{d.ToString(DateFmt.MonthDay)} {d.ToString("ddd")}" : iso;
+    string StText(string? st) => st switch { "short" => L["PP.Aps.St.short"], "warn" => L["PP.Aps.St.warn"], _ => L["PP.Aps.St.ok"] };
+    static string StCls(string? st) => st switch { "short" => "bad", "warn" => "warn", _ => "ok" };
+}

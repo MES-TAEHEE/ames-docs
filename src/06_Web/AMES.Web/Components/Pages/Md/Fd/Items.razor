@@ -116,7 +116,10 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxPalletQty" Title="@L["MD.Items.Col.MaxPalletQty"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="item">@(item.MaxPalletQty?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ToteFlag" Title="@L["MD.Items.Col.Tote"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="BoxQty" Title="@L["MD.Items.Col.BoxQty"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="item">@UomFmt.Qty(item.BoxQty, item.DefaultUOM)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ToteFlag" Title="@L["MD.Items.Col.Tote"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="item">
                     @if (item.ToteFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
                 </Template>
@@ -372,6 +375,7 @@
             MaxPalletQty = r.MaxPalletQty,
             ToteFlag     = r.ToteFlag,
             ScanRequired = r.ScanRequired,
+            BoxQty       = r.BoxQty,
             ActiveFlag   = r.ActiveFlag,
         };
         _confirmDelete = false; _modalErr = ""; _modal = "edit";
@@ -397,7 +401,7 @@
                 N(_f.ItemCategory), InjEnabled && _f.InjFlag, N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
-                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
+                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag, _f.BoxQty,
                 _f.ActiveFlag, _actor, _f.ScanRequired);
             Audit.Created("MD-003", "MD_Item", no, _f);
             CloseModal(); await ReloadRestorePage();
@@ -419,7 +423,7 @@
                 N(_f.ItemCategory), InjEnabled && _f.InjFlag, N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
-                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
+                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag, _f.BoxQty,
                 _f.ActiveFlag, _actor, _f.ScanRequired);
             Audit.Updated("MD-003", "MD_Item", _f.ItemNo, _sel, _f);
             CloseModal(); await ReloadRestorePage();
@@ -539,6 +543,16 @@
             </RadzenColumn>
         </RadzenRow>
 
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="4">
+                <RadzenLabel Text="@L["MD.Items.Col.BoxQty"]" />
+                <RadzenNumeric TValue="int?" @bind-Value="_f.BoxQty" Min="1" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+            <RadzenColumn Size="8">
+                <RadzenLabel Text="@L["MD.Items.Lbl.BoxQty"]" class="dim" Style="display:block;margin-top:22px;" />
+            </RadzenColumn>
+        </RadzenRow>
+
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
             <RadzenCheckBox TValue="bool" @bind-Value="_f.ScanRequired" Name="ItemChkCaseBoxScan" />
             <RadzenLabel Text="@L["MD.Items.ScanRequired"]" Component="ItemChkCaseBoxScan" style="cursor:pointer;" />
@@ -581,6 +595,7 @@
         public int?    MaxPalletQty { get; set; }
         public bool    ToteFlag     { get; set; }
         public bool    ScanRequired { get; set; }
+        public int?    BoxQty       { get; set; }
         public bool    ActiveFlag   { get; set; } = true;
     }
 }
