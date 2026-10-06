@@ -6,24 +6,23 @@
 @inject ScmRepository Scm
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<DeliveryNote> Logger
-@inject UomFormat UomFmt
 
-<PageTitle>@L["Portal.Text.DeliveryNote"] · @Number</PageTitle>
+<PageTitle>Delivery Note · @Number</PageTitle>
 <HeadContent>
     <style>@@media print { body { background: white !important; } #blazor-error-ui { display: none !important; } }</style>
 </HeadContent>
 <DeliveryPrintMessages />
 <div class="note-toolbar">
-    <a href="/portal/deliveries">@L["Portal.Note.Back"]</a>
+    <a href="/portal/deliveries">Back to Delivery Management</a>
     @if (_note is not null)
     {
         <div class="note-actions">
-            <button type="button" class="rz-button rz-button-md rz-primary" data-delivery-note-print>@L["Portal.Text.PrintSavePDF"]</button>
-            <button type="button" class="rz-button rz-button-md rz-secondary" data-delivery-note-download="@_note.Number">@L["Portal.Text.DownloadPrintableFile"]</button>
+            <button type="button" class="rz-button rz-button-md rz-primary" data-delivery-note-print>Print / Save PDF</button>
+            <button type="button" class="rz-button rz-button-md rz-secondary" data-delivery-note-download="@_note.Number">Download Printable File</button>
         </div>
     }
 </div>
-<p class="note-help" role="status" data-delivery-note-status>@L["Portal.Note.Help"]</p>
+<p class="note-help" role="status" data-delivery-note-status>Check the details, then print or save as PDF.</p>
 @if (_error is not null)
 {
     <p role="alert" class="note-error">@_error</p>
@@ -31,44 +30,55 @@
 @if (_note is { } n)
 {
     <article class="delivery-note">
-        <header><strong>@n.Buyer</strong><h1>@L["Portal.Text.DeliveryNote"]</h1><p>@L["Portal.Text.Delivery"] · @n.Number</p></header>
-        <div class="note-barcode"><Code128Barcode Value="@n.Number" /><div>@n.Number</div></div>
-        <dl>
-            <dt>@L["Scm.Text.Supplier"]</dt><dd>@n.VendorName (@n.Vendor)</dd>
-            <dt>@L["Portal.Note.Buyer"]</dt><dd>@n.Buyer</dd>
-            <dt>@L["Portal.Note.Destination"]</dt><dd>@n.Destination</dd>
-            <dt>@L["Portal.Text.PurchaseOrder"]</dt><dd>@n.OrderNumber</dd>
-            <dt>@L["Scm.Text.DeliveryDate"]</dt><dd>@string.Join(", ", n.Lines.Select(l => (l.ShipDate ?? n.ShipDate).ToString("yyyy-MM-dd")).Distinct())</dd>
-            <dt>@L["Portal.Note.IssuedAt"]</dt><dd>@n.IssuedAt.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+        <header class="document-head"><div><h1>Delivery Note</h1><span>@n.Number</span></div><div class="note-barcode"><Code128Barcode Value="@n.Number" /><strong>@n.Number</strong></div></header>
+        <section class="note-parties">
+            <div><span class="field-label">Sender</span><strong>@n.VendorName</strong><span>@n.Vendor</span></div>
+            <div><span class="field-label">Recipient</span><strong>@n.Buyer</strong><span>@n.Destination</span></div>
+        </section>
+        <dl class="note-details">
+            <div><dt>Purchase Order</dt><dd>@n.OrderNumber</dd></div>
+            <div><dt>Delivery Date</dt><dd>@string.Join(", ", n.Lines.Select(l => (l.ShipDate ?? n.ShipDate).ToString("yyyy-MM-dd")).Distinct())</dd></div>
+            <div><dt>Issued At</dt><dd>@n.IssuedAt.ToString("yyyy-MM-dd HH:mm")</dd></div>
         </dl>
-        <table>
-            <thead><tr><th>@L["Portal.Note.OrderLine"]</th><th>@L["Portal.Text.ItemCode"]</th><th>@L["Portal.Text.Description"]</th><th>@L["Scm.Text.Unit"]</th><th>@L["Scm.Text.Quantity"]</th></tr></thead>
-            <tbody>@foreach (var group in n.Lines.GroupBy(l => l.DeliveryNumber))
+        <h2>Items</h2>
+        <table class="note-items">
+            <thead><tr><th>No</th><th>Part No</th><th>Description</th><th>PO No</th><th>Quantity</th></tr></thead>
+            <tbody>@foreach (var line in n.Lines)
             {
-                @if (!string.IsNullOrEmpty(group.Key))
-                {
-                    <tr class="delivery-group"><td colspan="5"><strong>@group.Key</strong> · @group.First().OrderNumber · @group.First().ShipDate?.ToString("yyyy-MM-dd")<br />@string.Join(" / ", group.Select(l => l.Destination).Distinct())</td></tr>
-                }
-                @foreach (var line in group)
-                {
-                    <tr><td>@line.Line</td><td>@line.Item</td><td>@line.Name</td><td>@line.Unit</td><td class="quantity">@QtyFormat.Text(line.Quantity,line.Unit)</td></tr>
-                }
+                <tr><td>@line.Line</td><td>@line.Item</td><td>@line.Name</td><td>@line.OrderNumber</td><td class="quantity">@QtyFormat.Text(line.Quantity,line.Unit) @line.Unit</td></tr>
             }</tbody>
         </table>
-        <p class="totals">@L["Portal.Note.Total"]: @string.Join(" · ", n.Lines.GroupBy(l => l.Unit).Select(g => $"{QtyFormat.Text(g.Sum(l => l.Quantity),g.Key)} {g.Key}"))</p>
-        <p>@L["Portal.Note.IssuedBy"]: @n.IssuedBy</p>
-        <div class="signatures"><p>@L["Portal.Note.ShippedBy"]<br /><br />____________________</p><p>@L["Portal.Note.ReceivedBy"]<br /><br />____________________</p><p>@L["Portal.Note.ReceivedDate"]<br /><br />____________________</p></div>
-        <footer>@n.Number · @L["Portal.Note.Disclaimer"]</footer>
+        <p class="totals">Total: @string.Join(" · ", n.Lines.GroupBy(l => l.Unit).Select(g => $"{QtyFormat.Text(g.Sum(l => l.Quantity),g.Key)} {g.Key}"))</p>
+        @if (_cases.Count > 0)
+        {
+            <section class="case-manifest">
+                <h2>Handling Units / Cases</h2>
+                <table>
+                    <thead><tr><th>Case No</th><th>Boxes</th><th>Quantity</th></tr></thead>
+                    <tbody>
+                        @foreach (var item in _cases)
+                        {
+                            <tr>
+                                <td class="case-number">@item.Number</td>
+                                <td class="quantity">@item.Boxes.Count</td>
+                                <td>@string.Join(" · ", item.Boxes.GroupBy(b => b.Unit).Select(g => $"{QtyFormat.Text(g.Sum(b => b.Quantity), g.Key)} {g.Key}"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
     </article>
 }
 
 @code {
     [Parameter] public string Number { get; set; } = "";
     ScmRepository.DeliveryNote? _note;
+    List<ScmRepository.DeliveryCase> _cases = [];
     string? _error;
     protected override async Task OnParametersSetAsync()
     {
-        _note = null; _error = null;
+        _note = null; _cases = []; _error = null;
         var user = (await Authentication.GetAuthenticationStateAsync()).User;
         var id = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(id) || !PortalAuth.IsPortalUser(user))
@@ -77,10 +87,13 @@
         {
             _note = Scm.GetDeliveryNote(Number, id);
             if (_note is null) _error = L["Portal.Note.NotIssued"];
+            else _cases = Scm.ListDeliveryCases(null, id, note: Number).OrderBy(c => c.Number).ToList();
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Delivery note read failed: {Number}", Number);
+            _note = null;
+            _cases = [];
             _error = L["Portal.Note.Unavailable"];
         }
     }

@@ -26,12 +26,14 @@
         <section class="case-label">
             <header><strong>CASE</strong><span>@_case.VendorName</span></header>
             <div class="case-barcode"><Code128Barcode Value="@_case.Number" Height="85" /><strong>@_case.Number</strong></div>
-            <div class="case-info"><span>PO: <strong>@_case.Order</strong></span><span>Boxes: <strong>@_case.Boxes.Count</strong></span></div>
-            @if(_case.NoteNumber.Length>0) { <div>Delivery Note: @_case.NoteNumber</div> }
+            <div class="case-info">
+                <span>Delivery Note<strong>@(string.IsNullOrEmpty(_case.NoteNumber) ? "—" : _case.NoteNumber)</strong></span>
+                <span>Purchase Order<strong>@_case.Order</strong></span>
+                <span>Boxes<strong>@_case.Boxes.Count</strong></span>
+            </div>
             <table><thead><tr><th>Part No</th><th>Part Name</th><th>Boxes</th><th>Qty</th><th>Unit</th></tr></thead>
                 <tbody>@foreach (var item in page) { <tr><td>@item.Item</td><td>@item.Name</td><td>@item.Boxes</td><td>@QtyFormat.Text(item.Qty,item.Unit)</td><td>@item.Unit</td></tr> }</tbody>
             </table>
-            <footer>Created @_case.CreatedAt.ToString("yyyy-MM-dd HH:mm") · Receive by CASE NO after shipment.</footer>
         </section>
     }
     </article>

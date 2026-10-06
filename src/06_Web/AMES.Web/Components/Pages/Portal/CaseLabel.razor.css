@@ -2,19 +2,20 @@
 .case-labels { width:190mm; margin:20px auto; color:#000; background:#fff; font-family:Arial,sans-serif; }
 .case-label { box-sizing:border-box; padding:8mm; width:190mm; min-height:235mm; break-after:page; }
 .case-label:last-child { break-after:auto; }
-.case-label header { display:flex; justify-content:space-between; gap:12px; font-size:16pt; border-bottom:1px solid #000; padding-bottom:5mm; }
+.case-label header { display:flex; justify-content:space-between; gap:12px; font-size:19pt; border-bottom:2px solid #000; padding-bottom:5mm; }
 .case-label header span { font-size:12pt; overflow-wrap:anywhere; }
-.case-barcode { text-align:center; padding:8mm 10mm; }
+.case-barcode { text-align:center; padding:8mm 10mm 5mm; }
 .case-barcode ::deep svg { width:100%; height:25mm; fill:#000; }
 .case-barcode strong { display:block; font-size:23pt; margin-top:3mm; overflow-wrap:anywhere; }
-.case-info { display:flex; justify-content:space-between; gap:8mm; padding:4mm 0; font-size:12pt; }
+.case-info { display:grid; grid-template-columns:2fr 2fr 1fr; gap:5mm; padding:5mm 0; font-size:9pt; border-top:1px solid #000; }
+.case-info span { min-width:0; overflow-wrap:anywhere; }
+.case-info strong { display:block; font-size:11pt; }
 .case-label table { border-collapse:collapse; width:100%; table-layout:fixed; font-size:10pt; }
 .case-label th,.case-label td { padding:3mm 2mm; border:1px solid #000; overflow-wrap:anywhere; }
 .case-label th:nth-child(1) { width:24%; }.case-label th:nth-child(2) { width:36%; }
 .case-label th:nth-child(3),.case-label th:nth-child(5) { width:10%; }
 .case-label th:nth-child(4) { width:20%; }
 .case-label tr { break-inside:avoid; }
-.case-label footer { margin-top:6mm; font-size:9pt; }
 @media print {
     @page { size:Letter portrait; margin:10mm; }
     .label-tools { display:none!important; }
