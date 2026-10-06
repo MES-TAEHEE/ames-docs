@@ -31,13 +31,12 @@ public sealed class ScmDeliveryCaseTests
         Assert.Equal("입고완료",documents[2].ReceiptStatus);
     }
 
-    [Fact]
+    [SqlServerFact]
     public async Task Prepared_cases_register_ship_and_receive_without_replacing_box_labels()
     {
         // Deliberately isolated: never reads connection settings or touches AMES_DEV.
         var database="AMES_CASE_TEST_"+Guid.NewGuid().ToString("N");
-        var server=new SqlConnectionStringBuilder{DataSource=@".\SQLEXPRESS",InitialCatalog="master",
-            IntegratedSecurity=true,TrustServerCertificate=true,ConnectTimeout=5};
+        var server=SqlServerFactAttribute.Settings();
         using var master=new SqlConnection(server.ConnectionString);master.Open();
         using(var cmd=new SqlCommand($"CREATE DATABASE [{database}]",master))cmd.ExecuteNonQuery();
         try
