@@ -36,7 +36,7 @@ public sealed class WebSignIn(
             if (string.Equals(accountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) return Error("Auth.Err.Locked");
             // ① 이메일 자기인증 완료 여부
             if (!user.EmailConfirmed) return Error("Auth.Err.EmailNotConfirmed");
-            // ② 관리자 승인(ACTIVE) 여부. 프로필 없음=Active 취급, 자기가입 직후 PENDING 은 승인 대기.
+            // ② 관리자 승인(ACTIVE) 여부. 프로필이 없거나 자기가입 직후(PENDING)면 승인 대기 — SMTP 로 이메일 인증을 마쳐도 관리자가 ACTIVE 로 바꿔야 로그인된다.
             if (!string.Equals(accountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase)) return Error("Auth.Err.Pending");
         }
 

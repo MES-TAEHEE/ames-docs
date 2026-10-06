@@ -384,7 +384,8 @@
     IEnumerable<TopNItem>     TopNOptions           => TopNs.Select(n => new TopNItem { Value = n, Text = $"{n}{L["Lbl.Items"]}" });
     IEnumerable<DropDownItem> ResultOptions =>
         _resultItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
-    IEnumerable<DropDownItem> TechOptions => _users.Where(u => !string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName))
+    // 승인되지 않은 계정(승인 대기·프로필 없음)은 고르지 못하게 뺀다 — 이미 저장된 담당자는 수정 창에서 빈칸이 되지 않게 남긴다
+    IEnumerable<DropDownItem> TechOptions => _users.Where(u => (u.IsApproved || u.UserId == _f.TechId) && (!string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName)))
         .Select(u => new DropDownItem { Value = u.UserId, Text = string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? u.UserId) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}" });   // 콤보 = [사번] 이름 (PM 보드와 같은 형식)
 
     static IEnumerable<DropDownItem> WithDataValues(string[] codes, IEnumerable<string?> data, Func<string?, string> label) =>

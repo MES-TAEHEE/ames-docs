@@ -96,6 +96,7 @@
                             "INACTIVE" => "mute",
                             "SUSPENDED" => "warn",
                             "PENDING" => "orange",
+                            "NOPROFILE" => "warn",
                             _ => "ok"
                         };
 
@@ -110,8 +111,8 @@
                 <Template Context="u"><span class="dim">@(u.RolesCsv ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" Width="170px" />
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="u"><span class="dim">@(u.LastLoginTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="150px">
+                <Template Context="u"><span class="dim">@(u.LastLoginTs?.ToString(DateFmt.DateTime) ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -334,7 +335,8 @@
     private IEnumerable<DropDownItem> DeptOptions  => _deptItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> PlantOptions => _plantItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> ShiftOptions => _shiftItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
-    private IEnumerable<DropDownItem> SearchStatusItems => _statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" });
+    private IEnumerable<DropDownItem> SearchStatusItems => _statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" })
+        .Append(new DropDownItem { Text = L["SYS.Users.Status.NoProfile"].Value, Value = NoProfile });
     private IEnumerable<DropDownItem> EditStatusOptions => _statusItems.Where(s => s.UseFlag
                 && !string.Equals(s.CodeValue, "UNVERIFIED", StringComparison.OrdinalIgnoreCase)
                 && (_sel is null
@@ -393,8 +395,13 @@
 
     void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
 
+    // 프로필 없는 계정은 로그인이 거부된다(승인 대기 취급) — 목록에서 승인된 계정처럼 보이지 않게 따로 표시한다
+    const string NoProfile = "NOPROFILE";
+
     static string EffectiveStatus(SysRepository.UserRow r) =>
-        (r.LockedOut || string.Equals(r.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) ? "LOCKED" : (r.AccountStatus ?? "ACTIVE");
+        (r.LockedOut || string.Equals(r.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) ? "LOCKED"
+        : !r.HasProfile ? NoProfile
+        : (r.AccountStatus ?? "ACTIVE");
 
     static bool MatchStatus(SysRepository.UserRow r, string s)
     {
@@ -413,6 +420,7 @@
     string StatusName(string? code)
     {
         if (string.IsNullOrEmpty(code)) return "—";
+        if (code == NoProfile) return L["SYS.Users.Status.NoProfile"];
         var found = _statusItems.FirstOrDefault(s => string.Equals(s.CodeValue, code, StringComparison.OrdinalIgnoreCase));
         return found is null ? code : MasterDataRepository.LocalName(found);
     }
@@ -449,7 +457,7 @@
             Department    = u.Department    ?? "",
             PlantCode     = u.PlantCode     ?? "",
             DefaultShift  = u.DefaultShift  ?? "",
-            AccountStatus = u.AccountStatus ?? "ACTIVE",
+            AccountStatus = u.HasProfile ? (u.AccountStatus ?? "ACTIVE") : "PENDING",
             Role          = u.RolesCsv?.Split(',').FirstOrDefault()?.Trim() ?? ""
         };
         _modal = "edit";
@@ -531,7 +539,7 @@
                     _f.Department, _f.PlantCode, _f.DefaultShift, _f.AccountStatus, _actorEmail);
             else
                 Sys.CreateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
-                    _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail);
+                    _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, _f.AccountStatus);
 
             if (!string.IsNullOrWhiteSpace(_f.Pin))
                 Sys.SetPin(_sel.UserId, PinHasher.Hash(_f.Pin), _actorEmail);

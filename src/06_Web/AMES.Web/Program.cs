@@ -293,6 +293,10 @@ await RunSeedAsync("admin", async scope =>
         if (!roleRes.Succeeded)
             app.Logger.LogWarning("admin role assignment failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
     }
+
+    // 프로필 없는 계정은 로그인이 거부된다(승인 대기) — 시드 관리자는 활성 프로필을 함께 둔다. 이미 있으면 건드리지 않는다
+    if (adminUser is not null)
+        scope.ServiceProvider.GetRequiredService<SysRepository>().EnsureActiveProfile(adminUser.Id, "Administrator", "SEED");
 });
 
 // ── Role seed: SYS_RolePermission.RoleName → AspNetRoles + RoleID backfill ──

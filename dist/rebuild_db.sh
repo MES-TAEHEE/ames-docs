@@ -111,6 +111,7 @@ FILES=(
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions
   cleanup_legacy_sis_test.sql
   cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)
+  migrate_user_profile_backfill.sql   # 프로필 없는 내부 계정 보강(역할 있음 ACTIVE·없음 PENDING) — 시드가 만든 계정까지 보도록 맨 끝
 )
 
 echo "AMES DB rebuild — $DB @ container '$CONTAINER'"

@@ -19,7 +19,11 @@ public sealed class SysRepository
         string? EmployeeNo, string? EmployeeName, string? Department,
         string? PlantCode, string? DefaultShift,
         string? AccountStatus, DateTime? LastLoginTs, string? RolesCsv,
-        int FailedLoginCount);
+        int FailedLoginCount, bool HasProfile = true)
+    {
+        // 승인된 계정 — 프로필이 있고 승인 대기(PENDING)가 아님. 담당자·수신자 콤보는 이 계정만 고르게 한다(10-07)
+        public bool IsApproved => HasProfile && !string.Equals(AccountStatus, "PENDING", StringComparison.OrdinalIgnoreCase);
+    }
 
     public sealed record RoleRow(string RoleId, string RoleName, int UserCount);
 
@@ -64,7 +68,7 @@ public sealed class SysRepository
         int AuditLast24h, int NotifLast24h, int NotifFailedLast24h, int ConfigKeys,
         int Screens, int Permissions, long DbRowsApprox);
 
-    public sealed record UserSelectRow(string Id, string? UserName, string? Email, string? PhoneNumber);
+    public sealed record UserSelectRow(string Id, string? UserName, string? Email, string? PhoneNumber, bool IsApproved = true);
 
     // ── SYS-01 User Management ──────────────────────────────────────────
     public List<UserRow> ListUsers(int topN = 200)
@@ -77,6 +81,7 @@ public sealed class SysRepository
                    p.EmployeeNo, p.EmployeeName, p.Department, p.PlantCode, p.DefaultShift,
                    p.AccountStatus, p.LastLoginTS,
                    ISNULL(p.FailedLoginCount, 0) AS FailedLoginCount,
+                   CAST(CASE WHEN p.UserID IS NULL THEN 0 ELSE 1 END AS BIT) AS HasProfile,
                    STUFF((SELECT ', ' + r.Name
                           FROM   dbo.AspNetUserRoles ur
                           JOIN   dbo.AspNetRoles r ON r.Id = ur.RoleId
@@ -93,20 +98,23 @@ public sealed class SysRepository
             r["PlantCode"] as string, r["DefaultShift"] as string,
             r["AccountStatus"] as string, r["LastLoginTS"] as DateTime?,
             r["RolesCsv"] as string,
-            Convert.ToInt32(r["FailedLoginCount"])),
+            Convert.ToInt32(r["FailedLoginCount"]),
+            (bool)r["HasProfile"]),
             ("@N", topN));
     }
 
     public List<UserSelectRow> ListUsersForSelect()
     {
         const string sql = """
-            SELECT Id, UserName, Email, PhoneNumber
-            FROM   dbo.AspNetUsers
+            SELECT u.Id, u.UserName, u.Email, u.PhoneNumber,
+                   CAST(CASE WHEN p.UserID IS NOT NULL AND ISNULL(UPPER(p.AccountStatus), '') <> 'PENDING' THEN 1 ELSE 0 END AS BIT) AS IsApproved
+            FROM   dbo.AspNetUsers u
+            LEFT JOIN dbo.SYS_UserProfile p ON p.UserID = u.Id
             ORDER  BY UserName;
             """;
         return Query(sql, r => new UserSelectRow(
             (string)r["Id"], r["UserName"] as string,
-            r["Email"] as string, r["PhoneNumber"] as string));
+            r["Email"] as string, r["PhoneNumber"] as string, (bool)r["IsApproved"]));
     }
 
     // ── SYS-02 RBAC ─────────────────────────────────────────────────────
@@ -889,7 +897,7 @@ public sealed class SysRepository
     }
 
     public void CreateProfile(string userId, string employeeNo, string employeeName,
-        string? department, string? plantCode, string? defaultShift, string createdBy)
+        string? department, string? plantCode, string? defaultShift, string createdBy, string accountStatus = "ACTIVE")
     {
         const string sql = """
             INSERT INTO dbo.SYS_UserProfile
@@ -897,7 +905,7 @@ public sealed class SysRepository
                  AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
             VALUES
                 (@UserID, @EmpNo, @EmpName, @Dept, @Plant, @Shift,
-                 'ACTIVE', 0, @CreatedBy, SYSDATETIME())
+                 @Status, 0, @CreatedBy, SYSDATETIME())
             """;
         Exec(sql,
             ("@UserID",    userId),
@@ -906,8 +914,20 @@ public sealed class SysRepository
             ("@Dept",      (object?)department       ?? DBNull.Value),
             ("@Plant",     (object?)plantCode         ?? DBNull.Value),
             ("@Shift",     (object?)defaultShift      ?? DBNull.Value),
+            ("@Status",    accountStatus),
             ("@CreatedBy", createdBy));
     }
+
+    // 프로필 없는 계정은 로그인이 거부되므로(AuthRepository.GetProfileStatus) 기동 시드처럼 관리자가 만든 계정은 활성 프로필을 함께 둔다.
+    public void EnsureActiveProfile(string userId, string employeeName, string createdBy)
+        => Exec("""
+            IF NOT EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE UserID = @UserID)
+                INSERT INTO dbo.SYS_UserProfile (UserID, EmployeeName, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+                VALUES (@UserID, @EmpName, 'ACTIVE', 0, @CreatedBy, SYSDATETIME())
+            """,
+            ("@UserID",    userId),
+            ("@EmpName",   employeeName),
+            ("@CreatedBy", createdBy));
 
     // 자기가입(Register)용 — 관리자 승인 전 승인대기(PENDING) 프로필. 승인 시 관리자가 ACTIVE로 변경.
     public void CreatePendingProfile(string userId, string? employeeName, string createdBy)
@@ -937,6 +957,9 @@ public sealed class SysRepository
                    DefaultShift     = @Shift,
                    AccountStatus    = @Status,
                    FailedLoginCount = CASE WHEN UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
+                   -- 자기가입·보강 프로필은 사번이 없어 CreatedBy 에 임시 값(이메일 ID 등)이 들어 있다 — 첫 승인(사번 없던 PENDING → ACTIVE) 때 본인 사번으로 바꾼다.
+                   -- 관리자가 만든 계정(사번 있음)을 PENDING 으로 돌렸다 다시 승인하는 경우는 원래 작성자를 지키려고 바꾸지 않는다.
+                   CreatedBy        = CASE WHEN UPPER(AccountStatus) = 'PENDING' AND EmployeeNo IS NULL AND UPPER(@Status) = 'ACTIVE' THEN @EmpNo ELSE CreatedBy END,
                    ModifiedBy       = @ModifiedBy,
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID

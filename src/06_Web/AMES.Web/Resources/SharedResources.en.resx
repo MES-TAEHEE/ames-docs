@@ -603,6 +603,9 @@
   <data name="SYS.Users.Status.Unverified" xml:space="preserve">
     <value>Unverified</value>
   </data>
+  <data name="SYS.Users.Status.NoProfile" xml:space="preserve">
+    <value>No profile</value>
+  </data>
   <data name="SYS.Roles.Title" xml:space="preserve">
     <value>Role Management</value>
   </data>
@@ -8126,6 +8129,9 @@
   </data>
   <data name="Auth.Err.Pending" xml:space="preserve">
     <value>Waiting for administrator approval. You can sign in once approved.</value>
+  </data>
+  <data name="Auth.Err.RegisterFailed" xml:space="preserve">
+    <value>Registration could not be completed. Please try again later or contact the administrator.</value>
   </data>
   <data name="Auth.Err.Invalid" xml:space="preserve">
     <value>Invalid email or password.</value>

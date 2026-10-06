@@ -926,8 +926,9 @@
         _deliveryStatusItems.Where(s => s.UseFlag)
             .Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
 
+    // 승인되지 않은 계정(승인 대기·프로필 없음)은 수신자로 고르지 못하게 뺀다
     private IEnumerable<DropDownItem> UserOptions =>
-        _userList.Select(u => new DropDownItem {
+        _userList.Where(u => u.IsApproved || u.Id == _cf.UserId).Select(u => new DropDownItem {
             Value = u.Id,
             Text  = (u.UserName ?? u.Id) + (!string.IsNullOrEmpty(u.Email) ? $" ({u.Email})" : "")
         });

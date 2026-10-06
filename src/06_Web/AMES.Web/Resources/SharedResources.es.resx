@@ -603,6 +603,9 @@
   <data name="SYS.Users.Status.Unverified" xml:space="preserve">
     <value>No Verificado</value>
   </data>
+  <data name="SYS.Users.Status.NoProfile" xml:space="preserve">
+    <value>Sin perfil</value>
+  </data>
   <data name="SYS.Roles.Title" xml:space="preserve">
     <value>Gestión de Roles</value>
   </data>
@@ -8126,6 +8129,9 @@
   </data>
   <data name="Auth.Err.Pending" xml:space="preserve">
     <value>En espera de aprobación del administrador. Podrá iniciar sesión cuando se apruebe.</value>
+  </data>
+  <data name="Auth.Err.RegisterFailed" xml:space="preserve">
+    <value>No se pudo completar el registro. Inténtelo más tarde o contacte al administrador.</value>
   </data>
   <data name="Auth.Err.Invalid" xml:space="preserve">
     <value>Correo o contraseña no válidos.</value>
