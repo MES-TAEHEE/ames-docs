@@ -128,11 +128,17 @@ public sealed class ScmDeliveryCaseTests
                 """);
             Assert.DoesNotContain(repo.ListPurchaseOrders(true,"case-user",confirmedOnly:true),p=>p.Number=="PO-CASE-1");
             Assert.Empty(repo.ListCaseParts("PO-CASE-1","case-user"));
-            Assert.Contains(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
-            Assert.False(repo.ListPortalPackingQuantities("case-user").Single(p=>p.ItemNo=="PART-4").Linked);
+            Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
+            Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user"),p=>p.ItemNo=="PART-4");
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("other-user",forCreate:true),p=>p.ItemNo=="PART-4");
             Assert.False(repo.CreatePortalPackingQuantity("other-user","PART-4","V1",3));
             Assert.Throws<ArgumentOutOfRangeException>(()=>repo.CreatePortalPackingQuantity("case-user","PART-4","V1",0));
+            Assert.False(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",3));
+            Assert.False(repo.SavePortalPackingQuantity("case-user","PART-4","V1",3,null));
+            Assert.Equal(0,Count("SELECT COUNT(*) FROM SCM_ItemVendor WHERE ItemNo='PART-4'"));
+            Sql("INSERT SCM_ItemVendor(ItemNo,VendorID,PackingQty,ActiveFlag) VALUES('PART-4','V1',NULL,1);");
+            Assert.Contains(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
+            Assert.DoesNotContain(repo.ListPortalPackingQuantities("other-user",forCreate:true),p=>p.ItemNo=="PART-4");
             Assert.True(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",3));
             Assert.False(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",4));
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
@@ -141,7 +147,7 @@ public sealed class ScmDeliveryCaseTests
             Assert.True(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",5));
             Sql("UPDATE SCM_ItemVendor SET ActiveFlag=0,PackingQty=NULL WHERE ItemNo='PART-4';");
             Assert.False(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",5));
-            Assert.False(repo.ListPortalPackingQuantities("case-user").Single(p=>p.ItemNo=="PART-4").CanSave);
+            Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user"),p=>p.ItemNo=="PART-4");
             Sql("DELETE WH_PurchaseOrder WHERE PoID=99; DELETE SCM_ItemVendor WHERE ItemNo='PART-4'; DELETE MD_Item WHERE ItemNo='PART-4';");
             var casePolicyMigration=File.ReadAllText(Path.Combine(root!.FullName,"dist","migrate_md_item_case_receive.sql"));
             Sql(casePolicyMigration);
