@@ -30,7 +30,7 @@ public static class MauiProgram
 
     private static string ApiBaseUrl =>
 #if ANDROID
-        "http://192.168.1.102:5210";
+        "http://192.168.0.132:5210";
 #else
         "http://localhost:5210";
 #endif

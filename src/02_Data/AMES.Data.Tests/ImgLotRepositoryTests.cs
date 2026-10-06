@@ -14,7 +14,7 @@ public class ImgLotRepositoryTests
 {
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.1.102,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
+        ?? "Server=192.168.0.132,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
 
     const string Core    = "ITEST-CORE-A";
     const string Fg      = "ITEST-FG-A";
