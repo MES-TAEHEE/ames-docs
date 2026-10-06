@@ -45,8 +45,6 @@ public sealed class WebSignIn(
         {
             logger.LogInformation("User logged in.");
             if (user is not null) authRepo.RecordSuccessfulLogin(user.Id);
-            // 같은 브라우저에 외부 포탈 쿠키가 남아 있으면 지운다(스킴 선택이 외부 쿠키 존재 여부로 갈린다)
-            ctx.Response.Cookies.Delete(PortalAuth.CookieName);
             // 같은 사이트 경로만(Open Redirect 방지), 외부 화면 경로로도 돌려보내지 않는다(내부 계정은 외부 화면을 열 수 없다)
             var target = !LocalUrl.IsLocal(returnUrl) || PortalAuth.IsPortalPath(new PathString(returnUrl!.Split('?', '#')[0])) ? "/" : returnUrl!;
             return new(target, null);
@@ -63,7 +61,7 @@ public sealed class WebSignIn(
 
     /// <summary>
     /// 외부 로그인 — 관리자가 SCM-004 에 등록한 외부 사용자만. 5회 실패하면 잠기고 내부 사용자가 SCM-004 에서 푼다.
-    /// 성공하면 내부 쿠키를 지우고 외부 쿠키를 발급한다 — 역할 클레임은 없다(포탈 화면은 RBAC 대상이 아니다).
+    /// 성공하면 외부 쿠키를 발급한다(내부 쿠키는 그대로 — 한 브라우저에서 내부·외부 동시 로그인) — 역할 클레임은 없다(포탈 화면은 RBAC 대상이 아니다).
     /// </summary>
     public async Task<Result> SignInPortalAsync(HttpContext ctx, string email, string password, string? returnUrl)
     {
@@ -79,8 +77,6 @@ public sealed class WebSignIn(
         }
         scm.RecordPortalLoginSuccess(user.UserID);
 
-        // 한 브라우저에 두 쿠키가 같이 있으면 판별이 꼬인다
-        await signIn.SignOutAsync();
         var portalIdentity = new ClaimsIdentity(
         [
             new Claim(ClaimTypes.NameIdentifier, user.UserID),

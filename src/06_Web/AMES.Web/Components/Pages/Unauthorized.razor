@@ -1,10 +1,8 @@
 @page "/unauthorized"
 @rendermode InteractiveServer
 @inject NavigationManager Nav
-@inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
 @using System.Globalization
-@using AMES.Web.Services
 
 <PageTitle>@L["Err.Unauthorized"] · AMES</PageTitle>
 
@@ -16,11 +14,6 @@
 </div>
 
 @code {
-    bool _isPortalUser;
-
-    protected override async Task OnInitializedAsync()
-        => _isPortalUser = PortalAuth.IsPortalUser((await AuthPrvd.GetAuthenticationStateAsync()).User);
-
-    // 내부·외부는 분리돼 있다 — 외부 사용자는 외부 홈으로, 내부 사용자는 내부 홈으로(계정 전환 흐름 없음)
-    void GoHome() => Nav.NavigateTo(_isPortalUser ? PortalAuth.HomePath : "/", forceLoad: _isPortalUser);
+    // 내부 화면 전용 — 이 경로는 늘 내부 Identity 로 판단된다(외부 쪽 거부는 외부 로그인으로 간다, Program.cs)
+    void GoHome() => Nav.NavigateTo("/");
 }

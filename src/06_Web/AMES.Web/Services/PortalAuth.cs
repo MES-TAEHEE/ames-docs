@@ -15,10 +15,12 @@ public static class PortalAuth
 {
     /// <summary>외부 쿠키 인증 스킴. Identity 의 "Identity.External"(OAuth 용) 과 헷갈리지 않게 별도 이름.</summary>
     public const string Scheme = "AmesPortal";
-    /// <summary>쿠키 존재 여부로 스킴을 고르는 기본 스킴.</summary>
+    /// <summary>경로로 스킴을 고르는 기본 스킴(/portal → <see cref="Scheme"/>, 그 밖 → Identity).</summary>
     public const string DynamicScheme = "AmesDynamic";
-    /// <summary>외부 쿠키 이름. 경로는 "/" — Blazor 회로(/_blazor) 요청에도 실려야 한다.</summary>
+    /// <summary>외부 쿠키 이름. 내부 Identity 쿠키와 한 브라우저에 같이 있어도 된다.</summary>
     public const string CookieName = ".AMES.Portal";
+    /// <summary>외부 화면의 Blazor 회로 주소(App.razor 가 외부 화면에서만 이 주소로 연결). 내부 화면은 기본 /_blazor.</summary>
+    public const string HubPath = "/portal/_blazor";
     /// <summary>외부 사용자의 협력업체(SCM_PortalVendorUser.VendorID) 클레임.</summary>
     public const string VendorClaim = "ames:vendor";
     /// <summary>외부 화면 라우트 접두어.</summary>

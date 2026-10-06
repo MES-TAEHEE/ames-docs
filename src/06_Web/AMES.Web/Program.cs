@@ -67,8 +67,8 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 // 인증 스킴 2개: 내부 Identity 쿠키 + 외부 개방 화면(/portal) 전용 쿠키(AmesPortal).
-// 기본 스킴은 요청에 외부 쿠키가 있으면 AmesPortal, 없으면 Identity 로 고르는 선택형이다.
-// 외부 쿠키는 경로 "/" 로 둔다 — 경로를 /portal 로 좁히면 Blazor 회로(/_blazor)에 쿠키가 안 실려 로그인 직후 권한 없음이 된다.
+// 기본 스킴은 경로로 고르는 선택형이다 — /portal(외부 화면의 Blazor 회로 /portal/_blazor 포함)은 AmesPortal, 그 밖은 Identity.
+// 두 쿠키는 한 브라우저에 같이 있어도 된다(내부·외부 동시 로그인).
 var authBuilder = builder.Services.AddAuthentication(options =>
     {
         options.DefaultScheme = AMES.Web.Services.PortalAuth.DynamicScheme;
@@ -82,7 +82,8 @@ authBuilder
         o.Cookie.HttpOnly    = true;
         o.Cookie.SameSite    = SameSiteMode.Lax;
         o.LoginPath          = AMES.Web.Services.PortalAuth.LoginPath;
-        o.AccessDeniedPath   = "/unauthorized";
+        // 내부 화면 /unauthorized 는 Identity 로 판단되고 외부 호스트에서는 막힌다 — 외부 쪽 거부는 외부 로그인으로
+        o.AccessDeniedPath   = AMES.Web.Services.PortalAuth.LoginPath;
         o.SlidingExpiration  = true;
         // 외부 사용자(SCM_PortalVendorUser)가 비활성·잠금되거나 협력업체가 바뀌면 이미 발급된 쿠키도 끊는다.
         // 인증은 정적 파일 요청에도 돌므로 확장자 있는 경로·프레임워크 경로는 건너뛴다(DB 조회 절약).
@@ -104,15 +105,11 @@ authBuilder
     })
     .AddPolicyScheme(AMES.Web.Services.PortalAuth.DynamicScheme, "AMES cookie selector", o =>
     {
-        // /portal 화면은 항상 AmesPortal — 내부 쿠키가 있어도 외부 인증으로만 판단해, 내부 계정으로 열면 /portal/login 으로 간다.
-        // 그 밖의 경로(내부 화면·Blazor 회로 /_blazor 등)는 외부 쿠키가 있으면 AmesPortal, 없으면 Identity —
-        // 회로 요청은 경로로 구분할 수 없어 쿠키로 고른다(두 로그인은 서로의 쿠키를 지워 한 브라우저에 하나만 남는다).
-        o.ForwardDefaultSelector = ctx =>
-        {
-            if (AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path)) return AMES.Web.Services.PortalAuth.Scheme;
-            if (ctx.Request.Cookies.ContainsKey(AMES.Web.Services.PortalAuth.CookieName)) return AMES.Web.Services.PortalAuth.Scheme;
-            return IdentityConstants.ApplicationScheme;
-        };
+        // /portal 은 항상 AmesPortal, 그 밖은 항상 Identity — 다른 쪽 쿠키는 보지 않는다.
+        // 회로도 경로로 갈린다: 외부 화면은 /portal/_blazor(App.razor 가 그 화면에서만 주소를 바꾼다), 내부 화면은 /_blazor.
+        o.ForwardDefaultSelector = ctx => AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path)
+            ? AMES.Web.Services.PortalAuth.Scheme
+            : IdentityConstants.ApplicationScheme;
     });
 
 // 인가 정책: 기본 정책([Authorize] 만 붙은 내부 화면 66개·AuthorizeView)은 내부 Identity 스킴으로 인증된 사용자만 통과 →
@@ -457,6 +454,9 @@ app.MapGet("/portal/logout", async (HttpContext ctx) =>
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+// 외부 화면 전용 Blazor 회로 — 기본 /_blazor 와 같은 허브를 /portal 아래에 하나 더 둔다.
+// 회로의 사용자는 연결 요청의 인증으로 정해지므로, 경로가 갈려야 내부·외부 쿠키가 같이 있어도 각 화면이 자기 사용자로 붙는다.
+app.MapBlazorHub(AMES.Web.Services.PortalAuth.HubPath);
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
