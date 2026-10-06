@@ -1,4 +1,3 @@
-@inject IStringLocalizer<SharedResources> L
 <article class="delivery-note box-labels">
 @foreach(var page in Boxes.Chunk(3))
 {
@@ -9,20 +8,19 @@
         @for(var copy=0;copy<2;copy++)
         {
             <section class="box-label">
-                <header class="label-header"><strong>@b.VendorName</strong><span>@b.DeliveryDate.ToString("dd/MM/yyyy",System.Globalization.CultureInfo.InvariantCulture)</span></header>
+                <header class="label-header"><strong>BOX</strong><span>@b.VendorName</span></header>
                 <div class="box-barcode"><Code128Barcode Value="@b.Number" Height="48" /><strong>@b.Number</strong></div>
-                <div class="part-row"><small>@L["Portal.Label.Product"] :</small><strong class="part-value @(b.Item.Length>18 ? "compact" : "")">@b.Item</strong></div>
-                <div class="desc-row @(b.Name.Length>85 ? "compact" : "")"><small>@L["Portal.Label.Description"] :</small><strong>@b.Name</strong></div>
+                <div class="part-row"><small>Part No</small><strong class="part-value @(b.Item.Length>18 ? "compact" : "")">@b.Item</strong></div>
+                <div class="desc-row @(b.Name.Length>85 ? "compact" : "")"><small>Description</small><strong>@b.Name</strong></div>
                 <div class="label-details">
-                    <div class="fifo"><small>@L["Portal.Label.Fifo"] :</small><strong>@b.ProductionDate.ToString("dd/MM/yyyy",System.Globalization.CultureInfo.InvariantCulture)</strong></div>
-                    <div class="delivery-number">@b.Delivery</div>
-                    <div class="quantity"><small>@L["Portal.Label.Quantity"] :</small><strong>@QuantityText(b.Quantity,b.Unit)</strong><b>@b.Unit</b></div>
-                    <div class="box-count"><small>@L["Portal.Label.BoxCount"] :</small><strong>@b.Sequence / @b.BoxCount</strong></div>
-                    <div class="destination"><small>@L["Portal.Label.Destination"] :</small><strong>@b.Destination</strong></div>
-                    <div class="lot @(b.VendorLotNo.Length>18 ? "compact" : "")"><small>@L["Portal.Label.Lot"] :</small><strong>@b.VendorLotNo</strong></div>
+                    <div><small>Quantity</small><strong>@QuantityText(b.Quantity,b.Unit) @b.Unit</strong></div>
+                    <div><small>Box</small><strong>@b.Sequence / @b.BoxCount</strong></div>
+                    <div><small>Delivery No</small><strong>@b.Delivery</strong></div>
+                    <div><small>PO No</small><strong>@b.Order</strong></div>
+                    <div><small>Vendor Lot</small><strong>@b.VendorLotNo</strong></div>
+                    <div><small>Production Date</small><strong>@b.ProductionDate.ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture)</strong></div>
                 </div>
-                <div class="part-barcode"><small>@L["Portal.Label.Part"] :</small><Code128Barcode Value="@b.Item" Height="30" /></div>
-                <footer><span>EOS</span><span>@PrintedAt.ToString("dd/MM/yyyy HH:mm",System.Globalization.CultureInfo.InvariantCulture)</span></footer>
+                <div class="destination"><small>Destination</small><strong>@b.Destination</strong></div>
             </section>
         }
         </div>
@@ -33,5 +31,4 @@
 @code {
     [Parameter] public IReadOnlyList<ScmRepository.DeliveryBox> Boxes {get;set;}=[];
     [Parameter] public Func<decimal,string,string> QuantityText {get;set;}=(q,u)=>q.ToString("0.###");
-    [Parameter] public DateTime PrintedAt {get;set;}
 }

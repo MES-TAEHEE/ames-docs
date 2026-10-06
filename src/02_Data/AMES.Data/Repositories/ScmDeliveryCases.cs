@@ -16,6 +16,7 @@ public sealed partial class ScmRepository
     public record CasePart(int PoID, string Item, string Name, string Unit, decimal PackingQty, decimal Available, string Issue="",
         decimal Ordered=0, decimal Received=0, decimal PendingDelivery=0, decimal Prepared=0);
     public record CaseBoxInput(int PoID, decimal Quantity);
+    public record CaseDraftInput(IReadOnlyList<string> Orders, IReadOnlyList<CaseBoxInput> Boxes);
 
     const string CaseVendorAccess = """
         EXISTS(SELECT 1 FROM dbo.SCM_PortalVendorUser u JOIN dbo.MD_Vendor v ON v.VendorID=u.VendorID
@@ -177,10 +178,29 @@ public sealed partial class ScmRepository
 
     public DeliveryNote CreateDeliveryNoteFromCases(IReadOnlyList<string> numbers,DateTime date,string userId,string actor)
     {
+        using var c=factory.OpenConnection();using var tx=c.BeginTransaction();
+        var note=CreateDeliveryNoteFromCases(c,tx,numbers,date,userId,actor);
+        tx.Commit();return note;
+    }
+
+    public DeliveryNote CreateDeliveryNoteFromDraftCases(IReadOnlyList<CaseDraftInput> drafts,DateTime date,string userId,string actor)
+    {
+        if(drafts.Count is <1 or >1000 || drafts.Sum(d=>d.Boxes.Count)>1000)
+            throw new ArgumentException("Select 1 to 1,000 cases with at most 1,000 boxes.");
+        using var c=factory.OpenConnection();using var tx=c.BeginTransaction();
+        // Lock every PO in a consistent order before reserving any draft case quantities.
+        LockCaseOrders(c,tx,drafts.SelectMany(d=>d.Orders).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal).ToArray());
+        var numbers=drafts.Select(d=>CreatePreparedCase(c,tx,d.Orders,d.Boxes,userId)).ToArray();
+        var note=CreateDeliveryNoteFromCases(c,tx,numbers,date,userId,actor);
+        tx.Commit();return note;
+    }
+
+    DeliveryNote CreateDeliveryNoteFromCases(SqlConnection c,SqlTransaction tx,IReadOnlyList<string> numbers,DateTime date,string userId,string actor)
+    {
         if(numbers.Count is <1 or >1000 || numbers.Any(n=>string.IsNullOrWhiteSpace(n)||n.Length>50)
             || numbers.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=numbers.Count)
             throw new ArgumentException("Select 1 to 1,000 different cases.");
-        var selected=ListDeliveryCases(null,userId).Where(c=>numbers.Contains(c.Number,StringComparer.OrdinalIgnoreCase)).ToList();
+        var selected=ReadDeliveryCases(c,tx,null,null,userId,null,null).Where(k=>numbers.Contains(k.Number,StringComparer.OrdinalIgnoreCase)).ToList();
         if(selected.Count!=numbers.Count)throw new InvalidOperationException("A case is unavailable or access was denied. Refresh the list.");
         // Exact retries return the issued note, without generating new deliveries or labels.
         var notes=selected.Select(c=>c.NoteNumber).Distinct().ToArray();
@@ -195,7 +215,6 @@ public sealed partial class ScmRepository
         var boxes=selected.SelectMany(c=>c.Boxes).ToArray();
         var orders=boxes.Select(b=>b.Order).Distinct().Order(StringComparer.Ordinal).ToArray();
         if(orders.Length>100 || boxes.Length>1000)throw new InvalidOperationException("A note may contain at most 100 POs and 1,000 boxes.");
-        using var c=factory.OpenConnection();using var tx=c.BeginTransaction();
         var versions=LockCaseOrders(c,tx,orders);
         ValidateCaseDestination(c,tx,boxes.Select(b=>b.PoID).Distinct().ToArray());
         using(var guard=new SqlCommand($"""
@@ -226,12 +245,17 @@ public sealed partial class ScmRepository
             WHERE n.NoteNumber=@Note;
             """,c,tx))
         {Add(link,("@Cases",JsonSerializer.Serialize(numbers)),("@Note",note.Number));link.ExecuteNonQuery();}
-        tx.Commit();return note;
+        return note;
     }
 
     List<DeliveryCase> ReadDeliveryCases(string? number,string? order,string? userId,string? note,string? delivery=null)
     {
         using var c=factory.OpenConnection();
+        return ReadDeliveryCases(c,null,number,order,userId,note,delivery);
+    }
+
+    static List<DeliveryCase> ReadDeliveryCases(SqlConnection c,SqlTransaction? tx,string? number,string? order,string? userId,string? note,string? delivery)
+    {
         using var cmd=new SqlCommand($"""
             SELECT k.CaseNo,COALESCE(n.NoteNumber,''),k.VendorID,COALESCE(v.VendorName,k.VendorID),k.CreatedAt,
                    COALESCE(k.PoNumber,''),d.DeliveryNumber,
@@ -264,7 +288,7 @@ public sealed partial class ScmRepository
                   WHERE cb.CaseNo=k.CaseNo AND cb.ActiveFlag=1 AND sd.DeliveryNumber=@Delivery))
               {(userId is null ? "" : $"AND {CaseVendorAccess}")}
             ORDER BY k.CreatedAt DESC,k.CaseNo DESC,b.BoxID;
-            """,c);
+            """,c,tx);
         Add(cmd,("@N",(object?)number??DBNull.Value),("@Order",(object?)order??DBNull.Value),("@Note",(object?)note??DBNull.Value),("@Delivery",(object?)delivery??DBNull.Value),("@U",userId??""));
         using var r=cmd.ExecuteReader();var cases=new Dictionary<string,DeliveryCase>();
         while(r.Read())

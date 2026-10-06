@@ -18,12 +18,11 @@
     <p data-delivery-note-status>@_message</p>
 </div>
 @if(_boxes.Count>0){
-<BoxLabelSheet Boxes="_boxes" QuantityText="@((decimal q,string u)=>QtyFormat.Text(q,u))" PrintedAt="_printedAt" />
+<BoxLabelSheet Boxes="_boxes" QuantityText="@((decimal q,string u)=>QtyFormat.Text(q,u))" />
 }
 @code {
     List<ScmRepository.DeliveryBox> _boxes=[];
     string _message="";
-    DateTime _printedAt=DbClock.Now;
     protected override async Task OnInitializedAsync()
     {
         var u=(await Authentication.GetAuthenticationStateAsync()).User;

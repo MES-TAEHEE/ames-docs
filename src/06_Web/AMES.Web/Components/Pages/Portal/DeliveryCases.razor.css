@@ -11,6 +11,7 @@
 .case-tile:focus-visible { outline:2px solid var(--ames-tx-blue-400); outline-offset:2px; }
 .case-tile ::deep .rzi { font-size:34px; color:var(--ames-tx-blue-400); }
 .case-tile span { color:var(--ames-tx-slate-400); }
+.case-add { border-style:dashed; border-width:2px; }
 .case-choice { min-width:0; display:flex; flex-direction:column; gap:8px; }
 .case-choice .case-tile { width:100%; min-height:180px; aspect-ratio:auto; flex:1; gap:8px; }
 .case-choice label { display:flex; align-items:center; gap:8px; }
