@@ -1,0 +1,95 @@
+@using System.Globalization
+@using AMES.Data.Aps.Contracts
+@using AMES.Data.Repositories
+@inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
+
+<div class="aps-drawer-backdrop" @onclick="Close">
+    <aside class="aps-drawer" role="dialog" aria-modal="true" aria-label="APS trace" @onclick:stopPropagation="true">
+        <header class="aps-drawer-h">
+            <div>
+                <span>@L["PP.Aps.Trace.Title"] · @(Kind == ApsRepository.KindInj ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"])</span>
+                <strong>@(Schedule?.PartNo ?? Autofill?.PartNo ?? PartNo)</strong>
+                <small>@D(Schedule?.Date ?? Autofill?.Date ?? Date)</small>
+            </div>
+            <button type="button" @onclick="Close" aria-label="Close"><RadzenIcon Icon="close" /></button>
+        </header>
+        <div class="aps-drawer-body">
+            @if (Schedule is { } t)
+            {
+                <div class="aps-drawer-grid">
+                    <div><span>@L["PP.Aps.Trace.Opening"]</span><strong>@Q(t.OpeningStock)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Req"]</span><strong>@Q(t.Requirement)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Shortfall"]</span><strong class="@(t.Shortfall > 0 ? "aps-neg" : "")">@Q(t.Shortfall)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Planned"]</span><strong>@Q(t.Planned)</strong></div>
+                    <div><span>@L["PP.Aps.Cell.Day"] / @L["PP.Aps.Cell.Night"]</span><strong>@Q(t.PlanDay) / @Q(t.PlanNight)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Closing"]</span><strong class="@(t.Closing < 0 ? "aps-neg" : "")">@Q(t.Closing)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Pack"]</span><strong>@t.PackSize</strong></div>
+                    <div><span>@L["PP.Aps.Col.Uph"]</span><strong>@t.Uph.ToString("0.##")</strong></div>
+                    <div><span>@L["PP.Aps.Trace.RunHours"]</span><strong>@t.RunHours.ToString("0.00") h</strong></div>
+                </div>
+                @if (!string.IsNullOrEmpty(t.MoldGroup))
+                {
+                    <div class="aps-hint" style="margin-bottom:8px;">@L["PP.Aps.Col.Mold"] <span class="code">@t.MoldGroup</span>
+                        @if (t.Siblings.Count > 0) { <span> · @L["PP.Aps.Col.Siblings"] @string.Join(", ", t.Siblings)</span> }
+                    </div>
+                }
+                <div class="aps-hint" style="margin-bottom:4px;">@L["PP.Aps.Trace.Steps"]</div>
+                @foreach (var s in t.Steps)
+                {
+                    <div class="aps-step @(s.Warn ? "warn" : "")">
+                        <div class="lbl">@s.Label</div>
+                        <div>
+                            <div>@s.Calc</div>
+                            @if (!string.IsNullOrEmpty(s.Screen)) { <div class="scr">@s.Screen</div> }
+                        </div>
+                    </div>
+                }
+            }
+            else if (Autofill is { } a)
+            {
+                <div class="aps-drawer-grid">
+                    <div><span>@L["PP.Aps.Trace.PrevClosing"]</span><strong>@Q(a.PrevClosing)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Demand"]</span><strong>@Q(a.Demand)</strong>@if (PlanDemand > 0) { <span class="dim"> (@L["PP.Aps.Cell.PlanDemand"] @Q(PlanDemand))</span> }</div>
+                    <div><span>@L["PP.Aps.Trace.Cover"]</span><strong>@a.DaysOfCover.ToString("0.##")</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Base"]</span><strong>@Q(a.BaseDemand)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Target"]</span><strong>@Q(a.TargetStock)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Pack"]</span><strong>@a.PackSize</strong></div>
+                    <div><span>@L["PP.Aps.Trace.RawNeed"]</span><strong>@Q(a.RawNeed)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Supply"]</span><strong>@Q(a.Supply)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Closing"]</span><strong class="@(a.Closing < 0 ? "aps-neg" : "")">@Q(a.Closing)</strong></div>
+                </div>
+                @* 공급 = RoundUp(수요 + 목표재고 − 전일 마감, 포장) — Autofill.cs :37-:38 의 식을 그대로 보여 준다 *@
+                <div class="aps-step"><div class="lbl">①</div><div>@L["PP.Aps.Trace.Target"] = @a.DaysOfCover.ToString("0.##") × @Q(a.BaseDemand) = @Q(a.TargetStock)</div></div>
+                <div class="aps-step"><div class="lbl">②</div><div>@Q(a.Demand) + @Q(a.TargetStock) − @Q(a.PrevClosing) → @L["PP.Aps.Trace.Pack"] @a.PackSize → @Q(a.Supply)</div></div>
+                <div class="aps-step"><div class="lbl">③</div><div>@L["PP.Aps.Trace.Closing"] = @Q(a.PrevClosing) + @Q(a.Supply) − @Q(a.Demand) = @Q(a.Closing)</div></div>
+            }
+            else if (Kind == ApsRepository.KindAsm)
+            {
+                <div class="dim">@L["PP.Aps.Trace.NoAutofill"]</div>
+            }
+            else
+            {
+                <div class="dim">@L["PP.Aps.Trace.NoTrace"]</div>
+            }
+        </div>
+    </aside>
+</div>
+
+@code {
+    [Parameter] public AutofillTrace? Autofill { get; set; }
+    [Parameter] public Trace? Schedule { get; set; }
+    [Parameter] public string? Uom { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    /// <summary>근거가 아직 없을 때(자동 계산 전) 헤더에 찍을 셀 키. Kind = ApsRepository.KindAsm / KindInj.</summary>
+    [Parameter] public string? Kind { get; set; }
+    [Parameter] public string? PartNo { get; set; }
+    [Parameter] public string? Date { get; set; }
+    [Parameter] public double PlanDemand { get; set; }
+
+    Task Close() => OnClose.InvokeAsync();
+    string Q(double v) => UomFmt.Qty(double.IsFinite(v) ? (decimal)v : 0m, Uom);
+    // 엔진 날짜는 ISO 문자열 — 표시만 UI 언어 포맷으로
+    static string D(string? iso) =>
+        DateOnly.TryParseExact(iso, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d.ToString(DateFmt.Date) : iso ?? "";
+}

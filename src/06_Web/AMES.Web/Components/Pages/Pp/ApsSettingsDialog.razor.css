@@ -1,0 +1,23 @@
+/* PP-APS 설정 다이얼로그 — 공용 .ames-table 은 td 가 nowrap 이라 긴 패턴 이름·입력란이 카드 밖으로 밀려 잘렸다(10-06).
+   표는 고정 레이아웃 + 셀 줄바꿈, 긴 한 줄 값(패턴 ID·이름)은 말줄임으로 둔다. Radzen 입력은 ::deep 으로 칸 너비에 맞춘다. */
+.aps-set { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.aps-set .ames-table { table-layout: fixed; width: 100%; }
+.aps-set .ames-table th,
+.aps-set .ames-table td { white-space: normal; overflow-wrap: anywhere; vertical-align: middle; }
+.aps-set .ames-table td.code { word-break: break-all; }
+.aps-set .ellip { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aps-set ::deep .nowrap { white-space: nowrap; }   /* RadzenLabel 의 class 는 Radzen 요소에 붙어 범위 속성이 없다 */
+.aps-set ::deep .rz-dropdown,
+.aps-set ::deep .rz-textbox,
+.aps-set ::deep .rz-numeric { width: 100%; min-width: 0; max-width: 100%; }
+.aps-set ::deep .rz-dropdown .rz-inputtext { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 라인 행 그리드(RadzenDataGrid 인라인 편집) — 셀 줄바꿈, 편집 입력은 칸 폭, 버튼 두 개 나란히 */
+.aps-set ::deep .aps-stage-grid .rz-cell-data { white-space: normal; overflow-wrap: anywhere; }
+.aps-set ::deep .aps-stage-grid .rz-grid-table td { vertical-align: middle; }
+.aps-set ::deep .aps-stage-grid .ames-rz-btn + .ames-rz-btn { margin-left: 4px; }
+.aps-set ::deep .aps-stage-grid .code { font-family: var(--ames-font-mono); color: #93c5fd; font-weight: 700; }
+.aps-set ::deep .aps-stage-grid .dim  { color: rgba(255,255,255,.5); font-size: 13px; }
+.aps-set ::deep .aps-stage-grid .num  { font-family: var(--ames-font-mono); font-weight: 600; }
+html[data-theme="light"] .aps-set ::deep .aps-stage-grid .code { color: var(--ames-accent); }
+html[data-theme="light"] .aps-set ::deep .aps-stage-grid .dim  { color: var(--ames-text-dim, rgba(0,0,0,.55)); }

@@ -9731,4 +9731,619 @@
     <value>{0}d {1}h</value>
   </data>
   <data name="MD.Items.ScanRequired" xml:space="preserve"><value>Requiere escaneo individual de código de barras</value></data>
+  <data name="MD.Items.Col.BoxQty" xml:space="preserve">
+    <value>Cant./Caja</value>
+  </data>
+  <data name="MD.Items.Lbl.BoxQty" xml:space="preserve">
+    <value>Piezas por caja — unidad de redondeo de suministro APS (vacío = 1 + aviso)</value>
+  </data>
+  <data name="PP.Aps.Title" xml:space="preserve">
+    <value>Plan de Producción APS</value>
+  </data>
+  <data name="PP.Aps.Lbl.Line" xml:space="preserve">
+    <value>Línea</value>
+  </data>
+  <data name="PP.Aps.Lbl.BaseDate" xml:space="preserve">
+    <value>Fecha base</value>
+  </data>
+  <data name="PP.Aps.Lbl.Days" xml:space="preserve">
+    <value>Días</value>
+  </data>
+  <data name="PP.Aps.Lbl.Customer" xml:space="preserve">
+    <value>Cliente</value>
+  </data>
+  <data name="PP.Aps.Lbl.IncludeOpen" xml:space="preserve">
+    <value>Incluir pedidos abiertos</value>
+  </data>
+  <data name="PP.Aps.Ph.Line" xml:space="preserve">
+    <value>Seleccionar línea</value>
+  </data>
+  <data name="PP.Aps.Btn.Query" xml:space="preserve">
+    <value>Consultar</value>
+  </data>
+  <data name="PP.Aps.Type.injection" xml:space="preserve">
+    <value>Inyección</value>
+  </data>
+  <data name="PP.Aps.Type.assembly" xml:space="preserve">
+    <value>Ensamble</value>
+  </data>
+  <data name="PP.Aps.Kpi.Short" xml:space="preserve">
+    <value>Artículos faltantes</value>
+  </data>
+  <data name="PP.Aps.Kpi.Over" xml:space="preserve">
+    <value>Prensas sobrecargadas</value>
+  </data>
+  <data name="PP.Aps.Kpi.Supply" xml:space="preserve">
+    <value>Plan total de ensamble</value>
+  </data>
+  <data name="PP.Aps.Kpi.InjPlan" xml:space="preserve">
+    <value>Plan de inyección total</value>
+  </data>
+  <data name="PP.Aps.Kpi.Warn" xml:space="preserve">
+    <value>Avisos</value>
+  </data>
+  <data name="PP.Aps.Warn.Title" xml:space="preserve">
+    <value>{0} avisos — las faltas se listan aquí completas, nunca ocultas como 0</value>
+  </data>
+  <data name="PP.Aps.Empty" xml:space="preserve">
+    <value>Elija línea y fecha base, luego consulte</value>
+  </data>
+  <data name="PP.Aps.NoRows" xml:space="preserve">
+    <value>No hay artículos para mostrar</value>
+  </data>
+  <data name="PP.Aps.Tab.Asm" xml:space="preserve">
+    <value>Ensamble</value>
+  </data>
+  <data name="PP.Aps.Tab.Inj" xml:space="preserve">
+    <value>Inyección</value>
+  </data>
+  <data name="PP.Aps.Tab.Load" xml:space="preserve">
+    <value>Carga de prensas</value>
+  </data>
+  <data name="PP.Aps.Col.Item" xml:space="preserve">
+    <value>Artículo</value>
+  </data>
+  <data name="PP.Aps.Col.Stock" xml:space="preserve">
+    <value>Inventario</value>
+  </data>
+  <data name="PP.Aps.Col.Safety" xml:space="preserve">
+    <value>Stock de seguridad</value>
+  </data>
+  <data name="PP.Aps.Col.D1Prod" xml:space="preserve">
+    <value>Producido D-1</value>
+  </data>
+  <data name="PP.Aps.Col.D1Ship" xml:space="preserve">
+    <value>Enviado D-1</value>
+  </data>
+  <data name="PP.Aps.Cell.WoDiff" xml:space="preserve">
+    <value>Difiere de la cantidad del slot WO registrado {0} — cambiado tras desbloquear. La planta sigue la cantidad del slot</value>
+  </data>
+  <data name="PP.Aps.Cell.Unplaced" xml:space="preserve">
+    <value>sin asignar</value>
+  </data>
+  <data name="PP.Aps.Cell.WoUnplaced" xml:space="preserve">
+    <value>sin asignar {0}</value>
+  </data>
+  <data name="PP.Aps.Cell.Wo" xml:space="preserve">
+    <value>Orden de trabajo</value>
+  </data>
+  <data name="PP.Aps.Cell.Demand" xml:space="preserve">
+    <value>Demanda</value>
+  </data>
+  <data name="PP.Aps.Cell.Supply" xml:space="preserve">
+    <value>Plan</value>
+  </data>
+  <data name="PP.Aps.Cell.Stock" xml:space="preserve">
+    <value>Inventario</value>
+  </data>
+  <data name="PP.Aps.St.ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="PP.Aps.St.short" xml:space="preserve">
+    <value>Falta</value>
+  </data>
+  <data name="PP.Aps.St.warn" xml:space="preserve">
+    <value>Aviso</value>
+  </data>
+  <data name="PP.Aps.Err.NoLine" xml:space="preserve">
+    <value>Seleccione una línea</value>
+  </data>
+  <data name="PP.Aps.Busy" xml:space="preserve">
+    <value>Calculando…</value>
+  </data>
+  <data name="PP.Aps.Lbl.Dirty" xml:space="preserve">
+    <value>Cambios sin guardar</value>
+  </data>
+  <data name="PP.Aps.Confirm.Discard" xml:space="preserve">
+    <value>Se perderán los cambios no guardados. ¿Continuar?</value>
+  </data>
+  <data name="PP.Aps.Confirm.Title" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="PP.Aps.Lock.Plan" xml:space="preserve">
+    <value>Plan registrado (slot WO existente) — al desbloquear, el cálculo y la redistribución pueden cambiarlo. Los slots reales se editan en PP-LSB / PP-003</value>
+  </data>
+  <data name="PP.Aps.Col.Mold" xml:space="preserve">
+    <value>Molde</value>
+  </data>
+  <data name="PP.Aps.Col.Siblings" xml:space="preserve">
+    <value>Hermanos</value>
+  </data>
+  <data name="PP.Aps.Col.Cavity" xml:space="preserve">
+    <value>Cavidad</value>
+  </data>
+  <data name="PP.Aps.Col.Uph" xml:space="preserve">
+    <value>UPH</value>
+  </data>
+  <data name="PP.Aps.Col.Pack" xml:space="preserve">
+    <value>Empaque</value>
+  </data>
+  <data name="PP.Aps.Col.D1Used" xml:space="preserve">
+    <value>Usado D-1</value>
+  </data>
+  <data name="PP.Aps.Cell.Req" xml:space="preserve">
+    <value>Requerido</value>
+  </data>
+  <data name="PP.Aps.Cell.Day" xml:space="preserve">
+    <value>Día</value>
+  </data>
+  <data name="PP.Aps.Cell.Night" xml:space="preserve">
+    <value>Noche</value>
+  </data>
+  <data name="PP.Aps.Cell.Remain" xml:space="preserve">
+    <value>Restante</value>
+  </data>
+  <data name="PP.Aps.Cell.Shots" xml:space="preserve">
+    <value>disparos</value>
+  </data>
+  <data name="PP.Aps.Cell.Hours" xml:space="preserve">
+    <value>h op.</value>
+  </data>
+  <data name="PP.Aps.Load.Hours" xml:space="preserve">
+    <value>Horas</value>
+  </data>
+  <data name="PP.Aps.Load.Day" xml:space="preserve">
+    <value>h día</value>
+  </data>
+  <data name="PP.Aps.Load.Night" xml:space="preserve">
+    <value>h noche</value>
+  </data>
+  <data name="PP.Aps.Load.Cap" xml:space="preserve">
+    <value>h cap.</value>
+  </data>
+  <data name="PP.Aps.Load.Rate" xml:space="preserve">
+    <value>Carga</value>
+  </data>
+  <data name="PP.Aps.Load.Over" xml:space="preserve">
+    <value>Exceso</value>
+  </data>
+  <data name="PP.Aps.Sum.Title" xml:space="preserve">
+    <value>Resumen</value>
+  </data>
+  <data name="PP.Aps.Sum.Demand" xml:space="preserve">
+    <value>Demanda</value>
+  </data>
+  <data name="PP.Aps.Sum.Supply" xml:space="preserve">
+    <value>Plan de ensamble</value>
+  </data>
+  <data name="PP.Aps.Sum.InjReq" xml:space="preserve">
+    <value>Req. inyección</value>
+  </data>
+  <data name="PP.Aps.Sum.InjPlan" xml:space="preserve">
+    <value>Plan inyección</value>
+  </data>
+  <data name="PP.Aps.Sum.Hours" xml:space="preserve">
+    <value>h op.</value>
+  </data>
+  <data name="PP.Aps.Sum.Short" xml:space="preserve">
+    <value>Faltas</value>
+  </data>
+  <data name="PP.Aps.Trace.Title" xml:space="preserve">
+    <value>Justificación</value>
+  </data>
+  <data name="PP.Aps.Trace.NoAutofill" xml:space="preserve">
+    <value>Aún no se ejecutó el cálculo automático — ejecútelo para ver cómo se calculó esta celda</value>
+  </data>
+  <data name="PP.Aps.Trace.NoTrace" xml:space="preserve">
+    <value>Sin justificación para esta celda</value>
+  </data>
+  <data name="PP.Aps.Trace.PrevClosing" xml:space="preserve">
+    <value>Cierre anterior</value>
+  </data>
+  <data name="PP.Aps.Trace.Demand" xml:space="preserve">
+    <value>Demanda</value>
+  </data>
+  <data name="PP.Aps.Trace.Cover" xml:space="preserve">
+    <value>Días de cobertura</value>
+  </data>
+  <data name="PP.Aps.Trace.Target" xml:space="preserve">
+    <value>Stock objetivo</value>
+  </data>
+  <data name="PP.Aps.Trace.Base" xml:space="preserve">
+    <value>Demanda base</value>
+  </data>
+  <data name="PP.Aps.Trace.Pack" xml:space="preserve">
+    <value>Empaque</value>
+  </data>
+  <data name="PP.Aps.Trace.RawNeed" xml:space="preserve">
+    <value>Necesidad bruta</value>
+  </data>
+  <data name="PP.Aps.Trace.Supply" xml:space="preserve">
+    <value>Plan</value>
+  </data>
+  <data name="PP.Aps.Trace.Closing" xml:space="preserve">
+    <value>Cierre</value>
+  </data>
+  <data name="PP.Aps.Trace.Opening" xml:space="preserve">
+    <value>Inicial</value>
+  </data>
+  <data name="PP.Aps.Trace.Req" xml:space="preserve">
+    <value>Requerido</value>
+  </data>
+  <data name="PP.Aps.Trace.Shortfall" xml:space="preserve">
+    <value>Faltante</value>
+  </data>
+  <data name="PP.Aps.Trace.Planned" xml:space="preserve">
+    <value>Planificado</value>
+  </data>
+  <data name="PP.Aps.Trace.RunHours" xml:space="preserve">
+    <value>Horas op.</value>
+  </data>
+  <data name="PP.Aps.Trace.Steps" xml:space="preserve">
+    <value>Pasos</value>
+  </data>
+  <data name="PP.Aps.Btn.Autofill" xml:space="preserve">
+    <value>Calcular plan</value>
+  </data>
+  <data name="PP.Aps.Btn.Reschedule" xml:space="preserve">
+    <value>Redistribuir inyección</value>
+  </data>
+  <data name="PP.Aps.Btn.Recompute" xml:space="preserve">
+    <value>Recalcular</value>
+  </data>
+  <data name="PP.Aps.Lock.Toggle" xml:space="preserve">
+    <value>Alternar bloqueo — las celdas bloqueadas no se tocan al calcular ni redistribuir</value>
+  </data>
+  <data name="PP.Aps.Ok.Autofill" xml:space="preserve">
+    <value>Cálculo completado — {0} avisos</value>
+  </data>
+  <data name="PP.Aps.Ok.Reschedule" xml:space="preserve">
+    <value>Redistribución completada — {0} avisos</value>
+  </data>
+  <data name="PP.Aps.Ok.Recompute" xml:space="preserve">
+    <value>Recalculado</value>
+  </data>
+  <data name="PP.Aps.Err.ReadOnly" xml:space="preserve">
+    <value>Las ejecuciones reproducidas o liberadas son de solo lectura — use "Recalcular con datos actuales" en el historial para crear una nueva</value>
+  </data>
+  <data name="PP.Aps.Btn.History" xml:space="preserve">
+    <value>Historial</value>
+  </data>
+  <data name="PP.Aps.History" xml:space="preserve">
+    <value>Historial de ejecuciones (últimas 50)</value>
+  </data>
+  <data name="PP.Aps.Ok.Saved" xml:space="preserve">
+    <value>Guardado — ejecución #{0}</value>
+  </data>
+  <data name="PP.Aps.Lbl.LastSaved" xml:space="preserve">
+    <value>Último guardado</value>
+  </data>
+  <data name="PP.Aps.Lbl.Restored" xml:space="preserve">
+    <value>Reproducido (solo lectura)</value>
+  </data>
+  <data name="PP.Aps.Err.Released" xml:space="preserve">
+    <value>Una ejecución liberada no se puede guardar de nuevo — use "Recalcular con datos actuales" en el historial para crear una nueva</value>
+  </data>
+  <data name="PP.Aps.Err.RestoredSave" xml:space="preserve">
+    <value>Una ejecución reproducida no se puede guardar tal cual — recalcule con datos actuales primero</value>
+  </data>
+  <data name="PP.Aps.Hist.Col.Run" xml:space="preserve">
+    <value>Ejecución</value>
+  </data>
+  <data name="PP.Aps.Hist.Col.Base" xml:space="preserve">
+    <value>Fecha base</value>
+  </data>
+  <data name="PP.Aps.Hist.Col.Days" xml:space="preserve">
+    <value>Días</value>
+  </data>
+  <data name="PP.Aps.Hist.Col.Warn" xml:space="preserve">
+    <value>Avisos</value>
+  </data>
+  <data name="PP.Aps.Hist.Col.By" xml:space="preserve">
+    <value>Creado por</value>
+  </data>
+  <data name="PP.Aps.Hist.Col.At" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="PP.Aps.Hist.Btn.Open" xml:space="preserve">
+    <value>Abrir</value>
+  </data>
+  <data name="PP.Aps.Hist.Btn.Recalc" xml:space="preserve">
+    <value>Recalcular con datos actuales</value>
+  </data>
+  <data name="PP.Aps.Hist.Empty" xml:space="preserve">
+    <value>Sin ejecuciones guardadas</value>
+  </data>
+  <data name="PP.Aps.Hist.Open" xml:space="preserve">
+    <value>Ejecución #{0} reproducida (solo lectura)</value>
+  </data>
+  <data name="PP.Aps.Btn.Settings" xml:space="preserve">
+    <value>Configuración</value>
+  </data>
+  <data name="PP.Aps.Settings.Title" xml:space="preserve">
+    <value>Configuración APS</value>
+  </data>
+  <data name="PP.Aps.Settings.Codes" xml:space="preserve">
+    <value>Códigos comunes APS_SETTING</value>
+  </data>
+  <data name="PP.Aps.Settings.Tiers" xml:space="preserve">
+    <value>Tramos de cobertura APS_COVER_TIER</value>
+  </data>
+  <data name="PP.Aps.Settings.Link" xml:space="preserve">
+    <value>Abrir códigos comunes MD-26</value>
+  </data>
+  <data name="PP.Aps.Settings.Stages" xml:space="preserve">
+    <value>Excepciones por línea: anticipación / uso de inventario (MD_ApsLineStage)</value>
+  </data>
+  <data name="PP.Aps.Settings.Col.Key" xml:space="preserve">
+    <value>Clave</value>
+  </data>
+  <data name="PP.Aps.Settings.Col.Value" xml:space="preserve">
+    <value>Valor</value>
+  </data>
+  <data name="PP.Aps.Settings.Col.Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="PP.Aps.Settings.Col.MinDemand" xml:space="preserve">
+    <value>Demanda diaria mín.</value>
+  </data>
+  <data name="PP.Aps.Settings.Col.Cover" xml:space="preserve">
+    <value>Días de cobertura</value>
+  </data>
+  <data name="PP.Aps.Settings.Col.Offset" xml:space="preserve">
+    <value>Días de anticipación</value>
+  </data>
+  <data name="PP.Aps.Settings.Col.UseStock" xml:space="preserve">
+    <value>Usar inventario</value>
+  </data>
+  <data name="PP.Aps.Settings.Col.Note" xml:space="preserve">
+    <value>Nota</value>
+  </data>
+  <data name="PP.Aps.Settings.Btn.Add" xml:space="preserve">
+    <value>Agregar</value>
+  </data>
+  <data name="PP.Aps.Settings.Ok.Saved" xml:space="preserve">
+    <value>{0} guardado</value>
+  </data>
+  <data name="PP.Aps.Settings.Ok.Deleted" xml:space="preserve">
+    <value>{0} eliminado</value>
+  </data>
+  <data name="PP.Aps.Settings.ConfirmDelete" xml:space="preserve">
+    <value>¿Eliminar la fila {0}? Esa línea vuelve al valor por defecto (inyección INJ_OFFSET_DAYS · ensamble 0)</value>
+  </data>
+  <data name="PP.Aps.Settings.Empty" xml:space="preserve">
+    <value>Sin excepciones por línea — las líneas de inyección usan INJ_OFFSET_DAYS, las de ensamble 0</value>
+  </data>
+  <data name="PP.Aps.Settings.Changed" xml:space="preserve">
+    <value>Configuración guardada — se aplica desde la próxima consulta</value>
+  </data>
+  <data name="PP.Aps.Settings.ReadOnly" xml:space="preserve">
+    <value>Solo lectura (sin permiso E)</value>
+  </data>
+  <data name="PP.Aps.Settings.Btn.SaveCodes" xml:space="preserve">
+    <value>Guardar ajustes</value>
+  </data>
+  <data name="PP.Aps.Settings.Btn.SaveTiers" xml:space="preserve">
+    <value>Guardar tramos</value>
+  </data>
+  <data name="PP.Aps.Settings.Btn.AddTier" xml:space="preserve">
+    <value>Agregar tramo</value>
+  </data>
+  <data name="PP.Aps.Settings.Missing" xml:space="preserve">
+    <value>No registrado — se crea con el valor predeterminado</value>
+  </data>
+  <data name="PP.Aps.Settings.Ok.Codes" xml:space="preserve">
+    <value>{0} ajuste(s) guardados</value>
+  </data>
+  <data name="PP.Aps.Settings.Ok.Tiers" xml:space="preserve">
+    <value>Tramos guardados</value>
+  </data>
+  <data name="PP.Aps.Settings.Err.DupTier" xml:space="preserve">
+    <value>Tramo duplicado para demanda diaria {0}</value>
+  </data>
+  <data name="PP.Aps.Settings.NoChange" xml:space="preserve">
+    <value>Sin cambios</value>
+  </data>
+  <data name="PP.Aps.Btn.CreateWo" xml:space="preserve">
+    <value>Crear OT</value>
+  </data>
+  <data name="PP.Aps.Wo.Title" xml:space="preserve">
+    <value>Crear órdenes de trabajo desde la ejecución APS</value>
+  </data>
+  <data name="PP.Aps.Wo.Run" xml:space="preserve">
+    <value>Ejecución</value>
+  </data>
+  <data name="PP.Aps.Wo.Targets" xml:space="preserve">
+    <value>Líneas de plan de inyección objetivo</value>
+  </data>
+  <data name="PP.Aps.Wo.Selected" xml:space="preserve">
+    <value>Seleccionadas</value>
+  </data>
+  <data name="PP.Aps.Wo.AlreadyIssued" xml:space="preserve">
+    <value>{0} línea(s) ya vinculadas a una OT se omiten</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Date" xml:space="preserve">
+    <value>Fecha plan</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Day" xml:space="preserve">
+    <value>Día</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Night" xml:space="preserve">
+    <value>Noche</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.So" xml:space="preserve">
+    <value>Pedido</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Deadline" xml:space="preserve">
+    <value>Fecha límite prod.</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Slots" xml:space="preserve">
+    <value>Asignación</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Late" xml:space="preserve">
+    <value>Tarde</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Short" xml:space="preserve">
+    <value>Faltante</value>
+  </data>
+  <data name="PP.Aps.Wo.StockWo" xml:space="preserve">
+    <value>Reposición de stock</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Preview" xml:space="preserve">
+    <value>Vista previa</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Run" xml:space="preserve">
+    <value>Crear órdenes de trabajo</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.ConfirmRun" xml:space="preserve">
+    <value>Confirmar — Crear</value>
+  </data>
+  <data name="PP.Aps.Wo.Preview.Title" xml:space="preserve">
+    <value>Vista previa (números de OT provisionales)</value>
+  </data>
+  <data name="PP.Aps.Wo.Result.Title" xml:space="preserve">
+    <value>Resultado</value>
+  </data>
+  <data name="PP.Aps.Wo.Summary" xml:space="preserve">
+    <value>{0} OT · tarde {1} · faltante {2} · rechazadas {3} · omitidas {4}</value>
+  </data>
+  <data name="PP.Aps.Wo.Confirm" xml:space="preserve">
+    <value>¿Crear órdenes de trabajo para las {0} línea(s) seleccionadas?</value>
+  </data>
+  <data name="PP.Aps.Wo.Rejected" xml:space="preserve">
+    <value>Líneas de plan rechazadas</value>
+  </data>
+  <data name="PP.Aps.Wo.Reject.NoMold" xml:space="preserve">
+    <value>Sin molde</value>
+  </data>
+  <data name="PP.Aps.Wo.Reject.NoUph" xml:space="preserve">
+    <value>Sin UPH de molde-línea</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.NoneSelected" xml:space="preserve">
+    <value>No hay líneas seleccionadas</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.PreviewStale" xml:space="preserve">
+    <value>La selección cambió — vuelva a ejecutar la vista previa</value>
+  </data>
+  <data name="PP.Aps.Wo.Hint" xml:space="preserve">
+    <value>OT = pieza × fecha de plan de inyección. La cantidad se asigna FIFO a los saldos de pedidos confirmados por fecha de entrega; el resto se convierte en una OT de reposición de stock (sin pedido). Se resta la cantidad ya asignada ese día. Los tramos INJ se fijan en las bandas restantes de día/noche; la etapa de producto terminado se asigna automáticamente según la fecha límite. Las líneas faltantes o rechazadas quedan sin OT (o como Released sin asignar).</value>
+  </data>
+  <data name="PP.Aps.Wo.Ok" xml:space="preserve">
+    <value>{0} OT creadas · tarde {1} · faltante {2} · rechazadas {3}</value>
+  </data>
+  <data name="PP.Aps.Confirm.WoUsesSaved" xml:space="preserve">
+    <value>Las ediciones no guardadas no se usan para crear OT. ¿Continuar con la ejecución guardada #{0}?</value>
+  </data>
+  <data name="PP.Aps.Line.All" xml:space="preserve">
+    <value>Todas las líneas de ensamble</value>
+  </data>
+  <data name="PP.Aps.Lbl.IncludeDailyPlan" xml:space="preserve">
+    <value>Incluir plan diario</value>
+  </data>
+  <data name="PP.Aps.Cell.PlanDemand" xml:space="preserve">
+    <value>plan</value>
+  </data>
+  <data name="PP.Aps.Lbl.DailyPlanOn" xml:space="preserve">
+    <value>Plan diario</value>
+  </data>
+  <data name="PP.Forecast.Tab.Daily" xml:space="preserve">
+    <value>Plan de compra diario</value>
+  </data>
+  <data name="PP.DemandPlan.Empty" xml:space="preserve">
+    <value>Sin plan diario — cargue un archivo o consulte la API</value>
+  </data>
+  <data name="PP.DemandPlan.Kpi.Items" xml:space="preserve">
+    <value>Artículos</value>
+  </data>
+  <data name="PP.DemandPlan.Kpi.Days" xml:space="preserve">
+    <value>Días</value>
+  </data>
+  <data name="PP.DemandPlan.Kpi.TotalQty" xml:space="preserve">
+    <value>Total programado</value>
+  </data>
+  <data name="PP.DemandPlan.Kpi.Unmatched" xml:space="preserve">
+    <value>No registrados</value>
+  </data>
+  <data name="PP.DemandPlan.Col.Pack" xml:space="preserve">
+    <value>Empaque</value>
+  </data>
+  <data name="PP.DemandPlan.Badge.PackMismatch" xml:space="preserve">
+    <value>BoxQty distinto</value>
+  </data>
+  <data name="PP.DemandPlan.Btn.Upload" xml:space="preserve">
+    <value>Cargar Excel (diario)</value>
+  </data>
+  <data name="PP.DemandPlan.Btn.Api" xml:space="preserve">
+    <value>Obtener por API</value>
+  </data>
+  <data name="PP.DemandPlan.Upload.Title" xml:space="preserve">
+    <value>Carga de plan diario (SRM MM30011)</value>
+  </data>
+  <data name="PP.DemandPlan.Upload.Hint" xml:space="preserve">
+    <value>Archivo SRM MM30011. Las fechas se leen por orden de columna</value>
+  </data>
+  <data name="PP.DemandPlan.Preview.Summary" xml:space="preserve">
+    <value>{0} artículos · {1} ~ {2} ({3} días) · {4} celdas</value>
+  </data>
+  <data name="PP.DemandPlan.Preview.Unmatched" xml:space="preserve">
+    <value>{0} artículos no registrados</value>
+  </data>
+  <data name="PP.DemandPlan.Preview.PackMismatch" xml:space="preserve">
+    <value>{0} artículos con empaque distinto</value>
+  </data>
+  <data name="PP.DemandPlan.Ok.Imported" xml:space="preserve">
+    <value>Cargado — {0} artículos · {1} celdas · {2} no registrados · {3} empaques distintos</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.Source" xml:space="preserve">
+    <value>Origen</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.File" xml:space="preserve">
+    <value>Archivo / fuente</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.Unmatched" xml:space="preserve">
+    <value>No reg.</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.Mismatch" xml:space="preserve">
+    <value>Empaque</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.Title" xml:space="preserve">
+    <value>Cargas y sincronizaciones del plan diario</value>
+  </data>
+  <data name="PP.DemandPlan.Api.Title" xml:space="preserve">
+    <value>Obtener plan diario por API</value>
+  </data>
+  <data name="PP.DemandPlan.Api.Ok" xml:space="preserve">
+    <value>{0} artículos · {1} celdas · {2} no registrados · {3} empaques distintos</value>
+  </data>
+  <data name="PP.DemandPlan.Api.Detail" xml:space="preserve">
+    <value>{0} ~ {1} · obtenidos {2} · mapeados {3} · omitidos {4}</value>
+  </data>
+  <data name="PP.Aps.Settings.Col.Pattern" xml:space="preserve">
+    <value>Patrón de tiempo</value>
+  </data>
+  <data name="PP.Aps.Settings.Pattern.Default" xml:space="preserve">
+    <value>Seguir patrón predeterminado</value>
+  </data>
+  <data name="PP.Aps.Settings.Pattern.None" xml:space="preserve">
+    <value>Sin asignar</value>
+  </data>
+  <data name="PP.Aps.Err.Config" xml:space="preserve">
+    <value>La configuración de APS está incompleta y no se puede consultar el plan. Asigne un patrón de tiempo de línea (por línea o predeterminado) a las líneas de inyección en Ajustes.</value>
+  </data>
+  <data name="PP.Aps.Btn.OpenSettings" xml:space="preserve">
+    <value>Abrir ajustes</value>
+  </data>
 </root>

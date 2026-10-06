@@ -145,6 +145,7 @@ public sealed class LineScheduleRepository
     }
 
     // 적용: (라인, 일자)의 기존 행을 지우고 패턴 + WO 배치 + PM 밴드 + 금형 교체(MC) 블록을 Draft로 저장.
+    //       APS 형제 0분 행(WoID 있음·EndMin ≤ StartMin·수량 > 0)은 보드가 그 WO 에 실제 슬롯을 주지 않는 한 되살린다.
     public void SaveSchedule(string lineId, DateTime date, string? patternId,
         IEnumerable<(int WoId, int StartMin, int EndMin, decimal Qty, string? MoldId)> slots,
         IEnumerable<(int StartMin, int EndMin, string? Title, string? RefType, int? RefId)> pmBands,
@@ -155,6 +156,25 @@ public sealed class LineScheduleRepository
         using var tx   = conn.BeginTransaction();
         try
         {
+            // APS 형제 품번 슬롯(PpRepository.Aps.cs — 대표가 시간을 점유하고 형제는 StartMin = EndMin 행에 PlannedQty 만)은
+            // 보드가 0분 행을 싣지 않아 slots 로 돌아오지 않는다. POP 은 분과 무관하게 PlannedQty 를 계획으로 읽으므로 지우기 전에 읽어 두고 되살린다
+            var preserved = new List<(int WoId, int? StartMin, decimal Qty)>();
+            using (var sel = new SqlCommand("""
+                SELECT WoID, StartMin, PlannedQty
+                FROM   dbo.PP_LineSchedule
+                WHERE  LineID = @LineId AND ScheduleDate = @Date AND EntryType = 'WO' AND WoID IS NOT NULL
+                  AND  ISNULL(EndMin, 0) <= ISNULL(StartMin, 0) AND ISNULL(PlannedQty, 0) > 0
+                ORDER  BY StartMin, ScheduleID;
+                """, conn, tx))
+            {
+                sel.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+                sel.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
+                using var rdr = sel.ExecuteReader();
+                while (rdr.Read())
+                    preserved.Add(((int)rdr["WoID"], rdr["StartMin"] is DBNull ? null : Convert.ToInt32(rdr["StartMin"]),
+                                   rdr.GetDecimal(rdr.GetOrdinal("PlannedQty"))));
+            }
+
             using (var del = new SqlCommand(
                 "DELETE FROM dbo.PP_LineSchedule WHERE LineID=@LineId AND ScheduleDate=@Date;", conn, tx))
             {
@@ -166,14 +186,19 @@ public sealed class LineScheduleRepository
             var rows = slots.Where(s => s.EndMin > s.StartMin).ToList();
             var pms  = pmBands.Where(p => p.EndMin > p.StartMin).ToList();
             var mcs  = (mcBlocks ?? Array.Empty<(int, int, string?, int?, string?)>()).Where(m => m.EndMin > m.StartMin).ToList();
+            // 보드가 그 WO 에 실제 슬롯을 주면 그 슬롯이 0분 표지를 대신한다
+            var boardWos = rows.Select(s => s.WoId).ToHashSet();
+            var keep     = preserved.Where(p => !boardWos.Contains(p.WoId)).ToList();
             // 상태값은 공통코드 SCHEDULE_STATUS(DRAFT/PUBLISHED) 참조.
-            // WO·PM·MC 모두 없어도 패턴/상태 보관용 placeholder 행 1개는 남긴다.
-            if (rows.Count == 0 && pms.Count == 0 && mcs.Count == 0)
+            // WO·PM·MC·형제 행 모두 없어도 패턴/상태 보관용 placeholder 행 1개는 남긴다.
+            if (rows.Count == 0 && pms.Count == 0 && mcs.Count == 0 && keep.Count == 0)
                 InsertRow(conn, tx, lineId, date, patternId, "WO", null, null, null, 0m, null, null, null, "DRAFT", actor);
             else
             {
                 foreach (var s in rows)
                     InsertRow(conn, tx, lineId, date, patternId, "WO", s.WoId, s.StartMin, s.EndMin, s.Qty, null, null, null, "DRAFT", actor, s.MoldId);
+                foreach (var p in keep)
+                    InsertRow(conn, tx, lineId, date, patternId, "WO", p.WoId, p.StartMin, p.StartMin, p.Qty, null, null, null, "DRAFT", actor);
                 foreach (var p in pms)
                     InsertRow(conn, tx, lineId, date, patternId, "PM", null, p.StartMin, p.EndMin, 0m, p.Title, p.RefType, p.RefId, "DRAFT", actor);
                 foreach (var m in mcs)
@@ -374,6 +399,7 @@ public sealed class LineScheduleRepository
     /// <summary>
     /// (라인, 일자)의 패턴·가동 밴드·기존 점유(WO 슬롯 + PM 밴드). 패턴은 그 날 저장 행의 PatternID →
     /// 라인 전용 ACTIVE 패턴 → 전역 패턴 순으로 해석한다 (PP-LSB 보드의 PatternOptions 순서와 동일).
+    /// 호출자가 patternId 를 주면(APS 경로, 2026-10-06) 그 해석을 전부 건너뛰고 그 패턴의 세그먼트를 읽는다 — 존재·상태는 호출자 책임.
     /// OperatingMin 은 PM 을 뺀 가동분, RemainMin 은 거기서 WO 슬롯을 뺀 값 (보드 KPI 와 같은 정의).
     /// </summary>
     public sealed record DayCapacity(
@@ -381,24 +407,28 @@ public sealed class LineScheduleRepository
         IReadOnlyList<SlotPacker.Interval> OperatingBands,
         IReadOnlyList<SlotPacker.Interval> Occupied,
         int OperatingMin, int WoLoadMin, int? LastWoEnd,
-        string? LastMoldId = null)
+        string? LastMoldId = null,
+        // APS(AMES.Data.Aps.ShiftBands.Split)용 — OPERATING 세그먼트 × 교대 SortOrder, PM 차감 전. 기본값이 있어 Occupy 의 with 식은 그대로 동작한다.
+        IReadOnlyList<(SlotPacker.Interval Band, int ShiftSort)>? ShiftBands = null)
     {
         public int RemainMin => OperatingMin - WoLoadMin;
     }
 
-    public DayCapacity GetDayCapacity(string lineId, DateTime date)
+    public DayCapacity GetDayCapacity(string lineId, DateTime date, string? patternId = null)
     {
         using var conn = _f.OpenConnection();
-        return ReadDayCapacity(conn, null, lineId, date);
+        return ReadDayCapacity(conn, null, lineId, date, patternId);
     }
 
-    internal static DayCapacity ReadDayCapacity(SqlConnection conn, SqlTransaction? tx, string lineId, DateTime date)
+    internal static DayCapacity ReadDayCapacity(SqlConnection conn, SqlTransaction? tx, string lineId, DateTime date, string? patternId = null)
     {
         const string sql = """
-            DECLARE @Pat varchar(20) =
-                (SELECT TOP 1 PatternID FROM dbo.PP_LineSchedule
-                 WHERE  LineID = @LineId AND ScheduleDate = @Date AND PatternID IS NOT NULL
-                 ORDER  BY ScheduleID);
+            DECLARE @Pat varchar(20) = @Override;
+            IF @Pat IS NULL
+                SET @Pat =
+                    (SELECT TOP 1 PatternID FROM dbo.PP_LineSchedule
+                     WHERE  LineID = @LineId AND ScheduleDate = @Date AND PatternID IS NOT NULL
+                     ORDER  BY ScheduleID);
             IF @Pat IS NULL
                 SELECT TOP 1 @Pat = p.PatternID
                 FROM   dbo.MD_LineTimePattern p
@@ -421,11 +451,12 @@ public sealed class LineScheduleRepository
               AND  ISNULL(s.EndMin,0) > ISNULL(s.StartMin,0);
             """;
         using var cmd = new SqlCommand(sql, conn, tx);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
-        cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
+        cmd.Parameters.Add("@LineId",   SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@Date",     SqlDbType.Date).Value        = date.Date;
+        cmd.Parameters.Add("@Override", SqlDbType.VarChar, 20).Value = (object?)(string.IsNullOrWhiteSpace(patternId) ? null : patternId.Trim()) ?? DBNull.Value;
         using var rdr = cmd.ExecuteReader();
 
-        string? patternId = rdr.Read() ? rdr["PatternID"] as string : null;
+        patternId = rdr.Read() ? rdr["PatternID"] as string : null;
 
         var segs = new List<(int Start, int End, string State, int ShiftSort)>();
         if (rdr.NextResult())
@@ -452,6 +483,8 @@ public sealed class LineScheduleRepository
         }
         var operating = segs.Where(s => s.State == "OPERATING")
                             .Select(s => new SlotPacker.Interval(s.Start, s.End)).ToList();
+        var shiftBands = segs.Where(s => s.State == "OPERATING")
+                             .Select(s => (Band: new SlotPacker.Interval(s.Start, s.End), s.ShiftSort)).ToList();
         int operatingMin = operating.Sum(b => Subtract(b, pm).Sum(x => x.EndMin - x.StartMin));
         int woLoad       = wo.Sum(w => w.Iv.EndMin - w.Iv.StartMin);
         int Axis(int m) { int r = (m - dayStart) % 1440; return r < 0 ? r + 1440 : r; }
@@ -461,7 +494,7 @@ public sealed class LineScheduleRepository
         string? lastMoldId = wo.Where(w => w.Mold is not null).OrderByDescending(AxisEnd).Select(w => w.Mold).FirstOrDefault();
 
         return new DayCapacity(patternId, dayStart, operating, wo.Select(w => w.Iv).Concat(pm).ToList(),
-                               operatingMin, woLoad, lastWoEnd, lastMoldId);
+                               operatingMin, woLoad, lastWoEnd, lastMoldId, shiftBands);
     }
 
     // band 에서 holes 를 뺀 잔여 구간 (보드 SubtractPm 과 같은 규칙)
