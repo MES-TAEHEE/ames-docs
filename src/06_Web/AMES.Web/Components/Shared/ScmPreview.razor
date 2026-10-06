@@ -42,7 +42,6 @@
     @if(IsPortal && Mode=="Due" && _isExternalPortalUser)
     {
         <div class="scm-creation-actions">
-            <RadzenButton Text="Create Case" Icon="inventory_2" Size="ButtonSize.Small" Click="@(()=>RegisterReadyOrder(""))" />
             <RadzenButton Text="Create Delivery Note" Icon="description" Size="ButtonSize.Small" Click="OpenCaseSelection" />
         </div>
     }
@@ -223,13 +222,13 @@
     @if (IsPortal && Mode=="Due" && _creationOrder is not null)
     {
         <div class="ames-modal-bg">
-            <div class="ames-modal" role="dialog" aria-modal="true" aria-label="@(_createNote?"Create Delivery Note":"Create Case")" style="width:min(1500px,96vw);max-width:96vw;max-height:92vh;display:flex;flex-direction:column;">
+            <div class="ames-modal" role="dialog" aria-modal="true" aria-label="Create Delivery Note" style="width:min(1500px,96vw);max-width:96vw;max-height:92vh;display:flex;flex-direction:column;">
                 <div class="ames-modal-h" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
-                    <span>@(_createNote?"Create Delivery Note":"Create Case") @(_creationOrder.Length>0?$"· {_creationOrder}":"")</span>
+                    <span>Create Delivery Note</span>
                     <RadzenButton Icon="close" aria-label="Close creation" ButtonStyle="ButtonStyle.Light" Click="CloseCreation" />
                 </div>
                 <div class="ames-modal-body" style="overflow:auto;min-height:0;">
-                    <AMES.Web.Components.Pages.Portal.DeliveryCases @key="(_creationOrder,_createNote)" Embedded="true" InitialOrder="@_creationOrder" NoteMode="@_createNote" Changed="RefreshCreation" />
+                    <AMES.Web.Components.Pages.Portal.DeliveryCases @key="_creationOrder" Embedded="true" InitialOrder="@_creationOrder" Changed="RefreshCreation" />
                 </div>
             </div>
         </div>
@@ -536,9 +535,7 @@
         .Where(o => string.IsNullOrWhiteSpace(_search) || (o.Number + " " + o.Item + " " + o.Name).Contains(_search, StringComparison.OrdinalIgnoreCase))
         .OrderBy(o => Mode == "Due" ? o.Due : o.Ordered).ThenBy(o => o.Number).ToList();
     string? _creationOrder;
-    bool _createNote;
-    void RegisterReadyOrder(string number) { _createNote=false;_creationOrder=number; }
-    void OpenCaseSelection() { _createNote=true;_creationOrder=""; }
+    void OpenCaseSelection() { _creationOrder=""; }
     void RefreshCreation() { ReloadOrders(); }
     void CloseCreation() { _creationOrder=null; ReloadOrders(); }
     List<ScmPreviewStore.Delivery> DeliveryRows => Store.Deliveries

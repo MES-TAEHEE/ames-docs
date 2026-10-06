@@ -394,6 +394,25 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(2,Count("SELECT SUM(ReceivedQty) FROM SCM_DeliveryLine WHERE PoID=4"));
             Sql($"DELETE WH_Inventory WHERE LotNo='{adjustedBox}';");
             Assert.Equal(2,repo.ListPortalDeliveryDiscrepancies("case-user").Count); // historical link survives stock removal
+            // The unified wizard persists no partial cases when any draft fails.
+            var beforeDraftCases=Count("SELECT COUNT(*) FROM SCM_DeliveryCase");
+            var beforeDraftBoxes=Count("SELECT COUNT(*) FROM SCM_DeliveryBox");
+            var beforeDraftDeliveries=Count("SELECT COUNT(*) FROM SCM_Delivery");
+            Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromDraftCases(
+                [new(["PO-MIX-1"],[new(4,2)]),new(["PO-MIX-3"],[new(6,5)])],DateTime.Today,"case-user","case-user"));
+            Assert.Equal(beforeDraftCases,Count("SELECT COUNT(*) FROM SCM_DeliveryCase"));
+            Assert.Equal(beforeDraftBoxes,Count("SELECT COUNT(*) FROM SCM_DeliveryBox"));
+            Assert.Equal(beforeDraftDeliveries,Count("SELECT COUNT(*) FROM SCM_Delivery"));
+            Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromDraftCases(
+                [new(["PO-MIX-1"],Enumerable.Range(0,9).Select(_=>new ScmRepository.CaseBoxInput(4,2)).ToArray())],DateTime.Today,"case-user","case-user"));
+            Assert.Equal(beforeDraftCases,Count("SELECT COUNT(*) FROM SCM_DeliveryCase"));
+            Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromDraftCases(
+                [new(["PO-MIX-1"],[new(4,2)])],DateTime.Today,"other-user","other-user"));
+            var draftNote=repo.CreateDeliveryNoteFromDraftCases(
+                [new(["PO-MIX-1"],[new(4,2)]),new(["PO-MIX-2"],[new(5,5)])],DateTime.Today,"case-user","case-user");
+            Assert.Equal(7,draftNote.Lines.Sum(l=>l.Quantity));
+            Assert.Equal(2,repo.ListDeliveryCases(null,"case-user").Count(c=>c.NoteNumber==draftNote.Number));
+            Assert.Equal(beforeDraftCases+2,Count("SELECT COUNT(*) FROM SCM_DeliveryCase"));
             Sql("UPDATE SCM_PortalVendorUser SET LockedFlag=1 WHERE UserID='case-user';");
             Assert.Empty(repo.ListPortalDeliveryDiscrepancies("case-user"));
         }

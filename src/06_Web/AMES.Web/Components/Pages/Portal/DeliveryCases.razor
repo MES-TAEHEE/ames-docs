@@ -19,10 +19,47 @@
 {
     <p><a href="@($"/portal/delivery-note/{Uri.EscapeDataString(_createdNote)}")" target="_blank" rel="noopener">Print Delivery Note · @_createdNote</a></p>
 }
-@if(_allowed && !NoteMode)
+@if(_allowed && !_editingCase)
 {
     <section class="ames-card">
-        <div class="ames-card-h">Confirmed Purchase Orders</div>
+        <div class="ames-card-h">Cases · @_draftCases.Count</div>
+        <div class="case-cards">
+            @foreach(var item in _draftCases)
+            {
+                <button type="button" class="case-tile @(_activeCase==item?"active":"")" @onclick="()=>_activeCase=_activeCase==item?null:item" disabled="@_busy">
+                    <RadzenIcon Icon="inventory_2" /><strong>Case @(_draftCases.IndexOf(item)+1)</strong><span>@item.Count boxes</span>
+                </button>
+            }
+            <button type="button" class="case-tile case-add" @onclick="AddCase" disabled="@_busy">
+                <RadzenIcon Icon="add_box" /><strong>Add Case</strong>
+            </button>
+        </div>
+        @if(_activeCase is {} detail)
+        {
+            <div class="case-detail">
+                <div class="case-toolbar"><strong>Case @(_draftCases.IndexOf(detail)+1)</strong>
+                    <RadzenButton Text="Remove Case" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="()=>RemoveDraftCase(detail)" Disabled="@_busy" />
+                </div>
+                <div class="case-table-scroll"><table class="ames-table">
+                    <thead><tr><th>Box</th><th>PO No</th><th>Part No / Name</th><th>Qty</th></tr></thead>
+                    <tbody>@foreach(var box in detail)
+                    {
+                        <tr><td>@(detail.IndexOf(box)+1)</td><td>@box.Row.Order</td><td>@box.Row.Part.Item<div class="dim">@box.Row.Part.Name</div></td><td>@QtyFormat.Text(box.Quantity,box.Row.Part.Unit) @box.Row.Part.Unit</td></tr>
+                    }</tbody>
+                </table></div>
+            </div>
+        }
+    </section>
+    <div class="case-toolbar case-create-footer">
+        <label>Delivery Date <RadzenDatePicker TValue="DateTime" @bind-Value="_deliveryDate" DateFormat="yyyy-MM-dd" Disabled="@_busy" /></label>
+        <RadzenButton Text="Create Delivery Note" Icon="description" Click="CreateNote" Disabled="@(_busy || _draftCases.Count==0)" />
+    </div>
+}
+@if(_allowed && _editingCase)
+{
+    <section class="ames-card">
+        <div class="ames-card-h">Add Case · Confirmed Purchase Orders</div>
+        <p class="case-empty">Select boxes for the same supplier and destination.</p>
         <div class="case-po-scroll"><table class="ames-table">
             <thead><tr><th></th><th>PO No</th><th>Supplier</th><th>Destination</th><th>Due Date</th><th>Status</th></tr></thead>
             <tbody>@foreach(var order in _orders.Where(o=>o.SupplierConfirmedAt.HasValue && o.Status is "Open" or "Partial"))
@@ -40,15 +77,17 @@
                             <thead><tr><th>Part No / Name</th><th>Available</th><th>Qty / Box</th><th>Quantity to Pack</th><th>Boxes</th></tr></thead>
                             <tbody>@foreach(var row in _parts.Where(p=>p.Order==order.Number))
                             {
-                                <tr @key="row.Part.PoID" class="@(row.Part.Available<=0?"case-part-unavailable":"")"><td>@row.Part.Item<div class="dim">@row.Part.Name</div></td>
+                                <tr @key="row.Part.PoID" class="@(Available(row)<=0?"case-part-unavailable":"")"><td>@row.Part.Item<div class="dim">@row.Part.Name</div></td>
                                     <td>
-                                        <strong>@QtyFormat.Text(row.Part.Available,row.Part.Unit) @row.Part.Unit</strong>
-                                        @if(row.Part.Available<=0)
+                                        <strong>@QtyFormat.Text(Available(row),row.Part.Unit) @row.Part.Unit</strong>
+                                        @if(Available(row)<=0)
                                         {
                                             var documents=_deliveries.Where(d=>d.PoID==row.Part.PoID && d.Status!="Cancelled").Select(d=>d.Number).Distinct().ToArray();
                                             @if(documents.Length>0){<div class="case-allocation">@string.Join(", ",documents) · Already registered</div>}
                                             @foreach(var item in VisibleCases.Where(c=>c.Boxes.Any(b=>b.PoID==row.Part.PoID)))
                                             {<div class="case-allocation">@item.Number · Already packed</div>}
+                                            @foreach(var draftCase in _draftCases.Where(c=>c.Any(b=>b.Row.Part.PoID==row.Part.PoID)))
+                                            {<div class="case-allocation">Case @(_draftCases.IndexOf(draftCase)+1) · Added to this note</div>}
                                             @if(documents.Length==0 && row.Part.Prepared==0){<div class="dim">@(row.Part.Received>0?"Already received":"No available quantity")</div>}
                                         }
                                     </td>
@@ -57,20 +96,20 @@
                                         else
                                         {
                                             <span>Not set</span>
-                                            @if(row.Part.Available>0 && row.Part.Issue is "Packing quantity missing" or "Vendor mapping missing")
+                                            @if(Available(row)>0 && row.Part.Issue is "Packing quantity missing" or "Vendor mapping missing")
                                             {
                                                 <div class="case-packing-editor">
                                                     <input class="ames-input" type="number" min="1" step="1" @bind="row.NewPackingQty" placeholder="Qty / Box" aria-label="@($"Qty per box {row.Part.Item}")" disabled="@_busy" />
                                                     <RadzenButton Text="Save Qty / Box" Size="ButtonSize.ExtraSmall" Click="()=>SavePacking(row)" Disabled="@_busy" />
                                                 </div>
                                             }
-                                            else if(row.Part.Available>0){<div class="case-input-message">@row.Part.Issue. Ask EOS to check Material Item Master / supplier mapping.</div>}
+                                            else if(Available(row)>0){<div class="case-input-message">@row.Part.Issue. Ask EOS to check Material Item Master / supplier mapping.</div>}
                                         }
                                     </td>
                                     <td><div class="case-quantity-editor"><input class="ames-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="0"
-                                        @bind:get="row.QuantityText" @bind:set="value=>ChangeQuantity(row,value)" @bind:event="oninput" disabled="@(_busy || row.Part.Available<=0 || row.Part.Issue.Length>0)"
-                                        aria-invalid="@(!row.InputValid || row.Quantity>row.Part.Available?"true":"false")" aria-label="@($"Quantity to pack {row.Order} {row.Part.Item}")" /></div>
-                                        @if(row.Part.Available>0 && row.Part.Issue.Length>0){<div class="case-input-message">@row.Part.Issue</div>}
+                                        @bind:get="row.QuantityText" @bind:set="value=>ChangeQuantity(row,value)" @bind:event="oninput" disabled="@(_busy || Available(row)<=0 || row.Part.Issue.Length>0)"
+                                        aria-invalid="@(!row.InputValid || row.Quantity>Available(row)?"true":"false")" aria-label="@($"Quantity to pack {row.Order} {row.Part.Item}")" /></div>
+                                        @if(Available(row)>0 && row.Part.Issue.Length>0){<div class="case-input-message">@row.Part.Issue</div>}
                                         else if(!row.InputValid){<div class="case-input-message">Enter whole numbers only.</div>}
                                     </td><td>@(row.Part.PackingQty>0?decimal.Ceiling(row.Quantity/row.Part.PackingQty):0)</td></tr>
                             }</tbody>
@@ -93,64 +132,17 @@
         @if(!_orders.Any(o=>o.Status is "Open" or "Partial")){<p class="case-empty">No confirmed purchase orders available for packing.</p>}
     </section>
 }
-@if(_allowed)
+@if(_allowed && _editingCase)
 {
-    <section class="ames-card">
-        <div class="ames-card-h case-section-header">
-            <span>@(NoteMode?"Select Cases":"Saved Cases") · @VisibleCases.Count()</span>
-            <RadzenButton Text="Refresh" Icon="refresh" Click="Reload" Disabled="@_busy" Size="ButtonSize.Small" />
-        </div>
-        @if(NoteMode){<p class="case-empty">Select unassigned cases for the same supplier and destination.</p>}
-        <div class="case-cards">@foreach(var item in VisibleCases)
-        {
-            <div class="case-choice">
-                @if(NoteMode)
-                {
-                    <label><input type="checkbox" checked="@_selectedCases.Contains(item.Number)" @onchange="e=>SelectCase(item.Number,e.Value is true)" disabled="@(_busy || !CanSelectCase(item))" /> Select</label>
-                }
-                <button type="button" @key="item.Number" class="case-tile @(_expandedCase==item.Number?"active":"")" @onclick="@(()=>_expandedCase=_expandedCase==item.Number?"":item.Number)" disabled="@_busy" aria-expanded="@(_expandedCase==item.Number)">
-                    <RadzenIcon Icon="inventory_2" /><strong>@item.Number</strong><span>@item.Boxes.Count boxes</span><span>@item.Order</span>
-                    <span>@item.VendorName · @CaseDestination(item)</span>
-                </button>
-            </div>
-        }</div>
-        @if(!VisibleCases.Any()){<p class="case-empty">No unassigned cases.</p>}
-        @if(VisibleCases.FirstOrDefault(c=>c.Number==_expandedCase) is {} detail)
-        {
-            <div class="case-detail">
-                <div class="case-toolbar"><strong>@detail.Number · Boxes</strong>
-                    <RadzenButton Text="Remove Case" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(()=>_cancel=detail.Number)" Disabled="@_busy" />
-                </div>
-                @if(_cancel==detail.Number)
-                {
-                    <p>Remove this unassigned case and return its PO quantities?</p>
-                    <div class="case-toolbar"><RadzenButton Text="Remove" Click="@(()=>Cancel(detail.Number))" Disabled="@_busy" /><RadzenButton Text="Keep Case" Click="@(()=>_cancel="")" /></div>
-                }
-                <div class="case-table-scroll"><table class="ames-table"><thead><tr><th>Box No</th><th>PO No</th><th>Part No</th><th>Part Name</th><th>Qty</th><th>Unit</th></tr></thead>
-                    <tbody>@foreach(var box in detail.Boxes){<tr><td>@box.Number</td><td>@box.Order</td><td>@box.Item</td><td>@box.Name</td><td>@QtyFormat.Text(box.Quantity,box.Unit)</td><td>@box.Unit</td></tr>}</tbody>
-                </table></div>
-            </div>
-        }
-    </section>
-    @if(NoteMode)
-    {
-        <div class="case-toolbar">
-            <label>Delivery Date <RadzenDatePicker TValue="DateTime" @bind-Value="_deliveryDate" DateFormat="yyyy-MM-dd" Disabled="@_busy" /></label>
-            <span>@_selectedCases.Count case(s) selected</span>
-            <RadzenButton Text="Create Delivery Note" Icon="description" Click="CreateNote" Disabled="@(_busy || _selectedCases.Count==0)" />
-        </div>
-    }
-    else
-    {
-        <div class="case-toolbar case-create-footer">
-            <span>@_draft.Count(b=>b.Selected) boxes selected · @_draft.Where(b=>b.Selected).Select(b=>b.Row.Order).Distinct().Count() POs</span>
-            <RadzenButton Text="Create Case" Icon="inventory_2" Click="CreateCase" Disabled="@(_busy || _quantityError || !_draft.Any(b=>b.Selected))" />
-        </div>
-    }
+    <div class="case-toolbar case-create-footer">
+        <span>@_draft.Count(b=>b.Selected) boxes selected</span>
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="CancelCase" Disabled="@_busy" />
+        <RadzenButton Text="Done" Icon="check" Click="CompleteCase" Disabled="@(_busy || _quantityError || !_draft.Any(b=>b.Selected))" />
+    </div>
 }
+
 @code {
     [Parameter] public bool Embedded {get;set;}
-    [Parameter] public bool NoteMode {get;set;}
     [Parameter] public string? InitialOrder {get;set;}
     [Parameter] public EventCallback Changed {get;set;}
     [SupplyParameterFromQuery] public string? Order {get;set;}
@@ -176,12 +168,16 @@
     List<DraftBox> _draft=[];
     List<ScmRepository.DeliveryCase> _cases=[];
     List<ScmRepository.SupplierDelivery> _deliveries=[];
-    HashSet<string> _selectedOrders=new(StringComparer.OrdinalIgnoreCase),_selectedCases=new(StringComparer.OrdinalIgnoreCase);
+    HashSet<string> _selectedOrders=new(StringComparer.OrdinalIgnoreCase);
     HashSet<string> _expandedOrders=new(StringComparer.OrdinalIgnoreCase);
     IEnumerable<ScmRepository.DeliveryCase> VisibleCases => _cases.Where(c=>c.Status=="Prepared" && c.NoteNumber.Length==0 && c.Delivery is null
-        && (NoteMode || c.Boxes.Any(b=>_selectedOrders.Contains(b.Order)))).OrderBy(c=>c.CreatedAt).ThenBy(c=>c.Number);
+        && c.Boxes.Any(b=>_selectedOrders.Contains(b.Order))).OrderBy(c=>c.CreatedAt).ThenBy(c=>c.Number);
     DateTime _deliveryDate=DbClock.Today;
-    string _user="",_actor="",_error="",_message="",_expandedCase="",_cancel="",_createdNote="";
+    string _user="",_actor="",_error="",_message="",_createdNote="";
+    List<List<DraftBox>> _draftCases=[];
+    List<DraftBox>? _activeCase;
+    bool _editingCase;
+    decimal Available(PartEdit row)=>Math.Max(0,row.Part.Available-_draftCases.SelectMany(c=>c).Where(b=>b.Row.Part.PoID==row.Part.PoID).Sum(b=>b.Quantity));
     bool _allowed,_busy,_quantityError;
     string? _loadedKey;
     protected override async Task OnParametersSetAsync()
@@ -192,7 +188,7 @@
         _actor=ActorCode.Of(user);
         if(!_allowed||_user.Length==0){_allowed=false;_error="Access denied.";return;}
         var order=InitialOrder??Order??OrderNumber??"";
-        var key=$"{_user}|{NoteMode}|{order}";if(_loadedKey==key)return;_loadedKey=key;
+        var key=$"{_user}|{order}";if(_loadedKey==key)return;_loadedKey=key;
         _selectedOrders.Clear();_expandedOrders.Clear();
         if(order.Length>0){_selectedOrders.Add(order);_expandedOrders.Add(order);}
         Reload();
@@ -200,10 +196,10 @@
     void Reload()
     {
         if(!_allowed)return;
-        _error="";_message="";_selectedCases.Clear();_expandedCase="";_cancel="";
+        _error="";_message="";
         try
         {
-            _orders=Scm.ListPurchaseOrders(true,_user,confirmedOnly:true).Where(o=>NoteMode || o.Lines.Any(l=>l.ItemExists)).ToList();
+            _orders=Scm.ListPurchaseOrders(true,_user,confirmedOnly:true).Where(o=>o.Lines.Any(l=>l.ItemExists)).ToList();
             _selectedOrders.RemoveWhere(n=>!_orders.Any(p=>p.Number==n));
             _cases=Scm.ListDeliveryCases(null,_user);
             _deliveries=Scm.ListSupplierDeliveries(true,_user);
@@ -213,7 +209,7 @@
     }
     bool CanSelectOrder(ScmRepository.PurchaseOrder order)
     {
-        var selectedOrder=_draft.FirstOrDefault(b=>b.Selected)?.Row.Order;
+        var selectedOrder=_draftCases.SelectMany(c=>c).FirstOrDefault()?.Row.Order ?? _draft.FirstOrDefault(b=>b.Selected)?.Row.Order;
         var first=_orders.FirstOrDefault(o=>o.Number==selectedOrder);
         return first is null||(first.Vendor==order.Vendor && first.Destination==order.Destination);
     }
@@ -228,7 +224,7 @@
     void LoadParts(bool preserve=false)
     {
         var previous=_parts.ToDictionary(p=>p.Part.PoID);_parts=[];
-        if(!NoteMode)foreach(var order in _selectedOrders.Order(StringComparer.Ordinal))
+        foreach(var order in _selectedOrders.Order(StringComparer.Ordinal))
             _parts.AddRange(Scm.ListCaseParts(order,_user).Select(p=>new PartEdit(order,p)
             {
                 Quantity=preserve&&previous.TryGetValue(p.PoID,out var old)?old.Quantity:0,
@@ -262,11 +258,11 @@
     {
         var selected=_draft.Where(b=>b.Selected).Select(b=>(b.Row.Part.PoID,b.Sequence,b.Quantity)).ToHashSet();
         _draft=[];_error="";
-        bool Valid(PartEdit p)=>p.InputValid&&p.Quantity>=0&&p.Quantity<=p.Part.Available&&decimal.Truncate(p.Quantity)==p.Quantity&&
+        bool Valid(PartEdit p)=>p.InputValid&&p.Quantity>=0&&p.Quantity<=Available(p)&&decimal.Truncate(p.Quantity)==p.Quantity&&
             (p.Quantity==0||(p.Part.PackingQty>0&&p.Part.Issue.Length==0));
         _quantityError=_parts.Any(p=>!Valid(p));
         if(_quantityError)_error="Enter whole-number quantities within the available PO balance and check packing quantities.";
-        if(_parts.Where(Valid).Sum(p=>p.Part.PackingQty>0?decimal.Ceiling(p.Quantity/p.Part.PackingQty):0)>1000)
+        if(_parts.Where(Valid).Sum(p=>p.Part.PackingQty>0?decimal.Ceiling(p.Quantity/p.Part.PackingQty):0)+_draftCases.Sum(c=>c.Count)>1000)
         {_quantityError=true;_error="At most 1,000 boxes can be prepared at once.";return;}
         foreach(var row in _parts.Where(p=>Valid(p)&&p.Quantity>0))
         {
@@ -288,52 +284,37 @@
         if(_busy || (value&&!CanSelectOrder(order)))return;
         foreach(var box in _draft.Where(b=>b.Row.Order==order.Number))box.Selected=value;
     }
-    string CaseDestination(ScmRepository.DeliveryCase item)=>string.Join(", ",item.Boxes.Select(b=>_orders.FirstOrDefault(o=>o.Number==b.Order)?.Destination??"").Distinct());
-    bool CanSelectCase(ScmRepository.DeliveryCase item)
-    {
-        var first=_cases.FirstOrDefault(c=>_selectedCases.Contains(c.Number));
-        return _selectedCases.Contains(item.Number)||first is null||(first.Vendor==item.Vendor && CaseDestination(first)==CaseDestination(item));
-    }
-    void SelectCase(string number,bool value)
+    void AddCase()
     {
         if(_busy)return;
-        if(value){if(VisibleCases.Any(c=>c.Number==number&&CanSelectCase(c)))_selectedCases.Add(number);}else _selectedCases.Remove(number);
+        _error="";_message="";_draft=[];_parts=[];_selectedOrders.Clear();_expandedOrders.Clear();
+        _editingCase=true;_quantityError=false;
     }
-    async Task CreateCase()
+    void CancelCase()
+    {
+        _editingCase=false;_draft=[];_parts=[];_error="";
+    }
+    void CompleteCase()
     {
         if(_busy||!_allowed||_quantityError||!_draft.Any(b=>b.Selected))return;
-        _busy=true;_error="";_message="";
-        try
-        {
-            var selected=_draft.Where(b=>b.Selected).ToArray();
-            var number=Scm.CreatePreparedCase(selected.Select(b=>b.Row.Order).Distinct().ToArray(),selected.Select(b=>new ScmRepository.CaseBoxInput(b.Row.Part.PoID,b.Quantity)).ToArray(),_user);
-            foreach(var row in _parts)
-            {
-                row.Quantity-=selected.Where(b=>b.Row.Part.PoID==row.Part.PoID).Sum(b=>b.Quantity);
-                row.QuantityText=row.Quantity==0?"":row.Quantity.ToString("0",System.Globalization.CultureInfo.InvariantCulture);
-            }
-            _draft=[];
-            _cases=Scm.ListDeliveryCases(null,_user);LoadParts(true);_expandedCase=number;
-            _message=$"{number} saved. It remains available until assigned to a Delivery Note.";
-            LogCreated("SCM_DeliveryCase",number);await Changed.InvokeAsync();
-        }
-        catch(Exception ex){Fail(ex,"Unable to create Case. Refresh and check PO balances and packing quantities.");}
-        finally{_busy=false;}
+        _activeCase=_draft.Where(b=>b.Selected).ToList();
+        _draftCases.Add(_activeCase);
+        CancelCase();
     }
-    async Task Cancel(string number)
+    void RemoveDraftCase(List<DraftBox> item)
     {
-        if(_busy||!_allowed)return;_busy=true;
-        try{Scm.CancelPreparedCase(number,_user);Reload();_message=$"{number} removed.";await Changed.InvokeAsync();}
-        catch(Exception ex){Fail(ex,"Unable to remove Case. It may already be assigned.");}
-        finally{_busy=false;}
+        if(_busy)return;
+        _draftCases.Remove(item);_activeCase=null;
     }
     async Task CreateNote()
     {
-        if(_busy||!_allowed||!NoteMode||_selectedCases.Count==0)return;_busy=true;_createdNote="";
+        if(_busy||!_allowed||_editingCase||_draftCases.Count==0)return;_busy=true;_createdNote="";
         try
         {
-            var note=Scm.CreateDeliveryNoteFromCases(_selectedCases.ToArray(),_deliveryDate,_user,_actor);
-            Reload();_createdNote=note.Number;_message=$"{note.Number} created.";
+            var note=Scm.CreateDeliveryNoteFromDraftCases(_draftCases.Select(boxes=>new ScmRepository.CaseDraftInput(
+                boxes.Select(b=>b.Row.Order).Distinct().ToArray(),
+                boxes.Select(b=>new ScmRepository.CaseBoxInput(b.Row.Part.PoID,b.Quantity)).ToArray())).ToArray(),_deliveryDate,_user,_actor);
+            _draftCases.Clear();_activeCase=null;Reload();_createdNote=note.Number;_message=$"{note.Number} created.";
             LogCreated("SCM_DeliveryNote",note.Number);await Changed.InvokeAsync();
         }
         catch(Exception ex){Fail(ex,"Unable to create Delivery Note. Check the date, PO balances and selected cases.");}
