@@ -50,9 +50,12 @@ IF OBJECT_ID(N'[dbo].[FK_FG_ShipmentOrderLine_Location]', N'F') IS NOT NULL ALTE
 IF OBJECT_ID(N'[dbo].[FK_FG_ShipmentOrderLine_Lot]', N'F') IS NOT NULL ALTER TABLE [dbo].[FG_ShipmentOrderLine] DROP CONSTRAINT [FK_FG_ShipmentOrderLine_Lot];
 IF OBJECT_ID(N'[dbo].[FK_FG_ShipmentOrderLine_Order]', N'F') IS NOT NULL ALTER TABLE [dbo].[FG_ShipmentOrderLine] DROP CONSTRAINT [FK_FG_ShipmentOrderLine_Order];
 IF OBJECT_ID(N'[dbo].[FK_FG_ShipmentOrderLine_Stock]', N'F') IS NOT NULL ALTER TABLE [dbo].[FG_ShipmentOrderLine] DROP CONSTRAINT [FK_FG_ShipmentOrderLine_Stock];
+IF OBJECT_ID(N'[dbo].[FK_MD_ApsLineStage_Line]', N'F') IS NOT NULL ALTER TABLE [dbo].[MD_ApsLineStage] DROP CONSTRAINT [FK_MD_ApsLineStage_Line];
 IF OBJECT_ID(N'[dbo].[FK_MD_MoldColor_Mold]', N'F') IS NOT NULL ALTER TABLE [dbo].[MD_MoldColor] DROP CONSTRAINT [FK_MD_MoldColor_Mold];
 IF OBJECT_ID(N'[dbo].[FK_MD_MoldItem_Mold]', N'F') IS NOT NULL ALTER TABLE [dbo].[MD_MoldItem] DROP CONSTRAINT [FK_MD_MoldItem_Mold];
 IF OBJECT_ID(N'[dbo].[FK_MD_MoldLine_Mold]', N'F') IS NOT NULL ALTER TABLE [dbo].[MD_MoldLine] DROP CONSTRAINT [FK_MD_MoldLine_Mold];
+IF OBJECT_ID(N'[dbo].[FK_PP_ApsPlanLine_Run]', N'F') IS NOT NULL ALTER TABLE [dbo].[PP_ApsPlanLine] DROP CONSTRAINT [FK_PP_ApsPlanLine_Run];
+IF OBJECT_ID(N'[dbo].[FK_PP_ApsRunWo_Run]', N'F') IS NOT NULL ALTER TABLE [dbo].[PP_ApsRunWo] DROP CONSTRAINT [FK_PP_ApsRunWo_Run];
 IF OBJECT_ID(N'[dbo].[FK_PR_AndonDeptCall_Andon]', N'F') IS NOT NULL ALTER TABLE [dbo].[PR_AndonDeptCall] DROP CONSTRAINT [FK_PR_AndonDeptCall_Andon];
 IF OBJECT_ID(N'[dbo].[FK_PR_ImgLot_Lot]', N'F') IS NOT NULL ALTER TABLE [dbo].[PR_ImgLot] DROP CONSTRAINT [FK_PR_ImgLot_Lot];
 IF OBJECT_ID(N'[dbo].[FK_PR_InjLot_Lot]', N'F') IS NOT NULL ALTER TABLE [dbo].[PR_InjLot] DROP CONSTRAINT [FK_PR_InjLot_Lot];
@@ -119,6 +122,7 @@ DROP TABLE IF EXISTS [dbo].[FG_PickingFifo];
 DROP TABLE IF EXISTS [dbo].[FG_PutAway];
 DROP TABLE IF EXISTS [dbo].[FG_ShipmentOrder];
 DROP TABLE IF EXISTS [dbo].[FG_ShipmentOrderLine];
+DROP TABLE IF EXISTS [dbo].[MD_ApsLineStage];
 DROP TABLE IF EXISTS [dbo].[MD_Bom];
 DROP TABLE IF EXISTS [dbo].[MD_BomVersion];
 DROP TABLE IF EXISTS [dbo].[MD_Bop];
@@ -193,6 +197,9 @@ DROP TABLE IF EXISTS [dbo].[PNT_ShiftReportLineItem];
 DROP TABLE IF EXISTS [dbo].[PNT_StationStatsCache];
 DROP TABLE IF EXISTS [dbo].[PNT_TagFailureLog];
 DROP TABLE IF EXISTS [dbo].[PNT_VirtualLot];
+DROP TABLE IF EXISTS [dbo].[PP_ApsPlanLine];
+DROP TABLE IF EXISTS [dbo].[PP_ApsRun];
+DROP TABLE IF EXISTS [dbo].[PP_ApsRunWo];
 DROP TABLE IF EXISTS [dbo].[PP_CustomerOrder];
 DROP TABLE IF EXISTS [dbo].[PP_EquipSignal];
 DROP TABLE IF EXISTS [dbo].[PP_Forecast];
@@ -1312,6 +1319,40 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'출하 라인 (SO×LOT)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrderLine'
 GO
+-- Table: dbo.MD_ApsLineStage
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[MD_ApsLineStage](
+	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[OffsetDays] [int] NOT NULL,
+	[UseStock] [bit] NOT NULL,
+	[Note] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
+ CONSTRAINT [PK_MD_ApsLineStage] PRIMARY KEY CLUSTERED
+(
+	[LineID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[MD_ApsLineStage] ADD  DEFAULT ((1)) FOR [OffsetDays]
+GO
+ALTER TABLE [dbo].[MD_ApsLineStage] ADD  DEFAULT ((1)) FOR [UseStock]
+GO
+ALTER TABLE [dbo].[MD_ApsLineStage] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'대상 라인 → MD_Line(LineID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ApsLineStage', @level2type=N'COLUMN',@level2name=N'LineID'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사출 선행일(사출 라인) / 0(완제품 라인) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ApsLineStage', @level2type=N'COLUMN',@level2name=N'OffsetDays'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'재고를 소요에 반영할지 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ApsLineStage', @level2type=N'COLUMN',@level2name=N'UseStock'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'APS 라인별 단계 예외 — 사출 라인 행: 선행일(OffsetDays)·재고 사용(UseStock). 행이 없으면 APS_SETTING.INJ_OFFSET_DAYS(사출)/0(완제품). PP-APS 설정 다이얼로그가 관리' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ApsLineStage'
+GO
 -- Table: dbo.MD_Bom
 SET ANSI_NULLS ON
 GO
@@ -1924,6 +1965,7 @@ CREATE TABLE [dbo].[MD_Item](
 	[ItemNameEN] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[ItemType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ItemCategory] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
+	[InjFlag] [bit] NOT NULL,
 	[DefaultUOM] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[RoutingType] [char](1) COLLATE Korean_Wansung_CI_AS NULL,
 	[MinStock] [decimal](14, 4) NULL,
@@ -1936,6 +1978,7 @@ CREATE TABLE [dbo].[MD_Item](
 	[PalletQty] [int] NULL,
 	[MaxPalletQty] [int] NULL,
 	[ToteFlag] [bit] NOT NULL,
+	[BoxQty] [int] NULL,
 	[ActiveFlag] [bit] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -1954,6 +1997,8 @@ CREATE TABLE [dbo].[MD_Item](
 	[ItemNo] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((0)) FOR [InjFlag]
 GO
 ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((0)) FOR [ToteFlag]
 GO
@@ -1994,6 +2039,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최대 적재 — 출하 차량(컨테이너)에 싣는 최대 팔레트 수 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'MaxPalletQty'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'TOTE 출하 여부 — 1 이면 팔레트가 아니라 토트 박스로 출하 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ToteFlag'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'박스 수량 — 포장 단위(박스 1개당 제품 수). APS 공급 올림 단위, NULL 이면 1 + 경고 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'BoxQty'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사용 여부 — 단종 시 FALSE (물리 삭제 금지).  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
@@ -2541,6 +2588,7 @@ GO
 ALTER TABLE [dbo].[MD_MoldItem] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
 ALTER TABLE [dbo].[MD_MoldItem] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
 GO
 -- Table: dbo.MD_MoldLine
 SET ANSI_NULLS ON
@@ -5268,6 +5316,137 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 가상 LOT (PNT-02)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot'
+GO
+-- Table: dbo.PP_ApsPlanLine
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[PP_ApsPlanLine](
+	[PlanLineID] [int] IDENTITY(1,1) NOT NULL,
+	[RunID] [int] NOT NULL,
+	[Kind] [char](3) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[PlanDate] [date] NOT NULL,
+	[Demand] [decimal](14, 3) NOT NULL,
+	[Supply] [decimal](14, 3) NOT NULL,
+	[Requirement] [decimal](14, 3) NOT NULL,
+	[PlanDay] [decimal](14, 3) NOT NULL,
+	[PlanNight] [decimal](14, 3) NOT NULL,
+	[Stock] [decimal](14, 3) NOT NULL,
+	[Locked] [bit] NOT NULL,
+	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[WoID] [int] NULL,
+	[SameItem] [bit] NOT NULL,
+ CONSTRAINT [PK_PP_ApsPlanLine] PRIMARY KEY CLUSTERED
+(
+	[PlanLineID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_ApsPlanLine] ON [dbo].[PP_ApsPlanLine]
+(
+	[RunID] ASC,
+	[Kind] ASC,
+	[ItemNo] ASC,
+	[PlanDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] ADD  DEFAULT ((0)) FOR [Demand]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] ADD  DEFAULT ((0)) FOR [Supply]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] ADD  DEFAULT ((0)) FOR [Requirement]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] ADD  DEFAULT ((0)) FOR [PlanDay]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] ADD  DEFAULT ((0)) FOR [PlanNight]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] ADD  DEFAULT ((0)) FOR [Stock]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] ADD  DEFAULT ((0)) FOR [Locked]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] ADD  DEFAULT ('ok') FOR [Status]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] ADD  DEFAULT ((0)) FOR [SameItem]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'APS 계획 행(정규화 사본) — Kind ASM(완제품: Demand·Supply) | INJ(사출: Requirement·PlanDay·PlanNight). 정본은 PP_ApsRun 의 JSON. WoID = 첫 연결 WO(전체는 PP_ApsRunWo). SameItem = 같은 품번 규칙(§4.2 ①) 사출 행 1 / BOM 규칙 행 0 — 「WO 생성」 대상 판정' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ApsPlanLine'
+GO
+-- Table: dbo.PP_ApsRun
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[PP_ApsRun](
+	[RunID] [int] IDENTITY(1,1) NOT NULL,
+	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[BaseDate] [date] NOT NULL,
+	[Days] [int] NOT NULL,
+	[CustomerID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[IncludeOpen] [bit] NOT NULL,
+	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[SettingsJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[BundleJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[ResultJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[WarningCount] [int] NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
+ CONSTRAINT [PK_PP_ApsRun] PRIMARY KEY CLUSTERED
+(
+	[RunID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE NONCLUSTERED INDEX [IX_PP_ApsRun_Line_Base] ON [dbo].[PP_ApsRun]
+(
+	[LineID] ASC,
+	[BaseDate] DESC,
+	[RunID] DESC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT ((0)) FOR [IncludeOpen]
+GO
+ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT ((0)) FOR [WarningCount]
+GO
+ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'APS 실행(PP-APS 저장) — 선택 라인·기준일·일수와 Settings/PlanBundle/PlanResult JSON 스냅샷. Status Saved | Released' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ApsRun'
+GO
+-- Table: dbo.PP_ApsRunWo
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[PP_ApsRunWo](
+	[RunWoID] [int] IDENTITY(1,1) NOT NULL,
+	[RunID] [int] NOT NULL,
+	[PlanLineID] [int] NOT NULL,
+	[WoID] [int] NOT NULL,
+	[SoID] [int] NULL,
+	[Qty] [decimal](14, 3) NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+ CONSTRAINT [PK_PP_ApsRunWo] PRIMARY KEY CLUSTERED
+(
+	[RunWoID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_PP_ApsRunWo_Wo] ON [dbo].[PP_ApsRunWo]
+(
+	[WoID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[PP_ApsRunWo] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'APS 계획 행 → 생성 WO 연결(수주 FIFO 조각마다 1행). WoID·PlanLineID 는 PP_ 관례대로 FK 없음(RunID 두 경로 CASCADE 금지)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ApsRunWo'
 GO
 -- Table: dbo.PP_CustomerOrder
 SET ANSI_NULLS ON
@@ -9938,6 +10117,11 @@ REFERENCES [dbo].[FG_Inventory] ([StockID])
 GO
 ALTER TABLE [dbo].[FG_ShipmentOrderLine] CHECK CONSTRAINT [FK_FG_ShipmentOrderLine_Stock]
 GO
+ALTER TABLE [dbo].[MD_ApsLineStage]  WITH CHECK ADD  CONSTRAINT [FK_MD_ApsLineStage_Line] FOREIGN KEY([LineID])
+REFERENCES [dbo].[MD_Line] ([LineID])
+GO
+ALTER TABLE [dbo].[MD_ApsLineStage] CHECK CONSTRAINT [FK_MD_ApsLineStage_Line]
+GO
 ALTER TABLE [dbo].[MD_MoldColor]  WITH CHECK ADD  CONSTRAINT [FK_MD_MoldColor_Mold] FOREIGN KEY([MoldID])
 REFERENCES [dbo].[MD_Mold] ([MoldID])
 GO
@@ -9952,6 +10136,18 @@ ALTER TABLE [dbo].[MD_MoldLine]  WITH CHECK ADD  CONSTRAINT [FK_MD_MoldLine_Mold
 REFERENCES [dbo].[MD_Mold] ([MoldID])
 GO
 ALTER TABLE [dbo].[MD_MoldLine] CHECK CONSTRAINT [FK_MD_MoldLine_Mold]
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine]  WITH CHECK ADD  CONSTRAINT [FK_PP_ApsPlanLine_Run] FOREIGN KEY([RunID])
+REFERENCES [dbo].[PP_ApsRun] ([RunID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[PP_ApsPlanLine] CHECK CONSTRAINT [FK_PP_ApsPlanLine_Run]
+GO
+ALTER TABLE [dbo].[PP_ApsRunWo]  WITH CHECK ADD  CONSTRAINT [FK_PP_ApsRunWo_Run] FOREIGN KEY([RunID])
+REFERENCES [dbo].[PP_ApsRun] ([RunID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[PP_ApsRunWo] CHECK CONSTRAINT [FK_PP_ApsRunWo_Run]
 GO
 ALTER TABLE [dbo].[PR_AndonDeptCall]  WITH CHECK ADD  CONSTRAINT [FK_PR_AndonDeptCall_Andon] FOREIGN KEY([AndonID])
 REFERENCES [dbo].[PR_AndonCall] ([AndonID])

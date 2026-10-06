@@ -11,10 +11,27 @@ namespace AMES.Data.Repositories;
 /// Each method maps to one PP-XX screen. Lookups return rows in display
 /// order; aggregates return summary DTOs.
 /// </summary>
-public sealed class PpRepository
+public sealed partial class PpRepository
 {
     private readonly AmesConnectionFactory _f;
     public PpRepository(AmesConnectionFactory f) => _f = f;
+
+    /// <summary>유효 BOM 1단계 전개 — APPROVED·기간 내 버전 중 부모 품번당 EffFrom 최신 하나. PP-005 MRP(RunMrp)와 APS(ApsRepository.BuildBundle)가 공유한다. 파라미터 @Today(Date).</summary>
+    internal const string EffectiveBomSql = """
+        WITH eff AS (
+            SELECT v.VersionID, v.EffFrom
+            FROM   dbo.MD_BomVersion v
+            WHERE  v.Status = 'APPROVED'
+              AND (v.EffFrom IS NULL OR v.EffFrom <= @Today)
+              AND (v.EffTo   IS NULL OR v.EffTo   >= @Today)),
+        lines AS (
+            SELECT b.ParentItemNo, b.CompItemNo, ISNULL(b.QtyPer,0) AS QtyPer, ISNULL(b.ScrapPct,0) AS ScrapPct,
+                   DENSE_RANK() OVER (PARTITION BY b.ParentItemNo ORDER BY e.EffFrom DESC, e.VersionID DESC) AS Rk
+            FROM   dbo.MD_Bom b
+            JOIN   eff e ON e.VersionID = b.VersionID
+            WHERE  ISNULL(b.ActiveFlag,1) = 1 AND b.ParentItemNo IS NOT NULL AND b.CompItemNo IS NOT NULL)
+        SELECT ParentItemNo, CompItemNo, QtyPer, ScrapPct FROM lines WHERE Rk = 1;
+        """;
 
     // ── DTOs (PP-only, kept local to avoid AMES.Contracts churn) ────────
     public sealed record ForecastRow(int ForecastId, string? Batch, string? CustomerId,
@@ -738,7 +755,7 @@ public sealed class PpRepository
         catch { tx.Rollback(); throw; }
     }
 
-    static DateTime ReadNow(SqlConnection conn, SqlTransaction? tx)
+    internal static DateTime ReadNow(SqlConnection conn, SqlTransaction? tx)
     {
         using var cmd = new SqlCommand("SELECT SYSDATETIME();", conn, tx);
         return (DateTime)cmd.ExecuteScalar()!;
@@ -785,7 +802,7 @@ public sealed class PpRepository
         return map;
     }
 
-    static List<(DateTime Date, string? DayType)> ReadCalendar(SqlConnection conn, SqlTransaction? tx, DateTime from, DateTime to)
+    internal static List<(DateTime Date, string? DayType)> ReadCalendar(SqlConnection conn, SqlTransaction? tx, DateTime from, DateTime to)
     {
         using var cmd = new SqlCommand("""
             SELECT CalendarDate, DayType FROM dbo.SYS_FactoryCalendar
@@ -799,7 +816,7 @@ public sealed class PpRepository
         return list;
     }
 
-    static Dictionary<string, int?> ReadDailyCap(SqlConnection conn, SqlTransaction tx)
+    internal static Dictionary<string, int?> ReadDailyCap(SqlConnection conn, SqlTransaction tx)
     {
         using var cmd = new SqlCommand("SELECT LineID, DailyCap FROM dbo.MD_Line;", conn, tx);
         using var rdr = cmd.ExecuteReader();
@@ -926,22 +943,8 @@ public sealed class PpRepository
             """, r => new MrpCalculator.Demand((int)r["WoID"], (string)r["ItemNo"],
                 r.GetDecimal(r.GetOrdinal("Qty")), r["DueDate"] as DateTime?));
 
-        // 부모 품번마다 유효(APPROVED·기간 내) 버전 중 EffFrom 최신 하나만 쓴다 — 버전이 겹치면 이중 계상되기 때문
-        var bom = Query("""
-            WITH eff AS (
-                SELECT v.VersionID, v.EffFrom
-                FROM   dbo.MD_BomVersion v
-                WHERE  v.Status = 'APPROVED'
-                  AND (v.EffFrom IS NULL OR v.EffFrom <= @Today)
-                  AND (v.EffTo   IS NULL OR v.EffTo   >= @Today)),
-            lines AS (
-                SELECT b.ParentItemNo, b.CompItemNo, ISNULL(b.QtyPer,0) AS QtyPer, ISNULL(b.ScrapPct,0) AS ScrapPct,
-                       DENSE_RANK() OVER (PARTITION BY b.ParentItemNo ORDER BY e.EffFrom DESC, e.VersionID DESC) AS Rk
-                FROM   dbo.MD_Bom b
-                JOIN   eff e ON e.VersionID = b.VersionID
-                WHERE  ISNULL(b.ActiveFlag,1) = 1 AND b.ParentItemNo IS NOT NULL AND b.CompItemNo IS NOT NULL)
-            SELECT ParentItemNo, CompItemNo, QtyPer, ScrapPct FROM lines WHERE Rk = 1;
-            """, r => new MrpCalculator.BomLine((string)r["ParentItemNo"], (string)r["CompItemNo"],
+        // 부모 품번마다 유효(APPROVED·기간 내) 버전 중 EffFrom 최신 하나만 쓴다 — 버전이 겹치면 이중 계상되기 때문 (SQL 은 EffectiveBomSql, APS 와 공유)
+        var bom = Query(EffectiveBomSql, r => new MrpCalculator.BomLine((string)r["ParentItemNo"], (string)r["CompItemNo"],
                 r.GetDecimal(r.GetOrdinal("QtyPer")), r.GetDecimal(r.GetOrdinal("ScrapPct"))),
             ("@Today", today));
 

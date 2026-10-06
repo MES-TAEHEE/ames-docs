@@ -1,0 +1,76 @@
+/* PP-APS 생산계획 — 필터 카드 + 경고 배너 + 탭 3개(품번 × 일자 셀 그리드) + 하단 요약 + 우측 근거 drawer. */
+
+.aps-busybar { display: flex; align-items: center; gap: 12px; padding: 6px 12px 10px; font-size: 12px; color: #93c5fd; }
+
+/* 경고 배너 — 노란색, 전문 나열 */
+.aps-warn { margin: 0 0 10px; padding: 8px 14px; border-radius: 6px; background: rgba(251,191,36,.10); border: 1px solid rgba(251,191,36,.35); color: #fbbf24; }
+.aps-warn-h { display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: 700; font-size: calc(12px + var(--ames-fs-bump)); }
+.aps-warn-list { margin: 6px 0 0; padding-left: 18px; max-height: 160px; overflow-y: auto; font-size: calc(11px + var(--ames-fs-bump)); color: #fde68a; }
+.aps-warn-list li { margin: 2px 0; }
+
+/* 품번 열 */
+::deep .aps-item { display: flex; flex-direction: column; gap: 3px; line-height: 1.3; }
+::deep .aps-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: calc(10px + var(--ames-fs-bump)); color: #94a3b8; }
+::deep .aps-meta b { color: #e2e8f0; font-weight: 700; }
+
+/* 일자 셀 — 4줄 적층 + 상태색(좌측 띠) */
+::deep .aps-cell { display: flex; flex-direction: column; gap: 2px; padding: 3px 6px; border-left: 3px solid rgba(148,163,184,.35); border-radius: 4px; text-align: left; cursor: pointer; }
+::deep .aps-cell:hover { background: rgba(147,197,253,.06); }
+::deep .aps-cell.sel { outline: 1px solid #93c5fd; background: rgba(147,197,253,.10); }
+::deep .aps-cell.st-ok    { border-left-color: #22c55e; }
+::deep .aps-cell.st-warn  { border-left-color: #fbbf24; background: rgba(251,191,36,.06); }
+::deep .aps-cell.st-short { border-left-color: #ef4444; background: rgba(220,38,38,.10); }
+::deep .aps-l { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; font-size: calc(11px + var(--ames-fs-bump)); }
+::deep .aps-k { color: #64748b; font-family: var(--ames-font-mono); font-size: calc(10px + var(--ames-fs-bump)); }
+::deep .aps-foot { margin-top: 2px; }
+::deep .aps-neg { color: #fca5a5; font-weight: 800; }
+::deep .aps-locked { color: #94a3b8; }
+::deep .aps-hint { color: #94a3b8; font-size: calc(10px + var(--ames-fs-bump)); }
+
+/* 잠금 — 등록 계획(plan)은 회색 고정, 사용자 잠금은 버튼 */
+::deep .aps-lock { font-size: 12px; line-height: 1; }
+::deep .aps-lock.plan { opacity: .85; }
+::deep button.aps-lock.plan.on { border-color: #60a5fa; color: #60a5fa; }   /* 등록 계획 잠금(파랑) — 사용자 잠금(노랑)과 구분, 풀 수 있다 */
+::deep .aps-wodiff { color: #f87171; font-weight: 700; margin-left: 2px; cursor: help; }   /* 등록 계획을 푼 뒤 값이 실제 WO 슬롯 수량과 다름 */
+::deep button.aps-lock { background: transparent; border: 1px solid rgba(148,163,184,.3); border-radius: 4px; padding: 1px 4px; cursor: pointer; color: #cbd5e1; }
+::deep button.aps-lock.on { border-color: #fbbf24; color: #fbbf24; }
+
+/* 셀 안 숫자 입력 */
+::deep .aps-num { width: 84px; }
+::deep .aps-num .rz-inputtext, ::deep .aps-num input { text-align: right; padding: 1px 4px; height: 22px; font-size: 12px; }
+
+/* 사출기 부하 셀 */
+::deep .aps-load.over { background: rgba(220,38,38,.12); border-left-color: #ef4444; }
+::deep .aps-rate { font-weight: 800; }
+::deep .aps-rate.over { color: #fca5a5; }
+
+/* 하단 요약 행 */
+.aps-summary { flex: 1 1 auto; margin: 0; padding: 8px; overflow: auto; }   /* 요약 탭 안의 표 */
+.aps-summary table { border-collapse: collapse; min-width: 100%; }
+.aps-summary th, .aps-summary td { padding: 4px 10px; font-size: calc(11px + var(--ames-fs-bump)); white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,.06); }
+.aps-summary th { color: #93c5fd; font-family: var(--ames-font-mono); text-align: left; background: rgba(147,197,253,.06); }
+.aps-summary td { text-align: right; font-variant-numeric: tabular-nums; color: #e5edf7; }
+.aps-summary td.bad { color: #fca5a5; font-weight: 800; }
+
+/* 근거 drawer — InventoryLookup 의 .inventory-detail-* 를 aps-drawer-* 이름으로 옮긴 것(app.css 는 건드리지 않는다) */
+::deep .aps-drawer-backdrop { position: fixed; inset: 0; z-index: 1200; display: flex; justify-content: flex-end; background: rgba(2,6,23,.52); animation: aps-fade-in .16s ease-out; }
+::deep .aps-drawer { width: min(560px, 92vw); height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); color: #dbe5ef; border-left: 1px solid rgba(96,165,250,.45); background: #111c30; box-shadow: -16px 0 38px rgba(2,6,23,.38); animation: aps-drawer-in .2s ease-out; }
+::deep .aps-drawer-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 22px; border-bottom: 1px solid rgba(148,163,184,.2); }
+::deep .aps-drawer-h > div { min-width: 0; display: grid; gap: 4px; }
+::deep .aps-drawer-h span { color: #7dd3fc; font: 900 .68rem var(--ames-font-mono); letter-spacing: .07em; }
+::deep .aps-drawer-h strong { color: #f8fafc; font: 900 1.05rem var(--ames-font-mono); }
+::deep .aps-drawer-h small { color: #94a3b8; font-size: .8rem; }
+::deep .aps-drawer-h button { flex: 0 0 36px; width: 36px; height: 36px; display: grid; place-items: center; color: #cbd5e1; border: 1px solid rgba(148,163,184,.32); border-radius: 3px; background: rgba(30,41,59,.72); cursor: pointer; }
+::deep .aps-drawer-body { min-height: 0; overflow: auto; padding: 14px 22px; }
+::deep .aps-drawer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+::deep .aps-drawer-grid > div { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid rgba(148,163,184,.16); border-radius: 6px; }
+::deep .aps-drawer-grid span { color: #64748b; font: 800 .62rem var(--ames-font-mono); }
+::deep .aps-drawer-grid strong { color: #e2e8f0; font: 900 .9rem var(--ames-font-mono); }
+::deep .aps-step { display: grid; grid-template-columns: 110px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px dashed rgba(148,163,184,.16); font-size: calc(12px + var(--ames-fs-bump)); }
+::deep .aps-step.warn { color: #fbbf24; }
+::deep .aps-step .lbl { color: #93c5fd; font-family: var(--ames-font-mono); }
+::deep .aps-step .scr { color: #94a3b8; font-size: .85em; }
+@keyframes aps-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes aps-drawer-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+::deep .aps-wo-unplaced { color: #fb923c; font-weight: 500; }   /* 슬롯 없는 APS WO — PP-LSB 미배치 */
+::deep .aps-wo { color: #f59e0b; font-weight: 600; }   /* 셀의 "WO" 줄 — 이미 내려간 WO 수량, 툴팁에 WO 번호 */

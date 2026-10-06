@@ -216,7 +216,7 @@ public sealed class MasterDataRepository
         var sql = """
             SELECT ItemNo, ItemName, ItemType, ItemCategory, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
-                   PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag,
+                   PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, BoxQty,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
@@ -246,6 +246,7 @@ public sealed class MasterDataRepository
             r["PalletQty"]     as int?,
             r["MaxPalletQty"]  as int?,
             (bool)r["ToteFlag"],
+            r["BoxQty"]        as int?,
             (bool)r["ActiveFlag"],
             r["CreatedBy"]     as string,
             r["CreatedTS"]     is DateTime ct ? ct : null,
@@ -286,16 +287,16 @@ public sealed class MasterDataRepository
         string? itemType, string? itemCategory, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
-        int? palletQty, int? maxPalletQty, bool toteFlag,
+        int? palletQty, int? maxPalletQty, bool toteFlag, int? boxQty,
         bool activeFlag, string createdBy)
         => Exec("""
             INSERT INTO dbo.MD_Item
                    (ItemNo,ItemName,ItemType,ItemCategory,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS)
+                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,BoxQty,ActiveFlag,CreatedBy,CreatedTS)
             VALUES (@No,@Name,@Type,@Cat,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME())
+                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Box,@Active,@By,SYSDATETIME())
             """,
             ("@No",     itemNo),   ("@Name",   itemName),
             ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
@@ -303,14 +304,14 @@ public sealed class MasterDataRepository
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
             ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
             ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
-            ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag),
+            ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag), ("@Box", boxQty),
             ("@By",     createdBy));
 
     public void UpdateItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
-        int? palletQty, int? maxPalletQty, bool toteFlag,
+        int? palletQty, int? maxPalletQty, bool toteFlag, int? boxQty,
         bool activeFlag, string modifiedBy)
         => Exec("""
             UPDATE dbo.MD_Item
@@ -318,7 +319,7 @@ public sealed class MasterDataRepository
                    ItemCategory=@Cat, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
                    PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
-                   PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote,
+                   PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, BoxQty=@Box,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
@@ -328,7 +329,7 @@ public sealed class MasterDataRepository
             ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
             ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
             ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
-            ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag),
+            ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag), ("@Box", boxQty),
             ("@By",     modifiedBy));
 
     public void DeleteItem(string itemNo)
@@ -563,7 +564,7 @@ public sealed class MasterDataRepository
         string? RoutingType,
         decimal? MinStock, decimal? MaxStock, decimal? SafetyStock, decimal? UnitCost,
         string? PGN, string? ALC, string? DrawingNo,
-        int? PalletQty, int? MaxPalletQty, bool ToteFlag,
+        int? PalletQty, int? MaxPalletQty, bool ToteFlag, int? BoxQty,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS);
@@ -1693,7 +1694,7 @@ public sealed class MasterDataRepository
     internal static List<MoldResolver.MoldCandidate> ReadMoldCandidates(SqlConnection conn, SqlTransaction? tx, string itemNo, string lineId)
     {
         using var cmd = new SqlCommand("""
-            SELECT DISTINCT mi.MoldID,
+            SELECT DISTINCT mi.MoldID, mi.Color,
                    CAST(CASE WHEN ml.MoldID IS NULL THEN 0 ELSE 1 END AS bit) AS AssignedToLine,
                    CAST(CEILING(COALESCE(ml.PrepTime, CAST(m.MoldChangeMin AS decimal(18,4)), 0)) AS int) AS ChangeMin
             FROM   dbo.MD_MoldItem mi
@@ -1707,7 +1708,7 @@ public sealed class MasterDataRepository
         using var r = cmd.ExecuteReader();
         var list = new List<MoldResolver.MoldCandidate>();
         while (r.Read())
-            list.Add(new MoldResolver.MoldCandidate((string)r["MoldID"], (bool)r["AssignedToLine"], Convert.ToInt32(r["ChangeMin"])));
+            list.Add(new MoldResolver.MoldCandidate((string)r["MoldID"], (bool)r["AssignedToLine"], Convert.ToInt32(r["ChangeMin"]), r["Color"] as string));
         return list;
     }
 

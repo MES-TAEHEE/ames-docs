@@ -439,4 +439,37 @@ public class PlanScheduleTests
         }
         finally { Cleanup(f); }
     }
+
+    /// <summary>APS 경로(2026-10-06): 호출자가 패턴을 지정하면 그 날 저장 행의 PatternID·라인 전용·전역 자동 해석을 모두 건너뛰고 그 패턴의 세그먼트를 읽는다. 점유(WO·PM)는 그대로 센다.</summary>
+    [SkippableFact]
+    public void GetDayCapacity_with_pattern_override_ignores_day_rows_and_auto_resolution()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        const string Pat2 = "ITEST-PS-PAT2";
+        try
+        {
+            Exec(f, """
+                INSERT INTO dbo.MD_LineTimePattern (PatternID, LineID, PatternName, Status, CreatedBy)
+                VALUES (@P2, NULL, N'ITEST pattern 2', 'INACTIVE', 'ITEST');
+                INSERT INTO dbo.MD_LineTimeSegment (SegmentID, PatternID, SeqNo, StartMin, EndMin, SegmentState, ShiftCode, CreatedBy)
+                VALUES ('ITEST-PS-SEG2-1', @P2, 1, 360, 720, 'OPERATING', 'A', 'ITEST'),
+                       ('ITEST-PS-SEG2-2', @P2, 2, 960, 1440, 'OPERATING', 'B', 'ITEST');
+                INSERT INTO dbo.PP_LineSchedule (LineID, ScheduleDate, PatternID, EntryType, StartMin, EndMin, PlannedQty, Title, Status, CreatedBy)
+                VALUES (@L, @D, @P, 'PM', 400, 460, 0, N'ITEST PM', 'DRAFT', 'ITEST');
+                """, ("@P2", Pat2), ("@L", LineInj), ("@D", D0), ("@P", Pattern));
+
+            var cap = new LineScheduleRepository(f).GetDayCapacity(LineInj, D0, Pat2);   // D0 저장 행은 ITEST-PS-PAT 인데도 PAT2(INACTIVE·전역)를 쓴다
+
+            Assert.Equal(Pat2, cap.PatternId);
+            Assert.Equal(360, cap.DayStart);
+            Assert.Equal(780, cap.OperatingMin);     // 360 + 480 − PM 60
+            Assert.Equal(2, cap.ShiftBands!.Count);
+        }
+        finally
+        {
+            Exec(f, "DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID = @P2; DELETE FROM dbo.MD_LineTimePattern WHERE PatternID = @P2;", ("@P2", Pat2));
+            Cleanup(f);
+        }
+    }
 }

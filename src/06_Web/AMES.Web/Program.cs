@@ -229,6 +229,7 @@ builder.Services.AddSingleton(sp => new AuthRepository(factory));
 builder.Services.AddSingleton(sp => new WorkerRepository(factory));
 builder.Services.AddSingleton(sp => new LineSupervisorRepository(factory));
 builder.Services.AddSingleton(sp => new LineScheduleRepository(factory));
+builder.Services.AddSingleton(sp => new ApsRepository(factory));   // PP-APS 생산계획 — BuildBundle·SaveRun·LoadRun·MD_ApsLineStage
 builder.Services.AddSingleton(sp => new OeeRepository(factory));
 builder.Services.AddSingleton<ServerMonitorService>();
 builder.Services.AddSingleton<AMES.Web.Services.PoSyncClient>();   // PP-002 API 가져오기 → AMES.Api PO Sync Worker 수동 실행

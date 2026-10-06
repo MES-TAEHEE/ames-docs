@@ -1,0 +1,275 @@
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject AMES.Web.Services.AuditLogger Audit
+@inject UomFormat UomFmt
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Repositories
+
+<div style="display:flex;flex-direction:column;gap:10px;min-width:900px;">
+    <div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 14px;">
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+            <span class="dim">@L["PP.Aps.Wo.Run"]</span><span class="code">#@RunId</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.12);">
+            <span class="dim">@L["PP.Aps.Wo.Targets"]</span><span class="code">@_rows.Count</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;@(_alreadyIssued > 0 ? "border-bottom:1px dashed rgba(255,255,255,.12);" : "")">
+            <span class="dim">@L["PP.Aps.Wo.Selected"]</span>
+            <span class="code">@_selected.Count · @UomFmt.Qty(SelectedQty, null)</span>
+        </div>
+        @if (_alreadyIssued > 0)
+        {
+            <div style="padding:7px 0;"><span class="dim">@string.Format(L["PP.Aps.Wo.AlreadyIssued"].Value, _alreadyIssued)</span></div>
+        }
+    </div>
+
+    @if (_result is null)
+    {
+        <div style="max-height:260px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:8px;">
+            <table class="ames-table" style="width:100%;table-layout:fixed;">
+                <thead>
+                    <tr>
+                        <th style="width:36px;">
+                            <RadzenCheckBox TValue="bool" Value="@(_rows.Count > 0 && _selected.Count == _rows.Count)"
+                                            ValueChanged="@((bool v) => ToggleAll(v))" Disabled="@(_busy || _rows.Count == 0)" />
+                        </th>
+                        <th style="width:110px;">@L["PP.Aps.Wo.Col.Date"]</th>
+                        <th>@L["Col.ItemNo"]</th>
+                        <th style="width:130px;">@L["Col.Line"]</th>
+                        <th style="width:90px;text-align:right;">@L["PP.Aps.Wo.Col.Day"]</th>
+                        <th style="width:90px;text-align:right;">@L["PP.Aps.Wo.Col.Night"]</th>
+                        <th style="width:100px;text-align:right;">@L["PP.Aps.Wo.Col.Total"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _rows)
+                    {
+                        <tr>
+                            <td>
+                                <RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.PlanLineId)"
+                                                ValueChanged="@((bool v) => Toggle(r.PlanLineId, v))" Disabled="_busy" />
+                            </td>
+                            <td class="code">@r.PlanDate.ToString(DateFmt.Date)</td>
+                            <td class="code">@r.ItemNo</td>
+                            <td class="code">@r.LineId</td>
+                            <td style="text-align:right;">@UomFmt.Qty(r.PlanDay, null)</td>
+                            <td style="text-align:right;">@UomFmt.Qty(r.PlanNight, null)</td>
+                            <td style="text-align:right;">@UomFmt.Qty(r.PlanDay + r.PlanNight, null)</td>
+                        </tr>
+                    }
+                    @if (_rows.Count == 0)
+                    {
+                        <tr><td colspan="7" class="dim" style="text-align:center;">@L["Grid.Empty"]</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (Shown is { } shown)
+    {
+        <div class="dim" style="font-weight:600;">
+            @(_result is null ? L["PP.Aps.Wo.Preview.Title"] : L["PP.Aps.Wo.Result.Title"])
+            — @string.Format(L["PP.Aps.Wo.Summary"].Value, shown.Created, shown.Late, shown.Short, shown.RejectedCount, shown.SkippedExisting)
+        </div>
+        @if (PreviewStale)
+        {
+            <div class="ames-alert bad">@L["PP.Aps.Wo.Err.PreviewStale"]</div>
+        }
+        <div style="max-height:320px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:8px;">
+            <table class="ames-table" style="width:100%;table-layout:fixed;">
+                <thead>
+                    <tr>
+                        <th style="width:130px;">@L["Col.WoNo"]</th>
+                        <th style="width:86px;">@L["PP.Aps.Wo.Col.Date"]</th>
+                        <th style="width:130px;">@L["Col.ItemNo"]</th>
+                        <th style="width:96px;">@L["PP.Aps.Wo.Col.So"]</th>
+                        <th style="width:76px;text-align:right;">@L["Col.Qty"]</th>
+                        <th style="width:96px;">@L["PP.Aps.Wo.Col.Deadline"] / @L["Col.Due"]</th>
+                        <th>@L["PP.Aps.Wo.Col.Slots"]</th>
+                        <th style="width:64px;text-align:right;">@L["PP.Aps.Wo.Col.Late"]</th>
+                        <th style="width:120px;text-align:right;">@L["PP.Aps.Wo.Col.Short"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in shown.Orders)
+                    {
+                        var injSeq = InjStepSeq(o);
+                        <tr>
+                            <td class="code">@o.WoNumber</td>
+                            <td class="code">@o.PlanDate.ToString(DateFmt.Date)</td>
+                            <td class="code">@o.ItemNo</td>
+                            <td>@(o.SoId is int so ? $"SO #{so}" : L["PP.Aps.Wo.StockWo"].Value)</td>
+                            <td style="text-align:right;">@UomFmt.Qty(o.Qty, null)</td>
+                            <td class="code">
+                                @(o.Deadline is DateTime dl ? dl.ToString(DateFmt.Date) : "—")
+                                <div class="dim" style="font-size:.85em;">@(o.DueDate is DateTime du ? du.ToString(DateFmt.Date) : "—")</div>
+                            </td>
+                            <td class="code" style="font-size:.85em;white-space:normal;">
+                                @if (o.Placements.Count == 0) { <span class="dim">—</span> }
+                                @foreach (var s in Slots(o)) { <div>@s</div> }
+                                @if (o.MoldChanges.Count > 0)
+                                {
+                                    <div class="dim">@string.Format(L["PP.PlanConfirm.Dlg.MoldChange"].Value, o.MoldChanges.Sum(m => m.EndMin - m.StartMin))</div>
+                                }
+                            </td>
+                            <td style="text-align:right;">
+                                @if (o.LateQty > 0) { <span class="pill warn">@UomFmt.Qty(o.LateQty, null)</span> } else { <span class="dim">—</span> }
+                            </td>
+                            <td style="text-align:right;">
+                                @if (o.Shortfalls.Count == 0) { <span class="dim">—</span> }
+                                @foreach (var sf in o.Shortfalls)
+                                {
+                                    <div><span class="pill bad" title="#@sf.StepSeq · @sf.LineId">@(sf.StepSeq == injSeq ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"]) @UomFmt.Qty(sf.Qty, null)</span></div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (shown.Orders.Count == 0)
+                    {
+                        <tr><td colspan="9" class="dim" style="text-align:center;">@L["Grid.Empty"]</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (shown.Rejected.Count > 0)
+        {
+            <div class="ames-alert bad">
+                <div style="font-weight:600;">@L["PP.Aps.Wo.Rejected"]</div>
+                @foreach (var rj in shown.Rejected)
+                {
+                    <div><span class="code">@rj.PlanDate.ToString(DateFmt.Date) · @rj.ItemNo</span> — @ReasonText(rj.Reason)</div>
+                }
+            </div>
+        }
+    }
+
+    <span class="dim" style="font-size:.8em;line-height:1.5;">@L["PP.Aps.Wo.Hint"]</span>
+
+    @if (!string.IsNullOrEmpty(_modalErr))
+    {
+        <div class="ames-alert bad">@_modalErr</div>
+    }
+
+    <div class="ames-modal-footer">
+        @if (_result is { } done)
+        {
+            <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Primary" Click="@(() => Dialog.Close(done))" />
+        }
+        else if (_confirmRun)
+        {
+            <span class="dim" style="margin-right:auto;">@string.Format(L["PP.Aps.Wo.Confirm"].Value, _selected.Count)</span>
+            <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy" Click="@(() => _confirmRun = false)" />
+            <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.Aps.Wo.Btn.ConfirmRun"].Value)"
+                          ButtonStyle="ButtonStyle.Success" Icon="play_arrow" Disabled="_busy" Click="RunReal" />
+        }
+        else
+        {
+            <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy" Click="@(() => Dialog.Close(null))" />
+            <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.Aps.Wo.Btn.Preview"].Value)"
+                          ButtonStyle="ButtonStyle.Secondary" Icon="visibility" Disabled="@(_busy || _selected.Count == 0)" Click="RunPreview" />
+            <RadzenButton Text="@L["PP.Aps.Wo.Btn.Run"]" ButtonStyle="ButtonStyle.Success" Icon="factory"
+                          Disabled="@(_busy || _selected.Count == 0 || _preview is null || PreviewStale)" Click="AskRun" />
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public int RunId { get; set; }
+    [Parameter] public IReadOnlyList<ApsRepository.ApsPlanLineRow> PlanLines { get; set; } = Array.Empty<ApsRepository.ApsPlanLineRow>();
+    [Parameter] public string Actor { get; set; } = "system";
+
+    List<ApsRepository.ApsPlanLineRow> _rows = new();
+    readonly HashSet<int> _selected = new();
+    int  _alreadyIssued;
+    bool _busy, _confirmRun;
+    string _modalErr = "";
+    PpRepository.ApsWoResult? _preview, _result;
+    string _previewKey = "";
+
+    PpRepository.ApsWoResult? Shown => _result ?? _preview;
+    decimal SelectedQty => _rows.Where(r => _selected.Contains(r.PlanLineId)).Sum(r => r.PlanDay + r.PlanNight);
+    string  SelectionKey => string.Join(",", _selected.OrderBy(i => i));
+    bool    PreviewStale => _result is null && _preview is not null && _previewKey != SelectionKey;
+    List<int> SelectedIds() => _selected.OrderBy(i => i).ToList();
+
+    // 대상 규칙은 CreateApsWorkOrders 와 같다 — INJ · 수량 > 0 · WoID NULL. BOM 규칙 행(부모와 다른 사출품)도 대상이다(2026-10-05: 완제품 WO 에 자식 슬롯) — 기발행 행은 수만 알린다
+    protected override void OnInitialized()
+    {
+        var inj = PlanLines.Where(p => p.Kind == ApsRepository.KindInj && p.PlanDay + p.PlanNight > 0).ToList();
+        _alreadyIssued = inj.Count(p => p.WoId is not null);
+        _rows = inj.Where(p => p.WoId is null)
+                   .OrderBy(p => p.PlanDate).ThenBy(p => p.ItemNo, StringComparer.Ordinal)
+                   .ToList();
+        foreach (var r in _rows) _selected.Add(r.PlanLineId);
+    }
+
+    void Toggle(int id, bool on) { if (on) _selected.Add(id); else _selected.Remove(id); _confirmRun = false; }
+    void ToggleAll(bool on)
+    {
+        _selected.Clear();
+        if (on) foreach (var r in _rows) _selected.Add(r.PlanLineId);
+        _confirmRun = false;
+    }
+
+    // 같은 경로를 돌고 롤백한다. 확인 전에 다른 WO 가 자리를 채우면 실행 결과가 달라질 수 있어 실행 결과가 정본이다
+    async Task RunPreview()
+    {
+        _modalErr = "";
+        if (_selected.Count == 0) { _modalErr = L["PP.Aps.Wo.Err.NoneSelected"]; return; }
+        var ids = SelectedIds();
+        var key = SelectionKey;
+        _busy = true;
+        try
+        {
+            _preview    = await Task.Run(() => Pp.CreateApsWorkOrders(RunId, ids, Actor, dryRun: true));
+            _previewKey = key;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _preview = null; }
+        finally { _busy = false; }
+    }
+
+    void AskRun()
+    {
+        _modalErr = "";
+        if (_selected.Count == 0) { _modalErr = L["PP.Aps.Wo.Err.NoneSelected"]; return; }
+        if (_preview is null || PreviewStale) { _modalErr = L["PP.Aps.Wo.Err.PreviewStale"]; return; }
+        _confirmRun = true;
+    }
+
+    async Task RunReal()
+    {
+        _modalErr = "";
+        if (_preview is null || PreviewStale) { _modalErr = L["PP.Aps.Wo.Err.PreviewStale"]; _confirmRun = false; return; }
+        var ids = SelectedIds();
+        _busy = true;
+        try
+        {
+            var r = await Task.Run(() => Pp.CreateApsWorkOrders(RunId, ids, Actor, dryRun: false));
+            _result = r;
+            Audit.Log("PP-APS", "WO", "PP_ApsRun", RunId, null,
+                new { r.Created, r.Late, r.Short, Rejected = r.RejectedCount, r.SkippedExisting, PlanLineIds = ids });
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; _confirmRun = false; }
+    }
+
+    // CreateApsWorkOrders 는 조각마다 INJ 단계를 배치 또는 Shortfall 로 반드시 남기고 완제품 단계는 그보다 뒤 StepSeq 다 — 가장 작은 StepSeq 가 INJ
+    static int InjStepSeq(PpRepository.ApsWoOrder o) =>
+        o.Placements.Select(p => p.StepSeq).Concat(o.Shortfalls.Select(s => s.StepSeq)).DefaultIfEmpty(int.MinValue).Min();
+
+    static string Hm(int min) { int m = ((min % 1440) + 1440) % 1440; return $"{m / 60:00}:{m % 60:00}"; }
+
+    // 라인·날짜별 "LINE 09-28 08:00-10:00". 배치 순서(주간 → 야간, 날짜순)가 곧 시간 순이라 첫 슬롯 시작 ~ 끝 슬롯 종료로 보인다 —
+    // Min/Max 로 재면 자정 넘긴 야간 슬롯이 앞으로 온다. 형제 품번의 0분 슬롯은 "08:00-08:00"(수량만 기록)
+    static IEnumerable<string> Slots(PpRepository.ApsWoOrder o) =>
+        o.Placements.GroupBy(p => (p.LineId, p.Date))
+                    .Select(g => $"{g.Key.LineId} {g.Key.Date.ToString(DateFmt.MonthDay)} {Hm(g.First().StartMin)}-{Hm(g.Last().EndMin)}");
+
+    string ReasonText(string reason) => reason switch
+    {
+        PpRepository.RejectNoMold => L["PP.Aps.Wo.Reject.NoMold"].Value,
+        PpRepository.RejectNoUph  => L["PP.Aps.Wo.Reject.NoUph"].Value,
+        _                         => reason,
+    };
+}

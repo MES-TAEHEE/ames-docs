@@ -1,0 +1,72 @@
+@using AMES.Data.Repositories
+@inject ApsRepository Aps
+@inject AMES.Web.Services.ActorNames Actors
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+
+<div style="display:flex;flex-direction:column;gap:10px;min-width:860px;">
+    @if (!string.IsNullOrEmpty(_err))
+    {
+        <div class="ames-alert bad">@_err</div>
+    }
+    <div style="max-height:480px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:8px;">
+        <table class="ames-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th style="width:70px;">@L["PP.Aps.Hist.Col.Run"]</th>
+                    <th>@L["Col.Line"]</th>
+                    <th style="width:110px;">@L["PP.Aps.Hist.Col.Base"]</th>
+                    <th style="width:60px;text-align:right;">@L["PP.Aps.Hist.Col.Days"]</th>
+                    <th style="width:90px;">@L["Col.Status"]</th>
+                    <th style="width:60px;text-align:right;">@L["PP.Aps.Hist.Col.Warn"]</th>
+                    <th>@L["PP.Aps.Hist.Col.By"]</th>
+                    <th style="width:150px;">@L["PP.Aps.Hist.Col.At"]</th>
+                    <th style="width:250px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_rows.Count == 0)
+                {
+                    <tr><td colspan="9" class="dim" style="text-align:center;">@L["PP.Aps.Hist.Empty"]</td></tr>
+                }
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td class="code">#@r.RunId</td>
+                        <td><span class="code">@(r.LineId == ApsRepository.AllLines ? L["PP.Aps.Line.All"].Value : r.LineId)</span>@if (!string.IsNullOrEmpty(r.CustomerId)) { <span class="dim"> · @r.CustomerId</span> }@if (r.IncludeOpen) { <span class="pill mute" style="margin-left:4px;">Open</span> }</td>
+                        <td class="code">@r.BaseDate.ToString(DateFmt.Date)</td>
+                        <td class="num">@r.Days</td>
+                        <td><span class="pill @(r.Status == ApsRepository.StatusReleased ? "ok" : "info")">@r.Status</span></td>
+                        @* aps-neg 는 ApsPlan.razor.css 의 ::deep 범위라 DialogService 로 뜬 이 표에는 안 먹는다 — 전역 pill 사용 *@
+                        <td class="num"><span class="pill @(r.WarningCount > 0 ? "warn" : "mute")">@r.WarningCount</span></td>
+                        <td class="dim">@(Actors.Display(r.CreatedBy) is { Length: > 0 } cb ? cb : "—")</td>
+                        <td class="dim">@r.CreatedTs.ToString(DateFmt.DateTime)</td>
+                        <td>
+                            <RadzenButton Text="@L["PP.Aps.Hist.Btn.Open"].Value" Icon="visibility" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" class="ames-rz-btn"
+                                          Click="@(() => Dialog.Close(new Choice(r.RunId, false)))" />
+                            <RadzenButton Text="@L["PP.Aps.Hist.Btn.Recalc"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn"
+                                          Click="@(() => Dialog.Close(new Choice(r.RunId, true)))" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Light" Click="@(() => Dialog.Close(null))" />
+    </div>
+</div>
+
+@code {
+    /// <summary>Recalculate=false: BundleJson/ResultJson 으로 재현(읽기 전용). true: 같은 필터로 BuildBundle 을 다시 돌린다.</summary>
+    public sealed record Choice(int RunId, bool Recalculate);
+
+    List<ApsRepository.ApsRunRow> _rows = new();
+    string _err = "";
+
+    protected override void OnInitialized()
+    {
+        try { _rows = Aps.ListRuns(50); }
+        catch (Exception ex) { _err = ex.Message; }
+    }
+}
