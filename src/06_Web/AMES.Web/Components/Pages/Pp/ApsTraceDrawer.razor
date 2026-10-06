@@ -50,7 +50,7 @@
             {
                 <div class="aps-drawer-grid">
                     <div><span>@L["PP.Aps.Trace.PrevClosing"]</span><strong>@Q(a.PrevClosing)</strong></div>
-                    <div><span>@L["PP.Aps.Trace.Demand"]</span><strong>@Q(a.Demand)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Demand"]</span><strong>@Q(a.Demand)</strong>@if (PlanDemand > 0) { <span class="dim"> (@L["PP.Aps.Cell.PlanDemand"] @Q(PlanDemand))</span> }</div>
                     <div><span>@L["PP.Aps.Trace.Cover"]</span><strong>@a.DaysOfCover.ToString("0.##")</strong></div>
                     <div><span>@L["PP.Aps.Trace.Base"]</span><strong>@Q(a.BaseDemand)</strong></div>
                     <div><span>@L["PP.Aps.Trace.Target"]</span><strong>@Q(a.TargetStock)</strong></div>
@@ -85,6 +85,7 @@
     [Parameter] public string? Kind { get; set; }
     [Parameter] public string? PartNo { get; set; }
     [Parameter] public string? Date { get; set; }
+    [Parameter] public double PlanDemand { get; set; }
 
     Task Close() => OnClose.InvokeAsync();
     string Q(double v) => UomFmt.Qty(double.IsFinite(v) ? (decimal)v : 0m, Uom);

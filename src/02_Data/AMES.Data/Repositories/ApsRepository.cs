@@ -122,7 +122,8 @@ public sealed class ApsRepository
 
             // ── 수요 · 등록 계획 · 완제품 현재 재고 → 후보 품번 ──
             var items  = ReadItems(conn, tx);
-            var demand = DemandRules.Build(ReadOrders(conn, tx, orderTo), q.BaseDate, dates, cal, q.IncludeOpen, customerId,
+            var plans  = q.IncludeDailyPlan ? ReadDemandPlan(conn, tx, q.BaseDate, orderTo) : (IReadOnlyList<DemandRules.PlanRow>)Array.Empty<DemandRules.PlanRow>();
+            var demand = DemandRules.Build(ReadOrders(conn, tx, orderTo), plans, q.BaseDate, dates, cal, q.IncludeOpen, customerId,
                                            new HashSet<string>(items.Keys, StringComparer.OrdinalIgnoreCase));
             warnings.AddRange(demand.Warnings);
             var slots   = ReadRegisteredSlots(conn, tx, q.BaseDate, lastDate);
@@ -488,7 +489,7 @@ public sealed class ApsRepository
             bundle.Injection = injRows;
             bundle.Bom       = edges;
             tx.Commit();
-            return Finish(bundle, settings, parsed.Options, actuals, warnings, cal, lines, regWos);
+            return Finish(bundle, settings, parsed.Options, actuals, warnings, cal, lines, demand.PlanDemand, regWos);
         }
         catch { tx.Rollback(); throw; }
     }
@@ -503,8 +504,9 @@ public sealed class ApsRepository
         => parents.Sum(p => p.NextStepProduced * (decimal)p.QtyPer);
 
     static ApsBuild Finish(PlanBundle bundle, Settings settings, ApsOptions options, List<ApsActualInfo> actuals,
-                           List<string> warnings, IApsCalendar cal, Dictionary<string, LineInfo> lines, IReadOnlyList<ApsRegisteredWo>? regWos = null)
-        => new(bundle, settings, options, actuals, warnings, cal, new ShiftRules(settings, lines), new StageRules(settings, lines, foldPreHorizon: true), regWos);
+                           List<string> warnings, IApsCalendar cal, Dictionary<string, LineInfo> lines,
+                           IReadOnlyDictionary<string, double[]>? planDemand = null, IReadOnlyList<ApsRegisteredWo>? regWos = null)
+        => new(bundle, settings, options, actuals, warnings, cal, new ShiftRules(settings, lines), new StageRules(settings, lines, foldPreHorizon: true), planDemand, regWos);
 
     /// <summary>
     /// 사출 라인·금형(스펙 §4.2): BOP INJ 스테이션 라인이 있으면 그 라인 — 배정 금형 중 교체 최소(동률 MoldID 순), 배정이 없으면 MoldID 순 첫 금형(UPH 없음은 호출자가 경고).
@@ -634,6 +636,23 @@ public sealed class ApsRepository
             list.Add(new((int)rdr["SoID"], rdr["SoNumber"] as string, rdr["SoLineNo"] as int?, rdr["CustomerID"] as string, (string)rdr["ItemNo"],
                          rdr["RequestedDeliveryDate"] is DateTime due ? DateOnly.FromDateTime(due) : null,
                          Convert.ToDecimal(rdr["OrderQty"]), Convert.ToDecimal(rdr["ShippedQty"]), rdr["Status"] as string));
+        return list;
+    }
+
+    /// <summary>일별 구매계획(스펙 2026-09-29 §7): 기준일~마지막 날, 0 이하는 저장되지 않지만 방어적으로 다시 걸러낸다.</summary>
+    static List<DemandRules.PlanRow> ReadDemandPlan(SqlConnection conn, SqlTransaction tx, DateOnly from, DateOnly to)
+    {
+        using var cmd = new SqlCommand("""
+            SELECT CustomerID, ItemNo, PlanDate, ScheduledQty
+            FROM   dbo.PP_DemandPlan
+            WHERE  PlanDate BETWEEN @From AND @To AND ScheduledQty > 0;
+            """, conn, tx);
+        cmd.Parameters.Add("@From", SqlDbType.Date).Value = Dt(from);
+        cmd.Parameters.Add("@To",   SqlDbType.Date).Value = Dt(to);
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<DemandRules.PlanRow>();
+        while (rdr.Read())
+            list.Add(new(rdr["CustomerID"] as string, (string)rdr["ItemNo"], DateOnly.FromDateTime((DateTime)rdr["PlanDate"]), Convert.ToDecimal(rdr["ScheduledQty"])));
         return list;
     }
 
@@ -908,7 +927,8 @@ public sealed class ApsRepository
 
     // ── 실행 저장·조회 (스펙 §3.4·§7) ─────────────────────────────────────
     public sealed record ApsRunRow(int RunId, string LineId, DateOnly BaseDate, int Days, string? CustomerId, bool IncludeOpen,
-                                   string Status, int WarningCount, string CreatedBy, DateTime CreatedTs, string? ModifiedBy, DateTime? ModifiedTs);
+                                   string Status, int WarningCount, string CreatedBy, DateTime CreatedTs, string? ModifiedBy, DateTime? ModifiedTs,
+                                   bool IncludeDailyPlan = false);
     public sealed record ApsRunDetail(ApsRunRow Row, string SettingsJson, string BundleJson, string ResultJson);
     public sealed record ApsPlanLineRow(int PlanLineId, int RunId, string Kind, string ItemNo, string LineId, DateOnly PlanDate,
                                         decimal Demand, decimal Supply, decimal Requirement, decimal PlanDay, decimal PlanNight,
@@ -916,7 +936,7 @@ public sealed class ApsRepository
     public sealed record ApsRunSave(ApsQuery Query, string SettingsJson, string BundleJson, string ResultJson,
                                     IReadOnlyList<ApsPlanLineRow> Lines, int WarningCount);
 
-    const string RunColumns = "RunID, LineID, BaseDate, Days, CustomerID, IncludeOpen, Status, WarningCount, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS";
+    const string RunColumns = "RunID, LineID, BaseDate, Days, CustomerID, IncludeOpen, Status, WarningCount, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS, IncludeDailyPlan";
     const string PlanLineColumns = "PlanLineID, RunID, Kind, ItemNo, LineID, PlanDate, Demand, Supply, Requirement, PlanDay, PlanNight, Stock, Locked, Status, WoID, SameItem";
 
     /// <summary>
@@ -932,9 +952,9 @@ public sealed class ApsRepository
             int runId;
             using (var ins = new SqlCommand("""
                 INSERT INTO dbo.PP_ApsRun
-                       (LineID, BaseDate, Days, CustomerID, IncludeOpen, Status, SettingsJson, BundleJson, ResultJson, WarningCount, CreatedBy, CreatedTS)
+                       (LineID, BaseDate, Days, CustomerID, IncludeOpen, Status, SettingsJson, BundleJson, ResultJson, WarningCount, CreatedBy, CreatedTS, IncludeDailyPlan)
                 OUTPUT INSERTED.RunID
-                VALUES (@Line, @Base, @Days, @Cust, @Open, @Status, @S, @B, @R, @Warn, @By, SYSDATETIME());
+                VALUES (@Line, @Base, @Days, @Cust, @Open, @Status, @S, @B, @R, @Warn, @By, SYSDATETIME(), @Daily);
                 """, conn, tx))
             {
                 ins.Parameters.Add("@Line",   SqlDbType.VarChar, 20).Value  = save.Query.LineId;
@@ -948,6 +968,7 @@ public sealed class ApsRepository
                 ins.Parameters.Add("@R",      SqlDbType.NVarChar, -1).Value = save.ResultJson;
                 ins.Parameters.Add("@Warn",   SqlDbType.Int).Value          = save.WarningCount;
                 ins.Parameters.Add("@By",     SqlDbType.NVarChar, 20).Value = actor;
+                ins.Parameters.Add("@Daily",  SqlDbType.Bit).Value          = save.Query.IncludeDailyPlan;
                 runId = (int)ins.ExecuteScalar()!;
             }
 
@@ -1030,7 +1051,8 @@ public sealed class ApsRepository
     static ApsRunRow MapRun(SqlDataReader r) => new(
         (int)r["RunID"], (string)r["LineID"], DateOnly.FromDateTime((DateTime)r["BaseDate"]), (int)r["Days"],
         r["CustomerID"] as string, (bool)r["IncludeOpen"], (string)r["Status"], (int)r["WarningCount"],
-        (string)r["CreatedBy"], (DateTime)r["CreatedTS"], r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?);
+        (string)r["CreatedBy"], (DateTime)r["CreatedTS"], r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?,
+        (bool)r["IncludeDailyPlan"]);
 
     static ApsPlanLineRow MapPlanLine(SqlDataReader r) => new(
         (int)r["PlanLineID"], (int)r["RunID"], ((string)r["Kind"]).Trim(), (string)r["ItemNo"], (string)r["LineID"],

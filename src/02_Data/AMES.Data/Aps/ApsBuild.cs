@@ -3,8 +3,8 @@ using AMES.Data.Aps.Domain;
 
 namespace AMES.Data.Aps;
 
-/// <summary>PP-APS 조회 조건. 기준일 기본은 화면이 DbClock.Today 로 넣는다(스펙 §4.1).</summary>
-public sealed record ApsQuery(string LineId, DateOnly BaseDate, int Days, string? CustomerId = null, bool IncludeOpen = false);
+/// <summary>PP-APS 조회 조건. 기준일 기본은 화면이 DbClock.Today 로 넣는다(스펙 §4.1). IncludeDailyPlan 기본 true(스펙 2026-09-29 §7).</summary>
+public sealed record ApsQuery(string LineId, DateOnly BaseDate, int Days, string? CustomerId = null, bool IncludeOpen = false, bool IncludeDailyPlan = true);
 
 /// <summary>D-1(직전 근무일) 실적 표시 전용 — 계산에 넣지 않는다(스펙 §4.4). 같은 품번이 완제품·사출 행에 모두 있으면
 /// 완제품 행 항목(Shipped 채움, Used 0)이 먼저, 사출 행 항목(Used 채움, Shipped 0)이 뒤에 온다.</summary>
@@ -20,6 +20,7 @@ public sealed record ApsRegisteredWo(string Kind, string ItemNo, string LineId, 
 /// <summary>ApsRepository.BuildBundle 의 결과 묶음. Rules·Stages 는 Settings 와 활성 INJ/IMG/PNT 라인 전체(LineCd 키, OrdinalIgnoreCase)로 만든다.</summary>
 public sealed record ApsBuild(PlanBundle Bundle, Settings Settings, ApsOptions Options, IReadOnlyList<ApsActualInfo> Actuals,
                               List<string> Warnings, IApsCalendar Calendar, ShiftRules Rules, StageRules Stages,
+                              IReadOnlyDictionary<string, double[]>? PlanDemand = null,   // 일별 계획 몫(표시용, 스펙 2026-09-29 §7) — 저장 JSON 에는 없다
                               IReadOnlyList<ApsRegisteredWo>? RegisteredWoRows = null)
 {
     /// <summary>셀마다의 등록 WO(없으면 빈 목록).</summary>

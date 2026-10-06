@@ -56,6 +56,7 @@ IF OBJECT_ID(N'[dbo].[FK_MD_MoldItem_Mold]', N'F') IS NOT NULL ALTER TABLE [dbo]
 IF OBJECT_ID(N'[dbo].[FK_MD_MoldLine_Mold]', N'F') IS NOT NULL ALTER TABLE [dbo].[MD_MoldLine] DROP CONSTRAINT [FK_MD_MoldLine_Mold];
 IF OBJECT_ID(N'[dbo].[FK_PP_ApsPlanLine_Run]', N'F') IS NOT NULL ALTER TABLE [dbo].[PP_ApsPlanLine] DROP CONSTRAINT [FK_PP_ApsPlanLine_Run];
 IF OBJECT_ID(N'[dbo].[FK_PP_ApsRunWo_Run]', N'F') IS NOT NULL ALTER TABLE [dbo].[PP_ApsRunWo] DROP CONSTRAINT [FK_PP_ApsRunWo_Run];
+IF OBJECT_ID(N'[dbo].[FK_PP_DemandPlan_Batch]', N'F') IS NOT NULL ALTER TABLE [dbo].[PP_DemandPlan] DROP CONSTRAINT [FK_PP_DemandPlan_Batch];
 IF OBJECT_ID(N'[dbo].[FK_PR_AndonDeptCall_Andon]', N'F') IS NOT NULL ALTER TABLE [dbo].[PR_AndonDeptCall] DROP CONSTRAINT [FK_PR_AndonDeptCall_Andon];
 IF OBJECT_ID(N'[dbo].[FK_PR_ImgLot_Lot]', N'F') IS NOT NULL ALTER TABLE [dbo].[PR_ImgLot] DROP CONSTRAINT [FK_PR_ImgLot_Lot];
 IF OBJECT_ID(N'[dbo].[FK_PR_InjLot_Lot]', N'F') IS NOT NULL ALTER TABLE [dbo].[PR_InjLot] DROP CONSTRAINT [FK_PR_InjLot_Lot];
@@ -201,6 +202,8 @@ DROP TABLE IF EXISTS [dbo].[PP_ApsPlanLine];
 DROP TABLE IF EXISTS [dbo].[PP_ApsRun];
 DROP TABLE IF EXISTS [dbo].[PP_ApsRunWo];
 DROP TABLE IF EXISTS [dbo].[PP_CustomerOrder];
+DROP TABLE IF EXISTS [dbo].[PP_DemandPlan];
+DROP TABLE IF EXISTS [dbo].[PP_DemandPlanBatch];
 DROP TABLE IF EXISTS [dbo].[PP_EquipSignal];
 DROP TABLE IF EXISTS [dbo].[PP_Forecast];
 DROP TABLE IF EXISTS [dbo].[PP_ForecastHistory];
@@ -5396,6 +5399,7 @@ CREATE TABLE [dbo].[PP_ApsRun](
 	[CreatedTS] [datetime2](7) NOT NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
+	[IncludeDailyPlan] [bit] NOT NULL,
  CONSTRAINT [PK_PP_ApsRun] PRIMARY KEY CLUSTERED
 (
 	[RunID] ASC
@@ -5416,6 +5420,8 @@ GO
 ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT ((0)) FOR [WarningCount]
 GO
 ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+ALTER TABLE [dbo].[PP_ApsRun] ADD  CONSTRAINT [DF_PP_ApsRun_IncludeDailyPlan]  DEFAULT ((0)) FOR [IncludeDailyPlan]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'APS 실행(PP-APS 저장) — 선택 라인·기준일·일수와 Settings/PlanBundle/PlanResult JSON 스냅샷. Status Saved | Released' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ApsRun'
 GO
@@ -5509,6 +5515,101 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'수주 (SO)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_CustomerOrder'
+GO
+-- Table: dbo.PP_DemandPlan
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[PP_DemandPlan](
+	[PlanID] [int] IDENTITY(1,1) NOT NULL,
+	[CustomerID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[PlanDate] [date] NOT NULL,
+	[ScheduledQty] [decimal](14, 3) NOT NULL,
+	[PoQty] [decimal](14, 3) NULL,
+	[PackQty] [decimal](14, 3) NULL,
+	[PartName] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
+	[Unit] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
+	[Batch] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[Source] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
+ CONSTRAINT [PK_PP_DemandPlan] PRIMARY KEY CLUSTERED
+(
+	[PlanID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_DemandPlan_Cust_Item_Date] ON [dbo].[PP_DemandPlan]
+(
+	[CustomerID] ASC,
+	[ItemNo] ASC,
+	[PlanDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_PP_DemandPlan_Date] ON [dbo].[PP_DemandPlan]
+(
+	[PlanDate] ASC
+)
+INCLUDE([CustomerID],[ItemNo],[ScheduledQty]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[PP_DemandPlan] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고객사 일별 납입 예정량(SRM MM30011 Scheduled Qty). 0 은 저장하지 않는다 — 날짜 창 단위로 교체된다' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_DemandPlan'
+GO
+-- Table: dbo.PP_DemandPlanBatch
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[PP_DemandPlanBatch](
+	[Batch] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CustomerID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[Source] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[SourceKey] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[FileName] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
+	[DateFrom] [date] NOT NULL,
+	[DateTo] [date] NOT NULL,
+	[ItemCount] [int] NOT NULL,
+	[RowCount] [int] NOT NULL,
+	[UnmatchedItems] [int] NOT NULL,
+	[PackMismatch] [int] NOT NULL,
+	[ImportedAt] [datetime2](7) NOT NULL,
+	[ImportedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+ CONSTRAINT [PK_PP_DemandPlanBatch] PRIMARY KEY CLUSTERED
+(
+	[Batch] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE NONCLUSTERED INDEX [IX_PP_DemandPlanBatch_Cust_At] ON [dbo].[PP_DemandPlanBatch]
+(
+	[CustomerID] ASC,
+	[ImportedAt] DESC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[PP_DemandPlanBatch] ADD  DEFAULT ((0)) FOR [ItemCount]
+GO
+ALTER TABLE [dbo].[PP_DemandPlanBatch] ADD  DEFAULT ((0)) FOR [RowCount]
+GO
+ALTER TABLE [dbo].[PP_DemandPlanBatch] ADD  DEFAULT ((0)) FOR [UnmatchedItems]
+GO
+ALTER TABLE [dbo].[PP_DemandPlanBatch] ADD  DEFAULT ((0)) FOR [PackMismatch]
+GO
+ALTER TABLE [dbo].[PP_DemandPlanBatch] ADD  DEFAULT (sysdatetime()) FOR [ImportedAt]
+GO
+ALTER TABLE [dbo].[PP_DemandPlanBatch] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'일별 구매계획 업로드/수집 1건 — 날짜 창·건수·미등록·포장 불일치 집계' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_DemandPlanBatch'
 GO
 -- Table: dbo.PP_EquipSignal
 SET ANSI_NULLS ON
@@ -10148,6 +10249,11 @@ REFERENCES [dbo].[PP_ApsRun] ([RunID])
 ON DELETE CASCADE
 GO
 ALTER TABLE [dbo].[PP_ApsRunWo] CHECK CONSTRAINT [FK_PP_ApsRunWo_Run]
+GO
+ALTER TABLE [dbo].[PP_DemandPlan]  WITH CHECK ADD  CONSTRAINT [FK_PP_DemandPlan_Batch] FOREIGN KEY([Batch])
+REFERENCES [dbo].[PP_DemandPlanBatch] ([Batch])
+GO
+ALTER TABLE [dbo].[PP_DemandPlan] CHECK CONSTRAINT [FK_PP_DemandPlan_Batch]
 GO
 ALTER TABLE [dbo].[PR_AndonDeptCall]  WITH CHECK ADD  CONSTRAINT [FK_PR_AndonDeptCall_Andon] FOREIGN KEY([AndonID])
 REFERENCES [dbo].[PR_AndonCall] ([AndonID])

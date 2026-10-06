@@ -144,7 +144,7 @@ public sealed class ApsPlanState
         var bundle   = JsonSerializer.Deserialize<PlanBundle>(run.BundleJson, ApsJson.Options) ?? new PlanBundle();
         var settings = JsonSerializer.Deserialize<Settings>(run.SettingsJson, ApsJson.Options) ?? Settings.Default();
         var snap     = JsonSerializer.Deserialize<ResultSnapshot>(run.ResultJson, ApsJson.Options) ?? new ResultSnapshot();
-        var build    = fresh with { Bundle = bundle, Settings = settings, Warnings = snap.Warnings };
+        var build    = fresh with { Bundle = bundle, Settings = settings, Warnings = snap.Warnings, PlanDemand = null };
         var s = new ApsPlanState
         {
             Query = q, Build = build,

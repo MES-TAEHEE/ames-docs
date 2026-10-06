@@ -299,6 +299,8 @@ public class ApsRepositoryTests
     {
         ApsPatternConfig.Restore(f);   // 테스트 패턴을 지우기 전에 — MD_ApsLineStage.PatternID FK
         Exec(f, """
+            DELETE FROM dbo.PP_DemandPlan      WHERE Batch LIKE 'ITEST-APS-%';
+            DELETE FROM dbo.PP_DemandPlanBatch WHERE Batch LIKE 'ITEST-APS-%';
             DELETE FROM dbo.PP_ApsRunWo    WHERE RunID IN (SELECT RunID FROM dbo.PP_ApsRun WHERE CreatedBy = @By);
             DELETE FROM dbo.PP_ApsPlanLine WHERE RunID IN (SELECT RunID FROM dbo.PP_ApsRun WHERE CreatedBy = @By);
             DELETE FROM dbo.PP_ApsRun      WHERE CreatedBy = @By;
@@ -935,6 +937,35 @@ public class ApsRepositoryTests
     }
 
     [SkippableFact]
+    public void BuildBundle_adds_daily_plan_to_demand_and_can_be_switched_off()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Skip.If(RoutingA(f!) != "INJ,IMG", "dev routing A is not INJ→IMG");
+        Seed(f!);
+        try
+        {
+            Exec(f!, """
+                INSERT INTO dbo.PP_DemandPlanBatch (Batch, CustomerID, Source, DateFrom, DateTo, ImportedBy, CreatedBy)
+                VALUES ('ITEST-APS-DP', 'ITEST-APS-C', 'UPLOAD', @D1, @D1, @By, @By);
+                INSERT INTO dbo.PP_DemandPlan (CustomerID, ItemNo, PlanDate, ScheduledQty, Batch, Source, CreatedBy)
+                VALUES ('ITEST-APS-C', @FG, @D1, 35, 'ITEST-APS-DP', 'UPLOAD', @By);
+                """, ("@FG", Fg), ("@D1", D1), ("@By", Actor));
+            var repo = new ApsRepository(f!);
+
+            var with    = repo.BuildBundle(new ApsQuery(LineImg, Base, 5));
+            var without = repo.BuildBundle(new ApsQuery(LineImg, Base, 5, IncludeDailyPlan: false));
+
+            var rowWith    = with.Bundle.Assembly.Single(r => r.PartNo == Fg);
+            var rowWithout = without.Bundle.Assembly.Single(r => r.PartNo == Fg);
+            Assert.Equal(rowWithout.Days[1].Demand + 35d, rowWith.Days[1].Demand);
+            Assert.Equal(35d, with.PlanDemand![Fg][1]);
+            Assert.True(without.PlanDemand is null || without.PlanDemand.Count == 0);
+            for (int i = 0; i < 5; i++) if (i != 1) Assert.Equal(rowWithout.Days[i].Demand, rowWith.Days[i].Demand);
+        }
+        finally { Cleanup(f!); }
+    }
+
+    [SkippableFact]
     public void ListLines_returns_active_inj_img_pnt_lines_with_type()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
@@ -1049,6 +1080,24 @@ public class ApsRepositoryTests
             Assert.Equal(new[] { second, first }, mine.Select(r => r.RunId).ToArray());
             Assert.Single(repo.ListRuns(1));
             Assert.Equal(second, repo.ListRuns(1)[0].RunId);
+        }
+        finally { Cleanup(f!); }
+    }
+
+    [SkippableFact]
+    public void SaveRun_persists_IncludeDailyPlan_flag()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f!);
+        try
+        {
+            var repo = new ApsRepository(f!);
+            var b = repo.BuildBundle(new ApsQuery(LineImg, Base, 3, IncludeDailyPlan: false));
+            var q = new ApsQuery(LineImg, Base, 3, IncludeDailyPlan: false);
+            int id = repo.SaveRun(new ApsRepository.ApsRunSave(q, "{}", "{}", "{}", Array.Empty<ApsRepository.ApsPlanLineRow>(), 0), Actor);
+            var run = repo.LoadRun(id);
+            Assert.False(run.Row.IncludeDailyPlan);
+            Assert.Contains(repo.ListRuns(50), r => r.RunId == id && !r.IncludeDailyPlan);
         }
         finally { Cleanup(f!); }
     }

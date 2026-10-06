@@ -17,15 +17,23 @@ public static class DemandRules
     public sealed record OrderRow(int SoId, string? SoNumber, int? SoLineNo, string? CustomerId, string ItemNo,
                                   DateOnly? RequestedDeliveryDate, decimal OrderQty, decimal ShippedQty, string? Status);
 
-    /// <summary>Demand 키 = ItemNo(OrdinalIgnoreCase), 값 길이 = dates.Count (double — 엔진 경계). 수요 0 품번은 키가 없다.</summary>
-    public sealed record Result(IReadOnlyDictionary<string, double[]> Demand, List<string> Warnings);
+    public sealed record PlanRow(string? CustomerId, string ItemNo, DateOnly PlanDate, decimal ScheduledQty);
+
+    /// <summary>Demand 키 = ItemNo(OrdinalIgnoreCase), 값 길이 = dates.Count. PlanDemand 는 일별 계획 몫만(표시용, 수주 몫 = Demand − PlanDemand).</summary>
+    public sealed record Result(IReadOnlyDictionary<string, double[]> Demand, List<string> Warnings,
+                                IReadOnlyDictionary<string, double[]>? PlanDemand = null);
 
     public static Result Build(IReadOnlyList<OrderRow> orders, DateOnly baseDate, IReadOnlyList<string> dates, IApsCalendar cal,
+                               bool includeOpen, string? customerId, IReadOnlySet<string> knownItems)
+        => Build(orders, Array.Empty<PlanRow>(), baseDate, dates, cal, includeOpen, customerId, knownItems);
+
+    /// <summary>스펙 2026-09-29 §7 — 일별 계획: 고객 필터 동일, 0 이하 무시, 휴무일 → 직전 근무일, 기준일 전(지난 계획)은 버림, 미등록 품번 경고 1건/품번.</summary>
+    public static Result Build(IReadOnlyList<OrderRow> orders, IReadOnlyList<PlanRow> plans, DateOnly baseDate, IReadOnlyList<string> dates, IApsCalendar cal,
                                bool includeOpen, string? customerId, IReadOnlySet<string> knownItems)
     {
         var demand   = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
         var warnings = new List<string>();
-        if (dates.Count == 0) return new Result(demand, warnings);
+        if (dates.Count == 0) return new Result(demand, warnings, new Dictionary<string, double[]>());
 
         var index = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int i = 0; i < dates.Count; i++) index[dates[i]] = i;
@@ -63,7 +71,33 @@ public static class DemandRules
             if (!demand.TryGetValue(o.ItemNo, out var arr)) demand[o.ItemNo] = arr = new double[dates.Count];
             arr[slot] += (double)remain;
         }
-        return new Result(demand, warnings);
+
+        var planDemand = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
+        var unknownPlan = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in plans)
+        {
+            if (customerId is not null && !string.Equals(p.CustomerId, customerId, StringComparison.OrdinalIgnoreCase)) continue;
+            if (p.ScheduledQty <= 0) continue;
+            if (!knownItems.Contains(p.ItemNo)) { unknownPlan[p.ItemNo] = unknownPlan.GetValueOrDefault(p.ItemNo) + p.ScheduledQty; continue; }
+
+            if (p.PlanDate < baseDate) continue;   // 원본 날짜가 이미 지난 계획은 PO 로 바뀌었거나 취소된 것 — 버린다
+
+            int slot;
+            var d = p.PlanDate;
+            if (!cal.IsWorkday(d)) d = ApsCalendar.Parse(ApsCalendar.PrevWorkDate(cal, ApsCalendar.Iso(d)));
+            if (d < baseDate) slot = 0;   // 휴무일 폴백이 기준일 이전으로 접히면 수주와 같이 첫날에 몬다
+            else if (d > last) continue;
+            else if (!index.TryGetValue(ApsCalendar.Iso(d), out slot)) continue;
+
+            if (!demand.TryGetValue(p.ItemNo, out var arr)) demand[p.ItemNo] = arr = new double[dates.Count];
+            if (!planDemand.TryGetValue(p.ItemNo, out var pl)) planDemand[p.ItemNo] = pl = new double[dates.Count];
+            arr[slot] += (double)p.ScheduledQty;
+            pl[slot]  += (double)p.ScheduledQty;
+        }
+        foreach (var (item, qty) in unknownPlan.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+            warnings.Add($"품번 {item} 은 MD_Item 에 없어 일별 계획 {N(qty)}개를 제외했습니다.");
+
+        return new Result(demand, warnings, planDemand);
     }
 
     static bool IsWanted(string? status, bool includeOpen) =>

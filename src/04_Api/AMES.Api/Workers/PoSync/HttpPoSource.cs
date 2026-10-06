@@ -1,5 +1,5 @@
 using System.Net.Http.Headers;
-using System.Text;
+using AMES.Api.Workers;
 using AMES.Data.Services.PoSync;
 
 namespace AMES.Api.Workers.PoSync;
@@ -40,29 +40,7 @@ public sealed class HttpPoSource(IHttpClientFactory http, IConfiguration cfg) : 
             new("PO_DATE_TO",  to.ToString("yyyy-MM-dd")),
         };
 
-        AuthenticationHeaderValue? header = null;
-        KeyValuePair<string, string>? extraHeader = null;
-        if (!string.IsNullOrEmpty(s.AuthScheme) && !string.IsNullOrEmpty(s.AuthValue))
-        {
-            if (s.AuthScheme.StartsWith("Query:", StringComparison.OrdinalIgnoreCase))
-            {
-                var name = s.AuthScheme["Query:".Length..].Trim();
-                if (name.Length == 0) throw new InvalidOperationException("인증 방식 Query: 에 매개변수 이름이 없습니다");
-                query.Add(new(name, s.AuthValue));
-            }
-            else if (s.AuthScheme.Equals("Bearer", StringComparison.OrdinalIgnoreCase))
-                header = new AuthenticationHeaderValue("Bearer", s.AuthValue);
-            else if (s.AuthScheme.Equals("Basic", StringComparison.OrdinalIgnoreCase))
-                header = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes(s.AuthValue)));
-            else if (s.AuthScheme.StartsWith("Header:", StringComparison.OrdinalIgnoreCase))
-            {
-                var name = s.AuthScheme["Header:".Length..].Trim();
-                if (name.Length == 0) throw new InvalidOperationException("인증 방식 Header: 에 헤더 이름이 없습니다");
-                extraHeader = new(name, s.AuthValue);
-            }
-            else
-                throw new InvalidOperationException($"지원하지 않는 인증 방식: {s.AuthScheme}");
-        }
+        var (header, extraHeader) = SrmAuth.Apply(query, s.AuthScheme, s.AuthValue);
 
         var qs  = string.Join("&", query.Select(kv => Uri.EscapeDataString(kv.Key) + "=" + Uri.EscapeDataString(kv.Value)));
         var url = s.Url + (s.Url.Contains('?') ? "&" : "?") + qs;

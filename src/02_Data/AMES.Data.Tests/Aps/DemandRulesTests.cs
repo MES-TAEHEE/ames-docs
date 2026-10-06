@@ -144,4 +144,78 @@ public class DemandRulesTests
         Assert.Equal(Dates.Length, arr.Length);
         Assert.Equal(3, arr[2]);
     }
+
+    static DemandRules.PlanRow P(string item, string date, decimal qty, string? cust = "C1")
+        => new(cust, item, DateOnly.ParseExact(date, "yyyy-MM-dd"), qty);
+
+    static DemandRules.Result RunPlans(DemandRules.PlanRow[] plans, bool includeOpen = false, string? cust = null, params DemandRules.OrderRow[] orders)
+        => DemandRules.Build(orders, plans, Base, Dates, Cal, includeOpen, cust, Known);
+
+    [Fact]
+    public void Daily_plan_adds_to_order_demand_and_is_reported_separately()
+    {
+        var r = RunPlans(new[] { P("ITEM-A", "2026-10-06", 80), P("ITEM-A", "2026-10-07", 20) },
+                         orders: new[] { O("ITEM-A", "2026-10-06", 120) });
+
+        Assert.Equal(new double[] { 0, 200, 20, 0, 0 }, r.Demand["ITEM-A"]);
+        Assert.Equal(new double[] { 0, 80, 20, 0, 0 }, r.PlanDemand!["ITEM-A"]);
+        Assert.Empty(r.Warnings);
+    }
+
+    [Fact]
+    public void Past_plan_is_dropped_holiday_folds_and_beyond_last_is_ignored()
+    {
+        var r = RunPlans(new[]
+        {
+            P("ITEM-A", "2026-10-02", 30),   // 기준일 전 금요일 → 버림(수주와 다르다)
+            P("ITEM-A", "2026-10-04", 40),   // 일요일 → 직전 근무일 10-02 → 기준일 전 → 버림
+            P("ITEM-A", "2026-10-10", 50),   // 토요일 → 10-09
+            P("ITEM-A", "2026-10-12", 60),   // 마지막 날 뒤 → 무시
+        });
+        Assert.Equal(new double[] { 0, 0, 0, 0, 50 }, r.Demand["ITEM-A"]);
+        Assert.Empty(r.Warnings);
+    }
+
+    [Fact]
+    public void Plan_for_unknown_item_warns_once_with_total_and_nonpositive_is_skipped()
+    {
+        var r = RunPlans(new[] { P("ITEM-X", "2026-10-06", 10), P("ITEM-X", "2026-10-07", 5), P("ITEM-A", "2026-10-06", 0), P("ITEM-A", "2026-10-07", -3) });
+        Assert.False(r.Demand.ContainsKey("ITEM-A"));
+        var w = Assert.Single(r.Warnings);
+        Assert.Contains("ITEM-X", w); Assert.Contains("일별 계획", w); Assert.Contains("15", w);
+    }
+
+    [Fact]
+    public void Plan_dated_on_a_non_workday_base_date_lands_in_slot_zero_instead_of_vanishing()
+    {
+        // 기준일 자체가 일요일(비근무일)인 경우 — 원본 계획일은 기준일보다 이르지 않으므로 "지난 계획"이 아니다.
+        // 휴무일 폴백이 직전 근무일(금 10-09)로 접어 기준일 이전이 되면, 수주와 같이 첫날(슬롯0)에 몰아야지 사라지면 안 된다.
+        var baseSun    = new DateOnly(2026, 10, 11);
+        var datesFrom  = new[] { "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15" };
+
+        var r = DemandRules.Build(Array.Empty<DemandRules.OrderRow>(),
+            new[] { P("ITEM-A", "2026-10-11", 30) },
+            baseSun, datesFrom, Cal, false, null, Known);
+
+        Assert.Equal(new double[] { 30, 0, 0, 0, 0 }, r.Demand["ITEM-A"]);
+        Assert.Equal(new double[] { 30, 0, 0, 0, 0 }, r.PlanDemand!["ITEM-A"]);
+        Assert.Empty(r.Warnings);
+    }
+
+    [Fact]
+    public void Plan_respects_customer_filter()
+    {
+        var r = RunPlans(new[] { P("ITEM-A", "2026-10-06", 10, cust: "C1"), P("ITEM-A", "2026-10-06", 7, cust: "C2") }, cust: "c2");
+        Assert.Equal(new double[] { 0, 7, 0, 0, 0 }, r.Demand["ITEM-A"]);
+    }
+
+    [Fact]
+    public void Without_plans_result_is_unchanged_and_plan_demand_is_empty()
+    {
+        var orders = new[] { O("ITEM-A", "2026-10-06", 10) };
+        var old = Run(orders: orders);
+        var neu = RunPlans(Array.Empty<DemandRules.PlanRow>(), orders: orders);
+        Assert.Equal(old.Demand["ITEM-A"], neu.Demand["ITEM-A"]);
+        Assert.Empty(neu.PlanDemand!);
+    }
 }

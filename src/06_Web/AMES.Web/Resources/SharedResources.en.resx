@@ -9006,6 +9006,87 @@
   <data name="PP.Aps.Line.All" xml:space="preserve">
     <value>All assembly lines</value>
   </data>
+  <data name="PP.Aps.Lbl.IncludeDailyPlan" xml:space="preserve">
+    <value>Include daily plan</value>
+  </data>
+  <data name="PP.Aps.Cell.PlanDemand" xml:space="preserve">
+    <value>plan</value>
+  </data>
+  <data name="PP.Aps.Lbl.DailyPlanOn" xml:space="preserve">
+    <value>Daily plan</value>
+  </data>
+  <data name="PP.Forecast.Tab.Daily" xml:space="preserve">
+    <value>Daily Purchase Plan</value>
+  </data>
+  <data name="PP.DemandPlan.Empty" xml:space="preserve">
+    <value>No daily plan — upload a file or fetch from the API</value>
+  </data>
+  <data name="PP.DemandPlan.Kpi.Items" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="PP.DemandPlan.Kpi.Days" xml:space="preserve">
+    <value>Days</value>
+  </data>
+  <data name="PP.DemandPlan.Kpi.TotalQty" xml:space="preserve">
+    <value>Total scheduled</value>
+  </data>
+  <data name="PP.DemandPlan.Kpi.Unmatched" xml:space="preserve">
+    <value>Unregistered</value>
+  </data>
+  <data name="PP.DemandPlan.Col.Pack" xml:space="preserve">
+    <value>Pack</value>
+  </data>
+  <data name="PP.DemandPlan.Badge.PackMismatch" xml:space="preserve">
+    <value>BoxQty mismatch</value>
+  </data>
+  <data name="PP.DemandPlan.Btn.Upload" xml:space="preserve">
+    <value>Excel Upload (daily)</value>
+  </data>
+  <data name="PP.DemandPlan.Btn.Api" xml:space="preserve">
+    <value>Fetch from API</value>
+  </data>
+  <data name="PP.DemandPlan.Upload.Title" xml:space="preserve">
+    <value>Daily purchase plan upload (SRM MM30011)</value>
+  </data>
+  <data name="PP.DemandPlan.Upload.Hint" xml:space="preserve">
+    <value>SRM MM30011 MIP Purchase Plan Search (JIT) file. Dates are taken by column order from the first date</value>
+  </data>
+  <data name="PP.DemandPlan.Preview.Summary" xml:space="preserve">
+    <value>{0} items · {1} ~ {2} ({3} days) · {4} scheduled cells</value>
+  </data>
+  <data name="PP.DemandPlan.Preview.Unmatched" xml:space="preserve">
+    <value>{0} items not in MD_Item (saved, but excluded from APS demand)</value>
+  </data>
+  <data name="PP.DemandPlan.Preview.PackMismatch" xml:space="preserve">
+    <value>{0} items whose pack qty differs from BoxQty</value>
+  </data>
+  <data name="PP.DemandPlan.Ok.Imported" xml:space="preserve">
+    <value>Uploaded — {0} items · {1} cells · {2} unregistered · {3} pack mismatches</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.File" xml:space="preserve">
+    <value>File / source</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.Unmatched" xml:space="preserve">
+    <value>Unregistered</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.Mismatch" xml:space="preserve">
+    <value>Pack mismatch</value>
+  </data>
+  <data name="PP.DemandPlan.Hist.Title" xml:space="preserve">
+    <value>Daily plan uploads and syncs</value>
+  </data>
+  <data name="PP.DemandPlan.Api.Title" xml:space="preserve">
+    <value>Fetch daily plan from API</value>
+  </data>
+  <data name="PP.DemandPlan.Api.Ok" xml:space="preserve">
+    <value>{0} items · {1} cells · {2} unregistered · {3} pack mismatches</value>
+  </data>
+  <data name="PP.DemandPlan.Api.Detail" xml:space="preserve">
+    <value>{0} ~ {1} · fetched {2} · mapped {3} · skipped {4}</value>
+  </data>
   <data name="PP.Aps.Settings.Col.Pattern" xml:space="preserve">
     <value>Time pattern</value>
   </data>

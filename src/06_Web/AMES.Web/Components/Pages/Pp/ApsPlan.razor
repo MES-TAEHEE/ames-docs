@@ -91,6 +91,8 @@
                             AllowClear="true" AllowFiltering="true" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px" Disabled="@_busy" />
             <RadzenCheckBox TValue="bool" @bind-Value="_fOpen" Name="ApsChkOpen" Disabled="@_busy" />
             <RadzenLabel Text="@L["PP.Aps.Lbl.IncludeOpen"]" Component="ApsChkOpen" />
+            <RadzenCheckBox TValue="bool" @bind-Value="_fDaily" Name="ApsChkDaily" Disabled="@_busy" />
+            <RadzenLabel Text="@L["PP.Aps.Lbl.IncludeDailyPlan"]" Component="ApsChkDaily" />
             <RadzenButton Text="@L["PP.Aps.Btn.Query"].Value" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="Query" Disabled="@_busy" />
         </RadzenStack>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
@@ -98,6 +100,7 @@
             {
                 <span class="pill info">@LineLabel(_state.Bundle.Line.LineCd) · @TypeText(_state.Bundle.Line.Type)</span>
                 <span class="pill mute">@_state.Bundle.Dates.Count @L["PP.Aps.Lbl.Days"]</span>
+                @if (_state.Query.IncludeDailyPlan) { <span class="pill mute">@L["PP.Aps.Lbl.DailyPlanOn"]</span> }
                 @if (_state.Dirty) { <span class="pill warn">@L["PP.Aps.Lbl.Dirty"]</span> }
             }
             @if (_state?.SavedRunId is { } rid)
@@ -183,7 +186,7 @@ else
                                         {
                                             <div class="aps-cell st-@(c?.Status ?? "ok") @(IsSelected(ApsRepository.KindAsm, r.Row.PartNo, date) ? "sel" : "")"
                                                  @onclick="() => SelectCell(ApsRepository.KindAsm, r.Row.PartNo, date)">
-                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Demand"]</span><span>@Q(d.Demand, r.Row.PartNo)</span></div>
+                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Demand"]</span><span>@Q(d.Demand, r.Row.PartNo)@if (PlanPart(r.Row.PartNo, idx) is > 0 and var pd) { <span class="dim"> · @L["PP.Aps.Cell.PlanDemand"] @Q(pd, r.Row.PartNo)</span> }</span></div>
                                                 @{ var woA = _state!.WoIssued(ApsRepository.KindAsm, r.Row.PartNo, date, L["PP.Aps.Cell.Unplaced"].Value); }
                                                 <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Wo"]</span><span class="@(woA.Count == 0 ? "dim" : "aps-wo")" title="@woA.Title">@Q(woA.Qty, r.Row.PartNo)@if (woA.Unplaced > 0) { <span class="aps-wo-unplaced"> · @string.Format(L["PP.Aps.Cell.WoUnplaced"].Value, Q(woA.Unplaced, r.Row.PartNo))</span> }@if (woA.Count > 1) { <span class="dim"> (@woA.Count)</span> }</span></div>
                                                 <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Supply"]</span>
@@ -384,6 +387,7 @@ else
         <ApsTraceDrawer Kind="@sel.Kind" PartNo="@sel.ItemNo" Date="@sel.Date" Uom="@Uom(sel.ItemNo)"
                         Autofill="@(sel.Kind == ApsRepository.KindAsm ? _state.AutofillTraces.FirstOrDefault(t => string.Equals(t.PartNo, sel.ItemNo, StringComparison.OrdinalIgnoreCase) && t.Date == sel.Date) : null)"
                         Schedule="@(sel.Kind == ApsRepository.KindInj ? _state.Traces.FirstOrDefault(t => string.Equals(t.PartNo, sel.ItemNo, StringComparison.OrdinalIgnoreCase) && t.Date == sel.Date) : null)"
+                        PlanDemand="@PlanPart(sel.ItemNo, Dates.IndexOf(sel.Date))"
                         OnClose="CloseDrawer" />
     }
 }
@@ -402,6 +406,7 @@ else
     DateTime _fBase = DbClock.Today;
     int      _fDays = 5;   // 기본 계획 일수(사용자 결정 10-05: 7 → 5)
     bool     _fOpen;
+    bool     _fDaily = true;
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
     List<DropDownItem> _lineOpts = new();
@@ -476,7 +481,7 @@ else
         try
         {
             var q = new ApsQuery(_fLine, DateOnly.FromDateTime(_fBase.Date), Math.Clamp(_fDays, 1, 30),
-                                 string.IsNullOrEmpty(_fCust) ? null : _fCust, _fOpen);
+                                 string.IsNullOrEmpty(_fCust) ? null : _fCust, _fOpen, _fDaily);
             // 어댑터 DB 왕복과 첫 계산(PlanCalc·Explain)은 기간이 길면 오래 걸려 스레드풀로 넘기고 진행 표시를 유지한다
             _state = await Task.Run(() => ApsPlanState.Create(q, Aps.BuildBundle(q)));
             _configProblems = new();
@@ -645,7 +650,7 @@ else
             s.SavedRunId = runId;
             s.Dirty = false;
             Audit.Log("PP-APS", "SAVE", "PP_ApsRun", runId, null,
-                new { save.Query.LineId, BaseDate = save.Query.BaseDate.ToString("yyyy-MM-dd"), save.Query.Days, save.Query.CustomerId, save.Query.IncludeOpen, Lines = save.Lines.Count, save.WarningCount });
+                new { save.Query.LineId, BaseDate = save.Query.BaseDate.ToString("yyyy-MM-dd"), save.Query.Days, save.Query.CustomerId, save.Query.IncludeOpen, save.Query.IncludeDailyPlan, Lines = save.Lines.Count, save.WarningCount });
             ShowMsg(string.Format(L["PP.Aps.Ok.Saved"].Value, runId), false);
         }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
@@ -684,7 +689,7 @@ else
             void SyncFilters()
             {
                 _fLine = row.LineId; _fBase = row.BaseDate.ToDateTime(TimeOnly.MinValue); _fDays = row.Days;
-                _fCust = row.CustomerId ?? ""; _fOpen = row.IncludeOpen;
+                _fCust = row.CustomerId ?? ""; _fOpen = row.IncludeOpen; _fDaily = row.IncludeDailyPlan;
             }
 
             if (recalculate)
@@ -696,7 +701,7 @@ else
             }
             else
             {
-                var q = new ApsQuery(row.LineId, row.BaseDate, row.Days, row.CustomerId, row.IncludeOpen);
+                var q = new ApsQuery(row.LineId, row.BaseDate, row.Days, row.CustomerId, row.IncludeOpen, row.IncludeDailyPlan);
                 var fresh = await Task.Run(() => Aps.BuildBundle(q));
                 _state = ApsPlanState.Restore(q, run, fresh);
                 _configProblems = new();
@@ -764,6 +769,8 @@ else
     // 엔진 수치는 double — 표시 직전에만 decimal 로 바꾼다(단위 자릿수는 MD_Uom.DecimalPrec)
     string Q(double v, string? partNo) => UomFmt.Qty(double.IsFinite(v) ? (decimal)v : 0m, Uom(partNo));
     string QD(decimal? v, string? partNo) => UomFmt.Qty(v, Uom(partNo));
+    // 일별 계획 몫(스펙 2026-09-29 §7) — 조회 시 IncludeDailyPlan 이 꺼져 있으면 Build.PlanDemand 가 null
+    double PlanPart(string partNo, int idx) => idx >= 0 && _state?.Build.PlanDemand is { } pd && pd.TryGetValue(partNo, out var arr) && idx < arr.Length ? arr[idx] : 0;
     string TypeText(string? type) => type == ApsRepository.LineTypeInjection ? L["PP.Aps.Type.injection"] : L["PP.Aps.Type.assembly"];
     string LineLabel(string? lineCd) => lineCd == ApsRepository.AllLines ? L["PP.Aps.Line.All"].Value : lineCd ?? "";
     static string DateTitle(string iso) => DateOnly.TryParseExact(iso, "yyyy-MM-dd", out var d) ? $"{d.ToString(DateFmt.MonthDay)} {d.ToString("ddd")}" : iso;
