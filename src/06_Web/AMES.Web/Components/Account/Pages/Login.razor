@@ -8,6 +8,7 @@
 
 @inject AMES.Web.Services.WebSignIn SignIn
 @inject IStringLocalizer<SharedResources> L
+@inject IWebHostEnvironment Env
 
 <PageTitle>@L["Auth.Title.SignIn"] · A-MES</PageTitle>
 
@@ -47,16 +48,13 @@
             <button type="submit" class="ames-auth-submit">@L["Auth.Btn.SignIn"]  →</button>
         </EditForm>
 
-        @* 개발 기간에는 IIS(Production)에서도 보인다 — 개발 완료 시 개발 환경에서만 보이게 바꾼다(사용자 결정 10-01) *@
-        <div class="ames-auth-hint">
-            @L["Auth.DevAccount"]: <code>admin@ames.local</code> / <code>Dev2026!</code>
-        </div>
-
-        <div class="ames-auth-meta">
-            <a href="Account/ForgotPassword">@L["Auth.ForgotLink"]</a>
-            <span>·</span>
-            <a href="/Account/Register@(string.IsNullOrEmpty(ReturnUrl) ? "" : $"?ReturnUrl={Uri.EscapeDataString(ReturnUrl)}")">@L["Auth.RegisterLink"]</a>
-        </div>
+        @* 개발 계정 안내는 개발 환경(dotnet run)에서만 — IIS(Production)에서는 보이지 않는다(사용자 결정 10-07) *@
+        @if (Env.IsDevelopment())
+        {
+            <div class="ames-auth-hint">
+                @L["Auth.DevAccount"]: <code>admin@ames.local</code> / <code>Dev2026!</code>
+            </div>
+        }
     </div>
 
     <div class="ames-auth-foot">A-MES · EOS · 2026</div>

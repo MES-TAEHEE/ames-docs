@@ -224,8 +224,8 @@ public sealed class AuthRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
         using var rdr = cmd.ExecuteReader();
-        // 프로필이 없으면 승인 대기로 본다 — 자기가입 프로필 생성이 실패한 계정이 승인 없이 로그인되던 문제(10-07)
-        if (!rdr.Read()) return ("PENDING", 0);
+        // 프로필이 없으면 로그인할 수 없다 — 계정은 SYS-001 에서 프로필과 함께 만든다(10-07)
+        if (!rdr.Read()) return ("INACTIVE", 0);
         return ((string)rdr[0], (int)rdr[1]);
     }
 

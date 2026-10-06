@@ -134,8 +134,8 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
-        // 자기가입은 이메일 자기인증 필수. (관리자 생성 계정은 EmailConfirmed=true 로 생성해 영향 없음)
-        options.SignIn.RequireConfirmedAccount   = true;
+        // 계정은 SYS-001 에서 관리자만 만든다 — 메일 인증 단계가 없으므로 로그인은 계정 상태(SYS_UserProfile.AccountStatus)만 본다(10-07)
+        options.SignIn.RequireConfirmedAccount   = false;
         options.Password.RequireDigit            = true;
         // 최소 길이는 SYS_Config(PASSWORD_MIN_LEN) 기준 ConfigPasswordValidator 가 동적 관장 → 내장 게이트는 완화
         options.Password.RequiredLength          = 1;
@@ -152,12 +152,6 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 // 비밀번호 최소 길이 = SYS_Config(PASSWORD_MIN_LEN) 동적 검증 (앱 재시작 없이 Config 저장 시 반영)
 builder.Services.AddSingleton<AMES.Web.Services.AppSecurityState>();
 builder.Services.AddScoped<IPasswordValidator<ApplicationUser>, AMES.Web.Services.ConfigPasswordValidator>();
-// 이메일 발신: Smtp:Host 설정이 있으면 실제 SMTP 발송, 없으면 NoOp(개발환경은 Register 화면에 인증링크 노출)
-if (!string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
-    builder.Services.AddSingleton<IEmailSender<ApplicationUser>, AMES.Web.Services.SmtpEmailSender>();
-else
-    builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
-builder.Services.AddSingleton<AMES.Web.Services.AccountMail>();   // 메일 발송 가능 여부 → 가입·비밀번호 찾기·SYS-001 인증 처리 대체 동작
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<ScmPreviewStore>();
@@ -294,7 +288,7 @@ await RunSeedAsync("admin", async scope =>
             app.Logger.LogWarning("admin role assignment failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
     }
 
-    // 프로필 없는 계정은 로그인이 거부된다(승인 대기) — 시드 관리자는 활성 프로필을 함께 둔다. 이미 있으면 건드리지 않는다
+    // 프로필 없는 계정은 로그인이 거부된다 — 시드 관리자는 활성 프로필을 함께 둔다. 이미 있으면 건드리지 않는다
     if (adminUser is not null)
         scope.ServiceProvider.GetRequiredService<SysRepository>().EnsureActiveProfile(adminUser.Id, "Administrator", "SEED");
 });

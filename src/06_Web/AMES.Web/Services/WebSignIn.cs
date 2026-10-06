@@ -34,10 +34,8 @@ public sealed class WebSignIn(
         {
             var (accountStatus, _) = authRepo.GetProfileStatus(user.Id);
             if (string.Equals(accountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) return Error("Auth.Err.Locked");
-            // ① 이메일 자기인증 완료 여부
-            if (!user.EmailConfirmed) return Error("Auth.Err.EmailNotConfirmed");
-            // ② 관리자 승인(ACTIVE) 여부. 프로필이 없거나 자기가입 직후(PENDING)면 승인 대기 — SMTP 로 이메일 인증을 마쳐도 관리자가 ACTIVE 로 바꿔야 로그인된다.
-            if (!string.Equals(accountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase)) return Error("Auth.Err.Pending");
+            // 계정은 SYS-001 에서 관리자만 만든다 — 상태가 ACTIVE 일 때만 로그인(비활성·정지·프로필 없음은 거부, 10-07 메일 인증 단계 폐지)
+            if (!string.Equals(accountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase)) return Error("Auth.Err.Inactive");
         }
 
         var result = await signIn.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false);
@@ -52,7 +50,7 @@ public sealed class WebSignIn(
         if (result.RequiresTwoFactor)
             return new($"/Account/LoginWith2fa?returnUrl={Uri.EscapeDataString(LocalUrl.OrDefault(returnUrl, ""))}&rememberMe={rememberMe.ToString().ToLower()}", null);
         if (result.IsLockedOut) return new("/Account/Lockout", null);
-        if (result.IsNotAllowed) return Error("Auth.Err.EmailNotConfirmed");
+        if (result.IsNotAllowed) return Error("Auth.Err.Inactive");
 
         // 도메인 실패 카운터 — 5번째에 잠근다
         if (user is not null && authRepo.IncrementFailedCount(user.Id)) return Error("Auth.Err.LockedAfter5");

@@ -474,9 +474,6 @@
   <data name="SYS.Users.Kpi.Users" xml:space="preserve">
     <value>사용자</value>
   </data>
-  <data name="SYS.Users.Kpi.Verified" xml:space="preserve">
-    <value>인증 완료</value>
-  </data>
   <data name="SYS.Users.Kpi.Locked" xml:space="preserve">
     <value>잠금</value>
   </data>
@@ -599,9 +596,6 @@
   </data>
   <data name="SYS.Users.Ok.DomainUnlocked" xml:space="preserve">
     <value>{0} 로그인 잠금이 해제되었습니다.</value>
-  </data>
-  <data name="SYS.Users.Status.Unverified" xml:space="preserve">
-    <value>미인증</value>
   </data>
   <data name="SYS.Users.Status.NoProfile" xml:space="preserve">
     <value>프로필 없음</value>
@@ -4560,9 +4554,6 @@
   <data name="SYS.Users.Ph.EmployeeNo" xml:space="preserve">
     <value>예: EMP001</value>
   </data>
-  <data name="SYS.Users.Hint.Unverified" xml:space="preserve">
-    <value>이메일 인증 전에는 계정 상태를 변경할 수 없습니다.</value>
-  </data>
   <data name="Col.SubProcess" xml:space="preserve">
     <value>서브</value>
   </data>
@@ -8037,15 +8028,6 @@
   <data name="Auth.Title.SignIn" xml:space="preserve">
     <value>로그인</value>
   </data>
-  <data name="Auth.Title.Register" xml:space="preserve">
-    <value>가입</value>
-  </data>
-  <data name="Auth.Title.Forgot" xml:space="preserve">
-    <value>비밀번호 찾기</value>
-  </data>
-  <data name="Auth.Title.Reset" xml:space="preserve">
-    <value>비밀번호 재설정</value>
-  </data>
   <data name="Auth.Title.Lockout" xml:space="preserve">
     <value>계정 잠김</value>
   </data>
@@ -8054,12 +8036,6 @@
   </data>
   <data name="Auth.Sub.SignIn" xml:space="preserve">
     <value>로그인</value>
-  </data>
-  <data name="Auth.Sub.Register" xml:space="preserve">
-    <value>가입</value>
-  </data>
-  <data name="Auth.Sub.ResetPassword" xml:space="preserve">
-    <value>비밀번호 재설정</value>
   </data>
   <data name="Auth.Sub.Lockout" xml:space="preserve">
     <value>계정 잠김</value>
@@ -8073,20 +8049,8 @@
   <data name="Auth.Lbl.Password" xml:space="preserve">
     <value>비밀번호</value>
   </data>
-  <data name="Auth.Lbl.ConfirmPassword" xml:space="preserve">
-    <value>비밀번호 확인</value>
-  </data>
-  <data name="Auth.Lbl.NewPassword" xml:space="preserve">
-    <value>새 비밀번호</value>
-  </data>
   <data name="Auth.Remember" xml:space="preserve">
     <value>이 브라우저 기억 (ID 저장)</value>
-  </data>
-  <data name="Auth.ForgotLink" xml:space="preserve">
-    <value>비밀번호를 잊으셨나요?</value>
-  </data>
-  <data name="Auth.RegisterLink" xml:space="preserve">
-    <value>가입</value>
   </data>
   <data name="Auth.DevAccount" xml:space="preserve">
     <value>개발 계정</value>
@@ -8100,68 +8064,20 @@
   <data name="Auth.GoHome" xml:space="preserve">
     <value>홈으로</value>
   </data>
-  <data name="Auth.CheckMailbox" xml:space="preserve">
-    <value>메일함에서 인증 링크를 확인해 주세요.</value>
-  </data>
   <data name="Auth.Btn.SignIn" xml:space="preserve">
     <value>로그인</value>
-  </data>
-  <data name="Auth.Btn.CreateAccount" xml:space="preserve">
-    <value>계정 만들기</value>
-  </data>
-  <data name="Auth.Btn.ConfirmEmail" xml:space="preserve">
-    <value>이메일 인증하기</value>
-  </data>
-  <data name="Auth.Btn.SendResetLink" xml:space="preserve">
-    <value>재설정 링크 보내기</value>
-  </data>
-  <data name="Auth.Btn.ResetPassword" xml:space="preserve">
-    <value>비밀번호 재설정</value>
   </data>
   <data name="Auth.Err.Locked" xml:space="preserve">
     <value>계정이 잠겨 있습니다. 관리자에게 문의하세요.</value>
   </data>
+  <data name="Auth.Err.Inactive" xml:space="preserve">
+    <value>사용할 수 없는 계정입니다. 관리자에게 문의하세요.</value>
+  </data>
   <data name="Auth.Err.LockedAfter5" xml:space="preserve">
     <value>5회 실패로 계정이 잠겼습니다. 관리자에게 문의하세요.</value>
   </data>
-  <data name="Auth.Err.EmailNotConfirmed" xml:space="preserve">
-    <value>이메일 인증을 먼저 완료해 주세요.</value>
-  </data>
-  <data name="Auth.Err.Pending" xml:space="preserve">
-    <value>관리자 승인 대기중입니다. 승인 후 로그인할 수 있습니다.</value>
-  </data>
-  <data name="Auth.Err.RegisterFailed" xml:space="preserve">
-    <value>가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도하거나 관리자에게 문의하세요.</value>
-  </data>
   <data name="Auth.Err.Invalid" xml:space="preserve">
     <value>이메일 또는 비밀번호가 올바르지 않습니다.</value>
-  </data>
-  <data name="Auth.Err.UserNotFound" xml:space="preserve">
-    <value>해당 이메일의 사용자를 찾을 수 없습니다.</value>
-  </data>
-  <data name="Auth.Register.Accepted" xml:space="preserve">
-    <value>가입 신청이 접수되었습니다.</value>
-  </data>
-  <data name="Auth.Register.Steps" xml:space="preserve">
-    <value>① &lt;b&gt;이메일 인증&lt;/b&gt; 후 ② &lt;b&gt;관리자 승인&lt;/b&gt;이 되면 로그인할 수 있습니다.</value>
-  </data>
-  <data name="Auth.Register.DevHint" xml:space="preserve">
-    <value>개발 환경: 실제 메일이 발송되지 않아 위 버튼으로 인증합니다.</value>
-  </data>
-  <data name="Auth.RegisterConf.Accepted" xml:space="preserve">
-    <value>가입이 접수되었습니다. 아래 버튼으로 이메일을 인증하세요.</value>
-  </data>
-  <data name="Auth.RegisterConf.DevHint" xml:space="preserve">
-    <value>개발 환경: 실제 메일이 발송되지 않습니다.</value>
-  </data>
-  <data name="Auth.Forgot.Hint" xml:space="preserve">
-    <value>가입한 이메일을 입력하면 재설정 링크를 보냅니다.</value>
-  </data>
-  <data name="Auth.Forgot.CheckMail" xml:space="preserve">
-    <value>비밀번호 재설정 안내 메일을 확인해 주세요.</value>
-  </data>
-  <data name="Auth.Reset.Done" xml:space="preserve">
-    <value>비밀번호가 재설정되었습니다.</value>
   </data>
   <data name="Auth.Lockout.Msg" xml:space="preserve">
     <value>계정이 잠겼습니다. 잠시 후 다시 시도해 주세요.</value>
@@ -8196,56 +8112,14 @@
   <data name="WH.Picking.Slip.ReqBox" xml:space="preserve">
     <value>요청 박스</value>
   </data>
-  <data name="Auth.Title.ConfirmEmail" xml:space="preserve">
-    <value>이메일 인증</value>
-  </data>
-  <data name="Auth.Title.EmailChange" xml:space="preserve">
-    <value>이메일 변경 확인</value>
-  </data>
   <data name="Auth.Title.InvalidUser" xml:space="preserve">
     <value>유효하지 않은 사용자</value>
-  </data>
-  <data name="Auth.Title.Resend" xml:space="preserve">
-    <value>인증 메일 재발송</value>
-  </data>
-  <data name="Auth.Sub.ConfirmEmail" xml:space="preserve">
-    <value>이메일 인증</value>
-  </data>
-  <data name="Auth.Sub.EmailChange" xml:space="preserve">
-    <value>이메일 변경</value>
   </data>
   <data name="Auth.Sub.InvalidUser" xml:space="preserve">
     <value>유효하지 않은 사용자</value>
   </data>
-  <data name="Auth.Sub.Resend" xml:space="preserve">
-    <value>인증 메일 재발송</value>
-  </data>
-  <data name="Auth.Btn.Resend" xml:space="preserve">
-    <value>다시 보내기</value>
-  </data>
-  <data name="Auth.ConfirmEmail.Ok" xml:space="preserve">
-    <value>이메일 인증이 완료되었습니다.</value>
-  </data>
-  <data name="Auth.ConfirmEmail.Fail" xml:space="preserve">
-    <value>이메일 인증에 실패했습니다.</value>
-  </data>
-  <data name="Auth.EmailChange.Ok" xml:space="preserve">
-    <value>이메일 변경이 확인되었습니다.</value>
-  </data>
-  <data name="Auth.EmailChange.Fail" xml:space="preserve">
-    <value>이메일 변경에 실패했습니다.</value>
-  </data>
   <data name="Auth.InvalidUser.Msg" xml:space="preserve">
     <value>유효하지 않은 사용자입니다.</value>
-  </data>
-  <data name="Auth.Reset.InvalidLink" xml:space="preserve">
-    <value>비밀번호 재설정 링크가 유효하지 않습니다.</value>
-  </data>
-  <data name="Auth.Reset.RequestAgain" xml:space="preserve">
-    <value>재설정 다시 요청</value>
-  </data>
-  <data name="Auth.Resend.Sent" xml:space="preserve">
-    <value>인증 메일을 보냈습니다. 메일함을 확인해 주세요.</value>
   </data>
   <data name="WH.LocBarcode.Title" xml:space="preserve">
     <value>위치 바코드</value>
@@ -9588,18 +9462,6 @@
   </data>
   <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
     <value>{0} 적입량</value>
-  </data>
-  <data name="Auth.Forgot.NoMail" xml:space="preserve">
-    <value>이 서버는 메일을 보내지 않아 재설정 링크를 받을 수 없습니다. 관리자에게 비밀번호 재설정을 요청하세요(시스템 → 사용자 관리).</value>
-  </data>
-  <data name="Auth.Register.AdminConfirm" xml:space="preserve">
-    <value>이 서버는 메일을 보내지 않습니다. 관리자가 이메일 인증과 승인을 처리하면 로그인할 수 있습니다.</value>
-  </data>
-  <data name="SYS.Users.Btn.ConfirmEmail" xml:space="preserve">
-    <value>인증 처리</value>
-  </data>
-  <data name="SYS.Users.Ok.EmailConfirmed" xml:space="preserve">
-    <value>{0} 이메일 인증 처리 완료.</value>
   </data>
   <data name="SYS.Config.Err.TimeFormat" xml:space="preserve">
     <value>{0}: 시각은 00:00 형식(00:00~23:59)으로 입력하세요.</value>

@@ -474,9 +474,6 @@
   <data name="SYS.Users.Kpi.Users" xml:space="preserve">
     <value>Users</value>
   </data>
-  <data name="SYS.Users.Kpi.Verified" xml:space="preserve">
-    <value>Verified</value>
-  </data>
   <data name="SYS.Users.Kpi.Locked" xml:space="preserve">
     <value>Locked</value>
   </data>
@@ -599,9 +596,6 @@
   </data>
   <data name="SYS.Users.Ok.DomainUnlocked" xml:space="preserve">
     <value>{0} login lock removed.</value>
-  </data>
-  <data name="SYS.Users.Status.Unverified" xml:space="preserve">
-    <value>Unverified</value>
   </data>
   <data name="SYS.Users.Status.NoProfile" xml:space="preserve">
     <value>No profile</value>
@@ -4560,9 +4554,6 @@
   <data name="SYS.Users.Ph.EmployeeNo" xml:space="preserve">
     <value>e.g. EMP001</value>
   </data>
-  <data name="SYS.Users.Hint.Unverified" xml:space="preserve">
-    <value>Account status cannot be changed before email verification.</value>
-  </data>
   <data name="Col.SubProcess" xml:space="preserve">
     <value>Sub</value>
   </data>
@@ -8037,15 +8028,6 @@
   <data name="Auth.Title.SignIn" xml:space="preserve">
     <value>Sign in</value>
   </data>
-  <data name="Auth.Title.Register" xml:space="preserve">
-    <value>Register</value>
-  </data>
-  <data name="Auth.Title.Forgot" xml:space="preserve">
-    <value>Forgot password</value>
-  </data>
-  <data name="Auth.Title.Reset" xml:space="preserve">
-    <value>Reset password</value>
-  </data>
   <data name="Auth.Title.Lockout" xml:space="preserve">
     <value>Locked out</value>
   </data>
@@ -8054,12 +8036,6 @@
   </data>
   <data name="Auth.Sub.SignIn" xml:space="preserve">
     <value>SIGN IN</value>
-  </data>
-  <data name="Auth.Sub.Register" xml:space="preserve">
-    <value>REGISTER</value>
-  </data>
-  <data name="Auth.Sub.ResetPassword" xml:space="preserve">
-    <value>RESET PASSWORD</value>
   </data>
   <data name="Auth.Sub.Lockout" xml:space="preserve">
     <value>LOCKED OUT</value>
@@ -8073,20 +8049,8 @@
   <data name="Auth.Lbl.Password" xml:space="preserve">
     <value>PASSWORD</value>
   </data>
-  <data name="Auth.Lbl.ConfirmPassword" xml:space="preserve">
-    <value>CONFIRM PASSWORD</value>
-  </data>
-  <data name="Auth.Lbl.NewPassword" xml:space="preserve">
-    <value>NEW PASSWORD</value>
-  </data>
   <data name="Auth.Remember" xml:space="preserve">
     <value>Remember this browser</value>
-  </data>
-  <data name="Auth.ForgotLink" xml:space="preserve">
-    <value>Forgot password?</value>
-  </data>
-  <data name="Auth.RegisterLink" xml:space="preserve">
-    <value>Register</value>
   </data>
   <data name="Auth.DevAccount" xml:space="preserve">
     <value>Dev account</value>
@@ -8100,68 +8064,20 @@
   <data name="Auth.GoHome" xml:space="preserve">
     <value>Home</value>
   </data>
-  <data name="Auth.CheckMailbox" xml:space="preserve">
-    <value>Check your mailbox for the verification link.</value>
-  </data>
   <data name="Auth.Btn.SignIn" xml:space="preserve">
     <value>SIGN IN</value>
-  </data>
-  <data name="Auth.Btn.CreateAccount" xml:space="preserve">
-    <value>CREATE ACCOUNT</value>
-  </data>
-  <data name="Auth.Btn.ConfirmEmail" xml:space="preserve">
-    <value>Verify email</value>
-  </data>
-  <data name="Auth.Btn.SendResetLink" xml:space="preserve">
-    <value>SEND RESET LINK</value>
-  </data>
-  <data name="Auth.Btn.ResetPassword" xml:space="preserve">
-    <value>RESET PASSWORD</value>
   </data>
   <data name="Auth.Err.Locked" xml:space="preserve">
     <value>Account is locked. Contact your administrator.</value>
   </data>
+  <data name="Auth.Err.Inactive" xml:space="preserve">
+    <value>This account cannot be used. Please contact the administrator.</value>
+  </data>
   <data name="Auth.Err.LockedAfter5" xml:space="preserve">
     <value>Account locked after 5 failed attempts. Contact your administrator.</value>
   </data>
-  <data name="Auth.Err.EmailNotConfirmed" xml:space="preserve">
-    <value>Please verify your email first.</value>
-  </data>
-  <data name="Auth.Err.Pending" xml:space="preserve">
-    <value>Waiting for administrator approval. You can sign in once approved.</value>
-  </data>
-  <data name="Auth.Err.RegisterFailed" xml:space="preserve">
-    <value>Registration could not be completed. Please try again later or contact the administrator.</value>
-  </data>
   <data name="Auth.Err.Invalid" xml:space="preserve">
     <value>Invalid email or password.</value>
-  </data>
-  <data name="Auth.Err.UserNotFound" xml:space="preserve">
-    <value>User not found for the given email.</value>
-  </data>
-  <data name="Auth.Register.Accepted" xml:space="preserve">
-    <value>Your registration has been received.</value>
-  </data>
-  <data name="Auth.Register.Steps" xml:space="preserve">
-    <value>You can sign in after ① &lt;b&gt;email verification&lt;/b&gt; and ② &lt;b&gt;administrator approval&lt;/b&gt;.</value>
-  </data>
-  <data name="Auth.Register.DevHint" xml:space="preserve">
-    <value>Dev environment: no mail is sent, so verify with the button above.</value>
-  </data>
-  <data name="Auth.RegisterConf.Accepted" xml:space="preserve">
-    <value>Registration received. Verify your email with the button below.</value>
-  </data>
-  <data name="Auth.RegisterConf.DevHint" xml:space="preserve">
-    <value>Dev environment: no mail is actually sent.</value>
-  </data>
-  <data name="Auth.Forgot.Hint" xml:space="preserve">
-    <value>Enter your registered email and we will send a reset link.</value>
-  </data>
-  <data name="Auth.Forgot.CheckMail" xml:space="preserve">
-    <value>Check your mailbox for the password reset mail.</value>
-  </data>
-  <data name="Auth.Reset.Done" xml:space="preserve">
-    <value>Your password has been reset.</value>
   </data>
   <data name="Auth.Lockout.Msg" xml:space="preserve">
     <value>This account is locked. Please try again later.</value>
@@ -8196,56 +8112,14 @@
   <data name="WH.Picking.Slip.ReqBox" xml:space="preserve">
     <value>Req Box</value>
   </data>
-  <data name="Auth.Title.ConfirmEmail" xml:space="preserve">
-    <value>Confirm email</value>
-  </data>
-  <data name="Auth.Title.EmailChange" xml:space="preserve">
-    <value>Confirm email change</value>
-  </data>
   <data name="Auth.Title.InvalidUser" xml:space="preserve">
     <value>Invalid user</value>
-  </data>
-  <data name="Auth.Title.Resend" xml:space="preserve">
-    <value>Resend email confirmation</value>
-  </data>
-  <data name="Auth.Sub.ConfirmEmail" xml:space="preserve">
-    <value>CONFIRM EMAIL</value>
-  </data>
-  <data name="Auth.Sub.EmailChange" xml:space="preserve">
-    <value>EMAIL CHANGE</value>
   </data>
   <data name="Auth.Sub.InvalidUser" xml:space="preserve">
     <value>INVALID USER</value>
   </data>
-  <data name="Auth.Sub.Resend" xml:space="preserve">
-    <value>RESEND CONFIRMATION</value>
-  </data>
-  <data name="Auth.Btn.Resend" xml:space="preserve">
-    <value>RESEND</value>
-  </data>
-  <data name="Auth.ConfirmEmail.Ok" xml:space="preserve">
-    <value>Thank you for confirming your email.</value>
-  </data>
-  <data name="Auth.ConfirmEmail.Fail" xml:space="preserve">
-    <value>Error confirming your email.</value>
-  </data>
-  <data name="Auth.EmailChange.Ok" xml:space="preserve">
-    <value>Thank you for confirming your email change.</value>
-  </data>
-  <data name="Auth.EmailChange.Fail" xml:space="preserve">
-    <value>Error changing email.</value>
-  </data>
   <data name="Auth.InvalidUser.Msg" xml:space="preserve">
     <value>Invalid user.</value>
-  </data>
-  <data name="Auth.Reset.InvalidLink" xml:space="preserve">
-    <value>The password reset link is invalid.</value>
-  </data>
-  <data name="Auth.Reset.RequestAgain" xml:space="preserve">
-    <value>Request a new reset link</value>
-  </data>
-  <data name="Auth.Resend.Sent" xml:space="preserve">
-    <value>Verification email sent. Please check your email.</value>
   </data>
   <data name="WH.LocBarcode.Title" xml:space="preserve">
     <value>Location Barcode</value>
@@ -9588,18 +9462,6 @@
   </data>
   <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
     <value>Packing quantity for {0}</value>
-  </data>
-  <data name="Auth.Forgot.NoMail" xml:space="preserve">
-    <value>This server does not send e-mail, so a reset link cannot be delivered. Ask an administrator to reset your password (System → User Management).</value>
-  </data>
-  <data name="Auth.Register.AdminConfirm" xml:space="preserve">
-    <value>This server does not send e-mail. You can sign in after an administrator verifies your e-mail and approves the account.</value>
-  </data>
-  <data name="SYS.Users.Btn.ConfirmEmail" xml:space="preserve">
-    <value>Verify e-mail</value>
-  </data>
-  <data name="SYS.Users.Ok.EmailConfirmed" xml:space="preserve">
-    <value>{0} e-mail verified.</value>
   </data>
   <data name="SYS.Config.Err.TimeFormat" xml:space="preserve">
     <value>{0}: enter the time as 00:00 (00:00–23:59).</value>

@@ -19,7 +19,6 @@
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
-@inject AMES.Web.Services.AccountMail Mail
 
 <PageTitle>SYS-001 @L["SYS.Users.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-001" TitleKey="SYS.Users.Title" />
@@ -31,8 +30,8 @@
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">@L["SYS.Users.Kpi.Verified"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.EmailConfirmed)</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => EffectiveStatus(r) == "ACTIVE")</div>
     </div>
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@L["SYS.Users.Kpi.Locked"]</div>
@@ -89,20 +88,16 @@
                 <Template Context="u">
                     @{
                         var stEff = EffectiveStatus(u);
-                        var nonvf = string.Equals(stEff, "UNVERIFIED", StringComparison.OrdinalIgnoreCase);
-                        var stCls = nonvf ? "ghost" : stEff switch
+                        var stCls = stEff switch
                         {
                             "LOCKED" => "bad",
                             "INACTIVE" => "mute",
                             "SUSPENDED" => "warn",
-                            "PENDING" => "orange",
                             "NOPROFILE" => "warn",
                             _ => "ok"
                         };
 
-                        var stLbl = nonvf
-                            ? L["SYS.Users.Status.Unverified"].Value
-                            : StatusName(stEff);
+                        var stLbl = StatusName(stEff);
                     }
                     <span class="pill @stCls">@stLbl</span>
                 </Template>
@@ -229,29 +224,15 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.AccountStatus"]" class="ames-rz-modal-label" />
-                    @if (!_sel!.EmailConfirmed)
-                    {
-                        <div style="flex:1;background:rgba(203,213,225,.08);border:1px solid rgba(203,213,225,.25);color:var(--ames-tx-slate-300);padding:6px 10px;font-size:.85em;border-radius:6px;">
-                            @L["SYS.Users.Status.Unverified"] · @L["SYS.Users.Hint.Unverified"]
-                        </div>
-                        @* 메일 서버가 없으면 사용자가 인증 메일을 받을 수 없다 — 관리자가 대신 인증 처리한다 *@
-                        @if (Mail.AdminConfirmsEmail && _canEdit)
+                    <RadzenStack Orientation="Orientation.Vertical" Gap="0.4rem" Style="flex:1;width:100%;">
+                        @if (string.Equals(_sel!.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
                         {
-                            <RadzenButton Text="@L["SYS.Users.Btn.ConfirmEmail"]" Icon="mark_email_read" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@ConfirmEmailByAdmin" Disabled="@_busy" class="ames-rz-btn" />
+                            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="padding:5px 10px;font-size:.85em;">
+                                🔒 @L["SYS.Users.Locked.Domain"] · @L["SYS.Users.Col.FailCount"]: @_sel.FailedLoginCount
+                            </RadzenAlert>
                         }
-                    }
-                    else
-                    {
-                        <RadzenStack Orientation="Orientation.Vertical" Gap="0.4rem" Style="flex:1;width:100%;">
-                            @if (string.Equals(_sel!.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
-                            {
-                                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="padding:5px 10px;font-size:.85em;">
-                                    🔒 @L["SYS.Users.Locked.Domain"] · @L["SYS.Users.Col.FailCount"]: @_sel.FailedLoginCount
-                                </RadzenAlert>
-                            }
-                            <RadzenDropDown Name="EditDropDownStatus" @bind-Value="_f.AccountStatus" Data="@EditStatusOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                        </RadzenStack>
-                    }
+                        <RadzenDropDown Name="EditDropDownStatus" @bind-Value="_f.AccountStatus" Data="@EditStatusOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenStack>
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -338,7 +319,6 @@
     private IEnumerable<DropDownItem> SearchStatusItems => _statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" })
         .Append(new DropDownItem { Text = L["SYS.Users.Status.NoProfile"].Value, Value = NoProfile });
     private IEnumerable<DropDownItem> EditStatusOptions => _statusItems.Where(s => s.UseFlag
-                && !string.Equals(s.CodeValue, "UNVERIFIED", StringComparison.OrdinalIgnoreCase)
                 && (_sel is null
                     || !string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)
                     || !string.Equals(s.CodeValue, "LOCKED", StringComparison.OrdinalIgnoreCase)))
@@ -395,18 +375,16 @@
 
     void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
 
-    // 프로필 없는 계정은 로그인이 거부된다(승인 대기 취급) — 목록에서 승인된 계정처럼 보이지 않게 따로 표시한다
+    // 프로필 없는 계정은 로그인이 거부된다 — 목록에서 사용 가능한 계정처럼 보이지 않게 따로 표시한다
     const string NoProfile = "NOPROFILE";
 
     static string EffectiveStatus(SysRepository.UserRow r) =>
         (r.LockedOut || string.Equals(r.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) ? "LOCKED"
         : !r.HasProfile ? NoProfile
-        : (r.AccountStatus ?? "ACTIVE");
+        : (r.AccountStatus ?? "ACTIVE").ToUpperInvariant();
 
     static bool MatchStatus(SysRepository.UserRow r, string s)
     {
-        if (s == "UNVERIFIED")
-            return !r.EmailConfirmed && string.Equals(EffectiveStatus(r), "ACTIVE", StringComparison.OrdinalIgnoreCase);
         return EffectiveStatus(r) == s;
     }
 
@@ -457,7 +435,7 @@
             Department    = u.Department    ?? "",
             PlantCode     = u.PlantCode     ?? "",
             DefaultShift  = u.DefaultShift  ?? "",
-            AccountStatus = u.HasProfile ? (u.AccountStatus ?? "ACTIVE") : "PENDING",
+            AccountStatus = u.HasProfile ? (u.AccountStatus ?? "ACTIVE").ToUpperInvariant() : "ACTIVE",
             Role          = u.RolesCsv?.Split(',').FirstOrDefault()?.Trim() ?? ""
         };
         _modal = "edit";
@@ -608,26 +586,6 @@
         CloseModal(); await ReloadRestorePage();
         Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, null);
         ShowMsg(string.Format(L["SYS.Users.Ok.Unlocked"].Value, _sel.Email), false);
-    }
-
-    async Task ConfirmEmailByAdmin()
-    {
-        if (_sel is null || !_canEdit || !Mail.AdminConfirmsEmail) return;
-        var u = await UserMgr.FindByIdAsync(_sel.UserId);
-        if (u is null) return;
-        if (!u.EmailConfirmed)
-        {
-            var token = await UserMgr.GenerateEmailConfirmationTokenAsync(u);
-            var r = await UserMgr.ConfirmEmailAsync(u, token);
-            if (!r.Succeeded) { _modalErr = string.Join(", ", r.Errors.Select(e => e.Description)); return; }
-            Audit.Log("SYS-001", "EMAIL_CONFIRM", "AspNetUsers", _sel.Email, null, new { EmailConfirmed = true });
-        }
-        // 모달을 닫지 않고 새로 읽어 상태 콤보(승인)가 바로 보이게 한다
-        var id = _sel.UserId;
-        Reload();
-        var row = _allRows.FirstOrDefault(x => x.UserId == id);
-        if (row is not null) _sel = row;
-        ShowMsg(string.Format(L["SYS.Users.Ok.EmailConfirmed"].Value, _sel.Email), false);
     }
 
     async Task UnlockDomainAccount()

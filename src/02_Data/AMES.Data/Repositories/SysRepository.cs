@@ -21,8 +21,8 @@ public sealed class SysRepository
         string? AccountStatus, DateTime? LastLoginTs, string? RolesCsv,
         int FailedLoginCount, bool HasProfile = true)
     {
-        // 승인된 계정 — 프로필이 있고 승인 대기(PENDING)가 아님. 담당자·수신자 콤보는 이 계정만 고르게 한다(10-07)
-        public bool IsApproved => HasProfile && !string.Equals(AccountStatus, "PENDING", StringComparison.OrdinalIgnoreCase);
+        // 등록된 계정 — 프로필이 있어야 로그인할 수 있다. 담당자·수신자 콤보는 이 계정만 고르게 한다(10-07)
+        public bool IsApproved => HasProfile;
     }
 
     public sealed record RoleRow(string RoleId, string RoleName, int UserCount);
@@ -107,7 +107,7 @@ public sealed class SysRepository
     {
         const string sql = """
             SELECT u.Id, u.UserName, u.Email, u.PhoneNumber,
-                   CAST(CASE WHEN p.UserID IS NOT NULL AND ISNULL(UPPER(p.AccountStatus), '') <> 'PENDING' THEN 1 ELSE 0 END AS BIT) AS IsApproved
+                   CAST(CASE WHEN p.UserID IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS IsApproved
             FROM   dbo.AspNetUsers u
             LEFT JOIN dbo.SYS_UserProfile p ON p.UserID = u.Id
             ORDER  BY UserName;
@@ -929,21 +929,6 @@ public sealed class SysRepository
             ("@EmpName",   employeeName),
             ("@CreatedBy", createdBy));
 
-    // 자기가입(Register)용 — 관리자 승인 전 승인대기(PENDING) 프로필. 승인 시 관리자가 ACTIVE로 변경.
-    public void CreatePendingProfile(string userId, string? employeeName, string createdBy)
-    {
-        const string sql = """
-            INSERT INTO dbo.SYS_UserProfile
-                (UserID, EmployeeName, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
-            VALUES
-                (@UserID, @EmpName, 'PENDING', 0, @CreatedBy, SYSDATETIME())
-            """;
-        Exec(sql,
-            ("@UserID",    userId),
-            ("@EmpName",   (object?)employeeName ?? DBNull.Value),
-            ("@CreatedBy", createdBy));
-    }
-
     public void UpdateProfile(string userId, string employeeNo, string employeeName,
         string? department, string? plantCode, string? defaultShift,
         string accountStatus, string modifiedBy)
@@ -957,9 +942,6 @@ public sealed class SysRepository
                    DefaultShift     = @Shift,
                    AccountStatus    = @Status,
                    FailedLoginCount = CASE WHEN UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
-                   -- 자기가입·보강 프로필은 사번이 없어 CreatedBy 에 임시 값(이메일 ID 등)이 들어 있다 — 첫 승인(사번 없던 PENDING → ACTIVE) 때 본인 사번으로 바꾼다.
-                   -- 관리자가 만든 계정(사번 있음)을 PENDING 으로 돌렸다 다시 승인하는 경우는 원래 작성자를 지키려고 바꾸지 않는다.
-                   CreatedBy        = CASE WHEN UPPER(AccountStatus) = 'PENDING' AND EmployeeNo IS NULL AND UPPER(@Status) = 'ACTIVE' THEN @EmpNo ELSE CreatedBy END,
                    ModifiedBy       = @ModifiedBy,
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID

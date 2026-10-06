@@ -19,7 +19,7 @@ public sealed class LineSupervisorRepository
     public sealed record Row(string LineId, string? LineName, string? LineNameEn, string EmployeeNo, string? EmployeeName,
         bool ActiveFlag, string CreatedBy, DateTime? CreatedTs, string? ModifiedBy, DateTime? ModifiedTs);
 
-    /// <summary>슈퍼바이저 후보 — Supervisor 역할 웹 사용자. Active 는 계정이 명시적으로 막히지 않았다는 뜻(웹 로그인 전 UNVERIFIED 도 배지 안돈은 가능).</summary>
+    /// <summary>슈퍼바이저 후보 — Supervisor 역할 웹 사용자. Active 는 계정이 명시적으로 막히지 않았다는 뜻.</summary>
     public sealed record PersonRow(string EmployeeNo, string? Name, bool Active);
 
     private readonly AmesConnectionFactory _f;
@@ -55,7 +55,7 @@ public sealed class LineSupervisorRepository
     {
         const string sql = """
             SELECT DISTINCT u.EmployeeNo, u.EmployeeName AS Name,
-                   -- 웹 로그인 전(UNVERIFIED) 계정도 배지로 안돈을 받을 수 있으므로 명시적으로 막힌 상태만 제외
+                   -- 명시적으로 막힌 상태만 제외
                    CASE WHEN UPPER(ISNULL(u.AccountStatus, '')) IN ('DISABLED', 'LOCKED', 'SUSPENDED', 'INACTIVE') THEN 0 ELSE 1 END AS Active
             FROM   dbo.SYS_UserProfile u
             JOIN   dbo.AspNetUserRoles ur ON ur.UserId = u.UserID

@@ -474,9 +474,6 @@
   <data name="SYS.Users.Kpi.Users" xml:space="preserve">
     <value>Usuarios</value>
   </data>
-  <data name="SYS.Users.Kpi.Verified" xml:space="preserve">
-    <value>Verificado</value>
-  </data>
   <data name="SYS.Users.Kpi.Locked" xml:space="preserve">
     <value>Bloqueado</value>
   </data>
@@ -599,9 +596,6 @@
   </data>
   <data name="SYS.Users.Ok.DomainUnlocked" xml:space="preserve">
     <value>Bloqueo de acceso de {0} eliminado.</value>
-  </data>
-  <data name="SYS.Users.Status.Unverified" xml:space="preserve">
-    <value>No Verificado</value>
   </data>
   <data name="SYS.Users.Status.NoProfile" xml:space="preserve">
     <value>Sin perfil</value>
@@ -4557,9 +4551,6 @@
   <data name="SYS.Users.Ph.EmployeeNo" xml:space="preserve">
     <value>ej. EMP001</value>
   </data>
-  <data name="SYS.Users.Hint.Unverified" xml:space="preserve">
-    <value>El estado de la cuenta no puede cambiarse antes de verificar el correo.</value>
-  </data>
   <data name="Col.SubProcess" xml:space="preserve">
     <value>Sub</value>
   </data>
@@ -8037,15 +8028,6 @@
   <data name="Auth.Title.SignIn" xml:space="preserve">
     <value>Iniciar sesión</value>
   </data>
-  <data name="Auth.Title.Register" xml:space="preserve">
-    <value>Registro</value>
-  </data>
-  <data name="Auth.Title.Forgot" xml:space="preserve">
-    <value>Olvidé mi contraseña</value>
-  </data>
-  <data name="Auth.Title.Reset" xml:space="preserve">
-    <value>Restablecer contraseña</value>
-  </data>
   <data name="Auth.Title.Lockout" xml:space="preserve">
     <value>Cuenta bloqueada</value>
   </data>
@@ -8054,12 +8036,6 @@
   </data>
   <data name="Auth.Sub.SignIn" xml:space="preserve">
     <value>INICIAR SESIÓN</value>
-  </data>
-  <data name="Auth.Sub.Register" xml:space="preserve">
-    <value>REGISTRO</value>
-  </data>
-  <data name="Auth.Sub.ResetPassword" xml:space="preserve">
-    <value>RESTABLECER CONTRASEÑA</value>
   </data>
   <data name="Auth.Sub.Lockout" xml:space="preserve">
     <value>CUENTA BLOQUEADA</value>
@@ -8073,20 +8049,8 @@
   <data name="Auth.Lbl.Password" xml:space="preserve">
     <value>CONTRASEÑA</value>
   </data>
-  <data name="Auth.Lbl.ConfirmPassword" xml:space="preserve">
-    <value>CONFIRMAR CONTRASEÑA</value>
-  </data>
-  <data name="Auth.Lbl.NewPassword" xml:space="preserve">
-    <value>NUEVA CONTRASEÑA</value>
-  </data>
   <data name="Auth.Remember" xml:space="preserve">
     <value>Recordar este navegador</value>
-  </data>
-  <data name="Auth.ForgotLink" xml:space="preserve">
-    <value>¿Olvidó su contraseña?</value>
-  </data>
-  <data name="Auth.RegisterLink" xml:space="preserve">
-    <value>Registrarse</value>
   </data>
   <data name="Auth.DevAccount" xml:space="preserve">
     <value>Cuenta de desarrollo</value>
@@ -8100,68 +8064,20 @@
   <data name="Auth.GoHome" xml:space="preserve">
     <value>Inicio</value>
   </data>
-  <data name="Auth.CheckMailbox" xml:space="preserve">
-    <value>Revise su correo para ver el enlace de verificación.</value>
-  </data>
   <data name="Auth.Btn.SignIn" xml:space="preserve">
     <value>INICIAR SESIÓN</value>
-  </data>
-  <data name="Auth.Btn.CreateAccount" xml:space="preserve">
-    <value>CREAR CUENTA</value>
-  </data>
-  <data name="Auth.Btn.ConfirmEmail" xml:space="preserve">
-    <value>Verificar correo</value>
-  </data>
-  <data name="Auth.Btn.SendResetLink" xml:space="preserve">
-    <value>ENVIAR ENLACE</value>
-  </data>
-  <data name="Auth.Btn.ResetPassword" xml:space="preserve">
-    <value>RESTABLECER CONTRASEÑA</value>
   </data>
   <data name="Auth.Err.Locked" xml:space="preserve">
     <value>La cuenta está bloqueada. Contacte al administrador.</value>
   </data>
+  <data name="Auth.Err.Inactive" xml:space="preserve">
+    <value>Esta cuenta no se puede usar. Contacte al administrador.</value>
+  </data>
   <data name="Auth.Err.LockedAfter5" xml:space="preserve">
     <value>Cuenta bloqueada tras 5 intentos fallidos. Contacte al administrador.</value>
   </data>
-  <data name="Auth.Err.EmailNotConfirmed" xml:space="preserve">
-    <value>Primero verifique su correo.</value>
-  </data>
-  <data name="Auth.Err.Pending" xml:space="preserve">
-    <value>En espera de aprobación del administrador. Podrá iniciar sesión cuando se apruebe.</value>
-  </data>
-  <data name="Auth.Err.RegisterFailed" xml:space="preserve">
-    <value>No se pudo completar el registro. Inténtelo más tarde o contacte al administrador.</value>
-  </data>
   <data name="Auth.Err.Invalid" xml:space="preserve">
     <value>Correo o contraseña no válidos.</value>
-  </data>
-  <data name="Auth.Err.UserNotFound" xml:space="preserve">
-    <value>No se encontró un usuario con ese correo.</value>
-  </data>
-  <data name="Auth.Register.Accepted" xml:space="preserve">
-    <value>Se recibió su solicitud de registro.</value>
-  </data>
-  <data name="Auth.Register.Steps" xml:space="preserve">
-    <value>Podrá iniciar sesión tras ① &lt;b&gt;verificar el correo&lt;/b&gt; y ② &lt;b&gt;la aprobación del administrador&lt;/b&gt;.</value>
-  </data>
-  <data name="Auth.Register.DevHint" xml:space="preserve">
-    <value>Entorno de desarrollo: no se envía correo; verifique con el botón de arriba.</value>
-  </data>
-  <data name="Auth.RegisterConf.Accepted" xml:space="preserve">
-    <value>Registro recibido. Verifique su correo con el botón de abajo.</value>
-  </data>
-  <data name="Auth.RegisterConf.DevHint" xml:space="preserve">
-    <value>Entorno de desarrollo: no se envía correo real.</value>
-  </data>
-  <data name="Auth.Forgot.Hint" xml:space="preserve">
-    <value>Ingrese su correo registrado y le enviaremos un enlace.</value>
-  </data>
-  <data name="Auth.Forgot.CheckMail" xml:space="preserve">
-    <value>Revise su correo para restablecer la contraseña.</value>
-  </data>
-  <data name="Auth.Reset.Done" xml:space="preserve">
-    <value>Su contraseña ha sido restablecida.</value>
   </data>
   <data name="Auth.Lockout.Msg" xml:space="preserve">
     <value>La cuenta está bloqueada. Inténtelo más tarde.</value>
@@ -8196,56 +8112,14 @@
   <data name="WH.Picking.Slip.ReqBox" xml:space="preserve">
     <value>Cajas sol.</value>
   </data>
-  <data name="Auth.Title.ConfirmEmail" xml:space="preserve">
-    <value>Confirmar correo</value>
-  </data>
-  <data name="Auth.Title.EmailChange" xml:space="preserve">
-    <value>Confirmar cambio de correo</value>
-  </data>
   <data name="Auth.Title.InvalidUser" xml:space="preserve">
     <value>Usuario no válido</value>
-  </data>
-  <data name="Auth.Title.Resend" xml:space="preserve">
-    <value>Reenviar confirmación</value>
-  </data>
-  <data name="Auth.Sub.ConfirmEmail" xml:space="preserve">
-    <value>CONFIRMAR CORREO</value>
-  </data>
-  <data name="Auth.Sub.EmailChange" xml:space="preserve">
-    <value>CAMBIO DE CORREO</value>
   </data>
   <data name="Auth.Sub.InvalidUser" xml:space="preserve">
     <value>USUARIO NO VÁLIDO</value>
   </data>
-  <data name="Auth.Sub.Resend" xml:space="preserve">
-    <value>REENVIAR CONFIRMACIÓN</value>
-  </data>
-  <data name="Auth.Btn.Resend" xml:space="preserve">
-    <value>REENVIAR</value>
-  </data>
-  <data name="Auth.ConfirmEmail.Ok" xml:space="preserve">
-    <value>Gracias por confirmar su correo.</value>
-  </data>
-  <data name="Auth.ConfirmEmail.Fail" xml:space="preserve">
-    <value>Error al confirmar su correo.</value>
-  </data>
-  <data name="Auth.EmailChange.Ok" xml:space="preserve">
-    <value>Gracias por confirmar el cambio de correo.</value>
-  </data>
-  <data name="Auth.EmailChange.Fail" xml:space="preserve">
-    <value>Error al cambiar el correo.</value>
-  </data>
   <data name="Auth.InvalidUser.Msg" xml:space="preserve">
     <value>Usuario no válido.</value>
-  </data>
-  <data name="Auth.Reset.InvalidLink" xml:space="preserve">
-    <value>El enlace para restablecer la contraseña no es válido.</value>
-  </data>
-  <data name="Auth.Reset.RequestAgain" xml:space="preserve">
-    <value>Solicitar un nuevo enlace</value>
-  </data>
-  <data name="Auth.Resend.Sent" xml:space="preserve">
-    <value>Correo de verificación enviado. Revise su correo.</value>
   </data>
   <data name="WH.LocBarcode.Title" xml:space="preserve">
     <value>Código de barras de ubicación</value>
@@ -9588,18 +9462,6 @@
   </data>
   <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
     <value>Cantidad por caja de {0}</value>
-  </data>
-  <data name="Auth.Forgot.NoMail" xml:space="preserve">
-    <value>Este servidor no envía correos, por lo que no se puede entregar el enlace. Solicite a un administrador que restablezca su contraseña (Sistema → Gestión de Usuarios).</value>
-  </data>
-  <data name="Auth.Register.AdminConfirm" xml:space="preserve">
-    <value>Este servidor no envía correos. Podrá iniciar sesión cuando un administrador verifique su correo y apruebe la cuenta.</value>
-  </data>
-  <data name="SYS.Users.Btn.ConfirmEmail" xml:space="preserve">
-    <value>Verificar correo</value>
-  </data>
-  <data name="SYS.Users.Ok.EmailConfirmed" xml:space="preserve">
-    <value>Correo de {0} verificado.</value>
   </data>
   <data name="SYS.Config.Err.TimeFormat" xml:space="preserve">
     <value>{0}: introduzca la hora con el formato 00:00 (00:00–23:59).</value>
