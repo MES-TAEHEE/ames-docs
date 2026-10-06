@@ -60,7 +60,7 @@
     {
         var signIn = SignIn.SignInPortalAsync(HttpContext, Input.Email, Input.Password, ReturnUrl);
         try { await signIn; }
-        catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsSqlFailure(ex)) { errorMessage = L["App.DbDown.Login"]; return; }
+        catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsConnectionFailure(ex)) { errorMessage = L["App.DbDown.Login"]; return; }
         var result = signIn.Result;
         if (!result.Succeeded) { errorMessage = L[result.ErrorKey!]; return; }
         HttpContext.Response.Redirect(result.Redirect!);

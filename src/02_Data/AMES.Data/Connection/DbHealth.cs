@@ -14,15 +14,34 @@ public static class DbHealth
     public static bool IsDown => Interlocked.Read(ref _lastFailTicks) > Interlocked.Read(ref _lastOkTicks);
 
     /// <summary>
-    /// 예외(내부 예외 포함)가 SQL Server 오류인지 — EF Core(Identity)처럼 이 팩터리를 거치지 않는 연결의 실패도
-    /// 여기서 판정해 장애로 기록한다.
+    /// 예외(내부 예외 포함)가 DB 연결 장애인지 — EF Core(Identity)처럼 이 팩터리를 거치지 않는 연결의 실패도
+    /// 여기서 판정해 장애로 기록한다. 연결은 됐는데 문장이 실패한 경우(값 잘림·없는 컬럼·교착·키 중복 등)는
+    /// 장애가 아니다 — 그것까지 장애로 기록하면 전 사용자에게 장애 배너가 뜨고 로그인 화면이 엉뚱한 원인을 안내한다.
     /// </summary>
-    public static bool IsSqlFailure(Exception ex)
+    public static bool IsConnectionFailure(Exception ex)
     {
         for (var e = ex; e is not null; e = e.InnerException)
-            if (e is Microsoft.Data.SqlClient.SqlException) { RecordFailure(); return true; }
+            if (e is Microsoft.Data.SqlClient.SqlException sql && IsConnectionError(sql.Number, sql.Class))
+            {
+                RecordFailure();
+                return true;
+            }
         return false;
     }
+
+    // 연결을 열 수 없거나 끊긴 경우의 오류 번호(SqlClient 네트워크·로그인 오류). 심각도 20 이상은 연결을 끊는 치명 오류다.
+    static readonly HashSet<int> ConnectionErrorNumbers =
+    [
+        -2,      // 시간 초과(연결·로그인 응답 없음)
+        -1, 2, 53, 40, 64, 121, 233, 258,           // 서버를 찾을 수 없음·연결 실패·네트워크 경로
+        10053, 10054, 10060, 10061, 11001,          // 소켓 끊김·거부·시간 초과·호스트 없음
+        4060,    // DB 를 열 수 없음
+        18456,   // 앱 계정(ames_app) 로그인 실패 — 사용자 계정이 아니라 접속 설정 문제다
+    ];
+
+    /// <summary>SQL 오류 번호·심각도가 연결 장애인지(순수 판정, 테스트용으로 공개).</summary>
+    public static bool IsConnectionError(int number, byte severity)
+        => severity >= 20 || ConnectionErrorNumbers.Contains(number);
 
     /// <summary>장애가 이어지는 동안 첫 실패가 아니라 마지막 실패 시각(UTC).</summary>
     public static DateTime? LastFailureUtc
