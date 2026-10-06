@@ -633,7 +633,7 @@ public sealed partial class WarehouseRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "SELECT 1 FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn);
-        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
+        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 50).Value = locationNo;
         return cmd.ExecuteScalar() is not null;
     }
 
@@ -706,12 +706,12 @@ public sealed partial class WarehouseRepository
         using var conn = _factory.OpenConnection();
         using var check = new SqlCommand(
             "SELECT COUNT(1) FROM dbo.WH_Inventory WHERE LocationNo=@LocationNo AND Qty<>0;", conn);
-        check.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
+        check.Parameters.Add("@LocationNo", SqlDbType.VarChar, 50).Value = locationNo;
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)
             throw new InvalidOperationException("Location has inventory and cannot be deleted.");
 
         using var cmd = new SqlCommand("DELETE FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn);
-        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
+        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 50).Value = locationNo;
         cmd.ExecuteNonQuery();
     }
 
@@ -1646,7 +1646,7 @@ public sealed partial class WarehouseRepository
         string? rackZ,
         bool useYn)
     {
-        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = Truncate(locationNo, 20);
+        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 50).Value = locationNo;
         AddNullable(cmd, "@LocationName", SqlDbType.NVarChar, 120, locationName);
         AddNullable(cmd, "@WhCode", SqlDbType.VarChar, 20, whCode);
         AddNullable(cmd, "@AreaCode", SqlDbType.VarChar, 20, areaCode);

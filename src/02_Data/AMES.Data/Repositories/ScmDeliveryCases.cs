@@ -333,7 +333,7 @@ public sealed partial class ScmRepository
         Add(cmd,("@ID",deliveryId),("@CasesJson",JsonSerializer.Serialize(cases)),("@Header",updateHeader));cmd.ExecuteNonQuery();
     }
 
-    public int ReceiveDeliveryCase(string caseNo,string mode,string actor)
+    public int ReceiveDeliveryCase(string caseNo,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes = null)
     {
         if(mode is not ("LOCAL" or "CKD"))throw new ArgumentException("Invalid receive type.");
         using var c=factory.OpenConnection();using var tx=c.BeginTransaction();
@@ -348,14 +348,23 @@ public sealed partial class ScmRepository
                 LEFT JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID
                 WHERE b.CaseNo=@N AND (b.ActiveFlag=0 OR d.DeliveryID IS NULL OR d.Status NOT IN('Shipped','Received')))
                 THROW 51442,'This case has not been shipped or contains cancelled boxes.',1;
-            SELECT b.BoxNumber FROM dbo.SCM_DeliveryBox b WITH(UPDLOCK,HOLDLOCK)
+            SELECT b.BoxNumber, ISNULL(i.ScanRequired,1)
+            FROM dbo.SCM_DeliveryBox b WITH(UPDLOCK,HOLDLOCK)
+            LEFT JOIN dbo.MD_Item i WITH(HOLDLOCK) ON i.ItemNo COLLATE DATABASE_DEFAULT=b.ItemNo COLLATE DATABASE_DEFAULT
             WHERE b.CaseNo=@N AND b.ActiveFlag=1 AND NOT EXISTS(
                 SELECT 1 FROM dbo.WH_Inventory w WITH(UPDLOCK,HOLDLOCK)
                 WHERE w.LotNo COLLATE DATABASE_DEFAULT=b.BoxNumber COLLATE DATABASE_DEFAULT)
             ORDER BY b.BoxID;
             """,c,tx);
         Add(select,("@N",caseNo));var boxes=new List<string>();
-        using(var r=select.ExecuteReader())while(r.Read())boxes.Add(r.GetString(0));
+        var scanned = new HashSet<string>(scannedBoxes ?? [], StringComparer.OrdinalIgnoreCase);
+        using(var r=select.ExecuteReader())while(r.Read())
+        {
+            var barcode=r.GetString(0);
+            if(r.GetBoolean(1) && !scanned.Contains(barcode))
+                throw new InvalidOperationException($"Scan required box {barcode} before receiving this case.");
+            boxes.Add(barcode);
+        }
         if(boxes.Count==0)throw new InvalidOperationException("This case has already been fully received.");
         foreach(var barcode in boxes)
         {

@@ -9724,4 +9724,5 @@
   <data name="MNT.Dashboard.Stage.DayHour" xml:space="preserve">
     <value>{0}일 {1}시간</value>
   </data>
+  <data name="MD.Items.ScanRequired" xml:space="preserve"><value>개별 스캔 필수</value></data>
 </root>

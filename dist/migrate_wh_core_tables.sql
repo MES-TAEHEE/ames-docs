@@ -73,6 +73,8 @@ BEGIN TRY
         ELSE 'ADJ' END WHERE TransactionType NOT IN('IN','OUT','ADJ');
     IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_Search')
         DROP INDEX IX_WH_InventoryTransaction_Search ON dbo.WH_InventoryTransaction;
+    IF EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_LotNo')
+        DROP INDEX IX_WH_InventoryTransaction_LotNo ON dbo.WH_InventoryTransaction;
     IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'ItemNo') IS NOT NULL ALTER TABLE dbo.WH_InventoryTransaction DROP COLUMN ItemNo;
     IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'LocationID') IS NOT NULL ALTER TABLE dbo.WH_InventoryTransaction DROP COLUMN LocationID;
     IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'LotID') IS NOT NULL ALTER TABLE dbo.WH_InventoryTransaction DROP COLUMN LotID;
@@ -81,6 +83,7 @@ BEGIN TRY
     ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN QtyChange decimal(18,3) NOT NULL;
     ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN QtyAfter decimal(18,3) NULL;
     CREATE INDEX IX_WH_InventoryTransaction_Search ON dbo.WH_InventoryTransaction(TransactionType,PartNo,LocationNo,LotNo);
+    CREATE INDEX IX_WH_InventoryTransaction_LotNo ON dbo.WH_InventoryTransaction(LotNo);
 
     IF EXISTS
        (SELECT 1 FROM sys.check_constraints
@@ -835,7 +838,7 @@ BEGIN
     SELECT R.PickSlipNo PICK_SLIPNO,R.ItemNo PARTNO,I.ItemName PARTNM,
       R.DemandQty REQ_BOX_QTY,COALESCE(P.BoxQty,0) PICKED_BOX_QTY,COALESCE(P.PickedQty,0) PICKED_QTY,
       R.ReqUserId REQ_USERID,L.LOC_01,L.LOC_02,L.LOC_03,R.Status STATUS
-    FROM R LEFT JOIN dbo.MD_Item I ON I.ItemNo=R.ItemNo LEFT JOIN P ON P.ItemNo=R.ItemNo
+    FROM R LEFT JOIN dbo.MD_Item I ON I.ItemNo=R.ItemNo LEFT JOIN P ON P.PartNo=R.ItemNo
     OUTER APPLY
     (
       SELECT MAX(CASE WHEN RN=1 THEN LocationNo END) LOC_01,

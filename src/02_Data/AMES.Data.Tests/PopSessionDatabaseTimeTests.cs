@@ -10,13 +10,12 @@ namespace AMES.Data.Tests;
 
 public class PopSessionDatabaseTimeTests
 {
-    [Fact]
+    [SqlServerFact]
     public void Session_timestamps_are_returned_from_database_and_share_one_instant()
     {
         // Isolated local test database; never reads AMES_DEV configuration.
         var database = "AMES_SESSION_TEST_" + Guid.NewGuid().ToString("N");
-        var settings = new SqlConnectionStringBuilder { DataSource = @".\SQLEXPRESS", InitialCatalog = "master",
-            IntegratedSecurity = true, TrustServerCertificate = true, ConnectTimeout = 5 };
+        var settings = SqlServerFactAttribute.Settings();
         using var master = new SqlConnection(settings.ConnectionString);
         master.Open();
         using (var create = new SqlCommand($"CREATE DATABASE [{database}]", master)) create.ExecuteNonQuery();

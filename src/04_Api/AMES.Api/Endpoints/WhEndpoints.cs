@@ -71,12 +71,12 @@ public static class WhEndpoints
         int BoxCount, int ScanCount, decimal DeliveredQty, decimal ReceivedQty,
         decimal RemainingQty, string? Unit, string? Yn);
     public sealed record InboundDocumentBoxRow(string PartNo, string BoxBarcode,
-        string? LotNo, decimal Qty, string? Unit, string? Yn);
+        string? LotNo, decimal Qty, string? Unit, string? Yn, bool ScanRequired = false);
     public sealed record InboundDocumentResult(InboundDocumentRow? Document,
         List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
 
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
-    public sealed record InboundCaseReceiveReq(string Mode, string Barcode);
+    public sealed record InboundCaseReceiveReq(string Mode, string Barcode, List<string>? ScannedBoxes = null);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record PutAwayRow(string Mode, string Barcode, string LotNo, string? PartNo,
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
@@ -320,7 +320,7 @@ public static class WhEndpoints
             try
             {
                 var count = new ScmRepository(factory).ReceiveDeliveryCase(
-                    body.Barcode.Trim(), body.Mode.Trim().ToUpperInvariant(), s.EmployeeNo);
+                    body.Barcode.Trim(), body.Mode.Trim().ToUpperInvariant(), s.EmployeeNo, body.ScannedBoxes);
                 var message = $"{count} boxes were received successfully.";
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "RECEIVE", "WH002", "CASE", body.Barcode, "SUCCESS", message, lotNo: body.Barcode));
@@ -336,7 +336,7 @@ public static class WhEndpoints
                 return Results.Problem(message, statusCode: validation ? 400 : 503);
             }
         }).WithSummary("Receive all pending boxes in a CASE / PALLET")
-          .WithDescription("One atomic receipt. Already received boxes are skipped; any failure rolls back all new receipts in this request.");
+          .WithDescription("One atomic receipt. ScannedBoxes must include every pending box whose item requires a scan on case receipt. Already received boxes are skipped; any failure rolls back all new receipts.");
 
         g.MapGet("/putaway/scan", (HttpContext ctx, string barcode) =>
         {
@@ -2981,7 +2981,7 @@ public static class WhEndpoints
                     g.Where(b => !b.Received).Sum(b => b.Quantity), g.Key.Unit, g.All(b => b.Received) ? "Y" : "N")).ToList();
             var caseBoxes = package.Boxes.Select(b => new InboundDocumentBoxRow(
                 b.Item, b.Number, b.Number, b.Quantity, b.Unit, b.Received ? "Y" : "N")).ToList();
-            return new(caseDocument, caseLines, caseBoxes);
+            return new(caseDocument, caseLines, ApplyCaseReceivePolicy(factory, caseBoxes));
         }
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand($"[dbo].[{PdaInboundDocumentInfoProcedure}]", conn)
@@ -3006,7 +3006,29 @@ public static class WhEndpoints
             while (rdr.Read())
                 boxes.Add(ReadInboundDocumentBoxRow(rdr));
         }
+        rdr.Close();
+        if (!string.IsNullOrWhiteSpace(document?.CaseNo))
+            boxes = ApplyCaseReceivePolicy(factory, boxes);
         return new InboundDocumentResult(document, lines, boxes);
+    }
+
+    private static List<InboundDocumentBoxRow> ApplyCaseReceivePolicy(AmesConnectionFactory factory, List<InboundDocumentBoxRow> boxes)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT ItemNo, ScanRequired FROM dbo.MD_Item
+            WHERE ItemNo COLLATE DATABASE_DEFAULT IN
+                (SELECT value COLLATE DATABASE_DEFAULT FROM OPENJSON(@Parts));
+            """, conn);
+        cmd.Parameters.Add("@Parts", SqlDbType.NVarChar, -1).Value =
+            System.Text.Json.JsonSerializer.Serialize(boxes.Select(b => b.PartNo).Distinct());
+        var policies = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) policies[reader.GetString(0)] = reader.GetBoolean(1);
+        return boxes.Select(b => b with
+        {
+            ScanRequired = !policies.TryGetValue(b.PartNo, out var required) || required
+        }).ToList();
     }
 
     private static InboundScanRow? ExecuteInboundScan(AmesConnectionFactory factory, string mode, string barcode)

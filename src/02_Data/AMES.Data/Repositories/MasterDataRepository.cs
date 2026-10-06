@@ -219,7 +219,7 @@ public sealed class MasterDataRepository
         var sql = """
             SELECT ItemNo, ItemName, ItemType, ItemCategory, InjFlag, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
-                   PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag,
+                   PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, ScanRequired,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
@@ -254,7 +254,8 @@ public sealed class MasterDataRepository
             r["CreatedBy"]     as string,
             r["CreatedTS"]     is DateTime ct ? ct : null,
             r["ModifiedBy"]    as string,
-            r["ModifiedTS"]    is DateTime mt ? mt : null), p);
+            r["ModifiedTS"]    is DateTime mt ? mt : null,
+            (bool)r["ScanRequired"]), p);
     }
 
     public bool UpdateMaterialUnitCost(string itemNo, decimal unitCost, decimal? originalCost, string modifiedBy)
@@ -298,15 +299,15 @@ public sealed class MasterDataRepository
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
-        bool activeFlag, string createdBy)
+        bool activeFlag, string createdBy, bool scanRequired = false)
         => Exec("""
             INSERT INTO dbo.MD_Item
                    (ItemNo,ItemName,ItemType,ItemCategory,InjFlag,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS)
+                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS,ScanRequired)
             VALUES (@No,@Name,@Type,@Cat,@Inj,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME())
+                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME(),@BoxScan)
             """,
             ("@No",     itemNo),   ("@Name",   itemName),
             ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
@@ -316,21 +317,21 @@ public sealed class MasterDataRepository
             ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
             ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
             ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag),
-            ("@By",     createdBy));
+            ("@By",     createdBy), ("@BoxScan", scanRequired));
 
     public void UpdateItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
-        bool activeFlag, string modifiedBy)
+        bool activeFlag, string modifiedBy, bool scanRequired = false)
         => Exec("""
             UPDATE dbo.MD_Item
             SET    ItemName=@Name, ItemType=@Type,
                    ItemCategory=@Cat, InjFlag=@Inj, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
                    PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
-                   PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote,
+                   PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, ScanRequired=@BoxScan,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
@@ -342,7 +343,7 @@ public sealed class MasterDataRepository
             ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
             ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
             ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag),
-            ("@By",     modifiedBy));
+            ("@By",     modifiedBy), ("@BoxScan", scanRequired));
 
     public void DeleteItem(string itemNo)
         => Exec("""
@@ -704,7 +705,7 @@ public sealed class MasterDataRepository
         int? PalletQty, int? MaxPalletQty, bool ToteFlag,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS);
+        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false);
 
     public record CodeItemRow(
         string CodeID, string? GroupCode, string? CodeValue,
