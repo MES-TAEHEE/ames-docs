@@ -12498,8 +12498,7 @@ body:has(.wh01-shell, .wh08-shell) .rz-datepicker-calendar :is(button, select, i
 .fg-history-shell .wh08-kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* Inbound: already received stock and cancellation are destructive/warning states. */
-.pda-shell.wh.wh02-shell .wh02-lot-card.received,
-.pda-shell.wh.wh02-shell .wh02-box-row.received {
+.pda-shell.wh.wh02-shell .wh02-lot-card.received {
     background: #3f1821 !important;
     border-color: #ef4444 !important;
     color: #fecaca !important;
