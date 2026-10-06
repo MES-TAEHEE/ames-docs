@@ -335,12 +335,12 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         }
     }
 
-    public async Task<InboundReceiveResult> WhReceiveCaseAsync(string mode, string barcode)
+    public async Task<InboundReceiveResult> WhReceiveCaseAsync(string mode, string barcode, IEnumerable<string> scannedBoxes)
     {
         try
         {
             Authorize();
-            using var response = await _http.PostAsJsonAsync("/api/wh/inbound/receive-case", new { Mode = mode, Barcode = barcode });
+            using var response = await _http.PostAsJsonAsync("/api/wh/inbound/receive-case", new { Mode = mode, Barcode = barcode, ScannedBoxes = scannedBoxes.ToArray() });
             return await ReadInboundReceiveResultAsync(response);
         }
         catch

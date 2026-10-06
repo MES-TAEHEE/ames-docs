@@ -121,6 +121,11 @@
                     @if (item.ToteFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
                 </Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ScanRequired" Title="@L["MD.Items.ScanRequired"]" TextAlign="TextAlign.Center" Width="170px">
+                <Template Context="item">
+                    @if (item.ScanRequired) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="item">
                     @if (item.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
@@ -366,6 +371,7 @@
             PalletQty    = r.PalletQty,
             MaxPalletQty = r.MaxPalletQty,
             ToteFlag     = r.ToteFlag,
+            ScanRequired = r.ScanRequired,
             ActiveFlag   = r.ActiveFlag,
         };
         _confirmDelete = false; _modalErr = ""; _modal = "edit";
@@ -392,7 +398,7 @@
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
-                _f.ActiveFlag, _actor);
+                _f.ActiveFlag, _actor, _f.ScanRequired);
             Audit.Created("MD-003", "MD_Item", no, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Created"].Value, no), false);
@@ -414,7 +420,7 @@
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
-                _f.ActiveFlag, _actor);
+                _f.ActiveFlag, _actor, _f.ScanRequired);
             Audit.Updated("MD-003", "MD_Item", _f.ItemNo, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo), false);
@@ -534,6 +540,10 @@
         </RadzenRow>
 
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
+            <RadzenCheckBox TValue="bool" @bind-Value="_f.ScanRequired" Name="ItemChkCaseBoxScan" />
+            <RadzenLabel Text="@L["MD.Items.ScanRequired"]" Component="ItemChkCaseBoxScan" style="cursor:pointer;" />
+        </RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
             <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="ItemChkActive" />
             <RadzenLabel Text="@L["Lbl.Active"]" Component="ItemChkActive" style="cursor:pointer;" />
         </RadzenStack>
@@ -570,6 +580,7 @@
         public int?    PalletQty    { get; set; }
         public int?    MaxPalletQty { get; set; }
         public bool    ToteFlag     { get; set; }
+        public bool    ScanRequired { get; set; }
         public bool    ActiveFlag   { get; set; } = true;
     }
 }

@@ -144,6 +144,10 @@ public sealed class ScmDeliveryCaseTests
             Assert.False(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",5));
             Assert.False(repo.ListPortalPackingQuantities("case-user").Single(p=>p.ItemNo=="PART-4").CanSave);
             Sql("DELETE WH_PurchaseOrder WHERE PoID=99; DELETE SCM_ItemVendor WHERE ItemNo='PART-4'; DELETE MD_Item WHERE ItemNo='PART-4';");
+            var casePolicyMigration=File.ReadAllText(Path.Combine(root!.FullName,"dist","migrate_md_item_case_receive.sql"));
+            Sql(casePolicyMigration);
+            Sql(casePolicyMigration); // Reapplying must preserve existing items and settings.
+            Assert.Equal(0,Count("SELECT COUNT(*) FROM MD_Item WHERE ScanRequired=1"));
             Sql("""
                 INSERT WH_PurchaseOrder(PoID,PoNumber,PoLineNo,VendorID,ItemNo,UnitCode,ReceivedQty,OrderQty,Status,SupplierConfirmedAt)
                 VALUES(99,'PO-MISSING',1,'V1','MISSING-PART','EA',0,10,'Open',SYSDATETIME());
@@ -350,7 +354,13 @@ public sealed class ScmDeliveryCaseTests
                 Update(line.DeliveryNumber,line.OrderNumber,line.PoID,line.Quantity,ship:true);
             }
             Assert.True(repo.GetDeliveryCase(mixed,"case-user")!.ReadyToReceive);
-            Assert.Equal(2,repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user"));
+            Sql("UPDATE MD_Item SET ScanRequired=1 WHERE ItemNo='PART-1';");
+            var requiredBox=repo.GetDeliveryCase(mixed,"case-user")!.Boxes.Single(b=>b.Item=="PART-1").Number;
+            var beforePolicyCheck=Count("SELECT COUNT(*) FROM WH_Inventory");
+            Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user"));
+            Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user",["WRONG-BOX"]));
+            Assert.Equal(beforePolicyCheck,Count("SELECT COUNT(*) FROM WH_Inventory"));
+            Assert.Equal(2,repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user",[requiredBox]));
             Assert.Equal(2,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=4"));
             Assert.Equal(5,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=5"));
             Assert.Equal(2,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE ParentLotNo='{mixed}' AND DeliveryNoteNo='{mixedNote.Number}'"));

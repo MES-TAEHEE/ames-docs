@@ -9664,4 +9664,5 @@
   <data name="Portal.Receipts.Col.RemainingQty" xml:space="preserve">
     <value>잔량</value>
   </data>
+  <data name="MD.Items.ScanRequired" xml:space="preserve"><value>Individual Scan Required</value></data>
 </root>

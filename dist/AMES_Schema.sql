@@ -1941,6 +1941,7 @@ CREATE TABLE [dbo].[MD_Item](
 	[PalletQty] [int] NULL,
 	[MaxPalletQty] [int] NULL,
 	[ToteFlag] [bit] NOT NULL,
+	[ScanRequired] [bit] NOT NULL CONSTRAINT [DF_MD_Item_ScanRequired] DEFAULT (0),
 	[ActiveFlag] [bit] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
