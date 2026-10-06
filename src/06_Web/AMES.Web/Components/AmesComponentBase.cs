@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 namespace AMES.Web.Components;
 
@@ -12,6 +13,7 @@ namespace AMES.Web.Components;
 ///  · 처리(동기 구간 또는 비동기 완료까지)가 SlowThreshold 이상 걸렸으면, 끝난 직후 QueueWindow 안에 들어온 클릭은 처리 중에 쌓인
 ///    것으로 보고 버린다. 빠른 핸들러의 연속 클릭·입력·키보드 이벤트에는 영향이 없다.
 /// 그 밖의 동작(호출 직후·완료 후 다시 그리기, 취소된 작업은 다시 그리지 않음)은 ComponentBase 와 같다.
+/// 클릭 처리가 끝나면(버린 클릭 포함) 브라우저의 처리 중 표시(js/busy-buttons.js)를 끄도록 알린다.
 /// </summary>
 public abstract class AmesComponentBase : ComponentBase, IHandleEvent
 {
@@ -19,6 +21,9 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
     static readonly TimeSpan QueueWindow   = TimeSpan.FromMilliseconds(400);
     static readonly FieldInfo? DelegateField =
         typeof(EventCallbackWorkItem).GetField("_delegate", BindingFlags.Instance | BindingFlags.NonPublic);
+
+    // 화면들이 @inject IJSRuntime JS 를 쓰므로 이름이 겹치지 않게 둔다
+    [Inject] IJSRuntime AmesBusyJs { get; set; } = default!;
 
     readonly HashSet<MethodInfo> _runningClicks = new();
     DateTime _slowClickEndUtc = DateTime.MinValue;
@@ -28,8 +33,8 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
         if (arg is not MouseEventArgs) return Dispatch(callback, arg);
 
         var method = (DelegateField?.GetValue(callback) as Delegate)?.Method;
-        if (DateTime.UtcNow - _slowClickEndUtc < QueueWindow) return Task.CompletedTask;
-        if (method is not null && _runningClicks.Contains(method)) return Task.CompletedTask;
+        if (DateTime.UtcNow - _slowClickEndUtc < QueueWindow) { SignalClickDone(); return Task.CompletedTask; }
+        if (method is not null && _runningClicks.Contains(method)) { SignalClickDone(); return Task.CompletedTask; }
         return DispatchClick(callback, arg, method);
     }
 
@@ -46,11 +51,12 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
         var started = DateTime.UtcNow;
         Task task;
         try { task = callback.InvokeAsync(arg); }
+        catch { SignalClickDone(); throw; }
         finally { MarkIfSlow(started); }
 
         var shouldAwait = task.Status != TaskStatus.RanToCompletion && task.Status != TaskStatus.Canceled;
         StateHasChanged();
-        if (!shouldAwait) return Task.CompletedTask;
+        if (!shouldAwait) { SignalClickDone(); return Task.CompletedTask; }
         if (method is not null) _runningClicks.Add(method);
         return CompleteClick(task, method, started);
     }
@@ -62,6 +68,7 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
         {
             if (method is not null) _runningClicks.Remove(method);
             MarkIfSlow(started);
+            SignalClickDone();
         }
     }
 
@@ -74,6 +81,13 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
             throw;
         }
         StateHasChanged();
+    }
+
+    // 기다리지 않는다 — 회로가 끊겼거나 프리렌더 중이면 조용히 넘어간다
+    void SignalClickDone()
+    {
+        try { _ = AmesBusyJs.InvokeVoidAsync("amesBusy.done").AsTask().ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted); }
+        catch { }
     }
 
     void MarkIfSlow(DateTime started)

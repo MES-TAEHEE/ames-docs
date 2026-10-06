@@ -9664,4 +9664,64 @@
   <data name="Portal.Receipts.Col.RemainingQty" xml:space="preserve">
     <value>Remaining Qty</value>
   </data>
+  <data name="MNT.Failure.Tl.Title" xml:space="preserve">
+    <value>Response History</value>
+  </data>
+  <data name="MNT.Failure.Tl.Reported" xml:space="preserve">
+    <value>Reported</value>
+  </data>
+  <data name="MNT.Failure.Tl.Arrived" xml:space="preserve">
+    <value>Maint. arrived</value>
+  </data>
+  <data name="MNT.Failure.Tl.Ack" xml:space="preserve">
+    <value>Acknowledged (ACK)</value>
+  </data>
+  <data name="MNT.Failure.Tl.Repaired" xml:space="preserve">
+    <value>Repaired</value>
+  </data>
+  <data name="MNT.Failure.Tl.Resolved" xml:space="preserve">
+    <value>Resolved (closed)</value>
+  </data>
+  <data name="MNT.Failure.Tl.Elapsed" xml:space="preserve">
+    <value>Elapsed {0}</value>
+  </data>
+  <data name="MNT.Failure.Tl.Total" xml:space="preserve">
+    <value>Resolved in {0}</value>
+  </data>
+  <data name="MNT.Failure.Tl.Min" xml:space="preserve">
+    <value>{0} min</value>
+  </data>
+  <data name="MNT.Failure.Tl.HourMin" xml:space="preserve">
+    <value>{0} h {1} min</value>
+  </data>
+  <data name="MNT.Failure.Err.Timeline" xml:space="preserve">
+    <value>Failed to load the response history: {0}</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.Waiting" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.Arrived" xml:space="preserve">
+    <value>Arrived</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.Acked" xml:space="preserve">
+    <value>Working</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.Resolved" xml:space="preserve">
+    <value>Resolved</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.Min" xml:space="preserve">
+    <value>{0}m</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.HourMin" xml:space="preserve">
+    <value>{0}h {1}m</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.Hint" xml:space="preserve">
+    <value>Response stage · time since reported (time to resolve once resolved)</value>
+  </data>
+  <data name="MNT.Failure.Tl.DayHour" xml:space="preserve">
+    <value>{0} d {1} h</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.DayHour" xml:space="preserve">
+    <value>{0}d {1}h</value>
+  </data>
 </root>

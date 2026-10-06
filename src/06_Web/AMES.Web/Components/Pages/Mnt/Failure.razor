@@ -196,6 +196,8 @@
                 <RadzenTextArea Value="@(_sel.Symptom ?? "")" Disabled="true" Rows="3" class="ames-rz-input" Style="width:100%;" />
             </RadzenStack>
 
+            <FailureTimelinePanel Failure="_sel" />
+
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 @if (_canEdit)
                 {
@@ -442,6 +444,26 @@
     }
 
     void OpenDetail(MntRepository.FailureRow? r) { if (r is null) return; _sel = r; _modal = "detail"; _modalErr = ""; }
+
+    // 대시보드 고장 알림에서 ?id= 로 들어오면 그 고장이 보이게 기간을 맞추고 상세를 연다
+    [SupplyParameterFromQuery(Name = "id")] public int? IdQuery { get; set; }
+    int? _openedId;
+
+    protected override void OnParametersSet()
+    {
+        if (IdQuery is not int id || id == _openedId) return;
+        _openedId = id;
+        MntRepository.FailureRow? hit;
+        try { hit = Mnt.FindFailure(id); } catch (Exception ex) { ShowMsg(ex.Message, true); return; }
+        if (hit is null) return;
+        if (hit.ReportedAt is { } rep && (rep.Date < _fFrom || rep.Date > _fTo))
+        {
+            _fTo = rep.Date > _fTo ? rep.Date : _fTo;
+            _fFrom = rep.Date < _fFrom ? rep.Date : _fFrom;
+            Reload();
+        }
+        OpenDetail(hit);
+    }
 
     void CloseModal() { _modal = ""; _sel = null; _editId = null; _modalErr = ""; _confirmDelete = false; }
 

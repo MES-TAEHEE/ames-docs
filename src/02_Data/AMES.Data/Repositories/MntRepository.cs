@@ -29,6 +29,13 @@ public sealed class MntRepository
         string? AndonRefId = null, int? DowntimeId = null,
         string? WoNumber = null, string? WoStatus = null);   // 연결된 정비 작업지시(있을 때)
 
+    public sealed record FailureActionRow(int FailureActionId, int FailureId, string? ActionType, string? Description,
+        string? TechnicianId, DateTime? ActionAt, string? CreatedBy)
+    {
+        public FailureTimeline.Action ToAction() =>
+            new(ActionType, ActionAt, string.IsNullOrEmpty(TechnicianId) ? CreatedBy : TechnicianId, Description);
+    }
+
     public sealed record OeeRow(int OeeLogId, string? OeeRecordNumber, string? EquipId, string? LineId,
         string? AggLevel, DateTime? AggDate, string? ShiftCode,
         int? PlannedTimeMin, int? DowntimeMin,
@@ -230,6 +237,52 @@ public sealed class MntRepository
         var rows = Query("SELECT MIN(ReportedAt) AS Mn, MAX(ReportedAt) AS Mx FROM dbo.MNT_FailureRegister;",
             r => (r["Mn"] as DateTime?, r["Mx"] as DateTime?));
         return rows.Count > 0 ? rows[0] : (null, null);
+    }
+
+    public FailureRow? FindFailure(int failureId)
+    {
+        const string sql = $"""
+            {FailureSelect}
+            WHERE  f.FailureID = @Id;
+            """;
+        return Query(sql, MapFailure, ("@Id", failureId)).FirstOrDefault();
+    }
+
+    /// <summary>작업지시에 연결된 고장(MNT_FailureRegister.WorkOrderID) — 발생순.</summary>
+    public List<FailureRow> ListFailuresForWo(int workOrderId)
+    {
+        const string sql = $"""
+            {FailureSelect}
+            WHERE  f.WorkOrderID = @Wo
+            ORDER  BY f.ReportedAt, f.FailureID;
+            """;
+        return Query(sql, MapFailure, ("@Wo", workOrderId));
+    }
+
+    /// <summary>
+    /// 고장 조치 이력(MNT_FailureAction) — 안돈 보전 도착·ACK 와 웹 수리 완료(REPAIRED). 고장별·시각 순.
+    /// Who = 조치자(안돈은 배지 사번, 수리 완료는 담당 사용자 ID) → 없으면 기록한 행위자.
+    /// </summary>
+    public List<FailureActionRow> ListFailureActions(IEnumerable<int> failureIds)
+    {
+        var ids = failureIds.Distinct().ToList();
+        if (ids.Count == 0) return new();
+        const string sql = """
+            SELECT a.FailureActionID, a.FailureID, a.ActionType, a.Description, a.TechnicianID, a.ActionAt, a.CreatedBy
+            FROM   dbo.MNT_FailureAction a
+            WHERE  a.FailureID IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(@Ids, ','))
+            ORDER  BY a.FailureID, a.ActionAt, a.FailureActionID;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Ids", SqlDbType.VarChar, -1).Value = string.Join(",", ids);
+        using var rdr  = cmd.ExecuteReader();
+        var list = new List<FailureActionRow>();
+        while (rdr.Read())
+            list.Add(new((int)rdr["FailureActionID"], (int)rdr["FailureID"], rdr["ActionType"] as string,
+                rdr["Description"] as string, rdr["TechnicianID"] as string, rdr["ActionAt"] as DateTime?,
+                rdr["CreatedBy"] as string));
+        return list;
     }
 
     // ── MNT-003 OEE Analysis (equipment level) ──────────────────────────

@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -148,12 +149,15 @@
             <div class="mnt-db-list">
                 @foreach (var f in _alerts)
                 {
-                    <div class="mnt-db-row" title="@f.Symptom">
-                        <span class="dot" style="background:@SeverityColor(f.Severity);"></span>
-                        <span class="t">@(string.IsNullOrEmpty(f.EquipName) ? f.EquipId : f.EquipName)<small>@(f.Symptom ?? "")</small></span>
-                        <span class="pill @SeverityCls(f.Severity)">@SeverityLabel(f.Severity)</span>
-                        <span class="r">@When(f.ReportedAt)</span>
-                    </div>
+                    var stage = AlertStage(f);
+                    @if (_canOpenFailure)
+                    {
+                        <a class="mnt-db-row link" href="@($"/mnt/failure?id={f.FailureId}")" title="@f.Symptom">@AlertCells(f, stage)</a>
+                    }
+                    else
+                    {
+                        <div class="mnt-db-row" title="@f.Symptom">@AlertCells(f, stage)</div>
+                    }
                 }
             </div>
         }
@@ -277,6 +281,8 @@
     MntRepository.DashboardKpi _k = new(0, 0, 0, 0, 0, 0, 0, 0, 0m, 0);
     List<MntRepository.EquipCardRow>        _equips   = new();
     List<MntRepository.FailureRow>          _alerts   = new();
+    ILookup<int, MntRepository.FailureActionRow> _alertActs = Array.Empty<MntRepository.FailureActionRow>().ToLookup(a => a.FailureId);
+    bool _canOpenFailure;
     List<MntRepository.PmRow>               _pms      = new();
     List<CauseRow>                          _causes   = new();
     List<MntRepository.MwoRow>              _wos      = new();
@@ -300,6 +306,7 @@
         try { _sevItems = MD.ListCodeItems("DEFECT_SEVERITY"); } catch { }
         try { _pmTypes  = MD.ListCodeItems("PM_TYPE"); } catch { }
         try { await PermSvc.EnsureAsync(AuthPrvd); } catch { }
+        _canOpenFailure = PermSvc.IsVisible("mnt/failure");
         try { _equipStatus = MD.ListCodeItems("EQUIP_STATUS"); } catch { }
 
         // 기본 기간: 최근 7일. 그 안에 고장·비가동이 없으면 마지막 발생일 기준 7일
@@ -323,6 +330,8 @@
         try { _k       = Mnt.GetDashboardKpis(); } catch { }
         try { _equips  = Mnt.ListEquipment(); } catch { _equips = new(); }
         try { _alerts  = Mnt.ListFailuresRange(_fFrom, _fTo).OrderByDescending(f => f.ReportedAt).Take(6).ToList(); } catch { _alerts = new(); }
+        try { _alertActs = Mnt.ListFailureActions(_alerts.Select(f => f.FailureId)).ToLookup(a => a.FailureId); }
+        catch { _alertActs = Array.Empty<MntRepository.FailureActionRow>().ToLookup(a => a.FailureId); }
         try { _pms     = Mnt.ListPmDueRange(_fTo, _fTo.AddDays(7)).Take(6).ToList(); } catch { _pms = new(); }
         try
         {
@@ -392,6 +401,41 @@
 
     string StatusLabel(string code) =>
         _equipStatus.FirstOrDefault(c => c.CodeValue == code) is { } c ? MasterDataRepository.LocalName(c) : code;
+
+    // ── 고장 알림: 대응 단계(대기 → 도착 → 조치 중 → 해결) · 경과(해결이면 해결까지) ──
+    FailureTimeline.Stage AlertStage(MntRepository.FailureRow f) =>
+        FailureTimeline.CurrentStage(f.Status, _alertActs[f.FailureId].Select(a => a.ActionType));
+
+    RenderFragment AlertCells(MntRepository.FailureRow f, FailureTimeline.Stage stage) => __builder =>
+    {
+        var el = FailureTimeline.ElapsedMinutes(f.ReportedAt, f.Status, f.ResolvedAt, DbClock.Now);
+        <span class="dot" style="background:@SeverityColor(f.Severity);"></span>
+        <span class="t">@(string.IsNullOrEmpty(f.EquipName) ? f.EquipId : f.EquipName)<small>@(f.Symptom ?? "")</small></span>
+        <span class="pill @SeverityCls(f.Severity)">@SeverityLabel(f.Severity)</span>
+        <span class="pill @StageCls(stage)" title="@L["MNT.Dashboard.Stage.Hint"]">@StageLabel(stage)@(el is int m ? " " + MinShort(m) : "")</span>
+        <span class="r">@When(f.ReportedAt)</span>
+    };
+
+    string StageLabel(FailureTimeline.Stage s) => s switch
+    {
+        FailureTimeline.Stage.Waiting => L["MNT.Dashboard.Stage.Waiting"],
+        FailureTimeline.Stage.Arrived => L["MNT.Dashboard.Stage.Arrived"],
+        FailureTimeline.Stage.Acked   => L["MNT.Dashboard.Stage.Acked"],
+        _                             => L["MNT.Dashboard.Stage.Resolved"],
+    };
+    static string StageCls(FailureTimeline.Stage s) => s switch
+    {
+        FailureTimeline.Stage.Waiting => "bad",
+        FailureTimeline.Stage.Arrived => "warn",
+        FailureTimeline.Stage.Acked   => "info",
+        _                             => "ok",
+    };
+    string MinShort(int m) => m switch
+    {
+        < 60   => string.Format(L["MNT.Dashboard.Stage.Min"].Value, m),
+        < 1440 => string.Format(L["MNT.Dashboard.Stage.HourMin"].Value, m / 60, m % 60),
+        _      => string.Format(L["MNT.Dashboard.Stage.DayHour"].Value, m / 1440, m % 1440 / 60),
+    };
 
     // ── 작업지시 ───────────────────────────────────────────────────────
     static bool IsWoDone(string? s) => s is "COMPLETED" or "CLOSED" or "DONE";

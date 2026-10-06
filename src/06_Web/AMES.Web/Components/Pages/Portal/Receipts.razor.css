@@ -17,10 +17,10 @@
 .scm-discrepancy-scroll { overflow:auto; }
 .scm-discrepancy-scroll table { min-width:1000px; }
 .scm-discrepancy-scroll td { white-space:normal; overflow-wrap:anywhere; }
-.scm-shortage { color:var(--ames-tx-red-400,#f87171); }
-.scm-overage { color:var(--ames-tx-blue-400,#60a5fa); }
+.scm-shortage { color:var(--ames-tx-red-400); }
+.scm-overage { color:var(--ames-tx-blue-400); }
 .receipt-mismatch,
-.receipt-mismatch:disabled { border:0; background:transparent; box-shadow:none; padding:0; color:var(--ames-tx-red-400,#f87171); opacity:1; font:inherit; font-weight:600; cursor:pointer; }
+.receipt-mismatch:disabled { border:0; background:transparent; box-shadow:none; padding:0; color:var(--ames-tx-red-400); opacity:1; font:inherit; font-weight:600; cursor:pointer; }
 .receipt-mismatch:disabled { cursor:default; }
 .receipt-mismatch:not(:disabled):hover { text-decoration:underline; }
 .receipt-mismatch:focus-visible { outline:2px solid currentColor; outline-offset:3px; }

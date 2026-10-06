@@ -1,0 +1,107 @@
+@using AMES.Data.Repositories
+@using AMES.Data.Services
+@using AMES.Web.Services
+
+@inject MntRepository Mnt
+@inject ActorNames Actors
+@inject IStringLocalizer<SharedResources> L
+
+@* 고장 대응 이력 — 발생 → 보전 도착(ARRIVED) → ACK → 수리 완료(REPAIRED) / 해결, 읽기 전용 (MNT-002 상세 · MNT-007 상세) *@
+<div class="mnt-tl">
+    <div class="mnt-tl-h">
+        <span>
+            @L["MNT.Failure.Tl.Title"]
+            @if (!string.IsNullOrEmpty(Caption))
+            {
+                @if (!string.IsNullOrEmpty(Href))
+                {
+                    <a class="mnt-tl-cap" href="@Href">@Caption</a>
+                }
+                else
+                {
+                    <span class="mnt-tl-cap">@Caption</span>
+                }
+            }
+        </span>
+        @if (FailureTimeline.ElapsedMinutes(Failure.ReportedAt, Failure.Status, Failure.ResolvedAt, DbClock.Now) is int el)
+        {
+            <span class="pill @(FailureTimeline.IsResolved(Failure.Status) ? "ok" : "warn")">@string.Format(L[FailureTimeline.IsResolved(Failure.Status) ? "MNT.Failure.Tl.Total" : "MNT.Failure.Tl.Elapsed"].Value, MinText(el))</span>
+        }
+    </div>
+    @if (!string.IsNullOrEmpty(_err))
+    {
+        <div class="dim">@_err</div>
+    }
+    else if (_steps.Count == 0)
+    {
+        <div class="dim">—</div>
+    }
+    else
+    {
+        @foreach (var s in _steps)
+        {
+            <div class="mnt-tl-row @StepCls(s.Kind)">
+                <span class="mnt-tl-dot"></span>
+                <span class="mnt-tl-k">@StepLabel(s)</span>
+                <span class="mnt-tl-at">@s.At.ToString(DateFmt.DateTime)</span>
+                <span class="mnt-tl-min">@(s.Kind != FailureTimeline.Kind.Reported && s.Minutes is int m ? "+" + MinText(m) : "")</span>
+                <span class="mnt-tl-who">@(string.IsNullOrEmpty(s.Who) ? "" : Actors.Display(s.Who))</span>
+                @if (!string.IsNullOrEmpty(s.Note))
+                {
+                    <span class="mnt-tl-note">@s.Note</span>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MntRepository.FailureRow Failure { get; set; } = default!;
+    [Parameter] public string? Caption { get; set; }   // 여러 고장을 나열할 때 고장 번호
+    [Parameter] public string? Href    { get; set; }   // Caption 링크(상세 화면)
+
+    List<FailureTimeline.Step> _steps = new();
+    string _err = "";
+    (int, string?, DateTime?)? _loaded;
+
+    // 수리 완료 등으로 같은 고장의 상태가 바뀌면 다시 읽는다
+    protected override void OnParametersSet()
+    {
+        var key = (Failure.FailureId, Failure.Status, Failure.ResolvedAt);
+        if (_loaded == key) return;
+        _loaded = key;
+        _err = "";
+        try
+        {
+            var acts = Mnt.ListFailureActions(new[] { Failure.FailureId }).Select(a => a.ToAction());
+            _steps = FailureTimeline.Build(Failure.ReportedAt, Failure.ReportedBy, Failure.Status, Failure.ResolvedAt, acts);
+        }
+        catch (Exception ex) { _steps = new(); _err = string.Format(L["MNT.Failure.Err.Timeline"].Value, ex.Message); }
+    }
+
+    string StepLabel(FailureTimeline.Step s) => s.Kind switch
+    {
+        FailureTimeline.Kind.Reported => L["MNT.Failure.Tl.Reported"],
+        FailureTimeline.Kind.Arrived  => L["MNT.Failure.Tl.Arrived"],
+        FailureTimeline.Kind.Ack      => L["MNT.Failure.Tl.Ack"],
+        FailureTimeline.Kind.Repaired => L["MNT.Failure.Tl.Repaired"],
+        FailureTimeline.Kind.Resolved => L["MNT.Failure.Tl.Resolved"],
+        _                             => s.RawType ?? "—",
+    };
+
+    static string StepCls(FailureTimeline.Kind k) => k switch
+    {
+        FailureTimeline.Kind.Reported => "bad",
+        FailureTimeline.Kind.Arrived  => "warn",
+        FailureTimeline.Kind.Ack      => "info",
+        FailureTimeline.Kind.Repaired or FailureTimeline.Kind.Resolved => "ok",
+        _                             => "mute",
+    };
+
+    string MinText(int m) => m switch
+    {
+        < 60   => string.Format(L["MNT.Failure.Tl.Min"].Value, m),
+        < 1440 => string.Format(L["MNT.Failure.Tl.HourMin"].Value, m / 60, m % 60),
+        _      => string.Format(L["MNT.Failure.Tl.DayHour"].Value, m / 1440, m % 1440 / 60),
+    };
+}

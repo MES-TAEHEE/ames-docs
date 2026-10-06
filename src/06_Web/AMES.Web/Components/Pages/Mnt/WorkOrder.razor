@@ -241,6 +241,12 @@
                 </RadzenStack>
             }
 
+            @* 연결된 고장의 대응 이력(고장 등록 → 보전 도착·ACK → 수리 완료) — 고장 번호를 누르면 MNT-002 상세 *@
+            @foreach (var f in _woFailures)
+            {
+                <FailureTimelinePanel @key="f.FailureId" Failure="f" Caption="@(f.FailureNumber ?? $"F#{f.FailureId}")" Href="@(_canOpenFailure ? $"/mnt/failure?id={f.FailureId}" : null)" />
+            }
+
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 @if (_canEdit && !IsDone(_sel.Status))
                 {
@@ -396,6 +402,7 @@
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("mnt/work-order");
+        _canOpenFailure = PermSvc.IsVisible("mnt/failure");
 
         try { _equipList   = MD.ListEquipments(); } catch { }
         try { _typeItems   = MD.ListCodeItems(MwoTypeCodes.Group); } catch { }
@@ -452,7 +459,15 @@
         if (args.Data is not null) OpenDetail(args.Data);
     }
 
-    void OpenDetail(MntRepository.MwoRow? r) { if (r is null) return; _sel = r; _modal = "detail"; _modalErr = ""; }
+    void OpenDetail(MntRepository.MwoRow? r)
+    {
+        if (r is null) return;
+        _sel = r; _modal = "detail"; _modalErr = "";
+        try { _woFailures = Mnt.ListFailuresForWo(r.WorkOrderId); } catch { _woFailures = new(); }
+    }
+
+    List<MntRepository.FailureRow> _woFailures = new();
+    bool _canOpenFailure;
 
     void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; }
 

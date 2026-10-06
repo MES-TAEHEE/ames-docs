@@ -5285,9 +5285,9 @@ html[data-theme="light"] .mnt-dt-row { border-bottom-color: rgba(80,60,20,.12); 
 html[data-theme="light"] .mnt-dt-track { background: rgba(80,60,20,.10); }
 
 /* MNT-009 대시보드 패널 (3열 그리드) */
-.mnt-db-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-@media (max-width: 1400px) { .mnt-db-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 900px)  { .mnt-db-grid { grid-template-columns: 1fr; } }
+.mnt-db-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1400px) { .mnt-db-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px)  { .mnt-db-grid { grid-template-columns: minmax(0, 1fr); } }
 .mnt-db-grid .ames-card { margin-bottom: 0; min-height: 230px; display: flex; flex-direction: column; }
 .mnt-db-hint { font-size: calc(10px + var(--ames-fs-bump)); opacity: .6; white-space: nowrap; font-weight: 400; }
 .mnt-db-donut-wrap { display: flex; align-items: center; gap: 22px; padding: 6px 4px; }
@@ -5307,6 +5307,29 @@ html[data-theme="light"] .mnt-dt-track { background: rgba(80,60,20,.10); }
 .mnt-db-row .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mnt-db-row .t small { opacity: .6; margin-left: 6px; }
 .mnt-db-row .r { font-family: var(--ames-font-code); font-size: calc(11px + var(--ames-fs-bump)); opacity: .7; white-space: nowrap; }
+a.mnt-db-row.link { color: inherit; text-decoration: none; border-radius: 4px; }
+a.mnt-db-row.link:hover { background: rgba(148,163,184,.10); }
+.mnt-db-row .pill { white-space: nowrap; }
+/* MNT-002 고장 상세 — 대응 이력(발생 → 보전 도착 → ACK → 수리 완료/해결) */
+.mnt-tl { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(148,163,184,.2); }
+.mnt-tl-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; margin-bottom: 6px; }
+.mnt-tl-cap { margin-left: 8px; font-family: var(--ames-font-code); font-weight: 400; font-size: calc(11.5px + var(--ames-fs-bump)); opacity: .8; }
+a.mnt-tl-cap { color: inherit; text-decoration: underline dotted; }
+a.mnt-tl-cap:hover { opacity: 1; }
+.mnt-tl-row { position: relative; display: grid; grid-template-columns: 12px 170px 130px 90px minmax(0, 1fr); align-items: center; column-gap: 8px; padding: 4px 0; font-size: 12.5px; }
+.mnt-tl-row:not(:last-child)::before { content: ""; position: absolute; left: 4px; top: 15px; bottom: -6px; width: 2px; background: rgba(148,163,184,.3); }
+.mnt-tl-dot { width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; position: relative; z-index: 1; }
+.mnt-tl-row.bad .mnt-tl-dot  { background: #dc2626; }
+.mnt-tl-row.warn .mnt-tl-dot { background: #f59e0b; }
+.mnt-tl-row.info .mnt-tl-dot { background: #3b82f6; }
+.mnt-tl-row.ok .mnt-tl-dot   { background: #10b981; }
+.mnt-tl-k { font-weight: 600; white-space: nowrap; }
+.mnt-tl-at, .mnt-tl-min { font-family: var(--ames-font-code); font-size: calc(11px + var(--ames-fs-bump)); white-space: nowrap; }
+.mnt-tl-min { opacity: .75; }
+.mnt-tl-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mnt-tl-note { grid-column: 2 / -1; opacity: .8; white-space: pre-wrap; word-break: break-word; }
+html[data-theme="light"] .mnt-tl { border-top-color: rgba(80,60,20,.12); }
+html[data-theme="light"] a.mnt-db-row.link:hover { background: rgba(80,60,20,.06); }
 .mnt-db-wo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 6px 0 12px; }
 .mnt-db-wo div { border-radius: 8px; padding: 12px 6px; text-align: center; background: rgba(148,163,184,.10); }
 .mnt-db-wo b { display: block; font-size: 24px; line-height: 1; }
@@ -5772,3 +5795,10 @@ html[data-theme="light"] .portal-shell .ames-brand-logo, html[data-theme="light"
     min-height: 50vh; text-align: center;
 }
 .ames-db-down-page-t { font-size: 1.4rem; font-weight: 700; color: var(--ames-tx-red-400); }
+
+/* ── 처리 중 버튼(js/busy-buttons.js) — 버튼 크기는 그대로 두고 내용만 스피너·문구로 바꾼다 ── */
+.rz-button.ames-busy-btn { display: inline-flex !important; align-items: center; justify-content: center; gap: 6px; pointer-events: none; cursor: progress; }
+.rz-button.ames-busy-btn > * { display: none !important; }
+.rz-button.ames-busy-btn::before { content: ""; flex: none; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: ames-busy-spin .7s linear infinite; }
+.rz-button.ames-busy-btn::after { content: attr(data-busy-label); font-size: .92em; white-space: nowrap; }
+@keyframes ames-busy-spin { to { transform: rotate(360deg); } }
