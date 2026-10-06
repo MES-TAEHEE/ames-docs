@@ -31,13 +31,12 @@ public sealed class ScmDeliveryCaseTests
         Assert.Equal("입고완료",documents[2].ReceiptStatus);
     }
 
-    [Fact]
+    [SqlServerFact]
     public async Task Prepared_cases_register_ship_and_receive_without_replacing_box_labels()
     {
         // Deliberately isolated: never reads connection settings or touches AMES_DEV.
         var database="AMES_CASE_TEST_"+Guid.NewGuid().ToString("N");
-        var server=new SqlConnectionStringBuilder{DataSource=@".\SQLEXPRESS",InitialCatalog="master",
-            IntegratedSecurity=true,TrustServerCertificate=true,ConnectTimeout=5};
+        var server=SqlServerFactAttribute.Settings();
         using var master=new SqlConnection(server.ConnectionString);master.Open();
         using(var cmd=new SqlCommand($"CREATE DATABASE [{database}]",master))cmd.ExecuteNonQuery();
         try
@@ -129,11 +128,17 @@ public sealed class ScmDeliveryCaseTests
                 """);
             Assert.DoesNotContain(repo.ListPurchaseOrders(true,"case-user",confirmedOnly:true),p=>p.Number=="PO-CASE-1");
             Assert.Empty(repo.ListCaseParts("PO-CASE-1","case-user"));
-            Assert.Contains(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
-            Assert.False(repo.ListPortalPackingQuantities("case-user").Single(p=>p.ItemNo=="PART-4").Linked);
+            Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
+            Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user"),p=>p.ItemNo=="PART-4");
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("other-user",forCreate:true),p=>p.ItemNo=="PART-4");
             Assert.False(repo.CreatePortalPackingQuantity("other-user","PART-4","V1",3));
             Assert.Throws<ArgumentOutOfRangeException>(()=>repo.CreatePortalPackingQuantity("case-user","PART-4","V1",0));
+            Assert.False(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",3));
+            Assert.False(repo.SavePortalPackingQuantity("case-user","PART-4","V1",3,null));
+            Assert.Equal(0,Count("SELECT COUNT(*) FROM SCM_ItemVendor WHERE ItemNo='PART-4'"));
+            Sql("INSERT SCM_ItemVendor(ItemNo,VendorID,PackingQty,ActiveFlag) VALUES('PART-4','V1',NULL,1);");
+            Assert.Contains(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
+            Assert.DoesNotContain(repo.ListPortalPackingQuantities("other-user",forCreate:true),p=>p.ItemNo=="PART-4");
             Assert.True(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",3));
             Assert.False(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",4));
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
@@ -142,8 +147,12 @@ public sealed class ScmDeliveryCaseTests
             Assert.True(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",5));
             Sql("UPDATE SCM_ItemVendor SET ActiveFlag=0,PackingQty=NULL WHERE ItemNo='PART-4';");
             Assert.False(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",5));
-            Assert.False(repo.ListPortalPackingQuantities("case-user").Single(p=>p.ItemNo=="PART-4").CanSave);
+            Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user"),p=>p.ItemNo=="PART-4");
             Sql("DELETE WH_PurchaseOrder WHERE PoID=99; DELETE SCM_ItemVendor WHERE ItemNo='PART-4'; DELETE MD_Item WHERE ItemNo='PART-4';");
+            var casePolicyMigration=File.ReadAllText(Path.Combine(root!.FullName,"dist","migrate_md_item_case_receive.sql"));
+            Sql(casePolicyMigration);
+            Sql(casePolicyMigration); // Reapplying must preserve existing items and settings.
+            Assert.Equal(0,Count("SELECT COUNT(*) FROM MD_Item WHERE ScanRequired=1"));
             Sql("""
                 INSERT WH_PurchaseOrder(PoID,PoNumber,PoLineNo,VendorID,ItemNo,UnitCode,ReceivedQty,OrderQty,Status,SupplierConfirmedAt)
                 VALUES(99,'PO-MISSING',1,'V1','MISSING-PART','EA',0,10,'Open',SYSDATETIME());
@@ -350,7 +359,13 @@ public sealed class ScmDeliveryCaseTests
                 Update(line.DeliveryNumber,line.OrderNumber,line.PoID,line.Quantity,ship:true);
             }
             Assert.True(repo.GetDeliveryCase(mixed,"case-user")!.ReadyToReceive);
-            Assert.Equal(2,repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user"));
+            Sql("UPDATE MD_Item SET ScanRequired=1 WHERE ItemNo='PART-1';");
+            var requiredBox=repo.GetDeliveryCase(mixed,"case-user")!.Boxes.Single(b=>b.Item=="PART-1").Number;
+            var beforePolicyCheck=Count("SELECT COUNT(*) FROM WH_Inventory");
+            Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user"));
+            Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user",["WRONG-BOX"]));
+            Assert.Equal(beforePolicyCheck,Count("SELECT COUNT(*) FROM WH_Inventory"));
+            Assert.Equal(2,repo.ReceiveDeliveryCase(mixed,"LOCAL","case-user",[requiredBox]));
             Assert.Equal(2,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=4"));
             Assert.Equal(5,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=5"));
             Assert.Equal(2,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE ParentLotNo='{mixed}' AND DeliveryNoteNo='{mixedNote.Number}'"));

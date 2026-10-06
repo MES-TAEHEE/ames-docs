@@ -15,12 +15,10 @@ public sealed partial class ScmRepository
             WHERE u.UserID=@U AND u.VendorID=m.VendorID AND u.ActiveFlag=1 AND u.LockedFlag=0)
         """;
 
-    // New packing entries may only use an existing supplier link or an issued PO for that supplier.
+    // Supplier links are managed by SCM-003, never inferred from PO history.
     const string PackingItems = """
         WITH PackingItems AS (
             SELECT ItemNo,VendorID FROM dbo.SCM_ItemVendor WHERE ActiveFlag=1
-            UNION
-            SELECT ItemNo,VendorID FROM dbo.WH_PurchaseOrder WHERE Status IN('Open','Partial','Complete','Received')
         )
         """;
 
@@ -72,12 +70,9 @@ public sealed partial class ScmRepository
             IF EXISTS(SELECT 1 FROM dbo.SCM_ItemVendor WITH(UPDLOCK,HOLDLOCK)
                 WHERE ItemNo=@Item AND VendorID=@Vendor AND (ActiveFlag=0 OR PackingQty>0))
             BEGIN SELECT CAST(0 AS bit); RETURN; END;
-            UPDATE dbo.SCM_ItemVendor SET PackingQty=@Qty,ModifiedBy=LEFT(@U,20),ModifiedTS=SYSDATETIME()
+            UPDATE dbo.SCM_ItemVendor WITH(UPDLOCK,HOLDLOCK) SET PackingQty=@Qty,ModifiedBy=LEFT(@U,20),ModifiedTS=SYSDATETIME()
             WHERE ItemNo=@Item AND VendorID=@Vendor AND ActiveFlag=1;
-            IF @@ROWCOUNT=0
-                INSERT dbo.SCM_ItemVendor(ItemNo,VendorID,PackingQty,ActiveFlag,CreatedBy)
-                VALUES(@Item,@Vendor,@Qty,1,LEFT(@U,20));
-            SELECT CAST(1 AS bit);
+            SELECT CAST(CASE WHEN @@ROWCOUNT=1 THEN 1 ELSE 0 END AS bit);
             """;
         var p = cmd.Parameters.Add("@Qty",System.Data.SqlDbType.Decimal);
         p.Precision=18;p.Scale=3;p.Value=quantity;

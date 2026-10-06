@@ -3372,9 +3372,6 @@
   <data name="MD.Items.Col.Inj" xml:space="preserve">
     <value>Injection</value>
   </data>
-  <data name="MD.Items.Col.ScanRequired" xml:space="preserve">
-    <value>Individual Barcode Scan Required</value>
-  </data>
   <data name="MD.Items.Hint.InjSubOnly" xml:space="preserve">
     <value>SUB type only</value>
   </data>
@@ -9727,4 +9724,5 @@
   <data name="MNT.Dashboard.Stage.DayHour" xml:space="preserve">
     <value>{0}d {1}h</value>
   </data>
+  <data name="MD.Items.ScanRequired" xml:space="preserve"><value>Individual Barcode Scan Required</value></data>
 </root>

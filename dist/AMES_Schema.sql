@@ -1941,6 +1941,7 @@ CREATE TABLE [dbo].[MD_Item](
 	[PalletQty] [int] NULL,
 	[MaxPalletQty] [int] NULL,
 	[ToteFlag] [bit] NOT NULL,
+	[ScanRequired] [bit] NOT NULL CONSTRAINT [DF_MD_Item_ScanRequired] DEFAULT (0),
 	[ActiveFlag] [bit] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -1954,7 +1955,6 @@ CREATE TABLE [dbo].[MD_Item](
 	[ApplicableEquipment] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[MakerName] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[LeadTimeDays] [int] NULL,
-	[ScanRequired] [bit] NOT NULL,
  CONSTRAINT [PK_MD_Item] PRIMARY KEY CLUSTERED
 (
 	[ItemNo] ASC
@@ -1964,8 +1964,6 @@ GO
 ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((0)) FOR [InjFlag]
 GO
 ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((0)) FOR [ToteFlag]
-GO
-ALTER TABLE [dbo].[MD_Item] ADD  CONSTRAINT [DF_MD_Item_ScanRequired]  DEFAULT ((0)) FOR [ScanRequired]
 GO
 ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO

@@ -90,7 +90,7 @@ public abstract class PdaApi
         int BoxCount, int ScanCount, decimal DeliveredQty, decimal ReceivedQty,
         decimal RemainingQty, string? Unit, string? Yn);
     public sealed record InboundDocumentBoxRow(string PartNo, string BoxBarcode,
-        string? LotNo, decimal Qty, string? Unit, string? Yn);
+        string? LotNo, decimal Qty, string? Unit, string? Yn, bool ScanRequired = false);
     public sealed record InboundDocumentResult(InboundDocumentRow? Document,
         List<InboundDocumentLineRow> Lines, List<InboundDocumentBoxRow> Boxes);
     public sealed record WarehouseTransactionRow(long RowNo, string? LotNo, string? PartNo,

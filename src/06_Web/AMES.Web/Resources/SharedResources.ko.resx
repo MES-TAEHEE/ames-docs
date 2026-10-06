@@ -3369,9 +3369,6 @@
   <data name="MD.Items.Col.Inj" xml:space="preserve">
     <value>사출품</value>
   </data>
-  <data name="MD.Items.Col.ScanRequired" xml:space="preserve">
-    <value>개별 바코드 스캔 필요</value>
-  </data>
   <data name="MD.Items.Hint.InjSubOnly" xml:space="preserve">
     <value>SUB 유형만 지정</value>
   </data>
@@ -9727,4 +9724,5 @@
   <data name="MNT.Dashboard.Stage.DayHour" xml:space="preserve">
     <value>{0}일 {1}시간</value>
   </data>
+  <data name="MD.Items.ScanRequired" xml:space="preserve"><value>개별 바코드 스캔 필요</value></data>
 </root>
