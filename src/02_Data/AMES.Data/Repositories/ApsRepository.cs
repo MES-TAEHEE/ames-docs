@@ -860,12 +860,12 @@ public sealed class ApsRepository
     {
         var map = new Dictionary<(string, DateOnly), decimal>();
         foreach (var cmd in ChunkedIn(conn, tx, items, inList => $"""
-            SELECT t.ItemNo, CAST(t.TransactionTime AS date) AS D, SUM(-t.QtyChange) AS Qty
+            SELECT t.PartNo, CAST(t.TransactionTime AS date) AS D, SUM(-t.QtyChange) AS Qty
             FROM   dbo.WH_InventoryTransaction t
             WHERE  t.TransactionType = 'OUT' AND t.QtyChange < 0
               AND  t.TransactionTime >= @From AND t.TransactionTime < DATEADD(day, 1, @To)
-              AND  t.ItemNo IN ({inList})
-            GROUP  BY t.ItemNo, CAST(t.TransactionTime AS date);
+              AND  t.PartNo IN ({inList})
+            GROUP  BY t.PartNo, CAST(t.TransactionTime AS date);
             """, c =>
             {
                 c.Parameters.Add("@From", SqlDbType.Date).Value = Dt(from);
@@ -875,7 +875,7 @@ public sealed class ApsRepository
             using (cmd)
             using (var rdr = cmd.ExecuteReader())
                 while (rdr.Read())
-                    map[(((string)rdr["ItemNo"]).ToUpperInvariant(), DateOnly.FromDateTime((DateTime)rdr["D"]))] = Convert.ToDecimal(rdr["Qty"]);
+                    map[(((string)rdr["PartNo"]).ToUpperInvariant(), DateOnly.FromDateTime((DateTime)rdr["D"]))] = Convert.ToDecimal(rdr["Qty"]);
         }
         return map;
     }

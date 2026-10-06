@@ -291,8 +291,8 @@ public class ApsRepositoryTests
 
     /// <summary>ITEST-APS-FG 출고 1건 — 통합재고 거래 이력 WH_InventoryTransaction 의 OUT 행(TransactionTime = at 10:00, 위치 무관).</summary>
     static void SeedShipment(AmesConnectionFactory f, string tag, DateTime at, decimal qty) => Exec(f, """
-        INSERT INTO dbo.WH_InventoryTransaction (TransactionTime, TransactionType, ItemNo, LocationID, QtyChange, ReasonCode, RefDocType, Note, CreatedBy, CreatedTS)
-        VALUES (@At, 'OUT', @FG, NULL, -@Q, 'ITEST', 'ITEST-APS', N'ITEST-APS shipment ' + @T, @By, SYSDATETIME());
+        INSERT INTO dbo.WH_InventoryTransaction (TransactionTime, TransactionType, PartNo, LocationNo, LotNo, QtyChange, ReasonCode, SourceType, Note, CreatedBy, CreatedTS)
+        VALUES (@At, 'OUT', @FG, NULL, 'ITEST-APS-' + @T, -@Q, 'ITEST', 'ITEST-APS', N'ITEST-APS shipment ' + @T, @By, SYSDATETIME());
         """, ("@T", tag), ("@FG", Fg), ("@Q", qty), ("@At", at.AddHours(10)), ("@By", Actor));
 
     internal static void Cleanup(AmesConnectionFactory f)
@@ -306,7 +306,7 @@ public class ApsRepositoryTests
             DELETE FROM dbo.PP_ApsRun      WHERE CreatedBy = @By;
             DELETE FROM dbo.MD_ApsLineStage WHERE LineID = @LN;
             DELETE FROM dbo.MD_Line         WHERE LineID = @LN;
-            DELETE FROM dbo.WH_InventoryTransaction WHERE RefDocType = 'ITEST-APS' AND CreatedBy = @By;
+            DELETE FROM dbo.WH_InventoryTransaction WHERE SourceType = 'ITEST-APS' AND CreatedBy = @By;
             DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE w.WoNumber LIKE 'ITEST-APS-WO%' AND w.CreatedBy = @By;
             DELETE r FROM dbo.PR_ProductionResult r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.WoNumber LIKE 'ITEST-APS-WO%' AND w.CreatedBy = @By;
             DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.WoNumber LIKE 'ITEST-APS-WO%' AND w.CreatedBy = @By;
