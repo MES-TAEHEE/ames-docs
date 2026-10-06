@@ -16,6 +16,11 @@
     </div>
 
     <div class="pda-bd wh02-body">
+        <div class="wh02-mode">
+            <RadzenButton class="@($"wh02-mode-btn {ModeClass("LOCAL")}")" Click='@(() => SetMode("LOCAL"))' Text="LOCAL" Disabled="@IsBusy" />
+            <RadzenButton class="@($"wh02-mode-btn {ModeClass("CKD")}")" Click='@(() => SetMode("CKD"))' Text="CKD" Disabled="@IsBusy" />
+        </div>
+
         <RadzenCard class="@($"wh02-panel wh02-scan-panel {ScanPanelClass}")">
             <div class="pda-fld">
                 <label>SCAN BARCODE</label>
@@ -443,7 +448,7 @@
     private const string BarcodePlaceholder = "Scan Barcode";
     private bool IsPortalCase => _document?.IsPortalCase == true;
     private bool IsCaseDocument => IsPortalCase || !string.IsNullOrWhiteSpace(_document?.CaseNo);
-    private string DocumentTitle => IsPortalCase ? "CASE / PALLET" : !string.IsNullOrWhiteSpace(_document?.CaseNo) ? "CKD CASE" : "DELIVERY NOTE";
+    private string DocumentTitle => IsCaseDocument ? "CASE" : "DELIVERY NOTE";
     private bool LocationEntryDisabled => true;
     private bool DisableScan => IsBusy || string.IsNullOrWhiteSpace(_barcode);
     private bool DisableLocationScan => LocationEntryDisabled || string.IsNullOrWhiteSpace(_loc);
