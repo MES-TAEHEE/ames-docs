@@ -3369,6 +3369,9 @@
   <data name="MD.Items.Col.Inj" xml:space="preserve">
     <value>Inyección</value>
   </data>
+  <data name="MD.Items.Col.ScanRequired" xml:space="preserve">
+    <value>Requiere escaneo individual de código de barras</value>
+  </data>
   <data name="MD.Items.Hint.InjSubOnly" xml:space="preserve">
     <value>Solo tipo SUB</value>
   </data>

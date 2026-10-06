@@ -366,6 +366,7 @@
             PalletQty    = r.PalletQty,
             MaxPalletQty = r.MaxPalletQty,
             ToteFlag     = r.ToteFlag,
+            ScanRequired = r.ScanRequired,
             ActiveFlag   = r.ActiveFlag,
         };
         _confirmDelete = false; _modalErr = ""; _modal = "edit";
@@ -391,7 +392,7 @@
                 N(_f.ItemCategory), InjEnabled && _f.InjFlag, N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
-                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
+                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag, _f.ScanRequired,
                 _f.ActiveFlag, _actor);
             Audit.Created("MD-003", "MD_Item", no, _f);
             CloseModal(); await ReloadRestorePage();
@@ -413,7 +414,7 @@
                 N(_f.ItemCategory), InjEnabled && _f.InjFlag, N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
-                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
+                _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag, _f.ScanRequired,
                 _f.ActiveFlag, _actor);
             Audit.Updated("MD-003", "MD_Item", _f.ItemNo, _sel, _f);
             CloseModal(); await ReloadRestorePage();
@@ -533,6 +534,15 @@
             </RadzenColumn>
         </RadzenRow>
 
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="12">
+                <RadzenLabel Text="@L["MD.Items.Col.ScanRequired"]" Component="ItemChkScan" />
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="height:32px;">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ScanRequired" Name="ItemChkScan" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
             <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="ItemChkActive" />
             <RadzenLabel Text="@L["Lbl.Active"]" Component="ItemChkActive" style="cursor:pointer;" />
@@ -570,6 +580,7 @@
         public int?    PalletQty    { get; set; }
         public int?    MaxPalletQty { get; set; }
         public bool    ToteFlag     { get; set; }
+        public bool    ScanRequired { get; set; }
         public bool    ActiveFlag   { get; set; } = true;
     }
 }
