@@ -356,8 +356,7 @@ else
         ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.Exported"].Value, _rows.Count), false);
     }
 
-    static string Csv(string s) =>
-        s.Contains(',') || s.Contains('"') || s.Contains('\n') ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
+    static string Csv(string s) => AMES.Contracts.Formatting.CsvCell.Escape(s);   // 엑셀 수식 주입 방지 포함
 
     void ShowMsg(string msg, bool isErr)
     {

@@ -25,20 +25,38 @@ public sealed class WebSignIn(
         public bool Succeeded => Redirect is not null && ErrorKey is null;
     }
 
-    /// <summary>내부 로그인 — 내부 Identity 계정만. 외부 사용자 이메일은 Identity 에 없으므로 일반 실패가 된다.</summary>
+    // 없는 계정도 해시 검증 시간을 똑같이 쓰게 한다 — 응답 시간으로 계정 존재를 가늠하지 못하게
+    static readonly string DummyHash = new PasswordHasher<ApplicationUser>().HashPassword(new ApplicationUser(), Guid.NewGuid().ToString());
+
+    /// <summary>
+    /// 내부 로그인 — 내부 Identity 계정만. 외부 사용자 이메일은 Identity 에 없으므로 일반 실패가 된다.
+    /// 비밀번호를 먼저 확인한다(10-07): 틀리면 계정 유무·상태와 관계없이 일반 실패만 보이고, 맞을 때만 잠김·비활성 사유를 보인다.
+    /// 잠금(5회 실패, SYS_UserProfile LOCKED)은 자동으로 풀리지 않는다 — SYS-001 에서 Admin 이 해제한다(Identity 자체 잠금은 쓰지 않는다).
+    /// </summary>
     public async Task<Result> SignInInternalAsync(HttpContext ctx, string email, string password, bool rememberMe, string? returnUrl)
     {
         email = email.Trim();
         var user = await users.FindByEmailAsync(email);
-        if (user is not null)
+        if (user is null)
         {
-            var (accountStatus, _) = authRepo.GetProfileStatus(user.Id);
-            if (string.Equals(accountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) return Error("Auth.Err.Locked");
-            // 계정은 SYS-001 에서 관리자만 만든다 — 상태가 ACTIVE 일 때만 로그인(비활성·정지·프로필 없음은 거부, 10-07 메일 인증 단계 폐지)
-            if (!string.Equals(accountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase)) return Error("Auth.Err.Inactive");
+            users.PasswordHasher.VerifyHashedPassword(new ApplicationUser(), DummyHash, password ?? "");
+            return Error("Auth.Err.Invalid");
         }
 
-        var result = await signIn.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false);
+        var (accountStatus, _) = authRepo.GetProfileStatus(user.Id);
+        bool active = string.Equals(accountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase);
+        if (!await users.CheckPasswordAsync(user, password ?? ""))
+        {
+            // ACTIVE 계정만 센다 — IncrementFailedCount 는 5회째에 상태를 LOCKED 로 덮으므로 비활성·정지 계정에 세면 상태가 바뀐다
+            if (active && authRepo.IncrementFailedCount(user.Id))
+                LogLock(ctx, "AspNetUsers", user.Email ?? email);
+            return Error("Auth.Err.Invalid");
+        }
+        if (string.Equals(accountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) return Error("Auth.Err.Locked");
+        // 계정은 SYS-001 에서 관리자만 만든다 — 상태가 ACTIVE 일 때만 로그인(비활성·정지·프로필 없음은 거부, 10-07 메일 인증 단계 폐지)
+        if (!active) return Error("Auth.Err.Inactive");
+
+        var result = await signIn.PasswordSignInAsync(user, password!, rememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {
             logger.LogInformation("User logged in.");
@@ -51,10 +69,15 @@ public sealed class WebSignIn(
             return new($"/Account/LoginWith2fa?returnUrl={Uri.EscapeDataString(LocalUrl.OrDefault(returnUrl, ""))}&rememberMe={rememberMe.ToString().ToLower()}", null);
         if (result.IsLockedOut) return new("/Account/Lockout", null);
         if (result.IsNotAllowed) return Error("Auth.Err.Inactive");
-
-        // 도메인 실패 카운터 — 5번째에 잠근다
-        if (user is not null && authRepo.IncrementFailedCount(user.Id)) return Error("Auth.Err.LockedAfter5");
         return Error("Auth.Err.Invalid");
+    }
+
+    // 잠금은 남이 일부러 일으킬 수 있다(관리자 해제 전까지 못 쓴다) — 누가 어디서 잠갔는지 추적하도록 시각·IP 를 감사 로그에 남긴다
+    void LogLock(HttpContext ctx, string table, string key)
+    {
+        var ip = ctx.Connection.RemoteIpAddress?.ToString();
+        logger.LogWarning("Account locked after repeated failures: {Account} from {Ip}", key, ip);
+        try { audit.Log("ACCOUNT", "LOCK", table, key, null, new { Account = key, Ip = ip, Reason = "FailedLogin5" }, actor: ActorCode.Normalize(key)); } catch { }
     }
 
     /// <summary>
@@ -64,15 +87,22 @@ public sealed class WebSignIn(
     public async Task<Result> SignInPortalAsync(HttpContext ctx, string email, string password, string? returnUrl)
     {
         var user = scm.FindPortalUser(email.Trim());
-        if (user is null) return Error("Auth.Err.Invalid");
-        if (!user.ActiveFlag || !user.VendorActive) return PortalFail(user, "Inactive", "Auth.Err.Invalid");
-        if (user.LockedFlag) return PortalFail(user, "Locked", "Auth.Err.Locked");
+        if (user is null)
+        {
+            PortalAuth.VerifyPassword(DummyHash, password);
+            return Error("Auth.Err.Invalid");
+        }
 
+        // 내부 로그인과 같이 비밀번호를 먼저 본다 — 틀리면 상태와 관계없이 일반 실패(계정 존재·잠김 여부를 드러내지 않는다)
+        bool usable = user.ActiveFlag && user.VendorActive;
         if (!PortalAuth.VerifyPassword(user.PasswordHash, password))
         {
-            var nowLocked = scm.RecordPortalLoginFailure(user.UserID);
-            return PortalFail(user, "InvalidPassword", nowLocked ? "Auth.Err.LockedAfter5" : "Auth.Err.Invalid");
+            if (usable && !user.LockedFlag && scm.RecordPortalLoginFailure(user.UserID))
+                LogLock(ctx, "SCM_PortalVendorUser", user.UserID);
+            return PortalFail(user, "InvalidPassword", "Auth.Err.Invalid");
         }
+        if (!usable) return PortalFail(user, "Inactive", "Auth.Err.Invalid");
+        if (user.LockedFlag) return PortalFail(user, "Locked", "Auth.Err.Locked");
         scm.RecordPortalLoginSuccess(user.UserID);
 
         var portalIdentity = new ClaimsIdentity(

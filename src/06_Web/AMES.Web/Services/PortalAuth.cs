@@ -54,6 +54,12 @@ public static class PortalAuth
     public static bool IsPortalPath(PathString path)
         => path.StartsWithSegments(Prefix, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>로그인 제출 — 내부 /Account/Login(2FA·복구 코드 화면 포함)·외부 /portal/login 의 POST. 요청 횟수 제한 대상.</summary>
+    public static bool IsLoginPost(HttpRequest req)
+        => HttpMethods.IsPost(req.Method)
+           && ((req.Path.Value ?? "").StartsWith("/Account/Login", StringComparison.OrdinalIgnoreCase)
+               || req.Path.Equals(LoginPath, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>외부 호스트명으로 들어온 요청에 허용하는 경로 — 외부 화면·Blazor 회로·정적 파일·세션 유지 핑만.</summary>
     public static bool IsAllowedOnExternalHost(PathString path)
     {

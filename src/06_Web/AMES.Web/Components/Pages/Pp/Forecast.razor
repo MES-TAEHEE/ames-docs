@@ -468,8 +468,7 @@
         ShowMsg(string.Format(L["PP.Forecast.Ok.Exported"].Value, _items.Count), false);
     }
 
-    static string Csv(string s) =>
-        s.Contains(',') || s.Contains('"') || s.Contains('\n') ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
+    static string Csv(string s) => AMES.Contracts.Formatting.CsvCell.Escape(s);   // 엑셀 수식 주입 방지 포함
 
     // ── 조회 ─────────────────────────────────────────────────────
     void Search()

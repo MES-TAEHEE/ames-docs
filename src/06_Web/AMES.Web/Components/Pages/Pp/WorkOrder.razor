@@ -375,8 +375,7 @@ else
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/csv");
     }
 
-    static string Csv(string s) =>
-        s.Contains(',') || s.Contains('"') || s.Contains('\n') ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
+    static string Csv(string s) => AMES.Contracts.Formatting.CsvCell.Escape(s);   // 엑셀 수식 주입 방지 포함
 
     void ShowMsg(string msg, bool isErr)
     {

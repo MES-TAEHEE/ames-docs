@@ -7696,7 +7696,7 @@
     <value>No hay un PIN registrado para su cuenta. Configure un PIN en SYS-001 Usuarios e inténtelo de nuevo.</value>
   </data>
   <data name="PP.Calendar.Err.PinLocked" xml:space="preserve">
-    <value>PIN incorrecto 5 veces. Vuelva a abrir la pantalla e inténtelo de nuevo.</value>
+    <value>Cuenta bloqueada tras 5 intentos fallidos de inicio de sesión/PIN. Pida al administrador que la desbloquee.</value>
   </data>
   <data name="Grid.Empty" xml:space="preserve">
     <value>No hay registros para mostrar.</value>
@@ -8072,9 +8072,6 @@
   </data>
   <data name="Auth.Err.Inactive" xml:space="preserve">
     <value>Esta cuenta no se puede usar. Contacte al administrador.</value>
-  </data>
-  <data name="Auth.Err.LockedAfter5" xml:space="preserve">
-    <value>Cuenta bloqueada tras 5 intentos fallidos. Contacte al administrador.</value>
   </data>
   <data name="Auth.Err.Invalid" xml:space="preserve">
     <value>Correo o contraseña no válidos.</value>
@@ -10207,5 +10204,17 @@
   </data>
   <data name="PP.Aps.Btn.OpenSettings" xml:space="preserve">
     <value>Abrir ajustes</value>
+  </data>
+  <data name="Auth.Err.Throttled" xml:space="preserve">
+    <value>Demasiados intentos de inicio de sesión. Inténtelo de nuevo en un minuto.</value>
+  </data>
+  <data name="SYS.Users.Hint.AdminOnly" xml:space="preserve">
+    <value>Solo Admin puede cambiar rol, estado o contraseña, desbloquear, eliminar o cambiar el PIN de otro usuario (puede cambiar su propio PIN).</value>
+  </data>
+  <data name="SYS.Users.Hint.Self" xml:space="preserve">
+    <value>No puede cambiar el rol ni el estado de su propia cuenta, ni eliminarla.</value>
+  </data>
+  <data name="SYS.Users.Err.AdminTarget" xml:space="preserve">
+    <value>Solo Admin puede editar una cuenta Admin.</value>
   </data>
 </root>

@@ -50,10 +50,15 @@
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
     [SupplyParameterFromForm] private InputModel Input { get; set; } = default!;
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+    [SupplyParameterFromQuery(Name = "throttled")] private string? Throttled { get; set; }
 
     private string? errorMessage;
 
-    protected override void OnInitialized() => Input ??= new();
+    protected override void OnInitialized()
+    {
+        Input ??= new();
+        if (Throttled == "1" && HttpMethods.IsGet(HttpContext.Request.Method)) errorMessage = L["Auth.Err.Throttled"];
+    }
 
     // 계정 종류로 갈린다 — 내부 사용자는 이 화면에서 로그인해도 내부 쿠키를 받아 내부 화면으로 간다
     public async Task LoginUser()

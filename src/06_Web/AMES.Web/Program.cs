@@ -66,6 +66,29 @@ builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
+// 로그인 제출(내부 /Account/Login*·외부 /portal/login POST)은 IP 당 분당 Auth:LoginPerMinute(기본 10)회까지 —
+// 잠금은 관리자만 풀 수 있어서, 한 PC 에서 여러 계정을 연달아 잠그거나 비밀번호를 대입하는 속도를 늦춘다.
+// 넘치면 같은 화면으로 돌려보내 안내한다(throttled=1). 그 밖의 요청은 제한하지 않는다.
+var loginPerMinute = builder.Configuration.GetValue<int?>("Auth:LoginPerMinute") is int lpm && lpm >= 1 ? lpm : 10;
+builder.Services.AddRateLimiter(o =>
+{
+    o.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        AMES.Web.Services.PortalAuth.IsLoginPost(ctx.Request)
+            ? System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                ctx.Connection.RemoteIpAddress?.ToString() ?? "-",
+                _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                     { PermitLimit = loginPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })
+            : System.Threading.RateLimiting.RateLimitPartition.GetNoLimiter("-"));
+    o.OnRejected = (c, _) =>
+    {
+        var req = c.HttpContext.Request;
+        var query = req.QueryString.Value ?? "";
+        if (!query.Contains("throttled=1")) query += (query.Length == 0 ? "?" : "&") + "throttled=1";
+        c.HttpContext.Response.Redirect(req.Path.Value + query);
+        return ValueTask.CompletedTask;
+    };
+});
+
 // 인증 스킴 2개: 내부 Identity 쿠키 + 외부 개방 화면(/portal) 전용 쿠키(AmesPortal).
 // 기본 스킴은 경로로 고르는 선택형이다 — /portal(외부 화면의 Blazor 회로 /portal/_blazor 포함)은 AmesPortal, 그 밖은 Identity.
 // 두 쿠키는 한 브라우저에 같이 있어도 된다(내부·외부 동시 로그인).
@@ -148,6 +171,20 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddClaimsPrincipalFactory<AMES.Web.Services.AmesClaimsPrincipalFactory>()   // 로그인 클레임에 행위자 코드(사번) — CreatedBy/ModifiedBy varchar(20)
     .AddDefaultTokenProviders();
+
+// 내부 쿠키 재확인 주기(보안 스탬프 + 계정 상태) = 회로 재검증 주기(Auth:RevalidationMinutes, 기본 5분).
+// SYS-001 이 상태·역할·비밀번호를 바꾸면 스탬프를 갱신하므로 막은 계정은 이 주기 안에 화면 이동·열린 화면 모두 끊긴다
+var authRevalidation = AMES.Web.Services.AuthRevalidation.Interval(builder.Configuration);
+builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = authRevalidation);
+builder.Services.ConfigureApplicationCookie(o =>
+{
+    var stampCheck = o.Events.OnValidatePrincipal;
+    o.Events.OnValidatePrincipal = async ctx =>
+    {
+        await stampCheck(ctx);
+        await AMES.Web.Services.AuthRevalidation.ValidateCookieAsync(ctx, authRevalidation);
+    };
+});
 
 // 비밀번호 최소 길이 = SYS_Config(PASSWORD_MIN_LEN) 동적 검증 (앱 재시작 없이 Config 저장 시 반영)
 builder.Services.AddSingleton<AMES.Web.Services.AppSecurityState>();
@@ -387,6 +424,7 @@ locOptions.RequestCultureProviders.Insert(0, new AMES.Web.Services.LanguageDefau
 app.UseRequestLocalization(locOptions);
 
 app.UseStaticFiles();
+app.UseRateLimiter();
 
 // 위조 방지 토큰이 만료·불일치한 폼 POST(재배포·앱풀 재활용 전에 열어 둔 로그인/로그아웃 화면에서 제출, 또는
 // Data Protection 키가 바뀐 경우)는 본문 없는 HTTP 400 으로 끝나 사용자에게 "서버 400 오류"로만 보인다.

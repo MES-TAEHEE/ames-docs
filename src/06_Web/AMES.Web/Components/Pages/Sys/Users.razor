@@ -168,7 +168,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="CreateDropDownRole" />
-                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" Disabled="@(!_isAdmin)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
             </RadzenStack>
 
@@ -231,32 +231,49 @@
                                 🔒 @L["SYS.Users.Locked.Domain"] · @L["SYS.Users.Col.FailCount"]: @_sel.FailedLoginCount
                             </RadzenAlert>
                         }
-                        <RadzenDropDown Name="EditDropDownStatus" @bind-Value="_f.AccountStatus" Data="@EditStatusOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDropDown Name="EditDropDownStatus" @bind-Value="_f.AccountStatus" Data="@EditStatusOptions" TextProperty="Text" ValueProperty="Value" Disabled="@(!CanChangeRoleStatus)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenStack>
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="EditDropDownRole" />
-                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.None"]" AllowClear="true" Disabled="@(!CanChangeRoleStatus)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Users.Lbl.NewPassword"]" class="ames-rz-modal-label" Component="EditTextBoxNewPassword" />
-                    <RadzenTextBox Name="EditTextBoxNewPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.NewPassword"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
-                </RadzenStack>
-
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Users.Lbl.NewPin"]" class="ames-rz-modal-label" Component="EditTextBoxNewPin" />
-                    <RadzenTextBox Name="EditTextBoxNewPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["SYS.Users.Ph.NewPin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
-                </RadzenStack>
-
-                @if (_sel.LockedOut)
+                @if (_isAdmin)
                 {
-                    <RadzenButton Text="@L["SYS.Users.Unlock"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockUser" class="ames-rz-btn" />
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                        <RadzenLabel Text="@L["SYS.Users.Lbl.NewPassword"]" class="ames-rz-modal-label" Component="EditTextBoxNewPassword" />
+                        <RadzenTextBox Name="EditTextBoxNewPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.NewPassword"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
+                    </RadzenStack>
                 }
-                @if (string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
+
+                @if (CanSetPin)
                 {
-                    <RadzenButton Text="@L["SYS.Users.Unlock.Domain"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockDomainAccount" class="ames-rz-btn" />
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                        <RadzenLabel Text="@L["SYS.Users.Lbl.NewPin"]" class="ames-rz-modal-label" Component="EditTextBoxNewPin" />
+                        <RadzenTextBox Name="EditTextBoxNewPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["SYS.Users.Ph.NewPin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    </RadzenStack>
+                }
+
+                @if (_isAdmin)
+                {
+                    @if (_sel.LockedOut)
+                    {
+                        <RadzenButton Text="@L["SYS.Users.Unlock"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockUser" class="ames-rz-btn" />
+                    }
+                    @if (string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <RadzenButton Text="@L["SYS.Users.Unlock.Domain"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockDomainAccount" class="ames-rz-btn" />
+                    }
+                }
+                @if (!_isAdmin)
+                {
+                    <span class="dim" style="font-size:.85em;">ⓘ @L["SYS.Users.Hint.AdminOnly"]</span>
+                }
+                else if (IsSelf)
+                {
+                    <span class="dim" style="font-size:.85em;">ⓘ @L["SYS.Users.Hint.Self"]</span>
                 }
             </RadzenStack>
 
@@ -277,7 +294,10 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (CanDelete)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -306,6 +326,19 @@
     bool _bgMouseDownOnSelf;
     bool _canEdit;
     string _actorEmail = "system";
+
+    // 계정 보안 동작(역할·상태·비밀번호·다른 사람의 PIN·잠금 해제·삭제)은 화면 수정 권한(E)이 아니라 Admin 역할만 한다(10-07 사용자 결정).
+    // 화면 E 권한만 가진 사용자는 사번·이름·부서·공장·교대만 고치고, Admin 계정은 열지 못한다.
+    // Admin 은 자기 자신을 지우거나 자기 역할·상태를 바꾸지 못한다 — 마지막 Admin 이 스스로 잠기는 것을 막는다.
+    const string AdminRole = "Admin";
+    bool _isAdmin;
+    string? _myUserId;
+    bool IsSelf => _sel is not null && _sel.UserId == _myUserId;
+    bool CanChangeRoleStatus => _isAdmin && !IsSelf;
+    bool CanDelete => _isAdmin && !IsSelf;
+    bool CanSetPin => _isAdmin || IsSelf;   // 자기 PIN 은 Admin 이 아니어도 바꾼다(10-07 사용자 결정)
+    static bool HasAdminRole(SysRepository.UserRow u)
+        => (u.RolesCsv ?? "").Split(',').Any(r => string.Equals(r.Trim(), AdminRole, StringComparison.OrdinalIgnoreCase));
     string _msg = "", _modalErr = "";
     bool _isErr;
 
@@ -330,6 +363,8 @@
         _actorEmail = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/users");
+        _isAdmin = auth.User.IsInRole(AdminRole);
+        _myUserId = auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         _roles = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList();
         _deptItems = MD.ListCodeItems("DEPARTMENT");
         _deptSearchNames = _deptItems
@@ -425,6 +460,7 @@
     void OpenEdit(SysRepository.UserRow u)
     {
         if (!_canEdit) return;
+        if (!_isAdmin && HasAdminRole(u)) { ShowMsg(L["SYS.Users.Err.AdminTarget"], true); return; }
         _sel = u; _modalErr = ""; _confirmDelete = false;
 
         _f = new()
@@ -461,6 +497,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.Email))        { _modalErr = L["SYS.Users.Err.EmailRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.Password))     { _modalErr = L["SYS.Users.Err.PasswordRequired"]; return; }
@@ -489,7 +526,7 @@
             if (!string.IsNullOrWhiteSpace(_f.Pin))
                 Sys.SetPin(user.Id, PinHasher.Hash(_f.Pin), _actorEmail);
 
-            if (!string.IsNullOrEmpty(_f.Role))
+            if (_isAdmin && !string.IsNullOrEmpty(_f.Role))
                 await UserMgr.AddToRoleAsync(user, _f.Role);
 
             CloseModal(); await ReloadRestorePage();
@@ -502,52 +539,66 @@
 
     async Task SaveEdit()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_canEdit) return;
         _modalErr = "";
+        if (!_isAdmin && HasAdminRole(_sel)) { _modalErr = L["SYS.Users.Err.AdminTarget"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
         if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: _sel.UserId)) return;
+
+        // Admin 이 아니거나 자기 계정이면 상태·역할은 그대로 둔다(화면이 막아도 서버에서 다시 본다).
+        // 프로필 없는 계정은 Admin 이 아니면 INACTIVE 로 만든다 — 프로필 생성이 곧 사용 승인이다
+        var oldStatus = _sel.HasProfile ? (_sel.AccountStatus ?? "ACTIVE").ToUpperInvariant() : null;
+        var newStatus = CanChangeRoleStatus ? _f.AccountStatus : (oldStatus ?? "INACTIVE");
+        var setPin      = CanSetPin && !string.IsNullOrWhiteSpace(_f.Pin);
+        var setPassword = _isAdmin && !string.IsNullOrWhiteSpace(_f.Password);
 
         _busy = true;
         try
         {
             if (Sys.ProfileExists(_sel.UserId))
                 Sys.UpdateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
-                    _f.Department, _f.PlantCode, _f.DefaultShift, _f.AccountStatus, _actorEmail);
+                    _f.Department, _f.PlantCode, _f.DefaultShift, newStatus, _actorEmail);
             else
                 Sys.CreateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
-                    _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, _f.AccountStatus);
+                    _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, newStatus);
 
-            if (!string.IsNullOrWhiteSpace(_f.Pin))
+            if (setPin)
                 Sys.SetPin(_sel.UserId, PinHasher.Hash(_f.Pin), _actorEmail);
 
-            if (!string.IsNullOrWhiteSpace(_f.Password))
+            var iUser = await UserMgr.FindByIdAsync(_sel.UserId);
+            if (setPassword && iUser is not null)
             {
-                var u = await UserMgr.FindByIdAsync(_sel.UserId);
-                if (u is not null)
+                await UserMgr.RemovePasswordAsync(iUser);
+                var pr = await UserMgr.AddPasswordAsync(iUser, _f.Password);
+                if (!pr.Succeeded)
                 {
-                    await UserMgr.RemovePasswordAsync(u);
-                    var pr = await UserMgr.AddPasswordAsync(u, _f.Password);
-                    if (!pr.Succeeded)
-                    {
-                        _modalErr = string.Join(" ", pr.Errors.Select(e => e.Description));
-                        return;
-                    }
+                    _modalErr = string.Join(" ", pr.Errors.Select(e => e.Description));
+                    return;
                 }
             }
 
-            var iUser = await UserMgr.FindByIdAsync(_sel.UserId);
-            if (iUser is not null)
+            bool roleChanged = false;
+            if (CanChangeRoleStatus && iUser is not null)
             {
                 var currentRoles = await UserMgr.GetRolesAsync(iUser);
-                await UserMgr.RemoveFromRolesAsync(iUser, currentRoles);
-                if (!string.IsNullOrEmpty(_f.Role))
-                    await UserMgr.AddToRoleAsync(iUser, _f.Role);
+                var wanted = string.IsNullOrEmpty(_f.Role) ? Array.Empty<string>() : new[] { _f.Role };
+                if (!currentRoles.OrderBy(r => r).SequenceEqual(wanted, StringComparer.OrdinalIgnoreCase))
+                {
+                    await UserMgr.RemoveFromRolesAsync(iUser, currentRoles);
+                    if (wanted.Length > 0) await UserMgr.AddToRoleAsync(iUser, _f.Role);
+                    roleChanged = true;
+                }
             }
 
-            if (!string.IsNullOrWhiteSpace(_f.Pin)) Audit.Log("SYS-001", "PIN_SET", "AspNetUsers", _sel.Email, null, null);
-            if (!string.IsNullOrWhiteSpace(_f.Password)) Audit.Log("SYS-001", "PWD_RESET", "AspNetUsers", _sel.Email, null, null);
+            // 상태·역할·비밀번호가 바뀌면 보안 스탬프를 갱신한다 — 그 사용자의 열린 세션이 재확인 주기(기본 5분) 안에 끊긴다
+            bool statusChanged = !string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase);
+            if (iUser is not null && (statusChanged || roleChanged || setPassword))
+                await UserMgr.UpdateSecurityStampAsync(iUser);
+
+            if (setPin) Audit.Log("SYS-001", "PIN_SET", "AspNetUsers", _sel.Email, null, null);
+            if (setPassword) Audit.Log("SYS-001", "PWD_RESET", "AspNetUsers", _sel.Email, null, null);
             Audit.Updated("SYS-001", "AspNetUsers", _sel.Email, _sel, _f);
             var email = _sel.Email;
             CloseModal(); await ReloadRestorePage();
@@ -559,7 +610,7 @@
 
     async Task SaveDelete()
     {
-        if (_sel is null) return;
+        if (_sel is null || !CanDelete) return;
         _busy = true;
         try
         {
@@ -578,7 +629,7 @@
 
     async Task UnlockUser()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_isAdmin) return;
         var u = await UserMgr.FindByIdAsync(_sel.UserId);
         if (u is null) return;
         await UserMgr.SetLockoutEndDateAsync(u, null);
@@ -590,7 +641,7 @@
 
     async Task UnlockDomainAccount()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_isAdmin) return;
         AuthRepo.UnlockAccount(_sel.UserId, _actorEmail);
         var u = await UserMgr.FindByIdAsync(_sel.UserId);
         if (u is not null)
