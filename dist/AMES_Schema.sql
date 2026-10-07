@@ -485,15 +485,15 @@ CREATE TABLE [dbo].[FG_CustomerReturn](
 	[CapaTriggered] [bit] NULL,
 	[ClosedAt] [datetime2](7) NULL,
 	[ClosedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[LotID] [int] NULL,
 	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ReturnQty] [decimal](12, 3) NOT NULL,
 	[LotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_CustomerReturn] PRIMARY KEY CLUSTERED 
 (
 	[ReturnID] ASC
@@ -524,7 +524,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_FG_CustomerReturn_ReturnNumber] ON [dbo].[F
 WHERE ([ReturnNumber] IS NOT NULL)
 WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[FG_CustomerReturn] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[FG_CustomerReturn] ADD  CONSTRAINT [DF__FG_Custom__Creat__56B3DD81]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [CK_FG_CustomerReturn_ItemsJSON] CHECK  (([ItemsJSON] IS NULL OR isjson([ItemsJSON])=(1)))
 GO
@@ -592,21 +592,21 @@ CREATE TABLE [dbo].[FG_PutAway](
 	[LabelPrintedTS] [datetime2](7) NULL,
 	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[StorageMethod] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ContainerType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ContainerBarcode] [varchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[LotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_PutAway] PRIMARY KEY CLUSTERED 
 (
 	[PutAwayID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[FG_PutAway] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[FG_PutAway] ADD  CONSTRAINT [DF__FG_PutAwa__Creat__5B78929E]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Put Away ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'PutAwayID'
 GO
@@ -662,10 +662,6 @@ CREATE TABLE [dbo].[FG_ShipmentOrder](
 	[OTDFlag] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[OutgoingSlipNumber] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
 	[ItemsJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[ShipmentDocumentNo] [varchar](60) COLLATE Korean_Wansung_CI_AS NULL,
@@ -680,6 +676,10 @@ CREATE TABLE [dbo].[FG_ShipmentOrder](
 	[LoadingOTDStatus] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ShipmentOperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[LoadingConfirmedAt] [datetime2](7) NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_FG_ShipmentOrder] PRIMARY KEY CLUSTERED 
 (
 	[ShipmentOrderID] ASC
@@ -695,7 +695,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_FG_ShipmentOrder_OutgoingSlipNumber] ON [db
 WHERE ([OutgoingSlipNumber] IS NOT NULL)
 WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[FG_ShipmentOrder] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[FG_ShipmentOrder] ADD  CONSTRAINT [DF__FG_Shipme__Creat__5D60DB10]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 출하 지시 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ShipmentOrderID'
 GO
@@ -881,11 +881,11 @@ CREATE TABLE [dbo].[MD_Bop](
 	[QcRequiredFlag] [bit] NULL,
 	[StepDescription] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
+	[StationCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[StationCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_Bop] PRIMARY KEY CLUSTERED 
 (
 	[BOPID] ASC
@@ -894,7 +894,7 @@ CREATE TABLE [dbo].[MD_Bop](
 GO
 ALTER TABLE [dbo].[MD_Bop] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_Bop] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_Bop] ADD  CONSTRAINT [DF__MD_Bop__CreatedT__6501FCD8]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · BOPID · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'BOPID'
 GO
@@ -1106,21 +1106,21 @@ CREATE TABLE [dbo].[MD_DefectCause](
 	[CorrectiveGuide] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[ResponsibleDept] [nvarchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[SortOrder] [int] NULL,
+	[ActiveFlag] [bit] NOT NULL,
+	[CauseNameEn] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ActiveFlag] [bit] NOT NULL,
-	[CauseNameEn] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_DefectCause] PRIMARY KEY CLUSTERED 
 (
 	[CauseCode] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_DefectCause] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[MD_DefectCause] ADD  CONSTRAINT [DF_MD_DefectCause_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[MD_DefectCause] ADD  CONSTRAINT [DF__MD_Defect__Creat__6ABAD62E]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량원인 코드.  · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCause', @level2type=N'COLUMN',@level2name=N'CauseCode'
 GO
@@ -1164,20 +1164,20 @@ CREATE TABLE [dbo].[MD_DefectCode](
 	[DefaultCauseCode] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
 	[ParetoFlag] [bit] NULL,
 	[ImageRef] [varchar](120) COLLATE Korean_Wansung_CI_AS NULL,
+	[ActiveFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_DefectCode] PRIMARY KEY CLUSTERED 
 (
 	[DefectCode] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_DefectCode] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[MD_DefectCode] ADD  CONSTRAINT [DF_MD_DefectCode_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[MD_DefectCode] ADD  CONSTRAINT [DF__MD_Defect__Creat__6CA31EA0]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 코드.  · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCode', @level2type=N'COLUMN',@level2name=N'DefectCode'
 GO
@@ -1293,8 +1293,8 @@ CREATE TABLE [dbo].[MD_InjCondItem](
 	[Enabled] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_InjCondItem] PRIMARY KEY CLUSTERED 
 (
 	[CondItemID] ASC
@@ -1308,7 +1308,7 @@ CREATE TABLE [dbo].[MD_InjCondItem](
 GO
 ALTER TABLE [dbo].[MD_InjCondItem] ADD  DEFAULT ((1)) FOR [Enabled]
 GO
-ALTER TABLE [dbo].[MD_InjCondItem] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_InjCondItem] ADD  CONSTRAINT [DF__MD_InjCon__Creat__7167D3BD]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.MD_InspectionStandard
 SET ANSI_NULLS ON
@@ -1329,20 +1329,20 @@ CREATE TABLE [dbo].[MD_InspectionStandard](
 	[InspMethod] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[IsCTQ] [bit] NULL,
 	[EffectiveDate] [date] NULL,
+	[ActiveFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_InspectionStandard] PRIMARY KEY CLUSTERED 
 (
 	[InspStdID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_InspectionStandard] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[MD_InspectionStandard] ADD  CONSTRAINT [DF_MD_InspectionStandard_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[MD_InspectionStandard] ADD  CONSTRAINT [DF__MD_Inspec__Creat__725BF7F6]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Insp Std ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_InspectionStandard', @level2type=N'COLUMN',@level2name=N'InspStdID'
 GO
@@ -1405,10 +1405,6 @@ CREATE TABLE [dbo].[MD_Item](
 	[BoxQty] [int] NULL,
 	[ScanRequired] [bit] NOT NULL,
 	[ActiveFlag] [bit] NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[CarType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[PGN] [varchar](4) COLLATE Korean_Wansung_CI_AS NULL,
 	[ALC] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1417,6 +1413,10 @@ CREATE TABLE [dbo].[MD_Item](
 	[ApplicableEquipment] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[MakerName] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[LeadTimeDays] [int] NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Item] PRIMARY KEY CLUSTERED 
 (
 	[ItemNo] ASC
@@ -1431,7 +1431,7 @@ ALTER TABLE [dbo].[MD_Item] ADD  CONSTRAINT [DF_MD_Item_ScanRequired]  DEFAULT (
 GO
 ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_Item] ADD  CONSTRAINT [DF__MD_Item_n__Creat__1B48FEF0]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품목 코드 (유형 접두어 + 시퀀스, 예: FIN-000123).  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ItemNo'
 GO
@@ -1558,20 +1558,20 @@ CREATE TABLE [dbo].[MD_LabelTemplate](
 	[CustomerID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Version] [int] NULL,
 	[PrinterModel] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
+	[ActiveFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_LabelTemplate] PRIMARY KEY CLUSTERED 
 (
 	[LabelTemplateID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_LabelTemplate] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[MD_LabelTemplate] ADD  CONSTRAINT [DF_MD_LabelTemplate_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[MD_LabelTemplate] ADD  CONSTRAINT [DF__MD_LabelT__Creat__7814D14C]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라벨 템플릿 관리 ID.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LabelTemplate', @level2type=N'COLUMN',@level2name=N'LabelTemplateID'
 GO
@@ -1616,11 +1616,11 @@ CREATE TABLE [dbo].[MD_Line](
 	[ShiftPattern] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[RfidEnabledFlag] [bit] NULL,
 	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
+	[LotPrefix] [char](2) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[LotPrefix] [char](2) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_Line] PRIMARY KEY CLUSTERED 
 (
 	[LineID] ASC
@@ -1703,23 +1703,23 @@ CREATE TABLE [dbo].[MD_LineTimePattern](
 	[TotalPlannedDownMin] [int] NULL,
 	[TimeZone] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](8) COLLATE Korean_Wansung_CI_AS NULL,
+	[OperatingFlag] [char](1440) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[SegmentFlag] [char](1440) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[OperatingFlag] [char](1440) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[SegmentFlag] [char](1440) COLLATE Korean_Wansung_CI_AS NOT NULL,
  CONSTRAINT [PK_MD_LineTimePattern] PRIMARY KEY CLUSTERED 
 (
 	[PatternID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_LineTimePattern] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[MD_LineTimePattern] ADD  CONSTRAINT [DF_MD_LineTimePattern_OperatingFlag]  DEFAULT (replicate('0',(1440))) FOR [OperatingFlag]
 GO
 ALTER TABLE [dbo].[MD_LineTimePattern] ADD  CONSTRAINT [DF_MD_LineTimePattern_SegmentFlag]  DEFAULT (replicate('0',(1440))) FOR [SegmentFlag]
+GO
+ALTER TABLE [dbo].[MD_LineTimePattern] ADD  CONSTRAINT [DF__MD_LineTi__Creat__7AF13DF7]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'소속 패턴 → MD_LineTimePattern(PatternID).  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimePattern', @level2type=N'COLUMN',@level2name=N'PatternID'
 GO
@@ -1820,12 +1820,12 @@ CREATE TABLE [dbo].[MD_Location](
 	[LocationType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PlantCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
+	[WhCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[AreaCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[WhCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[AreaCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
  CONSTRAINT [PK_MD_Location] PRIMARY KEY CLUSTERED 
 (
 	[LocationID] ASC
@@ -1834,11 +1834,11 @@ CREATE TABLE [dbo].[MD_Location](
 GO
 ALTER TABLE [dbo].[MD_Location] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_Location] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF_MD_Location_WhCode]  DEFAULT ('EOS') FOR [WhCode]
 GO
 ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF_MD_Location_AreaCode]  DEFAULT ('MAT_AREA') FOR [AreaCode]
+GO
+ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF__MD_Locati__Creat__7FB5F314]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Location ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'LocationID'
 GO
@@ -1883,10 +1883,6 @@ CREATE TABLE [dbo].[MD_Mold](
 	[StorageLoc] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LastMaintDate] [date] NULL,
 	[Status] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[CumulativeShots] [bigint] NOT NULL,
 	[ShotsUpdatedTS] [datetime2](7) NULL,
 	[CarType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1894,6 +1890,10 @@ CREATE TABLE [dbo].[MD_Mold](
 	[AssyInjResultFlag] [bit] NOT NULL,
 	[MoldCodeClean]  AS (CONVERT([varchar](20),replace([MoldID],'-',''))) PERSISTED,
 	[MoldChangeMin] [int] NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_Mold] PRIMARY KEY CLUSTERED 
 (
 	[MoldID] ASC
@@ -1913,11 +1913,11 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_MD_Mold_MoldCodeClean] ON [dbo].[MD_Mold]
 	[MoldCodeClean] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_Mold] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[MD_Mold] ADD  CONSTRAINT [DF_MD_Mold_CumulativeShots]  DEFAULT ((0)) FOR [CumulativeShots]
 GO
 ALTER TABLE [dbo].[MD_Mold] ADD  CONSTRAINT [DF_MD_Mold_AssyInjResultFlag]  DEFAULT ((0)) FOR [AssyInjResultFlag]
+GO
+ALTER TABLE [dbo].[MD_Mold] ADD  CONSTRAINT [DF__MD_Mold__Created__00AA174D]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'금형 코드.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Mold', @level2type=N'COLUMN',@level2name=N'MoldID'
 GO
@@ -1955,8 +1955,8 @@ CREATE TABLE [dbo].[MD_MoldColor](
 	[Color] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_MoldColor] PRIMARY KEY CLUSTERED 
 (
 	[MoldID] ASC,
@@ -1964,7 +1964,7 @@ CREATE TABLE [dbo].[MD_MoldColor](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_MoldColor] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_MoldColor] ADD  CONSTRAINT [DF__MD_MoldCo__Creat__038683F8]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.MD_MoldItem
 SET ANSI_NULLS ON
@@ -1985,8 +1985,8 @@ CREATE TABLE [dbo].[MD_MoldItem](
 	[ActiveFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_MoldItem] PRIMARY KEY CLUSTERED 
 (
 	[MoldID] ASC,
@@ -2016,7 +2016,7 @@ ALTER TABLE [dbo].[MD_MoldItem] ADD  DEFAULT ((1)) FOR [CavityCount]
 GO
 ALTER TABLE [dbo].[MD_MoldItem] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_MoldItem] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_MoldItem] ADD  CONSTRAINT [DF__MD_MoldIt__Creat__0662F0A3]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.MD_MoldLine
 SET ANSI_NULLS ON
@@ -2030,8 +2030,8 @@ CREATE TABLE [dbo].[MD_MoldLine](
 	[PrepTime] [decimal](18, 4) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_MD_MoldLine] PRIMARY KEY CLUSTERED 
 (
 	[LineCode] ASC,
@@ -2039,7 +2039,7 @@ CREATE TABLE [dbo].[MD_MoldLine](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_MoldLine] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_MoldLine] ADD  CONSTRAINT [DF__MD_MoldLi__Creat__084B3915]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.MD_Oven
 SET ANSI_NULLS ON
@@ -2114,20 +2114,20 @@ CREATE TABLE [dbo].[MD_PackagingSpec](
 	[DimLxWxH] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReturnableFlag] [bit] NULL,
 	[LabelTemplateID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ActiveFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_PackagingSpec] PRIMARY KEY CLUSTERED 
 (
 	[PackSpecID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_PackagingSpec] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[MD_PackagingSpec] ADD  CONSTRAINT [DF_MD_PackagingSpec_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[MD_PackagingSpec] ADD  CONSTRAINT [DF__MD_Packag__Creat__0A338187]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'포장사양 관리 ID.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PackagingSpec', @level2type=N'COLUMN',@level2name=N'PackSpecID'
 GO
@@ -2398,20 +2398,20 @@ CREATE TABLE [dbo].[MD_ReasonCode](
 	[PlannedFlag] [bit] NULL,
 	[DisplayOrder] [int] NULL,
 	[Description] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
+	[ActiveFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ActiveFlag] [bit] NOT NULL,
  CONSTRAINT [PK_MD_ReasonCode] PRIMARY KEY CLUSTERED 
 (
 	[ReasonCode] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_ReasonCode] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[MD_ReasonCode] ADD  CONSTRAINT [DF_MD_ReasonCode_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[MD_ReasonCode] ADD  CONSTRAINT [DF__MD_Reason__Creat__11D4A34F]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 코드.  · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ReasonCode', @level2type=N'COLUMN',@level2name=N'ReasonCode'
 GO
@@ -2716,11 +2716,11 @@ CREATE TABLE [dbo].[MD_SparePart](
 	[Maker] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
 	[SupplierID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
+	[ExtraLocation] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ExtraLocation] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_MD_SparePart] PRIMARY KEY CLUSTERED 
 (
 	[SparePartNo] ASC
@@ -2898,11 +2898,11 @@ CREATE TABLE [dbo].[MD_WorkCenter](
 	[CostCenterCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LocationDesc] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
+	[ProcessCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ProcessCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
  CONSTRAINT [PK_MD_WorkCenter] PRIMARY KEY CLUSTERED 
 (
 	[WCID] ASC
@@ -2911,7 +2911,7 @@ CREATE TABLE [dbo].[MD_WorkCenter](
 GO
 ALTER TABLE [dbo].[MD_WorkCenter] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_WorkCenter] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_WorkCenter] ADD  CONSTRAINT [DF__MD_WorkCe__Creat__220B0B18]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업장 코드 (WC-{공정}-{nn}).  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_WorkCenter', @level2type=N'COLUMN',@level2name=N'WCID'
 GO
@@ -3416,12 +3416,12 @@ CREATE TABLE [dbo].[MNT_SparePartsTxn](
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[TxnAt] [datetime2](7) NOT NULL,
 	[ActorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[SparePartItemID] [bigint] NULL,
+	[ReversalOfTxnID] [int] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[SparePartItemID] [bigint] NULL,
-	[ReversalOfTxnID] [int] NULL,
  CONSTRAINT [PK_MNT_SparePartsTxn] PRIMARY KEY CLUSTERED 
 (
 	[SparePartsTxnID] ASC
@@ -4840,11 +4840,11 @@ CREATE TABLE [dbo].[PP_ApsRun](
 	[BundleJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ResultJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[WarningCount] [int] NOT NULL,
+	[IncludeDailyPlan] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[IncludeDailyPlan] [bit] NOT NULL,
  CONSTRAINT [PK_PP_ApsRun] PRIMARY KEY CLUSTERED 
 (
 	[RunID] ASC
@@ -4864,9 +4864,9 @@ ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT ((0)) FOR [IncludeOpen]
 GO
 ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT ((0)) FOR [WarningCount]
 GO
-ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[PP_ApsRun] ADD  CONSTRAINT [DF_PP_ApsRun_IncludeDailyPlan]  DEFAULT ((0)) FOR [IncludeDailyPlan]
+GO
+ALTER TABLE [dbo].[PP_ApsRun] ADD  CONSTRAINT [DF__PP_ApsRun__Creat__27AED5D5]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'APS 실행(PP-APS 저장) — 선택 라인·기준일·일수와 Settings/PlanBundle/PlanResult JSON 스냅샷. Status Saved | Released' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ApsRun'
 GO
@@ -5104,15 +5104,15 @@ CREATE TABLE [dbo].[PP_Forecast](
 	[Source] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ImportedAt] [datetime2](7) NULL,
 	[ImportedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[WeekStartDate] [date] NULL,
 	[WeekLabel] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[BaseInv] [decimal](14, 3) NULL,
 	[PartName] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
 	[Unit] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_Forecast] PRIMARY KEY CLUSTERED 
 (
 	[ForecastID] ASC
@@ -5130,7 +5130,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_Forecast_Cust_Item_Week] ON [dbo].[PP_Fo
 WHERE ([WeekStartDate] IS NOT NULL)
 WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PP_Forecast] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PP_Forecast] ADD  CONSTRAINT [DF__PP_Foreca__Creat__4924D839]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 수요 예측 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'ForecastID'
 GO
@@ -5355,11 +5355,11 @@ CREATE TABLE [dbo].[PP_LineSchedule](
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PublishedAt] [datetime2](7) NULL,
 	[PublishedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[MoldID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[MoldID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_PP_LineSchedule] PRIMARY KEY CLUSTERED 
 (
 	[ScheduleID] ASC
@@ -5368,7 +5368,7 @@ CREATE TABLE [dbo].[PP_LineSchedule](
 GO
 ALTER TABLE [dbo].[PP_LineSchedule] ADD  CONSTRAINT [DF_PP_LineSchedule_EntryType]  DEFAULT ('WO') FOR [EntryType]
 GO
-ALTER TABLE [dbo].[PP_LineSchedule] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PP_LineSchedule] ADD  CONSTRAINT [DF__PP_LineSc__Creat__4CF5691D]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.PP_LineStateLog
 SET ANSI_NULLS ON
@@ -5677,23 +5677,23 @@ CREATE TABLE [dbo].[PP_PurchaseRequest](
 	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApprovedAt] [datetime2](7) NULL,
 	[SapPoNumber] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[SapDocNum] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SentAt] [datetime2](7) NULL,
 	[RetryCount] [tinyint] NOT NULL,
 	[LastError] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PP_PurchaseRequest] PRIMARY KEY CLUSTERED 
 (
 	[PrID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PP_PurchaseRequest] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[PP_PurchaseRequest] ADD  CONSTRAINT [DF_PP_PurchaseRequest_RetryCount]  DEFAULT ((0)) FOR [RetryCount]
+GO
+ALTER TABLE [dbo].[PP_PurchaseRequest] ADD  CONSTRAINT [DF__PP_Purcha__Creat__53A266AC]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Pr ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'PrID'
 GO
@@ -5850,18 +5850,18 @@ CREATE TABLE [dbo].[PP_WorkOrder](
 	[Priority] [tinyint] NULL,
 	[ReleasedAt] [datetime2](7) NULL,
 	[ReleasedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ProdDeadline] [date] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ProdDeadline] [date] NULL,
  CONSTRAINT [PK_PP_WorkOrder] PRIMARY KEY CLUSTERED 
 (
 	[WoID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PP_WorkOrder] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PP_WorkOrder] ADD  CONSTRAINT [DF__PP_WorkOr__Creat__567ED357]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 작업지시 ID (생산 계획) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'WoID'
 GO
@@ -5937,13 +5937,13 @@ CREATE TABLE [dbo].[PP_WorkOrderRouting](
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActualStart] [datetime2](7) NULL,
 	[ActualEnd] [datetime2](7) NULL,
+	[CompletedQty] [decimal](14, 3) NOT NULL,
+	[TerminalLock] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[CompletedQty] [decimal](14, 3) NOT NULL,
-	[TerminalLock] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_PP_WorkOrderRouting] PRIMARY KEY CLUSTERED 
 (
 	[RoutingLineID] ASC
@@ -5974,9 +5974,9 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_WorkOrderRouting_Wo_Step] ON [dbo].[PP_W
 	[StepSeq] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PP_WorkOrderRouting] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[PP_WorkOrderRouting] ADD  CONSTRAINT [DF_PP_WorkOrderRouting_CompletedQty]  DEFAULT ((0)) FOR [CompletedQty]
+GO
+ALTER TABLE [dbo].[PP_WorkOrderRouting] ADD  CONSTRAINT [DF__PP_WorkOr__Creat__5772F790]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Routing Line ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrderRouting', @level2type=N'COLUMN',@level2name=N'RoutingLineID'
 GO
@@ -6026,11 +6026,11 @@ CREATE TABLE [dbo].[PR_AndonCall](
 	[ResumedAt] [datetime2](7) NULL,
 	[DowntimeSec] [int] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[SupervisorName] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[SupervisorName] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_PR_AndonCall] PRIMARY KEY CLUSTERED 
 (
 	[AndonID] ASC
@@ -6046,7 +6046,7 @@ CREATE NONCLUSTERED INDEX [IX_PR_AndonCall_Line_Status] ON [dbo].[PR_AndonCall]
 )
 INCLUDE([TriggeredAt]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PR_AndonCall] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PR_AndonCall] ADD  CONSTRAINT [DF__PR_AndonC__Creat__58671BC9]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 안돈 콜 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'AndonID'
 GO
@@ -6485,15 +6485,15 @@ CREATE TABLE [dbo].[PR_DefectDetail](
 	[Disposition] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[DetectedAt] [datetime2](7) NULL,
 	[RegisteredBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[CauseCode] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
 	[DispositionBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
 	[DispositionAt] [datetime2](7) NULL,
 	[PriorStatus] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReversalResultID] [int] NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_DefectDetail] PRIMARY KEY CLUSTERED 
 (
 	[DefectID] ASC
@@ -6524,7 +6524,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_PR_DefectDetail_OpenLot] ON [dbo].[PR_Defec
 WHERE ([Disposition] IS NULL AND [LotID] IS NOT NULL)
 WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PR_DefectDetail] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PR_DefectDetail] ADD  CONSTRAINT [DF__PR_Defect__Creat__60FC61CA]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 불량 상세 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'DefectID'
 GO
@@ -6904,12 +6904,12 @@ CREATE TABLE [dbo].[PR_InjLot](
 	[ConfirmedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedSessionID] [int] NULL,
 	[PrintedCount] [int] NOT NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PrintClaimTS] [datetime2](7) NULL,
 	[PrintClaimStation] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_PR_InjLot] PRIMARY KEY CLUSTERED 
 (
 	[LotID] ASC
@@ -6943,7 +6943,7 @@ ALTER TABLE [dbo].[PR_InjLot] ADD  DEFAULT ('RAW') FOR [ConfirmStatus]
 GO
 ALTER TABLE [dbo].[PR_InjLot] ADD  DEFAULT ((0)) FOR [PrintedCount]
 GO
-ALTER TABLE [dbo].[PR_InjLot] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PR_InjLot] ADD  CONSTRAINT [DF__PR_InjLot__Creat__6A85CC04]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.PR_MoldChange
 SET ANSI_NULLS ON
@@ -7180,12 +7180,12 @@ CREATE TABLE [dbo].[PR_ProductionResult](
 	[DefectFlag] [bit] NULL,
 	[ReviewFlag] [bit] NULL,
 	[EntryAt] [datetime2](7) NULL,
+	[ProdDate] [date] NULL,
+	[ShiftCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[ProdDate] [date] NULL,
-	[ShiftCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_PR_ProductionResult] PRIMARY KEY CLUSTERED 
 (
 	[ResultID] ASC
@@ -7203,7 +7203,7 @@ INCLUDE([ShiftCode],[GoodQty]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = O
 GO
 ALTER TABLE [dbo].[PR_ProductionResult] ADD  DEFAULT (sysdatetime()) FOR [EntryAt]
 GO
-ALTER TABLE [dbo].[PR_ProductionResult] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PR_ProductionResult] ADD  CONSTRAINT [DF__PR_Produc__Creat__7132C993]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 생산 실적 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ProductionResult', @level2type=N'COLUMN',@level2name=N'ResultID'
 GO
@@ -8172,12 +8172,8 @@ CREATE TABLE [dbo].[SCM_Delivery](
 	[VendorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[DeliveryDate] [date] NOT NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NOT NULL,
 	[Version] [timestamp] NOT NULL,
-	[ModifiedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ShipDate] [date] NULL,
 	[ShippedAt] [datetime2](7) NULL,
@@ -8187,6 +8183,10 @@ CREATE TABLE [dbo].[SCM_Delivery](
 	[NoteIssuedAt] [datetime2](7) NULL,
 	[NoteIssuedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[NoteIssuedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[DeliveryID] ASC
@@ -8203,7 +8203,7 @@ UNIQUE NONCLUSTERED
 GO
 ALTER TABLE [dbo].[SCM_Delivery] ADD  DEFAULT ('Registered') FOR [Status]
 GO
-ALTER TABLE [dbo].[SCM_Delivery] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[SCM_Delivery] ADD  CONSTRAINT [DF__SCM_Deliv__Creat__1A89E4E1]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 ALTER TABLE [dbo].[SCM_Delivery]  WITH CHECK ADD  CONSTRAINT [CK_SCM_Delivery_Status] CHECK  (([Status]='Cancelled' OR [Status]='Received' OR [Status]='Shipped' OR [Status]='Registered'))
 GO
@@ -8223,13 +8223,13 @@ CREATE TABLE [dbo].[SCM_DeliveryBox](
 	[UnitCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[Quantity] [decimal](18, 3) NOT NULL,
 	[ActiveFlag] [bit] NOT NULL,
-	[CreatedTS] [datetime2](7) NOT NULL,
 	[VoidedTS] [datetime2](7) NULL,
 	[IssuedBoxNumber] [varchar](64) COLLATE Korean_Wansung_CI_AS NULL,
 	[BoxNumber]  AS (CONVERT([varchar](64),coalesce([IssuedBoxNumber],'BOX-'+CONVERT([varchar](20),[BoxID])))) PERSISTED,
 	[CaseNo] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
 	[PoID] [int] NULL,
 	[PackingQty] [decimal](18, 3) NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
 	[BoxID] ASC
@@ -8266,7 +8266,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_SCM_DeliveryBox_Number] ON [dbo].[SCM_Deliv
 GO
 ALTER TABLE [dbo].[SCM_DeliveryBox] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[SCM_DeliveryBox] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[SCM_DeliveryBox] ADD  CONSTRAINT [DF__SCM_Deliv__Creat__3AF6B473]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 ALTER TABLE [dbo].[SCM_DeliveryBox]  WITH CHECK ADD CHECK  (([BoxSeq]>(0)))
 GO
@@ -8389,11 +8389,11 @@ CREATE TABLE [dbo].[SCM_ItemVendor](
 	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[VendorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ActiveFlag] [bit] NOT NULL,
+	[PackingQty] [decimal](18, 3) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[PackingQty] [decimal](18, 3) NULL,
  CONSTRAINT [PK_SCM_ItemVendor] PRIMARY KEY CLUSTERED 
 (
 	[ItemNo] ASC,
@@ -8924,9 +8924,9 @@ CREATE TABLE [dbo].[SYS_RolePermission](
 	[PermissionLevel] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[IsSystemRole] [bit] NULL,
 	[EffectiveTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_SYS_RolePermission] PRIMARY KEY CLUSTERED 
 (
@@ -8952,11 +8952,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Is System Role
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Effective TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'EffectiveTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'CreatedTS'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'ModifiedTS'
 GO
@@ -9013,18 +9013,18 @@ CREATE TABLE [dbo].[SYS_UserProfile](
 	[AccountStatus] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[FailedLoginCount] [int] NULL,
 	[LastLoginTS] [datetime2](7) NULL,
+	[PinHash] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[PinHash] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_SYS_UserProfile] PRIMARY KEY CLUSTERED 
 (
 	[UserProfileID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[SYS_UserProfile] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[SYS_UserProfile] ADD  CONSTRAINT [DF__SYS_UserP__Creat__1387E197]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · User Profile ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'UserProfileID'
 GO
@@ -9074,11 +9074,11 @@ CREATE TABLE [dbo].[tbl_Lot](
 	[QualityFlag] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[CurrentLocationID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ExpiryDate] [date] NULL,
+	[InventoryStatus] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
-	[InventoryStatus] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_tbl_Lot] PRIMARY KEY CLUSTERED 
 (
 	[LotID] ASC
@@ -9118,9 +9118,9 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_tbl_Lot_LotCode] ON [dbo].[tbl_Lot]
 WHERE ([LotCode] IS NOT NULL)
 WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[tbl_Lot] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 ALTER TABLE [dbo].[tbl_Lot] ADD  CONSTRAINT [DF_tbl_Lot_InventoryStatus]  DEFAULT ('CREATED') FOR [InventoryStatus]
+GO
+ALTER TABLE [dbo].[tbl_Lot] ADD  CONSTRAINT [DF__tbl_Lot__Created__147C05D0]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Lot ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'tbl_Lot', @level2type=N'COLUMN',@level2name=N'LotID'
 GO
@@ -9260,13 +9260,13 @@ CREATE TABLE [dbo].[WH_InventoryTransaction](
 	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApproverID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NOT NULL,
-	[ModifiedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[PartNo] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
 	[LocationNo] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NOT NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_InventoryTransaction] PRIMARY KEY CLUSTERED 
 (
 	[TransactionID] ASC
@@ -9322,10 +9322,6 @@ CREATE TABLE [dbo].[WH_PickSlip](
 	[RequiredAt] [datetime2](7) NULL,
 	[Priority] [tinyint] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[PickSlipNo] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReqLocation] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReqSeqNo] [int] NULL,
@@ -9333,6 +9329,10 @@ CREATE TABLE [dbo].[WH_PickSlip](
 	[PrintDate] [datetime2](7) NULL,
 	[CloseDate] [datetime2](7) NULL,
 	[CloseUserId] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_PickSlip] PRIMARY KEY CLUSTERED 
 (
 	[PickSlipID] ASC
@@ -9348,7 +9348,7 @@ CREATE NONCLUSTERED INDEX [IX_WH_PickSlip_PickSlipNo] ON [dbo].[WH_PickSlip]
 	[PickSlipID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[WH_PickSlip] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[WH_PickSlip] ADD  CONSTRAINT [DF__WH_Releas__Creat__1E05700A]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Release Schedule ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_PickSlip', @level2type=N'COLUMN',@level2name=N'PickSlipID'
 GO
@@ -9394,24 +9394,24 @@ CREATE TABLE [dbo].[WH_PurchaseOrder](
 	[DueDate] [date] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SapSyncedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[DeliveryDestination] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[ScmRowVersion] [timestamp] NOT NULL,
 	[SupplierConfirmedAt] [datetime2](7) NULL,
 	[SupplierConfirmedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SupplierConfirmedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_PurchaseOrder] PRIMARY KEY CLUSTERED 
 (
 	[PoID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  DEFAULT ('system') FOR [CreatedBy]
+ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  CONSTRAINT [DF__WH_Purcha__Creat__1A34DF26]  DEFAULT ('system') FOR [CreatedBy]
 GO
-ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  CONSTRAINT [DF__WH_Purcha__Creat__1B29035F]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.WH_ReleaseSchedule
 SET ANSI_NULLS ON
@@ -9427,10 +9427,6 @@ CREATE TABLE [dbo].[WH_ReleaseSchedule](
 	[RequiredAt] [datetime2](7) NULL,
 	[Priority] [tinyint] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
 	[PickSlipNo] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReqLocation] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReqSeqNo] [int] NULL,
@@ -9438,6 +9434,10 @@ CREATE TABLE [dbo].[WH_ReleaseSchedule](
 	[PrintDate] [datetime2](7) NULL,
 	[CloseDate] [datetime2](7) NULL,
 	[CloseUserId] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedTS] [datetime2](7) NULL,
+	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_ReleaseSchedule] PRIMARY KEY CLUSTERED 
 (
 	[ReleaseScheduleID] ASC

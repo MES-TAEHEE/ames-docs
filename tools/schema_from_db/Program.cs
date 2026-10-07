@@ -15,8 +15,7 @@ if (seedAt < 0) throw new Exception("seed marker not found");
 // 시드 뒤에 이어 붙어 있던 마이그레이션 블록(SCM 박스·케이스, FG 출하·재고 통합 등)은 개발 DB 에 이미 반영된 최종 상태라 버린다
 const string AppendedMigrations = "-- Persistent box labels.";
 int migAt = oldText.IndexOf(AppendedMigrations, seedAt, StringComparison.Ordinal);
-if (migAt < 0) throw new Exception("appended-migration marker not found");
-string seeds = oldText[seedAt..migAt].TrimEnd() + "\r\n";
+string seeds = oldText[seedAt..(migAt < 0 ? oldText.Length : migAt)].TrimEnd() + "\r\n";
 
 using var conn = new SqlConnection(cs);
 var server = new Server(new ServerConnection(conn));

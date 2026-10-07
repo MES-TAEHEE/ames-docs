@@ -120,6 +120,7 @@ FILES=(
   migrate_user_status_mail_cleanup.sql  # 계정 메일 기능 폐지 — UNVERIFIED·PENDING → ACTIVE, 이메일 인증 정리, USER_STATUS 코드 삭제
   migrate_notification_push.sql      # 알림 채널 PUSH 전환 — EMAIL·SMS 는 남긴 채 사용 안 함, 규칙에 PUSH 추가(10-08)
   migrate_aspnetuserroles_pk.sql     # AspNetUserRoles 복합 PK(UserId, RoleId)+IX_RoleId — 스키마로 만든 DB 는 이미 있어 건너뜀(10-08)
+  migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
 )
 
 echo "AMES DB rebuild — $DB @ container '$CONTAINER'"
