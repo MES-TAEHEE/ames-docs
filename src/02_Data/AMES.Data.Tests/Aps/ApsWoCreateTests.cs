@@ -30,6 +30,7 @@ public class ApsWoCreateTests
     const string Actor = "ITEST-APS";
     static readonly DateTime D0 = NextMonday(DateTime.Today.AddDays(400));
     static readonly DateTime D1 = D0.AddDays(1);
+    static readonly DateOnly D0d = DateOnly.FromDateTime(D0);
     static readonly DateTime D2 = D0.AddDays(2);
     static readonly DateTime D4 = D0.AddDays(4);
     static readonly DateTime Pin = D0.AddDays(-1);   // 직전 금형 고정용 일요일
@@ -81,7 +82,7 @@ public class ApsWoCreateTests
             INSERT INTO dbo.MD_Mold (MoldID, MoldName, Status, CavityCount, MoldChangeMin, CreatedBy)
             VALUES (@M, N'ITEST aps mold', 'AVAILABLE', 2, 20, @By);
             INSERT INTO dbo.MD_MoldLine (LineCode, MoldID, UPH, PrepTime, CreatedBy)
-            VALUES (@LI, @M, 60, 15, @By);
+            VALUES (@LI, @M, 120, 15, @By);   -- 금형 M 은 캐비티 2 에 품번 A·B 가 같이 찍힌다 → 유효 UPH = 120 × 1 ÷ 2 = 60(ApsUph.Effective, 2026-10-07 UPH 통일)
             INSERT INTO dbo.MD_MoldItem (MoldID, ItemNo, Color, CavitySeq, CavityPos, CavityCount, MoldCategory, ActiveFlag, CreatedBy)
             VALUES (@M, @A, 'CBK', 1, 'LH', 2, 'INJECTION', 1, @By),
                    (@M, @B, 'CBK', 2, 'RH', 2, 'INJECTION', 1, @By);
@@ -221,6 +222,137 @@ public class ApsWoCreateTests
     static PpRepository.ApsWoResult Run(AmesConnectionFactory f, int runId, int[] ids, bool dryRun = false)
         => new PpRepository(f).CreateApsWorkOrders(runId, ids, Actor, dryRun);
 
+    /// <summary>2026-10-07 미리보기 슬롯 편집: dryRun 도 편집을 적용해 보여 주고(행은 롤백), 실제 실행은 PP_LineSchedule 행을 목표 자리로 옮긴다.</summary>
+    [SkippableFact]
+    public void Slot_edits_are_applied_in_dry_run_and_moved_in_the_real_run()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 200, dueOffset: 9);
+            int run = SeedRun(f);
+            int pl  = SeedInj(f, run, ItemA, D0, day: 120, night: 0);   // 유효 UPH 60(120 × 1캐비티 ÷ 2) → 480-600
+            var pp  = new PpRepository(f);
+
+            var plain = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: true);
+            var inj   = plain.Orders.Single().Placements.Single(p => p.LineId == LineInj);
+            Assert.Equal((480, 600), (inj.StartMin, inj.EndMin));
+            var o = plain.Orders.Single();
+            var edit = new ApsSlotEdit(o.ItemNo, o.PlanDate, o.SoId, inj.StepSeq, LineInj, D0d, 480, 600, LineInj, D0d, 780, 900, null);
+
+            var dry = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: true, edits: new[] { edit });
+            Assert.True(Assert.Single(dry.Edits).Applied);
+            Assert.Equal((780, 900), dry.Orders.Single().Placements.Where(p => p.LineId == LineInj).Select(p => (p.StartMin, p.EndMin)).Single());
+            Assert.Empty(Rows(f, LineInj, D0));
+
+            var real = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: false, edits: new[] { edit });
+            Assert.True(Assert.Single(real.Edits).Applied);
+            var slots = Rows(f, LineInj, D0).Where(r => r.Type == "WO" && r.WoId is not null).ToList();
+            Assert.Equal(new[] { (780, 900, 120m) }, slots.Select(r => (r.Start, r.End, r.Qty)).ToArray());
+            Assert.Equal($"INJ@{LineInj},IMG@{LineImg}", Steps(f, real.Orders.Single().WoId));
+        }
+        finally { Cleanup(f); }
+    }
+
+    /// <summary>편집 거부 — 휴게를 가로지르면 OutsideBands, 금형 UPH 가 없는 라인으로 옮기면 NoUph, 배치가 달라진 슬롯은 NotFound. 거부돼도 나머지 생성은 그대로.</summary>
+    [SkippableFact]
+    public void Invalid_slot_edits_are_skipped_with_a_reason()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 200, dueOffset: 9);
+            int run = SeedRun(f);
+            int pl  = SeedInj(f, run, ItemA, D0, day: 120, night: 0);
+            var pp  = new PpRepository(f);
+            var o   = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: true).Orders.Single();
+            var inj = o.Placements.Single(p => p.LineId == LineInj);
+            ApsSlotEdit E(string nl, int ns, int ne, int os = 480, int oe = 600) => new(o.ItemNo, o.PlanDate, o.SoId, inj.StepSeq, LineInj, D0d, os, oe, nl, D0d, ns, ne, null);
+
+            var r = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: true,
+                        edits: new[] { E(LineInj, 700, 820), E(LinePnt, 480, 600), E(LineInj, 780, 900, os: 481) });
+
+            Assert.Equal(new[] { ApsSlotEditRules.ReasonOutsideBands, ApsSlotEditRules.ReasonNoUph, ApsSlotEditRules.ReasonNotFound },
+                         r.Edits.Select(e => e.Reason).ToArray());
+            Assert.Equal(0, r.EditsApplied);
+            Assert.Equal((480, 600), r.Orders.Single().Placements.Where(p => p.LineId == LineInj).Select(p => (p.StartMin, p.EndMin)).Single());
+        }
+        finally { Cleanup(f); }
+    }
+
+    /// <summary>2026-10-07 교대 모델: 계획 행의 교대별 수량이 그 교대 밴드 앞에서부터 놓인다(3교대 A/B/C). 교대 사이를 넘기지 않는다.</summary>
+    [SkippableFact]
+    public void Places_each_shift_quantity_in_its_own_shift_bands()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            Exec(f, "INSERT INTO dbo.MD_LineTimeSegment (SegmentID, PatternID, SeqNo, StartMin, EndMin, SegmentState, ShiftCode, CreatedBy) VALUES ('ITEST-APS-SEG-5', @P, 5, 0, 120, 'OPERATING', 'C', @By);", ("@P", Pattern), ("@By", Actor));
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 500, dueOffset: 9);
+            int run = SeedRun(f);
+            int pl  = SeedInj(f, run, ItemA, D0, day: 60, night: 90);   // 파생 호환값
+            Exec(f, "INSERT INTO dbo.PP_ApsPlanLineShift (PlanLineID, ShiftCode, Qty) VALUES (@L, 'A', 60), (@L, 'B', 30), (@L, 'C', 60);", ("@L", pl));
+
+            var r = Run(f, run, new[] { pl });
+
+            // 유효 UPH 60: A 60개 = 60분 → 480-540, B 30개 = 30분 → 960-990, C 60개 = 60분 → 0-60
+            Assert.Equal(new[] { (480, 540, 60m), (960, 990, 30m), (0, 60, 60m) },
+                         Rows(f, LineInj, D0).Where(x => x.Type == "WO" && x.WoId is not null).OrderBy(x => x.Start == 0 ? 2000 : x.Start).Select(x => (x.Start, x.End, x.Qty)).ToArray());
+            Assert.Empty(r.Orders.Single().Shortfalls.Where(sf => sf.LineId == LineInj));
+        }
+        finally { Exec(f, "DELETE FROM dbo.MD_LineTimeSegment WHERE SegmentID = 'ITEST-APS-SEG-5';"); Cleanup(f); }
+    }
+
+    /// <summary>교대 1개뿐인 패턴(Review Focus 1): 교대 행이 없으면 PlanDay + PlanNight 가 그 교대 하나로 복원돼 전량 그 교대 밴드에 놓인다.</summary>
+    [SkippableFact]
+    public void Places_everything_in_the_only_shift()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            Exec(f, "DELETE FROM dbo.MD_LineTimeSegment WHERE SegmentID = 'ITEST-APS-SEG-4';");   // B 교대 제거 → A 만
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 500, dueOffset: 9);
+            int run = SeedRun(f);
+            int pl  = SeedInj(f, run, ItemA, D0, day: 120, night: 60);   // 교대 행 없음 → Restore: A = 120 + 60(교대 하나면 합산)
+
+            var r = Run(f, run, new[] { pl });
+
+            Assert.Equal(new[] { (480, 660, 180m) },
+                         Rows(f, LineInj, D0).Where(x => x.Type == "WO" && x.WoId is not null).Select(x => (x.Start, x.End, x.Qty)).ToArray());
+            Assert.Empty(r.Orders.Single().Shortfalls.Where(sf => sf.LineId == LineInj));
+        }
+        finally { Cleanup(f); }
+    }
+
+    /// <summary>2026-10-07 미리보기 보드: 라인 × 날짜 능력은 WO 생성과 같은 APS 패턴 규칙 — 사출 라인은 지정 패턴, 완제품 라인은 설정이 없으면 자동 해석(PP_LineSchedule 저장 패턴), 사출 라인 미설정은 거부.</summary>
+    [SkippableFact]
+    public void Day_boards_use_the_same_pattern_rule_as_wo_creation()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            var pp = new PpRepository(f);
+            var boards = pp.ListApsDayBoards(new[] { LineInj }, new[] { LineInj, LineImg }, new[] { D0, D1 });
+
+            Assert.Equal(4, boards.Count);
+            var inj = boards.Single(b => b.LineId == LineInj && b.Date == D0).Capacity;
+            Assert.Equal(Pattern, inj.PatternId);
+            Assert.Equal(480, inj.DayStart);
+            Assert.Equal(new[] { (480, 720), (780, 960), (960, 1440) }, inj.OperatingBands.Select(b => (b.StartMin, b.EndMin)).ToArray());
+            Assert.Equal(Pattern, boards.Single(b => b.LineId == LineImg && b.Date == D1).Capacity.PatternId);   // IMG 는 APS 설정 없음 → placeholder 행의 패턴
+
+            ApsPatternConfig.Apply(f, null, (LineInj, null));
+            var ex = Assert.Throws<ApsConfigurationException>(() => pp.ListApsDayBoards(new[] { LineInj }, new[] { LineInj }, new[] { D0 }));
+            Assert.Contains(ex.Lines, l => l.Contains(LineInj));
+        }
+        finally { Cleanup(f); }
+    }
+
     /// <summary>2026-10-06: 사출 라인에 APS 가동 시간 패턴(라인 지정·기본 패턴)이 없으면 WO 를 하나도 만들지 않고 ApsConfigurationException — 실행도 Saved 그대로.</summary>
     [SkippableFact]
     public void Rejects_whole_run_when_an_injection_line_has_no_aps_pattern()
@@ -358,8 +490,9 @@ public class ApsWoCreateTests
             var inj = Rows(f, LineInj, D0).Where(r => r.Type == "WO").ToList();
             var rowsA = inj.Where(r => r.WoId == a.WoId).ToList();
             var rowsB = inj.Where(r => r.WoId == b.WoId).ToList();
-            Assert.Equal(120, rowsA.Sum(r => r.End - r.Start));                 // 120 EA ÷ 60 UPH
-            Assert.Equal(150, rowsB.Sum(r => r.End - r.Start));                 // 150 EA ÷ 60 UPH — 자기 시간, 0분 슬롯 없음
+            // 색상이 갈리면 각 품번이 그 색상 패밀리의 유일한 품번 → 캐비티 2개를 다 쓴다 → 유효 UPH 120(= 계획 ApsRepository 와 같은 규칙, 2026-10-07 UPH 통일)
+            Assert.Equal(60, rowsA.Sum(r => r.End - r.Start));                  // 120 EA ÷ 120 UPH
+            Assert.Equal(75, rowsB.Sum(r => r.End - r.Start));                  // 150 EA ÷ 120 UPH — 자기 시간, 0분 슬롯 없음
             Assert.All(inj, r => { Assert.True(r.End > r.Start); Assert.Equal(Mold, r.Mold); });
             Assert.Equal(480, rowsA.Min(r => r.Start));                         // CBK(A) 가 먼저, YGU(B) 는 그 뒤에 이어진다
             Assert.True(rowsB.Min(r => r.Start) >= rowsA.Max(r => r.End));
@@ -964,7 +1097,7 @@ public class ApsWoCreateTests
     public void SubtractScheduled_carries_one_shifts_excess_into_the_other(decimal planDay, decimal planNight, decimal exDay, decimal exNight,
                                                                            decimal day, decimal night)
     {
-        Assert.Equal((day, night), PpRepository.SubtractScheduled(planDay, planNight, exDay, exNight));
+        Assert.Equal(new[] { day, night }, PpRepository.SubtractScheduled(new[] { planDay, planNight }, new[] { exDay, exNight }));   // 2교대 = 종전 규칙 그대로
     }
 
     [SkippableFact]
@@ -1216,5 +1349,19 @@ public class ApsWoCreateTests
             Assert.Equal(0, WoCount(f, ItemA));
         }
         finally { Cleanup(f); }
+    }
+}
+
+/// <summary>교대별 기존 슬롯 차감(2026-10-07) — 어떤 교대의 초과분은 다음 교대부터, 끝까지 가면 앞 교대에서 뺀다. 순수 함수.</summary>
+public class ApsShiftSubtractTests
+{
+    [Fact]
+    public void Excess_in_one_shift_is_taken_from_the_following_shifts_in_order()
+    {
+        Assert.Equal(new[] { 0m, 30m, 60m }, PpRepository.SubtractScheduled(new[] { 50m, 60m, 60m }, new[] { 80m, 0m, 0m }));   // A 초과 30 → B 에서
+        Assert.Equal(new[] { 50m, 0m, 10m }, PpRepository.SubtractScheduled(new[] { 50m, 60m, 60m }, new[] { 0m, 110m, 0m }));  // B 초과 50 → C 에서
+        Assert.Equal(new[] { 20m, 0m, 0m }, PpRepository.SubtractScheduled(new[] { 50m, 60m, 60m }, new[] { 0m, 0m, 150m }));   // 마지막 교대 초과 → 앞으로 거슬러
+        Assert.Equal(new[] { 0m, 0m }, PpRepository.SubtractScheduled(new[] { 50m, 60m }, new[] { 200m, 0m }));
+        Assert.Equal(new[] { 50m, 60m }, PpRepository.SubtractScheduled(new[] { 50m, 60m }, new[] { 0m, 0m }));
     }
 }

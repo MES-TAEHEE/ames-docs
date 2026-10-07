@@ -7,85 +7,72 @@ using static AMES.Data.Scheduling.SlotPacker;
 namespace AMES.Data.Tests.Aps;
 
 /// <summary>
-/// 스펙 §4.3·§8.3 — WORK_SHIFT A(10)/B(20)/C(30) 3교대 패턴을 주간(SortOrder 최소 교대) / 야간(나머지) 구간으로 나누고,
-/// 점유 구간을 뺀 잔여에 분 단위로 앞에서부터 채운다. 축 원점 dayStart = 480(A 교대 시작). 순수 함수, DB 없음.
+/// 스펙 §4.3·§8.3 + 2026-10-07 교대 모델 — WORK_SHIFT A(10)/B(20)/C(30) 3교대 패턴을 교대별(SortOrder 순) 구간으로 나누고,
+/// 점유 구간을 뺀 잔여에 분 단위로 앞에서부터 채운다. ShiftOf = 슬롯 시작 시각이 속한 교대. 축 원점 dayStart = 480(A 교대 시작). 순수 함수, DB 없음.
 /// </summary>
 public class ShiftBandsTests
 {
     static Interval I(int s, int e) => new(s, e);
 
-    // A 08:00~16:00 · B 16:00~24:00 · C 00:00~08:00 (전부 OPERATING)
-    static readonly (Interval Band, int ShiftSort)[] ThreeShifts =
+    // A 08:00~16:00 · B 16:00~24:00 · C 00:00~02:00 (전부 OPERATING) — 교대 코드 포함
+    static readonly (Interval Band, int ShiftSort, string ShiftCode)[] ThreeShifts =
     {
-        (I(480, 960), 10), (I(960, 1440), 20), (I(0, 480), 30),
+        (I(480, 960), 10, "A"), (I(960, 1440), 20, "B"), (I(0, 120), 30, "C"),
     };
     // A 교대에 휴게 12:00~13:00 이 있는 2교대 (OPERATING 세그먼트만 넘어온다)
-    static readonly (Interval Band, int ShiftSort)[] WithBreak =
+    static readonly (Interval Band, int ShiftSort, string ShiftCode)[] WithBreak =
     {
-        (I(480, 720), 10), (I(780, 960), 10), (I(960, 1440), 20),
+        (I(480, 720), 10, "A"), (I(780, 960), 10, "A"), (I(960, 1440), 20, "B"),
     };
 
     [Fact]
-    public void Three_shifts_split_into_first_sort_day_and_rest_night_in_axis_order()
+    public void SplitByShift_returns_each_shift_in_sort_order_with_axis_ordered_bands()
     {
-        var b = ShiftBands.Split(ThreeShifts, Array.Empty<Interval>(), dayStart: 480);
-
-        Assert.Equal(new[] { I(480, 960) }, b.Day);
-        Assert.Equal(new[] { I(960, 1440), I(0, 480) }, b.Night);   // 00:00 밴드는 축 기준으로 22:00 뒤
-        Assert.Equal(8d, b.DayHours);
-        Assert.Equal(16d, b.NightHours);
-        Assert.Equal(480, b.DayStart);
+        var b = ShiftBands.SplitByShift(ThreeShifts, Array.Empty<Interval>(), dayStart: 480);
+        Assert.Equal(new[] { "A", "B", "C" }, b.Select(s => s.Code).ToArray());
+        Assert.Equal(new[] { (480, 960) }, b[0].Bands.Select(x => (x.StartMin, x.EndMin)).ToArray());
+        Assert.Equal(new[] { (0, 120) }, b[2].Bands.Select(x => (x.StartMin, x.EndMin)).ToArray());
+        Assert.Equal((8d, 8d, 2d), (b[0].Hours, b[1].Hours, b[2].Hours));
     }
 
     [Fact]
-    public void Day_keeps_all_operating_bands_of_the_first_shift()
+    public void SplitByShift_keeps_all_bands_of_a_shift_and_subtracts_occupancy()
     {
-        var b = ShiftBands.Split(WithBreak, Array.Empty<Interval>(), 480);
+        var occ = new[] { I(500, 520), I(1000, 1100) };
+        var b = ShiftBands.SplitByShift(WithBreak, occ, 480);
+        Assert.Equal(new[] { (480, 500), (520, 720), (780, 960) }, b[0].Bands.Select(x => (x.StartMin, x.EndMin)).ToArray());
+        Assert.Equal(new[] { (960, 1000), (1100, 1440) }, b[1].Bands.Select(x => (x.StartMin, x.EndMin)).ToArray());
+    }
 
-        Assert.Equal(new[] { I(480, 720), I(780, 960) }, b.Day);
-        Assert.Equal(7d, b.DayHours);
+    /// <summary>리뷰 F6: 교대 코드는 대소문자를 가리지 않는다(PP_ApsPlanLineShift PK 는 CI 콜레이션) — 'a' 와 'A' 세그먼트는 한 교대.</summary>
+    [Fact]
+    public void SplitByShift_merges_codes_that_differ_only_by_case()
+    {
+        var ops = new (Interval Band, int ShiftSort, string ShiftCode)[] { (I(480, 720), 10, "a"), (I(780, 960), 10, "A"), (I(960, 1440), 20, "B") };
+        var b = ShiftBands.SplitByShift(ops, Array.Empty<Interval>(), 480);
+        Assert.Equal(new[] { "A", "B" }, b.Select(s => s.Code).ToArray());
+        Assert.Equal(new[] { (480, 720), (780, 960) }, b[0].Bands.Select(x => (x.StartMin, x.EndMin)).ToArray());
     }
 
     [Fact]
-    public void Occupied_is_subtracted_from_both_day_and_night()
+    public void Empty_operating_gives_no_shifts()
     {
-        var occ = new[] { I(480, 600), I(900, 1000) };
-
-        var b = ShiftBands.Split(ThreeShifts, occ, 480);
-
-        Assert.Equal(new[] { I(600, 900) }, b.Day);
-        Assert.Equal(new[] { I(1000, 1440), I(0, 480) }, b.Night);
-        Assert.Equal(5d, b.DayHours);
+        Assert.Empty(ShiftBands.SplitByShift(Array.Empty<(Interval, int, string)>(), Array.Empty<Interval>(), 480));
     }
 
     [Fact]
-    public void Empty_operating_gives_empty_bands()
+    public void ShiftOf_uses_full_bands_and_falls_back_to_the_previous_shift_on_the_axis()
     {
-        var b = ShiftBands.Split(Array.Empty<(Interval, int)>(), Array.Empty<Interval>(), 480);
-
-        Assert.Empty(b.Day);
-        Assert.Empty(b.Night);
-        Assert.Equal(0d, b.DayHours + b.NightHours);
-    }
-
-    [Fact]
-    public void IsDay_uses_full_bands_before_occupancy()
-    {
-        var full = ShiftBands.Split(WithBreak, Array.Empty<Interval>(), 480);
-
-        Assert.True(ShiftBands.IsDay(full, 480));
-        Assert.True(ShiftBands.IsDay(full, 959));
-        Assert.True(ShiftBands.IsDay(full, 740));    // 휴게 중 시작 — 축상 첫 야간 밴드 앞이면 주간
-        Assert.False(ShiftBands.IsDay(full, 960));
-        Assert.False(ShiftBands.IsDay(full, 1200));
-    }
-
-    [Fact]
-    public void IsDay_treats_c_shift_as_night()
-    {
-        var full = ShiftBands.Split(ThreeShifts, Array.Empty<Interval>(), 480);
-
-        Assert.False(ShiftBands.IsDay(full, 100));
+        var full = ShiftBands.SplitByShift(WithBreak, Array.Empty<Interval>(), 480);
+        Assert.Equal("A", ShiftBands.ShiftOf(full, 480, 480));
+        Assert.Equal("A", ShiftBands.ShiftOf(full, 740, 480));    // 휴게 중 시작 → 축상 앞 교대 A
+        Assert.Equal("B", ShiftBands.ShiftOf(full, 960, 480));
+        Assert.Equal("B", ShiftBands.ShiftOf(full, 1439, 480));
+        var three = ShiftBands.SplitByShift(ThreeShifts, Array.Empty<Interval>(), 480);
+        Assert.Equal("C", ShiftBands.ShiftOf(three, 100, 480));
+        Assert.Equal("C", ShiftBands.ShiftOf(three, 300, 480));   // C 뒤 빈 시간 → 앞 교대 C
+        Assert.Equal("C", ShiftBands.ShiftOf(three, 470, 480));   // 470 은 축(dayStart 480)상 1430분 — C(0~120 = 축 960~1080) 뒤 → C
+        Assert.Equal("", ShiftBands.ShiftOf(Array.Empty<ShiftBands.ShiftBand>(), 500, 480));
     }
 
     [Theory]

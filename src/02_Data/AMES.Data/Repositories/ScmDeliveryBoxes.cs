@@ -105,6 +105,53 @@ public sealed partial class ScmRepository
             }
         }
     }
+    // Each loose unit keeps its own scannable lot; it is not linked to a CASE.
+    static void InsertLooseLabels(SqlConnection c,SqlTransaction tx,int deliveryId,IReadOnlyList<LooseItemInput> items)
+    {
+        if(items.Count is <1 or >1000)throw new DeliveryBoxLimitException();
+        using var details=new SqlCommand("""
+            SELECT d.VendorID,CONVERT(date,SYSDATETIME()),l.DeliveryLineID,l.PoID,p.ItemNo,
+                COALESCE(i.ItemName,p.ItemNo),COALESCE(p.UnitCode,''),COALESCE(m.PackingQty,0),l.Quantity
+            FROM dbo.SCM_Delivery d JOIN dbo.SCM_DeliveryLine l ON l.DeliveryID=d.DeliveryID
+            JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID
+            JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo AND i.ActiveFlag=1
+            LEFT JOIN dbo.SCM_ItemVendor m ON m.ItemNo=p.ItemNo AND m.VendorID=p.VendorID AND m.ActiveFlag=1
+            WHERE d.DeliveryID=@D ORDER BY l.DeliveryLineID;
+            """,c,tx);
+        Add(details,("@D",deliveryId));
+        var lines=new Dictionary<int,(int Id,string Item,string Name,string Unit,decimal Pack,decimal Qty)>();
+        string? vendor=null;DateTime day=default;
+        using(var r=details.ExecuteReader())while(r.Read())
+        {
+            vendor=r.GetString(0);day=r.GetDateTime(1);
+            lines.Add(r.GetInt32(3),(r.GetInt32(2),r.GetString(4),r.GetString(5),r.GetString(6),r.GetDecimal(7),r.GetDecimal(8)));
+        }
+        if(vendor is null || lines.Count==0 || items.Any(i=>!lines.ContainsKey(i.PoID) || i.Quantity<=0
+            || i.IsPart && i.Quantity!=1 || !i.IsPart && (lines[i.PoID].Pack<=0 || i.Quantity>lines[i.PoID].Pack))
+            || lines.Any(l=>items.Where(i=>i.PoID==l.Key).Sum(i=>i.Quantity)!=l.Value.Qty))
+            throw new InvalidOperationException("Loose labels do not match the delivery quantities or packing rules.");
+        var first=ReserveBoxNumbers(c,tx,vendor,day,items.Count);
+        var sequences=new Dictionary<int,int>();
+        for(var index=0;index<items.Count;index++)
+        {
+            var item=items[index];var line=lines[item.PoID];
+            var sequence=sequences.TryGetValue(item.PoID,out var previous)?previous+1:1;
+            sequences[item.PoID]=sequence;
+            using var insert=new SqlCommand("""
+                INSERT dbo.SCM_DeliveryBox(DeliveryLineID,PoID,BoxSeq,ItemNo,ItemName,UnitCode,Quantity,PackingQty,IssuedBoxNumber)
+                VALUES(@Line,@Po,@Seq,@Item,@Name,@Unit,@Qty,@Pack,@Number);
+                """,c,tx);
+            Add(insert,("@Line",line.Id),("@Po",item.PoID),("@Seq",sequence),("@Item",line.Item),("@Name",line.Name),
+                ("@Unit",line.Unit),("@Qty",item.Quantity),("@Pack",item.IsPart?1:line.Pack),
+                ("@Number",$"{(item.IsPart?"PT":"BX")}-{vendor}-{day:yyyyMMdd}-{first+index:D4}"));
+            insert.ExecuteNonQuery();
+        }
+        foreach(var line in lines.Values)
+        {
+            using var snapshot=new SqlCommand("UPDATE dbo.SCM_DeliveryLine SET PackingQty=@Pack WHERE DeliveryLineID=@Line",c,tx);
+            Add(snapshot,("@Pack",line.Pack>0?line.Pack:1),("@Line",line.Id));snapshot.ExecuteNonQuery();
+        }
+    }
     // Allocate a range under the same transaction as the boxes. The PK range lock
     // serializes concurrent deliveries for this vendor/day, including the first allocation.
     static int ReserveBoxNumbers(SqlConnection c,SqlTransaction tx,string vendor,DateTime date,int count)

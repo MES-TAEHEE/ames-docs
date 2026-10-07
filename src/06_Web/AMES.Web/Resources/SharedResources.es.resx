@@ -10082,6 +10082,147 @@
   <data name="PP.Aps.Wo.Ok" xml:space="preserve">
     <value>{0} OT creadas · tarde {1} · faltante {2} · rechazadas {3}</value>
   </data>
+  <data name="PP.Aps.Wo.Preview.PageTitle" xml:space="preserve">
+    <value>Vista previa de OT</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Targets" xml:space="preserve">
+    <value>Seleccionar filas</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Refresh" xml:space="preserve">
+    <value>Actualizar vista previa</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Back" xml:space="preserve">
+    <value>Volver a APS</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.New" xml:space="preserve">
+    <value>Nuevos (esta ejecución)</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Late" xml:space="preserve">
+    <value>Colocación tardía</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Old" xml:space="preserve">
+    <value>Existentes</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Mc" xml:space="preserve">
+    <value>Cambio de molde</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.New" xml:space="preserve">
+    <value>{0} nuevo · {1} min</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.Short" xml:space="preserve">
+    <value>Sin asignar {0}</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.NoPattern" xml:space="preserve">
+    <value>Sin patrón de turnos</value>
+  </data>
+  <data name="PP.Aps.Wo.Siblings" xml:space="preserve">
+    <value>Artículos hermanos</value>
+  </data>
+  <data name="PP.Aps.Wo.Released" xml:space="preserve">
+    <value>Esta ejecución ya fue liberada — el tablero es de solo lectura</value>
+  </data>
+  <data name="PP.Aps.Wo.Done" xml:space="preserve">
+    <value>Órdenes creadas — el tablero muestra la colocación real</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Title" xml:space="preserve">
+    <value>Detalle de OT</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Mold" xml:space="preserve">
+    <value>Molde</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Placements" xml:space="preserve">
+    <value>Franjas asignadas (todas las etapas)</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.ExistingSlot" xml:space="preserve">
+    <value>Franja existente — no creada en esta ejecución</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.ThisSlot" xml:space="preserve">
+    <value>Esta franja</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Step" xml:space="preserve">
+    <value>Etapa</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Pm" xml:space="preserve">
+    <value>Banda de mantenimiento preventivo</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Before" xml:space="preserve">
+    <value>Precede a</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.ClickHint" xml:space="preserve">
+    <value>Clic para ver detalles</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Count" xml:space="preserve">
+    <value>{0} edición(es)</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Clear" xml:space="preserve">
+    <value>Descartar ediciones</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.DropRejected" xml:space="preserve">
+    <value>Descartar ediciones no aplicadas</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Edited" xml:space="preserve">
+    <value>editado</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Orig" xml:space="preserve">
+    <value>original</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Hint" xml:space="preserve">
+    <value>Arrastre una franja morada en su fila para moverla (pasos de 5 min) o haga clic para cambiar línea, fecha, hora o cantidad. Las ediciones se aplican al crear las OT.</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.McHint" xml:space="preserve">
+    <value>Los bloques de cambio de molde no se mueven automáticamente — ajústelos en PP-LSB.</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Rejected" xml:space="preserve">
+    <value>Ediciones que no se pueden aplicar</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Applied" xml:space="preserve">
+    <value>Ediciones aplicadas {0} · omitidas {1}</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Title" xml:space="preserve">
+    <value>Editar franja</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Start" xml:space="preserve">
+    <value>Inicio</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Dur" xml:space="preserve">
+    <value>Minutos</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Apply" xml:space="preserve">
+    <value>Aplicar</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Revert" xml:space="preserve">
+    <value>Revertir</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.QtyWarn" xml:space="preserve">
+    <value>La cantidad cambia solo esta franja; la cantidad de la OT se mantiene.</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.NotFound" xml:space="preserve">
+    <value>la franja ya no existe en la vista previa</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.BadRange" xml:space="preserve">
+    <value>hora o cantidad no válida</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.NoPattern" xml:space="preserve">
+    <value>esa línea/fecha no está en el tablero o no tiene patrón de turnos</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.OutsideBands" xml:space="preserve">
+    <value>fuera del tiempo operativo o cruza una pausa</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.Overlap" xml:space="preserve">
+    <value>se superpone con otra franja</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.NoUph" xml:space="preserve">
+    <value>el molde no tiene UPH en esa línea</value>
+  </data>
+  <data name="PP.Aps.Wo.Tab.Board" xml:space="preserve">
+    <value>Vista por línea</value>
+  </data>
+  <data name="PP.Aps.Wo.Tab.Grid" xml:space="preserve">
+    <value>Vista en tabla</value>
+  </data>
+  <data name="PP.Aps.Trace.Shifts" xml:space="preserve">
+    <value>Reparto por turno</value>
+  </data>
   <data name="PP.Aps.Confirm.WoUsesSaved" xml:space="preserve">
     <value>Las ediciones no guardadas no se usan para crear OT. ¿Continuar con la ejecución guardada #{0}?</value>
   </data>

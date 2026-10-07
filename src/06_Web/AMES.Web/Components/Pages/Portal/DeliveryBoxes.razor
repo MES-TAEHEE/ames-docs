@@ -24,13 +24,13 @@
             <Columns>
                 <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Title='@L["Portal.Text.Delivery"]'><Template Context="d"><button class="box-document" @onclick="()=>Select(d)">@d.Number</button><div class="dim">@d.Vendor · @d.Date.ToString("yyyy-MM-dd")</div></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="110px" MinWidth="110px" TextAlign="TextAlign.Center" Title='@L["Col.Status"]'><Template Context="d">@Status(d.Status)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="80px" MinWidth="80px" Property="Boxes" Title='@L["Portal.Text.Boxes.fb6660"]' TextAlign="TextAlign.Right" />
+                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="80px" MinWidth="80px" Property="Boxes" Title="Labels" TextAlign="TextAlign.Right" />
             </Columns>
         </RadzenDataGrid>
     </div>
     }
     <div class="ames-card">
-        <div class="ames-card-h">@L["Portal.Text.Boxes"] @(_document?.Number) · @_boxes.Count</div>
+        <div class="ames-card-h">Boxes / Parts @(_document?.Number) · @_boxes.Count</div>
         <div class="box-toolbar">
             <RadzenButton Text='@L["Portal.Text.SelectAll"]' Click="SelectAll" Disabled="@(_boxes.Count==0)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
             <RadzenButton Text='@L["Portal.Text.ClearSelection"]' Click="()=>_selected.Clear()" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
@@ -43,7 +43,7 @@
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="110px" MinWidth="110px" TextAlign="TextAlign.Center" Title='@L["Scm.Text.SelectLabel"]'><Template Context="b"><input type="checkbox" aria-label='@L["Portal.Accessibility.SelectBox", b.Number]' checked="@_selected.Contains(b.Id)" @onchange="e=>Toggle(b.Id,e.Value is true)" /></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Property="Item" Title='@L["Portal.Text.ItemCode"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" MinWidth="200px" Property="Name" Title='@L["Scm.Text.Description"]' />
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Number" Title='@L["Portal.Text.BoxNumber"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Number" Title="Barcode" />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="100px" MinWidth="100px" TextAlign="TextAlign.Center" Property="Sequence" Title='@L["Portal.Text.Sequence"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="120px" MinWidth="120px" Title='@L["Col.Quantity"]' TextAlign="TextAlign.Right"><Template Context="b">@QtyFormat.Text(b.Quantity,b.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center" Property="Unit" Title='@L["Scm.Text.Unit"]'><Template Context="unitRow">@UomFmt.Sym(unitRow.Unit)</Template></RadzenDataGridColumn>
@@ -54,6 +54,7 @@
 @code {
     void BackToDeliveries() => Nav.NavigateTo("/portal/deliveries");
     [Parameter] public bool Embedded {get;set;}
+    [Parameter] public EventCallback<string> PreviewRequested {get;set;}
     [Parameter, SupplyParameterFromQuery] public string? Number {get;set;}
     List<ScmRepository.BoxDelivery> _rows=[];
     List<ScmRepository.DeliveryBox> _boxes=[];
@@ -86,12 +87,13 @@
     }
     void Toggle(long id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
     void SelectAll()=>_selected=_boxes.Select(b=>b.Id).ToHashSet();
-    void Print()
+    async Task Print()
     {
         if(_document is null||_selected.Count==0)return;
         // Keep the selection server-side; the print page rechecks current vendor access and active boxes.
         Selection.Delivery=_document.Number;Selection.Ids=_selected.ToHashSet();
-        Nav.NavigateTo("/portal/box-labels");
+        if(PreviewRequested.HasDelegate)await PreviewRequested.InvokeAsync($"/portal/box-labels?delivery={Uri.EscapeDataString(_document.Number)}&ids={string.Join(',',_selected.Order())}");
+        else Nav.NavigateTo("/portal/box-labels");
     }
     [Inject] public BoxLabelSelection Selection {get;set;}=default!;
 }

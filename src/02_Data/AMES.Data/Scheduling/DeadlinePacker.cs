@@ -14,8 +14,9 @@ namespace AMES.Data.Scheduling;
 /// </summary>
 public static class DeadlinePacker
 {
+    /// <param name="PackSize">포장 단위(박스 수량). 2 이상이면 슬롯을 박스 배수로만 자르고 한 박스 분이 안 되는 틈은 건너뛴다 — 부분 박스는 마지막 한 번. null·1 = 개 단위(종전).</param>
     public sealed record StepDemand(int StepSeq, string LineId, decimal Qty, int? CycleSec, int? DailyCap,
-                                    string? MoldId = null, int ChangeMin = 0);
+                                    string? MoldId = null, int ChangeMin = 0, int? PackSize = null);
     public sealed record Placement(int StepSeq, string LineId, DateTime Date, int StartMin, int EndMin, decimal Qty, bool Late,
                                    string? MoldId = null);
     public sealed record MoldChange(int StepSeq, string LineId, DateTime Date, int StartMin, int EndMin,
@@ -139,6 +140,31 @@ public static class DeadlinePacker
                     // 사이클·DailyCap 없음 — 분↔수량 환산이 없으니 60분 단일 블록으로 전량. 안 들어가면 다음 날.
                     if (Place(cap.OperatingBands, occupied, 60, cap.DayStart, notBefore) is { } block)
                         pending.Add((block, remaining));
+                }
+                else if (step.PackSize is > 1 and var pack)
+                {
+                    // 박스 단위(APS 완제품 단계, 사용자 결정 2026-10-07): 틈마다 온박스만 싣고 한 박스 분이 안 되는 틈은 건너뛴다.
+                    // 개 단위 내림(아래)은 틈마다 소수점을 버려 72개가 57 + 14 + 1(다음 날) 로 갈라졌다. 부분 박스(FIFO 로 갈라진 28 = 3박스 + 4)는
+                    // 마지막에 한 번 — 남은 온박스가 다 들어가는 틈이면 같은 슬롯에 붙고, 아니면 자기만큼의 작은 틈을 따로 찾는다.
+                    decimal boxMin = pack * minPerEa;
+                    decimal left   = remaining;
+                    int chunkMin   = Math.Max(1, (int)Math.Ceiling(Math.Min(left, pack) * minPerEa));
+                    // 하루 틈을 전부 받아 틈마다 박스 수를 정한다 — 개 단위처럼 필요한 분만 요청하면 앞 틈에서 박스 내림으로 남긴 분만큼 뒤 틈이 모자란다
+                    foreach (var slot in FillDay(cap.OperatingBands, occupied, cap.OperatingMin, cap.DayStart, notBefore, chunkMin))
+                    {
+                        int len = slot.EndMin - slot.StartMin;
+                        decimal qty = Math.Min(left, Math.Floor(len / boxMin) * pack);
+                        if (qty <= 0)
+                        {
+                            // 온박스는 안 들어가도 남은 양이 한 박스 미만이면 그만큼은 들어갈 수 있다
+                            if (left < pack && Math.Ceiling(left * minPerEa) <= len) qty = left;
+                            else continue;
+                        }
+                        int useMin = (int)Math.Ceiling(qty * minPerEa);
+                        pending.Add((new Interval(slot.StartMin, slot.StartMin + useMin), qty));
+                        left -= qty;
+                        if (left <= 0) break;
+                    }
                 }
                 else
                 {

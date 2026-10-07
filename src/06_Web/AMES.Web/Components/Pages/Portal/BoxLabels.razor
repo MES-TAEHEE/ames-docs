@@ -7,20 +7,20 @@
 @inject BoxLabelSelection Selection
 @inject PortalQuantityFormat QtyFormat
 @inject ILogger<BoxLabels> Logger
-<DeliveryPrintMessages />
 <PageTitle>@L["Portal.Text.BoxLabels"] · AMES</PageTitle>
 <div class="label-tools">
     <a href="/portal/deliveries">@L["Portal.Text.BackToDeliveryManagement"]</a>
     @if(_boxes.Count>0){
-        <button data-delivery-note-print>@L["Portal.Text.PrintSavePDF"]</button>
-        <button data-delivery-note-download="@($"BOX-LABELS-{Selection.Delivery}")">@L["Portal.Text.DownloadPrintableFile"]</button>
+        <button type="button" data-delivery-note-print data-no-busy>@L["Btn.Print"]</button>
     }
-    <p data-delivery-note-status>@_message</p>
+    @if(_message.Length>0){<p role="alert">@_message</p>}
 </div>
 @if(_boxes.Count>0){
 <BoxLabelSheet Boxes="_boxes" QuantityText="@((decimal q,string u)=>QtyFormat.Text(q,u))" />
 }
 @code {
+    [SupplyParameterFromQuery(Name="delivery")] public string? Delivery {get;set;}
+    [SupplyParameterFromQuery(Name="ids")] public string? Ids {get;set;}
     List<ScmRepository.DeliveryBox> _boxes=[];
     string _message="";
     protected override async Task OnInitializedAsync()
@@ -28,10 +28,12 @@
         var u=(await Authentication.GetAuthenticationStateAsync()).User;
         var user=u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if(string.IsNullOrEmpty(user)||!PortalAuth.IsPortalUser(u))return;
-        if(Selection.Ids.Count==0){_message=L["Portal.Text.SelectLabelsFromTheBoxList"];return;}
+        var delivery=Delivery??Selection.Delivery;
+        var ids=Ids is null ? Selection.Ids : Ids.Split(',',StringSplitOptions.RemoveEmptyEntries).Select(x=>long.TryParse(x,out var id)?id:0).Where(x=>x>0).ToHashSet();
+        if(ids.Count==0){_message=L["Portal.Text.SelectLabelsFromTheBoxList"];return;}
         try{
-            _boxes=Scm.ListDeliveryBoxes(Selection.Delivery,user).Where(b=>Selection.Ids.Contains(b.Id)).ToList();
-            if(_boxes.Count!=Selection.Ids.Count){_boxes=[];_message=L["Portal.Text.TheDeliveryChangedOrWasCancelledSelectBoxesAgain"];}
+            _boxes=Scm.ListDeliveryBoxes(delivery,user).Where(b=>ids.Contains(b.Id)).ToList();
+            if(_boxes.Count!=ids.Count){_boxes=[];_message=L["Portal.Text.TheDeliveryChangedOrWasCancelledSelectBoxesAgain"];}
         }catch(Exception ex){Logger.LogError(ex,"Box labels read failed");_message=L["Portal.Text.UnableToLoadLabels"];}
     }
 }

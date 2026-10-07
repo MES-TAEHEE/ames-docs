@@ -12,6 +12,9 @@
 .scm-creation-actions ::deep button { flex-shrink:0; white-space:nowrap; }
 .scm-line-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .scm-lines { width:100%; }
+.scm-mismatch-button { display:inline-flex; align-items:center; justify-content:center; gap:4px; border:0; border-radius:6px; padding:4px 8px; color:var(--ames-tx-green-300); background:rgba(34,197,94,.14); cursor:pointer; font:inherit; }
+.scm-mismatch-button:hover { background:rgba(34,197,94,.25); }
+.scm-mismatch-button ::deep .rzi { font-size:17px; }
 .scm-lines td:nth-child(2) { min-width:240px; }
 .scm-lines td { vertical-align:middle; }
 .scm-lines .dim { white-space:normal; max-width:390px; padding-top:4px; }

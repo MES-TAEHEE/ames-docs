@@ -41,7 +41,8 @@ public sealed partial class ScmRepository
 
     static string RegisterSupplierDelivery(SqlConnection conn,SqlTransaction tx,string number,DateTime date,
         IReadOnlyList<DeliveryInput> items,IReadOnlyDictionary<int,string> versions,Guid requestId,string userId,string actor,
-        IReadOnlyList<string>? caseNumbers=null,IReadOnlyList<IReadOnlyList<CaseBoxInput>>? draftCases=null,bool caseBatch=false)
+        IReadOnlyList<string>? caseNumbers=null,IReadOnlyList<IReadOnlyList<CaseBoxInput>>? draftCases=null,bool caseBatch=false,
+        IReadOnlyList<LooseItemInput>? looseItems=null)
     {
         if(requestId==Guid.Empty || items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
             items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity))
@@ -82,7 +83,7 @@ public sealed partial class ScmRepository
         if(caseNumbers is not null) ValidatePreparedCases(conn,tx,number,caseNumbers,items,caseBatch);
         foreach(var item in items)
         {
-            if(caseNumbers is null)
+            if(caseNumbers is null && looseItems is null)
             using(var packing=new SqlCommand("""
                 SELECT m.PackingQty FROM dbo.WH_PurchaseOrder p
                 JOIN dbo.SCM_ItemVendor m WITH(HOLDLOCK) ON m.ItemNo=p.ItemNo AND m.VendorID=p.VendorID
@@ -121,7 +122,8 @@ public sealed partial class ScmRepository
             using var line=new SqlCommand("INSERT dbo.SCM_DeliveryLine(DeliveryID,PoID,Quantity,VendorLotNo,ProductionDate) VALUES(@D,@P,@Q,@Lot,@Prod)",conn,tx);
             Add(line,("@D",id),("@P",item.PoID),("@Q",item.Quantity),("@Lot",DeliveryLot(item,date)),("@Prod",(item.ProductionDate??date).Date));line.ExecuteNonQuery();
         }
-        if(caseNumbers is null) SyncDeliveryBoxes(conn,tx,id);
+        if(looseItems is not null) InsertLooseLabels(conn,tx,id,looseItems);
+        else if(caseNumbers is null) SyncDeliveryBoxes(conn,tx,id);
         else AttachPreparedCases(conn,tx,id,caseNumbers,!caseBatch);
         using var touch=new SqlCommand("UPDATE dbo.WH_PurchaseOrder SET ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE PoNumber=@N",conn,tx);
         Add(touch,("@Actor",actor),("@N",number));touch.ExecuteNonQuery();

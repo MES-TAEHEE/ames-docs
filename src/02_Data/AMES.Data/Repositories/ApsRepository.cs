@@ -52,7 +52,8 @@ public sealed class ApsRepository
     /// <summary>완제품 후보 — 완제품(마지막 라인 단계) 공정·라인, INJ 단계 유무, INJ 다음 라인 단계(같은 품번 사출품의 "다음 단계 실적").</summary>
     sealed record FgInfo(ItemRow Item, string FgLine, string FgProcess, bool HasInjStep, string? NextProcess, string? NextLine);
     sealed record InjInfo(string ItemNo, string LineId, string MoldId, MoldItemRow Mold, MoldLineRow? MoldLine);
-    sealed record LineDay(ShiftBands.DayNightBands Full, double DayH, double NightH);
+    /// <summary>(라인, 날짜)의 교대별 가동 구간(Full, SortOrder 순)과 교대 시간 목록(Shifts = 엔진 LineShift.Shifts), 축 원점 DayStart.</summary>
+    sealed record LineDay(IReadOnlyList<ShiftBands.ShiftBand> Full, IReadOnlyList<ShiftHours> Shifts, int DayStart);
 
     static bool Eq(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
     static string N(double v)  => v.ToString("0.##", CultureInfo.InvariantCulture);
@@ -346,14 +347,14 @@ public sealed class ApsRepository
                 if (patterns.Resolve(line) is not { } pat)
                 {
                     // 미설정 — 행 계산은 빈 능력으로 이어가고 Cap 호출이 끝난 뒤 한 번에 ApsConfigurationException(라인 목록)으로 막는다
-                    ld = new LineDay(new ShiftBands.DayNightBands(Array.Empty<SlotPacker.Interval>(), Array.Empty<SlotPacker.Interval>(), 6 * 60), 0, 0);
+                    ld = new LineDay(Array.Empty<ShiftBands.ShiftBand>(), Array.Empty<ShiftHours>(), 6 * 60);
                     return lineDays[key] = ld;
                 }
                 var cap = LineScheduleRepository.ReadDayCapacity(conn, tx, line, Dt(ApsCalendar.Parse(date)), pat);
-                var full = ShiftBands.Split(cap.ShiftBands ?? Array.Empty<(SlotPacker.Interval, int)>(), Array.Empty<SlotPacker.Interval>(), cap.DayStart);
-                if (full.Day.Count + full.Night.Count == 0 && capWarned.Add(line))
+                var full = ShiftBands.SplitByShift(cap.ShiftBands ?? Array.Empty<(SlotPacker.Interval, int, string)>(), Array.Empty<SlotPacker.Interval>(), cap.DayStart);
+                if (full.Sum(s => s.Minutes) == 0 && capWarned.Add(line))
                     warnings.Add($"라인 {line}: 패턴 {pat} 에 가동 구간이 없어 {date} 가동 시간을 0h 로 봅니다.");
-                ld = new LineDay(full, full.DayHours, full.NightHours);
+                ld = new LineDay(full, full.Select(s => new ShiftHours(s.Code, Math.Round(s.Hours, 2))).ToList(), cap.DayStart);
                 return lineDays[key] = ld;
             }
 
@@ -371,12 +372,11 @@ public sealed class ApsRepository
 
                 // 품번별 캐비티 = 금형 캐비티 ÷ 패밀리 품번 수(내림, 최소 1). 품번마다 다른 캐비티 수(비대칭 패밀리 금형)는 마스터에 없다 — PartCavityCount 는 09-30 폐지.
                 // 나누어떨어지면(LH/RH 2캐비티 등) 정상이라 경고하지 않고, 나머지가 생길 때만(캐비티 3 에 품번 2) 내림값을 쓴다고 알린다
-                int partCav = Math.Max(1, (info.Mold.MoldCavity ?? activeCount) / activeCount);
+                int partCav = ApsUph.PartCavity(info.Mold.MoldCavity, activeCount);
                 if (activeCount > 1 && info.Mold.MoldCavity is int mcv && mcv % activeCount != 0)
                     warnings.Add($"사출품 {child}: 금형 {info.MoldId}{(info.Mold.Color is null ? "" : $"({info.Mold.Color})")} 은 품번 {activeCount}개를 같이 찍는데 캐비티 {mcv} 가 나누어떨어지지 않아 균등 분할({partCav})로 봅니다.");
-                double uph = 0;
-                if (info.MoldLine?.Uph is decimal mu && mu > 0)
-                    uph = info.Mold.MoldCavity is int mc && mc > 0 ? (double)mu * partCav / mc : (double)mu;
+                // 유효 UPH = ApsUph.Effective — WO 생성(CreateApsWorkOrders)도 같은 값을 쓴다(2026-10-07 UPH 통일)
+                double uph = info.MoldLine?.Uph is decimal mu ? (double)ApsUph.Effective(mu, info.Mold.MoldCavity, activeCount) : 0;
                 if (uph <= 0)
                     warnings.Add($"사출품 {child}: 금형 {info.MoldId} 의 {info.LineId} UPH 가 없어 가동시간을 계산할 수 없습니다.");
                 int pack = it?.BoxQty is int bq && bq > 0 ? bq : 1;
@@ -420,10 +420,18 @@ public sealed class ApsRepository
                     Days = dates.Select(d =>
                     {
                         var dd = ApsCalendar.Parse(d);
-                        double day = 0, night = 0;
+                        // 등록 계획(기존 WO 슬롯)을 슬롯 시작 시각이 속한 교대에 모은다(2026-10-07 교대 모델 — 종전 주/야 분류의 일반화)
+                        var ld = Cap(info.LineId, d);
+                        var byShift = ld.Shifts.Select(s => new ShiftQty(s.Code, 0)).ToList();
                         foreach (var (s, qtyPer) in mySlots.Where(x => x.Slot.Date == dd))
-                            if (ShiftBands.IsDay(Cap(info.LineId, d).Full, s.StartMin)) day += (double)s.Qty * qtyPer; else night += (double)s.Qty * qtyPer;
-                        return new InjectionDay { Date = d, Requirement = 0, PlanDay = day, PlanNight = night, Locked = day + night > 0 };
+                        {
+                            var code = ShiftBands.ShiftOf(ld.Full, s.StartMin, ld.DayStart);
+                            var i = byShift.FindIndex(x => string.Equals(x.Code, code, StringComparison.OrdinalIgnoreCase));
+                            if (i < 0) { byShift.Add(new ShiftQty(code, 0)); i = byShift.Count - 1; }
+                            byShift[i] = byShift[i] with { Qty = byShift[i].Qty + (double)s.Qty * qtyPer };
+                        }
+                        var (day, night) = ApsShiftCompat.Derive(byShift);
+                        return new InjectionDay { Date = d, Requirement = 0, PlanDay = day, PlanNight = night, PlanShifts = byShift.Count > 0 ? byShift : null, Locked = day + night > 0 };
                     }).ToList(),
                 });
                 actuals.Add(ActualsRules.Display(snap));
@@ -458,12 +466,17 @@ public sealed class ApsRepository
             foreach (var line in injLines.OrderBy(l => l, StringComparer.Ordinal))
             {
                 var perDate = dates.Select(d => (Date: d, Cap: Cap(line, d))).ToList();
-                var mode = perDate.GroupBy(x => (x.Cap.DayH, x.Cap.NightH))
+                // 최빈 교대 목록(코드·시간)을 LineShift 로, 다른 날은 예외로 — Day/Night 는 파생값(첫 교대 / 나머지 합)
+                var mode = perDate.GroupBy(x => ShiftKey(x.Cap.Shifts))
                                   .OrderByDescending(g => g.Count()).ThenBy(g => g.First().Date, StringComparer.Ordinal)
-                                  .First().Key;
-                settings.LineShifts.Add(new LineShift { LineCd = line, Day = mode.DayH, Night = mode.NightH, Stations = 1 });
-                foreach (var x in perDate.Where(x => (x.Cap.DayH, x.Cap.NightH) != mode))
-                    settings.ShiftExceptions.Add(new ShiftException { Date = x.Date, LineCd = line, Day = x.Cap.DayH, Night = x.Cap.NightH, Note = "라인 시간 패턴" });
+                                  .First().First().Cap;
+                var (mDay, mNight) = DeriveHours(mode.Shifts);
+                settings.LineShifts.Add(new LineShift { LineCd = line, Day = mDay, Night = mNight, Shifts = mode.Shifts.ToList(), Stations = 1 });
+                foreach (var x in perDate.Where(x => ShiftKey(x.Cap.Shifts) != ShiftKey(mode.Shifts)))
+                {
+                    var (eDay, eNight) = DeriveHours(x.Cap.Shifts);
+                    settings.ShiftExceptions.Add(new ShiftException { Date = x.Date, LineCd = line, Day = eDay, Night = eNight, Shifts = x.Cap.Shifts.ToList(), Note = "라인 시간 패턴" });
+                }
             }
             // Cap 호출은 여기서 끝난다 — 패턴이 없는 사출 라인이 하나라도 있으면 결과를 내지 않는다(조용히 0h 로 계산하지 않는다)
             if (patterns.Problems.Count > 0) throw new ApsConfigurationException(patterns.Problems);
@@ -498,6 +511,10 @@ public sealed class ApsRepository
     internal static double EdgeQtyPer(decimal qtyPer, decimal scrapPct) => (double)(qtyPer * (1 + scrapPct / 100m));
     /// <summary>BOM 규칙이 금형 품번을 찾아 내려가는 최대 깊이(완제품 바로 아래 = 0). 마스터 리스트는 2단계(서브조립 → 코어·레일)면 닿는다.</summary>
     internal const int BomWalkMaxDepth = 5;
+
+    static string ShiftKey(IReadOnlyList<ShiftHours> s) => string.Join("|", s.Select(x => $"{x.Code}={x.Hours.ToString("0.##", CultureInfo.InvariantCulture)}"));
+    /// <summary>교대 목록 → 호환 (Day, Night) 시간 = 첫 교대 / 나머지 합(ApsShiftCompat.Derive 와 같은 규칙).</summary>
+    static (double Day, double Night) DeriveHours(IReadOnlyList<ShiftHours> s) => s.Count == 0 ? (0, 0) : (s[0].Hours, Math.Round(s.Skip(1).Sum(x => x.Hours), 2));
 
     /// <summary>사출품 사용량(스펙 §4.4) = Σ 부모 간선마다 다음 단계 실적 × 간선 QtyPer(스크랩 포함). ActualsRules 는 이 곱을 받기만 한다 — 정본 테스트 ApsUsedQtyTests.</summary>
     internal static decimal UsedQty(IEnumerable<(decimal NextStepProduced, double QtyPer)> parents)
@@ -932,7 +949,8 @@ public sealed class ApsRepository
     public sealed record ApsRunDetail(ApsRunRow Row, string SettingsJson, string BundleJson, string ResultJson);
     public sealed record ApsPlanLineRow(int PlanLineId, int RunId, string Kind, string ItemNo, string LineId, DateOnly PlanDate,
                                         decimal Demand, decimal Supply, decimal Requirement, decimal PlanDay, decimal PlanNight,
-                                        decimal Stock, bool Locked, string Status, int? WoId, bool SameItem = false);   // SameItem = 같은 품번 규칙 사출 행(자기 간선 BomEdge(X,X,1)) — 「WO 생성」 대상, ASM 행은 false
+                                        decimal Stock, bool Locked, string Status, int? WoId, bool SameItem = false,
+                                        IReadOnlyList<ShiftQty>? Shifts = null);   // SameItem = 같은 품번 규칙 사출 행(자기 간선 BomEdge(X,X,1)) — 「WO 생성」 대상, ASM 행은 false. Shifts = 교대별 수량(PP_ApsPlanLineShift, 2026-10-07), 없으면 null
     public sealed record ApsRunSave(ApsQuery Query, string SettingsJson, string BundleJson, string ResultJson,
                                     IReadOnlyList<ApsPlanLineRow> Lines, int WarningCount);
 
@@ -972,12 +990,17 @@ public sealed class ApsRepository
                 runId = (int)ins.ExecuteScalar()!;
             }
 
+            using (var shiftIns = new SqlCommand("INSERT INTO dbo.PP_ApsPlanLineShift (PlanLineID, ShiftCode, Qty) VALUES (@Id, @Code, @Qty);", conn, tx))
             using (var line = new SqlCommand("""
                 INSERT INTO dbo.PP_ApsPlanLine
                        (RunID, Kind, ItemNo, LineID, PlanDate, Demand, Supply, Requirement, PlanDay, PlanNight, Stock, Locked, Status, WoID, SameItem)
+                OUTPUT INSERTED.PlanLineID
                 VALUES (@Run, @Kind, @Item, @Line, @Date, @Dem, @Sup, @Req, @Day, @Night, @Stock, @Locked, @Status, NULL, @SameItem);
                 """, conn, tx))
             {
+                shiftIns.Parameters.Add("@Id",   SqlDbType.Int);
+                shiftIns.Parameters.Add("@Code", SqlDbType.VarChar, 10);
+                var pq = shiftIns.Parameters.Add("@Qty", SqlDbType.Decimal); pq.Precision = 14; pq.Scale = 3;
                 line.Parameters.Add("@Run",    SqlDbType.Int).Value = runId;
                 line.Parameters.Add("@Kind",   SqlDbType.Char, 3);
                 line.Parameters.Add("@Item",   SqlDbType.VarChar, 20);
@@ -1005,7 +1028,14 @@ public sealed class ApsRepository
                     line.Parameters["@Locked"].Value = r.Locked;
                     line.Parameters["@Status"].Value = r.Status;
                     line.Parameters["@SameItem"].Value = r.SameItem;
-                    line.ExecuteNonQuery();
+                    int planLineId = (int)line.ExecuteScalar()!;
+                    foreach (var sq in r.Shifts ?? Array.Empty<ShiftQty>())
+                    {
+                        shiftIns.Parameters["@Id"].Value   = planLineId;
+                        shiftIns.Parameters["@Code"].Value = sq.Code;
+                        shiftIns.Parameters["@Qty"].Value  = Math.Round((decimal)sq.Qty, 3, MidpointRounding.AwayFromZero);
+                        shiftIns.ExecuteNonQuery();
+                    }
                 }
             }
             tx.Commit();
@@ -1040,12 +1070,34 @@ public sealed class ApsRepository
     public List<ApsPlanLineRow> ListPlanLines(int runId)
     {
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand($"SELECT {PlanLineColumns} FROM dbo.PP_ApsPlanLine WHERE RunID = @Run ORDER BY Kind, ItemNo, PlanDate;", conn);
-        cmd.Parameters.Add("@Run", SqlDbType.Int).Value = runId;
-        using var rdr = cmd.ExecuteReader();
         var list = new List<ApsPlanLineRow>();
-        while (rdr.Read()) list.Add(MapPlanLine(rdr));
-        return list;
+        using (var cmd = new SqlCommand($"SELECT {PlanLineColumns} FROM dbo.PP_ApsPlanLine WHERE RunID = @Run ORDER BY Kind, ItemNo, PlanDate;", conn))
+        {
+            cmd.Parameters.Add("@Run", SqlDbType.Int).Value = runId;
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read()) list.Add(MapPlanLine(rdr));
+        }
+        // 교대별 수량(2026-10-07) — WORK_SHIFT.SortOrder 순(저장 순서와 같다)
+        var shifts = new Dictionary<int, List<ShiftQty>>();
+        using (var cmd = new SqlCommand("""
+            SELECT s.PlanLineID, s.ShiftCode, s.Qty
+            FROM   dbo.PP_ApsPlanLineShift s
+            JOIN   dbo.PP_ApsPlanLine l ON l.PlanLineID = s.PlanLineID
+            OUTER  APPLY (SELECT MIN(x.SortOrder) AS SortOrder FROM dbo.MD_CodeItem x WHERE x.GroupCode = 'WORK_SHIFT' AND x.CodeValue = s.ShiftCode) c
+            WHERE  l.RunID = @Run
+            ORDER  BY s.PlanLineID, ISNULL(c.SortOrder, 9999), s.ShiftCode;
+            """, conn))
+        {
+            cmd.Parameters.Add("@Run", SqlDbType.Int).Value = runId;
+            using var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                int id = (int)rdr["PlanLineID"];
+                if (!shifts.TryGetValue(id, out var l)) shifts[id] = l = new();
+                l.Add(new ShiftQty((string)rdr["ShiftCode"], (double)rdr.GetDecimal(rdr.GetOrdinal("Qty"))));
+            }
+        }
+        return list.Select(x => shifts.TryGetValue(x.PlanLineId, out var l) ? x with { Shifts = l } : x).ToList();
     }
 
     static ApsRunRow MapRun(SqlDataReader r) => new(

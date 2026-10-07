@@ -45,7 +45,8 @@ public static class ApsPlanLines
             {
                 InjectionCell? c = cells is not null && cells.TryGetValue(d.Date, out var cc) ? cc : null;
                 rows.Add(new(0, 0, ApsRepository.KindInj, r.PartNo, line, ApsCalendar.Parse(d.Date),
-                             0m, 0m, Q(c?.Requirement ?? 0), Q(d.PlanDay), Q(d.PlanNight), Q(c?.Stock ?? 0), d.Locked, c?.Status ?? "ok", null, sameItem));
+                             0m, 0m, Q(c?.Requirement ?? 0), Q(d.PlanDay), Q(d.PlanNight), Q(c?.Stock ?? 0), d.Locked, c?.Status ?? "ok", null, sameItem,
+                             d.PlanShifts?.Select(s => new ShiftQty(s.Code, (double)Q(s.Qty))).ToList()));
             }
         }
         return rows;
