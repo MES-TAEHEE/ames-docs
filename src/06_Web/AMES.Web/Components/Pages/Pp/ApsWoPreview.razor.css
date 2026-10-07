@@ -1,0 +1,64 @@
+/* PP-APS 「WO 생성」 미리보기 — 날짜 탭 × 전체 라인 24시간 줄. 축·밴드·레인 클래스(pp-gantt-*)는 app.css 의 PP-LSB 것을 그대로 쓰고 여기서는 배치·강조만 더한다. */
+
+.aps-busybar { display: flex; align-items: center; gap: 12px; padding: 6px 12px 10px; font-size: 12px; color: var(--ames-tx-blue-300); }
+
+.wp-targets { max-height: 260px; overflow: auto; margin: 0 14px 12px; border: 1px solid var(--ames-bd-white-a12); border-radius: 8px; }
+
+/* 보드는 화면 세로의 대부분을 차지하되 안에서 스크롤 — 아래 WO 표·거부 목록은 페이지 스크롤로 내려간다 */
+.wp-board { max-height: calc(100vh - 330px); min-height: 320px; overflow: auto; padding: 0 14px 12px; }
+
+/* 날짜 탭 */
+.wp-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.wp-tab {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+    padding: 4px 10px; border-radius: 6px; cursor: pointer;
+    background: transparent; border: 1px solid var(--ames-bd-white-a12); color: var(--ames-tx-slate-300);
+    font-family: var(--ames-font-mono); font-size: calc(11px + var(--ames-fs-bump)); line-height: 1.2;
+}
+.wp-tab span { font-size: calc(10px + var(--ames-fs-bump)); opacity: .75; }
+.wp-tab:hover { border-color: rgba(147,197,253,.5); }
+.wp-tab.on { border-color: #60a5fa; background: rgba(96,165,250,.14); color: var(--ames-tx-blue-300); }
+
+/* 라벨 열 + 타임라인 열 */
+.wp-grid { display: grid; grid-template-columns: 200px minmax(0, 1fr); align-items: stretch; }
+.wp-lbl { padding: 6px 10px 6px 0; border-bottom: 1px solid var(--ames-bd-white-a04); display: flex; flex-direction: column; gap: 3px; justify-content: center; min-width: 0; }
+.wp-ruler-lbl { border-bottom: 1px solid var(--ames-bd-white-a08); }
+.wp-line { display: flex; align-items: center; gap: 6px; font-size: calc(12px + var(--ames-fs-bump)); }
+.wp-type { font-size: calc(9px + var(--ames-fs-bump)); padding: 0 5px; }
+.wp-line-name { font-size: calc(10px + var(--ames-fs-bump)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wp-line-stat { display: flex; flex-wrap: wrap; gap: 4px; }
+.wp-line-stat .pill { font-size: calc(9px + var(--ames-fs-bump)); }
+
+.wp-ruler { position: relative; }
+.wp-row { height: 78px; }
+/* 밴드는 상단 절반(세그먼트 이름만), 블록은 하단 절반 — PP-LSB 와 같은 두 레인 */
+::deep .wp-band { height: calc(50% - 6px); top: 4px; padding: 2px 6px 0; justify-content: flex-start; cursor: default; }
+::deep .wp-band:hover { filter: none; }
+::deep .wp-blk { top: 50%; height: calc(50% - 4px); padding: 0 6px; cursor: pointer; }
+::deep .wp-blk:hover { filter: brightness(1.15); }
+
+/* 이번 생성(강조) vs 기존(흐림) — 기존 WO 는 회색 계열로 뒤로 물러난다 */
+::deep .pp-gantt-wo.wp-blk.new { background: rgba(168,85,247,.42); border: 1px solid rgba(216,180,254,.95); color: var(--ames-tx-purple-200); z-index: 3; box-shadow: 0 0 0 1px rgba(216,180,254,.35); }
+::deep .pp-gantt-wo.wp-blk.new.late { border-color: #fbbf24; box-shadow: 0 0 0 1px rgba(251,191,36,.6) inset; }
+::deep .pp-gantt-wo.wp-blk.old { background: rgba(148,163,184,.14); border: 1px solid rgba(148,163,184,.4); color: var(--ames-tx-slate-400); z-index: 2; }
+::deep .pp-gantt-mc.wp-blk.new { border-style: solid; z-index: 3; }
+::deep .pp-gantt-mc.wp-blk.old { background: rgba(148,163,184,.12); border-color: rgba(148,163,184,.4); color: var(--ames-tx-slate-400); z-index: 2; }
+
+/* 범례 칩 색 */
+.lg-new  { background: rgba(168,85,247,.75); border: 1px solid rgba(216,180,254,.95); }
+.lg-late { background: rgba(168,85,247,.45); border: 1px solid #fbbf24; }
+.lg-old  { background: rgba(148,163,184,.3); border: 1px solid rgba(148,163,184,.6); }
+.lg-mc   { background: rgba(167,139,250,.4); border: 1px dashed rgba(167,139,250,.9); }
+
+.wp-table { margin: 0 14px 12px; }
+
+/* 블록 툴팁 — 마우스 진입 좌표에 고정(네이티브 title 대신, 지연 없이 바로) */
+.wp-tip {
+    position: fixed; z-index: 1300; pointer-events: none; max-width: 320px;
+    padding: 8px 10px; border-radius: 8px; white-space: pre-wrap; line-height: 1.45;
+    font-family: var(--ames-font-mono); font-size: calc(11px + var(--ames-fs-bump));
+    background: var(--ames-sf-111c30); color: var(--ames-tx-dbe5ef);
+    border: 1px solid rgba(147,197,253,.45); box-shadow: 0 10px 28px rgba(2,6,23,.45);
+}
+.wp-tip > div:first-child { font-weight: 700; color: var(--ames-tx-purple-200); }
+.wp-tip-hint { margin-top: 4px; font-size: calc(10px + var(--ames-fs-bump)); }

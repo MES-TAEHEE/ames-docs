@@ -221,6 +221,31 @@ public class ApsWoCreateTests
     static PpRepository.ApsWoResult Run(AmesConnectionFactory f, int runId, int[] ids, bool dryRun = false)
         => new PpRepository(f).CreateApsWorkOrders(runId, ids, Actor, dryRun);
 
+    /// <summary>2026-10-07 미리보기 보드: 라인 × 날짜 능력은 WO 생성과 같은 APS 패턴 규칙 — 사출 라인은 지정 패턴, 완제품 라인은 설정이 없으면 자동 해석(PP_LineSchedule 저장 패턴), 사출 라인 미설정은 거부.</summary>
+    [SkippableFact]
+    public void Day_boards_use_the_same_pattern_rule_as_wo_creation()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            var pp = new PpRepository(f);
+            var boards = pp.ListApsDayBoards(new[] { LineInj }, new[] { LineInj, LineImg }, new[] { D0, D1 });
+
+            Assert.Equal(4, boards.Count);
+            var inj = boards.Single(b => b.LineId == LineInj && b.Date == D0).Capacity;
+            Assert.Equal(Pattern, inj.PatternId);
+            Assert.Equal(480, inj.DayStart);
+            Assert.Equal(new[] { (480, 720), (780, 960), (960, 1440) }, inj.OperatingBands.Select(b => (b.StartMin, b.EndMin)).ToArray());
+            Assert.Equal(Pattern, boards.Single(b => b.LineId == LineImg && b.Date == D1).Capacity.PatternId);   // IMG 는 APS 설정 없음 → placeholder 행의 패턴
+
+            ApsPatternConfig.Apply(f, null, (LineInj, null));
+            var ex = Assert.Throws<ApsConfigurationException>(() => pp.ListApsDayBoards(new[] { LineInj }, new[] { LineInj }, new[] { D0 }));
+            Assert.Contains(ex.Lines, l => l.Contains(LineInj));
+        }
+        finally { Cleanup(f); }
+    }
+
     /// <summary>2026-10-06: 사출 라인에 APS 가동 시간 패턴(라인 지정·기본 패턴)이 없으면 WO 를 하나도 만들지 않고 ApsConfigurationException — 실행도 Saved 그대로.</summary>
     [SkippableFact]
     public void Rejects_whole_run_when_an_injection_line_has_no_aps_pattern()

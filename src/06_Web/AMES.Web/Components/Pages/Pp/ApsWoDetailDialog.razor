@@ -1,0 +1,121 @@
+@inject DialogService Dialog
+@inject UomFormat UomFmt
+@inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Aps
+@using AMES.Data.Repositories
+
+@* PP-APS WO 미리보기 보드의 블록 클릭 상세(2026-10-07) — 이번 생성 WO 는 전 단계 배치·MC·부족까지, 기존 슬롯·MC·PM 은 블록 정보만 *@
+<div style="display:flex;flex-direction:column;gap:12px;min-width:640px;">
+    <div class="wp-tiles">
+        @if (IsWo)
+        {
+            <div class="wp-tile"><span class="dim">@L["Col.WoNo"]</span><b class="code">@(Block.WoNumber ?? "—")</b></div>
+            <div class="wp-tile"><span class="dim">@L["Col.ItemNo"]</span><b class="code">@(Block.ItemNo ?? "—")</b></div>
+            @if (Order is { } o)
+            {
+                <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Date"]</span><b class="code">@o.PlanDate.ToString(DateFmt.Date)</b></div>
+                <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.So"]</span><b>@(o.SoId is int so ? $"SO #{so}" : L["PP.Aps.Wo.StockWo"].Value)</b></div>
+                <div class="wp-tile"><span class="dim">@L["Col.Qty"]</span><b>@UomFmt.Qty(o.Qty, null)</b></div>
+                <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Deadline"] / @L["Col.Due"]</span><b class="code">@(o.Deadline?.ToString(DateFmt.Date) ?? "—") / @(o.DueDate?.ToString(DateFmt.Date) ?? "—")</b></div>
+                <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Late"]</span><b>@(o.LateQty > 0 ? UomFmt.Qty(o.LateQty, null) : "—")</b></div>
+                <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Short"]</span><b class="@(o.ShortQty > 0 ? "bad" : "")">@(o.ShortQty > 0 ? UomFmt.Qty(o.ShortQty, null) : "—")</b></div>
+            }
+            else
+            {
+                <div class="wp-tile"><span class="dim">@L["Col.Qty"]</span><b>@UomFmt.Qty(Block.Qty, null)</b></div>
+            }
+        }
+        else if (IsMc)
+        {
+            <div class="wp-tile"><span class="dim">@L["PP.LineSchedule.Mc.Name"]</span><b class="code">@(Block.Title ?? Block.MoldId ?? "—")</b></div>
+            @if (Block.WoNumber is not null) { <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Detail.Before"]</span><b class="code">@Block.WoNumber · @Block.ItemNo</b></div> }
+        }
+        else
+        {
+            <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Detail.Pm"]</span><b>@(Block.Title ?? "—")</b></div>
+        }
+    </div>
+
+    <div class="wp-sec">
+        <div class="wp-sec-h">
+            <span>@L["PP.Aps.Wo.Detail.ThisSlot"] — <span class="code">@LineId · @Date.ToString(DateFmt.Date) · @Hm(Block.StartMin)~@Hm(Block.EndMin) (@Block.Minutes@L["Lbl.Min"])</span></span>
+            @if (IsWo && Block.MoldId is not null) { <span class="pill mute">@L["PP.Aps.Wo.Detail.Mold"] @Block.MoldId</span> }
+            @if (Block.Late) { <span class="pill warn">@L["PP.Aps.Wo.Lgd.Late"]</span> }
+        </div>
+        @if (Block.Kind is ApsWoBoard.BlockKind.OldWo or ApsWoBoard.BlockKind.OldMoldChange) { <div class="dim">@L["PP.Aps.Wo.Detail.ExistingSlot"]</div> }
+        @if (Block.Siblings.Count > 0)
+        {
+            <div class="dim" style="margin-top:6px;">@L["PP.Aps.Wo.Siblings"]</div>
+            <table class="ames-table" style="width:100%;">
+                <thead><tr><th>@L["Col.WoNo"]</th><th>@L["Col.ItemNo"]</th><th style="text-align:right;">@L["Col.Qty"]</th></tr></thead>
+                <tbody>@foreach (var s in Block.Siblings) { <tr><td class="code">@s.WoNumber</td><td class="code">@s.ItemNo</td><td style="text-align:right;">@UomFmt.Qty(s.Qty, null)</td></tr> }</tbody>
+            </table>
+        }
+    </div>
+
+    @if (Order is { } wo)
+    {
+        var injSeq = ApsWoBoard.InjStepSeq(wo);
+        <div class="wp-sec">
+            <div class="wp-sec-h">@L["PP.Aps.Wo.Detail.Placements"]</div>
+            <table class="ames-table" style="width:100%;">
+                <thead><tr><th>@L["PP.Aps.Wo.Detail.Step"]</th><th>@L["Col.Line"]</th><th>@L["Col.Date"]</th><th>@L["Col.Time"]</th><th style="text-align:right;">@L["Lbl.Min"]</th><th style="text-align:right;">@L["Col.Qty"]</th><th>@L["PP.Aps.Wo.Detail.Mold"]</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var p in wo.Placements.OrderBy(p => p.StepSeq).ThenBy(p => p.Date).ThenBy(p => p.StartMin))
+                    {
+                        bool here = p.LineId == LineId && DateOnly.FromDateTime(p.Date) == Date && p.StartMin == Block.StartMin && p.EndMin == Block.EndMin;
+                        <tr class="@(here ? "wp-here" : "")">
+                            <td>@(p.StepSeq == injSeq ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"]) <span class="dim">#@p.StepSeq</span></td>
+                            <td class="code">@p.LineId</td>
+                            <td class="code">@p.Date.ToString(DateFmt.Date)</td>
+                            <td class="code">@Hm(p.StartMin)~@Hm(p.EndMin)</td>
+                            <td style="text-align:right;">@(p.EndMin - p.StartMin)</td>
+                            <td style="text-align:right;">@UomFmt.Qty(p.Qty, null)</td>
+                            <td class="code">@(p.MoldId ?? "—")</td>
+                            <td>@if (p.Late) { <span class="pill warn">@L["PP.Aps.Wo.Lgd.Late"]</span> }</td>
+                        </tr>
+                    }
+                    @foreach (var m in wo.MoldChanges)
+                    {
+                        <tr>
+                            <td>@L["PP.LineSchedule.Mc.Name"]</td>
+                            <td class="code">@m.LineId</td>
+                            <td class="code">@m.Date.ToString(DateFmt.Date)</td>
+                            <td class="code">@Hm(m.StartMin)~@Hm(m.EndMin)</td>
+                            <td style="text-align:right;">@(m.EndMin - m.StartMin)</td>
+                            <td></td>
+                            <td class="code">@(m.FromMoldId is null ? m.ToMoldId : $"{m.FromMoldId} → {m.ToMoldId}")</td>
+                            <td></td>
+                        </tr>
+                    }
+                    @foreach (var sf in wo.Shortfalls)
+                    {
+                        <tr>
+                            <td>@(sf.StepSeq == injSeq ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"]) <span class="dim">#@sf.StepSeq</span></td>
+                            <td class="code">@sf.LineId</td>
+                            <td colspan="3"><span class="pill bad">@L["PP.Aps.Wo.Col.Short"]</span></td>
+                            <td style="text-align:right;">@UomFmt.Qty(sf.Qty, null)</td>
+                            <td></td><td></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Light" Click="@(() => Dialog.Close())" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public ApsWoBoard.Block Block { get; set; } = default!;
+    [Parameter] public PpRepository.ApsWoOrder? Order { get; set; }
+    [Parameter] public string LineId { get; set; } = "";
+    [Parameter] public DateOnly Date { get; set; }
+
+    bool IsWo => Block.Kind is ApsWoBoard.BlockKind.NewWo or ApsWoBoard.BlockKind.OldWo;
+    bool IsMc => Block.Kind is ApsWoBoard.BlockKind.NewMoldChange or ApsWoBoard.BlockKind.OldMoldChange;
+
+    static string Hm(int min) { int m = ((min % 1440) + 1440) % 1440; return $"{m / 60:00}:{m % 60:00}"; }
+}

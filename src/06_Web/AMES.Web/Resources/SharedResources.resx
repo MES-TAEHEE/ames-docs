@@ -10106,6 +10106,81 @@
   <data name="PP.Aps.Wo.Ok" xml:space="preserve">
     <value>WO {0}건 생성 · 지연 {1} · 부족 {2} · 거부 {3}</value>
   </data>
+  <data name="PP.Aps.Wo.Preview.PageTitle" xml:space="preserve">
+    <value>WO 생성 미리보기</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Targets" xml:space="preserve">
+    <value>대상 선택</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Refresh" xml:space="preserve">
+    <value>미리보기 갱신</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Back" xml:space="preserve">
+    <value>APS 로 돌아가기</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.New" xml:space="preserve">
+    <value>이번 생성 슬롯</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Late" xml:space="preserve">
+    <value>지연 배치</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Old" xml:space="preserve">
+    <value>기존 슬롯</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Mc" xml:space="preserve">
+    <value>금형 교체</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.New" xml:space="preserve">
+    <value>신규 {0} · {1}분</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.Short" xml:space="preserve">
+    <value>미배치 {0}</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.NoPattern" xml:space="preserve">
+    <value>가동 패턴 없음</value>
+  </data>
+  <data name="PP.Aps.Wo.Siblings" xml:space="preserve">
+    <value>형제 품번</value>
+  </data>
+  <data name="PP.Aps.Wo.Released" xml:space="preserve">
+    <value>이 실행은 이미 WO 가 생성됐습니다 (Released) — 보드는 조회만 됩니다</value>
+  </data>
+  <data name="PP.Aps.Wo.Done" xml:space="preserve">
+    <value>WO 생성이 끝났습니다 — 아래 보드는 실제 배치입니다</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Title" xml:space="preserve">
+    <value>WO 상세</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Mold" xml:space="preserve">
+    <value>금형</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Placements" xml:space="preserve">
+    <value>배치 슬롯 (전 단계)</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.ExistingSlot" xml:space="preserve">
+    <value>이번 생성이 아닌 기존 슬롯입니다</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.ThisSlot" xml:space="preserve">
+    <value>이 슬롯</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Step" xml:space="preserve">
+    <value>단계</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Pm" xml:space="preserve">
+    <value>예방보전 밴드</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Before" xml:space="preserve">
+    <value>앞 WO</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.ClickHint" xml:space="preserve">
+    <value>클릭하면 상세</value>
+  </data>
+  <data name="PP.Aps.Wo.Tab.Board" xml:space="preserve">
+    <value>라인 미리보기</value>
+  </data>
+  <data name="PP.Aps.Wo.Tab.Grid" xml:space="preserve">
+    <value>표 미리보기</value>
+  </data>
   <data name="PP.Aps.Confirm.WoUsesSaved" xml:space="preserve">
     <value>저장하지 않은 편집은 WO 생성에 반영되지 않습니다. 저장된 실행 #{0} 으로 진행할까요?</value>
   </data>

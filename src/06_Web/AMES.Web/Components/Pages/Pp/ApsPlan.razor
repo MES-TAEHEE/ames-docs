@@ -426,6 +426,7 @@ else
     // 권한 키(SYS_Screen.HRef) — R = 조회, E = 계산·편집·저장·WO 생성
     const string Href = "pp/aps-plan";
     bool _canEdit;
+    [SupplyParameterFromQuery(Name = "run")] public int? RunQuery { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -437,6 +438,8 @@ else
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         LoadOptions();
+        // WO 미리보기 페이지에서 돌아올 때 — 그 실행을 재현(재계산 없음)해 상태·Released 여부를 복원한다
+        if (RunQuery is int rq) await OpenRun(rq);
     }
 
     void LoadOptions()
@@ -718,7 +721,8 @@ else
     }
 
     // ── WO 생성 (스펙 §8) ──────────────────────────────────────────────
-    // 저장된 실행의 계획 행이 대상이다(화면 편집본이 아니다). 실행은 다이얼로그의 미리보기(dryRun) 뒤에만 된다
+    // 저장된 실행의 계획 행이 대상이다(화면 편집본이 아니다). 미리보기·실행은 전용 페이지(ApsWoPreview, 2026-10-07 — 전체 라인 보드)에서 하고,
+    // 돌아올 때 ?run= 으로 그 실행을 재현해 Released 여부를 DB 에서 다시 읽는다
     async Task OpenWoCreate()
     {
         if (!_canEdit || _busy || _state is not { SavedRunId: int runId, IsReleased: false } s) return;
@@ -729,21 +733,7 @@ else
                 new ConfirmOptions { OkButtonText = L["Msg.Yes"].Value, CancelButtonText = L["Msg.No"].Value });
             if (go != true) return;
         }
-        List<ApsRepository.ApsPlanLineRow> lines;
-        try { lines = Aps.ListPlanLines(runId); }
-        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); return; }
-
-        // 닫기 버튼만으로 닫히게 한다 — 실행 결과를 받아야 칩·편집 잠금을 DB 상태로 맞출 수 있다
-        var result = await Dialog.OpenAsync<ApsWoCreateDialog>(
-            L["PP.Aps.Wo.Title"].Value,
-            new Dictionary<string, object?> { ["RunId"] = runId, ["PlanLines"] = lines, ["Actor"] = _actor },
-            new DialogOptions { Width = "1000px", ShowClose = false, CloseDialogOnEsc = false });
-        if (result is not PpRepository.ApsWoResult r) return;
-
-        // 대상 행이 모두 WO 로 이어졌을 때만 Released 가 된다(거부·미선택 행이 남으면 Saved)
-        try { s.IsReleased = string.Equals(Aps.LoadRun(runId)?.Row.Status, ApsRepository.StatusReleased, StringComparison.OrdinalIgnoreCase); }
-        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); return; }
-        ShowMsg(string.Format(L["PP.Aps.Wo.Ok"].Value, r.Created, r.Late, r.Short, r.RejectedCount), r.Short > 0 || r.RejectedCount > 0);
+        Nav.NavigateTo($"/pp/aps-plan/wo-preview/{runId}");
     }
 
     // ── 설정 (읽기 전용 공통코드 + MD_ApsLineStage CRUD) ────────────────

@@ -39,6 +39,44 @@ public sealed partial class PpRepository
         public int RejectedCount => Rejected.Count;
     }
 
+    /// <summary>
+    /// 라인의 APS 가동 시간 패턴(CreateApsWorkOrders 와 미리보기 보드가 같은 규칙을 쓴다): 사출(대상) 라인은 라인 지정 → DEFAULT_PATTERN 이 반드시 있어야
+    /// 하고(strict — 없으면 null, 호출자가 Problems 로 거부), 완제품 라인은 아무 설정도 없으면 null(= ReadDayCapacity 자동 해석), 지정은 있는데
+    /// 없는/비활성 패턴이면 ApsConfigurationException.
+    /// </summary>
+    static string? ApsPatternFor(ApsSettingsLoader.Parsed parsed, ApsPatternResolver patterns, bool strict, string line)
+    {
+        if (strict) return patterns.Resolve(line);
+        if (parsed.EffectivePattern(line) is null) return null;
+        return patterns.Resolve(line) ?? throw new ApsConfigurationException(patterns.Problems);
+    }
+
+    /// <summary>(라인, 날짜)의 능력 — 미리보기 보드의 가동 밴드·하루 시작. Capacity.PatternId 는 실제로 해석된 패턴(자동 해석 포함).</summary>
+    public sealed record ApsDayBoard(string LineId, DateTime Date, LineScheduleRepository.DayCapacity Capacity);
+
+    /// <summary>
+    /// PP-APS 「WO 생성」 미리보기 보드(2026-10-07)가 라인 × 날짜의 가동 밴드를 읽는다 — CreateApsWorkOrders 가 쓰는 것과 같은 APS 패턴 규칙(ApsPatternFor).
+    /// injectionLines(대상 행의 사출 라인)에 패턴이 없으면 WO 생성과 똑같이 ApsConfigurationException.
+    /// </summary>
+    public List<ApsDayBoard> ListApsDayBoards(IReadOnlyCollection<string> injectionLines, IReadOnlyCollection<string> lines, IReadOnlyCollection<DateTime> dates)
+    {
+        using var conn = _f.OpenConnection();
+        var parsed   = ApsRepository.ReadSettings(conn, null);
+        var patterns = new ApsPatternResolver(parsed, ApsRepository.ReadPatternStatus(conn, null, parsed));
+        foreach (var line in injectionLines.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(l => l, StringComparer.Ordinal))
+            patterns.Resolve(line);
+        if (patterns.Problems.Count > 0) throw new ApsConfigurationException(patterns.Problems);
+
+        var boards = new List<ApsDayBoard>();
+        foreach (var line in lines.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var pat = ApsPatternFor(parsed, patterns, strict: injectionLines.Contains(line, StringComparer.OrdinalIgnoreCase), line);
+            foreach (var date in dates.Select(d => d.Date).Distinct().OrderBy(d => d))
+                boards.Add(new ApsDayBoard(line, date, LineScheduleRepository.ReadDayCapacity(conn, null, line, date, pat)));
+        }
+        return boards;
+    }
+
     /// <summary>CreateManualWo 의 INSERT 형태 + SoID(NULL 허용)·ProdDeadline·OUTPUT. 라우팅 없는 품목은 0행.</summary>
     internal const string InsertApsWoSql = """
         INSERT INTO dbo.PP_WorkOrder (WoNumber, SoID, ItemNo, OrderQty, OpenQty, DueDate, ProdDeadline, RoutingType, Status, CreatedBy, CreatedTS)
@@ -152,13 +190,8 @@ public sealed partial class PpRepository
             foreach (var line in targets.Select(t => t.LineId).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(l => l, StringComparer.Ordinal))
                 patterns.Resolve(line);
             if (patterns.Problems.Count > 0) throw new ApsConfigurationException(patterns.Problems);
-            string? PatternFor(string line)
-            {
-                if (targets.Any(t => string.Equals(t.LineId, line, StringComparison.OrdinalIgnoreCase))) return patterns.Resolve(line);
-                var pat = parsed.EffectivePattern(line);
-                if (pat is null) return null;                                   // 완제품 라인에 아무 설정도 없음 → 자동 해석
-                return patterns.Resolve(line) ?? throw new ApsConfigurationException(patterns.Problems);   // 지정은 있는데 없는/비활성 패턴 → 거부
-            }
+            string? PatternFor(string line) =>
+                ApsPatternFor(parsed, patterns, strict: targets.Any(t => string.Equals(t.LineId, line, StringComparison.OrdinalIgnoreCase)), line);
             var days = new DeadlinePacker.DayStateCache(
                 (line, date) => LineScheduleRepository.ReadDayCapacity(conn, tx, line, date, PatternFor(line)),
                 (line, date) => LineScheduleRepository.LineLastMoldBefore(conn, tx, line, date));

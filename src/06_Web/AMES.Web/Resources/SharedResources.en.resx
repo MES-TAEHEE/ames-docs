@@ -10106,6 +10106,81 @@
   <data name="PP.Aps.Wo.Ok" xml:space="preserve">
     <value>{0} WO created · late {1} · short {2} · rejected {3}</value>
   </data>
+  <data name="PP.Aps.Wo.Preview.PageTitle" xml:space="preserve">
+    <value>Work Order Preview</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Targets" xml:space="preserve">
+    <value>Select targets</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Refresh" xml:space="preserve">
+    <value>Refresh preview</value>
+  </data>
+  <data name="PP.Aps.Wo.Btn.Back" xml:space="preserve">
+    <value>Back to APS</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.New" xml:space="preserve">
+    <value>New slots (this run)</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Late" xml:space="preserve">
+    <value>Late placement</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Old" xml:space="preserve">
+    <value>Existing slots</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Mc" xml:space="preserve">
+    <value>Mold change</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.New" xml:space="preserve">
+    <value>{0} new · {1} min</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.Short" xml:space="preserve">
+    <value>Unplaced {0}</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.NoPattern" xml:space="preserve">
+    <value>No shift pattern</value>
+  </data>
+  <data name="PP.Aps.Wo.Siblings" xml:space="preserve">
+    <value>Sibling items</value>
+  </data>
+  <data name="PP.Aps.Wo.Released" xml:space="preserve">
+    <value>This run is already released — the board is read-only</value>
+  </data>
+  <data name="PP.Aps.Wo.Done" xml:space="preserve">
+    <value>Work orders created — the board below shows the actual placement</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Title" xml:space="preserve">
+    <value>Work order detail</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Mold" xml:space="preserve">
+    <value>Mold</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Placements" xml:space="preserve">
+    <value>Placed slots (all steps)</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.ExistingSlot" xml:space="preserve">
+    <value>Existing slot — not created by this run</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.ThisSlot" xml:space="preserve">
+    <value>This slot</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Step" xml:space="preserve">
+    <value>Step</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Pm" xml:space="preserve">
+    <value>Preventive maintenance band</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.Before" xml:space="preserve">
+    <value>Precedes</value>
+  </data>
+  <data name="PP.Aps.Wo.Detail.ClickHint" xml:space="preserve">
+    <value>Click for details</value>
+  </data>
+  <data name="PP.Aps.Wo.Tab.Board" xml:space="preserve">
+    <value>Line preview</value>
+  </data>
+  <data name="PP.Aps.Wo.Tab.Grid" xml:space="preserve">
+    <value>Grid preview</value>
+  </data>
   <data name="PP.Aps.Confirm.WoUsesSaved" xml:space="preserve">
     <value>Unsaved edits are not used for WO creation. Continue with saved run #{0}?</value>
   </data>
