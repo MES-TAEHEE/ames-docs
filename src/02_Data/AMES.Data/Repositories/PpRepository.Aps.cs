@@ -417,8 +417,10 @@ public sealed partial class PpRepository
                         decimal finPlaced = 0;
                         if (placedQty > 0)
                         {
+                            // 완제품 단계 슬롯은 박스 단위로 자른다(사용자 결정 2026-10-07 — 보드가 현장 포장 단위로 떨어지게). 단위 = WO 수량 올림과 같은 BoxQty ?? ROUND_TO
                             var demand = new DeadlinePacker.StepDemand(fseq, fline, placedQty,
-                                plan.Template.First(t => t.StepSeq == fseq).StdCycleSec, dailyCap.GetValueOrDefault(fline));
+                                plan.Template.First(t => t.StepSeq == fseq).StdCycleSec, dailyCap.GetValueOrDefault(fline),
+                                PackSize: packOf.GetValueOrDefault(plan.ItemNo) is int fbq && fbq > 0 ? fbq : settings.RoundTo);
                             var packed = DeadlinePacker.Pack(new[] { demand }, date, plan.InjEnd, plan.Deadline, due, cal, days);
                             foreach (var p in packed.Placements)
                                 LineScheduleRepository.AppendWoSlot(conn, tx, p.LineId, p.Date, days.Get(p.LineId, p.Date).PatternId,
