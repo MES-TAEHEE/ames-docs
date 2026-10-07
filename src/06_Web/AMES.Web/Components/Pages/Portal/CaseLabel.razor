@@ -8,15 +8,13 @@
 @inject PortalQuantityFormat QtyFormat
 
 <PageTitle>Case Label · @Number</PageTitle>
-<DeliveryPrintMessages />
 <div class="label-tools">
     <a href="/portal/deliveries">Delivery Management</a>
     @if (_case is not null)
     {
-        <button data-delivery-note-print>Print / Save PDF</button>
-        <button data-delivery-note-download="@Number">Download Printable File</button>
+        <button type="button" data-delivery-note-print data-no-busy>Print</button>
     }
-    <p role="alert" data-delivery-note-status>@_message</p>
+    @if(_message.Length>0){<p role="alert">@_message</p>}
 </div>
 @if (_case is not null)
 {
