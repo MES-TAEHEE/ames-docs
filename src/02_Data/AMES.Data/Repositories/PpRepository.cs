@@ -1605,28 +1605,6 @@ public sealed partial class PpRepository
         cmd.ExecuteNonQuery();
     }
 
-    /// <summary>PP-ODM/DTL 비가동 사유 수정/보완 (사유 미입력 또는 오기입 수정). 감사 컬럼도 함께 남긴다.</summary>
-    public void UpdateDowntimeReason(int downtimeId, string? reasonCode, string? causeCode, string? comment, string? modifiedBy = null)
-    {
-        const string sql = """
-            UPDATE dbo.PP_LineDowntimeLog
-            SET ReasonCode = @Reason,
-                CauseCode  = @Cause,
-                Comment    = @Comment,
-                ModifiedBy = @By,
-                ModifiedTS = SYSDATETIME()
-            WHERE DowntimeID = @Id;
-            """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Id",      SqlDbType.Int).Value            = downtimeId;
-        cmd.Parameters.Add("@Reason",  SqlDbType.VarChar,   20).Value  = (object?)reasonCode ?? DBNull.Value;
-        cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)causeCode  ?? DBNull.Value;
-        cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 500).Value  = (object?)comment    ?? DBNull.Value;
-        cmd.Parameters.Add("@By",      SqlDbType.VarChar,   20).Value  = string.IsNullOrWhiteSpace(modifiedBy) ? "web" : modifiedBy;
-        cmd.ExecuteNonQuery();
-    }
-
     /// <summary>PP-DTL 웹 등록. 같은 라인의 기존 비가동(진행 중 포함)과 겹치면 넣지 않는다 — OEE 가 비가동을 두 번 센다.</summary>
     public (DowntimeSaveResult Result, int Id) InsertDowntime(DowntimeEntry e, string actor)
     {

@@ -1812,26 +1812,8 @@
   <data name="PP.DowntimeMonitor.Lbl.NotEntered" xml:space="preserve">
     <value>Missing</value>
   </data>
-  <data name="PP.DowntimeMonitor.Modal.Edit" xml:space="preserve">
-    <value>Edit Downtime Reason —</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Reason.Select" xml:space="preserve">
-    <value>Select</value>
-  </data>
   <data name="PP.DowntimeMonitor.Lbl.ReasonCode" xml:space="preserve">
     <value>Reason Code</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Lbl.Cause" xml:space="preserve">
-    <value>Cause</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Ph.Cause" xml:space="preserve">
-    <value>Cause code or description</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Ph.Comment" xml:space="preserve">
-    <value>Details (optional)</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Err.ReasonRequired" xml:space="preserve">
-    <value>Select a reason code.</value>
   </data>
   <data name="PP.DowntimeMonitor.Dur.Hours" xml:space="preserve">
     <value>{0}h {1}m elapsed</value>
@@ -5135,9 +5117,6 @@
   </data>
   <data name="PP.DowntimeMonitor.History.HeaderFmt" xml:space="preserve">
     <value>Downtime Log ({0})</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Hint.Edit" xml:space="preserve">
-    <value>Click a row to edit reason, cause and comment (rows without reason are highlighted)</value>
   </data>
   <data name="PP.Delivery.Kpi.Shipped" xml:space="preserve">
     <value>Shipped</value>
@@ -10267,5 +10246,11 @@
   </data>
   <data name="Portal.Cred.Title" xml:space="preserve">
     <value>Change my password</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Hint.ReadOnly" xml:space="preserve">
+    <value>View only. Edit downtime reason, cause and note in Downtime Management.</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Link.Dtl" xml:space="preserve">
+    <value>PP-DTL Downtime Management</value>
   </data>
 </root>

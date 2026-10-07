@@ -1812,26 +1812,8 @@
   <data name="PP.DowntimeMonitor.Lbl.NotEntered" xml:space="preserve">
     <value>미입력</value>
   </data>
-  <data name="PP.DowntimeMonitor.Modal.Edit" xml:space="preserve">
-    <value>비가동 사유 수정 —</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Reason.Select" xml:space="preserve">
-    <value>선택</value>
-  </data>
   <data name="PP.DowntimeMonitor.Lbl.ReasonCode" xml:space="preserve">
     <value>사유코드</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Lbl.Cause" xml:space="preserve">
-    <value>원인</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Ph.Cause" xml:space="preserve">
-    <value>원인 코드 또는 설명</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Ph.Comment" xml:space="preserve">
-    <value>상세 내용 (선택)</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Err.ReasonRequired" xml:space="preserve">
-    <value>사유코드를 선택하세요.</value>
   </data>
   <data name="PP.DowntimeMonitor.Dur.Hours" xml:space="preserve">
     <value>{0}시간 {1}분 경과</value>
@@ -5135,9 +5117,6 @@
   </data>
   <data name="PP.DowntimeMonitor.History.HeaderFmt" xml:space="preserve">
     <value>비가동 이력 ({0})</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Hint.Edit" xml:space="preserve">
-    <value>행을 클릭하면 사유·원인·비고를 수정합니다 (사유 미입력 행 강조)</value>
   </data>
   <data name="PP.Delivery.Kpi.Shipped" xml:space="preserve">
     <value>출하완료</value>
@@ -10267,5 +10246,11 @@
   </data>
   <data name="Portal.Cred.Title" xml:space="preserve">
     <value>내 비밀번호 변경</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Hint.ReadOnly" xml:space="preserve">
+    <value>조회 전용 화면입니다. 비가동 사유·원인·비고는 비가동 관리 화면에서 수정합니다.</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Link.Dtl" xml:space="preserve">
+    <value>PP-DTL 비가동 관리</value>
   </data>
 </root>

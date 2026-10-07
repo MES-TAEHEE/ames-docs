@@ -1809,26 +1809,8 @@
   <data name="PP.DowntimeMonitor.Lbl.NotEntered" xml:space="preserve">
     <value>Faltante</value>
   </data>
-  <data name="PP.DowntimeMonitor.Modal.Edit" xml:space="preserve">
-    <value>Editar Motivo de Parada —</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Reason.Select" xml:space="preserve">
-    <value>Seleccionar</value>
-  </data>
   <data name="PP.DowntimeMonitor.Lbl.ReasonCode" xml:space="preserve">
     <value>Código de Motivo</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Lbl.Cause" xml:space="preserve">
-    <value>Causa</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Ph.Cause" xml:space="preserve">
-    <value>Código o descripción de causa</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Ph.Comment" xml:space="preserve">
-    <value>Detalles (opcional)</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Err.ReasonRequired" xml:space="preserve">
-    <value>Seleccione un código de motivo.</value>
   </data>
   <data name="PP.DowntimeMonitor.Dur.Hours" xml:space="preserve">
     <value>{0}h {1}m transcurridos</value>
@@ -5108,9 +5090,6 @@
   </data>
   <data name="PP.DowntimeMonitor.History.HeaderFmt" xml:space="preserve">
     <value>Registro de paradas ({0})</value>
-  </data>
-  <data name="PP.DowntimeMonitor.Hint.Edit" xml:space="preserve">
-    <value>Haga clic en una fila para editar motivo, causa y comentario (filas sin motivo resaltadas)</value>
   </data>
   <data name="PP.Delivery.Kpi.Shipped" xml:space="preserve">
     <value>Enviado</value>
@@ -10267,5 +10246,11 @@
   </data>
   <data name="Portal.Cred.Title" xml:space="preserve">
     <value>Cambiar mi contraseña</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Hint.ReadOnly" xml:space="preserve">
+    <value>Solo consulta. Edite el motivo, la causa y la nota en Gestión de paradas.</value>
+  </data>
+  <data name="PP.DowntimeMonitor.Link.Dtl" xml:space="preserve">
+    <value>PP-DTL Gestión de paradas</value>
   </data>
 </root>

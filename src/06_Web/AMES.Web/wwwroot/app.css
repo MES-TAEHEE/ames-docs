@@ -2164,12 +2164,6 @@ select.ames-rz-input {
 .odm-row-no-reason td { background: rgba(251,191,36,.04); }
 .odm-row-no-reason td:first-child { border-left: 2px solid rgba(251,191,36,.5); }
 
-/* 사유 수정 모달 */
-.odm-edit-info {
-    background: rgba(255,255,255,.04); border-radius: 6px;
-    padding: .5rem .75rem; font-size: .85rem;
-    color: var(--ames-tx-slate-300); margin-bottom: .9rem;
-}
 /* ── Pager ──────────────────────────────────────────────────────────── */
 .ames-pager {
     display: flex; align-items: center; justify-content: center; gap: 4px;
@@ -4814,7 +4808,6 @@ html[data-theme="light"] .odm-tl-wrap { border-color: var(--ames-border-soft); }
 html[data-theme="light"] .odm-tl-empty { background: rgba(80,60,20,.06); }
 html[data-theme="light"] .odm-tl-plan { background: rgba(80,60,20,.18); }
 html[data-theme="light"] .odm-badge-unknown { background: rgba(80,60,20,.08); color: var(--ames-text-dim); }
-html[data-theme="light"] .odm-edit-info { background: var(--ames-surface-3); color: var(--ames-text); }
 
 /* PP-OTD 납기 준수율: 지연 행 강조 · 진척 막대 */
 .ames-rz-grid tr.otd-row-late .rz-data-cell { background: rgba(239,68,68,.06) !important; }
@@ -5794,6 +5787,9 @@ html[data-theme="light"] .portal-shell .ames-user-cred { background: rgba(15,118
 .portal-shell .ames-nav-link .lid { color: var(--ames-tx-teal-300); border-color: rgba(45,212,191,.35); background: rgba(45,212,191,.08); }
 .portal-shell .ames-nav-home.active { color: var(--ames-tx-teal-200); }
 .portal-shell a { color: var(--ames-tx-sky-300); }
+/* 로그아웃은 링크(<a>)라 위 링크색이 덮는다 — 내부 상단바처럼 빨간색(라이트는 같은 토큰의 진한 빨강) */
+.portal-shell a.ames-user-out, .portal-shell a.ames-user-out:hover { color: var(--ames-tx-red-300); }
+html[data-theme="light"] .portal-shell a.ames-user-out, html[data-theme="light"] .portal-shell a.ames-user-out:hover { color: #991b1b; }
 html[data-theme="light"] .portal-shell { background: linear-gradient(180deg, #ecfeff 0%, #f0fdfa 100%); }
 html[data-theme="light"] .portal-shell .ames-topbar.portal-top { background: #ffffffe6; border-bottom-color: #0d9488; }
 html[data-theme="light"] .portal-shell .ames-side { background: #ffffffcc; border-right-color: rgba(13,148,136,.25); }
