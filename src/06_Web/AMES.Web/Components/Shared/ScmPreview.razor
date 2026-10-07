@@ -176,7 +176,7 @@
             <RadzenDataGrid TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="25" AllowSorting="true" EmptyText="@Empty" Class="ames-rz-grid">
                 <Columns>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="190px" MinWidth="190px" TextAlign="TextAlign.Center" Property="Number" Title="PO No" />
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Center" Property="Due" Title="Due Date"><Template Context="o"><span style="@(o.Due.Date < DbClock.Today ? "color:#ef4444" : null)">@o.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Center" Property="Due" Title="Due Date"><Template Context="o"><span style="@(o.Due.Date < DbClock.Today ? "color:var(--ames-tx-red-500)" : null)">@o.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" MinWidth="160px" Property="VendorName" Title="Supplier" />
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="90px" MinWidth="90px" TextAlign="TextAlign.Right" Title="Items"><Template Context="o">@o.Lines.Count</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Title="Order Qty"><Template Context="o">@Quantities(o,l=>l.Quantity)</Template></RadzenDataGridColumn>
@@ -214,7 +214,7 @@
                     }
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Title='@L["Scm.Text.Received.2c7750"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => Store.Delivered(o, l))</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Title='@L["Scm.Text.Remaining"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => Store.Remaining(o, l))</Template></RadzenDataGridColumn>
-                    @if (Mode != "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" Property="Due" Title='@L["Scm.Text.DueDate"]' TextAlign="TextAlign.Center"><Template Context="o"><span style="@(IsPortal && o.Due.Date < DbClock.Today ? "color:#ef4444" : null)">@o.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn> }
+                    @if (Mode != "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" Property="Due" Title='@L["Scm.Text.DueDate"]' TextAlign="TextAlign.Center"><Template Context="o"><span style="@(IsPortal && o.Due.Date < DbClock.Today ? "color:var(--ames-tx-red-500)" : null)">@o.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn> }
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="180px" MinWidth="180px" Title='@L["Col.Status"]' TextAlign="TextAlign.Center"><Template Context="o">@{var status=IsPortal && Mode=="Orders" ? PortalOrderStatus(o) : o.Status;}<span class="pill @Badge(status)">@(Mode=="Progress" ? ProgressStatus(o) : Status(status))</span></Template></RadzenDataGridColumn>
                     @if (Mode != "Progress") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="180px" MinWidth="180px" TextAlign="TextAlign.Center" Title='@(IsPortal ? "Confirmation" : L["Scm.Text.SupplierConfirmation"])'><Template Context="o">@if(o.SupplierConfirmedAt.HasValue || o.Status is "Published" or "Confirmed"){<span class="pill @ConfirmationBadge(o)">@ConfirmationLabel(o)</span>}else{<span class="dim">—</span>}</Template></RadzenDataGridColumn> }
                 </Columns>
@@ -365,7 +365,7 @@
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.Buyer"]</div><div class="scm-dv">EOS</div></div>
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.Supplier"]</div><div class="scm-dv">@VendorLabel(_selected.Vendor)</div></div>
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.OrderDate"]</div><div class="scm-dv">@_selected.Ordered.ToString(DateFmt.Date)</div></div>
-                    <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.DueDate"]</div><div class="scm-dv" style="@(IsPortal && _selected.Due.Date < DbClock.Today ? "color:#ef4444" : null)">@_selected.Due.ToString(DateFmt.Date)</div></div>
+                    <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.DueDate"]</div><div class="scm-dv" style="@(IsPortal && _selected.Due.Date < DbClock.Today ? "color:var(--ames-tx-red-500)" : null)">@_selected.Due.ToString(DateFmt.Date)</div></div>
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.Destination"]</div><div class="scm-dv">@_selected.Destination</div></div>
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.Amount"] (@_selected.Currency)</div><div class="scm-dv">@_selected.Amount.ToString("N2")</div></div>
                 </div>

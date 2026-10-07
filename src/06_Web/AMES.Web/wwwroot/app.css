@@ -111,6 +111,7 @@
     --ames-sf-1e293b-a92: rgba(30,41,59,.92);
     --ames-sf-1e293b-a96: rgba(30,41,59,.96);
     --ames-sf-252a32: #252a32;
+    --ames-sf-7f1d1d: #7f1d1d;
     --ames-tx-93a4bd: #93a4bd;
     --ames-tx-amber-200: #fde68a;
     --ames-tx-amber-300: #fcd34d;
@@ -4204,6 +4205,7 @@ html[data-theme="light"] {
     --ames-sf-1e293b-a92: var(--ames-surface);
     --ames-sf-1e293b-a96: var(--ames-surface);
     --ames-sf-252a32: var(--ames-surface);
+    --ames-sf-7f1d1d: var(--ames-surface);
     --ames-tx-93a4bd: var(--ames-text-dim);
     --ames-tx-amber-200: #92400e;
     --ames-tx-amber-300: #b45309;
@@ -4886,12 +4888,12 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
 .location-action.secondary,
 .location-reset-button { color: #cbd5e1; border-color: rgba(148,163,184,.32); background: rgba(30,41,59,.55); }
 .inventory-detail-backdrop.location-add-backdrop { justify-content: center; align-items: center; background: rgba(2,6,23,.78); }
-.location-add-dialog { width: min(420px, 92vw); max-height: 90dvh; overflow: auto; box-sizing: border-box; padding: 24px; display: grid; gap: 16px; color: #f8fafc; border: 1px solid rgba(148,163,184,.35); border-radius: 8px; background: #1e293b; box-shadow: 0 24px 64px rgba(0,0,0,.55); }
+.location-add-dialog { width: min(420px, 92vw); max-height: 90dvh; overflow: auto; box-sizing: border-box; padding: 24px; display: grid; gap: 16px; color: var(--ames-tx-slate-50); border: 1px solid rgba(148,163,184,.35); border-radius: 8px; background: var(--ames-sf-1e293b); box-shadow: 0 24px 64px rgba(0,0,0,.55); }
 .location-add-dialog h3 { margin: 0; }
 .location-add-dialog label { display: grid; gap: 7px; font-size: .85rem; }
 .location-add-dialog input { width: 100%; }
 .location-add-actions { display: flex; justify-content: flex-end; gap: 8px; }
-.location-add-error { margin: 0; color: #f87171; }
+.location-add-error { margin: 0; color: var(--ames-tx-red-400); }
 
 .location-explorer-workspace {
     min-height: 0;
@@ -4932,8 +4934,8 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
     height: 30px;
     border: 1px solid rgba(248,113,113,.7);
     border-radius: 5px;
-    background: #7f1d1d;
-    color: #fff;
+    background: var(--ames-sf-7f1d1d);
+    color: var(--ames-tx-white);
     font-size: 1.25rem;
     line-height: 1;
     cursor: pointer;
