@@ -28,6 +28,7 @@ public sealed class ScmPreviewStore
         public string Number { get; set; } = "";
         public string Vendor { get; set; } = DemoVendor;
         public string VendorName { get; set; } = "";
+        public string CreatedBy { get; set; } = "";
         public List<OrderLine> Lines { get; set; } = [new()];
         public string Item => string.Join(", ", Lines.Select(l => l.Item));
         public string Name => string.Join(", ", Lines.Select(l => l.Name));
