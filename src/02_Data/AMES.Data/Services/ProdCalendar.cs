@@ -59,6 +59,37 @@ public static class ProdCalendar
         return null;
     }
 
+    /// <summary>WORK_SHIFT 교대 목록(코드·창) — <see cref="ShiftOf"/>·<see cref="ShiftCaseSql"/> 의 입력 순서(SortOrder)대로 읽는다.</summary>
+    public const string ShiftsSql = """
+        SELECT CodeValue, Attribute1
+        FROM   dbo.MD_CodeItem
+        WHERE  GroupCode = 'WORK_SHIFT' AND ISNULL(UseFlag,1) = 1
+        ORDER  BY ISNULL(SortOrder,0), CodeValue
+        """;
+
+    /// <summary>
+    /// 시각 식 <paramref name="tsExpr"/> 의 교대를 판정하는 SQL CASE 식 — <see cref="ShiftOf"/> 와 같은 규칙
+    /// (SortOrder 순 첫 매치, 자정을 넘는 창 허용, 어느 창에도 안 걸리면 NULL). 지난 실적을 집계할 때(RPT-010) 쓴다.
+    /// 교대 코드는 매개변수(@{prefix}0…)로 <paramref name="pars"/> 에 넣는다 — 공통코드 값이 SQL 문에 섞이지 않게.
+    /// </summary>
+    public static string ShiftCaseSql(string tsExpr, IReadOnlyList<(string Code, string? Window)> shifts,
+                                      string prefix, List<(string Name, object Value)> pars)
+    {
+        var minute = $"(DATEPART(hour, {tsExpr}) * 60 + DATEPART(minute, {tsExpr}))";
+        var sb = new System.Text.StringBuilder("CASE");
+        int n = 0;
+        foreach (var (code, window) in shifts)
+        {
+            if (!TryParseWindow(window, out int start, out int end) || start == end) continue;
+            var name = $"@{prefix}{n++}";
+            pars.Add((name, code));
+            sb.Append(start < end
+                ? $" WHEN {minute} >= {start} AND {minute} < {end} THEN {name}"
+                : $" WHEN {minute} >= {start} OR {minute} < {end} THEN {name}");
+        }
+        return n == 0 ? "CAST(NULL AS varchar(10))" : sb.Append(" END").ToString();
+    }
+
     /// <summary>'HHMM-HHMM'. 끝 2400 은 1440 분(자정)으로 받는다.</summary>
     public static bool TryParseWindow(string? attr, out int startMin, out int endMin)
     {
@@ -93,7 +124,7 @@ public static class ProdCalendar
         string? cutoffAttr = null;
         var shifts = new List<(string Code, string? Window)>();
 
-        using var cmd = new SqlCommand("""
+        using var cmd = new SqlCommand($"""
             SELECT SYSDATETIME();
 
             SELECT TOP 1 ConfigValue
@@ -101,10 +132,7 @@ public static class ProdCalendar
             WHERE  ConfigKey = @CutoffKey
             ORDER  BY ConfigID;
 
-            SELECT CodeValue, Attribute1
-            FROM   dbo.MD_CodeItem
-            WHERE  GroupCode = 'WORK_SHIFT' AND ISNULL(UseFlag,1) = 1
-            ORDER  BY ISNULL(SortOrder,0), CodeValue;
+            {ShiftsSql};
             """, conn, tx);
         cmd.Parameters.Add("@CutoffKey", System.Data.SqlDbType.VarChar, 60).Value = CutoffConfigKey;
         using var rdr = cmd.ExecuteReader();

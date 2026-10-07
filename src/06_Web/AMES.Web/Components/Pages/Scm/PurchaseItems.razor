@@ -1,6 +1,7 @@
 @page "/scm/purchase-items"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject UomFormat UomFmt
 @inject MasterDataRepository MD
 @inject ScmRepository Scm
 @inject PermissionService Permissions
@@ -47,7 +48,7 @@
                     <Template Context="row"><span class="dim">@(row.ItemCategory ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="DefaultUOM" Title="@L["Scm.Text.Unit"]" TextAlign="TextAlign.Center" Width="80px">
-                    <Template Context="row"><span class="dim">@(row.DefaultUOM ?? "—")</span></Template>
+                    <Template Context="row"><span class="dim">@(UomFmt.Sym(row.DefaultUOM) ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="@L["Scm.Text.LinkedVendors"]" Sortable="false">
                     <Template Context="row">
@@ -77,7 +78,7 @@
                 <div class="ames-modal-h">@L["Scm.Text.PurchaseItemVendors"] <span class="code" style="font-weight:400;font-size:.9em;">@_edit.ItemNo</span></div>
                 <div class="pi-dgrid">
                     <div class="pi-dt"><div class="pi-dl">@L["Scm.Text.ItemName"]</div><div class="pi-dv">@_edit.ItemName</div></div>
-                    <div class="pi-dt"><div class="pi-dl">@L["Scm.Text.Unit"]</div><div class="pi-dv">@(_edit.DefaultUOM ?? "—")</div></div>
+                    <div class="pi-dt"><div class="pi-dl">@L["Scm.Text.Unit"]</div><div class="pi-dv">@(UomFmt.Sym(_edit.DefaultUOM) ?? "—")</div></div>
                     <div class="pi-dt"><div class="pi-dl">@L["Scm.Text.LinkedVendors"]</div><div class="pi-dv">@Links(_edit.ItemNo).Count()</div></div>
                 </div>
                 <RadzenStack Gap="0.5rem">

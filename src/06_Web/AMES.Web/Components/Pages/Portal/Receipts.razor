@@ -76,7 +76,7 @@
                 <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Property="Quantity" Title='@L["Portal.Receipts.Col.DeliveredQty"]'><Template Context="r">@QtyFormat.Text(r.Quantity,r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Property="Received" Title='@L["Portal.Receipts.Col.ReceivedQty"]'><Template Context="r">@QtyFormat.Text(r.Received,r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="130px" MinWidth="130px" TextAlign="TextAlign.Right" Property="Remaining" Title='@L["Portal.Receipts.Col.RemainingQty"]'><Template Context="r">@QtyFormat.Text(r.Remaining,r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center" Property="Unit" Title='@L["Scm.Text.Unit"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center" Property="Unit" Title='@L["Scm.Text.Unit"]'><Template Context="unitRow">@UomFmt.Sym(unitRow.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.PortalReceiptLine" Width="170px" MinWidth="170px" Property="ReceiptStatus" Title='@L["Portal.Text.ReceiptStatus"]' TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @Badge(r.ReceiptStatus)">@ReceiptLabel(r.ReceiptStatus)</span></Template></RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
@@ -107,8 +107,8 @@
                             {
                                 <tr @key="row.TransactionId"><td>@row.OccurredAt.ToString("yyyy-MM-dd HH:mm:ss")</td><td>@row.Lot</td>
                                     <td>@row.Item<div class="dim">@row.Name</div><div class="dim">PO: @row.Order</div></td>
-                                    <td>@QtyFormat.Text(row.Before,row.Unit) @row.Unit</td><td>@QtyFormat.Text(row.After,row.Unit) @row.Unit</td>
-                                    <td class="@(row.Change<0?"scm-shortage":"scm-overage")"><strong>@(row.Change>0?"+":"")@QtyFormat.Text(row.Change,row.Unit) @row.Unit</strong><div>@(row.Change<0?"Shortage":"Overage")</div></td>
+                                    <td>@QtyFormat.Text(row.Before,row.Unit) @UomFmt.Sym(row.Unit)</td><td>@QtyFormat.Text(row.After,row.Unit) @UomFmt.Sym(row.Unit)</td>
+                                    <td class="@(row.Change<0?"scm-shortage":"scm-overage")"><strong>@(row.Change>0?"+":"")@QtyFormat.Text(row.Change,row.Unit) @UomFmt.Sym(row.Unit)</strong><div>@(row.Change<0?"Shortage":"Overage")</div></td>
                                     <td>@row.Reason<div class="dim">@row.Comment</div></td></tr>
                             }</tbody>
                         </table></div>
@@ -161,8 +161,8 @@
     List<ScmRepository.PortalReceiptDocument> Rows=>ScmRepository.GroupReceiptDocuments(_rows).Where(r=>(_status==""||r.ReceiptStatus==_status)
         && (!_from.HasValue||r.ShipDate?.Date>=_from.Value.Date) && (!_to.HasValue||r.ShipDate?.Date<=_to.Value.Date)
         && r.Lines.Any(l=>string.Join(" ",l.Note,l.Delivery,l.Order,l.Item,l.Name,l.Vendor,l.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase))).ToList();
-    string QuantityTotals(IEnumerable<ScmRepository.PortalReceiptLine> rows)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>$"{QtyFormat.Text(g.Sum(r=>r.Quantity),g.Key)} {g.Key}"));
-    string Totals(IEnumerable<ScmRepository.PortalReceiptLine> rows,bool received)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>$"{QtyFormat.Text(g.Sum(r=>received?r.Received:r.Remaining),g.Key)} {g.Key}"));
+    string QuantityTotals(IEnumerable<ScmRepository.PortalReceiptLine> rows)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>$"{QtyFormat.Text(g.Sum(r=>r.Quantity),g.Key)} {UomFmt.Sym(g.Key)}"));
+    string Totals(IEnumerable<ScmRepository.PortalReceiptLine> rows,bool received)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>$"{QtyFormat.Text(g.Sum(r=>received?r.Received:r.Remaining),g.Key)} {UomFmt.Sym(g.Key)}"));
     static string GroupStatus(List<ScmRepository.PortalReceiptLine> rows)=>new ScmRepository.PortalReceiptDocument(rows).ReceiptStatus;
     protected override async Task OnInitializedAsync()
     {

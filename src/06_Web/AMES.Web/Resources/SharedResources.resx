@@ -3655,7 +3655,7 @@
     <value>코드/인터페이스명</value>
   </data>
   <data name="SYS.Audit.Kpi.EventsSub" xml:space="preserve">
-    <value>최근 항목</value>
+    <value>조회 결과</value>
   </data>
   <data name="SYS.Audit.Kpi.OkSub" xml:space="preserve">
     <value>결과 OK</value>
@@ -4504,7 +4504,7 @@
     <value>이벤트 표시명</value>
   </data>
   <data name="SYS.Notifications.Ph.Address" xml:space="preserve">
-    <value>이메일 / 전화번호 / 훅 URL</value>
+    <value>이메일 / 전화번호 / 푸시 기기 ID</value>
   </data>
   <data name="MD.InspStd.Kpi.Ctq" xml:space="preserve">
     <value>CTQ 항목</value>
@@ -10216,5 +10216,56 @@
   </data>
   <data name="SYS.Users.Err.AdminTarget" xml:space="preserve">
     <value>Admin 계정은 Admin 만 수정할 수 있습니다.</value>
+  </data>
+  <data name="TopBar.Cred.Button" xml:space="preserve">
+    <value>비밀번호·PIN 변경</value>
+  </data>
+  <data name="TopBar.Cred.Title" xml:space="preserve">
+    <value>내 비밀번호·PIN 변경</value>
+  </data>
+  <data name="TopBar.Cred.Tab.Password" xml:space="preserve">
+    <value>비밀번호</value>
+  </data>
+  <data name="TopBar.Cred.Tab.Pin" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.Current" xml:space="preserve">
+    <value>현재 비밀번호</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.NewPassword" xml:space="preserve">
+    <value>새 비밀번호</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.ConfirmPassword" xml:space="preserve">
+    <value>새 비밀번호 확인</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.NewPin" xml:space="preserve">
+    <value>새 PIN</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.ConfirmPin" xml:space="preserve">
+    <value>새 PIN 확인</value>
+  </data>
+  <data name="TopBar.Cred.Hint.Password" xml:space="preserve">
+    <value>변경하면 다른 PC·브라우저의 로그인은 5분 안에 끊깁니다.</value>
+  </data>
+  <data name="TopBar.Cred.Hint.Pin" xml:space="preserve">
+    <value>PIN 은 POP 로그인과 납기 변경 확인에 쓰는 숫자 4자리입니다.</value>
+  </data>
+  <data name="TopBar.Cred.Err.Required" xml:space="preserve">
+    <value>모든 칸을 입력하세요.</value>
+  </data>
+  <data name="TopBar.Cred.Err.Mismatch" xml:space="preserve">
+    <value>새 값과 확인 값이 다릅니다.</value>
+  </data>
+  <data name="TopBar.Cred.Err.WrongPassword" xml:space="preserve">
+    <value>현재 비밀번호가 맞지 않습니다. 5회 틀리면 계정이 잠깁니다.</value>
+  </data>
+  <data name="TopBar.Cred.Ok.Pin" xml:space="preserve">
+    <value>PIN 을 변경했습니다.</value>
+  </data>
+  <data name="Portal.Cred.Button" xml:space="preserve">
+    <value>비밀번호 변경</value>
+  </data>
+  <data name="Portal.Cred.Title" xml:space="preserve">
+    <value>내 비밀번호 변경</value>
   </data>
 </root>

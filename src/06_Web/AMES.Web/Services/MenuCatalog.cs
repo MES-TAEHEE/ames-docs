@@ -175,6 +175,23 @@ public sealed class MenuCatalog
     /// <summary>SYS-003 화면 마스터 편집 뒤 다시 읽기(ScreenCatalogNotifier 수신 측에서 호출)</summary>
     public void Reload() { _loaded = false; Load(); }
 
+    readonly object _reloadGate = new();
+    long _reloadedVersion = -1;
+
+    /// <summary>
+    /// 화면 변경 알림(ScreenCatalogNotifier.Version)마다 한 번만 다시 읽는다 — 같은 세션의 메뉴와 홈이 같은 알림을 받아도 DB 는 한 번.
+    /// 알림 핸들러가 회로 밖(스레드 풀)에서 부른다. Items 는 목록을 통째로 바꿔 끼우므로 읽는 쪽은 이전·새 목록 중 하나를 본다.
+    /// </summary>
+    public void ReloadFor(long version)
+    {
+        lock (_reloadGate)
+        {
+            if (_reloadedVersion == version) return;
+            _reloadedVersion = version;
+            Reload();
+        }
+    }
+
     public void Load()
     {
         if (_loaded) return;

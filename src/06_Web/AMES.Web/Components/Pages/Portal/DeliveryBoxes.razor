@@ -1,5 +1,6 @@
 @page "/portal/delivery-boxes"
 @rendermode InteractiveServer
+@inject UomFormat UomFmt
 @inject ScmRepository Scm
 @inject AuthenticationStateProvider Authentication
 @inject PortalQuantityFormat QtyFormat
@@ -45,7 +46,7 @@
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Number" Title='@L["Portal.Text.BoxNumber"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="100px" MinWidth="100px" TextAlign="TextAlign.Center" Property="Sequence" Title='@L["Portal.Text.Sequence"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="120px" MinWidth="120px" Title='@L["Col.Quantity"]' TextAlign="TextAlign.Right"><Template Context="b">@QtyFormat.Text(b.Quantity,b.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center" Property="Unit" Title='@L["Scm.Text.Unit"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center" Property="Unit" Title='@L["Scm.Text.Unit"]'><Template Context="unitRow">@UomFmt.Sym(unitRow.Unit)</Template></RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
     </div>

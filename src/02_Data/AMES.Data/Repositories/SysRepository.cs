@@ -444,6 +444,64 @@ public sealed class SysRepository
             ("@N", topN));
     }
 
+    /// <summary>SYS-007 조회 조건. 기간은 날짜 단위(From 00:00 ~ To 다음 날 00:00 미만), 나머지는 비우면 조건 없음.</summary>
+    public sealed record AuditFilter(DateTime From, DateTime To, string? Search, string? ModuleCode, string? ProcessCode, string? Result);
+
+    /// <summary>
+    /// SYS-007 감사 로그 조회 — 조건을 DB 에서 걸고 건수 제한 없이 돌려준다(10-07 — 전에는 최근 200행 안에서만 화면이 걸렀다).
+    /// 검색어는 행위자·대상 ID·대상 엔티티·비고 부분 일치. 시각이 없는 행은 기간과 무관하게 포함한다(종전 화면 규칙).
+    /// </summary>
+    public List<AuditRow> SearchAudit(AuditFilter f)
+    {
+        const string sql = """
+            SELECT LogID, EventTS, ActorUserID, ModuleCode, ScreenCode, ProcessCode,
+                   ActionType, TargetEntity, TargetID, Result, IPAddress, Note
+            FROM   dbo.SYS_AuditLog
+            WHERE  (EventTS IS NULL OR (EventTS >= @From AND EventTS < @To))
+              AND  (@Module  IS NULL OR ModuleCode  = @Module)
+              AND  (@Process IS NULL OR ProcessCode = @Process)
+              AND  (@Result  IS NULL OR Result      = @Result)
+              AND  (@SN IS NULL
+                    OR ActorUserID  LIKE @SN OR Note     LIKE @SN
+                    OR TargetEntity LIKE @SV OR TargetID LIKE @SV)
+            ORDER  BY LogID DESC;
+            """;
+        static object Opt(string? s) => string.IsNullOrWhiteSpace(s) ? DBNull.Value : s.Trim();
+        var like = string.IsNullOrWhiteSpace(f.Search) ? null
+                 : "%" + f.Search.Trim().Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]") + "%";
+
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@From",    SqlDbType.DateTime2).Value = f.From.Date;
+        cmd.Parameters.Add("@To",      SqlDbType.DateTime2).Value = f.To.Date.AddDays(1);
+        cmd.Parameters.Add("@Module",  SqlDbType.VarChar, 10).Value = Opt(f.ModuleCode);
+        cmd.Parameters.Add("@Process", SqlDbType.VarChar, 10).Value = Opt(f.ProcessCode);
+        cmd.Parameters.Add("@Result",  SqlDbType.VarChar, 10).Value = Opt(f.Result);
+        // 행위자·비고는 nvarchar, 대상 엔티티·ID 는 varchar 컬럼 — 같은 검색어를 컬럼 형에 맞춰 두 번 넘긴다
+        cmd.Parameters.Add("@SN", SqlDbType.NVarChar, 600).Value = (object?)like ?? DBNull.Value;
+        cmd.Parameters.Add("@SV", SqlDbType.VarChar,  600).Value = (object?)like ?? DBNull.Value;
+        using var r = cmd.ExecuteReader();
+        var list = new List<AuditRow>();
+        while (r.Read())
+            list.Add(new AuditRow(
+                (long)r["LogID"], r["EventTS"] as DateTime?,
+                r["ActorUserID"] as string, r["ModuleCode"] as string,
+                r["ScreenCode"] as string, r["ProcessCode"] as string,
+                r["ActionType"] as string,
+                r["TargetEntity"] as string, r["TargetID"] as string,
+                r["Result"] as string, r["IPAddress"] as string,
+                r["Note"] as string));
+        return list;
+    }
+
+    /// <summary>SYS-007 「최근 24시간」 KPI — 조회 기간과 무관하게 DB 시각 기준으로 센다.</summary>
+    public int CountAuditLast24h()
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT COUNT(*) FROM dbo.SYS_AuditLog WHERE EventTS >= DATEADD(HOUR, -24, SYSDATETIME());", conn);
+        return (int)cmd.ExecuteScalar();
+    }
+
     // ── SYS-06 Notifications ────────────────────────────────────────────
     public List<NotifRuleRow> ListNotificationRules()
     {
@@ -782,39 +840,50 @@ public sealed class SysRepository
         return row is { } r && int.TryParse(r.Value, out var v) && v > 0 ? v : fallback;
     }
 
-    public void SetRolePermission(string roleId, string roleName,
-        string moduleCode, string? processCode, string screenCode,
-        string? permLevel, string modifiedBy)
+    public sealed record RolePermissionItem(string ModuleCode, string ScreenCode, string? PermissionLevel);
+
+    /// <summary>
+    /// 한 역할의 화면 권한을 한꺼번에 저장한다(SYS-004) — 레벨이 비면 행 삭제, 있으면 MERGE.
+    /// 한 트랜잭션이라 중간에 실패하면 전부 되돌린다(10-07 — 전에는 화면마다 따로 저장해 일부만 바뀐 채 남을 수 있었다).
+    /// </summary>
+    public void SaveRolePermissions(string roleId, string roleName, IEnumerable<RolePermissionItem> items, string modifiedBy)
     {
-        if (string.IsNullOrEmpty(permLevel))
-        {
-            Exec("DELETE dbo.SYS_RolePermission WHERE RoleID = @RoleID AND ScreenCode = @Screen",
-                ("@RoleID", roleId),
-                ("@Screen", screenCode));
-            return;
-        }
         const string sql = """
-            MERGE dbo.SYS_RolePermission AS tgt
-            USING (SELECT @RoleID AS RoleID, @Screen AS ScreenCode) AS src
-                  ON tgt.RoleID = src.RoleID AND tgt.ScreenCode = src.ScreenCode
-            WHEN MATCHED THEN
-                UPDATE SET PermissionLevel = @Level,
-                           ModuleCode      = @Module,
-                           ModifiedBy      = @ModifiedBy,
-                           ModifiedTS      = SYSDATETIME()
-            WHEN NOT MATCHED THEN
-                INSERT (RoleID, RoleName, ModuleCode, ScreenCode, PermissionLevel,
-                        IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
-                VALUES (@RoleID, @RoleName, @Module, @Screen, @Level,
-                        0, SYSDATETIME(), @ModifiedBy, SYSDATETIME());
+            IF @Level IS NULL
+                DELETE dbo.SYS_RolePermission WHERE RoleID = @RoleID AND ScreenCode = @Screen;
+            ELSE
+                MERGE dbo.SYS_RolePermission WITH (HOLDLOCK) AS tgt
+                USING (SELECT @RoleID AS RoleID, @Screen AS ScreenCode) AS src
+                      ON tgt.RoleID = src.RoleID AND tgt.ScreenCode = src.ScreenCode
+                WHEN MATCHED THEN
+                    UPDATE SET PermissionLevel = @Level,
+                               ModuleCode      = @Module,
+                               ModifiedBy      = @ModifiedBy,
+                               ModifiedTS      = SYSDATETIME()
+                WHEN NOT MATCHED THEN
+                    INSERT (RoleID, RoleName, ModuleCode, ScreenCode, PermissionLevel,
+                            IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
+                    VALUES (@RoleID, @RoleName, @Module, @Screen, @Level,
+                            0, SYSDATETIME(), @ModifiedBy, SYSDATETIME());
             """;
-        Exec(sql,
-            ("@RoleID",     roleId),
-            ("@RoleName",   roleName),
-            ("@Module",     moduleCode),
-            ("@Screen",     screenCode),
-            ("@Level",      permLevel),
-            ("@ModifiedBy", modifiedBy));
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        using var cmd  = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.Add("@RoleID",     SqlDbType.NVarChar, 450).Value = roleId;
+        cmd.Parameters.Add("@RoleName",   SqlDbType.VarChar,   40).Value = roleName;
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar,   20).Value = modifiedBy;
+        var pModule = cmd.Parameters.Add("@Module", SqlDbType.VarChar, 10);
+        var pScreen = cmd.Parameters.Add("@Screen", SqlDbType.VarChar, 20);
+        var pLevel  = cmd.Parameters.Add("@Level",  SqlDbType.VarChar, 10);
+        foreach (var it in items)
+        {
+            pModule.Value = (object?)it.ModuleCode ?? DBNull.Value;
+            pScreen.Value = it.ScreenCode;
+            pLevel.Value  = string.IsNullOrEmpty(it.PermissionLevel) ? DBNull.Value : it.PermissionLevel;
+            cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
     }
 
     public (bool Ok, int Ms, string? Host) PingDatabase()
@@ -977,9 +1046,24 @@ public sealed class SysRepository
             ("@ModifiedBy", modifiedBy));
     }
 
+    /// <summary>
+    /// 사용자 삭제 전 정리 — 프로필과 Identity 보조 행(역할·클레임·외부 로그인·토큰)을 한 트랜잭션으로 지운다.
+    /// 개발·로컬 DB 의 AspNetUserRoles·Claims·Logins·Tokens 에는 외래키가 없어 AspNetUsers 만 지우면 고아 행이 남는다(10-07 확인).
+    /// </summary>
     public void DeleteProfile(string userId)
     {
-        Exec("DELETE dbo.SYS_UserProfile WHERE UserID = @UserID", ("@UserID", userId));
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        using var cmd  = new SqlCommand("""
+            DELETE dbo.AspNetUserRoles  WHERE UserId = @UserID;
+            DELETE dbo.AspNetUserClaims WHERE UserId = @UserID;
+            DELETE dbo.AspNetUserLogins WHERE UserId = @UserID;
+            DELETE dbo.AspNetUserTokens WHERE UserId = @UserID;
+            DELETE dbo.SYS_UserProfile  WHERE UserID = @UserID;
+            """, conn, tx);
+        cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
+        cmd.ExecuteNonQuery();
+        tx.Commit();
     }
 
     public bool ProfileExists(string userId)

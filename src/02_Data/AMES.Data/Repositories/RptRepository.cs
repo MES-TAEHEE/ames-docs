@@ -667,7 +667,8 @@ public sealed class RptRepository
         if (!AdhocDims.TryGetValue(source, out var dims) || !dims.Contains(dim))
             throw new ArgumentException("unsupported source/dim");
 
-        const string ShiftExpr = "CASE WHEN DATEPART(hour, {0}) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, {0}) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END";
+        // 교대는 공통코드 WORK_SHIFT 창(Attribute1)으로 판정한다 — 실적 입력(ProdCalendar.ShiftOf)과 같은 규칙, 창에 안 걸리면 —
+        var pars = new List<(string Name, object Value)>();
         string keyExpr, labelExpr = "NULL", labelEnExpr = "NULL", body;
         switch (source)
         {
@@ -676,7 +677,7 @@ public sealed class RptRepository
                 {
                     "Line"  => "ISNULL(r.LineID,'—')",
                     "Date"  => "CONVERT(varchar(10), CAST(r.EntryAt AS DATE), 120)",
-                    "Shift" => string.Format(ShiftExpr, "r.EntryAt"),
+                    "Shift" => $"ISNULL({AMES.Data.Services.ProdCalendar.ShiftCaseSql("r.EntryAt", LoadShifts(), "Sh", pars)},'—')",
                     _       => "ISNULL(w.ItemNo,'—')",
                 };
                 if (dim == "Item") { labelExpr = "MAX(i.ItemName)"; labelEnExpr = "MAX(i.ItemNameEN)"; }
@@ -786,7 +787,7 @@ public sealed class RptRepository
             var m = new Dictionary<string, decimal>();
             foreach (var name in measures) m[name] = r[name] is DBNull ? 0m : Convert.ToDecimal(r[name]);
             return new AdhocRow(r["K"] as string ?? "—", r["Lbl"] as string, m, r["LblEn"] as string);
-        }, ("@F", from.Date), ("@T", to.Date.AddDays(1)));
+        }, [("@F", from.Date), ("@T", to.Date.AddDays(1)), .. pars]);
     }
 
     public List<ReportCatalogEntry> ListReportCatalog() => new()
@@ -804,6 +805,10 @@ public sealed class RptRepository
     };
 
     // ── helpers ──────────────────────────────────────────────────────────
+    private List<(string Code, string? Window)> LoadShifts()
+        => Query(AMES.Data.Services.ProdCalendar.ShiftsSql, r => (r["CodeValue"] as string ?? "", r["Attribute1"] as string))
+               .Where(s => s.Item1.Length > 0).ToList();
+
     private List<T> Query<T>(string sql, Func<IDataReader, T> map, params (string Name, object Value)[] pars)
     {
         using var conn = _f.OpenConnection();

@@ -307,14 +307,11 @@
         _busy = true;
         try
         {
-            foreach (var s in _screens)
-            {
-                _grants.TryGetValue(s.ScreenCode, out var level);
-                Sys.SetRolePermission(
-                    _selRole.RoleId, _selRole.RoleName,
-                    s.ModuleCode, s.ProcessCode,
-                    s.ScreenCode, level, _actorEmail);
-            }
+            // 화면 전체를 한 트랜잭션으로 — 중간에 실패하면 이 역할의 권한은 저장 전 그대로 남는다
+            Sys.SaveRolePermissions(_selRole.RoleId, _selRole.RoleName,
+                _screens.Select(s => new SysRepository.RolePermissionItem(
+                    s.ModuleCode, s.ScreenCode, _grants.TryGetValue(s.ScreenCode, out var level) ? level : null)),
+                _actorEmail);
             Audit.Updated("SYS-004", "SYS_RolePermission", _selRole.RoleName, _rows.Where(r => r.RoleId == _selRole.RoleId && !string.IsNullOrEmpty(r.PermissionLevel)).ToDictionary(r => r.ScreenCode ?? "", r => r.PermissionLevel), _grants.Where(g => !string.IsNullOrEmpty(g.Value)).ToDictionary(g => g.Key, g => g.Value));
             _rows  = Sys.ListRolePermissions();
             _dirty = false;

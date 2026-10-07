@@ -125,6 +125,9 @@
         }
         catch (JsonException) { }
         catch (JSException) { }
+        // 회로가 끊긴 뒤에 끝난 호출 — 다시 그릴 대상이 없으므로 그대로 끝낸다(처리하지 않으면 회로 오류 로그가 남는다)
+        catch (JSDisconnectedException) { return; }
+        catch (TaskCanceledException) { return; }
         _loaded = true;
         StateHasChanged();
     }
@@ -157,6 +160,8 @@
         if (!_loaded) return;   // 초기 복원 전엔 기본값으로 덮어쓰지 않음
         try { await JS.InvokeVoidAsync("localStorage.setItem", key, value); }
         catch (JSException) { }
+        catch (JSDisconnectedException) { }
+        catch (TaskCanceledException) { }
     }
 
     // 내부 NavMenu 와 같은 표기 규칙: ko=한/영, en=영/한, es=서/영(서문 없으면 영문)

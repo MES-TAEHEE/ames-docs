@@ -26,6 +26,26 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             return TypedResults.LocalRedirect($"~/{returnUrl}");
         });
 
+        // 상단바 비밀번호 변경 직후 — 회로가 발급한 1회용 표로 새 로그인 쿠키를 준다(AMES.Web.Services.SignInRefreshTickets).
+        // 기존 쿠키는 스탬프가 바뀌어 거부될 수 있으므로 현재 인증에 기대지 않는다. ACTIVE 계정만, 로그인 유지(IsPersistent)는 기존 쿠키 값을 따른다.
+        accountGroup.MapGet("/RefreshSignIn", async (
+            HttpContext ctx,
+            [FromQuery(Name = "t")] string? token,
+            [FromQuery] string? returnUrl,
+            [FromServices] AMES.Web.Services.SignInRefreshTickets tickets,
+            [FromServices] UserManager<ApplicationUser> userManager,
+            [FromServices] SignInManager<ApplicationUser> signInManager,
+            [FromServices] AMES.Data.Repositories.AuthRepository authRepo) =>
+        {
+            var userId = tickets.Redeem(token);
+            var user = userId is null ? null : await userManager.FindByIdAsync(userId);
+            if (user is null || !string.Equals(authRepo.GetProfileStatus(user.Id).AccountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                return Results.LocalRedirect("~/Account/Login");
+            var current = await ctx.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+            await signInManager.SignInAsync(user, isPersistent: current.Properties?.IsPersistent ?? false);
+            return Results.LocalRedirect(AMES.Web.Services.LocalUrl.OrDefault(returnUrl, "/"));
+        }).AllowAnonymous();
+
         var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();
 
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();

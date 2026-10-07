@@ -119,7 +119,7 @@
                         </Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Title="@L["Col.Channel"]" Sortable="false">
-                        <Template Context="r">@ChipList(ParseJsonList(r.ChannelsJson))</Template>
+                        <Template Context="r">@ChannelChips(ParseJsonList(r.ChannelsJson))</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Title="@L["Col.RoleName"]" Sortable="false">
                         <Template Context="r">@ChipList(ParseJsonList(r.RecipientRolesJson))</Template>
@@ -155,7 +155,7 @@
                         <Template Context="c"><span class="dim" style="font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;display:block;">@(c.UserName ?? c.UserId ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="Channel" Title="@L["Col.Channel"]" TextAlign="TextAlign.Center" Width="110px">
-                        <Template Context="c"><span class="pill info">@(c.Channel ?? "—")</span></Template>
+                        <Template Context="c">@ChannelPill(c.Channel)</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="Address" Title="@L["Col.Address"]">
                         <Template Context="c">@(c.Address ?? "—")</Template>
@@ -187,7 +187,7 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                     <RadzenTextBox @bind-Value="_fHistSearch" Change="@OnHistSearchChanged" @onkeydown="OnHistSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Notifications.Ph.HistSearch"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
                     <RadzenLabel Text="@L["Col.Channel"]" Component="DropDownHistChannel" />
-                    <RadzenDropDown AllowFiltering="true" Name="DropDownHistChannel" @bind-Value="_fHistChannel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+                    <RadzenDropDown AllowFiltering="true" Name="DropDownHistChannel" @bind-Value="_fHistChannel" Data="@AllChannelOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
                     <RadzenLabel Text="@L["Col.Status"]" Component="DropDownHistStatus" />
                     <RadzenDropDown Name="DropDownHistStatus" @bind-Value="_fHistStatus" Data="@DeliveryStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
 
@@ -211,7 +211,7 @@
                         <Template Context="h"><span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));max-width:140px;overflow:hidden;text-overflow:ellipsis;display:block;">@(h.RecipientUserId ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Channel" Title="@L["Col.Channel"]" TextAlign="TextAlign.Center" Width="110px">
-                        <Template Context="h"><span class="pill info">@(h.Channel ?? "—")</span></Template>
+                        <Template Context="h">@ChannelPill(h.Channel)</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Subject" Title="@L["Col.Name"]" Width="300px">
                         <Template Context="h">@(h.Subject ?? "—")</Template>
@@ -275,12 +275,13 @@
                         else
                         {
                             <div class="ames-line-picker">
-                                @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
+                                @foreach (var ch in _channelCodes)
                                 {
                                     <label class="ames-line-item">
-                                        <RadzenCheckBox TValue="bool" Value="@_rf.SelectedChannels.Contains(ch.CodeValue!)" Change="@(v => ToggleChannel(ch.CodeValue!, v))" />
+                                        <RadzenCheckBox TValue="bool" Value="@_rf.SelectedChannels.Contains(ch.CodeValue!)" Change="@(v => ToggleChannel(ch.CodeValue!, v))" Disabled="@(!ch.UseFlag && !_rf.SelectedChannels.Contains(ch.CodeValue!))" />
                                         <span class="code">@ch.CodeValue</span>
                                         <span class="dim">@MasterDataRepository.LocalName(ch)</span>
+                                        @if (!ch.UseFlag) { <span class="pill" style="font-size:calc(11px + var(--ames-fs-bump));opacity:.7;">@L["Lbl.Inactive"]</span> }
                                     </label>
                                 }
                             </div>
@@ -372,12 +373,13 @@
                         else
                         {
                             <div class="ames-line-picker">
-                                @foreach (var ch in _channelCodes.Where(c => c.UseFlag))
+                                @foreach (var ch in _channelCodes)
                                 {
                                     <label class="ames-line-item">
-                                        <RadzenCheckBox TValue="bool" Value="@_rf.SelectedChannels.Contains(ch.CodeValue!)" Change="@(v => ToggleChannel(ch.CodeValue!, v))" />
+                                        <RadzenCheckBox TValue="bool" Value="@_rf.SelectedChannels.Contains(ch.CodeValue!)" Change="@(v => ToggleChannel(ch.CodeValue!, v))" Disabled="@(!ch.UseFlag && !_rf.SelectedChannels.Contains(ch.CodeValue!))" />
                                         <span class="code">@ch.CodeValue</span>
                                         <span class="dim">@MasterDataRepository.LocalName(ch)</span>
+                                        @if (!ch.UseFlag) { <span class="pill" style="font-size:calc(11px + var(--ames-fs-bump));opacity:.7;">@L["Lbl.Inactive"]</span> }
                                     </label>
                                 }
                             </div>
@@ -906,21 +908,18 @@
         }
     }
 
-    private IEnumerable<DropDownItem> ChannelCodeOptions
-    {
-        get
+    // 알림 채널은 지우지 않고 공통코드 사용 여부(UseFlag)로만 켜고 끈다(10-08 사용자 결정 — 메일·SMS 는 사용 안 함, PUSH 만 사용).
+    // 새로 고르는 콤보는 사용 중인 채널만, 이력 필터는 과거 기록을 걸러야 하므로 사용 안 함 채널까지 보인다. 고정 대체 목록은 두지 않는다.
+    private IEnumerable<DropDownItem> ChannelCodeOptions =>
+        _channelCodes.Where(c => c.UseFlag)
+            .Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+
+    private IEnumerable<DropDownItem> AllChannelOptions =>
+        _channelCodes.Select(c => new DropDownItem
         {
-            var items = _channelCodes.Where(c => c.UseFlag).ToList();
-            if (items.Count > 0)
-                return items.Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
-            return new[] {
-                new DropDownItem { Value = "EMAIL", Text = "EMAIL" },
-                new DropDownItem { Value = "SMS",   Text = "SMS" },
-                new DropDownItem { Value = "KAKAO", Text = "KAKAO" },
-                new DropDownItem { Value = "SLACK", Text = "SLACK" },
-            };
-        }
-    }
+            Value = c.CodeValue ?? "",
+            Text  = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" + (c.UseFlag ? "" : $" · {L["Lbl.Inactive"].Value}"),
+        });
 
     private IEnumerable<DropDownItem> DeliveryStatusOptions =>
         _deliveryStatusItems.Where(s => s.UseFlag)
@@ -979,6 +978,39 @@
     }
 
     // 채널/역할 목록을 뱃지로 렌더링
+    // 사용 중인 채널인지 — 공통코드에 없는 값(과거 PDA 등)도 사용 안 함으로 본다
+    bool IsChannelActive(string? code) =>
+        _channelCodes.Any(c => c.UseFlag && string.Equals(c.CodeValue, code, StringComparison.OrdinalIgnoreCase));
+
+    // 채널 칩 — 사용 안 함 채널은 흐리게 + 취소선(설정은 남아 있지만 발송하지 않는다)
+    Microsoft.AspNetCore.Components.RenderFragment ChannelPill(string? code) => builder =>
+    {
+        if (string.IsNullOrEmpty(code)) { builder.AddContent(0, "—"); return; }
+        var active = IsChannelActive(code);
+        builder.OpenElement(1, "span");
+        builder.AddAttribute(2, "class", active ? "pill info" : "pill");
+        if (!active)
+        {
+            builder.AddAttribute(3, "style", "opacity:.55;text-decoration:line-through;");
+            builder.AddAttribute(4, "title", L["Lbl.Inactive"].Value);
+        }
+        builder.AddContent(5, code);
+        builder.CloseElement();
+    };
+
+    Microsoft.AspNetCore.Components.RenderFragment ChannelChips(List<string> items) => builder =>
+    {
+        if (items.Count == 0) { builder.AddContent(0, "—"); return; }
+        int seq = 0;
+        foreach (var item in items)
+        {
+            builder.OpenElement(seq++, "span");
+            builder.AddAttribute(seq++, "style", "margin-right:2px;font-size:calc(11px + var(--ames-fs-bump));");
+            builder.AddContent(seq++, ChannelPill(item));
+            builder.CloseElement();
+        }
+    };
+
     Microsoft.AspNetCore.Components.RenderFragment ChipList(List<string> items) => builder =>
     {
         if (items.Count == 0) { builder.AddContent(0, "—"); return; }

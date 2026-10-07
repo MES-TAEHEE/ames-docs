@@ -30,6 +30,30 @@ public static class PortalAuth
     /// <summary>외부 화면 인가 정책 이름(폴더 _Imports 로 전 화면 적용).</summary>
     public const string Policy = "PortalAccess";
 
+    /// <summary>
+    /// 로그인 때의 비밀번호 버전(비밀번호 해시의 SHA-256 앞 16자). 쿠키 검증이 현재 해시와 비교해 다르면 끊는다 —
+    /// 본인 변경·SCM-004 재설정 뒤 다른 PC 의 로그인이 다음 요청에 끊긴다(10-07, 내부의 보안 스탬프 역할). DB 컬럼은 따로 두지 않는다.
+    /// 이 클레임이 없는 쿠키(배포 전 로그인)는 통과시킨다 — 다음 로그인부터 적용(사용자 결정).
+    /// </summary>
+    public const string PasswordVersionClaim = "ames:pwv";
+
+    public static string PasswordVersion(string passwordHash)
+        => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(passwordHash)))[..16];
+
+    public static bool PasswordVersionMatches(ClaimsPrincipal? principal, string passwordHash)
+        => principal?.FindFirst(PasswordVersionClaim)?.Value is not { } v || v == PasswordVersion(passwordHash);
+
+    /// <summary>외부 사용자 로그인 쿠키의 사용자(로그인·비밀번호 변경 후 재발급 공용). 역할 클레임은 없다.</summary>
+    public static ClaimsPrincipal BuildPrincipal(AMES.Data.Repositories.ScmRepository.PortalUserRow user)
+        => new(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.NameIdentifier, user.UserID),
+            new Claim(ClaimTypes.Name, user.UserID),
+            new Claim(ActorCode.ClaimType, ActorCode.Normalize(user.UserID)),
+            new Claim(VendorClaim, user.VendorID),
+            new Claim(PasswordVersionClaim, PasswordVersion(user.PasswordHash)),
+        ], Scheme, ClaimTypes.Name, ClaimTypes.Role));
+
     public static bool IsPortalUser(ClaimsPrincipal? user)
         => user?.Identity?.IsAuthenticated == true
         && string.Equals(user.Identity.AuthenticationType, Scheme, StringComparison.Ordinal);

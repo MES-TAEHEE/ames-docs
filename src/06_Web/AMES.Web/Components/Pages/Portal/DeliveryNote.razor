@@ -1,3 +1,4 @@
+@inject UomFormat UomFmt
 @inject IStringLocalizer<SharedResources> L
 @inject PortalQuantityFormat QtyFormat
 @page "/portal/delivery-note/{Number}"
@@ -45,10 +46,10 @@
             <thead><tr><th>No</th><th>Part No</th><th>Description</th><th>PO No</th><th>Quantity</th></tr></thead>
             <tbody>@foreach (var line in n.Lines)
             {
-                <tr><td>@line.Line</td><td>@line.Item</td><td>@line.Name</td><td>@line.OrderNumber</td><td class="quantity">@QtyFormat.Text(line.Quantity,line.Unit) @line.Unit</td></tr>
+                <tr><td>@line.Line</td><td>@line.Item</td><td>@line.Name</td><td>@line.OrderNumber</td><td class="quantity">@QtyFormat.Text(line.Quantity,line.Unit) @UomFmt.Sym(line.Unit)</td></tr>
             }</tbody>
         </table>
-        <p class="totals">Total: @string.Join(" · ", n.Lines.GroupBy(l => l.Unit).Select(g => $"{QtyFormat.Text(g.Sum(l => l.Quantity),g.Key)} {g.Key}"))</p>
+        <p class="totals">Total: @string.Join(" · ", n.Lines.GroupBy(l => l.Unit).Select(g => $"{QtyFormat.Text(g.Sum(l => l.Quantity),g.Key)} {UomFmt.Sym(g.Key)}"))</p>
         @if (_cases.Count > 0)
         {
             <section class="case-manifest">
@@ -61,7 +62,7 @@
                             <tr>
                                 <td class="case-number">@item.Number</td>
                                 <td class="quantity">@item.Boxes.Count</td>
-                                <td>@string.Join(" · ", item.Boxes.GroupBy(b => b.Unit).Select(g => $"{QtyFormat.Text(g.Sum(b => b.Quantity), g.Key)} {g.Key}"))</td>
+                                <td>@string.Join(" · ", item.Boxes.GroupBy(b => b.Unit).Select(g => $"{QtyFormat.Text(g.Sum(b => b.Quantity), g.Key)} {UomFmt.Sym(g.Key)}"))</td>
                             </tr>
                         }
                     </tbody>

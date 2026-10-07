@@ -92,7 +92,7 @@ public sealed class AuthRepository
                    p.AccountStatus, ISNULL(p.FailedLoginCount,0) AS FailedLoginCount
             FROM   dbo.SYS_UserProfile p
             JOIN   dbo.AspNetUsers     u ON u.Id = p.UserID
-            WHERE  ISNULL(p.AccountStatus, 'Active') = 'Active'
+            WHERE  ISNULL(p.AccountStatus, 'ACTIVE') = 'ACTIVE'
             ORDER  BY p.EmployeeNo;
             """;
 
@@ -133,13 +133,13 @@ public sealed class AuthRepository
                    AccountStatus    = CASE
                                           WHEN ISNULL(FailedLoginCount, 0) + 1 >= 5
                                           THEN 'LOCKED'
-                                          ELSE ISNULL(AccountStatus, 'Active')
+                                          ELSE ISNULL(AccountStatus, 'ACTIVE')
                                       END,
                    -- 행위자 컬럼은 varchar(20) — GUID 대신 본인 사번
                    ModifiedBy       = COALESCE(@ModifiedBy, NULLIF(LTRIM(RTRIM(EmployeeNo)), ''), LEFT(@UserID, 20)),
                    ModifiedTS       = SYSDATETIME()
             WHERE  UserID = @UserID;
-            SELECT ISNULL(AccountStatus, 'Active') FROM dbo.SYS_UserProfile WHERE UserID = @UserID;
+            SELECT ISNULL(AccountStatus, 'ACTIVE') FROM dbo.SYS_UserProfile WHERE UserID = @UserID;
             """;
 
         using var conn = _connFactory.OpenConnection();
@@ -215,7 +215,7 @@ public sealed class AuthRepository
     public (string AccountStatus, int FailedLoginCount) GetProfileStatus(string userId)
     {
         const string sql = """
-            SELECT ISNULL(AccountStatus, 'Active'), ISNULL(FailedLoginCount, 0)
+            SELECT ISNULL(AccountStatus, 'ACTIVE'), ISNULL(FailedLoginCount, 0)
             FROM   dbo.SYS_UserProfile
             WHERE  UserID = @UserID;
             """;
@@ -230,14 +230,14 @@ public sealed class AuthRepository
     }
 
     /// <summary>
-    /// Resets AccountStatus to 'Active' and clears FailedLoginCount.
+    /// Resets AccountStatus to 'ACTIVE' and clears FailedLoginCount.
     /// Called by SYS-001 admin unlock action.
     /// </summary>
     public void UnlockAccount(string userId, string modifiedBy)
     {
         const string sql = """
             UPDATE dbo.SYS_UserProfile
-            SET    AccountStatus    = 'Active',
+            SET    AccountStatus    = 'ACTIVE',
                    FailedLoginCount = 0,
                    ModifiedBy       = @ModifiedBy,
                    ModifiedTS       = SYSDATETIME()

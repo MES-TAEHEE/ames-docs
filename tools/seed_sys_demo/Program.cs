@@ -259,15 +259,15 @@ internal static class Program
     {
         var rules = new (string Code, string Name, string Mod, bool On, string Ch, string Roles)[]
         {
-            ("FAILURE_OPEN",  "Equipment failure opened", "MNT",  true,  "EMAIL,SMS",  "Maintenance,Supervisor"),
-            ("PM_OVERDUE",    "PM schedule overdue",      "MNT",  true,  "EMAIL",      "Maintenance"),
-            ("QC_HOLD",       "QC hold created",          "QC",   true,  "EMAIL,SMS",  "QC,Supervisor"),
-            ("OTD_AT_RISK",   "Shipment at risk",         "FG",   true,  "EMAIL",      "Supervisor,Planner"),
+            ("FAILURE_OPEN",  "Equipment failure opened", "MNT",  true,  "EMAIL,SMS,PUSH","Maintenance,Supervisor"),
+            ("PM_OVERDUE",    "PM schedule overdue",      "MNT",  true,  "EMAIL,PUSH",  "Maintenance"),
+            ("QC_HOLD",       "QC hold created",          "QC",   true,  "EMAIL,SMS,PUSH","QC,Supervisor"),
+            ("OTD_AT_RISK",   "Shipment at risk",         "FG",   true,  "EMAIL,PUSH",  "Supervisor,Planner"),
             ("ANDON_RAISED",  "Andon call raised",        "POP",  true,  "PUSH,SMS",   "Supervisor,Maintenance"),
-            ("LOW_STOCK",     "Spare part low stock",     "MNT",  true,  "EMAIL",      "Maintenance"),
-            ("SAP_SYNC_FAIL", "SAP sync failed",          "SYS",  true,  "EMAIL,SMS",  "Admin"),
-            ("PLC_DOWN",      "PLC interface down",       "SYS",  true,  "EMAIL,SMS",  "Admin,Maintenance"),
-            ("DAILY_DIGEST",  "Daily KPI digest",         "RPT",  false, "EMAIL",      "Planner,Admin"),
+            ("LOW_STOCK",     "Spare part low stock",     "MNT",  true,  "EMAIL,PUSH",  "Maintenance"),
+            ("SAP_SYNC_FAIL", "SAP sync failed",          "SYS",  true,  "EMAIL,SMS,PUSH","Admin"),
+            ("PLC_DOWN",      "PLC interface down",       "SYS",  true,  "EMAIL,SMS,PUSH","Admin,Maintenance"),
+            ("DAILY_DIGEST",  "Daily KPI digest",         "RPT",  false, "EMAIL,PUSH",  "Planner,Admin"),
         };
         foreach (var r in rules)
         {

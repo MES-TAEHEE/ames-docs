@@ -88,6 +88,15 @@ public sealed partial class ScmRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>외부 사용자 본인의 비밀번호 변경(포탈 상단바, 10-07) — 해시만 바꾼다. 잠금·실패 횟수는 SCM-004 관리 영역이라 건드리지 않는다.</summary>
+    public void ChangePortalPassword(string email, string passwordHash, string actor)
+    {
+        using var conn = factory.OpenConnection();
+        using var cmd = new SqlCommand("UPDATE dbo.SCM_PortalVendorUser SET PasswordHash=@Hash, ModifiedBy=@Actor, ModifiedTS=SYSDATETIME() WHERE UserID=@Id;", conn);
+        Add(cmd, ("@Id", NormalizePortalUserId(email)), ("@Hash", passwordHash), ("@Actor", actor));
+        cmd.ExecuteNonQuery();
+    }
+
     public void UnlockPortalUser(string email, string actor)
     {
         using var conn = factory.OpenConnection();

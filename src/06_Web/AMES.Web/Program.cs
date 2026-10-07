@@ -60,6 +60,8 @@ builder.Services.AddLocalization();
 
 builder.Services.AddScoped<AMES.Web.Services.PageHeaderState>();
 builder.Services.AddSingleton<ScreenCatalogNotifier>();
+builder.Services.AddSingleton<AMES.Web.Services.SignInRefreshTickets>();   // 상단바 비밀번호 변경 후 쿠키 재발급용 1회용 표
+builder.Services.AddSingleton<AMES.Web.Services.TrustedDevices>();   // 내부 로그인 신뢰 기기 쿠키(잠금 공격 완화)
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
@@ -119,7 +121,8 @@ authBuilder
             AMES.Data.Repositories.ScmRepository.PortalUserRow? user = null;
             try { if (id is not null) user = ctx.HttpContext.RequestServices.GetRequiredService<AMES.Data.Repositories.ScmRepository>().FindPortalUser(id); }
             catch { return; }   // DB 장애로 로그인된 사용자를 전부 내보내지는 않는다
-            if (user is null || !user.ActiveFlag || user.LockedFlag || !user.VendorActive || !string.Equals(user.VendorID, vendor, StringComparison.OrdinalIgnoreCase))
+            if (user is null || !user.ActiveFlag || user.LockedFlag || !user.VendorActive || !string.Equals(user.VendorID, vendor, StringComparison.OrdinalIgnoreCase)
+                || !AMES.Web.Services.PortalAuth.PasswordVersionMatches(ctx.Principal, user.PasswordHash))   // 비밀번호가 바뀌었으면(본인 변경·SCM-004 재설정) 끊는다
             {
                 ctx.RejectPrincipal();
                 await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx.HttpContext, AMES.Web.Services.PortalAuth.Scheme);
@@ -488,6 +491,22 @@ app.MapGet("/portal/logout", async (HttpContext ctx) =>
     await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx, AMES.Web.Services.PortalAuth.Scheme);
     return Results.Redirect(AMES.Web.Services.PortalAuth.LoginPath);
 });
+
+// 포탈 상단바 비밀번호 변경 직후 — 비밀번호 버전이 바뀐 기존 쿠키 대신 새 쿠키를 준다(1회용 표, 내부 /Account/RefreshSignIn 과 같은 방식).
+// 표는 "portal:" + 이메일. 사용할 수 없는 계정(비활성·잠금·업체 비활성)이면 외부 로그인으로 보낸다.
+app.MapGet("/portal/refresh-signin", async (HttpContext ctx, string? t, string? returnUrl,
+    AMES.Web.Services.SignInRefreshTickets tickets, AMES.Data.Repositories.ScmRepository scm) =>
+{
+    var key = tickets.Redeem(t);
+    var user = key is not null && key.StartsWith("portal:", StringComparison.Ordinal) ? scm.FindPortalUser(key["portal:".Length..]) : null;
+    if (user is null || !user.ActiveFlag || user.LockedFlag || !user.VendorActive)
+        return Results.Redirect(AMES.Web.Services.PortalAuth.LoginPath);
+    await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignInAsync(ctx, AMES.Web.Services.PortalAuth.Scheme,
+        AMES.Web.Services.PortalAuth.BuildPrincipal(user), new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = false });
+    var back = AMES.Web.Services.LocalUrl.IsLocal(returnUrl) && AMES.Web.Services.PortalAuth.IsPortalPath(new PathString(returnUrl!.Split('?', '#')[0]))
+        ? returnUrl! : AMES.Web.Services.PortalAuth.HomePath;
+    return Results.Redirect(back);
+}).AllowAnonymous();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

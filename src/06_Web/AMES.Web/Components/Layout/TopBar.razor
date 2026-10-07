@@ -52,6 +52,7 @@
                     @* 역할은 로그인 쿠키의 Role 클레임(AspNetUserRoles) — PermissionService 가 권한을 판정하는 것과 같은 출처 *@
                     <div class="ames-user-role">@RoleText(context.User)</div>
                 </div>
+                <button type="button" class="ames-user-cred" title="@L["TopBar.Cred.Button"]" aria-label="@L["TopBar.Cred.Button"]" @onclick="() => _cred = true"><RadzenIcon Icon="key" /></button>
                 <form action="Account/Logout" method="post" style="display:inline;">
                     <AntiforgeryToken />
                     <input type="hidden" name="ReturnUrl" value="@_url" />
@@ -68,9 +69,13 @@
     </AuthorizeView>
 </header>
 
+@* 헤더 밖에 둔다 — .ames-topbar 의 backdrop-filter 가 고정 위치(fixed) 대화상자를 헤더 안에 가둔다 *@
+<MyCredentialsDialog Visible="@_cred" OnClose="@(() => _cred = false)" />
+
 @code {
     string? _url;
     string _theme = "dark";
+    bool _cred;
 
     protected override void OnInitialized()
     {

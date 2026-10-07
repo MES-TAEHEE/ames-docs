@@ -104,7 +104,7 @@
                 <Template Context="r">@(r.PartName ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
-                <Template Context="r"><span class="code dim">@(r.UOM ?? "—")</span></Template>
+                <Template Context="r"><span class="code dim">@(UomFmt.Sym(r.UOM) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.UnitCost?.ToString("N2") ?? "—")</Template>

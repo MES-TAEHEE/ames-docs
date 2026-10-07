@@ -119,11 +119,15 @@
         catch {}
     }
 
-    void OnScreensChanged() => _ = InvokeAsync(async () =>
+    // 알림은 스레드 풀에서 온다 — DB 재조회는 회로 밖, 같은 세션의 메뉴와 겹쳐도 한 번만 읽는다
+    void OnScreensChanged() => _ = Task.Run(async () =>
     {
-        Catalog.Reload();
-        if (AuthState is not null) { try { await PermSvc.EnsureAsync(AuthState); } catch { } }
-        StateHasChanged();
+        Catalog.ReloadFor(ScreenCatalog.Version);
+        await InvokeAsync(async () =>
+        {
+            if (AuthState is not null) { try { await PermSvc.EnsureAsync(AuthState); } catch { } }
+            StateHasChanged();
+        });
     });
 
     public void Dispose() => ScreenCatalog.Changed -= OnScreensChanged;

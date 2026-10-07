@@ -114,7 +114,7 @@
                 <Template Context="r"><span class="dim">@UomFmt.Qty(r.SpecUSL, r.UOM)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
-                <Template Context="r"><span class="code dim">@(r.UOM ?? "—")</span></Template>
+                <Template Context="r"><span class="code dim">@(UomFmt.Sym(r.UOM) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SamplingPlan" Title="@L["Col.SamplingPlan"]" Width="170px">
                 <Template Context="r"><span class="dim">@(r.SamplingPlan ?? "—")</span></Template>

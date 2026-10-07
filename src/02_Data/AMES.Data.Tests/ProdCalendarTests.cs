@@ -119,6 +119,41 @@ public class ProdCalendarTests
     }
 
     [Fact]
+    public void ShiftCaseSql_keeps_order_wraps_midnight_and_passes_codes_as_parameters()
+    {
+        var pars = new List<(string Name, object Value)>();
+        var sql = ProdCalendar.ShiftCaseSql("x.T", [("A", "0700-1630"), ("B", "1630-0200"), ("BAD", "zz"), ("C", "0200-0700")], "Sh", pars);
+        var m = "(DATEPART(hour, x.T) * 60 + DATEPART(minute, x.T))";
+        Assert.Equal($"CASE WHEN {m} >= 420 AND {m} < 990 THEN @Sh0 WHEN {m} >= 990 OR {m} < 120 THEN @Sh1"
+                   + $" WHEN {m} >= 120 AND {m} < 420 THEN @Sh2 END", sql);
+        Assert.Equal([("@Sh0", (object)"A"), ("@Sh1", "B"), ("@Sh2", "C")], pars);
+    }
+
+    [Fact]
+    public void ShiftCaseSql_without_valid_windows_is_null()
+    {
+        var pars = new List<(string Name, object Value)>();
+        Assert.Equal("CAST(NULL AS varchar(10))", ProdCalendar.ShiftCaseSql("x.T", [("A", null)], "Sh", pars));
+        Assert.Empty(pars);
+    }
+
+    // 생성한 SQL 을 실제 서버에서 평가해 ShiftOf 와 같은 답인지 본다(읽기 전용 SELECT)
+    [SkippableTheory]
+    [InlineData("06:59")] [InlineData("07:00")] [InlineData("16:29")] [InlineData("16:30")]
+    [InlineData("23:59")] [InlineData("00:00")] [InlineData("01:59")] [InlineData("02:00")]
+    public void ShiftCaseSql_matches_ShiftOf_on_server(string time)
+    {
+        var f = AmesDevDb.TryFactory();
+        Skip.If(f is null, "AMES_DEV 접속 불가");
+        IReadOnlyList<(string Code, string? Window)> shifts = [("A", "0700-1630"), ("B", "1630-0200"), ("C", "0200-0700")];
+        var ts = DateTime.Parse($"2026-10-07 {time}");
+        var pars = new List<(string Name, object Value)>();
+        var sql = $"SELECT {ProdCalendar.ShiftCaseSql("@Ts", shifts, "Sh", pars)}";
+        var got = AmesDevDb.Scalar(f!, sql, [("@Ts", ts), .. pars.Select(p => (p.Name, p.Value))]);
+        Assert.Equal(ProdCalendar.ShiftOf(ts, shifts), got as string);
+    }
+
+    [Fact]
     public void Resolve_falls_back_to_calendar_date_when_cutoff_missing()
     {
         var (prodDate, _) = ProdCalendar.Resolve(new DateTime(2026, 9, 10, 2, 30, 0), null, ThreeShifts);

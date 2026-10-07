@@ -1,3 +1,4 @@
+@inject UomFormat UomFmt
 <article class="delivery-note box-labels">
 @foreach(var page in Boxes.Chunk(3))
 {
@@ -13,7 +14,7 @@
                 <div class="part-row"><small>Part No</small><strong class="part-value @(b.Item.Length>18 ? "compact" : "")">@b.Item</strong></div>
                 <div class="desc-row @(b.Name.Length>85 ? "compact" : "")"><small>Description</small><strong>@b.Name</strong></div>
                 <div class="label-details">
-                    <div><small>Quantity</small><strong>@QuantityText(b.Quantity,b.Unit) @b.Unit</strong></div>
+                    <div><small>Quantity</small><strong>@QuantityText(b.Quantity,b.Unit) @UomFmt.Sym(b.Unit)</strong></div>
                     <div><small>Box</small><strong>@b.Sequence / @b.BoxCount</strong></div>
                     <div><small>Delivery No</small><strong>@b.Delivery</strong></div>
                     <div><small>PO No</small><strong>@b.Order</strong></div>

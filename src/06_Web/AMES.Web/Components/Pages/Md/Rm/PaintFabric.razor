@@ -86,7 +86,7 @@
                 <Template Context="r"><span class="dim">@(r.SupplierID ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
-                <Template Context="r"><span class="dim">@(r.UOM ?? "—")</span></Template>
+                <Template Context="r"><span class="dim">@(UomFmt.Sym(r.UOM) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="QtyOnHand" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@UomFmt.Qty(r.QtyOnHand, r.UOM)</Template>

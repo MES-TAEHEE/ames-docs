@@ -97,7 +97,7 @@ else
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="Required" Title="@L["PP.Mrp.Col.Required"].Value" TextAlign="TextAlign.Right" Width="120px">
-                <Template Context="r">@Q(r.Required, r.Uom) <span class="dim">@r.Uom</span></Template>
+                <Template Context="r">@Q(r.Required, r.Uom) <span class="dim">@UomFmt.Sym(r.Uom)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="Stock" Title="@L["PP.Mrp.Col.Stock"].Value" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@Q(r.Stock, r.Uom)</Template>
@@ -107,9 +107,9 @@ else
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="Shortage" Title="@L["PP.Mrp.Col.Shortage"].Value" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">
-                    @if (r.Shortage > 0) { <span class="mrp-neg">−@Q(r.Shortage, r.Uom) @r.Uom</span> }
+                    @if (r.Shortage > 0) { <span class="mrp-neg">−@Q(r.Shortage, r.Uom) @UomFmt.Sym(r.Uom)</span> }
                     else if (r.Shortage == 0) { <span class="dim" style="font-weight:700;">±0</span> }
-                    else { <span class="mrp-pos">+@Q(-r.Shortage, r.Uom) @r.Uom</span> }
+                    else { <span class="mrp-pos">+@Q(-r.Shortage, r.Uom) @UomFmt.Sym(r.Uom)</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="LeadTimeDays" Title="@L["PP.Mrp.Col.LeadTime"].Value" TextAlign="TextAlign.Center" Width="70px">
@@ -151,9 +151,9 @@ else
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["PP.Mrp.Col.Material"] <span class="code" style="font-weight:400;font-size:.9em;">@_sel.ItemNo</span> <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.ItemName</span></div>
             <div class="mrp-dgrid">
-                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Detail.Required"]</div><div class="mrp-dv">@Q(_sel.Required, _sel.Uom) @_sel.Uom</div></div>
-                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Detail.Available"]</div><div class="mrp-dv">@Q(_sel.Stock + _sel.OnOrder, _sel.Uom) @_sel.Uom</div></div>
-                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Col.Shortage"]</div><div class="mrp-dv @(_sel.Shortage > 0 ? "neg" : "pos")">@Signed(-_sel.Shortage, _sel.Uom) @_sel.Uom</div></div>
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Detail.Required"]</div><div class="mrp-dv">@Q(_sel.Required, _sel.Uom) @UomFmt.Sym(_sel.Uom)</div></div>
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Detail.Available"]</div><div class="mrp-dv">@Q(_sel.Stock + _sel.OnOrder, _sel.Uom) @UomFmt.Sym(_sel.Uom)</div></div>
+                <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Col.Shortage"]</div><div class="mrp-dv @(_sel.Shortage > 0 ? "neg" : "pos")">@Signed(-_sel.Shortage, _sel.Uom) @UomFmt.Sym(_sel.Uom)</div></div>
                 <div class="mrp-dt"><div class="mrp-dl">@L["PP.Mrp.Detail.LeadTime"]</div><div class="mrp-dv">@(_sel.LeadTimeDays is { } lt ? string.Format(L["PP.Mrp.Unit.Days"].Value, lt) : "—")</div></div>
             </div>
             <div class="mrp-dsub">@L["PP.Mrp.Detail.Wos"]</div>
@@ -190,7 +190,7 @@ else
                     {
                         <div class="mrp-bulk-item">
                             <span><a class="code mrp-prlink" href="@($"pp/purchase-req?pr={Uri.EscapeDataString(p.PrNumber ?? $"PR#{p.PrId}")}")" title="PP-006">@(p.PrNumber ?? $"PR#{p.PrId}")</a></span>
-                            <span class="mrp-pr-col code">@Q(p.RequiredQty, _sel.Uom) <span class="dim">@_sel.Uom</span></span>
+                            <span class="mrp-pr-col code">@Q(p.RequiredQty, _sel.Uom) <span class="dim">@UomFmt.Sym(_sel.Uom)</span></span>
                             <span class="mrp-pr-col dim">@(p.RequiredDate?.ToString(DateFmt.Date) ?? "—")</span>
                             <span class="mrp-pr-col"><span class="pill @PrStCls(p.Status)">@(p.Status ?? "—")</span></span>
                             <span class="mrp-pr-col wide code dim">@(p.WoNumber ?? "—")</span>
@@ -228,12 +228,12 @@ else
                     var qty = _prQty.GetValueOrDefault(r.ItemNo);
                     <div class="mrp-bulk-item @(qty <= 0 ? "bad" : qty < r.Shortage ? "warn" : "")">
                         <span><span class="code">@r.ItemNo</span> · @r.ItemName</span>
-                        <span class="code mrp-neg mrp-bulk-qty">−@Q(r.Shortage, r.Uom) @r.Uom</span>
+                        <span class="code mrp-neg mrp-bulk-qty">−@Q(r.Shortage, r.Uom) @UomFmt.Sym(r.Uom)</span>
                         <span class="mrp-bulk-qty">
                             <RadzenNumeric TValue="decimal" Value="@qty" Change="@((decimal v) => _prQty[r.ItemNo] = v)"
                                            Min="0" Step="1" Format="#,##0.###" ShowUpDown="false"
                                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;text-align:right;" />
-                            <span class="dim">@r.Uom</span>
+                            <span class="dim">@UomFmt.Sym(r.Uom)</span>
                         </span>
                     </div>
                 }

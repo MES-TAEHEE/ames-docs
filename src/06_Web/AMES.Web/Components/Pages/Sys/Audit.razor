@@ -20,7 +20,7 @@
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Audit.Kpi.Events"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_allRows.Count</div>
+            <div class="ames-kpi-v">@_rows.Count</div>
             <div class="ames-kpi-s">@L["SYS.Audit.Kpi.EventsSub"]</div>
         </div>
     </div>
@@ -206,7 +206,6 @@
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
-    List<SysRepository.AuditRow> _allRows = new();
     List<SysRepository.AuditRow> _rows    = new();
     SysRepository.AuditRow? _sel;
     List<MasterDataRepository.CodeItemRow> _moduleItems  = new();
@@ -235,28 +234,20 @@
         Reload();
     }
 
-    void Reload()
-    {
-        try { _allRows = Sys.ListAudit(); } catch { _allRows = new(); }
-        _ok   = _allRows.Count(r => r.Result == "OK");
-        _fail = _allRows.Count(r => r.Result != "OK" && r.Result is not null);
-        _day  = _allRows.Count(r => r.EventTs.HasValue && (DbClock.Now - r.EventTs.Value).TotalHours <= 24);
-        ApplyFilter();
-    }
+    void Reload() => ApplyFilter();
 
+    // 조회 조건(기간·검색어·모듈·공정·결과)을 DB 에서 걸고 건수 제한 없이 읽는다 — KPI 건수·성공·실패도 조회 결과 기준
     void ApplyFilter()
     {
-        _rows = _allRows.Where(r =>
-            (string.IsNullOrEmpty(_fSearch) ||
-                (r.ActorUserId  ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-                (r.TargetId     ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-                (r.TargetEntity ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-                (r.Note         ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-            (string.IsNullOrEmpty(_fModule)  || r.ModuleCode  == _fModule) &&
-            (string.IsNullOrEmpty(_fProcess) || r.ProcessCode == _fProcess) &&
-            (string.IsNullOrEmpty(_fResult)  || r.Result      == _fResult) &&
-            (!r.EventTs.HasValue || (r.EventTs.Value.Date >= _fFrom.Date && r.EventTs.Value.Date <= _fTo.Date))
-        ).ToList();
+        if (_fTo < _fFrom) (_fFrom, _fTo) = (_fTo, _fFrom);
+        try
+        {
+            _rows = Sys.SearchAudit(new SysRepository.AuditFilter(_fFrom, _fTo, _fSearch, _fModule, _fProcess, _fResult));
+            _day  = Sys.CountAuditLast24h();
+        }
+        catch { _rows = new(); }
+        _ok   = _rows.Count(r => r.Result == "OK");
+        _fail = _rows.Count(r => r.Result != "OK" && r.Result is not null);
     }
 
     void OnSearchChanged(string value) => _fSearch = value ?? "";

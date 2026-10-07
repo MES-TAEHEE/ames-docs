@@ -648,6 +648,19 @@ html[data-theme="light"] .ames-user-av--none  { --av-bg: rgba(100,116,139,.10); 
     transition: background .12s;
 }
 .ames-user-out:hover { background: rgba(252,165,165,.2); }
+/* 상단바 비밀번호·PIN 변경 버튼 — 로그아웃 버튼과 같은 크기, 파란 계열 */
+.ames-user-cred {
+    background: rgba(147,197,253,.08);
+    border: 1px solid rgba(147,197,253,.28);
+    color: var(--ames-tx-blue-300);
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .12s;
+}
+.ames-user-cred .rzi { font-size: 17px; }
+.ames-user-cred:hover { background: rgba(147,197,253,.2); }
 
 /* ── 언어 전환 (TopBar) ─────────────────────────────────────── */
 .culture-switcher .culture-sep { color: #475569; font-size: .75em; line-height: 1; }
@@ -4332,6 +4345,8 @@ html[data-theme="light"] .ames-loc-code { color: var(--ames-accent); background:
 html[data-theme="light"] .ames-user-role { color: var(--ames-chrome-dim); }
 html[data-theme="light"] .ames-user-out { background: rgba(185,28,28,.08); border-color: rgba(185,28,28,.35); color: #991b1b; }
 html[data-theme="light"] .ames-user-out:hover { background: rgba(185,28,28,.16); }
+html[data-theme="light"] .ames-user-cred { background: rgba(29,78,216,.08); border-color: rgba(29,78,216,.35); color: #1e40af; }
+html[data-theme="light"] .ames-user-cred:hover { background: rgba(29,78,216,.16); }
 html[data-theme="light"] .culture-switcher .culture-sep { color: var(--ames-chrome-dim); }
 html[data-theme="light"] .culture-switcher a { color: var(--ames-chrome-dim); }
 html[data-theme="light"] .culture-switcher a.cur { color: var(--ames-accent); }
@@ -5769,6 +5784,9 @@ html[data-theme="light"] .portal-link.active { background: rgba(13,148,136,.12);
 .portal-shell .ames-brand-sub { color: var(--ames-tx-teal-300); letter-spacing: .18em; }
 .portal-shell .ames-loc-code { color: var(--ames-tx-teal-300); background: rgba(94,234,212,.10); border-color: rgba(94,234,212,.25); }
 .portal-shell .ames-user-av--user { background: rgba(20,184,166,.18); color: var(--ames-tx-teal-300); }
+.portal-shell .ames-user-cred { background: rgba(20,184,166,.08); border-color: rgba(45,212,191,.32); color: var(--ames-tx-teal-300); }
+.portal-shell .ames-user-cred:hover { background: rgba(20,184,166,.2); }
+html[data-theme="light"] .portal-shell .ames-user-cred { background: rgba(15,118,110,.08); border-color: rgba(15,118,110,.35); color: var(--ames-tx-teal-300); }
 .portal-shell .ames-side { border-right: 1px solid rgba(45,212,191,.18); background: linear-gradient(180deg, var(--ames-sf-061a1c-a92), var(--ames-sf-040e10-a92)); }
 .portal-shell .ames-nav-section.portal.open, .portal-shell .ames-nav-section.portal { color: var(--ames-tx-teal-200); }
 .portal-shell .ames-nav-section.portal .ames-nav-section-n { background: rgba(45,212,191,.15); color: var(--ames-tx-teal-300); }

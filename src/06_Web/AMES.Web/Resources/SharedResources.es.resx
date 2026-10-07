@@ -3652,7 +3652,7 @@
     <value>Código/Nombre de Interfaz</value>
   </data>
   <data name="SYS.Audit.Kpi.EventsSub" xml:space="preserve">
-    <value>Eventos Recientes</value>
+    <value>Resultados de la consulta</value>
   </data>
   <data name="SYS.Audit.Kpi.OkSub" xml:space="preserve">
     <value>Resultado OK</value>
@@ -4501,7 +4501,7 @@
     <value>Nombre visible del evento</value>
   </data>
   <data name="SYS.Notifications.Ph.Address" xml:space="preserve">
-    <value>Correo / Teléfono / URL Hook</value>
+    <value>Correo / Teléfono / ID de dispositivo push</value>
   </data>
   <data name="MD.InspStd.Kpi.Ctq" xml:space="preserve">
     <value>Ítems CTQ</value>
@@ -10216,5 +10216,56 @@
   </data>
   <data name="SYS.Users.Err.AdminTarget" xml:space="preserve">
     <value>Solo Admin puede editar una cuenta Admin.</value>
+  </data>
+  <data name="TopBar.Cred.Button" xml:space="preserve">
+    <value>Cambiar contraseña / PIN</value>
+  </data>
+  <data name="TopBar.Cred.Title" xml:space="preserve">
+    <value>Cambiar mi contraseña / PIN</value>
+  </data>
+  <data name="TopBar.Cred.Tab.Password" xml:space="preserve">
+    <value>Contraseña</value>
+  </data>
+  <data name="TopBar.Cred.Tab.Pin" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.Current" xml:space="preserve">
+    <value>Contraseña actual</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.NewPassword" xml:space="preserve">
+    <value>Nueva contraseña</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.ConfirmPassword" xml:space="preserve">
+    <value>Confirmar contraseña</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.NewPin" xml:space="preserve">
+    <value>Nuevo PIN</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.ConfirmPin" xml:space="preserve">
+    <value>Confirmar PIN</value>
+  </data>
+  <data name="TopBar.Cred.Hint.Password" xml:space="preserve">
+    <value>Las sesiones en otros PC o navegadores se cierran en 5 minutos tras el cambio.</value>
+  </data>
+  <data name="TopBar.Cred.Hint.Pin" xml:space="preserve">
+    <value>El PIN es el número de 4 dígitos para iniciar sesión en POP y confirmar cambios de fecha.</value>
+  </data>
+  <data name="TopBar.Cred.Err.Required" xml:space="preserve">
+    <value>Complete todos los campos.</value>
+  </data>
+  <data name="TopBar.Cred.Err.Mismatch" xml:space="preserve">
+    <value>El nuevo valor y su confirmación no coinciden.</value>
+  </data>
+  <data name="TopBar.Cred.Err.WrongPassword" xml:space="preserve">
+    <value>La contraseña actual es incorrecta. La cuenta se bloquea tras 5 fallos.</value>
+  </data>
+  <data name="TopBar.Cred.Ok.Pin" xml:space="preserve">
+    <value>PIN cambiado.</value>
+  </data>
+  <data name="Portal.Cred.Button" xml:space="preserve">
+    <value>Cambiar contraseña</value>
+  </data>
+  <data name="Portal.Cred.Title" xml:space="preserve">
+    <value>Cambiar mi contraseña</value>
   </data>
 </root>

@@ -233,7 +233,7 @@
                                 <Template Context="line"><span class="code" style="font-weight:600;">@UomFmt.Qty(line.QtyPer, line.UOM, "")</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="60px" MinWidth="60px">
-                                <Template Context="line"><span class="dim">@line.UOM</span></Template>
+                                <Template Context="line"><span class="dim">@UomFmt.Sym(line.UOM)</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="ScrapPct" Title="@L["Col.ScrapPct"]" TextAlign="TextAlign.Right" Width="100px" MinWidth="100px">
                                 <Template Context="line"><span class="code dim">@(line.ScrapPct?.ToString("N2"))</span></Template>

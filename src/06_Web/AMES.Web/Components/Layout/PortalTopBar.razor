@@ -49,12 +49,17 @@
             <div class="ames-user-name">@_userName</div>
             <div class="ames-user-role">@L["Portal.Role.External"] · @_vendor</div>
         </div>
+        <button type="button" class="ames-user-cred" title="@L["Portal.Cred.Button"]" aria-label="@L["Portal.Cred.Button"]" @onclick="() => _cred = true"><RadzenIcon Icon="key" /></button>
         <a class="ames-user-out" href="/portal/logout" title="@L["Portal.Logout"]">⏻</a>
     </div>
 </header>
 
+@* 헤더 밖에 둔다 — .ames-topbar 의 backdrop-filter 가 고정 위치(fixed) 대화상자를 헤더 안에 가둔다 *@
+<PortalPasswordDialog Visible="@_cred" OnClose="@(() => _cred = false)" />
+
 @code {
     string _userName = "", _vendor = "", _theme = "dark";
+    bool _cred;
 
     protected override async Task OnInitializedAsync()
     {

@@ -56,7 +56,8 @@ internal sealed class IdentityRevalidatingAuthenticationStateProvider(
         try { user = scm.FindPortalUser(id); }
         catch { return true; }   // DB 장애로 접속 중인 외부 사용자를 전부 내보내지는 않는다(쿠키 검증과 같은 판단)
         return user is not null && user.ActiveFlag && !user.LockedFlag && user.VendorActive
-            && string.Equals(user.VendorID, vendor, StringComparison.OrdinalIgnoreCase);
+            && string.Equals(user.VendorID, vendor, StringComparison.OrdinalIgnoreCase)
+            && PortalAuth.PasswordVersionMatches(principal, user.PasswordHash);
     }
 
     private async Task<bool> ValidateSecurityStampAsync(UserManager<ApplicationUser> userManager, ClaimsPrincipal principal)

@@ -274,7 +274,7 @@
                         <tbody>
                         @foreach (var line in _selected.Lines)
                         {
-                            <tr><td class="code">@line.Item</td><td>@line.Name</td><td>@line.Unit</td><td class="num">@QuantityText(line.Quantity, line.Unit, 2)</td><td class="num">@QuantityText(Store.Delivered(_selected, line), line.Unit, 2)</td><td class="num">@QuantityText(Store.Remaining(_selected, line), line.Unit, 2)</td>@if(Mode=="Progress"){<td class="num">@QtyFormat.Text(line.RegisteredDelivery,line.Unit)</td><td class="num">@QtyFormat.Text(line.ShippedQuantity,line.Unit)</td><td class="num">@QtyFormat.Text(line.UnshippedQuantity,line.Unit)</td>}else{<td class="num">@line.Price.ToString("N2")</td><td class="num">@line.Amount.ToString("N2")</td>}</tr>
+                            <tr><td class="code">@line.Item</td><td>@line.Name</td><td>@UomFmt.Sym(line.Unit)</td><td class="num">@QuantityText(line.Quantity, line.Unit, 2)</td><td class="num">@QuantityText(Store.Delivered(_selected, line), line.Unit, 2)</td><td class="num">@QuantityText(Store.Remaining(_selected, line), line.Unit, 2)</td>@if(Mode=="Progress"){<td class="num">@QtyFormat.Text(line.RegisteredDelivery,line.Unit)</td><td class="num">@QtyFormat.Text(line.ShippedQuantity,line.Unit)</td><td class="num">@QtyFormat.Text(line.UnshippedQuantity,line.Unit)</td>}else{<td class="num">@line.Price.ToString("N2")</td><td class="num">@line.Amount.ToString("N2")</td>}</tr>
                         }
                         </tbody>
                     </table>
@@ -283,7 +283,7 @@
                 <div class="scm-dsub">@L["Scm.Text.RelatedDeliveries"]</div>
                 <div class="scm-log">
                     @foreach (var d in Store.Deliveries.Where(d => d.OrderNumber == _selected.Number))
-                    { <div><span class="code">@d.Number</span> · @d.Date.ToString(DateFmt.Date) · @QuantityText(d.Quantity, d.Unit, 3) @d.Unit · @d.Item · @Status(d.Status)</div> }
+                    { <div><span class="code">@d.Number</span> · @d.Date.ToString(DateFmt.Date) · @QuantityText(d.Quantity, d.Unit, 3) @UomFmt.Sym(d.Unit) · @d.Item · @Status(d.Status)</div> }
                     @if (!Store.Deliveries.Any(d => d.OrderNumber == _selected.Number)) { <div class="dim">@Empty</div> }
                 </div>
 
@@ -353,7 +353,7 @@
                 <thead><tr><th>@L["Scm.Text.Item"]</th><th>@L["Scm.Text.Unit"]</th>@if (DeliveryContentEditable) { <th>@L["Scm.Text.MaximumQuantity"]</th> }<th>@L["Scm.Text.Quantity"]</th><th>@L["Scm.Text.VendorLOT"]</th><th>@L["Scm.Text.ProductionDate"]</th></tr></thead>
                 <tbody>@foreach(var line in _deliveryEditLines)
                 {
-                    <tr @key="line.PoID"><td data-field="item" data-label='@L["Portal.Text.ItemCode.7b3b81"]'>@line.Item</td><td data-label='@L["Scm.Text.Unit"]'>@line.Unit</td>@if (DeliveryContentEditable) { <td data-label='@L["Scm.Text.MaximumQuantity"]'>@QuantityText(EditableDeliveryBalance(line), line.Unit, 3)</td> }
+                    <tr @key="line.PoID"><td data-field="item" data-label='@L["Portal.Text.ItemCode.7b3b81"]'>@line.Item</td><td data-label='@L["Scm.Text.Unit"]'>@UomFmt.Sym(line.Unit)</td>@if (DeliveryContentEditable) { <td data-label='@L["Scm.Text.MaximumQuantity"]'>@QuantityText(EditableDeliveryBalance(line), line.Unit, 3)</td> }
                         <td data-field="quantity" data-label='@L["Portal.Text.DeliveryQuantity"]'>@if (DeliveryContentEditable && _assignedCases.Count==0) { <RadzenNumeric TValue="decimal" class="ames-rz-input scm-number" aria-label='@L["Scm.Accessibility.EditQuantity", line.Item]' Min="0.001m" Step="0.001" @bind-Value="line.Quantity" Format="@QtyFormat.Format(line.Unit)" ShowUpDown="false" /> } else { @QuantityText(line.Quantity, line.Unit, 3) }</td><td data-field="lot" data-label='@L["Portal.Text.VendorLOT"]'><input class="ames-input" maxlength="30" aria-label='@L["Scm.Accessibility.VendorLot", line.Item]' @bind="line.VendorLotNo" disabled="@(!DeliveryContentEditable)" /></td>
                         <td data-field="production-date" data-label='@L["Scm.Text.ProductionDate"]'><RadzenDatePicker TValue="DateTime" @bind-Value="line.ProductionDate" DateFormat="@DateFmt.Date" Disabled="@(!DeliveryContentEditable)" InputSize="InputSize.Small" class="ames-rz-input" /></td></tr>
                 }</tbody>
@@ -409,7 +409,7 @@
                                         InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                                     <div class="dim">@line.Name</div>
                                 </td>
-                                <td data-label='@L["Scm.Text.Unit"]'>@line.Unit</td>
+                                <td data-label='@L["Scm.Text.Unit"]'>@UomFmt.Sym(line.Unit)</td>
                                 <td><RadzenNumeric TValue="decimal" @bind-Value="line.Quantity" Min="0.001m" Step="1" aria-label='@($"{L["Col.Quantity"]} {line.Id}")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" /></td>
                                 <td><RadzenNumeric TValue="decimal" @bind-Value="line.Price" Min="0" Step="0.01" aria-label='@($"{L["Scm.Text.UnitPrice"]} {line.Id}")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" /></td>
                                 <td class="num">@line.Amount.ToString("N2")</td>
@@ -547,7 +547,7 @@
         .Where(g=>string.IsNullOrWhiteSpace(_search) || g.Any(d=>(d.Number+" "+d.OrderNumber+" "+d.Item).Contains(_search,StringComparison.OrdinalIgnoreCase)))
         .Select(g=> {var d=g.First().Copy();d.Item=string.Join(", ",g.Select(x=>x.Item));return d;}).ToList();
     string DeliveryQuantities(string number) => string.Join(" / ",Store.Deliveries.Where(d=>d.Number==number)
-        .GroupBy(d=>d.Unit).Select(g=>$"{QuantityText(g.Sum(d=>d.Quantity),g.Key,3)} {g.Key}"));
+        .GroupBy(d=>d.Unit).Select(g=>$"{QuantityText(g.Sum(d=>d.Quantity),g.Key,3)} {UomFmt.Sym(g.Key)}"));
     protected override async Task OnParametersSetAsync()
     {
         _ready = false;
@@ -632,7 +632,7 @@
         }
     }
     string Quantities(ScmPreviewStore.Order order, Func<ScmPreviewStore.OrderLine, decimal> quantity)
-        => string.Join(" / ", order.Lines.GroupBy(l => l.Unit).Select(g => $"{QuantityText(g.Sum(quantity),g.Key,2)} {g.Key}"));
+        => string.Join(" / ", order.Lines.GroupBy(l => l.Unit).Select(g => $"{QuantityText(g.Sum(quantity),g.Key,2)} {UomFmt.Sym(g.Key)}"));
     void AddLine()
     {
         if (_edit is null) return;

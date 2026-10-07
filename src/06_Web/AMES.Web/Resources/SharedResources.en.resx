@@ -3655,7 +3655,7 @@
     <value>Code/Interface Name</value>
   </data>
   <data name="SYS.Audit.Kpi.EventsSub" xml:space="preserve">
-    <value>Recent Events</value>
+    <value>Query Results</value>
   </data>
   <data name="SYS.Audit.Kpi.OkSub" xml:space="preserve">
     <value>Result OK</value>
@@ -4504,7 +4504,7 @@
     <value>Event display name</value>
   </data>
   <data name="SYS.Notifications.Ph.Address" xml:space="preserve">
-    <value>Email / Phone / Hook URL</value>
+    <value>Email / Phone / Push device ID</value>
   </data>
   <data name="MD.InspStd.Kpi.Ctq" xml:space="preserve">
     <value>CTQ Items</value>
@@ -10216,5 +10216,56 @@
   </data>
   <data name="SYS.Users.Err.AdminTarget" xml:space="preserve">
     <value>Only Admin can edit an Admin account.</value>
+  </data>
+  <data name="TopBar.Cred.Button" xml:space="preserve">
+    <value>Change password / PIN</value>
+  </data>
+  <data name="TopBar.Cred.Title" xml:space="preserve">
+    <value>Change my password / PIN</value>
+  </data>
+  <data name="TopBar.Cred.Tab.Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="TopBar.Cred.Tab.Pin" xml:space="preserve">
+    <value>PIN</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.Current" xml:space="preserve">
+    <value>Current password</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.NewPassword" xml:space="preserve">
+    <value>New password</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.ConfirmPassword" xml:space="preserve">
+    <value>Confirm password</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.NewPin" xml:space="preserve">
+    <value>New PIN</value>
+  </data>
+  <data name="TopBar.Cred.Lbl.ConfirmPin" xml:space="preserve">
+    <value>Confirm PIN</value>
+  </data>
+  <data name="TopBar.Cred.Hint.Password" xml:space="preserve">
+    <value>Sign-ins on other PCs or browsers end within 5 minutes after the change.</value>
+  </data>
+  <data name="TopBar.Cred.Hint.Pin" xml:space="preserve">
+    <value>The PIN is the 4-digit number used for POP sign-in and due-date change confirmation.</value>
+  </data>
+  <data name="TopBar.Cred.Err.Required" xml:space="preserve">
+    <value>Fill in all fields.</value>
+  </data>
+  <data name="TopBar.Cred.Err.Mismatch" xml:space="preserve">
+    <value>The new value and its confirmation do not match.</value>
+  </data>
+  <data name="TopBar.Cred.Err.WrongPassword" xml:space="preserve">
+    <value>Current password is incorrect. The account locks after 5 failures.</value>
+  </data>
+  <data name="TopBar.Cred.Ok.Pin" xml:space="preserve">
+    <value>PIN changed.</value>
+  </data>
+  <data name="Portal.Cred.Button" xml:space="preserve">
+    <value>Change password</value>
+  </data>
+  <data name="Portal.Cred.Title" xml:space="preserve">
+    <value>Change my password</value>
   </data>
 </root>

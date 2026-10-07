@@ -32,7 +32,7 @@
                 <RadzenDataGridColumn TItem="SummaryRow" Property="PartNo" Title="@L["Col.ItemNo"].Value" TextAlign="TextAlign.Center" Width="160px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" Property="PartName" Title="@L["Col.ItemName"].Value" />
                 <RadzenDataGridColumn TItem="SummaryRow" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="110px" Sortable="false"><Template Context="r"><span class="pill ok">@L["WH.Inventory.Available"]</span></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="80px"><Template Context="r"><span class="code dim">@r.Unit</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="80px"><Template Context="r"><span class="code dim">@UomFmt.Sym(r.Unit)</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" Property="Qty" Title="@L["Col.TotalQty"].Value" TextAlign="TextAlign.Right" Width="110px"><Template Context="r">@UomFmt.Qty(r.Qty, r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" Property="LocationCount" Title="@L["Col.Locations"].Value" TextAlign="TextAlign.Right" Width="105px" />
                 <RadzenDataGridColumn TItem="SummaryRow" Property="LotCount" Title="@L["Col.Lots"].Value" TextAlign="TextAlign.Right" Width="85px" />
