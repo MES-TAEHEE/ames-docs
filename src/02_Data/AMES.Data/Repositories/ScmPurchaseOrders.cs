@@ -8,7 +8,17 @@ public sealed partial class ScmRepository
         decimal Price, decimal Received, int PoID = 0, string Version = "", bool ItemExists = true);
     public record PurchaseOrder(string Number, string Vendor, DateTime Ordered, DateTime Due,
         string Destination, string Status, string Currency, List<PurchaseLine> Lines, string VendorName = "",
-        DateTime? SupplierConfirmedAt = null, string? SupplierConfirmedBy = null);
+        DateTime? SupplierConfirmedAt = null, string? SupplierConfirmedBy = null, string CreatedBy = "");
+
+    public static string PortalOrderStatus(bool cancelled, IEnumerable<(decimal Ordered, decimal Shipped, decimal Received)> lines)
+    {
+        if (cancelled) return "Cancelled";
+        var items = lines.ToList();
+        if (items.Count > 0 && items.All(x => x.Received >= x.Ordered)) return "Received";
+        if (items.Any(x => x.Received > 0)) return "PartiallyReceived";
+        if (items.Any(x => x.Shipped > 0)) return "Shipped";
+        return "Published";
+    }
 
     public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null, bool confirmedOnly = false)
     {
@@ -17,7 +27,7 @@ public sealed partial class ScmRepository
             SELECT p.PoID,p.PoNumber,p.PoLineNo,p.VendorID,p.ItemNo,i.ItemName,p.UnitCode,
                    p.OrderQty,p.UnitPrice,p.ReceivedQty,p.OrderDate,p.DueDate,p.Status,
                    p.Currency,p.DeliveryDestination,p.ScmRowVersion,v.VendorName,p.SupplierConfirmedAt,p.SupplierConfirmedBy,
-                   CAST(CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS bit)
+                   CAST(CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS bit),p.CreatedBy
             FROM dbo.WH_PurchaseOrder p LEFT JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo
             LEFT JOIN dbo.MD_Vendor v ON v.VendorID=p.VendorID
             WHERE NULLIF(p.PoNumber,'') IS NOT NULL
@@ -49,7 +59,7 @@ public sealed partial class ScmRepository
             {
                 order = new(number, S(3), r.IsDBNull(10) ? DateTime.MinValue : r.GetDateTime(10),
                     r.IsDBNull(11) ? DateTime.MinValue : r.GetDateTime(11), S(14), S(12), S(13), [], S(16),
-                    r.IsDBNull(17) ? null : r.GetDateTime(17), S(18));
+                    r.IsDBNull(17) ? null : r.GetDateTime(17), S(18), S(20));
                 orders.Add(number, order);
             }
             // Mixed legacy line states are displayed as an in-progress order until every line is complete.

@@ -54,7 +54,6 @@ public sealed class MenuCatalog
         new("portal", "portal/orders", "PORTAL-001", "발주 조회·수주 확인", "Orders & Confirmation"),
         new("portal", "portal/due-orders", "PORTAL-002", "납품 생성", "Delivery Creation"),
         new("portal", "portal/deliveries", "PORTAL-003", "납품서 관리", "Delivery Management"),
-        new("portal", "portal/receipts", "PORTAL-004", "입고 현황", "Receipt Status"),
         new("portal", "portal/packing-quantities", "PORTAL-005", "적입량 관리", "Packing Quantities"),
         // -- WH --
         new("wh", "wh/inventory",       "WH-006", "재고 조회",   "Inventory Search"),
@@ -157,6 +156,7 @@ public sealed class MenuCatalog
     static readonly HashSet<string> HiddenItems = new(StringComparer.OrdinalIgnoreCase)
     {
         "portal/delivery-notes",
+        "portal/receipts",
         "wh/locations",
     };
 
@@ -166,9 +166,9 @@ public sealed class MenuCatalog
     {
         var path = href.Trim('/');
         return path.Equals("wh/inventory-setting", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("fg/location-map", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/locations", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/inventory", StringComparison.OrdinalIgnoreCase)
-            || path.Equals("fg/location-map", StringComparison.OrdinalIgnoreCase)
             || path.Equals("portal/shipment-plan", StringComparison.OrdinalIgnoreCase);
     }
 

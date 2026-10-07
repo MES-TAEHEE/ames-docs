@@ -45,7 +45,8 @@ public sealed partial class WarehouseRepository
         int LocationCount,
         decimal TotalQty,
         string? WhCode,
-        string? WhName);
+        string? WhName,
+        string? LocationPrefix);
 
     public record WarehouseSectionRow(
         string AreaCode,
@@ -413,6 +414,7 @@ public sealed partial class WarehouseRepository
             SELECT
                 A.CodeValue AS AREACD,
                 A.CodeName AS AREANM,
+                A.Attribute1 AS LOCATION_PREFIX,
                 W.CodeValue AS WHCD,
                 COALESCE(NULLIF(W.CodeName,''),W.CodeValue) AS WHNM,
                 CAST(COALESCE(A.UseFlag, 1) AS bit) AS USE_YN,
@@ -431,7 +433,7 @@ public sealed partial class WarehouseRepository
               AND (@Search IS NULL
                    OR A.CodeValue LIKE @Search
                    OR A.CodeName LIKE @Search)
-            GROUP BY A.CodeValue,A.CodeName,W.CodeValue,W.CodeName,A.UseFlag,A.SortOrder
+            GROUP BY A.CodeValue,A.CodeName,A.Attribute1,W.CodeValue,W.CodeName,A.UseFlag,A.SortOrder
             ORDER BY A.SortOrder,A.CodeValue;
             """, r => new WarehouseAreaRow(
                 GetString(r, "AREACD") ?? "",
@@ -440,7 +442,8 @@ public sealed partial class WarehouseRepository
                 GetInt(r, "LOCATION_COUNT"),
                 GetDecimal(r, "TOTAL_QTY"),
                 GetString(r, "WHCD"),
-                GetString(r, "WHNM")),
+                GetString(r, "WHNM"),
+                GetString(r, "LOCATION_PREFIX")),
             ("@Search", like),
             ("@IncludeInactive", includeInactive),
             ("@WhCode", NullIfBlank(whCode)));
@@ -628,6 +631,93 @@ public sealed partial class WarehouseRepository
         cmd.ExecuteNonQuery();
     }
 
+    public record LocationMapDeleteImpact(int Locations, int StockRows, decimal StockQty);
+
+    public LocationMapDeleteImpact GetLocationMapDeleteImpact(string whCode, string? areaCode, string? floor = null)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT COUNT(DISTINCT l.LocationID), COUNT(i.LotNo), COALESCE(SUM(ABS(i.Qty)),0)
+            FROM dbo.MD_Location l
+            LEFT JOIN dbo.WH_Inventory i ON i.LocationNo=l.LocationID AND i.Qty<>0
+            WHERE l.WhCode=@Wh AND (@Area IS NULL OR l.AreaCode=@Area) AND (@Floor IS NULL OR l.Slot=@Floor);
+            """, conn);
+        cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+        cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = (object?)areaCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = (object?)floor ?? DBNull.Value;
+        using var r = cmd.ExecuteReader();
+        r.Read();
+        return new(r.GetInt32(0), r.GetInt32(1), r.GetDecimal(2));
+    }
+
+    public void DeleteLocationMapScope(string whCode, string? areaCode, bool deleteStock, string? floor = null)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        using var cmd = new SqlCommand("""
+            SET XACT_ABORT ON;
+            SET QUOTED_IDENTIFIER ON;
+            SET ANSI_NULLS ON;
+            SET ANSI_WARNINGS ON;
+            SET ANSI_PADDING ON;
+            SET CONCAT_NULL_YIELDS_NULL ON;
+            SET ARITHABORT ON;
+            SET NUMERIC_ROUNDABORT OFF;
+            IF @Area IS NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK) WHERE GroupCode='WH_CODE' AND CodeValue=@Wh)
+                    THROW 51020,'Warehouse no longer exists.',1;
+            END
+            ELSE IF NOT EXISTS (SELECT 1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK)
+                                WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh))
+                THROW 51021,'Area no longer exists in this warehouse.',1;
+            IF @Floor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK)
+                                                  WHERE WhCode=@Wh AND AreaCode=@Area AND Slot=@Floor AND ActiveFlag=1)
+                THROW 51029,'Floor no longer exists in this area.',1;
+            IF @Area IS NULL AND EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE ParentCodeID=CONCAT('WH_CODE_',@Wh) AND GroupCode<>'WH_AREA')
+                THROW 51026,'Warehouse contains other linked master codes.',1;
+            IF @Area IS NULL AND EXISTS (SELECT 1 FROM dbo.MD_CodeItem child JOIN dbo.MD_CodeItem area ON area.CodeID=child.ParentCodeID
+                                         WHERE area.GroupCode='WH_AREA' AND area.ParentCodeID=CONCAT('WH_CODE_',@Wh))
+                THROW 51028,'A warehouse area contains linked master codes.',1;
+            IF @Floor IS NULL AND @Area IS NOT NULL AND EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE ParentCodeID=CONCAT('WH_AREA_',@Area))
+                THROW 51027,'Area contains linked master codes.',1;
+
+            SELECT LocationID INTO #Scope FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK)
+            WHERE WhCode=@Wh AND (@Area IS NULL OR AreaCode=@Area) AND (@Floor IS NULL OR Slot=@Floor);
+            IF @DeleteStock=0 AND EXISTS (SELECT 1 FROM dbo.WH_Inventory i WITH (UPDLOCK,HOLDLOCK)
+                                         JOIN #Scope s ON s.LocationID=i.LocationNo WHERE i.Qty<>0)
+                THROW 51022,'Inventory was found. Refresh and confirm deletion again.',1;
+            IF EXISTS (SELECT 1 FROM dbo.MNT_SparePartItem p JOIN #Scope s ON s.LocationID=p.LocationID)
+                THROW 51023,'A spare part is linked to a location. Move it before deleting this scope.',1;
+            IF EXISTS (SELECT 1 FROM dbo.WH_Inventory child
+                       WHERE child.ParentLotNo IN (SELECT i.LotNo FROM dbo.WH_Inventory i JOIN #Scope s ON s.LocationID=i.LocationNo)
+                         AND child.LocationNo NOT IN (SELECT LocationID FROM #Scope))
+                THROW 51024,'Inventory contains units linked to locations outside this scope.',1;
+            IF EXISTS (SELECT 1 FROM dbo.WH_Inventory child JOIN #Scope s ON s.LocationID=child.LocationNo
+                       WHERE child.ParentLotNo IS NOT NULL AND EXISTS (
+                           SELECT 1 FROM dbo.WH_Inventory parent WHERE parent.LotNo=child.ParentLotNo
+                             AND parent.LocationNo NOT IN (SELECT LocationID FROM #Scope)))
+                THROW 51025,'Inventory is linked to a parent outside this scope.',1;
+
+            DELETE i FROM dbo.WH_Inventory i JOIN #Scope s ON s.LocationID=i.LocationNo;
+            UPDATE l SET ActiveFlag=0, ModifiedBy='web', ModifiedTS=SYSDATETIME()
+            FROM dbo.MD_Location l JOIN #Scope s ON s.LocationID=l.LocationID;
+            IF @Floor IS NULL AND @Area IS NULL
+            BEGIN
+                DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND ParentCodeID=CONCAT('WH_CODE_',@Wh);
+                DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue=@Wh;
+            END
+            IF @Floor IS NULL AND @Area IS NOT NULL
+                DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);
+            """, conn, tx);
+        cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+        cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = (object?)areaCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = (object?)floor ?? DBNull.Value;
+        cmd.Parameters.Add("@DeleteStock", SqlDbType.Bit).Value = deleteStock;
+        cmd.ExecuteNonQuery();
+        tx.Commit();
+    }
+
     public bool LocationExists(string locationNo)
     {
         using var conn = _factory.OpenConnection();
@@ -749,6 +839,211 @@ public sealed partial class WarehouseRepository
                 normalizedArea, null, normalizedSection, normalizedSection,
                 rackX, rackY, rackZ, useYn);
         }
+    }
+
+    public void SaveLocationMapAreaPrefix(string whCode, string areaCode, string prefix, string? areaName = null)
+    {
+        prefix = prefix.Trim().ToUpperInvariant();
+        if (!LocationMapNaming.ValidPrefix(prefix))
+            throw new ArgumentException("Area prefix must be two letters (A–Z).");
+        if (areaCode.Length is < 1 or > 20 || whCode.Length is < 1 or > 20)
+            throw new ArgumentException("Invalid warehouse or area code.");
+        if (areaName is not null && !areaCode.Equals(prefix, StringComparison.Ordinal))
+            throw new ArgumentException("New Area Code must match its two-letter prefix.");
+
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        using var cmd = new SqlCommand("""
+            IF NOT EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue=@Wh AND COALESCE(UseFlag,1)=1)
+                THROW 51000, 'Warehouse does not exist.', 1;
+            IF EXISTS (SELECT 1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK)
+                       WHERE GroupCode='WH_AREA' AND (Attribute1=@Prefix OR (LEN(CodeValue)=2 AND CodeValue=@Prefix)) AND CodeValue<>@Area)
+                THROW 51001, 'Area prefix is already in use.', 1;
+            IF EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Area)
+            BEGIN
+                IF @Name IS NOT NULL THROW 51002, 'Area code already exists.', 1;
+                IF EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Area
+                           AND NULLIF(Attribute1,'') IS NOT NULL AND Attribute1<>@Prefix)
+                   AND EXISTS (SELECT 1 FROM dbo.MD_Location WHERE AreaCode=@Area)
+                    THROW 51005, 'Area prefix cannot change after locations are created.', 1;
+                UPDATE dbo.MD_CodeItem SET Attribute1=@Prefix,ModifiedBy='web',ModifiedTS=SYSDATETIME()
+                WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);
+                IF @@ROWCOUNT=0 THROW 51003, 'Area is not in this warehouse.', 1;
+            END
+            ELSE
+            BEGIN
+                IF @Name IS NULL THROW 51004, 'Area does not exist.', 1;
+                INSERT dbo.MD_CodeItem
+                    (CodeID,GroupCode,CodeValue,CodeName,ParentCodeID,Attribute1,SortOrder,UseFlag,CreatedBy,CreatedTS)
+                VALUES (CONCAT('WH_AREA_',@Area),'WH_AREA',@Area,@Name,CONCAT('WH_CODE_',@Wh),@Prefix,100,1,'web',SYSDATETIME());
+            END
+            """, conn, tx);
+        cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+        cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+        cmd.Parameters.Add("@Prefix", SqlDbType.NVarChar, 200).Value = prefix;
+        cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 60).Value = (object?)areaName ?? DBNull.Value;
+        cmd.ExecuteNonQuery();
+        tx.Commit();
+    }
+
+    public string AddLocationMapAxis(string whCode, string areaCode, string kind, string? floor, string? name = null, decimal? capacity = null)
+    {
+        if (kind is not ("Floor" or "Row" or "Column"))
+            throw new ArgumentException("Invalid map axis.");
+        if (name?.Length > 60) throw new ArgumentException("Location name is too long.");
+        if (capacity is < 0 or > 9999999.999m)
+            throw new ArgumentOutOfRangeException(nameof(capacity), "Load Capacity must be between 0 and 9,999,999.999.");
+
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        string prefix;
+        using (var area = new SqlCommand("""
+            SELECT COALESCE(Attribute1,'') FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK)
+            WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh) AND COALESCE(UseFlag,1)=1;
+            """, conn, tx))
+        {
+            area.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            area.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            prefix = area.ExecuteScalar() as string ?? throw new InvalidOperationException("Area does not exist in this warehouse.");
+        }
+        if (!LocationMapNaming.ValidPrefix(prefix))
+        {
+            var used = new List<string?>();
+            using (var readPrefixes = new SqlCommand("SELECT CodeValue,Attribute1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK) WHERE GroupCode='WH_AREA' AND CodeValue<>@Area;", conn, tx))
+            {
+                readPrefixes.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+                using var reader = readPrefixes.ExecuteReader();
+                while (reader.Read())
+                {
+                    if (reader.GetString(0).Length == 2) used.Add(reader.GetString(0));
+                    if (!reader.IsDBNull(1)) used.Add(reader.GetString(1));
+                }
+            }
+            prefix = LocationMapNaming.AvailablePrefix(areaCode, used);
+            using var savePrefix = new SqlCommand("UPDATE dbo.MD_CodeItem SET Attribute1=@Prefix,ModifiedBy='web',ModifiedTS=SYSDATETIME() WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);", conn, tx);
+            savePrefix.Parameters.Add("@Prefix", SqlDbType.NVarChar, 200).Value = prefix;
+            savePrefix.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            savePrefix.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            savePrefix.ExecuteNonQuery();
+        }
+        var existing = new List<(string Row, string Column, string Floor)>();
+        using (var read = new SqlCommand("SELECT Aisle,Bay,Slot FROM dbo.MD_Location WHERE WhCode=@Wh AND AreaCode=@Area;", conn, tx))
+        {
+            read.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            read.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            using var reader = read.ExecuteReader();
+            while (reader.Read())
+                existing.Add((reader.IsDBNull(0) ? "" : reader.GetString(0), reader.IsDBNull(1) ? "" : reader.GetString(1), reader.IsDBNull(2) ? "" : reader.GetString(2)));
+        }
+
+        var plan = LocationMapNaming.PlanAxis(existing, kind, floor);
+        var cells = LocationMapNaming.MissingCells(existing, plan);
+        if (cells.Count is 0 or > 1000) throw new InvalidOperationException("Add at most 1,000 locations at a time.");
+        var planned = plan.Cells.ToHashSet();
+
+        foreach (var cell in cells)
+        {
+            if (cell.Column.Length is < 2 or > 5 || !int.TryParse(cell.Column, out var x) || x < 1
+                || LocationMapNaming.YOrder(cell.Row) == 0
+                || cell.Floor.Length is < 2 or > 5 || cell.Floor[0] != 'F' || !int.TryParse(cell.Floor[1..], out var level) || level < 1)
+                throw new InvalidOperationException("Generated coordinates must use X=01, Y=A1, Floor=F1 format.");
+            var id = LocationMapNaming.LocationNo(prefix, cell.Column, cell.Row, cell.Floor);
+            using var insert = new SqlCommand("""
+                INSERT INTO dbo.MD_Location
+                    (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,Capacity,ActiveFlag,CreatedBy)
+                VALUES (@Id,@Name,@Wh,@Area,@Row,@Column,@Floor,@Capacity,1,'web');
+                """, conn, tx);
+            insert.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
+            insert.Parameters.Add("@Name", SqlDbType.NVarChar, 60).Value = planned.Contains(cell) && !string.IsNullOrWhiteSpace(name) ? name.Trim() : id;
+            insert.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            insert.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            insert.Parameters.Add("@Row", SqlDbType.VarChar, 5).Value = cell.Row;
+            insert.Parameters.Add("@Column", SqlDbType.VarChar, 5).Value = cell.Column;
+            insert.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = cell.Floor;
+            var capacityParameter = insert.Parameters.Add("@Capacity", SqlDbType.Decimal);
+            capacityParameter.Precision = 10;
+            capacityParameter.Scale = 3;
+            capacityParameter.Value = planned.Contains(cell) ? (object?)capacity ?? DBNull.Value : DBNull.Value;
+            insert.ExecuteNonQuery();
+        }
+        tx.Commit();
+        return plan.Floor;
+    }
+
+    public void SetLocationMapGrid(string whCode, string areaCode, string floor, int aisles, int bays)
+    {
+        if (LocationMapNaming.FloorCode(floor) != floor || aisles < 1 || bays < 1 || (long)aisles * bays > 1000)
+            throw new ArgumentException("Grid must contain 1 to 1,000 locations on a valid floor.");
+
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        string prefix;
+        using (var area = new SqlCommand("SELECT Attribute1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK) WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh) AND COALESCE(UseFlag,1)=1;", conn, tx))
+        {
+            area.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            area.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            prefix = area.ExecuteScalar() as string ?? throw new InvalidOperationException("Select a registered Area first.");
+        }
+        if (!LocationMapNaming.ValidPrefix(prefix)) throw new InvalidOperationException("Area needs a two-letter location prefix.");
+
+        var existing = new List<(string Id, string Aisle, string Bay, bool Active)>();
+        using (var read = new SqlCommand("SELECT LocationID,Aisle,Bay,ActiveFlag FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK) WHERE WhCode=@Wh AND AreaCode=@Area AND Slot=@Floor;", conn, tx))
+        {
+            read.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            read.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            read.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = floor;
+            using var reader = read.ExecuteReader();
+            while (reader.Read()) existing.Add((reader.GetString(0), reader.IsDBNull(1) ? "" : reader.GetString(1), reader.IsDBNull(2) ? "" : reader.GetString(2), reader.IsDBNull(3) || reader.GetBoolean(3)));
+        }
+        var wanted = (from row in Enumerable.Range(1, aisles)
+                      from column in Enumerable.Range(1, bays)
+                      select (Aisle: LocationMapNaming.YCode(row), Bay: column.ToString("D2"))).ToHashSet();
+        var removing = existing.Where(x => x.Active && !wanted.Contains((x.Aisle, x.Bay))).Select(x => x.Id).ToList();
+        foreach (var id in removing)
+        {
+            using var check = new SqlCommand("""
+                SELECT CASE WHEN EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LocationNo=@Id AND Qty<>0)
+                    OR EXISTS(SELECT 1 FROM dbo.MNT_SparePartItem WHERE LocationID=@Id)
+                    THEN 1 ELSE 0 END;
+                """, conn, tx);
+            check.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
+            if (Convert.ToInt32(check.ExecuteScalar()) != 0)
+                throw new InvalidOperationException($"Cannot reduce the grid: location {id} contains stock or linked parts.");
+        }
+        foreach (var id in removing)
+        {
+            using var remove = new SqlCommand("""
+                IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LocationNo=@Id)
+                   OR EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction WHERE LocationNo=@Id)
+                    UPDATE dbo.MD_Location SET ActiveFlag=0 WHERE LocationID=@Id;
+                ELSE DELETE FROM dbo.MD_Location WHERE LocationID=@Id;
+                """, conn, tx);
+            remove.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
+            remove.ExecuteNonQuery();
+        }
+        foreach (var row in existing.Where(x => !x.Active && wanted.Contains((x.Aisle, x.Bay))))
+        {
+            using var reactivate = new SqlCommand("UPDATE dbo.MD_Location SET ActiveFlag=1 WHERE LocationID=@Id;", conn, tx);
+            reactivate.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = row.Id;
+            reactivate.ExecuteNonQuery();
+        }
+        var occupied = existing.Where(x => !removing.Contains(x.Id)).Select(x => (x.Aisle, x.Bay)).ToHashSet();
+        foreach (var cell in wanted.Where(x => !occupied.Contains(x)))
+        {
+            var id = LocationMapNaming.LocationNo(prefix, cell.Bay, cell.Aisle, floor);
+            using var insert = new SqlCommand("""
+                INSERT dbo.MD_Location (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,ActiveFlag,CreatedBy)
+                VALUES (@Id,@Id,@Wh,@Area,@Aisle,@Bay,@Floor,1,'web');
+                """, conn, tx);
+            insert.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
+            insert.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            insert.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            insert.Parameters.Add("@Aisle", SqlDbType.VarChar, 5).Value = cell.Aisle;
+            insert.Parameters.Add("@Bay", SqlDbType.VarChar, 5).Value = cell.Bay;
+            insert.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = floor;
+            insert.ExecuteNonQuery();
+        }
+        tx.Commit();
     }
 
     public List<PickingOrderRow> ListPickingOrders(string? search = null, bool includeClosed = true)
