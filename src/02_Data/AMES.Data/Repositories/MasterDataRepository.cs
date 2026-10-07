@@ -1839,7 +1839,10 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand("""
             SELECT DISTINCT mi.MoldID, mi.Color,
                    CAST(CASE WHEN ml.MoldID IS NULL THEN 0 ELSE 1 END AS bit) AS AssignedToLine,
-                   CAST(CEILING(COALESCE(ml.PrepTime, CAST(m.MoldChangeMin AS decimal(18,4)), 0)) AS int) AS ChangeMin
+                   CAST(CEILING(COALESCE(ml.PrepTime, CAST(m.MoldChangeMin AS decimal(18,4)), 0)) AS int) AS ChangeMin,
+                   m.CavityCount,
+                   (SELECT COUNT(*) FROM dbo.MD_MoldItem x
+                    WHERE  x.MoldID = mi.MoldID AND ISNULL(x.ActiveFlag, 1) = 1 AND ISNULL(x.Color, '') = ISNULL(mi.Color, '')) AS ActiveItems
             FROM   dbo.MD_MoldItem mi
             JOIN   dbo.MD_Mold     m  ON m.MoldID  = mi.MoldID
             LEFT   JOIN dbo.MD_MoldLine ml ON ml.MoldID = mi.MoldID AND ml.LineCode = @Line
@@ -1851,7 +1854,8 @@ public sealed class MasterDataRepository
         using var r = cmd.ExecuteReader();
         var list = new List<MoldResolver.MoldCandidate>();
         while (r.Read())
-            list.Add(new MoldResolver.MoldCandidate((string)r["MoldID"], (bool)r["AssignedToLine"], Convert.ToInt32(r["ChangeMin"]), r["Color"] as string));
+            list.Add(new MoldResolver.MoldCandidate((string)r["MoldID"], (bool)r["AssignedToLine"], Convert.ToInt32(r["ChangeMin"]), r["Color"] as string,
+                                                    r["CavityCount"] as int?, Convert.ToInt32(r["ActiveItems"])));
         return list;
     }
 

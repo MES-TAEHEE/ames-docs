@@ -1,0 +1,753 @@
+@page "/pp/aps-plan/wo-preview/{RunId:int}"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Aps
+@using AMES.Data.Aps.Contracts
+@using AMES.Data.Repositories
+@using AMES.Data.Services
+@using Radzen
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using AMES.Data.Scheduling
+
+@attribute [Authorize]
+
+@inject ApsRepository Aps
+@inject PpRepository Pp
+@inject LineScheduleRepository LSB
+@inject MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthPrvd
+@inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
+@inject AMES.Web.Services.AuditLogger Audit
+@inject DialogService Dialog
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>PP-APS @L["PP.Aps.Wo.Preview.PageTitle"] · AMES</PageTitle>
+<AmesPageHeader Code="PP-APS" TitleKey="PP.Aps.Wo.Preview.PageTitle" />
+
+<div class="wp-page">
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
+}
+@if (_configProblems.Count > 0)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" AllowClose="false">
+        <div style="font-weight:600;">@L["PP.Aps.Err.Config"]</div>
+        <ul style="margin:6px 0 0 18px;padding:0;">
+            @foreach (var p in _configProblems) { <li>@p</li> }
+        </ul>
+    </RadzenAlert>
+}
+
+@* ── 헤더: 실행 칩 + 대상 선택 + 버튼 ── *@
+<div class="ames-card">
+    <div class="ames-card-h">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="8px" Wrap="FlexWrap.Wrap">
+            <span class="pill info">@L["PP.Aps.Wo.Run"] #@RunId</span>
+            <span class="pill mute">@L["PP.Aps.Wo.Targets"] @_rows.Count</span>
+            <span class="pill mute">@L["PP.Aps.Wo.Selected"] @_selected.Count · @UomFmt.Qty(SelectedQty, null)</span>
+            @if (_alreadyIssued > 0) { <span class="pill mute" title="@string.Format(L["PP.Aps.Wo.AlreadyIssued"].Value, _alreadyIssued)">@string.Format(L["PP.Aps.Wo.AlreadyIssued"].Value, _alreadyIssued)</span> }
+            @if (_result is not null) { <span class="pill ok">@L["PP.Aps.Wo.Result.Title"]</span> }
+            else if (_released) { <span class="pill ok">Released</span> }
+            <span style="flex:1 1 auto;"></span>
+            @if (_result is null && !_released)
+            {
+                <RadzenButton Text="@L["PP.Aps.Wo.Btn.Targets"].Value" Icon="@(_showTargets ? "expand_less" : "checklist")" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="@(() => _showTargets = !_showTargets)" Disabled="@_busy" />
+                <RadzenButton Text="@L["PP.Aps.Wo.Btn.Refresh"].Value" Icon="visibility" ButtonStyle="@(PreviewStale ? ButtonStyle.Warning : ButtonStyle.Secondary)" Size="ButtonSize.Small" class="ames-rz-btn" Click="RunPreview" Disabled="@(_busy || _selected.Count == 0)" />
+                @if (_edits.Count > 0)
+                {
+                    <span class="pill warn">@string.Format(L["PP.Aps.Wo.Edit.Count"].Value, _edits.Count)</span>
+                    <RadzenButton Text="@L["PP.Aps.Wo.Edit.Clear"].Value" Icon="undo" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="ClearEdits" Disabled="@_busy" />
+                }
+                @if (_canEdit)
+                {
+                    <RadzenButton Text="@L["PP.Aps.Wo.Btn.Run"].Value" Icon="factory" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Click="RunReal" Disabled="@(_busy || _selected.Count == 0 || _preview is null || PreviewStale)" />
+                }
+            }
+            <RadzenButton Text="@L["PP.Aps.Wo.Btn.Back"].Value" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Back" Disabled="@_busy" />
+        </RadzenStack>
+    </div>
+    @if (_busy)
+    {
+        <div class="aps-busybar">
+            <span>@L["PP.Aps.Busy"]</span>
+            <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" ShowValue="false" Style="flex:1;height:8px;" />
+        </div>
+    }
+    @if (_showTargets && _result is null)
+    {
+        <div class="wp-targets">
+            <table class="ames-table" style="width:100%;table-layout:fixed;">
+                <thead>
+                    <tr>
+                        <th style="width:36px;">
+                            <RadzenCheckBox TValue="bool" Value="@(_rows.Count > 0 && _selected.Count == _rows.Count)" ValueChanged="@((bool v) => ToggleAll(v))" Disabled="@(_busy || _rows.Count == 0)" />
+                        </th>
+                        <th style="width:110px;">@L["PP.Aps.Wo.Col.Date"]</th>
+                        <th>@L["Col.ItemNo"]</th>
+                        <th style="width:140px;">@L["Col.Line"]</th>
+                        @foreach (var code in TargetShiftCodes) { <th style="width:90px;text-align:right;">@TargetShiftName(code)</th> }
+                        <th style="width:100px;text-align:right;">@L["PP.Aps.Wo.Col.Total"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _rows)
+                    {
+                        <tr>
+                            <td><RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.PlanLineId)" ValueChanged="@((bool v) => Toggle(r.PlanLineId, v))" Disabled="_busy" /></td>
+                            <td class="code">@r.PlanDate.ToString(DateFmt.Date)</td>
+                            <td class="code">@r.ItemNo</td>
+                            <td class="code">@r.LineId</td>
+                            @foreach (var code in TargetShiftCodes) { <td style="text-align:right;">@UomFmt.Qty(TargetShiftQty(r, code), null)</td> }
+                            <td style="text-align:right;">@UomFmt.Qty(r.PlanDay + r.PlanNight, null)</td>
+                        </tr>
+                    }
+                    @if (_rows.Count == 0) { <tr><td colspan="@(5 + TargetShiftCodes.Count)" class="dim" style="text-align:center;">@L["Grid.Empty"]</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (PreviewStale)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false">@L["PP.Aps.Wo.Err.PreviewStale"]</RadzenAlert>
+}
+@if (_result is null && _editOutcomes.Any(o => !o.Applied))
+{
+    <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <span style="font-weight:600;">@L["PP.Aps.Wo.Edit.Rejected"]</span>
+            <RadzenButton Text="@L["PP.Aps.Wo.Edit.DropRejected"].Value" Icon="delete_sweep" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="DropRejectedEdits" />
+        </div>
+        @foreach (var o in _editOutcomes.Where(o => !o.Applied)) { <div><span class="code">@EditLabel(o.Edit)</span> — @EditReasonText(o.Reason)</div> }
+    </RadzenAlert>
+}
+@if (_result is not null)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat" AllowClose="false">@L["PP.Aps.Wo.Done"]</RadzenAlert>
+    @if (_result.Edits.Count > 0)
+    {
+        <RadzenAlert AlertStyle="@(_result.EditsSkipped > 0 ? AlertStyle.Warning : AlertStyle.Info)" Variant="Variant.Flat" AllowClose="false">
+            <div style="font-weight:600;">@string.Format(L["PP.Aps.Wo.Edit.Applied"].Value, _result.EditsApplied, _result.EditsSkipped)</div>
+            @foreach (var o in _result.Edits.Where(o => !o.Applied)) { <div><span class="code">@EditLabel(o.Edit)</span> — @EditReasonText(o.Reason)</div> }
+        </RadzenAlert>
+    }
+}
+else if (_released)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" AllowClose="false">@L["PP.Aps.Wo.Released"]</RadzenAlert>
+}
+
+@* ── 보드: 날짜 탭 × 전체 라인 24시간 줄(PP-LSB 와 같은 축·밴드·레인) ── *@
+@if (Shown is { } shown && _days.Count > 0)
+{
+    var day = _days.FirstOrDefault(d => d.Date == _selDate) ?? _days[0];
+    int dayStart = DayStartOf(day.Date);
+    <AmesTabs ActiveIndexChanged="OnTabChanged">
+    <AmesTab Title="@L["PP.Aps.Wo.Tab.Board"].Value">
+    <div class="ames-card wp-board-card">
+        <div class="pp-tl-h">
+            <div class="wp-tabs">
+                @foreach (var d in _days)
+                {
+                    var cap = d;
+                    <button type="button" class="wp-tab @(cap.Date == day.Date ? "on" : "")" @onclick="() => _selDate = cap.Date" title="@cap.Date.ToString(DateFmt.Date)">
+                        <b>@cap.Date.ToString(DateFmt.MonthDay) @cap.Date.ToString("ddd")</b>
+                        <span>@UomFmt.Qty(cap.Rows.Sum(r => r.NewQty), null)@(cap.Rows.Any(r => r.ShortQty > 0) ? " ⚠" : "")</span>
+                    </button>
+                }
+            </div>
+            <div class="pp-tl-legend">
+                @foreach (var st in _segStates.Where(c => c.UseFlag && c.CodeValue is not null))
+                {
+                    <span class="pp-lgd"><i style="background:color-mix(in srgb, @SegColor(st.CodeValue!) 80%, transparent);"></i>@MasterDataRepository.LocalName(st)</span>
+                }
+                <span class="pp-lgd"><i class="lg-new"></i>@L["PP.Aps.Wo.Lgd.New"]</span>
+                <span class="pp-lgd"><i class="lg-late"></i>@L["PP.Aps.Wo.Lgd.Late"]</span>
+                <span class="pp-lgd"><i class="lg-old"></i>@L["PP.Aps.Wo.Lgd.Old"]</span>
+                <span class="pp-lgd"><i class="lg-mc"></i>@L["PP.Aps.Wo.Lgd.Mc"]</span>
+            </div>
+        </div>
+        <div class="wp-board" id="wp-board">
+            <div class="wp-grid">
+                <div class="wp-lbl wp-ruler-lbl"></div>
+                <div class="pp-gantt-ruler wp-ruler">
+                    @for (int rel = 0; rel <= 1440; rel += 60)
+                    {
+                        int clock = (rel + dayStart) % 1440;
+                        <div class="pp-gantt-gridline major" style="left:@LeftPct(rel);height:26px;"></div>
+                        <div class="pp-gantt-tick major" style="left:@LeftPct(rel);">@Hm(clock)</div>
+                    }
+                </div>
+                @foreach (var row in day.Rows)
+                {
+                    var board = BoardOf(row.LineId, day.Date);
+                    var bands = BandsOf(board?.Capacity.PatternId);
+                    <div class="wp-lbl">
+                        <div class="wp-line"><span class="code">@row.LineId</span><span class="pill mute wp-type">@TypeText(row.LineId)</span></div>
+                        <div class="dim wp-line-name">@LineName(row.LineId)</div>
+                        <div class="wp-line-stat">
+                            @if (row.NewQty > 0 || row.NewMin > 0) { <span class="pill info">@string.Format(L["PP.Aps.Wo.Row.New"].Value, UomFmt.Qty(row.NewQty, null), row.NewMin)</span> }
+                            @if (row.ShortQty > 0)
+                            {
+                                <span class="pill bad" title="@string.Join("\n", row.Shortfalls.Select(s => $"{s.WoNumber} · {s.ItemNo} · {(s.IsInjection ? L["PP.Aps.Tab.Inj"].Value : L["PP.Aps.Tab.Asm"].Value)} {UomFmt.Qty(s.Qty, null)}"))">@string.Format(L["PP.Aps.Wo.Row.Short"].Value, UomFmt.Qty(row.ShortQty, null))</span>
+                            }
+                            @if (board is null || string.IsNullOrEmpty(board.Capacity.PatternId)) { <span class="pill warn">@L["PP.Aps.Wo.Row.NoPattern"]</span> }
+                        </div>
+                    </div>
+                    <div class="pp-gantt-row wp-row">
+                        @for (int rel = 0; rel <= 1440; rel += 60)
+                        {
+                            <div class="pp-gantt-gridline @(rel % 180 == 0 ? "major" : "")" style="left:@LeftPct(rel);"></div>
+                        }
+                        @foreach (var b in bands)
+                        {
+                            int rlo = Rel(b.StartMin, dayStart), rhi = RelEnd(b.EndMin, dayStart);
+                            if (rhi <= rlo) continue;
+                            <div class="pp-gantt-band wp-band" style="@SegBandStyle(b.State)left:@LeftPct(rlo);width:@WidthPct(rlo, rhi);" title="@BandTip(b)">
+                                <span class="pp-blk-t">@SegLabel(b.State)</span>
+                            </div>
+                        }
+                        @foreach (var blk in row.Blocks.OrderBy(b => b.IsNew ? 1 : 0))
+                        {
+                            int rlo = Rel(blk.StartMin, dayStart), rhi = RelEnd(blk.EndMin, dayStart);
+                            if (rhi <= rlo) continue;
+                            var capBlk = blk; var capLine = row.LineId; var capDate = day.Date;
+                            <div class="@BlockCls(blk, capLine, capDate)" style="left:@LeftPct(rlo);width:@WidthPct(rlo, rhi);"
+                                 data-key="@BlockKey(blk, capLine, capDate)" data-start="@blk.StartMin" data-end="@blk.EndMin" data-daystart="@dayStart"
+                                 @onmouseenter="e => ShowTip(capBlk, capLine, capDate, e)" @onmouseleave="HideTip" @onclick="() => OpenDetail(capBlk, capLine, capDate)">
+                                <span class="pp-blk-t">@BlockLabel(blk)</span>
+                                <span class="pp-blk-s">@BlockSub(blk)</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        @if (CanEditSlots)
+        {
+            <div class="dim wp-edit-hint">@L["PP.Aps.Wo.Edit.Hint"] @L["PP.Aps.Wo.Edit.McHint"]</div>
+        }
+        @if (_tip is { } tip)
+        {
+            <div class="wp-tip" style="left:min(@((int)_tipX + 14)px, calc(100vw - 340px));top:@((int)_tipY + 14)px;">
+                @foreach (var line in BlockTipLines(tip)) { <div>@line</div> }
+                <div class="dim wp-tip-hint">@L["PP.Aps.Wo.Detail.ClickHint"]</div>
+            </div>
+        }
+    </div>
+    </AmesTab>
+
+    @* ── WO 표(잠정 번호) + 거부 ── *@
+    <AmesTab Title="@L["PP.Aps.Wo.Tab.Grid"].Value">
+    <div class="ames-card">
+        <div class="ames-card-h">
+            <span class="dim" style="font-weight:600;">
+                @(_result is null ? L["PP.Aps.Wo.Preview.Title"] : L["PP.Aps.Wo.Result.Title"])
+                — @string.Format(L["PP.Aps.Wo.Summary"].Value, shown.Created, shown.Late, shown.Short, shown.RejectedCount, shown.SkippedExisting)
+            </span>
+        </div>
+        <div class="wp-table">
+            <RadzenDataGrid Data="@EffOrders" TItem="PpRepository.ApsWoOrder" AllowPaging="true" PageSize="25" AllowSorting="true" AllowColumnResize="true"
+                            Density="Density.Compact" EmptyText="@L["Grid.Empty"].Value" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
+                            ShowPagingSummary="true" class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="WoNumber" Title="@L["Col.WoNo"].Value" Width="150px" Frozen="true">
+                        <Template Context="o"><span class="code" style="font-weight:700;">@o.WoNumber</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="PlanDate" Title="@L["PP.Aps.Wo.Col.Date"].Value" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="o"><span class="code">@o.PlanDate.ToString(DateFmt.Date)</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="ItemNo" Title="@L["Col.ItemNo"].Value" Width="160px">
+                        <Template Context="o"><span class="code">@o.ItemNo</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="SoId" Title="@L["PP.Aps.Wo.Col.So"].Value" Width="120px">
+                        <Template Context="o">@(o.SoId is int so ? $"SO #{so}" : L["PP.Aps.Wo.StockWo"].Value)</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="Qty" Title="@L["Col.Qty"].Value" Width="90px" TextAlign="TextAlign.Right">
+                        <Template Context="o"><span style="font-weight:700;">@UomFmt.Qty(o.Qty, null)</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="Deadline" Title="@($"{L["PP.Aps.Wo.Col.Deadline"]} / {L["Col.Due"]}")" Width="120px" TextAlign="TextAlign.Center">
+                        <Template Context="o">
+                            <span class="code">@(o.Deadline is DateTime dl ? dl.ToString(DateFmt.Date) : "—")</span>
+                            <div class="dim" style="font-size:.85em;">@(o.DueDate is DateTime du ? du.ToString(DateFmt.Date) : "—")</div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Title="@L["PP.Aps.Wo.Col.Slots"].Value" Width="300px" Sortable="false">
+                        <Template Context="o">
+                            <div class="code" style="font-size:.85em;white-space:normal;">
+                                @if (o.Placements.Count == 0) { <span class="dim">—</span> }
+                                @foreach (var s in Slots(o)) { <div>@s</div> }
+                                @if (o.MoldChanges.Count > 0) { <div class="dim">@string.Format(L["PP.PlanConfirm.Dlg.MoldChange"].Value, o.MoldChanges.Sum(m => m.EndMin - m.StartMin))</div> }
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="LateQty" Title="@L["PP.Aps.Wo.Col.Late"].Value" Width="80px" TextAlign="TextAlign.Right">
+                        <Template Context="o">@if (o.LateQty > 0) { <span class="pill warn">@UomFmt.Qty(o.LateQty, null)</span> } else { <span class="dim">—</span> }</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="ShortQty" Title="@L["PP.Aps.Wo.Col.Short"].Value" Width="130px" TextAlign="TextAlign.Right">
+                        <Template Context="o">
+                            @if (o.Shortfalls.Count == 0) { <span class="dim">—</span> }
+                            @{ var injSeq = ApsWoBoard.InjStepSeq(o); }
+                            @foreach (var sf in o.Shortfalls)
+                            {
+                                <div><span class="pill bad" title="#@sf.StepSeq · @sf.LineId">@(sf.StepSeq == injSeq ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"]) @UomFmt.Qty(sf.Qty, null)</span></div>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+        @if (shown.Rejected.Count > 0)
+        {
+            <div class="ames-alert bad" style="margin:0 14px 12px;">
+                <div style="font-weight:600;">@L["PP.Aps.Wo.Rejected"]</div>
+                @foreach (var rj in shown.Rejected) { <div><span class="code">@rj.PlanDate.ToString(DateFmt.Date) · @rj.ItemNo</span> — @ReasonText(rj.Reason)</div> }
+            </div>
+        }
+        <div class="dim" style="font-size:.8em;line-height:1.5;padding:0 14px 12px;">@L["PP.Aps.Wo.Hint"]</div>
+    </div>
+    </AmesTab>
+    </AmesTabs>
+}
+else if (!_busy && _result is null && _preview is null && _configProblems.Count == 0)
+{
+    <div class="ames-card"><div class="ames-empty">@L["PP.Aps.Wo.Err.NoneSelected"]</div></div>
+}
+</div>
+
+@code {
+    [Parameter] public int RunId { get; set; }
+
+    const string Href = "pp/aps-plan";   // PP-APS 하위 경로 — 권한도 그 화면 것(E = WO 생성)
+    bool _canEdit, _busy, _released, _showTargets, _isErr, _loadFailed;
+    string _msg = "", _actor = "system";
+
+    List<ApsRepository.ApsPlanLineRow> _rows = new();
+    readonly HashSet<int> _selected = new();
+    int _alreadyIssued;
+    List<string> _configProblems = new();
+
+    PpRepository.ApsWoResult? _preview, _result;
+    string _previewKey = "";
+    IReadOnlyList<ApsWoBoard.Day> _days = Array.Empty<ApsWoBoard.Day>();
+    Dictionary<(string Line, DateOnly Date), PpRepository.ApsDayBoard> _boards = new();
+    Dictionary<string, List<Band>> _segByPattern = new(StringComparer.OrdinalIgnoreCase);
+    List<ApsRepository.LineChoice> _lines = new();
+    List<MasterDataRepository.CodeItemRow> _segStates = new();
+    DateOnly _selDate;
+
+    record Band(int StartMin, int EndMin, string State);
+
+    // ── 슬롯 편집(2026-10-07 사용자 결정 A: 생성 전에 편집하고 「WO 생성」때 반영) — 정체는 (품번·계획일·수주·단계·원래 자리), ApsSlotEditRules 가 정본 ──
+    readonly List<ApsSlotEdit> _edits = new();
+    List<ApsSlotEditOutcome> _editOutcomes = new();
+    List<PpRepository.ApsWoOrder>? _effective;                         // _preview 에 _edits 를 덮은 결과(화면 검증 통과분만)
+    List<DateOnly> _pickedDates = new();
+    Dictionary<(string Line, DateOnly Date), IReadOnlyList<LineScheduleRepository.ScheduleRow>> _existing = new();
+    HashSet<(string Mold, string Line)> _moldLines = new();
+    HashSet<(string Line, DateOnly Date, int Start, int End)> _editedPos = new();
+    DotNetObjectReference<ApsWoPreview>? _selfRef; bool _dragInit;
+
+    IReadOnlyList<PpRepository.ApsWoOrder> EffOrders => _result?.Orders ?? _effective ?? _preview?.Orders ?? new List<PpRepository.ApsWoOrder>();
+    bool CanEditSlots => _canEdit && _result is null && !_released && _preview is not null;
+
+    PpRepository.ApsWoResult? Shown => _result ?? _preview;
+
+    // 대상 표의 교대 열(2026-10-07) — 행들의 교대 코드 합집합(첫 등장 순 = WORK_SHIFT 순), 교대 행이 없는 구 실행은 주간/야간 두 열
+    const string LegacyDayCol = "day", LegacyNightCol = "night";
+    List<string> TargetShiftCodes
+    {
+        get
+        {
+            var codes = _rows.SelectMany(r => (r.Shifts ?? Array.Empty<ShiftQty>()).Select(s => s.Code)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            return codes.Count > 0 ? codes : new() { LegacyDayCol, LegacyNightCol };
+        }
+    }
+    Dictionary<string, string> _shiftNames = new(StringComparer.OrdinalIgnoreCase);
+    string TargetShiftName(string code) => code switch
+    {
+        LegacyDayCol   => L["PP.Aps.Wo.Col.Day"].Value,
+        LegacyNightCol => L["PP.Aps.Wo.Col.Night"].Value,
+        _ => _shiftNames.TryGetValue(code, out var n) ? n : code,
+    };
+    static decimal TargetShiftQty(ApsRepository.ApsPlanLineRow r, string code) => code switch
+    {
+        LegacyDayCol   => r.PlanDay,
+        LegacyNightCol => r.PlanNight,
+        _ => (decimal)(r.Shifts?.FirstOrDefault(s => string.Equals(s.Code, code, StringComparison.OrdinalIgnoreCase))?.Qty ?? 0),
+    };
+    decimal SelectedQty => _rows.Where(r => _selected.Contains(r.PlanLineId)).Sum(r => r.PlanDay + r.PlanNight);
+    string SelectionKey => string.Join(",", _selected.OrderBy(i => i));
+    bool PreviewStale => _result is null && _preview is not null && _previewKey != SelectionKey;
+    List<int> SelectedIds() => _selected.OrderBy(i => i).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+
+        try
+        {
+            var run = Aps.LoadRun(RunId);
+            if (run is null) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, $"#{RunId}"), true); return; }
+            _released = string.Equals(run.Row.Status, ApsRepository.StatusReleased, StringComparison.OrdinalIgnoreCase);
+            // 대상 규칙은 CreateApsWorkOrders 와 같다 — INJ · 수량 > 0 · WoID NULL(BOM 규칙 행 포함). 기발행 행은 수만 알린다
+            var inj = Aps.ListPlanLines(RunId).Where(p => p.Kind == ApsRepository.KindInj && p.PlanDay + p.PlanNight > 0).ToList();
+            _alreadyIssued = inj.Count(p => p.WoId is not null);
+            _rows = inj.Where(p => p.WoId is null).OrderBy(p => p.PlanDate).ThenBy(p => p.ItemNo, StringComparer.Ordinal).ToList();
+            foreach (var r in _rows) _selected.Add(r.PlanLineId);
+
+            var order = MD.LineProcessOrder();
+            _lines = Aps.ListLines().OrderBy(l => LineOrder.Rank(order, l.LineId)).ThenBy(l => l.LineId, StringComparer.Ordinal).ToList();
+            try { _segStates = MD.ListCodeItems("SEGMENT_STATE"); } catch { }
+            try { _shiftNames = MD.ListCodeItems("WORK_SHIFT").Where(c => c.CodeValue is not null).ToDictionary(c => c.CodeValue!, MasterDataRepository.LocalName, StringComparer.OrdinalIgnoreCase); } catch { }
+            try { _moldLines = Pp.ListMoldLines(); } catch { }
+        }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _loadFailed = true; }
+    }
+
+    // 진입 즉시 미리보기(dryRun) — OnInitializedAsync 에 두면 프리렌더(SSR)와 회로에서 두 번 돌고, 그동안 향상된 탐색이 이전 화면을 붙들고 있다.
+    // OnAfterRender 는 회로에서만 불리므로 한 번만 돌고 페이지 전환은 즉시 된다
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_loadFailed && !_released && _rows.Count > 0 && _preview is null && !_busy)
+        {
+            _busy = true; StateHasChanged();
+            await RunPreview(force: true);
+            StateHasChanged();
+            return;
+        }
+        // 보드가 생긴 뒤 한 번 — 드래그 리스너는 #wp-board 에 위임돼 탭 전환·다시 그리기에도 남는다
+        if (_days.Count > 0 && !_dragInit && CanEditSlots)
+        {
+            _dragInit = true;
+            _selfRef ??= DotNetObjectReference.Create(this);
+            try { await JS.InvokeVoidAsync("woPreviewDrag.init", _selfRef, "wp-board"); } catch (JSException) { _dragInit = false; }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { if (_dragInit) await JS.InvokeVoidAsync("woPreviewDrag.destroy"); } catch { }
+        _selfRef?.Dispose();
+    }
+
+    void Toggle(int id, bool on) { if (on) _selected.Add(id); else _selected.Remove(id); }
+    void ToggleAll(bool on) { _selected.Clear(); if (on) foreach (var r in _rows) _selected.Add(r.PlanLineId); }
+
+    // 같은 경로를 돌고 롤백한다(dryRun). 보드는 결과 + 기존 PP_LineSchedule 행 + APS 패턴 규칙의 가동 밴드로 묶는다 — 전부 회로 밖(Task.Run)
+    async Task RunPreview() => await RunPreview(force: false);
+    async Task RunPreview(bool force)
+    {
+        if (_busy && !force) return;
+        if (_selected.Count == 0) { ShowMsg(L["PP.Aps.Wo.Err.NoneSelected"], true); return; }
+        var ids = SelectedIds(); var key = SelectionKey;
+        _busy = true; _configProblems = new();
+        try
+        {
+            var r = await Task.Run(() => Pp.CreateApsWorkOrders(RunId, ids, _actor, dryRun: true));
+            await Task.Run(() => BuildBoard(r, ids));
+            _preview = r; _previewKey = key;
+            ApplyLocalEdits();   // 편집은 화면이 덮는다(기준 = 편집 없는 dryRun) — 미리보기 뒤 배치가 달라진 편집은 NotFound 로 배너에
+        }
+        catch (ApsConfigurationException ex) { _configProblems = ex.Lines.ToList(); _preview = null; _days = Array.Empty<ApsWoBoard.Day>(); _dragInit = false; }
+        catch (Exception ex) { ShowMsg(ex.Message, true); _preview = null; _days = Array.Empty<ApsWoBoard.Day>(); _dragInit = false; }
+        finally { _busy = false; }
+    }
+
+    async Task RunReal()
+    {
+        if (!_canEdit || _busy) return;
+        if (_preview is null || PreviewStale) { ShowMsg(L["PP.Aps.Wo.Err.PreviewStale"], true); return; }
+        var ids = SelectedIds();
+        var go = await Dialog.Confirm(string.Format(L["PP.Aps.Wo.Confirm"].Value, ids.Count), L["PP.Aps.Wo.Title"].Value,
+            new ConfirmOptions { OkButtonText = L["PP.Aps.Wo.Btn.ConfirmRun"].Value, CancelButtonText = L["Btn.Cancel"].Value });
+        if (go != true) return;
+        _busy = true;
+        try
+        {
+            var edits = _edits.ToList();
+            var r = await Task.Run(() => Pp.CreateApsWorkOrders(RunId, ids, _actor, dryRun: false, edits: edits));
+            Audit.Log("PP-APS", "WO", "PP_ApsRun", RunId, null,
+                new { r.Created, r.Late, r.Short, Rejected = r.RejectedCount, r.SkippedExisting, PlanLineIds = ids, Edits = edits.Count, EditsApplied = r.EditsApplied });
+            await Task.Run(() => BuildBoard(r, ids));   // 실행 뒤 다시 읽은 기존 행에는 자기 슬롯도 섞여 온다 — ApsWoBoard 가 WoId 로 뺀다
+            _edits.Clear(); _effective = null; _editOutcomes = new(); _editedPos = new();
+            _result = r; _showTargets = false;
+            _released = string.Equals(Aps.LoadRun(RunId)?.Row.Status, ApsRepository.StatusReleased, StringComparison.OrdinalIgnoreCase);
+            ShowMsg(string.Format(L["PP.Aps.Wo.Ok"].Value, r.Created, r.Late, r.Short, r.RejectedCount), r.Short > 0 || r.RejectedCount > 0);
+        }
+        catch (ApsConfigurationException ex) { _configProblems = ex.Lines.ToList(); }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        finally { _busy = false; }
+    }
+
+    void BuildBoard(PpRepository.ApsWoResult r, List<int> ids)
+    {
+        var picked   = _rows.Where(x => ids.Contains(x.PlanLineId)).ToList();
+        var lineIds  = _lines.Select(l => l.LineId).ToList();
+        var existing = new Dictionary<(string, DateOnly), IReadOnlyList<LineScheduleRepository.ScheduleRow>>();
+        var days = ApsWoBoard.Build(r, picked.Select(p => p.PlanDate), lineIds, key =>
+        {
+            if (!existing.TryGetValue(key, out var rows))
+                existing[key] = rows = LSB.GetSchedule(key.Line, key.Date.ToDateTime(TimeOnly.MinValue));
+            return rows;
+        });
+        var injLines = picked.Select(p => p.LineId).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var allLines = days.SelectMany(d => d.Rows.Select(x => x.LineId)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var boards   = Pp.ListApsDayBoards(injLines, allLines, days.Select(d => d.Date.ToDateTime(TimeOnly.MinValue)).ToList());
+        var byKey    = boards.ToDictionary(b => (b.LineId, DateOnly.FromDateTime(b.Date)));
+        var segs     = new Dictionary<string, List<Band>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pat in boards.Select(b => b.Capacity.PatternId).Where(p => !string.IsNullOrEmpty(p)).Distinct(StringComparer.OrdinalIgnoreCase))
+            segs[pat!] = MD.ListLineTimeSegments(pat!)
+                .Where(s => s.StartMin.HasValue && s.EndMin.HasValue && s.EndMin > s.StartMin)
+                .Select(s => new Band(s.StartMin!.Value, s.EndMin!.Value, s.SegmentState ?? ""))
+                .OrderBy(b => b.StartMin).ToList();
+        _days = days; _boards = byKey; _segByPattern = segs; _existing = existing; _pickedDates = picked.Select(p => p.PlanDate).ToList();
+        if (!_days.Any(d => d.Date == _selDate)) _selDate = _days.Count > 0 ? _days[0].Date : default;
+    }
+
+    // ── 편집 덮기·검증(순수 규칙 + 보드가 가진 가동 밴드·기존 행·이번 결과의 다른 슬롯·금형 UPH) ──
+    void ApplyLocalEdits()
+    {
+        if (_preview is null) { _effective = null; _editOutcomes = new(); _editedPos = new(); return; }
+        var (orders, outcomes, _) = ApsSlotEditRules.Apply(_preview.Orders, _edits, UiValidate);
+        _effective = orders; _editOutcomes = outcomes;
+        _editedPos = outcomes.Where(o => o.Applied).Select(o => (o.Edit.NewLineId, o.Edit.NewDate, o.Edit.NewStartMin, o.Edit.NewEndMin)).ToHashSet();
+        _days = ApsWoBoard.Build(_preview with { Orders = orders }, _pickedDates, _lines.Select(l => l.LineId).ToList(),
+                                 key => _existing.GetValueOrDefault(key) ?? Array.Empty<LineScheduleRepository.ScheduleRow>());
+        if (!_days.Any(d => d.Date == _selDate)) _selDate = _days.Count > 0 ? _days[0].Date : default;
+    }
+
+    string? UiValidate(ApsSlotEdit e, IReadOnlyList<PpRepository.ApsWoOrder> current, DeadlinePacker.Placement old)
+    {
+        var key = (e.NewLineId, e.NewDate);
+        if (!_boards.TryGetValue(key, out var board)) return ApsSlotEditRules.ReasonNoPattern;   // 보드에 없는 라인·날짜
+        var occupied = new List<SlotPacker.Interval>();
+        if (_existing.TryGetValue(key, out var rows))
+            occupied.AddRange(rows.Where(r => r.EndMin > r.StartMin).Select(r => new SlotPacker.Interval(r.StartMin, r.EndMin)));
+        bool selfSkipped = false;
+        foreach (var o in current)
+        {
+            foreach (var p in o.Placements)
+            {
+                if (!Here(p.LineId, p.Date, key) || p.EndMin <= p.StartMin) continue;
+                if (!selfSkipped && p == old) { selfSkipped = true; continue; }
+                occupied.Add(new SlotPacker.Interval(p.StartMin, p.EndMin));
+            }
+            foreach (var m in o.MoldChanges)
+                if (Here(m.LineId, m.Date, key)) occupied.Add(new SlotPacker.Interval(m.StartMin, m.EndMin));
+        }
+        if (ApsSlotEditRules.Validate(e.NewInterval, board.Capacity.OperatingBands, occupied) is { } reason) return reason;
+        if (e.LineChanged && old.MoldId is { } mold && !_moldLines.Contains((mold.ToUpperInvariant(), e.NewLineId.ToUpperInvariant()))) return ApsSlotEditRules.ReasonNoUph;
+        return null;
+    }
+    static bool Here(string line, DateTime date, (string Line, DateOnly Date) key) =>
+        string.Equals(line, key.Line, StringComparison.OrdinalIgnoreCase) && DateOnly.FromDateTime(date) == key.Date;
+
+    static string BlockKey(ApsWoBoard.Block b, string line, DateOnly date) => $"{b.WoNumber}|{line}|{date:yyyy-MM-dd}|{b.StartMin}|{b.EndMin}";
+    bool IsDraggable(ApsWoBoard.Block b) => CanEditSlots && b.Kind == ApsWoBoard.BlockKind.NewWo && b.EndMin > b.StartMin;
+    bool IsEdited(ApsWoBoard.Block b, string line, DateOnly date) => b.IsNew && _editedPos.Contains((line, date, b.StartMin, b.EndMin));
+    ApsSlotEdit? EditAt(string line, DateOnly date, int start, int end) =>
+        _edits.FirstOrDefault(x => string.Equals(x.NewLineId, line, StringComparison.OrdinalIgnoreCase) && x.NewDate == date && x.NewStartMin == start && x.NewEndMin == end);
+
+    (PpRepository.ApsWoOrder Order, DeadlinePacker.Placement P)? FindBlock(string key)
+    {
+        var parts = key.Split('|');
+        if (parts.Length != 5 || !DateOnly.TryParseExact(parts[2], "yyyy-MM-dd", out var d) || !int.TryParse(parts[3], out var s) || !int.TryParse(parts[4], out var e)) return null;
+        foreach (var o in EffOrders)
+        {
+            if (o.WoNumber != parts[0]) continue;
+            var p = o.Placements.FirstOrDefault(x => string.Equals(x.LineId, parts[1], StringComparison.OrdinalIgnoreCase) && DateOnly.FromDateTime(x.Date) == d && x.StartMin == s && x.EndMin == e);
+            if (p is not null) return (o, p);
+        }
+        return null;
+    }
+
+    [JSInvokable]
+    public async Task OnSlotDragged(string key, int newStart)
+    {
+        if (!CanEditSlots || FindBlock(key) is not { } hit) return;
+        newStart = ((ApsSlotEditRules.Snap(newStart) % 1440) + 1440) % 1440;
+        PutEdit(hit.Order, hit.P, hit.P.LineId, DateOnly.FromDateTime(hit.P.Date), newStart, newStart + (hit.P.EndMin - hit.P.StartMin), null);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // 편집 기록 — 이미 편집된 슬롯(현재 자리 = 어떤 편집의 New*)이면 그 편집의 목표만 바꾸고 원래 정체는 유지한다. 거부되면 토스트 + 되돌림
+    void PutEdit(PpRepository.ApsWoOrder o, DeadlinePacker.Placement p, string newLine, DateOnly newDate, int newStart, int newEnd, decimal? newQty)
+    {
+        var cur = DateOnly.FromDateTime(p.Date);
+        var prior = _edits.FirstOrDefault(x => SameSlotOwner(x, o, p) && string.Equals(x.NewLineId, p.LineId, StringComparison.OrdinalIgnoreCase)
+                                               && x.NewDate == cur && x.NewStartMin == p.StartMin && x.NewEndMin == p.EndMin);
+        var edit = prior is null
+            ? new ApsSlotEdit(o.ItemNo, o.PlanDate, o.SoId, p.StepSeq, p.LineId, cur, p.StartMin, p.EndMin, newLine, newDate, newStart, newEnd, newQty)
+            : prior with { NewLineId = newLine, NewDate = newDate, NewStartMin = newStart, NewEndMin = newEnd, NewQty = newQty ?? prior.NewQty };
+        var backup = _edits.ToList();
+        if (prior is not null) _edits.Remove(prior);
+        bool revert = string.Equals(edit.LineId, newLine, StringComparison.OrdinalIgnoreCase) && edit.Date == newDate
+                      && edit.StartMin == newStart && edit.EndMin == newEnd && edit.NewQty is null;
+        if (!revert) _edits.Add(edit);
+        ApplyLocalEdits();
+        if (_editOutcomes.FirstOrDefault(x => ReferenceEquals(x.Edit, edit)) is { Applied: false } bad)
+        {
+            ShowMsg($"{EditLabel(edit)} — {EditReasonText(bad.Reason)}", true);
+            _edits.Clear(); _edits.AddRange(backup); ApplyLocalEdits();
+        }
+    }
+    static bool SameSlotOwner(ApsSlotEdit x, PpRepository.ApsWoOrder o, DeadlinePacker.Placement p) =>
+        string.Equals(x.ItemNo, o.ItemNo, StringComparison.OrdinalIgnoreCase) && x.PlanDate == o.PlanDate && x.SoId == o.SoId && x.StepSeq == p.StepSeq;
+
+    void RevertEdit(PpRepository.ApsWoOrder o, DeadlinePacker.Placement p)
+    {
+        var prior = _edits.FirstOrDefault(x => SameSlotOwner(x, o, p) && string.Equals(x.NewLineId, p.LineId, StringComparison.OrdinalIgnoreCase)
+                                               && x.NewDate == DateOnly.FromDateTime(p.Date) && x.NewStartMin == p.StartMin && x.NewEndMin == p.EndMin);
+        if (prior is null) return;
+        _edits.Remove(prior); ApplyLocalEdits();
+    }
+    void ClearEdits() { _edits.Clear(); ApplyLocalEdits(); }
+    void DropRejectedEdits()
+    {
+        foreach (var o in _editOutcomes.Where(o => !o.Applied)) _edits.Remove(o.Edit);
+        ApplyLocalEdits();
+    }
+    string EditLabel(ApsSlotEdit e) =>
+        $"{e.ItemNo} {e.PlanDate.ToString(DateFmt.MonthDay)} · {e.LineId} {e.Date.ToString(DateFmt.MonthDay)} {Hm(e.StartMin)}~{Hm(e.EndMin)} → {e.NewLineId} {e.NewDate.ToString(DateFmt.MonthDay)} {Hm(e.NewStartMin)}~{Hm(e.NewEndMin)}";
+    string EditReasonText(string? r) => r is null ? "" : L[$"PP.Aps.Wo.Edit.Reason.{r}"].Value;
+
+    void Back() => Nav.NavigateTo($"/pp/aps-plan?run={RunId}");
+
+    // 탭을 떠났다 돌아오면 #wp-board 가 새 요소라 드래그 리스너를 다시 건다(OnAfterRender 가 _dragInit=false 를 본다)
+    void OnTabChanged(int index) { if (index == 0) _dragInit = false; }
+
+    // ── 블록 툴팁(마우스 진입 좌표에 고정) · 클릭 상세 ─────────────────
+    ApsWoBoard.Block? _tip; string _tipLine = ""; DateOnly _tipDate; double _tipX, _tipY;
+    void ShowTip(ApsWoBoard.Block b, string line, DateOnly date, MouseEventArgs e) { _tip = b; _tipLine = line; _tipDate = date; _tipX = e.ClientX; _tipY = e.ClientY; }
+    void HideTip() => _tip = null;
+    PpRepository.ApsWoOrder? OrderOf(ApsWoBoard.Block b) =>
+        b.IsNew && b.WoNumber is not null ? EffOrders.FirstOrDefault(o => o.WoNumber == b.WoNumber) : null;
+    async Task OpenDetail(ApsWoBoard.Block b, string lineId, DateOnly date)
+    {
+        _tip = null;
+        bool editable = IsDraggable(b);
+        var res = await Dialog.OpenAsync<ApsWoDetailDialog>(
+            $"{L["PP.Aps.Wo.Detail.Title"].Value} — {BlockLabel(b)}",
+            new Dictionary<string, object?>
+            {
+                ["Block"] = b, ["Order"] = OrderOf(b), ["LineId"] = lineId, ["Date"] = date,
+                ["CanEdit"] = editable, ["Lines"] = _lines, ["Dates"] = _days.Select(d => d.Date).ToList(), ["IsEdited"] = IsEdited(b, lineId, date),
+            },
+            new DialogOptions { Width = "820px" });
+        if (!editable || FindBlock(BlockKey(b, lineId, date)) is not { } hit) return;
+        if (res is ApsWoDetailDialog.EditRequest req)
+            PutEdit(hit.Order, hit.P, req.LineId, req.Date, req.StartMin, req.StartMin + req.Minutes, req.Qty);
+        else if (res is ApsWoDetailDialog.RevertRequest)
+            RevertEdit(hit.Order, hit.P);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(5000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── 보드 표시 헬퍼(PP-LSB GanttView 와 같은 축 규칙) ────────────────
+    PpRepository.ApsDayBoard? BoardOf(string line, DateOnly date) => _boards.GetValueOrDefault((line, date));
+    List<Band> BandsOf(string? patternId) => patternId is not null && _segByPattern.TryGetValue(patternId, out var b) ? b : new();
+    // 하루 시작 = 그 날 보이는 라인들 중 첫 교대 시작의 최솟값(패턴 없는 라인은 제외) — 한 날짜의 모든 줄이 같은 축을 쓴다
+    int DayStartOf(DateOnly date) =>
+        _boards.Values.Where(b => DateOnly.FromDateTime(b.Date) == date && b.Capacity.OperatingBands.Count > 0).Select(b => (int?)b.Capacity.DayStart).Min() ?? 6 * 60;
+    static int Rel(int m, int dayStart)    { int r = m - dayStart; if (r < 0)  r += 1440; return r; }
+    static int RelEnd(int m, int dayStart) { int r = m - dayStart; if (r <= 0) r += 1440; return r; }
+    static string LeftPct(int rel)           => $"{rel / 1440.0 * 100.0:F4}%";
+    static string WidthPct(int rlo, int rhi) => $"{(rhi - rlo) / 1440.0 * 100.0:F4}%";
+    static string Hm(int min) { int m = ((min % 1440) + 1440) % 1440; return $"{m / 60:00}:{m % 60:00}"; }
+
+    string? LineName(string lineId) => _lines.FirstOrDefault(l => string.Equals(l.LineId, lineId, StringComparison.OrdinalIgnoreCase))?.LineName;
+    string TypeText(string lineId) => _lines.FirstOrDefault(l => string.Equals(l.LineId, lineId, StringComparison.OrdinalIgnoreCase))?.Type == ApsRepository.LineTypeInjection
+        ? L["PP.Aps.Type.injection"] : L["PP.Aps.Type.assembly"];
+
+    // Rp/LineTimePattern·PP-LSB 와 같은 팔레트(app.css --seg-*)
+    static string SegColor(string state) => state switch
+    {
+        "OPERATING"        => "var(--seg-operating)",
+        "PLANNED_DOWNTIME" => "var(--seg-downtime)",
+        "BREAK"            => "var(--seg-break)",
+        "INSPECT"          => "var(--seg-inspect)",
+        "PM"               => "var(--seg-pm)",
+        "IDLE"             => "var(--seg-idle)",
+        _                  => "var(--seg-meal)",
+    };
+    static string SegBandStyle(string state)
+    {
+        var c = SegColor(state); var bs = state == "IDLE" ? "dashed" : "solid";
+        return $"background:color-mix(in srgb, {c} 13%, transparent);border:1px {bs} color-mix(in srgb, {c} 53%, transparent);color:{c};";
+    }
+    string BandTip(Band b) => $"{SegLabel(b.State)}  {Hm(b.StartMin)}~{Hm(b.EndMin)}  ({b.EndMin - b.StartMin}{L["Lbl.Min"]})";
+    string SegLabel(string state) => _segStates.FirstOrDefault(c => c.CodeValue == state) is { } c ? MasterDataRepository.LocalName(c) : state;
+
+    string BlockCls(ApsWoBoard.Block b, string line, DateOnly date) =>
+        BlockCls(b) + (IsDraggable(b) ? " draggable" : "") + (IsEdited(b, line, date) ? " edited" : "");
+    static string BlockCls(ApsWoBoard.Block b) => b.Kind switch
+    {
+        ApsWoBoard.BlockKind.NewWo         => "pp-gantt-wo wp-blk new" + (b.Late ? " late" : ""),
+        ApsWoBoard.BlockKind.OldWo         => "pp-gantt-wo wp-blk old",
+        ApsWoBoard.BlockKind.NewMoldChange => "pp-gantt-mc wp-blk new",
+        ApsWoBoard.BlockKind.OldMoldChange => "pp-gantt-mc wp-blk old",
+        _                                  => "pp-gantt-pm wp-blk",
+    };
+    string BlockLabel(ApsWoBoard.Block b) => b.Kind switch
+    {
+        ApsWoBoard.BlockKind.NewMoldChange or ApsWoBoard.BlockKind.OldMoldChange => $"MC {b.Title ?? b.MoldId}",
+        ApsWoBoard.BlockKind.Pm => b.Title ?? L["PP.LineSchedule.Lgd.Pm"].Value,
+        _ => b.WoNumber ?? "—",
+    };
+    string BlockSub(ApsWoBoard.Block b) => b.Kind is ApsWoBoard.BlockKind.NewWo or ApsWoBoard.BlockKind.OldWo
+        ? $"{b.ItemNo} · {UomFmt.Qty(b.Qty + b.Siblings.Sum(s => s.Qty), null)}" + (b.Siblings.Count > 0 ? $" (+{b.Siblings.Count})" : "")
+        : $"{b.Minutes}{L["Lbl.Min"]}";
+    IEnumerable<string> BlockTipLines(ApsWoBoard.Block b)
+    {
+        var head = b.Kind switch
+        {
+            ApsWoBoard.BlockKind.NewMoldChange or ApsWoBoard.BlockKind.OldMoldChange => $"{L["PP.LineSchedule.Mc.Name"]} {b.Title ?? b.MoldId}",
+            ApsWoBoard.BlockKind.Pm => BlockLabel(b),
+            _ => $"{b.WoNumber} · {b.ItemNo}  {UomFmt.Qty(b.Qty, null)}" + (b.MoldId is null ? "" : $"  [{b.MoldId}]"),
+        };
+        var lines = new List<string> { head, $"{Hm(b.StartMin)}~{Hm(b.EndMin)}  ({b.Minutes}{L["Lbl.Min"]})" };
+        if (b.Late) lines.Add(L["PP.Aps.Wo.Lgd.Late"].Value);
+        if (b.IsNew && EditAt(_tipLine, _tipDate, b.StartMin, b.EndMin) is { } ed)
+            lines.Add($"{L["PP.Aps.Wo.Edit.Edited"]} · {L["PP.Aps.Wo.Edit.Orig"]} {ed.LineId} {ed.Date.ToString(DateFmt.MonthDay)} {Hm(ed.StartMin)}~{Hm(ed.EndMin)}");
+        if (b.Siblings.Count > 0)
+        {
+            lines.Add(L["PP.Aps.Wo.Siblings"].Value);
+            lines.AddRange(b.Siblings.Select(s => $"  {s.WoNumber} · {s.ItemNo}  {UomFmt.Qty(s.Qty, null)}"));
+        }
+        if (OrderOf(b) is { } o)
+        {
+            lines.Add($"{L["PP.Aps.Wo.Col.Date"]} {o.PlanDate.ToString(DateFmt.Date)} · {(o.SoId is int so ? $"SO #{so}" : L["PP.Aps.Wo.StockWo"].Value)} · {L["Col.Qty"]} {UomFmt.Qty(o.Qty, null)}");
+            if (o.ShortQty > 0) lines.Add($"{L["PP.Aps.Wo.Col.Short"]} {UomFmt.Qty(o.ShortQty, null)}");
+        }
+        return lines;
+    }
+
+    // 라인·날짜별 "LINE 09-28 08:00-10:00" — 배치 순서(주간 → 야간, 날짜순)가 곧 시간 순이라 첫 슬롯 시작 ~ 끝 슬롯 종료
+    static IEnumerable<string> Slots(PpRepository.ApsWoOrder o) =>
+        o.Placements.GroupBy(p => (p.LineId, p.Date))
+                    .Select(g => $"{g.Key.LineId} {g.Key.Date.ToString(DateFmt.MonthDay)} {Hm(g.First().StartMin)}-{Hm(g.Last().EndMin)}");
+
+    string ReasonText(string reason) => reason switch
+    {
+        PpRepository.RejectNoMold => L["PP.Aps.Wo.Reject.NoMold"].Value,
+        PpRepository.RejectNoUph  => L["PP.Aps.Wo.Reject.NoUph"].Value,
+        _                         => reason,
+    };
+}

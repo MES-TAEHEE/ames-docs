@@ -117,4 +117,20 @@ public class ApsPlanLinesTests
         Assert.All(rows.Where(r => r.Kind == ApsRepository.KindInj && r.ItemNo == x), r => Assert.True(r.SameItem));
         Assert.All(rows.Where(r => r.Kind == ApsRepository.KindAsm || r.ItemNo != x), r => Assert.False(r.SameItem));
     }
+
+    [Fact]
+    public void Injection_rows_carry_plan_shifts_and_day_night_derivation()
+    {
+        var p = Load();
+        var row = p.Bundle.Injection[0]; var day = row.Days[0];
+        day.PlanShifts = new() { new("A", 30), new("B", 20), new("C", 10) };
+        day.PlanDay = 30; day.PlanNight = 30;
+
+        var rows = ApsPlanLines.From(p.Bundle, p.Result);
+
+        var inj = rows.Single(r => r.Kind == ApsRepository.KindInj && r.ItemNo == row.PartNo && r.PlanDate == DateOnly.ParseExact(day.Date, "yyyy-MM-dd"));
+        Assert.Equal(new[] { ("A", 30m), ("B", 20m), ("C", 10m) }, inj.Shifts!.Select(s => (s.Code, (decimal)s.Qty)).ToArray());
+        Assert.Equal((30m, 30m), (inj.PlanDay, inj.PlanNight));
+        Assert.Null(rows.First(r => r.Kind == ApsRepository.KindInj && r.ItemNo != row.PartNo).Shifts);   // 목록 없는 셀은 null
+    }
 }

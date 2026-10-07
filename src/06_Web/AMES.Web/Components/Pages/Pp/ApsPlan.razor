@@ -5,6 +5,7 @@
 @using AMES.Data.Repositories
 @using AMES.Data.Aps
 @using AMES.Data.Aps.Contracts
+@using AMES.Data.Aps.Domain
 @using Radzen
 
 @attribute [Authorize]
@@ -271,26 +272,20 @@ else
                                                 <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Req"]</span><span>@Q(c?.Requirement ?? d.Requirement, r.Row.PartNo)</span></div>
                                                 @{ var woI = _state!.WoIssued(ApsRepository.KindInj, r.Row.PartNo, date, L["PP.Aps.Cell.Unplaced"].Value); }
                                                 <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Wo"]</span><span class="@(woI.Count == 0 ? "dim" : "aps-wo")" title="@woI.Title">@Q(woI.Qty, r.Row.PartNo)@if (woI.Unplaced > 0) { <span class="aps-wo-unplaced"> · @string.Format(L["PP.Aps.Cell.WoUnplaced"].Value, Q(woI.Unplaced, r.Row.PartNo))</span> }@if (woI.Count > 1) { <span class="dim"> (@woI.Count)</span> }</span></div>
-                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Day"]</span>
-                                                    @if (CanEditCells && !d.Locked)
-                                                    {
-                                                        <span @onclick:stopPropagation="true">
-                                                            <RadzenNumeric TValue="double" Value="@d.PlanDay" Change="@((double v) => SetPlanDay(d, v))"
-                                                                           Min="0" Step="1" Format="#,##0.##" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input aps-num" />
-                                                        </span>
-                                                    }
-                                                    else { <span class="@(d.Locked ? "aps-locked" : "")">@Q(d.PlanDay, r.Row.PartNo)</span> }
-                                                </div>
-                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Night"]</span>
-                                                    @if (CanEditCells && !d.Locked)
-                                                    {
-                                                        <span @onclick:stopPropagation="true">
-                                                            <RadzenNumeric TValue="double" Value="@d.PlanNight" Change="@((double v) => SetPlanNight(d, v))"
-                                                                           Min="0" Step="1" Format="#,##0.##" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input aps-num" />
-                                                        </span>
-                                                    }
-                                                    else { <span class="@(d.Locked ? "aps-locked" : "")">@Q(d.PlanNight, r.Row.PartNo)</span> }
-                                                </div>
+                                                @foreach (var sq in ShiftRows(d))
+                                                {
+                                                    var capShift = sq;
+                                                    <div class="aps-l"><span class="aps-k">@ShiftName(capShift.Code)</span>
+                                                        @if (CanEditCells && !d.Locked)
+                                                        {
+                                                            <span @onclick:stopPropagation="true">
+                                                                <RadzenNumeric TValue="double" Value="@capShift.Qty" Change="@((double v) => SetPlanShift(d, capShift.Code, v))"
+                                                                               Min="0" Step="1" Format="#,##0.##" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input aps-num" />
+                                                            </span>
+                                                        }
+                                                        else { <span class="@(d.Locked ? "aps-locked" : "")">@Q(capShift.Qty, r.Row.PartNo)</span> }
+                                                    </div>
+                                                }
                                                 <div class="aps-l"><span class="aps-k">@L["PP.Aps.Cell.Remain"]</span><span class="@(c?.Status == "short" ? "aps-neg" : "")">@Q(c?.Remain ?? 0, r.Row.PartNo)</span></div>
                                                 <div class="aps-l aps-hint"><span>@L["PP.Aps.Cell.Shots"] @(c?.Shots is { } sh ? sh.ToString("#,##0.##") : "—")</span><span>@L["PP.Aps.Cell.Hours"] @(c?.RunHours is { } rh ? rh.ToString("0.00") : "—")</span></div>
                                                 <div class="aps-l aps-foot"><span class="pill @StCls(c?.Status)">@StText(c?.Status)</span>
@@ -341,8 +336,10 @@ else
                                         {
                                             <div class="aps-cell aps-load @(l.Over ? "over st-short" : "st-ok")">
                                                 <div class="aps-l"><span class="aps-k">@L["PP.Aps.Load.Hours"]</span><span>@l.Hours.ToString("0.00")</span></div>
-                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Load.Day"]</span><span>@l.DayHours.ToString("0.00")</span></div>
-                                                <div class="aps-l"><span class="aps-k">@L["PP.Aps.Load.Night"]</span><span>@l.NightHours.ToString("0.00")</span></div>
+                                                @foreach (var sh in l.ShiftHours ?? new List<ShiftHours> { new(ShiftRules.LegacyDay, l.DayHours), new(ShiftRules.LegacyNight, l.NightHours) })
+                                                {
+                                                    <div class="aps-l"><span class="aps-k">@ShiftName(sh.Code)</span><span>@sh.Hours.ToString("0.00")</span></div>
+                                                }
                                                 <div class="aps-l"><span class="aps-k">@L["PP.Aps.Load.Cap"]</span><span>@l.Capacity.ToString("0.00")</span></div>
                                                 <div class="aps-l aps-foot"><span class="aps-k">@L["PP.Aps.Load.Rate"]</span><span class="aps-rate @(l.Over ? "over" : "")">@l.Rate.ToString("0")%@(l.Over ? " · " + L["PP.Aps.Load.Over"] : "")</span></div>
                                             </div>
@@ -426,6 +423,7 @@ else
     // 권한 키(SYS_Screen.HRef) — R = 조회, E = 계산·편집·저장·WO 생성
     const string Href = "pp/aps-plan";
     bool _canEdit;
+    [SupplyParameterFromQuery(Name = "run")] public int? RunQuery { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -437,6 +435,8 @@ else
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         LoadOptions();
+        // WO 미리보기 페이지에서 돌아올 때 — 그 실행을 재현(재계산 없음)해 상태·Released 여부를 복원한다
+        if (RunQuery is int rq) await OpenRun(rq);
     }
 
     void LoadOptions()
@@ -450,6 +450,12 @@ else
             _custOpts = MD.ListCustomers()
                 .Select(c => new DropDownItem { Value = c.CustomerID, Text = $"{c.CustomerID} · {c.CustomerName}" })
                 .ToList();
+            try
+            {
+                _shiftNames = MD.ListCodeItems("WORK_SHIFT").Where(c => c.CodeValue is not null)
+                                .ToDictionary(c => c.CodeValue!, MasterDataRepository.LocalName, StringComparer.OrdinalIgnoreCase);
+            }
+            catch { }
         }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
     }
@@ -554,15 +560,29 @@ else
         if (!CanEditCells || d.Locked) return;
         d.Supply = Math.Max(0, v); _state!.Dirty = true;
     }
-    void SetPlanDay(InjectionDay d, double v)
+    // 사출 셀의 교대 줄 — 교대 목록 모드면 PlanShifts(2026-10-07), 골든 경로(목록 없음)면 [day, night]. 둘 다 같은 UI
+    Dictionary<string, string> _shiftNames = new(StringComparer.OrdinalIgnoreCase);   // WORK_SHIFT 코드 → 표시명
+    IReadOnlyList<ShiftQty> ShiftRows(InjectionDay d) =>
+        d.PlanShifts is { Count: > 0 } ps ? ps : new[] { new ShiftQty(ShiftRules.LegacyDay, d.PlanDay), new ShiftQty(ShiftRules.LegacyNight, d.PlanNight) };
+    string ShiftName(string code) => code switch
+    {
+        ShiftRules.LegacyDay   => L["PP.Aps.Cell.Day"].Value,
+        ShiftRules.LegacyNight => L["PP.Aps.Cell.Night"].Value,
+        _ => _shiftNames.TryGetValue(code, out var n) ? n : code,
+    };
+    void SetPlanShift(InjectionDay d, string code, double v)
     {
         if (!CanEditCells || d.Locked) return;
-        d.PlanDay = Math.Max(0, v); _state!.Dirty = true;
-    }
-    void SetPlanNight(InjectionDay d, double v)
-    {
-        if (!CanEditCells || d.Locked) return;
-        d.PlanNight = Math.Max(0, v); _state!.Dirty = true;
+        v = Math.Max(0, v);
+        if (d.PlanShifts is { Count: > 0 } ps)
+        {
+            var i = ps.FindIndex(x => string.Equals(x.Code, code, StringComparison.OrdinalIgnoreCase));
+            if (i >= 0) ps[i] = ps[i] with { Qty = v };
+            (d.PlanDay, d.PlanNight) = ApsShiftCompat.Derive(ps);   // 파생 호환값
+        }
+        else if (code == ShiftRules.LegacyDay) d.PlanDay = v;
+        else d.PlanNight = v;
+        _state!.Dirty = true;
     }
     // 사용자 잠금 — 엔진(Autofill·Reschedule)이 그 칸을 건드리지 않는다. 등록 계획 잠금은 버튼이 없어 여기 오지 않는다
     void ToggleLock(AssemblyDay d) { if (!CanEditCells) return; d.Locked = !d.Locked; _state!.Dirty = true; }
@@ -718,7 +738,8 @@ else
     }
 
     // ── WO 생성 (스펙 §8) ──────────────────────────────────────────────
-    // 저장된 실행의 계획 행이 대상이다(화면 편집본이 아니다). 실행은 다이얼로그의 미리보기(dryRun) 뒤에만 된다
+    // 저장된 실행의 계획 행이 대상이다(화면 편집본이 아니다). 미리보기·실행은 전용 페이지(ApsWoPreview, 2026-10-07 — 전체 라인 보드)에서 하고,
+    // 돌아올 때 ?run= 으로 그 실행을 재현해 Released 여부를 DB 에서 다시 읽는다
     async Task OpenWoCreate()
     {
         if (!_canEdit || _busy || _state is not { SavedRunId: int runId, IsReleased: false } s) return;
@@ -729,21 +750,7 @@ else
                 new ConfirmOptions { OkButtonText = L["Msg.Yes"].Value, CancelButtonText = L["Msg.No"].Value });
             if (go != true) return;
         }
-        List<ApsRepository.ApsPlanLineRow> lines;
-        try { lines = Aps.ListPlanLines(runId); }
-        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); return; }
-
-        // 닫기 버튼만으로 닫히게 한다 — 실행 결과를 받아야 칩·편집 잠금을 DB 상태로 맞출 수 있다
-        var result = await Dialog.OpenAsync<ApsWoCreateDialog>(
-            L["PP.Aps.Wo.Title"].Value,
-            new Dictionary<string, object?> { ["RunId"] = runId, ["PlanLines"] = lines, ["Actor"] = _actor },
-            new DialogOptions { Width = "1000px", ShowClose = false, CloseDialogOnEsc = false });
-        if (result is not PpRepository.ApsWoResult r) return;
-
-        // 대상 행이 모두 WO 로 이어졌을 때만 Released 가 된다(거부·미선택 행이 남으면 Saved)
-        try { s.IsReleased = string.Equals(Aps.LoadRun(runId)?.Row.Status, ApsRepository.StatusReleased, StringComparison.OrdinalIgnoreCase); }
-        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); return; }
-        ShowMsg(string.Format(L["PP.Aps.Wo.Ok"].Value, r.Created, r.Late, r.Short, r.RejectedCount), r.Short > 0 || r.RejectedCount > 0);
+        Nav.NavigateTo($"/pp/aps-plan/wo-preview/{runId}");
     }
 
     // ── 설정 (읽기 전용 공통코드 + MD_ApsLineStage CRUD) ────────────────

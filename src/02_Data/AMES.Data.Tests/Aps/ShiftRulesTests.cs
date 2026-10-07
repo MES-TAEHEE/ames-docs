@@ -62,4 +62,29 @@ public class ShiftRulesTests
         s.LineShifts.First(x => x.LineCd == "LQ10").DailyCap = 1500;
         Assert.Equal((1500.0, 0.0, 1, 0.0), new ShiftRules(s, L).AsmCapFor("LQ10", "2026-09-24")!.Value);
     }
+
+    [Fact]
+    public void ShiftsFor_maps_legacy_day_night_to_two_shifts_and_returns_explicit_lists_in_order()
+    {
+        var s = Settings.Default();
+        s.LineShifts.Add(new LineShift { LineCd = "L1", Day = 8, Night = 4 });
+        s.LineShifts.Add(new LineShift { LineCd = "L2", Day = 8, Night = 16, Shifts = new() { new("A", 8), new("B", 10), new("C", 6) } });
+        var lines = new Dictionary<string, LineInfo>
+        {
+            ["L1"] = new() { LineCd = "L1", Type = "injection" }, ["L2"] = new() { LineCd = "L2", Type = "injection" }, ["L9"] = new() { LineCd = "L9", Type = "injection" },
+        };
+        var rules = new ShiftRules(s, lines);
+
+        var (legacy, explicit1) = rules.ShiftsFor("L1", "2026-10-07", true);
+        Assert.False(explicit1);
+        Assert.Equal(new[] { ("day", 8d), ("night", 4d) }, legacy.Select(x => (x.Code, x.Hours)).ToArray());
+
+        var (list, explicit2) = rules.ShiftsFor("L2", "2026-10-07", true);
+        Assert.True(explicit2);
+        Assert.Equal(new[] { ("A", 8d), ("B", 10d), ("C", 6d) }, list.Select(x => (x.Code, x.Hours)).ToArray());
+
+        var (factory, explicit3) = rules.ShiftsFor("L9", "2026-10-07", true);   // 라인 설정 없음 → 공장 기본(10.5/11.5)
+        Assert.False(explicit3);
+        Assert.Equal(22d, factory.Sum(x => x.Hours));
+    }
 }

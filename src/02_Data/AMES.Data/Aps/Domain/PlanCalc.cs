@@ -85,7 +85,7 @@ public static class PlanCalc
                 var remain = stock - need + plan;
                 var cell = new InjectionCell
                 {
-                    Date = d.Date, Stock = stock, Requirement = need, PlanDay = d.PlanDay, PlanNight = d.PlanNight,
+                    Date = d.Date, Stock = stock, Requirement = need, PlanDay = d.PlanDay, PlanNight = d.PlanNight, PlanShifts = d.PlanShifts,
                     Remain = remain, Status = StatusOf(remain, r.SafetyStock, warn),
                 };
                 if (plan > 0)
@@ -135,14 +135,35 @@ public static class PlanCalc
                     var uph = g.Max(r => r.Uph);
                     total += Math.Round(qty / uph, 2);
                 }
-                var sh = rules.ShiftFor(line, date, true);
-                var cap = sh.day + sh.night;
+                var (shifts, explicitList) = rules.ShiftsFor(line, date, true);
+                var cap = shifts.Sum(x => x.Hours);
                 var hours = Math.Round(total, 2);
-                var day = Math.Round(Math.Min(total, sh.day), 2);
-                var night = Math.Round(Math.Max(0, total - sh.day), 2);
+                double firstH = shifts.Count > 0 ? shifts[0].Hours : 0;
+                // 교대 목록 모드: 교대별 시간 = 계획의 교대별 수량 ÷ UPH(금형 그룹마다 형제 최대 — total 과 같은 규칙, 리뷰 F2). 주/야는 파생(첫 교대 / 나머지)
+                List<ShiftHours>? perShift = null;
+                if (explicitList)
+                {
+                    perShift = shifts.Select(x => new ShiftHours(x.Code, 0)).ToList();
+                    foreach (var g in groups)
+                    {
+                        var uph = g.Max(r => r.Uph);
+                        for (var k = 0; k < shifts.Count; k++)
+                        {
+                            var q = g.Max(r =>
+                            {
+                                var d = r.Days.First(x => x.Date == date);
+                                var ps = d.PlanShifts is { Count: > 0 } p ? p : ApsShiftCompat.Restore(d.PlanDay, d.PlanNight, shifts);
+                                return k < ps.Count ? ps[k].Qty : 0;
+                            });
+                            perShift[k] = perShift[k] with { Hours = Math.Round(perShift[k].Hours + Math.Round(q / uph, 2), 2) };
+                        }
+                    }
+                }
+                var day = perShift is not null ? perShift[0].Hours : Math.Round(Math.Min(total, firstH), 2);
+                var night = perShift is not null ? Math.Round(perShift.Skip(1).Sum(x => x.Hours), 2) : Math.Round(Math.Max(0, total - firstH), 2);
                 loads.Add(new LoadRow
                 {
-                    LineCd = line, Date = date, Hours = hours, DayHours = day, NightHours = night, Capacity = cap,
+                    LineCd = line, Date = date, Hours = hours, DayHours = day, NightHours = night, ShiftHours = perShift, Capacity = cap,
                     Rate = cap > 0 ? Math.Round(hours / cap * 100, 1) : 0, Over = hours > cap + 0.005,
                 });
             }

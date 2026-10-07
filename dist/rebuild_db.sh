@@ -97,6 +97,7 @@ FILES=(
   migrate_aps.sql                     # APS: MD_Item.BoxQty 재생성(PartCavityCount 는 폐지·삭제) + MD_ApsLineStage·PP_ApsRun/PlanLine/RunWo + 공통코드 APS_SETTING/APS_COVER_TIER (migrate_mold_master 이후, -I 필수)
   migrate_pp_aps_screen.sql           # PP-APS 생산계획 화면 등록 + Admin 권한 (seed_admin_permissions 이후)
   migrate_demand_plan.sql             # 일별 구매계획(MM30011) 테이블·PP_ApsRun.IncludeDailyPlan·SW_DPSYNC* (migrate_aps 이후)
+  migrate_aps_plan_line_shift.sql     # APS 계획 행 교대별 수량 PP_ApsPlanLineShift (migrate_aps 이후)
   seed_aps_dev.sql                    #   → 개발용 APS 시드: BoxQty·LINE-INJ-01 2교대 패턴·MD_ApsLineStage·확정 수주·BOP 보강 (migrate_aps 이후)
   seed_demand_plan_dev.sql            #   → 개발용 일별계획 수집 소스 SEMS(URL 자리표시자)
   migrate_portal.sql                  # 외부 포탈: PROCESS/PORTAL 코드 · 구 출하 계획 화면 정리

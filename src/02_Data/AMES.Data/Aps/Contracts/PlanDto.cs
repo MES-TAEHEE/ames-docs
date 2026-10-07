@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 namespace AMES.Data.Aps.Contracts;
 
 /// /api/plan 응답 — 필드명·중첩은 docs/reference/aps-new-ui/api/plan_LQ10.json 그대로.
@@ -72,6 +73,8 @@ public sealed class InjectionDay
     public double Requirement { get; set; }
     public double PlanDay { get; set; }
     public double PlanNight { get; set; }
+    /// <summary>교대별 계획(교대 목록 모드). null = 골든 경로 또는 구 실행 JSON(ApsShiftCompat.Restore 로 복원). 있으면 PlanDay/PlanNight 는 파생값.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public List<ShiftQty>? PlanShifts { get; set; }
     public bool Locked { get; set; }
 }
 
@@ -105,6 +108,8 @@ public sealed class InjectionCell
     public double Requirement { get; set; }
     public double PlanDay { get; set; }
     public double PlanNight { get; set; }
+    /// <summary>교대별 계획(교대 목록 모드). null = 골든 경로 또는 구 실행 JSON(ApsShiftCompat.Restore 로 복원). 있으면 PlanDay/PlanNight 는 파생값.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public List<ShiftQty>? PlanShifts { get; set; }
     public double Remain { get; set; }
     public string Status { get; set; } = "ok";
     public bool OverRack { get; set; }
@@ -130,6 +135,8 @@ public sealed class LoadRow
     public double Hours { get; set; }
     public double DayHours { get; set; }
     public double NightHours { get; set; }
+    /// <summary>교대별 부하 시간(교대 목록 모드) — 총시간을 교대 순서로 채운 값. null = 골든 경로.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public List<ShiftHours>? ShiftHours { get; set; }
     public double Capacity { get; set; }
     public double Rate { get; set; }
     public bool Over { get; set; }
@@ -145,6 +152,8 @@ public sealed class Trace
     public double Planned { get; set; }
     public double PlanDay { get; set; }
     public double PlanNight { get; set; }
+    /// <summary>교대별 계획(교대 목록 모드). null = 골든 경로 또는 구 실행 JSON(ApsShiftCompat.Restore 로 복원). 있으면 PlanDay/PlanNight 는 파생값.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public List<ShiftQty>? PlanShifts { get; set; }
     public double Closing { get; set; }
     public int PackSize { get; set; }
     public double Uph { get; set; }

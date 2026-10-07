@@ -34,8 +34,8 @@ public class DeadlinePackerTests
         new(load ?? ((_, _) => Day(Std)), lastMoldBefore);
 
     static StepDemand Step(int seq, string line, decimal qty, int? cycleSec = 60, int? dailyCap = null,
-                           string? moldId = null, int changeMin = 0) =>
-        new(seq, line, qty, cycleSec, dailyCap, moldId, changeMin);
+                           string? moldId = null, int changeMin = 0, int? packSize = null) =>
+        new(seq, line, qty, cycleSec, dailyCap, moldId, changeMin, packSize);
 
     static (DateTime Date, string MoldId)? Mounted(string mold) => (DateTime.MinValue, mold);
 
@@ -206,6 +206,41 @@ public class DeadlinePackerTests
         var r = Pack(new[] { Step(1, "A", 100, cycleSec: 90) }, deadline: Fri, due: Fri, days: days);
 
         Assert.Equal(new[] { (Mon, 480, 579, 66m), (Tue, 480, 531, 34m) },
+                     r.Placements.Select(p => (p.Date, p.StartMin, p.EndMin, p.Qty)).ToArray());
+    }
+
+    [Fact]
+    public void Pack_size_splits_slots_in_whole_boxes_and_keeps_the_day_whole()
+    {
+        // APS 실행 #1 재현: 90초 사이클 · 8개들이, 사출 뒤 10:34~12:00(86분) + 12:45~14:30 — 개 단위 내림이면 57 + 14 = 71 이고 1개가 다음 날로 넘어갔다.
+        // 박스 단위면 86분에 7박스(84분) · 다음 틈에 2박스(24분) 로 72 전량 같은 날.
+        var days = Days((_, _) => Day(I(634, 720), I(765, 870)));
+        var r = Pack(new[] { Step(1, "A", 72, cycleSec: 90, packSize: 8) }, deadline: Tue, due: Wed, days: days);
+
+        Assert.Equal(new[] { (Mon, 634, 718, 56m), (Mon, 765, 789, 16m) },
+                     r.Placements.Select(p => (p.Date, p.StartMin, p.EndMin, p.Qty)).ToArray());
+        Assert.Empty(r.Shortfalls);
+    }
+
+    [Fact]
+    public void Pack_size_puts_the_partial_last_box_in_the_same_slot()
+    {
+        // FIFO 로 갈라진 28개 = 3박스 + 4개 — 부분 박스는 마지막에 한 번, 같은 틈이면 같은 슬롯에 붙는다(42분)
+        var days = Days((_, _) => Day(I(480, 720)));
+        var r = Pack(new[] { Step(1, "A", 28, cycleSec: 90, packSize: 8) }, deadline: Tue, due: Wed, days: days);
+
+        Assert.Equal(new[] { (Mon, 480, 522, 28m) },
+                     r.Placements.Select(p => (p.Date, p.StartMin, p.EndMin, p.Qty)).ToArray());
+    }
+
+    [Fact]
+    public void Pack_size_skips_gaps_shorter_than_one_box()
+    {
+        // 10분 틈은 한 박스(12분)가 안 되므로 비워 두고 다음 틈부터
+        var days = Days((_, _) => Day(I(480, 490), I(600, 720)));
+        var r = Pack(new[] { Step(1, "A", 8, cycleSec: 90, packSize: 8) }, deadline: Tue, due: Wed, days: days);
+
+        Assert.Equal(new[] { (Mon, 600, 612, 8m) },
                      r.Placements.Select(p => (p.Date, p.StartMin, p.EndMin, p.Qty)).ToArray());
     }
 

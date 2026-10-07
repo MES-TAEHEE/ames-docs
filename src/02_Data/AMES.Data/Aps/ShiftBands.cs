@@ -3,39 +3,46 @@ using AMES.Data.Scheduling;
 namespace AMES.Data.Aps;
 
 /// <summary>
-/// 스펙 §4.3·§8.3 — 가동 세그먼트 × 교대 SortOrder 를 주간/야간 구간으로 나누고, 수량을 분으로 바꿔 잔여 구간 앞에서부터 채운다.
-/// 주간 = ShiftSort 최소 교대의 OPERATING 밴드, 야간 = 나머지 교대의 OPERATING 밴드. 구간은 축(dayStart) 순으로 정렬한다.
+/// 스펙 §4.3·§8.3 + 2026-10-07 교대 모델 — 가동 세그먼트 × 교대(WORK_SHIFT 코드·SortOrder)를 교대별 구간으로 나누고, 수량을 분으로 바꿔 그 교대 잔여 구간 앞에서부터 채운다.
+/// 구간은 축(dayStart) 순으로 정렬한다.
 /// Subtract 규칙은 LineScheduleRepository.Subtract(:467) 과, 축 규칙은 SlotPacker 와 같다. 순수 함수 — 정본 테스트 ShiftBandsTests.
 /// </summary>
 public static class ShiftBands
 {
-    /// <summary>Day/Night 는 축(dayStart) 순 절대분 구간. occupied 를 뺀 잔여를 담는다(occupied 가 비면 전체 교대 시간).</summary>
-    public sealed record DayNightBands(IReadOnlyList<SlotPacker.Interval> Day, IReadOnlyList<SlotPacker.Interval> Night, int DayStart)
+    /// <summary>교대 1개의 잔여 가동 구간(축 순) — Code = WORK_SHIFT 코드(세그먼트에 없으면 "?Sort"), Sort = WORK_SHIFT.SortOrder.</summary>
+    public sealed record ShiftBand(string Code, int Sort, IReadOnlyList<SlotPacker.Interval> Bands)
     {
-        public double DayHours   => Day.Sum(b => b.EndMin - b.StartMin) / 60.0;
-        public double NightHours => Night.Sum(b => b.EndMin - b.StartMin) / 60.0;
+        public int Minutes => Bands.Sum(b => b.EndMin - b.StartMin);
+        public double Hours => Minutes / 60.0;
     }
 
-    public static DayNightBands Split(IReadOnlyList<(SlotPacker.Interval Band, int ShiftSort)> operating,
-                                      IReadOnlyList<SlotPacker.Interval> occupied, int dayStart)
+    /// <summary>가동 세그먼트 × 교대 → 교대별(Sort 순) 잔여 구간(스펙 2026-10-07 §4). occupied 를 뺀다(비면 전체 교대 시간).</summary>
+    public static IReadOnlyList<ShiftBand> SplitByShift(IReadOnlyList<(SlotPacker.Interval Band, int ShiftSort, string ShiftCode)> operating,
+                                                        IReadOnlyList<SlotPacker.Interval> occupied, int dayStart)
     {
         var valid = operating.Where(o => o.Band.EndMin > o.Band.StartMin).ToList();
-        if (valid.Count == 0)
-            return new DayNightBands(Array.Empty<SlotPacker.Interval>(), Array.Empty<SlotPacker.Interval>(), dayStart);
-
-        int minSort = valid.Min(o => o.ShiftSort);
-        var day   = Remaining(valid.Where(o => o.ShiftSort == minSort).Select(o => o.Band), occupied, dayStart);
-        var night = Remaining(valid.Where(o => o.ShiftSort != minSort).Select(o => o.Band), occupied, dayStart);
-        return new DayNightBands(day, night, dayStart);
+        // 코드는 대소문자를 가리지 않는다(PP_ApsPlanLineShift PK·Align·ShiftOf 와 같다) — 대문자로 정규화해 묶는다
+        return valid.GroupBy(o => (o.ShiftSort, Code: string.IsNullOrWhiteSpace(o.ShiftCode) ? "?" + o.ShiftSort : o.ShiftCode.Trim().ToUpperInvariant()))
+                    .OrderBy(g => g.Key.ShiftSort).ThenBy(g => g.Key.Code, StringComparer.Ordinal)
+                    .Select(g => new ShiftBand(g.Key.Code, g.Key.ShiftSort, Remaining(g.Select(o => o.Band), occupied, dayStart)))
+                    .ToList();
     }
 
-    /// <summary>등록 계획 슬롯의 StartMin 이 주간 구간(occupied 제외 전)에 속하는지(§4.5). 어느 밴드에도 안 걸리면(휴게 등) 축상 첫 야간 밴드보다 앞이면 주간.</summary>
-    public static bool IsDay(DayNightBands full, int startMin)
+    /// <summary>등록 계획 슬롯의 StartMin 이 속한 교대(occupied 제외 전 full 기준, §4.5). 어느 밴드에도 없으면(휴게 등) 축상 그 앞 교대, 없으면 첫 교대. full 이 비면 "".</summary>
+    public static string ShiftOf(IReadOnlyList<ShiftBand> full, int startMin, int dayStart)
     {
-        if (full.Day.Any(b => b.StartMin <= startMin && startMin < b.EndMin)) return true;
-        if (full.Night.Any(b => b.StartMin <= startMin && startMin < b.EndMin)) return false;
-        if (full.Night.Count == 0) return true;
-        return Axis(startMin, full.DayStart) < Axis(full.Night[0].StartMin, full.DayStart);
+        if (full.Count == 0) return "";
+        foreach (var s in full)
+            if (s.Bands.Any(b => b.StartMin <= startMin && startMin < b.EndMin)) return s.Code;
+        int at = Axis(startMin, dayStart);
+        ShiftBand? before = null; int bestEnd = -1;
+        foreach (var s in full)
+            foreach (var b in s.Bands)
+            {
+                int end = Axis(b.StartMin, dayStart) + (b.EndMin - b.StartMin);
+                if (end <= at && end > bestEnd) { bestEnd = end; before = s; }
+            }
+        return (before ?? full[0]).Code;
     }
 
     /// <summary>ceil(qty ÷ uph × 60). uph ≤ 0 이면 ArgumentOutOfRangeException — 호출자가 NoUph 로 거부한다.</summary>
