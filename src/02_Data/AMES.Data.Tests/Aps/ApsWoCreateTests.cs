@@ -30,6 +30,7 @@ public class ApsWoCreateTests
     const string Actor = "ITEST-APS";
     static readonly DateTime D0 = NextMonday(DateTime.Today.AddDays(400));
     static readonly DateTime D1 = D0.AddDays(1);
+    static readonly DateOnly D0d = DateOnly.FromDateTime(D0);
     static readonly DateTime D2 = D0.AddDays(2);
     static readonly DateTime D4 = D0.AddDays(4);
     static readonly DateTime Pin = D0.AddDays(-1);   // 직전 금형 고정용 일요일
@@ -220,6 +221,66 @@ public class ApsWoCreateTests
 
     static PpRepository.ApsWoResult Run(AmesConnectionFactory f, int runId, int[] ids, bool dryRun = false)
         => new PpRepository(f).CreateApsWorkOrders(runId, ids, Actor, dryRun);
+
+    /// <summary>2026-10-07 미리보기 슬롯 편집: dryRun 도 편집을 적용해 보여 주고(행은 롤백), 실제 실행은 PP_LineSchedule 행을 목표 자리로 옮긴다.</summary>
+    [SkippableFact]
+    public void Slot_edits_are_applied_in_dry_run_and_moved_in_the_real_run()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 200, dueOffset: 9);
+            int run = SeedRun(f);
+            int pl  = SeedInj(f, run, ItemA, D0, day: 120, night: 0);   // UPH 60 → 480-600
+            var pp  = new PpRepository(f);
+
+            var plain = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: true);
+            var inj   = plain.Orders.Single().Placements.Single(p => p.LineId == LineInj);
+            Assert.Equal((480, 600), (inj.StartMin, inj.EndMin));
+            var o = plain.Orders.Single();
+            var edit = new ApsSlotEdit(o.ItemNo, o.PlanDate, o.SoId, inj.StepSeq, LineInj, D0d, 480, 600, LineInj, D0d, 780, 900, null);
+
+            var dry = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: true, edits: new[] { edit });
+            Assert.True(Assert.Single(dry.Edits).Applied);
+            Assert.Equal((780, 900), dry.Orders.Single().Placements.Where(p => p.LineId == LineInj).Select(p => (p.StartMin, p.EndMin)).Single());
+            Assert.Empty(Rows(f, LineInj, D0));
+
+            var real = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: false, edits: new[] { edit });
+            Assert.True(Assert.Single(real.Edits).Applied);
+            var slots = Rows(f, LineInj, D0).Where(r => r.Type == "WO" && r.WoId is not null).ToList();
+            Assert.Equal(new[] { (780, 900, 120m) }, slots.Select(r => (r.Start, r.End, r.Qty)).ToArray());
+            Assert.Equal($"INJ@{LineInj},IMG@{LineImg}", Steps(f, real.Orders.Single().WoId));
+        }
+        finally { Cleanup(f); }
+    }
+
+    /// <summary>편집 거부 — 휴게를 가로지르면 OutsideBands, 금형 UPH 가 없는 라인으로 옮기면 NoUph, 배치가 달라진 슬롯은 NotFound. 거부돼도 나머지 생성은 그대로.</summary>
+    [SkippableFact]
+    public void Invalid_slot_edits_are_skipped_with_a_reason()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 200, dueOffset: 9);
+            int run = SeedRun(f);
+            int pl  = SeedInj(f, run, ItemA, D0, day: 120, night: 0);
+            var pp  = new PpRepository(f);
+            var o   = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: true).Orders.Single();
+            var inj = o.Placements.Single(p => p.LineId == LineInj);
+            ApsSlotEdit E(string nl, int ns, int ne, int os = 480, int oe = 600) => new(o.ItemNo, o.PlanDate, o.SoId, inj.StepSeq, LineInj, D0d, os, oe, nl, D0d, ns, ne, null);
+
+            var r = pp.CreateApsWorkOrders(run, new[] { pl }, Actor, dryRun: true,
+                        edits: new[] { E(LineInj, 700, 820), E(LinePnt, 480, 600), E(LineInj, 780, 900, os: 481) });
+
+            Assert.Equal(new[] { ApsSlotEditRules.ReasonOutsideBands, ApsSlotEditRules.ReasonNoUph, ApsSlotEditRules.ReasonNotFound },
+                         r.Edits.Select(e => e.Reason).ToArray());
+            Assert.Equal(0, r.EditsApplied);
+            Assert.Equal((480, 600), r.Orders.Single().Placements.Where(p => p.LineId == LineInj).Select(p => (p.StartMin, p.EndMin)).Single());
+        }
+        finally { Cleanup(f); }
+    }
 
     /// <summary>2026-10-07 미리보기 보드: 라인 × 날짜 능력은 WO 생성과 같은 APS 패턴 규칙 — 사출 라인은 지정 패턴, 완제품 라인은 설정이 없으면 자동 해석(PP_LineSchedule 저장 패턴), 사출 라인 미설정은 거부.</summary>
     [SkippableFact]

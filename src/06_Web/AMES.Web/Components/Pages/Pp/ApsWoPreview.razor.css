@@ -62,3 +62,9 @@
 }
 .wp-tip > div:first-child { font-weight: 700; color: var(--ames-tx-purple-200); }
 .wp-tip-hint { margin-top: 4px; font-size: calc(10px + var(--ames-fs-bump)); }
+
+/* 슬롯 편집 — 끌 수 있는 블록·끄는 중·편집된 블록(노란 점선) */
+::deep .wp-blk.draggable { cursor: grab; }
+::deep .wp-blk.dragging { cursor: grabbing; z-index: 30 !important; opacity: .92; }
+::deep .wp-blk.edited { border-style: dashed !important; box-shadow: 0 0 0 2px rgba(251,191,36,.65) !important; }
+.wp-edit-hint { font-size: calc(11px + var(--ames-fs-bump)); padding: 0 14px 10px; }

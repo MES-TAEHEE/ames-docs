@@ -43,6 +43,21 @@
             @if (Block.Late) { <span class="pill warn">@L["PP.Aps.Wo.Lgd.Late"]</span> }
         </div>
         @if (Block.Kind is ApsWoBoard.BlockKind.OldWo or ApsWoBoard.BlockKind.OldMoldChange) { <div class="dim">@L["PP.Aps.Wo.Detail.ExistingSlot"]</div> }
+        @if (CanEdit)
+        {
+            <div class="wp-edit">
+                <div class="wp-edit-h">@L["PP.Aps.Wo.Edit.Title"]</div>
+                <div class="wp-edit-grid">
+                    <label><span>@L["Col.Line"]</span><RadzenDropDown TValue="string" @bind-Value="_line" Data="@Lines" TextProperty="LineId" ValueProperty="LineId" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></label>
+                    <label><span>@L["Col.Date"]</span><RadzenDropDown TValue="string" @bind-Value="_date" Data="@DateOptions" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></label>
+                    <label><span>@L["PP.Aps.Wo.Edit.Start"]</span><RadzenTextBox @bind-Value="_start" Placeholder="HH:mm" MaxLength="5" class="ames-rz-input" Style="width:100%;" /></label>
+                    <label><span>@L["PP.Aps.Wo.Edit.Dur"]</span><RadzenNumeric TValue="int" @bind-Value="_minutes" Min="5" Max="1440" Step="5" class="ames-rz-input" Style="width:100%;" /></label>
+                    <label><span>@L["Col.Qty"]</span><RadzenNumeric TValue="decimal" @bind-Value="_qty" Min="0" class="ames-rz-input" Style="width:100%;" /></label>
+                </div>
+                <div class="dim" style="font-size:.85em;">@L["PP.Aps.Wo.Edit.QtyWarn"] @L["PP.Aps.Wo.Edit.McHint"]</div>
+                @if (!string.IsNullOrEmpty(_err)) { <div class="ames-alert bad">@_err</div> }
+            </div>
+        }
         @if (Block.Siblings.Count > 0)
         {
             <div class="dim" style="margin-top:6px;">@L["PP.Aps.Wo.Siblings"]</div>
@@ -104,7 +119,15 @@
     }
 
     <div class="ames-modal-footer">
+        @if (CanEdit && IsEdited)
+        {
+            <RadzenButton Text="@L["PP.Aps.Wo.Edit.Revert"]" Icon="undo" ButtonStyle="ButtonStyle.Warning" Click="@(() => Dialog.Close(new RevertRequest()))" />
+        }
         <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Light" Click="@(() => Dialog.Close())" />
+        @if (CanEdit)
+        {
+            <RadzenButton Text="@L["PP.Aps.Wo.Edit.Apply"]" Icon="check" ButtonStyle="ButtonStyle.Primary" Click="Apply" />
+        }
     </div>
 </div>
 
@@ -113,6 +136,31 @@
     [Parameter] public PpRepository.ApsWoOrder? Order { get; set; }
     [Parameter] public string LineId { get; set; } = "";
     [Parameter] public DateOnly Date { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public bool IsEdited { get; set; }
+    [Parameter] public IReadOnlyList<ApsRepository.LineChoice> Lines { get; set; } = Array.Empty<ApsRepository.LineChoice>();
+    [Parameter] public IReadOnlyList<DateOnly> Dates { get; set; } = Array.Empty<DateOnly>();
+
+    /// <summary>「적용」 결과 — 페이지가 ApsSlotEdit 로 바꿔 검증·기록한다. Qty 는 바뀐 경우만.</summary>
+    public sealed record EditRequest(string LineId, DateOnly Date, int StartMin, int Minutes, decimal? Qty);
+    public sealed record RevertRequest;
+
+    string _line = "", _date = "", _start = "", _err = "";
+    int _minutes; decimal _qty;
+    IEnumerable<string> DateOptions => Dates.Select(d => d.ToString("yyyy-MM-dd"));
+
+    protected override void OnInitialized()
+    {
+        _line = LineId; _date = Date.ToString("yyyy-MM-dd"); _start = Hm(Block.StartMin); _minutes = Block.Minutes; _qty = Block.Qty;
+    }
+
+    void Apply()
+    {
+        _err = "";
+        if (!TimeOnly.TryParseExact(_start, "HH:mm", out var t)) { _err = L["PP.Aps.Wo.Edit.Reason.BadRange"]; return; }
+        if (_minutes <= 0 || _qty <= 0 || !DateOnly.TryParseExact(_date, "yyyy-MM-dd", out var d) || string.IsNullOrEmpty(_line)) { _err = L["PP.Aps.Wo.Edit.Reason.BadRange"]; return; }
+        Dialog.Close(new EditRequest(_line, d, ApsSlotEditRules.Snap(t.Hour * 60 + t.Minute), _minutes, _qty == Block.Qty ? null : _qty));
+    }
 
     bool IsWo => Block.Kind is ApsWoBoard.BlockKind.NewWo or ApsWoBoard.BlockKind.OldWo;
     bool IsMc => Block.Kind is ApsWoBoard.BlockKind.NewMoldChange or ApsWoBoard.BlockKind.OldMoldChange;

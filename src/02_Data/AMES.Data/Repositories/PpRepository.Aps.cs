@@ -31,8 +31,13 @@ public sealed partial class PpRepository
     /// <summary>거부된 계획 행. Reason = RejectNoMold | RejectNoUph.</summary>
     public sealed record ApsRejectedLine(int PlanLineId, string ItemNo, DateOnly PlanDate, string Reason);
 
-    public sealed record ApsWoResult(List<ApsWoOrder> Orders, List<ApsRejectedLine> Rejected, int SkippedExisting, int BomRuleExcluded, bool DryRun)
+    /// <param name="EditOutcomes">미리보기 보드에서 옮긴 슬롯 편집(ApsSlotEdit)의 적용 결과 — 편집을 넘기지 않았으면 빈 목록.</param>
+    public sealed record ApsWoResult(List<ApsWoOrder> Orders, List<ApsRejectedLine> Rejected, int SkippedExisting, int BomRuleExcluded, bool DryRun,
+                                     IReadOnlyList<ApsSlotEditOutcome>? EditOutcomes = null)
     {
+        public IReadOnlyList<ApsSlotEditOutcome> Edits => EditOutcomes ?? Array.Empty<ApsSlotEditOutcome>();
+        public int EditsApplied => Edits.Count(e => e.Applied);
+        public int EditsSkipped => Edits.Count(e => !e.Applied);
         public int Created       => Orders.Count;
         public int Late          => Orders.Count(o => o.LateQty  > 0);
         public int Short         => Orders.Count(o => o.ShortQty > 0);
@@ -75,6 +80,17 @@ public sealed partial class PpRepository
                 boards.Add(new ApsDayBoard(line, date, LineScheduleRepository.ReadDayCapacity(conn, null, line, date, pat)));
         }
         return boards;
+    }
+
+    /// <summary>미리보기 슬롯 편집의 라인 변경 검증용(화면이 서버와 같은 NoUph 규칙을 즉시 적용) — UPH 가 있는 (금형, 라인) 쌍, 대문자.</summary>
+    public HashSet<(string Mold, string Line)> ListMoldLines()
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT MoldID, LineCode FROM dbo.MD_MoldLine WHERE UPH > 0;", conn);
+        using var rdr  = cmd.ExecuteReader();
+        var set = new HashSet<(string, string)>();
+        while (rdr.Read()) set.Add((rdr.GetString(0).ToUpperInvariant(), rdr.GetString(1).ToUpperInvariant()));
+        return set;
     }
 
     /// <summary>CreateManualWo 의 INSERT 형태 + SoID(NULL 허용)·ProdDeadline·OUTPUT. 라우팅 없는 품목은 0행.</summary>
@@ -134,7 +150,7 @@ public sealed partial class PpRepository
     /// 스펙 §8 + 2026-10-05 BOM 규칙 확장. 한 트랜잭션. Released 실행이면 InvalidOperationException(화면은 모달 오류).
     /// dryRun=true 는 같은 경로를 돌고 Rollback(미리보기, WoNumber 는 잠정).
     /// </summary>
-    public ApsWoResult CreateApsWorkOrders(int runId, IReadOnlyList<int> planLineIds, string actor, bool dryRun = false)
+    public ApsWoResult CreateApsWorkOrders(int runId, IReadOnlyList<int> planLineIds, string actor, bool dryRun = false, IReadOnlyList<ApsSlotEdit>? edits = null)
     {
         var orders   = new List<ApsWoOrder>();
         var rejected = new List<ApsRejectedLine>();
@@ -470,6 +486,43 @@ public sealed partial class PpRepository
                 }
             }
 
+            // 5단계: 미리보기 보드의 슬롯 편집(2026-10-07) — 정상 배치가 끝난 자리에서 같은 규칙(ApsSlotEditRules)으로 짝을 찾아 PP_LineSchedule 행을 옮긴다.
+            //    검증 = 목표 (라인, 날짜)의 APS 패턴 가동 밴드 안 + 그 날 점유(자기·먼저 비운 구간 제외)와 겹치지 않음 + 사출 슬롯의 라인 변경은 그 라인에 금형 UPH.
+            //    dryRun 도 같은 길을 돌아 「미리보기 갱신」이 편집을 적용·검증한 모습을 보여 준다. MC 는 재계산하지 않는다(PP-LSB 에서 조정).
+            var editOutcomes = new List<ApsSlotEditOutcome>();
+            if (edits is { Count: > 0 })
+            {
+                var vacated = new List<(string Line, DateTime Date, SlotPacker.Interval Iv)>();
+                string? Validate(ApsSlotEdit e, IReadOnlyList<ApsWoOrder> current, DeadlinePacker.Placement old)
+                {
+                    var nd  = e.NewDate.ToDateTime(TimeOnly.MinValue);
+                    var cap = days.Get(e.NewLineId, nd);
+                    var occupied = cap.Occupied.ToList();
+                    if (e.SameDay) RemoveOnce(occupied, new SlotPacker.Interval(old.StartMin, old.EndMin));
+                    foreach (var v in vacated.Where(v => string.Equals(v.Line, e.NewLineId, StringComparison.OrdinalIgnoreCase) && v.Date == nd))
+                        RemoveOnce(occupied, v.Iv);
+                    if (ApsSlotEditRules.Validate(e.NewInterval, cap.OperatingBands, occupied) is { } reason) return reason;
+                    if (e.LineChanged && old.MoldId is { } mold && ReadMoldLineUph(conn, tx, mold, e.NewLineId) is not > 0) return ApsSlotEditRules.ReasonNoUph;
+                    return null;
+                }
+                var (editedOrders, outcomes, moves) = ApsSlotEditRules.Apply(orders, edits, Validate);
+                foreach (var mv in moves)
+                {
+                    var cap = days.Get(mv.New.LineId, mv.New.Date);
+                    if (MoveWoSlot(conn, tx, mv.WoId, mv.Old, mv.New, cap.PatternId, actor) == 0)
+                        throw new InvalidOperationException($"WO #{mv.WoId}: slot {mv.Old.LineId} {mv.Old.Date:yyyy-MM-dd} {mv.Old.StartMin}-{mv.Old.EndMin} not found.");
+                    if (!string.Equals(mv.Old.LineId, mv.New.LineId, StringComparison.OrdinalIgnoreCase))
+                        UpdateStepLine(conn, tx, mv.WoId, mv.StepSeq, mv.New.LineId, actor);
+                    if (mv.New.EndMin > mv.New.StartMin)
+                    {
+                        vacated.Add((mv.Old.LineId, mv.Old.Date.Date, new SlotPacker.Interval(mv.Old.StartMin, mv.Old.EndMin)));
+                        days.Occupy(mv.New.LineId, mv.New.Date, new SlotPacker.Interval(mv.New.StartMin, mv.New.EndMin), mv.New.MoldId);
+                    }
+                }
+                orders = editedOrders;
+                editOutcomes = outcomes;
+            }
+
             // Released = 대상이 될 수 있는 행(수량>0·WoID NULL)이 남지 않았고 WO 가 연결된 행이 하나라도 있을 때.
             // 거부(NoMold/NoUph/NoParent)·미선택 행은 남긴다 — 금형 등록 후 같은 실행으로 재실행할 수 있게.
             bool remaining = allInj.Any(r => r.PlanDay + r.PlanNight > 0 && r.WoId is null
@@ -478,9 +531,45 @@ public sealed partial class PpRepository
             if (!remaining && anyLinked) MarkRunReleased(conn, tx, runId, actor);
 
             if (dryRun) tx.Rollback(); else tx.Commit();
-            return new ApsWoResult(orders, rejected, skipped, 0, dryRun);
+            return new ApsWoResult(orders, rejected, skipped, 0, dryRun, editOutcomes);
         }
         catch { tx.Rollback(); throw; }
+    }
+
+    static void RemoveOnce(List<SlotPacker.Interval> list, SlotPacker.Interval iv) { int i = list.IndexOf(iv); if (i >= 0) list.RemoveAt(i); }
+
+    /// <summary>미리보기 편집으로 옮긴 WO 슬롯 행 — 원래 (라인, 날짜, 시작, 끝) 으로 찾아 목표 자리·수량·패턴으로 고친다. 0 = 그 행 없음.</summary>
+    static int MoveWoSlot(SqlConnection conn, SqlTransaction tx, int woId, DeadlinePacker.Placement old, DeadlinePacker.Placement @new, string? patternId, string actor)
+    {
+        using var cmd = new SqlCommand("""
+            UPDATE dbo.PP_LineSchedule
+            SET    LineID = @NL, ScheduleDate = @ND, StartMin = @NS, EndMin = @NE, PlannedQty = @Q, PatternID = @P,
+                   ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE  WoID = @W AND LineID = @L AND ScheduleDate = @D AND StartMin = @S AND EndMin = @E AND EntryType = 'WO';
+            """, conn, tx);
+        cmd.Parameters.Add("@NL", SqlDbType.VarChar, 20).Value = @new.LineId;
+        cmd.Parameters.Add("@ND", SqlDbType.Date).Value         = @new.Date.Date;
+        cmd.Parameters.Add("@NS", SqlDbType.SmallInt).Value     = @new.StartMin;
+        cmd.Parameters.Add("@NE", SqlDbType.SmallInt).Value     = @new.EndMin;
+        cmd.Parameters.Add("@Q",  SqlDbType.Decimal).Value      = @new.Qty;
+        cmd.Parameters.Add("@P",  SqlDbType.VarChar, 20).Value  = (object?)patternId ?? DBNull.Value;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value  = actor;
+        cmd.Parameters.Add("@W",  SqlDbType.Int).Value          = woId;
+        cmd.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value  = old.LineId;
+        cmd.Parameters.Add("@D",  SqlDbType.Date).Value         = old.Date.Date;
+        cmd.Parameters.Add("@S",  SqlDbType.SmallInt).Value     = old.StartMin;
+        cmd.Parameters.Add("@E",  SqlDbType.SmallInt).Value     = old.EndMin;
+        return cmd.ExecuteNonQuery();
+    }
+
+    static void UpdateStepLine(SqlConnection conn, SqlTransaction tx, int woId, int stepSeq, string lineId, string actor)
+    {
+        using var cmd = new SqlCommand("UPDATE dbo.PP_WorkOrderRouting SET LineID = @L, ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE WoID = @W AND StepSeq = @S;", conn, tx);
+        cmd.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = actor;
+        cmd.Parameters.Add("@W",  SqlDbType.Int).Value         = woId;
+        cmd.Parameters.Add("@S",  SqlDbType.Int).Value         = stepSeq;
+        cmd.ExecuteNonQuery();
     }
 
     // ── 순수 헬퍼 ────────────────────────────────────────────────────────

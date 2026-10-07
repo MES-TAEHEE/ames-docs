@@ -10175,6 +10175,69 @@
   <data name="PP.Aps.Wo.Detail.ClickHint" xml:space="preserve">
     <value>Click for details</value>
   </data>
+  <data name="PP.Aps.Wo.Edit.Count" xml:space="preserve">
+    <value>{0} edit(s)</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Clear" xml:space="preserve">
+    <value>Discard edits</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.DropRejected" xml:space="preserve">
+    <value>Drop unapplied edits</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Edited" xml:space="preserve">
+    <value>edited</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Orig" xml:space="preserve">
+    <value>originally</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Hint" xml:space="preserve">
+    <value>Drag a purple slot along its row to move it (5-minute steps), or click it to change line, date, time or quantity. Edits are applied when work orders are created.</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.McHint" xml:space="preserve">
+    <value>Mold-change blocks are not moved automatically — adjust them in PP-LSB.</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Rejected" xml:space="preserve">
+    <value>Edits that cannot be applied</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Applied" xml:space="preserve">
+    <value>Edits applied {0} · skipped {1}</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Title" xml:space="preserve">
+    <value>Edit slot</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Dur" xml:space="preserve">
+    <value>Minutes</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Revert" xml:space="preserve">
+    <value>Revert</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.QtyWarn" xml:space="preserve">
+    <value>Quantity changes this slot only; the WO quantity stays.</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.NotFound" xml:space="preserve">
+    <value>the slot no longer exists in the preview</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.BadRange" xml:space="preserve">
+    <value>invalid time or quantity</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.NoPattern" xml:space="preserve">
+    <value>that line/date is not on the board or has no shift pattern</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.OutsideBands" xml:space="preserve">
+    <value>outside operating time or across a break</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.Overlap" xml:space="preserve">
+    <value>overlaps another slot</value>
+  </data>
+  <data name="PP.Aps.Wo.Edit.Reason.NoUph" xml:space="preserve">
+    <value>the mold has no UPH on that line</value>
+  </data>
   <data name="PP.Aps.Wo.Tab.Board" xml:space="preserve">
     <value>Line preview</value>
   </data>
