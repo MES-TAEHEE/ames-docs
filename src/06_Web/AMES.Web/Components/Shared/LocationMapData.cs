@@ -26,3 +26,5 @@ public sealed record LocationMapStock(
     string WarehouseName = "",
     string AreaCode = "",
     string AreaName = "");
+
+public sealed record LocationMapArea(string WarehouseCode, string WarehouseName, string AreaCode, string AreaName, string? Prefix);

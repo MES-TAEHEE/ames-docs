@@ -1,21 +1,39 @@
 @page "/fg/location-map"
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Data.Repositories.WarehouseRepository Warehouse
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.PermissionService PermSvc
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>@L["WH.LocMap.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="FG-002" TitleKey="WH.LocMap.Title" />
+<AmesPageHeader Code="FG-05" TitleKey="WH.LocMap.Title" />
 
-<LocationMapExplorer Locations="_locations" Inventory="_inventory" OnRefresh="Reload" SearchId="fg-location-search" />
+@if (_error is not null) { <RadzenAlert AlertStyle="Radzen.AlertStyle.Danger">@_error</RadzenAlert> }
+else { <LocationMapExplorer Locations="_locations" Inventory="_inventory" Areas="_areas" OnRefresh="Reload" CanEdit="_canEdit" CanAddHierarchy="false" SearchId="fg-location-search" /> }
 
 @code {
     private List<LocationMapCell> _locations = [];
     private List<LocationMapStock> _inventory = [];
+    private List<LocationMapArea> _areas = [];
+    private string? _error;
+    private bool _canEdit;
 
-    protected override void OnInitialized() => Reload();
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/fd/location");
+        Reload();
+    }
 
     private void Reload()
     {
-        (_locations, _inventory) = LocationMapDemoData.Create("STOCK", "Stock Area");
+        try
+        {
+            (_areas, _locations, _inventory) = LocationMapDatabase.Load(MD, Warehouse, finishedGoods: true);
+            _error = null;
+        }
+        catch (Exception ex) { _error = $"Unable to load Location Map: {ex.Message}"; }
     }
 }
