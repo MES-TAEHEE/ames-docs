@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.4 · PP-APS · APS How It Works · 동작 가이드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --pp:#059669;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}
+.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}
+.l3-crumb .current{color:var(--gold);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:48px;flex-shrink:0;color:rgba(52,211,153,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#031712 0%,#052e1f 50%,#03251a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(52,211,153,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr::after{content:'';position:absolute;top:-40%;right:-10%;width:380px;height:380px;background:radial-gradient(circle,rgba(52,211,153,.10),transparent 70%);pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#34d399;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#34d399;border-radius:50%;box-shadow:0 0 8px #34d399;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:14px;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:14px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(52,211,153,.3);color:#6ee7b7;}
+.content{padding:0 48px 60px;}
+.sec{margin-top:36px;}
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.sec-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--pp);letter-spacing:1px;line-height:1;min-width:42px;}
+.sec-title-wrap{flex:1;}
+.sec-title-en{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;}
+.sec-title-ko{font-size:11px;color:var(--sub);margin-top:1px;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--pp),transparent);max-width:200px;}
+.ov-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.ov-desc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pp);border-radius:0 6px 6px 0;padding:16px 18px;}
+.ov-desc-en{font-size:12px;color:var(--text);line-height:1.85;margin-bottom:10px;}
+.ov-desc-ko{font-size:11px;color:var(--sub);line-height:1.85;padding-top:10px;border-top:1px dashed var(--border);}
+.ov-meta{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ov-meta-row{display:flex;border-bottom:1px solid var(--border);font-size:11px;}
+.ov-meta-row:last-child{border-bottom:none;}
+.ov-meta-k{flex:0 0 110px;background:#f6f8fa;padding:8px 12px;font-weight:700;color:var(--sub);font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-right:1px solid var(--border);}
+.ov-meta-v{flex:1;padding:8px 12px;color:var(--text);}
+.ov-meta-v code,.tbl code,.rule-tbl code,.ef-action code,.ef-result code,.note code,li code,p code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:var(--pp);}
+.mock-wrap{background:#eef1f5;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.mock-lbl{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.mock-lbl::before{content:'';width:6px;height:6px;background:var(--pp);border-radius:50%;}
+.mock-win{background:#fff;border:1px solid #c8d0db;border-radius:6px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08);}
+.mock-tbar{background:var(--text);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;}
+.mock-tbar .bc{margin-left:auto;font-size:9px;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace;}
+.mock-toolbar{background:#f6f8fa;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.mock-toolbar select,.mock-toolbar input{padding:4px 9px;border:1px solid var(--border);border-radius:3px;font-size:11px;background:#fff;}
+.mock-body{padding:14px;}
+.kpi-strip{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.kc{flex:1;padding:10px 13px;border-right:1px solid var(--border);background:#fafbfc;}
+.kc:last-child{border-right:none;}
+.kv{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;}
+.kl-en{font-size:9px;color:var(--sub);margin-top:3px;}
+.btn{padding:5px 13px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:default;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--pp);color:#fff;border-color:var(--pp);}
+.btn-secondary{background:#f6f8fa;color:var(--text);border-color:var(--border);}
+.btn-warn{background:#fef3c7;color:#92400e;border-color:#fcd34d;}
+.btn-sm{padding:3px 9px;font-size:10px;}
+.warn-banner{background:#fffbeb;border:1px solid #fcd34d;border-radius:5px;padding:8px 12px;font-size:10px;color:#92400e;margin-bottom:12px;}
+.warn-banner b{display:block;margin-bottom:3px;}
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:8px;}
+.tab{padding:6px 14px;font-size:11px;font-weight:700;color:var(--sub);border-bottom:2px solid transparent;margin-bottom:-2px;}
+.tab.on{color:var(--pp);border-bottom-color:var(--pp);}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{background:#f0f3f7;padding:7px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;}
+.tbl td{padding:6px 9px;border:1px solid var(--border);vertical-align:top;}
+.tbl .ko{color:var(--sub);font-size:10px;}
+.tbl .num{font-family:'JetBrains Mono',monospace;text-align:right;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}.b-g{background:#e5e7eb;color:#374151;}
+.cell{display:grid;grid-template-columns:1fr;gap:1px;font-family:'JetBrains Mono',monospace;font-size:9px;line-height:1.35;}
+.cell .d{color:var(--sub);} .cell .s{color:#1e40af;font-weight:700;} .cell .k{color:#166534;} .cell .k.short{color:#991b1b;font-weight:700;} .cell .k.warn{color:#92400e;}
+.lock{color:#9ca3af;font-size:9px;}
+.rule-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.rule-tbl th{background:linear-gradient(180deg,#03251a,#031712);color:#6ee7b7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.rule-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.7;}
+.rule-tbl tr:last-child td{border-bottom:none;}
+.rule-tbl .k{font-weight:700;color:var(--text);white-space:nowrap;}
+.rule-tbl .k small{display:block;font-weight:400;color:var(--sub);font-size:10px;}
+.ef-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;}
+.ef-step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:10px 0;position:relative;}
+.ef-step:not(:last-child)::before{content:'';position:absolute;left:23px;top:42px;bottom:-10px;width:2px;background:linear-gradient(180deg,var(--pp),rgba(5,150,105,.15));}
+.ef-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--pp),#047857);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;position:relative;z-index:1;}
+.ef-step.terminal .ef-num{background:linear-gradient(135deg,#0891b2,#0e7490);}
+.ef-trig{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.ef-trig-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+.ef-trig-tag.user{background:#dbeafe;color:#1e40af;}
+.ef-trig-tag.system{background:#f3e8ff;color:#7c3aed;}
+.ef-trig-name{font-size:12px;font-weight:700;color:var(--text);}
+.ef-action{font-size:12px;color:var(--text);line-height:1.75;margin-bottom:3px;}
+.ef-result{margin-top:6px;padding:7px 10px;background:#f6f8fa;border-left:2px solid var(--pp);border-radius:0 3px 3px 0;font-size:10px;color:var(--text);line-height:1.6;}
+.ef-result .er-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--pp);letter-spacing:1px;margin-right:6px;}
+.ef-step.terminal .ef-result{border-left-color:#0891b2;background:#ecfeff;}
+.ef-step.terminal .ef-result .er-lbl{color:#0891b2;}
+.exc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.exc-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid #dc2626;border-radius:0 0 6px 6px;padding:13px 15px;}
+.exc-card.warn{border-top-color:#f59e0b;}
+.exc-card.info{border-top-color:#2563eb;}
+.exc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.exc-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:3px;}
+.exc-card.warn .exc-code{color:#92400e;background:#fef3c7;}
+.exc-card.info .exc-code{color:#1e40af;background:#dbeafe;}
+.exc-name{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.exc-row{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:5px 0;border-top:1px dashed var(--border);font-size:10px;}
+.exc-row:first-of-type{border-top:none;}
+.exc-row .lbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;padding-top:2px;}
+.exc-row .val{color:var(--text);line-height:1.6;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#f0fdf4;border-color:#22c55e;}
+.lnk-node.cur{background:linear-gradient(135deg,#031712,#052e1f);border-color:#34d399;color:#fff;}
+.lnk-node.down{background:#fef3c7;border-color:#f59e0b;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#15803d;}
+.lnk-node.cur .lnk-id{color:#34d399;}
+.lnk-node.down .lnk-id{color:#92400e;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.lnk-arrow{font-size:18px;color:var(--sub);}
+.note{background:var(--gold-lt);border:1px solid #f1dfa6;border-left:3px solid var(--gold);border-radius:0 5px 5px 0;padding:10px 14px;font-size:11px;line-height:1.75;margin-top:12px;}
+.note.blue{background:#eff6ff;border-color:#bfdbfe;border-left-color:#2563eb;}
+.note b{color:var(--text);}
+.cmd{background:var(--ink);color:#e6edf3;font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:10px 14px;border-radius:5px;line-height:1.7;overflow-x:auto;margin-top:8px;white-space:pre;}
+ul.plain{padding-left:18px;font-size:11px;line-height:1.8;}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 16px;}
+.card h4{font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text);display:flex;align-items:center;gap:8px;}
+.card h4 .tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;background:#f0f3f7;color:var(--pp);}
+.page-footer{padding:24px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.page-footer .pf-l{font-family:'JetBrains Mono',monospace;}
+.page-footer .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+@media (max-width:1100px){.ov-grid{grid-template-columns:1fr;}.exc-grid{grid-template-columns:1fr;}.two{grid-template-columns:1fr;}}
+@media (max-width:900px){.sidebar{display:none;}.content{padding:0 16px 40px;}.scr-hdr{padding:24px 16px;}.page-footer{padding:16px;flex-direction:column;gap:6px;}}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner">
+  <a class="nav-home" href="INDEX.html"><div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">Index</div></div></a>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol active"><span class="nv-code" style="color:#059669;">PP</span><span>Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Finished Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</div></nav>
+<div class="l3-crumb">
+  <span class="lvl">L1</span><a href="INDEX.html">A-MES Index</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L2</span><a href="VOL04_PP_Production_Plan.html">VOL.4 · PP Production Plan</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L3</span><a href="VOL04_PP_APS_Production_Plan.html">PP-APS · 사용자 가이드</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L4</span><span class="current">APS 동작 가이드 · How It Works</span>
+</div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.4 · PP MODULE</div>
+    <div class="sb-mod-en">APS ENGINE</div>
+    <div class="sb-mod-ko">APS 동작 가이드</div>
+  </div>
+  <div class="sb-section">Related · 관련 문서</div>
+  <a class="sb-link" href="VOL04_PP_APS_Production_Plan.html"><span class="sl-id">PP-APS</span><div><div class="sl-en">User Guide</div><div class="sl-ko">화면 사용자 가이드</div></div></a>
+  <a class="sb-link on" href="VOL04_PP_APS_How_It_Works.html"><span class="sl-id">ENGINE</span><div><div class="sl-en">How It Works</div><div class="sl-ko">동작 가이드 (이 문서)</div></div></a>
+  <a class="sb-link" href="VOL04_PP03_Plan_Confirm.html"><span class="sl-id">PP-03</span><div><div class="sl-en">Plan &amp; Confirm</div><div class="sl-ko">생산계획 수립</div></div></a>
+  <a class="sb-link" href="VOL04_PP_LSB_Line_Schedule_Board.html"><span class="sl-id">PP-LSB</span><div><div class="sl-en">Line Schedule Board</div><div class="sl-ko">라인 스케줄 보드</div></div></a>
+  <a class="sb-link" href="VOL13_MD29_Line_Time_Pattern.html"><span class="sl-id">MD-29</span><div><div class="sl-en">Line Time Pattern</div><div class="sl-ko">라인 시간패턴</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page</div>
+    <a href="#s0"><span class="num">00</span>이 문서의 범위</a>
+    <a href="#s1"><span class="num">01</span>전체 흐름 한 장</a>
+    <a href="#s2"><span class="num">02</span>입력 조립 (BuildBundle)</a>
+    <a href="#s3"><span class="num">03</span>완제품 공급 자동 계산</a>
+    <a href="#s4"><span class="num">04</span>사출 소요 전개</a>
+    <a href="#s5"><span class="num">05</span>사출 스케줄러</a>
+    <a href="#s6"><span class="num">06</span>결과·부하·상태 계산</a>
+    <a href="#s7"><span class="num">07</span>근거 창 읽는 법</a>
+    <a href="#s8"><span class="num">08</span>저장 · 재현 · 재계산</a>
+    <a href="#s9"><span class="num">09</span>WO · 슬롯 생성</a>
+    <a href="#s10"><span class="num">10</span>실행 #1 실제 결과 해부</a>
+    <a href="#s11"><span class="num">11</span>설정 레퍼런스</a>
+    <a href="#s12"><span class="num">12</span>데이터 모델</a>
+    <a href="#s13"><span class="num">13</span>함정 · 한계 · 점검표</a>
+    <a href="#s14"><span class="num">14</span>용어집</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.4 · PP · APS 생산계획 · 동작 가이드</div>
+      <div class="scr-id-block">
+        <div class="scr-id">PP-APS</div>
+        <div><div class="scr-title-en">How It Works</div></div>
+      </div>
+      <div class="scr-title-ko">입 력 → 공 급 계 산 → 소 요 전 개 → 사 출 배 분 → 저 장 → W O · 슬 롯 — 숫 자 가 나 오 는 과 정 전 부</div>
+      <div class="scr-meta">
+        <div class="meta-chip web"><span class="mc-lbl">Audience</span><span class="mc-val">계획 담당 · 운영자 · 개발자</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Basis</span><span class="mc-val">소스 2026-10-07 (aps 브랜치)</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Example</span><span class="mc-val">83335-P8000 × 4색 · 복제본 실행 #1</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Engine</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">AMES.Data.Aps</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Screen</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">/pp/aps-plan</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- 00 -->
+    <div class="sec" id="s0">
+      <div class="sec-hdr"><div class="sec-num">00</div><div class="sec-title-wrap"><div class="sec-title-en">Scope</div><div class="sec-title-ko">이 문서의 범위 — 사용자 가이드와 무엇이 다른가</div></div><div class="sec-line"></div></div>
+      <div class="ov-grid">
+        <div class="ov-desc">
+          <div class="ov-desc-en"><a href="VOL04_PP_APS_Production_Plan.html">PP-APS 사용자 가이드</a>는 화면을 <b>어떻게 쓰는지</b>를 다룹니다. 이 문서는 버튼을 눌렀을 때 <b>안에서 무슨 계산이 어떤 순서로 일어나는지</b>를 다룹니다 — 어떤 테이블의 어떤 행이 어떤 수식을 거쳐 칸의 숫자가 되는지, 경고 한 줄 한 줄이 어느 단계에서 나오는지, 「WO 생성」이 WO 번호·수량·슬롯 시각을 정하는 규칙까지.</div>
+          <div class="ov-desc-ko">모든 수식과 순서는 <code>src/02_Data/AMES.Data/Aps/</code>(순수 엔진)과 <code>Repositories/ApsRepository.cs</code>·<code>PpRepository.Aps.cs</code>(DB 어댑터)의 2026-10-07 소스에서 그대로 옮겼습니다. 예제 숫자는 복제본(98.95.142.192)의 테스트 데이터 — 완제품 <b>83335-P8000</b> 4색(BM1·DNN·JY2·RBQ), 코어 <b>D3133-P8000</b>, 확정 수주 24건 — 로 엔진을 실제 돌려 얻은 값입니다. 손으로 따라 계산할 수 있게 중간값을 전부 적었습니다.</div>
+        </div>
+        <div class="ov-meta">
+          <div class="ov-meta-row"><div class="ov-meta-k">엔진</div><div class="ov-meta-v"><code>Autofill</code> · <code>PlanCalc</code> · <code>InjectionScheduler</code> · <code>ShiftRules</code> · <code>StageRules</code> — SEG APS 재구축본을 그대로 이식, 골든 픽스처 11개로 고정</div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">어댑터</div><div class="ov-meta-v"><code>DemandRules</code> · <code>ActualsRules</code> · <code>ShiftBands</code> · <code>ApsSettingsLoader</code> · <code>ApsPatternResolver</code> · <code>ApsWoAllocator</code> · <code>ApsPlanLines</code></div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">DB 경계</div><div class="ov-meta-v"><code>ApsRepository.BuildBundle</code>(읽기) · <code>SaveRun</code>(쓰기) · <code>PpRepository.CreateApsWorkOrders</code>(WO·슬롯)</div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">정본 테스트</div><div class="ov-meta-v"><code>AMES.Data.Tests/Aps/*</code> — 골든 11개 + 규칙 테스트 + <code>ApsRepositoryTests</code>·<code>ApsWoCreateTests</code>(AMES_DEV)</div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">예제 환경</div><div class="ov-meta-v">기준일 2026-10-06 · 패턴 <code>LP-CMN-001</code>(주 475분 / 야 475분) · DailyCap 1,200 · 금형 LQ2RLGDU(2캐비티, UPH 120, 교체 30분) · BoxQty 8</div></div>
+        </div>
+      </div>
+      <div class="note blue"><b>읽는 순서 제안.</b> 처음이면 <b>01</b>(흐름)과 <b>10</b>(실제 결과 해부)을 먼저 읽고, 궁금한 칸의 숫자를 <b>03~06</b>에서 수식으로 확인하세요. 운영 중 경고가 떴다면 <b>02</b>의 경고 표와 <b>13</b>의 점검표가 빠릅니다.</div>
+    </div>
+
+    <!-- 01 -->
+    <div class="sec" id="s1">
+      <div class="sec-hdr"><div class="sec-num">01</div><div class="sec-title-wrap"><div class="sec-title-en">Pipeline at a Glance</div><div class="sec-title-ko">전체 흐름 한 장 — 버튼 하나가 어떤 단계를 돌리는가</div></div><div class="sec-line"></div></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">INPUT</div><div class="lnk-name">마스터 · 수주 · 재고 · 슬롯</div><div class="lnk-ko">MD_* · PP_CustomerOrder · WH_Inventory · PP_LineSchedule</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node cur"><div class="lnk-id">① BuildBundle</div><div class="lnk-name">입력 조립</div><div class="lnk-ko">날짜축 · 수요 · 행 · 능력 · 잠긴 칸</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node cur"><div class="lnk-id">② Autofill</div><div class="lnk-name">완제품 공급</div><div class="lnk-ko">커버일수 × 기준수요</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node cur"><div class="lnk-id">③ Requirements</div><div class="lnk-name">사출 소요</div><div class="lnk-ko">공급[d+선행] × QtyPer</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node cur"><div class="lnk-id">④ Scheduler</div><div class="lnk-name">사출 배분</div><div class="lnk-ko">박스 · 형제 · 앞당김 · 주/야</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node cur"><div class="lnk-id">⑤ Compute</div><div class="lnk-name">재고 · 부하 · 상태</div><div class="lnk-ko">셀 · KPI · 요약</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node down"><div class="lnk-id">⑥ SaveRun</div><div class="lnk-name">실행 저장</div><div class="lnk-ko">PP_ApsRun · PlanLine</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node down"><div class="lnk-id">⑦ Create WO</div><div class="lnk-name">WO · 슬롯</div><div class="lnk-ko">PP_WorkOrder · PP_LineSchedule</div></div>
+        </div>
+      </div>
+      <table class="rule-tbl" style="margin-top:14px;">
+        <thead><tr><th style="width:150px;">화면 버튼</th><th style="width:260px;">엔진 호출 순서</th><th>무엇이 바뀌는가</th></tr></thead>
+        <tbody>
+          <tr><td class="k">조회<small>ApsPlanState.Create</small></td><td><code>BuildBundle</code> → <code>PlanCalc.Compute</code> → <code>InjectionScheduler.Explain</code></td><td>DB 를 읽어 계획판을 만든다. 공급 칸은 <b>등록 계획(잠긴 칸)만</b> 채워져 있고 나머지는 0. 사출 계획도 등록 슬롯만. 결과·부하·근거는 이 상태를 설명할 뿐 값을 바꾸지 않는다(Explain = 모든 칸을 잠긴 것으로 보고 근거만 생성).</td></tr>
+          <tr><td class="k">계획 자동 계산<small>RunAutofill</small></td><td><code>Autofill.RunWithTraces</code> → <code>InjectionScheduler.RescheduleWithTraces</code> → <code>PlanCalc.Compute</code></td><td>완제품 공급(잠기지 않은 칸)을 ②로 다시 쓰고, 그 공급으로 ③④ 를 돌려 사출 주간/야간(잠기지 않은 칸)을 다시 쓴 뒤 ⑤ 로 셀을 다시 센다. 경고 = Autofill 경고 + 스케줄러 경고.</td></tr>
+          <tr><td class="k">사출 재배분<small>Reschedule</small></td><td><code>InjectionScheduler.RescheduleWithTraces</code> → <code>PlanCalc.Compute</code></td><td>완제품 공급은 그대로 두고(사용자가 손본 값 유지) 사출 계획만 ③④ 로 다시 배분한다.</td></tr>
+          <tr><td class="k">재계산<small>Recalculate</small></td><td><code>PlanCalc.Compute</code> → <code>InjectionScheduler.Explain</code></td><td>어떤 계획값도 바꾸지 않는다. 사용자가 고친 공급·주간·야간을 입력으로 재고·상태·shot·부하·요약만 다시 센다.</td></tr>
+          <tr><td class="k">저장<small>SaveRun</small></td><td>재계산 → <code>ApsJson</code> 직렬화 → <code>ApsPlanLines.From</code> → <code>ApsRepository.SaveRun</code></td><td><code>PP_ApsRun</code> 1행(설정·입력·결과 JSON) + <code>PP_ApsPlanLine</code>(품번 × 일자 행) 을 한 트랜잭션으로 쓴다. 상태 <code>Saved</code>.</td></tr>
+          <tr><td class="k">WO 생성<small>CreateApsWorkOrders</small></td><td><code>PpRepository.CreateApsWorkOrders(runId, 행, actor, dryRun)</code></td><td><b>저장본</b>의 사출 행을 읽어 완제품 WO + INJ 슬롯 + 완제품 단계 슬롯을 만든다(§09). 화면의 미저장 편집은 보지 않는다.</td></tr>
+          <tr><td class="k">실행 이력 › 열기</td><td><code>LoadRun</code> → JSON 역직렬화 → (BuildBundle 은 달력·규칙만 빌림)</td><td>저장 당시 그대로 재현(읽기 전용). 「현재 데이터로 재계산」은 <code>BuildBundle</code> 을 새로 돌리고 저장본의 편집 공급을 얹는다(§08).</td></tr>
+        </tbody>
+      </table>
+      <div class="note"><b>불변식 하나.</b> 엔진은 <code>PlanBundle</code> 하나를 편집 정본으로 들고 있다 — 공급(<code>Supply</code>)·주간(<code>PlanDay</code>)·야간(<code>PlanNight</code>)·잠금(<code>Locked</code>) 네 값만이 "계획"이고, 재고·상태·shot·부하·요약·근거는 전부 그 네 값에서 <b>다시 계산되는 파생값</b>이다. 그래서 저장본은 JSON 세 개(설정·번들·결과)면 완전히 재현된다.</div>
+    </div>
+
+    <!-- 02 -->
+    <div class="sec" id="s2">
+      <div class="sec-hdr"><div class="sec-num">02</div><div class="sec-title-wrap"><div class="sec-title-en">Building the Bundle</div><div class="sec-title-ko">입력 조립 — 조회 한 번에 DB 에서 무엇을 읽어 어떻게 행을 만드는가</div></div><div class="sec-line"></div></div>
+      <div class="ef-wrap">
+        <div class="ef-step"><div class="ef-num">1</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">calendar</span><span class="ef-trig-name">날짜축 만들기</span></div>
+          <div class="ef-action"><code>SYS_FactoryCalendar</code> 를 기준일 −14일 ~ +(일수×2+14)일 읽어 <code>WorkdayCalendar</code> 를 만든다. 행이 있는 날은 <code>DayType</code> 이 WORKDAY·SPECIAL 이면 근무일, 행이 없는 날은 토·일만 휴일. 기준일부터 <b>근무일만 세어 일수만큼</b> 날짜 열을 만든다(휴무일은 열에 없다). 직전 근무일(D-1)과 마지막 날 다음 근무일 전날(수주 읽기 상한)도 여기서 정한다.</div>
+          <div class="ef-result"><span class="er-lbl">예</span>기준일 2026-10-06, 일수 10 → 10/06·07·08·09·<b>13</b>·14·15·16·19·20 (10/10·11 주말, 10/12 공휴일 HOLIDAY 가 빠진다). D-1 = 10/05.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">2</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">settings</span><span class="ef-trig-name">설정 로드 · 라인 유형</span></div>
+          <div class="ef-action">공통코드 <code>APS_SETTING</code>·<code>APS_COVER_TIER</code> 와 <code>MD_ApsLineStage</code> 를 <code>ApsSettingsLoader.Parse</code> 가 <code>Settings</code> + <code>ApsOptions</code> 로 바꾼다(§11). 활성 라인 중 WC <code>ProcessCode</code> 가 INJ → <code>injection</code>, IMG·PNT → <code>assembly</code>. 선택 라인이 사출이면 <b>사출 라인 모드</b>, <code>-</code> 면 <b>전체 완제품 라인 모드</b>, 그 밖은 완제품 라인 모드.</div>
+          <div class="ef-result"><span class="er-lbl">NOTE</span>기준일이 DB 오늘(<code>DbClock.Today</code>)과 다르면 "재고는 현재값 기준" 경고가 먼저 붙는다 — 재고를 과거로 되돌리지 않는다.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">3</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">demand</span><span class="ef-trig-name">수요 만들기 (DemandRules.Build)</span></div>
+          <div class="ef-action"><code>PP_CustomerOrder</code> 에서 상태 Confirmed·Open, 납기 ≤ 상한인 행을 읽고 아래 규칙으로 품번 × 열 배열에 더한다. 「일별 계획 포함」이면 <code>PP_DemandPlan</code>(기준일~마지막 날, 예정량 &gt; 0) 도 같은 배열에 더하되 계획 몫은 <code>PlanDemand</code> 로 따로 보존한다(셀의 "· 계획 N" 표시용).</div>
+          <table class="tbl" style="margin-top:8px;">
+            <thead><tr><th style="width:220px;">조건</th><th>처리</th></tr></thead>
+            <tbody>
+              <tr><td>상태가 Confirmed 가 아님</td><td>제외. 「Open 수주 포함」이 켜져 있으면 Open 도 포함. 그 밖(Closed·Cancelled 등)은 항상 제외</td></tr>
+              <tr><td>고객 필터가 있고 CustomerID 가 다름</td><td>제외(경고 없음)</td></tr>
+              <tr><td>잔량 = OrderQty − ShippedQty ≤ 0</td><td>제외(경고 없음 — 이미 다 나간 수주)</td></tr>
+              <tr><td>납기(RequestedDeliveryDate) NULL</td><td>제외 + 경고 "납기가 없어 잔량 N개를 수요에서 제외"</td></tr>
+              <tr><td>품번이 활성 <code>MD_Item</code> 에 없음</td><td>제외 + 경고 "MD_Item 에 없어 … 제외"</td></tr>
+              <tr><td>납기 &lt; 기준일 (지연 수주)</td><td><b>첫날 열</b>에 더한다</td></tr>
+              <tr><td>납기가 휴무일</td><td><b>직전 근무일</b> 열로 접는다. 접힌 날이 기준일보다 앞이면 첫날</td></tr>
+              <tr><td>납기 &gt; 마지막 날</td><td>무시(계획판 밖)</td></tr>
+              <tr><td>일별 계획의 날짜 &lt; 기준일</td><td><b>버린다</b>(수주와 다르다 — 지난 계획은 PO 로 바뀌었거나 취소된 것으로 본다)</td></tr>
+              <tr><td>일별 계획의 <code>PoQty</code></td><td>읽지 않는다(저장만). 수요는 <code>ScheduledQty</code> 만</td></tr>
+            </tbody>
+          </table>
+          <div class="ef-result"><span class="er-lbl">예</span>83335-P8000BM1 수주 6건(10/08·09·13·14·15·16 × 100) → 10일 열에서 demand = [0, 0, 100, 100, 100, 100, 100, 100, 0, 0].</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">4</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">candidates</span><span class="ef-trig-name">후보 품번 → 완제품 행 판정</span></div>
+          <div class="ef-action">후보 = 수요가 있는 품번 ∪ 기간 안 WO 슬롯이 있는 품번 ∪ 완제품 재고(<code>WH_Inventory</code> Qty &gt; 0)가 있는 품번. 후보마다:</div>
+          <ul class="plain">
+            <li>활성 <code>MD_Item</code> 에 없으면 조용히 건너뜀(수요 품번은 3단계가 이미 경고했다).</li>
+            <li><code>ItemType = MATERIAL</code>(구매 자재)이면 <b>조용히</b> 제외 — 생산 대상이 아니다.</li>
+            <li><code>RoutingType</code> NULL 이면 제외 + 경고(이유 병기: 수요 N개 / 재고 N / 등록 계획 있음).</li>
+            <li>라우팅 템플릿(<code>WorkOrderRepository.ReadPreview</code>)에서 <b>라인이 필요한 단계 중 마지막 단계</b> = 완제품 공정. 그 단계 라인 = BOP 스테이션 라인 → 없으면 그 공정 활성 라인이 1개일 때 그 라인 → 아니면 경고 후 제외.</li>
+            <li>완제품 라인이 INJ/IMG/PNT 가 아니면 경고 후 제외. 완제품 라인 모드에서는 <b>선택 라인이 아닌 완제품을 조용히 뺀다</b>(그 라인의 계획이다). 전체 라인 모드는 전부 남긴다.</li>
+            <li>라우팅에 INJ 단계가 있으면 <code>HasInjStep</code>, INJ 다음의 라인 단계(= 같은 품번 사출품의 "다음 단계 실적" 기준)도 기억한다.</li>
+          </ul>
+          <div class="ef-result"><span class="er-lbl">예</span>83335-P8000BM1: RoutingType A = INJ(10) → IMG(20). 마지막 라인 단계 IMG 의 BOP 스테이션 ST-IMG-02 → 완제품 라인 LINE-IMG-02. INJ 단계는 있으나 이 품번 자체의 금형은 없다.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">5</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">injection</span><span class="ef-trig-name">사출 행 판정 — ① 같은 품번 규칙 · ② BOM 다단계 규칙</span></div>
+          <div class="ef-action">완제품마다 사출 자식 목록 <code>(자식, QtyPer)</code> 을 만든다.</div>
+          <div class="cmd">① HasInjStep && 활성 MD_MoldItem(완제품 자신) 있음  →  자식 += (자신, 1)          // 간선 X→X
+② WalkBom(parent = 완제품, mult = 1, depth = 0):
+     for 유효 BOM(APPROVED, EffFrom ≤ 기준일 ≤ EffTo, 부모당 최신 버전) 의 자식 c:
+        q = mult × QtyPer × (1 + ScrapPct/100)
+        c 가 비활성/미등록 → skip
+        c.InjFlag = 1:   활성 금형 있음 → found[c] += q (두 경로로 닿으면 합산)   // 여기서 멈춘다
+                         금형 없음     → 경고 "활성 금형이 없어 사출 행을 만들 수 없습니다" (품번당 1회)
+        c.InjFlag = 0:   금형이 있으면 경고 "InjFlag 가 0 이라 사출품으로 보지 않습니다"
+                         MATERIAL 이거나 depth ≥ 5 → 더 안 내려감
+                         아니면 WalkBom(c, q, depth+1)                          // 서브조립 → 한 단계 더
+   자식 += found 의 순서대로</div>
+          <div class="ef-action" style="margin-top:6px;">자식이 하나도 없으면 "사출 단계·활성 금형이 없고 BOM 안에 … 사출 행이 없습니다" 경고(완제품 행은 남고 사출 행만 없다). 사출 라인 모드에서는 이 경고들을 내지 않는다(다른 라인 품번이 섞이므로).</div>
+          <div class="ef-result"><span class="er-lbl">예</span>83335-P8000BM1 BOM: A71573B-SK4655(MATERIAL ×25), D3131-P8000BM1(MATERIAL ×0.125), <b>D3133-P8000</b>(SUB, InjFlag 1, 금형 LQ2RLGDU) ×1 → 간선 (83335-P8000BM1 → D3133-P8000, 1). 4색 모두 같은 코어 → 사출 행은 1개, 간선은 4개.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">6</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">mold</span><span class="ef-trig-name">사출 라인 · 금형 · UPH · 캐비티 · 형제 · 포장</span></div>
+          <table class="tbl" style="margin-top:4px;">
+            <thead><tr><th style="width:170px;">항목</th><th>규칙 (ApsRepository.ResolveInjection · BuildBundle)</th><th style="width:230px;">예 (D3133-P8000)</th></tr></thead>
+            <tbody>
+              <tr><td><b>사출 라인</b></td><td>BOP INJ 스테이션 라인이 있으면 그 라인. 그 라인에 배정(<code>MD_MoldLine</code>)된 활성 금형 중 교체시간(<code>PrepTime</code> → <code>MoldChangeMin</code> → 0) 최소, 동률 MoldID 순. 배정이 없으면 MoldID 순 첫 금형(UPH 없음 경고). BOP 가 없으면 모든 (금형, 라인) 배정 중 교체시간 최소 → LineCode → MoldID 순. 둘 다 없으면 경고 후 사출 행 없음</td><td>BOP ST-INJ-02 → LINE-INJ-02, 금형 LQ2RLGDU(PrepTime 30)</td></tr>
+              <tr><td><b>패밀리(형제)</b></td><td>같은 금형 · <b>같은 색상</b>(<code>MD_MoldItem.Color</code>)의 활성 품번들. 색상이 다르면 같은 금형이어도 형제가 아니다(따로 찍는다). 형제 목록은 자기를 뺀 품번순</td><td>LQ2RLGDU/BK = {D3133-P8000, D3143-P8000} → 형제 D3143-P8000</td></tr>
+              <tr><td><b>품번 캐비티</b></td><td><code>max(1, MD_Mold.CavityCount ÷ 패밀리 품번 수)</code>(내림). 나누어떨어지지 않을 때만 "균등 분할" 경고</td><td>2 ÷ 2 = <b>1</b></td></tr>
+              <tr><td><b>UPH</b></td><td><code>MD_MoldLine.UPH × 품번 캐비티 ÷ MD_Mold.CavityCount</code>. 캐비티가 없으면 UPH 그대로. 0 이면 "UPH 가 없어 가동시간을 계산할 수 없습니다" 경고</td><td>120 × 1 ÷ 2 = <b>60</b></td></tr>
+              <tr><td><b>포장 단위</b></td><td>사출 행 = <code>MD_Item.BoxQty</code>, 없거나 0 이하면 <b>1</b> + 경고. 완제품 전용 행(사출 행이 아닌) = <code>BoxQty ?? ROUND_TO</code>. 모든 행에 자기 품번 규칙을 두는 이유: <code>PackFor</code> 는 "가장 긴 앞자리" 규칙을 고르므로 규칙이 없으면 앞자리가 같은 다른 품번의 포장 단위를 물려받는다</td><td>BoxQty 8 → <b>8</b>(완제품 4색도 8)</td></tr>
+              <tr><td><b>금형 그룹 키</b></td><td><code>MoldGroupKey()</code> = <code>금형/색상</code>, 색상 없으면 금형, 금형 없으면 품번. 스케줄러·부하 계산이 이 키로 "한 shot" 을 묶는다</td><td><code>LQ2RLGDU/BK</code></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">7</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">stock</span><span class="ef-trig-name">재고 · 실적 (ActualsRules)</span></div>
+          <div class="ef-action">엔진의 첫날 재고 식은 <code>OpeningStock + SisProduced − Shipped + Defect</code> 인데 AMES 는 뒤 세 항을 0 으로 두고 <code>OpeningStock</code> 에 <b>기준일 아침 재고</b>를 넣는다. 롤포워드(실사 + 누적 실적)는 없다.</div>
+          <div class="cmd">기준일 아침 재고 = 현재 재고 − 기준일 생산 + 기준일 출고 + 기준일 사용
+  완제품: 현재 재고 = WH_Inventory 의 PartNo 별 SUM(Qty), Qty &gt; 0, 위치 무관
+          생산 = PR_ProductionResult SUM(GoodQty)  (완제품 공정·라인, ProdDate = 기준일 — 역분개 −1 포함 순생산)
+          출고 = WH_InventoryTransaction OUT 거래(QtyChange &lt; 0) 합, 그 날짜, 위치·사유 무관
+          사용 = 0
+  사출품: 현재 재고 = 같은 품번 규칙(X→X) 이면 WIP(WO 마다 INJ 단계 CompletedQty − 다음 라인 단계 CompletedQty, 음수 0, 라우팅 C 는 0)
+                      BOM 자식이면 WH_Inventory SUM(Qty) (완제품과 같은 규칙)
+          생산 = INJ 공정 실적(라인 무관 — 어느 사출기에서 찍혀도 재고)
+          사용 = Σ 부모마다 "다음 단계 실적" × QtyPer   (BOM 자식 = 부모 완제품 공정 실적 · 같은 품번 = INJ 다음 라인 단계 실적)
+          출고 = 0</div>
+          <div class="ef-action" style="margin-top:6px;">D-1 열(생산·출고·사용)은 직전 근무일 실적을 <b>표시만</b> 한다 — 계산에 넣지 않는다. 음수 재고도 그대로 둔다(화면이 경고).</div>
+          <div class="ef-result"><span class="er-lbl">예</span>복제본은 재고·실적이 전부 0 → 완제품 4색 OpeningStock 0, D3133-P8000 OpeningStock 0.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">8</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">slots</span><span class="ef-trig-name">등록 계획 → 잠긴 칸</span></div>
+          <div class="ef-action">기간 안 <code>PP_LineSchedule</code> 의 <code>EntryType='WO'</code> 슬롯(취소 WO 제외, 수량 &gt; 0, 0분 형제 슬롯 포함)을 읽는다.</div>
+          <ul class="plain">
+            <li><b>완제품 행</b>: 그 완제품 라인의 자기 품번 슬롯 수량 합 → 그 날 <code>Supply</code>, <code>Locked=true</code>.</li>
+            <li><b>사출 행</b>: 자기 사출 라인의 자기 품번 슬롯 + <b>부모 완제품 품번으로 잡힌 그 사출 라인 슬롯 × QtyPer</b>(코어 품번 WO 모델 — WO 는 완제품 품번이고 INJ 단계 슬롯도 그 품번이다). 슬롯 <code>StartMin</code> 이 주간 구간이면 <code>PlanDay</code>, 아니면 <code>PlanNight</code>(<code>ShiftBands.IsDay</code>). 합이 0 보다 크면 <code>Locked</code>.</li>
+            <li>슬롯마다 <code>ApsRegisteredWo</code>(WO 번호·수량) 를 모아 셀의 "WO" 줄·툴팁에 쓴다. 슬롯 없는 APS WO(<code>PP_ApsRunWo</code> 는 있으나 <code>PP_LineSchedule</code> 없음)는 <code>Unplaced</code> 로 따로 모아 "· 미배치 N" 으로 보인다 — 계획·부하에는 안 들어간다.</li>
+            <li>수요·재고·등록 계획이 전부 0 인 완제품은 행을 만들지 않는다.</li>
+            <li>반영하지 않은 슬롯은 경고로 보인다: 비활성 품번 슬롯 / 행이 있는 품번인데 다른 라인 슬롯("이 품번의 계획 라인이 아니라 반영하지 않았습니다") / 휴무일 슬롯. 행이 없는 품번의 슬롯은 대상이 아니다.</li>
+          </ul>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">9</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">capacity</span><span class="ef-trig-name">능력 — 사출 라인 교대 시간 · 완제품 라인 DailyCap</span></div>
+          <div class="ef-action"><b>사출 라인</b>의 패턴은 <code>ApsPatternResolver</code> 가 정한다: <code>MD_ApsLineStage.PatternID</code>(라인 지정) → <code>APS_SETTING.DEFAULT_PATTERN</code>. 둘 다 없거나, 지정 패턴이 없거나, ACTIVE 가 아니면 라인별 사유를 모아 <code>ApsConfigurationException</code> 으로 <b>조회 자체를 막는다</b>(배너 + 「설정 열기」). PP-LSB 가 그 날 저장한 패턴이나 라인 전용/전역 자동 해석보다 <b>항상 우선</b>한다. 패턴의 OPERATING 세그먼트를 교대 코드의 <code>WORK_SHIFT.SortOrder</code> 로 나눠 <b>최소 SortOrder 교대 = 주간</b>, 나머지 = 야간 시간(h). 세그먼트가 0개면 0h + 경고 1회.</div>
+          <div class="ef-action">날짜마다 (주간h, 야간h) 를 구해 <b>최빈값</b>을 그 라인의 <code>LineShift</code> 로, 다른 날은 <code>ShiftException</code>(비고 "라인 시간 패턴")으로 <code>Settings</code> 에 넣는다 — 엔진 <code>ShiftRules.ShiftFor</code> 가 예외 → 라인 → 사출 기본 순으로 읽기 때문이다.</div>
+          <div class="ef-action"><b>완제품 라인</b> 능력 = <code>MD_Line.DailyCap</code>(개/일). NULL·0 이하는 <b>제한 없음</b> + 경고. 휴무일은 열에 없으므로 0 처리할 일이 없다.</div>
+          <div class="ef-result"><span class="er-lbl">예</span>LP-CMN-001: A 교대(SortOrder 10) OPERATING 450–570 · 580–720 · 765–870 · 880–990 = 475분 = <b>7.92h 주간</b>; B 교대(20) 990–1110 · 1120–1260 · 1305–1410 · 1420–1440 · 0–90 = 475분 = <b>7.92h 야간</b>. 합 15.83h. LINE-IMG-02 DailyCap 1,200.</div>
+        </div></div>
+      </div>
+      <div class="two" style="margin-top:14px;">
+        <div class="card">
+          <h4><span class="tag">MODE</span>세 가지 조회 모드의 차이</h4>
+          <table class="tbl">
+            <thead><tr><th>모드</th><th>완제품 행</th><th>사출 행</th><th>능력</th></tr></thead>
+            <tbody>
+              <tr><td><b>완제품 라인</b>(IMG/PNT 하나)</td><td>그 라인이 완제품 라인인 품번만</td><td>그 완제품들의 사출 자식(어느 사출 라인이든)</td><td>선택 라인 DailyCap · 사출 라인별 교대</td></tr>
+              <tr><td><b>사출 라인</b>(INJ 하나)</td><td>그 라인 사출 자식을 쓰는 부모 완제품만(여러 완제품 라인에 걸칠 수 있다)</td><td>선택 라인에 배정된 사출품만</td><td>부모 행마다 <b>자기</b> 라인 DailyCap · 선택 사출 라인 교대. 선행일·재고 규칙은 완제품 모드와 같다(<code>RootLine</code> = null)</td></tr>
+              <tr><td><b>전체 완제품 라인</b>(<code>-</code>)</td><td>IMG·PNT 라인 전부</td><td>그 전부의 사출 자식</td><td>라인별로 따로. <code>PP_ApsRun.LineID</code> 에 <code>-</code> 로 저장</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h4><span class="tag">WARN</span>BuildBundle 이 내는 경고 — 어디서 나오는지</h4>
+          <table class="tbl">
+            <thead><tr><th>문구(요약)</th><th>단계</th></tr></thead>
+            <tbody>
+              <tr><td>기준일 … 오늘과 달라 재고는 현재값 기준</td><td>2</td></tr>
+              <tr><td>APS_SETTING X 가 없어 기본값 / 값을 읽을 수 없어 기본값</td><td>2 (ApsSettingsLoader)</td></tr>
+              <tr><td>납기가 없어 … 제외 / MD_Item 에 없어 … 제외</td><td>3 (DemandRules)</td></tr>
+              <tr><td>RoutingType 이 없어 제외 / 라인이 있는 단계가 없어 / 라인이 배정되지 않았습니다 / APS 대상 공정이 아니라</td><td>4</td></tr>
+              <tr><td>활성 금형이 없어 사출 행을 만들 수 없습니다 / InjFlag 가 0 이라 / 사출 행이 없습니다 / 사출 라인을 정할 수 없습니다</td><td>5·6</td></tr>
+              <tr><td>캐비티가 나누어떨어지지 않아 균등 분할 / UPH 가 없어 / BoxQty 가 없어 포장 단위 1</td><td>6</td></tr>
+              <tr><td>등록 계획 … 활성 품번이 아니라 / 계획 라인이 아니라 / 휴무일 슬롯이라</td><td>8</td></tr>
+              <tr><td>패턴 … 에 가동 구간이 없어 0h / DailyCap 이 없거나 0 이하라 제한하지 않습니다</td><td>9</td></tr>
+              <tr><td><b>(예외)</b> 가동 시간 패턴이 지정되지 않았습니다 / 패턴 X 이 없습니다 / X 상태라 쓸 수 없습니다</td><td>9 — 조회 차단</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 -->
+    <div class="sec" id="s3">
+      <div class="sec-hdr"><div class="sec-num">03</div><div class="sec-title-wrap"><div class="sec-title-en">Autofill — Finished-Goods Supply</div><div class="sec-title-ko">완제품 공급 자동 계산 — 커버일수 × 기준수요</div></div><div class="sec-line"></div></div>
+      <div class="cmd">품번마다 한 번:   cover  = CoverFor( 기간 전체 일평균 수요 )          // APS_COVER_TIER 하한 내림차순 첫 매치, 없으면 DEFAULT_COVER
+                   pack   = PackFor( 품번 )                          // BoxQty ?? ROUND_TO
+                   prev   = 기준일 아침 재고
+날짜 i 마다:       base   = i 가 마지막 날이고 TRIM_LAST_DAY 면 0, 아니면 다음 3일(i+1..i+3) 수요의 최대(남은 날만)
+                   target = cover × base                              // SAFETY_TERM=1 이면 max(target, 안전재고) — 마지막 날 trim 이 우선
+                   need   = 올림_pack( demand[i] + target − prev )     // ≤ 0 이면 0
+                   min    = 올림_pack( demand[i] − prev )              // 그 날 수요만 맞추는 최소치
+                   잠긴 칸이면 need = min = 현재 Supply
+라인별(행 라인) :  over = Σ need − DailyCap
+                   over &gt; 0 이면 여유(need − min)가 큰 품번부터(동률 행 순서) 넘친 만큼 깎는다 — 한 품번에서 깎는 양은 min(여유, 남은 over)
+                   그래도 over &gt; 0: PULL_FORWARD=1 이면 앞 근무일 남는 능력으로 옮기고, 남으면 경고 "라인 능력 N개로 당일 수요 최소치도 M개 담지 못했습니다"
+                   supply[i] = need(깎인 뒤) ; closing = prev + supply − demand ; prev = closing  (잠긴 칸은 값 유지, 능력에는 포함)</div>
+      <table class="rule-tbl" style="margin-top:14px;">
+        <thead><tr><th colspan="9">예제 A — 83335-P8000BM1 (재고 0, BoxQty 8, 커버 0.7, DailyCap 1,200 → 능력 제한 없음). 4색 모두 같은 표.</th></tr>
+        <tr><th>날짜</th><th>전일 마감</th><th>수요</th><th>기준수요(다음 3일 최대)</th><th>목표재고 0.7×</th><th>원 소요 = 수요+목표−전일</th><th>8 올림 → 공급</th><th>마감 = 전일+공급−수요</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td>10/06</td><td class="num">0</td><td class="num">0</td><td class="num">100</td><td class="num">70</td><td class="num">70</td><td class="num"><b>72</b></td><td class="num">72</td><td>수요 전 재고 만들기(커버)</td></tr>
+          <tr><td>10/07</td><td class="num">72</td><td class="num">0</td><td class="num">100</td><td class="num">70</td><td class="num">−2</td><td class="num"><b>0</b></td><td class="num">72</td><td>목표를 이미 채움</td></tr>
+          <tr><td>10/08</td><td class="num">72</td><td class="num">100</td><td class="num">100</td><td class="num">70</td><td class="num">98</td><td class="num"><b>104</b></td><td class="num">76</td><td>13박스</td></tr>
+          <tr><td>10/09</td><td class="num">76</td><td class="num">100</td><td class="num">100</td><td class="num">70</td><td class="num">94</td><td class="num"><b>96</b></td><td class="num">72</td><td></td></tr>
+          <tr><td>10/13</td><td class="num">72</td><td class="num">100</td><td class="num">100</td><td class="num">70</td><td class="num">98</td><td class="num"><b>104</b></td><td class="num">76</td><td></td></tr>
+          <tr><td>10/14</td><td class="num">76</td><td class="num">100</td><td class="num">100</td><td class="num">70</td><td class="num">94</td><td class="num"><b>96</b></td><td class="num">72</td><td></td></tr>
+          <tr><td>10/15</td><td class="num">72</td><td class="num">100</td><td class="num">100 (10/16 만)</td><td class="num">70</td><td class="num">98</td><td class="num"><b>104</b></td><td class="num">76</td><td></td></tr>
+          <tr><td>10/16</td><td class="num">76</td><td class="num">100</td><td class="num">0</td><td class="num">0</td><td class="num">24</td><td class="num"><b>24</b></td><td class="num">0</td><td>뒤에 수요 없음 → 재고 0 으로</td></tr>
+          <tr><td>10/19·20</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num"><b>0</b></td><td class="num">0</td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="two" style="margin-top:14px;">
+        <div class="card">
+          <h4><span class="tag">COVER</span>커버일수 구간 선택</h4>
+          <p style="font-size:11px;line-height:1.75;">일평균 수요 = 기간 전체 수요 합 ÷ 열 수(수요 0 인 날 포함). 예제는 600 ÷ 10 = 60 → 구간 <code>20 이상 → 0.7</code>. 100 이상이면 0.4(빨리 도는 품번은 재고를 덜 든다), 0 이상이면 1.5(느린 품번은 더 든다). 구간 정렬은 <b>CodeValue 숫자 내림차순</b>이고 SortOrder 는 참고용이다. 구간이 하나도 없으면 기본 구간표(100→0.4 · 20→0.7 · 0→1.5) + 경고.</p>
+          <p style="font-size:11px;line-height:1.75;margin-top:6px;"><b>5일 조회라면</b> 평균 = (100+100+100) ÷ 5 = 60 으로 같지만 10/13 이 마지막 날이라 base 0 → 10/13 공급이 32 로 줄고, 그 전날 사출 소요도 128 로 준다(§10 실행 #1 이 그렇다). <b>계획 일수는 수주 범위보다 넉넉히</b> 잡아야 끝이 잘리지 않는다.</p>
+        </div>
+        <div class="card">
+          <h4><span class="tag">CAP</span>예제 B — DailyCap 을 300 으로 낮추면</h4>
+          <p style="font-size:11px;line-height:1.75;">10/08 4색 need 104 × 4 = 416 &gt; 300 → over 116. 여유(need − min) = 104 − 올림8(100 − 72 = 28 → 32) = 72 씩 같으므로 행 순서(BM1 → DNN → JY2 → RBQ)로 깎는다: BM1 −72 → 32, DNN −44 → 60, JY2·RBQ 그대로 104. 합 300. 다음 날은 깎인 품번의 마감 재고가 작아져 need 가 커지고 또 깎인다. 10/13 부터는 min 의 합마저 300 을 넘어 경고 "LINE-IMG-02 2026-10-13 는 라인 능력 300개로 당일 수요 최소치도 20개 담지 못했습니다" 가 날짜마다 붙는다 — <b>부족을 숨기지 않고 공급을 최소치보다 더 깎지도 않는다</b>(그 날 능력 초과 상태로 둔다).</p>
+          <p style="font-size:11px;line-height:1.75;margin-top:6px;"><b>PULL_FORWARD=1</b> 이면 이 over 를 공급 큰 품번부터 앞 근무일(i−1 → 0)의 남은 능력에 포장 배수 내림으로 옮긴다(앞날 잠긴 칸은 받지 않는다). 기본은 0 = 골든 경로.</p>
+        </div>
+      </div>
+      <div class="note"><b>근거 창(AutofillTrace)</b> 은 바로 이 표의 한 줄이다: 전일 마감 · 수요 · 커버일수 · 목표재고 · 기준수요 · 포장 단위 · 원 소요 · 공급 · 마감. 능력에 깎인 값은 <code>RawNeed</code>·<code>Supply</code> 에 깎인 뒤 값이 들어간다(깎기 전 값은 보이지 않는다).</div>
+    </div>
+
+    <!-- 04 -->
+    <div class="sec" id="s4">
+      <div class="sec-hdr"><div class="sec-num">04</div><div class="sec-title-wrap"><div class="sec-title-en">Requirements — BOM Explosion with Lead Time</div><div class="sec-title-ko">사출 소요 전개 — 공급[사출일 + 선행일] × QtyPer, 그리고 기준일 앞 당김</div></div><div class="sec-line"></div></div>
+      <div class="cmd">선행일 off = StageRules.OffsetDays(사출 라인):  MD_ApsLineStage 그 라인 행의 OffsetDays → 없으면 APS_SETTING.INJ_OFFSET_DAYS(기본 1)
+                                                  (완제품 라인 자신이면 0 · 사출 라인 모드도 RootLine = null 이라 같은 규칙)
+사출 소요[사출일 i] = Σ 부모 간선 (parent, qtyPer):  부모 공급[i + off] × qtyPer        // i + off 가 열 밖이면 0
+FoldPreHorizon(AMES 경로 항상 true):  j = 0..off−1 의 부모 공급(사출일이 기준일보다 앞) 합을 사출일 0 에 더하고
+                                      경고 "사출품 X: 기준일 이전에 찍었어야 할 소요 N개(선행일 off일)를 기준일 D 사출로 당겼습니다"</div>
+      <table class="rule-tbl" style="margin-top:14px;">
+        <thead><tr><th colspan="12">예제 A — D3133-P8000 (선행일 1, QtyPer 1, 부모 4색 공급은 §03 표와 같다)</th></tr>
+        <tr><th>사출일</th><th>10/06</th><th>10/07</th><th>10/08</th><th>10/09</th><th>10/13</th><th>10/14</th><th>10/15</th><th>10/16</th><th>10/19</th><th>10/20</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="k">부모 공급 합(4색)</td><td class="num">288</td><td class="num">0</td><td class="num">416</td><td class="num">384</td><td class="num">416</td><td class="num">384</td><td class="num">416</td><td class="num">96</td><td class="num">0</td><td class="num">0</td><td>72·0·104·96… × 4</td></tr>
+          <tr><td class="k">소요 = 공급[i+1]</td><td class="num">0 <b>+ 288</b></td><td class="num">416</td><td class="num">384</td><td class="num">416</td><td class="num">384</td><td class="num">416</td><td class="num">96</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>10/06 공급 288 은 10/05 에 찍었어야 → 첫날에 당김</td></tr>
+        </tbody>
+      </table>
+      <div class="note"><b>왜 당기는가.</b> 원본 SEG 엔진은 계획판 앞으로 떨어진 소요를 조용히 버렸다. 그러면 기준일 당일 공급분(여기서는 288개)의 코어가 아예 계획에 없어 WO 가 빠진다(실행 #1355·#555 에서 실제 발생). 2026-10-06 사용자 결정으로 수주 지연분을 첫날에 넣는 규칙과 같이 <b>첫 사출일에 몬다</b>. 골든 픽스처(선행일 있는 라인이 있다)는 원본대로 버리므로 <code>FoldPreHorizon</code> 플래그가 AMES 경로에서만 켜진다. 사출일에 가동시간이 모자라면 §05 의 앞당기기 대상이 아니라(앞날이 없다) 그 날 초과로 남는다.</div>
+    </div>
+
+    <!-- 05 -->
+    <div class="sec" id="s5">
+      <div class="sec-hdr"><div class="sec-num">05</div><div class="sec-title-wrap"><div class="sec-title-en">Injection Scheduler</div><div class="sec-title-ko">사출 스케줄러 — 박스 올림 · 형제 통일 · 앞당기기 · 주/야 분할</div></div><div class="sec-line"></div></div>
+      <div class="ef-wrap">
+        <div class="ef-step"><div class="ef-num">1</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">GrossBlocks</span><span class="ef-trig-name">품번별 자기 수량(own)</span></div>
+          <div class="ef-action">라인마다, 날짜 순으로: <code>opening</code> = 전일 잔여(첫날 = 기준일 아침 재고), <code>need = 소요 − opening</code>, <code>own = need &gt; 0 ? 올림_pack(need) : 0</code>(pack 0·1 은 정수 올림). 잠긴 칸은 own = 입력된 주간+야간.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">2</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">Block</span><span class="ef-trig-name">형제 통일 — 금형 블록</span></div>
+          <div class="ef-action">같은 <code>MoldGroupKey</code>(금형/색상)의 잠기지 않은 품번들 중 own 의 <b>최대</b>가 그 날 블록 수량이 된다(한 shot 이 형제를 같이 찍으니 가장 많이 필요한 품번 수량만큼 돌리면 나머지는 저절로 나온다). 블록 시간 = <code>round2(수량 ÷ UPH)</code>, 잠긴 형제가 더 크면 그 수량. 모든 형제의 잔여는 블록 수량 − 자기 소요로 굴러간다(형제는 자기 소요보다 더 찍혀 재고가 쌓일 수 있다).</div>
+          <div class="ef-result"><span class="er-lbl">예</span>D3143-P8000(형제)은 수요가 없어 번들에 행이 없으므로 블록 = D3133-P8000 하나. 10/06 own = 올림8(288 − 0) = 288 → 288 ÷ 60 = <b>4.80h</b>.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">3</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">PullForward</span><span class="ef-trig-name">앞당기기 — 능력 초과분을 앞 근무일로</span></div>
+          <div class="ef-action">라인마다 <b>뒤 날짜부터</b> 본다. 그 날 블록 시간 합 − (주간h + 야간h) = over &gt; 0 이면, 시간 큰 블록부터: 한 박스 시간 <code>ph = pack ÷ UPH</code> 가 over 이하인 블록에서 <code>k = max(1, min(floor(over/ph), floor(앞날 여유/ph), 옮길 수 있는 박스 수))</code> 박스를 <b>가장 가까운 앞 근무일</b>(여유 ≥ ph, 그 날 그 금형 칸이 잠겨 있지 않은 날)로 한 건에 옮긴다. 옮기는 건 수량뿐이고 소요는 다시 계산하지 않는다(앞날에 미리 만들어 재고로 넘긴다). 더 옮길 것이 없으면 경고 "{라인} {날짜} 는 앞당길 여유가 없어 N.N시간 초과 상태로 둡니다". 끝에 "사출기 능력을 넘겨 N건을 앞당겼습니다: 금형 from → to (qty개) · …"(4건까지).</div>
+          <div class="ef-result"><span class="er-lbl">예 C</span>UPH 를 25 로 낮추면 10/07 416개 = 16.64h &gt; 15.83h → 16개(2박스, 0.64h)를 10/06 으로. 10/09·10/14 도 같은 식. 10/14 는 10/13 이 거의 차서 8개는 10/13, 8개는 더 앞 10/08 로 간다. 그래도 0.2h 가 남는 날은 "앞당길 여유가 없어 0.2시간 초과 상태로 둡니다" 로 남는다(올림 때문에 한 박스 시간 0.32h 보다 작은 초과는 못 옮긴다).</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">4</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">SplitShifts</span><span class="ef-trig-name">주간/야간 분할 — 네 가지 경우</span></div>
+          <div class="ef-action">날짜마다 <code>dayRem = 주간h</code> 에서 시작해 블록을 <b>시간 내림차순</b>으로 돌며:</div>
+          <table class="tbl" style="margin-top:6px;">
+            <thead><tr><th>경우</th><th>조건</th><th>주간 / 야간</th><th>근거 창 문구</th></tr></thead>
+            <tbody>
+              <tr><td><b>AllDay</b></td><td>블록 시간 ≤ dayRem</td><td>전량 주간, dayRem −= 시간</td><td>"N.NNh 가 주간 잔여 N.Nh 안에 들어갑니다 → 전량 주간"</td></tr>
+              <tr><td><b>DayUsed</b></td><td>dayRem ≈ 0</td><td>전량 야간</td><td>"같은 사출기의 앞 작업이 주간을 다 썼습니다 → 전량 야간"</td></tr>
+              <tr><td><b>NoBox</b></td><td>dayRem &lt; 한 박스 시간</td><td>전량 야간, dayRem = 0</td><td>"주간 잔여 N.Nh 로는 8개들이 한 박스도 못 채웁니다 → 전량 야간"</td></tr>
+              <tr><td><b>Split</b></td><td>그 밖</td><td>야간 = ceil((시간 − dayRem) × UPH), 주간 = 내림_pack(수량 − 야간), dayRem = 0</td><td>"N.NNh 중 주간은 N.Nh 까지 → 비율 0.xxx" · "수량 × 비율 = raw → 8 으로 내림 = 주간" · "수량 − 주간 = 야간"</td></tr>
+            </tbody>
+          </table>
+          <div class="ef-result"><span class="er-lbl">예</span>UPH 60 이면 모든 날이 AllDay(최대 6.93h &lt; 7.92h) → 야간 0. 예 C(UPH 25) 10/06: 320개 = 12.8h → 야간 = ceil((12.8 − 7.92) × 25) = ceil(122) = 122 → 주간 = 내림8(320 − 122 = 198) = 192, 야간 = 128.</div>
+        </div></div>
+        <div class="ef-step terminal"><div class="ef-num">5</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">FinalPass</span><span class="ef-trig-name">근거용 재굴림 → 번들에 쓰기</span></div>
+          <div class="ef-action">최종 주/야 수량으로 opening · need · own · closing 을 다시 굴려 근거 창 숫자(앞당긴 뒤 재고 기준)를 만들고, 잠기지 않은 칸의 <code>PlanDay</code>·<code>PlanNight</code> 에 쓴다. 잠긴 칸은 값을 바꾸지 않되 시간에는 넣는다(그 금형 블록의 이동·통일에서는 제외).</div>
+        </div></div>
+      </div>
+      <table class="rule-tbl" style="margin-top:14px;">
+        <thead><tr><th colspan="11">예제 A 결과 — D3133-P8000 사출 계획 (UPH 60 · pack 8 · 주 7.92h / 야 7.92h)</th></tr>
+        <tr><th></th><th>10/06</th><th>10/07</th><th>10/08</th><th>10/09</th><th>10/13</th><th>10/14</th><th>10/15</th><th>10/16</th><th>10/19</th><th>10/20</th></tr></thead>
+        <tbody>
+          <tr><td class="k">소요</td><td class="num">288</td><td class="num">416</td><td class="num">384</td><td class="num">416</td><td class="num">384</td><td class="num">416</td><td class="num">96</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td class="k">주간</td><td class="num">288</td><td class="num">416</td><td class="num">384</td><td class="num">416</td><td class="num">384</td><td class="num">416</td><td class="num">96</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td class="k">야간</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+          <tr><td class="k">가동 h</td><td class="num">4.80</td><td class="num">6.93</td><td class="num">6.40</td><td class="num">6.93</td><td class="num">6.40</td><td class="num">6.93</td><td class="num">1.60</td><td class="num">–</td><td class="num">–</td><td class="num">–</td></tr>
+          <tr><td class="k">부하율 (÷15.83h)</td><td class="num">30.3%</td><td class="num">43.8%</td><td class="num">40.4%</td><td class="num">43.8%</td><td class="num">40.4%</td><td class="num">43.8%</td><td class="num">10.1%</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+        </tbody>
+      </table>
+      <div class="note blue"><b>왜 소요와 계획이 같은가.</b> 재고 0 에서 시작하고 소요가 전부 8 의 배수(부모 공급이 8 올림 × QtyPer 1)라 own = 소요가 된다. 부모 공급이 8 의 배수가 아니거나 QtyPer 가 1.5 같은 값이면 own 이 소요보다 커지고 그 차이가 다음 날 잔여재고로 넘어간다. 예 D(코어 기초재고 500) 에서는 10/06·07·08 소요 0·96·384 를 재고가 먹고 10/09 부터 need = 416 − 20 = 396 → 400 으로 찍는다.</div>
+    </div>
+
+    <!-- 06 -->
+    <div class="sec" id="s6">
+      <div class="sec-hdr"><div class="sec-num">06</div><div class="sec-title-wrap"><div class="sec-title-en">Compute — Stock, Loads, Status</div><div class="sec-title-ko">결과 계산 — 셀의 재고 · 상태 · shot · 부하 · 요약 · KPI</div></div><div class="sec-line"></div></div>
+      <div class="two">
+        <div class="card">
+          <h4><span class="tag">ASM</span>완제품 셀</h4>
+          <div class="cmd">stock[0] = OpeningStock
+cell[i]  = { Stock = stock[i], Demand, Supply, Status = StatusOf(stock[i]) }
+stock[i+1] = stock[i] + Supply[i] − Demand[i]</div>
+          <p style="font-size:11px;line-height:1.75;margin-top:6px;">셀의 "재고" 는 <b>그 날 아침</b>(공급·수요 반영 전) 값이다 — 표에서 10/08 재고 72 는 10/07 마감 72 다. 상태: <code>short</code> = 재고 &lt; 0, <code>warn</code> = WARN_STATUS=1 이고 0 ≤ 재고 &lt; 안전재고, 그 밖 <code>ok</code>. 완제품 셀의 상태는 아침 재고 기준이라 그 날 공급으로 충당해도 전날 마감이 음수면 short 다.</p>
+        </div>
+        <div class="card">
+          <h4><span class="tag">INJ</span>사출 셀</h4>
+          <div class="cmd">stock[0] = OpeningStock
+remain   = stock[i] − 소요[i] + (주간 + 야간)
+cell[i]  = { Stock, Requirement, PlanDay, PlanNight, Remain, Status = StatusOf(remain),
+             Shots = ceil(계획 ÷ max(1, 캐비티)), RunHours = round2(계획 ÷ UPH) }   // 계획 &gt; 0 일 때만
+stock[i+1] = remain</div>
+          <p style="font-size:11px;line-height:1.75;margin-top:6px;">사출 셀의 상태는 <b>잔여</b>(그 날 계획 반영 후) 기준이다. 예제 A 는 전부 remain 0 → ok. 예 C 는 앞당긴 박스가 재고로 쌓여 remain 32·16·24… 가 된다. 복제본 실행 #1 뒤 다시 조회하면 잠긴 사출 칸(등록 슬롯)이 자동 계산 전이라 소요만 있고 계획이 0 인 날은 remain 이 음수 → <code>short</code> 로 빨갛게 보인다 — 「계획 자동 계산」을 누르기 전 정상이다.</p>
+        </div>
+      </div>
+      <div class="two" style="margin-top:14px;">
+        <div class="card">
+          <h4><span class="tag">LOAD</span>사출기 부하 (BuildLoads)</h4>
+          <p style="font-size:11px;line-height:1.75;">라인 × 날짜마다, UPH &gt; 0 인 행을 <code>MoldGroupKey</code> 로 묶고 <b>그룹마다</b> 수량 = 형제 중 최대(주간+야간), 시간 = round2(수량 ÷ 그룹 최대 UPH) 를 먼저 반올림한 뒤 합한다(골든 14/14 일치 조건). 주간h = min(합, 주간 능력), 야간h = 합 − 주간h(음수 0) — 셀의 주/야 수량이 아니라 <b>총시간을 교대 능력으로 자른 값</b>이다. 능력 = 주간h + 야간h, 부하율 = 합 ÷ 능력 × 100(소수 1), 초과 = 합 &gt; 능력 + 0.005.</p>
+          <p style="font-size:11px;line-height:1.75;margin-top:6px;">PM 밴드는 여기서 빼지 않는다(「WO 생성」때만 피한다) — 그래서 화면에서 되던 날이 WO 생성에서 Shortfall 로 나올 수 있다(알려진 한계).</p>
+        </div>
+        <div class="card">
+          <h4><span class="tag">KPI</span>요약 탭 · 상단 KPI</h4>
+          <table class="tbl">
+            <tbody>
+              <tr><td>요약 행(날짜마다)</td><td>완제품 수요 합 · 공급 합 · 사출 소요 합 · 사출 계획 합 · 가동시간(그 날 부하 합, 소수 1) · 부족 품번 수(short 완제품 수)</td></tr>
+              <tr><td>부족 품번</td><td>어느 날이든 완제품 셀 상태가 short 인 품번 수</td></tr>
+              <tr><td>초과 사출기</td><td>어느 날이든 Over 인 사출 라인 수</td></tr>
+              <tr><td>총 완제품 계획 / 총 사출 계획</td><td>기간 Supply 합 / 기간 (주간+야간) 합</td></tr>
+              <tr><td>경고</td><td>BuildBundle + Autofill + 스케줄러 경고 건수</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 -->
+    <div class="sec" id="s7">
+      <div class="sec-hdr"><div class="sec-num">07</div><div class="sec-title-wrap"><div class="sec-title-en">Reading the Trace Drawer</div><div class="sec-title-ko">근거 창 읽는 법 — ①~⑦ 단계가 각각 어느 계산인가</div></div><div class="sec-line"></div></div>
+      <div class="two">
+        <div class="card">
+          <h4><span class="tag">INJ</span>사출 칸 근거 — 실제 출력 (실행 #1 뒤 10/06 재조회, 잠긴 칸)</h4>
+          <div class="cmd">① 소요     상위 완제품 계획을 BOM 으로 전개 = 1,008         소요 1,008
+② 부족분   소요 1,008 − 실재고 0 = 1,008
+③ 생산량   입력한 계획대로 이 날은 712개                    주간 712 + 야간 0
+④ 동시취출 LQ2RLGDU 금형에서 D3143-P8000 와 같이 나오므로 가동시간을 함께 셉니다.
+⑤ 가동시간 712 ÷ UPH 60.00 = 11.87h                       712 · 11.87h
+⑥ 사출기 부하 LINE-INJ-02 이 날 합계 11.9h / 15.8h (75%)   11.9h · 75%
+⑦ 잔여재고 0 + 712 − 1,008 = -296                          잔여재고 -296</div>
+          <p style="font-size:11px;line-height:1.75;margin-top:6px;">잠긴 칸(등록 계획)은 ③ 이 "입력한 계획대로" 로 나온다. 자동 계산한 칸은 ③ 자리에 <b>「포장 올림」</b>("1,008 → 8개들이 → 1,008 (126박스)" 또는 "딱 떨어집니다") 이 오고, 앞당기기가 있었으면 <b>「앞당김」</b>(경고 표시) 과 "앞당기기를 반영해 이 날은 N개" 가 끼어든다. 주간/야간이 갈리면 ⑤ 뒤에 <b>「주간 몫」·「나머지」</b> 단계(§05 네 경우 문구)가 붙는다.</p>
+        </div>
+        <div class="card">
+          <h4><span class="tag">ASM</span>완제품 칸 근거</h4>
+          <p style="font-size:11px;line-height:1.75;">§03 표의 한 줄 그대로: 전일 마감(PrevClosing) · 수요 · 커버일수 · 목표재고 · 기준수요 · 포장 단위 · 원 소요(RawNeed) · 공급 · 마감. 계획 몫이 있으면 수요 옆에 "(계획 N)" 이 따로 보인다. 자동 계산을 한 번도 안 했으면 "아직 실행하지 않았습니다".</p>
+          <h4 style="margin-top:12px;"><span class="tag">TIP</span>숫자가 이상할 때 보는 순서</h4>
+          <ul class="plain">
+            <li>① 소요가 0 인데 생산이 있다 → 잠긴 등록 계획이거나 형제 통일로 끌려온 수량. 금형 탭의 형제·④ 를 본다.</li>
+            <li>② 부족분이 음수인데 생산이 있다 → 잠긴 칸(③ "입력한 계획대로") 이거나 앞날에서 당겨온 박스(「앞당김」).</li>
+            <li>⑤ UPH 가 기대의 절반 → 패밀리 금형 캐비티 분할(§02-6). 품번 캐비티 = 금형 캐비티 ÷ 같은 색상 품번 수.</li>
+            <li>⑦ 잔여가 음수로 누적 → 그 날 계획이 소요보다 작다(잠긴 등록 계획이 소요보다 작거나, 능력 초과를 못 옮긴 날). 자동 계산 뒤에도 음수면 능력 경고를 본다.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 08 -->
+    <div class="sec" id="s8">
+      <div class="sec-hdr"><div class="sec-num">08</div><div class="sec-title-wrap"><div class="sec-title-en">Save · Replay · Recalculate</div><div class="sec-title-ko">저장 · 재현 · 재계산 — 무엇이 어디에 남는가</div></div><div class="sec-line"></div></div>
+      <table class="rule-tbl">
+        <thead><tr><th style="width:170px;">항목</th><th>규칙</th></tr></thead>
+        <tbody>
+          <tr><td class="k">저장 직전</td><td>항상 재계산(Compute + Explain)을 한 번 더 한 뒤 쓴다 — 결과 JSON 이 번들과 어긋나지 않게.</td></tr>
+          <tr><td class="k">PP_ApsRun 1행</td><td><code>LineID</code>(전체 모드는 <code>-</code>) · <code>BaseDate</code> · <code>Days</code> · <code>CustomerID</code> · <code>IncludeOpen</code> · <code>IncludeDailyPlan</code> · <code>Status='Saved'</code> · <code>WarningCount</code> · <b>JSON 3개</b>: <code>SettingsJson</code>(그 조회의 Settings — 교대·DailyCap·포장 규칙 포함) · <code>BundleJson</code>(날짜축·행·간선·공급·주야·잠금) · <code>ResultJson</code>(셀·요약). 재현의 정본은 이 셋이다.</td></tr>
+          <tr><td class="k">PP_ApsPlanLine</td><td>품번 × 일자 정규화 사본(<code>ApsPlanLines.From</code>). ASM 행 = Demand·Supply·Stock·Locked·Status, INJ 행 = Requirement·PlanDay·PlanNight·Stock·Locked·Status·<code>SameItem</code>(자기 간선 X→X 면 1). <code>WoID</code> 는 NULL 로 시작해 「WO 생성」이 채운다. 유니크 (RunID, Kind, ItemNo, PlanDate). 이 행은 조회·WO 연결용이고 재현에는 쓰지 않는다.</td></tr>
+          <tr><td class="k">열기 (재현)</td><td>JSON 을 역직렬화해 <b>저장 당시 그대로</b> 보인다. 읽기 전용 — 저장 불가. <code>BuildBundle</code> 은 달력·규칙·D-1 실적을 빌리려고 한 번 돌 뿐이라 D-1 열은 <b>오늘</b> 실적이다(알려진 한계). 셀의 "WO" 줄도 저장 JSON 에 없어 현재 WO 를 다시 읽는다.</td></tr>
+          <tr><td class="k">현재 데이터로 재계산</td><td>같은 라인·기준일·일수·옵션으로 <code>BuildBundle</code> 을 새로 돌리고(지금 마스터·수주·재고·슬롯), 저장본의 <b>편집된 공급·주야·사용자 잠금</b>을 같은 품번·날짜 칸에 얹는다. 새 실행으로 저장할 수 있다.</td></tr>
+          <tr><td class="k">Released</td><td>「WO 생성」이 대상 행을 다 소진하면 <code>Status='Released'</code>. 편집·재저장·재생성 불가. 열어 보기만 된다.</td></tr>
+          <tr><td class="k">감사</td><td><code>SYS_AuditLog</code> 화면 <code>PP-APS</code>: SAVE(PP_ApsRun, 조회 조건·행 수·경고 수) · WO(PP_ApsRun, Created/Late/Short/Rejected/SkippedExisting/PlanLineIds) · MD_CodeItem · MD_ApsLineStage.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 09 -->
+    <div class="sec" id="s9">
+      <div class="sec-hdr"><div class="sec-num">09</div><div class="sec-title-wrap"><div class="sec-title-en">Creating Work Orders &amp; Slots</div><div class="sec-title-ko">WO · 슬롯 생성 — 저장된 사출 행이 WO 번호 · 수량 · 시각이 되는 과정</div></div><div class="sec-line"></div></div>
+      <div class="ef-wrap">
+        <div class="ef-step"><div class="ef-num">0</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">lock</span><span class="ef-trig-name">실행 잠금 · 대상 행 · 저장본 BOM</span></div>
+          <div class="ef-action"><code>PP_ApsRun</code> 행을 UPDLOCK 으로 잠근다(같은 실행 동시 생성 직렬화). Released 면 오류. 대상 = 다이얼로그에서 고른 INJ 행 중 <code>주간+야간 &gt; 0</code> 이고 <code>WoID IS NULL</code>(이미 연결된 행은 <code>SkippedExisting</code>). 부모 ↔ 자식 간선은 <b>저장본 BundleJson.Bom</b> 에서 읽는다(자기 간선 제외) — 실행 저장 뒤 BOM 이 바뀌어도 그 실행은 저장 시점 BOM 으로 간다. 수주 잔량·달력·DailyCap·설정·패턴도 여기서 읽는다. 대상 행 라인에 패턴이 없으면(라인 지정 → DEFAULT_PATTERN) <b>쓰기 전에 전부 거부</b>(<code>ApsConfigurationException</code>). 완제품 단계 라인은 지정 → 기본 패턴 → 둘 다 없을 때만 자동 해석.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">1</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">legs</span><span class="ef-trig-name">사출 행 → (부모, 사출일) 단위에 자식 몫 싣기</span></div>
+          <div class="ef-action">대상 행을 날짜 → 품번 순으로:</div>
+          <ul class="plain">
+            <li><b>금형</b> = <code>MoldResolver.Choose</code>(활성 금형 후보 중 ① 직전 금형 → ② 그 라인 배정 중 교체시간 최소 → ③ MoldID 순). 없으면 <code>NoMold</code> 거부. 고른 금형의 그 라인 <code>MD_MoldLine.UPH</code> 가 없거나 0 이면 <code>NoUph</code> 거부. 거부는 그 행만 — 다른 행은 계속.</li>
+            <li><b>기존 슬롯 차감</b>: 그 날·그 라인·그 자식 품번의 WO 슬롯 수량을 StartMin 의 교대로 주/야 나눠 계획 주/야에서 뺀다(<code>SubtractScheduled</code> — 한 교대가 음수면 다른 교대에서 마저 뺀다). 0 이 되면 <code>SkippedExisting</code>(덮인 행). 등록 계획이 잠긴 칸으로 합산돼 있는 것과 <b>정확히 같은 필터</b>라 이중 발행이 없다.</li>
+            <li><b>부모 분배</b>: 같은 품번 규칙(SameItem) 은 자기 자신 100%. BOM 규칙은 저장본 간선의 부모마다 <code>weight = 부모 ASM 공급[사출일 + 선행일] × QtyPer</code> 비율로 나눈다(전부 0 이면 균등). 간선이 없으면 <code>NoParent</code> 거부. 부모 단위 몫 = 자식 수량 × weight ÷ Σweight ÷ QtyPer. 부모 품번으로 잡힌 기존 슬롯(데모 WO)은 <b>나눈 뒤</b> 부모 단위로 뺀다.</li>
+          </ul>
+          <div class="ef-result"><span class="er-lbl">예 (실행 #1, 10/06)</span>D3133-P8000 288개, 부모 4색 공급[10/07] = 72 씩 → weight 균등 → 부모마다 72. 금형 LQ2RLGDU, UPH 120(MD_MoldLine 원값).</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">2</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">plan</span><span class="ef-trig-name">부모 수량 · 라우팅 · 마감</span></div>
+          <div class="ef-action">(부모, 날짜)마다 <code>Qty = 자식 몫 중 최대</code>. BOM 규칙(부모 ≠ 자식이 하나라도)이면 <b>완제품 포장 단위(BoxQty ?? ROUND_TO)로 올림</b>(비율 분배의 자투리 방지), 같은 품번 규칙만이면 내림. 0 이면 버린다(그 부모만 쓰던 자식 행은 덮인 것으로). 라우팅 템플릿에서 INJ 단계·라인 있는 마지막 단계(완제품 단계)를 정하고, 완제품 단계 라인 = 같은 실행 ASM 행의 라인 → BOP 라인 → 후보 1개. <b>생산 마감(ProdDeadline)</b> = 사출일 + 첫 자식 라인 선행일(근무일).</div>
+          <div class="ef-result"><span class="er-lbl">예</span>83335-P8000BM1 10/06: Qty = 72(8 배수라 그대로), INJ 단계 라인 LINE-INJ-02, IMG 단계 LINE-IMG-02, ProdDeadline = 10/06 + 1 근무일 = <b>10/07</b>.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">3</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">FIFO</span><span class="ef-trig-name">수주 배정 → WO INSERT → Release</span></div>
+          <div class="ef-action"><code>ApsWoAllocator</code> 는 「WO 생성」 1회 동안 품번별 Confirmed 수주 잔량(<code>OrderQty − ShippedQty − 기발행 WO(취소 제외)</code>)을 <b>납기 → 수주번호 → 라인 순</b>으로 들고, 부모 Qty 를 앞에서부터 채운다. 수주가 갈리면 WO 를 쪼개고(수주마다 1건, <code>SoID</code>), 남는 양은 <code>SoID NULL</code> 재고 보충 WO 1건. 같은 품번의 다음 날짜 호출은 앞 날짜가 채운 뒤를 잇는다. WO = <code>WO-yyyyMMdd-NNN</code>(PP-003 과 채번 공유), <code>DueDate</code> = 배정 수주 납기(없으면 ProdDeadline), <code>Status</code> Draft → <code>ReleaseCore</code>(단계 라인: INJ = 품번순 첫 자식 라인, 완제품 단계 = 위에서 정한 라인, 그 밖 LineRequired = BOP → 후보 1개) → <code>Released</code>. 단계 행 <code>ItemNo</code> 에 INJ 단계는 자식(코어) 품번이 들어간다.</div>
+          <div class="ef-result"><span class="er-lbl">예</span>BM1 10/06 72 → 수주 T83335-01 라인 10(납기 10/08, 잔량 100) 에서 72 → <b>WO-20261006-001</b>(SoID 1030, Due 10/08, Deadline 10/07). 10/07 104 → 같은 수주 잔량 28 → <b>WO-005</b>(28) + T83335-02 라인 10 에서 76 → <b>WO-006</b>(76, Due 10/09). 10/08 96 → 24(T83335-02 잔량) + 72(T83335-03). 10/09 32 → 28 + 4(T83335-04). 4색 × 7 = <b>28건</b>.</div>
+        </div></div>
+        <div class="ef-step"><div class="ef-num">4</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">INJ slots</span><span class="ef-trig-name">사출 슬롯 — (사출일, 라인, 금형, 색상) 그룹 · 금형 교체 · 주/야 고정 배치</span></div>
+          <ul class="plain">
+            <li><b>그룹</b> = 같은 날·라인·금형·색상의 자식 몫들. 그 안에서 <b>다른 자식 품번</b>끼리만 형제(한 shot). 같은 자식 품번이 여러 부모 WO 로 나뉜 조각은 <b>합산</b>한다(차례로 찍는 양). 그룹 시간: 주간분 = <code>MinutesFor(품번별 주간 합 중 최대, UPH)</code>, 야간분도 같은 식. <code>MinutesFor = ceil(qty × 60 ÷ UPH)</code>.</li>
+            <li><b>교대 구간</b> = 패턴 OPERATING 밴드를 주/야로 나누고 이미 점유된 구간(PM·앞 WO·MC)을 뺀 잔여(<code>ShiftBands.Split</code>).</li>
+            <li><b>금형 교체(MC)</b>: 직전 금형(그 날 앞 슬롯 → 이전 날짜 마지막 슬롯 → 장착 금형 → 없음)이 다르고 교체시간 &gt; 0 이면, 주간(주간 수량이 있을 때) → 야간 순으로 <b>교체시간 + 1분</b>이 한 빈틈에 들어가는 첫 자리에 MC 를 두고 그 교대 생산은 MC 끝부터. MC 가 야간에 들어가면 주간 생산은 없다(금형이 아직 아니다). 어느 창에도 안 들어가면 <b>MC 도 생산도 쓰지 않고 그 날 전량 Shortfall</b>.</li>
+            <li><b>배치</b>: 주간 수량은 주간 잔여 앞에서부터, 야간은 야간 잔여 앞에서부터(<code>ShiftBands.Allocate</code> → <code>SlotPacker.FillDay</code>). 교대 사이를 넘기지 않는다. 모자란 분 = Shortfall.</li>
+            <li><b>조각별 슬롯</b>: 대표 품번(ItemNo 순 첫)의 조각은 배치된 구간을 앞에서부터 잘라 <b>실제 슬롯</b>(마지막 조각은 남은 구간 전부 — 형제 몫으로 점유한 시간이 DB 에 남아야 능력이 맞다). 구간마다 수량 = 구간 길이 × UPH 내림, 다 실었으면 마지막 구간이 나머지 전부. 형제 품번 조각은 대표 교대 첫 슬롯 시작의 <b>0분 슬롯</b>(StartMin = EndMin)에 수량만, MoldID 없음. 조각마다 <code>PP_ApsRunWo</code> 1행(Qty = 자식 단위).</li>
+          </ul>
+          <div class="ef-result"><span class="er-lbl">예 (실행 #1, LINE-INJ-02 10/06)</span>직전 금형 없음 ≠ LQ2RLGDU, 교체 30분 → 주간 첫 빈틈 450 에 <b>MC 450–480</b>. 4 조각 × 72 = 288 → 각 36분(72 × 60 ÷ 120): WO-001 480–516 · WO-002 516–552 · WO-003 552–570 + 580–598(휴게 570–580 을 건너뛰어 두 구간) · WO-004 598–634. 전부 주간, Shortfall 0.</div>
+        </div></div>
+        <div class="ef-step terminal"><div class="ef-num">5</div><div>
+          <div class="ef-trig"><span class="ef-trig-tag system">FG slots</span><span class="ef-trig-name">완제품 단계 슬롯 (DeadlinePacker) · 상태 마감</span></div>
+          <div class="ef-action">조각마다 완제품 단계(IMG/PNT)를 <code>DeadlinePacker.Pack</code> 으로 배치: 오늘 = 사출일, 시작 = 그 그룹 INJ 슬롯의 축상 끝, 마감 = ProdDeadline, 납기 = DueDate. 배치량 = <b>그 조각이 사출에 실제로 실은 수량</b>(모든 자식의 실적 ÷ QtyPer 최소, 내림) — 사출이 0 이면 완제품 슬롯도 없다. <b>슬롯은 박스 단위</b>(완제품 BoxQty, 없으면 ROUND_TO — 2026-10-07 사용자 결정): 틈마다 온박스만 싣고(8개들이 · 90초 = 12분) 한 박스 분이 안 되는 틈은 건너뛴다. FIFO 로 갈라진 부분 박스(28 = 3박스 + 4)는 마지막에 한 번 — 남은 온박스가 다 들어가는 틈이면 같은 슬롯에 붙고, 아니면 자기 분만큼의 틈을 따로 찾는다. PP-003 의 같은 배치기는 종전대로 개 단위다. 마감일까지 못 넣으면 납기일까지 Late, 그래도 남으면 Shortfall. 슬롯은 전부 <code>DRAFT</code>(게시는 PP-LSB). <code>PP_ApsPlanLine.WoID</code> = 품번순 첫 부모의 첫 WO. 대상 행이 남지 않고 WO 가 하나라도 연결되면 실행 <code>Released</code>, 거부·미선택 행이 남으면 <code>Saved</code> 유지. <code>dryRun</code> 은 같은 경로를 돌고 롤백.</div>
+          <div class="ef-result"><span class="er-lbl">예</span>WO-001 IMG(실행 #1 당시 개 단위): LINE-IMG-02 10/06 634–720(57개) + 765–786(14개) + 10/07 450–452(1개) = 72 — 틈마다 소수점을 버려 1개가 다음 날 2분 슬롯으로 넘어갔다. 박스 단위(현재)라면 634–718(7박스 56개) + 765–789(2박스 16개) 로 같은 날 72 전량이다.</div>
+        </div></div>
+      </div>
+      <div class="note"><b>UPH 가 두 곳에서 다르다 — 확인 필요.</b> 계획 엔진은 패밀리 금형의 UPH 를 <code>120 × 1캐비티 ÷ 2 = 60</code> 으로 보지만(§02-6), 「WO 생성」은 <code>MD_MoldLine.UPH</code> 원값 120 으로 분을 계산한다(<code>ReadMoldLineUph</code>). 그래서 실행 #1 의 288개는 화면에서 4.8h 였지만 슬롯은 2.4h(144분)만 차지했다. 형제 품번(D3143-P8000)이 같은 날 같이 발행되면 대표가 시간을 점유하고 형제는 0분이라 두 품번 합이 UPH 120 기준이 되어 맞지만, <b>형제 없이 한 품번만 발행하면 슬롯 시간이 절반</b>이 된다. 이 불일치는 코드 과제로 남겨 둔다(§13).</div>
+    </div>
+
+    <!-- 10 -->
+    <div class="sec" id="s10">
+      <div class="sec-hdr"><div class="sec-num">10</div><div class="sec-title-wrap"><div class="sec-title-en">Anatomy of a Real Run</div><div class="sec-title-ko">실행 #1 실제 결과 해부 — 복제본 2026-10-06, 전체 완제품 라인 · 5일</div></div><div class="sec-line"></div></div>
+      <div class="two">
+        <div class="card">
+          <h4><span class="tag">INPUT</span>조회 조건과 입력</h4>
+          <table class="tbl">
+            <tbody>
+              <tr><td>라인 / 기준일 / 일수</td><td>전체 완제품 라인(<code>-</code>) / 2026-10-06 / <b>5</b> → 열 10/06·07·08·09·13</td></tr>
+              <tr><td>수요</td><td>83335-P8000 4색 × T83335-01~06(10/08·09·13·14·15·16 × 100). 열 안에 든 것은 10/08·09·13 — 10/14 이후 300개는 <b>계획판 밖</b></td></tr>
+              <tr><td>재고 · 실적 · 등록 계획</td><td>전부 0(리셋 직후)</td></tr>
+              <tr><td>설정</td><td>DEFAULT_COVER 0.7 · 구간 0/1.5 · 20/0.7 · 100/0.4 · ROUND_TO 5 · TRIM_LAST_DAY 1 · INJ_OFFSET_DAYS 1 · DEFAULT_PATTERN LP-CMN-001 · MD_ApsLineStage 없음(실행 뒤 사용자가 IMG-01·02 에 LP-CMN-001 을 지정)</td></tr>
+              <tr><td>마스터</td><td>LQ2RLGDU 2캐비티 BK {D3133, D3143} · LINE-INJ-02 UPH 120 PrepTime 30 · BoxQty 8 · LINE-IMG-02 DailyCap 1,200</td></tr>
+              <tr><td>경고 1건</td><td>"사출품 D3133-P8000: 기준일 이전에 찍었어야 할 소요 288개(선행일 1일)를 기준일 2026-10-06 사출로 당겼습니다."</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h4><span class="tag">PLAN</span>저장된 계획 (PP_ApsPlanLine, 실행 #1)</h4>
+          <table class="tbl">
+            <thead><tr><th>날짜</th><th>완제품(색상당) 수요 / 공급</th><th>D3133 소요 / 주간</th><th>해설</th></tr></thead>
+            <tbody>
+              <tr><td>10/06</td><td class="num">0 / 72</td><td class="num">288 / 288</td><td>커버 재고 72 × 4 → 선행일 때문에 당겨진 288</td></tr>
+              <tr><td>10/07</td><td class="num">0 / 0</td><td class="num">416 / 416</td><td>= 10/08 공급 104 × 4</td></tr>
+              <tr><td>10/08</td><td class="num">100 / 104</td><td class="num">384 / 384</td><td>= 10/09 공급 96 × 4</td></tr>
+              <tr><td>10/09</td><td class="num">100 / 96</td><td class="num"><b>128</b> / 128</td><td>= 10/13 공급 <b>32</b> × 4 — 마지막 날 trim 으로 10/13 공급이 수요만 채운다</td></tr>
+              <tr><td>10/13</td><td class="num">100 / 32</td><td class="num">0 / 0</td><td>다음 날이 없어 소요 0</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:11px;line-height:1.75;margin-top:6px;">10일로 조회했다면 10/09 소요가 416, 10/13 384, 10/14 416, 10/15 96 이었다(§04 표). 5일 조회는 10/14~16 수주를 못 보므로 <b>끝 이틀의 계획이 실제보다 작다</b>. 테스트할 때 일수는 마지막 납기 + 선행일 이상으로.</p>
+        </div>
+      </div>
+      <table class="rule-tbl" style="margin-top:14px;">
+        <thead><tr><th colspan="8">생성된 WO 28건 — 색상 BM1 만 (DNN·JY2·RBQ 는 번호만 다르고 수량 동일)</th></tr>
+        <tr><th>사출일</th><th>자식 몫</th><th>WO</th><th>수량</th><th>수주(SoID)</th><th>납기</th><th>마감</th><th>INJ 슬롯 (LINE-INJ-02)</th></tr></thead>
+        <tbody>
+          <tr><td>10/06</td><td class="num">72</td><td>WO-20261006-001</td><td class="num">72</td><td>T83335-01-10 (1030)</td><td>10/08</td><td>10/07</td><td>MC 450–480 → 480–516 (36분)</td></tr>
+          <tr><td rowspan="2">10/07</td><td rowspan="2" class="num">104</td><td>WO-20261006-005</td><td class="num">28</td><td>T83335-01-10 잔량</td><td>10/08</td><td>10/08</td><td>450–464 (14분)</td></tr>
+          <tr><td>WO-20261006-006</td><td class="num">76</td><td>T83335-02-10 (1034)</td><td>10/09</td><td>10/08</td><td>464–502 (38분)</td></tr>
+          <tr><td rowspan="2">10/08</td><td rowspan="2" class="num">96</td><td>WO-20261006-013</td><td class="num">24</td><td>T83335-02-10 잔량</td><td>10/09</td><td>10/09</td><td>450–462</td></tr>
+          <tr><td>WO-20261006-014</td><td class="num">72</td><td>T83335-03-10 (1038)</td><td>10/13</td><td>10/09</td><td>462–498</td></tr>
+          <tr><td rowspan="2">10/09</td><td rowspan="2" class="num">32</td><td>WO-20261006-021</td><td class="num">28</td><td>T83335-03-10 잔량</td><td>10/13</td><td>10/13</td><td>450–464</td></tr>
+          <tr><td>WO-20261006-022</td><td class="num">4</td><td>T83335-04-10 (1042)</td><td>10/14</td><td>10/13</td><td>464–466</td></tr>
+        </tbody>
+      </table>
+      <div class="two" style="margin-top:14px;">
+        <div class="card">
+          <h4><span class="tag">READ</span>이 표에서 확인할 수 있는 규칙</h4>
+          <ul class="plain">
+            <li><b>FIFO</b>: 10/07 의 104 가 수주 1030 잔량 28 + 다음 수주 1034 의 76 으로 갈라졌다. 수주마다 WO 1건.</li>
+            <li><b>마감 = 사출일 + 1 근무일</b>: 10/09 사출의 마감은 주말·공휴일을 건너뛴 <b>10/13</b>.</li>
+            <li><b>납기 &gt; 마감</b> 이 정상이다(마감은 완제품을 만들어 둘 날, 납기는 출하일). 10/09 사출분의 납기 10/13·10/14.</li>
+            <li><b>MC 는 첫날 한 번</b>: 10/07 부터는 직전 금형이 LQ2RLGDU 라 교체가 없고 450(07:30) 부터 바로 생산.</li>
+            <li><b>슬롯 길이</b> 72개 = 36분 → UPH 120 기준(§09 끝 노트의 불일치).</li>
+            <li>4색은 같은 날 같은 금형·색상(BK)이지만 자식 품번이 하나(D3133)라 형제가 아니고, 조각 4개가 <b>차례로 실제 슬롯</b>을 받았다(480→516→552→…).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span class="tag">AFTER</span>이 뒤에 화면을 다시 조회하면</h4>
+          <ul class="plain">
+            <li>완제품 칸: IMG 슬롯 수량이 <b>잠긴 공급</b>(🔒)으로 들어온다. 패커가 IMG 를 사출 당일부터 채우므로 10/06 에 71·10/07 에 1 처럼 계획(72 / 0)과 다른 날에 잡힐 수 있다.</li>
+            <li>사출 칸: INJ 슬롯 288·416·384·128 이 잠긴 주간으로 들어오고, 「WO」 줄에 WO 번호 × 수량이 보인다.</li>
+            <li>그 상태에서 다시 「계획 자동 계산」을 누르면 잠긴 칸은 그대로 두고 <b>잠기지 않은 칸만</b> 채운다 — 등록 계획이 수요를 이미 덮으면 추가 공급은 0 이다. 잠금을 풀고 계산하거나 일수를 늘려 새 수요가 보이면 그만큼 추가 WO 가 나온다(복제본 실행 #2 가 그렇게 12건을 더 만들었다). 「WO 생성」은 같은 날·라인·품번 기존 슬롯 수량을 빼므로 <b>계획이 늘어난 만큼만</b> 발행된다.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11 -->
+    <div class="sec" id="s11">
+      <div class="sec-hdr"><div class="sec-num">11</div><div class="sec-title-wrap"><div class="sec-title-en">Settings Reference</div><div class="sec-title-ko">설정 레퍼런스 — 키마다 어느 수식에 들어가는가</div></div><div class="sec-line"></div></div>
+      <table class="rule-tbl">
+        <thead><tr><th style="width:170px;">키 (APS_SETTING)</th><th style="width:70px;">기본</th><th>쓰이는 곳</th><th>잘못되면</th></tr></thead>
+        <tbody>
+          <tr><td class="k">DEFAULT_COVER</td><td class="num">0.7</td><td>§03 cover — 구간표에 안 걸릴 때(음수 평균 등)</td><td>숫자 아님 → 기본값 + 경고</td></tr>
+          <tr><td class="k">ROUND_TO</td><td class="num">5</td><td>§02-6 포장 — BoxQty 없는 완제품 전용 행의 올림 단위 · §09-2 BOM 규칙 WO 수량 올림 단위(BoxQty 없을 때)</td><td>1 미만 → 저장 거부, 파싱 실패 → 기본값</td></tr>
+          <tr><td class="k">TRIM_LAST_DAY</td><td class="num">1</td><td>§03 — 마지막 날 기준수요 0(재고를 0 으로 끝낸다)</td><td>0 이면 마지막 날도 다음 3일(없음) → 기준수요 0 과 같다. 사실상 "마지막 날 뒤 수요를 모를 때 재고를 남길지"</td></tr>
+          <tr><td class="k">INJ_OFFSET_DAYS</td><td class="num">1</td><td>§04 선행일(라인 지정이 없을 때) · §09 ProdDeadline · BOM 규칙 분배의 공급일</td><td>음수 → 경고 + 기본값</td></tr>
+          <tr><td class="k">DEFAULT_PATTERN</td><td>(빈 값)</td><td>§02-9 사출 라인 능력 · §09 모든 단계 능력(라인 지정이 없을 때)</td><td>빈 값 + 라인 지정 없음 → <b>조회·WO 생성 차단</b></td></tr>
+          <tr><td class="k">PULL_FORWARD</td><td class="num">0</td><td>§03 능력 초과분을 앞 근무일로 옮김</td><td>1/0 아님 → 기본값 + 경고</td></tr>
+          <tr><td class="k">SAFETY_TERM</td><td class="num">0</td><td>§03 target = max(cover × base, 안전재고)</td><td>〃</td></tr>
+          <tr><td class="k">WARN_STATUS</td><td class="num">0</td><td>§06 상태 warn(0 ≤ 재고 &lt; 안전재고)</td><td>〃</td></tr>
+          <tr><td class="k">SHIFT_DAY_H / NIGHT_H</td><td>폐기</td><td>읽지 않는다(<code>RetiredKeys</code>). 패턴이 없으면 폴백이 아니라 차단</td><td>행이 남아 있어도 무시</td></tr>
+        </tbody>
+      </table>
+      <div class="two" style="margin-top:14px;">
+        <div class="card">
+          <h4><span class="tag">TIER</span>APS_COVER_TIER</h4>
+          <p style="font-size:11px;line-height:1.75;">CodeValue = 일수요 하한, Attribute1 = 커버일수. <code>CoverFor(avg)</code> = 하한 내림차순으로 <code>avg ≥ 하한</code> 인 첫 구간. 숫자가 아닌 행은 건너뛰고 경고. 구간 추가는 다이얼로그에서 CodeID <code>APS_COVER_TIER_{하한}</code>, SortOrder 는 하한 순위로 재부여.</p>
+        </div>
+        <div class="card">
+          <h4><span class="tag">LINE</span>MD_ApsLineStage (라인 행)</h4>
+          <table class="tbl">
+            <tbody>
+              <tr><td><code>OffsetDays</code></td><td>그 사출 라인의 선행일(§04·§09). 완제품 라인 행의 값은 0 으로 쓰인다(완제품은 선행 0)</td></tr>
+              <tr><td><code>UseStock</code></td><td>엔진 <code>StageRules.UsesStock</code> — AMES 경로의 Autofill·Scheduler 는 항상 재고를 쓰므로 현재 계산에 영향 없음(체인 전개용 필드)</td></tr>
+              <tr><td><code>PatternID</code></td><td>그 라인의 APS 가동 시간 패턴. 비우면 DEFAULT_PATTERN. 라인 전용·전역 ACTIVE 패턴만 콤보에</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 12 -->
+    <div class="sec" id="s12">
+      <div class="sec-hdr"><div class="sec-num">12</div><div class="sec-title-wrap"><div class="sec-title-en">Data Model</div><div class="sec-title-ko">데이터 모델 — 읽는 것과 쓰는 것</div></div><div class="sec-line"></div></div>
+      <div class="two">
+        <div class="card">
+          <h4><span class="tag">READ</span>조회가 읽는 테이블</h4>
+          <table class="tbl">
+            <thead><tr><th>테이블</th><th>무엇을</th></tr></thead>
+            <tbody>
+              <tr><td><code>SYS_FactoryCalendar</code></td><td>근무일(DayType)</td></tr>
+              <tr><td><code>MD_CodeItem</code></td><td>APS_SETTING · APS_COVER_TIER · WORK_SHIFT(SortOrder)</td></tr>
+              <tr><td><code>MD_ApsLineStage</code></td><td>라인 선행일 · 패턴</td></tr>
+              <tr><td><code>MD_Line</code> · <code>MD_WorkCenter</code></td><td>활성 INJ/IMG/PNT 라인 · DailyCap</td></tr>
+              <tr><td><code>MD_Item</code></td><td>ItemType · InjFlag · RoutingType · SafetyStock · PGN · ALC · CarType · BoxQty</td></tr>
+              <tr><td><code>PP_CustomerOrder</code> · <code>PP_DemandPlan</code></td><td>수요</td></tr>
+              <tr><td><code>PP_LineSchedule</code> ⋈ <code>PP_WorkOrder</code></td><td>등록 계획(WO 슬롯) · 미배치 APS WO(<code>PP_ApsRunWo</code> 경유)</td></tr>
+              <tr><td><code>WH_Inventory</code></td><td>완제품·BOM 자식 현재 재고</td></tr>
+              <tr><td><code>MD_Routing</code>(템플릿) · <code>MD_Bop</code> · <code>MD_Station</code></td><td>완제품 공정·라인, INJ 스테이션 라인</td></tr>
+              <tr><td><code>MD_MoldItem</code> · <code>MD_Mold</code> · <code>MD_MoldLine</code></td><td>금형·색상·캐비티·교체시간·라인 UPH</td></tr>
+              <tr><td><code>MD_BomVersion</code> · <code>MD_Bom</code></td><td>유효 BOM(APPROVED, 기간, 최신 버전)</td></tr>
+              <tr><td><code>PR_ProductionResult</code> · <code>WH_InventoryTransaction</code> · <code>PP_WorkOrderRouting</code></td><td>기준일·D-1 생산/출고/사용, WIP</td></tr>
+              <tr><td><code>MD_LineTimePattern</code> · <code>MD_LineTimeSegment</code></td><td>패턴 상태 · 가동 세그먼트</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h4><span class="tag">WRITE</span>저장 · WO 생성이 쓰는 테이블</h4>
+          <table class="tbl">
+            <thead><tr><th>테이블</th><th>언제 · 무엇을</th></tr></thead>
+            <tbody>
+              <tr><td><code>PP_ApsRun</code></td><td>저장: 1행(JSON 3개, Saved). WO 생성: Status → Released</td></tr>
+              <tr><td><code>PP_ApsPlanLine</code></td><td>저장: 품번 × 일자 행. WO 생성: <code>WoID</code></td></tr>
+              <tr><td><code>PP_ApsRunWo</code></td><td>WO 생성: 계획 행 ↔ WO ↔ SoID 조각(Qty = 자식 단위)</td></tr>
+              <tr><td><code>PP_WorkOrder</code></td><td>WO 생성: 완제품 WO(SoID·DueDate·ProdDeadline·Released)</td></tr>
+              <tr><td><code>PP_WorkOrderRouting</code></td><td>WO 생성: 단계 행(ReleaseCore — INJ 단계 ItemNo = 코어)</td></tr>
+              <tr><td><code>PP_LineSchedule</code></td><td>WO 생성: INJ 슬롯(MoldID, 0분 형제 슬롯 포함) · MC 행(RefType WO, RefID 대표 첫 WO) · 완제품 단계 슬롯. 전부 DRAFT</td></tr>
+              <tr><td><code>MD_CodeItem</code> · <code>MD_ApsLineStage</code></td><td>설정 다이얼로그 편집</td></tr>
+              <tr><td><code>SYS_AuditLog</code></td><td>SAVE · WO · 설정 변경</td></tr>
+            </tbody>
+          </table>
+          <div class="note" style="margin-top:10px;">Pop·Api·InjAgent 는 APS 테이블을 읽지 않는다. POP INJ-MAIN 은 종전대로 <code>PP_LineSchedule</code> 의 <code>EntryType='WO'</code> 슬롯 수량을 오늘 계획으로 읽는다(0분 형제 슬롯도 수량은 센다, MC 는 안 본다).</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 13 -->
+    <div class="sec" id="s13">
+      <div class="sec-hdr"><div class="sec-num">13</div><div class="sec-title-wrap"><div class="sec-title-en">Pitfalls · Limits · Checklist</div><div class="sec-title-ko">함정 · 한계 · 테스트 점검표</div></div><div class="sec-line"></div></div>
+      <div class="exc-grid">
+        <div class="exc-card warn">
+          <div class="exc-hdr"><span class="exc-code">PITFALL</span><div class="exc-name">일수가 짧으면 끝이 잘린다</div></div>
+          <div class="exc-row"><div class="lbl">현상</div><div class="val">마지막 날은 기준수요 0 이라 수요만 채우고, 계획판 밖 수주는 아예 안 보인다. 실행 #1(5일)의 10/09 사출 128 vs 10일 조회 416.</div></div>
+          <div class="exc-row"><div class="lbl">대처</div><div class="val">일수 = 마지막 납기까지 + 선행일 + 커버 며칠. WO 는 앞쪽 날짜만 고르면 된다.</div></div>
+        </div>
+        <div class="exc-card warn">
+          <div class="exc-hdr"><span class="exc-code">PITFALL</span><div class="exc-name">BoxQty NULL</div></div>
+          <div class="exc-row"><div class="lbl">현상</div><div class="val">사출 행 포장 1 → 1개 단위로 올림(박스 개념 없음) + 경고. 완제품 전용 행은 ROUND_TO(5). BOM 규칙 WO 수량도 ROUND_TO 로 올림.</div></div>
+          <div class="exc-row"><div class="lbl">대처</div><div class="val">MD-003 박스 수량 입력. 복제본은 4색 + 코어만 8 이고 나머지는 NULL(수요 없어 무해).</div></div>
+        </div>
+        <div class="exc-card">
+          <div class="exc-hdr"><span class="exc-code">LIMIT</span><div class="exc-name">패밀리 금형 UPH — 계획 60 vs 슬롯 120</div></div>
+          <div class="exc-row"><div class="lbl">현상</div><div class="val">계획은 캐비티 분할 UPH, WO 슬롯은 MD_MoldLine 원값. 형제 없이 한 품번만 발행하면 슬롯 시간이 절반(§09 노트).</div></div>
+          <div class="exc-row"><div class="lbl">대처</div><div class="val">코드 과제. 그때까지는 패밀리 금형 품번의 PP-LSB 슬롯 길이를 의심하고 본다.</div></div>
+        </div>
+        <div class="exc-card">
+          <div class="exc-hdr"><span class="exc-code">LIMIT</span><div class="exc-name">PM 밴드 · 금형 교체 1회 · 0분 마커</div></div>
+          <div class="exc-row"><div class="lbl">내용</div><div class="val">화면 능력은 PM 을 안 빼고 WO 생성만 뺀다 → 화면 OK 가 생성에서 Shortfall 가능. 같은 라인·날·금형 그룹당 MC 최대 1개(되돌림 교체 없음). PP-LSB 에서 대표 슬롯을 지워도 형제 0분 행은 남는다.</div></div>
+        </div>
+        <div class="exc-card info">
+          <div class="exc-hdr"><span class="exc-code">INFO</span><div class="exc-name">조회 결과 첫 화면에 사출 칸이 빨갛다</div></div>
+          <div class="exc-row"><div class="lbl">뜻</div><div class="val">자동 계산 전에는 사출 계획이 등록 슬롯뿐이라 소요 &gt; 계획 → remain 음수 → short. 「계획 자동 계산」을 누르면 사라진다. 눌러도 남으면 능력 경고를 본다.</div></div>
+        </div>
+        <div class="exc-card info">
+          <div class="exc-hdr"><span class="exc-code">INFO</span><div class="exc-name">같은 날 두 번째 실행에서 WO 가 또 나온다</div></div>
+          <div class="exc-row"><div class="lbl">뜻</div><div class="val">첫 실행 슬롯은 잠긴 칸으로 들어오므로 보통 추가 공급 0. 잠금을 풀었거나 일수를 늘려 새 수요가 보이면 그만큼 추가 발행된다. 이중 발행 방지는 "기존 슬롯 수량 차감" 이지 "같은 수주 재발행 금지" 가 아니다 — FIFO 잔량은 기발행 WO 를 빼므로 수주를 넘기면 <code>SoID NULL</code> 재고 보충 WO 가 된다.</div></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px;">
+        <h4><span class="tag">CHECK</span>83335-P8000 테스트 점검표 — 복제본에서 눈으로 확인할 것</h4>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>동작</th><th>기대 결과 (10일 조회, 재고·슬롯 0 기준)</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>전체 완제품 라인 · 10/06 · 10일 · 조회</td><td>완제품 4행(LINE-IMG-02) + 사출 1행(D3133-P8000, LINE-INJ-02, 금형 LQ2RLGDU/BK, 형제 D3143-P8000, 캐비티 1, UPH 60, 포장 8). 경고 0(BoxQty 가 있으므로). 사출 칸 전부 0.</td></tr>
+            <tr><td>2</td><td>「계획 자동 계산」</td><td>색상당 공급 72·0·104·96·104·96·104·24·0·0. 사출 288·416·384·416·384·416·96·0·0·0 전량 주간. 경고 1건(기준일 앞 288 당김). 부하 최대 43.8%.</td></tr>
+            <tr><td>3</td><td>10/08 BM1 완제품 칸 클릭</td><td>근거: 전일 72 · 수요 100 · 커버 0.7 · 목표 70 · 기준수요 100 · 포장 8 · 소요 98 → 공급 104 · 마감 76.</td></tr>
+            <tr><td>4</td><td>10/06 사출 칸 클릭</td><td>① 소요 288 ② 288−0 ③ 포장 올림 "딱 떨어집니다 → 288 (36박스)" ④ 동시취출 D3143 ⑤ 288 ÷ 60 = 4.80h ⑥ 4.8h/15.8h (30%) ⑦ 0+288−288 = 0.</td></tr>
+            <tr><td>5</td><td>설정 › DailyCap 300 (MD-003 라인) 후 재조회·자동 계산</td><td>10/08 공급 32·60·104·104, 10/13 부터 "라인 능력 300개로 당일 수요 최소치도 N개 담지 못했습니다" 경고(§03 예 B).</td></tr>
+            <tr><td>6</td><td>저장 → WO 생성 미리보기</td><td>사출 행 7개(수량 &gt; 0) 대상. 색상당 7건 = 28건(10일 기준 10/06~10/15 는 더 많다), 거부 0, Short 0. WO 는 완제품 품번, INJ 단계 ItemNo 는 D3133-P8000.</td></tr>
+            <tr><td>7</td><td>PP-LSB LINE-INJ-02 10/06</td><td>MC 450–480 뒤 조각 슬롯 연속(36분씩). LINE-IMG-02 는 INJ 끝(634)부터 식사 건너뛰며 <b>박스 단위(12분 배수)</b>로 채움 — 1개짜리 꼬리 슬롯이 없어야 한다.</td></tr>
+            <tr><td>8</td><td>재조회</td><td>INJ 슬롯이 잠긴 주간으로, IMG 슬롯이 잠긴 공급으로. 「WO」 줄에 WO 번호·수량. 자동 계산 재실행 시 추가 공급 0(잠금 안 풀면).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 14 -->
+    <div class="sec" id="s14">
+      <div class="sec-hdr"><div class="sec-num">14</div><div class="sec-title-wrap"><div class="sec-title-en">Glossary</div><div class="sec-title-ko">용어집</div></div><div class="sec-line"></div></div>
+      <table class="rule-tbl">
+        <tbody>
+          <tr><td class="k">번들 (PlanBundle)</td><td>한 조회의 입력 전부 — 날짜축, 완제품 행(수요·공급·잠금), 사출 행(소요·주야·잠금), BOM 간선. 편집 정본.</td></tr>
+          <tr><td class="k">공급 (Supply)</td><td>완제품을 그 날 만들 계획 수량. PP-003 의 "생산계획" 과 같은 뜻.</td></tr>
+          <tr><td class="k">소요 (Requirement)</td><td>사출품을 그 날 찍어야 하는 수량 = 부모 공급[선행일 뒤] × QtyPer.</td></tr>
+          <tr><td class="k">커버일수 · 기준수요 · 목표재고</td><td>마감 재고를 "다음 며칠 수요의 몇 배" 로 유지할지. 목표 = 커버 × (다음 3일 최대 수요).</td></tr>
+          <tr><td class="k">선행일 (Offset)</td><td>사출이 완제품보다 며칠 앞서야 하는지. 기본 1.</td></tr>
+          <tr><td class="k">등록 계획 (잠긴 칸)</td><td>이미 PP_LineSchedule 에 있는 WO 슬롯 수량. 자동 계산이 건드리지 않는다.</td></tr>
+          <tr><td class="k">같은 품번 규칙 / BOM 규칙</td><td>사출품이 완제품 자신(X→X)인지, BOM 아래 InjFlag 품번인지. WO 는 둘 다 완제품 품번.</td></tr>
+          <tr><td class="k">형제 (Sibling) · 패밀리</td><td>같은 금형 · 같은 색상에서 한 shot 에 같이 나오는 다른 품번.</td></tr>
+          <tr><td class="k">블록</td><td>스케줄러가 금형 그룹 단위로 묶은 하루 생산량(형제 중 최대).</td></tr>
+          <tr><td class="k">앞당기기 (PullForward)</td><td>능력을 넘는 날의 박스를 앞 근무일로 옮겨 재고로 넘기는 것.</td></tr>
+          <tr><td class="k">주간 / 야간</td><td>패턴 가동 세그먼트 중 WORK_SHIFT SortOrder 최소 교대 / 나머지.</td></tr>
+          <tr><td class="k">MC</td><td>금형 교체 슬롯(EntryType MC). 생산 바로 앞, 그룹당 하루 1개.</td></tr>
+          <tr><td class="k">0분 슬롯</td><td>형제 품번의 수량만 기록한 StartMin = EndMin 슬롯. 능력에 안 센다.</td></tr>
+          <tr><td class="k">Shortfall · Late</td><td>슬롯 자리가 없어 못 넣은 수량 / 마감일을 넘겨 납기일 전에 넣은 수량(완제품 단계만).</td></tr>
+          <tr><td class="k">Saved · Released</td><td>실행 상태. 저장됨 / WO 가 전부 나가 잠김.</td></tr>
+          <tr><td class="k">SkippedExisting · NoMold · NoUph · NoParent</td><td>WO 생성에서 행이 빠진 이유 — 기존 슬롯이 다 덮음 / 금형 없음 / 금형×라인 UPH 없음 / 저장본 BOM 에 부모 없음.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.4 · PP-APS How It Works · APS 동작 가이드 v1.0 · 2026-10-07 · 소스 기준 aps 브랜치</div>
+    <div class="pf-r">Automotive Parts MES · Production Planning · Confidential</div>
+  </div>
+</div>
+</div>
+</body>
+</html>
