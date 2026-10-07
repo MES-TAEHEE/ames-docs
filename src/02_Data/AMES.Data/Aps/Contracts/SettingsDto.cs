@@ -57,6 +57,11 @@ public sealed class LineStage
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Note { get; set; }   // 원본은 null 이면 생략
 }
 
+/// <summary>교대 1개의 가동 시간(h) — AMES 경로: 라인 APS 패턴에서 그 교대의 OPERATING 세그먼트 합, WORK_SHIFT SortOrder 순. 골든 픽스처에는 없다(null → Day/Night).</summary>
+public sealed record ShiftHours(string Code, double Hours);
+/// <summary>교대 1개의 계획 수량 — PlanDay/PlanNight 는 이 목록의 파생값(첫 교대 / 나머지 합, ApsShiftCompat.Derive).</summary>
+public sealed record ShiftQty(string Code, double Qty);
+
 public sealed class Shift
 {
     public double Day { get; set; } = 10.5;
@@ -69,6 +74,8 @@ public sealed class LineShift
     public string LineCd { get; set; } = "";
     public double Day { get; set; }
     public double Night { get; set; }
+    /// <summary>교대 목록 모드(스펙 §1). null 이면 Day/Night 를 [day, night] 두 교대로 읽는다 — 골든 경로. 있으면 Day/Night 는 파생값.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public List<ShiftHours>? Shifts { get; set; }
     public double? Uph { get; set; }
     public int Stations { get; set; } = 1;
     public string? Note { get; set; }
@@ -81,5 +88,7 @@ public sealed class ShiftException
     public string? LineCd { get; set; }
     public double Day { get; set; }
     public double Night { get; set; }
+    /// <summary>교대 목록 모드의 예외 날짜 교대 시간. null 이면 Day/Night 두 교대.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public List<ShiftHours>? Shifts { get; set; }
     public string? Note { get; set; }
 }

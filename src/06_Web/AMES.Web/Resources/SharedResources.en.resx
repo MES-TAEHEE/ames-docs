@@ -10244,6 +10244,9 @@
   <data name="PP.Aps.Wo.Tab.Grid" xml:space="preserve">
     <value>Grid preview</value>
   </data>
+  <data name="PP.Aps.Trace.Shifts" xml:space="preserve">
+    <value>Shift split</value>
+  </data>
   <data name="PP.Aps.Confirm.WoUsesSaved" xml:space="preserve">
     <value>Unsaved edits are not used for WO creation. Continue with saved run #{0}?</value>
   </data>

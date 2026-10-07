@@ -14,7 +14,9 @@ public static class MoldResolver
 
     /// <param name="ChangeMin">그 라인에서 이 금형으로 바꿀 때 걸리는 분 — COALESCE(MD_MoldLine.PrepTime, MD_Mold.MoldChangeMin, 0) 올림.</param>
     /// <param name="Color">이 품번이 그 금형에서 찍히는 색상(MD_MoldItem.Color) — 선택에는 안 쓰고, APS WO 생성이 형제(동시 취출) 그룹을 금형 × 색상으로 묶을 때 쓴다.</param>
-    public sealed record MoldCandidate(string MoldId, bool AssignedToLine, int ChangeMin, string? Color = null);
+    /// <param name="CavityCount">MD_Mold.CavityCount — 유효 UPH(ApsUph.Effective) 계산용(2026-10-07).</param>
+    /// <param name="ActiveItems">같은 금형·같은 색상의 활성 품번 수(패밀리 크기).</param>
+    public sealed record MoldCandidate(string MoldId, bool AssignedToLine, int ChangeMin, string? Color = null, int? CavityCount = null, int ActiveItems = 1);
 
     public static MoldCandidate? Choose(IReadOnlyList<MoldCandidate> candidates, string? prevMoldId)
     {

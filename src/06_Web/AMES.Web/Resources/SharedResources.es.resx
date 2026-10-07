@@ -10244,6 +10244,9 @@
   <data name="PP.Aps.Wo.Tab.Grid" xml:space="preserve">
     <value>Vista en tabla</value>
   </data>
+  <data name="PP.Aps.Trace.Shifts" xml:space="preserve">
+    <value>Reparto por turno</value>
+  </data>
   <data name="PP.Aps.Confirm.WoUsesSaved" xml:space="preserve">
     <value>Las ediciones no guardadas no se usan para crear OT. ¿Continuar con la ejecución guardada #{0}?</value>
   </data>

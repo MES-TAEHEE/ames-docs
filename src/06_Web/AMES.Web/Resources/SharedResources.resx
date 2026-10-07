@@ -10244,6 +10244,9 @@
   <data name="PP.Aps.Wo.Tab.Grid" xml:space="preserve">
     <value>표 미리보기</value>
   </data>
+  <data name="PP.Aps.Trace.Shifts" xml:space="preserve">
+    <value>교대 몫</value>
+  </data>
   <data name="PP.Aps.Confirm.WoUsesSaved" xml:space="preserve">
     <value>저장하지 않은 편집은 WO 생성에 반영되지 않습니다. 저장된 실행 #{0} 으로 진행할까요?</value>
   </data>

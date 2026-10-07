@@ -8,7 +8,7 @@ namespace AMES.Web.Components.Pages.Pp;
 
 /// <summary>
 /// PP-APS 한 번의 조회~저장 사이의 편집 상태. 페이지 필드로만 산다(회로 메모리) — 페이지를 떠나면 사라진다.
-/// Bundle 이 편집 정본(Supply / PlanDay / PlanNight / Locked 를 직접 고친다)이고 Result·Loads·Traces 는 그 파생값이다.
+/// Bundle 이 편집 정본(Supply / PlanShifts(교대별, 2026-10-07 — PlanDay/PlanNight 는 파생) / Locked 를 직접 고친다)이고 Result·Loads·Traces 는 그 파생값이다.
 /// </summary>
 public sealed class ApsPlanState
 {
@@ -143,6 +143,14 @@ public sealed class ApsPlanState
     {
         var bundle   = JsonSerializer.Deserialize<PlanBundle>(run.BundleJson, ApsJson.Options) ?? new PlanBundle();
         var settings = JsonSerializer.Deserialize<Settings>(run.SettingsJson, ApsJson.Options) ?? Settings.Default();
+        // 구 실행(PlanShifts 없음)을 교대 목록 모드로 — Day→첫 교대·Night→둘째 교대(ApsShiftCompat.Restore). 저장본에 교대 목록이 없으면 그대로(종전 주/야 표시)
+        foreach (var r in bundle.Injection)
+        {
+            var shifts = settings.LineShifts.FirstOrDefault(l => string.Equals(l.LineCd, r.LineCd, StringComparison.OrdinalIgnoreCase))?.Shifts;
+            if (shifts is not { Count: > 0 }) continue;
+            foreach (var d in r.Days)
+                if (d.PlanShifts is not { Count: > 0 }) d.PlanShifts = ApsShiftCompat.Restore(d.PlanDay, d.PlanNight, shifts);
+        }
         var snap     = JsonSerializer.Deserialize<ResultSnapshot>(run.ResultJson, ApsJson.Options) ?? new ResultSnapshot();
         var build    = fresh with { Bundle = bundle, Settings = settings, Warnings = snap.Warnings, PlanDemand = null };
         var s = new ApsPlanState

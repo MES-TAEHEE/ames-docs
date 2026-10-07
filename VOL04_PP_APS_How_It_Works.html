@@ -545,8 +545,9 @@ FoldPreHorizon(AMES 경로 항상 true):  j = 0..off−1 의 부모 공급(사�
           <div class="ef-result"><span class="er-lbl">예 C</span>UPH 를 25 로 낮추면 10/07 416개 = 16.64h &gt; 15.83h → 16개(2박스, 0.64h)를 10/06 으로. 10/09·10/14 도 같은 식. 10/14 는 10/13 이 거의 차서 8개는 10/13, 8개는 더 앞 10/08 로 간다. 그래도 0.2h 가 남는 날은 "앞당길 여유가 없어 0.2시간 초과 상태로 둡니다" 로 남는다(올림 때문에 한 박스 시간 0.32h 보다 작은 초과는 못 옮긴다).</div>
         </div></div>
         <div class="ef-step"><div class="ef-num">4</div><div>
-          <div class="ef-trig"><span class="ef-trig-tag system">SplitShifts</span><span class="ef-trig-name">주간/야간 분할 — 네 가지 경우</span></div>
-          <div class="ef-action">날짜마다 <code>dayRem = 주간h</code> 에서 시작해 블록을 <b>시간 내림차순</b>으로 돌며:</div>
+          <div class="ef-trig"><span class="ef-trig-tag system">SplitShifts</span><span class="ef-trig-name">교대 분할 — AMES 는 교대 가동 시간 비율(2026-10-07), 골든 픽스처는 주간/야간 네 가지 경우</span></div>
+          <div class="ef-action"><b>AMES 경로(교대 목록 모드)</b>: 라인의 <code>LineShift.Shifts</code>(패턴의 교대 코드·가동 시간, <code>WORK_SHIFT.SortOrder</code> 순)가 있으면 블록 수량을 <code>ShiftSplit.Proportional</code> 로 나눈다 — <code>share_k = q × h_k ÷ Σh</code>, 마지막(시간 있는) 교대를 빼고 포장 단위로 내리고 마지막 교대가 나머지를 받는다. 결과는 <code>PlanShifts</code>(교대별)이고 <code>PlanDay/PlanNight</code> 는 첫 교대 / 나머지 합의 파생값. 잠긴 칸은 저장된 교대 목록을 현재 교대 코드에 정렬한다(모르는 코드는 첫 교대에 합산). 근거 창: "교대 몫: 교대 가동 시간 비율 — A 7.9h · B 7.9h (합 15.8h) 로 704개를 나눕니다".</div>
+          <div class="ef-action"><b>골든 경로(교대 목록 없음, SEG 픽스처)</b>: 날짜마다 <code>dayRem = 주간h</code> 에서 시작해 블록을 <b>시간 내림차순</b>으로 돌며:</div>
           <table class="tbl" style="margin-top:6px;">
             <thead><tr><th>경우</th><th>조건</th><th>주간 / 야간</th><th>근거 창 문구</th></tr></thead>
             <tbody>
@@ -699,7 +700,7 @@ stock[i+1] = remain</div>
             <li><b>그룹</b> = 같은 날·라인·금형·색상의 자식 몫들. 그 안에서 <b>다른 자식 품번</b>끼리만 형제(한 shot). 같은 자식 품번이 여러 부모 WO 로 나뉜 조각은 <b>합산</b>한다(차례로 찍는 양). 그룹 시간: 주간분 = <code>MinutesFor(품번별 주간 합 중 최대, UPH)</code>, 야간분도 같은 식. <code>MinutesFor = ceil(qty × 60 ÷ UPH)</code>.</li>
             <li><b>교대 구간</b> = 패턴 OPERATING 밴드를 주/야로 나누고 이미 점유된 구간(PM·앞 WO·MC)을 뺀 잔여(<code>ShiftBands.Split</code>).</li>
             <li><b>금형 교체(MC)</b>: 직전 금형(그 날 앞 슬롯 → 이전 날짜 마지막 슬롯 → 장착 금형 → 없음)이 다르고 교체시간 &gt; 0 이면, 주간(주간 수량이 있을 때) → 야간 순으로 <b>교체시간 + 1분</b>이 한 빈틈에 들어가는 첫 자리에 MC 를 두고 그 교대 생산은 MC 끝부터. MC 가 야간에 들어가면 주간 생산은 없다(금형이 아직 아니다). 어느 창에도 안 들어가면 <b>MC 도 생산도 쓰지 않고 그 날 전량 Shortfall</b>.</li>
-            <li><b>배치</b>: 주간 수량은 주간 잔여 앞에서부터, 야간은 야간 잔여 앞에서부터(<code>ShiftBands.Allocate</code> → <code>SlotPacker.FillDay</code>). 교대 사이를 넘기지 않는다. 모자란 분 = Shortfall.</li>
+            <li><b>배치</b>: 교대마다 그 교대 수량(<code>PP_ApsPlanLineShift</code>, 없으면 PlanDay/PlanNight 를 첫·둘째 교대로 복원)을 그 교대 잔여 앞에서부터(<code>ShiftBands.SplitByShift</code> → <code>Allocate</code> → <code>SlotPacker.FillDay</code>). 교대 사이를 넘기지 않는다. 기존 슬롯도 교대별로 뺀다(<code>SubtractScheduled</code>: 한 교대 초과분은 다음 교대부터). 모자란 분 = Shortfall. UPH 는 계획과 같은 <code>ApsUph.Effective</code>(2026-10-07).</li>
             <li><b>조각별 슬롯</b>: 대표 품번(ItemNo 순 첫)의 조각은 배치된 구간을 앞에서부터 잘라 <b>실제 슬롯</b>(마지막 조각은 남은 구간 전부 — 형제 몫으로 점유한 시간이 DB 에 남아야 능력이 맞다). 구간마다 수량 = 구간 길이 × UPH 내림, 다 실었으면 마지막 구간이 나머지 전부. 형제 품번 조각은 대표 교대 첫 슬롯 시작의 <b>0분 슬롯</b>(StartMin = EndMin)에 수량만, MoldID 없음. 조각마다 <code>PP_ApsRunWo</code> 1행(Qty = 자식 단위).</li>
           </ul>
           <div class="ef-result"><span class="er-lbl">예 (실행 #1, LINE-INJ-02 10/06)</span>직전 금형 없음 ≠ LQ2RLGDU, 교체 30분 → 주간 첫 빈틈 450 에 <b>MC 450–480</b>. 4 조각 × 72 = 288 → 각 36분(72 × 60 ÷ 120): WO-001 480–516 · WO-002 516–552 · WO-003 552–570 + 580–598(휴게 570–580 을 건너뛰어 두 구간) · WO-004 598–634. 전부 주간, Shortfall 0.</div>
@@ -710,7 +711,7 @@ stock[i+1] = remain</div>
           <div class="ef-result"><span class="er-lbl">예</span>WO-001 IMG(실행 #1 당시 개 단위): LINE-IMG-02 10/06 634–720(57개) + 765–786(14개) + 10/07 450–452(1개) = 72 — 틈마다 소수점을 버려 1개가 다음 날 2분 슬롯으로 넘어갔다. 박스 단위(현재)라면 634–718(7박스 56개) + 765–789(2박스 16개) 로 같은 날 72 전량이다.</div>
         </div></div>
       </div>
-      <div class="note"><b>UPH 가 두 곳에서 다르다 — 확인 필요.</b> 계획 엔진은 패밀리 금형의 UPH 를 <code>120 × 1캐비티 ÷ 2 = 60</code> 으로 보지만(§02-6), 「WO 생성」은 <code>MD_MoldLine.UPH</code> 원값 120 으로 분을 계산한다(<code>ReadMoldLineUph</code>). 그래서 실행 #1 의 288개는 화면에서 4.8h 였지만 슬롯은 2.4h(144분)만 차지했다. 형제 품번(D3143-P8000)이 같은 날 같이 발행되면 대표가 시간을 점유하고 형제는 0분이라 두 품번 합이 UPH 120 기준이 되어 맞지만, <b>형제 없이 한 품번만 발행하면 슬롯 시간이 절반</b>이 된다. 이 불일치는 코드 과제로 남겨 둔다(§13).</div>
+      <div class="note"><b>해결(2026-10-07).</b> 아래는 교대 모델 전환 전의 상태다 — 지금은 「WO 생성」도 <code>ApsUph.Effective</code>(계획과 같은 패밀리 캐비티 UPH)를 써서 슬롯 시간이 계획과 같다. <b>종전:</b> UPH 가 두 곳에서 달랐다. 계획 엔진은 패밀리 금형의 UPH 를 <code>120 × 1캐비티 ÷ 2 = 60</code> 으로 보지만(§02-6), 「WO 생성」은 <code>MD_MoldLine.UPH</code> 원값 120 으로 분을 계산한다(<code>ReadMoldLineUph</code>). 그래서 실행 #1 의 288개는 화면에서 4.8h 였지만 슬롯은 2.4h(144분)만 차지했다. 형제 품번(D3143-P8000)이 같은 날 같이 발행되면 대표가 시간을 점유하고 형제는 0분이라 두 품번 합이 UPH 120 기준이 되어 맞지만, <b>형제 없이 한 품번만 발행하면 슬롯 시간이 절반</b>이 된다. 이 불일치는 코드 과제로 남겨 둔다(§13).</div>
     </div>
 
     <!-- 10 -->

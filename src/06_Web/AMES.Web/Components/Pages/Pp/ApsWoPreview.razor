@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Aps
+@using AMES.Data.Aps.Contracts
 @using AMES.Data.Repositories
 @using AMES.Data.Services
 @using Radzen
@@ -91,8 +92,7 @@
                         <th style="width:110px;">@L["PP.Aps.Wo.Col.Date"]</th>
                         <th>@L["Col.ItemNo"]</th>
                         <th style="width:140px;">@L["Col.Line"]</th>
-                        <th style="width:90px;text-align:right;">@L["PP.Aps.Wo.Col.Day"]</th>
-                        <th style="width:90px;text-align:right;">@L["PP.Aps.Wo.Col.Night"]</th>
+                        @foreach (var code in TargetShiftCodes) { <th style="width:90px;text-align:right;">@TargetShiftName(code)</th> }
                         <th style="width:100px;text-align:right;">@L["PP.Aps.Wo.Col.Total"]</th>
                     </tr>
                 </thead>
@@ -104,12 +104,11 @@
                             <td class="code">@r.PlanDate.ToString(DateFmt.Date)</td>
                             <td class="code">@r.ItemNo</td>
                             <td class="code">@r.LineId</td>
-                            <td style="text-align:right;">@UomFmt.Qty(r.PlanDay, null)</td>
-                            <td style="text-align:right;">@UomFmt.Qty(r.PlanNight, null)</td>
+                            @foreach (var code in TargetShiftCodes) { <td style="text-align:right;">@UomFmt.Qty(TargetShiftQty(r, code), null)</td> }
                             <td style="text-align:right;">@UomFmt.Qty(r.PlanDay + r.PlanNight, null)</td>
                         </tr>
                     }
-                    @if (_rows.Count == 0) { <tr><td colspan="7" class="dim" style="text-align:center;">@L["Grid.Empty"]</td></tr> }
+                    @if (_rows.Count == 0) { <tr><td colspan="@(5 + TargetShiftCodes.Count)" class="dim" style="text-align:center;">@L["Grid.Empty"]</td></tr> }
                 </tbody>
             </table>
         </div>
@@ -361,6 +360,30 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
     bool CanEditSlots => _canEdit && _result is null && !_released && _preview is not null;
 
     PpRepository.ApsWoResult? Shown => _result ?? _preview;
+
+    // 대상 표의 교대 열(2026-10-07) — 행들의 교대 코드 합집합(첫 등장 순 = WORK_SHIFT 순), 교대 행이 없는 구 실행은 주간/야간 두 열
+    const string LegacyDayCol = "day", LegacyNightCol = "night";
+    List<string> TargetShiftCodes
+    {
+        get
+        {
+            var codes = _rows.SelectMany(r => (r.Shifts ?? Array.Empty<ShiftQty>()).Select(s => s.Code)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            return codes.Count > 0 ? codes : new() { LegacyDayCol, LegacyNightCol };
+        }
+    }
+    Dictionary<string, string> _shiftNames = new(StringComparer.OrdinalIgnoreCase);
+    string TargetShiftName(string code) => code switch
+    {
+        LegacyDayCol   => L["PP.Aps.Wo.Col.Day"].Value,
+        LegacyNightCol => L["PP.Aps.Wo.Col.Night"].Value,
+        _ => _shiftNames.TryGetValue(code, out var n) ? n : code,
+    };
+    static decimal TargetShiftQty(ApsRepository.ApsPlanLineRow r, string code) => code switch
+    {
+        LegacyDayCol   => r.PlanDay,
+        LegacyNightCol => r.PlanNight,
+        _ => (decimal)(r.Shifts?.FirstOrDefault(s => string.Equals(s.Code, code, StringComparison.OrdinalIgnoreCase))?.Qty ?? 0),
+    };
     decimal SelectedQty => _rows.Where(r => _selected.Contains(r.PlanLineId)).Sum(r => r.PlanDay + r.PlanNight);
     string SelectionKey => string.Join(",", _selected.OrderBy(i => i));
     bool PreviewStale => _result is null && _preview is not null && _previewKey != SelectionKey;
@@ -388,6 +411,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
             var order = MD.LineProcessOrder();
             _lines = Aps.ListLines().OrderBy(l => LineOrder.Rank(order, l.LineId)).ThenBy(l => l.LineId, StringComparer.Ordinal).ToList();
             try { _segStates = MD.ListCodeItems("SEGMENT_STATE"); } catch { }
+            try { _shiftNames = MD.ListCodeItems("WORK_SHIFT").Where(c => c.CodeValue is not null).ToDictionary(c => c.CodeValue!, MasterDataRepository.LocalName, StringComparer.OrdinalIgnoreCase); } catch { }
             try { _moldLines = Pp.ListMoldLines(); } catch { }
         }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _loadFailed = true; }

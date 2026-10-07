@@ -21,6 +21,22 @@ public sealed class ShiftRules(Settings settings, IReadOnlyDictionary<string, Li
         return injection ? (settings.Shift.Day, settings.Shift.Night, "사출 기본", null) : (0, 0, "없음", null);
     }
 
+    public const string LegacyDay = "day", LegacyNight = "night";
+
+    /// 교대 목록(스펙 §1): 날짜 예외 → 라인별 → 공장 기본 순은 ShiftFor 와 같다. 목록이 있으면 그대로(explicitList = true), 없으면 Day/Night 를 [day, night] 로.
+    public (IReadOnlyList<ShiftHours> shifts, bool explicitList) ShiftsFor(string lineCd, string date, bool injection)
+    {
+        var c = Key(lineCd);
+        var ex = settings.ShiftExceptions.FirstOrDefault(x => x.Date == date && Key(x.LineCd) == c)
+              ?? settings.ShiftExceptions.FirstOrDefault(x => x.Date == date && Key(x.LineCd) == "");
+        if (ex != null) return ex.Shifts is { Count: > 0 } es ? (es, true) : (Legacy(ex.Day, ex.Night), false);
+        var ls = settings.LineShifts.FirstOrDefault(x => Key(x.LineCd) == c);
+        if (ls != null) return ls.Shifts is { Count: > 0 } ss ? (ss, true) : (Legacy(ls.Day, ls.Night), false);
+        return injection ? (Legacy(settings.Shift.Day, settings.Shift.Night), false) : (Array.Empty<ShiftHours>(), false);
+    }
+
+    static IReadOnlyList<ShiftHours> Legacy(double day, double night) => new[] { new ShiftHours(LegacyDay, day), new ShiftHours(LegacyNight, night) };
+
     /// 조립 라인 하루 능력 = floor(UPH × 줄 수 × 시간). 모르면 null (dailyCapacity > 0 이면 그 값).
     /// LineShift.DailyCap 이 있으면 그 값 — AMES 완제품 라인(MD_Line.DailyCap). 휴무일은 Dates 에 들어오지 않으므로 여기서 0 처리하지 않는다 (Notes #15).
     public (double cap, double uph, int stations, double hours)? AsmCapFor(string lineCd, string date)

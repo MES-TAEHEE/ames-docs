@@ -409,7 +409,7 @@ public sealed class LineScheduleRepository
         int OperatingMin, int WoLoadMin, int? LastWoEnd,
         string? LastMoldId = null,
         // APS(AMES.Data.Aps.ShiftBands.Split)용 — OPERATING 세그먼트 × 교대 SortOrder, PM 차감 전. 기본값이 있어 Occupy 의 with 식은 그대로 동작한다.
-        IReadOnlyList<(SlotPacker.Interval Band, int ShiftSort)>? ShiftBands = null)
+        IReadOnlyList<(SlotPacker.Interval Band, int ShiftSort, string ShiftCode)>? ShiftBands = null)
     {
         public int RemainMin => OperatingMin - WoLoadMin;
     }
@@ -439,7 +439,7 @@ public sealed class LineScheduleRepository
                 ORDER  BY CASE WHEN p.LineID IS NULL THEN 1 ELSE 0 END, p.PatternID;
             SELECT @Pat AS PatternID;
 
-            SELECT s.StartMin, s.EndMin, s.SegmentState, ISNULL(c.SortOrder, 9999) AS ShiftSort
+            SELECT s.StartMin, s.EndMin, s.SegmentState, ISNULL(c.SortOrder, 9999) AS ShiftSort, ISNULL(s.ShiftCode, '') AS ShiftCode
             FROM   dbo.MD_LineTimeSegment s
             LEFT JOIN dbo.MD_CodeItem c ON c.GroupCode = 'WORK_SHIFT' AND c.CodeValue = s.ShiftCode
             WHERE  s.PatternID = @Pat
@@ -458,11 +458,11 @@ public sealed class LineScheduleRepository
 
         patternId = rdr.Read() ? rdr["PatternID"] as string : null;
 
-        var segs = new List<(int Start, int End, string State, int ShiftSort)>();
+        var segs = new List<(int Start, int End, string State, int ShiftSort, string ShiftCode)>();
         if (rdr.NextResult())
             while (rdr.Read())
                 segs.Add((Convert.ToInt32(rdr["StartMin"]), Convert.ToInt32(rdr["EndMin"]),
-                          rdr["SegmentState"] as string ?? "", Convert.ToInt32(rdr["ShiftSort"])));
+                          rdr["SegmentState"] as string ?? "", Convert.ToInt32(rdr["ShiftSort"]), (string)rdr["ShiftCode"]));
 
         var wo = new List<(SlotPacker.Interval Iv, string? Mold)>();
         var pm = new List<SlotPacker.Interval>();
@@ -484,7 +484,7 @@ public sealed class LineScheduleRepository
         var operating = segs.Where(s => s.State == "OPERATING")
                             .Select(s => new SlotPacker.Interval(s.Start, s.End)).ToList();
         var shiftBands = segs.Where(s => s.State == "OPERATING")
-                             .Select(s => (Band: new SlotPacker.Interval(s.Start, s.End), s.ShiftSort)).ToList();
+                             .Select(s => (Band: new SlotPacker.Interval(s.Start, s.End), s.ShiftSort, s.ShiftCode)).ToList();
         int operatingMin = operating.Sum(b => Subtract(b, pm).Sum(x => x.EndMin - x.StartMin));
         int woLoad       = wo.Sum(w => w.Iv.EndMin - w.Iv.StartMin);
         int Axis(int m) { int r = (m - dayStart) % 1440; return r < 0 ? r + 1440 : r; }

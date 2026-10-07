@@ -379,6 +379,7 @@ public class ApsRepositoryTests
             Assert.Equal(20d, fgInj.OpeningStock);              // WIP = INJ 50 − IMG 30
             Assert.True(fgInj.Days[1].Locked);
             Assert.Equal((60d, 0d), (fgInj.Days[1].PlanDay, fgInj.Days[1].PlanNight));   // StartMin 480 = A 교대 → 주간
+            Assert.Equal(new[] { ("A", 60d), ("B", 0d), ("C", 0d) }, fgInj.Days[1].PlanShifts!.Select(x => (x.Code, x.Qty)).ToArray());   // 교대별(2026-10-07)
             Assert.False(fgInj.Days[0].Locked);
             Assert.All(fgInj.Days, d => Assert.Equal(0d, d.Requirement));
             Assert.Equal(LineInj, sibInj.LineCd);               // BOP INJ 스테이션 없음 → MD_MoldLine 교체 최소 라인
@@ -401,6 +402,7 @@ public class ApsRepositoryTests
             Assert.Equal(imgCap is > 0 ? imgCap : null, imgShift.DailyCap);   // NULL·0 이하는 "제한 없음"(경고) — 아래 DailyCap 테스트
             var injShift = Assert.Single(s.LineShifts, l => l.LineCd == LineInj);
             Assert.Equal((8d, 16d), (injShift.Day, injShift.Night));
+            Assert.Equal(new[] { ("A", 8d), ("B", 8d), ("C", 8d) }, injShift.Shifts!.Select(x => (x.Code, x.Hours)).ToArray());   // 3교대 목록(Day/Night 16 = B + C)
             Assert.Null(injShift.DailyCap);
             Assert.DoesNotContain(s.ShiftExceptions, x => x.LineCd == LineInj || x.LineCd == LineInj2);
             Assert.Contains(new PackRule(Fg, 20), s.PackRules);
@@ -544,6 +546,7 @@ public class ApsRepositoryTests
             // LINE-INJ-02 는 자동 해석으로는 +414일 주에 유효한 패턴이 없지만(전역 LP-INJ-001/002 유효기간 2026-11/12 까지) APS 설정의 라인 지정(ITEST-APS-PAT)이 유효기간과 무관하게 쓰인다 — 교대 시간 폴백은 더 이상 없다(2026-10-06)
             var inj2Shift = Assert.Single(b.Settings.LineShifts, l => l.LineCd == LineInj2);
             Assert.Equal((8d, 16d), (inj2Shift.Day, inj2Shift.Night));
+            Assert.Equal(new[] { ("A", 8d), ("B", 8d), ("C", 8d) }, inj2Shift.Shifts!.Select(x => (x.Code, x.Hours)).ToArray());
             Assert.DoesNotContain(b.Warnings, w => w.Contains("교대 시간 폴백"));
             Assert.DoesNotContain(b.Settings.ShiftExceptions, x => x.LineCd == LineInj2);
             Assert.DoesNotContain(b.Warnings, w => w.Contains(Two) && w.Contains("사출 라인을 정할 수 없습니다"));
@@ -995,9 +998,9 @@ public class ApsRepositoryTests
 
     static ApsRepository.ApsPlanLineRow L(string kind, string item, DateTime date, decimal demand = 0, decimal supply = 0, decimal req = 0,
                                           decimal day = 0, decimal night = 0, decimal stock = 0, bool locked = false, string status = "ok",
-                                          bool sameItem = false)
+                                          bool sameItem = false, IReadOnlyList<ShiftQty>? shifts = null)
         => new(0, 0, kind, item, kind == ApsRepository.KindInj ? LineInj : LineImg, DateOnly.FromDateTime(date),
-               demand, supply, req, day, night, stock, locked, status, null, sameItem);
+               demand, supply, req, day, night, stock, locked, status, null, sameItem, shifts);
 
     static ApsRepository.ApsRunSave SaveOf(params ApsRepository.ApsPlanLineRow[] lines) => SaveOf(Base, lines);
 
@@ -1013,7 +1016,7 @@ public class ApsRepositoryTests
         {
             var repo = new ApsRepository(f!);
             var save = SaveOf(
-                L(ApsRepository.KindInj, "ITEST-APS-X", D0, req: 30, day: 20, night: 10, stock: 5, sameItem: true),
+                L(ApsRepository.KindInj, "ITEST-APS-X", D0, req: 30, day: 20, night: 10, stock: 5, sameItem: true, shifts: new[] { new ShiftQty("A", 20), new ShiftQty("B", 10) }),
                 L(ApsRepository.KindAsm, "ITEST-APS-X", D1, demand: 1.5m, supply: 2, stock: 3.25m, locked: true, status: "short"),
                 L(ApsRepository.KindAsm, "ITEST-APS-X", D0, demand: 7));
 
@@ -1039,6 +1042,17 @@ public class ApsRepositoryTests
             var inj = lines[2];
             Assert.Equal((LineInj, 30m, 20m, 10m, 5m), (inj.LineId, inj.Requirement, inj.PlanDay, inj.PlanNight, inj.Stock));
             Assert.True(inj.SameItem);                                   // 같은 품번 규칙 표시가 왕복한다 — 「WO 생성」 대상 판정의 근거
+            Assert.Equal(new[] { ("A", 20d), ("B", 10d) }, inj.Shifts!.Select(x => (x.Code, x.Qty)).ToArray());   // 교대별 수량(PP_ApsPlanLineShift) 왕복
+            Assert.Null(asm1.Shifts);
+
+            // 리뷰 F5: MD-26 은 같은 CodeValue 를 두 번 등록할 수 있다(PK = CodeID) — WORK_SHIFT 중복이 교대 수량을 두 배로 읽게 해서는 안 된다
+            Exec(f!, "INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, SortOrder, UseFlag, CreatedBy) VALUES ('ITEST-WS-DUP', 'WORK_SHIFT', 'A', N'ITEST dup', 10, 1, @By);", ("@By", Actor));
+            try
+            {
+                var again = repo.ListPlanLines(runId).Single(l => l.Kind == ApsRepository.KindInj);
+                Assert.Equal(new[] { ("A", 20d), ("B", 10d) }, again.Shifts!.Select(x => (x.Code, x.Qty)).ToArray());
+            }
+            finally { Exec(f!, "DELETE FROM dbo.MD_CodeItem WHERE CodeID = 'ITEST-WS-DUP';"); }
 
             // Review Focus 2: 토요일 기준일도 고른 날짜 그대로 저장한다(근무일로 접지 않는다)
             int satId = repo.SaveRun(SaveOf(Base.AddDays(-2), L(ApsRepository.KindAsm, "ITEST-APS-X", D0)), Actor);

@@ -35,11 +35,12 @@ public static class InjectionScheduler
     }
 
     // ---------------------------------------------------------------- 내부
-    enum ShiftCase { None, AllDay, DayUsed, NoBox, Split }
+    enum ShiftCase { None, AllDay, DayUsed, NoBox, Split, Proportional }
 
     sealed class Cell
     {
         public double Opening, Need, Own, Final, Day, Night, Closing, DayRemBefore, Ratio, Raw, Hours;
+        public List<ShiftQty>? Shifts;        // 교대 목록 모드의 교대별 수량(Day/Night 는 파생) — 골든 경로 null
         public ShiftCase Case;
         public bool Fixed;
         public List<(string from, double qty)> PulledIn = new();
@@ -102,9 +103,14 @@ public static class InjectionScheduler
             for (var k = 0; k < b.Injection.Count; k++)
                 for (var i = 0; i < n; i++)
                 {
-                    var d = b.Injection[k].Days[i];
-                    if (fixedAll || d.Locked) continue;
-                    d.PlanDay = cells[k][i].Day; d.PlanNight = cells[k][i].Night;
+                    var d = b.Injection[k].Days[i]; var c = cells[k][i];
+                    if (fixedAll || d.Locked)
+                    {
+                        // 잠긴 칸도 현재 교대에 정렬한 목록으로(Align — 합은 보존) · 파생 주/야도 그 목록에서 다시 쓴다
+                        if (c.Shifts is not null) { d.PlanShifts = c.Shifts; (d.PlanDay, d.PlanNight) = ApsShiftCompat.Derive(c.Shifts); }
+                        continue;
+                    }
+                    d.PlanDay = c.Day; d.PlanNight = c.Night; d.PlanShifts = c.Shifts;
                 }
             return warnings;
         }
@@ -195,6 +201,44 @@ public static class InjectionScheduler
         {
             for (var i = 0; i < n; i++)
             {
+                var (shiftList, explicitList) = rules.ShiftsFor(line, b.Dates[i], true);
+                if (explicitList)
+                {
+                    // 교대 목록 모드(스펙 §2, 2026-10-07): 블록 수량을 교대 가동 시간 비율로 나눈다. 잠긴 칸은 저장 목록을 현재 교대에 정렬(ApsShiftCompat.Align).
+                    // 비율의 분모는 **남은 교대 시간** — 잠긴 블록(등록 계획·사용자 잠금, Free 없음)이 쓴 시간을 교대별로 빼고(형제는 최대 — BlockHours 와 같은 규칙),
+                    // 자유 블록도 시간 큰 순으로 배정하며 차감한다(종전 "잠긴 블록은 주간을 쓴다 → 뒤 블록은 야간" 규칙의 교대 목록판). 남은 시간이 전부 0 이면 전체 시간 비율
+                    var remH = shiftList.Select(x => Math.Max(0, x.Hours)).ToArray();
+                    var ordered = blocks[i].Values.OrderByDescending(x => BlockHours(x, i)).ThenBy(x => x.Mold, StringComparer.Ordinal).ToList();
+                    foreach (var blk in ordered)
+                    {
+                        var h = BlockHours(blk, i);
+                        foreach (var k in blk.Parts) cells[k][i].Hours = h;
+                        foreach (var k in blk.Parts.Where(k => cells[k][i].Fixed))
+                        {
+                            var c = cells[k][i]; var d = b.Injection[k].Days[i];
+                            c.Shifts = ApsShiftCompat.Align(d.PlanShifts, d.PlanDay, d.PlanNight, shiftList);
+                            (c.Day, c.Night) = ApsShiftCompat.Derive(c.Shifts);
+                        }
+                        if (blk.Free.Count == 0 && blk.Uph > 0)
+                            for (var si = 0; si < remH.Length; si++)
+                                remH[si] -= blk.Parts.Max(k => cells[k][i].Shifts is { } sl && si < sl.Count ? sl[si].Qty : 0) / blk.Uph;
+                    }
+                    foreach (var blk in ordered.Where(x => x.Free.Count > 0))
+                    {
+                        var basis = remH.Any(x => x > 1e-9) ? shiftList.Select((x, si) => new ShiftHours(x.Code, Math.Max(0, remH[si]))).ToList() : shiftList;
+                        var split = ShiftSplit.Proportional(blk.Qty, basis, blk.Pack);
+                        foreach (var k in blk.Free)
+                        {
+                            var c = cells[k][i];
+                            c.Shifts = split.Select(x => new ShiftQty(x.Code, x.Qty)).ToList();
+                            (c.Day, c.Night) = ApsShiftCompat.Derive(c.Shifts);
+                            c.Case = ShiftCase.Proportional;
+                        }
+                        if (blk.Uph > 0) for (var si = 0; si < remH.Length; si++) remH[si] -= split[si].Qty / blk.Uph;
+                    }
+                    lineTotal[lineIx[line] * n + i] = Total(blocks[i], i);
+                    continue;
+                }
                 var sh = rules.ShiftFor(line, b.Dates[i], true);
                 var dayRem = sh.day;
                 foreach (var blk in blocks[i].Values.OrderByDescending(x => BlockHours(x, i)).ThenBy(x => x.Mold, StringComparer.Ordinal))
@@ -264,7 +308,7 @@ public static class InjectionScheduler
                     var t = new Trace
                     {
                         PartNo = r.PartNo, Date = date, OpeningStock = c.Opening, Requirement = reqv, Shortfall = Math.Max(0, c.Need), Planned = c.Final,
-                        PlanDay = c.Day, PlanNight = c.Night, Closing = c.Closing, PackSize = r.PackSize, Uph = r.Uph,
+                        PlanDay = c.Day, PlanNight = c.Night, PlanShifts = c.Shifts, Closing = c.Closing, PackSize = r.PackSize, Uph = r.Uph,
                         RunHours = r.Uph > 0 ? R2(c.Final / r.Uph) : 0, MoldGroup = r.MoldCode, Siblings = r.SiblingPartNos.ToList(),
                     };
                     var no = 0;
@@ -277,11 +321,13 @@ public static class InjectionScheduler
                                           : $"소요 {N(reqv)} − 실재고 {N(c.Opening)} = {N(c.Need)} → 재고로 충당됩니다");
                     if (c.Final <= 0)
                     {
-                        Add("판단", "만들지 않습니다.", "주간 0 · 야간 0");
+                        Add("판단", "만들지 않습니다.", c.Shifts is { } z ? string.Join(" · ", z.Select(x => $"{x.Code} 0")) : "주간 0 · 야간 0");
                         Add("잔여재고", $"{N(c.Opening)} + 0 − {N(reqv)} = {N(c.Closing)}", $"잔여재고 {N(c.Closing)}");
                         traces.Add(t); continue;
                     }
-                    var prodScreen = $"주간 {N(c.Day)} + 야간 {N(c.Night)}";
+                    var prodScreen = c.Shifts is { } shq
+                        ? string.Join(" · ", shq.Select(x => $"{x.Code} {N(x.Qty)}"))
+                        : $"주간 {N(c.Day)} + 야간 {N(c.Night)}";
                     var hasProd = c.Fixed || Math.Abs(c.Final - c.Own) > 1e-9;
                     if (!c.Fixed && c.Need > 0)
                     {
@@ -310,6 +356,14 @@ public static class InjectionScheduler
                             Add("주간 몫", "같은 사출기의 앞 작업이 주간을 다 썼습니다 → 전량 야간", $"야간 {N(c.Final)}"); break;
                         case ShiftCase.NoBox:
                             Add("주간 몫", $"주간 잔여 {H1(c.DayRemBefore)}h 로는 {r.PackSize}개들이 한 박스도 못 채웁니다 → 전량 야간", $"야간 {N(c.Final)}"); break;
+                        case ShiftCase.Proportional:
+                        {
+                            var (shiftList, _) = rules.ShiftsFor(line, date, true);
+                            var totalH = shiftList.Sum(x => x.Hours);
+                            var calc = string.Join(" · ", shiftList.Select(x => $"{x.Code} {H1(x.Hours)}h"));
+                            Add("교대 몫", $"교대 가동 시간 비율 — {calc} (합 {H1(totalH)}h) 로 {N(c.Final)}개를 나눕니다 ({r.PackSize}개들이 내림, 나머지는 마지막 교대)", prodScreen);
+                            break;
+                        }
                         case ShiftCase.Split:
                             var ratio = c.Ratio.ToString("0.000", CultureInfo.InvariantCulture);
                             Add("주간 몫", $"{H2(t.RunHours)}h 중 주간은 {H1(c.DayRemBefore)}h 까지 → 비율 {ratio}");

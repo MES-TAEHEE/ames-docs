@@ -22,7 +22,7 @@
                     <div><span>@L["PP.Aps.Trace.Req"]</span><strong>@Q(t.Requirement)</strong></div>
                     <div><span>@L["PP.Aps.Trace.Shortfall"]</span><strong class="@(t.Shortfall > 0 ? "aps-neg" : "")">@Q(t.Shortfall)</strong></div>
                     <div><span>@L["PP.Aps.Trace.Planned"]</span><strong>@Q(t.Planned)</strong></div>
-                    <div><span>@L["PP.Aps.Cell.Day"] / @L["PP.Aps.Cell.Night"]</span><strong>@Q(t.PlanDay) / @Q(t.PlanNight)</strong></div>
+                    <div><span>@L["PP.Aps.Trace.Shifts"]</span><strong>@(t.PlanShifts is { Count: > 0 } ps ? string.Join(" · ", ps.Select(x => $"{x.Code} {Q(x.Qty)}")) : $"{Q(t.PlanDay)} / {Q(t.PlanNight)}")</strong></div>
                     <div><span>@L["PP.Aps.Trace.Closing"]</span><strong class="@(t.Closing < 0 ? "aps-neg" : "")">@Q(t.Closing)</strong></div>
                     <div><span>@L["PP.Aps.Trace.Pack"]</span><strong>@t.PackSize</strong></div>
                     <div><span>@L["PP.Aps.Col.Uph"]</span><strong>@t.Uph.ToString("0.##")</strong></div>
