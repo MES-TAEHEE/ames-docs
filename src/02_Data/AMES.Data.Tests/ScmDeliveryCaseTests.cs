@@ -172,7 +172,7 @@ public sealed class ScmDeliveryCaseTests
             Assert.Throws<InvalidOperationException>(()=>repo.CreatePreparedCase("PO-CASE-1",[new(2,4)],"case-user"));
             Assert.Throws<InvalidOperationException>(()=>repo.CreatePreparedCase("PO-CASE-1",[new(1,5)],"case-user"));
             var first=repo.CreatePreparedCase("PO-CASE-1",[new(1,4),new(1,4)],"case-user");
-            Assert.Equal("CASE-000001",first);
+            Assert.Matches("^CASE-[0-9]{8}-000001$",first);
             Assert.Equal(0,Count("SELECT COUNT(*) FROM sys.columns WHERE object_id=OBJECT_ID('dbo.SCM_DeliveryCase') AND name='CaseID'"));
             var second=repo.CreatePreparedCase("PO-CASE-1",[new(1,4)],"case-user");
             var rollbackCase=repo.CreatePreparedCase("PO-CASE-2",[new(2,5),new(2,5)],"case-user");
@@ -413,6 +413,27 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(7,draftNote.Lines.Sum(l=>l.Quantity));
             Assert.Equal(2,repo.ListDeliveryCases(null,"case-user").Count(c=>c.NoteNumber==draftNote.Number));
             Assert.Equal(beforeDraftCases+2,Count("SELECT COUNT(*) FROM SCM_DeliveryCase"));
+            Sql("""
+                INSERT WH_PurchaseOrder(PoID,PoNumber,PoLineNo,VendorID,ItemNo,UnitCode,ReceivedQty,OrderQty,Status,OrderDate,DueDate,SupplierConfirmedAt,DeliveryDestination)
+                VALUES(7,'PO-LOOSE',1,'V1','PART-1','EA',0,10,'Open',DATEADD(day,-1,SYSDATETIME()),SYSDATETIME(),SYSDATETIME(),'EOS');
+                """);
+            var looseNote=repo.CreateDeliveryNoteFromDraftCases(
+                [new(["PO-LOOSE"],[new(7,2)])],DateTime.Today,"case-user","case-user",
+                [new("PO-LOOSE",7,3,false),new("PO-LOOSE",7,1,true)]);
+            Assert.Equal(6m,looseNote.Lines.Sum(l=>l.Quantity));
+            var looseDeliveries=repo.ListNoteDeliveries("case-user").Where(d=>d.NoteNumber==looseNote.Number).ToArray();
+            Assert.Equal(2,looseDeliveries.Length);
+            var looseLabels=looseDeliveries.SelectMany(d=>repo.ListDeliveryBoxes(d.Number,"case-user")).ToArray();
+            Assert.Contains(looseLabels,b=>b.Number.StartsWith("PT-",StringComparison.Ordinal));
+            Assert.Contains(looseLabels,b=>b.Number.StartsWith("BX-",StringComparison.Ordinal));
+            Assert.Equal(3,looseLabels.Length);
+            var partOnly=repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
+                [new("PO-LOOSE",7,1,true)]);
+            Assert.Single(partOnly.Lines);
+            Assert.StartsWith("PT-",Assert.Single(repo.ListDeliveryBoxes(
+                Assert.Single(repo.ListNoteDeliveries("case-user").Where(d=>d.NoteNumber==partOnly.Number)).Number,"case-user")).Number);
+            Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
+                [new("PO-LOOSE",7,5,false)]));
             Sql("UPDATE SCM_PortalVendorUser SET LockedFlag=1 WHERE UserID='case-user';");
             Assert.Empty(repo.ListPortalDeliveryDiscrepancies("case-user"));
         }

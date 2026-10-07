@@ -17,6 +17,7 @@ public sealed partial class ScmRepository
         decimal Ordered=0, decimal Received=0, decimal PendingDelivery=0, decimal Prepared=0);
     public record CaseBoxInput(int PoID, decimal Quantity);
     public record CaseDraftInput(IReadOnlyList<string> Orders, IReadOnlyList<CaseBoxInput> Boxes);
+    public record LooseItemInput(string Order, int PoID, decimal Quantity, bool IsPart);
 
     const string CaseVendorAccess = """
         EXISTS(SELECT 1 FROM dbo.SCM_PortalVendorUser u JOIN dbo.MD_Vendor v ON v.VendorID=u.VendorID
@@ -98,7 +99,7 @@ public sealed partial class ScmRepository
         var vendor=ValidateCaseDestination(c,tx,boxes.Select(b=>b.PoID).Distinct().ToArray());
         using var header = new SqlCommand("""
             DECLARE @Sequence varchar(20)=CONVERT(varchar(20),NEXT VALUE FOR dbo.SCM_CaseNumberSequence);
-            DECLARE @CaseNo varchar(50)=CONCAT('CASE-',CASE WHEN LEN(@Sequence)<6 THEN RIGHT('000000'+@Sequence,6) ELSE @Sequence END);
+            DECLARE @CaseNo varchar(50)=CONCAT('CASE-',CONVERT(char(8),SYSDATETIME(),112),'-',CASE WHEN LEN(@Sequence)<6 THEN RIGHT('000000'+@Sequence,6) ELSE @Sequence END);
             INSERT dbo.SCM_DeliveryCase(CaseNo,PoNumber,VendorID,CreatedBy)
             OUTPUT INSERTED.CaseNo,INSERTED.VendorID,CONVERT(date,INSERTED.CreatedAt)
             VALUES(@CaseNo,@N,@Vendor,@U);
@@ -183,28 +184,33 @@ public sealed partial class ScmRepository
         tx.Commit();return note;
     }
 
-    public DeliveryNote CreateDeliveryNoteFromDraftCases(IReadOnlyList<CaseDraftInput> drafts,DateTime date,string userId,string actor)
+    public DeliveryNote CreateDeliveryNoteFromDraftCases(IReadOnlyList<CaseDraftInput> drafts,DateTime date,string userId,string actor,
+        IReadOnlyList<LooseItemInput>? looseItems=null)
     {
-        if(drafts.Count is <1 or >1000 || drafts.Sum(d=>d.Boxes.Count)>1000)
-            throw new ArgumentException("Select 1 to 1,000 cases with at most 1,000 boxes.");
+        looseItems ??=[];
+        if(drafts.Count>1000 || drafts.Count+looseItems.Count is <1 or >1000 || drafts.Sum(d=>d.Boxes.Count)+looseItems.Count>1000)
+            throw new ArgumentException("Select 1 to 1,000 cases, boxes or parts.");
         using var c=factory.OpenConnection();using var tx=c.BeginTransaction();
         // Lock every PO in a consistent order before reserving any draft case quantities.
-        LockCaseOrders(c,tx,drafts.SelectMany(d=>d.Orders).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal).ToArray());
+        LockCaseOrders(c,tx,drafts.SelectMany(d=>d.Orders).Concat(looseItems.Select(i=>i.Order))
+            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal).ToArray());
         var numbers=drafts.Select(d=>CreatePreparedCase(c,tx,d.Orders,d.Boxes,userId)).ToArray();
-        var note=CreateDeliveryNoteFromCases(c,tx,numbers,date,userId,actor);
+        var note=CreateDeliveryNoteFromCases(c,tx,numbers,date,userId,actor,looseItems);
         tx.Commit();return note;
     }
 
-    DeliveryNote CreateDeliveryNoteFromCases(SqlConnection c,SqlTransaction tx,IReadOnlyList<string> numbers,DateTime date,string userId,string actor)
+    DeliveryNote CreateDeliveryNoteFromCases(SqlConnection c,SqlTransaction tx,IReadOnlyList<string> numbers,DateTime date,string userId,string actor,
+        IReadOnlyList<LooseItemInput>? looseItems=null)
     {
-        if(numbers.Count is <1 or >1000 || numbers.Any(n=>string.IsNullOrWhiteSpace(n)||n.Length>50)
+        looseItems ??=[];
+        if(numbers.Count+looseItems.Count is <1 or >1000 || numbers.Any(n=>string.IsNullOrWhiteSpace(n)||n.Length>50)
             || numbers.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=numbers.Count)
-            throw new ArgumentException("Select 1 to 1,000 different cases.");
+            throw new ArgumentException("Select 1 to 1,000 different cases, boxes or parts.");
         var selected=ReadDeliveryCases(c,tx,null,null,userId,null,null).Where(k=>numbers.Contains(k.Number,StringComparer.OrdinalIgnoreCase)).ToList();
         if(selected.Count!=numbers.Count)throw new InvalidOperationException("A case is unavailable or access was denied. Refresh the list.");
         // Exact retries return the issued note, without generating new deliveries or labels.
         var notes=selected.Select(c=>c.NoteNumber).Distinct().ToArray();
-        if(notes.Length==1 && notes[0].Length>0)
+        if(looseItems.Count==0 && notes.Length==1 && notes[0].Length>0)
         {
             var existing=ListDeliveryCases(null,userId,notes[0]);
             if(existing.Count==numbers.Count && existing.All(c=>numbers.Contains(c.Number,StringComparer.OrdinalIgnoreCase)))
@@ -213,11 +219,24 @@ public sealed partial class ScmRepository
         if(selected.Any(c=>c.Status!="Prepared" || c.NoteNumber.Length>0 || c.Delivery is not null || c.Boxes.Any(b=>b.Received)))
             throw new InvalidOperationException("Select only unassigned, unreceived cases.");
         var boxes=selected.SelectMany(c=>c.Boxes).ToArray();
-        var orders=boxes.Select(b=>b.Order).Distinct().Order(StringComparer.Ordinal).ToArray();
-        if(orders.Length>100 || boxes.Length>1000)throw new InvalidOperationException("A note may contain at most 100 POs and 1,000 boxes.");
+        var orders=boxes.Select(b=>b.Order).Concat(looseItems.Select(i=>i.Order)).Distinct().Order(StringComparer.Ordinal).ToArray();
+        if(orders.Length>100 || boxes.Length+looseItems.Count>1000)throw new InvalidOperationException("A note may contain at most 100 POs and 1,000 labels.");
         var versions=LockCaseOrders(c,tx,orders);
-        ValidateCaseDestination(c,tx,boxes.Select(b=>b.PoID).Distinct().ToArray());
-        using(var guard=new SqlCommand($"""
+        ValidateCaseDestination(c,tx,boxes.Select(b=>b.PoID).Concat(looseItems.Select(i=>i.PoID)).Distinct().ToArray());
+        foreach(var group in looseItems.GroupBy(i=>i.Order))
+        {
+            var parts=ReadCaseParts(c,tx,group.Key,userId).ToDictionary(p=>p.PoID);
+            foreach(var item in group)
+                if(!parts.TryGetValue(item.PoID,out var part) || item.Quantity<=0 || decimal.Truncate(item.Quantity)!=item.Quantity
+                    || part.Issue.Length>0 && !(item.IsPart && part.Issue=="Packing quantity missing")
+                    || item.IsPart && (item.Quantity!=1 || part.Unit!="EA")
+                    || !item.IsPart && (part.PackingQty<=0 || item.Quantity>part.PackingQty))
+                    throw new InvalidOperationException("A loose box or part is unavailable. Refresh the PO items.");
+        }
+        if(looseItems.GroupBy(i=>i.PoID).Any(g=>g.Sum(i=>i.Quantity)>ReadCaseParts(c,tx,g.First().Order,userId)
+            .First(p=>p.PoID==g.Key).Available))
+            throw new InvalidOperationException("Loose item quantity exceeds the remaining PO balance.");
+        if(numbers.Count>0)using(var guard=new SqlCommand($"""
             IF (SELECT COUNT(*) FROM dbo.SCM_DeliveryCase k WITH(UPDLOCK,HOLDLOCK)
                 JOIN OPENJSON(@Cases) j ON k.CaseNo=CONVERT(varchar(50),j.value)
                 WHERE k.DeliveryID IS NULL AND k.NoteID IS NULL AND {CaseVendorAccess})<>@Count
@@ -232,10 +251,19 @@ public sealed partial class ScmRepository
         {
             var inputs=boxes.Where(b=>b.Order==order).GroupBy(b=>b.PoID).Select(g=>new DeliveryInput(g.Key,g.Sum(b=>b.Quantity))).ToArray();
             var cases=selected.Where(k=>k.Boxes.Any(b=>b.Order==order)).Select(k=>k.Number).ToArray();
-            deliveries.Add(RegisterSupplierDelivery(c,tx,order,date,inputs,versions[order],Guid.NewGuid(),userId,actor,cases,caseBatch:true));
+            if(cases.Length>0)
+                deliveries.Add(RegisterSupplierDelivery(c,tx,order,date,inputs,versions[order],Guid.NewGuid(),userId,actor,cases,caseBatch:true));
+            var loose=looseItems.Where(i=>i.Order==order).ToArray();
+            if(loose.Length>0)
+            {
+                var current=LockCaseOrders(c,tx,[order]);
+                deliveries.Add(RegisterSupplierDelivery(c,tx,order,date,
+                    loose.GroupBy(i=>i.PoID).Select(g=>new DeliveryInput(g.Key,g.Sum(i=>i.Quantity))).ToArray(),
+                    current[order],Guid.NewGuid(),userId,actor,looseItems:loose));
+            }
         }
         var note=IssueDeliveryNote(c,tx,deliveries,userId,actor);
-        using(var link=new SqlCommand("""
+        if(numbers.Count>0)using(var link=new SqlCommand("""
             UPDATE k SET NoteID=n.NoteID,DeliveryID=x.DeliveryID
             FROM dbo.SCM_DeliveryCase k JOIN OPENJSON(@Cases) j ON k.CaseNo=CONVERT(varchar(50),j.value)
             CROSS JOIN dbo.SCM_DeliveryNote n
