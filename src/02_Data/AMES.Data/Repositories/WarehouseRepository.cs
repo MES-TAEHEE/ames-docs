@@ -1423,13 +1423,15 @@ public sealed partial class WarehouseRepository
             .ToList();
         if (cleanLines.Count == 0)
             throw new InvalidOperationException("At least one requested line is required.");
+        if (cleanLines.Select(l => l.LineCode).Distinct(StringComparer.OrdinalIgnoreCase).Skip(1).Any())
+            throw new InvalidOperationException("A Pick Slip must belong to one production line.");
 
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction();
         try
         {
             var pickSlipNo = string.IsNullOrWhiteSpace(requestedPickSlipNo)
-                ? GeneratePickSlipNo(conn, tx)
+                ? GeneratePickSlipNo(conn, tx, cleanLines[0].LineCode)
                 : Truncate(requestedPickSlipNo.Trim().ToUpperInvariant(), 40);
 
             if (PickSlipExists(conn, tx, pickSlipNo))
@@ -1929,19 +1931,31 @@ public sealed partial class WarehouseRepository
         return cmd.ExecuteScalar() is not null;
     }
 
-    private static string GeneratePickSlipNo(SqlConnection conn, SqlTransaction tx)
+    private static string GeneratePickSlipNo(SqlConnection conn, SqlTransaction tx, string lineCode)
     {
         using var cmd = new SqlCommand("""
-            DECLARE @Prefix char(8) = CONVERT(char(8), SYSDATETIME(), 112);
+            DECLARE @LinePrefix char(2) = (
+                SELECT TOP (1) LotPrefix
+                FROM dbo.MD_Line
+                WHERE LEN(LotPrefix) = 2 AND (LineID = @Line OR LotPrefix = @Line)
+                ORDER BY CASE WHEN LineID = @Line THEN 0 ELSE 1 END
+            );
+            IF @LinePrefix IS NULL THROW 51026, 'The production line needs a two-character LotPrefix.', 1;
+
+            DECLARE @Prefix nvarchar(10) = CONCAT(N'PK', @LinePrefix, CONVERT(char(6), SYSDATETIME(), 12));
             DECLARE @Seq int;
 
-            SELECT @Seq = COALESCE(MAX(TRY_CONVERT(int, RIGHT(PickSlipNo, 2))), 0) + 1
+            SELECT @Seq = COALESCE(MAX(TRY_CONVERT(int, SUBSTRING(PickSlipNo, 11, 30))), 0) + 1
             FROM dbo.WH_PickSlip WITH (UPDLOCK, HOLDLOCK)
-            WHERE PickSlipNo LIKE @Prefix + N'[0-9][0-9]';
+            WHERE PickSlipNo LIKE @Prefix + N'[0-9][0-9][0-9]%'
+              AND SUBSTRING(PickSlipNo, 11, 30) NOT LIKE N'%[^0-9]%';
 
-            SELECT @Prefix + RIGHT(N'00' + CONVERT(nvarchar(10), COALESCE(@Seq, 1)), 2);
+            SELECT @Prefix + CASE WHEN @Seq < 1000
+                THEN RIGHT(N'000' + CONVERT(nvarchar(10), @Seq), 3)
+                ELSE CONVERT(nvarchar(10), @Seq) END;
             """, conn, tx);
-        return Convert.ToString(cmd.ExecuteScalar()) ?? DbClock.Now.ToString("yyyyMMdd") + "01";
+        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 40).Value = lineCode;
+        return Convert.ToString(cmd.ExecuteScalar())!;
     }
 
     private static void AddLocationParameters(
