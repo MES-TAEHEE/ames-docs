@@ -86,7 +86,7 @@ BEGIN
         CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_InventoryTransaction_CreatedTS DEFAULT SYSDATETIME(),
         ModifiedTS datetime2 NULL,
         ModifiedBy nvarchar(450) NULL,
-        CONSTRAINT CK_WH_InventoryTransaction_Type CHECK (TransactionType IN ('IN','OUT','ADJ'))
+        CONSTRAINT CK_WH_InventoryTransaction_Type CHECK (TransactionType IN ('IN','OUT','ADJ','MOVE'))
     );
 END;
 GO
@@ -139,7 +139,7 @@ ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN QtyChange decimal(18,3) NOT
 ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN QtyAfter decimal(18,3) NULL;
 IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'CK_WH_InventoryTransaction_Type')
     ALTER TABLE dbo.WH_InventoryTransaction DROP CONSTRAINT CK_WH_InventoryTransaction_Type;
-ALTER TABLE dbo.WH_InventoryTransaction WITH CHECK ADD CONSTRAINT CK_WH_InventoryTransaction_Type CHECK(TransactionType IN('IN','OUT','ADJ'));
+ALTER TABLE dbo.WH_InventoryTransaction WITH CHECK ADD CONSTRAINT CK_WH_InventoryTransaction_Type CHECK(TransactionType IN('IN','OUT','ADJ','MOVE'));
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'IX_WH_InventoryTransaction_Search' AND object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction'))
     CREATE INDEX IX_WH_InventoryTransaction_Search ON dbo.WH_InventoryTransaction(TransactionType,PartNo,LocationNo,LotNo);
 GO
@@ -412,7 +412,7 @@ BEGIN
         ModifiedTS datetime2 NULL,
         ModifiedBy nvarchar(450) NULL,
         CONSTRAINT PK_WH_InventoryTransaction PRIMARY KEY CLUSTERED (TransactionID),
-        CONSTRAINT CK_WH_InventoryTransaction_Type CHECK (TransactionType IN ('IN', 'OUT', 'ADJ'))
+        CONSTRAINT CK_WH_InventoryTransaction_Type CHECK (TransactionType IN ('IN', 'OUT', 'ADJ', 'MOVE'))
     );
 END;
 IF COL_LENGTH(N'dbo.WH_InventoryTransaction', N'LotNo') IS NULL
@@ -535,6 +535,7 @@ BEGIN
             WHEN 'IN' THEN N'In'
             WHEN 'OUT' THEN N'Out'
             WHEN 'ADJ' THEN N'Adjust'
+            WHEN 'MOVE' THEN N'Location Change'
             ELSE T.TransactionType
         END AS STATUS,
         T.TransactionType AS DIRECTION,
@@ -547,7 +548,11 @@ BEGIN
         T.QtyAfter AS AFTER_QTY,
         CASE WHEN T.TransactionType = 'ADJ' THEN N'QTY BEFORE' ELSE NULL END AS BEFORE_STATUS,
         CASE WHEN T.TransactionType = 'ADJ' THEN N'QTY AFTER' ELSE NULL END AS AFTER_STATUS,
-        T.LocationNo AS BEFORE_LOCATION,
+        CASE WHEN T.TransactionType = 'MOVE' THEN
+            CASE WHEN T.Note LIKE N'PDA put-away % -> %' THEN NULLIF(SUBSTRING(T.Note, 14, CHARINDEX(N' -> ', T.Note) - 14), N'UNASSIGNED')
+                 WHEN T.Note LIKE N'Moved from % to %' THEN NULLIF(SUBSTRING(T.Note, 12, CHARINDEX(N' to ', T.Note) - 12), N'(unassigned)')
+                 ELSE NULL END
+            ELSE T.LocationNo END AS BEFORE_LOCATION,
         T.LocationNo AS AFTER_LOCATION,
         N'WH_InventoryTransaction' AS SOURCE,
         T.Note AS NOTE
@@ -1718,7 +1723,7 @@ BEGIN
             (TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
              ReasonCode, SourceType, OperatorID, Note, CreatedBy, CreatedTS)
         VALUES
-            ('ADJ', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
+            ('MOVE', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
              'PUT_AWAY', 'WH_Inventory', @User,
              CONCAT('PDA put-away ', COALESCE(@CurrentLocation, N'UNASSIGNED'), N' -> ', @Location),
              LEFT(@User, 20), SYSDATETIME());
@@ -1821,7 +1826,7 @@ BEGIN
         (TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
          ReasonCode, SourceType, OperatorID, Note, CreatedBy, CreatedTS)
     VALUES
-        ('ADJ', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
+        ('MOVE', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
          'PUT_AWAY', 'WH_OLD_Inventory', @User,
          CONCAT('PDA put-away ', COALESCE(@CurrentLocation, N'UNASSIGNED'), N' -> ', @Location),
          LEFT(@User, 20), SYSDATETIME());

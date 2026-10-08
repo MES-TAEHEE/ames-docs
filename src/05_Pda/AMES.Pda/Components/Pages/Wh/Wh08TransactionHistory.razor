@@ -104,6 +104,9 @@
             </button>
             @if (!IsSpareParts)
             {
+                <button type="button" class="@($"wh08-kpi {TypeClass("MOVE")}")" @onclick='@(() => SetType("MOVE"))'>
+                    <span>LOCATION</span><strong>@MoveCount.ToString("N0")</strong><small>changes</small>
+                </button>
                 <button type="button" class="@($"wh08-kpi adj {TypeClass("ADJ")}")" @onclick='@(() => SetType("ADJ"))'>
                     <span>ADJ</span>
                     <strong>@AdjCount.ToString("N0")</strong>
@@ -156,15 +159,23 @@
 
                         <div class="wh08-row-part">
                             <strong>@Text(row.PartNo)</strong>
-                            <span>@Text(row.LocationId)</span>
+                            <span>@(IsMove(row) ? $"To {Text(row.AfterLocation ?? row.LocationId)}" : Text(row.LocationId))</span>
                         </div>
 
                         <dl class="wh08-value-rows">
-                            <div><dt>@(IsAdjust(row) ? "Change" : $"{row.Direction} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Text(row.Unit)</dd></div>
+                            @if (IsMove(row))
+                            {
+                                <div><dt>From</dt><dd>@Text(row.BeforeLocation)</dd></div>
+                                <div><dt>To</dt><dd>@Text(row.AfterLocation ?? row.LocationId)</dd></div>
+                            }
+                            else
+                            {
+                                <div><dt>@(IsAdjust(row) ? "Change" : $"{row.Direction} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Text(row.Unit)</dd></div>
+                            }
                             <div><dt>Worker</dt><dd>@Text(row.WorkerId)</dd></div>
                         </dl>
 
-                        @if (IsAdjust(row) || IsFinishedGoods)
+                        @if (IsAdjust(row) || IsMove(row) || IsFinishedGoods)
                         {
                             <button type="button" class="wh08-detail-btn" @onclick="@(() => OpenDetail(row))">
                                 DETAIL
@@ -227,11 +238,19 @@
     {
         <div class="wh-modal-backdrop" @onclick="CloseDetail" @onkeydown="OnDetailKey" tabindex="-1" @ref="_detailDialog">
             <RadzenCard class="wh-modal-card wh08-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="wh08-detail-title" @onclick:stopPropagation="true">
-                <h2 id="wh08-detail-title" class="wh-modal-title">@(IsAdjust(detail) ? "Adjustment Detail" : "Transaction Detail")</h2>
+                <h2 id="wh08-detail-title" class="wh-modal-title">@(IsMove(detail) ? "Location Change" : IsAdjust(detail) ? "Adjustment Detail" : "Transaction Detail")</h2>
                 <dl class="wh08-value-rows wh08-detail-rows">
                     <div><dt>@(IsSpareParts ? "EOS SP No" : "Lot No")</dt><dd>@Text(detail.LotNo)</dd></div>
                     <div><dt>Part No</dt><dd>@Text(detail.PartNo)</dd></div>
-                    <div><dt>Location</dt><dd>@Text(detail.LocationId)</dd></div>
+                    @if (IsMove(detail))
+                    {
+                        <div><dt>From</dt><dd>@Text(detail.BeforeLocation)</dd></div>
+                        <div><dt>To</dt><dd>@Text(detail.AfterLocation ?? detail.LocationId)</dd></div>
+                    }
+                    else
+                    {
+                        <div><dt>Location</dt><dd>@Text(detail.LocationId)</dd></div>
+                    }
                     <div><dt>Date</dt><dd>@LogDateText(detail)</dd></div>
                     @if (IsAdjust(detail))
                     {
@@ -239,7 +258,7 @@
                     <div><dt>Change</dt><dd class="@DeltaClass(detail.DeltaQty)">@SignedQtyText(detail.DeltaQty) @Text(detail.Unit)</dd></div>
                     <div><dt>After</dt><dd>@QtyText(detail.AfterQty) @Text(detail.Unit)</dd></div>
                     }
-                    else
+                    else if (!IsMove(detail))
                     {
                         <div><dt>Type</dt><dd>@Text(detail.Status)</dd></div>
                         <div><dt>Qty</dt><dd>@QtyText(detail.Qty) @Text(detail.Unit)</dd></div>
@@ -325,6 +344,7 @@
     private int InCount => ConditionRows.Count(r => IsDirection(r, "IN"));
     private int OutCount => ConditionRows.Count(r => IsDirection(r, "OUT"));
     private int AdjCount => ConditionRows.Count(r => IsDirection(r, "ADJ"));
+    private int MoveCount => ConditionRows.Count(IsMove);
     private IEnumerable<string> ReasonOptions => _rows
         .Where(row => IsFinishedGoods || IsAdjust(row))
         .Select(r => r.ReasonCode)
@@ -623,6 +643,7 @@
     }
 
     private static bool IsAdjust(PdaApi.WarehouseTransactionRow row) => IsDirection(row, "ADJ");
+    private static bool IsMove(PdaApi.WarehouseTransactionRow row) => IsDirection(row, "MOVE");
     private static bool IsSpMove(PdaApi.WarehouseTransactionRow row)
         => IsDirection(row, "IN") || IsDirection(row, "OUT");
     private static bool IsDirection(PdaApi.WarehouseTransactionRow row, string direction)
@@ -636,6 +657,7 @@
             "PICK" or "LOAD" => "outbound",
             "RETURN" => "inbound",
             "ADJ" => "adjust",
+            "MOVE" => "inbound",
             _ => "other"
         };
 
@@ -646,6 +668,7 @@
         if (value is "put-away" or "return") return "in";
         if (value is "release" or "loading") return "out";
         if (value.Contains("adjust")) return "adjust";
+        if (value.Contains("location change")) return "in";
         if (value.Contains("cancel")) return "cancel";
         if (value.Contains("out")) return "out";
         if (value.Contains("loss")) return "loss";

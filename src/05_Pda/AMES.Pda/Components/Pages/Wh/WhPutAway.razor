@@ -23,7 +23,7 @@
                 <label>SCAN BARCODE</label>
                 <RadzenTextBox class="pda-input wh02-barcode-input wh-putaway-item-input pda-scan-input"
                                Value="@_barcode" @oninput="OnBarcodeInput" @onkeydown="OnBarcodeKey"
-                               Placeholder="Scan Delivery Note or LOT barcode" Disabled="@IsBusy" />
+                               Placeholder="Scan Delivery Note, Case, or Box barcode" Disabled="@IsBusy" />
             </div>
         </RadzenCard>
 
@@ -32,27 +32,20 @@
             <section class="wh-putaway-selection">
                 <div class="wh-putaway-document-head">
                     <div>
-                        <span>@(_deliveryNoteNo is null ? "BOX PUT-AWAY" : "DELIVERY NOTE")</span>
-                        <strong>@Text(_deliveryNoteNo ?? _barcode)</strong>
+                        <span>@(_selectionType == "DELIVERY_NOTE" ? "DELIVERY NOTE" : _selectionType == "CASE" ? "CASE PUT-AWAY" : "BOX PUT-AWAY")</span>
+                        <strong>@Text(_barcode)</strong>
                     </div>
                     <div class="wh-putaway-document-summary">
-                        <strong>@_selectedBarcodes.Count / @_boxes.Count</strong>
+                        <strong>@PendingBoxes.Count pending · @StoredBoxes.Count stored</strong>
                         <span>BOXES</span>
                     </div>
                 </div>
 
-                <div class="wh-putaway-select-actions">
-                    <span>SELECT BOXES</span>
-                    <button type="button" @onclick="SelectAllBoxes" disabled="@IsBusy">ALL</button>
-                    <button type="button" @onclick="ClearSelectedBoxes" disabled="@IsBusy">NONE</button>
-                </div>
-
+                <div class="wh-putaway-select-actions"><span>@(_selectionType == "DELIVERY_NOTE" ? "VIEW ONLY" : "PENDING BOXES")</span></div>
                 <div class="wh-putaway-boxes">
-                    @foreach (var box in _boxes)
+                    @foreach (var box in PendingBoxes)
                     {
-                        <button type="button"
-                                class="@($"wh-putaway-box-row {(IsSelected(box.Barcode) ? "selected" : "")}")"
-                                @onclick="@(() => ToggleBox(box.Barcode))" disabled="@IsBusy">
+                        <div class="@($"wh-putaway-box-row {(IsSelected(box.Barcode) ? "selected" : "")}")">
                             <span class="wh-putaway-check">@(IsSelected(box.Barcode) ? "✓" : "")</span>
                             <div class="wh-putaway-box-main">
                                 <strong>@box.Barcode</strong>
@@ -62,11 +55,33 @@
                                 <strong>@QtyText(box.Qty, box.Unit)</strong>
                                 <span>@DateText(box.ReceivedAt)</span>
                             </div>
-                        </button>
+                        </div>
                     }
                 </div>
+                @if (StoredBoxes.Count > 0)
+                {
+                    <div class="wh-putaway-select-actions"><span>ALREADY PUT AWAY</span></div>
+                    <div class="wh-putaway-boxes">
+                        @foreach (var box in StoredBoxes)
+                        {
+                            <div class="wh-putaway-box-row stored">
+                                <span class="wh-putaway-check">✓</span>
+                                <div class="wh-putaway-box-main">
+                                    <strong>@box.Barcode</strong>
+                                    <span>@Text(box.PartNo) · @Text(box.PartName)</span>
+                                </div>
+                                <div class="wh-putaway-box-meta">
+                                    <strong>@QtyText(box.Qty, box.Unit)</strong>
+                                    <span>AT @Text(box.LocationNo)</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
             </section>
 
+            @if ((_selectionType != "DELIVERY_NOTE" && PendingBoxes.Count > 0) || _isRelocating)
+            {
             <RadzenCard class="wh02-panel wh02-location-panel hardware-scan-panel location-attention">
                 <div class="pda-fld">
                     <label>LOCATION BARCODE SCAN</label>
@@ -75,6 +90,7 @@
                                    Placeholder="Scan location barcode" Disabled="@IsBusy" />
                 </div>
             </RadzenCard>
+            }
         }
 
         @if (_location is not null)
@@ -133,15 +149,15 @@
     private const string PptDeliveryNote = "PPT-WH-NOTE-PUTAWAY";
     private const string PptBox = "5011LL260908850001";
     private const string PptRelocationBox = "5011LL260908850004";
-    private const string PptLocation = "B0-10-A1";
+    private const string PptLocation = "MA06A1F1";
     private static readonly PptScenarioPanel.Step[] PptSteps =
     [
-        new("Initial Screen", "Delivery Note 또는 LOT 바코드를 스캔하는 초기 화면을 확인합니다.",
+        new("Initial Screen", "Delivery Note, Case 또는 Box 바코드를 스캔하는 초기 화면을 확인합니다.",
             new PptScenarioPanel.Value("DELIVERY NOTE", PptDeliveryNote, "DOCUMENT"),
             new PptScenarioPanel.Value("LOT", PptBox, "BOX")),
-        new("Delivery Note Boxes", "Delivery Note를 스캔해 미적재 BOX 3개와 전체 선택 상태를 확인합니다.",
+        new("Delivery Note Boxes", "Delivery Note를 스캔해 박스 목록만 조회되고 선택되지 않는지 확인합니다.",
             new PptScenarioPanel.Value("DELIVERY NOTE", PptDeliveryNote, "DOCUMENT")),
-        new("Box Selection", "ALL·NONE과 개별 BOX 선택을 확인한 뒤 적재할 BOX를 선택합니다.",
+        new("Box Scan", "BOX 바코드를 스캔해야 적재 대상으로 선택되는지 확인합니다.",
             new PptScenarioPanel.Value("BOX 1", PptBox, "BOX")),
         new("Location & Confirm", "Location 스캔 후 CONFIRM 활성화를 확인하고 Put-away를 완료합니다.",
             new PptScenarioPanel.Value("LOCATION", PptLocation, "LOCATION")),
@@ -151,9 +167,9 @@
 
     private string _barcode = "";
     private string _locationNo = "";
+    private string _selectionType = "";
     private string _message = "";
     private string _messageClass = "dim";
-    private string? _deliveryNoteNo;
     private bool _isScanning;
     private bool _isLocationScanning;
     private bool _isConfirming;
@@ -169,11 +185,13 @@
     private PdaApi.LocationRow? _location;
     private List<PdaApi.PutAwayRow> _boxes = [];
     private HashSet<string> _selectedBarcodes = new(StringComparer.OrdinalIgnoreCase);
+    private List<PdaApi.PutAwayRow> PendingBoxes => _boxes.Where(box => string.IsNullOrWhiteSpace(box.LocationNo)).ToList();
+    private List<PdaApi.PutAwayRow> StoredBoxes => _boxes.Where(box => !string.IsNullOrWhiteSpace(box.LocationNo)).ToList();
 
     private bool IsBusy => _isScanning || _isLocationScanning || _isConfirming;
     private bool IsPptTestMode => PdaScenarioUsers.IsSimple(Auth.Session?.EmployeeNo);
     private decimal SelectedQty => _boxes.Where(box => IsSelected(box.Barcode)).Sum(box => box.Qty);
-    private bool CanConfirm => !IsBusy && _selectedBarcodes.Count > 0 && _location is not null
+    private bool CanConfirm => !IsBusy && _selectionType != "DELIVERY_NOTE" && _selectedBarcodes.Count > 0 && _location is not null
         && string.Equals(_location.LocationId, _locationNo.Trim(), StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -186,7 +204,8 @@
         }
 
         if (!_modalOpen && !_pptOpen && !IsBusy)
-            await JS.InvokeVoidAsync("pdaScan.focus", _boxes.Count == 0 ? ".wh-putaway-item-input" : ".wh-putaway-location-input");
+            await JS.InvokeVoidAsync("pdaScan.focus", _selectedBarcodes.Count > 0
+                ? ".wh-putaway-location-input" : ".wh-putaway-item-input");
     }
 
     private async Task EnsurePptData()
@@ -224,7 +243,13 @@
             await ScanItem();
             return;
         }
-        await LoadPptDocument();
+        if (step >= 3)
+        {
+            Reset();
+            _barcode = PptBox;
+            await ScanItem();
+        }
+        else await LoadPptDocument();
         if (step >= 4 && !_modalOpen)
         {
             _locationNo = PptLocation;
@@ -251,7 +276,9 @@
             await ScanItem();
             return;
         }
-        await LoadPptDocument();
+        Reset();
+        _barcode = PptBox;
+        await ScanItem();
         if (!_modalOpen)
         {
             _locationNo = PptLocation;
@@ -266,16 +293,22 @@
         if (string.IsNullOrWhiteSpace(value) || IsBusy || _modalOpen) return;
         await InvokeAsync(async () =>
         {
-            if (_boxes.Count == 0)
+            if (_selectionType == "CASE" && _boxes.Any(box =>
+                    string.Equals(box.Barcode, value, StringComparison.OrdinalIgnoreCase)))
+            {
+                await ScanCaseBox(value);
+            }
+            else if (_selectionType == "DELIVERY_NOTE" || _boxes.Count == 0)
             {
                 _barcode = value;
                 await ScanItem();
             }
-            else
+            else if (_selectedBarcodes.Count > 0)
             {
                 _locationNo = value;
                 await ScanLocation();
             }
+            else ShowAlert("Box Scan Required", "Scan a pending box barcode in this case.");
             StateHasChanged();
         });
     }
@@ -334,24 +367,37 @@
         finally { _isScanning = false; }
     }
 
-    private void ToggleBox(string barcode)
+    private async Task ScanCaseBox(string? barcode)
     {
-        if (!_selectedBarcodes.Remove(barcode)) _selectedBarcodes.Add(barcode);
-        ClearLocationIfCapacityExceeded();
-        SetSelectionMessage();
-    }
+        var value = Normalize(barcode);
+        if (IsBusy || _selectionType != "CASE" || value.Length == 0) return;
+        if (!_boxes.Any(box => string.Equals(box.Barcode, value, StringComparison.OrdinalIgnoreCase)))
+        {
+            ShowAlert("Box Not In Case", "This box does not belong to the scanned case.");
+            return;
+        }
 
-    private void SelectAllBoxes()
-    {
-        _selectedBarcodes = _boxes.Select(box => box.Barcode).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        ClearLocationIfCapacityExceeded();
-        SetSelectionMessage();
-    }
-
-    private void ClearSelectedBoxes()
-    {
-        _selectedBarcodes.Clear();
-        SetSelectionMessage();
+        _isScanning = true;
+        try
+        {
+            var result = await Api.WhPutAwayScanAsync(value);
+            var box = result.Boxes.SingleOrDefault();
+            if (result.SelectionType != "BOX" || box is null ||
+                !_boxes.Any(item => string.Equals(item.Barcode, box.Barcode, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("This box does not belong to the scanned case.");
+            if (!string.IsNullOrWhiteSpace(box.LocationNo))
+            {
+                _boxes = _boxes.Select(item => string.Equals(item.Barcode, box.Barcode, StringComparison.OrdinalIgnoreCase)
+                    ? box : item).ToList();
+                ShowAlert("Already Put Away", $"Box {box.Barcode} is already at {box.LocationNo}.");
+                return;
+            }
+            _selectedBarcodes.Add(box.Barcode);
+            ClearLocationIfCapacityExceeded();
+            SetSelectionMessage();
+        }
+        catch (Exception ex) { ShowAlert("Box Scan Failed", ex.Message); }
+        finally { _isScanning = false; }
     }
 
     private bool IsSelected(string barcode) => _selectedBarcodes.Contains(barcode);
@@ -359,10 +405,10 @@
     private void SetSelectionMessage()
     {
         _message = _selectedBarcodes.Count == 0
-            ? "Select at least one box."
+            ? "No pending boxes."
             : _location is not null
                 ? $"{_selectedBarcodes.Count} box(es) ready. Tap Confirm."
-                : $"{_selectedBarcodes.Count} of {_boxes.Count} box(es) selected. Scan a location.";
+                : $"{_selectedBarcodes.Count} of {PendingBoxes.Count} pending box(es) scanned. Scan a location.";
         _messageClass = _selectedBarcodes.Count == 0 ? "fail" : "ok";
     }
 
@@ -380,7 +426,7 @@
         if (_boxes.Count == 0 || IsBusy || string.IsNullOrWhiteSpace(_locationNo)) return;
         if (_selectedBarcodes.Count == 0)
         {
-            ShowAlert("Put-Away Check", "Select at least one box.");
+            ShowAlert("Put-Away Check", "Scan at least one box barcode.");
             return;
         }
 
@@ -420,9 +466,9 @@
         if (!CanConfirm || _location is null)
         {
             var message = _boxes.Count == 0
-                ? "Scan a Delivery Note or Box first."
+                ? "Scan a Case or Box first."
                 : _selectedBarcodes.Count == 0
-                    ? "Select at least one box."
+                    ? "Scan at least one box barcode."
                     : "Scan a valid location first.";
             ShowAlert("Put-Away Check", message);
             return;
@@ -453,7 +499,7 @@
 
     private void ClearLoadedSelection()
     {
-        _deliveryNoteNo = null;
+        _selectionType = "";
         _boxes = [];
         _selectedBarcodes.Clear();
         _location = null;
@@ -479,15 +525,16 @@
 
     private void LoadSelection(PdaApi.PutAwaySelectionResult selection, bool relocating)
     {
-        _deliveryNoteNo = selection.DeliveryNoteNo;
+        _selectionType = selection.SelectionType;
         _boxes = selection.Boxes;
         _selectedBarcodes = selection.SelectedBarcodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        _barcode = selection.SelectionType is "DELIVERY_NOTE" or "CASE"
-            ? selection.DeliveryNoteNo ?? _barcode
-            : selection.SelectedBarcodes.FirstOrDefault() ?? _barcode;
         _isRelocating = relocating;
-        _message = $"{_selectedBarcodes.Count} of {_boxes.Count} box(es) selected. Scan a location.";
-        _messageClass = "ok";
+        _message = selection.SelectionType == "DELIVERY_NOTE"
+            ? "Delivery Note is view only. Scan a Case or Box barcode to put away."
+            : selection.SelectionType == "CASE"
+                ? $"{PendingBoxes.Count} pending box(es) selected. Scan a location to put away."
+                : "Box scanned. Scan a location.";
+        _messageClass = selection.SelectionType == "DELIVERY_NOTE" ? "dim" : "ok";
     }
 
     private void AcceptRelocation()

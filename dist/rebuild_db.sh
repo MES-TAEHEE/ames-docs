@@ -57,7 +57,6 @@ FILES=(
   reseed_menu.sql                     #   → 메뉴/HRef 정본 재시드
   migrate_system_roles.sql            #   → 시스템 역할 고정 ID(ROLE-SYSADMIN·ROLE-SUPERVISOR) — Admin 권한 시드보다 먼저(10-09)
   seed_admin_permissions.sql          #   → Admin RBAC(REA) + admin@ames.local 계정
-  seed_wh_picking_rbac_test.sql       #   → WH Picking Orders R 권한 비교용 Web 계정 2개
   seed_md_code.sql                    # 마스터 공통코드
   seed_md_customer_seoyon.sql         # 고객 마스터 = Seoyon 세 플랜트(SAV·GEO·AUB), 데모 OEM 삭제
   seed_md_routing_step.sql            # 라우팅 템플릿(A/B) 시드 (테이블은 AMES_Schema.sql)

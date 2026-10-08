@@ -12,12 +12,12 @@
 <HeadContent>
     <style>@@media print { body { background: white !important; } #blazor-error-ui { display: none !important; } }</style>
 </HeadContent>
-<div class="note-toolbar">
+<div class="note-toolbar portal-print-toolbar">
     <a href="/portal/deliveries">Back to Delivery Management</a>
     @if (_note is not null)
     {
         <div class="note-actions">
-            <button type="button" class="rz-button rz-button-md rz-primary" data-delivery-note-print data-no-busy>Print</button>
+            <button type="button" class="ames-btn" data-delivery-note-print data-no-busy>Print</button>
         </div>
     }
 </div>

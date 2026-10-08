@@ -6087,6 +6087,10 @@ body:has(.wh08-shell) {
     gap: 7px;
 }
 
+.wh08-shell:not(.sp-screen):not(.fg-history-shell) .wh08-kpi-strip {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .wh08-kpi {
     min-width: 0;
     border: 1px solid #e2e8f0;
@@ -10945,17 +10949,6 @@ html body .rz-popup .rz-state-highlight span {
     margin-right: auto;
 }
 
-.wh-putaway-select-actions button {
-    min-width: 52px;
-    height: 28px;
-    border: 1px solid rgba(148, 163, 184, .5);
-    border-radius: 0;
-    background: rgba(30, 41, 59, .9);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 800;
-}
-
 .wh-putaway-boxes {
     max-height: 252px;
     overflow-y: auto;
@@ -10977,6 +10970,15 @@ html body .rz-popup .rz-state-highlight span {
 .wh-putaway-box-row.selected {
     background: rgba(22, 101, 52, .48);
     box-shadow: inset 3px 0 #22c55e;
+}
+
+.wh-putaway-box-row.stored {
+    background: rgba(71, 85, 105, .25);
+}
+
+.wh-putaway-box-row.stored .wh-putaway-check {
+    color: #93c5fd;
+    border-color: #60a5fa;
 }
 
 .wh-putaway-check {
@@ -13159,4 +13161,97 @@ body .pda-shell.wh.wh07-shell .wh07-pick-from > strong {
   font-size: 12px;
   line-height: 1.2;
   overflow-wrap: anywhere;
+}
+
+body .pda-shell.wh-adjust-box-label .label-master-body {
+  padding: 14px 12px 24px;
+  overflow-y: auto;
+}
+
+body .pda-shell.wh-adjust-box-label .label-list-count {
+  margin-bottom: 10px;
+  color: #9ec8ff;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+body .pda-shell.wh-adjust-box-label .label-printer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 9px;
+  color: #9ec8ff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+body .pda-shell.wh-adjust-box-label :is(.label-action, .label-printer-choice) {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid #56729b;
+  border-radius: 6px;
+  background: #1b2c48;
+  color: #f8fafc;
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+}
+
+body .pda-shell.wh-adjust-box-label .label-printer-row .label-action {
+  width: auto;
+  min-height: 40px;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+body .pda-shell.wh-adjust-box-label .label-printer-choice {
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+body .pda-shell.wh-adjust-box-label .label-printer-choice.selected {
+  border-color: #46d8a0;
+  background: #123e37;
+}
+
+body .pda-shell.wh-adjust-box-label .label-printer-choice :is(strong, small) {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+body .pda-shell.wh-adjust-box-label .label-printer-choice small {
+  margin-top: 2px;
+  color: #b9cae1;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+body .pda-shell.wh-adjust-box-label > .pda-bd > .label-action {
+  margin: 14px 0 10px;
+  border-color: #4b84f8;
+  background: #2458c5;
+}
+
+body .pda-shell.wh-adjust-box-label .label-action:disabled,
+body .pda-shell.wh-adjust-box-label .label-printer-choice:disabled {
+  opacity: .55;
+}
+
+body .pda-shell.wh-adjust-box-label .label-master-body > small {
+  display: block;
+  color: #b9cae1;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+body .pda-shell.wh.wh03-shell .wh03-reprint-btn.rz-button {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  border-color: #4b84f8;
+  background: #2458c5;
 }

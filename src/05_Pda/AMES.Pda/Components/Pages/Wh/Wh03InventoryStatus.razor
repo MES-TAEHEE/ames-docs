@@ -393,17 +393,14 @@
 
                     <div class="wh03-action-row">
                         <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
-                        @if (_adjustedLabelLotNo is not null && !IsSpareParts)
-                        {
-                            <RadzenButton class="wh03-date-apply wh03-post-btn" Click="@OpenAdjustedLabelPrint"
-                                          Disabled="@InventoryBusy" Text="PRINT LABEL" />
-                        }
-                        else
-                        {
-                            <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
-                                          Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
-                        }
+                        <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
+                                      Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
                     </div>
+                    @if (_adjustedLabelLotNo is not null && !IsSpareParts)
+                    {
+                        <RadzenButton class="wh03-date-apply wh03-post-btn wh03-reprint-btn" Click="@ConfirmAdjustedLabelReprint"
+                                      Disabled="@InventoryBusy" Text="REPRINT" />
+                    }
                 </RadzenCard>
             }
 
@@ -757,7 +754,7 @@
             new InventoryTestValue("PART NO", "81710-PI000NNB")),
         new(5, "WH004-TC-005", "Location No 검색",
             "Location No를 검색해 일치하는 한 행만 표시되는지 확인합니다.", true,
-            new InventoryTestValue("LOCATION", "B0-10-A1")),
+            new InventoryTestValue("LOCATION", "MA06A1F1")),
         new(6, "WH004-TC-006", "검색 결과 없음",
             "존재하지 않는 값 검색 시 이전 결과 없이 빈 결과 문구가 표시되는지 확인합니다.", true,
             new InventoryTestValue("UNKNOWN", "WH-INV-UNKNOWN-999999")),
@@ -766,13 +763,13 @@
             new InventoryTestValue("PART NO", "81710-PI000NNB")),
         new(8, "WH004-TC-008", "Location 상세 정보",
             "Location을 열어 Part No, Part Name, LOT No, Qty, Unit, Status를 확인합니다.", true,
-            new InventoryTestValue("LOCATION", "B0-10-A1", "OPEN_LOCATION")),
+            new InventoryTestValue("LOCATION", "MA06A1F1", "OPEN_LOCATION")),
         new(9, "WH004-TC-009", "상세 수량 합계 검증",
-            "B0-10-A1의 LOT 수량 4 + 24 + 45가 Location 합계 73 EA와 일치하는지 확인합니다.", true,
-            new InventoryTestValue("LOCATION", "B0-10-A1 / 73 EA", "OPEN_LOCATION")),
+            "MA06A1F1의 LOT 수량 4 + 24 + 45가 Location 합계 73 EA와 일치하는지 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "MA06A1F1 / 73 EA", "OPEN_LOCATION")),
         new(10, "WH004-TC-010", "BACK 상태 유지",
-            "상세 화면에서 BACK을 눌렀을 때 기존 B0-10-A1 검색 조건과 위치가 유지되는지 확인합니다.", true,
-            new InventoryTestValue("LOCATION", "B0-10-A1", "OPEN_LOCATION")),
+            "상세 화면에서 BACK을 눌렀을 때 기존 MA06A1F1 검색 조건과 위치가 유지되는지 확인합니다.", true,
+            new InventoryTestValue("LOCATION", "MA06A1F1", "OPEN_LOCATION")),
         new(11, "WH004-TC-011", "Inventory API 오류 및 재시도",
             "API ERROR를 ON으로 하고 START해 오류 알림과 화면 유지 여부를 확인한 뒤 OFF로 재시도합니다.", true,
             new InventoryTestValue("PART NO", "81710-PI000NNB", "API_QUERY"))
@@ -874,6 +871,7 @@
     private string _invAdjustNote = "";
     private decimal _invAdjustDelta;
     private string? _adjustedLabelLotNo;
+    private bool _adjustedBoxLabel;
     private PdaApi.AdjustmentLocation? _adjustLocation;
     private string? _adjustQuantityInput;
     private bool _adjustQuantityInvalid;
@@ -1874,10 +1872,13 @@
         _selectedBrowsePart = part;
         try
         {
-            _browsePartLots = (await Api.WhLotStatusesAsync(part.PartNo, AreaScope))
+            var lots = IsSpareParts
+                ? await Api.WhLotStatusesAsync(part.PartNo, AreaScope)
+                : await Api.WhInventoryPartLotsAsync(part.PartNo, DateFrom, DateTo);
+            _browsePartLots = lots
                 .Where(row => row.RemainingQty > 0
                     && string.Equals(row.ItemNo, part.PartNo, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(row.LocationId, part.Location, StringComparison.OrdinalIgnoreCase))
+                    && (!IsSpareParts || string.Equals(row.LocationId, part.Location, StringComparison.OrdinalIgnoreCase)))
                 .OrderBy(row => row.LocationId, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(row => row.LotNo, StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -2126,16 +2127,20 @@
                 _adjustLocation = _adjustLocation with { Items = _adjustLocation.Items.Select(x =>
                     x.LotNo == adjusted.LotNo ? x with { Qty = adjusted.Qty } : x).ToList() };
             _invBarcode = adjusted.Barcode;
-            _adjustedLabelLotNo = IsSpareParts || deltaQty >= 0 ? null : adjusted.LotNo;
+            _adjustedLabelLotNo = IsSpareParts || adjusted.Qty <= 0 ? null : adjusted.LotNo;
+            _adjustedBoxLabel = false;
+            if (_adjustedLabelLotNo is not null && !IsFinishedGoodsAdjust)
+            {
+                try { _adjustedBoxLabel = (await Api.WhBoxReprintAsync(_adjustedLabelLotNo)).BoxNo == _adjustedLabelLotNo; }
+                catch { } // Non-box LOTs keep the existing warehouse label route.
+            }
             ResetInventoryAdjust();
-            _invMsg = "Adjustment saved. Print and replace the quantity label.";
+            _invMsg = "Adjustment saved.";
             _invCls = "ok";
-            var message = IsFinishedGoodsAdjust
-                ? "Finished goods adjustment was saved."
-                : "Warehouse adjustment was saved.";
             if (_adjustedLabelLotNo is not null)
-                message += " Tap PRINT LABEL to reprint the 2D barcode label.";
-            ShowAlert("Saved", message, "success");
+                ConfirmAdjustedLabelReprint();
+            else
+                ShowAlert("Saved", "Adjustment was saved. No label is available to reprint.", "success");
         }
         catch (Exception ex)
         {
@@ -2149,11 +2154,14 @@
         }
     }
 
-    private void OpenAdjustedLabelPrint()
+    private void ConfirmAdjustedLabelReprint()
     {
-        if (_adjustedLabelLotNo is null || InventoryBusy) return;
+        if (_adjustedLabelLotNo is null) return;
         var source = IsFinishedGoodsAdjust ? "fg" : "wh";
-        Nav.NavigateTo($"/wh/label-print?source={source}&lot={Uri.EscapeDataString(_adjustedLabelLotNo)}");
+        var target = _adjustedBoxLabel
+            ? $"/wh/adjust-box-label?lot={Uri.EscapeDataString(_adjustedLabelLotNo)}"
+            : $"/wh/label-print?source={source}&lot={Uri.EscapeDataString(_adjustedLabelLotNo)}";
+        ShowNavigationAlert("Confirm Quantity", $"Is this quantity correct? {InventoryAfterQty:0.###} {_invScan?.Unit}", target, "REPRINT");
     }
 
     private void ShowAlert(string title, string message, string kind = "info")

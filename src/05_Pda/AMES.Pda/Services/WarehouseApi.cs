@@ -63,6 +63,16 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
             "/api/wh/inventory/locations?" + string.Join("&", query),
             "Inventory location service is unavailable.");
     }
+
+    public Task<List<LotStatusRow>> WhInventoryPartLotsAsync(string itemNo, DateTime? dateFrom = null, DateTime? dateTo = null)
+    {
+        var query = new List<string>();
+        if (dateFrom.HasValue) query.Add($"dateFrom={dateFrom.Value:yyyy-MM-dd}");
+        if (dateTo.HasValue) query.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
+        var url = $"/api/wh/inventory/part/{Uri.EscapeDataString(itemNo.Trim())}/lots"
+            + (query.Count == 0 ? "" : "?" + string.Join("&", query));
+        return GetRequiredAsync<List<LotStatusRow>>(url, "Inventory part LOT service is unavailable.");
+    }
     public async Task<List<LocationRow>> WhLocationsAsync(string? areaCode = null)
     {
         if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
@@ -190,6 +200,8 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
             "Inventory lot service is unavailable.");
         return await FilterByAreaAsync(rows, row => row.LocationId, areaCode);
     }
+    public Task<BoxReprintRow> WhBoxReprintAsync(string lotNo) => GetRequiredAsync<BoxReprintRow>(
+        $"/api/wh/inventory/box-label/{Uri.EscapeDataString(lotNo)}", "Box label data is unavailable.");
     public Task<HttpResponseMessage> WhReleaseCompleteAsync(ReleaseCompleteReq body)
         => Post("/api/wh/release/complete", body);
     public Task<List<OutgoingVendorRow>> WhOutgoingVendorsAsync()

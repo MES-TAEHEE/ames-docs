@@ -260,7 +260,7 @@
     void Reload()
     {
         _allRows = MD.ListLocations()
-            .Where(x => !string.Equals(x.AreaCode, "SPARE_PARTS_AREA", StringComparison.OrdinalIgnoreCase))
+            .Where(x => x.ActiveFlag && !string.Equals(x.AreaCode, "SPARE_PARTS_AREA", StringComparison.OrdinalIgnoreCase))
             .ToList();
         ApplyFilter();
     }

@@ -1,4 +1,6 @@
 .label-tools { display:flex; flex-wrap:wrap; gap:16px; padding:20px; align-items:center; }
+.label-tools.portal-print-toolbar { justify-content:space-between; gap:12px; max-width:210mm; margin:20px auto; padding:0 20px; }
+.label-tools .ames-btn { min-width:110px; }
 .case-labels { width:190mm; margin:20px auto; color:#000; background:#fff; font-family:Arial,sans-serif; }
 .case-label { box-sizing:border-box; padding:8mm; width:190mm; min-height:235mm; break-after:page; }
 .case-label:last-child { break-after:auto; }

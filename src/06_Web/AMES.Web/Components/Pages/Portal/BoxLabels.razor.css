@@ -1,2 +1,4 @@
 ﻿.label-tools { padding:20px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.label-tools.portal-print-toolbar { justify-content:space-between; gap:12px; max-width:210mm; margin:20px auto; padding:0 20px; }
+.label-tools .ames-btn { min-width:110px; }
 @media print { .label-tools { display:none!important; } }
