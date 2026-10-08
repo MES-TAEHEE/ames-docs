@@ -33,13 +33,15 @@ ELSE
 GO
 
 -- ── 2) Admin 권한 ─────────────────────────────────────────────────────────
-IF NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission WHERE RoleName = 'Admin' AND ScreenCode = 'MNT-010')
+IF NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission WHERE RoleID = N'ROLE-SYSADMIN' AND ScreenCode = 'MNT-010')
 BEGIN
-    DECLARE @AdminRoleId NVARCHAR(450) = (SELECT Id FROM dbo.AspNetRoles WHERE Name = 'Admin');
+    -- Admin = 시스템 역할 고정 ID(이름은 SYS-002 에서 바뀔 수 있다 — dist/migrate_system_roles.sql)
+    DECLARE @AdminRoleId NVARCHAR(450) = N'ROLE-SYSADMIN';
+    DECLARE @AdminRoleName VARCHAR(40) = ISNULL((SELECT Name FROM dbo.AspNetRoles WHERE Id = @AdminRoleId), 'System Administrator');
     INSERT INTO dbo.SYS_RolePermission
         (RoleID, RoleName, ModuleCode, ProcessCode, ScreenCode, PermissionLevel, IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
     VALUES
-        (@AdminRoleId, 'Admin', 'WEB', 'MNT', 'MNT-010', 'REA', 1, SYSDATETIME(), 'seed', SYSDATETIME());
+        (@AdminRoleId, @AdminRoleName, 'WEB', 'MNT', 'MNT-010', 'REA', 1, SYSDATETIME(), 'seed', SYSDATETIME());
     PRINT N'✓ SYS_RolePermission Admin/MNT-010 (REA)';
 END
 ELSE

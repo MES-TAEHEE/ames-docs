@@ -75,10 +75,11 @@ WHEN NOT MATCHED THEN
     VALUES ('SCM-004', 'WEB', 'SCM', NULL, N'외부 사용자 관리', N'Portal Users', 'scm/portal-users', 'SCM-004', 4, 1, 'migrate', SYSDATETIME());
 PRINT CONCAT(N'SYS_Screen SCM-004: ', @@ROWCOUNT, N' 건');
 
-IF NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission WHERE RoleName = 'Admin' AND ScreenCode = 'SCM-004')
+-- Admin = 시스템 역할 고정 ID ROLE-SYSADMIN(이름은 바뀔 수 있다 — dist/migrate_system_roles.sql)
+IF NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission WHERE RoleID = N'ROLE-SYSADMIN' AND ScreenCode = 'SCM-004')
     INSERT INTO dbo.SYS_RolePermission (RoleID, RoleName, ModuleCode, ProcessCode, ScreenCode, PermissionLevel, IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
-    SELECT Id, 'Admin', 'WEB', 'SCM', 'SCM-004', 'REA', 1, SYSDATETIME(), 'migrate', SYSDATETIME()
-    FROM   dbo.AspNetRoles WHERE Name = 'Admin';
+    SELECT Id, Name, 'WEB', 'SCM', 'SCM-004', 'REA', 1, SYSDATETIME(), 'migrate', SYSDATETIME()
+    FROM   dbo.AspNetRoles WHERE Id = N'ROLE-SYSADMIN';
 PRINT CONCAT(N'SYS_RolePermission Admin/SCM-004: ', @@ROWCOUNT, N' 건');
 GO
 

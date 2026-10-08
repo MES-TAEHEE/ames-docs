@@ -621,8 +621,17 @@
   <data name="SYS.Roles.InUseBy" xml:space="preserve">
     <value>Users assigned to this role:</value>
   </data>
-  <data name="SYS.Roles.ConfirmDeleteInUse" xml:space="preserve">
-    <value>{0} user(s) assigned to this role. Confirm delete?</value>
+  <data name="SYS.Roles.Err.Protected" xml:space="preserve">
+    <value>System roles cannot be deleted. They can be renamed.</value>
+  </data>
+  <data name="SYS.Roles.Err.InUse" xml:space="preserve">
+    <value>This role is assigned to {0} user(s) and cannot be deleted. Change their role in SYS-001 first.</value>
+  </data>
+  <data name="SYS.Roles.Err.Duplicate" xml:space="preserve">
+    <value>A role with this name already exists.</value>
+  </data>
+  <data name="SYS.Roles.SystemBadge" xml:space="preserve">
+    <value>System</value>
   </data>
   <data name="SYS.Roles.Err.NameRequired" xml:space="preserve">
     <value>Role name is required.</value>
@@ -3580,7 +3589,7 @@
     <value>Shift Configuration</value>
   </data>
   <data name="SYS.Calendar.Lbl.SkipExisting" xml:space="preserve">
-    <value>Skip if data exists</value>
+    <value>Skip dates that already have data (unchecked: overwrite)</value>
   </data>
   <data name="SYS.Calendar.Lbl.Holidays" xml:space="preserve">
     <value>Holidays</value>
@@ -3775,7 +3784,7 @@
     <value>No roles defined.</value>
   </data>
   <data name="SYS.Roles.Ph.RoleName" xml:space="preserve">
-    <value>e.g. Admin, Manager, Operator</value>
+    <value>e.g. Manager, Planner, Operator</value>
   </data>
   <data name="Kpi.NeedMaint" xml:space="preserve">
     <value>Need Maint.</value>
@@ -7239,6 +7248,9 @@
   <data name="TopBar.RoleDesc.Default" xml:space="preserve">
     <value>Registered role — screen permissions follow the SYS role settings</value>
   </data>
+  <data name="TopBar.RoleDesc.Extra" xml:space="preserve">
+    <value>Additional role — created besides the built-in roles; screen permissions follow the SYS role settings</value>
+  </data>
   <data name="TopBar.RoleDesc.None" xml:space="preserve">
     <value>No role assigned, so no screen access. Ask an administrator to assign a role</value>
   </data>
@@ -10329,13 +10341,16 @@
     <value>Too many sign-in attempts. Try again in a minute.</value>
   </data>
   <data name="SYS.Users.Hint.AdminOnly" xml:space="preserve">
-    <value>Only Admin can change role, status or password, unlock, delete, or change another user&apos;s PIN (you can change your own PIN).</value>
+    <value>Only users with the {0} role can change role, status or password, unlock, delete, or change another user&apos;s PIN (you can change your own PIN).</value>
+  </data>
+  <data name="SYS.Users.Hint.CreateInactive" xml:space="preserve">
+    <value>Accounts created by users without the {0} role are INACTIVE. A user with the {0} role must activate the account before it can sign in.</value>
   </data>
   <data name="SYS.Users.Hint.Self" xml:space="preserve">
     <value>You cannot change the role or status of your own account, or delete it.</value>
   </data>
   <data name="SYS.Users.Err.AdminTarget" xml:space="preserve">
-    <value>Only Admin can edit an Admin account.</value>
+    <value>Only users with the {0} role can edit an account that has the {0} role.</value>
   </data>
   <data name="TopBar.Cred.Button" xml:space="preserve">
     <value>Change password / PIN</value>

@@ -18,7 +18,7 @@ END
 GO
 
 -- ── 1) 개발 편의: Supervisor 역할 보유자가 없으면 S001 에 부여 ───────────────
-DECLARE @role nvarchar(450) = (SELECT Id FROM dbo.AspNetRoles WHERE Name = 'Supervisor');
+DECLARE @role nvarchar(450) = (SELECT Id FROM dbo.AspNetRoles WHERE Id = N'ROLE-SUPERVISOR');   -- 시스템 역할 고정 ID(이름은 바뀔 수 있다)
 IF @role IS NULL
 BEGIN
     RAISERROR('AspNetRoles 에 Supervisor 역할이 없습니다.', 16, 1);
@@ -43,8 +43,7 @@ SELECT l.LineID, u.EmployeeNo, 1, 'seed', SYSDATETIME()
 FROM   dbo.MD_Line l
 CROSS JOIN (SELECT DISTINCT p.EmployeeNo
             FROM   dbo.SYS_UserProfile p
-            JOIN   dbo.AspNetUserRoles ur ON ur.UserId = p.UserID
-            JOIN   dbo.AspNetRoles     r  ON r.Id = ur.RoleId AND r.Name = 'Supervisor'
+            JOIN   dbo.AspNetUserRoles ur ON ur.UserId = p.UserID AND ur.RoleId = N'ROLE-SUPERVISOR'
             WHERE  p.EmployeeNo IS NOT NULL AND p.EmployeeNo <> '') u
 WHERE  COALESCE(l.Status, 'ACTIVE') <> 'INACTIVE';
 PRINT CONCAT('MD_LineSupervisor rebuilt: ', @@ROWCOUNT, ' rows');

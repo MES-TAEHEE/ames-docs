@@ -1,5 +1,6 @@
 using System.Data;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -19,7 +20,7 @@ public sealed class SysRepository
         string? EmployeeNo, string? EmployeeName, string? Department,
         string? PlantCode, string? DefaultShift,
         string? AccountStatus, DateTime? LastLoginTs, string? RolesCsv,
-        int FailedLoginCount, bool HasProfile = true)
+        int FailedLoginCount, bool HasProfile = true, bool IsAdmin = false)
     {
         // 등록된 계정 — 프로필이 있어야 로그인할 수 있다. 담당자·수신자 콤보는 이 계정만 고르게 한다(10-07)
         public bool IsApproved => HasProfile;
@@ -86,7 +87,9 @@ public sealed class SysRepository
                           FROM   dbo.AspNetUserRoles ur
                           JOIN   dbo.AspNetRoles r ON r.Id = ur.RoleId
                           WHERE  ur.UserId = u.Id
-                          FOR XML PATH('')), 1, 2, '') AS RolesCsv
+                          FOR XML PATH('')), 1, 2, '') AS RolesCsv,
+                   CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.AspNetUserRoles ar WHERE ar.UserId = u.Id AND ar.RoleId = @AdminRole)
+                        THEN 1 ELSE 0 END AS BIT) AS IsAdmin
             FROM   dbo.AspNetUsers       u
             LEFT JOIN dbo.SYS_UserProfile p ON p.UserID = u.Id
             ORDER BY u.UserName;
@@ -99,8 +102,35 @@ public sealed class SysRepository
             r["AccountStatus"] as string, r["LastLoginTS"] as DateTime?,
             r["RolesCsv"] as string,
             Convert.ToInt32(r["FailedLoginCount"]),
-            (bool)r["HasProfile"]),
-            ("@N", topN));
+            (bool)r["HasProfile"], (bool)r["IsAdmin"]),
+            ("@N", topN), ("@AdminRole", SystemRoles.AdminId));
+    }
+
+    /// <summary>사용자가 가진 역할(ID·현재 이름) — 화면 권한·Admin 판정은 이 ID 로 한다(쿠키의 역할 이름은 쓰지 않는다).</summary>
+    public List<(string Id, string Name)> ListUserRoles(string userId)
+    {
+        const string sql = """
+            SELECT ur.RoleId, ISNULL(r.Name, N'') AS Name
+            FROM   dbo.AspNetUserRoles ur
+            LEFT JOIN dbo.AspNetRoles r ON r.Id = ur.RoleId
+            WHERE  ur.UserId = @UserId;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<(string, string)>();
+        while (r.Read()) list.Add(((string)r["RoleId"], (string)r["Name"]));
+        return list;
+    }
+
+    public bool UserHasRole(string userId, string roleId)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT 1 FROM dbo.AspNetUserRoles WHERE UserId = @UserId AND RoleId = @RoleId", conn);
+        cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+        cmd.Parameters.Add("@RoleId", SqlDbType.NVarChar, 450).Value = roleId;
+        return cmd.ExecuteScalar() is not null;
     }
 
     public List<UserSelectRow> ListUsersForSelect()
@@ -197,6 +227,74 @@ public sealed class SysRepository
         return Query(sql, r => new RoleRow((string)r["Id"], (string)r["Name"], (int)r["Cnt"]));
     }
 
+    public enum RoleChangeResult { Ok, NotFound, Protected, Duplicate, InUse }
+
+    // 화면 권한·알림 수신·Admin/Supervisor 판정은 모두 역할 ID 로 하므로 이름 변경은 표시만 바뀐다 — 다시 로그인시키지 않는다.
+    // 시스템 역할(SystemRoles)도 이름은 바꿀 수 있다. 권한 행의 RoleName 은 표시·옛 시드 호환용 사본이라 같이 바꾼다
+    public RoleChangeResult RenameRole(string roleId, string newName)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var oldName = RoleNameLocked(conn, tx, roleId);
+        if (oldName is null) return RoleChangeResult.NotFound;
+
+        const string sql = """
+            IF EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE NormalizedName = @Norm AND Id <> @Id)
+            BEGIN SELECT 0; RETURN; END
+            UPDATE dbo.AspNetRoles SET Name = @Name, NormalizedName = @Norm, ConcurrencyStamp = CONVERT(nvarchar(36), NEWID()) WHERE Id = @Id;
+            UPDATE dbo.SYS_RolePermission SET RoleName = @Name, RoleID = @Id WHERE RoleID = @Id OR (RoleID IS NULL AND RoleName = @Old);
+            SELECT 1;
+            """;
+        using var cmd = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.Add("@Id",   SqlDbType.NVarChar, 450).Value = roleId;
+        cmd.Parameters.Add("@Name", SqlDbType.VarChar, 40).Value   = newName;
+        cmd.Parameters.Add("@Norm", SqlDbType.NVarChar, 256).Value = newName.ToUpperInvariant();
+        cmd.Parameters.Add("@Old",  SqlDbType.VarChar, 40).Value   = oldName;
+        if (Convert.ToInt32(cmd.ExecuteScalar()) == 0) return RoleChangeResult.Duplicate;
+        tx.Commit();
+        return RoleChangeResult.Ok;
+    }
+
+    // 사용자가 배정된 역할·시스템 역할(SystemRoles)은 지우지 않는다(사용자 결정 10-08·10-09). 권한 행과 알림 규칙의 수신 역할에서도 같이 뺀다
+    public RoleChangeResult DeleteRole(string roleId)
+    {
+        if (SystemRoles.IsSystem(roleId)) return RoleChangeResult.Protected;
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var name = RoleNameLocked(conn, tx, roleId);
+        if (name is null) return RoleChangeResult.NotFound;
+
+        const string sql = """
+            IF EXISTS (SELECT 1 FROM dbo.AspNetUserRoles WITH (UPDLOCK, HOLDLOCK) WHERE RoleId = @Id)
+            BEGIN SELECT 0; RETURN; END
+            DELETE dbo.SYS_RolePermission WHERE RoleID = @Id OR (RoleID IS NULL AND RoleName = @Name);
+            UPDATE r SET RecipientRolesJSON = x.NewJson
+            FROM   dbo.SYS_NotificationRule r
+            CROSS APPLY (SELECT CASE WHEN COUNT(*) = 0 THEN NULL
+                                     ELSE N'[' + STRING_AGG(CAST(N'"' + STRING_ESCAPE(j.value, 'json') + N'"' AS nvarchar(max)), N',')
+                                                 WITHIN GROUP (ORDER BY CAST(j.[key] AS int)) + N']' END AS NewJson
+                         FROM OPENJSON(r.RecipientRolesJSON) j WHERE j.value <> @Id) x
+            WHERE  ISJSON(r.RecipientRolesJSON) = 1
+              AND  EXISTS (SELECT 1 FROM OPENJSON(r.RecipientRolesJSON) j WHERE j.value = @Id);
+            DELETE dbo.AspNetRoleClaims   WHERE RoleId = @Id;
+            DELETE dbo.AspNetRoles        WHERE Id = @Id;
+            SELECT 1;
+            """;
+        using var cmd = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.Add("@Id",   SqlDbType.NVarChar, 450).Value = roleId;
+        cmd.Parameters.Add("@Name", SqlDbType.VarChar, 40).Value   = name;
+        if (Convert.ToInt32(cmd.ExecuteScalar()) == 0) return RoleChangeResult.InUse;
+        tx.Commit();
+        return RoleChangeResult.Ok;
+    }
+
+    static string? RoleNameLocked(SqlConnection conn, SqlTransaction tx, string roleId)
+    {
+        using var cmd = new SqlCommand("SELECT Name FROM dbo.AspNetRoles WITH (UPDLOCK, ROWLOCK) WHERE Id = @Id", conn, tx);
+        cmd.Parameters.Add("@Id", SqlDbType.NVarChar, 450).Value = roleId;
+        return cmd.ExecuteScalar() as string;
+    }
+
     // ── SYS-03 Factory Calendar ─────────────────────────────────────────
     public List<CalendarRow> ListCalendar(int daysAhead = 30, int daysBack = 7)
     {
@@ -239,7 +337,54 @@ public sealed class SysRepository
             ("@From", from.Date), ("@To", to.Date));
     }
 
-    public void InsertCalendarShift(DateTime date, string dayType, string? holidayName,
+    public sealed record CalendarShiftInput(string DayType, string? HolidayName, int? ShiftCount, string? ShiftCode,
+        TimeSpan? Start, TimeSpan? End, int? BreakMin, decimal? NetHours, string PlantCode);
+
+    // SYS-005 날짜 수정 — 지우기와 넣기를 한 트랜잭션으로 묶어, 넣다가 실패해도 그 날짜 행이 사라지지 않게 한다
+    public void ReplaceCalendarDate(DateTime date, IReadOnlyList<CalendarShiftInput> rows, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        using (var del = new SqlCommand("DELETE dbo.SYS_FactoryCalendar WHERE CalendarDate = CAST(@Date AS DATE)", conn, tx))
+        {
+            del.Parameters.AddWithValue("@Date", date.Date);
+            del.ExecuteNonQuery();
+        }
+        foreach (var r in rows)
+            InsertCalendarShift(conn, tx, date, r.DayType, r.HolidayName, r.ShiftCount, r.ShiftCode,
+                r.Start, r.End, r.BreakMin, r.NetHours, date.Year, r.PlantCode, actor);
+        tx.Commit();
+    }
+
+    // SYS-005 일정 생성 — 기간 전체를 한 트랜잭션으로 넣는다. skipExisting 이 꺼져 있으면 그 날짜의 기존 행을 지우고 새로 넣는다
+    // (10-08 사용자 결정 — 전에는 기존 행 위에 그대로 더해 같은 날짜·교대가 중복됐다). 반환값 = 넣은 행 수
+    public int GenerateCalendar(IEnumerable<(DateTime Date, IReadOnlyList<CalendarShiftInput> Rows)> days, bool skipExisting, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        int inserted = 0;
+        foreach (var (date, rows) in days)
+        {
+            using (var pre = new SqlCommand(skipExisting
+                ? "SELECT COUNT(1) FROM dbo.SYS_FactoryCalendar WHERE CalendarDate = CAST(@Date AS DATE)"
+                : "DELETE dbo.SYS_FactoryCalendar WHERE CalendarDate = CAST(@Date AS DATE)", conn, tx))
+            {
+                pre.Parameters.AddWithValue("@Date", date.Date);
+                if (skipExisting) { if ((int)pre.ExecuteScalar()! > 0) continue; }
+                else pre.ExecuteNonQuery();
+            }
+            foreach (var r in rows)
+            {
+                InsertCalendarShift(conn, tx, date, r.DayType, r.HolidayName, r.ShiftCount, r.ShiftCode,
+                    r.Start, r.End, r.BreakMin, r.NetHours, date.Year, r.PlantCode, actor);
+                inserted++;
+            }
+        }
+        tx.Commit();
+        return inserted;
+    }
+
+    static void InsertCalendarShift(SqlConnection conn, SqlTransaction? tx, DateTime date, string dayType, string? holidayName,
         int? shiftCount, string? shiftCode, TimeSpan? start, TimeSpan? end,
         int? breakMin, decimal? netHours, int calendarYear, string plantCode, string createdBy)
     {
@@ -252,19 +397,20 @@ public sealed class SysRepository
                     @Start, @End, @Break, @Net,
                     @Year, @Plant, @CreatedBy, SYSDATETIME())
             """;
-        Exec(sql,
-            ("@Date",        date.Date),
-            ("@DayType",     dayType),
-            ("@HolidayName", (object?)holidayName ?? DBNull.Value),
-            ("@ShiftCount",  (object?)shiftCount  ?? DBNull.Value),
-            ("@ShiftCode",   (object?)shiftCode   ?? DBNull.Value),
-            ("@Start",       (object?)start    ?? DBNull.Value),
-            ("@End",         (object?)end      ?? DBNull.Value),
-            ("@Break",       (object?)breakMin ?? DBNull.Value),
-            ("@Net",         (object?)netHours ?? DBNull.Value),
-            ("@Year",        calendarYear),
-            ("@Plant",       string.IsNullOrWhiteSpace(plantCode) ? (object)DBNull.Value : plantCode),
-            ("@CreatedBy",   createdBy));
+        using var cmd = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.AddWithValue("@Date",        date.Date);
+        cmd.Parameters.AddWithValue("@DayType",     dayType);
+        cmd.Parameters.AddWithValue("@HolidayName", (object?)holidayName ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@ShiftCount",  (object?)shiftCount  ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@ShiftCode",   (object?)shiftCode   ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Start",       (object?)start    ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@End",         (object?)end      ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Break",       (object?)breakMin ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Net",         (object?)netHours ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Year",        calendarYear);
+        cmd.Parameters.AddWithValue("@Plant",       string.IsNullOrWhiteSpace(plantCode) ? (object)DBNull.Value : plantCode);
+        cmd.Parameters.AddWithValue("@CreatedBy",   createdBy);
+        cmd.ExecuteNonQuery();
     }
 
     public void UpdateCalendarDayMeta(DateTime date, string dayType, string? holidayName, string modifiedBy)
@@ -315,15 +461,6 @@ public sealed class SysRepository
     public void DeleteCalendarShift(int id)
     {
         Exec("DELETE dbo.SYS_FactoryCalendar WHERE FactoryCalendarID = @Id", ("@Id", id));
-    }
-
-    public bool CalendarDateExists(DateTime date)
-    {
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(
-            "SELECT COUNT(1) FROM dbo.SYS_FactoryCalendar WHERE CalendarDate = CAST(@Date AS DATE)", conn);
-        cmd.Parameters.AddWithValue("@Date", date.Date);
-        return (int)cmd.ExecuteScalar()! > 0;
     }
 
     // ── SYS-04 Interface Monitor ────────────────────────────────────────
@@ -606,7 +743,7 @@ public sealed class SysRepository
             SELECT  m.ScreenID, m.ScreenCode, m.ModuleCode, m.ProcessCode, m.SubProcessCode, m.ScreenName, m.ScreenNameEn,
                     m.HRef, m.LidLabel, m.SortOrder,
                     ISNULL(m.IsVisible, 1) AS IsVisible,
-                    (SELECT COUNT(DISTINCT rp.RoleName) FROM dbo.SYS_RolePermission rp WHERE rp.ScreenCode = m.ScreenCode) AS RoleCount
+                    (SELECT COUNT(DISTINCT COALESCE(rp.RoleID, rp.RoleName)) FROM dbo.SYS_RolePermission rp WHERE rp.ScreenCode = m.ScreenCode) AS RoleCount
             FROM    dbo.SYS_Screen m
             {WHERE}
             ORDER   BY m.ModuleCode, ISNULL(m.SortOrder, 999), m.ScreenCode;

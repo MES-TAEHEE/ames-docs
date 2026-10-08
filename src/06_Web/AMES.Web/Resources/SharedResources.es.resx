@@ -621,8 +621,17 @@
   <data name="SYS.Roles.InUseBy" xml:space="preserve">
     <value>Usuarios asignados a este rol:</value>
   </data>
-  <data name="SYS.Roles.ConfirmDeleteInUse" xml:space="preserve">
-    <value>{0} usuario(s) asignados a este rol. ¿Confirmar eliminación?</value>
+  <data name="SYS.Roles.Err.Protected" xml:space="preserve">
+    <value>Los roles del sistema no se pueden eliminar. Se pueden renombrar.</value>
+  </data>
+  <data name="SYS.Roles.Err.InUse" xml:space="preserve">
+    <value>Este rol está asignado a {0} usuario(s) y no se puede eliminar. Cambie primero su rol en SYS-001.</value>
+  </data>
+  <data name="SYS.Roles.Err.Duplicate" xml:space="preserve">
+    <value>Ya existe un rol con este nombre.</value>
+  </data>
+  <data name="SYS.Roles.SystemBadge" xml:space="preserve">
+    <value>Sistema</value>
   </data>
   <data name="SYS.Roles.Err.NameRequired" xml:space="preserve">
     <value>El nombre de rol es obligatorio.</value>
@@ -3577,7 +3586,7 @@
     <value>Configuración de Turnos</value>
   </data>
   <data name="SYS.Calendar.Lbl.SkipExisting" xml:space="preserve">
-    <value>Omitir si existen datos</value>
+    <value>Omitir fechas con datos (desmarcado: sobrescribir)</value>
   </data>
   <data name="SYS.Calendar.Lbl.Holidays" xml:space="preserve">
     <value>Festivos</value>
@@ -3772,7 +3781,7 @@
     <value>Sin roles definidos.</value>
   </data>
   <data name="SYS.Roles.Ph.RoleName" xml:space="preserve">
-    <value>ej. Admin, Gerente, Operador</value>
+    <value>ej. Gerente, Planificador, Operador</value>
   </data>
   <data name="Kpi.NeedMaint" xml:space="preserve">
     <value>Requiere Mant.</value>
@@ -7212,6 +7221,9 @@
   <data name="TopBar.RoleDesc.Default" xml:space="preserve">
     <value>Rol registrado — los permisos por pantalla siguen la configuración de roles SYS</value>
   </data>
+  <data name="TopBar.RoleDesc.Extra" xml:space="preserve">
+    <value>Rol adicional — creado además de los roles predeterminados; los permisos por pantalla siguen la configuración de roles SYS</value>
+  </data>
   <data name="TopBar.RoleDesc.None" xml:space="preserve">
     <value>Sin rol asignado, sin acceso a pantallas. Pida a un administrador que asigne un rol</value>
   </data>
@@ -10329,13 +10341,16 @@
     <value>Demasiados intentos de inicio de sesión. Inténtelo de nuevo en un minuto.</value>
   </data>
   <data name="SYS.Users.Hint.AdminOnly" xml:space="preserve">
-    <value>Solo Admin puede cambiar rol, estado o contraseña, desbloquear, eliminar o cambiar el PIN de otro usuario (puede cambiar su propio PIN).</value>
+    <value>Solo los usuarios con el rol {0} pueden cambiar rol, estado o contraseña, desbloquear, eliminar o cambiar el PIN de otro usuario (puede cambiar su propio PIN).</value>
+  </data>
+  <data name="SYS.Users.Hint.CreateInactive" xml:space="preserve">
+    <value>Las cuentas creadas por usuarios sin el rol {0} quedan INACTIVAS. Un usuario con el rol {0} debe activarlas antes de iniciar sesión.</value>
   </data>
   <data name="SYS.Users.Hint.Self" xml:space="preserve">
     <value>No puede cambiar el rol ni el estado de su propia cuenta, ni eliminarla.</value>
   </data>
   <data name="SYS.Users.Err.AdminTarget" xml:space="preserve">
-    <value>Solo Admin puede editar una cuenta Admin.</value>
+    <value>Solo los usuarios con el rol {0} pueden editar una cuenta con el rol {0}.</value>
   </data>
   <data name="TopBar.Cred.Button" xml:space="preserve">
     <value>Cambiar contraseña / PIN</value>

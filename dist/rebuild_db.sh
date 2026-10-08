@@ -55,6 +55,7 @@ FILES=(
   seed_user_code_groups.sql           # 공통 코드 그룹
   create_sys_screen.sql               # SYS_Screen 레지스트리 (화면 목록)
   reseed_menu.sql                     #   → 메뉴/HRef 정본 재시드
+  migrate_system_roles.sql            #   → 시스템 역할 고정 ID(ROLE-SYSADMIN·ROLE-SUPERVISOR) — Admin 권한 시드보다 먼저(10-09)
   seed_admin_permissions.sql          #   → Admin RBAC(REA) + admin@ames.local 계정
   seed_wh_picking_rbac_test.sql       #   → WH Picking Orders R 권한 비교용 Web 계정 2개
   seed_md_code.sql                    # 마스터 공통코드

@@ -142,7 +142,7 @@
         }
 
         @* Day-of-week header *@
-        <div class="ames-cal-grid">
+        <div class="ames-cal-grid ames-cal-fill" style="--cal-weeks:@rows">
             @foreach (var (label, cls) in new[] { (L["Day.Sun"].Value,"sun"),(L["Day.Mon"].Value,""),(L["Day.Tue"].Value,""),(L["Day.Wed"].Value,""),(L["Day.Thu"].Value,""),(L["Day.Fri"].Value,""),(L["Day.Sat"].Value,"sat") })
             {
                 <div class="ames-cal-head @cls">@label</div>
@@ -609,6 +609,7 @@
     // ── Generate ──────────────────────────────────────────────────────────
     void Generate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (_genFrom > _genTo) { _modalErr = L["SYS.Calendar.Err.DateRange"].Value; return; }
         var active = _genShifts.Where(s => s.Active).ToList();
@@ -617,47 +618,30 @@
             .Where(h => DateTime.TryParse(h.Date, out _) && !string.IsNullOrEmpty(h.Name))
             .ToDictionary(h => DateTime.Parse(h.Date).Date, h => h.Name.Trim());
 
-        int inserted = 0;
+        var days = new List<(DateTime Date, IReadOnlyList<SysRepository.CalendarShiftInput> Rows)>();
+        for (var d = _genFrom.Date; d <= _genTo.Date; d = d.AddDays(1))
+        {
+            string dayType; string? holidayName = null;
+            if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                dayType = "WEEKEND";
+            else if (holidays.TryGetValue(d, out var hname))
+            { dayType = "HOLIDAY"; holidayName = hname; }
+            else
+                dayType = "WORKDAY";
+
+            var rows = dayType is "WORKDAY" && active.Count > 0
+                ? active.Select(shift => new SysRepository.CalendarShiftInput(dayType, holidayName, active.Count, shift.Code,
+                      TimeSpan.TryParse(shift.Start, out var ts) ? ts : null,
+                      TimeSpan.TryParse(shift.End,   out var te) ? te : null,
+                      shift.BreakMin, CalcNet(shift.Start, shift.End, shift.BreakMin), _genPlant)).ToList()
+                : new List<SysRepository.CalendarShiftInput> { new(dayType, holidayName, null, null, null, null, null, null, _genPlant) };
+            days.Add((d, rows));
+        }
+
         _busy = true;
         try
         {
-            for (var d = _genFrom.Date; d <= _genTo.Date; d = d.AddDays(1))
-            {
-                if (_genSkipExisting && Sys.CalendarDateExists(d)) continue;
-
-                string dayType; string? holidayName = null;
-                if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-                    dayType = "WEEKEND";
-                else if (holidays.TryGetValue(d, out var hname))
-                { dayType = "HOLIDAY"; holidayName = hname; }
-                else
-                    dayType = "WORKDAY";
-
-                if (dayType is "HOLIDAY" or "WEEKEND")
-                {
-                    Sys.InsertCalendarShift(d, dayType, holidayName,
-                        null, null, null, null, null, null, d.Year, _genPlant, _actor);
-                    inserted++;
-                }
-                else if (active.Count > 0)
-                {
-                    foreach (var shift in active)
-                    {
-                        TimeSpan? start = TimeSpan.TryParse(shift.Start, out var ts) ? ts : null;
-                        TimeSpan? end   = TimeSpan.TryParse(shift.End,   out var te) ? te : null;
-                        decimal   net   = CalcNet(shift.Start, shift.End, shift.BreakMin);
-                        Sys.InsertCalendarShift(d, dayType, holidayName, active.Count,
-                            shift.Code, start, end, shift.BreakMin, net, d.Year, _genPlant, _actor);
-                        inserted++;
-                    }
-                }
-                else
-                {
-                    Sys.InsertCalendarShift(d, dayType, holidayName,
-                        null, null, null, null, null, null, d.Year, _genPlant, _actor);
-                    inserted++;
-                }
-            }
+            var inserted = Sys.GenerateCalendar(days, _genSkipExisting, _actor);
             CloseModal(); Reload();
             Audit.Log("SYS-005", "CREATE", "SYS_FactoryCalendar", $"{_genFrom:yyyy-MM-dd}~{_genTo:yyyy-MM-dd}", null, new { From = _genFrom.Date, To = _genTo.Date, Plant = _genPlant, SkipExisting = _genSkipExisting, Inserted = inserted });
             ShowMsg(string.Format(L["SYS.Calendar.Ok.Generated"].Value, inserted), false);
@@ -677,30 +661,19 @@
                 ? (string.IsNullOrWhiteSpace(_editHolidayName) ? null : _editHolidayName.Trim())
                 : null;
 
-            Sys.DeleteCalendarDate(_selDate.Value);
-
+            var date   = _selDate.Value;
             var active = _editShifts.Where(s => s.Active).ToList();
-            if (active.Count > 0)
-            {
-                foreach (var shift in active)
-                {
-                    TimeSpan? start = TimeSpan.TryParse(shift.Start, out var ts) ? ts : null;
-                    TimeSpan? end   = TimeSpan.TryParse(shift.End,   out var te) ? te : null;
-                    decimal   net   = CalcNet(shift.Start, shift.End, shift.BreakMin);
-                    Sys.InsertCalendarShift(_selDate.Value, _editDayType, actualHoliday,
-                        active.Count, shift.Code, start, end, shift.BreakMin, net,
-                        _selDate.Value.Year, _selPlant, _actor);
-                }
-            }
-            else
-            {
-                Sys.InsertCalendarShift(_selDate.Value, _editDayType, actualHoliday,
-                    null, null, null, null, null, null,
-                    _selDate.Value.Year, _selPlant, _actor);
-            }
+            var rows   = active.Count > 0
+                ? active.Select(shift => new SysRepository.CalendarShiftInput(_editDayType, actualHoliday, active.Count, shift.Code,
+                      TimeSpan.TryParse(shift.Start, out var ts) ? ts : null,
+                      TimeSpan.TryParse(shift.End,   out var te) ? te : null,
+                      shift.BreakMin, CalcNet(shift.Start, shift.End, shift.BreakMin), _selPlant)).ToList()
+                : new List<SysRepository.CalendarShiftInput> { new(_editDayType, actualHoliday, null, null, null, null, null, null, _selPlant) };
+            Sys.ReplaceCalendarDate(date, rows, _actor);
+
+            Audit.Updated("SYS-005", "SYS_FactoryCalendar", date.ToString("yyyy-MM-dd"), null, new { Plant = _selPlant, DayType = _editDayType, HolidayName = actualHoliday, Shifts = active });
             CloseModal(); Reload();
-            Audit.Updated("SYS-005", "SYS_FactoryCalendar", _selDate.Value.ToString("yyyy-MM-dd"), null, new { Plant = _selPlant, DayType = _editDayType, HolidayName = actualHoliday, Shifts = active });
-            ShowMsg(string.Format(L["SYS.Calendar.Ok.Edited"].Value, _selDate.Value.ToString(DateFmt.Date)), false);
+            ShowMsg(string.Format(L["SYS.Calendar.Ok.Edited"].Value, date.ToString(DateFmt.Date)), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }

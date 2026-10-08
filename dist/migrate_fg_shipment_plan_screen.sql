@@ -84,18 +84,19 @@ SELECT RoleID, RoleName, 'WEB', 'FG', ScreenCode, PermissionLevel,
 FROM Deduplicated
 WHERE rn = 1;
 
-DECLARE @AdminRoleID nvarchar(450) = (SELECT TOP (1) Id FROM dbo.AspNetRoles WHERE Name = 'Admin');
+-- Admin = 시스템 역할 고정 ID ROLE-SYSADMIN(이름은 바뀔 수 있다 — dist/migrate_system_roles.sql)
+DECLARE @AdminRoleID nvarchar(450) = (SELECT TOP (1) Id FROM dbo.AspNetRoles WHERE Id = N'ROLE-SYSADMIN');
 IF @AdminRoleID IS NOT NULL
 BEGIN
     INSERT INTO dbo.SYS_RolePermission
         (RoleID, RoleName, ModuleCode, ProcessCode, ScreenCode, PermissionLevel,
          IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
-    SELECT @AdminRoleID, 'Admin', 'WEB', 'FG', s.ScreenCode, 'REA', 1,
+    SELECT @AdminRoleID, (SELECT Name FROM dbo.AspNetRoles WHERE Id = @AdminRoleID), 'WEB', 'FG', s.ScreenCode, 'REA', 1,
            SYSDATETIME(), 'menu-migration', SYSDATETIME()
     FROM dbo.SYS_Screen s
     WHERE s.ProcessCode = 'FG'
       AND NOT EXISTS
-          (SELECT 1 FROM dbo.SYS_RolePermission p WHERE p.RoleName = 'Admin' AND p.ScreenCode = s.ScreenCode);
+          (SELECT 1 FROM dbo.SYS_RolePermission p WHERE p.RoleID = @AdminRoleID AND p.ScreenCode = s.ScreenCode);
 END;
 
 COMMIT TRANSACTION;

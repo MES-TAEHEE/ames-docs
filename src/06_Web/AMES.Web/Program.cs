@@ -1,5 +1,6 @@
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
+using AMES.Data.Services;
 using AMES.Web.Components;
 using AMES.Web.Components.Account;
 using AMES.Web.Data;
@@ -301,13 +302,22 @@ await RunSeedAsync("admin", async scope =>
     var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     const string email = "admin@ames.local";
-    const string adminRole = "Admin";
-    if (await roleMgr.FindByNameAsync(adminRole) is null)
+    // 기본 역할(ROLE-xxx)은 ID 가 고정이다(SystemRoles) — 없으면 기본 이름으로 만든다. 같은 이름·옛 이름이 다른 ID 로 있으면(옛 DB)
+    // 여기서 옮기지 않는다: dist/migrate_system_roles.sql 이 사용자 배정·권한 행까지 한 트랜잭션으로 옮긴다
+    foreach (var (roleId, defaultName, oldName) in SystemRoles.All)
     {
-        var roleRes = await roleMgr.CreateAsync(new IdentityRole(adminRole));
+        if (await roleMgr.FindByIdAsync(roleId) is not null) continue;
+        if (await roleMgr.FindByNameAsync(defaultName) is not null || (oldName is not null && await roleMgr.FindByNameAsync(oldName) is not null))
+        {
+            app.Logger.LogWarning("system role {RoleId}: '{Name}' exists with another ID — apply dist/migrate_system_roles.sql", roleId, oldName ?? defaultName);
+            continue;
+        }
+        var roleRes = await roleMgr.CreateAsync(new IdentityRole(defaultName) { Id = roleId });
         if (!roleRes.Succeeded)
-            app.Logger.LogWarning("admin role seed failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
+            app.Logger.LogWarning("system role seed failed {RoleId}: {Errs}", roleId, string.Join("; ", roleRes.Errors.Select(e => e.Description)));
     }
+    // 역할 배정 API 는 이름을 받으므로 고정 ID 역할의 현재 이름을 읽어 쓴다(이름은 SYS-002 에서 바뀔 수 있다)
+    var adminRole = (await roleMgr.FindByIdAsync(SystemRoles.AdminId))?.Name;
 
     var adminUser = await userMgr.FindByEmailAsync(email);
     if (adminUser is null)
@@ -323,7 +333,7 @@ await RunSeedAsync("admin", async scope =>
         }
     }
 
-    if (adminUser is not null && !await userMgr.IsInRoleAsync(adminUser, adminRole))
+    if (adminUser is not null && adminRole is not null && !await userMgr.IsInRoleAsync(adminUser, adminRole))
     {
         var roleRes = await userMgr.AddToRoleAsync(adminUser, adminRole);
         if (!roleRes.Succeeded)
@@ -337,6 +347,8 @@ await RunSeedAsync("admin", async scope =>
 
 // ── Role seed: SYS_RolePermission.RoleName → AspNetRoles + RoleID backfill ──
 // Idempotent: skips roles that already exist, skips rows where RoleID is set.
+// RoleID 가 있는 행은 이름으로 역할을 만들지 않는다 — 시스템 역할 이름을 바꾼 뒤 옛 이름의 권한 행이 남아 있어도
+// 같은 의미의 역할이 새 GUID 로 하나 더 생기지 않게
 await RunSeedAsync("role", async scope =>
 {
     var roleMgr     = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -346,7 +358,7 @@ await RunSeedAsync("role", async scope =>
     var roleNames = new List<string>();
     using (var conn = connFactory.OpenConnection())
     using (var cmd  = new SqlCommand(
-        "SELECT DISTINCT RoleName FROM dbo.SYS_RolePermission WHERE RoleName IS NOT NULL ORDER BY RoleName", conn))
+        "SELECT DISTINCT RoleName FROM dbo.SYS_RolePermission WHERE RoleID IS NULL AND RoleName IS NOT NULL ORDER BY RoleName", conn))
     using (var rdr  = cmd.ExecuteReader())
         while (rdr.Read()) roleNames.Add((string)rdr["RoleName"]);
 

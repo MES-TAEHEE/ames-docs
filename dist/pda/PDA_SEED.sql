@@ -80,8 +80,9 @@ BEGIN
              @TestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
 
     -- Both scenario accounts validate administrator-only Adjust screens.
+    -- 시스템 역할 고정 ID(ROLE-SYSADMIN) — 이름은 바뀔 수 있다(dist/migrate_system_roles.sql)
     DECLARE @AdminRoleId nvarchar(450) =
-        (SELECT TOP (1) Id FROM dbo.AspNetRoles WHERE UPPER(Name) = 'ADMIN');
+        (SELECT TOP (1) Id FROM dbo.AspNetRoles WHERE Id = N'ROLE-SYSADMIN');
     IF @AdminRoleId IS NOT NULL
        AND NOT EXISTS
        (
@@ -127,11 +128,12 @@ IF NOT EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WHERE EmployeeNo = 'PTEST')
     VALUES
         (@PtestUserId, 'PTEST', N'PDA Operator Test', 'QA', 'SEH-US-01', 'DAY',
          @PtestPinHash, 'Active', 0, 'pda-seed', SYSDATETIME());
-DECLARE @PtestRoleId nvarchar(450) = (SELECT Id FROM dbo.AspNetRoles WHERE NormalizedName = N'OPERATOR');
+-- Operator = 기본 역할 고정 ID ROLE-OPERATOR(이름은 바뀔 수 있다 — dist/migrate_system_roles.sql)
+DECLARE @PtestRoleId nvarchar(450) = (SELECT Id FROM dbo.AspNetRoles WHERE Id = N'ROLE-OPERATOR');
 IF @PtestRoleId IS NULL
 BEGIN
     -- Fresh rebuilds run before the application's role bootstrap.
-    SET @PtestRoleId = CONVERT(nvarchar(450), NEWID());
+    SET @PtestRoleId = N'ROLE-OPERATOR';
     INSERT INTO dbo.AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
     VALUES (@PtestRoleId, N'Operator', N'OPERATOR', CONVERT(nvarchar(36), NEWID()));
 END;
@@ -1219,13 +1221,14 @@ PRINT CONCAT(N'âœ“ êµ¬ 3ìžë¦¬ í™”ë©´ ì‚­ì œ: ', @@R
 GO
 
 -- â”€â”€ 3) Admin FULL ê¶Œí•œ (ì—†ëŠ” í™”ë©´ë§Œ) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-DECLARE @AdminRoleId NVARCHAR(450) = (SELECT Id FROM dbo.AspNetRoles WHERE Name = 'Admin');
+-- Admin = 시스템 역할 고정 ID(ROLE-SYSADMIN), 권한 행은 RoleID 로 찾는다(이름은 바뀔 수 있다)
 INSERT INTO dbo.SYS_RolePermission
     (RoleID, RoleName, ModuleCode, ProcessCode, ScreenCode, PermissionLevel, IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
-SELECT @AdminRoleId, 'Admin', 'WEB', s.ProcessCode, s.ScreenCode, 'REA', 1, SYSDATETIME(), 'seed', SYSDATETIME()
+SELECT r.Id, r.Name, 'WEB', s.ProcessCode, s.ScreenCode, 'REA', 1, SYSDATETIME(), 'seed', SYSDATETIME()
   FROM dbo.SYS_Screen s
+  JOIN dbo.AspNetRoles r ON r.Id = N'ROLE-SYSADMIN'
  WHERE s.ProcessCode IN ('WH','FG')
-   AND NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission p WHERE p.RoleName = 'Admin' AND p.ScreenCode = s.ScreenCode);
+   AND NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission p WHERE p.RoleID = r.Id AND p.ScreenCode = s.ScreenCode);
 PRINT CONCAT(N'âœ“ Admin/WHÂ·FG REA ì¶”ê°€: ', @@ROWCOUNT, N'í–‰');
 GO
 

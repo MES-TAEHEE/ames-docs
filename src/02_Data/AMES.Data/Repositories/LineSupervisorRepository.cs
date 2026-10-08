@@ -13,9 +13,6 @@ namespace AMES.Data.Repositories;
 /// </summary>
 public sealed class LineSupervisorRepository
 {
-    /// <summary>이 역할(AspNetRoles.Name)을 가진 웹 사용자만 슈퍼바이저 후보가 된다. 현장 작업자(MD_Worker)는 후보가 아니다.</summary>
-    public const string SupervisorRole = "Supervisor";
-
     public sealed record Row(string LineId, string? LineName, string? LineNameEn, string EmployeeNo, string? EmployeeName,
         bool ActiveFlag, string CreatedBy, DateTime? CreatedTs, string? ModifiedBy, DateTime? ModifiedTs);
 
@@ -58,14 +55,14 @@ public sealed class LineSupervisorRepository
                    -- 명시적으로 막힌 상태만 제외
                    CASE WHEN UPPER(ISNULL(u.AccountStatus, '')) IN ('DISABLED', 'LOCKED', 'SUSPENDED', 'INACTIVE') THEN 0 ELSE 1 END AS Active
             FROM   dbo.SYS_UserProfile u
-            JOIN   dbo.AspNetUserRoles ur ON ur.UserId = u.UserID
-            JOIN   dbo.AspNetRoles     r  ON r.Id = ur.RoleId AND r.Name = @Role
+            -- 시스템 역할 ROLE-SUPERVISOR(이름은 바뀔 수 있다)를 가진 웹 사용자만 후보 — 현장 작업자(MD_Worker)는 후보가 아니다
+            JOIN   dbo.AspNetUserRoles ur ON ur.UserId = u.UserID AND ur.RoleId = @Role
             WHERE  u.EmployeeNo IS NOT NULL AND u.EmployeeNo <> ''
             ORDER BY u.EmployeeNo;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Role", SqlDbType.NVarChar, 256).Value = SupervisorRole;
+        cmd.Parameters.Add("@Role", SqlDbType.NVarChar, 450).Value = SystemRoles.SupervisorId;
         using var r    = cmd.ExecuteReader();
         var list = new List<PersonRow>();
         while (r.Read())

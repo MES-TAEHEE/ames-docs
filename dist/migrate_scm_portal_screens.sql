@@ -56,7 +56,8 @@ IF EXISTS (
     WHERE s.ScreenCode <> n.Code
 )
     THROW 50002, 'Screen route conflict. No changes applied.', 1;
-IF NOT EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE Name='Admin')
+-- Admin = 시스템 역할 고정 ID ROLE-SYSADMIN(이름은 바뀔 수 있다 — dist/migrate_system_roles.sql)
+IF NOT EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE Id=N'ROLE-SYSADMIN')
     THROW 50003, 'Admin role is required.', 1;
 
 -- 2026-09-25: portal users live in SCM_PortalVendorUser (SCM-004). No ExternalCustomer role, and PORTAL screens get no RBAC rows.
@@ -75,11 +76,11 @@ FROM @Screens n WHERE NOT EXISTS (SELECT 1 FROM dbo.SYS_Screen s WHERE s.ScreenC
 
 INSERT dbo.SYS_RolePermission (RoleID,RoleName,ModuleCode,ProcessCode,ScreenCode,PermissionLevel,IsSystemRole,EffectiveTS,CreatedBy,CreatedTS)
 SELECT r.Id,r.Name,'WEB',n.Process,n.Code,
-    CASE WHEN r.Name='Admin' THEN 'REA' ELSE n.ExternalLevel END,
-    CASE WHEN r.Name='Admin' THEN 1 ELSE 0 END,SYSDATETIME(),'scm-screen',SYSDATETIME()
+    CASE WHEN r.Id=N'ROLE-SYSADMIN' THEN 'REA' ELSE n.ExternalLevel END,
+    CASE WHEN r.Id=N'ROLE-SYSADMIN' THEN 1 ELSE 0 END,SYSDATETIME(),'scm-screen',SYSDATETIME()
 FROM @Screens n CROSS JOIN dbo.AspNetRoles r
-WHERE r.Name='Admin' AND n.Process<>'PORTAL'
-AND NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission p WHERE p.RoleName=r.Name AND p.ScreenCode=n.Code);
+WHERE r.Id=N'ROLE-SYSADMIN' AND n.Process<>'PORTAL'
+AND NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission p WHERE p.RoleID=r.Id AND p.ScreenCode=n.Code);
 
 
 COMMIT;

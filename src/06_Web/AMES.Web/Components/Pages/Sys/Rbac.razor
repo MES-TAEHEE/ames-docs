@@ -227,7 +227,7 @@
     void BuildGrants()
     {
         _grants = _rows
-            .Where(x => x.RoleName == _selRole!.RoleName && x.ScreenCode is not null)
+            .Where(x => OfRole(x, _selRole!) && x.ScreenCode is not null)
             .ToDictionary(x => x.ScreenCode!, x => NormalizeLevel(x.PermissionLevel));
     }
 
@@ -331,10 +331,14 @@
 
     int TotalCells() => _screens.Count * _permLevelItems.Count;
 
+    // 권한 행은 RoleID 로 역할에 묶인다(이름은 바뀔 수 있다) — RoleID 가 빈 옛 행만 이름으로
+    static bool OfRole(SysRepository.RolePermRow x, SysRepository.RoleRow r) =>
+        string.IsNullOrEmpty(x.RoleId) ? x.RoleName == r.RoleName : x.RoleId == r.RoleId;
+
     string ModuleSummary(SysRepository.RoleRow r)
     {
         var mods = _rows
-            .Where(x => x.RoleName == r.RoleName && x.ModuleCode is not null
+            .Where(x => OfRole(x, r) && x.ModuleCode is not null
                      && NormalizeLevel(x.PermissionLevel).Contains('R'))
             .Select(x => x.ModuleCode!)
             .Distinct()

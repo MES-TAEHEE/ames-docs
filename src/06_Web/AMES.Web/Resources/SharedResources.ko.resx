@@ -621,8 +621,17 @@
   <data name="SYS.Roles.InUseBy" xml:space="preserve">
     <value>이 역할을 사용 중인 사용자:</value>
   </data>
-  <data name="SYS.Roles.ConfirmDeleteInUse" xml:space="preserve">
-    <value>사용자 {0}명이 배정된 역할입니다. 정말 삭제하시겠습니까?</value>
+  <data name="SYS.Roles.Err.Protected" xml:space="preserve">
+    <value>시스템 역할은 삭제할 수 없습니다. 이름은 바꿀 수 있습니다.</value>
+  </data>
+  <data name="SYS.Roles.Err.InUse" xml:space="preserve">
+    <value>사용자 {0}명에게 배정된 역할은 삭제할 수 없습니다. SYS-001 에서 먼저 역할을 바꾸세요.</value>
+  </data>
+  <data name="SYS.Roles.Err.Duplicate" xml:space="preserve">
+    <value>같은 이름의 역할이 이미 있습니다.</value>
+  </data>
+  <data name="SYS.Roles.SystemBadge" xml:space="preserve">
+    <value>시스템</value>
   </data>
   <data name="SYS.Roles.Err.NameRequired" xml:space="preserve">
     <value>역할 이름을 입력하세요.</value>
@@ -3577,7 +3586,7 @@
     <value>교대 설정</value>
   </data>
   <data name="SYS.Calendar.Lbl.SkipExisting" xml:space="preserve">
-    <value>기존 데이터 있으면 건너뜀</value>
+    <value>기존 데이터 있으면 건너뜀 (끄면 그 날짜를 덮어씀)</value>
   </data>
   <data name="SYS.Calendar.Lbl.Holidays" xml:space="preserve">
     <value>공휴일</value>
@@ -3772,7 +3781,7 @@
     <value>정의된 역할이 없습니다.</value>
   </data>
   <data name="SYS.Roles.Ph.RoleName" xml:space="preserve">
-    <value>예: Admin, Manager, Operator</value>
+    <value>예: Manager, Planner, Operator</value>
   </data>
   <data name="Kpi.NeedMaint" xml:space="preserve">
     <value>정비 필요</value>
@@ -7212,6 +7221,9 @@
   <data name="TopBar.RoleDesc.Default" xml:space="preserve">
     <value>등록된 역할 — 화면별 권한은 SYS 역할·권한 설정을 따릅니다</value>
   </data>
+  <data name="TopBar.RoleDesc.Extra" xml:space="preserve">
+    <value>추가 역할 — 기본 역할 외에 새로 만든 역할입니다. 화면별 권한은 SYS 역할·권한 설정을 따릅니다</value>
+  </data>
   <data name="TopBar.RoleDesc.None" xml:space="preserve">
     <value>역할이 없어 화면 접근 권한이 없습니다. 관리자에게 역할 배정을 요청하세요</value>
   </data>
@@ -10329,13 +10341,16 @@
     <value>로그인 시도가 너무 많습니다. 1분 뒤 다시 시도하세요.</value>
   </data>
   <data name="SYS.Users.Hint.AdminOnly" xml:space="preserve">
-    <value>역할·상태·비밀번호·잠금 해제·삭제와 다른 사람의 PIN 은 Admin 만 할 수 있습니다(자기 PIN 은 변경 가능).</value>
+    <value>역할·상태·비밀번호·잠금 해제·삭제와 다른 사람의 PIN 은 {0} 역할만 할 수 있습니다(자기 PIN 은 변경 가능).</value>
+  </data>
+  <data name="SYS.Users.Hint.CreateInactive" xml:space="preserve">
+    <value>{0} 역할이 아니면 계정이 사용 안 함(INACTIVE)으로 만들어집니다. {0} 역할 사용자가 상태를 바꿔야 로그인할 수 있습니다.</value>
   </data>
   <data name="SYS.Users.Hint.Self" xml:space="preserve">
     <value>자기 계정의 역할·상태는 바꿀 수 없고 삭제할 수도 없습니다.</value>
   </data>
   <data name="SYS.Users.Err.AdminTarget" xml:space="preserve">
-    <value>Admin 계정은 Admin 만 수정할 수 있습니다.</value>
+    <value>{0} 역할 계정은 {0} 역할 사용자만 수정할 수 있습니다.</value>
   </data>
   <data name="TopBar.Cred.Button" xml:space="preserve">
     <value>비밀번호·PIN 변경</value>

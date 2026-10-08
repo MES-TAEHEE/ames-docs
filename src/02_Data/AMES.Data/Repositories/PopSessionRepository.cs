@@ -2,6 +2,7 @@ using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -68,11 +69,11 @@ public sealed class PopSessionRepository
         using var roleCmd = new SqlCommand("""
             SELECT CAST(CASE WHEN EXISTS (
                 SELECT 1 FROM dbo.AspNetUserRoles ur
-                JOIN dbo.AspNetRoles r ON r.Id = ur.RoleId
-                WHERE ur.UserId = @UserId AND UPPER(r.Name) = 'ADMIN'
+                WHERE ur.UserId = @UserId AND ur.RoleId = @RoleId
             ) THEN 1 ELSE 0 END AS bit);
             """, conn);
         roleCmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = profile.UserId;
+        roleCmd.Parameters.Add("@RoleId", SqlDbType.NVarChar, 450).Value = SystemRoles.AdminId;
         var isAdmin = (bool)roleCmd.ExecuteScalar()!;
 
         return new PopSessionDto

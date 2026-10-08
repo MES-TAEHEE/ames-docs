@@ -619,10 +619,12 @@ html:not([data-theme="light"]) .ames-brand-mark { filter: drop-shadow(0 0 3px rg
 .ames-user-av--maint { --av-bg: rgba(245,158,11,.16);  --av-line: rgba(251,191,36,.4);   --av-fg: #fbbf24; }
 .ames-user-av--oper  { --av-bg: rgba(34,197,94,.16);   --av-line: rgba(74,222,128,.4);   --av-fg: #4ade80; }
 .ames-user-av--user  { --av-bg: rgba(148,163,184,.16); --av-line: rgba(148,163,184,.4);  --av-fg: #cbd5e1; }
+.ames-user-av--extra { --av-bg: rgba(168,85,247,.16);  --av-line: rgba(192,132,252,.4);  --av-fg: #c084fc; }
 .ames-user-av--none  { --av-bg: rgba(148,163,184,.10); --av-line: rgba(148,163,184,.25); --av-fg: #94a3b8; }
 html[data-theme="light"] .ames-user-av--admin { --av-bg: rgba(37,99,235,.10);  --av-fg: #1d4ed8; }
 html[data-theme="light"] .ames-user-av--maint { --av-bg: rgba(217,119,6,.10);  --av-fg: #b45309; }
 html[data-theme="light"] .ames-user-av--oper  { --av-bg: rgba(22,163,74,.10);  --av-fg: #15803d; }
+html[data-theme="light"] .ames-user-av--extra { --av-bg: rgba(147,51,234,.10); --av-fg: #7e22ce; }
 html[data-theme="light"] .ames-user-av--user,
 html[data-theme="light"] .ames-user-av--none  { --av-bg: rgba(100,116,139,.10); --av-fg: #475569; }
 .ames-user-info { flex: 1; min-width: 0; }

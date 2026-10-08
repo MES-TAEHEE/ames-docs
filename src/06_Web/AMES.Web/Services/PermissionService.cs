@@ -14,6 +14,8 @@ namespace AMES.Web.Services;
 /// 불러오기 전·실패 시에는 권한 없음으로 보고, 처음 읽기에 실패하면 화면 읽기 검사(<see cref="CanOpen"/>)도 닫는다.
 /// 다시 읽기는 EnsureAsync 에서만 한다 — 화면 마스터·권한 변경 알림(ScreenCatalogNotifier.Version)이 있었거나
 /// <see cref="MaxAge"/> 가 지났을 때(다른 서버·DB 직접 수정분) 스레드 풀에서 읽어 바꾸므로 조회(IsVisible 등)는 DB 를 기다리지 않는다.
+/// 역할은 쿠키의 역할 이름이 아니라 사용자 ID 로 DB(AspNetUserRoles)에서 읽고 권한 행을 RoleID 로 맞춘다(10-09) —
+/// 역할 이름을 바꿔도 권한이 그대로이고, 역할 배정 변경도 다시 읽을 때(최대 <see cref="MaxAge"/>) 반영된다.
 /// </summary>
 public sealed class PermissionService
 {
@@ -25,7 +27,7 @@ public sealed class PermissionService
     private readonly ScreenCatalogNotifier _notifier;
     private Dictionary<string, string>? _hrefLevel; // normalised href → "REA" string
     private List<string> _screenHrefs = new();      // 권한 대상 내부 화면 href (긴 것 먼저)
-    private string[]? _roles;                       // 마지막으로 불러온 역할 — 다시 읽을 때 같은 역할로 읽는다
+    private string? _userId;                        // 마지막으로 불러온 사용자(AspNetUsers.Id) — 다시 읽을 때 역할도 다시 읽는다
     private DateTime _loadedAt;
     private long _loadedVersion;
     private bool _loadFailed;                       // 처음 읽기 실패 — 다음 EnsureAsync 에서 다시 시도
@@ -44,22 +46,29 @@ public sealed class PermissionService
     {
         if (_hrefLevel is not null) { await RefreshIfStaleAsync(); return; }
         var state = await authStateTask;
-        LoadNow(state.User.FindAll(ClaimTypes.Role).Select(c => c.Value));
+        LoadNow(UserIdOf(state.User));
     }
 
     public async Task EnsureAsync(AuthenticationStateProvider provider)
     {
         if (_hrefLevel is not null) { await RefreshIfStaleAsync(); return; }
         var state = await provider.GetAuthenticationStateAsync();
-        LoadNow(state.User.FindAll(ClaimTypes.Role).Select(c => c.Value));
+        LoadNow(UserIdOf(state.User));
     }
+
+    // 내부 Identity 사용자만 — 외부 포탈 쿠키는 RBAC 대상이 아니다(역할도 없다)
+    private static string UserIdOf(ClaimsPrincipal user) =>
+        user.Identity?.IsAuthenticated == true ? user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "" : "";
 
     private sealed record Snapshot(List<string> Hrefs, Dictionary<string, string> Levels);
 
-    /// DB 에서 화면 목록·역할 권한을 읽는다(실패하면 예외).
-    private Snapshot Read(string[] roles)
+    /// DB 에서 화면 목록·사용자 역할·역할 권한을 읽는다(실패하면 예외).
+    private Snapshot Read(string userId)
     {
-        var roleSet = new HashSet<string>(roles, StringComparer.OrdinalIgnoreCase);
+        var roles   = userId.Length == 0 ? [] : _sys.ListUserRoles(userId);
+        var roleIds = new HashSet<string>(roles.Select(r => r.Id), StringComparer.OrdinalIgnoreCase);
+        // RoleID 가 빈 옛 권한 행만 이름으로 맞춘다(기동 시드가 채우기 전)
+        var roleNames = new HashSet<string>(roles.Select(r => r.Name).Where(n => n.Length > 0), StringComparer.OrdinalIgnoreCase);
         var screens = _sys.ListScreens();
         // 외부 화면(PORTAL)은 RBAC 대상이 아니다
         var hrefs = screens
@@ -71,7 +80,7 @@ public sealed class PermissionService
             .ToList();
 
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (roleSet.Count > 0)
+        if (roleIds.Count > 0)
         {
             var perms = _sys.ListRolePermissions();
             var codeToHref = screens
@@ -80,7 +89,10 @@ public sealed class PermissionService
 
             foreach (var p in perms)
             {
-                if (p.RoleName is null || !roleSet.Contains(p.RoleName)) continue;
+                var mine = string.IsNullOrEmpty(p.RoleId)
+                    ? p.RoleName is not null && roleNames.Contains(p.RoleName)
+                    : roleIds.Contains(p.RoleId);
+                if (!mine) continue;
                 if (p.ScreenCode is null) continue;
                 if (!codeToHref.TryGetValue(p.ScreenCode, out var href)) continue;
 
@@ -95,32 +107,31 @@ public sealed class PermissionService
     }
 
     // 다 읽은 뒤 한 번에 바꾼다 — 다시 읽는 동안 빈 캐시(권한 없음)나 이전 값이 섞여 보이지 않게
-    private void Apply(Snapshot s, string[] roles, long version)
+    private void Apply(Snapshot s, string userId, long version)
     {
         _screenHrefs   = s.Hrefs;
         _hrefLevel     = s.Levels;
-        _roles         = roles;
+        _userId        = userId;
         _loadedVersion = version;
         _loadedAt      = DateTime.UtcNow;
         _loadFailed    = false;
     }
 
-    private void LoadNow(IEnumerable<string> roles)
+    private void LoadNow(string userId)
     {
-        var arr = roles.ToArray();
         var version = _notifier.Version;
-        try { Apply(Read(arr), arr, version); }
+        try { Apply(Read(userId), userId, version); }
         catch
         {
             _screenHrefs = new();
             _hrefLevel   = new(StringComparer.OrdinalIgnoreCase);
-            _roles       = arr;
+            _userId      = userId;
             _loadedAt    = DateTime.UtcNow;
             _loadFailed  = true;
         }
     }
 
-    private bool IsStale => _roles is not null
+    private bool IsStale => _userId is not null
         && (_loadFailed || _loadedVersion != _notifier.Version || DateTime.UtcNow - _loadedAt > MaxAge);
 
     private async Task RefreshIfStaleAsync()
@@ -133,13 +144,13 @@ public sealed class PermissionService
 
     private async Task RefreshAsync()
     {
-        var roles = _roles!;
+        var userId = _userId!;
         var version = _notifier.Version;
         try
         {
             // DB 조회는 스레드 풀에서 — DB 가 느리거나 끊겨도 회로(화면) 스레드가 멈추지 않는다
-            var snap = await Task.Run(() => Read(roles));
-            Apply(snap, roles, version);
+            var snap = await Task.Run(() => Read(userId));
+            Apply(snap, userId, version);
         }
         catch
         {
@@ -209,6 +220,6 @@ public sealed class PermissionService
     /// </summary>
     public void Reset()
     {
-        if (_roles is not null) _loadedVersion = -1;
+        if (_userId is not null) _loadedVersion = -1;
     }
 }

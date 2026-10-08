@@ -129,21 +129,25 @@ UPDATE dbo.SYS_Screen SET SubProcessCode=NULL WHERE ProcessCode='MD' AND HRef NO
 GO
 
 -- ── Step 2: Admin Role 확보 ───────────────────────────────────────────────
+-- 시스템 역할 ID 는 고정이다(ROLE-SYSADMIN, AMES.Data.Services.SystemRoles) — 이름은 SYS-002 에서 바뀔 수 있어 ID 로 찾는다.
+-- 'Admin' 이 다른 ID(GUID)로 있는 옛 DB 는 dist/migrate_system_roles.sql 이 먼저 옮겨야 한다.
 
-IF NOT EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE Name = 'Admin')
+IF NOT EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE Id = N'ROLE-SYSADMIN')
 BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE NormalizedName IN ('ADMIN', 'SYSTEM ADMINISTRATOR'))
+        THROW 50001, 'Admin role exists with another ID. Apply dist/migrate_system_roles.sql first.', 1;
     INSERT INTO dbo.AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
-    VALUES (NEWID(), 'Admin', 'ADMIN', CAST(NEWID() AS NVARCHAR(MAX)));
-    PRINT 'Admin 롤 생성 완료';
+    VALUES (N'ROLE-SYSADMIN', 'System Administrator', 'SYSTEM ADMINISTRATOR', CAST(NEWID() AS NVARCHAR(MAX)));
+    PRINT 'Admin 롤(ROLE-SYSADMIN) 생성 완료';
 END
 ELSE
-    PRINT 'Admin 롤 이미 존재';
+    PRINT 'Admin 롤(ROLE-SYSADMIN) 이미 존재';
 GO
 
 -- ── Step 3: SYS_RolePermission — Admin FULL 권한 upsert ──────────────────
 
-DECLARE @AdminRoleId NVARCHAR(450);
-SELECT @AdminRoleId = Id FROM dbo.AspNetRoles WHERE Name = 'Admin';
+DECLARE @AdminRoleId NVARCHAR(450) = N'ROLE-SYSADMIN';
+DECLARE @AdminRoleName VARCHAR(40) = (SELECT Name FROM dbo.AspNetRoles WHERE Id = N'ROLE-SYSADMIN');
 
 -- PermissionService는 'R'/'RE'/'REA' 문자 조합으로 권한 판단
 DECLARE @FullLevel VARCHAR(10);
@@ -153,7 +157,7 @@ MERGE dbo.SYS_RolePermission AS tgt
 USING (
     SELECT s.ScreenCode, s.ModuleCode
     FROM   dbo.SYS_Screen s
-) AS src ON tgt.RoleName = 'Admin' AND tgt.ScreenCode = src.ScreenCode
+) AS src ON tgt.RoleID = @AdminRoleId AND tgt.ScreenCode = src.ScreenCode
 WHEN MATCHED THEN
     UPDATE SET
         tgt.RoleID          = @AdminRoleId,
@@ -164,7 +168,7 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (RoleID, RoleName, ModuleCode, ScreenCode, PermissionLevel,
             IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
-    VALUES (@AdminRoleId, 'Admin', src.ModuleCode, src.ScreenCode, @FullLevel,
+    VALUES (@AdminRoleId, @AdminRoleName, src.ModuleCode, src.ScreenCode, @FullLevel,
             1, SYSDATETIME(), 'seed', SYSDATETIME());
 
 PRINT CONCAT('SYS_RolePermission Admin FULL(', @FullLevel, '): ', @@ROWCOUNT, '행 처리됨');
@@ -203,7 +207,7 @@ DECLARE @UserId    NVARCHAR(450);
 DECLARE @AdminRoleId2 NVARCHAR(450);
 
 SELECT @UserId       = Id FROM dbo.AspNetUsers WHERE NormalizedEmail = 'ADMIN@AMES.LOCAL';
-SELECT @AdminRoleId2 = Id FROM dbo.AspNetRoles  WHERE Name = 'Admin';
+SELECT @AdminRoleId2 = Id FROM dbo.AspNetRoles  WHERE Id = N'ROLE-SYSADMIN';
 
 IF @UserId IS NOT NULL AND @AdminRoleId2 IS NOT NULL
 BEGIN
@@ -229,11 +233,11 @@ SELECT
     rp.PermissionLevel
 FROM   dbo.SYS_RolePermission rp
 JOIN   dbo.SYS_Screen         s  ON s.ScreenCode = rp.ScreenCode
-WHERE  rp.RoleName = 'Admin'
+WHERE  rp.RoleID = N'ROLE-SYSADMIN'
 ORDER  BY rp.ModuleCode, rp.ScreenCode;
 
 SELECT COUNT(*) AS [Admin FULL 권한 수]
 FROM   dbo.SYS_RolePermission
-WHERE  RoleName = 'Admin'
+WHERE  RoleID = N'ROLE-SYSADMIN'
   AND  PermissionLevel = 'REA';   -- PermissionService 문자 모델(R/E/A). 구 숫자 CAST 모델 폐기.
 GO
