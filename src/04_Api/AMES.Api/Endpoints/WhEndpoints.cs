@@ -80,7 +80,7 @@ public static class WhEndpoints
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record PutAwayRow(string Mode, string Barcode, string LotNo, string? PartNo,
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
-        DateTime? ReceivedAt, string? LocationNo);
+        DateTime? ReceivedAt, string? LocationNo, string? ParentLotNo = null);
     public sealed record PutAwaySelectionResult(string SelectionType, string? DeliveryNoteNo,
         List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false);
     public sealed record PutAwayConfirmReq(List<string>? Barcodes, string LocationId, bool Relocate = false);
@@ -343,39 +343,10 @@ public static class WhEndpoints
             if (ctx.GetSession() is null) return Results.Unauthorized();
             var scanText = barcode?.Trim() ?? "";
             var matches = QueryPutAwayRows(factory, scanText, onlyUnassigned: false);
-            var scannedBox = matches.FirstOrDefault(row =>
-                string.Equals(row.Barcode, scanText, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(row.LotNo, scanText, StringComparison.OrdinalIgnoreCase));
-
-            if (scannedBox is not null)
-            {
-                var requiresRelocation = !string.IsNullOrWhiteSpace(scannedBox.LocationNo);
-
-                var boxes = requiresRelocation || string.IsNullOrWhiteSpace(scannedBox.DeliveryNoteNo)
-                    ? [scannedBox]
-                    : QueryPutAwayRows(factory, scannedBox.DeliveryNoteNo, onlyUnassigned: true);
-                return Results.Ok(new PutAwaySelectionResult(
-                    "BOX", scannedBox.DeliveryNoteNo, boxes, [scannedBox.Barcode], requiresRelocation));
-            }
-
-            var documentRows = matches
-                .Where(row => scanText.StartsWith("CASE-", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(row.DeliveryNoteNo, scanText, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-            var selectionType = scanText.StartsWith("CASE-", StringComparison.OrdinalIgnoreCase) ? "CASE" : "DELIVERY_NOTE";
-            var documentBoxes = documentRows.Where(row => string.IsNullOrWhiteSpace(row.LocationNo)).ToList();
-            if (documentBoxes.Count > 0)
-                return Results.Ok(new PutAwaySelectionResult(
-                    selectionType, scanText, documentBoxes, documentBoxes.Select(row => row.Barcode).ToList()));
-
-            if (documentRows.Count > 0)
-                return Results.Ok(new PutAwaySelectionResult(
-                    selectionType, scanText, documentRows, documentRows.Select(row => row.Barcode).ToList(), true));
-
-            if (matches.Count == 0)
-                return Results.Problem("Received inventory was not found.", statusCode: StatusCodes.Status404NotFound);
-
-            return Results.Problem("Received inventory was not found.", statusCode: StatusCodes.Status404NotFound);
+            var selection = BuildPutAwaySelection(scanText, matches);
+            return selection is null
+                ? Results.Problem("Received inventory was not found.", statusCode: StatusCodes.Status404NotFound)
+                : Results.Ok(selection);
         });
 
         g.MapPost("/putaway/confirm", (HttpContext ctx, PutAwayConfirmReq body) =>
@@ -741,6 +712,36 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             return Results.Ok(QueryInventoryLocations(factory, itemNo, dateFrom, dateTo, areaCode));
+        });
+
+        g.MapGet("/inventory/part/{itemNo}/lots", (HttpContext ctx, string itemNo, DateTime? dateFrom, DateTime? dateTo) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            using var conn = factory.OpenConnection();
+            using var cmd = new SqlCommand("""
+                SELECT W.LotNo, W.PartNo, COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS PartName,
+                       W.Qty, W.LocationNo, W.ReceivedAt
+                FROM dbo.WH_Inventory W
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
+                LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
+                WHERE W.PartNo = @PartNo AND W.Qty > 0
+                  AND NULLIF(LTRIM(RTRIM(W.LocationNo)), '') IS NOT NULL
+                  AND NOT (UPPER(COALESCE(L.AreaCode,'')) = 'FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+                  AND (@DateFrom IS NULL OR CONVERT(date,W.ReceivedAt) >= @DateFrom)
+                  AND (@DateTo IS NULL OR CONVERT(date,W.ReceivedAt) <= @DateTo)
+                ORDER BY W.LocationNo,W.LotNo;
+                """, conn);
+            cmd.Parameters.Add("@PartNo", SqlDbType.NVarChar, 50).Value = itemNo.Trim();
+            cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value = dateFrom?.Date ?? (object)DBNull.Value;
+            cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value = dateTo?.Date ?? (object)DBNull.Value;
+
+            using var reader = cmd.ExecuteReader();
+            var rows = new List<LotStatusRow>();
+            while (reader.Read())
+                rows.Add(new LotStatusRow(0, GetString(reader, "LotNo") ?? "", GetString(reader, "PartNo"),
+                    GetString(reader, "PartName"), "STORED", GetDecimal(reader, "Qty"),
+                    GetString(reader, "LocationNo"), null, GetDate(reader, "ReceivedAt")));
+            return Results.Ok(rows);
         });
 
         g.MapGet("/inventory/location-list", (HttpContext ctx) =>
@@ -1520,19 +1521,41 @@ public static class WhEndpoints
         => new WarehouseRepository(factory).ListPickingSlipFifoLots(pickSlipNo)
             .Select(x => new ReleaseFifoLotRow(x.PickSlipNo, x.PartNo, x.LotNo, x.LocationNo, x.Qty, null)).ToList();
 
+    internal static PutAwaySelectionResult? BuildPutAwaySelection(string barcode, List<PutAwayRow> matches)
+    {
+        var box = matches.FirstOrDefault(row =>
+            string.Equals(row.Barcode, barcode, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(row.LotNo, barcode, StringComparison.OrdinalIgnoreCase));
+        if (box is not null)
+            return new PutAwaySelectionResult("BOX", box.DeliveryNoteNo, [box], [box.Barcode],
+                !string.IsNullOrWhiteSpace(box.LocationNo));
+
+        var caseBoxes = matches.Where(row =>
+            string.Equals(row.ParentLotNo, barcode, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (caseBoxes.Count > 0)
+            return new PutAwaySelectionResult("CASE", caseBoxes[0].DeliveryNoteNo, caseBoxes,
+                caseBoxes.Where(row => string.IsNullOrWhiteSpace(row.LocationNo))
+                    .Select(row => row.Barcode).ToList());
+
+        var noteBoxes = matches.Where(row =>
+            string.Equals(row.DeliveryNoteNo, barcode, StringComparison.OrdinalIgnoreCase)).ToList();
+        return noteBoxes.Count == 0 ? null
+            : new PutAwaySelectionResult("DELIVERY_NOTE", barcode, noteBoxes, []);
+    }
+
     private static List<PutAwayRow> QueryPutAwayRows(AmesConnectionFactory factory, string? barcode,
         bool onlyUnassigned)
     {
         using var conn = factory.OpenConnection();
         const string sql = """
             SELECT Q.Mode, Q.Barcode, Q.LotNo, Q.PartNo, Q.PartName, Q.Qty,
-                   Q.Unit, Q.DeliveryNoteNo, Q.ReceivedAt, Q.LocationNo
+                   Q.Unit, Q.DeliveryNoteNo, Q.ReceivedAt, Q.LocationNo, Q.ParentLotNo
             FROM
             (
                 SELECT CAST('LOCAL' AS varchar(10)) AS Mode,
                        W.LotNo AS Barcode,
                        W.LotNo, W.PartNo, W.PartName, W.Qty,
-                       I.DefaultUOM AS Unit, W.DeliveryNoteNo, W.ReceivedAt, W.LocationNo
+                       I.DefaultUOM AS Unit, W.DeliveryNoteNo, W.ReceivedAt, W.LocationNo, W.ParentLotNo
                 FROM dbo.WH_Inventory W
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
                 WHERE W.Qty > 0
@@ -1545,7 +1568,7 @@ public static class WhEndpoints
                        W.LotNo, W.PartNo, COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS PartName,
                        W.Qty, I.DefaultUOM AS Unit,
                        CAST(NULL AS nvarchar(30)) AS DeliveryNoteNo,
-                       W.ReceivedAt, W.LocationNo
+                       W.ReceivedAt, W.LocationNo, W.ParentLotNo
                 FROM dbo.WH_Inventory W
                 LEFT JOIN dbo.tbl_Lot L ON L.LotCode=W.LotNo
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo
@@ -1578,7 +1601,8 @@ public static class WhEndpoints
                 GetString(rdr, "Unit"),
                 GetString(rdr, "DeliveryNoteNo"),
                 GetDate(rdr, "ReceivedAt"),
-                GetString(rdr, "LocationNo")));
+                GetString(rdr, "LocationNo"),
+                GetString(rdr, "ParentLotNo")));
         }
         return rows;
     }

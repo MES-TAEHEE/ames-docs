@@ -285,6 +285,11 @@ public abstract class PdaApi
                 && !string.IsNullOrWhiteSpace(detail.GetString()))
                 return detail.GetString()!;
 
+            if (json.RootElement.TryGetProperty("message", out var message)
+                && message.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(message.GetString()))
+                return message.GetString()!;
+
             if (json.RootElement.TryGetProperty("title", out var title)
                 && title.ValueKind == JsonValueKind.String
                 && !string.IsNullOrWhiteSpace(title.GetString()))

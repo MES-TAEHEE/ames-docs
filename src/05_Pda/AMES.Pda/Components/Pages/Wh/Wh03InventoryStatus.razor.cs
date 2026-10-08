@@ -6,7 +6,7 @@ public partial class Wh03InventoryStatus
     private static readonly PptScenarioPanel.Step[] PptInventorySteps =
     [
         new("By Location", "재고가 있는 Location·Qty 목록을 확인하고 REFRESH와 CLEAR를 눌러봅니다.", new PptScenarioPanel.Value("검색", "PPT-WH-INV-01", "SEARCH")),
-        new("Location Parts", "위치를 열어 Part No·Part Name·Qty를 확인하고 품목을 선택합니다.", new PptScenarioPanel.Value("LOCATION", "B0-10-A1", "LOCATION")),
+        new("Location Parts", "위치를 열어 Part No·Part Name·Qty를 확인하고 품목을 선택합니다.", new PptScenarioPanel.Value("LOCATION", "MA06A1F1", "LOCATION")),
         new("Location LOT Details", "선택한 위치·품목의 LOT No, Qty·Unit, Location을 확인합니다.", new PptScenarioPanel.Value("PART", "PPT-WH-INV-01", "LOCATION_LOTS")),
         new("By Part", "Part 기준으로 품번·품명·수량·위치가 표시되는지 확인합니다.", new PptScenarioPanel.Value("PART", "PPT-WH-INV-01", "PART")),
         new("Part LOT Details", "Part를 선택해 LOT별 수량·단위·위치를 확인하고 BACK으로 돌아옵니다.", new PptScenarioPanel.Value("LOT 상세", "PPT-WH-INV-01", "PART_LOTS"))
@@ -91,7 +91,7 @@ public partial class Wh03InventoryStatus
         await Load();
         if (step is 2 or 3)
         {
-            await OpenInventoryLocation("B0-10-A1");
+            await OpenInventoryLocation("MA06A1F1");
             if (step == 3)
             {
                 var part = SelectedLocationParts.FirstOrDefault(row => row.PartNo == "PPT-WH-INV-01")

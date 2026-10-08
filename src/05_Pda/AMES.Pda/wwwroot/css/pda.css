@@ -10945,17 +10945,6 @@ html body .rz-popup .rz-state-highlight span {
     margin-right: auto;
 }
 
-.wh-putaway-select-actions button {
-    min-width: 52px;
-    height: 28px;
-    border: 1px solid rgba(148, 163, 184, .5);
-    border-radius: 0;
-    background: rgba(30, 41, 59, .9);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 800;
-}
-
 .wh-putaway-boxes {
     max-height: 252px;
     overflow-y: auto;
@@ -10977,6 +10966,15 @@ html body .rz-popup .rz-state-highlight span {
 .wh-putaway-box-row.selected {
     background: rgba(22, 101, 52, .48);
     box-shadow: inset 3px 0 #22c55e;
+}
+
+.wh-putaway-box-row.stored {
+    background: rgba(71, 85, 105, .25);
+}
+
+.wh-putaway-box-row.stored .wh-putaway-check {
+    color: #93c5fd;
+    border-color: #60a5fa;
 }
 
 .wh-putaway-check {
