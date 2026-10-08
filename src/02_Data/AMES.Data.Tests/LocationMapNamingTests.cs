@@ -24,6 +24,7 @@ public sealed class LocationMapNamingTests
         Assert.Equal("B1", LocationMapNaming.PlanAxis(first.Cells, "Row", "F1").Code);
         Assert.Equal("02", LocationMapNaming.PlanAxis(first.Cells, "Column", "F1").Code);
         Assert.Equal("MA01A1F3", LocationMapNaming.LocationNo("MA", "01", "A1", "F3"));
+        Assert.Equal("MA02B1F3", LocationMapNaming.LocationNo("MA", "02", "B1", "F3"));
         Assert.Equal("MA", LocationMapNaming.AvailablePrefix("MAT_AREA", ["FG"]));
         Assert.Equal("AA", LocationMapNaming.AvailablePrefix("MAT_AREA", ["MA", "FG"]));
     }

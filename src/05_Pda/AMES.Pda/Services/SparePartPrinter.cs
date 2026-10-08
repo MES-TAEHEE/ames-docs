@@ -93,6 +93,21 @@ public sealed class SparePartPrinter
 #endif
     }
 
+    public async Task<List<Device>> PairedPrintersAsync()
+    {
+#if ANDROID
+        var adapter = await BluetoothAdapterAsync();
+        return (adapter.BondedDevices ?? [])
+            .Where(device => !string.IsNullOrWhiteSpace(device.Address))
+            .Select(device => new Device(device.Address!, device.Name))
+            .OrderBy(device => device.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+#else
+        await Task.CompletedTask;
+        throw new PlatformNotSupportedException("Paired printers are available on the Android PDA.");
+#endif
+    }
+
     public async Task SendAsync(string address, string zpl)
     {
         if (string.IsNullOrWhiteSpace(address)) throw new InvalidOperationException("Select a printer first.");

@@ -1,0 +1,105 @@
+@page "/wh/adjust-box-label"
+@inject WarehouseApi Api
+@inject NavigationManager Nav
+@inject AuthState Auth
+
+<div class="pda-shell wh wh-adjust-box-label">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='() => Nav.NavigateTo("/wh/03?tab=adjust")'>&lt;</button>
+        <span class="pda-tbar-brand">REPRINT</span>
+    </div>
+    <div class="pda-bd label-master-body">
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <div class="pda-status @(_error ? "fail" : "ok")" role="status">@_message</div>
+        }
+        @if (_row is not null && _png is not null)
+        {
+            <div class="label-list-count">70 × 80 mm · 203 DPI · @_row.BoxNo</div>
+            <div style="background:white;padding:10px;border-radius:8px;">
+                <img src="@Preview" alt="Box label print preview" style="display:block;width:100%;height:auto;" />
+            </div>
+            <div class="label-printer-row">
+                <label>PRINTER</label>
+                <button class="label-action" @onclick="LoadPrinters" disabled="@_busy">FIND</button>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_address))
+            {
+                <div class="label-printer-choice selected"><strong>Phomemo Printer</strong></div>
+            }
+            <button class="label-action" @onclick="Print" disabled="@(_busy || string.IsNullOrWhiteSpace(_address))">
+                @(_busy ? "PRINTING..." : "PRINT LABEL")
+            </button>
+            <small>Replace the old box label after checking the printed barcode and quantity.</small>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, SupplyParameterFromQuery(Name = "lot")]
+    public string? Lot { get; set; }
+
+    private readonly SparePartPrinter _bluetooth = new();
+    private readonly PhomemoM220Printer _m220 = new();
+    private const string PrinterAddress = "C4:B6:4A:B8:5F:FB";
+    private PdaApi.BoxReprintRow? _row;
+    private byte[]? _png;
+    private string _address = "";
+    private string _message = "", _preview = "";
+    private bool _error, _busy;
+    private string Preview => _preview;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Auth.Session is null) { Nav.NavigateTo("/login"); return; }
+        if (string.IsNullOrWhiteSpace(Lot)) { _message = "No box was selected."; _error = true; return; }
+        try
+        {
+            _row = await Api.WhBoxReprintAsync(Lot);
+            _png = _m220.Render(_row);
+            _preview = $"data:image/png;base64,{Convert.ToBase64String(_png)}";
+            await LoadPrinters();
+        }
+        catch (Exception ex) { _message = ex.Message; _error = true; }
+    }
+
+    private async Task LoadPrinters()
+    {
+        if (_busy) return;
+        _busy = true;
+        _message = "Finding Phomemo Printer...";
+        _error = false;
+        StateHasChanged();
+        try
+        {
+            _address = (await _bluetooth.PairedPrintersAsync())
+                .Any(p => string.Equals(p.Address, PrinterAddress, StringComparison.OrdinalIgnoreCase))
+                    ? PrinterAddress : "";
+            _message = _address.Length == 0 ? "Pair Phomemo Printer in PDA Bluetooth settings, then tap Find." : "";
+            _error = _address.Length == 0;
+        }
+        catch (Exception ex) { _message = ex.Message; _error = true; }
+        finally { _busy = false; }
+    }
+
+    private async Task Print()
+    {
+        if (_busy || _row is null || _png is null || string.IsNullOrWhiteSpace(_address)) return;
+        _busy = true; _message = ""; _error = false;
+        try
+        {
+            var current = await Api.WhBoxReprintAsync(_row.BoxNo);
+            _png = _m220.Render(current);
+            _preview = $"data:image/png;base64,{Convert.ToBase64String(_png)}";
+            _row = current;
+            await _m220.PrintAsync(_address, _png);
+            _message = "Label sent. Check that the barcode scans and the quantity is correct.";
+        }
+        catch (Exception ex)
+        {
+            _message = $"Print failed: {ex.Message} Check the printer before retrying.";
+            _error = true;
+        }
+        finally { _busy = false; }
+    }
+}
