@@ -1,7 +1,22 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject AMES.Pda.Services.AuthState Auth
+@inject NavigationManager Nav
 
 @*  Full-screen PDA layout — no sidebar, no top chrome.
     Each page paints into the full 480×800 portrait viewport. *@
 
 <RadzenComponents />
 <div class="pda-root">@Body</div>
+
+@code {
+    protected override void OnInitialized() => Auth.OnChange += OnAuthChanged;
+
+    private void OnAuthChanged()
+    {
+        if (Auth.Session is not null) return;
+        _ = InvokeAsync(() => Nav.NavigateTo("/login", replace: true));
+    }
+
+    public void Dispose() => Auth.OnChange -= OnAuthChanged;
+}
