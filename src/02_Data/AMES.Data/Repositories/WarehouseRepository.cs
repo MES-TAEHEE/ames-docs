@@ -219,6 +219,15 @@ public sealed partial class WarehouseRepository
     {
         var like = Like(search);
         return Query("""
+            WITH Stock AS (
+                SELECT LocationNo,
+                       COUNT(DISTINCT LotNo) AS LotCount,
+                       COUNT(DISTINCT PartNo) AS PartCount,
+                       SUM(Qty) AS TotalQty
+                FROM dbo.WH_Inventory
+                WHERE Qty <> 0
+                GROUP BY LocationNo
+            )
             SELECT
                 L.LocationID AS LOCATION_NO,
                 L.LocationName AS LOCATION_NM,
@@ -232,14 +241,24 @@ public sealed partial class WarehouseRepository
                 L.Bay AS RACK_Y,
                 L.Slot AS RACK_Z,
                 CAST(COALESCE(L.ActiveFlag, 1) AS bit) AS USE_YN,
-                COUNT(DISTINCT S.LotNo) AS LOT_COUNT,
-                COUNT(DISTINCT S.PartNo) AS PART_COUNT,
-                COALESCE(SUM(S.Qty), 0) AS TOTAL_QTY
+                COALESCE(S.LotCount, 0) AS LOT_COUNT,
+                COALESCE(S.PartCount, 0) AS PART_COUNT,
+                COALESCE(S.TotalQty, 0) AS TOTAL_QTY
             FROM dbo.MD_Location L
-            LEFT JOIN dbo.MD_CodeItem W ON W.GroupCode='WH_CODE' AND W.CodeValue=L.WhCode
-            LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.CodeValue=L.AreaCode
-                  AND (A.ParentCodeID IS NULL OR A.ParentCodeID=W.CodeID)
-            LEFT JOIN dbo.WH_Inventory S ON S.LocationNo=L.LocationID AND S.Qty<>0
+            OUTER APPLY (
+                SELECT TOP (1) CodeID, CodeName
+                FROM dbo.MD_CodeItem
+                WHERE GroupCode = 'WH_CODE' AND CodeValue = L.WhCode
+                ORDER BY CodeID
+            ) W
+            OUTER APPLY (
+                SELECT TOP (1) CodeName
+                FROM dbo.MD_CodeItem
+                WHERE GroupCode = 'WH_AREA' AND CodeValue = L.AreaCode
+                  AND (ParentCodeID IS NULL OR ParentCodeID = W.CodeID)
+                ORDER BY CASE WHEN ParentCodeID = W.CodeID THEN 0 ELSE 1 END, CodeID
+            ) A
+            LEFT JOIN Stock S ON S.LocationNo = L.LocationID
             WHERE (@IncludeInactive = 1 OR COALESCE(L.ActiveFlag, 1) = 1)
               AND (@WhCode IS NULL OR L.WhCode = @WhCode)
               AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
@@ -250,8 +269,6 @@ public sealed partial class WarehouseRepository
                    OR L.ZoneCode LIKE @Search
                    OR L.AreaCode LIKE @Search
                    OR L.WhCode LIKE @Search)
-            GROUP BY L.LocationID, L.LocationName, L.WhCode, W.CodeName, L.AreaCode, L.ZoneCode, A.CodeName,
-                     L.LocationType, L.Aisle, L.Bay, L.Slot, L.ActiveFlag
             ORDER BY L.WhCode, L.AreaCode, L.ZoneCode,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
                      TRY_CONVERT(int, L.Bay), L.Bay,
