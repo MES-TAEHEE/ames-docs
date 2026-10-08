@@ -457,7 +457,7 @@ public static class WhEndpoints
                 ? Results.Unauthorized()
                 : Results.Ok(QuerySparePartTransactions(factory, search, dateFrom, dateTo)));
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/sp/test/reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/sp/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo) && !PdaScenarioUsers.IsDetailed(session.EmployeeNo))
@@ -478,7 +478,7 @@ public static class WhEndpoints
             }
         }).WithTags("PDA Test Scenarios");
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
@@ -593,7 +593,7 @@ public static class WhEndpoints
         g.MapPost("/adjust/save", SaveAdjustQuantity);
         g.MapPost("/inbound/adjust-qty", SaveAdjustQuantity);
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
@@ -750,7 +750,7 @@ public static class WhEndpoints
             return Query(factory, sql, ReadLocationRow);
         });
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
@@ -1218,7 +1218,7 @@ public static class WhEndpoints
                 r["ReasonCode"] as string));
         });
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
@@ -1242,7 +1242,7 @@ public static class WhEndpoints
             }
         }).WithTags("PDA Test Scenarios");
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(session.EmployeeNo))
