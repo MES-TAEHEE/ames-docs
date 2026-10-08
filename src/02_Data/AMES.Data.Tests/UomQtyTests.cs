@@ -47,4 +47,13 @@ public class UomQtyTests
     [Fact]
     public void Digits_above_max_are_capped()
         => Assert.Equal("1.000000", UomQty.Format(1m, 9, En));
+
+    [Fact]
+    public void Portal_display_caps_zero_padding_without_hiding_fraction()
+    {
+        var digits = Math.Min(Map.Digits("KG")!.Value, 2);
+        Assert.Equal("12.00", UomQty.Format(12.000m, digits, En));
+        Assert.Equal("12.50", UomQty.Format(12.500m, digits, En));
+        Assert.Equal("12.345", UomQty.Format(12.345m, digits, En));
+    }
 }

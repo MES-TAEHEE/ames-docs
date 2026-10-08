@@ -568,7 +568,7 @@
     }
 }
 @code {
-    string QuantityText(decimal quantity,string unit,int digits) => UomFmt.Qty(quantity,unit);
+    string QuantityText(decimal quantity,string unit,int digits) => IsPortal ? QtyFormat.Text(quantity,unit) : UomFmt.Qty(quantity,unit);
     // ── 화면 구성(표준 화면과 같은 목록·모달) ─────────────────────────
     RadzenDataGrid<ScmPreviewStore.Order>? _orderGrid;
     RadzenDataGrid<ScmPreviewStore.Delivery>? _deliveryGrid;
