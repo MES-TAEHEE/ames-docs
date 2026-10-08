@@ -639,7 +639,7 @@ public sealed partial class WarehouseRepository
         using var cmd = new SqlCommand("""
             SELECT COUNT(DISTINCT l.LocationID), COUNT(i.LotNo), COALESCE(SUM(ABS(i.Qty)),0)
             FROM dbo.MD_Location l
-            LEFT JOIN dbo.WH_Inventory i ON i.LocationNo=l.LocationID AND i.Qty<>0
+            LEFT JOIN dbo.WH_Inventory i ON i.LocationNo=l.LocationID
             WHERE l.WhCode=@Wh AND (@Area IS NULL OR l.AreaCode=@Area) AND (@Floor IS NULL OR l.Slot=@Floor);
             """, conn);
         cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
@@ -650,7 +650,7 @@ public sealed partial class WarehouseRepository
         return new(r.GetInt32(0), r.GetInt32(1), r.GetDecimal(2));
     }
 
-    public void DeleteLocationMapScope(string whCode, string? areaCode, bool deleteStock, string? floor = null)
+    public void DeleteLocationMapScope(string whCode, string? areaCode, string? floor = null)
     {
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
@@ -684,9 +684,9 @@ public sealed partial class WarehouseRepository
 
             SELECT LocationID INTO #Scope FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK)
             WHERE WhCode=@Wh AND (@Area IS NULL OR AreaCode=@Area) AND (@Floor IS NULL OR Slot=@Floor);
-            IF @DeleteStock=0 AND EXISTS (SELECT 1 FROM dbo.WH_Inventory i WITH (UPDLOCK,HOLDLOCK)
-                                         JOIN #Scope s ON s.LocationID=i.LocationNo WHERE i.Qty<>0)
-                THROW 51022,'Inventory was found. Refresh and confirm deletion again.',1;
+            IF EXISTS (SELECT 1 FROM dbo.WH_Inventory i WITH (UPDLOCK,HOLDLOCK)
+                       JOIN #Scope s ON s.LocationID=i.LocationNo)
+                THROW 51022,'Inventory was found. Move it before deleting this scope.',1;
             IF EXISTS (SELECT 1 FROM dbo.MNT_SparePartItem p JOIN #Scope s ON s.LocationID=p.LocationID)
                 THROW 51023,'A spare part is linked to a location. Move it before deleting this scope.',1;
             IF EXISTS (SELECT 1 FROM dbo.WH_Inventory child
@@ -699,7 +699,6 @@ public sealed partial class WarehouseRepository
                              AND parent.LocationNo NOT IN (SELECT LocationID FROM #Scope)))
                 THROW 51025,'Inventory is linked to a parent outside this scope.',1;
 
-            DELETE i FROM dbo.WH_Inventory i JOIN #Scope s ON s.LocationID=i.LocationNo;
             UPDATE l SET ActiveFlag=0, ModifiedBy='web', ModifiedTS=SYSDATETIME()
             FROM dbo.MD_Location l JOIN #Scope s ON s.LocationID=l.LocationID;
             IF @Floor IS NULL AND @Area IS NULL
@@ -713,7 +712,6 @@ public sealed partial class WarehouseRepository
         cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
         cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = (object?)areaCode ?? DBNull.Value;
         cmd.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = (object?)floor ?? DBNull.Value;
-        cmd.Parameters.Add("@DeleteStock", SqlDbType.Bit).Value = deleteStock;
         cmd.ExecuteNonQuery();
         tx.Commit();
     }
