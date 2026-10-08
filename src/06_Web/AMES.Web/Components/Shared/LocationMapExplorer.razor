@@ -4,7 +4,6 @@
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
 @inject WarehouseRepository Warehouse
-@inject DialogService Dialog
 
 <div class="location-explorer">
     @if (!string.IsNullOrEmpty(_actionError)) { <RadzenAlert AlertStyle="Radzen.AlertStyle.Danger">@_actionError</RadzenAlert> }
@@ -259,16 +258,12 @@
         try
         {
             var impact = Warehouse.GetLocationMapDeleteImpact(warehouse, area, floor);
-            var deleteStock = impact.StockRows > 0;
-            if (deleteStock)
+            if (impact.StockRows > 0)
             {
-                var confirmed = await Dialog.Confirm(
-                    $"{label} contains {impact.StockRows:N0} inventory records (total qty {impact.StockQty:N0}). Deleting it will remove ALL inventory records inside this scope. This cannot be undone. Continue?",
-                    "Delete location and inventory",
-                    new ConfirmOptions { OkButtonText = "Yes, delete", CancelButtonText = "No" });
-                if (confirmed != true) return;
+                _actionError = $"Cannot delete {label}: {impact.StockRows:N0} inventory records remain. Move the inventory first.";
+                return;
             }
-            Warehouse.DeleteLocationMapScope(warehouse, area, deleteStock, floor);
+            Warehouse.DeleteLocationMapScope(warehouse, area, floor);
             if (floor is not null) { _floor = null; ShowFloors(); }
             else if (area is null) ShowWarehouses();
             else ShowAreas();

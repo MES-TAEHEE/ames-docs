@@ -149,7 +149,6 @@ public static class WhEndpoints
         string? BeforeStatus, string? AfterStatus, string? BeforeLocation, string? AfterLocation,
         string? Source, string? Note, string? Unit = null);
 
-    public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
     public sealed record PickReq(string PickSlipNo, string LotNo, decimal Qty);
     public sealed record PickResult(bool Success, string Message, ReleaseLotRow? Row);
 
@@ -189,45 +188,6 @@ public static class WhEndpoints
                 r["ItemNo"] as string, r["ItemName"] as string,
                 r.GetDecimal(r.GetOrdinal("Qty")),
                 r["Vendor"] as string, r["ArrivedAt"] as DateTime?));
-        });
-
-        // Legacy direct receive endpoint. Current inventory and its transaction are the source of truth.
-        g.MapPost("/inbound/receive", (HttpContext ctx, ReceiveReq body) =>
-        {
-            if (ctx.GetSession() is not { } s) return Results.Unauthorized();
-            using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand("""
-                SET XACT_ABORT ON;
-                BEGIN TRAN;
-                DECLARE @ItemNo varchar(20)=(SELECT TOP (1) ItemNo FROM dbo.tbl_Lot WHERE LotCode=@L);
-                IF @ItemNo IS NULL THROW 51401,'LOT was not found.',1;
-                IF EXISTS (SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@L AND Qty>0)
-                    THROW 51408,'LOT is already received.',1;
-
-                MERGE dbo.WH_Inventory AS T
-                USING (SELECT CONVERT(nvarchar(50),@L) LotNo) AS S ON S.LotNo=T.LotNo
-                WHEN MATCHED THEN UPDATE SET PartNo=@ItemNo,LocationNo=NULLIF(@Loc,''),Qty=@Q,
-                    ReceivedAt=SYSDATETIME(),UpdatedAt=SYSDATETIME()
-                WHEN NOT MATCHED THEN INSERT
-                    (LotNo,UnitType,PartNo,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
-                    VALUES(@L,'PART',@ItemNo,NULLIF(@Loc,''),@Q,SYSDATETIME(),SYSDATETIME(),SYSDATETIME());
-
-                INSERT dbo.WH_InventoryTransaction
-                    (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-                     ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
-                VALUES(SYSDATETIME(),'IN',@ItemNo,NULLIF(@Loc,''),@L,0,@Q,@Q,
-                       'INBOUND_RECEIVE','LOT',@By,'PDA inbound receive',LEFT(@By,20),SYSDATETIME());
-                DECLARE @TransactionID bigint=SCOPE_IDENTITY();
-                COMMIT;
-                SELECT @TransactionID;
-                """, conn);
-            cmd.Parameters.AddWithValue("@L", body.LotCode);
-            cmd.Parameters.AddWithValue("@Q", body.Qty);
-            cmd.Parameters.AddWithValue("@Loc", body.LocationId);
-            cmd.Parameters.AddWithValue("@By", s.EmployeeNo);
-            cmd.Parameters.AddWithValue("@T", s.TerminalId);
-            var id = Convert.ToInt64(cmd.ExecuteScalar());
-            return Results.Ok(new { TransactionId = id });
         });
 
         g.MapGet("/inbound/document", (HttpContext ctx, string mode, string barcode) =>
@@ -296,7 +256,7 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            var simulateFailure = body.SimulateFailure
+            var simulateFailure = app.Environment.IsDevelopment() && body.SimulateFailure
                 && (PdaScenarioUsers.IsDetailed(s.EmployeeNo)
                     || (PdaScenarioUsers.IsSimple(s.EmployeeNo)
                         && body.Barcode is "5011LL260908800001" or "5011LL260908800002" or "5011LL260908800003"
@@ -497,7 +457,7 @@ public static class WhEndpoints
                 ? Results.Unauthorized()
                 : Results.Ok(QuerySparePartTransactions(factory, search, dateFrom, dateTo)));
 
-        g.MapPost("/sp/test/reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/sp/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo) && !PdaScenarioUsers.IsDetailed(session.EmployeeNo))
@@ -518,7 +478,7 @@ public static class WhEndpoints
             }
         }).WithTags("PDA Test Scenarios");
 
-        g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
@@ -619,7 +579,7 @@ public static class WhEndpoints
             if (master.FindActiveCodeItem("INV_ADJUST_REASON", body.ReasonCode?.Trim() ?? "") is null)
                 return Results.BadRequest(new InboundReceiveResult(false, "Select a valid reason code.", null));
 
-            var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
+            var simulateFailure = app.Environment.IsDevelopment() && body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
             var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, simulateFailure);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "ADJUST_SAVE", "WH005", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
@@ -633,7 +593,7 @@ public static class WhEndpoints
         g.MapPost("/adjust/save", SaveAdjustQuantity);
         g.MapPost("/inbound/adjust-qty", SaveAdjustQuantity);
 
-        g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
@@ -699,7 +659,7 @@ public static class WhEndpoints
             string? areaCode, bool? simulateFailure) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
-            if (simulateFailure == true && PdaScenarioUsers.IsDetailed(s.EmployeeNo))
+            if (app.Environment.IsDevelopment() && simulateFailure == true && PdaScenarioUsers.IsDetailed(s.EmployeeNo))
                 return Results.Problem("Simulated Inventory API failure.", statusCode: StatusCodes.Status503ServiceUnavailable);
             return Results.Ok(QueryInventory(factory, q, dateFrom, dateTo, areaCode));
         });
@@ -790,7 +750,7 @@ public static class WhEndpoints
             return Query(factory, sql, ReadLocationRow);
         });
 
-        g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
@@ -1173,7 +1133,7 @@ public static class WhEndpoints
             if (string.IsNullOrWhiteSpace(reasonCode))
                 return Results.BadRequest(new ReleaseCompleteResult(false, "Select an outgoing type."));
 
-            var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
+            var simulateFailure = app.Environment.IsDevelopment() && body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
             var result = ExecuteReleaseBatch(factory, pickSlipNo, body.Lots, reasonCode,
                 s.EmployeeNo, s.TerminalId, simulateFailure);
             if (!result.Success)
@@ -1234,7 +1194,9 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             var d = days ?? 7;
-            var sql = $$"""
+            if (d is < 1 or > 365)
+                return Results.BadRequest(new { Message = "Days must be between 1 and 365." });
+            const string sql = """
                 SELECT TOP 100 TransactionID AS TxnID,
                        TransactionTime AS TxnTime,
                        ISNULL(TransactionType,'?') AS TxnType,
@@ -1244,10 +1206,10 @@ public static class WhEndpoints
                        ISNULL(QtyAfter,0)  AS QtyAfter,
                        ReasonCode
                 FROM   dbo.WH_InventoryTransaction
-                WHERE  TransactionTime > DATEADD(day, -{{d}}, SYSDATETIME())
+                WHERE  TransactionTime > DATEADD(day, -@Days, SYSDATETIME())
                 ORDER BY TransactionTime DESC;
                 """;
-            return Query(factory, sql, r => new TransactionRow(
+            return QueryWithParam(factory, sql, "@Days", d, r => new TransactionRow(
                 (long)r["TxnID"], (DateTime)r["TxnTime"], r["TxnType"] as string ?? "?",
                 r["ItemNo"] as string, r["LocationID"] as string,
                 r.GetDecimal(r.GetOrdinal("QtyBefore")),
@@ -1256,7 +1218,7 @@ public static class WhEndpoints
                 r["ReasonCode"] as string));
         });
 
-        g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
@@ -1280,7 +1242,7 @@ public static class WhEndpoints
             }
         }).WithTags("PDA Test Scenarios");
 
-        g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(session.EmployeeNo))

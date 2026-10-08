@@ -187,7 +187,7 @@ public sealed partial class WarehouseRepository
         var count = 0;
         foreach (var line in stock.Where(x => x.State == "Pending").GroupBy(x => x.LineCode))
         {
-            var slip = GenerateReplenishmentPickSlipNo(conn, tx, line.Key);
+            var slip = GeneratePickSlipNo(conn, tx, line.Key);
             var seq = 0;
             foreach (var item in line)
             {
@@ -212,20 +212,4 @@ public sealed partial class WarehouseRepository
         return new(orders, count, stock.Count(x => x.Shortage > 0 && x.State != "Pending" && !x.HasOpenOrder));
     }
 
-    private static string GenerateReplenishmentPickSlipNo(SqlConnection conn, SqlTransaction tx, string lineCode)
-    {
-        using var cmd = new SqlCommand("""
-            DECLARE @Prefix nvarchar(36) = CONCAT(N'PA-', @Line, N'-', CONVERT(char(8), SYSDATETIME(), 112), N'-');
-            DECLARE @Seq int =
-            (
-                SELECT COALESCE(MAX(TRY_CONVERT(int, SUBSTRING(PickSlipNo, LEN(@Prefix) + 1, 10))), 0) + 1
-                FROM dbo.WH_PickSlip WITH (UPDLOCK, HOLDLOCK)
-                WHERE PickSlipNo LIKE @Prefix + N'%'
-            );
-            SELECT CONCAT(@Prefix, CASE WHEN @Seq < 1000 THEN RIGHT(N'000' + CONVERT(nvarchar(10), @Seq), 3)
-                                        ELSE CONVERT(nvarchar(10), @Seq) END);
-            """, conn, tx);
-        cmd.Parameters.Add("@Line", SqlDbType.NVarChar, 20).Value = lineCode;
-        return Convert.ToString(cmd.ExecuteScalar())!;
-    }
 }

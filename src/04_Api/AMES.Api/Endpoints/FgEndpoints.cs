@@ -78,7 +78,7 @@ public static class FgEndpoints
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
         g.MapAdjustmentLocation(factory, finishedGoods: true);
 
-        g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsAny(session.EmployeeNo))
@@ -363,15 +363,17 @@ public static class FgEndpoints
                 var stockId = InsertPutAwayStock(conn, tx, row, location, body.SuggestedLocation, body.OverrideReason,
                     pack.PalletCount, pack.PalletQty, s.EmployeeNo, storageMethod, storageMethod, containerBarcode);
 
+                var updated = row with
+                {
+                    AlreadyStocked = true,
+                    ExistingLotNo = stockId,
+                    ExistingLocation = location.LocationId,
+                    ExistingStatus = "AVAILABLE",
+                    Message = "FG Put-Away confirmed."
+                };
+                var response = Results.Ok(new PutAwayResult(true, "FG Put-Away confirmed.", stockId, updated, location));
                 tx.Commit();
-
-                using var readConn = factory.OpenConnection();
-                var updated = FindPutAwayScanRow(readConn, null, parsedLot.Value);
-                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "FG_PUTAWAY", "FG002", location.ScanType, location.ScannedBarcode, "SUCCESS", "FG Put-Away confirmed.",
-                    lotNo: row.LotNo, partNo: row.ItemNo, locationId: location.LocationId, qty: row.Qty));
-
-                return Results.Ok(new PutAwayResult(true, "FG Put-Away confirmed.", stockId, updated ?? row, location));
+                return response;
             }
             catch
             {

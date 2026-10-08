@@ -12,6 +12,8 @@ public static class SysEndpoints
         var repo = new SysRepository(factory);
         var master = new MasterDataRepository(factory);
         var g = app.MapGroup("/api/sys").WithTags("System Admin");
+        var admin = g.MapGroup("").AddEndpointFilter(async (context, next) =>
+            RequireAdmin(context.HttpContext) is { } denied ? denied : await next(context));
 
         g.MapGet("/code-items/{groupCode}", (HttpContext ctx, string groupCode) =>
             ctx.GetSession() is null ? Results.Unauthorized()
@@ -19,15 +21,15 @@ public static class SysEndpoints
                     .Where(x => x.UseFlag)
                     .Select(x => new { x.CodeValue, x.CodeName, x.CodeNameEn, x.Attribute1 })));
 
-        g.MapGet("/users", (HttpContext ctx, int? topN) =>
+        admin.MapGet("/users", (HttpContext ctx, int? topN) =>
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListUsers(topN ?? 200)));
 
-        g.MapGet("/role-permissions", (HttpContext ctx) =>
+        admin.MapGet("/role-permissions", (HttpContext ctx) =>
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListRolePermissions()));
 
-        g.MapGet("/roles", (HttpContext ctx) =>
+        admin.MapGet("/roles", (HttpContext ctx) =>
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListRoles().Select(r => new { r.RoleId, r.RoleName, r.UserCount })));
 
@@ -35,25 +37,37 @@ public static class SysEndpoints
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListCalendar(daysAhead ?? 30, daysBack ?? 7)));
 
-        g.MapGet("/interfaces", (HttpContext ctx) =>
+        admin.MapGet("/interfaces", (HttpContext ctx) =>
             ctx.GetSession() is null ? Results.Unauthorized() : Results.Ok(repo.ListInterfaces()));
 
-        g.MapGet("/audit", (HttpContext ctx, int? topN) =>
+        admin.MapGet("/audit", (HttpContext ctx, int? topN) =>
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListAudit(topN ?? 200)));
 
-        g.MapGet("/notification-rules", (HttpContext ctx) =>
+        admin.MapGet("/notification-rules", (HttpContext ctx) =>
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListNotificationRules()));
 
-        g.MapGet("/notification-history", (HttpContext ctx, int? topN) =>
+        admin.MapGet("/notification-history", (HttpContext ctx, int? topN) =>
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListNotificationHistory(topN ?? 100)));
 
-        g.MapGet("/config", (HttpContext ctx) =>
-            ctx.GetSession() is null ? Results.Unauthorized() : Results.Ok(repo.ListConfig()));
+        admin.MapGet("/config", (HttpContext ctx) =>
+            ctx.GetSession() is null ? Results.Unauthorized()
+                : Results.Ok(repo.ListConfig().Select(c => new
+                {
+                    c.ConfigId, c.ConfigKey, c.ConfigType, c.Category,
+                    c.CodeName, c.Unit, c.IsActive, c.SortOrder
+                })));
 
-        g.MapGet("/health", (HttpContext ctx) =>
+        admin.MapGet("/health", (HttpContext ctx) =>
             ctx.GetSession() is null ? Results.Unauthorized() : Results.Ok(repo.GetHealth()));
     }
+
+    public static IResult? RequireAdmin(HttpContext ctx) => ctx.GetSession() switch
+    {
+        null => Results.Unauthorized(),
+        { IsAdmin: false } => Results.StatusCode(StatusCodes.Status403Forbidden),
+        _ => null
+    };
 }

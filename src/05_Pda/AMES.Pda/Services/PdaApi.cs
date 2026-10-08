@@ -166,7 +166,6 @@ public abstract class PdaApi
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);
 
-    public sealed record ReceiveReq(string LotCode, decimal Qty, string LocationId);
     public sealed record InboundReceiveReq(string Mode, string Barcode, string LocationId, bool SimulateFailure = false);
     public sealed record InboundCancelReq(string Mode, string Barcode);
     public sealed record PutAwayRow(string Mode, string Barcode, string LotNo, string? PartNo,

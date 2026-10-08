@@ -1,5 +1,6 @@
 using AMES.Api.Auth;
 using AMES.Contracts.Auth;
+using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Services;
 using AMES.Devices;
@@ -21,6 +22,8 @@ public static class AuthEndpoints
 
         g.MapPost("/login", (LoginDto body) =>
         {
+            if (!app.Environment.IsDevelopment() && PdaScenarioUsers.IsAny(body.EmployeeNo))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
             var outcome = auth.Login(new LoginRequest
             {
                 AttemptedId = body.EmployeeNo,
@@ -37,6 +40,8 @@ public static class AuthEndpoints
         g.MapPost("/barcode-login", (BarcodeLoginDto body) =>
         {
             var badge = BadgeScanParser.Parse(body.Barcode);
+            if (!app.Environment.IsDevelopment() && PdaScenarioUsers.IsAny(badge.WorkerNo))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
             if (badge.WorkerNo.Length is 0 or > 20)
                 return Results.Ok(new LoginResultDto(
                     Token: "", Result: AuthResult.BadCredentials, Reason: "Invalid employee barcode.",

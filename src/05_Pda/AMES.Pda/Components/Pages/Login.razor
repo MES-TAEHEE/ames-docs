@@ -11,26 +11,10 @@
 
     <div class="pda-login-center">
         <div class="pda-login-panel">
-            <div class="pda-fld">
-                <label>EMPLOYEE BARCODE</label>
-                <input class="pda-input pda-login-barcode"
-                       @bind="_barcode"
-                       @bind:event="oninput"
-                       @onkeydown="OnBarcodeKeyDown"
-                       placeholder="Scan employee barcode"
-                       autocomplete="off"
-                       disabled="@_submitting" />
+            <div class="pda-login-scan-state">
+                <RadzenIcon Icon="barcode_scanner" />
+                <strong>@(_submitting ? "SIGNING IN..." : "SCAN EMPLOYEE BARCODE")</strong>
             </div>
-            <button class="pda-login-submit"
-                    disabled="@(_submitting || string.IsNullOrWhiteSpace(_barcode))"
-                    @onclick="SubmitBarcodeAsync">
-                @(_submitting ? "SIGNING IN..." : "SIGN IN")
-            </button>
-        </div>
-
-        <div class="pda-login-scan-state">
-            <RadzenIcon Icon="barcode_scanner" />
-            <strong>READY TO SCAN</strong>
         </div>
 
         <div class="pda-status @_cls">@_status</div>
@@ -38,7 +22,6 @@
 </div>
 
 @code {
-    private string _barcode = "";
     private string _status = " ";
     private string _cls = "dim";
     private bool _submitting;
@@ -57,38 +40,19 @@
     public async Task OnHardwareScanAsync(string scanText)
     {
         if (_submitting) return;
-        _barcode = NormalizeScan(scanText);
-        if (_barcode.Length == 0) return;
-
-        await AuthenticateBarcodeAsync();
+        var barcode = NormalizeScan(scanText);
+        if (barcode.Length == 0) return;
+        await AuthenticateBarcodeAsync(barcode);
     }
 
-    private async Task OnBarcodeKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter")
-            await SubmitBarcodeAsync();
-    }
-
-    private Task SubmitBarcodeAsync()
-    {
-        _barcode = NormalizeScan(_barcode);
-        if (_barcode.Length == 0)
-        {
-            Set("Scan or enter an employee barcode.", "fail");
-            return Task.CompletedTask;
-        }
-
-        return AuthenticateBarcodeAsync();
-    }
-
-    private async Task AuthenticateBarcodeAsync()
+    private async Task AuthenticateBarcodeAsync(string barcode)
     {
         _submitting = true;
         Set("Signing in with employee barcode...", "dim");
         try
         {
-            var res = await Api.LoginByBarcodeAsync(_barcode);
-            TrySignIn(res, "Scan or enter a valid employee barcode.");
+            var res = await Api.LoginByBarcodeAsync(barcode);
+            TrySignIn(res, "Scan a valid employee barcode.");
         }
         catch (Exception ex)
         {
