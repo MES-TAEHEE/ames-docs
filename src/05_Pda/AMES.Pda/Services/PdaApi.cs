@@ -108,6 +108,9 @@ public abstract class PdaApi
     public sealed record LotStatusRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
         string InventoryStatus, decimal RemainingQty, string? LocationId, DateTime? ProductionDate,
         DateTime? LastChangedAt);
+    public sealed record BoxReprintRow(string BoxNo, string PartNo, string PartName, decimal Qty,
+        string Unit, string VendorName, string DeliveryNo, string PoNo, string VendorId,
+        DateTime? ProductionDate, string Destination, int BoxSeq, int BoxCount);
     public sealed record InventoryLocationRow(int RowNo, string ItemNo, string LocationId, string? LocationName,
         string? WarehouseCode, string? WarehouseName, string? AreaCode, string? AreaName,
         string? ZoneCode, string? ZoneName, string? RackX, string? RackY, string? RackZ, decimal Qty);

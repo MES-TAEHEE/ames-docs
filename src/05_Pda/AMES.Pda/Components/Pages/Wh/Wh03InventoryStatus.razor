@@ -393,17 +393,14 @@
 
                     <div class="wh03-action-row">
                         <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
-                        @if (_adjustedLabelLotNo is not null && !IsSpareParts)
-                        {
-                            <RadzenButton class="wh03-date-apply wh03-post-btn" Click="@OpenAdjustedLabelPrint"
-                                          Disabled="@InventoryBusy" Text="PRINT LABEL" />
-                        }
-                        else
-                        {
-                            <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
-                                          Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
-                        }
+                        <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
+                                      Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
                     </div>
+                    @if (_adjustedLabelLotNo is not null && !IsSpareParts)
+                    {
+                        <RadzenButton class="wh03-date-apply wh03-post-btn wh03-reprint-btn" Click="@ConfirmAdjustedLabelReprint"
+                                      Disabled="@InventoryBusy" Text="REPRINT" />
+                    }
                 </RadzenCard>
             }
 
@@ -874,6 +871,7 @@
     private string _invAdjustNote = "";
     private decimal _invAdjustDelta;
     private string? _adjustedLabelLotNo;
+    private bool _adjustedBoxLabel;
     private PdaApi.AdjustmentLocation? _adjustLocation;
     private string? _adjustQuantityInput;
     private bool _adjustQuantityInvalid;
@@ -2129,16 +2127,20 @@
                 _adjustLocation = _adjustLocation with { Items = _adjustLocation.Items.Select(x =>
                     x.LotNo == adjusted.LotNo ? x with { Qty = adjusted.Qty } : x).ToList() };
             _invBarcode = adjusted.Barcode;
-            _adjustedLabelLotNo = IsSpareParts || deltaQty >= 0 ? null : adjusted.LotNo;
+            _adjustedLabelLotNo = IsSpareParts || adjusted.Qty <= 0 ? null : adjusted.LotNo;
+            _adjustedBoxLabel = false;
+            if (_adjustedLabelLotNo is not null && !IsFinishedGoodsAdjust)
+            {
+                try { _adjustedBoxLabel = (await Api.WhBoxReprintAsync(_adjustedLabelLotNo)).BoxNo == _adjustedLabelLotNo; }
+                catch { } // Non-box LOTs keep the existing warehouse label route.
+            }
             ResetInventoryAdjust();
-            _invMsg = "Adjustment saved. Print and replace the quantity label.";
+            _invMsg = "Adjustment saved.";
             _invCls = "ok";
-            var message = IsFinishedGoodsAdjust
-                ? "Finished goods adjustment was saved."
-                : "Warehouse adjustment was saved.";
             if (_adjustedLabelLotNo is not null)
-                message += " Tap PRINT LABEL to reprint the 2D barcode label.";
-            ShowAlert("Saved", message, "success");
+                ConfirmAdjustedLabelReprint();
+            else
+                ShowAlert("Saved", "Adjustment was saved. No label is available to reprint.", "success");
         }
         catch (Exception ex)
         {
@@ -2152,11 +2154,14 @@
         }
     }
 
-    private void OpenAdjustedLabelPrint()
+    private void ConfirmAdjustedLabelReprint()
     {
-        if (_adjustedLabelLotNo is null || InventoryBusy) return;
+        if (_adjustedLabelLotNo is null) return;
         var source = IsFinishedGoodsAdjust ? "fg" : "wh";
-        Nav.NavigateTo($"/wh/label-print?source={source}&lot={Uri.EscapeDataString(_adjustedLabelLotNo)}");
+        var target = _adjustedBoxLabel
+            ? $"/wh/adjust-box-label?lot={Uri.EscapeDataString(_adjustedLabelLotNo)}"
+            : $"/wh/label-print?source={source}&lot={Uri.EscapeDataString(_adjustedLabelLotNo)}";
+        ShowNavigationAlert("Confirm Quantity", $"Is this quantity correct? {InventoryAfterQty:0.###} {_invScan?.Unit}", target, "REPRINT");
     }
 
     private void ShowAlert(string title, string message, string kind = "info")

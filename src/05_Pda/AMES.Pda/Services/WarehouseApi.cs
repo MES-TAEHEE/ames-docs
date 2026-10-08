@@ -200,6 +200,8 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
             "Inventory lot service is unavailable.");
         return await FilterByAreaAsync(rows, row => row.LocationId, areaCode);
     }
+    public Task<BoxReprintRow> WhBoxReprintAsync(string lotNo) => GetRequiredAsync<BoxReprintRow>(
+        $"/api/wh/inventory/box-label/{Uri.EscapeDataString(lotNo)}", "Box label data is unavailable.");
     public Task<HttpResponseMessage> WhReleaseCompleteAsync(ReleaseCompleteReq body)
         => Post("/api/wh/release/complete", body);
     public Task<List<OutgoingVendorRow>> WhOutgoingVendorsAsync()

@@ -42,6 +42,9 @@ public static class WhEndpoints
     public sealed record LotStatusRow(int LotId, string LotNo, string? ItemNo, string? ItemName,
         string InventoryStatus, decimal RemainingQty, string? LocationId, DateTime? ProductionDate,
         DateTime? LastChangedAt);
+    public sealed record BoxReprintRow(string BoxNo, string PartNo, string PartName, decimal Qty,
+        string Unit, string VendorName, string DeliveryNo, string PoNo, string VendorId,
+        DateTime? ProductionDate, string Destination, int BoxSeq, int BoxCount);
 
     public sealed record LocationRow(string LocationId, string? LocationName, string? Zone, int LineCount, decimal TotalQty,
         string? WarehouseCode = null, string? WarehouseName = null, string? AreaCode = null, string? AreaName = null,
@@ -985,6 +988,42 @@ public static class WhEndpoints
                 (int)r["LotID"], r["LotNo"] as string ?? "", r["ItemNo"] as string, r["ItemName"] as string,
                 r["InventoryStatus"] as string ?? "CREATED", r.GetDecimal(r.GetOrdinal("RemainingQty")),
                 r["LocationID"] as string, r["ProducedAt"] as DateTime?, r["LastChangedAt"] as DateTime?));
+        });
+
+        g.MapGet("/inventory/box-label/{lotNo}", (HttpContext ctx, string lotNo) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            using var conn = factory.OpenConnection();
+            using var cmd = new SqlCommand("""
+                SELECT TOP (1) W.LotNo, W.PartNo, COALESCE(NULLIF(W.PartName, N''), B.ItemName, I.ItemName, N'') AS PartName,
+                       W.Qty, COALESCE(NULLIF(B.UnitCode, ''), I.DefaultUOM, 'EA') AS Unit,
+                       COALESCE(V.VendorName, D.VendorID, N'') AS VendorName,
+                       COALESCE(D.DeliveryNumber, NULLIF(W.DeliveryNoteNo, ''), '') AS DeliveryNo,
+                       COALESCE(PO.PoNumber, D.PoNumber, '') AS PoNo,
+                       COALESCE(NULLIF(D.VendorID, ''), PO.VendorID, '') AS VendorId,
+                       COALESCE(DL.ProductionDate, D.DeliveryDate) AS ProductionDate,
+                       COALESCE(PO.DeliveryDestination, '') AS Destination,
+                       COALESCE(B.BoxSeq, 1) AS BoxSeq,
+                       (SELECT COUNT(*) FROM dbo.SCM_DeliveryBox X
+                        WHERE X.DeliveryLineID = B.DeliveryLineID AND X.ActiveFlag = 1) AS BoxCount
+                FROM dbo.WH_Inventory W
+                LEFT JOIN dbo.SCM_DeliveryBox B ON B.BoxNumber COLLATE DATABASE_DEFAULT = W.LotNo COLLATE DATABASE_DEFAULT AND B.ActiveFlag = 1
+                LEFT JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryLineID = B.DeliveryLineID
+                LEFT JOIN dbo.SCM_Delivery D ON D.DeliveryID = DL.DeliveryID
+                LEFT JOIN dbo.WH_PurchaseOrder PO ON PO.PoID = B.PoID
+                LEFT JOIN dbo.MD_Vendor V ON V.VendorID = D.VendorID
+                LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT = W.PartNo COLLATE DATABASE_DEFAULT
+                WHERE W.LotNo = @LotNo AND W.UnitType = 'BOX' AND W.Qty > 0
+                """, conn);
+            cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = lotNo.Trim();
+            using var r = cmd.ExecuteReader();
+            if (!r.Read()) return Results.NotFound("An available box was not found.");
+            return Results.Ok(new BoxReprintRow(
+                GetString(r, "LotNo") ?? "", GetString(r, "PartNo") ?? "", GetString(r, "PartName") ?? "",
+                GetDecimal(r, "Qty"), GetString(r, "Unit") ?? "EA", GetString(r, "VendorName") ?? "",
+                GetString(r, "DeliveryNo") ?? "", GetString(r, "PoNo") ?? "", GetString(r, "VendorId") ?? "",
+                GetDate(r, "ProductionDate"), GetString(r, "Destination") ?? "",
+                r.GetInt32(r.GetOrdinal("BoxSeq")), r.GetInt32(r.GetOrdinal("BoxCount"))));
         });
 
         g.MapGet("/release/schedule/{pickSlipNo}/fifo-lots", (HttpContext ctx, string pickSlipNo) =>
