@@ -78,7 +78,7 @@ public static class FgEndpoints
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
         g.MapAdjustmentLocation(factory, finishedGoods: true);
 
-        g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
+        if (app.Environment.IsDevelopment()) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsAny(session.EmployeeNo))

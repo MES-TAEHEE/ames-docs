@@ -296,7 +296,7 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
-            var simulateFailure = body.SimulateFailure
+            var simulateFailure = app.Environment.IsDevelopment() && body.SimulateFailure
                 && (PdaScenarioUsers.IsDetailed(s.EmployeeNo)
                     || (PdaScenarioUsers.IsSimple(s.EmployeeNo)
                         && body.Barcode is "5011LL260908800001" or "5011LL260908800002" or "5011LL260908800003"
@@ -497,7 +497,7 @@ public static class WhEndpoints
                 ? Results.Unauthorized()
                 : Results.Ok(QuerySparePartTransactions(factory, search, dateFrom, dateTo)));
 
-        g.MapPost("/sp/test/reset", (HttpContext ctx) =>
+        if (app.Environment.IsDevelopment()) g.MapPost("/sp/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo) && !PdaScenarioUsers.IsDetailed(session.EmployeeNo))
@@ -518,7 +518,7 @@ public static class WhEndpoints
             }
         }).WithTags("PDA Test Scenarios");
 
-        g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
+        if (app.Environment.IsDevelopment()) g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
@@ -619,7 +619,7 @@ public static class WhEndpoints
             if (master.FindActiveCodeItem("INV_ADJUST_REASON", body.ReasonCode?.Trim() ?? "") is null)
                 return Results.BadRequest(new InboundReceiveResult(false, "Select a valid reason code.", null));
 
-            var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
+            var simulateFailure = app.Environment.IsDevelopment() && body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
             var result = ExecuteAdjustSave(factory, body, s.EmployeeNo, simulateFailure);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "ADJUST_SAVE", "WH005", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
@@ -633,7 +633,7 @@ public static class WhEndpoints
         g.MapPost("/adjust/save", SaveAdjustQuantity);
         g.MapPost("/inbound/adjust-qty", SaveAdjustQuantity);
 
-        g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
+        if (app.Environment.IsDevelopment()) g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
@@ -699,7 +699,7 @@ public static class WhEndpoints
             string? areaCode, bool? simulateFailure) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
-            if (simulateFailure == true && PdaScenarioUsers.IsDetailed(s.EmployeeNo))
+            if (app.Environment.IsDevelopment() && simulateFailure == true && PdaScenarioUsers.IsDetailed(s.EmployeeNo))
                 return Results.Problem("Simulated Inventory API failure.", statusCode: StatusCodes.Status503ServiceUnavailable);
             return Results.Ok(QueryInventory(factory, q, dateFrom, dateTo, areaCode));
         });
@@ -790,7 +790,7 @@ public static class WhEndpoints
             return Query(factory, sql, ReadLocationRow);
         });
 
-        g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
+        if (app.Environment.IsDevelopment()) g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
@@ -1173,7 +1173,7 @@ public static class WhEndpoints
             if (string.IsNullOrWhiteSpace(reasonCode))
                 return Results.BadRequest(new ReleaseCompleteResult(false, "Select an outgoing type."));
 
-            var simulateFailure = body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
+            var simulateFailure = app.Environment.IsDevelopment() && body.SimulateFailure && PdaScenarioUsers.IsDetailed(s.EmployeeNo);
             var result = ExecuteReleaseBatch(factory, pickSlipNo, body.Lots, reasonCode,
                 s.EmployeeNo, s.TerminalId, simulateFailure);
             if (!result.Success)
@@ -1256,7 +1256,7 @@ public static class WhEndpoints
                 r["ReasonCode"] as string));
         });
 
-        g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
+        if (app.Environment.IsDevelopment()) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
@@ -1280,7 +1280,7 @@ public static class WhEndpoints
             }
         }).WithTags("PDA Test Scenarios");
 
-        g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
+        if (app.Environment.IsDevelopment()) g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(session.EmployeeNo))

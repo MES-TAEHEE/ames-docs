@@ -69,7 +69,7 @@ public sealed class PopSessionRepository
             SELECT CAST(CASE WHEN EXISTS (
                 SELECT 1 FROM dbo.AspNetUserRoles ur
                 JOIN dbo.AspNetRoles r ON r.Id = ur.RoleId
-                WHERE ur.UserId = @UserId AND UPPER(r.Name) = 'ADMIN'
+                WHERE ur.UserId = @UserId AND UPPER(r.Name) IN ('ADMIN', 'SYSTEM ADMINISTRATOR')
             ) THEN 1 ELSE 0 END AS bit);
             """, conn);
         roleCmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = profile.UserId;
