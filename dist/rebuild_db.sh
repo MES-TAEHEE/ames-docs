@@ -55,7 +55,7 @@ FILES=(
   seed_user_code_groups.sql           # 공통 코드 그룹
   create_sys_screen.sql               # SYS_Screen 레지스트리 (화면 목록)
   reseed_menu.sql                     #   → 메뉴/HRef 정본 재시드
-  migrate_system_roles.sql            #   → 시스템 역할 고정 ID(ROLE-SYSADMIN·ROLE-SUPERVISOR) — Admin 권한 시드보다 먼저(10-09)
+  migrate_system_roles.sql            #   → 기본 역할 6개 고정 ID(ROLE-SYSADMIN·SUPERVISOR·OPERATOR·MAINTENANCE·QUALITY·PRODUCTION) — Admin 권한 시드보다 먼저(10-09)
   seed_admin_permissions.sql          #   → Admin RBAC(REA) + admin@ames.local 계정
   seed_md_code.sql                    # 마스터 공통코드
   seed_md_customer_seoyon.sql         # 고객 마스터 = Seoyon 세 플랜트(SAV·GEO·AUB), 데모 OEM 삭제
