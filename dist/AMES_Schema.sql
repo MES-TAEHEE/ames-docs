@@ -442,12 +442,13 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[AspNetUserTokens](
-	[UserId] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[UserId] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[LoginProvider] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[Name] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[Value] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_AspNetUserTokens] PRIMARY KEY CLUSTERED 
 (
+	[UserId] ASC,
 	[LoginProvider] ASC,
 	[Name] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
@@ -11271,9 +11272,9 @@ END;
 GO
 SET ANSI_NULLS ON
 GO
-SET QUOTED_IDENTIFIER OFF
+SET QUOTED_IDENTIFIER ON
 GO
-CREATE   PROCEDURE dbo.WH_PDA_INBOUND_RECEIVE_LOT
+CREATE PROCEDURE dbo.WH_PDA_INBOUND_RECEIVE_LOT
     @ReceiveMode nvarchar(10),
     @LotBarcode nvarchar(50),
     @LocationId nvarchar(30),
@@ -13919,8 +13920,8 @@ INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode,
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PORTAL-002', 'WEB', 'PORTAL', NULL, N'납품 생성', N'Delivery Creation', 'portal/due-orders', 'PORTAL-002', 2, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PORTAL-003', 'WEB', 'PORTAL', NULL, N'납품서 관리', N'Delivery Management', 'portal/deliveries', 'PORTAL-003', 3, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PORTAL-004', 'WEB', 'PORTAL', NULL, N'딜리버리 노트 조회·발행', N'Delivery Notes', 'portal/delivery-notes', 'PORTAL-004', 4, 0, 'seed');
-INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PORTAL-005', 'WEB', 'PORTAL', NULL, N'입고 현황', N'Receipt Status', 'portal/receipts', 'PORTAL-004', 4, 1, 'seed');
-INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PORTAL-006', 'WEB', 'PORTAL', NULL, N'적입량 관리', N'Packing Quantities', 'portal/packing-quantities', 'PORTAL-005', 5, 1, 'seed');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PORTAL-005', 'WEB', 'PORTAL', NULL, N'입고 현황', N'Receipt Status', 'portal/receipts', 'PORTAL-004', 4, 0, 'seed');
+INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PORTAL-006', 'WEB', 'PORTAL', NULL, N'적입량 관리', N'Packing Quantities', 'portal/packing-quantities', 'PORTAL-004', 4, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-001', 'WEB', 'PP', NULL, N'수요 예측', N'Forecast', 'pp/forecast', 'PP-001', 1, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-002', 'WEB', 'PP', NULL, N'공급계획 가져오기', N'Supply Plan Import', 'pp/supply-plan-import', 'PP-002', 2, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES ('PP-003', 'WEB', 'PP', NULL, N'계획 확정', N'Plan Confirm', 'pp/plan-confirm', 'PP-003', 3, 1, 'seed');
