@@ -32,10 +32,12 @@
     <div class="ames-card">
         <div class="ames-card-h">Boxes / Parts @(_document?.Number) · @_boxes.Count</div>
         <div class="box-toolbar">
-            <RadzenButton Text='@L["Portal.Text.SelectAll"]' Click="SelectAll" Disabled="@(_boxes.Count==0)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
-            <RadzenButton Text='@L["Portal.Text.ClearSelection"]' Click="()=>_selected.Clear()" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" />
-            <RadzenButton Text='@L["Portal.Text.PrintSelectedLabels"]' Icon="print" Click="Print" Disabled="@(_selected.Count==0)" Size="ButtonSize.Small" />
             <span>@L["Scm.Text.SelectLabel"] @_selected.Count</span>
+            <div class="box-toolbar-actions">
+                <RadzenButton Text='@L["Portal.Text.SelectAll"]' Click="SelectAll" Disabled="@(_boxes.Count==0)" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Portal.Text.ClearSelection"]' Click="()=>_selected.Clear()" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Print"]' Icon="print" Click="Print" Disabled="@(_selected.Count==0)" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </div>
         </div>
         @if(_document is not null && _boxes.Count==0){<p class="dim">@(_document.Status=="Cancelled"?L["Portal.Text.ThisDeliveryIsCancelledLabelsCannotBePrinted"]:L["Portal.Text.NoSavedBoxesBoxesAreNotAutomaticallyGeneratedFor"])</p>}
         <RadzenDataGrid TItem="ScmRepository.DeliveryBox" Data="@_boxes" Class="ames-rz-grid" AllowPaging="true" PageSize="20" EmptyText='@L["Portal.Text.SelectADelivery"]'>

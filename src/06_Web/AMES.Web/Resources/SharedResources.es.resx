@@ -8882,7 +8882,7 @@
     <value>Seleccione artículos y cantidades disponibles, hasta 3 decimales.</value>
   </data>
   <data name="Scm.Text.SetAPositivePackingQuantityInPORTAL006And" xml:space="preserve">
-    <value>Registre una cantidad por caja positiva en PORTAL-006 y recargue.</value>
+    <value>Registre una cantidad por caja positiva en PORTAL-004 y recargue.</value>
   </data>
   <data name="Scm.Text.Maximum1000BoxesPerItemCheckQuantities" xml:space="preserve">
     <value>Máximo 1.000 cajas por artículo.</value>

@@ -19,6 +19,12 @@
 .scm-lines td { vertical-align:middle; }
 .scm-lines .dim { white-space:normal; max-width:390px; padding-top:4px; }
 .scm-total { display:flex; justify-content:flex-end; align-items:center; gap:20px; padding:10px 4px 0; font-size:15px; }
+.scm-print-body { display:grid; gap:18px; }
+.scm-print-section { min-width:0; }
+.scm-print-section h3 { margin:0 0 8px; font-size:16px; color:var(--ames-tx-blue-300); }
+.scm-print-table { table-layout:fixed; }
+.scm-print-table th:last-child,.scm-print-table td:last-child { width:150px; text-align:right; }
+.scm-print-table th,.scm-print-table td { white-space:normal; overflow-wrap:anywhere; vertical-align:middle; }
 
 .scm-act { margin:12px 0; }
 .scm-act label { display:flex; align-items:center; gap:8px; }

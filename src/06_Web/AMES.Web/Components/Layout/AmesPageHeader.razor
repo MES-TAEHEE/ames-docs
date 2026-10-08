@@ -46,7 +46,7 @@
         var name = screen is null ? fallback
                  : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? screen.ScreenName
                  : string.IsNullOrWhiteSpace(screen.ScreenNameEn) ? screen.ScreenName : screen.ScreenNameEn;
-        State.Set(screen?.ScreenCode ?? Code, name);
+        State.Set(screen?.LidLabel ?? screen?.ScreenCode ?? Code, name);
     }
 
     // 알림은 스레드 풀에서 온다(ScreenCatalogNotifier) — DB 조회는 회로 밖, 제목 반영만 회로에서

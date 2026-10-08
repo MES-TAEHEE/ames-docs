@@ -8882,7 +8882,7 @@
     <value>Select items and quantities within the available balance, up to 3 decimals.</value>
   </data>
   <data name="Scm.Text.SetAPositivePackingQuantityInPORTAL006And" xml:space="preserve">
-    <value>Set a positive packing quantity in PORTAL-006 and reload.</value>
+    <value>Set a positive packing quantity in PORTAL-004 and reload.</value>
   </data>
   <data name="Scm.Text.Maximum1000BoxesPerItemCheckQuantities" xml:space="preserve">
     <value>Maximum 1,000 boxes per item. Check quantities.</value>

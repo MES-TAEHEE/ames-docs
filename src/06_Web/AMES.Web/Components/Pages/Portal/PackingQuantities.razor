@@ -7,7 +7,7 @@
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["Portal.Text.PackingQuantities"] · AMES</PageTitle>
-<AmesPageHeader Code="PORTAL-005" Title='@L["Portal.Text.PackingQuantities"]' />
+<AmesPageHeader Code="PORTAL-004" Title='@L["Portal.Text.PackingQuantities"]' />
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">PO / Linked Items</div><div class="ames-kpi-v">@_rows.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Portal.Text.PackingQuantitySet"]</div><div class="ames-kpi-v">@_rows.Count(r=>r.Source.CanSave && r.Source.PackingQty>0)</div></div>

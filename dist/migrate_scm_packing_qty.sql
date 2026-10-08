@@ -9,5 +9,5 @@ IF EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode='PORTAL-006'
     THROW 50001,'Screen code conflict.',1;
 IF NOT EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode='PORTAL-006')
     INSERT dbo.SYS_Screen(ScreenCode,ModuleCode,ProcessCode,ScreenName,ScreenNameEn,HRef,LidLabel,SortOrder,IsVisible,CreatedBy,CreatedTS)
-    VALUES('PORTAL-006','WEB','PORTAL',N'적입량 관리',N'Packing Quantities','portal/packing-quantities','PORTAL-006',6,1,'scm-screen',SYSDATETIME());
+    VALUES('PORTAL-006','WEB','PORTAL',N'적입량 관리',N'Packing Quantities','portal/packing-quantities','PORTAL-004',4,1,'scm-screen',SYSDATETIME());
 COMMIT;

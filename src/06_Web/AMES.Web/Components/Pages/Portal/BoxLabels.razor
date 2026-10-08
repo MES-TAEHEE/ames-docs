@@ -8,10 +8,10 @@
 @inject PortalQuantityFormat QtyFormat
 @inject ILogger<BoxLabels> Logger
 <PageTitle>@L["Portal.Text.BoxLabels"] · AMES</PageTitle>
-<div class="label-tools">
+<div class="label-tools portal-print-toolbar">
     <a href="/portal/deliveries">@L["Portal.Text.BackToDeliveryManagement"]</a>
     @if(_boxes.Count>0){
-        <button type="button" data-delivery-note-print data-no-busy>@L["Btn.Print"]</button>
+        <button type="button" class="ames-btn" data-delivery-note-print data-no-busy>@L["Btn.Print"]</button>
     }
     @if(_message.Length>0){<p role="alert">@_message</p>}
 </div>

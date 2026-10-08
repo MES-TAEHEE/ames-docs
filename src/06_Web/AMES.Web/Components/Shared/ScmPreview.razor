@@ -230,49 +230,49 @@
                     <span>Printing · @(_printingNote?.Number ?? _printingDelivery.Number)</span>
                     <RadzenButton Icon="close" aria-label="Close printing" Click="@(()=>{_printingDelivery=null;_printingNote=null;})" />
                 </div>
-                <div class="ames-modal-body" style="overflow:auto;min-height:0;">
-                    <RadzenTabs>
-                        <Tabs>
-                            <RadzenTabsItem Text="Delivery Note">
+                <div class="ames-modal-body scm-print-body" style="overflow:auto;min-height:0;">
+                    <section class="scm-print-section">
+                        <h3>Delivery Note</h3>
+                        <table class="ames-table scm-print-table"><thead><tr><th>Delivery Note</th><th>Action</th></tr></thead><tbody>
+                            <tr>
                                 @if(_printingNote is { } selectedNote && selectedNote.Number!=_printingDelivery.Number)
                                 {
-                                    <p class="code">@selectedNote.Number</p>
-                                    <RadzenButton Text="Print Delivery Note" Icon="print" Click="@(()=>OpenNote(selectedNote.Number))" />
+                                    <td class="code">@selectedNote.Number</td><td><RadzenButton Text="Print" Icon="print" Size="ButtonSize.Small" class="ames-rz-btn" Click="@(()=>OpenNote(selectedNote.Number))" /></td>
                                 }
                                 else if(_noteDeliveries.TryGetValue(_printingDelivery.Number,out var printNote) && printNote.NoteNumber is not null)
                                 {
-                                    <p class="code">@printNote.NoteNumber</p>
-                                    <RadzenButton Text="Print Delivery Note" Icon="print" Click="@(()=>OpenNote(printNote.NoteNumber))" />
+                                    <td class="code">@printNote.NoteNumber</td><td><RadzenButton Text="Print" Icon="print" Size="ButtonSize.Small" class="ames-rz-btn" Click="@(()=>OpenNote(printNote.NoteNumber))" /></td>
                                 }
                                 else
                                 {
-                                    <p>Print the Delivery Note. Printing does not confirm shipment.</p>
-                                    <RadzenButton Text="Issue / Print Delivery Note" Icon="print" Disabled="@(_noteBusy || !_noteDeliveries.ContainsKey(_printingDelivery.Number))" Click="@(()=>IssueNote(_printingDelivery.Number))" />
+                                    <td class="dim">Not issued</td><td><RadzenButton Text="Issue / Print" Icon="print" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@(_noteBusy || !_noteDeliveries.ContainsKey(_printingDelivery.Number))" Click="@(()=>IssueNote(_printingDelivery.Number))" /></td>
                                 }
-                                @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
-                            </RadzenTabsItem>
-                            <RadzenTabsItem Text="Case Barcode">
-                                @if(_printingError.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_printingError</RadzenAlert>}
-                                <table class="ames-table"><thead><tr><th>Case No</th><th>Boxes</th><th>Printing</th></tr></thead><tbody>
-                                @foreach(var item in _printingCases)
-                                {
-                                    <tr><td>@item.Number</td><td>@item.Boxes.Count</td><td><button type="button" @onclick="()=>OpenCasePreview(item.Number)">Print Case Barcode</button></td></tr>
-                                }
-                                </tbody></table>
-                                @if(_printingCases.Count==0 && _printingError.Length==0){<p>No cases in this delivery.</p>}
-                            </RadzenTabsItem>
-                            <RadzenTabsItem Text="Box / Part Barcode">
-                                @if(_printingNote is { } printGroup)
-                                {
-                                    @foreach(var delivery in printGroup.Deliveries.Where(d=>d.Status!="Cancelled"))
-                                    {
-                                        <AMES.Web.Components.Pages.Portal.DeliveryBoxes @key="delivery.Number" Embedded="true" Number="@delivery.Number" PreviewRequested="OpenPreview" />
-                                    }
-                                }
-                                else { <AMES.Web.Components.Pages.Portal.DeliveryBoxes Embedded="true" Number="@_printingDelivery.Number" PreviewRequested="OpenPreview" /> }
-                            </RadzenTabsItem>
-                        </Tabs>
-                    </RadzenTabs>
+                            </tr>
+                        </tbody></table>
+                        @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
+                    </section>
+                    <section class="scm-print-section">
+                        <h3>Case Barcode</h3>
+                        @if(_printingError.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_printingError</RadzenAlert>}
+                        <table class="ames-table scm-print-table"><thead><tr><th>Case No</th><th>Boxes</th><th>Action</th></tr></thead><tbody>
+                            @foreach(var item in _printingCases)
+                            {
+                                <tr><td class="code">@item.Number</td><td>@item.Boxes.Count</td><td><RadzenButton Text="Print" Icon="print" Size="ButtonSize.Small" class="ames-rz-btn" Click="@(()=>OpenCasePreview(item.Number))" /></td></tr>
+                            }
+                            @if(_printingCases.Count==0){<tr><td colspan="3" class="dim">No cases in this delivery.</td></tr>}
+                        </tbody></table>
+                    </section>
+                    <section class="scm-print-section">
+                        <h3>Box / Part Barcode</h3>
+                        @if(_printingNote is { } printGroup)
+                        {
+                            @foreach(var delivery in printGroup.Deliveries.Where(d=>d.Status!="Cancelled"))
+                            {
+                                <AMES.Web.Components.Pages.Portal.DeliveryBoxes @key="delivery.Number" Embedded="true" Number="@delivery.Number" PreviewRequested="OpenPreview" />
+                            }
+                        }
+                        else { <AMES.Web.Components.Pages.Portal.DeliveryBoxes Embedded="true" Number="@_printingDelivery.Number" PreviewRequested="OpenPreview" /> }
+                    </section>
                 </div>
             </div>
         </div>
@@ -313,14 +313,12 @@
                 </div>
                 <div class="scm-dsub">Items · @Status(NoteStatus(noteDetail)) · Receipt @NoteReceiptStatus(noteDetail)</div>
                 <div class="scm-scroll"><table class="ames-table scm-lines">
-                    <thead><tr><th>PO No</th><th>Part No / Name</th><th>Delivered</th><th>Received</th><th>Remaining</th>@if(_isExternalPortalUser && noteDetail.Deliveries.Any(d=>d.Status=="Registered")){<th>Shipment</th>}</tr></thead>
+                    <thead><tr><th>PO No</th><th>Part No / Name</th><th>Delivered</th><th>Received</th><th>Remaining</th></tr></thead>
                     <tbody>@foreach(var line in Store.Deliveries.Where(d=>noteDetail.Numbers.Contains(d.Number)))
                     {
                         <tr><td class="code">@line.OrderNumber</td><td>@line.Item<div class="dim">@PartName(line.PoID)</div></td>
                             <td>@QtyFormat.Text(line.Quantity,line.Unit) @line.Unit</td><td>@QtyFormat.Text(line.Received,line.Unit) @line.Unit</td>
                             <td>@QtyFormat.Text(Math.Max(0,line.Quantity-line.Received),line.Unit) @line.Unit</td>
-                            @if(_isExternalPortalUser && noteDetail.Deliveries.Any(d=>d.Status=="Registered"))
-                            {<td>@if(line.Status=="Registered"){<button type="button" @onclick="()=>StartShipping(line)">Start Shipping</button>}</td>}
                         </tr>
                     }</tbody>
                 </table></div>
@@ -568,7 +566,7 @@
     }
 }
 @code {
-    string QuantityText(decimal quantity,string unit,int digits) => UomFmt.Qty(quantity,unit);
+    string QuantityText(decimal quantity,string unit,int digits) => IsPortal ? QtyFormat.Text(quantity,unit) : UomFmt.Qty(quantity,unit);
     // ── 화면 구성(표준 화면과 같은 목록·모달) ─────────────────────────
     RadzenDataGrid<ScmPreviewStore.Order>? _orderGrid;
     RadzenDataGrid<ScmPreviewStore.Delivery>? _deliveryGrid;
