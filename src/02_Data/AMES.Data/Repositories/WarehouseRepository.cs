@@ -219,6 +219,15 @@ public sealed partial class WarehouseRepository
     {
         var like = Like(search);
         return Query("""
+            WITH Stock AS (
+                SELECT LocationNo,
+                       COUNT(DISTINCT LotNo) AS LotCount,
+                       COUNT(DISTINCT PartNo) AS PartCount,
+                       SUM(Qty) AS TotalQty
+                FROM dbo.WH_Inventory
+                WHERE Qty <> 0
+                GROUP BY LocationNo
+            )
             SELECT
                 L.LocationID AS LOCATION_NO,
                 L.LocationName AS LOCATION_NM,
@@ -232,14 +241,24 @@ public sealed partial class WarehouseRepository
                 L.Bay AS RACK_Y,
                 L.Slot AS RACK_Z,
                 CAST(COALESCE(L.ActiveFlag, 1) AS bit) AS USE_YN,
-                COUNT(DISTINCT S.LotNo) AS LOT_COUNT,
-                COUNT(DISTINCT S.PartNo) AS PART_COUNT,
-                COALESCE(SUM(S.Qty), 0) AS TOTAL_QTY
+                COALESCE(S.LotCount, 0) AS LOT_COUNT,
+                COALESCE(S.PartCount, 0) AS PART_COUNT,
+                COALESCE(S.TotalQty, 0) AS TOTAL_QTY
             FROM dbo.MD_Location L
-            LEFT JOIN dbo.MD_CodeItem W ON W.GroupCode='WH_CODE' AND W.CodeValue=L.WhCode
-            LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.CodeValue=L.AreaCode
-                  AND (A.ParentCodeID IS NULL OR A.ParentCodeID=W.CodeID)
-            LEFT JOIN dbo.WH_Inventory S ON S.LocationNo=L.LocationID AND S.Qty<>0
+            OUTER APPLY (
+                SELECT TOP (1) CodeID, CodeName
+                FROM dbo.MD_CodeItem
+                WHERE GroupCode = 'WH_CODE' AND CodeValue = L.WhCode
+                ORDER BY CodeID
+            ) W
+            OUTER APPLY (
+                SELECT TOP (1) CodeName
+                FROM dbo.MD_CodeItem
+                WHERE GroupCode = 'WH_AREA' AND CodeValue = L.AreaCode
+                  AND (ParentCodeID IS NULL OR ParentCodeID = W.CodeID)
+                ORDER BY CASE WHEN ParentCodeID = W.CodeID THEN 0 ELSE 1 END, CodeID
+            ) A
+            LEFT JOIN Stock S ON S.LocationNo = L.LocationID
             WHERE (@IncludeInactive = 1 OR COALESCE(L.ActiveFlag, 1) = 1)
               AND (@WhCode IS NULL OR L.WhCode = @WhCode)
               AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
@@ -250,8 +269,6 @@ public sealed partial class WarehouseRepository
                    OR L.ZoneCode LIKE @Search
                    OR L.AreaCode LIKE @Search
                    OR L.WhCode LIKE @Search)
-            GROUP BY L.LocationID, L.LocationName, L.WhCode, W.CodeName, L.AreaCode, L.ZoneCode, A.CodeName,
-                     L.LocationType, L.Aisle, L.Bay, L.Slot, L.ActiveFlag
             ORDER BY L.WhCode, L.AreaCode, L.ZoneCode,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
                      TRY_CONVERT(int, L.Bay), L.Bay,
@@ -639,7 +656,7 @@ public sealed partial class WarehouseRepository
         using var cmd = new SqlCommand("""
             SELECT COUNT(DISTINCT l.LocationID), COUNT(i.LotNo), COALESCE(SUM(ABS(i.Qty)),0)
             FROM dbo.MD_Location l
-            LEFT JOIN dbo.WH_Inventory i ON i.LocationNo=l.LocationID AND i.Qty<>0
+            LEFT JOIN dbo.WH_Inventory i ON i.LocationNo=l.LocationID
             WHERE l.WhCode=@Wh AND (@Area IS NULL OR l.AreaCode=@Area) AND (@Floor IS NULL OR l.Slot=@Floor);
             """, conn);
         cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
@@ -650,7 +667,7 @@ public sealed partial class WarehouseRepository
         return new(r.GetInt32(0), r.GetInt32(1), r.GetDecimal(2));
     }
 
-    public void DeleteLocationMapScope(string whCode, string? areaCode, bool deleteStock, string? floor = null)
+    public void DeleteLocationMapScope(string whCode, string? areaCode, string? floor = null)
     {
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
@@ -684,9 +701,9 @@ public sealed partial class WarehouseRepository
 
             SELECT LocationID INTO #Scope FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK)
             WHERE WhCode=@Wh AND (@Area IS NULL OR AreaCode=@Area) AND (@Floor IS NULL OR Slot=@Floor);
-            IF @DeleteStock=0 AND EXISTS (SELECT 1 FROM dbo.WH_Inventory i WITH (UPDLOCK,HOLDLOCK)
-                                         JOIN #Scope s ON s.LocationID=i.LocationNo WHERE i.Qty<>0)
-                THROW 51022,'Inventory was found. Refresh and confirm deletion again.',1;
+            IF EXISTS (SELECT 1 FROM dbo.WH_Inventory i WITH (UPDLOCK,HOLDLOCK)
+                       JOIN #Scope s ON s.LocationID=i.LocationNo)
+                THROW 51022,'Inventory was found. Move it before deleting this scope.',1;
             IF EXISTS (SELECT 1 FROM dbo.MNT_SparePartItem p JOIN #Scope s ON s.LocationID=p.LocationID)
                 THROW 51023,'A spare part is linked to a location. Move it before deleting this scope.',1;
             IF EXISTS (SELECT 1 FROM dbo.WH_Inventory child
@@ -699,7 +716,6 @@ public sealed partial class WarehouseRepository
                              AND parent.LocationNo NOT IN (SELECT LocationID FROM #Scope)))
                 THROW 51025,'Inventory is linked to a parent outside this scope.',1;
 
-            DELETE i FROM dbo.WH_Inventory i JOIN #Scope s ON s.LocationID=i.LocationNo;
             UPDATE l SET ActiveFlag=0, ModifiedBy='web', ModifiedTS=SYSDATETIME()
             FROM dbo.MD_Location l JOIN #Scope s ON s.LocationID=l.LocationID;
             IF @Floor IS NULL AND @Area IS NULL
@@ -713,7 +729,6 @@ public sealed partial class WarehouseRepository
         cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
         cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = (object?)areaCode ?? DBNull.Value;
         cmd.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = (object?)floor ?? DBNull.Value;
-        cmd.Parameters.Add("@DeleteStock", SqlDbType.Bit).Value = deleteStock;
         cmd.ExecuteNonQuery();
         tx.Commit();
     }
@@ -1408,13 +1423,15 @@ public sealed partial class WarehouseRepository
             .ToList();
         if (cleanLines.Count == 0)
             throw new InvalidOperationException("At least one requested line is required.");
+        if (cleanLines.Select(l => l.LineCode).Distinct(StringComparer.OrdinalIgnoreCase).Skip(1).Any())
+            throw new InvalidOperationException("A Pick Slip must belong to one production line.");
 
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction();
         try
         {
             var pickSlipNo = string.IsNullOrWhiteSpace(requestedPickSlipNo)
-                ? GeneratePickSlipNo(conn, tx)
+                ? GeneratePickSlipNo(conn, tx, cleanLines[0].LineCode)
                 : Truncate(requestedPickSlipNo.Trim().ToUpperInvariant(), 40);
 
             if (PickSlipExists(conn, tx, pickSlipNo))
@@ -1914,19 +1931,31 @@ public sealed partial class WarehouseRepository
         return cmd.ExecuteScalar() is not null;
     }
 
-    private static string GeneratePickSlipNo(SqlConnection conn, SqlTransaction tx)
+    private static string GeneratePickSlipNo(SqlConnection conn, SqlTransaction tx, string lineCode)
     {
         using var cmd = new SqlCommand("""
-            DECLARE @Prefix char(8) = CONVERT(char(8), SYSDATETIME(), 112);
+            DECLARE @LinePrefix char(2) = (
+                SELECT TOP (1) LotPrefix
+                FROM dbo.MD_Line
+                WHERE LEN(LotPrefix) = 2 AND (LineID = @Line OR LotPrefix = @Line)
+                ORDER BY CASE WHEN LineID = @Line THEN 0 ELSE 1 END
+            );
+            IF @LinePrefix IS NULL THROW 51026, 'The production line needs a two-character LotPrefix.', 1;
+
+            DECLARE @Prefix nvarchar(10) = CONCAT(N'PK', @LinePrefix, CONVERT(char(6), SYSDATETIME(), 12));
             DECLARE @Seq int;
 
-            SELECT @Seq = COALESCE(MAX(TRY_CONVERT(int, RIGHT(PickSlipNo, 2))), 0) + 1
+            SELECT @Seq = COALESCE(MAX(TRY_CONVERT(int, SUBSTRING(PickSlipNo, 11, 30))), 0) + 1
             FROM dbo.WH_PickSlip WITH (UPDLOCK, HOLDLOCK)
-            WHERE PickSlipNo LIKE @Prefix + N'[0-9][0-9]';
+            WHERE PickSlipNo LIKE @Prefix + N'[0-9][0-9][0-9]%'
+              AND SUBSTRING(PickSlipNo, 11, 30) NOT LIKE N'%[^0-9]%';
 
-            SELECT @Prefix + RIGHT(N'00' + CONVERT(nvarchar(10), COALESCE(@Seq, 1)), 2);
+            SELECT @Prefix + CASE WHEN @Seq < 1000
+                THEN RIGHT(N'000' + CONVERT(nvarchar(10), @Seq), 3)
+                ELSE CONVERT(nvarchar(10), @Seq) END;
             """, conn, tx);
-        return Convert.ToString(cmd.ExecuteScalar()) ?? DbClock.Now.ToString("yyyyMMdd") + "01";
+        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 40).Value = lineCode;
+        return Convert.ToString(cmd.ExecuteScalar())!;
     }
 
     private static void AddLocationParameters(

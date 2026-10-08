@@ -32,7 +32,10 @@ if ($Commit) {
 }
 $tx = $conn.BeginTransaction()
 try {
-    foreach ($file in 'PDA_SCHEMA.sql','PDA_SEED.sql') {
+    # This deployment helper applies schema only. PDA_SEED contains known-PIN
+    # administrator accounts and destructive demo resets; run it separately
+    # only against an isolated development database.
+    foreach ($file in 'PDA_SCHEMA.sql') {
         $script = Get-Content -Raw -Encoding UTF8 (Join-Path $root "dist/pda/$file")
         $batches = [regex]::Split($script, '(?im)^\s*GO\s*\r?$')
         if ($file -eq 'PDA_SCHEMA.sql') {

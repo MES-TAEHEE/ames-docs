@@ -634,6 +634,8 @@
            || barcode.Length > 2 && barcode.StartsWith("PS", StringComparison.OrdinalIgnoreCase) && barcode[2..].All(char.IsDigit)
            || barcode.StartsWith("RS-", StringComparison.OrdinalIgnoreCase)
            || barcode.StartsWith("PA-", StringComparison.OrdinalIgnoreCase)
+           || barcode.Length >= 13 && barcode.StartsWith("PK", StringComparison.OrdinalIgnoreCase)
+              && barcode[2..4].All(char.IsLetterOrDigit) && barcode[4..].All(char.IsDigit)
            || barcode.StartsWith("PDA-FIFO-", StringComparison.OrdinalIgnoreCase)
            || barcode.StartsWith("PDA-REL-TEST-", StringComparison.OrdinalIgnoreCase)
            || string.IsNullOrWhiteSpace(_loadedSlipNo) && barcode.Length == 10 && barcode.All(char.IsDigit);

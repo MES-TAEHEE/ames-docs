@@ -28,7 +28,10 @@ public static class BearerAuth
                     await ctx.Response.WriteAsJsonAsync(new { message = "Database time is unavailable. Please retry." });
                     return;
                 }
-                if (session is not null) ctx.Items[SessionKey] = session;
+                if (session is not null
+                    && (ctx.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()
+                        || !PdaScenarioUsers.IsAny(session.EmployeeNo)))
+                    ctx.Items[SessionKey] = session;
             }
             await next();
         });

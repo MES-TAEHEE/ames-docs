@@ -221,7 +221,6 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         => Post("/api/wh/release/outgoing", body);
     public Task<List<TransactionRow>>     WhTransactionsAsync(int days = 7) => Get<List<TransactionRow>>($"/api/wh/transactions?days={days}");
 
-    public Task<HttpResponseMessage> WhReceiveAsync(ReceiveReq body) => Post("/api/wh/inbound/receive", body);
     public async Task<InboundDocumentResult> WhInboundDocumentAsync(string mode, string barcode)
     {
         Authorize();
