@@ -17,30 +17,32 @@ namespace AMES.Data.Aps.Domain;
 /// 잠긴 칸은 값을 그대로 두고(형제 통일·앞당기기에서 제외) 시간에는 넣는다. Explain 은 모든 칸을 잠긴 것으로 보고 근거만 만든다.
 public static class InjectionScheduler
 {
-    public static List<string> Reschedule(PlanBundle b, ShiftRules rules, StageRules stages) => RescheduleWithTraces(b, rules, stages).warnings;
+    public static List<string> Reschedule(PlanBundle b, ShiftRules rules, StageRules stages, ApsOptions? options = null) => RescheduleWithTraces(b, rules, stages, options).warnings;
 
-    public static (List<string> warnings, List<Trace> traces) RescheduleWithTraces(PlanBundle b, ShiftRules rules, StageRules stages)
+    /// options.SequentialShiftFill 만 본다(교대 목록 모드의 분할 방식) — null = 비율 분할(종전).
+    public static (List<string> warnings, List<Trace> traces) RescheduleWithTraces(PlanBundle b, ShiftRules rules, StageRules stages, ApsOptions? options = null)
     {
-        var ctx = new Ctx(b, rules, stages, fixedAll: false);
+        var ctx = new Ctx(b, rules, stages, fixedAll: false, options ?? ApsOptions.Default);
         var warnings = ctx.Run();
         return (warnings, ctx.BuildTraces());
     }
 
     /// 계획을 바꾸지 않고 입력된 planDay/planNight 를 설명한다 (reschedule 없는 /api/plan/calc).
-    public static List<Trace> Explain(PlanBundle b, ShiftRules rules, StageRules stages)
+    public static List<Trace> Explain(PlanBundle b, ShiftRules rules, StageRules stages, ApsOptions? options = null)
     {
-        var ctx = new Ctx(b, rules, stages, fixedAll: true);
+        var ctx = new Ctx(b, rules, stages, fixedAll: true, options ?? ApsOptions.Default);
         ctx.Run();
         return ctx.BuildTraces();
     }
 
     // ---------------------------------------------------------------- 내부
-    enum ShiftCase { None, AllDay, DayUsed, NoBox, Split, Proportional }
+    enum ShiftCase { None, AllDay, DayUsed, NoBox, Split, Proportional, Sequential }
 
     sealed class Cell
     {
         public double Opening, Need, Own, Final, Day, Night, Closing, DayRemBefore, Ratio, Raw, Hours;
         public List<ShiftQty>? Shifts;        // 교대 목록 모드의 교대별 수량(Day/Night 는 파생) — 골든 경로 null
+        public double[]? RemBefore;           // 교대 목록 모드에서 이 블록을 나누기 직전의 교대별 잔여 시간(근거 문구용)
         public ShiftCase Case;
         public bool Fixed;
         public List<(string from, double qty)> PulledIn = new();
@@ -55,7 +57,7 @@ public static class InjectionScheduler
 
     sealed class Ctx
     {
-        readonly PlanBundle b; readonly ShiftRules rules; readonly bool fixedAll;
+        readonly PlanBundle b; readonly ShiftRules rules; readonly bool fixedAll; readonly ApsOptions opt;
         readonly double[][] req; readonly int n;
         readonly List<(string PartNo, double Qty, int OffsetDays)> folds;   // 기준일 앞으로 떨어진 소요를 첫 사출일에 당긴 목록(경고)
         readonly Cell[][] cells;                       // [part][date]
@@ -63,9 +65,9 @@ public static class InjectionScheduler
         readonly List<string> lines; readonly Dictionary<string, int> lineIx = new(StringComparer.Ordinal);
         readonly List<(string mold, string from, string to, double qty)> moves = new();
 
-        public Ctx(PlanBundle bundle, ShiftRules r, StageRules stages, bool fixedAll)
+        public Ctx(PlanBundle bundle, ShiftRules r, StageRules stages, bool fixedAll, ApsOptions options)
         {
-            b = bundle; rules = r; this.fixedAll = fixedAll;
+            b = bundle; rules = r; this.fixedAll = fixedAll; opt = options;
             (req, folds) = PlanCalc.RequirementsWithFolds(b, stages); n = b.Dates.Count;
             cells = b.Injection.Select(_ => Enumerable.Range(0, n).Select(_ => new Cell()).ToArray()).ToArray();
             lines = b.Injection.Select(x => x.LineCd ?? "").Distinct().ToList();   // 사출 행(품번순)에 처음 나오는 순서 — 원본 경고 순서
@@ -226,13 +228,15 @@ public static class InjectionScheduler
                     foreach (var blk in ordered.Where(x => x.Free.Count > 0))
                     {
                         var basis = remH.Any(x => x > 1e-9) ? shiftList.Select((x, si) => new ShiftHours(x.Code, Math.Max(0, remH[si]))).ToList() : shiftList;
-                        var split = ShiftSplit.Proportional(blk.Qty, basis, blk.Pack);
+                        // 순차 채움(SHIFT_FILL_SEQ): 같은 잔여 시간을 앞 교대부터 채운다 — 비율 분할과 분모(잔여 시간)는 같고 나누는 방식만 다르다
+                        var split = opt.SequentialShiftFill ? ShiftSplit.Sequential(blk.Qty, basis, blk.Pack, blk.Uph) : ShiftSplit.Proportional(blk.Qty, basis, blk.Pack);
                         foreach (var k in blk.Free)
                         {
                             var c = cells[k][i];
                             c.Shifts = split.Select(x => new ShiftQty(x.Code, x.Qty)).ToList();
                             (c.Day, c.Night) = ApsShiftCompat.Derive(c.Shifts);
-                            c.Case = ShiftCase.Proportional;
+                            c.Case = opt.SequentialShiftFill ? ShiftCase.Sequential : ShiftCase.Proportional;
+                            c.RemBefore = basis.Select(x => x.Hours).ToArray();
                         }
                         if (blk.Uph > 0) for (var si = 0; si < remH.Length; si++) remH[si] -= split[si].Qty / blk.Uph;
                     }
@@ -362,6 +366,15 @@ public static class InjectionScheduler
                             var totalH = shiftList.Sum(x => x.Hours);
                             var calc = string.Join(" · ", shiftList.Select(x => $"{x.Code} {H1(x.Hours)}h"));
                             Add("교대 몫", $"교대 가동 시간 비율 — {calc} (합 {H1(totalH)}h) 로 {N(c.Final)}개를 나눕니다 ({r.PackSize}개들이 내림, 나머지는 마지막 교대)", prodScreen);
+                            break;
+                        }
+                        case ShiftCase.Sequential:
+                        {
+                            var (shiftList, _) = rules.ShiftsFor(line, date, true);
+                            var rem = c.RemBefore ?? shiftList.Select(x => x.Hours).ToArray();
+                            var fill = string.Join(" · ", shiftList.Select((x, si) =>
+                                $"{x.Code} 잔여 {H1(si < rem.Length ? rem[si] : 0)}h → {N(c.Shifts is { } sl && si < sl.Count ? sl[si].Qty : 0)}"));
+                            Add("교대 몫", $"앞 교대부터 채움 — {fill} ({r.PackSize}개들이 내림, 한 박스도 안 들어가는 교대는 건너뛰고 나머지는 마지막 교대)", prodScreen);
                             break;
                         }
                         case ShiftCase.Split:

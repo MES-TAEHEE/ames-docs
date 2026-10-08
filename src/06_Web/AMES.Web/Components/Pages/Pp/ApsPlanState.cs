@@ -84,14 +84,14 @@ public sealed class ApsPlanState
     public void Compute()
     {
         ComputeCore();
-        Traces = InjectionScheduler.Explain(Bundle, Build.Rules, Build.Stages);
+        Traces = InjectionScheduler.Explain(Bundle, Build.Rules, Build.Stages, Build.Options);
     }
 
     /// <summary>공급 자동 계산 → 사출 재배분 → 재계산. 잠긴 칸은 엔진이 건드리지 않는다.</summary>
     public void RunAutofill()
     {
         var (w1, autofill) = Autofill.RunWithTraces(Bundle, Build.Rules, Build.Stages, Build.Options);
-        var (w2, traces)   = InjectionScheduler.RescheduleWithTraces(Bundle, Build.Rules, Build.Stages);
+        var (w2, traces)   = InjectionScheduler.RescheduleWithTraces(Bundle, Build.Rules, Build.Stages, Build.Options);
         AutofillTraces   = autofill;
         ScheduleWarnings = w1.Concat(w2).ToList();
         ComputeCore();
@@ -102,7 +102,7 @@ public sealed class ApsPlanState
     /// <summary>사출 재배분만(완제품 공급은 그대로) → 재계산.</summary>
     public void Reschedule()
     {
-        var (w, traces) = InjectionScheduler.RescheduleWithTraces(Bundle, Build.Rules, Build.Stages);
+        var (w, traces) = InjectionScheduler.RescheduleWithTraces(Bundle, Build.Rules, Build.Stages, Build.Options);
         ScheduleWarnings = w;
         ComputeCore();
         Traces = traces;
