@@ -26,6 +26,8 @@ public sealed partial class PpRepository
     {
         public decimal LateQty  => Placements.Where(p => p.Late).Sum(p => p.Qty);
         public decimal ShortQty => Shortfalls.Sum(s => s.Qty);
+        /// <summary>능력을 넘어 초과로 실린 수량(2026-10-08 사용자 결정 — 미배치 대신). 슬롯 시간은 교대 밴드 안이고 수량만 UPH 기준을 넘는다.</summary>
+        public decimal OverQty  => Placements.Sum(p => p.OverQty);
     }
 
     /// <summary>거부된 계획 행. Reason = RejectNoMold | RejectNoUph.</summary>
@@ -41,6 +43,7 @@ public sealed partial class PpRepository
         public int Created       => Orders.Count;
         public int Late          => Orders.Count(o => o.LateQty  > 0);
         public int Short         => Orders.Count(o => o.ShortQty > 0);
+        public int Over          => Orders.Count(o => o.OverQty > 0);
         public int RejectedCount => Rejected.Count;
     }
 
@@ -241,7 +244,7 @@ public sealed partial class PpRepository
                 var full  = FullBands(cap0);
                 var hours = full.Select(b => new ShiftHours(b.Code, b.Hours)).ToList();
                 var codes = full.Select(b => b.Code).ToList();
-                if (codes.Count == 0) { hours = new() { new ShiftHours("", 0) }; codes = new() { "" }; }   // 가동 구간 없는 날: 수량은 교대 하나에 두고 3단계에서 전량 Shortfall
+                if (codes.Count == 0) { hours = new() { new ShiftHours("", 0) }; codes = new() { "" }; }   // 가동 구간 없는 날: 수량은 교대 하나에 두고 3단계가 하루 시작의 0분 초과 슬롯으로 쓴다(2026-10-08)
                 var planShifts = r.Shifts.Count > 0
                     ? ApsShiftCompat.Align(r.Shifts, (double)r.PlanDay, (double)r.PlanNight, hours)
                     : ApsShiftCompat.Restore((double)r.PlanDay, (double)r.PlanNight, hours);
@@ -362,6 +365,8 @@ public sealed partial class PpRepository
                 // ② 교대별 대표 시간 — 교대마다 그 교대 잔여 구간 앞에서부터 따로(형제 중 최대 수량 기준). 모자란 교대를 다른 교대로 넘기지 않는다(2026-10-07 교대 모델)
                 var cap    = days.Get(line, date);
                 var shifts = RemainingBands(cap);                            // SortOrder 순 — 모든 회원의 ParentShifts 와 같은 순서(같은 라인·날짜)
+                if (shifts.Count == 0)                                       // 가동 구간 없는 날(1단계가 교대 하나 "" 로 묶었다): 빈 교대 하나로 돌려 0분 초과 슬롯을 쓴다(2026-10-08 — 종전 전량 Shortfall)
+                    shifts = new[] { new ShiftBands.ShiftBand("", 0, Array.Empty<SlotPacker.Interval>()) };
                 int ns     = shifts.Count;
                 var childByItem = byItem.ToDictionary(x => x.Key, x => x.Select(m => m.ChildShifts()).Aggregate(new decimal[ns], (acc, v) => { for (int i = 0; i < ns; i++) acc[i] += i < v.Length ? v[i] : 0; return acc; }), StringComparer.OrdinalIgnoreCase);
                 var wantMin = new int[ns];
@@ -372,6 +377,8 @@ public sealed partial class PpRepository
                 //    창 순서 = 수량이 있는 교대 순. 창마다 교체분 + 1분이 한 빈틈에 들어가는 첫 자리를 찾아 앞 교체분을 MC 로, 그 교대 생산은 MC 끝부터.
                 //    MC 가 들어간 창보다 앞 창은 금형이 안 바뀌었으니 생산 없음(Shortfall). 어느 창에도 안 들어가면 MC 도 생산도 쓰지 않고 그 날 전량 Shortfall
                 var prevMold = days.LastMoldId(line, date);
+                var fullBands = FullBands(cap);
+                int mcWindow = -1, mcEnd = 0;
                 if (!string.Equals(prevMold, moldId, StringComparison.OrdinalIgnoreCase) && rep.Mold.ChangeMin > 0)
                 {
                     int change = rep.Mold.ChangeMin;
@@ -381,18 +388,31 @@ public sealed partial class PpRepository
                         if (wantMin[w] <= 0) continue;
                         if (SlotPacker.Place(bands[w], Array.Empty<SlotPacker.Interval>(), change + 1, cap.DayStart) is { } gap)
                         {
-                            var mc = new SlotPacker.Interval(gap.StartMin, gap.StartMin + change);
-                            LineScheduleRepository.AppendMoldChangeSlot(conn, tx, line, date, cap.PatternId, repFirstWo, prevMold, moldId, mc.StartMin, mc.EndMin, actor);
-                            days.Occupy(line, date, mc, moldId);
-                            rep.Parent.FirstPieceMc.Add(new DeadlinePacker.MoldChange(rep.Parent.InjStepSeq, line, date, mc.StartMin, mc.EndMin, prevMold, moldId, false));
-                            for (int k = 0; k < w; k++) bands[k] = Array.Empty<SlotPacker.Interval>();
-                            bands[w] = From(bands[w], mc, cap.DayStart);
+                            PlaceMc(w, gap.StartMin);
                             placed = true;
                             break;
                         }
                     }
                     if (!placed)
-                        for (int k = 0; k < ns; k++) bands[k] = Array.Empty<SlotPacker.Interval>();
+                    {
+                        // 2026-10-08 사용자 결정 "미배치되면 안 된다": 어느 창에도 교체분 + 생산 1분이 안 들어가도 수량 있는 첫 창의 첫 틈(틈이 없으면 그 교대 밴드 시작,
+                        // 그것도 없으면 하루 시작) 앞에 MC 를 억지로 두고, 그 뒤 남은 틈에 초과로 싣는다(종전에는 MC 도 생산도 쓰지 않고 그 날 전량 Shortfall)
+                        int w = Array.FindIndex(wantMin, m => m > 0); if (w < 0) w = 0;
+                        var fb = w < fullBands.Count ? fullBands[w].Bands : Array.Empty<SlotPacker.Interval>();
+                        int start = bands[w].Count > 0 ? bands[w][0].StartMin : fb.Count > 0 ? fb[0].StartMin : cap.DayStart;
+                        PlaceMc(w, start);
+                    }
+
+                    void PlaceMc(int w, int start)
+                    {
+                        var mc = new SlotPacker.Interval(start, Math.Min(1440, start + change));
+                        LineScheduleRepository.AppendMoldChangeSlot(conn, tx, line, date, cap.PatternId, repFirstWo, prevMold, moldId, mc.StartMin, mc.EndMin, actor);
+                        days.Occupy(line, date, mc, moldId);
+                        rep.Parent.FirstPieceMc.Add(new DeadlinePacker.MoldChange(rep.Parent.InjStepSeq, line, date, mc.StartMin, mc.EndMin, prevMold, moldId, false));
+                        for (int k = 0; k < w; k++) bands[k] = Array.Empty<SlotPacker.Interval>();
+                        bands[w] = From(bands[w], mc, cap.DayStart);
+                        mcWindow = w; mcEnd = mc.EndMin;
+                    }
                 }
 
                 var alloc = new ShiftBands.Allocation[ns];
@@ -402,6 +422,14 @@ public sealed partial class PpRepository
                 int dayStart = cap.DayStart;
                 int injEnd   = allocated.Count > 0 ? allocated.MaxBy(sl => AxisEnd(sl, dayStart)).EndMin : cap.LastWoEnd ?? cap.DayStart;
                 var pools = alloc.Select(a => a.Slots.ToList()).ToList();
+                // 교대 k 에 시간이 전혀 없을 때 초과 수량을 기록할 0분 슬롯의 자리(2026-10-08): 이미 받은 슬롯이 있으면 그 끝 → 그 교대에 MC 를 억지로 뒀으면 MC 끝 →
+                // 그 교대 전체 밴드의 시작 → 그 날 첫 밴드 → 하루 시작. POP 은 수량만 읽고 ReadDayCapacity 는 0분 행을 세지 않는다(형제 0분 슬롯과 같은 규칙)
+                int AnchorOf(int k) =>
+                    alloc[k].Slots.Count > 0 ? alloc[k].Slots[^1].EndMin
+                    : mcWindow == k ? mcEnd
+                    : k < fullBands.Count && fullBands[k].Bands.Count > 0 ? fullBands[k].Bands[0].StartMin
+                    : fullBands.FirstOrDefault(b => b.Bands.Count > 0)?.Bands[0].StartMin ?? cap.DayStart;
+                int overEnd = injEnd;   // 0분 초과 슬롯이 실제 슬롯보다 뒤에 놓이면 완제품 단계 시작도 그 뒤로
 
                 // ④ 회원(자식 몫)별: 부모 조각을 자식 단위(× QtyPer, 교대별)로 바꿔 싣는다. 대표 품번의 조각 = 교대 구간을 차례로 잘라 실제 슬롯(마지막 조각은
                 //    형제 몫까지 남은 구간 전부 — 수량 0 구간도 써서 점유를 DB 에 남긴다), 형제 품번의 조각 = 대표 교대 첫 슬롯 시작의 0분 슬롯 → PP_ApsRunWo.
@@ -430,33 +458,42 @@ public sealed partial class PpRepository
                                 int want  = MinutesOrZero(part[k], uph);
                                 var taken = Carve(pools[k], lastPiece ? int.MaxValue : want);
                                 bool fullyServed = taken.Sum(sl => sl.EndMin - sl.StartMin) >= want;
-                                foreach (var (slot, q) in Spread(taken, part[k], uph, fullyServed))
+                                var spread = Spread(taken, part[k], uph, fullyServed);
+                                decimal unfit = part[k] - spread.Sum(x => x.Qty);
+                                if (unfit > 0)
+                                {
+                                    // 2026-10-08 사용자 결정: 시간이 모자란 만큼은 미배치가 아니라 이 교대의 마지막 슬롯에 초과로 싣는다 — 슬롯이 하나도 없으면 교대 기준점의 0분 슬롯
+                                    if (spread.Count > 0) { var (ls, lq, lo) = spread[^1]; spread[^1] = (ls, lq + unfit, lo + unfit); }
+                                    else { int at = AnchorOf(k); spread.Add((new SlotPacker.Interval(at, at), unfit, unfit)); if (AxisEnd(new SlotPacker.Interval(at, at), dayStart) > AxisEnd(new SlotPacker.Interval(overEnd, overEnd), dayStart)) overEnd = at; }
+                                }
+                                foreach (var (slot, q, over) in spread)
                                 {
                                     LineScheduleRepository.AppendWoSlot(conn, tx, line, date, cap.PatternId, woId, slot.StartMin, slot.EndMin, q, moldId, actor);
-                                    placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, slot.StartMin, slot.EndMin, q, false, moldId));
+                                    placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, slot.StartMin, slot.EndMin, q, false, moldId, over));
                                     placedQty += q;
                                 }
                             }
                         }
                         else
                         {
-                            // 형제 품번: 한 shot 이 함께 찍는다 — 대표가 그 교대에 받은 시간만큼만 싣고(수량만 기록, MoldID 는 대표 슬롯에만) 나머지는 Shortfall
+                            // 형제 품번: 한 shot 이 함께 찍는다 — 대표가 그 교대에 받은 시간이 덮는 만큼은 정상, 나머지는 초과(OverQty)로 같은 0분 슬롯에 싣는다(수량만 기록, MoldID 는 대표 슬롯에만)
                             for (int k = 0; k < ns; k++)
                             {
-                                decimal qty = Math.Min(part[k], covByItem[m.Row.ItemNo][k]); covByItem[m.Row.ItemNo][k] -= qty;
-                                if (qty <= 0 || alloc[k].Slots.Count == 0) continue;
-                                int start = alloc[k].Slots[0].StartMin;
-                                LineScheduleRepository.AppendWoSlot(conn, tx, line, date, cap.PatternId, woId, start, start, qty, null, actor);
-                                placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, start, start, qty, false, null));
-                                placedQty += qty;
+                                if (part[k] <= 0) continue;
+                                decimal cov = Math.Min(part[k], covByItem[m.Row.ItemNo][k]); covByItem[m.Row.ItemNo][k] -= cov;
+                                int start = alloc[k].Slots.Count > 0 ? alloc[k].Slots[0].StartMin : AnchorOf(k);
+                                LineScheduleRepository.AppendWoSlot(conn, tx, line, date, cap.PatternId, woId, start, start, part[k], null, actor);
+                                placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, start, start, part[k], false, null, part[k] - cov));
+                                placedQty += part[k];
                             }
                         }
-                        if (childQty - placedQty > 0)
+                        if (childQty - placedQty > 0)   // 2026-10-08 부터 초과 적재로 항상 0 — 안전망만 남긴다
                             plan.PieceShortfalls[i].Add(new DeadlinePacker.StepShortfall(plan.InjStepSeq, line, childQty - placedQty));
                         m.PiecePlacedChild[i] = placedQty;
                         InsertApsRunWo(conn, tx, runId, m.Row.PlanLineId, woId, piece.SoId, childQty, actor);
                     }
                 }
+                if (overEnd != injEnd) foreach (var m in members) m.PlacedEnd = overEnd;
             }
 
             // 4단계: 완제품 단계(DeadlinePacker) — 조각마다, 사출이 실제로 실은 몫까지만(모든 자식의 실적 ÷ QtyPer 의 최소; PP-003 과 같은 원칙).
@@ -472,22 +509,34 @@ public sealed partial class PpRepository
                     if (plan.FinStepSeq is int fseq && plan.FinLineId is { } fline)
                     {
                         decimal placedQty = Math.Floor(plan.Legs.Min(l => l.PiecePlacedChild[i] / (decimal)l.QtyPer));
-                        decimal finPlaced = 0;
+                        var finList = new List<DeadlinePacker.Placement>();
                         if (placedQty > 0)
                         {
                             // 완제품 단계 슬롯은 박스 단위로 자른다(사용자 결정 2026-10-07 — 보드가 현장 포장 단위로 떨어지게). 단위 = WO 수량 올림과 같은 BoxQty ?? ROUND_TO
                             var demand = new DeadlinePacker.StepDemand(fseq, fline, placedQty,
                                 plan.Template.First(t => t.StepSeq == fseq).StdCycleSec, dailyCap.GetValueOrDefault(fline),
                                 PackSize: packOf.GetValueOrDefault(plan.ItemNo) is int fbq && fbq > 0 ? fbq : settings.RoundTo);
-                            var packed = DeadlinePacker.Pack(new[] { demand }, date, plan.InjEnd, plan.Deadline, due, cal, days);
-                            foreach (var p in packed.Placements)
-                                LineScheduleRepository.AppendWoSlot(conn, tx, p.LineId, p.Date, days.Get(p.LineId, p.Date).PatternId,
-                                                                    woId, p.StartMin, p.EndMin, p.Qty, null, actor);
-                            placements.AddRange(packed.Placements);
-                            finPlaced = packed.Placements.Sum(p => p.Qty);
+                            finList.AddRange(DeadlinePacker.Pack(new[] { demand }, date, plan.InjEnd, plan.Deadline, due, cal, days).Placements);
                         }
-                        if (piece.Qty - finPlaced > 0)
-                            shortfalls.Add(new DeadlinePacker.StepShortfall(fseq, fline, piece.Qty - finPlaced));
+                        decimal rest = piece.Qty - finList.Sum(p => p.Qty);
+                        if (rest > 0)
+                        {
+                            // 2026-10-08 사용자 결정: 마감·납기 안에 자리가 없는 나머지는 미배치가 아니라 마지막 완제품 슬롯에 초과로(슬롯이 하나도 없으면 계획일 하루 시작의 0분 슬롯)
+                            if (finList.Count > 0)
+                            {
+                                int li = finList.Select((p, ix) => (p, ix)).OrderBy(x => x.p.Date).ThenBy(x => AxisEnd(new SlotPacker.Interval(x.p.StartMin, x.p.EndMin), days.Get(x.p.LineId, x.p.Date).DayStart)).Last().ix;
+                                finList[li] = finList[li] with { Qty = finList[li].Qty + rest, OverQty = finList[li].OverQty + rest };
+                            }
+                            else
+                            {
+                                int ds = days.Get(fline, date).DayStart;
+                                finList.Add(new DeadlinePacker.Placement(fseq, fline, date, ds, ds, rest, false, null, rest));
+                            }
+                        }
+                        foreach (var p in finList)
+                            LineScheduleRepository.AppendWoSlot(conn, tx, p.LineId, p.Date, days.Get(p.LineId, p.Date).PatternId,
+                                                                woId, p.StartMin, p.EndMin, p.Qty, null, actor);
+                        placements.AddRange(finList);
                     }
                     orders.Add(new ApsWoOrder(wo, woId, plan.FirstLeg.Row.PlanLineId, plan.ItemNo, plan.PlanDate, piece.SoId, piece.Qty,
                                               plan.Deadline, due, placements, shortfalls,
@@ -692,15 +741,15 @@ public sealed partial class PpRepository
     /// 조각 수량을 떼어 낸 구간 전부에 나눠 싣는다 — 앞 구간부터 구간 길이 × UPH(내림)만큼, fullyServed 면 마지막 구간이 남은 수량 전부(분 올림 오차 흡수).
     /// 수량이 먼저 바닥나도 구간은 수량 0 으로 돌려준다 — 형제 몫으로 점유한 시간이 DB 에 남아야 능력 계산이 맞는다.
     /// </summary>
-    static List<(SlotPacker.Interval Slot, decimal Qty)> Spread(List<SlotPacker.Interval> slots, decimal qty, decimal uph, bool fullyServed)
+    static List<(SlotPacker.Interval Slot, decimal Qty, decimal Over)> Spread(List<SlotPacker.Interval> slots, decimal qty, decimal uph, bool fullyServed)
     {
-        var list = new List<(SlotPacker.Interval, decimal)>(slots.Count);
+        var list = new List<(SlotPacker.Interval, decimal, decimal)>(slots.Count);
         decimal left = qty;
         for (int i = 0; i < slots.Count; i++)
         {
             var s = slots[i];
             decimal q = fullyServed && i == slots.Count - 1 ? left : Math.Min(left, Math.Floor((s.EndMin - s.StartMin) * uph / 60m));
-            list.Add((s, q));
+            list.Add((s, q, 0m));
             left -= q;
         }
         return list;

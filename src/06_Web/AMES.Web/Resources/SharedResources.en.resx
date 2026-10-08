@@ -10056,7 +10056,7 @@
     <value>Result</value>
   </data>
   <data name="PP.Aps.Wo.Summary" xml:space="preserve">
-    <value>{0} WO · late {1} · short {2} · rejected {3} · skipped {4}</value>
+    <value>{0} WO · late {1} · over {2} · rejected {3} · skipped {4}</value>
   </data>
   <data name="PP.Aps.Wo.Confirm" xml:space="preserve">
     <value>Create work orders for the {0} selected line(s)?</value>
@@ -10080,7 +10080,7 @@
     <value>WO = part × injection plan date. Quantity is allocated FIFO to confirmed order balances by due date; the remainder becomes a stock-replenishment WO (no SO). Quantity already slotted that day is subtracted. INJ slots are fixed into the remaining day/night bands; the finished-goods step is auto-packed against the deadline. Short or rejected lines stay without a WO (or as unplaced Released).</value>
   </data>
   <data name="PP.Aps.Wo.Ok" xml:space="preserve">
-    <value>{0} WO created · late {1} · short {2} · rejected {3}</value>
+    <value>{0} WO created · late {1} · over {2} · rejected {3}</value>
   </data>
   <data name="PP.Aps.Wo.Preview.PageTitle" xml:space="preserve">
     <value>Work Order Preview</value>
@@ -10108,6 +10108,15 @@
   </data>
   <data name="PP.Aps.Wo.Row.New" xml:space="preserve">
     <value>{0} new · {1} min</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.Over" xml:space="preserve">
+    <value>Over {0}</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Over" xml:space="preserve">
+    <value>Over</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Over" xml:space="preserve">
+    <value>Overloaded</value>
   </data>
   <data name="PP.Aps.Wo.Row.Short" xml:space="preserve">
     <value>Unplaced {0}</value>

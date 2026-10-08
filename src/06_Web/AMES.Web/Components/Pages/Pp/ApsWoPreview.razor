@@ -160,7 +160,7 @@ else if (_released)
                     var cap = d;
                     <button type="button" class="wp-tab @(cap.Date == day.Date ? "on" : "")" @onclick="() => _selDate = cap.Date" title="@cap.Date.ToString(DateFmt.Date)">
                         <b>@cap.Date.ToString(DateFmt.MonthDay) @cap.Date.ToString("ddd")</b>
-                        <span>@UomFmt.Qty(cap.Rows.Sum(r => r.NewQty), null)@(cap.Rows.Any(r => r.ShortQty > 0) ? " ⚠" : "")</span>
+                        <span>@UomFmt.Qty(cap.Rows.Sum(r => r.NewQty), null)@(cap.Rows.Any(r => r.ShortQty > 0 || r.OverQty > 0) ? " ⚠" : "")</span>
                     </button>
                 }
             </div>
@@ -171,6 +171,7 @@ else if (_released)
                 }
                 <span class="pp-lgd"><i class="lg-new"></i>@L["PP.Aps.Wo.Lgd.New"]</span>
                 <span class="pp-lgd"><i class="lg-late"></i>@L["PP.Aps.Wo.Lgd.Late"]</span>
+                <span class="pp-lgd"><i class="lg-over"></i>@L["PP.Aps.Wo.Lgd.Over"]</span>
                 <span class="pp-lgd"><i class="lg-old"></i>@L["PP.Aps.Wo.Lgd.Old"]</span>
                 <span class="pp-lgd"><i class="lg-mc"></i>@L["PP.Aps.Wo.Lgd.Mc"]</span>
             </div>
@@ -195,6 +196,11 @@ else if (_released)
                         <div class="dim wp-line-name">@LineName(row.LineId)</div>
                         <div class="wp-line-stat">
                             @if (row.NewQty > 0 || row.NewMin > 0) { <span class="pill info">@string.Format(L["PP.Aps.Wo.Row.New"].Value, UomFmt.Qty(row.NewQty, null), row.NewMin)</span> }
+                            @if (row.OverQty > 0)
+                            {
+                                @* 2026-10-08 사용자 결정: 능력 초과분은 미배치가 아니라 초과 적재 — 어느 WO 가 얼마나 넘쳤는지 툴팁 *@
+                                <span class="pill bad" title="@string.Join("\n", OverLines(row))">@string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(row.OverQty, null))</span>
+                            }
                             @if (row.ShortQty > 0)
                             {
                                 <span class="pill bad" title="@string.Join("\n", row.Shortfalls.Select(s => $"{s.WoNumber} · {s.ItemNo} · {(s.IsInjection ? L["PP.Aps.Tab.Inj"].Value : L["PP.Aps.Tab.Asm"].Value)} {UomFmt.Qty(s.Qty, null)}"))">@string.Format(L["PP.Aps.Wo.Row.Short"].Value, UomFmt.Qty(row.ShortQty, null))</span>
@@ -251,7 +257,7 @@ else if (_released)
         <div class="ames-card-h">
             <span class="dim" style="font-weight:600;">
                 @(_result is null ? L["PP.Aps.Wo.Preview.Title"] : L["PP.Aps.Wo.Result.Title"])
-                — @string.Format(L["PP.Aps.Wo.Summary"].Value, shown.Created, shown.Late, shown.Short, shown.RejectedCount, shown.SkippedExisting)
+                — @string.Format(L["PP.Aps.Wo.Summary"].Value, shown.Created, shown.Late, shown.Over, shown.RejectedCount, shown.SkippedExisting)
             </span>
         </div>
         <div class="wp-table">
@@ -292,13 +298,17 @@ else if (_released)
                     <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="LateQty" Title="@L["PP.Aps.Wo.Col.Late"].Value" Width="80px" TextAlign="TextAlign.Right">
                         <Template Context="o">@if (o.LateQty > 0) { <span class="pill warn">@UomFmt.Qty(o.LateQty, null)</span> } else { <span class="dim">—</span> }</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="ShortQty" Title="@L["PP.Aps.Wo.Col.Short"].Value" Width="130px" TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="OverQty" Title="@L["PP.Aps.Wo.Col.Over"].Value" Width="130px" TextAlign="TextAlign.Right">
                         <Template Context="o">
-                            @if (o.Shortfalls.Count == 0) { <span class="dim">—</span> }
-                            @{ var injSeq = ApsWoBoard.InjStepSeq(o); }
+                            @{ var injSeq = ApsWoBoard.InjStepSeq(o); var overs = o.Placements.Where(p => p.OverQty > 0).GroupBy(p => (p.StepSeq, p.LineId)).ToList(); }
+                            @if (overs.Count == 0 && o.Shortfalls.Count == 0) { <span class="dim">—</span> }
+                            @foreach (var g in overs)
+                            {
+                                <div><span class="pill bad" title="#@g.Key.StepSeq · @g.Key.LineId">@(g.Key.StepSeq == injSeq ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"]) @UomFmt.Qty(g.Sum(p => p.OverQty), null)</span></div>
+                            }
                             @foreach (var sf in o.Shortfalls)
                             {
-                                <div><span class="pill bad" title="#@sf.StepSeq · @sf.LineId">@(sf.StepSeq == injSeq ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"]) @UomFmt.Qty(sf.Qty, null)</span></div>
+                                <div><span class="pill bad" title="#@sf.StepSeq · @sf.LineId">@L["PP.Aps.Wo.Col.Short"] @(sf.StepSeq == injSeq ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"]) @UomFmt.Qty(sf.Qty, null)</span></div>
                             }
                         </Template>
                     </RadzenDataGridColumn>
@@ -480,12 +490,12 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
             var edits = _edits.ToList();
             var r = await Task.Run(() => Pp.CreateApsWorkOrders(RunId, ids, _actor, dryRun: false, edits: edits));
             Audit.Log("PP-APS", "WO", "PP_ApsRun", RunId, null,
-                new { r.Created, r.Late, r.Short, Rejected = r.RejectedCount, r.SkippedExisting, PlanLineIds = ids, Edits = edits.Count, EditsApplied = r.EditsApplied });
+                new { r.Created, r.Late, r.Over, r.Short, Rejected = r.RejectedCount, r.SkippedExisting, PlanLineIds = ids, Edits = edits.Count, EditsApplied = r.EditsApplied });
             await Task.Run(() => BuildBoard(r, ids));   // 실행 뒤 다시 읽은 기존 행에는 자기 슬롯도 섞여 온다 — ApsWoBoard 가 WoId 로 뺀다
             _edits.Clear(); _effective = null; _editOutcomes = new(); _editedPos = new();
             _result = r; _showTargets = false;
             _released = string.Equals(Aps.LoadRun(RunId)?.Row.Status, ApsRepository.StatusReleased, StringComparison.OrdinalIgnoreCase);
-            ShowMsg(string.Format(L["PP.Aps.Wo.Ok"].Value, r.Created, r.Late, r.Short, r.RejectedCount), r.Short > 0 || r.RejectedCount > 0);
+            ShowMsg(string.Format(L["PP.Aps.Wo.Ok"].Value, r.Created, r.Late, r.Over, r.RejectedCount), r.Over > 0 || r.Short > 0 || r.RejectedCount > 0);
         }
         catch (ApsConfigurationException ex) { _configProblems = ex.Lines.ToList(); }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
@@ -699,7 +709,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
         BlockCls(b) + (IsDraggable(b) ? " draggable" : "") + (IsEdited(b, line, date) ? " edited" : "");
     static string BlockCls(ApsWoBoard.Block b) => b.Kind switch
     {
-        ApsWoBoard.BlockKind.NewWo         => "pp-gantt-wo wp-blk new" + (b.Late ? " late" : ""),
+        ApsWoBoard.BlockKind.NewWo         => "pp-gantt-wo wp-blk new" + (b.Late ? " late" : "") + (b.TotalOverQty > 0 ? " over" : ""),
         ApsWoBoard.BlockKind.OldWo         => "pp-gantt-wo wp-blk old",
         ApsWoBoard.BlockKind.NewMoldChange => "pp-gantt-mc wp-blk new",
         ApsWoBoard.BlockKind.OldMoldChange => "pp-gantt-mc wp-blk old",
@@ -724,19 +734,31 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
         };
         var lines = new List<string> { head, $"{Hm(b.StartMin)}~{Hm(b.EndMin)}  ({b.Minutes}{L["Lbl.Min"]})" };
         if (b.Late) lines.Add(L["PP.Aps.Wo.Lgd.Late"].Value);
+        if (b.OverQty > 0) lines.Add($"{L["PP.Aps.Wo.Lgd.Over"]} · {string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(b.OverQty, null))}");
         if (b.IsNew && EditAt(_tipLine, _tipDate, b.StartMin, b.EndMin) is { } ed)
             lines.Add($"{L["PP.Aps.Wo.Edit.Edited"]} · {L["PP.Aps.Wo.Edit.Orig"]} {ed.LineId} {ed.Date.ToString(DateFmt.MonthDay)} {Hm(ed.StartMin)}~{Hm(ed.EndMin)}");
         if (b.Siblings.Count > 0)
         {
             lines.Add(L["PP.Aps.Wo.Siblings"].Value);
-            lines.AddRange(b.Siblings.Select(s => $"  {s.WoNumber} · {s.ItemNo}  {UomFmt.Qty(s.Qty, null)}"));
+            lines.AddRange(b.Siblings.Select(s => $"  {s.WoNumber} · {s.ItemNo}  {UomFmt.Qty(s.Qty, null)}" + (s.OverQty > 0 ? $"  ({string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(s.OverQty, null))})" : "")));
         }
         if (OrderOf(b) is { } o)
         {
             lines.Add($"{L["PP.Aps.Wo.Col.Date"]} {o.PlanDate.ToString(DateFmt.Date)} · {(o.SoId is int so ? $"SO #{so}" : L["PP.Aps.Wo.StockWo"].Value)} · {L["Col.Qty"]} {UomFmt.Qty(o.Qty, null)}");
+            if (o.OverQty > 0) lines.Add($"{L["PP.Aps.Wo.Col.Over"]} {UomFmt.Qty(o.OverQty, null)}");
             if (o.ShortQty > 0) lines.Add($"{L["PP.Aps.Wo.Col.Short"]} {UomFmt.Qty(o.ShortQty, null)}");
         }
         return lines;
+    }
+
+    /// <summary>줄 끝 「초과 N」 칩의 툴팁 — 블록(대표)·형제마다 WO · 품번 · 초과 수량.</summary>
+    IEnumerable<string> OverLines(ApsWoBoard.Row row)
+    {
+        foreach (var b in row.Blocks.Where(b => b.TotalOverQty > 0))
+        {
+            if (b.OverQty > 0) yield return $"{b.WoNumber} · {b.ItemNo} · {Hm(b.StartMin)}~{Hm(b.EndMin)}  {UomFmt.Qty(b.OverQty, null)}";
+            foreach (var s in b.Siblings.Where(s => s.OverQty > 0)) yield return $"{s.WoNumber} · {s.ItemNo}  {UomFmt.Qty(s.OverQty, null)}";
+        }
     }
 
     // 라인·날짜별 "LINE 09-28 08:00-10:00" — 배치 순서(주간 → 야간, 날짜순)가 곧 시간 순이라 첫 슬롯 시작 ~ 끝 슬롯 종료

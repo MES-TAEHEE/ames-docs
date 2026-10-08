@@ -18,7 +18,8 @@
                 <div class="wp-tile"><span class="dim">@L["Col.Qty"]</span><b>@UomFmt.Qty(o.Qty, null)</b></div>
                 <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Deadline"] / @L["Col.Due"]</span><b class="code">@(o.Deadline?.ToString(DateFmt.Date) ?? "—") / @(o.DueDate?.ToString(DateFmt.Date) ?? "—")</b></div>
                 <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Late"]</span><b>@(o.LateQty > 0 ? UomFmt.Qty(o.LateQty, null) : "—")</b></div>
-                <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Short"]</span><b class="@(o.ShortQty > 0 ? "bad" : "")">@(o.ShortQty > 0 ? UomFmt.Qty(o.ShortQty, null) : "—")</b></div>
+                <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Over"]</span><b class="@(o.OverQty > 0 ? "bad" : "")">@(o.OverQty > 0 ? UomFmt.Qty(o.OverQty, null) : "—")</b></div>
+                @if (o.ShortQty > 0) { <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Short"]</span><b class="bad">@UomFmt.Qty(o.ShortQty, null)</b></div> }
             }
             else
             {
@@ -63,7 +64,7 @@
             <div class="dim" style="margin-top:6px;">@L["PP.Aps.Wo.Siblings"]</div>
             <table class="ames-table" style="width:100%;">
                 <thead><tr><th>@L["Col.WoNo"]</th><th>@L["Col.ItemNo"]</th><th style="text-align:right;">@L["Col.Qty"]</th></tr></thead>
-                <tbody>@foreach (var s in Block.Siblings) { <tr><td class="code">@s.WoNumber</td><td class="code">@s.ItemNo</td><td style="text-align:right;">@UomFmt.Qty(s.Qty, null)</td></tr> }</tbody>
+                <tbody>@foreach (var s in Block.Siblings) { <tr><td class="code">@s.WoNumber</td><td class="code">@s.ItemNo</td><td style="text-align:right;">@UomFmt.Qty(s.Qty, null)@if (s.OverQty > 0) { <span class="pill bad" style="margin-left:6px;">@string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(s.OverQty, null))</span> }</td></tr> }</tbody>
             </table>
         }
     </div>
@@ -87,7 +88,7 @@
                             <td style="text-align:right;">@(p.EndMin - p.StartMin)</td>
                             <td style="text-align:right;">@UomFmt.Qty(p.Qty, null)</td>
                             <td class="code">@(p.MoldId ?? "—")</td>
-                            <td>@if (p.Late) { <span class="pill warn">@L["PP.Aps.Wo.Lgd.Late"]</span> }</td>
+                            <td>@if (p.Late) { <span class="pill warn">@L["PP.Aps.Wo.Lgd.Late"]</span> }@if (p.OverQty > 0) { <span class="pill bad">@string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(p.OverQty, null))</span> }</td>
                         </tr>
                     }
                     @foreach (var m in wo.MoldChanges)
