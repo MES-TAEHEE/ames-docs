@@ -313,14 +313,12 @@
                 </div>
                 <div class="scm-dsub">Items · @Status(NoteStatus(noteDetail)) · Receipt @NoteReceiptStatus(noteDetail)</div>
                 <div class="scm-scroll"><table class="ames-table scm-lines">
-                    <thead><tr><th>PO No</th><th>Part No / Name</th><th>Delivered</th><th>Received</th><th>Remaining</th>@if(_isExternalPortalUser && noteDetail.Deliveries.Any(d=>d.Status=="Registered")){<th>Shipment</th>}</tr></thead>
+                    <thead><tr><th>PO No</th><th>Part No / Name</th><th>Delivered</th><th>Received</th><th>Remaining</th></tr></thead>
                     <tbody>@foreach(var line in Store.Deliveries.Where(d=>noteDetail.Numbers.Contains(d.Number)))
                     {
                         <tr><td class="code">@line.OrderNumber</td><td>@line.Item<div class="dim">@PartName(line.PoID)</div></td>
                             <td>@QtyFormat.Text(line.Quantity,line.Unit) @line.Unit</td><td>@QtyFormat.Text(line.Received,line.Unit) @line.Unit</td>
                             <td>@QtyFormat.Text(Math.Max(0,line.Quantity-line.Received),line.Unit) @line.Unit</td>
-                            @if(_isExternalPortalUser && noteDetail.Deliveries.Any(d=>d.Status=="Registered"))
-                            {<td>@if(line.Status=="Registered"){<button type="button" @onclick="()=>StartShipping(line)">Start Shipping</button>}</td>}
                         </tr>
                     }</tbody>
                 </table></div>
