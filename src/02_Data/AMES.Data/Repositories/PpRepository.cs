@@ -428,6 +428,39 @@ public sealed partial class PpRepository
         return list;
     }
 
+    // FG shipment preview reads only orders due for the selected ship-date window.
+    public List<SoRow> ListShipmentPlanOrders(DateTime shipFrom, DateTime shipTo)
+    {
+        const string sql = """
+            SELECT s.SoID, s.SoNumber, s.SoLineNo, s.CustomerID,
+                   s.ItemNo, i.ItemName,
+                   ISNULL(s.OrderQty,0) AS OrderQty,
+                   ISNULL(s.ShippedQty,0) AS ShippedQty,
+                   s.OrderDate, s.RequestedDeliveryDate, s.PromisedDate, s.Status,
+                   wo.WoNumber, wo.WoStatus, ISNULL(wo.WoCount,0) AS WoCount,
+                   CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists
+            FROM dbo.PP_CustomerOrder s
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
+            OUTER APPLY (SELECT TOP 1 w.WoNumber, w.Status AS WoStatus,
+                                (SELECT COUNT(*) FROM dbo.PP_WorkOrder x WHERE x.SoID = s.SoID AND x.Status <> 'Cancelled') AS WoCount
+                         FROM dbo.PP_WorkOrder w WHERE w.SoID = s.SoID
+                         ORDER BY w.CreatedTS DESC) wo
+            WHERE s.RequestedDeliveryDate >= @RequestedFrom
+              AND s.RequestedDeliveryDate < @RequestedUntil
+              AND ISNULL(s.OrderQty,0) > ISNULL(s.ShippedQty,0)
+              AND (s.Status IS NULL OR UPPER(LTRIM(RTRIM(s.Status))) <> 'SHIPPED')
+            ORDER BY s.RequestedDeliveryDate, s.SoNumber, s.SoLineNo;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@RequestedFrom", SqlDbType.Date).Value = shipFrom.Date.AddDays(1);
+        cmd.Parameters.Add("@RequestedUntil", SqlDbType.Date).Value = shipTo.Date.AddDays(2);
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<SoRow>();
+        while (rdr.Read()) list.Add(MapSo(rdr));
+        return list;
+    }
+
     /// <summary>
     /// PP-002 SAP 구매오더(고객주문) 업서트 — (SoNumber, SoLineNo, CustomerID) 기준
     /// UPDATE, 없으면 INSERT. 신규 행은 Status='Open'으로 삽입, 기존 행의 Status는

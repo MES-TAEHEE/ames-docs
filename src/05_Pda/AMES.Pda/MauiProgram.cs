@@ -39,10 +39,11 @@ public static class MauiProgram
         // ── Auth + API ──────────────────────────────────────────────────
         builder.Services.AddSingleton<AuthState>();
         builder.Services.AddSingleton(settings);
-        builder.Services.AddHttpClient<AuthApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
-        builder.Services.AddHttpClient<WarehouseApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
-        builder.Services.AddHttpClient<FinishedGoodsApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
-        builder.Services.AddHttpClient<SparePartsApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
+        builder.Services.AddTransient<SessionExpiryHandler>();
+        builder.Services.AddHttpClient<AuthApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
+        builder.Services.AddHttpClient<WarehouseApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
+        builder.Services.AddHttpClient<FinishedGoodsApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
+        builder.Services.AddHttpClient<SparePartsApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
 
         return builder.Build();
     }

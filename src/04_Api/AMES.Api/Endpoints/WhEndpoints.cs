@@ -457,7 +457,7 @@ public static class WhEndpoints
                 ? Results.Unauthorized()
                 : Results.Ok(QuerySparePartTransactions(factory, search, dateFrom, dateTo)));
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/sp/test/reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/sp/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo) && !PdaScenarioUsers.IsDetailed(session.EmployeeNo))
@@ -478,7 +478,7 @@ public static class WhEndpoints
             }
         }).WithTags("PDA Test Scenarios");
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/inbound/test/simple-reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
@@ -593,7 +593,7 @@ public static class WhEndpoints
         g.MapPost("/adjust/save", SaveAdjustQuantity);
         g.MapPost("/inbound/adjust-qty", SaveAdjustQuantity);
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/adjust/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
@@ -750,7 +750,7 @@ public static class WhEndpoints
             return Query(factory, sql, ReadLocationRow);
         });
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/inventory/test/toggle-qty", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
@@ -1194,7 +1194,9 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             var d = days ?? 7;
-            var sql = $$"""
+            if (d is < 1 or > 365)
+                return Results.BadRequest(new { Message = "Days must be between 1 and 365." });
+            const string sql = """
                 SELECT TOP 100 TransactionID AS TxnID,
                        TransactionTime AS TxnTime,
                        ISNULL(TransactionType,'?') AS TxnType,
@@ -1204,10 +1206,10 @@ public static class WhEndpoints
                        ISNULL(QtyAfter,0)  AS QtyAfter,
                        ReasonCode
                 FROM   dbo.WH_InventoryTransaction
-                WHERE  TransactionTime > DATEADD(day, -{{d}}, SYSDATETIME())
+                WHERE  TransactionTime > DATEADD(day, -@Days, SYSDATETIME())
                 ORDER BY TransactionTime DESC;
                 """;
-            return Query(factory, sql, r => new TransactionRow(
+            return QueryWithParam(factory, sql, "@Days", d, r => new TransactionRow(
                 (long)r["TxnID"], (DateTime)r["TxnTime"], r["TxnType"] as string ?? "?",
                 r["ItemNo"] as string, r["LocationID"] as string,
                 r.GetDecimal(r.GetOrdinal("QtyBefore")),
@@ -1216,7 +1218,7 @@ public static class WhEndpoints
                 r["ReasonCode"] as string));
         });
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsSimple(session.EmployeeNo))
@@ -1240,7 +1242,7 @@ public static class WhEndpoints
             }
         }).WithTags("PDA Test Scenarios");
 
-        if (app.Environment.IsDevelopment()) g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
+        if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/transactions/test/reset", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(session.EmployeeNo))
