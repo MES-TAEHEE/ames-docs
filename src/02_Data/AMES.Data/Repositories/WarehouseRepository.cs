@@ -1686,8 +1686,10 @@ public sealed partial class WarehouseRepository
                 'LOT' AS ScanType,
                 T.LotNo AS ScanValue,
                 'SUCCESS' AS Result,
-                CONCAT(COALESCE(NULLIF(T.Note, ''), COALESCE(T.ReasonCode, T.TransactionType)),
-                       ' (', COALESCE(T.QtyBefore, 0), ' -> ', COALESCE(T.QtyAfter, 0), ')') AS Message,
+                CASE WHEN T.TransactionType = 'MOVE' THEN CONCAT('Location Change to ', T.LocationNo)
+                     ELSE CONCAT(COALESCE(NULLIF(T.Note, ''), COALESCE(T.ReasonCode, T.TransactionType)),
+                                 ' (', COALESCE(T.QtyBefore, 0), ' -> ', COALESCE(T.QtyAfter, 0), ')')
+                END AS Message,
                 CAST(NULL AS nvarchar(64)) AS ClientIP,
                 T.SourceType,
                 T.SourceID,

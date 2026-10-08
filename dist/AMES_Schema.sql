@@ -9304,7 +9304,7 @@ ALTER TABLE [dbo].[WH_InventoryTransaction] ADD  CONSTRAINT [DF_WH_InventoryTran
 GO
 ALTER TABLE [dbo].[WH_InventoryTransaction] ADD  CONSTRAINT [DF_WH_InventoryTransaction_CreatedTS]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
-ALTER TABLE [dbo].[WH_InventoryTransaction]  WITH CHECK ADD  CONSTRAINT [CK_WH_InventoryTransaction_Type] CHECK  (([TransactionType]='ADJ' OR [TransactionType]='OUT' OR [TransactionType]='IN'))
+ALTER TABLE [dbo].[WH_InventoryTransaction]  WITH CHECK ADD  CONSTRAINT [CK_WH_InventoryTransaction_Type] CHECK  (([TransactionType]='MOVE' OR [TransactionType]='ADJ' OR [TransactionType]='OUT' OR [TransactionType]='IN'))
 GO
 ALTER TABLE [dbo].[WH_InventoryTransaction] CHECK CONSTRAINT [CK_WH_InventoryTransaction_Type]
 GO
@@ -11156,7 +11156,7 @@ BEGIN
             (TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
              ReasonCode, SourceType, OperatorID, Note, CreatedBy, CreatedTS)
         VALUES
-            ('ADJ', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
+            ('MOVE', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
              'PUT_AWAY', 'WH_Inventory', @User,
              CONCAT('PDA put-away ', COALESCE(@CurrentLocation, N'UNASSIGNED'), N' -> ', @Location),
              LEFT(@User, 20), SYSDATETIME());
@@ -11259,7 +11259,7 @@ BEGIN
         (TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
          ReasonCode, SourceType, OperatorID, Note, CreatedBy, CreatedTS)
     VALUES
-        ('ADJ', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
+        ('MOVE', @ItemNo, @Location, @Barcode, @Qty, 0, @Qty,
          'PUT_AWAY', 'WH_OLD_Inventory', @User,
          CONCAT('PDA put-away ', COALESCE(@CurrentLocation, N'UNASSIGNED'), N' -> ', @Location),
          LEFT(@User, 20), SYSDATETIME());
@@ -12486,6 +12486,7 @@ BEGIN
             WHEN 'IN' THEN N'In'
             WHEN 'OUT' THEN N'Out'
             WHEN 'ADJ' THEN N'Adjust'
+            WHEN 'MOVE' THEN N'Location Change'
             ELSE T.TransactionType
         END AS STATUS,
         T.TransactionType AS DIRECTION,
@@ -12498,7 +12499,11 @@ BEGIN
         T.QtyAfter AS AFTER_QTY,
         CASE WHEN T.TransactionType = 'ADJ' THEN N'QTY BEFORE' ELSE NULL END AS BEFORE_STATUS,
         CASE WHEN T.TransactionType = 'ADJ' THEN N'QTY AFTER' ELSE NULL END AS AFTER_STATUS,
-        T.LocationNo AS BEFORE_LOCATION,
+        CASE WHEN T.TransactionType = 'MOVE' THEN
+            CASE WHEN T.Note LIKE N'PDA put-away % -> %' THEN NULLIF(SUBSTRING(T.Note, 14, CHARINDEX(N' -> ', T.Note) - 14), N'UNASSIGNED')
+                 WHEN T.Note LIKE N'Moved from % to %' THEN NULLIF(SUBSTRING(T.Note, 12, CHARINDEX(N' to ', T.Note) - 12), N'(unassigned)')
+                 ELSE NULL END
+            ELSE T.LocationNo END AS BEFORE_LOCATION,
         T.LocationNo AS AFTER_LOCATION,
         N'WH_InventoryTransaction' AS SOURCE,
         T.Note AS NOTE

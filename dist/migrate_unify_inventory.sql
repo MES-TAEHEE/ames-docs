@@ -141,7 +141,7 @@ ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN QtyChange decimal(18,3) NOT
 ALTER TABLE dbo.WH_InventoryTransaction ALTER COLUMN QtyAfter decimal(18,3) NULL;
 IF EXISTS(SELECT 1 FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'CK_WH_InventoryTransaction_Type')
     ALTER TABLE dbo.WH_InventoryTransaction DROP CONSTRAINT CK_WH_InventoryTransaction_Type;
-ALTER TABLE dbo.WH_InventoryTransaction WITH CHECK ADD CONSTRAINT CK_WH_InventoryTransaction_Type CHECK(TransactionType IN('IN','OUT','ADJ'));
+ALTER TABLE dbo.WH_InventoryTransaction WITH CHECK ADD CONSTRAINT CK_WH_InventoryTransaction_Type CHECK(TransactionType IN('IN','OUT','ADJ','MOVE'));
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_Search')
     CREATE INDEX IX_WH_InventoryTransaction_Search ON dbo.WH_InventoryTransaction(TransactionType,PartNo,LocationNo,LotNo);
 GO
