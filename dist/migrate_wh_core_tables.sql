@@ -93,7 +93,7 @@ BEGIN TRY
 
     ALTER TABLE dbo.WH_InventoryTransaction WITH CHECK
         ADD CONSTRAINT CK_WH_InventoryTransaction_Type
-        CHECK (TransactionType IN ('IN','OUT','ADJ'));
+        CHECK (TransactionType IN ('IN','OUT','ADJ','MOVE'));
 
     /* Preserve warehouse and area names in common codes. */
     IF OBJECT_ID(N'dbo.WH_WarehouseMaster', N'U') IS NOT NULL
@@ -629,7 +629,7 @@ BEGIN
     IF @LotID IS NOT NULL UPDATE dbo.tbl_Lot SET CurrentLocationID=@Location,InventoryStatus='STORED',ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE LotID=@LotID;
     INSERT dbo.WH_InventoryTransaction
         (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
-    VALUES(SYSDATETIME(),'ADJ',@PartNo,@Location,@Barcode,@Qty,0,@Qty,'PUT_AWAY','LOT',@User,
+    VALUES(SYSDATETIME(),'MOVE',@PartNo,@Location,@Barcode,@Qty,0,@Qty,'PUT_AWAY','LOT',@User,
            CONCAT('Moved from ',COALESCE(@BeforeLocation,'(unassigned)'),' to ',@Location),LEFT(@User,20),SYSDATETIME());
     COMMIT TRANSACTION;
     EXEC dbo.WH_PDA_INBOUND_SCAN_LOT @ReceiveMode=@ReceiveMode,@LotBarcode=@Barcode;

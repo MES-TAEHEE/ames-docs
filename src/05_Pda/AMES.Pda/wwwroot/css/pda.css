@@ -6087,6 +6087,10 @@ body:has(.wh08-shell) {
     gap: 7px;
 }
 
+.wh08-shell:not(.sp-screen):not(.fg-history-shell) .wh08-kpi-strip {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .wh08-kpi {
     min-width: 0;
     border: 1px solid #e2e8f0;

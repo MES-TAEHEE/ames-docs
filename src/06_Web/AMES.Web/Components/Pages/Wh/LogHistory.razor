@@ -92,7 +92,7 @@
     {
         new() { Text = "Inbound", Value = "INBOUND" },
         new() { Text = "Outbound", Value = "OUTBOUND" },
-        new() { Text = "Relocation", Value = "RELOCATION" },
+        new() { Text = "Location Change", Value = "RELOCATION" },
         new() { Text = "Status Change", Value = "STATUS" },
         new() { Text = "Inventory Adjustment", Value = "ADJUSTMENT" },
     };
@@ -170,7 +170,7 @@
             "CANCEL_RECEIPT" => "Cancel Inbound",
             "RELEASE_PICK" => "Outbound",
             "ADJUST_SAVE" => "Inventory Adjustment",
-            "MOVE_LOCATION" => "Relocation",
+            "MOVE_LOCATION" => "Location Change",
             _ => row.EventType,
         };
     }
