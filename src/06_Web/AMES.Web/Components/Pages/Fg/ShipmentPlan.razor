@@ -25,11 +25,11 @@
             <span>SUPPLY PLAN LINES · @_view.Count <small class="preview-tag" title="Display-only plan. Pallet quantity comes from Item Master. Maximum 18 pallets per trailer. No database changes.">PREVIEW</small></span>
             <div class="plan-filters">
                 <RadzenLabel Text="Ship date" Component="ShipDateFrom" />
-                <RadzenDatePicker Name="ShipDateFrom" @bind-Value="_shipFrom" @bind-Value:after="Filter"
+                <RadzenDatePicker Name="ShipDateFrom" @bind-Value="_shipFrom" @bind-Value:after="Load"
                     DateFormat="yyyy-MM-dd" AllowClear="false" Placeholder="From"
                     InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
                 <span aria-hidden="true">–</span>
-                <RadzenDatePicker Name="ShipDateTo" @bind-Value="_shipTo" @bind-Value:after="Filter"
+                <RadzenDatePicker Name="ShipDateTo" @bind-Value="_shipTo" @bind-Value:after="Load"
                     DateFormat="yyyy-MM-dd" AllowClear="false" Placeholder="To"
                     InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
                 <RadzenDropDown Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter"
@@ -153,16 +153,24 @@
         if (!_allowed) return;
         _error = "";
         _draft = null;
+        if (!ValidDateRange)
+        {
+            _lines = [];
+            _view = [];
+            _customers = [];
+            return;
+        }
         try
         {
             // Same read-only source as PP supply plans. No plan/order/inventory writes.
             var packing = MD.ListItems().ToDictionary(x => x.ItemNo.Trim(), StringComparer.OrdinalIgnoreCase);
-            _lines = Pp.ListCustomerOrders("", null, null, take: int.MaxValue)
+            _lines = Pp.ListShipmentPlanOrders(_shipFrom!.Value, _shipTo!.Value)
                 .Where(TrailerLoadDraft.IsShipmentCandidate)
                 .Select(x => new TrailerLoadDraft.Line(x, packing.GetValueOrDefault(x.ItemNo.Trim())?.PalletQty,
                     packing.GetValueOrDefault(x.ItemNo.Trim())?.ToteFlag ?? false)).ToList();
             _customers = _lines.Select(x => x.Source.CustomerId).Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(x => x!).Distinct().Order().ToList();
+            if (_customer is not null && !_customers.Contains(_customer)) _customer = null;
         }
         catch
         {
