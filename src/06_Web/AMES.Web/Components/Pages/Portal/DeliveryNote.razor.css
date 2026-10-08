@@ -1,4 +1,5 @@
 .note-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; max-width:210mm; margin:20px auto; padding:0 20px; }
+.note-toolbar .ames-btn { min-width:110px; }
 .note-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .note-help { max-width:210mm; margin:12px auto; padding:0 20px; }
 .note-error { margin:30px; }
