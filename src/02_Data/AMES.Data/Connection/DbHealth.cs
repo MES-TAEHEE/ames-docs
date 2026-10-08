@@ -48,4 +48,37 @@ public static class DbHealth
     {
         get { var t = Interlocked.Read(ref _lastFailTicks); return t > 0 ? new DateTime(t, DateTimeKind.Utc) : null; }
     }
+
+    // ── 복구 확인(연결 시험) ─────────────────────────────────────────────
+    public static readonly TimeSpan ProbeInterval = TimeSpan.FromSeconds(9);
+    static int  _probing;
+    static long _lastProbeTicks;
+
+    /// <summary>
+    /// 장애 중 DB 가 살아났는지 연결해 본다 — 프로세스 전체에서 동시에 하나, <see cref="ProbeInterval"/> 마다 한 번만.
+    /// 화면(세션)마다 시도하면 접속자 수만큼 연결이 몰리고 각 시도가 Connect Timeout 동안 스레드 풀을 잡는다(10-09).
+    /// 시험은 스레드 풀에서 돌고, 성공·실패 기록은 <paramref name="probe"/> 가 여는 연결(AmesConnectionFactory)이 남긴다.
+    /// 반환: 이번 호출이 시험을 시작했으면 true.
+    /// </summary>
+    public static bool TryStartProbe(Action probe) => TryStartProbe(probe, DateTime.UtcNow);
+
+    internal static bool TryStartProbe(Action probe, DateTime nowUtc)
+    {
+        if (!IsDown) return false;
+        if (nowUtc.Ticks - Interlocked.Read(ref _lastProbeTicks) < ProbeInterval.Ticks) return false;
+        if (Interlocked.CompareExchange(ref _probing, 1, 0) != 0) return false;
+        Interlocked.Exchange(ref _lastProbeTicks, nowUtc.Ticks);
+        _ = Task.Run(() =>
+        {
+            try { probe(); } catch { }
+            finally { Interlocked.Exchange(ref _probing, 0); }
+        });
+        return true;
+    }
+
+    internal static void ResetProbeForTests()
+    {
+        Interlocked.Exchange(ref _probing, 0);
+        Interlocked.Exchange(ref _lastProbeTicks, 0);
+    }
 }

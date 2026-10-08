@@ -544,6 +544,7 @@
 
     async Task SaveGroupCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fGroup.GroupCode)) { _modalErr = L["Err.GroupCodeRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_fGroup.GroupName)) { _modalErr = L["Err.GroupNameRequired"]; return; }
@@ -564,6 +565,7 @@
 
     async Task SaveGroupEdit()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fGroup.GroupName)) { _modalErr = L["Err.GroupNameRequired"]; return; }
         _busy = true;
@@ -583,6 +585,7 @@
 
     async Task SaveGroupDelete()
     {
+        if (!_canEdit) return;
         _busy = true;
         try
         {
@@ -635,6 +638,7 @@
 
     void SaveItemCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fItem.CodeValue)) { _modalErr = L["Err.CodeValueRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_fItem.CodeName))  { _modalErr = L["Err.CodeNameRequired"]; return; }
@@ -658,6 +662,7 @@
 
     void SaveItemEdit()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fItem.CodeValue)) { _modalErr = L["Err.CodeValueRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_fItem.CodeName))  { _modalErr = L["Err.CodeNameRequired"]; return; }
@@ -677,6 +682,7 @@
 
     void SaveItemDelete()
     {
+        if (!_canEdit) return;
         _busy = true;
         try
         {

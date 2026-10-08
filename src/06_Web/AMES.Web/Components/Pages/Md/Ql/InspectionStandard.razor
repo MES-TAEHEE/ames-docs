@@ -473,6 +473,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.InspStdID)) { _modalErr = L["Err.InspStdIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.CharName))  { _modalErr = L["Err.CharNameRequired"]; return; }
@@ -494,6 +495,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.CharName)) { _modalErr = L["Err.CharNameRequired"]; return; }
@@ -515,6 +517,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

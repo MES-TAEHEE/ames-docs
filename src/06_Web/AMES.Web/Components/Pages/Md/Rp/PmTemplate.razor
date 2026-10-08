@@ -517,6 +517,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PMTemplateID)) { _modalErr = L["Err.TemplateIdRequired"]; return; }
         var id = _f.PMTemplateID.Trim();
@@ -537,6 +538,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         _busy = true;
@@ -546,8 +548,9 @@
                 NE(_f.CycleBasis), _f.IntervalValue, NE(_f.IntervalUnit),
                 _f.StdDurationMin, _f.SafetyLOTOFlag, _f.ActiveFlag, _actor);
             Audit.Updated("MD-027", "MD_PmTemplate", _sel.PMTemplateID, _sel, _f);
+            var key = _sel.PMTemplateID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.PMTemplateID} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -555,6 +558,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
@@ -603,6 +607,7 @@
 
     void SaveStep()
     {
+        if (!_canEdit) return;
         if (_expandedId is null) return;
         _stepErr = "";
         if (string.IsNullOrWhiteSpace(_stepF.StepDescription)) { _stepErr = L["MD.PmTemplate.Err.StepDescRequired"]; return; }
@@ -625,6 +630,7 @@
 
     void SaveStepDelete()
     {
+        if (!_canEdit) return;
         if (_stepSel is null) return;
         _busy = true;
         try

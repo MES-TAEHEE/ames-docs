@@ -303,6 +303,7 @@
 
     void SaveAll()
     {
+        if (!_canEdit) return;
         if (_selRole is null) return;
         _busy = true;
         try

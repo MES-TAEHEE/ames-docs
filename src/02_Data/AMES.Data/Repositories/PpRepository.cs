@@ -114,6 +114,9 @@ public sealed partial class PpRepository
 
     public enum DowntimeSaveResult { Ok, Overlap, NotEditable, NotFound }
 
+    /// <summary>PP_LineDowntimeLog.Comment nvarchar(500)</summary>
+    public const int DowntimeCommentMax = 500;
+
     public sealed record LineStateRow(string? LineId, DateTime? MinuteTs, string? State,
         string? PlanState, bool RunFlag, int? WoId);
 
@@ -1675,7 +1678,7 @@ public sealed partial class PpRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@Id",      SqlDbType.Int).Value            = downtimeId;
         cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)causeCode ?? DBNull.Value;
-        cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 1000).Value = (object?)comment ?? DBNull.Value;
+        cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, DowntimeCommentMax).Value = (object?)comment ?? DBNull.Value;
         cmd.Parameters.Add("@By",      SqlDbType.VarChar,   20).Value  = string.IsNullOrWhiteSpace(actor) ? "web" : actor;
         return cmd.ExecuteNonQuery() > 0 ? DowntimeSaveResult.Ok : DowntimeSaveResult.NotFound;
     }
@@ -1704,7 +1707,7 @@ public sealed partial class PpRepository
         cmd.Parameters.Add("@End",     SqlDbType.DateTime2).Value      = (object?)e.EndTs     ?? DBNull.Value;
         cmd.Parameters.Add("@Reason",  SqlDbType.VarChar,   20).Value  = e.ReasonCode;
         cmd.Parameters.Add("@Cause",   SqlDbType.VarChar,   30).Value  = (object?)e.CauseCode ?? DBNull.Value;
-        cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, 1000).Value = (object?)e.Comment   ?? DBNull.Value;
+        cmd.Parameters.Add("@Comment", SqlDbType.NVarChar, DowntimeCommentMax).Value = (object?)e.Comment   ?? DBNull.Value;
         cmd.Parameters.Add("@By",      SqlDbType.VarChar,   20).Value  = string.IsNullOrWhiteSpace(actor) ? "web" : actor;
     }
 

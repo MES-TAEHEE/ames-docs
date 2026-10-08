@@ -388,6 +388,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ItemNo))   { _modalErr = L["MD.Items.Err.NoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.ItemName))  { _modalErr = L["MD.Items.Err.NameRequired"]; return; }
@@ -413,6 +414,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ItemName)) { _modalErr = L["MD.Items.Err.NameRequired"]; return; }
         _busy = true;
@@ -435,6 +437,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         _busy = true;
         try
         {

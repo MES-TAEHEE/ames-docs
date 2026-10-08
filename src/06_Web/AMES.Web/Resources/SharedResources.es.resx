@@ -1677,6 +1677,9 @@
   <data name="PP.Calendar.Err.Reschedule" xml:space="preserve">
     <value>Error al reprogramar: {0}</value>
   </data>
+  <data name="PP.Calendar.Err.NotChanged" xml:space="preserve">
+    <value>No se cambió la fecha de entrega: la orden está cerrada o ya no existe. Actualice la pantalla para comprobarlo.</value>
+  </data>
   <data name="PP.Calendar.Legend.Overdue" xml:space="preserve">
     <value>Atrasado</value>
   </data>
@@ -3614,6 +3617,12 @@
   </data>
   <data name="SYS.Calendar.Err.DateRange" xml:space="preserve">
     <value>La fecha de inicio es posterior a la de fin.</value>
+  </data>
+  <data name="SYS.Calendar.Err.DuplicateHoliday" xml:space="preserve">
+    <value>Fechas de feriado duplicadas: {0} — deje una sola fila por fecha.</value>
+  </data>
+  <data name="SYS.Calendar.Err.HolidayNameLength" xml:space="preserve">
+    <value>El nombre del feriado admite hasta {0} caracteres: {1}</value>
   </data>
   <data name="SYS.Calendar.Ok.Generated" xml:space="preserve">
     <value>{0} filas generadas.</value>
@@ -9477,6 +9486,9 @@
   </data>
   <data name="PP.Downtime.Err.CommentRequired" xml:space="preserve">
     <value>Esta causa requiere una observación</value>
+  </data>
+  <data name="PP.Downtime.Err.CommentLength" xml:space="preserve">
+    <value>El comentario admite hasta {0} caracteres.</value>
   </data>
   <data name="PP.Downtime.Hint.PopOnly" xml:space="preserve">
     <value>Registrado en POP (andon). Solo se pueden editar la causa y la observación</value>

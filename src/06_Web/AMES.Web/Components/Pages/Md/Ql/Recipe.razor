@@ -359,6 +359,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.RecipeID)) { _modalErr = L["Err.RecipeIdRequired"]; return; }
         var id = _f.RecipeID.Trim();
@@ -379,6 +380,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
@@ -387,8 +389,9 @@
                 NE(_f.ItemNo), _f.CycleTime, NE(_f.Version),
                 _f.EffectiveDate, NE(_f.Status), _actor);
             Audit.Updated("MD-029", "MD_Recipe", _sel.RecipeID, _sel, _f);
+            var key = _sel.RecipeID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.RecipeID} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -396,6 +399,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

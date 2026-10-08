@@ -258,6 +258,7 @@
 
     void SaveAll()
     {
+        if (!_canEdit) return;
         if (_busy) return;
         _busy = true; _msg = ""; _isErr = false;
         try

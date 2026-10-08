@@ -269,6 +269,7 @@
 
     void SaveCreate()
     {
+        if (!_canEdit) return;
         if (_selMold is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ItemNo)) { _modalErr = L["Err.ItemNoRequired"]; return; }
@@ -290,6 +291,7 @@
 
     void SaveEdit()
     {
+        if (!_canEdit) return;
         if (_selMold is null || string.IsNullOrWhiteSpace(_f.ItemNo)) return;
         _modalErr = "";
         _busy = true;
@@ -308,6 +310,7 @@
 
     void SaveDelete()
     {
+        if (!_canEdit) return;
         if (_selMold is null || string.IsNullOrWhiteSpace(_f.ItemNo)) return;
         _busy = true;
         try

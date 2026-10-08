@@ -337,6 +337,7 @@
     // 5회면 계정이 LOCKED 가 되고 SYS-001 에서 Admin 이 풀어야 한다(화면을 새로 열어도 초기화되지 않는다, 10-07).
     string _userName = "";
     string _userId   = "";
+    string _actor    = "system";
 
     List<WorkOrderDto> _all = [];
     Dictionary<DateTime, List<WorkOrderDto>> _byDue = [];
@@ -417,6 +418,7 @@
         var user = (await AuthPrvd.GetAuthenticationStateAsync()).User;
         _userName = user.Identity?.Name ?? "";
         _userId   = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+        _actor    = AMES.Web.Services.ActorCode.Of(user, "system");
         // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
@@ -520,8 +522,9 @@
         }
         try
         {
-            Wos.UpdateDueDate(_detail.WoId, _reschedDate);
-            Audit.Updated("PP-CAL", "PP_WorkOrder", _detail.WoNumber, new { _detail.DueDate }, new { DueDate = _reschedDate });
+            // 대상이 없거나(다른 화면에서 삭제) Closed 면 바뀐 것이 없다 — 성공처럼 닫지 않고 알린다
+            if (!Wos.UpdateDueDate(_detail.WoId, _reschedDate, _actor)) { _pinError = L["PP.Calendar.Err.NotChanged"]; return; }
+            Audit.Updated("PP-CAL", "PP_WorkOrder", _detail.WoNumber, new { _detail.DueDate, _detail.ProdDeadline }, new { DueDate = _reschedDate });
             _showReschedule = false;
             _showDetail     = false;
             Reload();

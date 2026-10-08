@@ -351,6 +351,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         var no = _f.EmployeeNo.Trim();
         if (string.IsNullOrWhiteSpace(no))            { _modalErr = L["MD.Workers.Err.WorkerNoRequired"]; return; }
@@ -374,6 +375,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["MD.Workers.Err.NameRequired"]; return; }
@@ -400,6 +402,7 @@
     // PIN 삭제 → 배지 전용 계정. 다음 배지 로그인 때 POP 이 PIN 설정을 강제한다.
     async Task ClearPin()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
@@ -416,6 +419,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

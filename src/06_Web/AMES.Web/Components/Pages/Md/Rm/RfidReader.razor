@@ -383,6 +383,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ReaderID)) { _modalErr = L["Err.ReaderIdRequired"]; return; }
         var id = _f.ReaderID.Trim();
@@ -403,6 +404,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         _busy = true;
@@ -412,8 +414,9 @@
                 _f.LineID, _f.AntennaCount, _f.PowerDbm, _f.PeTriggerFlag,
                 _f.WindowMs, NE(_f.IpAddress), NE(_f.FirmwareVer), NE(_f.Status), _actor);
             Audit.Updated("MD-022", "MD_RfidReader", _sel.ReaderID, _sel, _f);
+            var key = _sel.ReaderID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.ReaderID} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -421,6 +424,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

@@ -651,6 +651,7 @@
 
     void SaveComplete()
     {
+        if (!_canEdit) return;
         if (_cpm is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_c.Result)) { _modalErr = L["MNT.WorkOrder.Err.ResultRequired"]; return; }
@@ -687,6 +688,7 @@
 
     void Save()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.EquipId))  { _modalErr = L["MNT.PmSchedule.Err.EquipRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.PmType))   { _modalErr = L["MNT.PmSchedule.Err.TypeRequired"]; return; }
@@ -722,6 +724,7 @@
 
     void SaveDelete()
     {
+        if (!_canEdit) return;
         if (_editId is not int id) return;
         _busy = true;
         try

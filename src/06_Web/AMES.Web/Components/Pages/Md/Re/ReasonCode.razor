@@ -377,6 +377,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ReasonCode)) { _modalErr = L["Err.ReasonCodeRequired"]; return; }
         var code = _f.ReasonCode.Trim();
@@ -397,6 +398,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         _busy = true;
@@ -406,8 +408,9 @@
                 NE(_f.ModuleCode), _f.RequiresComment, _f.PlannedFlag,
                 _f.DisplayOrder, NE(_f.Description), _f.ActiveFlag, _actor);
             Audit.Updated("MD-025", "MD_ReasonCode", _sel.ReasonCode, _sel, _f);
+            var key = _sel.ReasonCode;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.ReasonCode} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -415,6 +418,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

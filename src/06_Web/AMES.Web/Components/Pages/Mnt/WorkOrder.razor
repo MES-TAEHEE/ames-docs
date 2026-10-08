@@ -485,6 +485,7 @@
 
     async Task SaveAssign()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.TechId)) { _modalErr = L["MNT.WorkOrder.Err.TechRequired"]; return; }
@@ -528,6 +529,7 @@
 
     async Task SaveComplete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.Result))     { _modalErr = L["MNT.WorkOrder.Err.ResultRequired"]; return; }

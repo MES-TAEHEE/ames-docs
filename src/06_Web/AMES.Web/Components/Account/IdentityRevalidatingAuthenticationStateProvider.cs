@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using AMES.Web.Data;
 using AMES.Web.Services;
@@ -30,7 +31,12 @@ internal sealed class IdentityRevalidatingAuthenticationStateProvider(
         if (PortalAuth.IsPortalUser(authenticationState.User))
             return ValidatePortalUser(scope.ServiceProvider.GetRequiredService<ScmRepository>(), authenticationState.User);
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        if (!await ValidateSecurityStampAsync(userManager, authenticationState.User)) return false;
+        bool stampOk;
+        try { stampOk = await ValidateSecurityStampAsync(userManager, authenticationState.User); }
+        // DB 연결 장애면 이번 확인은 건너뛰고 세션을 유지한다(다음 주기에 다시 본다). 예외를 그대로 두면 프레임워크가
+        // "유효하지 않음"으로 보고 열린 화면을 로그아웃시켜, 장애가 이어지는 동안 접속자가 전부 쫓겨났다(10-09)
+        catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { return true; }
+        if (!stampOk) return false;
         return ValidateAccountStatus(scope.ServiceProvider.GetRequiredService<AuthRepository>(), authenticationState.User);
     }
 

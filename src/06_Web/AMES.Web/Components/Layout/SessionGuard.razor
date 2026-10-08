@@ -21,7 +21,6 @@
     [Parameter] public bool Portal { get; set; }
 
     bool _dbDown, _disposed;
-    int  _probing, _tick;
     Timer? _timer;
 
     protected override void OnInitialized()
@@ -49,14 +48,10 @@
     void Check()
     {
         if (_disposed) return;
-        // 장애 중에는 9초마다 직접 연결해 본다 — 화면이 DB 를 부르지 않으면 성공 기록이 생기지 않아 배너가 남는다.
-        // 연결 시도는 최대 Connect Timeout 만큼 걸리므로 회로 스레드가 아니라 스레드 풀에서 돌린다.
-        if (AMES.Data.Connection.DbHealth.IsDown && ++_tick % 3 == 0 && Interlocked.CompareExchange(ref _probing, 1, 0) == 0)
-            _ = Task.Run(() =>
-            {
-                try { using var c = Db.OpenConnection(); } catch { }
-                finally { Interlocked.Exchange(ref _probing, 0); }
-            });
+        // 장애 중에는 직접 연결해 본다 — 화면이 DB 를 부르지 않으면 성공 기록이 생기지 않아 배너가 남는다.
+        // 시험은 서버 전체에서 하나·9초마다만 돈다(DbHealth.TryStartProbe) — 세션마다 시도하면 접속자 수만큼 연결이 몰렸다
+        if (AMES.Data.Connection.DbHealth.IsDown)
+            AMES.Data.Connection.DbHealth.TryStartProbe(() => { using var c = Db.OpenConnection(); });
         var down = AMES.Data.Connection.DbHealth.IsDown;
         if (down != _dbDown) { _dbDown = down; StateHasChanged(); }
     }

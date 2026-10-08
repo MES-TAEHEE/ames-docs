@@ -189,6 +189,7 @@
     Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
     List<MasterDataRepository.CodeItemRow>  _shiftItems = new();
     List<(string Code, int From, int To)>   _shiftRanges = new();
+    int _cutoffHour;   // 전기일 경계 시각 — 시간대 차트를 그 시각부터 그린다(07시 → … → 다음 날 06시)
 
     DateTime _fDate = DbClock.Today;
     string?  _fLine, _fShift;
@@ -229,11 +230,13 @@
         try { _shiftItems = MD.ListCodeItems("WORK_SHIFT"); } catch { }
         _shiftRanges = ParseShiftRanges(_shiftItems);
 
-        // 기본 일자: 오늘. 오늘 실적이 없으면 마지막 실적일
+        // 기본 일자: 오늘(전기일 — 경계 시각 전이면 전날). 오늘 실적이 없으면 마지막 실적일
         try
         {
+            _cutoffHour = Rpt.ReadDayCutoff().Hours;
+            _fDate = Rpt.ProdToday();
             var (_, mx) = Rpt.ProductionDateExtent();
-            if (mx is { } m && m.Date < DbClock.Today) _fDate = m.Date;
+            if (mx is { } m && m.Date < _fDate) _fDate = m.Date;
         }
         catch { }
 
@@ -254,7 +257,7 @@
         // 교대 필터는 실적(시간대)에만 걸린다. 계획은 라인 스케줄에 교대 정보가 없어 일 단위 그대로 둔다
         var rows = _raw.Where(r => string.IsNullOrEmpty(_fShift) || ShiftOf(r.Hour) == _fShift).ToList();
 
-        _hours = Enumerable.Range(0, 24)
+        _hours = Enumerable.Range(0, 24).Select(i => (_cutoffHour + i) % 24)
             .Select(h => new HourPoint(h.ToString("00"), rows.Where(r => r.Hour == h).Sum(r => r.GoodQty), rows.Where(r => r.Hour == h).Sum(r => r.DefectQty)))
             .ToList();
 

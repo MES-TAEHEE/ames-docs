@@ -491,21 +491,32 @@ public sealed class WorkOrderRepository
     }
 
     /// <summary>
-    /// Updates DueDate for a WO (PP-CAL drag reschedule). Ignores Closed WOs.
+    /// PP-CAL 납기 변경. 생산 마감일도 PP-003 과 같은 규칙(납기 − PP_PROD_BUFFER_WORKDAYS 근무일, SYS_FactoryCalendar)으로
+    /// 다시 계산하고 수정자·시각을 남긴다. Closed WO 는 바꾸지 않는다. 반환: 바뀌었으면 true(대상이 없거나 Closed 면 false).
     /// </summary>
-    public void UpdateDueDate(int woId, DateTime newDate)
+    public bool UpdateDueDate(int woId, DateTime newDate, string actor)
     {
+        int bufferDays = new SysRepository(_factory).GetConfigInt(PpRepository.BufferWorkdaysKey, PpRepository.BufferWorkdaysDefault);
+        using var conn = _factory.OpenConnection();
+        // 버퍼 근무일을 거슬러 갈 만큼 넉넉히(연휴 포함) 달력을 읽는다 — 달력 행이 없는 날은 토·일만 휴일
+        var cal = new Scheduling.WorkdayCalendar(PpRepository.ReadCalendar(conn, null, newDate.Date.AddDays(-(bufferDays * 3 + 21)), newDate.Date));
+        var deadline = cal.SubtractWorkdays(newDate.Date, bufferDays);
+
         const string sql = """
             UPDATE dbo.PP_WorkOrder
-               SET DueDate = @DueDate
+               SET DueDate      = @DueDate,
+                   ProdDeadline = @Deadline,
+                   ModifiedBy   = @By,
+                   ModifiedTS   = SYSDATETIME()
              WHERE WoID   = @WoID
                AND Status NOT IN ('Closed');
             """;
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@WoID",   SqlDbType.Int).Value          = woId;
-        cmd.Parameters.Add("@DueDate", SqlDbType.Date).Value        = newDate.Date;
-        cmd.ExecuteNonQuery();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@WoID",     SqlDbType.Int).Value         = woId;
+        cmd.Parameters.Add("@DueDate",  SqlDbType.Date).Value        = newDate.Date;
+        cmd.Parameters.Add("@Deadline", SqlDbType.Date).Value        = deadline;
+        cmd.Parameters.Add("@By",       SqlDbType.VarChar, 20).Value = actor;
+        return cmd.ExecuteNonQuery() > 0;
     }
 
     // ── PP-004 lifecycle actions ─────────────────────────────────────

@@ -33,6 +33,46 @@ public class DbHealthTests
         Assert.False(DbHealth.IsDown);
     }
 
+    // 장애 중 복구 확인 연결은 서버 전체에서 하나·9초마다만 — 화면(세션) 수만큼 동시에 시도하지 않는다(10-09)
+    [Fact]
+    public void Probe_runs_one_at_a_time_and_waits_for_the_interval()
+    {
+        DbHealth.ResetProbeForTests();
+        DbHealth.RecordSuccess();
+        Thread.Sleep(2);
+        DbHealth.RecordFailure();
+        var t0 = new DateTime(2026, 10, 9, 0, 0, 0, DateTimeKind.Utc);
+        using var gate = new ManualResetEventSlim(false);
+        int runs = 0;
+        try
+        {
+            var started = Enumerable.Range(0, 30).AsParallel()
+                .Count(_ => DbHealth.TryStartProbe(() => { Interlocked.Increment(ref runs); gate.Wait(5000); }, t0));
+            Assert.Equal(1, started);
+
+            gate.Set();
+            Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref runs) == 1, 2000));
+            Thread.Sleep(200);   // 시험 스레드가 끝나 "진행 중" 표시가 풀릴 때까지
+            Assert.False(DbHealth.TryStartProbe(() => { }, t0.AddSeconds(5)));    // 간격 전
+            Assert.True(DbHealth.TryStartProbe(() => { }, t0.AddSeconds(10)));    // 간격 뒤
+        }
+        finally
+        {
+            gate.Set();
+            Thread.Sleep(100);
+            DbHealth.RecordSuccess();
+            DbHealth.ResetProbeForTests();
+        }
+    }
+
+    [Fact]
+    public void Probe_does_nothing_while_db_is_up()
+    {
+        DbHealth.ResetProbeForTests();
+        DbHealth.RecordSuccess();
+        Assert.False(DbHealth.TryStartProbe(() => throw new InvalidOperationException("must not run")));
+    }
+
     // 연결을 열 수 없거나 끊긴 경우만 장애 — 서버 없음(53·40)·시간 초과(-2)·소켓(10054·10060)·DB 열기(4060)·앱 계정 로그인(18456)
     [Theory]
     [InlineData(53, 20)]

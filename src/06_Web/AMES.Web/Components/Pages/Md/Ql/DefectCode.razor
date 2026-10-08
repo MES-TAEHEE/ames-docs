@@ -431,6 +431,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.DefectCode)) { _modalErr = L["Err.DefectCodeRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.DefectName)) { _modalErr = L["Err.DefectNameRequired"]; return; }
@@ -452,6 +453,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.DefectName)) { _modalErr = L["Err.DefectNameRequired"]; return; }
@@ -473,6 +475,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

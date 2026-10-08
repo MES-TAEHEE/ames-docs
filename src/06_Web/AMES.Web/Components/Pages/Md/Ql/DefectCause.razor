@@ -434,6 +434,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.CauseCode)) { _modalErr = L["Err.CauseCodeRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = L["Err.CauseNameRequired"]; return; }
@@ -455,6 +456,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = L["Err.CauseNameRequired"]; return; }
@@ -476,6 +478,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

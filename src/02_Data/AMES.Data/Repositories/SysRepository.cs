@@ -397,21 +397,27 @@ public sealed class SysRepository
                     @Start, @End, @Break, @Net,
                     @Year, @Plant, @CreatedBy, SYSDATETIME())
             """;
+        // 형식·길이 = 컬럼. 긴 이름은 잘려 저장되지 않도록 화면이 HolidayNameMax 로 먼저 막는다
+        if (holidayName is { Length: > HolidayNameMax })
+            throw new ArgumentException($"HolidayName exceeds {HolidayNameMax} characters.", nameof(holidayName));
         using var cmd = new SqlCommand(sql, conn, tx);
-        cmd.Parameters.AddWithValue("@Date",        date.Date);
-        cmd.Parameters.AddWithValue("@DayType",     dayType);
-        cmd.Parameters.AddWithValue("@HolidayName", (object?)holidayName ?? DBNull.Value);
+        cmd.Parameters.Add("@Date",        SqlDbType.Date).Value                 = date.Date;
+        cmd.Parameters.Add("@DayType",     SqlDbType.VarChar, 5).Value           = dayType;
+        cmd.Parameters.Add("@HolidayName", SqlDbType.NVarChar, HolidayNameMax).Value = (object?)holidayName ?? DBNull.Value;
         cmd.Parameters.AddWithValue("@ShiftCount",  (object?)shiftCount  ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@ShiftCode",   (object?)shiftCode   ?? DBNull.Value);
+        cmd.Parameters.Add("@ShiftCode",   SqlDbType.VarChar, 5).Value           = (object?)shiftCode ?? DBNull.Value;
         cmd.Parameters.AddWithValue("@Start",       (object?)start    ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@End",         (object?)end      ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Break",       (object?)breakMin ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Net",         (object?)netHours ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Year",        calendarYear);
-        cmd.Parameters.AddWithValue("@Plant",       string.IsNullOrWhiteSpace(plantCode) ? (object)DBNull.Value : plantCode);
-        cmd.Parameters.AddWithValue("@CreatedBy",   createdBy);
+        cmd.Parameters.Add("@Plant",       SqlDbType.VarChar, 10).Value          = string.IsNullOrWhiteSpace(plantCode) ? DBNull.Value : plantCode;
+        cmd.Parameters.Add("@CreatedBy",   SqlDbType.VarChar, 20).Value          = createdBy;
         cmd.ExecuteNonQuery();
     }
+
+    /// <summary>SYS_FactoryCalendar.HolidayName nvarchar(40)</summary>
+    public const int HolidayNameMax = 40;
 
     public void UpdateCalendarDayMeta(DateTime date, string dayType, string? holidayName, string modifiedBy)
     {

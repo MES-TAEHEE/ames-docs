@@ -228,6 +228,7 @@
 
     void SaveCreate()
     {
+        if (!_canEdit) return;
         if (_selLine is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.MoldID)) { _modalErr = L["Err.MoldIdRequired"]; return; }
@@ -247,6 +248,7 @@
 
     void SaveEdit()
     {
+        if (!_canEdit) return;
         if (_selLine is null || string.IsNullOrWhiteSpace(_f.MoldID)) return;
         _modalErr = "";
         _busy = true;
@@ -263,6 +265,7 @@
 
     void SaveDelete()
     {
+        if (!_canEdit) return;
         if (_selLine is null || string.IsNullOrWhiteSpace(_f.MoldID)) return;
         _busy = true;
         try

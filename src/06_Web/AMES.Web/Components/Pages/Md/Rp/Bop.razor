@@ -528,6 +528,7 @@
 
     async Task DoCopy()
     {
+        if (!_canEdit) return;
         if (_selItem is null || string.IsNullOrWhiteSpace(_copySource)) return;
         _busy = true;
         try
@@ -618,6 +619,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ItemNo))      { _modalErr = L["Err.ItemNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.RoutingType)) { _modalErr = L["Err.RoutingTypeRequired"]; return; }
@@ -655,6 +657,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.RoutingType)) { _modalErr = L["Err.RoutingTypeRequired"]; return; }
         if (_f.StepSeq <= 0)                           { _modalErr = L["Err.StepSeqMin1"]; return; }
@@ -683,6 +686,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         _busy = true;
         try
         {

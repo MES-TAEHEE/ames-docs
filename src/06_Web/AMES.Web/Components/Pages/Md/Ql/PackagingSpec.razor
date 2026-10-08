@@ -412,6 +412,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PackSpecID)) { _modalErr = L["Err.SpecIdRequired"]; return; }
         var id = _f.PackSpecID.Trim();
@@ -433,6 +434,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
@@ -442,8 +444,9 @@
                 _f.NetWeightKg, _f.GrossWeightKg, NE(_f.DimLxWxH),
                 _f.ReturnableFlag, NE(_f.LabelTemplateID), _f.ActiveFlag, _actor);
             Audit.Updated("MD-023", "MD_PackagingSpec", _sel.PackSpecID, _sel, _f);
+            var key = _sel.PackSpecID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.PackSpecID} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -451,6 +454,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

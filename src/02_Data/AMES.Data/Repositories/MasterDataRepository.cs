@@ -3679,6 +3679,9 @@ public sealed class MasterDataRepository
         return cmd.ExecuteScalar() is not null;
     }
 
+    // 소수 자릿수는 컬럼과 같게 반올림해서 보낸다 — 매개변수 Scale 만 맞추면 SqlClient 가 남는 자리를 버린다(반올림 아님)
+    static decimal? RoundTo(decimal? v, int scale) => v is { } d ? Math.Round(d, scale, MidpointRounding.AwayFromZero) : null;
+
     public void InsertUom(string uomCode, string? uomName, string? uomCategory,
         bool baseFlag, string? baseUOM, decimal? convFactor,
         int? decimalPrec, string? symbol, bool activeFlag, string createdBy)
@@ -3693,8 +3696,8 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  10).Value = (object?)uomCategory  ?? DBNull.Value;
         cmd.Parameters.Add("@BF",  SqlDbType.Bit).Value          = baseFlag;
         cmd.Parameters.Add("@BU",  SqlDbType.VarChar,  10).Value = (object?)baseUOM      ?? DBNull.Value;
-        cmd.Parameters.Add("@CF",  SqlDbType.Decimal).Value      = (object?)convFactor   ?? DBNull.Value;
-        if (convFactor.HasValue) { cmd.Parameters["@CF"].Precision = 18; cmd.Parameters["@CF"].Scale = 6; }
+        cmd.Parameters.Add("@CF",  SqlDbType.Decimal).Value      = (object?)RoundTo(convFactor, 8) ?? DBNull.Value;
+        if (convFactor.HasValue) { cmd.Parameters["@CF"].Precision = 18; cmd.Parameters["@CF"].Scale = 8; }
         cmd.Parameters.Add("@DP",  SqlDbType.Int).Value          = (object?)decimalPrec  ?? DBNull.Value;
         cmd.Parameters.Add("@SY",  SqlDbType.NVarChar,  8).Value = (object?)symbol       ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
@@ -3716,8 +3719,8 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  10).Value  = (object?)uomCategory ?? DBNull.Value;
         cmd.Parameters.Add("@BF",  SqlDbType.Bit).Value           = baseFlag;
         cmd.Parameters.Add("@BU",  SqlDbType.VarChar,  10).Value  = (object?)baseUOM     ?? DBNull.Value;
-        cmd.Parameters.Add("@CF",  SqlDbType.Decimal).Value       = (object?)convFactor  ?? DBNull.Value;
-        if (convFactor.HasValue) { cmd.Parameters["@CF"].Precision = 18; cmd.Parameters["@CF"].Scale = 6; }
+        cmd.Parameters.Add("@CF",  SqlDbType.Decimal).Value       = (object?)RoundTo(convFactor, 8) ?? DBNull.Value;
+        if (convFactor.HasValue) { cmd.Parameters["@CF"].Precision = 18; cmd.Parameters["@CF"].Scale = 8; }
         cmd.Parameters.Add("@DP",  SqlDbType.Int).Value           = (object?)decimalPrec ?? DBNull.Value;
         cmd.Parameters.Add("@SY",  SqlDbType.NVarChar,  8).Value  = (object?)symbol      ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
@@ -3823,8 +3826,8 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CT", SqlDbType.Int).Value           = (object?)cureTemp         ?? DBNull.Value;
         cmd.Parameters.Add("@CD", SqlDbType.Int).Value           = (object?)cureDuration     ?? DBNull.Value;
         cmd.Parameters.Add("@EV", SqlDbType.Int).Value           = (object?)electroV         ?? DBNull.Value;
-        cmd.Parameters.Add("@PU", SqlDbType.Decimal).Value       = (object?)particleUm       ?? DBNull.Value;
-        if (particleUm.HasValue) { cmd.Parameters["@PU"].Precision = 6; cmd.Parameters["@PU"].Scale = 2; }
+        cmd.Parameters.Add("@PU", SqlDbType.Decimal).Value       = (object?)RoundTo(particleUm, 1) ?? DBNull.Value;
+        if (particleUm.HasValue) { cmd.Parameters["@PU"].Precision = 5; cmd.Parameters["@PU"].Scale = 1; }
         cmd.Parameters.Add("@AF", SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@CB", SqlDbType.VarChar,  20).Value  = createdBy;
         cmd.ExecuteNonQuery();
@@ -3846,8 +3849,8 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@CT", SqlDbType.Int).Value            = (object?)cureTemp         ?? DBNull.Value;
         cmd.Parameters.Add("@CD", SqlDbType.Int).Value            = (object?)cureDuration     ?? DBNull.Value;
         cmd.Parameters.Add("@EV", SqlDbType.Int).Value            = (object?)electroV         ?? DBNull.Value;
-        cmd.Parameters.Add("@PU", SqlDbType.Decimal).Value        = (object?)particleUm       ?? DBNull.Value;
-        if (particleUm.HasValue) { cmd.Parameters["@PU"].Precision = 6; cmd.Parameters["@PU"].Scale = 2; }
+        cmd.Parameters.Add("@PU", SqlDbType.Decimal).Value        = (object?)RoundTo(particleUm, 1) ?? DBNull.Value;
+        if (particleUm.HasValue) { cmd.Parameters["@PU"].Precision = 5; cmd.Parameters["@PU"].Scale = 1; }
         cmd.Parameters.Add("@AF", SqlDbType.Bit).Value            = activeFlag;
         cmd.Parameters.Add("@MB", SqlDbType.VarChar,   20).Value  = modifiedBy;
         cmd.ExecuteNonQuery();

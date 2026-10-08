@@ -222,6 +222,8 @@
         try { _lineList   = MD.ListLines(); } catch { }
         try { _defectList = MD.ListDefectCodes(); } catch { }
         try { _procItems  = MD.ListCodeItems("PROCESS"); } catch { }
+        // 기본 기간의 끝 = 오늘(전기일 — 경계 시각 전이면 전날)
+        try { _fTo = Rpt.ProdToday(); _fFrom = _fTo.AddDays(-29); } catch { }
 
         // 기본 기간: 최근 30일. 그 안에 불량이 없으면 마지막 발생일 기준 30일
         try

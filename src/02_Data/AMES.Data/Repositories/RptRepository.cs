@@ -1,5 +1,6 @@
 using System.Data;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -48,7 +49,22 @@ public sealed class RptRepository
         int Hour, int Entries, int GoodQty, int DefectQty);
     public sealed record PlanRow(string? LineId, string? ItemNo, string? ItemName, string? ItemNameEn, decimal PlannedQty);
 
-    /// <summary>하루치 실적을 라인×품목×시간대로 집계. 불량은 PR_DefectDetail.Qty 합, 상세가 없으면 DefectFlag 를 1건으로 센다.</summary>
+    // ── 전기일(근무일) ──────────────────────────────────────────────────
+    // 생산 보고서의 "하루"는 자정이 아니라 SYS_Config.DAY_CUTOFF_TIME(예 07:00)부터 다음 날 그 시각까지다(10-09 사용자 결정 B3).
+    // 실적은 저장 때 같은 규칙으로 정한 PR_ProductionResult.ProdDate 로 묶고, 전기일 컬럼이 없는 불량 상세는 발생 시각을 경계만큼 당겨 묶는다.
+
+    /// <summary>전기일 경계 시각 — 설정이 없거나 틀리면 자정(실적 저장의 ProdCalendar.ResolveNow 와 같은 규칙).</summary>
+    public TimeSpan ReadDayCutoff()
+    {
+        var v = Query("SELECT TOP 1 ConfigValue FROM dbo.SYS_Config WHERE ConfigKey = @K ORDER BY ConfigID;",
+            r => r["ConfigValue"] as string, ("@K", ProdCalendar.CutoffConfigKey));
+        return ProdCalendar.TryParseCutoff(v.FirstOrDefault(), out var c) ? c : TimeSpan.Zero;
+    }
+
+    /// <summary>지금(DB 시각)의 전기일.</summary>
+    public DateTime ProdToday() => ProdCalendar.ProdDateOf(DbClock.Now, ReadDayCutoff());
+
+    /// <summary>전기일 하루치 실적을 라인×품목×시간대로 집계. 불량은 PR_DefectDetail.Qty 합, 상세가 없으면 DefectFlag 를 1건으로 센다.</summary>
     public List<ProdHourRow> ListProductionByHour(DateTime day, string? lineId = null)
     {
         const string sql = """
@@ -61,7 +77,7 @@ public sealed class RptRepository
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = r.WoID
             LEFT JOIN dbo.MD_Item      i ON i.ItemNo = w.ItemNo
             OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
-            WHERE   r.EntryAt >= @D AND r.EntryAt < DATEADD(DAY, 1, @D)
+            WHERE   COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) = @D
               AND  (@L IS NULL OR r.LineID = @L)
             GROUP BY r.LineID, w.ItemNo, i.ItemName, i.ItemNameEN, DATEPART(hour, r.EntryAt)
             ORDER BY r.LineID, w.ItemNo, Hr;
@@ -92,10 +108,13 @@ public sealed class RptRepository
             ("@D", day.Date), ("@L", (object?)lineId ?? DBNull.Value));
     }
 
+    /// <summary>실적이 있는 첫·마지막 전기일.</summary>
     public (DateTime? Min, DateTime? Max) ProductionDateExtent()
     {
-        var rows = Query("SELECT MIN(EntryAt) AS Mn, MAX(EntryAt) AS Mx FROM dbo.PR_ProductionResult;",
-            r => (r["Mn"] as DateTime?, r["Mx"] as DateTime?));
+        var rows = Query("""
+            SELECT MIN(COALESCE(ProdDate, CAST(EntryAt AS DATE))) AS Mn, MAX(COALESCE(ProdDate, CAST(EntryAt AS DATE))) AS Mx
+            FROM   dbo.PR_ProductionResult;
+            """, r => (r["Mn"] as DateTime?, r["Mx"] as DateTime?));
         return rows.Count > 0 ? rows[0] : (null, null);
     }
 
@@ -134,7 +153,7 @@ public sealed class RptRepository
     public sealed record DefectAggRow(string? DefectCode, string? ProcessCode, string? LineId, int Qty, int Events);
 
     /// <summary>
-    /// 기간 내 불량 상세를 불량코드×공정×라인으로 집계. 라인은 실적(PR_ProductionResult) 조인이되,
+    /// 기간(전기일) 내 불량 상세를 불량코드×공정×라인으로 집계. 라인은 실적(PR_ProductionResult) 조인이되,
     /// 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없으므로 LOT 의 라인으로 대신 귀속시킨다.
     /// </summary>
     public List<DefectAggRow> ListDefectAgg(DateTime from, DateTime to, string? lineId = null)
@@ -149,13 +168,14 @@ public sealed class RptRepository
               AND  (@L IS NULL OR COALESCE(r.LineID, tl.LineID) = @L)
             GROUP BY d.DefectCode, d.ProcessCode, COALESCE(r.LineID, tl.LineID);
             """;
+        var cut = ReadDayCutoff();
         return Query(sql, r => new DefectAggRow(
             r["DefectCode"] as string, r["ProcessCode"] as string, r["LineID"] as string,
             (int)r["Qty"], (int)r["Events"]),
-            ("@F", from.Date), ("@T", to.Date.AddDays(1)), ("@L", (object?)lineId ?? DBNull.Value));
+            ("@F", from.Date + cut), ("@T", to.Date.AddDays(1) + cut), ("@L", (object?)lineId ?? DBNull.Value));
     }
 
-    /// <summary>기간 내 생산 실적 합계(양품 + 불량) — 불량률 분모(검사 수량).</summary>
+    /// <summary>기간(전기일) 내 생산 실적 합계(양품 + 불량) — 불량률 분모(검사 수량).</summary>
     public (int Good, int Defect) ProductionTotals(DateTime from, DateTime to, string? lineId = null)
     {
         const string sql = """
@@ -163,19 +183,23 @@ public sealed class RptRepository
                     ISNULL(SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag = 1 THEN 1 ELSE 0 END)), 0) AS Defect
             FROM    dbo.PR_ProductionResult r
             OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
-            WHERE   r.EntryAt >= @F AND r.EntryAt < @T
+            WHERE   COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) BETWEEN @F AND @T
               AND  (@L IS NULL OR r.LineID = @L);
             """;
         var rows = Query(sql, r => ((int)r["Good"], (int)r["Defect"]),
-            ("@F", from.Date), ("@T", to.Date.AddDays(1)), ("@L", (object?)lineId ?? DBNull.Value));
+            ("@F", from.Date), ("@T", to.Date), ("@L", (object?)lineId ?? DBNull.Value));
         return rows.Count > 0 ? rows[0] : (0, 0);
     }
 
+    /// <summary>불량이 처음·마지막으로 발생한 전기일.</summary>
     public (DateTime? Min, DateTime? Max) DefectDateExtent()
     {
         var rows = Query("SELECT MIN(DetectedAt) AS Mn, MAX(DetectedAt) AS Mx FROM dbo.PR_DefectDetail;",
             r => (r["Mn"] as DateTime?, r["Mx"] as DateTime?));
-        return rows.Count > 0 ? rows[0] : (null, null);
+        if (rows.Count == 0) return (null, null);
+        var cut = ReadDayCutoff();
+        return (rows[0].Item1 is { } mn ? ProdCalendar.ProdDateOf(mn, cut) : null,
+                rows[0].Item2 is { } mx ? ProdCalendar.ProdDateOf(mx, cut) : null);
     }
 
     public List<DefectParetoRow> ListDefectPareto(int daysBack = 30, int topN = 20)
@@ -426,13 +450,15 @@ public sealed class RptRepository
                 UNION ALL SELECT DATEADD(MONTH, 1, M) FROM months WHERE DATEADD(MONTH, 1, M) <= @T
             ),
             prod AS (
-                SELECT DATEFROMPARTS(YEAR(EntryAt), MONTH(EntryAt), 1) AS M, SUM(ISNULL(GoodQty,0)) AS Good
-                FROM dbo.PR_ProductionResult WHERE EntryAt >= @F AND EntryAt < DATEADD(MONTH, 1, @T)
-                GROUP BY DATEFROMPARTS(YEAR(EntryAt), MONTH(EntryAt), 1)),
+                SELECT DATEFROMPARTS(YEAR(x.PD), MONTH(x.PD), 1) AS M, SUM(ISNULL(x.GoodQty,0)) AS Good
+                FROM (SELECT COALESCE(ProdDate, CAST(EntryAt AS DATE)) AS PD, GoodQty FROM dbo.PR_ProductionResult) x
+                WHERE x.PD >= @F AND x.PD < DATEADD(MONTH, 1, @T)
+                GROUP BY DATEFROMPARTS(YEAR(x.PD), MONTH(x.PD), 1)),
             def AS (
-                SELECT DATEFROMPARTS(YEAR(DetectedAt), MONTH(DetectedAt), 1) AS M, SUM(ISNULL(Qty,0)) AS Def
-                FROM dbo.PR_DefectDetail WHERE DetectedAt >= @F AND DetectedAt < DATEADD(MONTH, 1, @T)
-                GROUP BY DATEFROMPARTS(YEAR(DetectedAt), MONTH(DetectedAt), 1)),
+                SELECT DATEFROMPARTS(YEAR(x.PD), MONTH(x.PD), 1) AS M, SUM(ISNULL(x.Qty,0)) AS Def
+                FROM (SELECT CAST(DATEADD(MINUTE, -@Cut, DetectedAt) AS DATE) AS PD, Qty FROM dbo.PR_DefectDetail
+                      WHERE DetectedAt >= DATEADD(MINUTE, @Cut, @F) AND DetectedAt < DATEADD(MINUTE, @Cut, DATEADD(MONTH, 1, @T))) x
+                GROUP BY DATEFROMPARTS(YEAR(x.PD), MONTH(x.PD), 1)),
             pln AS (
                 SELECT DATEFROMPARTS(YEAR(ScheduleDate), MONTH(ScheduleDate), 1) AS M, SUM(ISNULL(PlannedQty,0)) AS PlanQty
                 FROM dbo.PP_LineSchedule WHERE ISNULL(Status,'') <> 'CANCELLED' AND ScheduleDate >= @F AND ScheduleDate < DATEADD(MONTH, 1, @T)
@@ -494,7 +520,8 @@ public sealed class RptRepository
             r["Avail"] as decimal?, r["Oee"] as decimal?, Convert.ToDecimal(r["OperMin"]), Convert.ToInt32(r["Failures"]),
             Convert.ToInt32(r["Orders"]), Convert.ToInt32(r["LateOrders"]), Convert.ToInt32(r["Shipped"]), Convert.ToInt32(r["ShippedOnTime"]), Convert.ToInt32(r["Claims"]),
             Convert.ToDecimal(r["Issued"]), Convert.ToDecimal(r["OnHand"])),
-            ("@F", new DateTime(fromMonth.Year, fromMonth.Month, 1)), ("@T", new DateTime(toMonth.Year, toMonth.Month, 1)));
+            ("@F", new DateTime(fromMonth.Year, fromMonth.Month, 1)), ("@T", new DateTime(toMonth.Year, toMonth.Month, 1)),
+            ("@Cut", (int)ReadDayCutoff().TotalMinutes));
     }
 
     public List<MonthlyKpiRow> ListMonthlyKpi(int monthsBack = 6)

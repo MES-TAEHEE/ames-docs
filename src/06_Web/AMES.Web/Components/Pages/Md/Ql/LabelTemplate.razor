@@ -386,6 +386,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.LabelTemplateID)) { _modalErr = L["Err.TemplateIdRequired"]; return; }
         var id = _f.LabelTemplateID.Trim();
@@ -406,6 +407,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
@@ -414,8 +416,9 @@
                 NE(_f.PaperSize), _f.BarcodeType, NE(_f.CustomerID),
                 _f.Version, NE(_f.PrinterModel), _f.ActiveFlag, _actor);
             Audit.Updated("MD-024", "MD_LabelTemplate", _sel.LabelTemplateID, _sel, _f);
+            var key = _sel.LabelTemplateID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.LabelTemplateID} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -423,6 +426,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

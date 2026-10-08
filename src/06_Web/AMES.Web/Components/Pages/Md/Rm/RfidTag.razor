@@ -364,6 +364,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.TagID)) { _modalErr = L["Err.TagIdRequired"]; return; }
         var id = _f.TagID.Trim();
@@ -385,6 +386,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         _busy = true;
@@ -395,8 +397,9 @@
                 _f.InstallDate, _f.CycleCount, _f.ReplaceSchedule,
                 NE(_f.Status), _actor);
             Audit.Updated("MD-020", "MD_RfidTag", _sel.TagID, _sel, _f);
+            var key = _sel.TagID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.TagID} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -404,6 +407,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try

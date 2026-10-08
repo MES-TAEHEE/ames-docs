@@ -309,7 +309,7 @@
                                     <RadzenDatePicker TValue="DateOnly?" @bind-Value="_genHolidays[hidx].DateD" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                                 </td>
                                 <td>
-                                    <RadzenTextBox @bind-Value="_genHolidays[hidx].Name" Placeholder="@L["SYS.Calendar.Ph.HolidayName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoComplete="false" />
+                                    <RadzenTextBox @bind-Value="_genHolidays[hidx].Name" MaxLength="@SysRepository.HolidayNameMax" Placeholder="@L["SYS.Calendar.Ph.HolidayName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoComplete="false" />
                                 </td>
                                 <td>
                                     <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="() => _genHolidays.RemoveAt(hidx)" class="ames-rz-btn" />
@@ -356,7 +356,7 @@
                 {
                     <div style="flex:1;">
                         <label>@L["SYS.Calendar.Lbl.HolidayName"]</label>
-                        <RadzenTextBox @bind-Value="_editHolidayName" Placeholder="@L["SYS.Calendar.Ph.HolidayNameInput"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoComplete="false" />
+                        <RadzenTextBox @bind-Value="_editHolidayName" MaxLength="@SysRepository.HolidayNameMax" Placeholder="@L["SYS.Calendar.Ph.HolidayNameInput"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoComplete="false" />
                     </div>
                 }
             </div>
@@ -614,9 +614,24 @@
         if (_genFrom > _genTo) { _modalErr = L["SYS.Calendar.Err.DateRange"].Value; return; }
         var active = _genShifts.Where(s => s.Active).ToList();
 
-        var holidays = _genHolidays
-            .Where(h => DateTime.TryParse(h.Date, out _) && !string.IsNullOrEmpty(h.Name))
-            .ToDictionary(h => DateTime.Parse(h.Date).Date, h => h.Name.Trim());
+        var entered = _genHolidays
+            .Where(h => DateTime.TryParse(h.Date, out _) && !string.IsNullOrWhiteSpace(h.Name))
+            .Select(h => (Date: DateTime.Parse(h.Date).Date, Name: h.Name.Trim()))
+            .ToList();
+        // 같은 날짜가 두 번 들어오면 어느 이름을 쓸지 정할 수 없어 저장 전에 막는다(전에는 ToDictionary 예외로 화면이 끊겼다)
+        var dupDates = entered.GroupBy(h => h.Date).Where(g => g.Count() > 1).Select(g => g.Key).OrderBy(d => d).ToList();
+        if (dupDates.Count > 0)
+        {
+            _modalErr = string.Format(L["SYS.Calendar.Err.DuplicateHoliday"].Value, string.Join(", ", dupDates.Select(d => d.ToString(DateFmt.Date))));
+            return;
+        }
+        var tooLong = entered.Where(h => h.Name.Length > SysRepository.HolidayNameMax).Select(h => h.Date).OrderBy(d => d).ToList();
+        if (tooLong.Count > 0)
+        {
+            _modalErr = string.Format(L["SYS.Calendar.Err.HolidayNameLength"].Value, SysRepository.HolidayNameMax, string.Join(", ", tooLong.Select(d => d.ToString(DateFmt.Date))));
+            return;
+        }
+        var holidays = entered.ToDictionary(h => h.Date, h => h.Name);
 
         var days = new List<(DateTime Date, IReadOnlyList<SysRepository.CalendarShiftInput> Rows)>();
         for (var d = _genFrom.Date; d <= _genTo.Date; d = d.AddDays(1))
@@ -653,8 +668,15 @@
     // ── Save Edit ─────────────────────────────────────────────────────────
     void SaveEdit()
     {
+        if (!_canEdit) return;
         if (!_selDate.HasValue) return;
-        _modalErr = ""; _busy = true;
+        _modalErr = "";
+        if (_editDayType == "HOLIDAY" && _editHolidayName.Trim().Length > SysRepository.HolidayNameMax)
+        {
+            _modalErr = string.Format(L["SYS.Calendar.Err.HolidayNameLength"].Value, SysRepository.HolidayNameMax, _selDate.Value.ToString(DateFmt.Date));
+            return;
+        }
+        _busy = true;
         try
         {
             string? actualHoliday = _editDayType == "HOLIDAY"
@@ -682,6 +704,7 @@
     // ── Save Delete ───────────────────────────────────────────────────────
     void SaveDelete()
     {
+        if (!_canEdit) return;
         if (!_selDate.HasValue) return;
         _busy = true;
         try

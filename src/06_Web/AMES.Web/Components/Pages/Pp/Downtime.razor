@@ -177,7 +177,7 @@
             </RadzenStack>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@(L["Col.Comment"] + (CommentRequired ? " *" : ""))' class="ames-rz-modal-label" Component="EditTextBoxComment" />
-                <RadzenTextBox Name="EditTextBoxComment" @bind-Value="_editComment" MaxLength="1000" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxComment" @bind-Value="_editComment" MaxLength="@PpRepository.DowntimeCommentMax" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -390,6 +390,7 @@
         var comment = string.IsNullOrWhiteSpace(_editComment) ? null : _editComment.Trim();
         var cause   = string.IsNullOrWhiteSpace(_editCause)   ? null : _editCause;
         if (CommentRequired && comment is null) { _modalErr = L["PP.Downtime.Err.CommentRequired"]; return; }
+        if (comment is { Length: > PpRepository.DowntimeCommentMax }) { _modalErr = string.Format(L["PP.Downtime.Err.CommentLength"].Value, PpRepository.DowntimeCommentMax); return; }
 
         if (PopOnly)
         {

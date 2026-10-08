@@ -540,6 +540,7 @@
 
     async Task Save()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.EquipId))      { _modalErr = L["MNT.Failure.Err.EquipRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.FailureType))  { _modalErr = L["MNT.Failure.Err.TypeRequired"]; return; }
@@ -580,6 +581,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_editId is not int id) return;
         _busy = true;
         try

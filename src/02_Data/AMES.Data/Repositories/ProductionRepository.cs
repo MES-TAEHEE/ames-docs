@@ -1,5 +1,4 @@
 using System.Data;
-using AMES.Contracts.Dto;
 using AMES.Data.Connection;
 using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
@@ -106,71 +105,5 @@ public sealed class ProductionRepository
             return (resultId, lotId, newCompleted);
         }
         catch { tx.Rollback(); throw; }
-    }
-
-    /// <summary>
-    /// Today's GoodQty for one WO (used by INJ-04 "Today Good" stat).
-    /// </summary>
-    public int GetTodayGoodForWo(int woId)
-    {
-        const string sql = """
-            SELECT ISNULL(SUM(GoodQty),0)
-            FROM   dbo.PR_ProductionResult
-            WHERE  WoID = @WoID
-              AND  CAST(EntryAt AS DATE) = CAST(SYSDATETIME() AS DATE);
-            """;
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
-        return Convert.ToInt32(cmd.ExecuteScalar() ?? 0);
-    }
-
-    /// <summary>
-    /// Hourly good + defect totals for a line for the current calendar day.
-    /// 24 rows always returned (zero-padded).
-    /// </summary>
-    public List<HourlyOutputDto> GetHourlyToday(string lineId)
-    {
-        const string sql = """
-            WITH g AS (
-              SELECT DATEPART(hour, EntryAt) AS H, SUM(GoodQty) AS G
-              FROM   dbo.PR_ProductionResult
-              WHERE  LineID = @Line
-                AND  CAST(EntryAt AS DATE) = CAST(SYSDATETIME() AS DATE)
-              GROUP  BY DATEPART(hour, EntryAt)
-            ),
-            d AS (
-              SELECT DATEPART(hour, d.DetectedAt) AS H, SUM(d.Qty) AS D
-              FROM   dbo.PR_DefectDetail d
-              JOIN   dbo.PR_ProductionResult r ON r.ResultID = d.ResultID
-              WHERE  r.LineID = @Line
-                AND  CAST(d.DetectedAt AS DATE) = CAST(SYSDATETIME() AS DATE)
-              GROUP  BY DATEPART(hour, d.DetectedAt)
-            )
-            SELECT  hr.H AS Hour, ISNULL(g.G,0) AS Good, ISNULL(d.D,0) AS Defect
-            FROM   (SELECT 0 AS H UNION ALL SELECT  1 UNION ALL SELECT  2 UNION ALL SELECT  3
-                    UNION ALL SELECT  4 UNION ALL SELECT  5 UNION ALL SELECT  6 UNION ALL SELECT  7
-                    UNION ALL SELECT  8 UNION ALL SELECT  9 UNION ALL SELECT 10 UNION ALL SELECT 11
-                    UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
-                    UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19
-                    UNION ALL SELECT 20 UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23) hr
-            LEFT JOIN g ON g.H = hr.H
-            LEFT JOIN d ON d.H = hr.H
-            ORDER BY hr.H;
-            """;
-
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
-        using var rdr = cmd.ExecuteReader();
-        var list = new List<HourlyOutputDto>(24);
-        while (rdr.Read())
-            list.Add(new HourlyOutputDto
-            {
-                Hour      = (int)rdr["Hour"],
-                GoodQty   = Convert.ToInt32(rdr["Good"]),
-                DefectQty = Convert.ToInt32(rdr["Defect"]),
-            });
-        return list;
     }
 }

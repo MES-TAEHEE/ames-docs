@@ -317,6 +317,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         _busy = true;
         try
@@ -353,6 +354,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
@@ -362,8 +364,9 @@
                 _sel.Aisle, _sel.Bay, _sel.Slot,
                 _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor);
             Audit.Updated("MD-018", "MD_Location", _sel.LocationID, _sel, _f);
+            var key = _sel.LocationID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg(string.Format(L["MD.Location.Ok.Updated"].Value, _sel.LocationID), false);
+            ShowMsg(string.Format(L["MD.Location.Ok.Updated"].Value, key), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }

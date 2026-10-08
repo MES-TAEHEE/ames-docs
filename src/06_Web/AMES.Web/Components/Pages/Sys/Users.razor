@@ -264,11 +264,11 @@
                 {
                     @if (_sel.LockedOut)
                     {
-                        <RadzenButton Text="@L["SYS.Users.Unlock"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockUser" class="ames-rz-btn" />
+                        <RadzenButton Text="@L["SYS.Users.Unlock"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockUser" Disabled="@_busy" class="ames-rz-btn" />
                     }
                     @if (string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
                     {
-                        <RadzenButton Text="@L["SYS.Users.Unlock.Domain"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockDomainAccount" class="ames-rz-btn" />
+                        <RadzenButton Text="@L["SYS.Users.Unlock.Domain"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockDomainAccount" Disabled="@_busy" class="ames-rz-btn" />
                     }
                 }
                 @if (!_isAdmin)
@@ -514,7 +514,11 @@
         // 사번은 행위자 코드·POP 로그인 키라 전사 유일해야 한다 — 다른 웹 사용자·현장 작업자와 겹치면 등록을 막는다
         if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: null)) return;
         // 로그인 ID(이메일)는 외부 사용자(SCM-004)와도 겹치면 안 된다 — 같으면 로그인 때 외부 계정이 먼저 잡힌다
-        if (Scm.FindPortalUser(_f.Email) is not null) { _modalErr = L["SYS.Users.Err.PortalEmail"]; return; }
+        try
+        {
+            if (Scm.FindPortalUser(_f.Email) is not null) { _modalErr = L["SYS.Users.Err.PortalEmail"]; return; }
+        }
+        catch (Exception ex) { Fail(ex); return; }
 
         _busy = true;
         try
@@ -553,7 +557,7 @@
             Audit.Created("SYS-001", "AspNetUsers", _f.Email, _f);
             ShowMsg(string.Format(L["SYS.Users.Ok.Created"].Value, _f.Email), false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; }
+        catch (Exception ex) { Fail(ex); }
         finally { _busy = false; }
     }
 
@@ -635,7 +639,7 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Users.Ok.Updated"].Value, email), false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; }
+        catch (Exception ex) { Fail(ex); }
         finally { _busy = false; }
     }
 
@@ -654,37 +658,56 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Users.Ok.Deleted"].Value, email), false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        catch (Exception ex) { _confirmDelete = false; Fail(ex); }
         finally { _busy = false; }
     }
 
     async Task UnlockUser()
     {
         if (_sel is null || !_isAdmin) return;
-        var u = await UserMgr.FindByIdAsync(_sel.UserId);
-        if (u is null) return;
-        await UserMgr.SetLockoutEndDateAsync(u, null);
-        await UserMgr.ResetAccessFailedCountAsync(u);
-        Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, null);
-        var email = _sel.Email;
-        CloseModal(); await ReloadRestorePage();
-        ShowMsg(string.Format(L["SYS.Users.Ok.Unlocked"].Value, email), false);
+        _modalErr = ""; _busy = true;
+        try
+        {
+            var u = await UserMgr.FindByIdAsync(_sel.UserId);
+            if (u is null) return;
+            await UserMgr.SetLockoutEndDateAsync(u, null);
+            await UserMgr.ResetAccessFailedCountAsync(u);
+            Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, null);
+            var email = _sel.Email;
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["SYS.Users.Ok.Unlocked"].Value, email), false);
+        }
+        catch (Exception ex) { Fail(ex); }
+        finally { _busy = false; }
     }
 
     async Task UnlockDomainAccount()
     {
         if (_sel is null || !_isAdmin) return;
-        AuthRepo.UnlockAccount(_sel.UserId, _actorEmail);
-        var u = await UserMgr.FindByIdAsync(_sel.UserId);
-        if (u is not null)
+        _modalErr = ""; _busy = true;
+        try
         {
-            await UserMgr.SetLockoutEndDateAsync(u, null);
-            await UserMgr.ResetAccessFailedCountAsync(u);
+            AuthRepo.UnlockAccount(_sel.UserId, _actorEmail);
+            var u = await UserMgr.FindByIdAsync(_sel.UserId);
+            if (u is not null)
+            {
+                await UserMgr.SetLockoutEndDateAsync(u, null);
+                await UserMgr.ResetAccessFailedCountAsync(u);
+            }
+            Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, new { Domain = true });
+            var email = _sel.Email;
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["SYS.Users.Ok.DomainUnlocked"].Value, email), false);
         }
-        Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, new { Domain = true });
-        var email = _sel.Email;
-        CloseModal(); await ReloadRestorePage();
-        ShowMsg(string.Format(L["SYS.Users.Ok.DomainUnlocked"].Value, email), false);
+        catch (Exception ex) { Fail(ex); }
+        finally { _busy = false; }
+    }
+
+    // DB 오류 등 예외는 화면 연결을 끊지 않고 보인다 — 창이 열려 있으면 창 안에, 저장 뒤 목록 새로고침에서 났으면(창이 닫힘) 상단 알림으로
+    void Fail(Exception ex)
+    {
+        if (_modal == "") ShowMsg(ex.Message, true);
+        else _modalErr = ex.Message;
     }
 
     void ShowMsg(string msg, bool isErr)

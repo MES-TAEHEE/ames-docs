@@ -458,6 +458,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.MoldID))   { _modalErr = L["Err.MoldIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.MoldName))  { _modalErr = L["Err.MoldNameRequired"]; return; }
@@ -487,6 +488,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.MoldName)) { _modalErr = L["Err.MoldNameRequired"]; return; }
@@ -508,6 +510,7 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
@@ -536,6 +539,7 @@
     // ── 색상 관리 (edit 모달) ─────────────────────────────────────────────
     void AddColor()
     {
+        if (!_canEdit) return;
         if (_sel is null || string.IsNullOrWhiteSpace(_newColor)) return;
         _modalErr = "";
         try
@@ -550,6 +554,7 @@
 
     void RemoveColor(string color)
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         try
