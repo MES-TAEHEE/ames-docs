@@ -4,7 +4,6 @@ using Android.Content.PM;
 using Android.OS;
 using Android.Util;
 using Android.Views;
-using System.Text;
 
 namespace AMES.Pda;
 
@@ -13,42 +12,21 @@ public class MainActivity : MauiAppCompatActivity
 {
     private const string LogTag = "AMES-PDA-SCAN";
     private const string ClaimedBarcodeAction = "com.seyon.ames.pda.action.BARCODE_DATA";
+    private const string HoneywellDecodePermission = "com.honeywell.decode.permission.DECODE";
     private const string ActionClaimScanner = "com.honeywell.aidc.action.ACTION_CLAIM_SCANNER";
     private const string ActionReleaseScanner = "com.honeywell.aidc.action.ACTION_RELEASE_SCANNER";
     private const string ExtraScanner = "com.honeywell.aidc.extra.EXTRA_SCANNER";
     private const string ExtraProfile = "com.honeywell.aidc.extra.EXTRA_PROFILE";
     private const string ExtraProperties = "com.honeywell.aidc.extra.EXTRA_PROPERTIES";
 
-    private static readonly string[] BarcodeBroadcastActions =
-    [
-        ClaimedBarcodeAction,
-        "com.honeywell.decode.intent.action.BARCODE_DATA",
-        "com.honeywell.aidc.action.ACTION_BARCODE_READ_EVENT",
-        "com.intermec.datacollection.action.BARCODE_DATA",
-        "com.intermec.datacollectionservice.action.BARCODE_DATA",
-        "android.intent.action.SCANRESULT",
-        "com.android.server.scannerservice.broadcast",
-        "com.honeywell.scan.intent.action.BARCODE_DATA"
-    ];
-
     private static readonly string[] BarcodeExtraKeys =
     [
         "data",
-        "barcodeData",
-        "barcodedata",
-        "BarcodeData",
-        "SCAN_RESULT",
-        "scan_result",
         "com.honeywell.decode.intent.extra.BARCODE_DATA",
-        "com.honeywell.decode.intent.extra.BARCODE_STRING",
         "com.honeywell.aidc.extra.EXTRA_BARCODE_DATA",
-        "com.honeywell.aidc.extra.BARCODE_DATA",
-        "com.intermec.datacollection.data"
+        "com.honeywell.aidc.extra.BARCODE_DATA"
     ];
 
-    private readonly StringBuilder _scanBuffer = new();
-    private Handler? _scanHandler;
-    private int _scanVersion;
     private BroadcastReceiver? _barcodeReceiver;
 
     protected override void OnCreate(Bundle? savedInstanceState)
@@ -77,81 +55,21 @@ public class MainActivity : MauiAppCompatActivity
         base.OnDestroy();
     }
 
-    public override bool DispatchKeyEvent(KeyEvent? e)
-    {
-        if (e is null)
-            return base.DispatchKeyEvent(e);
-
-        if (e.Action != KeyEventActions.Down)
-            return base.DispatchKeyEvent(e);
-
-        Log.Debug(LogTag, $"DispatchKeyEvent key={e.KeyCode} unicode={e.UnicodeChar}");
-
-        if (e.KeyCode is Keycode.Enter or Keycode.NumpadEnter or Keycode.Tab)
-        {
-            if (FlushScanBuffer())
-                return true;
-        }
-
-        var unicode = e.UnicodeChar;
-        if (unicode > 0)
-        {
-            var ch = (char)unicode;
-            if (!char.IsControl(ch))
-            {
-                _scanBuffer.Append(ch);
-                Log.Debug(LogTag, $"Buffered char '{ch}', length={_scanBuffer.Length}");
-                ScheduleScanFlush();
-                return true;
-            }
-        }
-
-        return base.DispatchKeyEvent(e);
-    }
-
-    private void ScheduleScanFlush()
-    {
-        _scanHandler ??= new Handler(Looper.MainLooper!);
-        var version = ++_scanVersion;
-        _scanHandler.PostDelayed(() =>
-        {
-            if (version == _scanVersion)
-                FlushScanBuffer();
-        }, 160);
-    }
-
-    private bool FlushScanBuffer()
-    {
-        var text = _scanBuffer.ToString();
-        _scanBuffer.Clear();
-        _scanVersion++;
-
-        if (text.Trim().Length < 3)
-            return false;
-
-        Log.Debug(LogTag, $"Dispatch scan flushed: {text}");
-        PdaBarcodeHub.Publish(text);
-        return true;
-    }
-
     private void RegisterBarcodeBroadcastReceiver()
     {
         if (_barcodeReceiver is not null)
             return;
 
         _barcodeReceiver = new BarcodeBroadcastReceiver();
-        var filter = new IntentFilter();
-        foreach (var action in BarcodeBroadcastActions)
-            filter.AddAction(action);
-
+        var filter = new IntentFilter(ClaimedBarcodeAction);
         filter.AddCategory(Intent.CategoryDefault);
 
-        // API 33+ 에서만 3-인자 오버로드/ReceiverFlags 사용 가능. CA1416 분석기가
-        // 인식하는 OperatingSystem 가드를 써야 경고가 사라진다(Tiramisu == API 33).
+        // Honeywell's external decode service sends the claimed action. Its signature
+        // permission rejects broadcasts from other apps while keeping the receiver exported.
         if (OperatingSystem.IsAndroidVersionAtLeast(33))
-            RegisterReceiver(_barcodeReceiver, filter, ReceiverFlags.Exported);
+            RegisterReceiver(_barcodeReceiver, filter, HoneywellDecodePermission, null, ReceiverFlags.Exported);
         else
-            RegisterReceiver(_barcodeReceiver, filter);
+            RegisterReceiver(_barcodeReceiver, filter, HoneywellDecodePermission, null);
 
         Log.Debug(LogTag, "Barcode receiver registered.");
     }
@@ -238,7 +156,7 @@ public class MainActivity : MauiAppCompatActivity
     {
         public override void OnReceive(Context? context, Intent? intent)
         {
-            if (intent is null)
+            if (intent?.Action != ClaimedBarcodeAction)
                 return;
 
             Log.Debug(LogTag, $"Broadcast received action={intent.Action}");
@@ -260,22 +178,6 @@ public class MainActivity : MauiAppCompatActivity
                 var value = intent.GetStringExtra(key);
                 if (!string.IsNullOrWhiteSpace(value))
                     return value;
-            }
-
-            var extras = intent.Extras;
-            if (extras is null)
-                return null;
-
-            var keys = extras.KeySet();
-            if (keys is null)
-                return null;
-
-            foreach (var key in keys)
-            {
-                var raw = extras.Get(key)?.ToString();
-                Log.Debug(LogTag, $"Broadcast extra {key}={raw}");
-                if (!string.IsNullOrWhiteSpace(raw) && raw.Length >= 3)
-                    return raw;
             }
 
             return null;
