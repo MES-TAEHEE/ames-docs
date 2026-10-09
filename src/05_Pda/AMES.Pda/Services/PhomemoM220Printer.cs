@@ -64,8 +64,18 @@ public sealed class PhomemoM220Printer
         Rule(543);
         Field("Destination", row.Destination, 22, 565, 516);
 
+        using var rotation = new Matrix();
+        rotation.PostRotate(90);
+        using var rotated = Bitmap.CreateBitmap(bitmap, 0, 0, Width, Height, rotation, true)!;
+        if (rotated.Width != Height || rotated.Height != Width)
+            throw new InvalidOperationException("Rotated label size is invalid.");
+        using var fitted = Bitmap.CreateScaledBitmap(rotated, Width, Height * Width / rotated.Width, false)!;
+        using var label = Bitmap.CreateBitmap(Width, Height, Bitmap.Config.Argb8888!)!;
+        using var labelCanvas = new Canvas(label);
+        labelCanvas.DrawColor(Color.White);
+        labelCanvas.DrawBitmap(fitted, 0, (Height - fitted.Height) / 2f, null);
         using var stream = new MemoryStream();
-        bitmap.Compress(Bitmap.CompressFormat.Png!, 100, stream);
+        label.Compress(Bitmap.CompressFormat.Png!, 100, stream);
         return stream.ToArray();
 #else
         throw new PlatformNotSupportedException("M220 label rendering is available on Android.");
@@ -81,13 +91,14 @@ public sealed class PhomemoM220Printer
         using var bitmap = BitmapFactory.DecodeByteArray(png, 0, png.Length)
             ?? throw new InvalidOperationException("Label image could not be decoded.");
         if (bitmap.Width != Width || bitmap.Height != Height) throw new InvalidOperationException("Label size is not 70 × 80 mm.");
-        var raster = new byte[(Width / 8) * Height];
-        for (var y = 0; y < Height; y++)
-            for (var x = 0; x < Width; x++)
+        var rasterWidthBytes = bitmap.Width / 8;
+        var raster = new byte[rasterWidthBytes * bitmap.Height];
+        for (var y = 0; y < bitmap.Height; y++)
+            for (var x = 0; x < bitmap.Width; x++)
             {
                 var pixel = new Color(bitmap.GetPixel(x, y));
                 if (pixel.R < 128 && pixel.G < 128 && pixel.B < 128)
-                    raster[y * (Width / 8) + x / 8] |= (byte)(0x80 >> (x % 8));
+                    raster[y * rasterWidthBytes + x / 8] |= (byte)(0x80 >> (x % 8));
             }
         var manager = (BluetoothManager?)Android.App.Application.Context.GetSystemService(Android.Content.Context.BluetoothService);
         var adapter = manager?.Adapter ?? throw new InvalidOperationException("Bluetooth is unavailable.");
@@ -104,7 +115,8 @@ public sealed class PhomemoM220Printer
         var output = socket.OutputStream ?? throw new InvalidOperationException("M220 output stream is unavailable.");
         // M110/M220 raster protocol: speed, density, gap labels, GS v 0 bitmap, status footer.
         await output.WriteAsync(new byte[] { 0x1b, 0x4e, 0x0d, 0x05, 0x1b, 0x4e, 0x04, 0x0a, 0x1f, 0x11, 0x0a }, timeout.Token);
-        await output.WriteAsync(new byte[] { 0x1d, 0x76, 0x30, 0x00, 70, 0, 128, 2 }, timeout.Token);
+        await output.WriteAsync(new byte[] { 0x1d, 0x76, 0x30, 0x00,
+            (byte)rasterWidthBytes, 0, (byte)(bitmap.Height & 0xff), (byte)(bitmap.Height >> 8) }, timeout.Token);
         for (var offset = 0; offset < raster.Length; offset += 128)
         {
             await output.WriteAsync(raster.AsMemory(offset, Math.Min(128, raster.Length - offset)), timeout.Token);
