@@ -266,6 +266,8 @@ public abstract class PdaApi
 
     protected static async Task<string> ReadServiceErrorAsync(HttpResponseMessage resp, string fallback)
     {
+        if (resp.StatusCode == HttpStatusCode.Unauthorized)
+            return "Session expired. Sign in again.";
         string body;
         try
         {

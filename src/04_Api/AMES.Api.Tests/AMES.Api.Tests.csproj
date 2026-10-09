@@ -17,4 +17,8 @@
     <ProjectReference Include="..\AMES.Api\AMES.Api.csproj" />
     <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\AuthState.cs" Link="Pda\AuthState.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionExpiryHandler.cs" Link="Pda\SessionExpiryHandler.cs" />
+  </ItemGroup>
 </Project>
