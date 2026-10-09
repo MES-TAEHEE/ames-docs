@@ -8,6 +8,10 @@
    발송 원칙: 규칙에 적힌 채널 중 **사용 중인 채널로만** 보낸다(앞으로 만들 발송기). 메일·SMS 를 다시 쓰려면 MD-030 에서 UseFlag 만 켠다.
    건드리지 않는 것: SYS_NotificationChannel(사용자별 주소)·SYS_NotificationHistory(과거 기록)·PR_AndonPush(안돈 기록).
 
+   **처음 적용할 때만 바꾼다**(10-09) — PUSH 코드 행이 이미 있으면 전환이 끝난 DB 로 보고 아무것도 바꾸지 않는다.
+   예전에는 다시 돌릴 때마다 PUSH 를 켜고 EMAIL·SMS 를 끄고 규칙에 PUSH 를 다시 넣어, 그 뒤 MD-030·SYS-008 에서 사람이 바꾼 설정을
+   조용히 되돌렸다(EMAIL 다시 켬, 규칙에서 PUSH 뺌, 규칙 채널을 비움 등).
+
    재실행 안전. 적용: sqlcmd -S <서버> -d AMES_DEV ... -f 65001 -I -b -i dist\migrate_notification_push.sql
    ------------------------------------------------------------------ */
 SET NOCOUNT ON;
@@ -17,38 +21,41 @@ IF NOT EXISTS (SELECT 1 FROM dbo.MD_CodeGroup WHERE GroupCode = 'NOTIFICATION_CH
     INSERT dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy)
     VALUES ('NOTIFICATION_CHANNEL', N'알림 채널', N'Notification Channels', NULL, 1, 'PUSH-1008');
 
-BEGIN TRAN;
+IF EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue = 'PUSH')
+BEGIN
+    PRINT N'PUSH 전환이 이미 적용된 DB — 채널 사용 여부·규칙 채널은 바꾸지 않는다(현재 값은 아래 확인).';
+END
+ELSE
+BEGIN
+    BEGIN TRAN;
 
--- ① 이전 이름 APP 을 PUSH 로(PUSH 행이 아직 없을 때만)
-IF NOT EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue = 'PUSH')
-   AND EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue = 'APP')
-    UPDATE dbo.MD_CodeItem
-    SET    CodeID = 'NOTIFICATION_CHANNEL_PUSH', CodeValue = 'PUSH', CodeName = N'PUSH', CodeNameEn = N'PUSH',
-           ModifiedBy = 'PUSH-1008', ModifiedTS = SYSDATETIME()
-    WHERE  GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue = 'APP';
+    -- ① 이전 이름 APP 을 PUSH 로, 없으면 추가
+    IF EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue = 'APP')
+        UPDATE dbo.MD_CodeItem
+        SET    CodeID = 'NOTIFICATION_CHANNEL_PUSH', CodeValue = 'PUSH', CodeName = N'PUSH', CodeNameEn = N'PUSH',
+               UseFlag = 1, ModifiedBy = 'PUSH-1008', ModifiedTS = SYSDATETIME()
+        WHERE  GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue = 'APP';
+    ELSE
+        INSERT dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy)
+        VALUES ('NOTIFICATION_CHANNEL_PUSH', 'NOTIFICATION_CHANNEL', 'PUSH', N'PUSH', N'PUSH', NULL, 30, NULL, 1, NULL, 'PUSH-1008');
 
-IF NOT EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue = 'PUSH')
-    INSERT dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy)
-    VALUES ('NOTIFICATION_CHANNEL_PUSH', 'NOTIFICATION_CHANNEL', 'PUSH', N'PUSH', N'PUSH', NULL, 30, NULL, 1, NULL, 'PUSH-1008');
+    UPDATE dbo.MD_CodeItem SET UseFlag = 0, ModifiedBy = 'PUSH-1008', ModifiedTS = SYSDATETIME()
+    WHERE  GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue IN ('EMAIL', 'SMS') AND ISNULL(UseFlag, 1) = 1;
 
-UPDATE dbo.MD_CodeItem SET UseFlag = 1, ModifiedBy = 'PUSH-1008', ModifiedTS = SYSDATETIME()
-WHERE  GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue = 'PUSH' AND ISNULL(UseFlag, 0) = 0;
+    -- ② 규칙에 PUSH 추가 — 비어 있으면 ["PUSH"], 배열이면 끝에 더한다. JSON 이 아닌 값은 손대지 않고 아래 확인에서 보인다
+    UPDATE dbo.SYS_NotificationRule
+    SET    ChannelsJSON = N'["PUSH"]', ModifiedBy = 'PUSH-1008', ModifiedTS = SYSDATETIME()
+    WHERE  ChannelsJSON IS NULL OR LTRIM(RTRIM(ChannelsJSON)) IN (N'', N'[]');
 
-UPDATE dbo.MD_CodeItem SET UseFlag = 0, ModifiedBy = 'PUSH-1008', ModifiedTS = SYSDATETIME()
-WHERE  GroupCode = 'NOTIFICATION_CHANNEL' AND CodeValue IN ('EMAIL', 'SMS') AND ISNULL(UseFlag, 1) = 1;
+    UPDATE r
+    SET    ChannelsJSON = JSON_MODIFY(r.ChannelsJSON, 'append $', 'PUSH'), ModifiedBy = 'PUSH-1008', ModifiedTS = SYSDATETIME()
+    FROM   dbo.SYS_NotificationRule r
+    WHERE  ISJSON(r.ChannelsJSON) = 1 AND LEFT(LTRIM(r.ChannelsJSON), 1) = N'['
+      AND  NOT EXISTS (SELECT 1 FROM OPENJSON(CASE WHEN ISJSON(r.ChannelsJSON) = 1 THEN r.ChannelsJSON ELSE N'[]' END) j WHERE j.[value] = N'PUSH');
 
--- ② 규칙에 PUSH 추가 — 비어 있으면 ["PUSH"], 배열이면 끝에 더한다. JSON 이 아닌 값은 손대지 않고 아래 확인에서 보인다
-UPDATE dbo.SYS_NotificationRule
-SET    ChannelsJSON = N'["PUSH"]', ModifiedBy = 'PUSH-1008', ModifiedTS = SYSDATETIME()
-WHERE  ChannelsJSON IS NULL OR LTRIM(RTRIM(ChannelsJSON)) IN (N'', N'[]');
-
-UPDATE r
-SET    ChannelsJSON = JSON_MODIFY(r.ChannelsJSON, 'append $', 'PUSH'), ModifiedBy = 'PUSH-1008', ModifiedTS = SYSDATETIME()
-FROM   dbo.SYS_NotificationRule r
-WHERE  ISJSON(r.ChannelsJSON) = 1 AND LEFT(LTRIM(r.ChannelsJSON), 1) = N'['
-  AND  NOT EXISTS (SELECT 1 FROM OPENJSON(CASE WHEN ISJSON(r.ChannelsJSON) = 1 THEN r.ChannelsJSON ELSE N'[]' END) j WHERE j.[value] = N'PUSH');
-
-COMMIT;
+    COMMIT;
+    PRINT N'PUSH 전환 적용.';
+END
 GO
 
 SELECT CodeValue, CodeName, UseFlag, SortOrder FROM dbo.MD_CodeItem WHERE GroupCode = 'NOTIFICATION_CHANNEL' ORDER BY SortOrder;

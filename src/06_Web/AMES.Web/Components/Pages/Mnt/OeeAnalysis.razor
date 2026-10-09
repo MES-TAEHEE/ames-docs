@@ -49,7 +49,7 @@
         <div class="ames-kpi-l">@L["MNT.OeeAnalysis.Kpi.Failures"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@_kpiFailures</div>
-            <div class="ames-kpi-s">@string.Format(L["MNT.OeeAnalysis.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.OeeAnalysis.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date))</div>
         </div>
     </div>
 </div>
@@ -130,7 +130,7 @@
 @* ── OEE 추세 (전체 평균 또는 선택 설비) ──────────────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.Trend.Title"] — <span style="color:var(--ames-tx-emerald-400);">@TrendSubject</span> · @string.Format(L["MNT.OeeAnalysis.Trend.Range"].Value, TrendWeeks, TrendFrom.ToString("yyyy-MM-dd"), DbClock.Today.ToString("yyyy-MM-dd"))</span>
+        <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.Trend.Title"] — <span style="color:var(--ames-tx-emerald-400);">@TrendSubject</span> · @string.Format(L["MNT.OeeAnalysis.Trend.Range"].Value, TrendWeeks, TrendFrom.ToString(DateFmt.Date), DbClock.Today.ToString(DateFmt.Date))</span>
         <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.OeeAnalysis.Trend.Note"]</span>
     </div>
     @if (_trend.All(t => t.Oee is null))
@@ -142,7 +142,7 @@
         <RadzenChart class="mnt-oee-chart" Style="width:100%;height:280px;">
             <RadzenChartTooltipOptions Visible="true" />
             <RadzenLegend Position="LegendPosition.Bottom" />
-            <RadzenCategoryAxis Padding="16" Min="@TrendFrom" Max="@WeekStart(DbClock.Today)" Step="@TimeSpan.FromDays(7)" FormatString="{0:MM-dd}" />
+            <RadzenCategoryAxis Padding="16" Min="@TrendFrom" Max="@WeekStart(DbClock.Today)" Step="@TimeSpan.FromDays(7)" FormatString="@DateFmt.Fmt(DateFmt.DateShort)" />
             <RadzenValueAxis Min="0" Max="100" Step="25" FormatString="{0}%">
                 <RadzenGridLines Visible="true" />
             </RadzenValueAxis>
@@ -301,7 +301,7 @@
             byWeek.TryGetValue(ws, out var w);
             pts.Add(new TrendPoint
             {
-                At = ws, Label = ws.ToString("MM-dd"),
+                At = ws, Label = ws.ToString(DateFmt.DateShort),
                 Oee = (double?)w.Oee, A = (double?)w.A, P = (double?)w.P, Q = (double?)w.Q,
             });
         }
@@ -344,7 +344,7 @@
                 var w = Weighted(g);
                 return new TrendPoint
                 {
-                    At = g.Key, Label = g.Key.ToString(_monthly ? "yy-MM" : "MM-dd"),
+                    At = g.Key, Label = g.Key.ToString(_monthly ? DateFmt.MonthShort : DateFmt.DateShort),
                     Oee = (double?)w.Oee, A = (double?)w.A, P = (double?)w.P, Q = (double?)w.Q,
                 };
             }).ToList();

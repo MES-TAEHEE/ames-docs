@@ -95,7 +95,7 @@
     {
         <div style="display:flex;justify-content:flex-end;padding:0 14px 8px;">
             <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">
-                @_publishedAt.Value.ToString("MM-dd HH:mm") @(_publishedBy is null ? "" : $"· {_publishedBy}")
+                @_publishedAt.Value.ToString(DateFmt.DateTime) @(_publishedBy is null ? "" : $"· {_publishedBy}")
             </span>
         </div>
     }
@@ -715,7 +715,7 @@
         {
             Value = p.PmScheduleId.ToString(),
             Text  = $"[{p.EquipId}] {p.EquipName ?? p.EquipId} · {PmTypeName(p.PmType)}"
-                  + (p.NextDueDate.HasValue ? $" · {p.NextDueDate.Value:MM-dd}" : "")
+                  + (p.NextDueDate.HasValue ? $" · {p.NextDueDate.Value.ToString(DateFmt.Date)}" : "")
         });
 
     // PM 후보(문자열 값) ↔ _pmRefId(int?) 어댑터

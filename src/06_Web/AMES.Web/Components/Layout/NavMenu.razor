@@ -83,7 +83,7 @@
         {
             var secItems = SectionItems(sec.Key);
             if (secItems.Count == 0) { continue; }
-            <div class="ames-nav-section @sec.Key @(IsOpen(sec.Key) ? "open" : "")" @onclick="() => Toggle(sec.Key)">
+            <div class="ames-nav-section @sec.Key @(IsOpen(sec.Key) ? "open" : "")" data-nav-sec="@sec.Key" @onclick="() => Toggle(sec.Key)">
                 <span class="ames-nav-section-ic">@sec.Icon</span>
                 <span class="ames-nav-section-t">@sec.Key.ToUpperInvariant() · @SL(sec.Ko, sec.En, sec.Es)</span>
                 <span class="ames-nav-section-n">@secItems.Count</span>
@@ -97,7 +97,7 @@
                     @foreach (var g in Catalog.GroupedMd(secItems))
                     {
                         var (gp, gs) = LangPair(g.Ko, g.En, g.Es);
-                        <div class="ames-nav-sub @(IsSubOpen(g.Key) ? "open" : "")" @onclick='() => ToggleSub(g.Key)'>
+                        <div class="ames-nav-sub @(IsSubOpen(g.Key) ? "open" : "")" data-nav-sub="@g.Key" @onclick='() => ToggleSub(g.Key)'>
                             <span class="ames-nav-sub-letter">@g.Letter</span>
                             <div class="ames-nav-sub-body">
                                 <div class="ames-nav-sub-t">@gp</div>
@@ -151,9 +151,9 @@
     string          _query = "";
     bool            _favOpen = true;   // 즐겨찾기 섹션: 기본 펼침
     bool            _loaded;   // localStorage 복원 완료 전엔 저장 스킵
+    (double Nav, double Main)? _keepScroll;   // 언어 전환으로 이어 받은 메뉴·본문 스크롤 — 다음 렌더 뒤 한 번 맞춘다
+    sealed record NavKeep(string? path, string[]? sec, string[]? sub, double nav, double main);
 
-    const string KeyOpen      = "ames.nav.open";
-    const string KeyOpenSub   = "ames.nav.opensub";
     const string KeyCollapsed = "ames.nav.collapsed";
     const string KeyFavorites = "ames.nav.favorites";
     const string KeyFavOpen   = "ames.nav.favopen";
@@ -256,7 +256,18 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
+        if (!firstRender)
+        {
+            // 언어 전환으로 이어 받은 상태가 그려진 뒤에 스크롤을 맞춘다
+            if (_keepScroll is { } k)
+            {
+                _keepScroll = null;
+                try { await JS.InvokeVoidAsync("amesNavKeep.scroll", k.Nav, k.Main); }
+                catch (JSException) { }
+                catch (JSDisconnectedException) { }
+            }
+            return;
+        }
 
         try
         {
@@ -270,23 +281,22 @@
             var favOpen = await JS.InvokeAsync<string?>("localStorage.getItem", KeyFavOpen);
             if (favOpen is not null) _favOpen = favOpen == "1";
 
-            var openSubJson = await JS.InvokeAsync<string?>("localStorage.getItem", KeyOpenSub);
-            if (!string.IsNullOrWhiteSpace(openSubJson))
+            // 섹션 열림 상태는 기억하지 않는다 — 로그인·새 화면은 열린 화면의 섹션·하위 그룹만 연다(OnInitialized).
+            // 언어 전환 새로고침만 직전 상태(섹션·하위 그룹·스크롤)를 그대로 이어 받는다(wwwroot/js/nav-keep.js)
+            var keepJson = await JS.InvokeAsync<string?>("amesNavKeep.take");
+            if (!string.IsNullOrWhiteSpace(keepJson))
             {
-                var storedSub = JsonSerializer.Deserialize<HashSet<string>>(openSubJson);
-                if (storedSub is not null) _openSub.UnionWith(storedSub);
-            }
-
-            var openJson = await JS.InvokeAsync<string?>("localStorage.getItem", KeyOpen);
-            if (!string.IsNullOrWhiteSpace(openJson))
-            {
-                var stored = JsonSerializer.Deserialize<HashSet<string>>(openJson);
-                if (stored is not null)
+                var keep = JsonSerializer.Deserialize<NavKeep>(keepJson);
+                if (keep is not null)
                 {
-                    _open = stored;
-                    OpenCurrentSection();   // 저장값 위에 현재 URL 섹션도 열어둠
+                    _open    = new(keep.sec ?? []);
+                    _openSub = new(keep.sub ?? [], StringComparer.OrdinalIgnoreCase);
+                    _keepScroll = (keep.nav, keep.main);
                 }
             }
+            // 예전 버전이 남긴 열림 상태 저장값 정리
+            await JS.InvokeVoidAsync("localStorage.removeItem", "ames.nav.open");
+            await JS.InvokeVoidAsync("localStorage.removeItem", "ames.nav.opensub");
         }
         catch (JsonException) { /* 손상된 값 무시 — 기본 상태 유지 */ }
         catch (JSException) { }
@@ -320,7 +330,6 @@
         _open.Clear();
         foreach (var (prefix, key) in _prefixMap)
             if (_url.StartsWith(prefix)) { _open.Add(key); OpenCurrentSub(_url); break; }
-        _ = PersistOpen();
         StateHasChanged();
         _ = InvokeAsync(RefreshPermissions);
     }
@@ -351,7 +360,6 @@
         var isOpen = _open.Contains(key);
         _open.Clear();
         if (!isOpen) _open.Add(key);
-        _ = PersistOpen();
     }
 
     void ToggleSub(string key)
@@ -359,7 +367,6 @@
         var isOpen = _openSub.Contains(key);
         _openSub.Clear();
         if (!isOpen) _openSub.Add(key);
-        _ = PersistOpenSub();
     }
 
     void ToggleFav()
@@ -372,8 +379,6 @@
     bool   IsSubOpen(string key) => _openSub.Contains(key);
     string Chev(string key)      => _open.Contains(key) ? "▾" : "▸";
 
-    Task PersistOpen()      => Save(KeyOpen, JsonSerializer.Serialize(_open));
-    Task PersistOpenSub()   => Save(KeyOpenSub, JsonSerializer.Serialize(_openSub));
     Task PersistFavorites() => Save(KeyFavorites, JsonSerializer.Serialize(_favorites));
     Task PersistCollapsed() => Save(KeyCollapsed, _collapsed ? "1" : "0");
     Task PersistFavOpen()   => Save(KeyFavOpen, _favOpen ? "1" : "0");

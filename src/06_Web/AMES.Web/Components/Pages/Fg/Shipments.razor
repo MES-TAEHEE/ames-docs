@@ -27,9 +27,9 @@
             <RadzenTextBox @bind-Value="_search" Placeholder="Search barcode, LOT, part or operator"
                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;"
                            @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
-            <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.From"].Value"
+            <RadzenDatePicker @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.To"].Value"
+            <RadzenDatePicker @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base"
                           Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
@@ -44,8 +44,8 @@
                     EmptyText="No actual outbound history found." PageSizeChanged="@(s => _pageRows = s)"
                     Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedAt" Title="SHIPPED AT" Width="165px">
-                <Template Context="r">@r.ShippedAt.ToString("yyyy-MM-dd HH:mm:ss")</Template>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedAt" Title="SHIPPED AT" Width="180px">
+                <Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTimeSec)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="OutboundBarcode" Title="OUTBOUND BARCODE">
                 <Template Context="r"><span class="code">@r.OutboundBarcode</span></Template>

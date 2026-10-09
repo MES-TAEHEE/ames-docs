@@ -35,10 +35,10 @@
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text='@($"{L["PP.PlanConfirm.Col.Due"]} {L["PP.Forecast.Fld.Period"]}")' />
-            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="MM/dd/yyyy" AllowClear="true"
+            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_fTo" DateFormat="MM/dd/yyyy" AllowClear="true"
+            <RadzenDatePicker @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text='@($"{L["Col.SoNo"]}/{L["Col.PartNo"]}")' />
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
@@ -132,7 +132,7 @@ else
                 <Template Context="r">
                     @if (r.DueDate is DateTime d)
                     {
-                        <span style="@(IsUrgent(d) ? "color:var(--ames-tx-red-400);font-weight:600;" : "")">@d.ToString("yyyy-MM-dd")</span>
+                        <span style="@(IsUrgent(d) ? "color:var(--ames-tx-red-400);font-weight:600;" : "")">@d.ToString(DateFmt.Date)</span>
                     }
                     else { <span class="dim">—</span> }
                 </Template>

@@ -92,7 +92,7 @@
     {
         <div class="rpt-ot-heat" style="grid-template-columns:170px repeat(@_months.Count, minmax(70px, 1fr)) minmax(80px, 1fr);">
             <div class="hd l">@L["RPT.OnTime.Heat.Customer"]</div>
-            @foreach (var m in _months) { <div class="hd">@m.ToString("yy-MM")</div> }
+            @foreach (var m in _months) { <div class="hd">@m.ToString(DateFmt.MonthShort)</div> }
             <div class="hd">@L["RPT.OnTime.Heat.Avg"]</div>
 
             @foreach (var h in _heat)

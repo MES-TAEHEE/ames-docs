@@ -26,7 +26,7 @@
         <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@_allRows.Count</div>
-            <div class="ames-kpi-s">@string.Format(L["MNT.Failure.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.Failure.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date))</div>
         </div>
     </div>
     <div class="ames-kpi bad">
@@ -105,11 +105,11 @@
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="pill @StatusCls(r.Status)">@StatusLabel(r.Status)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ReportedAt" Title="@L["Col.Reported"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="dim">@(r.ReportedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ReportedAt" Title="@L["Col.Reported"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="r"><span class="dim">@(r.ReportedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ResolvedAt" Title="@L["Col.Resolved"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="dim">@(r.ResolvedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="ResolvedAt" Title="@L["Col.Resolved"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="r"><span class="dim">@(r.ResolvedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.FailureRow" Property="WoNumber" Title="@L["Col.MwoNo"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r">

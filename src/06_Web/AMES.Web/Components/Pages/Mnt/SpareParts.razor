@@ -182,8 +182,8 @@
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SparePartsTxnId" Title="@L["Col.TxnNo"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="t"><span class="code">@t.SparePartsTxnId</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="TxnAt" Title="@L["Col.When"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="t"><span class="dim">@t.TxnAt.ToString("MM-dd HH:mm")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="TxnAt" Title="@L["Col.When"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="t"><span class="dim">@t.TxnAt.ToString(DateFmt.DateTime)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.SparePartsTxnRow" Property="SparePartNo" Title="@L["Col.SparePartNo"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="t"><span class="code">@t.SparePartNo</span></Template>

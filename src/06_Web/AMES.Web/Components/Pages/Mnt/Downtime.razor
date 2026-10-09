@@ -22,7 +22,7 @@
         <div class="ames-kpi-l">@L["MNT.Downtime.Kpi.Events"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@_base.Count</div>
-            <div class="ames-kpi-s">@string.Format(L["MNT.Downtime.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.Downtime.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date))</div>
         </div>
     </div>
     <div class="ames-kpi bad">
@@ -146,8 +146,8 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Downtime.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="StartTs" Title="@L["MNT.Downtime.Col.DateTime"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="code">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="StartTs" Title="@L["MNT.Downtime.Col.DateTime"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="r"><span class="code">@(r.StartTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Title="@L["Col.Name"]" Width="170px" Sortable="false">
                 <Template Context="r"><b style="white-space:nowrap;">@(LineName(r) is { Length: > 0 } nm ? nm : "—")</b></Template>

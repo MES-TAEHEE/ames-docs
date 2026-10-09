@@ -67,7 +67,7 @@
                 }
             }
 
-            <div class="ames-nav-section portal @(_open ? "open" : "")" @onclick="() => _open = !_open">
+            <div class="ames-nav-section portal @(_open ? "open" : "")" data-nav-sec="portal" @onclick="() => _open = !_open">
                 <span class="ames-nav-section-ic">🌐</span>
                 <span class="ames-nav-section-t">@L["Portal.Sub"]</span>
                 <span class="ames-nav-section-n">@_items.Count</span>
@@ -90,6 +90,8 @@
 
 @code {
     bool _open = true, _collapsed, _favOpen = true, _bilingual = true, _loaded;
+    (double Nav, double Main)? _keepScroll;   // 언어 전환으로 이어 받은 메뉴·본문 스크롤(wwwroot/js/nav-keep.js)
+    sealed record NavKeep(string? path, string[]? sec, double nav, double main);
     string _query = "", _lang = "ko";
     List<MenuCatalog.Item> _items = new();
     HashSet<string> _favorites = new();
@@ -113,9 +115,26 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
+        if (!firstRender)
+        {
+            if (_keepScroll is { } k)
+            {
+                _keepScroll = null;
+                try { await JS.InvokeVoidAsync("amesNavKeep.scroll", k.Nav, k.Main); }
+                catch (JSException) { }
+                catch (JSDisconnectedException) { }
+            }
+            return;
+        }
         try
         {
+            // 언어 전환 새로고침이면 직전 섹션 열림·스크롤을 이어 받는다
+            var keepJson = await JS.InvokeAsync<string?>("amesNavKeep.take");
+            if (!string.IsNullOrWhiteSpace(keepJson) && JsonSerializer.Deserialize<NavKeep>(keepJson) is { } keep)
+            {
+                _open = keep.sec?.Contains("portal") == true;
+                _keepScroll = (keep.nav, keep.main);
+            }
             var favJson = await JS.InvokeAsync<string?>("localStorage.getItem", KeyFavorites);
             if (!string.IsNullOrWhiteSpace(favJson)) _favorites = JsonSerializer.Deserialize<HashSet<string>>(favJson) ?? new();
             var collapsed = await JS.InvokeAsync<string?>("localStorage.getItem", KeyCollapsed);

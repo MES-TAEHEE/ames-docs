@@ -62,7 +62,7 @@
 @* ── 라인별 OEE (조회부는 Md/Rp/Station.razor 패턴) ───────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["PP.Oee.ByLine.Title"] · @_rows.Count @L["Lbl.Items"] · @string.Format(L["PP.Oee.Kpi.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"), _snaps.Count)</span>
+        <span style="white-space:nowrap;">▼ @L["PP.Oee.ByLine.Title"] · @_rows.Count @L["Lbl.Items"] · @string.Format(L["PP.Oee.Kpi.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date), _snaps.Count)</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
             <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
@@ -210,7 +210,7 @@
                 <RadzenChart class="pp-oee-chart" Style="width:100%;height:260px;">
                     <RadzenChartTooltipOptions Visible="true" />
                     <RadzenLegend Position="LegendPosition.Bottom" />
-                    <RadzenCategoryAxis FormatString="{0:MM-dd}" Padding="24" />
+                    <RadzenCategoryAxis FormatString="@DateFmt.Fmt(DateFmt.DateShort)" Padding="24" />
                     <RadzenValueAxis Min="0" Max="100" Step="25" FormatString="{0}%">
                         <RadzenGridLines Visible="true" />
                     </RadzenValueAxis>
@@ -232,7 +232,7 @@
                         <RadzenMarkers MarkerType="MarkerType.Circle" Size="7" Fill="#ef4444" Stroke="#ef4444" />
                     </RadzenLineSeries>
                 </RadzenChart>
-                <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@L["PP.Oee.Lbl.Target"] @($"{_fTarget:F0}%") · @string.Format(L["PP.Oee.Kpi.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"), pts.Count)</div>
+                <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@L["PP.Oee.Lbl.Target"] @($"{_fTarget:F0}%") · @string.Format(L["PP.Oee.Kpi.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date), pts.Count)</div>
             }
         }
         else if (_tab == "snaps")
@@ -242,7 +242,7 @@
                             AllowSorting="true" EmptyText="@L["PP.Oee.Trend.NoSnap"]" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
                 <Columns>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="PeriodDate" Title="@L["PP.Oee.Snap.Col.Date"]" Width="110px">
-                        <Template Context="s"><span class="code">@s.PeriodDate.ToString("yyyy-MM-dd")</span></Template>
+                        <Template Context="s"><span class="code">@s.PeriodDate.ToString(DateFmt.Date)</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="ShiftCode" Title="@L["Col.Shift"]" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="s"><span class="pill info">@(s.ShiftCode ?? L["PP.Oee.Shift.None"].Value)</span></Template>
@@ -267,8 +267,8 @@
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="s"><span class="pp-oee-pill @GradeKey(s.Oee)">@($"{s.Oee:F1}%")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="CreatedTs" Title="@L["PP.Oee.Snap.Col.SavedAt"]" Width="110px">
-                        <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString("MM-dd HH:mm") ?? "")</span></Template>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="CreatedTs" Title="@L["PP.Oee.Snap.Col.SavedAt"]" Width="160px">
+                        <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString(DateFmt.DateTime) ?? "")</span></Template>
                     </RadzenDataGridColumn>
                     @if (_canEdit)
                     {
@@ -337,7 +337,7 @@
                         <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));display:flex;gap:14px;flex-wrap:wrap;">
                             <span>@L["PP.Oee.Loss.Planned"] @r.PlannedDownMin min</span>
                             <span style="color:var(--ames-tx-red-400);">@L["PP.Oee.Loss.Cat.Avail"] @r.UnplannedDownMin min</span>
-                            <span>@L["PP.Oee.Snap.Col.Date"] @r.PeriodDate.ToString("yyyy-MM-dd") @(r.ShiftCode is null ? "" : $"[{r.ShiftCode}]")</span>
+                            <span>@L["PP.Oee.Snap.Col.Date"] @r.PeriodDate.ToString(DateFmt.Date) @(r.ShiftCode is null ? "" : $"[{r.ShiftCode}]")</span>
                         </div>
                     </div>
                 </div>
@@ -659,7 +659,7 @@
                 list.Add(new TrendPoint
                 {
                     At    = day.Key.AddHours(gap * i),
-                    Label = $"{s.PeriodDate:MM-dd} {s.ShiftCode}",
+                    Label = $"{s.PeriodDate.ToString(DateFmt.DateShort)} {s.ShiftCode}",
                     Oee   = (double)s.Oee,
                     A     = (double)s.Availability,
                 });

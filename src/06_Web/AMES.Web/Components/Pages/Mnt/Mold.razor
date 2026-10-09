@@ -146,11 +146,11 @@
             <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="MoldChangeId" Title="@L["Col.ChangeNo"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="c"><span class="code">@c.MoldChangeId</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="StartedAt" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="c"><span class="dim">@(c.StartedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="StartedAt" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="c"><span class="dim">@(c.StartedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="CompletedAt" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="c"><span class="dim">@(c.CompletedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="CompletedAt" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="c"><span class="dim">@(c.CompletedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="DowntimeMin" Title="@L["Col.DurationMin"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="c">@(c.DowntimeMin?.ToString("N0") ?? "—")</Template>

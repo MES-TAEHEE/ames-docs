@@ -46,7 +46,7 @@
 @* ── 조회 조건: 월 · 카테고리 · 조회 · 인쇄 · 내보내기 ──────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
-        <span style="white-space:nowrap;">▼ @L["RPT.MonthlyKpi.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@_month.ToString("yyyy-MM") · @(_fCat is null ? L["Filter.All"].Value : CatLabel(_fCat))</span></span>
+        <span style="white-space:nowrap;">▼ @L["RPT.MonthlyKpi.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@_month.ToString(DateFmt.Month) · @(_fCat is null ? L["Filter.All"].Value : CatLabel(_fCat))</span></span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["RPT.MonthlyKpi.Lbl.Month"]" Component="DropDownMonth" />
             <RadzenDropDown Name="DropDownMonth" @bind-Value="_fMonth" Data="@MonthOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
@@ -66,7 +66,7 @@
         <div class="c"><b style="color:@ScoreColor;">@(Score?.ToString() ?? "—")</b><span>@L["RPT.MonthlyKpi.Hero.Score"]</span></div>
     </div>
     <div>
-        <div class="t">@L["RPT.MonthlyKpi.Hero.Title"] <span style="font-weight:400;opacity:.6;font-size:13px;margin-left:8px;">@_month.ToString("yyyy-MM")</span></div>
+        <div class="t">@L["RPT.MonthlyKpi.Hero.Title"] <span style="font-weight:400;opacity:.6;font-size:13px;margin-left:8px;">@_month.ToString(DateFmt.Month)</span></div>
         <div class="s">@HeroSub</div>
     </div>
 </div>
@@ -150,7 +150,7 @@
 
     // 이번 달 = 오늘(전기일)이 속한 달 — 1일 경계 시각 전에는 전달
     DateTime _thisMonth = FirstOfMonth(DbClock.Today);
-    IEnumerable<DropDownItem> MonthOptions => Enumerable.Range(0, 12).Select(i => _thisMonth.AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString("yyyy-MM") });
+    IEnumerable<DropDownItem> MonthOptions => Enumerable.Range(0, 12).Select(i => _thisMonth.AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString(DateFmt.Month) });
     IEnumerable<DropDownItem> CatOptions   => Cats.Select(c => new DropDownItem { Value = c, Text = CatLabel(c) });
 
     // ── 점수 ───────────────────────────────────────────────────────────
@@ -290,7 +290,7 @@
     async Task ExportXlsx()
     {
         if (_rows.Count == 0) { ShowMsg(L["RPT.MonthlyKpi.Err.NoExport"], true); return; }
-        var months = _metrics.Select(m => m.Month.ToString("yy-MM")).ToList();
+        var months = _metrics.Select(m => m.Month.ToString(DateFmt.MonthShort)).ToList();
         var headers = new List<string> { L["Col.Category"].Value, L["RPT.MonthlyKpi.Col.Indicator"].Value, L["RPT.MonthlyKpi.Col.Target"].Value, L["RPT.MonthlyKpi.Col.Actual"].Value, L["RPT.MonthlyKpi.Col.Achievement"].Value, L["Col.Status"].Value };
         headers.AddRange(months);
         var data = _rows.Select(k =>

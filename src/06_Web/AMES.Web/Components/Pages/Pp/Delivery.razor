@@ -85,7 +85,7 @@
 @* ── 수주 목록 (조회부는 Md/Rp/Station.razor 패턴) ───────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["PP.Delivery.Title"] · @_rows.Count @L["Lbl.Items"] · @string.Format(L["PP.Delivery.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</span>
+        <span style="white-space:nowrap;">▼ @L["PP.Delivery.Title"] · @_rows.Count @L["Lbl.Items"] · @string.Format(L["PP.Delivery.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date))</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Col.Requested"]" Component="DatePickerFrom" />
             <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
@@ -100,7 +100,7 @@
             <RadzenButton Text="@L["Btn.Reset"]" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ResetFilter" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DbClock.Today.ToString("yyyy-MM-dd"))</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@string.Format(L["PP.Delivery.Hint"].Value, DbClock.Today.ToString(DateFmt.Date))</div>
 
     <RadzenDataGrid TItem="PpRepository.OtdRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
@@ -136,11 +136,11 @@
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"]" Width="100px">
-                <Template Context="r">@(r.RequestedDeliveryDate?.ToString("yy-MM-dd") ?? "—")</Template>
+                <Template Context="r">@(r.RequestedDeliveryDate?.ToString(DateFmt.DateShort) ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="PromisedDate" Title="@L["Col.Promised"]" Width="120px">
                 <Template Context="r">
-                    @(r.PromisedDate?.ToString("yy-MM-dd") ?? "—")
+                    @(r.PromisedDate?.ToString(DateFmt.DateShort) ?? "—")
                     @if (r.PromiseGapDays is > 0) { <span class="pill warn" style="margin-left:4px;padding:0 6px;font-size:var(--ames-fs-hint);" title="@L["PP.Delivery.Col.PromiseGap"]">+@r.PromiseGapDays</span> }
                 </Template>
             </RadzenDataGridColumn>

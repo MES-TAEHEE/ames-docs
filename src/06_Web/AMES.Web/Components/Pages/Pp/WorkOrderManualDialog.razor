@@ -13,7 +13,7 @@
     <RadzenNumeric TValue="decimal" @bind-Value="_qty" Min="1" Disabled="_busy" Style="width:100%" />
 
     <label>③ @L["PP.WorkOrder.Manual.Due"]</label>
-    <RadzenDatePicker @bind-Value="_due" DateFormat="MM/dd/yyyy" Disabled="_busy" Style="width:100%" />
+    <RadzenDatePicker @bind-Value="_due" DateFormat="@DateFmt.Date" Disabled="_busy" Style="width:100%" />
 
     <span class="dim" style="font-size:.8em;line-height:1.5;margin-top:2px;">@L["PP.WorkOrder.Manual.Hint"]</span>
 

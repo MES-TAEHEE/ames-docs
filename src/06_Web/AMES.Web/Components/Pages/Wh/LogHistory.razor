@@ -30,9 +30,9 @@
             <RadzenDropDown @bind-Value="_operationType" Data="@_operationOptions" TextProperty="Text" ValueProperty="Value"
                             AllowClear="true" Placeholder="@L["WH.LogHistory.Ph.ActivityType"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
-            <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.From"].Value"
+            <RadzenDatePicker @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.To"].Value"
+            <RadzenDatePicker @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ClearFilters" class="ames-rz-btn" />
@@ -51,7 +51,7 @@
                     Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventTime" Title="@L["Col.Time"].Value" Width="170px">
-                <Template Context="r">@(r.EventTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</Template>
+                <Template Context="r">@(r.EventTime?.ToString(DateFmt.DateTimeSec) ?? "-")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Type"].Value" Width="155px">
                 <Template Context="r"><span class="pill @EventClass(r)">@DisplayEvent(r)</span></Template>

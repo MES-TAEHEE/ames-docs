@@ -172,7 +172,7 @@
                         <Template Context="c"><span class="dim">@(c.QuietHoursEnd?.ToString(@"hh\:mm") ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="VerifiedAt" Title="@L["Col.AuthTs"]" TextAlign="TextAlign.Center" Width="210px">
-                        <Template Context="c"><span class="dim">@(c.VerifiedAt?.ToString(DateFmt.MonthDayTime) ?? L["SYS.Notifications.Lbl.Unverified"].Value)</span></Template>
+                        <Template Context="c"><span class="dim">@(c.VerifiedAt?.ToString(DateFmt.DateTime) ?? L["SYS.Notifications.Lbl.Unverified"].Value)</span></Template>
                     </RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
@@ -201,8 +201,8 @@
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                         <Template Context="h"><span class="dim">@GridRowNo.Of(_histGrid, h)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" TextAlign="TextAlign.Center" Width="120px">
-                        <Template Context="h"><span class="dim">@(h.SentAt?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" TextAlign="TextAlign.Center" Width="160px">
+                        <Template Context="h"><span class="dim">@(h.SentAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="EventTypeCode" Title="@L["Col.EventName"]" Width="170px">
                         <Template Context="h"><span class="code">@(h.EventTypeCode ?? "—")</span></Template>

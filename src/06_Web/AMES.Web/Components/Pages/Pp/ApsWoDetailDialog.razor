@@ -49,7 +49,7 @@
                 <div class="wp-edit-h">@L["PP.Aps.Wo.Edit.Title"]</div>
                 <div class="wp-edit-grid">
                     <label><span>@L["Col.Line"]</span><RadzenDropDown TValue="string" @bind-Value="_line" Data="@Lines" TextProperty="LineId" ValueProperty="LineId" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></label>
-                    <label><span>@L["Col.Date"]</span><RadzenDropDown TValue="string" @bind-Value="_date" Data="@DateOptions" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></label>
+                    <label><span>@L["Col.Date"]</span><RadzenDropDown TValue="string" @bind-Value="_date" Data="@DateOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></label>
                     <label><span>@L["PP.Aps.Wo.Edit.Start"]</span><RadzenTextBox @bind-Value="_start" Placeholder="HH:mm" MaxLength="5" class="ames-rz-input" Style="width:100%;" /></label>
                     <label><span>@L["PP.Aps.Wo.Edit.Dur"]</span><RadzenNumeric TValue="int" @bind-Value="_minutes" Min="5" Max="1440" Step="5" class="ames-rz-input" Style="width:100%;" /></label>
                     <label><span>@L["Col.Qty"]</span><RadzenNumeric TValue="decimal" @bind-Value="_qty" Min="0" class="ames-rz-input" Style="width:100%;" /></label>
@@ -147,7 +147,8 @@
 
     string _line = "", _date = "", _start = "", _err = "";
     int _minutes; decimal _qty;
-    IEnumerable<string> DateOptions => Dates.Select(d => d.ToString("yyyy-MM-dd"));
+    IEnumerable<DateOption> DateOptions => Dates.Select(d => new DateOption(d.ToString("yyyy-MM-dd"), d.ToString(DateFmt.Date)));
+    sealed record DateOption(string Value, string Text);
 
     protected override void OnInitialized()
     {

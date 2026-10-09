@@ -122,14 +122,14 @@
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="pill @StCls(r.Status)">@StatusLabel(r.Status)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="IssuedAt" Title="@L["Col.IssuedDate"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="dim">@(r.IssuedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="IssuedAt" Title="@L["Col.IssuedDate"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="r"><span class="dim">@(r.IssuedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="StartedAt" Title="@L["Col.StartedDate"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="dim">@(r.StartedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="StartedAt" Title="@L["Col.StartedDate"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="r"><span class="dim">@(r.StartedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="CompletedAt" Title="@L["Col.CompletedDate"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="dim">@(r.CompletedAt?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="CompletedAt" Title="@L["Col.CompletedDate"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="r"><span class="dim">@(r.CompletedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="LaborMinutes" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r">@(r.LaborMinutes?.ToString("N0") ?? "—")</Template>

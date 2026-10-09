@@ -154,7 +154,7 @@
                 <div style="display:flex;align-items:center;gap:10px;">
                     <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevWeek" class="ames-rz-btn" />
                     <span style="font-family:var(--ames-font-display);font-size:22px;letter-spacing:2px;color:var(--ames-tx-white);">
-                        @weekDates[0].ToString("MM/dd") — @weekDates[6].ToString("MM/dd")
+                        @weekDates[0].ToString(DateFmt.Date) — @weekDates[6].ToString(DateFmt.Date)
                         <span style="font-size:14px;color:var(--ames-tx-slate-500);letter-spacing:1px;margin-left:8px;">
                             @_weekStart.Year@L["Lbl.Year"]
                         </span>
@@ -225,7 +225,7 @@
     var dayWos = GetWosForDate(_dayDate.Value);
     <div class="ames-modal-bg" @onclick="() => _showDay = false">
         <div class="ames-modal" style="max-width:500px;" @onclick:stopPropagation>
-            <div class="ames-modal-h">@_dayDate.Value.ToString("yyyy-MM-dd ddd") — @L["PP.Calendar.Modal.WoList"]</div>
+            <div class="ames-modal-h">@_dayDate.Value.ToString(DateFmt.DateWeekday) — @L["PP.Calendar.Modal.WoList"]</div>
             @foreach (var wo in dayWos)
             {
                 var capWo = wo;
@@ -278,7 +278,7 @@
                     <span class="pill @stc">@StatusText(d.Status)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Due"]</div>
-                <div>@(d.DueDate?.ToString("yyyy-MM-dd") ?? "—")</div>
+                <div>@(d.DueDate?.ToString(DateFmt.Date) ?? "—")</div>
                 <div class="ames-detail-label">@L["PP.Calendar.Detail.DDay"]</div>
                 <div>
                     @{ var dd = d.DaysToDue; var ddc = dd is null?"dim":dd<0?"bad":dd<=3?"warn":"ok"; }
@@ -312,7 +312,7 @@
             <div class="ames-modal-h">@L["PP.Calendar.Modal.Reschedule"]</div>
             <div style="font-size:14px;color:var(--ames-tx-slate-400);margin-bottom:12px;line-height:1.8;">
                 <div>@L["PP.Calendar.Lbl.WoNo"] <span class="code">@_detail.WoNumber</span></div>
-                <div>@L["PP.Calendar.Lbl.CurrentDue"] <span class="dim">@(_detail.DueDate?.ToString("yyyy-MM-dd") ?? "—")</span></div>
+                <div>@L["PP.Calendar.Lbl.CurrentDue"] <span class="dim">@(_detail.DueDate?.ToString(DateFmt.Date) ?? "—")</span></div>
             </div>
             <RadzenLabel Text="@L["PP.Calendar.Lbl.NewDue"]" />
             <RadzenDatePicker TValue="DateTime" @bind-Value="_reschedDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />

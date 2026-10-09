@@ -39,9 +39,9 @@
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
-            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="MM/dd/yyyy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_fTo" DateFormat="MM/dd/yyyy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenDatePicker @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text="@L["Col.PartNo"]" />
             <RadzenTextBox @bind-Value="_fPartNo" @bind-Value:after="ApplyPartNo"
                            Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
@@ -94,10 +94,10 @@
                 {
                     var week  = w;
                     var label = _weeks.IndexOf(w) is var k && k < _weekLabels.Count ? _weekLabels[k] : "";
-                    <RadzenDataGridColumn TItem="ItemVm" Title="@week.ToString("MM/dd")" Sortable="false"
+                    <RadzenDataGridColumn TItem="ItemVm" Title="@week.ToString(DateFmt.DateShort)" Sortable="false"
                                           Filterable="false" TextAlign="TextAlign.Right" Width="80px">
                         <HeaderTemplate>
-                            <span title="@($"{week:yyyy-MM-dd} {label}")">@week.ToString("MM/dd")</span>
+                            <span title="@($"{week.ToString(DateFmt.Date)} {label}")">@week.ToString(DateFmt.DateShort)</span>
                         </HeaderTemplate>
                         <Template Context="it">@(it.Qty.TryGetValue(week, out var q) ? q.ToString("#,0") : "—")</Template>
                     </RadzenDataGridColumn>
@@ -119,9 +119,9 @@
                             @bind-Value="_dCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
-            <RadzenDatePicker @bind-Value="_dFrom" DateFormat="MM/dd/yyyy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenDatePicker @bind-Value="_dFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_dTo" DateFormat="MM/dd/yyyy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenDatePicker @bind-Value="_dTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text="@L["Col.PartNo"]" />
             <RadzenTextBox @bind-Value="_dPartNo" @bind-Value:after="ApplyDailyPartNo"
                            Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
@@ -179,7 +179,7 @@
                 @foreach (var d in _dDates)
                 {
                     var date = d;
-                    <RadzenDataGridColumn TItem="DailyVm" Title="@date.ToString("MM/dd")" Sortable="false"
+                    <RadzenDataGridColumn TItem="DailyVm" Title="@date.ToString(DateFmt.DateShort)" Sortable="false"
                                           Filterable="false" TextAlign="TextAlign.Right" Width="70px">
                         <Template Context="it">@(it.Qty.TryGetValue(date, out var q) && q != 0 ? UomFmt.Qty(q, it.Unit) : "—")</Template>
                     </RadzenDataGridColumn>
@@ -201,10 +201,10 @@
                             @bind-Value="_hCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
-            <RadzenDatePicker @bind-Value="_hFrom" DateFormat="MM/dd/yyyy" AllowClear="true"
+            <RadzenDatePicker @bind-Value="_hFrom" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_hTo" DateFormat="MM/dd/yyyy" AllowClear="true"
+            <RadzenDatePicker @bind-Value="_hTo" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
 
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="SearchHistory" />
@@ -239,14 +239,14 @@
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Title="@L["PP.Forecast.Hist.Period"].Value"
                                           Sortable="false" Width="210px">
-                        <Template Context="b">@(b.WeekFrom?.ToString("yyyy-MM-dd") ?? "—") ~ @(b.WeekTo?.ToString("yyyy-MM-dd") ?? "—")</Template>
+                        <Template Context="b">@(b.WeekFrom?.ToString(DateFmt.Date) ?? "—") ~ @(b.WeekTo?.ToString(DateFmt.Date) ?? "—")</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="ImportedBy"
                                           Title="@L["PP.Forecast.Hist.By"].Value" Width="140px" />
                                           <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="ImportedAt"
                                           Title="@L["PP.Forecast.Hist.Uploaded"].Value" Width="160px"
                                           SortOrder="SortOrder.Descending">
-                        <Template Context="b">@(b.ImportedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</Template>
+                        <Template Context="b">@(b.ImportedAt?.ToString(DateFmt.DateTime) ?? "—")</Template>
                     </RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
@@ -277,7 +277,7 @@
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Title="@L["PP.Forecast.Hist.Period"].Value"
                                           Sortable="false" Width="190px">
-                        <Template Context="b">@b.DateFrom.ToString("yyyy-MM-dd") ~ @b.DateTo.ToString("yyyy-MM-dd")</Template>
+                        <Template Context="b">@b.DateFrom.ToString(DateFmt.Date) ~ @b.DateTo.ToString(DateFmt.Date)</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="ItemCount"
                                           Title="@L["PP.Forecast.Hist.Items"].Value" TextAlign="TextAlign.Right" Width="80px" />
@@ -292,7 +292,7 @@
                     <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="ImportedAt"
                                           Title="@L["PP.Forecast.Hist.Uploaded"].Value" Width="160px"
                                           SortOrder="SortOrder.Descending">
-                        <Template Context="b">@b.ImportedAt.ToString("yyyy-MM-dd HH:mm")</Template>
+                        <Template Context="b">@b.ImportedAt.ToString(DateFmt.DateTime)</Template>
                     </RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>

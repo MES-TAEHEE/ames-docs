@@ -94,11 +94,11 @@
             <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="CreatedBy" Title="@L["MD.Workers.Col.CreatedBy"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="s"><span class="dim">@Actors.Display(s.CreatedBy)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="CreatedTs" Title="@L["MD.Workers.Col.CreatedTs"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="CreatedTs" Title="@L["MD.Workers.Col.CreatedTs"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="ModifiedTs" Title="@L["MD.Workers.Col.ModifiedTs"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="s"><span class="dim">@(s.ModifiedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="LineSupervisorRepository.Row" Property="ModifiedTs" Title="@L["MD.Workers.Col.ModifiedTs"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="s"><span class="dim">@(s.ModifiedTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
@@ -164,8 +164,8 @@
                 </RadzenStack>
 
                 <div class="dim" style="font-size:var(--ames-fs-hint);">
-                    @L["MD.Workers.Col.CreatedBy"]: @Actors.Display(_sel.CreatedBy) · @(_sel.CreatedTs?.ToString(DateFmt.MonthDayTime) ?? "—")
-                    @if (!string.IsNullOrEmpty(_sel.ModifiedBy)) { <span> · @L["MD.Workers.Lbl.Modified"]: @Actors.Display(_sel.ModifiedBy) · @(_sel.ModifiedTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span> }
+                    @L["MD.Workers.Col.CreatedBy"]: @Actors.Display(_sel.CreatedBy) · @(_sel.CreatedTs?.ToString(DateFmt.DateTime) ?? "—")
+                    @if (!string.IsNullOrEmpty(_sel.ModifiedBy)) { <span> · @L["MD.Workers.Lbl.Modified"]: @Actors.Display(_sel.ModifiedBy) · @(_sel.ModifiedTs?.ToString(DateFmt.DateTime) ?? "—")</span> }
                 </div>
             </RadzenStack>
 

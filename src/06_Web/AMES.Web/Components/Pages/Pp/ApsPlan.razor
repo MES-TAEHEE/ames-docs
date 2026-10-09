@@ -780,7 +780,7 @@ else
     double PlanPart(string partNo, int idx) => idx >= 0 && _state?.Build.PlanDemand is { } pd && pd.TryGetValue(partNo, out var arr) && idx < arr.Length ? arr[idx] : 0;
     string TypeText(string? type) => type == ApsRepository.LineTypeInjection ? L["PP.Aps.Type.injection"] : L["PP.Aps.Type.assembly"];
     string LineLabel(string? lineCd) => lineCd == ApsRepository.AllLines ? L["PP.Aps.Line.All"].Value : lineCd ?? "";
-    static string DateTitle(string iso) => DateOnly.TryParseExact(iso, "yyyy-MM-dd", out var d) ? $"{d.ToString(DateFmt.MonthDay)} {d.ToString("ddd")}" : iso;
+    static string DateTitle(string iso) => DateOnly.TryParseExact(iso, "yyyy-MM-dd", out var d) ? $"{d.ToString(DateFmt.DateShort)} {d.ToString("ddd")}" : iso;
     string StText(string? st) => st switch { "short" => L["PP.Aps.St.short"], "warn" => L["PP.Aps.St.warn"], _ => L["PP.Aps.St.ok"] };
     static string StCls(string? st) => st switch { "short" => "bad", "warn" => "warn", _ => "ok" };
 }

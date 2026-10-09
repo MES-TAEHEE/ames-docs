@@ -19,7 +19,7 @@
         @if (_plan is null) { <span class="dim">@L["PP.Forecast.Upload.NoFile"]</span> }
         else
         {
-            <div>✔ @string.Format(L["PP.DemandPlan.Preview.Summary"].Value, _plan.Items.Count, _plan.From.ToString("yyyy-MM-dd"), _plan.To.ToString("yyyy-MM-dd"), _plan.Days, _cells)</div>
+            <div>✔ @string.Format(L["PP.DemandPlan.Preview.Summary"].Value, _plan.Items.Count, _plan.From.ToString(DateFmt.Date), _plan.To.ToString(DateFmt.Date), _plan.Days, _cells)</div>
             @if (_unmatched.Count > 0)
             {
                 <div style="color:var(--ames-tx-red-400);margin-top:6px;">⚠ @string.Format(L["PP.DemandPlan.Preview.Unmatched"].Value, _unmatched.Count)<br />

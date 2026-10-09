@@ -22,7 +22,7 @@
         <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.DeliveryBoxes.Ph.Search"]' aria-label='@L["Portal.Text.SearchDeliveries"]' class="ames-rz-input" Style="width:100%" />
         <RadzenDataGrid TItem="ScmRepository.BoxDelivery" Data="@Rows" Class="ames-rz-grid" AllowPaging="true" PageSize="15" RowClick="@(e=>{if(e.Data is not null)Select(e.Data);})" EmptyText='@L["Portal.Text.NoDeliveries"]'>
             <Columns>
-                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Title='@L["Portal.Text.Delivery"]'><Template Context="d"><button class="box-document" @onclick="()=>Select(d)">@d.Number</button><div class="dim">@d.Vendor · @d.Date.ToString("yyyy-MM-dd")</div></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Title='@L["Portal.Text.Delivery"]'><Template Context="d"><button class="box-document" @onclick="()=>Select(d)">@d.Number</button><div class="dim">@d.Vendor · @d.Date.ToString(DateFmt.Date)</div></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="110px" MinWidth="110px" TextAlign="TextAlign.Center" Title='@L["Col.Status"]'><Template Context="d">@Status(d.Status)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="80px" MinWidth="80px" Property="Boxes" Title="Labels" TextAlign="TextAlign.Right" />
             </Columns>

@@ -26,11 +26,11 @@
             <div class="plan-filters">
                 <RadzenLabel Text="Ship date" Component="ShipDateFrom" />
                 <RadzenDatePicker Name="ShipDateFrom" @bind-Value="_shipFrom" @bind-Value:after="Load"
-                    DateFormat="yyyy-MM-dd" AllowClear="false" Placeholder="From"
+                    DateFormat="@DateFmt.Date" AllowClear="false" Placeholder="From"
                     InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
                 <span aria-hidden="true">–</span>
                 <RadzenDatePicker Name="ShipDateTo" @bind-Value="_shipTo" @bind-Value:after="Load"
-                    DateFormat="yyyy-MM-dd" AllowClear="false" Placeholder="To"
+                    DateFormat="@DateFmt.Date" AllowClear="false" Placeholder="To"
                     InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
                 <RadzenDropDown Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter"
                     AllowClear="true" AllowFiltering="true" Placeholder="All customers"
@@ -109,7 +109,7 @@
                         </Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.RequestedDeliveryDate" Title="REQUESTED"
-                        FormatString="{0:yyyy-MM-dd}" Width="105px" Filterable="false" />
+                        FormatString="@DateFmt.Fmt(DateFmt.Date)" Width="105px" Filterable="false" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="ORDER / SHIPPED / REMAINING" Width="205px" Sortable="false" Filterable="false">
                         <Template Context="line">
                             <div class="quantity-summary">

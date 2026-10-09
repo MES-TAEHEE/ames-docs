@@ -167,7 +167,7 @@
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
             <span>▼ @L["MNT.Dashboard.Panel.Pm"]</span>
-            <span class="mnt-db-hint">@string.Format(L["MNT.Dashboard.Panel.PmSub"].Value, _fTo.ToString("MM-dd"))</span>
+            <span class="mnt-db-hint">@string.Format(L["MNT.Dashboard.Panel.PmSub"].Value, _fTo.ToString(DateFmt.Date))</span>
         </div>
         @if (_pms.Count == 0)
         {
@@ -448,7 +448,7 @@
         id is null ? "—" : _equips.FirstOrDefault(e => e.EquipId == id) is { EquipName.Length: > 0 } e ? e.EquipName! : id;
 
     string When(DateTime? t) =>
-        t is not { } d ? "—" : d.Date == DbClock.Today ? d.ToString("HH:mm") : d.ToString("MM-dd HH:mm");
+        t is not { } d ? "—" : d.Date == DbClock.Today ? d.ToString("HH:mm") : d.ToString(DateFmt.DateTime);
 
     string PmBadge(int days) => days switch
     {

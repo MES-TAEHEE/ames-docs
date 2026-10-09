@@ -161,7 +161,7 @@
             <RadzenDataGridColumn TItem="ShipLine" Property="ShipTime" Title="@L["RPT.DailyShipment.Col.ShipTime"]" TextAlign="TextAlign.Center" Width="190px">
                 <Template Context="r">
                     <span class="code">@(r.ShipTime?.ToString("HH:mm") ?? "—")</span>
-                    @if (r.State == "late") { <span style="color:var(--ames-tx-red-400);font-size:.8em;margin-left:4px;">@string.Format(L["RPT.DailyShipment.Col.PlanFmt"].Value, r.PlanDate?.ToString("MM-dd") ?? "—")</span> }
+                    @if (r.State == "late") { <span style="color:var(--ames-tx-red-400);font-size:.8em;margin-left:4px;">@string.Format(L["RPT.DailyShipment.Col.PlanFmt"].Value, r.PlanDate?.ToString(DateFmt.Date) ?? "—")</span> }
                 </Template>
                 <FooterTemplate><b>@string.Format(L["RPT.DailyShipment.Completed"].Value, _orders.Count(o => o.Shipped))</b></FooterTemplate>
             </RadzenDataGridColumn>

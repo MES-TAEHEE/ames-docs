@@ -110,8 +110,8 @@
                     @if (r.OpenWoId is { } wo) { <span class="pill orange">@wo</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="PlcConnTs" Title="@L["Col.PlcConn"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="dim">@(r.PlcConnTs?.ToString("MM-dd HH:mm") ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="PlcConnTs" Title="@L["Col.PlcConn"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="r"><span class="dim">@(r.PlcConnTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>

@@ -62,7 +62,7 @@
 @* ── 조회 조건: 월 · 라인 · 조회 · 인쇄 · 내보내기 ─────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;">
-        <span style="white-space:nowrap;">▼ @L["RPT.EquipmentOee.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@_month.ToString("yyyy-MM") · @(_fLine is null ? L["Filter.All"].Value : LineText(_fLine))</span></span>
+        <span style="white-space:nowrap;">▼ @L["RPT.EquipmentOee.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@_month.ToString(DateFmt.Month) · @(_fLine is null ? L["Filter.All"].Value : LineText(_fLine))</span></span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["RPT.EquipmentOee.Lbl.Month"]" Component="DropDownMonth" />
             <RadzenDropDown Name="DropDownMonth" @bind-Value="_fMonth" Data="@MonthOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
@@ -98,7 +98,7 @@
                         <div class="rpt-pa-col rpt-eo-col @(sel ? "sel" : "") @(sel ? (t.Oee >= TARGET ? "hit" : "miss") : "")" @onclick="() => SelectMonth(m)" title="@($"{m:yyyy-MM} · {Pct(t.Oee)}")">
                             <span class="val">@(t.Oee is { } o ? o.ToString("0.0") : "—")</span>
                             <div class="bar" style="height:@(t.Oee is { } v ? Math.Max(2, (int)Math.Round(88.0 * (double)Math.Min(100m, v) / 100.0)) : 0)%;"></div>
-                            <span class="lbl">@m.ToString("yy-MM")</span>
+                            <span class="lbl">@m.ToString(DateFmt.MonthShort)</span>
                         </div>
                     }
                 </div>
@@ -207,7 +207,7 @@
         get
         {
             var last = FirstOfMonth(_dataMax is { } m && m > DbClock.Today ? m : DbClock.Today);
-            return Enumerable.Range(0, 12).Select(i => last.AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString("yyyy-MM") });
+            return Enumerable.Range(0, 12).Select(i => last.AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString(DateFmt.Month) });
         }
     }
 

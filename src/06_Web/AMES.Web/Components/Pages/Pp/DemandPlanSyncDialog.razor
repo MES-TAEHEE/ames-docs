@@ -28,7 +28,7 @@
         {
             <span class="pill @(_last.ConnStatus == "OK" ? "ok" : "warn")">@_last.ConnStatus</span>
             @* 실패해도 LastSyncTS 는 마지막 성공 시각으로 남는다 — ERROR 옆에 그냥 두면 실패 시각으로 읽힌다 *@
-            var ts = _last.LastSyncTs?.ToString("yyyy-MM-dd HH:mm") ?? "—";
+            var ts = _last.LastSyncTs?.ToString(DateFmt.DateTime) ?? "—";
             <span style="margin-left:6px;">@(_last.ConnStatus == "OK" ? ts : string.Format(L["PP.SupplyPlanImport.Api.LastSync.LastOk"].Value, ts))</span>
             @if (_last.LastRecordCount is int n)
             {
@@ -56,7 +56,7 @@
             <div>✔ @string.Format(L["PP.DemandPlan.Api.Ok"].Value, _result.Items, _result.Cells, _result.Unmatched, _result.PackMismatch)</div>
             <div class="dim" style="margin-top:4px;">
                 @string.Format(L["PP.DemandPlan.Api.Detail"].Value,
-                    _result.From?.ToString("yyyy-MM-dd") ?? "—", _result.To?.ToString("yyyy-MM-dd") ?? "—",
+                    _result.From?.ToString(DateFmt.Date) ?? "—", _result.To?.ToString(DateFmt.Date) ?? "—",
                     _result.Fetched, _result.Mapped, _result.Skipped)
             </div>
         }

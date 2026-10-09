@@ -149,7 +149,7 @@
                         <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="160px" MinWidth="160px" Title="Receipt Status" TextAlign="TextAlign.Center"><Template Context="d"><span class="pill @ReceiptBadge(d.Number)">@ReceiptStatus(d.Number)</span></Template></RadzenDataGridColumn>
                         <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="120px" MinWidth="120px" Title="Qty Mismatch" TextAlign="TextAlign.Center" Sortable="false"><Template Context="d"><div @onclick:stopPropagation="true"><button type="button" class="receipt-mismatch" disabled="@(MismatchCount(d.Number)==0)" @onclick="()=>OpenMismatch(d)">@MismatchCount(d.Number)</button></div></Template></RadzenDataGridColumn>
                     }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="150px" MinWidth="150px" TextAlign="TextAlign.Center" Property="ShipDate" FormatString="{0:yyyy-MM-dd}" Title='@L["Scm.Text.ShipDate"]' />
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="150px" MinWidth="150px" TextAlign="TextAlign.Center" Property="ShipDate" FormatString="@DateFmt.Fmt(DateFmt.Date)" Title='@L["Scm.Text.ShipDate"]' />
                     @if (Mode == "Receipts")
                     {
                         <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="120px" MinWidth="120px" Property="Accepted" Title='@L["Scm.Text.Accepted"]' TextAlign="TextAlign.Right" />
@@ -331,7 +331,7 @@
                         <thead><tr><th>Adjusted At</th><th>Box / LOT</th><th>Part No / Name</th><th>Before</th><th>After</th><th>Difference</th><th>Reason / Note</th></tr></thead>
                         <tbody>@foreach(var mismatch in NoteMismatches(noteDetail))
                         {
-                            <tr><td>@mismatch.OccurredAt.ToString("yyyy-MM-dd HH:mm:ss")</td><td>@mismatch.Lot</td><td>@mismatch.Item<div class="dim">@mismatch.Name</div></td>
+                            <tr><td>@mismatch.OccurredAt.ToString(DateFmt.DateTimeSec)</td><td>@mismatch.Lot</td><td>@mismatch.Item<div class="dim">@mismatch.Name</div></td>
                                 <td>@QtyFormat.Text(mismatch.Before,mismatch.Unit) @mismatch.Unit</td><td>@QtyFormat.Text(mismatch.After,mismatch.Unit) @mismatch.Unit</td>
                                 <td class="@(mismatch.Change<0?"scm-shortage":"scm-overage")">@(mismatch.Change>0?"+":"")@QtyFormat.Text(mismatch.Change,mismatch.Unit) @mismatch.Unit</td>
                                 <td>@mismatch.Reason<div class="dim">@mismatch.Comment</div></td></tr>
@@ -357,7 +357,7 @@
                 @if (Mode != "Progress" && _selected.SupplierConfirmedAt is not null)
                 {
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.ConfirmedBy"]</div><div class="scm-dv">@_selected.SupplierConfirmedBy</div></div>
-                    <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.ConfirmedAt"]</div><div class="scm-dv">@_selected.SupplierConfirmedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")</div></div>
+                    <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.ConfirmedAt"]</div><div class="scm-dv">@_selected.SupplierConfirmedAt.Value.ToString(DateFmt.DateTimeSec)</div></div>
                 }
 
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.Buyer"]</div><div class="scm-dv">EOS</div></div>
@@ -430,9 +430,9 @@
             </div>
             @if (_delivery.ShippedAt is not null)
             {
-                <div class="scm-act"><span>@L["Scm.Text.ShipDate"]: @_delivery.ShipDate?.ToString("yyyy-MM-dd")</span>
+                <div class="scm-act"><span>@L["Scm.Text.ShipDate"]: @_delivery.ShipDate?.ToString(DateFmt.Date)</span>
                     <span>@L["Scm.Text.ShippedBy"]: @_delivery.ShippedBy</span>
-                    <span>@L["Scm.Text.ConfirmedAt.17ae74"]: @_delivery.ShippedAt?.ToString("yyyy-MM-dd HH:mm:ss")</span></div>
+                    <span>@L["Scm.Text.ConfirmedAt.17ae74"]: @_delivery.ShippedAt?.ToString(DateFmt.DateTimeSec)</span></div>
             }
             @if (_shipDeliveryPrompt && DeliveryEditable)
             {
@@ -485,7 +485,7 @@
                             <thead><tr><th>Adjusted At</th><th>Box / LOT</th><th>Part No / Name</th><th>Before</th><th>After</th><th>Difference</th><th>Reason / Note</th></tr></thead>
                             <tbody>@foreach(var mismatch in MismatchRows(_delivery.Number))
                             {
-                                <tr><td>@mismatch.OccurredAt.ToString("yyyy-MM-dd HH:mm:ss")</td><td>@mismatch.Lot</td><td>@mismatch.Item<div class="dim">@mismatch.Name</div></td>
+                                <tr><td>@mismatch.OccurredAt.ToString(DateFmt.DateTimeSec)</td><td>@mismatch.Lot</td><td>@mismatch.Item<div class="dim">@mismatch.Name</div></td>
                                     <td>@QtyFormat.Text(mismatch.Before,mismatch.Unit) @mismatch.Unit</td><td>@QtyFormat.Text(mismatch.After,mismatch.Unit) @mismatch.Unit</td>
                                     <td class="@(mismatch.Change<0?"scm-shortage":"scm-overage")">@(mismatch.Change>0?"+":"")@QtyFormat.Text(mismatch.Change,mismatch.Unit) @mismatch.Unit</td>
                                     <td>@mismatch.Reason<div class="dim">@mismatch.Comment</div></td></tr>

@@ -96,10 +96,10 @@
                     @foreach (var d in _days)
                     {
                         var day = d.Day;
-                        <div class="rpt-pa-col rpt-sa-col @(d.Adh >= TARGET ? "hit" : "") @(day == _selDay ? "sel" : "")" @onclick="() => ToggleDay(day)" title="@($"{day:yyyy-MM-dd} · {Pct(d.Adh)} · {d.On}/{d.Total}")">
+                        <div class="rpt-pa-col rpt-sa-col @(d.Adh >= TARGET ? "hit" : "") @(day == _selDay ? "sel" : "")" @onclick="() => ToggleDay(day)" title="@($"{day.ToString(DateFmt.Date)} · {Pct(d.Adh)} · {d.On}/{d.Total}")">
                             <span class="val">@d.Adh.ToString("0.0")</span>
                             <div class="bar" style="height:@(Math.Max(2, (int)Math.Round(88.0 * (double)d.Adh / 100.0)))%;"></div>
-                            <span class="lbl">@day.ToString("MM/dd")</span>
+                            <span class="lbl">@day.ToString(DateFmt.DateShort)</span>
                         </div>
                     }
                 </div>
@@ -133,7 +133,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">
             ▼ @L["RPT.ScheduleAdherence.Detail.Title"] · @_rows.Count @L["Lbl.Items"]
-            @if (_selDay is { } sd) { <span> · </span><span class="pill info">@sd.ToString("MM/dd")</span> }
+            @if (_selDay is { } sd) { <span> · </span><span class="pill info">@sd.ToString(DateFmt.DateShort)</span> }
         </span>
         @if (_selDay is { })
         {
@@ -163,10 +163,10 @@
                 <FooterTemplate><span class="code">@TotalActual.ToString("N0")</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WoLine" Property="PlanDate" Title="@L["RPT.ScheduleAdherence.Col.PlanDate"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="r"><span class="code dim" title="@(r.FirstPlanDate == r.PlanDate ? "" : $"{r.FirstPlanDate:MM/dd} ~ {r.PlanDate:MM/dd}")">@r.PlanDate.ToString("MM/dd")</span></Template>
+                <Template Context="r"><span class="code dim" title="@(r.FirstPlanDate == r.PlanDate ? "" : $"{r.FirstPlanDate.ToString(DateFmt.DateShort)} ~ {r.PlanDate.ToString(DateFmt.DateShort)}")">@r.PlanDate.ToString(DateFmt.DateShort)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WoLine" Property="ActualDate" Title="@L["RPT.ScheduleAdherence.Col.ActualDate"]" TextAlign="TextAlign.Center" Width="180px">
-                <Template Context="r"><span class="code dim">@(r.ActualDate?.ToString("MM/dd") ?? "-")</span></Template>
+                <Template Context="r"><span class="code dim">@(r.ActualDate?.ToString(DateFmt.DateShort) ?? "-")</span></Template>
                 <FooterTemplate><b>@string.Format(L["RPT.ScheduleAdherence.QtyAch"].Value, Pct(TotalPlan > 0 ? 100m * TotalActual / TotalPlan : null))</b></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WoLine" Property="Deviation" Title="@L["RPT.ScheduleAdherence.Col.Deviation"]" TextAlign="TextAlign.Center" Width="170px">

@@ -164,7 +164,7 @@
     var dayEvs = GetEvents(_dayDate.Value);
     <div class="ames-modal-bg" @onclick="() => _showDay = false">
         <div class="ames-modal" style="max-width:500px;" @onclick:stopPropagation>
-            <div class="ames-modal-h">@_dayDate.Value.ToString("yyyy-MM-dd ddd") — @L["MNT.PmSchedule.Modal.DayList"]</div>
+            <div class="ames-modal-h">@_dayDate.Value.ToString(DateFmt.DateWeekday) — @L["MNT.PmSchedule.Modal.DayList"]</div>
             @foreach (var ev in dayEvs)
             {
                 var capEv = ev;
@@ -197,7 +197,7 @@
                 <div class="ames-detail-label">@L["Col.Type"]</div>
                 <div><span class="pill info">@PmTypeName(x.PmType)</span></div>
                 <div class="ames-detail-label">@L["MNT.PmSchedule.Lbl.Due"]</div>
-                <div>@(x.DueDate?.ToString("yyyy-MM-dd") ?? "—")</div>
+                <div>@(x.DueDate?.ToString(DateFmt.Date) ?? "—")</div>
                 <div class="ames-detail-label">@L["MNT.WorkOrder.Lbl.CompletedAt"]</div>
                 <div>@(x.CompletedAt?.ToString(DateFmt.DateTime) ?? "—")</div>
                 <div class="ames-detail-label">@L["MNT.PmSchedule.Exec.Delay"]</div>
@@ -242,9 +242,9 @@
                 <div class="ames-detail-label">@L["Col.BasisCycle"] / @L["Col.Cycle"]</div>
                 <div>@CodeName(_cycleBases, d.CycleBasis) / @(d.CycleValue?.ToString("N0") ?? "—")</div>
                 <div class="ames-detail-label">@L["Col.LastPm"]</div>
-                <div>@(d.LastPmDate?.ToString("yyyy-MM-dd") ?? "—")</div>
+                <div>@(d.LastPmDate?.ToString(DateFmt.Date) ?? "—")</div>
                 <div class="ames-detail-label">@L["Col.NextDue"]</div>
-                <div>@(d.NextDueDate?.ToString("yyyy-MM-dd") ?? "—")</div>
+                <div>@(d.NextDueDate?.ToString(DateFmt.Date) ?? "—")</div>
                 <div class="ames-detail-label">@L["PP.Calendar.Detail.DDay"]</div>
                 <div>
                     @{ var dd = d.NextDueDate is null ? (int?)null : d.DaysToDue; var ddc = dd is null ? "dim" : dd < 0 ? "bad" : dd <= 3 ? "warn" : "ok"; }
@@ -271,7 +271,7 @@
                             var capH = h;
                             <div class="ames-cal-wo pm-done" style="position:static;display:block;font-size:12px;padding:4px 8px;margin-bottom:4px;opacity:1;"
                                  title="@L["MNT.PmSchedule.Modal.Exec"]" @onclick="() => ShowExec(capH)">
-                                <span style="font-weight:700;">@(h.CompletedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</span>
+                                <span style="font-weight:700;">@(h.CompletedAt?.ToString(DateFmt.DateTime) ?? "—")</span>
                                 <span style="opacity:.8;margin-left:6px;">@CodeName(_results, h.Result) · @TechText(h.TechnicianId)</span>
                                 @if (h.LaborMinutes is { } lm) { <span style="opacity:.6;margin-left:6px;">@lm min</span> }
                             </div>
@@ -779,9 +779,9 @@
     static string ShortEquip(string? id) => id ?? "—";
 
     string Tip(PmEvent ev) => ev.Exec is { } x
-        ? $"{x.PmPlanNumber} | {EquipText(x.EquipId)}\n{PmClassName(x.PmClass)} · {PmTypeName(x.PmType)}\n{LegendText(ev.Cls)} | {x.CompletedAt?.ToString("MM-dd HH:mm") ?? "—"} | {CodeName(_results, x.Result)} | {TechText(x.TechnicianId)}"
+        ? $"{x.PmPlanNumber} | {EquipText(x.EquipId)}\n{PmClassName(x.PmClass)} · {PmTypeName(x.PmType)}\n{LegendText(ev.Cls)} | {x.CompletedAt?.ToString(DateFmt.DateTime) ?? "—"} | {CodeName(_results, x.Result)} | {TechText(x.TechnicianId)}"
         : ev.Pm is { } p
-        ? $"{p.PmPlanNumber} | {EquipText(p.EquipId)}\n{PmClassName(p.PmClass)} · {PmTypeName(p.PmType)} · {CodeName(_cycleBases, p.CycleBasis)} {p.CycleValue}\n{LegendText(ev.Cls)} | {L["Col.LastPm"]}: {p.LastPmDate?.ToString("MM-dd") ?? "—"} | {L["Col.NextDue"]}: {p.NextDueDate?.ToString("MM-dd") ?? "—"}"
+        ? $"{p.PmPlanNumber} | {EquipText(p.EquipId)}\n{PmClassName(p.PmClass)} · {PmTypeName(p.PmType)} · {CodeName(_cycleBases, p.CycleBasis)} {p.CycleValue}\n{LegendText(ev.Cls)} | {L["Col.LastPm"]}: {p.LastPmDate?.ToString(DateFmt.Date) ?? "—"} | {L["Col.NextDue"]}: {p.NextDueDate?.ToString(DateFmt.Date) ?? "—"}"
         : ev.Label;
 
     string DdTxt(int? days) => days switch

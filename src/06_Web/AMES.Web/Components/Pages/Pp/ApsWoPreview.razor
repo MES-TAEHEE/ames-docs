@@ -159,7 +159,7 @@ else if (_released)
                 {
                     var cap = d;
                     <button type="button" class="wp-tab @(cap.Date == day.Date ? "on" : "")" @onclick="() => _selDate = cap.Date" title="@cap.Date.ToString(DateFmt.Date)">
-                        <b>@cap.Date.ToString(DateFmt.MonthDay) @cap.Date.ToString("ddd")</b>
+                        <b>@cap.Date.ToString(DateFmt.Date) @cap.Date.ToString("ddd")</b>
                         <span>@UomFmt.Qty(cap.Rows.Sum(r => r.NewQty), null)@(cap.Rows.Any(r => r.ShortQty > 0) ? " ⚠" : "")</span>
                     </button>
                 }
@@ -621,7 +621,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
         ApplyLocalEdits();
     }
     string EditLabel(ApsSlotEdit e) =>
-        $"{e.ItemNo} {e.PlanDate.ToString(DateFmt.MonthDay)} · {e.LineId} {e.Date.ToString(DateFmt.MonthDay)} {Hm(e.StartMin)}~{Hm(e.EndMin)} → {e.NewLineId} {e.NewDate.ToString(DateFmt.MonthDay)} {Hm(e.NewStartMin)}~{Hm(e.NewEndMin)}";
+        $"{e.ItemNo} {e.PlanDate.ToString(DateFmt.Date)} · {e.LineId} {e.Date.ToString(DateFmt.Date)} {Hm(e.StartMin)}~{Hm(e.EndMin)} → {e.NewLineId} {e.NewDate.ToString(DateFmt.Date)} {Hm(e.NewStartMin)}~{Hm(e.NewEndMin)}";
     string EditReasonText(string? r) => r is null ? "" : L[$"PP.Aps.Wo.Edit.Reason.{r}"].Value;
 
     void Back() => Nav.NavigateTo($"/pp/aps-plan?run={RunId}");
@@ -725,7 +725,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
         var lines = new List<string> { head, $"{Hm(b.StartMin)}~{Hm(b.EndMin)}  ({b.Minutes}{L["Lbl.Min"]})" };
         if (b.Late) lines.Add(L["PP.Aps.Wo.Lgd.Late"].Value);
         if (b.IsNew && EditAt(_tipLine, _tipDate, b.StartMin, b.EndMin) is { } ed)
-            lines.Add($"{L["PP.Aps.Wo.Edit.Edited"]} · {L["PP.Aps.Wo.Edit.Orig"]} {ed.LineId} {ed.Date.ToString(DateFmt.MonthDay)} {Hm(ed.StartMin)}~{Hm(ed.EndMin)}");
+            lines.Add($"{L["PP.Aps.Wo.Edit.Edited"]} · {L["PP.Aps.Wo.Edit.Orig"]} {ed.LineId} {ed.Date.ToString(DateFmt.Date)} {Hm(ed.StartMin)}~{Hm(ed.EndMin)}");
         if (b.Siblings.Count > 0)
         {
             lines.Add(L["PP.Aps.Wo.Siblings"].Value);
@@ -742,7 +742,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
     // 라인·날짜별 "LINE 09-28 08:00-10:00" — 배치 순서(주간 → 야간, 날짜순)가 곧 시간 순이라 첫 슬롯 시작 ~ 끝 슬롯 종료
     static IEnumerable<string> Slots(PpRepository.ApsWoOrder o) =>
         o.Placements.GroupBy(p => (p.LineId, p.Date))
-                    .Select(g => $"{g.Key.LineId} {g.Key.Date.ToString(DateFmt.MonthDay)} {Hm(g.First().StartMin)}-{Hm(g.Last().EndMin)}");
+                    .Select(g => $"{g.Key.LineId} {g.Key.Date.ToString(DateFmt.Date)} {Hm(g.First().StartMin)}-{Hm(g.Last().EndMin)}");
 
     string ReasonText(string reason) => reason switch
     {

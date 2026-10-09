@@ -75,8 +75,8 @@
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="a"><span class="dim">@GridRowNo.Of(_noGrid, a)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="EventTs" Title="@L["SYS.Audit.Col.Time"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="a"><span class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString(DateFmt.MonthDayTimeSec) ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="EventTs" Title="@L["SYS.Audit.Col.Time"]" TextAlign="TextAlign.Center" Width="180px">
+                <Template Context="a"><span class="code dim" style="font-size:13px;white-space:nowrap;">@(a.EventTs?.ToString(DateFmt.DateTimeSec) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ActorUserId" Title="@L["SYS.Audit.Col.Actor"]" Width="300px">
                 <Template Context="a"><span class="dim" style="font-family:var(--ames-font-mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:280px;">@(Actors.Display(a.ActorUserId) is { Length: > 0 } n ? n : "—")</span></Template>

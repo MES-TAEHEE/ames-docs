@@ -19,7 +19,7 @@
         <div class="ames-kpi-l">@L["PP.Downtime.Kpi.Events"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@_rows.Count</div>
-            <div class="ames-kpi-s">@string.Format(L["PP.Downtime.Lbl.Range"].Value, _fFrom.ToString("MM-dd"), _fTo.ToString("MM-dd"))</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.Downtime.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date))</div>
         </div>
     </div>
     <div class="ames-kpi warn">
@@ -95,11 +95,11 @@
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Title="@L["Col.Name"]" Sortable="false">
                 <Template Context="r"><span style="white-space:nowrap;">@LineName(r.LineId)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="StartTs" Title="@L["Col.Start"]" Width="110px">
-                <Template Context="r">@(r.StartTs?.ToString("MM-dd HH:mm") ?? "—")</Template>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="StartTs" Title="@L["Col.Start"]" Width="160px">
+                <Template Context="r">@(r.StartTs?.ToString(DateFmt.DateTime) ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="EndTs" Title="@L["Col.End"]" Width="110px">
-                <Template Context="r">@(r.EndTs?.ToString("MM-dd HH:mm") ?? "—")</Template>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="EndTs" Title="@L["Col.End"]" Width="160px">
+                <Template Context="r">@(r.EndTs?.ToString(DateFmt.DateTime) ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="DurationMin" Title="@L["Col.MinDown"]" Width="90px" TextAlign="TextAlign.Right">
                 <Template Context="r"><span class="code" style="@(r.DurationMin > 30 ? "color:var(--ames-tx-red-400);" : "")">@r.DurationMin.ToString("N0")</span></Template>
@@ -146,7 +146,7 @@
                 @L["PP.Downtime.Title"] — @(_modal == "new" ? L["Modal.Create"] : L["Modal.Edit"])
                 @if (_sel is not null)
                 {
-                    <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineId · @(_sel.StartTs?.ToString("MM-dd HH:mm")) ~ @(_sel.EndTs?.ToString("HH:mm") ?? "—") · @_sel.DurationMin @L["Lbl.Min"]</span>
+                    <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineId · @(_sel.StartTs?.ToString(DateFmt.DateTime)) ~ @(_sel.EndTs?.ToString("HH:mm") ?? "—") · @_sel.DurationMin @L["Lbl.Min"]</span>
                 }
             </div>
 

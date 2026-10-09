@@ -66,7 +66,7 @@
         }
     </section>
     <div class="case-toolbar case-create-footer">
-        <label>Delivery Date <RadzenDatePicker TValue="DateTime" @bind-Value="_deliveryDate" DateFormat="yyyy-MM-dd" Disabled="@_busy" /></label>
+        <label>Delivery Date <RadzenDatePicker TValue="DateTime" @bind-Value="_deliveryDate" DateFormat="@DateFmt.Date" Disabled="@_busy" /></label>
         <RadzenButton Text="Create Delivery Note" Icon="description" Click="CreateNote" Disabled="@(_busy || _draftCases.Count+_loose.Count==0)" />
     </div>
 }
@@ -83,7 +83,7 @@
                 var boxes=_draft.Where(b=>b.Row.Order==order.Number).ToList();
                 <tr class="case-po-row" @onclick="()=>ToggleOrder(order.Number)">
                     <td><button type="button" class="case-expand" aria-label="@($"Expand {order.Number}")" aria-expanded="@expanded" disabled="@_busy">@(expanded?"▾":"▸")</button></td>
-                    <td>@order.Number</td><td>@order.VendorName</td><td>@order.Destination</td><td>@order.Due.ToString("yyyy-MM-dd")</td><td>Confirmed</td>
+                    <td>@order.Number</td><td>@order.VendorName</td><td>@order.Destination</td><td>@order.Due.ToString(DateFmt.Date)</td><td>Confirmed</td>
                 </tr>
                 @if(expanded)
                 {

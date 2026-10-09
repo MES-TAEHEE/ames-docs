@@ -3,7 +3,7 @@
 <div class="trailer-preview" data-feature="fg-shipment-plan">
     <div class="preview-summary">
         <div class="preview-heading"><strong>@(Plan.Trailers.Any(x => x.Pallets.Count > 0) ? Plan.Trailers.Count(x => x.Pallets.Count > 0).ToString() : "—") trailers estimated</strong>
-            <span>@ShipFrom.ToString("yyyy-MM-dd") – @ShipTo.ToString("yyyy-MM-dd")</span>
+            <span>@ShipFrom.ToString(DateFmt.Date) – @ShipTo.ToString(DateFmt.Date)</span>
             @if (Plan.IsPartial) { <span class="partial-badge" title="Some quantities are not determined and are excluded. Open Details & TOTE.">Partial</span> }
         </div>
         <div class="preview-buttons">
@@ -40,7 +40,7 @@
                 @foreach (var group in Plan.ToteGroups)
                 {
                     <tr @key="group">
-                        <td>@group.Customer</td><td>@group.Date.ToString("yyyy-MM-dd")</td>
+                        <td>@group.Customer</td><td>@group.Date.ToString(DateFmt.Date)</td>
                         <td><details><summary>@group.Lines.Select(x => x.Source.ItemNo).Distinct().Count() parts · View</summary>
                             @foreach (var part in group.Lines.GroupBy(x => x.Source.ItemNo))
                             {
@@ -49,7 +49,7 @@
                         </details></td>
                         <td>@group.Lines.Sum(x => x.Quantity).ToString("N0") EA</td>
                         <td><input type="number" min="1" max="2000" step="1" value="@group.CountText" placeholder="Not determined"
-                            aria-label="Estimated TOTE pallets for @group.Customer on @group.Date.ToString("yyyy-MM-dd")"
+                            aria-label="Estimated TOTE pallets for @group.Customer on @group.Date.ToString(DateFmt.Date)"
                             aria-invalid="@(group.Error.Length > 0 ? "true" : "false")"
                             @oninput="e => ChangeTote(group, e.Value?.ToString())" />
                             @if (group.Error.Length > 0) { <div class="input-error" role="alert">@group.Error</div> }
@@ -69,7 +69,7 @@
                 <thead><tr><th>Customer</th><th>Ship date</th><th>Part</th><th>Ship qty</th><th>Reason</th></tr></thead>
                 <tbody>@foreach (var line in Plan.Unestimated)
                 {
-                    <tr><td>@line.Source.CustomerId</td><td>@line.ShipDate?.ToString("yyyy-MM-dd")</td>
+                    <tr><td>@line.Source.CustomerId</td><td>@line.ShipDate?.ToString(DateFmt.Date)</td>
                         <td>@line.Source.ItemNo · @line.Source.ItemName</td><td>@line.Quantity.ToString("N0")</td>
                         <td>@(line.IsTote ? "TOTE estimate not entered" : "Pallet Qty not registered")</td></tr>
                 }</tbody>
@@ -86,7 +86,7 @@
         @foreach (var day in Plan.Trailers.GroupBy(x => x.Date).OrderBy(x => x.Key))
         {
             <section class="trailer-day">
-            <h3>@day.Key.ToString("yyyy-MM-dd") <span>@day.Count(x => x.Pallets.Count > 0) trailers</span></h3>
+            <h3>@day.Key.ToString(DateFmt.Date) <span>@day.Count(x => x.Pallets.Count > 0) trailers</span></h3>
             <div class="trailer-day-grid">
             @foreach (var trailer in day)
             {

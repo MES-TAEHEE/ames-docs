@@ -83,7 +83,7 @@
         </span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["PP.DowntimeMonitor.Lbl.AsOf"]" Component="DatePickerAsOf" />
-            <RadzenDatePicker TValue="DateTime?" Name="DatePickerAsOf" @bind-Value="_fAsOf" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="yyyy-MM-dd HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
+            <RadzenDatePicker TValue="DateTime?" Name="DatePickerAsOf" @bind-Value="_fAsOf" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Replay" class="ames-rz-btn" />
             <RadzenButton Text="@L["PP.DowntimeMonitor.Btn.Live"]" Icon="play_arrow" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@_live" Click="@GoLive" class="ames-rz-btn" />
         </RadzenStack>
@@ -115,7 +115,7 @@
                     <div class="odm-elapsed @(vm.State == "UNPLANNED_DOWN" ? "odm-elapsed-bad" : vm.State == "WORK" ? "odm-elapsed-ok" : "")">
                         @if (vm.State == "UNKNOWN")
                         {
-                            <span class="dim">@(vm.LastLogTs is null ? L["PP.DowntimeMonitor.Lbl.NoLog"].Value : $"{L["PP.DowntimeMonitor.Lbl.LastLog"]} {vm.LastLogTs:MM-dd HH:mm} · {StateLabel(vm.LastState)}")</span>
+                            <span class="dim">@(vm.LastLogTs is null ? L["PP.DowntimeMonitor.Lbl.NoLog"].Value : $"{L["PP.DowntimeMonitor.Lbl.LastLog"]} {vm.LastLogTs?.ToString(DateFmt.DateTime)} · {StateLabel(vm.LastState)}")</span>
                         }
                         else
                         {
@@ -151,7 +151,7 @@
 @* ── 비가동 이력 (기준일) ─────────────────────────────────────────── *@
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @string.Format(L["PP.DowntimeMonitor.History.HeaderFmt"].Value, AsOf.ToString("yyyy-MM-dd")) · @_dtlRows.Count @L["Lbl.Items"]</span>
+        <span style="white-space:nowrap;">▼ @string.Format(L["PP.DowntimeMonitor.History.HeaderFmt"].Value, AsOf.ToString(DateFmt.Date)) · @_dtlRows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownDtlLine" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownDtlLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />

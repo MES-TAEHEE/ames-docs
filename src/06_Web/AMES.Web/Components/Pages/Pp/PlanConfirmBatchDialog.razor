@@ -33,7 +33,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--ames-bd-white-a12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.StartDate"]</span>
             <RadzenDatePicker @bind-Value="_startDate" @bind-Value:after="Recompute" TValue="DateTime"
-                              DateFormat="yyyy-MM-dd" Min="DbClock.Today" Disabled="_busy" Style="width:165px" />
+                              DateFormat="@DateFmt.Date" Min="DbClock.Today" Disabled="_busy" Style="width:165px" />
         </div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;">
             <span class="dim">@L["PP.PlanConfirm.Dlg.WoStatus"]</span><span>Released → PP-LSB</span>
@@ -87,8 +87,8 @@
                             {
                                 <td rowspan="@n" style="vertical-align:top;">
                                     <span class="code">@r.Line.SoNumber</span><div>@r.Line.ItemNo</div>
-                                    @if (r.Line.DueDate is DateTime d) { <div class="dim" style="font-size:.85em;">@L["Col.Due"] @d.ToString("yyyy-MM-dd")</div> }
-                                    @if (r.Deadline is DateTime dl) { <div class="dim" style="font-size:.85em;">@L["PP.PlanConfirm.Dlg.Deadline"] @dl.ToString("yyyy-MM-dd")</div> }
+                                    @if (r.Line.DueDate is DateTime d) { <div class="dim" style="font-size:.85em;">@L["Col.Due"] @d.ToString(DateFmt.Date)</div> }
+                                    @if (r.Deadline is DateTime dl) { <div class="dim" style="font-size:.85em;">@L["PP.PlanConfirm.Dlg.Deadline"] @dl.ToString(DateFmt.Date)</div> }
                                 </td>
                                 @QtyCell(r, n)
                             }
@@ -341,7 +341,7 @@
     {
         if (ps.Count == 0) return "—";
         var a = ps.Min(p => p.Date); var b = ps.Max(p => p.Date);
-        return a == b ? a.ToString("MM-dd") : $"{a:MM-dd} ~ {b:MM-dd}";
+        return a == b ? a.ToString(DateFmt.Date) : $"{a.ToString(DateFmt.Date)} ~ {b.ToString(DateFmt.Date)}";
     }
 
     string? Validate()

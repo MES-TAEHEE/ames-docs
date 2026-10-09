@@ -26,8 +26,8 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_search" Placeholder="@L["FG.Returns.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
             <RadzenDropDown @bind-Value="_status" Data="@StatusOptions" AllowClear="true" Placeholder="@L["Col.Status"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
-            <RadzenDatePicker @bind-Value="_from" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker @bind-Value="_to" DateFormat="yyyy-MM-dd" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="ClearFilters" class="ames-rz-btn" />
         </RadzenStack>
@@ -40,7 +40,7 @@
                     EmptyText="@L["FG.Returns.Empty"].Value" PageSizeChanged="@(s => _pageRows = s)"
                     Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed fg-return-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedAt" Title="@L["FG.Returns.Col.Received"].Value" Width="145px"><Template Context="r">@(r.ReceivedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedAt" Title="@L["FG.Returns.Col.Received"].Value" Width="160px"><Template Context="r">@(r.ReceivedAt?.ToString(DateFmt.DateTime) ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReturnNumber" Title="@L["FG.Returns.Col.ReturnNo"].Value" Width="150px"><Template Context="r"><span class="code">@r.ReturnNumber</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="CustomerCode" Title="@L["Col.Customer"].Value" Width="115px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ShipmentOrderNumber" Title="@L["FG.Returns.Col.OrigShipment"].Value" Width="165px"><Template Context="r">@(r.ShipmentOrderNumber ?? "-")</Template></RadzenDataGridColumn>
@@ -63,7 +63,7 @@
                 <div><span>@L["FG.Returns.Lbl.RmaNo"]</span><strong>@(_detail.RmaNo ?? "-")</strong></div>
                 <div><span>@L["Col.Status"]</span><strong><span class="pill @StatusClass(_detail.Status)">@(_detail.Status ?? "OPEN")</span></strong></div>
                 <div><span>@L["Col.Customer"]</span><strong>@(_detail.CustomerCode ?? "-")</strong></div>
-                <div><span>@L["FG.Returns.Col.Received"]</span><strong>@(_detail.ReceivedAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</strong></div>
+                <div><span>@L["FG.Returns.Col.Received"]</span><strong>@(_detail.ReceivedAt?.ToString(DateFmt.DateTime) ?? "-")</strong></div>
                 <div><span>@L["FG.Returns.Col.OrigShipment"]</span><strong>@(_detail.ShipmentOrderNumber ?? "-")</strong></div>
                 <div><span>@L["FG.Returns.Lbl.CustomerPo"]</span><strong>@(_detail.CustomerPo ?? "-")</strong></div>
                 <div><span>@L["Col.ItemNo"]</span><strong>@(_detail.ItemNo ?? "-")</strong></div>

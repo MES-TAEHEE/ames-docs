@@ -90,11 +90,11 @@
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="FailedLoginCount" Title="@L["SCM.PortalUsers.Col.FailCount"]" TextAlign="TextAlign.Right" Width="110px" />
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="LastLoginTS" Title="@L["SCM.PortalUsers.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="u"><span class="dim">@(u.LastLoginTS?.ToString(DateFmt.MonthDayTime) ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="LastLoginTS" Title="@L["SCM.PortalUsers.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="u"><span class="dim">@(u.LastLoginTS?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="CreatedTS" Title="@L["SCM.PortalUsers.Col.Created"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="u"><span class="dim">@u.CreatedTS.ToString(DateFmt.MonthDayTime)</span></Template>
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="CreatedTS" Title="@L["SCM.PortalUsers.Col.Created"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="u"><span class="dim">@u.CreatedTS.ToString(DateFmt.DateTime)</span></Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
