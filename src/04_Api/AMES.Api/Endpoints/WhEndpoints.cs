@@ -2133,30 +2133,25 @@ public static class WhEndpoints
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            WITH Stock AS
-            (
-                SELECT SparePartNo, COUNT(*) AS OnHandQty, COUNT(DISTINCT LocationID) AS LocationCount,
-                       CASE WHEN COUNT(DISTINCT LocationID)=1 THEN MAX(LocationID) ELSE '' END AS LocationID,
-                       MAX(COALESCE(ModifiedTS,CreatedTS)) AS LastChangedAt
-                FROM dbo.MNT_SparePartItem
-                WHERE StatusCode='IN_STOCK'
-                GROUP BY SparePartNo
-            )
             SELECT CAST(ROW_NUMBER() OVER (ORDER BY P.SparePartNo) AS int) AS InventoryID,
-                   P.PartNo AS ItemNo, P.SparePartNo AS LotNo, P.PartName AS ItemName, S.LocationID,
-                   CAST(S.OnHandQty AS decimal(18,3)) AS OnHandQty, COALESCE(P.UOM, 'EA') AS Unit,
+                   P.PartNo AS ItemNo, P.SparePartNo AS LotNo, P.PartName AS ItemName, L.LocationID,
+                   CAST(P.OnHandQty AS decimal(18,3)) AS OnHandQty, COALESCE(P.UOM, 'EA') AS Unit,
                    CAST(P.SafetyStock AS decimal(18,3)) AS MinQty,
                    CAST(NULL AS decimal(18,3)) AS MaxQty,
-                   CASE WHEN P.SafetyStock IS NOT NULL AND S.OnHandQty < P.SafetyStock THEN 'BELOW_MIN'
+                   CASE WHEN P.SafetyStock IS NOT NULL AND P.OnHandQty < P.SafetyStock THEN 'BELOW_MIN'
                         ELSE 'NORMAL' END AS StockStatus,
-                   S.LastChangedAt, S.LocationCount
+                   COALESCE(P.ModifiedTS,P.CreatedTS) AS LastChangedAt,
+                   CASE WHEN L.LocationID IS NULL THEN 0 ELSE 1 END AS LocationCount
             FROM dbo.MD_SparePart P
-            JOIN Stock S ON S.SparePartNo=P.SparePartNo
-            WHERE COALESCE(P.ActiveFlag,1) = 1
+            OUTER APPLY (SELECT CASE
+                WHEN NULLIF(P.ZoneCode,'') IS NULL THEN NULL
+                WHEN P.ZoneCode='SP_EXTRA' THEN 'SP-EXTRA'
+                WHEN NULLIF(P.Slot,'') IS NULL OR P.Slot='EX' THEN REPLACE(P.ZoneCode,'_','-')
+                ELSE CONCAT(REPLACE(P.ZoneCode,'_','-'),'-',P.Slot)
+            END AS LocationID) L
+            WHERE COALESCE(P.ActiveFlag,1) = 1 AND P.OnHandQty > 0
               AND (@Q = '' OR P.SparePartNo LIKE '%' + @Q + '%' OR P.PartNo LIKE '%' + @Q + '%'
-                   OR P.PartName LIKE '%' + @Q + '%' OR EXISTS
-                      (SELECT 1 FROM dbo.MNT_SparePartItem I WHERE I.SparePartNo=P.SparePartNo AND I.StatusCode='IN_STOCK'
-                       AND (I.SerialNo LIKE '%' + @Q + '%' OR I.LocationID LIKE '%' + @Q + '%')))
+                   OR P.PartName LIKE '%' + @Q + '%' OR L.LocationID LIKE '%' + @Q + '%')
             ORDER BY P.SparePartNo;
             """, conn);
         cmd.Parameters.Add("@Q", SqlDbType.NVarChar, 120).Value = search?.Trim() ?? "";
@@ -2168,7 +2163,7 @@ public static class WhEndpoints
                 GetString(rdr, "ItemName"), GetString(rdr, "LocationID") ?? "", null,
                 GetDecimal(rdr, "OnHandQty"), 0, null, Unit: GetString(rdr, "Unit"),
                 MinQty: GetNullableDecimal(rdr, "MinQty"), MaxQty: GetNullableDecimal(rdr, "MaxQty"),
-                LotCount: Convert.ToInt32(GetDecimal(rdr, "OnHandQty")), LocationCount: Convert.ToInt32(rdr["LocationCount"]),
+                LotCount: 1, LocationCount: Convert.ToInt32(rdr["LocationCount"]),
                 Status: GetString(rdr, "StockStatus"), StatusName: GetString(rdr, "StockStatus"),
                 LastReceivedDate: GetDate(rdr, "LastChangedAt"), LotNo: GetString(rdr, "LotNo")));
         return rows;
@@ -2178,17 +2173,22 @@ public static class WhEndpoints
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT CAST(ROW_NUMBER() OVER (ORDER BY I.SerialNo) AS int) AS RowNo,
-                   I.SerialNo, P.PartNo, P.PartName, I.LocationID AS StorageLoc,
+            SELECT CAST(ROW_NUMBER() OVER (ORDER BY P.SparePartNo) AS int) AS RowNo,
+                   P.SparePartNo AS SerialNo, P.PartNo, P.PartName, L.LocationID AS StorageLoc,
                    CAST('IN STOCK' AS varchar(20)) AS InventoryStatus,
-                   COALESCE(I.ModifiedTS, I.CreatedTS) AS LastChangedAt
-            FROM dbo.MNT_SparePartItem I
-            JOIN dbo.MD_SparePart P ON P.SparePartNo=I.SparePartNo
+                   COALESCE(P.ModifiedTS, P.CreatedTS) AS LastChangedAt, P.OnHandQty
+            FROM dbo.MD_SparePart P
+            OUTER APPLY (SELECT CASE
+                WHEN NULLIF(P.ZoneCode,'') IS NULL THEN NULL
+                WHEN P.ZoneCode='SP_EXTRA' THEN 'SP-EXTRA'
+                WHEN NULLIF(P.Slot,'') IS NULL OR P.Slot='EX' THEN REPLACE(P.ZoneCode,'_','-')
+                ELSE CONCAT(REPLACE(P.ZoneCode,'_','-'),'-',P.Slot)
+            END AS LocationID) L
             WHERE COALESCE(P.ActiveFlag,1) = 1
-              AND I.StatusCode='IN_STOCK'
-              AND (@Q = '' OR I.SerialNo LIKE '%' + @Q + '%' OR P.SparePartNo LIKE '%' + @Q + '%'
-                   OR P.PartNo LIKE '%' + @Q + '%' OR P.PartName LIKE '%' + @Q + '%' OR I.LocationID LIKE '%' + @Q + '%')
-            ORDER BY I.SerialNo;
+              AND P.OnHandQty > 0
+              AND (@Q = '' OR P.SparePartNo LIKE '%' + @Q + '%'
+                   OR P.PartNo LIKE '%' + @Q + '%' OR P.PartName LIKE '%' + @Q + '%' OR L.LocationID LIKE '%' + @Q + '%')
+            ORDER BY P.SparePartNo;
             """, conn);
         cmd.Parameters.Add("@Q", SqlDbType.NVarChar, 120).Value = search?.Trim() ?? "";
         using var rdr = cmd.ExecuteReader();
@@ -2197,7 +2197,7 @@ public static class WhEndpoints
             rows.Add(new LotStatusRow(rdr.GetInt32(rdr.GetOrdinal("RowNo")),
                 GetString(rdr, "SerialNo") ?? "", GetString(rdr, "PartNo"),
                 GetString(rdr, "PartName"), GetString(rdr, "InventoryStatus") ?? "OUT OF STOCK",
-                1, GetString(rdr, "StorageLoc"), null,
+                GetDecimal(rdr, "OnHandQty"), GetString(rdr, "StorageLoc"), null,
                 GetDate(rdr, "LastChangedAt")));
         return rows;
     }
@@ -2207,26 +2207,30 @@ public static class WhEndpoints
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT P.SparePartNo, P.PartNo, I.LocationID AS StorageLoc, COUNT(*) AS OnHandQty,
-                   I.LocationID AS LocationName,
+            SELECT P.SparePartNo, P.PartNo, L.LocationID AS StorageLoc, P.OnHandQty,
+                   L.LocationID AS LocationName,
                    CAST(NULL AS varchar(20)) AS WhCode, CAST(NULL AS nvarchar(120)) AS WhName,
                    CAST(NULL AS varchar(20)) AS AreaCode, CAST(NULL AS nvarchar(120)) AS AreaName,
                    P.ZoneCode, COALESCE(Z.CodeNameEn, Z.CodeName, P.ZoneCode) AS ZoneName,
                    CAST(NULL AS varchar(10)) AS Aisle, CAST(NULL AS varchar(10)) AS Bay, P.Slot
             FROM dbo.MD_SparePart P
-            JOIN dbo.MNT_SparePartItem I ON I.SparePartNo=P.SparePartNo AND I.StatusCode='IN_STOCK'
+            OUTER APPLY (SELECT CASE
+                WHEN NULLIF(P.ZoneCode,'') IS NULL THEN NULL
+                WHEN P.ZoneCode='SP_EXTRA' THEN 'SP-EXTRA'
+                WHEN NULLIF(P.Slot,'') IS NULL OR P.Slot='EX' THEN REPLACE(P.ZoneCode,'_','-')
+                ELSE CONCAT(REPLACE(P.ZoneCode,'_','-'),'-',P.Slot)
+            END AS LocationID) L
             LEFT JOIN dbo.MD_CodeItem Z
               ON Z.GroupCode='MNT_ZONE' AND Z.CodeValue=P.ZoneCode AND COALESCE(Z.UseFlag,1)=1
             WHERE (UPPER(P.SparePartNo) = UPPER(@SparePartNo) OR UPPER(P.PartNo) = UPPER(@SparePartNo))
-              AND COALESCE(P.ActiveFlag,1) = 1
-            GROUP BY P.SparePartNo,P.PartNo,I.LocationID,P.ZoneCode,Z.CodeNameEn,Z.CodeName,P.Slot
-            ORDER BY I.LocationID;
+              AND COALESCE(P.ActiveFlag,1) = 1 AND P.OnHandQty > 0 AND L.LocationID IS NOT NULL
+            ORDER BY L.LocationID;
             """, conn);
         cmd.Parameters.Add("@SparePartNo", SqlDbType.VarChar, 40).Value = eosSpNo.Trim();
         using var rdr = cmd.ExecuteReader();
         var rows = new List<InventoryLocationRow>();
         var rowNo = 0;
-        while (rdr.Read() && !string.IsNullOrWhiteSpace(GetString(rdr, "StorageLoc")))
+        while (rdr.Read())
             rows.Add(new InventoryLocationRow(++rowNo, GetString(rdr, "PartNo") ?? "",
                 GetString(rdr, "StorageLoc") ?? "", GetString(rdr, "LocationName"),
                 GetString(rdr, "WhCode"), GetString(rdr, "WhName"), GetString(rdr, "AreaCode"),
@@ -2241,22 +2245,27 @@ public static class WhEndpoints
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT I.SerialNo, P.PartNo, P.PartName, COALESCE(P.UOM,'EA') AS Unit,
+            SELECT P.SparePartNo AS SerialNo, P.PartNo, P.PartName, COALESCE(P.UOM,'EA') AS Unit,
                    CAST('IN STOCK' AS varchar(20)) AS InventoryStatus,
-                   CONVERT(char(10), COALESCE(I.ModifiedTS,I.CreatedTS), 23) AS WorkDate,
-                   CONVERT(char(8), COALESCE(I.ModifiedTS,I.CreatedTS), 108) AS WorkTime
-            FROM dbo.MNT_SparePartItem I
-            JOIN dbo.MD_SparePart P ON P.SparePartNo=I.SparePartNo
+                   CONVERT(char(10), COALESCE(P.ModifiedTS,P.CreatedTS), 23) AS WorkDate,
+                   CONVERT(char(8), COALESCE(P.ModifiedTS,P.CreatedTS), 108) AS WorkTime,
+                   P.OnHandQty
+            FROM dbo.MD_SparePart P
+            CROSS APPLY (SELECT CASE
+                WHEN P.ZoneCode='SP_EXTRA' THEN 'SP-EXTRA'
+                WHEN NULLIF(P.Slot,'') IS NULL OR P.Slot='EX' THEN REPLACE(P.ZoneCode,'_','-')
+                ELSE CONCAT(REPLACE(P.ZoneCode,'_','-'),'-',P.Slot)
+            END AS LocationID) L
             WHERE COALESCE(P.ActiveFlag,1) = 1
-              AND I.StatusCode='IN_STOCK' AND UPPER(I.LocationID)=UPPER(@LocationId)
-            ORDER BY I.SerialNo;
+              AND P.OnHandQty > 0 AND UPPER(L.LocationID)=UPPER(@LocationId)
+            ORDER BY P.SparePartNo;
             """, conn);
         cmd.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value = locationId.Trim();
         using var rdr = cmd.ExecuteReader();
         var rows = new List<LocationMapItemRow>();
         while (rdr.Read())
             rows.Add(new LocationMapItemRow(GetString(rdr, "SerialNo") ?? "", GetString(rdr, "PartNo"),
-                GetString(rdr, "PartName"), 1, GetString(rdr, "Unit"),
+                GetString(rdr, "PartName"), GetDecimal(rdr, "OnHandQty"), GetString(rdr, "Unit"),
                 GetString(rdr, "InventoryStatus"), GetString(rdr, "WorkDate"), GetString(rdr, "WorkTime")));
         return rows;
     }
@@ -2267,7 +2276,7 @@ public static class WhEndpoints
         using var cmd = new SqlCommand("""
             WITH SpareMaster AS
             (
-                SELECT P.SparePartNo, P.ZoneCode, P.Slot,
+                SELECT P.SparePartNo, P.ZoneCode, P.Slot, P.OnHandQty,
                        CASE
                            WHEN P.ZoneCode = 'SP_EXTRA' THEN 'SP-EXTRA'
                            WHEN NULLIF(P.Slot, '') IS NULL OR P.Slot = 'EX' THEN REPLACE(P.ZoneCode, '_', '-')
@@ -2283,11 +2292,9 @@ public static class WhEndpoints
                    CAST(NULL AS varchar(20)) AS PlantCode, CAST('SPARE_PART' AS varchar(20)) AS LocationType,
                    CAST(NULL AS decimal(18,3)) AS Capacity,
                    COUNT(DISTINCT M.SparePartNo) AS LineCount,
-                   COUNT(I.SparePartItemID) AS TotalQty,
+                   SUM(M.OnHandQty) AS TotalQty,
                    CAST('EA' AS varchar(10)) AS Unit
             FROM SpareMaster M
-            LEFT JOIN dbo.MNT_SparePartItem I
-              ON I.SparePartNo=M.SparePartNo AND I.LocationID=M.LocationID AND I.StatusCode='IN_STOCK'
             GROUP BY M.LocationID,M.ZoneCode,M.Slot
             ORDER BY M.ZoneCode,M.LocationID;
             """, conn);

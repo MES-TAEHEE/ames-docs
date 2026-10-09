@@ -475,6 +475,7 @@
         catch
         {
             _rows = new();
+            if (Auth.Session is null) { _msg = ""; return; }
             _msg = IsFinishedGoods
                 ? "FG transaction service is unavailable. Please try again."
                 : IsSpareParts
