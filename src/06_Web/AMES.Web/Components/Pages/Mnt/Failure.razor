@@ -13,6 +13,7 @@
 @inject MntRepository Mnt
 @inject MasterDataRepository MD
 @inject SysRepository Sys
+@inject WorkerRepository Workers
 @inject ActorNames Actors
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
@@ -199,12 +200,13 @@
             <FailureTimelinePanel Failure="_sel" />
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @* 수리 완료(고장 종료 + 보전 WO 완료)는 승인 권한(A) — 등록·수정·삭제는 수정 권한(E) *@
+                @if (_canApprove && !IsRes(_sel.Status))
+                {
+                    <RadzenButton Text="@L["MNT.Failure.Btn.Resolve"]" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenResolve(_sel))" class="ames-rz-btn" />
+                }
                 @if (_canEdit)
                 {
-                    @if (!IsRes(_sel.Status))
-                    {
-                        <RadzenButton Text="@L["MNT.Failure.Btn.Resolve"]" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenResolve(_sel))" class="ames-rz-btn" />
-                    }
                     <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenEdit(_sel))" class="ames-rz-btn" />
                 }
                 <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -286,15 +288,22 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Source"]" class="ames-rz-modal-label" Component="FailDropDownSource" />
                     <RadzenDropDown Name="FailDropDownSource" @bind-Value="_f.Source" Data="@CodeOptions(_sourceItems)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-                    <RadzenLabel Text="@L["Col.Status"]" class="ames-rz-modal-label" Component="FailDropDownStatus" />
-                    <RadzenDropDown Name="FailDropDownStatus" @bind-Value="_f.Status" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    @if (editing)
+                    {
+                        @* 상태·해결일시는 수리 완료(MNT-002)·작업지시 완료(MNT-007)·안돈 종료로만 바뀐다 — 여기서는 보기만 *@
+                        <RadzenLabel Text="@L["Col.Status"]" class="ames-rz-modal-label" />
+                        <div style="flex:1;" title="@L["MNT.Failure.Hint.StatusFixed"]"><span class="pill @StatusCls(_f.Status)">@StatusLabel(_f.Status)</span></div>
+                    }
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text='@($"{L["MNT.Failure.Lbl.ReportedAt"]} *")' class="ames-rz-modal-label" Component="FailDateReported" />
                     <RadzenDatePicker TValue="DateTime?" Name="FailDateReported" @bind-Value="_f.ReportedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-                    <RadzenLabel Text="@L["MNT.Failure.Lbl.ResolvedAt"]" class="ames-rz-modal-label" Component="FailDateResolved" />
-                    <RadzenDatePicker TValue="DateTime?" Name="FailDateResolved" @bind-Value="_f.ResolvedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    @if (editing)
+                    {
+                        <RadzenLabel Text="@L["MNT.Failure.Lbl.ResolvedAt"]" class="ames-rz-modal-label" />
+                        <RadzenTextBox Value="@(_f.ResolvedAt?.ToString(DateFmt.DateTime) ?? "—")" Disabled="true" title="@L["MNT.Failure.Hint.StatusFixed"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    }
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -306,6 +315,15 @@
                     <RadzenLabel Text='@($"{L["Col.Symptom"]} *")' Component="FailTextAreaSymptom" Style="margin-bottom:6px;" />
                     <RadzenTextArea Name="FailTextAreaSymptom" @bind-Value="_f.Symptom" MaxLength="500" Rows="3" class="ames-rz-input" Style="width:100%;" />
                 </RadzenStack>
+
+                @if (!editing && _canApprove)
+                {
+                    @* 이미 끝난 고장을 뒤늦게 입력할 때 — 등록(작업지시 발행) 직후 수리 완료 창을 이어서 연다 *@
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenCheckBox TValue="bool" @bind-Value="_f.ResolveAfterCreate" Name="FailChkResolveNow" />
+                        <RadzenLabel Text="@L["MNT.Failure.Lbl.ResolveNow"]" Component="FailChkResolveNow" style="cursor:pointer;" />
+                    </RadzenStack>
+                }
             </RadzenStack>
 
             @if (editing && _confirmDelete)
@@ -346,8 +364,8 @@
     DateTime _fFrom = DbClock.Today.AddDays(-30), _fTo = DbClock.Today;
     string?  _fStatus, _fSeverity;
     string   _modal = "", _msg = "", _modalErr = "";
-    bool     _bgMouseDownOnSelf, _isErr, _busy, _confirmDelete, _canEdit;
-    string   _actor = "system", _actorUserId = "";
+    bool     _bgMouseDownOnSelf, _isErr, _busy, _confirmDelete, _canEdit, _canApprove;
+    string   _actor = "system", _defaultReporter = "";
     int?     _editId;
     FormModel _f = new();
 
@@ -357,6 +375,7 @@
     List<MasterDataRepository.CodeItemRow>  _sourceItems = new();   // 공통코드 FAILURE_SOURCE
     List<MasterDataRepository.EquipmentRow> _equipList   = new();
     List<SysRepository.UserRow>             _users       = new();
+    List<WorkerRepository.WorkerRow>        _workers     = new();
     List<MasterDataRepository.LineRow>      _lineList    = new();
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
@@ -367,7 +386,23 @@
         items.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     IEnumerable<DropDownItem> EquipOptions => _equipList.Select(e => new DropDownItem { Value = e.EquipID, Text = string.IsNullOrEmpty(e.EquipName) ? $"[{e.EquipID}]" : $"[{e.EquipID}] {e.EquipName}" });
     // 프로필이 없는(SYS-001 에 등록되지 않은) 계정은 고르지 못하게 뺀다 — 이미 저장된 값은 수정 창에서 빈칸이 되지 않게 남긴다
-    IEnumerable<DropDownItem> UserOptions  => _users.Where(u => u.IsApproved || u.UserId == _f.ReportedBy).Select(u => new DropDownItem { Value = u.UserId, Text = string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? u.UserId) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}" });   // 콤보 = [사번] 이름
+    // 보고자 = 사번(10-10 사용자 결정) — POP 안돈이 배지 사번(웹 계정·현장 작업자)을 넣는 것과 같은 기준.
+    // 후보 = 사번 있는 웹 계정(프로필 있음) + 활성 현장 작업자(MD_Worker). 사번은 두 테이블을 합쳐 유일하다.
+    // 저장된 값이 후보에 없으면(비활성 작업자 등) 그 값도 남겨 수정 창에서 빈칸이 되지 않게 한다
+    IEnumerable<DropDownItem> UserOptions
+    {
+        get
+        {
+            var list = _users.Where(u => u.IsApproved && !string.IsNullOrWhiteSpace(u.EmployeeNo))
+                             .Select(u => new DropDownItem { Value = u.EmployeeNo!, Text = $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}" })
+                             .Concat(_workers.Where(w => w.ActiveFlag)
+                             .Select(w => new DropDownItem { Value = w.EmployeeNo, Text = $"[{w.EmployeeNo}] {w.EmployeeName}" }))
+                             .OrderBy(o => o.Value, StringComparer.OrdinalIgnoreCase).ToList();
+            if (!string.IsNullOrEmpty(_f.ReportedBy) && !list.Any(o => string.Equals(o.Value, _f.ReportedBy, StringComparison.OrdinalIgnoreCase)))
+                list.Insert(0, new DropDownItem { Value = _f.ReportedBy, Text = Actors.Display(_f.ReportedBy) });
+            return list;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -375,15 +410,17 @@
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("mnt/failure");
+        _canApprove = PermSvc.CanApprove("mnt/failure");
 
         try { _sevItems    = MD.ListCodeItems("DEFECT_SEVERITY"); } catch { }
         try { _typeItems   = MD.ListCodeItems("FAILURE_TYPE");    } catch { }
         try { _sourceItems = MD.ListCodeItems("FAILURE_SOURCE");  } catch { }
         try { _equipList   = MD.ListEquipments(); } catch { }
         try { _users       = Sys.ListUsers(500); } catch { }
+        try { _workers     = Workers.ListAll(); } catch { }
         try { _lineList    = MD.ListLines(); } catch { }
-        // 보고자 기본값 = 로그인 사용자 (이메일로 AspNetUsers.Id 해석)
-        _actorUserId = _users.FirstOrDefault(u => string.Equals(u.Email, _actor, StringComparison.OrdinalIgnoreCase))?.UserId ?? "";
+        // 보고자 기본값 = 로그인한 사람의 사번(행위자 코드). 사번이 없는 계정(행위자 코드가 이메일 앞부분)은 후보에 없으므로 빈칸
+        _defaultReporter = UserOptions.FirstOrDefault(o => string.Equals(o.Value, _actor, StringComparison.OrdinalIgnoreCase))?.Value ?? "";
 
         // 기본 기간: 최근 30일. 그 안에 데이터가 없으면 마지막 발생일 기준으로 30일을 잡는다
         try
@@ -473,7 +510,7 @@
 
     void OpenResolve(MntRepository.FailureRow? r)
     {
-        if (r is null || !_canEdit) return;
+        if (r is null || !_canApprove) return;
         _sel = r; _modalErr = "";
         _r = new() { ResolvedAt = DbClock.Now };
         _modal = "resolve";
@@ -481,7 +518,8 @@
 
     async Task SaveResolve()
     {
-        if (_sel is null) return;
+        // 수리 완료는 고장 종료 + 보전 WO 완료까지 쓰므로 버튼뿐 아니라 저장 처리에서도 승인 권한을 다시 본다
+        if (_sel is null || !_canApprove) return;
         _modalErr = "";
         if (_r.ResolvedAt is null)                       { _modalErr = L["MNT.WorkOrder.Err.CompletedRequired"]; return; }
         if (_sel.ReportedAt is { } rep && _r.ResolvedAt < rep) { _modalErr = L["MNT.Failure.Err.ResolvedBefore"]; return; }
@@ -519,7 +557,8 @@
     // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
     void OpenCreate()
     {
-        _f = new() { ReportedAt = DbClock.Now, Status = "OPEN", Source = "WEB", ReportedBy = _actorUserId };
+        if (!_canEdit) return;
+        _f = new() { ReportedAt = DbClock.Now, Status = "OPEN", Source = "WEB", ReportedBy = _defaultReporter };
         _editId = null; _sel = null; _modalErr = ""; _confirmDelete = false;
         _modal = "create";
     }
@@ -547,33 +586,37 @@
         if (string.IsNullOrWhiteSpace(_f.Severity))     { _modalErr = L["MNT.Failure.Err.SeverityRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.Symptom))      { _modalErr = L["MNT.Failure.Err.SymptomRequired"]; return; }
         if (_f.ReportedAt is null)                      { _modalErr = L["MNT.Failure.Err.ReportedRequired"]; return; }
+        // 해결일시는 고치지 않지만, 해결된 고장의 발생일시를 해결 뒤로 옮기는 것은 막는다
         if (_f.ResolvedAt is { } res && res < _f.ReportedAt) { _modalErr = L["MNT.Failure.Err.ResolvedBefore"]; return; }
 
         _busy = true;
+        int? resolveNowId = null;
         try
         {
             var failNo = _f.FailNo.Trim();
             if (failNo.Length == 0) failNo = Mnt.NextFailureNumber(DbClock.Today);
             if (Mnt.FailureNumberExists(failNo, _editId)) { _modalErr = string.Format(L["MNT.Failure.Err.Duplicate"].Value, failNo); return; }
-            var status = string.IsNullOrEmpty(_f.Status) ? "OPEN" : _f.Status;
-
             if (_editId is int id)
             {
                 Mnt.UpdateFailure(id, failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
-                    NE(_f.Source), _f.ReportedAt.Value, _f.ResolvedAt, status, NE(_f.ReportedBy), _actor);
+                    NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor);
                 ShowMsg(string.Format(L["MNT.Failure.Ok.Updated"].Value, failNo), false);
             }
             else
             {
-                var (_, woNo) = Mnt.InsertFailure(failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
-                    NE(_f.Source), _f.ReportedAt.Value, _f.ResolvedAt, status, NE(_f.ReportedBy), _actor);
+                var (newId, woNo) = Mnt.InsertFailure(failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
+                    NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor);
                 ShowMsg(string.Format(L["MNT.Failure.Ok.CreatedWo"].Value, failNo, woNo), false);
+                resolveNowId = _f.ResolveAfterCreate && _canApprove ? newId : null;
             }
             // 발생일이 조회 기간 밖이면 기간을 넓혀 결과가 바로 보이게
             var rep = _f.ReportedAt.Value.Date;
             if (rep < _fFrom) _fFrom = rep;
             if (rep > _fTo)   _fTo   = rep;
             CloseModal(); await Search();
+            // 지름길: 방금 등록한 고장의 수리 완료 창을 바로 연다(원인·조치·작업시간을 받아 고장과 작업지시를 같이 닫는다)
+            if (resolveNowId is int rid && _allRows.FirstOrDefault(x => x.FailureId == rid) is { } created)
+                OpenResolve(created);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -605,7 +648,8 @@
         public string    Symptom     { get; set; } = "";
         public string    Severity    { get; set; } = "";
         public string    Source      { get; set; } = "";
-        public string    Status      { get; set; } = "OPEN";
+        public string    Status      { get; set; } = "OPEN";   // 보기 전용 — 저장하지 않는다
+        public bool      ResolveAfterCreate { get; set; }
         public DateTime? ReportedAt  { get; set; }
         public DateTime? ResolvedAt  { get; set; }
         public string    ReportedBy  { get; set; } = "";

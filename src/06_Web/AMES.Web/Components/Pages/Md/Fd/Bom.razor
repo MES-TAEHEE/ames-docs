@@ -155,11 +155,11 @@
                             }
                         </div>
 
-                        @* 워크플로 버튼 *@
-                        @if (_canEdit)
+                        @* 워크플로 버튼 — 초안 편집·승인 요청·되살리기는 수정 권한(E), 승인·반려는 승인 권한(A) *@
+                        @if (_canEdit || _canApprove)
                         {
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="0.5rem" Wrap="FlexWrap.Wrap" Style="flex-shrink:0;">
-                                @if (_selVer.Status == "DRAFT") {
+                                @if (_selVer.Status == "DRAFT" && _canEdit) {
                                     <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="() => OpenVersionEdit(_selVer)" Disabled="@_busy" class="ames-rz-btn" />
                                     <RadzenButton Text="@L["MD.Bom.AddItem"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenLineCreate" Disabled="@_busy" class="ames-rz-btn" />
                                     <RadzenButton Text="@L["MD.Bom.RequestApproval"]" Icon="send" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@DoRequestApproval" Disabled="@_busy" class="ames-rz-btn" />
@@ -168,12 +168,12 @@
                                         <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => _verDelConfirm = true' Disabled="@_busy" class="ames-rz-btn" />
                                     }
                                 }
-                                @if (_selVer.Status == "PENDING")
+                                @if (_selVer.Status == "PENDING" && _canApprove)
                                 {
                                     <RadzenButton Text="@L["Btn.Approve"]" Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="@DoApprove" Disabled="@(_busy || _lines.Count(l => l.ActiveFlag) == 0)" title="@(_lines.Count(l => l.ActiveFlag) == 0 ? L["MD.Bom.NeedApprovalHint"].Value : "")" class="ames-rz-btn" />
                                     <RadzenButton Text="@L["Btn.Reject"]" Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@DoReject" Disabled="@_busy" class="ames-rz-btn" />
                                 }
-                                @if (_selVer.Status == "REJECTED")
+                                @if (_selVer.Status == "REJECTED" && _canEdit)
                                 {
                                     <RadzenButton Text="@L["MD.Bom.ReviveDraft"]" Icon="restore" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@DoRevive" Disabled="@_busy" class="ames-rz-btn" />
                                 }
@@ -374,7 +374,7 @@
     string _modal = "", _modalErr = "", _msg = "";
     bool   _isErr, _busy, _bgDown;
     bool   _verDelConfirm, _lineConfirmDelete;
-    bool   _canEdit;
+    bool   _canEdit, _canApprove;
     string _actor = "system";
 
     VersionForm _fv = new();
@@ -403,6 +403,7 @@
         _actor   = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/fd/bom");
+        _canApprove = PermSvc.CanApprove("md/fd/bom");
         try { _itemList = MD.ListItems(); } catch { }
         try { _uomList  = MD.ListUoms();  } catch { }
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
@@ -610,7 +611,7 @@
 
     async Task DoApprove()
     {
-        if (!_canEdit) return;
+        if (!_canApprove) return;
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
@@ -636,7 +637,7 @@
 
     async Task DoReject()
     {
-        if (!_canEdit) return;
+        if (!_canApprove) return;
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;

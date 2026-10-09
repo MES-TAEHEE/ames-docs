@@ -675,6 +675,9 @@
   <data name="SYS.Rbac.Kpi.Granted" xml:space="preserve">
     <value>부여된 권한</value>
   </data>
+  <data name="SYS.Rbac.NoFeature" xml:space="preserve">
+    <value>이 화면에는 해당 기능이 없습니다</value>
+  </data>
   <data name="SYS.Rbac.Col.Screen" xml:space="preserve">
     <value>화면</value>
   </data>
@@ -3746,6 +3749,21 @@
   </data>
   <data name="SYS.Health.Tile.ScreenSub" xml:space="preserve">
     <value>화면 {0}개</value>
+  </data>
+  <data name="SYS.Screen.Col.PermLevel" xml:space="preserve">
+    <value>기본 권한</value>
+  </data>
+  <data name="SYS.Screen.Hint.PermLevel" xml:space="preserve">
+    <value>화면에 있는 기능 — 읽기는 항상 있습니다. 끈 기능은 SYS-004 에서 체크할 수 없고 X 로 저장되며, 바꾸면 이 화면의 역할 권한도 함께 맞춰집니다.</value>
+  </data>
+  <data name="SYS.Screen.Perm.R" xml:space="preserve">
+    <value>읽기</value>
+  </data>
+  <data name="SYS.Screen.Perm.E" xml:space="preserve">
+    <value>수정</value>
+  </data>
+  <data name="SYS.Screen.Perm.A" xml:space="preserve">
+    <value>승인</value>
   </data>
   <data name="SYS.Screen.Col.LidLabel" xml:space="preserve">
     <value>화면 표기</value>
@@ -6833,6 +6851,12 @@
   </data>
   <data name="MNT.Failure.Lbl.ReportedAt" xml:space="preserve">
     <value>발생일시</value>
+  </data>
+  <data name="MNT.Failure.Lbl.ResolveNow" xml:space="preserve">
+    <value>등록 후 바로 수리 완료 처리(이미 끝난 고장)</value>
+  </data>
+  <data name="MNT.Failure.Hint.StatusFixed" xml:space="preserve">
+    <value>상태·해결일시는 「수리 완료」 또는 작업지시 「완료」로만 바뀝니다</value>
   </data>
   <data name="MNT.Failure.Lbl.ResolvedAt" xml:space="preserve">
     <value>해결일시</value>

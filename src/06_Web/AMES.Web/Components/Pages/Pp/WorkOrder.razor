@@ -117,14 +117,14 @@ else
             <RadzenDataGridColumn TItem="WorkOrderDto" Title="@L["PP.WorkOrder.Col.Action"].Value"
                                   Sortable="false" Filterable="false" Width="180px">
                 <Template Context="w">
-                    @if (_canEdit && w.Status == "Draft")
+                    @if (_canApprove && w.Status == "Draft")
                     {
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Release"].Value" Icon="play_arrow" ButtonStyle="ButtonStyle.Success"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Release(w))" />
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" style="margin-left:4px;" />
                     }
-                    else if (_canEdit && w.Status == "Released")
+                    else if (_canApprove && w.Status == "Released")
                     {
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" />
@@ -211,7 +211,7 @@ else
 
     // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = 수동 발행·Release·Cancel
     const string Href = "pp/work-order";
-    bool _canEdit;
+    bool _canEdit, _canApprove;   // WO 릴리스·취소는 승인 권한(A) — 수동 등록은 수정 권한(E)
 
     protected override async Task OnInitializedAsync()
     {
@@ -219,6 +219,7 @@ else
         // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
+        _canApprove = PermSvc.CanApprove(Href);
 
         // 라우팅 옵션·공정 시퀀스를 공통코드 ROUTING / MD_RoutingStep 에서 로드
         try { _routings = MD.ListCodeItems("ROUTING").Where(c => c.UseFlag).Select(c => c.CodeValue ?? "").Where(v => v.Length > 0).ToArray(); }

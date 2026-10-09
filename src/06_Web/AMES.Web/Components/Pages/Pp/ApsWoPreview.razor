@@ -65,7 +65,7 @@
                     <span class="pill warn">@string.Format(L["PP.Aps.Wo.Edit.Count"].Value, _edits.Count)</span>
                     <RadzenButton Text="@L["PP.Aps.Wo.Edit.Clear"].Value" Icon="undo" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="ClearEdits" Disabled="@_busy" />
                 }
-                @if (_canEdit)
+                @if (_canApprove)   @* WO 생성은 승인 권한(A) — 슬롯 편집은 수정 권한(E) *@
                 {
                     <RadzenButton Text="@L["PP.Aps.Wo.Btn.Run"].Value" Icon="factory" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Click="RunReal" Disabled="@(_busy || _selected.Count == 0 || _preview is null || PreviewStale)" />
                 }
@@ -326,8 +326,8 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
 @code {
     [Parameter] public int RunId { get; set; }
 
-    const string Href = "pp/aps-plan";   // PP-APS 하위 경로 — 권한도 그 화면 것(E = WO 생성)
-    bool _canEdit, _busy, _released, _showTargets, _isErr, _loadFailed;
+    const string Href = "pp/aps-plan";   // PP-APS 하위 경로 — 권한도 그 화면 것(A = WO 생성, E = 슬롯 편집)
+    bool _canEdit, _canApprove, _busy, _released, _showTargets, _isErr, _loadFailed;
     string _msg = "", _actor = "system";
 
     List<ApsRepository.ApsPlanLineRow> _rows = new();
@@ -394,6 +394,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
         await PermSvc.EnsureAsync(AuthPrvd);
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
+        _canApprove = PermSvc.CanApprove(Href);
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
 
@@ -468,7 +469,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
 
     async Task RunReal()
     {
-        if (!_canEdit || _busy) return;
+        if (!_canApprove || _busy) return;
         if (_preview is null || PreviewStale) { ShowMsg(L["PP.Aps.Wo.Err.PreviewStale"], true); return; }
         var ids = SelectedIds();
         var go = await Dialog.Confirm(string.Format(L["PP.Aps.Wo.Confirm"].Value, ids.Count), L["PP.Aps.Wo.Title"].Value,

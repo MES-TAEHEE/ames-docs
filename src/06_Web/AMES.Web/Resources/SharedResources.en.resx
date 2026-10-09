@@ -675,6 +675,9 @@
   <data name="SYS.Rbac.Kpi.Granted" xml:space="preserve">
     <value>Granted Permissions</value>
   </data>
+  <data name="SYS.Rbac.NoFeature" xml:space="preserve">
+    <value>This screen has no such function</value>
+  </data>
   <data name="SYS.Rbac.Col.Screen" xml:space="preserve">
     <value>Screen</value>
   </data>
@@ -3749,6 +3752,21 @@
   </data>
   <data name="SYS.Health.Tile.ScreenSub" xml:space="preserve">
     <value>{0} screens</value>
+  </data>
+  <data name="SYS.Screen.Col.PermLevel" xml:space="preserve">
+    <value>Default Permission</value>
+  </data>
+  <data name="SYS.Screen.Hint.PermLevel" xml:space="preserve">
+    <value>Functions this screen has — read is always on. Unchecked functions cannot be granted in SYS-004 and are stored as X; changing them also updates this screen's role permissions.</value>
+  </data>
+  <data name="SYS.Screen.Perm.R" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="SYS.Screen.Perm.E" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="SYS.Screen.Perm.A" xml:space="preserve">
+    <value>Approve</value>
   </data>
   <data name="SYS.Screen.Col.LidLabel" xml:space="preserve">
     <value>Lid Label</value>
@@ -6860,6 +6878,12 @@
   </data>
   <data name="MNT.Failure.Lbl.ReportedAt" xml:space="preserve">
     <value>Reported at</value>
+  </data>
+  <data name="MNT.Failure.Lbl.ResolveNow" xml:space="preserve">
+    <value>Complete repair right after registering (already fixed)</value>
+  </data>
+  <data name="MNT.Failure.Hint.StatusFixed" xml:space="preserve">
+    <value>Status and resolved time change only through "Complete Repair" or work order "Complete"</value>
   </data>
   <data name="MNT.Failure.Lbl.ResolvedAt" xml:space="preserve">
     <value>Resolved at</value>

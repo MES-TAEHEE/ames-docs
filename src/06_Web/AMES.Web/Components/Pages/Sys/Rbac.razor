@@ -1,6 +1,7 @@
 ﻿@page "/sys/rbac"
 @rendermode InteractiveServer
 
+@using AMES.Data.Services
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
 @using AMES.Web.Services
@@ -134,7 +135,14 @@
                                     </span>
                                 </HeaderTemplate>
                                 <Template Context="s">
-                                    <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit)" />
+                                    @if (HasSlot(s.ScreenCode, plCap))
+                                    {
+                                        <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit)" />
+                                    }
+                                    else
+                                    {
+                                        <span title="@L["SYS.Rbac.NoFeature"]"><RadzenCheckBox TValue="bool" Value="false" Disabled="true" Style="opacity:.35;" /></span>
+                                    }
                                 </Template>
                             </RadzenDataGridColumn>
                         }
@@ -228,18 +236,20 @@
     {
         _grants = _rows
             .Where(x => OfRole(x, _selRole!) && x.ScreenCode is not null)
-            .ToDictionary(x => x.ScreenCode!, x => NormalizeLevel(x.PermissionLevel));
+            .ToDictionary(x => x.ScreenCode!, x => PermissionSlots.Granted(x.PermissionLevel, Tpl(x.ScreenCode!)));
     }
 
-    /// 저장된 값에서 유효 문자(R/E/A)만 추출, REA 순 정렬
-    static string NormalizeLevel(string? level)
+    /// 저장된 값에서 부여된 문자(R/E/A)만 추출, REA 순 — '_'(미부여)·'X'(기능 없음)는 버린다
+    static string NormalizeLevel(string? level) => PermissionSlots.Granted(level);
+
+    // 화면 기본 권한(SYS-003 의 SYS_Screen.PermissionCriteria) — 없는 화면은 세 기능 모두 있다고 본다
+    string Tpl(string screenCode) => _screens.FirstOrDefault(x => x.ScreenCode == screenCode)?.PermissionCriteria ?? PermissionSlots.Default;
+
+    // 그 화면에 이 권한 기능이 있는가 — 없으면(X) 체크박스를 끄고 일괄 선택에서도 건너뛴다
+    bool HasSlot(string screenCode, MasterDataRepository.CodeItemRow pl)
     {
-        if (string.IsNullOrWhiteSpace(level)) return "";
-        return new string(level.ToUpperInvariant()
-                               .Where(c => c == 'R' || c == 'E' || c == 'A')
-                               .Distinct()
-                               .OrderBy(c => "REA".IndexOf(c))
-                               .ToArray());
+        var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
+        return letter.Length == 1 && PermissionSlots.Has(Tpl(screenCode), letter[0]);
     }
 
     static string ToggleLetter(string current, char letter, bool add)
@@ -262,7 +272,7 @@
     {
         if (!_canEdit || _selRole is null) return;
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
-        if (letter.Length != 1) return;
+        if (letter.Length != 1 || !PermissionSlots.Has(s.PermissionCriteria, letter[0])) return;
         _grants.TryGetValue(s.ScreenCode, out var cur);
         _grants[s.ScreenCode] = ToggleLetter(cur ?? "", letter[0], isChecked);
         _dirty = true;
@@ -274,7 +284,7 @@
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
         if (letter.Length != 1) return;
         var ch       = letter[0];
-        var filtered = ScreensFiltered.ToList();
+        var filtered = ScreensFiltered.Where(s => PermissionSlots.Has(s.PermissionCriteria, ch)).ToList();
         var allSet   = filtered.All(s => _grants.TryGetValue(s.ScreenCode, out var m) && m.Contains(ch));
         foreach (var s in filtered)
         {
@@ -295,9 +305,11 @@
             .Distinct()
             .OrderBy(c => "REA".IndexOf(c))
             .ToArray());
-        var allSet = filtered.All(s => _grants.TryGetValue(s.ScreenCode, out var m) && m == fullLevel);
+        // 화면마다 있는 기능까지만 — 조회 전용 화면은 R 만
+        string FullFor(string code) => PermissionSlots.Granted(fullLevel, Tpl(code));
+        var allSet = filtered.All(s => _grants.TryGetValue(s.ScreenCode, out var m) && m == FullFor(s.ScreenCode));
         foreach (var s in filtered)
-            _grants[s.ScreenCode] = allSet ? "" : fullLevel;
+            _grants[s.ScreenCode] = allSet ? "" : FullFor(s.ScreenCode);
         _dirty = true;
     }
 
@@ -309,11 +321,12 @@
         try
         {
             // 화면 전체를 한 트랜잭션으로 — 중간에 실패하면 이 역할의 권한은 저장 전 그대로 남는다
-            Sys.SaveRolePermissions(_selRole.RoleId, _selRole.RoleName,
+            // 저장소가 DB 의 현재 화면 기본 권한으로 다시 맞춰 쓴다 — 감사 「이후」도 그 저장값(이전과 같은 3자리)으로 남긴다
+            var saved = Sys.SaveRolePermissions(_selRole.RoleId, _selRole.RoleName,
                 _screens.Select(s => new SysRepository.RolePermissionItem(
-                    s.ModuleCode, s.ScreenCode, _grants.TryGetValue(s.ScreenCode, out var level) ? level : null)),
+                    s.ModuleCode, s.ScreenCode, _grants.TryGetValue(s.ScreenCode, out var level) ? PermissionSlots.Compose(s.PermissionCriteria, level) : null)),
                 _actorEmail);
-            Audit.Updated("SYS-004", "SYS_RolePermission", _selRole.RoleName, _rows.Where(r => r.RoleId == _selRole.RoleId && !string.IsNullOrEmpty(r.PermissionLevel)).ToDictionary(r => r.ScreenCode ?? "", r => r.PermissionLevel), _grants.Where(g => !string.IsNullOrEmpty(g.Value)).ToDictionary(g => g.Key, g => g.Value));
+            Audit.Updated("SYS-004", "SYS_RolePermission", _selRole.RoleName, _rows.Where(r => r.RoleId == _selRole.RoleId && !string.IsNullOrEmpty(r.PermissionLevel)).ToDictionary(r => r.ScreenCode ?? "", r => r.PermissionLevel), saved);
             _rows  = Sys.ListRolePermissions();
             _dirty = false;
             // 이 서버의 모든 세션(이 세션 포함)이 메뉴·홈 권한을 바로 다시 읽는다(열려 있는 화면의 버튼은 화면 이동 시 반영)

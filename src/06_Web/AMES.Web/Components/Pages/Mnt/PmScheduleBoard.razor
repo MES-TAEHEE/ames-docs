@@ -280,9 +280,12 @@
                 </div>
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                @if (_canEdit)
+                @if (_canApprove)
                 {
                     <RadzenButton Text="@L["MNT.PmSchedule.Btn.Complete"]" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenComplete(d))" class="ames-rz-btn" />
+                }
+                @if (_canEdit)
+                {
                     <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenEdit(d))" class="ames-rz-btn" />
                 }
                 <RadzenButton Text="@L["MNT.Dashboard.Tile.Wo"]" Icon="list" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Click='() => Nav.NavigateTo("/mnt/work-order")' class="ames-rz-btn" />
@@ -446,7 +449,7 @@
     int _calMonth = DbClock.Today.Month;
     string? _fEquip, _fStatus;
     string _msg = "", _modalErr = "";
-    bool _isErr, _busy, _confirmDelete, _bgMouseDownOnSelf, _canEdit;
+    bool _isErr, _busy, _confirmDelete, _bgMouseDownOnSelf, _canEdit, _canApprove;   // PM 완료는 승인 권한(A)
     string _actor = "system";
 
     bool      _showDay;
@@ -487,6 +490,7 @@
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit(Href);
+        _canApprove = PermSvc.CanApprove(Href);
 
         try { _equipList   = MD.ListEquipments(); } catch { }
         try { _templates   = MD.ListPmTemplates(); } catch { }
@@ -642,7 +646,7 @@
     // ── 완료 처리 — 활성 작업지시가 있으면 그 완료로, 없으면(구 데이터) 실행 이력·예정일만 ──
     void OpenComplete(MntRepository.PmRow p)
     {
-        if (!_canEdit) return;
+        if (!_canApprove) return;
         _showDetail = false;
         _cpm = p; _modalErr = "";
         _c = new() { Result = AMES.Contracts.Dto.MwoResultCodes.Ok, CompletedAt = DbClock.Now, TechId = p.AssignedTechId ?? "" };
@@ -651,7 +655,7 @@
 
     void SaveComplete()
     {
-        if (!_canEdit) return;
+        if (!_canApprove) return;
         if (_cpm is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_c.Result)) { _modalErr = L["MNT.WorkOrder.Err.ResultRequired"]; return; }

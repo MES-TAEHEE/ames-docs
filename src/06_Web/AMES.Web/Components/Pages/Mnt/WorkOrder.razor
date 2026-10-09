@@ -255,6 +255,9 @@
                     {
                         <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.WorkOrder.Btn.Start"])" Icon="play_arrow" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@(() => Start(_sel))" Disabled="@_busy" class="ames-rz-btn" />
                     }
+                }
+                @if (_canApprove && !IsDone(_sel.Status))
+                {
                     <RadzenButton Text="@L["MNT.WorkOrder.Btn.Complete"]" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenComplete(_sel))" class="ames-rz-btn" />
                 }
                 <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -362,7 +365,7 @@
     string? _fStatus, _fType, _fPriority;
     int     _topN = 100;
     string  _modal = "", _msg = "", _modalErr = "";
-    bool    _bgMouseDownOnSelf, _isErr, _busy, _canEdit;
+    bool    _bgMouseDownOnSelf, _isErr, _busy, _canEdit, _canApprove;   // 완료는 승인 권한(A) — 배정·착수는 수정 권한(E)
     string  _actor = "system";
     FormModel _f = new();
 
@@ -403,6 +406,7 @@
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("mnt/work-order");
+        _canApprove = PermSvc.CanApprove("mnt/work-order");
         _canOpenFailure = PermSvc.IsVisible("mnt/failure");
 
         try { _equipList   = MD.ListEquipments(); } catch { }
@@ -516,7 +520,7 @@
 
     void OpenComplete(MntRepository.MwoRow? r)
     {
-        if (r is null || !_canEdit) return;
+        if (r is null || !_canApprove) return;
         _sel = r; _modalErr = "";
         _f = new()
         {
@@ -529,7 +533,7 @@
 
     async Task SaveComplete()
     {
-        if (!_canEdit) return;
+        if (!_canApprove) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.Result))     { _modalErr = L["MNT.WorkOrder.Err.ResultRequired"]; return; }

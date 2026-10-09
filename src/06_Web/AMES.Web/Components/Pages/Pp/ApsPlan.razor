@@ -118,10 +118,11 @@
                 <RadzenButton Text="@L["PP.Aps.Btn.Reschedule"].Value" Icon="swap_horiz" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reschedule" Disabled="@(!CanEditCells)" />
                 <RadzenButton Text="@L["PP.Aps.Btn.Recompute"].Value" Icon="calculate" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Recompute" Disabled="@(!CanEditCells)" />
                 <RadzenButton Text="@L["Btn.Save"].Value" Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Click="Save" Disabled="@(!CanEditCells)" />
-                @if (_state is { SavedRunId: not null, IsReleased: false })
-                {
-                    <RadzenButton Text="@L["PP.Aps.Btn.CreateWo"].Value" Icon="factory" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenWoCreate" Disabled="@_busy" />
-                }
+            }
+            @* WO 생성은 승인 권한(A) — 계획 편집·저장은 수정 권한(E) *@
+            @if (_canApprove && _state is { SavedRunId: not null, IsReleased: false })
+            {
+                <RadzenButton Text="@L["PP.Aps.Btn.CreateWo"].Value" Icon="factory" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenWoCreate" Disabled="@_busy" />
             }
             <RadzenButton Text="@L["PP.Aps.Btn.History"].Value" Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenHistory" Disabled="@_busy" />
             <RadzenButton Text="@L["PP.Aps.Btn.Settings"].Value" Icon="settings" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenSettings" Disabled="@_busy" />
@@ -422,7 +423,7 @@ else
 
     // 권한 키(SYS_Screen.HRef) — R = 조회, E = 계산·편집·저장·WO 생성
     const string Href = "pp/aps-plan";
-    bool _canEdit;
+    bool _canEdit, _canApprove;
     [SupplyParameterFromQuery(Name = "run")] public int? RunQuery { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -431,6 +432,7 @@ else
         // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
+        _canApprove = PermSvc.CanApprove(Href);
 
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
@@ -742,7 +744,7 @@ else
     // 돌아올 때 ?run= 으로 그 실행을 재현해 Released 여부를 DB 에서 다시 읽는다
     async Task OpenWoCreate()
     {
-        if (!_canEdit || _busy || _state is not { SavedRunId: int runId, IsReleased: false } s) return;
+        if (!_canApprove || _busy || _state is not { SavedRunId: int runId, IsReleased: false } s) return;
         // 버튼은 막지 않는다 — 저장된 실행을 그대로 발행하려는 경우도 있다
         if (s.Dirty)
         {

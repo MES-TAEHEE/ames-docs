@@ -115,7 +115,7 @@ using (var c2 = new SqlConnection(cs))
 {
     c2.Open();
     using var cmd = new SqlCommand("""
-        SELECT ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible
+        SELECT ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, PermissionCriteria
         FROM dbo.SYS_Screen ORDER BY ModuleCode, ProcessCode, ISNULL(SortOrder, 9999), ScreenCode;
         """, c2);
     using var r = cmd.ExecuteReader();
@@ -123,8 +123,8 @@ using (var c2 = new SqlConnection(cs))
     while (r.Read())
     {
         screenRows++;
-        scr.Append("INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy) VALUES (")
-           .Append($"{A(r[0])}, {A(r[1])}, {A(r[2])}, {A(r[3])}, {N(r[4])}, {N(r[5])}, {A(r[6])}, {A(r[7])}, ")
+        scr.Append("INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES (")
+           .Append($"{A(r[0])}, {A(r[1])}, {A(r[2])}, {A(r[3])}, {N(r[4])}, {N(r[5])}, {A(r[6])}, {A(r[7])}, {A(r[10])}, ")
            .Append(r[8] is DBNull ? "NULL" : r[8].ToString()).Append(", ")
            .Append(r[9] is DBNull ? "NULL" : ((bool)r[9] ? "1" : "0")).Append(", 'seed');\r\n");
     }

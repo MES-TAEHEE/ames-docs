@@ -610,9 +610,10 @@ public sealed class MntRepository
     /// <summary>
     /// 고장 등록 = MNT_FailureRegister 1행 + 정비 작업지시(MNT_WorkOrder, WoType='CM', SourceType='FAILURE') 1행.
     /// 고장 행의 WorkOrderID 가 작업지시를 가리킨다. 우선순위는 심각도에서 정한다.
+    /// 상태는 항상 OPEN·해결일시 없음으로 시작한다(10-10 사용자 결정) — 해결은 ResolveFailure(MNT-002 수리 완료)·작업지시 완료(MNT-007)·안돈 종료로만.
     /// </summary>
     public (int FailureId, string WoNumber) InsertFailure(string failNo, string equipId, string failureType, string symptom, string severity,
-        string? source, DateTime reportedAt, DateTime? resolvedAt, string status, string? reportedBy, string actor)
+        string? source, DateTime reportedAt, string? reportedBy, string actor)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -622,7 +623,7 @@ public sealed class MntRepository
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.MNT_FailureRegister
                     (FailureNumber, EquipID, FailureType, Symptom, Severity, Source, Status, ReportedBy, ReportedAt, ResolvedAt, CreatedBy, CreatedTS)
-                VALUES (@No, @Eq, @Type, @Sym, @Sev, @Src, @St, @By, @Rep, @Res, @Actor, SYSDATETIME());
+                VALUES (@No, @Eq, @Type, @Sym, @Sev, @Src, 'OPEN', @By, @Rep, NULL, @Actor, SYSDATETIME());
                 SELECT CAST(SCOPE_IDENTITY() AS int);
                 """, conn, tx))
             {
@@ -632,10 +633,8 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Sym",   SqlDbType.NVarChar, 500).Value = symptom;
                 cmd.Parameters.Add("@Sev",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@Src",   SqlDbType.VarChar,   15).Value = (object?)source ?? DBNull.Value;
-                cmd.Parameters.Add("@St",    SqlDbType.VarChar,   15).Value = status;
                 cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
                 cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
-                cmd.Parameters.Add("@Res",   SqlDbType.DateTime2).Value      = (object?)resolvedAt ?? DBNull.Value;
                 cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
                 failId = Convert.ToInt32(cmd.ExecuteScalar());
             }
@@ -673,9 +672,10 @@ public sealed class MntRepository
         catch { tx.Rollback(); throw; }
     }
 
-    /// <summary>고장 수정. 연결된 작업지시가 착수 전(ISSUED/OPEN)이면 설비·우선순위·설명을 같이 맞춘다.</summary>
+    /// <summary>고장 수정(내용만). 연결된 작업지시가 착수 전(ISSUED/OPEN)이면 설비·우선순위·설명을 같이 맞춘다.
+    /// 상태·해결일시는 바꾸지 않는다 — 수정 창에서 바꾸면 작업지시가 발행 상태로 남아 닫을 수 없었다(10-10).</summary>
     public void UpdateFailure(int id, string failNo, string equipId, string failureType, string symptom, string severity,
-        string? source, DateTime reportedAt, DateTime? resolvedAt, string status, string? reportedBy, string actor)
+        string? source, DateTime reportedAt, string? reportedBy, string actor)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -684,7 +684,7 @@ public sealed class MntRepository
             using (var cmd = new SqlCommand("""
                 UPDATE dbo.MNT_FailureRegister
                 SET    FailureNumber = @No, EquipID = @Eq, FailureType = @Type, Symptom = @Sym, Severity = @Sev, Source = @Src,
-                       Status = @St, ReportedBy = @By, ReportedAt = @Rep, ResolvedAt = @Res,
+                       ReportedBy = @By, ReportedAt = @Rep,
                        ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
                 WHERE  FailureID = @Id;
                 """, conn, tx))
@@ -696,10 +696,8 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Sym",   SqlDbType.NVarChar, 500).Value = symptom;
                 cmd.Parameters.Add("@Sev",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@Src",   SqlDbType.VarChar,   15).Value = (object?)source ?? DBNull.Value;
-                cmd.Parameters.Add("@St",    SqlDbType.VarChar,   15).Value = status;
                 cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
                 cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
-                cmd.Parameters.Add("@Res",   SqlDbType.DateTime2).Value      = (object?)resolvedAt ?? DBNull.Value;
                 cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
                 cmd.ExecuteNonQuery();
             }

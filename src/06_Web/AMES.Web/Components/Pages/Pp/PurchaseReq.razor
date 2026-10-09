@@ -176,7 +176,7 @@ else
                     <RadzenButton Text="@(_sel.Status == PrStatusRules.Failed ? L["PP.PurchaseReq.Act.Retry"].Value : L["PP.PurchaseReq.Act.Send"].Value)" Icon="send" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click="SendOne" Disabled="@_busy" class="ames-rz-btn" />
                 </div>
             }
-            @if (_canEdit && PrStatusRules.CanApprove(_sel.Status))
+            @if (_canApprove && PrStatusRules.CanApprove(_sel.Status))
             {
                 <div class="pr-act">
                     <span class="pr-dl">@L["PP.PurchaseReq.Act.PoNo"]</span>
@@ -260,7 +260,7 @@ else
 
     // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = SAP 전송·승인·실패 기록·거래처 지정
     const string Href = "pp/purchase-req";
-    bool _canEdit;
+    bool _canEdit, _canApprove;
 
     protected override async Task OnInitializedAsync()
     {
@@ -268,6 +268,7 @@ else
         // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
+        _canApprove = PermSvc.CanApprove(Href);   // PO 승인은 승인 권한(A) — 전송·실패 기록·거래처는 수정 권한(E)
 
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
@@ -369,7 +370,7 @@ else
 
     void ApproveOne()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_canApprove) return;
         if (string.IsNullOrWhiteSpace(_actPo)) { ShowMsg(L["PP.PurchaseReq.Err.PoNo"], true); return; }
         var pr = PrNo(_sel); var po = _actPo!.Trim();
         Run(() => Pp.ApprovePr(_sel.PrId, po, _actor), () => string.Format(L["PP.PurchaseReq.Ok.Approved"].Value, pr, po));

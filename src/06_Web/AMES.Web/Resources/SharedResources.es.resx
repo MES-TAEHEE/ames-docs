@@ -675,6 +675,9 @@
   <data name="SYS.Rbac.Kpi.Granted" xml:space="preserve">
     <value>Permisos Otorgados</value>
   </data>
+  <data name="SYS.Rbac.NoFeature" xml:space="preserve">
+    <value>Esta pantalla no tiene esta función</value>
+  </data>
   <data name="SYS.Rbac.Col.Screen" xml:space="preserve">
     <value>Pantalla</value>
   </data>
@@ -3746,6 +3749,21 @@
   </data>
   <data name="SYS.Health.Tile.ScreenSub" xml:space="preserve">
     <value>{0} pantallas</value>
+  </data>
+  <data name="SYS.Screen.Col.PermLevel" xml:space="preserve">
+    <value>Permiso base</value>
+  </data>
+  <data name="SYS.Screen.Hint.PermLevel" xml:space="preserve">
+    <value>Funciones de esta pantalla — la lectura siempre está activa. Las funciones desmarcadas no se pueden otorgar en SYS-004 y se guardan como X; al cambiarlas también se ajustan los permisos de rol de esta pantalla.</value>
+  </data>
+  <data name="SYS.Screen.Perm.R" xml:space="preserve">
+    <value>Ver</value>
+  </data>
+  <data name="SYS.Screen.Perm.E" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="SYS.Screen.Perm.A" xml:space="preserve">
+    <value>Aprobar</value>
   </data>
   <data name="SYS.Screen.Col.LidLabel" xml:space="preserve">
     <value>Etiqueta de Tapa</value>
@@ -6833,6 +6851,12 @@
   </data>
   <data name="MNT.Failure.Lbl.ReportedAt" xml:space="preserve">
     <value>Fecha de reporte</value>
+  </data>
+  <data name="MNT.Failure.Lbl.ResolveNow" xml:space="preserve">
+    <value>Completar la reparación al registrar (ya reparada)</value>
+  </data>
+  <data name="MNT.Failure.Hint.StatusFixed" xml:space="preserve">
+    <value>El estado y la hora de resolución solo cambian con «Completar reparación» o «Completar» de la orden</value>
   </data>
   <data name="MNT.Failure.Lbl.ResolvedAt" xml:space="preserve">
     <value>Fecha de resolución</value>

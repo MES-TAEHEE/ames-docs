@@ -94,8 +94,11 @@
                 @* PM 등록: 패턴 선택 + 금일 이후에만. 예방보전 밴드를 가동시간대에 추가 *@
                 <RadzenButton Text="@L["PP.LineSchedule.Btn.AddPm"]" Icon="build" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Disabled="@(!Editable || string.IsNullOrEmpty(_patternId))" Click="@OpenPmModal" class="ames-rz-btn" />
                 <RadzenButton Text="@(_busy == "apply" ? L["Msg.Applying"] : L["PP.LineSchedule.Btn.Apply"])" Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Disabled="@(_busy is not null || string.IsNullOrEmpty(_patternId) || _date.Date < ServerNow.Date)" Click="@Apply" class="ames-rz-btn" />
-                @* 발행: DB에 적용(저장)된 Draft 상태이고 미변경일 때만 활성화 *@
+                @* 발행: DB에 적용(저장)된 Draft 상태이고 미변경일 때만 활성화 — 승인 권한(A) *@
+                @if (_canApprove)
+                {
                 <RadzenButton Text="@(_busy == "publish" ? L["Msg.Publishing"] : L["PP.LineSchedule.Btn.Publish"])" Icon="publish" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Disabled="@(_busy is not null || _savedStatus != "DRAFT" || _dirty || _date.Date < ServerNow.Date)" Click="@Publish" class="ames-rz-btn" />
+                }
             }
         </div>
     </div>
@@ -555,7 +558,7 @@
     string?   _publishedBy;
     bool      _dirty;
 
-    bool      _canEdit;
+    bool      _canEdit, _canApprove;   // 발행은 승인 권한(A) — 적용·초기화·PM 등록은 수정 권한(E)
     // 배치 추가·수정·삭제 허용 = 권한 있음 + 금일 이후(과거일은 보기전용)
     bool Editable => _canEdit && _date.Date >= ServerNow.Date;
     string    _actor = "web";
@@ -776,6 +779,7 @@
         _actor = AMES.Web.Services.ActorCode.Of(authState.User, "web");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("pp/line-schedule");
+        _canApprove = PermSvc.CanApprove("pp/line-schedule");
         try { _lines       = MD.ListLines(); } catch { }
         try { _allPatterns = MD.ListLineTimePatterns(); } catch { }
         try { _segStates   = MD.ListCodeItems("SEGMENT_STATE"); } catch { }
@@ -1166,6 +1170,7 @@
     {
         _err = ""; _changedByOthers = false;
         if (!_canEdit || _busy is not null) return;
+        if (publish && !_canApprove) return;
         if (_date.Date < ServerNow.Date) { _err = L["PP.LineSchedule.Err.PastDate"]; return; }
         if (string.IsNullOrEmpty(_patternId)) { _err = L["PP.LineSchedule.Err.NoPattern"]; return; }
         if (publish && ConflictIds.Count > 0) { _err = string.Format(L["PP.LineSchedule.Err.ConflictSummary"].Value, ConflictIds.Count); return; }

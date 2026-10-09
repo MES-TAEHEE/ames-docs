@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -106,6 +107,20 @@
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="dim code" style="font-size:12px;">@(r.LidLabel ?? "—")</span></Template>
             </RadzenDataGridColumn>
+            @* 화면 기본 권한 — 그 화면에 있는 기능(읽기는 항상). SYS-004 는 없는 기능의 칸을 끈다 *@
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="PermissionCriteria" Title="@L["SYS.Screen.Col.PermLevel"]" TextAlign="TextAlign.Center" Width="170px" Sortable="false">
+                <Template Context="r">
+                    <span style="white-space:nowrap;" title="@r.PermissionCriteria">
+                        @foreach (var slot in PermissionSlots.Slots)
+                        {
+                            @if (PermissionSlots.Has(r.PermissionCriteria, slot))
+                            { <span class="pill ok" style="margin:0 2px;">@L[$"SYS.Screen.Perm.{slot}"]</span> }
+                            else
+                            { <span class="dim" style="margin:0 4px;text-decoration:line-through;">@L[$"SYS.Screen.Perm.{slot}"]</span> }
+                        }
+                    </span>
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SortOrder" Title="@L["SYS.Screen.Col.SortOrder"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.SortOrder?.ToString() ?? "—")</span></Template>
             </RadzenDataGridColumn>
@@ -171,6 +186,15 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.LidLabel"]" class="ames-rz-modal-label" Component="CreateTextBoxLidLabel" />
                     <RadzenTextBox Name="CreateTextBoxLidLabel" @bind-Value="_f.LidLabel" Placeholder="@L["SYS.Screen.Ph.LidLabel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Screen.Col.PermLevel"]" class="ames-rz-modal-label" />
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="flex:1;" title="@L["SYS.Screen.Hint.PermLevel"]">
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" Value="true" Disabled="true" Name="CreateChkPermR" /><RadzenLabel Text="@L["SYS.Screen.Perm.R"]" Component="CreateChkPermR" /></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasEdit" Name="CreateChkPermE" /><RadzenLabel Text="@L["SYS.Screen.Perm.E"]" Component="CreateChkPermE" style="cursor:pointer;" /></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasApprove" Name="CreateChkPermA" /><RadzenLabel Text="@L["SYS.Screen.Perm.A"]" Component="CreateChkPermA" style="cursor:pointer;" /></span>
+                    </RadzenStack>
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -243,6 +267,15 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.LidLabel"]" class="ames-rz-modal-label" Component="EditTextBoxLidLabel" />
                     <RadzenTextBox Name="EditTextBoxLidLabel" @bind-Value="_f.LidLabel" Placeholder="@L["SYS.Screen.Ph.LidLabelEdit"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Screen.Col.PermLevel"]" class="ames-rz-modal-label" />
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="flex:1;" title="@L["SYS.Screen.Hint.PermLevel"]">
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" Value="true" Disabled="true" Name="EditChkPermR" /><RadzenLabel Text="@L["SYS.Screen.Perm.R"]" Component="EditChkPermR" /></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasEdit" Name="EditChkPermE" /><RadzenLabel Text="@L["SYS.Screen.Perm.E"]" Component="EditChkPermE" style="cursor:pointer;" /></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasApprove" Name="EditChkPermA" /><RadzenLabel Text="@L["SYS.Screen.Perm.A"]" Component="EditChkPermA" style="cursor:pointer;" /></span>
+                    </RadzenStack>
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -388,6 +421,8 @@
             ScreenNameEn   = r.ScreenNameEn  ?? "",
             HRef           = r.HRef           ?? "",
             LidLabel       = r.LidLabel       ?? "",
+            HasEdit        = PermissionSlots.Has(r.PermissionCriteria, 'E'),
+            HasApprove     = PermissionSlots.Has(r.PermissionCriteria, 'A'),
             SortOrderStr   = r.SortOrder?.ToString() ?? "",
             IsVisible      = r.IsVisible,
         };
@@ -413,7 +448,7 @@
                 _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
                 Nz(_f.SubProcessCode),
                 _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
-                _f.SortOrder, _f.IsVisible, _actor);
+                _f.SortOrder, _f.IsVisible, _actor, _f.PermissionCriteria);
             Audit.Created("SYS-003", "SYS_Screen", _f.ScreenCode.Trim(), _f);
             ScreenCatalog.Notify();
             CloseModal(); await ReloadRestorePage();
@@ -443,7 +478,7 @@
                 _sel.ScreenId, code, _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
                 Nz(_f.SubProcessCode),
                 _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), lid,
-                _f.SortOrder, _f.IsVisible, _actor);
+                _f.SortOrder, _f.IsVisible, _actor, _f.PermissionCriteria);
             Audit.Updated("SYS-003", "SYS_Screen", _sel.ScreenCode, _sel, _f);
             ScreenCatalog.Notify();
             CloseModal(); await ReloadRestorePage();
@@ -490,6 +525,10 @@
         public string ScreenNameEn   { get; set; } = "";
         public string HRef           { get; set; } = "";
         public string LidLabel       { get; set; } = "";
+        // 화면 기본 권한 — 읽기는 항상 있다. 새 화면은 수정·승인 모두 있다고 본다(PermissionSlots.Default)
+        public bool   HasEdit        { get; set; } = true;
+        public bool   HasApprove     { get; set; } = true;
+        public string PermissionCriteria => PermissionSlots.TemplateOf(HasEdit, HasApprove);
         public string SortOrderStr   { get; set; } = "";
         public bool   IsVisible      { get; set; } = true;
         public int?   SortOrder      => int.TryParse(SortOrderStr, out var n) ? n : null;

@@ -59,7 +59,7 @@ public sealed class SysRepository
 
     public sealed record ScreenRow(int ScreenId, string ScreenCode, string ModuleCode,
         string? ProcessCode, string? SubProcessCode, string ScreenName, string? ScreenNameEn, string? HRef, string? LidLabel,
-        int? SortOrder, bool IsVisible, int RoleCount);
+        int? SortOrder, bool IsVisible, int RoleCount, string PermissionCriteria = PermissionSlots.Default);
 
     public sealed record ScreenPermRow(string? RoleId, string? RoleName, string? PermissionLevel);
 
@@ -779,7 +779,7 @@ public sealed class SysRepository
     {
         const string sql = """
             SELECT  m.ScreenID, m.ScreenCode, m.ModuleCode, m.ProcessCode, m.SubProcessCode, m.ScreenName, m.ScreenNameEn,
-                    m.HRef, m.LidLabel, m.SortOrder,
+                    m.HRef, m.LidLabel, {CRITERIA} AS PermissionCriteria, m.SortOrder,
                     ISNULL(m.IsVisible, 1) AS IsVisible,
                     (SELECT COUNT(DISTINCT COALESCE(rp.RoleID, rp.RoleName)) FROM dbo.SYS_RolePermission rp WHERE rp.ScreenCode = m.ScreenCode) AS RoleCount
             FROM    dbo.SYS_Screen m
@@ -787,22 +787,36 @@ public sealed class SysRepository
             ORDER   BY m.ModuleCode, ISNULL(m.SortOrder, 999), m.ScreenCode;
             """;
         var where = moduleCode is null ? "" : "WHERE m.ModuleCode = @Module";
-        var query = sql.Replace("{WHERE}", where);
+        // 권한 판정·메뉴·화면 제목이 모두 이 목록을 읽는다 — 마이그레이션 전에 신 Web 이 올라가도 전체 화면이 막히지 않게,
+        // 컬럼이 없으면 기본값('___' = 세 기능 모두 있음)으로 읽는다(migrate_sys_screen_permission_criteria.sql)
+        var query = sql.Replace("{WHERE}", where)
+                       .Replace("{CRITERIA}", HasScreenCriteriaColumn() ? "m.PermissionCriteria" : "'" + PermissionSlots.Default + "'");
         return moduleCode is null
             ? Query(query, MapScreen)
             : Query(query, MapScreen, ("@Module", moduleCode));
     }
 
+    static bool? _hasScreenCriteria;
+    bool HasScreenCriteriaColumn()
+    {
+        if (_hasScreenCriteria == true) return true;   // 생긴 뒤에는 다시 확인하지 않는다(없을 때만 매번 확인 — 마이그레이션 직후 바로 반영)
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT COL_LENGTH('dbo.SYS_Screen', 'PermissionCriteria');", conn);
+        _hasScreenCriteria = cmd.ExecuteScalar() is not DBNull and not null;
+        return _hasScreenCriteria.Value;
+    }
+
     public void InsertScreen(string screenCode, string moduleCode, string? processCode,
         string? subProcessCode, string screenName, string? screenNameEn, string? href, string? lidLabel,
-        int? sortOrder, bool isVisible, string createdBy)
+        int? sortOrder, bool isVisible, string createdBy, string? permissionCriteria = null)
     {
         const string sql = """
             INSERT INTO dbo.SYS_Screen
-                   (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy)
-            VALUES (@Code, @Module, @Process, @SubProc, @Name, @NameEn, @HRef, @Lid, @Sort, @Visible, @CreatedBy)
+                   (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy)
+            VALUES (@Code, @Module, @Process, @SubProc, @Name, @NameEn, @HRef, @Lid, @Perm, @Sort, @Visible, @CreatedBy)
             """;
         Exec(sql,
+            ("@Perm",      PermissionSlots.NormalizeTemplate(permissionCriteria)),
             ("@Code",      screenCode),
             ("@Module",    moduleCode),
             ("@Process",   (object?)processCode    ?? DBNull.Value),
@@ -816,9 +830,13 @@ public sealed class SysRepository
             ("@CreatedBy", createdBy));
     }
 
+    /// <remarks>
+    /// 화면 기본 권한(permissionCriteria — SYS_Screen.PermissionCriteria)이 바뀌면 그 화면의 역할 권한(SYS_RolePermission)도 같은 트랜잭션에서 맞춘다(10-10 사용자 결정) —
+    /// 기능이 없어진(X) 자리는 부여돼 있어도 X, 기능이 생긴 자리는 '_'(미부여), 남는 부여가 없으면 그 행을 지운다. null 이면 기본 권한을 바꾸지 않는다.
+    /// </remarks>
     public void UpdateScreen(int screenId, string screenCode, string moduleCode, string? processCode,
         string? subProcessCode, string screenName, string? screenNameEn, string? href, string? lidLabel,
-        int? sortOrder, bool isVisible, string modifiedBy)
+        int? sortOrder, bool isVisible, string modifiedBy, string? permissionCriteria = null)
     {
         const string sql = """
             SET XACT_ABORT ON;
@@ -842,6 +860,7 @@ public sealed class SysRepository
                    ScreenNameEn    = @NameEn,
                    HRef            = @HRef,
                    LidLabel        = @Lid,
+                   PermissionCriteria = ISNULL(@Perm, PermissionCriteria),
                    SortOrder       = @Sort,
                    IsVisible       = @Visible,
                    ModifiedBy      = @ModifiedBy,
@@ -854,9 +873,24 @@ public sealed class SysRepository
              WHERE ScreenCode = @OldCode
                AND (@OldCode <> @Code OR ISNULL(ModuleCode, '') <> @Module
                     OR ISNULL(ProcessCode, '') <> ISNULL(@Process, ''));
+
+            IF @Perm IS NOT NULL
+            BEGIN
+                UPDATE rp
+                   SET PermissionLevel = x.NewLevel, ModifiedBy = @ModifiedBy, ModifiedTS = SYSDATETIME()
+                  FROM dbo.SYS_RolePermission rp
+                 CROSS APPLY (SELECT UPPER(ISNULL(rp.PermissionLevel, '')) AS Lv) a
+                 CROSS APPLY (SELECT CASE WHEN CHARINDEX('R', a.Lv) > 0 THEN 'R' ELSE '_' END
+                                   + CASE WHEN SUBSTRING(@Perm, 2, 1) = 'X' THEN 'X' WHEN CHARINDEX('E', a.Lv) > 0 THEN 'E' ELSE '_' END
+                                   + CASE WHEN SUBSTRING(@Perm, 3, 1) = 'X' THEN 'X' WHEN CHARINDEX('A', a.Lv) > 0 THEN 'A' ELSE '_' END AS NewLevel) x
+                 WHERE rp.ScreenCode = @Code
+                   AND ISNULL(rp.PermissionLevel, '') COLLATE Latin1_General_BIN <> x.NewLevel COLLATE Latin1_General_BIN;
+                DELETE dbo.SYS_RolePermission WHERE ScreenCode = @Code AND PermissionLevel COLLATE Latin1_General_BIN NOT LIKE '%[REA]%';
+            END
             COMMIT TRANSACTION;
             """;
         Exec(sql,
+            ("@Perm",       permissionCriteria is null ? (object)DBNull.Value : PermissionSlots.NormalizeTemplate(permissionCriteria)),
             ("@Id",         screenId),
             ("@Code",       screenCode),
             ("@Module",     moduleCode),
@@ -905,7 +939,8 @@ public sealed class SysRepository
         r["ProcessCode"] as string, r["SubProcessCode"] as string,
         (string)r["ScreenName"], r["ScreenNameEn"] as string,
         r["HRef"] as string, r["LidLabel"] as string,
-        r["SortOrder"] as int?, (bool)r["IsVisible"], (int)r["RoleCount"]);
+        r["SortOrder"] as int?, (bool)r["IsVisible"], (int)r["RoleCount"],
+        PermissionSlots.NormalizeTemplate(r["PermissionCriteria"] as string));
 
     // ── SYS-07 Notification Channels ───────────────────────────────────
     public List<NotifChannelRow> ListNotificationChannels()
@@ -1044,8 +1079,10 @@ public sealed class SysRepository
     /// <summary>
     /// 한 역할의 화면 권한을 한꺼번에 저장한다(SYS-004) — 레벨이 비면 행 삭제, 있으면 MERGE.
     /// 한 트랜잭션이라 중간에 실패하면 전부 되돌린다(10-07 — 전에는 화면마다 따로 저장해 일부만 바뀐 채 남을 수 있었다).
+    /// 값은 넘어온 부여 글자를 **DB 의 현재 화면 기본 권한(SYS_Screen.PermissionCriteria)** 으로 다시 3자리로 맞춰 쓴다(10-10) —
+    /// 화면을 연 사이 SYS-003 에서 기능을 끈 화면에 옛 부여가 저장되지 않게. 저장한 값(화면 코드 → 3자리)을 돌려준다(감사 기록용).
     /// </summary>
-    public void SaveRolePermissions(string roleId, string roleName, IEnumerable<RolePermissionItem> items, string modifiedBy)
+    public Dictionary<string, string> SaveRolePermissions(string roleId, string roleName, IEnumerable<RolePermissionItem> items, string modifiedBy)
     {
         const string sql = """
             IF @Level IS NULL
@@ -1068,6 +1105,12 @@ public sealed class SysRepository
 
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
+        // 기본 권한을 읽은 뒤 저장이 끝날 때까지 SYS-003 이 바꾸지 못하게 공유 잠금을 쥔다
+        var criteria = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        using (var q = new SqlCommand("SELECT ScreenCode, PermissionCriteria FROM dbo.SYS_Screen WITH (HOLDLOCK);", conn, tx))
+        using (var rd = q.ExecuteReader())
+            while (rd.Read()) criteria[rd.GetString(0)] = rd.GetString(1);
+        var saved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         using var cmd  = new SqlCommand(sql, conn, tx);
         cmd.Parameters.Add("@RoleID",     SqlDbType.NVarChar, 450).Value = roleId;
         cmd.Parameters.Add("@RoleName",   SqlDbType.VarChar,   40).Value = roleName;
@@ -1079,10 +1122,13 @@ public sealed class SysRepository
         {
             pModule.Value = (object?)it.ModuleCode ?? DBNull.Value;
             pScreen.Value = it.ScreenCode;
-            pLevel.Value  = string.IsNullOrEmpty(it.PermissionLevel) ? DBNull.Value : it.PermissionLevel;
+            var level = PermissionSlots.Compose(criteria.GetValueOrDefault(it.ScreenCode, PermissionSlots.Default), it.PermissionLevel);
+            pLevel.Value  = (object?)level ?? DBNull.Value;
             cmd.ExecuteNonQuery();
+            if (level is not null) saved[it.ScreenCode] = level;
         }
         tx.Commit();
+        return saved;
     }
 
     public (bool Ok, int Ms, string? Host) PingDatabase()
