@@ -4380,6 +4380,9 @@
   <data name="MD.Bom.Err.ApproveConflict" xml:space="preserve">
     <value>La vigencia se superpone con la versión aprobada {0}, por lo que no se puede aprobar. Defina una fecha de inicio posterior a la de {0}.</value>
   </data>
+  <data name="MD.Bom.Err.StatusChanged" xml:space="preserve">
+    <value>La versión {0} no se procesó porque otro usuario ya cambió su estado. Se volvió a cargar la lista.</value>
+  </data>
   <data name="MD.Bom.Msg.Superseded" xml:space="preserve">
     <value>Fecha de fin ajustada en versiones aprobadas anteriores: {0}</value>
   </data>
@@ -7171,7 +7174,7 @@
     <value>Ajuste</value>
   </data>
   <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
-    <value>Cambiar la existencia registra un ajuste (ADJ) por la diferencia.</value>
+    <value>La existencia no se puede cambiar aquí. Ajuste las cantidades en la PDA (Repuestos › Adjust, administrador).</value>
   </data>
   <data name="MD.SparePart.Hint.InitStock" xml:space="preserve">
     <value>La existencia inicial se registra como entrada (IN).</value>
@@ -7179,14 +7182,8 @@
   <data name="MD.SparePart.Note.InitStock" xml:space="preserve">
     <value>Existencia inicial al registrar el maestro</value>
   </data>
-  <data name="MD.SparePart.Note.MasterAdjust" xml:space="preserve">
-    <value>Existencia editada en el maestro {0} → {1}</value>
-  </data>
   <data name="MD.SparePart.Err.OnHandInvalid" xml:space="preserve">
     <value>La existencia debe ser 0 o más.</value>
-  </data>
-  <data name="MD.SparePart.Ok.StockAdjusted" xml:space="preserve">
-    <value>existencia {0} → {1} (ajuste registrado)</value>
   </data>
   <data name="Col.Image" xml:space="preserve">
     <value>Imagen</value>
@@ -10420,5 +10417,59 @@
   </data>
   <data name="PP.DowntimeMonitor.Link.Dtl" xml:space="preserve">
     <value>PP-DTL Gestión de paradas</value>
+  </data>
+  <data name="MD.Usage.Fmt" xml:space="preserve">
+    <value>{0}: {1} ({2})</value>
+  </data>
+  <data name="MD.Usage.Kind.BOM" xml:space="preserve">
+    <value>BOM</value>
+  </data>
+  <data name="MD.Usage.Kind.BOP" xml:space="preserve">
+    <value>BOP</value>
+  </data>
+  <data name="MD.Usage.Kind.MOLD" xml:space="preserve">
+    <value>Moldes</value>
+  </data>
+  <data name="MD.Usage.Kind.RESIN" xml:space="preserve">
+    <value>Resina de molde</value>
+  </data>
+  <data name="MD.Usage.Kind.WO" xml:space="preserve">
+    <value>Órdenes de trabajo</value>
+  </data>
+  <data name="MD.Usage.Kind.SO" xml:space="preserve">
+    <value>Pedidos de cliente</value>
+  </data>
+  <data name="MD.Usage.Kind.LOT" xml:space="preserve">
+    <value>Lotes</value>
+  </data>
+  <data name="MD.Usage.Kind.STOCK" xml:space="preserve">
+    <value>Ubicaciones con inventario</value>
+  </data>
+  <data name="MD.Usage.Kind.VENDOR" xml:space="preserve">
+    <value>Proveedores</value>
+  </data>
+  <data name="MD.Usage.Kind.SCHEDULE" xml:space="preserve">
+    <value>Programas de línea (línea·fecha)</value>
+  </data>
+  <data name="MD.Usage.Kind.PUBLISHED" xml:space="preserve">
+    <value>Programas publicados (línea·fecha)</value>
+  </data>
+  <data name="MD.Usage.Kind.APSLINE" xml:space="preserve">
+    <value>Configuración de línea APS</value>
+  </data>
+  <data name="MD.Usage.Kind.APSDEFAULT" xml:space="preserve">
+    <value>Patrón predeterminado de APS</value>
+  </data>
+  <data name="MD.Items.Err.InUse" xml:space="preserve">
+    <value>El artículo {0} no se puede eliminar porque está en uso — {1}. Para dejar de usarlo, desactívelo en lugar de eliminarlo.</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.InUse" xml:space="preserve">
+    <value>El patrón {0} no se puede eliminar porque está en uso — {1}. Para dejar de usarlo, cambie el estado a INACTIVE en lugar de eliminarlo.</value>
+  </data>
+  <data name="MD.SparePart.Hint.CodeLocked" xml:space="preserve">
+    <value>La categoría y el equipo aplicable forman parte del número de repuesto y no se pueden cambiar después del registro. Registre un repuesto nuevo para cambiarlos.</value>
+  </data>
+  <data name="SYS.Users.Err.RoleMissing" xml:space="preserve">
+    <value>El rol '{0}' ya no existe; otro usuario puede haberlo renombrado o eliminado en SYS-002. Se volvió a cargar la lista de roles; elija de nuevo y guarde. No se guardó nada.</value>
   </data>
 </root>

@@ -4383,6 +4383,9 @@
   <data name="MD.Bom.Err.ApproveConflict" xml:space="preserve">
     <value>Validity overlaps approved version {0}, so this version cannot be approved. Set its start date later than the start date of {0}.</value>
   </data>
+  <data name="MD.Bom.Err.StatusChanged" xml:space="preserve">
+    <value>Version {0} was not processed because another user has already changed its status. The list has been reloaded.</value>
+  </data>
   <data name="MD.Bom.Msg.Superseded" xml:space="preserve">
     <value>End date adjusted on previous approved version(s): {0}</value>
   </data>
@@ -7198,7 +7201,7 @@
     <value>Adjust</value>
   </data>
   <data name="MD.SparePart.Hint.OnHand" xml:space="preserve">
-    <value>Changing on-hand writes an adjustment (ADJ) transaction for the difference.</value>
+    <value>On-hand cannot be changed here. Adjust quantities on the PDA (Spare Parts › Adjust, admin).</value>
   </data>
   <data name="MD.SparePart.Hint.InitStock" xml:space="preserve">
     <value>Initial stock is recorded as a receipt (IN) transaction.</value>
@@ -7206,14 +7209,8 @@
   <data name="MD.SparePart.Note.InitStock" xml:space="preserve">
     <value>Initial stock at master registration</value>
   </data>
-  <data name="MD.SparePart.Note.MasterAdjust" xml:space="preserve">
-    <value>On-hand edited on master screen {0} → {1}</value>
-  </data>
   <data name="MD.SparePart.Err.OnHandInvalid" xml:space="preserve">
     <value>On-hand must be 0 or more.</value>
-  </data>
-  <data name="MD.SparePart.Ok.StockAdjusted" xml:space="preserve">
-    <value>on-hand {0} → {1} (adjustment logged)</value>
   </data>
   <data name="Col.Image" xml:space="preserve">
     <value>Image</value>
@@ -10420,5 +10417,59 @@
   </data>
   <data name="PP.DowntimeMonitor.Link.Dtl" xml:space="preserve">
     <value>PP-DTL Downtime Management</value>
+  </data>
+  <data name="MD.Usage.Fmt" xml:space="preserve">
+    <value>{0}: {1} ({2})</value>
+  </data>
+  <data name="MD.Usage.Kind.BOM" xml:space="preserve">
+    <value>BOM</value>
+  </data>
+  <data name="MD.Usage.Kind.BOP" xml:space="preserve">
+    <value>BOP</value>
+  </data>
+  <data name="MD.Usage.Kind.MOLD" xml:space="preserve">
+    <value>Molds</value>
+  </data>
+  <data name="MD.Usage.Kind.RESIN" xml:space="preserve">
+    <value>Mold resin</value>
+  </data>
+  <data name="MD.Usage.Kind.WO" xml:space="preserve">
+    <value>Work orders</value>
+  </data>
+  <data name="MD.Usage.Kind.SO" xml:space="preserve">
+    <value>Customer orders</value>
+  </data>
+  <data name="MD.Usage.Kind.LOT" xml:space="preserve">
+    <value>Lots</value>
+  </data>
+  <data name="MD.Usage.Kind.STOCK" xml:space="preserve">
+    <value>Stock locations</value>
+  </data>
+  <data name="MD.Usage.Kind.VENDOR" xml:space="preserve">
+    <value>Vendors</value>
+  </data>
+  <data name="MD.Usage.Kind.SCHEDULE" xml:space="preserve">
+    <value>Line schedules (line·date)</value>
+  </data>
+  <data name="MD.Usage.Kind.PUBLISHED" xml:space="preserve">
+    <value>Published schedules (line·date)</value>
+  </data>
+  <data name="MD.Usage.Kind.APSLINE" xml:space="preserve">
+    <value>APS line settings</value>
+  </data>
+  <data name="MD.Usage.Kind.APSDEFAULT" xml:space="preserve">
+    <value>APS default pattern</value>
+  </data>
+  <data name="MD.Items.Err.InUse" xml:space="preserve">
+    <value>Item {0} cannot be deleted because it is in use — {1}. To stop using it, turn off Active instead of deleting.</value>
+  </data>
+  <data name="MD.LineTimePattern.Err.InUse" xml:space="preserve">
+    <value>Pattern {0} cannot be deleted because it is in use — {1}. To stop using it, set Status to INACTIVE instead of deleting.</value>
+  </data>
+  <data name="MD.SparePart.Hint.CodeLocked" xml:space="preserve">
+    <value>Category and applicable equipment are part of the spare part number and cannot be changed after registration. Register a new part to change them.</value>
+  </data>
+  <data name="SYS.Users.Err.RoleMissing" xml:space="preserve">
+    <value>Role '{0}' no longer exists — another user may have renamed or deleted it in SYS-002. The role list has been reloaded; choose again and save. Nothing was saved.</value>
   </data>
 </root>

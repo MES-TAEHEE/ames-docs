@@ -346,16 +346,60 @@ public sealed class MasterDataRepository
             ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag), ("@Box", boxQty),
             ("@By",     modifiedBy), ("@BoxScan", scanRequired));
 
-    public void DeleteItem(string itemNo)
-        => Exec("""
-            IF EXISTS
-            (
-                SELECT 1 FROM dbo.WH_Inventory
-                WHERE PartNo COLLATE DATABASE_DEFAULT = @N COLLATE DATABASE_DEFAULT AND Qty<>0
-            )
-                THROW 52070, 'The item cannot be deleted while inventory exists.', 1;
-            DELETE dbo.MD_Item WHERE ItemNo=@N;
-            """, ("@N", itemNo));
+    /// <summary>
+    /// 사용처가 하나도 없을 때만 품목을 지우고 빈 목록을 돌려준다. 사용처가 있으면 지우지 않고 그 목록을 돌려준다 —
+    /// FK 가 없으므로(사용자 결정) 고아 행을 막는 책임이 여기 있다. 사용처 = BOM(버전 최상위·부모·구성품)·BOP·작업지시(헤더·단계 품번)·
+    /// 금형(품번·레진)·수주·LOT·재고(수량 ≠ 0 위치)·공급사 매핑. 이력·계획 스냅샷 테이블(MRP·APS·예측·QC 기록 등)은 보지 않는다.
+    /// </summary>
+    public List<UsageRef> DeleteItem(string itemNo)
+        => DeleteIfUnused("""
+            IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WITH (UPDLOCK, HOLDLOCK) WHERE ItemNo = @K) RETURN;
+            INSERT @r SELECT 'BOM', VersionID FROM dbo.MD_BomVersion WHERE RootItemNo = @K
+                UNION SELECT 'BOM', ISNULL(VersionID, BOMID) FROM dbo.MD_Bom WHERE ParentItemNo = @K OR CompItemNo = @K;
+            INSERT @r SELECT 'BOP', ISNULL(StationCode, '-') + ' #' + ISNULL(CAST(StepSeq AS varchar(10)), '-') FROM dbo.MD_Bop WHERE ItemNo = @K;
+            INSERT @r SELECT 'WO', WoNumber FROM dbo.PP_WorkOrder WHERE ItemNo = @K
+                UNION SELECT 'WO', w.WoNumber FROM dbo.PP_WorkOrderRouting s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE s.ItemNo = @K;
+            INSERT @r SELECT DISTINCT 'MOLD',  MoldID FROM dbo.MD_MoldItem WHERE ItemNo = @K;
+            INSERT @r SELECT DISTINCT 'RESIN', MoldID FROM dbo.MD_MoldItem WHERE ResinItemNo = @K;
+            INSERT @r SELECT 'SO', SoNumber + ISNULL('-' + CAST(SoLineNo AS varchar(10)), '') FROM dbo.PP_CustomerOrder WHERE ItemNo = @K;
+            INSERT @r SELECT 'LOT', ISNULL(LotCode, CAST(LotID AS varchar(20))) FROM dbo.tbl_Lot WHERE ItemNo = @K;
+            INSERT @r SELECT DISTINCT 'STOCK', ISNULL(LocationNo, '-') FROM dbo.WH_Inventory
+                WHERE PartNo COLLATE DATABASE_DEFAULT = @K COLLATE DATABASE_DEFAULT AND Qty <> 0;
+            INSERT @r SELECT 'VENDOR', VendorID FROM dbo.SCM_ItemVendor WHERE ItemNo = @K;
+            """, "DELETE dbo.MD_Item WHERE ItemNo = @K;", itemNo);
+
+    /// <summary>삭제를 막은 사용처 한 종류 — Kind 코드, 건수, 앞 3건 예시(쉼표 구분).</summary>
+    public sealed record UsageRef(string Kind, int Count, string? Samples);
+
+    // 키 행을 잠근 채 사용처(@r: K = 종류, R = 식별값)를 모아 없으면 지운다. 한 트랜잭션이라 검사와 삭제 사이에 새 사용처가 끼지 않는다
+    List<UsageRef> DeleteIfUnused(string collectSql, string deleteSql, string key)
+    {
+        var sql = $"""
+            SET NOCOUNT ON;
+            DECLARE @r TABLE (K varchar(10), R nvarchar(100));
+            {collectSql}
+            IF EXISTS (SELECT 1 FROM @r)
+            BEGIN
+                SELECT K, COUNT(*) AS Cnt, STRING_AGG(CASE WHEN rn <= 3 THEN R END, ', ') WITHIN GROUP (ORDER BY rn) AS Samples
+                FROM  (SELECT K, R, ROW_NUMBER() OVER (PARTITION BY K ORDER BY R DESC) AS rn FROM @r) x
+                GROUP BY K;
+                RETURN;
+            END
+            {deleteSql}
+            """;
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var refs = new List<UsageRef>();
+        using (var cmd = new SqlCommand(sql, conn, tx))
+        {
+            cmd.Parameters.Add("@K", SqlDbType.VarChar, 20).Value = key;
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) refs.Add(new((string)r["K"], (int)r["Cnt"], r["Samples"] as string));
+        }
+        if (refs.Count > 0) { tx.Rollback(); return refs; }
+        tx.Commit();
+        return refs;
+    }
 
     // ── MD-03 BomVersion ─────────────────────────────────────────────────
     public List<BomVersionRow> ListBomVersions(string? statusFilter = null)
@@ -419,10 +463,11 @@ public sealed class MasterDataRepository
             ("@ET",   effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
             ("@CT",   changeType),  ("@CR",  changeReason), ("@By", createdBy));
 
-    public void UpdateBomVersion(string versionId, string? rootItemNo, string? versionNo,
+    /// <summary>DRAFT 버전만 고친다. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
+    public bool UpdateBomVersion(string versionId, string? rootItemNo, string? versionNo,
         DateOnly? effFrom, DateOnly? effTo, string? changeType, string? changeReason,
         string modifiedBy)
-        => Exec("""
+        => ExecCount("""
             UPDATE dbo.MD_BomVersion
             SET    RootItemNo=@Root, VersionNo=@VNo, EffFrom=@EF, EffTo=@ET,
                    ChangeType=@CT, ChangeReason=@CR,
@@ -432,28 +477,49 @@ public sealed class MasterDataRepository
             ("@ID",   versionId),  ("@Root", rootItemNo), ("@VNo", versionNo),
             ("@EF",   effFrom.HasValue ? (object)effFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value),
             ("@ET",   effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
-            ("@CT",   changeType), ("@CR", changeReason), ("@By", modifiedBy));
+            ("@CT",   changeType), ("@CR", changeReason), ("@By", modifiedBy)) > 0;
 
-    public void DeleteBomVersion(string versionId)
+    /// <summary>
+    /// DRAFT 버전을 라인째 한 트랜잭션으로 지운다. 다른 사용자가 이미 승인 요청·승인 등으로 상태를 바꿨거나
+    /// 버전이 없으면 아무것도 지우지 않고 false — 승인된 BOM 이 라인 없이 남아 MRP·코어 해석·APS 가 빈 BOM 을 보는 일을 막는다.
+    /// </summary>
+    public bool DeleteBomVersion(string versionId)
     {
-        Exec("DELETE dbo.MD_Bom WHERE VersionID=@V",        ("@V", versionId));
-        Exec("DELETE dbo.MD_BomVersion WHERE VersionID=@V", ("@V", versionId));
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        using (var cmd = new SqlCommand(
+            "SELECT Status FROM dbo.MD_BomVersion WITH (UPDLOCK, HOLDLOCK) WHERE VersionID=@V", conn, tx))
+        {
+            cmd.Parameters.Add("@V", SqlDbType.VarChar, 24).Value = versionId;
+            if ((cmd.ExecuteScalar() as string) != "DRAFT") { tx.Rollback(); return false; }
+        }
+        using (var cmd = new SqlCommand("""
+            DELETE dbo.MD_Bom WHERE VersionID=@V;
+            DELETE dbo.MD_BomVersion WHERE VersionID=@V AND Status='DRAFT';
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@V", SqlDbType.VarChar, 24).Value = versionId;
+            cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
+        return true;
     }
 
-    public void RequestBomApproval(string versionId, string requestedBy)
-        => Exec("""
+    /// <summary>DRAFT → PENDING. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
+    public bool RequestBomApproval(string versionId, string requestedBy)
+        => ExecCount("""
             UPDATE dbo.MD_BomVersion
             SET    Status='PENDING', RequestedBy=@By,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@V AND Status='DRAFT'
             """,
-            ("@V", versionId), ("@By", requestedBy));
+            ("@V", versionId), ("@By", requestedBy)) > 0;
 
     /// <summary>
     /// PENDING 버전을 승인하고, 기간이 겹치는 같은 품번의 기존 승인 버전 종료일을 닫는다(규칙 <see cref="BomVersionRules.PlanApproval"/>).
-    /// 닫을 수 없으면 아무것도 바꾸지 않고 Conflict 를 채워 돌려준다. PENDING 이 아니면 빈 계획(변경 없음).
+    /// 닫을 수 없으면 아무것도 바꾸지 않고 Conflict 를 채워 돌려준다. PENDING 이 아니면(다른 사용자가 이미 처리) null(변경 없음).
     /// </summary>
-    public BomVersionRules.ApprovalPlan ApproveBomVersion(string versionId, string approvedBy)
+    public BomVersionRules.ApprovalPlan? ApproveBomVersion(string versionId, string approvedBy)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -473,7 +539,7 @@ public sealed class MasterDataRepository
                 pending = (r["Status"] as string) == "PENDING";
             }
         }
-        if (!pending) { tx.Rollback(); return new BomVersionRules.ApprovalPlan(null, []); }
+        if (!pending) { tx.Rollback(); return null; }
 
         var others = new List<BomVersionRules.Range>();
         using (var cmd = new SqlCommand("""
@@ -566,23 +632,25 @@ public sealed class MasterDataRepository
         return ids;
     }
 
-    public void RejectBomVersion(string versionId, string rejectedBy)
-        => Exec("""
+    /// <summary>PENDING → REJECTED. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
+    public bool RejectBomVersion(string versionId, string rejectedBy)
+        => ExecCount("""
             UPDATE dbo.MD_BomVersion
             SET    Status='REJECTED',
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@V AND Status='PENDING'
             """,
-            ("@V", versionId), ("@By", rejectedBy));
+            ("@V", versionId), ("@By", rejectedBy)) > 0;
 
-    public void ReviveBomVersion(string versionId, string modifiedBy)
-        => Exec("""
+    /// <summary>REJECTED → DRAFT. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
+    public bool ReviveBomVersion(string versionId, string modifiedBy)
+        => ExecCount("""
             UPDATE dbo.MD_BomVersion
             SET    Status='DRAFT', ApprovedBy=NULL, ApprovedTS=NULL,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@V AND Status='REJECTED'
             """,
-            ("@V", versionId), ("@By", modifiedBy));
+            ("@V", versionId), ("@By", modifiedBy)) > 0;
 
     // ── MD-03 BomLine ────────────────────────────────────────────────────
     public List<BomRow> ListBomLines(string versionId)
@@ -670,12 +738,14 @@ public sealed class MasterDataRepository
             ("@I", bomId), ("@By", modifiedBy));
 
     // ── Private helpers ──────────────────────────────────────────────────
-    private void Exec(string sql, params (string Name, object? Val)[] p)
+    private void Exec(string sql, params (string Name, object? Val)[] p) => ExecCount(sql, p);
+
+    private int ExecCount(string sql, params (string Name, object? Val)[] p)
     {
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         foreach (var (n, v) in p) cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
-        cmd.ExecuteNonQuery();
+        return cmd.ExecuteNonQuery();
     }
 
     private List<T> Query<T>(string sql, Func<SqlDataReader, T> map,
@@ -4225,8 +4295,11 @@ public sealed class MasterDataRepository
         catch { tx.Rollback(); throw; }
     }
 
-    /// <summary>키는 SparePartNo. PartNo 는 속성이라 수정 대상이 아니고(고유 인덱스), 현재고(OnHandQty)는 입출고로만 바뀐다.</summary>
-    public void UpdateSparePart(string sparePartNo, string? partName, string? category, string? applicableEquip,
+    /// <summary>
+    /// 키는 SparePartNo. PartNo 는 속성이라 수정 대상이 아니고(고유 인덱스), 현재고(OnHandQty)는 입출고로만 바뀐다.
+    /// 분류·적용설비도 바꾸지 않는다 — 예비품번호 EOS-SP-{분류}{적용설비}-… 에 들어간 값이라 바꾸면 번호와 어긋난다.
+    /// </summary>
+    public void UpdateSparePart(string sparePartNo, string? partName,
         decimal? unitCost, string? uom,
         int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
         string? supplierId, bool activeFlag, string modifiedBy,
@@ -4235,7 +4308,7 @@ public sealed class MasterDataRepository
         (slot, extraLocation) = NormalizeSpareLocation(zoneCode, slot, extraLocation);
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
-            "UPDATE dbo.MD_SparePart SET PartName=@PN,Category=@CAT,ApplicableEquip=@EQ,UnitCost=@UC,UOM=@UOM," +
+            "UPDATE dbo.MD_SparePart SET PartName=@PN,UnitCost=@UC,UOM=@UOM," +
             "SafetyStock=@SS,ReorderPoint=@RP,ReorderQty=@RQ,LeadTimeDays=@LT,Maker=@MK," +
             "SupplierID=@SI,ActiveFlag=@AF,ZoneCode=@ZC,Slot=@SLT,ExtraLocation=@XL," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE SparePartNo=@P;", conn);
@@ -4245,8 +4318,6 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@ZC",  SqlDbType.VarChar,   20).Value  = (object?)zoneCode ?? DBNull.Value;
         cmd.Parameters.Add("@SLT", SqlDbType.VarChar,    5).Value  = (object?)slot     ?? DBNull.Value;
         cmd.Parameters.Add("@PN",  SqlDbType.NVarChar,  60).Value  = (object?)partName    ?? DBNull.Value;
-        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    1).Value  = (object?)category    ?? DBNull.Value;
-        cmd.Parameters.Add("@EQ",  SqlDbType.VarChar,    1).Value  = (object?)applicableEquip ?? DBNull.Value;
         cmd.Parameters.Add("@UC",  SqlDbType.Decimal).Value        = (object?)unitCost    ?? DBNull.Value;
         if (unitCost.HasValue) { cmd.Parameters["@UC"].Precision = 12; cmd.Parameters["@UC"].Scale = 2; }
         cmd.Parameters.Add("@UOM", SqlDbType.VarChar,   10).Value  = (object?)uom         ?? DBNull.Value;
@@ -4458,20 +4529,22 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteLineTimePattern(string patternId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var tx   = conn.BeginTransaction();
-        try
-        {
-            using (var c1 = new SqlCommand("DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID=@I;", conn, tx))
-            { c1.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId; c1.ExecuteNonQuery(); }
-            using (var c2 = new SqlCommand("DELETE FROM dbo.MD_LineTimePattern WHERE PatternID=@I;", conn, tx))
-            { c2.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = patternId; c2.ExecuteNonQuery(); }
-            tx.Commit();
-        }
-        catch { tx.Rollback(); throw; }
-    }
+    /// <summary>
+    /// 사용처가 없을 때만 패턴과 그 세그먼트를 지우고 빈 목록을 돌려준다. 사용처 = 라인 스케줄(PP_LineSchedule — 지난 날짜 포함)·
+    /// 발행 기록(PP_ProductionCalendarOverride)·APS 라인 설정(MD_ApsLineStage)·APS 기본 패턴(APS_SETTING.DEFAULT_PATTERN).
+    /// </summary>
+    public List<UsageRef> DeleteLineTimePattern(string patternId)
+        => DeleteIfUnused("""
+            IF NOT EXISTS (SELECT 1 FROM dbo.MD_LineTimePattern WITH (UPDLOCK, HOLDLOCK) WHERE PatternID = @K) RETURN;
+            INSERT @r SELECT DISTINCT 'SCHEDULE', LineID + ' ' + CONVERT(char(10), ScheduleDate, 23) FROM dbo.PP_LineSchedule WHERE PatternID = @K;
+            INSERT @r SELECT DISTINCT 'PUBLISHED', ISNULL(LineID, '-') + ' ' + CONVERT(char(10), OverrideDate, 23) FROM dbo.PP_ProductionCalendarOverride WHERE PatternID = @K;
+            INSERT @r SELECT 'APSLINE', LineID FROM dbo.MD_ApsLineStage WHERE PatternID = @K;
+            INSERT @r SELECT 'APSDEFAULT', 'APS_SETTING.DEFAULT_PATTERN' FROM dbo.MD_CodeItem
+                WHERE GroupCode = 'APS_SETTING' AND CodeValue = 'DEFAULT_PATTERN' AND Attribute1 = @K;
+            """, """
+            DELETE dbo.MD_LineTimeSegment WHERE PatternID = @K;
+            DELETE dbo.MD_LineTimePattern WHERE PatternID = @K;
+            """, patternId);
 
     // ── MD_LineTimeSegment 편집기 저장 ─────────────────────────────────
     // 편집기 드래프트 전체 저장: 기존 세그먼트 삭제 후 전달된 세그먼트로 재구성(트랜잭션).

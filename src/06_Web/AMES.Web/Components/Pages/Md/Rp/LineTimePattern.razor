@@ -1010,8 +1010,14 @@
         try
         {
             var id = _sel.PatternID;
+            var usages = MD.DeleteLineTimePattern(id);
+            if (usages.Count > 0)
+            {
+                _modalErr = string.Format(L["MD.LineTimePattern.Err.InUse"].Value, id, AMES.Web.Services.UsageText.Format(L, usages));
+                _confirmDelete = false;
+                return;
+            }
             if (_editId == id) await CloseEditor();
-            MD.DeleteLineTimePattern(id);
             Audit.Deleted("MD-028", "MD_LineTimePattern", id, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);

@@ -66,14 +66,15 @@ public sealed class UnifiedInventoryIntegrationTests
         try
         {
             var repo = new MasterDataRepository(f!);
-            Assert.Equal(52070, Assert.Throws<SqlException>(() => repo.DeleteItem(Item)).Number);
+            Assert.Contains(repo.DeleteItem(Item), u => u.Kind == "STOCK");
+            Assert.True(repo.ItemExists(Item));
             Assert.Equal(52071, Assert.Throws<SqlException>(() => repo.DeleteLocation(MatLocation)).Number);
 
             Exec(f!, "DELETE dbo.WH_Inventory WHERE LotNo LIKE 'ITEST-INV-LOT-%';");
             repo.DeleteLocation(MatLocation);
             repo.DeleteLocation(FgLocation);
             repo.DeleteLocation(MntLocation);
-            repo.DeleteItem(Item);
+            Assert.Empty(repo.DeleteItem(Item));
             Assert.False(repo.ItemExists(Item));
         }
         finally { Cleanup(f!); }

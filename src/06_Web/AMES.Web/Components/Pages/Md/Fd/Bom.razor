@@ -575,6 +575,13 @@
         await RestorePages();
     }
 
+    // 오래 열린 화면에서 다른 사용자가 먼저 상태를 바꾼 경우 — 감사 로그 없이 새로 읽고 안내만 한다
+    async Task StatusChanged(string versionId)
+    {
+        await RefreshVersion(versionId);
+        ShowMsg(string.Format(L["MD.Bom.Err.StatusChanged"], versionId), true);
+    }
+
     // ── 워크플로 액션 (모달 없음) ─────────────────────────────────────────
     async Task DoRequestApproval()
     {
@@ -582,7 +589,13 @@
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
-        try { MD.RequestBomApproval(id, _actor); Audit.Log("MD-004", "REQUEST", "MD_BomVersion", id, _selVer, new { Status = "PENDING" }); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.ApprovalRequested"]}", false); }
+        try
+        {
+            if (!MD.RequestBomApproval(id, _actor)) { await StatusChanged(id); return; }
+            Audit.Log("MD-004", "REQUEST", "MD_BomVersion", id, _selVer, new { Status = "PENDING" });
+            await RefreshVersion(id);
+            ShowMsg($"{id} {L["Msg.ApprovalRequested"]}", false);
+        }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _busy = false; }
     }
@@ -598,6 +611,7 @@
             var before = _selVer;
             var prior  = MD.ListBomVersions("APPROVED").ToDictionary(v => v.VersionID);
             var plan   = MD.ApproveBomVersion(id, _actor);
+            if (plan is null) { await StatusChanged(id); return; }
             if (plan.Conflict is not null) { ShowMsg(string.Format(L["MD.Bom.Err.ApproveConflict"], plan.Conflict), true); return; }
             foreach (var (closedId, newTo) in plan.Close)
                 Audit.Log("MD-004", "SUPERSEDE", "MD_BomVersion", closedId,
@@ -618,7 +632,13 @@
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
-        try { MD.RejectBomVersion(id, _actor); Audit.Log("MD-004", "REJECT", "MD_BomVersion", id, _selVer, new { Status = "REJECTED" }); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.Rejected"]}", true); }
+        try
+        {
+            if (!MD.RejectBomVersion(id, _actor)) { await StatusChanged(id); return; }
+            Audit.Log("MD-004", "REJECT", "MD_BomVersion", id, _selVer, new { Status = "REJECTED" });
+            await RefreshVersion(id);
+            ShowMsg($"{id} {L["Msg.Rejected"]}", true);
+        }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _busy = false; }
     }
@@ -629,7 +649,13 @@
         if (_selVer is null) return;
         var id = _selVer.VersionID;
         _busy = true;
-        try { MD.ReviveBomVersion(id, _actor); Audit.Log("MD-004", "REVIVE", "MD_BomVersion", id, _selVer, new { Status = "DRAFT" }); await RefreshVersion(id); ShowMsg($"{id} {L["Msg.Revived"]}", false); }
+        try
+        {
+            if (!MD.ReviveBomVersion(id, _actor)) { await StatusChanged(id); return; }
+            Audit.Log("MD-004", "REVIVE", "MD_BomVersion", id, _selVer, new { Status = "DRAFT" });
+            await RefreshVersion(id);
+            ShowMsg($"{id} {L["Msg.Revived"]}", false);
+        }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _busy = false; }
     }
@@ -643,7 +669,7 @@
         try
         {
             var lines = _lines.ToList();
-            MD.DeleteBomVersion(id);
+            if (!MD.DeleteBomVersion(id)) { _verDelConfirm = false; await StatusChanged(id); return; }
             // 버전 삭제는 라인도 물리 삭제하므로 전 스냅샷에 라인을 함께 남긴다
             Audit.Deleted("MD-004", "MD_BomVersion", id, new { Version = _selVer, Lines = lines });
             _selVer = null; _lines = new(); _verDelConfirm = false;
@@ -751,8 +777,13 @@
         _busy = true;
         try
         {
-            MD.UpdateBomVersion(_fv.VersionId, NE(_fv.RootItemNo), NE(_fv.VersionNo),
-                _fv.EffFrom, _fv.EffTo, NE(_fv.ChangeType), NE(_fv.ChangeReason), _actor);
+            if (!MD.UpdateBomVersion(_fv.VersionId, NE(_fv.RootItemNo), NE(_fv.VersionNo),
+                    _fv.EffFrom, _fv.EffTo, NE(_fv.ChangeType), NE(_fv.ChangeReason), _actor))
+            {
+                CloseModal();
+                await StatusChanged(_fv.VersionId);
+                return;
+            }
             Audit.Updated("MD-004", "MD_BomVersion", _fv.VersionId, _selVer, _fv);
             await RefreshVersion(_fv.VersionId);
             CloseModal();

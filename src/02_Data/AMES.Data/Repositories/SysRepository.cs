@@ -61,6 +61,8 @@ public sealed class SysRepository
         string? ProcessCode, string? SubProcessCode, string ScreenName, string? ScreenNameEn, string? HRef, string? LidLabel,
         int? SortOrder, bool IsVisible, int RoleCount);
 
+    public sealed record ScreenPermRow(string? RoleId, string? RoleName, string? PermissionLevel);
+
     public sealed record ConfigRow(int ConfigId, string? ConfigKey, string? ConfigType,
         string? Category, string? ConfigValue, string? CodeName, string? Unit,
         bool IsActive, int? SortOrder);
@@ -131,6 +133,36 @@ public sealed class SysRepository
         cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
         cmd.Parameters.Add("@RoleId", SqlDbType.NVarChar, 450).Value = roleId;
         return cmd.ExecuteScalar() is not null;
+    }
+
+    /// <summary>
+    /// 사용자의 역할을 <paramref name="roleName"/> 하나로(null 이면 역할 없음) 한 트랜잭션으로 바꾼다 — 이름으로 찾은 역할 ID 를 넣는다.
+    /// 역할(화면을 연 사이 SYS-002 에서 이름 변경·삭제)이나 사용자가 없으면 아무것도 바꾸지 않고 NotFound.
+    /// Identity 의 RemoveFromRoles + AddToRole 두 번 호출은 뒤쪽만 실패하면 역할 없는 계정이 남았다.
+    /// </summary>
+    public RoleChangeResult SetUserRole(string userId, string? roleName)
+    {
+        const string sql = """
+            SET NOCOUNT ON;
+            DECLARE @RoleId nvarchar(450) = NULL;
+            IF @Name IS NOT NULL
+            BEGIN
+                SELECT @RoleId = Id FROM dbo.AspNetRoles WITH (UPDLOCK, HOLDLOCK) WHERE NormalizedName = UPPER(@Name);
+                IF @RoleId IS NULL BEGIN SELECT 0; RETURN; END
+            END
+            IF NOT EXISTS (SELECT 1 FROM dbo.AspNetUsers WITH (UPDLOCK, HOLDLOCK) WHERE Id = @UserId) BEGIN SELECT 0; RETURN; END
+            DELETE dbo.AspNetUserRoles WHERE UserId = @UserId;
+            IF @RoleId IS NOT NULL INSERT dbo.AspNetUserRoles (UserId, RoleId) VALUES (@UserId, @RoleId);
+            SELECT 1;
+            """;
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        using var cmd  = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+        cmd.Parameters.Add("@Name",   SqlDbType.NVarChar, 256).Value = string.IsNullOrWhiteSpace(roleName) ? DBNull.Value : roleName.Trim();
+        if (Convert.ToInt32(cmd.ExecuteScalar()) != 1) { tx.Rollback(); return RoleChangeResult.NotFound; }
+        tx.Commit();
+        return RoleChangeResult.Ok;
     }
 
     public List<UserSelectRow> ListUsersForSelect()
@@ -839,9 +871,33 @@ public sealed class SysRepository
             ("@ModifiedBy", modifiedBy));
     }
 
-    public void DeleteScreen(int screenId, string deletedBy)
+    /// <summary>
+    /// 화면과 그 화면 코드의 역할 권한 행을 한 트랜잭션으로 지우고, 지운 권한을 돌려준다(감사 기록용).
+    /// 권한 행을 남기면 같은 코드로 새 화면을 등록할 때 옛 권한이 그대로 살아나고, 다른 화면을 그 코드로 바꾸는 것은 막힌다(51823).
+    /// </summary>
+    public List<ScreenPermRow> DeleteScreen(int screenId, string deletedBy)
     {
-        Exec("DELETE FROM dbo.SYS_Screen WHERE ScreenID = @Id", ("@Id", screenId));
+        const string sql = """
+            SET NOCOUNT ON;
+            DECLARE @Code varchar(20);
+            SELECT @Code = ScreenCode FROM dbo.SYS_Screen WITH (UPDLOCK, HOLDLOCK) WHERE ScreenID = @Id;
+            IF @Code IS NULL RETURN;
+            DELETE dbo.SYS_RolePermission
+            OUTPUT deleted.RoleID, deleted.RoleName, deleted.PermissionLevel
+            WHERE  ScreenCode = @Code;
+            DELETE dbo.SYS_Screen WHERE ScreenID = @Id;
+            """;
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var removed = new List<ScreenPermRow>();
+        using (var cmd = new SqlCommand(sql, conn, tx))
+        {
+            cmd.Parameters.Add("@Id", SqlDbType.Int).Value = screenId;
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) removed.Add(new(r["RoleID"] as string, r["RoleName"] as string, r["PermissionLevel"] as string));
+        }
+        tx.Commit();
+        return removed;
     }
 
     private static ScreenRow MapScreen(IDataReader r) => new(

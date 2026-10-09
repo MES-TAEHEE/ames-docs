@@ -222,7 +222,7 @@
                     <RadzenNumeric TValue="int?" @bind-Value="_f.SafetyStock" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
-            @* 현재고는 이력과 어긋나면 안 되므로 등록 시 초기 재고는 IN, 수정 시 차이는 ADJ 이력으로 남긴다 *@
+            @* 현재고는 등록 시 초기 재고(IN 이력)로만 정하고 이후 조정은 PDA 예비품 Adjust 에서 한다 — 화면을 연 시점 값으로 차이를 내면 그사이 PDA 입출고를 덮는다 *@
             <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
 
             @ImageBlock
@@ -306,17 +306,19 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Category"]" />
-                    <RadzenDropDown @bind-Value="_f.Category" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    @* 분류·적용 설비는 예비품번호에 들어간 값이라 등록 후 바꾸지 않는다(저장도 하지 않음) *@
+                    <RadzenDropDown @bind-Value="_f.Category" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" title="@L["MD.SparePart.Hint.CodeLocked"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.ApplicableEquip"]" />
-                    <RadzenDropDown @bind-Value="_f.ApplicableEquip" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.ApplicableEquip" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" title="@L["MD.SparePart.Hint.CodeLocked"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Uom"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOM" Data="UomOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
+            <div class="dim" style="font-size:.78em;margin-top:2px;">ⓘ @L["MD.SparePart.Hint.CodeLocked"]</div>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
@@ -325,14 +327,14 @@
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.OnHand"]" />
-                    <RadzenNumeric TValue="int" @bind-Value="_f.OnHandQty" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int" @bind-Value="_f.OnHandQty" Disabled="true" title="@L["MD.SparePart.Hint.OnHand"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Safety"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.SafetyStock" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
-            @* 현재고는 이력과 어긋나면 안 되므로 등록 시 초기 재고는 IN, 수정 시 차이는 ADJ 이력으로 남긴다 *@
+            @* 현재고는 등록 시 초기 재고(IN 이력)로만 정하고 이후 조정은 PDA 예비품 Adjust 에서 한다 — 화면을 연 시점 값으로 차이를 내면 그사이 PDA 입출고를 덮는다 *@
             <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
 
             @ImageBlock
@@ -610,30 +612,18 @@
         if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
-        // 분류·적용 설비는 예비품번호의 구성 요소라 비울 수 없다(번호 자체는 등록 시 확정된 값을 유지)
-        if (string.IsNullOrWhiteSpace(_f.Category))        { _modalErr = L["MD.SparePart.Err.CategoryRequired"]; return; }
-        if (string.IsNullOrWhiteSpace(_f.ApplicableEquip)) { _modalErr = L["MD.SparePart.Err.EquipRequired"]; return; }
-        if (_f.OnHandQty < 0) { _modalErr = L["MD.SparePart.Err.OnHandInvalid"]; return; }
         _busy = true;
         try
         {
-            MD.UpdateSparePart(_sel.SparePartNo, NE(_f.PartName), NE(_f.Category), NE(_f.ApplicableEquip),
+            MD.UpdateSparePart(_sel.SparePartNo, NE(_f.PartName),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
                 NE(_f.SupplierID), _f.ActiveFlag, _actor, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker), NE(_f.ExtraLocation));
             Audit.Updated("MD-026", "MD_SparePart", _sel.SparePartNo, _sel, _f);
             // 이미지는 바뀐 경우에만 따로 쓴다 — 매 수정마다 바이트를 다시 보내지 않기 위해
             if (_f.ImageChanged) MD.UpdateSparePartImage(_sel.SparePartNo, _f.Image, _actor);
-            // 현재고 변경은 차이만큼 조정(ADJ) 이력으로 — 마스터 값을 직접 덮어쓰지 않는다
-            var msg = $"{_sel.PartNo} {L["Msg.Updated"]}";
-            if (_f.OnHandQty != _sel.OnHandQty)
-            {
-                var r = Mnt.AdjustSparePartStock(_sel.SparePartNo, MntRepository.SpareMoveTypes.Adjust, _f.OnHandQty - _sel.OnHandQty,
-                    "ADJ", null, string.Format(L["MD.SparePart.Note.MasterAdjust"].Value, _sel.OnHandQty, _f.OnHandQty), _actor);
-                msg += " · " + string.Format(L["MD.SparePart.Ok.StockAdjusted"].Value, r.BalanceBefore, r.BalanceAfter);
-            }
             CloseModal(); await ReloadRestorePage();
-            ShowMsg(msg, false);
+            ShowMsg($"{_sel.PartNo} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }

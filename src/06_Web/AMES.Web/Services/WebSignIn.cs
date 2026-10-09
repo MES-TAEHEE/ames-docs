@@ -68,7 +68,14 @@ public sealed class WebSignIn(
         if (!active && !locked) return Error("Auth.Err.Inactive");
 
         var result = await signIn.PasswordSignInAsync(user, password!, rememberMe, lockoutOnFailure: false);
-        if (result.Succeeded || result.RequiresTwoFactor)
+        // 2단계 인증은 쓰지 않는다(10-09 사용자 결정, 화면 삭제) — DB 에 TwoFactorEnabled 가 남은 계정도 비밀번호 확인으로 로그인을 마친다
+        if (result.RequiresTwoFactor)
+        {
+            await ctx.SignOutAsync(IdentityConstants.TwoFactorUserIdScheme);
+            await signIn.SignInAsync(user, rememberMe);
+            result = SignInResult.Success;
+        }
+        if (result.Succeeded)
             devices.Trust(ctx, user.Id, device);
         if (result.Succeeded)
         {
@@ -79,8 +86,6 @@ public sealed class WebSignIn(
             var target = !LocalUrl.IsLocal(returnUrl) || PortalAuth.IsPortalPath(new PathString(returnUrl!.Split('?', '#')[0])) ? "/" : returnUrl!;
             return new(target, null);
         }
-        if (result.RequiresTwoFactor)
-            return new($"/Account/LoginWith2fa?returnUrl={Uri.EscapeDataString(LocalUrl.OrDefault(returnUrl, ""))}&rememberMe={rememberMe.ToString().ToLower()}", null);
         if (result.IsLockedOut) return new("/Account/Lockout", null);
         if (result.IsNotAllowed) return Error("Auth.Err.Inactive");
         return Error("Auth.Err.Invalid");

@@ -461,8 +461,9 @@
         try
         {
             var code = _sel.ScreenCode;
-            Sys.DeleteScreen(_sel.ScreenId, _actor);
-            Audit.Deleted("SYS-003", "SYS_Screen", _sel.ScreenCode, _sel);
+            var perms = Sys.DeleteScreen(_sel.ScreenId, _actor);
+            // 화면과 함께 지운 역할 권한도 전 스냅샷에 남긴다
+            Audit.Deleted("SYS-003", "SYS_Screen", _sel.ScreenCode, new { Screen = _sel, Permissions = perms });
             ScreenCatalog.Notify();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Deleted"].Value, code), false);

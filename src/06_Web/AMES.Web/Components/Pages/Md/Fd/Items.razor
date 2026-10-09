@@ -441,7 +441,13 @@
         _busy = true;
         try
         {
-            MD.DeleteItem(_f.ItemNo);
+            var usages = MD.DeleteItem(_f.ItemNo);
+            if (usages.Count > 0)
+            {
+                _modalErr = string.Format(L["MD.Items.Err.InUse"].Value, _f.ItemNo, AMES.Web.Services.UsageText.Format(L, usages));
+                _confirmDelete = false;
+                return;
+            }
             Audit.Deleted("MD-003", "MD_Item", _f.ItemNo, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Deleted"].Value, _f.ItemNo), false);

@@ -533,6 +533,7 @@
 
             // 상태는 Admin 만 정한다(10-07 규칙 ④) — Admin 이 아니면 사용 안 함으로 만들어 Admin 이 SYS-001 에서 켜야 로그인된다
             var status = _isAdmin ? "ACTIVE" : "INACTIVE";
+            var roleMissing = false;
             try
             {
                 Sys.CreateProfile(user.Id, _f.EmployeeNo, _f.EmployeeName,
@@ -540,6 +541,9 @@
 
                 if (!string.IsNullOrWhiteSpace(_f.Pin))
                     Sys.SetPin(user.Id, PinHasher.Hash(_f.Pin), _actorEmail);
+
+                if (_isAdmin && !string.IsNullOrEmpty(_f.Role))
+                    roleMissing = Sys.SetUserRole(user.Id, _f.Role) != SysRepository.RoleChangeResult.Ok;
             }
             catch
             {
@@ -548,9 +552,14 @@
                 await UserMgr.DeleteAsync(user);
                 throw;
             }
-
-            if (_isAdmin && !string.IsNullOrEmpty(_f.Role))
-                await UserMgr.AddToRoleAsync(user, _f.Role);
+            // 고른 역할이 그사이 SYS-002 에서 바뀌거나 지워졌다 — 역할 없는 계정을 남기지 않게 등록째 되돌린다
+            if (roleMissing)
+            {
+                Sys.DeleteProfile(user.Id);
+                await UserMgr.DeleteAsync(user);
+                RoleMissing(_f.Role);
+                return;
+            }
 
             CloseModal(); await ReloadRestorePage();
             _f.AccountStatus = status;
@@ -583,7 +592,7 @@
         {
             var iUser = await UserMgr.FindByIdAsync(_sel.UserId);
 
-            // 비밀번호는 다른 저장보다 먼저, 한 번에 바꾼다 — 예전에는 프로필 저장 → 기존 비밀번호 삭제 → 새 비밀번호 추가 순이라
+            // 비밀번호는 아무것도 저장하기 전에 규칙부터 검사하고, 바꿀 때는 한 번에 바꾼다 — 예전에는 프로필 저장 → 기존 비밀번호 삭제 → 새 비밀번호 추가 순이라
             // 새 비밀번호가 규칙에 걸리면 비밀번호 없는 계정 + 반쯤 저장된 프로필이 남았다
             if (setPassword && iUser is not null)
             {
@@ -594,7 +603,27 @@
                     if (!vr.Succeeded) errs.AddRange(vr.Errors.Select(e => e.Description));
                 }
                 if (errs.Count > 0) { _modalErr = string.Join(" ", errs); return; }
+            }
 
+            // 역할은 다른 저장보다 먼저 한 트랜잭션으로 바꾼다 — 고른 역할이 그사이 없어졌으면 아무것도 저장하지 않고 멈춘다
+            bool roleChanged = false;
+            if (CanChangeRoleStatus && iUser is not null)
+            {
+                var currentRoles = await UserMgr.GetRolesAsync(iUser);
+                var wanted = string.IsNullOrEmpty(_f.Role) ? Array.Empty<string>() : new[] { _f.Role };
+                if (!currentRoles.OrderBy(r => r).SequenceEqual(wanted, StringComparer.OrdinalIgnoreCase))
+                {
+                    if (Sys.SetUserRole(_sel.UserId, wanted.Length > 0 ? _f.Role : null) != SysRepository.RoleChangeResult.Ok)
+                    {
+                        RoleMissing(_f.Role);
+                        return;
+                    }
+                    roleChanged = true;
+                }
+            }
+
+            if (setPassword && iUser is not null)
+            {
                 var token = await UserMgr.GeneratePasswordResetTokenAsync(iUser);
                 var pr = await UserMgr.ResetPasswordAsync(iUser, token, _f.Password);
                 if (!pr.Succeeded)
@@ -613,19 +642,6 @@
 
             if (setPin)
                 Sys.SetPin(_sel.UserId, PinHasher.Hash(_f.Pin), _actorEmail);
-
-            bool roleChanged = false;
-            if (CanChangeRoleStatus && iUser is not null)
-            {
-                var currentRoles = await UserMgr.GetRolesAsync(iUser);
-                var wanted = string.IsNullOrEmpty(_f.Role) ? Array.Empty<string>() : new[] { _f.Role };
-                if (!currentRoles.OrderBy(r => r).SequenceEqual(wanted, StringComparer.OrdinalIgnoreCase))
-                {
-                    await UserMgr.RemoveFromRolesAsync(iUser, currentRoles);
-                    if (wanted.Length > 0) await UserMgr.AddToRoleAsync(iUser, _f.Role);
-                    roleChanged = true;
-                }
-            }
 
             // 상태·역할·비밀번호가 바뀌면 보안 스탬프를 갱신한다 — 그 사용자의 열린 세션이 재확인 주기(기본 5분) 안에 끊긴다
             bool statusChanged = !string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase);
@@ -704,6 +720,13 @@
     }
 
     // DB 오류 등 예외는 화면 연결을 끊지 않고 보인다 — 창이 열려 있으면 창 안에, 저장 뒤 목록 새로고침에서 났으면(창이 닫힘) 상단 알림으로
+    // 고른 역할이 SYS-002 에서 이름이 바뀌거나 지워진 경우 — 역할 목록을 새로 읽어 다시 고르게 한다
+    void RoleMissing(string? role)
+    {
+        _roles = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList();
+        _modalErr = string.Format(L["SYS.Users.Err.RoleMissing"].Value, role);
+    }
+
     void Fail(Exception ex)
     {
         if (_modal == "") ShowMsg(ex.Message, true);
