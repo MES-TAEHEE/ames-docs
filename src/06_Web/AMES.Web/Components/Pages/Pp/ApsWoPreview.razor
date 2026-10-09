@@ -223,6 +223,7 @@ else if (_released)
                         }
                         @foreach (var blk in row.Blocks.OrderBy(b => b.IsNew ? 1 : 0))
                         {
+                            if (blk.Minutes <= 0) continue;   // 0분 블록(대표 없는 형제·초과 기준점 슬롯)은 그리지 않는다 — 하루 시작에 놓인 0분 슬롯은 RelEnd 가 축 끝으로 읽어 하루 전체 블록이 됐다(2026-10-08)
                             int rlo = Rel(blk.StartMin, dayStart), rhi = RelEnd(blk.EndMin, dayStart);
                             if (rhi <= rlo) continue;
                             var capBlk = blk; var capLine = row.LineId; var capDate = day.Date;

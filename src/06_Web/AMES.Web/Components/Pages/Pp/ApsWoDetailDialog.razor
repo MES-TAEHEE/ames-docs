@@ -64,7 +64,7 @@
             <div class="dim" style="margin-top:6px;">@L["PP.Aps.Wo.Siblings"]</div>
             <table class="ames-table" style="width:100%;">
                 <thead><tr><th>@L["Col.WoNo"]</th><th>@L["Col.ItemNo"]</th><th style="text-align:right;">@L["Col.Qty"]</th></tr></thead>
-                <tbody>@foreach (var s in Block.Siblings) { <tr><td class="code">@s.WoNumber</td><td class="code">@s.ItemNo</td><td style="text-align:right;">@UomFmt.Qty(s.Qty, null)@if (s.OverQty > 0) { <span class="pill bad" style="margin-left:6px;">@string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(s.OverQty, null))</span> }</td></tr> }</tbody>
+                <tbody>@foreach (var s in Block.Siblings) { <tr><td class="code">@s.WoNumber</td><td class="code">@s.ItemNo</td><td style="text-align:right;">@UomFmt.Qty(s.Qty, null)@if (s.OverQty > 0) { <div class="wp-over">@string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(s.OverQty, null))</div> }</td></tr> }</tbody>
             </table>
         }
     </div>
@@ -86,9 +86,9 @@
                             <td class="code">@p.Date.ToString(DateFmt.Date)</td>
                             <td class="code">@Hm(p.StartMin)~@Hm(p.EndMin)</td>
                             <td style="text-align:right;">@(p.EndMin - p.StartMin)</td>
-                            <td style="text-align:right;">@UomFmt.Qty(p.Qty, null)</td>
+                            <td style="text-align:right;">@UomFmt.Qty(p.Qty, null)@if (p.OverQty > 0) { <div class="wp-over">@string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(p.OverQty, null))</div> }</td>
                             <td class="code">@(p.MoldId ?? "—")</td>
-                            <td>@if (p.Late) { <span class="pill warn">@L["PP.Aps.Wo.Lgd.Late"]</span> }@if (p.OverQty > 0) { <span class="pill bad">@string.Format(L["PP.Aps.Wo.Row.Over"].Value, UomFmt.Qty(p.OverQty, null))</span> }</td>
+                            <td>@if (p.Late) { <span class="pill warn">@L["PP.Aps.Wo.Lgd.Late"]</span> }</td>
                         </tr>
                     }
                     @foreach (var m in wo.MoldChanges)
