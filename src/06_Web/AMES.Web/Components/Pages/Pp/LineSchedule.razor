@@ -59,7 +59,16 @@
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(_err)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_err</RadzenAlert> }
+@if (!string.IsNullOrEmpty(_err))
+{
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">
+        @_err
+        @if (_changedByOthers)
+        {
+            <RadzenButton Text="@L["PP.LineSchedule.Btn.Reload"]" Icon="refresh" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ReloadAfterConflict" Style="margin-left:12px;" />
+        }
+    </RadzenAlert>
+}
 @if (!string.IsNullOrEmpty(_msg)) { <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat">@_msg</RadzenAlert> }
 
 @* ── 조회 / 상태 툴바 ──────────────────────────────────────────────── *@
@@ -590,6 +599,8 @@
 
     int _dayStart = 6 * 60;   // 하루 시작 분(= 첫 교대 시작, 축이 A→B→C 순이 되도록)
     string _err = "", _msg = "";
+    string? _version;          // 마지막으로 읽은 행의 지문(LineScheduleRepository.VersionOf) — 적용·초기화 때 DB 와 비교
+    bool    _changedByOthers;  // 적용·초기화가 다른 사람의 변경으로 거부됨 — 경고에 「다시 불러오기」
 
     record StagedWo(int WoId, string WoNumber, string? ItemName, int StartMin, int EndMin, decimal Qty, string? MoldId = null);
     record PmBand(int Id, int StartMin, int EndMin, string? Title, string? RefType, int? RefId, string? RefLabel);
@@ -788,7 +799,7 @@
 
     void LoadData()
     {
-        _err = ""; _slots = new(); _segments = new(); _pmBands = new(); _mcBlocks = new();
+        _err = ""; _slots = new(); _segments = new(); _pmBands = new(); _mcBlocks = new(); _version = null; _changedByOthers = false;
         _patternId = ""; _savedStatus = null; _publishedAt = null; _publishedBy = null; _dirty = false;
         if (string.IsNullOrEmpty(_lineId)) { _lineWos = new(); _pmCandidates = new(); ResetPlaceForm(); return; }
         try
@@ -796,6 +807,7 @@
             _lineWos = LSB.ListLineWos(_lineId);
             try { _pmCandidates = LSB.ListDuePmForLine(_lineId); } catch { _pmCandidates = new(); }
             var rows = LSB.GetSchedule(_lineId, _date);
+            _version     = LineScheduleRepository.VersionOf(rows);
             _patternId   = rows.FirstOrDefault(r => r.PatternId != null)?.PatternId ?? "";
             _savedStatus = rows.FirstOrDefault()?.Status;
             _publishedAt = rows.FirstOrDefault(r => r.PublishedAt.HasValue)?.PublishedAt;
@@ -827,17 +839,19 @@
     // 초기화: 적용됐지만 미발행(DRAFT)인 경우, 해당 라인+일자의 저장 스케줄을 삭제해 초기화 (확인창 후)
     async Task Reset()
     {
-        _err = "";
+        _err = ""; _changedByOthers = false;
         _confirmReset = false;
         if (!_canEdit || _busy is not null || string.IsNullOrEmpty(_lineId) || _savedStatus != "DRAFT") return;
-        var (line, date) = (_lineId, _date);
+        if (_version is null) return;
+        var (line, date, version) = (_lineId, _date, _version);
         _busy = "reset";
         try
         {
-            await Task.Run(() => LSB.DeleteSchedule(line, date));
+            await Task.Run(() => LSB.DeleteSchedule(line, date, version));
             ShowMsg(L["PP.LineSchedule.Ok.Reset"].Value);
             LoadData();
         }
+        catch (LineScheduleRepository.ScheduleChangedException) { _err = L["PP.LineSchedule.Err.ChangedByOthers"]; _changedByOthers = true; }
         catch (Exception ex) { _err = ex.Message; }
         finally { _busy = null; }
     }
@@ -1150,13 +1164,14 @@
 
     async Task SaveAndReload(string busy, bool publish)
     {
-        _err = "";
+        _err = ""; _changedByOthers = false;
         if (!_canEdit || _busy is not null) return;
         if (_date.Date < ServerNow.Date) { _err = L["PP.LineSchedule.Err.PastDate"]; return; }
         if (string.IsNullOrEmpty(_patternId)) { _err = L["PP.LineSchedule.Err.NoPattern"]; return; }
         if (publish && ConflictIds.Count > 0) { _err = string.Format(L["PP.LineSchedule.Err.ConflictSummary"].Value, ConflictIds.Count); return; }
 
-        var (line, date, pattern, actor) = (_lineId, _date, _patternId, _actor);
+        if (_version is null) return;
+        var (line, date, pattern, actor, version) = (_lineId, _date, _patternId, _actor, _version);
         var slots = _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)).ToList();
         var pms   = _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)).ToList();
         var mcs   = _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)).ToList();
@@ -1165,15 +1180,19 @@
         {
             await Task.Run(() =>
             {
-                LSB.SaveSchedule(line, date, pattern, slots, pms, actor, mcs);
+                LSB.SaveSchedule(line, date, pattern, slots, pms, actor, mcs, version);
                 if (publish) LSB.PublishSchedule(line, date, actor);
             });
             ShowMsg(L[publish ? "PP.LineSchedule.Ok.Published" : "PP.LineSchedule.Ok.Applied"].Value);
             LoadData();
         }
+        catch (LineScheduleRepository.ScheduleChangedException) { _err = L["PP.LineSchedule.Err.ChangedByOthers"]; _changedByOthers = true; }
         catch (Exception ex) { _err = ex.Message; }
         finally { _busy = null; }
     }
+
+    // 거부된 뒤 「다시 불러오기」 — 화면의 미저장 편집은 버리고 DB 의 현재 배치를 다시 읽는다
+    void ReloadAfterConflict() => LoadData();
 
     // ── Helpers ──────────────────────────────────────────────────────────
     static string MinToTime(int m) => $"{m / 60:00}:{m % 60:00}";

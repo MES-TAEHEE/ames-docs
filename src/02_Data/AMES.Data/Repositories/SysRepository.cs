@@ -434,16 +434,16 @@ public sealed class SysRepository
             throw new ArgumentException($"HolidayName exceeds {HolidayNameMax} characters.", nameof(holidayName));
         using var cmd = new SqlCommand(sql, conn, tx);
         cmd.Parameters.Add("@Date",        SqlDbType.Date).Value                 = date.Date;
-        cmd.Parameters.Add("@DayType",     SqlDbType.VarChar, 5).Value           = dayType;
+        cmd.Parameters.Add("@DayType",     SqlDbType.VarChar, 10).Value          = dayType;
         cmd.Parameters.Add("@HolidayName", SqlDbType.NVarChar, HolidayNameMax).Value = (object?)holidayName ?? DBNull.Value;
         cmd.Parameters.AddWithValue("@ShiftCount",  (object?)shiftCount  ?? DBNull.Value);
-        cmd.Parameters.Add("@ShiftCode",   SqlDbType.VarChar, 5).Value           = (object?)shiftCode ?? DBNull.Value;
+        cmd.Parameters.Add("@ShiftCode",   SqlDbType.VarChar, 10).Value          = (object?)shiftCode ?? DBNull.Value;
         cmd.Parameters.AddWithValue("@Start",       (object?)start    ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@End",         (object?)end      ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Break",       (object?)breakMin ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Net",         (object?)netHours ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Year",        calendarYear);
-        cmd.Parameters.Add("@Plant",       SqlDbType.VarChar, 10).Value          = string.IsNullOrWhiteSpace(plantCode) ? DBNull.Value : plantCode;
+        cmd.Parameters.Add("@Plant",       SqlDbType.VarChar, 20).Value          = string.IsNullOrWhiteSpace(plantCode) ? DBNull.Value : plantCode;
         cmd.Parameters.Add("@CreatedBy",   SqlDbType.VarChar, 20).Value          = createdBy;
         cmd.ExecuteNonQuery();
     }
@@ -1197,34 +1197,6 @@ public sealed class SysRepository
             ("@EmpName",   employeeName),
             ("@CreatedBy", createdBy));
 
-    public void UpdateProfile(string userId, string employeeNo, string employeeName,
-        string? department, string? plantCode, string? defaultShift,
-        string accountStatus, string modifiedBy)
-    {
-        const string sql = """
-            UPDATE dbo.SYS_UserProfile
-            SET    EmployeeNo       = @EmpNo,
-                   EmployeeName     = @EmpName,
-                   Department       = @Dept,
-                   PlantCode        = @Plant,
-                   DefaultShift     = @Shift,
-                   AccountStatus    = @Status,
-                   FailedLoginCount = CASE WHEN UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
-                   ModifiedBy       = @ModifiedBy,
-                   ModifiedTS       = SYSDATETIME()
-            WHERE  UserID = @UserID
-            """;
-        Exec(sql,
-            ("@UserID",     userId),
-            ("@EmpNo",      employeeNo),
-            ("@EmpName",    employeeName),
-            ("@Dept",       (object?)department       ?? DBNull.Value),
-            ("@Plant",      (object?)plantCode         ?? DBNull.Value),
-            ("@Shift",      (object?)defaultShift      ?? DBNull.Value),
-            ("@Status",     accountStatus),
-            ("@ModifiedBy", modifiedBy));
-    }
-
     /// <summary>
     /// Sets (or replaces) the operator's POP login PIN hash. Called from SYS-01 only
     /// when an admin actually types a PIN — leaving the field blank keeps the current
@@ -1263,6 +1235,116 @@ public sealed class SysRepository
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
         cmd.ExecuteNonQuery();
         tx.Commit();
+    }
+
+    /// <summary>SYS-001 수정 저장 한 건 — 바꿀 것만 채운다(ChangeRole=false 면 역할, PasswordHash/PinHash 가 null 이면 그 값은 그대로).</summary>
+    public sealed record UserEditRequest(
+        string UserId, string EmployeeNo, string EmployeeName,
+        string? Department, string? PlantCode, string? DefaultShift, string AccountStatus,
+        bool ChangeRole, string? RoleName, string? PasswordHash, string? PinHash, bool RenewSecurityStamp,
+        string Actor);
+
+    public enum UserEditResult { Ok, UserNotFound, RoleMissing }
+
+    // 프로필 컬럼 길이(SYS_UserProfile) — 화면 입력칸 MaxLength 와 저장 전 검사가 같은 값을 쓴다
+    public const int EmployeeNoMax = 20, EmployeeNameMax = 50;
+
+    /// <summary>
+    /// SYS-001 수정을 한 트랜잭션으로 저장한다 — 역할(AspNetUserRoles) · 프로필(없으면 생성) · PIN · 비밀번호 해시 · 보안 스탬프.
+    /// 예전에는 역할 → 비밀번호(Identity) → 프로필 → PIN → 스탬프를 따로 저장해, 프로필 저장이 실패하면(사번 20자 초과 등)
+    /// 역할·비밀번호만 바뀐 채 스탬프 갱신·감사 없이 남았다(10-10). 하나라도 실패하면 아무것도 바뀌지 않는다.
+    /// 비밀번호는 호출자가 Identity 규칙 검사 후 PasswordHasher 로 만든 해시만 받는다.
+    /// </summary>
+    public UserEditResult SaveUserEdit(UserEditRequest e)
+    {
+        if (e.EmployeeNo.Length > EmployeeNoMax || e.EmployeeName.Length > EmployeeNameMax)
+            throw new ArgumentException($"EmployeeNo ≤ {EmployeeNoMax}, EmployeeName ≤ {EmployeeNameMax} characters.");
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var chk = new SqlCommand("SELECT COUNT(*) FROM dbo.AspNetUsers WITH (UPDLOCK, HOLDLOCK) WHERE Id = @UserId;", conn, tx))
+            {
+                chk.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = e.UserId;
+                if (Convert.ToInt32(chk.ExecuteScalar()) != 1) { tx.Rollback(); return UserEditResult.UserNotFound; }
+            }
+
+            if (e.ChangeRole)
+            {
+                using var role = new SqlCommand("""
+                    SET NOCOUNT ON;
+                    DECLARE @RoleId nvarchar(450) = NULL;
+                    IF @Name IS NOT NULL
+                    BEGIN
+                        SELECT @RoleId = Id FROM dbo.AspNetRoles WITH (UPDLOCK, HOLDLOCK) WHERE NormalizedName = UPPER(@Name);
+                        IF @RoleId IS NULL BEGIN SELECT 0; RETURN; END
+                    END
+                    DELETE dbo.AspNetUserRoles WHERE UserId = @UserId;
+                    IF @RoleId IS NOT NULL INSERT dbo.AspNetUserRoles (UserId, RoleId) VALUES (@UserId, @RoleId);
+                    SELECT 1;
+                    """, conn, tx);
+                role.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = e.UserId;
+                role.Parameters.Add("@Name",   SqlDbType.NVarChar, 256).Value = string.IsNullOrWhiteSpace(e.RoleName) ? DBNull.Value : e.RoleName.Trim();
+                if (Convert.ToInt32(role.ExecuteScalar()) != 1) { tx.Rollback(); return UserEditResult.RoleMissing; }
+            }
+
+            using (var prof = new SqlCommand("""
+                IF EXISTS (SELECT 1 FROM dbo.SYS_UserProfile WITH (UPDLOCK, HOLDLOCK) WHERE UserID = @UserID)
+                    UPDATE dbo.SYS_UserProfile
+                    SET    EmployeeNo       = @EmpNo,
+                           EmployeeName     = @EmpName,
+                           Department       = @Dept,
+                           PlantCode        = @Plant,
+                           DefaultShift     = @Shift,
+                           AccountStatus    = @Status,
+                           FailedLoginCount = CASE WHEN UPPER(@Status) = 'ACTIVE' THEN 0 ELSE FailedLoginCount END,
+                           PinHash          = COALESCE(@PinHash, PinHash),
+                           ModifiedBy       = @Actor,
+                           ModifiedTS       = SYSDATETIME()
+                    WHERE  UserID = @UserID;
+                ELSE
+                    INSERT INTO dbo.SYS_UserProfile
+                        (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
+                         AccountStatus, FailedLoginCount, PinHash, CreatedBy, CreatedTS)
+                    VALUES
+                        (@UserID, @EmpNo, @EmpName, @Dept, @Plant, @Shift,
+                         @Status, 0, @PinHash, @Actor, SYSDATETIME());
+                """, conn, tx))
+            {
+                prof.Parameters.Add("@UserID",  SqlDbType.NVarChar, 450).Value = e.UserId;
+                prof.Parameters.Add("@EmpNo",   SqlDbType.VarChar, EmployeeNoMax).Value     = e.EmployeeNo;
+                prof.Parameters.Add("@EmpName", SqlDbType.NVarChar, EmployeeNameMax).Value  = e.EmployeeName;
+                prof.Parameters.Add("@Dept",    SqlDbType.VarChar, 30).Value  = (object?)e.Department   ?? DBNull.Value;
+                prof.Parameters.Add("@Plant",   SqlDbType.VarChar, 20).Value  = (object?)e.PlantCode    ?? DBNull.Value;
+                prof.Parameters.Add("@Shift",   SqlDbType.VarChar, 10).Value  = (object?)e.DefaultShift ?? DBNull.Value;
+                prof.Parameters.Add("@Status",  SqlDbType.VarChar, 10).Value  = e.AccountStatus;
+                prof.Parameters.Add("@PinHash", SqlDbType.NVarChar, 200).Value = (object?)e.PinHash    ?? DBNull.Value;
+                prof.Parameters.Add("@Actor",   SqlDbType.VarChar, 20).Value  = e.Actor;
+                prof.ExecuteNonQuery();
+            }
+
+            // 비밀번호·보안 스탬프는 Identity 와 같은 컬럼을 직접 쓴다 — 스탬프는 같은지만 비교되므로 형식은 무관하다
+            if (e.PasswordHash is not null || e.RenewSecurityStamp)
+            {
+                using var usr = new SqlCommand("""
+                    UPDATE dbo.AspNetUsers
+                    SET    PasswordHash     = COALESCE(@Hash, PasswordHash),
+                           SecurityStamp    = @Stamp,
+                           ConcurrencyStamp = CONVERT(nvarchar(36), NEWID())
+                    WHERE  Id = @UserId;
+                    """, conn, tx);
+                usr.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = e.UserId;
+                usr.Parameters.Add("@Hash",   SqlDbType.NVarChar, -1).Value  = (object?)e.PasswordHash ?? DBNull.Value;
+                usr.Parameters.Add("@Stamp",  SqlDbType.NVarChar, -1).Value  =
+                    Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(20));
+                usr.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return UserEditResult.Ok;
+        }
+        catch { tx.Rollback(); throw; }
     }
 
     public bool ProfileExists(string userId)

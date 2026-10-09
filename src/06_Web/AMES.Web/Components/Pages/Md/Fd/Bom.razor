@@ -575,6 +575,14 @@
         await RestorePages();
     }
 
+    // 라인 저장이 0행 — 버전이 그사이 승인 요청·승인돼 더 이상 DRAFT 가 아니다. 모달을 닫고 상태를 새로 읽어 안내한다
+    async Task LineNotDraft()
+    {
+        var id = _selVer?.VersionID;
+        CloseModal();
+        if (id is not null) { await StatusChanged(id); LoadLines(); }
+    }
+
     // 오래 열린 화면에서 다른 사용자가 먼저 상태를 바꾼 경우 — 감사 로그 없이 새로 읽고 안내만 한다
     async Task StatusChanged(string versionId)
     {
@@ -834,9 +842,10 @@
         {
             if (LineError(_fl.CompItemNo, null) is { } err) { _modalErr = err; return; }
             var bomId = "B" + Guid.NewGuid().ToString("N")[..23];
-            MD.InsertBomLine(bomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
-                1, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
-                _selVer!.VersionID, _fl.Position, NE(_fl.Note), _actor);
+            if (!MD.InsertBomLine(bomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
+                    1, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
+                    _selVer!.VersionID, _fl.Position, NE(_fl.Note), _actor))
+            { await LineNotDraft(); return; }
             Audit.Created("MD-004", "MD_Bom", bomId, _fl);
             LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineAdded"], false);
         }
@@ -854,9 +863,10 @@
         try
         {
             if (LineError(_fl.CompItemNo, _fl.BomId) is { } err) { _modalErr = err; return; }
-            MD.UpdateBomLine(_fl.BomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
-                _fl.BomLevel, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
-                _fl.Position, NE(_fl.Note), _actor);
+            if (!MD.UpdateBomLine(_fl.BomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
+                    _fl.BomLevel, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
+                    _fl.Position, NE(_fl.Note), _actor))
+            { await LineNotDraft(); return; }
             Audit.Updated("MD-004", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId), _fl);
             LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineUpdated"], false);
         }
@@ -868,7 +878,11 @@
     {
         if (!_canEdit) return;
         _busy = true;
-        try { MD.DeleteBomLine(_fl.BomId, _actor); Audit.Deleted("MD-004", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId)); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineDeleted"], false); }
+        try
+        {
+            if (!MD.DeleteBomLine(_fl.BomId, _actor)) { await LineNotDraft(); return; }
+            Audit.Deleted("MD-004", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId)); LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineDeleted"], false);
+        }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -880,7 +894,7 @@
         try
         {
             if (LineError(_fl.CompItemNo, _fl.BomId) is { } err) { _modalErr = err; return; }
-            MD.ReactivateBomLine(_fl.BomId, _actor);
+            if (!MD.ReactivateBomLine(_fl.BomId, _actor)) { await LineNotDraft(); return; }
             Audit.Log("MD-004", "REACTIVATE", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId), new { ActiveFlag = true });
             LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineReactivated"], false);
         }

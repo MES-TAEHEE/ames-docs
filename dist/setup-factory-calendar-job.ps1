@@ -6,7 +6,8 @@
 #   기본 인스턴스(개발서버):   powershell -ExecutionPolicy Bypass -File dist\setup-factory-calendar-job.ps1
 #   명명 인스턴스(로컬 PC):    powershell -ExecutionPolicy Bypass -File dist\setup-factory-calendar-job.ps1 -Instance MSSQLSERVER01
 #   DB 이름이 다르면          -Database <DB 이름>
-# 선행 조건: 그 서버의 대상 DB 에 dist\migrate_sys_public_holiday.sql 적용, sqlcmd 설치
+# 선행 조건: 그 서버의 대상 DB 에 dist\migrate_sys_public_holiday.sql(테이블·프로시저) → dist\seed_sys_public_holiday.sql(공휴일 데이터) 적용, sqlcmd 설치
+#   공휴일 시드가 빠지면 작업은 등록되지만 매월 실행이 오류 50002(범위 안 연도에 공휴일 없음)로 실패해 달력이 채워지지 않는다
 param(
     [string]$Instance = 'MSSQLSERVER',
     [string]$Database = 'AMES_DEV'
@@ -30,7 +31,7 @@ Get-Service -Name $service | Format-Table Name, Status, StartType -AutoSize
 
 Write-Host "[2/2] 작업 등록 ($server / $Database, Windows 인증)"
 & sqlcmd -S $server -E -C -f 65001 -b -W -l 15 -d $Database -i $sqlFile
-if ($LASTEXITCODE -ne 0) { throw "작업 등록 실패(sqlcmd 종료 코드 $LASTEXITCODE) — 이 Windows 계정이 sysadmin 인지, $Database 에 migrate_sys_public_holiday.sql 이 적용됐는지 확인" }
+if ($LASTEXITCODE -ne 0) { throw "작업 등록 실패(sqlcmd 종료 코드 $LASTEXITCODE) — 이 Windows 계정이 sysadmin 인지, $Database 에 migrate_sys_public_holiday.sql·seed_sys_public_holiday.sql 이 적용됐는지 확인" }
 
 Write-Host ''
 Write-Host "완료 — 매월 1일 00:30 에 $Database.dbo.SP_SYS_FactoryCalendar_Fill @Months = 3 이 실행된다(실패 시 10분 간격 최대 3번)."

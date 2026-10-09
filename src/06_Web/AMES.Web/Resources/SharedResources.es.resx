@@ -1290,6 +1290,15 @@
   <data name="MD.CommonCode.Lbl.UseFlag" xml:space="preserve">
     <value>Activo</value>
   </data>
+  <data name="MD.CommonCode.Err.Gone" xml:space="preserve">
+    <value>El código {0} ya no está en la lista; no se guardó nada. Vuelva a cargar la lista.</value>
+  </data>
+  <data name="MD.CommonCode.Err.DupValue" xml:space="preserve">
+    <value>El valor de código {1} ya existe en el grupo {0}. Cada valor de código solo puede aparecer una vez por grupo.</value>
+  </data>
+  <data name="MD.CommonCode.Hint.CodeValueFixed" xml:space="preserve">
+    <value>El valor de código no se puede cambiar después del registro: registre un código nuevo y deje este sin uso.</value>
+  </data>
   <data name="MD.CommonCode.Lbl.CodeValue" xml:space="preserve">
     <value>Valor de Código *</value>
   </data>
@@ -4820,6 +4829,12 @@
   </data>
   <data name="PP.LineSchedule.Confirm.Reset" xml:space="preserve">
     <value>Esto elimina el programa guardado de esta línea/fecha y lo restablece. ¿Continuar?</value>
+  </data>
+  <data name="PP.LineSchedule.Err.ChangedByOthers" xml:space="preserve">
+    <value>Otro usuario o la creación de órdenes (PP-003/APS) cambió esta línea y fecha después de abrir el tablero. Sus cambios no se guardaron: recargue, revise y vuelva a aplicar.</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Reload" xml:space="preserve">
+    <value>Recargar</value>
   </data>
   <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
     <value>Las fechas pasadas no pueden aplicarse ni publicarse</value>
@@ -10468,6 +10483,12 @@
   </data>
   <data name="MD.SparePart.Hint.CodeLocked" xml:space="preserve">
     <value>La categoría y el equipo aplicable forman parte del número de repuesto y no se pueden cambiar después del registro. Registre un repuesto nuevo para cambiarlos.</value>
+  </data>
+  <data name="SYS.Users.Err.TooLong" xml:space="preserve">
+    <value>El número de empleado admite hasta {0} caracteres y el nombre hasta {1}.</value>
+  </data>
+  <data name="SYS.Users.Err.UserGone" xml:space="preserve">
+    <value>El usuario ya fue eliminado; no se guardó nada. Vuelva a cargar la lista.</value>
   </data>
   <data name="SYS.Users.Err.RoleMissing" xml:space="preserve">
     <value>El rol '{0}' ya no existe; otro usuario puede haberlo renombrado o eliminado en SYS-002. Se volvió a cargar la lista de roles; elija de nuevo y guarde. No se guardó nada.</value>

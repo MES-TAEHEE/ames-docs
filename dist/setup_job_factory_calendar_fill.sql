@@ -10,7 +10,8 @@
        sqlcmd -S <서버> -E -C -f 65001 -b -d AMES_DEV -i dist\setup_job_factory_calendar_fill.sql
    · sysadmin 으로 실행한다 — 앱 계정 ames_app 은 msdb 작업 권한이 없다
      (서버 PC 에서는 dist\setup-factory-calendar-job.ps1 이 에이전트 서비스 시작까지 같이 한다)
-   · 먼저 dist/migrate_sys_public_holiday.sql 을 적용할 것(프로시저가 없으면 작업 단계가 실패한다)
+   · 먼저 dist/migrate_sys_public_holiday.sql(테이블·프로시저) → dist/seed_sys_public_holiday.sql(공휴일 데이터)을 적용할 것
+     (프로시저가 없으면 등록을 멈추고, 공휴일이 없으면 등록은 되지만 매월 실행이 오류 50002 로 실패한다)
    · 작업 소유자는 sa(SID 0x01 의 로그인 — 이름을 바꿔도 찾는다). 실행한 사람의 Windows 계정이 소유하면 그 계정이 지워지거나
      비활성화될 때 작업이 "소유자 확인 불가"로 조용히 실패한다. sa 로그인이 비활성이어도 작업 실행에는 지장이 없다
    · 재실행 안전: 같은 이름(구 이름 "AMES - Factory Calendar Fill" 포함)의 작업이 있으면 지우고 다시 만든다(실행 이력도 지워진다).

@@ -290,7 +290,7 @@
     async Task ExportXlsx()
     {
         if (_rows.Count == 0) { ShowMsg(L["RPT.MonthlyKpi.Err.NoExport"], true); return; }
-        var months = _metrics.Select(m => m.Month.ToString(DateFmt.MonthShort)).ToList();
+        var months = _metrics.Select(m => m.Month.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture)).ToList();
         var headers = new List<string> { L["Col.Category"].Value, L["RPT.MonthlyKpi.Col.Indicator"].Value, L["RPT.MonthlyKpi.Col.Target"].Value, L["RPT.MonthlyKpi.Col.Actual"].Value, L["RPT.MonthlyKpi.Col.Achievement"].Value, L["Col.Status"].Value };
         headers.AddRange(months);
         var data = _rows.Select(k =>

@@ -102,23 +102,43 @@ public sealed class LineScheduleRepository
         string? EntryType, string? Title, string? RefType, int? RefId,
         string? MoldId = null);
 
+    /// <summary>보드가 읽은 (라인, 일자) 행 집합의 지문 — 적용·초기화 때 DB 의 현재 행과 비교해 그 사이 바뀌었으면 거부한다.</summary>
+    public static string VersionOf(IEnumerable<ScheduleRow> rows)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var r in rows.OrderBy(r => r.ScheduleId))
+            sb.Append(r.ScheduleId).Append('|').Append(r.PatternId).Append('|').Append(r.WoId).Append('|')
+              .Append(r.StartMin).Append('|').Append(r.EndMin).Append('|')
+              .Append(r.PlannedQty.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('|')
+              .Append(r.Status).Append('|').Append(r.EntryType).Append('|').Append(r.Title).Append('|')
+              .Append(r.RefType).Append('|').Append(r.RefId).Append('|').Append(r.MoldId).Append('\n');
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sb.ToString()));
+        return Convert.ToHexString(hash, 0, 16);
+    }
+
     public List<ScheduleRow> GetSchedule(string lineId, DateTime date)
     {
-        const string sql = """
+        using var conn = _f.OpenConnection();
+        return ReadSchedule(conn, null, lineId, date, forUpdate: false);
+    }
+
+    // forUpdate: 읽은 행에 UPDLOCK — 적용·초기화가 확인한 행을 지울 때까지 다른 쪽이 그 행을 바꾸지 못하게
+    static List<ScheduleRow> ReadSchedule(SqlConnection conn, SqlTransaction? tx, string lineId, DateTime date, bool forUpdate)
+    {
+        var sql = $"""
             SELECT s.ScheduleID, s.PatternID, s.WoID, w.WoNumber, i.ItemName,
                    ISNULL(s.StartMin,0)   AS StartMin,
                    ISNULL(s.EndMin,0)     AS EndMin,
                    ISNULL(s.PlannedQty,0) AS PlannedQty,
                    s.Status, s.PublishedAt, s.PublishedBy,
                    s.EntryType, s.Title, s.RefType, s.RefID, s.MoldID
-            FROM   dbo.PP_LineSchedule s
+            FROM   dbo.PP_LineSchedule s {(forUpdate ? "WITH (UPDLOCK)" : "")}
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = s.WoID
             LEFT JOIN dbo.MD_Item      i ON i.ItemNo = w.ItemNo
             WHERE  s.LineID = @LineId AND s.ScheduleDate = @Date
-            ORDER  BY s.StartMin;
+            ORDER  BY s.StartMin, s.ScheduleID;
             """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn, tx);
         cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
         using var rdr = cmd.ExecuteReader();
@@ -144,44 +164,35 @@ public sealed class LineScheduleRepository
         return list;
     }
 
+    /// <summary>보드를 연 뒤 다른 사람(다른 보드·PP-003·APS WO 생성)이 그 라인·일자의 행을 바꿔 적용·초기화를 거부했다.</summary>
+    public sealed class ScheduleChangedException(string lineId, DateTime date)
+        : InvalidOperationException($"PP_LineSchedule {lineId} {date:yyyy-MM-dd} changed since it was loaded.");
+
     // 적용: (라인, 일자)의 기존 행을 지우고 패턴 + WO 배치 + PM 밴드 + 금형 교체(MC) 블록을 Draft로 저장.
     //       APS 형제 0분 행(WoID 있음·EndMin ≤ StartMin·수량 > 0)은 보드가 그 WO 에 실제 슬롯을 주지 않는 한 되살린다.
+    //       expectedVersion(보드가 읽은 행의 VersionOf)이 지금 행과 다르면 아무것도 바꾸지 않고 ScheduleChangedException —
+    //       예전에는 보드를 연 사이 PP-003·APS 가 넣은 슬롯까지 지워 조용히 미배치로 돌렸다(10-10). null 이면 확인하지 않는다(테스트·내부용).
     public void SaveSchedule(string lineId, DateTime date, string? patternId,
         IEnumerable<(int WoId, int StartMin, int EndMin, decimal Qty, string? MoldId)> slots,
         IEnumerable<(int StartMin, int EndMin, string? Title, string? RefType, int? RefId)> pmBands,
         string actor,
-        IEnumerable<(int StartMin, int EndMin, string? Title, int? WoRefId, string? MoldId)>? mcBlocks = null)
+        IEnumerable<(int StartMin, int EndMin, string? Title, int? WoRefId, string? MoldId)>? mcBlocks = null,
+        string? expectedVersion = null)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
+            var current = LockAndCheck(conn, tx, lineId, date, expectedVersion);
+
             // APS 형제 품번 슬롯(PpRepository.Aps.cs — 대표가 시간을 점유하고 형제는 StartMin = EndMin 행에 PlannedQty 만)은
             // 보드가 0분 행을 싣지 않아 slots 로 돌아오지 않는다. POP 은 분과 무관하게 PlannedQty 를 계획으로 읽으므로 지우기 전에 읽어 두고 되살린다
-            var preserved = new List<(int WoId, int? StartMin, decimal Qty)>();
-            using (var sel = new SqlCommand("""
-                SELECT WoID, StartMin, PlannedQty
-                FROM   dbo.PP_LineSchedule
-                WHERE  LineID = @LineId AND ScheduleDate = @Date AND EntryType = 'WO' AND WoID IS NOT NULL
-                  AND  ISNULL(EndMin, 0) <= ISNULL(StartMin, 0) AND ISNULL(PlannedQty, 0) > 0
-                ORDER  BY StartMin, ScheduleID;
-                """, conn, tx))
-            {
-                sel.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
-                sel.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
-                using var rdr = sel.ExecuteReader();
-                while (rdr.Read())
-                    preserved.Add(((int)rdr["WoID"], rdr["StartMin"] is DBNull ? null : Convert.ToInt32(rdr["StartMin"]),
-                                   rdr.GetDecimal(rdr.GetOrdinal("PlannedQty"))));
-            }
+            var preserved = current
+                .Where(r => r.EntryType == "WO" && r.WoId.HasValue && r.EndMin <= r.StartMin && r.PlannedQty > 0)
+                .Select(r => (WoId: r.WoId!.Value, StartMin: (int?)r.StartMin, Qty: r.PlannedQty))
+                .ToList();
 
-            using (var del = new SqlCommand(
-                "DELETE FROM dbo.PP_LineSchedule WHERE LineID=@LineId AND ScheduleDate=@Date;", conn, tx))
-            {
-                del.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
-                del.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
-                del.ExecuteNonQuery();
-            }
+            DeleteRows(conn, tx, lineId, date, current.Select(r => r.ScheduleId));
 
             var rows = slots.Where(s => s.EndMin > s.StartMin).ToList();
             var pms  = pmBands.Where(p => p.EndMin > p.StartMin).ToList();
@@ -382,17 +393,54 @@ public sealed class LineScheduleRepository
         for (int m = s; m < e; m++) { opArr[m] = op; sgArr[m] = sg; }
     }
 
-    // 초기화: (라인, 일자)의 미발행(DRAFT) 스케줄 행 삭제. 발행된 행은 보존.
-    public void DeleteSchedule(string lineId, DateTime date)
+    // 초기화: (라인, 일자)의 미발행(DRAFT) 스케줄 행 삭제. 발행된 행은 보존. expectedVersion 규칙은 SaveSchedule 과 같다.
+    public void DeleteSchedule(string lineId, DateTime date, string? expectedVersion = null)
     {
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand("""
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            var current = LockAndCheck(conn, tx, lineId, date, expectedVersion);
+            DeleteRows(conn, tx, lineId, date, current.Where(r => r.Status == "DRAFT").Select(r => r.ScheduleId));
+            tx.Commit();
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // 같은 (라인, 일자)를 고치는 보드끼리는 앱 잠금으로 줄을 세우고(빈 날짜는 잠글 행이 없어 둘 다 통과할 수 있다),
+    // 지금 행을 UPDLOCK 으로 읽어 보드가 본 지문과 비교한다. PP-003·APS 처럼 앱 잠금을 쓰지 않는 쪽이 확인 뒤에 넣은 행은
+    // DeleteRows 가 확인한 행 ID 만 지우므로 남는다
+    static List<ScheduleRow> LockAndCheck(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date, string? expectedVersion)
+    {
+        using (var lk = new SqlCommand("""
+            DECLARE @rc int;
+            EXEC @rc = sp_getapplock @Resource = @Res, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000;
+            SELECT @rc;
+            """, conn, tx))
+        {
+            lk.Parameters.Add("@Res", SqlDbType.NVarChar, 255).Value = $"PP_LineSchedule|{lineId}|{date:yyyy-MM-dd}";
+            if (Convert.ToInt32(lk.ExecuteScalar()) < 0)
+                throw new TimeoutException($"PP_LineSchedule {lineId} {date:yyyy-MM-dd} is being saved by another user.");
+        }
+        var current = ReadSchedule(conn, tx, lineId, date, forUpdate: true);
+        if (expectedVersion is not null && VersionOf(current) != expectedVersion)
+            throw new ScheduleChangedException(lineId, date);
+        return current;
+    }
+
+    static void DeleteRows(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date, IEnumerable<int> scheduleIds)
+    {
+        var ids = string.Join(',', scheduleIds);
+        if (ids.Length == 0) return;
+        using var del = new SqlCommand("""
             DELETE FROM dbo.PP_LineSchedule
-            WHERE  LineID=@LineId AND ScheduleDate=@Date AND Status='DRAFT';
-            """, conn);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
-        cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
-        cmd.ExecuteNonQuery();
+            WHERE  LineID = @LineId AND ScheduleDate = @Date
+              AND  ScheduleID IN (SELECT CAST(value AS int) FROM STRING_SPLIT(@Ids, ','));
+            """, conn, tx);
+        del.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+        del.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
+        del.Parameters.Add("@Ids",    SqlDbType.VarChar, -1).Value = ids;
+        del.ExecuteNonQuery();
     }
 
     // ── PP-003 자동 배치용 하루 능력 ──────────────────────────────────────────

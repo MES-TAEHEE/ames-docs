@@ -1293,6 +1293,15 @@
   <data name="MD.CommonCode.Lbl.UseFlag" xml:space="preserve">
     <value>Active</value>
   </data>
+  <data name="MD.CommonCode.Err.Gone" xml:space="preserve">
+    <value>Code {0} is no longer in the list, so nothing was saved. Reload the list.</value>
+  </data>
+  <data name="MD.CommonCode.Err.DupValue" xml:space="preserve">
+    <value>Code value {1} already exists in group {0}. Each code value can appear only once per group.</value>
+  </data>
+  <data name="MD.CommonCode.Hint.CodeValueFixed" xml:space="preserve">
+    <value>The code value cannot be changed after registration — register a new code and set this one to unused.</value>
+  </data>
   <data name="MD.CommonCode.Lbl.CodeValue" xml:space="preserve">
     <value>Code Value *</value>
   </data>
@@ -4823,6 +4832,12 @@
   </data>
   <data name="PP.LineSchedule.Confirm.Reset" xml:space="preserve">
     <value>This deletes the saved schedule for this line/date and resets it. Continue?</value>
+  </data>
+  <data name="PP.LineSchedule.Err.ChangedByOthers" xml:space="preserve">
+    <value>Another user or work order creation (PP-003/APS) changed this line and date after you opened the board. Your changes were not saved — reload, review and apply again.</value>
+  </data>
+  <data name="PP.LineSchedule.Btn.Reload" xml:space="preserve">
+    <value>Reload</value>
   </data>
   <data name="PP.LineSchedule.Err.PastDate" xml:space="preserve">
     <value>Past dates cannot be applied or published</value>
@@ -10468,6 +10483,12 @@
   </data>
   <data name="MD.SparePart.Hint.CodeLocked" xml:space="preserve">
     <value>Category and applicable equipment are part of the spare part number and cannot be changed after registration. Register a new part to change them.</value>
+  </data>
+  <data name="SYS.Users.Err.TooLong" xml:space="preserve">
+    <value>Employee number can be up to {0} characters and name up to {1}.</value>
+  </data>
+  <data name="SYS.Users.Err.UserGone" xml:space="preserve">
+    <value>The user has already been deleted, so nothing was saved. Reload the list.</value>
   </data>
   <data name="SYS.Users.Err.RoleMissing" xml:space="preserve">
     <value>Role '{0}' no longer exists — another user may have renamed or deleted it in SYS-002. The role list has been reloaded; choose again and save. Nothing was saved.</value>

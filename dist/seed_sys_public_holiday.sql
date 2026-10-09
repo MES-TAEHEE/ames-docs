@@ -7,10 +7,11 @@
      · 관측일: 토 → 금, 일 → 월(이름에 " (Observed)"), Christmas Eve·New Year's Eve 는 관측일 직전 평일
      · 여름·연말 생산 중단 주간은 넣지 않는다 — 해마다 SYS-005 에서 직접
    테이블·SP_SYS_FactoryCalendar_Fill 은 dist/migrate_sys_public_holiday.sql — 그 뒤에 적용한다.
-   없는 행은 넣고, 있는 행은 이름·원래 날짜·사용 여부를 이 값으로 맞춘다(시드에 없는 행은 지우지 않는다).
+   **없는 행만 넣는다** — 이미 있는 행(이름·원래 날짜·사용 여부를 SQL 로 고친 행 포함)은 건드리지 않고, 시드에 없는 행도 지우지 않는다
+   (관리 화면이 없어 SQL 로 고친 값을 다시 돌릴 때 되돌리지 않게 — 10-10). 기존 행을 규칙대로 맞출 때는 migrate_public_holiday_company_rules.sql.
    이미 만든 공장 달력(SYS_FactoryCalendar)은 바꾸지 않는다 — 규칙이 바뀌어 달력까지 맞출 때는 migrate_public_holiday_company_rules.sql 방식으로.
    다음 해 공휴일(2051 년분)은 2050-11-01 전에 이 파일에 이어 붙여 적용한다.
-   재실행 안전. 적용: sqlcmd -f 65001 -I -b -i distseed_sys_public_holiday.sql
+   재실행 안전. 적용: sqlcmd -f 65001 -I -b -i dist\seed_sys_public_holiday.sql
    ------------------------------------------------------------------ */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -369,13 +370,10 @@ USING (VALUES
     ('US', '2050-12-30', N'New Year''s Eve (Observed)', '2050-12-31', 1, 'HOLIDAY-RULE-1009')
       ) AS s (CountryCode, HolidayDate, HolidayName, ActualDate, ActiveFlag, CreatedBy)
    ON t.CountryCode = s.CountryCode AND t.HolidayDate = s.HolidayDate
-WHEN MATCHED AND (t.HolidayName <> s.HolidayName OR t.ActualDate <> s.ActualDate OR t.ActiveFlag <> s.ActiveFlag) THEN
-    UPDATE SET HolidayName = s.HolidayName, ActualDate = s.ActualDate, ActiveFlag = s.ActiveFlag,
-               ModifiedBy = 'SEED-HOLIDAY', ModifiedTS = SYSDATETIME()
 WHEN NOT MATCHED THEN
     INSERT (CountryCode, HolidayDate, HolidayName, ActualDate, ActiveFlag, CreatedBy)
     VALUES (s.CountryCode, s.HolidayDate, s.HolidayName, s.ActualDate, s.ActiveFlag, s.CreatedBy);
-PRINT CONCAT(N'SYS_PublicHoliday 추가·변경: ', @@ROWCOUNT, N' 건');
+PRINT CONCAT(N'SYS_PublicHoliday 추가: ', @@ROWCOUNT, N' 건');
 GO
 
 SELECT YEAR(HolidayDate) AS Yr, COUNT(*) AS N, SUM(CASE WHEN ActiveFlag = 1 THEN 1 ELSE 0 END) AS Active

@@ -162,53 +162,90 @@ public sealed class MasterDataRepository
             r["ActiveCodes"] is int a ? a : 0))
         .FirstOrDefault() ?? new CommonCodeKpiRow(0, 0);
 
+    /// <summary>같은 그룹에 같은 코드값이 이미 있어 등록·수정을 거부했다(대소문자 무시 — DB 콜레이션).</summary>
+    public sealed class DuplicateCodeValueException(string groupCode, string codeValue)
+        : InvalidOperationException($"Code value '{codeValue}' already exists in group '{groupCode}'.")
+    {
+        public string GroupCode { get; } = groupCode;
+        public string CodeValue { get; } = codeValue;
+    }
+
+    // 같은 그룹 안 코드값은 하나뿐이어야 한다 — 화면·Worker 가 (그룹, 코드값)으로 행을 찾으므로 둘이 되면 어느 쪽을 읽을지 갈리거나
+    // (SW_POSYNC_AUTH 의 AMES_SERVICE_KEY 처럼) 중복 자체를 오류로 보고 기능이 닫힌다(10-10). 그룹 행 범위를 잠그고 확인한 뒤 쓴다.
+    const string CodeValueTaken = """
+        EXISTS (SELECT 1 FROM dbo.MD_CodeItem WITH (UPDLOCK, HOLDLOCK)
+                WHERE GroupCode = @Group AND CodeValue = @Val AND CodeID <> @ID)
+        """;
+
     public void InsertCodeItem(string codeId, string groupCode, string? codeValue,
         string? codeName, string? codeNameEn, int sortOrder,
         string? attribute1, bool useFlag, string? description, string createdBy,
         string? parentCodeId = null, string? attribute2 = null)
-        => Exec("""
+        => WriteCodeItem($"""
+            IF {CodeValueTaken} BEGIN ROLLBACK; SELECT 0; RETURN; END
             INSERT INTO dbo.MD_CodeItem
                    (CodeID,GroupCode,CodeValue,CodeName,CodeNameEn,
                     SortOrder,Attribute1,Attribute2,UseFlag,Description,ParentCodeID,CreatedBy,CreatedTS)
             VALUES (@ID,@Group,@Val,@Name,@NameEn,
-                    @Sort,@Attr,@Attr2,@UseFlag,@Desc,@ParentID,@By,SYSDATETIME())
+                    @Sort,@Attr,@Attr2,@UseFlag,@Desc,@ParentID,@By,SYSDATETIME());
             """,
-            ("@ID",       codeId),
-            ("@Group",    groupCode),
-            ("@Val",      codeValue),
-            ("@Name",     codeName),
-            ("@NameEn",   codeNameEn),
-            ("@Sort",     sortOrder),
-            ("@Attr",     attribute1),
-            ("@Attr2",    attribute2),
-            ("@UseFlag",  useFlag),
-            ("@Desc",     description),
-            ("@ParentID", (object?)parentCodeId ?? DBNull.Value),
-            ("@By",       createdBy));
+            codeId, groupCode, codeValue, codeName, codeNameEn, sortOrder, attribute1, attribute2, useFlag, description, parentCodeId, createdBy);
 
+    /// <remarks>코드값은 바꿀 수 있지만(PP-APS 구간 하한) 같은 그룹의 다른 행과 겹치면 <see cref="DuplicateCodeValueException"/>.
+    /// MD-030 은 코드값을 키로 보고 수정 창에서 바꾸지 않는다.</remarks>
     public void UpdateCodeItem(string codeId, string? codeValue, string? codeName,
         string? codeNameEn, int sortOrder, string? attribute1,
         bool useFlag, string? description, string modifiedBy,
         string? parentCodeId = null, string? attribute2 = null)
-        => Exec("""
+        => WriteCodeItem($"""
+            SELECT @Group = GroupCode FROM dbo.MD_CodeItem WITH (UPDLOCK, HOLDLOCK) WHERE CodeID = @ID;
+            IF {CodeValueTaken} BEGIN ROLLBACK; SELECT 0; RETURN; END
             UPDATE dbo.MD_CodeItem
             SET    CodeValue=@Val, CodeName=@Name, CodeNameEn=@NameEn,
                    SortOrder=@Sort, Attribute1=@Attr, Attribute2=@Attr2, UseFlag=@UseFlag,
                    Description=@Desc, ParentCodeID=@ParentID,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-            WHERE  CodeID=@ID
+            WHERE  CodeID=@ID;
             """,
-            ("@ID",       codeId),
-            ("@Val",      codeValue),
-            ("@Name",     codeName),
-            ("@NameEn",   codeNameEn),
-            ("@Sort",     sortOrder),
-            ("@Attr",     attribute1),
-            ("@Attr2",    attribute2),
-            ("@UseFlag",  useFlag),
-            ("@Desc",     description),
-            ("@ParentID", (object?)parentCodeId ?? DBNull.Value),
-            ("@By",       modifiedBy));
+            codeId, null, codeValue, codeName, codeNameEn, sortOrder, attribute1, attribute2, useFlag, description, parentCodeId, modifiedBy);
+
+    // 확인과 쓰기를 한 트랜잭션으로. 형식·길이는 MD_CodeItem 컬럼 그대로
+    void WriteCodeItem(string body, string codeId, string? groupCode, string? codeValue,
+        string? codeName, string? codeNameEn, int sortOrder, string? attribute1, string? attribute2,
+        bool useFlag, string? description, string? parentCodeId, string actor)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand($"""
+            SET NOCOUNT ON; SET XACT_ABORT ON;
+            BEGIN TRAN;
+            {body}
+            COMMIT;
+            SELECT 1;
+            """, conn);
+        cmd.Parameters.Add("@ID",       SqlDbType.VarChar, 41).Value    = codeId;
+        var g = cmd.Parameters.Add("@Group", SqlDbType.VarChar, 20);
+        g.Value = (object?)groupCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Val",      SqlDbType.VarChar, 20).Value    = (object?)codeValue    ?? DBNull.Value;
+        cmd.Parameters.Add("@Name",     SqlDbType.NVarChar, 60).Value   = (object?)codeName     ?? DBNull.Value;
+        cmd.Parameters.Add("@NameEn",   SqlDbType.NVarChar, 60).Value   = (object?)codeNameEn   ?? DBNull.Value;
+        cmd.Parameters.Add("@Sort",     SqlDbType.Int).Value            = sortOrder;
+        cmd.Parameters.Add("@Attr",     SqlDbType.NVarChar, 200).Value  = (object?)attribute1   ?? DBNull.Value;
+        cmd.Parameters.Add("@Attr2",    SqlDbType.NVarChar, 200).Value  = (object?)attribute2   ?? DBNull.Value;
+        cmd.Parameters.Add("@UseFlag",  SqlDbType.Bit).Value            = useFlag;
+        cmd.Parameters.Add("@Desc",     SqlDbType.NVarChar, 500).Value  = (object?)description  ?? DBNull.Value;
+        cmd.Parameters.Add("@ParentID", SqlDbType.VarChar, 41).Value    = (object?)parentCodeId ?? DBNull.Value;
+        cmd.Parameters.Add("@By",       SqlDbType.VarChar, 20).Value    = actor;
+        if (Convert.ToInt32(cmd.ExecuteScalar()) != 1)
+            throw new DuplicateCodeValueException(groupCode ?? GroupOf(codeId) ?? "", codeValue ?? "");
+    }
+
+    string? GroupOf(string codeId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT GroupCode FROM dbo.MD_CodeItem WHERE CodeID = @ID", conn);
+        cmd.Parameters.Add("@ID", SqlDbType.VarChar, 41).Value = codeId;
+        return cmd.ExecuteScalar() as string;
+    }
 
     public void DeleteCodeItem(string codeId)
         => Exec("DELETE dbo.MD_CodeItem WHERE CodeID=@I", ("@I", codeId));
@@ -687,36 +724,46 @@ public sealed class MasterDataRepository
                 r["ModifiedTS"]     is DateTime mt ? mt : null),
             ("@V", (object?)versionId));
 
-    public void InsertBomLine(string bomId, string? parentItemNo, string? compItemNo,
+    // BOM 라인 추가·수정·삭제·재활성화는 버전이 DRAFT 일 때만 — 승인 요청(PENDING)·승인(APPROVED) 뒤에는 바뀌지 않는다(10-10).
+    // 버전 행을 UPDLOCK 으로 잡고 같은 문장에서 상태를 보므로 승인과 엇갈려도 승인된 BOM 이 바뀌지 않는다.
+    // 버전이 DRAFT 가 아니거나(다른 사용자가 이미 승인 요청·승인) 라인이 없으면 false(변경 없음).
+    public bool InsertBomLine(string bomId, string? parentItemNo, string? compItemNo,
         int bomLevel, decimal qtyPer, string? uom, decimal? scrapPct,
         string versionId, int position, string? note, string createdBy)
-        => Exec("""
+        => ExecCount("""
             INSERT INTO dbo.MD_Bom
                    (BOMID,ParentItemNo,CompItemNo,BOMLevel,QtyPer,UOM,
                     ScrapPct,VersionID,Position,Note,ActiveFlag,CreatedBy,CreatedTS)
-            VALUES (@ID,@Par,@Comp,@Lv,@Qty,@UOM,
-                    @Scrap,@VID,@Pos,@Note,1,@By,SYSDATETIME())
+            SELECT @ID,@Par,@Comp,@Lv,@Qty,@UOM,
+                   @Scrap,@VID,@Pos,@Note,1,@By,SYSDATETIME()
+            WHERE  EXISTS (SELECT 1 FROM dbo.MD_BomVersion WITH (UPDLOCK, HOLDLOCK) WHERE VersionID=@VID AND Status='DRAFT')
             """,
             ("@ID",    bomId),     ("@Par",  parentItemNo), ("@Comp", compItemNo),
             ("@Lv",    bomLevel),  ("@Qty",  qtyPer),       ("@UOM",  uom),
             ("@Scrap", scrapPct),  ("@VID",  versionId),    ("@Pos",  position),
-            ("@Note",  note),      ("@By",   createdBy));
+            ("@Note",  note),      ("@By",   createdBy)) > 0;
 
-    public void UpdateBomLine(string bomId, string? parentItemNo, string? compItemNo,
+    public bool UpdateBomLine(string bomId, string? parentItemNo, string? compItemNo,
         int bomLevel, decimal qtyPer, string? uom, decimal? scrapPct,
         int position, string? note, string modifiedBy)
-        => Exec("""
-            UPDATE dbo.MD_Bom
+        => ExecCount($"""
+            UPDATE b
             SET    ParentItemNo=@Par, CompItemNo=@Comp, BOMLevel=@Lv,
                    QtyPer=@Qty, UOM=@UOM, ScrapPct=@Scrap,
                    Position=@Pos, Note=@Note,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-            WHERE  BOMID=@ID
+            {BomLineDraftOnly}
             """,
             ("@ID",    bomId),    ("@Par",   parentItemNo), ("@Comp", compItemNo),
             ("@Lv",    bomLevel), ("@Qty",   qtyPer),       ("@UOM",  uom),
             ("@Scrap", scrapPct), ("@Pos",   position),     ("@Note", note),
-            ("@By",    modifiedBy));
+            ("@By",    modifiedBy)) > 0;
+
+    const string BomLineDraftOnly = """
+        FROM   dbo.MD_Bom b
+        JOIN   dbo.MD_BomVersion v WITH (UPDLOCK, HOLDLOCK) ON v.VersionID = b.VersionID
+        WHERE  b.BOMID = @ID AND v.Status = 'DRAFT'
+        """;
 
     /// <summary>BOM 상하위 관계 계산용 활성 라인 전체(버전 → 구성품). <see cref="BomHierarchy.Build"/> 가 대표 버전만 골라 쓴다.</summary>
     public List<BomHierarchy.Edge> ListBomEdges()
@@ -727,15 +774,15 @@ public sealed class MasterDataRepository
             """,
             r => new BomHierarchy.Edge((string)r["VersionID"], (string)r["CompItemNo"]));
 
-    // 소프트 삭제 — 물리 삭제 대신 ActiveFlag=0 (재활성화 가능)
-    public void DeleteBomLine(string bomId, string modifiedBy)
-        => Exec("UPDATE dbo.MD_Bom SET ActiveFlag=0, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE BOMID=@I",
-            ("@I", bomId), ("@By", modifiedBy));
+    // 소프트 삭제 — 물리 삭제 대신 ActiveFlag=0 (재활성화 가능). DRAFT 버전만
+    public bool DeleteBomLine(string bomId, string modifiedBy)
+        => ExecCount($"UPDATE b SET ActiveFlag=0, ModifiedBy=@By, ModifiedTS=SYSDATETIME() {BomLineDraftOnly}",
+            ("@ID", bomId), ("@By", modifiedBy)) > 0;
 
-    // 소프트 삭제된 라인을 다시 활성화
-    public void ReactivateBomLine(string bomId, string modifiedBy)
-        => Exec("UPDATE dbo.MD_Bom SET ActiveFlag=1, ModifiedBy=@By, ModifiedTS=SYSDATETIME() WHERE BOMID=@I",
-            ("@I", bomId), ("@By", modifiedBy));
+    // 소프트 삭제된 라인을 다시 활성화. DRAFT 버전만
+    public bool ReactivateBomLine(string bomId, string modifiedBy)
+        => ExecCount($"UPDATE b SET ActiveFlag=1, ModifiedBy=@By, ModifiedTS=SYSDATETIME() {BomLineDraftOnly}",
+            ("@ID", bomId), ("@By", modifiedBy)) > 0;
 
     // ── Private helpers ──────────────────────────────────────────────────
     private void Exec(string sql, params (string Name, object? Val)[] p) => ExecCount(sql, p);

@@ -332,7 +332,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeValue"]' class="ames-rz-modal-label" Component="ItemEditTextBoxCodeValue" />
-                <RadzenTextBox Name="ItemEditTextBoxCodeValue" @bind-Value="_fItem.CodeValue" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="ItemEditTextBoxCodeValue" Value="@_fItem.CodeValue" Disabled="true" title="@L["MD.CommonCode.Hint.CodeValueFixed"]" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
@@ -656,6 +656,7 @@
             LoadItems(); CloseModal();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
+        catch (MasterDataRepository.DuplicateCodeValueException dup) { _modalErr = string.Format(L["MD.CommonCode.Err.DupValue"].Value, dup.GroupCode, dup.CodeValue); }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -664,12 +665,15 @@
     {
         if (!_canEdit) return;
         _modalErr = "";
-        if (string.IsNullOrWhiteSpace(_fItem.CodeValue)) { _modalErr = L["Err.CodeValueRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_fItem.CodeName))  { _modalErr = L["Err.CodeNameRequired"]; return; }
+        // 코드값은 키 — 데이터·설정이 이 값으로 행을 찾으므로 수정 창에서는 바꾸지 않는다(바꾸려면 새로 등록 후 옛 행 비활성)
+        var original = _items.FirstOrDefault(i => i.CodeID == _fItem.CodeId);
+        if (original is null) { _modalErr = string.Format(L["MD.CommonCode.Err.Gone"].Value, _fItem.CodeId); return; }
+        _fItem.CodeValue = original.CodeValue ?? "";
         _busy = true;
         try
         {
-            MD.UpdateCodeItem(_fItem.CodeId, _fItem.CodeValue.Trim(), _fItem.CodeName.Trim(),
+            MD.UpdateCodeItem(_fItem.CodeId, original.CodeValue, _fItem.CodeName.Trim(),
                 NE(_fItem.CodeNameEn), _fItem.SortOrder, NE(_fItem.Attribute1), _fItem.UseFlag, NE(_fItem.Description), _actor,
                 _fItem.ParentCodeId, NE(_fItem.Attribute2));
             Audit.Updated("MD-030", "MD_CodeItem", _fItem.CodeId, Snap(_items.FirstOrDefault(i => i.CodeID == _fItem.CodeId), _selGroup?.GroupCode), Snap(_fItem, _selGroup?.GroupCode));

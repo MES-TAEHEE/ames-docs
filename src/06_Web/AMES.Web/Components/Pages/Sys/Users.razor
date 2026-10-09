@@ -19,6 +19,7 @@
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject AMES.Web.Data.ApplicationDbContext IdentityDb
 
 <PageTitle>SYS-001 @L["SYS.Users.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-001" TitleKey="SYS.Users.Title" />
@@ -143,12 +144,12 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeNo"]" class="ames-rz-modal-label" Component="CreateTextBoxEmployeeNo" />
-                    <RadzenTextBox Name="CreateTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" MaxLength="@SysRepository.EmployeeNoMax" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeName"]" class="ames-rz-modal-label" Component="CreateTextBoxEmployeeName" />
-                    <RadzenTextBox Name="CreateTextBoxEmployeeName" @bind-Value="_f.EmployeeName" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeName" @bind-Value="_f.EmployeeName" MaxLength="@SysRepository.EmployeeNameMax" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -203,12 +204,12 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeNo"]" class="ames-rz-modal-label" Component="EditTextBoxEmployeeNo" />
-                    <RadzenTextBox Name="EditTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" MaxLength="@SysRepository.EmployeeNoMax" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeName"]" class="ames-rz-modal-label" Component="EditTextBoxEmployeeName" />
-                    <RadzenTextBox Name="EditTextBoxEmployeeName" @bind-Value="_f.EmployeeName" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeName" @bind-Value="_f.EmployeeName" MaxLength="@SysRepository.EmployeeNameMax" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -510,6 +511,8 @@
         if (string.IsNullOrWhiteSpace(_f.Password))     { _modalErr = L["SYS.Users.Err.PasswordRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
+        if (_f.EmployeeNo.Trim().Length > SysRepository.EmployeeNoMax || _f.EmployeeName.Trim().Length > SysRepository.EmployeeNameMax)
+        { _modalErr = string.Format(L["SYS.Users.Err.TooLong"].Value, SysRepository.EmployeeNoMax, SysRepository.EmployeeNameMax); return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
         // 사번은 행위자 코드·POP 로그인 키라 전사 유일해야 한다 — 다른 웹 사용자·현장 작업자와 겹치면 등록을 막는다
         if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: null)) return;
@@ -577,6 +580,8 @@
         if (!_isAdmin && HasAdminRole(_sel)) { _modalErr = AdminMsg("SYS.Users.Err.AdminTarget"); return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
+        if (_f.EmployeeNo.Trim().Length > SysRepository.EmployeeNoMax || _f.EmployeeName.Trim().Length > SysRepository.EmployeeNameMax)
+        { _modalErr = string.Format(L["SYS.Users.Err.TooLong"].Value, SysRepository.EmployeeNoMax, SysRepository.EmployeeNameMax); return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
         if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: _sel.UserId)) return;
 
@@ -605,48 +610,31 @@
                 if (errs.Count > 0) { _modalErr = string.Join(" ", errs); return; }
             }
 
-            // 역할은 다른 저장보다 먼저 한 트랜잭션으로 바꾼다 — 고른 역할이 그사이 없어졌으면 아무것도 저장하지 않고 멈춘다
             bool roleChanged = false;
             if (CanChangeRoleStatus && iUser is not null)
             {
                 var currentRoles = await UserMgr.GetRolesAsync(iUser);
                 var wanted = string.IsNullOrEmpty(_f.Role) ? Array.Empty<string>() : new[] { _f.Role };
-                if (!currentRoles.OrderBy(r => r).SequenceEqual(wanted, StringComparer.OrdinalIgnoreCase))
-                {
-                    if (Sys.SetUserRole(_sel.UserId, wanted.Length > 0 ? _f.Role : null) != SysRepository.RoleChangeResult.Ok)
-                    {
-                        RoleMissing(_f.Role);
-                        return;
-                    }
-                    roleChanged = true;
-                }
+                roleChanged = !currentRoles.OrderBy(r => r).SequenceEqual(wanted, StringComparer.OrdinalIgnoreCase);
             }
-
-            if (setPassword && iUser is not null)
-            {
-                var token = await UserMgr.GeneratePasswordResetTokenAsync(iUser);
-                var pr = await UserMgr.ResetPasswordAsync(iUser, token, _f.Password);
-                if (!pr.Succeeded)
-                {
-                    _modalErr = string.Join(" ", pr.Errors.Select(e => e.Description));
-                    return;
-                }
-            }
-
-            if (Sys.ProfileExists(_sel.UserId))
-                Sys.UpdateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
-                    _f.Department, _f.PlantCode, _f.DefaultShift, newStatus, _actorEmail);
-            else
-                Sys.CreateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
-                    _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, newStatus);
-
-            if (setPin)
-                Sys.SetPin(_sel.UserId, PinHasher.Hash(_f.Pin), _actorEmail);
-
-            // 상태·역할·비밀번호가 바뀌면 보안 스탬프를 갱신한다 — 그 사용자의 열린 세션이 재확인 주기(기본 5분) 안에 끊긴다
             bool statusChanged = !string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase);
-            if (iUser is not null && (statusChanged || roleChanged || setPassword))
-                await UserMgr.UpdateSecurityStampAsync(iUser);
+            var applyPassword = setPassword && iUser is not null;
+
+            // 역할·프로필·PIN·비밀번호·보안 스탬프를 한 트랜잭션으로 — 하나라도 실패하면(역할이 그사이 없어짐 등) 아무것도 바뀌지 않는다.
+            // 상태·역할·비밀번호가 바뀌면 보안 스탬프를 갱신해 그 사용자의 열린 세션이 재확인 주기(기본 5분) 안에 끊긴다
+            var result = Sys.SaveUserEdit(new SysRepository.UserEditRequest(
+                _sel.UserId, _f.EmployeeNo.Trim(), _f.EmployeeName.Trim(),
+                _f.Department, _f.PlantCode, _f.DefaultShift, newStatus,
+                ChangeRole: roleChanged, RoleName: string.IsNullOrEmpty(_f.Role) ? null : _f.Role,
+                PasswordHash: applyPassword ? UserMgr.PasswordHasher.HashPassword(iUser!, _f.Password) : null,
+                PinHash: setPin ? PinHasher.Hash(_f.Pin) : null,
+                RenewSecurityStamp: iUser is not null && (statusChanged || roleChanged || applyPassword),
+                Actor: _actorEmail));
+            if (result == SysRepository.UserEditResult.RoleMissing) { RoleMissing(_f.Role); return; }
+            if (result == SysRepository.UserEditResult.UserNotFound) { _modalErr = L["SYS.Users.Err.UserGone"]; return; }
+
+            // 같은 회로의 Identity 가 들고 있는 옛 해시·스탬프를 버린다 — 그대로 두면 이어지는 삭제·잠금 해제가 동시성 오류로 실패한다
+            if (iUser is not null) await IdentityDb.Entry(iUser).ReloadAsync();
 
             if (setPin) Audit.Log("SYS-001", "PIN_SET", "AspNetUsers", _sel.Email, null, null);
             if (setPassword) Audit.Log("SYS-001", "PWD_RESET", "AspNetUsers", _sel.Email, null, null);
