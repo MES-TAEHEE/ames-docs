@@ -1013,7 +1013,7 @@
             : _rows.Where(row => string.Equals(StockStatus(row), _statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
 
     private List<WarehouseBrowsePart> BrowsePartRows => _rows
-        .Where(row => row.OnHandQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
+        .Where(row => row.OnHandQty > 0 && (IsSpareParts || !string.IsNullOrWhiteSpace(row.LocationId)))
         .GroupBy(row => new { PartNo = row.ItemNo, PartName = row.ItemName, Location = row.LocationId.Trim(), Unit = Unit(row.Unit) })
         .Select(group => new WarehouseBrowsePart(group.Key.PartNo, group.Key.PartName, group.Sum(row => row.OnHandQty),
             group.Key.Unit, group.Key.Location, group.Max(row => row.LastReceivedDate)))
@@ -1391,6 +1391,7 @@
         }
 
         _workTab = "Search";
+        if (IsSpareParts) _inventoryView = "Part";
     }
 
     private async Task SetInventoryView(string view)
@@ -1878,7 +1879,7 @@
             _browsePartLots = lots
                 .Where(row => row.RemainingQty > 0
                     && string.Equals(row.ItemNo, part.PartNo, StringComparison.OrdinalIgnoreCase)
-                    && (!IsSpareParts || string.Equals(row.LocationId, part.Location, StringComparison.OrdinalIgnoreCase)))
+                    && (!IsSpareParts || string.Equals(row.LocationId ?? "", part.Location, StringComparison.OrdinalIgnoreCase)))
                 .OrderBy(row => row.LocationId, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(row => row.LotNo, StringComparer.OrdinalIgnoreCase)
                 .ToList();
