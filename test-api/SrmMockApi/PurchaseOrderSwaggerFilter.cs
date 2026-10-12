@@ -1,5 +1,5 @@
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 public sealed class PurchaseOrderSwaggerFilter : IOperationFilter
@@ -20,7 +20,7 @@ public sealed class PurchaseOrderSwaggerFilter : IOperationFilter
             ("PO_DATE_BEG", "발주 시작일 (포함, yyyy-MM-dd)", "2026-08-01"),
             ("PO_DATE_TO", "발주 종료일 (포함, yyyy-MM-dd)", "2026-09-30")
         };
-        operation.Parameters = parameters.Select(p => new OpenApiParameter
+        operation.Parameters = parameters.Select(p => (IOpenApiParameter)new OpenApiParameter
         {
             Name = p.Name,
             In = ParameterLocation.Query,
@@ -28,20 +28,28 @@ public sealed class PurchaseOrderSwaggerFilter : IOperationFilter
             Description = p.Description,
             Schema = new OpenApiSchema
             {
-                Type = "string",
-                Default = p.Default is null ? null : new OpenApiString(p.Default)
+                Type = JsonSchemaType.String,
+                Default = p.Default is null ? null : JsonValue.Create(p.Default)
             }
         }).ToList();
+        operation.Responses ??= new OpenApiResponses();
         operation.Responses["200"] = new OpenApiResponse
         {
             Description = "발주 JSON 배열 (건별 45개 항목), 결과가 없으면 []",
             Content = new Dictionary<string, OpenApiMediaType>
             {
-                ["application/json"] = new() { Schema = new() { Type = "array", Items = new() { Type = "object", AdditionalPropertiesAllowed = true } } }
+                ["application/json"] = new()
+                {
+                    Schema = new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.Array,
+                        Items = new OpenApiSchema { Type = JsonSchemaType.Object, AdditionalPropertiesAllowed = true }
+                    }
+                }
             }
         };
-        operation.Responses["400"] = new() { Description = "필수 조건 누락 또는 잘못된 검색 조건" };
-        operation.Responses["401"] = new() { Description = "API 키 누락 또는 불일치" };
-        operation.Responses["503"] = new() { Description = "테스트 DB 조회 불가" };
+        operation.Responses["400"] = new OpenApiResponse { Description = "필수 조건 누락 또는 잘못된 검색 조건" };
+        operation.Responses["401"] = new OpenApiResponse { Description = "API 키 누락 또는 불일치" };
+        operation.Responses["503"] = new OpenApiResponse { Description = "테스트 DB 조회 불가" };
     }
 }
