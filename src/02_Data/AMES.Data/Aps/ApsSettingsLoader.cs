@@ -15,7 +15,7 @@ public static class ApsSettingsLoader
     public const string GroupSetting = "APS_SETTING", GroupCoverTier = "APS_COVER_TIER";
     public const string KeyDefaultCover = "DEFAULT_COVER", KeyRoundTo = "ROUND_TO", KeyTrimLastDay = "TRIM_LAST_DAY", KeyInjOffsetDays = "INJ_OFFSET_DAYS",
                         KeyShiftDayH = "SHIFT_DAY_H", KeyShiftNightH = "SHIFT_NIGHT_H", KeyPullForward = "PULL_FORWARD", KeySafetyTerm = "SAFETY_TERM", KeyWarnStatus = "WARN_STATUS",
-                        KeyDefaultPattern = "DEFAULT_PATTERN";
+                        KeyDefaultPattern = "DEFAULT_PATTERN", KeyShiftFillSeq = "SHIFT_FILL_SEQ";
 
     public sealed record CodeRow(string GroupCode, string CodeValue, string? Attribute1, int? SortOrder, bool UseFlag);
 
@@ -23,7 +23,7 @@ public static class ApsSettingsLoader
     public enum SettingKind { Text, Number, Int, Flag, Pattern }
     public sealed record KnownSetting(string Key, SettingKind Kind, string Default);
 
-    /// <summary>APS_SETTING 의 여덟 키(마이그레이션 §5 순서)와 기본값 — 행이 없을 때 다이얼로그가 이 값으로 만든다. 기본값은 Parse 의 폴백과 같다.
+    /// <summary>APS_SETTING 의 아홉 키(마이그레이션 §5 순서)와 기본값 — 행이 없을 때 다이얼로그가 이 값으로 만든다. 기본값은 Parse 의 폴백과 같다.
     /// SHIFT_DAY_H/NIGHT_H 는 2026-10-06 부터 다이얼로그에서 뺐다 — APS 는 가동 시간 패턴이 없으면 조회를 막아 폴백에 닿지 않는다(행은 남겨도 Text 로 보인다).</summary>
     public static readonly IReadOnlyList<KnownSetting> KnownSettings = new[]
     {
@@ -35,6 +35,7 @@ public static class ApsSettingsLoader
         new KnownSetting(KeyPullForward,   SettingKind.Flag,    "0"),
         new KnownSetting(KeySafetyTerm,    SettingKind.Flag,   "0"),
         new KnownSetting(KeyWarnStatus,    SettingKind.Flag,   "0"),
+        new KnownSetting(KeyShiftFillSeq,  SettingKind.Flag,   "0"),   // 1 = 사출 계획을 앞 교대부터 순차 채움(10-08), 0 = 교대 가동 시간 비율 분할
     };
 
     /// <summary>폐기된 키 — 교대 시간 폴백(10-06, 패턴이 대체). migrate_aps.sql 이 행을 지우고, 다이얼로그는 남은 행을 숨기며, Parse 는 읽지 않는다.</summary>
@@ -146,7 +147,8 @@ public static class ApsSettingsLoader
         var options = new ApsOptions(
             Flag(map, KeyPullForward, false, warnings),
             Flag(map, KeySafetyTerm,  false, warnings),
-            Flag(map, KeyWarnStatus,  false, warnings));
+            Flag(map, KeyWarnStatus,  false, warnings),
+            Flag(map, KeyShiftFillSeq, false, warnings));
 
         return new Parsed(s, options, warnings, defaultPattern, linePatterns);
     }

@@ -132,7 +132,7 @@
     {
         <div class="aps-busybar">
             <span>@L["PP.Aps.Busy"]</span>
-            <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" ShowValue="false" Style="flex:1;height:8px;" />
+            <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" Value="100" ShowValue="false" Style="flex:1;height:8px;" />
         </div>
     }
 </div>
@@ -557,10 +557,26 @@ else
     // 재현·발행 상태는 읽기 전용, 계산 중에는 잠근다
     bool CanEditCells => _canEdit && _state is not null && !_state.ReadOnly && !_busy;
 
+    // 완제품 공급을 고치면 사출 계획을 바로 다시 나눈다(잠긴 사출 칸은 그대로). 저장·「WO 생성」은 사출 행 수량을 쓰므로 공급만 바뀐 채
+    // 두면 WO 가 옛 공급으로 나온다 — 2026-10-12 실행 #475: 10-14 공급을 96 → 196 으로 고쳐 저장했지만 사출 행은 96 기준이라 WO 도 96
     void SetSupply(AssemblyDay d, double v)
     {
         if (!CanEditCells || d.Locked) return;
-        d.Supply = Math.Max(0, v); _state!.Dirty = true;
+        v = Math.Max(0, v);
+        if (Math.Abs(d.Supply - v) < 0.0005) return;
+        d.Supply = v;
+        var s = _state!;
+        try
+        {
+            s.Reschedule();
+            Rebuild();
+            if (s.ScheduleWarnings.Count > 0) ShowMsg(string.Format(L["PP.Aps.Ok.Reschedule"].Value, s.ScheduleWarnings.Count), true);
+        }
+        catch (Exception ex)
+        {
+            s.Dirty = true;   // 엔진이 중간까지 칸을 고쳤을 수 있다 — 버리기 전에 확인을 받게 한다
+            ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true);
+        }
     }
     // 사출 셀의 교대 줄 — 교대 목록 모드면 PlanShifts(2026-10-07), 골든 경로(목록 없음)면 [day, night]. 둘 다 같은 UI
     Dictionary<string, string> _shiftNames = new(StringComparer.OrdinalIgnoreCase);   // WORK_SHIFT 코드 → 표시명

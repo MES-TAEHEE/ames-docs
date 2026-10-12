@@ -19,13 +19,15 @@ public static class ApsWoBoard
 {
     public enum BlockKind { NewWo, NewMoldChange, OldWo, OldMoldChange, Pm }
 
-    public sealed record Sibling(string WoNumber, string ItemNo, decimal Qty);
+    public sealed record Sibling(string WoNumber, string ItemNo, decimal Qty, decimal OverQty = 0);
 
+    /// <param name="OverQty">Qty 중 능력을 넘어 초과로 실린 수량(2026-10-08 — 미배치 대신). 블록 자체의 몫이며 형제 몫은 Siblings 에 따로 있다.</param>
     public sealed record Block(BlockKind Kind, int StartMin, int EndMin, string? WoNumber, string? ItemNo, decimal Qty, bool Late, string? MoldId,
-                               IReadOnlyList<Sibling> Siblings, string? Title = null)
+                               IReadOnlyList<Sibling> Siblings, string? Title = null, decimal OverQty = 0)
     {
         public int Minutes => EndMin - StartMin;
         public bool IsNew => Kind is BlockKind.NewWo or BlockKind.NewMoldChange;
+        public decimal TotalOverQty => OverQty + Siblings.Sum(s => s.OverQty);
     }
 
     public sealed record Shortfall(string WoNumber, string ItemNo, int StepSeq, bool IsInjection, decimal Qty);
@@ -37,6 +39,8 @@ public static class ApsWoBoard
         /// <summary>그 줄에 새로 점유하는 분(새 WO + 새 MC — PP-LSB 처럼 MC 도 부하다).</summary>
         public int NewMin => Blocks.Where(b => b.IsNew).Sum(b => b.Minutes);
         public decimal ShortQty => Shortfalls.Sum(s => s.Qty);
+        /// <summary>그 줄에 초과로 실린 수량(형제 포함) — 줄 끝 「초과 N」 칩.</summary>
+        public decimal OverQty => Blocks.Sum(b => b.TotalOverQty);
     }
 
     public sealed record Day(DateOnly Date, IReadOnlyList<Row> Rows);
@@ -79,7 +83,7 @@ public static class ApsWoBoard
             foreach (var p in o.Placements.Where(p => Here(p.LineId, p.Date)))
             {
                 if (p.EndMin > p.StartMin)
-                    blocks.Add(new Block(BlockKind.NewWo, p.StartMin, p.EndMin, o.WoNumber, o.ItemNo, p.Qty, p.Late, p.MoldId, new List<Sibling>()));
+                    blocks.Add(new Block(BlockKind.NewWo, p.StartMin, p.EndMin, o.WoNumber, o.ItemNo, p.Qty, p.Late, p.MoldId, new List<Sibling>(), OverQty: p.OverQty));
                 else siblings.Add((p, o));
             }
             foreach (var m in o.MoldChanges.Where(m => Here(m.LineId, m.Date) && m.EndMin > m.StartMin))
@@ -91,8 +95,8 @@ public static class ApsWoBoard
         {
             var rep = blocks.FirstOrDefault(b => b.Kind == BlockKind.NewWo && b.StartMin == p.StartMin)
                    ?? blocks.FirstOrDefault(b => b.Kind == BlockKind.NewWo && b.StartMin <= p.StartMin && p.StartMin < b.EndMin);
-            if (rep is null) blocks.Add(new Block(BlockKind.NewWo, p.StartMin, p.EndMin, o.WoNumber, o.ItemNo, p.Qty, p.Late, p.MoldId, new List<Sibling>()));
-            else ((List<Sibling>)rep.Siblings).Add(new Sibling(o.WoNumber, o.ItemNo, p.Qty));
+            if (rep is null) blocks.Add(new Block(BlockKind.NewWo, p.StartMin, p.EndMin, o.WoNumber, o.ItemNo, p.Qty, p.Late, p.MoldId, new List<Sibling>(), OverQty: p.OverQty));
+            else ((List<Sibling>)rep.Siblings).Add(new Sibling(o.WoNumber, o.ItemNo, p.Qty, p.OverQty));
         }
 
         foreach (var r in existing.Where(r => r.EndMin > r.StartMin))

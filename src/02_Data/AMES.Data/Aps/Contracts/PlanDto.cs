@@ -24,6 +24,8 @@ public sealed class AssemblyRow
     public string? PartName { get; set; }
     public string? LineCd { get; set; }
     public double Uph { get; set; }
+    /// <summary>BOP 표준 사이클(초, MD_Bop.StdCycleTime) — 있으면 Autofill 이 라인 능력을 분으로 재고 이 행은 EA 당 CycleSec ÷ 60 분을 쓴다(2026-10-12). 원본·골든에는 없다(null = 수량 모드).</summary>
+    public double? CycleSec { get; set; }
     public double OpeningStock { get; set; }
     public bool StockCounted { get; set; } = true;
     public double Defect { get; set; }

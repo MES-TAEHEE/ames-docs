@@ -9743,6 +9743,9 @@
   <data name="PP.Aps.Busy" xml:space="preserve">
     <value>Calculando…</value>
   </data>
+  <data name="PP.Aps.Wo.Busy" xml:space="preserve">
+    <value>Creando órdenes de trabajo…</value>
+  </data>
   <data name="PP.Aps.Lbl.Dirty" xml:space="preserve">
     <value>Cambios sin guardar</value>
   </data>
@@ -10110,7 +10113,7 @@
     <value>Resultado</value>
   </data>
   <data name="PP.Aps.Wo.Summary" xml:space="preserve">
-    <value>{0} OT · tarde {1} · faltante {2} · rechazadas {3} · omitidas {4}</value>
+    <value>{0} OT · tarde {1} · exceso {2} · rechazadas {3} · omitidas {4}</value>
   </data>
   <data name="PP.Aps.Wo.Confirm" xml:space="preserve">
     <value>¿Crear órdenes de trabajo para las {0} línea(s) seleccionadas?</value>
@@ -10134,7 +10137,7 @@
     <value>OT = pieza × fecha de plan de inyección. La cantidad se asigna FIFO a los saldos de pedidos confirmados por fecha de entrega; el resto se convierte en una OT de reposición de stock (sin pedido). Se resta la cantidad ya asignada ese día. Los tramos INJ se fijan en las bandas restantes de día/noche; la etapa de producto terminado se asigna automáticamente según la fecha límite. Las líneas faltantes o rechazadas quedan sin OT (o como Released sin asignar).</value>
   </data>
   <data name="PP.Aps.Wo.Ok" xml:space="preserve">
-    <value>{0} OT creadas · tarde {1} · faltante {2} · rechazadas {3}</value>
+    <value>{0} OT creadas · tarde {1} · exceso {2} · rechazadas {3}</value>
   </data>
   <data name="PP.Aps.Wo.Preview.PageTitle" xml:space="preserve">
     <value>Vista previa de OT</value>
@@ -10162,6 +10165,18 @@
   </data>
   <data name="PP.Aps.Wo.Row.New" xml:space="preserve">
     <value>{0} nuevo · {1} min</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.InjItem" xml:space="preserve">
+    <value>Pieza de inyección</value>
+  </data>
+  <data name="PP.Aps.Wo.Row.Over" xml:space="preserve">
+    <value>Exceso {0}</value>
+  </data>
+  <data name="PP.Aps.Wo.Col.Over" xml:space="preserve">
+    <value>Exceso</value>
+  </data>
+  <data name="PP.Aps.Wo.Lgd.Over" xml:space="preserve">
+    <value>Sobrecarga</value>
   </data>
   <data name="PP.Aps.Wo.Row.Short" xml:space="preserve">
     <value>Sin asignar {0}</value>

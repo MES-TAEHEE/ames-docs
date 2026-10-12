@@ -17,8 +17,10 @@ public static class DeadlinePacker
     /// <param name="PackSize">포장 단위(박스 수량). 2 이상이면 슬롯을 박스 배수로만 자르고 한 박스 분이 안 되는 틈은 건너뛴다 — 부분 박스는 마지막 한 번. null·1 = 개 단위(종전).</param>
     public sealed record StepDemand(int StepSeq, string LineId, decimal Qty, int? CycleSec, int? DailyCap,
                                     string? MoldId = null, int ChangeMin = 0, int? PackSize = null);
+    /// <param name="OverQty">Qty 중 UPH·사이클 기준으로는 이 구간에 안 들어가지만 초과로 얹은 수량(PP-APS WO 생성 2026-10-08 — 미배치 대신). PP-003 경로는 항상 0.</param>
+    /// <param name="ItemNo">이 슬롯이 찍는 품번이 WO 품번과 다를 때(PP-APS BOM 규칙의 사출 자식 품번) — 상세 팝업 표시용. null = WO 품번.</param>
     public sealed record Placement(int StepSeq, string LineId, DateTime Date, int StartMin, int EndMin, decimal Qty, bool Late,
-                                   string? MoldId = null);
+                                   string? MoldId = null, decimal OverQty = 0, string? ItemNo = null);
     public sealed record MoldChange(int StepSeq, string LineId, DateTime Date, int StartMin, int EndMin,
                                     string? FromMoldId, string ToMoldId, bool Late);
     public sealed record StepShortfall(int StepSeq, string LineId, decimal Qty);
