@@ -10652,4 +10652,16 @@
   <data name="MD.Workers.Ok.Deactivated" xml:space="preserve">
     <value>Worker {0} was deactivated.</value>
   </data>
+  <data name="MNT.Failure.Err.NoDelete.NotOpen" xml:space="preserve">
+    <value>{0} is in progress or resolved and cannot be deleted.</value>
+  </data>
+  <data name="MNT.Failure.Err.NoDelete.Andon" xml:space="preserve">
+    <value>{0} was raised from an andon and cannot be deleted.</value>
+  </data>
+  <data name="MNT.Failure.Err.NoDelete.WoStarted" xml:space="preserve">
+    <value>The work order for {0} has already started, so it cannot be deleted.</value>
+  </data>
+  <data name="MNT.Failure.Err.Gone" xml:space="preserve">
+    <value>{0} has already been deleted.</value>
+  </data>
 </root>

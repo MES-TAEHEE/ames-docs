@@ -543,54 +543,50 @@ public sealed class MntRepository
         return Query(sql, MapPmExec, ("@Id", "MNT_PMExecution.PMScheduleID", pmScheduleId), ("@N", null, top));
     }
 
-    // ── MNT-005 설비 PM / MNT-010 보전 PM — 등록·수정·삭제 (테이블 공용, PMClass 로 구분) ──
-    public bool PmPlanNumberExists(string planNo, int? excludeId = null)
+    // ── 번호 채번 — 고장(FAIL-yyMM-nnn)·PM 계획(PM-yyMM-nnn)·보전 WO(MWO-yyMM-nnn) ──
+    // 저장 트랜잭션 안에서 그 달 범위를 UPDLOCK·HOLDLOCK 으로 잡고 정한다(10-13) — 전에는 화면이 저장 전에 따로 MAX+1 을 읽어
+    // 두 사람이 동시에 저장하면 같은 번호가 들어갔다. POP 안돈의 고장번호(AndonRepository)도 같은 범위 잠금을 쓴다.
+    // 범위 잠금이 그 달 번호만 잡도록 세 컬럼에 인덱스가 있다(dist/migrate_mnt_number_index.sql).
+
+    /// <summary>직접 입력한 번호가 이미 있을 때. 화면은 Number 로 안내 문구를 만든다.</summary>
+    public sealed class DuplicateNumberException(string number) : InvalidOperationException($"{number} already exists.")
     {
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(
-            "SELECT 1 FROM dbo.MNT_PMSchedule WHERE PMPlanNumber = @N AND (@X IS NULL OR PMScheduleID <> @X)", conn);
-        cmd.Parameters.Add("@N", SqlDbType.VarChar, 30).Value = planNo;
-        cmd.Parameters.Add("@X", SqlDbType.Int).Value = (object?)excludeId ?? DBNull.Value;
-        return cmd.ExecuteScalar() is not null;
+        public string Number { get; } = number;
     }
 
-    /// <summary>계획번호 자동 채번: PM-yyMM-nnn (그 달 접두어의 최대 순번 + 1). mnt-seed 와 같은 양식.</summary>
-    public string NextPmPlanNumber(DateTime today)
+    private sealed record NumberSpec(string Table, string Column, string KeyColumn, int Length, string Prefix);
+
+    private static readonly NumberSpec FailureNo = new("MNT_FailureRegister", "FailureNumber", "FailureID",    24, "FAIL");
+    private static readonly NumberSpec PmPlanNo  = new("MNT_PMSchedule",      "PMPlanNumber",  "PMScheduleID", 30, "PM");
+    private static readonly NumberSpec MwoNo     = new("MNT_WorkOrder",       "WoNumber",      "WorkOrderID",  28, "MWO");
+
+    /// <summary>비어 있으면 그 달 최대 순번 + 1 로 채번하고, 입력값이면 같은 번호가 다른 행에 없는지 본다(둘 다 범위 잠금).</summary>
+    private static string ClaimNumber(SqlConnection conn, SqlTransaction tx, NumberSpec spec, string? requested, int? excludeId)
     {
-        var prefix = $"PM-{today:yyMM}-";
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand("""
-            SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(PMPlanNumber, LEN(@P) + 1, 10) AS int)), 0)
-            FROM   dbo.MNT_PMSchedule WHERE PMPlanNumber LIKE @P + '%'
-            """, conn);
-        cmd.Parameters.Add("@P", SqlDbType.VarChar, 30).Value = prefix;
-        var next = Convert.ToInt32(cmd.ExecuteScalar()) + 1;
-        return $"{prefix}{next:D3}";
+        var no = requested?.Trim() ?? "";
+        if (no.Length == 0)
+        {
+            var prefix = $"{spec.Prefix}-{DbClock.Today:yyMM}-";
+            using var cmd = new SqlCommand($"""
+                SELECT ISNULL(MAX(TRY_CAST(SUBSTRING({spec.Column}, LEN(@P) + 1, 10) AS int)), 0)
+                FROM   dbo.{spec.Table} WITH (UPDLOCK, HOLDLOCK) WHERE {spec.Column} LIKE @P + '%'
+                """, conn, tx);
+            cmd.Parameters.Add("@P", SqlDbType.VarChar, spec.Length).Value = prefix;
+            return $"{prefix}{Convert.ToInt32(cmd.ExecuteScalar()) + 1:D3}";
+        }
+        using (var cmd = new SqlCommand($"""
+            SELECT 1 FROM dbo.{spec.Table} WITH (UPDLOCK, HOLDLOCK)
+            WHERE  {spec.Column} = @N AND (@X IS NULL OR {spec.KeyColumn} <> @X)
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@N", SqlDbType.VarChar, spec.Length).Value = no;
+            cmd.Parameters.Add("@X", SqlDbType.Int).Value = (object?)excludeId ?? DBNull.Value;
+            if (cmd.ExecuteScalar() is not null) throw new DuplicateNumberException(no);
+        }
+        return no;
     }
 
     // ── MNT-002 고장 등록·수정·삭제 — 등록 시 정비 작업지시(WoType='CM') 를 같은 트랜잭션으로 발행 ──
-    public bool FailureNumberExists(string failNo, int? excludeId = null)
-    {
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(
-            "SELECT 1 FROM dbo.MNT_FailureRegister WHERE FailureNumber = @N AND (@X IS NULL OR FailureID <> @X)", conn);
-        cmd.Parameters.Add("@N", SqlDbType.VarChar, 24).Value = failNo;
-        cmd.Parameters.Add("@X", SqlDbType.Int).Value = (object?)excludeId ?? DBNull.Value;
-        return cmd.ExecuteScalar() is not null;
-    }
-
-    /// <summary>고장번호 자동 채번: FAIL-yyMM-nnn (mnt-seed 와 같은 양식).</summary>
-    public string NextFailureNumber(DateTime today)
-    {
-        var prefix = $"FAIL-{today:yyMM}-";
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand("""
-            SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(FailureNumber, LEN(@P) + 1, 10) AS int)), 0)
-            FROM   dbo.MNT_FailureRegister WHERE FailureNumber LIKE @P + '%'
-            """, conn);
-        cmd.Parameters.Add("@P", SqlDbType.VarChar, 24).Value = prefix;
-        return $"{prefix}{Convert.ToInt32(cmd.ExecuteScalar()) + 1:D3}";
-    }
 
     // 심각도(DEFECT_SEVERITY) → 작업지시 우선순위. 기존 MWO 데이터 어휘(LOW/MED/HIGH)를 따른다.
     private static string WoPriorityFor(string? severity) => severity?.ToUpperInvariant() switch
@@ -611,14 +607,16 @@ public sealed class MntRepository
     /// 고장 등록 = MNT_FailureRegister 1행 + 정비 작업지시(MNT_WorkOrder, WoType='CM', SourceType='FAILURE') 1행.
     /// 고장 행의 WorkOrderID 가 작업지시를 가리킨다. 우선순위는 심각도에서 정한다.
     /// 상태는 항상 OPEN·해결일시 없음으로 시작한다(10-10 사용자 결정) — 해결은 ResolveFailure(MNT-002 수리 완료)·작업지시 완료(MNT-007)·안돈 종료로만.
+    /// 고장번호가 비어 있으면 채번한다(입력값이 겹치면 DuplicateNumberException).
     /// </summary>
-    public (int FailureId, string WoNumber) InsertFailure(string failNo, string equipId, string failureType, string symptom, string severity,
+    public (int FailureId, string FailureNumber, string WoNumber) InsertFailure(string? failNo, string equipId, string failureType, string symptom, string severity,
         string? source, DateTime reportedAt, string? reportedBy, string actor)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
+            failNo = ClaimNumber(conn, tx, FailureNo, failNo, null);
             int failId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.MNT_FailureRegister
@@ -639,7 +637,7 @@ public sealed class MntRepository
                 failId = Convert.ToInt32(cmd.ExecuteScalar());
             }
 
-            var woNumber = NextMwoNumber(conn, tx, DbClock.Today);
+            var woNumber = NextMwoNumber(conn, tx);
             int woId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.MNT_WorkOrder
@@ -667,20 +665,22 @@ public sealed class MntRepository
             }
 
             tx.Commit();
-            return (failId, woNumber);
+            return (failId, failNo, woNumber);
         }
         catch { tx.Rollback(); throw; }
     }
 
     /// <summary>고장 수정(내용만). 연결된 작업지시가 착수 전(ISSUED/OPEN)이면 설비·우선순위·설명을 같이 맞춘다.
-    /// 상태·해결일시는 바꾸지 않는다 — 수정 창에서 바꾸면 작업지시가 발행 상태로 남아 닫을 수 없었다(10-10).</summary>
-    public void UpdateFailure(int id, string failNo, string equipId, string failureType, string symptom, string severity,
+    /// 상태·해결일시는 바꾸지 않는다 — 수정 창에서 바꾸면 작업지시가 발행 상태로 남아 닫을 수 없었다(10-10).
+    /// 저장한 고장번호를 돌려준다(비우면 새로 채번, 다른 고장과 겹치면 DuplicateNumberException).</summary>
+    public string UpdateFailure(int id, string? failNo, string equipId, string failureType, string symptom, string severity,
         string? source, DateTime reportedAt, string? reportedBy, string actor)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
+            failNo = ClaimNumber(conn, tx, FailureNo, failNo, id);
             using (var cmd = new SqlCommand("""
                 UPDATE dbo.MNT_FailureRegister
                 SET    FailureNumber = @No, EquipID = @Eq, FailureType = @Type, Symptom = @Sym, Severity = @Sev, Source = @Src,
@@ -721,44 +721,90 @@ public sealed class MntRepository
             }
 
             tx.Commit();
+            return failNo;
         }
         catch { tx.Rollback(); throw; }
     }
 
-    /// <summary>고장 삭제. 착수 전(ISSUED/OPEN) 작업지시는 함께 지우고, 진행·완료된 것은 남긴다.</summary>
-    public void DeleteFailure(int id)
+    /// <summary>삭제 규칙(FailureDeleteRules)에 걸려 지울 수 없을 때. 화면은 Reason 으로 안내 문구를 고른다.</summary>
+    public sealed class FailureNotDeletableException(string failNo, FailureDeleteRules.Block reason)
+        : InvalidOperationException($"{failNo} cannot be deleted ({reason}).")
+    {
+        public string FailureNumber { get; } = failNo;
+        public FailureDeleteRules.Block Reason { get; } = reason;
+    }
+
+    /// <summary>
+    /// 고장 삭제 — 열린 웹 등록 고장이고 연결 작업지시가 착수 전일 때만(FailureDeleteRules, 10-13). 조치 이력·작업지시·고장을
+    /// 한 트랜잭션으로 지운다(전에는 조치 이력이 고아로 남고 진행·완료 WO 는 없는 고장번호를 가리킨 채 남았다).
+    /// 지운 고장번호와 작업지시 번호를 돌려준다. 이미 없으면 null.
+    /// </summary>
+    public (string FailureNumber, string? WoNumber)? DeleteFailure(int id)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
+            // 잠금 순서 WO → 고장(완료 경로와 같게) — 연결 WO 를 먼저 잡고 고장을 잡은 뒤 연결이 그대로인지 다시 본다.
+            var woId0 = ReadIntOrNull(conn, tx, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @Id", id);
+            string? woStatus = null, woNumber = null;
+            if (woId0 is int lw)
+                using (var cmd = new SqlCommand("SELECT Status, WoNumber FROM dbo.MNT_WorkOrder WITH (UPDLOCK, ROWLOCK) WHERE WorkOrderID = @Id", conn, tx))
+                {
+                    cmd.Parameters.Add("@Id", SqlDbType.Int).Value = lw;
+                    using var r = cmd.ExecuteReader();
+                    if (r.Read()) { woStatus = r["Status"] as string; woNumber = r["WoNumber"] as string; }
+                }
+
+            string failNo; string? status, source; int? woId;
             using (var cmd = new SqlCommand("""
-                DELETE w
-                FROM   dbo.MNT_WorkOrder w
-                JOIN   dbo.MNT_FailureRegister f ON f.WorkOrderID = w.WorkOrderID
-                WHERE  f.FailureID = @Id AND w.Status IN ('ISSUED', 'OPEN');
+                SELECT FailureNumber, Status, Source, WorkOrderID
+                FROM   dbo.MNT_FailureRegister WITH (UPDLOCK, ROWLOCK)
+                WHERE  FailureID = @Id;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+                using var r = cmd.ExecuteReader();
+                if (!r.Read()) return null;   // 커밋 없이 끝나면 dispose 가 되돌린다
+                failNo = r["FailureNumber"] as string ?? $"F#{id}";
+                status = r["Status"] as string;
+                source = r["Source"] as string;
+                woId   = r["WorkOrderID"] as int?;
+            }
+            if (woId != woId0) throw new InvalidOperationException($"{failNo} was changed by another user. Please retry.");
+            var block = FailureDeleteRules.Check(status, source, woId, woStatus);
+            if (block != FailureDeleteRules.Block.None) throw new FailureNotDeletableException(failNo, block);
+
+            using (var cmd = new SqlCommand("""
+                DELETE FROM dbo.MNT_FailureAction   WHERE FailureID = @Id;
+                DELETE FROM dbo.MNT_WorkOrder       WHERE WorkOrderID = @Wo;
                 DELETE FROM dbo.MNT_FailureRegister WHERE FailureID = @Id;
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+                cmd.Parameters.Add("@Wo", SqlDbType.Int).Value = (object?)woId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();
+            return (failNo, woNumber);
         }
         catch { tx.Rollback(); throw; }
     }
 
+    // ── MNT-005 설비 PM / MNT-010 보전 PM — 등록·수정·삭제 (테이블 공용, PMClass 로 구분) ──
+
     /// <summary>
     /// PM 등록 = MNT_PMSchedule 1행 + 정비 작업지시(MNT_WorkOrder, WoType='PM') 1행을 한 트랜잭션으로 만든다.
-    /// 작업지시는 ISSUED 상태로 발행되고 PM 행의 ActiveWoID 가 이를 가리킨다.
+    /// 작업지시는 ISSUED 상태로 발행되고 PM 행의 ActiveWoID 가 이를 가리킨다. 계획번호가 비어 있으면 채번한다(입력값이 겹치면 DuplicateNumberException).
     /// </summary>
-    public (int PmScheduleId, string WoNumber) InsertPm(string pmClass, string planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
+    public (int PmScheduleId, string PlanNumber, string WoNumber) InsertPm(string pmClass, string? planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
         DateTime? lastPm, DateTime nextDue, string? checklistId, string? techId, string? status, string actor)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
+            planNo = ClaimNumber(conn, tx, PmPlanNo, planNo, null);
             int pmId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.MNT_PMSchedule
@@ -783,7 +829,7 @@ public sealed class MntRepository
                 pmId = Convert.ToInt32(cmd.ExecuteScalar());
             }
 
-            var woNumber = NextMwoNumber(conn, tx, DbClock.Today);
+            var woNumber = NextMwoNumber(conn, tx);
             int woId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.MNT_WorkOrder
@@ -812,34 +858,27 @@ public sealed class MntRepository
             }
 
             tx.Commit();
-            return (pmId, woNumber);
+            return (pmId, planNo, woNumber);
         }
         catch { tx.Rollback(); throw; }
     }
 
-    /// <summary>작업지시 번호 자동 채번: MWO-yyMM-nnn (mnt-seed 와 같은 양식).</summary>
-    private static string NextMwoNumber(SqlConnection conn, SqlTransaction tx, DateTime today)
-    {
-        var prefix = $"MWO-{today:yyMM}-";
-        using var cmd = new SqlCommand("""
-            SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(WoNumber, LEN(@P) + 1, 10) AS int)), 0)
-            FROM   dbo.MNT_WorkOrder WHERE WoNumber LIKE @P + '%'
-            """, conn, tx);
-        cmd.Parameters.Add("@P", SqlDbType.VarChar, 28).Value = prefix;
-        return $"{prefix}{Convert.ToInt32(cmd.ExecuteScalar()) + 1:D3}";
-    }
+    /// <summary>작업지시 번호 자동 채번: MWO-yyMM-nnn (mnt-seed 와 같은 양식, 범위 잠금).</summary>
+    private static string NextMwoNumber(SqlConnection conn, SqlTransaction tx) => ClaimNumber(conn, tx, MwoNo, null, null);
 
     /// <summary>
     /// PMClass 는 화면이 정하므로 바꾸지 않는다(설비 PM 화면에서 보전 PM 으로 옮길 수 없음).
     /// 연결된 작업지시가 아직 착수 전(ISSUED/OPEN)이면 설비·담당자·템플릿·설명을 같이 맞춘다.
+    /// 저장한 계획번호를 돌려준다(비우면 새로 채번, 다른 일정과 겹치면 DuplicateNumberException).
     /// </summary>
-    public void UpdatePm(int id, string planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
+    public string UpdatePm(int id, string? planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
         DateTime? lastPm, DateTime nextDue, string? checklistId, string? techId, string? status, string actor)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
+            planNo = ClaimNumber(conn, tx, PmPlanNo, planNo, id);
             using (var cmd = new SqlCommand("""
                 UPDATE dbo.MNT_PMSchedule
                 SET    PMPlanNumber = @No, EquipID = @Eq, PMType = @Type, CycleBasis = @Basis, CycleValue = @Val,
@@ -882,6 +921,7 @@ public sealed class MntRepository
             }
 
             tx.Commit();
+            return planNo;
         }
         catch { tx.Rollback(); throw; }
     }
@@ -1053,12 +1093,15 @@ public sealed class MntRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            string failNo; string? status, woStatus; int? woId;
+            // 잠금 순서 WO → 고장(CompleteWoCore 와 같게) — 연결 WO 를 먼저 잡고 고장을 잡은 뒤 연결이 그대로인지 다시 본다.
+            var woId0 = ReadIntOrNull(conn, tx, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @Id", failureId);
+            var woStatus = woId0 is int lw ? LockWoStatus(conn, tx, lw) : null;
+
+            string failNo; string? status; int? woId;
             using (var cmd = new SqlCommand("""
-                SELECT f.FailureNumber, f.Status, f.WorkOrderID, w.Status AS WoStatus
-                FROM   dbo.MNT_FailureRegister f
-                LEFT JOIN dbo.MNT_WorkOrder w ON w.WorkOrderID = f.WorkOrderID
-                WHERE  f.FailureID = @Id;
+                SELECT FailureNumber, Status, WorkOrderID
+                FROM   dbo.MNT_FailureRegister WITH (UPDLOCK, ROWLOCK)
+                WHERE  FailureID = @Id;
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Id", SqlDbType.Int).Value = failureId;
@@ -1067,8 +1110,8 @@ public sealed class MntRepository
                 failNo   = r["FailureNumber"] as string ?? $"F#{failureId}";
                 status   = r["Status"] as string;
                 woId     = r["WorkOrderID"] as int?;
-                woStatus = r["WoStatus"] as string;
             }
+            if (woId != woId0) throw new InvalidOperationException($"{failNo} was changed by another user. Please retry.");
             if (status is "RESOLVED" or "CLOSED")
                 throw new InvalidOperationException($"{failNo} is already resolved.");
 
@@ -1079,7 +1122,8 @@ public sealed class MntRepository
                 return (failNo, o.WoNumber);
             }
 
-            ResolveFailureRows(conn, tx, new[] { failureId }, rootCause, actionTaken, resolvedAt, null, actor);
+            if (ResolveFailureRows(conn, tx, new[] { failureId }, rootCause, actionTaken, resolvedAt, null, actor) == 0)
+                throw new InvalidOperationException($"{failNo} is already resolved.");
             tx.Commit();
             return (failNo, null);
         }
@@ -1096,11 +1140,14 @@ public sealed class MntRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            PmCore? pm; int? activeWo; string? woStatus;
+            // 잠금 순서 WO → PM(CompleteWoCore 와 같게) — 활성 WO 를 먼저 잡고 PM 을 잡은 뒤 활성 WO 가 그대로인지 다시 본다.
+            var activeWo0 = ReadIntOrNull(conn, tx, "SELECT ActiveWoID FROM dbo.MNT_PMSchedule WHERE PMScheduleID = @Id", pmId);
+            var woStatus = activeWo0 is int lw ? LockWoStatus(conn, tx, lw) : null;
+
+            PmCore? pm; int? activeWo;
             using (var cmd = new SqlCommand($"""
-                SELECT {PmCoreCols}, w.Status AS WoStatus
-                FROM   dbo.MNT_PMSchedule p
-                LEFT JOIN dbo.MNT_WorkOrder w ON w.WorkOrderID = p.ActiveWoID
+                SELECT {PmCoreCols}
+                FROM   dbo.MNT_PMSchedule p WITH (UPDLOCK, ROWLOCK)
                 WHERE  p.PMScheduleID = @Id;
                 """, conn, tx))
             {
@@ -1109,8 +1156,8 @@ public sealed class MntRepository
                 if (!r.Read()) throw new InvalidOperationException($"PM schedule #{pmId} not found.");
                 pm       = MapPmCore(r);
                 activeWo = r["ActiveWoID"] as int?;
-                woStatus = r["WoStatus"] as string;
             }
+            if (activeWo != activeWo0) throw new InvalidOperationException($"{pm.PlanNo ?? $"PM#{pmId}"} was changed by another user. Please retry.");
 
             WoCompleteOutcome o;
             if (activeWo is int w && woStatus is not (MwoStatusCodes.Completed or MwoStatusCodes.Closed))
@@ -1126,11 +1173,26 @@ public sealed class MntRepository
         catch { tx.Rollback(); throw; }
     }
 
+    private static int? ReadIntOrNull(SqlConnection conn, SqlTransaction tx, string sql, int id)
+    {
+        using var cmd = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+        return cmd.ExecuteScalar() is int v ? v : null;
+    }
+
+    private static string? LockWoStatus(SqlConnection conn, SqlTransaction tx, int woId)
+    {
+        using var cmd = new SqlCommand("SELECT Status FROM dbo.MNT_WorkOrder WITH (UPDLOCK, ROWLOCK) WHERE WorkOrderID = @Id", conn, tx);
+        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = woId;
+        return cmd.ExecuteScalar() as string;
+    }
+
     private WoCompleteOutcome CompleteWoCore(SqlConnection conn, SqlTransaction tx, int woId, string result, string actionTaken,
         string? rootCause, int? laborMinutes, string? partsUsed, DateTime completedAt, string? techId, string actor)
     {
+        // 잠금 순서는 WO → 고장 → PM (배정·착수·완료·수리 완료·PM 완료 공통) — 동시 완료의 두 번째는 여기서 기다렸다가 완료 상태를 보고 거부된다.
         string woNumber; string? status;
-        using (var cmd = new SqlCommand("SELECT WoNumber, Status FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @Id", conn, tx))
+        using (var cmd = new SqlCommand("SELECT WoNumber, Status FROM dbo.MNT_WorkOrder WITH (UPDLOCK, ROWLOCK) WHERE WorkOrderID = @Id", conn, tx))
         {
             cmd.Parameters.Add("@Id", SqlDbType.Int).Value = woId;
             using var r = cmd.ExecuteReader();
@@ -1151,7 +1213,7 @@ public sealed class MntRepository
                    LaborMinutes = @Labor, PartsUsedJSON = @Parts, ChecklistResultsJSON = @Res,
                    AssignedTechID = ISNULL(@Tech, AssignedTechID),
                    ModifiedBy = @By, ModifiedTS = SYSDATETIME()
-            WHERE  WorkOrderID = @Id;
+            WHERE  WorkOrderID = @Id AND ISNULL(Status, '') NOT IN ('COMPLETED', 'CLOSED');
             """, conn, tx))
         {
             cmd.Parameters.Add("@Id",    SqlDbType.Int).Value            = woId;
@@ -1161,7 +1223,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Res",   SqlDbType.NVarChar, -1).Value   = resultJson;
             cmd.Parameters.Add("@Tech",  SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
             cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = actor;
-            cmd.ExecuteNonQuery();
+            if (cmd.ExecuteNonQuery() == 0) throw new InvalidOperationException($"{woNumber} is already completed.");
         }
 
         // 고장 역방향 — 이 WO 를 가리키는 열린 고장 전부
@@ -1179,6 +1241,7 @@ public sealed class MntRepository
             ResolveFailureRows(conn, tx, failures.Select(f => f.Id), rootCause, actionTaken, completedAt, techId, actor);
 
         // PM 역방향 — 이 WO 를 활성 WO 로 가진 일정(구 데이터는 SourceRefID 로 보조 매칭)
+        // 고장·PM 조회는 인덱스 없는 스캔이라 UPDLOCK 을 걸지 않는다(다른 WO 를 동시에 완료하는 트랜잭션끼리 교착) — 이중 반영은 위 WO 행 잠금이 막는다.
         PmCore? pm = null;
         using (var cmd = new SqlCommand($"""
             SELECT {PmCoreCols}
@@ -1201,28 +1264,33 @@ public sealed class MntRepository
         return new WoCompleteOutcome(woId, woNumber, failures.Count > 0 ? string.Join(", ", failures.Select(f => f.No)) : null, pmNo, nextDue, nextWo);
     }
 
-    /// <summary>고장 RESOLVED + 조치 이력(MNT_FailureAction 'REPAIRED') — 안돈의 ARRIVED/ACK 와 같은 테이블에 쌓인다.</summary>
-    private static void ResolveFailureRows(SqlConnection conn, SqlTransaction tx, IEnumerable<int> failureIds,
+    /// <summary>고장 RESOLVED + 조치 이력(MNT_FailureAction 'REPAIRED') — 안돈의 ARRIVED/ACK 와 같은 테이블에 쌓인다.
+    /// 이미 해결·마감된 고장은 건너뛰며(조치 행도 남기지 않음) 실제로 닫은 건수를 돌려준다.</summary>
+    private static int ResolveFailureRows(SqlConnection conn, SqlTransaction tx, IEnumerable<int> failureIds,
         string? rootCause, string actionTaken, DateTime resolvedAt, string? techId, string actor)
     {
         var desc = string.IsNullOrWhiteSpace(rootCause) ? actionTaken.Trim() : $"{rootCause.Trim()} → {actionTaken.Trim()}";
         if (desc.Length > 500) desc = desc[..500];
+        var resolved = 0;
         foreach (var id in failureIds)
         {
             using var cmd = new SqlCommand("""
                 UPDATE dbo.MNT_FailureRegister
                 SET    Status = 'RESOLVED', ResolvedAt = @At, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
-                WHERE  FailureID = @Id;
+                WHERE  FailureID = @Id AND ISNULL(Status, 'OPEN') NOT IN ('RESOLVED', 'CLOSED');
+                IF @@ROWCOUNT = 0 BEGIN SELECT 0; RETURN; END;
                 INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
                 VALUES (@Id, 'REPAIRED', @Desc, @Tech, @At, @By, SYSDATETIME());
+                SELECT 1;
                 """, conn, tx);
             cmd.Parameters.Add("@Id",   SqlDbType.Int).Value            = id;
             cmd.Parameters.Add("@At",   SqlDbType.DateTime2).Value      = resolvedAt;
             cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 500).Value = desc;
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
             cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
-            cmd.ExecuteNonQuery();
+            resolved += Convert.ToInt32(cmd.ExecuteScalar());
         }
+        return resolved;
     }
 
     private sealed record PmCore(int Id, string? PlanNo, string? EquipId, string? PmType, string? CycleBasis, int? CycleValue,
@@ -1291,7 +1359,7 @@ public sealed class MntRepository
 
         if (next is not { } nd) return (pm.PlanNo, null, null);
 
-        var nextWoNumber = NextMwoNumber(conn, tx, DbClock.Today);
+        var nextWoNumber = NextMwoNumber(conn, tx);
         int nextWoId;
         using (var cmd = new SqlCommand("""
             INSERT INTO dbo.MNT_WorkOrder

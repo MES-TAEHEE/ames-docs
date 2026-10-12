@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -11,6 +12,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject MntRepository Mnt
+@inject AuditLogger Audit
 @inject MasterDataRepository MD
 @inject SysRepository Sys
 @inject WorkerRepository Workers
@@ -335,6 +337,11 @@
                 </RadzenStack>
             }
 
+            @if (editing && DeleteBlock != FailureDeleteRules.Block.None && string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" AllowClose="false">@NoDeleteText(DeleteBlock, _f.FailNo)</RadzenAlert>
+            }
+
             @if (!string.IsNullOrEmpty(_modalErr))
             {
                 <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
@@ -342,7 +349,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : (editing ? L["Btn.Save"] : L["Btn.Create"]))" Click="@Save" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                @if (editing)
+                @if (editing && DeleteBlock == FailureDeleteRules.Block.None)
                 {
                     <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 }
@@ -359,6 +366,7 @@
     List<MntRepository.FailureRow>            _allRows   = new();
     List<MntRepository.FailureRow>            _rows      = new();
     MntRepository.FailureRow? _sel;
+    MntRepository.FailureRow? _editRow;   // 수정 창을 연 행 — 삭제 가능 여부·삭제 감사의 이전 값
 
     string   _fSearch = "";
     DateTime _fFrom = DbClock.Today.AddDays(-30), _fTo = DbClock.Today;
@@ -503,7 +511,7 @@
         OpenDetail(hit);
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _editId = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _editRow = null; _editId = null; _modalErr = ""; _confirmDelete = false; }
 
     // ── 수리 완료 ────────────────────────────────────────────────────────
     ResolveModel _r = new();
@@ -559,7 +567,7 @@
     {
         if (!_canEdit) return;
         _f = new() { ReportedAt = DbClock.Now, Status = "OPEN", Source = "WEB", ReportedBy = _defaultReporter };
-        _editId = null; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _editId = null; _editRow = null; _sel = null; _modalErr = ""; _confirmDelete = false;
         _modal = "create";
     }
 
@@ -573,7 +581,7 @@
             Status = NormStatus(r.Status) is { Length: > 0 } st ? st : "OPEN",
             ReportedAt = r.ReportedAt, ResolvedAt = r.ResolvedAt, ReportedBy = r.ReportedBy ?? "",
         };
-        _editId = r.FailureId; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _editId = r.FailureId; _editRow = r; _sel = null; _modalErr = ""; _confirmDelete = false;
         _modal = "edit";
     }
 
@@ -593,18 +601,17 @@
         int? resolveNowId = null;
         try
         {
+            // 번호는 저장 트랜잭션 안에서 채번·중복 확인한다(빈 값 = 자동 채번)
             var failNo = _f.FailNo.Trim();
-            if (failNo.Length == 0) failNo = Mnt.NextFailureNumber(DbClock.Today);
-            if (Mnt.FailureNumberExists(failNo, _editId)) { _modalErr = string.Format(L["MNT.Failure.Err.Duplicate"].Value, failNo); return; }
             if (_editId is int id)
             {
-                Mnt.UpdateFailure(id, failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
+                failNo = Mnt.UpdateFailure(id, failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
                     NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor);
                 ShowMsg(string.Format(L["MNT.Failure.Ok.Updated"].Value, failNo), false);
             }
             else
             {
-                var (newId, woNo) = Mnt.InsertFailure(failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
+                (var newId, failNo, var woNo) = Mnt.InsertFailure(failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
                     NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor);
                 ShowMsg(string.Format(L["MNT.Failure.Ok.CreatedWo"].Value, failNo, woNo), false);
                 resolveNowId = _f.ResolveAfterCreate && _canApprove ? newId : null;
@@ -618,6 +625,7 @@
             if (resolveNowId is int rid && _allRows.FirstOrDefault(x => x.FailureId == rid) is { } created)
                 OpenResolve(created);
         }
+        catch (MntRepository.DuplicateNumberException dx) { _modalErr = string.Format(L["MNT.Failure.Err.Duplicate"].Value, dx.Number); }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -629,14 +637,30 @@
         _busy = true;
         try
         {
-            var failNo = _f.FailNo;
-            Mnt.DeleteFailure(id);
+            var before = _editRow;
+            if (Mnt.DeleteFailure(id) is not { } gone)
+            {
+                _modalErr = string.Format(L["MNT.Failure.Err.Gone"].Value, _f.FailNo); _confirmDelete = false;
+                return;
+            }
+            Audit.Deleted("MNT-002", "MNT_FailureRegister", gone.FailureNumber, before);
             CloseModal(); await Search();
-            ShowMsg(string.Format(L["MNT.Failure.Ok.Deleted"].Value, failNo), false);
+            ShowMsg(string.Format(L["MNT.Failure.Ok.Deleted"].Value, gone.FailureNumber), false);
         }
+        catch (MntRepository.FailureNotDeletableException nx) { _modalErr = NoDeleteText(nx.Reason, nx.FailureNumber); _confirmDelete = false; }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }
     }
+
+    string NoDeleteText(FailureDeleteRules.Block reason, string failNo) => string.Format(L[reason switch
+    {
+        FailureDeleteRules.Block.FromAndon   => "MNT.Failure.Err.NoDelete.Andon",
+        FailureDeleteRules.Block.WorkStarted => "MNT.Failure.Err.NoDelete.WoStarted",
+        _                                    => "MNT.Failure.Err.NoDelete.NotOpen",
+    }].Value, failNo);
+
+    FailureDeleteRules.Block DeleteBlock => _editRow is { } r
+        ? FailureDeleteRules.Check(r.Status, r.Source, r.WorkOrderId, r.WoStatus) : FailureDeleteRules.Block.None;
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 

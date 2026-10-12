@@ -10652,4 +10652,16 @@
   <data name="MD.Workers.Ok.Deactivated" xml:space="preserve">
     <value>작업자 {0} 을(를) 사용 안 함으로 바꿨습니다.</value>
   </data>
+  <data name="MNT.Failure.Err.NoDelete.NotOpen" xml:space="preserve">
+    <value>{0} 은(는) 진행 중이거나 해결된 고장이라 삭제할 수 없습니다.</value>
+  </data>
+  <data name="MNT.Failure.Err.NoDelete.Andon" xml:space="preserve">
+    <value>{0} 은(는) 안돈에서 생긴 고장이라 삭제할 수 없습니다.</value>
+  </data>
+  <data name="MNT.Failure.Err.NoDelete.WoStarted" xml:space="preserve">
+    <value>{0} 의 작업지시가 이미 착수되어 삭제할 수 없습니다.</value>
+  </data>
+  <data name="MNT.Failure.Err.Gone" xml:space="preserve">
+    <value>{0} 은(는) 이미 삭제되었습니다.</value>
+  </data>
 </root>

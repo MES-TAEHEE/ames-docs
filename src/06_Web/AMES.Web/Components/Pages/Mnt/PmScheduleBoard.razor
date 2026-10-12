@@ -702,19 +702,17 @@
         _busy = true;
         try
         {
+            // 번호는 저장 트랜잭션 안에서 채번·중복 확인한다(빈 값 = 자동 채번)
             var planNo = _f.PlanNo.Trim();
-            if (planNo.Length == 0) planNo = Mnt.NextPmPlanNumber(DbClock.Today);
-            if (Mnt.PmPlanNumberExists(planNo, _editId)) { _modalErr = string.Format(L["MNT.PmSchedule.Err.Duplicate"].Value, planNo); return; }
-
             if (_editId is int id)
             {
-                Mnt.UpdatePm(id, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
+                planNo = Mnt.UpdatePm(id, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
                     _f.LastPmDate, _f.NextDueDate.Value, NE(_f.ChecklistId), NE(_f.TechId), NE(_f.Status), _actor);
                 ShowMsg(string.Format(L["MNT.PmSchedule.Ok.Updated"].Value, planNo), false);
             }
             else
             {
-                var (_, woNo) = Mnt.InsertPm(PmClass, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
+                (_, planNo, var woNo) = Mnt.InsertPm(PmClass, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
                     _f.LastPmDate, _f.NextDueDate.Value, NE(_f.ChecklistId), NE(_f.TechId), NE(_f.Status), _actor);
                 ShowMsg(string.Format(L["MNT.PmSchedule.Ok.CreatedWo"].Value, planNo, woNo), false);
             }
@@ -722,6 +720,7 @@
             _calYear = _f.NextDueDate.Value.Year; _calMonth = _f.NextDueDate.Value.Month;
             CloseModal(); Reload();
         }
+        catch (MntRepository.DuplicateNumberException dx) { _modalErr = string.Format(L["MNT.PmSchedule.Err.Duplicate"].Value, dx.Number); }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }

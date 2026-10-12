@@ -196,7 +196,7 @@
     // 라인 표시 순서: 공정 순(사출 → 감싸기 → 도장 → 재작업) → 라인 ID
     Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
 
-    DateTime  _fFrom = DbClock.Today.AddDays(-9), _fTo = DbClock.Today;
+    DateTime  _fFrom = DbClock.Today.AddDays(-9), _fTo = DbClock.Today, _today = DbClock.Today;
     string?   _fLine;
     DateTime? _selDay;
     string    _msg = "";
@@ -224,8 +224,9 @@
     {
         try { _lineList = MD.ListLines(); } catch { }
         try { _lineOrder = MD.LineProcessOrder(); } catch { }
+        try { _today = Rpt.ProdToday(); _fTo = _today; _fFrom = _fTo.AddDays(-9); } catch { }
 
-        // 기본 기간: 최근 10일. 그 안에 계획이 없으면 마지막 계획일 기준 10일
+        // 기본 기간: 최근 10일(전기일). 그 안에 계획이 없으면 마지막 계획일 기준 10일
         try
         {
             var (_, mx) = Rpt.ScheduleDateExtent();
@@ -243,7 +244,9 @@
         try { raw = Rpt.ListScheduleWo(_fFrom, _fTo, _fLine); }
         catch (Exception ex) { raw = new(); ShowMsg(ex.Message, true); }
 
-        var today = DbClock.Today;
+        // 계획일·실적일이 전기일이므로 "오늘"도 전기일 — 00~07시에 어제 근무일 계획을 지연으로 보지 않게
+        try { _today = Rpt.ProdToday(); } catch { }
+        var today = _today;
         _wos = raw.Select(r =>
         {
             var nm = MasterDataRepository.LocalName(r.ItemName, r.ItemNameEn);
@@ -253,7 +256,7 @@
                 ItemName = string.IsNullOrEmpty(nm) ? (r.ItemNo ?? L["RPT.ScheduleAdherence.Item.Unknown"].Value) : nm,
                 PlanQty = r.PlanQty, ActualQty = r.ActualQty, FirstPlanDate = r.FirstPlanDate.Date, PlanDate = r.PlanDate.Date, ActualDate = r.ActualDate?.Date,
             };
-            // 판정: 계획 수량 달성 → 마지막 실적일 ≤ 계획일이면 정시, 아니면 지연.
+            // 판정: 계획 수량 달성 → 실적일(누적 실적이 계획에 닿은 전기일, ListScheduleWo) ≤ 계획일이면 정시, 아니면 지연.
             //       미달성 → 계획일이 지났으면 지연(편차 = 오늘 − 계획일), 아직이면 미완료.
             if (w.PlanQty > 0 && w.ActualQty >= w.PlanQty && w.ActualDate is { } ad)
             {

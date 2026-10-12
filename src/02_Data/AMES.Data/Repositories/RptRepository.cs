@@ -64,43 +64,71 @@ public sealed class RptRepository
     /// <summary>지금(DB 시각)의 전기일.</summary>
     public DateTime ProdToday() => ProdCalendar.ProdDateOf(DbClock.Now, ReadDayCutoff());
 
+    // 확정 전(RAW·로봇 NG) LOT 의 불량은 실적 행이 없어 PR_DefectDetail.ResultID 가 NULL 이다(LotDefectWriter) —
+    // 실적에 불량을 붙이는 집계는 그 행을 놓치므로 LOT 의 라인·발생 전기일로 따로 더한다(ListDefectAgg 와 같은 귀속).
+    //
+    // 품번(10-13 사용자 결정): 실적은 그 LOT 의 품번(tbl_Lot.ItemNo — 실제로 만든 품번: INJ 코어·IMG 완제품, 실적 INSERT 5곳 모두 LotID 를 넣는다)
+    // → LOT 없는 옛 행만 WO 단계 품번 → WO 품번. 계획은 WO 단계 품번(COALESCE(PP_WorkOrderRouting.ItemNo, PP_WorkOrder.ItemNo) — POP 의
+    // 열린 WO 해석과 같은 규칙)이라 사출 라인의 계획·실적이 코어 품번 한 행에 모인다. 전에는 둘 다 WO 헤더 품번(완제품)이라
+    // WO 없는 생산은 "알 수 없는 품목", 사출 라인은 완제품으로 보였다.
+    // 한계: APS BOM 규칙 WO 는 INJ 단계에 자식 품번이 여럿 실리지만 단계 품번 칸은 첫 자식 하나라 그 WO 의 계획은 첫 자식으로 모인다.
+
     /// <summary>전기일 하루치 실적을 라인×품목×시간대로 집계. 불량은 PR_DefectDetail.Qty 합, 상세가 없으면 DefectFlag 를 1건으로 센다.</summary>
     public List<ProdHourRow> ListProductionByHour(DateTime day, string? lineId = null)
     {
         const string sql = """
-            SELECT  r.LineID, w.ItemNo, i.ItemName, i.ItemNameEN,
-                    DATEPART(hour, r.EntryAt)                                              AS Hr,
-                    COUNT(*)                                                               AS Entries,
-                    ISNULL(SUM(r.GoodQty), 0)                                              AS GoodQty,
-                    ISNULL(SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag = 1 THEN 1 ELSE 0 END)), 0) AS DefectQty
-            FROM    dbo.PR_ProductionResult r
-            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = r.WoID
-            LEFT JOIN dbo.MD_Item      i ON i.ItemNo = w.ItemNo
-            OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
-            WHERE   COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) = @D
-              AND  (@L IS NULL OR r.LineID = @L)
-            GROUP BY r.LineID, w.ItemNo, i.ItemName, i.ItemNameEN, DATEPART(hour, r.EntryAt)
-            ORDER BY r.LineID, w.ItemNo, Hr;
+            SELECT  x.LineID, it.ItemNo, i.ItemName, i.ItemNameEN,
+                    DATEPART(hour, x.TS)                AS Hr,
+                    ISNULL(SUM(x.Entry), 0)             AS Entries,
+                    ISNULL(SUM(x.GoodQty), 0)           AS GoodQty,
+                    ISNULL(SUM(x.DefectQty), 0)         AS DefectQty
+            FROM (
+                SELECT r.LineID, r.WoID, r.LotID, r.EntryAt AS TS, 1 AS Entry, ISNULL(r.GoodQty, 0) AS GoodQty,
+                       ISNULL(d.Qty, CASE WHEN r.DefectFlag = 1 THEN 1 ELSE 0 END) AS DefectQty
+                FROM   dbo.PR_ProductionResult r
+                OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
+                WHERE  COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) = @D
+                  AND (@L IS NULL OR r.LineID = @L)
+                UNION ALL
+                SELECT tl.LineID, dd.WoID, dd.LotID, dd.DetectedAt, 0, 0, ISNULL(dd.Qty, 0)
+                FROM   dbo.PR_DefectDetail dd
+                LEFT JOIN dbo.tbl_Lot tl ON tl.LotID = dd.LotID
+                WHERE  dd.ResultID IS NULL
+                  AND  CAST(DATEADD(MINUTE, -@Cut, dd.DetectedAt) AS DATE) = @D
+                  AND (@L IS NULL OR tl.LineID = @L)
+            ) x
+            LEFT JOIN dbo.tbl_Lot      lot ON lot.LotID = x.LotID
+            LEFT JOIN dbo.PP_WorkOrder w   ON w.WoID    = x.WoID
+            OUTER APPLY (SELECT TOP 1 rt.ItemNo FROM dbo.PP_WorkOrderRouting rt
+                         WHERE rt.WoID = x.WoID AND rt.LineID = x.LineID AND rt.ItemNo IS NOT NULL ORDER BY rt.StepSeq) st
+            CROSS APPLY (SELECT COALESCE(lot.ItemNo, st.ItemNo, w.ItemNo) AS ItemNo) it
+            LEFT JOIN dbo.MD_Item      i   ON i.ItemNo  = it.ItemNo
+            GROUP BY x.LineID, it.ItemNo, i.ItemName, i.ItemNameEN, DATEPART(hour, x.TS)
+            ORDER BY x.LineID, it.ItemNo, Hr;
             """;
         return Query(sql, r => new ProdHourRow(
             r["LineID"] as string, r["ItemNo"] as string, r["ItemName"] as string, r["ItemNameEN"] as string,
             (int)r["Hr"], (int)r["Entries"], (int)r["GoodQty"], (int)r["DefectQty"]),
-            ("@D", null, day.Date), ("@L", "PR_ProductionResult.LineID", (object?)lineId ?? DBNull.Value));
+            ("@D", null, day.Date), ("@L", "PR_ProductionResult.LineID", (object?)lineId ?? DBNull.Value),
+            ("@Cut", null, (int)ReadDayCutoff().TotalMinutes));
     }
 
-    /// <summary>해당 일자 라인 스케줄 계획수량을 라인×품목으로 집계 (취소 슬롯 제외).</summary>
+    /// <summary>해당 일자 라인 스케줄 계획수량을 라인×품목(WO 단계 품번)으로 집계 (취소 슬롯 제외).</summary>
     public List<PlanRow> ListPlanByDate(DateTime day, string? lineId = null)
     {
         const string sql = """
-            SELECT  s.LineID, w.ItemNo, i.ItemName, i.ItemNameEN, ISNULL(SUM(s.PlannedQty), 0) AS PlannedQty
+            SELECT  s.LineID, it.ItemNo, i.ItemName, i.ItemNameEN, ISNULL(SUM(s.PlannedQty), 0) AS PlannedQty
             FROM    dbo.PP_LineSchedule s
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = s.WoID
-            LEFT JOIN dbo.MD_Item      i ON i.ItemNo = w.ItemNo
+            OUTER APPLY (SELECT TOP 1 rt.ItemNo FROM dbo.PP_WorkOrderRouting rt
+                         WHERE rt.WoID = s.WoID AND rt.LineID = s.LineID AND rt.ItemNo IS NOT NULL ORDER BY rt.StepSeq) st
+            CROSS APPLY (SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo) it
+            LEFT JOIN dbo.MD_Item      i ON i.ItemNo = it.ItemNo
             WHERE   s.ScheduleDate = @D
               AND   ISNULL(s.Status, '') <> 'CANCELLED'
               AND  (@L IS NULL OR s.LineID = @L)
-            GROUP BY s.LineID, w.ItemNo, i.ItemName, i.ItemNameEN
-            ORDER BY s.LineID, w.ItemNo;
+            GROUP BY s.LineID, it.ItemNo, i.ItemName, i.ItemNameEN
+            ORDER BY s.LineID, it.ItemNo;
             """;
         return Query(sql, r => new PlanRow(
             r["LineID"] as string, r["ItemNo"] as string, r["ItemName"] as string, r["ItemNameEN"] as string,
@@ -190,15 +218,26 @@ public sealed class RptRepository
     public (int Good, int Defect) ProductionTotals(DateTime from, DateTime to, string? lineId = null)
     {
         const string sql = """
-            SELECT  ISNULL(SUM(r.GoodQty), 0) AS Good,
-                    ISNULL(SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag = 1 THEN 1 ELSE 0 END)), 0) AS Defect
-            FROM    dbo.PR_ProductionResult r
-            OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
-            WHERE   COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) BETWEEN @F AND @T
-              AND  (@L IS NULL OR r.LineID = @L);
+            SELECT  ISNULL(SUM(x.Good), 0) AS Good, ISNULL(SUM(x.Defect), 0) AS Defect
+            FROM (
+                SELECT ISNULL(r.GoodQty, 0) AS Good,
+                       ISNULL(d.Qty, CASE WHEN r.DefectFlag = 1 THEN 1 ELSE 0 END) AS Defect
+                FROM   dbo.PR_ProductionResult r
+                OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
+                WHERE  COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) BETWEEN @F AND @T
+                  AND (@L IS NULL OR r.LineID = @L)
+                UNION ALL
+                SELECT 0, ISNULL(dd.Qty, 0)
+                FROM   dbo.PR_DefectDetail dd
+                LEFT JOIN dbo.tbl_Lot tl ON tl.LotID = dd.LotID
+                WHERE  dd.ResultID IS NULL
+                  AND  CAST(DATEADD(MINUTE, -@Cut, dd.DetectedAt) AS DATE) BETWEEN @F AND @T
+                  AND (@L IS NULL OR tl.LineID = @L)
+            ) x;
             """;
         var rows = Query(sql, r => ((int)r["Good"], (int)r["Defect"]),
-            ("@F", null, from.Date), ("@T", null, to.Date), ("@L", "PR_ProductionResult.LineID", (object?)lineId ?? DBNull.Value));
+            ("@F", null, from.Date), ("@T", null, to.Date), ("@L", "PR_ProductionResult.LineID", (object?)lineId ?? DBNull.Value),
+            ("@Cut", null, (int)ReadDayCutoff().TotalMinutes));
         return rows.Count > 0 ? rows[0] : (0, 0);
     }
 
@@ -605,7 +644,16 @@ public sealed class RptRepository
     public sealed record ScheduleWoRow(int WoId, string? WoNumber, string? LineId, string? ItemNo, string? ItemName, string? ItemNameEn,
         string? WoStatus, decimal PlanQty, DateTime FirstPlanDate, DateTime PlanDate, decimal ActualQty, DateTime? ActualDate, int Slots);
 
-    /// <summary>기간 내 라인 스케줄 슬롯(취소 제외)을 WO×라인으로 묶고, 그 WO·라인의 실적(양품+불량)과 마지막 실적일을 붙인다.</summary>
+    /// <summary>
+    /// 기간 내 라인 스케줄 슬롯(취소 제외)을 WO×라인으로 묶고 실적(양품+불량)을 선입선출로 맞춘다(10-13 사용자 결정).
+    ///   · 날짜는 전기일 — 실적 ProdDate(없으면 EntryAt 날짜), 실적 행 없는 LOT 불량은 DetectedAt − 경계 시각. 계획일(ScheduleDate)도 근무일이다.
+    ///   · 실적은 먼저 계획된 슬롯부터 채운다: 기간 이전 슬롯 몫(PriorQty)을 먼저 빼고, 남은 양이 이 기간 몫이다.
+    ///     ActualQty = 이 기간 몫(기간 뒤 슬롯이 있으면 계획량까지만 — 초과분은 다음 슬롯 몫).
+    ///     ActualDate = 누적 실적이 목표(이전 몫 + 기간 계획)에 닿은 전기일(그 뒤 역분개로 내려갔다 다시 닿았으면 마지막으로 닿은 날),
+    ///                  아직 못 닿았으면 마지막 실적일.
+    /// 전에는 기간 밖 실적까지 합치고 마지막 실적의 달력 날짜를 완료일로 써서, 자정 넘긴 B교대 실적이 "지연 +1",
+    /// 같은 WO 의 다음 슬롯 생산이 앞 슬롯 완료일을 늦췄다.
+    /// </summary>
     public List<ScheduleWoRow> ListScheduleWo(DateTime from, DateTime to, string? lineId = null)
     {
         const string sql = """
@@ -618,28 +666,72 @@ public sealed class RptRepository
                   AND (@L IS NULL OR s.LineID = @L)
                 GROUP BY s.WoID, s.LineID
             ),
+            other AS (
+                SELECT s.WoID, s.LineID,
+                       SUM(CASE WHEN s.ScheduleDate < @F THEN ISNULL(s.PlannedQty,0) ELSE 0 END) AS PriorQty,
+                       SUM(CASE WHEN s.ScheduleDate > @T THEN ISNULL(s.PlannedQty,0) ELSE 0 END) AS LaterQty
+                FROM   dbo.PP_LineSchedule s
+                JOIN   sch ON sch.WoID = s.WoID AND sch.LineID = s.LineID
+                WHERE  ISNULL(s.Status,'') <> 'CANCELLED' AND (s.ScheduleDate < @F OR s.ScheduleDate > @T)
+                GROUP BY s.WoID, s.LineID
+            ),
+            daily AS (
+                SELECT x.WoID, x.LineID, x.PD, SUM(x.Qty) AS Qty
+                FROM (
+                    SELECT r.WoID, r.LineID, COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) AS PD,
+                           ISNULL(r.GoodQty,0) + ISNULL(d.Qty, CASE WHEN r.DefectFlag = 1 THEN 1 ELSE 0 END) AS Qty
+                    FROM   dbo.PR_ProductionResult r
+                    JOIN   sch ON sch.WoID = r.WoID AND sch.LineID = r.LineID
+                    OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
+                    UNION ALL
+                    SELECT dd.WoID, tl.LineID, CAST(DATEADD(MINUTE, -@Cut, dd.DetectedAt) AS DATE), ISNULL(dd.Qty,0)
+                    FROM   dbo.PR_DefectDetail dd
+                    JOIN   dbo.tbl_Lot tl ON tl.LotID = dd.LotID
+                    JOIN   sch ON sch.WoID = dd.WoID AND sch.LineID = tl.LineID
+                    WHERE  dd.ResultID IS NULL
+                ) x
+                GROUP BY x.WoID, x.LineID, x.PD
+            ),
+            cum AS (
+                SELECT d.WoID, d.LineID, d.PD,
+                       SUM(d.Qty) OVER (PARTITION BY d.WoID, d.LineID ORDER BY d.PD ROWS UNBOUNDED PRECEDING) AS CumQty
+                FROM   daily d
+            ),
             act AS (
-                SELECT r.WoID, r.LineID,
-                       SUM(ISNULL(r.GoodQty,0) + ISNULL(d.Qty, CASE WHEN r.DefectFlag = 1 THEN 1 ELSE 0 END)) AS ActualQty,
-                       MAX(CAST(r.EntryAt AS DATE)) AS ActualDate
-                FROM   dbo.PR_ProductionResult r
-                OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
-                WHERE  r.WoID IS NOT NULL
-                GROUP BY r.WoID, r.LineID
+                SELECT sch.WoID, sch.LineID, ISNULL(o.PriorQty,0) AS PriorQty, ISNULL(o.LaterQty,0) AS LaterQty,
+                       ISNULL(t.TotalQty,0) AS TotalQty, t.LastPD,
+                       (SELECT MAX(c.PD) FROM cum c WHERE c.WoID = sch.WoID AND c.LineID = sch.LineID
+                          AND c.CumQty < ISNULL(o.PriorQty,0) + sch.PlanQty) AS LastBelow
+                FROM   sch
+                LEFT JOIN other o ON o.WoID = sch.WoID AND o.LineID = sch.LineID
+                OUTER APPLY (SELECT SUM(d.Qty) AS TotalQty, MAX(d.PD) AS LastPD FROM daily d
+                             WHERE d.WoID = sch.WoID AND d.LineID = sch.LineID) t
             )
-            SELECT sch.WoID, w.WoNumber, sch.LineID, w.ItemNo, i.ItemName, i.ItemNameEN, w.Status AS WoStatus,
-                   sch.PlanQty, sch.FirstPlanDate, sch.PlanDate, ISNULL(a.ActualQty,0) AS ActualQty, a.ActualDate, sch.Slots
+            SELECT sch.WoID, w.WoNumber, sch.LineID, it.ItemNo, i.ItemName, i.ItemNameEN, w.Status AS WoStatus,
+                   sch.PlanQty, sch.FirstPlanDate, sch.PlanDate,
+                   CASE WHEN a.TotalQty <= a.PriorQty THEN 0
+                        WHEN a.LaterQty > 0 AND a.TotalQty - a.PriorQty > sch.PlanQty THEN sch.PlanQty
+                        ELSE a.TotalQty - a.PriorQty END AS ActualQty,
+                   CASE WHEN a.TotalQty - a.PriorQty >= sch.PlanQty
+                        THEN (SELECT MIN(c.PD) FROM cum c WHERE c.WoID = sch.WoID AND c.LineID = sch.LineID
+                                AND c.CumQty >= a.PriorQty + sch.PlanQty AND (a.LastBelow IS NULL OR c.PD > a.LastBelow))
+                        ELSE a.LastPD END AS ActualDate,
+                   sch.Slots
             FROM   sch
-            LEFT JOIN act a ON a.WoID = sch.WoID AND a.LineID = sch.LineID
+            JOIN   act a ON a.WoID = sch.WoID AND a.LineID = sch.LineID
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = sch.WoID
-            LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
+            OUTER APPLY (SELECT TOP 1 rt.ItemNo FROM dbo.PP_WorkOrderRouting rt
+                         WHERE rt.WoID = sch.WoID AND rt.LineID = sch.LineID AND rt.ItemNo IS NOT NULL ORDER BY rt.StepSeq) st
+            CROSS APPLY (SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo) it
+            LEFT JOIN dbo.MD_Item i ON i.ItemNo = it.ItemNo
             ORDER BY sch.PlanDate, sch.LineID, w.WoNumber;
             """;
         return Query(sql, r => new ScheduleWoRow(
             (int)r["WoID"], r["WoNumber"] as string, r["LineID"] as string, r["ItemNo"] as string, r["ItemName"] as string, r["ItemNameEN"] as string,
             r["WoStatus"] as string, Convert.ToDecimal(r["PlanQty"]), (DateTime)r["FirstPlanDate"], (DateTime)r["PlanDate"],
             Convert.ToDecimal(r["ActualQty"]), r["ActualDate"] as DateTime?, (int)r["Slots"]),
-            ("@F", "PP_LineSchedule.ScheduleDate", from.Date), ("@T", "PP_LineSchedule.ScheduleDate", to.Date), ("@L", "PP_LineSchedule.LineID", (object?)lineId ?? DBNull.Value));
+            ("@F", "PP_LineSchedule.ScheduleDate", from.Date), ("@T", "PP_LineSchedule.ScheduleDate", to.Date), ("@L", "PP_LineSchedule.LineID", (object?)lineId ?? DBNull.Value),
+            ("@Cut", null, (int)ReadDayCutoff().TotalMinutes));
     }
 
     public (DateTime? Min, DateTime? Max) ScheduleDateExtent()
@@ -649,22 +741,37 @@ public sealed class RptRepository
         return rows.Count > 0 ? rows[0] : (null, null);
     }
 
+    /// <summary>
+    /// 라인×전기일 계획 대비 실적(Api /api/rpt). 계획 = 그 근무일의 WO 슬롯(취소 제외), 실적 = 그 전기일 양품 + 불량
+    /// (실적 ProdDate, 실적 행 없는 LOT 불량은 DetectedAt − 경계 시각 — RPT 일정 준수와 같은 기준, 10-13). 기간은 오늘 전기일부터 거꾸로 daysBack 일.
+    /// </summary>
     public List<ScheduleAdherenceRow> ListScheduleAdherence(int daysBack = 14)
     {
         const string sql = """
             ;WITH sch AS (
                 SELECT ScheduleDate AS Day, LineID,
-                       SUM(PlannedQty) AS PlannedQty
+                       SUM(ISNULL(PlannedQty,0)) AS PlannedQty
                 FROM   dbo.PP_LineSchedule
-                WHERE  ScheduleDate >= DATEADD(DAY, -@D, CAST(SYSDATETIME() AS DATE))
+                WHERE  WoID IS NOT NULL AND ISNULL(Status,'') <> 'CANCELLED'
+                  AND  ScheduleDate >= DATEADD(DAY, -@D, @Today) AND ScheduleDate <= @Today
                 GROUP BY ScheduleDate, LineID
             ),
             prod AS (
-                SELECT CAST(EntryAt AS DATE) AS Day, LineID,
-                       SUM(GoodQty) AS ProducedQty
-                FROM   dbo.PR_ProductionResult
-                WHERE  EntryAt >= DATEADD(DAY, -@D, SYSDATETIME())
-                GROUP BY CAST(EntryAt AS DATE), LineID
+                SELECT x.Day, x.LineID, SUM(x.Qty) AS ProducedQty
+                FROM (
+                    SELECT COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) AS Day, r.LineID,
+                           ISNULL(r.GoodQty,0) + ISNULL(d.Qty, CASE WHEN r.DefectFlag = 1 THEN 1 ELSE 0 END) AS Qty
+                    FROM   dbo.PR_ProductionResult r
+                    OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
+                    WHERE  COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) BETWEEN DATEADD(DAY, -@D, @Today) AND @Today
+                    UNION ALL
+                    SELECT CAST(DATEADD(MINUTE, -@Cut, dd.DetectedAt) AS DATE), tl.LineID, ISNULL(dd.Qty,0)
+                    FROM   dbo.PR_DefectDetail dd
+                    LEFT JOIN dbo.tbl_Lot tl ON tl.LotID = dd.LotID
+                    WHERE  dd.ResultID IS NULL
+                      AND  CAST(DATEADD(MINUTE, -@Cut, dd.DetectedAt) AS DATE) BETWEEN DATEADD(DAY, -@D, @Today) AND @Today
+                ) x
+                GROUP BY x.Day, x.LineID
             )
             SELECT COALESCE(s.Day, p.Day) AS Day,
                    COALESCE(s.LineID, p.LineID) AS LineID,
@@ -674,15 +781,17 @@ public sealed class RptRepository
             FULL JOIN prod p ON p.Day = s.Day AND p.LineID = s.LineID
             ORDER BY Day DESC, LineID;
             """;
+        var cut = ReadDayCutoff();
         return Query(sql, r =>
         {
-            var planned  = r["PlannedQty"]  as decimal? ?? 0m;
-            var produced = r["ProducedQty"] as decimal? ?? 0m;
+            // SUM(int) 는 int 로 온다 — as decimal? 로 읽으면 늘 null(0) 이었다
+            var planned  = Convert.ToDecimal(r["PlannedQty"]);
+            var produced = Convert.ToDecimal(r["ProducedQty"]);
             var adh = planned > 0 ? produced / planned * 100m : 0m;
             return new ScheduleAdherenceRow(
                 (DateTime)r["Day"], r["LineID"] as string,
                 planned, produced, adh);
-        }, ("@D", null, daysBack));
+        }, ("@D", null, daysBack), ("@Today", "PP_LineSchedule.ScheduleDate", ProdCalendar.ProdDateOf(DbClock.Now, cut)), ("@Cut", null, (int)cut.TotalMinutes));
     }
 
     // ── RPT-009 Report Catalog (static metadata) ─────────────────────────
@@ -720,23 +829,39 @@ public sealed class RptRepository
             case "PROD":
                 keyExpr = dim switch
                 {
-                    "Line"  => "ISNULL(r.LineID,'—')",
-                    "Date"  => "CONVERT(varchar(10), COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)), 120)",
-                    "Shift" => $"ISNULL({AMES.Data.Services.ProdCalendar.ShiftCaseSql("r.EntryAt", LoadShifts(), "Sh", pars)},'—')",
-                    _       => "ISNULL(w.ItemNo,'—')",
+                    "Line"  => "ISNULL(x.LineID,'—')",
+                    "Date"  => "CONVERT(varchar(10), x.PD, 120)",
+                    "Shift" => $"ISNULL({AMES.Data.Services.ProdCalendar.ShiftCaseSql("x.TS", LoadShifts(), "Sh", pars)},'—')",
+                    _       => "ISNULL(it.ItemNo,'—')",
                 };
                 if (dim == "Item") { labelExpr = "MAX(i.ItemName)"; labelEnExpr = "MAX(i.ItemNameEN)"; }
+                // 품목 = LOT 품번 → WO 단계 품번 → WO 품번 (RPT-001 과 같은 규칙)
                 body = $"""
                     SELECT {keyExpr} AS K, {labelExpr} AS Lbl, {labelEnExpr} AS LblEn,
-                           ISNULL(SUM(ISNULL(r.GoodQty,0)),0) + ISNULL(SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag=1 THEN 1 ELSE 0 END)),0) AS Production,
-                           ISNULL(SUM(ISNULL(r.GoodQty,0)),0) AS GoodQty,
-                           ISNULL(SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag=1 THEN 1 ELSE 0 END)),0) AS DefectQty,
-                           COUNT(*) AS Entries
-                    FROM dbo.PR_ProductionResult r
-                    LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID
-                    LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
-                    OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
-                    WHERE COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) BETWEEN @F AND @T
+                           ISNULL(SUM(x.GoodQty),0) + ISNULL(SUM(x.DefectQty),0) AS Production,
+                           ISNULL(SUM(x.GoodQty),0) AS GoodQty,
+                           ISNULL(SUM(x.DefectQty),0) AS DefectQty,
+                           ISNULL(SUM(x.Entry),0) AS Entries
+                    FROM (
+                        SELECT r.LineID, r.WoID, r.LotID, r.EntryAt AS TS, COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) AS PD, 1 AS Entry,
+                               ISNULL(r.GoodQty,0) AS GoodQty, ISNULL(d.Qty, CASE WHEN r.DefectFlag=1 THEN 1 ELSE 0 END) AS DefectQty
+                        FROM dbo.PR_ProductionResult r
+                        OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
+                        WHERE COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) BETWEEN @F AND @T
+                        UNION ALL
+                        SELECT tl.LineID, dd.WoID, dd.LotID, dd.DetectedAt, CAST(DATEADD(MINUTE, -@Cut, dd.DetectedAt) AS DATE), 0,
+                               0, ISNULL(dd.Qty,0)
+                        FROM dbo.PR_DefectDetail dd
+                        LEFT JOIN dbo.tbl_Lot tl ON tl.LotID = dd.LotID
+                        WHERE dd.ResultID IS NULL
+                          AND CAST(DATEADD(MINUTE, -@Cut, dd.DetectedAt) AS DATE) BETWEEN @F AND @T
+                    ) x
+                    LEFT JOIN dbo.tbl_Lot lot ON lot.LotID = x.LotID
+                    LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = x.WoID
+                    OUTER APPLY (SELECT TOP 1 rt.ItemNo FROM dbo.PP_WorkOrderRouting rt
+                                 WHERE rt.WoID = x.WoID AND rt.LineID = x.LineID AND rt.ItemNo IS NOT NULL ORDER BY rt.StepSeq) st
+                    CROSS APPLY (SELECT COALESCE(lot.ItemNo, st.ItemNo, w.ItemNo) AS ItemNo) it
+                    LEFT JOIN dbo.MD_Item i ON i.ItemNo = it.ItemNo
                     GROUP BY {keyExpr}
                     """;
                 break;
@@ -830,7 +955,8 @@ public sealed class RptRepository
         var cut = ReadDayCutoff();
         (string, string?, object?)[] range = source switch
         {
-            "PROD"   => [("@F", "PR_ProductionResult.ProdDate", from.Date), ("@T", "PR_ProductionResult.ProdDate", to.Date)],
+            "PROD"   => [("@F", "PR_ProductionResult.ProdDate", from.Date), ("@T", "PR_ProductionResult.ProdDate", to.Date),
+                         ("@Cut", null, (int)cut.TotalMinutes)],
             "DEFECT" => [("@F", "PR_DefectDetail.DetectedAt", from.Date + cut), ("@T", "PR_DefectDetail.DetectedAt", to.Date.AddDays(1) + cut),
                          ("@Cut", null, (int)cut.TotalMinutes)],
             _        => [("@F", "PR_ProductionResult.EntryAt", from.Date), ("@T", "PR_ProductionResult.EntryAt", to.Date.AddDays(1))],

@@ -38,7 +38,7 @@ public class FailureStatusFlowTests
         {
             var mnt = new MntRepository(f);
             var rep = DateTime.Today.AddHours(-3);
-            var (id, _) = mnt.InsertFailure(No, "IMG-EQ-01", "ELEC", "ITEST 증상", "MINOR", "WEB", rep, null, "itest");
+            var (id, _, _) = mnt.InsertFailure(No, "IMG-EQ-01", "ELEC", "ITEST 증상", "MINOR", "WEB", rep, null, "itest");
             Assert.Equal(("OPEN", (DateTime?)null, "ISSUED"), State(f));
 
             // 수정은 내용만 — 상태·해결일시 그대로

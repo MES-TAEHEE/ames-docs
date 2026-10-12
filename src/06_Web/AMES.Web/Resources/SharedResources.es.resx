@@ -10652,4 +10652,16 @@
   <data name="MD.Workers.Ok.Deactivated" xml:space="preserve">
     <value>Se desactivó el operario {0}.</value>
   </data>
+  <data name="MNT.Failure.Err.NoDelete.NotOpen" xml:space="preserve">
+    <value>{0} está en curso o resuelto y no se puede eliminar.</value>
+  </data>
+  <data name="MNT.Failure.Err.NoDelete.Andon" xml:space="preserve">
+    <value>{0} se generó desde un andon y no se puede eliminar.</value>
+  </data>
+  <data name="MNT.Failure.Err.NoDelete.WoStarted" xml:space="preserve">
+    <value>La orden de trabajo de {0} ya se inició, por lo que no se puede eliminar.</value>
+  </data>
+  <data name="MNT.Failure.Err.Gone" xml:space="preserve">
+    <value>{0} ya fue eliminado.</value>
+  </data>
 </root>

@@ -234,23 +234,32 @@ public sealed class OeeRepository
             FROM   dbo.PP_LineStateLog
             WHERE  LineID = @Line AND MinuteTS >= @S AND MinuteTS < @E;
             """;
+        // 확정 전(RAW·로봇 NG) LOT 의 불량은 실적 행이 없어 ResultID 가 NULL — LOT 의 라인·발생 시각으로 더한다(찍은 수량이라 P 에도 들어간다).
         const string resultSql = """
-            SELECT ISNULL(SUM(r.GoodQty), 0)            AS GoodQty,
-                   ISNULL(SUM(d.DefQty), 0)             AS DefectQty,
+            SELECT ISNULL(SUM(x.GoodQty), 0)            AS GoodQty,
+                   ISNULL(SUM(x.DefQty), 0)             AS DefectQty,
                    SUM(CASE WHEN b.StdCycle IS NOT NULL
-                            THEN (ISNULL(r.GoodQty,0) + ISNULL(d.DefQty,0)) * b.StdCycle END) AS StdSec,
+                            THEN (x.GoodQty + x.DefQty) * b.StdCycle END) AS StdSec,
                    SUM(CASE WHEN b.StdCycle IS NOT NULL THEN 1 ELSE 0 END) AS RowsWithStd,
                    COUNT(*)                             AS Rows
-            FROM   dbo.PR_ProductionResult r
-            LEFT JOIN (SELECT ResultID, SUM(ISNULL(Qty,0)) AS DefQty
-                       FROM dbo.PR_DefectDetail GROUP BY ResultID) d ON d.ResultID = r.ResultID
-            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID
+            FROM (
+                SELECT r.WoID, ISNULL(r.GoodQty,0) AS GoodQty, ISNULL(d.DefQty,0) AS DefQty
+                FROM   dbo.PR_ProductionResult r
+                LEFT JOIN (SELECT ResultID, SUM(ISNULL(Qty,0)) AS DefQty
+                           FROM dbo.PR_DefectDetail GROUP BY ResultID) d ON d.ResultID = r.ResultID
+                WHERE  r.LineID = @Line AND r.EntryAt >= @S AND r.EntryAt < @E
+                UNION ALL
+                SELECT dd.WoID, 0, ISNULL(dd.Qty,0)
+                FROM   dbo.PR_DefectDetail dd
+                JOIN   dbo.tbl_Lot tl ON tl.LotID = dd.LotID
+                WHERE  dd.ResultID IS NULL AND tl.LineID = @Line AND dd.DetectedAt >= @S AND dd.DetectedAt < @E
+            ) x
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = x.WoID
             OUTER APPLY (SELECT AVG(CAST(bp.StdCycleTime AS decimal(12,3))) AS StdCycle
                          FROM   dbo.MD_Bop bp
                          WHERE  bp.ItemNo = w.ItemNo
                            AND  ISNULL(bp.ActiveFlag, 1) = 1
-                           AND  (w.RoutingType IS NULL OR bp.RoutingType = w.RoutingType)) b
-            WHERE  r.LineID = @Line AND r.EntryAt >= @S AND r.EntryAt < @E;
+                           AND  (w.RoutingType IS NULL OR bp.RoutingType = w.RoutingType)) b;
             """;
 
         using var conn = _f.OpenConnection();
