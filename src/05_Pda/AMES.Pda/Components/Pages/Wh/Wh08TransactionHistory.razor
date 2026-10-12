@@ -1,4 +1,5 @@
 @page "/wh/08"
+@inject PdaUomFormat Uom
 @page "/sp/08"
 @page "/fg/history"
 @inject WarehouseApi Api
@@ -170,7 +171,7 @@
                             }
                             else
                             {
-                                <div><dt>@(IsAdjust(row) ? "Change" : $"{row.Direction} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Text(row.Unit)</dd></div>
+                                <div><dt>@(IsAdjust(row) ? "Change" : $"{row.Direction} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Uom.Symbol(row.Unit)</dd></div>
                             }
                             <div><dt>Worker</dt><dd>@Text(row.WorkerId)</dd></div>
                         </dl>
@@ -254,14 +255,14 @@
                     <div><dt>Date</dt><dd>@LogDateText(detail)</dd></div>
                     @if (IsAdjust(detail))
                     {
-                    <div><dt>Before</dt><dd>@QtyText(detail.BeforeQty) @Text(detail.Unit)</dd></div>
-                    <div><dt>Change</dt><dd class="@DeltaClass(detail.DeltaQty)">@SignedQtyText(detail.DeltaQty) @Text(detail.Unit)</dd></div>
-                    <div><dt>After</dt><dd>@QtyText(detail.AfterQty) @Text(detail.Unit)</dd></div>
+                    <div><dt>Before</dt><dd>@QtyText(detail.BeforeQty) @Uom.Symbol(detail.Unit)</dd></div>
+                    <div><dt>Change</dt><dd class="@DeltaClass(detail.DeltaQty)">@SignedQtyText(detail.DeltaQty) @Uom.Symbol(detail.Unit)</dd></div>
+                    <div><dt>After</dt><dd>@QtyText(detail.AfterQty) @Uom.Symbol(detail.Unit)</dd></div>
                     }
                     else if (!IsMove(detail))
                     {
                         <div><dt>Type</dt><dd>@Text(detail.Status)</dd></div>
-                        <div><dt>Qty</dt><dd>@QtyText(detail.Qty) @Text(detail.Unit)</dd></div>
+                        <div><dt>Qty</dt><dd>@QtyText(detail.Qty) @Uom.Symbol(detail.Unit)</dd></div>
                     }
                     @if (IsFinishedGoods)
                     {

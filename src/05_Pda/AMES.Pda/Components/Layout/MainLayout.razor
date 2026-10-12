@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject AMES.Pda.Services.AuthState Auth
 @inject NavigationManager Nav
+@inject PdaUomFormat Uom
 
 @*  Full-screen PDA layout — no sidebar, no top chrome.
     Each page paints into the full 480×800 portrait viewport. *@
@@ -10,11 +11,21 @@
 <div class="pda-root">@Body</div>
 
 @code {
-    protected override void OnInitialized() => Auth.OnChange += OnAuthChanged;
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.OnChange += OnAuthChanged;
+        if (Auth.Session is not null) await LoadUoms();
+    }
+
+    private async Task LoadUoms()
+    {
+        try { await Uom.RefreshAsync(); StateHasChanged(); }
+        catch { /* Unit codes remain visible if the master is unavailable. */ }
+    }
 
     private void OnAuthChanged()
     {
-        if (Auth.Session is not null) return;
+        if (Auth.Session is not null) { _ = InvokeAsync(LoadUoms); return; }
         _ = InvokeAsync(() => Nav.NavigateTo("/login", replace: true));
     }
 

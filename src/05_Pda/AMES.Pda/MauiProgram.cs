@@ -38,6 +38,7 @@ public static class MauiProgram
 
         // ── Auth + API ──────────────────────────────────────────────────
         builder.Services.AddSingleton<AuthState>();
+        builder.Services.AddSingleton<PdaUomFormat>();
         builder.Services.AddSingleton(settings);
         builder.Services.AddTransient<SessionExpiryHandler>();
         builder.Services.AddHttpClient<AuthApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();

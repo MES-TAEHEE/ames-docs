@@ -121,15 +121,26 @@ public sealed class RptRepository
     public List<DailyProdRow> ListDailyProduction(int daysBack = 14)
     {
         const string sql = """
-            SELECT  CAST(EntryAt AS DATE)           AS Day,
-                    LineID,
-                    COUNT(*)                        AS Entries,
-                    ISNULL(SUM(GoodQty), 0)         AS GoodQty,
-                    ISNULL(SUM(CASE WHEN DefectFlag=1 THEN 1 ELSE 0 END), 0) AS DefectQty
-            FROM    dbo.PR_ProductionResult
-            WHERE   EntryAt >= DATEADD(DAY, -@D, SYSDATETIME())
-            GROUP   BY CAST(EntryAt AS DATE), LineID
-            ORDER   BY Day DESC, LineID;
+            WITH production AS (
+                SELECT CAST(r.EntryAt AS date) AS Day, r.LineID,
+                       COUNT(*) AS Entries, ISNULL(SUM(r.GoodQty), 0) AS GoodQty,
+                       ISNULL(SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag=1 THEN 1 ELSE 0 END)), 0) AS DefectQty
+                FROM dbo.PR_ProductionResult r
+                OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID=r.ResultID) d
+                WHERE r.EntryAt >= DATEADD(day, -@D, SYSDATETIME())
+                GROUP BY CAST(r.EntryAt AS date), r.LineID
+            ), lot_defects AS (
+                SELECT CAST(d.DetectedAt AS date) AS Day, l.LineID, SUM(d.Qty) AS DefectQty
+                FROM dbo.PR_DefectDetail d
+                LEFT JOIN dbo.tbl_Lot l ON l.LotID=d.LotID
+                WHERE d.ResultID IS NULL AND d.DetectedAt >= DATEADD(day, -@D, SYSDATETIME())
+                GROUP BY CAST(d.DetectedAt AS date), l.LineID
+            )
+            SELECT COALESCE(p.Day, l.Day) AS Day, COALESCE(p.LineID, l.LineID) AS LineID,
+                   ISNULL(p.Entries, 0) AS Entries, ISNULL(p.GoodQty, 0) AS GoodQty,
+                   ISNULL(p.DefectQty, 0) + ISNULL(l.DefectQty, 0) AS DefectQty
+            FROM production p FULL JOIN lot_defects l ON l.Day=p.Day AND (l.LineID=p.LineID OR l.LineID IS NULL AND p.LineID IS NULL)
+            ORDER BY Day DESC, LineID;
             """;
         var rows = Query(sql, r => new
         {
@@ -532,10 +543,16 @@ public sealed class RptRepository
             ;WITH prod AS (
                 SELECT YEAR(EntryAt) AS Y, MONTH(EntryAt) AS M,
                        SUM(GoodQty)                                              AS GoodQty,
-                       SUM(CASE WHEN DefectFlag=1 THEN 1 ELSE 0 END)             AS DefectCt
-                FROM   dbo.PR_ProductionResult
-                WHERE  EntryAt >= @start
-                GROUP BY YEAR(EntryAt), MONTH(EntryAt)
+                       SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag=1 THEN 1 ELSE 0 END)) AS DefectCt
+                FROM dbo.PR_ProductionResult r
+                OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID=r.ResultID) d
+                WHERE r.EntryAt >= @start
+                GROUP BY YEAR(r.EntryAt), MONTH(r.EntryAt)
+            ), lot_defects AS (
+                SELECT YEAR(DetectedAt) AS Y, MONTH(DetectedAt) AS M, SUM(Qty) AS DefectCt
+                FROM dbo.PR_DefectDetail
+                WHERE ResultID IS NULL AND DetectedAt >= @start
+                GROUP BY YEAR(DetectedAt), MONTH(DetectedAt)
             ),
             ship AS (
                 SELECT YEAR(ShipDate) AS Y, MONTH(ShipDate) AS M,
@@ -556,17 +573,18 @@ public sealed class RptRepository
                 WHERE  AggDate >= @start
                 GROUP BY YEAR(AggDate), MONTH(AggDate)
             )
-            SELECT  COALESCE(p.Y, s.Y, f.Y, o.Y) AS Y,
-                    COALESCE(p.M, s.M, f.M, o.M) AS M,
+            SELECT  COALESCE(p.Y, l.Y, s.Y, f.Y, o.Y) AS Y,
+                    COALESCE(p.M, l.M, s.M, f.M, o.M) AS M,
                     ISNULL(p.GoodQty, 0)         AS GoodQty,
-                    ISNULL(p.DefectCt, 0)        AS DefectQty,
+                    ISNULL(p.DefectCt, 0) + ISNULL(l.DefectCt, 0) AS DefectQty,
                     ISNULL(s.Orders, 0)          AS Orders,
                     ISNULL(f.Cnt, 0)             AS Failures,
                     ISNULL(o.AvgOee, 0)          AS AvgOee
             FROM    prod p
-            FULL JOIN ship s ON s.Y = p.Y AND s.M = p.M
-            FULL JOIN fail f ON f.Y = COALESCE(p.Y, s.Y) AND f.M = COALESCE(p.M, s.M)
-            FULL JOIN oee  o ON o.Y = COALESCE(p.Y, s.Y, f.Y) AND o.M = COALESCE(p.M, s.M, f.M)
+            FULL JOIN lot_defects l ON l.Y=p.Y AND l.M=p.M
+            FULL JOIN ship s ON s.Y = COALESCE(p.Y, l.Y) AND s.M = COALESCE(p.M, l.M)
+            FULL JOIN fail f ON f.Y = COALESCE(p.Y, l.Y, s.Y) AND f.M = COALESCE(p.M, l.M, s.M)
+            FULL JOIN oee  o ON o.Y = COALESCE(p.Y, l.Y, s.Y, f.Y) AND o.M = COALESCE(p.M, l.M, s.M, f.M)
             ORDER BY Y, M;
             """;
         return Query(sql, r =>

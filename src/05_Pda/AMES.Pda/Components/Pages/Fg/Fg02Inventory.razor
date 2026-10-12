@@ -1,4 +1,5 @@
 @page "/fg/03"
+@inject PdaUomFormat Uom
 @inject FinishedGoodsApi Api
 @inject AuthState Auth
 @inject NavigationManager Nav
@@ -268,7 +269,7 @@
     private static string Unit(PdaApi.FgStockRow row) => string.IsNullOrWhiteSpace(row.Unit) ? "EA" : row.Unit.Trim();
     private static string NormalizeScan(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
-    private static string Qty(decimal qty, string? unit) => $"{qty:0.###} {(string.IsNullOrWhiteSpace(unit) ? "EA" : unit)}";
+    private string Qty(decimal qty, string? unit) => $"{qty:0.###} {Uom.Symbol(unit)}";
 
     private sealed record FgLocationSummary(string Location, decimal TotalQty, string Unit);
     private sealed record FgPartSummary(string PartNo, string? PartName, string Location, decimal TotalQty, string Unit);

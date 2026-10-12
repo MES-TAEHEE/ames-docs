@@ -3,6 +3,7 @@ using AMES.Contracts.Auth;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Services;
+using AMES.Data.Repositories;
 using AMES.Devices;
 
 namespace AMES.Api.Endpoints;
@@ -16,7 +17,7 @@ public static class AuthEndpoints
         string Token, AuthResult Result, string? Reason,
         string? EmployeeNo, string? EmployeeName, string? LineId, string? ShiftCode, DateTime? ExpiresAt);
 
-    public static void MapAuth(this WebApplication app, PopAuthService auth, TokenStore tokens)
+    public static void MapAuth(this WebApplication app, PopAuthService auth, TokenStore tokens, PopSessionRepository sessions)
     {
         var g = app.MapGroup("/api/auth").WithTags("Auth");
 
@@ -62,7 +63,9 @@ public static class AuthEndpoints
 
         g.MapPost("/logout", (HttpContext ctx) =>
         {
+            if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             var token = ctx.Request.Headers.Authorization.ToString().Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase).Trim();
+            sessions.CloseSession(session.SessionId, "LOGOUT", session.EmployeeNo);
             tokens.Revoke(token);
             return Results.NoContent();
         });

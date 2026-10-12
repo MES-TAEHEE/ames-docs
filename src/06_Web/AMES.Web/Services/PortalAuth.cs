@@ -49,7 +49,7 @@ public static class PortalAuth
         [
             new Claim(ClaimTypes.NameIdentifier, user.UserID),
             new Claim(ClaimTypes.Name, user.UserID),
-            new Claim(ActorCode.ClaimType, ActorCode.Normalize(user.UserID)),
+            new Claim(ActorCode.ClaimType, ActorCode.Portal(user.UserID)),
             new Claim(VendorClaim, user.VendorID),
             new Claim(PasswordVersionClaim, PasswordVersion(user.PasswordHash)),
         ], Scheme, ClaimTypes.Name, ClaimTypes.Role));

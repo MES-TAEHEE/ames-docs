@@ -1,4 +1,5 @@
 @page "/wh/02"
+@inject PdaUomFormat Uom
 @inject WarehouseApi Api
 @inject AuthState Auth
 @inject NavigationManager Nav
@@ -1442,12 +1443,12 @@
     }
 
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
-    private static string QuantityText(decimal value, string? unit)
-        => string.IsNullOrWhiteSpace(unit) ? value.ToString("N0") : $"{value:N0} {unit}";
-    private static string QuantityText(decimal value, string? unit, bool signed)
+    private string QuantityText(decimal value, string? unit)
+        => string.IsNullOrWhiteSpace(unit) ? value.ToString("N0") : $"{value:N0} {Uom.Symbol(unit)}";
+    private string QuantityText(decimal value, string? unit, bool signed)
     {
         var prefix = signed && value > 0 ? "+" : "";
-        return string.IsNullOrWhiteSpace(unit) ? $"{prefix}{value:N0}" : $"{prefix}{value:N0} {unit}";
+        return string.IsNullOrWhiteSpace(unit) ? $"{prefix}{value:N0}" : $"{prefix}{value:N0} {Uom.Symbol(unit)}";
     }
 
     private static string JoinCodeName(string? code, string? name)

@@ -1,4 +1,5 @@
 @page "/wh/03"
+@inject PdaUomFormat Uom
 @page "/sp/03"
 @page "/fg/adjust"
 @inject WarehouseApi Api
@@ -980,7 +981,7 @@
     private bool DisableAdjustQtyPlus => DisableAdjustQtyControls || InventoryAfterQty >= 999999999m;
     private decimal InventoryBeforeQty => _invScan?.Qty ?? 0;
     private decimal InventoryAfterQty => InventoryBeforeQty + _invAdjustDelta;
-    private string AdjustQuantityLabel => $"{InventoryAfterQty:#,##0.###} {Unit(_invScan?.Unit)} ({_invAdjustDelta:+#,##0.###;-#,##0.###;0})";
+    private string AdjustQuantityLabel => $"{InventoryAfterQty:#,##0.###} {Uom.Symbol(_invScan?.Unit)} ({_invAdjustDelta:+#,##0.###;-#,##0.###;0})";
     private bool IsAdjustQtyBelowStock => _invAdjustDelta < -InventoryBeforeQty;
     private string InventoryBarcodePlaceholder => IsSpareParts
         ? IsAdjustTab ? "Scan location or EOS SP No" : "Scan EOS SP No"
@@ -2162,7 +2163,7 @@
         var target = _adjustedBoxLabel
             ? $"/wh/adjust-box-label?lot={Uri.EscapeDataString(_adjustedLabelLotNo)}"
             : $"/wh/label-print?source={source}&lot={Uri.EscapeDataString(_adjustedLabelLotNo)}";
-        ShowNavigationAlert("Confirm Quantity", $"Is this quantity correct? {InventoryAfterQty:0.###} {_invScan?.Unit}", target, "REPRINT");
+        ShowNavigationAlert("Confirm Quantity", $"Is this quantity correct? {InventoryAfterQty:0.###} {Uom.Symbol(_invScan?.Unit)}", target, "REPRINT");
     }
 
     private void ShowAlert(string title, string message, string kind = "info")
@@ -2435,15 +2436,15 @@
 
     private static string Unit(string? value) => string.IsNullOrWhiteSpace(value) ? "EA" : value;
 
-    private static string Qty(decimal value, string? unit) => $"{value:N0} {Unit(unit)}";
+    private string Qty(decimal value, string? unit) => $"{value:N0} {Uom.Symbol(unit)}";
 
-    private static string Qty(decimal? value, string? unit)
-        => value.HasValue ? $"{value.Value:N0} {Unit(unit)}" : "-";
+    private string Qty(decimal? value, string? unit)
+        => value.HasValue ? $"{value.Value:N0} {Uom.Symbol(unit)}" : "-";
 
-    private static string SignedQty(decimal value, string? unit)
+    private string SignedQty(decimal value, string? unit)
     {
         var prefix = value > 0 ? "+" : "";
-        return $"{prefix}{value:N0} {Unit(unit)}";
+        return $"{prefix}{value:N0} {Uom.Symbol(unit)}";
     }
 
     private static string DateText(DateTime? value)

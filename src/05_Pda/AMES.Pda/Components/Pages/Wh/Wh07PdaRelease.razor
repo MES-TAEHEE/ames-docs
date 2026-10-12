@@ -1,4 +1,5 @@
 @page "/wh/07"
+@inject PdaUomFormat Uom
 @inject WarehouseApi Api
 @inject AuthState Auth
 @inject NavigationManager Nav
@@ -61,7 +62,7 @@
                             <button type="button" class="wh07-order-row" @onclick="@(() => SelectPickingOrderAsync(order))" disabled="@_isBusy">
                                 <div class="wh07-order-main"><strong>@PickingOrderTitle(order)</strong><span>@Text(order.RequestLocation)</span></div>
                                 <div class="wh07-order-progress">
-                                    <strong>@order.PickedQty.ToString("N0") / @order.RequestedQty.ToString("N0") @order.QuantityUnit</strong>
+                                    <strong>@order.PickedQty.ToString("N0") / @order.RequestedQty.ToString("N0") @Uom.Symbol(order.QuantityUnit)</strong>
                                     <span>@order.LineCount MATERIALS · @order.Status.ToUpperInvariant()</span>
                                 </div>
                                 <span class="wh07-order-go">›</span>
@@ -89,8 +90,8 @@
                                         <strong>@PickingLocations(line.ItemNo)</strong>
                                     </div>
                                     <div class="wh07-line-qty">
-                                        <span>REQUESTED <strong>@line.RequestBoxQty.ToString("N0") @line.QuantityUnit</strong></span>
-                                        <span>PICKED <strong>@DisplayPickedQuantity(line).ToString("N0") @line.QuantityUnit</strong></span>
+                                        <span>REQUESTED <strong>@line.RequestBoxQty.ToString("N0") @Uom.Symbol(line.QuantityUnit)</strong></span>
+                                        <span>PICKED <strong>@DisplayPickedQuantity(line).ToString("N0") @Uom.Symbol(line.QuantityUnit)</strong></span>
                                     </div>
                                 </div>
                             </div>
@@ -998,8 +999,8 @@
     private static string Text(string? value)
         => string.IsNullOrWhiteSpace(value) ? "-" : value;
 
-    private static string QuantityText(decimal quantity, string? unit)
-        => $"{quantity:N0} {Text(unit)}";
+    private string QuantityText(decimal quantity, string? unit)
+        => $"{quantity:N0} {Uom.Symbol(unit)}";
 
     private void ShowModal(string title, string message, string kind, Func<Task>? afterOk = null)
     {
