@@ -68,8 +68,8 @@ public static class PpEndpoints
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListOtd(daysBack ?? 30)));
 
-        g.MapPost("/po-sync/run", (HttpContext ctx, string? source, PoSyncWorker worker, CancellationToken ct) =>
-            ScheduledWorkerEndpoints.RunAsync(ctx, worker, source, ct, () =>
+        g.MapPost("/po-sync/run", (HttpContext ctx, string? source, PoSyncWorker worker) =>
+            ScheduledWorkerEndpoints.RunAsync(ctx, worker, source, CancellationToken.None, () =>
             {
                 using var conn = factory.OpenConnection();
                 return PoSyncConfig.LoadServiceKey(conn);
@@ -77,8 +77,8 @@ public static class PpEndpoints
          .WithDescription("고객사 SRM PO 수집을 즉시 실행. source 생략 시 활성 소스 전부. " +
                           "Bearer 세션 또는 X-AMES-Service-Key(공통코드 SW_POSYNC_AUTH / AMES_SERVICE_KEY) 필요.");
 
-        g.MapPost("/demand-plan-sync/run", (HttpContext ctx, string? source, DemandPlanSyncWorker worker, CancellationToken ct) =>
-            ScheduledWorkerEndpoints.RunAsync(ctx, worker, source, ct, () =>
+        g.MapPost("/demand-plan-sync/run", (HttpContext ctx, string? source, DemandPlanSyncWorker worker) =>
+            ScheduledWorkerEndpoints.RunAsync(ctx, worker, source, CancellationToken.None, () =>
             {
                 using var conn = factory.OpenConnection();
                 return PoSyncConfig.LoadServiceKey(conn);   // 서비스 키는 PO Sync 것을 같이 쓴다(스펙 §6)

@@ -14,13 +14,15 @@ public static class ScheduledWorkerEndpoints
     public const string ServiceKeyHeader = PoSyncConfig.ServiceKeyHeader;
 
     public static async Task<IResult> RunAsync<TTarget, TResult>(
-        HttpContext ctx, ScheduledWorker<TTarget, TResult> worker, string? key, CancellationToken ct,
+        HttpContext ctx, ScheduledWorker<TTarget, TResult> worker, string? key, CancellationToken requestCancellation,
         Func<string?>? serviceKey = null)
     {
         if (ctx.GetSession() is null && !HasServiceKey(ctx, serviceKey)) return Results.Unauthorized();
         try
         {
-            return Results.Ok(await worker.RunNowAsync(key, ct));
+            // Once accepted, a browser/PDA disconnect must not cancel an import already in progress.
+            var lifetime = ctx.RequestServices is { } services ? services.GetService<IHostApplicationLifetime>() : null;
+            return Results.Ok(await worker.RunNowAsync(key, lifetime?.ApplicationStopping ?? CancellationToken.None));
         }
         catch (KeyNotFoundException ex)      { return Results.NotFound(new { error = ex.Message }); }
         catch (InvalidOperationException ex) { return Results.Conflict(new { error = ex.Message }); }
