@@ -118,6 +118,19 @@ public sealed class PopSessionRepository
         cmd.ExecuteNonQuery();
     }
 
+    public int CloseExpiredSessions()
+    {
+        const string sql = """
+            UPDATE dbo.PR_PopSession
+            SET LoggedOutAt=ExpiresAt, LogoutReason='EXPIRED', ModifiedBy='system', ModifiedTS=SYSDATETIME(),
+                BearerHash=NULL, SessionJson=NULL
+            WHERE LoggedOutAt IS NULL AND ExpiresAt <= SYSDATETIME();
+            """;
+        using var conn = _connFactory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        return cmd.ExecuteNonQuery();
+    }
+
     /// <summary>
     /// Append-only audit row for every login attempt — including failures and lockouts.
     /// </summary>

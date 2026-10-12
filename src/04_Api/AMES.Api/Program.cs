@@ -43,8 +43,9 @@ builder.Services.AddSingleton<DemandPlanSyncWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DemandPlanSyncWorker>());
 
 // ── Auth token registry ─────────────────────────────────────────────────
-var tokens = new TokenStore(() => DbClock.ReadNow(factory));
+var tokens = new TokenStore(() => DbClock.ReadNow(factory), persistence: new SqlTokenPersistence(factory));
 builder.Services.AddSingleton(tokens);
+builder.Services.AddHostedService<AMES.Api.Workers.SessionCleanupWorker>();
 
 // ── CORS — PDA clients come from arbitrary devices on the LAN ───────────
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
@@ -88,6 +89,18 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 app.UseCors();
+app.Use(async (ctx, next) =>
+{
+    var invalid = HttpMethods.IsGet(ctx.Request.Method) && ctx.Request.Path.StartsWithSegments("/api")
+        ? NumericQueryGuard.InvalidParameter(ctx.Request.Query) : null;
+    if (invalid is not null)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await ctx.Response.WriteAsJsonAsync(new { error = $"Invalid query parameter: {invalid}" });
+        return;
+    }
+    await next();
+});
 app.UseBearerAuth(tokens);
 
 app.UseSwagger();
@@ -103,7 +116,7 @@ app.UseSwaggerUI(c =>
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DbClock.ReadNow(factory) }));
 app.MapGet("/api/time", () => Results.Ok(DbClock.ReadNow(factory)))
     .WithTags("Shared").WithSummary("Current database local time for PDA dates and elapsed-day displays");
-app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens);
+app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens, app.Services.GetRequiredService<PopSessionRepository>());
 app.MapWh(factory);
 app.MapFg(factory);
 app.MapTablet(factory);

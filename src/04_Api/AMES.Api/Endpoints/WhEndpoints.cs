@@ -597,7 +597,7 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
-                return Results.Forbid();
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
 
             const string lotNo = "5011LL260904500001";
             using var conn = factory.OpenConnection();
@@ -754,7 +754,7 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
             if (!PdaScenarioUsers.IsDetailed(s.EmployeeNo))
-                return Results.Forbid();
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
 
             const string lotNo = "5011LL260804000001";
             using var conn = factory.OpenConnection();
