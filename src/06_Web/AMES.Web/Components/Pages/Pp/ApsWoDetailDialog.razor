@@ -13,6 +13,8 @@
             <div class="wp-tile"><span class="dim">@L["Col.ItemNo"]</span><b class="code">@(Block.ItemNo ?? "—")</b></div>
             @if (Order is { } o)
             {
+                @* BOM 규칙 WO: WO 품번은 완제품, 사출 슬롯이 찍는 자식 품번은 따로 보인다(2026-10-12 사용자 요청) *@
+                <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.InjItem"]</span><b class="code" title="@string.Join(", ", InjItems(o))">@(InjItems(o).Count == 0 ? "—" : string.Join(", ", InjItems(o)))</b></div>
                 <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.Date"]</span><b class="code">@o.PlanDate.ToString(DateFmt.Date)</b></div>
                 <div class="wp-tile"><span class="dim">@L["PP.Aps.Wo.Col.So"]</span><b>@(o.SoId is int so ? $"SO #{so}" : L["PP.Aps.Wo.StockWo"].Value)</b></div>
                 <div class="wp-tile"><span class="dim">@L["Col.Qty"]</span><b>@UomFmt.Qty(o.Qty, null)</b></div>
@@ -81,7 +83,7 @@
                     {
                         bool here = p.LineId == LineId && DateOnly.FromDateTime(p.Date) == Date && p.StartMin == Block.StartMin && p.EndMin == Block.EndMin;
                         <tr class="@(here ? "wp-here" : "")">
-                            <td>@(p.StepSeq == injSeq ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"]) <span class="dim">#@p.StepSeq</span></td>
+                            <td>@(p.StepSeq == injSeq ? L["PP.Aps.Tab.Inj"] : L["PP.Aps.Tab.Asm"]) <span class="dim">#@p.StepSeq</span>@if (p.ItemNo is { } pi) { <div class="code wp-step-item">@pi</div> }</td>
                             <td class="code">@p.LineId</td>
                             <td class="code">@p.Date.ToString(DateFmt.Date)</td>
                             <td class="code">@Hm(p.StartMin)~@Hm(p.EndMin)</td>
@@ -133,6 +135,10 @@
 </div>
 
 @code {
+    /// <summary>사출 슬롯이 찍는 자식 품번(중복 제거, 품번순) — 같은 품번 규칙 WO 는 WO 품번 자신.</summary>
+    static List<string> InjItems(PpRepository.ApsWoOrder o) =>
+        o.Placements.Where(p => !string.IsNullOrEmpty(p.ItemNo)).Select(p => p.ItemNo!).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.Ordinal).ToList();
+
     [Parameter] public ApsWoBoard.Block Block { get; set; } = default!;
     [Parameter] public PpRepository.ApsWoOrder? Order { get; set; }
     [Parameter] public string LineId { get; set; } = "";

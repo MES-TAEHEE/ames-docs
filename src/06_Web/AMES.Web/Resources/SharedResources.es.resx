@@ -10109,6 +10109,9 @@
   <data name="PP.Aps.Wo.Row.New" xml:space="preserve">
     <value>{0} nuevo · {1} min</value>
   </data>
+  <data name="PP.Aps.Wo.Col.InjItem" xml:space="preserve">
+    <value>Pieza de inyección</value>
+  </data>
   <data name="PP.Aps.Wo.Row.Over" xml:space="preserve">
     <value>Exceso {0}</value>
   </data>

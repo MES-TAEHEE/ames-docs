@@ -469,7 +469,7 @@ public sealed partial class PpRepository
                                 foreach (var (slot, q, over) in spread)
                                 {
                                     LineScheduleRepository.AppendWoSlot(conn, tx, line, date, cap.PatternId, woId, slot.StartMin, slot.EndMin, q, moldId, actor);
-                                    placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, slot.StartMin, slot.EndMin, q, false, moldId, over));
+                                    placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, slot.StartMin, slot.EndMin, q, false, moldId, over, m.Row.ItemNo));
                                     placedQty += q;
                                 }
                             }
@@ -483,7 +483,7 @@ public sealed partial class PpRepository
                                 decimal cov = Math.Min(part[k], covByItem[m.Row.ItemNo][k]); covByItem[m.Row.ItemNo][k] -= cov;
                                 int start = alloc[k].Slots.Count > 0 ? alloc[k].Slots[0].StartMin : AnchorOf(k);
                                 LineScheduleRepository.AppendWoSlot(conn, tx, line, date, cap.PatternId, woId, start, start, part[k], null, actor);
-                                placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, start, start, part[k], false, null, part[k] - cov));
+                                placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, start, start, part[k], false, null, part[k] - cov, m.Row.ItemNo));
                                 placedQty += part[k];
                             }
                         }

@@ -10109,6 +10109,9 @@
   <data name="PP.Aps.Wo.Row.New" xml:space="preserve">
     <value>신규 {0} · {1}분</value>
   </data>
+  <data name="PP.Aps.Wo.Col.InjItem" xml:space="preserve">
+    <value>사출 품번</value>
+  </data>
   <data name="PP.Aps.Wo.Row.Over" xml:space="preserve">
     <value>초과 {0}</value>
   </data>

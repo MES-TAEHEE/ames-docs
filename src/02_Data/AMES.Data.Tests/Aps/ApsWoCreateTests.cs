@@ -952,6 +952,10 @@ public class ApsWoCreateTests
             Assert.Equal(100m, SumQty(f, p1.WoId, LineImg));                                  // IMG = 모든 자식이 실은 몫(100, 200÷2) 의 최소
             Assert.Equal(50m,  SumQty(f, p2.WoId, LineImg));
             Assert.Empty(p1.Shortfalls); Assert.Empty(p2.Shortfalls);
+            // 사출 슬롯은 자식(사출) 품번을 함께 돌려준다 — 상세 팝업이 WO 품번(완제품) 옆에 사출 품번을 보인다(2026-10-12 사용자 요청). 완제품 단계는 품번 없음
+            Assert.Equal(new[] { K, K2 }, p1.Placements.Where(x => x.LineId == LineInj).Select(x => x.ItemNo).Distinct().OrderBy(x => x).ToArray());
+            Assert.Equal(new[] { K }, p2.Placements.Where(x => x.LineId == LineInj).Select(x => x.ItemNo).Distinct().ToArray());
+            Assert.All(p1.Placements.Where(x => x.LineId == LineImg), x => Assert.Null(x.ItemNo));
 
             Assert.Equal(p1.WoId, (int)Scalar(f, "SELECT WoID FROM dbo.PP_ApsPlanLine WHERE PlanLineID = @P;", ("@P", plK))!);   // 품번순 첫 부모
             Assert.Equal(p1.WoId, (int)Scalar(f, "SELECT WoID FROM dbo.PP_ApsPlanLine WHERE PlanLineID = @P;", ("@P", plK2))!);
