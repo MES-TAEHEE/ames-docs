@@ -128,4 +128,39 @@ public class ShiftListSchedulerTests
         Assert.Equal(120d, k1.PlanShifts!.Sum(x => x.Qty), 6);
         Assert.Equal(new[] { ("A", 80d), ("B", 40d) }, k1.PlanShifts.Select(x => (x.Code, x.Qty)).ToArray());   // 8:4 비율, 8 단위 내림
     }
+
+    [Fact]
+    public void Sequential_fill_option_fills_the_first_shift_before_spilling_to_the_next()
+    {
+        // SHIFT_FILL_SEQ=1 (2026-10-08 사용자 결정): 704 ÷ UPH 60 = 11.7h > A 8h → A 480(8h × 60, 8 단위) · B 224 · C 0 — 비율 분할(352/352)이 아니다
+        var (b, s, lines) = Fixture(new() { new("A", 8), new("B", 8), new("C", 6) });
+        var rules = new ShiftRules(s, lines); var stages = new StageRules(s, lines);
+
+        var (warnings, traces) = InjectionScheduler.RescheduleWithTraces(b, rules, stages, new ApsOptions(SequentialShiftFill: true));
+
+        var d = b.Injection[0].Days[0];
+        Assert.Equal(new[] { ("A", 480d), ("B", 224d), ("C", 0d) }, d.PlanShifts!.Select(x => (x.Code, x.Qty)).ToArray());
+        Assert.Equal((480d, 224d), (d.PlanDay, d.PlanNight));
+        var t = traces.Single(x => x.PartNo == "K1" && x.Date == "2026-10-07");
+        Assert.Contains(t.Steps, st => st.Label.Contains("교대 몫") && st.Calc.Contains("앞 교대부터"));
+        Assert.DoesNotContain(t.Steps, st => st.Calc.Contains("비율"));
+        Assert.DoesNotContain(warnings, w => w.Contains("능력"));
+    }
+
+    [Fact]
+    public void Sequential_fill_counts_hours_already_used_by_locked_blocks_in_the_first_shift()
+    {
+        // 잠긴 블록(다른 금형)이 A 를 6h 쓰면 자유 블록은 A 의 남은 2h(120개)만 받고 나머지는 B 로
+        var (b, s, lines) = Fixture(new() { new("A", 8), new("B", 8) });
+        var dates = b.Dates;
+        b.Injection.Add(new InjectionRow { PartNo = "K2", LineCd = "INJ", Uph = 60, PackSize = 8, MoldCode = "M2",
+                                           Days = dates.Select(d => new InjectionDay { Date = d, Locked = d == dates[0], PlanDay = d == dates[0] ? 360 : 0,
+                                                                                       PlanShifts = d == dates[0] ? new() { new("A", 360), new("B", 0) } : null }).ToList() });
+        var rules = new ShiftRules(s, lines); var stages = new StageRules(s, lines);
+
+        InjectionScheduler.RescheduleWithTraces(b, rules, stages, new ApsOptions(SequentialShiftFill: true));
+
+        var d = b.Injection[0].Days[0];
+        Assert.Equal(new[] { ("A", 120d), ("B", 584d) }, d.PlanShifts!.Select(x => (x.Code, x.Qty)).ToArray());
+    }
 }

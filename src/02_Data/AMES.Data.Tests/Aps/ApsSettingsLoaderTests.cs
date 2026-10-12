@@ -19,7 +19,7 @@ public class ApsSettingsLoaderTests
     static readonly CodeRow[] Full =
     {
         S(KeyDefaultCover, "0.8"), S(KeyRoundTo, "10"), S(KeyTrimLastDay, "0"), S(KeyInjOffsetDays, "2"),
-        S(KeyShiftDayH, "8"), S(KeyShiftNightH, "16"), S(KeyPullForward, "1"), S(KeySafetyTerm, "true"), S(KeyWarnStatus, "Y"),
+        S(KeyShiftDayH, "8"), S(KeyShiftNightH, "16"), S(KeyPullForward, "1"), S(KeySafetyTerm, "true"), S(KeyWarnStatus, "Y"), S(KeyShiftFillSeq, "1"),
         T("20", "0.7", 20), T("0", "1.5", 30), T("100", "0.4", 10),
     };
     static readonly LineStageRow[] NoStages = Array.Empty<LineStageRow>();
@@ -30,6 +30,7 @@ public class ApsSettingsLoaderTests
         var p = Parse(Full, NoStages);
 
         Assert.Empty(p.Warnings);
+        Assert.True(p.Options.SequentialShiftFill);
         Assert.Equal(0.8, p.Settings.DefaultDaysOfCover);
         Assert.Equal(10, p.Settings.RoundTo);
         Assert.False(p.Settings.TrimLastDay);
@@ -44,7 +45,7 @@ public class ApsSettingsLoaderTests
         Assert.Empty(p.Settings.LineShifts);
         Assert.Empty(p.Settings.ShiftExceptions);
         Assert.Null(p.Settings.SavedAt);
-        Assert.Equal(new ApsOptions(true, true, true), p.Options);
+        Assert.Equal(new ApsOptions(true, true, true, true), p.Options);
     }
 
     [Fact]
@@ -69,12 +70,12 @@ public class ApsSettingsLoaderTests
         Assert.Equal(d.Shift.Night, p.Settings.Shift.Night);
         Assert.Equal(d.CoverTiers, p.Settings.CoverTiers);
         Assert.Equal(ApsOptions.Default, p.Options);
-        foreach (var key in new[] { KeyDefaultCover, KeyRoundTo, KeyTrimLastDay, KeyInjOffsetDays, KeyPullForward, KeySafetyTerm, KeyWarnStatus })
+        foreach (var key in new[] { KeyDefaultCover, KeyRoundTo, KeyTrimLastDay, KeyInjOffsetDays, KeyPullForward, KeySafetyTerm, KeyWarnStatus, KeyShiftFillSeq })
             Assert.Single(p.Warnings, w => w.Contains(key));
         Assert.Single(p.Warnings, w => w.Contains(GroupCoverTier));
         // 교대 시간 폴백(SHIFT_DAY_H/NIGHT_H)·기본 패턴(DEFAULT_PATTERN)은 빠져도 경고하지 않는다 — 패턴은 ApsRepository 가 미설정이면 조회 자체를 막는다(2026-10-06)
         Assert.DoesNotContain(p.Warnings, w => w.Contains(KeyShiftDayH) || w.Contains(KeyShiftNightH) || w.Contains(KeyDefaultPattern));
-        Assert.Equal(8, p.Warnings.Count);
+        Assert.Equal(9, p.Warnings.Count);
     }
 
     // ── 가동 시간 패턴 지정 (2026-10-06 사용자 결정: APS 설정의 패턴이 PP-LSB 저장 패턴·자동 해석보다 우선, 미설정이면 조회 차단) ──
@@ -260,6 +261,7 @@ public class ApsSettingsLoaderTests
         Assert.Equal(SettingKind.Flag,   KindOf(KeyPullForward));
         Assert.Equal(SettingKind.Flag,   KindOf(KeySafetyTerm));
         Assert.Equal(SettingKind.Flag,   KindOf(KeyWarnStatus));
+        Assert.Equal(SettingKind.Flag,   KindOf(KeyShiftFillSeq));
         Assert.Equal(SettingKind.Int,    KindOf(KeyRoundTo));
         Assert.Equal(SettingKind.Int,    KindOf(KeyInjOffsetDays));
         Assert.Equal(SettingKind.Number, KindOf(KeyDefaultCover));
@@ -277,9 +279,9 @@ public class ApsSettingsLoaderTests
     }
 
     [Fact]
-    public void Known_settings_list_the_eight_keys_with_defaults_that_parse_without_setting_warnings()
+    public void Known_settings_list_the_nine_keys_with_defaults_that_parse_without_setting_warnings()
     {
-        Assert.Equal(new[] { KeyDefaultCover, KeyRoundTo, KeyTrimLastDay, KeyInjOffsetDays, KeyDefaultPattern, KeyPullForward, KeySafetyTerm, KeyWarnStatus },
+        Assert.Equal(new[] { KeyDefaultCover, KeyRoundTo, KeyTrimLastDay, KeyInjOffsetDays, KeyDefaultPattern, KeyPullForward, KeySafetyTerm, KeyWarnStatus, KeyShiftFillSeq },
                      KnownSettings.Select(k => k.Key));
         Assert.All(KnownSettings, k => Assert.Null(ValidateSetting(k.Key, k.Default)));
 

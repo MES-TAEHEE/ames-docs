@@ -50,7 +50,8 @@ public sealed class ApsRepository
     sealed record BomRow(string Parent, string Child, decimal QtyPer, decimal ScrapPct);
     sealed record SlotRow(string LineId, DateOnly Date, string ItemNo, int StartMin, decimal Qty, int WoId, string WoNumber);
     /// <summary>완제품 후보 — 완제품(마지막 라인 단계) 공정·라인, INJ 단계 유무, INJ 다음 라인 단계(같은 품번 사출품의 "다음 단계 실적").</summary>
-    sealed record FgInfo(ItemRow Item, string FgLine, string FgProcess, bool HasInjStep, string? NextProcess, string? NextLine);
+    /// <summary>CycleSec = 완제품 공정 BOP 표준 사이클(초, ReadPreview 의 StdCycleSec) — 시간 모드 능력(2026-10-12). 없으면 null.</summary>
+    sealed record FgInfo(ItemRow Item, string FgLine, string FgProcess, bool HasInjStep, string? NextProcess, string? NextLine, double? CycleSec);
     sealed record InjInfo(string ItemNo, string LineId, string MoldId, MoldItemRow Mold, MoldLineRow? MoldLine);
     /// <summary>(라인, 날짜)의 교대별 가동 구간(Full, SortOrder 순)과 교대 시간 목록(Shifts = 엔진 LineShift.Shifts), 축 원점 DayStart.</summary>
     sealed record LineDay(IReadOnlyList<ShiftBands.ShiftBand> Full, IReadOnlyList<ShiftHours> Shifts, int DayStart);
@@ -172,7 +173,8 @@ public sealed class ApsRepository
                 }
                 var injStep = tpl.FirstOrDefault(t => MoldResolver.NeedsMold(t.ProcessCode));
                 var next    = injStep is null ? null : lineSteps.FirstOrDefault(t => t.StepSeq > injStep.StepSeq);
-                fg[itemNo]  = new FgInfo(it, fgLine, last.ProcessCode, injStep is not null, next?.ProcessCode, next is null ? null : LineOf(next));
+                fg[itemNo]  = new FgInfo(it, fgLine, last.ProcessCode, injStep is not null, next?.ProcessCode, next is null ? null : LineOf(next),
+                                         last.StdCycleSec is int cyc && cyc > 0 ? cyc : null);
             }
             // 완제품 라인 모드: 다른 라인의 완제품은 조용히 뺀다(그 라인의 계획이다). 전체 라인 모드는 걸러내지 않는다
             if (!injectionMode && !allLines)
@@ -315,7 +317,7 @@ public sealed class ApsRepository
                 asmRows.Add(new AssemblyRow
                 {
                     PartNo = itemNo, PartName = f.Item.ItemName, Alc = f.Item.Alc, Pgn = f.Item.Pgn, Model = f.Item.CarType,
-                    LineCd = f.FgLine, Uph = 0, OpeningStock = opening, StockCounted = true,
+                    LineCd = f.FgLine, Uph = f.CycleSec is double cs ? Math.Round(3600 / cs, 2) : 0, CycleSec = f.CycleSec, OpeningStock = opening, StockCounted = true,
                     Defect = 0, SisProduced = 0, Shipped = 0, SafetyStock = (double)f.Item.SafetyStock,
                     Days = dates.Select((d, i) =>
                     {
@@ -480,16 +482,67 @@ public sealed class ApsRepository
             }
             // Cap 호출은 여기서 끝난다 — 패턴이 없는 사출 라인이 하나라도 있으면 결과를 내지 않는다(조용히 0h 로 계산하지 않는다)
             if (patterns.Problems.Count > 0) throw new ApsConfigurationException(patterns.Problems);
+            // ── 완제품 라인 능력(2026-10-12 사용자 결정): 품번별 BOP 사이클 × 라인 가동 시간(시간 모드, Autofill·AsmTimeCapacityTests) ──
+            // 패턴은 WO 생성의 완제품 단계와 같은 규칙(라인 지정 → DEFAULT_PATTERN → 둘 다 없을 때만 자동 해석)이라 사출 라인과 달리 조회를 막지 않는다.
+            // 행에 사이클이 하나도 없거나 패턴에 가동 구간이 없으면 종전 MD_Line.DailyCap(수량 모드) + 사유 경고
+            LineDay AsmCap(string line, string date)
+            {
+                var key = (line.ToUpperInvariant(), date);
+                if (lineDays.TryGetValue(key, out var ld)) return ld;
+                var pat  = PpRepository.ApsPatternFor(parsed, patterns, strict: false, line);
+                var cap  = LineScheduleRepository.ReadDayCapacity(conn, tx, line, Dt(ApsCalendar.Parse(date)), pat);
+                var full = ShiftBands.SplitByShift(cap.ShiftBands ?? Array.Empty<(SlotPacker.Interval, int, string)>(), Array.Empty<SlotPacker.Interval>(), cap.DayStart);
+                ld = new LineDay(full, full.Select(s => new ShiftHours(s.Code, Math.Round(s.Hours, 2))).ToList(), cap.DayStart);
+                return lineDays[key] = ld;
+            }
             var asmLines = asmRows.Select(r => r.LineCd!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             if (!injectionMode && !allLines && !asmLines.Contains(q.LineId, StringComparer.OrdinalIgnoreCase)) asmLines.Add(q.LineId);
             foreach (var line in asmLines.OrderBy(l => l, StringComparer.Ordinal))
             {
-                if (settings.LineShifts.Any(ls => Eq(ls.LineCd, line))) continue;   // INJ 전용 라우팅(C)의 완제품 행 — 사출 LineShift 가 이미 있다
-                // NULL·0 이하는 "제한 없음"(AsmCapFor → null) — 0 을 그대로 넘기면 능력 0 으로 읽힌다
-                int? cap = dailyCap.GetValueOrDefault(line) is int dc && dc > 0 ? dc : null;
-                if (cap is null)
-                    warnings.Add($"라인 {line}: MD_Line.DailyCap 이 없거나 0 이하({(dailyCap.GetValueOrDefault(line) is int raw ? raw.ToString(CultureInfo.InvariantCulture) : "NULL")})라 완제품 능력을 제한하지 않습니다.");
-                settings.LineShifts.Add(new LineShift { LineCd = line, Day = 0, Night = 0, DailyCap = cap });
+                var lineRows = asmRows.Where(r => Eq(r.LineCd, line)).ToList();
+                if (settings.LineShifts.Any(ls => Eq(ls.LineCd, line)))
+                {
+                    // INJ 전용 라우팅(C)의 완제품 행 — 사출 LineShift 가 이미 있다. 사출 사이클을 완제품 능력으로 세지 않게 수량 모드(종전 = 제한 없음)로 둔다
+                    foreach (var r in lineRows) { r.CycleSec = null; r.Uph = 0; }
+                    continue;
+                }
+                var cycles  = lineRows.Where(r => r.CycleSec is > 0).Select(r => r.CycleSec!.Value).ToList();
+                var perDate = cycles.Count > 0 ? dates.Select(d => (Date: d, Cap: AsmCap(line, d))).ToList() : null;
+                if (perDate is not null && perDate.All(x => x.Cap.Shifts.Sum(s => s.Hours) <= 0))
+                {
+                    warnings.Add($"라인 {line}: 가동 시간 패턴에 가동 구간이 없어 BOP 사이클 대신 MD_Line.DailyCap 으로 완제품 능력을 봅니다.");
+                    perDate = null;
+                }
+                if (perDate is null)
+                {
+                    if (cycles.Count == 0 && lineRows.Count > 0)
+                        warnings.Add($"라인 {line}: 완제품 행에 BOP 표준 사이클(MD_Bop.StdCycleTime)이 없어 MD_Line.DailyCap 으로 완제품 능력을 봅니다.");
+                    foreach (var r in lineRows) { r.CycleSec = null; r.Uph = 0; }   // 수량 모드 — Autofill 이 시간 모드로 읽지 않게
+                    // NULL·0 이하는 "제한 없음"(AsmCapFor → null) — 0 을 그대로 넘기면 능력 0 으로 읽힌다
+                    int? cap = dailyCap.GetValueOrDefault(line) is int dc && dc > 0 ? dc : null;
+                    if (cap is null)
+                        warnings.Add($"라인 {line}: MD_Line.DailyCap 이 없거나 0 이하({(dailyCap.GetValueOrDefault(line) is int raw ? raw.ToString(CultureInfo.InvariantCulture) : "NULL")})라 완제품 능력을 제한하지 않습니다.");
+                    settings.LineShifts.Add(new LineShift { LineCd = line, Day = 0, Night = 0, DailyCap = cap });
+                    continue;
+                }
+                var slowest = cycles.Max();
+                foreach (var r in lineRows.Where(r => r.CycleSec is not > 0))
+                {
+                    warnings.Add($"품번 {r.PartNo}: BOP 표준 사이클이 없어 라인 {line} 의 가장 느린 사이클 {slowest.ToString("0.#", CultureInfo.InvariantCulture)}초로 봅니다.");
+                    r.CycleSec = slowest; r.Uph = Math.Round(3600 / slowest, 2);
+                }
+                foreach (var x in perDate.Where(x => x.Cap.Shifts.Sum(s => s.Hours) <= 0))
+                    warnings.Add($"라인 {line}: {x.Date} 는 패턴에 가동 구간이 없어 그 날 완제품 능력을 제한하지 않습니다.");
+                var mode = perDate.GroupBy(x => ShiftKey(x.Cap.Shifts))
+                                  .OrderByDescending(g => g.Count()).ThenBy(g => g.First().Date, StringComparer.Ordinal)
+                                  .First().First().Cap;
+                var (mDay, mNight) = DeriveHours(mode.Shifts);
+                settings.LineShifts.Add(new LineShift { LineCd = line, Day = mDay, Night = mNight, Shifts = mode.Shifts.ToList(), Stations = 1 });
+                foreach (var x in perDate.Where(x => ShiftKey(x.Cap.Shifts) != ShiftKey(mode.Shifts)))
+                {
+                    var (eDay, eNight) = DeriveHours(x.Cap.Shifts);
+                    settings.ShiftExceptions.Add(new ShiftException { Date = x.Date, LineCd = line, Day = eDay, Night = eNight, Shifts = x.Cap.Shifts.ToList(), Note = "라인 시간 패턴" });
+                }
             }
             // 포장 규칙(§4.2 "품번마다"): 사출 행은 PackSize(BoxQty ?? 1), 사출 행이 아닌 완제품 행은 BoxQty ?? RoundTo.
             // BoxQty 없는 완제품 행에도 RoundTo 규칙을 두는 이유: PackFor 는 가장 긴 앞자리 규칙을 고르므로 규칙이 없으면 앞자리가 같은 다른 품번(85311-PI000 ↔ 85311-PI000MMN)의 포장 단위를 물려받는다

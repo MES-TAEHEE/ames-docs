@@ -6,7 +6,7 @@
      §2 MD_MoldItem.PartCavityCount 폐지(09-30) — 초판(09-28)이 만든 컬럼이 있으면 떨어뜨린다. 품번별 캐비티는 APS 가 금형 CavityCount ÷ 활성 품번 수(내림, 최소 1)로 추정
      §3 MD_ApsLineStage             라인별 사출 선행일·재고 사용·가동 시간 패턴(PatternID, 10-06 §3-b 로 추가) 예외 (PP-APS 설정 다이얼로그가 관리, MD-26 아님)
      §4 PP_ApsRun · PP_ApsPlanLine · PP_ApsRunWo   실행 스냅샷(JSON 3개) + 정규화 계획 행 + WO 연결
-     §5 공통코드 APS_SETTING(8) · APS_COVER_TIER(3)  — ApsSettingsLoader 가 읽는다. §5-b 는 폐기 키 SHIFT_DAY_H·SHIFT_NIGHT_H 행을 지운다(10-06). 값 수정은 PP-APS 설정 다이얼로그(E 권한) 또는 MD-26
+     §5 공통코드 APS_SETTING(9) · APS_COVER_TIER(3)  — ApsSettingsLoader 가 읽는다. §5-b 는 폐기 키 SHIFT_DAY_H·SHIFT_NIGHT_H 행을 지운다(10-06). 값 수정은 PP-APS 설정 다이얼로그(E 권한) 또는 MD-26
 
    · §1 은 컬럼 순서 때문에 테이블을 재생성한다(migrate_md_item_pallet_qty.sql 방식). 가드: 컬럼이 없거나
      기준 컬럼 바로 뒤가 아니면 재생성. 들어오는 FK 와 컬럼 설명(MS_Description)은 DB 에서 읽어 되살린다.
@@ -391,6 +391,8 @@ USING (VALUES
     ('APS_SETTING_WARN_STATUS',     'APS_SETTING', 'WARN_STATUS',     N'재고 < 안전재고 warn 상태 (1/0)',     N'warn status below safety stock (1/0)',  N'0',    9),
     -- 2026-10-06: 사출 라인의 APS 가동 시간 패턴 기본값(MD_LineTimePattern.PatternID, 전역 패턴). 빈 값 = 미지정 → 라인 지정(MD_ApsLineStage.PatternID)도 없는 사출 라인이 있으면 PP-APS 조회가 막힌다
     ('APS_SETTING_DEFAULT_PATTERN', 'APS_SETTING', 'DEFAULT_PATTERN', N'가동 시간 패턴 기본값(전역 패턴 ID)', N'Default line time pattern (global pattern ID)', NULL, 10),
+    -- 2026-10-08: 사출 계획의 교대 분할 방식. 0 = 교대 가동 시간 비율(ShiftSplit.Proportional), 1 = 앞 교대의 남은 시간부터 차례로 채움(ShiftSplit.Sequential)
+    ('APS_SETTING_SHIFT_FILL_SEQ',  'APS_SETTING', 'SHIFT_FILL_SEQ',  N'사출 계획 앞 교대부터 순차 채움 (1/0)', N'Fill injection plan shift by shift from the first (1/0)', N'0', 11),
     ('APS_COVER_TIER_100',          'APS_COVER_TIER', '100',          N'일수요 100 이상',                    N'Daily demand >= 100',                   N'0.4',  3),
     ('APS_COVER_TIER_20',           'APS_COVER_TIER', '20',           N'일수요 20 이상',                     N'Daily demand >= 20',                    N'0.7',  2),
     ('APS_COVER_TIER_0',            'APS_COVER_TIER', '0',            N'일수요 0 이상',                      N'Daily demand >= 0',                     N'1.5',  1)
@@ -399,7 +401,7 @@ ON tgt.CodeID = src.CodeID
 WHEN NOT MATCHED THEN
     INSERT (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, Attribute1, SortOrder, UseFlag, CreatedBy, CreatedTS)
     VALUES (src.CodeID, src.GroupCode, src.CodeValue, src.CodeName, src.CodeNameEn, src.Attribute1, src.SortOrder, 1, 'migrate', SYSDATETIME());
-PRINT 'APS_SETTING (8) / APS_COVER_TIER (3) code items merged';
+PRINT 'APS_SETTING (9) / APS_COVER_TIER (3) code items merged';
 GO
 
 -- §5-b 폐기 키 삭제 (10-06) — SHIFT_DAY_H·SHIFT_NIGHT_H 는 패턴이 없으면 조회를 막는 규칙 뒤로 어디서도 읽지 않는다(ApsSettingsLoader.RetiredKeys).

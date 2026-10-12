@@ -116,6 +116,27 @@ public class ApsWoBoardTests
     }
 
     [Fact]
+    public void Overloaded_placements_carry_their_over_quantity_onto_the_block_and_the_row()
+    {
+        // 2026-10-08 사용자 결정: 능력을 넘는 수량은 미배치가 아니라 마지막 슬롯에 초과로 실린다 — 블록·형제·줄 합계가 초과를 보인다
+        var rep = Order("WO-1", 1, "P1", D0,
+            new DeadlinePacker.Placement(10, "LINE-INJ-01", T(D0), 480, 540, 60, false),
+            new DeadlinePacker.Placement(10, "LINE-INJ-01", T(D0), 540, 600, 100, false, OverQty: 40));
+        var sib = Order("WO-2", 2, "P2", D0, new DeadlinePacker.Placement(10, "LINE-INJ-01", T(D0), 540, 540, 30, false, OverQty: 10));
+        var result = new ApsWoResult(new() { rep, sib }, new(), 0, 0, true);
+
+        var row = ApsWoBoard.Build(result, new[] { D0 }, Lines, _ => Array.Empty<ScheduleRow>())[0].Rows.Single(r => r.LineId == "LINE-INJ-01");
+
+        var over = Assert.Single(row.Blocks, b => b.OverQty > 0);
+        Assert.Equal((540, 600, 100m, 40m), (over.StartMin, over.EndMin, over.Qty, over.OverQty));
+        Assert.Equal(10m, Assert.Single(over.Siblings).OverQty);
+        Assert.Equal(50m, row.OverQty);
+        Assert.Equal(40m, rep.OverQty);
+        Assert.Equal(2, result.Over);
+        Assert.Empty(row.Shortfalls);
+    }
+
+    [Fact]
     public void Shortfalls_sit_on_the_step_line_row_of_the_plan_date()
     {
         var order = Order("WO-1", 1, "P1", D0, new DeadlinePacker.Placement(10, "LINE-INJ-01", T(D0), 480, 540, 50, false)) with

@@ -63,6 +63,22 @@ public class ShiftRulesTests
         Assert.Equal((1500.0, 0.0, 1, 0.0), new ShiftRules(s, L).AsmCapFor("LQ10", "2026-09-24")!.Value);
     }
 
+    /// 시간 모드(AsmTimeCapacityTests) 능력 = AsmHoursFor × 60 분: 라인 교대 시간 합, DailyCap 라인(시간 0)·모르는 라인은 null
+    [Fact]
+    public void AsmHoursFor_is_the_line_shift_hours_or_null()
+    {
+        var s = Settings.Default();
+        s.LineShifts.Add(new LineShift { LineCd = "A1", Day = 8, Night = 2.5 });
+        s.LineShifts.Add(new LineShift { LineCd = "A2", DailyCap = 500 });
+        s.ShiftExceptions.Add(new ShiftException { Date = "2026-10-14", LineCd = "A1", Day = 4, Night = 0 });
+        var r = new ShiftRules(s, L);
+
+        Assert.Equal(10.5, r.AsmHoursFor("A1", "2026-10-13"));
+        Assert.Equal(4, r.AsmHoursFor("A1", "2026-10-14"));
+        Assert.Null(r.AsmHoursFor("A2", "2026-10-13"));
+        Assert.Null(r.AsmHoursFor("NOPE", "2026-10-13"));
+    }
+
     [Fact]
     public void ShiftsFor_maps_legacy_day_night_to_two_shifts_and_returns_explicit_lists_in_order()
     {

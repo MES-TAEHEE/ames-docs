@@ -9,6 +9,9 @@ namespace AMES.Data.Aps.Domain;
 ///   need   = 올림_pack(demand + target − prevClosing), min = 올림_pack(demand − prevClosing)
 ///   cap    = AsmCapFor(행 라인, date).cap — 라인별 Σneed 가 넘으면 extra(need − min) 큰 품번부터(동률은 행 순서) 넘친 만큼 깎는다.
 ///            한 품번에서 깎는 양은 min(extra, 남은 초과) 이라 마지막 한 품번만 pack 배수가 아닐 수 있다.
+///   시간 모드(2026-10-12 사용자 결정 — 품번마다 BOP 사이클이 다르다): 그 라인 행 전부에 CycleSec 가 있고 AsmHoursFor 가 있으면
+///            능력 = 가동 시간 × 60 분, 행의 무게 w = CycleSec ÷ 60(분/EA), 초과 = Σ need × w − 능력. 깎는 순서는 같고 품번당 cut = min(extra, ceil(초과 ÷ w)) EA.
+///            수량 모드는 w = 1 로 같은 식이라 골든(CycleSec 없음)은 그대로다. 정본 AsmTimeCapacityTests.
 ///   closing = prevClosing + supply − demand → 다음날 prevClosing. 잠긴 칸은 값 그대로 두고 능력에는 포함한다.
 ///   ApsOptions(PullForwardSupply · SafetyStockTerm) 는 기본 false — 켜지 않으면 위 규칙(골든)과 완전히 같다.
 public static class Autofill
@@ -51,19 +54,22 @@ public static class Autofill
             {
                 var capLine = g.Key;
                 var group = g.ToList();
-                var cap = CapOf(rules, capLine, date);
-                var over = group.Sum(x => x.Need) - cap;
+                var (cap, timeMode, hours) = CapOf(rules, capLine, date, group);
+                var over = group.Sum(x => x.Need * Weight(x.Row, timeMode)) - cap;
                 if (over <= 0) continue;
                 foreach (var (x, _) in group.Select((x, idx) => (x, idx)).OrderByDescending(t => t.x.Need - t.x.Min).ThenBy(t => t.idx))
                 {
                     if (over <= 0) break;
-                    var cut = Math.Min(x.Need - x.Min, over);
-                    supply[x.Row.PartNo] -= cut; over -= cut;
+                    var w = Weight(x.Row, timeMode);
+                    var cut = Math.Min(x.Need - x.Min, Math.Ceiling(over / w));
+                    supply[x.Row.PartNo] -= cut; over -= cut * w;
                 }
                 if (over > 0 && opt.PullForwardSupply)
-                    over = PullForward(b, rules, capLine, group, supply, pack, pulled, i, over);   // ORIG SupplyPlanner.cs:163-185
+                    over = PullForward(b, rules, capLine, group, supply, pack, pulled, i, over, timeMode);   // ORIG SupplyPlanner.cs:163-185
                 if (over > 0)
-                    warnings.Add($"{capLine} {date} 는 라인 능력 {cap:0}개로 당일 수요 최소치도 {over:0}개 담지 못했습니다.");
+                    warnings.Add(timeMode
+                        ? $"{capLine} {date} 는 라인 가동 {hours:0.#}h 로 당일 수요 최소치도 {over:0}분 담지 못했습니다."
+                        : $"{capLine} {date} 는 라인 능력 {cap:0}개로 당일 수요 최소치도 {over:0}개 담지 못했습니다.");
             }
 
             foreach (var x in items)
@@ -87,35 +93,46 @@ public static class Autofill
     static string CapLine(PlanBundle b, AssemblyRow r) => string.IsNullOrEmpty(r.LineCd) ? b.Line.LineCd : r.LineCd;
 
     /// "-"(전체 보기) 는 능력 제한 없음. 능력을 모르는 라인(AsmCapFor = null)도 제한 없음.
-    static double CapOf(ShiftRules rules, string capLine, string date) =>
-        capLine == "-" ? double.PositiveInfinity : rules.AsmCapFor(capLine, date)?.cap ?? double.PositiveInfinity;
+    /// 시간 모드(그룹 행 전부 CycleSec > 0 · 라인 가동 시간 있음)는 능력이 분, 아니면 수량.
+    static (double cap, bool timeMode, double hours) CapOf(ShiftRules rules, string capLine, string date, IReadOnlyList<Item> group)
+    {
+        if (capLine == "-") return (double.PositiveInfinity, false, 0);
+        if (group.Count > 0 && group.All(x => x.Row.CycleSec is > 0) && rules.AsmHoursFor(capLine, date) is double h)
+            return (h * 60, true, h);
+        return (rules.AsmCapFor(capLine, date)?.cap ?? double.PositiveInfinity, false, 0);
+    }
+
+    /// 행 1 EA 가 먹는 능력 — 시간 모드는 분(CycleSec ÷ 60), 수량 모드는 1.
+    static double Weight(AssemblyRow r, bool timeMode) => timeMode ? r.CycleSec!.Value / 60 : 1;
 
     /// ORIG SupplyPlanner.cs:163-185 — 남은 초과분(over)을 공급 큰 품번부터 앞 근무일(i−1 → 0)의 남은 능력으로 옮긴다.
     /// 앞날 잠긴 칸은 받지 않고, 옮기는 양은 pack 배수로 내림, 앞날 Day.Supply 에 직접 더한다(그 날 트레이스는 다시 쓰지 않는다 — 시트 §9.1).
     /// 오늘 잠긴 행은 :63 이 supply 를 쓰지 않으므로 옮기지 않는다(ORIG 와 다른 점: 옮기면 이중 계상). 남은 over 를 돌려준다.
     /// group = capLine 에 속한 행 전부 — 옮길 품번도, 앞날 여유(room)도 그 라인 행만 센다.
+    /// 시간 모드는 over·room 이 분이고 옮기는 양은 EA(÷ 무게) — 앞날 여유도 그 날의 가동 분에서 그 라인 행의 공급 × 무게를 뺀다.
     static double PullForward(PlanBundle b, ShiftRules rules, string capLine, List<Item> group, Dictionary<string, double> supply, Dictionary<string, int> pack,
-                              Dictionary<string, double> pulled, int i, double over)
+                              Dictionary<string, double> pulled, int i, double over, bool timeMode)
     {
         foreach (var (x, _) in group.Select((x, idx) => (x, idx)).OrderByDescending(t => supply[t.x.Row.PartNo]).ThenBy(t => t.idx))
         {
             if (over <= 0) break;
             if (x.Day.Locked) continue;
-            var partNo = x.Row.PartNo; var pk = pack[partNo];
+            var partNo = x.Row.PartNo; var pk = pack[partNo]; var w = Weight(x.Row, timeMode);
             for (var j = i - 1; j >= 0 && over > 0 && supply[partNo] > 0; j--)
             {
                 var earlier = x.Row.Days[j];
                 if (earlier.Locked) continue;
-                var capJ = CapOf(rules, capLine, b.Dates[j]);
-                var room = capJ - group.Sum(r => r.Row.Days[j].Supply);   // used[j] = 그 라인에 그 날 이미 잡힌 공급(잠긴 칸 포함)
+                var (capJ, modeJ, _) = CapOf(rules, capLine, b.Dates[j], group);
+                if (modeJ != timeMode) continue;   // 앞날 능력 단위가 다르면(패턴 없음 등) 비교할 수 없어 당기지 않는다
+                var room = capJ - group.Sum(r => r.Row.Days[j].Supply * Weight(r.Row, timeMode));   // used[j] = 그 라인에 그 날 이미 잡힌 공급(잠긴 칸 포함)
                 if (room <= 0) continue;
-                var move = Math.Min(Math.Min(room, over), supply[partNo]);
+                var move = Math.Min(Math.Min(room, over) / w, supply[partNo]);
                 move = pk > 1 ? Math.Floor(move / pk) * pk : Math.Floor(move);
                 if (move <= 0) continue;
                 earlier.Supply += move;
                 pulled[partNo] = pulled.GetValueOrDefault(partNo) + move;
                 supply[partNo] -= move;
-                over -= move;
+                over -= move * w;
             }
         }
         return over;

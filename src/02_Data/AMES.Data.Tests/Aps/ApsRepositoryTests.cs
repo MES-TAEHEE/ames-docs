@@ -104,11 +104,11 @@ public class ApsRepositoryTests
             VALUES (@LI,  @M,  120, 10, @By),
                    (@LI,  @M2, 120, 40, @By),     -- Review Focus 1: 교체 시간 40 vs 5 → LINE-INJ-02 가 뽑힌다
                    (@LI2, @M2, 90,  5,  @By);
-            INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, ActiveFlag, CreatedBy)
-            VALUES ('ITEST-APS-BOP-10', @FG,  'A', 10, 'ST-INJ-01', 1, @By),
-                   ('ITEST-APS-BOP-20', @FG,  'A', 20, 'ST-IMG-01', 1, @By),
-                   ('ITEST-APS-BOP-30', @SIB, 'A', 20, 'ST-IMG-01', 1, @By),
-                   ('ITEST-APS-BOP-40', @TWO, 'A', 20, 'ST-IMG-01', 1, @By);   -- INJ 스테이션 없음 → MD_MoldLine 교체 최소 라인
+            INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, StdCycleTime, ActiveFlag, CreatedBy)
+            VALUES ('ITEST-APS-BOP-10', @FG,  'A', 10, 'ST-INJ-01', NULL, 1, @By),
+                   ('ITEST-APS-BOP-20', @FG,  'A', 20, 'ST-IMG-01', 90,   1, @By),   -- 완제품 BOP 사이클 → AssemblyRow.CycleSec(시간 모드)
+                   ('ITEST-APS-BOP-30', @SIB, 'A', 20, 'ST-IMG-01', 60,   1, @By),
+                   ('ITEST-APS-BOP-40', @TWO, 'A', 20, 'ST-IMG-01', NULL, 1, @By);   -- INJ 스테이션 없음 → MD_MoldLine 교체 최소 라인 · 사이클 없음 → 라인 최저속(90) 폴백
             INSERT INTO dbo.WH_Inventory (LotNo, UnitType, PartNo, LocationNo, Qty, ReceivedAt)
             VALUES ('ITEST-APS-LOT-FG1', 'PART', @FG, NULL, 15, SYSDATETIME()),        -- 위치 무관: NULL 위치·완제품 위치 모두 합산
                    ('ITEST-APS-LOT-FG2', 'PART', @FG, 'FG-A-01', 10, SYSDATETIME()),
@@ -163,7 +163,7 @@ public class ApsRepositoryTests
                        ('ITEST-APS-SEG-C', @P, 3, 0,   480,  'OPERATING', 'C', @By);
             END
             """, ("@P", Pat), ("@LI", LineInj), ("@By", Actor));
-        ApsPatternConfig.Apply(f, Pat, (LineInj, Pat), (LineInj2, Pat));
+        ApsPatternConfig.Apply(f, Pat, (LineInj, Pat), (LineInj2, Pat), (LineImg, Pat));   // 완제품 라인도 라인 지정 패턴(시간 모드 능력) — 개발 DB 의 LP-CMN-001 지정을 테스트 동안 덮고 Restore 로 되돌린다   // 완제품 라인도 라인 지정 패턴(시간 모드 능력) — 개발 DB 의 LP-CMN-001 지정을 테스트 동안 덮고 Restore 로 되돌린다
     }
 
     /// <summary>Review Focus 1 동률: 금형 ITEST-APS-M4(MoldChangeMin 7)가 LINE-INJ-01(PrepTime 7, UPH 100)·LINE-INJ-02(PrepTime NULL → MoldChangeMin 7, UPH 80) 에 배정.
@@ -365,6 +365,12 @@ public class ApsRepositoryTests
             Assert.Equal(60d, fgRow.Days[2].Supply);            // D2 LINE-IMG-01 등록 슬롯
             Assert.False(fgRow.Days[1].Locked);
             Assert.All(fgRow.Days, d => Assert.Equal(0d, d.T));
+            // 완제품 능력은 품번별 BOP 사이클 × 라인 가동 시간(2026-10-12): CycleSec 는 완제품 공정 BOP, 없는 품번은 그 라인의 가장 느린 사이클 + 경고
+            Assert.Equal((90d, 40d), (fgRow.CycleSec, fgRow.Uph));
+            Assert.Equal((60d, 60d), (sibRow.CycleSec, sibRow.Uph));
+            var twoRow = Assert.Single(bd.Assembly, r => r.PartNo == Two);
+            Assert.Equal((90d, 40d), (twoRow.CycleSec, twoRow.Uph));
+            Assert.Contains(b.Warnings, w => w.Contains(Two) && w.Contains("가장 느린 사이클 90초"));
 
             // ── 사출 행 ──
             var fgInj  = Assert.Single(bd.Injection, r => r.PartNo == Fg);
@@ -398,8 +404,11 @@ public class ApsRepositoryTests
             // ── Settings ──
             var s = b.Settings;
             var imgShift = Assert.Single(s.LineShifts, l => l.LineCd == LineImg);
-            var imgCap = Scalar(f!, "SELECT DailyCap FROM dbo.MD_Line WHERE LineID = @L;", ("@L", LineImg)) as int?;
-            Assert.Equal(imgCap is > 0 ? imgCap : null, imgShift.DailyCap);   // NULL·0 이하는 "제한 없음"(경고) — 아래 DailyCap 테스트
+            Assert.Null(imgShift.DailyCap);                                     // 시간 모드 — MD_Line.DailyCap 을 쓰지 않는다(사이클 없는 라인만 DailyCap, 아래 테스트)
+            Assert.Equal((8d, 16d), (imgShift.Day, imgShift.Night));            // 라인 지정 패턴(3교대 8h) 가동 시간
+            Assert.Equal(new[] { ("A", 8d), ("B", 8d), ("C", 8d) }, imgShift.Shifts!.Select(x => (x.Code, x.Hours)).ToArray());
+            Assert.Equal(24d, b.Rules.AsmHoursFor(LineImg, bd.Dates[0]));
+            Assert.DoesNotContain(b.Warnings, w => w.Contains(LineImg) && w.Contains("DailyCap"));
             var injShift = Assert.Single(s.LineShifts, l => l.LineCd == LineInj);
             Assert.Equal((8d, 16d), (injShift.Day, injShift.Night));
             Assert.Equal(new[] { ("A", 8d), ("B", 8d), ("C", 8d) }, injShift.Shifts!.Select(x => (x.Code, x.Hours)).ToArray());   // 3교대 목록(Day/Night 16 = B + C)
