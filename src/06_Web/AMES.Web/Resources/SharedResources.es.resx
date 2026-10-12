@@ -10622,4 +10622,25 @@
   <data name="MD.Usage.Kind.MOLDLINE" xml:space="preserve">
     <value>Asignaciones de línea del molde</value>
   </data>
+  <data name="MD.Usage.Kind.MOUNTED" xml:space="preserve">
+    <value>Montado en equipo</value>
+  </data>
+  <data name="MD.Usage.Kind.SHOTCOUNT" xml:space="preserve">
+    <value>Contadores de disparos del molde</value>
+  </data>
+  <data name="MD.CommonCode.Hint.UsedByCode" xml:space="preserve">
+    <value>El programa lee este grupo, por lo que no se puede eliminar. Sus elementos se pueden editar o desactivar por separado.</value>
+  </data>
+  <data name="Err.Db.TooLong" xml:space="preserve">
+    <value>{0} admite hasta {1} caracteres (ingresados {2}).</value>
+  </data>
+  <data name="Err.Db.TooLongBytes" xml:space="preserve">
+    <value>{0} admite hasta {1} bytes; cada letra coreana ocupa 2 bytes (ingresados {2} bytes).</value>
+  </data>
+  <data name="Err.Db.Unencodable" xml:space="preserve">
+    <value>{0} contiene un carácter que no se puede guardar: {1}</value>
+  </data>
+  <data name="Err.Db.OutOfRange" xml:space="preserve">
+    <value>El valor de {0} está fuera del rango permitido.</value>
+  </data>
 </root>

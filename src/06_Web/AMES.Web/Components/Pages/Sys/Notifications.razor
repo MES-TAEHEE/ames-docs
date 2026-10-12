@@ -242,12 +242,12 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["Col.EventCode"].Value + " *")" class="ames-rz-modal-label" Component="CreateRuleTextBoxEventCode" />
-                    <RadzenTextBox Name="CreateRuleTextBoxEventCode" @bind-Value="_rf.EventTypeCode" Placeholder="EVENT_CODE" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateRuleTextBoxEventCode" @bind-Value="_rf.EventTypeCode" MaxLength="20" Placeholder="EVENT_CODE" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.EventName"]" class="ames-rz-modal-label" Component="CreateRuleTextBoxEventName" />
-                    <RadzenTextBox Name="CreateRuleTextBoxEventName" @bind-Value="_rf.EventName" Placeholder="@L["SYS.Notifications.Ph.EventName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateRuleTextBoxEventName" @bind-Value="_rf.EventName" MaxLength="60" Placeholder="@L["SYS.Notifications.Ph.EventName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -262,7 +262,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.TriggerCond"]" class="ames-rz-modal-label" Component="CreateRuleTextAreaTrigger" />
-                    <RadzenTextArea Name="CreateRuleTextAreaTrigger" @bind-Value="_rf.TriggerCondition" Rows="2" Placeholder="DefectCount > 5" class="ames-rz-input" Style="flex:1;width:100%;resize:vertical;" />
+                    <RadzenTextArea Name="CreateRuleTextAreaTrigger" @bind-Value="_rf.TriggerCondition" MaxLength="500" Rows="2" Placeholder="DefectCount > 5" class="ames-rz-input" Style="flex:1;width:100%;resize:vertical;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
@@ -340,12 +340,12 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["Col.EventCode"].Value + " *")" class="ames-rz-modal-label" Component="EditRuleTextBoxEventCode" />
-                    <RadzenTextBox Name="EditRuleTextBoxEventCode" @bind-Value="_rf.EventTypeCode" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditRuleTextBoxEventCode" @bind-Value="_rf.EventTypeCode" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.EventName"]" class="ames-rz-modal-label" Component="EditRuleTextBoxEventName" />
-                    <RadzenTextBox Name="EditRuleTextBoxEventName" @bind-Value="_rf.EventName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditRuleTextBoxEventName" @bind-Value="_rf.EventName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -360,7 +360,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.TriggerCond"]" class="ames-rz-modal-label" Component="EditRuleTextAreaTrigger" />
-                    <RadzenTextArea Name="EditRuleTextAreaTrigger" @bind-Value="_rf.TriggerCondition" Rows="2" class="ames-rz-input" Style="flex:1;width:100%;resize:vertical;" />
+                    <RadzenTextArea Name="EditRuleTextAreaTrigger" @bind-Value="_rf.TriggerCondition" MaxLength="500" Rows="2" class="ames-rz-input" Style="flex:1;width:100%;resize:vertical;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
@@ -457,7 +457,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Address"]" class="ames-rz-modal-label" Component="CreateChTextBoxAddress" />
-                    <RadzenTextBox Name="CreateChTextBoxAddress" @bind-Value="_cf.Address" Placeholder="@L["SYS.Notifications.Ph.Address"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateChTextBoxAddress" @bind-Value="_cf.Address" MaxLength="255" Placeholder="@L["SYS.Notifications.Ph.Address"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -504,7 +504,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Address"]" class="ames-rz-modal-label" Component="EditChTextBoxAddress" />
-                    <RadzenTextBox Name="EditChTextBoxAddress" @bind-Value="_cf.Address" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditChTextBoxAddress" @bind-Value="_cf.Address" MaxLength="255" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">

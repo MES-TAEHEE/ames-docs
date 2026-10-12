@@ -221,13 +221,13 @@ public sealed class SysRepository
                  @IsSys, SYSDATETIME(), @CreatedBy, SYSDATETIME())
             """;
         Exec(sql,
-            ("@RoleID",    (object?)roleId      ?? DBNull.Value),
-            ("@RoleName",  roleName),
-            ("@Module",    moduleCode),
-            ("@Screen",    screenCode),
-            ("@Level",     permissionLevel),
-            ("@IsSys",     isSystemRole),
-            ("@CreatedBy", createdBy));
+            ("@RoleID", "SYS_RolePermission.RoleID", (object?)roleId      ?? DBNull.Value),
+            ("@RoleName", "SYS_RolePermission.RoleName", roleName),
+            ("@Module", "SYS_RolePermission.ModuleCode", moduleCode),
+            ("@Screen", "SYS_RolePermission.ScreenCode", screenCode),
+            ("@Level", "SYS_RolePermission.PermissionLevel", permissionLevel),
+            ("@IsSys", "SYS_RolePermission.IsSystemRole", isSystemRole),
+            ("@CreatedBy", "SYS_RolePermission.CreatedBy", createdBy));
     }
 
     public void UpdateRolePerm(int rolePermissionId, string? roleId, string roleName,
@@ -247,20 +247,20 @@ public sealed class SysRepository
             WHERE  RolePermissionID = @Id
             """;
         Exec(sql,
-            ("@Id",         rolePermissionId),
-            ("@RoleID",     (object?)roleId ?? DBNull.Value),
-            ("@RoleName",   roleName),
-            ("@Module",     moduleCode),
-            ("@Screen",     screenCode),
-            ("@Level",      permissionLevel),
-            ("@IsSys",      isSystemRole),
-            ("@ModifiedBy", modifiedBy));
+            ("@Id", "SYS_RolePermission.RolePermissionID", rolePermissionId),
+            ("@RoleID", "SYS_RolePermission.RoleID", (object?)roleId ?? DBNull.Value),
+            ("@RoleName", "SYS_RolePermission.RoleName", roleName),
+            ("@Module", "SYS_RolePermission.ModuleCode", moduleCode),
+            ("@Screen", "SYS_RolePermission.ScreenCode", screenCode),
+            ("@Level", "SYS_RolePermission.PermissionLevel", permissionLevel),
+            ("@IsSys", "SYS_RolePermission.IsSystemRole", isSystemRole),
+            ("@ModifiedBy", "SYS_RolePermission.ModifiedBy", modifiedBy));
     }
 
     public void DeleteRolePerm(int rolePermissionId)
     {
         Exec("DELETE dbo.SYS_RolePermission WHERE RolePermissionID = @Id",
-            ("@Id", rolePermissionId));
+            ("@Id", "SYS_RolePermission.RolePermissionID", rolePermissionId));
     }
 
     public List<RoleRow> ListRoles()
@@ -394,7 +394,7 @@ public sealed class SysRepository
         using var tx   = conn.BeginTransaction();
         using (var del = new SqlCommand("DELETE dbo.SYS_FactoryCalendar WHERE CalendarDate = CAST(@Date AS DATE)", conn, tx))
         {
-            del.Parameters.AddWithValue("@Date", date.Date);
+            ColumnParams.Add(del, "@Date", "SYS_FactoryCalendar.CalendarDate", date.Date);
             del.ExecuteNonQuery();
         }
         foreach (var r in rows)
@@ -416,7 +416,7 @@ public sealed class SysRepository
                 ? "SELECT COUNT(1) FROM dbo.SYS_FactoryCalendar WHERE CalendarDate = CAST(@Date AS DATE)"
                 : "DELETE dbo.SYS_FactoryCalendar WHERE CalendarDate = CAST(@Date AS DATE)", conn, tx))
             {
-                pre.Parameters.AddWithValue("@Date", date.Date);
+                ColumnParams.Add(pre, "@Date", "SYS_FactoryCalendar.CalendarDate", date.Date);
                 if (skipExisting) { if ((int)pre.ExecuteScalar()! > 0) continue; }
                 else pre.ExecuteNonQuery();
             }
@@ -444,22 +444,21 @@ public sealed class SysRepository
                     @Start, @End, @Break, @Net,
                     @Year, @Plant, @CreatedBy, SYSDATETIME())
             """;
-        // 형식·길이 = 컬럼. 긴 이름은 잘려 저장되지 않도록 화면이 HolidayNameMax 로 먼저 막는다
-        if (holidayName is { Length: > HolidayNameMax })
-            throw new ArgumentException($"HolidayName exceeds {HolidayNameMax} characters.", nameof(holidayName));
+        // 형식·길이 = 컬럼(ColumnParams, 10-12) — 컬럼에 맞지 않으면 저장 전에 DbValueException, 한 줄이라도 막히면 트랜잭션째 되돌아간다.
+        // 화면은 휴일 이름을 HolidayNameMax 로 먼저 막는다
         using var cmd = new SqlCommand(sql, conn, tx);
-        cmd.Parameters.Add("@Date",        SqlDbType.Date).Value                 = date.Date;
-        cmd.Parameters.Add("@DayType",     SqlDbType.VarChar, 10).Value          = dayType;
-        cmd.Parameters.Add("@HolidayName", SqlDbType.NVarChar, HolidayNameMax).Value = (object?)holidayName ?? DBNull.Value;
-        cmd.Parameters.AddWithValue("@ShiftCount",  (object?)shiftCount  ?? DBNull.Value);
-        cmd.Parameters.Add("@ShiftCode",   SqlDbType.VarChar, 10).Value          = (object?)shiftCode ?? DBNull.Value;
-        cmd.Parameters.AddWithValue("@Start",       (object?)start    ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@End",         (object?)end      ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Break",       (object?)breakMin ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Net",         (object?)netHours ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Year",        calendarYear);
-        cmd.Parameters.Add("@Plant",       SqlDbType.VarChar, 20).Value          = string.IsNullOrWhiteSpace(plantCode) ? DBNull.Value : plantCode;
-        cmd.Parameters.Add("@CreatedBy",   SqlDbType.VarChar, 20).Value          = createdBy;
+        ColumnParams.Add(cmd, "@Date",        "SYS_FactoryCalendar.CalendarDate", date.Date);
+        ColumnParams.Add(cmd, "@DayType",     "SYS_FactoryCalendar.DayType",      dayType);
+        ColumnParams.Add(cmd, "@HolidayName", "SYS_FactoryCalendar.HolidayName",  holidayName);
+        ColumnParams.Add(cmd, "@ShiftCount",  "SYS_FactoryCalendar.ShiftCount",   shiftCount);
+        ColumnParams.Add(cmd, "@ShiftCode",   "SYS_FactoryCalendar.ShiftCode",    shiftCode);
+        ColumnParams.Add(cmd, "@Start",       "SYS_FactoryCalendar.StartTime",    start);
+        ColumnParams.Add(cmd, "@End",         "SYS_FactoryCalendar.EndTime",      end);
+        ColumnParams.Add(cmd, "@Break",       "SYS_FactoryCalendar.BreakMinutes", breakMin);
+        ColumnParams.Add(cmd, "@Net",         "SYS_FactoryCalendar.NetWorkHours", netHours);
+        ColumnParams.Add(cmd, "@Year",        "SYS_FactoryCalendar.CalendarYear", calendarYear);
+        ColumnParams.Add(cmd, "@Plant",       "SYS_FactoryCalendar.PlantCode",    string.IsNullOrWhiteSpace(plantCode) ? null : plantCode);
+        ColumnParams.Add(cmd, "@CreatedBy",   "SYS_FactoryCalendar.CreatedBy",    createdBy);
         cmd.ExecuteNonQuery();
     }
 
@@ -477,10 +476,10 @@ public sealed class SysRepository
             WHERE  CalendarDate = CAST(@Date AS DATE)
             """;
         Exec(sql,
-            ("@Date",        date.Date),
-            ("@DayType",     dayType),
-            ("@HolidayName", (object?)holidayName ?? DBNull.Value),
-            ("@ModifiedBy",  modifiedBy));
+            ("@Date", "SYS_FactoryCalendar.CalendarDate", date.Date),
+            ("@DayType", "SYS_FactoryCalendar.DayType", dayType),
+            ("@HolidayName", "SYS_FactoryCalendar.HolidayName", (object?)holidayName ?? DBNull.Value),
+            ("@ModifiedBy", "SYS_FactoryCalendar.ModifiedBy", modifiedBy));
     }
 
     public void UpdateCalendarShift(int id, TimeSpan? start, TimeSpan? end,
@@ -497,23 +496,23 @@ public sealed class SysRepository
             WHERE  FactoryCalendarID = @Id
             """;
         Exec(sql,
-            ("@Id",         id),
-            ("@Start",      (object?)start    ?? DBNull.Value),
-            ("@End",        (object?)end      ?? DBNull.Value),
-            ("@Break",      (object?)breakMin ?? DBNull.Value),
-            ("@Net",        (object?)netHours ?? DBNull.Value),
-            ("@ModifiedBy", modifiedBy));
+            ("@Id", "SYS_FactoryCalendar.FactoryCalendarID", id),
+            ("@Start", "SYS_FactoryCalendar.StartTime", (object?)start    ?? DBNull.Value),
+            ("@End", "SYS_FactoryCalendar.EndTime", (object?)end      ?? DBNull.Value),
+            ("@Break", "SYS_FactoryCalendar.BreakMinutes", (object?)breakMin ?? DBNull.Value),
+            ("@Net", "SYS_FactoryCalendar.NetWorkHours", (object?)netHours ?? DBNull.Value),
+            ("@ModifiedBy", "SYS_FactoryCalendar.ModifiedBy", modifiedBy));
     }
 
     public void DeleteCalendarDate(DateTime date)
     {
         Exec("DELETE dbo.SYS_FactoryCalendar WHERE CalendarDate = CAST(@Date AS DATE)",
-            ("@Date", date.Date));
+            ("@Date", "SYS_FactoryCalendar.CalendarDate", date.Date));
     }
 
     public void DeleteCalendarShift(int id)
     {
-        Exec("DELETE dbo.SYS_FactoryCalendar WHERE FactoryCalendarID = @Id", ("@Id", id));
+        Exec("DELETE dbo.SYS_FactoryCalendar WHERE FactoryCalendarID = @Id", ("@Id", "SYS_FactoryCalendar.FactoryCalendarID", id));
     }
 
     // ── SYS-04 Interface Monitor ────────────────────────────────────────
@@ -724,15 +723,15 @@ public sealed class SysRepository
                  @IsEnabled, @ChannelsJSON, @RecipientRolesJSON, @CreatedBy, SYSDATETIME());
             """;
         Exec(sql,
-            ("@EventTypeCode",     (object?)eventTypeCode      ?? DBNull.Value),
-            ("@EventName",         (object?)eventName          ?? DBNull.Value),
-            ("@ModuleCode",        (object?)moduleCode         ?? DBNull.Value),
-            ("@ProcessCode",       (object?)processCode        ?? DBNull.Value),
-            ("@TriggerCondition",  (object?)triggerCondition   ?? DBNull.Value),
-            ("@IsEnabled",         isEnabled),
-            ("@ChannelsJSON",      (object?)channelsJson       ?? DBNull.Value),
-            ("@RecipientRolesJSON",(object?)recipientRolesJson ?? DBNull.Value),
-            ("@CreatedBy",         createdBy));
+            ("@EventTypeCode", "SYS_NotificationRule.EventTypeCode", (object?)eventTypeCode      ?? DBNull.Value),
+            ("@EventName", "SYS_NotificationRule.EventName", (object?)eventName          ?? DBNull.Value),
+            ("@ModuleCode", "SYS_NotificationRule.ModuleCode", (object?)moduleCode         ?? DBNull.Value),
+            ("@ProcessCode", "SYS_NotificationRule.ProcessCode", (object?)processCode        ?? DBNull.Value),
+            ("@TriggerCondition", "SYS_NotificationRule.TriggerCondition", (object?)triggerCondition   ?? DBNull.Value),
+            ("@IsEnabled", "SYS_NotificationRule.IsEnabled", isEnabled),
+            ("@ChannelsJSON", "SYS_NotificationRule.ChannelsJSON", (object?)channelsJson       ?? DBNull.Value),
+            ("@RecipientRolesJSON", "SYS_NotificationRule.RecipientRolesJSON", (object?)recipientRolesJson ?? DBNull.Value),
+            ("@CreatedBy", "SYS_NotificationRule.CreatedBy", createdBy));
     }
 
     public void UpdateNotificationRule(int id, string? eventTypeCode, string? eventName,
@@ -754,21 +753,21 @@ public sealed class SysRepository
             WHERE NotificationRuleID = @Id;
             """;
         Exec(sql,
-            ("@Id",                id),
-            ("@EventTypeCode",     (object?)eventTypeCode      ?? DBNull.Value),
-            ("@EventName",         (object?)eventName          ?? DBNull.Value),
-            ("@ModuleCode",        (object?)moduleCode         ?? DBNull.Value),
-            ("@ProcessCode",       (object?)processCode        ?? DBNull.Value),
-            ("@TriggerCondition",  (object?)triggerCondition   ?? DBNull.Value),
-            ("@IsEnabled",         isEnabled),
-            ("@ChannelsJSON",      (object?)channelsJson       ?? DBNull.Value),
-            ("@RecipientRolesJSON",(object?)recipientRolesJson ?? DBNull.Value),
-            ("@ModifiedBy",        modifiedBy));
+            ("@Id", "SYS_NotificationRule.NotificationRuleID", id),
+            ("@EventTypeCode", "SYS_NotificationRule.EventTypeCode", (object?)eventTypeCode      ?? DBNull.Value),
+            ("@EventName", "SYS_NotificationRule.EventName", (object?)eventName          ?? DBNull.Value),
+            ("@ModuleCode", "SYS_NotificationRule.ModuleCode", (object?)moduleCode         ?? DBNull.Value),
+            ("@ProcessCode", "SYS_NotificationRule.ProcessCode", (object?)processCode        ?? DBNull.Value),
+            ("@TriggerCondition", "SYS_NotificationRule.TriggerCondition", (object?)triggerCondition   ?? DBNull.Value),
+            ("@IsEnabled", "SYS_NotificationRule.IsEnabled", isEnabled),
+            ("@ChannelsJSON", "SYS_NotificationRule.ChannelsJSON", (object?)channelsJson       ?? DBNull.Value),
+            ("@RecipientRolesJSON", "SYS_NotificationRule.RecipientRolesJSON", (object?)recipientRolesJson ?? DBNull.Value),
+            ("@ModifiedBy", "SYS_NotificationRule.ModifiedBy", modifiedBy));
     }
 
     public void DeleteNotificationRule(int id)
     {
-        Exec("DELETE dbo.SYS_NotificationRule WHERE NotificationRuleID = @Id", ("@Id", id));
+        Exec("DELETE dbo.SYS_NotificationRule WHERE NotificationRuleID = @Id", ("@Id", "SYS_NotificationRule.NotificationRuleID", id));
     }
 
     public List<NotifHistoryRow> ListNotificationHistory(int topN = 100)
@@ -835,18 +834,18 @@ public sealed class SysRepository
             VALUES (@Code, @Module, @Process, @SubProc, @Name, @NameEn, @HRef, @Lid, @Perm, @Sort, @Visible, @CreatedBy)
             """;
         Exec(sql,
-            ("@Perm",      ProtectedScreens.ApplyTemplate(href, permissionCriteria)),
-            ("@Code",      screenCode),
-            ("@Module",    moduleCode),
-            ("@Process",   (object?)processCode    ?? DBNull.Value),
-            ("@SubProc",   (object?)subProcessCode ?? DBNull.Value),
-            ("@Name",      screenName),
-            ("@NameEn",    (object?)screenNameEn   ?? DBNull.Value),
-            ("@HRef",      (object?)href            ?? DBNull.Value),
-            ("@Lid",       (object?)lidLabel        ?? DBNull.Value),
-            ("@Sort",      (object?)sortOrder       ?? DBNull.Value),
-            ("@Visible",   isVisible),
-            ("@CreatedBy", createdBy));
+            ("@Perm", "SYS_Screen.PermissionCriteria", ProtectedScreens.ApplyTemplate(href, permissionCriteria)),
+            ("@Code", "SYS_Screen.ScreenCode", screenCode),
+            ("@Module", "SYS_Screen.ModuleCode", moduleCode),
+            ("@Process", "SYS_Screen.ProcessCode", (object?)processCode    ?? DBNull.Value),
+            ("@SubProc", "SYS_Screen.SubProcessCode", (object?)subProcessCode ?? DBNull.Value),
+            ("@Name", "SYS_Screen.ScreenName", screenName),
+            ("@NameEn", "SYS_Screen.ScreenNameEn", (object?)screenNameEn   ?? DBNull.Value),
+            ("@HRef", "SYS_Screen.HRef", (object?)href            ?? DBNull.Value),
+            ("@Lid", "SYS_Screen.LidLabel", (object?)lidLabel        ?? DBNull.Value),
+            ("@Sort", "SYS_Screen.SortOrder", (object?)sortOrder       ?? DBNull.Value),
+            ("@Visible", "SYS_Screen.IsVisible", isVisible),
+            ("@CreatedBy", "SYS_Screen.CreatedBy", createdBy));
     }
 
     /// <remarks>
@@ -916,19 +915,19 @@ public sealed class SysRepository
             COMMIT TRANSACTION;
             """;
         Exec(sql,
-            ("@Perm",       permissionCriteria is null ? (object)DBNull.Value : ProtectedScreens.ApplyTemplate(href, permissionCriteria)),
-            ("@Id",         screenId),
-            ("@Code",       screenCode),
-            ("@Module",     moduleCode),
-            ("@Process",    (object?)processCode    ?? DBNull.Value),
-            ("@SubProc",    (object?)subProcessCode ?? DBNull.Value),
-            ("@Name",       screenName),
-            ("@NameEn",     (object?)screenNameEn   ?? DBNull.Value),
-            ("@HRef",       (object?)href            ?? DBNull.Value),
-            ("@Lid",        (object?)lidLabel        ?? DBNull.Value),
-            ("@Sort",       (object?)sortOrder       ?? DBNull.Value),
-            ("@Visible",    isVisible),
-            ("@ModifiedBy", modifiedBy));
+            ("@Perm", "SYS_Screen.PermissionCriteria", permissionCriteria is null ? (object)DBNull.Value : ProtectedScreens.ApplyTemplate(href, permissionCriteria)),
+            ("@Id", "SYS_Screen.ScreenID", screenId),
+            ("@Code", "SYS_Screen.ScreenCode", screenCode),
+            ("@Module", "SYS_Screen.ModuleCode", moduleCode),
+            ("@Process", "SYS_Screen.ProcessCode", (object?)processCode    ?? DBNull.Value),
+            ("@SubProc", "SYS_Screen.SubProcessCode", (object?)subProcessCode ?? DBNull.Value),
+            ("@Name", "SYS_Screen.ScreenName", screenName),
+            ("@NameEn", "SYS_Screen.ScreenNameEn", (object?)screenNameEn   ?? DBNull.Value),
+            ("@HRef", "SYS_Screen.HRef", (object?)href            ?? DBNull.Value),
+            ("@Lid", "SYS_Screen.LidLabel", (object?)lidLabel        ?? DBNull.Value),
+            ("@Sort", "SYS_Screen.SortOrder", (object?)sortOrder       ?? DBNull.Value),
+            ("@Visible", "SYS_Screen.IsVisible", isVisible),
+            ("@ModifiedBy", "SYS_Screen.ModifiedBy", modifiedBy));
     }
 
     /// <summary>
@@ -1007,13 +1006,13 @@ public sealed class SysRepository
                  @CreatedBy, SYSDATETIME())
             """;
         Exec(sql,
-            ("@UserID",     (object?)userId    ?? DBNull.Value),
-            ("@Channel",    channel),
-            ("@Address",    (object?)address   ?? DBNull.Value),
-            ("@IsEnabled",  isEnabled),
-            ("@QuietStart", (object?)quietStart ?? DBNull.Value),
-            ("@QuietEnd",   (object?)quietEnd   ?? DBNull.Value),
-            ("@CreatedBy",  createdBy));
+            ("@UserID", "SYS_NotificationChannel.UserID", (object?)userId    ?? DBNull.Value),
+            ("@Channel", "SYS_NotificationChannel.Channel", channel),
+            ("@Address", "SYS_NotificationChannel.Address", (object?)address   ?? DBNull.Value),
+            ("@IsEnabled", "SYS_NotificationChannel.IsEnabled", isEnabled),
+            ("@QuietStart", "SYS_NotificationChannel.QuietHoursStart", (object?)quietStart ?? DBNull.Value),
+            ("@QuietEnd", "SYS_NotificationChannel.QuietHoursEnd", (object?)quietEnd   ?? DBNull.Value),
+            ("@CreatedBy", "SYS_NotificationChannel.CreatedBy", createdBy));
     }
 
     public void UpdateNotificationChannel(int id, string? userId, string channel,
@@ -1033,20 +1032,20 @@ public sealed class SysRepository
             WHERE  NotificationChannelID = @Id
             """;
         Exec(sql,
-            ("@Id",         id),
-            ("@UserID",     (object?)userId    ?? DBNull.Value),
-            ("@Channel",    channel),
-            ("@Address",    (object?)address   ?? DBNull.Value),
-            ("@IsEnabled",  isEnabled),
-            ("@QuietStart", (object?)quietStart ?? DBNull.Value),
-            ("@QuietEnd",   (object?)quietEnd   ?? DBNull.Value),
-            ("@ModifiedBy", modifiedBy));
+            ("@Id", "SYS_NotificationChannel.NotificationChannelID", id),
+            ("@UserID", "SYS_NotificationChannel.UserID", (object?)userId    ?? DBNull.Value),
+            ("@Channel", "SYS_NotificationChannel.Channel", channel),
+            ("@Address", "SYS_NotificationChannel.Address", (object?)address   ?? DBNull.Value),
+            ("@IsEnabled", "SYS_NotificationChannel.IsEnabled", isEnabled),
+            ("@QuietStart", "SYS_NotificationChannel.QuietHoursStart", (object?)quietStart ?? DBNull.Value),
+            ("@QuietEnd", "SYS_NotificationChannel.QuietHoursEnd", (object?)quietEnd   ?? DBNull.Value),
+            ("@ModifiedBy", "SYS_NotificationChannel.ModifiedBy", modifiedBy));
     }
 
     public void DeleteNotificationChannel(int id)
     {
         Exec("DELETE dbo.SYS_NotificationChannel WHERE NotificationChannelID = @Id",
-            ("@Id", id));
+            ("@Id", "SYS_NotificationChannel.NotificationChannelID", id));
     }
 
     // ── SYS-08 System Config ────────────────────────────────────────────
@@ -1253,14 +1252,14 @@ public sealed class SysRepository
                  @Status, 0, @CreatedBy, SYSDATETIME())
             """;
         Exec(sql,
-            ("@UserID",    userId),
-            ("@EmpNo",     employeeNo),
-            ("@EmpName",   employeeName),
-            ("@Dept",      (object?)department       ?? DBNull.Value),
-            ("@Plant",     (object?)plantCode         ?? DBNull.Value),
-            ("@Shift",     (object?)defaultShift      ?? DBNull.Value),
-            ("@Status",    accountStatus),
-            ("@CreatedBy", createdBy));
+            ("@UserID", "SYS_UserProfile.UserID", userId),
+            ("@EmpNo", "SYS_UserProfile.EmployeeNo", employeeNo),
+            ("@EmpName", "SYS_UserProfile.EmployeeName", employeeName),
+            ("@Dept", "SYS_UserProfile.Department", (object?)department       ?? DBNull.Value),
+            ("@Plant", "SYS_UserProfile.PlantCode", (object?)plantCode         ?? DBNull.Value),
+            ("@Shift", "SYS_UserProfile.DefaultShift", (object?)defaultShift      ?? DBNull.Value),
+            ("@Status", "SYS_UserProfile.AccountStatus", accountStatus),
+            ("@CreatedBy", "SYS_UserProfile.CreatedBy", createdBy));
     }
 
     // 프로필 없는 계정은 로그인이 거부되므로(AuthRepository.GetProfileStatus) 기동 시드처럼 관리자가 만든 계정은 활성 프로필을 함께 둔다.
@@ -1270,9 +1269,9 @@ public sealed class SysRepository
                 INSERT INTO dbo.SYS_UserProfile (UserID, EmployeeName, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
                 VALUES (@UserID, @EmpName, 'ACTIVE', 0, @CreatedBy, SYSDATETIME())
             """,
-            ("@UserID",    userId),
-            ("@EmpName",   employeeName),
-            ("@CreatedBy", createdBy));
+            ("@UserID", "SYS_UserProfile.UserID", userId),
+            ("@EmpName", "SYS_UserProfile.EmployeeName", employeeName),
+            ("@CreatedBy", "SYS_UserProfile.CreatedBy", createdBy));
 
     /// <summary>
     /// Sets (or replaces) the operator's POP login PIN hash. Called from SYS-01 only
@@ -1289,9 +1288,9 @@ public sealed class SysRepository
                    ModifiedTS = SYSDATETIME()
             WHERE  UserID = @UserID
             """,
-            ("@UserID",     userId),
-            ("@PinHash",    pinHash),
-            ("@ModifiedBy", modifiedBy));
+            ("@UserID", "SYS_UserProfile.UserID", userId),
+            ("@PinHash", "SYS_UserProfile.PinHash", pinHash),
+            ("@ModifiedBy", "SYS_UserProfile.ModifiedBy", modifiedBy));
     }
 
     /// <summary>
@@ -1434,11 +1433,12 @@ public sealed class SysRepository
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
-    private void Exec(string sql, params (string Name, object Value)[] pars)
+    // 저장 매개변수는 값이 들어가는 컬럼("테이블.컬럼")을 함께 적는다 — 형식·길이를 DB 컬럼에서 정하고 저장 전에 길이를 검사한다(ColumnParams, 10-12)
+    private void Exec(string sql, params (string Name, string Column, object? Value)[] pars)
     {
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        foreach (var (n, v) in pars) cmd.Parameters.AddWithValue(n, v);
+        foreach (var (n, c, v) in pars) ColumnParams.Add(cmd, n, c, v);
         cmd.ExecuteNonQuery();
     }
 

@@ -84,12 +84,12 @@ public sealed class MasterDataRepository
                    (GroupCode,GroupName,GroupNameEn,Description,UseFlag,CreatedBy,CreatedTS)
             VALUES (@Code,@Name,@NameEn,@Desc,@UseFlag,@By,SYSDATETIME())
             """,
-            ("@Code",   groupCode),
-            ("@Name",   groupName),
-            ("@NameEn", groupNameEn),
-            ("@Desc",   description),
-            ("@UseFlag",useFlag),
-            ("@By",     createdBy));
+            ("@Code", "MD_CodeGroup.GroupCode", groupCode),
+            ("@Name", "MD_CodeGroup.GroupName", groupName),
+            ("@NameEn", "MD_CodeGroup.GroupNameEn", groupNameEn),
+            ("@Desc", "MD_CodeGroup.Description", description),
+            ("@UseFlag", "MD_CodeGroup.UseFlag", useFlag),
+            ("@By", "MD_CodeGroup.CreatedBy", createdBy));
 
     public void UpdateCodeGroup(string groupCode, string? groupName, string? groupNameEn,
         string? description, bool useFlag, string modifiedBy)
@@ -99,12 +99,12 @@ public sealed class MasterDataRepository
                    UseFlag=@UseFlag, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  GroupCode=@Code
             """,
-            ("@Code",   groupCode),
-            ("@Name",   groupName),
-            ("@NameEn", groupNameEn),
-            ("@Desc",   description),
-            ("@UseFlag",useFlag),
-            ("@By",     modifiedBy));
+            ("@Code", "MD_CodeGroup.GroupCode", groupCode),
+            ("@Name", "MD_CodeGroup.GroupName", groupName),
+            ("@NameEn", "MD_CodeGroup.GroupNameEn", groupNameEn),
+            ("@Desc", "MD_CodeGroup.Description", description),
+            ("@UseFlag", "MD_CodeGroup.UseFlag", useFlag),
+            ("@By", "MD_CodeGroup.ModifiedBy", modifiedBy));
 
     /// <summary>
     /// 그룹과 그 항목 전부를 한 트랜잭션으로 지우고 지운 항목을 돌려준다(감사 기록용). 화면에 읽어 둔 목록이 아니라 DB 기준이라
@@ -112,6 +112,9 @@ public sealed class MasterDataRepository
     /// </summary>
     public List<CodeItemRow> DeleteCodeGroup(string groupCode)
     {
+        // 프로그램이 이름으로 읽는 그룹은 지우지 않는다(CodeGroupsUsedByCode) — 지우면 콤보·판정이 오류 없이 비어 버린다
+        if (CodeGroupsUsedByCode.IsUsedByCode(groupCode))
+            throw new InvalidOperationException($"Code group {groupCode} is read by the program and cannot be deleted.");
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
         var items = new List<CodeItemRow>();
@@ -281,7 +284,7 @@ public sealed class MasterDataRepository
     }
 
     public void DeleteCodeItem(string codeId)
-        => Exec("DELETE dbo.MD_CodeItem WHERE CodeID=@I", ("@I", codeId));
+        => Exec("DELETE dbo.MD_CodeItem WHERE CodeID=@I", ("@I", "MD_CodeItem.CodeID", codeId));
 
     // ── MD-02 Item ───────────────────────────────────────────────────────
     public List<ItemRow> ListItems(string? search = null, string? itemType = null)
@@ -339,13 +342,11 @@ public sealed class MasterDataRepository
             WHERE ItemNo=@No AND ItemType='MATERIAL'
               AND (UnitCost=@Original OR (UnitCost IS NULL AND @Original IS NULL))
             """, conn);
-        cmd.Parameters.AddWithValue("@No", itemNo);
-        cmd.Parameters.AddWithValue("@Cost", unitCost);
-        var original = cmd.Parameters.Add("@Original", SqlDbType.Decimal);
-        original.Precision = 14;
-        original.Scale = 2;
-        original.Value = (object?)originalCost ?? DBNull.Value;
-        cmd.Parameters.AddWithValue("@By", modifiedBy);
+        // 형식·길이 = 컬럼(ColumnParams, 10-12) — @Original 은 읽어 온 값과 그대로 비교하므로 같은 컬럼 형식으로
+        ColumnParams.Add(cmd, "@No",       "MD_Item.ItemNo",     itemNo);
+        ColumnParams.Add(cmd, "@Cost",     "MD_Item.UnitCost",   unitCost);
+        ColumnParams.Add(cmd, "@Original", "MD_Item.UnitCost",   originalCost);
+        ColumnParams.Add(cmd, "@By",       "MD_Item.ModifiedBy", modifiedBy);
         return cmd.ExecuteNonQuery() == 1;
     }
 
@@ -380,15 +381,15 @@ public sealed class MasterDataRepository
                     @Route,@Min,@Max,@Safe,@Cost,
                     @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Box,@Active,@By,SYSDATETIME(),@BoxScan)
             """,
-            ("@No",     itemNo),   ("@Name",   itemName),
-            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
-            ("@Inj",    NormalizeInjFlag(itemType, injFlag)),
-            ("@Uom",    defaultUom),
-            ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
-            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
-            ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
-            ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag), ("@Box", boxQty),
-            ("@By",     createdBy), ("@BoxScan", scanRequired));
+            ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
+            ("@Type", "MD_Item.ItemType", itemType), ("@Cat", "MD_Item.ItemCategory", itemCategory), ("@Car", "MD_Item.CarType", carType),
+            ("@Inj", "MD_Item.InjFlag", NormalizeInjFlag(itemType, injFlag)),
+            ("@Uom", "MD_Item.DefaultUOM", defaultUom),
+            ("@Route", "MD_Item.RoutingType", routingType), ("@Min", "MD_Item.MinStock", minStock),  ("@Max", "MD_Item.MaxStock", maxStock),
+            ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
+            ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
+            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag), ("@Box", "MD_Item.BoxQty", boxQty),
+            ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired));
 
     public void UpdateItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
@@ -406,15 +407,15 @@ public sealed class MasterDataRepository
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
-            ("@No",     itemNo),   ("@Name",   itemName),
-            ("@Type",   itemType), ("@Cat",    itemCategory), ("@Car", carType),
-            ("@Inj",    NormalizeInjFlag(itemType, injFlag)),
-            ("@Uom",    defaultUom),
-            ("@Route",  routingType), ("@Min", minStock),  ("@Max",    maxStock),
-            ("@Safe",   safetyStock), ("@Cost", unitCost), ("@PGN",    pgn),
-            ("@ALC",    alc),      ("@Draw",   drawingNo), ("@Active", activeFlag),
-            ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag), ("@Box", boxQty),
-            ("@By",     modifiedBy), ("@BoxScan", scanRequired));
+            ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
+            ("@Type", "MD_Item.ItemType", itemType), ("@Cat", "MD_Item.ItemCategory", itemCategory), ("@Car", "MD_Item.CarType", carType),
+            ("@Inj", "MD_Item.InjFlag", NormalizeInjFlag(itemType, injFlag)),
+            ("@Uom", "MD_Item.DefaultUOM", defaultUom),
+            ("@Route", "MD_Item.RoutingType", routingType), ("@Min", "MD_Item.MinStock", minStock),  ("@Max", "MD_Item.MaxStock", maxStock),
+            ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
+            ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
+            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag), ("@Box", "MD_Item.BoxQty", boxQty),
+            ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired));
 
     const string ItemUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WITH (UPDLOCK, HOLDLOCK) WHERE ItemNo = @K) RETURN;
@@ -535,10 +536,10 @@ public sealed class MasterDataRepository
                     ChangeType,ChangeReason,Status,CreatedBy,CreatedTS)
             VALUES (@ID,@Root,@VNo,@EF,@ET,@CT,@CR,'DRAFT',@By,SYSDATETIME())
             """,
-            ("@ID",   versionId),  ("@Root", rootItemNo), ("@VNo", versionNo),
-            ("@EF",   effFrom.HasValue ? (object)effFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value),
-            ("@ET",   effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
-            ("@CT",   changeType),  ("@CR",  changeReason), ("@By", createdBy));
+            ("@ID", "MD_BomVersion.VersionID", versionId),  ("@Root", "MD_BomVersion.RootItemNo", rootItemNo), ("@VNo", "MD_BomVersion.VersionNo", versionNo),
+            ("@EF", "MD_BomVersion.EffFrom", effFrom.HasValue ? (object)effFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value),
+            ("@ET", "MD_BomVersion.EffTo", effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
+            ("@CT", "MD_BomVersion.ChangeType", changeType),  ("@CR", "MD_BomVersion.ChangeReason", changeReason), ("@By", "MD_BomVersion.CreatedBy", createdBy));
 
     /// <summary>DRAFT 버전만 고친다. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
     public bool UpdateBomVersion(string versionId, string? rootItemNo, string? versionNo,
@@ -551,10 +552,10 @@ public sealed class MasterDataRepository
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@ID AND Status='DRAFT'
             """,
-            ("@ID",   versionId),  ("@Root", rootItemNo), ("@VNo", versionNo),
-            ("@EF",   effFrom.HasValue ? (object)effFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value),
-            ("@ET",   effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
-            ("@CT",   changeType), ("@CR", changeReason), ("@By", modifiedBy)) > 0;
+            ("@ID", "MD_BomVersion.VersionID", versionId),  ("@Root", "MD_BomVersion.RootItemNo", rootItemNo), ("@VNo", "MD_BomVersion.VersionNo", versionNo),
+            ("@EF", "MD_BomVersion.EffFrom", effFrom.HasValue ? (object)effFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value),
+            ("@ET", "MD_BomVersion.EffTo", effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
+            ("@CT", "MD_BomVersion.ChangeType", changeType), ("@CR", "MD_BomVersion.ChangeReason", changeReason), ("@By", "MD_BomVersion.ModifiedBy", modifiedBy)) > 0;
 
     /// <summary>
     /// DRAFT 버전을 라인째 한 트랜잭션으로 지운다. 다른 사용자가 이미 승인 요청·승인 등으로 상태를 바꿨거나
@@ -590,7 +591,7 @@ public sealed class MasterDataRepository
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@V AND Status='DRAFT'
             """,
-            ("@V", versionId), ("@By", requestedBy)) > 0;
+            ("@V", "MD_BomVersion.VersionID", versionId), ("@By", "MD_BomVersion.RequestedBy", requestedBy)) > 0;
 
     /// <summary>
     /// PENDING 버전을 승인하고, 기간이 겹치는 같은 품번의 기존 승인 버전 종료일을 닫는다(규칙 <see cref="BomVersionRules.PlanApproval"/>).
@@ -717,7 +718,7 @@ public sealed class MasterDataRepository
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@V AND Status='PENDING'
             """,
-            ("@V", versionId), ("@By", rejectedBy)) > 0;
+            ("@V", "MD_BomVersion.VersionID", versionId), ("@By", "MD_BomVersion.ModifiedBy", rejectedBy)) > 0;
 
     /// <summary>REJECTED → DRAFT. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
     public bool ReviveBomVersion(string versionId, string modifiedBy)
@@ -727,7 +728,7 @@ public sealed class MasterDataRepository
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@V AND Status='REJECTED'
             """,
-            ("@V", versionId), ("@By", modifiedBy)) > 0;
+            ("@V", "MD_BomVersion.VersionID", versionId), ("@By", "MD_BomVersion.ModifiedBy", modifiedBy)) > 0;
 
     // ── MD-03 BomLine ────────────────────────────────────────────────────
     public List<BomRow> ListBomLines(string versionId)
@@ -778,10 +779,10 @@ public sealed class MasterDataRepository
                    @Scrap,@VID,@Pos,@Note,1,@By,SYSDATETIME()
             WHERE  EXISTS (SELECT 1 FROM dbo.MD_BomVersion WITH (UPDLOCK, HOLDLOCK) WHERE VersionID=@VID AND Status='DRAFT')
             """,
-            ("@ID",    bomId),     ("@Par",  parentItemNo), ("@Comp", compItemNo),
-            ("@Lv",    bomLevel),  ("@Qty",  qtyPer),       ("@UOM",  uom),
-            ("@Scrap", scrapPct),  ("@VID",  versionId),    ("@Pos",  position),
-            ("@Note",  note),      ("@By",   createdBy)) > 0;
+            ("@ID", "MD_Bom.BOMID", bomId),     ("@Par", "MD_Bom.ParentItemNo", parentItemNo), ("@Comp", "MD_Bom.CompItemNo", compItemNo),
+            ("@Lv", "MD_Bom.BOMLevel", bomLevel),  ("@Qty", "MD_Bom.QtyPer", qtyPer),       ("@UOM", "MD_Bom.UOM", uom),
+            ("@Scrap", "MD_Bom.ScrapPct", scrapPct),  ("@VID", "MD_Bom.VersionID", versionId),    ("@Pos", "MD_Bom.Position", position),
+            ("@Note", "MD_Bom.Note", note),      ("@By", "MD_Bom.CreatedBy", createdBy)) > 0;
 
     public bool UpdateBomLine(string bomId, string? parentItemNo, string? compItemNo,
         int bomLevel, decimal qtyPer, string? uom, decimal? scrapPct,
@@ -794,10 +795,10 @@ public sealed class MasterDataRepository
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             {BomLineDraftOnly}
             """,
-            ("@ID",    bomId),    ("@Par",   parentItemNo), ("@Comp", compItemNo),
-            ("@Lv",    bomLevel), ("@Qty",   qtyPer),       ("@UOM",  uom),
-            ("@Scrap", scrapPct), ("@Pos",   position),     ("@Note", note),
-            ("@By",    modifiedBy)) > 0;
+            ("@ID", "MD_Bom.BOMID", bomId),    ("@Par", "MD_Bom.ParentItemNo", parentItemNo), ("@Comp", "MD_Bom.CompItemNo", compItemNo),
+            ("@Lv", "MD_Bom.BOMLevel", bomLevel), ("@Qty", "MD_Bom.QtyPer", qtyPer),       ("@UOM", "MD_Bom.UOM", uom),
+            ("@Scrap", "MD_Bom.ScrapPct", scrapPct), ("@Pos", "MD_Bom.Position", position),     ("@Note", "MD_Bom.Note", note),
+            ("@By", "MD_Bom.ModifiedBy", modifiedBy)) > 0;
 
     const string BomLineDraftOnly = """
         FROM   dbo.MD_Bom b
@@ -817,21 +818,23 @@ public sealed class MasterDataRepository
     // 소프트 삭제 — 물리 삭제 대신 ActiveFlag=0 (재활성화 가능). DRAFT 버전만
     public bool DeleteBomLine(string bomId, string modifiedBy)
         => ExecCount($"UPDATE b SET ActiveFlag=0, ModifiedBy=@By, ModifiedTS=SYSDATETIME() {BomLineDraftOnly}",
-            ("@ID", bomId), ("@By", modifiedBy)) > 0;
+            ("@ID", "MD_Bom.BOMID", bomId), ("@By", "MD_Bom.ModifiedBy", modifiedBy)) > 0;
 
     // 소프트 삭제된 라인을 다시 활성화. DRAFT 버전만
     public bool ReactivateBomLine(string bomId, string modifiedBy)
         => ExecCount($"UPDATE b SET ActiveFlag=1, ModifiedBy=@By, ModifiedTS=SYSDATETIME() {BomLineDraftOnly}",
-            ("@ID", bomId), ("@By", modifiedBy)) > 0;
+            ("@ID", "MD_Bom.BOMID", bomId), ("@By", "MD_Bom.ModifiedBy", modifiedBy)) > 0;
 
     // ── Private helpers ──────────────────────────────────────────────────
-    private void Exec(string sql, params (string Name, object? Val)[] p) => ExecCount(sql, p);
+    // 저장 매개변수는 값이 들어가는 컬럼("테이블.컬럼")을 함께 적는다 — 형식·길이를 DB 컬럼에서 정하고 저장 전에 길이를 검사한다
+    // (ColumnParams, 10-12 — AddWithValue 는 nvarchar 로 보내 너무 긴 값이 영어 잘림 오류로 끝났다)
+    private void Exec(string sql, params (string Name, string Column, object? Val)[] p) => ExecCount(sql, p);
 
-    private int ExecCount(string sql, params (string Name, object? Val)[] p)
+    private int ExecCount(string sql, params (string Name, string Column, object? Val)[] p)
     {
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        foreach (var (n, v) in p) cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
+        foreach (var (n, c, v) in p) ColumnParams.Add(cmd, n, c, v);
         return cmd.ExecuteNonQuery();
     }
 
@@ -959,10 +962,10 @@ public sealed class MasterDataRepository
                     @CT,@ST,@QC,@Desc,
                     @Active,@By,SYSDATETIME())
             """,
-            ("@ID",    bopId),       ("@No",   itemNo),      ("@RT",   routingType),
-            ("@Seq",   stepSeq),     ("@SC",   stationCode),
-            ("@CT",    stdCycleTime),("@ST",   stdSetupTime),("@QC",   qcRequired),
-            ("@Desc",  stepDesc),    ("@Active",activeFlag), ("@By",   createdBy));
+            ("@ID", "MD_Bop.BOPID", bopId),       ("@No", "MD_Bop.ItemNo", itemNo),      ("@RT", "MD_Bop.RoutingType", routingType),
+            ("@Seq", "MD_Bop.StepSeq", stepSeq),     ("@SC", "MD_Bop.StationCode", stationCode),
+            ("@CT", "MD_Bop.StdCycleTime", stdCycleTime),("@ST", "MD_Bop.StdSetupTime", stdSetupTime),("@QC", "MD_Bop.QcRequiredFlag", qcRequired),
+            ("@Desc", "MD_Bop.StepDescription", stepDesc),    ("@Active", "MD_Bop.ActiveFlag", activeFlag), ("@By", "MD_Bop.CreatedBy", createdBy));
 
     public void UpdateBopStep(string bopId, string? routingType,
         int stepSeq, string? stationCode,
@@ -976,13 +979,13 @@ public sealed class MasterDataRepository
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  BOPID=@ID
             """,
-            ("@ID",    bopId),       ("@RT",   routingType), ("@Seq",  stepSeq),
-            ("@SC",    stationCode), ("@CT",   stdCycleTime),
-            ("@ST",    stdSetupTime),("@QC",   qcRequired),  ("@Desc", stepDesc),
-            ("@Active",activeFlag),  ("@By",   modifiedBy));
+            ("@ID", "MD_Bop.BOPID", bopId),       ("@RT", "MD_Bop.RoutingType", routingType), ("@Seq", "MD_Bop.StepSeq", stepSeq),
+            ("@SC", "MD_Bop.StationCode", stationCode), ("@CT", "MD_Bop.StdCycleTime", stdCycleTime),
+            ("@ST", "MD_Bop.StdSetupTime", stdSetupTime),("@QC", "MD_Bop.QcRequiredFlag", qcRequired),  ("@Desc", "MD_Bop.StepDescription", stepDesc),
+            ("@Active", "MD_Bop.ActiveFlag", activeFlag),  ("@By", "MD_Bop.ModifiedBy", modifiedBy));
 
     public void DeleteBopStep(string bopId)
-        => Exec("DELETE dbo.MD_Bop WHERE BOPID=@I", ("@I", bopId));
+        => Exec("DELETE dbo.MD_Bop WHERE BOPID=@I", ("@I", "MD_Bop.BOPID", bopId));
 
     // 소스 품번의 모든 단계를 대상 품번으로 복사 (BOPID/ItemNo 만 새로, 나머지는 동일)
     // overwrite=true 이면 대상 기존 단계 삭제 후 복사. 복사한 단계 수 반환.
@@ -1099,8 +1102,8 @@ public sealed class MasterDataRepository
                    (RoutingType, StepSeq, ProcessCode, QcRequiredFlag, ActiveFlag, CreatedBy, CreatedTS)
             VALUES (@RT, @Seq, @PC, @QC, @Active, @By, SYSDATETIME())
             """,
-            ("@RT", routingType), ("@Seq", stepSeq), ("@PC", processCode),
-            ("@QC", qcRequired), ("@Active", activeFlag), ("@By", createdBy));
+            ("@RT", "MD_RoutingStep.RoutingType", routingType), ("@Seq", "MD_RoutingStep.StepSeq", stepSeq), ("@PC", "MD_RoutingStep.ProcessCode", processCode),
+            ("@QC", "MD_RoutingStep.QcRequiredFlag", qcRequired), ("@Active", "MD_RoutingStep.ActiveFlag", activeFlag), ("@By", "MD_RoutingStep.CreatedBy", createdBy));
 
     public void UpdateRoutingStep(string routingType, int stepSeq, string processCode,
         bool qcRequired, bool activeFlag, string modifiedBy)
@@ -1110,12 +1113,12 @@ public sealed class MasterDataRepository
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  RoutingType=@RT AND StepSeq=@Seq
             """,
-            ("@RT", routingType), ("@Seq", stepSeq), ("@PC", processCode),
-            ("@QC", qcRequired), ("@Active", activeFlag), ("@By", modifiedBy));
+            ("@RT", "MD_RoutingStep.RoutingType", routingType), ("@Seq", "MD_RoutingStep.StepSeq", stepSeq), ("@PC", "MD_RoutingStep.ProcessCode", processCode),
+            ("@QC", "MD_RoutingStep.QcRequiredFlag", qcRequired), ("@Active", "MD_RoutingStep.ActiveFlag", activeFlag), ("@By", "MD_RoutingStep.ModifiedBy", modifiedBy));
 
     public void DeleteRoutingStep(string routingType, int stepSeq)
         => Exec("DELETE dbo.MD_RoutingStep WHERE RoutingType=@RT AND StepSeq=@Seq",
-            ("@RT", routingType), ("@Seq", stepSeq));
+            ("@RT", "MD_RoutingStep.RoutingType", routingType), ("@Seq", "MD_RoutingStep.StepSeq", stepSeq));
 
     public record BomKpiRow(int BomProducts, int TotalComponents);
 
@@ -1722,11 +1725,18 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    // 사용처 = 제품정보(MD_MoldItem — 품번·색상)·라인 배정(MD_MoldLine). 색상(MD_MoldColor)은 금형에 딸린 행이라 같이 지운다
+    // 사용처 = 제품정보(MD_MoldItem — 품번·색상)·라인 배정(MD_MoldLine)·설비 장착(MNT_EquipmentStatus)·라인 스케줄(지난 날짜 포함)·
+    // 작업지시·샷 카운트(MNT_MoldShotCount)·사출 LOT(10-12 사용자 결정). 실적·샷·교체 이력(PR_ProductionResult·PR_ShotCount·PR_MoldChange)은
+    // 품목 삭제와 같이 보지 않는다 — 사출 LOT 가 대신 막는다. 색상(MD_MoldColor)은 금형에 딸린 행이라 같이 지운다
     const string MoldUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_Mold WITH (UPDLOCK, HOLDLOCK) WHERE MoldID = @K) RETURN;
         INSERT @r SELECT 'MOLDITEM', ItemNo + ISNULL(' ' + Color, '') FROM dbo.MD_MoldItem WHERE MoldID = @K;
         INSERT @r SELECT 'MOLDLINE', LineCode FROM dbo.MD_MoldLine WHERE MoldID = @K;
+        INSERT @r SELECT 'MOUNTED', EquipID FROM dbo.MNT_EquipmentStatus WHERE MountedMoldID = @K;
+        INSERT @r SELECT DISTINCT 'SCHEDULE', LineID + ' ' + CONVERT(char(10), ScheduleDate, 23) FROM dbo.PP_LineSchedule WHERE MoldID = @K;
+        INSERT @r SELECT 'WO', WoNumber FROM dbo.PP_WorkOrder WHERE MoldID = @K;
+        INSERT @r SELECT 'SHOTCOUNT', ISNULL(ItemNo, CAST(MoldShotCountID AS varchar(20))) FROM dbo.MNT_MoldShotCount WHERE MoldID = @K;
+        INSERT @r SELECT 'LOT', ISNULL(l.LotCode, CAST(p.LotID AS varchar(20))) FROM dbo.PR_InjLot p LEFT JOIN dbo.tbl_Lot l ON l.LotID = p.LotID WHERE p.MoldID = @K;
         """;
 
     public List<UsageRef> MoldUsages(string moldId) => UsagesOf(MoldUsageSql, moldId);

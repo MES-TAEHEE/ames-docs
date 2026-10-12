@@ -269,6 +269,18 @@ builder.Services.AddSingleton<AMES.Web.Services.AppLanguageState>();
 
 var app = builder.Build();
 
+// 저장 전 컬럼 검사(ColumnParams) 실패 문구 — 화면은 ex.Message 를 그대로 보이므로 여기서 회로의 UI 언어로 만든다
+{
+    var dbText = app.Services.GetRequiredService<Microsoft.Extensions.Localization.IStringLocalizerFactory>().Create(typeof(AMES.Web.SharedResources));
+    AMES.Data.Connection.DbValueException.Formatter = e => e.Problem switch
+    {
+        AMES.Data.Connection.DbValueProblem.TooLong when e.BytesUnit => string.Format(dbText["Err.Db.TooLongBytes"].Value, e.Column, e.Limit, e.Actual),
+        AMES.Data.Connection.DbValueProblem.TooLong     => string.Format(dbText["Err.Db.TooLong"].Value, e.Column, e.Limit, e.Actual),
+        AMES.Data.Connection.DbValueProblem.Unencodable => string.Format(dbText["Err.Db.Unencodable"].Value, e.Column, e.BadChar),
+        _                                               => string.Format(dbText["Err.Db.OutOfRange"].Value, e.Column),
+    };
+}
+
 if (dpKeyError is null) app.Logger.LogInformation("Data Protection keys -> {Dir}", dpKeyDir);
 else app.Logger.LogWarning("Data Protection key folder {Dir} is not writable ({Error}) — falling back to framework default; logins may drop on app pool recycle", dpKeyDir, dpKeyError);
 

@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -161,18 +162,18 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupName"]' class="ames-rz-modal-label" Component="GrpCreateTextBoxGroupName" />
-                <RadzenTextBox Name="GrpCreateTextBoxGroupName" @bind-Value="_fGroup.GroupName" Placeholder='@L["MD.CommonCode.Ph.GroupName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="GrpCreateTextBoxGroupName" @bind-Value="_fGroup.GroupName" MaxLength="60" Placeholder='@L["MD.CommonCode.Ph.GroupName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupNameEn"]' class="ames-rz-modal-label" Component="GrpCreateTextBoxGroupNameEn" />
-                <RadzenTextBox Name="GrpCreateTextBoxGroupNameEn" @bind-Value="_fGroup.GroupNameEn" Placeholder="Defect Type" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="GrpCreateTextBoxGroupNameEn" @bind-Value="_fGroup.GroupNameEn" MaxLength="60" Placeholder="Defect Type" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text='@L["MD.CommonCode.Lbl.Description"]' />
-                    <RadzenTextBox @bind-Value="_fGroup.Description" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_fGroup.Description" MaxLength="200" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -203,18 +204,18 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupName"]' class="ames-rz-modal-label" Component="GrpEditTextBoxGroupName" />
-                <RadzenTextBox Name="GrpEditTextBoxGroupName" @bind-Value="_fGroup.GroupName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="GrpEditTextBoxGroupName" @bind-Value="_fGroup.GroupName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.GroupNameEn"]' class="ames-rz-modal-label" Component="GrpEditTextBoxGroupNameEn" />
-                <RadzenTextBox Name="GrpEditTextBoxGroupNameEn" @bind-Value="_fGroup.GroupNameEn" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="GrpEditTextBoxGroupNameEn" @bind-Value="_fGroup.GroupNameEn" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text='@L["MD.CommonCode.Lbl.Description"]' />
-                    <RadzenTextBox @bind-Value="_fGroup.Description" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_fGroup.Description" MaxLength="200" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -222,6 +223,11 @@
                 <RadzenCheckBox TValue="bool" @bind-Value="_fGroup.UseFlag" Name="GrpEditChkUse" />
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.UseFlag"]' Component="GrpEditChkUse" style="cursor:pointer;" />
             </RadzenStack>
+
+            @if (CodeGroupsUsedByCode.IsUsedByCode(_fGroup.GroupCode))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" AllowClose="false">@L["MD.CommonCode.Hint.UsedByCode"]</RadzenAlert>
+            }
 
             @if (_grpConfirmDelete)
             {
@@ -239,7 +245,10 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveGroupEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _grpConfirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (!CodeGroupsUsedByCode.IsUsedByCode(_fGroup.GroupCode))
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _grpConfirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -265,12 +274,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.CodeName"]} *")' class="ames-rz-modal-label" Component="ItemCreateTextBoxCodeName" />
-                <RadzenTextBox Name="ItemCreateTextBoxCodeName" @bind-Value="_fItem.CodeName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="ItemCreateTextBoxCodeName" @bind-Value="_fItem.CodeName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeNameEn"]' class="ames-rz-modal-label" Component="ItemCreateTextBoxCodeNameEn" />
-                <RadzenTextBox Name="ItemCreateTextBoxCodeNameEn" @bind-Value="_fItem.CodeNameEn" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="ItemCreateTextBoxCodeNameEn" @bind-Value="_fItem.CodeNameEn" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -342,12 +351,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.CodeName"]} *")' class="ames-rz-modal-label" Component="ItemEditTextBoxCodeName" />
-                <RadzenTextBox Name="ItemEditTextBoxCodeName" @bind-Value="_fItem.CodeName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="ItemEditTextBoxCodeName" @bind-Value="_fItem.CodeName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.CodeNameEn"]' class="ames-rz-modal-label" Component="ItemEditTextBoxCodeNameEn" />
-                <RadzenTextBox Name="ItemEditTextBoxCodeNameEn" @bind-Value="_fItem.CodeNameEn" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="ItemEditTextBoxCodeNameEn" @bind-Value="_fItem.CodeNameEn" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -585,7 +594,7 @@
 
     async Task SaveGroupDelete()
     {
-        if (!_canEdit) return;
+        if (!_canEdit || CodeGroupsUsedByCode.IsUsedByCode(_fGroup.GroupCode)) return;
         _busy = true;
         try
         {

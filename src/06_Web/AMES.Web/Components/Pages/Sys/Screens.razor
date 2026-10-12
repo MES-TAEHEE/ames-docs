@@ -150,7 +150,7 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.Code"].Value + " *")" class="ames-rz-modal-label" Component="CreateTextBoxScreenCode" />
-                    <RadzenTextBox Name="CreateTextBoxScreenCode" @bind-Value="_f.ScreenCode" Placeholder="@L["SYS.Screen.Ph.Code"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxScreenCode" @bind-Value="_f.ScreenCode" MaxLength="20" Placeholder="@L["SYS.Screen.Ph.Code"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -170,22 +170,22 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.NameKo"].Value + " *")" class="ames-rz-modal-label" Component="CreateTextBoxScreenNameKo" />
-                    <RadzenTextBox Name="CreateTextBoxScreenNameKo" @bind-Value="_f.ScreenName" Placeholder="@L["SYS.Screen.Ph.NameKo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxScreenNameKo" @bind-Value="_f.ScreenName" MaxLength="100" Placeholder="@L["SYS.Screen.Ph.NameKo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.NameEn"]" class="ames-rz-modal-label" Component="CreateTextBoxScreenNameEn" />
-                    <RadzenTextBox Name="CreateTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" MaxLength="100" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Path"]" class="ames-rz-modal-label" Component="CreateTextBoxHRef" />
-                    <RadzenTextBox Name="CreateTextBoxHRef" @bind-Value="_f.HRef" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxHRef" @bind-Value="_f.HRef" MaxLength="200" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.LidLabel"]" class="ames-rz-modal-label" Component="CreateTextBoxLidLabel" />
-                    <RadzenTextBox Name="CreateTextBoxLidLabel" @bind-Value="_f.LidLabel" Placeholder="@L["SYS.Screen.Ph.LidLabel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxLidLabel" @bind-Value="_f.LidLabel" MaxLength="20" Placeholder="@L["SYS.Screen.Ph.LidLabel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -231,7 +231,7 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.Code"].Value + " *")" class="ames-rz-modal-label" Component="EditTextBoxScreenCode" />
-                    <RadzenTextBox Name="EditTextBoxScreenCode" @bind-Value="_f.ScreenCode" Disabled="@_protected" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxScreenCode" @bind-Value="_f.ScreenCode" MaxLength="20" Disabled="@_protected" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -251,22 +251,22 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.NameKo"].Value + " *")" class="ames-rz-modal-label" Component="EditTextBoxScreenNameKo" />
-                    <RadzenTextBox Name="EditTextBoxScreenNameKo" @bind-Value="_f.ScreenName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxScreenNameKo" @bind-Value="_f.ScreenName" MaxLength="100" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.NameEn"]" class="ames-rz-modal-label" Component="EditTextBoxScreenNameEn" />
-                    <RadzenTextBox Name="EditTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" MaxLength="100" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Path"]" class="ames-rz-modal-label" Component="EditTextBoxHRef" />
-                    <RadzenTextBox Name="EditTextBoxHRef" @bind-Value="_f.HRef" Disabled="@_protected" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxHRef" @bind-Value="_f.HRef" MaxLength="200" Disabled="@_protected" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.LidLabel"]" class="ames-rz-modal-label" Component="EditTextBoxLidLabel" />
-                    <RadzenTextBox Name="EditTextBoxLidLabel" @bind-Value="_f.LidLabel" Placeholder="@L["SYS.Screen.Ph.LidLabelEdit"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxLidLabel" @bind-Value="_f.LidLabel" MaxLength="20" Placeholder="@L["SYS.Screen.Ph.LidLabelEdit"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">

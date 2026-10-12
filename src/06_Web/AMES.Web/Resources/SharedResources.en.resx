@@ -10622,4 +10622,25 @@
   <data name="MD.Usage.Kind.MOLDLINE" xml:space="preserve">
     <value>Mold line assignments</value>
   </data>
+  <data name="MD.Usage.Kind.MOUNTED" xml:space="preserve">
+    <value>Mounted on equipment</value>
+  </data>
+  <data name="MD.Usage.Kind.SHOTCOUNT" xml:space="preserve">
+    <value>Mold shot counters</value>
+  </data>
+  <data name="MD.CommonCode.Hint.UsedByCode" xml:space="preserve">
+    <value>The program reads this group, so it cannot be deleted. Its items can still be edited or turned off individually.</value>
+  </data>
+  <data name="Err.Db.TooLong" xml:space="preserve">
+    <value>{0} can be up to {1} characters (entered {2}).</value>
+  </data>
+  <data name="Err.Db.TooLongBytes" xml:space="preserve">
+    <value>{0} can be up to {1} bytes — Korean letters take 2 bytes each (entered {2} bytes).</value>
+  </data>
+  <data name="Err.Db.Unencodable" xml:space="preserve">
+    <value>{0} contains a character that cannot be stored: {1}</value>
+  </data>
+  <data name="Err.Db.OutOfRange" xml:space="preserve">
+    <value>The value of {0} is out of the allowed range.</value>
+  </data>
 </root>
