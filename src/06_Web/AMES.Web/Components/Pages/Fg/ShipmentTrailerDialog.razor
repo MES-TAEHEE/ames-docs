@@ -1,4 +1,5 @@
 @inject DialogService Dialog
+@inject UomFormat UomFmt
 
 <div class="trailer-preview" data-feature="fg-shipment-plan">
     <div class="preview-summary">
@@ -20,7 +21,7 @@
     {
         <div id="packing-details" class="packing-details">
             <div class="estimate-totals"><span>Auto <b>@Plan.AutoPallets</b> pallets</span><span>TOTE manual <b>@Plan.ManualPallets</b> pallets</span>
-                <span class="@(Plan.IsPartial ? "unestimated" : "")">Not determined <b>@Plan.Unestimated.Select(x => x.Source.ItemNo).Distinct().Count()</b> parts / @Plan.Unestimated.Sum(x => x.Quantity).ToString("N0") EA
+                <span class="@(Plan.IsPartial ? "unestimated" : "")">Not determined <b>@Plan.Unestimated.Select(x => x.Source.ItemNo).Distinct().Count()</b> parts / @UomFmt.QtyUnit(Plan.Unestimated.Sum(x => x.Quantity), "EA")
                     <button type="button" class="packing-info" title="@PendingHelp" aria-label="How to determine packing quantities" @onclick="ShowPendingHelp">ⓘ</button></span></div>
             <p class="preview-help">18 pallets / trailer · Ship date = Requested Date − 1 day. The period total is the sum of separate customer/date loads.</p>
             <p class="preview-help">Drag a pallet to another trailer, or select it and use Move here. Display only; changes are not saved.</p>
@@ -44,10 +45,10 @@
                         <td><details><summary>@group.Lines.Select(x => x.Source.ItemNo).Distinct().Count() parts · View</summary>
                             @foreach (var part in group.Lines.GroupBy(x => x.Source.ItemNo))
                             {
-                                <div class="group-part">@part.Key · @part.First().Source.ItemName — @part.Sum(x => x.Quantity).ToString("N0") EA</div>
+                                <div class="group-part">@part.Key · @part.First().Source.ItemName — @UomFmt.QtyUnit(part.Sum(x => x.Quantity), "EA")</div>
                             }
                         </details></td>
-                        <td>@group.Lines.Sum(x => x.Quantity).ToString("N0") EA</td>
+                        <td>@UomFmt.QtyUnit(group.Lines.Sum(x => x.Quantity), "EA")</td>
                         <td><input type="number" min="1" max="2000" step="1" value="@group.CountText" placeholder="Not determined"
                             aria-label="Estimated TOTE pallets for @group.Customer on @group.Date.ToString(DateFmt.Date)"
                             aria-invalid="@(group.Error.Length > 0 ? "true" : "false")"
@@ -70,7 +71,7 @@
                 <tbody>@foreach (var line in Plan.Unestimated)
                 {
                     <tr><td>@line.Source.CustomerId</td><td>@line.ShipDate?.ToString(DateFmt.Date)</td>
-                        <td>@line.Source.ItemNo · @line.Source.ItemName</td><td>@line.Quantity.ToString("N0")</td>
+                        <td>@line.Source.ItemNo · @line.Source.ItemName</td><td>@UomFmt.Qty(line.Quantity, "EA")</td>
                         <td>@(line.IsTote ? "TOTE estimate not entered" : "Pallet Qty not registered")</td></tr>
                 }</tbody>
             </table></div>
@@ -112,12 +113,12 @@
                             {
                                 <span class="pallet-caption">TOTE PALLET @pallet.Sequence.ToString("00") / @tote.PalletCount · ESTIMATED</span>
                                 <strong>Mixed TOTE group</strong>
-                                <span>@tote.Lines.Select(x => x.Source.ItemNo).Distinct().Count() parts · @tote.Lines.Sum(x => x.Quantity).ToString("N0") EA across the group</span>
+                                <span>@tote.Lines.Select(x => x.Source.ItemNo).Distinct().Count() parts · @UomFmt.QtyUnit(tote.Lines.Sum(x => x.Quantity), "EA") across the group</span>
                                 <small>Per-pallet contents not assigned</small>
                             }
                             else if (pallet.Line is { } line)
                             {
-                                <span class="pallet-caption">PALLET @pallet.Sequence.ToString("00") · @pallet.Quantity.ToString("N0") EA</span>
+                                <span class="pallet-caption">PALLET @pallet.Sequence.ToString("00") · @UomFmt.QtyUnit(pallet.Quantity, "EA")</span>
                                 <strong>@line.Source.ItemNo</strong>
                                 <span>@line.Source.ItemName</span>
                                 <small>@line.Source.SoNumber / @line.Source.SoLineNo</small>

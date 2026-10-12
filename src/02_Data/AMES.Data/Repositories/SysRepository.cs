@@ -120,7 +120,7 @@ public sealed class SysRepository
             r["RolesCsv"] as string,
             Convert.ToInt32(r["FailedLoginCount"]),
             (bool)r["HasProfile"], (bool)r["IsAdmin"]),
-            ("@N", topN), ("@AdminRole", SystemRoles.AdminId));
+            ("@N", null, topN), ("@AdminRole", "AspNetUserRoles.RoleId", SystemRoles.AdminId));
     }
 
     /// <summary>사용자가 가진 역할(ID·현재 이름) — 화면 권한·Admin 판정은 이 ID 로 한다(쿠키의 역할 이름은 쓰지 않는다).</summary>
@@ -361,7 +361,7 @@ public sealed class SysRepository
             r["StartTime"] as TimeSpan?, r["EndTime"] as TimeSpan?,
             r["BreakMinutes"] as int?, r["NetWorkHours"] as decimal?,
             r["PlantCode"] as string),
-            ("@A", daysAhead), ("@B", daysBack));
+            ("@A", null, daysAhead), ("@B", null, daysBack));
     }
 
     public List<CalendarRow> ListCalendarRange(DateTime from, DateTime to)
@@ -381,7 +381,7 @@ public sealed class SysRepository
             r["StartTime"] as TimeSpan?, r["EndTime"] as TimeSpan?,
             r["BreakMinutes"] as int?, r["NetWorkHours"] as decimal?,
             r["PlantCode"] as string),
-            ("@From", from.Date), ("@To", to.Date));
+            ("@From", null, from.Date), ("@To", null, to.Date));
     }
 
     public sealed record CalendarShiftInput(string DayType, string? HolidayName, int? ShiftCount, string? ShiftCode,
@@ -599,17 +599,17 @@ public sealed class SysRepository
                     @Ent, @TID, @Before, @After,
                     @IP, @Res, @Note, @Actor, SYSDATETIME())
             """, conn);
-        cmd.Parameters.AddWithValue("@Actor",  actorUserId);
-        cmd.Parameters.AddWithValue("@Mod",    (object?)moduleCode   ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Scr",    (object?)screenCode   ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Act",    actionType);
-        cmd.Parameters.AddWithValue("@Ent",    (object?)targetEntity ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@TID",    (object?)targetId     ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Before", (object?)beforeJson   ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@After",  (object?)afterJson    ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@IP",     (object?)ipAddress    ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@Res",    result);
-        cmd.Parameters.AddWithValue("@Note",   (object?)note         ?? DBNull.Value);
+        ColumnParams.Add(cmd, "@Actor", "SYS_AuditLog.CreatedBy", actorUserId);
+        ColumnParams.Add(cmd, "@Mod", "SYS_AuditLog.ModuleCode", (object?)moduleCode   ?? DBNull.Value);
+        ColumnParams.Add(cmd, "@Scr", "SYS_AuditLog.ScreenCode", (object?)screenCode   ?? DBNull.Value);
+        ColumnParams.Add(cmd, "@Act", "SYS_AuditLog.ActionType", actionType);
+        ColumnParams.Add(cmd, "@Ent", "SYS_AuditLog.TargetEntity", (object?)targetEntity ?? DBNull.Value);
+        ColumnParams.Add(cmd, "@TID", "SYS_AuditLog.TargetID", (object?)targetId     ?? DBNull.Value);
+        ColumnParams.Add(cmd, "@Before", "SYS_AuditLog.BeforeValueJSON", (object?)beforeJson   ?? DBNull.Value);
+        ColumnParams.Add(cmd, "@After", "SYS_AuditLog.AfterValueJSON", (object?)afterJson    ?? DBNull.Value);
+        ColumnParams.Add(cmd, "@IP", "SYS_AuditLog.IPAddress", (object?)ipAddress    ?? DBNull.Value);
+        ColumnParams.Add(cmd, "@Res", "SYS_AuditLog.Result", result);
+        ColumnParams.Add(cmd, "@Note", "SYS_AuditLog.Note", (object?)note         ?? DBNull.Value);
         cmd.ExecuteNonQuery();
     }
 
@@ -630,7 +630,7 @@ public sealed class SysRepository
             r["TargetEntity"] as string, r["TargetID"] as string,
             r["Result"] as string, r["IPAddress"] as string,
             r["Note"] as string),
-            ("@N", topN));
+            ("@N", null, topN));
     }
 
     /// <summary>SYS-007 조회 조건. 기간은 날짜 단위(From 00:00 ~ To 다음 날 00:00 미만), 나머지는 비우면 조건 없음.</summary>
@@ -785,7 +785,7 @@ public sealed class SysRepository
             r["Channel"] as string, r["Subject"] as string,
             r["Status"] as string, r["RetryCount"] as int?,
             r["ErrorMsg"] as string),
-            ("@N", topN));
+            ("@N", null, topN));
     }
 
     // ── SYS-03 Screen Management ───────────────────────────────────────
@@ -807,7 +807,7 @@ public sealed class SysRepository
                        .Replace("{CRITERIA}", HasScreenCriteriaColumn() ? "m.PermissionCriteria" : "'" + PermissionSlots.Default + "'");
         return moduleCode is null
             ? Query(query, MapScreen)
-            : Query(query, MapScreen, ("@Module", moduleCode));
+            : Query(query, MapScreen, ("@Module", "SYS_Screen.ModuleCode", moduleCode));
     }
 
     static bool? _hasScreenCriteria;
@@ -1297,7 +1297,12 @@ public sealed class SysRepository
     /// 사용자 삭제 전 정리 — 프로필과 Identity 보조 행(역할·클레임·외부 로그인·토큰)을 한 트랜잭션으로 지운다.
     /// 개발·로컬 DB 의 AspNetUserRoles·Claims·Logins·Tokens 에는 외래키가 없어 AspNetUsers 만 지우면 고아 행이 남는다(10-07 확인).
     /// </summary>
-    public void DeleteProfile(string userId)
+    /// <summary>
+    /// SYS-001 계정 삭제 — 프로필·Identity 보조 행과 계정(AspNetUsers)까지 한 트랜잭션(10-13). 전에는 프로필만 지운 뒤
+    /// UserManager.DeleteAsync 결과를 보지 않아, 계정 삭제가 실패하면 "프로필 없음" 계정이 남은 채 삭제됨으로 기록됐다.
+    /// 계정 행이 이미 없으면 false(아무것도 바꾸지 않음).
+    /// </summary>
+    public bool DeleteUser(string userId)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -1307,10 +1312,13 @@ public sealed class SysRepository
             DELETE dbo.AspNetUserLogins WHERE UserId = @UserID;
             DELETE dbo.AspNetUserTokens WHERE UserId = @UserID;
             DELETE dbo.SYS_UserProfile  WHERE UserID = @UserID;
+            DELETE dbo.AspNetUsers      WHERE Id     = @UserID;
+            SELECT @@ROWCOUNT;
             """, conn, tx);
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
-        cmd.ExecuteNonQuery();
+        if (Convert.ToInt32(cmd.ExecuteScalar()) == 0) { tx.Rollback(); return false; }
         tx.Commit();
+        return true;
     }
 
     /// <summary>SYS-001 수정 저장 한 건 — 바꿀 것만 채운다(ChangeRole=false 면 역할, PasswordHash/PinHash 가 null 이면 그 값은 그대로).</summary>
@@ -1428,7 +1436,7 @@ public sealed class SysRepository
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(
             "SELECT COUNT(1) FROM dbo.SYS_UserProfile WHERE UserID = @UserID", conn);
-        cmd.Parameters.AddWithValue("@UserID", userId);
+        ColumnParams.AddFilter(cmd, "@UserID", "SYS_UserProfile.UserID", userId);
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
@@ -1442,11 +1450,11 @@ public sealed class SysRepository
         cmd.ExecuteNonQuery();
     }
 
-    private List<T> Query<T>(string sql, Func<IDataReader, T> map, params (string Name, object Value)[] pars)
+    private List<T> Query<T>(string sql, Func<IDataReader, T> map, params (string Name, string? Column, object? Value)[] pars)
     {
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        foreach (var (n, v) in pars) cmd.Parameters.AddWithValue(n, v);
+        foreach (var (n, c, v) in pars) ColumnParams.AddFilter(cmd, n, c, v);
         using var rdr  = cmd.ExecuteReader();
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));

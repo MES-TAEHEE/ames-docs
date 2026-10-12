@@ -607,13 +607,22 @@ public sealed class LineScheduleRepository
                      $"{fromMoldId ?? ""}→{toMoldId}", "WO", woId, "DRAFT", actor, toMoldId);
 
     // 라인 배치용 WO 후보 (Released/In Progress). MD_Item 미등록 품목도 포함하도록 LEFT JOIN.
-    public sealed record WoRow(int WoId, string? WoNumber, string? ItemNo, string? ItemName, decimal OpenQty, string? Status);
+    // PlacedElsewhereQty = 이 라인의 다른 날짜에 이미 놓인 그 WO 슬롯 수량(시간을 점유한 슬롯만 — APS 형제 0분 행은 다른 품번 몫이라 뺀다).
+    // OpenQty 는 WO 생성 때 주문 수량으로 채운 뒤 바뀌지 않으므로, 둘의 차가 아직 이 라인에 배치되지 않은 수량이다(10-13 수동 배치 기본값).
+    public sealed record WoRow(int WoId, string? WoNumber, string? ItemNo, string? ItemName, decimal OpenQty, string? Status,
+        decimal PlacedElsewhereQty = 0)
+    {
+        public decimal UnplacedQty => Math.Max(0, OpenQty - PlacedElsewhereQty);
+    }
 
-    public List<WoRow> ListLineWos(string lineId)
+    public List<WoRow> ListLineWos(string lineId, DateTime boardDate)
     {
         const string sql = """
             SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
-                   ISNULL(w.OpenQty,0) AS OpenQty, r.Status
+                   ISNULL(w.OpenQty,0) AS OpenQty, r.Status,
+                   ISNULL((SELECT SUM(s.PlannedQty) FROM dbo.PP_LineSchedule s
+                           WHERE s.WoID = w.WoID AND s.LineID = @LineId AND s.EntryType = 'WO'
+                             AND s.ScheduleDate <> @Date AND s.EndMin > s.StartMin), 0) AS PlacedElsewhereQty
             FROM   dbo.PP_WorkOrderRouting r
             JOIN   dbo.PP_WorkOrder w ON w.WoID = r.WoID
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
@@ -625,6 +634,7 @@ public sealed class LineScheduleRepository
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@Date", SqlDbType.Date).Value = boardDate.Date;
         using var rdr = cmd.ExecuteReader();
         var list = new List<WoRow>();
         while (rdr.Read())
@@ -634,7 +644,8 @@ public sealed class LineScheduleRepository
                 rdr["ItemNo"]   as string,
                 rdr["ItemName"] as string,
                 rdr.GetDecimal(rdr.GetOrdinal("OpenQty")),
-                rdr["Status"]   as string));
+                rdr["Status"]   as string,
+                Convert.ToDecimal(rdr["PlacedElsewhereQty"])));
         return list;
     }
 

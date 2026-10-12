@@ -28,7 +28,7 @@ public sealed partial class ScmRepository
                 AND (@Delivery IS NULL OR d.DeliveryNumber=@Delivery) AND {NoteVendorAccess}
             ORDER BY t.TransactionTime DESC,t.TransactionID DESC;
             """,c);
-        Add(cmd,("@U",userId),("@Delivery",(object?)deliveryNumber??DBNull.Value));
+        Filter(cmd,("@U", "SCM_PortalVendorUser.UserID",userId),("@Delivery", "SCM_Delivery.DeliveryNumber",(object?)deliveryNumber??DBNull.Value));
         using var r=cmd.ExecuteReader();var rows=new List<PortalDiscrepancy>();
         while(r.Read())rows.Add(new(Convert.ToInt64(r[0]),r.GetString(1),r.GetString(2),r.GetString(3),r.GetString(4),
             r.GetString(5),r.GetString(6),r.GetString(7),r.GetDateTime(8),r.GetDecimal(9),r.GetDecimal(10),r.GetDecimal(11),r.GetString(12),r.GetString(13)));
@@ -76,7 +76,7 @@ public sealed partial class ScmRepository
               AND {NoteVendorAccess}
             ORDER BY d.DeliveryID DESC,l.DeliveryLineID;
             """,c);
-        Add(cmd,("@U",userId));
+        Filter(cmd,("@U", "SCM_PortalVendorUser.UserID",userId));
         using var r=cmd.ExecuteReader();var rows=new List<PortalReceiptLine>();
         while(r.Read())rows.Add(new(r.GetInt32(0),r.GetString(1),r.GetString(2),r.GetString(3),r.GetString(4),r.GetString(5),r.GetString(6),r.GetString(7),r.GetString(8),r.IsDBNull(9)?null:r.GetDateTime(9),r.GetDecimal(10),r.GetDecimal(11)));
         return rows;

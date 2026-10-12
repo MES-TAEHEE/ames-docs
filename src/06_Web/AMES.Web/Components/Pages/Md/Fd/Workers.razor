@@ -204,9 +204,9 @@
             @if (_confirmDelete)
             {
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
-                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <span>@L["MD.Workers.Msg.ConfirmDeactivate"]</span>
                     <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
-                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDeactivate" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
 
@@ -217,7 +217,10 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (_sel.ActiveFlag)
+                {
+                    <RadzenButton Text="@L["MD.Workers.Btn.Deactivate"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="person_off" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -417,18 +420,19 @@
         finally { _busy = false; }
     }
 
-    async Task SaveDelete()
+    // 삭제 대신 사용 안 함 — 행을 지우면 다음 EOS 배지 스캔 때 PIN 없는 계정으로 다시 생겼다(10-13)
+    async Task SaveDeactivate()
     {
         if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
-            WorkerRepo.Delete(_sel.WorkerId);
-            Audit.Deleted("MD-032", "MD_Worker", _sel.EmployeeNo, _sel);
+            WorkerRepo.Deactivate(_sel.WorkerId, _actor);
+            Audit.Updated("MD-032", "MD_Worker", _sel.EmployeeNo, _sel, _sel with { ActiveFlag = false });
             var no = _sel.EmployeeNo;
             CloseModal(); await ReloadRestorePage();
-            ShowMsg(string.Format(L["MD.Workers.Ok.Deleted"].Value, no), false);
+            ShowMsg(string.Format(L["MD.Workers.Ok.Deactivated"].Value, no), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }

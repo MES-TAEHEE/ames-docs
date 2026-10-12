@@ -64,7 +64,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(
             "SELECT COUNT(1) FROM dbo.MD_CodeGroup WHERE GroupCode=@G", conn);
-        cmd.Parameters.AddWithValue("@G", groupCode);
+        ColumnParams.AddFilter(cmd, "@G", "MD_CodeGroup.GroupCode", groupCode);
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
@@ -73,7 +73,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "SELECT COUNT(1) FROM dbo.MD_CodeGroup WHERE GroupCode=@G AND ISNULL(UseFlag,1)=1", conn);
-        cmd.Parameters.AddWithValue("@G", groupCode);
+        ColumnParams.AddFilter(cmd, "@G", "MD_CodeGroup.GroupCode", groupCode);
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
@@ -147,7 +147,7 @@ public sealed class MasterDataRepository
             FROM   dbo.MD_CodeItem
             WHERE  GroupCode=@G
             ORDER  BY ISNULL(SortOrder,0), CodeValue
-            """, MapCodeItem, ("@G", groupCode));
+            """, MapCodeItem, ("@G", "MD_CodeItem.GroupCode", groupCode));
 
     const string CodeItemColumns = """
         CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,
@@ -182,7 +182,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(
             "SELECT COUNT(1) FROM dbo.MD_CodeItem WHERE CodeID=@I", conn);
-        cmd.Parameters.AddWithValue("@I", codeId);
+        ColumnParams.AddFilter(cmd, "@I", "MD_CodeItem.CodeID", codeId);
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
@@ -300,9 +300,9 @@ public sealed class MasterDataRepository
             " AND (ItemNo LIKE @S OR ItemName LIKE @S OR ItemCategory LIKE @S OR CarType LIKE @S OR PGN LIKE @S OR ALC LIKE @S)") +
             (string.IsNullOrWhiteSpace(itemType) ? "" : " AND ItemType = @ItemType") +
             " ORDER BY ItemNo";
-        var parameters = new List<(string, object?)>();
-        if (!string.IsNullOrWhiteSpace(search)) parameters.Add(("@S", "%" + search.Trim() + "%"));
-        if (!string.IsNullOrWhiteSpace(itemType)) parameters.Add(("@ItemType", itemType));
+        var parameters = new List<(string, string?, object?)>();
+        if (!string.IsNullOrWhiteSpace(search)) parameters.Add(("@S", "MD_Item.ItemName", "%" + search.Trim() + "%"));
+        if (!string.IsNullOrWhiteSpace(itemType)) parameters.Add(("@ItemType", "MD_Item.ItemType", itemType));
         var p = parameters.ToArray();
         return Query(sql, r => new ItemRow(
             r.GetString("ItemNo"),
@@ -355,7 +355,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(
             "SELECT COUNT(1) FROM dbo.MD_Item WHERE ItemNo=@N", conn);
-        cmd.Parameters.AddWithValue("@N", itemNo);
+        ColumnParams.AddFilter(cmd, "@N", "MD_Item.ItemNo", itemNo);
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
@@ -484,8 +484,8 @@ public sealed class MasterDataRepository
     {
         var where = statusFilter is null ? "" : " WHERE v.Status = @S";
         var p     = statusFilter is null
-            ? Array.Empty<(string, object?)>()
-            : new[] { ("@S", (object?)statusFilter) };
+            ? Array.Empty<(string, string?, object?)>()
+            : new (string, string?, object?)[] { ("@S", "MD_BomVersion.Status", (object?)statusFilter) };
         return Query($"""
             SELECT v.VersionID, v.RootItemNo,
                    ISNULL(i.ItemName,'') AS RootItemName,
@@ -523,7 +523,7 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(
             "SELECT COUNT(1) FROM dbo.MD_BomVersion WHERE VersionID=@V", conn);
-        cmd.Parameters.AddWithValue("@V", versionId);
+        ColumnParams.AddFilter(cmd, "@V", "MD_BomVersion.VersionID", versionId);
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
@@ -763,7 +763,7 @@ public sealed class MasterDataRepository
                 r["CreatedTS"]      is DateTime ct ? ct : null,
                 r["ModifiedBy"]     as string,
                 r["ModifiedTS"]     is DateTime mt ? mt : null),
-            ("@V", (object?)versionId));
+            ("@V", "MD_Bom.VersionID", (object?)versionId));
 
     // BOM 라인 추가·수정·삭제·재활성화는 버전이 DRAFT 일 때만 — 승인 요청(PENDING)·승인(APPROVED) 뒤에는 바뀌지 않는다(10-10).
     // 버전 행을 UPDLOCK 으로 잡고 같은 문장에서 상태를 보므로 승인과 엇갈려도 승인된 BOM 이 바뀌지 않는다.
@@ -839,11 +839,11 @@ public sealed class MasterDataRepository
     }
 
     private List<T> Query<T>(string sql, Func<SqlDataReader, T> map,
-        params (string Name, object? Val)[] p)
+        params (string Name, string? Column, object? Val)[] p)
     {
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        foreach (var (n, v) in p) cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
+        foreach (var (n, c, v) in p) ColumnParams.AddFilter(cmd, n, c, v);
         using var rdr = cmd.ExecuteReader();
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));
@@ -894,8 +894,8 @@ public sealed class MasterDataRepository
         var where = string.IsNullOrWhiteSpace(search)
             ? "" : " WHERE i.ItemNo LIKE @S OR i.ItemName LIKE @S";
         var p = string.IsNullOrWhiteSpace(search)
-            ? Array.Empty<(string, object?)>()
-            : new[] { ("@S", (object?)("%" + search.Trim() + "%")) };
+            ? Array.Empty<(string, string?, object?)>()
+            : new (string, string?, object?)[] { ("@S", "MD_Item.ItemName", (object?)("%" + search.Trim() + "%")) };
         return Query($"""
             SELECT i.ItemNo, ISNULL(i.ItemName,'') AS ItemName,
                    COUNT(b.BOPID) AS StepCount
@@ -915,8 +915,8 @@ public sealed class MasterDataRepository
     {
         var where2 = routingType is null ? "" : " AND b.RoutingType = @RT";
         var p2 = routingType is null
-            ? new[] { ("@N", (object?)itemNo) }
-            : new[] { ("@N", (object?)itemNo), ("@RT", (object?)routingType) };
+            ? new (string, string?, object?)[] { ("@N", "MD_Bop.ItemNo", (object?)itemNo) }
+            : new (string, string?, object?)[] { ("@N", "MD_Bop.ItemNo", (object?)itemNo), ("@RT", "MD_Bop.RoutingType", (object?)routingType) };
         return Query($"""
             SELECT b.BOPID, b.ItemNo, b.RoutingType, b.StepSeq, b.StationCode,
                    s.StationName, s.StationNameEn,
@@ -1061,8 +1061,8 @@ public sealed class MasterDataRepository
     {
         var where = routingType is null ? "" : " WHERE RoutingType = @RT";
         var p = routingType is null
-            ? Array.Empty<(string, object?)>()
-            : new[] { ("@RT", (object?)routingType) };
+            ? Array.Empty<(string, string?, object?)>()
+            : new (string, string?, object?)[] { ("@RT", "MD_RoutingStep.RoutingType", (object?)routingType) };
         return Query($"""
             SELECT RoutingType, StepSeq, ProcessCode,
                    ISNULL(QcRequiredFlag,0) AS QcRequiredFlag,
@@ -1093,7 +1093,7 @@ public sealed class MasterDataRepository
             ORDER  BY StepSeq
             """,
             r => r.GetString("ProcessCode"),
-            ("@RT", routingType));
+            ("@RT", "MD_RoutingStep.RoutingType", routingType));
 
     public void InsertRoutingStep(string routingType, int stepSeq, string processCode,
         bool qcRequired, bool activeFlag, string createdBy)
@@ -3760,7 +3760,7 @@ public sealed class MasterDataRepository
             r["StepDurationMin"]    is int     sds ? sds : null,
             r["CreatedBy"]          as string,
             r["CreatedTS"]          is DateTime ct  ? ct  : null),
-        ("@T", (object?)templateId));
+        ("@T", "MD_PmTemplateStep.PMTemplateID", (object?)templateId));
 
     // ── MD_LineTimePattern ───────────────────────────────────────────
     public record LineTimePatternRow(
@@ -3821,7 +3821,7 @@ public sealed class MasterDataRepository
             r["Description"]  as string,
             r["CreatedBy"]    as string,
             r["CreatedTS"]    is DateTime ct ? ct : null),
-        ("@P", (object?)patternId));
+        ("@P", "MD_LineTimeSegment.PatternID", (object?)patternId));
 
     // 목록 요약용: 전체 패턴의 세그먼트 (PatternID·SeqNo 순)
     public List<LineTimeSegmentRow> ListAllLineTimeSegments() => Query("""

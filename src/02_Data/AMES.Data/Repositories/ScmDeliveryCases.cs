@@ -54,7 +54,7 @@ public sealed partial class ScmRepository
                   WHERE u.UserID=@U AND u.VendorID=p.VendorID AND u.ActiveFlag=1 AND u.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
             ORDER BY p.PoID;
             """, c, tx);
-        Add(cmd, ("@N", order), ("@U", userId));
+        Filter(cmd, ("@N", "WH_PurchaseOrder.PoNumber", order), ("@U", "SCM_PortalVendorUser.UserID", userId));
         using var r = cmd.ExecuteReader();
         var rows = new List<CasePart>();
         while (r.Read()) rows.Add(new(r.GetInt32(0), r.GetString(1), r.GetString(2), r.GetString(3), r.GetDecimal(4), Math.Max(0,r.GetDecimal(5)),r.GetString(6),
@@ -104,7 +104,7 @@ public sealed partial class ScmRepository
             OUTPUT INSERTED.CaseNo,INSERTED.VendorID,CONVERT(date,INSERTED.CreatedAt)
             VALUES(@CaseNo,@N,@Vendor,@U);
             """,c,tx);
-        Add(header,("@N",orders.Count==1?(object)orders[0]:DBNull.Value),("@Vendor",vendor),("@U",userId));
+        Add(header,("@N", "SCM_DeliveryCase.PoNumber",orders.Count==1?(object)orders[0]:DBNull.Value),("@Vendor", "SCM_DeliveryCase.VendorID",vendor),("@U", "SCM_DeliveryCase.CreatedBy",userId));
         string number; DateTime date;
         using(var r=header.ExecuteReader()){r.Read();number=r.GetString(0);vendor=r.GetString(1);date=r.GetDateTime(2);}
         var first=ReserveBoxNumbers(c,tx,vendor,date,boxes.Count);
@@ -115,8 +115,8 @@ public sealed partial class ScmRepository
                 INSERT dbo.SCM_DeliveryBox(DeliveryLineID,PoID,CaseNo,BoxSeq,ItemNo,ItemName,UnitCode,Quantity,PackingQty,IssuedBoxNumber)
                 VALUES(NULL,@P,@Case,@Seq,@Item,@Name,@Unit,@Qty,@Pack,@Barcode);
                 """,c,tx);
-            Add(insert,("@P",b.PoID),("@Case",number),("@Seq",index+1),("@Item",p.Item),("@Name",p.Name),("@Unit",p.Unit),
-                ("@Qty",b.Quantity),("@Pack",p.PackingQty),("@Barcode",$"BX-{vendor}-{date:yyyyMMdd}-{first+index:D4}"));
+            Add(insert,("@P", "SCM_DeliveryBox.PoID",b.PoID),("@Case", "SCM_DeliveryBox.CaseNo",number),("@Seq", "SCM_DeliveryBox.BoxSeq",index+1),("@Item", "SCM_DeliveryBox.ItemNo",p.Item),("@Name", "SCM_DeliveryBox.ItemName",p.Name),("@Unit", "SCM_DeliveryBox.UnitCode",p.Unit),
+                ("@Qty", "SCM_DeliveryBox.Quantity",b.Quantity),("@Pack", "SCM_DeliveryBox.PackingQty",p.PackingQty),("@Barcode", "SCM_DeliveryBox.IssuedBoxNumber",$"BX-{vendor}-{date:yyyyMMdd}-{first+index:D4}"));
             insert.ExecuteNonQuery();
         }
         return number;
@@ -128,7 +128,7 @@ public sealed partial class ScmRepository
         foreach(var order in orders.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal))
         {
             using var cmd=new SqlCommand("SELECT PoID,ScmRowVersion FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK) WHERE PoNumber=@N",c,tx);
-            Add(cmd,("@N",order)); using var r=cmd.ExecuteReader(); var versions=new Dictionary<int,string>();
+            Filter(cmd,("@N", "WH_PurchaseOrder.PoNumber",order)); using var r=cmd.ExecuteReader(); var versions=new Dictionary<int,string>();
             while(r.Read())versions.Add(r.GetInt32(0),Convert.ToHexString((byte[])r[1]));
             result.Add(order,versions);
         }
@@ -141,7 +141,7 @@ public sealed partial class ScmRepository
             SELECT DISTINCT p.VendorID,COALESCE(NULLIF(LTRIM(RTRIM(p.DeliveryDestination)),''),'')
             FROM dbo.WH_PurchaseOrder p JOIN OPENJSON(@Ids) j ON p.PoID=CONVERT(int,j.value);
             """,c,tx);
-        Add(cmd,("@Ids",JsonSerializer.Serialize(poIds))); using var r=cmd.ExecuteReader();
+        Filter(cmd,("@Ids", null,JsonSerializer.Serialize(poIds))); using var r=cmd.ExecuteReader();
         if(!r.Read())throw new InvalidOperationException("Purchase order items were not found.");
         var vendor=r.GetString(0);var destination=r.GetString(1);
         if(destination.Length==0 || r.Read())
@@ -154,7 +154,7 @@ public sealed partial class ScmRepository
         using var c=factory.OpenConnection();using var tx=c.BeginTransaction();
         var orders=new List<string>();
         using(var lookup=new SqlCommand($"SELECT DISTINCT p.PoNumber FROM dbo.SCM_DeliveryCase k JOIN dbo.SCM_DeliveryBox b ON b.CaseNo=k.CaseNo JOIN dbo.WH_PurchaseOrder p ON p.PoID=b.PoID WHERE k.CaseNo=@N AND {CaseVendorAccess}",c,tx))
-        {Add(lookup,("@N",number),("@U",userId));using var r=lookup.ExecuteReader();while(r.Read())orders.Add(r.GetString(0));}
+        {Filter(lookup,("@N", "SCM_DeliveryCase.CaseNo",number),("@U", "SCM_PortalVendorUser.UserID",userId));using var r=lookup.ExecuteReader();while(r.Read())orders.Add(r.GetString(0));}
         if(orders.Count==0)throw new InvalidOperationException("Case not found.");
         LockCaseOrders(c,tx,orders);
         using var cmd=new SqlCommand($"""
@@ -168,7 +168,7 @@ public sealed partial class ScmRepository
                 THROW 51441,'Only unassigned cases can be cancelled.',1;
             UPDATE dbo.SCM_DeliveryBox SET ActiveFlag=0,VoidedTS=SYSDATETIME() WHERE CaseNo=@N AND ActiveFlag=1;
             """,c,tx);
-        Add(cmd,("@N",number),("@U",userId));cmd.ExecuteNonQuery();tx.Commit();
+        Filter(cmd,("@N", "WH_Inventory.CaseNo",number),("@U", "SCM_PortalVendorUser.UserID",userId));cmd.ExecuteNonQuery();tx.Commit();
     }
 
     public List<DeliveryCase> ListDeliveryCases(string? order,string userId,string? note=null,string? delivery=null)
@@ -245,7 +245,7 @@ public sealed partial class ScmRepository
                 WHERE b.ActiveFlag=0 OR b.DeliveryLineID IS NOT NULL)
                 THROW 51441,'A case has been cancelled or assigned. Refresh the list.',1;
             """,c,tx))
-        {Add(guard,("@Cases",JsonSerializer.Serialize(numbers)),("@Count",numbers.Count),("@U",userId));guard.ExecuteNonQuery();}
+        {Filter(guard,("@Cases", null,JsonSerializer.Serialize(numbers)),("@Count", null,numbers.Count),("@U", "SCM_PortalVendorUser.UserID",userId));guard.ExecuteNonQuery();}
         var deliveries=new List<string>();
         foreach(var order in orders)
         {
@@ -272,7 +272,7 @@ public sealed partial class ScmRepository
                 WHERE b.CaseNo=k.CaseNo AND b.ActiveFlag=1) x
             WHERE n.NoteNumber=@Note;
             """,c,tx))
-        {Add(link,("@Cases",JsonSerializer.Serialize(numbers)),("@Note",note.Number));link.ExecuteNonQuery();}
+        {Filter(link,("@Cases", null,JsonSerializer.Serialize(numbers)),("@Note", "SCM_DeliveryNote.NoteNumber",note.Number));link.ExecuteNonQuery();}
         return note;
     }
 
@@ -317,7 +317,7 @@ public sealed partial class ScmRepository
               {(userId is null ? "" : $"AND {CaseVendorAccess}")}
             ORDER BY k.CreatedAt DESC,k.CaseNo DESC,b.BoxID;
             """,c,tx);
-        Add(cmd,("@N",(object?)number??DBNull.Value),("@Order",(object?)order??DBNull.Value),("@Note",(object?)note??DBNull.Value),("@Delivery",(object?)delivery??DBNull.Value),("@U",userId??""));
+        Filter(cmd,("@N", "SCM_DeliveryCase.CaseNo",(object?)number??DBNull.Value),("@Order", "WH_PurchaseOrder.PoNumber",(object?)order??DBNull.Value),("@Note", "SCM_DeliveryNote.NoteNumber",(object?)note??DBNull.Value),("@Delivery", "SCM_Delivery.DeliveryNumber",(object?)delivery??DBNull.Value),("@U", "SCM_PortalVendorUser.UserID",userId??""));
         using var r=cmd.ExecuteReader();var cases=new Dictionary<string,DeliveryCase>();
         while(r.Read())
         {
@@ -359,7 +359,7 @@ public sealed partial class ScmRepository
             JOIN @Cases s ON s.CaseNo=b.CaseNo JOIN dbo.WH_PurchaseOrder p ON p.PoID=b.PoID
             WHERE b.ActiveFlag=1 AND p.PoNumber=@N GROUP BY b.PoID;
             """,c,tx);
-        Add(cmd,("@N",order),("@CasesJson",JsonSerializer.Serialize(cases)),("@Mixed",mixed));
+        Filter(cmd,("@N", "SCM_DeliveryCase.PoNumber",order),("@CasesJson", null,JsonSerializer.Serialize(cases)),("@Mixed", null,mixed));
         var totals=new Dictionary<int,decimal>();
         using(var r=cmd.ExecuteReader())while(r.Read()) totals.Add(r.GetInt32(0),r.GetDecimal(1));
         if(totals.Count!=items.Count || items.Any(i=>!totals.TryGetValue(i.PoID,out var q)||q!=i.Quantity))
@@ -382,7 +382,7 @@ public sealed partial class ScmRepository
             CROSS APPLY(SELECT MIN(b.PackingQty) Pack FROM dbo.SCM_DeliveryBox b WHERE b.DeliveryLineID=l.DeliveryLineID AND b.ActiveFlag=1) x
             WHERE l.DeliveryID=@ID;
             """,c,tx);
-        Add(cmd,("@ID",deliveryId),("@CasesJson",JsonSerializer.Serialize(cases)),("@Header",updateHeader));cmd.ExecuteNonQuery();
+        Add(cmd,("@ID", "SCM_DeliveryCase.DeliveryID",deliveryId),("@CasesJson", null,JsonSerializer.Serialize(cases)),("@Header", null,updateHeader));cmd.ExecuteNonQuery();
     }
 
     public int ReceiveDeliveryCase(string caseNo,string mode,string actor,IReadOnlyCollection<string>? scannedBoxes = null)
@@ -408,7 +408,7 @@ public sealed partial class ScmRepository
                 WHERE w.LotNo COLLATE DATABASE_DEFAULT=b.BoxNumber COLLATE DATABASE_DEFAULT)
             ORDER BY b.BoxID;
             """,c,tx);
-        Add(select,("@N",caseNo));var boxes=new List<string>();
+        Filter(select,("@N", "WH_Inventory.CaseNo",caseNo));var boxes=new List<string>();
         var scanned = new HashSet<string>(scannedBoxes ?? [], StringComparer.OrdinalIgnoreCase);
         using(var r=select.ExecuteReader())while(r.Read())
         {
@@ -421,7 +421,7 @@ public sealed partial class ScmRepository
         foreach(var barcode in boxes)
         {
             using var receive=new SqlCommand("dbo.WH_PDA_INBOUND_RECEIVE_LOT",c,tx){CommandType=CommandType.StoredProcedure,CommandTimeout=60};
-            Add(receive,("@ReceiveMode",mode),("@LotBarcode",barcode),("@LocationId",""),("@UserId",actor),("@SimulateFailure",false));
+            Add(receive,("@ReceiveMode", "WH_PDA_INBOUND_RECEIVE_LOT.@ReceiveMode",mode),("@LotBarcode", "WH_PDA_INBOUND_RECEIVE_LOT.@LotBarcode",barcode),("@LocationId", "WH_PDA_INBOUND_RECEIVE_LOT.@LocationId",""),("@UserId", "WH_PDA_INBOUND_RECEIVE_LOT.@UserId",actor),("@SimulateFailure", "WH_PDA_INBOUND_RECEIVE_LOT.@SimulateFailure",false));
             receive.ExecuteNonQuery();LinkReceivedCase(c,tx,barcode);
         }
         tx.Commit();return boxes.Count;
@@ -443,6 +443,6 @@ public sealed partial class ScmRepository
             UPDATE dbo.WH_Inventory SET UnitType='BOX',ParentLotNo=@Case,CaseNo=@Case,UpdatedAt=SYSDATETIME()
             WHERE LotNo=@B;
             """,c,tx);
-        Add(cmd,("@B",barcode));cmd.ExecuteNonQuery();
+        Filter(cmd,("@B", "WH_Inventory.LotNo",barcode));cmd.ExecuteNonQuery();
     }
 }

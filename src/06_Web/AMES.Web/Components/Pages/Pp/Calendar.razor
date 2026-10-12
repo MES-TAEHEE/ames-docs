@@ -4,6 +4,7 @@
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthPrvd
 @inject AMES.Web.Services.PermissionService PermSvc
@@ -269,7 +270,7 @@
                 </div>
                 <div class="ames-detail-label">@L["PP.Calendar.Detail.OrderDone"]</div>
                 <div>
-                    @d.OrderQty.ToString("N0") / @d.CompletedQty.ToString("N0")
+                    @UomFmt.Qty(d.OrderQty, null) / @UomFmt.Qty(d.CompletedQty, null)
                     <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));"> (@((int)d.ProgressPct)%)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Status"]</div>
@@ -560,7 +561,7 @@
             0     => L["PP.Calendar.DdTxt.DDay"].Value,
             { } v => string.Format(L["PP.Calendar.DdTxt.DaysTo"].Value, v)
         };
-        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.RouteLines ?? "—"} | {w.RoutingType ?? "INJ"}\n{StatusText(w.Status)} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{w.OrderQty:N0} {L["PP.Calendar.WoTooltip.Done"]}:{w.CompletedQty:N0} ({(int)w.ProgressPct}%)";
+        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.RouteLines ?? "—"} | {w.RoutingType ?? "INJ"}\n{StatusText(w.Status)} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{UomFmt.Qty(w.OrderQty, null)} {L["PP.Calendar.WoTooltip.Done"]}:{UomFmt.Qty(w.CompletedQty, null)} ({(int)w.ProgressPct}%)";
     }
 
     string DdTxt(int? days) => days switch

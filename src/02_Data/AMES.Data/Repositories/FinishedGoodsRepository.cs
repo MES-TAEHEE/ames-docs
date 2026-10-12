@@ -162,10 +162,10 @@ public sealed class FinishedGoodsRepository
             GetString(r, "ReceivedBy"),
             GetBool(r, "CapaTriggered"),
             GetString(r, "ItemsJSON")),
-            ("@Search", Like(search)),
-            ("@Status", NullIfBlank(status)),
-            ("@From", from?.Date),
-            ("@To", to?.Date));
+            ("@Search", "FG_CustomerReturn.ReceivedBy", Like(search)),
+            ("@Status", "FG_CustomerReturn.Status", NullIfBlank(status)),
+            ("@From", "FG_CustomerReturn.ReceivedAt", from?.Date),
+            ("@To", null, to?.Date));
     }
 
     public List<ShipmentPlanSourceRow> ListShipmentPlanSources(string? search = null)
@@ -222,7 +222,7 @@ public sealed class FinishedGoodsRepository
             GetDecimal(r, "PlannedQty"),
             GetDecimal(r, "RemainingQty"),
             GetDate(r, "RequestedDeliveryDate")),
-            ("@Search", Like(search)));
+            ("@Search", "MD_Item.ItemName", Like(search)));
     }
 
     public List<ShipmentPlanRow> ListShipmentPlans(string? search = null)
@@ -265,7 +265,7 @@ public sealed class FinishedGoodsRepository
             GetInt(r, "LineCount"),
             GetDecimal(r, "PlannedQty"),
             GetDate(r, "CreatedTS")),
-            ("@Search", Like(search)));
+            ("@Search", "FG_ShipmentOrder.ShipOrderNumber", Like(search)));
     }
 
     public List<ShipmentPlanLineRow> ListShipmentPlanLines(int shipmentOrderId)
@@ -313,7 +313,7 @@ public sealed class FinishedGoodsRepository
             GetString(r, "ItemName"),
             GetDecimal(r, "PlannedQty"),
             GetDate(r, "RequestedDeliveryDate")),
-            ("@ShipmentOrderID", shipmentOrderId));
+            ("@ShipmentOrderID", "FG_ShipmentOrder.ShipmentOrderID", shipmentOrderId));
     }
 
     public string DeleteShipmentPlan(int shipmentOrderId)
@@ -508,9 +508,9 @@ public sealed class FinishedGoodsRepository
             GetDecimal(r, "Qty"),
             GetString(r, "OperatorID"),
             GetString(r, "Status") ?? "SHIPPED"),
-            ("@Search", Like(search)),
-            ("@From", from?.Date),
-            ("@To", to?.Date));
+            ("@Search", "WH_InventoryTransaction.LotNo", Like(search)),
+            ("@From", "WH_InventoryTransaction.TransactionTime", from?.Date),
+            ("@To", null, to?.Date));
     }
 
     public ShipmentDocument? GetShipmentDocument(int shipmentOrderId)
@@ -708,18 +708,18 @@ public sealed class FinishedGoodsRepository
             GetString(r, "WorkerID"),
             GetString(r, "Status"),
             GetString(r, "Details")),
-            ("@Search", Like(search)),
-            ("@EventType", NullIfBlank(eventType)?.ToUpperInvariant()),
-            ("@From", from?.Date),
-            ("@To", to?.Date));
+            ("@Search", null, Like(search)),
+            ("@EventType", null, NullIfBlank(eventType)?.ToUpperInvariant()),
+            ("@From", null, from?.Date),
+            ("@To", null, to?.Date));
     }
 
-    private List<T> Query<T>(string sql, Func<SqlDataReader, T> map, params (string Name, object? Value)[] parameters)
+    private List<T> Query<T>(string sql, Func<SqlDataReader, T> map, params (string Name, string? Column, object? Value)[] parameters)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(sql, conn);
-        foreach (var (name, value) in parameters)
-            cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        foreach (var (name, column, value) in parameters)
+            ColumnParams.AddFilter(cmd, name, column, value);
         using var reader = cmd.ExecuteReader();
         var rows = new List<T>();
         while (reader.Read()) rows.Add(map(reader));

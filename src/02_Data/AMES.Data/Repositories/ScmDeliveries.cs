@@ -23,7 +23,7 @@ public sealed partial class ScmRepository
                 WHERE m.UserID=@User AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
             ORDER BY d.DeliveryID DESC,l.DeliveryLineID
             """,conn);
-        Add(cmd,("@Portal",portal),("@User",userId??""));
+        Filter(cmd,("@Portal", null,portal),("@User", "SCM_PortalVendorUser.UserID",userId??""));
         using var r=cmd.ExecuteReader(); var result=new List<SupplierDelivery>();
         while(r.Read()) result.Add(new(r.GetString(0),r.GetString(1),r.GetInt32(2),r.GetInt32(3),r.GetString(4),r.GetString(5),r.GetDateTime(6),r.GetDecimal(7),r.GetDecimal(8),r.GetString(9),Convert.ToHexString((byte[])r[10]),r.IsDBNull(11)?null:r.GetDateTime(11),r.IsDBNull(12)?null:r.GetDateTime(12),r.IsDBNull(13)?null:r.GetString(13),r.GetString(14),r.GetDateTime(15)));
         return result;
@@ -53,7 +53,7 @@ public sealed partial class ScmRepository
             throw new ArgumentException("Create 1 to 1,000 cases containing at most 1,000 boxes.");
         // Serialize all registrations and cancellations for this PO before checking balances.
         using(var gate=new SqlCommand("SELECT PoID FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK) WHERE PoNumber=@N",conn,tx))
-        { Add(gate,("@N",number)); using var reader=gate.ExecuteReader(); while(reader.Read()){} }
+        { Filter(gate,("@N", "WH_PurchaseOrder.PoNumber",number)); using var reader=gate.ExecuteReader(); while(reader.Read()){} }
         using(var auth=new SqlCommand("""
             IF NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N)
                 THROW 50032,'Order not found.',1;
@@ -67,7 +67,7 @@ public sealed partial class ScmRepository
             SELECT DeliveryNumber FROM dbo.SCM_Delivery WHERE RequestID=@Request AND PoNumber=@N AND CreatedUserID=@U;
             """,conn,tx))
         {
-            Add(auth,("@N",number),("@U",userId),("@Request",requestId));
+            Filter(auth,("@N", "WH_PurchaseOrder.PoNumber",number),("@U", "SCM_PortalVendorUser.UserID",userId),("@Request", "SCM_Delivery.RequestID",requestId));
             if(auth.ExecuteScalar() is string previous)return previous;
         }
         var locked=LockPurchaseOrder(conn,tx,number,versions);
@@ -77,7 +77,7 @@ public sealed partial class ScmRepository
             SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N
               AND (SupplierConfirmedAt IS NULL OR @Date<OrderDate OR @Date<CONVERT(date,SYSDATETIME()));
             """,conn,tx))
-        {Add(confirmed,("@N",number),("@Date",date.Date));if((int)confirmed.ExecuteScalar()!>0)throw new InvalidOperationException("Confirm the order and check the delivery date.");}
+        {Filter(confirmed,("@N", "WH_PurchaseOrder.PoNumber",number),("@Date", "WH_PurchaseOrder.OrderDate",date.Date));if((int)confirmed.ExecuteScalar()!>0)throw new InvalidOperationException("Confirm the order and check the delivery date.");}
         if(draftCases is not null)
             caseNumbers=draftCases.Select(boxes=>CreatePreparedCase(conn,tx,number,boxes,userId)).ToArray();
         if(caseNumbers is not null) ValidatePreparedCases(conn,tx,number,caseNumbers,items,caseBatch);
@@ -90,7 +90,7 @@ public sealed partial class ScmRepository
                 WHERE p.PoID=@ID AND p.PoNumber=@N AND m.ActiveFlag=1 AND m.PackingQty>0;
                 """,conn,tx))
             {
-                Add(packing,("@ID",item.PoID),("@N",number));
+                Filter(packing,("@ID", "WH_PurchaseOrder.PoID",item.PoID),("@N", "WH_PurchaseOrder.PoNumber",number));
                 if(packing.ExecuteScalar() is not decimal) throw new PackingQuantityRequiredException();
             }
             using var available=new SqlCommand("""
@@ -103,7 +103,7 @@ public sealed partial class ScmRepository
                 FROM dbo.WH_PurchaseOrder p JOIN dbo.MD_Item i WITH(HOLDLOCK) ON i.ItemNo=p.ItemNo
                 WHERE p.PoID=@ID AND p.PoNumber=@N AND p.Status IN ('Open','Partial');
                 """,conn,tx);
-            Add(available,("@ID",item.PoID),("@N",number),("@FromCases",caseNumbers is not null));
+            Filter(available,("@ID", "WH_PurchaseOrder.PoID",item.PoID),("@N", "WH_PurchaseOrder.PoNumber",number),("@FromCases", null,caseNumbers is not null));
             if(available.ExecuteScalar() is not decimal remaining || item.Quantity>remaining)
                 throw new InvalidOperationException("Line unavailable or delivery quantity exceeds remaining balance.");
         }
@@ -113,20 +113,20 @@ public sealed partial class ScmRepository
             OUTPUT INSERTED.DeliveryID
             SELECT @Temp,@Request,@N,MIN(VendorID),@Date,@Actor,@User FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N;
             """,conn,tx);
-        Add(header,("@Temp",Guid.NewGuid().ToString("N")[..30]),("@Request",requestId),("@N",number),("@Date",date.Date),("@Actor",actor),("@User",userId));
+        Add(header,("@Temp", "SCM_Delivery.DeliveryNumber",Guid.NewGuid().ToString("N")[..30]),("@Request", "SCM_Delivery.RequestID",requestId),("@N", "SCM_Delivery.PoNumber",number),("@Date", "SCM_Delivery.DeliveryDate",date.Date),("@Actor", "SCM_Delivery.CreatedBy",actor),("@User", "SCM_Delivery.CreatedUserID",userId));
         var id=(int)header.ExecuteScalar()!;
         using var assign=new SqlCommand("UPDATE dbo.SCM_Delivery SET DeliveryNumber=CONCAT('DN-',CONVERT(char(8),CreatedTS,112),'-',@ID) OUTPUT INSERTED.DeliveryNumber WHERE DeliveryID=@ID",conn,tx);
-        Add(assign,("@ID",id)); var deliveryNumber=(string)assign.ExecuteScalar()!;
+        Filter(assign,("@ID", "SCM_Delivery.DeliveryID",id)); var deliveryNumber=(string)assign.ExecuteScalar()!;
         foreach(var item in items)
         {
             using var line=new SqlCommand("INSERT dbo.SCM_DeliveryLine(DeliveryID,PoID,Quantity,VendorLotNo,ProductionDate) VALUES(@D,@P,@Q,@Lot,@Prod)",conn,tx);
-            Add(line,("@D",id),("@P",item.PoID),("@Q",item.Quantity),("@Lot",DeliveryLot(item,date)),("@Prod",(item.ProductionDate??date).Date));line.ExecuteNonQuery();
+            Add(line,("@D", "SCM_DeliveryLine.DeliveryID",id),("@P", "SCM_DeliveryLine.PoID",item.PoID),("@Q", "SCM_DeliveryLine.Quantity",item.Quantity),("@Lot", "SCM_DeliveryLine.VendorLotNo",DeliveryLot(item,date)),("@Prod", "SCM_DeliveryLine.ProductionDate",(item.ProductionDate??date).Date));line.ExecuteNonQuery();
         }
         if(looseItems is not null) InsertLooseLabels(conn,tx,id,looseItems);
         else if(caseNumbers is null) SyncDeliveryBoxes(conn,tx,id);
         else AttachPreparedCases(conn,tx,id,caseNumbers,!caseBatch);
         using var touch=new SqlCommand("UPDATE dbo.WH_PurchaseOrder SET ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE PoNumber=@N",conn,tx);
-        Add(touch,("@Actor",actor),("@N",number));touch.ExecuteNonQuery();
+        Add(touch,("@Actor", "WH_PurchaseOrder.ModifiedBy",actor),("@N", "WH_PurchaseOrder.PoNumber",number));touch.ExecuteNonQuery();
         return deliveryNumber;
     }
     public void UpdateSupplierDelivery(string deliveryNumber, DateTime date, IReadOnlyList<DeliveryInput> items,
@@ -141,7 +141,7 @@ public sealed partial class ScmRepository
         using var conn=factory.OpenConnection(); using var tx=conn.BeginTransaction();
         string number;
         using(var lookup=new SqlCommand("SELECT PoNumber FROM dbo.SCM_Delivery WHERE DeliveryNumber=@D",conn,tx))
-        {Add(lookup,("@D",deliveryNumber));number=lookup.ExecuteScalar() as string ?? throw new InvalidOperationException("Delivery not found.");}
+        {Filter(lookup,("@D", "SCM_Delivery.DeliveryNumber",deliveryNumber));number=lookup.ExecuteScalar() as string ?? throw new InvalidOperationException("Delivery not found.");}
         var locked=LockPurchaseOrder(conn,tx,number,orderVersions);
         using var check=new SqlCommand("""
             IF EXISTS(SELECT 1 FROM dbo.SCM_Delivery d WHERE d.DeliveryNumber=@D AND NOT EXISTS(
@@ -150,7 +150,7 @@ public sealed partial class ScmRepository
                 THROW 50031,'Vendor access denied.',1;
             SELECT DeliveryID,Version,Status FROM dbo.SCM_Delivery WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryNumber=@D;
             """,conn,tx);
-        Add(check,("@D",deliveryNumber),("@U",userId));
+        Filter(check,("@D", "SCM_Delivery.DeliveryNumber",deliveryNumber),("@U", "SCM_PortalVendorUser.UserID",userId));
         int id;
         using(var r=check.ExecuteReader())
         {
@@ -161,7 +161,7 @@ public sealed partial class ScmRepository
         if(!cancel && !ship)
         {
             using var issued=new SqlCommand("SELECT COUNT(*) FROM dbo.SCM_Delivery d WHERE d.DeliveryID=@ID AND (d.NoteSnapshot IS NOT NULL OR EXISTS(SELECT 1 FROM dbo.SCM_DeliveryNoteDelivery n WHERE n.DeliveryID=d.DeliveryID))",conn,tx);
-            Add(issued,("@ID",id));
+            Filter(issued,("@ID", "SCM_Delivery.DeliveryID",id));
             if((int)issued.ExecuteScalar()!>0)
                 throw new InvalidOperationException("The Delivery Note has been issued. Cancel and recreate the delivery to change its contents.");
         }
@@ -173,27 +173,27 @@ public sealed partial class ScmRepository
                     JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID
                     WHERE l.DeliveryID=@ID);
             """,conn,tx))
-        {Add(inbound,("@ID",id));if((int)inbound.ExecuteScalar()!>0)throw new InvalidOperationException("Delivery is linked to receiving.");}
+        {Filter(inbound,("@ID", "SCM_DeliveryLine.DeliveryID",id));if((int)inbound.ExecuteScalar()!>0)throw new InvalidOperationException("Delivery is linked to receiving.");}
         if(!cancel)
         {
             if(locked.Count==0 || locked.Any(x=>x.Status is not ("Open" or "Partial" or "Complete" or "Received")))
                 throw new InvalidOperationException("Order is no longer issued.");
             using(var dates=new SqlCommand("SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N AND (SupplierConfirmedAt IS NULL OR @Date<OrderDate OR (@Ship=0 AND @Date<CONVERT(date,SYSDATETIME())) OR (@Ship=1 AND @Date>CONVERT(date,SYSDATETIME())))",conn,tx))
-            {Add(dates,("@N",number),("@Date",date.Date),("@Ship",ship));if((int)dates.ExecuteScalar()!>0)throw new InvalidOperationException("Invalid date or unconfirmed order.");}
+            {Filter(dates,("@N", "WH_PurchaseOrder.PoNumber",number),("@Date", "WH_PurchaseOrder.OrderDate",date.Date),("@Ship", null,ship));if((int)dates.ExecuteScalar()!>0)throw new InvalidOperationException("Invalid date or unconfirmed order.");}
             var existing=new HashSet<int>();
             using(var lineIds=new SqlCommand("SELECT PoID FROM dbo.SCM_DeliveryLine WHERE DeliveryID=@ID",conn,tx))
-            {Add(lineIds,("@ID",id));using var r=lineIds.ExecuteReader();while(r.Read())existing.Add(r.GetInt32(0));}
+            {Filter(lineIds,("@ID", "SCM_DeliveryLine.DeliveryID",id));using var r=lineIds.ExecuteReader();while(r.Read())existing.Add(r.GetInt32(0));}
             if(!existing.SetEquals(items.Select(x=>x.PoID)))throw new InvalidOperationException("Delivery lines changed. Reload.");
             using(var cases=new SqlCommand("""
                 SELECT COUNT(*) FROM dbo.SCM_DeliveryBox b JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID
                 WHERE l.DeliveryID=@ID AND b.CaseNo IS NOT NULL AND b.ActiveFlag=1;
                 """,conn,tx))
             {
-                Add(cases,("@ID",id));
+                Filter(cases,("@ID", "SCM_DeliveryLine.DeliveryID",id));
                 if((int)cases.ExecuteScalar()!>0)
                 {
                     using var totals=new SqlCommand("SELECT PoID,Quantity FROM dbo.SCM_DeliveryLine WHERE DeliveryID=@ID",conn,tx);
-                    Add(totals,("@ID",id));using var r=totals.ExecuteReader();
+                    Filter(totals,("@ID", "SCM_DeliveryLine.DeliveryID",id));using var r=totals.ExecuteReader();
                     while(r.Read()) if(!items.Any(i=>i.PoID==r.GetInt32(0)&&i.Quantity==r.GetDecimal(1)))
                         throw new InvalidOperationException("Case delivery quantities are fixed. Cancel the delivery to select different cases.");
                 }
@@ -209,7 +209,7 @@ public sealed partial class ScmRepository
                     FROM dbo.WH_PurchaseOrder p JOIN dbo.SCM_Delivery d ON d.DeliveryID=@ID AND d.VendorID=p.VendorID
                     WHERE p.PoID=@P AND p.PoNumber=@N AND p.Status IN ('Open','Partial');
                     """,conn,tx);
-                Add(balance,("@ID",id),("@P",item.PoID),("@N",number));
+                Filter(balance,("@ID", "SCM_Delivery.DeliveryID",id),("@P", "WH_PurchaseOrder.PoID",item.PoID),("@N", "WH_PurchaseOrder.PoNumber",number));
                 if(balance.ExecuteScalar() is not decimal available || item.Quantity>available)
                     throw new InvalidOperationException("Quantity exceeds available balance.");
                 using var update=new SqlCommand("""
@@ -217,7 +217,7 @@ public sealed partial class ScmRepository
                         THROW 50032,'Ship only saved delivery quantities. Reload.',1;
                     IF @Ship=0 UPDATE dbo.SCM_DeliveryLine SET Quantity=@Q,VendorLotNo=@Lot,ProductionDate=@Prod WHERE DeliveryID=@ID AND PoID=@P;
                     """,conn,tx);
-                Add(update,("@Q",item.Quantity),("@ID",id),("@P",item.PoID),("@Ship",ship),("@Lot",DeliveryLot(item,date)),("@Prod",(item.ProductionDate??date).Date));update.ExecuteNonQuery();
+                Add(update,("@Q", "SCM_DeliveryLine.Quantity",item.Quantity),("@ID", "SCM_DeliveryLine.DeliveryID",id),("@P", "SCM_DeliveryLine.PoID",item.PoID),("@Ship", null,ship),("@Lot", "SCM_DeliveryLine.VendorLotNo",DeliveryLot(item,date)),("@Prod", "SCM_DeliveryLine.ProductionDate",(item.ProductionDate??date).Date));update.ExecuteNonQuery();
             }
         }
         if(!cancel && !ship) SyncDeliveryBoxes(conn,tx,id);
@@ -231,12 +231,12 @@ public sealed partial class ScmRepository
                     JOIN dbo.SCM_DeliveryLine otherLine ON otherLine.DeliveryLineID=otherBox.DeliveryLineID
                     WHERE otherBox.CaseNo=b.CaseNo AND otherBox.ActiveFlag=1 AND otherLine.DeliveryID<>@ID);
                 """,conn,tx);
-            Add(sharedCase,("@ID",id));
+            Filter(sharedCase,("@ID", "SCM_DeliveryLine.DeliveryID",id));
             if((int)sharedCase.ExecuteScalar()!>0)
                 throw new InvalidOperationException("This delivery shares a Case with another PO. It cannot be cancelled separately.");
             // Keep the cancelled document links for history; do not leave orphaned prepared cases.
             using var voidBoxes=new SqlCommand("UPDATE b SET ActiveFlag=0,VoidedTS=SYSDATETIME() FROM dbo.SCM_DeliveryBox b JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID WHERE l.DeliveryID=@ID AND b.ActiveFlag=1",conn,tx);
-            Add(voidBoxes,("@ID",id));voidBoxes.ExecuteNonQuery();
+            Filter(voidBoxes,("@ID", "SCM_DeliveryLine.DeliveryID",id));voidBoxes.ExecuteNonQuery();
         }
         using var header=new SqlCommand("""
             UPDATE dbo.SCM_Delivery SET DeliveryDate=CASE WHEN @Cancel=1 OR @Ship=1 THEN DeliveryDate ELSE @Date END,
@@ -248,7 +248,7 @@ public sealed partial class ScmRepository
                 ModifiedBy=@Actor,ModifiedUserID=@U,ModifiedTS=SYSDATETIME() WHERE DeliveryID=@ID;
             UPDATE dbo.WH_PurchaseOrder SET ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE PoNumber=@N;
             """,conn,tx);
-        Add(header,("@ID",id),("@Date",date.Date),("@Cancel",cancel),("@Ship",ship),("@Actor",actor),("@U",userId),("@N",number));header.ExecuteNonQuery();
+        Add(header,("@ID", "SCM_Delivery.DeliveryID",id),("@Date", null,date.Date),("@Cancel", null,cancel),("@Ship", null,ship),("@Actor", "SCM_Delivery.ModifiedBy",actor),("@U", "SCM_Delivery.ModifiedUserID",userId),("@N", "SCM_Delivery.PoNumber",number));header.ExecuteNonQuery();
         tx.Commit();
     }
 

@@ -3,6 +3,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.FinishedGoodsRepository Fg
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 @using Radzen
 
 <PageTitle>FG-01 @L["FG.Returns.Title"] · AMES</PageTitle>
@@ -45,7 +46,7 @@
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="CustomerCode" Title="@L["Col.Customer"].Value" Width="115px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ShipmentOrderNumber" Title="@L["FG.Returns.Col.OrigShipment"].Value" Width="165px"><Template Context="r">@(r.ShipmentOrderNumber ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ItemNo" Title="@L["Col.ItemNo"].Value" Width="140px"><Template Context="r"><span class="code">@(r.ItemNo ?? "-")</span></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="Qty" Title="@L["Col.Qty"].Value" Width="90px" TextAlign="TextAlign.Right"><Template Context="r">@r.Qty.ToString("N0")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="Qty" Title="@L["Col.Qty"].Value" Width="90px" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.Qty(r.Qty, null)</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReturnReason" Title="@L["Col.Reason"].Value" Width="160px"><Template Context="r">@(r.ReturnReason ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="Status" Title="@L["Col.Status"].Value" Width="115px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @StatusClass(r.Status)">@(r.Status ?? "OPEN")</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedBy" Title="@L["FG.Returns.Col.ReceivedBy"].Value" Width="135px" />
@@ -67,7 +68,7 @@
                 <div><span>@L["FG.Returns.Col.OrigShipment"]</span><strong>@(_detail.ShipmentOrderNumber ?? "-")</strong></div>
                 <div><span>@L["FG.Returns.Lbl.CustomerPo"]</span><strong>@(_detail.CustomerPo ?? "-")</strong></div>
                 <div><span>@L["Col.ItemNo"]</span><strong>@(_detail.ItemNo ?? "-")</strong></div>
-                <div><span>@L["Col.Quantity"]</span><strong>@_detail.Qty.ToString("N0")</strong></div>
+                <div><span>@L["Col.Quantity"]</span><strong>@UomFmt.Qty(_detail.Qty, null)</strong></div>
                 <div><span>@L["FG.Returns.Lbl.ReturnReason"]</span><strong>@(_detail.ReturnReason ?? "-")</strong></div>
                 <div><span>@L["FG.Returns.Col.ReceivedBy"]</span><strong>@(_detail.ReceivedBy ?? "-")</strong></div>
                 <div><span>@L["FG.Returns.Lbl.Capa"]</span><strong>@(_detail.CapaTriggered ? L["Lbl.Yes"] : L["Msg.No"])</strong></div>

@@ -1167,12 +1167,12 @@ public static class FgEndpoints
         while (rdr.Read()) list.Add(map(rdr));
         return Results.Ok(list);
     }
-    private static IResult QueryWithParam<T>(AmesConnectionFactory factory, string sql, string p, object v,
+    private static IResult QueryWithParam<T>(AmesConnectionFactory factory, string sql, string p, string? column, object v,
                                               Func<SqlDataReader, T> map)
     {
         using var conn = factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue(p, v);
+        ColumnParams.AddFilter(cmd, p, column, v);
         using var rdr  = cmd.ExecuteReader();
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));

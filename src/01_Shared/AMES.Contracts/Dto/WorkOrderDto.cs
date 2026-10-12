@@ -50,8 +50,14 @@ public sealed class WorkOrderDto
     public double ProgressPct =>
         OrderQty == 0 ? 0 : Math.Min(100, (double)(CompletedQty * 100 / OrderQty));
 
+    /// <summary>
+    /// <see cref="DaysToDue"/> 의 "오늘"(10-13) — 기본은 이 PC 날짜. 이 프로젝트는 DbClock(AMES.Data)을 참조할 수 없어서
+    /// Web 이 기동 때 DB 서버 날짜(DbClock.Today)로 바꾼다. POP·Api 는 DbClock 을 맞추지 않아 호스트 날짜 그대로다.
+    /// </summary>
+    public static Func<DateTime> Today { get; set; } = () => DateTime.Today;
+
     /// <summary>Days until DueDate (negative = overdue). Null when no due date.</summary>
     public int? DaysToDue =>
         DueDate is null ? null
-            : (int)Math.Ceiling((DueDate.Value.Date - DateTime.Today).TotalDays);
+            : (int)Math.Ceiling((DueDate.Value.Date - Today().Date).TotalDays);
 }

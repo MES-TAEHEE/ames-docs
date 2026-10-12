@@ -6783,9 +6783,6 @@
   <data name="MD.Workers.Ok.Updated" xml:space="preserve">
     <value>Operario {0} actualizado.</value>
   </data>
-  <data name="MD.Workers.Ok.Deleted" xml:space="preserve">
-    <value>Operario {0} eliminado.</value>
-  </data>
   <data name="MD.Workers.Ok.PinCleared" xml:space="preserve">
     <value>PIN de {0} borrado.</value>
   </data>
@@ -10642,5 +10639,17 @@
   </data>
   <data name="Err.Db.OutOfRange" xml:space="preserve">
     <value>El valor de {0} está fuera del rango permitido.</value>
+  </data>
+  <data name="PP.LineSchedule.Hint.PlacedElsewhere" xml:space="preserve">
+    <value>{0} ya programado en otras fechas de esta línea; quedan {1}</value>
+  </data>
+  <data name="MD.Workers.Btn.Deactivate" xml:space="preserve">
+    <value>Desactivar</value>
+  </data>
+  <data name="MD.Workers.Msg.ConfirmDeactivate" xml:space="preserve">
+    <value>¿Desactivar este operario? El registro se conserva y solo se bloquea el acceso al POP (escanear la credencial no lo vuelve a crear).</value>
+  </data>
+  <data name="MD.Workers.Ok.Deactivated" xml:space="preserve">
+    <value>Se desactivó el operario {0}.</value>
   </data>
 </root>

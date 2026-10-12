@@ -159,7 +159,7 @@ public sealed partial class PpRepository
             r["ForecastMonth"] as DateTime?,
             r.GetDecimal(r.GetOrdinal("ForecastQty")),
             r["Confidence"] as string, r["Source"] as string),
-            ("@B", monthsBack), ("@A", monthsAhead));
+            ("@B", null, monthsBack), ("@A", null, monthsAhead));
     }
 
     /// <summary>PP-001 주간 구매계획 조회 — 화면에서 품목×주차로 피벗. customerId null/빈값 = 전체 고객.</summary>
@@ -395,7 +395,7 @@ public sealed partial class PpRepository
                OR  s.OrderDate   > DATEADD(day, -@D, GETDATE())
             ORDER BY s.OrderDate DESC, s.SoNumber;
             """;
-        return Query(sql, MapSo, ("@D", daysBack));
+        return Query(sql, MapSo, ("@D", null, daysBack));
     }
 
     // ── PP-002 filtered read — customer/order-date range (SAP import grid) ──
@@ -1003,7 +1003,7 @@ public sealed partial class PpRepository
         // 부모 품번마다 유효(APPROVED·기간 내) 버전 중 EffFrom 최신 하나만 쓴다 — 버전이 겹치면 이중 계상되기 때문 (SQL 은 EffectiveBomSql, APS 와 공유)
         var bom = Query(EffectiveBomSql, r => new MrpCalculator.BomLine((string)r["ParentItemNo"], (string)r["CompItemNo"],
                 r.GetDecimal(r.GetOrdinal("QtyPer")), r.GetDecimal(r.GetOrdinal("ScrapPct"))),
-            ("@Today", today));
+            ("@Today", null, today));
 
         var supply = Query("""
             SELECT i.ItemNo, i.LeadTimeDays,
@@ -1137,7 +1137,7 @@ public sealed partial class PpRepository
             ORDER BY ISNULL(w.DueDate,'9999-12-31'), rw.WoID;
             """, r => (ItemNo: (string)r["ItemNo"], Wo: new MrpWoRef((int)r["WoID"], r["WoNumber"] as string,
                 r.GetDecimal(r.GetOrdinal("RequiredQty")), r["DueDate"] as DateTime?)),
-            ("@R", run.MrpRunId))
+            ("@R", "PP_MRPResultWo.MrpRunID", run.MrpRunId))
             .GroupBy(x => x.ItemNo, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<MrpWoRef>)g.Select(x => x.Wo).ToList(), StringComparer.OrdinalIgnoreCase);
 
@@ -1158,7 +1158,7 @@ public sealed partial class PpRepository
                     r["LeadTimeDays"] as int?, r["OrderDue"] as DateTime?,
                     r["PrID"] as int?, r["PrNumber"] as string,
                     wos.TryGetValue(itemNo, out var w) ? w : Array.Empty<MrpWoRef>());
-            }, ("@R", run.MrpRunId));
+            }, ("@R", "PP_MRPResult.MrpRunID", run.MrpRunId));
 
         return new MrpSnapshot(run, materials);
     }
@@ -1261,7 +1261,7 @@ public sealed partial class PpRepository
             WHERE  p.ItemNo = @I AND p.SapPoNumber IS NULL AND p.Status IN ('Draft','Sent','Approved')
             ORDER BY ISNULL(p.RequiredDate, '9999-01-01'), p.PrID;
             """;
-        return Query(sql, MapPr, ("@I", itemNo));
+        return Query(sql, MapPr, ("@I", "PP_PurchaseRequest.ItemNo", itemNo));
     }
 
     static PrRow MapPr(IDataReader r) => new(
@@ -1384,7 +1384,7 @@ public sealed partial class PpRepository
             ORDER BY SendLogID;
             """, r => new PrSendLogRow((long)r["SendLogID"], Convert.ToInt32(r["AttemptNo"]), r["SentAt"] as DateTime?,
                 r["Result"] as string, r["ResponsePayload"] as string, r["CreatedBy"] as string),
-            ("@P", prId));
+            ("@P", "PP_PRSendLog.PrID", prId));
 
     /// <summary>행 잠금 후 현재 상태(정규화). 없으면 null.</summary>
     static string? LockPrStatus(SqlConnection conn, SqlTransaction tx, int prId)
@@ -1497,7 +1497,7 @@ public sealed partial class PpRepository
             r["LineID"] as string, r["DayType"] as string,
             r["PatternID"] as string, r["CapacityFactor"] as decimal?,
             r["Reason"] as string),
-            ("@B", daysBack), ("@A", daysAhead));
+            ("@B", null, daysBack), ("@A", null, daysAhead));
     }
 
     // ── PP-LSB Line Schedule ────────────────────────────────────────────
@@ -1518,7 +1518,7 @@ public sealed partial class PpRepository
             r["WoID"] as int?, r["WoNumber"] as string,
             r["StartMin"] as short?, r["EndMin"] as short?,   // PP_LineSchedule.StartMin/EndMin = smallint (as int? 이면 항상 null)
             r.GetDecimal(r.GetOrdinal("PlannedQty")), r["Status"] as string),
-            ("@A", daysAhead));
+            ("@A", null, daysAhead));
     }
 
     // ── PP-OEE Line OEE ─────────────────────────────────────────────────
@@ -1551,7 +1551,7 @@ public sealed partial class PpRepository
             r.GetDecimal(r.GetOrdinal("Performance")),
             r.GetDecimal(r.GetOrdinal("Quality")),
             r.GetDecimal(r.GetOrdinal("OEE"))),
-            ("@D", daysBack));
+            ("@D", null, daysBack));
     }
 
     // ── PP-DTL Downtime Log ─────────────────────────────────────────────
@@ -1571,7 +1571,7 @@ public sealed partial class PpRepository
             (int)r["DurationMin"], r["ReasonCode"] as string,
             r["CauseCode"] as string, r["Comment"] as string,
             r["WoID"] as int?),
-            ("@D", daysBack));
+            ("@D", null, daysBack));
     }
 
     /// <summary>PP-DTL 필터 조회 — 라인·기간·상태·사유코드 조합.</summary>
@@ -1791,7 +1791,7 @@ public sealed partial class PpRepository
             r["LineID"] as string, r["MinuteTS"] as DateTime?,
             r["State"] as string, r["PlanState"] as string,
             Convert.ToBoolean(r["RunFlag"]), r["WoID"] as int?),
-            ("@H", hoursBack));
+            ("@H", null, hoursBack));
     }
 
     public sealed record LineStateTotalRow(string? LineId, string? State, string? PlanState, int Minutes);
@@ -1805,7 +1805,7 @@ public sealed partial class PpRepository
             WHERE  LineID IS NOT NULL AND MinuteTS >= @F AND MinuteTS <= @T
             ORDER BY LineID, MinuteTS;
             """;
-        return Query(sql, MapLineState, ("@F", from), ("@T", to));
+        return Query(sql, MapLineState, ("@F", "PP_LineStateLog.MinuteTS", from), ("@T", "PP_LineStateLog.MinuteTS", to));
     }
 
     /// <summary>기준시각 이전 라인별 최종 로그 1건 — 로그가 오래돼도 마지막 상태·시각을 보여주기 위함.</summary>
@@ -1820,7 +1820,7 @@ public sealed partial class PpRepository
             WHERE  rn = 1
             ORDER BY LineID;
             """;
-        return Query(sql, MapLineState, ("@T", asOf));
+        return Query(sql, MapLineState, ("@T", "PP_LineStateLog.MinuteTS", asOf));
     }
 
     /// <summary>[from, to] 구간 라인×상태×계획상태 분 합계 — 당일 누적(가동/비가동/유휴/계획정지)용.</summary>
@@ -1834,7 +1834,7 @@ public sealed partial class PpRepository
             """;
         return Query(sql, r => new LineStateTotalRow(
             r["LineID"] as string, r["State"] as string, r["PlanState"] as string, Convert.ToInt32(r["Minutes"])),
-            ("@F", from), ("@T", to));
+            ("@F", "PP_LineStateLog.MinuteTS", from), ("@T", "PP_LineStateLog.MinuteTS", to));
     }
 
     static LineStateRow MapLineState(IDataReader r) => new(
@@ -1878,7 +1878,7 @@ public sealed partial class PpRepository
             WHERE  o.RequestedDeliveryDate > DATEADD(day, -@D, @Today)
             ORDER BY o.RequestedDeliveryDate;
             """;
-        return Query(sql, MapOtd, ("@D", daysBack), ("@Today", DbClock.Today));
+        return Query(sql, MapOtd, ("@D", null, daysBack), ("@Today", "PP_CustomerOrder.RequestedDeliveryDate", DbClock.Today));
     }
 
     /// <summary>PP-OTD 필터 조회 — 기간·고객(정규화 ID)·상태 조합.</summary>
@@ -1924,11 +1924,11 @@ public sealed partial class PpRepository
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
-    private List<T> Query<T>(string sql, Func<IDataReader, T> map, params (string Name, object Value)[] pars)
+    private List<T> Query<T>(string sql, Func<IDataReader, T> map, params (string Name, string? Column, object? Value)[] pars)
     {
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        foreach (var (n, v) in pars) cmd.Parameters.AddWithValue(n, v);
+        foreach (var (n, c, v) in pars) ColumnParams.AddFilter(cmd, n, c, v);
         using var rdr  = cmd.ExecuteReader();
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));

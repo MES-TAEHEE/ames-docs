@@ -23,7 +23,7 @@ public sealed partial class ScmRepository
             WHERE d.Status IN ('Registered','Shipped','Received') AND {NoteVendorAccess}
             ORDER BY d.DeliveryID DESC;
             """, c);
-        Add(cmd, ("@U", userId));
+        Filter(cmd, ("@U", "SCM_PortalVendorUser.UserID", userId));
         using var r = cmd.ExecuteReader(); var rows = new List<NoteDeliveryChoice>();
         while (r.Read()) rows.Add(new(r.GetString(0),r.GetString(1),r.GetString(2),r.IsDBNull(3)?null:r.GetDateTime(3),r.IsDBNull(4)?null:r.GetString(4)));
         return rows;
@@ -39,7 +39,7 @@ public sealed partial class ScmRepository
                   JOIN dbo.SCM_Delivery linked ON linked.DeliveryID=x.DeliveryID
                   WHERE x.NoteID=d.NoteID AND linked.Status='Cancelled');
             """, c);
-        Add(cmd,("@U",userId),("@N",number));
+        Filter(cmd,("@U", "SCM_PortalVendorUser.UserID",userId),("@N", "SCM_DeliveryNote.NoteNumber",number));
         return cmd.ExecuteScalar() is string json ? DeserializeDeliveryNote(json) : null;
     }
 
@@ -69,7 +69,7 @@ public sealed partial class ScmRepository
                 LEFT JOIN dbo.SCM_DeliveryNoteDelivery x ON x.DeliveryID=d.DeliveryID
                 WHERE d.DeliveryNumber=@N AND {NoteVendorAccess};
                 """,c,tx);
-            Add(cmd,("@U",userId),("@N",number));
+            Filter(cmd,("@U", "SCM_PortalVendorUser.UserID",userId),("@N", "SCM_Delivery.DeliveryNumber",number));
             using var r=cmd.ExecuteReader();
             if(!r.Read()) throw new InvalidOperationException("납품서를 조회할 권한이 없습니다.");
             if(r.GetString(3) is not ("Registered" or "Shipped" or "Received"))
@@ -83,10 +83,10 @@ public sealed partial class ScmRepository
         {
             if(linked.Count!=1) throw new InvalidOperationException("이미 다른 문서에 포함된 납품서입니다.");
             using var previous=new SqlCommand("SELECT DeliveryID FROM dbo.SCM_DeliveryNoteDelivery WHERE NoteID=@ID",c,tx);
-            Add(previous,("@ID",linked.Single())); var existing=new HashSet<int>();
+            Filter(previous,("@ID", "SCM_DeliveryNoteDelivery.NoteID",linked.Single())); var existing=new HashSet<int>();
             using(var r=previous.ExecuteReader()) while(r.Read()) existing.Add(r.GetInt32(0));
             if(!existing.SetEquals(ids)) throw new InvalidOperationException("이미 발행된 납품서는 다른 문서에 중복 포함할 수 없습니다.");
-            using var read=new SqlCommand("SELECT Snapshot FROM dbo.SCM_DeliveryNote WHERE NoteID=@ID",c,tx); Add(read,("@ID",linked.Single()));
+            using var read=new SqlCommand("SELECT Snapshot FROM dbo.SCM_DeliveryNote WHERE NoteID=@ID",c,tx); Filter(read,("@ID", "SCM_DeliveryNote.NoteID",linked.Single()));
             return DeserializeDeliveryNote((string)read.ExecuteScalar()!);
         }
         foreach(var id in ids)
@@ -98,7 +98,7 @@ public sealed partial class ScmRepository
                 JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID LEFT JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo
                 WHERE d.DeliveryID=@ID ORDER BY l.DeliveryLineID;
                 """,c,tx);
-            Add(cmd,("@ID",id)); using var r=cmd.ExecuteReader(); var count=lines.Count;
+            Filter(cmd,("@ID", "SCM_Delivery.DeliveryID",id)); using var r=cmd.ExecuteReader(); var count=lines.Count;
             while(r.Read()) lines.Add(new(r.GetInt32(0),r.GetString(1),r.GetString(2),r.GetString(3),r.GetDecimal(4),r.GetString(5),r.GetString(6),r.GetString(7),r.GetDateTime(8),r.GetInt32(9),r.GetInt32(10)));
             if(lines.Count==count) throw new InvalidOperationException("납품 품목이 없습니다.");
         }
@@ -106,18 +106,18 @@ public sealed partial class ScmRepository
             INSERT dbo.SCM_DeliveryNote(NoteNumber,VendorID,Snapshot,IssuedAt,IssuedBy,IssuedUserID)
             OUTPUT INSERTED.NoteID VALUES(@Temp,@V,'{}',@At,@Actor,@U);
             """,c,tx);
-        Add(insert,("@Temp",Guid.NewGuid().ToString("N")[..30]),("@V",vendors.Single()),("@At",at),("@Actor",actor),("@U",userId));
+        Add(insert,("@Temp", "SCM_DeliveryNote.NoteNumber",Guid.NewGuid().ToString("N")[..30]),("@V", "SCM_DeliveryNote.VendorID",vendors.Single()),("@At", "SCM_DeliveryNote.IssuedAt",at),("@Actor", "SCM_DeliveryNote.IssuedBy",actor),("@U", "SCM_DeliveryNote.IssuedUserID",userId));
         insert.Parameters["@At"].SqlDbType=System.Data.SqlDbType.DateTime2;
         var noteId=(int)insert.ExecuteScalar()!;
         var noteNumber=$"DLN-{at:yyyyMMdd}-{noteId}";
         var note=new DeliveryNote(noteNumber,string.Join(", ",lines.Select(l=>l.OrderNumber).Distinct()),vendors.Single(),vendorName,"EOS",
             string.Join(" / ",lines.Select(l=>l.Destination).Distinct()),lines.Max(l=>l.ShipDate)!.Value,at,actor,lines);
         using var save=new SqlCommand("UPDATE dbo.SCM_DeliveryNote SET NoteNumber=@N,Snapshot=@Json WHERE NoteID=@ID",c,tx);
-        Add(save,("@N",noteNumber),("@Json",JsonSerializer.Serialize(note)),("@ID",noteId)); save.ExecuteNonQuery();
+        Add(save,("@N", "SCM_DeliveryNote.NoteNumber",noteNumber),("@Json", "SCM_DeliveryNote.Snapshot",JsonSerializer.Serialize(note)),("@ID", "SCM_DeliveryNote.NoteID",noteId)); save.ExecuteNonQuery();
         foreach(var id in ids)
         {
             using var link=new SqlCommand("INSERT dbo.SCM_DeliveryNoteDelivery(DeliveryID,NoteID) VALUES(@D,@N)",c,tx);
-            Add(link,("@D",id),("@N",noteId)); link.ExecuteNonQuery();
+            Add(link,("@D", "SCM_DeliveryNoteDelivery.DeliveryID",id),("@N", "SCM_DeliveryNoteDelivery.NoteID",noteId)); link.ExecuteNonQuery();
         }
         return note;
     }

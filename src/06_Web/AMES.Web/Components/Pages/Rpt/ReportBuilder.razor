@@ -11,6 +11,7 @@
 @inject MasterDataRepository MD
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 
 <PageTitle>RPT-010 @L["RPT.ReportBuilder.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="RPT-010" TitleKey="RPT.ReportBuilder.Title" />
@@ -231,7 +232,9 @@
         "Entries" or "Events" or "Orders"                       => L["RPT.ReportBuilder.Unit.Cnt"].Value,
         _                                                       => L["RPT.ReportBuilder.Unit.EA"].Value,
     };
-    static string Fmt(decimal v, string m) => IsRate(m) ? $"{v:0.0}%" : v.ToString("N0");
+    // 수량 측정값은 단위 자릿수 규칙(UomFmt, 단위가 섞여 null), 건수·분은 N0
+    string Fmt(decimal v, string m) => IsRate(m) ? $"{v:0.0}%" : IsQty(m) ? UomFmt.Qty(v, null) : v.ToString("N0");
+    static bool IsQty(string m) => m is "Production" or "GoodQty" or "DefectQty" or "OrderedQty" or "AllocatedQty";
 
     // 합계: 비율 지표(OEE·A·P·Q)는 계획시간 가중 평균, 그 외는 합
     decimal Agg(string m)

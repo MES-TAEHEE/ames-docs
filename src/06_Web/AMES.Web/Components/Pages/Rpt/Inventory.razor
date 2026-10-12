@@ -97,7 +97,7 @@
                 <div class="mnt-dt-row" style="grid-template-columns:130px 1fr 100px;">
                     <span class="lbl" title="@c.Code">@c.Label</span>
                     <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(_byCat[0].Metric > 0 ? Math.Max(2, (int)Math.Round(100.0 * (double)c.Metric / (double)_byCat[0].Metric)) : 0)%;background:@CatColor(i);"></div></div>
-                    <span class="mnt-dt-val"><b>@c.Metric.ToString("N0")</b></span>
+                    <span class="mnt-dt-val"><b>@(HasCost ? c.Metric.ToString("N0") : UomFmt.Qty(c.Metric, null))</b></span>
                 </div>
             }
         }
@@ -119,7 +119,7 @@
                         <b>@WhLabel(w.Code)</b>
                         <span>@string.Format(L["RPT.Inventory.ByWh.Fmt"].Value, w.Sku, w.Low)</span>
                     </div>
-                    <div class="v">@(HasCost ? w.Value.ToString("N0") : w.Qty.ToString("N0"))</div>
+                    <div class="v">@(HasCost ? w.Value.ToString("N0") : UomFmt.Qty(w.Qty, null))</div>
                 </div>
             }
         }

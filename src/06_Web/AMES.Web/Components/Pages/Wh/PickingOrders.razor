@@ -25,9 +25,9 @@
                 <RadzenDataGridColumn TItem="LineStockRow" Property="LineCode" Title="LINE" Width="80px" />
                 <RadzenDataGridColumn TItem="LineStockRow" Property="PartNo" Title="PART NO" Width="170px" />
                 <RadzenDataGridColumn TItem="LineStockRow" Property="PartName" Title="PART NAME" />
-                <RadzenDataGridColumn TItem="LineStockRow" Property="Qty" Title="LINE QTY (EA)" FormatString="{0:N0}" Width="125px" />
-                <RadzenDataGridColumn TItem="LineStockRow" Property="SafetyStock" Title="SAFETY (EA)" FormatString="{0:N0}" Width="120px" />
-                <RadzenDataGridColumn TItem="LineStockRow" Property="RequiredQty" Title="REQUIRED (EA)" FormatString="{0:N0}" Width="130px" />
+                <RadzenDataGridColumn TItem="LineStockRow" Property="Qty" Title="LINE QTY (EA)" Width="125px"><Template Context="r">@UomFmt.Qty(r.Qty, "EA")</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="LineStockRow" Property="SafetyStock" Title="SAFETY (EA)" Width="120px"><Template Context="r">@UomFmt.Qty(r.SafetyStock, "EA")</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="LineStockRow" Property="RequiredQty" Title="REQUIRED (EA)" Width="130px"><Template Context="r">@UomFmt.Qty(r.RequiredQty, "EA")</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="LineStockRow" Property="State" Title="STATUS" Width="210px" />
             </Columns>
         </RadzenDataGrid>
@@ -48,10 +48,10 @@
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqDate" Title="DATE" Width="115px" />
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="LineCount" Title="MATERIALS" Width="100px" />
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqBoxQty" Title="REQUEST QTY" Width="130px">
-                    <Template Context="row">@row.ReqBoxQty.ToString("N0") @UomFmt.Sym(row.QuantityUnit)</Template>
+                    <Template Context="row">@UomFmt.QtyUnit(row.ReqBoxQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickedQty" Title="PICKED QTY" Width="125px">
-                    <Template Context="row">@row.PickedQty.ToString("N0") @UomFmt.Sym(row.QuantityUnit)</Template>
+                    <Template Context="row">@UomFmt.QtyUnit(row.PickedQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="Status" Title="STATUS" Width="100px" />
             </Columns>
@@ -72,10 +72,10 @@
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PartNo" Title="PART NO" Width="190px" />
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PartName" Title="PART NAME" />
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="ReqBoxQty" Title="REQUEST QTY" Width="130px">
-                    <Template Context="row">@row.ReqBoxQty.ToString("N0") @UomFmt.Sym(row.QuantityUnit)</Template>
+                    <Template Context="row">@UomFmt.QtyUnit(row.ReqBoxQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PickedBoxQty" Title="PICKED QTY" Width="125px">
-                    <Template Context="row">@row.PickedBoxQty.ToString("N0") @UomFmt.Sym(row.QuantityUnit)</Template>
+                    <Template Context="row">@UomFmt.QtyUnit(row.PickedBoxQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Title="PICK FROM" Width="240px">
                     <Template Context="row"><span class="pick-source">@SourceText(row)</span></Template>
@@ -179,9 +179,9 @@
         if (remaining == 0) return "Picked";
         var boxes = _sources.Where(x => string.Equals(x.PartNo, row.PartNo, StringComparison.OrdinalIgnoreCase)).ToList();
         var locations = boxes.GroupBy(x => string.IsNullOrWhiteSpace(x.LocationNo) ? "Location not assigned" : x.LocationNo.Trim(), StringComparer.OrdinalIgnoreCase)
-            .Select(g => row.QuantityUnit == "EA" ? $"{g.Key} · {g.Sum(x => x.Qty):N0} {UomFmt.Sym("EA")}" : $"{g.Key} · {g.Count():N0} {UomFmt.Sym("BOX")}").ToList();
+            .Select(g => row.QuantityUnit == "EA" ? $"{g.Key} · {UomFmt.QtyUnit(g.Sum(x => x.Qty), "EA")}" : $"{g.Key} · {g.Count():N0} {UomFmt.Sym("BOX")}").ToList();
         var available = row.QuantityUnit == "EA" ? boxes.Sum(x => x.Qty) : boxes.Count;
-        if (available < remaining) locations.Add($"Stock shortage · {remaining - available:N0} {UomFmt.Sym(row.QuantityUnit)}");
+        if (available < remaining) locations.Add($"Stock shortage · {UomFmt.QtyUnit(remaining - available, row.QuantityUnit)}");
         return string.Join("\n", locations);
     }
     async Task Print()

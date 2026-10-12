@@ -57,7 +57,7 @@ public sealed class RptRepository
     public TimeSpan ReadDayCutoff()
     {
         var v = Query("SELECT TOP 1 ConfigValue FROM dbo.SYS_Config WHERE ConfigKey = @K ORDER BY ConfigID;",
-            r => r["ConfigValue"] as string, ("@K", ProdCalendar.CutoffConfigKey));
+            r => r["ConfigValue"] as string, ("@K", "SYS_Config.ConfigKey", ProdCalendar.CutoffConfigKey));
         return ProdCalendar.TryParseCutoff(v.FirstOrDefault(), out var c) ? c : TimeSpan.Zero;
     }
 
@@ -85,7 +85,7 @@ public sealed class RptRepository
         return Query(sql, r => new ProdHourRow(
             r["LineID"] as string, r["ItemNo"] as string, r["ItemName"] as string, r["ItemNameEN"] as string,
             (int)r["Hr"], (int)r["Entries"], (int)r["GoodQty"], (int)r["DefectQty"]),
-            ("@D", day.Date), ("@L", (object?)lineId ?? DBNull.Value));
+            ("@D", null, day.Date), ("@L", "PR_ProductionResult.LineID", (object?)lineId ?? DBNull.Value));
     }
 
     /// <summary>해당 일자 라인 스케줄 계획수량을 라인×품목으로 집계 (취소 슬롯 제외).</summary>
@@ -105,7 +105,7 @@ public sealed class RptRepository
         return Query(sql, r => new PlanRow(
             r["LineID"] as string, r["ItemNo"] as string, r["ItemName"] as string, r["ItemNameEN"] as string,
             r["PlannedQty"] as decimal? ?? 0m),
-            ("@D", day.Date), ("@L", (object?)lineId ?? DBNull.Value));
+            ("@D", "PP_LineSchedule.ScheduleDate", day.Date), ("@L", "PP_LineSchedule.LineID", (object?)lineId ?? DBNull.Value));
     }
 
     /// <summary>실적이 있는 첫·마지막 전기일.</summary>
@@ -149,7 +149,7 @@ public sealed class RptRepository
             Ent    = (int)r["Entries"],
             Good   = (int)r["GoodQty"],
             Def    = (int)r["DefectQty"]
-        }, ("@D", daysBack));
+        }, ("@D", null, daysBack));
 
         return rows.Select(x =>
         {
@@ -183,7 +183,7 @@ public sealed class RptRepository
         return Query(sql, r => new DefectAggRow(
             r["DefectCode"] as string, r["ProcessCode"] as string, r["LineID"] as string,
             (int)r["Qty"], (int)r["Events"]),
-            ("@F", from.Date + cut), ("@T", to.Date.AddDays(1) + cut), ("@L", (object?)lineId ?? DBNull.Value));
+            ("@F", "PR_DefectDetail.DetectedAt", from.Date + cut), ("@T", "PR_DefectDetail.DetectedAt", to.Date.AddDays(1) + cut), ("@L", "tbl_Lot.LineID", (object?)lineId ?? DBNull.Value));
     }
 
     /// <summary>기간(전기일) 내 생산 실적 합계(양품 + 불량) — 불량률 분모(검사 수량).</summary>
@@ -198,7 +198,7 @@ public sealed class RptRepository
               AND  (@L IS NULL OR r.LineID = @L);
             """;
         var rows = Query(sql, r => ((int)r["Good"], (int)r["Defect"]),
-            ("@F", from.Date), ("@T", to.Date), ("@L", (object?)lineId ?? DBNull.Value));
+            ("@F", null, from.Date), ("@T", null, to.Date), ("@L", "PR_ProductionResult.LineID", (object?)lineId ?? DBNull.Value));
         return rows.Count > 0 ? rows[0] : (0, 0);
     }
 
@@ -231,7 +231,7 @@ public sealed class RptRepository
             Code = r["DefectCode"] as string,
             Qty  = (int)r["TotalQty"],
             Cnt  = (int)r["EventCount"]
-        }, ("@N", topN), ("@D", daysBack));
+        }, ("@N", null, topN), ("@D", null, daysBack));
 
         var total = raw.Sum(x => x.Qty);
         decimal cum = 0;
@@ -286,7 +286,7 @@ public sealed class RptRepository
             r["LicensePlate"] as string, r["OTDStatus"] as string,
             (int)r["LineSeq"], r["ItemNo"] as string, r["ItemName"] as string, r["ItemNameEN"] as string,
             r["OrderedQty"] as decimal? ?? 0m, r["AllocatedQty"] as decimal? ?? 0m, r["UnitCost"] as decimal?, r["DefaultUOM"] as string),
-            ("@D", day.Date), ("@C", (object?)customerCode ?? DBNull.Value));
+            ("@D", null, day.Date), ("@C", "FG_ShipmentOrder.CustomerCode", (object?)customerCode ?? DBNull.Value));
     }
 
     public (DateTime? Min, DateTime? Max) ShipmentDateExtent()
@@ -319,7 +319,7 @@ public sealed class RptRepository
             r["OrderedQty"] as decimal? ?? 0m,
             r["AllocatedQty"] as decimal? ?? 0m,
             (int)r["CustomerCount"]),
-            ("@D", daysBack));
+            ("@D", null, daysBack));
     }
 
     // ── RPT-004 OTD (on-time delivery) ───────────────────────────────────
@@ -342,7 +342,7 @@ public sealed class RptRepository
             Tot = (int)r["TotalOrders"],
             On  = (int)r["OnTime"],
             Lt  = (int)r["Late"]
-        }, ("@D", daysBack));
+        }, ("@D", null, daysBack));
 
         return rows.Select(x => new OtdRow(x.Day, x.Tot, x.On, x.Lt,
             x.Tot > 0 ? (decimal)x.On / x.Tot * 100m : 0m)).ToList();
@@ -392,7 +392,7 @@ public sealed class RptRepository
             WHERE  QtyChange < 0 AND TransactionTime >= DATEADD(DAY, -@D, SYSDATETIME())
             GROUP BY PartNo;
             """;
-        return Query(sql, r => (Item: r["ItemNo"] as string ?? "", Issued: r["Issued"] as decimal? ?? 0m), ("@D", days))
+        return Query(sql, r => (Item: r["ItemNo"] as string ?? "", Issued: r["Issued"] as decimal? ?? 0m), ("@D", null, days))
             .Where(x => x.Item.Length > 0).ToDictionary(x => x.Item, x => x.Issued);
     }
 
@@ -417,7 +417,7 @@ public sealed class RptRepository
             r["ItemNo"] as string, r["Location"] as string,
             (int)r["LotCount"], r["Qty"] as decimal? ?? 0m,
             (int)r["HoldLots"], r["HoldQty"] as decimal? ?? 0m),
-            ("@N", topN));
+            ("@N", null, topN));
     }
 
     // ── RPT-006 Equipment OEE ────────────────────────────────────────────
@@ -440,7 +440,7 @@ public sealed class RptRepository
             r["AvgA"] as decimal? ?? 0m, r["AvgP"] as decimal? ?? 0m,
             r["AvgQ"] as decimal? ?? 0m, r["AvgOee"] as decimal? ?? 0m,
             (int)r["Days"]),
-            ("@D", daysBack));
+            ("@D", null, daysBack));
     }
 
     // ── RPT-007 Monthly KPI ──────────────────────────────────────────────
@@ -531,8 +531,8 @@ public sealed class RptRepository
             r["Avail"] as decimal?, r["Oee"] as decimal?, Convert.ToDecimal(r["OperMin"]), Convert.ToInt32(r["Failures"]),
             Convert.ToInt32(r["Orders"]), Convert.ToInt32(r["LateOrders"]), Convert.ToInt32(r["Shipped"]), Convert.ToInt32(r["ShippedOnTime"]), Convert.ToInt32(r["Claims"]),
             Convert.ToDecimal(r["Issued"]), Convert.ToDecimal(r["OnHand"])),
-            ("@F", new DateTime(fromMonth.Year, fromMonth.Month, 1)), ("@T", new DateTime(toMonth.Year, toMonth.Month, 1)),
-            ("@Cut", (int)ReadDayCutoff().TotalMinutes));
+            ("@F", "MNT_FailureRegister.ReportedAt", new DateTime(fromMonth.Year, fromMonth.Month, 1)), ("@T", null, new DateTime(toMonth.Year, toMonth.Month, 1)),
+            ("@Cut", null, (int)ReadDayCutoff().TotalMinutes));
     }
 
     public List<MonthlyKpiRow> ListMonthlyKpi(int monthsBack = 6)
@@ -597,7 +597,7 @@ public sealed class RptRepository
                 total > 0 ? (decimal)good / total * 100m : 0m,
                 (int)r["Orders"], (int)r["Failures"],
                 r["AvgOee"] as decimal? ?? 0m);
-        }, ("@M", monthsBack));
+        }, ("@M", null, monthsBack));
     }
 
     // ── RPT-008 Schedule Adherence ───────────────────────────────────────
@@ -639,7 +639,7 @@ public sealed class RptRepository
             (int)r["WoID"], r["WoNumber"] as string, r["LineID"] as string, r["ItemNo"] as string, r["ItemName"] as string, r["ItemNameEN"] as string,
             r["WoStatus"] as string, Convert.ToDecimal(r["PlanQty"]), (DateTime)r["FirstPlanDate"], (DateTime)r["PlanDate"],
             Convert.ToDecimal(r["ActualQty"]), r["ActualDate"] as DateTime?, (int)r["Slots"]),
-            ("@F", from.Date), ("@T", to.Date), ("@L", (object?)lineId ?? DBNull.Value));
+            ("@F", "PP_LineSchedule.ScheduleDate", from.Date), ("@T", "PP_LineSchedule.ScheduleDate", to.Date), ("@L", "PP_LineSchedule.LineID", (object?)lineId ?? DBNull.Value));
     }
 
     public (DateTime? Min, DateTime? Max) ScheduleDateExtent()
@@ -682,7 +682,7 @@ public sealed class RptRepository
             return new ScheduleAdherenceRow(
                 (DateTime)r["Day"], r["LineID"] as string,
                 planned, produced, adh);
-        }, ("@D", daysBack));
+        }, ("@D", null, daysBack));
     }
 
     // ── RPT-009 Report Catalog (static metadata) ─────────────────────────
@@ -721,7 +721,7 @@ public sealed class RptRepository
                 keyExpr = dim switch
                 {
                     "Line"  => "ISNULL(r.LineID,'—')",
-                    "Date"  => "CONVERT(varchar(10), CAST(r.EntryAt AS DATE), 120)",
+                    "Date"  => "CONVERT(varchar(10), COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)), 120)",
                     "Shift" => $"ISNULL({AMES.Data.Services.ProdCalendar.ShiftCaseSql("r.EntryAt", LoadShifts(), "Sh", pars)},'—')",
                     _       => "ISNULL(w.ItemNo,'—')",
                 };
@@ -736,7 +736,7 @@ public sealed class RptRepository
                     LEFT JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID
                     LEFT JOIN dbo.MD_Item i ON i.ItemNo = w.ItemNo
                     OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID = r.ResultID) d
-                    WHERE r.EntryAt >= @F AND r.EntryAt < @T
+                    WHERE COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE)) BETWEEN @F AND @T
                     GROUP BY {keyExpr}
                     """;
                 break;
@@ -746,7 +746,7 @@ public sealed class RptRepository
                     "Process"    => "ISNULL(d.ProcessCode,'—')",
                     "DefectCode" => "ISNULL(d.DefectCode,'—')",
                     "Line"       => "ISNULL(r.LineID,'—')",
-                    _            => "CONVERT(varchar(10), CAST(d.DetectedAt AS DATE), 120)",
+                    _            => "CONVERT(varchar(10), CAST(DATEADD(minute, -@Cut, d.DetectedAt) AS DATE), 120)",
                 };
                 if (dim == "DefectCode") { labelExpr = "MAX(c.DefectName)"; labelEnExpr = "MAX(c.DefectNameEn)"; }
                 body = $"""
@@ -826,13 +826,22 @@ public sealed class RptRepository
                 break;
         }
 
+        // 생산 실적·불량은 전기일(RPT-001·003 과 같은 하루, 10-13), 출하·OEE·비가동은 달력 날짜
+        var cut = ReadDayCutoff();
+        (string, string?, object?)[] range = source switch
+        {
+            "PROD"   => [("@F", "PR_ProductionResult.ProdDate", from.Date), ("@T", "PR_ProductionResult.ProdDate", to.Date)],
+            "DEFECT" => [("@F", "PR_DefectDetail.DetectedAt", from.Date + cut), ("@T", "PR_DefectDetail.DetectedAt", to.Date.AddDays(1) + cut),
+                         ("@Cut", null, (int)cut.TotalMinutes)],
+            _        => [("@F", "PR_ProductionResult.EntryAt", from.Date), ("@T", "PR_ProductionResult.EntryAt", to.Date.AddDays(1))],
+        };
         var measures = AdhocMeasures[source];
         return Query(body + " ORDER BY K;", r =>
         {
             var m = new Dictionary<string, decimal>();
             foreach (var name in measures) m[name] = r[name] is DBNull ? 0m : Convert.ToDecimal(r[name]);
             return new AdhocRow(r["K"] as string ?? "—", r["Lbl"] as string, m, r["LblEn"] as string);
-        }, [("@F", from.Date), ("@T", to.Date.AddDays(1)), .. pars]);
+        }, [.. range, .. pars.Select(x => (x.Name, (string?)null, (object?)x.Value))]);
     }
 
     public List<ReportCatalogEntry> ListReportCatalog() => new()
@@ -854,11 +863,11 @@ public sealed class RptRepository
         => Query(AMES.Data.Services.ProdCalendar.ShiftsSql, r => (r["CodeValue"] as string ?? "", r["Attribute1"] as string))
                .Where(s => s.Item1.Length > 0).ToList();
 
-    private List<T> Query<T>(string sql, Func<IDataReader, T> map, params (string Name, object Value)[] pars)
+    private List<T> Query<T>(string sql, Func<IDataReader, T> map, params (string Name, string? Column, object? Value)[] pars)
     {
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        foreach (var (n, v) in pars) cmd.Parameters.AddWithValue(n, v);
+        foreach (var (n, c, v) in pars) ColumnParams.AddFilter(cmd, n, c, v);
         using var rdr  = cmd.ExecuteReader();
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));

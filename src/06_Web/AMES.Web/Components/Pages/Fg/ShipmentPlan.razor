@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject PpRepository Pp
+@inject UomFormat UomFmt
 @inject MasterDataRepository MD
 @inject PermissionService PermSvc
 @inject AuthenticationStateProvider AuthPrvd
@@ -64,7 +65,7 @@
                                 <input type="number" min="0" max="@Whole(decimal.Floor(line.Balance))" step="1"
                                     aria-label="Shipment quantity for @line.Source.ItemNo" value="@line.QuantityText"
                                     aria-invalid="@(line.QuantityError.Length > 0 ? "true" : "false")"
-                                    title="@($"Shipment quantity · remaining: {line.Balance:N0}")"
+                                    title="@($"Shipment quantity · remaining: {UomFmt.Qty(line.Balance, null)}")"
                                     @oninput="e => ChangeLoad(line, e.Value?.ToString())" />
                                 <span class="calculation-separator" aria-hidden="true">@(line.IsTote ? "/" : "÷")</span>
                                 <span class="packing-value">
@@ -113,9 +114,9 @@
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="ORDER / SHIPPED / REMAINING" Width="205px" Sortable="false" Filterable="false">
                         <Template Context="line">
                             <div class="quantity-summary">
-                                <span title="Order quantity">@line.Source.OrderQty.ToString("N0")</span><span>/</span>
-                                <span title="Shipped quantity">@line.Source.ShippedQty.ToString("N0")</span><span>/</span>
-                                <strong title="Remaining quantity">@line.Balance.ToString("N0")</strong>
+                                <span title="Order quantity">@UomFmt.Qty(line.Source.OrderQty, null)</span><span>/</span>
+                                <span title="Shipped quantity">@UomFmt.Qty(line.Source.ShippedQty, null)</span><span>/</span>
+                                <strong title="Remaining quantity">@UomFmt.Qty(line.Balance, null)</strong>
                             </div>
                         </Template>
                     </RadzenDataGridColumn>

@@ -38,7 +38,7 @@ public sealed partial class ScmRepository
             SELECT DeliveryID,Status,NoteSnapshot,COALESCE(ShipDate,DeliveryDate),SYSDATETIME(),PoNumber,VendorID
             FROM dbo.SCM_Delivery WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryNumber=@N;
             """, conn, tx);
-        Add(header, ("@N", number), ("@U", userId));
+        Filter(header, ("@N", "SCM_Delivery.DeliveryNumber", number), ("@U", "SCM_PortalVendorUser.UserID", userId));
         int id; DateTime shipDate, issuedAt; string order, vendor, status; string? snapshot;
         using (var r = header.ExecuteReader())
         {

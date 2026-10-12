@@ -119,7 +119,7 @@ public sealed class MntRepository
             r["CycleCount"] as long?, r["NextPMDate"] as DateTime?,
             r["MountedMoldID"] as string, r["OpenWoID"] as int?, r["PLCConnTS"] as DateTime?,
             r["EquipStatusID"] as int?),
-            ("@L", (object?)lineId ?? DBNull.Value));
+            ("@L", "MD_Equipment.LineID", (object?)lineId ?? DBNull.Value));
     }
 
     // ── MNT-001 설비 카드 등록·수정·삭제 — MNT_EquipmentStatus (설비 1대당 1행, MD_Equipment 기준) ──
@@ -218,7 +218,7 @@ public sealed class MntRepository
             ORDER  BY f.ReportedAt DESC, f.FailureID DESC
             OFFSET 0 ROWS FETCH NEXT @N ROWS ONLY;
             """;
-        return Query(sql, MapFailure, ("@N", topN), ("@S", (object?)statusFilter ?? DBNull.Value));
+        return Query(sql, MapFailure, ("@N", null, topN), ("@S", "MNT_FailureRegister.Status", (object?)statusFilter ?? DBNull.Value));
     }
 
     /// <summary>발생일 기준 기간 조회 (to 는 당일 포함). MNT-002 화면용 — 필터는 화면에서 건다.</summary>
@@ -229,7 +229,7 @@ public sealed class MntRepository
             WHERE  f.ReportedAt >= @F AND f.ReportedAt < @T
             ORDER  BY f.ReportedAt DESC, f.FailureID DESC;
             """;
-        return Query(sql, MapFailure, ("@F", from.Date), ("@T", to.Date.AddDays(1)));
+        return Query(sql, MapFailure, ("@F", "MNT_FailureRegister.ReportedAt", from.Date), ("@T", "MNT_FailureRegister.ReportedAt", to.Date.AddDays(1)));
     }
 
     public (DateTime? Min, DateTime? Max) FailureDateExtent()
@@ -245,7 +245,7 @@ public sealed class MntRepository
             {FailureSelect}
             WHERE  f.FailureID = @Id;
             """;
-        return Query(sql, MapFailure, ("@Id", failureId)).FirstOrDefault();
+        return Query(sql, MapFailure, ("@Id", "MNT_FailureRegister.FailureID", failureId)).FirstOrDefault();
     }
 
     /// <summary>작업지시에 연결된 고장(MNT_FailureRegister.WorkOrderID) — 발생순.</summary>
@@ -256,7 +256,7 @@ public sealed class MntRepository
             WHERE  f.WorkOrderID = @Wo
             ORDER  BY f.ReportedAt, f.FailureID;
             """;
-        return Query(sql, MapFailure, ("@Wo", workOrderId));
+        return Query(sql, MapFailure, ("@Wo", "MNT_FailureRegister.WorkOrderID", workOrderId));
     }
 
     /// <summary>
@@ -312,7 +312,7 @@ public sealed class MntRepository
               AND  (@E IS NULL OR o.EquipID = @E)
             ORDER BY o.AggDate DESC, o.EquipID, o.ShiftCode;
             """;
-        return Query(sql, MapOee, ("@D", daysBack), ("@E", (object?)equipId ?? DBNull.Value));
+        return Query(sql, MapOee, ("@D", null, daysBack), ("@E", "MNT_OEELog.EquipID", (object?)equipId ?? DBNull.Value));
     }
 
     /// <summary>집계일 기준 기간 조회 (양끝 포함). MNT-003 화면용 — 라인·설비·교대 필터는 화면에서 건다.</summary>
@@ -323,7 +323,7 @@ public sealed class MntRepository
             WHERE   o.AggDate >= @F AND o.AggDate <= @T
             ORDER BY o.AggDate DESC, o.EquipID, o.ShiftCode;
             """;
-        return Query(sql, MapOee, ("@F", from.Date), ("@T", to.Date));
+        return Query(sql, MapOee, ("@F", "MNT_OEELog.AggDate", from.Date), ("@T", "MNT_OEELog.AggDate", to.Date));
     }
 
     public (DateTime? Min, DateTime? Max) OeeDateExtent()
@@ -382,7 +382,7 @@ public sealed class MntRepository
             r["OldMoldID"] as string, r["OldMoldName"] as string, r["NewMoldID"] as string, r["NewMoldName"] as string,
             r["OldMoldFinalShots"] as int?, r["NewMoldStartShots"] as int?, r["Reason"] as string, r["MntWoID"] as int?, r["WoNumber"] as string,
             r["DowntimeMin"] as int?, r["StartedAt"] as DateTime?, r["CompletedAt"] as DateTime?, r["ChangedBy"] as string),
-            ("@N", topN), ("@M", (object?)moldId ?? DBNull.Value));
+            ("@N", null, topN), ("@M", "PR_MoldChange.OldMoldID", (object?)moldId ?? DBNull.Value));
     }
 
     // ── MNT-005 PM Schedule ─────────────────────────────────────────────
@@ -407,7 +407,7 @@ public sealed class MntRepository
             r["ChecklistID"] as string, r["AssignedTechID"] as string,
             r["Status"] as string, r["ActiveWoID"] as int?,
             r["DaysToDue"] as int? ?? 0, r["PMClass"] as string),
-            ("@A", daysAhead), ("@B", daysBack), ("@C", (object?)pmClass ?? DBNull.Value));
+            ("@A", null, daysAhead), ("@B", null, daysBack), ("@C", "MNT_PMSchedule.PMClass", (object?)pmClass ?? DBNull.Value));
     }
 
     // ── MNT-006 Downtime Log ────────────────────────────────────────────
@@ -434,7 +434,7 @@ public sealed class MntRepository
             WHERE   d.StartTS >= DATEADD(DAY, -@D, SYSDATETIME())
             ORDER BY d.StartTS DESC, d.DowntimeID DESC;
             """;
-        return Query(sql, MapDowntime, ("@D", daysBack));
+        return Query(sql, MapDowntime, ("@D", null, daysBack));
     }
 
     /// <summary>시작 시각 기준 기간 조회 (to 는 당일 포함). MNT-006 화면용 — 라인·상태·사유 필터는 화면에서 건다.</summary>
@@ -445,7 +445,7 @@ public sealed class MntRepository
             WHERE   d.StartTS >= @F AND d.StartTS < @T
             ORDER BY d.StartTS DESC, d.DowntimeID DESC;
             """;
-        return Query(sql, MapDowntime, ("@F", from.Date), ("@T", to.Date.AddDays(1)));
+        return Query(sql, MapDowntime, ("@F", "PP_LineDowntimeLog.StartTS", from.Date), ("@T", "PP_LineDowntimeLog.StartTS", to.Date.AddDays(1)));
     }
 
     public (DateTime? Min, DateTime? Max) DowntimeDateExtent()
@@ -475,7 +475,7 @@ public sealed class MntRepository
             r["ChecklistID"] as string, r["AssignedTechID"] as string,
             r["Status"] as string, r["ActiveWoID"] as int?,
             r["DaysToDue"] as int? ?? 0, r["PMClass"] as string),
-            ("@F", from.Date), ("@T", to.Date), ("@C", (object?)pmClass ?? DBNull.Value));
+            ("@F", "MNT_PMSchedule.NextDueDate", from.Date), ("@T", "MNT_PMSchedule.NextDueDate", to.Date), ("@C", "MNT_PMSchedule.PMClass", (object?)pmClass ?? DBNull.Value));
     }
 
     /// <summary>예정일(NextDueDate)이 기간 안에 드는 PM — MNT-009 "예정 예방보전" 패널용. DaysToDue 는 다른 PM 조회와 같이 오늘(서버 날짜) 기준.</summary>
@@ -496,7 +496,7 @@ public sealed class MntRepository
             r["ChecklistID"] as string, r["AssignedTechID"] as string,
             r["Status"] as string, r["ActiveWoID"] as int?,
             r["DaysToDue"] as int? ?? 0, r["PMClass"] as string),
-            ("@F", from.Date), ("@T", to.Date));
+            ("@F", "MNT_PMSchedule.NextDueDate", from.Date), ("@T", "MNT_PMSchedule.NextDueDate", to.Date));
     }
 
     // ── MNT-005/010 PM 실행 이력 (MNT_PMExecution) — 완료 시 AdvancePm 이 남긴 스냅샷 행 ──
@@ -528,7 +528,7 @@ public sealed class MntRepository
               AND   (@C IS NULL OR e.PMClass = @C)
             ORDER BY e.CompletedAt, e.EquipID;
             """;
-        return Query(sql, MapPmExec, ("@F", from.Date), ("@T", to.Date.AddDays(1)), ("@C", (object?)pmClass ?? DBNull.Value));
+        return Query(sql, MapPmExec, ("@F", "MNT_PMExecution.CompletedAt", from.Date), ("@T", "MNT_PMExecution.CompletedAt", to.Date.AddDays(1)), ("@C", "MNT_PMExecution.PMClass", (object?)pmClass ?? DBNull.Value));
     }
 
     /// <summary>한 일정의 실행 이력, 최신순 상위 N — PM 상세 모달의 이력 목록.</summary>
@@ -540,7 +540,7 @@ public sealed class MntRepository
             ORDER BY e.CompletedAt DESC, e.PMExecutionID DESC
             OFFSET 0 ROWS FETCH NEXT @N ROWS ONLY;
             """;
-        return Query(sql, MapPmExec, ("@Id", pmScheduleId), ("@N", top));
+        return Query(sql, MapPmExec, ("@Id", "MNT_PMExecution.PMScheduleID", pmScheduleId), ("@N", null, top));
     }
 
     // ── MNT-005 설비 PM / MNT-010 보전 PM — 등록·수정·삭제 (테이블 공용, PMClass 로 구분) ──
@@ -941,7 +941,7 @@ public sealed class MntRepository
             r["SourceRefID"] as string, r["ActionDesc"] as string, r["ChecklistID"] as string,
             r["PartsUsedJSON"] as string, r["ChecklistResultsJSON"] as string, r["ClosedAt"] as DateTime?,
             r["EquipName"] as string),
-            ("@N", topN), ("@S", (object?)statusFilter ?? DBNull.Value));
+            ("@N", null, topN), ("@S", "MNT_WorkOrder.Status", (object?)statusFilter ?? DBNull.Value));
     }
 
     // ── MNT-007 배정 · 착수 · 완료 (+ MNT-002 수리 완료 · MNT-005/010 PM 완료) ──────
@@ -1394,7 +1394,7 @@ public sealed class MntRepository
             r["SparePartItemID"] is long itemId ? itemId : null,
             r["SerialNo"] as string, r["VendorName"] as string,
             r["LocationID"] as string, r["ExtraLocation"] as string),
-            ("@N", topN), ("@P", (object?)sparePartNo ?? DBNull.Value));
+            ("@N", null, topN), ("@P", "MNT_SparePartsTxn.SparePartNo", (object?)sparePartNo ?? DBNull.Value));
     }
 
     /// <summary>
@@ -1507,11 +1507,11 @@ public sealed class MntRepository
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
-    private List<T> Query<T>(string sql, Func<IDataReader, T> map, params (string Name, object Value)[] pars)
+    private List<T> Query<T>(string sql, Func<IDataReader, T> map, params (string Name, string? Column, object? Value)[] pars)
     {
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        foreach (var (n, v) in pars) cmd.Parameters.AddWithValue(n, v);
+        foreach (var (n, c, v) in pars) ColumnParams.AddFilter(cmd, n, c, v);
         using var rdr  = cmd.ExecuteReader();
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));

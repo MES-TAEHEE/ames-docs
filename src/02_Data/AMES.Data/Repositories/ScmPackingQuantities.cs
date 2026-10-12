@@ -42,7 +42,7 @@ public sealed partial class ScmRepository
                 AND (@Create=0 OR COALESCE(link.PackingQty,0)<=0)
             ORDER BY m.VendorID,m.ItemNo;
             """, c);
-        Add(cmd, ("@U", userId), ("@Create", forCreate));
+        Filter(cmd, ("@U", "SCM_PortalVendorUser.UserID", userId), ("@Create", null, forCreate));
         using var r = cmd.ExecuteReader();
         var rows = new List<PackingQuantityRow>();
         while (r.Read()) rows.Add(new(r.GetString(0), r.GetString(1), r.GetString(2),
@@ -64,7 +64,7 @@ public sealed partial class ScmRepository
             WHERE m.ItemNo=@Item AND m.VendorID=@Vendor AND i.ItemType='MATERIAL'
                 AND ISNULL(i.ActiveFlag,1)=1 AND ISNULL(v.ActiveFlag,1)=1 AND {PackingAccess};
             """, c, tx);
-        Add(cmd,("@U",userId),("@Item",itemNo),("@Vendor",vendorId));
+        Filter(cmd,("@U", "SCM_PortalVendorUser.UserID",userId),("@Item", "SCM_ItemVendor.ItemNo",itemNo),("@Vendor", "SCM_ItemVendor.VendorID",vendorId));
         if (cmd.ExecuteScalar() is null) return false;
         cmd.CommandText = """
             IF EXISTS(SELECT 1 FROM dbo.SCM_ItemVendor WITH(UPDLOCK,HOLDLOCK)
@@ -97,7 +97,7 @@ public sealed partial class ScmRepository
                 AND {PackingAccess}
                 AND (m.PackingQty=@Original OR (m.PackingQty IS NULL AND @Original IS NULL));
             """, c);
-        Add(cmd, ("@U", userId), ("@Item", itemNo), ("@Vendor", vendorId));
+        Filter(cmd, ("@U", "SCM_PortalVendorUser.UserID", userId), ("@Item", "SCM_ItemVendor.ItemNo", itemNo), ("@Vendor", "SCM_ItemVendor.VendorID", vendorId));
         foreach (var (name, value) in new[] { ("@Qty", quantity), ("@Original", originalQuantity) })
         {
             var p = cmd.Parameters.Add(name, System.Data.SqlDbType.Decimal);

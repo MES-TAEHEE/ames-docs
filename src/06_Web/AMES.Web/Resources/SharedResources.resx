@@ -6810,9 +6810,6 @@
   <data name="MD.Workers.Ok.Updated" xml:space="preserve">
     <value>작업자 {0} 을(를) 수정했습니다.</value>
   </data>
-  <data name="MD.Workers.Ok.Deleted" xml:space="preserve">
-    <value>작업자 {0} 을(를) 삭제했습니다.</value>
-  </data>
   <data name="MD.Workers.Ok.PinCleared" xml:space="preserve">
     <value>작업자 {0} 의 PIN 을 삭제했습니다.</value>
   </data>
@@ -10642,5 +10639,17 @@
   </data>
   <data name="Err.Db.OutOfRange" xml:space="preserve">
     <value>{0} 값이 허용 범위를 벗어났습니다.</value>
+  </data>
+  <data name="PP.LineSchedule.Hint.PlacedElsewhere" xml:space="preserve">
+    <value>이 라인의 다른 날짜에 이미 {0} 배치됨 — 남은 수량 {1}</value>
+  </data>
+  <data name="MD.Workers.Btn.Deactivate" xml:space="preserve">
+    <value>사용 안 함</value>
+  </data>
+  <data name="MD.Workers.Msg.ConfirmDeactivate" xml:space="preserve">
+    <value>사용 안 함으로 바꿀까요? 작업자 기록은 남고 POP 로그인만 막힙니다(배지를 찍어도 다시 만들어지지 않습니다).</value>
+  </data>
+  <data name="MD.Workers.Ok.Deactivated" xml:space="preserve">
+    <value>작업자 {0} 을(를) 사용 안 함으로 바꿨습니다.</value>
   </data>
 </root>

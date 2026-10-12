@@ -21,7 +21,7 @@
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Actual"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@TotalActual.ToString("N0")</div>
+            <div class="ames-kpi-v">@UomFmt.Qty(TotalActual, null)</div>
             <div class="ames-kpi-s">@L["RPT.DailyProduction.Kpi.ActualSub"]</div>
         </div>
     </div>
@@ -42,14 +42,14 @@
     <div class="ames-kpi @(TotalDefect > 0 ? "bad" : "ok")">
         <div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.DefectQty"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@TotalDefect.ToString("N0")</div>
+            <div class="ames-kpi-v">@UomFmt.Qty(TotalDefect, null)</div>
             <div class="ames-kpi-s">@L["RPT.DailyProduction.Kpi.DefectSub"]</div>
         </div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["RPT.DailyProduction.Kpi.Plan"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@TotalPlan.ToString("N0")</div>
+            <div class="ames-kpi-v">@UomFmt.Qty(TotalPlan, null)</div>
             <div class="ames-kpi-s">@L["RPT.DailyProduction.Kpi.PlanSub"]</div>
         </div>
     </div>
@@ -123,7 +123,7 @@
                     </div>
                     <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(maxShift > 0 ? Math.Max(2, (int)Math.Round(100.0 * s.Total / maxShift)) : 0)%;background:#10b981;"></div></div>
                     <div class="f">
-                        <span>@string.Format(L["RPT.DailyProduction.Shift.GoodDefect"].Value, s.Good.ToString("N0"), s.Defect.ToString("N0"))</span>
+                        <span>@string.Format(L["RPT.DailyProduction.Shift.GoodDefect"].Value, UomFmt.Qty(s.Good, null), UomFmt.Qty(s.Defect, null))</span>
                         <span>@string.Format(L["RPT.DailyProduction.Shift.Yield"].Value, Pct(s.Yield))</span>
                     </div>
                 </div>
@@ -151,24 +151,24 @@
                 <Template Context="r"><span style="white-space:nowrap;">@r.ItemName</span>@if (!string.IsNullOrEmpty(r.ItemNo)) { <span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Plan" Title="@L["Col.Plan"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r"><span class="code">@r.Plan.ToString("N0")</span></Template>
-                <FooterTemplate><span class="code">@TotalPlan.ToString("N0")</span></FooterTemplate>
+                <Template Context="r"><span class="code">@UomFmt.Qty(r.Plan, null)</span></Template>
+                <FooterTemplate><span class="code">@UomFmt.Qty(TotalPlan, null)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Actual" Title="@L["RPT.DailyProduction.Col.Actual"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r"><b class="code">@r.Actual.ToString("N0")</b></Template>
-                <FooterTemplate><span class="code">@TotalActual.ToString("N0")</span></FooterTemplate>
+                <Template Context="r"><b class="code">@UomFmt.Qty(r.Actual, null)</b></Template>
+                <FooterTemplate><span class="code">@UomFmt.Qty(TotalActual, null)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Achievement" Title="@L["RPT.DailyProduction.Col.Achievement"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="r"><span class="code" style="color:@AchColor(r.Achievement);">@Pct(r.Achievement)</span></Template>
                 <FooterTemplate><span class="code" style="color:@AchColor(Achievement);">@Pct(Achievement)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Good" Title="@L["Col.Good"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r"><span class="code">@r.Good.ToString("N0")</span></Template>
-                <FooterTemplate><span class="code">@TotalGood.ToString("N0")</span></FooterTemplate>
+                <Template Context="r"><span class="code">@UomFmt.Qty(r.Good, null)</span></Template>
+                <FooterTemplate><span class="code">@UomFmt.Qty(TotalGood, null)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Defect" Title="@L["RPT.DailyProduction.Col.DefectQty"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r"><span class="code" style="@(r.Defect > 0 ? "color:var(--ames-tx-red-400);" : "")">@r.Defect.ToString("N0")</span></Template>
-                <FooterTemplate><span class="code" style="@(TotalDefect > 0 ? "color:var(--ames-tx-red-400);" : "")">@TotalDefect.ToString("N0")</span></FooterTemplate>
+                <Template Context="r"><span class="code" style="@(r.Defect > 0 ? "color:var(--ames-tx-red-400);" : "")">@UomFmt.Qty(r.Defect, null)</span></Template>
+                <FooterTemplate><span class="code" style="@(TotalDefect > 0 ? "color:var(--ames-tx-red-400);" : "")">@UomFmt.Qty(TotalDefect, null)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Yield" Title="@L["RPT.DailyProduction.Col.Yield"]" Width="150px">
                 <Template Context="r">@(r.Yield is { } y ? Bar(y) : Dash)</Template>

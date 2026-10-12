@@ -4,6 +4,7 @@
 @using AMES.Data.Repositories
 @using Radzen
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 @inject FinishedGoodsRepository Fg
 
 <PageTitle>FG-03 @L["FG.Shipments.Title"] · AMES</PageTitle>
@@ -12,7 +13,7 @@
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">OUTBOUND LOTS</div><div class="ames-kpi-v">@_rows.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">PART TYPES</div><div class="ames-kpi-v">@_rows.Select(x => x.PartNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().Count()</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_rows.Sum(x => x.Qty).ToString("N0")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@UomFmt.Qty(_rows.Sum(x => x.Qty), null)</div></div>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_message))
@@ -61,7 +62,7 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LocationNo" Title="LOCATION" Width="130px" />
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Qty" Title="QTY" Width="90px" TextAlign="TextAlign.Right">
-                <Template Context="r">@r.Qty.ToString("N0")</Template>
+                <Template Context="r">@UomFmt.Qty(r.Qty, null)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="OperatorId" Title="OPERATOR" Width="130px" />
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Status" Title="STATUS" Width="100px" TextAlign="TextAlign.Center">

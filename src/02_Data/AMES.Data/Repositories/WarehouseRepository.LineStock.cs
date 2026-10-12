@@ -1,4 +1,5 @@
 using System.Data;
+using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -70,7 +71,7 @@ public sealed partial class WarehouseRepository
                OR (COALESCE(CreatedBy,'')<>'WH-AUTO' AND FifoSeq <= RemainingQty)
             ORDER BY PickSlipID, FifoSeq;
             """, conn);
-        cmd.Parameters.AddWithValue("@PickSlipNo", pickSlipNo);
+        ColumnParams.AddFilter(cmd, "@PickSlipNo", "WH_PickSlip.PickSlipID", pickSlipNo);
 
         using var rdr = cmd.ExecuteReader();
         var rows = new List<PickingSlipFifoLotRow>();

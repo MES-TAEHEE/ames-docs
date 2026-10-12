@@ -21,7 +21,7 @@
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.ShippedQty"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@ShippedQty.ToString("N0")</div>
+            <div class="ames-kpi-v">@UomFmt.Qty(ShippedQty, null)</div>
             <div class="ames-kpi-s">@L["RPT.DailyShipment.Kpi.ShippedQtySub"]</div>
         </div>
     </div>
@@ -123,7 +123,7 @@
                 {
                     <div class="rpt-sh-round">
                         <div class="t">@cr.Code</div>
-                        <div class="v">@cr.Qty.ToString("N0")</div>
+                        <div class="v">@UomFmt.Qty(cr.Qty, null)</div>
                         <div class="s">@string.Format(L["RPT.DailyShipment.ByCarrier.Fmt"].Value, cr.Shipped, cr.Total)</div>
                     </div>
                 }

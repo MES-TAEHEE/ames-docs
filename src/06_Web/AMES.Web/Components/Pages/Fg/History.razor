@@ -3,6 +3,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.FinishedGoodsRepository Fg
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 @using Radzen
 
 <PageTitle>FG-04 @L["FG.History.Title"] · AMES</PageTitle>
@@ -23,7 +24,7 @@
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="EventType" Title="@L["Col.Event"].Value" Width="125px"><Template Context="r"><span class="pill @EventClass(r.EventType)">@r.EventType</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="ReferenceNo" Title="@L["Col.Reference"].Value" Width="155px"><Template Context="r"><span class="code">@(r.ReferenceNo ?? "-")</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="ItemOrOrder" Title="@L["FG.History.Col.ItemOrOrder"].Value" Width="150px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Qty" Title="@L["Col.Qty"].Value" Width="85px" TextAlign="TextAlign.Right"><Template Context="r">@(r.Qty == 0 ? "-" : r.Qty.ToString("N0"))</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Qty" Title="@L["Col.Qty"].Value" Width="85px" TextAlign="TextAlign.Right"><Template Context="r">@(r.Qty == 0 ? "-" : UomFmt.Qty(r.Qty, null))</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Location" Title="@L["FG.History.Col.LocationDock"].Value" Width="125px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="WorkerId" Title="@L["Col.Worker"].Value" Width="150px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow" Property="Status" Title="@L["Col.Status"].Value" Width="110px" />

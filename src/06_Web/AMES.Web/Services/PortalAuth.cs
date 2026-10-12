@@ -90,7 +90,7 @@ public static class PortalAuth
         if (IsPortalPath(path)) return true;
         var p = path.Value ?? "/";
         if (p.StartsWith("/_", StringComparison.Ordinal)) return true;                       // /_blazor, /_framework, /_content
-        if (p is "/keep-alive" or "/culture/set" or "/favicon.ico") return true;
+        if (p is "/keep-alive" or "/favicon.ico") return true;
         return Path.HasExtension(p) && !p.StartsWith("/Account", StringComparison.OrdinalIgnoreCase);   // css/js/images
     }
 }

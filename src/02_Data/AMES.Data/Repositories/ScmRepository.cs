@@ -79,9 +79,9 @@ public sealed partial class ScmRepository(AmesConnectionFactory factory)
 
     static void AddMappingParameters(SqlCommand command, string itemNo, string vendorId, string actor)
     {
-        command.Parameters.AddWithValue("@Item", itemNo);
-        command.Parameters.AddWithValue("@Vendor", vendorId);
-        command.Parameters.AddWithValue("@Actor", actor);
+        ColumnParams.Add(command, "@Item", "SCM_ItemVendor.ItemNo", itemNo);
+        ColumnParams.Add(command, "@Vendor", "SCM_ItemVendor.VendorID", vendorId);
+        ColumnParams.Add(command, "@Actor", "SCM_ItemVendor.ModifiedBy", actor);
     }
 
     /// <summary>

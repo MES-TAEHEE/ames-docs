@@ -18,7 +18,7 @@ public sealed partial class ScmRepository
             FROM dbo.SCM_Delivery d WHERE {NoteVendorAccess}
             ORDER BY d.DeliveryID DESC;
             """,c);
-        Add(cmd,("@U",userId));
+        Filter(cmd,("@U", "SCM_PortalVendorUser.UserID",userId));
         using var r=cmd.ExecuteReader();var rows=new List<BoxDelivery>();
         while(r.Read())rows.Add(new(r.GetString(0),r.GetString(1),r.GetString(2),r.GetDateTime(3),r.GetString(4),r.GetInt32(5)));
         return rows;
@@ -39,7 +39,7 @@ public sealed partial class ScmRepository
             WHERE d.DeliveryNumber=@N AND d.Status<>'Cancelled' AND b.ActiveFlag=1 AND {NoteVendorAccess}
             ORDER BY l.DeliveryLineID,b.BoxSeq;
             """,c);
-        Add(cmd,("@U",userId),("@N",number));
+        Filter(cmd,("@U", "SCM_PortalVendorUser.UserID",userId),("@N", "SCM_Delivery.DeliveryNumber",number));
         using var r=cmd.ExecuteReader();var rows=new List<DeliveryBox>();
         while(r.Read())rows.Add(new(r.GetInt64(0),r.GetString(1),r.GetInt32(2),r.GetString(3),r.GetString(4),r.GetString(5),r.GetDecimal(6),r.GetDecimal(7),r.GetString(8),r.GetString(9),r.GetString(10),r.GetString(11),r.GetDateTime(12),r.GetString(13),r.GetDateTime(14),r.GetString(15),r.GetInt32(16)));
         return rows;
@@ -52,7 +52,7 @@ public sealed partial class ScmRepository
         string vendor; DateTime numberDate;
         using(var header=new SqlCommand("SELECT VendorID,CONVERT(date,SYSDATETIME()) FROM dbo.SCM_Delivery WHERE DeliveryID=@D",c,tx))
         {
-            Add(header,("@D",deliveryId));using var r=header.ExecuteReader();
+            Filter(header,("@D", "SCM_Delivery.DeliveryID",deliveryId));using var r=header.ExecuteReader();
             if(!r.Read())throw new InvalidOperationException("Delivery not found.");
             vendor=r.GetString(0);numberDate=r.GetDateTime(1);
         }
@@ -68,7 +68,7 @@ public sealed partial class ScmRepository
             WHERE l.DeliveryID=@D ORDER BY l.DeliveryLineID;
             """,c,tx))
         {
-            Add(cmd,("@D",deliveryId));using var r=cmd.ExecuteReader();
+            Filter(cmd,("@D", "SCM_DeliveryLine.DeliveryID",deliveryId));using var r=cmd.ExecuteReader();
             while(r.Read())lines.Add((r.GetInt32(0),r.GetDecimal(1),r.GetDecimal(2),r.GetString(3),r.GetString(4),r.GetString(5),r.GetDecimal(6),r.GetInt32(7)));
         }
         foreach(var l in lines)
@@ -76,7 +76,7 @@ public sealed partial class ScmRepository
             // CASE boxes already have assigned barcodes. Never regenerate their identities.
             using(var prepared=new SqlCommand("SELECT COUNT(*) FROM dbo.SCM_DeliveryBox WHERE DeliveryLineID=@L AND CaseNo IS NOT NULL AND ActiveFlag=1",c,tx))
             {
-                Add(prepared,("@L",l.Id));
+                Filter(prepared,("@L", "SCM_DeliveryBox.DeliveryLineID",l.Id));
                 if((int)prepared.ExecuteScalar()!>0)
                 {
                     if(l.SavedQty!=l.Qty) throw new InvalidOperationException("Case quantities cannot be edited. Cancel the delivery first.");
@@ -91,7 +91,7 @@ public sealed partial class ScmRepository
                 UPDATE dbo.SCM_DeliveryBox SET ActiveFlag=0,VoidedTS=SYSDATETIME() WHERE DeliveryLineID=@L AND ActiveFlag=1;
                 UPDATE dbo.SCM_DeliveryLine SET PackingQty=@Pack WHERE DeliveryLineID=@L;
                 """,c,tx))
-            {Add(reset,("@L",l.Id),("@Pack",l.Pack));reset.ExecuteNonQuery();}
+            {Add(reset,("@L", "SCM_DeliveryBox.DeliveryLineID",l.Id),("@Pack", "SCM_DeliveryLine.PackingQty",l.Pack));reset.ExecuteNonQuery();}
             var firstNumber=ReserveBoxNumbers(c,tx,vendor,numberDate,(int)count);
             for(var seq=1;seq<=count;seq++)
             {
@@ -99,8 +99,8 @@ public sealed partial class ScmRepository
                     INSERT dbo.SCM_DeliveryBox(DeliveryLineID,BoxSeq,ItemNo,ItemName,UnitCode,Quantity,IssuedBoxNumber)
                     VALUES(@L,@S,@I,@Name,@Unit,@Q,@Number);
                     """,c,tx);
-                Add(insert,("@L",l.Id),("@S",seq),("@I",l.Item),("@Name",l.Name),("@Unit",l.Unit),("@Q",Math.Min(l.Pack,l.Qty-(seq-1)*l.Pack)));
-                Add(insert,("@Number",$"BX-{vendor}-{numberDate.ToString("yyyyMMdd",System.Globalization.CultureInfo.InvariantCulture)}-{(firstNumber+seq-1).ToString("D4",System.Globalization.CultureInfo.InvariantCulture)}"));
+                Add(insert,("@L", "SCM_DeliveryBox.DeliveryLineID",l.Id),("@S", "SCM_DeliveryBox.BoxSeq",seq),("@I", "SCM_DeliveryBox.ItemNo",l.Item),("@Name", "SCM_DeliveryBox.ItemName",l.Name),("@Unit", "SCM_DeliveryBox.UnitCode",l.Unit),("@Q", "SCM_DeliveryBox.Quantity",Math.Min(l.Pack,l.Qty-(seq-1)*l.Pack)));
+                Add(insert,("@Number", "SCM_DeliveryBox.IssuedBoxNumber",$"BX-{vendor}-{numberDate.ToString("yyyyMMdd",System.Globalization.CultureInfo.InvariantCulture)}-{(firstNumber+seq-1).ToString("D4",System.Globalization.CultureInfo.InvariantCulture)}"));
                 insert.ExecuteNonQuery();
             }
         }
@@ -118,7 +118,7 @@ public sealed partial class ScmRepository
             LEFT JOIN dbo.SCM_ItemVendor m ON m.ItemNo=p.ItemNo AND m.VendorID=p.VendorID AND m.ActiveFlag=1
             WHERE d.DeliveryID=@D ORDER BY l.DeliveryLineID;
             """,c,tx);
-        Add(details,("@D",deliveryId));
+        Filter(details,("@D", "SCM_Delivery.DeliveryID",deliveryId));
         var lines=new Dictionary<int,(int Id,string Item,string Name,string Unit,decimal Pack,decimal Qty)>();
         string? vendor=null;DateTime day=default;
         using(var r=details.ExecuteReader())while(r.Read())
@@ -141,15 +141,15 @@ public sealed partial class ScmRepository
                 INSERT dbo.SCM_DeliveryBox(DeliveryLineID,PoID,BoxSeq,ItemNo,ItemName,UnitCode,Quantity,PackingQty,IssuedBoxNumber)
                 VALUES(@Line,@Po,@Seq,@Item,@Name,@Unit,@Qty,@Pack,@Number);
                 """,c,tx);
-            Add(insert,("@Line",line.Id),("@Po",item.PoID),("@Seq",sequence),("@Item",line.Item),("@Name",line.Name),
-                ("@Unit",line.Unit),("@Qty",item.Quantity),("@Pack",item.IsPart?1:line.Pack),
-                ("@Number",$"{(item.IsPart?"PT":"BX")}-{vendor}-{day:yyyyMMdd}-{first+index:D4}"));
+            Add(insert,("@Line", "SCM_DeliveryBox.DeliveryLineID",line.Id),("@Po", "SCM_DeliveryBox.PoID",item.PoID),("@Seq", "SCM_DeliveryBox.BoxSeq",sequence),("@Item", "SCM_DeliveryBox.ItemNo",line.Item),("@Name", "SCM_DeliveryBox.ItemName",line.Name),
+                ("@Unit", "SCM_DeliveryBox.UnitCode",line.Unit),("@Qty", "SCM_DeliveryBox.Quantity",item.Quantity),("@Pack", "SCM_DeliveryBox.PackingQty",item.IsPart?1:line.Pack),
+                ("@Number", "SCM_DeliveryBox.IssuedBoxNumber",$"{(item.IsPart?"PT":"BX")}-{vendor}-{day:yyyyMMdd}-{first+index:D4}"));
             insert.ExecuteNonQuery();
         }
         foreach(var line in lines.Values)
         {
             using var snapshot=new SqlCommand("UPDATE dbo.SCM_DeliveryLine SET PackingQty=@Pack WHERE DeliveryLineID=@Line",c,tx);
-            Add(snapshot,("@Pack",line.Pack>0?line.Pack:1),("@Line",line.Id));snapshot.ExecuteNonQuery();
+            Add(snapshot,("@Pack", "SCM_DeliveryLine.PackingQty",line.Pack>0?line.Pack:1),("@Line", "SCM_DeliveryLine.DeliveryLineID",line.Id));snapshot.ExecuteNonQuery();
         }
     }
     // Allocate a range under the same transaction as the boxes. The PK range lock
@@ -169,7 +169,7 @@ public sealed partial class ScmRepository
             ELSE UPDATE dbo.SCM_BoxNumberSequence SET LastNumber=@Last+@Count WHERE VendorID=@V AND NumberDate=@Day;
             SELECT @Last+1;
             """,c,tx);
-        Add(cmd,("@V",vendor),("@Day",date.Date),("@Count",count));
+        Add(cmd,("@V", "SCM_BoxNumberSequence.VendorID",vendor),("@Day", "SCM_BoxNumberSequence.NumberDate",date.Date),("@Count", "SCM_BoxNumberSequence.LastNumber",count));
         return (int)cmd.ExecuteScalar()!;
     }
 

@@ -5,6 +5,7 @@
 @inject AMES.Data.Repositories.MasterDataRepository MD
 @inject AMES.Web.Services.PermissionService PermSvc
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 @inject AuthenticationStateProvider AuthPrvd
 @inject Microsoft.JSInterop.IJSRuntime JS
 @using AMES.Contracts.Dto
@@ -37,14 +38,14 @@
         <div class="ames-kpi-l">@L["PP.Oee.Kpi.Performance"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.P:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
-            <div class="ames-kpi-s">@(ov is null ? "" : $"{ov.Produced:N0} ea")</div>
+            <div class="ames-kpi-s">@(ov is null ? "" : $"{UomFmt.Qty(ov.Produced, null)} ea")</div>
         </div>
     </div>
     <div class="ames-kpi pp-oee-kpi-q">
         <div class="ames-kpi-l">@L["PP.Oee.Kpi.Quality"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.Q:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
-            <div class="ames-kpi-s">@(ov is null ? "" : $"{ov.Good:N0} / {ov.Produced:N0} ea")</div>
+            <div class="ames-kpi-s">@(ov is null ? "" : $"{UomFmt.Qty(ov.Good, null)} / {UomFmt.Qty(ov.Produced, null)} ea")</div>
         </div>
     </div>
     <div class="ames-kpi bad">
@@ -250,10 +251,10 @@
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="LoadingMin"       Title="@L["PP.Oee.Snap.Col.Load"]"      TextAlign="TextAlign.Right" />
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="OperatingMin"     Title="@L["PP.Oee.Snap.Col.Operating"]" TextAlign="TextAlign.Right" />
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="TotalProducedQty" Title="@L["PP.Oee.Snap.Col.Produced"]"  TextAlign="TextAlign.Right">
-                        <Template Context="s">@s.TotalProducedQty.ToString("N0")</Template>
+                        <Template Context="s">@UomFmt.Qty(s.TotalProducedQty, null)</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="GoodQty" Title="@L["PP.Oee.Snap.Col.Good"]" TextAlign="TextAlign.Right">
-                        <Template Context="s">@s.GoodQty.ToString("N0")</Template>
+                        <Template Context="s">@UomFmt.Qty(s.GoodQty, null)</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Availability" Title="@L["PP.Oee.Snap.Col.Avail"]" TextAlign="TextAlign.Right">
                         <Template Context="s">@($"{s.Availability:F1}%")</Template>
@@ -327,7 +328,7 @@
                         @foreach (var (lbl, val, key, note) in new[] {
                             (L["PP.Oee.Kpi.Availability"].Value, r.Availability, "a", $"{r.OperatingMin} / {r.LoadingMin} min"),
                             (L["PP.Oee.Kpi.Performance"].Value,  r.Performance,  "p", r.PerformanceAssumed ? L["PP.Oee.Calc.Assumed"].Value : ""),
-                            (L["PP.Oee.Kpi.Quality"].Value,      r.Quality,      "q", $"{r.GoodQty:N0} / {r.TotalProducedQty:N0} ea") })
+                            (L["PP.Oee.Kpi.Quality"].Value,      r.Quality,      "q", $"{UomFmt.Qty(r.GoodQty, null)} / {UomFmt.Qty(r.TotalProducedQty, null)} ea") })
                         {
                             <div class="pp-oee-comp-row">
                                 <div class="pp-oee-comp-h"><span>@lbl <span class="dim">@note</span></span><b>@($"{val:F1}%")</b></div>

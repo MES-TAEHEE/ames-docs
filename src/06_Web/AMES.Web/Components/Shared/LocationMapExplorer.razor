@@ -45,7 +45,7 @@
                                     <span>@L["Col.Floor"]</span>
                                     <strong>@floor.Name</strong>
                                     <small>@floor.LocationCount.ToString("N0") @L["WH.LocMap.Locations"]</small>
-                                    <b>@floor.Qty.ToString("N0") <em>@L["WH.LocMap.Qty"]</em></b>
+                                    <b>@UomFmt.Qty(floor.Qty, null) <em>@L["WH.LocMap.Qty"]</em></b>
                                 </button>
                                 @if (_editing && CanEdit && CanAddHierarchy) { <button type="button" class="location-stage-remove" aria-label="Delete floor @floor.Name" title="Delete floor @floor.Name" @onclick="() => DeleteCard(floor.Key)">×</button> }
                             </div>
@@ -82,7 +82,7 @@
                                     <span>@StageLabel</span>
                                     <strong>@card.Name</strong>
                                     <small>@card.LocationCount.ToString("N0") @L["WH.LocMap.Locations"]</small>
-                                    <b>@card.Qty.ToString("N0") <em>@L["WH.LocMap.Qty"]</em></b>
+                                    <b>@UomFmt.Qty(card.Qty, null) <em>@L["WH.LocMap.Qty"]</em></b>
                                 </button>
                                 @if (_editing && CanEdit && CanAddHierarchy) { <button type="button" class="location-stage-remove" aria-label="Delete @StageLabel @card.Name" title="Delete @StageLabel @card.Name" @onclick="() => DeleteCard(card.Key)">×</button> }
                             </div>
@@ -109,7 +109,7 @@
                 </header>
 
                 <div class="inventory-drawer-summary">
-                    <div><span>@L["WH.Inventory.Lbl.TotalQty"]</span><strong>@LocationDrawerRows.Sum(x => x.Qty).ToString("N0") EA</strong></div>
+                    <div><span>@L["WH.Inventory.Lbl.TotalQty"]</span><strong>@UomFmt.QtyUnit(LocationDrawerRows.Sum(x => x.Qty), "EA")</strong></div>
                     <div><span>@L["WH.LocMap.Lbl.Items"]</span><strong>@LocationDrawerRows.Select(x => x.PartNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
                     <div><span>@L["WH.Inventory.Lbl.Lots"]</span><strong>@LocationDrawerRows.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
                 </div>
@@ -438,7 +438,7 @@
                         {
                             <button type="button" class="@MapCellClass(cell)" title="@cell.LocationNo" @onclick="() => SelectLocation(cell)">
                                 <span>@MapCellLabel(cell)</span>
-                                @if (cell.Qty > 0) { <small>@cell.Qty.ToString("N0")</small> }
+                                @if (cell.Qty > 0) { <small>@UomFmt.Qty(cell.Qty, null)</small> }
                             </button>
                         }
                     }

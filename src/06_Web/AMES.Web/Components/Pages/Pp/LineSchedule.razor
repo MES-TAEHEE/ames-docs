@@ -14,6 +14,7 @@
 @inject WorkOrderRepository Wos
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 
 @implements IDisposable
 
@@ -39,7 +40,7 @@
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["PP.LineSchedule.Kpi.Qty"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@PlannedQty.ToString("N0")</div>
+            <div class="ames-kpi-v">@UomFmt.Qty(PlannedQty, null)</div>
             <div class="ames-kpi-s">@L["PP.LineSchedule.Kpi.QtySub"]</div>
         </div>
     </div>
@@ -176,7 +177,7 @@
                     <Template Context="s">@(s.EndMin - s.StartMin)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Lbl.PlannedQty"]" TextAlign="TextAlign.Right" Width="120px">
-                    <Template Context="s">@s.Qty.ToString("N0")</Template>
+                    <Template Context="s">@UomFmt.Qty(s.Qty, null)</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                     <Template Context="s">
@@ -276,6 +277,12 @@
                         <RadzenNumeric TValue="decimal" @bind-Value="_placeQty" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                 </RadzenRow>
+                @if (!editing && AvailableWos.FirstOrDefault(w => w.WoId == _placeWoId) is { PlacedElsewhereQty: > 0 } placedWo)
+                {
+                    <RadzenAlert AlertStyle="@(placedWo.UnplacedQty > 0 ? AlertStyle.Info : AlertStyle.Warning)" Variant="Variant.Flat" AllowClose="false">
+                        @string.Format(L["PP.LineSchedule.Hint.PlacedElsewhere"].Value, UomFmt.Qty(placedWo.PlacedElsewhereQty, null), UomFmt.Qty(placedWo.UnplacedQty, null))
+                    </RadzenAlert>
+                }
             </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -480,7 +487,7 @@
                        + (_editWoId == slot.WoId ? " sel" : "");
             string range = $"{MinToTime(slot.StartMin)}~{MinToTime(slot.EndMin)}";
             __b.OpenElement(70, "div"); __b.AddAttribute(71, "class", cls); __b.AddAttribute(72, "style", $"left:{LeftPct(rlo)};width:{WidthPct(rlo, rhi)};padding:0;top:50%;height:calc(50% - 4px);");
-            __b.AddAttribute(73, "title", $"{SlotLabel(capSlot)} · {slot.WoNumber}  {slot.ItemName ?? ""}\n{range}  ({wMin}{L["Lbl.Min"]})  {slot.Qty:N0}");
+            __b.AddAttribute(73, "title", $"{SlotLabel(capSlot)} · {slot.WoNumber}  {slot.ItemName ?? ""}\n{range}  ({wMin}{L["Lbl.Min"]})  {UomFmt.Qty(slot.Qty, null)}");
             if (Editable) __b.AddAttribute(74, "onclick", EventCallback.Factory.Create(this, () => EditSlot(capSlot.WoId)));
             // 폭 조건 없이 항상 라벨 표시 (좁은 배치는 overflow로 처리)
             __b.OpenElement(75, "span"); __b.AddAttribute(76, "class", "pp-blk-t"); __b.AddContent(77, SlotLabel(capSlot)); __b.CloseElement();
@@ -808,7 +815,7 @@
         if (string.IsNullOrEmpty(_lineId)) { _lineWos = new(); _pmCandidates = new(); ResetPlaceForm(); return; }
         try
         {
-            _lineWos = LSB.ListLineWos(_lineId);
+            _lineWos = LSB.ListLineWos(_lineId, _date);
             try { _pmCandidates = LSB.ListDuePmForLine(_lineId); } catch { _pmCandidates = new(); }
             var rows = LSB.GetSchedule(_lineId, _date);
             _version     = LineScheduleRepository.VersionOf(rows);
@@ -1020,11 +1027,11 @@
     void OnModalBgDown() => _modalBgDown = true;
     void OnModalBgClick() { if (_modalBgDown) ClosePlaceModal(); _modalBgDown = false; }
 
-    // 선택한 WO의 잔여 수량을 계획수량 기본값으로 채움
+    // 선택한 WO 의 이 라인 미배치 수량(OpenQty − 다른 날짜에 이미 놓인 슬롯)을 계획수량 기본값으로 채움 — 전량을 다시 채우면 이중 계획이 됐다(10-13)
     void OnPlaceWoChanged()
     {
         var wo = AvailableWos.FirstOrDefault(w => w.WoId == _placeWoId);
-        if (wo is not null && _placeQty == 0) _placeQty = wo.OpenQty;
+        if (wo is not null && _placeQty == 0) _placeQty = wo.UnplacedQty;
     }
 
     // ── PM(예방보전) 밴드 등록 / 수정 (메모리 스테이징) ────────────────────

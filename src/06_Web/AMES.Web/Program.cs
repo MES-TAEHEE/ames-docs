@@ -288,6 +288,7 @@ else app.Logger.LogWarning("Data Protection key folder {Dir} is not writable ({E
 // 10분보다 오래됐을 때만 다시 읽는다. DB 가 아직 안 뜬 상태여도 실패를 삼키고 Offset 0(호스트 시계)으로 계속 간다.
 DbClock.Configure(factory);
 DbClock.Sync();
+AMES.Contracts.Dto.WorkOrderDto.Today = () => DbClock.Today;   // PP-004·PP-CAL 의 D-day 도 DB 날짜로
 
 // ── Startup seeds ──────────────────────────────────────────────────────
 // 여기서 예외가 새어나가면 ANCM 이 프로세스를 못 올려 모든 요청이 500 이 되고,
@@ -558,17 +559,5 @@ app.MapGet("/api/health", () => Results.Ok(new
 app.MapGet("/keep-alive", () => Results.NoContent())
     .RequireAuthorization()
     .ExcludeFromDescription();
-
-app.MapGet("/culture/set", (string culture, string redirectUri, HttpContext ctx) =>
-{
-    ctx.Response.Cookies.Append(
-        Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.DefaultCookieName,
-        Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.MakeCookieValue(
-            new Microsoft.AspNetCore.Localization.RequestCulture(culture)),
-        new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true });
-    // Nav.Uri returns absolute URL — extract local path only for LocalRedirect
-    var localPath = Uri.TryCreate(redirectUri, UriKind.Absolute, out var u) ? u.PathAndQuery : "/";
-    return Results.LocalRedirect(localPath);
-}).ExcludeFromDescription();
 
 app.Run();

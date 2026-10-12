@@ -3,7 +3,7 @@
 <div class="inventory-lookup">
     <div class="ames-kpis">
         <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Inventory.Kpi.Parts"]</div><div class="ames-kpi-v">@SummaryRows.Count</div></div>
-        <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Col.Quantity"]</div><div class="ames-kpi-v">@FilteredInventory.Sum(x => x.Qty).ToString("N0")</div></div>
+        <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Col.Quantity"]</div><div class="ames-kpi-v">@UomFmt.Qty(FilteredInventory.Sum(x => x.Qty), null)</div></div>
         <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Col.Locations"]</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
         <div class="ames-kpi"><div class="ames-kpi-l">@L["Col.Lots"]</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
     </div>

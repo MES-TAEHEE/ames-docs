@@ -944,7 +944,7 @@ public static class WhEndpoints
                 WHERE @Q='' OR L.LotCode LIKE '%'+@Q+'%' OR L.ItemNo LIKE '%'+@Q+'%' OR I.ItemName LIKE '%'+@Q+'%'
                 ORDER BY COALESCE(L.ModifiedTS,L.CreatedTS) DESC,L.LotID DESC;
                 """;
-            return QueryWithParam(factory, sql, "@Q", q ?? "", r => new LotStatusRow(
+            return QueryWithParam(factory, sql, "@Q", null, q ?? "", r => new LotStatusRow(
                 (int)r["LotID"], r["LotNo"] as string ?? "", r["ItemNo"] as string, r["ItemName"] as string,
                 r["InventoryStatus"] as string ?? "CREATED", r.GetDecimal(r.GetOrdinal("RemainingQty")),
                 r["LocationID"] as string, r["ProducedAt"] as DateTime?, r["LastChangedAt"] as DateTime?));
@@ -1008,8 +1008,8 @@ public static class WhEndpoints
             using var conn = factory.OpenConnection();
             using (var auto = new SqlCommand("SELECT COUNT(*) FROM dbo.WH_PickSlip WHERE PickSlipNo=@Slip AND CreatedBy=@Actor", conn))
             {
-                auto.Parameters.AddWithValue("@Slip", body.PickSlipNo);
-                auto.Parameters.AddWithValue("@Actor", WarehouseRepository.ReplenishmentActor);
+                ColumnParams.AddFilter(auto, "@Slip", "WH_PickSlip.PickSlipNo", body.PickSlipNo);
+                ColumnParams.AddFilter(auto, "@Actor", "WH_PickSlip.CreatedBy", WarehouseRepository.ReplenishmentActor);
                 if (Convert.ToInt32(auto.ExecuteScalar()) > 0)
                     return Results.BadRequest(new PickResult(false, "Scan all requested boxes and use Release Complete for line replenishment.", null));
             }
@@ -1086,14 +1086,14 @@ public static class WhEndpoints
                         CONCAT('PDA release pick ', @PickSlipNo), @By, SYSDATETIME();
                 END
                 """, conn, tx);
-            cmd.Parameters.AddWithValue("@PickSlipNo", body.PickSlipNo.Trim());
-            cmd.Parameters.AddWithValue("@LotNo", body.LotNo.Trim());
-            cmd.Parameters.AddWithValue("@PartNo", (object?)row.ItemNo ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@Qty", pickQty);
-            cmd.Parameters.AddWithValue("@LocationNo", (object?)row.LocationNo ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@BeforeStatus", (object?)row.InvStatus ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@By", s.EmployeeNo);
-            cmd.Parameters.AddWithValue("@TerminalId", s.TerminalId);
+            ColumnParams.AddFilter(cmd, "@PickSlipNo", null, body.PickSlipNo.Trim());
+            ColumnParams.Add(cmd, "@LotNo", "WH_InventoryTransaction.LotNo", body.LotNo.Trim());
+            ColumnParams.Add(cmd, "@PartNo", "WH_InventoryTransaction.PartNo", (object?)row.ItemNo ?? DBNull.Value);
+            ColumnParams.Add(cmd, "@Qty", "WH_InventoryTransaction.QtyBefore", pickQty);
+            ColumnParams.Add(cmd, "@LocationNo", "WH_InventoryTransaction.LocationNo", (object?)row.LocationNo ?? DBNull.Value);
+            ColumnParams.AddFilter(cmd, "@BeforeStatus", null, (object?)row.InvStatus ?? DBNull.Value);
+            ColumnParams.Add(cmd, "@By", "WH_InventoryTransaction.CreatedBy", s.EmployeeNo);
+            ColumnParams.AddFilter(cmd, "@TerminalId", null, s.TerminalId);
             var affected = cmd.ExecuteNonQuery();
 
             if (affected < 2)
@@ -1209,7 +1209,7 @@ public static class WhEndpoints
                 WHERE  TransactionTime > DATEADD(day, -@Days, SYSDATETIME())
                 ORDER BY TransactionTime DESC;
                 """;
-            return QueryWithParam(factory, sql, "@Days", d, r => new TransactionRow(
+            return QueryWithParam(factory, sql, "@Days", null, d, r => new TransactionRow(
                 (long)r["TxnID"], (DateTime)r["TxnTime"], r["TxnType"] as string ?? "?",
                 r["ItemNo"] as string, r["LocationID"] as string,
                 r.GetDecimal(r.GetOrdinal("QtyBefore")),
@@ -1301,13 +1301,13 @@ public static class WhEndpoints
             CommandType = CommandType.StoredProcedure
         };
 
-        cmd.Parameters.AddWithValue("@CompanyCode", "1000");
-        cmd.Parameters.AddWithValue("@BusinessCode", "5011");
-        cmd.Parameters.AddWithValue("@ScheduleYear", queryYear.ToString());
-        cmd.Parameters.AddWithValue("@ScheduleQuarter", queryQuarter.ToString());
+        ColumnParams.AddFilter(cmd, "@CompanyCode", "WH_PDA_SCHEDULE_INBOUND_LIST.@CompanyCode", "1000");
+        ColumnParams.AddFilter(cmd, "@BusinessCode", "WH_PDA_SCHEDULE_INBOUND_LIST.@BusinessCode", "5011");
+        ColumnParams.AddFilter(cmd, "@ScheduleYear", "WH_PDA_SCHEDULE_INBOUND_LIST.@ScheduleYear", queryYear.ToString());
+        ColumnParams.AddFilter(cmd, "@ScheduleQuarter", "WH_PDA_SCHEDULE_INBOUND_LIST.@ScheduleQuarter", queryQuarter.ToString());
         cmd.Parameters.Add("@SupplierCode", SqlDbType.NVarChar, 10).Value =
             string.IsNullOrWhiteSpace(vendorId) ? DBNull.Value : vendorId;
-        cmd.Parameters.AddWithValue("@LanguageCode", language);
+        ColumnParams.AddFilter(cmd, "@LanguageCode", "WH_PDA_SCHEDULE_INBOUND_LIST.@LanguageCode", language);
 
         using var rdr = cmd.ExecuteReader();
         var rows = new List<Wh001ScheduleInboundItem>();
@@ -1495,7 +1495,7 @@ public static class WhEndpoints
                    ON L.PARTNO = R.PARTNO
             ORDER BY R.PARTNO;
             """, conn);
-        cmd.Parameters.AddWithValue("@PickSlipNo", pickSlipNo.Trim());
+        ColumnParams.AddFilter(cmd, "@PickSlipNo", null, pickSlipNo.Trim());
 
         using var rdr = cmd.ExecuteReader();
         var rows = new List<ReleasePickLineRow>();
@@ -1700,7 +1700,7 @@ public static class WhEndpoints
         foreach (var lookup in lookups)
         {
             if (!TableExists(conn, null, lookup.Schema, lookup.Table)) continue;
-            var result = ScalarString(conn, null, lookup.Sql, ("@ScanText", value));
+            var result = ScalarString(conn, null, lookup.Sql, ("@ScanText", "MD_Location.LocationID", value));
             if (!string.IsNullOrWhiteSpace(result))
                 return new InventoryScanLookupRow(lookup.Kind, result, null);
         }
@@ -1834,7 +1834,7 @@ public static class WhEndpoints
             FROM SIS_TEST.WMS3050
             WHERE PICK_SLIPNO = @PickSlipNo;
             """, conn);
-        cmd.Parameters.AddWithValue("@PickSlipNo", pickSlipNo);
+        ColumnParams.AddFilter(cmd, "@PickSlipNo", null, pickSlipNo);
 
         using var rdr = cmd.ExecuteReader();
         if (!rdr.Read())
@@ -1866,7 +1866,7 @@ public static class WhEndpoints
 
         var autoReplenishment = ScalarDecimal(conn, tx,
             "SELECT COUNT(*) FROM dbo.WH_PickSlip WHERE PickSlipNo=@Slip AND CreatedBy=@Actor;",
-            ("@Slip", pickSlipNo), ("@Actor", WarehouseRepository.ReplenishmentActor)) > 0;
+            ("@Slip", "WH_PickSlip.PickSlipNo", pickSlipNo), ("@Actor", "WH_PickSlip.CreatedBy", WarehouseRepository.ReplenishmentActor)) > 0;
 
         if (!autoReplenishment && ProcedureExists(conn, tx, "dbo", PdaReleaseScanLotProcedure))
         {
@@ -1900,7 +1900,7 @@ public static class WhEndpoints
                OR PickSlipID=TRY_CONVERT(int,REPLACE(UPPER(@PickSlipNo),N'RS-',N''));
             """, conn, tx))
         {
-            slipCmd.Parameters.AddWithValue("@PickSlipNo", pickSlipNo);
+            ColumnParams.AddFilter(slipCmd, "@PickSlipNo", "WH_PickSlip.PickSlipID", pickSlipNo);
             using var slipRdr = slipCmd.ExecuteReader();
             if (!slipRdr.Read())
                 return InvalidReleaseLot(pickSlipNo, lotNo, "Pick Slip was not found.");
@@ -1936,9 +1936,9 @@ public static class WhEndpoints
                      W.ReceivedAt,W.CreatedAt,W.LotNo;
             """, conn, tx))
         {
-            lotCmd.Parameters.AddWithValue("@LotNo", lotNo);
-            lotCmd.Parameters.AddWithValue("@Auto", autoReplenishment);
-            lotCmd.Parameters.AddWithValue("@PickSlipKey", slipKey!);
+            ColumnParams.AddFilter(lotCmd, "@LotNo", "WH_Inventory.LotNo", lotNo);
+            ColumnParams.AddFilter(lotCmd, "@Auto", null, autoReplenishment);
+            ColumnParams.AddFilter(lotCmd, "@PickSlipKey", "WH_PickSlip.PickSlipID", slipKey!);
             using var rdr = lotCmd.ExecuteReader();
             if (!rdr.Read())
                 return InvalidReleaseLot(pickSlipNo, lotNo, "LOT was not found.");
@@ -1968,7 +1968,7 @@ public static class WhEndpoints
             SELECT SUM(COALESCE(DemandQty,0)) FROM dbo.WH_PickSlip
             WHERE COALESCE(NULLIF(PickSlipNo,N''),CONCAT(N'RS-',PickSlipID))=@PickSlipNo
               AND ItemNo=@PartNo;
-            """, ("@PickSlipNo", slipKey!), ("@PartNo", row.ItemNo ?? ""));
+            """, ("@PickSlipNo", "WH_PickSlip.PickSlipID", slipKey!), ("@PartNo", "WH_PickSlip.ItemNo", row.ItemNo ?? ""));
 
         if (requestedBoxes <= 0)
             return row with { IsValid = false, Message = "Wrong item. This LOT is not requested by the selected Pick Slip." };
@@ -1977,7 +1977,7 @@ public static class WhEndpoints
             SELECT SUM(COALESCE(PickedQty,0)) FROM dbo.WH_PickSlip
             WHERE COALESCE(NULLIF(PickSlipNo,N''),CONCAT(N'RS-',PickSlipID))=@PickSlipNo
               AND ItemNo=@PartNo;
-            """, ("@PickSlipNo", slipKey!), ("@PartNo", row.ItemNo ?? ""));
+            """, ("@PickSlipNo", "WH_PickSlip.PickSlipID", slipKey!), ("@PartNo", "WH_PickSlip.ItemNo", row.ItemNo ?? ""));
 
         if (pickedBoxes >= requestedBoxes)
             return row with { IsValid = false, Message = "This item is already fully picked for the selected Pick Slip." };
@@ -1987,7 +1987,7 @@ public static class WhEndpoints
             WHERE W.PartNo=@PartNo AND W.Qty>0
               AND (@Auto=0 OR ({WarehouseRepository.WarehouseBoxPredicate}))
             ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo;
-            """, ("@PartNo", row.ItemNo ?? ""), ("@Auto", autoReplenishment));
+            """, ("@PartNo", "WH_Inventory.PartNo", row.ItemNo ?? ""), ("@Auto", null, autoReplenishment));
 
         if (!string.IsNullOrWhiteSpace(oldestLot)
             && !oldestLot.Equals(row.LotNo, StringComparison.OrdinalIgnoreCase))
@@ -2038,7 +2038,7 @@ public static class WhEndpoints
             WHERE UPPER(W.LotNo)=UPPER(@LotNo)
             ORDER BY CASE WHEN W.Qty>0 THEN 0 ELSE 1 END,W.ReceivedAt,W.LotNo;
             """, conn);
-        cmd.Parameters.AddWithValue("@LotNo", normalizedLot);
+        ColumnParams.AddFilter(cmd, "@LotNo", "WH_Inventory.LotNo", normalizedLot);
         using var rdr = cmd.ExecuteReader();
         if (!rdr.Read())
             return new DirectOutgoingLotRow(0, normalizedLot, null, null, 0, null, null, "-", false, "LOT was not found.");
@@ -2528,7 +2528,7 @@ public static class WhEndpoints
                     SELECT COUNT(*) FROM dbo.MD_Vendor
                     WHERE VendorID=@VendorID AND COALESCE(ActiveFlag,1)=1;
                     """, conn, tx);
-                vendorCmd.Parameters.AddWithValue("@VendorID", body.TargetCode!.Trim());
+                ColumnParams.AddFilter(vendorCmd, "@VendorID", "MD_Vendor.VendorID", body.TargetCode!.Trim());
                 if ((int)vendorCmd.ExecuteScalar()! == 0)
                     return new DirectOutgoingResult(false, "The selected supplier is not available.");
             }
@@ -2553,7 +2553,7 @@ public static class WhEndpoints
                 ORDER BY CASE WHEN W.Qty>0 THEN 0 ELSE 1 END,W.ReceivedAt,W.LotNo;
                 """, conn, tx))
             {
-                lotCmd.Parameters.AddWithValue("@LotNo", body.LotNo.Trim());
+                ColumnParams.AddFilter(lotCmd, "@LotNo", "WH_Inventory.LotNo", body.LotNo.Trim());
                 using var rdr = lotCmd.ExecuteReader();
                 if (!rdr.Read())
                     return new DirectOutgoingResult(false, "LOT inventory was not found.");
@@ -2597,18 +2597,18 @@ public static class WhEndpoints
                      @ReasonCode,'DIRECT_OUTGOING',NULL,@User,@Note,LEFT(@User,20),SYSDATETIME());
                 """, conn, tx))
             {
-                saveCmd.Parameters.AddWithValue("@LotNo", lotCode);
-                saveCmd.Parameters.AddWithValue("@ItemNo", itemNo);
-                saveCmd.Parameters.AddWithValue("@LocationID", (object?)locationId ?? DBNull.Value);
-                saveCmd.Parameters.AddWithValue("@BeforeQty", beforeQty);
-                saveCmd.Parameters.AddWithValue("@OutgoingQty", outgoingQty);
-                saveCmd.Parameters.AddWithValue("@AfterQty", afterQty);
-                saveCmd.Parameters.AddWithValue("@BeforeStatus", beforeStatus);
-                saveCmd.Parameters.AddWithValue("@AfterStatus", afterStatus);
-                saveCmd.Parameters.AddWithValue("@ReasonCode", reasonCode);
-                saveCmd.Parameters.AddWithValue("@TargetCode", (object?)target ?? DBNull.Value);
-                saveCmd.Parameters.AddWithValue("@Note", note);
-                saveCmd.Parameters.AddWithValue("@User", userId);
+                ColumnParams.Add(saveCmd, "@LotNo", "WH_InventoryTransaction.LotNo", lotCode);
+                ColumnParams.Add(saveCmd, "@ItemNo", "WH_InventoryTransaction.PartNo", itemNo);
+                ColumnParams.Add(saveCmd, "@LocationID", "WH_InventoryTransaction.LocationNo", (object?)locationId ?? DBNull.Value);
+                ColumnParams.Add(saveCmd, "@BeforeQty", "WH_InventoryTransaction.QtyBefore", beforeQty);
+                ColumnParams.Add(saveCmd, "@OutgoingQty", "WH_InventoryTransaction.QtyChange", outgoingQty);
+                ColumnParams.Add(saveCmd, "@AfterQty", "WH_InventoryTransaction.QtyAfter", afterQty);
+                ColumnParams.AddFilter(saveCmd, "@BeforeStatus", null, beforeStatus);
+                ColumnParams.AddFilter(saveCmd, "@AfterStatus", null, afterStatus);
+                ColumnParams.Add(saveCmd, "@ReasonCode", "WH_InventoryTransaction.ReasonCode", reasonCode);
+                ColumnParams.AddFilter(saveCmd, "@TargetCode", null, (object?)target ?? DBNull.Value);
+                ColumnParams.Add(saveCmd, "@Note", "WH_InventoryTransaction.Note", note);
+                ColumnParams.Add(saveCmd, "@User", "WH_InventoryTransaction.OperatorID", userId);
                 saveCmd.ExecuteNonQuery();
             }
 
@@ -2661,7 +2661,7 @@ public static class WhEndpoints
                   AND UPPER(COALESCE(Status,N'OPEN')) NOT IN (N'RELEASED',N'CLOSED',N'CANCELLED',N'CANCELED');
                 """, conn, tx))
             {
-                lineCmd.Parameters.AddWithValue("@Slip", slip);
+                ColumnParams.AddFilter(lineCmd, "@Slip", "WH_PickSlip.PickSlipID", slip);
                 using var rdr = lineCmd.ExecuteReader();
                 while (rdr.Read())
                     lines[rdr.GetString(rdr.GetOrdinal("ItemNo"))] = (
@@ -2696,8 +2696,8 @@ public static class WhEndpoints
                     WHERE UPPER(W.LotNo)=UPPER(@LotNo)
                     ORDER BY RS.PickSlipID;
                     """, conn, tx);
-                lotCmd.Parameters.AddWithValue("@Slip", slip);
-                lotCmd.Parameters.AddWithValue("@LotNo", input.LotNo);
+                ColumnParams.AddFilter(lotCmd, "@Slip", "WH_PickSlip.PickSlipID", slip);
+                ColumnParams.AddFilter(lotCmd, "@LotNo", "WH_Inventory.LotNo", input.LotNo);
                 using var rdr = lotCmd.ExecuteReader();
                 if (!rdr.Read())
                 {
@@ -2757,7 +2757,7 @@ public static class WhEndpoints
                     ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo;
                     """, conn, tx)
                 { CommandType = lot.LineDestination is null ? CommandType.StoredProcedure : CommandType.Text };
-                fifoCmd.Parameters.AddWithValue("@LotNo", lot.LotNo);
+                ColumnParams.AddFilter(fifoCmd, "@LotNo", "WH_Inventory.LotNo", lot.LotNo);
                 using var fifoRdr = fifoCmd.ExecuteReader();
                 while (fifoRdr.Read())
                 {
@@ -2795,17 +2795,17 @@ public static class WhEndpoints
                             (SYSDATETIME(),'IN',@ItemNo,@LineDestination,@LotNo,0,@Qty,@Qty,
                              @ReasonCode,'PICK_SLIP',@ScheduleID,@User,CONCAT('Line replenishment ',@Slip),LEFT(@User,20),SYSDATETIME());
                     """, conn, tx);
-                cmd.Parameters.AddWithValue("@ScheduleID", lot.PickSlipId);
-                cmd.Parameters.AddWithValue("@LotNo", lot.LotNo);
-                cmd.Parameters.AddWithValue("@ItemNo", lot.ItemNo);
-                cmd.Parameters.AddWithValue("@LocationID", (object?)lot.LocationId ?? DBNull.Value);
+                ColumnParams.Add(cmd, "@ScheduleID", "WH_InventoryTransaction.SourceID", lot.PickSlipId);
+                ColumnParams.Add(cmd, "@LotNo", "WH_InventoryTransaction.LotNo", lot.LotNo);
+                ColumnParams.Add(cmd, "@ItemNo", "WH_InventoryTransaction.PartNo", lot.ItemNo);
+                ColumnParams.Add(cmd, "@LocationID", "WH_InventoryTransaction.LocationNo", (object?)lot.LocationId ?? DBNull.Value);
                 cmd.Parameters.Add("@LineDestination", SqlDbType.VarChar, 50).Value = (object?)lot.LineDestination ?? DBNull.Value;
-                cmd.Parameters.AddWithValue("@ReceivedDate", (object?)lot.ReceivedDate ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@Qty", lot.Qty);
-                cmd.Parameters.AddWithValue("@Slip", slip);
-                cmd.Parameters.AddWithValue("@ReasonCode", reasonCode);
-                cmd.Parameters.AddWithValue("@User", userId);
-                cmd.Parameters.AddWithValue("@Terminal", terminalId);
+                ColumnParams.AddFilter(cmd, "@ReceivedDate", null, (object?)lot.ReceivedDate ?? DBNull.Value);
+                ColumnParams.Add(cmd, "@Qty", "WH_InventoryTransaction.QtyBefore", lot.Qty);
+                ColumnParams.AddFilter(cmd, "@Slip", null, slip);
+                ColumnParams.Add(cmd, "@ReasonCode", "WH_InventoryTransaction.ReasonCode", reasonCode);
+                ColumnParams.Add(cmd, "@User", "WH_InventoryTransaction.OperatorID", userId);
+                ColumnParams.AddFilter(cmd, "@Terminal", null, terminalId);
                 cmd.ExecuteNonQuery();
             }
 
@@ -2832,8 +2832,8 @@ public static class WhEndpoints
                 WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo,N''),CONCAT(N'RS-',RS.PickSlipID)))=UPPER(@Slip);
                 """, conn, tx))
             {
-                finish.Parameters.AddWithValue("@Slip", slip);
-                finish.Parameters.AddWithValue("@User", userId);
+                ColumnParams.AddFilter(finish, "@Slip", "WH_PickSlip.PickSlipID", slip);
+                ColumnParams.Add(finish, "@User", "WH_PickSlip.ModifiedBy", userId);
                 finish.ExecuteNonQuery();
             }
 
@@ -2975,20 +2975,20 @@ public static class WhEndpoints
         return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
     }
 
-    private static decimal ScalarDecimal(SqlConnection conn, SqlTransaction? tx, string sql, params (string Name, object? Value)[] parameters)
+    private static decimal ScalarDecimal(SqlConnection conn, SqlTransaction? tx, string sql, params (string Name, string? Column, object? Value)[] parameters)
     {
         using var cmd = new SqlCommand(sql, conn, tx);
-        foreach (var (name, value) in parameters)
-            cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        foreach (var (name, column, value) in parameters)
+            ColumnParams.AddFilter(cmd, name, column, value);
         var result = cmd.ExecuteScalar();
         return result == null || result == DBNull.Value ? 0 : Convert.ToDecimal(result);
     }
 
-    private static string? ScalarString(SqlConnection conn, SqlTransaction? tx, string sql, params (string Name, object? Value)[] parameters)
+    private static string? ScalarString(SqlConnection conn, SqlTransaction? tx, string sql, params (string Name, string? Column, object? Value)[] parameters)
     {
         using var cmd = new SqlCommand(sql, conn, tx);
-        foreach (var (name, value) in parameters)
-            cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+        foreach (var (name, column, value) in parameters)
+            ColumnParams.AddFilter(cmd, name, column, value);
         var result = cmd.ExecuteScalar();
         return result == null || result == DBNull.Value ? null : Convert.ToString(result);
     }
@@ -3600,12 +3600,12 @@ public static class WhEndpoints
         while (rdr.Read()) list.Add(map(rdr));
         return Results.Ok(list);
     }
-    private static IResult QueryWithParam<T>(AmesConnectionFactory factory, string sql, string p, object v,
+    private static IResult QueryWithParam<T>(AmesConnectionFactory factory, string sql, string p, string? column, object v,
                                               Func<SqlDataReader, T> map)
     {
         using var conn = factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue(p, v);
+        ColumnParams.AddFilter(cmd, p, column, v);
         using var rdr  = cmd.ExecuteReader();
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));

@@ -290,11 +290,11 @@ public sealed partial class WarehouseRepository
                 GetInt(r, "LOT_COUNT"),
                 GetInt(r, "PART_COUNT"),
                 GetDecimal(r, "TOTAL_QTY")),
-            ("@Search", like),
-            ("@IncludeInactive", includeInactive),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@SectionCode", NullIfBlank(sectionCode)),
-            ("@WhCode", NullIfBlank(whCode)));
+            ("@Search", "MD_Location.LocationName", like),
+            ("@IncludeInactive", null, includeInactive),
+            ("@AreaCode", "MD_Location.AreaCode", NullIfBlank(areaCode)),
+            ("@SectionCode", "MD_Location.ZoneCode", NullIfBlank(sectionCode)),
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)));
     }
 
     public List<UnifiedInventoryRow> ListUnifiedInventory(bool finishedGoods)
@@ -335,7 +335,7 @@ public sealed partial class WarehouseRepository
                 GetString(r, "WH_NAME") ?? "EOS",
                 GetString(r, "AREA_CODE") ?? "",
                 GetString(r, "AREA_NAME") ?? ""),
-            ("@FinishedGoods", finishedGoods));
+            ("@FinishedGoods", null, finishedGoods));
     }
 
     public List<WarehouseMasterRow> ListWarehouses(string? search = null, bool includeInactive = false)
@@ -367,8 +367,8 @@ public sealed partial class WarehouseRepository
                 GetInt(r, "AREA_COUNT"),
                 GetInt(r, "LOCATION_COUNT"),
                 GetDecimal(r, "TOTAL_QTY")),
-            ("@Search", like),
-            ("@IncludeInactive", includeInactive));
+            ("@Search", "MD_CodeItem.CodeName", like),
+            ("@IncludeInactive", null, includeInactive));
     }
 
     public bool WarehouseExists(string whCode)
@@ -461,9 +461,9 @@ public sealed partial class WarehouseRepository
                 GetString(r, "WHCD"),
                 GetString(r, "WHNM"),
                 GetString(r, "LOCATION_PREFIX")),
-            ("@Search", like),
-            ("@IncludeInactive", includeInactive),
-            ("@WhCode", NullIfBlank(whCode)));
+            ("@Search", "MD_CodeItem.CodeName", like),
+            ("@IncludeInactive", null, includeInactive),
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)));
     }
 
     public List<WarehouseSectionRow> ListWarehouseSections(string? areaCode = null, string? search = null, bool includeInactive = false, string? whCode = null)
@@ -508,10 +508,10 @@ public sealed partial class WarehouseRepository
                 GetInt(r, "LOCATION_COUNT"),
                 GetDecimal(r, "TOTAL_QTY"),
                 GetString(r, "WHCD")),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@Search", like),
-            ("@IncludeInactive", includeInactive),
-            ("@WhCode", NullIfBlank(whCode)));
+            ("@AreaCode", "MD_Location.AreaCode", NullIfBlank(areaCode)),
+            ("@Search", null, like),
+            ("@IncludeInactive", null, includeInactive),
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)));
     }
 
     public bool WarehouseSectionExists(string areaCode, string sectionCode, string? whCode = null)
@@ -1199,8 +1199,8 @@ public sealed partial class WarehouseRepository
                 GetString(r, "FIRST_PARTNO"),
                 GetString(r, "FIRST_PARTNM"),
                 GetString(r, "QUANTITY_UNIT") ?? "BOX"),
-            ("@Search", like),
-            ("@IncludeClosed", includeClosed));
+            ("@Search", null, like),
+            ("@IncludeClosed", null, includeClosed));
     }
 
     public List<PickingSlipLineRow> ListPickingSlipLines(string pickSlipNo)
@@ -1284,7 +1284,7 @@ public sealed partial class WarehouseRepository
                 GetDecimal(r, "LOC_03_QTY"),
                 GetString(r, "STATUS") ?? "Open",
                 GetString(r, "QUANTITY_UNIT") ?? "BOX"),
-            ("@PickSlipNo", pickSlipNo.Trim()));
+            ("@PickSlipNo", "WH_PickSlip.PickSlipID", pickSlipNo.Trim()));
     }
 
     public List<PickingSlipCandidateRow> ListPickingSlipCandidates(DateTime reqDate, string? lineCode = null, string? partNo = null)
@@ -1377,9 +1377,9 @@ public sealed partial class WarehouseRepository
                 GetDecimal(r, "UNIT_PACK_QTY"),
                 GetDecimal(r, "REQ_QTY"),
                 GetDecimal(r, "REQ_BOX_QTY")),
-            ("@ReqDate", reqDate.Date),
-            ("@LineCode", NullIfBlank(lineCode)),
-            ("@PartNo", like));
+            ("@ReqDate", "WH_PickSlip.RequiredAt", reqDate.Date),
+            ("@LineCode", null, NullIfBlank(lineCode)),
+            ("@PartNo", "MD_Item.ItemName", like));
     }
 
     public List<PickingSlipLineOption> ListPickingSlipLineOptions()
@@ -1608,10 +1608,10 @@ public sealed partial class WarehouseRepository
                 GetInt(r, "PART_COUNT"),
                 GetDecimal(r, "TOTAL_QTY"),
                 GetString(r, "STATUS") ?? "Empty"),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@ZoneCode", NullIfBlank(zoneCode)),
-            ("@WhCode", NullIfBlank(whCode)),
-            ("@RackZ", NullIfBlank(rackZ)));
+            ("@AreaCode", "MD_Location.AreaCode", NullIfBlank(areaCode)),
+            ("@ZoneCode", "MD_Location.ZoneCode", NullIfBlank(zoneCode)),
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)),
+            ("@RackZ", "MD_Location.Slot", NullIfBlank(rackZ)));
     }
 
     public List<LocationInventoryRow> ListLocationInventory(
@@ -1674,11 +1674,11 @@ public sealed partial class WarehouseRepository
                 GetString(r, "RACK_Y"),
                 GetString(r, "RACK_Z"),
                 GetDecimal(r, "QTY")),
-            ("@WhCode", NullIfBlank(whCode)),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@ZoneCode", NullIfBlank(zoneCode)),
-            ("@RackZ", NullIfBlank(rackZ)),
-            ("@Search", like));
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)),
+            ("@AreaCode", "MD_Location.AreaCode", NullIfBlank(areaCode)),
+            ("@ZoneCode", "MD_Location.ZoneCode", NullIfBlank(zoneCode)),
+            ("@RackZ", "MD_Location.Slot", NullIfBlank(rackZ)),
+            ("@Search", "MD_Item.ItemName", like));
     }
 
     public List<OperationLogRow> ListOperationLogs(
@@ -1886,8 +1886,8 @@ public sealed partial class WarehouseRepository
                 GetInt(r, "LOCATION_COUNT"),
                 GetInt(r, "LOT_COUNT"),
                 GetDateTime(r, "MODIFIED_TS")),
-            ("@Search", like),
-            ("@Status", NullIfBlank(status)));
+            ("@Search", "MD_Item.ItemName", like),
+            ("@Status", null, NullIfBlank(status)));
     }
 
     public void SaveInventorySetting(
@@ -1985,12 +1985,12 @@ public sealed partial class WarehouseRepository
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
     }
 
-    private List<T> Query<T>(string sql, Func<SqlDataReader, T> map, params (string Name, object? Val)[] p)
+    private List<T> Query<T>(string sql, Func<SqlDataReader, T> map, params (string Name, string? Column, object? Val)[] p)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(sql, conn);
-        foreach (var (n, v) in p)
-            cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
+        foreach (var (n, c, v) in p)
+            ColumnParams.AddFilter(cmd, n, c, v);
         using var rdr = cmd.ExecuteReader();
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));

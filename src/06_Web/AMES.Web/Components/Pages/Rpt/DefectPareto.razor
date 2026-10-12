@@ -11,6 +11,7 @@
 @inject MasterDataRepository MD
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 
 <PageTitle>RPT-002 @L["RPT.DefectPareto.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="RPT-002" TitleKey="RPT.DefectPareto.Title" />
@@ -20,7 +21,7 @@
     <div class="ames-kpi @(TotalDefect > 0 ? "bad" : "ok")">
         <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Total"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@TotalDefect.ToString("N0")</div>
+            <div class="ames-kpi-v">@UomFmt.Qty(TotalDefect, null)</div>
             <div class="ames-kpi-s">@L["RPT.DefectPareto.Kpi.TotalSub"]</div>
         </div>
     </div>
@@ -48,7 +49,7 @@
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["RPT.DefectPareto.Kpi.Inspected"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@Inspected.ToString("N0")</div>
+            <div class="ames-kpi-v">@UomFmt.Qty(Inspected, null)</div>
             <div class="ames-kpi-s">@L["RPT.DefectPareto.Kpi.InspectedSub"]</div>
         </div>
     </div>
@@ -99,7 +100,7 @@
                 {
                     var p = _pareto[i];
                     <div class="rpt-pa-col @(p.Code == _selCode ? "sel" : "")" @onclick="() => ToggleCode(p.Code)" title="@($"{p.Name} · {p.Qty} · {p.Pct:0.0}% · {p.Cum:0.0}%")">
-                        <span class="val">@p.Qty.ToString("N0")</span>
+                        <span class="val">@UomFmt.Qty(p.Qty, null)</span>
                         <div class="bar" style="height:@(max > 0 ? Math.Max(2, (int)Math.Round(88.0 * p.Qty / max)) : 0)%;"></div>
                         <span class="lbl">@p.Name</span>
                     </div>
@@ -136,7 +137,7 @@
                 <div class="mnt-dt-row" style="grid-template-columns:110px 1fr 90px;">
                     <span class="lbl">@ProcessLabel(x.Code)</span>
                     <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(Math.Max(2, (int)Math.Round(100.0 * x.Qty / _byProc[0].Qty)))%;background:@ProcColor(i);"></div></div>
-                    <span class="mnt-dt-val"><b>@string.Format(L["RPT.DefectPareto.Cases"].Value, x.Qty.ToString("N0"))</b></span>
+                    <span class="mnt-dt-val"><b>@string.Format(L["RPT.DefectPareto.Cases"].Value, UomFmt.Qty(x.Qty, null))</b></span>
                 </div>
             }
         }
@@ -145,7 +146,7 @@
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">
-                ▼ @L["RPT.DefectPareto.Detail.Title"] — <span style="color:var(--ames-tx-red-400);">@string.Format(L["RPT.DefectPareto.Cases"].Value, _rows.Sum(r => r.Qty).ToString("N0"))</span>
+                ▼ @L["RPT.DefectPareto.Detail.Title"] — <span style="color:var(--ames-tx-red-400);">@string.Format(L["RPT.DefectPareto.Cases"].Value, UomFmt.Qty(_rows.Sum(r => r.Qty), null))</span>
                 @if (_selCode is not null) { <span> · </span><span class="pill bad">@_selCode</span> }
             </span>
             @if (_selCode is not null)
@@ -163,7 +164,7 @@
                     <Template Context="r"><b style="white-space:nowrap;">@r.Name</b><span class="dim code" style="font-size:.85em;margin-left:6px;">@r.Code</span>@if (r.Vital) { <span class="pill bad" style="margin-left:6px;font-size:calc(9px + var(--ames-fs-bump));">@L["RPT.DefectPareto.Vital"]</span> }</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Qty" Title="@L["RPT.DefectPareto.Col.Qty"]" TextAlign="TextAlign.Right" Width="90px">
-                    <Template Context="r"><b class="code" style="color:var(--ames-tx-red-400);">@r.Qty.ToString("N0")</b></Template>
+                    <Template Context="r"><b class="code" style="color:var(--ames-tx-red-400);">@UomFmt.Qty(r.Qty, null)</b></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ParetoItem" Property="Events" Title="@L["RPT.DefectPareto.Col.Events"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="r"><span class="code dim">@r.Events</span></Template>

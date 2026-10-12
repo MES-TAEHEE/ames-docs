@@ -11,6 +11,7 @@
 @inject MasterDataRepository MD
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 
 <PageTitle>RPT-008 @L["RPT.ScheduleAdherence.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="RPT-008" TitleKey="RPT.ScheduleAdherence.Title" />
@@ -155,12 +156,12 @@
                 <Template Context="r"><span style="white-space:nowrap;">@r.ItemName</span>@if (!string.IsNullOrEmpty(r.ItemNo)) { <span class="dim code" style="font-size:.85em;margin-left:6px;">@r.ItemNo</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WoLine" Property="PlanQty" Title="@L["RPT.ScheduleAdherence.Col.PlanQty"]" TextAlign="TextAlign.Right" Width="110px">
-                <Template Context="r"><span class="code">@r.PlanQty.ToString("N0")</span></Template>
-                <FooterTemplate><span class="code">@TotalPlan.ToString("N0")</span></FooterTemplate>
+                <Template Context="r"><span class="code">@UomFmt.Qty(r.PlanQty, null)</span></Template>
+                <FooterTemplate><span class="code">@UomFmt.Qty(TotalPlan, null)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WoLine" Property="ActualQty" Title="@L["RPT.ScheduleAdherence.Col.ActualQty"]" TextAlign="TextAlign.Right" Width="120px">
-                <Template Context="r"><b class="code">@(r.ActualQty > 0 ? r.ActualQty.ToString("N0") : "—")</b></Template>
-                <FooterTemplate><span class="code">@TotalActual.ToString("N0")</span></FooterTemplate>
+                <Template Context="r"><b class="code">@(r.ActualQty > 0 ? UomFmt.Qty(r.ActualQty, null) : "—")</b></Template>
+                <FooterTemplate><span class="code">@UomFmt.Qty(TotalActual, null)</span></FooterTemplate>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WoLine" Property="PlanDate" Title="@L["RPT.ScheduleAdherence.Col.PlanDate"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code dim" title="@(r.FirstPlanDate == r.PlanDate ? "" : $"{r.FirstPlanDate.ToString(DateFmt.DateShort)} ~ {r.PlanDate.ToString(DateFmt.DateShort)}")">@r.PlanDate.ToString(DateFmt.DateShort)</span></Template>

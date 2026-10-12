@@ -1,3 +1,4 @@
+using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
 using AMES.Data.Services;
 
@@ -50,10 +51,10 @@ public static class PoSyncConfig
             """;
         var rows = new List<CodeRow>();
         using var cmd = new SqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@G", GroupGlobal);
-        cmd.Parameters.AddWithValue("@S", GroupSource);
-        cmd.Parameters.AddWithValue("@U", GroupUrl);
-        cmd.Parameters.AddWithValue("@A", GroupAuth);
+        ColumnParams.AddFilter(cmd, "@G", "MD_CodeItem.GroupCode", GroupGlobal);
+        ColumnParams.AddFilter(cmd, "@S", "MD_CodeItem.GroupCode", GroupSource);
+        ColumnParams.AddFilter(cmd, "@U", "MD_CodeItem.GroupCode", GroupUrl);
+        ColumnParams.AddFilter(cmd, "@A", "MD_CodeItem.GroupCode", GroupAuth);
         using var rdr = cmd.ExecuteReader();
         while (rdr.Read())
         {
@@ -89,8 +90,8 @@ public static class PoSyncConfig
             """;
         var rows = new List<CodeRow>();
         using var cmd = new SqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@A", GroupAuth);
-        cmd.Parameters.AddWithValue("@V", ServiceKeyCode);
+        ColumnParams.AddFilter(cmd, "@A", "MD_CodeItem.GroupCode", GroupAuth);
+        ColumnParams.AddFilter(cmd, "@V", "MD_CodeItem.CodeValue", ServiceKeyCode);
         using var rdr = cmd.ExecuteReader();
         while (rdr.Read())
             rows.Add(new CodeRow(GroupAuth, (string)rdr["CodeValue"], null, null,

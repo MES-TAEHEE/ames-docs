@@ -234,11 +234,19 @@ public sealed class WorkerRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void Delete(int workerId)
+    /// <summary>
+    /// 작업자는 지우지 않고 사용 안 함(ActiveFlag 0)으로만 둔다(10-13 사용자 결정) — 행을 지우면 POP 로그인 화면이 처음 보는 EOS 배지로
+    /// 보고 <see cref="EnsureRegistered"/> 가 PIN 없는 새 계정을 다시 만들었다. 행이 남으면 스캔해도 새로 생기지 않고 로그인도 막힌다.
+    /// </summary>
+    public void Deactivate(int workerId, string actor)
     {
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand("DELETE FROM dbo.MD_Worker WHERE WorkerID = @WorkerID", conn);
-        cmd.Parameters.Add("@WorkerID", SqlDbType.Int).Value = workerId;
+        using var cmd  = new SqlCommand("""
+            UPDATE dbo.MD_Worker SET ActiveFlag = 0, ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+            WHERE  WorkerID = @WorkerID
+            """, conn);
+        cmd.Parameters.Add("@WorkerID", SqlDbType.Int).Value       = workerId;
+        cmd.Parameters.Add("@Actor",    SqlDbType.VarChar, 20).Value = actor;
         cmd.ExecuteNonQuery();
     }
 

@@ -1,3 +1,4 @@
+using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Services;
@@ -56,10 +57,10 @@ public static class WorkerSourceConfig
             """;
         var rows = new List<WorkerCodeRow>();
         using var cmd = new SqlCommand(sql, conn);
-        cmd.Parameters.AddWithValue("@G", groupGlobal);
-        cmd.Parameters.AddWithValue("@S", groupSource);
-        cmd.Parameters.AddWithValue("@U", groupUrl);
-        cmd.Parameters.AddWithValue("@A", groupAuth);
+        ColumnParams.AddFilter(cmd, "@G", "MD_CodeItem.GroupCode", groupGlobal);
+        ColumnParams.AddFilter(cmd, "@S", "MD_CodeItem.GroupCode", groupSource);
+        ColumnParams.AddFilter(cmd, "@U", "MD_CodeItem.GroupCode", groupUrl);
+        ColumnParams.AddFilter(cmd, "@A", "MD_CodeItem.GroupCode", groupAuth);
         using var rdr = cmd.ExecuteReader();
         while (rdr.Read())
         {

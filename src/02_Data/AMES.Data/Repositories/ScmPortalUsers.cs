@@ -44,7 +44,7 @@ public sealed partial class ScmRepository
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand(PortalUserSelect + " WHERE u.UserID=@Id;", conn);
-        Add(cmd, ("@Id", NormalizePortalUserId(email)));
+        Filter(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)));
         using var r = cmd.ExecuteReader();
         return r.Read() ? ReadPortalUser(r) : null;
     }
@@ -54,7 +54,7 @@ public sealed partial class ScmRepository
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("SELECT COUNT(*) FROM dbo.AspNetUsers WHERE NormalizedEmail=@N OR NormalizedUserName=@N", conn);
-        Add(cmd, ("@N", email.Trim().ToUpperInvariant()));
+        Filter(cmd, ("@N", "AspNetUsers.NormalizedEmail", email.Trim().ToUpperInvariant()));
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
@@ -65,8 +65,8 @@ public sealed partial class ScmRepository
             INSERT dbo.SCM_PortalVendorUser (UserID,VendorID,UserName,PasswordHash,FailedLoginCount,LockedFlag,ActiveFlag,CreatedBy,CreatedTS)
             VALUES (@Id,@Vendor,@Name,@Hash,0,0,@Active,@Actor,SYSDATETIME());
             """, conn);
-        Add(cmd, ("@Id", NormalizePortalUserId(email)), ("@Vendor", vendorId), ("@Name", (object?)userName ?? DBNull.Value),
-            ("@Hash", passwordHash), ("@Active", activeFlag), ("@Actor", actor));
+        Add(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)), ("@Vendor", "SCM_PortalVendorUser.VendorID", vendorId), ("@Name", "SCM_PortalVendorUser.UserName", (object?)userName ?? DBNull.Value),
+            ("@Hash", "SCM_PortalVendorUser.PasswordHash", passwordHash), ("@Active", "SCM_PortalVendorUser.ActiveFlag", activeFlag), ("@Actor", "SCM_PortalVendorUser.CreatedBy", actor));
         cmd.ExecuteNonQuery();
     }
 
@@ -83,8 +83,8 @@ public sealed partial class ScmRepository
                 ModifiedBy=@Actor, ModifiedTS=SYSDATETIME()
             WHERE UserID=@Id;
             """, conn);
-        Add(cmd, ("@Id", NormalizePortalUserId(email)), ("@Vendor", vendorId), ("@Name", (object?)userName ?? DBNull.Value),
-            ("@Active", activeFlag), ("@Hash", (object?)passwordHash ?? DBNull.Value), ("@Actor", actor));
+        Add(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)), ("@Vendor", "SCM_PortalVendorUser.VendorID", vendorId), ("@Name", "SCM_PortalVendorUser.UserName", (object?)userName ?? DBNull.Value),
+            ("@Active", "SCM_PortalVendorUser.ActiveFlag", activeFlag), ("@Hash", "SCM_PortalVendorUser.PasswordHash", (object?)passwordHash ?? DBNull.Value), ("@Actor", "SCM_PortalVendorUser.ModifiedBy", actor));
         cmd.ExecuteNonQuery();
     }
 
@@ -93,7 +93,7 @@ public sealed partial class ScmRepository
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("UPDATE dbo.SCM_PortalVendorUser SET PasswordHash=@Hash, ModifiedBy=@Actor, ModifiedTS=SYSDATETIME() WHERE UserID=@Id;", conn);
-        Add(cmd, ("@Id", NormalizePortalUserId(email)), ("@Hash", passwordHash), ("@Actor", actor));
+        Add(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)), ("@Hash", "SCM_PortalVendorUser.PasswordHash", passwordHash), ("@Actor", "SCM_PortalVendorUser.ModifiedBy", actor));
         cmd.ExecuteNonQuery();
     }
 
@@ -101,7 +101,7 @@ public sealed partial class ScmRepository
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("UPDATE dbo.SCM_PortalVendorUser SET FailedLoginCount=0, LockedFlag=0, ModifiedBy=@Actor, ModifiedTS=SYSDATETIME() WHERE UserID=@Id;", conn);
-        Add(cmd, ("@Id", NormalizePortalUserId(email)), ("@Actor", actor));
+        Add(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)), ("@Actor", "SCM_PortalVendorUser.ModifiedBy", actor));
         cmd.ExecuteNonQuery();
     }
 
@@ -109,7 +109,7 @@ public sealed partial class ScmRepository
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("DELETE dbo.SCM_PortalVendorUser WHERE UserID=@Id;", conn);
-        Add(cmd, ("@Id", NormalizePortalUserId(email)));
+        Filter(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)));
         cmd.ExecuteNonQuery();
     }
 
@@ -117,7 +117,7 @@ public sealed partial class ScmRepository
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("UPDATE dbo.SCM_PortalVendorUser SET FailedLoginCount=0, LastLoginTS=SYSDATETIME() WHERE UserID=@Id;", conn);
-        Add(cmd, ("@Id", NormalizePortalUserId(email)));
+        Filter(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)));
         cmd.ExecuteNonQuery();
     }
 
@@ -132,7 +132,7 @@ public sealed partial class ScmRepository
             OUTPUT inserted.LockedFlag, deleted.LockedFlag
             WHERE UserID=@Id;
             """, conn);
-        Add(cmd, ("@Id", NormalizePortalUserId(email)), ("@Max", PortalMaxFailedLogins));
+        Filter(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)), ("@Max", null, PortalMaxFailedLogins));
         using var r = cmd.ExecuteReader();
         return r.Read() && r.GetBoolean(0) && !r.GetBoolean(1);
     }

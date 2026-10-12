@@ -1,3 +1,4 @@
+using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -47,7 +48,7 @@ public sealed partial class ScmRepository
               ))
             ORDER BY p.PoNumber DESC,p.PoLineNo,p.PoID;
             """, conn);
-        Add(cmd,("@Portal",portal),("@UserID",portalUserId ?? ""),("@ConfirmedOnly",confirmedOnly));
+        Filter(cmd,("@Portal", null,portal),("@UserID", "SCM_PortalVendorUser.UserID",portalUserId ?? ""),("@ConfirmedOnly", null,confirmedOnly));
         using var r = cmd.ExecuteReader();
         var orders = new Dictionary<string, PurchaseOrder>();
         while (r.Read())
@@ -95,15 +96,15 @@ public sealed partial class ScmRepository
                         UnitCode,UnitPrice,Currency,OrderDate,DueDate,Status,DeliveryDestination,CreatedBy,CreatedTS)
                     VALUES(@Number,@Line,@Vendor,@Item,@Qty,0,@Unit,@Price,'USD',@Ordered,@Due,'Draft',@Destination,@Actor,SYSDATETIME());
                 """, conn, tx);
-            Add(cmd, ("@Number",number),("@Line",line.Id),("@Vendor",order.Vendor),("@Item",line.Item),
-                ("@Qty",line.Quantity),("@Unit",line.Unit),("@Price",line.Price),("@Ordered",order.Ordered.Date),
-                ("@Due",order.Due.Date),("@Destination",order.Destination.Trim()),("@Actor",actor));
+            Add(cmd, ("@Number", "WH_PurchaseOrder.PoNumber",number),("@Line", "WH_PurchaseOrder.PoLineNo",line.Id),("@Vendor", "WH_PurchaseOrder.VendorID",order.Vendor),("@Item", "WH_PurchaseOrder.ItemNo",line.Item),
+                ("@Qty", "WH_PurchaseOrder.OrderQty",line.Quantity),("@Unit", "WH_PurchaseOrder.UnitCode",line.Unit),("@Price", "WH_PurchaseOrder.UnitPrice",line.Price),("@Ordered", "WH_PurchaseOrder.OrderDate",order.Ordered.Date),
+                ("@Due", "WH_PurchaseOrder.DueDate",order.Due.Date),("@Destination", "WH_PurchaseOrder.DeliveryDestination",order.Destination.Trim()),("@Actor", "WH_PurchaseOrder.CreatedBy",actor));
             cmd.ExecuteNonQuery();
         }
         foreach (var removed in existing.Where(x => !order.Lines.Any(l => l.Id == x.LineNo)))
         {
             using var cmd = new SqlCommand("DELETE dbo.WH_PurchaseOrder WHERE PoID=@Id",conn,tx);
-            Add(cmd,("@Id",removed.Id)); cmd.ExecuteNonQuery();
+            Filter(cmd,("@Id", "WH_PurchaseOrder.PoID",removed.Id)); cmd.ExecuteNonQuery();
         }
         tx.Commit();
         return number;
@@ -137,7 +138,7 @@ public sealed partial class ScmRepository
                 SupplierConfirmedUserID=@User,ModifiedBy=@Actor,ModifiedTS=@Now WHERE PoNumber=@Number;
             SELECT CAST(1 AS bit);
             """,conn,tx);
-        Add(cmd,("@Number",number),("@User",userId),("@Actor",actor));
+        Add(cmd,("@Number", "WH_PurchaseOrder.PoNumber",number),("@User", "WH_PurchaseOrder.SupplierConfirmedUserID",userId),("@Actor", "WH_PurchaseOrder.SupplierConfirmedBy",actor));
         var changed=(bool)cmd.ExecuteScalar()!;
         tx.Commit();
         return changed;
@@ -155,7 +156,7 @@ public sealed partial class ScmRepository
         EnsureNoInboundReferences(conn, tx, order.Number);
         if (status == "Open") { ValidateOrderValues(order); ValidateOrderMasters(conn, tx, order); }
         using var cmd = new SqlCommand("UPDATE dbo.WH_PurchaseOrder SET Status=@Status,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE PoNumber=@Number",conn,tx);
-        Add(cmd,("@Status",status),("@Actor",actor),("@Number",order.Number));
+        Add(cmd,("@Status", "WH_PurchaseOrder.Status",status),("@Actor", "WH_PurchaseOrder.ModifiedBy",actor),("@Number", "WH_PurchaseOrder.PoNumber",order.Number));
         cmd.ExecuteNonQuery(); tx.Commit();
     }
 
@@ -163,7 +164,7 @@ public sealed partial class ScmRepository
     static List<LockedLine> LockPurchaseOrder(SqlConnection conn, SqlTransaction tx, string number, IReadOnlyDictionary<int,string> versions)
     {
         using var cmd = new SqlCommand("SELECT PoID,PoLineNo,Status,ISNULL(ReceivedQty,0),ScmRowVersion FROM dbo.WH_PurchaseOrder WITH (UPDLOCK,HOLDLOCK) WHERE PoNumber=@Number",conn,tx);
-        Add(cmd,("@Number",number));
+        Filter(cmd,("@Number", "WH_PurchaseOrder.PoNumber",number));
         using var r = cmd.ExecuteReader();
         var result = new List<LockedLine>();
         while(r.Read())
@@ -188,10 +189,10 @@ public sealed partial class ScmRepository
                 JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID
                 WHERE b.BoxNumber=w.LotNo AND p.PoNumber=@Number);
             """,conn,tx);
-        Add(cmd,("@Number",number));
+        Filter(cmd,("@Number", "WH_Inventory.InvoiceNo",number));
         if ((int)cmd.ExecuteScalar()! > 0) throw new InvalidOperationException("Order is linked to receiving.");
         using var deliveries = new SqlCommand("SELECT COUNT(*) FROM dbo.SCM_Delivery WHERE PoNumber=@Number AND Status<>'Cancelled'",conn,tx);
-        Add(deliveries,("@Number",number));
+        Filter(deliveries,("@Number", "SCM_Delivery.PoNumber",number));
         if ((int)deliveries.ExecuteScalar()! > 0) throw new InvalidOperationException("Order has registered deliveries.");
     }
 
@@ -217,11 +218,15 @@ public sealed partial class ScmRepository
                   AND i.ItemType='MATERIAL' AND ISNULL(v.ActiveFlag,1)=1
                   AND ISNULL(i.DefaultUOM,'')=@Unit;
                 """,conn,tx);
-            Add(cmd,("@Vendor",order.Vendor),("@Item",line.Item),("@Unit",line.Unit));
+            Filter(cmd,("@Vendor", "SCM_ItemVendor.VendorID",order.Vendor),("@Item", "SCM_ItemVendor.ItemNo",line.Item),("@Unit", "MD_Item.DefaultUOM",line.Unit));
             if ((int)cmd.ExecuteScalar()! != 1) throw new InvalidOperationException("Vendor/item mapping or unit changed. Reload before saving.");
         }
     }
 
-    static void Add(SqlCommand cmd, params (string Name, object Value)[] values)
-    { foreach(var (name,value) in values) cmd.Parameters.AddWithValue(name,value); }
+    // SCM 공용 — 저장하는 명령은 Add(컬럼에 맞지 않는 값은 저장 전에 거부, ColumnParams.Add), 조회만 하는 명령은 Filter
+    static void Add(SqlCommand cmd, params (string Name, string? Column, object? Value)[] values)
+    { foreach(var (name,column,value) in values) { if (column is null) ColumnParams.AddFilter(cmd,name,null,value); else ColumnParams.Add(cmd,name,column,value); } }
+
+    static void Filter(SqlCommand cmd, params (string Name, string? Column, object? Value)[] values)
+    { foreach(var (name,column,value) in values) ColumnParams.AddFilter(cmd,name,column,value); }
 }

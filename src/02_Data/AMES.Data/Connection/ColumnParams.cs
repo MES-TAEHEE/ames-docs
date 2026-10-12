@@ -29,13 +29,17 @@ public static class ColumnParams
         }
     }
 
-    /// <summary>"테이블.컬럼"(dbo 스키마)의 정보. 없으면 예외 — 매개변수에 적은 컬럼 이름이 틀렸다는 뜻이다.</summary>
+    /// <summary>
+    /// "테이블.컬럼"(dbo 스키마) 또는 "프로시저.@매개변수"(dbo)의 정보. 없으면 예외 — 매개변수에 적은 컬럼 이름이 틀렸다는 뜻이다.
+    /// </summary>
     public static ColumnInfo Info(SqlConnection conn, string tableColumn, SqlTransaction? tx = null)
+        => TryInfo(conn, tableColumn, tx)
+           ?? throw new InvalidOperationException($"Column {tableColumn} was not found in dbo — check the parameter's column tag.");
+
+    public static ColumnInfo? TryInfo(SqlConnection conn, string tableColumn, SqlTransaction? tx = null)
     {
         var map = Cache.GetOrAdd($"{conn.DataSource}|{conn.Database}", _ => Load(conn, tx));
-        return map.TryGetValue(tableColumn, out var info)
-            ? info
-            : throw new InvalidOperationException($"Column {tableColumn} was not found in dbo — check the parameter's column tag.");
+        return map.TryGetValue(tableColumn, out var info) ? info : null;
     }
 
     static IReadOnlyDictionary<string, ColumnInfo> Load(SqlConnection conn, SqlTransaction? tx)
@@ -45,6 +49,10 @@ public static class ColumnParams
             SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION,
                    COALESCE(NUMERIC_SCALE, DATETIME_PRECISION) AS Scale
             FROM   INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo'
+            UNION ALL
+            SELECT SPECIFIC_NAME, PARAMETER_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION,
+                   COALESCE(NUMERIC_SCALE, DATETIME_PRECISION)
+            FROM   INFORMATION_SCHEMA.PARAMETERS WHERE SPECIFIC_SCHEMA = 'dbo' AND PARAMETER_NAME <> ''
             """, conn, tx);
         using var r = cmd.ExecuteReader();
         while (r.Read())
@@ -105,6 +113,80 @@ public static class ColumnParams
         }
         p.Value = v ?? DBNull.Value;
         return p;
+    }
+
+    /// <summary>
+    /// 조회 조건용(10-13) — 형식은 비교하는 컬럼에서 정하되 값을 검사하지도 자르지도 않는다. 길이는 컬럼과 값 중 긴 쪽이라
+    /// 너무 긴 값은 잘려서 다른 행과 맞지 않고 그대로 "없음"이 되며, CP949 에 없는 문자가 든 값은 nvarchar 로 보내 '?' 로
+    /// 바뀌지 않게 한다. 컬럼을 모르거나(<paramref name="tableColumn"/> null·DB 에 없음) 값의 형식이 컬럼과 다르면 값의 형식을 쓴다
+    /// (문자열 nvarchar · DateTime datetime2 — AddWithValue 의 datetime 처럼 밀리초를 반올림하지 않는다).
+    /// </summary>
+    public static SqlParameter AddFilter(SqlCommand cmd, string name, string? tableColumn, object? value)
+        => AddFilterInfo(cmd, name, tableColumn is null ? null : TryInfo(cmd.Connection, tableColumn, cmd.Transaction), value);
+
+    public static SqlParameter AddFilterInfo(SqlCommand cmd, string name, ColumnInfo? info, object? value)
+    {
+        var v = value is DBNull ? null : value;
+        var type = info?.DataType.ToLowerInvariant();
+        switch (type)
+        {
+            case "varchar" or "char" or "nvarchar" or "nchar" when v is null or string:
+            {
+                var s = (string?)v;
+                var unicode = type.StartsWith('n') || (s is not null && !Encodable(s));
+                var len = s is null ? 0 : unicode ? s.Length : Cp949.GetByteCount(s);
+                var max = unicode ? 4000 : 8000;
+                var size = info!.MaxLength is > 0 and var n && type.StartsWith('n') == unicode ? Math.Max(n, len) : Math.Max(len, 1);
+                var p = cmd.Parameters.Add(name, unicode ? SqlDbType.NVarChar : SqlDbType.VarChar, info.MaxLength == -1 || size > max ? -1 : size);
+                p.Value = (object?)s ?? DBNull.Value;
+                return p;
+            }
+            case "date" when v is DateTime d && d.TimeOfDay == TimeSpan.Zero:
+                return With(cmd.Parameters.Add(name, SqlDbType.Date), d);
+            case "date" or "datetime" or "datetime2" or "smalldatetime" when v is null:
+                return With(cmd.Parameters.Add(name, TypeOf(type)), null);
+            case "tinyint" or "smallint" or "int" or "bigint" when v is null || (IsInteger(v) && Fits(type, Convert.ToInt64(v))):
+                return With(cmd.Parameters.Add(name, TypeOf(type)), v);
+            case "bit" when v is null or bool:
+            case "uniqueidentifier" when v is null or Guid:
+                return With(cmd.Parameters.Add(name, TypeOf(type)), v);
+            case "decimal" or "numeric" when v is null:
+                return With(cmd.Parameters.Add(name, SqlDbType.Decimal), null);
+        }
+        return AddByValue(cmd, name, v);
+    }
+
+    /// <summary>컬럼과 무관한 값(TOP·DATEADD 인자, 여러 컬럼을 잇는 검색어 등) — .NET 형식으로 정한다.</summary>
+    static SqlParameter AddByValue(SqlCommand cmd, string name, object? v)
+    {
+        switch (v)
+        {
+            case null: return With(cmd.Parameters.Add(name, SqlDbType.NVarChar, 1), null);
+            case string s: return With(cmd.Parameters.Add(name, SqlDbType.NVarChar, s.Length > 4000 ? -1 : Math.Max(s.Length, 1)), s);
+            case DateTime d: { var p = cmd.Parameters.Add(name, SqlDbType.DateTime2); p.Scale = 7; return With(p, d); }
+            case DateOnly d: return With(cmd.Parameters.Add(name, SqlDbType.Date), d.ToDateTime(TimeOnly.MinValue));
+            case bool b: return With(cmd.Parameters.Add(name, SqlDbType.Bit), b);
+            case byte or short or int: return With(cmd.Parameters.Add(name, SqlDbType.Int), Convert.ToInt32(v));
+            case long l: return With(cmd.Parameters.Add(name, SqlDbType.BigInt), l);
+            case Guid g: return With(cmd.Parameters.Add(name, SqlDbType.UniqueIdentifier), g);
+            default: { var p = new SqlParameter(name, v); cmd.Parameters.Add(p); return p; }   // decimal·double·TimeSpan·byte[] — SqlClient 추론
+        }
+    }
+
+    static SqlParameter With(SqlParameter p, object? v) { p.Value = v ?? DBNull.Value; return p; }
+    static bool IsInteger(object v) => v is byte or sbyte or short or ushort or int or uint or long;
+    static bool Fits(string type, long n) => type switch
+    {
+        "tinyint" => n is >= byte.MinValue and <= byte.MaxValue,
+        "smallint" => n is >= short.MinValue and <= short.MaxValue,
+        "int" => n is >= int.MinValue and <= int.MaxValue,
+        _ => true,
+    };
+
+    static bool Encodable(string s)
+    {
+        try { Cp949.GetByteCount(s); return true; }
+        catch (EncoderFallbackException) { return false; }
     }
 
     static void CheckBytes(ColumnInfo info, string s)
