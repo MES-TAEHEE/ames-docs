@@ -1,5 +1,6 @@
 ﻿@page "/sys/rbac"
 @rendermode InteractiveServer
+@implements IDisposable
 
 @using AMES.Data.Services
 @using Microsoft.AspNetCore.Authorization
@@ -135,7 +136,11 @@
                                     </span>
                                 </HeaderTemplate>
                                 <Template Context="s">
-                                    @if (HasSlot(s.ScreenCode, plCap))
+                                    @if (HasSlot(s.ScreenCode, plCap) && IsLocked(s, plCap))
+                                    {
+                                        <span title="@L["SYS.Rbac.AdminLocked"]"><RadzenCheckBox TValue="bool" Value="true" Disabled="true" /></span>
+                                    }
+                                    else if (HasSlot(s.ScreenCode, plCap))
                                     {
                                         <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit)" />
                                     }
@@ -201,14 +206,20 @@
         if (_fModule == "" && _moduleItems.Count > 0)
             _fModule = _moduleItems[0].CodeValue ?? "";
         _fProcess = ProcessOptions.FirstOrDefault()?.Value ?? "";
+        ScreenCatalog.Changed += OnScreensChanged;
     }
+
+    public void Dispose() => ScreenCatalog.Changed -= OnScreensChanged;
+
+    // 포탈 화면(ProcessCode PORTAL)은 RBAC 대상이 아니다 — 외부 사용자는 SCM-004 계정의 협력업체로만 걸러진다
+    List<SysRepository.ScreenRow> LoadScreens()
+        => Sys.ListScreens().Where(s => !string.Equals(s.ProcessCode, "PORTAL", StringComparison.OrdinalIgnoreCase)).ToList();
 
     void Reload()
     {
         try { _roles   = Sys.ListRoles(); } catch { }
         try { _rows    = Sys.ListRolePermissions(); } catch { }
-        // 포탈 화면(ProcessCode PORTAL)은 RBAC 대상이 아니다 — 외부 사용자는 SCM-004 계정의 협력업체로만 걸러진다
-        try { _screens = Sys.ListScreens().Where(s => !string.Equals(s.ProcessCode, "PORTAL", StringComparison.OrdinalIgnoreCase)).ToList(); } catch { }
+        try { _screens = LoadScreens(); } catch { }
 
         if (_selRole is not null)
         {
@@ -225,11 +236,47 @@
         _fProcess = ProcessOptions.FirstOrDefault()?.Value ?? "";
     }
 
+    // 역할을 고를 때마다 화면 기본 권한·권한 행을 다시 읽는다 — 알림이 오지 않는 변경(다른 서버의 Web·DB 직접 수정)도 여기서 맞춰진다
     void SelectRole(SysRepository.RoleRow r)
     {
+        try { _screens = LoadScreens(); } catch { }
+        try { _rows    = Sys.ListRolePermissions(); } catch { }
         _selRole = r;
         _dirty   = false;
         BuildGrants();
+    }
+
+    // SYS-003·SYS-004 저장 알림(ScreenCatalogNotifier, 스레드 풀) — DB 조회는 회로 밖, 반영만 회로에서
+    void OnScreensChanged() => _ = Task.Run(async () =>
+    {
+        List<SysRepository.ScreenRow> screens;
+        List<SysRepository.RolePermRow> rows;
+        try { screens = LoadScreens(); rows = Sys.ListRolePermissions(); }
+        catch { return; }
+        await InvokeAsync(() => { ApplyScreens(screens, rows); StateHasChanged(); });
+    });
+
+    // 화면 기본 권한이 바뀌면 체크박스 켜짐·꺼짐을 새 값으로. 저장 안 한 편집은 두고 없어진 기능 칸만 풀며,
+    // 편집이 없으면 SYS-003 이 같은 트랜잭션에서 맞춘 권한 행을 다시 읽는다
+    void ApplyScreens(List<SysRepository.ScreenRow> screens, List<SysRepository.RolePermRow> rows)
+    {
+        static string Key(IEnumerable<SysRepository.ScreenRow> list)
+            => string.Join(";", list.OrderBy(s => s.ScreenCode, StringComparer.Ordinal)
+                                    .Select(s => s.ScreenCode + "=" + PermissionSlots.NormalizeTemplate(s.PermissionCriteria)));
+        var changed = Key(_screens) != Key(screens);
+        _screens = screens;
+        if (_dirty)
+        {
+            foreach (var code in _grants.Keys.ToList())
+                _grants[code] = PermissionSlots.Granted(_grants[code], Tpl(code));
+            EnforceLocked();
+        }
+        else
+        {
+            _rows = rows;
+            if (_selRole is not null) BuildGrants();
+        }
+        if (changed) ShowMsg(L["SYS.Rbac.Msg.CriteriaChanged"].Value, false);
     }
 
     void BuildGrants()
@@ -237,6 +284,24 @@
         _grants = _rows
             .Where(x => OfRole(x, _selRole!) && x.ScreenCode is not null)
             .ToDictionary(x => x.ScreenCode!, x => PermissionSlots.Granted(x.PermissionLevel, Tpl(x.ScreenCode!)));
+        EnforceLocked();
+    }
+
+    // 관리자의 SYS-003·SYS-004 읽기·수정은 끌 수 없다 — 잃으면 권한을 다시 줄 화면이 없다(ProtectedScreens, 저장소도 같은 규칙)
+    bool IsLocked(SysRepository.ScreenRow s, MasterDataRepository.CodeItemRow pl)
+    {
+        var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
+        return letter.Length == 1 && ProtectedScreens.IsLocked(_selRole?.RoleId, s.HRef, letter[0]);
+    }
+
+    void EnforceLocked()
+    {
+        if (_selRole?.RoleId != SystemRoles.AdminId) return;
+        foreach (var s in _screens.Where(x => ProtectedScreens.IsProtected(x.HRef)))
+        {
+            _grants.TryGetValue(s.ScreenCode, out var cur);
+            _grants[s.ScreenCode] = PermissionSlots.Granted(ProtectedScreens.ApplyRole(_selRole.RoleId, s.HRef, cur), s.PermissionCriteria);
+        }
     }
 
     /// 저장된 값에서 부여된 문자(R/E/A)만 추출, REA 순 — '_'(미부여)·'X'(기능 없음)는 버린다
@@ -250,13 +315,6 @@
     {
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
         return letter.Length == 1 && PermissionSlots.Has(Tpl(screenCode), letter[0]);
-    }
-
-    static string ToggleLetter(string current, char letter, bool add)
-    {
-        var chars = current.ToUpperInvariant().ToHashSet();
-        if (add) chars.Add(letter); else chars.Remove(letter);
-        return new string(chars.OrderBy(c => "REA".IndexOf(c)).ToArray());
     }
 
     bool IsChecked(string screenCode, MasterDataRepository.CodeItemRow pl)
@@ -274,7 +332,8 @@
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
         if (letter.Length != 1 || !PermissionSlots.Has(s.PermissionCriteria, letter[0])) return;
         _grants.TryGetValue(s.ScreenCode, out var cur);
-        _grants[s.ScreenCode] = ToggleLetter(cur ?? "", letter[0], isChecked);
+        _grants[s.ScreenCode] = PermissionSlots.Toggle(cur, letter[0], isChecked);
+        EnforceLocked();
         _dirty = true;
     }
 
@@ -289,8 +348,9 @@
         foreach (var s in filtered)
         {
             _grants.TryGetValue(s.ScreenCode, out var cur);
-            _grants[s.ScreenCode] = ToggleLetter(cur ?? "", ch, !allSet);
+            _grants[s.ScreenCode] = PermissionSlots.Toggle(cur, ch, !allSet);
         }
+        EnforceLocked();
         _dirty = true;
     }
 
@@ -310,6 +370,7 @@
         var allSet = filtered.All(s => _grants.TryGetValue(s.ScreenCode, out var m) && m == FullFor(s.ScreenCode));
         foreach (var s in filtered)
             _grants[s.ScreenCode] = allSet ? "" : FullFor(s.ScreenCode);
+        EnforceLocked();
         _dirty = true;
     }
 

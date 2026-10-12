@@ -106,8 +106,33 @@ public sealed class MasterDataRepository
             ("@UseFlag",useFlag),
             ("@By",     modifiedBy));
 
-    public void DeleteCodeGroup(string groupCode)
-        => Exec("DELETE dbo.MD_CodeGroup WHERE GroupCode=@G", ("@G", groupCode));
+    /// <summary>
+    /// 그룹과 그 항목 전부를 한 트랜잭션으로 지우고 지운 항목을 돌려준다(감사 기록용). 화면에 읽어 둔 목록이 아니라 DB 기준이라
+    /// 화면을 연 사이 추가된 항목도 같이 지우고, 중간에 실패하면 아무것도 지우지 않는다(10-12 — 전에는 항목을 하나씩 따로 지웠다).
+    /// </summary>
+    public List<CodeItemRow> DeleteCodeGroup(string groupCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var items = new List<CodeItemRow>();
+        using (var cmd = new SqlCommand($"""
+            SELECT 1 FROM dbo.MD_CodeGroup WITH (UPDLOCK, HOLDLOCK) WHERE GroupCode = @G;
+            SELECT {CodeItemColumns} FROM dbo.MD_CodeItem WITH (UPDLOCK, HOLDLOCK) WHERE GroupCode = @G ORDER BY ISNULL(SortOrder,0), CodeValue;
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@G", SqlDbType.VarChar, 20).Value = groupCode;
+            using var r = cmd.ExecuteReader();
+            r.NextResult();
+            while (r.Read()) items.Add(MapCodeItem(r));
+        }
+        using (var cmd = new SqlCommand("DELETE dbo.MD_CodeItem WHERE GroupCode = @G; DELETE dbo.MD_CodeGroup WHERE GroupCode = @G;", conn, tx))
+        {
+            cmd.Parameters.Add("@G", SqlDbType.VarChar, 20).Value = groupCode;
+            cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
+        return items;
+    }
 
     // ── MD-01 CodeItem ───────────────────────────────────────────────────
     public List<CodeItemRow> ListCodeItems(string groupCode)
@@ -119,23 +144,31 @@ public sealed class MasterDataRepository
             FROM   dbo.MD_CodeItem
             WHERE  GroupCode=@G
             ORDER  BY ISNULL(SortOrder,0), CodeValue
-            """, r => new CodeItemRow(
-                r.GetString("CodeID"),
-                r["GroupCode"]    as string,
-                r["CodeValue"]    as string,
-                r["CodeName"]     as string,
-                r["CodeNameEn"]   as string,
-                r["ParentCodeID"] as string,
-                r["SortOrder"] is int so ? so : (int?)null,
-                r["Attribute1"]   as string,
-                (bool)r["UseFlag"],
-                r["Description"]  as string,
-                r["CreatedBy"]    as string,
-                r["CreatedTS"]    is DateTime ct ? ct : null,
-                r["ModifiedBy"]   as string,
-                r["ModifiedTS"]   is DateTime mt ? mt : null,
-                r["Attribute2"]   as string),
-            ("@G", groupCode));
+            """, MapCodeItem, ("@G", groupCode));
+
+    const string CodeItemColumns = """
+        CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,
+        ParentCodeID, ISNULL(SortOrder,0) AS SortOrder,
+        Attribute1, Attribute2, ISNULL(UseFlag,1) AS UseFlag, Description,
+        CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+        """;
+
+    static CodeItemRow MapCodeItem(SqlDataReader r) => new(
+        r.GetString("CodeID"),
+        r["GroupCode"]    as string,
+        r["CodeValue"]    as string,
+        r["CodeName"]     as string,
+        r["CodeNameEn"]   as string,
+        r["ParentCodeID"] as string,
+        r["SortOrder"] is int so ? so : (int?)null,
+        r["Attribute1"]   as string,
+        (bool)r["UseFlag"],
+        r["Description"]  as string,
+        r["CreatedBy"]    as string,
+        r["CreatedTS"]    is DateTime ct ? ct : null,
+        r["ModifiedBy"]   as string,
+        r["ModifiedTS"]   is DateTime mt ? mt : null,
+        r["Attribute2"]   as string);
 
     public CodeItemRow? FindActiveCodeItem(string groupCode, string codeValue)
         => !CodeGroupIsActive(groupCode) ? null : ListCodeItems(groupCode).FirstOrDefault(x =>
@@ -383,33 +416,40 @@ public sealed class MasterDataRepository
             ("@Pallet", palletQty), ("@MaxPallet", maxPalletQty), ("@Tote", toteFlag), ("@Box", boxQty),
             ("@By",     modifiedBy), ("@BoxScan", scanRequired));
 
+    const string ItemUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WITH (UPDLOCK, HOLDLOCK) WHERE ItemNo = @K) RETURN;
+        INSERT @r SELECT 'BOM', VersionID FROM dbo.MD_BomVersion WHERE RootItemNo = @K
+            UNION SELECT 'BOM', ISNULL(VersionID, BOMID) FROM dbo.MD_Bom WHERE ParentItemNo = @K OR CompItemNo = @K;
+        INSERT @r SELECT 'BOP', ISNULL(StationCode, '-') + ' #' + ISNULL(CAST(StepSeq AS varchar(10)), '-') FROM dbo.MD_Bop WHERE ItemNo = @K;
+        INSERT @r SELECT 'WO', WoNumber FROM dbo.PP_WorkOrder WHERE ItemNo = @K
+            UNION SELECT 'WO', w.WoNumber FROM dbo.PP_WorkOrderRouting s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE s.ItemNo = @K;
+        INSERT @r SELECT DISTINCT 'MOLD',  MoldID FROM dbo.MD_MoldItem WHERE ItemNo = @K;
+        INSERT @r SELECT DISTINCT 'RESIN', MoldID FROM dbo.MD_MoldItem WHERE ResinItemNo = @K;
+        INSERT @r SELECT 'SO', SoNumber + ISNULL('-' + CAST(SoLineNo AS varchar(10)), '') FROM dbo.PP_CustomerOrder WHERE ItemNo = @K;
+        INSERT @r SELECT 'LOT', ISNULL(LotCode, CAST(LotID AS varchar(20))) FROM dbo.tbl_Lot WHERE ItemNo = @K;
+        INSERT @r SELECT DISTINCT 'STOCK', ISNULL(LocationNo, '-') FROM dbo.WH_Inventory
+            WHERE PartNo COLLATE DATABASE_DEFAULT = @K COLLATE DATABASE_DEFAULT AND Qty <> 0;
+        INSERT @r SELECT 'VENDOR', VendorID FROM dbo.SCM_ItemVendor WHERE ItemNo = @K;
+        """;
+
+    public List<UsageRef> ItemUsages(string itemNo) => UsagesOf(ItemUsageSql, itemNo);
+
     /// <summary>
     /// 사용처가 하나도 없을 때만 품목을 지우고 빈 목록을 돌려준다. 사용처가 있으면 지우지 않고 그 목록을 돌려준다 —
     /// FK 가 없으므로(사용자 결정) 고아 행을 막는 책임이 여기 있다. 사용처 = BOM(버전 최상위·부모·구성품)·BOP·작업지시(헤더·단계 품번)·
     /// 금형(품번·레진)·수주·LOT·재고(수량 ≠ 0 위치)·공급사 매핑. 이력·계획 스냅샷 테이블(MRP·APS·예측·QC 기록 등)은 보지 않는다.
     /// </summary>
     public List<UsageRef> DeleteItem(string itemNo)
-        => DeleteIfUnused("""
-            IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WITH (UPDLOCK, HOLDLOCK) WHERE ItemNo = @K) RETURN;
-            INSERT @r SELECT 'BOM', VersionID FROM dbo.MD_BomVersion WHERE RootItemNo = @K
-                UNION SELECT 'BOM', ISNULL(VersionID, BOMID) FROM dbo.MD_Bom WHERE ParentItemNo = @K OR CompItemNo = @K;
-            INSERT @r SELECT 'BOP', ISNULL(StationCode, '-') + ' #' + ISNULL(CAST(StepSeq AS varchar(10)), '-') FROM dbo.MD_Bop WHERE ItemNo = @K;
-            INSERT @r SELECT 'WO', WoNumber FROM dbo.PP_WorkOrder WHERE ItemNo = @K
-                UNION SELECT 'WO', w.WoNumber FROM dbo.PP_WorkOrderRouting s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE s.ItemNo = @K;
-            INSERT @r SELECT DISTINCT 'MOLD',  MoldID FROM dbo.MD_MoldItem WHERE ItemNo = @K;
-            INSERT @r SELECT DISTINCT 'RESIN', MoldID FROM dbo.MD_MoldItem WHERE ResinItemNo = @K;
-            INSERT @r SELECT 'SO', SoNumber + ISNULL('-' + CAST(SoLineNo AS varchar(10)), '') FROM dbo.PP_CustomerOrder WHERE ItemNo = @K;
-            INSERT @r SELECT 'LOT', ISNULL(LotCode, CAST(LotID AS varchar(20))) FROM dbo.tbl_Lot WHERE ItemNo = @K;
-            INSERT @r SELECT DISTINCT 'STOCK', ISNULL(LocationNo, '-') FROM dbo.WH_Inventory
-                WHERE PartNo COLLATE DATABASE_DEFAULT = @K COLLATE DATABASE_DEFAULT AND Qty <> 0;
-            INSERT @r SELECT 'VENDOR', VendorID FROM dbo.SCM_ItemVendor WHERE ItemNo = @K;
-            """, "DELETE dbo.MD_Item WHERE ItemNo = @K;", itemNo);
+        => DeleteIfUnused(ItemUsageSql, "DELETE dbo.MD_Item WHERE ItemNo = @K;", itemNo);
 
     /// <summary>삭제를 막은 사용처 한 종류 — Kind 코드, 건수, 앞 3건 예시(쉼표 구분).</summary>
     public sealed record UsageRef(string Kind, int Count, string? Samples);
 
+    // 삭제 확인창을 띄우기 전에 사용처만 본다 — 실제 삭제는 DeleteIfUnused 가 같은 SQL 로 다시 검사한다
+    List<UsageRef> UsagesOf(string collectSql, string key) => DeleteIfUnused(collectSql, "", key, checkOnly: true);
+
     // 키 행을 잠근 채 사용처(@r: K = 종류, R = 식별값)를 모아 없으면 지운다. 한 트랜잭션이라 검사와 삭제 사이에 새 사용처가 끼지 않는다
-    List<UsageRef> DeleteIfUnused(string collectSql, string deleteSql, string key)
+    List<UsageRef> DeleteIfUnused(string collectSql, string deleteSql, string key, bool checkOnly = false)
     {
         var sql = $"""
             SET NOCOUNT ON;
@@ -433,7 +473,7 @@ public sealed class MasterDataRepository
             using var r = cmd.ExecuteReader();
             while (r.Read()) refs.Add(new((string)r["K"], (int)r["Cnt"], r["Samples"] as string));
         }
-        if (refs.Count > 0) { tx.Rollback(); return refs; }
+        if (refs.Count > 0 || checkOnly) { tx.Rollback(); return refs; }
         tx.Commit();
         return refs;
     }
@@ -1242,14 +1282,27 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteCustomer(string customerId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_Customer WHERE CustomerID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = customerId;
-        cmd.ExecuteNonQuery();
-    }
+    // 사용처 = 수주·일별 구매계획·예측·출하지·라벨 양식·출하 지시·검사 기준(고객 코드)·PO/일별 계획 수집 소스(공통코드 Attribute1).
+    // APS 실행의 고객 필터·업로드 배치 같은 이력은 보지 않는다
+    const string CustomerUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Customer WITH (UPDLOCK, HOLDLOCK) WHERE CustomerID = @K) RETURN;
+        DECLARE @Code varchar(20) = (SELECT CustomerCode FROM dbo.MD_Customer WHERE CustomerID = @K);
+        INSERT @r SELECT 'SO', SoNumber + ISNULL('-' + CAST(SoLineNo AS varchar(10)), '') FROM dbo.PP_CustomerOrder WHERE CustomerID = @K;
+        INSERT @r SELECT DISTINCT 'DEMAND', ItemNo FROM dbo.PP_DemandPlan WHERE CustomerID = @K;
+        INSERT @r SELECT DISTINCT 'FORECAST', ISNULL(ForecastBatch, CAST(ForecastID AS varchar(20))) FROM dbo.PP_Forecast WHERE CustomerID = @K;
+        INSERT @r SELECT 'SHIPDEST', ShipDestID FROM dbo.MD_ShipmentDest WHERE CustomerID = @K;
+        INSERT @r SELECT 'LABEL', LabelTemplateID FROM dbo.MD_LabelTemplate WHERE CustomerID = @K;
+        INSERT @r SELECT 'SHIPORDER', ISNULL(ShipOrderNumber, CAST(ShipmentOrderID AS varchar(20))) FROM dbo.FG_ShipmentOrder WHERE @Code IS NOT NULL AND CustomerCode = @Code;
+        INSERT @r SELECT 'QCSTD', StdCode + ISNULL(' ' + VerNo, '') FROM dbo.QC_InspectionStd WHERE @Code IS NOT NULL AND CustomerCode = @Code;
+        INSERT @r SELECT 'WORKER', GroupCode + ':' + CodeValue FROM dbo.MD_CodeItem
+            WHERE GroupCode IN ('SW_POSYNC_SOURCE', 'SW_DPSYNC_SOURCE') AND Attribute1 = @K;
+        """;
+
+    public List<UsageRef> CustomerUsages(string customerId) => UsagesOf(CustomerUsageSql, customerId);
+
+    /// <summary>사용처가 없을 때만 지우고 빈 목록, 있으면 지우지 않고 그 목록(FK 가 없어 고아 방지 책임이 여기 있다).</summary>
+    public List<UsageRef> DeleteCustomer(string customerId)
+        => DeleteIfUnused(CustomerUsageSql, "DELETE dbo.MD_Customer WHERE CustomerID = @K;", customerId);
 
     // ╔══════════════════════════════════════════════════════════════════╗
     // ║  MD_ShipmentDest (MD-06)                                         ║
@@ -1513,14 +1566,25 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteVendor(string vendorId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_Vendor WHERE VendorID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = vendorId;
-        cmd.ExecuteNonQuery();
-    }
+    // 사용처 = 품목 공급 매핑·발주·구매요청·납품·납품서·케이스·포탈 사용자·예비품 공급사·원단 공급사
+    const string VendorUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Vendor WITH (UPDLOCK, HOLDLOCK) WHERE VendorID = @K) RETURN;
+        INSERT @r SELECT 'ITEMVENDOR', ItemNo FROM dbo.SCM_ItemVendor WHERE VendorID = @K;
+        INSERT @r SELECT DISTINCT 'PO', PoNumber FROM dbo.WH_PurchaseOrder WHERE VendorID = @K;
+        INSERT @r SELECT 'PR', PrNumber FROM dbo.PP_PurchaseRequest WHERE VendorID = @K;
+        INSERT @r SELECT 'DELIVERY', ISNULL(DeliveryNumber, CAST(DeliveryID AS varchar(20))) FROM dbo.SCM_Delivery WHERE VendorID = @K;
+        INSERT @r SELECT 'DNOTE', ISNULL(NoteNumber, CAST(NoteID AS varchar(20))) FROM dbo.SCM_DeliveryNote WHERE VendorID = @K;
+        INSERT @r SELECT 'DCASE', CaseNo FROM dbo.SCM_DeliveryCase WHERE VendorID = @K;
+        INSERT @r SELECT 'PORTALUSER', UserID FROM dbo.SCM_PortalVendorUser WHERE VendorID = @K;
+        INSERT @r SELECT 'SPARE', SparePartNo FROM dbo.MD_SparePart WHERE SupplierID = @K;
+        INSERT @r SELECT 'FABRIC', MatLotID FROM dbo.MD_PaintFabric WHERE SupplierID = @K;
+        """;
+
+    public List<UsageRef> VendorUsages(string vendorId) => UsagesOf(VendorUsageSql, vendorId);
+
+    /// <summary>사용처가 없을 때만 지우고 빈 목록, 있으면 지우지 않고 그 목록.</summary>
+    public List<UsageRef> DeleteVendor(string vendorId)
+        => DeleteIfUnused(VendorUsageSql, "DELETE dbo.MD_Vendor WHERE VendorID = @K;", vendorId);
 
     // ╔══════════════════════════════════════════════════════════════════╗
     // ║  MD_Mold (MD-007)                                                ║
@@ -1658,34 +1722,21 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteMold(string moldId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_Mold WHERE MoldID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
-        cmd.ExecuteNonQuery();
-    }
+    // 사용처 = 제품정보(MD_MoldItem — 품번·색상)·라인 배정(MD_MoldLine). 색상(MD_MoldColor)은 금형에 딸린 행이라 같이 지운다
+    const string MoldUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Mold WITH (UPDLOCK, HOLDLOCK) WHERE MoldID = @K) RETURN;
+        INSERT @r SELECT 'MOLDITEM', ItemNo + ISNULL(' ' + Color, '') FROM dbo.MD_MoldItem WHERE MoldID = @K;
+        INSERT @r SELECT 'MOLDLINE', LineCode FROM dbo.MD_MoldLine WHERE MoldID = @K;
+        """;
 
-    /// <summary>
-    /// ZPD20041 삭제 가드: 금형이 제품정보(MD_MoldItem)·라인배정(MD_MoldLine)에서
-    /// 사용 중이면 삭제를 막기 위한 사용처 카운트.
-    /// </summary>
-    public (int ItemCount, int LineCount, int ColorCount) MoldUsage(string moldId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            SELECT
-              (SELECT COUNT(*) FROM dbo.MD_MoldItem  WHERE MoldID=@I) AS I,
-              (SELECT COUNT(*) FROM dbo.MD_MoldLine  WHERE MoldID=@I) AS L,
-              (SELECT COUNT(*) FROM dbo.MD_MoldColor WHERE MoldID=@I) AS C;
-            """, conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
-        using var r = cmd.ExecuteReader();
-        return r.Read()
-            ? (Convert.ToInt32(r["I"]), Convert.ToInt32(r["L"]), Convert.ToInt32(r["C"]))
-            : (0, 0, 0);
-    }
+    public List<UsageRef> MoldUsages(string moldId) => UsagesOf(MoldUsageSql, moldId);
+
+    /// <summary>사용처가 없을 때만 색상과 금형을 함께 지우고 빈 목록, 있으면 지우지 않고 그 목록(10-12 — 전에는 검사·색상·금형을 따로 처리했다).</summary>
+    public List<UsageRef> DeleteMold(string moldId)
+        => DeleteIfUnused(MoldUsageSql, """
+            DELETE dbo.MD_MoldColor WHERE MoldID = @K;
+            DELETE dbo.MD_Mold      WHERE MoldID = @K;
+            """, moldId);
 
     // ╔══════════════════════════════════════════════════════════════════╗
     // ║  MD_MoldColor (ZPD20041 — 금형 색상)                             ║
@@ -2083,14 +2134,18 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteWorkCenter(string wcid)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_WorkCenter WHERE WCID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = wcid;
-        cmd.ExecuteNonQuery();
-    }
+    // 사용처 = 이 작업장에 속한 라인·설비 (POP 모듈 분기가 라인 → 작업장 ProcessCode 로 정해진다)
+    const string WorkCenterUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_WorkCenter WITH (UPDLOCK, HOLDLOCK) WHERE WCID = @K) RETURN;
+        INSERT @r SELECT 'LINE',  LineID  FROM dbo.MD_Line      WHERE WCID = @K;
+        INSERT @r SELECT 'EQUIP', EquipID FROM dbo.MD_Equipment WHERE WCID = @K;
+        """;
+
+    public List<UsageRef> WorkCenterUsages(string wcid) => UsagesOf(WorkCenterUsageSql, wcid);
+
+    /// <summary>사용처가 없을 때만 지우고 빈 목록, 있으면 지우지 않고 그 목록.</summary>
+    public List<UsageRef> DeleteWorkCenter(string wcid)
+        => DeleteIfUnused(WorkCenterUsageSql, "DELETE dbo.MD_WorkCenter WHERE WCID = @K;", wcid);
 
     // ╔══════════════════════════════════════════════════════════════════╗
     // ║  MD_Station (MD-002)                                             ║
@@ -2225,14 +2280,17 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteStation(string stationId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_Station WHERE StationCode=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = stationId;
-        cmd.ExecuteNonQuery();
-    }
+    // 사용처 = BOP (INJ/IMG-MAIN 좌측 품번 목록이 스테이션 BOP 로 정해진다). POP 세션·캐시 같은 이력은 보지 않는다
+    const string StationUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Station WITH (UPDLOCK, HOLDLOCK) WHERE StationCode = @K) RETURN;
+        INSERT @r SELECT 'BOP', ISNULL(ItemNo, '-') + ' #' + ISNULL(CAST(StepSeq AS varchar(10)), '-') FROM dbo.MD_Bop WHERE StationCode = @K;
+        """;
+
+    public List<UsageRef> StationUsages(string stationId) => UsagesOf(StationUsageSql, stationId);
+
+    /// <summary>사용처가 없을 때만 지우고 빈 목록, 있으면 지우지 않고 그 목록.</summary>
+    public List<UsageRef> DeleteStation(string stationId)
+        => DeleteIfUnused(StationUsageSql, "DELETE dbo.MD_Station WHERE StationCode = @K;", stationId);
 
     // ╔══════════════════════════════════════════════════════════════════╗
     // ║  MD_Line (MD-08)                                                 ║
@@ -2399,14 +2457,32 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteLine(string lineId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_Line WHERE LineID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = lineId;
-        cmd.ExecuteNonQuery();
-    }
+    // 사용처 = 마스터(스테이션·설비·책임자·시간 패턴·APS 라인 설정·금형 라인·오븐·RFID·사출 조건·작업장 기본 라인)
+    // + 계획·생산(작업지시 헤더·단계·라인 스케줄·발행 기록·LOT). 실적·비가동·OEE·세션 같은 이력은 LOT·WO 가 대신 막는다
+    const string LineUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Line WITH (UPDLOCK, HOLDLOCK) WHERE LineID = @K) RETURN;
+        INSERT @r SELECT 'STATION',    StationCode FROM dbo.MD_Station         WHERE LineID = @K;
+        INSERT @r SELECT 'EQUIP',      EquipID     FROM dbo.MD_Equipment       WHERE LineID = @K;
+        INSERT @r SELECT 'SUPERVISOR', EmployeeNo  FROM dbo.MD_LineSupervisor  WHERE LineID = @K;
+        INSERT @r SELECT 'PATTERN',    PatternID   FROM dbo.MD_LineTimePattern WHERE LineID = @K;
+        INSERT @r SELECT 'APSLINE',    LineID      FROM dbo.MD_ApsLineStage    WHERE LineID = @K;
+        INSERT @r SELECT DISTINCT 'MOLD', MoldID   FROM dbo.MD_MoldLine        WHERE LineCode = @K;
+        INSERT @r SELECT 'OVEN',       OvenID      FROM dbo.MD_Oven            WHERE LineID = @K;
+        INSERT @r SELECT 'RFID',       ReaderID    FROM dbo.MD_RfidReader      WHERE LineID = @K;
+        INSERT @r SELECT 'INJCOND',    ISNULL(ItemCode, CAST(CondItemID AS varchar(20))) FROM dbo.MD_InjCondItem WHERE LineID = @K;
+        INSERT @r SELECT 'WCDEFAULT',  WCID        FROM dbo.MD_WorkCenter      WHERE DefaultLineID = @K;
+        INSERT @r SELECT 'WO', WoNumber FROM dbo.PP_WorkOrder WHERE LineID = @K
+            UNION SELECT 'WO', w.WoNumber FROM dbo.PP_WorkOrderRouting s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE s.LineID = @K;
+        INSERT @r SELECT DISTINCT 'SCHEDULE',  CONVERT(varchar(10), ScheduleDate, 23) FROM dbo.PP_LineSchedule WHERE LineID = @K;
+        INSERT @r SELECT DISTINCT 'PUBLISHED', CONVERT(varchar(10), OverrideDate, 23) FROM dbo.PP_ProductionCalendarOverride WHERE LineID = @K;
+        INSERT @r SELECT 'LOT', ISNULL(LotCode, CAST(LotID AS varchar(20))) FROM dbo.tbl_Lot WHERE LineID = @K;
+        """;
+
+    public List<UsageRef> LineUsages(string lineId) => UsagesOf(LineUsageSql, lineId);
+
+    /// <summary>사용처가 없을 때만 지우고 빈 목록, 있으면 지우지 않고 그 목록.</summary>
+    public List<UsageRef> DeleteLine(string lineId)
+        => DeleteIfUnused(LineUsageSql, "DELETE dbo.MD_Line WHERE LineID = @K;", lineId);
 
     // ── MD_DefectCode ────────────────────────────────────────────────
     public record DefectCodeRow(
@@ -2747,14 +2823,23 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteEquipment(string equipId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_Equipment WHERE EquipID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = equipId;
-        cmd.ExecuteNonQuery();
-    }
+    // 사용처 = MNT-001 설비 카드·PM 일정·보전 작업지시·고장·장착 금형·생산 LOT(사출·IMG). OEE·상태 로그·안돈 같은 이력은 보지 않는다
+    const string EquipmentUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Equipment WITH (UPDLOCK, HOLDLOCK) WHERE EquipID = @K) RETURN;
+        INSERT @r SELECT 'CARD',    EquipID FROM dbo.MNT_EquipmentStatus WHERE EquipID = @K;
+        INSERT @r SELECT 'PM',      ISNULL(PMPlanNumber, CAST(PMScheduleID AS varchar(20))) FROM dbo.MNT_PMSchedule WHERE EquipID = @K;
+        INSERT @r SELECT 'MWO',     ISNULL(WoNumber, CAST(WorkOrderID AS varchar(20)))     FROM dbo.MNT_WorkOrder WHERE EquipID = @K;
+        INSERT @r SELECT 'FAILURE', ISNULL(FailureNumber, CAST(FailureID AS varchar(20)))  FROM dbo.MNT_FailureRegister WHERE EquipID = @K;
+        INSERT @r SELECT DISTINCT 'MOLD', MoldID FROM dbo.MNT_MoldShotCount WHERE MountedEquipID = @K;
+        INSERT @r SELECT 'LOT', ISNULL(l.LotCode, CAST(p.LotID AS varchar(20))) FROM dbo.PR_InjLot p LEFT JOIN dbo.tbl_Lot l ON l.LotID = p.LotID WHERE p.EquipID = @K
+            UNION ALL SELECT 'LOT', ISNULL(l.LotCode, CAST(p.LotID AS varchar(20))) FROM dbo.PR_ImgLot p LEFT JOIN dbo.tbl_Lot l ON l.LotID = p.LotID WHERE p.EquipID = @K;
+        """;
+
+    public List<UsageRef> EquipmentUsages(string equipId) => UsagesOf(EquipmentUsageSql, equipId);
+
+    /// <summary>사용처가 없을 때만 지우고 빈 목록, 있으면 지우지 않고 그 목록.</summary>
+    public List<UsageRef> DeleteEquipment(string equipId)
+        => DeleteIfUnused(EquipmentUsageSql, "DELETE dbo.MD_Equipment WHERE EquipID = @K;", equipId);
 
     // ── MD_Oven ──────────────────────────────────────────────────────
     public record OvenRow(
@@ -3613,18 +3698,6 @@ public sealed class MasterDataRepository
         return cmd.ExecuteScalar() as byte[];
     }
 
-    /// <summary>부품 이미지 교체(null 이면 제거). 화면이 320×180 이내로 축소한 바이트만 넘긴다.</summary>
-    public void UpdateSparePartImage(string sparePartNo, byte[]? image, string modifiedBy)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "UPDATE dbo.MD_SparePart SET SparePartImage=@IMG, ModifiedTS=SYSDATETIME(), ModifiedBy=@MB WHERE SparePartNo=@P;", conn);
-        cmd.Parameters.Add("@P",   SqlDbType.VarChar,   16).Value = sparePartNo;
-        cmd.Parameters.Add("@IMG", SqlDbType.VarBinary, -1).Value = (object?)image ?? DBNull.Value;
-        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
-        cmd.ExecuteNonQuery();
-    }
-
     // ── MD_PmTemplate ────────────────────────────────────────────────
     public record PmTemplateRow(
         string PMTemplateID, string? TemplateName, string? EquipType,
@@ -4293,9 +4366,11 @@ public sealed class MasterDataRepository
         decimal? unitCost, string? uom,
         int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
         string? supplierId, bool activeFlag, string createdBy, byte[]? image = null,
-        string? zoneCode = null, string? slot = null, string? maker = null, string? extraLocation = null)
+        string? zoneCode = null, string? slot = null, string? maker = null, string? extraLocation = null,
+        int initialQty = 0, string? initialNote = null)
     {
         (slot, extraLocation) = NormalizeSpareLocation(zoneCode, slot, extraLocation);
+        if (initialQty < 0) throw new ArgumentException("Initial stock cannot be negative.");
         if (category is not { Length: 1 } || applicableEquip is not { Length: 1 })
             throw new ArgumentException("Category and ApplicableEquip must be single-character codes to generate SparePartNo.");
         var pfx = SparePartNoPrefix(category, applicableEquip);
@@ -4336,6 +4411,23 @@ public sealed class MasterDataRepository
             cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
             cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
             cmd.ExecuteNonQuery();
+
+            // 초기 재고는 마스터에 바로 쓰지 않고 입고(IN) 이력과 같이 남긴다 — MntRepository.AdjustSparePartStock 과 같은 행 모양.
+            // 같은 트랜잭션이라 이력이 실패하면 부품도 등록되지 않는다(10-12 — 전에는 따로 커밋돼 재고 0 인 부품만 남을 수 있었다)
+            if (initialQty > 0)
+            {
+                using var stock = new SqlCommand("""
+                    UPDATE dbo.MD_SparePart SET OnHandQty = @Q WHERE SparePartNo = @SP;
+                    INSERT INTO dbo.MNT_SparePartsTxn (SparePartNo, MoveType, Qty, BalanceBefore, BalanceAfter, RefType, RefID, Note, TxnAt, ActorID, CreatedBy, CreatedTS)
+                    VALUES (@SP, 'IN', @Q, 0, @Q, 'ADJ', NULL, @Note, SYSDATETIME(), @Actor, @By, SYSDATETIME());
+                    """, conn, tx);
+                stock.Parameters.Add("@SP",    SqlDbType.VarChar,   16).Value = spNo;
+                stock.Parameters.Add("@Q",     SqlDbType.Int).Value           = initialQty;
+                stock.Parameters.Add("@Note",  SqlDbType.NVarChar, 500).Value = (object?)initialNote ?? DBNull.Value;
+                stock.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = createdBy;
+                stock.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = createdBy;
+                stock.ExecuteNonQuery();
+            }
             tx.Commit();
             return spNo;
         }
@@ -4345,12 +4437,14 @@ public sealed class MasterDataRepository
     /// <summary>
     /// 키는 SparePartNo. PartNo 는 속성이라 수정 대상이 아니고(고유 인덱스), 현재고(OnHandQty)는 입출고로만 바뀐다.
     /// 분류·적용설비도 바꾸지 않는다 — 예비품번호 EOS-SP-{분류}{적용설비}-… 에 들어간 값이라 바꾸면 번호와 어긋난다.
+    /// 이미지는 imageChanged 일 때만 같은 UPDATE 에서 바꾼다(null 이면 제거) — 매 수정마다 바이트를 보내지 않으면서 한 번에 저장되게(10-12).
     /// </summary>
     public void UpdateSparePart(string sparePartNo, string? partName,
         decimal? unitCost, string? uom,
         int? safetyStock, int? reorderPoint, int? reorderQty, int? leadTimeDays,
         string? supplierId, bool activeFlag, string modifiedBy,
-        string? zoneCode = null, string? slot = null, string? maker = null, string? extraLocation = null)
+        string? zoneCode = null, string? slot = null, string? maker = null, string? extraLocation = null,
+        bool imageChanged = false, byte[]? image = null)
     {
         (slot, extraLocation) = NormalizeSpareLocation(zoneCode, slot, extraLocation);
         using var conn = _factory.OpenConnection();
@@ -4358,7 +4452,10 @@ public sealed class MasterDataRepository
             "UPDATE dbo.MD_SparePart SET PartName=@PN,UnitCost=@UC,UOM=@UOM," +
             "SafetyStock=@SS,ReorderPoint=@RP,ReorderQty=@RQ,LeadTimeDays=@LT,Maker=@MK," +
             "SupplierID=@SI,ActiveFlag=@AF,ZoneCode=@ZC,Slot=@SLT,ExtraLocation=@XL," +
+            "SparePartImage=CASE WHEN @IC=1 THEN @IMG ELSE SparePartImage END," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE SparePartNo=@P;", conn);
+        cmd.Parameters.Add("@IC",  SqlDbType.Bit).Value            = imageChanged;
+        cmd.Parameters.Add("@IMG", SqlDbType.VarBinary, -1).Value  = imageChanged && image is not null ? image : DBNull.Value;
         cmd.Parameters.Add("@P",   SqlDbType.VarChar,   16).Value  = sparePartNo;
         cmd.Parameters.Add("@XL",  SqlDbType.NVarChar,  60).Value  = (object?)extraLocation ?? DBNull.Value;
         cmd.Parameters.Add("@MK",  SqlDbType.NVarChar, 100).Value  = (object?)maker ?? DBNull.Value;
@@ -4453,10 +4550,25 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
+    public int PmTemplateStepCount(string id)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("SELECT COUNT(*) FROM dbo.MD_PmTemplateStep WHERE PMTemplateID = @I;", conn);
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = id;
+        return (int)cmd.ExecuteScalar()!;
+    }
+
+    /// <summary>템플릿을 참조하는 곳은 자기 점검 단계뿐이라 단계와 함께 한 트랜잭션으로 지운다(FK 가 없어 단계가 고아로 남던 것).</summary>
     public void DeletePmTemplate(string id)
     {
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_PmTemplate WHERE PMTemplateID=@I;", conn);
+        using var cmd = new SqlCommand("""
+            SET XACT_ABORT ON;
+            BEGIN TRAN;
+            DELETE dbo.MD_PmTemplateStep WHERE PMTemplateID = @I;
+            DELETE dbo.MD_PmTemplate     WHERE PMTemplateID = @I;
+            COMMIT;
+            """, conn);
         cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = id;
         cmd.ExecuteNonQuery();
     }
@@ -4576,19 +4688,23 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
+    const string LineTimePatternUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_LineTimePattern WITH (UPDLOCK, HOLDLOCK) WHERE PatternID = @K) RETURN;
+        INSERT @r SELECT DISTINCT 'SCHEDULE', LineID + ' ' + CONVERT(char(10), ScheduleDate, 23) FROM dbo.PP_LineSchedule WHERE PatternID = @K;
+        INSERT @r SELECT DISTINCT 'PUBLISHED', ISNULL(LineID, '-') + ' ' + CONVERT(char(10), OverrideDate, 23) FROM dbo.PP_ProductionCalendarOverride WHERE PatternID = @K;
+        INSERT @r SELECT 'APSLINE', LineID FROM dbo.MD_ApsLineStage WHERE PatternID = @K;
+        INSERT @r SELECT 'APSDEFAULT', 'APS_SETTING.DEFAULT_PATTERN' FROM dbo.MD_CodeItem
+            WHERE GroupCode = 'APS_SETTING' AND CodeValue = 'DEFAULT_PATTERN' AND Attribute1 = @K;
+        """;
+
+    public List<UsageRef> LineTimePatternUsages(string patternId) => UsagesOf(LineTimePatternUsageSql, patternId);
+
     /// <summary>
     /// 사용처가 없을 때만 패턴과 그 세그먼트를 지우고 빈 목록을 돌려준다. 사용처 = 라인 스케줄(PP_LineSchedule — 지난 날짜 포함)·
     /// 발행 기록(PP_ProductionCalendarOverride)·APS 라인 설정(MD_ApsLineStage)·APS 기본 패턴(APS_SETTING.DEFAULT_PATTERN).
     /// </summary>
     public List<UsageRef> DeleteLineTimePattern(string patternId)
-        => DeleteIfUnused("""
-            IF NOT EXISTS (SELECT 1 FROM dbo.MD_LineTimePattern WITH (UPDLOCK, HOLDLOCK) WHERE PatternID = @K) RETURN;
-            INSERT @r SELECT DISTINCT 'SCHEDULE', LineID + ' ' + CONVERT(char(10), ScheduleDate, 23) FROM dbo.PP_LineSchedule WHERE PatternID = @K;
-            INSERT @r SELECT DISTINCT 'PUBLISHED', ISNULL(LineID, '-') + ' ' + CONVERT(char(10), OverrideDate, 23) FROM dbo.PP_ProductionCalendarOverride WHERE PatternID = @K;
-            INSERT @r SELECT 'APSLINE', LineID FROM dbo.MD_ApsLineStage WHERE PatternID = @K;
-            INSERT @r SELECT 'APSDEFAULT', 'APS_SETTING.DEFAULT_PATTERN' FROM dbo.MD_CodeItem
-                WHERE GroupCode = 'APS_SETTING' AND CodeValue = 'DEFAULT_PATTERN' AND Attribute1 = @K;
-            """, """
+        => DeleteIfUnused(LineTimePatternUsageSql, """
             DELETE dbo.MD_LineTimeSegment WHERE PatternID = @K;
             DELETE dbo.MD_LineTimePattern WHERE PatternID = @K;
             """, patternId);

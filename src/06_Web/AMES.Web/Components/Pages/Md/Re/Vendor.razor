@@ -278,6 +278,13 @@
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
+            else if (!string.IsNullOrEmpty(_deleteBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_deleteBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _deleteBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -286,7 +293,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@AskDelete" Disabled="@_busy" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -307,6 +314,7 @@
     string? _fType, _fActive;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _deleteBlocked = "";
     string _msg = "", _modalErr = "";
     bool _isErr;
     bool   _canEdit;
@@ -373,12 +381,12 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.VendorRow r)
     {
         if (!_canEdit) return;
-        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _sel = r; _modalErr = ""; _confirmDelete = false; _deleteBlocked = "";
         _f = new()
         {
             VendorName     = r.VendorName     ?? "",
@@ -397,7 +405,7 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
@@ -445,6 +453,23 @@
         finally { _busy = false; }
     }
 
+    // 확인을 묻기 전에 사용처를 본다 — 사용 중이면 확인 대신 사용처 안내만 보인다(삭제할 때 저장소가 같은 규칙으로 다시 검사)
+    void AskDelete()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = ""; _deleteBlocked = "";
+        try
+        {
+            var usages = MD.VendorUsages(_sel.VendorID);
+            if (usages.Count > 0) _deleteBlocked = InUseText(_sel.VendorID, usages);
+            else _confirmDelete = true;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    string InUseText(string key, List<MasterDataRepository.UsageRef> usages)
+        => string.Format(L["MD.Usage.Err.InUse"].Value, key, AMES.Web.Services.UsageText.Format(L, usages));
+
     async Task SaveDelete()
     {
         if (!_canEdit) return;
@@ -453,7 +478,8 @@
         try
         {
             var name = _sel.VendorName ?? _sel.VendorID;
-            MD.DeleteVendor(_sel.VendorID);
+            var usages = MD.DeleteVendor(_sel.VendorID);
+            if (usages.Count > 0) { _deleteBlocked = InUseText(_sel.VendorID, usages); _confirmDelete = false; return; }
             Audit.Deleted("MD-009", "MD_Vendor", _sel.VendorID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Deleted"].Value, name), false);

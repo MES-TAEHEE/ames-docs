@@ -126,6 +126,26 @@ public sealed class AuditLogger
         catch { return "{\"redacted\":true}"; }   // 가리지 못하면 원문을 남기지 않는다
     }
 
+    /// <summary>
+    /// 스냅샷 JSON 의 최상위 속성을 바꾸고(set — 값 null 이면 JSON null) 지운(remove) 결과를 돌려준다. 화면 모델이 실제 저장값과
+    /// 다르게 보이는 속성(예: 바꾸지 않은 이미지)을 감사에 맞게 고칠 때 쓴다. 결과는 Created/Updated/Deleted 에 그대로 넘긴다.
+    /// </summary>
+    public static string? Patch(object? o, IReadOnlyDictionary<string, string?>? set, params string[] remove)
+    {
+        var json = ToJson(o);
+        if (json is null) return null;
+        try
+        {
+            if (System.Text.Json.Nodes.JsonNode.Parse(json) is not System.Text.Json.Nodes.JsonObject obj) return json;
+            foreach (var key in remove) obj.Remove(key);
+            if (set is not null)
+                foreach (var (key, value) in set)
+                    obj[key] = value is null ? null : System.Text.Json.Nodes.JsonValue.Create(value);
+            return obj.ToJsonString(JsonOpt);
+        }
+        catch { return json; }
+    }
+
     static void Mask(System.Text.Json.Nodes.JsonNode? node, string[] names)
     {
         if (node is System.Text.Json.Nodes.JsonObject obj)

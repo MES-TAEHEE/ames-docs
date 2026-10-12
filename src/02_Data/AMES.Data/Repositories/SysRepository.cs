@@ -810,13 +810,17 @@ public sealed class SysRepository
         string? subProcessCode, string screenName, string? screenNameEn, string? href, string? lidLabel,
         int? sortOrder, bool isVisible, string createdBy, string? permissionCriteria = null)
     {
-        const string sql = """
+        // SYS-003·SYS-004 주소를 다른 화면이 같이 쓰면 권한 판정이 어느 화면을 볼지 흔들린다(ProtectedScreens)
+        var sql = $$"""
+            IF TRIM('/' FROM ISNULL(@HRef, '')) IN ({{ProtectedScreens.SqlList}})
+               AND EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE TRIM('/' FROM ISNULL(HRef, '')) = TRIM('/' FROM @HRef))
+                THROW 51825, 'Another screen already uses this protected path.', 1;
             INSERT INTO dbo.SYS_Screen
                    (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy)
             VALUES (@Code, @Module, @Process, @SubProc, @Name, @NameEn, @HRef, @Lid, @Perm, @Sort, @Visible, @CreatedBy)
             """;
         Exec(sql,
-            ("@Perm",      PermissionSlots.NormalizeTemplate(permissionCriteria)),
+            ("@Perm",      ProtectedScreens.ApplyTemplate(href, permissionCriteria)),
             ("@Code",      screenCode),
             ("@Module",    moduleCode),
             ("@Process",   (object?)processCode    ?? DBNull.Value),
@@ -838,12 +842,19 @@ public sealed class SysRepository
         string? subProcessCode, string screenName, string? screenNameEn, string? href, string? lidLabel,
         int? sortOrder, bool isVisible, string modifiedBy, string? permissionCriteria = null)
     {
-        const string sql = """
+        // SYS-003·SYS-004 는 코드·주소를 바꿀 수 없고 수정 기능도 끌 수 없다(ProtectedScreens — 잃으면 권한을 다시 줄 화면이 없다)
+        var sql = $$"""
             SET XACT_ABORT ON;
             BEGIN TRANSACTION;
-            DECLARE @OldCode varchar(20);
-            SELECT @OldCode = ScreenCode FROM dbo.SYS_Screen WITH (UPDLOCK, HOLDLOCK) WHERE ScreenID = @Id;
+            DECLARE @OldCode varchar(20), @OldHRef varchar(200);
+            SELECT @OldCode = ScreenCode, @OldHRef = HRef FROM dbo.SYS_Screen WITH (UPDLOCK, HOLDLOCK) WHERE ScreenID = @Id;
             IF @OldCode IS NULL THROW 51821, 'Screen was not found.', 1;
+            IF TRIM('/' FROM ISNULL(@OldHRef, '')) IN ({{ProtectedScreens.SqlList}})
+               AND (@OldCode <> @Code OR TRIM('/' FROM ISNULL(@HRef, '')) <> TRIM('/' FROM @OldHRef))
+                THROW 51824, 'The code and path of SYS-003/SYS-004 cannot change.', 1;
+            IF TRIM('/' FROM ISNULL(@HRef, '')) IN ({{ProtectedScreens.SqlList}})
+               AND EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenID <> @Id AND TRIM('/' FROM ISNULL(HRef, '')) = TRIM('/' FROM @HRef))
+                THROW 51825, 'Another screen already uses this protected path.', 1;
             IF @OldCode <> @Code AND EXISTS
                 (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode = @Code AND ScreenID <> @Id)
                 THROW 51822, 'Screen code is already in use.', 1;
@@ -890,7 +901,7 @@ public sealed class SysRepository
             COMMIT TRANSACTION;
             """;
         Exec(sql,
-            ("@Perm",       permissionCriteria is null ? (object)DBNull.Value : PermissionSlots.NormalizeTemplate(permissionCriteria)),
+            ("@Perm",       permissionCriteria is null ? (object)DBNull.Value : ProtectedScreens.ApplyTemplate(href, permissionCriteria)),
             ("@Id",         screenId),
             ("@Code",       screenCode),
             ("@Module",     moduleCode),
@@ -911,11 +922,13 @@ public sealed class SysRepository
     /// </summary>
     public List<ScreenPermRow> DeleteScreen(int screenId, string deletedBy)
     {
-        const string sql = """
+        var sql = $$"""
             SET NOCOUNT ON;
-            DECLARE @Code varchar(20);
-            SELECT @Code = ScreenCode FROM dbo.SYS_Screen WITH (UPDLOCK, HOLDLOCK) WHERE ScreenID = @Id;
+            DECLARE @Code varchar(20), @HRef varchar(200);
+            SELECT @Code = ScreenCode, @HRef = HRef FROM dbo.SYS_Screen WITH (UPDLOCK, HOLDLOCK) WHERE ScreenID = @Id;
             IF @Code IS NULL RETURN;
+            IF TRIM('/' FROM ISNULL(@HRef, '')) IN ({{ProtectedScreens.SqlList}})
+                THROW 51826, 'SYS-003/SYS-004 cannot be deleted.', 1;
             DELETE dbo.SYS_RolePermission
             OUTPUT deleted.RoleID, deleted.RoleName, deleted.PermissionLevel
             WHERE  ScreenCode = @Code;
@@ -1107,9 +1120,10 @@ public sealed class SysRepository
         using var tx   = conn.BeginTransaction();
         // 기본 권한을 읽은 뒤 저장이 끝날 때까지 SYS-003 이 바꾸지 못하게 공유 잠금을 쥔다
         var criteria = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        using (var q = new SqlCommand("SELECT ScreenCode, PermissionCriteria FROM dbo.SYS_Screen WITH (HOLDLOCK);", conn, tx))
+        var hrefs    = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        using (var q = new SqlCommand("SELECT ScreenCode, PermissionCriteria, HRef FROM dbo.SYS_Screen WITH (HOLDLOCK);", conn, tx))
         using (var rd = q.ExecuteReader())
-            while (rd.Read()) criteria[rd.GetString(0)] = rd.GetString(1);
+            while (rd.Read()) { criteria[rd.GetString(0)] = rd.GetString(1); hrefs[rd.GetString(0)] = rd["HRef"] as string; }
         var saved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         using var cmd  = new SqlCommand(sql, conn, tx);
         cmd.Parameters.Add("@RoleID",     SqlDbType.NVarChar, 450).Value = roleId;
@@ -1122,7 +1136,9 @@ public sealed class SysRepository
         {
             pModule.Value = (object?)it.ModuleCode ?? DBNull.Value;
             pScreen.Value = it.ScreenCode;
-            var level = PermissionSlots.Compose(criteria.GetValueOrDefault(it.ScreenCode, PermissionSlots.Default), it.PermissionLevel);
+            // 관리자의 SYS-003·SYS-004 읽기·수정은 넘어온 값과 관계없이 남긴다(ProtectedScreens)
+            var level = PermissionSlots.Compose(criteria.GetValueOrDefault(it.ScreenCode, PermissionSlots.Default),
+                ProtectedScreens.ApplyRole(roleId, hrefs.GetValueOrDefault(it.ScreenCode), it.PermissionLevel));
             pLevel.Value  = (object?)level ?? DBNull.Value;
             cmd.ExecuteNonQuery();
             if (level is not null) saved[it.ScreenCode] = level;

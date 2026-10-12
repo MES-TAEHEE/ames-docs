@@ -589,9 +589,9 @@
         _busy = true;
         try
         {
-            foreach (var item in _items) MD.DeleteCodeItem(item.CodeID);
-            MD.DeleteCodeGroup(_fGroup.GroupCode);
-            Audit.Deleted("MD-030", "MD_CodeGroup", _fGroup.GroupCode, Snap(new { Group = _allGroups.FirstOrDefault(g => g.GroupCode == _fGroup.GroupCode), Items = _items }, _fGroup.GroupCode));
+            // 항목·그룹을 한 트랜잭션으로 — 화면에 읽어 둔 목록이 아니라 DB 의 항목 전부를 지우고 그 목록을 감사에 남긴다
+            var removed = MD.DeleteCodeGroup(_fGroup.GroupCode);
+            Audit.Deleted("MD-030", "MD_CodeGroup", _fGroup.GroupCode, Snap(new { Group = _allGroups.FirstOrDefault(g => g.GroupCode == _fGroup.GroupCode), Items = removed }, _fGroup.GroupCode));
             if (_selGroup?.GroupCode == _fGroup.GroupCode) { _selGroup = null; _items = new(); }
             CloseModal();
             await ReloadGroupsKeepPage();

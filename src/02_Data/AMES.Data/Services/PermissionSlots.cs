@@ -48,11 +48,28 @@ public static class PermissionSlots
         return new string(Slots.Where(c => up.IndexOf(c) >= 0 && (template is null || Has(template, c))).ToArray());
     }
 
-    /// <summary>부여된 글자로 역할 권한 3자리를 만든다. 아무것도 부여하지 않으면 null(행 없음 = 권한 없음).</summary>
+    /// <summary>
+    /// SYS-004 칸 하나를 켜고 끈 뒤의 부여 글자(REA 순). 읽기 없는 수정·승인은 화면을 열 수 없어 쓸모가 없으므로(10-12)
+    /// 수정·승인을 켜면 읽기도 켜고, 읽기를 끄면 수정·승인도 끈다.
+    /// </summary>
+    public static string Toggle(string? granted, char slot, bool on)
+    {
+        var s = char.ToUpperInvariant(slot);
+        var set = Granted(granted).ToHashSet();
+        if (Slots.IndexOf(s) < 0) return new string(Slots.Where(set.Contains).ToArray());
+        if (on) set.Add(s);
+        else if (s == 'R') set.Clear();
+        else set.Remove(s);
+        if (set.Count > 0) set.Add('R');
+        return new string(Slots.Where(set.Contains).ToArray());
+    }
+
+    /// <summary>부여된 글자로 역할 권한 3자리를 만든다. 아무것도 부여하지 않으면 null(행 없음 = 권한 없음). 수정·승인이 있으면 읽기도 준다.</summary>
     public static string? Compose(string? template, string? granted)
     {
         var g = Granted(granted, template);
         if (g.Length == 0) return null;
+        if (g[0] != 'R') g = "R" + g;
         return new string(Slots.Select(c => !Has(template, c) ? NoFeature : g.IndexOf(c) >= 0 ? c : NotGranted).ToArray());
     }
 }

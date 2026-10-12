@@ -4701,9 +4701,6 @@
   <data name="Col.PrepTime" xml:space="preserve">
     <value>Tiempo de cambio (min, línea)</value>
   </data>
-  <data name="Err.MoldInUse" xml:space="preserve">
-    <value>No se puede eliminar: usado por {0} ítem(s) y {1} asignación(es) de línea</value>
-  </data>
   <data name="MD.Mold.Tab.Master" xml:space="preserve">
     <value>Maestro de Moldes</value>
   </data>
@@ -10516,5 +10513,113 @@
   </data>
   <data name="SYS.Users.Err.RoleMissing" xml:space="preserve">
     <value>El rol '{0}' ya no existe; otro usuario puede haberlo renombrado o eliminado en SYS-002. Se volvió a cargar la lista de roles; elija de nuevo y guarde. No se guardó nada.</value>
+  </data>
+  <data name="MD.Usage.Err.InUse" xml:space="preserve">
+    <value>{0} no se puede eliminar porque está en uso — {1}. Para dejar de usarlo, desactívelo (desmarque Activo o cambie su estado) en lugar de eliminarlo.</value>
+  </data>
+  <data name="MD.PmTemplate.ConfirmDeleteSteps" xml:space="preserve">
+    <value>También se eliminarán sus {0} pasos de inspección. ¿Seguro que desea eliminar?</value>
+  </data>
+  <data name="MD.Usage.Kind.LINE" xml:space="preserve">
+    <value>Líneas</value>
+  </data>
+  <data name="MD.Usage.Kind.STATION" xml:space="preserve">
+    <value>Estaciones</value>
+  </data>
+  <data name="MD.Usage.Kind.EQUIP" xml:space="preserve">
+    <value>Equipos</value>
+  </data>
+  <data name="MD.Usage.Kind.SUPERVISOR" xml:space="preserve">
+    <value>Supervisores de línea</value>
+  </data>
+  <data name="MD.Usage.Kind.PATTERN" xml:space="preserve">
+    <value>Patrones de tiempo de línea</value>
+  </data>
+  <data name="MD.Usage.Kind.OVEN" xml:space="preserve">
+    <value>Hornos</value>
+  </data>
+  <data name="MD.Usage.Kind.RFID" xml:space="preserve">
+    <value>Lectores RFID</value>
+  </data>
+  <data name="MD.Usage.Kind.INJCOND" xml:space="preserve">
+    <value>Elementos de condición de inyección</value>
+  </data>
+  <data name="MD.Usage.Kind.WCDEFAULT" xml:space="preserve">
+    <value>Línea predeterminada del centro de trabajo</value>
+  </data>
+  <data name="MD.Usage.Kind.DEMAND" xml:space="preserve">
+    <value>Planes de compra diarios (pieza)</value>
+  </data>
+  <data name="MD.Usage.Kind.FORECAST" xml:space="preserve">
+    <value>Pronósticos</value>
+  </data>
+  <data name="MD.Usage.Kind.SHIPDEST" xml:space="preserve">
+    <value>Destinos de envío</value>
+  </data>
+  <data name="MD.Usage.Kind.LABEL" xml:space="preserve">
+    <value>Plantillas de etiqueta</value>
+  </data>
+  <data name="MD.Usage.Kind.SHIPORDER" xml:space="preserve">
+    <value>Órdenes de envío</value>
+  </data>
+  <data name="MD.Usage.Kind.QCSTD" xml:space="preserve">
+    <value>Estándares de inspección</value>
+  </data>
+  <data name="MD.Usage.Kind.WORKER" xml:space="preserve">
+    <value>Fuentes de sincronización automática</value>
+  </data>
+  <data name="MD.Usage.Kind.ITEMVENDOR" xml:space="preserve">
+    <value>Asignaciones artículo-proveedor</value>
+  </data>
+  <data name="MD.Usage.Kind.PO" xml:space="preserve">
+    <value>Órdenes de compra</value>
+  </data>
+  <data name="MD.Usage.Kind.PR" xml:space="preserve">
+    <value>Solicitudes de compra</value>
+  </data>
+  <data name="MD.Usage.Kind.DELIVERY" xml:space="preserve">
+    <value>Entregas</value>
+  </data>
+  <data name="MD.Usage.Kind.DNOTE" xml:space="preserve">
+    <value>Notas de entrega</value>
+  </data>
+  <data name="MD.Usage.Kind.DCASE" xml:space="preserve">
+    <value>Cajas de entrega</value>
+  </data>
+  <data name="MD.Usage.Kind.PORTALUSER" xml:space="preserve">
+    <value>Usuarios del portal</value>
+  </data>
+  <data name="MD.Usage.Kind.SPARE" xml:space="preserve">
+    <value>Repuestos</value>
+  </data>
+  <data name="MD.Usage.Kind.FABRIC" xml:space="preserve">
+    <value>Lotes de tela</value>
+  </data>
+  <data name="MD.Usage.Kind.CARD" xml:space="preserve">
+    <value>Tarjeta de equipo (MNT-001)</value>
+  </data>
+  <data name="MD.Usage.Kind.PM" xml:space="preserve">
+    <value>Programas de PM</value>
+  </data>
+  <data name="MD.Usage.Kind.MWO" xml:space="preserve">
+    <value>Órdenes de mantenimiento</value>
+  </data>
+  <data name="MD.Usage.Kind.FAILURE" xml:space="preserve">
+    <value>Fallas</value>
+  </data>
+  <data name="SYS.Rbac.Msg.CriteriaChanged" xml:space="preserve">
+    <value>Los permisos predeterminados de pantalla cambiaron en SYS-003; las casillas muestran los nuevos valores.</value>
+  </data>
+  <data name="SYS.Rbac.AdminLocked" xml:space="preserve">
+    <value>Fijo para System Administrator: sin esta pantalla no habría forma de otorgar permisos.</value>
+  </data>
+  <data name="SYS.Screen.Hint.Protected" xml:space="preserve">
+    <value>Es una pantalla de gestión de permisos: no se pueden cambiar su código, ruta ni la función Editar, ni eliminarla (System Administrator siempre conserva Leer y Editar).</value>
+  </data>
+  <data name="MD.Usage.Kind.MOLDITEM" xml:space="preserve">
+    <value>Productos del molde (pieza color)</value>
+  </data>
+  <data name="MD.Usage.Kind.MOLDLINE" xml:space="preserve">
+    <value>Asignaciones de línea del molde</value>
   </data>
 </root>

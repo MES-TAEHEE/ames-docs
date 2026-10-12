@@ -11,7 +11,6 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
-@inject MntRepository Mnt
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
 @inject UomFormat UomFmt
@@ -560,6 +559,7 @@
             UOM          = r.UOM          ?? "",
             UnitCost     = r.UnitCost,
             Image        = r.HasImage ? LoadImage(r.SparePartNo) : null,
+            ImageChanged = false,
             SafetyStock  = r.SafetyStock,
             ReorderPoint = r.ReorderPoint,
             ReorderQty   = r.ReorderQty,
@@ -571,6 +571,7 @@
             Maker        = r.Maker        ?? "",
             ActiveFlag   = r.ActiveFlag,
         };
+        _origImageSize = _f.Image?.Length;
         _modal = "edit";
     }
 
@@ -592,20 +593,22 @@
         _busy = true;
         try
         {
+            // 채번·등록·초기 재고 입고(IN 이력)를 저장소가 한 트랜잭션으로 — 중간에 실패하면 아무것도 남지 않는다
             var spNo = MD.InsertSparePart(no, NE(_f.PartName), NE(_f.Category), NE(_f.ApplicableEquip),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
-                NE(_f.SupplierID), _f.ActiveFlag, _actor, _f.Image, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker), NE(_f.ExtraLocation));
-            Audit.Created("MD-026", "MD_SparePart", spNo, _f);
-            // 초기 재고는 마스터에 직접 쓰지 않고 입고(IN) 이력으로 남긴다 — 현재고의 정본은 이력과 같이 움직인다
-            if (_f.OnHandQty > 0)
-                Mnt.AdjustSparePartStock(spNo, MntRepository.SpareMoveTypes.In, _f.OnHandQty, "ADJ", null, L["MD.SparePart.Note.InitStock"].Value, _actor);
+                NE(_f.SupplierID), _f.ActiveFlag, _actor, _f.Image, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker), NE(_f.ExtraLocation),
+                _f.OnHandQty, L["MD.SparePart.Note.InitStock"].Value);
+            Audit.Created("MD-026", "MD_SparePart", spNo, AuditLogger.Patch(_f, null, "ImageChanged"));
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.SparePart.Ok.CreatedNo"].Value, no, spNo), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
+
+    int? _origImageSize;   // 수정 창을 열 때의 이미지 크기 — 감사 「이전」용(목록 행에는 바이트가 없다)
+    static string? ImageNote(int? bytes) => bytes is null ? null : $"({bytes} bytes)";
 
     async Task SaveEdit()
     {
@@ -618,10 +621,16 @@
             MD.UpdateSparePart(_sel.SparePartNo, NE(_f.PartName),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
-                NE(_f.SupplierID), _f.ActiveFlag, _actor, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker), NE(_f.ExtraLocation));
-            Audit.Updated("MD-026", "MD_SparePart", _sel.SparePartNo, _sel, _f);
-            // 이미지는 바뀐 경우에만 따로 쓴다 — 매 수정마다 바이트를 다시 보내지 않기 위해
-            if (_f.ImageChanged) MD.UpdateSparePartImage(_sel.SparePartNo, _f.Image, _actor);
+                NE(_f.SupplierID), _f.ActiveFlag, _actor, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker), NE(_f.ExtraLocation),
+                _f.ImageChanged, _f.Image);
+            // 감사는 저장이 끝난 뒤 한 번 — 이미지는 바꿨을 때만 전/후 크기를 남기고, 안 바꿨으면 항목에서 뺀다
+            var before = _f.ImageChanged
+                ? AuditLogger.Patch(_sel, new Dictionary<string, string?> { ["Image"] = ImageNote(_origImageSize) }, "HasImage")
+                : AuditLogger.Patch(_sel, null, "HasImage");
+            var after = _f.ImageChanged
+                ? AuditLogger.Patch(_f, new Dictionary<string, string?> { ["Image"] = ImageNote(_f.Image?.Length) }, "ImageChanged")
+                : AuditLogger.Patch(_f, null, "Image", "ImageChanged");
+            Audit.Updated("MD-026", "MD_SparePart", _sel.SparePartNo, before, after);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.PartNo} {L["Msg.Updated"]}", false);
         }

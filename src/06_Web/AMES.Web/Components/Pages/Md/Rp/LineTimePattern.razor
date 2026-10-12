@@ -420,6 +420,13 @@
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
+            else if (!string.IsNullOrEmpty(_deleteBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_deleteBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _deleteBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -428,7 +435,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click="@AskDelete" Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -456,6 +463,7 @@
     string? _fLine;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _deleteBlocked = "";
     string _msg = "", _modalErr = "";
     bool _isErr;
     bool   _canEdit;
@@ -931,12 +939,12 @@
     }
 
     // ── 헤더 CRUD ──
-    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.LineTimePatternRow r)
     {
         if (!_canEdit) return;
-        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _sel = r; _modalErr = ""; _confirmDelete = false; _deleteBlocked = "";
         _f = new()
         {
             PatternID = r.PatternID ?? "",
@@ -954,7 +962,7 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
@@ -1002,6 +1010,23 @@
         finally { _busy = false; }
     }
 
+    // 확인을 묻기 전에 사용처를 본다 — 사용 중이면 확인 대신 사용처 안내만 보인다(삭제할 때 저장소가 같은 규칙으로 다시 검사)
+    void AskDelete()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = ""; _deleteBlocked = "";
+        try
+        {
+            var usages = MD.LineTimePatternUsages(_sel.PatternID);
+            if (usages.Count > 0) _deleteBlocked = InUseText(_sel.PatternID, usages);
+            else _confirmDelete = true;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    string InUseText(string key, List<MasterDataRepository.UsageRef> usages)
+        => string.Format(L["MD.LineTimePattern.Err.InUse"].Value, key, AMES.Web.Services.UsageText.Format(L, usages));
+
     async Task SaveDelete()
     {
         if (!_canEdit) return;
@@ -1013,7 +1038,7 @@
             var usages = MD.DeleteLineTimePattern(id);
             if (usages.Count > 0)
             {
-                _modalErr = string.Format(L["MD.LineTimePattern.Err.InUse"].Value, id, AMES.Web.Services.UsageText.Format(L, usages));
+                _deleteBlocked = InUseText(id, usages);
                 _confirmDelete = false;
                 return;
             }

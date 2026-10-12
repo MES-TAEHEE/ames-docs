@@ -276,7 +276,7 @@
             @if (_confirmDelete)
             {
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
-                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <span>@(_deleteStepCount > 0 ? string.Format(L["MD.PmTemplate.ConfirmDeleteSteps"].Value, _deleteStepCount) : L["Msg.Confirm.Delete"].Value)</span>
                     <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
@@ -289,7 +289,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click="@AskDelete" Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -378,6 +378,7 @@
     string? _expandedId;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    int  _deleteStepCount;
     string _msg = "", _modalErr = "";
     bool _isErr;
     bool   _canEdit;
@@ -554,6 +555,19 @@
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
+    }
+
+    // 템플릿은 자기 점검 단계 말고는 참조하는 곳이 없다 — 단계 수를 확인 문구에 보이고 함께 지운다
+    void AskDelete()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = "";
+        try
+        {
+            _deleteStepCount = MD.PmTemplateStepCount(_sel.PMTemplateID);
+            _confirmDelete = true;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
     }
 
     async Task SaveDelete()

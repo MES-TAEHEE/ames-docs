@@ -49,6 +49,28 @@ public class PermissionSlotsTests
         => Assert.Null(PermissionSlots.Compose(template, granted));
 
     [Theory]
+    [InlineData("___", "E",  "RE_")]   // 읽기 없는 수정·승인은 화면을 못 열어 쓸모가 없다 — 읽기를 붙인다
+    [InlineData("___", "A",  "R_A")]
+    [InlineData("___", "EA", "REA")]
+    [InlineData("__X", "EA", "REX")]
+    public void Compose_adds_read_to_edit_or_approve(string template, string granted, string expected)
+        => Assert.Equal(expected, PermissionSlots.Compose(template, granted));
+
+    [Theory]
+    [InlineData("",    'E', true,  "RE")]    // 수정을 켜면 읽기도
+    [InlineData("",    'A', true,  "RA")]
+    [InlineData("R",   'A', true,  "RA")]
+    [InlineData("",    'R', true,  "R")]
+    [InlineData("REA", 'R', false, "")]      // 읽기를 끄면 셋 다
+    [InlineData("RE",  'R', false, "")]
+    [InlineData("REA", 'E', false, "RA")]    // 수정·승인을 끄면 그것만
+    [InlineData("REA", 'A', false, "RE")]
+    [InlineData("_EA", 'E', false, "RA")]    // 읽기 없이 저장돼 있던 옛 값도 남는 게 있으면 읽기를 붙인다
+    [InlineData("RE",  'Z', true,  "RE")]    // 모르는 글자는 무시
+    public void Toggle_keeps_read_with_edit_and_approve(string granted, char slot, bool on, string expected)
+        => Assert.Equal(expected, PermissionSlots.Toggle(granted, slot, on));
+
+    [Theory]
     [InlineData("REX", null,  "RE")]
     [InlineData("R_X", null,  "R")]
     [InlineData("_EA", null,  "EA")]

@@ -329,6 +329,13 @@
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
+            else if (!string.IsNullOrEmpty(_deleteBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_deleteBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _deleteBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -337,7 +344,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click="@AskDelete" Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -359,6 +366,7 @@
     string? _fStatus, _fLoc;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _deleteBlocked = "";
     string _msg = "", _modalErr = "";
     bool _isErr;
     bool   _canEdit;
@@ -424,12 +432,12 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.MoldRow r)
     {
         if (!_canEdit) return;
-        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _sel = r; _modalErr = ""; _confirmDelete = false; _deleteBlocked = "";
         _f = new()
         {
             MoldID            = r.MoldID,
@@ -451,7 +459,7 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
@@ -508,6 +516,23 @@
         finally { _busy = false; }
     }
 
+    // 확인을 묻기 전에 사용처를 본다 — 사용 중이면 확인 대신 사용처 안내만 보인다(삭제할 때 저장소가 같은 규칙으로 다시 검사)
+    void AskDelete()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = ""; _deleteBlocked = "";
+        try
+        {
+            var usages = MD.MoldUsages(_sel.MoldID);
+            if (usages.Count > 0) _deleteBlocked = InUseText(_sel.MoldID, usages);
+            else _confirmDelete = true;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    string InUseText(string key, List<MasterDataRepository.UsageRef> usages)
+        => string.Format(L["MD.Usage.Err.InUse"].Value, key, AMES.Web.Services.UsageText.Format(L, usages));
+
     async Task SaveDelete()
     {
         if (!_canEdit) return;
@@ -515,19 +540,10 @@
         _busy = true;
         try
         {
-            // ZPD20041 삭제 가드: 제품정보/라인배정에서 사용 중이면 삭제 불가
-            var (ic, lc, cc) = MD.MoldUsage(_sel.MoldID);
-            if (ic > 0 || lc > 0)
-            {
-                _modalErr = string.Format(L["Err.MoldInUse"], ic, lc);
-                _confirmDelete = false;
-                return;
-            }
-            if (cc > 0)
-                foreach (var c in MD.ListMoldColors(_sel.MoldID))
-                    MD.DeleteMoldColor(_sel.MoldID, c.Color);
+            // ZPD20041 삭제 가드: 제품정보/라인배정에서 사용 중이면 삭제 불가 — 검사·색상·금형 삭제는 저장소가 한 트랜잭션으로
             var name = _sel.MoldName ?? _sel.MoldID;
-            MD.DeleteMold(_sel.MoldID);
+            var usages = MD.DeleteMold(_sel.MoldID);
+            if (usages.Count > 0) { _deleteBlocked = InUseText(_sel.MoldID, usages); _confirmDelete = false; return; }
             Audit.Deleted("MD-007", "MD_Mold", _sel.MoldID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);

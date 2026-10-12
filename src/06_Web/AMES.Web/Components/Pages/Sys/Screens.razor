@@ -231,7 +231,7 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.Code"].Value + " *")" class="ames-rz-modal-label" Component="EditTextBoxScreenCode" />
-                    <RadzenTextBox Name="EditTextBoxScreenCode" @bind-Value="_f.ScreenCode" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxScreenCode" @bind-Value="_f.ScreenCode" Disabled="@_protected" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -261,7 +261,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Path"]" class="ames-rz-modal-label" Component="EditTextBoxHRef" />
-                    <RadzenTextBox Name="EditTextBoxHRef" @bind-Value="_f.HRef" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxHRef" @bind-Value="_f.HRef" Disabled="@_protected" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -273,7 +273,7 @@
                     <RadzenLabel Text="@L["SYS.Screen.Col.PermLevel"]" class="ames-rz-modal-label" />
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="flex:1;" title="@L["SYS.Screen.Hint.PermLevel"]">
                         <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" Value="true" Disabled="true" Name="EditChkPermR" /><RadzenLabel Text="@L["SYS.Screen.Perm.R"]" Component="EditChkPermR" /></span>
-                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasEdit" Name="EditChkPermE" /><RadzenLabel Text="@L["SYS.Screen.Perm.E"]" Component="EditChkPermE" style="cursor:pointer;" /></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasEdit" Name="EditChkPermE" Disabled="@_protected" /><RadzenLabel Text="@L["SYS.Screen.Perm.E"]" Component="EditChkPermE" style="cursor:pointer;" /></span>
                         <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasApprove" Name="EditChkPermA" /><RadzenLabel Text="@L["SYS.Screen.Perm.A"]" Component="EditChkPermA" style="cursor:pointer;" /></span>
                     </RadzenStack>
                 </RadzenStack>
@@ -288,6 +288,11 @@
                     <RadzenLabel Text="@($"{L["SYS.Screen.Col.Visible"]} {L["SYS.Screen.Lbl.NavMenu"]}")" Component="EditChkVisible" style="cursor:pointer;" />
                 </RadzenStack>
             </RadzenStack>
+
+            @if (_protected)
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" AllowClose="false">@L["SYS.Screen.Hint.Protected"]</RadzenAlert>
+            }
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
@@ -306,7 +311,10 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (!_protected)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -327,6 +335,7 @@
     string _fSearch = "", _fModule = "", _fProcess = "", _fVisible = "";
     string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
+    bool _protected;   // SYS-003·SYS-004 — 코드·주소·수정 기능·삭제 잠금(ProtectedScreens)
     bool _canEdit;
     string _actor = "system";
 
@@ -411,6 +420,7 @@
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
+        _protected = ProtectedScreens.IsProtected(r.HRef);
         _f = new()
         {
             ScreenCode     = r.ScreenCode,
@@ -429,7 +439,7 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; _protected = false; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
@@ -491,7 +501,7 @@
     async Task SaveDelete()
     {
         if (!_canEdit) return;
-        if (_sel is null) return;
+        if (_sel is null || _protected) return;
         _busy = true;
         try
         {
