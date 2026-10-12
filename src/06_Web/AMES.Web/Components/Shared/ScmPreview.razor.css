@@ -39,15 +39,15 @@
 .scm-order-detail .ames-table td { min-width:0; white-space:normal; overflow-wrap:anywhere; }
 .scm-order-detail .ames-table:not(.scm-lines) th:nth-child(1) { width:14%; }
 .scm-order-detail .ames-table:not(.scm-lines) th:nth-child(2) { width:26%; }
-.scm-order-detail .ames-table:not(.scm-lines) th:nth-child(3) { width:6%; }
+.scm-order-detail .ames-table:not(.scm-lines) th:nth-child(3) { width:16%; }
 /* 수량은 단위 자릿수(UomQty)로 길어진다 — 숫자는 끊지 않고 품명이 줄바꿈해 폭을 내준다 */
 .scm-order-detail .ames-table:not(.scm-lines) { table-layout:auto; }
 .scm-order-detail .ames-table:not(.scm-lines) .num { white-space:nowrap; overflow-wrap:normal; }
 .scm-order-detail .scm-number { min-width:0; padding:6px 4px; }
 .scm-editor .scm-lines { table-layout:fixed; }
 .scm-editor .scm-lines th:nth-child(1) { width:4%; }
-.scm-editor .scm-lines th:nth-child(2) { width:40%; }
-.scm-editor .scm-lines th:nth-child(3) { width:6%; }
+.scm-editor .scm-lines th:nth-child(2) { width:30%; }
+.scm-editor .scm-lines th:nth-child(3) { width:16%; }
 .scm-editor .scm-lines th:nth-child(4),
 .scm-editor .scm-lines th:nth-child(5) { width:15%; }
 .scm-editor .scm-lines th:nth-child(6) { width:15%; }
@@ -55,6 +55,8 @@
 .scm-editor .scm-lines td { min-width:0; overflow-wrap:anywhere; }
 .scm-editor .scm-lines th { white-space:normal; }
 .scm-editor .scm-lines .num { white-space:normal; overflow-wrap:anywhere; }
+.scm-editor .scm-lines .scm-unit,
+.scm-order-detail .ames-table .scm-unit { white-space:nowrap; overflow-wrap:normal; }
 .scm-editor .scm-lines .dim { max-width:none; overflow-wrap:anywhere; }
 .scm-editor .scm-lines ::deep .rz-dropdown,
 .scm-editor .scm-lines ::deep .rz-numeric { width:100% !important; min-width:0; max-width:100%; }

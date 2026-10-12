@@ -6,7 +6,8 @@ namespace AMES.Data.Repositories;
 public sealed partial class ScmRepository
 {
     public record PurchaseLine(int Id, string Item, string Name, string Unit, decimal Quantity,
-        decimal Price, decimal Received, int PoID = 0, string Version = "", bool ItemExists = true);
+        decimal Price, decimal Received, int PoID = 0, string Version = "", bool ItemExists = true,
+        string? BoxContentUnit = null, decimal? BoxContentQty = null);
     public record PurchaseOrder(string Number, string Vendor, DateTime Ordered, DateTime Due,
         string Destination, string Status, string Currency, List<PurchaseLine> Lines, string VendorName = "",
         DateTime? SupplierConfirmedAt = null, string? SupplierConfirmedBy = null, string CreatedBy = "");
@@ -21,14 +22,15 @@ public sealed partial class ScmRepository
         return "Published";
     }
 
-    public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null, bool confirmedOnly = false)
+    public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null, bool confirmedOnly = false, bool packableOnly = false)
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
             SELECT p.PoID,p.PoNumber,p.PoLineNo,p.VendorID,p.ItemNo,i.ItemName,p.UnitCode,
                    p.OrderQty,p.UnitPrice,p.ReceivedQty,p.OrderDate,p.DueDate,p.Status,
                    p.Currency,p.DeliveryDestination,p.ScmRowVersion,v.VendorName,p.SupplierConfirmedAt,p.SupplierConfirmedBy,
-                   CAST(CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS bit),p.CreatedBy
+                   CAST(CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS bit),p.CreatedBy,
+                   COALESCE(p.BoxContentUnit,i.BoxContentUnit),COALESCE(p.BoxContentQty,i.BoxContentQty)
             FROM dbo.WH_PurchaseOrder p LEFT JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo
             LEFT JOIN dbo.MD_Vendor v ON v.VendorID=p.VendorID
             WHERE NULLIF(p.PoNumber,'') IS NOT NULL
@@ -36,6 +38,17 @@ public sealed partial class ScmRepository
                   AND p.Status IN ('Open','Partial','Complete','Received')
                   AND NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber
                       AND (d.SupplierConfirmedAt IS NULL OR d.Status IS NULL OR d.Status NOT IN ('Open','Partial','Complete','Received')))))
+              AND (@PackableOnly=0 OR EXISTS (
+                  SELECT 1 FROM dbo.WH_PurchaseOrder q
+                  JOIN dbo.MD_Item qi ON qi.ItemNo=q.ItemNo AND ISNULL(qi.ActiveFlag,1)=1
+                  LEFT JOIN dbo.SCM_ItemVendor qm ON qm.ItemNo=q.ItemNo AND qm.VendorID=q.VendorID
+                  OUTER APPLY (SELECT COALESCE(SUM(l.Quantity-l.ReceivedQty),0) Qty FROM dbo.SCM_DeliveryLine l
+                      JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID WHERE l.PoID=q.PoID AND d.Status<>'Cancelled') pending
+                  OUTER APPLY (SELECT COALESCE(SUM(b.Quantity),0) Qty FROM dbo.SCM_DeliveryBox b
+                      WHERE b.PoID=q.PoID AND b.CaseNo IS NOT NULL AND b.DeliveryLineID IS NULL AND b.ActiveFlag=1) prepared
+                  WHERE q.PoNumber=p.PoNumber AND q.Status IN ('Open','Partial') AND q.SupplierConfirmedAt IS NOT NULL
+                      AND ISNULL(qm.ActiveFlag,1)=1
+                      AND COALESCE(q.OrderQty,0)-COALESCE(q.ReceivedQty,0)-pending.Qty-prepared.Qty>0))
               AND (@Portal=0 OR (
                   p.Status IN ('Open','Partial','Complete','Received','Cancelled')
                   AND NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber AND (d.Status='Draft' OR d.Status IS NULL))
@@ -46,9 +59,9 @@ public sealed partial class ScmRepository
                       )
                   ))
               ))
-            ORDER BY p.PoNumber DESC,p.PoLineNo,p.PoID;
+            ORDER BY p.OrderDate DESC,p.PoNumber DESC,p.PoLineNo,p.PoID;
             """, conn);
-        Filter(cmd,("@Portal", null,portal),("@UserID", "SCM_PortalVendorUser.UserID",portalUserId ?? ""),("@ConfirmedOnly", null,confirmedOnly));
+        Filter(cmd,("@Portal", null,portal),("@UserID", "SCM_PortalVendorUser.UserID",portalUserId ?? ""),("@ConfirmedOnly", null,confirmedOnly),("@PackableOnly", null,packableOnly));
         using var r = cmd.ExecuteReader();
         var orders = new Dictionary<string, PurchaseOrder>();
         while (r.Read())
@@ -67,7 +80,8 @@ public sealed partial class ScmRepository
             if (order.Status != S(12)) orders[number] = order = order with { Status = "Partial" };
             if (r.IsDBNull(17)) orders[number] = order = order with { SupplierConfirmedAt = null, SupplierConfirmedBy = null };
             order.Lines.Add(new(r.IsDBNull(2) ? r.GetInt32(0) : r.GetInt32(2), S(4), S(5), S(6),
-                D(7), D(8), D(9), r.GetInt32(0), Convert.ToHexString((byte[])r[15]),r.GetBoolean(19)));
+                D(7), D(8), D(9), r.GetInt32(0), Convert.ToHexString((byte[])r[15]),r.GetBoolean(19),
+                r.IsDBNull(21) ? null : r.GetString(21),r.IsDBNull(22) ? null : r.GetDecimal(22)));
         }
         return orders.Values.ToList();
     }
@@ -88,13 +102,17 @@ public sealed partial class ScmRepository
             using var cmd = new SqlCommand("""
                 UPDATE dbo.WH_PurchaseOrder
                 SET VendorID=@Vendor,ItemNo=@Item,OrderQty=@Qty,UnitCode=@Unit,UnitPrice=@Price,
+                    BoxContentUnit=CASE WHEN @Unit='BOX' THEN (SELECT BoxContentUnit FROM dbo.MD_Item WHERE ItemNo=@Item) END,
+                    BoxContentQty=CASE WHEN @Unit='BOX' THEN (SELECT BoxContentQty FROM dbo.MD_Item WHERE ItemNo=@Item) END,
                     OrderDate=@Ordered,DueDate=@Due,DeliveryDestination=@Destination,
                     ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
                 WHERE PoNumber=@Number AND PoLineNo=@Line;
                 IF @@ROWCOUNT=0
                     INSERT dbo.WH_PurchaseOrder(PoNumber,PoLineNo,VendorID,ItemNo,OrderQty,ReceivedQty,
-                        UnitCode,UnitPrice,Currency,OrderDate,DueDate,Status,DeliveryDestination,CreatedBy,CreatedTS)
-                    VALUES(@Number,@Line,@Vendor,@Item,@Qty,0,@Unit,@Price,'USD',@Ordered,@Due,'Draft',@Destination,@Actor,SYSDATETIME());
+                        UnitCode,UnitPrice,Currency,OrderDate,DueDate,Status,DeliveryDestination,CreatedBy,CreatedTS,BoxContentUnit,BoxContentQty)
+                    SELECT @Number,@Line,@Vendor,@Item,@Qty,0,@Unit,@Price,'USD',@Ordered,@Due,'Draft',@Destination,@Actor,SYSDATETIME(),
+                        CASE WHEN @Unit='BOX' THEN i.BoxContentUnit END,CASE WHEN @Unit='BOX' THEN i.BoxContentQty END
+                    FROM dbo.MD_Item i WHERE i.ItemNo=@Item;
                 """, conn, tx);
             Add(cmd, ("@Number", "WH_PurchaseOrder.PoNumber",number),("@Line", "WH_PurchaseOrder.PoLineNo",line.Id),("@Vendor", "WH_PurchaseOrder.VendorID",order.Vendor),("@Item", "WH_PurchaseOrder.ItemNo",line.Item),
                 ("@Qty", "WH_PurchaseOrder.OrderQty",line.Quantity),("@Unit", "WH_PurchaseOrder.UnitCode",line.Unit),("@Price", "WH_PurchaseOrder.UnitPrice",line.Price),("@Ordered", "WH_PurchaseOrder.OrderDate",order.Ordered.Date),
@@ -216,7 +234,9 @@ public sealed partial class ScmRepository
                 JOIN dbo.MD_Vendor v WITH (HOLDLOCK) ON v.VendorID=m.VendorID
                 WHERE m.VendorID=@Vendor AND m.ItemNo=@Item AND m.ActiveFlag=1
                   AND i.ItemType='MATERIAL' AND ISNULL(v.ActiveFlag,1)=1
-                  AND ISNULL(i.DefaultUOM,'')=@Unit;
+                  AND ISNULL(i.DefaultUOM,'')=@Unit
+                  AND (@Unit<>'BOX' OR (i.BoxContentQty>0 AND EXISTS(SELECT 1 FROM dbo.MD_Uom u
+                      WHERE u.UOMCode=i.BoxContentUnit AND u.ActiveFlag=1 AND u.UOMCode NOT IN ('BOX','PLT','SH'))));
                 """,conn,tx);
             Filter(cmd,("@Vendor", "SCM_ItemVendor.VendorID",order.Vendor),("@Item", "SCM_ItemVendor.ItemNo",line.Item),("@Unit", "MD_Item.DefaultUOM",line.Unit));
             if ((int)cmd.ExecuteScalar()! != 1) throw new InvalidOperationException("Vendor/item mapping or unit changed. Reload before saving.");

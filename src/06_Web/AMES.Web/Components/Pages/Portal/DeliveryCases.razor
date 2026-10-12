@@ -29,17 +29,17 @@
             @foreach(var item in _draftCases)
             {
                 <button type="button" class="case-tile @(_activeCase==item?"active":"")" @onclick="()=>SelectDraftCase(item)" disabled="@_busy">
-                    <RadzenIcon Icon="inventory_2" /><strong>Case @(_draftCases.IndexOf(item)+1)</strong><span>@item.Count boxes</span>
+                    <RadzenIcon Icon="inventory_2" /><strong>Pallet @(_draftCases.IndexOf(item)+1)</strong><span>@item.Count boxes</span>
                 </button>
             }
             @foreach(var item in _loose)
             {
                 <button type="button" class="case-tile @(_activeLoose==item?"active":"")" @onclick="()=>SelectLoose(item)" disabled="@_busy">
-                    <RadzenIcon Icon="@(item.IsPart?"category":"inventory")" /><strong>@(item.IsPart?"Part":"Box")</strong><span>@item.Box.Row.Part.Item · @QtyFormat.Text(item.Box.Quantity,item.Box.Row.Part.Unit) @UomFmt.Sym(item.Box.Row.Part.Unit)</span>
+                    <RadzenIcon Icon="@(item.IsPart?"category":"inventory")" /><strong>@(item.IsPart?"Part":"Box")</strong><span>@item.Box.Row.Part.Item · @QtyWithContents(item.Box.Quantity,item.Box.Row.Part)</span>
                 </button>
             }
             <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Case")' disabled="@_busy">
-                <RadzenIcon Icon="add_box" /><strong>Add Case</strong>
+                <RadzenIcon Icon="add_box" /><strong>Add Pallet</strong>
             </button>
             <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Box")' disabled="@_busy"><RadzenIcon Icon="inventory" /><strong>Add Box</strong></button>
             <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Part")' disabled="@_busy"><RadzenIcon Icon="category" /><strong>Add Part</strong></button>
@@ -47,14 +47,14 @@
         @if(_activeCase is {} detail)
         {
             <div class="case-detail">
-                <div class="case-toolbar"><strong>Case @(_draftCases.IndexOf(detail)+1)</strong>
-                    <RadzenButton Text="Remove Case" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="()=>RemoveDraftCase(detail)" Disabled="@_busy" />
+                <div class="case-toolbar"><strong>Pallet @(_draftCases.IndexOf(detail)+1)</strong>
+                    <RadzenButton Text="Remove Pallet" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="()=>RemoveDraftCase(detail)" Disabled="@_busy" />
                 </div>
                 <div class="case-table-scroll"><table class="ames-table">
                     <thead><tr><th>Box</th><th>PO No</th><th>Part No / Name</th><th>Qty</th></tr></thead>
                     <tbody>@foreach(var box in detail)
                     {
-                        <tr><td>@(detail.IndexOf(box)+1)</td><td>@box.Row.Order</td><td>@box.Row.Part.Item<div class="dim">@box.Row.Part.Name</div></td><td>@QtyFormat.Text(box.Quantity,box.Row.Part.Unit) @UomFmt.Sym(box.Row.Part.Unit)</td></tr>
+                        <tr><td>@(detail.IndexOf(box)+1)</td><td>@box.Row.Order</td><td>@box.Row.Part.Item<div class="dim">@box.Row.Part.Name</div></td><td>@QtyWithContents(box.Quantity,box.Row.Part)</td></tr>
                     }</tbody>
                 </table></div>
             </div>
@@ -63,9 +63,24 @@
         {
             <div class="case-detail"><div class="case-toolbar"><strong>@(loose.IsPart?"Part":"Box") · @loose.Box.Row.Part.Item</strong>
                 <RadzenButton Text="Remove" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="()=>RemoveLoose(loose)" Disabled="@_busy" />
-            </div><div>@loose.Box.Row.Order · @QtyFormat.Text(loose.Box.Quantity,loose.Box.Row.Part.Unit) @UomFmt.Sym(loose.Box.Row.Part.Unit)</div></div>
+            </div><div>@loose.Box.Row.Order · @QtyWithContents(loose.Box.Quantity,loose.Box.Row.Part)</div></div>
         }
     </section>
+    @if(NoteBoxes.Any())
+    {
+        <section class="ames-card case-review">
+            <div class="ames-card-h">Review Delivery Note · @_draftCases.Count pallets · @NoteBoxCount boxes · @_loose.Count(i=>i.IsPart) individual parts</div>
+            <div class="case-table-scroll"><table class="ames-table">
+                <thead><tr><th>PO No</th><th>Part No / Name</th><th>Selected Qty</th><th>Boxes / Parts</th></tr></thead>
+                <tbody>@foreach(var item in NoteBoxes.GroupBy(b=>new { b.Row.Order, b.Row.Part.Item, b.Row.Part.Name, b.Row.Part.Unit }))
+                {
+                    <tr><td class="case-po-code">@item.Key.Order</td><td><strong>@item.Key.Item</strong><div class="dim">@item.Key.Name</div></td>
+                        <td>@QtyWithContents(item.Sum(b=>b.Quantity),item.First().Row.Part)</td>
+                        <td>@item.Count(b=>!IsLoosePart(b)) boxes · @item.Count(IsLoosePart) parts</td></tr>
+                }</tbody>
+            </table></div>
+        </section>
+    }
     <div class="case-toolbar case-create-footer">
         <label>Delivery Date <RadzenDatePicker TValue="DateTime" @bind-Value="_deliveryDate" DateFormat="@DateFmt.Date" Disabled="@_busy" /></label>
         <RadzenButton Text="Create Delivery Note" Icon="description" Click="CreateNote" Disabled="@(_busy || _draftCases.Count+_loose.Count==0)" />
@@ -74,28 +89,29 @@
 @if(_allowed && _editingCase)
 {
     <section class="ames-card">
-        <div class="ames-card-h">Add @_editingKind · Confirmed Purchase Orders</div>
-        <p class="case-empty">Select items for the same supplier and destination.</p>
+        <div class="ames-card-h">Add @(_editingKind=="Case"?"Pallet":_editingKind) · Confirmed Purchase Orders</div>
         <div class="case-po-scroll"><table class="ames-table">
-            <thead><tr><th></th><th>PO No</th><th>Supplier</th><th>Destination</th><th>Due Date</th><th>Status</th></tr></thead>
-            <tbody>@foreach(var order in _orders.Where(o=>o.SupplierConfirmedAt.HasValue && o.Status is "Open" or "Partial"))
+            <thead><tr><th></th><th>PO No</th><th>PO Date ↓</th><th>Supplier</th><th>Destination</th><th>Due Date</th><th>Status</th></tr></thead>
+            <tbody>@foreach(var order in _orders.OrderByDescending(o=>o.Ordered).ThenByDescending(o=>o.Number))
             {
                 var expanded=_expandedOrders.Contains(order.Number);
                 var boxes=_draft.Where(b=>b.Row.Order==order.Number).ToList();
-                <tr class="case-po-row" @onclick="()=>ToggleOrder(order.Number)">
+                <tr class="case-po-row @(expanded?"case-po-open":"")" @onclick="()=>ToggleOrder(order.Number)">
                     <td><button type="button" class="case-expand" aria-label="@($"Expand {order.Number}")" aria-expanded="@expanded" disabled="@_busy">@(expanded?"▾":"▸")</button></td>
-                    <td>@order.Number</td><td>@order.VendorName</td><td>@order.Destination</td><td>@order.Due.ToString(DateFmt.Date)</td><td>Confirmed</td>
+                    <td><strong class="case-po-code">@order.Number</strong></td><td>@order.Ordered.ToString(DateFmt.Date)</td><td>@order.VendorName</td><td>@order.Destination</td><td>@order.Due.ToString(DateFmt.Date)</td><td><span class="case-confirmed">Confirmed</span></td>
                 </tr>
                 @if(expanded)
                 {
-                    <tr class="case-po-content"><td colspan="6">
-                        <div class="case-table-scroll"><table class="ames-table">
-                            <thead><tr><th>Part No / Name</th><th>Available</th><th>@(_editingKind=="Part"?"Qty / Part":"Qty / Box")</th><th>Quantity to Pack</th><th>@(_editingKind=="Part"?"Parts":"Boxes")</th></tr></thead>
+                    <tr class="case-po-content"><td colspan="7">
+                        <section class="case-step">
+                        <div class="case-step-heading"><span class="case-step-number">1</span><div><h3>Set quantities</h3><p>Enter the delivery quantity. @(_editingKind=="Part"?"Individual parts":"Boxes") update automatically.</p></div></div>
+                        <div class="case-table-scroll case-part-table"><table class="ames-table">
+                            <thead><tr><th>Part No / Name</th><th>Available</th><th>Total Delivery Qty</th><th>@(_editingKind=="Part"?"Parts Needed":"Boxes Needed")</th></tr></thead>
                             <tbody>@foreach(var row in _parts.Where(p=>p.Order==order.Number))
                             {
                                 <tr @key="row.Part.PoID" class="@(Available(row)<=0?"case-part-unavailable":"")"><td>@row.Part.Item<div class="dim">@row.Part.Name</div></td>
                                     <td>
-                                        <strong>@QtyFormat.Text(Available(row),row.Part.Unit) @UomFmt.Sym(row.Part.Unit)</strong>
+                                        <strong>@QtyWithContents(Available(row),row.Part)</strong>
                                         @if(Available(row)<=0)
                                         {
                                             var documents=_deliveries.Where(d=>d.PoID==row.Part.PoID && d.Status!="Cancelled").Select(d=>d.Number).Distinct().ToArray();
@@ -103,56 +119,78 @@
                                             @foreach(var item in VisibleCases.Where(c=>c.Boxes.Any(b=>b.PoID==row.Part.PoID)))
                                             {<div class="case-allocation">@item.Number · Already packed</div>}
                                             @foreach(var draftCase in _draftCases.Where(c=>c.Any(b=>b.Row.Part.PoID==row.Part.PoID)))
-                                            {<div class="case-allocation">Case @(_draftCases.IndexOf(draftCase)+1) · Added to this note</div>}
+                                            {<div class="case-allocation">Pallet @(_draftCases.IndexOf(draftCase)+1) · Added to this note</div>}
                                             @if(documents.Length==0 && row.Part.Prepared==0){<div class="dim">@(row.Part.Received>0?"Already received":"No available quantity")</div>}
                                         }
                                     </td>
-                                    <td>
-                                        @if(_editingKind=="Part"){<span>1</span>}
-                                        else if(row.Part.PackingQty>0){@QtyFormat.Text(row.Part.PackingQty,row.Part.Unit)}
-                                        else
-                                        {
-                                            <span>Not set</span>
-                                            @if(Available(row)>0 && row.Part.Issue is "Packing quantity missing" or "Vendor mapping missing")
-                                            {
-                                                <div class="case-packing-editor">
-                                                    <input class="ames-input" type="number" min="1" step="1" @bind="row.NewPackingQty" placeholder="Qty / Box" aria-label="@($"Qty per box {row.Part.Item}")" disabled="@_busy" />
-                                                    <RadzenButton Text="Save Qty / Box" Size="ButtonSize.ExtraSmall" Click="()=>SavePacking(row)" Disabled="@_busy" />
-                                                </div>
-                                            }
-                                            else if(Available(row)>0){<div class="case-input-message">@row.Part.Issue. Ask EOS to check Material Item Master / supplier mapping.</div>}
-                                        }
-                                    </td>
-                                    <td><div class="case-quantity-editor"><input class="ames-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="0"
-                                        @bind:get="row.QuantityText" @bind:set="value=>ChangeQuantity(row,value)" @bind:event="oninput" disabled="@(_busy || Available(row)<=0 || !CanPack(row))"
-                                        aria-invalid="@(!row.InputValid || row.Quantity>Available(row)?"true":"false")" aria-label="@($"Quantity to pack {row.Order} {row.Part.Item}")" /></div>
+                                    <td><label class="case-quantity-editor"><input class="ames-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="0"
+                                        @bind:get="row.QuantityText" @bind:set="value=>ChangeQuantity(row,value)" @bind:event="oninput" disabled="@(_busy || Available(row)<=0)"
+                                        aria-invalid="@(!row.InputValid || row.Quantity>Available(row)?"true":"false")" aria-label="@($"Total Delivery Qty {row.Order} {row.Part.Item}")" /></label>
                                         @if(Available(row)>0 && !CanPack(row)){<div class="case-input-message">@(_editingKind=="Part" && row.Part.Unit!="EA"?"Individual parts require EA.":row.Part.Issue)</div>}
                                         else if(!row.InputValid){<div class="case-input-message">Enter whole numbers only.</div>}
-                                    </td><td>@(PackSize(row)>0?decimal.Ceiling(row.Quantity/PackSize(row)):0)</td></tr>
+                                    </td>
+                                    <td><div class="case-box-result"><strong>@(PackSize(row)>0?decimal.Ceiling(row.Quantity/PackSize(row)):0)</strong>
+                                        @if(_editingKind!="Part" && PackSize(row)>0){<span>(@BoxCapacityText(row))</span>}
+                                    </div>
+                                        @if(_editingKind!="Part" && PackSize(row)<=0 && Available(row)>0)
+                                        {
+                                            <strong>Not set</strong>
+                                            @if(row.Part.Issue is "Packing quantity missing" or "Vendor mapping missing")
+                                            {
+                                                <div class="case-packing-editor">
+                                                    <input class="ames-input" type="number" min="1" step="1" @bind="row.NewPackingQty" placeholder="Qty / box" aria-label="@($"Quantity per box {row.Part.Item}")" disabled="@_busy" />
+                                                    <RadzenButton Text="Save box size" Size="ButtonSize.ExtraSmall" Click="()=>SavePacking(row)" Disabled="@_busy" />
+                                                </div>
+                                            }
+                                            else { <div class="case-input-message">@row.Part.Issue. Ask EOS to check Material Item Master / supplier mapping.</div> }
+                                        }
+                                    </td></tr>
                             }</tbody>
                         </table></div>
+                        </section>
+                        <section class="case-step">
+                        <div class="case-step-heading"><span class="case-step-number">2</span><div><h3>Select @(_editingKind=="Part"?"Parts":"Boxes")</h3><p>Check the @(_editingKind=="Part"?"parts":"boxes") to add to this delivery.</p></div></div>
+                        @if(boxes.Count==0){<p class="case-step-empty">Enter a quantity in step 1 to see @(_editingKind=="Part"?"parts":"boxes") here.</p>}
+                        else
+                        {
                         <div class="case-toolbar case-box-actions">
-                            <label><input type="checkbox" checked="@(boxes.Count>0 && boxes.All(b=>b.Selected))" @onchange="e=>SelectOrderBoxes(order,e.Value is true)" disabled="@(_busy || boxes.Count==0 || !CanSelectOrder(order))" /> Select @(_editingKind=="Part"?"parts":"boxes")</label>
-                            <span>@boxes.Count(b=>b.Selected) / @boxes.Count selected</span>
+                            <label><input type="checkbox" checked="@(boxes.Count>0 && boxes.All(b=>b.Selected))" @onchange="e=>SelectOrderBoxes(order,e.Value is true)" disabled="@(_busy || boxes.Count==0 || !CanSelectOrder(order))" /> Select all</label>
+                            <span>Selected @boxes.Count(b=>b.Selected) / @boxes.Count @(_editingKind=="Part"?"parts":"boxes") · Total Delivery Qty @SelectedQuantityText(boxes)</span>
                         </div>
-                        <div class="case-table-scroll"><table class="ames-table"><thead><tr><th>Select</th><th>@(_editingKind=="Part"?"Part":"Box")</th><th>Part No / Name</th><th>Qty</th></tr></thead>
+                        <div class="case-table-scroll case-box-table"><table class="ames-table"><thead><tr><th>Select</th><th>@(_editingKind=="Part"?"Part":"Box")</th><th>Part No / Name</th><th>Qty</th></tr></thead>
                             <tbody>@foreach(var box in boxes)
                             {
                                 <tr><td><input type="checkbox" checked="@box.Selected" @onchange="e=>SelectBox(box,e.Value is true)" disabled="@(_busy || !CanSelectOrder(order))" aria-label="@($"Select {order.Number} {box.Row.Part.Item} box {box.Sequence}")" /></td>
-                                    <td>@box.Sequence</td><td>@box.Row.Part.Item<div class="dim">@box.Row.Part.Name</div></td><td>@QtyFormat.Text(box.Quantity,box.Row.Part.Unit) @UomFmt.Sym(box.Row.Part.Unit)</td></tr>
+                                    <td>@box.Sequence</td><td>@box.Row.Part.Item<div class="dim">@box.Row.Part.Name</div></td><td>@QtyWithContents(box.Quantity,box.Row.Part)</td></tr>
                             }</tbody>
                         </table></div>
+                        }
+                        </section>
                     </td></tr>
                 }
             }</tbody>
         </table></div>
-        @if(!_orders.Any(o=>o.Status is "Open" or "Partial")){<p class="case-empty">No confirmed purchase orders available for packing.</p>}
+        @if(_orders.Count==0){<p class="case-empty">No confirmed purchase orders with available quantities.</p>}
     </section>
+    @if(_draft.Any(b=>b.Selected))
+    {
+        <section class="ames-card case-review">
+            <div class="ames-card-h">Selected for @(_editingKind=="Case"?"Pallet":_editingKind)</div>
+            <div class="case-table-scroll"><table class="ames-table">
+                <thead><tr><th>PO No</th><th>Part No / Name</th><th>Qty to Add</th><th>@(_editingKind=="Part"?"Parts":"Boxes")</th></tr></thead>
+                <tbody>@foreach(var item in _draft.Where(b=>b.Selected).GroupBy(b=>new { b.Row.Order, b.Row.Part.Item, b.Row.Part.Name, b.Row.Part.Unit }))
+                {
+                    <tr><td class="case-po-code">@item.Key.Order</td><td><strong>@item.Key.Item</strong><div class="dim">@item.Key.Name</div></td>
+                        <td>@QtyWithContents(item.Sum(b=>b.Quantity),item.First().Row.Part)</td><td>@item.Count()</td></tr>
+                }</tbody>
+            </table></div>
+        </section>
+    }
 }
 @if(_allowed && _editingCase)
 {
     <div class="case-toolbar case-create-footer">
-        <span>@_draft.Count(b=>b.Selected) @(_editingKind=="Part"?"parts":"boxes") selected</span>
+        <span>@_draft.Count(b=>b.Selected) @(_editingKind=="Part"?"parts":"boxes") selected · @_draft.Where(b=>b.Selected).Select(b=>b.Row.Part.Item).Distinct().Count() parts</span>
         <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="CancelCase" Disabled="@_busy" />
         <RadzenButton Text="Done" Icon="check" Click="CompleteCase" Disabled="@(_busy || _quantityError || !_draft.Any(b=>b.Selected))" />
     </div>
@@ -195,6 +233,15 @@
     string _user="",_actor="",_error="",_message="",_createdNote="";
     List<List<DraftBox>> _draftCases=[];
     List<LooseDraft> _loose=[];
+    IEnumerable<DraftBox> NoteBoxes => _draftCases.SelectMany(c=>c).Concat(_loose.Select(i=>i.Box));
+    int NoteBoxCount => _draftCases.Sum(c=>c.Count)+_loose.Count(i=>!i.IsPart);
+    bool IsLoosePart(DraftBox box) => _loose.Any(i=>i.IsPart && ReferenceEquals(i.Box,box));
+    string SelectedQuantityText(IEnumerable<DraftBox> boxes)
+    {
+        var quantities=boxes.Where(b=>b.Selected).GroupBy(b=>b.Row.Part.Unit)
+            .Select(g=>$"{QtyFormat.Text(g.Sum(b=>b.Quantity),g.Key)} {UomFmt.Sym(g.Key)}");
+        return string.Join(" / ",quantities) is { Length: >0 } text ? text : "0";
+    }
     List<DraftBox>? _activeCase;
     LooseDraft? _activeLoose;
     bool _editingCase;
@@ -202,6 +249,13 @@
     decimal Available(PartEdit row)=>Math.Max(0,row.Part.Available-_draftCases.SelectMany(c=>c).Where(b=>b.Row.Part.PoID==row.Part.PoID).Sum(b=>b.Quantity)
         -_loose.Where(i=>i.Box.Row.Part.PoID==row.Part.PoID).Sum(i=>i.Box.Quantity));
     decimal PackSize(PartEdit row)=>_editingKind=="Part"?1:row.Part.PackingQty;
+    string BoxCapacityText(PartEdit row)=>row.Part.Unit=="BOX" && row.Part.BoxContentQty>0
+        ? $"{QtyFormat.Text(row.Part.BoxContentQty.Value,row.Part.BoxContentUnit)} {UomFmt.Sym(row.Part.BoxContentUnit)} / box"
+        : $"{QtyFormat.Text(PackSize(row),row.Part.Unit)} {UomFmt.Sym(row.Part.Unit)} / box";
+    string QtyWithContents(decimal qty,ScmRepository.CasePart part)
+        =>part.Unit=="BOX" && part.BoxContentQty>0 && !string.IsNullOrWhiteSpace(part.BoxContentUnit)
+            ? $"{QtyFormat.Text(qty,part.Unit)} BOX ({QtyFormat.Text(qty*part.BoxContentQty.Value,part.BoxContentUnit)} {UomFmt.Sym(part.BoxContentUnit)})"
+            : $"{QtyFormat.Text(qty,part.Unit)} {UomFmt.Sym(part.Unit)}";
     bool CanPack(PartEdit row)=>(_editingKind!="Part" || row.Part.Unit=="EA")
         && (row.Part.Issue.Length==0 || _editingKind=="Part" && row.Part.Issue=="Packing quantity missing");
     bool _allowed,_busy,_quantityError;
@@ -225,7 +279,7 @@
         _error="";_message="";
         try
         {
-            _orders=Scm.ListPurchaseOrders(true,_user,confirmedOnly:true)
+            _orders=Scm.ListPurchaseOrders(true,_user,confirmedOnly:true,packableOnly:true)
                 .Where(o=>o.Status is "Open" or "Partial" && o.SupplierConfirmedAt.HasValue && o.Lines.Any(l=>l.ItemExists)).ToList();
             _selectedOrders.RemoveWhere(n=>!_orders.Any(p=>p.Number==n));
             _cases=Scm.ListDeliveryCases(null,_user);
@@ -253,7 +307,7 @@
     {
         var previous=_parts.ToDictionary(p=>p.Part.PoID);_parts=[];
         foreach(var order in _selectedOrders.Order(StringComparer.Ordinal))
-            _parts.AddRange(Scm.ListCaseParts(order,_user).Select(p=>new PartEdit(order,p)
+            _parts.AddRange(Scm.ListCaseParts(order,_user).Where(p=>p.Available>0).Select(p=>new PartEdit(order,p)
             {
                 Quantity=preserve&&previous.TryGetValue(p.PoID,out var old)?old.Quantity:0,
                 QuantityText=preserve&&previous.TryGetValue(p.PoID,out var text)?text.QuantityText:"",
@@ -269,7 +323,7 @@
     }
     void SavePacking(PartEdit row)
     {
-        if(_busy||!_allowed)return;
+        if(_busy||!_allowed||row.Part.Unit=="BOX")return;
         if(row.NewPackingQty is null or <=0 || decimal.Truncate(row.NewPackingQty.Value)!=row.NewPackingQty.Value)
         {_error="Enter a positive whole-number Qty / Box.";return;}
         var order=_orders.FirstOrDefault(o=>o.Number==row.Order);

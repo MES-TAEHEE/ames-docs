@@ -294,7 +294,7 @@ public sealed class MasterDataRepository
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
                    PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, BoxQty, ScanRequired,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
-                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS, BoxContentUnit, BoxContentQty
             FROM   dbo.MD_Item
             """ + " WHERE 1=1" + (string.IsNullOrWhiteSpace(search) ? "" :
             " AND (ItemNo LIKE @S OR ItemName LIKE @S OR ItemCategory LIKE @S OR CarType LIKE @S OR PGN LIKE @S OR ALC LIKE @S)") +
@@ -329,7 +329,9 @@ public sealed class MasterDataRepository
             r["CreatedTS"]     is DateTime ct ? ct : null,
             r["ModifiedBy"]    as string,
             r["ModifiedTS"]    is DateTime mt ? mt : null,
-            (bool)r["ScanRequired"]), p);
+            (bool)r["ScanRequired"],
+            r["BoxContentUnit"] as string,
+            r["BoxContentQty"] is decimal bc ? bc : null), p);
     }
 
     public bool UpdateMaterialUnitCost(string itemNo, decimal unitCost, decimal? originalCost, string modifiedBy)
@@ -371,15 +373,18 @@ public sealed class MasterDataRepository
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag, int? boxQty,
-        bool activeFlag, string createdBy, bool scanRequired = false)
-        => Exec("""
+        bool activeFlag, string createdBy, bool scanRequired = false,
+        string? boxContentUnit = null, decimal? boxContentQty = null)
+    {
+        ValidateItemBoxContent(defaultUom, boxContentUnit, boxContentQty);
+        Exec("""
             INSERT INTO dbo.MD_Item
                    (ItemNo,ItemName,ItemType,ItemCategory,InjFlag,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,BoxQty,ActiveFlag,CreatedBy,CreatedTS,ScanRequired)
+                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,BoxQty,ActiveFlag,CreatedBy,CreatedTS,ScanRequired,BoxContentUnit,BoxContentQty)
             VALUES (@No,@Name,@Type,@Cat,@Inj,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Box,@Active,@By,SYSDATETIME(),@BoxScan)
+                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Box,@Active,@By,SYSDATETIME(),@BoxScan,@ContentUnit,@ContentQty)
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
             ("@Type", "MD_Item.ItemType", itemType), ("@Cat", "MD_Item.ItemCategory", itemCategory), ("@Car", "MD_Item.CarType", carType),
@@ -389,21 +394,27 @@ public sealed class MasterDataRepository
             ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
             ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag), ("@Box", "MD_Item.BoxQty", boxQty),
-            ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired));
+            ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
+            ("@ContentUnit", "MD_Item.BoxContentUnit", boxContentUnit), ("@ContentQty", "MD_Item.BoxContentQty", boxContentQty));
+    }
 
     public void UpdateItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag, int? boxQty,
-        bool activeFlag, string modifiedBy, bool scanRequired = false)
-        => Exec("""
+        bool activeFlag, string modifiedBy, bool scanRequired = false,
+        string? boxContentUnit = null, decimal? boxContentQty = null)
+    {
+        ValidateItemBoxContent(defaultUom, boxContentUnit, boxContentQty);
+        Exec("""
             UPDATE dbo.MD_Item
             SET    ItemName=@Name, ItemType=@Type,
                    ItemCategory=@Cat, InjFlag=@Inj, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
                    PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
                    PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, BoxQty=@Box, ScanRequired=@BoxScan,
+                   BoxContentUnit=@ContentUnit,BoxContentQty=@ContentQty,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
@@ -415,7 +426,26 @@ public sealed class MasterDataRepository
             ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
             ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag), ("@Box", "MD_Item.BoxQty", boxQty),
-            ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired));
+            ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
+            ("@ContentUnit", "MD_Item.BoxContentUnit", boxContentUnit), ("@ContentQty", "MD_Item.BoxContentQty", boxContentQty));
+    }
+
+    void ValidateItemBoxContent(string? itemUom, string? contentUnit, decimal? contentQty)
+    {
+        if (itemUom != "BOX")
+        {
+            if (contentUnit is not null || contentQty is not null)
+                throw new ArgumentException("BOX contents can only be set for BOX items.");
+            return;
+        }
+        if (contentQty is null or <= 0 or > 999999999999999.999m || decimal.Round(contentQty.Value,3)!=contentQty.Value ||
+            string.IsNullOrWhiteSpace(contentUnit) || contentUnit.Length>10 || contentUnit is "BOX" or "PLT" or "SH")
+            throw new ArgumentException("Set a positive BOX contents quantity and unit.");
+        using var conn=_factory.OpenConnection();
+        using var cmd=new SqlCommand("SELECT COUNT(*) FROM dbo.MD_Uom WHERE UOMCode=@U AND ActiveFlag=1",conn);
+        cmd.Parameters.Add("@U",SqlDbType.VarChar,10).Value=contentUnit;
+        if((int)cmd.ExecuteScalar()! != 1) throw new ArgumentException("Select an active contents unit.");
+    }
 
     const string ItemUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WITH (UPDLOCK, HOLDLOCK) WHERE ItemNo = @K) RETURN;
@@ -866,7 +896,8 @@ public sealed class MasterDataRepository
         int? PalletQty, int? MaxPalletQty, bool ToteFlag, int? BoxQty,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false);
+        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false,
+        string? BoxContentUnit = null, decimal? BoxContentQty = null);
 
     public record CodeItemRow(
         string CodeID, string? GroupCode, string? CodeValue,

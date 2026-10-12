@@ -38,7 +38,7 @@ public sealed partial class ScmRepository
             LEFT JOIN dbo.SCM_ItemVendor link ON link.ItemNo=m.ItemNo AND link.VendorID=m.VendorID
             JOIN dbo.MD_Item i ON i.ItemNo=m.ItemNo
             JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
-            WHERE ISNULL(v.ActiveFlag,1)=1 AND {PackingAccess}
+            WHERE ISNULL(v.ActiveFlag,1)=1 AND ISNULL(i.DefaultUOM,'')<>'BOX' AND {PackingAccess}
                 AND (@Create=0 OR COALESCE(link.PackingQty,0)<=0)
             ORDER BY m.VendorID,m.ItemNo;
             """, c);
@@ -61,7 +61,7 @@ public sealed partial class ScmRepository
             SELECT m.ItemNo FROM PackingItems m
             JOIN dbo.MD_Item i WITH(HOLDLOCK) ON i.ItemNo=m.ItemNo
             JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
-            WHERE m.ItemNo=@Item AND m.VendorID=@Vendor AND i.ItemType='MATERIAL'
+            WHERE m.ItemNo=@Item AND m.VendorID=@Vendor AND i.ItemType='MATERIAL' AND ISNULL(i.DefaultUOM,'')<>'BOX'
                 AND ISNULL(i.ActiveFlag,1)=1 AND ISNULL(v.ActiveFlag,1)=1 AND {PackingAccess};
             """, c, tx);
         Filter(cmd,("@U", "SCM_PortalVendorUser.UserID",userId),("@Item", "SCM_ItemVendor.ItemNo",itemNo),("@Vendor", "SCM_ItemVendor.VendorID",vendorId));
@@ -93,7 +93,7 @@ public sealed partial class ScmRepository
             JOIN dbo.MD_Item i ON i.ItemNo=m.ItemNo
             JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
             WHERE m.ItemNo=@Item AND m.VendorID=@Vendor AND m.ActiveFlag=1
-                AND i.ItemType='MATERIAL' AND ISNULL(i.ActiveFlag,1)=1 AND ISNULL(v.ActiveFlag,1)=1
+                AND i.ItemType='MATERIAL' AND ISNULL(i.DefaultUOM,'')<>'BOX' AND ISNULL(i.ActiveFlag,1)=1 AND ISNULL(v.ActiveFlag,1)=1
                 AND {PackingAccess}
                 AND (m.PackingQty=@Original OR (m.PackingQty IS NULL AND @Original IS NULL));
             """, c);

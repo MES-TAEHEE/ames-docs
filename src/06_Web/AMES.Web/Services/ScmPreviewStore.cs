@@ -20,6 +20,8 @@ public sealed class ScmPreviewStore
         public decimal Quantity { get; set; } = 1;
         public decimal Price { get; set; }
         public decimal Received { get; set; }
+        public string? BoxContentUnit { get; set; }
+        public decimal? BoxContentQty { get; set; }
         public decimal Amount => Quantity * Price;
         public OrderLine Copy() => (OrderLine)MemberwiseClone();
     }
