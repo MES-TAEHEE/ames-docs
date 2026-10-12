@@ -1,4 +1,5 @@
 @page "/fg/02"
+@inject PdaUomFormat Uom
 @inject FinishedGoodsApi Api
 @inject AuthState Auth
 @inject NavigationManager Nav
@@ -602,8 +603,8 @@
         yield return ("Free", Qty(row.AvailableQty, null));
     }
 
-    private static string Qty(decimal qty, string? unit)
-        => string.IsNullOrWhiteSpace(unit) ? $"{qty:0.###}" : $"{qty:0.###} {unit}";
+    private string Qty(decimal qty, string? unit)
+        => string.IsNullOrWhiteSpace(unit) ? $"{qty:0.###}" : $"{qty:0.###} {Uom.Symbol(unit)}";
 
     private static string DateText(DateTime? value)
         => value?.ToString("MM/dd/yyyy") ?? "-";

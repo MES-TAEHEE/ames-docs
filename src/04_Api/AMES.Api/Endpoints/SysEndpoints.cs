@@ -21,6 +21,10 @@ public static class SysEndpoints
                     .Where(x => x.UseFlag)
                     .Select(x => new { x.CodeValue, x.CodeName, x.CodeNameEn, x.Attribute1 })));
 
+        g.MapGet("/uoms", (HttpContext ctx) =>
+            ctx.GetSession() is null ? Results.Unauthorized()
+                : Results.Ok(master.ListUoms().Select(x => new { x.UOMCode, x.Symbol })));
+
         admin.MapGet("/users", (HttpContext ctx, int? topN) =>
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListUsers(topN ?? 200)));

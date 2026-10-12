@@ -1,5 +1,6 @@
 @page "/sp/02"
 @inject SparePartsApi Api
+@inject PdaUomFormat Uom
 @inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -148,7 +149,7 @@
                 ("Spare Part No", _lot.EosSpNo), ("Category", _lot.Category),
                 ("Applicable Equipment", _lot.ApplicableEquipment), ("Part Name", _lot.PartName),
                 ("Part No", _lot.PartNo), ("Maker", _lot.Maker), ("Vendor", _lot.Vendor),
-                ("Unit", _lot.Unit), ("Storage Location", _lot.StorageLocation));
+                ("Unit", Uom.Symbol(_lot.Unit)), ("Storage Location", _lot.StorageLocation));
             _message = CanCancelInbound ? "This serial is already received. You can cancel inbound."
                 : CanReceive ? "Spare part loaded. Ready to receive at the master storage location."
                 : "A valid storage location is required. Update the spare part master and scan again.";
@@ -200,7 +201,7 @@
         ("CATEGORY", _lot?.Category), ("APPLICABLE EQUIPMENT", _lot?.ApplicableEquipment),
         ("PART NAME", _lot?.PartName), ("PART NO", _lot?.PartNo),
         ("MAKER", _lot?.Maker), ("VENDOR", _lot?.Vendor),
-        ("QTY", _lot is null ? null : $"{_lot.Qty:N0} {Text(_lot.Unit)}"),
+        ("QTY", _lot is null ? null : $"{_lot.Qty:N0} {Uom.Symbol(_lot.Unit)}"),
         ("STORAGE LOCATION", _lot?.StorageLocation), ("EXTRA LOCATION", _lot?.ExtraLocation)
     ];
 

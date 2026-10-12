@@ -1,5 +1,6 @@
 @page "/sp/07"
 @inject SparePartsApi Api
+@inject PdaUomFormat Uom
 @inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -226,7 +227,7 @@
         ("CATEGORY", _lot?.Category), ("APPLICABLE EQUIPMENT", _lot?.ApplicableEquipment),
         ("PART NAME", _lot?.PartName), ("PART NO", _lot?.PartNo),
         ("MAKER", _lot?.Maker), ("VENDOR", _lot?.Vendor),
-        ("QTY", _lot is null ? null : $"{_lot.Qty:N0} {Text(_lot.Unit)}"),
+        ("QTY", _lot is null ? null : $"{_lot.Qty:N0} {Uom.Symbol(_lot.Unit)}"),
         ("STORAGE LOCATION", _lot?.StorageLocation), ("EXTRA LOCATION", _lot?.ExtraLocation)
     ];
 

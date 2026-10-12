@@ -4,7 +4,7 @@
     AMES.Web IIS 배포 설정 스크립트
 .DESCRIPTION
     1단계: ASP.NET Core Hosting Bundle .NET 10 설치 확인
-    2단계: dotnet publish 실행 (C:\inetpub\ames-web)
+    2단계: 별도 릴리스 폴더에 dotnet publish 실행 (기존 사이트 폴더 유지)
     3단계: IIS App Pool 및 Site 생성 (loadUserProfile · setProfileEnvironment 포함)
     4단계: 폴더 권한 설정 (배포 폴더 읽기/실행 + Data Protection 키 폴더 수정)
 
@@ -59,7 +59,10 @@ if (-not (Test-Path $ancm)) {
 Write-OK "ANCM V2 확인됨: $ancm"
 
 # ── 2. Publish ─────────────────────────────────────────────────────────────
-Write-Step "AMES.Web 게시 → $PublishTo"
+if (-not [System.IO.Path]::IsPathFullyQualified($PublishTo)) { Write-FAIL "PublishTo 는 절대 경로여야 합니다." }
+$ReleaseRoot = "$PublishTo-releases"
+$ReleasePath = Join-Path $ReleaseRoot (Get-Date -Format 'yyyyMMdd-HHmmss-fff')
+Write-Step "AMES.Web 새 릴리스 게시 → $ReleasePath"
 
 if (-not (Test-Path $SrcProject)) {
     Write-FAIL "프로젝트 파일을 찾을 수 없습니다: $SrcProject"
@@ -71,10 +74,10 @@ dotnet publish $SrcProject `
     --framework net10.0 `
     --no-self-contained `
     -r win-x64 `
-    -o $PublishTo
+    -o $ReleasePath
 
 if ($LASTEXITCODE -ne 0) { Write-FAIL "dotnet publish 실패 (exit code $LASTEXITCODE)" }
-Write-OK "게시 완료: $PublishTo"
+Write-OK "게시 완료: $ReleasePath (기존 라이브 폴더 유지)"
 }   # -not $ConfigOnly
 
 # ── 3. IIS 모듈 로드 ─────────────────────────────────────────────────────
@@ -113,19 +116,22 @@ else { Write-OK "App Pool 설정: No Managed Code / x64 / ApplicationPoolIdentit
 
 if (-not $ConfigOnly) {
 # ── 5. Site 생성/재사용 ───────────────────────────────────────────────────
+$releaseAcl = Get-Acl $ReleasePath
+$releasePoolModel = Get-ItemProperty "IIS:\AppPools\$PoolName" -Name processModel
+$releaseUser = if ($releasePoolModel.identityType -eq "SpecificUser" -and $releasePoolModel.userName) { $releasePoolModel.userName } else { "IIS AppPool\$PoolName" }
+$releaseAcl.SetAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+    $releaseUser, "ReadAndExecute", "ContainerInherit,ObjectInherit", "None", "Allow")))
+Set-Acl $ReleasePath $releaseAcl
 Write-Step "IIS Site: $SiteName (포트 $Port)"
 
 $binding = "*:${Port}:"
 
 if (Get-Website -Name $SiteName -ErrorAction SilentlyContinue) {
-    Write-WARN "Site '$SiteName' 이미 존재 → 물리 경로·바인딩 업데이트"
-    Set-ItemProperty "IIS:\Sites\$SiteName" -Name physicalPath -Value $PublishTo
-    # 기존 바인딩 제거 후 재설정
-    Get-WebBinding -Name $SiteName | Remove-WebBinding
-    New-WebBinding -Name $SiteName -Protocol http -Port $Port -IPAddress "*"
+    Write-WARN "Site '$SiteName' 이미 존재 → 물리 경로만 업데이트 (기존 바인딩 유지)"
+    Set-ItemProperty "IIS:\Sites\$SiteName" -Name physicalPath -Value $ReleasePath
 } else {
     New-Website -Name $SiteName `
-                -PhysicalPath $PublishTo `
+                -PhysicalPath $ReleasePath `
                 -ApplicationPool $PoolName `
                 -Port $Port `
                 -IPAddress "*" | Out-Null
@@ -137,17 +143,8 @@ Set-ItemProperty "IIS:\Sites\$SiteName" -Name applicationPool -Value $PoolName
 Start-Website -Name $SiteName -ErrorAction SilentlyContinue
 Write-OK "Site '$SiteName' → http://localhost:$Port"
 
-# ── 6. 폴더 권한 설정 ────────────────────────────────────────────────────
-Write-Step "폴더 권한 설정: $PublishTo"
-
-$acl     = Get-Acl $PublishTo
-$appPoolUser = "IIS AppPool\$PoolName"
-$rule    = New-Object System.Security.AccessControl.FileSystemAccessRule(
-    $appPoolUser, "ReadAndExecute", "ContainerInherit,ObjectInherit", "None", "Allow"
-)
-$acl.SetAccessRule($rule)
-Set-Acl $PublishTo $acl
-Write-OK "권한 부여: '$appPoolUser' → ReadAndExecute"
+# ── 6. 새 릴리스 접근 확인 ─────────────────────────────────────────────────
+Write-OK "권한 부여: '$releaseUser' → ReadAndExecute"
 }   # -not $ConfigOnly
 
 # ── 6-1. Data Protection 키 폴더 ────────────────────────────────────────
@@ -175,9 +172,9 @@ if ($ConfigOnly) {
     Restart-WebAppPool -Name $PoolName
     Write-OK "재활용 완료 (다른 사이트·IIS 전체는 건드리지 않음)"
 } else {
-    Write-Step "IIS 재시작"
-    iisreset /restart | Out-Null
-    Write-OK "IIS 재시작 완료"
+    Write-Step "App Pool 재활용: $PoolName"
+    Restart-WebAppPool -Name $PoolName
+    Write-OK "새 릴리스 활성화 (이전 릴리스는 롤백용으로 유지)"
 }
 
 # ── 8. 적용 결과 확인 ────────────────────────────────────────────────────

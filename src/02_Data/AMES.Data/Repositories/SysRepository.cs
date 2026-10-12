@@ -14,6 +14,21 @@ public sealed class SysRepository
     private readonly AmesConnectionFactory _f;
     public SysRepository(AmesConnectionFactory f) => _f = f;
 
+    public void RememberPortalActor(string email, string actorCode)
+    {
+        const string sql = """
+            DECLARE @OriginalHash binary(32) = HASHBYTES('SHA2_256', CONVERT(nvarchar(900), @Email));
+            INSERT dbo.SYS_AuditActorMap (OriginalHash, OriginalValue, ActorCode, MappingKind)
+            SELECT @OriginalHash, @Email, @ActorCode, 'PORTAL'
+            WHERE NOT EXISTS (SELECT 1 FROM dbo.SYS_AuditActorMap WITH (UPDLOCK, HOLDLOCK) WHERE OriginalHash=@OriginalHash);
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Email", SqlDbType.NVarChar, 900).Value = email.Trim().ToLowerInvariant();
+        cmd.Parameters.Add("@ActorCode", SqlDbType.VarChar, 20).Value = actorCode;
+        cmd.ExecuteNonQuery();
+    }
+
     // ── DTOs ────────────────────────────────────────────────────────────
     public sealed record UserRow(string UserId, string? UserName, string? Email,
         bool EmailConfirmed, bool LockedOut, int AccessFailedCount,

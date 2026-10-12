@@ -50,7 +50,7 @@
             <div class="ames-user-role">@L["Portal.Role.External"] · @_vendor</div>
         </div>
         <button type="button" class="ames-user-cred" title="@L["Portal.Cred.Button"]" aria-label="@L["Portal.Cred.Button"]" @onclick="() => _cred = true"><RadzenIcon Icon="key" /></button>
-        <a class="ames-user-out" href="/portal/logout" title="@L["Portal.Logout"]">⏻</a>
+        <form action="/portal/logout" method="post" style="display:inline"><AntiforgeryToken /><button type="submit" class="ames-user-out" title="@L["Portal.Logout"]">⏻</button></form>
     </div>
 </header>
 

@@ -21,6 +21,10 @@ SA_PASSWORD="${SA_PASSWORD:-AmesDev!2026Sa}"
 APP_LOGIN="${APP_LOGIN:-ames_app}"
 APP_PASSWORD="${APP_PASSWORD:-!Dev2026}"
 DB="${DB:-AMES_DEV}"
+if [[ "$DB" != "AMES_DEV" ]]; then
+  echo "ERROR: bundled SQL contains USE AMES_DEV; rebuilding another database is blocked." >&2
+  exit 1
+fi
 FORCE=0
 [[ "${1:-}" == "--force" || "${1:-}" == "-f" ]] && FORCE=1
 
@@ -50,11 +54,10 @@ run_file()   { docker exec "$CONTAINER" "$SQLCMD" "${sql_base[@]}" -d "$DB" -i "
 # 스키마 → 시드 (순서 고정!). 권한은 화면(create_sys_screen) 이후여야 매핑됨.
 FILES=(
   AMES_Schema.sql                     # 실제 DB 통합 구조 (PDA 포함, TEST_* 테이블 제외) + 기존 기본 시드
-  migrate_wh_core_tables.sql          # WH 핵심 테이블·프로시저 통합
-  migrate_fg_inventory_consolidation.sql # FG 재고/조정 중복 테이블 제거 후 공통 LOT 재고 프로시저 확정
+  # Fresh AMES_Schema.sql already contains the consolidated WH/FG definition.
+  # Legacy upgrade migrations must not overwrite it during a rebuild.
   seed_user_code_groups.sql           # 공통 코드 그룹
-  create_sys_screen.sql               # SYS_Screen 레지스트리 (화면 목록)
-  reseed_menu.sql                     #   → 메뉴/HRef 정본 재시드
+  # SYS_Screen is seeded by AMES_Schema.sql; old drop/truncate scripts are excluded.
   migrate_system_roles.sql            #   → 기본 역할 6개 고정 ID(ROLE-SYSADMIN·SUPERVISOR·OPERATOR·MAINTENANCE·QUALITY·PRODUCTION) — Admin 권한 시드보다 먼저(10-09)
   seed_admin_permissions.sql          #   → Admin RBAC(REA) + admin@ames.local 계정
   seed_md_code.sql                    # 마스터 공통코드
@@ -84,6 +87,7 @@ FILES=(
   migrate_day_cutoff_config.sql       # 전기일 기준 시각 공통코드 DAY_CUTOFF → SYS_Config.DAY_CUTOFF_TIME 이관 (재실행 안전)
   migrate_bom_status_code.sql         # BOM 버전 상태 공통코드 BOM_STATUS + 기간 지난 승인 버전 EXPIRED (재실행 안전)
   migrate_md_codeitem_attribute2.sql  # MD_CodeItem.Attribute2 nvarchar(200) (Attribute1 다음, 재생성 — 스키마에 이미 있으면 건너뜀)
+  migrate_md_codeitem_widen.sql       # PO source URLs and service-key metadata need current widths
   migrate_md_item_inj_flag.sql        # MD_Item.InjFlag 사출품 여부 bit (ItemCategory 다음, 재생성 — 스키마에 이미 있으면 건너뜀)
   migrate_sys_factory_calendar_net_hours.sql # SYS_FactoryCalendar.NetWorkHours decimal(4,1) → (4,2) (스키마에 이미 있으면 건너뜀)
   migrate_sys_public_holiday.sql      # SYS_PublicHoliday 테이블 + SP_SYS_FactoryCalendar_Fill (에이전트 작업은 setup_job_factory_calendar_fill.sql, sysadmin)
@@ -98,6 +102,8 @@ FILES=(
   migrate_aps.sql                     # APS: MD_Item.BoxQty 재생성(PartCavityCount 는 폐지·삭제) + MD_ApsLineStage·PP_ApsRun/PlanLine/RunWo + 공통코드 APS_SETTING/APS_COVER_TIER (migrate_mold_master 이후, -I 필수)
   migrate_pp_aps_screen.sql           # PP-APS 생산계획 화면 등록 + Admin 권한 (seed_admin_permissions 이후)
   migrate_demand_plan.sql             # 일별 구매계획(MM30011) 테이블·PP_ApsRun.IncludeDailyPlan·SW_DPSYNC* (migrate_aps 이후)
+  migrate_po_sync.sql                 # SW_POSYNC* code groups
+  migrate_po_sync_service_key.sql     # Web→API manual import key; created once per DB
   migrate_aps_plan_line_shift.sql     # APS 계획 행 교대별 수량 PP_ApsPlanLineShift (migrate_aps 이후)
   seed_aps_dev.sql                    #   → 개발용 APS 시드: BoxQty·LINE-INJ-01 2교대 패턴·MD_ApsLineStage·확정 수주·BOP 보강 (migrate_aps 이후)
   seed_demand_plan_dev.sql            #   → 개발용 일별계획 수집 소스 SEMS(URL 자리표시자)
@@ -119,6 +125,7 @@ FILES=(
   cleanup_legacy_sis_test.sql
   cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)
   migrate_user_profile_backfill.sql   # 프로필 없는 내부 계정 보강(역할 있음 ACTIVE·없음 INACTIVE) — 시드가 만든 계정까지 보도록 맨 끝
+  migrate_pda_bearer_session.sql      # PDA bearer hash + session snapshot (recycle-safe)
   migrate_user_status_mail_cleanup.sql  # 계정 메일 기능 폐지 — UNVERIFIED·PENDING → ACTIVE, 이메일 인증 정리, USER_STATUS 코드 삭제
   migrate_notification_push.sql      # 알림 채널 PUSH 전환 — EMAIL·SMS 는 남긴 채 사용 안 함, 규칙에 PUSH 추가(10-08)
   migrate_aspnetuserroles_pk.sql     # AspNetUserRoles 복합 PK(UserId, RoleId)+IX_RoleId — 스키마로 만든 DB 는 이미 있어 건너뜀(10-08)
@@ -150,7 +157,7 @@ BEGIN
     ALTER DATABASE [$DB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
     DROP DATABASE [$DB];
 END;
-CREATE DATABASE [$DB];
+CREATE DATABASE [$DB] COLLATE Korean_Wansung_CI_AS;
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name='$APP_LOGIN')
     CREATE LOGIN [$APP_LOGIN] WITH PASSWORD='$APP_PASSWORD', CHECK_POLICY=OFF;"
 run_master "

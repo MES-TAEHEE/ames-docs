@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using System.Security.Cryptography;
 
 namespace AMES.Web.Services;
 
@@ -16,6 +17,8 @@ public static class ActorCode
 
     public static string Of(ClaimsPrincipal? user, string fallback = "system")
     {
+        if (user?.Identity?.AuthenticationType == PortalAuth.Scheme && !string.IsNullOrWhiteSpace(user.Identity.Name))
+            return Portal(user.Identity.Name);
         var claim = user?.FindFirst(ClaimType)?.Value;
         if (!string.IsNullOrWhiteSpace(claim)) return Normalize(claim, fallback);
         return Normalize(user?.Identity?.Name, fallback);
@@ -30,6 +33,10 @@ public static class ActorCode
         if (at > 0) s = s[..at];
         return Cut(s);
     }
+
+    /// <summary>Portal email identities need a stable, collision-resistant actor within varchar(20).</summary>
+    public static string Portal(string email)
+        => "P" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant())))[..16];
 
     // DB 콜레이션 Korean_Wansung(CP949) 기준 바이트 수. 코드페이지 제공자가 없으면 UTF-8 로 세어 더 보수적으로 자른다.
     static readonly Encoding Enc = LoadEncoding();

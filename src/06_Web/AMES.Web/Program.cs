@@ -498,8 +498,10 @@ if (externalHosts.Length > 0)
 app.UseAntiforgery();
 
 // 외부 포탈 로그아웃 — 외부 쿠키만 지우고 외부 로그인으로 돌아간다(내부 쿠키·내부 로그인과는 무관).
-app.MapGet("/portal/logout", async (HttpContext ctx) =>
+app.MapPost("/portal/logout", async (HttpContext ctx) =>
 {
+    try { await ctx.RequestServices.GetRequiredService<Microsoft.AspNetCore.Antiforgery.IAntiforgery>().ValidateRequestAsync(ctx); }
+    catch (Microsoft.AspNetCore.Antiforgery.AntiforgeryValidationException) { return Results.BadRequest(); }
     await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx, AMES.Web.Services.PortalAuth.Scheme);
     return Results.Redirect(AMES.Web.Services.PortalAuth.LoginPath);
 });
