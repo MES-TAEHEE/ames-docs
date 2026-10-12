@@ -52,7 +52,7 @@ public sealed partial class PpRepository
     /// 하고(strict — 없으면 null, 호출자가 Problems 로 거부), 완제품 라인은 아무 설정도 없으면 null(= ReadDayCapacity 자동 해석), 지정은 있는데
     /// 없는/비활성 패턴이면 ApsConfigurationException.
     /// </summary>
-    static string? ApsPatternFor(ApsSettingsLoader.Parsed parsed, ApsPatternResolver patterns, bool strict, string line)
+    internal static string? ApsPatternFor(ApsSettingsLoader.Parsed parsed, ApsPatternResolver patterns, bool strict, string line)
     {
         if (strict) return patterns.Resolve(line);
         if (parsed.EffectivePattern(line) is null) return null;
@@ -496,48 +496,84 @@ public sealed partial class PpRepository
                 if (overEnd != injEnd) foreach (var m in members) m.PlacedEnd = overEnd;
             }
 
-            // 4단계: 완제품 단계(DeadlinePacker) — 조각마다, 사출이 실제로 실은 몫까지만(모든 자식의 실적 ÷ QtyPer 의 최소; PP-003 과 같은 원칙).
-            //    못 실은 나머지는 그 단계 Shortfall — 사출이 0 이면 완제품 슬롯도 쓰지 않는다
+            // 4단계: 완제품 단계 — 2026-10-12 사용자 결정 "계획 잡은 것은 전부 그 날의 WO 로, 과부하는 초과로": 조각을 그 실행의 완제품 계획 날짜
+            //    (PP_ApsPlanLine ASM Supply 에서 그 날 그 품번의 기존 완제품 슬롯을 뺀 잔량)에 사출일 → WO 순으로 차례로 싣고, 날짜마다 그 날 안에만 배치한다
+            //    (사출과 같은 날이면 사출 끝 뒤, 박스 단위 — 2026-10-07). 조각의 사출일보다 앞선 계획 날짜는 쓰지 않고, 계획 잔량이 모자란 나머지(포장 올림 등)는
+            //    조각의 공급일(ProdDeadline)에. 그 날 가동 시간이 모자란 양은 그 날 마지막 슬롯에 초과로(슬롯이 없으면 기준점의 0분 슬롯) — 다른 날로 넘기지 않는다.
+            //    전에는 DeadlinePacker 가 사출일부터 마감·납기까지 능력대로 흩뿌려 완제품 탭의 WO 줄이 계획 날짜와 달랐다(실행 #273)
+            var asmLeft = new Dictionary<(string Item, DateOnly Date), decimal>();
+            decimal AsmLeft(string item, string fline, DateOnly d)
+            {
+                var key = (item.ToUpperInvariant(), d);
+                if (asmLeft.TryGetValue(key, out var v)) return v;
+                var supply = asmSupply.GetValueOrDefault(key);
+                return asmLeft[key] = supply <= 0 ? 0 : Math.Max(0, supply - ReadScheduledTotal(conn, tx, fline, d.ToDateTime(TimeOnly.MinValue), item));
+            }
             foreach (var plan in plans.Values.OrderBy(p => p.PlanDate).ThenBy(p => p.ItemNo, StringComparer.Ordinal))
             {
-                var date = plan.PlanDate.ToDateTime(TimeOnly.MinValue);
+                if (plan.FinStepSeq is not int fseq || plan.FinLineId is not { } fline) continue;
+                int? cycle = plan.Template.First(t => t.StepSeq == fseq).StdCycleSec;
+                int  pack  = packOf.GetValueOrDefault(plan.ItemNo) is int fbq && fbq > 0 ? fbq : settings.RoundTo;
+                var planDates = asmSupply.Keys.Where(k => string.Equals(k.Item, plan.ItemNo, StringComparison.OrdinalIgnoreCase) && k.Date >= plan.PlanDate)
+                                              .Select(k => k.Date).OrderBy(d => d).ToList();
+
+                List<DeadlinePacker.Placement> PlaceDay(DateOnly d, decimal qty)
+                {
+                    var dt   = d.ToDateTime(TimeOnly.MinValue);
+                    bool sameDay = d == plan.PlanDate;
+                    var demand = new DeadlinePacker.StepDemand(fseq, fline, qty, cycle, dailyCap.GetValueOrDefault(fline), PackSize: pack);
+                    var list = DeadlinePacker.Pack(new[] { demand }, dt, sameDay ? plan.InjEnd : -1, dt, dt, cal, days).Placements.ToList();
+                    decimal rest = qty - list.Sum(p => p.Qty);
+                    if (rest > 0)
+                    {
+                        if (list.Count > 0)
+                        {
+                            int ds = days.Get(fline, dt).DayStart;
+                            int li = list.Select((p, ix) => (p, ix)).OrderBy(x => AxisEnd(new SlotPacker.Interval(x.p.StartMin, x.p.EndMin), ds)).Last().ix;
+                            list[li] = list[li] with { Qty = list[li].Qty + rest, OverQty = list[li].OverQty + rest };
+                        }
+                        else
+                        {
+                            int at = sameDay ? plan.InjEnd : days.Get(fline, dt).DayStart;
+                            list.Add(new DeadlinePacker.Placement(fseq, fline, dt, at, at, rest, false, null, rest));
+                        }
+                    }
+                    return list;
+                }
+
+                for (int i = 0; i < plan.Pieces.Count; i++)
+                {
+                    var (woId, _, piece, _) = plan.Pieces[i];
+                    var finList = new List<DeadlinePacker.Placement>();
+                    decimal left = piece.Qty;
+                    foreach (var d in planDates)
+                    {
+                        if (left <= 0) break;
+                        var avail = AsmLeft(plan.ItemNo, fline, d);
+                        if (avail <= 0) continue;
+                        var take = Math.Min(left, avail);
+                        asmLeft[(plan.ItemNo.ToUpperInvariant(), d)] = avail - take;
+                        left -= take;
+                        finList.AddRange(PlaceDay(d, take));
+                    }
+                    if (left > 0)
+                    {
+                        var supplyDate = DateOnly.FromDateTime(plan.Deadline);
+                        finList.AddRange(PlaceDay(supplyDate >= plan.PlanDate ? supplyDate : plan.PlanDate, left));
+                    }
+                    foreach (var p in finList)
+                        LineScheduleRepository.AppendWoSlot(conn, tx, p.LineId, p.Date, days.Get(p.LineId, p.Date).PatternId,
+                                                            woId, p.StartMin, p.EndMin, p.Qty, null, actor);
+                    plan.PiecePlacements[i].AddRange(finList);
+                }
+            }
+            foreach (var plan in plans.Values.OrderBy(p => p.PlanDate).ThenBy(p => p.ItemNo, StringComparer.Ordinal))
+            {
                 for (int i = 0; i < plan.Pieces.Count; i++)
                 {
                     var (woId, wo, piece, due) = plan.Pieces[i];
                     var placements = plan.PiecePlacements[i];
                     var shortfalls = plan.PieceShortfalls[i];
-                    if (plan.FinStepSeq is int fseq && plan.FinLineId is { } fline)
-                    {
-                        decimal placedQty = Math.Floor(plan.Legs.Min(l => l.PiecePlacedChild[i] / (decimal)l.QtyPer));
-                        var finList = new List<DeadlinePacker.Placement>();
-                        if (placedQty > 0)
-                        {
-                            // 완제품 단계 슬롯은 박스 단위로 자른다(사용자 결정 2026-10-07 — 보드가 현장 포장 단위로 떨어지게). 단위 = WO 수량 올림과 같은 BoxQty ?? ROUND_TO
-                            var demand = new DeadlinePacker.StepDemand(fseq, fline, placedQty,
-                                plan.Template.First(t => t.StepSeq == fseq).StdCycleSec, dailyCap.GetValueOrDefault(fline),
-                                PackSize: packOf.GetValueOrDefault(plan.ItemNo) is int fbq && fbq > 0 ? fbq : settings.RoundTo);
-                            finList.AddRange(DeadlinePacker.Pack(new[] { demand }, date, plan.InjEnd, plan.Deadline, due, cal, days).Placements);
-                        }
-                        decimal rest = piece.Qty - finList.Sum(p => p.Qty);
-                        if (rest > 0)
-                        {
-                            // 2026-10-08 사용자 결정: 마감·납기 안에 자리가 없는 나머지는 미배치가 아니라 마지막 완제품 슬롯에 초과로(슬롯이 하나도 없으면 계획일 하루 시작의 0분 슬롯)
-                            if (finList.Count > 0)
-                            {
-                                int li = finList.Select((p, ix) => (p, ix)).OrderBy(x => x.p.Date).ThenBy(x => AxisEnd(new SlotPacker.Interval(x.p.StartMin, x.p.EndMin), days.Get(x.p.LineId, x.p.Date).DayStart)).Last().ix;
-                                finList[li] = finList[li] with { Qty = finList[li].Qty + rest, OverQty = finList[li].OverQty + rest };
-                            }
-                            else
-                            {
-                                int ds = days.Get(fline, date).DayStart;
-                                finList.Add(new DeadlinePacker.Placement(fseq, fline, date, ds, ds, rest, false, null, rest));
-                            }
-                        }
-                        foreach (var p in finList)
-                            LineScheduleRepository.AppendWoSlot(conn, tx, p.LineId, p.Date, days.Get(p.LineId, p.Date).PatternId,
-                                                                woId, p.StartMin, p.EndMin, p.Qty, null, actor);
-                        placements.AddRange(finList);
-                    }
                     orders.Add(new ApsWoOrder(wo, woId, plan.FirstLeg.Row.PlanLineId, plan.ItemNo, plan.PlanDate, piece.SoId, piece.Qty,
                                               plan.Deadline, due, placements, shortfalls,
                                               i == 0 ? plan.FirstPieceMc : Array.Empty<DeadlinePacker.MoldChange>()));
@@ -946,6 +982,22 @@ public sealed partial class PpRepository
             sums[i] += Convert.ToDecimal(rdr["Qty"]);
         }
         return sums;
+    }
+
+    /// <summary>(라인, 날짜, 품번)의 기존 WO 슬롯 수량 합(취소 제외) — 완제품 계획 잔량 = ASM Supply − 이 값(4단계). 같은 트랜잭션이 이미 쓴 슬롯도 보인다.</summary>
+    static decimal ReadScheduledTotal(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date, string itemNo)
+    {
+        using var cmd = new SqlCommand("""
+            SELECT ISNULL(SUM(ISNULL(s.PlannedQty, 0)), 0)
+            FROM   dbo.PP_LineSchedule s
+            JOIN   dbo.PP_WorkOrder w ON w.WoID = s.WoID
+            WHERE  s.LineID = @L AND s.ScheduleDate = @D AND s.EntryType = 'WO'
+              AND  w.ItemNo = @I AND ISNULL(w.Status, '') <> 'Cancelled';
+            """, conn, tx);
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@D", SqlDbType.Date).Value        = date.Date;
+        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = itemNo;
+        return Convert.ToDecimal(cmd.ExecuteScalar());
     }
 
     static SqlCommand BuildInsertApsWo(SqlConnection conn, SqlTransaction tx, string actor)

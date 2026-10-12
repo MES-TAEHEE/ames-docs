@@ -53,6 +53,16 @@ public sealed class ShiftRules(Settings settings, IReadOnlyDictionary<string, Li
         return (Math.Floor(uph * st * h), uph, st, h);
     }
 
+    /// 조립 라인 하루 가동 시간(h) — 시간 모드(Autofill, 행 CycleSec)의 능력 = 이 값 × 60 분. 날짜 예외 → 라인별 순은 ShiftFor 와 같고,
+    /// 교대 시간을 모르거나 0 이면(DailyCap 만 있는 라인 포함) null → 수량 모드.
+    public double? AsmHoursFor(string lineCd, string date)
+    {
+        var sh = ShiftFor(lineCd, date, false);
+        if (sh.src == "없음") return null;
+        var h = sh.day + sh.night;
+        return h > 0 ? h : null;
+    }
+
     /// 포장 단위 — 가장 긴 앞자리 규칙, 없으면 roundTo.
     public int PackFor(string partNo)
     {

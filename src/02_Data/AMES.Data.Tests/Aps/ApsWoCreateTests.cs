@@ -91,7 +91,7 @@ public class ApsWoCreateTests
             """, ("@A", ItemA), ("@B", ItemB), ("@C", ItemC), ("@P", Pattern), ("@PX", ClosedPattern), ("@M", Mold),
                  ("@LI", LineInj), ("@By", Actor), ("@Pin", Pin), ("@D4", D4));
         _offset = Convert.ToInt32(Scalar(f, "SELECT OffsetDays FROM dbo.MD_ApsLineStage WHERE LineID = @LI;", ("@LI", LineInj)));
-        ApsPatternConfig.Apply(f, null, (LineInj, Pattern));   // APS 는 PP_LineSchedule 저장 패턴이 아니라 이 지정을 읽는다(2026-10-06) — 기본 패턴은 비워 둔다
+        ApsPatternConfig.Apply(f, null, (LineInj, Pattern), (LineImg, null));   // APS 는 PP_LineSchedule 저장 패턴이 아니라 이 지정을 읽는다(2026-10-06) — 기본 패턴은 비워 두고 완제품 라인은 지정 없음(개발 DB 의 LP-CMN-001 지정을 테스트 동안 비운다)
         foreach (var d in Week)
             Exec(f, """
                 INSERT INTO dbo.PP_LineSchedule (LineID, ScheduleDate, PatternID, EntryType, PlannedQty, Status, CreatedBy)
@@ -170,11 +170,11 @@ public class ApsWoCreateTests
     static string Steps(AmesConnectionFactory f, int woId)
         => (string)Scalar(f, "SELECT STRING_AGG(ProcessCode + '@' + ISNULL(LineID,'-'), ',') WITHIN GROUP (ORDER BY StepSeq) FROM dbo.PP_WorkOrderRouting WHERE WoID = @W;", ("@W", woId))!;
 
-    /// <summary>ASM 행(완제품 라인, 기본 LINE-IMG-01) + INJ 행(LINE-INJ-01) 한 쌍. 반환 = INJ 행 PlanLineID.</summary>
+    /// <summary>ASM 행(완제품 라인, 기본 LINE-IMG-01, 공급 = 같은 날 day + night — 완제품 단계가 계획 날짜를 따르므로(2026-10-12) 기본은 사출일 당일 공급) + INJ 행(LINE-INJ-01) 한 쌍. 반환 = INJ 행 PlanLineID.</summary>
     static int SeedInj(AmesConnectionFactory f, int runId, string item, DateTime date, decimal day, decimal night,
-                       bool sameItem = true, string asmLine = LineImg)
+                       bool sameItem = true, string asmLine = LineImg, decimal? asmSupply = null)
     {
-        SeedLine(f, runId, "ASM", item, asmLine, date, 0, 0, sameItem);
+        SeedLine(f, runId, "ASM", item, asmLine, date, 0, 0, sameItem, supply: asmSupply ?? day + night);
         return SeedLine(f, runId, "INJ", item, LineInj, date, day, night, sameItem);
     }
 
@@ -363,6 +363,94 @@ public class ApsWoCreateTests
             Assert.Equal(60m, o.OverQty);
         }
         finally { Exec(f, "DELETE FROM dbo.PP_LineSchedule WHERE LineID = @L AND CreatedBy = @By AND WoID IS NULL;", ("@L", LineImg), ("@By", Actor)); Cleanup(f); }
+    }
+
+    /// <summary>2026-10-12 사용자 결정: 완제품 단계는 그 실행의 완제품 계획 날짜에 그대로 — 조각 하나가 두 계획 날짜(D0 60 · D1 40)를 차례로 채운다. 다른 날로 흩뿌리지 않는다.</summary>
+    [SkippableFact]
+    public void Finished_step_follows_the_assembly_plan_dates_of_the_run()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 100, dueOffset: 9);
+            int run = SeedRun(f);
+            int pl  = SeedInj(f, run, ItemA, D0, day: 100, night: 0, asmSupply: 60);
+            SeedLine(f, run, "ASM", ItemA, LineImg, D1, 0, 0, true, supply: 40);
+
+            var r = Run(f, run, new[] { pl });
+
+            var o = Assert.Single(r.Orders);
+            Assert.Equal(100m, o.Qty);
+            var injEnd = o.Placements.Where(p => p.LineId == LineInj).Max(p => p.EndMin);
+            var d0 = Rows(f, LineImg, D0).Where(x => x.WoId == o.WoId).ToList();
+            var d1 = Rows(f, LineImg, D1).Where(x => x.WoId == o.WoId).ToList();
+            Assert.Equal(60m, d0.Sum(x => x.Qty));
+            Assert.Equal(40m, d1.Sum(x => x.Qty));
+            Assert.All(d0, x => Assert.True(x.Start >= injEnd));                                   // 사출과 같은 날은 사출 끝 뒤
+            Assert.Equal(0m, o.OverQty); Assert.Equal(0m, o.LateQty); Assert.Empty(o.Shortfalls);
+            Assert.Equal(100m, o.Placements.Where(p => p.LineId == LineImg).Sum(p => p.Qty));
+        }
+        finally { Cleanup(f); }
+    }
+
+    /// <summary>뒤 사출일의 조각은 자기 사출일보다 앞선 완제품 계획 날짜를 쓰지 않는다 — D0 계획 150 중 D0 사출분 100 만 D0 에, D1 사출분 50 은 D1 에.</summary>
+    [SkippableFact]
+    public void Later_injection_piece_does_not_use_an_earlier_assembly_plan_date()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 150, dueOffset: 9);
+            int run = SeedRun(f);
+            SeedLine(f, run, "ASM", ItemA, LineImg, D0, 0, 0, true, supply: 150);
+            SeedLine(f, run, "ASM", ItemA, LineImg, D1, 0, 0, true, supply: 50);
+            int pl0 = SeedLine(f, run, "INJ", ItemA, LineInj, D0, 100, 0, true);
+            int pl1 = SeedLine(f, run, "INJ", ItemA, LineInj, D1, 50, 0, true);
+
+            var r = Run(f, run, new[] { pl0, pl1 });
+
+            Assert.Equal(2, r.Orders.Count);
+            var o0 = Assert.Single(r.Orders, o => o.PlanDate == D0d);
+            var o1 = Assert.Single(r.Orders, o => o.PlanDate == DateOnly.FromDateTime(D1));
+            Assert.Equal(100m, Rows(f, LineImg, D0).Where(x => x.WoId == o0.WoId).Sum(x => x.Qty));
+            Assert.Empty(Rows(f, LineImg, D1).Where(x => x.WoId == o0.WoId));
+            Assert.Empty(Rows(f, LineImg, D0).Where(x => x.WoId == o1.WoId));
+            Assert.Equal(50m, Rows(f, LineImg, D1).Where(x => x.WoId == o1.WoId).Sum(x => x.Qty));
+            Assert.All(r.Orders, o => Assert.Empty(o.Shortfalls));
+        }
+        finally { Cleanup(f); }
+    }
+
+    /// <summary>완제품 계획 잔량보다 남는 조각 수량(포장 올림 등)은 조각의 공급일(ProdDeadline)에 싣는다 — D0 계획 60, 조각 100 → D0 60 + 마감일 40.</summary>
+    [SkippableFact]
+    public void Quantity_beyond_the_assembly_plan_lands_on_the_supply_date()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 100, dueOffset: 9);
+            int run = SeedRun(f);
+            int pl  = SeedInj(f, run, ItemA, D0, day: 100, night: 0, asmSupply: 60);
+
+            var r = Run(f, run, new[] { pl });
+
+            var o = Assert.Single(r.Orders);
+            var deadline = PlusWorkdays(D0, _offset);
+            Assert.Equal(deadline, o.Deadline);
+            if (deadline == D0)
+                Assert.Equal(100m, Rows(f, LineImg, D0).Where(x => x.WoId == o.WoId).Sum(x => x.Qty));
+            else
+            {
+                Assert.Equal(60m, Rows(f, LineImg, D0).Where(x => x.WoId == o.WoId).Sum(x => x.Qty));
+                Assert.Equal(40m, Rows(f, LineImg, deadline).Where(x => x.WoId == o.WoId).Sum(x => x.Qty));
+            }
+            Assert.Empty(o.Shortfalls);
+            Assert.Equal(100m, o.Placements.Where(p => p.LineId == LineImg).Sum(p => p.Qty));
+        }
+        finally { Cleanup(f); }
     }
 
     /// <summary>교대 1개뿐인 패턴(Review Focus 1): 교대 행이 없으면 PlanDay + PlanNight 가 그 교대 하나로 복원돼 전량 그 교대 밴드에 놓인다.</summary>
@@ -1274,9 +1362,12 @@ public class ApsWoCreateTests
 
             var o = Assert.Single(res.Orders);
             Assert.Contains(o.Placements, p => p.LineId == LineInj);                       // 사출은 라인 지정 패턴으로 배치
-            Assert.DoesNotContain(o.Placements, p => p.LineId == LineImg);                 // 완제품 단계는 기본 패턴(가동 없음)을 따라 자리 없음
-            Assert.Equal(60m, Assert.Single(o.Shortfalls, s => s.LineId == LineImg).Qty);
-            Assert.DoesNotContain(Rows(f, LineImg, D0), r => r.WoId == o.WoId);
+            // 완제품 단계는 기본 패턴(가동 없음)을 따라 자리가 없다 — 2026-10-12 부터 미배치가 아니라 계획 날짜(사출 끝)의 0분 슬롯에 전량 초과
+            var img = Assert.Single(o.Placements, p => p.LineId == LineImg);
+            Assert.Equal((D0d, 60m, 60m), (DateOnly.FromDateTime(img.Date), img.Qty, img.OverQty));
+            Assert.Equal(img.StartMin, img.EndMin);
+            Assert.Empty(o.Shortfalls);
+            Assert.Equal(new[] { (img.StartMin, img.StartMin, 60m) }, Rows(f, LineImg, D0).Where(r => r.WoId == o.WoId).Select(r => (r.Start, r.End, r.Qty)).ToArray());
         }
         finally { Cleanup(f); }
     }
