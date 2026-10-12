@@ -76,8 +76,8 @@
     @if (_busy)
     {
         <div class="aps-busybar">
-            <span>@L["PP.Aps.Busy"]</span>
-            <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" ShowValue="false" Style="flex:1;height:8px;" />
+            <span>@L[_creating ? "PP.Aps.Wo.Busy" : "PP.Aps.Busy"]</span>
+            <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" Value="100" ShowValue="false" Style="flex:1;height:8px;" />
         </div>
     }
     @if (_showTargets && _result is null)
@@ -338,7 +338,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
     [Parameter] public int RunId { get; set; }
 
     const string Href = "pp/aps-plan";   // PP-APS 하위 경로 — 권한도 그 화면 것(E = WO 생성)
-    bool _canEdit, _busy, _released, _showTargets, _isErr, _loadFailed;
+    bool _canEdit, _busy, _creating, _released, _showTargets, _isErr, _loadFailed;
     string _msg = "", _actor = "system";
 
     List<ApsRepository.ApsPlanLineRow> _rows = new();
@@ -485,7 +485,8 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
         var go = await Dialog.Confirm(string.Format(L["PP.Aps.Wo.Confirm"].Value, ids.Count), L["PP.Aps.Wo.Title"].Value,
             new ConfirmOptions { OkButtonText = L["PP.Aps.Wo.Btn.ConfirmRun"].Value, CancelButtonText = L["Btn.Cancel"].Value });
         if (go != true) return;
-        _busy = true;
+        // 확인창 await 뒤라 핸들러가 끝날 때까지 자동으로 다시 그리지 않는다 — 생성 중 표시를 지금 내보낸다
+        _busy = true; _creating = true; StateHasChanged();
         try
         {
             var edits = _edits.ToList();
@@ -500,7 +501,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
         }
         catch (ApsConfigurationException ex) { _configProblems = ex.Lines.ToList(); }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
-        finally { _busy = false; }
+        finally { _busy = false; _creating = false; }
     }
 
     void BuildBoard(PpRepository.ApsWoResult r, List<int> ids)

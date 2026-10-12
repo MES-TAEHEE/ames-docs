@@ -9689,6 +9689,9 @@
   <data name="PP.Aps.Busy" xml:space="preserve">
     <value>Calculating…</value>
   </data>
+  <data name="PP.Aps.Wo.Busy" xml:space="preserve">
+    <value>Creating work orders…</value>
+  </data>
   <data name="PP.Aps.Lbl.Dirty" xml:space="preserve">
     <value>Unsaved changes</value>
   </data>
