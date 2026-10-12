@@ -317,8 +317,8 @@
                     <tbody>@foreach(var line in Store.Deliveries.Where(d=>noteDetail.Numbers.Contains(d.Number)))
                     {
                         <tr><td class="code">@line.OrderNumber</td><td>@line.Item<div class="dim">@PartName(line.PoID)</div></td>
-                            <td>@QtyFormat.Text(line.Quantity,line.Unit) @line.Unit</td><td>@QtyFormat.Text(line.Received,line.Unit) @line.Unit</td>
-                            <td>@QtyFormat.Text(Math.Max(0,line.Quantity-line.Received),line.Unit) @line.Unit</td>
+                            <td>@QtyFormat.Text(line.Quantity,line.Unit) @UomFmt.Sym(line.Unit)</td><td>@QtyFormat.Text(line.Received,line.Unit) @UomFmt.Sym(line.Unit)</td>
+                            <td>@QtyFormat.Text(Math.Max(0,line.Quantity-line.Received),line.Unit) @UomFmt.Sym(line.Unit)</td>
                         </tr>
                     }</tbody>
                 </table></div>
@@ -332,8 +332,8 @@
                         <tbody>@foreach(var mismatch in NoteMismatches(noteDetail))
                         {
                             <tr><td>@mismatch.OccurredAt.ToString(DateFmt.DateTimeSec)</td><td>@mismatch.Lot</td><td>@mismatch.Item<div class="dim">@mismatch.Name</div></td>
-                                <td>@QtyFormat.Text(mismatch.Before,mismatch.Unit) @mismatch.Unit</td><td>@QtyFormat.Text(mismatch.After,mismatch.Unit) @mismatch.Unit</td>
-                                <td class="@(mismatch.Change<0?"scm-shortage":"scm-overage")">@(mismatch.Change>0?"+":"")@QtyFormat.Text(mismatch.Change,mismatch.Unit) @mismatch.Unit</td>
+                                <td>@QtyFormat.Text(mismatch.Before,mismatch.Unit) @UomFmt.Sym(mismatch.Unit)</td><td>@QtyFormat.Text(mismatch.After,mismatch.Unit) @UomFmt.Sym(mismatch.Unit)</td>
+                                <td class="@(mismatch.Change<0?"scm-shortage":"scm-overage")">@(mismatch.Change>0?"+":"")@QtyFormat.Text(mismatch.Change,mismatch.Unit) @UomFmt.Sym(mismatch.Unit)</td>
                                 <td>@mismatch.Reason<div class="dim">@mismatch.Comment</div></td></tr>
                         }</tbody>
                     </table></div>
@@ -470,7 +470,7 @@
                         <tbody>@foreach(var receipt in receiptLines)
                         {
                             <tr><td class="code">@receipt.Delivery</td><td class="code">@receipt.Order</td><td class="code">@receipt.Item<div class="dim">@receipt.Name</div></td>
-                                <td>@QtyFormat.Text(receipt.Quantity,receipt.Unit) @receipt.Unit</td><td>@QtyFormat.Text(receipt.Received,receipt.Unit) @receipt.Unit</td><td>@QtyFormat.Text(receipt.Remaining,receipt.Unit) @receipt.Unit</td>
+                                <td>@QtyFormat.Text(receipt.Quantity,receipt.Unit) @UomFmt.Sym(receipt.Unit)</td><td>@QtyFormat.Text(receipt.Received,receipt.Unit) @UomFmt.Sym(receipt.Unit)</td><td>@QtyFormat.Text(receipt.Remaining,receipt.Unit) @UomFmt.Sym(receipt.Unit)</td>
                                 <td>@(receipt.Received<=0 ? "Not received" : receipt.Remaining==0 ? "Received" : "Partially received")</td></tr>
                         }</tbody>
                     </table></div>
@@ -486,8 +486,8 @@
                             <tbody>@foreach(var mismatch in MismatchRows(_delivery.Number))
                             {
                                 <tr><td>@mismatch.OccurredAt.ToString(DateFmt.DateTimeSec)</td><td>@mismatch.Lot</td><td>@mismatch.Item<div class="dim">@mismatch.Name</div></td>
-                                    <td>@QtyFormat.Text(mismatch.Before,mismatch.Unit) @mismatch.Unit</td><td>@QtyFormat.Text(mismatch.After,mismatch.Unit) @mismatch.Unit</td>
-                                    <td class="@(mismatch.Change<0?"scm-shortage":"scm-overage")">@(mismatch.Change>0?"+":"")@QtyFormat.Text(mismatch.Change,mismatch.Unit) @mismatch.Unit</td>
+                                    <td>@QtyFormat.Text(mismatch.Before,mismatch.Unit) @UomFmt.Sym(mismatch.Unit)</td><td>@QtyFormat.Text(mismatch.After,mismatch.Unit) @UomFmt.Sym(mismatch.Unit)</td>
+                                    <td class="@(mismatch.Change<0?"scm-shortage":"scm-overage")">@(mismatch.Change>0?"+":"")@QtyFormat.Text(mismatch.Change,mismatch.Unit) @UomFmt.Sym(mismatch.Unit)</td>
                                     <td>@mismatch.Reason<div class="dim">@mismatch.Comment</div></td></tr>
                             }</tbody>
                         </table></div>
@@ -732,7 +732,7 @@
             ||Store.Deliveries.Any(d=>g.Numbers.Contains(d.Number)&&(d.Number+" "+d.OrderNumber+" "+d.Item).Contains(_search,StringComparison.OrdinalIgnoreCase)))
         .OrderByDescending(g=>g.Deliveries.Max(d=>d.Date)).ThenBy(g=>g.Number).ToList();
     string NoteQuantities(PortalNoteRow note,Func<ScmPreviewStore.Delivery,decimal> quantity) => string.Join(" / ",Store.Deliveries
-        .Where(d=>note.Numbers.Contains(d.Number)).GroupBy(d=>d.Unit).Select(g=>$"{QuantityText(g.Sum(quantity),g.Key,3)} {g.Key}"));
+        .Where(d=>note.Numbers.Contains(d.Number)).GroupBy(d=>d.Unit).Select(g=>$"{QuantityText(g.Sum(quantity),g.Key,3)} {UomFmt.Sym(g.Key)}"));
     string PartName(int poId) => _dbOrders.SelectMany(o=>o.Lines).FirstOrDefault(l=>l.PoID==poId)?.Name ?? "";
     string NoteReceiptQuantities(PortalNoteRow note,bool received) => NoteQuantities(note,d=>received?d.Received:Math.Max(0,d.Quantity-d.Received));
     string NoteReceiptStatus(PortalNoteRow note)
@@ -774,7 +774,7 @@
         if(_receiptError.Length>0)return "—";
         var lines=ReceiptLines(delivery);
         if(lines.Count==0)return "—";
-        return string.Join(" / ",lines.GroupBy(r=>r.Unit).Select(g=>$"{QtyFormat.Text(g.Sum(r=>received?r.Received:r.Remaining),g.Key)} {g.Key}"));
+        return string.Join(" / ",lines.GroupBy(r=>r.Unit).Select(g=>$"{QtyFormat.Text(g.Sum(r=>received?r.Received:r.Remaining),g.Key)} {UomFmt.Sym(g.Key)}"));
     }
     string ReceiptStatus(string delivery)
     {

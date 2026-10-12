@@ -5,6 +5,7 @@
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<DeliveryCases> Logger
 @inject PortalQuantityFormat QtyFormat
+@inject UomFormat UomFmt
 @inject AuditLogger Audit
 
 <div data-no-busy>
@@ -34,7 +35,7 @@
             @foreach(var item in _loose)
             {
                 <button type="button" class="case-tile @(_activeLoose==item?"active":"")" @onclick="()=>SelectLoose(item)" disabled="@_busy">
-                    <RadzenIcon Icon="@(item.IsPart?"category":"inventory")" /><strong>@(item.IsPart?"Part":"Box")</strong><span>@item.Box.Row.Part.Item · @QtyFormat.Text(item.Box.Quantity,item.Box.Row.Part.Unit) @item.Box.Row.Part.Unit</span>
+                    <RadzenIcon Icon="@(item.IsPart?"category":"inventory")" /><strong>@(item.IsPart?"Part":"Box")</strong><span>@item.Box.Row.Part.Item · @QtyFormat.Text(item.Box.Quantity,item.Box.Row.Part.Unit) @UomFmt.Sym(item.Box.Row.Part.Unit)</span>
                 </button>
             }
             <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Case")' disabled="@_busy">
@@ -53,7 +54,7 @@
                     <thead><tr><th>Box</th><th>PO No</th><th>Part No / Name</th><th>Qty</th></tr></thead>
                     <tbody>@foreach(var box in detail)
                     {
-                        <tr><td>@(detail.IndexOf(box)+1)</td><td>@box.Row.Order</td><td>@box.Row.Part.Item<div class="dim">@box.Row.Part.Name</div></td><td>@QtyFormat.Text(box.Quantity,box.Row.Part.Unit) @box.Row.Part.Unit</td></tr>
+                        <tr><td>@(detail.IndexOf(box)+1)</td><td>@box.Row.Order</td><td>@box.Row.Part.Item<div class="dim">@box.Row.Part.Name</div></td><td>@QtyFormat.Text(box.Quantity,box.Row.Part.Unit) @UomFmt.Sym(box.Row.Part.Unit)</td></tr>
                     }</tbody>
                 </table></div>
             </div>
@@ -62,7 +63,7 @@
         {
             <div class="case-detail"><div class="case-toolbar"><strong>@(loose.IsPart?"Part":"Box") · @loose.Box.Row.Part.Item</strong>
                 <RadzenButton Text="Remove" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="()=>RemoveLoose(loose)" Disabled="@_busy" />
-            </div><div>@loose.Box.Row.Order · @QtyFormat.Text(loose.Box.Quantity,loose.Box.Row.Part.Unit) @loose.Box.Row.Part.Unit</div></div>
+            </div><div>@loose.Box.Row.Order · @QtyFormat.Text(loose.Box.Quantity,loose.Box.Row.Part.Unit) @UomFmt.Sym(loose.Box.Row.Part.Unit)</div></div>
         }
     </section>
     <div class="case-toolbar case-create-footer">
@@ -94,7 +95,7 @@
                             {
                                 <tr @key="row.Part.PoID" class="@(Available(row)<=0?"case-part-unavailable":"")"><td>@row.Part.Item<div class="dim">@row.Part.Name</div></td>
                                     <td>
-                                        <strong>@QtyFormat.Text(Available(row),row.Part.Unit) @row.Part.Unit</strong>
+                                        <strong>@QtyFormat.Text(Available(row),row.Part.Unit) @UomFmt.Sym(row.Part.Unit)</strong>
                                         @if(Available(row)<=0)
                                         {
                                             var documents=_deliveries.Where(d=>d.PoID==row.Part.PoID && d.Status!="Cancelled").Select(d=>d.Number).Distinct().ToArray();
@@ -138,7 +139,7 @@
                             <tbody>@foreach(var box in boxes)
                             {
                                 <tr><td><input type="checkbox" checked="@box.Selected" @onchange="e=>SelectBox(box,e.Value is true)" disabled="@(_busy || !CanSelectOrder(order))" aria-label="@($"Select {order.Number} {box.Row.Part.Item} box {box.Sequence}")" /></td>
-                                    <td>@box.Sequence</td><td>@box.Row.Part.Item<div class="dim">@box.Row.Part.Name</div></td><td>@QtyFormat.Text(box.Quantity,box.Row.Part.Unit) @box.Row.Part.Unit</td></tr>
+                                    <td>@box.Sequence</td><td>@box.Row.Part.Item<div class="dim">@box.Row.Part.Name</div></td><td>@QtyFormat.Text(box.Quantity,box.Row.Part.Unit) @UomFmt.Sym(box.Row.Part.Unit)</td></tr>
                             }</tbody>
                         </table></div>
                     </td></tr>
