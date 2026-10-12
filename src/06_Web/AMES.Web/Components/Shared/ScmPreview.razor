@@ -375,7 +375,7 @@
                         <tbody>
                         @foreach (var line in _selected.Lines)
                         {
-                            <tr><td class="code">@line.Item</td><td>@line.Name</td><td>@UomFmt.Sym(line.Unit)</td><td class="num">@QuantityText(line.Quantity, line.Unit, 2)</td><td class="num">@QuantityText(Store.Delivered(_selected, line), line.Unit, 2)</td><td class="num">@QuantityText(Store.Remaining(_selected, line), line.Unit, 2)</td>@if(Mode=="Progress"){<td class="num">@QtyFormat.Text(line.ShippedQuantity,line.Unit)</td>}else{<td class="num">@line.Price.ToString("#,##0.00##")</td><td class="num">@line.Amount.ToString("N2")</td>}</tr>
+                            <tr><td class="code">@line.Item</td><td>@line.Name</td><td class="scm-unit">@(line.Unit=="BOX" && line.BoxContentQty>0 ? $"1 {UomFmt.Sym(line.Unit)} ({QtyFormat.Text(line.BoxContentQty.Value,line.BoxContentUnit)} {UomFmt.Sym(line.BoxContentUnit)})" : UomFmt.Sym(line.Unit))</td><td class="num">@QuantityText(line.Quantity, line.Unit, 2)</td><td class="num">@QuantityText(Store.Delivered(_selected, line), line.Unit, 2)</td><td class="num">@QuantityText(Store.Remaining(_selected, line), line.Unit, 2)</td>@if(Mode=="Progress"){<td class="num">@QtyFormat.Text(line.ShippedQuantity,line.Unit)</td>}else{<td class="num">@line.Price.ToString("#,##0.00##")</td><td class="num">@line.Amount.ToString("N2")</td>}</tr>
                         }
                         </tbody>
                     </table>
@@ -545,7 +545,7 @@
                                         InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                                     <div class="dim">@line.Name</div>
                                 </td>
-                                <td data-label='@L["Scm.Text.Unit"]'>@UomFmt.Sym(line.Unit)</td>
+                                <td class="scm-unit" data-label='@L["Scm.Text.Unit"]'>@(line.Unit=="BOX" ? BoxContentSummary(line.Item) : UomFmt.Sym(line.Unit))</td>
                                 <td><RadzenNumeric TValue="decimal" @bind-Value="line.Quantity" Min="0.001m" Step="1" aria-label='@($"{L["Col.Quantity"]} {line.Id}")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" /></td>
                                 <td><RadzenNumeric TValue="decimal" @bind-Value="line.Price" Min="0" Step="0.01" Format="#,##0.00##" aria-label='@($"{L["Scm.Text.UnitPrice"]} {line.Id}")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" /></td>
                                 <td class="num">@line.Amount.ToString("N2")</td>
@@ -556,9 +556,10 @@
                     </table>
                 </div>
                 <div class="scm-total">@L["Scm.Text.TotalUSD"] <strong>@_edit.Amount.ToString("N2")</strong></div>
+                @if (HasMissingBoxContents) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">Set BOX contents in Item Master before saving the PO.</RadzenAlert> }
                 @if (!string.IsNullOrEmpty(_error)) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@_error</RadzenAlert> }
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                    <RadzenButton Text='@L["Btn.Save"]' Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SaveOrder" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Btn.Save"]' Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SaveOrder" Disabled="@HasMissingBoxContents" class="ames-rz-btn" />
                     <RadzenButton Text='@L["Btn.Close"]' Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _edit = null)" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
@@ -662,6 +663,8 @@
     ScmPreviewStore.Order? _selected, _edit;
     ScmPreviewStore.Delivery? _delivery;
     List<MasterDataRepository.ItemRow> _materials = new();
+    bool HasMissingBoxContents => _edit?.Lines.Any(line => line.Unit == "BOX" &&
+        !_materials.Any(item => item.ItemNo == line.Item && item.BoxContentQty > 0 && !string.IsNullOrWhiteSpace(item.BoxContentUnit))) == true;
     public record MaterialOption(string Value, string Text);
     IEnumerable<MaterialOption> MaterialOptions => _materials.Select(x => new MaterialOption(x.ItemNo, $"{x.ItemNo} · {x.ItemName}"));
     bool CanEdit => !IsPortal && Permissions.CanEdit(Href);
@@ -901,6 +904,13 @@
             .OrderByDescending(x => x.Ordered).ThenByDescending(x => x.Number)
             .Select(x => (decimal?)x.Price).FirstOrDefault() ?? item?.UnitCost ?? 0m;
     }
+    string BoxContentSummary(string itemNo)
+    {
+        var item=_materials.Find(x=>x.ItemNo==itemNo);
+        return item?.BoxContentQty>0 && !string.IsNullOrWhiteSpace(item.BoxContentUnit)
+            ? $"1 box ({QtyFormat.Text(item.BoxContentQty.Value,item.BoxContentUnit)} {UomFmt.Sym(item.BoxContentUnit)})"
+            : "Not set";
+    }
     bool ValidateMaterial(ScmPreviewStore.Order order)
     {
         if (!LoadMaterials(order.Vendor)) return false;
@@ -925,6 +935,8 @@
             }
             line.Name = item.ItemName;
             line.Unit = item.DefaultUOM ?? "";
+            if(line.Unit=="BOX" && (item.BoxContentQty is null or <=0 || string.IsNullOrWhiteSpace(item.BoxContentUnit)))
+            { _error=$"{line.Item}: Set BOX contents in Item Master before saving the PO.";return false; }
         }
         return true;
     }
@@ -1038,7 +1050,7 @@
                 Number=o.Number,Vendor=o.Vendor,VendorName=o.VendorName,CreatedBy=o.CreatedBy,SupplierConfirmedAt=o.SupplierConfirmedAt,SupplierConfirmedBy=o.SupplierConfirmedBy,Ordered=o.Ordered,Due=o.Due,Destination=o.Destination,Currency=o.Currency,Persistent=true,
                 Status=o.Status switch { "Open" => "Published", "Partial" => "Confirmed", "Complete" or "Received" => "Closed", "Draft" => "Draft", "Cancelled" => "Cancelled", _ => o.Status },
                 Versions=o.Lines.ToDictionary(l => l.PoID,l => l.Version),
-                Lines=o.Lines.Where(l=>!(IsPortal && Mode=="Due") || l.ItemExists).Select(l => new ScmPreviewStore.OrderLine {PoID=l.PoID,Id=l.Id,Item=l.Item,Name=l.Name,Unit=l.Unit,Quantity=l.Quantity,Price=l.Price,Received=l.Received}).ToList()
+                Lines=o.Lines.Where(l=>!(IsPortal && Mode=="Due") || l.ItemExists).Select(l => new ScmPreviewStore.OrderLine {PoID=l.PoID,Id=l.Id,Item=l.Item,Name=l.Name,Unit=l.Unit,Quantity=l.Quantity,Price=l.Price,Received=l.Received,BoxContentUnit=l.BoxContentUnit,BoxContentQty=l.BoxContentQty}).ToList()
             }).Where(o=>!(IsPortal && Mode=="Due") || o.Lines.Count>0).ToList();
             var deliveries = Scm.ListSupplierDeliveries(IsPortal, _portalUserId);
             var prepared=IsPortal && Mode=="Due" && _isExternalPortalUser
