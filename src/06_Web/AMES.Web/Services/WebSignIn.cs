@@ -17,6 +17,7 @@ public sealed class WebSignIn(
     UserManager<ApplicationUser> users,
     AuthRepository authRepo,
     ScmRepository scm,
+    SysRepository sys,
     AuditLogger audit,
     TrustedDevices devices,
     ILogger<WebSignIn> logger)
@@ -125,9 +126,11 @@ public sealed class WebSignIn(
         if (user.LockedFlag) return PortalFail(user, "Locked", "Auth.Err.Locked");
         scm.RecordPortalLoginSuccess(user.UserID);
 
+        try { sys.RememberPortalActor(user.UserID, ActorCode.Portal(user.UserID)); }
+        catch (Exception ex) { logger.LogWarning(ex, "Portal actor mapping could not be saved for {Email}", user.UserID); }
         await ctx.SignInAsync(PortalAuth.Scheme, PortalAuth.BuildPrincipal(user), new AuthenticationProperties { IsPersistent = false });
 
-        audit.Log("PORTAL", "LOGIN", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, user.VendorID }, actor: ActorCode.Normalize(user.UserID));
+        audit.Log("PORTAL", "LOGIN", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, user.VendorID }, actor: ActorCode.Portal(user.UserID));
         logger.LogInformation("Portal user logged in: {Email} ({Vendor})", user.UserID, user.VendorID);
 
         // 같은 사이트의 외부 화면 경로만 — "/" 로 시작하지 않는 값은 PathString 이 예외를 내므로 먼저 거른다
@@ -139,7 +142,7 @@ public sealed class WebSignIn(
 
     Result PortalFail(ScmRepository.PortalUserRow user, string reason, string errorKey)
     {
-        try { audit.Log("PORTAL", "LOGIN_FAIL", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, reason }, actor: ActorCode.Normalize(user.UserID)); } catch { }
+        try { audit.Log("PORTAL", "LOGIN_FAIL", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, reason }, actor: ActorCode.Portal(user.UserID)); } catch { }
         return Error(errorKey);
     }
 
