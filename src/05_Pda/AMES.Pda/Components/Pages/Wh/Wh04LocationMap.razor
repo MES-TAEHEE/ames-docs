@@ -1,4 +1,5 @@
 @page "/wh/04"
+@inject PdaUomFormat Uom
 @inject WarehouseApi Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -592,10 +593,10 @@
         return text.Length <= 120 ? text : text[..120] + "...";
     }
 
-    private static string QtyUnit(decimal qty, string? unit)
+    private string QtyUnit(decimal qty, string? unit)
     {
         var value = qty % 1 == 0 ? qty.ToString("N0") : qty.ToString("N3");
-        return string.IsNullOrWhiteSpace(unit) ? value : $"{value} {unit.Trim()}";
+        return string.IsNullOrWhiteSpace(unit) ? value : $"{value} {Uom.Symbol(unit)}";
     }
 
     private static string WorkText(string? workDate, string? workTime)

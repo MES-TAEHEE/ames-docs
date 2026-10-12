@@ -40,6 +40,14 @@ public abstract class PdaApi
         public string Name => string.IsNullOrWhiteSpace(CodeNameEn) ? CodeName ?? CodeValue : CodeNameEn;
     }
 
+    public sealed record UomOption(string UOMCode, string? Symbol);
+
+    public async Task<List<UomOption>> UomsAsync()
+    {
+        Authorize();
+        return await _http.GetFromJsonAsync<List<UomOption>>("/api/sys/uoms") ?? [];
+    }
+
     public async Task<List<CodeOption>> CodeItemsAsync(string groupCode)
     {
         Authorize();

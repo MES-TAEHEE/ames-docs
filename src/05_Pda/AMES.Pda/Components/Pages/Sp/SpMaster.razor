@@ -1,4 +1,5 @@
 @page "/sp/master"
+@inject PdaUomFormat Uom
 @inject SparePartsApi Api
 @inject AuthState Auth
 @inject NavigationManager Nav
@@ -26,7 +27,7 @@
         {
             <button class="part-row" disabled="@_busy" @onclick="() => Select(row)">
                 <strong>@row.EosSpNo</strong><span>@Display(row.StorageLocation)</span>
-                <span>@Display(row.PartName)</span><span>@row.Qty.ToString("N0") @row.Unit</span>
+                <span>@Display(row.PartName)</span><span>@row.Qty.ToString("N0") @Uom.Symbol(row.Unit)</span>
                 <small>@Display(row.PartNo) · @Display(row.Maker)</small>
             </button>
         }
