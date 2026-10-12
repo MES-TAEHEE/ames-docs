@@ -105,7 +105,10 @@
                         <strong>@_highlightedLocation</strong>
                         <small>@MapScope</small>
                     </div>
-                    <button type="button" @onclick="CloseLocationDetail" aria-label="Close location detail"><RadzenIcon Icon="close" /></button>
+                    <div class="location-drawer-actions">
+                        <button type="button" class="location-drawer-print" @onclick="OpenLocationBarcode" aria-label="Print location barcode" title="Print location barcode"><RadzenIcon Icon="print" /> Print</button>
+                        <button type="button" @onclick="CloseLocationDetail" aria-label="Close location detail"><RadzenIcon Icon="close" /></button>
+                    </div>
                 </header>
 
                 <div class="inventory-drawer-summary">
@@ -139,6 +142,11 @@
                 </div>
             </aside>
         </div>
+    }
+
+    @if (_barcodeLocation is not null)
+    {
+        <LocationBarcodeDialog LocationCode="@_barcodeLocation.LocationNo" OnClose="CloseLocationBarcode" />
     }
 
     @if (_dialog is not null)
@@ -187,6 +195,7 @@
     private MapStage _stage;
     private string? _warehouse, _area, _floor, _highlightedLocation;
     private bool _selectingFloor, _locationDrawerOpen, _saving, _editing;
+    private LocationMapCell? _barcodeLocation;
     private string? _dialog, _actionError;
     private string _code = "", _name = "", _dialogError = "";
     private int _aisles = 1, _bays = 1;
@@ -402,6 +411,13 @@
         _highlightedLocation = location.LocationNo;
         _locationDrawerOpen = true;
     }
+
+    private void OpenLocationBarcode()
+    {
+        _barcodeLocation = MapLocations.FirstOrDefault(x => Same(x.LocationNo, _highlightedLocation));
+    }
+
+    private void CloseLocationBarcode() => _barcodeLocation = null;
 
     private void CloseLocationDetail()
     {

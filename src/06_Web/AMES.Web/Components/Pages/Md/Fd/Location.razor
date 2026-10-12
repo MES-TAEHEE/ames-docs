@@ -62,8 +62,15 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationID" Title="@L["Col.LocationId"]" TextAlign="TextAlign.Center" Width="150px">
-                <Template Context="r"><span class="code">@r.LocationID</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationID" Title="@L["Col.LocationId"]" TextAlign="TextAlign.Center" Width="190px">
+                <Template Context="r">
+                    <span class="location-code-print-cell" @onclick:stopPropagation>
+                        <span class="code">@r.LocationID</span>
+                        <RadzenButton Icon="print" title="Print location barcode" aria-label="@($"Print location barcode {r.LocationID}")"
+                                      ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn location-code-print-btn"
+                                      Click="@(() => OpenBarcode(r))" />
+                    </span>
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LocationName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.LocationName ?? "—")</Template>
@@ -87,6 +94,11 @@
         </Columns>
     </RadzenDataGrid>
 </div>
+
+@if (_barcodeLocation is not null)
+{
+    <LocationBarcodeDialog LocationCode="@_barcodeLocation.LocationID" OnClose="CloseBarcode" />
+}
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
@@ -188,6 +200,7 @@
     List<MasterDataRepository.CodeItemRow> _bayCodes   = new();
     List<MasterDataRepository.CodeItemRow> _slotCodes  = new();
     MasterDataRepository.LocationRow? _sel;
+    MasterDataRepository.LocationRow? _barcodeLocation;
 
     string  _fSearch = "";
     string? _fArea;
@@ -289,6 +302,9 @@
     {
         if (args.Data is not null) OpenEdit(args.Data);
     }
+
+    void OpenBarcode(MasterDataRepository.LocationRow location) => _barcodeLocation = location;
+    void CloseBarcode() => _barcodeLocation = null;
 
     void OpenCreate() { _f = new() { WhCode = "EOS", AreaCode = "MAT_AREA", Slot = "F1" }; _modalErr = ""; _modal = "create"; }
 
