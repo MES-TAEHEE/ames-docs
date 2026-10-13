@@ -12,9 +12,9 @@ namespace AMES.Data.Tests.Aps;
 /// 전제: migrate_aps.sql 적용, 개발 시드 라인 LINE-INJ-01 / LINE-INJ-02 / LINE-IMG-01 · 스테이션 ST-INJ-01 / ST-IMG-01, 라우팅 A = INJ→IMG(2단계).
 /// 기준 주는 +414일 뒤 월요일(PlanScheduleTests·MoldPlanningTests 의 +400일 주와 겹치지 않음). 같은 라인을 쓰므로 같은 컬렉션으로 직렬화한다.
 /// 공유 개발 DB 라서 실제 품번(개발 시드 수주의 지연분이 첫날에 들어온다)도 번들에 섞인다 — 개수 단언은 ITEST-APS- 행으로 한정한다.
-/// 시드: 완제품 ITEST-APS-FG(BoxQty 20, BOP INJ/IMG 스테이션) · 형제 ITEST-APS-SIB(BoxQty NULL, IMG BOP 만) · RoutingType 없는 ITEST-APS-NORT,
+/// 시드: 완제품 ITEST-APS-FG(PalletQty 20, BOP INJ/IMG 스테이션) · 형제 ITEST-APS-SIB(PalletQty NULL, IMG BOP 만) · RoutingType 없는 ITEST-APS-NORT,
 /// 금형 ITEST-APS-M(CavityCount 2, LINE-INJ-01 UPH 120) · LINE-INJ-01 전용 3교대 패턴 ITEST-APS-PAT(A 08~16 · B 16~24 · C 00~08) ·
-/// Review Focus 1 용 ITEST-APS-TWO(BoxQty 10, IMG BOP 만, 금형 ITEST-APS-M2 CavityCount 1 이 LINE-INJ-01(PrepTime 40, UPH 120)·LINE-INJ-02(PrepTime 5, UPH 90) 두 곳에 배정) ·
+/// Review Focus 1 용 ITEST-APS-TWO(PalletQty 10, IMG BOP 만, 금형 ITEST-APS-M2 CavityCount 1 이 LINE-INJ-01(PrepTime 40, UPH 120)·LINE-INJ-02(PrepTime 5, UPH 90) 두 곳에 배정) ·
 /// 수주 8건 · Released WO 1건(INJ 완료 50 / IMG 완료 30, D1 INJ 주간 슬롯 60 · D2 IMG 슬롯 60) · 직전 근무일 실적(IMG 12 + 역분개 −1, INJ 20) · 완제품 재고 25(통합재고 WH_Inventory 15 + 10, Qty 0 행 제외, 위치 무관).
 /// 정리는 이 클래스가 만든 행만(키 접두어 + CreatedBy = ITEST-APS) 지운다.
 /// </summary>
@@ -34,8 +34,8 @@ public class ApsRepositoryTests
     const string NoL    = "ITEST-APS-NOL";   // 라우팅 A, BOP 없음 → 완제품 라인 미배정(IMG 라인 여러 개)
     const string NmL    = "ITEST-APS-NML";   // 활성 금형은 있으나 BOP INJ·MD_MoldLine 없음 → 사출 라인 미정
     const string NUp    = "ITEST-APS-NUP";   // BOP INJ 라인의 MD_MoldLine UPH 0
-    const string Bx     = "ITEST-APS-BX";    // BoxQty 24, 금형·BOM 없음 — 아래 Bxl 의 앞자리
-    const string Bxl    = "ITEST-APS-BXL";   // BoxQty NULL, 금형·BOM 없음
+    const string Bx     = "ITEST-APS-BX";    // PalletQty 24, 금형·BOM 없음 — 아래 Bxl 의 앞자리
+    const string Bxl    = "ITEST-APS-BXL";   // PalletQty NULL, 금형·BOM 없음
     const string Off    = "ITEST-APS-OFF";   // 비활성 품번(등록 슬롯만)
     const string Mold   = "ITEST-APS-M";
     const string Mold2  = "ITEST-APS-M2";
@@ -88,7 +88,7 @@ public class ApsRepositoryTests
     {
         Cleanup(f);
         Exec(f, """
-            INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, PGN, ALC, CarType, BoxQty, ActiveFlag, CreatedBy)
+            INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, PGN, ALC, CarType, PalletQty, ActiveFlag, CreatedBy)
             VALUES (@FG,  N'ITEST APS finished',   'A',  10, 'Q019', '8146', 'HL', 20,   1, @By),
                    (@SIB, N'ITEST APS sibling',    'A',  0,  'Q019', '8146', 'HL', NULL, 1, @By),
                    (@NR,  N'ITEST APS no routing', NULL, 0,  NULL,   NULL,   NULL, NULL, 1, @By),
@@ -169,7 +169,7 @@ public class ApsRepositoryTests
     /// <summary>Review Focus 1 동률: 금형 ITEST-APS-M4(MoldChangeMin 7)가 LINE-INJ-01(PrepTime 7, UPH 100)·LINE-INJ-02(PrepTime NULL → MoldChangeMin 7, UPH 80) 에 배정.
     /// NULL 을 0 으로 읽는 구현이면 LINE-INJ-02 가 뽑히므로 COALESCE 가운데 항을 가려낸다.</summary>
     static void SeedTie(AmesConnectionFactory f) => Exec(f, """
-        INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, BoxQty, ActiveFlag, CreatedBy)
+        INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, PalletQty, ActiveFlag, CreatedBy)
         VALUES (@T, N'ITEST APS tie', 'A', 0, 5, 1, @By);
         INSERT INTO dbo.MD_Mold (MoldID, MoldName, CavityCount, Status, MoldChangeMin, CreatedBy)
         VALUES (@M4, N'ITEST APS mold 4', 1, 'AVAILABLE', 7, @By);
@@ -191,7 +191,7 @@ public class ApsRepositoryTests
     static void SeedBomRule(AmesConnectionFactory f)
     {
         Exec(f, """
-            INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, InjFlag, RoutingType, SafetyStock, BoxQty, ActiveFlag, CreatedBy)
+            INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, InjFlag, RoutingType, SafetyStock, PalletQty, ActiveFlag, CreatedBy)
             VALUES (@BP,  N'ITEST APS bom parent', 'ASSY', 0, 'A',  0, 12,   1, @By),
                    (@CH,  N'ITEST APS bom child',  'SUB',  1, NULL, 0, 50,   1, @By),
                    (@CH2, N'ITEST APS bom child2', 'SUB',  1, NULL, 0, NULL, 1, @By);
@@ -252,7 +252,7 @@ public class ApsRepositoryTests
     static void SeedWarningCases(AmesConnectionFactory f)
     {
         Exec(f, """
-            INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, BoxQty, ActiveFlag, CreatedBy)
+            INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, PalletQty, ActiveFlag, CreatedBy)
             VALUES (@NOL, N'ITEST APS no line',     'A', 0, 5, 1, @By),
                    (@NML, N'ITEST APS no mold line', 'A', 0, 5, 1, @By),
                    (@NUP, N'ITEST APS zero uph',     'A', 0, 5, 1, @By);
@@ -274,11 +274,11 @@ public class ApsRepositoryTests
         Order(f, "ITEST-APS-SO14", NUp, 5);
     }
 
-    /// <summary>앞자리 쌍: BX(BoxQty 24)가 BXL(BoxQty NULL)의 앞자리. 둘 다 라우팅 A · IMG BOP 만 · 금형·BOM 없음(완제품 행만).</summary>
+    /// <summary>앞자리 쌍: BX(PalletQty 24)가 BXL(PalletQty NULL)의 앞자리. 둘 다 라우팅 A · IMG BOP 만 · 금형·BOM 없음(완제품 행만).</summary>
     static void SeedBoxPair(AmesConnectionFactory f)
     {
         Exec(f, """
-            INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, BoxQty, ActiveFlag, CreatedBy)
+            INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, PalletQty, ActiveFlag, CreatedBy)
             VALUES (@BX,  N'ITEST APS box 24',   'A', 0, 24,   1, @By),
                    (@BXL, N'ITEST APS box none', 'A', 0, NULL, 1, @By);
             INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, ActiveFlag, CreatedBy)
@@ -390,7 +390,7 @@ public class ApsRepositoryTests
             Assert.All(fgInj.Days, d => Assert.Equal(0d, d.Requirement));
             Assert.Equal(LineInj, sibInj.LineCd);               // BOP INJ 스테이션 없음 → MD_MoldLine 교체 최소 라인
             Assert.Equal(1, sibInj.Cavity);                     // NULL → floor(2 ÷ 2)
-            Assert.Equal(1, sibInj.PackSize);                   // BoxQty NULL
+            Assert.Equal(1, sibInj.PackSize);                   // PalletQty NULL
             Assert.Equal(60d, sibInj.Uph);
             Assert.Equal(new[] { Fg }, sibInj.SiblingPartNos);
             Assert.Equal(0d, sibInj.OpeningStock);
@@ -437,7 +437,7 @@ public class ApsRepositoryTests
             Assert.DoesNotContain(b.Warnings, w => w.Contains("균등 분할") && (w.Contains(Fg) || w.Contains(Sib)));   // 캐비티 2 ÷ 품번 2 = 나누어떨어진다 — 경고 없음
             Assert.Equal(new[] { Fg }, sibInj.SiblingPartNos);
             Assert.Equal("CBK", sibInj.MoldColor);
-            Assert.Contains(b.Warnings, w => w.Contains(Sib) && w.Contains("BoxQty"));
+            Assert.Contains(b.Warnings, w => w.Contains(Sib) && w.Contains("PalletQty"));
             Assert.Contains(b.Warnings, w => w.Contains("재고는 현재값 기준"));
             Assert.DoesNotContain(b.Warnings, w => w.Contains("UPH 가 없어") && w.Contains("ITEST-APS-"));
             Assert.DoesNotContain(b.Warnings, w => w.Contains("교대 시간 폴백") && w.Contains(LineInj));   // LINE-INJ-02 는 전역 패턴(Notes #6)이라 라인별로 본다
@@ -490,7 +490,7 @@ public class ApsRepositoryTests
         try
         {
             Exec(f!, """
-                INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, BoxQty, ActiveFlag, CreatedBy)
+                INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, PalletQty, ActiveFlag, CreatedBy)
                 VALUES (@RC, N'ITEST APS routing C', 'C', 0, 10, 1, @By);
                 INSERT INTO dbo.MD_Mold (MoldID, MoldName, CavityCount, Status, MoldChangeMin, CreatedBy)
                 VALUES (@M5, N'ITEST APS mold 5', 1, 'AVAILABLE', 10, @By);
@@ -673,8 +673,8 @@ public class ApsRepositoryTests
             Assert.Equal(new ApsActualInfo(Ch,  20, 0, 16.5m), b.Actuals.Single(a => a.ItemNo == Ch));
             Assert.Equal(new ApsActualInfo(Ch2, 0,  0, 24.2m), b.Actuals.Single(a => a.ItemNo == Ch2));
             Assert.Equal(new ApsActualInfo(Bp,  11, 0, 0),     b.Actuals.Single(a => a.ItemNo == Bp));
-            Assert.Contains(new PackRule(Bp, 12), b.Settings.PackRules);           // 완제품 행도 BoxQty 로 포장 규칙(스펙 §4.2 "품번마다")
-            Assert.Contains(b.Warnings, w => w.Contains(Ch2) && w.Contains("BoxQty"));
+            Assert.Contains(new PackRule(Bp, 12), b.Settings.PackRules);           // 완제품 행도 PalletQty 로 포장 규칙(스펙 §4.2 "품번마다")
+            Assert.Contains(b.Warnings, w => w.Contains(Ch2) && w.Contains("PalletQty"));
         }
         finally { Cleanup(f!); }
     }
@@ -750,7 +750,7 @@ public class ApsRepositoryTests
         try
         {
             Exec(f!, """
-                INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, BoxQty, ActiveFlag, CreatedBy)
+                INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, PalletQty, ActiveFlag, CreatedBy)
                 VALUES (@RC, N'ITEST APS routing C', 'C', 0, 10, 1, @By);
                 INSERT INTO dbo.MD_Mold (MoldID, MoldName, CavityCount, Status, MoldChangeMin, CreatedBy)
                 VALUES (@M5, N'ITEST APS mold 5', 1, 'AVAILABLE', 10, @By);
@@ -1175,7 +1175,7 @@ public class ApsRepositoryTests
         try
         {
             Exec(f!, """
-                INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, RoutingType, SafetyStock, BoxQty, ActiveFlag, CreatedBy)
+                INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, RoutingType, SafetyStock, PalletQty, ActiveFlag, CreatedBy)
                 VALUES (@ODA, N'ITEST APS odd A',   'SUB',      'A',  0, 10, 1, @By),
                        (@ODB, N'ITEST APS odd B',   'SUB',      'A',  0, 10, 1, @By),
                        (@CLN, N'ITEST APS NNB',     'SUB',      'A',  0, 10, 1, @By),
@@ -1280,7 +1280,7 @@ public class ApsRepositoryTests
         {
             SeedBomRule(f!);   // Ch(금형 M3, LINE-INJ-02 UPH 100) · Bp → Ch 1.5 / Ch2 2.2
             Exec(f!, """
-                INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, InjFlag, RoutingType, SafetyStock, BoxQty, ActiveFlag, CreatedBy)
+                INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, InjFlag, RoutingType, SafetyStock, PalletQty, ActiveFlag, CreatedBy)
                 VALUES (@BP2,   N'ITEST APS multi parent', 'ASSY',     0, 'A',  0, 12,   1, @By),
                        (@MID,   N'ITEST APS mid sub',      'SUB',      0, NULL, 0, NULL, 1, @By),
                        (@MID2,  N'ITEST APS mid sub 2',    'SUB',      1, NULL, 0, NULL, 1, @By),   -- 사출품 표시인데 금형 없음

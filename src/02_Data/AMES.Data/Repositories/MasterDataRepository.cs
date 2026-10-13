@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using AMES.Data.Connection;
 using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
@@ -292,7 +292,7 @@ public sealed class MasterDataRepository
         var sql = """
             SELECT ItemNo, ItemName, ItemType, ItemCategory, InjFlag, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
-                   PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, BoxQty, ScanRequired,
+                   PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, ScanRequired,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS, BoxContentUnit, BoxContentQty
             FROM   dbo.MD_Item
@@ -323,7 +323,6 @@ public sealed class MasterDataRepository
             r["PalletQty"]     as int?,
             r["MaxPalletQty"]  as int?,
             (bool)r["ToteFlag"],
-            r["BoxQty"]        as int?,
             (bool)r["ActiveFlag"],
             r["CreatedBy"]     as string,
             r["CreatedTS"]     is DateTime ct ? ct : null,
@@ -372,7 +371,7 @@ public sealed class MasterDataRepository
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
-        int? palletQty, int? maxPalletQty, bool toteFlag, int? boxQty,
+        int? palletQty, int? maxPalletQty, bool toteFlag,
         bool activeFlag, string createdBy, bool scanRequired = false,
         string? boxContentUnit = null, decimal? boxContentQty = null)
     {
@@ -381,10 +380,10 @@ public sealed class MasterDataRepository
             INSERT INTO dbo.MD_Item
                    (ItemNo,ItemName,ItemType,ItemCategory,InjFlag,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,BoxQty,ActiveFlag,CreatedBy,CreatedTS,ScanRequired,BoxContentUnit,BoxContentQty)
+                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS,ScanRequired,BoxContentUnit,BoxContentQty)
             VALUES (@No,@Name,@Type,@Cat,@Inj,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Box,@Active,@By,SYSDATETIME(),@BoxScan,@ContentUnit,@ContentQty)
+                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME(),@BoxScan,@ContentUnit,@ContentQty)
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
             ("@Type", "MD_Item.ItemType", itemType), ("@Cat", "MD_Item.ItemCategory", itemCategory), ("@Car", "MD_Item.CarType", carType),
@@ -393,7 +392,7 @@ public sealed class MasterDataRepository
             ("@Route", "MD_Item.RoutingType", routingType), ("@Min", "MD_Item.MinStock", minStock),  ("@Max", "MD_Item.MaxStock", maxStock),
             ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
-            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag), ("@Box", "MD_Item.BoxQty", boxQty),
+            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag),
             ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
             ("@ContentUnit", "MD_Item.BoxContentUnit", boxContentUnit), ("@ContentQty", "MD_Item.BoxContentQty", boxContentQty));
     }
@@ -402,7 +401,7 @@ public sealed class MasterDataRepository
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
-        int? palletQty, int? maxPalletQty, bool toteFlag, int? boxQty,
+        int? palletQty, int? maxPalletQty, bool toteFlag,
         bool activeFlag, string modifiedBy, bool scanRequired = false,
         string? boxContentUnit = null, decimal? boxContentQty = null)
     {
@@ -413,7 +412,7 @@ public sealed class MasterDataRepository
                    ItemCategory=@Cat, InjFlag=@Inj, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
                    PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
-                   PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, BoxQty=@Box, ScanRequired=@BoxScan,
+                   PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, ScanRequired=@BoxScan,
                    BoxContentUnit=@ContentUnit,BoxContentQty=@ContentQty,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
@@ -425,7 +424,7 @@ public sealed class MasterDataRepository
             ("@Route", "MD_Item.RoutingType", routingType), ("@Min", "MD_Item.MinStock", minStock),  ("@Max", "MD_Item.MaxStock", maxStock),
             ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
-            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag), ("@Box", "MD_Item.BoxQty", boxQty),
+            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag),
             ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
             ("@ContentUnit", "MD_Item.BoxContentUnit", boxContentUnit), ("@ContentQty", "MD_Item.BoxContentQty", boxContentQty));
     }
@@ -893,7 +892,7 @@ public sealed class MasterDataRepository
         string? RoutingType,
         decimal? MinStock, decimal? MaxStock, decimal? SafetyStock, decimal? UnitCost,
         string? PGN, string? ALC, string? DrawingNo,
-        int? PalletQty, int? MaxPalletQty, bool ToteFlag, int? BoxQty,
+        int? PalletQty, int? MaxPalletQty, bool ToteFlag,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false,
