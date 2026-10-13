@@ -85,6 +85,7 @@ FILES=(
   migrate_md_item_mount_pos.sql       # MD_Item.MountPos 완제품 라벨 장착위치 (순서 무관)
   migrate_pr_result_prod_shift.sql    # PR_ProductionResult.ProdDate·ShiftCode + 백필 (순서 무관)
   migrate_day_cutoff_config.sql       # 전기일 기준 시각 공통코드 DAY_CUTOFF → SYS_Config.DAY_CUTOFF_TIME 이관 (재실행 안전)
+  migrate_pp_so_auto_confirm.sql      # PP-002 수주 자동 확정 플래그 SYS_Config.PP_SO_AUTO_CONFIRM (기본 false, 순서 무관)
   migrate_bom_status_code.sql         # BOM 버전 상태 공통코드 BOM_STATUS + 기간 지난 승인 버전 EXPIRED (재실행 안전)
   migrate_md_codeitem_attribute2.sql  # MD_CodeItem.Attribute2 nvarchar(200) (Attribute1 다음, 재생성 — 스키마에 이미 있으면 건너뜀)
   migrate_md_codeitem_widen.sql       # PO source URLs and service-key metadata need current widths

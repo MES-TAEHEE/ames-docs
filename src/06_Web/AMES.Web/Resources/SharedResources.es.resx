@@ -2349,6 +2349,27 @@
   <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
     <value>Seleccione al menos un pedido para confirmar.</value>
   </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm" xml:space="preserve">
+    <value>Confirmación automática</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.Hint" xml:space="preserve">
+    <value>Si está activa, los pedidos que llegan por carga Excel, importación API o PO Sync se confirman al guardarse</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.Title" xml:space="preserve">
+    <value>Confirmación automática</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.ConfirmOn" xml:space="preserve">
+    <value>Con la confirmación automática activa, los pedidos entrantes se confirman al guardarse. Los {0} pedido(s) pendientes también se confirmarán ahora. ¿Continuar?</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.Btn.On" xml:space="preserve">
+    <value>Activar y confirmar</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.AutoConfirmOn" xml:space="preserve">
+    <value>Confirmación automática activada — {0} pedido(s) pendientes confirmados.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.AutoConfirmOff" xml:space="preserve">
+    <value>Confirmación automática desactivada. Los pedidos entrantes quedarán pendientes de confirmación.</value>
+  </data>
   <data name="PP.SupplyPlanImport.Btn.ApiImport" xml:space="preserve">
     <value>Importar por API</value>
   </data>
