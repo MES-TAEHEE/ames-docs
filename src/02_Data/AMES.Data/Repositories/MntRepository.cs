@@ -703,9 +703,11 @@ public sealed class MntRepository
                 cmd.ExecuteNonQuery();
             }
 
+            // 진행 중 고장의 후속 작업지시(부분·후속 완료로 발행) 설명은 남은 작업 내용이라 덮어쓰지 않는다
             using (var cmd = new SqlCommand("""
                 UPDATE w
-                SET    w.EquipID = @Eq, w.Priority = @Pri, w.SourceRefID = @Ref, w.ActionDesc = @Desc,
+                SET    w.EquipID = @Eq, w.Priority = @Pri, w.SourceRefID = @Ref,
+                       w.ActionDesc = CASE WHEN ISNULL(f.Status, 'OPEN') IN ('OPEN', 'REGISTERED') THEN @Desc ELSE w.ActionDesc END,
                        w.ModifiedBy = @By, w.ModifiedTS = SYSDATETIME()
                 FROM   dbo.MNT_WorkOrder w
                 JOIN   dbo.MNT_FailureRegister f ON f.WorkOrderID = w.WorkOrderID
@@ -1313,7 +1315,7 @@ public sealed class MntRepository
             newId = Convert.ToInt32(cmd.ExecuteScalar());
         }
 
-        if (note.Length > 1000) note = note[..1000];
+        if (note.Length > 500) note = note[..500];   // MNT_FailureAction.Description nvarchar(500) — ResolveFailureRows 와 같게
         foreach (var id in failureIds)
         {
             using var cmd = new SqlCommand("""
@@ -1327,7 +1329,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Id",   SqlDbType.Int).Value             = id;
             cmd.Parameters.Add("@New",  SqlDbType.Int).Value             = newId;
             cmd.Parameters.Add("@Type", SqlDbType.VarChar,    20).Value = result;
-            cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = note;
+            cmd.Parameters.Add("@Desc", SqlDbType.NVarChar,  500).Value = note;
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)techId ?? DBNull.Value;
             cmd.Parameters.Add("@At",   SqlDbType.DateTime2).Value       = at;
             cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;

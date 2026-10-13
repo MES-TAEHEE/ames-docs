@@ -147,10 +147,11 @@ public class MntConcurrencyTests
         var mnt = new MntRepository(f!);
         try
         {
-            var (failId, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 부분 완료", "MAJOR", "WEB", DateTime.Now.AddHours(-2), null, Actor);
+            var (failId, failNo, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 부분 완료", "MAJOR", "WEB", DateTime.Now.AddHours(-2), null, Actor);
             var woId = Convert.ToInt32(Scalar(f!, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
 
-            var o = mnt.CompleteWorkOrder(woId, result, "임시 조치", "원인", 30, null, DateTime.Now.AddHours(-1), null, Actor);
+            // 화면 입력 최대 길이(원인 200·조치 500)에 가깝게 — 조치 이력 Description 은 nvarchar(500)
+            var o = mnt.CompleteWorkOrder(woId, result, new string('조', 450), new string('원', 200), 30, null, DateTime.Now.AddHours(-1), null, Actor);
 
             Assert.NotNull(o.FollowUpWoNumber);
             Assert.Equal("COMPLETED", Scalar(f!, "SELECT Status FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @I", ("@I", woId)));
@@ -166,6 +167,10 @@ public class MntConcurrencyTests
             // 작업 이력이 생긴 고장은 지울 수 없다(후속 작업지시가 발행 상태여도)
             Assert.Equal(Services.FailureDeleteRules.Block.NotOpen,
                 Assert.Throws<MntRepository.FailureNotDeletableException>(() => mnt.DeleteFailure(failId)).Reason);
+
+            // 고장을 고쳐도 후속 작업지시의 설명(남은 작업)은 그대로
+            mnt.UpdateFailure(failId, failNo, Equip, "ELEC", "ITEST 부분 완료(수정)", "MAJOR", "WEB", DateTime.Now.AddHours(-2), null, Actor);
+            Assert.StartsWith(result + " ← ", (string)Scalar(f!, "SELECT ActionDesc FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @I", ("@I", newWo))!);
 
             // 후속 작업지시를 정상 완료하면 그때 해결
             var done = mnt.CompleteWorkOrder(newWo, "OK", "부품 교체", null, 20, null, DateTime.Now, null, Actor);
