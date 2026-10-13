@@ -12,6 +12,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject MntRepository Mnt
+@inject AuditLogger Audit
 @inject MasterDataRepository MD
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
@@ -358,7 +359,7 @@
     {
         if (!_allRows.Any(r => r.EquipStatusId is null)) { ShowMsg(L["MNT.EquipmentCard.Err.NoCandidates"], true); return; }
         _f = new() { EquipId = preselect?.EquipId ?? "", Status = preselect?.Status ?? "IDLE", NextPmDate = preselect?.NextPmDate };
-        _editId = null; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _editId = null; _editRow = null; _sel = null; _modalErr = ""; _confirmDelete = false;
         _modal = "create";
     }
 
@@ -370,7 +371,7 @@
             EquipId = r.EquipId, Status = r.Status ?? "", RuntimeHours = r.RuntimeHours, CycleCount = r.CycleCount,
             NextPmDate = r.NextPmDate, MountedMoldId = r.MountedMoldId ?? "",
         };
-        _editId = r.EquipStatusId; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _editId = r.EquipStatusId; _editRow = r; _sel = null; _modalErr = ""; _confirmDelete = false;
         _modal = "edit";
     }
 
@@ -386,6 +387,7 @@
             if (_editId is int id)
             {
                 Mnt.UpdateEquipStatus(id, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, _f.NextPmDate, NE(_f.MountedMoldId), _actor);
+                Audit.Updated("MNT-001", "MNT_EquipmentStatus", _f.EquipId, _editRow, _f);
                 ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Updated"].Value, _f.EquipId), false);
             }
             else
@@ -393,6 +395,7 @@
                 // 2차 관문: 다른 세션이 먼저 등록했을 수 있으므로 저장 직전 DB 에서 다시 확인 (INSERT 자체도 중복이면 THROW)
                 if (Mnt.EquipStatusExists(_f.EquipId)) { _modalErr = string.Format(L["MNT.EquipmentCard.Err.Duplicate"].Value, _f.EquipId); return; }
                 Mnt.InsertEquipStatus(_f.EquipId, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, _f.NextPmDate, NE(_f.MountedMoldId), _actor);
+                Audit.Created("MNT-001", "MNT_EquipmentStatus", _f.EquipId, _f);
                 ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Created"].Value, _f.EquipId), false);
             }
             CloseModal(); await ReloadRestorePage();
@@ -409,7 +412,9 @@
         try
         {
             var equipId = _f.EquipId;
+            var before = _editRow;
             Mnt.DeleteEquipStatus(id);
+            Audit.Deleted("MNT-001", "MNT_EquipmentStatus", equipId, before);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Deleted"].Value, equipId), false);
         }
@@ -481,7 +486,8 @@
 
     void OpenDetail(MntRepository.EquipCardRow r) { _sel = r; _modal = "detail"; }
 
-    void CloseModal() { _modal = ""; _sel = null; _editId = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _editId = null; _editRow = null; _modalErr = ""; _confirmDelete = false; }
+    MntRepository.EquipCardRow? _editRow;   // 수정 창을 연 카드 — 수정·삭제 감사의 이전 값
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }

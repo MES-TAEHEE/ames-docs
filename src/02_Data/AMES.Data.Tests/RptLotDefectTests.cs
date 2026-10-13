@@ -66,5 +66,14 @@ public class RptLotDefectTests
         var byLine  = rpt.AdhocQuery("PROD", "Line", day, day);
         Assert.Equal(byLine.Sum(r => r.M["Entries"]), byShift.Sum(r => r.M["Entries"]));
         Assert.Equal(byLine.Sum(r => r.M["DefectQty"]), byShift.Sum(r => r.M["DefectQty"]));
+
+        // RPT-010 불량 원본의 라인 차원 = RPT-002 파레토(실적 라인 → 없으면 LOT 라인)
+        var pareto = rpt.ListDefectAgg(day, day)
+            .GroupBy(r => r.LineId ?? "—")
+            .ToDictionary(g => g.Key, g => (Qty: g.Sum(x => x.Qty), Events: g.Sum(x => x.Events)));
+        var defByLine = rpt.AdhocQuery("DEFECT", "Line", day, day)
+            .ToDictionary(r => r.Key, r => (Qty: (int)r.M["DefectQty"], Events: (int)r.M["Events"]));
+        Assert.Equal(pareto.OrderBy(p => p.Key), defByLine.OrderBy(p => p.Key));
+        Assert.True(defByLine.ContainsKey(line));
     }
 }

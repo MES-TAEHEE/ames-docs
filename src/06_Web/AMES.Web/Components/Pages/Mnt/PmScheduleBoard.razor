@@ -5,6 +5,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject MntRepository Mnt
+@inject AuditLogger Audit
 @inject SysRepository Sys
 @inject MasterDataRepository MD
 @inject ActorNames Actors
@@ -425,6 +426,9 @@
     [Parameter] public string PmClass { get; set; } = "EQUIP";
     /// <summary>권한 키(SYS_Screen.HRef).</summary>
     [Parameter] public string Href { get; set; } = "mnt/pm-schedule";
+    // 감사 로그 화면 코드 — 같은 보드를 설비 PM(MNT-005)·보전 PM(MNT-010)이 공유한다
+    string Scr => PmClass == "MAINT" ? "MNT-010" : "MNT-005";
+    MntRepository.PmRow? _editRow;   // 수정 창을 연 일정 — 수정·삭제 감사의 이전 값
 
     // 달력 이벤트: 예정일(NextDueDate) → 예정/오늘/지연, 실행 이력(MNT_PMExecution.CompletedAt) → 완료.
     // Exec 가 있으면 완료 칩(일정이 지워졌으면 Pm 은 null), 없으면 일정 칩. 구 데이터(이력 없이 LastPMDate 만)는 Pm 만 있는 완료 칩.
@@ -621,7 +625,7 @@
     void OpenCreate()
     {
         _f = new() { NextDueDate = new DateTime(_calYear, _calMonth, Math.Min(DbClock.Today.Day, DateTime.DaysInMonth(_calYear, _calMonth))), Status = "OK" };
-        _editId = null; _modalErr = ""; _confirmDelete = false;
+        _editId = null; _editRow = null; _modalErr = ""; _confirmDelete = false;
         _modal = "create";
     }
 
@@ -636,11 +640,11 @@
             LastPmDate = p.LastPmDate, NextDueDate = p.NextDueDate,
             ChecklistId = p.ChecklistId ?? "", TechId = p.AssignedTechId ?? "", Status = p.Status ?? "",
         };
-        _editId = p.PmScheduleId; _modalErr = ""; _confirmDelete = false;
+        _editId = p.PmScheduleId; _editRow = p; _modalErr = ""; _confirmDelete = false;
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _editId = null; _modalErr = ""; _confirmDelete = false; _cpm = null; }
+    void CloseModal() { _modal = ""; _editId = null; _editRow = null; _modalErr = ""; _confirmDelete = false; _cpm = null; }
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
 
     // ── 완료 처리 — 활성 작업지시가 있으면 그 완료로, 없으면(구 데이터) 실행 이력·예정일만 ──
@@ -667,6 +671,7 @@
         {
             var planNo = _cpm.PmPlanNumber ?? $"PM#{_cpm.PmScheduleId}";
             var o = Mnt.CompletePm(_cpm.PmScheduleId, _c.Result, NE(_c.Note), _c.LaborMinutes, _c.CompletedAt.Value, NE(_c.TechId), _actor);
+            Audit.Log(Scr, "COMPLETE", "MNT_PMSchedule", planNo, _cpm, new { Form = _c, Outcome = o });
             var parts = new List<string> { string.Format(L["MNT.PmSchedule.Ok.Completed"].Value, planNo) };
             if (o.WoNumber is { Length: > 0 }) parts.Add(string.Format(L["MNT.WorkOrder.Ok.Completed"].Value, o.WoNumber));
             if (o.PmNextDue is { } nd)         parts.Add(string.Format(L["MNT.WorkOrder.Ok.PmAdvanced"].Value, planNo, nd.ToString(DateFmt.Date)));
@@ -708,12 +713,14 @@
             {
                 planNo = Mnt.UpdatePm(id, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
                     _f.LastPmDate, _f.NextDueDate.Value, NE(_f.ChecklistId), NE(_f.TechId), NE(_f.Status), _actor);
+                Audit.Updated(Scr, "MNT_PMSchedule", planNo, _editRow, _f);
                 ShowMsg(string.Format(L["MNT.PmSchedule.Ok.Updated"].Value, planNo), false);
             }
             else
             {
                 (_, planNo, var woNo) = Mnt.InsertPm(PmClass, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
                     _f.LastPmDate, _f.NextDueDate.Value, NE(_f.ChecklistId), NE(_f.TechId), NE(_f.Status), _actor);
+                Audit.Created(Scr, "MNT_PMSchedule", planNo, new { PmClass, Form = _f, WoNumber = woNo });
                 ShowMsg(string.Format(L["MNT.PmSchedule.Ok.CreatedWo"].Value, planNo, woNo), false);
             }
             // 저장한 예정일의 달로 이동해 결과가 바로 보이게
@@ -734,6 +741,7 @@
         {
             var planNo = _f.PlanNo;
             Mnt.DeletePm(id);
+            Audit.Deleted(Scr, "MNT_PMSchedule", planNo, _editRow);
             CloseModal(); Reload();
             ShowMsg(string.Format(L["MNT.PmSchedule.Ok.Deleted"].Value, planNo), false);
         }

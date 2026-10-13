@@ -7,7 +7,8 @@ namespace AMES.Data.Services;
 /// </summary>
 public static class FailureTimeline
 {
-    public enum Kind { Reported, Arrived, Ack, Repaired, Resolved, Other }
+    // Partial·FollowUp = 작업지시를 부분 완료·후속 필요로 끝낸 임시 조치(고장은 후속 작업지시로 넘어가 열린 채, 10-14)
+    public enum Kind { Reported, Arrived, Ack, Partial, FollowUp, Repaired, Resolved, Other }
 
     public enum Stage { Waiting, Arrived, Acked, Resolved }
 
@@ -28,7 +29,7 @@ public static class FailureTimeline
             .Select(a => (Kind: KindOf(a.Type), A: a))
             .OrderBy(x => x.A.At).ThenBy(x => x.Kind)
             .Select(x => new Step(x.Kind, x.A.At!.Value, x.A.Who,
-                x.Kind is Kind.Repaired or Kind.Other ? x.A.Note : null,
+                x.Kind is Kind.Repaired or Kind.Partial or Kind.FollowUp or Kind.Other ? x.A.Note : null,
                 Minutes(reportedAt, x.A.At!.Value),
                 x.Kind == Kind.Other ? x.A.Type : null))
             .ToList();
@@ -44,7 +45,8 @@ public static class FailureTimeline
     {
         if (IsResolved(status)) return Stage.Resolved;
         var kinds = actionTypes.Select(KindOf).ToHashSet();
-        return kinds.Contains(Kind.Ack) ? Stage.Acked : kinds.Contains(Kind.Arrived) ? Stage.Arrived : Stage.Waiting;
+        return kinds.Contains(Kind.Ack) || kinds.Contains(Kind.Partial) || kinds.Contains(Kind.FollowUp) ? Stage.Acked
+             : kinds.Contains(Kind.Arrived) ? Stage.Arrived : Stage.Waiting;
     }
 
     /// <summary>해결까지 걸린 분 — 해결 전이면 발생부터 <paramref name="now"/> 까지(경과).</summary>
@@ -59,6 +61,8 @@ public static class FailureTimeline
     {
         "ARRIVED"  => Kind.Arrived,
         "ACK"      => Kind.Ack,
+        "PARTIAL"  => Kind.Partial,
+        "FOLLOWUP" => Kind.FollowUp,
         "REPAIRED" => Kind.Repaired,
         _          => Kind.Other,
     };

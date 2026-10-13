@@ -28,7 +28,6 @@ internal static class Program
         SeedSupplyPlans(conn);
         SeedMrpRuns(conn);
         SeedPurchaseRequests(conn);
-        SeedCalendar(conn);
         SeedLineSchedule(conn);
         SeedOee(conn);
         SeedDowntime(conn);
@@ -44,7 +43,6 @@ internal static class Program
         DELETE FROM dbo.PP_LineDowntimeLog           WHERE CreatedBy='pp-seed';
         DELETE FROM dbo.PP_LineOEE                   WHERE CreatedBy='pp-seed';
         DELETE FROM dbo.PP_LineSchedule              WHERE CreatedBy='pp-seed';
-        DELETE FROM dbo.PP_ProductionCalendarOverride WHERE CreatedBy='pp-seed';
         DELETE FROM dbo.PP_PurchaseRequest           WHERE CreatedBy='pp-seed';
         DELETE FROM dbo.PP_MRPLog                    WHERE CreatedBy='pp-seed';
         DELETE FROM dbo.PP_SupplyPlanDetail          WHERE CreatedBy='pp-seed';
@@ -197,24 +195,6 @@ internal static class Program
         Console.WriteLine("  pr    5 purchase requests (2 approved · 2 pending · 1 draft)");
     }
 
-    // ── PP-CAL Calendar overrides ──────────────────────────────────────
-    private static void SeedCalendar(SqlConnection conn)
-    {
-        Exec(conn, """
-            INSERT INTO dbo.PP_ProductionCalendarOverride
-                (OverrideDate, LineID, DayType, PatternID, CapacityFactor, Reason,
-                 ApprovedBy, ApprovedAt, CreatedBy, CreatedTS)
-            VALUES
-                (DATEADD(day, 3, CAST(GETDATE() AS DATE)),  NULL,          'Holiday',  NULL,        0.0,
-                 N'Memorial Day — plant closed',   NULL, NULL, 'pp-seed', SYSDATETIME()),
-                (DATEADD(day, 5, CAST(GETDATE() AS DATE)),  'LINE-INJ-01', 'Overtime', 'PAT-OT12', 1.5,
-                 N'Catch-up shift for PO-2026-005', NULL, NULL, 'pp-seed', SYSDATETIME()),
-                (DATEADD(day, 10, CAST(GETDATE() AS DATE)), 'LINE-PNT-01', 'Reduced',  'PAT-HALF',  0.5,
-                 N'Booth maintenance',              NULL, NULL, 'pp-seed', SYSDATETIME());
-            """);
-        Console.WriteLine("  cal   3 calendar overrides");
-    }
-
     // ── PP-LSB Line Schedule ───────────────────────────────────────────
     private static void SeedLineSchedule(SqlConnection conn)
     {
@@ -225,13 +205,11 @@ internal static class Program
             {
                 Exec(conn, $"""
                     INSERT INTO dbo.PP_LineSchedule
-                        (LineID, ScheduleDate, StartMin, EndMin, PlannedQty, Status, PublishedAt,
+                        (LineID, ScheduleDate, StartMin, EndMin, PlannedQty, Status,
                          CreatedBy, CreatedTS)
                     VALUES
-                        (@L, DATEADD(day, {d}, CAST(GETDATE() AS DATE)),  360,  720, 200, 'Published',
-                         DATEADD(day, -1, SYSDATETIME()), 'pp-seed', SYSDATETIME()),
-                        (@L, DATEADD(day, {d}, CAST(GETDATE() AS DATE)),  720, 1080, 220, 'Published',
-                         DATEADD(day, -1, SYSDATETIME()), 'pp-seed', SYSDATETIME());
+                        (@L, DATEADD(day, {d}, CAST(GETDATE() AS DATE)),  360,  720, 200, 'DRAFT', 'pp-seed', SYSDATETIME()),
+                        (@L, DATEADD(day, {d}, CAST(GETDATE() AS DATE)),  720, 1080, 220, 'DRAFT', 'pp-seed', SYSDATETIME());
                     """, ("@L", line));
             }
         }

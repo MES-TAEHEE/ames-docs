@@ -27,6 +27,7 @@ public class InjDailyItemSummaryTests
             DELETE e FROM dbo.PR_InjLot e JOIN dbo.tbl_Lot l ON l.LotID = e.LotID WHERE l.ItemNo LIKE 'ITEST-DLY-%';
             DELETE FROM dbo.tbl_Lot WHERE ItemNo LIKE 'ITEST-DLY-%';
             DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE w.ItemNo LIKE 'ITEST-DLY-%';
+            DELETE FROM dbo.PP_LineSchedule WHERE EntryType = 'PM' AND Title = N'ITEST PM' AND CreatedBy = 'ITEST';   -- PM 밴드는 WoID 가 없어 위 조인에 안 걸린다
             DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.ItemNo LIKE 'ITEST-DLY-%';
             DELETE FROM dbo.PP_WorkOrder WHERE ItemNo LIKE 'ITEST-DLY-%';
             DELETE FROM dbo.MD_Bop  WHERE ItemNo LIKE 'ITEST-DLY-%';
@@ -97,7 +98,7 @@ public class InjDailyItemSummaryTests
     static void AddPlan(AmesConnectionFactory f, int woId, string lineId, int dayOffset, decimal qty, string entryType = "WO")
         => Exec(f, """
             INSERT INTO dbo.PP_LineSchedule (LineID, ScheduleDate, WoID, PlannedQty, EntryType, Title, Status, CreatedBy)
-            VALUES (@L, DATEADD(day, @D, CAST(GETDATE() AS date)), @W, @Q, @E, @T, 'Published', 'ITEST');
+            VALUES (@L, DATEADD(day, @D, CAST(GETDATE() AS date)), @W, @Q, @E, @T, 'DRAFT', 'ITEST');
             """, ("@L", lineId), ("@D", dayOffset), ("@Q", qty), ("@E", entryType),
                  ("@W", entryType == "PM" ? (object)DBNull.Value : woId),
                  ("@T", entryType == "PM" ? (object)"ITEST PM" : DBNull.Value));

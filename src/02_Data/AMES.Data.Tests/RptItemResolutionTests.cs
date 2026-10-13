@@ -52,7 +52,7 @@ public class RptItemResolutionTests
                 """, ("@I", Finished), ("@A", Actor)));
             Exec(f!, "INSERT dbo.PP_WorkOrderRouting (WoID, StepSeq, ProcessCode, LineID, ItemNo, Status, CreatedBy) VALUES (@W, 10, 'INJ', @L, @I, 'Released', @A)",
                 ("@W", wo), ("@L", Line), ("@I", Core), ("@A", Actor));
-            Exec(f!, "INSERT dbo.PP_LineSchedule (LineID, ScheduleDate, WoID, PlannedQty, Status, EntryType, CreatedBy) VALUES (@L, @D, @W, 10, 'PUBLISHED', 'WO', @A)",
+            Exec(f!, "INSERT dbo.PP_LineSchedule (LineID, ScheduleDate, WoID, PlannedQty, Status, EntryType, CreatedBy) VALUES (@L, @D, @W, 10, 'DRAFT', 'WO', @A)",
                 ("@L", Line), ("@D", Day), ("@W", wo), ("@A", Actor));
 
             Result(f!, wo, Lot(f!, Core, wo), 1);                // WO 있는 사출 실적 → 코어

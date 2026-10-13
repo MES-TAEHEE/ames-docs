@@ -5,7 +5,7 @@
       값 = 그 화면에 있는 기능, 자리 순서 R(읽기)·E(수정)·A(승인), 각 '_'(있음) / 'X'(없음), 읽기는 항상 '_'.
       처음 적용할 때만 아래 목록으로 채운다(웹 화면의 CanEdit/CanApprove 조사 — 조회 전용 28 · 수정까지 49 · 승인까지 12,
       목록 밖 화면(포탈 등)은 '___'). 그 뒤로는 SYS-003 에서 관리한다.
-   ② 승인 권한(A)으로 옮긴 동작 — MD-004 BOM 승인·반려, PP-006 PO 승인, PP-002 수주 확정, PP-004 WO 릴리스·취소, PP-LSB 발행,
+   ② 승인 권한(A)으로 옮긴 동작 — MD-004 BOM 승인·반려, PP-006 PO 승인, PP-002 수주 확정, PP-004 WO 릴리스·취소(PP-LSB 발행은 10-14 폐지),
       PP-APS WO 생성, MNT-002 수리 완료, MNT-007 작업지시 완료, MNT-005·010 PM 완료. 처음 적용할 때 그 화면에서 E 를 가진 역할에 A 를 같이 줘
       종전 동작(수정 권한으로 하던 것)을 잇는다.
    ③ SYS_RolePermission.PermissionLevel 을 화면 기본 권한에 맞춰 3자리로 — 자리마다 부여 글자 · '_'(미부여) · 'X'(기능 없음).
@@ -145,7 +145,7 @@ BEGIN
     ('PP-APS', '___'),
     ('PP-CAL', '__X'),
     ('PP-DTL', '__X'),
-    ('PP-LSB', '___'),
+    ('PP-LSB', '__X'),   -- 10-14 발행 폐지 — 승인 기능 없음
     ('PP-ODM', '_XX'),
     ('PP-OEE', '__X'),
     ('PP-OTD', '_XX'),
@@ -190,7 +190,7 @@ BEGIN TRAN;
            ISNULL(s.PermissionCriteria, '___') AS Tpl,
            UPPER(rp.PermissionLevel)
          + CASE WHEN EXISTS (SELECT 1 FROM #ScreenPermRun)
-                 AND rp.ScreenCode IN ('MD-004', 'PP-006', 'PP-002', 'PP-004', 'PP-LSB', 'PP-APS', 'MNT-002', 'MNT-005', 'MNT-007', 'MNT-010')
+                 AND rp.ScreenCode IN ('MD-004', 'PP-006', 'PP-002', 'PP-004', 'PP-APS', 'MNT-002', 'MNT-005', 'MNT-007', 'MNT-010')
                  AND CHARINDEX('E', UPPER(rp.PermissionLevel)) > 0
                 THEN 'A' ELSE '' END AS Granted
     FROM   dbo.SYS_RolePermission rp

@@ -66,8 +66,9 @@ public sealed class MntRepository
         string? EquipName = null);   // ResultJson = 완료 결과(MNT_WorkOrder.ChecklistResultsJSON)
 
     /// <summary>완료 처리 결과 — 어느 원천이 역방향으로 갱신됐는지 화면 메시지용.</summary>
+    /// <paramref name="FollowUpWoNumber"/> = 부분·후속 완료로 고장을 넘겨받은 새 작업지시(있으면 고장은 열린 채다).
     public sealed record WoCompleteOutcome(int WorkOrderId, string WoNumber, string? FailureNumber,
-        string? PmPlanNumber, DateTime? PmNextDue, string? NextWoNumber);
+        string? PmPlanNumber, DateTime? PmNextDue, string? NextWoNumber, string? FollowUpWoNumber = null);
 
     /// <summary>MNT_WorkOrder.ChecklistResultsJSON 에 남기는 완료 결과. 전용 컬럼이 없어 JSON 으로 둔다.</summary>
     public sealed record WoResult(string? Result, string? Action, string? RootCause, string? By, DateTime? At);
@@ -1237,8 +1238,15 @@ public sealed class MntRepository
             using var r = cmd.ExecuteReader();
             while (r.Read()) failures.Add(((int)r["FailureID"], r["FailureNumber"] as string ?? $"F#{r["FailureID"]}"));
         }
+        // 부분·후속 완료는 고장을 닫지 않고 후속 작업지시로 넘긴다(10-14 사용자 결정) — 정상 완료만 해결
+        string? followUpWo = null;
         if (failures.Count > 0)
-            ResolveFailureRows(conn, tx, failures.Select(f => f.Id), rootCause, actionTaken, completedAt, techId, actor);
+        {
+            if (result is MwoResultCodes.Partial or MwoResultCodes.FollowUp)
+                followUpWo = CarryFailuresToFollowUp(conn, tx, woId, woNumber, failures.Select(f => f.Id), result, rootCause, actionTaken, completedAt, techId, actor);
+            else
+                ResolveFailureRows(conn, tx, failures.Select(f => f.Id), rootCause, actionTaken, completedAt, techId, actor);
+        }
 
         // PM 역방향 — 이 WO 를 활성 WO 로 가진 일정(구 데이터는 SourceRefID 로 보조 매칭)
         // 고장·PM 조회는 인덱스 없는 스캔이라 UPDLOCK 을 걸지 않는다(다른 WO 를 동시에 완료하는 트랜잭션끼리 교착) — 이중 반영은 위 WO 행 잠금이 막는다.
@@ -1261,7 +1269,71 @@ public sealed class MntRepository
         if (pm is not null)
             (pmNo, nextDue, nextWo) = AdvancePm(conn, tx, pm, woId, result, actionTaken, laborMinutes, completedAt, techId, actor);
 
-        return new WoCompleteOutcome(woId, woNumber, failures.Count > 0 ? string.Join(", ", failures.Select(f => f.No)) : null, pmNo, nextDue, nextWo);
+        return new WoCompleteOutcome(woId, woNumber, failures.Count > 0 ? string.Join(", ", failures.Select(f => f.No)) : null, pmNo, nextDue, nextWo, followUpWo);
+    }
+
+    /// <summary>
+    /// 부분 완료(PARTIAL)·후속 필요(FOLLOWUP) — 고장은 열린 채(IN_PROGRESS) 두고, 완료한 작업지시의 유형·설비·우선순위로
+    /// 후속 작업지시(ISSUED, 미배정)를 발행해 고장의 WorkOrderID 를 옮긴다. 조치 이력에는 결과 코드를 유형으로 1행 남긴다
+    /// (REPAIRED 가 아니므로 해결 시각·수리 시간은 최종 정상 완료 때 정해진다). 새 작업지시 번호를 돌려준다.
+    /// </summary>
+    private string CarryFailuresToFollowUp(SqlConnection conn, SqlTransaction tx, int woId, string woNumber, IEnumerable<int> failureIds,
+        string result, string? rootCause, string actionTaken, DateTime at, string? techId, string actor)
+    {
+        string? woType, equipId, priority, sourceRef;
+        using (var cmd = new SqlCommand("SELECT WoType, EquipID, Priority, SourceRefID FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @Id", conn, tx))
+        {
+            cmd.Parameters.Add("@Id", SqlDbType.Int).Value = woId;
+            using var r = cmd.ExecuteReader();
+            r.Read();
+            woType = r["WoType"] as string; equipId = r["EquipID"] as string; priority = r["Priority"] as string; sourceRef = r["SourceRefID"] as string;
+        }
+
+        var note = string.IsNullOrWhiteSpace(rootCause) ? actionTaken.Trim() : $"{rootCause.Trim()} → {actionTaken.Trim()}";
+        var desc = $"{result} ← {woNumber}: {note}";
+        if (desc.Length > 1000) desc = desc[..1000];
+
+        var newNo = NextMwoNumber(conn, tx);
+        int newId;
+        using (var cmd = new SqlCommand("""
+            INSERT INTO dbo.MNT_WorkOrder
+                (WoNumber, WoType, EquipID, Priority, SourceType, SourceRefID, AssignedTechID,
+                 ActionDesc, Status, IssuedAt, CreatedBy, CreatedTS)
+            VALUES (@Wo, @Type, @Eq, @Pri, 'FAILURE', @Ref, NULL, @Desc, 'ISSUED', SYSDATETIME(), @By, SYSDATETIME());
+            SELECT CAST(SCOPE_IDENTITY() AS int);
+            """, conn, tx))
+        {
+            cmd.Parameters.Add("@Wo",   SqlDbType.VarChar,    28).Value = newNo;
+            cmd.Parameters.Add("@Type", SqlDbType.VarChar,    15).Value = woType ?? MwoTypeCodes.Cm;
+            cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = (object?)equipId ?? DBNull.Value;
+            cmd.Parameters.Add("@Pri",  SqlDbType.VarChar,    10).Value = (object?)priority ?? DBNull.Value;
+            cmd.Parameters.Add("@Ref",  SqlDbType.VarChar,    24).Value = (object?)sourceRef ?? DBNull.Value;
+            cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = desc;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
+            newId = Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        if (note.Length > 1000) note = note[..1000];
+        foreach (var id in failureIds)
+        {
+            using var cmd = new SqlCommand("""
+                UPDATE dbo.MNT_FailureRegister
+                SET    Status = 'IN_PROGRESS', WorkOrderID = @New, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+                WHERE  FailureID = @Id AND ISNULL(Status, 'OPEN') NOT IN ('RESOLVED', 'CLOSED');
+                IF @@ROWCOUNT > 0
+                    INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
+                    VALUES (@Id, @Type, @Desc, @Tech, @At, @By, SYSDATETIME());
+                """, conn, tx);
+            cmd.Parameters.Add("@Id",   SqlDbType.Int).Value             = id;
+            cmd.Parameters.Add("@New",  SqlDbType.Int).Value             = newId;
+            cmd.Parameters.Add("@Type", SqlDbType.VarChar,    20).Value = result;
+            cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = note;
+            cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)techId ?? DBNull.Value;
+            cmd.Parameters.Add("@At",   SqlDbType.DateTime2).Value       = at;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
+            cmd.ExecuteNonQuery();
+        }
+        return newNo;
     }
 
     /// <summary>고장 RESOLVED + 조치 이력(MNT_FailureAction 'REPAIRED') — 안돈의 ARRIVED/ACK 와 같은 테이블에 쌓인다.

@@ -32,13 +32,13 @@ public class LineScheduleConcurrencyTests
     [Fact]
     public void VersionOf_ignores_row_order_and_changes_with_content()
     {
-        var a = new LineScheduleRepository.ScheduleRow(1, "P", 10, null, null, 480, 540, 5m, "DRAFT", null, null, "WO", null, null, null);
+        var a = new LineScheduleRepository.ScheduleRow(1, "P", 10, null, null, 480, 540, 5m, "DRAFT", "WO", null, null, null);
         var b = a with { ScheduleId = 2, WoId = 11, StartMin = 540, EndMin = 600 };
 
         Assert.Equal(LineScheduleRepository.VersionOf([a, b]), LineScheduleRepository.VersionOf([b, a]));
         Assert.NotEqual(LineScheduleRepository.VersionOf([a, b]), LineScheduleRepository.VersionOf([a, b with { EndMin = 610 }]));
         Assert.NotEqual(LineScheduleRepository.VersionOf([a]), LineScheduleRepository.VersionOf([a, b]));
-        Assert.NotEqual(LineScheduleRepository.VersionOf([a]), LineScheduleRepository.VersionOf([a with { Status = "PUBLISHED" }]));
+        Assert.NotEqual(LineScheduleRepository.VersionOf([a]), LineScheduleRepository.VersionOf([a with { Status = "CANCELLED" }]));
     }
 
     [SkippableFact]
@@ -84,7 +84,7 @@ public class LineScheduleConcurrencyTests
     }
 
     [SkippableFact]
-    public void Reset_checks_version_and_deletes_only_draft_rows()
+    public void Reset_checks_version_and_deletes_all_rows()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         Cleanup(f);
@@ -92,7 +92,7 @@ public class LineScheduleConcurrencyTests
         {
             var lsb = new LineScheduleRepository(f);
             InsertOutside(f, WoA, 480, 540);
-            InsertOutside(f, WoB, 600, 660, status: "PUBLISHED");
+            InsertOutside(f, WoB, 600, 660);
             var seen = LineScheduleRepository.VersionOf(lsb.GetSchedule(Line, Day));
 
             InsertOutside(f, WoB + 1, 700, 760);   // 보드를 연 뒤 들어온 슬롯
@@ -100,7 +100,7 @@ public class LineScheduleConcurrencyTests
             Assert.Equal(3, WoIds(lsb).Count);
 
             lsb.DeleteSchedule(Line, Day, LineScheduleRepository.VersionOf(lsb.GetSchedule(Line, Day)));
-            Assert.Equal([WoB], WoIds(lsb));       // 발행된 행만 남음
+            Assert.Empty(WoIds(lsb));              // 발행(보존) 상태는 10-14 폐지 — 초기화는 전부 지운다
         }
         finally { Cleanup(f); }
     }

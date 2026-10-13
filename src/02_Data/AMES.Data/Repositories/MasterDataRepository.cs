@@ -2499,7 +2499,7 @@ public sealed class MasterDataRepository
     }
 
     // 사용처 = 마스터(스테이션·설비·책임자·시간 패턴·APS 라인 설정·금형 라인·오븐·RFID·사출 조건·작업장 기본 라인)
-    // + 계획·생산(작업지시 헤더·단계·라인 스케줄·발행 기록·LOT). 실적·비가동·OEE·세션 같은 이력은 LOT·WO 가 대신 막는다
+    // + 계획·생산(작업지시 헤더·단계·라인 스케줄·LOT). 실적·비가동·OEE·세션 같은 이력은 LOT·WO 가 대신 막는다
     const string LineUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_Line WITH (UPDLOCK, HOLDLOCK) WHERE LineID = @K) RETURN;
         INSERT @r SELECT 'STATION',    StationCode FROM dbo.MD_Station         WHERE LineID = @K;
@@ -2515,7 +2515,6 @@ public sealed class MasterDataRepository
         INSERT @r SELECT 'WO', WoNumber FROM dbo.PP_WorkOrder WHERE LineID = @K
             UNION SELECT 'WO', w.WoNumber FROM dbo.PP_WorkOrderRouting s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE s.LineID = @K;
         INSERT @r SELECT DISTINCT 'SCHEDULE',  CONVERT(varchar(10), ScheduleDate, 23) FROM dbo.PP_LineSchedule WHERE LineID = @K;
-        INSERT @r SELECT DISTINCT 'PUBLISHED', CONVERT(varchar(10), OverrideDate, 23) FROM dbo.PP_ProductionCalendarOverride WHERE LineID = @K;
         INSERT @r SELECT 'LOT', ISNULL(LotCode, CAST(LotID AS varchar(20))) FROM dbo.tbl_Lot WHERE LineID = @K;
         """;
 
@@ -4732,7 +4731,6 @@ public sealed class MasterDataRepository
     const string LineTimePatternUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_LineTimePattern WITH (UPDLOCK, HOLDLOCK) WHERE PatternID = @K) RETURN;
         INSERT @r SELECT DISTINCT 'SCHEDULE', LineID + ' ' + CONVERT(char(10), ScheduleDate, 23) FROM dbo.PP_LineSchedule WHERE PatternID = @K;
-        INSERT @r SELECT DISTINCT 'PUBLISHED', ISNULL(LineID, '-') + ' ' + CONVERT(char(10), OverrideDate, 23) FROM dbo.PP_ProductionCalendarOverride WHERE PatternID = @K;
         INSERT @r SELECT 'APSLINE', LineID FROM dbo.MD_ApsLineStage WHERE PatternID = @K;
         INSERT @r SELECT 'APSDEFAULT', 'APS_SETTING.DEFAULT_PATTERN' FROM dbo.MD_CodeItem
             WHERE GroupCode = 'APS_SETTING' AND CodeValue = 'DEFAULT_PATTERN' AND Attribute1 = @K;
@@ -4742,7 +4740,7 @@ public sealed class MasterDataRepository
 
     /// <summary>
     /// 사용처가 없을 때만 패턴과 그 세그먼트를 지우고 빈 목록을 돌려준다. 사용처 = 라인 스케줄(PP_LineSchedule — 지난 날짜 포함)·
-    /// 발행 기록(PP_ProductionCalendarOverride)·APS 라인 설정(MD_ApsLineStage)·APS 기본 패턴(APS_SETTING.DEFAULT_PATTERN).
+    /// APS 라인 설정(MD_ApsLineStage)·APS 기본 패턴(APS_SETTING.DEFAULT_PATTERN).
     /// </summary>
     public List<UsageRef> DeleteLineTimePattern(string patternId)
         => DeleteIfUnused(LineTimePatternUsageSql, """
@@ -4859,7 +4857,7 @@ public sealed class MasterDataRepository
         RebuildMinuteFlags(patternId, actor, conn, tx);
     }
 
-    // 분단위(1440) 플래그 재생성 — 글자 위치 = 하루 분(0 = 00:00, PP-LSB 발행 스냅샷 SnapshotCalendarOverride 와 같은 기준).
+    // 분단위(1440) 플래그 재생성 — 글자 위치 = 하루 분(0 = 00:00).
     //   세그먼트는 하루 분(0~1440, 자정을 넘는 교대는 두 조각)으로 저장되므로 그 위치에 그대로 칠한다.
     //   SEGMENT_STATE.Attribute1 = 'op:seg' 에서 ':' 앞 → OperatingFlag, ':' 뒤 → SegmentFlag. 세그먼트가 없는 분은 '0'.
     private static void RebuildMinuteFlags(string patternId, string? actor, SqlConnection conn, SqlTransaction tx)

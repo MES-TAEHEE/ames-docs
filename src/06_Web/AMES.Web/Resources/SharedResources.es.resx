@@ -264,9 +264,6 @@
   <data name="Msg.Applying" xml:space="preserve">
     <value>Aplicando…</value>
   </data>
-  <data name="Msg.Publishing" xml:space="preserve">
-    <value>Publicando…</value>
-  </data>
   <data name="Msg.Saved" xml:space="preserve">
     <value>Guardado correctamente.</value>
   </data>
@@ -1690,7 +1687,7 @@
     <value>Error al reprogramar: {0}</value>
   </data>
   <data name="PP.Calendar.Err.NotChanged" xml:space="preserve">
-    <value>No se cambió la fecha de entrega: la orden está cerrada o ya no existe. Actualice la pantalla para comprobarlo.</value>
+    <value>No se cambió la fecha de entrega: la orden ya no existe. Actualice la pantalla para comprobarlo.</value>
   </data>
   <data name="PP.Calendar.Legend.Overdue" xml:space="preserve">
     <value>Atrasado</value>
@@ -1953,9 +1950,6 @@
   <data name="PP.LineSchedule.Btn.Apply" xml:space="preserve">
     <value>Aplicar</value>
   </data>
-  <data name="PP.LineSchedule.Btn.Publish" xml:space="preserve">
-    <value>Publicar</value>
-  </data>
   <data name="PP.LineSchedule.Status.Unsaved" xml:space="preserve">
     <value>Sin Guardar</value>
   </data>
@@ -1970,9 +1964,6 @@
   </data>
   <data name="PP.LineSchedule.Ok.Applied" xml:space="preserve">
     <value>Aplicado.</value>
-  </data>
-  <data name="PP.LineSchedule.Ok.Published" xml:space="preserve">
-    <value>Publicado.</value>
   </data>
   <data name="PP.LineSchedule.Kpi.Util" xml:space="preserve">
     <value>Utilización</value>
@@ -10499,9 +10490,6 @@
   <data name="MD.Usage.Kind.SCHEDULE" xml:space="preserve">
     <value>Programas de línea (línea·fecha)</value>
   </data>
-  <data name="MD.Usage.Kind.PUBLISHED" xml:space="preserve">
-    <value>Programas publicados (línea·fecha)</value>
-  </data>
   <data name="MD.Usage.Kind.APSLINE" xml:space="preserve">
     <value>Configuración de línea APS</value>
   </data>
@@ -10678,5 +10666,26 @@
   </data>
   <data name="MNT.Failure.Err.Gone" xml:space="preserve">
     <value>{0} ya fue eliminado.</value>
+  </data>
+  <data name="PP.Calendar.Status.Cancelled" xml:space="preserve">
+    <value>Cancelado</value>
+  </data>
+  <data name="PP.Calendar.Hint.FinishedNoReschedule" xml:space="preserve">
+    <value>No se puede cambiar la fecha de entrega de órdenes completadas, cerradas o canceladas.</value>
+  </data>
+  <data name="PP.Calendar.Err.Finished" xml:space="preserve">
+    <value>No se cambió la fecha de entrega: la orden ya fue completada, cerrada o cancelada. Actualice la pantalla para comprobarlo.</value>
+  </data>
+  <data name="MNT.Failure.Tl.Partial" xml:space="preserve">
+    <value>Arreglo temporal (parcial)</value>
+  </data>
+  <data name="MNT.Failure.Tl.FollowUp" xml:space="preserve">
+    <value>Requiere seguimiento</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.FailureFollowUp" xml:space="preserve">
+    <value>la avería {0} sigue abierta — pasa a la orden de seguimiento {1}</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.FollowUp" xml:space="preserve">
+    <value>Al completar como Parcial o Seguimiento la avería no se resuelve; se emite una nueva orden de seguimiento para el trabajo pendiente. La avería se resuelve al completar normalmente esa orden o al repararla en MNT-002.</value>
   </data>
 </root>

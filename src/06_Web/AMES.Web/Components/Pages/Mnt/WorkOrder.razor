@@ -12,6 +12,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject MntRepository Mnt
+@inject AuditLogger Audit
 @inject MasterDataRepository MD
 @inject SysRepository Sys
 @inject ActorNames Actors
@@ -309,6 +310,10 @@
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CompletedAt"]} *")' class="ames-rz-modal-label" Component="CompleteDateAt" />
                     <RadzenDatePicker TValue="DateTime?" Name="CompleteDateAt" @bind-Value="_f.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
+                @if (_f.Result is MwoResultCodes.Partial or MwoResultCodes.FollowUp && HasFailureSource(_sel))
+                {
+                    <div class="pill warn" style="white-space:normal;">@L["MNT.WorkOrder.Hint.FollowUp"]</div>
+                }
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Labor"]" class="ames-rz-modal-label" Component="CompleteNumericLabor" />
@@ -497,6 +502,7 @@
         try
         {
             Mnt.AssignWorkOrder(_sel.WorkOrderId, _f.TechId, _actor);
+            Audit.Log("MNT-007", "ASSIGN", "MNT_WorkOrder", WoNo(_sel), _sel, new { AssignedTechId = _f.TechId });
             ShowMsg(string.Format(L["MNT.WorkOrder.Ok.Assigned"].Value, WoNo(_sel), TechText(_f.TechId)), false);
             await AfterChange(_sel.WorkOrderId);
         }
@@ -511,6 +517,7 @@
         try
         {
             Mnt.StartWorkOrder(r.WorkOrderId, _actor);
+            Audit.Log("MNT-007", "START", "MNT_WorkOrder", WoNo(r), r, new { Status = MwoStatusCodes.InProgress });
             ShowMsg(string.Format(L["MNT.WorkOrder.Ok.Started"].Value, WoNo(r)), false);
             await AfterChange(r.WorkOrderId);
         }
@@ -547,6 +554,7 @@
         {
             var o = Mnt.CompleteWorkOrder(_sel.WorkOrderId, _f.Result, _f.Action.Trim(), NE(_f.RootCause), _f.LaborMinutes,
                 NE(_f.Parts), _f.CompletedAt.Value, NE(_f.TechId), _actor);
+            Audit.Log("MNT-007", "COMPLETE", "MNT_WorkOrder", o.WoNumber, _sel, new { Status = MwoStatusCodes.Completed, Form = _f, Outcome = o });
             ShowMsg(CompleteMsg(o), false);
             await AfterChange(_sel.WorkOrderId);
         }
@@ -558,7 +566,9 @@
     string CompleteMsg(MntRepository.WoCompleteOutcome o)
     {
         var parts = new List<string> { string.Format(L["MNT.WorkOrder.Ok.Completed"].Value, o.WoNumber) };
-        if (o.FailureNumber is not null) parts.Add(string.Format(L["MNT.WorkOrder.Ok.FailureResolved"].Value, o.FailureNumber));
+        if (o.FailureNumber is not null) parts.Add(o.FollowUpWoNumber is { } fw
+            ? string.Format(L["MNT.WorkOrder.Ok.FailureFollowUp"].Value, o.FailureNumber, fw)
+            : string.Format(L["MNT.WorkOrder.Ok.FailureResolved"].Value, o.FailureNumber));
         if (o.PmPlanNumber  is not null) parts.Add(o.PmNextDue is { } nd
             ? string.Format(L["MNT.WorkOrder.Ok.PmAdvanced"].Value, o.PmPlanNumber, nd.ToString(DateFmt.Date))
             : string.Format(L["MNT.WorkOrder.Ok.PmDone"].Value, o.PmPlanNumber));

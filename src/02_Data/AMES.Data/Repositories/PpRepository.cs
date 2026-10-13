@@ -91,9 +91,6 @@ public sealed partial class PpRepository
         decimal OrderQty, decimal CompletedQty, string? RouteLines, DateTime? DueDate,
         string? Status, DateTime? ReleasedAt);
 
-    public sealed record CalendarRow(int OverrideId, DateTime? OverrideDate, string? LineId,
-        string? DayType, string? PatternId, decimal? CapacityFactor, string? Reason);
-
     public sealed record ScheduleRow(int ScheduleId, string? LineId, DateTime? ScheduleDate,
         int? WoId, string? WoNumber, int? StartMin, int? EndMin, decimal PlannedQty, string? Status);
 
@@ -982,7 +979,7 @@ public sealed partial class PpRepository
     public sealed record MrpPrRequest(string ItemNo, decimal? Qty = null);
 
     /// <summary>열린 WO 상태 — Completed/Closed/Stocked/Cancelled 는 자재 수요가 없다.</summary>
-    const string MrpOpenWoWhere = "ISNULL(w.Status,'Draft') NOT IN ('Completed','Closed','Stocked','Cancelled') AND w.ItemNo IS NOT NULL";
+    const string MrpOpenWoWhere = $"ISNULL(w.Status,'Draft') NOT IN ({WoStatusRules.FinishedSqlList}) AND w.ItemNo IS NOT NULL";
 
     /// <summary>
     /// MRP 실행: 열린 WO 잔량 → 유효 APPROVED BOM 분해 → 재고·발주중 대조 → PP_MRPLog + PP_MRPResult(Wo) 스냅샷.
@@ -1479,25 +1476,6 @@ public sealed partial class PpRepository
         cmd.Parameters.Add("@SoID",  SqlDbType.Int).Value = soId;
         cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
         return cmd.ExecuteNonQuery();
-    }
-
-    // ── PP-CAL Calendar overrides ───────────────────────────────────────
-    public List<CalendarRow> ListCalendarOverrides(int daysBack = 7, int daysAhead = 30)
-    {
-        const string sql = """
-            SELECT TOP 100 OverrideID, OverrideDate, LineID, DayType, PatternID,
-                   CapacityFactor, Reason
-            FROM   dbo.PP_ProductionCalendarOverride
-            WHERE  OverrideDate BETWEEN DATEADD(day, -@B, GETDATE())
-                                   AND DATEADD(day,  @A, GETDATE())
-            ORDER BY OverrideDate;
-            """;
-        return Query(sql, r => new CalendarRow(
-            (int)r["OverrideID"], r["OverrideDate"] as DateTime?,
-            r["LineID"] as string, r["DayType"] as string,
-            r["PatternID"] as string, r["CapacityFactor"] as decimal?,
-            r["Reason"] as string),
-            ("@B", null, daysBack), ("@A", null, daysAhead));
     }
 
     // ── PP-LSB Line Schedule ────────────────────────────────────────────

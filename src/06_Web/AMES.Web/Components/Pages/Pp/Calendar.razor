@@ -11,6 +11,7 @@
 @inject AMES.Data.Repositories.AuthRepository AuthRepo
 @inject AMES.Web.Services.AuditLogger Audit
 @using AMES.Contracts.Dto
+@using AMES.Data.Services
 @using Radzen
 
 <PageTitle>CAL @L["PP.Calendar.Title"] · AMES</PageTitle>
@@ -275,7 +276,7 @@
                 </div>
                 <div class="ames-detail-label">@L["Col.Status"]</div>
                 <div>
-                    @{ var stc = d.Status switch { "In Progress"=>"ok","Released"=>"info","Draft"=>"warn",_=>"dim" }; }
+                    @{ var stc = d.Status switch { "In Progress"=>"ok","Released"=>"info","Draft"=>"warn","Cancelled"=>"bad",_=>"dim" }; }
                     <span class="pill @stc">@StatusText(d.Status)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Due"]</div>
@@ -294,7 +295,11 @@
                 </div>
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                @if (_canEdit)
+                @if (_canEdit && WoStatusRules.IsFinished(d.Status))
+                {
+                    <span class="dim" style="font-size:calc(12px + var(--ames-fs-bump)); margin-right:auto;">@L["PP.Calendar.Hint.FinishedNoReschedule"]</span>
+                }
+                else if (_canEdit)
                 {
                     <RadzenButton Text="@L["PP.Calendar.Btn.Reschedule"]" Icon="event" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@OpenReschedule" class="ames-rz-btn" />
                 }
@@ -388,6 +393,7 @@
         new() { Value = "Released",    Text = StatusText("Released") },
         new() { Value = "In Progress", Text = StatusText("In Progress") },
         new() { Value = "Closed",      Text = StatusText("Closed") },
+        new() { Value = "Cancelled",   Text = StatusText("Cancelled") },
     };
 
     // WO 상태 코드 → 다국어 라벨 (값은 DB 코드 유지)
@@ -397,6 +403,7 @@
         "Released"    => L["PP.Calendar.Status.Released"].Value,
         "In Progress" => L["PP.Calendar.Status.InProgress"].Value,
         "Closed"      => L["PP.Calendar.Status.Closed"].Value,
+        "Cancelled"   => L["PP.Calendar.Status.Cancelled"].Value,
         _             => s ?? ""
     };
 
@@ -491,7 +498,7 @@
 
     void OpenReschedule()
     {
-        if (!_canEdit) return;
+        if (!_canEdit || WoStatusRules.IsFinished(_detail?.Status)) return;
         _reschedDate    = _detail?.DueDate ?? DbClock.Today.AddDays(1);
         _pinInput       = "";
         _pinError       = "";
@@ -523,8 +530,10 @@
         }
         try
         {
-            // 대상이 없거나(다른 화면에서 삭제) Closed 면 바뀐 것이 없다 — 성공처럼 닫지 않고 알린다
-            if (!Wos.UpdateDueDate(_detail.WoId, _reschedDate, _actor)) { _pinError = L["PP.Calendar.Err.NotChanged"]; return; }
+            // 대상이 없거나(다른 화면에서 삭제) 그사이 끝난 WO 면 바뀐 것이 없다 — 성공처럼 닫지 않고 알린다
+            var res = Wos.UpdateDueDate(_detail.WoId, _reschedDate, _actor);
+            if (res == WorkOrderRepository.DueDateResult.Finished) { _pinError = L["PP.Calendar.Err.Finished"]; return; }
+            if (res != WorkOrderRepository.DueDateResult.Updated) { _pinError = L["PP.Calendar.Err.NotChanged"]; return; }
             Audit.Updated("PP-CAL", "PP_WorkOrder", _detail.WoNumber, new { _detail.DueDate, _detail.ProdDeadline }, new { DueDate = _reschedDate });
             _showReschedule = false;
             _showDetail     = false;

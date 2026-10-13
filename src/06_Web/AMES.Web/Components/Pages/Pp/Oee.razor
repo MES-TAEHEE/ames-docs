@@ -8,6 +8,7 @@
 @inject UomFormat UomFmt
 @inject AuthenticationStateProvider AuthPrvd
 @inject Microsoft.JSInterop.IJSRuntime JS
+@inject AMES.Web.Services.AuditLogger Audit
 @using AMES.Contracts.Dto
 @using AMES.Data.Repositories
 
@@ -577,7 +578,8 @@
         _err = "";
         try
         {
-            Repo.SaveSnapshot(_result, _actor);
+            var snapId = Repo.SaveSnapshot(_result, _actor);
+            Audit.Log("PP-OEE", "SAVE", "PP_LineOEE", snapId, null, _result);   // 같은 라인·날짜·교대면 덮어쓰는 저장
             ShowMsg(L["PP.Oee.Ok.Snapshot"]);
             if (_result.PeriodDate < _fFrom) _fFrom = _result.PeriodDate;
             if (_result.PeriodDate > _fTo)   _fTo   = _result.PeriodDate;
@@ -590,7 +592,13 @@
     {
         if (!_canEdit) return;
         if (!await JS.InvokeAsync<bool>("confirm", L["PP.Oee.Confirm.DeleteSnap"].Value)) return;
-        try { Repo.DeleteSnapshot(id); ApplyFilter(); }
+        try
+        {
+            var before = _snaps.FirstOrDefault(x => x.OeeSnapshotId == id);
+            Repo.DeleteSnapshot(id);
+            Audit.Deleted("PP-OEE", "PP_LineOEE", id, before);
+            ApplyFilter();
+        }
         catch (Exception ex) { _err = ex.Message; }
     }
 

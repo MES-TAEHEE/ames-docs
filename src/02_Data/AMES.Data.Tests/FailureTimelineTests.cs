@@ -34,6 +34,18 @@ public class FailureTimelineTests
     }
 
     [Fact]
+    public void Partial_fix_then_repair_shows_both_steps_with_notes()
+    {
+        var steps = Build(Rep, null, "RESOLVED", Rep.AddMinutes(300), new[]
+        {
+            new FailureTimeline.Action("PARTIAL",  Rep.AddMinutes(60),  null, "임시 고정"),
+            new FailureTimeline.Action("REPAIRED", Rep.AddMinutes(300), null, "부품 교체"),
+        });
+        Assert.Equal(new[] { Kind.Reported, Kind.Partial, Kind.Repaired }, steps.Select(s => s.Kind));
+        Assert.Equal(("임시 고정", 60), (steps[1].Note, steps[1].Minutes));
+    }
+
+    [Fact]
     public void Open_failure_has_no_resolved_step()
         => Assert.Single(Build(Rep, null, "OPEN", null, Array.Empty<FailureTimeline.Action>()));
 
@@ -63,6 +75,8 @@ public class FailureTimelineTests
     [InlineData("RESOLVED",    new string[0],                Stage.Resolved)]
     [InlineData("CLOSED",      new[] { "ARRIVED" },          Stage.Resolved)]
     [InlineData("OPEN",        new[] { "REPAIRED" },         Stage.Waiting)]   // 해결은 등록 행 상태가 정본
+    [InlineData("IN_PROGRESS", new[] { "PARTIAL" },          Stage.Acked)]     // 임시 조치 = 조치 중(10-14)
+    [InlineData("IN_PROGRESS", new[] { "ARRIVED", "FOLLOWUP" }, Stage.Acked)]
     public void Stage_follows_status_then_latest_action(string status, string[] types, Stage expected)
         => Assert.Equal(expected, CurrentStage(status, types));
 

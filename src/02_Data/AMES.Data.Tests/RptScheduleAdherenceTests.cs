@@ -32,7 +32,7 @@ public class RptScheduleAdherenceTests
 
     static void Slot(Connection.AmesConnectionFactory f, int wo, DateTime day, int qty) => Exec(f, """
         INSERT dbo.PP_LineSchedule (LineID, ScheduleDate, WoID, PlannedQty, Status, EntryType, CreatedBy)
-        VALUES (@L, @D, @W, @Q, 'PUBLISHED', 'WO', @A);
+        VALUES (@L, @D, @W, @Q, 'DRAFT', 'WO', @A);
         """, ("@L", Line), ("@D", day), ("@W", wo), ("@Q", qty), ("@A", Actor));
 
     // 실적: 전기일 prodDate, 입력 시각 entryAt(자정 넘김 재현용)

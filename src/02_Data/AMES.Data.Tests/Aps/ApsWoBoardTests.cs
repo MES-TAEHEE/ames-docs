@@ -22,7 +22,7 @@ public class ApsWoBoardTests
         new(wo, woId, 1, item, plan, null, slots.Sum(s => s.Qty), null, null, slots, Array.Empty<DeadlinePacker.StepShortfall>(), Array.Empty<DeadlinePacker.MoldChange>());
 
     static ScheduleRow Row(int id, string? type, int? woId, string? woNo, int start, int end, decimal qty, string? refType = null, int? refId = null, string? mold = null) =>
-        new(id, "PAT", woId, woNo, null, start, end, qty, "DRAFT", null, null, type, null, refType, refId, mold);
+        new(id, "PAT", woId, woNo, null, start, end, qty, "DRAFT", type, null, refType, refId, mold);
 
     static readonly string[] Lines = { "LINE-INJ-01", "LINE-IMG-01" };
 

@@ -9,6 +9,9 @@
 -- 접속: sqlcmd -S "localhost\MSSQLSERVER01" -U ames_app -P '!Dev2026' -d AMES_DEV -i dist\migrate_calendaroverride_snapshot.sql
 -- ============================================================
 SET NOCOUNT ON;
+-- 10-14 PP-LSB 발행 폐지로 이 테이블은 dist/migrate_lsb_publish_removal.sql 이 삭제했다 — 테이블이 없으면 아무것도 하지 않는다
+IF OBJECT_ID('dbo.PP_ProductionCalendarOverride','U') IS NULL BEGIN PRINT 'PP_ProductionCalendarOverride 없음(발행 폐지) — 건너뜀'; SET NOEXEC ON; END
+GO
 
 IF COL_LENGTH('dbo.PP_ProductionCalendarOverride', 'TotalOperatingMin') IS NULL
 BEGIN
@@ -116,4 +119,6 @@ BEGIN
 
     PRINT 'rebuilt PP_ProductionCalendarOverride (column order restored)';
 END
+GO
+SET NOEXEC OFF;
 GO

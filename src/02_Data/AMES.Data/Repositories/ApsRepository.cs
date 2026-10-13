@@ -754,13 +754,13 @@ public sealed class ApsRepository
     /// </summary>
     static List<ApsRegisteredWo> ReadUnplacedApsWos(SqlConnection conn, SqlTransaction tx, DateOnly from, DateOnly to)
     {
-        using var cmd = new SqlCommand("""
+        using var cmd = new SqlCommand($"""
             SELECT x.WoID, w.WoNumber, w.ItemNo AS WoItem, ISNULL(w.OrderQty, 0) AS OrderQty, w.ProdDeadline,
                    l.Kind, l.ItemNo AS LineItem, l.LineID, l.PlanDate, ISNULL(x.Qty, 0) AS Qty
             FROM   dbo.PP_ApsRunWo x
             JOIN   dbo.PP_WorkOrder   w ON w.WoID = x.WoID
             JOIN   dbo.PP_ApsPlanLine l ON l.PlanLineID = x.PlanLineID
-            WHERE  ISNULL(w.Status, '') NOT IN ('Cancelled', 'Completed', 'Closed', 'Stocked')
+            WHERE  ISNULL(w.Status, '') NOT IN ({WoStatusRules.FinishedSqlList})
               AND  NOT EXISTS (SELECT 1 FROM dbo.PP_LineSchedule s WHERE s.WoID = w.WoID)
               AND  (l.PlanDate BETWEEN @From AND @To OR CAST(w.ProdDeadline AS date) BETWEEN @From AND @To)
             ORDER  BY w.WoID, l.PlanLineID;

@@ -264,9 +264,6 @@
   <data name="Msg.Applying" xml:space="preserve">
     <value>Applying…</value>
   </data>
-  <data name="Msg.Publishing" xml:space="preserve">
-    <value>Publishing…</value>
-  </data>
   <data name="Msg.Saved" xml:space="preserve">
     <value>Saved successfully.</value>
   </data>
@@ -1693,7 +1690,7 @@
     <value>Reschedule error: {0}</value>
   </data>
   <data name="PP.Calendar.Err.NotChanged" xml:space="preserve">
-    <value>The due date was not changed — the work order is closed or no longer exists. Refresh the screen to check.</value>
+    <value>The due date was not changed — the work order no longer exists. Refresh the screen to check.</value>
   </data>
   <data name="PP.Calendar.Legend.Overdue" xml:space="preserve">
     <value>Overdue</value>
@@ -1956,9 +1953,6 @@
   <data name="PP.LineSchedule.Btn.Apply" xml:space="preserve">
     <value>Apply</value>
   </data>
-  <data name="PP.LineSchedule.Btn.Publish" xml:space="preserve">
-    <value>Publish</value>
-  </data>
   <data name="PP.LineSchedule.Status.Unsaved" xml:space="preserve">
     <value>Unsaved</value>
   </data>
@@ -1973,9 +1967,6 @@
   </data>
   <data name="PP.LineSchedule.Ok.Applied" xml:space="preserve">
     <value>Applied.</value>
-  </data>
-  <data name="PP.LineSchedule.Ok.Published" xml:space="preserve">
-    <value>Published.</value>
   </data>
   <data name="PP.LineSchedule.Kpi.Util" xml:space="preserve">
     <value>Utilization</value>
@@ -10499,9 +10490,6 @@
   <data name="MD.Usage.Kind.SCHEDULE" xml:space="preserve">
     <value>Line schedules (line·date)</value>
   </data>
-  <data name="MD.Usage.Kind.PUBLISHED" xml:space="preserve">
-    <value>Published schedules (line·date)</value>
-  </data>
   <data name="MD.Usage.Kind.APSLINE" xml:space="preserve">
     <value>APS line settings</value>
   </data>
@@ -10678,5 +10666,26 @@
   </data>
   <data name="MNT.Failure.Err.Gone" xml:space="preserve">
     <value>{0} has already been deleted.</value>
+  </data>
+  <data name="PP.Calendar.Status.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="PP.Calendar.Hint.FinishedNoReschedule" xml:space="preserve">
+    <value>Due dates of completed, closed or cancelled work orders cannot be changed.</value>
+  </data>
+  <data name="PP.Calendar.Err.Finished" xml:space="preserve">
+    <value>The due date was not changed — the work order has since been completed, closed or cancelled. Refresh the screen to check.</value>
+  </data>
+  <data name="MNT.Failure.Tl.Partial" xml:space="preserve">
+    <value>Temporary fix (partial)</value>
+  </data>
+  <data name="MNT.Failure.Tl.FollowUp" xml:space="preserve">
+    <value>Follow-up required</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.FailureFollowUp" xml:space="preserve">
+    <value>failure {0} stays open — moved to follow-up work order {1}</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.FollowUp" xml:space="preserve">
+    <value>Completing as Partial or Follow-up does not resolve the failure; a new follow-up work order is issued for the remaining work. The failure is resolved when the follow-up work order is completed normally or repaired in MNT-002.</value>
   </data>
 </root>

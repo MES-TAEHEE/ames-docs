@@ -870,7 +870,7 @@ public sealed class RptRepository
                 {
                     "Process"    => "ISNULL(d.ProcessCode,'—')",
                     "DefectCode" => "ISNULL(d.DefectCode,'—')",
-                    "Line"       => "ISNULL(r.LineID,'—')",
+                    "Line"       => "ISNULL(COALESCE(r.LineID, tl.LineID),'—')",
                     _            => "CONVERT(varchar(10), CAST(DATEADD(minute, -@Cut, d.DetectedAt) AS DATE), 120)",
                 };
                 if (dim == "DefectCode") { labelExpr = "MAX(c.DefectName)"; labelEnExpr = "MAX(c.DefectNameEn)"; }
@@ -879,6 +879,7 @@ public sealed class RptRepository
                            ISNULL(SUM(ISNULL(d.Qty,0)),0) AS DefectQty, COUNT(*) AS Events
                     FROM dbo.PR_DefectDetail d
                     LEFT JOIN dbo.PR_ProductionResult r ON r.ResultID = d.ResultID
+                    LEFT JOIN dbo.tbl_Lot tl ON tl.LotID = d.LotID
                     LEFT JOIN dbo.MD_DefectCode c ON c.DefectCode = d.DefectCode
                     WHERE d.DetectedAt >= @F AND d.DetectedAt < @T
                     GROUP BY {keyExpr}

@@ -6,7 +6,7 @@
 @inject ActorNames Actors
 @inject IStringLocalizer<SharedResources> L
 
-@* 고장 대응 이력 — 발생 → 보전 도착(ARRIVED) → ACK → 수리 완료(REPAIRED) / 해결, 읽기 전용 (MNT-002 상세 · MNT-007 상세) *@
+@* 고장 대응 이력 — 발생 → 보전 도착(ARRIVED) → ACK → 임시 조치(PARTIAL·FOLLOWUP) → 수리 완료(REPAIRED) / 해결, 읽기 전용 (MNT-002 상세 · MNT-007 상세) *@
 <div class="mnt-tl">
     <div class="mnt-tl-h">
         <span>
@@ -84,6 +84,8 @@
         FailureTimeline.Kind.Reported => L["MNT.Failure.Tl.Reported"],
         FailureTimeline.Kind.Arrived  => L["MNT.Failure.Tl.Arrived"],
         FailureTimeline.Kind.Ack      => L["MNT.Failure.Tl.Ack"],
+        FailureTimeline.Kind.Partial  => L["MNT.Failure.Tl.Partial"],
+        FailureTimeline.Kind.FollowUp => L["MNT.Failure.Tl.FollowUp"],
         FailureTimeline.Kind.Repaired => L["MNT.Failure.Tl.Repaired"],
         FailureTimeline.Kind.Resolved => L["MNT.Failure.Tl.Resolved"],
         _                             => s.RawType ?? "—",
@@ -94,6 +96,7 @@
         FailureTimeline.Kind.Reported => "bad",
         FailureTimeline.Kind.Arrived  => "warn",
         FailureTimeline.Kind.Ack      => "info",
+        FailureTimeline.Kind.Partial or FailureTimeline.Kind.FollowUp => "warn",
         FailureTimeline.Kind.Repaired or FailureTimeline.Kind.Resolved => "ok",
         _                             => "mute",
     };

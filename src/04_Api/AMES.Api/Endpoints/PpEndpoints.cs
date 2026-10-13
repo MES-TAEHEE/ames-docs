@@ -44,10 +44,6 @@ public static class PpEndpoints
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListReleasable(topN ?? 50)));
 
-        g.MapGet("/calendar", (HttpContext ctx, int? daysBack, int? daysAhead) =>
-            ctx.GetSession() is null ? Results.Unauthorized()
-                : Results.Ok(repo.ListCalendarOverrides(daysBack ?? 7, daysAhead ?? 30)));
-
         g.MapGet("/schedule", (HttpContext ctx, int? daysAhead) =>
             ctx.GetSession() is null ? Results.Unauthorized()
                 : Results.Ok(repo.ListSchedule(daysAhead ?? 7)));

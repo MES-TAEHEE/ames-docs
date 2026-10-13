@@ -539,6 +539,7 @@
         try
         {
             var (failNo, woNo) = Mnt.ResolveFailure(_sel.FailureId, _r.RootCause.Trim(), _r.Action.Trim(), _r.ResolvedAt.Value, _r.LaborMinutes, _actor);
+            Audit.Log("MNT-002", "RESOLVE", "MNT_FailureRegister", failNo, _sel, new { Status = "RESOLVED", Form = _r, WoNumber = woNo });
             ShowMsg(woNo is null ? string.Format(L["MNT.Failure.Ok.Resolved"].Value, failNo)
                                  : string.Format(L["MNT.Failure.Ok.ResolvedWo"].Value, failNo, woNo), false);
             var id = _sel.FailureId;
@@ -607,12 +608,14 @@
             {
                 failNo = Mnt.UpdateFailure(id, failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
                     NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor);
+                Audit.Updated("MNT-002", "MNT_FailureRegister", failNo, _editRow, _f);
                 ShowMsg(string.Format(L["MNT.Failure.Ok.Updated"].Value, failNo), false);
             }
             else
             {
                 (var newId, failNo, var woNo) = Mnt.InsertFailure(failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
                     NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor);
+                Audit.Created("MNT-002", "MNT_FailureRegister", failNo, new { Form = _f, WoNumber = woNo });
                 ShowMsg(string.Format(L["MNT.Failure.Ok.CreatedWo"].Value, failNo, woNo), false);
                 resolveNowId = _f.ResolveAfterCreate && _canApprove ? newId : null;
             }

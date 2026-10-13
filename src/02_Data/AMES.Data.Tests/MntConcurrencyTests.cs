@@ -136,4 +136,43 @@ public class MntConcurrencyTests
         }
         finally { Cleanup(f!); }
     }
+
+    // 10-14 사용자 결정 — 부분·후속 완료는 고장을 닫지 않고 후속 작업지시로 넘긴다, 정상 완료만 해결
+    [SkippableTheory]
+    [InlineData("PARTIAL")]
+    [InlineData("FOLLOWUP")]
+    public void Partial_completion_keeps_the_failure_open_on_a_follow_up_work_order(string result)
+    {
+        var f = WriteFactory(); Skip.If(f is null, WriteSkip);
+        var mnt = new MntRepository(f!);
+        try
+        {
+            var (failId, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 부분 완료", "MAJOR", "WEB", DateTime.Now.AddHours(-2), null, Actor);
+            var woId = Convert.ToInt32(Scalar(f!, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
+
+            var o = mnt.CompleteWorkOrder(woId, result, "임시 조치", "원인", 30, null, DateTime.Now.AddHours(-1), null, Actor);
+
+            Assert.NotNull(o.FollowUpWoNumber);
+            Assert.Equal("COMPLETED", Scalar(f!, "SELECT Status FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @I", ("@I", woId)));
+            Assert.Equal("IN_PROGRESS", Scalar(f!, "SELECT Status FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
+            Assert.Equal(DBNull.Value, Scalar(f!, "SELECT ResolvedAt FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
+            var newWo = Convert.ToInt32(Scalar(f!, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
+            Assert.NotEqual(woId, newWo);
+            Assert.Equal(o.FollowUpWoNumber, Scalar(f!, "SELECT WoNumber FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @I AND Status = 'ISSUED' AND Priority = (SELECT Priority FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @O)",
+                ("@I", newWo), ("@O", woId)));
+            Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = @T", ("@I", failId), ("@T", result))));
+            Assert.Equal(0, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = 'REPAIRED'", ("@I", failId))));
+
+            // 작업 이력이 생긴 고장은 지울 수 없다(후속 작업지시가 발행 상태여도)
+            Assert.Equal(Services.FailureDeleteRules.Block.NotOpen,
+                Assert.Throws<MntRepository.FailureNotDeletableException>(() => mnt.DeleteFailure(failId)).Reason);
+
+            // 후속 작업지시를 정상 완료하면 그때 해결
+            var done = mnt.CompleteWorkOrder(newWo, "OK", "부품 교체", null, 20, null, DateTime.Now, null, Actor);
+            Assert.Null(done.FollowUpWoNumber);
+            Assert.Equal("RESOLVED", Scalar(f!, "SELECT Status FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
+            Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = 'REPAIRED'", ("@I", failId))));
+        }
+        finally { Cleanup(f!); }
+    }
 }

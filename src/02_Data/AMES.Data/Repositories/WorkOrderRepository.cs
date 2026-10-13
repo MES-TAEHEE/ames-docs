@@ -490,11 +490,14 @@ public sealed class WorkOrderRepository
         return cmd.ExecuteScalar() is int id ? id : null;
     }
 
+    public enum DueDateResult { Updated, NotFound, Finished }
+
     /// <summary>
     /// PP-CAL 납기 변경. 생산 마감일도 PP-003 과 같은 규칙(납기 − PP_PROD_BUFFER_WORKDAYS 근무일, SYS_FactoryCalendar)으로
-    /// 다시 계산하고 수정자·시각을 남긴다. Closed WO 는 바꾸지 않는다. 반환: 바뀌었으면 true(대상이 없거나 Closed 면 false).
+    /// 다시 계산하고 수정자·시각을 남긴다. 끝난 WO(<see cref="WoStatusRules.Finished"/> — 완료·입고·마감·취소)는 바꾸지 않는다(10-14).
+    /// 상태는 같은 트랜잭션에서 행을 잡고 확인하므로 화면을 연 사이 끝난 WO 도 거부된다.
     /// </summary>
-    public bool UpdateDueDate(int woId, DateTime newDate, string actor)
+    public DueDateResult UpdateDueDate(int woId, DateTime newDate, string actor)
     {
         int bufferDays = new SysRepository(_factory).GetConfigInt(PpRepository.BufferWorkdaysKey, PpRepository.BufferWorkdaysDefault);
         using var conn = _factory.OpenConnection();
@@ -502,21 +505,32 @@ public sealed class WorkOrderRepository
         var cal = new Scheduling.WorkdayCalendar(PpRepository.ReadCalendar(conn, null, newDate.Date.AddDays(-(bufferDays * 3 + 21)), newDate.Date));
         var deadline = cal.SubtractWorkdays(newDate.Date, bufferDays);
 
+        using var tx = conn.BeginTransaction();
+        string? status;
+        using (var sel = new SqlCommand("SELECT ISNULL(Status, 'Draft') FROM dbo.PP_WorkOrder WITH (UPDLOCK, ROWLOCK) WHERE WoID = @WoID;", conn, tx))
+        {
+            sel.Parameters.Add("@WoID", SqlDbType.Int).Value = woId;
+            status = sel.ExecuteScalar() as string;
+        }
+        if (status is null) { tx.Rollback(); return DueDateResult.NotFound; }
+        if (WoStatusRules.IsFinished(status)) { tx.Rollback(); return DueDateResult.Finished; }
+
         const string sql = """
             UPDATE dbo.PP_WorkOrder
                SET DueDate      = @DueDate,
                    ProdDeadline = @Deadline,
                    ModifiedBy   = @By,
                    ModifiedTS   = SYSDATETIME()
-             WHERE WoID   = @WoID
-               AND Status NOT IN ('Closed');
+             WHERE WoID = @WoID;
             """;
-        using var cmd = new SqlCommand(sql, conn);
+        using var cmd = new SqlCommand(sql, conn, tx);
         cmd.Parameters.Add("@WoID",     SqlDbType.Int).Value         = woId;
         cmd.Parameters.Add("@DueDate",  SqlDbType.Date).Value        = newDate.Date;
         cmd.Parameters.Add("@Deadline", SqlDbType.Date).Value        = deadline;
         cmd.Parameters.Add("@By",       SqlDbType.VarChar, 20).Value = actor;
-        return cmd.ExecuteNonQuery() > 0;
+        cmd.ExecuteNonQuery();
+        tx.Commit();
+        return DueDateResult.Updated;
     }
 
     // ── PP-004 lifecycle actions ─────────────────────────────────────
