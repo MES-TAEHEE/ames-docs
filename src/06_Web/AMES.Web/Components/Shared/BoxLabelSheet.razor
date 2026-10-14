@@ -1,12 +1,12 @@
 @inject UomFormat UomFmt
 <article class="delivery-note box-labels">
-@foreach(var page in Boxes.Chunk(3))
+@foreach(var page in Boxes.Chunk(6))
 {
     <div class="label-page">
-    @foreach(var b in page)
+    @foreach(var row in page.Chunk(2))
     {
         <div class="label-pair">
-        @for(var copy=0;copy<2;copy++)
+        @foreach(var b in row)
         {
             <section class="box-label">
                 <header class="label-header"><strong>@(b.Number.StartsWith("PT-",StringComparison.OrdinalIgnoreCase)?"PART":"BOX")</strong><span>@b.VendorName</span></header>

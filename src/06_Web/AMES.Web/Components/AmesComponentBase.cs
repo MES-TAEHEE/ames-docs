@@ -35,7 +35,9 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
 
         var method = (DelegateField?.GetValue(callback) as Delegate)?.Method;
         // Portal dialog and input clicks must not be discarded after a database request.
-        if (!new Uri(AmesNavigation.Uri).AbsolutePath.StartsWith("/portal", StringComparison.OrdinalIgnoreCase)
+        var path = new Uri(AmesNavigation.Uri).AbsolutePath;
+        if (!path.StartsWith("/portal", StringComparison.OrdinalIgnoreCase)
+            && !path.StartsWith("/scm/", StringComparison.OrdinalIgnoreCase)
             && DateTime.UtcNow - _slowClickEndUtc < QueueWindow) { SignalClickDone(); return Task.CompletedTask; }
         if (method is not null && _runningClicks.Contains(method)) { SignalClickDone(); return Task.CompletedTask; }
         return DispatchClick(callback, arg, method);

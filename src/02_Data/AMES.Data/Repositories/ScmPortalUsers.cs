@@ -63,7 +63,9 @@ public sealed partial class ScmRepository
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT dbo.SCM_PortalVendorUser (UserID,VendorID,UserName,PasswordHash,FailedLoginCount,LockedFlag,ActiveFlag,CreatedBy,CreatedTS)
-            VALUES (@Id,@Vendor,@Name,@Hash,0,0,@Active,@Actor,SYSDATETIME());
+            SELECT @Id,@Vendor,@Name,@Hash,0,0,@Active,@Actor,SYSDATETIME()
+            FROM dbo.MD_Vendor WHERE VendorID=@Vendor AND ISNULL(ActiveFlag,1)=1;
+            IF @@ROWCOUNT<>1 THROW 50021,'An active supplier is required. Refresh and retry.',1;
             """, conn);
         Add(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)), ("@Vendor", "SCM_PortalVendorUser.VendorID", vendorId), ("@Name", "SCM_PortalVendorUser.UserName", (object?)userName ?? DBNull.Value),
             ("@Hash", "SCM_PortalVendorUser.PasswordHash", passwordHash), ("@Active", "SCM_PortalVendorUser.ActiveFlag", activeFlag), ("@Actor", "SCM_PortalVendorUser.CreatedBy", actor));
@@ -71,7 +73,7 @@ public sealed partial class ScmRepository
     }
 
     /// <summary>협력업체·이름·사용 여부 수정. passwordHash 가 있으면 비밀번호도 바꾸고 실패 수·잠금을 푼다.</summary>
-    public void UpdatePortalUser(string email, string vendorId, string? userName, bool activeFlag, string? passwordHash, string actor)
+    public void UpdatePortalUser(string email, string vendorId, string? userName, bool activeFlag, string? passwordHash, string actor, PortalUserRow expected)
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
@@ -81,11 +83,14 @@ public sealed partial class ScmRepository
                 FailedLoginCount=CASE WHEN @Hash IS NULL THEN FailedLoginCount ELSE 0 END,
                 LockedFlag=CASE WHEN @Hash IS NULL THEN LockedFlag ELSE 0 END,
                 ModifiedBy=@Actor, ModifiedTS=SYSDATETIME()
-            WHERE UserID=@Id;
+            WHERE UserID=@Id AND CreatedTS=@Created AND (ModifiedTS=@Modified OR ModifiedTS IS NULL AND @Modified IS NULL)
+                AND PasswordHash=@ExpectedHash AND FailedLoginCount=@Failed AND LockedFlag=@Locked
+                AND (VendorID=@Vendor OR EXISTS(SELECT 1 FROM dbo.MD_Vendor WHERE VendorID=@Vendor AND ISNULL(ActiveFlag,1)=1));
             """, conn);
+        AddExpectedPortalUser(cmd,expected);
         Add(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)), ("@Vendor", "SCM_PortalVendorUser.VendorID", vendorId), ("@Name", "SCM_PortalVendorUser.UserName", (object?)userName ?? DBNull.Value),
             ("@Active", "SCM_PortalVendorUser.ActiveFlag", activeFlag), ("@Hash", "SCM_PortalVendorUser.PasswordHash", (object?)passwordHash ?? DBNull.Value), ("@Actor", "SCM_PortalVendorUser.ModifiedBy", actor));
-        cmd.ExecuteNonQuery();
+        EnsurePortalUserChanged(cmd);
     }
 
     /// <summary>외부 사용자 본인의 비밀번호 변경(포탈 상단바, 10-07) — 해시만 바꾼다. 잠금·실패 횟수는 SCM-004 관리 영역이라 건드리지 않는다.</summary>
@@ -97,20 +102,35 @@ public sealed partial class ScmRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void UnlockPortalUser(string email, string actor)
+    public void UnlockPortalUser(string email, string actor, PortalUserRow expected)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand("UPDATE dbo.SCM_PortalVendorUser SET FailedLoginCount=0, LockedFlag=0, ModifiedBy=@Actor, ModifiedTS=SYSDATETIME() WHERE UserID=@Id;", conn);
+        using var cmd = new SqlCommand("UPDATE dbo.SCM_PortalVendorUser SET FailedLoginCount=0, LockedFlag=0, ModifiedBy=@Actor, ModifiedTS=SYSDATETIME() WHERE UserID=@Id AND CreatedTS=@Created AND (ModifiedTS=@Modified OR ModifiedTS IS NULL AND @Modified IS NULL) AND PasswordHash=@ExpectedHash AND FailedLoginCount=@Failed AND LockedFlag=@Locked;", conn);
         Add(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)), ("@Actor", "SCM_PortalVendorUser.ModifiedBy", actor));
-        cmd.ExecuteNonQuery();
+        AddExpectedPortalUser(cmd,expected);
+        EnsurePortalUserChanged(cmd);
     }
 
-    public void DeletePortalUser(string email)
+    public void DeletePortalUser(string email, PortalUserRow expected)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE dbo.SCM_PortalVendorUser WHERE UserID=@Id;", conn);
+        using var cmd = new SqlCommand("DELETE dbo.SCM_PortalVendorUser WHERE UserID=@Id AND CreatedTS=@Created AND (ModifiedTS=@Modified OR ModifiedTS IS NULL AND @Modified IS NULL) AND PasswordHash=@ExpectedHash AND FailedLoginCount=@Failed AND LockedFlag=@Locked;", conn);
         Filter(cmd, ("@Id", "SCM_PortalVendorUser.UserID", NormalizePortalUserId(email)));
-        cmd.ExecuteNonQuery();
+        AddExpectedPortalUser(cmd,expected);
+        EnsurePortalUserChanged(cmd);
+    }
+
+    static void AddExpectedPortalUser(SqlCommand cmd,PortalUserRow expected)
+    {
+        Filter(cmd,("@Created","SCM_PortalVendorUser.CreatedTS",expected.CreatedTS),
+            ("@Modified","SCM_PortalVendorUser.ModifiedTS",(object?)expected.ModifiedTS ?? DBNull.Value),
+            ("@ExpectedHash","SCM_PortalVendorUser.PasswordHash",expected.PasswordHash),
+            ("@Failed","SCM_PortalVendorUser.FailedLoginCount",expected.FailedLoginCount),
+            ("@Locked","SCM_PortalVendorUser.LockedFlag",expected.LockedFlag));
+    }
+    static void EnsurePortalUserChanged(SqlCommand cmd)
+    {
+        if(cmd.ExecuteNonQuery()!=1) throw new InvalidOperationException("Account changed or was deleted. Close and refresh before retrying.");
     }
 
     public void RecordPortalLoginSuccess(string email)

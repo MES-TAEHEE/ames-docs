@@ -10,7 +10,7 @@ public sealed partial class ScmRepository
     public record SupplierDelivery(string Number, string OrderNumber, int PoID, int LineId,
         string Item, string Unit, DateTime Date, decimal Quantity, decimal Received, string Status, string Version, DateTime? ShipDate, DateTime? ShippedAt, string? ShippedBy, string VendorLotNo, DateTime ProductionDate);
 
-    public List<SupplierDelivery> ListSupplierDeliveries(bool portal, string? userId)
+    public List<SupplierDelivery> ListSupplierDeliveries(bool portal, string? userId, IReadOnlyCollection<int>? poIds = null)
     {
         using var conn=factory.OpenConnection();
         using var cmd=new SqlCommand("""
@@ -19,12 +19,14 @@ public sealed partial class ScmRepository
                 COALESCE(l.VendorLotNo,CONVERT(char(8),d.DeliveryDate,112)),COALESCE(l.ProductionDate,d.DeliveryDate)
             FROM dbo.SCM_Delivery d JOIN dbo.SCM_DeliveryLine l ON l.DeliveryID=d.DeliveryID
             JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID
-            WHERE @Portal=0 OR EXISTS(
+            WHERE (@PoIds IS NULL OR p.PoID IN (SELECT CONVERT(int,value) FROM OPENJSON(@PoIds)))
+            AND (@Portal=0 OR EXISTS(
                 SELECT 1 FROM dbo.SCM_PortalVendorUser m JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
-                WHERE m.UserID=@User AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
+                WHERE m.UserID=@User AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1))
             ORDER BY d.DeliveryID DESC,l.DeliveryLineID
             """,conn);
         Filter(cmd,("@Portal", null,portal),("@User", "SCM_PortalVendorUser.UserID",userId??""));
+        cmd.Parameters.Add("@PoIds",System.Data.SqlDbType.NVarChar,-1).Value=poIds is null ? DBNull.Value : System.Text.Json.JsonSerializer.Serialize(poIds);
         using var r=cmd.ExecuteReader(); var result=new List<SupplierDelivery>();
         while(r.Read()) result.Add(new(r.GetString(0),r.GetString(1),r.GetInt32(2),r.GetInt32(3),r.GetString(4),r.GetString(5),r.GetDateTime(6),r.GetDecimal(7),r.GetDecimal(8),r.GetString(9),Convert.ToHexString((byte[])r[10]),r.IsDBNull(11)?null:r.GetDateTime(11),r.IsDBNull(12)?null:r.GetDateTime(12),r.IsDBNull(13)?null:r.GetString(13),r.GetString(14),r.GetDateTime(15)));
         return result;
