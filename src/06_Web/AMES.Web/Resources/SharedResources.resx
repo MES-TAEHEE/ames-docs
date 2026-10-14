@@ -2352,6 +2352,27 @@
   <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
     <value>확정할 수주를 최소 1건 선택하세요.</value>
   </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm" xml:space="preserve">
+    <value>자동 확정</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.Hint" xml:space="preserve">
+    <value>켜면 엑셀 업로드·API 가져오기·PO 자동수집으로 들어오는 수주가 저장 즉시 확정됩니다</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.Title" xml:space="preserve">
+    <value>자동 확정</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.ConfirmOn" xml:space="preserve">
+    <value>자동 확정을 켜면 앞으로 들어오는 수주는 저장 즉시 확정됩니다. 현재 확정 대기 {0}건도 지금 모두 확정합니다. 계속할까요?</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.Btn.On" xml:space="preserve">
+    <value>켜고 확정</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.AutoConfirmOn" xml:space="preserve">
+    <value>자동 확정을 켰습니다 — 확정 대기 {0}건을 확정했습니다.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.AutoConfirmOff" xml:space="preserve">
+    <value>자동 확정을 껐습니다. 앞으로 들어오는 수주는 확정 대기로 남습니다.</value>
+  </data>
   <data name="PP.SupplyPlanImport.Btn.ApiImport" xml:space="preserve">
     <value>API 가져오기</value>
   </data>
