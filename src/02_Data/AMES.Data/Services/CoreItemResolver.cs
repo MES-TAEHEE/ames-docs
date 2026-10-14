@@ -70,9 +70,88 @@ public static class CoreItemResolver
         };
     }
 
+    public sealed record InjEdge(string ParentItemNo, string CompItemNo, string? CompItemType, string? CompItemName, bool CompInjFlag);
+
+    /// <summary>
+    /// 웹 WO 발행(PP-003·PP-004·PP-APS WO 생성)의 코어 판정 — PP-APS BOM 규칙과 같은 사출품 기준(10-14 사용자 결정).
+    /// 유효 BOM 을 다단계로 내려가며 <c>MD_Item.InjFlag = 1</c> 인 자식에서 멈추고(사출품), InjFlag 0 인 자식은 서브조립로 보고
+    /// 더 내려간다. MATERIAL 은 내려가지 않고, 깊이 상한은 APS 와 같은 <c>ApsRepository.BomWalkMaxDepth</c>, 순환은 APS 처럼 건너뛴다.
+    /// 사출품 1개 = Core, 여럿이면 그중 품명이 CORE 로 시작하는 것이 정확히 1개일 때 Core(코어+레일 — 단계 품번 칸이 하나라
+    /// 코어를 고른다, 사용자 결정), 아니면 Ambiguous. 사출품이 없는데 MATERIAL 아닌 자식이 있으면 Missing, 그런 자식이 아예 없으면 Self.
+    /// POP IMG 코어 스캔 검사(ImgLotRepository)는 아직 <see cref="Read"/>(품명 규칙) — POP 담당이 옮긴다. 테스트: CoreItemResolverTests.
+    /// </summary>
+    public static Result ResolveByInjFlag(string itemNo, IReadOnlyList<InjEdge> edges)
+    {
+        var children = edges
+            .GroupBy(e => e.ParentItemNo, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        var found = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);   // 사출품 → 품명
+        var path  = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { itemNo };
+        bool anyChild = false;
+
+        void Walk(string parent, int depth)
+        {
+            if (!children.TryGetValue(parent, out var comps)) return;
+            foreach (var e in comps)
+            {
+                if (path.Contains(e.CompItemNo)) continue;
+                bool material = string.Equals(e.CompItemType, "MATERIAL", StringComparison.OrdinalIgnoreCase);
+                if (e.CompInjFlag) { anyChild = true; found.TryAdd(e.CompItemNo, e.CompItemName); continue; }
+                if (material) continue;
+                anyChild = true;
+                if (depth >= Repositories.ApsRepository.BomWalkMaxDepth) continue;
+                path.Add(e.CompItemNo);
+                Walk(e.CompItemNo, depth + 1);
+                path.Remove(e.CompItemNo);
+            }
+        }
+        Walk(itemNo, 1);
+
+        if (found.Count == 1) return new(Outcome.Core, found.Keys.Single());
+        if (found.Count > 1)
+        {
+            var named = found.Where(kv => IsCoreName(kv.Value)).Select(kv => kv.Key).ToList();
+            return named.Count == 1 ? new(Outcome.Core, named[0]) : new(Outcome.Ambiguous, null);
+        }
+        return anyChild ? new(Outcome.Missing, null) : new(Outcome.Self, null);
+    }
+
+    /// <summary><see cref="ResolveByInjFlag"/> 의 DB 판 — <see cref="Read"/> 와 같은 유효 BOM 선택, 활성 품목의 모든 자식(유형·InjFlag 포함).</summary>
+    public static Result ReadByInjFlag(SqlConnection conn, SqlTransaction? tx, string itemNo)
+    {
+        const string sql = """
+            WITH eff AS (
+                SELECT v.VersionID, v.EffFrom
+                FROM   dbo.MD_BomVersion v
+                WHERE  v.Status = 'APPROVED'
+                  AND (v.EffFrom IS NULL OR v.EffFrom <= @Today)
+                  AND (v.EffTo   IS NULL OR v.EffTo   >= @Today)),
+            lines AS (
+                SELECT b.ParentItemNo, b.CompItemNo,
+                       DENSE_RANK() OVER (PARTITION BY b.ParentItemNo ORDER BY e.EffFrom DESC, e.VersionID DESC) AS Rk
+                FROM   dbo.MD_Bom b
+                JOIN   eff e ON e.VersionID = b.VersionID
+                WHERE  ISNULL(b.ActiveFlag,1) = 1 AND b.ParentItemNo IS NOT NULL AND b.CompItemNo IS NOT NULL)
+            SELECT l.ParentItemNo, l.CompItemNo, c.ItemType, c.ItemName, ISNULL(c.InjFlag, 0) AS InjFlag
+            FROM   lines l
+            JOIN   dbo.MD_Item c ON c.ItemNo = l.CompItemNo
+            WHERE  l.Rk = 1 AND ISNULL(c.ActiveFlag, 1) = 1;
+            """;
+        using var cmd = new SqlCommand(sql, conn, tx);
+        cmd.Parameters.Add("@Today", System.Data.SqlDbType.Date).Value = DbClock.Today;
+        using var rdr = cmd.ExecuteReader();
+        var edges = new List<InjEdge>();
+        while (rdr.Read())
+            edges.Add(new InjEdge((string)rdr["ParentItemNo"], (string)rdr["CompItemNo"],
+                                  rdr["ItemType"] as string, rdr["ItemName"] as string, Convert.ToBoolean(rdr["InjFlag"])));
+        return ResolveByInjFlag(itemNo, edges);
+    }
+
     /// <summary>
     /// 유효 BOM(APPROVED·기간 내, 부모당 EffFrom 최신 버전 1개 — PpRepository.RunMrp 와 같은 선택)에서
     /// 자식이 SUB 인 간선 전부를 읽어 Resolve 에 넘긴다. 표가 작아(수백 행) 품번별로 자르지 않는다.
+    /// 품명 규칙 — POP IMG 코어 스캔 검사가 쓴다(웹 WO 발행은 <see cref="ReadByInjFlag"/>).
     /// </summary>
     public static Result Read(SqlConnection conn, SqlTransaction? tx, string itemNo)
     {

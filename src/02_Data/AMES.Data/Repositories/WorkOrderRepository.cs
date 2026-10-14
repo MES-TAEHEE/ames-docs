@@ -68,8 +68,9 @@ public sealed class WorkOrderRepository
 
     internal static List<RoutingStepPreview> ReadPreview(SqlConnection conn, SqlTransaction? tx, string itemNo, string routingType)
     {
-        // 코어는 여기서 한 번만 해석한다 — PP-003 미리보기·WO 발행(ReleaseCore)이 같은 값을 본다.
-        var core = CoreItemResolver.Read(conn, tx, itemNo);
+        // 코어는 여기서 한 번만 해석한다 — PP-003 미리보기·WO 발행(ReleaseCore)·PP-APS WO 생성이 같은 값을 본다.
+        // 사출품 판정은 PP-APS 와 같은 InjFlag 기준(10-14)
+        var core = CoreItemResolver.ReadByInjFlag(conn, tx, itemNo);
         var coreItem = core.StepItemNo(itemNo);
 
         const string sql = """
@@ -578,7 +579,7 @@ public sealed class WorkOrderRepository
         var template = ReadPreview(conn, tx, woId);
         // PP-003 은 미리 거부하지만 PP-004 수동 발행도 같은 문을 지나야 한다 — 코어 없는 WO 는 INJ 스테이션 BOP·금형이 없어 영원히 Released 로 남는다
         if (template.Any(t => t.NoCore))
-            throw new InvalidOperationException("WO item has no identifiable core (BOM CORE sub-item missing or ambiguous); cannot release.");
+            throw new InvalidOperationException("WO item has no identifiable core (no injection item with InjFlag in the BOM, or several without a single CORE-named one); cannot release.");
         ValidateStepChoices(template, steps);
 
         using (var cmd = new SqlCommand("""
