@@ -5,8 +5,7 @@ namespace AMES.Data.Repositories;
 public sealed partial class ScmRepository
 {
     public record PurchaseLine(int Id, string Item, string Name, string Unit, decimal Quantity,
-        decimal Price, decimal Received, int PoID = 0, string Version = "", bool ItemExists = true,
-        string? BoxContentUnit = null, decimal? BoxContentQty = null);
+        decimal Price, decimal Received, int PoID = 0, string Version = "", bool ItemExists = true);
     public record PurchaseOrder(string Number, string Vendor, DateTime Ordered, DateTime Due,
         string Destination, string Status, string Currency, List<PurchaseLine> Lines, string VendorName = "",
         DateTime? SupplierConfirmedAt = null, string? SupplierConfirmedBy = null, string CreatedBy = "");
@@ -28,8 +27,7 @@ public sealed partial class ScmRepository
             SELECT p.PoID,p.PoNumber,p.PoLineNo,p.VendorID,p.ItemNo,i.ItemName,p.UnitCode,
                    p.OrderQty,p.UnitPrice,p.ReceivedQty,p.OrderDate,p.DueDate,p.Status,
                    p.Currency,p.DeliveryDestination,p.ScmRowVersion,v.VendorName,p.SupplierConfirmedAt,p.SupplierConfirmedBy,
-                   CAST(CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS bit),p.CreatedBy,
-                   COALESCE(p.BoxContentUnit,i.BoxContentUnit),COALESCE(p.BoxContentQty,i.BoxContentQty)
+                   CAST(CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS bit),p.CreatedBy
             FROM dbo.WH_PurchaseOrder p LEFT JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo
             LEFT JOIN dbo.MD_Vendor v ON v.VendorID=p.VendorID
             WHERE NULLIF(p.PoNumber,'') IS NOT NULL
@@ -79,8 +77,7 @@ public sealed partial class ScmRepository
             if (order.Status != S(12)) orders[number] = order = order with { Status = "Partial" };
             if (r.IsDBNull(17)) orders[number] = order = order with { SupplierConfirmedAt = null, SupplierConfirmedBy = null };
             order.Lines.Add(new(r.IsDBNull(2) ? r.GetInt32(0) : r.GetInt32(2), S(4), S(5), S(6),
-                D(7), D(8), D(9), r.GetInt32(0), Convert.ToHexString((byte[])r[15]),r.GetBoolean(19),
-                r.IsDBNull(21) ? null : r.GetString(21),r.IsDBNull(22) ? null : r.GetDecimal(22)));
+                D(7), D(8), D(9), r.GetInt32(0), Convert.ToHexString((byte[])r[15]),r.GetBoolean(19)));
         }
         return orders.Values.ToList();
     }
@@ -101,16 +98,13 @@ public sealed partial class ScmRepository
             using var cmd = new SqlCommand("""
                 UPDATE dbo.WH_PurchaseOrder
                 SET VendorID=@Vendor,ItemNo=@Item,OrderQty=@Qty,UnitCode=@Unit,UnitPrice=@Price,
-                    BoxContentUnit=CASE WHEN @Unit='BOX' THEN (SELECT BoxContentUnit FROM dbo.MD_Item WHERE ItemNo=@Item) END,
-                    BoxContentQty=CASE WHEN @Unit='BOX' THEN (SELECT BoxContentQty FROM dbo.MD_Item WHERE ItemNo=@Item) END,
                     OrderDate=@Ordered,DueDate=@Due,DeliveryDestination=@Destination,
                     ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
                 WHERE PoNumber=@Number AND PoLineNo=@Line;
                 IF @@ROWCOUNT=0
                     INSERT dbo.WH_PurchaseOrder(PoNumber,PoLineNo,VendorID,ItemNo,OrderQty,ReceivedQty,
-                        UnitCode,UnitPrice,Currency,OrderDate,DueDate,Status,DeliveryDestination,CreatedBy,CreatedTS,BoxContentUnit,BoxContentQty)
-                    SELECT @Number,@Line,@Vendor,@Item,@Qty,0,@Unit,@Price,'USD',@Ordered,@Due,'Draft',@Destination,@Actor,SYSDATETIME(),
-                        CASE WHEN @Unit='BOX' THEN i.BoxContentUnit END,CASE WHEN @Unit='BOX' THEN i.BoxContentQty END
+                        UnitCode,UnitPrice,Currency,OrderDate,DueDate,Status,DeliveryDestination,CreatedBy,CreatedTS)
+                    SELECT @Number,@Line,@Vendor,@Item,@Qty,0,@Unit,@Price,'USD',@Ordered,@Due,'Draft',@Destination,@Actor,SYSDATETIME()
                     FROM dbo.MD_Item i WHERE i.ItemNo=@Item;
                 """, conn, tx);
             Add(cmd, ("@Number",number),("@Line",line.Id),("@Vendor",order.Vendor),("@Item",line.Item),
@@ -218,7 +212,7 @@ public sealed partial class ScmRepository
         if (order.Currency != "USD" || string.IsNullOrWhiteSpace(order.Destination) || order.Destination.Length > 200 ||
             order.Ordered.Year < 1900 || order.Due < order.Ordered || order.Lines.Count == 0 ||
             order.Lines.Select(x => x.Id).Distinct().Count() != order.Lines.Count || order.Lines.Any(x => x.Id <= 0 ||
-                x.Quantity <= 0 || x.Quantity > 999999999.999m || decimal.Round(x.Quantity,3) != x.Quantity ||
+                !MasterDataRepository.IsQuantityUnit(x.Unit) || x.Quantity <= 0 || x.Quantity > 999999999.999m || decimal.Round(x.Quantity,3) != x.Quantity ||
                 x.Price < 0 || x.Price > 9999999999.9999m || decimal.Round(x.Price,4) != x.Price))
             throw new ArgumentException("Invalid order fields, quantity or price precision.");
     }
@@ -233,9 +227,7 @@ public sealed partial class ScmRepository
                 JOIN dbo.MD_Vendor v WITH (HOLDLOCK) ON v.VendorID=m.VendorID
                 WHERE m.VendorID=@Vendor AND m.ItemNo=@Item AND m.ActiveFlag=1
                   AND i.ItemType='MATERIAL' AND ISNULL(v.ActiveFlag,1)=1
-                  AND ISNULL(i.DefaultUOM,'')=@Unit
-                  AND (@Unit<>'BOX' OR (i.BoxContentQty>0 AND EXISTS(SELECT 1 FROM dbo.MD_Uom u
-                      WHERE u.UOMCode=i.BoxContentUnit AND u.ActiveFlag=1 AND u.UOMCode NOT IN ('BOX','PLT','SH'))));
+                  AND ISNULL(i.DefaultUOM,'')=@Unit;
                 """,conn,tx);
             Add(cmd,("@Vendor",order.Vendor),("@Item",line.Item),("@Unit",line.Unit));
             if ((int)cmd.ExecuteScalar()! != 1) throw new InvalidOperationException("Vendor/item mapping or unit changed. Reload before saving.");
