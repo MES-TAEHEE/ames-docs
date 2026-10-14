@@ -229,6 +229,10 @@ def with_color(part: str, color: str | None) -> str:
     return part + color if color else part
 
 
+def quantity_unit(unit: str) -> str:
+    return "EA" if unit == "SH" else unit
+
+
 def category_of(item_type: str, name: str, unit: str) -> str:
     if item_type == "ASSY":
         return "TRIM"
@@ -440,11 +444,7 @@ def render(items, bom, skipped_qty, skipped_purchased) -> str:
     w("")
     w("BEGIN TRAN;")
     w("")
-    w("-- ── §1 MD_Uom: SH(시트) ─────────────────────────────────────────────")
-    w("INSERT INTO dbo.MD_Uom (UOMCode, UOMName, UOMCategory, BaseFlag, ConvFactor, DecimalPrec, Symbol, ActiveFlag, CreatedBy, CreatedTS)")
-    w("SELECT 'SH', 'Sheet', 'QTY', 0, 1, 3, 'sh', 1, 'admin', SYSDATETIME()")
-    w("WHERE  NOT EXISTS (SELECT 1 FROM dbo.MD_Uom WHERE UOMCode = 'SH');")
-    w("PRINT CONCAT(N'§1 MD_Uom 추가: ', @@ROWCOUNT, N' 건');")
+    w("-- Sheet materials use individual quantities (EA), not a packaging UOM.")
     w("")
     w("-- ── §2 ITEM_CATEGORY 공통코드 ───────────────────────────────────────")
     w("INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, UseFlag, Description, CreatedBy, CreatedTS)")
@@ -477,7 +477,7 @@ def render(items, bom, skipped_qty, skipped_purchased) -> str:
     for no, it in sorted(items.items(), key=lambda kv: (order[kv[1]["type"]], kv[0])):
         pgn, alc = PGN_ALC.get(no, (None, None))
         routing = "A" if it["type"] == "ASSY" else None
-        rows.append(f"  ({q(no)}, {nq(it['name'])}, {q(it['type'])}, {q(it['category'])}, {q(it['car'])}, {q(it['unit'])}, {q(routing)}, 0, {q(pgn)}, {q(alc)}, 0, 1, {q(CREATED_BY)}, SYSDATETIME())")
+        rows.append(f"  ({q(no)}, {nq(it['name'])}, {q(it['type'])}, {q(it['category'])}, {q(it['car'])}, {q(quantity_unit(it['unit']))}, {q(routing)}, 0, {q(pgn)}, {q(alc)}, 0, 1, {q(CREATED_BY)}, SYSDATETIME())")
     w(",\n".join(rows) + ";")
     w("DECLARE @n5 int = @@ROWCOUNT;")
     w(f"IF @n5 <> {len(items)} THROW 50002, N'MD_Item 행 수 불일치', 1;")
@@ -499,7 +499,7 @@ def render(items, bom, skipped_qty, skipped_purchased) -> str:
     for parent, lines in bom.items():
         ver = "V-" + parent + "-01"
         for child, qty, uom, note, src, pos in lines:
-            rows.append(f"  ({q(bom_id(ver, child))}, {q(parent)}, {q(child)}, 1, {num(qty)}, {q(uom)}, 0, {q(ver)}, {pos}, {nq(note[:120] if note else None)}, 1, {q(CREATED_BY)}, SYSDATETIME())")
+            rows.append(f"  ({q(bom_id(ver, child))}, {q(parent)}, {q(child)}, 1, {num(qty)}, {q(quantity_unit(uom))}, 0, {q(ver)}, {pos}, {nq(note[:120] if note else None)}, 1, {q(CREATED_BY)}, SYSDATETIME())")
     w(",\n".join(rows) + ";")
     w("DECLARE @n7 int = @@ROWCOUNT;")
     w(f"IF @n7 <> {n_lines} THROW 50004, N'MD_Bom 행 수 불일치', 1;")

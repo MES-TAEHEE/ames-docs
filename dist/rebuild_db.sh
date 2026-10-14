@@ -126,14 +126,13 @@ FILES=(
   cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)
   migrate_user_profile_backfill.sql   # 프로필 없는 내부 계정 보강(역할 있음 ACTIVE·없음 INACTIVE) — 시드가 만든 계정까지 보도록 맨 끝
   migrate_pda_bearer_session.sql      # PDA bearer hash + session snapshot (recycle-safe)
-  migrate_scm_box_po_contents.sql     # BOX PO contents (no-op on fresh schema)
-  migrate_md_item_box_contents.sql    # BOX item contents; copy consistent legacy PO values
   migrate_user_status_mail_cleanup.sql  # 계정 메일 기능 폐지 — UNVERIFIED·PENDING → ACTIVE, 이메일 인증 정리, USER_STATUS 코드 삭제
   migrate_notification_push.sql      # 알림 채널 PUSH 전환 — EMAIL·SMS 는 남긴 채 사용 안 함, 규칙에 PUSH 추가(10-08)
   migrate_aspnetuserroles_pk.sql     # AspNetUserRoles 복합 PK(UserId, RoleId)+IX_RoleId — 스키마로 만든 DB 는 이미 있어 건너뜀(10-08)
   migrate_aspnetusertokens_pk.sql    # AspNetUserTokens 기본키에 UserId 포함(UserId, LoginProvider, Name) — 2FA 두 번째 사용자부터 키 중복 실패 수정, 스키마로 만든 DB 는 건너뜀(10-08)
   migrate_role_permission_orphan_cleanup.sql # 화면이 없는 SYS_RolePermission 행 정리 — SYS-003 화면 삭제가 권한 행을 남기던 것(10-09)
   migrate_sys_screen_permission_criteria.sql # 화면 기본 권한 SYS_Screen.PermissionCriteria(LidLabel 다음, varchar(10), _/X) + 역할 권한 3자리(R·E·A, _ 미부여, X 기능 없음) — create_sys_screen 이 다시 만든 표에도 넣는다(10-10)
+  migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
 )
 
