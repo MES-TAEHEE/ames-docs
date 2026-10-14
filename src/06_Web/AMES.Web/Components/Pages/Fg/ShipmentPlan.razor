@@ -26,11 +26,11 @@
             <span>SUPPLY PLAN LINES · @_view.Count <small class="preview-tag" title="Display-only plan. Pallet quantity comes from Item Master. Maximum 18 pallets per trailer. No database changes.">PREVIEW</small></span>
             <div class="plan-filters">
                 <RadzenLabel Text="Ship date" Component="ShipDateFrom" />
-                <RadzenDatePicker Name="ShipDateFrom" @bind-Value="_shipFrom" @bind-Value:after="Load"
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipDateFrom" @bind-Value="_shipFrom" @bind-Value:after="Load"
                     DateFormat="@DateFmt.Date" AllowClear="false" Placeholder="From"
                     InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
                 <span aria-hidden="true">–</span>
-                <RadzenDatePicker Name="ShipDateTo" @bind-Value="_shipTo" @bind-Value:after="Load"
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipDateTo" @bind-Value="_shipTo" @bind-Value:after="Load"
                     DateFormat="@DateFmt.Date" AllowClear="false" Placeholder="To"
                     InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
                 <RadzenDropDown Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter"

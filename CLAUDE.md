@@ -53,9 +53,9 @@ Pda                       →  Api (HTTP)
 |------|------|
 | .NET | 10.0 |
 | C# | nullable enable, implicit usings |
-| DB 접근 | ADO.NET (raw SqlCommand) — ORM 없음 (operational data) |
-| ORM | EF Core 10.0.0 — AMES.Web Identity 테이블 전용 |
-| WinForms UI | `Microsoft.AspNetCore.Components.WebView.WindowsForms` 10.0.0 |
+| DB 접근 | ADO.NET (raw SqlCommand, `Microsoft.Data.SqlClient` 7.1.1 — 10-15 6.1.6 에서 올림, 전이 의존성 `System.Security.Cryptography.Pkcs` 는 취약성 때문에 AMES.Data 에서 10.0.13 으로 고정) — ORM 없음 (operational data) |
+| ORM | EF Core 10.0.13 — AMES.Web Identity 테이블 전용 |
+| WinForms UI | `Microsoft.AspNetCore.Components.WebView.WindowsForms` 10.0.110 |
 | API | ASP.NET Minimal API (`MapGroup` 패턴) |
 | MAUI | `Microsoft.Maui.Controls` + `Microsoft.AspNetCore.Components.WebView.Maui` |
 | 인증 | Pop: PIN 기반 커스텀 / Web: ASP.NET Identity 쿠키 / API: Bearer Token (`TokenStore`) |

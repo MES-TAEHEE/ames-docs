@@ -35,10 +35,10 @@
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text='@($"{L["PP.PlanConfirm.Col.Due"]} {L["PP.Forecast.Fld.Period"]}")' />
-            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text='@($"{L["Col.SoNo"]}/{L["Col.PartNo"]}")' />
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"

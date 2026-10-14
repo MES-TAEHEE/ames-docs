@@ -35,7 +35,7 @@
             <div class="wh08-filter-date">
                 <div class="pda-fld">
                     <label>FROM</label>
-                    <RadzenDatePicker TValue="DateTime?"
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?"
                                       @bind-Value="_dateFrom"
                                       DateFormat="yyyy-MM-dd"
                                       AllowClear="false"
@@ -44,7 +44,7 @@
                 </div>
                 <div class="pda-fld">
                     <label>TO</label>
-                    <RadzenDatePicker TValue="DateTime?"
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?"
                                       @bind-Value="_dateTo"
                                       DateFormat="yyyy-MM-dd"
                                       AllowClear="false"

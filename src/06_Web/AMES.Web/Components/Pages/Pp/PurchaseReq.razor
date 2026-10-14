@@ -47,7 +47,7 @@
             <RadzenDropDown @bind-Value="_fVendor" @bind-Value:after="ApplyFilter" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value"
                             Placeholder="@L["Filter.All"].Value" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.PurchaseReq.Fld.RequiredFrom"]" />
-            <RadzenDatePicker @bind-Value="_fFrom" @bind-Value:after="ApplyFilter" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" @bind-Value:after="ApplyFilter" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text='@($"{L["Col.PrNo"]} / {L["Col.ItemNo"]}")' />
             <RadzenTextBox @bind-Value="_fSearch" @bind-Value:after="ApplyFilter" Placeholder="@L["PP.PurchaseReq.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 

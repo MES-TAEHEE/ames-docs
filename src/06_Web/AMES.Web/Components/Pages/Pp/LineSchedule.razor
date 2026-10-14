@@ -79,7 +79,7 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <RadzenLabel Text="@L["Col.Line"]" />
             <RadzenDropDown TValue="string" @bind-Value="_lineId" @bind-Value:after="LoadData" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Placeholder="@L["PP.LineSchedule.Ph.SelectLine"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
-            <RadzenDatePicker TValue="DateTime" @bind-Value="_date" @bind-Value:after="LoadData" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_date" @bind-Value:after="LoadData" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Pattern"]" />
             @* 적용된 라인+일자는 패턴 변경 불가, 저장 스케줄이 없을 때만 선택 가능 *@
             <RadzenDropDown TValue="string" @bind-Value="_patternId" @bind-Value:after="OnPatternChanged" Data="@PatternDdOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" AllowClear="true" Disabled="@(string.IsNullOrEmpty(_lineId) || _savedStatus != null)" Placeholder="@L["PP.LineSchedule.Ph.SelectPattern"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:400px;" />
@@ -253,7 +253,7 @@
                     <RadzenColumn Size="4">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
                         @* 시작시간은 자동 결정(밴드 클릭/편집) — 수정 불가. 지속 변경 시 이후 WO가 자동 이동 *@
-                        <RadzenDatePicker TValue="DateTime?" @bind-Value="PlaceStartDt" Disabled="true" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="PlaceStartDt" Disabled="true" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="4">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />
@@ -314,7 +314,7 @@
                 <RadzenRow Gap="8px">
                     <RadzenColumn Size="6">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
-                        <RadzenDatePicker TValue="DateTime?" @bind-Value="PmStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="PmStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="6">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />
@@ -357,7 +357,7 @@
                 <RadzenRow Gap="8px">
                     <RadzenColumn Size="6">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
-                        <RadzenDatePicker TValue="DateTime?" @bind-Value="McStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="McStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="6">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />

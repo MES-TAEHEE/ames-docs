@@ -83,7 +83,7 @@
         </span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["PP.DowntimeMonitor.Lbl.AsOf"]" Component="DatePickerAsOf" />
-            <RadzenDatePicker TValue="DateTime?" Name="DatePickerAsOf" @bind-Value="_fAsOf" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="DatePickerAsOf" @bind-Value="_fAsOf" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Replay" class="ames-rz-btn" />
             <RadzenButton Text="@L["PP.DowntimeMonitor.Btn.Live"]" Icon="play_arrow" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Disabled="@_live" Click="@GoLive" class="ames-rz-btn" />
         </RadzenStack>

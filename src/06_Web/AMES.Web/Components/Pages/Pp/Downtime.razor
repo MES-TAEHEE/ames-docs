@@ -61,9 +61,9 @@
         <span style="white-space:nowrap;">▼ @L["PP.Downtime.Title"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <span class="dim">~</span>
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
@@ -161,11 +161,11 @@
             </RadzenStack>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@(L["Col.Start"] + " *")' class="ames-rz-modal-label" Component="EditDateStart" />
-                <RadzenDatePicker TValue="DateTime?" Name="EditDateStart" @bind-Value="_editStart" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" Disabled="@PopOnly" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="EditDateStart" @bind-Value="_editStart" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" Disabled="@PopOnly" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
             </RadzenStack>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.End"]" class="ames-rz-modal-label" Component="EditDateEnd" />
-                <RadzenDatePicker TValue="DateTime?" Name="EditDateEnd" @bind-Value="_editEnd" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" AllowClear="true" Disabled="@PopOnly" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="EditDateEnd" @bind-Value="_editEnd" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" AllowClear="true" Disabled="@PopOnly" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
             </RadzenStack>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@(L["Col.Reason"] + " *")' class="ames-rz-modal-label" Component="EditDropDownReason" />

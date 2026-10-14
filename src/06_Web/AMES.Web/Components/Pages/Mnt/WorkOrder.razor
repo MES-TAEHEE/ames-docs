@@ -324,7 +324,7 @@
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Result"]} *")' class="ames-rz-modal-label" Component="CompleteDropDownResult" />
                     <RadzenDropDown Name="CompleteDropDownResult" @bind-Value="_f.Result" Data="@ResultOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CompletedAt"]} *")' class="ames-rz-modal-label" Component="CompleteDateAt" />
-                    <RadzenDatePicker TValue="DateTime?" Name="CompleteDateAt" @bind-Value="_f.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="CompleteDateAt" @bind-Value="_f.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
                 @if (_f.Result is MwoResultCodes.Partial or MwoResultCodes.FollowUp && HasFailureSource(_sel))
                 {

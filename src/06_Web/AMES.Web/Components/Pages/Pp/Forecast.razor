@@ -40,9 +40,9 @@
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
-            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text="@L["Col.PartNo"]" />
             <RadzenTextBox @bind-Value="_fPartNo" @bind-Value:after="ApplyPartNo"
                            Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
@@ -120,9 +120,9 @@
                             @bind-Value="_dCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
-            <RadzenDatePicker @bind-Value="_dFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_dFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_dTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_dTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text="@L["Col.PartNo"]" />
             <RadzenTextBox @bind-Value="_dPartNo" @bind-Value:after="ApplyDailyPartNo"
                            Placeholder="@L["PP.Forecast.Fld.PartNoPh"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
@@ -202,10 +202,10 @@
                             @bind-Value="_hCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
-            <RadzenDatePicker @bind-Value="_hFrom" DateFormat="@DateFmt.Date" AllowClear="true"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_hFrom" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_hTo" DateFormat="@DateFmt.Date" AllowClear="true"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_hTo" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
 
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="SearchHistory" />

@@ -30,9 +30,9 @@
             <RadzenDropDown @bind-Value="_operationType" Data="@_operationOptions" TextProperty="Text" ValueProperty="Value"
                             AllowClear="true" Placeholder="@L["WH.LogHistory.Ph.ActivityType"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
-            <RadzenDatePicker @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ClearFilters" class="ames-rz-btn" />

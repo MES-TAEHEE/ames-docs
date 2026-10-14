@@ -93,9 +93,9 @@
         <span style="white-space:nowrap;">▼ @L["MNT.Dashboard.Filter.Title"] <span class="dim" style="font-weight:400;font-size:.85em;margin-left:6px;">@(_lastRefresh is { } lr ? string.Format(L["MNT.Dashboard.LastRefresh"].Value, lr.ToString("HH:mm:ss")) : "")</span></span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <span class="dim">~</span>
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
             <span class="dim" style="margin-left:8px;">|</span>
             <RadzenSwitch Name="SwitchLive" Value="@_live" Change="@OnLiveChanged" title="@L["MNT.Dashboard.LiveSub"]" />

@@ -954,11 +954,11 @@
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["Col.StartDate"]" />
-                <RadzenDatePicker TValue="DateOnly?" @bind-Value="_fv.EffFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_fv.EffFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["Col.EndDate"]" />
-                <RadzenDatePicker TValue="DateOnly?" @bind-Value="_fv.EffTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_fv.EffTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 

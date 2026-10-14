@@ -309,7 +309,7 @@
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Result"]} *")' class="ames-rz-modal-label" Component="PmCompleteDropDownResult" />
                     <RadzenDropDown Name="PmCompleteDropDownResult" @bind-Value="_c.Result" Data="@CodeOptions(_results)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CompletedAt"]} *")' class="ames-rz-modal-label" Component="PmCompleteDateAt" />
-                    <RadzenDatePicker TValue="DateTime?" Name="PmCompleteDateAt" @bind-Value="_c.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="PmCompleteDateAt" @bind-Value="_c.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -374,9 +374,9 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.LastPm"]" class="ames-rz-modal-label" Component="PmDateLast" />
-                    <RadzenDatePicker TValue="DateTime?" Name="PmDateLast" @bind-Value="_f.LastPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="PmDateLast" @bind-Value="_f.LastPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text='@($"{L["Col.NextDue"]} *")' class="ames-rz-modal-label" Component="PmDateDue" />
-                    <RadzenDatePicker TValue="DateTime?" Name="PmDateDue" @bind-Value="_f.NextDueDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="PmDateDue" @bind-Value="_f.NextDueDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">

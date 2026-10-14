@@ -65,9 +65,9 @@
         <span style="white-space:nowrap;">▼ @L["MNT.OeeAnalysis.Reliability.Title"] · @_equipAgg.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <span class="dim">~</span>
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenLabel Text="@L["Col.Equip"]" Component="DropDownEquip" />
@@ -142,8 +142,8 @@
         <RadzenChart class="mnt-oee-chart" Style="width:100%;height:280px;">
             <RadzenChartTooltipOptions Visible="true" />
             <RadzenLegend Position="LegendPosition.Bottom" />
-            <RadzenCategoryAxis Padding="16" Min="@TrendFrom" Max="@WeekStart(DbClock.Today)" Step="@TimeSpan.FromDays(7)" FormatString="@DateFmt.Fmt(DateFmt.DateShort)" />
-            <RadzenValueAxis Min="0" Max="100" Step="25" FormatString="{0}%">
+            <RadzenCategoryAxis LabelFit="CategoryAxisLabelFit.None" Padding="16" Min="@TrendFrom" Max="@WeekStart(DbClock.Today)" Step="@TimeSpan.FromDays(7)" FormatString="@DateFmt.Fmt(DateFmt.DateShort)" />
+            <RadzenValueAxis Range="ValueAxisRange.Data" Min="0" Max="100" Step="25" FormatString="{0}%">
                 <RadzenGridLines Visible="true" />
             </RadzenValueAxis>
             <RadzenColumnSeries TItem="TrendPoint" Data="@TrendOee" CategoryProperty="At" ValueProperty="Oee" Title="OEE" Fill="#3b82f6">

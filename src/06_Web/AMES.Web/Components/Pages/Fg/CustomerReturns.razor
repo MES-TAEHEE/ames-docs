@@ -27,8 +27,8 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_search" Placeholder="@L["FG.Returns.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" AutoComplete="false" @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
             <RadzenDropDown @bind-Value="_status" Data="@StatusOptions" AllowClear="true" Placeholder="@L["Col.Status"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
-            <RadzenDatePicker @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="ClearFilters" class="ames-rz-btn" />
         </RadzenStack>
