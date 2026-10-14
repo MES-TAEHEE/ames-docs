@@ -40,7 +40,7 @@ public sealed partial class ScmRepository
             JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
             WHERE ISNULL(v.ActiveFlag,1)=1 AND ISNULL(i.DefaultUOM,'')<>'BOX' AND {PackingAccess}
                 AND (@Create=0 OR COALESCE(link.PackingQty,0)<=0)
-            ORDER BY m.VendorID,m.ItemNo;
+            ORDER BY link.CreatedTS,m.VendorID,m.ItemNo;
             """, c);
         Add(cmd, ("@U", userId), ("@Create", forCreate));
         using var r = cmd.ExecuteReader();

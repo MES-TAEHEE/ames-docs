@@ -20,7 +20,7 @@
     <div class="ames-card">
         <div class="ames-card-h">@L["Portal.Text.Deliveries"] · @_rows.Count</div>
         <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.DeliveryBoxes.Ph.Search"]' aria-label='@L["Portal.Text.SearchDeliveries"]' class="ames-rz-input" Style="width:100%" />
-        <RadzenDataGrid TItem="ScmRepository.BoxDelivery" Data="@Rows" Class="ames-rz-grid" AllowPaging="true" PageSize="15" RowClick="@(e=>{if(e.Data is not null)Select(e.Data);})" EmptyText='@L["Portal.Text.NoDeliveries"]'>
+        <RadzenDataGrid TItem="ScmRepository.BoxDelivery" Data="@Rows" Class="ames-rz-grid" AllowPaging="true" PageSize="15" RowClick="@(async e=>{if(e.Data is not null)await Select(e.Data);})" EmptyText='@L["Portal.Text.NoDeliveries"]'>
             <Columns>
                 <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Title='@L["Portal.Text.Delivery"]'><Template Context="d"><button class="box-document" @onclick="()=>Select(d)">@d.Number</button><div class="dim">@d.Vendor · @d.Date.ToString(DateFmt.Date)</div></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="110px" MinWidth="110px" TextAlign="TextAlign.Center" Title='@L["Col.Status"]'><Template Context="d">@Status(d.Status)</Template></RadzenDataGridColumn>
@@ -64,27 +64,31 @@
     HashSet<long> _selected=[];
     string _user="",_search="",_error="";
     bool _allowed;
-    IEnumerable<ScmRepository.BoxDelivery> Rows=>_rows.Where(d=>$"{d.Number} {d.Vendor} {d.Order}".Contains(_search,StringComparison.OrdinalIgnoreCase));
+    string? _loadedKey;
+    IEnumerable<ScmRepository.BoxDelivery> Rows=>_rows.Where(d=>$"{d.Number} {d.Vendor} {d.Order}".Contains(_search,StringComparison.OrdinalIgnoreCase)).OrderBy(d=>d.Date).ThenBy(d=>d.Number);
     string Status(string s) => s switch { "Registered" => L["Portal.Text.Registered"], "Shipped" => L["Scm.Text.ShippedLabel"], "Received" => L["Portal.Text.Received.a5320e"], "Cancelled" => L["Scm.Text.Cancelled.7cc538"], _ => s };
     protected override async Task OnParametersSetAsync()
     {
         var u=(await Authentication.GetAuthenticationStateAsync()).User;
         _user=u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
         _allowed=PortalAuth.IsPortalUser(u);
-        Load();
-        if(_rows.Find(d=>d.Number==Number) is {} d)Select(d);
+        var key=$"{_user}|{Number}";
+        if(_loadedKey==key)return;
+        _loadedKey=key;
+        await Load();
+        if(_rows.Find(d=>d.Number==Number) is {} d)await Select(d);
     }
-    void Load()
+    async Task Load()
     {
         _rows=[];_boxes=[];_selected.Clear();_document=null;_error="";
         if(!_allowed||_user.Length==0)return;
-        try{_rows=Scm.ListBoxDeliveries(_user);}
+        try{_rows=await Task.Run(()=>Scm.ListBoxDeliveries(_user));}
         catch(Exception ex){Logger.LogError(ex,"Box delivery list failed");_error=L["Portal.Text.UnableToLoadDeliveries"];}
     }
-    void Select(ScmRepository.BoxDelivery d)
+    async Task Select(ScmRepository.BoxDelivery d)
     {
         _document=d;_boxes=[];_selected.Clear();_error="";
-        try{_boxes=Scm.ListDeliveryBoxes(d.Number,_user);}
+        try{var boxes=await Task.Run(()=>Scm.ListDeliveryBoxes(d.Number,_user));if(_document==d)_boxes=boxes;}
         catch(Exception ex){Logger.LogError(ex,"Box list failed");_error=L["Portal.Text.UnableToLoadBoxes"];}
     }
     void Toggle(long id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}

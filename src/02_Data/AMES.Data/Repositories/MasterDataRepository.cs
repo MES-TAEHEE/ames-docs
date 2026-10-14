@@ -430,6 +430,9 @@ public sealed class MasterDataRepository
             ("@ContentUnit", "MD_Item.BoxContentUnit", boxContentUnit), ("@ContentQty", "MD_Item.BoxContentQty", boxContentQty));
     }
 
+    public static bool IsQuantityUnit(string? unit) => !string.IsNullOrWhiteSpace(unit)
+        && unit.Trim().ToUpperInvariant() is not ("BOX" or "PLT" or "PALLET" or "SH" or "SHEET");
+
     void ValidateItemBoxContent(string? itemUom, string? contentUnit, decimal? contentQty)
     {
         if (itemUom != "BOX")

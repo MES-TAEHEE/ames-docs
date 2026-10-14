@@ -8,6 +8,7 @@
 .scm-scroll .num, .scm-scroll th.num { text-align:right; white-space:nowrap; }
 .scm-log { line-height:1.9; font-size:.92em; }
 .scm-act { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.scm-date-range { display:flex; align-items:center; flex-wrap:nowrap; flex:0 0 auto; gap:8px; white-space:nowrap; }
 .scm-creation-actions { display:flex; flex-wrap:nowrap; align-items:center; gap:10px; margin:0 0 12px; overflow-x:auto; }
 .scm-creation-actions ::deep button { flex-shrink:0; white-space:nowrap; }
 .scm-line-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
@@ -88,6 +89,7 @@
 .scm-delivery-detail td[data-field="lot"] { min-width:190px; }
 .scm-delivery-detail td[data-field="production-date"] { min-width:175px; }
 .scm-delivery-detail input.ames-input { width:100%; box-sizing:border-box; }
+.scm-shipment-date { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
 .scm-delivery-detail ::deep .rz-numeric,
 .scm-delivery-detail ::deep .rz-datepicker { width:100%; min-width:0; }
 .scm-delivery-detail ::deep .rz-numeric-input { width:100%; min-width:0; }

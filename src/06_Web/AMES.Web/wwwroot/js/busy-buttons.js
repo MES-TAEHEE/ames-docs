@@ -18,6 +18,14 @@ window.amesBusy = (() => {
     }
 
     document.addEventListener('click', e => {
+        const path = window.location.pathname.toLowerCase();
+        const portal = path === '/portal' || path.startsWith('/portal/');
+        const close = e.target.closest && e.target.closest('[data-portal-close]');
+        if (portal && close) {
+            const modal = close.closest('.ames-modal-bg');
+            if (modal) modal.style.display = 'none';
+        }
+        if (portal) { clear(); return; }
         const btn = e.target.closest && e.target.closest(SEL);
         if (!btn || btn.disabled || btn.closest('[data-no-busy]')) return;
         clear();

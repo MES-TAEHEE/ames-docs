@@ -67,7 +67,7 @@ public sealed class ScmDeliveryCaseTests
                 CREATE TABLE MD_Vendor(VendorID varchar(20) PRIMARY KEY,VendorName nvarchar(100),ActiveFlag bit);
                 CREATE TABLE MD_Item(ItemNo varchar(20) PRIMARY KEY,ItemName nvarchar(200),ItemType varchar(20),DefaultUOM varchar(20),ActiveFlag bit);
                 CREATE TABLE SCM_ItemVendor(ItemNo varchar(20),VendorID varchar(20),PackingQty decimal(18,3),ActiveFlag bit,
-                    CreatedBy varchar(20),ModifiedBy varchar(20),ModifiedTS datetime2,PRIMARY KEY(ItemNo,VendorID));
+                    CreatedBy varchar(20),CreatedTS datetime2 DEFAULT SYSDATETIME(),ModifiedBy varchar(20),ModifiedTS datetime2,PRIMARY KEY(ItemNo,VendorID));
                 CREATE TABLE SCM_PortalVendorUser(UserID nvarchar(450),VendorID varchar(20),ActiveFlag bit,LockedFlag bit);
                 CREATE TABLE WH_PurchaseOrder(PoID int PRIMARY KEY,PoNumber varchar(30),PoLineNo int,VendorID varchar(20),ItemNo varchar(20),UnitCode varchar(20),
                     ReceivedQty decimal(18,3),OrderQty decimal(18,3),Status varchar(20),OrderDate date,DueDate date,SupplierConfirmedAt datetime2,
@@ -145,6 +145,8 @@ public sealed class ScmDeliveryCaseTests
             Assert.False(repo.SavePortalPackingQuantity("case-user","PART-4","V1",3,null));
             Assert.Equal(0,Count("SELECT COUNT(*) FROM SCM_ItemVendor WHERE ItemNo='PART-4'"));
             Sql("INSERT SCM_ItemVendor(ItemNo,VendorID,PackingQty,ActiveFlag) VALUES('PART-4','V1',NULL,1);");
+            Sql("UPDATE SCM_ItemVendor SET CreatedTS='20000101' WHERE ItemNo='PART-4';");
+            Assert.Equal("PART-4",repo.ListPortalPackingQuantities("case-user")[0].ItemNo);
             Assert.Contains(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("other-user",forCreate:true),p=>p.ItemNo=="PART-4");
             Assert.True(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",3));
