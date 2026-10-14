@@ -1,5 +1,5 @@
 ﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-14 from the development DB (192.168.0.132) with SMO.
--- 175 tables / 2434 columns, 38 procedures, 0 views, 0 functions.
+-- 175 tables / 2430 columns, 38 procedures, 0 views, 0 functions.
 -- Excludes TEST_* tables and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
 -- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).
 -- Schema only from the live database; sample seeds below are retained from the repository.
@@ -1402,8 +1402,6 @@ CREATE TABLE [dbo].[MD_Item](
 	[ApplicableEquipment] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[MakerName] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[LeadTimeDays] [int] NULL,
-	[BoxContentUnit] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentQty] [decimal](18, 3) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -9405,8 +9403,6 @@ CREATE TABLE [dbo].[WH_PurchaseOrder](
 	[SupplierConfirmedAt] [datetime2](7) NULL,
 	[SupplierConfirmedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SupplierConfirmedUserID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentUnit] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentQty] [decimal](18, 3) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,

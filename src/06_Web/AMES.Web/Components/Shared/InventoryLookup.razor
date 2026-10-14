@@ -29,7 +29,7 @@
                         PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                         Class="ames-rz-grid ames-grid-fixed inventory-summary-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="160px" Property="PartNo" Title="@L["Col.ItemNo"].Value" TextAlign="TextAlign.Center" Width="160px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="180px" Property="PartNo" Title="@L["Col.ItemNo"].Value" TextAlign="TextAlign.Center" Width="180px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="200px" Property="PartName" Title="@L["Col.ItemName"].Value" />
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="120px" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="120px" Sortable="false"><Template Context="r"><span class="pill ok">@L["WH.Inventory.Available"]</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="100px" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="100px"><Template Context="r"><span class="code dim">@UomFmt.Sym(r.Unit)</span></Template></RadzenDataGridColumn>
