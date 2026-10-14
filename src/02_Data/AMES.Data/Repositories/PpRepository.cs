@@ -483,15 +483,20 @@ public sealed partial class PpRepository
                    (SoNumber, SoLineNo, CustomerID, ItemNo, OrderQty, ShippedQty,
                     OrderDate, RequestedDeliveryDate, Status, SapSyncedAt, CreatedBy)
             VALUES (@So, @Line, @Cust, @Item, @OrderQty, @ShippedQty,
-                    @OrderDate, @ReqDate, 'Open', SYSDATETIME(), @Actor);
+                    @OrderDate, @ReqDate, @Status, SYSDATETIME(), @Actor);
             """;
 
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
+            // PP-002 자동 확정 — 같은 트랜잭션에서 읽어 신규 행만 Confirmed 로 넣는다(기존 행 갱신은 상태 유지).
+            // 세 유입 경로(엑셀 업로드·API 가져오기·PO Sync 워커)가 모두 이 메서드를 타므로 호출자는 플래그를 몰라도 된다.
+            var autoConfirm = ReadSoAutoConfirm(conn, tx);
+
             using var upd = new SqlCommand(updSql, conn, tx);
             using var ins = new SqlCommand(insSql, conn, tx);
+            ins.Parameters.Add("@Status", SqlDbType.VarChar, 20).Value = autoConfirm ? "Confirmed" : "Open";
             foreach (var c in new[] { upd, ins })
             {
                 c.Parameters.Add("@So",   SqlDbType.VarChar, 20);
@@ -1476,6 +1481,80 @@ public sealed partial class PpRepository
         cmd.Parameters.Add("@SoID",  SqlDbType.Int).Value = soId;
         cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
         return cmd.ExecuteNonQuery();
+    }
+
+    // ── PP-002 수주 자동 확정 (SYS_Config PP_SO_AUTO_CONFIRM, 규칙 정본 SoAutoConfirm) ──
+
+    /// <summary>자동 확정이 켜져 있는가. 행이 없거나 비활성이면 false(마이그레이션 전 DB 는 종전 동작).</summary>
+    public bool GetSoAutoConfirm()
+    {
+        using var conn = _f.OpenConnection();
+        return ReadSoAutoConfirm(conn, null);
+    }
+
+    public int CountOpenCustomerOrders()
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT COUNT(*) FROM dbo.PP_CustomerOrder WHERE Status = 'Open';", conn);
+        return (int)cmd.ExecuteScalar()!;
+    }
+
+    /// <summary>
+    /// 켜기 = 플래그 ON + 현재 Open 수주 전부 Confirmed 를 한 트랜잭션으로(반쪽 상태 없음 — 10-13 사용자 결정 "켤 때 일괄 확정").
+    /// 확정한 건수를 돌려준다. 행이 없으면 SYS_Config 행을 만든다(마이그레이션 없이도 동작).
+    /// </summary>
+    public int EnableSoAutoConfirm(string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            SetSoAutoConfirm(conn, tx, true, actor);
+            using var cmd = new SqlCommand("""
+                UPDATE dbo.PP_CustomerOrder
+                SET    Status = 'Confirmed', ModifiedTS = SYSDATETIME(), ModifiedBy = @Actor
+                WHERE  Status = 'Open';
+                """, conn, tx);
+            cmd.Parameters.Add("@Actor", SqlDbType.VarChar, 20).Value = actor;
+            var n = cmd.ExecuteNonQuery();
+            tx.Commit();
+            return n;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>끄기 = 플래그만 OFF. 이미 확정된 수주는 그대로이고 그 뒤 들어오는 수주만 Open 으로 돌아간다.</summary>
+    public void DisableSoAutoConfirm(string actor)
+    {
+        using var conn = _f.OpenConnection();
+        SetSoAutoConfirm(conn, null, false, actor);
+    }
+
+    private static bool ReadSoAutoConfirm(SqlConnection conn, SqlTransaction? tx)
+    {
+        using var cmd = new SqlCommand(
+            "SELECT TOP 1 ConfigValue, ISNULL(IsActive, 1) AS IsActive FROM dbo.SYS_Config WHERE ConfigKey = @K ORDER BY ConfigID;", conn, tx);
+        cmd.Parameters.Add("@K", SqlDbType.VarChar, 60).Value = SoAutoConfirm.ConfigKey;
+        using var r = cmd.ExecuteReader();
+        return r.Read() && SoAutoConfirm.IsOn(r["ConfigValue"] as string, (bool)r["IsActive"]);
+    }
+
+    // UPDATE 가 0행이면 INSERT — SYS-009 에서도 보이는 bool 설정 행. 켤 때는 IsActive 도 1 로 되살린다(비활성 행은 꺼짐으로 읽으므로).
+    private static void SetSoAutoConfirm(SqlConnection conn, SqlTransaction? tx, bool on, string actor)
+    {
+        using var cmd = new SqlCommand("""
+            UPDATE dbo.SYS_Config
+            SET    ConfigValue = @V, IsActive = 1, ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+            WHERE  ConfigKey = @K;
+            IF @@ROWCOUNT = 0
+                INSERT INTO dbo.SYS_Config
+                    (ConfigKey, ConfigType, Category, ConfigValue, CodeName, Unit, UsedByModulesJSON, SortOrder, IsActive, CreatedBy)
+                VALUES (@K, 'bool', 'PP', @V, N'Auto-confirm imported customer orders (PP-002)', NULL, NULL, 20, 1, @Actor);
+            """, conn, tx);
+        cmd.Parameters.Add("@K",     SqlDbType.VarChar,  60).Value = SoAutoConfirm.ConfigKey;
+        cmd.Parameters.Add("@V",     SqlDbType.NVarChar, 500).Value = SoAutoConfirm.ToStored(on);
+        cmd.Parameters.Add("@Actor", SqlDbType.VarChar,  20).Value = actor;
+        cmd.ExecuteNonQuery();
     }
 
     // ── PP-LSB Line Schedule ────────────────────────────────────────────

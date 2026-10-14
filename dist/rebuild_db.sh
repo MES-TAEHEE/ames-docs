@@ -85,6 +85,7 @@ FILES=(
   migrate_md_item_mount_pos.sql       # MD_Item.MountPos 완제품 라벨 장착위치 (순서 무관)
   migrate_pr_result_prod_shift.sql    # PR_ProductionResult.ProdDate·ShiftCode + 백필 (순서 무관)
   migrate_day_cutoff_config.sql       # 전기일 기준 시각 공통코드 DAY_CUTOFF → SYS_Config.DAY_CUTOFF_TIME 이관 (재실행 안전)
+  migrate_pp_so_auto_confirm.sql      # PP-002 수주 자동 확정 플래그 SYS_Config.PP_SO_AUTO_CONFIRM (기본 false, 순서 무관)
   migrate_bom_status_code.sql         # BOM 버전 상태 공통코드 BOM_STATUS + 기간 지난 승인 버전 EXPIRED (재실행 안전)
   migrate_md_codeitem_attribute2.sql  # MD_CodeItem.Attribute2 nvarchar(200) (Attribute1 다음, 재생성 — 스키마에 이미 있으면 건너뜀)
   migrate_md_codeitem_widen.sql       # PO source URLs and service-key metadata need current widths
@@ -99,13 +100,13 @@ FILES=(
   migrate_img_core_lot.sql            # IMG 완제품↔사출 Core 1:1 필터 유니크 인덱스 UX_tbl_Lot_ImgParent (순서 무관, -I 필수)
   seed_defect_first_article.sql       # INJ·IMG 초품 불량코드 INJ-D07·IMG-D07 (재실행 안전, 기본 원인은 있을 때만 연결)
   migrate_md_equipment_type_tonnage.sql # 설비 유형 공통코드 EQUIP_TYPE(INJ·WRAP·PNT) + 값 변환 + MD_Equipment.Tonnage (순서 무관)
-  migrate_aps.sql                     # APS: MD_Item.BoxQty 재생성(PartCavityCount 는 폐지·삭제) + MD_ApsLineStage·PP_ApsRun/PlanLine/RunWo + 공통코드 APS_SETTING/APS_COVER_TIER (migrate_mold_master 이후, -I 필수)
+  migrate_aps.sql                     # APS: MD_Item.BoxQty·MD_MoldItem.PartCavityCount 폐지·삭제 + MD_ApsLineStage·PP_ApsRun/PlanLine/RunWo + 공통코드 APS_SETTING/APS_COVER_TIER (migrate_mold_master 이후, -I 필수)
   migrate_pp_aps_screen.sql           # PP-APS 생산계획 화면 등록 + Admin 권한 (seed_admin_permissions 이후)
   migrate_demand_plan.sql             # 일별 구매계획(MM30011) 테이블·PP_ApsRun.IncludeDailyPlan·SW_DPSYNC* (migrate_aps 이후)
   migrate_po_sync.sql                 # SW_POSYNC* code groups
   migrate_po_sync_service_key.sql     # Web→API manual import key; created once per DB
   migrate_aps_plan_line_shift.sql     # APS 계획 행 교대별 수량 PP_ApsPlanLineShift (migrate_aps 이후)
-  seed_aps_dev.sql                    #   → 개발용 APS 시드: BoxQty·LINE-INJ-01 2교대 패턴·MD_ApsLineStage·확정 수주·BOP 보강 (migrate_aps 이후)
+  seed_aps_dev.sql                    #   → 개발용 APS 시드: PalletQty·LINE-INJ-01 2교대 패턴·MD_ApsLineStage·확정 수주·BOP 보강 (migrate_aps 이후)
   seed_demand_plan_dev.sql            #   → 개발용 일별계획 수집 소스 SEMS(URL 자리표시자)
   migrate_portal.sql                  # 외부 포탈: PROCESS/PORTAL 코드 · 구 출하 계획 화면 정리
   migrate_scm_item_vendor.sql         # SCM-003 발주품목-협력업체 매핑 SCM_ItemVendor
