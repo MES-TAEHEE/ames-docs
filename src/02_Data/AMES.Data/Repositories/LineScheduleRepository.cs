@@ -65,25 +65,6 @@ public sealed class LineScheduleRepository
         return list;
     }
 
-    public void PlaceWo(string lineId, DateTime date, int woId,
-                        int startMin, int endMin, decimal plannedQty)
-    {
-        const string sql = """
-            INSERT INTO dbo.PP_LineSchedule
-                   (LineID, ScheduleDate, WoID, StartMin, EndMin, PlannedQty, Status)
-            VALUES (@LineId, @Date, @WoId, @Start, @End, @Qty, 'Planned');
-            """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
-        cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
-        cmd.Parameters.Add("@WoId",   SqlDbType.Int).Value         = woId;
-        cmd.Parameters.Add("@Start",  SqlDbType.SmallInt).Value         = startMin;
-        cmd.Parameters.Add("@End",    SqlDbType.SmallInt).Value         = endMin;
-        cmd.Parameters.Add("@Qty",    SqlDbType.Decimal).Value     = plannedQty;
-        cmd.ExecuteNonQuery();
-    }
-
     public void RemoveSlot(int scheduleId)
     {
         using var conn = _f.OpenConnection();

@@ -1415,7 +1415,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)tech ?? DBNull.Value;
             cmd.Parameters.Add("@Res",  SqlDbType.VarChar,   15).Value = result;
             cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = (object?)resultNote ?? DBNull.Value;
-            cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor.Length > 50 ? actor[..50] : actor;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
             cmd.ExecuteNonQuery();
         }
 
@@ -1457,7 +1457,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)tech ?? DBNull.Value;
             cmd.Parameters.Add("@Chk",  SqlDbType.VarChar,    20).Value = (object?)pm.ChecklistId ?? DBNull.Value;
             cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = $"{pm.PmType} PM — {pm.PlanNo} ({nd:yyyy-MM-dd})";
-            cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor.Length > 50 ? actor[..50] : actor;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
             nextWoId = Convert.ToInt32(cmd.ExecuteScalar());
         }
         using (var cmd = new SqlCommand("UPDATE dbo.MNT_PMSchedule SET ActiveWoID = @Wo WHERE PMScheduleID = @Pm", conn, tx))
@@ -1608,7 +1608,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@RID",   SqlDbType.VarChar,   24).Value = (object?)refId ?? DBNull.Value;
                 cmd.Parameters.Add("@Note",  SqlDbType.NVarChar, 500).Value = (object?)note ?? DBNull.Value;
                 cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
-                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = actor.Length > 50 ? actor[..50] : actor;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = actor;
                 txnId = Convert.ToInt32(cmd.ExecuteScalar());
             }
             tx.Commit();
