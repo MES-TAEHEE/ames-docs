@@ -50,9 +50,9 @@
         @if (_cases.Count > 0)
         {
             <section class="case-manifest">
-                <h2>Handling Units / Cases</h2>
+                <h2>Pallets (Cases)</h2>
                 <table>
-                    <thead><tr><th>Case No</th><th>Boxes</th><th>Quantity</th></tr></thead>
+                    <thead><tr><th>Pallet (Case) No</th><th>Boxes</th><th>Quantity</th></tr></thead>
                     <tbody>
                         @foreach (var item in _cases)
                         {
@@ -85,7 +85,7 @@
         {
             _note = Scm.GetDeliveryNote(Number, id);
             if (_note is null) _error = L["Portal.Note.NotIssued"];
-            else _cases = Scm.ListDeliveryCases(null, id, note: Number).OrderBy(c => c.Number).ToList();
+            else _cases = Scm.ListDeliveryCases(null, id, note: Number).OrderBy(c => c.CreatedAt).ThenBy(c => c.Number).ToList();
         }
         catch (Exception ex)
         {

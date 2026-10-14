@@ -1402,8 +1402,6 @@ CREATE TABLE [dbo].[MD_Item](
 	[PalletQty] [int] NULL,
 	[MaxPalletQty] [int] NULL,
 	[ToteFlag] [bit] NOT NULL,
-	[BoxContentUnit] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentQty] [decimal](18, 3) NULL,
 	[ScanRequired] [bit] NOT NULL,
 	[ActiveFlag] [bit] NULL,
 	[CarType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
@@ -9392,8 +9390,6 @@ CREATE TABLE [dbo].[WH_PurchaseOrder](
 	[OrderQty] [decimal](12, 3) NULL,
 	[ReceivedQty] [decimal](12, 3) NULL,
 	[UnitCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentUnit] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentQty] [decimal](18, 3) NULL,
 	[UnitPrice] [decimal](14, 4) NULL,
 	[Currency] [char](3) COLLATE Korean_Wansung_CI_AS NULL,
 	[OrderDate] [date] NULL,
@@ -12584,8 +12580,6 @@ GO
 -- UOMs
 INSERT INTO dbo.MD_Uom (UOMCode, UOMName, UOMCategory, BaseFlag, ConvFactor, DecimalPrec, Symbol, ActiveFlag, CreatedBy, CreatedTS) VALUES
   ('EA',  'Each',       'QTY',    1, 1,      0, 'ea',  1, 'admin', SYSDATETIME()),
-  ('BOX', 'Box',        'QTY',    0, 1,      0, 'box', 1, 'admin', SYSDATETIME()),
-  ('PLT', 'Pallet',     'QTY',    0, 1,      0, 'plt', 1, 'admin', SYSDATETIME()),
   ('LB',  'Pound',      'WEIGHT', 1, 1,      2, 'lb',  1, 'admin', SYSDATETIME()),
   ('KG',  'Kilogram',   'WEIGHT', 0, 2.205,  3, 'kg',  1, 'admin', SYSDATETIME()),
   ('M',   'Meter',      'LENGTH', 1, 1,      3, 'm',   1, 'admin', SYSDATETIME()),

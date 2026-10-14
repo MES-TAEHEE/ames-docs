@@ -67,7 +67,7 @@ public sealed class ScmDeliveryCaseTests
                 CREATE TABLE MD_Vendor(VendorID varchar(20) PRIMARY KEY,VendorName nvarchar(100),ActiveFlag bit);
                 CREATE TABLE MD_Item(ItemNo varchar(20) PRIMARY KEY,ItemName nvarchar(200),ItemType varchar(20),DefaultUOM varchar(20),ActiveFlag bit);
                 CREATE TABLE SCM_ItemVendor(ItemNo varchar(20),VendorID varchar(20),PackingQty decimal(18,3),ActiveFlag bit,
-                    CreatedBy varchar(20),ModifiedBy varchar(20),ModifiedTS datetime2,PRIMARY KEY(ItemNo,VendorID));
+                    CreatedBy varchar(20),CreatedTS datetime2 DEFAULT SYSDATETIME(),ModifiedBy varchar(20),ModifiedTS datetime2,PRIMARY KEY(ItemNo,VendorID));
                 CREATE TABLE SCM_PortalVendorUser(UserID nvarchar(450),VendorID varchar(20),ActiveFlag bit,LockedFlag bit);
                 CREATE TABLE WH_PurchaseOrder(PoID int PRIMARY KEY,PoNumber varchar(30),PoLineNo int,VendorID varchar(20),ItemNo varchar(20),UnitCode varchar(20),
                     ReceivedQty decimal(18,3),OrderQty decimal(18,3),Status varchar(20),OrderDate date,DueDate date,SupplierConfirmedAt datetime2,
@@ -112,13 +112,6 @@ public sealed class ScmDeliveryCaseTests
             foreach(var pass in Enumerable.Range(0,2))
                 foreach(var batch in Regex.Split(migration,@"(?im)^\s*GO\s*$"))
                     if(!string.IsNullOrWhiteSpace(batch))Sql(batch);
-            var boxPoMigration=File.ReadAllText(Path.Combine(root.FullName,"dist","migrate_scm_box_po_contents.sql"));
-            foreach(var batch in Regex.Split(boxPoMigration,@"(?im)^\s*GO\s*$"))
-                if(!string.IsNullOrWhiteSpace(batch))Sql(batch);
-            var itemBoxMigration=File.ReadAllText(Path.Combine(root.FullName,"dist","migrate_md_item_box_contents.sql"));
-            foreach(var pass in Enumerable.Range(0,2))
-                foreach(var batch in Regex.Split(itemBoxMigration,@"(?im)^\s*GO\s*$"))
-                    if(!string.IsNullOrWhiteSpace(batch))Sql(batch);
             var schema=File.ReadAllText(Path.Combine(root.FullName,"dist","pda","PDA_SCHEMA.sql"));
             var procedure=Regex.Match(schema,@"(?ms)^CREATE OR ALTER PROCEDURE dbo\.WH_PDA_INBOUND_RECEIVE_LOT\b.*?^\s*GO\s*$").Value;
             var portalEnd=procedure.IndexOf("        RETURN;",StringComparison.Ordinal);
@@ -145,6 +138,8 @@ public sealed class ScmDeliveryCaseTests
             Assert.False(repo.SavePortalPackingQuantity("case-user","PART-4","V1",3,null));
             Assert.Equal(0,Count("SELECT COUNT(*) FROM SCM_ItemVendor WHERE ItemNo='PART-4'"));
             Sql("INSERT SCM_ItemVendor(ItemNo,VendorID,PackingQty,ActiveFlag) VALUES('PART-4','V1',NULL,1);");
+            Sql("UPDATE SCM_ItemVendor SET CreatedTS='20000101' WHERE ItemNo='PART-4';");
+            Assert.Equal("PART-4",repo.ListPortalPackingQuantities("case-user")[0].ItemNo);
             Assert.Contains(repo.ListPortalPackingQuantities("case-user",forCreate:true),p=>p.ItemNo=="PART-4");
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("other-user",forCreate:true),p=>p.ItemNo=="PART-4");
             Assert.True(repo.CreatePortalPackingQuantity("case-user","PART-4","V1",3));
@@ -434,6 +429,16 @@ public sealed class ScmDeliveryCaseTests
             var looseLabels=looseDeliveries.SelectMany(d=>repo.ListDeliveryBoxes(d.Number,"case-user")).ToArray();
             Assert.Contains(looseLabels,b=>b.Number.StartsWith("PT-",StringComparison.Ordinal));
             Assert.Contains(looseLabels,b=>b.Number.StartsWith("BX-",StringComparison.Ordinal));
+            var shipment=repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number))
+                .GroupBy(d=>d.Number).OrderBy(g=>g.Key,StringComparer.OrdinalIgnoreCase)
+                .Select(g=>new ScmRepository.ShipmentDelivery(g.Key,g.First().OrderNumber,g.First().Version,
+                    g.Select(d=>new ScmRepository.DeliveryInput(d.PoID,d.Quantity,d.VendorLotNo,d.ProductionDate)).ToArray())).ToArray();
+            var shipmentVersions=new Dictionary<string,IReadOnlyDictionary<int,string>> { ["PO-LOOSE"]=Versions("PO-LOOSE") };
+            var staleShipment=shipment.ToArray();staleShipment[^1]=staleShipment[^1] with {Version="STALE"};
+            Assert.Throws<InvalidOperationException>(()=>repo.ConfirmSupplierShipment(staleShipment,DateTime.Today,shipmentVersions,"case-user","case-user"));
+            Assert.All(repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number)),d=>Assert.Equal("Registered",d.Status));
+            repo.ConfirmSupplierShipment(shipment,DateTime.Today,shipmentVersions,"case-user","case-user");
+            Assert.All(repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number)),d=>Assert.Equal("Shipped",d.Status));
             Assert.Equal(3,looseLabels.Length);
             var partOnly=repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
                 [new("PO-LOOSE",7,1,true)]);
@@ -443,27 +448,19 @@ public sealed class ScmDeliveryCaseTests
             Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
                 [new("PO-LOOSE",7,5,false)]));
             Sql("""
-                INSERT MD_Item(ItemNo,ItemName,ItemType,DefaultUOM,ActiveFlag,BoxContentUnit,BoxContentQty)
-                VALUES('PART-BOX','Box material','MATERIAL','BOX',1,'EA',30);
+                INSERT MD_Item(ItemNo,ItemName,ItemType,DefaultUOM,ActiveFlag)
+                VALUES('PART-BOX','Box material','MATERIAL','BOX',1);
                 INSERT SCM_ItemVendor(ItemNo,VendorID,PackingQty,ActiveFlag) VALUES('PART-BOX','V1',NULL,1);
                 INSERT WH_PurchaseOrder(PoID,PoNumber,PoLineNo,VendorID,ItemNo,UnitCode,ReceivedQty,OrderQty,Status,OrderDate,DueDate,SupplierConfirmedAt,DeliveryDestination)
                 VALUES(8,'PO-BOX',1,'V1','PART-BOX','BOX',0,2,'Open',SYSDATETIME(),SYSDATETIME(),SYSDATETIME(),'EOS');
                 """);
-            var boxPart=Assert.Single(repo.ListCaseParts("PO-BOX","case-user"));
-            Assert.Equal(2,boxPart.Available);
-            Assert.Equal(1,boxPart.PackingQty);
-            Assert.Equal(30,boxPart.BoxContentQty);
-            Assert.Equal("EA",boxPart.BoxContentUnit);
+            Assert.Empty(repo.ListCaseParts("PO-BOX","case-user"));
             var boxLine=Assert.Single(Assert.Single(repo.ListPurchaseOrders(true,"case-user",confirmedOnly:true)
                 .Where(p=>p.Number=="PO-BOX")).Lines);
-            Assert.Equal("EA",boxLine.BoxContentUnit);
-            Assert.Equal(30,boxLine.BoxContentQty);
+            Assert.Equal("BOX",boxLine.Unit);
+            Assert.Equal(2m,boxLine.Quantity);
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user"),p=>p.ItemNo=="PART-BOX");
-            var boxCase=repo.CreatePreparedCase("PO-BOX",[new(8,1),new(8,1)],"case-user");
-            Assert.All(repo.GetDeliveryCase(boxCase,"case-user")!.Boxes,b=>Assert.Equal(1,b.Quantity));
-            Sql("UPDATE WH_PurchaseOrder SET BoxContentUnit='G',BoxContentQty=5 WHERE PoID=8;");
-            Assert.Equal("G",Assert.Single(Assert.Single(repo.ListPurchaseOrders(true,"case-user",confirmedOnly:true)
-                .Where(p=>p.Number=="PO-BOX")).Lines).BoxContentUnit);
+            Assert.Throws<InvalidOperationException>(()=>repo.CreatePreparedCase("PO-BOX",[new(8,1)],"case-user"));
             Sql("UPDATE SCM_PortalVendorUser SET LockedFlag=1 WHERE UserID='case-user';");
             Assert.Empty(repo.ListPortalDeliveryDiscrepancies("case-user"));
         }

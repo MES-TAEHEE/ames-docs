@@ -24,6 +24,7 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
 
     // 화면들이 @inject IJSRuntime JS 를 쓰므로 이름이 겹치지 않게 둔다
     [Inject] IJSRuntime AmesBusyJs { get; set; } = default!;
+    [Inject] NavigationManager AmesNavigation { get; set; } = default!;
 
     readonly HashSet<MethodInfo> _runningClicks = new();
     DateTime _slowClickEndUtc = DateTime.MinValue;
@@ -33,7 +34,9 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
         if (arg is not MouseEventArgs) return Dispatch(callback, arg);
 
         var method = (DelegateField?.GetValue(callback) as Delegate)?.Method;
-        if (DateTime.UtcNow - _slowClickEndUtc < QueueWindow) { SignalClickDone(); return Task.CompletedTask; }
+        // Portal dialog and input clicks must not be discarded after a database request.
+        if (!new Uri(AmesNavigation.Uri).AbsolutePath.StartsWith("/portal", StringComparison.OrdinalIgnoreCase)
+            && DateTime.UtcNow - _slowClickEndUtc < QueueWindow) { SignalClickDone(); return Task.CompletedTask; }
         if (method is not null && _runningClicks.Contains(method)) { SignalClickDone(); return Task.CompletedTask; }
         return DispatchClick(callback, arg, method);
     }

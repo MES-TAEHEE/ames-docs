@@ -116,9 +116,6 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MaxPalletQty" Title="@L["MD.Items.Col.MaxPalletQty"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="item">@(item.MaxPalletQty?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="Contents / BOX" TextAlign="TextAlign.Right" Width="150px" Sortable="false">
-                <Template Context="item">@(item.DefaultUOM=="BOX" && item.BoxContentQty>0?$"{UomFmt.Qty(item.BoxContentQty,item.BoxContentUnit)} {UomFmt.Sym(item.BoxContentUnit)}":"—")</Template>
-            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ToteFlag" Title="@L["MD.Items.Col.Tote"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="item">
                     @if (item.ToteFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
@@ -285,8 +282,7 @@
         if (!InjEnabled) _f.InjFlag = false;
     }
     private IEnumerable<DropDownItem> RoutingOptions => _routingItems.Where(r => r.UseFlag).Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
-    private IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
-    private IEnumerable<DropDownItem> BoxContentUomOptions => UomOptions.Where(u => u.Value is not ("BOX" or "PLT" or "SH"));
+    private IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag && MasterDataRepository.IsQuantityUnit(u.UOMCode)).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
     // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
     private IEnumerable<DropDownItem> ActiveFilterOptions =>
         _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
@@ -384,8 +380,6 @@
             MaxPalletQty = r.MaxPalletQty,
             ToteFlag     = r.ToteFlag,
             ScanRequired = r.ScanRequired,
-            BoxContentQty = r.BoxContentQty,
-            BoxContentUnit = r.BoxContentUnit,
             ActiveFlag   = r.ActiveFlag,
         };
         _confirmDelete = false; _modalErr = ""; _deleteBlocked = ""; _modal = "edit";
@@ -413,8 +407,7 @@
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
-                _f.ActiveFlag, _actor, _f.ScanRequired,
-                _f.Uom=="BOX"?_f.BoxContentUnit:null,_f.Uom=="BOX"?_f.BoxContentQty:null);
+                _f.ActiveFlag, _actor, _f.ScanRequired);
             Audit.Created("MD-003", "MD_Item", no, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Created"].Value, no), false);
@@ -437,8 +430,7 @@
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
-                _f.ActiveFlag, _actor, _f.ScanRequired,
-                _f.Uom=="BOX"?_f.BoxContentUnit:null,_f.Uom=="BOX"?_f.BoxContentQty:null);
+                _f.ActiveFlag, _actor, _f.ScanRequired);
             Audit.Updated("MD-003", "MD_Item", _f.ItemNo, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo), false);
@@ -587,20 +579,6 @@
             </RadzenColumn>
         </RadzenRow>
 
-        @if (_f.Uom == "BOX")
-        {
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="4">
-                    <RadzenLabel Text="Max contents / BOX" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.BoxContentQty" Min="0.001m" Step="1" Placeholder="Qty" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="4">
-                    <RadzenLabel Text="Contents UOM" />
-                    <RadzenDropDown TValue="string" @bind-Value="_f.BoxContentUnit" Data="@BoxContentUomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="Select unit" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
-        }
-
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
             <RadzenCheckBox TValue="bool" @bind-Value="_f.ScanRequired" Name="ItemChkCaseBoxScan" />
             <RadzenLabel Text="@L["MD.Items.ScanRequired"]" Component="ItemChkCaseBoxScan" style="cursor:pointer;" />
@@ -643,8 +621,6 @@
         public int?    MaxPalletQty { get; set; }
         public bool    ToteFlag     { get; set; }
         public bool    ScanRequired { get; set; }
-        public string? BoxContentUnit { get; set; }
-        public decimal? BoxContentQty { get; set; }
         public bool    ActiveFlag   { get; set; } = true;
     }
 }
