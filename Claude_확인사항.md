@@ -27,7 +27,7 @@
 | 담당  | 미해결 | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                          |
 | --- | --- | --- | --- | --- | ---------------------------------------------------------------------------------- |
 | 심재현 | 21  | 7   | 7묶음 | 31  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB |
-| 안영훈 | 2   | 6   | 3   | 31  | [상] WH PDA 프로시저가 지워진 옛 테이블을 가리킴 · [상] PDA 테스트 계정 PIN 0000 · [상] 배지 로그인 API 가 PIN 없이 토큰 발급 · 재구축 스크립트 두 곳에서 중단        |
+| 안영훈 | 3(적용·검증) | 4 | 3 | 5 | WH PDA 구 프로시저 참조 · 서버 Web·Api/IIS 반영 · 포장 단위 기존 데이터 정책 |
 | 이승욱 | 0   | 5   | 6   | 0   | PP-OEE 가동률이 시연 데이터로 계산됨                                                              |
 | 오세영 | 5   | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                      |
 
@@ -36,7 +36,7 @@
    - MD-003 품목 목록이 "등록된 품목이 없습니다" 로 비어 보입니다(구 Web 이 삭제된 `BoxQty` 를 읽다 실패). PP-APS 「조회」도 `BoxQty` 를 읽어 실패할 것으로 보입니다(화면은 열리고, 조회는 눌러 보지 않음).
    - PP-002 「자동 확정」 스위치가 없습니다.
    - 최신 패키지: `publish\AMES.Web_20261015-021709.zip`·`publish\AMES.Api_20261015-021846.zip`(또는 `publish\AMES.Web`·`AMES.Api` 폴더 — .NET 런타임 포함). 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행해 기동 실패 자동 복구를 켭니다.
-   - **반영한 뒤에** `dist/migrate_retire_packaging_uom.sql`(안영훈 10-14 — `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 삭제, 단위 BOX·PLT·SH 사용 안 함)을 개발 DB 와 로컬 DB 에 적용합니다. 지금 개발서버 Web 은 이 컬럼을 읽으므로 먼저 적용하면 MD-003·SCM 발주가 깨집니다. 두 DB 모두 아직 적용 전이고, 스키마 파일은 적용 뒤 구조(컬럼 없음)입니다. 적용 전에 안영훈 문제점 31(남는 데이터) 처리 방향을 정하는 것이 좋습니다.
+   - **반영한 뒤에** `dist/migrate_retire_packaging_uom.sql`(안영훈 10-14 — `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 삭제, 단위 BOX·PLT·SH 사용 안 함)을 개발 DB 와 로컬 DB 에 적용합니다. 지금 개발서버 Web 은 이 컬럼을 읽으므로 먼저 적용하면 MD-003·SCM 발주가 깨집니다. 두 DB 모두 아직 적용 전이고, 스키마 파일은 적용 뒤 구조(컬럼 없음)입니다. 적용 전에 안영훈 문제점 5(남는 데이터) 처리 방향을 정하는 것이 좋습니다.
 2. **PP-OEE 가동률 원천**: 지금은 시연 데이터(`PP_LineStateLog`)로 계산됩니다. 실제로 쌓이는 비가동 기록(`PP_LineDowntimeLog`)으로 바꿀지 정해야 합니다(이승욱 테이블 2).
 3. **화면 저장 검증**: 10-14 변경 — 감사 로그(MNT·PP-OEE·PP-LSB 적용/초기화)·MNT 부분 완료와 원래 작업지시의 고장 표시·PP-CAL 거부·SYS-004 바뀐 화면만 저장 — 은 DB 테스트와 화면 열기(헤드리스)로만 확인했고, 화면에서 실제로 저장해 보지는 않았습니다.
 
@@ -265,118 +265,49 @@
 
 ## 2. 안영훈 — PDA·Api + Web WH·FG·SCM·Portal + 재구축 스크립트
 
-### 2-1. 미해결 (2)
-1. **[중] API 앱풀이 유휴 상태에서 종료돼 Worker 가 멈춤**
-   - 위치: `tools/publish-api.ps1:110-126`
-   - 내용: AlwaysRunning·유휴 시간·미리 로드 설정이 없어, 요청이 없으면 앱풀이 내려가고 PO·일별 계획 수집이 멈춥니다.
-2. **[중] 재구축 스크립트가 지금 두 곳에서 멈춤**
-   - ① `migrate_scm_portal_screens.sql:31-41`: PORTAL-004 번호를 바꾸다 오류가 납니다.
-   - ② `seed_portal_dev.sql:17`: 업체 V1007 을 만드는 `PDA_SEED` 보다 먼저 돌아 실패합니다.
-   - 제안: 두 스크립트를 고친 뒤 실제 재구축으로 확인합니다.
+### 2-1. 적용·검증 대기 (3)
+1. **API IIS 상시 기동 설정 — 서버 적용 대기**
+   - `tools/publish-api.ps1`에 AlwaysRunning·유휴 종료 해제·사이트 자동 시작·preload 설정을 추가했습니다.
+   - 개발서버 IIS에 이 설정과 새 Web·Api 파일을 적용해야 합니다. 이번 작업에서는 서버 배포·앱풀 재시작을 하지 않았습니다.
+2. **재구축 스크립트 — 전체 재구축 검증 대기**
+   - Portal 번호 변경은 임시 코드 경유로 충돌을 피하고 현재 001~004 화면에 맞췄습니다.
+   - 선택적 개발 시드는 PDA_SEED → seed_portal_dev 순서이며, 기본 실행에서 제외합니다. 테스트 시드 실행에는 AMES_DEVELOPMENT_SEEDS=1과 세션 opt-in이 필요합니다.
+   - SQL 구문 검사는 통과했습니다. 사용자 지시에 따라 DB 삭제·재생성·전체 재구축은 실행하지 않았습니다.
+3. **동시 출고·보충 Worker 부하 검증 대기**
+   - 출고의 Serializable을 ReadCommitted로 낮추고 LOT 비교의 UPPER를 제거했습니다. 재고 행 변경 잠금과 피킹 지시 잠금은 유지합니다.
+   - 동일 품목 여러 줄의 수요 분배 SQL은 읽기 전용 회귀 검사로 확인했습니다. 실제 PDA 여러 대와 보충 Worker를 겹쳐 실행하는 검증은 아직 하지 않았습니다.
 
-### 2-2. 보류 (6)
-- **PO 자동 수집 정합성**: 고객 SRM 에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES 에는 `Open` 으로 남고, 이미 `Confirmed` 인 수주도 수량·납기가 바뀌면 매 주기 감사 행 없이 덮어써집니다. 미조회 라인 표시·확정분 변경 경고가 필요합니다.
-- **B12 Worker 가 호스트 시각을 씀**
-  - 위치: `ScheduledWorker.cs:64`, `PoSyncWorker.cs:42`, `PoSyncRunner.cs:24·52`, `DemandPlanRunner.cs:29`
-  - 내용: Api 는 DbClock 을 맞추지 않아 발주일 창·일별 계획 날짜가 PC 시계 기준입니다.
-- **B3 Api 일별 생산이 자정 기준**(`RptRepository.cs:149-171`, `RptEndpoints.cs:15`): 웹 보고서는 07시 전기일입니다.
-- **CORS 전체 허용**(`Program.cs:51-52`): 아래 [상] 배지 로그인 문제와 겹쳐 위험이 커집니다. 보안 방향 결정을 기다립니다.
-- **PO 자동 수집 실패**: 고객 테스트 서버 환경 문제로 09-17 부터 계속 실패합니다. 일별 구매계획 수집(`DPSYNC-SEMS`)도 URL 이 자리표시자라 계속 ERROR 입니다.
-- **개발 완료 시 정리**: appsettings 비밀번호 평문을 접속문자열 환경변수로 옮깁니다.
+### 2-2. 보류 (4)
+- **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.
+- **배지 단독 로그인 정책**: 사용자 요청대로 EOS 양식 QR은 PIN 없이 로그인합니다. 임의 사번 문자열 로그인은 차단했고 로그인 횟수 제한·브라우저 CORS 기본 차단을 추가했지만, EOS QR 자체는 서명된 인증 수단이 아닙니다. 관리자 배지 복제 방지를 위한 서명/PIN 도입은 정책 결정 대기입니다.
+- **PO 자동 수집 실패**: 고객 테스트 서버 환경 문제로 09-17부터 실패합니다. 일별 구매계획 수집(`DPSYNC-SEMS`)도 URL이 자리표시자로 보고되어 외부 서버 복구·접속 정보 확인이 필요합니다.
+- **개발 완료 시 정리**: appsettings 비밀번호 평문을 접속문자열 환경변수로 옮깁니다. CORS가 필요한 브라우저 클라이언트는 `Cors:AllowedOrigins`에 명시적으로 등록합니다(네이티브 PDA에는 CORS가 필요 없습니다).
 
 ### 2-3. 테이블 (10-14 전수 조사)
-| 테이블(행) | 상태 | 내용 |
+| 테이블 | 상태 | 내용 |
 |---|---|---|
-| `PP_SupplyPlan`(3)·`PP_SupplyPlanDetail`(9) | 읽기만 | 옛 공급 계획입니다. Api `GET /api/pp/supply-plans`(`PpEndpoints.cs:33` → `PpRepository.cs:550`)만 읽고 쓰는 곳이 없어, 늘 시연 3건을 돌려줍니다. PP-002 는 고객 수주 업로드로 바뀌었습니다. PDA·외부에서 부르지 않으면 엔드포인트와 테이블을 정리합니다. |
-| `WH_ReleaseSchedule`(0) | 아무도 안 씀 | 출고 일정 테이블입니다. 소스 참조가 0 이고, 옛 `migrate_wh_core_tables.sql` 이 지우는 테이블이기도 합니다. DROP 후보입니다. |
-| `PP_MaterialReservation`(0) | 아무도 안 씀 | WO 자재 예약입니다. 읽는 `WarehouseRepository.ListPickingSlipCandidates`(1290행)를 아무도 부르지 않고, 예약을 만드는 코드도 없습니다. 죽은 메서드와 함께 정리하거나 자재 예약 기능을 설계합니다. |
+| `PP_SupplyPlan`·`PP_SupplyPlanDetail` | 읽기만 | 구 공급 계획 API가 읽습니다. 외부 사용 여부 확인 전에는 엔드포인트·테이블을 삭제하지 않습니다. |
+| `WH_ReleaseSchedule` | 미사용 | DROP 후보입니다. 이번에는 다른 WH 테이블과 식별자·행위자 길이만 맞췄고 테이블은 보존했습니다. |
+| `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
 
-### 2-4. 문제점 (31)
-1. **[상] PDA 테스트 계정이 PIN 0000 으로 살아 있음**
-   - 위치: `dist/pda/PDA_SEED.sql:41-130`, `PdaScenarioUsers.cs`. 개발·로컬 DB 확인
-   - 내용: SCTEST1·SCTEST2(관리자)가 PIN 0000·활성이고, 시드(`PDA_SEED.sql:41-80`)를 다시 돌릴 때마다 0000 으로 되돌립니다. PTEST 는 처음에만 0000 으로 만들어지며, 지금 두 DB 에서 PIN 은 바뀌었지만 시드가 주지 않는 ROLE-SYSADMIN 이 붙어 있습니다. 운영 차단은 Api(`AuthEndpoints.cs:26·44`, `BearerAuth.cs:33`)에만, 그것도 SCTEST1/2 만이라 POP 에서 SCTEST1·2/0000 으로 관리자 로그인이 됩니다.
-   - 제안: 운영 DB 에는 시드를 막는 가드를 둡니다. 차단을 POP·Api 공통 로그인 서비스로 옮기고 PTEST 도 포함합니다.
-2. **[상] `barcode-login` 이 PIN 없이 토큰을 발급**
-   - 위치: `AuthEndpoints.cs:41-62`, `PopAuthService.cs:56-57`
-   - 내용: EOS 양식이 아니면 스캔값을 사번으로 보므로, 관리자 사번 문자열만 보내도 관리자 토큰이 나옵니다. CORS 가 전체 허용이라 LAN 의 웹 페이지에서도 부를 수 있습니다.
+### 2-4. 문제점 (5)
+1. **[하] 사용되지 않는 BOX 내용·포장 단위 컬럼이 DB에 남음**
+   - `MD_Item.BoxContentUnit/BoxContentQty`, `WH_PurchaseOrder.BoxContentUnit/BoxContentQty`, `SCM_ItemVendor.PackingUnitCode`.
+   - 실행 코드 참조는 없습니다. 이번에는 컬럼 삭제 승인이 없으므로 유지했습니다. 컬럼 순서를 맞추기 위한 테이블 재구축도 하지 않습니다.
+2. **[상] 공통 의존성 보안 경고**
+   - Api·Data 복원 시 `System.Security.Cryptography.Pkcs 9.0.11`에 NU1902·NU1903 경고가 발생합니다.
+   - 기존 의존성 경고입니다. 지원 버전·SqlClient/SMO 의존성 영향을 확인한 뒤 별도 업데이트가 필요합니다.
+
 3. **[상] WH PDA 프로시저 5개가 지워진 옛 테이블을 가리킴**
     - 위치: 개발 DB 프로시저 `WH_PDA_INBOUND_RECEIVE_LOT`·`WH_PDA_INBOUND_MOVE_LOCATION`·`WH_PDA_INBOUND_CANCEL_RECEIPT`(→ `WH_OLD_Inventory`·`WH_Receiving`·`WH_InboundPackage`), `WH_PDA_RELEASE_PICK_LINES`·`WH_PDA_RELEASE_PICK_LOT`(→ `WH_ReleasePicking`). 스키마 파일에도 같은 정의로 들어 있습니다.
     - 내용: 네 테이블은 개발 DB 에 없습니다(`sys.sql_expression_dependencies` 에서 참조 대상 없음으로 확인). `WH_PDA_INBOUND_RECEIVE_LOT` 은 Api `WhEndpoints`·`ScmDeliveryCases`(케이스 입고)가 실제로 호출하므로, 그 문장에 닿는 입고·이동·취소·출고 피킹이 `Invalid object name` 으로 실패할 수 있습니다(실행해 보지는 않음). 옛 `migrate_wh_core_tables.sql` 이 프로시저를 옛 정의로 덮은 흔적으로 보입니다.
     - 제안: 통합 재고(`WH_Inventory`) 기준 정의로 다시 만들고, 스키마 파일을 다시 뜹니다.
-4. **[중] WH 직접 출고가 FG 완제품까지 출고**
-   - 위치: `WhEndpoints.cs:2545-2560·2711-2716`
-   - 내용: 다른 WH 조회가 쓰는 창고 박스 조건(FG 구역·라인 위치·컨테이너 제외)을 적용하지 않습니다. PDA 직접 출고로 FG 구역 완제품을 SCRAP 처리하면 출하 없이 재고가 0 이 됩니다.
-5. **[중] 닫힌 피킹 줄의 품목이 다시 출고됨**
-   - 위치: `WhEndpoints.cs:2657-2661 vs 2685-2717`
-   - 내용: 수요 확인은 열린 줄만 보는데 LOT 조회는 줄 상태를 무시합니다.
-6. **[중] Api 수동 수집에 권한 검사 없음**
-   - 위치: `ScheduledWorkerEndpoints.cs:20`, `PpEndpoints.cs:67-82`
-   - 내용: 세션만 있으면(작업자 배지 토큰 포함) 일별 구매계획 창을 교체할 수 있고, 감사도 남지 않습니다.
-7. **[중] 포탈 포장수량 저장이 행위자 칸에 이메일을 넣음**
-   - 위치: `ScmPackingQuantities.cs:73·91`
-   - 제안: `ames:actor` 클레임을 씁니다.
-8. **[중] WH 행위자 'web' 고정 14곳**
-   - 위치: `WarehouseRepository.cs:394·399·544·548·612·619·719·766·800·884·893·938·969·1051`
-9. **[중] PDA 토큰이 계정 변경을 반영하지 않음**
-   - 위치: `PopSessionRepository.cs:17`, `TokenStore.cs:42-61`, `BearerAuth.cs:24`
-   - 내용: 12시간 동안 발급 때 정보 그대로라, 비활성·잠금·역할 변경·삭제 뒤에도 유효합니다.
-10. **[중] 운영 환경에서도 Swagger 가 켜짐**
-   - 위치: `Program.cs:96-103`
-11. **[중] 로그인 횟수 제한 없음**
-    - 위치: `AuthEndpoints.cs:24`
-    - 내용: 현장 작업자는 잠기지 않아 4자리 PIN 을 무제한 시도할 수 있습니다.
-12. **[중] WH 출고 잠금 범위가 넓어 교착**
-    - 위치: `WhEndpoints.cs:2522·2550-2552·2652-2661·2685-2689`
-    - 내용: Serializable + 범위 잠금 + 인덱스를 못 타는 UPPER 비교 때문에 PDA 끼리, 그리고 보충 Worker 와 막힙니다.
-13. **[중] 위치 맵 쓰기에 감사 없음**
-    - 위치: `LocationMapExplorer.razor:275·318·324`, `WarehouseRepository.cs:719`
-    - 내용: 창고·구역·층 삭제가 위치 비활성·공통코드 삭제까지 하는데 기록이 남지 않습니다.
-14. **[하] 납품서 발행·포장수량 감사 없음**
-    - 위치: `ScmPreview.razor:649`(IssueNote), `PackingQuantities.razor:81·91`
-    - 내용: 출하(SHIP)·납품 수정(UPDATE)은 감사가 남지만, 납품서 발행과 포장수량 등록·저장은 남지 않습니다.
-15. **[하] 고정 색 남음**
-    - 위치: `ShipmentTrailerDialog.razor.css`, `DeliveryCases.razor.css:50`
-16. **[하] 로그인 TerminalId·LineId 길이 검사 없음**
-    - 위치: `AuthEndpoints.cs:13·24-36`
-    - 내용: 넘치면 조용히 잘리고, 비어 있으면 500 이 납니다.
-17. **[하] LineReplenishmentWorker 실패가 모니터에 안 남음**
-    - 위치: `Program.cs:35`, `LineReplenishmentWorker.cs:7-33`
-18. **[하] PDA 가 403 을 처리하지 않음**
-    - 위치: `SessionExpiryHandler.cs:11`, `AdjustmentEndpoints.cs:25`
-19. **[하] 옛 출고 피킹 대체 경로가 실패를 성공으로 처리**
-    - 위치: `WhEndpoints.cs:1056-1096`
-    - 내용: 0행 UPDATE 도 성공으로 처리되고 재고도 줄이지 않습니다.
-20. **[하] 같은 품목이 두 줄인 피킹 지시서의 수요 유실**
-    - 위치: `WhEndpoints.cs:2655-2672`
-21. **[하] FG 조정 검사 부족**
-    - 위치: `FgEndpoints.cs:37·156·1251-1271`
-    - 내용: 기대 수량·위치·정수 검사가 없습니다.
-22. **[하] WH 프로시저가 없으면 빈 목록**
-    - 위치: `WhEndpoints.cs:1768-1769`
-    - 내용: 마이그레이션 누락이 "데이터 없음" 으로 가려집니다.
-23. **[하] 예비품 이력 API 에 기간·건수 제한 없음**
-    - 위치: `WhEndpoints.cs:455-458·2375-2397`
-24. **[하] 납품서 조회가 잠금 트랜잭션**
-    - 위치: `ScmDeliveryNotes.cs:28-39`
-    - 내용: 보기·재출력이 출하·취소를 막습니다.
-25. **[하] 수동 실행 중 DB 장애가 나면 500**
-    - 위치: `ScheduledWorkerEndpoints.cs:21-28`
-26. **[하] 토큰 저장이 실패하면 세션 행만 남음**
-    - 위치: `TokenStore.cs:42-48`, `AuthEndpoints.cs:87`
-27. **[하] `PR_PopSession` 새 컬럼이 CLAUDE.md 배포 순서에 없음**
+
+4. **[하] `PR_PopSession` 새 컬럼이 CLAUDE.md 배포 순서에 없음**
     - 위치: `migrate_pda_bearer_session.sql:6-9`
     - 내용: `BearerHash`·`SessionJson` 을 만드는 이 마이그레이션이 CLAUDE.md 배포 순서에 없습니다(스키마 파일·`rebuild_db.sh` 에는 있음). 이 마이그레이션이 빠진 기존 DB 에서는 PDA 로그인이 전부 500 입니다.
-28. **[하] 쓰지 않는 시험 흔적 컬럼 `SCM_ItemVendor.PackingUnitCode`**
-    - 내용: 개발 DB 에만 있던 컬럼이라 개발 DB 기준으로 다시 뜬 스키마 파일(10-14)에도 들어갔습니다. 소스·마이그레이션 어디에도 없고, 로컬 DB 에는 없습니다.
-    - 제안: 쓸 계획이면 마이그레이션을 만들고, 아니면 개발 DB 에서 지운 뒤 스키마 파일을 다시 뜹니다.
-29. **[하] 납품서 인쇄 화면이 영어**
-    - 위치: `Portal/DeliveryNote.razor:16·20`
-    - 내용: "Back to Delivery Management"·"Print" 가 하드코딩돼 있습니다. 의도인지 확인이 필요합니다.
-30. **[하] 재구축 스크립트가 없는 PowerShell 대응본을 안내**
-    - 위치: `dist/rebuild_db.sh:8`
-    - 내용: "Windows(PowerShell) 대응본은 dist/rebuild_db.ps1" 이라고 적혀 있지만 그 파일이 없습니다.
-    - 제안: 안내를 지우거나 대응본을 만듭니다.
-31. **[하] 폐지한 포장 단위가 기존 데이터에 그대로 남음**
+
+5. **[하] 폐지한 포장 단위가 기존 데이터에 그대로 남음**
     - 위치: `dist/migrate_retire_packaging_uom.sql`(10-14), `tools/gen_md_item_bom_seed.py`(`quantity_unit`)
     - 내용
       - 마이그레이션은 단위 BOX·PLT·SH 를 사용 안 함으로만 바꾸고 데이터는 바꾸지 않습니다. 개발 DB 에는 SH 품목 30개, BOM 줄 77개, BOX 품목 1개, BOX 발주 6건이 남습니다.
@@ -469,7 +400,9 @@
   - Pop 149, Api 64, InjAgent 54 모두 통과
   - Data 1,084건 중 1,066 통과, 10 실패, 8 건너뜀
   - 실패 10건은 모두 기존 항목입니다(PlanScheduleTests 5, WorkOrderRepositoryTests 4, GetMoldItems 1 — 심재현 보류). 병렬 실행 중 교착이 가끔 1~2건 더 나오며, 단독 실행은 통과합니다.
-- **두 DB 구조(10-15)**: 스키마 파일은 10-14 밤 개발 DB 에서 다시 뜬 것(앱 테이블 175개·프로시저 38, SSMS `sysdiagrams` 제외)에서 안영훈 `migrate_retire_packaging_uom.sql` 이 지우는 컬럼 4개를 뺀 최종 구조입니다(컬럼 2,430). 개발·로컬 DB 는 이 마이그레이션 적용 전이라 그 4개가 더 있습니다(0절 1). 그 밖에는 빈 DB 에 스키마를 적용해 개발 DB 와 비교했을 때 다른 것이 시스템 제약 이름뿐이었고, 로컬 DB 는 개발 DB 와 같으며 `SCM_ItemVendor.PackingUnitCode`(안영훈 문제점 28)만 없습니다. 공통코드·화면 등록(`SYS_Screen` 94행)·역할 권한(`SYS_RolePermission` 107행)도 같습니다.
+- **두 DB 구조(10-15)**: 스키마 파일은 10-14 밤 개발 DB 에서 다시 뜬 것(앱 테이블 175개·프로시저 38, SSMS `sysdiagrams` 제외)에서 안영훈 `migrate_retire_packaging_uom.sql` 이 지우는 컬럼 4개를 뺀 최종 구조입니다(컬럼 2,430). 개발·로컬 DB 는 이 마이그레이션 적용 전이라 그 4개가 더 있습니다(0절 1). 그 밖에는 빈 DB 에 스키마를 적용해 개발 DB 와 비교했을 때 다른 것이 시스템 제약 이름뿐이었고, 로컬 DB 는 개발 DB 와 같으며 `SCM_ItemVendor.PackingUnitCode`(안영훈 문제점 1)만 없습니다. 공통코드·화면 등록(`SYS_Screen` 94행)·역할 권한(`SYS_RolePermission` 107행)도 같습니다.
 - **제품 코드 규칙**: `AddWithValue` 0곳(주석 3곳만), Web 의 `DateTime.Now/Today` 0곳, 라이트 테마 토큰화 대상 0.
 - **헤드리스 확인(10-15, ko·en·es, 1920)**: 병합 뒤 SCM·PP 내부 17화면과 포탈 8화면 목록에서 헤더 잘림·두 줄·셀 넘침이 없습니다. 포탈 「박스 라벨」 납품서 열의 두 줄은 원래 설계입니다(저장 없음, admin·포탈 로그인 기록과 감사 로그는 되돌림).
+
+- **이번 WH·FG·SCM 변경 검증**: API 74개 통과, 용량·위치 규칙 테스트 17개 통과, Web·PDA Android 빌드 성공. 실제 입출고·동시 PDA 부하 검증과 DB 전체 재구축은 실행하지 않았습니다. 위 두 DB 비교는 이전 기준선이며, 이번 반품·컬럼 길이 변경 이후 로컬 DB 동기화는 재검증하지 않았습니다.
 - 항목을 해결하면 같은 커밋에서 이 문서의 해당 항목을 지웁니다(해결 기록은 남기지 않고 커밋 이력으로 봅니다).
