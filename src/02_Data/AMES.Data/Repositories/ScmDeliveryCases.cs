@@ -104,9 +104,10 @@ public sealed partial class ScmRepository
             DECLARE @CaseNo varchar(50)=CONCAT('CASE-',CONVERT(char(8),SYSDATETIME(),112),'-',CASE WHEN LEN(@Sequence)<6 THEN RIGHT('000000'+@Sequence,6) ELSE @Sequence END);
             INSERT dbo.SCM_DeliveryCase(CaseNo,PoNumber,VendorID,CreatedBy)
             OUTPUT INSERTED.CaseNo,INSERTED.VendorID,CONVERT(date,INSERTED.CreatedAt)
-            VALUES(@CaseNo,@N,@Vendor,@U);
+            VALUES(@CaseNo,@N,@Vendor,@Actor);
             """,c,tx);
-        Add(header,("@N", "SCM_DeliveryCase.PoNumber",orders.Count==1?(object)orders[0]:DBNull.Value),("@Vendor", "SCM_DeliveryCase.VendorID",vendor),("@U", "SCM_DeliveryCase.CreatedBy",userId));
+        Add(header,("@N", "SCM_DeliveryCase.PoNumber",orders.Count==1?(object)orders[0]:DBNull.Value),("@Vendor", "SCM_DeliveryCase.VendorID",vendor));
+        Add(header, ("@Actor", "SCM_DeliveryCase.CreatedBy", PortalActor(userId)));
         string number; DateTime date;
         using(var r=header.ExecuteReader()){r.Read();number=r.GetString(0);vendor=r.GetString(1);date=r.GetDateTime(2);}
         var first=ReserveBoxNumbers(c,tx,vendor,date,boxes.Count);

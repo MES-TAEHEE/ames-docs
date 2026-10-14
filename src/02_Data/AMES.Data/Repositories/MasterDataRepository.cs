@@ -3268,7 +3268,7 @@ public sealed class MasterDataRepository
             "INSERT INTO dbo.MD_Location" +
             "(LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
             "Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy)" +
-            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,@LT,@PL,@AF,@CB);", conn);
+            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,@PL,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
         cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
@@ -3296,7 +3296,7 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_Location SET " +
             "LocationName=@N,WhCode=@WH,AreaCode=@AR,ZoneCode=@Z,Aisle=@A,Bay=@B,Slot=@S," +
-            "Capacity=@CAP,LocationType=@LT,PlantCode=@PL,ActiveFlag=@AF," +
+            "Capacity=@CAP,LocationType=CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,PlantCode=@PL,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
             "WHERE LocationID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;

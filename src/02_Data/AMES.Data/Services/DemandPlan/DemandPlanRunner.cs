@@ -26,7 +26,8 @@ public sealed class DemandPlanRunner(AmesConnectionFactory f, IDemandPlanSource 
 
     public async Task<DemandPlanRunResult> RunAsync(DemandPlanSource s, CancellationToken ct)
     {
-        var planDate = DbClock.Today;
+        var databaseNow = DbClock.ReadNow(f);
+        var planDate = databaseNow.Date;
         try
         {
             var response = await source.FetchAsync(s, DateOnly.FromDateTime(planDate), ct);
@@ -39,7 +40,7 @@ public sealed class DemandPlanRunner(AmesConnectionFactory f, IDemandPlanSource 
                 return new DemandPlanRunResult(s.Key, true, response.Data?.Count ?? 0, mapped.Rows, mapped.Skipped, 0, 0, 0, 0, null, null, null, mapped.Warnings);
             }
 
-            var batch  = "DS" + DbClock.Now.ToString("yyyyMMddHHmmssfff");
+            var batch  = "DS" + databaseNow.ToString("yyyyMMddHHmmssfff");
             var import = _pp.ReplaceDemandPlan(s.CustomerId, batch, PpRepository.DemandPlanSourceSrm, s.Key, null,
                 mapped.From, mapped.To, mapped.Cells, Actor);
 

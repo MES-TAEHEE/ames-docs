@@ -17,6 +17,12 @@ SET CONCAT_NULL_YIELDS_NULL ON;
 SET ARITHABORT ON;
 SET NUMERIC_ROUNDABORT OFF;
 GO
+IF COALESCE(TRY_CONVERT(int,SESSION_CONTEXT(N'AMES_DEVELOPMENT_SEED')),0)<>1
+BEGIN
+    RAISERROR('Development seed disabled. Explicit AMES_DEVELOPMENT_SEED session opt-in is required.',16,1);
+    SET NOEXEC ON;
+END;
+GO
 
 -- SCTEST2 / 0000: detailed scenario account.
 -- SCTEST1 / 0000: simple PPT validation account.

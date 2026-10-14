@@ -43,9 +43,10 @@
                 </div>
 
                 <div class="fg-return-detail-rows">
-                    <div class="fg-return-detail-row"><span>PART NO</span><strong>@Text(_product.ItemNo)</strong></div>
-                    <div class="fg-return-detail-row"><span>PART NAME</span><strong>@Text(_product.ItemName)</strong></div>
-                    <div class="fg-return-detail-row"><span>CUSTOMER</span><strong>@Text(_product.CustomerCode)</strong></div>
+                    <div class="fg-return-detail-row"><span>PART NO</span><strong>@Text(_product.PartNo)</strong></div>
+                    <div class="fg-return-detail-row"><span>PART NAME</span><strong>@Text(_product.PartName)</strong></div>
+                    <div class="fg-return-detail-row"><span>CUSTOMER</span><strong>@Text(_product.CustomerId) · @Text(_product.CustomerName)</strong></div>
+                    <div class="fg-return-detail-row"><span>SHIPMENT</span><strong>@Text(_product.ShipOrderNumber)</strong></div>
                     <div class="fg-return-detail-row"><span>SHIPPED AT</span><strong>@_product.ShippedAt.ToString("MM/dd/yyyy HH:mm")</strong></div>
                 </div>
             </RadzenCard>
@@ -161,6 +162,7 @@
 
     private async Task LookupProduct()
     {
+        if(_isBusy)return;
         var barcode = NormalizeScan(_barcode);
         if (string.IsNullOrWhiteSpace(barcode))
         {
@@ -192,6 +194,7 @@
 
     private async Task Submit()
     {
+        if(_isBusy)return;
         if (_product is null)
         {
             ShowModal("Return Not Ready", "Scan a shipped product first.", "warn");
@@ -216,7 +219,7 @@
 
             var lot = Text(_product.LotNo);
             Clear();
-            ShowModal("Return Received", $"{lot} was registered successfully.", "success");
+            ShowModal("Return Received", $"Return ID: {result.ReturnId}\n{lot} was registered successfully.", "success");
         }
         finally { _isBusy = false; }
     }

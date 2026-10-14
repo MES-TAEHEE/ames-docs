@@ -2107,8 +2107,8 @@
                 _invAdjustReason,
                 _invAdjustNote,
                 SimulateFailure: ShouldSimulateAdjustApiFailure,
-                ExpectedQty: IsSpareParts || IsFinishedGoodsAdjust ? null : InventoryBeforeQty,
-                ExpectedLocation: IsSpareParts || IsFinishedGoodsAdjust ? null : _invScan.ReceivedLocation);
+                ExpectedQty: IsSpareParts ? null : InventoryBeforeQty,
+                ExpectedLocation: IsSpareParts ? null : _invScan.ReceivedLocation ?? "");
             var result = IsFinishedGoodsAdjust
                 ? await FgApi.FgSaveAdjustQtyAsync(request)
                 : IsSpareParts

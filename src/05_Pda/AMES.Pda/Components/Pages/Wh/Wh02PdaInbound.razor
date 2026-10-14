@@ -1217,14 +1217,12 @@
 
     private static IEnumerable<(string Label, string Value)> LocationFieldsFor(PdaApi.LocationRow location)
     {
-        yield return ("WH", JoinCodeName(location.WarehouseCode, location.WarehouseName));
-        yield return ("AREA", JoinCodeName(location.AreaCode, location.AreaName));
-        yield return ("ZONE", JoinCodeName(location.Zone, location.ZoneName));
-        yield return ("RACK X", Text(location.X));
-        yield return ("RACK Y", Text(location.Y));
-        yield return ("RACK Z", Text(location.Z));
-        yield return ("STOCK LINES", location.LineCount.ToString("N0"));
-        yield return ("STOCK QTY", location.TotalQty.ToString("N0"));
+        yield return ("Area", JoinCodeName(location.AreaCode, location.AreaName));
+        yield return ("Aisle", Text(location.X));
+        yield return ("Bay", Text(location.Y));
+        yield return ("Slot", Text(location.Z));
+        yield return ("Current", location.TotalQty.ToString("N0"));
+        yield return ("Load Capacity", location.Capacity is > 0 ? location.Capacity.Value.ToString("N0") : "-");
     }
 
     private IEnumerable<(string Label, string Value)> ModeFields()

@@ -17,15 +17,30 @@ public static class ScheduledWorkerEndpoints
         HttpContext ctx, ScheduledWorker<TTarget, TResult> worker, string? key, CancellationToken requestCancellation,
         Func<string?>? serviceKey = null)
     {
-        if (ctx.GetSession() is null && !HasServiceKey(ctx, serviceKey)) return Results.Unauthorized();
+        var session = ctx.GetSession();
+        if (session is null && !HasServiceKey(ctx, serviceKey)) return Results.Unauthorized();
+        if (session is { IsAdmin: false }) return Results.StatusCode(StatusCodes.Status403Forbidden);
         try
         {
             // Once accepted, a browser/PDA disconnect must not cancel an import already in progress.
             var lifetime = ctx.RequestServices is { } services ? services.GetService<IHostApplicationLifetime>() : null;
-            return Results.Ok(await worker.RunNowAsync(key, lifetime?.ApplicationStopping ?? CancellationToken.None));
+            var results=await worker.RunNowAsync(key, lifetime?.ApplicationStopping ?? CancellationToken.None);
+            try
+            {
+                var factory=ctx.RequestServices?.GetService<AMES.Data.Connection.AmesConnectionFactory>();
+                if (factory is not null)
+                    new AMES.Data.Repositories.SysRepository(factory).InsertAuditLog("PP",null,"RUN","ScheduledWorker",
+                        key is { Length:<=40 } ? key : "ALL",null,null,session?.EmployeeNo ?? "SERVICE-KEY",
+                        ctx.Connection.RemoteIpAddress?.ToString(),note:$"Manual import requested: {ctx.Request.Path}");
+            }
+            catch (Exception ex)
+            { ctx.RequestServices?.GetService<ILoggerFactory>()?.CreateLogger("ManualImport").LogWarning(ex,"Manual import audit failed"); }
+            return Results.Ok(results);
         }
         catch (KeyNotFoundException ex)      { return Results.NotFound(new { error = ex.Message }); }
         catch (InvalidOperationException ex) { return Results.Conflict(new { error = ex.Message }); }
+        catch (Microsoft.Data.SqlClient.SqlException)
+        { return Results.Problem("Database is unavailable. Please retry.", statusCode: StatusCodes.Status503ServiceUnavailable); }
     }
 
     private static bool HasServiceKey(HttpContext ctx, Func<string?>? serviceKey)

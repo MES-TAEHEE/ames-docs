@@ -8,6 +8,7 @@ public static class PdaScenarioUsers
     public static bool IsSimple(string? employeeNo) => Matches(employeeNo, Simple);
     public static bool IsDetailed(string? employeeNo) => Matches(employeeNo, Detailed);
     public static bool IsAny(string? employeeNo) => IsSimple(employeeNo) || IsDetailed(employeeNo);
+    public static bool IsTestAccount(string? employeeNo) => IsAny(employeeNo) || Matches(employeeNo, "PTEST");
 
     private static bool Matches(string? employeeNo, string current)
         => string.Equals(employeeNo, current, StringComparison.OrdinalIgnoreCase);

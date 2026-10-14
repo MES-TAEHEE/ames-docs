@@ -61,7 +61,7 @@ public abstract class ScheduledWorker<TTarget, TResult> : BackgroundService
     protected abstract TResult Skipped(TTarget target, string reason);
     protected abstract bool IsOk(TResult result);
 
-    protected virtual DateTime Now => DateTime.Now;
+    protected virtual DateTime Now => AMES.Data.Services.DbClock.ReadNow(Factory);
 
     protected virtual void LogResult(TTarget target, TResult result)
     {
