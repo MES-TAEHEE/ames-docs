@@ -434,6 +434,16 @@ public sealed class ScmDeliveryCaseTests
             var looseLabels=looseDeliveries.SelectMany(d=>repo.ListDeliveryBoxes(d.Number,"case-user")).ToArray();
             Assert.Contains(looseLabels,b=>b.Number.StartsWith("PT-",StringComparison.Ordinal));
             Assert.Contains(looseLabels,b=>b.Number.StartsWith("BX-",StringComparison.Ordinal));
+            var shipment=repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number))
+                .GroupBy(d=>d.Number).OrderBy(g=>g.Key,StringComparer.OrdinalIgnoreCase)
+                .Select(g=>new ScmRepository.ShipmentDelivery(g.Key,g.First().OrderNumber,g.First().Version,
+                    g.Select(d=>new ScmRepository.DeliveryInput(d.PoID,d.Quantity,d.VendorLotNo,d.ProductionDate)).ToArray())).ToArray();
+            var shipmentVersions=new Dictionary<string,IReadOnlyDictionary<int,string>> { ["PO-LOOSE"]=Versions("PO-LOOSE") };
+            var staleShipment=shipment.ToArray();staleShipment[^1]=staleShipment[^1] with {Version="STALE"};
+            Assert.Throws<InvalidOperationException>(()=>repo.ConfirmSupplierShipment(staleShipment,DateTime.Today,shipmentVersions,"case-user","case-user"));
+            Assert.All(repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number)),d=>Assert.Equal("Registered",d.Status));
+            repo.ConfirmSupplierShipment(shipment,DateTime.Today,shipmentVersions,"case-user","case-user");
+            Assert.All(repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number)),d=>Assert.Equal("Shipped",d.Status));
             Assert.Equal(3,looseLabels.Length);
             var partOnly=repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
                 [new("PO-LOOSE",7,1,true)]);
