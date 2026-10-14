@@ -22,11 +22,11 @@ public static class FgEndpoints
     public sealed record PutAwayWaitingRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
         string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
         DateTime? ReadyAt);
-    public sealed record ReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
-        string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
+    public sealed record ReturnRow(int ReturnId, string CustomerId, int ShipmentOrderId,
+        string PartNo, string PartName, string? LotNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
     public sealed record ReturnScanRow(string Barcode, int? LotId, string LotNo,
-        int ShipmentOrderId, string? ShipOrderNumber, string CustomerCode,
-        string ItemNo, string? ItemName, DateTime ShippedAt, decimal Qty);
+        int ShipmentOrderId, string? ShipOrderNumber, string CustomerId, string? CustomerName,
+        string PartNo, string? PartName, DateTime ShippedAt, decimal Qty);
     public sealed record ReturnResult(bool Success, string Message, int? ReturnId, ReturnScanRow? Row);
     public sealed record AdjustScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
         string? SourceTable, string? NoteNo, string? CaseBarcode, string? CaseNo, string? InvoiceNo,
@@ -584,7 +584,7 @@ public static class FgEndpoints
                 cmd.Parameters.Add("@Barcode", SqlDbType.VarChar, 80).Value = normalized;
                 cmd.Parameters.Add("@ReturnReason", SqlDbType.VarChar, 60).Value = returnReason;
                 cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = (object?)note ?? DBNull.Value;
-                cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = s.OperatorId;
+                ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", s.OperatorId);
                 using var rdr = cmd.ExecuteReader();
                 if (!rdr.Read())
                     return Results.Json(new ReturnResult(false, "Customer return service returned no confirmation.", null, null), statusCode: 503);
@@ -606,18 +606,13 @@ public static class FgEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             const string sql = """
-                SELECT TOP 50
-                    ReturnID, ReturnNumber, CustomerCode,
-                    COALESCE(ItemNo,JSON_VALUE(ItemsJSON, '$[0].itemNo')) AS ItemNo,
-                    COALESCE(ReturnQty,TRY_CONVERT(decimal(12,3), JSON_VALUE(ItemsJSON, '$[0].qty'))) AS Qty,
-                    ReturnReason, Status, ReceivedAt
-                FROM dbo.FG_CustomerReturn
-                ORDER BY ReceivedAt DESC, ReturnID DESC;
+                SELECT TOP 50 ReturnID,CustomerID,ShipmentOrderID,PartNo,PartName,LotNo,
+                    ReturnQty AS Qty,ReturnReason,Status,ReceivedAt
+                FROM dbo.FG_CustomerReturn ORDER BY ReceivedAt DESC,ReturnID DESC;
                 """;
-            return Query(factory, sql, r => new ReturnRow(
-                (int)r["ReturnID"], r["ReturnNumber"] as string, r["CustomerCode"] as string,
-                r["ItemNo"] as string, r["Qty"] == DBNull.Value ? 0 : Convert.ToDecimal(r["Qty"]),
-                r["ReturnReason"] as string, r["Status"] as string, r["ReceivedAt"] as DateTime?));
+            return Query(factory,sql,r=>new ReturnRow((int)r["ReturnID"],(string)r["CustomerID"],
+                (int)r["ShipmentOrderID"],(string)r["PartNo"],(string)r["PartName"],r["LotNo"] as string,
+                Convert.ToDecimal(r["Qty"]),r["ReturnReason"] as string,r["Status"] as string,r["ReceivedAt"] as DateTime?));
         });
     }
 
@@ -628,9 +623,10 @@ public static class FgEndpoints
         GetString(rdr, "LotNo") ?? "",
         GetInt(rdr, "ShipmentOrderID") ?? 0,
         GetString(rdr, "ShipOrderNumber"),
-        GetString(rdr, "CustomerCode") ?? "",
-        GetString(rdr, "ItemNo") ?? "",
-        GetString(rdr, "ItemName"),
+        GetString(rdr, "CustomerID") ?? "",
+        GetString(rdr, "CustomerName"),
+        GetString(rdr, "PartNo") ?? "",
+        GetString(rdr, "PartName"),
         GetDate(rdr, "ShippedAt") ?? DateTime.MinValue,
         GetDecimal(rdr, "Qty"));
     private static bool TryNormalizeReturnBarcode(
