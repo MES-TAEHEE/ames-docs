@@ -2,8 +2,8 @@
 
 > **이 파일이 미해결·보류·문제점·다음 개발 항목의 유일한 정본입니다**(10-14 사용자 결정). CLAUDE.md·다른 문서·작업 메모에는 목록을 두지 않습니다. 항목을 해결하면 같은 커밋에서 여기 항목을 지우고, 새로 찾은 문제는 담당자 절에 더합니다.
 
-- **작성**: 2026-10-14, Claude Code(이승욱 세션). 10-15 원격 병합(안영훈 SCM·포탈 10건) 뒤 다시 정리했습니다. 해결된 항목은 지우고 남은 것만 둡니다.
-- **기준 소스**: `dev` 브랜치 10-15 병합(700fbdf0) 이후. 줄 번호는 점검 당시 기준이라 몇 줄 어긋날 수 있습니다.
+- **작성**: 2026-10-14, Claude Code(이승욱 세션). 10-15 원격 병합(안영훈 SCM·포탈 10건) 뒤, 10-15 06시 두 번째 원격 병합(안영훈 WH·FG·SCM·Api 7건) 뒤 다시 정리했습니다. 해결된 항목은 지우고 남은 것만 둡니다.
+- **기준 소스**: `dev` 브랜치 10-15 두 번째 병합(3a573d9e 병합) 이후. 줄 번호는 점검 당시 기준이라 몇 줄 어긋날 수 있습니다.
 - **점검 방법**
   - 5영역(POP·InjAgent·QC·PNT / PP·APS·MRP / Api·WH·FG·SCM·Portal / SYS·MD·MNT·RPT / DB 스크립트·스키마·공통 규칙)을 소스로 다시 확인했습니다.
   - 테이블 175개의 읽기·쓰기 사용처를 전수 조사했습니다. 테스트 코드는 빼고, 실제로 호출되는 DB 프로시저는 포함했습니다.
@@ -35,10 +35,13 @@
 1. **개발서버 반영(가장 급함)**: 개발서버 Web 은 PP-LSB 발행 폐지 뒤 버전이지만, 그 뒤 들어온 심재현 10-13 BoxQty 폐지(`migrate_aps.sql` §1, 개발 DB 적용됨) 이전 버전입니다(10-14 밤 개발서버 화면 확인).
    - MD-003 품목 목록이 "등록된 품목이 없습니다" 로 비어 보입니다(구 Web 이 삭제된 `BoxQty` 를 읽다 실패). PP-APS 「조회」도 `BoxQty` 를 읽어 실패할 것으로 보입니다(화면은 열리고, 조회는 눌러 보지 않음).
    - PP-002 「자동 확정」 스위치가 없습니다.
-   - 최신 패키지: `publish\AMES.Web_20261015-021709.zip`·`publish\AMES.Api_20261015-021846.zip`(또는 `publish\AMES.Web`·`AMES.Api` 폴더 — .NET 런타임 포함). 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행해 기동 실패 자동 복구를 켭니다.
-   - **반영한 뒤에** `dist/migrate_retire_packaging_uom.sql`(안영훈 10-14 — `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 삭제, 단위 BOX·PLT·SH 사용 안 함)을 개발 DB 와 로컬 DB 에 적용합니다. 지금 개발서버 Web 은 이 컬럼을 읽으므로 먼저 적용하면 MD-003·SCM 발주가 깨집니다. 두 DB 모두 아직 적용 전이고, 스키마 파일은 적용 뒤 구조(컬럼 없음)입니다. 적용 전에 안영훈 문제점 5(남는 데이터) 처리 방향을 정하는 것이 좋습니다.
+   - 최신 패키지: `publish\AMES.Web_20261015-060006.zip`·`publish\AMES.Api_20261015-060115.zip`(또는 `publish\AMES.Web`·`AMES.Api` 폴더 — .NET 10.0.13 런타임 포함). 10-15 NuGet 업데이트(취약 Pkcs 고정·SqlClient 7.1.1·Radzen 12.1.2 등)와 두 번째 원격 병합(WH·FG·SCM·Api)까지 들어 있습니다. 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행합니다(10-15 판은 ANCM 기동 실패 500.3x 와 종료 중 멈춤 503 을 함께 복구). Api 는 안영훈 2-1 1 의 IIS 상시 기동 설정도 같이 적용합니다.
+   - DB 는 준비돼 있습니다: 10-15 마이그레이션 6개(`migrate_md_paint_fabric_lotno`·`migrate_sys_auditlog_actiontype`·`migrate_by_columns_employee_no`·`migrate_fg_customer_return_columns`·`migrate_wh_fg_scm_column_lengths`·`migrate_fg_location_type`)가 개발·로컬 DB 모두 적용됐습니다.
+   - **반영한 뒤에** `dist/migrate_retire_packaging_uom.sql`(안영훈 10-14 — `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 삭제, 단위 BOX·PLT·SH 사용 안 함)을 개발 DB 와 로컬 DB 에 적용합니다. 지금 개발서버 Web 은 이 컬럼을 읽으므로 먼저 적용하면 MD-003·SCM 발주가 깨집니다. 두 DB 모두 아직 적용 전이고, 스키마 파일은 적용 뒤 구조(컬럼 없음)입니다. 적용 전에 안영훈 문제점 4(남는 데이터) 처리 방향을 정하는 것이 좋습니다.
 2. **PP-OEE 가동률 원천**: 지금은 시연 데이터(`PP_LineStateLog`)로 계산됩니다. 실제로 쌓이는 비가동 기록(`PP_LineDowntimeLog`)으로 바꿀지 정해야 합니다(이승욱 테이블 2).
-3. **화면 저장 검증**: 10-14 변경 — 감사 로그(MNT·PP-OEE·PP-LSB 적용/초기화)·MNT 부분 완료와 원래 작업지시의 고장 표시·PP-CAL 거부·SYS-004 바뀐 화면만 저장 — 은 DB 테스트와 화면 열기(헤드리스)로만 확인했고, 화면에서 실제로 저장해 보지는 않았습니다.
+3. **화면 저장 검증**: 아래 변경은 DB 테스트·리포지토리 왕복(로컬 DB)·화면 열기(헤드리스)로만 확인했고, 화면에서 실제로 저장해 보지는 않았습니다.
+   - 10-14: 감사 로그(MNT·PP-OEE·PP-LSB 적용/초기화)·MNT 부분 완료와 원래 작업지시의 고장 표시·PP-CAL 거부·SYS-004 바뀐 화면만 저장
+   - 10-15: MD-008 LOT 번호 50자(nvarchar) 저장, SYS-007 감사 동작 20자, 사람 컬럼(…By) 사번 전환 뒤 등록자·보고자 표시(PP-001 업로드 이력 등), Radzen 12 날짜 선택기(103개)·차트 4화면 — 헤드리스로는 11.x 와 같은 월·연 드롭다운·축 눈금·라벨을 확인했습니다(아래 6절).
 
 ---
 
@@ -235,7 +238,7 @@
 21. **[하] 단위 EA 고정·WO CSV 품번 누락·MRP 상태 색**
     - 위치: `WorkOrder.razor:162·367`, `PlanConfirmBatchDialog.razor:31`, `Mrp.razor:195·376`(PR 상태 색이 옛 상태값 Pending/Rejected 기준)
 22. **[하] 행위자 매개변수 형식이 컬럼과 다름**
-    - 위치: `PpRepository.Aps.cs:1012·1039·1057`, `ApsRepository.cs:1041·1214`, `PpRepository.cs:307·318`, `WorkOrderRepository.cs:596·628`, Inj/ImgLotRepository `@Op`
+    - 위치: `PpRepository.Aps.cs:1012·1039·1057`, `ApsRepository.cs:1041·1214`, `WorkOrderRepository.cs:629`(10-15 사람 컬럼 사번 전환 때 주간 구매계획·WO 릴리스·INJ/IMG 확정 매개변수는 고침)
     - 내용: varchar(20) 컬럼에 NVarChar 로 넘깁니다(기능 오류는 아님).
 23. **[하] APS WO 를 취소해도 계획 연결이 남음**
     - 위치: `WorkOrderRepository.cs:687-718`
@@ -294,26 +297,27 @@
 1. **[하] 사용되지 않는 BOX 내용·포장 단위 컬럼이 DB에 남음**
    - `MD_Item.BoxContentUnit/BoxContentQty`, `WH_PurchaseOrder.BoxContentUnit/BoxContentQty`, `SCM_ItemVendor.PackingUnitCode`.
    - 실행 코드 참조는 없습니다. 이번에는 컬럼 삭제 승인이 없으므로 유지했습니다. 컬럼 순서를 맞추기 위한 테이블 재구축도 하지 않습니다.
-2. **[상] 공통 의존성 보안 경고**
-   - Api·Data 복원 시 `System.Security.Cryptography.Pkcs 9.0.11`에 NU1902·NU1903 경고가 발생합니다.
-   - 기존 의존성 경고입니다. 지원 버전·SqlClient/SMO 의존성 영향을 확인한 뒤 별도 업데이트가 필요합니다.
-
-3. **[상] WH PDA 프로시저 5개가 지워진 옛 테이블을 가리킴**
+2. **[상] WH PDA 프로시저 5개가 지워진 옛 테이블을 가리킴**
     - 위치: 개발 DB 프로시저 `WH_PDA_INBOUND_RECEIVE_LOT`·`WH_PDA_INBOUND_MOVE_LOCATION`·`WH_PDA_INBOUND_CANCEL_RECEIPT`(→ `WH_OLD_Inventory`·`WH_Receiving`·`WH_InboundPackage`), `WH_PDA_RELEASE_PICK_LINES`·`WH_PDA_RELEASE_PICK_LOT`(→ `WH_ReleasePicking`). 스키마 파일에도 같은 정의로 들어 있습니다.
     - 내용: 네 테이블은 개발 DB 에 없습니다(`sys.sql_expression_dependencies` 에서 참조 대상 없음으로 확인). `WH_PDA_INBOUND_RECEIVE_LOT` 은 Api `WhEndpoints`·`ScmDeliveryCases`(케이스 입고)가 실제로 호출하므로, 그 문장에 닿는 입고·이동·취소·출고 피킹이 `Invalid object name` 으로 실패할 수 있습니다(실행해 보지는 않음). 옛 `migrate_wh_core_tables.sql` 이 프로시저를 옛 정의로 덮은 흔적으로 보입니다.
     - 제안: 통합 재고(`WH_Inventory`) 기준 정의로 다시 만들고, 스키마 파일을 다시 뜹니다.
 
-4. **[하] `PR_PopSession` 새 컬럼이 CLAUDE.md 배포 순서에 없음**
+3. **[하] `PR_PopSession` 새 컬럼이 CLAUDE.md 배포 순서에 없음**
     - 위치: `migrate_pda_bearer_session.sql:6-9`
     - 내용: `BearerHash`·`SessionJson` 을 만드는 이 마이그레이션이 CLAUDE.md 배포 순서에 없습니다(스키마 파일·`rebuild_db.sh` 에는 있음). 이 마이그레이션이 빠진 기존 DB 에서는 PDA 로그인이 전부 500 입니다.
 
-5. **[하] 폐지한 포장 단위가 기존 데이터에 그대로 남음**
+4. **[하] 폐지한 포장 단위가 기존 데이터에 그대로 남음**
     - 위치: `dist/migrate_retire_packaging_uom.sql`(10-14), `tools/gen_md_item_bom_seed.py`(`quantity_unit`)
     - 내용
       - 마이그레이션은 단위 BOX·PLT·SH 를 사용 안 함으로만 바꾸고 데이터는 바꾸지 않습니다. 개발 DB 에는 SH 품목 30개, BOM 줄 77개, BOX 품목 1개, BOX 발주 6건이 남습니다.
       - 시드 생성기는 SH 를 EA 로 바꿨지만, 이미 들어간 데이터에는 반영되지 않습니다.
       - 마이그레이션이 지우는 `BoxContentUnit`·`BoxContentQty` 에 값이 든 행이 있습니다(품목 1, 발주 2). 이 값은 옮기지 않고 사라집니다.
     - 제안: 시드와 같게 SH → EA 로 바꿀지 정하고, BOX 품목·발주를 어떻게 다룰지 정한 뒤 마이그레이션에 데이터 정리를 더합니다.
+
+5. **[하] `FG_CustomerReturn.PartName` 위치가 개발 DB 와 스키마 파일에서 다름**
+    - 위치: `dist/migrate_fg_customer_return_columns.sql:23-24`(ALTER ADD), `dist/AMES_Schema.sql` 의 `FG_CustomerReturn`
+    - 내용: 마이그레이션이 `PartName` 을 ALTER ADD 로 붙여 개발 DB 에서는 감사 컬럼 뒤 맨 끝에 있는데, 스키마 파일은 `PartNo` 바로 뒤입니다. 감사 컬럼을 맨 뒤에 두는 규칙(10-08)과도 어긋나고, 재구축한 DB·마이그레이션을 적용한 DB 의 컬럼 순서가 갈립니다. 10-15 로컬 DB 는 개발 DB 에 맞춰 맨 끝으로 두었습니다(코드는 이름으로만 써서 동작 영향은 없음).
+    - 제안: 개발 DB 를 스키마 파일 순서로 재생성하거나, 스키마 파일을 개발 DB 순서로 맞춥니다. 마이그레이션 뒤에는 `migrate_audit_columns_last.sql` 을 다시 돌립니다.
 ---
 
 ## 3. 이승욱 — Web SYS·MD·MNT·RPT·PP-CAL/LSB/OEE/DTL/ODM·계정·공통
@@ -396,13 +400,18 @@
 
 ## 6. 참고 — 검증 기준선
 
-- **테스트(2026-10-15, 10-15 병합 후, Data 는 로컬 DB)**
-  - Pop 149, Api 64, InjAgent 54 모두 통과
-  - Data 1,084건 중 1,066 통과, 10 실패, 8 건너뜀
+- **테스트(2026-10-15 06시, 두 번째 원격 병합 + NuGet 업데이트 후, Data 는 로컬 DB)**
+  - Pop 149, Api 74, InjAgent 54 모두 통과. InjAgent `PollerRunnerTests.Stop_timeout_keeps_running_flag_until_loop_exits` 는 타이밍에 기대어 가끔 1건 실패합니다(바로 5번 다시 돌려 모두 통과 — 심재현 문제점 27 과 같은 정지 경합 부분).
+  - Data 1,139건 중 1,121 통과, 10 실패, 8 건너뜀
   - 실패 10건은 모두 기존 항목입니다(PlanScheduleTests 5, WorkOrderRepositoryTests 4, GetMoldItems 1 — 심재현 보류). 병렬 실행 중 교착이 가끔 1~2건 더 나오며, 단독 실행은 통과합니다.
-- **두 DB 구조(10-15)**: 스키마 파일은 10-14 밤 개발 DB 에서 다시 뜬 것(앱 테이블 175개·프로시저 38, SSMS `sysdiagrams` 제외)에서 안영훈 `migrate_retire_packaging_uom.sql` 이 지우는 컬럼 4개를 뺀 최종 구조입니다(컬럼 2,430). 개발·로컬 DB 는 이 마이그레이션 적용 전이라 그 4개가 더 있습니다(0절 1). 그 밖에는 빈 DB 에 스키마를 적용해 개발 DB 와 비교했을 때 다른 것이 시스템 제약 이름뿐이었고, 로컬 DB 는 개발 DB 와 같으며 `SCM_ItemVendor.PackingUnitCode`(안영훈 문제점 1)만 없습니다. 공통코드·화면 등록(`SYS_Screen` 94행)·역할 권한(`SYS_RolePermission` 107행)도 같습니다.
+- **두 DB 구조(10-15 06시)**: 개발 DB 를 기준으로 로컬 DB 를 비교해 **같습니다** — 테이블 175개의 컬럼 순서·형식·NULL·콜레이션·IDENTITY·기본값, 인덱스(키·포함 열·필터), CHECK, 외래키, 프로시저·뷰·함수 정의(도구 `AppData\Local\AMES-claude-tools\schema_compare.ps1`).
+  - 맞추면서 로컬에 한 것: 두 번째 병합의 마이그레이션 3개 적용(그 전에 `WH_InventoryTransaction` 268행 `OperatorID` 를 개발 DB 처럼 NULL 로 — 길이 마이그레이션이 20바이트를 넘는 값을 거부), 개발 DB 에만 있던 `SCM_ItemVendor.PackingUnitCode` 추가, `FG_CustomerReturn.PartName` 을 개발 DB 처럼 맨 끝으로.
+  - 두 DB 모두 `migrate_retire_packaging_uom.sql` 적용 전이라 `BoxContentUnit/Qty` 4개가 남아 있습니다(0절 1).
+  - 스키마 파일과 개발 DB 의 차이: 위 4개 컬럼(스키마 파일은 적용 뒤 구조)과 `FG_CustomerReturn.PartName` 위치(안영훈 문제점 5).
+- **NuGet(10-15)**: 취약 패키지 0(`dotnet list package --vulnerable --include-transitive`), 모든 패키지가 최신 안정 버전입니다(SqlClient 7.1.1, EF Core 10.0.13, Radzen 12.1.2, Test.Sdk 18.11.0, xunit 러너 4.0.1 등). 취약성 때문에 `System.Security.Cryptography.Pkcs` 를 AMES.Data 에서 10.0.13 으로 고정했으니 SqlClient 를 올릴 때 다시 확인합니다.
 - **제품 코드 규칙**: `AddWithValue` 0곳(주석 3곳만), Web 의 `DateTime.Now/Today` 0곳, 라이트 테마 토큰화 대상 0.
-- **헤드리스 확인(10-15, ko·en·es, 1920)**: 병합 뒤 SCM·PP 내부 17화면과 포탈 8화면 목록에서 헤더 잘림·두 줄·셀 넘침이 없습니다. 포탈 「박스 라벨」 납품서 열의 두 줄은 원래 설계입니다(저장 없음, admin·포탈 로그인 기록과 감사 로그는 되돌림).
-
-- **이번 WH·FG·SCM 변경 검증**: API 74개 통과, 용량·위치 규칙 테스트 17개 통과, Web·PDA Android 빌드 성공. 실제 입출고·동시 PDA 부하 검증과 DB 전체 재구축은 실행하지 않았습니다. 위 두 DB 비교는 이전 기준선이며, 이번 반품·컬럼 길이 변경 이후 로컬 DB 동기화는 재검증하지 않았습니다.
+- **헤드리스 확인**
+  - 10-15 06시(로컬 DB, ko, 1920): Radzen 12 게시본에서 RPT-001·RPT-010·MNT-008·PP-OEE·MD-008·SYS-007·PP-001·FG 반품·MD 위치·MNT-002 10화면이 Blazor 오류 없이 열리고, 날짜 선택기는 모두 11.x 와 같은 월·연 드롭다운입니다. 차트 축 눈금·카테고리 라벨(회전·생략 없음)은 11.5.1 게시본과 같은 값입니다(OEE 두 화면은 로컬 DB 에 추이 데이터가 없어 차트 없음). 점검 로그인의 admin 기록은 되돌렸습니다.
+  - 10-15 새벽(ko·en·es, 1920): 첫 병합 뒤 SCM·PP 내부 17화면과 포탈 8화면 목록에서 헤더 잘림·두 줄·셀 넘침이 없습니다. 포탈 「박스 라벨」 납품서 열의 두 줄은 원래 설계입니다.
+- **두 번째 병합의 WH·FG·SCM 변경 검증(안영훈)**: API 74개 통과, 용량·위치 규칙 테스트 17개 통과, Web·PDA Android 빌드 성공. 실제 입출고·동시 PDA 부하 검증과 DB 전체 재구축은 실행하지 않았습니다.
 - 항목을 해결하면 같은 커밋에서 이 문서의 해당 항목을 지웁니다(해결 기록은 남기지 않고 커밋 이력으로 봅니다).
