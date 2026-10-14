@@ -1,208 +1,40 @@
 ﻿/* ------------------------------------------------------------------
    migrate_aps.sql
-   APS 생산계획(PP-APS) — 마스터 gap 컬럼 1개 · 라인 선행일 예외 · 실행 결과 테이블 3개 · 공통코드 2그룹 (2026-09-28)
+   APS 생산계획(PP-APS) — 라인 선행일 예외 · 실행 결과 테이블 3개 · 공통코드 2그룹 (2026-09-28, 10-13 BoxQty 폐지)
 
-     §1 MD_Item.BoxQty              INT NULL   ToteFlag 바로 뒤 — 포장 단위(박스당 수량). APS PackSize, NULL 이면 1 + 경고
+     §1 MD_Item.BoxQty              폐지(10-13) — 초판(09-28)이 만든 컬럼이 있으면 떨어뜨린다. 포장 단위는 PalletQty(적입수량) 하나(APS PackSize · WO 올림 · PP-001 대조)
      §2 MD_MoldItem.PartCavityCount 폐지(09-30) — 초판(09-28)이 만든 컬럼이 있으면 떨어뜨린다. 품번별 캐비티는 APS 가 금형 CavityCount ÷ 활성 품번 수(내림, 최소 1)로 추정
      §3 MD_ApsLineStage             라인별 사출 선행일·재고 사용·가동 시간 패턴(PatternID, 10-06 §3-b 로 추가) 예외 (PP-APS 설정 다이얼로그가 관리, MD-26 아님)
      §4 PP_ApsRun · PP_ApsPlanLine · PP_ApsRunWo   실행 스냅샷(JSON 3개) + 정규화 계획 행 + WO 연결
      §5 공통코드 APS_SETTING(9) · APS_COVER_TIER(3)  — ApsSettingsLoader 가 읽는다. §5-b 는 폐기 키 SHIFT_DAY_H·SHIFT_NIGHT_H 행을 지운다(10-06). 값 수정은 PP-APS 설정 다이얼로그(E 권한) 또는 MD-26
 
-   · §1 은 컬럼 순서 때문에 테이블을 재생성한다(migrate_md_item_pallet_qty.sql 방식). 가드: 컬럼이 없거나
-     기준 컬럼 바로 뒤가 아니면 재생성. 들어오는 FK 와 컬럼 설명(MS_Description)은 DB 에서 읽어 되살린다.
-     재생성 전에 컬럼 구성을 재생성 목록과 대조해, 목록 밖 컬럼(다른 마이그레이션이 먼저 추가한 컬럼 등)·빠진 컬럼이 있으면
-     THROW 50000 으로 중단한다(나가는 FK·인덱스도 — MD_Item 은 PK 밖에 재선언 목록이 없다).
-     목록을 고친 뒤 재실행할 것.
-   · §1 은 migrate_md_item_pallet_qty.sql(PalletQty·MaxPalletQty·ToteFlag) · migrate_pp_mrp_result.sql(LeadTimeDays) ·
-     migrate_md_item_mount_pos.sql(MountPos) 이 적용된 DB 를 전제한다(AMES_Schema.sql 로 새로 만든 DB 는 포함). 빠지면 위 대조가 THROW.
-     dev 의 MD_Item.ScanRequired(케이스 입고 개별 스캔, 10-06 — AMES_Schema.sql·migrate_md_item_case_receive.sql 이 만든다)는 BoxQty 바로 뒤에
-     같은 이름의 기본 제약(DF_MD_Item_ScanRequired)으로 재생성하고, 없는 DB 에서는 0 으로 만든다.
-     dev 의 migrate_md_item_inj_flag.sql(InjFlag, ItemCategory 바로 뒤, 10-03)은 있어도 없어도 된다 — 재생성 목록에 InjFlag 가 들어 있어
-     없으면 0 으로 만들고 있으면 값을 옮긴다. 단 그 스크립트의 재생성 목록에는 BoxQty 가 없어 **이 마이그레이션 뒤에 돌리면 BoxQty 가
-     데이터째 사라진다**(10-05 복제본에서 실제 발생) — inj_flag 를 먼저, migrate_aps 를 나중에 적용하거나 이 스크립트를 다시 돌려 복구한다(값은 NULL).
+   · §1 은 ALTER TABLE DROP COLUMN 뿐이라 다른 마이그레이션 순서와 무관하다(초판은 BoxQty 를 넣으려고 MD_Item 을 재생성했다 — 그 재생성 목록·가드는 없앴다).
    · §3~§5 는 IF OBJECT_ID / MERGE(WHEN NOT MATCHED) 라 기존 행·값을 덮지 않는다.
    · 재실행 안전. 적용: sqlcmd -f 65001 -I -b  (-I: MD_Mold 계산 컬럼 인덱스 때문에 QUOTED_IDENTIFIER ON 필수)
        sqlcmd -S 192.168.1.100,1433 -U ames_app -P !Dev2026 -d AMES_DEV -f 65001 -I -b -i dist/migrate_aps.sql
-   · 이 마이그레이션 없이 신 Web 을 올리면 PP-APS 진입·MD-003 품목 목록이 매번 예외(Invalid column name 'BoxQty').
+   · 이 마이그레이션 없이 신 Web 을 올려도 동작한다(신 Web 은 BoxQty 를 읽지 않는다). 구 Web 은 BoxQty 를 읽으므로 적용 뒤에는 MD-003·PP-APS 가 예외 — 신 Web 과 함께 반영한다.
    ------------------------------------------------------------------ */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 GO
 
 -- ═══════════════════════════════════════════════════════════════════
--- §1 MD_Item.BoxQty (ToteFlag 바로 뒤)
+-- §1 MD_Item.BoxQty — 폐지(10-13). 초판(09-28)이 만든 컬럼이 있으면 떨어뜨린다(재실행 안전)
+--    포장 단위는 PalletQty(적입수량) 하나로 쓴다(APS PackSize · BOM 규칙 WO 올림 · PP-001 SRM PACK_QTY 대조). 값 이관 없음.
 -- ═══════════════════════════════════════════════════════════════════
-SET XACT_ABORT ON;
-
 IF COL_LENGTH('dbo.MD_Item', 'BoxQty') IS NOT NULL
-   AND (SELECT column_id FROM sys.columns WHERE object_id = OBJECT_ID('dbo.MD_Item') AND name = 'BoxQty')
-     = (SELECT column_id FROM sys.columns WHERE object_id = OBJECT_ID('dbo.MD_Item') AND name = 'ToteFlag') + 1
-   AND (COL_LENGTH('dbo.MD_Item', 'ScanRequired') IS NULL
-        OR (SELECT column_id FROM sys.columns WHERE object_id = OBJECT_ID('dbo.MD_Item') AND name = 'ScanRequired')
-         = (SELECT column_id FROM sys.columns WHERE object_id = OBJECT_ID('dbo.MD_Item') AND name = 'BoxQty') + 1)
 BEGIN
-    PRINT N'· MD_Item.BoxQty 이미 ToteFlag 뒤에 있음';
-    RETURN;
+    IF EXISTS (SELECT 1 FROM sys.extended_properties
+               WHERE major_id = OBJECT_ID('dbo.MD_Item')
+                 AND minor_id = COLUMNPROPERTY(OBJECT_ID('dbo.MD_Item'), 'BoxQty', 'ColumnId')
+                 AND name = 'MS_Description')
+        EXEC sys.sp_dropextendedproperty @name = N'MS_Description', @level0type = N'SCHEMA', @level0name = N'dbo',
+             @level1type = N'TABLE', @level1name = N'MD_Item', @level2type = N'COLUMN', @level2name = N'BoxQty';
+    ALTER TABLE dbo.MD_Item DROP COLUMN BoxQty;
+    PRINT N'✓ MD_Item.BoxQty 삭제 — 포장 단위는 PalletQty(적입수량)를 쓴다';
 END
-
--- 0) 컬럼·나가는 FK·인덱스 대조 — 아래 CREATE·INSERT 목록 밖 컬럼은 재생성 때 데이터째 사라지므로 중단 (BoxQty 는 순서만 다른 초판이면 값을 옮긴다).
---    §1 은 PK_MD_Item 말고는 나가는 FK·인덱스를 다시 만들지 않는다 — 있으면 재생성 때 사라지므로 중단(재선언 목록 = 없음)
-DECLARE @expect TABLE (name nvarchar(128) NOT NULL PRIMARY KEY);
-INSERT @expect (name) VALUES
-    (N'ItemNo'), (N'ItemName'), (N'ItemNameEN'), (N'ItemType'), (N'ItemCategory'), (N'DefaultUOM'), (N'RoutingType'),
-    (N'MinStock'), (N'MaxStock'), (N'SafetyStock'), (N'UnitCost'), (N'CustItemNoSAV'), (N'CustItemNoGEO'), (N'DrawingNo'),
-    (N'PalletQty'), (N'MaxPalletQty'), (N'ToteFlag'),
-    (N'ActiveFlag'), (N'CreatedBy'), (N'CreatedTS'), (N'ModifiedBy'), (N'ModifiedTS'),
-    (N'CarType'), (N'PGN'), (N'ALC'), (N'MountPos'), (N'SparePartNo'), (N'ApplicableEquipment'), (N'MakerName'), (N'LeadTimeDays');
-DECLARE @unexpected nvarchar(max) =
-    (SELECT STRING_AGG(c.name, N', ') WITHIN GROUP (ORDER BY c.column_id)
-     FROM   sys.columns c
-     WHERE  c.object_id = OBJECT_ID('dbo.MD_Item') AND c.name NOT IN (N'BoxQty', N'InjFlag', N'ScanRequired')   -- 셋은 없으면 만들고 있으면 옮긴다
-       AND  NOT EXISTS (SELECT 1 FROM @expect e WHERE e.name COLLATE DATABASE_DEFAULT = c.name COLLATE DATABASE_DEFAULT));
-DECLARE @missing nvarchar(max) =
-    (SELECT STRING_AGG(e.name, N', ') FROM @expect e WHERE COL_LENGTH('dbo.MD_Item', e.name) IS NULL);
-DECLARE @extraFk nvarchar(max) =
-    (SELECT STRING_AGG(fk.name, N', ') FROM sys.foreign_keys fk
-     WHERE  fk.parent_object_id = OBJECT_ID('dbo.MD_Item'));
-DECLARE @extraIx nvarchar(max) =
-    (SELECT STRING_AGG(i.name, N', ') FROM sys.indexes i
-     WHERE  i.object_id = OBJECT_ID('dbo.MD_Item') AND i.type > 0 AND i.is_primary_key = 0 AND i.is_hypothetical = 0);
-IF @unexpected IS NOT NULL OR @missing IS NOT NULL OR @extraFk IS NOT NULL OR @extraIx IS NOT NULL
-BEGIN
-    DECLARE @guardMsg nvarchar(2048) = CONCAT(N'MD_Item 재생성 중단 — 재생성 목록과 다르다. 목록 밖 컬럼: ', COALESCE(@unexpected, N'(없음)'),
-                                              N' / 빠진 컬럼: ', COALESCE(@missing, N'(없음)'),
-                                              N' / 목록 밖 나가는 FK: ', COALESCE(@extraFk, N'(없음)'),
-                                              N' / 목록 밖 인덱스: ', COALESCE(@extraIx, N'(없음)'), N'. §1 의 CREATE TABLE·INSERT·재선언 목록에 반영한 뒤 다시 실행할 것');
-    THROW 50000, @guardMsg, 1;
-END
-
-BEGIN TRAN;
-
--- 1) 들어오는 FK 를 스크립트로 저장 (단일·복합 컬럼 모두)
-DECLARE @fk TABLE (Name sysname, DropSql nvarchar(max), AddSql nvarchar(max));
-INSERT @fk (Name, DropSql, AddSql)
-SELECT fk.name,
-       N'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + N'.' + QUOTENAME(t.name) + N' DROP CONSTRAINT ' + QUOTENAME(fk.name),
-       N'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + N'.' + QUOTENAME(t.name)
-         + CASE WHEN fk.is_not_trusted = 1 THEN N' WITH NOCHECK' ELSE N' WITH CHECK' END
-         + N' ADD CONSTRAINT ' + QUOTENAME(fk.name) + N' FOREIGN KEY ('
-         + (SELECT STRING_AGG(QUOTENAME(COL_NAME(fc.parent_object_id, fc.parent_column_id)), N',') WITHIN GROUP (ORDER BY fc.constraint_column_id)
-            FROM sys.foreign_key_columns fc WHERE fc.constraint_object_id = fk.object_id)
-         + N') REFERENCES [dbo].[MD_Item] ('
-         + (SELECT STRING_AGG(QUOTENAME(COL_NAME(fc.referenced_object_id, fc.referenced_column_id)), N',') WITHIN GROUP (ORDER BY fc.constraint_column_id)
-            FROM sys.foreign_key_columns fc WHERE fc.constraint_object_id = fk.object_id)
-         + N')'
-         + CASE fk.delete_referential_action WHEN 1 THEN N' ON DELETE CASCADE' WHEN 2 THEN N' ON DELETE SET NULL' WHEN 3 THEN N' ON DELETE SET DEFAULT' ELSE N'' END
-         + CASE fk.update_referential_action WHEN 1 THEN N' ON UPDATE CASCADE' WHEN 2 THEN N' ON UPDATE SET NULL' WHEN 3 THEN N' ON UPDATE SET DEFAULT' ELSE N'' END
-         + CASE WHEN fk.is_disabled = 1 THEN N'; ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + N'.' + QUOTENAME(t.name) + N' NOCHECK CONSTRAINT ' + QUOTENAME(fk.name) ELSE N'' END
-FROM   sys.foreign_keys fk
-JOIN   sys.tables t ON t.object_id = fk.parent_object_id
-WHERE  fk.referenced_object_id = OBJECT_ID('dbo.MD_Item');
-
--- 2) 컬럼·테이블 설명 저장
-DECLARE @ep TABLE (ColName sysname NULL, Name sysname, Value sql_variant);
-INSERT @ep (ColName, Name, Value)
-SELECT CASE WHEN ep.minor_id = 0 THEN NULL ELSE COL_NAME(ep.major_id, ep.minor_id) END, ep.name, ep.value
-FROM   sys.extended_properties ep
-WHERE  ep.class = 1 AND ep.major_id = OBJECT_ID('dbo.MD_Item');
-
-DECLARE @sql nvarchar(max);
-DECLARE c CURSOR LOCAL FAST_FORWARD FOR SELECT DropSql FROM @fk;
-OPEN c; FETCH NEXT FROM c INTO @sql;
-WHILE @@FETCH_STATUS = 0 BEGIN EXEC (@sql); FETCH NEXT FROM c INTO @sql; END
-CLOSE c; DEALLOCATE c;
-
--- 3) 새 순서로 재생성
-IF OBJECT_ID('dbo.MD_Item_new', 'U') IS NOT NULL DROP TABLE dbo.MD_Item_new;
-CREATE TABLE dbo.MD_Item_new (
-    ItemNo              varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-    ItemName            nvarchar(80)  COLLATE Korean_Wansung_CI_AS NOT NULL,
-    ItemNameEN          nvarchar(80)  COLLATE Korean_Wansung_CI_AS NULL,
-    ItemType            varchar(10)   COLLATE Korean_Wansung_CI_AS NULL,
-    ItemCategory        varchar(30)   COLLATE Korean_Wansung_CI_AS NULL,
-    InjFlag             bit           NOT NULL DEFAULT ((0)),
-    DefaultUOM          varchar(10)   COLLATE Korean_Wansung_CI_AS NULL,
-    RoutingType         char(1)       COLLATE Korean_Wansung_CI_AS NULL,
-    MinStock            decimal(14,4) NULL,
-    MaxStock            decimal(14,4) NULL,
-    SafetyStock         decimal(14,4) NULL,
-    UnitCost            decimal(14,2) NULL,
-    CustItemNoSAV       varchar(30)   COLLATE Korean_Wansung_CI_AS NULL,
-    CustItemNoGEO       varchar(30)   COLLATE Korean_Wansung_CI_AS NULL,
-    DrawingNo           varchar(30)   COLLATE Korean_Wansung_CI_AS NULL,
-    PalletQty           int           NULL,
-    MaxPalletQty        int           NULL,
-    ToteFlag            bit           NOT NULL DEFAULT ((0)),
-    BoxQty              int           NULL,
-    ScanRequired        bit           NOT NULL CONSTRAINT DF_MD_Item_new_ScanRequired DEFAULT ((0)),
-    ActiveFlag          bit           NULL DEFAULT ((1)),
-    CreatedBy           varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-    CreatedTS           datetime2(7)  NULL DEFAULT (sysdatetime()),
-    ModifiedBy          varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
-    ModifiedTS          datetime2(7)  NULL,
-    CarType             varchar(10)   COLLATE Korean_Wansung_CI_AS NULL,
-    PGN                 varchar(4)    COLLATE Korean_Wansung_CI_AS NULL,
-    ALC                 varchar(10)   COLLATE Korean_Wansung_CI_AS NULL,
-    MountPos            varchar(2)    COLLATE Korean_Wansung_CI_AS NULL,
-    SparePartNo         nvarchar(80)  COLLATE Korean_Wansung_CI_AS NULL,
-    ApplicableEquipment nvarchar(80)  COLLATE Korean_Wansung_CI_AS NULL,
-    MakerName           nvarchar(80)  COLLATE Korean_Wansung_CI_AS NULL,
-    LeadTimeDays        int           NULL,
-    CONSTRAINT PK_MD_Item_new PRIMARY KEY CLUSTERED (ItemNo)
-);
-
--- 새 컬럼이 이미 있으면(순서만 다른 초판) 값을 옮기고, 없으면 NULL
-SET @sql = N'INSERT INTO dbo.MD_Item_new
-    (ItemNo, ItemName, ItemNameEN, ItemType, ItemCategory, InjFlag, DefaultUOM, RoutingType,
-     MinStock, MaxStock, SafetyStock, UnitCost, CustItemNoSAV, CustItemNoGEO, DrawingNo,
-     PalletQty, MaxPalletQty, ToteFlag, BoxQty, ScanRequired,
-     ActiveFlag, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS,
-     CarType, PGN, ALC, MountPos, SparePartNo, ApplicableEquipment, MakerName, LeadTimeDays)
-SELECT ItemNo, ItemName, ItemNameEN, ItemType, ItemCategory, '
-    + CASE WHEN COL_LENGTH('dbo.MD_Item', 'InjFlag') IS NULL THEN N'0' ELSE N'InjFlag' END + N', DefaultUOM, RoutingType,
-       MinStock, MaxStock, SafetyStock, UnitCost, CustItemNoSAV, CustItemNoGEO, DrawingNo,
-       PalletQty, MaxPalletQty, ToteFlag, '
-    + CASE WHEN COL_LENGTH('dbo.MD_Item', 'BoxQty') IS NULL THEN N'NULL' ELSE N'BoxQty' END + N', '
-    + CASE WHEN COL_LENGTH('dbo.MD_Item', 'ScanRequired') IS NULL THEN N'0' ELSE N'ScanRequired' END + N',
-       ActiveFlag, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS,
-       CarType, PGN, ALC, MountPos, SparePartNo, ApplicableEquipment, MakerName, LeadTimeDays
-FROM dbo.MD_Item;';
-EXEC sp_executesql @sql;
-DECLARE @moved int = @@ROWCOUNT;
-
-DROP TABLE dbo.MD_Item;
-EXEC sp_rename 'dbo.MD_Item_new', 'MD_Item';
-EXEC sp_rename 'dbo.PK_MD_Item_new', 'PK_MD_Item', 'OBJECT';
-EXEC sp_rename 'dbo.DF_MD_Item_new_ScanRequired', 'DF_MD_Item_ScanRequired', 'OBJECT';
-
--- 4) 설명 되살리기 + 새 컬럼 설명
-DECLARE @col sysname, @name sysname, @val sql_variant;
-DECLARE e CURSOR LOCAL FAST_FORWARD FOR SELECT ColName, Name, Value FROM @ep WHERE ColName IS NULL OR COL_LENGTH('dbo.MD_Item', ColName) IS NOT NULL;
-OPEN e; FETCH NEXT FROM e INTO @col, @name, @val;
-WHILE @@FETCH_STATUS = 0
-BEGIN
-    IF @col IS NULL
-        EXEC sys.sp_addextendedproperty @name = @name, @value = @val, @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_Item';
-    ELSE
-        EXEC sys.sp_addextendedproperty @name = @name, @value = @val, @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_Item', @level2type = N'COLUMN', @level2name = @col;
-    FETCH NEXT FROM e INTO @col, @name, @val;
-END
-CLOSE e; DEALLOCATE e;
-
-IF NOT EXISTS (SELECT 1 FROM sys.extended_properties WHERE major_id = OBJECT_ID('dbo.MD_Item') AND minor_id = COLUMNPROPERTY(OBJECT_ID('dbo.MD_Item'), 'InjFlag', 'ColumnId') AND name = 'MS_Description')
-    EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'사출품 여부 — 품목 유형 SUB 만 1 이 될 수 있다(그 밖의 유형은 저장할 때 0) · bit', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_Item', @level2type = N'COLUMN', @level2name = N'InjFlag';
-IF NOT EXISTS (SELECT 1 FROM sys.extended_properties WHERE major_id = OBJECT_ID('dbo.MD_Item') AND minor_id = COLUMNPROPERTY(OBJECT_ID('dbo.MD_Item'), 'BoxQty', 'ColumnId') AND name = 'MS_Description')
-    EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'박스 수량 — 포장 단위(박스 1개당 제품 수). APS 공급 올림 단위, NULL 이면 1 + 경고 · int', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_Item', @level2type = N'COLUMN', @level2name = N'BoxQty';
-
--- 5) FK 되살리기
-DECLARE a CURSOR LOCAL FAST_FORWARD FOR SELECT AddSql FROM @fk;
-OPEN a; FETCH NEXT FROM a INTO @sql;
-WHILE @@FETCH_STATUS = 0 BEGIN EXEC (@sql); FETCH NEXT FROM a INTO @sql; END
-CLOSE a; DEALLOCATE a;
-
-DECLARE @fkCount int = (SELECT COUNT(*) FROM @fk);
-COMMIT;
-PRINT CONCAT(N'✓ MD_Item 재생성 (', @moved, N' 행) — BoxQty 를 ToteFlag 뒤에(InjFlag 는 ItemCategory 뒤), FK ', @fkCount, N' 개 복원');
+ELSE
+    PRINT N'· MD_Item.BoxQty 없음 — 건너뜀';
 GO
 
 -- ═══════════════════════════════════════════════════════════════════
@@ -413,7 +245,7 @@ GO
 -- ═══════════════════════════════════════════════════════════════════
 -- 확인 (GO 뒤 별도 배치)
 -- ═══════════════════════════════════════════════════════════════════
-SELECT c.column_id, c.name FROM sys.columns c WHERE c.object_id = OBJECT_ID('dbo.MD_Item')     AND c.name IN ('ToteFlag', 'BoxQty', 'ScanRequired', 'ActiveFlag') ORDER BY c.column_id;
+SELECT c.column_id, c.name FROM sys.columns c WHERE c.object_id = OBJECT_ID('dbo.MD_Item')     AND c.name IN ('PalletQty', 'ToteFlag', 'BoxQty', 'ScanRequired', 'ActiveFlag') ORDER BY c.column_id;   -- BoxQty 는 안 보여야 정상(폐지)
 SELECT c.column_id, c.name FROM sys.columns c WHERE c.object_id = OBJECT_ID('dbo.MD_MoldItem') AND c.name IN ('CavityCount', 'PartCavityCount', 'MoldCategory') ORDER BY c.column_id;   -- PartCavityCount 는 안 보여야 정상(폐지)
 SELECT v.name, OBJECT_ID('dbo.' + v.name, 'U') AS ObjectId FROM (VALUES ('MD_ApsLineStage'), ('PP_ApsRun'), ('PP_ApsPlanLine'), ('PP_ApsRunWo')) v(name);
 SELECT i.name, i.is_unique FROM sys.indexes i WHERE i.object_id = OBJECT_ID('dbo.MD_MoldItem') AND i.type_desc = 'NONCLUSTERED' ORDER BY i.name;

@@ -62,9 +62,9 @@
             _cells = plan.Items.Sum(i => i.Scheduled.Count(q => q != 0));
             var found = Pp.ListExistingItemNos(plan.Items.Select(i => i.PartNo));
             _unmatched = plan.Items.Where(i => !found.Contains(i.PartNo)).Select(i => i.PartNo).ToList();
-            var box = Pp.ListItemBoxQty(plan.Items.Select(i => i.PartNo));
-            _mismatch = plan.Items.Where(i => i.PackQty > 0 && box.TryGetValue(i.PartNo, out var b) && b > 0 && b != i.PackQty)
-                                  .Select(i => $"{i.PartNo} ({i.PackQty:0.###} ≠ {box[i.PartNo]:0.###})").ToList();
+            var pallet = Pp.ListItemPalletQty(plan.Items.Select(i => i.PartNo));
+            _mismatch = plan.Items.Where(i => i.PackQty > 0 && pallet.TryGetValue(i.PartNo, out var b) && b > 0 && b != i.PackQty)
+                                  .Select(i => $"{i.PartNo} ({i.PackQty:0.###} ≠ {pallet[i.PartNo]:0.###})").ToList();
             _plan = plan;
         }
         catch (IOException)        { _err = L["PP.Forecast.Err.TooLarge"]; }

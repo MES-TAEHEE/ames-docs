@@ -328,8 +328,8 @@
     List<PpRepository.WeeklyImportBatch> _batches = new();
 
     // 일별 구매계획(MM30011) 탭 — 조회 필터·표시 모델
-    record DailyVm(string? CustomerId, string ItemNo, string Name, string? Unit, decimal? PackQty, decimal? BoxQty, bool ItemExists, Dictionary<DateOnly, decimal> Qty)
-    { public bool PackMismatch => PackQty is > 0 && BoxQty is > 0 && PackQty != BoxQty; }
+    record DailyVm(string? CustomerId, string ItemNo, string Name, string? Unit, decimal? PackQty, decimal? PalletQty, bool ItemExists, Dictionary<DateOnly, decimal> Qty)
+    { public bool PackMismatch => PackQty is > 0 && PalletQty is > 0 && PackQty != PalletQty; }
     string _dCustomer = "", _dPartNo = "";
     DateTime _dFrom = DbClock.Today, _dTo = DbClock.Today.AddDays(30);
     List<DateOnly> _dDates = new();
@@ -377,7 +377,7 @@
         _dDates = cells.Select(c => c.PlanDate).Distinct().Order().ToList();
         _dItems = cells.GroupBy(c => (c.CustomerId, c.ItemNo))
             .Select(g => new DailyVm(g.Key.CustomerId, g.Key.ItemNo, g.First().ItemName ?? g.First().PartName ?? g.Key.ItemNo, g.First().Unit,
-                g.First().PackQty, g.First().BoxQty, g.First().ItemExists, g.ToDictionary(c => c.PlanDate, c => c.ScheduledQty)))
+                g.First().PackQty, g.First().PalletQty, g.First().ItemExists, g.ToDictionary(c => c.PlanDate, c => c.ScheduledQty)))
             .OrderBy(i => i.CustomerId).ThenBy(i => i.ItemNo).ToList();
         ApplyDailyPartNo();
         SearchDailyHistory();
