@@ -127,8 +127,6 @@ FILES=(
   cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)
   migrate_user_profile_backfill.sql   # 프로필 없는 내부 계정 보강(역할 있음 ACTIVE·없음 INACTIVE) — 시드가 만든 계정까지 보도록 맨 끝
   migrate_pda_bearer_session.sql      # PDA bearer hash + session snapshot (recycle-safe)
-  migrate_scm_box_po_contents.sql     # BOX PO contents (no-op on fresh schema)
-  migrate_md_item_box_contents.sql    # BOX item contents; copy consistent legacy PO values
   migrate_user_status_mail_cleanup.sql  # 계정 메일 기능 폐지 — UNVERIFIED·PENDING → ACTIVE, 이메일 인증 정리, USER_STATUS 코드 삭제
   migrate_notification_push.sql      # 알림 채널 PUSH 전환 — EMAIL·SMS 는 남긴 채 사용 안 함, 규칙에 PUSH 추가(10-08)
   migrate_aspnetuserroles_pk.sql     # AspNetUserRoles 복합 PK(UserId, RoleId)+IX_RoleId — 스키마로 만든 DB 는 이미 있어 건너뜀(10-08)
@@ -139,6 +137,7 @@ FILES=(
   migrate_mnt_number_index.sql       # MNT 채번 범위 잠금용 일반 인덱스(고장·보전 WO·PM 계획 번호) — 스키마에 이미 있으면 건너뜀(10-13)
   migrate_mnt_failure_action_wo.sql  #고장 조치 이력의 작업지시(MNT_FailureAction.WorkOrderID) — 부분 완료한 원래 작업지시에서도 고장이 보이게(10-14)
   migrate_pp_lineoee_unique.sql      # PP-OEE 스냅샷 (LineID, PeriodDate, ShiftCode) 유니크 인덱스 — 스키마에 이미 있으면 건너뜀(10-14)
+  migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
 )
 

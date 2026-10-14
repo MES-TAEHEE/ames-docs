@@ -51,19 +51,19 @@
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">▼ @Title · @(IsPortal && Mode=="Deliveries" ? PortalNoteRows.Count : Mode is "Deliveries" or "Receipts" ? DeliveryRows.Count : Rows.Count) @L["Scm.Text.Items"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-                <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@(Mode == "Deliveries" ? L["SCM.Preview.Ph.DeliverySearch"] : L["SCM.Preview.Ph.OrderSearch"])' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+                <RadzenTextBox @bind-Value="_search" Immediate="true" @onkeydown="SearchKeyDown" Placeholder='@(Mode == "Deliveries" ? L["SCM.Preview.Ph.DeliverySearch"] : L["SCM.Preview.Ph.OrderSearch"])' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
                 @if (!IsPortal)
                 {
                     <RadzenLabel Text='@L["Scm.Text.Supplier"]' Component="ScmDropDownVendor" />
-                    <RadzenDropDown Name="ScmDropDownVendor" @bind-Value="_vendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Scm.Text.All"]' AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+                    <select id="ScmDropDownVendor" class="ames-input" style="width:200px;" @bind="_vendor" @bind:after="Search"><option value="">@L["Scm.Text.All"]</option>@foreach(var option in VendorFilterOptions){<option value="@option.Value">@option.Text</option>}</select>
                 }
                 @if (!IsPortal && Mode == "Orders")
                 {
                     <RadzenLabel Text="Created By" Component="ScmDropDownCreator" />
-                    <RadzenDropDown Name="ScmDropDownCreator" @bind-Value="_creator" Data="@CreatorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="All users" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" />
+                    <select id="ScmDropDownCreator" class="ames-input" style="width:210px;" @bind="_creator" @bind:after="Search"><option value="">All users</option>@foreach(var option in CreatorFilterOptions){<option value="@option.Value">@option.Text</option>}</select>
                 }
                 <RadzenLabel Text='@L["Col.Status"]' Component="ScmDropDownStatus" />
-                <RadzenDropDown Name="ScmDropDownStatus" @bind-Value="_status" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Scm.Text.All"]' AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+                <select id="ScmDropDownStatus" class="ames-input" style="width:160px;" @bind="_status"><option value="">@L["Scm.Text.All"]</option>@foreach(var option in StatusFilterOptions){<option value="@option.Value">@option.Text</option>}</select>
                 @if (IsPortal && (Mode is "Orders" or "Deliveries"))
                 {
                     <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><input type="checkbox" checked="@_includeClosed" @onchange="e=>ToggleClosed(e.Value is true)" /> Include Closed</label>
@@ -74,12 +74,16 @@
                     <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><input type="checkbox" checked="@_includeClosed" @onchange="e=>ToggleClosed(e.Value is true)" /> Include Received</label>
                     <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><input type="checkbox" checked="@_includeCancelled" @onchange="e=>ToggleCancelled(e.Value is true)" /> Include Cancelled</label>
                 }
-                <RadzenLabel Text='@(Mode == "Deliveries" ? L["Scm.Text.DeliveryDate"] : L["Scm.Text.Due"])' />
-                <RadzenDatePicker TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
-                <span class="dim">~</span>
-                <RadzenDatePicker TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+                <div class="scm-date-range">
+                    <RadzenLabel Text='@(Mode == "Deliveries" ? L["Scm.Text.DeliveryDate"] : L["Scm.Text.Due"])' />
+                        <input type="date" class="ames-input" aria-label="From date" @bind="_from" @bind:after="Search" @bind:format="yyyy-MM-dd" />
+                        <span class="dim">~</span>
+                        <input type="date" class="ames-input" aria-label="To date" @bind="_to" @bind:after="Search" @bind:format="yyyy-MM-dd" />
+
+                </div>
                 <RadzenButton Text='@L["Btn.Search"]' Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
-                <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="Reset" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="ResetAndReload" class="ames-rz-btn" />
+                @if(IsPortal){<label class="portal-rows-control">Rows <select class="ames-input" aria-label="Rows per page" @bind="_pageRows" @bind:after="PortalPageSizeChanged"><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>}
                 @if (!IsPortal && Mode == "Orders" && CanEdit)
                 {
                     <RadzenButton Text='@L["Scm.Text.NewOrder"]' Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="NewOrder" class="ames-rz-btn" />
@@ -102,7 +106,7 @@
 
         @if (IsPortal && Mode=="Deliveries")
         {
-            <RadzenDataGrid @ref="_portalNoteGrid" TItem="PortalNoteRow" Data="@PortalNoteRows" AllowPaging="true" PageSize="25" AllowSorting="true"
+            <RadzenDataGrid @ref="_portalNoteGrid" TItem="PortalNoteRow" Data="@PortalNoteRows" AllowPaging="true" PageSize="@_pageRows" AllowSorting="true"
                             RowClick="@(args => { if(args.Data is not null) SelectNote(args.Data); })" RowRender="RowLinkNote" EmptyText="@Empty" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="60px" MinWidth="60px" Title="No." TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><span class="dim">@GridRowNo.Of(_portalNoteGrid,n)</span></Template></RadzenDataGridColumn>
@@ -115,7 +119,7 @@
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title="Remaining Qty" TextAlign="TextAlign.Right"><Template Context="n">@NoteReceiptQuantities(n,false)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title='@L["Scm.Text.ShipDate"]' TextAlign="TextAlign.Center"><Template Context="n">@n.Deliveries.Where(d=>d.ShipDate.HasValue).Min(d=>d.ShipDate)?.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="240px" MinWidth="240px" Title='@L["Col.Status"]' TextAlign="TextAlign.Center"><Template Context="n"><span class="pill @Badge(NoteStatus(n))">@Status(NoteStatus(n))</span></Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title="Shipment Action" TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true">@if(_isExternalPortalUser && n.Deliveries.Any(d=>d.Status=="Registered")){<RadzenButton Text="Start Shipping" Icon="local_shipping" Size="ButtonSize.ExtraSmall" Click="@(()=>StartShipping(n))" />}else{<span class="dim">@(NoteStatus(n)=="Cancelled"?"Cancelled":n.Deliveries.Any(d=>d.Status is "Shipped" or "Received")?"Already shipped":"No action")</span>}</div></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title="Shipment Action" TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true">@if(_isExternalPortalUser && n.Deliveries.Any(d=>d.Status=="Registered")){<RadzenButton Text="Start Shipment" Icon="local_shipping" Size="ButtonSize.ExtraSmall" Disabled="@_shipmentBusy" Click="@(()=>StartShipping(n))" />}else{<span class="dim">@(NoteStatus(n)=="Cancelled"?"Cancelled":n.Deliveries.Any(d=>d.Status is "Shipped" or "Received")?"Already shipped":"No action")</span>}</div></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title="Receipt Status" TextAlign="TextAlign.Center"><Template Context="n"><span class="pill @(NoteReceiptStatus(n)=="Received"?"ok":NoteReceiptStatus(n)=="Partially received"?"warn":"info")">@NoteReceiptStatus(n)</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="120px" MinWidth="120px" Title="Qty Mismatch" TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true">@if(NoteMismatches(n).Count>0){<button type="button" class="scm-mismatch-button" title="View quantity mismatches" aria-label="View quantity mismatches" @onclick="()=>OpenNoteMismatch(n)"><RadzenIcon Icon="check_circle" /> Yes</button>}else{<span class="dim">None</span>}</div></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="110px" MinWidth="110px" Title='@L["Btn.Print"]' TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true"><RadzenButton Text='@L["Btn.Print"]' Icon="print" Size="ButtonSize.ExtraSmall" Disabled="@(n.Deliveries.All(d=>d.Status=="Cancelled") || _noteBusy)" Click="@(()=>OpenPrintingGroup(n))" /></div></Template></RadzenDataGridColumn>
@@ -124,8 +128,8 @@
         }
         else if (Mode is "Deliveries" or "Receipts")
         {
-            <RadzenDataGrid @ref="_deliveryGrid" TItem="ScmPreviewStore.Delivery" Data="@DeliveryRows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
+            <RadzenDataGrid @ref="_deliveryGrid" TItem="ScmPreviewStore.Delivery" Data="@DeliveryRows" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@(IsPortal ? null : _pageSizeOptions)" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
                             RowClick="@(args => { if (args.Data is not null) SelectDelivery(args.Data); })" RowRender="@RowLinkDelivery" EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="60px" Title="No." MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
@@ -173,7 +177,7 @@
         }
         else if(IsPortal && Mode=="Due")
         {
-            <RadzenDataGrid TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="25" AllowSorting="true" EmptyText="@Empty" Class="ames-rz-grid">
+            <RadzenDataGrid @ref="_orderGrid" TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="@_pageRows" AllowSorting="true" EmptyText="@Empty" Class="ames-rz-grid">
                 <Columns>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="190px" MinWidth="190px" TextAlign="TextAlign.Center" Property="Number" Title="PO No" />
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Center" Property="Due" Title="Due Date"><Template Context="o"><span style="@(o.Due.Date < DbClock.Today ? "color:var(--ames-tx-red-500)" : null)">@o.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn>
@@ -181,14 +185,14 @@
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="90px" MinWidth="90px" TextAlign="TextAlign.Right" Title="Items"><Template Context="o">@o.Lines.Count</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="120px" MinWidth="120px" TextAlign="TextAlign.Right" Title="Order Qty"><Template Context="o">@Quantities(o,l=>l.Quantity)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="150px" MinWidth="150px" TextAlign="TextAlign.Right" Title="Registered Qty"><Template Context="o">@Quantities(o,l=>l.RegisteredDelivery)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="150px" MinWidth="150px" TextAlign="TextAlign.Right" Title="Remaining Qty"><Template Context="o">@Quantities(o,l=>l.AvailableDelivery)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="150px" MinWidth="150px" TextAlign="TextAlign.Right" Title="Qty to Deliver"><Template Context="o">@Quantities(o,l=>l.AvailableDelivery)</Template></RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
         }
         else
         {
-            <RadzenDataGrid @ref="_orderGrid" TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
+            <RadzenDataGrid @ref="_orderGrid" TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@(IsPortal ? null : _pageSizeOptions)" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
                             RowClick="@(args => { if (args.Data is not null) Select(args.Data); })" RowRender="@RowLinkOrder" EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="60px" Title="No." MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
@@ -215,7 +219,7 @@
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Title='@L["Scm.Text.Received.2c7750"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => Store.Delivered(o, l))</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Title='@L["Scm.Text.Remaining"]' TextAlign="TextAlign.Right"><Template Context="o">@Quantities(o, l => Store.Remaining(o, l))</Template></RadzenDataGridColumn>
                     @if (Mode != "Due") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="140px" MinWidth="140px" Property="Due" Title='@L["Scm.Text.DueDate"]' TextAlign="TextAlign.Center"><Template Context="o"><span style="@(IsPortal && o.Due.Date < DbClock.Today ? "color:var(--ames-tx-red-500)" : null)">@o.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn> }
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="240px" MinWidth="240px" Title='@L["Col.Status"]' TextAlign="TextAlign.Center"><Template Context="o">@{var status=IsPortal && Mode=="Orders" ? PortalOrderStatus(o) : o.Status;}<span class="pill @Badge(status)">@(Mode=="Progress" ? ProgressStatus(o) : Status(status))</span></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="240px" MinWidth="240px" Title='@L["Col.Status"]' TextAlign="TextAlign.Center"><Template Context="o">@{var status=IsPortal && Mode=="Orders" ? PortalOrderStatus(o) : Mode=="Progress" ? ProgressCode(o) : o.Status;}<span class="pill @Badge(status)">@(Mode=="Progress" ? ProgressStatus(o) : Status(status))</span></Template></RadzenDataGridColumn>
                     @if (Mode != "Progress") { <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="210px" MinWidth="210px" TextAlign="TextAlign.Center" Title='@(IsPortal ? "Confirmation" : L["Scm.Text.SupplierConfirmation"])'><Template Context="o">@if(o.SupplierConfirmedAt.HasValue || o.Status is "Published" or "Confirmed"){<span class="pill @ConfirmationBadge(o)">@ConfirmationLabel(o)</span>}else{<span class="dim">—</span>}</Template></RadzenDataGridColumn> }
                 </Columns>
             </RadzenDataGrid>
@@ -228,7 +232,7 @@
             <div class="ames-modal" role="dialog" aria-modal="true" aria-label="Printing" style="width:min(1300px,96vw);max-width:96vw;max-height:92vh;display:flex;flex-direction:column;">
                 <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center;">
                     <span>Printing · @(_printingNote?.Number ?? _printingDelivery.Number)</span>
-                    <RadzenButton Icon="close" aria-label="Close printing" Click="@(()=>{_printingDelivery=null;_printingNote=null;})" />
+                    <RadzenButton Icon="close" aria-label="Close printing" data-portal-close Click="@(()=>{_printingDelivery=null;_printingNote=null;})" />
                 </div>
                 <div class="ames-modal-body scm-print-body" style="overflow:auto;min-height:0;">
                     <section class="scm-print-section">
@@ -252,14 +256,14 @@
                         @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
                     </section>
                     <section class="scm-print-section">
-                        <h3>Case Barcode</h3>
+                        <h3>Pallet (Case) Barcode</h3>
                         @if(_printingError.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_printingError</RadzenAlert>}
-                        <table class="ames-table scm-print-table"><thead><tr><th>Case No</th><th>Boxes</th><th>Action</th></tr></thead><tbody>
+                        <table class="ames-table scm-print-table"><thead><tr><th>Pallet (Case) No</th><th>Boxes</th><th>Action</th></tr></thead><tbody>
                             @foreach(var item in _printingCases)
                             {
                                 <tr><td class="code">@item.Number</td><td>@item.Boxes.Count</td><td><RadzenButton Text="Print" Icon="print" Size="ButtonSize.Small" class="ames-rz-btn" Click="@(()=>OpenCasePreview(item.Number))" /></td></tr>
                             }
-                            @if(_printingCases.Count==0){<tr><td colspan="3" class="dim">No cases in this delivery.</td></tr>}
+                            @if(_printingCases.Count==0){<tr><td colspan="3" class="dim">No pallets (cases) in this delivery.</td></tr>}
                         </tbody></table>
                     </section>
                     <section class="scm-print-section">
@@ -282,7 +286,7 @@
     {
         <div class="ames-modal-bg" style="z-index:1200;" data-no-busy>
             <div class="ames-modal" role="dialog" aria-modal="true" aria-label="Print preview" style="width:min(1100px,96vw);max-width:96vw;height:92vh;display:flex;flex-direction:column;">
-                <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center;"><span>Print Preview</span><RadzenButton Icon="close" aria-label="Close preview" Click="@(()=>_previewUrl=null)" /></div>
+                <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center;"><span>Print Preview</span><RadzenButton Icon="close" aria-label="Close preview" data-portal-close Click="@(()=>_previewUrl=null)" /></div>
                 <iframe title="Print preview" src="@_previewUrl" style="width:100%;flex:1;min-height:0;border:0;background:white;"></iframe>
             </div>
         </div>
@@ -294,7 +298,7 @@
             <div class="ames-modal" role="dialog" aria-modal="true" aria-label="Create Delivery Note" style="width:min(1500px,96vw);max-width:96vw;max-height:92vh;display:flex;flex-direction:column;">
                 <div class="ames-modal-h" style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
                     <span>Create Delivery Note</span>
-                    <RadzenButton Icon="close" aria-label="Close creation" ButtonStyle="ButtonStyle.Light" Click="CloseCreation" />
+                    <RadzenButton Icon="close" aria-label="Close creation" data-portal-close ButtonStyle="ButtonStyle.Light" Click="CloseCreation" />
                 </div>
                 <div class="ames-modal-body" style="overflow:auto;min-height:0;">
                     <AMES.Web.Components.Pages.Portal.DeliveryCases @key="_creationOrder" Embedded="true" InitialOrder="@_creationOrder" Changed="RefreshCreation" />
@@ -309,7 +313,7 @@
             <div class="ames-modal ames-modal-wide scm-note-detail" role="dialog" aria-modal="true" aria-label="Delivery Note details" @onclick:stopPropagation="true" style="width:min(1200px,96vw);max-width:96vw;max-height:92vh;overflow:auto;">
                 <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center;">
                     <span>Delivery Note · @noteDetail.Number</span>
-                    <RadzenButton Icon="close" aria-label="Close details" Click="()=>_selectedNote=null" />
+                    <RadzenButton Icon="close" aria-label="Close details" data-portal-close Click="()=>_selectedNote=null" />
                 </div>
                 <div class="scm-dsub">Items · @Status(NoteStatus(noteDetail)) · Receipt @NoteReceiptStatus(noteDetail)</div>
                 <div class="scm-scroll"><table class="ames-table scm-lines">
@@ -349,7 +353,7 @@
             <div class="ames-modal ames-modal-wide scm-order-detail" @onmousedown:stopPropagation @onclick:stopPropagation>
                 <div class="ames-modal-h">
                     @L["Scm.Text.OrderDetails"] <span class="code" style="font-weight:400;font-size:.9em;">@_selected.Number</span>
-                    @{var orderStatus=IsPortal && Mode=="Orders" ? PortalOrderStatus(_selected) : _selected.Status;}
+                    @{var orderStatus=IsPortal && Mode=="Orders" ? PortalOrderStatus(_selected) : Mode=="Progress" ? ProgressCode(_selected) : _selected.Status;}
                     <span class="pill @Badge(orderStatus)" style="margin-left:8px;">@Status(orderStatus)</span>
                 </div>
 
@@ -368,6 +372,7 @@
                     <div class="scm-dt"><div class="scm-dl">@L["Scm.Text.Amount"] (@_selected.Currency)</div><div class="scm-dv">@_selected.Amount.ToString("N2")</div></div>
                 </div>
 
+                @if(_selected.DataIssue is not null){<RadzenAlert AlertStyle="AlertStyle.Warning">@_selected.DataIssue</RadzenAlert>}
                 <div class="scm-dsub">@L["Scm.Text.OrderLines"] · @_selected.LineCount</div>
                 <div class="scm-scroll">
                     <table class="ames-table">
@@ -375,7 +380,7 @@
                         <tbody>
                         @foreach (var line in _selected.Lines)
                         {
-                            <tr><td class="code">@line.Item</td><td>@line.Name</td><td class="scm-unit">@(line.Unit=="BOX" && line.BoxContentQty>0 ? $"1 {UomFmt.Sym(line.Unit)} ({QtyFormat.Text(line.BoxContentQty.Value,line.BoxContentUnit)} {UomFmt.Sym(line.BoxContentUnit)})" : UomFmt.Sym(line.Unit))</td><td class="num">@QuantityText(line.Quantity, line.Unit, 2)</td><td class="num">@QuantityText(Store.Delivered(_selected, line), line.Unit, 2)</td><td class="num">@QuantityText(Store.Remaining(_selected, line), line.Unit, 2)</td>@if(Mode=="Progress"){<td class="num">@QtyFormat.Text(line.ShippedQuantity,line.Unit)</td>}else{<td class="num">@line.Price.ToString("#,##0.00##")</td><td class="num">@line.Amount.ToString("N2")</td>}</tr>
+                            <tr><td class="code">@line.Item@if(line.DataIssue is not null){<div class="scm-data-issue">@line.DataIssue</div>}</td><td>@line.Name</td><td class="scm-unit">@UomFmt.Sym(line.Unit)</td><td class="num">@QuantityText(line.Quantity, line.Unit, 2)</td><td class="num">@QuantityText(Store.Delivered(_selected, line), line.Unit, 2)</td><td class="num">@QuantityText(Store.Remaining(_selected, line), line.Unit, 2)</td>@if(Mode=="Progress"){<td class="num">@QtyFormat.Text(line.ShippedQuantity,line.Unit)</td>}else{<td class="num">@line.Price.ToString("#,##0.00##")</td><td class="num">@line.Amount.ToString("N2")</td>}</tr>
                         }
                         </tbody>
                     </table>
@@ -393,14 +398,38 @@
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                     @if (!IsPortal && Mode == "Orders" && CanEdit && _selected.Status == "Draft")
                     {
-                        <RadzenButton Text='@L["Btn.Edit"]' Icon="edit" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="EditOrder" class="ames-rz-btn" />
+                        <RadzenButton Text='@L["Btn.Edit"]' Icon="edit" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="EditOrder" Disabled="@(_orderBusy || _selected.DataIssue is not null)" class="ames-rz-btn" />
                         @if (CanApprove) { <RadzenButton Text='@L["Scm.Text.Publish"]' Icon="send" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" Click='@(() => ChangeStatus("Published"))' class="ames-rz-btn" /> }
                     }
                     @if (!IsPortal && Mode == "Orders" && CanEdit && _selected.Status is "Draft" or "Published" && Store.Delivered(_selected) == 0)
                     { <RadzenButton Text='@L["Scm.Text.CancelOrder"]' Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='@(() => ChangeStatus("Cancelled"))' class="ames-rz-btn" /> }
                     @if (CanConfirmOrder)
                     { <RadzenButton Text="@L["Scm.Text.ConfirmOrder"]" Icon="task_alt" Click="ConfirmOrderPrompt" class="ames-rz-btn" /> }
-                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseDetail" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" data-portal-close ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseDetail" class="ames-rz-btn" />
+                </RadzenStack>
+            </div>
+        </div>
+    }
+
+    @if (_shipmentNote is { } shipment)
+    {
+        <div class="ames-modal-bg" data-no-busy>
+            <div class="ames-modal ames-modal-wide" role="dialog" aria-modal="true" aria-label="Confirm Shipment">
+                <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+                    <span>Confirm Shipment · @shipment.Number</span>
+                    <RadzenButton Icon="close" aria-label="Close shipment" data-portal-close ButtonStyle="ButtonStyle.Light" Click="CloseShipment" />
+                </div>
+                <label class="scm-shipment-date">Ship Date <input type="date" class="ames-input" @bind="_shipDate" @bind:format="yyyy-MM-dd" max="@DbClock.Today.ToString("yyyy-MM-dd")" disabled="@_shipmentBusy" /></label>
+                <div class="scm-scroll"><table class="ames-table"><thead><tr><th>PO No</th><th>Part No / Name</th><th>Qty</th></tr></thead><tbody>
+                    @foreach(var line in Store.Deliveries.Where(d=>shipment.Numbers.Contains(d.Number) && d.Status=="Registered"))
+                    {
+                        <tr><td>@line.OrderNumber</td><td>@line.Item<div class="dim">@PartName(line.PoID)</div></td><td>@QtyFormat.Text(line.Quantity,line.Unit) @UomFmt.Sym(line.Unit)</td></tr>
+                    }
+                </tbody></table></div>
+                @if (_shipmentError.Length>0) { <RadzenAlert AlertStyle="AlertStyle.Warning">@_shipmentError</RadzenAlert> }
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                    <RadzenButton Text="Confirm Shipment" Icon="check" ButtonStyle="ButtonStyle.Success" Disabled="@_shipmentBusy" Click="ConfirmShipment" />
+                    <RadzenButton Text="Close" data-portal-close ButtonStyle="ButtonStyle.Base" Click="CloseShipment" />
                 </RadzenStack>
             </div>
         </div>
@@ -413,19 +442,17 @@
             <div class="ames-modal-h">@_delivery.Number · @L["Scm.Text.DeliveryDetails"]</div>
             @if(_assignedCases.Count>0)
             {
-                <div class="scm-act"><strong>CASE</strong>
+                <div class="scm-act"><strong>Pallet (Case)</strong>
                     @foreach(var item in _assignedCases){<span>@item.Number (@item.Boxes.Count boxes)</span>}
-                    <span>Quantities are fixed by CASE contents. Cancel this delivery to change cases.</span>
+                    <span>Quantities are fixed by the pallet (case) contents.</span>
                 </div>
             }
             <div class="scm-act">
-                <label>@L["Scm.Text.DeliveryDate.246618"]<RadzenDatePicker TValue="DateTime" Value="_delivery.Date" ValueChanged="ChangeEditedDeliveryDate" DateFormat="@DateFmt.Date" Disabled="@(!DeliveryContentEditable)" InputSize="InputSize.Small" class="ames-rz-input" /></label>
+                <label>@L["Scm.Text.DeliveryDate.246618"]<input type="date" class="ames-input" @bind:get="_delivery.Date" @bind:set="ChangeEditedDeliveryDate" @bind:format="yyyy-MM-dd" disabled="@(!DeliveryContentEditable)" /></label>
 
                 @if (DeliveryEditable)
                 {
-                    <RadzenButton Text='@L["Scm.Text.ConfirmShipment"]' ButtonStyle="ButtonStyle.Success" Click="OpenShipPrompt" />
                     @if(DeliveryContentEditable){<RadzenButton Text='@L["Scm.Text.SaveChanges"]' Click="SaveDelivery" />}
-                    <RadzenButton Text='@L["Scm.Text.CancelDelivery"]' ButtonStyle="ButtonStyle.Danger" Click="@(() => _cancelDeliveryPrompt=true)" />
                 }
             </div>
             @if (_delivery.ShippedAt is not null)
@@ -434,29 +461,13 @@
                     <span>@L["Scm.Text.ShippedBy"]: @_delivery.ShippedBy</span>
                     <span>@L["Scm.Text.ConfirmedAt.17ae74"]: @_delivery.ShippedAt?.ToString(DateFmt.DateTimeSec)</span></div>
             }
-            @if (_shipDeliveryPrompt && DeliveryEditable)
-            {
-                <div class="scm-act">
-                    <label>@L["Scm.Text.ActualShipDate"]<RadzenDatePicker TValue="DateTime" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" /></label>
-                    <span>@L["Scm.Text.ConfirmShipmentOfAllSavedDeliveryLinesEditingAnd"]</span>
-                    <RadzenButton Text='@L["Scm.Text.SaveShipment"]' Click="ShipDelivery" />
-                    <RadzenButton Text='@L["Scm.Text.Back"]' ButtonStyle="ButtonStyle.Light" Click="@(() => _shipDeliveryPrompt=false)" />
-                </div>
-            }
-            @if (_cancelDeliveryPrompt && DeliveryEditable)
-            {
-                <div class="scm-act"><span>@L["Scm.Text.CancelTheEntireDeliveryAndReleaseItsReservedQuantities"]</span>
-                    <RadzenButton Text='@L["Scm.Text.ConfirmCancellation"]' ButtonStyle="ButtonStyle.Danger" Click="CancelDelivery" />
-                    <RadzenButton Text='@L["Scm.Text.Back"]' ButtonStyle="ButtonStyle.Light" Click="@(() => _cancelDeliveryPrompt=false)" />
-                </div>
-            }
             <div class="scm-scroll"><table class="ames-table scm-lines">
                 <thead><tr><th>@L["Scm.Text.Item"]</th><th>@L["Scm.Text.Unit"]</th>@if (DeliveryContentEditable) { <th>@L["Scm.Text.MaximumQuantity"]</th> }<th>@L["Scm.Text.Quantity"]</th><th>@L["Scm.Text.VendorLOT"]</th><th>@L["Scm.Text.ProductionDate"]</th></tr></thead>
                 <tbody>@foreach(var line in _deliveryEditLines)
                 {
                     <tr @key="line.PoID"><td data-field="item" data-label='@L["Portal.Text.ItemCode.7b3b81"]'>@line.Item</td><td data-label='@L["Scm.Text.Unit"]'>@UomFmt.Sym(line.Unit)</td>@if (DeliveryContentEditable) { <td data-label='@L["Scm.Text.MaximumQuantity"]'>@QuantityText(EditableDeliveryBalance(line), line.Unit, 3)</td> }
                         <td data-field="quantity" data-label='@L["Portal.Text.DeliveryQuantity"]'>@if (DeliveryContentEditable && _assignedCases.Count==0) { <RadzenNumeric TValue="decimal" class="ames-rz-input scm-number" aria-label='@L["Scm.Accessibility.EditQuantity", line.Item]' Min="0.001m" Step="0.001" @bind-Value="line.Quantity" Format="@QtyFormat.Format(line.Unit)" ShowUpDown="false" /> } else { @QuantityText(line.Quantity, line.Unit, 3) }</td><td data-field="lot" data-label='@L["Portal.Text.VendorLOT"]'><input class="ames-input" maxlength="30" aria-label='@L["Scm.Accessibility.VendorLot", line.Item]' @bind="line.VendorLotNo" disabled="@(!DeliveryContentEditable)" /></td>
-                        <td data-field="production-date" data-label='@L["Scm.Text.ProductionDate"]'><RadzenDatePicker TValue="DateTime" @bind-Value="line.ProductionDate" DateFormat="@DateFmt.Date" Disabled="@(!DeliveryContentEditable)" InputSize="InputSize.Small" class="ames-rz-input" /></td></tr>
+                        <td data-field="production-date" data-label='@L["Scm.Text.ProductionDate"]'><input type="date" class="ames-input" @bind="line.ProductionDate" @bind:format="yyyy-MM-dd" disabled="@(!DeliveryContentEditable)" /></td></tr>
                 }</tbody>
             </table></div>
             @if (IsPortal && Mode=="Deliveries")
@@ -495,9 +506,11 @@
                 }
             }
             @if (!DeliveryEditable) { <div class="scm-act">@L["Scm.Text.ShippedCancelledOrReceivingDeliveriesCannotBeEdited"]</div> }
-            else if(!DeliveryContentEditable){<div class="scm-act">Delivery Note issued. To change its contents, cancel and recreate the delivery.</div>}
             @if (!string.IsNullOrEmpty(_message)) { <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat">@_message</RadzenAlert> }
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" class="ames-modal-footer"><RadzenButton Text='@L["Btn.Close"]' Icon="close" Click="CloseDetail" ButtonStyle="ButtonStyle.Base" /></RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if(DeliveryEditable){<RadzenButton Text="Confirm Shipment" ButtonStyle="ButtonStyle.Success" Click="@(()=>StartShipping(_delivery))" />}
+                <RadzenButton Text='@L["Btn.Close"]' Icon="close" data-portal-close Click="CloseDetail" ButtonStyle="ButtonStyle.Base" />
+            </RadzenStack>
         </div></div>
     }
     @* ── 발주 작성 ─────────────────────────────────────────────────── *@
@@ -506,6 +519,7 @@
         <div class="ames-modal-bg">
             <div class="ames-modal ames-modal-wide scm-editor" role="dialog" aria-modal="true" aria-labelledby="scm-edit-title">
                 <div class="ames-modal-h" id="scm-edit-title">@L["Scm.Text.OrderEditor"] <span class="code" style="font-weight:400;font-size:.9em;">@(string.IsNullOrEmpty(_edit.Number) ? L["Scm.Text.AssignedOnSave"] : _edit.Number)</span></div>
+                <fieldset disabled="@(_orderBusy || _materialLoading)" style="border:0;padding:0;margin:0;min-width:0;">
                 <RadzenRow Gap="8px">
                     <RadzenColumn Size="4">
                         <RadzenLabel Text='@L["Scm.Text.Supplier"]' />
@@ -513,7 +527,7 @@
                     </RadzenColumn>
                     <RadzenColumn Size="3">
                         <RadzenLabel Text='@L["Scm.Text.DueDate"]' />
-                        <RadzenDatePicker TValue="DateTime" @bind-Value="_edit.Due" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <input type="date" @bind="_edit.Due" @bind:format="yyyy-MM-dd" class="ames-input" style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="5">
                         <RadzenLabel Text='@L["Scm.Text.Destination"]' />
@@ -545,7 +559,7 @@
                                         InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                                     <div class="dim">@line.Name</div>
                                 </td>
-                                <td class="scm-unit" data-label='@L["Scm.Text.Unit"]'>@(line.Unit=="BOX" ? BoxContentSummary(line.Item) : UomFmt.Sym(line.Unit))</td>
+                                <td class="scm-unit" data-label='@L["Scm.Text.Unit"]'>@UomFmt.Sym(line.Unit)</td>
                                 <td><RadzenNumeric TValue="decimal" @bind-Value="line.Quantity" Min="0.001m" Step="1" aria-label='@($"{L["Col.Quantity"]} {line.Id}")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" /></td>
                                 <td><RadzenNumeric TValue="decimal" @bind-Value="line.Price" Min="0" Step="0.01" Format="#,##0.00##" aria-label='@($"{L["Scm.Text.UnitPrice"]} {line.Id}")' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" /></td>
                                 <td class="num">@line.Amount.ToString("N2")</td>
@@ -555,12 +569,12 @@
                         </tbody>
                     </table>
                 </div>
+                </fieldset>
                 <div class="scm-total">@L["Scm.Text.TotalUSD"] <strong>@_edit.Amount.ToString("N2")</strong></div>
-                @if (HasMissingBoxContents) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">Set BOX contents in Item Master before saving the PO.</RadzenAlert> }
                 @if (!string.IsNullOrEmpty(_error)) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@_error</RadzenAlert> }
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                    <RadzenButton Text='@L["Btn.Save"]' Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SaveOrder" Disabled="@HasMissingBoxContents" class="ames-rz-btn" />
-                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _edit = null)" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Btn.Save"]' Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SaveOrder" Disabled="@(_orderBusy || _materialLoading || _priceLoading.Count>0)" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(() => _edit = null)" Disabled="@_orderBusy" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
         </div>
@@ -579,14 +593,15 @@
     public record Opt(string Value, string Text);
     public record LineOpt(int Id, string Text);
     IEnumerable<Opt> VendorFilterOptions => _vendors.Select(v => new Opt(v.VendorID, $"[{v.VendorID}] {v.VendorName}"));
-    IEnumerable<Opt> CreatorFilterOptions => _dbOrders.Select(o => o.CreatedBy).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Select(x => new Opt(x, Actors.Display(x))).OrderBy(x => x.Text);
+    readonly HashSet<string> _creators=new(StringComparer.OrdinalIgnoreCase);
+    IEnumerable<Opt> CreatorFilterOptions => _creators.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Select(x => new Opt(x, Actors.Display(x))).OrderBy(x => x.Text);
     IEnumerable<Opt> VendorEditOptions => _vendors.Where(v => v.ActiveFlag).Select(v => new Opt(v.VendorID, $"[{v.VendorID}] {v.VendorName}"));
-    IEnumerable<Opt> StatusFilterOptions => OrderStatuses.Select(x => new Opt(x, Mode=="Progress" && x=="Closed" ? "Received" : Status(x)));
+    IEnumerable<Opt> StatusFilterOptions => OrderStatuses.Select(x => new Opt(x, Status(x)));
     IEnumerable<LineOpt> DeliveryLineOptions => _selected is null ? [] : _selected.Lines.Where(l => Store.Remaining(_selected, l) > 0).Select(l => new LineOpt(l.Id, $"{l.Item} · {l.Name}"));
     string VendorName(string vendorId) => _vendors.Find(x => x.VendorID == vendorId)?.VendorName ?? _dbOrders.FirstOrDefault(o => o.Vendor == vendorId)?.VendorName ?? "";
     static void RowLinkOrder(RowRenderEventArgs<ScmPreviewStore.Order> args) => args.Attributes["class"] = (args.Attributes.TryGetValue("class", out var c) ? c + " " : "") + "ames-row-link";
     static void RowLinkDelivery(RowRenderEventArgs<ScmPreviewStore.Delivery> args) => args.Attributes["class"] = (args.Attributes.TryGetValue("class", out var c) ? c + " " : "") + "ames-row-link";
-    void CloseDetail() { _selected = null; _delivery = null; _message = ""; }
+    void CloseDetail() { if(_orderBusy)return; _selected = null; _delivery = null; _message = ""; }
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseDetail(); _bgMouseDownOnSelf = false; }
 
@@ -605,25 +620,21 @@
     string? _previewUrl;
     List<ScmRepository.DeliveryCase> _printingCases=[];
     string _printingError="";
-    void OpenPrinting(ScmPreviewStore.Delivery delivery)
-    {
-        if(!IsPortal || Mode!="Deliveries" || !_isExternalPortalUser || string.IsNullOrEmpty(_portalUserId) || delivery.Status=="Cancelled")return;
-        _printingNote=null;
-        _printingDelivery=delivery;_printingCases=[];_printingError="";_message="";_previewUrl=null;
-        try{_printingCases=Scm.ListDeliveryCases(null,_portalUserId,delivery:delivery.Number);}
-        catch(Exception ex){Logger.LogWarning(ex,"Print case list failed");_printingError="Unable to load cases for this delivery.";}
-    }
-    void OpenPrintingGroup(PortalNoteRow note)
+    Task OpenPrinting(ScmPreviewStore.Delivery delivery) => OpenPrintingGroup(new PortalNoteRow(NoteNumber(delivery.Number),[delivery]));
+    async Task OpenPrintingGroup(PortalNoteRow note)
     {
         if(!IsPortal || Mode!="Deliveries" || !_isExternalPortalUser || string.IsNullOrEmpty(_portalUserId))return;
         var first=note.Deliveries.FirstOrDefault(d=>d.Status!="Cancelled");
         if(first is null)return;
-        OpenPrinting(first);
-        _printingNote=note;
-        try { _printingCases=note.Deliveries.Where(d=>d.Number!=first.Number && d.Status!="Cancelled")
-            .SelectMany(d=>Scm.ListDeliveryCases(null,_portalUserId!,delivery:d.Number)).Concat(_printingCases)
-            .DistinctBy(c=>c.Number).ToList(); }
-        catch(Exception ex) { Logger.LogWarning(ex,"Print case list failed"); _printingError="Unable to load all cases for this Delivery Note."; }
+        _printingDelivery=first;_printingNote=note;_printingCases=[];_printingError="";_message="";_previewUrl=null;
+        try
+        {
+            var cases=await Task.Run(()=>note.Deliveries.Where(d=>d.Status!="Cancelled")
+                .SelectMany(d=>Scm.ListDeliveryCases(null,_portalUserId!,delivery:d.Number)).DistinctBy(c=>c.Number)
+                .OrderBy(c=>c.CreatedAt).ThenBy(c=>c.Number).ToList());
+            if(_printingNote==note)_printingCases=cases;
+        }
+        catch(Exception ex) { Logger.LogWarning(ex,"Print case list failed"); if(_printingNote==note)_printingError="Unable to load pallets (cases) for this Delivery Note."; }
     }
     void OpenPreview(string url) => _previewUrl=url;
     void OpenCasePreview(string number) => OpenPreview("/portal/case-label/"+Uri.EscapeDataString(number));
@@ -663,12 +674,11 @@
     ScmPreviewStore.Order? _selected, _edit;
     ScmPreviewStore.Delivery? _delivery;
     List<MasterDataRepository.ItemRow> _materials = new();
-    bool HasMissingBoxContents => _edit?.Lines.Any(line => line.Unit == "BOX" &&
-        !_materials.Any(item => item.ItemNo == line.Item && item.BoxContentQty > 0 && !string.IsNullOrWhiteSpace(item.BoxContentUnit))) == true;
     public record MaterialOption(string Value, string Text);
     IEnumerable<MaterialOption> MaterialOptions => _materials.Select(x => new MaterialOption(x.ItemNo, $"{x.ItemNo} · {x.ItemName}"));
     bool CanEdit => !IsPortal && Permissions.CanEdit(Href);
     bool CanConfirmOrder => IsPortal && Mode == "Orders"
+        && !_confirmOrderBusy
         && _isExternalPortalUser && !string.IsNullOrEmpty(_portalUserId)
         && _selected is { SupplierConfirmedAt: null, Status: "Published" or "Confirmed" };
     string ConfirmationLabel(ScmPreviewStore.Order o) => o.SupplierConfirmedAt.HasValue
@@ -684,7 +694,7 @@
     IEnumerable<string> OrderStatuses => IsPortal && Mode=="Due" ? ["Published","Confirmed"]
         : IsPortal && Mode=="Deliveries" ? ["Registered","Shipped","PartiallyReceived",..(_includeClosed ? new[]{"Received"} : []),..(_includeCancelled ? new[]{"Cancelled"} : [])]
         : IsPortal && Mode=="Orders" ? ["Published","Shipped","PartiallyReceived",..(_includeClosed ? new[]{"Received"} : []),..(_includeCancelled ? new[]{"Cancelled"} : [])]
-        : Mode == "Progress" ? ["Draft","Published","Confirmed",..(_includeClosed ? new[]{"Closed"} : []),..(_includeCancelled ? new[]{"Cancelled"} : [])]
+        : Mode == "Progress" ? ["Draft","AwaitingConfirmation","SupplierConfirmed","PreparingDelivery","Shipped","PartiallyReceived",..(_includeClosed ? new[]{"Received"} : []),..(_includeCancelled ? new[]{"Cancelled"} : [])]
         : Mode == "Deliveries" ? ["Registered", "Shipped", "Received", "Cancelled"]
         : IsPortal ? ["Published", "Confirmed", "Closed", "Cancelled"] : ["Draft", "Published", "Confirmed", "Closed", "Cancelled"];
     string Title => Mode switch {
@@ -698,17 +708,17 @@
     List<ScmPreviewStore.Order> Rows => _dbOrders
         .Where(o=>!IsPortal || Mode!="Orders" || (_includeClosed || PortalOrderStatus(o)!="Received") && (_includeCancelled || PortalOrderStatus(o)!="Cancelled"))
         .Where(o=>Mode!="Progress" || (_includeClosed || !ProgressReceived(o)) && (_includeCancelled || o.Status!="Cancelled"))
-        .Where(o => !IsPortal || Mode!="Due" || (o.SupplierConfirmedAt.HasValue && o.Status is "Published" or "Confirmed"))
+        .Where(o => !IsPortal || Mode!="Due" || (o.SupplierConfirmedAt.HasValue && (o.Status is "Published" or "Confirmed") && o.Lines.Any(l=>l.AvailableDelivery>0)))
         .Where(o => Mode != "Entry" || o.SupplierConfirmedAt.HasValue && (o.Status is "Published" or "Confirmed") && o.Lines.Any(l => l.AvailableDelivery > 0))
-        .Where(o => (string.IsNullOrEmpty(_vendor) || o.Vendor == _vendor) && (string.IsNullOrEmpty(_creator) || o.CreatedBy == _creator) && (string.IsNullOrEmpty(_status) || (_status=="Outstanding" ? (o.Status is "Published" or "Confirmed") && o.Lines.Any(l=>l.AvailableDelivery>0) : IsPortal && Mode=="Orders" ? PortalOrderStatus(o)==_status : o.Status == _status)))
+        .Where(o => (string.IsNullOrEmpty(_vendor) || o.Vendor == _vendor) && (string.IsNullOrEmpty(_creator) || o.CreatedBy == _creator) && (string.IsNullOrEmpty(_status) || (_status=="Outstanding" ? (o.Status is "Published" or "Confirmed") && o.Lines.Any(l=>l.AvailableDelivery>0) : IsPortal && Mode=="Orders" ? PortalOrderStatus(o)==_status : Mode=="Progress" ? ProgressCode(o)==_status : o.Status == _status)))
         .Where(o => _from <= _to || _from == null || _to == null)
         .Where(o => (!_from.HasValue || o.Due >= _from) && (!_to.HasValue || o.Due <= _to))
         .Where(o => string.IsNullOrWhiteSpace(_search) || (o.Number + " " + o.Item + " " + o.Name).Contains(_search, StringComparison.OrdinalIgnoreCase))
-        .OrderBy(o => Mode == "Due" ? o.Due : o.Ordered).ThenBy(o => o.Number).ToList();
+        .OrderBy(o => !IsPortal && Mode == "Due" ? o.Due : o.Ordered).ThenBy(o => o.Number).ToList();
     string? _creationOrder;
     void OpenCaseSelection() { _creationOrder=""; }
-    void RefreshCreation() { ReloadOrders(); }
-    void CloseCreation() { _creationOrder=null; ReloadOrders(); }
+    async Task RefreshCreation() => await ReloadOrdersAsync();
+    void CloseCreation() => _creationOrder=null;
     List<ScmPreviewStore.Delivery> DeliveryRows => Store.Deliveries
         .Where(d=>_dbOrders.Any(o=>o.Number==d.OrderNumber))
         .Where(d=>string.IsNullOrEmpty(_status) || d.Status==_status)
@@ -733,7 +743,7 @@
         .Where(g=>g.Deliveries.Any(d=>(!_from.HasValue||d.Date>=_from)&&(!_to.HasValue||d.Date<=_to)))
         .Where(g=>string.IsNullOrWhiteSpace(_search)||g.Number.Contains(_search,StringComparison.OrdinalIgnoreCase)
             ||Store.Deliveries.Any(d=>g.Numbers.Contains(d.Number)&&(d.Number+" "+d.OrderNumber+" "+d.Item).Contains(_search,StringComparison.OrdinalIgnoreCase)))
-        .OrderByDescending(g=>g.Deliveries.Max(d=>d.Date)).ThenBy(g=>g.Number).ToList();
+        .OrderBy(g=>g.Deliveries.Min(d=>d.Date)).ThenBy(g=>g.Number).ToList();
     string NoteQuantities(PortalNoteRow note,Func<ScmPreviewStore.Delivery,decimal> quantity) => string.Join(" / ",Store.Deliveries
         .Where(d=>note.Numbers.Contains(d.Number)).GroupBy(d=>d.Unit).Select(g=>$"{QuantityText(g.Sum(quantity),g.Key,3)} {UomFmt.Sym(g.Key)}"));
     string PartName(int poId) => _dbOrders.SelectMany(o=>o.Lines).FirstOrDefault(l=>l.PoID==poId)?.Name ?? "";
@@ -755,18 +765,18 @@
         if(active.Any(d=>d.Status=="Shipped")) return "Shipped";
         return "Registered";
     }
-    List<ScmRepository.PortalDiscrepancy> NoteMismatches(PortalNoteRow note) => _portalMismatches.Where(r=>note.Numbers.Contains(r.Delivery)).ToList();
+    List<ScmRepository.PortalDiscrepancy> NoteMismatches(PortalNoteRow note) => _portalMismatches.Where(r=>note.Numbers.Contains(r.Delivery)).OrderBy(r=>r.OccurredAt).ToList();
     static void RowLinkNote(RowRenderEventArgs<PortalNoteRow> args)=>args.Attributes["style"]="cursor:pointer";
     void SelectNote(PortalNoteRow note) { _selectedNote=note; _showMismatch=false; }
     void OpenNoteMismatch(PortalNoteRow note) => SelectNote(note);
     void SelectNoteDelivery(ScmPreviewStore.Delivery delivery) { _selectedNote=null; SelectDelivery(delivery); }
     void StartShipping(PortalNoteRow note)
     {
-        var registered=note.Deliveries.Where(d=>d.Status=="Registered").ToList();
-        if(registered.Count==1) StartShipping(registered[0]);
-        else SelectNote(note);
+        if(_shipmentBusy || !_isExternalPortalUser || !note.Deliveries.Any(d=>d.Status=="Registered")) return;
+        _shipmentNote=note;_shipDate=DbClock.Today;_shipmentError="";
     }
-    void StartShipping(ScmPreviewStore.Delivery delivery) { SelectNoteDelivery(delivery); OpenShipPrompt(); }
+    void StartShipping(ScmPreviewStore.Delivery delivery) => StartShipping(new PortalNoteRow(NoteNumber(delivery.Number),[delivery]));
+    void CloseShipment() => _shipmentNote=null;
     string DeliveryQuantities(string number) => string.Join(" / ",Store.Deliveries.Where(d=>d.Number==number)
         .GroupBy(d=>d.Unit).Select(g=>$"{QuantityText(g.Sum(d=>d.Quantity),g.Key,3)} {UomFmt.Sym(g.Key)}"));
     string NoteNumber(string delivery) => _noteDeliveries.TryGetValue(delivery,out var n) && !string.IsNullOrEmpty(n.NoteNumber) ? n.NoteNumber : delivery;
@@ -788,7 +798,7 @@
         return lines.All(r=>r.Remaining==0) ? "Received" : "Partially received";
     }
     string ReceiptBadge(string delivery) => ReceiptStatus(delivery) switch { "Received"=>"ok", "Partially received"=>"warn", _=>"info" };
-    List<ScmRepository.PortalDiscrepancy> MismatchRows(string delivery) => _portalMismatches.Where(r=>r.Delivery==delivery || (NoteNumber(delivery)!=delivery && r.Note==NoteNumber(delivery))).ToList();
+    List<ScmRepository.PortalDiscrepancy> MismatchRows(string delivery) => _portalMismatches.Where(r=>r.Delivery==delivery || (NoteNumber(delivery)!=delivery && r.Note==NoteNumber(delivery))).OrderBy(r=>r.OccurredAt).ToList();
     int MismatchCount(string delivery) => MismatchRows(delivery).Count;
     void OpenMismatch(ScmPreviewStore.Delivery delivery) { SelectDelivery(delivery); _showMismatch=true; }
     void LoadReceiptResults()
@@ -804,21 +814,31 @@
         await Permissions.EnsureAsync(Authentication);
         if (!IsPortal && !Permissions.IsVisible(Href)) { Nav.NavigateTo("/unauthorized"); return; }
         Reset();
-        if (!IsPortal && !LoadVendors()) _message = _error;
+        if (!IsPortal && !await Task.Run(LoadVendors)) _message = _error;
         var user = (await Authentication.GetAuthenticationStateAsync()).User;
         _actor = ActorCode.Of(user);
         _portalUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         _isExternalPortalUser = PortalAuth.IsPortalUser(user);
-        ReloadOrders();
+        await ReloadOrdersAsync();
         _ready = true;
     }
     // 필터는 입력 즉시 적용된다 — 조회는 조건을 둔 채 DB 에서 다시 읽는다(다른 사용자·외부 변경분 반영)
-    void Search() { _message = ""; ReloadOrders(); }
-    void Reset() { _search = _vendor = _creator = _message = _status = ""; _includeClosed=_includeCancelled=false; _from = _to = null; _selected = _edit = null; _delivery = null; _selectedNote=null; if (_ready) ReloadOrders(); }
-    void Select(ScmPreviewStore.Order o) { _selected = o; _delivery = null; _deliveryLineId = o.Lines.FirstOrDefault(l => Store.Remaining(o, l) > 0)?.Id ?? 0; SelectDeliveryLine(); _message = ""; }
+    async Task SearchKeyDown(KeyboardEventArgs e){if(e.Key=="Enter")await Search();}
+    async Task Search() { if(_orderBusy)return; _message = ""; await ReloadOrdersAsync(); await PortalPageSizeChanged(); }
+    void Reset() { _search = _vendor = _creator = _message = _status = ""; _includeClosed=_includeCancelled=false; _from = _to = null; _selected = _edit = null; _delivery = null; _selectedNote=null; }
+    async Task ResetAndReload() { if(_orderBusy)return; Reset();if(_ready)await ReloadOrdersAsync(); }
+    async Task PortalPageSizeChanged()
+    {
+        if(_portalNoteGrid is not null)await _portalNoteGrid.GoToPage(0);
+        if(_orderGrid is not null)await _orderGrid.GoToPage(0);
+        if(_deliveryGrid is not null)await _deliveryGrid.GoToPage(0);
+    }
+    void Select(ScmPreviewStore.Order o) { if(_orderBusy)return; _selected = o; _delivery = null; _deliveryLineId = o.Lines.FirstOrDefault(l => Store.Remaining(o, l) > 0)?.Id ?? 0; SelectDeliveryLine(); _message = ""; }
     List<ScmPreviewStore.Delivery> _deliveryEditLines = new();
     List<ScmRepository.DeliveryCase> _assignedCases=[];
-    bool _cancelDeliveryPrompt, _shipDeliveryPrompt;
+    PortalNoteRow? _shipmentNote;
+    bool _shipmentBusy;
+    string _shipmentError="";
     DateTime _shipDate=DbClock.Today;
     void SelectDelivery(ScmPreviewStore.Delivery d)
     {
@@ -826,12 +846,12 @@
         _selected = _dbOrders.First(o => o.Number == d.OrderNumber);
         _delivery = d.Copy();
         _deliveryEditLines=Store.Deliveries.Where(x=>x.Number==d.Number).Select(x=>x.Copy()).ToList();
-        _cancelDeliveryPrompt=false; _shipDeliveryPrompt=false; _shipDate=DbClock.Today; _message="";
+        _shipDate=DbClock.Today; _message="";
         _assignedCases=[];
         if(IsPortal)
         {
             try { _assignedCases=Scm.ListDeliveryCases(null,_portalUserId!,delivery:d.Number); }
-            catch(Exception ex) { Logger.LogWarning(ex,"Unable to load delivery CASEs"); _message="Unable to load CASE information. Check the CASE schema and connection."; }
+            catch(Exception ex) { Logger.LogWarning(ex,"Unable to load delivery CASEs"); _message="Unable to load pallet (case) information. Refresh and retry."; }
         }
     }
     decimal EditableDeliveryBalance(ScmPreviewStore.Delivery d)
@@ -852,7 +872,7 @@
         {
             var itemNos = Scm.ListItemVendors().Where(x => x.VendorID == vendorId && x.VendorActive)
                 .Select(x => x.ItemNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            _materials = MasterData.ListItems(itemType: "MATERIAL").Where(x => itemNos.Contains(x.ItemNo)).ToList();
+            _materials = MasterData.ListItems(itemType: "MATERIAL").Where(x => x.ActiveFlag && itemNos.Contains(x.ItemNo) && MasterDataRepository.IsQuantityUnit(x.DefaultUOM)).ToList();
             _error = _materials.Count == 0 ? L["Scm.Text.NoMATERIALItemsLinkedToThisVendorAddMappings"] : "";
             return true;
         }
@@ -893,23 +913,23 @@
     {
         if (_edit?.Lines.Count > 1) _edit.Lines.Remove(line);
     }
-    void SelectMaterial(ScmPreviewStore.OrderLine line)
+    async Task SelectMaterial(ScmPreviewStore.OrderLine line)
     {
-        var item = _materials.Find(x => x.ItemNo == line.Item);
-        line.Name = item?.ItemName ?? "";
-        line.Unit = item?.DefaultUOM ?? "";
-        line.Price = _dbOrders.Where(o => o.Vendor == _edit?.Vendor && o.Currency == "USD" && o.Status != "Cancelled")
-            .SelectMany(o => o.Lines.Where(l => l.Item == line.Item && l.Unit == line.Unit && l.Price > 0)
-                .Select(l => new { o.Ordered, o.Number, l.Price }))
-            .OrderByDescending(x => x.Ordered).ThenByDescending(x => x.Number)
-            .Select(x => (decimal?)x.Price).FirstOrDefault() ?? item?.UnitCost ?? 0m;
-    }
-    string BoxContentSummary(string itemNo)
-    {
-        var item=_materials.Find(x=>x.ItemNo==itemNo);
-        return item?.BoxContentQty>0 && !string.IsNullOrWhiteSpace(item.BoxContentUnit)
-            ? $"1 box ({QtyFormat.Text(item.BoxContentQty.Value,item.BoxContentUnit)} {UomFmt.Sym(item.BoxContentUnit)})"
-            : "Not set";
+        var item=_materials.Find(x=>x.ItemNo==line.Item);
+        line.Name=item?.ItemName ?? "";
+        line.Unit=item?.DefaultUOM ?? "";
+        line.Price=item?.UnitCost ?? 0m;
+        if(item is null || _edit is null)return;
+        var editor=_edit;var vendor=editor.Vendor;var itemNo=line.Item;var unit=line.Unit;
+        _priceLoading.Add(line);
+        var initialPrice=line.Price;
+        try
+        {
+            var price=await Task.Run(()=>Scm.FindPurchasePrice(vendor,itemNo,unit));
+            if(_edit==editor && editor.Vendor==vendor && line.Item==itemNo && line.Unit==unit && line.Price==initialPrice)line.Price=price ?? item.UnitCost ?? 0m;
+        }
+        catch(Exception ex){Logger.LogWarning(ex,"SCM price lookup failed");_error="Unable to load the last price. Review the unit price before saving.";}
+        finally{_priceLoading.Remove(line);}
     }
     bool ValidateMaterial(ScmPreviewStore.Order order)
     {
@@ -928,25 +948,44 @@
         foreach (var line in order.Lines)
         {
             var item = _materials.Find(x => x.ItemNo == line.Item);
-            if (item is null || line.Quantity <= 0 || line.Price < 0)
+            if (item is null || !item.ActiveFlag || line.Quantity <= 0 || line.Price < 0)
             {
                 _error = $"{order.Lines.IndexOf(line) + 1}: " + L["Scm.Text.CheckVendorLinkedMATERIALItemPositiveQuantityAndNon"];
                 return false;
             }
+            if (!string.Equals(line.Unit,item.DefaultUOM,StringComparison.OrdinalIgnoreCase))
+            { _error=$"{line.Item}: Unit changed ({line.Unit} / {item.DefaultUOM}). Select the item again and review the quantity."; return false; }
             line.Name = item.ItemName;
-            line.Unit = item.DefaultUOM ?? "";
-            if(line.Unit=="BOX" && (item.BoxContentQty is null or <=0 || string.IsNullOrWhiteSpace(item.BoxContentUnit)))
-            { _error=$"{line.Item}: Set BOX contents in Item Master before saving the PO.";return false; }
         }
         return true;
     }
-    void NewOrder() { if (!CanEdit || IsPortal) return; _edit = new() { Vendor = "" }; LoadMaterials(_edit.Vendor); LoadVendors(); }
-    void EditOrder() { if (!CanEdit || IsPortal || _selected?.Status != "Draft") return; _edit = _selected.Copy(); LoadMaterials(_edit.Vendor); LoadVendors(); }
-    void ChangeVendor()
+    async Task NewOrder() { if (!CanEdit || IsPortal || _orderBusy) return; _edit = new() { Vendor = "" }; _materials.Clear(); _error=L["Scm.Text.SelectAVendorFirst"]; await Task.Run(LoadVendors); }
+    async Task EditOrder() { if (!CanEdit || IsPortal || _selected?.Status != "Draft" || _selected.DataIssue is not null || _orderBusy) return; _edit = _selected.Copy(); _error=""; await LoadEditorMaterials(); }
+    async Task ChangeVendor()
     {
         if (_edit is null) return;
         _edit.Lines = [new()];
-        LoadMaterials(_edit.Vendor);
+        await LoadEditorMaterials();
+    }
+    int _materialRevision;
+    async Task LoadEditorMaterials()
+    {
+        if(_edit is null)return;
+        var editor=_edit;var vendor=editor.Vendor;var revision=++_materialRevision;
+        _materialLoading=true;
+        try
+        {
+            var items=await Task.Run(()=>
+            {
+                var linked=Scm.ListItemVendors().Where(x=>x.VendorID==vendor && x.VendorActive).Select(x=>x.ItemNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                return MasterData.ListItems(itemType:"MATERIAL").Where(x=>x.ActiveFlag && linked.Contains(x.ItemNo) && MasterDataRepository.IsQuantityUnit(x.DefaultUOM)).ToList();
+            });
+            if(revision!=_materialRevision || _edit!=editor || editor.Vendor!=vendor)return;
+            _materials=items;
+            _error=items.Count==0 ? L["Scm.Text.NoMATERIALItemsLinkedToThisVendorAddMappings"] : "";
+        }
+        catch(Exception ex){if(revision==_materialRevision && _edit==editor){_materials.Clear();_error=L["Scm.Text.UnableToLoadItemsPleaseRetry"];}Logger.LogError(ex,"SCM item lookup failed");}
+        finally{if(revision==_materialRevision)_materialLoading=false;}
     }
     void SelectDeliveryLine()
     {
@@ -958,10 +997,19 @@
         }
         _deliveryQuantity = line is null ? 0 : Store.Remaining(_selected!, line);
     }
-    void SaveOrder()
+    readonly HashSet<ScmPreviewStore.OrderLine> _priceLoading=[];
+    bool _orderBusy, _materialLoading;
+    async Task SaveOrder()
     {
-        if (!CanEdit || IsPortal || _edit is null) return;
-        if (!ValidateMaterial(_edit)) return;
+        if (_orderBusy || _materialLoading || _priceLoading.Count>0) return;
+        _orderBusy=true;
+        ++_loadRevision;
+        try { await SaveOrderCore(); } finally { _orderBusy=false; }
+    }
+    async Task SaveOrderCore()
+    {
+        if (!await Permissions.RecheckEditAsync(Authentication,Href) || IsPortal || _edit is null) return;
+        if (!await Task.Run(()=>ValidateMaterial(_edit))) return;
         if (string.IsNullOrWhiteSpace(_edit.Destination) || _edit.Due.Date < _edit.Ordered.Date)
         { _error = L["Scm.Text.CheckItemDestinationQuantityPriceAndDueDate"]; return; }
         string number;
@@ -969,7 +1017,8 @@
         try
         {
             var isNew = string.IsNullOrEmpty(_edit.Number);
-            number = Scm.SavePurchaseOrder(ToDatabase(_edit), _edit.Versions, _actor);
+            var draft=ToDatabase(_edit); var versions=new Dictionary<int,string>(_edit.Versions);
+            number = await Task.Run(()=>Scm.SavePurchaseOrder(draft, versions, _actor));
             _edit.Number = number;
             if (isNew) Audit.Created(ScreenCode, "WH_PurchaseOrder", number, ToDatabase(_edit));
             else Audit.Updated(ScreenCode, "WH_PurchaseOrder", number, previous, ToDatabase(_edit));
@@ -981,14 +1030,22 @@
             return;
         }
         _edit = null;
-        if (ReloadOrders(number)) _message = L["Scm.Text.OrderSaved"];
+        if (await ReloadOrdersAsync(number)) _message = L["Scm.Text.OrderSaved"];
         else _message = L["Scm.Text.SavedButReloadFailedRefreshTheList"];
     }
-    void ChangeStatus(string status)
+    async Task ChangeStatus(string status)
     {
-        if (!CanEdit || _selected is null) return;
+        if (_orderBusy) return;
+        _orderBusy=true;
+        ++_loadRevision;
+        try { await ChangeStatusCore(status); } finally { _orderBusy=false; }
+    }
+    async Task ChangeStatusCore(string status)
+    {
+        if (!await Permissions.RecheckEditAsync(Authentication,Href) || _selected is null) return;
+        if(_selected.DataIssue is not null){_message=_selected.DataIssue;return;}
         if (status == "Published" && (IsPortal || !CanApprove || _selected.Status != "Draft")) return;
-        if (status == "Published" && !ValidateMaterial(_selected)) { _message = _error; return; }
+        if (status == "Published" && !await Task.Run(()=>ValidateMaterial(_selected))) { _message = _error; return; }
         if (status == "Confirmed" && (!IsPortal || _selected.Status != "Published")) return;
         if (status == "Cancelled" && (IsPortal || _selected.Status is not ("Draft" or "Published") || Store.Delivered(_selected) > 0)) return;
         if (!IsPortal)
@@ -997,11 +1054,12 @@
             var number = _selected.Number;
             try
             {
-                Scm.ChangePurchaseOrderStatus(ToDatabase(_selected), _selected.Versions, status == "Published" ? "Open" : "Cancelled", _actor);
+                var order=ToDatabase(_selected); var versions=new Dictionary<int,string>(_selected.Versions);
+                await Task.Run(()=>Scm.ChangePurchaseOrderStatus(order, versions, status == "Published" ? "Open" : "Cancelled", _actor));
                 Audit.Log(ScreenCode, status == "Published" ? "PUBLISH" : "CANCEL", "WH_PurchaseOrder", number, new { _selected.Status }, new { Status = status });
             }
             catch (Exception ex) { Logger.LogError(ex,"Order status change failed"); _message = L["Scm.Text.UnableToChangeStatusReloadAndCheckInboundReferences"]; return; }
-            if (ReloadOrders(number)) _message = status == "Published"
+            if (await ReloadOrdersAsync(number)) _message = status == "Published"
                 ? L["Scm.Text.OrderIssued"]
                 : L["Scm.Text.OrderCancelled"];
             else _message = L["Scm.Text.StatusSavedButReloadFailed"];
@@ -1014,17 +1072,21 @@
         if (!CanConfirmOrder || _selected is null) return;
         var confirmed = await Dialog.Confirm($"Confirm order {_selected.Number}?", "Confirm Order",
             new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" });
-        if (confirmed == true) ConfirmOrder();
+        if (confirmed == true) await ConfirmOrder();
     }
-    void ConfirmOrder()
+    bool _confirmOrderBusy;
+    async Task ConfirmOrder()
     {
         if (!CanConfirmOrder || _selected is null) return;
         var number = _selected.Number;
+        var previouslyConfirmed=_selected.SupplierConfirmedAt;
+        var versions=new Dictionary<int,string>(_selected.Versions);
+        _confirmOrderBusy=true;
         try
         {
-            var changed = Scm.ConfirmSupplierOrder(number, _selected.Versions, _portalUserId!, _actor);
+            var changed = await Task.Run(()=>Scm.ConfirmSupplierOrder(number,versions,_portalUserId!,_actor));
             if (changed) Audit.Log(ScreenCode, "CONFIRM", "WH_PurchaseOrder", number,
-                new { SupplierConfirmedAt = _selected.SupplierConfirmedAt }, new { Confirmed = true, Actor = _actor });
+                new { SupplierConfirmedAt = previouslyConfirmed }, new { Confirmed = true, Actor = _actor });
         }
         catch (Exception ex)
         {
@@ -1032,7 +1094,8 @@
             _message = L["Scm.Text.ConfirmationFailedReloadAndCheckOrderStatusAndVendor"];
             return;
         }
-        if (ReloadOrders(number)) _message = L["Scm.Text.OrderConfirmationCompleted"];
+        finally { _confirmOrderBusy=false; }
+        if (await ReloadOrdersAsync(_selected?.Number==number?number:null)) _message = L["Scm.Text.OrderConfirmationCompleted"];
         else _message = L["Scm.Text.ConfirmationSavedButReloadFailed"];
     }
     bool _isExternalPortalUser;
@@ -1040,43 +1103,79 @@
     string? _portalUserId;
     List<ScmPreviewStore.Order> _dbOrders = new();
     static ScmRepository.PurchaseOrder ToDatabase(ScmPreviewStore.Order o) => new(o.Number,o.Vendor,o.Ordered,o.Due,o.Destination,o.Status,o.Currency,
-        o.Lines.Select(l => new ScmRepository.PurchaseLine(l.Id,l.Item,l.Name,l.Unit,l.Quantity,l.Price,l.Received)).ToList());
-    bool ReloadOrders(string? selectedNumber = null)
+        o.Lines.Select(l => new ScmRepository.PurchaseLine(l.Id,l.Item,l.Name,l.Unit,l.Quantity,l.Price,l.Received)).ToList(),DataIssue:o.DataIssue);
+    ScmRepository.PurchaseOrderFilter? CurrentFilter() => IsPortal ? null : new(_search,_vendor,_creator,_from,_to);
+    (List<ScmRepository.PurchaseOrder> Orders,List<ScmRepository.SupplierDelivery> Deliveries,Dictionary<int,decimal> Prepared) ReadOrderData(ScmRepository.PurchaseOrderFilter? filter=null)
     {
-        _noteDeliveries.Clear();
-        try
-        {
-            _dbOrders = Scm.ListPurchaseOrders(IsPortal, _portalUserId).Select(o => new ScmPreviewStore.Order {
-                Number=o.Number,Vendor=o.Vendor,VendorName=o.VendorName,CreatedBy=o.CreatedBy,SupplierConfirmedAt=o.SupplierConfirmedAt,SupplierConfirmedBy=o.SupplierConfirmedBy,Ordered=o.Ordered,Due=o.Due,Destination=o.Destination,Currency=o.Currency,Persistent=true,
+        var orders=Scm.ListPurchaseOrders(IsPortal,_portalUserId,filter:filter);
+        var deliveries=Scm.ListSupplierDeliveries(IsPortal,_portalUserId,orders.SelectMany(o=>o.Lines).Select(l=>l.PoID).ToArray());
+        var prepared=IsPortal && Mode=="Due" && _isExternalPortalUser
+            ? Scm.ListDeliveryCases(null,_portalUserId!).Where(c=>c.Status=="Prepared" && c.NoteNumber.Length==0 && c.Delivery is null)
+                .SelectMany(c=>c.Boxes).GroupBy(b=>b.PoID).ToDictionary(g=>g.Key,g=>g.Sum(b=>b.Quantity))
+            : new Dictionary<int,decimal>();
+        return (orders,deliveries,prepared);
+    }
+    void ApplyOrderData((List<ScmRepository.PurchaseOrder> Orders,List<ScmRepository.SupplierDelivery> Deliveries,Dictionary<int,decimal> Prepared) data,string? selectedNumber)
+    {
+            _dbOrders = data.Orders.Select(o => new ScmPreviewStore.Order {
+                Number=o.Number,Vendor=o.Vendor,VendorName=o.VendorName,CreatedBy=o.CreatedBy,SupplierConfirmedAt=o.SupplierConfirmedAt,SupplierConfirmedBy=o.SupplierConfirmedBy,Ordered=o.Ordered,Due=o.Due,Destination=o.Destination,Currency=o.Currency,Persistent=true,DataIssue=o.DataIssue,
                 Status=o.Status switch { "Open" => "Published", "Partial" => "Confirmed", "Complete" or "Received" => "Closed", "Draft" => "Draft", "Cancelled" => "Cancelled", _ => o.Status },
                 Versions=o.Lines.ToDictionary(l => l.PoID,l => l.Version),
-                Lines=o.Lines.Where(l=>!(IsPortal && Mode=="Due") || l.ItemExists).Select(l => new ScmPreviewStore.OrderLine {PoID=l.PoID,Id=l.Id,Item=l.Item,Name=l.Name,Unit=l.Unit,Quantity=l.Quantity,Price=l.Price,Received=l.Received,BoxContentUnit=l.BoxContentUnit,BoxContentQty=l.BoxContentQty}).ToList()
+                Lines=o.Lines.Where(l=>!(IsPortal && Mode=="Due") || l.ItemExists && MasterDataRepository.IsQuantityUnit(l.Unit)).Select(l => new ScmPreviewStore.OrderLine {PoID=l.PoID,Id=l.Id,Item=l.Item,Name=l.Name,Unit=l.Unit,Quantity=l.Quantity,Price=l.Price,Received=l.Received,ItemExists=l.ItemExists,ItemActive=l.ItemActive,MasterUnit=l.MasterUnit,DeliveryReceived=l.DeliveryReceived}).ToList()
             }).Where(o=>!(IsPortal && Mode=="Due") || o.Lines.Count>0).ToList();
-            var deliveries = Scm.ListSupplierDeliveries(IsPortal, _portalUserId);
-            var prepared=IsPortal && Mode=="Due" && _isExternalPortalUser
-                ? Scm.ListDeliveryCases(null,_portalUserId!).Where(c=>c.Status=="Prepared" && c.NoteNumber.Length==0 && c.Delivery is null)
-                    .SelectMany(c=>c.Boxes).GroupBy(b=>b.PoID).ToDictionary(g=>g.Key,g=>g.Sum(b=>b.Quantity))
-                : new Dictionary<int,decimal>();
+            foreach(var order in _dbOrders)if(!string.IsNullOrWhiteSpace(order.CreatedBy))_creators.Add(order.CreatedBy);
+            var deliveries = data.Deliveries;
             Store.Deliveries.Clear();
             Store.Deliveries.AddRange(deliveries.Select(d => new ScmPreviewStore.Delivery {
                 Number=d.Number,OrderNumber=d.OrderNumber,PoID=d.PoID,LineId=d.LineId,Item=d.Item,Unit=d.Unit,
                 VendorLotNo=d.VendorLotNo,ProductionDate=d.ProductionDate,Date=d.Date,Quantity=d.Quantity,Received=d.Received,Status=d.Status,Version=d.Version,ShipDate=d.ShipDate,ShippedAt=d.ShippedAt,ShippedBy=d.ShippedBy
             }));
+            var byPo=deliveries.Where(d=>d.Status!="Cancelled").ToLookup(d=>d.PoID);
             foreach(var order in _dbOrders)
                 foreach(var line in order.Lines)
                 {
-                    var active=deliveries.Where(d=>d.PoID==line.PoID && d.Status!="Cancelled").ToList();
+                    var active=byPo[line.PoID].ToList();
                     line.RegisteredDelivery=active.Sum(d=>d.Quantity);
                     line.ShippedQuantity=active.Where(d=>d.ShippedAt.HasValue || d.Status is "Shipped" or "Received").Sum(d=>d.Quantity);
                     line.PendingDelivery=active.Sum(d=>d.Quantity-d.Received);
-                    line.PreparedQuantity=prepared.GetValueOrDefault(line.PoID);
+                    line.PreparedQuantity=data.Prepared.GetValueOrDefault(line.PoID);
                 }
             _selected = _dbOrders.Find(o => o.Number == selectedNumber);
+    }
+    bool ReloadOrders(string? selectedNumber = null)
+    {
+        try
+        {
+            ApplyOrderData(ReadOrderData(CurrentFilter()),selectedNumber);
             LoadNotes();
             LoadReceiptResults();
             return true;
         }
         catch (Exception ex) { Logger.LogError(ex,"Purchase order load failed"); _dbOrders.Clear(); _selected=null; _message=L["Scm.Text.UnableToLoadOrdersRetry"]; return false; }
+    }
+    int _loadRevision;
+    async Task<bool> ReloadOrdersAsync(string? selectedNumber=null)
+    {
+        var revision=++_loadRevision;
+        try
+        {
+            var filter=CurrentFilter();
+            var data=await Task.Run(()=>ReadOrderData(filter));
+            if(revision!=_loadRevision)return false;
+            ApplyOrderData(data,selectedNumber);
+            if(IsPortal && Mode=="Deliveries" && _isExternalPortalUser && !string.IsNullOrEmpty(_portalUserId))
+            {
+                try
+                {
+                    var extras=await Task.Run(()=>(Notes:Scm.ListNoteDeliveries(_portalUserId),Receipts:Scm.ListPortalReceiptResults(_portalUserId),Mismatches:Scm.ListPortalDeliveryDiscrepancies(_portalUserId)));
+                    _noteDeliveries=extras.Notes.ToDictionary(x=>x.Number,StringComparer.OrdinalIgnoreCase);
+                    _portalReceipts=extras.Receipts;_portalMismatches=extras.Mismatches;_receiptError="";
+                }
+                catch(Exception ex){Logger.LogWarning(ex,"Portal receipt results load failed");_receiptError="Receipt results are unavailable. Refresh to retry.";}
+            }
+            return true;
+        }
+        catch(Exception ex){if(revision!=_loadRevision)return false;Logger.LogError(ex,"Purchase order load failed");_dbOrders.Clear();Store.Deliveries.Clear();_selected=null;_edit=null;_message=L["Scm.Text.UnableToLoadOrdersRetry"];return false;}
     }
     static string DefaultLot(DateTime date) => date.ToString("yyyyMMdd",CultureInfo.InvariantCulture);
     void ChangeEditedDeliveryDate(DateTime date)
@@ -1089,44 +1188,62 @@
         }
         _delivery.Date=date.Date;
     }
-    void OpenShipPrompt()
+    async Task ConfirmShipment()
     {
-        if(!DeliveryEditable || _delivery is null) return;
-        var original=Store.Deliveries.Where(d=>d.Number==_delivery.Number).ToList();
-        if(original.Any(d=>d.Date!=_delivery.Date || _deliveryEditLines.Any(l=>l.PoID==d.PoID && (l.Quantity!=d.Quantity || l.VendorLotNo!=d.VendorLotNo || l.ProductionDate!=d.ProductionDate))))
-        { _message=L["Scm.Text.SaveYourEditsBeforeConfirmingShipment"]; return; }
-        _cancelDeliveryPrompt=false; _shipDeliveryPrompt=true;
+        if(_shipmentBusy || _shipmentNote is not { } note || !_isExternalPortalUser || string.IsNullOrEmpty(_portalUserId))return;
+        var date=_shipDate.Date;
+        if(date.Year<1900 || date>DbClock.Today){_shipmentError="Select a valid ship date up to today.";return;}
+        var deliveries=Store.Deliveries.Where(d=>note.Numbers.Contains(d.Number) && d.Status=="Registered")
+            .GroupBy(d=>d.Number).Select(g=>new ScmRepository.ShipmentDelivery(g.Key,g.First().OrderNumber,g.First().Version,
+                g.Select(d=>new ScmRepository.DeliveryInput(d.PoID,d.Quantity,d.VendorLotNo,d.ProductionDate)).ToArray())).ToArray();
+        var versions=_dbOrders.Where(o=>deliveries.Any(d=>d.OrderNumber==o.Number))
+            .ToDictionary(o=>o.Number,o=>(IReadOnlyDictionary<int,string>)new Dictionary<int,string>(o.Versions),StringComparer.OrdinalIgnoreCase);
+        _shipmentBusy=true;_shipmentError="";
+        try
+        {
+            await Task.Run(()=>Scm.ConfirmSupplierShipment(deliveries,date,versions,_portalUserId,_actor));
+        }
+        catch(Exception ex)
+        {
+            Logger.LogError(ex,"Shipment confirmation failed for {Note}",note.Number);
+            _shipmentError=ex is InvalidOperationException or ArgumentException?ex.Message:"Unable to confirm shipment. Refresh the list and retry.";
+            _shipmentBusy=false;return;
+        }
+        try
+        {
+            foreach(var delivery in deliveries)
+                Audit.Log(ScreenCode,"SHIP","SCM_Delivery",delivery.Number,null,new {Note=note.Number,ShipDate=date,delivery.Lines});
+        }
+        catch(Exception ex){Logger.LogError(ex,"Shipment audit failed for {Note}",note.Number);}
+        _shipmentNote=null;_selectedNote=null;_delivery=null;
+        _message=await ReloadOrdersAsync() ? L["Scm.Text.ShipmentConfirmedAwaitingEOSReceipt"] : "Shipment confirmed. Refresh the list to see the updated status.";
+        _shipmentBusy=false;
     }
-    void ShipDelivery() => UpdateDelivery(false,true);
-    void SaveDelivery() => UpdateDelivery(false);
-    void CancelDelivery() => UpdateDelivery(true);
-    void UpdateDelivery(bool cancel, bool ship=false)
+    void SaveDelivery()
     {
         if(!DeliveryEditable || _delivery is null || _selected is null) return;
-        if(!cancel && !ship && _deliveryEditLines.Any(l=>l.Quantity<=0 || l.Quantity>EditableDeliveryBalance(l) || decimal.Round(l.Quantity,3)!=l.Quantity))
+        if(_deliveryEditLines.Any(l=>l.Quantity<=0 || l.Quantity>EditableDeliveryBalance(l) || decimal.Round(l.Quantity,3)!=l.Quantity))
         { _message=L["Scm.Text.EnterPositiveQuantitiesWithinTheAvailableMaximumUpTo"]; return; }
         var number=_delivery.Number; var orderNumber=_delivery.OrderNumber;
         var before=Store.Deliveries.Where(d=>d.Number==number).Select(d=>d.Copy()).ToArray();
         try
         {
-            Scm.UpdateSupplierDelivery(number,ship?_shipDate:_delivery.Date,
-                (ship?before.AsEnumerable():_deliveryEditLines).Select(l=>new ScmRepository.DeliveryInput(l.PoID,l.Quantity,l.VendorLotNo,l.ProductionDate)).ToList(),
-                _delivery.Version,_selected.Versions,_portalUserId!,_actor,cancel,ship);
-            Audit.Log(ScreenCode,ship?"SHIP":cancel?"CANCEL":"UPDATE","SCM_Delivery",number,before,
-                new {Date=_delivery.Date,ShipDate=ship?(DateTime?)_shipDate:null,Shipped=ship,Cancelled=cancel,Lines=_deliveryEditLines.Select(l=>new {l.PoID,l.Quantity,l.VendorLotNo,l.ProductionDate}).ToArray()});
+            Scm.UpdateSupplierDelivery(number,_delivery.Date,
+                _deliveryEditLines.Select(l=>new ScmRepository.DeliveryInput(l.PoID,l.Quantity,l.VendorLotNo,l.ProductionDate)).ToList(),
+                _delivery.Version,_selected.Versions,_portalUserId!,_actor);
+            Audit.Log(ScreenCode,"UPDATE","SCM_Delivery",number,before,
+                new {Date=_delivery.Date,Lines=_deliveryEditLines.Select(l=>new {l.PoID,l.Quantity,l.VendorLotNo,l.ProductionDate}).ToArray()});
         }
         catch(Exception ex)
         {
             Logger.LogError(ex,"Delivery update failed");
             _message=L["Scm.Text.SaveFailedCheckDateBalancePermissionsAndReceivingReferences"];return;
         }
-        _cancelDeliveryPrompt=false;
         if(ReloadOrders(orderNumber))
         {
             var updated=Store.Deliveries.FirstOrDefault(d=>d.Number==number);
             if(updated is not null) SelectDelivery(updated); else _delivery=null;
-            _message=ship?L["Scm.Text.ShipmentConfirmedAwaitingEOSReceipt"]:cancel?L["Scm.Text.DeliveryCancelledQuantitiesReleased"]
-                :L["Scm.Text.DeliveryChangesSaved"];
+            _message=L["Scm.Text.DeliveryChangesSaved"];
         }
         else {_delivery=null;_message=L["Scm.Text.SavedButReloadFailedRefresh.757eb2"];}
     }
@@ -1135,17 +1252,14 @@
         order.Status=="Cancelled",order.Lines.Select(line=>(line.Quantity,line.ShippedQuantity,line.Received)));
     static bool ProgressReceived(ScmPreviewStore.Order order) => order.Status=="Closed"
         || order.Lines.Count>0 && order.Lines.All(line=>line.Received>=line.Quantity);
-    string ProgressStatus(ScmPreviewStore.Order o)
-    {
-        if(o.Status is "Draft" or "Cancelled") return Status(o.Status);
-        if(o.Lines.Count>0 && o.Lines.All(l=>l.Received>=l.Quantity)) return L["Scm.Text.Received.2a92a7"];
-        if(o.Lines.Any(l=>l.Received>0)) return L["Scm.Text.PartiallyReceived"];
-        if(o.Lines.Any(l=>l.ShippedQuantity>0)) return L["Scm.Text.Shipped.b0d543"];
-        if(o.Lines.Any(l=>l.RegisteredDelivery>0)) return L["Scm.Text.PreparingDelivery"];
-        return o.SupplierConfirmedAt.HasValue ? L["Scm.Text.Confirmed.538025"] : L["Scm.Text.AwaitingConfirmation.c207aa"];
-    }
+    static string ProgressCode(ScmPreviewStore.Order o) => ScmRepository.ProgressOrderStatus(o.Status,o.SupplierConfirmedAt.HasValue,
+        o.Lines.Select(l=>(l.Quantity,l.ShippedQuantity,l.Received,l.RegisteredDelivery)));
+    string ProgressStatus(ScmPreviewStore.Order o) => Status(ProgressCode(o));
     static string Badge(string status) => status switch { "Closed" or "Received" or "Inspected" => "ok", "Draft" or "PartiallyReceived" => "warn", "Cancelled" => "bad", _ => "info" };
     string Status(string status) => status switch {
+        "AwaitingConfirmation" => L["Scm.Text.AwaitingConfirmation.c207aa"],
+        "SupplierConfirmed" => L["Scm.Text.Confirmed.538025"],
+        "PreparingDelivery" => L["Scm.Text.PreparingDelivery"],
         "Outstanding" => L["Scm.Text.AvailableToRegister.388045"],
         "Draft" => L["Scm.Text.Draft"], "Published" => L["Scm.Text.Published"],
         "Confirmed" => L["Scm.Text.Receiving"], "Closed" => L["Scm.Text.Closed"],

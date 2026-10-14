@@ -39,7 +39,7 @@ public sealed partial class ScmRepository(AmesConnectionFactory factory)
         using var command = new SqlCommand("""
             SET XACT_ABORT ON;
             IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WITH (HOLDLOCK)
-                           WHERE ItemNo=@Item AND ItemType='MATERIAL')
+                           WHERE ItemNo=@Item AND ItemType='MATERIAL' AND ISNULL(ActiveFlag,1)=1)
                 THROW 50020, 'Only MATERIAL items may be linked.', 1;
             IF NOT EXISTS (SELECT 1 FROM dbo.MD_Vendor WITH (HOLDLOCK)
                            WHERE VendorID=@Vendor AND ISNULL(ActiveFlag,1)=1)

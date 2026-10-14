@@ -5,11 +5,12 @@ namespace AMES.Data.Repositories;
 public sealed partial class ScmRepository
 {
     public record DeliveryInput(int PoID, decimal Quantity, string? VendorLotNo=null, DateTime? ProductionDate=null);
+    public record ShipmentDelivery(string Number, string OrderNumber, string Version, IReadOnlyList<DeliveryInput> Lines);
     public sealed class PackingQuantityRequiredException() : InvalidOperationException("A positive packing quantity is required for every selected item.");
     public record SupplierDelivery(string Number, string OrderNumber, int PoID, int LineId,
         string Item, string Unit, DateTime Date, decimal Quantity, decimal Received, string Status, string Version, DateTime? ShipDate, DateTime? ShippedAt, string? ShippedBy, string VendorLotNo, DateTime ProductionDate);
 
-    public List<SupplierDelivery> ListSupplierDeliveries(bool portal, string? userId)
+    public List<SupplierDelivery> ListSupplierDeliveries(bool portal, string? userId, IReadOnlyCollection<int>? poIds = null)
     {
         using var conn=factory.OpenConnection();
         using var cmd=new SqlCommand("""
@@ -18,12 +19,14 @@ public sealed partial class ScmRepository
                 COALESCE(l.VendorLotNo,CONVERT(char(8),d.DeliveryDate,112)),COALESCE(l.ProductionDate,d.DeliveryDate)
             FROM dbo.SCM_Delivery d JOIN dbo.SCM_DeliveryLine l ON l.DeliveryID=d.DeliveryID
             JOIN dbo.WH_PurchaseOrder p ON p.PoID=l.PoID
-            WHERE @Portal=0 OR EXISTS(
+            WHERE (@PoIds IS NULL OR p.PoID IN (SELECT CONVERT(int,value) FROM OPENJSON(@PoIds)))
+            AND (@Portal=0 OR EXISTS(
                 SELECT 1 FROM dbo.SCM_PortalVendorUser m JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
-                WHERE m.UserID=@User AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
+                WHERE m.UserID=@User AND m.VendorID=d.VendorID AND m.ActiveFlag=1 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1))
             ORDER BY d.DeliveryID DESC,l.DeliveryLineID
             """,conn);
         Filter(cmd,("@Portal", null,portal),("@User", "SCM_PortalVendorUser.UserID",userId??""));
+        cmd.Parameters.Add("@PoIds",System.Data.SqlDbType.NVarChar,-1).Value=poIds is null ? DBNull.Value : System.Text.Json.JsonSerializer.Serialize(poIds);
         using var r=cmd.ExecuteReader(); var result=new List<SupplierDelivery>();
         while(r.Read()) result.Add(new(r.GetString(0),r.GetString(1),r.GetInt32(2),r.GetInt32(3),r.GetString(4),r.GetString(5),r.GetDateTime(6),r.GetDecimal(7),r.GetDecimal(8),r.GetString(9),Convert.ToHexString((byte[])r[10]),r.IsDBNull(11)?null:r.GetDateTime(11),r.IsDBNull(12)?null:r.GetDateTime(12),r.IsDBNull(13)?null:r.GetString(13),r.GetString(14),r.GetDateTime(15)));
         return result;
@@ -133,16 +136,42 @@ public sealed partial class ScmRepository
         string version, IReadOnlyDictionary<int,string> orderVersions, string userId, string actor,
         bool cancel=false, bool ship=false)
     {
-        if(ship && cancel) throw new ArgumentException("Invalid shipping date or operation.");
-        if(!cancel && (items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
-            items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity)))
-            throw new ArgumentException("Invalid delivery quantities.");
-        ValidateDeliveryTrace(items);
+        ValidateDeliveryUpdate(items,cancel,ship);
         using var conn=factory.OpenConnection(); using var tx=conn.BeginTransaction();
+        UpdateSupplierDelivery(conn,tx,deliveryNumber,date,items,version,orderVersions,userId,actor,cancel,ship);
+        tx.Commit();
+    }
+
+    public void ConfirmSupplierShipment(IReadOnlyList<ShipmentDelivery> deliveries, DateTime date,
+        IReadOnlyDictionary<string,IReadOnlyDictionary<int,string>> orderVersions, string userId, string actor)
+    {
+        if (deliveries.Count==0 || deliveries.Select(d=>d.Number).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=deliveries.Count)
+            throw new ArgumentException("Select deliveries to confirm shipment.");
+        foreach(var delivery in deliveries)ValidateDeliveryUpdate(delivery.Lines,false,true);
+        using var conn=factory.OpenConnection(); using var tx=conn.BeginTransaction();
+        // Lock and validate each PO once: several deliveries in a note may share it.
+        var lockedOrders=new Dictionary<string,List<LockedLine>>(StringComparer.OrdinalIgnoreCase);
+        foreach(var number in deliveries.Select(d=>d.OrderNumber).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase))
+        {
+            if(!orderVersions.TryGetValue(number,out var versions)) throw new InvalidOperationException("Order changed. Refresh the list.");
+            lockedOrders.Add(number,LockPurchaseOrder(conn,tx,number,versions));
+        }
+        foreach(var delivery in deliveries.OrderBy(d=>d.Number,StringComparer.OrdinalIgnoreCase))
+            UpdateSupplierDelivery(conn,tx,delivery.Number,date,delivery.Lines,delivery.Version,
+                orderVersions[delivery.OrderNumber],userId,actor,ship:true,lockedOrders:lockedOrders);
+        tx.Commit();
+    }
+
+    static void UpdateSupplierDelivery(SqlConnection conn, SqlTransaction tx, string deliveryNumber, DateTime date,
+        IReadOnlyList<DeliveryInput> items, string version, IReadOnlyDictionary<int,string> orderVersions,
+        string userId, string actor, bool cancel=false, bool ship=false,
+        IReadOnlyDictionary<string,List<LockedLine>>? lockedOrders=null)
+    {
         string number;
         using(var lookup=new SqlCommand("SELECT PoNumber FROM dbo.SCM_Delivery WHERE DeliveryNumber=@D",conn,tx))
         {Filter(lookup,("@D", "SCM_Delivery.DeliveryNumber",deliveryNumber));number=lookup.ExecuteScalar() as string ?? throw new InvalidOperationException("Delivery not found.");}
-        var locked=LockPurchaseOrder(conn,tx,number,orderVersions);
+        var locked=lockedOrders is null ? LockPurchaseOrder(conn,tx,number,orderVersions)
+            : lockedOrders.TryGetValue(number,out var order) ? order : throw new InvalidOperationException("Delivery order changed. Refresh the list.");
         using var check=new SqlCommand("""
             IF EXISTS(SELECT 1 FROM dbo.SCM_Delivery d WHERE d.DeliveryNumber=@D AND NOT EXISTS(
                 SELECT 1 FROM dbo.SCM_PortalVendorUser m WITH(HOLDLOCK) JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
@@ -249,7 +278,15 @@ public sealed partial class ScmRepository
             UPDATE dbo.WH_PurchaseOrder SET ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE PoNumber=@N;
             """,conn,tx);
         Add(header,("@ID", "SCM_Delivery.DeliveryID",id),("@Date", null,date.Date),("@Cancel", null,cancel),("@Ship", null,ship),("@Actor", "SCM_Delivery.ModifiedBy",actor),("@U", "SCM_Delivery.ModifiedUserID",userId),("@N", "SCM_Delivery.PoNumber",number));header.ExecuteNonQuery();
-        tx.Commit();
+    }
+
+    static void ValidateDeliveryUpdate(IReadOnlyList<DeliveryInput> items,bool cancel,bool ship)
+    {
+        if(ship && cancel)throw new ArgumentException("Invalid shipping date or operation.");
+        if(!cancel && (items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
+            items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity)))
+            throw new ArgumentException("Invalid delivery quantities.");
+        ValidateDeliveryTrace(items);
     }
 
     static string DeliveryLot(DeliveryInput item,DateTime date) => string.IsNullOrWhiteSpace(item.VendorLotNo)

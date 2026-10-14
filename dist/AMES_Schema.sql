@@ -12586,8 +12586,6 @@ GO
 -- UOMs
 INSERT INTO dbo.MD_Uom (UOMCode, UOMName, UOMCategory, BaseFlag, ConvFactor, DecimalPrec, Symbol, ActiveFlag, CreatedBy, CreatedTS) VALUES
   ('EA',  'Each',       'QTY',    1, 1,      0, 'ea',  1, 'admin', SYSDATETIME()),
-  ('BOX', 'Box',        'QTY',    0, 1,      0, 'box', 1, 'admin', SYSDATETIME()),
-  ('PLT', 'Pallet',     'QTY',    0, 1,      0, 'plt', 1, 'admin', SYSDATETIME()),
   ('LB',  'Pound',      'WEIGHT', 1, 1,      2, 'lb',  1, 'admin', SYSDATETIME()),
   ('KG',  'Kilogram',   'WEIGHT', 0, 2.205,  3, 'kg',  1, 'admin', SYSDATETIME()),
   ('M',   'Meter',      'LENGTH', 1, 1,      3, 'm',   1, 'admin', SYSDATETIME()),

@@ -14,8 +14,7 @@ public sealed partial class ScmRepository
         public bool ReadyToReceive => (Status is "Shipped" or "Received") && !string.IsNullOrWhiteSpace(NoteNumber);
     }
     public record CasePart(int PoID, string Item, string Name, string Unit, decimal PackingQty, decimal Available, string Issue="",
-        decimal Ordered=0, decimal Received=0, decimal PendingDelivery=0, decimal Prepared=0,
-        string? BoxContentUnit=null, decimal? BoxContentQty=null);
+        decimal Ordered=0, decimal Received=0, decimal PendingDelivery=0, decimal Prepared=0);
     public record CaseBoxInput(int PoID, decimal Quantity);
     public record CaseDraftInput(IReadOnlyList<string> Orders, IReadOnlyList<CaseBoxInput> Boxes);
     public record LooseItemInput(string Order, int PoID, decimal Quantity, bool IsPart);
@@ -36,13 +35,12 @@ public sealed partial class ScmRepository
         using var cmd = new SqlCommand("""
             SELECT p.PoID,p.ItemNo,COALESCE(i.ItemName,p.ItemNo),COALESCE(p.UnitCode,''),
                    CASE WHEN i.ItemNo IS NULL OR ISNULL(i.ActiveFlag,1)=0 OR m.ActiveFlag=0 THEN 0
-                        WHEN p.UnitCode='BOX' THEN 1 ELSE COALESCE(m.PackingQty,0) END,
+                        ELSE COALESCE(m.PackingQty,0) END,
                    COALESCE(p.OrderQty,0)-COALESCE(p.ReceivedQty,0)-pending.Qty-prepared.Qty,
                    CASE WHEN i.ItemNo IS NULL THEN 'Item master missing' WHEN ISNULL(i.ActiveFlag,1)=0 THEN 'Item inactive'
                         WHEN m.ActiveFlag=0 THEN 'Vendor mapping inactive'
-                        WHEN m.ItemNo IS NULL THEN 'Vendor mapping missing' WHEN p.UnitCode<>'BOX' AND COALESCE(m.PackingQty,0)<=0 THEN 'Packing quantity missing' ELSE '' END,
-                   COALESCE(p.OrderQty,0),COALESCE(p.ReceivedQty,0),pending.Qty,prepared.Qty,
-                   COALESCE(p.BoxContentUnit,i.BoxContentUnit),COALESCE(p.BoxContentQty,i.BoxContentQty)
+                        WHEN m.ItemNo IS NULL THEN 'Vendor mapping missing' WHEN COALESCE(m.PackingQty,0)<=0 THEN 'Packing quantity missing' ELSE '' END,
+                   COALESCE(p.OrderQty,0),COALESCE(p.ReceivedQty,0),pending.Qty,prepared.Qty
             FROM dbo.WH_PurchaseOrder p
             JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo
             LEFT JOIN dbo.SCM_ItemVendor m ON m.ItemNo=p.ItemNo AND m.VendorID=p.VendorID
@@ -51,6 +49,7 @@ public sealed partial class ScmRepository
             OUTER APPLY(SELECT COALESCE(SUM(b.Quantity),0) Qty FROM dbo.SCM_DeliveryBox b
                 WHERE b.PoID=p.PoID AND b.CaseNo IS NOT NULL AND b.DeliveryLineID IS NULL AND b.ActiveFlag=1) prepared
             WHERE p.PoNumber=@N AND p.Status IN('Open','Partial') AND p.SupplierConfirmedAt IS NOT NULL
+              AND UPPER(LTRIM(RTRIM(COALESCE(p.UnitCode,'')))) NOT IN ('BOX','PLT','PALLET','SH','SHEET')
               AND NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber
                   AND (d.SupplierConfirmedAt IS NULL OR d.Status IS NULL OR d.Status NOT IN('Open','Partial','Complete','Received')))
               AND EXISTS(SELECT 1 FROM dbo.SCM_PortalVendorUser u JOIN dbo.MD_Vendor v ON v.VendorID=u.VendorID
@@ -61,8 +60,7 @@ public sealed partial class ScmRepository
         using var r = cmd.ExecuteReader();
         var rows = new List<CasePart>();
         while (r.Read()) rows.Add(new(r.GetInt32(0), r.GetString(1), r.GetString(2), r.GetString(3), r.GetDecimal(4), Math.Max(0,r.GetDecimal(5)),r.GetString(6),
-            r.GetDecimal(7),r.GetDecimal(8),r.GetDecimal(9),r.GetDecimal(10),
-            r.IsDBNull(11)?null:r.GetString(11),r.IsDBNull(12)?null:r.GetDecimal(12)));
+            r.GetDecimal(7),r.GetDecimal(8),r.GetDecimal(9),r.GetDecimal(10)));
         return rows;
     }
 

@@ -8,10 +8,12 @@
 .scm-scroll .num, .scm-scroll th.num { text-align:right; white-space:nowrap; }
 .scm-log { line-height:1.9; font-size:.92em; }
 .scm-act { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.scm-date-range { display:flex; align-items:center; flex-wrap:nowrap; flex:0 0 auto; gap:8px; white-space:nowrap; }
 .scm-creation-actions { display:flex; flex-wrap:nowrap; align-items:center; gap:10px; margin:0 0 12px; overflow-x:auto; }
 .scm-creation-actions ::deep button { flex-shrink:0; white-space:nowrap; }
 .scm-line-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .scm-lines { width:100%; }
+.scm-data-issue { color:var(--ames-tx-red-500); white-space:normal; overflow-wrap:anywhere; font-size:12px; }
 .scm-mismatch-button { display:inline-flex; align-items:center; justify-content:center; gap:4px; border:0; border-radius:6px; padding:4px 8px; color:var(--ames-tx-green-300); background:rgba(34,197,94,.14); cursor:pointer; font:inherit; }
 .scm-mismatch-button:hover { background:rgba(34,197,94,.25); }
 .scm-mismatch-button ::deep .rzi { font-size:17px; }
@@ -88,6 +90,7 @@
 .scm-delivery-detail td[data-field="lot"] { min-width:190px; }
 .scm-delivery-detail td[data-field="production-date"] { min-width:175px; }
 .scm-delivery-detail input.ames-input { width:100%; box-sizing:border-box; }
+.scm-shipment-date { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
 .scm-delivery-detail ::deep .rz-numeric,
 .scm-delivery-detail ::deep .rz-datepicker { width:100%; min-width:0; }
 .scm-delivery-detail ::deep .rz-numeric-input { width:100%; min-width:0; }
