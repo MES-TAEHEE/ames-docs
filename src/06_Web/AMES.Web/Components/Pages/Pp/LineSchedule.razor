@@ -15,6 +15,7 @@
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
+@inject AMES.Web.Services.AuditLogger Audit
 
 @implements IDisposable
 
@@ -594,6 +595,7 @@
     int _dayStart = 6 * 60;   // 하루 시작 분(= 첫 교대 시작, 축이 A→B→C 순이 되도록)
     string _err = "", _msg = "";
     string? _version;          // 마지막으로 읽은 행의 지문(LineScheduleRepository.VersionOf) — 적용·초기화 때 DB 와 비교
+    List<LineScheduleRepository.ScheduleRow> _loadedRows = new();   // 마지막으로 읽은 행 — 적용·초기화 감사의 「이전」(지문이 같아야 저장되므로 실제 직전 DB 내용)
     bool    _changedByOthers;  // 적용·초기화가 다른 사람의 변경으로 거부됨 — 경고에 「다시 불러오기」
 
     record StagedWo(int WoId, string WoNumber, string? ItemName, int StartMin, int EndMin, decimal Qty, string? MoldId = null);
@@ -793,7 +795,7 @@
 
     void LoadData()
     {
-        _err = ""; _slots = new(); _segments = new(); _pmBands = new(); _mcBlocks = new(); _version = null; _changedByOthers = false;
+        _err = ""; _slots = new(); _segments = new(); _pmBands = new(); _mcBlocks = new(); _version = null; _changedByOthers = false; _loadedRows = new();
         _patternId = ""; _savedStatus = null; _dirty = false;
         if (string.IsNullOrEmpty(_lineId)) { _lineWos = new(); _pmCandidates = new(); ResetPlaceForm(); return; }
         try
@@ -801,6 +803,7 @@
             _lineWos = LSB.ListLineWos(_lineId, _date);
             try { _pmCandidates = LSB.ListDuePmForLine(_lineId); } catch { _pmCandidates = new(); }
             var rows = LSB.GetSchedule(_lineId, _date);
+            _loadedRows  = rows;
             _version     = LineScheduleRepository.VersionOf(rows);
             _patternId   = rows.FirstOrDefault(r => r.PatternId != null)?.PatternId ?? "";
             _savedStatus = rows.FirstOrDefault()?.Status;
@@ -836,10 +839,12 @@
         if (!_canEdit || _busy is not null || string.IsNullOrEmpty(_lineId) || _savedStatus is null) return;
         if (_version is null) return;
         var (line, date, version) = (_lineId, _date, _version);
+        var before = LineScheduleRepository.AuditView(_loadedRows);
         _busy = "reset";
         try
         {
             await Task.Run(() => LSB.DeleteSchedule(line, date, version));
+            Audit.Deleted("PP-LSB", "PP_LineSchedule", AuditKey(line, date), before);
             ShowMsg(L["PP.LineSchedule.Ok.Reset"].Value);
             LoadData();
         }
@@ -1163,12 +1168,17 @@
         var slots = _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)).ToList();
         var pms   = _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)).ToList();
         var mcs   = _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)).ToList();
+        var before = LineScheduleRepository.AuditView(_loadedRows);
         _busy = "apply";
         try
         {
             await Task.Run(() => LSB.SaveSchedule(line, date, pattern, slots, pms, actor, mcs, version));
             ShowMsg(L["PP.LineSchedule.Ok.Applied"].Value);
             LoadData();
+            // 「이후」는 저장 뒤 다시 읽은 실제 행(저장소가 되살린 APS 0분 슬롯 포함) — 다시 읽기가 실패하면 비운다
+            var after = string.IsNullOrEmpty(_err) ? LineScheduleRepository.AuditView(_loadedRows) : null;
+            if (before is null) Audit.Created("PP-LSB", "PP_LineSchedule", AuditKey(line, date), after);
+            else                Audit.Updated("PP-LSB", "PP_LineSchedule", AuditKey(line, date), before, after);
         }
         catch (LineScheduleRepository.ScheduleChangedException) { _err = L["PP.LineSchedule.Err.ChangedByOthers"]; _changedByOthers = true; }
         catch (Exception ex) { _err = ex.Message; }
@@ -1180,6 +1190,7 @@
 
     // ── Helpers ──────────────────────────────────────────────────────────
     static string MinToTime(int m) => $"{m / 60:00}:{m % 60:00}";
+    static string AuditKey(string line, DateTime date) => $"{line}/{date:yyyy-MM-dd}";
 
     // 배치 라벨 — 등록(_slots) 순서대로 A1~A9, B1~B9, … Z1~Z9
     string SlotLabel(StagedWo s)
