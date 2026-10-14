@@ -578,8 +578,10 @@
         _err = "";
         try
         {
-            var snapId = Repo.SaveSnapshot(_result, _actor);
-            Audit.Log("PP-OEE", "SAVE", "PP_LineOEE", snapId, null, _result);   // 같은 라인·날짜·교대면 덮어쓰는 저장
+            // 같은 라인·날짜·교대가 있으면 덮어쓴다 — 새로 만들었으면 등록, 덮어썼으면 이전 값과 함께 수정으로 남긴다
+            var saved = Repo.SaveSnapshot(_result, _actor);
+            if (saved.Created) Audit.Created("PP-OEE", "PP_LineOEE", saved.Id, _result);
+            else               Audit.Updated("PP-OEE", "PP_LineOEE", saved.Id, saved.Before, _result);
             ShowMsg(L["PP.Oee.Ok.Snapshot"]);
             if (_result.PeriodDate < _fFrom) _fFrom = _result.PeriodDate;
             if (_result.PeriodDate > _fTo)   _fTo   = _result.PeriodDate;

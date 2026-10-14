@@ -110,39 +110,68 @@ public sealed class OeeRepository
     static decimal Pct(decimal fraction) => Math.Round(fraction * 100m, 2);
     static decimal Frac(decimal pct)     => Math.Round(pct / 100m, 4);
 
-    /// <summary>같은 (라인, 일자, 교대) 스냅샷이 있으면 갱신, 없으면 삽입. 저장된 행의 ID 를 돌려준다.</summary>
-    public int SaveSnapshot(OeeSnapshotDto s, string? savedBy)
+    /// <param name="Before">덮어쓴 경우 저장 전 값(새로 만들었으면 null) — 감사 로그 「이전」.</param>
+    public sealed record SnapshotSaveResult(int Id, bool Created, OeeSnapshotDto? Before);
+
+    /// <summary>
+    /// 같은 (라인, 일자, 교대) 스냅샷이 있으면 갱신, 없으면 삽입(10-14 — 키 범위를 잠근 뒤 확인하고 쓴다).
+    /// 전에는 UPDATE 0행이면 INSERT 를 잠금 없이 해서 동시 저장 때 같은 키 행이 2개 생겼다.
+    /// 마지막 안전망은 유니크 인덱스 UX_PP_LineOEE_Line_Date_Shift(dist/migrate_pp_lineoee_unique.sql). 테스트: OeeSnapshotSaveTests.
+    /// </summary>
+    public SnapshotSaveResult SaveSnapshot(OeeSnapshotDto s, string? savedBy)
     {
-        const string sql = """
-            DECLARE @Id INT;
+        const string sel = """
+            SELECT TOP (1) OeeSnapshotID, LineID, PeriodDate, ShiftCode,
+                   ISNULL(LoadingMin,0)       AS LoadingMin,
+                   ISNULL(PlannedDownMin,0)   AS PlannedDownMin,
+                   ISNULL(UnplannedDownMin,0) AS UnplannedDownMin,
+                   ISNULL(OperatingMin,0)     AS OperatingMin,
+                   ISNULL(TotalProducedQty,0) AS TotalProducedQty,
+                   ISNULL(GoodQty,0)          AS GoodQty,
+                   ISNULL(Availability,0)     AS Availability,
+                   ISNULL(Performance,0)      AS Performance,
+                   ISNULL(Quality,0)          AS Quality,
+                   ISNULL(OEE,0)              AS OEE,
+                   CreatedTS, CreatedBy
+            FROM   dbo.PP_LineOEE WITH (UPDLOCK, HOLDLOCK)
+            WHERE  LineID=@Line AND PeriodDate=@Date
+              AND  ((ShiftCode IS NULL AND @Shift IS NULL) OR ShiftCode=@Shift)
+            ORDER  BY OeeSnapshotID;
+            """;
+        const string upd = """
             UPDATE dbo.PP_LineOEE
             SET    LoadingMin=@Load, PlannedDownMin=@PlDn, UnplannedDownMin=@UnDn, OperatingMin=@Op,
                    TotalProducedQty=@Prod, GoodQty=@Good,
                    Availability=@A, Performance=@P, Quality=@Q, OEE=@Oee,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-            WHERE  LineID=@Line AND PeriodDate=@Date
-              AND  ((ShiftCode IS NULL AND @Shift IS NULL) OR ShiftCode=@Shift);
-            IF @@ROWCOUNT = 0
-            BEGIN
-                INSERT INTO dbo.PP_LineOEE
-                       (LineID, PeriodDate, ShiftCode,
-                        LoadingMin, PlannedDownMin, UnplannedDownMin, OperatingMin,
-                        TotalProducedQty, GoodQty, Availability, Performance, Quality, OEE,
-                        CreatedBy, CreatedTS)
-                VALUES (@Line, @Date, @Shift,
-                        @Load, @PlDn, @UnDn, @Op,
-                        @Prod, @Good, @A, @P, @Q, @Oee,
-                        @By, SYSDATETIME());
-                SET @Id = CAST(SCOPE_IDENTITY() AS INT);
-            END
-            ELSE
-                SELECT @Id = OeeSnapshotID FROM dbo.PP_LineOEE
-                WHERE  LineID=@Line AND PeriodDate=@Date
-                  AND  ((ShiftCode IS NULL AND @Shift IS NULL) OR ShiftCode=@Shift);
+            WHERE  OeeSnapshotID=@Id;
             SELECT @Id;
             """;
+        const string ins = """
+            INSERT INTO dbo.PP_LineOEE
+                   (LineID, PeriodDate, ShiftCode,
+                    LoadingMin, PlannedDownMin, UnplannedDownMin, OperatingMin,
+                    TotalProducedQty, GoodQty, Availability, Performance, Quality, OEE,
+                    CreatedBy, CreatedTS)
+            VALUES (@Line, @Date, @Shift,
+                    @Load, @PlDn, @UnDn, @Op,
+                    @Prod, @Good, @A, @P, @Q, @Oee,
+                    @By, SYSDATETIME());
+            SELECT CAST(SCOPE_IDENTITY() AS INT);
+            """;
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var tx   = conn.BeginTransaction();
+        OeeSnapshotDto? before;
+        using (var q = new SqlCommand(sel, conn, tx))
+        {
+            q.Parameters.Add("@Line",  SqlDbType.VarChar, 20).Value = s.LineId;
+            q.Parameters.Add("@Date",  SqlDbType.Date).Value        = s.PeriodDate.Date;
+            q.Parameters.Add("@Shift", SqlDbType.VarChar, 10).Value = (object?)s.ShiftCode ?? DBNull.Value;
+            using var r = q.ExecuteReader();
+            before = r.Read() ? MapSnapshot(r) : null;
+        }
+        using var cmd  = new SqlCommand(before is null ? ins : upd, conn, tx);
+        if (before is not null) cmd.Parameters.Add("@Id", SqlDbType.Int).Value = before.OeeSnapshotId;
         cmd.Parameters.Add("@Line",  SqlDbType.VarChar, 20).Value   = s.LineId;
         cmd.Parameters.Add("@Date",  SqlDbType.Date).Value          = s.PeriodDate.Date;
         cmd.Parameters.Add("@Shift", SqlDbType.VarChar, 10).Value   = (object?)s.ShiftCode ?? DBNull.Value;
@@ -157,7 +186,9 @@ public sealed class OeeRepository
         AddDec(cmd, "@Q",    Frac(s.Quality));
         AddDec(cmd, "@Oee",  Frac(s.Oee));
         cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = string.IsNullOrWhiteSpace(savedBy) ? "web" : savedBy;
-        return Convert.ToInt32(cmd.ExecuteScalar());
+        var id = Convert.ToInt32(cmd.ExecuteScalar());
+        tx.Commit();
+        return new SnapshotSaveResult(id, before is null, before);
 
         static void AddDec(SqlCommand c, string name, decimal v)
         {
