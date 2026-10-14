@@ -27,17 +27,16 @@ public sealed partial class ScmRepository
         var batch = ReadBatchDeliveryNote(number, userId);
         if (batch is not null) return batch;
         using var conn = factory.OpenConnection();
-        using var tx = conn.BeginTransaction();
         using var header = new SqlCommand("""
             IF NOT EXISTS(SELECT 1 FROM dbo.SCM_Delivery d
-                JOIN dbo.SCM_PortalVendorUser m WITH(HOLDLOCK) ON m.VendorID=d.VendorID
-                JOIN dbo.MD_Vendor v WITH(HOLDLOCK) ON v.VendorID=m.VendorID
+                JOIN dbo.SCM_PortalVendorUser m ON m.VendorID=d.VendorID
+                JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
                 WHERE d.DeliveryNumber=@N AND m.UserID=@U AND m.ActiveFlag=1
                 AND m.LockedFlag=0 AND ISNULL(v.ActiveFlag,1)=1)
                 THROW 50031,'Vendor access denied.',1;
             SELECT DeliveryID,Status,NoteSnapshot,COALESCE(ShipDate,DeliveryDate),SYSDATETIME(),PoNumber,VendorID
-            FROM dbo.SCM_Delivery WITH(UPDLOCK,HOLDLOCK) WHERE DeliveryNumber=@N;
-            """, conn, tx);
+            FROM dbo.SCM_Delivery WHERE DeliveryNumber=@N;
+            """, conn);
         Filter(header, ("@N", "SCM_Delivery.DeliveryNumber", number), ("@U", "SCM_PortalVendorUser.UserID", userId));
         int id; DateTime shipDate, issuedAt; string order, vendor, status; string? snapshot;
         using (var r = header.ExecuteReader())
@@ -53,8 +52,8 @@ public sealed partial class ScmRepository
         if (snapshot != null)
         {
             var existing = DeserializeDeliveryNote(snapshot);
-            tx.Commit(); return existing;
+            return existing;
         }
-        tx.Commit(); return null;
+        return null;
     }
 }

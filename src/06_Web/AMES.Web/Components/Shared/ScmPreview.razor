@@ -653,6 +653,7 @@
         try
         {
             var note=Scm.IssueDeliveryNote([number],_portalUserId,_actor);
+            Audit.Log(ScreenCode, "ISSUE", "SCM_DeliveryNote", note.Number, null, new { note.Number, note.OrderNumber });
             LoadNotes();
             OpenNote(note.Number);
         }

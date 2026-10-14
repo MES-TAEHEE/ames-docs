@@ -333,6 +333,8 @@
         {
             if(!await Task.Run(()=>Scm.CreatePortalPackingQuantity(_user,row.Part.Item,order.Vendor,row.NewPackingQty.Value)))
             {_error="Packing quantity changed or item setup is incomplete. Refresh and check Packing Quantities.";return;}
+            Audit.Updated("PORTAL-004", "SCM_ItemVendor", $"{order.Vendor}/{row.Part.Item}",
+                new { PackingQty=row.Part.PackingQty }, new { PackingQty=row.NewPackingQty });
             await LoadParts(true);_message=$"Qty / Box saved for {row.Part.Item}.";
         }
         catch(Exception ex){Fail(ex,"Unable to save Qty / Box.");}

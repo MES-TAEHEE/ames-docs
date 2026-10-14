@@ -47,7 +47,7 @@ summary.ames-card-h { cursor:pointer; }
 .case-box-result strong { color:var(--ames-tx-blue-400); font-size:18px; }
 .case-box-result span { color:var(--ames-tx-slate-400); font-size:12px; white-space:nowrap; }
 .case-quantity-editor input.ames-input { min-width:80px; width:110px; text-align:left; font-size:18px; font-weight:600; border-radius:3px; }
-.case-quantity-editor input[aria-invalid="true"] { border-color:#f87171; }
+.case-quantity-editor input[aria-invalid="true"] { border-color:var(--ames-tx-red-400); }
 .case-input-message { max-width:260px; margin-top:6px; color:var(--ames-tx-slate-400); font-size:12px; }
 .case-quantity-editor input:disabled { opacity:.55; cursor:not-allowed; }
 .case-table-scroll th { position:sticky; top:0; background:var(--ames-sf-0d1b2e); }

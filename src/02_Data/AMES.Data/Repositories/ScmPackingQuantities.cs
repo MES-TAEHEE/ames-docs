@@ -72,10 +72,11 @@ public sealed partial class ScmRepository
             IF EXISTS(SELECT 1 FROM dbo.SCM_ItemVendor WITH(UPDLOCK,HOLDLOCK)
                 WHERE ItemNo=@Item AND VendorID=@Vendor AND (ActiveFlag=0 OR PackingQty>0))
             BEGIN SELECT CAST(0 AS bit); RETURN; END;
-            UPDATE dbo.SCM_ItemVendor WITH(UPDLOCK,HOLDLOCK) SET PackingQty=@Qty,ModifiedBy=LEFT(@U,20),ModifiedTS=SYSDATETIME()
+            UPDATE dbo.SCM_ItemVendor WITH(UPDLOCK,HOLDLOCK) SET PackingQty=@Qty,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
             WHERE ItemNo=@Item AND VendorID=@Vendor AND ActiveFlag=1;
             SELECT CAST(CASE WHEN @@ROWCOUNT=1 THEN 1 ELSE 0 END AS bit);
             """;
+        Add(cmd, ("@Actor", "SCM_ItemVendor.ModifiedBy", PortalActor(userId)));
         var p = cmd.Parameters.Add("@Qty",System.Data.SqlDbType.Decimal);
         p.Precision=18;p.Scale=3;p.Value=quantity;
         var created=(bool)cmd.ExecuteScalar()!;
@@ -90,7 +91,7 @@ public sealed partial class ScmRepository
             throw new ArgumentOutOfRangeException(nameof(quantity));
         using var c = factory.OpenConnection();
         using var cmd = new SqlCommand($"""
-            UPDATE m SET PackingQty=@Qty,ModifiedBy=LEFT(@U,20),ModifiedTS=SYSDATETIME()
+            UPDATE m SET PackingQty=@Qty,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
             FROM dbo.SCM_ItemVendor m
             JOIN dbo.MD_Item i ON i.ItemNo=m.ItemNo
             JOIN dbo.MD_Vendor v ON v.VendorID=m.VendorID
@@ -102,6 +103,7 @@ public sealed partial class ScmRepository
                 AND (m.PackingQty=@Original OR (m.PackingQty IS NULL AND @Original IS NULL));
             """, c);
         Filter(cmd, ("@U", "SCM_PortalVendorUser.UserID", userId), ("@Item", "SCM_ItemVendor.ItemNo", itemNo), ("@Vendor", "SCM_ItemVendor.VendorID", vendorId));
+        Add(cmd, ("@Actor", "SCM_ItemVendor.ModifiedBy", PortalActor(userId)));
         foreach (var (name, value) in new[] { ("@Qty", quantity), ("@Original", originalQuantity) })
         {
             var p = cmd.Parameters.Add(name, System.Data.SqlDbType.Decimal);
