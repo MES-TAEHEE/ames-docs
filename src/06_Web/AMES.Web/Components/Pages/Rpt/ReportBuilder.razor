@@ -99,8 +99,9 @@
         {
             var m0 = _runMeasures[0];
             var pts = _rows.Select(r => new ChartPoint(r.Key, (double)(r.M.TryGetValue(m0, out var v) ? v : 0m))).ToList();
-            @* Radzen 12 는 Min 만 지정한 축의 위 끝을 눈금으로 반올림한다 — 데이터 최댓값을 Max 로 줘 11.x 처럼 반올림을 끈다 *@
+            @* Radzen 12 는 Min 만 지정한 축의 위 끝을 반올림하고 간격을 소수로 잡는다 — 11.x 처럼 위 끝 = 최댓값, 간격 = ceil(최댓값 ÷ 눈금 수 2(220px)) *@
             object? ptsMax = pts.Count > 0 && pts.Max(p => p.Value) > 0 ? pts.Max(p => p.Value) : null;
+            object? ptsStep = ptsMax is double pm ? Math.Ceiling(pm / 2.0) : null;
             <div class="rpt-rb-charts">
                 <div class="rpt-rb-chart">
                     <div class="h">▮ @L["RPT.ReportBuilder.Chart.Bar"] · @MLabel(m0)</div>
@@ -108,7 +109,7 @@
                         <RadzenChartTooltipOptions Visible="true" />
                         <RadzenLegend Visible="false" />
                         <RadzenCategoryAxis LabelFit="CategoryAxisLabelFit.None" Padding="10" />
-                        <RadzenValueAxis Range="ValueAxisRange.Data" Min="0" Max="@ptsMax" FormatString="{0:N0}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
+                        <RadzenValueAxis Range="ValueAxisRange.Data" Min="0" Max="@ptsMax" Step="@ptsStep" FormatString="{0:N0}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
                         <RadzenColumnSeries TItem="ChartPoint" Data="@pts" CategoryProperty="Key" ValueProperty="Value" Title="@MLabel(m0)" Fill="#059669" />
                     </RadzenChart>
                 </div>
@@ -118,7 +119,7 @@
                         <RadzenChartTooltipOptions Visible="true" />
                         <RadzenLegend Visible="false" />
                         <RadzenCategoryAxis LabelFit="CategoryAxisLabelFit.None" Padding="10" />
-                        <RadzenValueAxis Range="ValueAxisRange.Data" Min="0" Max="@ptsMax" FormatString="{0:N0}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
+                        <RadzenValueAxis Range="ValueAxisRange.Data" Min="0" Max="@ptsMax" Step="@ptsStep" FormatString="{0:N0}"><RadzenGridLines Visible="true" /></RadzenValueAxis>
                         <RadzenLineSeries TItem="ChartPoint" Data="@pts" CategoryProperty="Key" ValueProperty="Value" Title="@MLabel(m0)" Stroke="#3b82f6" StrokeWidth="2">
                             <RadzenMarkers MarkerType="MarkerType.Circle" Size="5" />
                         </RadzenLineSeries>

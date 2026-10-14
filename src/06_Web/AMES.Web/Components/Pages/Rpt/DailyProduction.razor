@@ -96,7 +96,7 @@
                 <RadzenChartTooltipOptions Visible="true" />
                 <RadzenLegend Position="LegendPosition.Bottom" />
                 <RadzenCategoryAxis LabelFit="CategoryAxisLabelFit.None" Padding="8" />
-                <RadzenValueAxis Range="ValueAxisRange.Data" Min="0" Max="@HourAxisMax" FormatString="{0:N0}">
+                <RadzenValueAxis Range="ValueAxisRange.Data" Min="0" Max="@HourAxisMax" Step="@HourAxisStep" FormatString="{0:N0}">
                     <RadzenGridLines Visible="true" />
                 </RadzenValueAxis>
                 <RadzenStackedColumnSeries TItem="HourPoint" Data="@_hours" CategoryProperty="Label" ValueProperty="Good" Title="@L["Col.Good"]" Fill="#10b981" />
@@ -208,8 +208,10 @@
     }
     public sealed record HourPoint(string Label, int Good, int Defect);
 
-    // Radzen 12 는 Min 만 지정한 축의 위 끝을 눈금으로 반올림한다 — 데이터 최댓값을 Max 로 줘 11.x 처럼 반올림을 끈다
+    // Radzen 12 는 Min 만 지정한 축의 위 끝을 눈금으로 반올림하고 간격을 소수로 잡는다(N0 라벨이 0, 0, 1 처럼 겹침) —
+    // 11.x 처럼 위 끝 = 데이터 최댓값, 간격 = ceil(최댓값 ÷ 눈금 수). 눈금 수는 ceil(그림 높이 ÷ 100px) 로 이 높이(250px)에서 2
     object? HourAxisMax => _hours.Count > 0 && _hours.Max(h => h.Good + h.Defect) is var m && m > 0 ? m : null;
+    object? HourAxisStep => HourAxisMax is int m ? Math.Ceiling(m / 2.0) : null;
     public sealed record ShiftAgg(string Code, int Good, int Defect) { public int Total => Good + Defect; public decimal? Yield => Total > 0 ? 100m * Good / Total : null; }
 
     IEnumerable<DropDownItem> LineFilterOptions  => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
