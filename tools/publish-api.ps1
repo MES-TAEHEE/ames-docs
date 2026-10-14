@@ -63,11 +63,11 @@ Write-Step "패키지 생성 -> $PkgDir"
 if (Test-Path $PkgDir) { Remove-Item $PkgDir -Recurse -Force }
 New-Item -ItemType Directory -Path $PkgDir -Force | Out-Null
 
-# Web 과 같은 조건: framework-dependent / win-x64 / Production
+# Web 과 같은 조건: self-contained / win-x64 / Production — .NET 런타임을 앱 폴더에 넣는다(10-14, publish-web.ps1 참조)
 & dotnet publish $Project `
     -c $Configuration `
     -r win-x64 `
-    --self-contained false `
+    --self-contained true `
     -p:EnvironmentName=Production `
     -o $PkgDir `
     --nologo -v m

@@ -32,7 +32,7 @@
 | 오세영 | 5 | 2 | — | — | 발송기가 없어 SYS-008 발송 이력이 시연 데이터 |
 
 ### 지금 결정이 필요한 것(이승욱 작업분)
-1. **개발서버 반영**: 개발 DB 에는 PP-LSB 발행 폐지 마이그레이션(`dist/migrate_lsb_publish_removal.sql`)이 이미 적용돼 있습니다. 새 Web·Api 를 올리기 전까지 개발서버의 PP-LSB 는 열리지 않습니다(구 Web 이 삭제된 `PublishedAt` 컬럼을 읽음). 최신 패키지는 `publish\AMES.Web_20261014-054436.zip`·`publish\AMES.Api_20261014-054545.zip` 입니다.
+1. **개발서버 반영**: 개발 DB 에는 PP-LSB 발행 폐지 마이그레이션(`dist/migrate_lsb_publish_removal.sql`)이 이미 적용돼 있습니다. 새 Web·Api 를 올리기 전까지 개발서버의 PP-LSB 는 열리지 않습니다(구 Web 이 삭제된 `PublishedAt` 컬럼을 읽음). 최신 패키지는 `publish\AMES.Web`·`publish\AMES.Api` 폴더(10-14 21:35, .NET 런타임 포함 게시)입니다. 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행해 기동 실패 자동 복구를 켭니다. 10-14 재부팅 뒤 개발서버 Web 이 500.30 인 것은 앱풀 재활용(`appcmd recycle apppool`)으로 우선 복구합니다.
 2. **PP-OEE 가동률 원천**: 지금은 시연 데이터(`PP_LineStateLog`)로 계산됩니다. 실제로 쌓이는 비가동 기록(`PP_LineDowntimeLog`)으로 바꿀지 정해야 합니다(이승욱 테이블 2).
 3. **개발 DB 테스트 행**: 테스트가 남긴 `PP_LineSchedule` PM 행 120개(`EntryType='PM' AND CreatedBy='ITEST'`, 지금 DRAFT)를 지울지.
 4. **화면 저장 검증**: 10-14 감사 로그(MNT·PP-OEE)·MNT 부분 완료·PP-CAL 거부를 화면에서 실제로 저장해 보지는 않았습니다(DB 테스트로만 확인).

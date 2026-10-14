@@ -119,7 +119,10 @@ appcmd set apppool "AMES.Web" /processModel.loadUserProfile:true /processModel.s
 **09-18 부터 AMES.Web 은 이 설정에 기대지 않는다** — `Program.cs` 가 키를 `%ProgramData%\AMES\DataProtection-Keys\AMES.Web`(설정 `DataProtection:KeyPath` 로 변경 가능)에 두고 머신 범위 DPAPI 로 암호화한다. 배포 폴더 안에 두지 않는 이유는 `publish-web.ps1` 의 `robocopy /MIR` 가 게시 때마다 지우기 때문이다. 폴더를 못 만들거나 쓰기 권한이 없으면 기동은 계속하고 경고 로그(`Data Protection key folder … is not writable`)만 남긴 채 프레임워크 기본 동작으로 돌아가므로, 그 경우에만 위 앱풀 설정이 다시 필요하다. 키는 서버마다 따로 생기며, 이 버전을 처음 올릴 때는 키가 바뀌어 **로그인 사용자가 한 번 전원 로그아웃**된다.
 
 **서버 반영 절차**: ① 앱풀 중지 또는 `app_offline.htm` 배치 → ② `publish\AMES.Web\*` 덮어쓰기 → ③ `app_offline.htm` 제거 / 앱풀 시작.
-서버 사전 조건은 **ASP.NET Core 10 Hosting Bundle**(9.x만 있으면 HTTP 500.31), 앱풀 "관리 코드 없음", 배포 폴더에 앱풀 계정 읽기/실행 권한.
+서버 사전 조건은 **ASP.NET Core Hosting Bundle**(IIS 연결 모듈 ANCM 용), 앱풀 "관리 코드 없음", 배포 폴더에 앱풀 계정 읽기/실행 권한.
+
+**Web·Api 는 .NET 런타임을 앱 폴더에 넣어 게시한다**(10-14, `publish-web/api.ps1` 의 `--self-contained true` — 게시본 Web 약 170MB·Api 약 120MB). 전에는 PC 의 공용 런타임(`C:\Program Files\dotnet`)을 빌려 써서, Windows Update·VS 가 .NET 을 바꾸는 도중에 뜬 작업자 프로세스가 **500.31**(런타임 못 찾음)·**500.30**(기동 실패)으로 죽은 채 남았다(10-14 로컬·개발서버 실제 발생). in-process 호스팅은 기동에 실패한 프로세스가 살아 있는 동안 같은 오류만 돌려주고 `app_offline.htm` 으로도 내려가지 않으며, 앱풀 재활용으로만 복구된다. 런타임 버전은 게시한 PC 의 SDK 가 정하고(`*.runtimeconfig.json` 의 `includedFrameworks`), 보안 패치는 다음 게시 때 같이 들어간다.
+**기동 실패 자동 복구 — `tools\iis-watchdog.ps1`**(서버마다 관리자로 `-Install` 1회, 예약 작업 「AMES IIS Watchdog」 SYSTEM·부팅 2분 뒤·5분마다, 로그 `%ProgramData%\AMES\iis-watchdog.log`): 앱풀(`AMES.Web`·`AMES.Api`)마다 그 사이트의 `http://localhost:{포트}/api/health` 를 불러 **ANCM 기동 실패 페이지(HTTP 500.3x)일 때만** 그 앱풀을 재활용한다. 일반 500(앱 예외·DB 장애)·`app_offline.htm`(배포 중)·응답 없음·멈춘 앱풀(배포 절차의 일부러 멈춤)은 로그만 남기고, 같은 앱풀은 10분 안에 다시 재활용하지 않는다. Windows PowerShell 5.1 의 `Invoke-WebRequest` 는 오류 응답 본문을 비워 넘기므로 본문 판정은 `HttpClient` 로 한다. 10-14 로컬 등록·검증(정상 무동작, 500.30 → 재활용 → 200, 쿨다운, 원인이 남으면 재시도 안내, app_offline·멈춘 앱풀 건너뜀, 작업 스케줄러 SYSTEM 실행으로 복구), **개발서버는 새 게시본 반영 때 그 PC 에서 `-Install` 필요**.
 
 장애 원인은 **이벤트 뷰어 > 응용 프로그램 > `IIS AspNetCore Module V2`** 가 가장 확실하다. `web.config`의 stdout 로그는 `logs` 폴더 쓰기 권한이 없으면 조용히 실패한다.
 
