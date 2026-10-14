@@ -17,6 +17,10 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 SET NOCOUNT ON;
 GO
+IF OBJECT_ID(N'dbo.FG_CustomerReturn',N'U') IS NOT NULL
+    AND COL_LENGTH(N'dbo.FG_CustomerReturn',N'CustomerID') IS NULL
+    THROW 52016,'Apply migrate_fg_customer_return_columns.sql before PDA_SCHEMA.sql.',1;
+GO
 
 -- Location scope is referenced by WH/FG procedures below, so upgrade it first.
 IF COL_LENGTH(N'dbo.MD_Location', N'WhCode') IS NULL
@@ -4871,7 +4875,7 @@ BEGIN
     SELECT @Stock=StockID FROM dbo.FG_Inventory WHERE LotID=@Lot;
     IF EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrderLine WHERE StockID=@Stock AND ShipmentOrderID<>@Order)
         THROW 51731,'History sample belongs to another order. Reset cancelled.',1;
-    DELETE dbo.FG_CustomerReturn WHERE OriginalShipmentOrderID=@Order;
+    DELETE dbo.FG_CustomerReturn WHERE ShipmentOrderID=@Order;
     DELETE dbo.FG_DeliveryNote WHERE ShipmentOrderID=@Order;
     DELETE dbo.FG_LoadingConfirm WHERE ShipmentOrderID=@Order;
     DELETE D FROM dbo.FG_PickingDetail D JOIN dbo.FG_PickingFifo P ON P.PickID=D.PickID WHERE P.ShipmentOrderID=@Order;
@@ -4903,139 +4907,18 @@ BEGIN
     FROM dbo.FG_ShipmentOrderLine WHERE ShipmentOrderID=@Order;
     INSERT dbo.FG_LoadingConfirm(LoadingNumber,ShipmentOrderID,PickID,LicensePlate,PalletsLoadedJSON,DepartureTS,OTDStatus,OperatorID,ConfirmedAt,CreatedBy,CreatedTS)
     VALUES('FG-PPT-HIST-LOAD',@Order,@Pick,'PPT-FG-HISTORY',@Json,DATEADD(second,4,@Today),'OnTime','SCTEST1',DATEADD(second,4,@Today),@By,DATEADD(second,4,@Today));
-    INSERT dbo.FG_CustomerReturn(ReturnNumber,OriginalShipmentOrderID,CustomerCode,StockID,LotID,ItemNo,ReturnQty,
-        ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
-    VALUES('FG-PPT-HIST-RETURN',@Order,'PPT-CUSTOMER',@Stock,@Lot,'PPT-FG-HIST',22,
-        'DAMAGED_TRANSIT','PPT return note',@Json,'Open',DATEADD(second,5,@Today),'SCTEST1',@By,DATEADD(second,5,@Today));
+    INSERT dbo.FG_CustomerReturn(ShipmentOrderID,CustomerID,LotID,PartNo,PartName,LotNo,ReturnQty,
+        ReturnReason,Note,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
+    SELECT @Order,C.CustomerID,@Lot,I.ItemNo,I.ItemName,'5011FG260908970001',22,
+        'DAMAGED_TRANSIT','PPT return note','Open',DATEADD(second,5,@Today),'SCTEST1',@By,DATEADD(second,5,@Today)
+    FROM dbo.FG_ShipmentOrder O JOIN dbo.MD_Customer C ON C.CustomerID=O.CustomerCode OR C.CustomerCode=O.CustomerCode
+    JOIN dbo.MD_Item I ON I.ItemNo='PPT-FG-HIST' WHERE O.ShipmentOrderID=@Order;
+    IF @@ROWCOUNT<>1 THROW 51732,'Configure a real shipment customer and part before resetting return samples.',1;
     COMMIT TRANSACTION;
 END;
 GO
 
--- TEST1 PPT scenarios: restore only the selected screen's explicitly seeded rows.
-CREATE OR ALTER PROCEDURE dbo.FG_PDA_PPT_TEST_RESET @Screen varchar(10)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SET XACT_ABORT ON;
-    IF @Screen NOT IN ('qc','putaway','inventory','release','loading','return','adjust')
-        THROW 51700, 'Unknown FG PPT test screen.', 1;
-    DECLARE @SeedBy varchar(50) = CONCAT('pda-ppt-fg-', @Screen);
-    DECLARE @Lots TABLE (LotID int PRIMARY KEY, LotCode varchar(40), WoID int, ItemNo varchar(20), Qty decimal(12,3), LocationID varchar(20));
-    DECLARE @Orders TABLE (ID int PRIMARY KEY, Number varchar(24));
-    BEGIN TRANSACTION;
-    INSERT @Lots
-    SELECT LotID, LotCode, WoID, ItemNo, BatchSize,
-        CASE @Screen WHEN 'putaway' THEN 'FG-PPT-A1' WHEN 'inventory' THEN 'FG-PPT-B1'
-            WHEN 'release' THEN 'FG-PPT-C1' WHEN 'loading' THEN 'FG-PPT-D1'
-            WHEN 'return' THEN 'FG-PPT-E1' WHEN 'adjust' THEN 'FG-PPT-F1' END
-    FROM dbo.tbl_Lot WITH (UPDLOCK,HOLDLOCK)
-    WHERE CreatedBy=@SeedBy AND LotCode IN
-      ('5011FG260908900001','5011FG260908900002','5011FG260908900003','5011FG260908900004',
-       '5011FG260908910001','5011FG260908920001','5011FG260908920002','5011FG260908920003',
-       '5011FG260908930001','5011FG260908930002','5011FG260908930003',
-       '5011FG260908940001','5011FG260908940002','5011FG260908940003',
-       '5011FG260908950001','5011FG260908950002','5011FG260908960001');
-    IF (SELECT COUNT(*) FROM @Lots) <> CASE @Screen WHEN 'qc' THEN 4 WHEN 'putaway' THEN 1 WHEN 'inventory' THEN 3 WHEN 'release' THEN 3 WHEN 'loading' THEN 3 WHEN 'return' THEN 2 ELSE 1 END
-        THROW 51701, 'FG PPT samples are missing. Run the FG PPT section of PDA_SEED.sql.', 1;
-    INSERT @Orders SELECT ShipmentOrderID, ShipOrderNumber FROM dbo.FG_ShipmentOrder WITH (UPDLOCK,HOLDLOCK)
-    WHERE CreatedBy=@SeedBy AND ShipOrderNumber IN ('FG-PPT-SO-REL','FG-PPT-SO-LOAD','FG-PPT-SO-RETURN','FG-PPT-SO-NOSHIP');
-    IF (SELECT COUNT(*) FROM @Orders) <> CASE WHEN @Screen IN ('release','loading') THEN 1 WHEN @Screen='return' THEN 2 ELSE 0 END
-        THROW 51702, 'FG PPT shipment samples are missing. Run PDA_SEED.sql.', 1;
-    IF EXISTS (SELECT 1 FROM dbo.FG_ShipmentOrderLine L JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
-               WHERE S.LotID IN (SELECT LotID FROM @Lots) AND L.ShipmentOrderID NOT IN (SELECT ID FROM @Orders))
-        THROW 51703, 'A PPT stock is assigned to another order. Reset was cancelled.', 1;
 
-    DELETE FROM dbo.FG_CustomerReturn WHERE OriginalShipmentOrderID IN (SELECT ID FROM @Orders);
-    DELETE FROM dbo.FG_DeliveryNote WHERE ShipmentOrderID IN (SELECT ID FROM @Orders);
-    DELETE FROM dbo.FG_LoadingConfirm WHERE ShipmentOrderID IN (SELECT ID FROM @Orders);
-    DELETE D FROM dbo.FG_PickingDetail D JOIN dbo.FG_PickingFifo P ON P.PickID=D.PickID WHERE P.ShipmentOrderID IN (SELECT ID FROM @Orders);
-    DELETE FROM dbo.FG_PickingFifo WHERE ShipmentOrderID IN (SELECT ID FROM @Orders);
-    DELETE FROM dbo.FG_ShipmentOrderLine WHERE ShipmentOrderID IN (SELECT ID FROM @Orders);
-    DELETE FROM dbo.FG_InventoryAdjust WHERE LotID IN (SELECT LotID FROM @Lots);
-    DELETE P FROM dbo.FG_PutAway P JOIN dbo.FG_Inventory S ON S.StockID=P.StockID
-    WHERE S.LotID IN (SELECT LotID FROM @Lots);
-    IF @Screen IN ('qc','putaway')
-        DELETE FROM dbo.FG_Inventory WHERE LotID IN (SELECT LotID FROM @Lots);
-    ELSE
-    BEGIN
-        INSERT dbo.FG_Inventory (StockNumber,WoID,ItemNo,LotID,CustomerCode,Qty,Location,Status,HoldFlag,StockTS,CreatedBy,CreatedTS)
-        SELECT CONCAT('FG-PPT-STK-',RIGHT(LotCode,6)),WoID,ItemNo,LotID,'PPT-CUSTOMER',Qty,LocationID,'AVAILABLE',0,SYSDATETIME(),@SeedBy,SYSDATETIME()
-        FROM @Lots L WHERE NOT EXISTS (SELECT 1 FROM dbo.FG_Inventory S WHERE S.LotID=L.LotID);
-        UPDATE S SET Qty=L.Qty, Location=L.LocationID, HoldFlag=0,
-            Status=CASE WHEN @Screen='loading' THEN 'RESERVED' WHEN @Screen='return' AND RIGHT(L.LotCode,6)='950001' THEN 'SHIPPED' ELSE 'AVAILABLE' END,
-            StockTS=DATEADD(day,-5+CONVERT(int,RIGHT(L.LotCode,1)),SYSDATETIME()),ModifiedBy=@SeedBy,ModifiedTS=SYSDATETIME()
-        FROM dbo.FG_Inventory S JOIN @Lots L ON L.LotID=S.LotID;
-    END;
-    UPDATE L SET RemainingQty=T.Qty, CurrentLocationID=CASE WHEN @Screen IN ('qc','putaway') THEN NULL ELSE T.LocationID END,
-        ProcessCode='IMG', Status='CONFIRMED', QualityFlag='OK', ModifiedBy=@SeedBy, ModifiedTS=SYSDATETIME()
-    FROM dbo.tbl_Lot L JOIN @Lots T ON T.LotID=L.LotID;
-    IF @Screen IN ('qc','putaway')
-    BEGIN
-        UPDATE P SET ConfirmStatus='CONFIRMED',
-            ConfirmedAt=DATEADD(hour,-CASE RIGHT(L.LotCode,6) WHEN '900002' THEN 48 WHEN '900003' THEN 144 WHEN '900004' THEN 264 ELSE 2 END,SYSDATETIME())
-        FROM dbo.PR_ImgLot P JOIN @Lots L ON L.LotID=P.LotID;
-        UPDATE R SET ProcessCode='IMG', DefectFlag=0,
-            EntryAt=DATEADD(hour,-CASE RIGHT(L.LotCode,6) WHEN '900002' THEN 48 WHEN '900003' THEN 144 WHEN '900004' THEN 264 ELSE 2 END,SYSDATETIME())
-        FROM dbo.PR_ProductionResult R JOIN @Lots L ON L.LotID=R.LotID;
-    END;
-
-    UPDATE O SET Status=CASE WHEN @Screen='release' THEN 'RELEASED' WHEN @Screen='loading' THEN 'PICKED' WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN 'SHIPPED' ELSE 'OPEN' END,
-        ShipDate=CAST(GETDATE() AS date),ModifiedBy=@SeedBy,ModifiedTS=SYSDATETIME()
-    FROM dbo.FG_ShipmentOrder O JOIN @Orders T ON T.ID=O.ShipmentOrderID;
-    IF @Screen='release'
-        INSERT dbo.FG_ShipmentOrderLine (ShipmentOrderID,LineSeq,ItemNo,OrderedQty,AllocatedQty,ReservationStatus,CreatedBy,CreatedTS)
-        SELECT O.ID,CASE L.ItemNo WHEN 'PPT-FG-REL-01' THEN 10 ELSE 20 END,L.ItemNo,SUM(L.Qty),0,'Open',@SeedBy,SYSDATETIME()
-        FROM @Lots L CROSS JOIN @Orders O GROUP BY O.ID,L.ItemNo;
-    IF @Screen IN ('loading','return')
-        INSERT dbo.FG_ShipmentOrderLine (ShipmentOrderID,LineSeq,ItemNo,OrderedQty,AllocatedQty,StockID,LotID,Location,ReservationStatus,ReservedAt,CreatedBy,CreatedTS)
-        SELECT O.ID,CONVERT(int,RIGHT(L.LotCode,1))*10,L.ItemNo,L.Qty,L.Qty,S.StockID,L.LotID,L.LocationID,
-            CASE WHEN @Screen='loading' THEN 'Picked' WHEN O.Number='FG-PPT-SO-RETURN' THEN 'Shipped' ELSE 'Open' END,SYSDATETIME(),@SeedBy,SYSDATETIME()
-        FROM @Lots L JOIN dbo.FG_Inventory S ON S.LotID=L.LotID
-        JOIN @Orders O ON @Screen='loading' OR O.Number=CASE RIGHT(L.LotCode,6) WHEN '950001' THEN 'FG-PPT-SO-RETURN' ELSE 'FG-PPT-SO-NOSHIP' END;
-    IF @Screen='loading'
-    BEGIN
-        DECLARE @LoadingOrderID int=(SELECT ID FROM @Orders),@LoadingPickID int,@LoadingJson nvarchar(max),@LoadingQty decimal(12,3);
-        SELECT @LoadingQty=SUM(S.Qty),@LoadingJson=(SELECT S2.StockID AS stockId,S2.Qty AS qty
-            FROM dbo.FG_ShipmentOrderLine L2 JOIN dbo.FG_Inventory S2 ON S2.StockID=L2.StockID
-            WHERE L2.ShipmentOrderID=@LoadingOrderID ORDER BY L2.LineSeq FOR JSON PATH)
-        FROM dbo.FG_ShipmentOrderLine L JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
-        WHERE L.ShipmentOrderID=@LoadingOrderID;
-        INSERT dbo.FG_PickingFifo(PickNumber,ShipmentOrderID,PickerID,StartTS,EndTS,PicksJSON,PickedQty,OrderedQty,Status,CreatedBy,CreatedTS)
-        VALUES(CONCAT('PICK-PPT-',RIGHT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),15)),@LoadingOrderID,'TEST1',
-               SYSDATETIME(),SYSDATETIME(),@LoadingJson,@LoadingQty,@LoadingQty,'Picked',@SeedBy,SYSDATETIME());
-        SET @LoadingPickID=CONVERT(int,SCOPE_IDENTITY());
-        INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
-        SELECT @LoadingPickID,L.ShipmentOrderLineID,S.StockID,S.LotID,S.ItemNo,S.Qty,S.Location,
-               ROW_NUMBER() OVER(ORDER BY L.LineSeq,L.ShipmentOrderLineID),@SeedBy,SYSDATETIME()
-        FROM dbo.FG_ShipmentOrderLine L JOIN dbo.FG_Inventory S ON S.StockID=L.StockID
-        WHERE L.ShipmentOrderID=@LoadingOrderID;
-    END;
-    IF @Screen='return'
-    BEGIN
-        DECLARE @ReturnOrderID int=(SELECT ID FROM @Orders WHERE Number='FG-PPT-SO-RETURN');
-        DECLARE @ReturnPickID int,@ReturnJson nvarchar(max),@ReturnQty decimal(12,3);
-        SELECT @ReturnQty=SUM(S.Qty),@ReturnJson=(SELECT S2.StockID AS stockId,S2.ItemNo AS itemNo,L2.LotCode AS lotNo,
-            S2.StockNumber AS stockNumber,S2.Qty AS qty,S2.Location AS location
-            FROM dbo.FG_ShipmentOrderLine SL2 JOIN dbo.FG_Inventory S2 ON S2.StockID=SL2.StockID
-            LEFT JOIN dbo.tbl_Lot L2 ON L2.LotID=S2.LotID
-            WHERE SL2.ShipmentOrderID=@ReturnOrderID ORDER BY SL2.LineSeq FOR JSON PATH)
-        FROM dbo.FG_ShipmentOrderLine SL JOIN dbo.FG_Inventory S ON S.StockID=SL.StockID
-        WHERE SL.ShipmentOrderID=@ReturnOrderID;
-        INSERT dbo.FG_PickingFifo(PickNumber,ShipmentOrderID,PickerID,StartTS,EndTS,PicksJSON,PickedQty,OrderedQty,Status,CreatedBy,CreatedTS)
-        VALUES(CONCAT('PICK-RETURN-',RIGHT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),11)),@ReturnOrderID,'TEST1',
-               DATEADD(day,-1,SYSDATETIME()),DATEADD(day,-1,SYSDATETIME()),@ReturnJson,@ReturnQty,@ReturnQty,'Picked',@SeedBy,SYSDATETIME());
-        SET @ReturnPickID=CONVERT(int,SCOPE_IDENTITY());
-        INSERT dbo.FG_PickingDetail(PickID,ShipmentOrderLineID,StockID,LotID,ItemNo,Qty,Location,PickSeq,CreatedBy,CreatedTS)
-        SELECT @ReturnPickID,SL.ShipmentOrderLineID,S.StockID,S.LotID,S.ItemNo,S.Qty,S.Location,
-               ROW_NUMBER() OVER(ORDER BY SL.LineSeq,SL.ShipmentOrderLineID),@SeedBy,SYSDATETIME()
-        FROM dbo.FG_ShipmentOrderLine SL JOIN dbo.FG_Inventory S ON S.StockID=SL.StockID
-        WHERE SL.ShipmentOrderID=@ReturnOrderID;
-        INSERT dbo.FG_LoadingConfirm(LoadingNumber,ShipmentOrderID,PickID,LicensePlate,PalletsLoadedJSON,DepartureTS,OTDStatus,ConfirmedAt,CreatedBy,CreatedTS)
-        VALUES('FG-PPT-RETURN-LOAD',@ReturnOrderID,@ReturnPickID,'PPT-FG-RETURN',@ReturnJson,
-               DATEADD(day,-1,SYSDATETIME()),'OnTime',DATEADD(day,-1,SYSDATETIME()),@SeedBy,SYSDATETIME());
-    END;
-    COMMIT TRANSACTION;
-END;
 GO
 
 CREATE OR ALTER TRIGGER dbo.TR_WH_OLD_Inventory_SyncUnifiedInventory
@@ -5427,15 +5310,16 @@ BEGIN
     ) X ON X.StockID=P.StockID
     WHERE P.LotNo IS NULL;
 
-    UPDATE R SET LotNo=COALESCE(X.LotNo,JSON_VALUE(R.ItemsJSON,'$[0].lotNo'))
+    IF COL_LENGTH(N'dbo.FG_CustomerReturn',N'ItemsJSON') IS NOT NULL
+        EXEC(N'UPDATE R SET LotNo=COALESCE(X.LotNo,JSON_VALUE(R.ItemsJSON,''$[0].lotNo''))
     FROM dbo.FG_CustomerReturn R
     LEFT JOIN
     (
-        SELECT F.StockID,COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N''),
-            CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),F.StockID),10))) AS LotNo
+        SELECT F.StockID,COALESCE(NULLIF(L.LotCode,N''''),NULLIF(F.StockNumber,N''''),
+            CONCAT(N''LEGACY-FG-'',RIGHT(REPLICATE(''0'',10)+CONVERT(varchar(10),F.StockID),10))) AS LotNo
         FROM dbo.FG_Inventory F LEFT JOIN dbo.tbl_Lot L ON L.LotID=F.LotID
     ) X ON X.StockID=R.StockID
-    WHERE R.LotNo IS NULL;
+    WHERE R.LotNo IS NULL;');
 
     UPDATE O SET ItemsJSON=J.ItemsJSON
     FROM dbo.FG_ShipmentOrder O

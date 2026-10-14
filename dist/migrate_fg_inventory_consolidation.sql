@@ -4,6 +4,10 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_PADDING ON;
 GO
+IF OBJECT_ID(N'dbo.FG_CustomerReturn',N'U') IS NOT NULL
+    AND COL_LENGTH(N'dbo.FG_CustomerReturn',N'CustomerID') IS NULL
+    THROW 52016,'Apply migrate_fg_customer_return_columns.sql before FG inventory consolidation.',1;
+GO
 
 IF OBJECT_ID(N'dbo.WH_Inventory',N'U') IS NULL
     THROW 52088,'WH_Inventory must exist before consolidating finished-goods inventory.',1;
@@ -67,15 +71,16 @@ BEGIN
     ) X ON X.StockID=P.StockID
     WHERE P.LotNo IS NULL;
 
-    UPDATE R SET LotNo=COALESCE(X.LotNo,JSON_VALUE(R.ItemsJSON,'$[0].lotNo'))
+    IF COL_LENGTH(N'dbo.FG_CustomerReturn',N'ItemsJSON') IS NOT NULL
+        EXEC(N'UPDATE R SET LotNo=COALESCE(X.LotNo,JSON_VALUE(R.ItemsJSON,''$[0].lotNo''))
     FROM dbo.FG_CustomerReturn R
     LEFT JOIN
     (
-        SELECT F.StockID,COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N''),
-            CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),F.StockID),10))) AS LotNo
+        SELECT F.StockID,COALESCE(NULLIF(L.LotCode,N''''),NULLIF(F.StockNumber,N''''),
+            CONCAT(N''LEGACY-FG-'',RIGHT(REPLICATE(''0'',10)+CONVERT(varchar(10),F.StockID),10))) AS LotNo
         FROM dbo.FG_Inventory F LEFT JOIN dbo.tbl_Lot L ON L.LotID=F.LotID
     ) X ON X.StockID=R.StockID
-    WHERE R.LotNo IS NULL;
+    WHERE R.LotNo IS NULL;');
 
     UPDATE O SET ItemsJSON=J.ItemsJSON
     FROM dbo.FG_ShipmentOrder O
