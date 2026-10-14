@@ -47,7 +47,7 @@ public static class FgEndpoints
     public sealed record PutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
         decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
-        string ScanType, string ScannedBarcode);
+        string ScanType, string ScannedBarcode, string? AreaCode = null);
     public sealed record PutAwayConfirmReq(string Barcode, string LocationId, string? SuggestedLocation,
         string? OverrideReason, int? PalletCount, int? PalletQty, string? StorageMethod,
         string? ContainerType, string? ContainerBarcode);
@@ -202,6 +202,7 @@ public static class FgEndpoints
                       AND ISNULL(R.DefectFlag, 0) = 0
                 ) PR
                 WHERE UPPER(ISNULL(L.Status, '')) = 'CONFIRMED'
+                  AND UPPER(ISNULL(I.ItemType, '')) = 'ASSY'
                   AND COALESCE(PR.GoodQty, 0) > 0
                   AND NOT EXISTS
                 (
@@ -832,13 +833,12 @@ public static class FgEndpoints
                 WHERE FS.Qty > 0
                 GROUP BY FS.LocationNo
             )
-            SELECT L.LocationID, L.LocationName, L.ZoneCode, L.Aisle, L.Bay, L.Slot,
-                   CAST(ISNULL(NULLIF(L.Capacity, 0), 999999) AS DECIMAL(14,3)) AS Capacity,
+            SELECT L.LocationID, L.LocationName, L.ZoneCode, L.AreaCode, L.Aisle, L.Bay, L.Slot,
+                   CAST(ISNULL(L.Capacity, 0) AS DECIMAL(14,3)) AS Capacity,
                    CAST(ISNULL(S.CurrentQty, 0) AS DECIMAL(14,3)) AS CurrentQty,
-                   CAST(ISNULL(NULLIF(L.Capacity, 0), 999999) - ISNULL(S.CurrentQty, 0) AS DECIMAL(14,3)) AS AvailableQty,
+                   CAST(CASE WHEN L.Capacity > 0 THEN L.Capacity - ISNULL(S.CurrentQty, 0) ELSE 0 END AS DECIMAL(14,3)) AS AvailableQty,
                    S.CurrentCustomerCode,
-                   CASE WHEN UPPER(ISNULL(L.LocationType, '')) IN ('FG', 'FINISHED_GOODS', 'FINISHED GOODS')
-                             OR UPPER(L.LocationID) LIKE 'FG%' THEN 1 ELSE 0 END AS IsFgLocation
+                   CASE WHEN UPPER(ISNULL(L.LocationType, '')) = 'FG' THEN 1 ELSE 0 END AS IsFgLocation
             FROM dbo.MD_Location L
             LEFT JOIN StockByLocation S
                 ON S.LocationNo = L.LocationID
@@ -859,7 +859,7 @@ public static class FgEndpoints
             !string.IsNullOrWhiteSpace(customerCode) &&
             !string.Equals(row.CurrentCustomerCode, customerCode, StringComparison.OrdinalIgnoreCase))
             return row with { IsValid = false, Message = $"Customer mix is blocked. Current customer is {row.CurrentCustomerCode}.", ScanType = expected, ScannedBarcode = parsed.Raw };
-        if (row.AvailableQty < qty)
+        if (row.Capacity > 0 && row.AvailableQty < qty)
             return row with { IsValid = false, Message = $"Location capacity is short by {qty - row.AvailableQty:0.###}.", ScanType = expected, ScannedBarcode = parsed.Raw };
 
         return row with { IsValid = true, Message = $"{BarcodeKindLabel(expected)} ready for FG Put-Away.", ScanType = expected, ScannedBarcode = parsed.Raw };
@@ -1016,7 +1016,7 @@ public static class FgEndpoints
         var currentQty = GetDecimal(rdr, "CurrentQty");
         var availableQty = GetDecimal(rdr, "AvailableQty");
         var currentCustomer = GetString(rdr, "CurrentCustomerCode");
-        var valid = availableQty >= qty &&
+        var valid = (capacity <= 0 || availableQty >= qty) &&
                     (string.IsNullOrWhiteSpace(currentCustomer) ||
                      string.IsNullOrWhiteSpace(customerCode) ||
                      string.Equals(currentCustomer, customerCode, StringComparison.OrdinalIgnoreCase));
@@ -1035,7 +1035,8 @@ public static class FgEndpoints
             valid,
             valid ? $"{BarcodeKindLabel(scanType)} ready for FG Put-Away." : "Location cannot accept this FG LOT.",
             scanType,
-            scannedBarcode ?? GetString(rdr, "LocationID") ?? "");
+            scannedBarcode ?? GetString(rdr, "LocationID") ?? "",
+            GetString(rdr, "AreaCode"));
     }
 
     private static ParsedFgBarcode ParseFgBarcode(string? barcode)

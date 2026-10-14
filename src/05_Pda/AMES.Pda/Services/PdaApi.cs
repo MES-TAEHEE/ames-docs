@@ -217,7 +217,7 @@ public abstract class PdaApi
     public sealed record FgPutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
         decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
-        string ScanType, string ScannedBarcode);
+        string ScanType, string ScannedBarcode, string? AreaCode = null);
     public sealed record FgPutAwayConfirmReq(string Barcode, string LocationId, string? SuggestedLocation,
         string? OverrideReason, int? PalletCount, int? PalletQty, string? StorageMethod,
         string? ContainerType, string? ContainerBarcode);
