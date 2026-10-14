@@ -10688,4 +10688,10 @@
   <data name="MNT.WorkOrder.Hint.FollowUp" xml:space="preserve">
     <value>부분 완료·후속 조치 필요로 완료하면 고장은 해결되지 않고, 남은 작업을 위한 후속 작업지시가 새로 발행됩니다. 고장은 후속 작업지시를 정상 완료하거나 MNT-002 에서 수리 완료할 때 해결됩니다.</value>
   </data>
+  <data name="SYS.Rbac.Err.LoadFailed" xml:space="preserve">
+    <value>권한 정보를 불러오지 못했습니다. 지금 화면의 체크 상태가 실제와 다를 수 있어 저장을 막았습니다. 「다시 불러오기」를 눌러 주세요.</value>
+  </data>
+  <data name="SYS.Rbac.Btn.Reload" xml:space="preserve">
+    <value>다시 불러오기</value>
+  </data>
 </root>

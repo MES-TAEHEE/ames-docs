@@ -10688,4 +10688,10 @@
   <data name="MNT.WorkOrder.Hint.FollowUp" xml:space="preserve">
     <value>Completing as Partial or Follow-up does not resolve the failure; a new follow-up work order is issued for the remaining work. The failure is resolved when the follow-up work order is completed normally or repaired in MNT-002.</value>
   </data>
+  <data name="SYS.Rbac.Err.LoadFailed" xml:space="preserve">
+    <value>Permissions could not be loaded. The checkboxes may not match the saved permissions, so saving is blocked. Click Reload.</value>
+  </data>
+  <data name="SYS.Rbac.Btn.Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
 </root>

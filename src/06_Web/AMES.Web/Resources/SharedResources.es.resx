@@ -10688,4 +10688,10 @@
   <data name="MNT.WorkOrder.Hint.FollowUp" xml:space="preserve">
     <value>Al completar como Parcial o Seguimiento la avería no se resuelve; se emite una nueva orden de seguimiento para el trabajo pendiente. La avería se resuelve al completar normalmente esa orden o al repararla en MNT-002.</value>
   </data>
+  <data name="SYS.Rbac.Err.LoadFailed" xml:space="preserve">
+    <value>No se pudieron cargar los permisos. Las casillas pueden no coincidir con los permisos guardados, por eso se bloqueó el guardado. Pulse Recargar.</value>
+  </data>
+  <data name="SYS.Rbac.Btn.Reload" xml:space="preserve">
+    <value>Recargar</value>
+  </data>
 </root>
