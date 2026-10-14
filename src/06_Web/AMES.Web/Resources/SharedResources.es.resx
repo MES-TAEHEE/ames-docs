@@ -9626,12 +9626,6 @@
     <value>{0}d {1}h</value>
   </data>
   <data name="MD.Items.ScanRequired" xml:space="preserve"><value>Requiere escaneo individual de código de barras</value></data>
-  <data name="MD.Items.Col.BoxQty" xml:space="preserve">
-    <value>Cant./Caja</value>
-  </data>
-  <data name="MD.Items.Lbl.BoxQty" xml:space="preserve">
-    <value>Piezas por caja — unidad de redondeo de suministro APS (vacío = 1 + aviso)</value>
-  </data>
   <data name="PP.Aps.Title" xml:space="preserve">
     <value>Plan de Producción APS</value>
   </data>
@@ -10316,9 +10310,6 @@
   <data name="PP.DemandPlan.Col.Pack" xml:space="preserve">
     <value>Empaque</value>
   </data>
-  <data name="PP.DemandPlan.Badge.PackMismatch" xml:space="preserve">
-    <value>BoxQty distinto</value>
-  </data>
   <data name="PP.DemandPlan.Btn.Upload" xml:space="preserve">
     <value>Cargar Excel (diario)</value>
   </data>
@@ -10336,9 +10327,6 @@
   </data>
   <data name="PP.DemandPlan.Preview.Unmatched" xml:space="preserve">
     <value>{0} artículos no registrados</value>
-  </data>
-  <data name="PP.DemandPlan.Preview.PackMismatch" xml:space="preserve">
-    <value>{0} artículos con empaque distinto</value>
   </data>
   <data name="PP.DemandPlan.Ok.Imported" xml:space="preserve">
     <value>Cargado — {0} artículos · {1} celdas · {2} no registrados · {3} empaques distintos</value>

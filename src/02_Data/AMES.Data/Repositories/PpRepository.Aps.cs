@@ -219,7 +219,6 @@ public sealed partial class PpRepository
                 (line, date) => LineScheduleRepository.ReadDayCapacity(conn, tx, line, date, PatternFor(line)),
                 (line, date) => LineScheduleRepository.LineLastMoldBefore(conn, tx, line, date));
             var routing   = ReadItemRouting(conn, tx, parentItems);
-            var packOf    = ReadItemBoxQty(conn, tx, parentItems);   // BOM 규칙 WO 수량 올림 단위 = 완제품 BoxQty ?? APS_SETTING.ROUND_TO(10-06 사용자 요청)
             var allocator = new ApsWoAllocator(openOrders);
 
             // 1단계: 사출 행마다 금형·UPH 판정 → (부모, 날짜) 단위에 자식 몫을 싣는다. 거부는 여기서 끝나고 WO 는 만들지 않는다
@@ -280,14 +279,14 @@ public sealed partial class PpRepository
             }
 
             // 부모 수량·라우팅·마감(스펙 2026-10-05 §2) — 0 이 된 부모는 버리고, 그 부모만 쓰던 자식 행은 덮인 것으로.
-            // BOM 규칙(부모와 다른 자식이 하나라도 있으면)은 비율 분배로 생긴 자투리를 완제품 포장 단위로 올린다(ApsRepository 의 완제품 PackRule 과 같은 BoxQty ?? RoundTo);
+            // BOM 규칙(부모와 다른 자식이 하나라도 있으면)은 비율 분배로 생긴 자투리를 APS 공통 올림 단위로 올린다.
             // 같은 품번 규칙만이면 엔진이 이미 자식 포장 단위로 올린 값이라 종전대로 내림만
             foreach (var plan in plans.Values.ToList())
             {
                 decimal raw = plan.Legs.Max(l => l.ParentTotal);
                 bool bomRule = plan.Legs.Any(l => !string.Equals(l.Row.ItemNo, plan.ItemNo, StringComparison.OrdinalIgnoreCase));
                 plan.Qty = !bomRule || raw <= 0 ? Math.Floor(raw)
-                         : RoundUpToPack(raw, packOf.GetValueOrDefault(plan.ItemNo) is int bq && bq > 0 ? bq : settings.RoundTo);
+                         : RoundUpToPack(raw, settings.RoundTo);
                 if (plan.Qty <= 0) { plans.Remove((plan.ItemNo.ToUpperInvariant(), plan.PlanDate)); continue; }
                 if (routing.GetValueOrDefault(plan.ItemNo) is not { } rt)
                     throw new InvalidOperationException($"{plan.ItemNo}: RoutingType missing.");
@@ -475,10 +474,10 @@ public sealed partial class PpRepository
                         decimal finPlaced = 0;
                         if (placedQty > 0)
                         {
-                            // 완제품 단계 슬롯은 박스 단위로 자른다(사용자 결정 2026-10-07 — 보드가 현장 포장 단위로 떨어지게). 단위 = WO 수량 올림과 같은 BoxQty ?? ROUND_TO
+                            // 완제품 단계 슬롯도 WO 수량과 같은 APS 공통 올림 단위로 나눈다.
                             var demand = new DeadlinePacker.StepDemand(fseq, fline, placedQty,
                                 plan.Template.First(t => t.StepSeq == fseq).StdCycleSec, dailyCap.GetValueOrDefault(fline),
-                                PackSize: packOf.GetValueOrDefault(plan.ItemNo) is int fbq && fbq > 0 ? fbq : settings.RoundTo);
+                                PackSize: settings.RoundTo);
                             var packed = DeadlinePacker.Pack(new[] { demand }, date, plan.InjEnd, plan.Deadline, due, cal, days);
                             foreach (var p in packed.Placements)
                                 LineScheduleRepository.AppendWoSlot(conn, tx, p.LineId, p.Date, days.Get(p.LineId, p.Date).PatternId,
@@ -809,18 +808,6 @@ public sealed partial class PpRepository
             cmd.Parameters.Add(names[i], SqlDbType.VarChar, 20).Value = items[i];
         }
         return string.Join(",", names);
-    }
-
-    static Dictionary<string, int?> ReadItemBoxQty(SqlConnection conn, SqlTransaction tx, IEnumerable<string> itemNos)
-    {
-        var map   = new Dictionary<string, int?>(StringComparer.OrdinalIgnoreCase);
-        var items = itemNos.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        if (items.Count == 0) return map;
-        using var cmd = new SqlCommand("", conn, tx);
-        cmd.CommandText = $"SELECT ItemNo, BoxQty FROM dbo.MD_Item WHERE ItemNo IN ({AddItemParams(cmd, items)});";
-        using var rdr = cmd.ExecuteReader();
-        while (rdr.Read()) map[(string)rdr["ItemNo"]] = rdr["BoxQty"] as int?;
-        return map;
     }
 
     static Dictionary<string, string?> ReadItemRouting(SqlConnection conn, SqlTransaction tx, IEnumerable<string> itemNos)

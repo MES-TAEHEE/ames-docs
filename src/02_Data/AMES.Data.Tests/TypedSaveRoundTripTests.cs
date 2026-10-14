@@ -78,16 +78,16 @@ public class TypedSaveRoundTripTests
         var minScale = Info("MD_Item.MinStock").Scale ?? 0;
         md.InsertItem(item, Max("MD_Item.ItemName"), "SUB", Max("MD_Item.ItemCategory"), true, Max("MD_Item.CarType"), Max("MD_Item.DefaultUOM"),
             Max("MD_Item.RoutingType"), 1.23456789m, 2m, 3m, 4.5m, Max("MD_Item.PGN"), Max("MD_Item.ALC"), Max("MD_Item.DrawingNo"),
-            10, 20, false, 30, true, by, true);
+            10, 20, false, true, by, true);
         Same("MD_Item", "ItemNo", item, ("ItemName", Max("MD_Item.ItemName")), ("DrawingNo", Max("MD_Item.DrawingNo")), ("PGN", Max("MD_Item.PGN")),
-            ("MinStock", Math.Round(1.23456789m, minScale, MidpointRounding.AwayFromZero)), ("InjFlag", true), ("ScanRequired", true), ("BoxQty", 30));
+            ("MinStock", Math.Round(1.23456789m, minScale, MidpointRounding.AwayFromZero)), ("InjFlag", true), ("ScanRequired", true));
         md.UpdateItem(item, Max("MD_Item.ItemName", uni: '나'), "SUB", null, false, null, null, null, null, null, null, null, null, null,
-            new string('가', Len("MD_Item.DrawingNo") / 2), null, null, true, null, false, by);
+            new string('가', Len("MD_Item.DrawingNo") / 2), null, null, true, false, by);
         Same("MD_Item", "ItemNo", item, ("ItemName", Max("MD_Item.ItemName", uni: '나')), ("DrawingNo", new string('가', Len("MD_Item.DrawingNo") / 2)), ("ToteFlag", true));
         Assert.True(Assert.Throws<DbValueException>(() => md.UpdateItem(item, "x", "SUB", null, false, null, null, null, null, null, null, null, null, null,
-            new string('가', Len("MD_Item.DrawingNo") / 2 + 1), null, null, false, null, true, by)).BytesUnit);   // 한글은 2바이트
+            new string('가', Len("MD_Item.DrawingNo") / 2 + 1), null, null, false, true, by)).BytesUnit);   // 한글은 2바이트
         Assert.Equal(DbValueProblem.Unencodable, Assert.Throws<DbValueException>(() => md.UpdateItem(item, "x", "SUB", null, false, null, null, null, null, null, null, null, null, null,
-            "A😀", null, null, false, null, true, by)).Problem);
+            "A😀", null, null, false, true, by)).Problem);
 
         // BOM 버전·라인
         var ver = "ITQ" + new string('V', Len("MD_BomVersion.VersionID") - 3);
@@ -133,7 +133,7 @@ public class TypedSaveRoundTripTests
 
         // 구매 자재 단가(낙관적 비교 — 읽어 온 단가와 같을 때만)
         var mat = "ITQ" + new string('M', Len("MD_Item.ItemNo") - 3);
-        md.InsertItem(mat, "itest", "MATERIAL", null, false, null, "EA", null, null, null, null, 1.25m, null, null, null, null, null, false, null, true, by);
+        md.InsertItem(mat, "itest", "MATERIAL", null, false, null, "EA", null, null, null, null, 1.25m, null, null, null, null, null, false, true, by);
         Assert.True(md.UpdateMaterialUnitCost(mat, 9.5m, 1.25m, by));
         Assert.False(md.UpdateMaterialUnitCost(mat, 3m, 1.25m, by));       // 그사이 바뀐 단가 — 변경 없음
         Same("MD_Item", "ItemNo", mat, ("UnitCost", 9.50m), ("ModifiedBy", by));

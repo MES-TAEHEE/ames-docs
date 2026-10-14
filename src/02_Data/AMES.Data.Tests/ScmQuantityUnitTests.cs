@@ -36,9 +36,9 @@ public sealed class ScmQuantityUnitTests
         Assert.Throws<ArgumentException>(()=>master.InsertUom("EA","Each",null,false,unit,null,0,null,true,"tester"));
         Assert.Throws<ArgumentException>(()=>master.UpdateUom("EA","Each",null,false,unit,null,0,null,true,"tester"));
         Assert.Throws<ArgumentException>(()=>master.InsertItem("PART-1","Part","MATERIAL",null,false,null,unit,
-            null,null,null,null,null,null,null,null,null,null,false,null,true,"tester"));
+            null,null,null,null,null,null,null,null,null,null,false,true,"tester"));
         Assert.Throws<ArgumentException>(()=>master.UpdateItem("PART-1","Part","MATERIAL",null,false,null,unit,
-            null,null,null,null,null,null,null,null,null,null,false,null,true,"tester"));
+            null,null,null,null,null,null,null,null,null,null,false,true,"tester"));
     }
 
     [Fact]
@@ -46,6 +46,27 @@ public sealed class ScmQuantityUnitTests
     {
         foreach(var type in new[]{typeof(MasterDataRepository.ItemRow),typeof(ScmRepository.PurchaseLine),typeof(ScmRepository.CasePart)})
             Assert.DoesNotContain(type.GetProperties(),property=>property.Name.StartsWith("BoxContent",StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Item_model_and_saves_no_longer_expose_box_qty()
+    {
+        Assert.Null(typeof(MasterDataRepository.ItemRow).GetProperty("BoxQty"));
+        foreach(var method in new[]{"InsertItem","UpdateItem"})
+            Assert.DoesNotContain(typeof(MasterDataRepository).GetMethod(method)!.GetParameters(),
+                parameter=>string.Equals(parameter.Name,"boxQty",StringComparison.OrdinalIgnoreCase));
+    }
+
+    [SkippableFact]
+    public void Purchase_items_load_from_existing_schema_without_writes()
+    {
+        var connection=Environment.GetEnvironmentVariable("AMES_TEST_CONN");
+        Skip.If(string.IsNullOrWhiteSpace(connection),"Set AMES_TEST_CONN for read-only SCM-003 verification.");
+        var factory=new AmesConnectionFactory(connection!);
+        var master=new MasterDataRepository(factory);
+        Assert.All(master.ListItems(itemType:"MATERIAL"),item=>Assert.Equal("MATERIAL",item.ItemType));
+        master.ListVendors();
+        new ScmRepository(factory).ListItemVendors();
     }
 
     [Theory]

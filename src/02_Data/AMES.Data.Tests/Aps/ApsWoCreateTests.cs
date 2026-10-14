@@ -898,17 +898,19 @@ public class ApsWoCreateTests
         finally { Cleanup(f); }
     }
 
-    /// BOM 규칙 WO 수량은 완제품 포장 단위(MD_Item.BoxQty, 없으면 APS_SETTING.ROUND_TO)로 올린다(10-06 사용자 요청) — 비율 분배로 생기는 2~3개짜리 WO 를 막는다.
-    /// P1 BoxQty 30: 100 → 120, 자식 슬롯도 120 × QtyPer. P2 는 BoxQty 없음 → ROUND_TO(dev 5) → 50 그대로.
+    /// BOM 규칙 WO 수량과 자식 슬롯은 APS 공통 올림 단위를 따른다.
     [SkippableFact]
-    public void Bom_rule_parent_quantity_rounds_up_to_the_parent_pack_size()
+    public void Bom_rule_parent_quantity_rounds_up_to_the_common_rounding_unit()
     {
         var f = Ready();
         Seed(f);
         try
         {
             SeedBomParents(f);
-            Exec(f, "UPDATE dbo.MD_Item SET BoxQty = 30 WHERE ItemNo = @P1;", ("@P1", P1));
+            int roundTo;
+            using (var connection = f.OpenConnection())
+            using (var transaction = connection.BeginTransaction())
+                roundTo = ApsRepository.ReadSettings(connection, transaction).Settings.RoundTo;
             int run = SeedRun(f);
             SeedBundleBom(f, run, new BomEdge(P1, K, 1), new BomEdge(P1, K2, 2), new BomEdge(P2, K, 1));
             var d1 = PlusWorkdays(D0, _offset);
@@ -921,12 +923,14 @@ public class ApsWoCreateTests
 
             var p1 = Assert.Single(res.Orders, o => o.ItemNo == P1);
             var p2 = Assert.Single(res.Orders, o => o.ItemNo == P2);
-            Assert.Equal((120m, 50m), (p1.Qty, p2.Qty));
+            var expectedP1 = PpRepository.RoundUpToPack(100m, roundTo);
+            var expectedP2 = PpRepository.RoundUpToPack(50m, roundTo);
+            Assert.Equal((expectedP1, expectedP2), (p1.Qty, p2.Qty));
             var inj = Rows(f, LineInj, D0).Where(r => r.Type == "WO" && r.WoId == p1.WoId).ToList();
-            Assert.Equal(120m, inj.Where(r => r.Mold == Mold2).Sum(r => r.Qty));   // K ×1
-            Assert.Equal(240m, inj.Where(r => r.Mold == Mold3).Sum(r => r.Qty));   // K2 ×2 — 120분이 휴게를 건너 두 구간에 실릴 수 있다
+            Assert.Equal(expectedP1, inj.Where(r => r.Mold == Mold2).Sum(r => r.Qty));   // K ×1
+            Assert.Equal(expectedP1 * 2, inj.Where(r => r.Mold == Mold3).Sum(r => r.Qty));   // K2 ×2
             Assert.Empty(p1.Shortfalls);
-            Assert.Equal(120m, SumQty(f, p1.WoId, LineImg));
+            Assert.Equal(expectedP1, SumQty(f, p1.WoId, LineImg));
         }
         finally { Cleanup(f); }
     }

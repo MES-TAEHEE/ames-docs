@@ -25,11 +25,6 @@
                 <div style="color:var(--ames-tx-red-400);margin-top:6px;">⚠ @string.Format(L["PP.DemandPlan.Preview.Unmatched"].Value, _unmatched.Count)<br />
                     <span class="dim" style="font-size:.85em;">@string.Join(", ", _unmatched.Take(5))@(_unmatched.Count > 5 ? " …" : "")</span></div>
             }
-            @if (_mismatch.Count > 0)
-            {
-                <div style="color:var(--ames-tx-amber-400);margin-top:6px;">⚠ @string.Format(L["PP.DemandPlan.Preview.PackMismatch"].Value, _mismatch.Count)<br />
-                    <span class="dim" style="font-size:.85em;">@string.Join(", ", _mismatch.Take(5))@(_mismatch.Count > 5 ? " …" : "")</span></div>
-            }
         }
     </div>
     @if (!string.IsNullOrEmpty(_err)) { <div class="ames-alert bad">@_err</div> }
@@ -47,11 +42,11 @@
     bool _busy;
     DailyPlan? _plan;
     int _cells;
-    List<string> _unmatched = new(), _mismatch = new();
+    List<string> _unmatched = new();
 
     async Task OnFile(InputFileChangeEventArgs e)
     {
-        _err = ""; _plan = null; _unmatched = new(); _mismatch = new();
+        _err = ""; _plan = null; _unmatched = new();
         try
         {
             using var ms = new MemoryStream();
@@ -62,9 +57,6 @@
             _cells = plan.Items.Sum(i => i.Scheduled.Count(q => q != 0));
             var found = Pp.ListExistingItemNos(plan.Items.Select(i => i.PartNo));
             _unmatched = plan.Items.Where(i => !found.Contains(i.PartNo)).Select(i => i.PartNo).ToList();
-            var box = Pp.ListItemBoxQty(plan.Items.Select(i => i.PartNo));
-            _mismatch = plan.Items.Where(i => i.PackQty > 0 && box.TryGetValue(i.PartNo, out var b) && b > 0 && b != i.PackQty)
-                                  .Select(i => $"{i.PartNo} ({i.PackQty:0.###} ≠ {box[i.PartNo]:0.###})").ToList();
             _plan = plan;
         }
         catch (IOException)        { _err = L["PP.Forecast.Err.TooLarge"]; }

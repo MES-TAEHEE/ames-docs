@@ -18,7 +18,7 @@ public sealed partial class PpRepository
                                             DateOnly DateFrom, DateOnly DateTo, int ItemCount, int RowCount, int UnmatchedItems, int PackMismatch,
                                             DateTime ImportedAt, string ImportedBy);
     public sealed record DemandPlanCellRow(string CustomerId, string ItemNo, string? ItemName, string? PartName, string? Unit, decimal? PackQty,
-                                           decimal? BoxQty, DateOnly PlanDate, decimal ScheduledQty, decimal PoQty, bool ItemExists);
+                                           DateOnly PlanDate, decimal ScheduledQty, decimal PoQty, bool ItemExists);
 
     public DemandPlanImportResult ReplaceDemandPlan(string customerId, string batch, string source, string? sourceKey, string? fileName,
         DateOnly from, DateOnly to, IReadOnlyList<DemandPlanCell> cells, string actor)
@@ -47,19 +47,17 @@ public sealed partial class PpRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            // 등록 여부·박스 수량 대조 — 저장을 막지 않고 집계만 한다
-            var known = new Dictionary<string, decimal?>(StringComparer.OrdinalIgnoreCase);
+            // 등록 여부는 저장을 막지 않고 집계만 한다.
+            var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (items.Count > 0)
             {
-                using var chk = new SqlCommand("SELECT i.ItemNo, i.BoxQty FROM dbo.MD_Item i JOIN STRING_SPLIT(@List, ',') s ON s.value = i.ItemNo;", conn, tx);
+                using var chk = new SqlCommand("SELECT i.ItemNo FROM dbo.MD_Item i JOIN STRING_SPLIT(@List, ',') s ON s.value = i.ItemNo;", conn, tx);
                 chk.Parameters.Add("@List", SqlDbType.NVarChar, -1).Value = string.Join(',', items);
                 using var rdr = chk.ExecuteReader();
-                while (rdr.Read()) known[(string)rdr["ItemNo"]] = rdr["BoxQty"] is DBNull ? null : Convert.ToDecimal(rdr["BoxQty"]);
+                while (rdr.Read()) known.Add((string)rdr["ItemNo"]);
             }
-            int unmatched = items.Count(i => !known.ContainsKey(i));
-            int mismatch  = items.Count(i => known.TryGetValue(i, out var box) && box is decimal b && b > 0
-                                          && deduped.Any(c => c.ItemNo.Equals(i, StringComparison.OrdinalIgnoreCase)
-                                                             && c.PackQty is decimal p && p > 0 && p != b));
+            int unmatched = items.Count(i => !known.Contains(i));
+            const int mismatch = 0; // 과거 배치의 대조 결과 컬럼은 유지하지만 신규 대조는 하지 않는다.
 
             using (var hdr = new SqlCommand("""
                 INSERT INTO dbo.PP_DemandPlanBatch (Batch, CustomerID, Source, SourceKey, FileName, DateFrom, DateTo, ItemCount, [RowCount], UnmatchedItems, PackMismatch, ImportedAt, ImportedBy, CreatedBy)
@@ -154,7 +152,7 @@ public sealed partial class PpRepository
     public List<DemandPlanCellRow> ListDemandPlan(string? customerId, DateOnly from, DateOnly to)
     {
         const string sql = """
-            SELECT p.CustomerID, p.ItemNo, i.ItemName, p.PartName, p.Unit, p.PackQty, i.BoxQty, p.PlanDate, p.ScheduledQty, COALESCE(p.PoQty, 0) AS PoQty,
+            SELECT p.CustomerID, p.ItemNo, i.ItemName, p.PartName, p.Unit, p.PackQty, p.PlanDate, p.ScheduledQty, COALESCE(p.PoQty, 0) AS PoQty,
                    CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists
             FROM   dbo.PP_DemandPlan p
             LEFT   JOIN dbo.MD_Item i ON i.ItemNo = p.ItemNo
@@ -171,27 +169,10 @@ public sealed partial class PpRepository
         var list = new List<DemandPlanCellRow>();
         while (rdr.Read())
             list.Add(new((string)rdr["CustomerID"], (string)rdr["ItemNo"], rdr["ItemName"] as string, rdr["PartName"] as string, rdr["Unit"] as string,
-                rdr["PackQty"] as decimal?, rdr["BoxQty"] is DBNull ? null : Convert.ToDecimal(rdr["BoxQty"]),
+                rdr["PackQty"] as decimal?,
                 DateOnly.FromDateTime((DateTime)rdr["PlanDate"]), rdr.GetDecimal(rdr.GetOrdinal("ScheduledQty")), rdr.GetDecimal(rdr.GetOrdinal("PoQty")),
                 (int)rdr["ItemExists"] == 1));
         return list;
     }
 
-    /// <summary>PP-001 일별 업로드 미리보기 — BoxQty 가 있는 품번만 반환(포장 수량 대조용).</summary>
-    public Dictionary<string, decimal> ListItemBoxQty(IEnumerable<string> itemNos)
-    {
-        const string sql = """
-            SELECT i.ItemNo, i.BoxQty
-            FROM   dbo.MD_Item i
-            JOIN   STRING_SPLIT(@List, ',') s ON s.value = i.ItemNo
-            WHERE  i.BoxQty IS NOT NULL;
-            """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@List", SqlDbType.NVarChar, -1).Value = string.Join(',', itemNos.Distinct());
-        using var rdr = cmd.ExecuteReader();
-        var map = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-        while (rdr.Read()) map[(string)rdr["ItemNo"]] = Convert.ToDecimal(rdr["BoxQty"]);
-        return map;
-    }
 }

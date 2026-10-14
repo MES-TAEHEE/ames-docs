@@ -6,7 +6,7 @@ using static AMES.Data.Tests.AmesDevDb;
 namespace AMES.Data.Tests.DemandPlan;
 
 /// <summary>PP_DemandPlan 날짜 창 교체 저장(스펙 §3.3) · 배치 헤더 · 조회. AMES_DEV 통합, DB 미기동 시 skip.
-/// 시드: 고객 ITEST-DPC(MD_Customer 없이도 저장된다 — FK 없음), 품번 ITEST-DP-A(MD_Item BoxQty 20) · ITEST-DP-B(미등록).
+/// 시드: 고객 ITEST-DPC(MD_Customer 없이도 저장된다 — FK 없음), 품번 ITEST-DP-A(MD_Item 등록) · ITEST-DP-B(미등록).
 /// 정리는 ITEST-DP 접두어 행만.</summary>
 [Collection("AMES_DEV plan week")]
 public class DemandPlanRepositoryTests
@@ -20,8 +20,8 @@ public class DemandPlanRepositoryTests
     {
         Cleanup(f);
         Exec(f, """
-            INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, BoxQty, ActiveFlag, CreatedBy)
-            VALUES (@A, N'ITEST DP A', 'A', 0, 20, 1, @By);
+            INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, SafetyStock, ActiveFlag, CreatedBy)
+            VALUES (@A, N'ITEST DP A', 'A', 0, 1, @By);
             """, ("@A", A), ("@By", Actor));
     }
 
@@ -63,7 +63,7 @@ public class DemandPlanRepositoryTests
             var r2 = repo.ReplaceDemandPlan(Cust, "DPTEST0002", PpRepository.DemandPlanSourceUpload, null, "second.xlsx", D0, D0.AddDays(4),
                 new[] { Cell(A, 0, 0), Cell(A, 2, 60, pack: 24) }, Actor);
             Assert.Equal(1, r2.RowCount);
-            Assert.Equal(1, r2.PackMismatch);       // 24 ≠ BoxQty 20
+            Assert.Equal(0, r2.PackMismatch);       // 업로드 포장 수량은 마스터와 대조하지 않는다.
             Assert.Equal(0, Count(f!, B));
             Assert.Equal(0, Count(f!, A, D0));
             Assert.Equal(60m, Scalar(f!, "SELECT ScheduledQty FROM dbo.PP_DemandPlan WHERE CustomerID=@C AND ItemNo=@I AND PlanDate=@D",
@@ -77,7 +77,7 @@ public class DemandPlanRepositoryTests
 
             var cells = repo.ListDemandPlan(Cust, D0, D0.AddDays(30));
             var a2 = Assert.Single(cells, c => c.ItemNo == A && c.PlanDate == D0.AddDays(2));
-            Assert.True(a2.ItemExists); Assert.Equal(20m, a2.BoxQty); Assert.Equal(24m, a2.PackQty);
+            Assert.True(a2.ItemExists); Assert.Equal(24m, a2.PackQty);
         }
         finally { Cleanup(f!); }
     }
@@ -137,16 +137,16 @@ public class DemandPlanRepositoryTests
     }
 
     [SkippableFact]
-    public void ListItemBoxQty_returns_only_items_with_box_qty()
+    public void ListExistingItemNos_returns_only_registered_items()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         Seed(f!);
         try
         {
             var repo = new PpRepository(f!);
-            var map = repo.ListItemBoxQty(new[] { A, B });
-            Assert.Equal(20m, map[A]);
-            Assert.False(map.ContainsKey(B));
+            var found = repo.ListExistingItemNos(new[] { A, B });
+            Assert.Contains(A, found);
+            Assert.DoesNotContain(B, found);
         }
         finally { Cleanup(f!); }
     }

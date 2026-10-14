@@ -2,7 +2,7 @@
 --  seed_aps_dev.sql
 --  dev: PP-APS 생산계획 데모 시드 — 운영 DB 용이 아니다.
 --
---  선행: dist/migrate_aps.sql (BoxQty·MD_ApsLineStage 없으면 여기서 예외).
+--  선행: dist/migrate_aps.sql (MD_ApsLineStage 필요).
 --  대상 품번은 리터럴이 아니라 MD_MoldItem(활성) 조인으로 정한다 — 품목 마스터가 바뀌어도
 --  금형→품번 매핑만 살아 있으면 동작한다(개발 DB 실측: LQ2-DTMD/LQ2-DTRU/MEA-DTRCT/NEA-FUC 4금형 5품번).
 --  통합 테스트 행(ITEST-%)은 대상에서 뺀다 — 공용 개발 DB 에서 테스트와 동시에 돌아도 테스트 데이터를 바꾸지 않게.
@@ -11,7 +11,6 @@
 --
 --  ① MD_WorkCenter.ProcessCode — 스키마 시드 INJECTION/WRAPPING/PAINTING 을 INJ/IMG/PNT 로 (리빌드 직후 DB 대비, 가드형)
 --  ② (폐지 09-30) 품번별 캐비티는 APS 가 금형 CavityCount ÷ 활성 품번 수로 추정한다 — 시드 없음
---  ③ MD_Item.BoxQty — NULL 인 금형 품번만: 형제(같은 금형 활성 품번 2개 이상) 36, 단일 5 (dev 임의값)
 --  ④ LINE-INJ-01 전용 2교대 패턴 LP-APS-INJ01 — A 0800-1600 · B 1600-2400 OPERATING(휴게 없음).
 --     그 라인에 라인 전용 ACTIVE 패턴이 이미 있으면 건너뛴다(ReadDayCapacity 는 라인 전용을 전역보다 먼저 고른다).
 --     나머지 INJ 라인은 전역 LP-INJ-001(주간 A / 야간 B)을 그대로 쓴다.
@@ -41,20 +40,6 @@ PRINT CONCAT(N'① MD_WorkCenter.ProcessCode normalized: ', @@ROWCOUNT);
 GO
 
 -- ── ② (폐지) 품번 캐비티 — 시드 없음 ───────────────────────────────
-
--- ── ③ 박스 수량 ─────────────────────────────────────────────────────
-UPDATE i
-SET    i.BoxQty = CASE WHEN sib.n >= 2 THEN 36 ELSE 5 END,
-       i.ModifiedBy = 'seed-aps', i.ModifiedTS = SYSDATETIME()
-FROM   dbo.MD_Item i
-JOIN   (SELECT mi.ItemNo, MAX(cnt.n) AS n
-        FROM   dbo.MD_MoldItem mi
-        JOIN   (SELECT MoldID, COUNT(*) AS n FROM dbo.MD_MoldItem WHERE ActiveFlag = 1 GROUP BY MoldID) cnt ON cnt.MoldID = mi.MoldID
-        WHERE  mi.ActiveFlag = 1 AND mi.MoldID NOT LIKE 'ITEST-%' AND mi.ItemNo NOT LIKE 'ITEST-%'
-        GROUP  BY mi.ItemNo) sib ON sib.ItemNo = i.ItemNo
-WHERE  i.BoxQty IS NULL;
-PRINT CONCAT(N'③ MD_Item.BoxQty filled: ', @@ROWCOUNT);
-GO
 
 -- ── ④ LINE-INJ-01 전용 2교대 패턴 ───────────────────────────────────
 -- 분 플래그 축은 하루 분(0~1439)이 아니라 WORK_SHIFT 창을 SortOrder 순(A 08-16 · B 16-24 · C 00-08)으로 이어 붙인 것이다
@@ -204,7 +189,7 @@ GO
 
 -- ── 확인 ────────────────────────────────────────────────────────────
 SELECT wc.WCID, wc.ProcessCode FROM dbo.MD_WorkCenter wc ORDER BY wc.WCID;
-SELECT mi.MoldID, mi.ItemNo, m.CavityCount AS MoldCav, i.BoxQty, i.RoutingType
+SELECT mi.MoldID, mi.ItemNo, m.CavityCount AS MoldCav, i.RoutingType
 FROM   dbo.MD_MoldItem mi JOIN dbo.MD_Mold m ON m.MoldID = mi.MoldID JOIN dbo.MD_Item i ON i.ItemNo = mi.ItemNo
 WHERE  mi.ActiveFlag = 1 ORDER BY mi.MoldID, mi.ItemNo;
 SELECT p.PatternID, p.LineID, p.Status, s.SeqNo, s.StartMin, s.EndMin, s.SegmentState, s.ShiftCode

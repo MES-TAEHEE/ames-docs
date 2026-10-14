@@ -1403,9 +1403,6 @@ CREATE TABLE [dbo].[MD_Item](
 	[PalletQty] [int] NULL,
 	[MaxPalletQty] [int] NULL,
 	[ToteFlag] [bit] NOT NULL,
-	[BoxQty] [int] NULL,
-	[BoxContentUnit] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentQty] [decimal](18, 3) NULL,
 	[ScanRequired] [bit] NOT NULL,
 	[ActiveFlag] [bit] NULL,
 	[CarType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1471,8 +1468,6 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최대 적재 — 출하 차량(컨테이너)에 싣는 최대 팔레트 수 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'MaxPalletQty'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'TOTE 출하 여부 — 1 이면 팔레트가 아니라 토트 박스로 출하 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ToteFlag'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'박스 수량 — 포장 단위(박스 1개당 제품 수). APS 공급 올림 단위, NULL 이면 1 + 경고 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'BoxQty'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사용 여부 — 단종 시 FALSE (물리 삭제 금지).  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO

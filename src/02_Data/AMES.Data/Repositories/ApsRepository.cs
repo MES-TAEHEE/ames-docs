@@ -43,7 +43,7 @@ public sealed class ApsRepository
     // ── 내부 행 ─────────────────────────────────────────────────────────
     sealed record LineRow(string LineId, string? LineName, string ProcessCode);
     /// <param name="InjFlag">MD_Item.InjFlag — 사출품 여부. BOM 규칙은 이 값으로 사출품을 가른다(사용자 결정 10-05): 1 이면 거기서 멈추고(금형 필요), 0 이면 서브조립로 보고 BOM 을 더 내려간다.</param>
-    sealed record ItemRow(string ItemNo, string? ItemName, string? ItemType, bool InjFlag, string? RoutingType, decimal SafetyStock, string? Pgn, string? Alc, string? CarType, int? BoxQty);
+    sealed record ItemRow(string ItemNo, string? ItemName, string? ItemType, bool InjFlag, string? RoutingType, decimal SafetyStock, string? Pgn, string? Alc, string? CarType);
     /// <param name="Color">MD_MoldItem.Color — 형제(동시 취출)·캐비티 분할의 단위는 금형 × 색상이다(같은 금형의 다른 색상은 따로 찍는다).</param>
     sealed record MoldItemRow(string MoldId, string ItemNo, string? Color, int? MoldCavity, int? MoldChangeMin);
     sealed record MoldLineRow(string LineCode, string MoldId, decimal? Uph, decimal? PrepTime);
@@ -379,9 +379,6 @@ public sealed class ApsRepository
                 double uph = info.MoldLine?.Uph is decimal mu ? (double)ApsUph.Effective(mu, info.Mold.MoldCavity, activeCount) : 0;
                 if (uph <= 0)
                     warnings.Add($"사출품 {child}: 금형 {info.MoldId} 의 {info.LineId} UPH 가 없어 가동시간을 계산할 수 없습니다.");
-                int pack = it?.BoxQty is int bq && bq > 0 ? bq : 1;
-                if (it?.BoxQty is not > 0)
-                    warnings.Add($"사출품 {child}: BoxQty 가 없어(또는 0 이하) 포장 단위 1 로 봅니다.");
 
                 var parents  = edges.Where(e => Eq(e.ChildPartNo, child)).ToList();
                 decimal current = SelfEdge(child) ? wip.GetValueOrDefault(child) : wh.GetValueOrDefault(child);
@@ -415,7 +412,7 @@ public sealed class ApsRepository
                 {
                     Group = info.LineId, PartNo = child, PartName = it?.ItemName, LineCd = info.LineId, Uph = uph,
                     OpeningStock = ActualsRules.Opening(snap), StockCounted = true, Defect = 0, SisProduced = 0, Used = 0,
-                    SafetyStock = (double)(it?.SafetyStock ?? 0), MoldCode = info.MoldId, MoldColor = info.Mold.Color, Cavity = partCav, PackSize = pack,
+                    SafetyStock = (double)(it?.SafetyStock ?? 0), MoldCode = info.MoldId, MoldColor = info.Mold.Color, Cavity = partCav, PackSize = 1,
                     SiblingPartNos = siblings,
                     Days = dates.Select(d =>
                     {
@@ -491,11 +488,10 @@ public sealed class ApsRepository
                     warnings.Add($"라인 {line}: MD_Line.DailyCap 이 없거나 0 이하({(dailyCap.GetValueOrDefault(line) is int raw ? raw.ToString(CultureInfo.InvariantCulture) : "NULL")})라 완제품 능력을 제한하지 않습니다.");
                 settings.LineShifts.Add(new LineShift { LineCd = line, Day = 0, Night = 0, DailyCap = cap });
             }
-            // 포장 규칙(§4.2 "품번마다"): 사출 행은 PackSize(BoxQty ?? 1), 사출 행이 아닌 완제품 행은 BoxQty ?? RoundTo.
-            // BoxQty 없는 완제품 행에도 RoundTo 규칙을 두는 이유: PackFor 는 가장 긴 앞자리 규칙을 고르므로 규칙이 없으면 앞자리가 같은 다른 품번(85311-PI000 ↔ 85311-PI000MMN)의 포장 단위를 물려받는다
+            // 품번별 규칙을 명시해 앞자리가 같은 다른 품번의 규칙을 물려받지 않게 한다.
             settings.PackRules = injRows.Select(r => new PackRule(r.PartNo, r.PackSize)).ToList();
             foreach (var r in asmRows.Where(r => !injRows.Any(i => Eq(i.PartNo, r.PartNo))))
-                settings.PackRules.Add(new PackRule(r.PartNo, items[r.PartNo].BoxQty is int bq && bq > 0 ? bq : settings.RoundTo));
+                settings.PackRules.Add(new PackRule(r.PartNo, settings.RoundTo));
             settings.UphRules = new();
 
             bundle.Assembly  = asmRows;
@@ -621,7 +617,7 @@ public sealed class ApsRepository
     static Dictionary<string, ItemRow> ReadItems(SqlConnection conn, SqlTransaction tx)
     {
         using var cmd = new SqlCommand("""
-            SELECT i.ItemNo, i.ItemName, i.ItemType, ISNULL(i.InjFlag, 0) AS InjFlag, i.RoutingType, ISNULL(i.SafetyStock, 0) AS SafetyStock, i.PGN, i.ALC, i.CarType, i.BoxQty
+            SELECT i.ItemNo, i.ItemName, i.ItemType, ISNULL(i.InjFlag, 0) AS InjFlag, i.RoutingType, ISNULL(i.SafetyStock, 0) AS SafetyStock, i.PGN, i.ALC, i.CarType
             FROM   dbo.MD_Item i
             WHERE  ISNULL(i.ActiveFlag, 1) = 1;
             """, conn, tx);
@@ -630,7 +626,7 @@ public sealed class ApsRepository
         while (rdr.Read())
             map[(string)rdr["ItemNo"]] = new((string)rdr["ItemNo"], rdr["ItemName"] as string, rdr["ItemType"] as string, Convert.ToBoolean(rdr["InjFlag"]), rdr["RoutingType"] as string,
                                              Convert.ToDecimal(rdr["SafetyStock"]), rdr["PGN"] as string, rdr["ALC"] as string,
-                                             rdr["CarType"] as string, rdr["BoxQty"] as int?);
+                                             rdr["CarType"] as string);
         return map;
     }
 
