@@ -101,7 +101,7 @@ internal static class LotDefectWriter
         cmd.Parameters.Add("@N",     SqlDbType.NVarChar, 500).Value = (object?)reasonNote ?? DBNull.Value;
         cmd.Parameters.Add("@Prior", SqlDbType.VarChar,  16 ).Value = priorStatus;
         cmd.Parameters.Add("@Rev",   SqlDbType.Int          ).Value = (object?)reversalResultId ?? DBNull.Value;
-        cmd.Parameters.Add("@Op",    SqlDbType.NVarChar, 450).Value = operatorId;
+        cmd.Parameters.Add("@Op",    SqlDbType.VarChar,   20).Value = operatorId;
         cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }

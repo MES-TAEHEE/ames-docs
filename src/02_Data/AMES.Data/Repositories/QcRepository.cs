@@ -182,7 +182,7 @@ public sealed class QcRepository
         cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value  = itemNo;
         cmd.Parameters.Add("@Q",  SqlDbType.Decimal).Value      = affectedQty;
         cmd.Parameters.Add("@D",  SqlDbType.VarChar, 15).Value  = disposition;
-        cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value= operatorId;
+        cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value= operatorId;
         cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value  = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }
@@ -241,7 +241,7 @@ public sealed class QcRepository
                 ins.Parameters.Add("@H",  SqlDbType.Int).Value           = holdId;
                 ins.Parameters.Add("@A",  SqlDbType.VarChar, 15).Value   = action;
                 ins.Parameters.Add("@R",  SqlDbType.NVarChar, 500).Value = reason;
-                ins.Parameters.Add("@By", SqlDbType.NVarChar,  450).Value = releasedBy;
+                ins.Parameters.Add("@By", SqlDbType.VarChar,    20).Value = releasedBy;
                 ins.Parameters.Add("@Emp",SqlDbType.VarChar, 20).Value   = employeeNo;
                 ins.ExecuteNonQuery();
             }

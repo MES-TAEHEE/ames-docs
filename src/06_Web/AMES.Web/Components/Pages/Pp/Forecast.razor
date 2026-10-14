@@ -3,6 +3,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.ActorNames Actors
 @inject AMES.Web.Services.PermissionService PermSvc
 @inject AMES.Web.Services.UomFormat UomFmt
 @inject AuthenticationStateProvider AuthPrvd
@@ -241,8 +242,10 @@
                                           Sortable="false" Width="210px">
                         <Template Context="b">@(b.WeekFrom?.ToString(DateFmt.Date) ?? "—") ~ @(b.WeekTo?.ToString(DateFmt.Date) ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="140px" Property="ImportedBy"
-                                          Title="@L["PP.Forecast.Hist.By"].Value" Width="140px" />
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="180px" Property="ImportedBy"
+                                          Title="@L["PP.Forecast.Hist.By"].Value" Width="180px">
+                        <Template Context="b">@(Actors.Display(b.ImportedBy) is { Length: > 0 } ib ? ib : "—")</Template>
+                    </RadzenDataGridColumn>
                                           <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="160px" Property="ImportedAt"
                                           Title="@L["PP.Forecast.Hist.Uploaded"].Value" Width="160px"
                                           SortOrder="SortOrder.Descending">
@@ -287,8 +290,10 @@
                                           Title="@L["PP.DemandPlan.Hist.Unmatched"].Value" TextAlign="TextAlign.Right" Width="140px" />
                     <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="150px" Property="PackMismatch"
                                           Title="@L["PP.DemandPlan.Hist.Mismatch"].Value" TextAlign="TextAlign.Right" Width="150px" />
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="140px" Property="ImportedBy"
-                                          Title="@L["PP.Forecast.Hist.By"].Value" Width="140px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="180px" Property="ImportedBy"
+                                          Title="@L["PP.Forecast.Hist.By"].Value" Width="180px">
+                        <Template Context="b">@(Actors.Display(b.ImportedBy) is { Length: > 0 } ib ? ib : "—")</Template>
+                    </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="160px" Property="ImportedAt"
                                           Title="@L["PP.Forecast.Hist.Uploaded"].Value" Width="160px"
                                           SortOrder="SortOrder.Descending">

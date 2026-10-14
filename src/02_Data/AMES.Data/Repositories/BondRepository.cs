@@ -68,7 +68,7 @@ public sealed class BondRepository
         cmd.Parameters.Add("@T",  SqlDbType.Decimal).Value = temp;
         cmd.Parameters.Add("@H",  SqlDbType.Int).Value     = holdSec;
         cmd.Parameters.Add("@Tn", SqlDbType.Decimal).Value = (object?)tension ?? DBNull.Value;
-        cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value = operatorId;
+        cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value = operatorId;
         cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value   = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }

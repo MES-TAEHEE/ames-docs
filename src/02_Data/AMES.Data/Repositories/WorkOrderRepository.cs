@@ -594,7 +594,7 @@ public sealed class WorkOrderRepository
             """, conn, tx))
         {
             cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value           = woId;
-            cmd.Parameters.Add("@Actor", SqlDbType.NVarChar,  20).Value = actor;
+            cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
             cmd.ExecuteNonQuery();
         }
 

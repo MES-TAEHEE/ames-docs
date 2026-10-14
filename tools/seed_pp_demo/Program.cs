@@ -157,7 +157,8 @@ internal static class Program
                     (RunAt, RunBy, HorizonStart, HorizonEnd,
                      WosConsidered, PrsCreated, ShortageCount, DurationMs, Status,
                      CreatedBy, CreatedTS)
-                VALUES (DATEADD(hour, -{hAgo}, SYSDATETIME()), 'admin@ames.local',
+                VALUES (DATEADD(hour, -{hAgo}, SYSDATETIME()),
+                        ISNULL((SELECT TOP 1 p.EmployeeNo FROM dbo.AspNetUsers u JOIN dbo.SYS_UserProfile p ON p.UserID = u.Id WHERE u.Email = 'admin@ames.local'), 'admin'),
                         DATEADD(day, -1, CAST(GETDATE() AS DATE)),
                         DATEADD(day, 30, CAST(GETDATE() AS DATE)),
                         {18 + rng.Next(0,5)}, {3 + rng.Next(0,5)}, {rng.Next(0,3)},

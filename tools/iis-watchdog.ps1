@@ -7,10 +7,13 @@
   HTTP 500.30(기동 예외)·500.31(.NET 런타임 못 찾음)·500.37(기동 시간 초과) 같은 ANCM 오류 페이지만 돌려주고
   저절로 다시 띄우지 않는다. 10-14 에 .NET 업데이트가 w3wp 를 내리는 도중 새 프로세스가 떠서
   로컬은 500.31, 개발서버는 재부팅 뒤 500.30 으로 서비스가 죽은 채 남았다.
+  앱이 내려가다 멈춰도 같다 — ANCM 이 HTTP 503.0(오류 코드 0x800704e7 = 종료 진행 중)만 돌려주고
+  새 프로세스를 띄우지 않는다(10-15 로컬 Api 가 게시 뒤 1시간 동안 이 상태로 남았다).
 
   앱풀마다 그 사이트 바인딩의 http://localhost:{포트}/api/health 를 부르고, 응답이 ANCM 기동 실패 페이지
-  ("HTTP Error 500.3x" 또는 "500.37")일 때만 앱풀을 재활용한 뒤 다시 불러 결과를 남긴다.
-  그 밖의 응답은 건드리지 않는다 — 일반 500(앱 예외·DB 장애)·app_offline(배포 중)·응답 없음(기동 중)·
+  ("HTTP Error 500.3x" 또는 "500.37")이거나 ANCM 종료 중 503(0x800704e7)일 때만 앱풀을 재활용한 뒤
+  다시 불러 결과를 남긴다. 503 은 정상 재시작 중에도 잠깐 날 수 있어 15초 뒤 다시 불러 그대로일 때만 재활용한다.
+  그 밖의 응답은 건드리지 않는다 — 일반 500(앱 예외·DB 장애)·다른 503(요청 큐 초과 등)·app_offline(배포 중)·응답 없음(기동 중)·
   멈춘 앱풀(배포 절차에서 일부러 멈춤)은 로그만 남긴다. 같은 앱풀을 10분 안에 다시 재활용하지 않는다
   (원인이 남아 있으면 10분마다 한 번만 시도).
 
@@ -73,9 +76,10 @@ function Invoke-Probe([int]$port) {
 }
 
 # ANCM 기동 실패 페이지 — "HTTP Error 500.30 - ASP.NET Core app failed to start" 등. 일반 500 은 아니다.
+# ANCM 종료 중 멈춤 — IIS 상세 오류 페이지(localhost 요청이라 상세, 문구는 OS 언어)의 오류 코드 0x800704e7.
 function Get-AncmFailure($probe) {
-    if ($probe.Code -ne 500) { return $null }
-    if ($probe.Body -match 'HTTP Error (500\.3\d)') { return $Matches[1] }
+    if ($probe.Code -eq 500 -and $probe.Body -match 'HTTP Error (500\.3\d)') { return $Matches[1] }
+    if ($probe.Code -eq 503 -and $probe.Body -match '0x800704e7') { return '503.0 (0x800704e7 종료 중 멈춤)' }
     return $null
 }
 
@@ -106,15 +110,21 @@ function Invoke-Watch {
         $p = Invoke-Probe $site.Port
         $fail = Get-AncmFailure $p
         if (-not $fail) {
-            if ($p.Code -ne 200) { Log "$pool : :$($site.Port)$ProbePath → $($p.Code) — 기동 실패 페이지가 아니라 재활용하지 않음" }
+            if ($p.Code -ne 200) { Log "$pool : :$($site.Port)$ProbePath → $($p.Code) — ANCM 기동 실패·종료 중 멈춤이 아니라 재활용하지 않음" }
             continue
+        }
+        if ($p.Code -eq 503) {
+            Start-Sleep -Seconds 15
+            $p = Invoke-Probe $site.Port
+            $fail = Get-AncmFailure $p
+            if (-not $fail) { Log "$pool : 종료 중 503 이 15초 뒤 $($p.Code) 로 바뀜 — 정상 재시작으로 보고 재활용하지 않음"; continue }
         }
 
         if ($state.ContainsKey($pool) -and ((Get-Date) - $state[$pool]).TotalMinutes -lt $CooldownMin) {
             Log "$pool : HTTP $fail — $($state[$pool].ToString('HH:mm')) 에 재활용했으므로 $CooldownMin 분 뒤 다시 시도"
             continue
         }
-        Log "$pool : HTTP $fail (기동 실패 상태) — 앱풀 재활용"
+        Log "$pool : HTTP $fail — 앱풀 재활용"
         $ap.Recycle() | Out-Null
         $state[$pool] = Get-Date
         Save-State $state
@@ -141,7 +151,7 @@ if ($Install) {
     $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 8)
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($boot, $every) -Principal $principal -Settings $settings `
-        -Description 'IIS(AMES.Web·Api)가 기동 실패(HTTP 500.3x)로 남으면 그 앱풀을 재활용 — tools\iis-watchdog.ps1' -Force | Out-Null
+        -Description 'IIS(AMES.Web·Api)가 기동 실패(HTTP 500.3x)·종료 중 멈춤(503 0x800704e7)으로 남으면 그 앱풀을 재활용 — tools\iis-watchdog.ps1' -Force | Out-Null
     Log "작업 「$TaskName」 등록 (시작 2분 뒤·5분마다, SYSTEM)"
 }
 

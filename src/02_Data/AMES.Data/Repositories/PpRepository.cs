@@ -304,7 +304,7 @@ public sealed partial class PpRepository
                 c.Parameters["@BaseInv"].Scale = 3;
                 c.Parameters.Add("@PartName",  SqlDbType.NVarChar,  100);
                 c.Parameters.Add("@Unit",      SqlDbType.VarChar,    10);
-                c.Parameters.Add("@Actor",     SqlDbType.NVarChar,   20);
+                c.Parameters.Add("@Actor",     SqlDbType.VarChar,    20);
                 c.Parameters["@Batch"].Value = batch;
                 c.Parameters["@Cust"].Value  = customerId;
                 c.Parameters["@Actor"].Value = actor;
@@ -315,7 +315,7 @@ public sealed partial class PpRepository
             hist.Parameters["@PrevQty"].Scale = 3;
             hist.Parameters.Add("@NewQty",    SqlDbType.Decimal).Precision = 14;
             hist.Parameters["@NewQty"].Scale = 3;
-            hist.Parameters.Add("@Actor",     SqlDbType.NVarChar,  20).Value = actor;
+            hist.Parameters.Add("@Actor",     SqlDbType.VarChar,   20).Value = actor;
 
             int inserted = 0, updated = 0, qtyChanged = 0;
             foreach (var r in rows)
@@ -1102,7 +1102,7 @@ public sealed partial class PpRepository
             """;
         using var own = conn is null ? _f.OpenConnection() : null;
         using var cmd = new SqlCommand(sql, conn ?? own, tx);
-        cmd.Parameters.Add("@RunBy", SqlDbType.NVarChar, 450).Value = runBy;
+        cmd.Parameters.Add("@RunBy", SqlDbType.VarChar,   20).Value = runBy;
         cmd.Parameters.Add("@S",     SqlDbType.Date).Value = start;
         cmd.Parameters.Add("@E",     SqlDbType.Date).Value = end;
         cmd.Parameters.Add("@Wos",   SqlDbType.Int).Value = wos;

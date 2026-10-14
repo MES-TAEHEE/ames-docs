@@ -100,7 +100,7 @@ public sealed class FabricRepository
         cmd.Parameters.Add("@S",  SqlDbType.VarChar, 10).Value = scannedColor ?? string.Empty;
         cmd.Parameters.Add("@E",  SqlDbType.VarChar, 10).Value = (object?)expectedColor ?? DBNull.Value;
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 10).Value = result;
-        cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value = operatorId;
+        cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value = operatorId;
         cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value   = employeeNo;
         cmd.ExecuteNonQuery();
     }

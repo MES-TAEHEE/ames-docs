@@ -3396,7 +3396,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@MC",  SqlDbType.VarChar,   20).Value = (object?)matCode    ?? DBNull.Value;
         cmd.Parameters.Add("@MN",  SqlDbType.NVarChar,  60).Value = (object?)matName    ?? DBNull.Value;
         cmd.Parameters.Add("@MT",  SqlDbType.VarChar,   14).Value = (object?)matType    ?? DBNull.Value;
-        cmd.Parameters.Add("@LN",  SqlDbType.VarChar,   24).Value = (object?)lotNo      ?? DBNull.Value;
+        cmd.Parameters.Add("@LN",  SqlDbType.NVarChar,  50).Value = (object?)lotNo      ?? DBNull.Value;
         cmd.Parameters.Add("@SID", SqlDbType.VarChar,   20).Value = (object?)supplierId ?? DBNull.Value;
         cmd.Parameters.Add("@UOM", SqlDbType.VarChar,   10).Value = (object?)uom        ?? DBNull.Value;
         cmd.Parameters.Add("@QTY", SqlDbType.Decimal).Value       = (object?)qtyOnHand  ?? DBNull.Value;
@@ -3426,7 +3426,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@MC",  SqlDbType.VarChar,   20).Value = (object?)matCode    ?? DBNull.Value;
         cmd.Parameters.Add("@MN",  SqlDbType.NVarChar,  60).Value = (object?)matName    ?? DBNull.Value;
         cmd.Parameters.Add("@MT",  SqlDbType.VarChar,   14).Value = (object?)matType    ?? DBNull.Value;
-        cmd.Parameters.Add("@LN",  SqlDbType.VarChar,   24).Value = (object?)lotNo      ?? DBNull.Value;
+        cmd.Parameters.Add("@LN",  SqlDbType.NVarChar,  50).Value = (object?)lotNo      ?? DBNull.Value;
         cmd.Parameters.Add("@SID", SqlDbType.VarChar,   20).Value = (object?)supplierId ?? DBNull.Value;
         cmd.Parameters.Add("@UOM", SqlDbType.VarChar,   10).Value = (object?)uom        ?? DBNull.Value;
         cmd.Parameters.Add("@QTY", SqlDbType.Decimal).Value       = (object?)qtyOnHand  ?? DBNull.Value;

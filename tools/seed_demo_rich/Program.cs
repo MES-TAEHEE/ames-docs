@@ -111,7 +111,7 @@ internal static class Program
                          MoldID, OperatorID, DefectFlag, EntryAt, CreatedBy, CreatedTS)
                     VALUES (CONCAT('ENR-', FORMAT(@T,'yyMMddHHmmss'),'-',@C),
                             @W, @L, 'LINE-INJ-01', 'INJ', @G, @CSec,
-                            @M, 'user-e001', 0, @T, 'enrich', SYSDATETIME());
+                            @M, 'E001', 0, @T, 'enrich', SYSDATETIME());
                     """,
                     ("@T", ts), ("@C", c.ToString()), ("@W", woId), ("@L", lotId),
                     ("@G", good), ("@CSec", cycleSec), ("@M", moldId));
@@ -131,7 +131,7 @@ internal static class Program
                 INSERT INTO dbo.PR_DefectDetail
                     (WoID, LotID, ProcessCode, DefectCode, Qty, DetectedAt,
                      RegisteredBy, CreatedBy, CreatedTS)
-                VALUES (@W, @L, 'INJ', @D, @Q, @T, 'user-e001', 'enrich', SYSDATETIME());
+                VALUES (@W, @L, 'INJ', @D, @Q, @T, 'E001', 'enrich', SYSDATETIME());
                 """,
                 ("@W", woId), ("@L", lotId), ("@D", code),
                 ("@Q", Rng.Next(1, 3)), ("@T", when));
@@ -148,10 +148,10 @@ internal static class Program
             VALUES
                 (@E, 'LINE-INJ-01', @M, @M, 9920, 0, 'Scheduled', 12,
                  DATEADD(hour,-19,SYSDATETIME()), DATEADD(hour,-19,DATEADD(minute,12,SYSDATETIME())),
-                 'user-e001', 'enrich', SYSDATETIME()),
+                 'E001', 'enrich', SYSDATETIME()),
                 (@E, 'LINE-INJ-01', @M, @M, 8800, 0, 'Worn',      18,
                  DATEADD(hour,-4, SYSDATETIME()), DATEADD(hour,-4, DATEADD(minute,18,SYSDATETIME())),
-                 'user-e003', 'enrich', SYSDATETIME());
+                 'E003', 'enrich', SYSDATETIME());
             """, ("@E", equipId), ("@M", moldId));
         Console.WriteLine("  inj  2 mold-change history rows");
 
@@ -162,11 +162,11 @@ internal static class Program
                  ReasonCode, CorrectiveAction, ResumedAt, DowntimeSec, Status, CreatedBy, CreatedTS)
             VALUES
                 ('LINE-INJ-01', @E, 'OPERATOR', 'MEDIUM',
-                 DATEADD(hour,-4,SYSDATETIME()), 'user-s001', DATEADD(hour,-4,DATEADD(minute,2,SYSDATETIME())),
+                 DATEADD(hour,-4,SYSDATETIME()), 'S001', DATEADD(hour,-4,DATEADD(minute,2,SYSDATETIME())),
                  'QUALITY', N'Resolved — colour shift on shot 14',
                  DATEADD(hour,-4,DATEADD(minute,18,SYSDATETIME())), 1080, 'Resolved', 'enrich', SYSDATETIME()),
                 ('LINE-INJ-01', @E, 'OPERATOR', 'HIGH',
-                 DATEADD(minute,-90,SYSDATETIME()), 'user-s001', DATEADD(minute,-88,SYSDATETIME()),
+                 DATEADD(minute,-90,SYSDATETIME()), 'S001', DATEADD(minute,-88,SYSDATETIME()),
                  'MACHINE', N'Acked, supervisor inspecting',
                  NULL, NULL, 'ACKED', 'enrich', SYSDATETIME()),
                 ('LINE-INJ-01', @E, 'OPERATOR', 'HIGH',
@@ -189,7 +189,7 @@ internal static class Program
                 (LineID, RecipeID, PressureSp, TempSp, HoldSecSp, TensionSp,
                  LoadedAt, LoadedBy, Status, CreatedBy, CreatedTS)
             VALUES ('LINE-IMG-01', 'REC-01', 2.80, 82.0, 12, 3.20,
-                    DATEADD(hour,-2,SYSDATETIME()), 'user-i001', 'Active',
+                    DATEADD(hour,-2,SYSDATETIME()), 'I001', 'Active',
                     'enrich', SYSDATETIME());
             """);
         var bondId = ExecScalar<int>(conn,
@@ -201,11 +201,11 @@ internal static class Program
                 (BondSetupID, FieldName, OldValue, NewValue, ReasonCode,
                  ChangedBy, ChangedAt, CreatedBy, CreatedTS)
             VALUES
-                (@B, 'PressureSp', '2.60', '2.80', 'TUNE-UP', 'user-s001',
+                (@B, 'PressureSp', '2.60', '2.80', 'TUNE-UP', 'S001',
                  DATEADD(hour,-9,SYSDATETIME()), 'enrich', SYSDATETIME()),
-                (@B, 'TempSp',     '80.0', '82.0', 'TUNE-UP', 'user-s001',
+                (@B, 'TempSp',     '80.0', '82.0', 'TUNE-UP', 'S001',
                  DATEADD(hour,-9,SYSDATETIME()), 'enrich', SYSDATETIME()),
-                (@B, 'HoldSecSp',  '11',   '12',   'FINE',    'user-i001',
+                (@B, 'HoldSecSp',  '11',   '12',   'FINE',    'I001',
                  DATEADD(hour,-2,SYSDATETIME()), 'enrich', SYSDATETIME());
             """, ("@B", bondId));
         Console.WriteLine("  img  active bond setup + 3 audit rows");
@@ -302,7 +302,7 @@ internal static class Program
                      InspectorID, InsStartTS, InsEndTS, CreatedBy, CreatedTS)
                 VALUES (CONCAT(LEFT('{r.Type}',3),'-ENR-',FORMAT(SYSDATETIME(),'yyMMddHHmm'),'-{Rng.Next(100,999)}'),
                         '{r.Type}', '{r.Item}', 'Normal', {r.Sample}, {r.Sample * 6},
-                        {r.Good}, {r.Def}, '{r.Verdict}', 0, 'user-q001',
+                        {r.Good}, {r.Def}, '{r.Verdict}', 0, 'Q001',
                         DATEADD(minute, -{r.MinAgo}, SYSDATETIME()),
                         DATEADD(minute, -{Math.Max(0, r.MinAgo - 12)}, SYSDATETIME()),
                         'enrich', SYSDATETIME());
@@ -322,7 +322,7 @@ internal static class Program
                      ReleasedBy, ReleasedAt, Note, CreatedBy, CreatedTS)
                 VALUES (@H, 'Release', 'USE-AS-IS',
                         N'Customer concession #CCN-2026-014 — minor cosmetic',
-                        'user-q001', DATEADD(hour, -2, SYSDATETIME()),
+                        'Q001', DATEADD(hour, -2, SYSDATETIME()),
                         N'Released with rework note',
                         'enrich', SYSDATETIME());
                 UPDATE dbo.QC_Hold SET Status='Released', ModifiedTS=SYSDATETIME() WHERE HoldID=@H;
@@ -343,11 +343,11 @@ internal static class Program
                 VALUES
                     (@C, 'Verification', 3, N'D+3 stability check',
                      N'Defect rate', N'<= 2 %', N'0.8 %', 'PASS',
-                     'user-q001', DATEADD(day, -2, GETDATE()), DATEADD(day, -2, SYSDATETIME()),
+                     'Q001', DATEADD(day, -2, GETDATE()), DATEADD(day, -2, SYSDATETIME()),
                      'enrich', SYSDATETIME()),
                     (@C, 'Verification', 5, N'D+5 stability check',
                      N'Defect rate', N'<= 2 %', N'1.1 %', 'PASS',
-                     'user-q001', DATEADD(day, 0, GETDATE()), DATEADD(hour, -6, SYSDATETIME()),
+                     'Q001', DATEADD(day, 0, GETDATE()), DATEADD(hour, -6, SYSDATETIME()),
                      'enrich', SYSDATETIME());
                 """, ("@C", capaId));
             Console.WriteLine($"  qc   2 extra CAPA actions on CAPA-25060001 (D+3 + D+5)");

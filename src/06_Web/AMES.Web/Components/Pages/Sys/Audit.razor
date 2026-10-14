@@ -107,7 +107,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ActionType" Title="@L["SYS.Audit.Col.Action"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ActionType" Title="@L["SYS.Audit.Col.Action"]" TextAlign="TextAlign.Center" Width="210px" MinWidth="210px">
                 <Template Context="a"><span class="pill @ActClass(a.ActionType)">@(a.ActionType ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="TargetEntity" Title="@L["SYS.Audit.Col.Entity"]">

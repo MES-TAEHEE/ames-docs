@@ -637,7 +637,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Sym",   SqlDbType.NVarChar, 500).Value = symptom;
                 cmd.Parameters.Add("@Sev",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@Src",   SqlDbType.VarChar,   15).Value = (object?)source ?? DBNull.Value;
-                cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = (object?)reportedBy ?? DBNull.Value;
                 cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
                 cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
                 failId = Convert.ToInt32(cmd.ExecuteScalar());
@@ -702,7 +702,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Sym",   SqlDbType.NVarChar, 500).Value = symptom;
                 cmd.Parameters.Add("@Sev",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@Src",   SqlDbType.VarChar,   15).Value = (object?)source ?? DBNull.Value;
-                cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = (object?)reportedBy ?? DBNull.Value;
                 cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
                 cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
                 cmd.ExecuteNonQuery();

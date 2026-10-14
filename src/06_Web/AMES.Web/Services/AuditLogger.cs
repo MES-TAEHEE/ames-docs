@@ -49,7 +49,7 @@ public sealed class AuditLogger
             // 화면 코드가 아닌 구역 이름(ACCOUNT 등)은 SYS 모듈로 묶어 SYS-007 모듈 필터에 걸리게 한다
             var module = screenCode.Contains('-') ? screenCode.Split('-')[0] : "SYS";
             note ??= $"{action} {entity} '{target}' by '{actor}'";
-            _sys.InsertAuditLog(Cut(module, 10), Cut(screenCode, 20), Cut(action, 15)!, Cut(entity, 40), target,
+            _sys.InsertAuditLog(Cut(module, 10), Cut(screenCode, 20), Cut(action, 20)!, Cut(entity, 40), target,
                 ToJson(before), ToJson(after), actor, CurrentIp(), note: Cut(note, 500));
         }
         catch (Exception ex)
