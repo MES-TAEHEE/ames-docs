@@ -11,9 +11,9 @@ namespace AMES.Api.Auth;
 /// Singleton — registered in Program.cs.
 /// </summary>
 public sealed class TokenStore(Func<DateTime> databaseNow, Func<long>? timestamp = null, long? frequency = null,
-    SqlTokenPersistence? persistence = null)
+    SqlTokenPersistence? persistence = null, Func<string, PopSessionDto?>? refresh = null)
 {
-    private readonly ConcurrentDictionary<string, (PopSessionDto Session, DateTime Expires)> _map = new();
+    private readonly ConcurrentDictionary<string, (PopSessionDto Session, DateTime Expires, long CheckedAt)> _map = new();
     private readonly Func<long> _timestamp = timestamp ?? Stopwatch.GetTimestamp;
     private readonly long _frequency = frequency ?? Stopwatch.Frequency;
     private readonly object _clockGate = new();
@@ -43,7 +43,7 @@ public sealed class TokenStore(Func<DateTime> databaseNow, Func<long>? timestamp
     {
         var token = Guid.NewGuid().ToString("N");
         _persistence?.Save(token, session);
-        _map[token] = (session, session.ExpiresAt);
+        _map[token] = (session, session.ExpiresAt, _timestamp());
         return token;
     }
 
@@ -54,10 +54,18 @@ public sealed class TokenStore(Func<DateTime> databaseNow, Func<long>? timestamp
         {
             var restored = _persistence?.Load(token);
             if (restored is null) return null;
-            entry = (restored, restored.ExpiresAt);
+            entry = (restored, restored.ExpiresAt, _timestamp());
             _map.TryAdd(token, entry);
         }
         if (entry.Expires <= Now()) { _map.TryRemove(token, out _); return null; }
+        if ((refresh is not null || _persistence is not null)
+            && (double)(_timestamp() - entry.CheckedAt) / _frequency >= 60)
+        {
+            var current = refresh is not null ? refresh(token) : _persistence!.Load(token);
+            if (current is null) { _map.TryRemove(token, out _); return null; }
+            entry = (current, current.ExpiresAt, _timestamp());
+            _map[token] = entry;
+        }
         return entry.Session;
     }
 

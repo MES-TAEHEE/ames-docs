@@ -4,6 +4,10 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_PADDING ON;
 GO
+IF OBJECT_ID(N'dbo.FG_CustomerReturn',N'U') IS NOT NULL
+    AND COL_LENGTH(N'dbo.FG_CustomerReturn',N'CustomerID') IS NULL
+    THROW 52016,'Apply migrate_fg_customer_return_columns.sql before FG inventory consolidation.',1;
+GO
 
 IF OBJECT_ID(N'dbo.WH_Inventory',N'U') IS NULL
     THROW 52088,'WH_Inventory must exist before consolidating finished-goods inventory.',1;
@@ -67,15 +71,16 @@ BEGIN
     ) X ON X.StockID=P.StockID
     WHERE P.LotNo IS NULL;
 
-    UPDATE R SET LotNo=COALESCE(X.LotNo,JSON_VALUE(R.ItemsJSON,'$[0].lotNo'))
+    IF COL_LENGTH(N'dbo.FG_CustomerReturn',N'ItemsJSON') IS NOT NULL
+        EXEC(N'UPDATE R SET LotNo=COALESCE(X.LotNo,JSON_VALUE(R.ItemsJSON,''$[0].lotNo''))
     FROM dbo.FG_CustomerReturn R
     LEFT JOIN
     (
-        SELECT F.StockID,COALESCE(NULLIF(L.LotCode,N''),NULLIF(F.StockNumber,N''),
-            CONCAT(N'LEGACY-FG-',RIGHT(REPLICATE('0',10)+CONVERT(varchar(10),F.StockID),10))) AS LotNo
+        SELECT F.StockID,COALESCE(NULLIF(L.LotCode,N''''),NULLIF(F.StockNumber,N''''),
+            CONCAT(N''LEGACY-FG-'',RIGHT(REPLICATE(''0'',10)+CONVERT(varchar(10),F.StockID),10))) AS LotNo
         FROM dbo.FG_Inventory F LEFT JOIN dbo.tbl_Lot L ON L.LotID=F.LotID
     ) X ON X.StockID=R.StockID
-    WHERE R.LotNo IS NULL;
+    WHERE R.LotNo IS NULL;');
 
     UPDATE O SET ItemsJSON=J.ItemsJSON
     FROM dbo.FG_ShipmentOrder O
@@ -225,46 +230,42 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_SCAN
-    @Barcode varchar(80)
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_SCAN @Barcode varchar(80)
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @B varchar(80)=LTRIM(RTRIM(ISNULL(@Barcode,'')));
     IF LEN(@B)<3 OR LEN(@B)>80 OR @B COLLATE Latin1_General_100_BIN2 LIKE '%[^A-Za-z0-9_./-]%'
         THROW 52000,'The finished-good return barcode format is invalid.',1;
-    DECLARE @P TABLE
-    (
-        LotNo nvarchar(50),ShipmentOrderID int,ShipOrderNumber varchar(40),CustomerCode varchar(20),
-        ItemNo varchar(20),ItemName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3),LotID int
-    );
+    DECLARE @P TABLE(LotNo nvarchar(50),ShipmentOrderID int,ShipOrderNumber varchar(40),
+        CustomerID varchar(20),CustomerName nvarchar(200),PartNo varchar(20),PartName nvarchar(200),
+        ShippedAt datetime2,Qty decimal(18,3),LotID int);
     INSERT @P
-    SELECT DISTINCT J.LotNo,O.ShipmentOrderID,O.ShipOrderNumber,O.CustomerCode,J.ItemNo,I.ItemName,
-        COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt),
-        COALESCE(NULLIF(J.AllocatedQty,0),NULLIF(J.OrderedQty,0),W.Qty),L.LotID
+    SELECT DISTINCT J.LotNo,O.ShipmentOrderID,O.ShipOrderNumber,C.CustomerID,C.CustomerName,
+        J.PartNo,I.ItemName,COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt),
+        COALESCE(NULLIF(J.AllocatedQty,0),NULLIF(J.OrderedQty,0)),L.LotID
     FROM dbo.FG_ShipmentOrder O
     CROSS APPLY OPENJSON(CASE WHEN ISJSON(O.ItemsJSON)=1 THEN O.ItemsJSON ELSE N'[]' END)
-        WITH (LotNo nvarchar(50) '$.lotNo',ItemNo varchar(20) '$.itemNo',
-              OrderedQty decimal(18,3) '$.orderedQty',AllocatedQty decimal(18,3) '$.allocatedQty') J
-    LEFT JOIN dbo.WH_Inventory W ON W.LotNo=J.LotNo
-    LEFT JOIN dbo.tbl_Lot L ON L.LotCode=J.LotNo
-    LEFT JOIN dbo.MD_Item I ON I.ItemNo=J.ItemNo
-    WHERE UPPER(J.LotNo)=UPPER(@B) AND UPPER(COALESCE(O.Status,''))='SHIPPED'
-      AND COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt) IS NOT NULL;
+        WITH(LotNo nvarchar(50) '$.lotNo',PartNo varchar(20) '$.itemNo',
+            OrderedQty decimal(18,3) '$.orderedQty',AllocatedQty decimal(18,3) '$.allocatedQty') J
+    LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=J.LotNo COLLATE DATABASE_DEFAULT
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=J.PartNo COLLATE DATABASE_DEFAULT
+    LEFT JOIN dbo.MD_Customer C ON C.CustomerID COLLATE DATABASE_DEFAULT=O.CustomerCode COLLATE DATABASE_DEFAULT
+        OR C.CustomerCode COLLATE DATABASE_DEFAULT=O.CustomerCode COLLATE DATABASE_DEFAULT
+    WHERE J.LotNo COLLATE DATABASE_DEFAULT=@B COLLATE DATABASE_DEFAULT
+        AND UPPER(COALESCE(O.Status,''))='SHIPPED'
+        AND COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt) IS NOT NULL;
     IF NOT EXISTS(SELECT 1 FROM @P)
-    BEGIN
-        IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE UPPER(LotNo)=UPPER(@B))
-            THROW 52001,'The product exists, but no completed shipment history was found.',1;
         THROW 52002,'This barcode does not match a shipped finished-good LOT.',1;
-    END;
-    IF (SELECT COUNT(*) FROM @P)>1 THROW 52004,'This barcode matches multiple shipped products.',1;
-    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WHERE UPPER(LotNo)=UPPER(@B))
+    IF (SELECT COUNT(*) FROM @P)<>1
+        THROW 52004,'The barcode has multiple shipments or customer matches. Verify the source data.',1;
+    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WHERE LotNo COLLATE DATABASE_DEFAULT=@B COLLATE DATABASE_DEFAULT)
         THROW 52005,'This product was already received as a customer return.',1;
-    IF EXISTS(SELECT 1 FROM @P WHERE NULLIF(ShipOrderNumber,'') IS NULL OR NULLIF(CustomerCode,'') IS NULL
-        OR NULLIF(ItemNo,'') IS NULL OR NULLIF(ItemName,'') IS NULL OR COALESCE(Qty,0)<=0)
-        THROW 52008,'The shipment record is incomplete. Verify shipment, customer, part, and quantity.',1;
-    SELECT @B AS Barcode,LotID,LotNo,
-        ShipmentOrderID,ShipOrderNumber,CustomerCode,ItemNo,ItemName,ShippedAt,Qty FROM @P;
+    IF EXISTS(SELECT 1 FROM @P WHERE NULLIF(ShipOrderNumber,'') IS NULL OR NULLIF(CustomerID,'') IS NULL
+        OR NULLIF(PartNo,'') IS NULL OR NULLIF(PartName,N'') IS NULL OR COALESCE(Qty,0)<=0)
+        THROW 52008,'Verify the shipped customer in Customer Master and the part, name and quantity.',1;
+    SELECT @B Barcode,LotID,LotNo,ShipmentOrderID,ShipOrderNumber,CustomerID,CustomerName,
+        PartNo,PartName,ShippedAt,Qty FROM @P;
 END;
 GO
 
@@ -275,41 +276,45 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
     DECLARE @Reason varchar(60)=UPPER(LTRIM(RTRIM(ISNULL(@ReturnReason,'')))),
-            @CleanNote nvarchar(500)=NULLIF(LTRIM(RTRIM(@Note)),N'');
-    IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='FG_RETURN_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
+        @CleanNote nvarchar(500)=NULLIF(LTRIM(RTRIM(@Note)),N'');
+    IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='FG_RETURN_REASON'
+        AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
         THROW 52009,'Select a valid return reason.',1;
-    DECLARE @P TABLE
-    (
-        Barcode varchar(80),LotID int,LotNo varchar(80),
-        ShipmentOrderID int,ShipOrderNumber varchar(40),CustomerCode varchar(20),ItemNo varchar(20),
-        ItemName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3)
-    );
-    INSERT @P EXEC dbo.FG_PDA_RETURN_SCAN @Barcode;
-    BEGIN TRANSACTION;
-    DECLARE @Now datetime2=SYSDATETIME(),@ReturnID int,@ReturnNumber varchar(24),@LotNo nvarchar(50)=(SELECT LotNo FROM @P);
-    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@LotNo)
-        THROW 52005,'This product was already received as a customer return.',1;
-    SET @ReturnNumber=CONCAT('RMA-',FORMAT(@Now,'yyMMddHHmmssfff'),LEFT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),5));
-    INSERT dbo.FG_CustomerReturn
-        (ReturnNumber,CustomerCode,OriginalShipmentOrderID,LotNo,LotID,ItemNo,ReturnQty,
-         ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CapaTriggered,CreatedBy,CreatedTS)
-    SELECT @ReturnNumber,CustomerCode,ShipmentOrderID,LotNo,LotID,ItemNo,Qty,@Reason,@CleanNote,
-        (SELECT ItemNo AS itemNo,LotNo AS lotNo,LotNo AS stockNumber,Barcode AS barcode,
-                Qty AS qty,CAST(NULL AS varchar(50)) AS location FOR JSON PATH),
-        'Open',@Now,@OperatorID,0,'pda',@Now FROM @P;
-    SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
-    MERGE dbo.WH_Inventory AS T
-    USING (SELECT LotNo,ItemNo,ItemName,Qty FROM @P) AS S ON S.LotNo=T.LotNo
-    WHEN MATCHED THEN UPDATE SET Qty=S.Qty,LocationNo=NULL,UpdatedAt=@Now
-    WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
-        VALUES(S.LotNo,'PART',S.ItemNo,S.ItemName,NULL,S.Qty,@Now,@Now,@Now);
-    INSERT dbo.WH_InventoryTransaction
-        (TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-         ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
-    SELECT @Now,'IN',ItemNo,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,
-        @OperatorID,@CleanNote,LEFT(COALESCE(NULLIF(@OperatorID,N''),N'pda'),20),@Now FROM @P;
-    COMMIT TRANSACTION;
-    SELECT @ReturnID AS ReturnID,* FROM @P;
+    IF NULLIF(LTRIM(RTRIM(@OperatorID)),N'') IS NULL THROW 52014,'A signed-in operator is required.',1;
+    DECLARE @P TABLE(Barcode varchar(80),LotID int,LotNo nvarchar(50),ShipmentOrderID int,
+        ShipOrderNumber varchar(40),CustomerID varchar(20),CustomerName nvarchar(200),
+        PartNo varchar(20),PartName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3));
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        INSERT @P EXEC dbo.FG_PDA_RETURN_SCAN @Barcode;
+        DECLARE @Now datetime2=SYSDATETIME(),@ReturnID int,@LotNo nvarchar(50)=(SELECT LotNo FROM @P);
+        IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@LotNo)
+            THROW 52005,'This product was already received as a customer return.',1;
+        IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@LotNo AND Qty<>0)
+            THROW 52015,'This LOT already has inventory. Resolve the existing stock before receiving a return.',1;
+        INSERT dbo.FG_CustomerReturn
+            (CustomerID,ShipmentOrderID,LotNo,LotID,PartNo,PartName,ReturnQty,
+             ReturnReason,Note,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
+        SELECT CustomerID,ShipmentOrderID,LotNo,LotID,PartNo,PartName,Qty,@Reason,@CleanNote,
+            'Open',@Now,@OperatorID,LEFT(@OperatorID,20),@Now FROM @P;
+        SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
+        MERGE dbo.WH_Inventory WITH(HOLDLOCK) AS T
+        USING(SELECT LotNo,PartNo,PartName,Qty FROM @P) S ON S.LotNo=T.LotNo
+        WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,UpdatedAt=@Now
+        WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+            VALUES(S.LotNo,'PART',S.PartNo,S.PartName,NULL,S.Qty,@Now,@Now,@Now);
+        INSERT dbo.WH_InventoryTransaction
+            (TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,
+             ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
+        SELECT @Now,'IN',PartNo,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,
+            @OperatorID,@CleanNote,LEFT(@OperatorID,20),@Now FROM @P;
+        COMMIT TRANSACTION;
+        SELECT @ReturnID ReturnID,* FROM @P;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 
@@ -328,7 +333,7 @@ BEGIN
             T.TransactionType Direction,T.OperatorID Worker,T.ReasonCode,T.Note ReasonNote,T.ApproverID Supervisor,
             T.QtyBefore BeforeQty,T.QtyChange DeltaQty,T.QtyAfter AfterQty,T.SourceType Source,T.Note Reference
         FROM dbo.WH_InventoryTransaction T
-        WHERE UPPER(COALESCE(T.SourceType,'')) LIKE 'FG%'
+        WHERE UPPER(COALESCE(T.SourceType,'')) LIKE 'FG%' AND T.SourceType<>'FG_RETURN'
         UNION ALL
         SELECT P.CreatedTS,CONCAT('IN-',P.PutAwayID),P.LotNo,P.ItemNo COLLATE DATABASE_DEFAULT,
             P.ActualLoc COLLATE DATABASE_DEFAULT,P.Qty,N'Put-Away','IN',
@@ -338,26 +343,26 @@ BEGIN
         FROM dbo.FG_PutAway P WHERE UPPER(COALESCE(P.Status,'')) NOT IN('CANCELLED','CANCELED')
         UNION ALL
         SELECT COALESCE(R.ReceivedAt,R.CreatedTS),CONCAT('RETURN-',R.ReturnID),R.LotNo,
-            R.ItemNo COLLATE DATABASE_DEFAULT,NULL,R.ReturnQty,N'Return','IN',
+            R.PartNo COLLATE DATABASE_DEFAULT,NULL,R.ReturnQty,N'Return','IN',
             COALESCE(R.ReceivedBy,R.CreatedBy) COLLATE DATABASE_DEFAULT,
             R.ReturnReason COLLATE DATABASE_DEFAULT,R.Note COLLATE DATABASE_DEFAULT,
-            NULL,NULL,NULL,NULL,N'FG_CustomerReturn',R.ReturnNumber COLLATE DATABASE_DEFAULT
+            NULL,NULL,NULL,NULL,N'FG_CustomerReturn',CONVERT(nvarchar(80),R.ReturnID) COLLATE DATABASE_DEFAULT
         FROM dbo.FG_CustomerReturn R WHERE UPPER(COALESCE(R.Status,'')) NOT IN('CANCELLED','CANCELED','REJECTED')
     )
     SELECT ROW_NUMBER() OVER(ORDER BY E.EventTime DESC,E.EventID DESC) AS ROW_NO,
-        COALESCE(NULLIF(E.LotNo COLLATE DATABASE_DEFAULT,''),'N/A') LOTNO,E.ItemNo PARTNO,CONVERT(nvarchar(10),E.EventTime,23) WDATE,
-        CONVERT(nvarchar(8),E.EventTime,108) WTIME,COALESCE(NULLIF(E.LocationID COLLATE DATABASE_DEFAULT,''),'N/A') LOCATION_NO,
+        COALESCE(NULLIF(E.LotNo COLLATE DATABASE_DEFAULT,''),'N/A') LOTNO,E.PartNo PARTNO,CONVERT(nvarchar(10),E.EventTime,23) WDATE,
+        CONVERT(nvarchar(8),E.EventTime,108) WTIME,COALESCE(NULLIF(E.LocationNo COLLATE DATABASE_DEFAULT,''),'N/A') LOCATION_NO,
         COALESCE(E.Qty,0) QTY,I.DefaultUOM UNIT,E.Status STATUS,E.Direction DIRECTION,
         COALESCE(NULLIF(U.UserName COLLATE DATABASE_DEFAULT,''),E.Worker COLLATE DATABASE_DEFAULT) WORKER_ID,E.ReasonCode REASON_CODE,E.ReasonNote REASON_NOTE,
         E.Supervisor SUPERVISOR,E.BeforeQty BEFORE_QTY,E.DeltaQty DELTA_QTY,E.AfterQty AFTER_QTY,
         NULL BEFORE_STATUS,NULL AFTER_STATUS,NULL BEFORE_LOCATION,NULL AFTER_LOCATION,E.Source SOURCE,E.Reference NOTE
-    FROM Events E LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=E.ItemNo
+    FROM Events E LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=E.PartNo
     LEFT JOIN dbo.AspNetUsers U ON U.Id COLLATE DATABASE_DEFAULT=E.Worker
     WHERE E.EventTime>=@From AND E.EventTime<DATEADD(day,1,@To)
       AND (@Search IS NULL OR E.LotNo COLLATE DATABASE_DEFAULT LIKE @Search
-        OR E.ItemNo COLLATE DATABASE_DEFAULT LIKE @Search
+        OR E.PartNo COLLATE DATABASE_DEFAULT LIKE @Search
         OR I.ItemName COLLATE DATABASE_DEFAULT LIKE @Search
-        OR E.LocationID COLLATE DATABASE_DEFAULT LIKE @Search
+        OR E.LocationNo COLLATE DATABASE_DEFAULT LIKE @Search
         OR E.Reference COLLATE DATABASE_DEFAULT LIKE @Search)
     ORDER BY E.EventTime DESC,E.EventID DESC;
 END;

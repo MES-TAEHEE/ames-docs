@@ -121,8 +121,8 @@ FILES=(
   migrate_scm_delivery_note.sql      # 딜리버리 노트 발행 스냅샷
   migrate_scm_delivery_note_batch.sql      # 복수 납품서 딜리버리 노트
   migrate_portal_legacy_cleanup.sql   # 구 외부 역할 ExternalCustomer·계정·포탈 RBAC 정리 (신규 DB 에서는 no-op)
-  seed_portal_dev.sql                 #   → 개발용 외부 사용자 adminext@ames.local → V1007 (admin 과 같은 비밀번호)
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions
+  seed_portal_dev.sql                 # optional development user; requires the vendor from PDA_SEED
   cleanup_legacy_sis_test.sql
   cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)
   migrate_user_profile_backfill.sql   # 프로필 없는 내부 계정 보강(역할 있음 ACTIVE·없음 INACTIVE) — 시드가 만든 계정까지 보도록 맨 끝
@@ -138,6 +138,9 @@ FILES=(
   migrate_mnt_failure_action_wo.sql  #고장 조치 이력의 작업지시(MNT_FailureAction.WorkOrderID) — 부분 완료한 원래 작업지시에서도 고장이 보이게(10-14)
   migrate_pp_lineoee_unique.sql      # PP-OEE 스냅샷 (LineID, PeriodDate, ShiftCode) 유니크 인덱스 — 스키마에 이미 있으면 건너뜀(10-14)
   migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
+  migrate_fg_customer_return_columns.sql # Canonical return/customer/part fields and PDA procedures
+  migrate_wh_fg_scm_column_lengths.sql # WH/FG/SCM keys and 20-byte actor codes
+  migrate_fg_location_type.sql # FG-area locations use the explicit FG location type
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
 )
 
@@ -182,6 +185,15 @@ docker cp "$DIST_DIR/." "$CONTAINER:/tmp/dist/"
 # 3) 스키마 → 시드 순서대로 적용
 echo "[3/3] 스키마 + 시드 적용..."
 for f in "${FILES[@]}"; do
+  if [[ "$f" == "pda/PDA_SEED.sql" || "$f" == "seed_portal_dev.sql" ]]; then
+    if [[ "${AMES_DEVELOPMENT_SEEDS:-0}" != "1" ]]; then
+      echo "  -> $f skipped (development seed opt-in required)"
+      continue
+    fi
+    printf '%s\n' "EXEC sys.sp_set_session_context @key=N'AMES_DEVELOPMENT_SEED', @value=1;" "GO" ":r /tmp/dist/$f" |
+      docker exec -i "$CONTAINER" "$SQLCMD" "${sql_base[@]}" -d "$DB"
+    continue
+  fi
   echo "  -> $f"
   run_file "$f"
 done

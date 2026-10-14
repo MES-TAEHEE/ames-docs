@@ -23,7 +23,9 @@ public static class AuthEndpoints
 
         g.MapPost("/login", (LoginDto body) =>
         {
-            if (!app.Environment.IsDevelopment() && PdaScenarioUsers.IsAny(body.EmployeeNo))
+            if (!LoginInput.Valid(body.EmployeeNo, 20) || !LoginInput.ValidContext(body.TerminalId, body.LineId, body.ShiftCode))
+                return Results.BadRequest(new { message = "Employee, terminal and line must be within 20 bytes; shift within 10 bytes." });
+            if (!app.Environment.IsDevelopment() && PdaScenarioUsers.IsTestAccount(body.EmployeeNo))
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
             var outcome = auth.Login(new LoginRequest
             {
@@ -35,19 +37,17 @@ public static class AuthEndpoints
                 ShiftCode   = body.ShiftCode,
             });
 
-            return LoginResult(outcome, tokens);
-        });
+            return LoginResult(outcome, tokens, sessions);
+        }).RequireRateLimiting("login");
 
         g.MapPost("/barcode-login", (BarcodeLoginDto body) =>
         {
             var badge = BadgeScanParser.Parse(body.Barcode);
-            if (!app.Environment.IsDevelopment() && PdaScenarioUsers.IsAny(badge.WorkerNo))
+            if (!badge.IsEosFormat || !LoginInput.Valid(badge.WorkerNo, 20)
+                || !LoginInput.ValidContext(body.TerminalId, body.LineId, body.ShiftCode))
+                return Results.BadRequest(new { message = "Scan a valid EOS employee badge and select a terminal, line and shift." });
+            if (!app.Environment.IsDevelopment() && PdaScenarioUsers.IsTestAccount(badge.WorkerNo))
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
-            if (badge.WorkerNo.Length is 0 or > 20)
-                return Results.Ok(new LoginResultDto(
-                    Token: "", Result: AuthResult.BadCredentials, Reason: "Invalid employee barcode.",
-                    EmployeeNo: null, EmployeeName: null, LineId: null, ShiftCode: null, ExpiresAt: null));
-
             var outcome = auth.Login(new LoginRequest
             {
                 AttemptedId = badge.WorkerNo,
@@ -58,8 +58,8 @@ public static class AuthEndpoints
                 ShiftCode   = body.ShiftCode,
             });
 
-            return LoginResult(outcome, tokens);
-        });
+            return LoginResult(outcome, tokens, sessions);
+        }).RequireRateLimiting("login");
 
         g.MapPost("/logout", (HttpContext ctx) =>
         {
@@ -77,14 +77,21 @@ public static class AuthEndpoints
         });
     }
 
-    private static IResult LoginResult(LoginOutcome outcome, TokenStore tokens)
+    private static IResult LoginResult(LoginOutcome outcome, TokenStore tokens, PopSessionRepository sessions)
     {
         if (!outcome.IsSuccess || outcome.Session is null)
             return Results.Ok(new LoginResultDto(
                 Token: "", Result: outcome.Result, Reason: outcome.FailReason,
                 EmployeeNo: null, EmployeeName: null, LineId: null, ShiftCode: null, ExpiresAt: null));
 
-        var token = tokens.Issue(outcome.Session);
+        string token;
+        try { token = tokens.Issue(outcome.Session); }
+        catch
+        {
+            try { sessions.CloseSession(outcome.Session.SessionId, "TOKEN_FAILED", outcome.Session.EmployeeNo); }
+            catch { /* Keep the token-persistence failure as the original error. */ }
+            throw;
+        }
         return Results.Ok(new LoginResultDto(
             Token: token, Result: outcome.Result, Reason: null,
             EmployeeNo: outcome.Session.EmployeeNo,

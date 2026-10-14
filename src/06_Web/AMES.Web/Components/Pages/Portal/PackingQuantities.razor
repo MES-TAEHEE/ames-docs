@@ -4,6 +4,7 @@
 @inject ScmRepository Scm
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<PackingQuantities> Logger
+@inject AuditLogger Audit
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>@L["Portal.Text.PackingQuantities"] · AMES</PageTitle>
@@ -91,6 +92,8 @@
             var saved=await Task.Run(()=>Scm.SavePortalPackingQuantity(_user,row.Source.ItemNo,row.Source.VendorID,quantity,row.Source.PackingQty));
             if(!saved)
             {_message=L["Portal.Text.TheItemMappingOrPackingQuantityChangedDiscardChanges"];return;}
+            Audit.Updated("PORTAL-004", "SCM_ItemVendor", $"{row.Source.VendorID}/{row.Source.ItemNo}",
+                new { PackingQty=row.Source.PackingQty }, new { PackingQty=quantity });
             row.Source=row.Source with {PackingQty=quantity,Linked=true};
             _error=false;_message=L["Portal.Text.Saved"];
         }

@@ -18,17 +18,23 @@ public sealed class PopAuthService
     private readonly AuthRepository       _auth;
     private readonly WorkerRepository     _workers;
     private readonly PopSessionRepository _sessions;
+    private readonly bool _allowTestAccounts;
 
-    public PopAuthService(AuthRepository auth, WorkerRepository workers, PopSessionRepository sessions)
+    public PopAuthService(AuthRepository auth, WorkerRepository workers, PopSessionRepository sessions, bool? allowTestAccounts = null)
     {
         _auth     = auth     ?? throw new ArgumentNullException(nameof(auth));
         _workers  = workers  ?? throw new ArgumentNullException(nameof(workers));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
+        _allowTestAccounts=allowTestAccounts ?? string.Equals(
+            Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+            "Development",StringComparison.OrdinalIgnoreCase);
     }
 
     public LoginOutcome Login(LoginRequest req)
     {
         ArgumentNullException.ThrowIfNull(req);
+        if (PdaScenarioUsers.IsTestAccount(req.AttemptedId) && !_allowTestAccounts)
+            return LoginOutcome.Failure(AuthResult.InactiveAccount, "Test accounts are disabled outside Development.");
 
         // 1) Find the operator. Both Badge and Pin paths key off EmployeeNo
         //    because the badge barcode encodes the EmployeeNo as well.

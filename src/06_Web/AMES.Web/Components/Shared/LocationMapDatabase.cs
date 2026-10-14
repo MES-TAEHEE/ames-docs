@@ -33,7 +33,7 @@ public static class LocationMapDatabase
             x.WhCode, warehouses.GetValueOrDefault(x.WhCode, x.WhCode), x.AreaCode,
             areas.FirstOrDefault(a => a.WarehouseCode == x.WhCode && a.AreaCode == x.AreaCode)?.AreaName ?? x.AreaCode,
             x.ZoneCode ?? "", x.ZoneCode, x.Aisle ?? "-", x.Bay ?? "-", x.Slot ?? "-",
-            qty.GetValueOrDefault(x.LocationID), qty.GetValueOrDefault(x.LocationID) > 0 ? "STOCKED" : "EMPTY")).ToList();
+            qty.GetValueOrDefault(x.LocationID), qty.GetValueOrDefault(x.LocationID) > 0 ? "STOCKED" : "EMPTY", x.Capacity)).ToList();
         return (areas, cells, inventory);
     }
 }

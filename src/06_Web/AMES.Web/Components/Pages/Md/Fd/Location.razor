@@ -14,6 +14,7 @@
 @inject WarehouseRepository Warehouse
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject DialogService Dialog
 
 <PageTitle>MD-018 @L["MD.Location.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-018" TitleKey="MD.Location.Title" />
@@ -370,12 +371,24 @@
 
     async Task SaveEdit()
     {
-        if (!_canEdit) return;
+        if (!_canEdit || _busy) return;
         if (_sel is null) return;
+        _modalErr = "";
         _busy = true;
         try
         {
             if (_f.Capacity is not null && _f.Capacity != decimal.Truncate(_f.Capacity.Value)) throw new InvalidOperationException("Load Capacity must be a whole number.");
+            if (_f.Capacity != _sel.Capacity)
+            {
+                var currentQty = Warehouse.GetLocationStockQty(_sel.LocationID);
+                if (AMES.Data.Services.LocationCapacity.ShouldWarnOnReduction(currentQty, _sel.Capacity, _f.Capacity))
+                {
+                    var confirmed = await Dialog.Confirm(
+                        $"Current stock at {_sel.LocationID} is {currentQty:N0}, above the new Load Capacity of {_f.Capacity:N0}. Save this lower capacity anyway?",
+                        "Load Capacity Warning", new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" });
+                    if (confirmed != true) return;
+                }
+            }
             MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), _sel.WhCode, _sel.AreaCode, _sel.ZoneCode,
                 _sel.Aisle, _sel.Bay, _sel.Slot,
                 _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor);

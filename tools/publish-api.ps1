@@ -128,6 +128,11 @@ if ($Target -eq 'Local') {
     }
 
     if (-not (Test-Path $LiveDir)) { throw "IIS 배포 폴더가 없습니다: $LiveDir (처음이면 -EnsureIis)" }
+    Import-Module WebAdministration
+    Set-ItemProperty "IIS:\AppPools\$PoolName" -Name startMode -Value AlwaysRunning
+    Set-ItemProperty "IIS:\AppPools\$PoolName" -Name processModel.idleTimeout -Value ([TimeSpan]::Zero)
+    Set-ItemProperty "IIS:\Sites\$SiteName" -Name applicationDefaults.preloadEnabled -Value $true
+    Set-ItemProperty "IIS:\Sites\$SiteName" -Name serverAutoStart -Value $true
 
     $offline = Join-Path $LiveDir 'app_offline.htm'
     Write-Step "앱 정지 (app_offline.htm)"

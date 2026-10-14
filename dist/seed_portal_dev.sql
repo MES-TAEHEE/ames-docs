@@ -10,6 +10,12 @@
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 GO
+IF COALESCE(TRY_CONVERT(int,SESSION_CONTEXT(N'AMES_DEVELOPMENT_SEED')),0)<>1
+BEGIN
+    RAISERROR('Development seed disabled. Explicit AMES_DEVELOPMENT_SEED session opt-in is required.',16,1);
+    SET NOEXEC ON;
+END;
+GO
 
 DECLARE @hash NVARCHAR(200) = (SELECT PasswordHash FROM dbo.AspNetUsers WHERE NormalizedUserName = 'ADMIN@AMES.LOCAL');
 IF @hash IS NULL BEGIN RAISERROR(N'admin@ames.local 이 없다 — seed_admin_permissions.sql 먼저', 16, 1); RETURN; END

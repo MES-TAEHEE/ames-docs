@@ -8,6 +8,24 @@ namespace AMES.Api.Tests;
 public class TokenStoreTests
 {
     [Fact]
+    public void Revoked_account_is_rechecked_within_one_minute_not_every_request()
+    {
+        long tick=0;int reads=0;
+        var now=new DateTime(2000,1,1);
+        var store=new TokenStore(()=>now,()=>tick,1,refresh:_=>{reads++;return null;});
+        var token=store.Issue(new PopSessionDto
+        {
+            SessionId=1,OperatorId="TEST",EmployeeNo="TEST",EmployeeName="Test",TerminalId="PDA",LineId="01",
+            ShiftCode="DAY",AuthMethod=AuthMethod.Badge,StartedAt=now,ExpiresAt=now.AddHours(12),IsAdmin=true
+        });
+        for(var i=0;i<10;i++) Assert.NotNull(store.Resolve(token));
+        Assert.Equal(0,reads);
+        tick=60;
+        Assert.Null(store.Resolve(token));
+        Assert.Equal(1,reads);
+        Assert.Null(store.Resolve(token));
+    }
+    [Fact]
     public void Expiration_uses_database_time_not_host_local_or_utc_time()
     {
         var now = new DateTime(2000, 1, 1, 23, 59, 0);

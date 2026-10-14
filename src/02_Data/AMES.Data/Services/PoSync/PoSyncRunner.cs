@@ -21,7 +21,7 @@ public sealed class PoSyncRunner(AmesConnectionFactory f, IPoSource source)
 
     public async Task<PoSyncRunResult> RunAsync(PoSyncSource s, CancellationToken ct)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(DbClock.ReadNow(f));
         var from  = today.AddDays(s.WindowFrom);
         var to    = today.AddDays(s.WindowTo);
         try
@@ -49,7 +49,7 @@ public sealed class PoSyncRunner(AmesConnectionFactory f, IPoSource source)
     /// <summary>설정이 깨진 소스도 모니터에 ERROR 로 보이게 한다 — 그래야 등록 실수를 화면에서 알아챈다.</summary>
     public PoSyncRunResult RecordConfigError(PoSyncConfigError e)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(DbClock.ReadNow(f));
         TryRecord(PoSyncConfig.InterfaceCodeFor(e.Key), e.Name, "", 0, "설정 오류: " + e.Message);
         return new PoSyncRunResult(e.Key, false, 0, 0, 0, 0, 0, "설정 오류: " + e.Message, today, today);
     }

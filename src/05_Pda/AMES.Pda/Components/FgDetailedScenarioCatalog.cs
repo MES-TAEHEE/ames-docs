@@ -19,11 +19,9 @@ public static class FgDetailedScenarioCatalog
     public static PptScenarioPanel.Step[] PutAway(PptScenarioPanel.Step[] source) => Build("FG002", source,
         new(1,"FG LOT 스캔","POP 생산 완료된 정상 FG LOT을 스캔하면 Put-Away가 시작되는지 확인합니다."), new(1,"초기 화면 구성","Barcode 입력부와 CLEAR, CONFIRM 버튼이 표시되는지 확인합니다."),
         new(1,"확정 버튼 비활성화","필수 바코드를 스캔하기 전에는 CONFIRM이 비활성화되는지 확인합니다."), new(2,"LOT 정보","스캔한 LOT의 Part, Qty, Ready Date가 정확히 표시되는지 확인합니다."),
-        new(2,"보관 방식 선택","LOT 확인 후 Storage 선택이 필수인지 확인합니다."), new(3,"보관 방식 항목","Box, Pallet, Rack, Location Only 항목이 모두 표시되는지 확인합니다."),
-        new(3,"보관 단위 바코드","Box, Pallet, Rack 선택 시 해당 보관 단위 바코드 스캔이 필요한지 확인합니다."), new(3,"다음 스캔 안내","선택한 보관 방식에 따라 Next Scan 안내가 변경되는지 확인합니다."),
-        new(4,"Location 스캔 단계","정상 보관 단위 스캔 후 Location Barcode 단계로 이동하는지 확인합니다."), new(4,"자동 이동 및 강조","화면이 Location 입력부로 자동 이동하고 입력부가 강조되는지 확인합니다."),
-        new(5,"Location 상세 정보","Zone, Bay, Slot, Current, Free 정보가 표시되는지 확인합니다."), new(5,"적재 확정","CONFIRM 실행 시 보관 방식과 Location이 저장되는지 확인합니다."),
-        new(5,"입력 초기화","CLEAR 실행 시 완료되지 않은 작업 내용이 초기화되는지 확인합니다."));
+        new(2,"Location 스캔 단계","정상 LOT 스캔 후 보관 방식 선택 없이 Location Barcode 단계로 이동하는지 확인합니다."), new(2,"자동 이동 및 강조","화면이 Location 입력부로 자동 이동하고 입력부가 강조되는지 확인합니다."),
+        new(3,"Location 상세 정보","Area, Aisle, Bay, Slot, Current, Load Capacity가 표시되고 미설정 용량은 -로 표시되는지 확인합니다."), new(3,"적재 확정","CONFIRM 실행 시 스캔한 Location에 제품이 저장되는지 확인합니다."),
+        new(3,"입력 초기화","CLEAR 실행 시 완료되지 않은 작업 내용이 초기화되는지 확인합니다."));
 
     public static PptScenarioPanel.Step[] Inventory(PptScenarioPanel.Step[] source) => Build("FG003", source,
         new(1,"재고 Location 목록","FG 재고가 있는 Location만 목록에 표시되는지 확인합니다."), new(1,"Location 수량","Location과 Qty가 실제 재고와 일치하는지 확인합니다."),

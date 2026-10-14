@@ -11,7 +11,12 @@ public sealed partial class WarehouseRepository
 
     private readonly AmesConnectionFactory _factory;
 
-    public WarehouseRepository(AmesConnectionFactory factory) => _factory = factory;
+    private readonly Func<string> _actor;
+    public WarehouseRepository(AmesConnectionFactory factory, Func<string>? actor = null)
+    {
+        _factory = factory;
+        _actor = actor ?? (() => "WH-SVC");
+    }
 
     public record WarehouseLocationRow(
         string LocationNo,
@@ -391,15 +396,17 @@ public sealed partial class WarehouseRepository
             USING (SELECT CONCAT('WH_CODE_',@WhCode) AS CodeID) AS src ON tgt.CodeID=src.CodeID
             WHEN MATCHED THEN UPDATE SET
                 CodeName=@WhName,UseFlag=@UseYn,
-                ModifiedBy = 'web',
+                ModifiedBy = @Actor,
                 ModifiedTS = SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT
                 (CodeID,GroupCode,CodeValue,CodeName,SortOrder,UseFlag,CreatedBy,CreatedTS)
             VALUES
-                (src.CodeID,'WH_CODE',@WhCode,@WhName,100,@UseYn,'web',SYSDATETIME());
+                (src.CodeID,'WH_CODE',@WhCode,@WhName,100,@UseYn,@Actor,SYSDATETIME());
+
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = Truncate(whCode.Trim(), 20);
-        AddNullable(cmd, "@WhName", SqlDbType.NVarChar, 60, whName);
+        ColumnParams.Add(cmd,"@WhName","MD_CodeItem.CodeName",NullIfBlank(whName));
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
         cmd.ExecuteNonQuery();
     }
@@ -541,16 +548,18 @@ public sealed partial class WarehouseRepository
             MERGE dbo.MD_CodeItem AS tgt
             USING(SELECT CONCAT('WH_ZONE_',@SectionCode) CodeID) src ON src.CodeID=tgt.CodeID
             WHEN MATCHED THEN UPDATE SET
-                CodeName=@SectionName,UseFlag=@UseYn,ModifiedBy='web',ModifiedTS=SYSDATETIME()
+                CodeName=@SectionName,UseFlag=@UseYn,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT
                 (CodeID,GroupCode,CodeValue,CodeName,SortOrder,UseFlag,CreatedBy,CreatedTS)
             VALUES
-                (src.CodeID,'WH_ZONE',@SectionCode,@SectionName,100,@UseYn,'web',SYSDATETIME());
+                (src.CodeID,'WH_ZONE',@SectionCode,@SectionName,100,@UseYn,@Actor,SYSDATETIME());
+
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(Truncate(whCode?.Trim() ?? "", 20)) ?? DBNull.Value;
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = Truncate(areaCode.Trim(), 20);
         cmd.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = Truncate(sectionCode.Trim(), 20);
-        AddNullable(cmd, "@SectionName", SqlDbType.NVarChar, 60, sectionName);
+        ColumnParams.Add(cmd,"@SectionName","MD_CodeItem.CodeName",NullIfBlank(sectionName));
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
         cmd.ExecuteNonQuery();
     }
@@ -609,18 +618,20 @@ public sealed partial class WarehouseRepository
             WHEN MATCHED THEN UPDATE SET
                 ParentCodeID=CASE WHEN @WhCode IS NULL THEN NULL ELSE CONCAT('WH_CODE_',@WhCode) END,
                 CodeName=@AreaName,UseFlag=@UseYn,
-                ModifiedBy = 'web',
+                ModifiedBy = @Actor,
                 ModifiedTS = SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT
                 (CodeID,GroupCode,CodeValue,CodeName,ParentCodeID,SortOrder,UseFlag,CreatedBy,CreatedTS)
             VALUES
                 (src.CodeID,'WH_AREA',@AreaCode,@AreaName,
                  CASE WHEN @WhCode IS NULL THEN NULL ELSE CONCAT('WH_CODE_',@WhCode) END,
-                 100,@UseYn,'web',SYSDATETIME());
+                 100,@UseYn,@Actor,SYSDATETIME());
+
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(Truncate(whCode?.Trim() ?? "", 20)) ?? DBNull.Value;
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = Truncate(areaCode.Trim(), 20);
-        AddNullable(cmd, "@AreaName", SqlDbType.NVarChar, 60, areaName);
+        ColumnParams.Add(cmd,"@AreaName","MD_CodeItem.CodeName",NullIfBlank(areaName));
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
         cmd.ExecuteNonQuery();
     }
@@ -716,7 +727,7 @@ public sealed partial class WarehouseRepository
                              AND parent.LocationNo NOT IN (SELECT LocationID FROM #Scope)))
                 THROW 51025,'Inventory is linked to a parent outside this scope.',1;
 
-            UPDATE l SET ActiveFlag=0, ModifiedBy='web', ModifiedTS=SYSDATETIME()
+            UPDATE l SET ActiveFlag=0, ModifiedBy=@Actor, ModifiedTS=SYSDATETIME()
             FROM dbo.MD_Location l JOIN #Scope s ON s.LocationID=l.LocationID;
             IF @Floor IS NULL AND @Area IS NULL
             BEGIN
@@ -726,6 +737,7 @@ public sealed partial class WarehouseRepository
             IF @Floor IS NULL AND @Area IS NOT NULL
                 DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);
             """, conn, tx);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
         cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = (object?)areaCode ?? DBNull.Value;
         cmd.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = (object?)floor ?? DBNull.Value;
@@ -738,8 +750,17 @@ public sealed partial class WarehouseRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "SELECT 1 FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn);
-        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 50).Value = locationNo;
+        ColumnParams.AddFilter(cmd,"@LocationNo","MD_Location.LocationID",locationNo);
         return cmd.ExecuteScalar() is not null;
+    }
+
+    public decimal GetLocationStockQty(string locationNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "SELECT COALESCE(SUM(Qty),0) FROM dbo.WH_Inventory WHERE LocationNo=@LocationNo AND Qty>0;", conn);
+        ColumnParams.AddFilter(cmd, "@LocationNo", "WH_Inventory.LocationNo", locationNo);
+        return Convert.ToDecimal(cmd.ExecuteScalar());
     }
 
     public void InsertLocation(
@@ -763,8 +784,10 @@ public sealed partial class WarehouseRepository
                  LocationType, PlantCode, ActiveFlag, CreatedBy, CreatedTS)
             VALUES
                 (@LocationNo, @LocationName, @WhCode, @AreaCode, @ZoneCode, @RackX, @RackY, @RackZ,
-                 @LocationType, @PlantCode, @UseYn, 'web', SYSDATETIME());
+                 @LocationType, @PlantCode, @UseYn, @Actor, SYSDATETIME());
+
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         AddLocationParameters(cmd, locationNo, locationName, whCode,
             areaCode, areaName, zoneCode, zoneName, rackX, rackY, rackZ, useYn);
         cmd.ExecuteNonQuery();
@@ -797,10 +820,12 @@ public sealed partial class WarehouseRepository
                 LocationType = @LocationType,
                 PlantCode = @PlantCode,
                 ActiveFlag = @UseYn,
-                ModifiedBy = 'web',
+                ModifiedBy = @Actor,
                 ModifiedTS = SYSDATETIME()
             WHERE LocationID = @LocationNo;
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
+
         AddLocationParameters(cmd, locationNo, locationName, whCode,
             areaCode, areaName, zoneCode, zoneName, rackX, rackY, rackZ, useYn);
         cmd.ExecuteNonQuery();
@@ -809,15 +834,17 @@ public sealed partial class WarehouseRepository
     public void DeleteLocation(string locationNo)
     {
         using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
         using var check = new SqlCommand(
-            "SELECT COUNT(1) FROM dbo.WH_Inventory WHERE LocationNo=@LocationNo AND Qty<>0;", conn);
-        check.Parameters.Add("@LocationNo", SqlDbType.VarChar, 50).Value = locationNo;
+            "SELECT COUNT(1) FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LocationNo=@LocationNo AND Qty<>0;", conn, tx);
+        ColumnParams.AddFilter(check,"@LocationNo","WH_Inventory.LocationNo",locationNo);
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)
             throw new InvalidOperationException("Location has inventory and cannot be deleted.");
 
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn);
-        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 50).Value = locationNo;
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn, tx);
+        ColumnParams.AddFilter(cmd,"@LocationNo","MD_Location.LocationID",locationNo);
         cmd.ExecuteNonQuery();
+        tx.Commit();
     }
 
     public void UpdateOrInsertLocation(
@@ -881,8 +908,9 @@ public sealed partial class WarehouseRepository
                            AND NULLIF(Attribute1,'') IS NOT NULL AND Attribute1<>@Prefix)
                    AND EXISTS (SELECT 1 FROM dbo.MD_Location WHERE AreaCode=@Area)
                     THROW 51005, 'Area prefix cannot change after locations are created.', 1;
-                UPDATE dbo.MD_CodeItem SET Attribute1=@Prefix,ModifiedBy='web',ModifiedTS=SYSDATETIME()
+                UPDATE dbo.MD_CodeItem SET Attribute1=@Prefix,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
                 WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);
+
                 IF @@ROWCOUNT=0 THROW 51003, 'Area is not in this warehouse.', 1;
             END
             ELSE
@@ -890,13 +918,14 @@ public sealed partial class WarehouseRepository
                 IF @Name IS NULL THROW 51004, 'Area does not exist.', 1;
                 INSERT dbo.MD_CodeItem
                     (CodeID,GroupCode,CodeValue,CodeName,ParentCodeID,Attribute1,SortOrder,UseFlag,CreatedBy,CreatedTS)
-                VALUES (CONCAT('WH_AREA_',@Area),'WH_AREA',@Area,@Name,CONCAT('WH_CODE_',@Wh),@Prefix,100,1,'web',SYSDATETIME());
+                VALUES (CONCAT('WH_AREA_',@Area),'WH_AREA',@Area,@Name,CONCAT('WH_CODE_',@Wh),@Prefix,100,1,@Actor,SYSDATETIME());
             END
             """, conn, tx);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
         cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
         cmd.Parameters.Add("@Prefix", SqlDbType.NVarChar, 200).Value = prefix;
-        cmd.Parameters.Add("@Name", SqlDbType.NVarChar, 60).Value = (object?)areaName ?? DBNull.Value;
+        ColumnParams.Add(cmd,"@Name","MD_CodeItem.CodeName",areaName);
         cmd.ExecuteNonQuery();
         tx.Commit();
     }
@@ -935,7 +964,8 @@ public sealed partial class WarehouseRepository
                 }
             }
             prefix = LocationMapNaming.AvailablePrefix(areaCode, used);
-            using var savePrefix = new SqlCommand("UPDATE dbo.MD_CodeItem SET Attribute1=@Prefix,ModifiedBy='web',ModifiedTS=SYSDATETIME() WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);", conn, tx);
+            using var savePrefix = new SqlCommand("UPDATE dbo.MD_CodeItem SET Attribute1=@Prefix,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);", conn, tx);
+            ColumnParams.Add(savePrefix, "@Actor", "MD_Location.CreatedBy", _actor());
             savePrefix.Parameters.Add("@Prefix", SqlDbType.NVarChar, 200).Value = prefix;
             savePrefix.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
             savePrefix.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
@@ -965,11 +995,13 @@ public sealed partial class WarehouseRepository
             var id = LocationMapNaming.LocationNo(prefix, cell.Column, cell.Row, cell.Floor);
             using var insert = new SqlCommand("""
                 INSERT INTO dbo.MD_Location
-                    (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,Capacity,ActiveFlag,CreatedBy)
-                VALUES (@Id,@Name,@Wh,@Area,@Row,@Column,@Floor,@Capacity,1,'web');
+                    (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,Capacity,LocationType,ActiveFlag,CreatedBy)
+                VALUES (@Id,@Name,@Wh,@Area,@Row,@Column,@Floor,@Capacity,CASE WHEN UPPER(@Area)='FG_AREA' THEN 'FG' END,1,@Actor);
+
                 """, conn, tx);
+            ColumnParams.Add(insert, "@Actor", "MD_Location.CreatedBy", _actor());
             insert.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
-            insert.Parameters.Add("@Name", SqlDbType.NVarChar, 60).Value = planned.Contains(cell) && !string.IsNullOrWhiteSpace(name) ? name.Trim() : id;
+            ColumnParams.Add(insert,"@Name","MD_Location.LocationName",planned.Contains(cell) && !string.IsNullOrWhiteSpace(name) ? name.Trim() : id);
             insert.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
             insert.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
             insert.Parameters.Add("@Row", SqlDbType.VarChar, 5).Value = cell.Row;
@@ -1047,9 +1079,11 @@ public sealed partial class WarehouseRepository
         {
             var id = LocationMapNaming.LocationNo(prefix, cell.Bay, cell.Aisle, floor);
             using var insert = new SqlCommand("""
-                INSERT dbo.MD_Location (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,ActiveFlag,CreatedBy)
-                VALUES (@Id,@Id,@Wh,@Area,@Aisle,@Bay,@Floor,1,'web');
+                INSERT dbo.MD_Location (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,LocationType,ActiveFlag,CreatedBy)
+                VALUES (@Id,@Id,@Wh,@Area,@Aisle,@Bay,@Floor,CASE WHEN UPPER(@Area)='FG_AREA' THEN 'FG' END,1,@Actor);
+
                 """, conn, tx);
+            ColumnParams.Add(insert, "@Actor", "MD_Location.CreatedBy", _actor());
             insert.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
             insert.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
             insert.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
@@ -1972,16 +2006,17 @@ public sealed partial class WarehouseRepository
         string? rackZ,
         bool useYn)
     {
-        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 50).Value = locationNo;
-        AddNullable(cmd, "@LocationName", SqlDbType.NVarChar, 120, locationName);
-        AddNullable(cmd, "@WhCode", SqlDbType.VarChar, 20, whCode);
-        AddNullable(cmd, "@AreaCode", SqlDbType.VarChar, 20, areaCode);
-        AddNullable(cmd, "@PlantCode", SqlDbType.VarChar, 20, whCode);
-        AddNullable(cmd, "@ZoneCode", SqlDbType.VarChar, 20, zoneCode);
-        AddNullable(cmd, "@LocationType", SqlDbType.VarChar, 20, FirstNonBlank(zoneCode, zoneName, areaName));
-        AddNullable(cmd, "@RackX", SqlDbType.VarChar, 5, rackX);
-        AddNullable(cmd, "@RackY", SqlDbType.VarChar, 5, rackY);
-        AddNullable(cmd, "@RackZ", SqlDbType.VarChar, 5, rackZ);
+        ColumnParams.Add(cmd, "@LocationNo", "MD_Location.LocationID", locationNo);
+        ColumnParams.Add(cmd, "@LocationName", "MD_Location.LocationName", NullIfBlank(locationName));
+        ColumnParams.Add(cmd,"@WhCode","MD_Location.WhCode",NullIfBlank(whCode));
+        ColumnParams.Add(cmd,"@AreaCode","MD_Location.AreaCode",NullIfBlank(areaCode));
+        ColumnParams.Add(cmd,"@PlantCode","MD_Location.PlantCode",NullIfBlank(whCode));
+        ColumnParams.Add(cmd,"@ZoneCode","MD_Location.ZoneCode",NullIfBlank(zoneCode));
+        ColumnParams.Add(cmd,"@LocationType","MD_Location.LocationType",
+            string.Equals(areaCode?.Trim(), "FG_AREA", StringComparison.OrdinalIgnoreCase) ? "FG" : FirstNonBlank(zoneCode,zoneName,areaName));
+        ColumnParams.Add(cmd,"@RackX","MD_Location.Aisle",NullIfBlank(rackX));
+        ColumnParams.Add(cmd,"@RackY","MD_Location.Bay",NullIfBlank(rackY));
+        ColumnParams.Add(cmd,"@RackZ","MD_Location.Slot",NullIfBlank(rackZ));
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
     }
 
@@ -2009,13 +2044,8 @@ public sealed partial class WarehouseRepository
     private static string Truncate(string value, int maxLength)
     {
         value = value.Trim();
-        return value.Length <= maxLength ? value : value[..maxLength];
-    }
-
-    private static void AddNullable(SqlCommand cmd, string name, SqlDbType type, int size, string? value)
-    {
-        var p = cmd.Parameters.Add(name, type, size);
-        p.Value = string.IsNullOrWhiteSpace(value) ? DBNull.Value : value.Trim();
+        if (value.Length>maxLength) throw new ArgumentException($"Value must be at most {maxLength} characters.");
+        return value;
     }
 
     private static string? TruncateOrNull(string? value, int maxLength)

@@ -1025,98 +1025,8 @@ public static class WhEndpoints
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             }
 
-            using var tx = conn.BeginTransaction();
-
-            var row = ValidateReleaseLot(conn, tx, body.PickSlipNo, body.LotNo);
-            if (!row.IsValid)
-            {
-                tx.Rollback();
-                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "RELEASE_PICK", "WH003", "LOT", body.LotNo, "FAIL", row.Message,
-                    refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
-                    lotNo: row.LotNo ?? body.LotNo, partNo: row.ItemNo, locationId: row.LocationNo, qty: body.Qty));
-                return Results.BadRequest(new PickResult(false, row.Message ?? "LOT cannot be picked.", row));
-            }
-
-            var pickQty = body.Qty <= 0 ? row.Qty : body.Qty;
-            if (pickQty != row.Qty)
-            {
-                tx.Rollback();
-                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "RELEASE_PICK", "WH003", "LOT", body.LotNo, "FAIL",
-                    "Partial LOT split is not supported in this PDA flow yet. Pick the full LOT quantity.",
-                    refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
-                    lotNo: row.LotNo ?? body.LotNo, partNo: row.ItemNo, locationId: row.LocationNo, qty: pickQty));
-                return Results.BadRequest(new PickResult(false,
-                    "Partial LOT split is not supported in this PDA flow yet. Pick the full LOT quantity.", row));
-            }
-
-            EnsureReleaseAuditTable(conn, tx);
-
-            using var cmd = new SqlCommand("""
-                UPDATE SIS_TEST.WMS2020
-                SET    INV_STATUS = N'O1',
-                       PICK_SLIPNO = @PickSlipNo,
-                       WORK_DATE = CONVERT(nvarchar(10), CONVERT(date, SYSDATETIME()), 23),
-                       WORK_TIME = REPLACE(CONVERT(nvarchar(8), CONVERT(time(0), SYSDATETIME())), N':', N''),
-                       STD_DATE = CONVERT(nvarchar(10), CONVERT(date, SYSDATETIME()), 23),
-                       USER_ID = @By,
-                       UPDATE_ID = @By,
-                       UPDATE_DATE = SYSDATETIME()
-                WHERE  LOTNO = @LotNo
-                  AND  (INV_STATUS LIKE N'I%' AND INV_STATUS <> N'IC');
-
-                INSERT INTO SIS_TEST.PDA_WH_RELEASE_PICK_AUDIT
-                    (PICK_SLIPNO, LOTNO, PARTNO, QTY, LOCATION_NO, BEFORE_STATUS, AFTER_STATUS,
-                     WORKER_ID, TERMINAL_ID, CREATED_AT)
-                VALUES
-                    (@PickSlipNo, @LotNo, @PartNo, @Qty, @LocationNo, @BeforeStatus, N'O1',
-                     @By, @TerminalId, SYSDATETIME());
-
-                IF OBJECT_ID(N'dbo.WH_InventoryTransaction', N'U') IS NOT NULL
-                BEGIN
-                    INSERT INTO dbo.WH_InventoryTransaction
-                    (
-                        TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
-                        ReasonCode, SourceType, SourceID, OperatorID, Note, CreatedBy, CreatedTS
-                    )
-                    SELECT TOP (1)
-                        'OUT', @PartNo, @LocationNo, @LotNo, @Qty, -@Qty, 0,
-                        'RELEASE_PICK', 'PICK_SLIP', TRY_CONVERT(int, REPLACE(@PickSlipNo, N'RS-', N'')), @By,
-                        CONCAT('PDA release pick ', @PickSlipNo), @By, SYSDATETIME();
-                END
-                """, conn, tx);
-            ColumnParams.AddFilter(cmd, "@PickSlipNo", null, body.PickSlipNo.Trim());
-            ColumnParams.Add(cmd, "@LotNo", "WH_InventoryTransaction.LotNo", body.LotNo.Trim());
-            ColumnParams.Add(cmd, "@PartNo", "WH_InventoryTransaction.PartNo", (object?)row.ItemNo ?? DBNull.Value);
-            ColumnParams.Add(cmd, "@Qty", "WH_InventoryTransaction.QtyBefore", pickQty);
-            ColumnParams.Add(cmd, "@LocationNo", "WH_InventoryTransaction.LocationNo", (object?)row.LocationNo ?? DBNull.Value);
-            ColumnParams.AddFilter(cmd, "@BeforeStatus", null, (object?)row.InvStatus ?? DBNull.Value);
-            ColumnParams.Add(cmd, "@By", "WH_InventoryTransaction.CreatedBy", s.EmployeeNo);
-            ColumnParams.AddFilter(cmd, "@TerminalId", null, s.TerminalId);
-            var affected = cmd.ExecuteNonQuery();
-
-            if (affected < 2)
-            {
-                tx.Rollback();
-                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "RELEASE_PICK", "WH003", "LOT", body.LotNo, "FAIL", "LOT status changed before picking. Scan again.",
-                    refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
-                    lotNo: row.LotNo ?? body.LotNo, partNo: row.ItemNo, locationId: row.LocationNo, qty: pickQty));
-                return Results.BadRequest(new PickResult(false, "LOT status changed before picking. Scan again.", row));
-            }
-
-            tx.Commit();
-            var pickResult = new PickResult(true, "Release pick completed.", row with
-            {
-                InvStatus = "O1",
-                Message = "Release pick completed."
-            });
-            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                s, "RELEASE_PICK", "WH003", "LOT", body.LotNo, "SUCCESS", pickResult.Message,
-                refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
-                lotNo: row.LotNo ?? body.LotNo, partNo: row.ItemNo, locationId: row.LocationNo, qty: pickQty));
-            return Results.Ok(pickResult);
+            return Results.Problem("Warehouse release procedure is missing. Apply the WH schema migration.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
         });
 
         g.MapPost("/release/complete", (HttpContext ctx, ReleaseCompleteReq body) =>
@@ -1271,7 +1181,9 @@ public static class WhEndpoints
             DateTime? dateTo) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            return Results.Ok(QueryWarehouseTransactions(factory, search, dateFrom, dateTo));
+            try { return Results.Ok(QueryWarehouseTransactions(factory, search, dateFrom, dateTo)); }
+            catch (InvalidOperationException ex) when (ex.Message.StartsWith("Warehouse transaction procedure is missing",StringComparison.Ordinal))
+            { return Results.Problem(ex.Message,statusCode:StatusCodes.Status503ServiceUnavailable); }
         });
     }
 
@@ -1766,7 +1678,7 @@ public static class WhEndpoints
     {
         using var conn = factory.OpenConnection();
         if (!ProcedureExists(conn, "dbo", "WH_PDA_TRANSACTION_LIST"))
-            return new List<WarehouseTransactionRow>();
+            throw new InvalidOperationException("Warehouse transaction procedure is missing. Apply the WH schema migration.");
 
         using var cmd = new SqlCommand("[dbo].[WH_PDA_TRANSACTION_LIST]", conn)
         {
@@ -2377,7 +2289,7 @@ public static class WhEndpoints
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            SELECT T.SparePartsTxnID, T.SparePartNo, I.SerialNo, P.PartNo,
+            SELECT TOP (1000) T.SparePartsTxnID, T.SparePartNo, I.SerialNo, P.PartNo,
                    COALESCE(I.LocationID,ML.LocationID,T.RefID) AS StorageLoc, T.MoveType, T.Qty,
                    T.BalanceBefore, T.BalanceAfter, T.RefType, T.RefID, T.Note, T.ActorID,
                    CONVERT(char(10),T.TxnAt,23) AS WorkDate, CONVERT(char(8),T.TxnAt,108) AS WorkTime
@@ -2392,7 +2304,7 @@ public static class WhEndpoints
             END AS LocationID) ML
             WHERE (@Q='' OR T.SparePartNo LIKE '%'+@Q+'%' OR I.SerialNo LIKE '%'+@Q+'%' OR P.PartNo LIKE '%'+@Q+'%' OR P.PartName LIKE '%'+@Q+'%'
                          OR T.ActorID LIKE '%'+@Q+'%' OR T.RefID LIKE '%'+@Q+'%')
-              AND (@DateFrom IS NULL OR T.TxnAt>=@DateFrom)
+              AND T.TxnAt>=COALESCE(@DateFrom,DATEADD(day,-30,SYSDATETIME()))
               AND (@DateTo IS NULL OR T.TxnAt<DATEADD(day,1,@DateTo))
             ORDER BY T.TxnAt DESC,T.SparePartsTxnID DESC;
             """, conn);
@@ -2439,7 +2351,7 @@ public static class WhEndpoints
             cmd.Parameters.Add("@Qty", SqlDbType.Int).Value = body.Qty;
             cmd.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value =
                 string.IsNullOrWhiteSpace(body.LocationId) ? DBNull.Value : body.LocationId.Trim();
-            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+            ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
             cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.Note) ? DBNull.Value : body.Note.Trim();
             cmd.ExecuteNonQuery();
@@ -2462,7 +2374,7 @@ public static class WhEndpoints
         using var cmd = new SqlCommand("dbo.SP_PDA_SP_SERIAL_CREATE", conn) { CommandType = CommandType.StoredProcedure };
         cmd.Parameters.Add("@SparePartNo", SqlDbType.VarChar, 16).Value = body.EosSpNo.Trim();
         cmd.Parameters.Add("@Count", SqlDbType.Int).Value = body.Count;
-        cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+        ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
         var serials = new List<string>();
         using (var rdr = cmd.ExecuteReader())
             while (rdr.Read()) serials.Add(rdr.GetString(0));
@@ -2501,7 +2413,7 @@ public static class WhEndpoints
             using var cmd = new SqlCommand("dbo.SP_PDA_SP_STOCK_CANCEL", conn) { CommandType = CommandType.StoredProcedure };
             cmd.Parameters.Add("@SerialNo", SqlDbType.VarChar, 24).Value = body.SerialNo.Trim();
             cmd.Parameters.Add("@MoveType", SqlDbType.VarChar, 10).Value = move;
-            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+            ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
             cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = string.IsNullOrWhiteSpace(body.Note) ? DBNull.Value : body.Note.Trim();
             cmd.ExecuteNonQuery();
             return new(true, move == "IN" ? "Inbound cancelled." : "Release cancelled.", QuerySparePart(factory, body.SerialNo));
@@ -2519,7 +2431,7 @@ public static class WhEndpoints
             return new DirectOutgoingResult(false, "Select a supplier first.");
 
         using var conn = factory.OpenConnection();
-        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        using var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
         {
             if (type == "SUPPLIER")
@@ -2541,15 +2453,15 @@ public static class WhEndpoints
             string beforeStatus;
             decimal beforeQty;
 
-            using (var lotCmd = new SqlCommand("""
+            using (var lotCmd = new SqlCommand($"""
                 SELECT TOP (1)
                     W.LotNo, W.PartNo AS ItemNo, COALESCE(W.PartName,I.ItemName) AS ItemName,
                     I.DefaultUOM, W.LocationNo AS LocationID, W.Qty,
                     CASE WHEN W.Qty<=0 THEN 'RELEASED'
                          WHEN NULLIF(W.LocationNo,'') IS NULL THEN 'RECEIVED' ELSE 'STORED' END AS InventoryStatus
-                FROM dbo.WH_Inventory W WITH (UPDLOCK,HOLDLOCK)
+                FROM dbo.WH_Inventory W WITH (UPDLOCK,ROWLOCK)
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo
-                WHERE UPPER(W.LotNo)=UPPER(@LotNo)
+                WHERE W.LotNo=@LotNo AND ({WarehouseRepository.WarehouseBoxPredicate})
                 ORDER BY CASE WHEN W.Qty>0 THEN 0 ELSE 1 END,W.ReceivedAt,W.LotNo;
                 """, conn, tx))
             {
@@ -2649,26 +2561,41 @@ public static class WhEndpoints
             return new ReleaseCompleteResult(false, "The same LOT was scanned more than once.");
 
         using var conn = factory.OpenConnection();
-        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        using var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
         {
             var lines = new Dictionary<string, (int ScheduleId, decimal Demand, decimal Picked, bool IsEa)>(StringComparer.OrdinalIgnoreCase);
+            var destinations = new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
             using (var lineCmd = new SqlCommand("""
                 SELECT PickSlipID, ItemNo, COALESCE(DemandQty,0) AS DemandQty, COALESCE(PickedQty,0) AS PickedQty,
-                       CONVERT(bit,CASE WHEN CreatedBy='WH-AUTO' THEN 1 ELSE 0 END) AS IsEa
+                       CONVERT(bit,CASE WHEN CreatedBy='WH-AUTO' THEN 1 ELSE 0 END) AS IsEa,COALESCE(ReqLocation,'') AS Destination
                 FROM dbo.WH_PickSlip WITH (UPDLOCK, HOLDLOCK)
-                WHERE UPPER(COALESCE(NULLIF(PickSlipNo,N''), CONCAT(N'RS-',PickSlipID))) = UPPER(@Slip)
+                WHERE (PickSlipNo=@Slip OR NULLIF(PickSlipNo,N'') IS NULL AND CONCAT(N'RS-',PickSlipID)=@Slip)
                   AND UPPER(COALESCE(Status,N'OPEN')) NOT IN (N'RELEASED',N'CLOSED',N'CANCELLED',N'CANCELED');
                 """, conn, tx))
             {
-                ColumnParams.AddFilter(lineCmd, "@Slip", "WH_PickSlip.PickSlipID", slip);
+                ColumnParams.AddFilter(lineCmd, "@Slip", "WH_PickSlip.PickSlipNo", slip);
                 using var rdr = lineCmd.ExecuteReader();
                 while (rdr.Read())
-                    lines[rdr.GetString(rdr.GetOrdinal("ItemNo"))] = (
-                        rdr.GetInt32(rdr.GetOrdinal("PickSlipID")),
-                        rdr.GetDecimal(rdr.GetOrdinal("DemandQty")),
-                        rdr.GetDecimal(rdr.GetOrdinal("PickedQty")),
-                        rdr.GetBoolean(rdr.GetOrdinal("IsEa")));
+                {
+                    var item = rdr.GetString(rdr.GetOrdinal("ItemNo"));
+                    var demand = rdr.GetDecimal(rdr.GetOrdinal("DemandQty"));
+                    var picked = rdr.GetDecimal(rdr.GetOrdinal("PickedQty"));
+                    var ea = rdr.GetBoolean(rdr.GetOrdinal("IsEa"));
+                    var destination = rdr.GetString(rdr.GetOrdinal("Destination"));
+                    if (lines.TryGetValue(item, out var previous))
+                    {
+                        if (previous.IsEa != ea) return new(false, "The same part has mixed EA and BOX requests. Correct the picking order first.");
+                        if (!string.Equals(destinations[item],destination,StringComparison.OrdinalIgnoreCase))
+                            return new(false,"The same part has different line destinations. Use separate picking orders for each line.");
+                        lines[item] = (previous.ScheduleId, previous.Demand + demand, previous.Picked + picked, ea);
+                    }
+                    else
+                    {
+                        lines[item] = (rdr.GetInt32(rdr.GetOrdinal("PickSlipID")), demand, picked, ea);
+                        destinations[item]=destination;
+                    }
+                }
             }
             if (lines.Count == 0)
             {
@@ -2689,14 +2616,16 @@ public static class WhEndpoints
                              AND UPPER(COALESCE(ML.Status,'ACTIVE')) NOT IN ('INACTIVE','CLOSED'))
                             THEN 1 ELSE 0 END) AS ValidLineDestination,
                         CONVERT(bit,CASE WHEN {WarehouseRepository.WarehouseBoxPredicate} THEN 1 ELSE 0 END) AS EligibleBox
-                    FROM dbo.WH_Inventory W WITH (UPDLOCK,HOLDLOCK)
+                    FROM dbo.WH_Inventory W WITH (UPDLOCK,ROWLOCK)
                     INNER JOIN dbo.WH_PickSlip RS WITH (UPDLOCK, HOLDLOCK)
                             ON RS.ItemNo COLLATE DATABASE_DEFAULT = W.PartNo COLLATE DATABASE_DEFAULT
-                           AND UPPER(COALESCE(NULLIF(RS.PickSlipNo,N''), CONCAT(N'RS-',RS.PickSlipID))) = UPPER(@Slip)
-                    WHERE UPPER(W.LotNo)=UPPER(@LotNo)
+                           AND (RS.PickSlipNo=@Slip OR NULLIF(RS.PickSlipNo,N'') IS NULL AND CONCAT(N'RS-',RS.PickSlipID)=@Slip)
+                           AND COALESCE(RS.Status,'Open') NOT IN ('Released','Closed','Cancelled','Canceled')
+                           AND COALESCE(RS.PickedQty,0)<COALESCE(RS.DemandQty,0)
+                    WHERE W.LotNo=@LotNo
                     ORDER BY RS.PickSlipID;
                     """, conn, tx);
-                ColumnParams.AddFilter(lotCmd, "@Slip", "WH_PickSlip.PickSlipID", slip);
+                ColumnParams.AddFilter(lotCmd, "@Slip", "WH_PickSlip.PickSlipNo", slip);
                 ColumnParams.AddFilter(lotCmd, "@LotNo", "WH_Inventory.LotNo", input.LotNo);
                 using var rdr = lotCmd.ExecuteReader();
                 if (!rdr.Read())
@@ -2716,6 +2645,8 @@ public static class WhEndpoints
                     && (!rdr.GetBoolean(rdr.GetOrdinal("ValidLineDestination"))
                         || !rdr.GetBoolean(rdr.GetOrdinal("EligibleBox")) || input.Qty != lot.Qty))
                     return new ReleaseCompleteResult(false, "Line replenishment requires a full warehouse BOX, not line stock or a container. Scan again.");
+                if (!rdr.GetBoolean(rdr.GetOrdinal("EligibleBox")))
+                    return new ReleaseCompleteResult(false,"Only warehouse boxes can be picked here. FG, line stock and containers are excluded.");
                 if (lot.Qty <= 0)
                 {
                     return new ReleaseCompleteResult(false, $"LOT {lot.LotNo} cannot be released because it has no inventory.");
@@ -2799,7 +2730,7 @@ public static class WhEndpoints
                 ColumnParams.Add(cmd, "@LotNo", "WH_InventoryTransaction.LotNo", lot.LotNo);
                 ColumnParams.Add(cmd, "@ItemNo", "WH_InventoryTransaction.PartNo", lot.ItemNo);
                 ColumnParams.Add(cmd, "@LocationID", "WH_InventoryTransaction.LocationNo", (object?)lot.LocationId ?? DBNull.Value);
-                cmd.Parameters.Add("@LineDestination", SqlDbType.VarChar, 50).Value = (object?)lot.LineDestination ?? DBNull.Value;
+                ColumnParams.Add(cmd,"@LineDestination","WH_Inventory.LocationNo",lot.LineDestination);
                 ColumnParams.AddFilter(cmd, "@ReceivedDate", null, (object?)lot.ReceivedDate ?? DBNull.Value);
                 ColumnParams.Add(cmd, "@Qty", "WH_InventoryTransaction.QtyBefore", lot.Qty);
                 ColumnParams.AddFilter(cmd, "@Slip", null, slip);
@@ -2812,13 +2743,20 @@ public static class WhEndpoints
             using (var finish = new SqlCommand("""
                 ;WITH PickCounts AS
                 (
-                    SELECT SourceID, COUNT(DISTINCT LotNo) AS BoxQty, SUM(-QtyChange) AS EaQty FROM dbo.WH_InventoryTransaction
-                    WHERE TransactionType='OUT' AND SourceType='PICK_SLIP' AND SourceID IN
-                    (
-                        SELECT PickSlipID FROM dbo.WH_PickSlip
-                        WHERE UPPER(COALESCE(NULLIF(PickSlipNo,N''),CONCAT(N'RS-',PickSlipID)))=UPPER(@Slip)
-                    )
-                    GROUP BY SourceID
+                    SELECT R.ItemNo, COUNT(DISTINCT T.LotNo) AS BoxQty, SUM(-T.QtyChange) AS EaQty
+                    FROM dbo.WH_InventoryTransaction T JOIN dbo.WH_PickSlip R ON R.PickSlipID=T.SourceID
+                    WHERE T.TransactionType='OUT' AND T.SourceType='PICK_SLIP'
+                      AND (R.PickSlipNo=@Slip OR NULLIF(R.PickSlipNo,N'') IS NULL AND CONCAT(N'RS-',R.PickSlipID)=@Slip)
+                      AND COALESCE(R.Status,'Open') NOT IN ('Cancelled','Canceled')
+                    GROUP BY R.ItemNo
+                ), DemandRanges AS
+                (
+                    SELECT R.PickSlipID,
+                        COALESCE(SUM(COALESCE(R.DemandQty,0)) OVER (PARTITION BY R.ItemNo ORDER BY R.PickSlipID ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) AS BeforeDemand,
+                        ROW_NUMBER() OVER (PARTITION BY R.ItemNo ORDER BY R.PickSlipID DESC) AS LastLine
+                    FROM dbo.WH_PickSlip R
+                    WHERE (R.PickSlipNo=@Slip OR NULLIF(R.PickSlipNo,N'') IS NULL AND CONCAT(N'RS-',R.PickSlipID)=@Slip)
+                      AND COALESCE(R.Status,'Open') NOT IN ('Cancelled','Canceled')
                 )
                 UPDATE RS
                    SET PickedQty=Q.PickedQty,
@@ -2827,12 +2765,15 @@ public static class WhEndpoints
                        CloseUserId=CASE WHEN Q.PickedQty>=COALESCE(RS.DemandQty,0) THEN @User ELSE CloseUserId END,
                        ModifiedBy=@User, ModifiedTS=SYSDATETIME()
                 FROM dbo.WH_PickSlip RS
-                LEFT JOIN PickCounts P ON P.SourceID=RS.PickSlipID
-                CROSS APPLY (SELECT COALESCE(CASE WHEN RS.CreatedBy='WH-AUTO' THEN P.EaQty ELSE P.BoxQty END,0) AS PickedQty) Q
-                WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo,N''),CONCAT(N'RS-',RS.PickSlipID)))=UPPER(@Slip);
+                JOIN DemandRanges D ON D.PickSlipID=RS.PickSlipID
+                LEFT JOIN PickCounts P ON P.ItemNo=RS.ItemNo
+                CROSS APPLY (SELECT COALESCE(CASE WHEN RS.CreatedBy='WH-AUTO' THEN P.EaQty ELSE P.BoxQty END,0)-D.BeforeDemand AS Allocated) A
+                CROSS APPLY (SELECT CASE WHEN A.Allocated<0 THEN 0
+                    WHEN D.LastLine<>1 AND A.Allocated>COALESCE(RS.DemandQty,0) THEN COALESCE(RS.DemandQty,0)
+                    ELSE A.Allocated END AS PickedQty) Q;
                 """, conn, tx))
             {
-                ColumnParams.AddFilter(finish, "@Slip", "WH_PickSlip.PickSlipID", slip);
+                ColumnParams.AddFilter(finish, "@Slip", "WH_PickSlip.PickSlipNo", slip);
                 ColumnParams.Add(finish, "@User", "WH_PickSlip.ModifiedBy", userId);
                 finish.ExecuteNonQuery();
             }
@@ -2867,7 +2808,7 @@ public static class WhEndpoints
         };
         cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = body.PickSlipNo.Trim();
         cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = body.LotNo.Trim();
-        cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 80).Value = userId;
+        ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
         cmd.Parameters.Add("@TerminalId", SqlDbType.NVarChar, 80).Value = terminalId;
 
         using var rdr = cmd.ExecuteReader();
@@ -3112,7 +3053,7 @@ public static class WhEndpoints
             cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
             cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
             cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 30).Value = body.LocationId.Trim();
-            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
+            ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
             if (string.Equals(proc, PdaInboundReceiveLotProcedure, StringComparison.OrdinalIgnoreCase))
                 cmd.Parameters.Add("@SimulateFailure", SqlDbType.Bit).Value = simulateFailure;
 
@@ -3155,7 +3096,7 @@ public static class WhEndpoints
                 cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = row.Mode.Trim();
                 cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = row.Barcode.Trim();
                 cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 30).Value = locationId.Trim();
-                cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
+                ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
 
                 using var rdr = cmd.ExecuteReader();
                 if (rdr.Read()) lastRow = ReadInboundScanRow(rdr);
@@ -3191,7 +3132,7 @@ public static class WhEndpoints
             };
             cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
             cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
+            ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
 
             using var rdr = cmd.ExecuteReader();
             var row = rdr.Read() ? ReadInboundScanRow(rdr) : null;
@@ -3234,7 +3175,7 @@ public static class WhEndpoints
             cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
             cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
+            ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
             cmd.Parameters.Add("@SimulateFailure", SqlDbType.Bit).Value = simulateFailure;
 
             InboundScanRow? row;

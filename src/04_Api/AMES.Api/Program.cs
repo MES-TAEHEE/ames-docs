@@ -7,6 +7,8 @@ using AMES.Data.Repositories;
 using AMES.Data.Services;
 using AMES.Data.Services.DemandPlan;
 using AMES.Data.Services.PoSync;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,8 +23,15 @@ builder.Services.AddSingleton(new PopSessionRepository(factory));
 builder.Services.AddSingleton(sp => new PopAuthService(
     sp.GetRequiredService<AuthRepository>(),
     sp.GetRequiredService<WorkerRepository>(),
-    sp.GetRequiredService<PopSessionRepository>()));
+    sp.GetRequiredService<PopSessionRepository>(), builder.Environment.IsDevelopment()));
 builder.Services.AddHttpClient();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+});
 
 // ── 외부 API 연동 Worker (Workers/ScheduledWorker 상속, API 마다 하나) ────
 // PO sync — 고객사 SRM 구매오더 자동 수집
@@ -47,9 +56,12 @@ var tokens = new TokenStore(() => DbClock.ReadNow(factory), persistence: new Sql
 builder.Services.AddSingleton(tokens);
 builder.Services.AddHostedService<AMES.Api.Workers.SessionCleanupWorker>();
 
-// ── CORS — PDA clients come from arbitrary devices on the LAN ───────────
+// Native PDA clients do not need CORS. Browser origins are explicitly configured.
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+{
+    var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+    if (origins.Length > 0) p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+}));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -79,6 +91,7 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 app.UseCors();
+app.UseRateLimiter();
 app.Use(async (ctx, next) =>
 {
     var invalid = HttpMethods.IsGet(ctx.Request.Method) && ctx.Request.Path.StartsWithSegments("/api")
@@ -93,6 +106,8 @@ app.Use(async (ctx, next) =>
 });
 app.UseBearerAuth(tokens);
 
+if (app.Environment.IsDevelopment())
+{
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -101,6 +116,7 @@ app.UseSwaggerUI(c =>
     c.EnablePersistAuthorization();
     c.DisplayRequestDuration();
 });
+}
 
 // ── Endpoints ───────────────────────────────────────────────────────────
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DbClock.ReadNow(factory) }));
