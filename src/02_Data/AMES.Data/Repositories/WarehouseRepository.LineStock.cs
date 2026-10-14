@@ -91,12 +91,13 @@ public sealed partial class WarehouseRepository
     // W is the inventory alias; shared by FIFO suggestions, scan validation and completion.
     public const string WarehouseBoxPredicate = """
         W.UnitType='BOX' AND W.Qty>0
+        AND COALESCE(W.LocationNo,'') NOT LIKE 'FG%'
         AND NOT EXISTS (SELECT 1 FROM dbo.MD_Line ML
                         WHERE NULLIF(ML.LotPrefix,'') COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT)
         AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
         AND NOT EXISTS (SELECT 1 FROM dbo.MD_Location L
                         WHERE L.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT
-                          AND L.AreaCode IN ('FG_AREA','MNT_AREA','SP_AREA'))
+                          AND L.AreaCode IN ('FG','FG_AREA','MNT_AREA','SP_AREA'))
         """;
 
     public sealed record LineStockRow(string LineCode, string PartNo, string PartName,

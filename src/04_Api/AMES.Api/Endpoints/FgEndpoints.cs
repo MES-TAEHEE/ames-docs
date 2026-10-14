@@ -35,7 +35,7 @@ public static class FgEndpoints
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote);
+        string? ReasonNote, bool SimulateFailure = false, decimal? ExpectedQty = null, string? ExpectedLocation = null);
     public sealed record AdjustResult(bool Success, string Message, AdjustScanRow? Row);
 
     public sealed record PutAwayScanRow(int? LotId, string LotNo, int? WoId,
@@ -156,6 +156,10 @@ public static class FgEndpoints
         g.MapPost("/adjust/save", (HttpContext ctx, AdjustSaveReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (string.IsNullOrWhiteSpace(body.Barcode) || body.Barcode.Length>50
+                || body.DeltaQty==0 || decimal.Truncate(body.DeltaQty)!=body.DeltaQty
+                || body.ExpectedQty is null || body.ExpectedQty<0 || body.ExpectedLocation is null)
+                return Results.BadRequest(new AdjustResult(false, "Scan stock again. A whole-number adjustment and current quantity/location are required.", null));
             if (master.FindActiveCodeItem("INV_ADJUST_REASON", body.ReasonCode?.Trim() ?? "") is null)
                 return Results.BadRequest(new AdjustResult(false, "Select a valid reason code.", null));
 
@@ -480,7 +484,7 @@ public static class FgEndpoints
                     CommandTimeout = 30
                 };
                 cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-                cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = session.OperatorId;
+                ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", session.OperatorId);
                 using var rdr = cmd.ExecuteReader();
                 if (!rdr.Read())
                     return Results.Json(new OutboundUnitResult(false, "Outbound service returned no result.", null), statusCode: 503);
@@ -940,7 +944,7 @@ public static class FgEndpoints
             AddNullable(cmd, "@OverrideReason", SqlDbType.NVarChar, 120, overrideReason);
             cmd.Parameters.Add("@PalletCount", SqlDbType.Int).Value = palletCount;
             cmd.Parameters.Add("@PalletQty", SqlDbType.Int).Value = palletQty;
-            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar,  20).Value = operatorId;
+            ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", operatorId);
             if (hasContainerColumns)
             {
                 cmd.Parameters.Add("@StorageMethod", SqlDbType.NVarChar, 20).Value = storageMethod;
@@ -965,7 +969,7 @@ public static class FgEndpoints
             cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location.LocationId;
             cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = row.LotNo;
             AddDecimal(cmd, "@Qty", row.Qty);
-            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = operatorId;
+            ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", operatorId);
             cmd.ExecuteNonQuery();
         }
 
@@ -981,7 +985,7 @@ public static class FgEndpoints
                  WHERE LotID = @LotID;
                 """, conn, tx);
             cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location.LocationId;
-            cmd.Parameters.Add("@OperatorID", SqlDbType.VarChar, 20).Value = operatorId;
+            ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", operatorId);
             cmd.Parameters.Add("@LotID", SqlDbType.Int).Value = row.LotId.Value;
             cmd.ExecuteNonQuery();
         }
@@ -1249,8 +1253,16 @@ public static class FgEndpoints
         try
         {
             using var conn = factory.OpenConnection();
-
-            using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn)
+            using var tx = conn.BeginTransaction();
+            using (var check = new SqlCommand("SELECT Qty,LocationNo FROM dbo.WH_Inventory WITH(UPDLOCK,ROWLOCK) WHERE LotNo=@Lot;", conn, tx))
+            {
+                ColumnParams.AddFilter(check,"@Lot","WH_Inventory.LotNo",body.Barcode.Trim());
+                using var current = check.ExecuteReader();
+                if (!current.Read() || current.GetDecimal(0)!=body.ExpectedQty
+                    || !string.Equals(current[1] as string ?? "",body.ExpectedLocation,StringComparison.OrdinalIgnoreCase))
+                    return new(false,"Stock quantity or location changed. Scan again.",null);
+            }
+            using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn, tx)
             {
                 CommandType = CommandType.StoredProcedure,
                 CommandTimeout = 15
@@ -1260,10 +1272,10 @@ public static class FgEndpoints
             cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
             cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
-
-            using var rdr = cmd.ExecuteReader();
-            var row = rdr.Read() ? ReadAdjustScanRow(rdr) : null;
+            ColumnParams.Add(cmd,"@UserId","WH_InventoryTransaction.CreatedBy",userId);
+            AdjustScanRow? row;
+            using (var rdr = cmd.ExecuteReader()) row = rdr.Read() ? ReadAdjustScanRow(rdr) : null;
+            tx.Commit();
             return new AdjustResult(true, "Finished goods quantity adjusted", row);
         }
         catch (Exception ex)
