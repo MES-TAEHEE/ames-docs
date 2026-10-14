@@ -222,7 +222,7 @@ public sealed partial class PpRepository
                 (line, date) => LineScheduleRepository.ReadDayCapacity(conn, tx, line, date, PatternFor(line)),
                 (line, date) => LineScheduleRepository.LineLastMoldBefore(conn, tx, line, date));
             var routing   = ReadItemRouting(conn, tx, parentItems);
-            var packOf    = ReadItemBoxQty(conn, tx, parentItems);   // BOM 규칙 WO 수량 올림 단위 = 완제품 BoxQty ?? APS_SETTING.ROUND_TO(10-06 사용자 요청)
+            var packOf    = ReadItemPalletQty(conn, tx, parentItems);   // BOM 규칙 WO 수량 올림 단위 = 완제품 PalletQty ?? APS_SETTING.ROUND_TO(10-06 사용자 요청, 10-13 BoxQty 폐지)
             var allocator = new ApsWoAllocator(openOrders);
 
             // 1단계: 사출 행마다 금형·UPH 판정 → (부모, 날짜) 단위에 자식 몫을 싣는다. 거부는 여기서 끝나고 WO 는 만들지 않는다
@@ -283,7 +283,7 @@ public sealed partial class PpRepository
             }
 
             // 부모 수량·라우팅·마감(스펙 2026-10-05 §2) — 0 이 된 부모는 버리고, 그 부모만 쓰던 자식 행은 덮인 것으로.
-            // BOM 규칙(부모와 다른 자식이 하나라도 있으면)은 비율 분배로 생긴 자투리를 완제품 포장 단위로 올린다(ApsRepository 의 완제품 PackRule 과 같은 BoxQty ?? RoundTo);
+            // BOM 규칙(부모와 다른 자식이 하나라도 있으면)은 비율 분배로 생긴 자투리를 완제품 포장 단위로 올린다(ApsRepository 의 완제품 PackRule 과 같은 PalletQty ?? RoundTo);
             // 같은 품번 규칙만이면 엔진이 이미 자식 포장 단위로 올린 값이라 종전대로 내림만
             foreach (var plan in plans.Values.ToList())
             {
@@ -896,15 +896,15 @@ public sealed partial class PpRepository
         return string.Join(",", names);
     }
 
-    static Dictionary<string, int?> ReadItemBoxQty(SqlConnection conn, SqlTransaction tx, IEnumerable<string> itemNos)
+    static Dictionary<string, int?> ReadItemPalletQty(SqlConnection conn, SqlTransaction tx, IEnumerable<string> itemNos)
     {
         var map   = new Dictionary<string, int?>(StringComparer.OrdinalIgnoreCase);
         var items = itemNos.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (items.Count == 0) return map;
         using var cmd = new SqlCommand("", conn, tx);
-        cmd.CommandText = $"SELECT ItemNo, BoxQty FROM dbo.MD_Item WHERE ItemNo IN ({AddItemParams(cmd, items)});";
+        cmd.CommandText = $"SELECT ItemNo, PalletQty FROM dbo.MD_Item WHERE ItemNo IN ({AddItemParams(cmd, items)});";
         using var rdr = cmd.ExecuteReader();
-        while (rdr.Read()) map[(string)rdr["ItemNo"]] = rdr["BoxQty"] as int?;
+        while (rdr.Read()) map[(string)rdr["ItemNo"]] = rdr["PalletQty"] as int?;
         return map;
     }
 

@@ -9635,11 +9635,8 @@
     <value>{0}일 {1}시간</value>
   </data>
   <data name="MD.Items.ScanRequired" xml:space="preserve"><value>개별 바코드 스캔 필요</value></data>
-  <data name="MD.Items.Col.BoxQty" xml:space="preserve">
-    <value>박스 수량</value>
-  </data>
-  <data name="MD.Items.Lbl.BoxQty" xml:space="preserve">
-    <value>박스 1개당 제품 수 — APS 공급 올림 단위(비우면 1 + 경고)</value>
+  <data name="MD.Items.Lbl.PalletQty" xml:space="preserve">
+    <value>적입수량(팔레트 1개당 제품 수)은 APS 공급·WO 수량의 포장 올림 단위로도 쓴다(비우면 1 + 경고)</value>
   </data>
   <data name="PP.Aps.Title" xml:space="preserve">
     <value>APS 생산계획</value>
@@ -10341,7 +10338,7 @@
     <value>포장</value>
   </data>
   <data name="PP.DemandPlan.Badge.PackMismatch" xml:space="preserve">
-    <value>BoxQty 불일치</value>
+    <value>적입수량 불일치</value>
   </data>
   <data name="PP.DemandPlan.Btn.Upload" xml:space="preserve">
     <value>엑셀 업로드(일별)</value>
@@ -10362,7 +10359,7 @@
     <value>MD_Item 에 없는 품번 {0}개(저장은 되지만 APS 수요에서 제외)</value>
   </data>
   <data name="PP.DemandPlan.Preview.PackMismatch" xml:space="preserve">
-    <value>포장 수량이 BoxQty 와 다른 품번 {0}개</value>
+    <value>SRM 포장 수량이 적입수량과 다른 품번 {0}개</value>
   </data>
   <data name="PP.DemandPlan.Ok.Imported" xml:space="preserve">
     <value>업로드 완료 — 품번 {0} · 칸 {1} · 미등록 {2} · 포장 불일치 {3}</value>

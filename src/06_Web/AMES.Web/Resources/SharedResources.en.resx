@@ -9635,11 +9635,8 @@
     <value>{0}d {1}h</value>
   </data>
   <data name="MD.Items.ScanRequired" xml:space="preserve"><value>Individual Barcode Scan Required</value></data>
-  <data name="MD.Items.Col.BoxQty" xml:space="preserve">
-    <value>Qty/Box</value>
-  </data>
-  <data name="MD.Items.Lbl.BoxQty" xml:space="preserve">
-    <value>Pieces per box — APS supply round-up unit (blank = 1 + warning)</value>
+  <data name="MD.Items.Lbl.PalletQty" xml:space="preserve">
+    <value>Qty/Pallet (pieces per pallet) is also the APS supply / WO pack round-up unit (blank = 1 + warning)</value>
   </data>
   <data name="PP.Aps.Title" xml:space="preserve">
     <value>APS Production Plan</value>
@@ -10341,7 +10338,7 @@
     <value>Pack</value>
   </data>
   <data name="PP.DemandPlan.Badge.PackMismatch" xml:space="preserve">
-    <value>BoxQty mismatch</value>
+    <value>Qty/Pallet mismatch</value>
   </data>
   <data name="PP.DemandPlan.Btn.Upload" xml:space="preserve">
     <value>Excel Upload (daily)</value>
@@ -10362,7 +10359,7 @@
     <value>{0} items not in MD_Item (saved, but excluded from APS demand)</value>
   </data>
   <data name="PP.DemandPlan.Preview.PackMismatch" xml:space="preserve">
-    <value>{0} items whose pack qty differs from BoxQty</value>
+    <value>{0} items whose SRM pack qty differs from Qty/Pallet</value>
   </data>
   <data name="PP.DemandPlan.Ok.Imported" xml:space="preserve">
     <value>Uploaded — {0} items · {1} cells · {2} unregistered · {3} pack mismatches</value>

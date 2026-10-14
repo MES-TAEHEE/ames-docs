@@ -18,7 +18,7 @@ public sealed partial class PpRepository
                                             DateOnly DateFrom, DateOnly DateTo, int ItemCount, int RowCount, int UnmatchedItems, int PackMismatch,
                                             DateTime ImportedAt, string ImportedBy);
     public sealed record DemandPlanCellRow(string CustomerId, string ItemNo, string? ItemName, string? PartName, string? Unit, decimal? PackQty,
-                                           decimal? BoxQty, DateOnly PlanDate, decimal ScheduledQty, decimal PoQty, bool ItemExists);
+                                           decimal? PalletQty, DateOnly PlanDate, decimal ScheduledQty, decimal PoQty, bool ItemExists);
 
     public DemandPlanImportResult ReplaceDemandPlan(string customerId, string batch, string source, string? sourceKey, string? fileName,
         DateOnly from, DateOnly to, IReadOnlyList<DemandPlanCell> cells, string actor)
@@ -51,10 +51,10 @@ public sealed partial class PpRepository
             var known = new Dictionary<string, decimal?>(StringComparer.OrdinalIgnoreCase);
             if (items.Count > 0)
             {
-                using var chk = new SqlCommand("SELECT i.ItemNo, i.BoxQty FROM dbo.MD_Item i JOIN STRING_SPLIT(@List, ',') s ON s.value = i.ItemNo;", conn, tx);
+                using var chk = new SqlCommand("SELECT i.ItemNo, i.PalletQty FROM dbo.MD_Item i JOIN STRING_SPLIT(@List, ',') s ON s.value = i.ItemNo;", conn, tx);
                 chk.Parameters.Add("@List", SqlDbType.NVarChar, -1).Value = string.Join(',', items);
                 using var rdr = chk.ExecuteReader();
-                while (rdr.Read()) known[(string)rdr["ItemNo"]] = rdr["BoxQty"] is DBNull ? null : Convert.ToDecimal(rdr["BoxQty"]);
+                while (rdr.Read()) known[(string)rdr["ItemNo"]] = rdr["PalletQty"] is DBNull ? null : Convert.ToDecimal(rdr["PalletQty"]);
             }
             int unmatched = items.Count(i => !known.ContainsKey(i));
             int mismatch  = items.Count(i => known.TryGetValue(i, out var box) && box is decimal b && b > 0
@@ -154,7 +154,7 @@ public sealed partial class PpRepository
     public List<DemandPlanCellRow> ListDemandPlan(string? customerId, DateOnly from, DateOnly to)
     {
         const string sql = """
-            SELECT p.CustomerID, p.ItemNo, i.ItemName, p.PartName, p.Unit, p.PackQty, i.BoxQty, p.PlanDate, p.ScheduledQty, COALESCE(p.PoQty, 0) AS PoQty,
+            SELECT p.CustomerID, p.ItemNo, i.ItemName, p.PartName, p.Unit, p.PackQty, i.PalletQty, p.PlanDate, p.ScheduledQty, COALESCE(p.PoQty, 0) AS PoQty,
                    CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS ItemExists
             FROM   dbo.PP_DemandPlan p
             LEFT   JOIN dbo.MD_Item i ON i.ItemNo = p.ItemNo
@@ -171,27 +171,27 @@ public sealed partial class PpRepository
         var list = new List<DemandPlanCellRow>();
         while (rdr.Read())
             list.Add(new((string)rdr["CustomerID"], (string)rdr["ItemNo"], rdr["ItemName"] as string, rdr["PartName"] as string, rdr["Unit"] as string,
-                rdr["PackQty"] as decimal?, rdr["BoxQty"] is DBNull ? null : Convert.ToDecimal(rdr["BoxQty"]),
+                rdr["PackQty"] as decimal?, rdr["PalletQty"] is DBNull ? null : Convert.ToDecimal(rdr["PalletQty"]),
                 DateOnly.FromDateTime((DateTime)rdr["PlanDate"]), rdr.GetDecimal(rdr.GetOrdinal("ScheduledQty")), rdr.GetDecimal(rdr.GetOrdinal("PoQty")),
                 (int)rdr["ItemExists"] == 1));
         return list;
     }
 
-    /// <summary>PP-001 일별 업로드 미리보기 — BoxQty 가 있는 품번만 반환(포장 수량 대조용).</summary>
-    public Dictionary<string, decimal> ListItemBoxQty(IEnumerable<string> itemNos)
+    /// <summary>PP-001 일별 업로드 미리보기 — PalletQty(적입수량)가 있는 품번만 반환(SRM PACK_QTY 대조용, 10-13 BoxQty 폐지).</summary>
+    public Dictionary<string, decimal> ListItemPalletQty(IEnumerable<string> itemNos)
     {
         const string sql = """
-            SELECT i.ItemNo, i.BoxQty
+            SELECT i.ItemNo, i.PalletQty
             FROM   dbo.MD_Item i
             JOIN   STRING_SPLIT(@List, ',') s ON s.value = i.ItemNo
-            WHERE  i.BoxQty IS NOT NULL;
+            WHERE  i.PalletQty IS NOT NULL;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@List", SqlDbType.NVarChar, -1).Value = string.Join(',', itemNos.Distinct());
         using var rdr = cmd.ExecuteReader();
         var map = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-        while (rdr.Read()) map[(string)rdr["ItemNo"]] = Convert.ToDecimal(rdr["BoxQty"]);
+        while (rdr.Read()) map[(string)rdr["ItemNo"]] = Convert.ToDecimal(rdr["PalletQty"]);
         return map;
     }
 }
