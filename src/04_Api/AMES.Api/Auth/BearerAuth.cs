@@ -30,7 +30,7 @@ public static class BearerAuth
                 }
                 if (session is not null
                     && (ctx.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()
-                        || !PdaScenarioUsers.IsAny(session.EmployeeNo)))
+                        || !PdaScenarioUsers.IsTestAccount(session.EmployeeNo)))
                     ctx.Items[SessionKey] = session;
             }
             await next();

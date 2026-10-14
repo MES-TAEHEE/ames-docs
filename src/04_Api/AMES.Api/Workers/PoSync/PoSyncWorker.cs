@@ -39,7 +39,7 @@ public sealed class PoSyncWorker(AmesConnectionFactory f, IPoSource source, ICon
 
     protected override PoSyncRunResult Skipped(PoSyncSource s, string reason)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(AMES.Data.Services.DbClock.ReadNow(Factory));
         return new PoSyncRunResult(s.Key, false, 0, 0, 0, 0, 0, reason,
             today.AddDays(s.WindowFrom), today.AddDays(s.WindowTo));
     }

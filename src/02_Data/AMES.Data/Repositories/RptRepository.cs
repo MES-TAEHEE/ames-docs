@@ -148,21 +148,23 @@ public sealed class RptRepository
 
     public List<DailyProdRow> ListDailyProduction(int daysBack = 14)
     {
+        var cut=ReadDayCutoff();
+        var today=ProdCalendar.ProdDateOf(DbClock.ReadNow(_f),cut);
         const string sql = """
             WITH production AS (
-                SELECT CAST(r.EntryAt AS date) AS Day, r.LineID,
+                SELECT COALESCE(r.ProdDate,CAST(r.EntryAt AS date)) AS Day, r.LineID,
                        COUNT(*) AS Entries, ISNULL(SUM(r.GoodQty), 0) AS GoodQty,
                        ISNULL(SUM(ISNULL(d.Qty, CASE WHEN r.DefectFlag=1 THEN 1 ELSE 0 END)), 0) AS DefectQty
                 FROM dbo.PR_ProductionResult r
                 OUTER APPLY (SELECT SUM(dd.Qty) AS Qty FROM dbo.PR_DefectDetail dd WHERE dd.ResultID=r.ResultID) d
-                WHERE r.EntryAt >= DATEADD(day, -@D, SYSDATETIME())
-                GROUP BY CAST(r.EntryAt AS date), r.LineID
+                WHERE COALESCE(r.ProdDate,CAST(r.EntryAt AS date)) BETWEEN DATEADD(day,-@D,@Today) AND @Today
+                GROUP BY COALESCE(r.ProdDate,CAST(r.EntryAt AS date)), r.LineID
             ), lot_defects AS (
-                SELECT CAST(d.DetectedAt AS date) AS Day, l.LineID, SUM(d.Qty) AS DefectQty
+                SELECT CAST(DATEADD(minute,-@Cut,d.DetectedAt) AS date) AS Day, l.LineID, SUM(d.Qty) AS DefectQty
                 FROM dbo.PR_DefectDetail d
                 LEFT JOIN dbo.tbl_Lot l ON l.LotID=d.LotID
-                WHERE d.ResultID IS NULL AND d.DetectedAt >= DATEADD(day, -@D, SYSDATETIME())
-                GROUP BY CAST(d.DetectedAt AS date), l.LineID
+                WHERE d.ResultID IS NULL AND CAST(DATEADD(minute,-@Cut,d.DetectedAt) AS date) BETWEEN DATEADD(day,-@D,@Today) AND @Today
+                GROUP BY CAST(DATEADD(minute,-@Cut,d.DetectedAt) AS date), l.LineID
             )
             SELECT COALESCE(p.Day, l.Day) AS Day, COALESCE(p.LineID, l.LineID) AS LineID,
                    ISNULL(p.Entries, 0) AS Entries, ISNULL(p.GoodQty, 0) AS GoodQty,
@@ -177,7 +179,7 @@ public sealed class RptRepository
             Ent    = (int)r["Entries"],
             Good   = (int)r["GoodQty"],
             Def    = (int)r["DefectQty"]
-        }, ("@D", null, daysBack));
+        }, ("@D", null, daysBack), ("@Today", "PR_ProductionResult.ProdDate", today), ("@Cut", null, (int)cut.TotalMinutes));
 
         return rows.Select(x =>
         {

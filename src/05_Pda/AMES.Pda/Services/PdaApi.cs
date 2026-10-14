@@ -276,6 +276,8 @@ public abstract class PdaApi
     {
         if (resp.StatusCode == HttpStatusCode.Unauthorized)
             return "Session expired. Sign in again.";
+        if (resp.StatusCode == HttpStatusCode.Forbidden)
+            return "Access denied. Ask an administrator to check your permissions.";
         string body;
         try
         {
