@@ -2,8 +2,8 @@
 
 > **이 파일이 미해결·보류·문제점·다음 개발 항목의 유일한 정본입니다**(10-14 사용자 결정). CLAUDE.md·다른 문서·작업 메모에는 목록을 두지 않습니다. 항목을 해결하면 같은 커밋에서 여기 항목을 지우고, 새로 찾은 문제는 담당자 절에 더합니다.
 
-- **작성**: 2026-10-14, Claude Code(이승욱 세션)
-- **기준 소스**: `dev` 브랜치. 9b564a28 전체 점검 결과에, 이 파일과 함께 올린 커밋(MNT 부분 완료 결함 2건 수정)을 반영했습니다.
+- **작성**: 2026-10-14, Claude Code(이승욱 세션) · **재정리**: 2026-10-14 밤 — 원격 병합(ebc51a4b, 심재현 10-13 BoxQty 폐지·PP-002 자동 확정) 뒤 해소·변경된 항목을 다시 확인했습니다.
+- **기준 소스**: `dev` 브랜치. 9b564a28 전체 점검 결과에 그 뒤 커밋(MNT 부분 완료 결함, SYS-004·PP-OEE·PP-LSB 감사·MNT 고장 연결·배포 대책, 원격 병합)을 반영했습니다. 줄 번호는 점검 당시 기준이라 병합 뒤 몇 줄 어긋날 수 있습니다.
 - **점검 방법**
   - 5영역(POP·InjAgent·QC·PNT / PP·APS·MRP / Api·WH·FG·SCM·Portal / SYS·MD·MNT·RPT / DB 스크립트·스키마·공통 규칙)을 소스로 다시 확인했습니다.
   - 테이블 175개의 읽기·쓰기 사용처를 전수 조사했습니다. 테스트 코드는 빼고, 실제로 호출되는 DB 프로시저는 포함했습니다.
@@ -27,15 +27,19 @@
 | 담당 | 미해결 | 보류 | 테이블 | 문제점 | 가장 먼저 볼 것 |
 |---|---|---|---|---|---|
 | 심재현 | 20 | 7 | 7묶음 | 31 | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB |
-| 안영훈 | 2 | 6 | 3 | 29 | [상] PDA 테스트 계정 PIN 0000 · [상] 배지 로그인 API 가 PIN 없이 토큰 발급 · 재구축 스크립트 세 곳에서 중단 |
+| 안영훈 | 2 | 6 | 3 | 29 | [상] PDA 테스트 계정 PIN 0000 · [상] 배지 로그인 API 가 PIN 없이 토큰 발급 · 재구축 스크립트 두 곳에서 중단 |
 | 이승욱 | 0 | 6 | 6 | 5 | PP-OEE 가동률이 시연 데이터로 계산됨 · 이름 사전 실패를 5분간 캐시 |
 | 오세영 | 5 | 2 | — | — | 발송기가 없어 SYS-008 발송 이력이 시연 데이터 |
 
 ### 지금 결정이 필요한 것(이승욱 작업분)
-1. **개발서버 반영**: 개발 DB 에는 PP-LSB 발행 폐지 마이그레이션(`dist/migrate_lsb_publish_removal.sql`)이 이미 적용돼 있습니다. 새 Web·Api 를 올리기 전까지 개발서버의 PP-LSB 는 열리지 않습니다(구 Web 이 삭제된 `PublishedAt` 컬럼을 읽음). 최신 패키지는 `publish\AMES.Web`·`publish\AMES.Api` 폴더(10-14 21:35, .NET 런타임 포함 게시)입니다. 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행해 기동 실패 자동 복구를 켭니다. 10-14 재부팅 뒤 개발서버 Web 이 500.30 인 것은 앱풀 재활용(`appcmd recycle apppool`)으로 우선 복구합니다.
+1. **개발서버 반영(가장 급함)**: 개발 DB 에는 오늘까지의 마이그레이션이 모두 적용돼 있는데 개발서버 Web 은 구버전이라 화면이 깨집니다.
+   - PP-LSB 발행 폐지(`migrate_lsb_publish_removal.sql`) → 구 Web 의 PP-LSB 가 열리지 않음(삭제된 `PublishedAt` 을 읽음)
+   - 심재현 10-13 BoxQty 폐지(`migrate_aps.sql` §1, 작성자가 개발 DB 에 적용) → 구 Web 의 MD-003 품목·PP-APS 가 `Invalid column name 'BoxQty'` 예외
+   - 그 밖에 이승욱 10-14 마이그레이션(`migrate_pp_lineoee_unique.sql`·`migrate_mnt_failure_action_wo.sql`)과 `PP_SO_AUTO_CONFIRM` 행도 적용 완료 — 구 Web 은 읽지 않아 영향 없음
+   - 최신 패키지: `publish\AMES.Web_20261014-220347.zip`·`publish\AMES.Api_20261014-220536.zip`(또는 같은 시각의 `publish\AMES.Web`·`AMES.Api` 폴더 — .NET 런타임 포함). 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행해 기동 실패 자동 복구를 켭니다. 10-14 재부팅 뒤 개발서버 Web 이 500.30 인 것은 반영 전이라도 앱풀 재활용(`appcmd recycle apppool`)으로 우선 복구합니다.
 2. **PP-OEE 가동률 원천**: 지금은 시연 데이터(`PP_LineStateLog`)로 계산됩니다. 실제로 쌓이는 비가동 기록(`PP_LineDowntimeLog`)으로 바꿀지 정해야 합니다(이승욱 테이블 2).
 3. **개발 DB 테스트 행**: 테스트가 남긴 `PP_LineSchedule` PM 행 120개(`EntryType='PM' AND CreatedBy='ITEST'`, 지금 DRAFT)를 지울지.
-4. **화면 저장 검증**: 10-14 감사 로그(MNT·PP-OEE)·MNT 부분 완료·PP-CAL 거부를 화면에서 실제로 저장해 보지는 않았습니다(DB 테스트로만 확인).
+4. **화면 저장 검증**: 10-14 변경 — 감사 로그(MNT·PP-OEE·PP-LSB 적용/초기화)·MNT 부분 완료와 원래 작업지시의 고장 표시·PP-CAL 거부·SYS-004 바뀐 화면만 저장 — 은 DB 테스트와 화면 열기(헤드리스)로만 확인했고, 화면에서 실제로 저장해 보지는 않았습니다.
 5. **문서 표기**: CLAUDE.md 의 "SQL Server 2022"(실제는 개발 2019 RTM 15.0.2000.5, 로컬 2025 17.0.1135.8), "176개 테이블"(실제 175) 등(이승욱 문제점 4).
 
 ---
@@ -90,8 +94,8 @@
    - 제안: 상태 조건을 추가합니다. 번호는 범위 잠금으로 채번합니다(MNT `ClaimNumber` 방식).
 10. **[중] inj_flag 마이그레이션이 컬럼을 데이터째 지움**
     - 위치: `dist/migrate_md_item_inj_flag.sql:63-111`
-    - 내용: 테이블 재생성 목록에 BoxQty·ScanRequired 가 없고, 기본값 제약·인덱스도 되살리지 않습니다. 구성이 다르면 멈추는 가드도 없어, 다시 돌리면 두 컬럼이 사라집니다.
-    - 제안: 재생성 목록을 보강하고, `migrate_aps.sql` 처럼 컬럼 대조 가드를 둡니다.
+    - 내용: 테이블 재생성 목록에 `ScanRequired`·`BoxContentUnit`·`BoxContentQty` 등 뒤에 생긴 컬럼이 없고, 기본값 제약·인덱스도 되살리지 않습니다. 구성이 다르면 멈추는 가드도 없어, 다시 돌리면 그 컬럼이 사라집니다. (BoxQty 는 10-13 폐지돼 해당 없음, `migrate_aps.sql` 도 재생성·가드를 없앴으므로 대조할 본보기가 사라짐)
+    - 제안: 재생성 목록을 현재 `MD_Item` 구성으로 보강하고 컬럼 대조 가드를 둡니다. 이미 적용된 DB 가 대부분이면 "컬럼이 있으면 건너뜀" 만 남기는 것도 방법입니다.
 11. **[하] PIN 키패드 기본 사번 E001**
     - 위치: `Login.razor:401`
     - 내용: 사원을 고르지 않고 PIN 을 치면 E001 로 시도해 E001 실패 횟수가 쌓입니다.
@@ -118,7 +122,7 @@
 17. **[하] PNT 단위 EA 고정·불량코드 버림**
     - 위치: Pnt01·02·03·06·07·08·09 화면과 도움말, `PntRepository.cs:421-436`
 18. **[하] 마이그레이션 FK 6개·그룹 이름 옛 접두어**
-    - 위치: `migrate_aps.sql:242·243·268·325·353`, `migrate_aps_plan_line_shift.sql:21`, `migrate_demand_plan.sql:69·92-98`
+    - 위치: `migrate_aps.sql:74·75·100·157·185`(10-13 병합 뒤 줄 번호), `migrate_aps_plan_line_shift.sql:21`, `migrate_demand_plan.sql:69·92-96`
     - 내용: FK 를 두지 않는 원칙과 달리 FK 6개를 새로 만듭니다. DPSYNC 공통코드 그룹 이름에 폐지된 `ScheduledWorker · ` 접두어가 있습니다.
 19. **[하] 테스트 코드에 접속 비밀번호·외부 IP**
     - 위치: `AmesDevDb.cs:11` 외 `AMES.Data.Tests` 8파일(`MoldPlanningTests:20`, `PlanScheduleTests:21` 은 98.95.142.192 이고 Connect Timeout 도 없음)
@@ -225,7 +229,7 @@
     - 위치: `SupplyPlanImport.razor:297-299`
     - 내용: 중간에 실패하면 앞 건만 확정되고, 몇 건이 반영됐는지 안내가 없습니다.
 20. **[하] PP-002~006 승인·생성 동작에 감사 로그 없음**
-    - 내용: 수주 확정, WO 생성·릴리스·취소, PR 생성·전송·승인이 SYS-007 에 남지 않습니다.
+    - 내용: 수주 확정, WO 생성·릴리스·취소, PR 생성·전송·승인이 SYS-007 에 남지 않습니다. (10-13 PP-002 「자동 확정」 스위치는 켜고 끌 때 `AUTOCONFIRM_ON/OFF` 를 남기지만, 그때 일괄 확정되는 수주·수동 확정 자체는 여전히 기록이 없음)
 21. **[하] 단위 EA 고정·WO CSV 품번 누락·MRP 상태 색**
     - 위치: `WorkOrder.razor:162·367`, `PlanConfirmBatchDialog.razor:31`, `Mrp.razor:170·377`
 22. **[하] 행위자 매개변수 형식이 컬럼과 다름**
@@ -263,11 +267,11 @@
 1. **[중] API 앱풀이 유휴 상태에서 종료돼 Worker 가 멈춤**
    - 위치: `tools/publish-api.ps1:110-126`
    - 내용: AlwaysRunning·유휴 시간·미리 로드 설정이 없어, 요청이 없으면 앱풀이 내려가고 PO·일별 계획 수집이 멈춥니다.
-2. **[중] 재구축 스크립트가 지금 세 곳에서 멈춤**
-   - ① `dist/migrate_aps.sql:59-77`: BOX 내용 컬럼(BoxContentUnit·BoxContentQty)을 몰라 빈 DB 에서 오류로 중단되고, `set -e` 때문에 재구축 전체가 정지합니다.
-   - ② `migrate_scm_portal_screens.sql:31-41`: PORTAL-004 번호를 바꾸다 오류가 납니다.
-   - ③ `seed_portal_dev.sql:17`: 업체 V1007 을 만드는 `PDA_SEED` 보다 먼저 돌아 실패합니다.
-   - 제안: 세 스크립트를 고친 뒤 실제 재구축으로 확인합니다.
+2. **[중] 재구축 스크립트가 지금 두 곳에서 멈춤**
+   - ① `migrate_scm_portal_screens.sql:31-41`: PORTAL-004 번호를 바꾸다 오류가 납니다.
+   - ② `seed_portal_dev.sql:17`: 업체 V1007 을 만드는 `PDA_SEED` 보다 먼저 돌아 실패합니다.
+   - (전에 있던 `migrate_aps.sql` 의 BOX 내용 컬럼 중단은 10-13 BoxQty 폐지로 `MD_Item` 재생성 코드가 없어져 해소 — 실제 재구축으로는 아직 확인하지 않음)
+   - 제안: 두 스크립트를 고친 뒤 실제 재구축으로 확인합니다.
 
 ### 2-2. 보류 (6)
 - **PO 자동 수집 정합성**(CLAUDE.md PO Sync 「정합성 미비, Important #2」에서 옮김): 고객 SRM 에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES 에는 `Open` 으로 남고, 이미 `Confirmed` 인 수주도 수량·납기가 바뀌면 매 주기 감사 행 없이 덮어써집니다. 미조회 라인 표시·확정분 변경 경고가 필요합니다.
@@ -359,7 +363,7 @@
     - 위치: `migrate_pda_bearer_session.sql:6-9`
     - 내용: `BearerHash`·`SessionJson` 이 스키마 파일·CLAUDE.md 배포 순서에 없습니다. 이 마이그레이션이 빠진 DB 에서는 PDA 로그인이 전부 500 입니다. (감사 컬럼 뒤에 붙어 있던 위치는 10-14 `migrate_audit_columns_last.sql` 재실행으로 두 DB 모두 정리됨)
 28. **[하] BOX 내용 컬럼 순서가 스키마 파일과 다름·시험 흔적 컬럼**
-    - 내용: `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 가 DB 에서는 감사 컬럼 바로 앞(맨 뒤쪽), 스키마 파일에서는 `BoxQty`·`UnitCode` 다음에 있습니다. 개발 DB 에만 쓰이지 않는 `SCM_ItemVendor.PackingUnitCode` 가 있고 어느 브랜치에도 마이그레이션이 없습니다. (감사 컬럼 규칙 위반 — 개발 4·로컬 3 테이블 — 은 10-14 이승욱이 MNT 마이그레이션 뒤 `migrate_audit_columns_last.sql` 을 돌리며 함께 정리됨)
+    - 내용: `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 가 DB 에서는 감사 컬럼 바로 앞(맨 뒤쪽), 스키마 파일에서는 `ToteFlag`(10-13 BoxQty 폐지 뒤)·`UnitCode` 다음에 있습니다. 개발 DB 에만 쓰이지 않는 `SCM_ItemVendor.PackingUnitCode` 가 있고 어느 브랜치에도 마이그레이션이 없습니다. (감사 컬럼 규칙 위반 — 개발 4·로컬 3 테이블 — 은 10-14 이승욱이 MNT 마이그레이션 뒤 `migrate_audit_columns_last.sql` 을 돌리며 함께 정리됨)
 29. **[하] 납품서 인쇄 화면이 영어**
     - 위치: `Portal/DeliveryNote.razor:16·20`
     - 내용: "Back to Delivery Management"·"Print" 가 하드코딩돼 있습니다. 의도인지 확인이 필요합니다.
@@ -370,6 +374,7 @@
 
 ### 3-1. 미해결
 없습니다. 10-13~14 에 모두 해결했습니다: 확정 전 LOT 불량 집계, MNT 완료 직렬화·채번·고장 삭제, PP-LSB 발행 폐지, RPT 일정 준수·보고서 품번, MNT·PP-OEE 감사 로그, RPT-010 불량 라인, PP-CAL 끝난 WO 납기 차단, MNT 부분·후속 완료.
+10-14 오후 점검 문제점에서 해결해 지운 것: SYS-004 저장이 다른 화면 권한을 지움(b10bfe03) · PP-OEE 스냅샷 동시 저장 중복(8edb336f) · PP-LSB 적용·초기화 감사 없음(18b327d0) · 부분 완료한 원래 작업지시에서 고장이 안 보임(dda97752). 같은 날 .NET 업데이트 뒤 IIS 500.30/500.31 고착도 런타임 포함 게시 + `tools/iis-watchdog.ps1` 로 대책을 넣었습니다(6787bd7c — 개발서버는 반영·`-Install` 대기, 0절 1).
 
 ### 3-2. 보류 (6)
 - **B4 MNT-007 확장**
@@ -464,12 +469,14 @@
 
 ## 6. 참고 — 검증 기준선과 배포 메모
 
-- **테스트(2026-10-14, Data 는 로컬 DB)**
+- **테스트(2026-10-14 밤, 원격 병합 ebc51a4b 뒤, Data 는 로컬 DB)**
   - Pop 149, Api 64, InjAgent 54 모두 통과
-  - Data 1,007건 중 989 통과, 10 실패, 8 건너뜀
-  - 실패 10건은 모두 기존 항목입니다(PlanScheduleTests 5, WorkOrderRepositoryTests 4, GetMoldItems 1).
-  - 병렬로 돌 때 테스트끼리 교착이 가끔 1~2건 더 나는데, 따로 돌리면 통과합니다.
-- **두 DB 구조**: 개발·로컬·스키마 파일 모두 175개 테이블이고 컬럼 형식 차이가 없습니다. 예외는 이 문서에 적은 컬럼 순서 3건과 `PackingUnitCode` 입니다. 공통코드(430행)·화면 등록도 같고, 로컬의 WH-05 만 다릅니다.
-- **제품 코드 규칙**: `AddWithValue` 0곳, Web 의 `DateTime.Now/Today` 0곳, resx 4개 파일 키셋 동일(3,528키).
-- **10-14 PP-LSB 발행 폐지 배포 순서**: 신 Web·Api 먼저 → `dist/migrate_lsb_publish_removal.sql`. 개발·로컬 DB 에는 이미 적용됐으므로, 개발서버는 Web·Api 만 덮어쓰면 됩니다.
+  - Data 1,037건 중 1,018 통과, 11 실패, 8 건너뜀
+  - 실패 중 10건은 기존 항목입니다(PlanScheduleTests 5, WorkOrderRepositoryTests 4, GetMoldItems 1 — 심재현 보류).
+  - 나머지 1건(`InjDailyItemSummaryTests`)은 병렬 실행 중 교착이고 단독 실행은 통과합니다. 병렬로 돌 때 이런 교착이 가끔 1~2건 나옵니다.
+- **두 DB 구조(10-14 밤)**: 개발·로컬·스키마 파일 모두 앱 테이블 175개(개발 DB 의 SSMS `sysdiagrams` 제외)이고 컬럼 순서 등수·형식·NULL·콜레이션과 인덱스가 같습니다. 남은 차이는 개발 DB 에만 있는 `SCM_ItemVendor.PackingUnitCode`(안영훈 문제점 28)와 시스템이 붙인 제약 이름뿐입니다. 이날 로컬에 원격의 `migrate_aps.sql`(BoxQty 삭제 — 로컬 값 0건)·`migrate_pp_so_auto_confirm.sql` 을 적용했습니다(개발 DB 는 작성자가 적용). 공통코드·화면 등록은 로컬의 WH-05(이승욱 문제점 5) 외에는 같습니다.
+- **제품 코드 규칙**: `AddWithValue` 0곳(주석 3곳만), Web 의 `DateTime.Now/Today` 0곳, resx 4개 파일 키셋 동일(3,537키), 라이트 테마 토큰화 대상 0.
+- **헤드리스 확인(10-14 밤)**: MD-003·PP-002·PP-001·PP-APS·SYS-004·PP-OEE·PP-LSB·MNT-007·MNT-002·PP-CAL·SYS-009·홈 12개 화면이 오류 배너·가로 넘침·JS 예외 없이 열림(저장 없음, admin 로그인 기록은 되돌림).
+- **로컬 IIS(10-14 22:05)**: Web·Api 모두 병합본을 .NET 런타임 포함으로 게시, 감시 작업 「AMES IIS Watchdog」 등록.
+- **10-14 PP-LSB 발행 폐지 배포 순서**: 신 Web·Api 먼저 → `dist/migrate_lsb_publish_removal.sql`. 개발·로컬 DB 에는 이미 적용됐으므로, 개발서버는 Web·Api 만 덮어쓰면 됩니다(0절 1).
 - 이 문서는 점검 시점의 스냅샷입니다. 항목을 해결하면 커밋에 함께 이 문서의 해당 줄을 지우거나 "해결(날짜·커밋)" 으로 고쳐 주세요.
