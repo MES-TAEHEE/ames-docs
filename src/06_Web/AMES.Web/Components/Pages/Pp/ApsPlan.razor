@@ -157,7 +157,7 @@ else
                     <RadzenDataGrid @key="_gridKey" Data="_asmRows" TItem="AsmVm" AllowVirtualization="true" Style="height:100%"
                                     AllowSorting="false" AllowColumnResize="true" Density="Density.Compact" EmptyText="@L["Grid.Empty"].Value" class="ames-rz-grid aps-grid">
                         <Columns>
-                            <RadzenDataGridColumn TItem="AsmVm" Title="@L["PP.Aps.Col.Item"].Value" Frozen="true" Width="300px" Sortable="false">
+                            <RadzenDataGridColumn TItem="AsmVm" MinWidth="300px" Title="@L["PP.Aps.Col.Item"].Value" Frozen="true" Width="300px" Sortable="false">
                                 <Template Context="r">
                                     <div class="aps-item">
                                         <div><span class="code">@r.Row.PartNo</span> <span class="dim">@r.Row.PartName</span> <span class="pill info">@r.Row.LineCd</span></div>
@@ -177,7 +177,7 @@ else
                             @for (int i = 0; i < Dates.Count; i++)
                             {
                                 var idx = i; var date = Dates[i];
-                                <RadzenDataGridColumn TItem="AsmVm" Title="@DateTitle(date)" Width="170px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
+                                <RadzenDataGridColumn TItem="AsmVm" MinWidth="170px" Title="@DateTitle(date)" Width="170px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
                                     <Template Context="r">
                                         @{
                                             var d = idx < r.Row.Days.Count ? r.Row.Days[idx] : null;
@@ -237,7 +237,7 @@ else
                     <RadzenDataGrid @key="_gridKey" Data="_injRows" TItem="InjVm" AllowVirtualization="true" Style="height:100%"
                                     AllowSorting="false" AllowColumnResize="true" Density="Density.Compact" EmptyText="@L["Grid.Empty"].Value" class="ames-rz-grid aps-grid">
                         <Columns>
-                            <RadzenDataGridColumn TItem="InjVm" Title="@L["PP.Aps.Col.Item"].Value" Frozen="true" Width="320px" Sortable="false">
+                            <RadzenDataGridColumn TItem="InjVm" MinWidth="320px" Title="@L["PP.Aps.Col.Item"].Value" Frozen="true" Width="320px" Sortable="false">
                                 <Template Context="r">
                                     <div class="aps-item">
                                         <div><span class="code">@r.Row.PartNo</span> <span class="dim">@r.Row.PartName</span> <span class="pill info">@r.Row.LineCd</span></div>
@@ -259,7 +259,7 @@ else
                             @for (int i = 0; i < Dates.Count; i++)
                             {
                                 var idx = i; var date = Dates[i];
-                                <RadzenDataGridColumn TItem="InjVm" Title="@DateTitle(date)" Width="190px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
+                                <RadzenDataGridColumn TItem="InjVm" MinWidth="190px" Title="@DateTitle(date)" Width="190px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
                                     <Template Context="r">
                                         @{
                                             var d = idx < r.Row.Days.Count ? r.Row.Days[idx] : null;
@@ -323,13 +323,13 @@ else
                     <RadzenDataGrid @key="_gridKey" Data="_loadRows" TItem="LoadVm" AllowVirtualization="true" Style="height:100%"
                                     AllowSorting="false" AllowColumnResize="true" Density="Density.Compact" EmptyText="@L["Grid.Empty"].Value" class="ames-rz-grid aps-grid">
                         <Columns>
-                            <RadzenDataGridColumn TItem="LoadVm" Title="@L["Col.Line"].Value" Frozen="true" Width="180px" Sortable="false">
+                            <RadzenDataGridColumn TItem="LoadVm" MinWidth="180px" Title="@L["Col.Line"].Value" Frozen="true" Width="180px" Sortable="false">
                                 <Template Context="r"><span class="code">@r.LineCd</span></Template>
                             </RadzenDataGridColumn>
                             @foreach (var date in Dates)
                             {
                                 var dt = date;
-                                <RadzenDataGridColumn TItem="LoadVm" Title="@DateTitle(dt)" Width="170px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
+                                <RadzenDataGridColumn TItem="LoadVm" MinWidth="170px" Title="@DateTitle(dt)" Width="170px" Sortable="false" Filterable="false" TextAlign="TextAlign.Center">
                                     <Template Context="r">
                                         @{ var l = r.ByDate.GetValueOrDefault(dt); }
                                         @if (l is null) { <span class="dim">—</span> }

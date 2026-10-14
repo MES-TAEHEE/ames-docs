@@ -72,11 +72,11 @@
             <Columns>
                 @if (_showCustomerCol)
                 {
-                    <RadzenDataGridColumn TItem="ItemVm" Property="CustomerId" Title="@L["Col.Customer"].Value"
-                                          Frozen="true" Width="120px" />
+                    <RadzenDataGridColumn TItem="ItemVm" MinWidth="130px" Property="CustomerId" Title="@L["Col.Customer"].Value"
+                                          Frozen="true" Width="130px" />
                 }
-                <RadzenDataGridColumn TItem="ItemVm" Property="ItemNo" Title="@L["Col.PartNo"].Value"
-                                      Frozen="true" Width="170px">
+                <RadzenDataGridColumn TItem="ItemVm" MinWidth="250px" Property="ItemNo" Title="@L["Col.PartNo"].Value"
+                                      Frozen="true" Width="250px">
                     <Template Context="it">
                         <span class="code">@it.ItemNo</span>
                         @if (!it.ItemExists)
@@ -85,16 +85,16 @@
                         }
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ItemVm" Property="Name" Title="@L["Col.PartName"].Value" Width="200px" />
-                <RadzenDataGridColumn TItem="ItemVm" Property="BaseInv" Title="@L["Col.BaseInv"].Value"
-                                      Filterable="false" TextAlign="TextAlign.Right" Width="100px">
+                <RadzenDataGridColumn TItem="ItemVm" MinWidth="200px" Property="Name" Title="@L["Col.PartName"].Value" />
+                <RadzenDataGridColumn TItem="ItemVm" MinWidth="110px" Property="BaseInv" Title="@L["Col.BaseInv"].Value"
+                                      Filterable="false" TextAlign="TextAlign.Right" Width="110px">
                     <Template Context="it">@(it.BaseInv?.ToString("#,0") ?? "—")</Template>
                 </RadzenDataGridColumn>
                 @foreach (var w in _weeks)
                 {
                     var week  = w;
                     var label = _weeks.IndexOf(w) is var k && k < _weekLabels.Count ? _weekLabels[k] : "";
-                    <RadzenDataGridColumn TItem="ItemVm" Title="@week.ToString(DateFmt.DateShort)" Sortable="false"
+                    <RadzenDataGridColumn TItem="ItemVm" MinWidth="80px" Title="@week.ToString(DateFmt.DateShort)" Sortable="false"
                                           Filterable="false" TextAlign="TextAlign.Right" Width="80px">
                         <HeaderTemplate>
                             <span title="@($"{week.ToString(DateFmt.Date)} {label}")">@week.ToString(DateFmt.DateShort)</span>
@@ -152,11 +152,11 @@
             <Columns>
                 @if (_dShowCustomer)
                 {
-                    <RadzenDataGridColumn TItem="DailyVm" Property="CustomerId" Title="@L["Col.Customer"].Value"
-                                          Frozen="true" Width="120px" />
+                    <RadzenDataGridColumn TItem="DailyVm" MinWidth="130px" Property="CustomerId" Title="@L["Col.Customer"].Value"
+                                          Frozen="true" Width="130px" />
                 }
-                <RadzenDataGridColumn TItem="DailyVm" Property="ItemNo" Title="@L["Col.PartNo"].Value"
-                                      Frozen="true" Width="170px">
+                <RadzenDataGridColumn TItem="DailyVm" MinWidth="250px" Property="ItemNo" Title="@L["Col.PartNo"].Value"
+                                      Frozen="true" Width="250px">
                     <Template Context="it">
                         <span class="code">@it.ItemNo</span>
                         @if (!it.ItemExists)
@@ -165,8 +165,8 @@
                         }
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="DailyVm" Property="Name" Title="@L["Col.PartName"].Value" Width="200px" />
-                <RadzenDataGridColumn TItem="DailyVm" Title="@L["PP.DemandPlan.Col.Pack"].Value"
+                <RadzenDataGridColumn TItem="DailyVm" MinWidth="200px" Property="Name" Title="@L["Col.PartName"].Value" />
+                <RadzenDataGridColumn TItem="DailyVm" MinWidth="140px" Title="@L["PP.DemandPlan.Col.Pack"].Value"
                                       Filterable="false" TextAlign="TextAlign.Right" Width="140px">
                     <Template Context="it">
                         @UomFmt.Qty(it.PackQty, it.Unit)
@@ -179,7 +179,7 @@
                 @foreach (var d in _dDates)
                 {
                     var date = d;
-                    <RadzenDataGridColumn TItem="DailyVm" Title="@date.ToString(DateFmt.DateShort)" Sortable="false"
+                    <RadzenDataGridColumn TItem="DailyVm" MinWidth="70px" Title="@date.ToString(DateFmt.DateShort)" Sortable="false"
                                           Filterable="false" TextAlign="TextAlign.Right" Width="70px">
                         <Template Context="it">@(it.Qty.TryGetValue(date, out var q) && q != 0 ? UomFmt.Qty(q, it.Unit) : "—")</Template>
                     </RadzenDataGridColumn>
@@ -223,27 +223,27 @@
                             AllowColumnResize="true" Density="Density.Compact"
                             class="ames-rz-grid">
                 <Columns>
-                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="CustomerId"
-                                          Title="@L["Col.Customer"].Value" Width="120px" />
-                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="Batch"
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="130px" Property="CustomerId"
+                                          Title="@L["Col.Customer"].Value" Width="130px" />
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="160px" Property="Batch"
                                           Title="@L["PP.Forecast.Hist.Batch"].Value" Width="160px">
                         <Template Context="b"><span class="code">@b.Batch</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="Rows"
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="90px" Property="Rows"
                                           Title="@L["PP.Forecast.Hist.Rows"].Value" TextAlign="TextAlign.Right" Width="90px">
                         <Template Context="b">@b.Rows.ToString("#,0")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="Items"
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="90px" Property="Items"
                                           Title="@L["PP.Forecast.Hist.Items"].Value" TextAlign="TextAlign.Right" Width="90px">
                         <Template Context="b">@b.Items.ToString("#,0")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Title="@L["PP.Forecast.Hist.Period"].Value"
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="210px" Title="@L["PP.Forecast.Hist.Period"].Value"
                                           Sortable="false" Width="210px">
                         <Template Context="b">@(b.WeekFrom?.ToString(DateFmt.Date) ?? "—") ~ @(b.WeekTo?.ToString(DateFmt.Date) ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="ImportedBy"
+                    <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="140px" Property="ImportedBy"
                                           Title="@L["PP.Forecast.Hist.By"].Value" Width="140px" />
-                                          <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" Property="ImportedAt"
+                                          <RadzenDataGridColumn TItem="PpRepository.WeeklyImportBatch" MinWidth="160px" Property="ImportedAt"
                                           Title="@L["PP.Forecast.Hist.Uploaded"].Value" Width="160px"
                                           SortOrder="SortOrder.Descending">
                         <Template Context="b">@(b.ImportedAt?.ToString(DateFmt.DateTime) ?? "—")</Template>
@@ -268,28 +268,28 @@
                             AllowColumnResize="true" Density="Density.Compact"
                             class="ames-rz-grid">
                 <Columns>
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="CustomerId"
-                                          Title="@L["Col.Customer"].Value" Width="120px" />
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="Source"
-                                          Title="@L["PP.DemandPlan.Hist.Source"].Value" Width="90px" />
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Title="@L["PP.DemandPlan.Hist.File"].Value" Width="220px">
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="130px" Property="CustomerId"
+                                          Title="@L["Col.Customer"].Value" Width="130px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="100px" Property="Source"
+                                          Title="@L["PP.DemandPlan.Hist.Source"].Value" Width="100px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="220px" Title="@L["PP.DemandPlan.Hist.File"].Value" Width="220px">
                         <Template Context="b">@(b.FileName ?? b.SourceKey ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Title="@L["PP.Forecast.Hist.Period"].Value"
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="190px" Title="@L["PP.Forecast.Hist.Period"].Value"
                                           Sortable="false" Width="190px">
                         <Template Context="b">@b.DateFrom.ToString(DateFmt.Date) ~ @b.DateTo.ToString(DateFmt.Date)</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="ItemCount"
-                                          Title="@L["PP.Forecast.Hist.Items"].Value" TextAlign="TextAlign.Right" Width="80px" />
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="RowCount"
-                                          Title="@L["PP.Forecast.Hist.Rows"].Value" TextAlign="TextAlign.Right" Width="80px" />
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="UnmatchedItems"
-                                          Title="@L["PP.DemandPlan.Hist.Unmatched"].Value" TextAlign="TextAlign.Right" Width="90px" />
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="PackMismatch"
-                                          Title="@L["PP.DemandPlan.Hist.Mismatch"].Value" TextAlign="TextAlign.Right" Width="100px" />
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="ImportedBy"
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="90px" Property="ItemCount"
+                                          Title="@L["PP.Forecast.Hist.Items"].Value" TextAlign="TextAlign.Right" Width="90px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="90px" Property="RowCount"
+                                          Title="@L["PP.Forecast.Hist.Rows"].Value" TextAlign="TextAlign.Right" Width="90px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="140px" Property="UnmatchedItems"
+                                          Title="@L["PP.DemandPlan.Hist.Unmatched"].Value" TextAlign="TextAlign.Right" Width="140px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="150px" Property="PackMismatch"
+                                          Title="@L["PP.DemandPlan.Hist.Mismatch"].Value" TextAlign="TextAlign.Right" Width="150px" />
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="140px" Property="ImportedBy"
                                           Title="@L["PP.Forecast.Hist.By"].Value" Width="140px" />
-                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" Property="ImportedAt"
+                    <RadzenDataGridColumn TItem="PpRepository.DemandPlanBatchRow" MinWidth="160px" Property="ImportedAt"
                                           Title="@L["PP.Forecast.Hist.Uploaded"].Value" Width="160px"
                                           SortOrder="SortOrder.Descending">
                         <Template Context="b">@b.ImportedAt.ToString(DateFmt.DateTime)</Template>

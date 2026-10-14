@@ -266,28 +266,28 @@ else if (_released)
                             Density="Density.Compact" EmptyText="@L["Grid.Empty"].Value" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                             ShowPagingSummary="true" class="ames-rz-grid">
                 <Columns>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="WoNumber" Title="@L["Col.WoNo"].Value" Width="150px" Frozen="true">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="150px" Property="WoNumber" Title="@L["Col.WoNo"].Value" Width="150px" Frozen="true">
                         <Template Context="o"><span class="code" style="font-weight:700;">@o.WoNumber</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="PlanDate" Title="@L["PP.Aps.Wo.Col.Date"].Value" Width="100px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="130px" Property="PlanDate" Title="@L["PP.Aps.Wo.Col.Date"].Value" Width="130px" TextAlign="TextAlign.Center">
                         <Template Context="o"><span class="code">@o.PlanDate.ToString(DateFmt.Date)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="ItemNo" Title="@L["Col.ItemNo"].Value" Width="160px">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="160px" Property="ItemNo" Title="@L["Col.ItemNo"].Value" Width="160px">
                         <Template Context="o"><span class="code">@o.ItemNo</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="SoId" Title="@L["PP.Aps.Wo.Col.So"].Value" Width="120px">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="120px" Property="SoId" Title="@L["PP.Aps.Wo.Col.So"].Value" Width="120px">
                         <Template Context="o">@(o.SoId is int so ? $"SO #{so}" : L["PP.Aps.Wo.StockWo"].Value)</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="Qty" Title="@L["Col.Qty"].Value" Width="90px" TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="90px" Property="Qty" Title="@L["Col.Qty"].Value" Width="90px" TextAlign="TextAlign.Right">
                         <Template Context="o"><span style="font-weight:700;">@UomFmt.Qty(o.Qty, null)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="Deadline" Title="@($"{L["PP.Aps.Wo.Col.Deadline"]} / {L["Col.Due"]}")" Width="120px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="170px" Property="Deadline" Title="@($"{L["PP.Aps.Wo.Col.Deadline"]} / {L["Col.Due"]}")" Width="170px" TextAlign="TextAlign.Center">
                         <Template Context="o">
                             <span class="code">@(o.Deadline is DateTime dl ? dl.ToString(DateFmt.Date) : "—")</span>
                             <div class="dim" style="font-size:.85em;">@(o.DueDate is DateTime du ? du.ToString(DateFmt.Date) : "—")</div>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Title="@L["PP.Aps.Wo.Col.Slots"].Value" Width="300px" Sortable="false">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="300px" Title="@L["PP.Aps.Wo.Col.Slots"].Value" Width="300px" Sortable="false">
                         <Template Context="o">
                             <div class="code" style="font-size:.85em;white-space:normal;">
                                 @if (o.Placements.Count == 0) { <span class="dim">—</span> }
@@ -296,10 +296,10 @@ else if (_released)
                             </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="LateQty" Title="@L["PP.Aps.Wo.Col.Late"].Value" Width="80px" TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="90px" Property="LateQty" Title="@L["PP.Aps.Wo.Col.Late"].Value" Width="90px" TextAlign="TextAlign.Right">
                         <Template Context="o">@if (o.LateQty > 0) { <span class="pill warn">@UomFmt.Qty(o.LateQty, null)</span> } else { <span class="dim">—</span> }</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" Property="OverQty" Title="@L["PP.Aps.Wo.Col.Over"].Value" Width="130px" TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="PpRepository.ApsWoOrder" MinWidth="130px" Property="OverQty" Title="@L["PP.Aps.Wo.Col.Over"].Value" Width="130px" TextAlign="TextAlign.Right">
                         <Template Context="o">
                             @{ var injSeq = ApsWoBoard.InjStepSeq(o); var overs = o.Placements.Where(p => p.OverQty > 0).GroupBy(p => (p.StepSeq, p.LineId)).ToList(); }
                             @if (overs.Count == 0 && o.Shortfalls.Count == 0) { <span class="dim">—</span> }

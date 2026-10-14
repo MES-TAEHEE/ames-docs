@@ -120,7 +120,7 @@
         <RadzenDataGrid @ref="_grid" TItem="StageEdit" Data="@_stageEdits" EditMode="DataGridEditMode.Single" AllowPaging="false" AllowSorting="false"
                         Density="Density.Compact" EmptyText="@L["PP.Aps.Settings.Empty"]" class="aps-stage-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="StageEdit" Title="@L["Col.Line"]">
+                <RadzenDataGridColumn TItem="StageEdit" MinWidth="160px" Title="@L["Col.Line"]">
                     <Template Context="s">
                         <span class="code">@s.LineId</span> <span class="dim">@s.LineName</span>
                         <span class="pill @(s.LineType == ApsRepository.LineTypeInjection ? "info" : "warn")">@(s.LineType == ApsRepository.LineTypeInjection ? L["PP.Aps.Type.injection"] : L["PP.Aps.Type.assembly"])</span>
@@ -137,17 +137,17 @@
                         }
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StageEdit" Title="@L["PP.Aps.Settings.Col.Offset"]" Width="96px" TextAlign="TextAlign.Right">
+                <RadzenDataGridColumn TItem="StageEdit" MinWidth="170px" Title="@L["PP.Aps.Settings.Col.Offset"]" Width="170px" TextAlign="TextAlign.Right">
                     <Template Context="s"><span class="num">@s.OffsetDays</span></Template>
                     <EditTemplate Context="s">
                         <RadzenNumeric TValue="int" @bind-Value="s.OffsetDays" Min="0" Max="30" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StageEdit" Title="@L["PP.Aps.Settings.Col.UseStock"]" Width="96px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="StageEdit" MinWidth="140px" Title="@L["PP.Aps.Settings.Col.UseStock"]" Width="140px" TextAlign="TextAlign.Center">
                     <Template Context="s">@(s.UseStock ? "✓" : "—")</Template>
                     <EditTemplate Context="s"><RadzenCheckBox TValue="bool" @bind-Value="s.UseStock" Name="@("ApsStageUseStock_" + s.LineId)" Disabled="@_busy" /></EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StageEdit" Title="@L["PP.Aps.Settings.Col.Pattern"]" Width="260px">
+                <RadzenDataGridColumn TItem="StageEdit" MinWidth="260px" Title="@L["PP.Aps.Settings.Col.Pattern"]" Width="260px">
                     <Template Context="s">
                         @if (string.IsNullOrEmpty(s.PatternId)) { <span class="dim">@L["PP.Aps.Settings.Pattern.Default"]</span> }
                         else { <span class="ellip" title="@PatternLabel(s.PatternId)"><span class="code">@s.PatternId</span> <span class="dim">@PatternName(s.PatternId)</span></span> }
@@ -158,13 +158,13 @@
                                         AllowClear="true" AllowFiltering="true" Disabled="@_busy" Placeholder="@L["PP.Aps.Settings.Pattern.Default"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StageEdit" Title="@L["PP.Aps.Settings.Col.Note"]" Width="170px">
+                <RadzenDataGridColumn TItem="StageEdit" MinWidth="170px" Title="@L["PP.Aps.Settings.Col.Note"]" Width="170px">
                     <Template Context="s"><span class="dim">@(s.Note ?? "—")</span></Template>
                     <EditTemplate Context="s"><RadzenTextBox @bind-Value="s.Note" MaxLength="200" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></EditTemplate>
                 </RadzenDataGridColumn>
                 @if (_canEdit)
                 {
-                    <RadzenDataGridColumn TItem="StageEdit" Title="" Width="96px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="StageEdit" MinWidth="96px" Title="" Width="96px" TextAlign="TextAlign.Center">
                         <Template Context="s">
                             <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" Click="@(() => BeginEdit(s))" Disabled="@(_busy || _editingRow is not null)" />
                             <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" Click="@(() => { _confirmDelete = s; _err = ""; })" Disabled="@(_busy || _editingRow is not null)" />

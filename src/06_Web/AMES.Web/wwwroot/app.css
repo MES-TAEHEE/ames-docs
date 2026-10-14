@@ -1427,10 +1427,13 @@ select.ames-rz-input {
     text-align: center !important;
     padding-inline-start: 0 !important;
 }
-/* MD/SYS 헤더 좌우 여백 — 위 .rz-column-header 의 padding 은 Radzen 11 에서 그 클래스가 없어져 먹지 않는다.
-   여백이 0 이면 열이 글자폭까지 줄었을 때 헤더끼리 붙는다. */
+/* MD/SYS·PP·SCM·외부 포탈 헤더 좌우 여백 — 위 .rz-column-header 의 padding 은 Radzen 11 에서 그 클래스가 없어져 먹지 않는다.
+   여백이 0 이면 열이 글자폭까지 줄었을 때 헤더끼리 붙는다(열 너비 = 3언어 헤더 최대 + 정렬 아이콘 20 + 24). */
 .ames-sec-md  .ames-rz-grid thead th > div,
-.ames-sec-sys .ames-rz-grid thead th > div { padding-inline: 8px !important; }
+.ames-sec-sys .ames-rz-grid thead th > div,
+.ames-sec-pp  .ames-rz-grid thead th > div,
+.ames-sec-scm .ames-rz-grid thead th > div,
+.ames-sec-portal .ames-rz-grid thead th > div { padding-inline: 8px !important; }
 
 /* 4. 데이터 셀 */
 .ames-rz-grid .rz-data-cell {

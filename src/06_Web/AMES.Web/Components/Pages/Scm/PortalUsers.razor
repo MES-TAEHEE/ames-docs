@@ -73,27 +73,27 @@
             <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="u"><span class="dim">@GridRowNo.Of(_pgGrid, u)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="UserID" Title="@L["SCM.PortalUsers.Col.Email"]">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="260px" Width="260px" Property="UserID" Title="@L["SCM.PortalUsers.Col.Email"]">
                 <Template Context="u"><span class="code">@u.UserID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="UserName" Title="@L["SCM.PortalUsers.Col.Name"]" TextAlign="TextAlign.Center" Width="140px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="160px" Property="UserName" Title="@L["SCM.PortalUsers.Col.Name"]" TextAlign="TextAlign.Center">
                 <Template Context="u"><span class="dim">@(u.UserName ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="VendorID" Title="@L["SCM.PortalUsers.Col.Vendor"]" Width="260px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="260px" Property="VendorID" Title="@L["SCM.PortalUsers.Col.Vendor"]" Width="260px">
                 <Template Context="u"><span class="code">@u.VendorID</span><span class="dim" style="font-size:.8em;margin-left:4px;">@u.VendorName</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="110px" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="u">
                     @if (u.LockedFlag) { <span class="pill bad">@L["SCM.PortalUsers.Status.Locked"]</span> }
                     else if (!u.ActiveFlag) { <span class="pill mute">@L["SCM.PortalUsers.Status.Inactive"]</span> }
                     else { <span class="pill ok">@L["SCM.PortalUsers.Status.Active"]</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="FailedLoginCount" Title="@L["SCM.PortalUsers.Col.FailCount"]" TextAlign="TextAlign.Right" Width="110px" />
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="LastLoginTS" Title="@L["SCM.PortalUsers.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="170px" Property="FailedLoginCount" Title="@L["SCM.PortalUsers.Col.FailCount"]" TextAlign="TextAlign.Right" Width="170px" />
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="160px" Property="LastLoginTS" Title="@L["SCM.PortalUsers.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="u"><span class="dim">@(u.LastLoginTS?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="CreatedTS" Title="@L["SCM.PortalUsers.Col.Created"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="160px" Property="CreatedTS" Title="@L["SCM.PortalUsers.Col.Created"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="u"><span class="dim">@u.CreatedTS.ToString(DateFmt.DateTime)</span></Template>
             </RadzenDataGridColumn>
         </Columns>

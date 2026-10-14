@@ -78,7 +78,7 @@ else
                     RowRender="@RowRender" class="ames-rz-grid">
         <Columns>
             @* 선택은 PR 생성에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Width="46px" Sortable="false" Visible="@_canEdit"
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="46px" Width="46px" Sortable="false" Visible="@_canEdit"
                                   Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
                 <HeaderTemplate>
                     <input type="checkbox" class="mrp-ck" checked="@AllSelected"
@@ -90,40 +90,40 @@ else
                            @onchange="e => ToggleRow(r.ItemNo, (bool)(e.Value ?? false))" />
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="ItemNo" Title="@L["PP.Mrp.Col.Material"].Value" Frozen="true" Width="260px">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="260px" Property="ItemNo" Title="@L["PP.Mrp.Col.Material"].Value" Frozen="true" Width="260px">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
                     @if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="Required" Title="@L["PP.Mrp.Col.Required"].Value" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="120px" Property="Required" Title="@L["PP.Mrp.Col.Required"].Value" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@Q(r.Required, r.Uom) <span class="dim">@UomFmt.Sym(r.Uom)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="Stock" Title="@L["PP.Mrp.Col.Stock"].Value" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="130px" Property="Stock" Title="@L["PP.Mrp.Col.Stock"].Value" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="r">@Q(r.Stock, r.Uom)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="OnOrder" Title="@L["PP.Mrp.Col.OnOrder"].Value" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="110px" Property="OnOrder" Title="@L["PP.Mrp.Col.OnOrder"].Value" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r">@(r.OnOrder == 0 ? "—" : Q(r.OnOrder, r.Uom))</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="Shortage" Title="@L["PP.Mrp.Col.Shortage"].Value" TextAlign="TextAlign.Right" Width="140px">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="190px" Property="Shortage" Title="@L["PP.Mrp.Col.Shortage"].Value" TextAlign="TextAlign.Right" Width="190px">
                 <Template Context="r">
                     @if (r.Shortage > 0) { <span class="mrp-neg">−@Q(r.Shortage, r.Uom) @UomFmt.Sym(r.Uom)</span> }
                     else if (r.Shortage == 0) { <span class="dim" style="font-weight:700;">±0</span> }
                     else { <span class="mrp-pos">+@Q(-r.Shortage, r.Uom) @UomFmt.Sym(r.Uom)</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="LeadTimeDays" Title="@L["PP.Mrp.Col.LeadTime"].Value" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="70px" Property="LeadTimeDays" Title="@L["PP.Mrp.Col.LeadTime"].Value" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r"><span class="code">@(r.LeadTimeDays is { } lt ? string.Format(L["PP.Mrp.Unit.Days"].Value, lt) : "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="OrderDue" Title="@L["PP.Mrp.Col.OrderDue"].Value" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="130px" Property="OrderDue" Title="@L["PP.Mrp.Col.OrderDue"].Value" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">
                     @if (r.IsShort && r.OrderDue is { } due) { <span class="code mrp-neg">@due.ToString(DateFmt.Date)</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="150px" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="150px" Sortable="false">
                 <Template Context="r"><span class="pill @StCls(r)">@StText(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Property="PrNumber" Title="@L["Col.PrNo"].Value" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="120px" Property="PrNumber" Title="@L["Col.PrNo"].Value" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">
                     @if (r.PrId is not null)
                     {
@@ -132,7 +132,7 @@ else
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" Title="@L["PP.Mrp.Col.Action"].Value" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="120px" Title="@L["PP.Mrp.Col.Action"].Value" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
                 <Template Context="r">
                     <RadzenButton Text="@L["Col.Detail"].Value" Icon="info" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="@(() => OpenDetail(r))" class="ames-rz-btn" />
                 </Template>

@@ -74,7 +74,7 @@ else
                     RowRender="@RowRender" class="ames-rz-grid">
         <Columns>
             @* 선택은 일괄 전송에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Width="46px" Sortable="false" Visible="@_canEdit" Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="46px" Width="46px" Sortable="false" Visible="@_canEdit" Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
                 <HeaderTemplate>
                     <input type="checkbox" class="pr-ck" checked="@AllSelected" @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
                 </HeaderTemplate>
@@ -83,34 +83,34 @@ else
                            checked="@_selected.Contains(r.PrId)" @onchange="e => ToggleRow(r.PrId, (bool)(e.Value ?? false))" />
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="PrNumber" Title="@L["Col.PrNo"].Value" Frozen="true" Width="150px">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="150px" Property="PrNumber" Title="@L["Col.PrNo"].Value" Frozen="true" Width="150px">
                 <Template Context="r"><span class="code @(r.Status == PrStatusRules.Failed ? "pr-neg" : "")" style="font-weight:700;">@PrNo(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="SapDocNum" Title="@L["PP.PurchaseReq.Col.DocNum"].Value" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="130px" Property="SapDocNum" Title="@L["PP.PurchaseReq.Col.DocNum"].Value" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">@if (r.SapDocNum is { Length: > 0 }) { <span class="code pr-pos">@r.SapDocNum</span> } else { <span class="dim">—</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="ItemNo" Title="@L["Col.Item"].Value" Width="260px">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="260px" Property="ItemNo" Title="@L["Col.Item"].Value">
                 <Template Context="r"><span class="code">@r.ItemNo</span>@if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="RequiredQty" Title="@L["Col.Qty"].Value" TextAlign="TextAlign.Right" Width="110px">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="110px" Property="RequiredQty" Title="@L["Col.Qty"].Value" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r"><span style="font-weight:700;">@Q(r.RequiredQty, r.Uom)</span> <span class="dim">@UomFmt.Sym(r.Uom)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="RequiredDate" Title="@L["Col.Required"].Value" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="120px" Property="RequiredDate" Title="@L["Col.Required"].Value" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code dim">@(r.RequiredDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Title="D-Day" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="80px" Title="D-Day" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
                 <Template Context="r"><span class="pill @DdCls(r)">@DdText(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="VendorId" Title="@L["Col.Vendor"].Value" Width="170px">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="170px" Property="VendorId" Title="@L["Col.Vendor"].Value" Width="170px">
                 <Template Context="r"><span style="white-space:nowrap;">@VendorText(r.VendorId)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="Status" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="160px" Property="Status" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="pill @StCls(r.Status)">@StText(r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Property="SapPoNumber" Title="@L["Col.SapPo"].Value" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="120px" Property="SapPoNumber" Title="@L["Col.SapPo"].Value" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">@if (r.SapPoNumber is { Length: > 0 }) { <span class="pill ok">@r.SapPoNumber</span> } else { <span class="dim">—</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PrRow" Title="@L["PP.Mrp.Col.Action"].Value" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
+            <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="110px" Title="@L["PP.Mrp.Col.Action"].Value" TextAlign="TextAlign.Center" Width="110px" Sortable="false">
                 <Template Context="r">
                     <RadzenButton Text="@L["Col.Detail"].Value" Icon="info" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="@(() => OpenDetail(r))" class="ames-rz-btn" />
                 </Template>

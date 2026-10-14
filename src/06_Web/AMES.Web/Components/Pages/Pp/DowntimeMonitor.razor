@@ -169,29 +169,29 @@
                     AllowSorting="true" RowRender="@RowRender"
                     EmptyText="@L["PP.DowntimeMonitor.History.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="LineId" Title="@L["Col.Line"]" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="120px" Property="LineId" Title="@L["Col.Line"]" Width="120px">
                 <Template Context="r"><span class="code">@(r.LineId ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="StartTs" Title="@L["Col.Start"]" Width="90px">
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="90px" Property="StartTs" Title="@L["Col.Start"]" Width="90px">
                 <Template Context="r">@(r.StartTs?.ToString("HH:mm") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="EndTs" Title="@L["Col.End"]" Width="90px">
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="90px" Property="EndTs" Title="@L["Col.End"]" Width="90px">
                 <Template Context="r">
                     @if (r.EndTs is null) { <span class="pill bad">@L["PP.DowntimeMonitor.Inprog"]</span> } else { @r.EndTs.Value.ToString("HH:mm") }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="DurationMin" Title="@L["PP.DowntimeMonitor.Col.Duration"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="150px" Property="DurationMin" Title="@L["PP.DowntimeMonitor.Col.Duration"]" Width="150px" TextAlign="TextAlign.Right">
                 <Template Context="r"><span class="code" style="@(r.DurationMin > 30 ? "color:var(--ames-tx-red-400);" : "")">@r.DurationMin.ToString("N0")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="ReasonCode" Title="@L["PP.DowntimeMonitor.Lbl.ReasonCode"]" Width="130px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="170px" Property="ReasonCode" Title="@L["PP.DowntimeMonitor.Lbl.ReasonCode"]" Width="170px" TextAlign="TextAlign.Center">
                 <Template Context="r">
                     @if (string.IsNullOrEmpty(r.ReasonCode)) { <span class="pill bad">@L["PP.DowntimeMonitor.Lbl.NotEntered"]</span> } else { <span class="pill @ReasonCls(r.ReasonCode)">@r.ReasonCode</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="CauseCode" Title="@L["Col.Cause"]" Width="110px">
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="110px" Property="CauseCode" Title="@L["Col.Cause"]" Width="110px">
                 <Template Context="r"><span class="dim">@(r.CauseCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Property="Comment" Title="@L["Col.Note"]">
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="200px" Property="Comment" Title="@L["Col.Note"]">
                 <Template Context="r"><span class="dim">@(r.Comment ?? "")</span></Template>
             </RadzenDataGridColumn>
         </Columns>

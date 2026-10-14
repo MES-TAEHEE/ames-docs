@@ -145,28 +145,28 @@
         <RadzenDataGrid TItem="StagedWo" Data="@_slots.ToList()" AllowPaging="false"
                         RowClick="@(a => { if (Editable && a.Data is not null) EditSlot(a.Data.WoId); })" RowRender="@SlotRowRender" EmptyText="@L["PP.LineSchedule.Empty.NoSlot"]" Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Col.Label"]" TextAlign="TextAlign.Center" Width="60px" Sortable="false">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="90px" Title="@L["PP.LineSchedule.Col.Label"]" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
                     <Template Context="s"><span class="pill info">@SlotLabel(s)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Col.Wo"]" TextAlign="TextAlign.Center" Width="130px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="130px" Title="@L["PP.LineSchedule.Col.Wo"]" TextAlign="TextAlign.Center" Width="130px">
                     <Template Context="s"><span class="code">@s.WoNumber</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Item"]" >
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="200px" Title="@L["Col.Item"]" >
                     <Template Context="s"><span class="dim">@(s.ItemName ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="90px" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="s"><span class="code">@MinToTime(s.StartMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="90px" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="s"><span class="code">@MinToTime(s.EndMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="90px" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="s">@(s.EndMin - s.StartMin)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Lbl.PlannedQty"]" TextAlign="TextAlign.Right" Width="120px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="150px" Title="@L["PP.LineSchedule.Lbl.PlannedQty"]" TextAlign="TextAlign.Right" Width="150px">
                     <Template Context="s">@UomFmt.Qty(s.Qty, null)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="100px" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                     <Template Context="s">
                         @if (ConflictIds.Contains(s.WoId)) { <span class="pill bad">@L["PP.LineSchedule.Cf.Conflict"]</span> }
                         else { <span class="pill ok">@L["PP.LineSchedule.Cf.Ok"]</span> }
@@ -174,7 +174,7 @@
                 </RadzenDataGridColumn>
                 @if (Editable)
                 {
-                    <RadzenDataGridColumn TItem="StagedWo" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
+                    <RadzenDataGridColumn TItem="StagedWo" MinWidth="120px" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
                         <Template Context="s">
                             <div @onclick:stopPropagation>
                                 <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => RemoveSlot(s.WoId))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
@@ -192,24 +192,24 @@
         <RadzenDataGrid TItem="PmBand" Data="@_pmBands.OrderBy(p => p.StartMin).ToList()" AllowPaging="false"
                         RowClick="@(a => { if (Editable && a.Data is not null) EditPm(a.Data.Id); })" RowRender="@PmRowRender" EmptyText="@L["PP.LineSchedule.Pm.Empty"]" Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["PP.LineSchedule.Pm.Name"]">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="200px" Title="@L["PP.LineSchedule.Pm.Name"]">
                     <Template Context="p"><span class="pill orange">@L["PP.LineSchedule.Lgd.Pm"]</span> <span>@(string.IsNullOrWhiteSpace(p.Title) ? "—" : p.Title)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["PP.LineSchedule.Pm.Ref"]">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="200px" Title="@L["PP.LineSchedule.Pm.Ref"]">
                     <Template Context="p"><span class="dim">@(p.RefLabel ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="90px" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="p"><span class="code">@MinToTime(p.StartMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="90px" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="p"><span class="code">@MinToTime(p.EndMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="90px" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="p">@(p.EndMin - p.StartMin)</Template>
                 </RadzenDataGridColumn>
                 @if (Editable)
                 {
-                    <RadzenDataGridColumn TItem="PmBand" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
+                    <RadzenDataGridColumn TItem="PmBand" MinWidth="120px" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
                         <Template Context="p">
                             <div @onclick:stopPropagation>
                                 <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => RemovePm(p.Id))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
