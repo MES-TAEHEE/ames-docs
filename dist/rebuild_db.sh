@@ -135,6 +135,7 @@ FILES=(
   migrate_role_permission_orphan_cleanup.sql # 화면이 없는 SYS_RolePermission 행 정리 — SYS-003 화면 삭제가 권한 행을 남기던 것(10-09)
   migrate_sys_screen_permission_criteria.sql # 화면 기본 권한 SYS_Screen.PermissionCriteria(LidLabel 다음, varchar(10), _/X) + 역할 권한 3자리(R·E·A, _ 미부여, X 기능 없음) — create_sys_screen 이 다시 만든 표에도 넣는다(10-10)
   migrate_lsb_publish_removal.sql    # PP-LSB 발행 폐지 — PUBLISHED→DRAFT·PublishedAt/By 컬럼·발행 기록 테이블 삭제, SCHEDULE_STATUS 정리, PP-LSB 승인 기능 X(10-14)
+  migrate_mnt_failure_action_wo.sql  # 고장 조치 이력의 작업지시(MNT_FailureAction.WorkOrderID) — 부분 완료한 원래 작업지시에서도 고장이 보이게(10-14)
   migrate_pp_lineoee_unique.sql      # PP-OEE 스냅샷 (LineID, PeriodDate, ShiftCode) 유니크 인덱스 — 스키마에 이미 있으면 건너뜀(10-14)
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
 )

@@ -245,6 +245,22 @@
             @* 연결된 고장의 대응 이력(고장 등록 → 보전 도착·ACK → 수리 완료) — 고장 번호를 누르면 MNT-002 상세 *@
             @foreach (var f in _woFailures)
             {
+                @* 부분·후속 완료로 후속 작업지시에 넘어간 고장 — 이 작업지시의 조치 이력으로 찾았다(MNT_FailureAction.WorkOrderID) *@
+                @if (f.WorkOrderId is int curWo && curWo != _sel.WorkOrderId)
+                {
+                    var next = _allRows.FirstOrDefault(w => w.WorkOrderId == curWo);
+                    var txt  = L["MNT.WorkOrder.Hint.FailureMoved"].Value.Split("{0}");
+                    <div class="dim" style="margin-top:8px;">
+                        @txt[0]@if (next is not null)
+                        {
+                            <a href="javascript:void(0)" @onclick="@(() => OpenDetail(next))">@(f.WoNumber ?? next.WoNumber)</a>
+                        }
+                        else
+                        {
+                            <b>@(f.WoNumber ?? $"#{curWo}")</b>
+                        }@(txt.Length > 1 ? txt[1] : "")
+                    </div>
+                }
                 <FailureTimelinePanel @key="f.FailureId" Failure="f" Caption="@(f.FailureNumber ?? $"F#{f.FailureId}")" Href="@(_canOpenFailure ? $"/mnt/failure?id={f.FailureId}" : null)" />
             }
 

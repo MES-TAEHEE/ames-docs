@@ -50,7 +50,7 @@ public class MntConcurrencyTests
 
                 Assert.Equal(1, ok);
                 Assert.Equal(3, rejected);
-                Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = 'REPAIRED'", ("@I", failId))));
+                Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = 'REPAIRED' AND WorkOrderID = @W", ("@I", failId), ("@W", woId))));
             }
         }
         finally { Cleanup(f!); }
@@ -161,22 +161,30 @@ public class MntConcurrencyTests
             Assert.NotEqual(woId, newWo);
             Assert.Equal(o.FollowUpWoNumber, Scalar(f!, "SELECT WoNumber FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @I AND Status = 'ISSUED' AND Priority = (SELECT Priority FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @O)",
                 ("@I", newWo), ("@O", woId)));
-            Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = @T", ("@I", failId), ("@T", result))));
+            Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = @T AND WorkOrderID = @W", ("@I", failId), ("@T", result), ("@W", woId))));
             Assert.Equal(0, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = 'REPAIRED'", ("@I", failId))));
+
+            // 넘어간 고장은 원래 작업지시 상세에도 남고(현재 담당 = 후속 작업지시), 후속 작업지시에도 보인다
+            var onOriginal = Assert.Single(mnt.ListFailuresForWo(woId), r => r.FailureId == failId);
+            Assert.Equal(newWo, onOriginal.WorkOrderId);
+            Assert.Equal(o.FollowUpWoNumber, onOriginal.WoNumber);
+            Assert.Single(mnt.ListFailuresForWo(newWo), r => r.FailureId == failId);
 
             // 작업 이력이 생긴 고장은 지울 수 없다(후속 작업지시가 발행 상태여도)
             Assert.Equal(Services.FailureDeleteRules.Block.NotOpen,
                 Assert.Throws<MntRepository.FailureNotDeletableException>(() => mnt.DeleteFailure(failId)).Reason);
 
-            // 고장을 고쳐도 후속 작업지시의 설명(남은 작업)은 그대로
-            mnt.UpdateFailure(failId, failNo, Equip, "ELEC", "ITEST 부분 완료(수정)", "MAJOR", "WEB", DateTime.Now.AddHours(-2), null, Actor);
+            // 고장을 고쳐도 후속 작업지시의 설명(남은 작업)은 그대로 — 고장번호를 바꿔도 원래 작업지시와의 연결은 ID 라 유지
+            mnt.UpdateFailure(failId, failNo + "-R", Equip, "ELEC", "ITEST 부분 완료(수정)", "MAJOR", "WEB", DateTime.Now.AddHours(-2), null, Actor);
             Assert.StartsWith(result + " ← ", (string)Scalar(f!, "SELECT ActionDesc FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @I", ("@I", newWo))!);
+            Assert.Equal(failNo + "-R", Assert.Single(mnt.ListFailuresForWo(woId), r => r.FailureId == failId).FailureNumber);
 
             // 후속 작업지시를 정상 완료하면 그때 해결
             var done = mnt.CompleteWorkOrder(newWo, "OK", "부품 교체", null, 20, null, DateTime.Now, null, Actor);
             Assert.Null(done.FollowUpWoNumber);
             Assert.Equal("RESOLVED", Scalar(f!, "SELECT Status FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
-            Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = 'REPAIRED'", ("@I", failId))));
+            Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = 'REPAIRED' AND WorkOrderID = @W", ("@I", failId), ("@W", newWo))));
+            Assert.Equal("RESOLVED", Assert.Single(mnt.ListFailuresForWo(woId), r => r.FailureId == failId).Status);
         }
         finally { Cleanup(f!); }
     }

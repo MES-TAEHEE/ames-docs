@@ -10694,4 +10694,7 @@
   <data name="SYS.Rbac.Btn.Reload" xml:space="preserve">
     <value>Recargar</value>
   </data>
+  <data name="MNT.WorkOrder.Hint.FailureMoved" xml:space="preserve">
+    <value>Esta avería continúa en la orden de trabajo de seguimiento {0}.</value>
+  </data>
 </root>

@@ -10694,4 +10694,7 @@
   <data name="SYS.Rbac.Btn.Reload" xml:space="preserve">
     <value>Reload</value>
   </data>
+  <data name="MNT.WorkOrder.Hint.FailureMoved" xml:space="preserve">
+    <value>This failure continues on follow-up work order {0}.</value>
+  </data>
 </root>

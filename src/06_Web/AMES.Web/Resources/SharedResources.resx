@@ -10694,4 +10694,7 @@
   <data name="SYS.Rbac.Btn.Reload" xml:space="preserve">
     <value>다시 불러오기</value>
   </data>
+  <data name="MNT.WorkOrder.Hint.FailureMoved" xml:space="preserve">
+    <value>이 고장은 후속 작업지시 {0} 에서 이어서 처리합니다.</value>
+  </data>
 </root>

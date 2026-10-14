@@ -249,12 +249,17 @@ public sealed class MntRepository
         return Query(sql, MapFailure, ("@Id", "MNT_FailureRegister.FailureID", failureId)).FirstOrDefault();
     }
 
-    /// <summary>작업지시에 연결된 고장(MNT_FailureRegister.WorkOrderID) — 발생순.</summary>
+    /// <summary>
+    /// 작업지시의 고장 — 지금 연결된 고장(MNT_FailureRegister.WorkOrderID) + 이 작업지시로 조치 이력을 남긴 고장
+    /// (부분·후속 완료로 후속 작업지시에 넘어간 고장, MNT_FailureAction.WorkOrderID — 10-14). 발생순.
+    /// 넘어간 고장은 FailureRow.WorkOrderId·WoNumber 가 지금 담당하는 후속 작업지시다.
+    /// </summary>
     public List<FailureRow> ListFailuresForWo(int workOrderId)
     {
         const string sql = $"""
             {FailureSelect}
             WHERE  f.WorkOrderID = @Wo
+               OR  EXISTS (SELECT 1 FROM dbo.MNT_FailureAction a WHERE a.FailureID = f.FailureID AND a.WorkOrderID = @Wo)
             ORDER  BY f.ReportedAt, f.FailureID;
             """;
         return Query(sql, MapFailure, ("@Wo", "MNT_FailureRegister.WorkOrderID", workOrderId));
@@ -1125,7 +1130,7 @@ public sealed class MntRepository
                 return (failNo, o.WoNumber);
             }
 
-            if (ResolveFailureRows(conn, tx, new[] { failureId }, rootCause, actionTaken, resolvedAt, null, actor) == 0)
+            if (ResolveFailureRows(conn, tx, new[] { failureId }, rootCause, actionTaken, resolvedAt, null, actor, woId) == 0)
                 throw new InvalidOperationException($"{failNo} is already resolved.");
             tx.Commit();
             return (failNo, null);
@@ -1247,7 +1252,7 @@ public sealed class MntRepository
             if (result is MwoResultCodes.Partial or MwoResultCodes.FollowUp)
                 followUpWo = CarryFailuresToFollowUp(conn, tx, woId, woNumber, failures.Select(f => f.Id), result, rootCause, actionTaken, completedAt, techId, actor);
             else
-                ResolveFailureRows(conn, tx, failures.Select(f => f.Id), rootCause, actionTaken, completedAt, techId, actor);
+                ResolveFailureRows(conn, tx, failures.Select(f => f.Id), rootCause, actionTaken, completedAt, techId, actor, woId);
         }
 
         // PM 역방향 — 이 WO 를 활성 WO 로 가진 일정(구 데이터는 SourceRefID 로 보조 매칭)
@@ -1323,11 +1328,12 @@ public sealed class MntRepository
                 SET    Status = 'IN_PROGRESS', WorkOrderID = @New, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
                 WHERE  FailureID = @Id AND ISNULL(Status, 'OPEN') NOT IN ('RESOLVED', 'CLOSED');
                 IF @@ROWCOUNT > 0
-                    INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
-                    VALUES (@Id, @Type, @Desc, @Tech, @At, @By, SYSDATETIME());
+                    INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, WorkOrderID, CreatedBy, CreatedTS)
+                    VALUES (@Id, @Type, @Desc, @Tech, @At, @Wo, @By, SYSDATETIME());
                 """, conn, tx);
             cmd.Parameters.Add("@Id",   SqlDbType.Int).Value             = id;
             cmd.Parameters.Add("@New",  SqlDbType.Int).Value             = newId;
+            cmd.Parameters.Add("@Wo",   SqlDbType.Int).Value             = woId;   // 원래 작업지시 — 고장이 넘어가도 그 상세에 남게
             cmd.Parameters.Add("@Type", SqlDbType.VarChar,    20).Value = result;
             cmd.Parameters.Add("@Desc", SqlDbType.NVarChar,  500).Value = note;
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)techId ?? DBNull.Value;
@@ -1341,7 +1347,7 @@ public sealed class MntRepository
     /// <summary>고장 RESOLVED + 조치 이력(MNT_FailureAction 'REPAIRED') — 안돈의 ARRIVED/ACK 와 같은 테이블에 쌓인다.
     /// 이미 해결·마감된 고장은 건너뛰며(조치 행도 남기지 않음) 실제로 닫은 건수를 돌려준다.</summary>
     private static int ResolveFailureRows(SqlConnection conn, SqlTransaction tx, IEnumerable<int> failureIds,
-        string? rootCause, string actionTaken, DateTime resolvedAt, string? techId, string actor)
+        string? rootCause, string actionTaken, DateTime resolvedAt, string? techId, string actor, int? woId)
     {
         var desc = string.IsNullOrWhiteSpace(rootCause) ? actionTaken.Trim() : $"{rootCause.Trim()} → {actionTaken.Trim()}";
         if (desc.Length > 500) desc = desc[..500];
@@ -1353,11 +1359,12 @@ public sealed class MntRepository
                 SET    Status = 'RESOLVED', ResolvedAt = @At, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
                 WHERE  FailureID = @Id AND ISNULL(Status, 'OPEN') NOT IN ('RESOLVED', 'CLOSED');
                 IF @@ROWCOUNT = 0 BEGIN SELECT 0; RETURN; END;
-                INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
-                VALUES (@Id, 'REPAIRED', @Desc, @Tech, @At, @By, SYSDATETIME());
+                INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, WorkOrderID, CreatedBy, CreatedTS)
+                VALUES (@Id, 'REPAIRED', @Desc, @Tech, @At, @Wo, @By, SYSDATETIME());
                 SELECT 1;
                 """, conn, tx);
             cmd.Parameters.Add("@Id",   SqlDbType.Int).Value            = id;
+            cmd.Parameters.Add("@Wo",   SqlDbType.Int).Value            = (object?)woId ?? DBNull.Value;
             cmd.Parameters.Add("@At",   SqlDbType.DateTime2).Value      = resolvedAt;
             cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 500).Value = desc;
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;

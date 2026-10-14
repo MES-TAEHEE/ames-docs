@@ -3046,6 +3046,7 @@ CREATE TABLE [dbo].[MNT_FailureAction](
 	[EvidenceURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
 	[TechnicianID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActionAt] [datetime2](7) NULL,
+	[WorkOrderID] [int] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -3055,6 +3056,12 @@ CREATE TABLE [dbo].[MNT_FailureAction](
 	[FailureActionID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_MNT_FailureAction_WorkOrderID] ON [dbo].[MNT_FailureAction]
+(
+	[WorkOrderID] ASC
+)
+INCLUDE([FailureID]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[MNT_FailureAction] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -3071,6 +3078,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Technician ID · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'TechnicianID'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'ActionAt'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'조치를 남긴 보전 작업지시 ID (MNT_WorkOrder, 안돈 도착·ACK 는 NULL) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'WorkOrderID'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
