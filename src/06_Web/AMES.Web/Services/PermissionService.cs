@@ -194,6 +194,13 @@ public sealed class PermissionService
     /// 등록·수정·삭제 버튼 활성화 — E 포함 시 활성
     public bool CanEdit(string href) => GetLevel(href).Contains('E');
 
+    public async Task<bool> RecheckEditAsync(AuthenticationStateProvider provider, string href)
+    {
+        await EnsureAsync(provider);
+        await RefreshAsync();
+        return CanEdit(href);
+    }
+
     /// 기타(승인·특수) 버튼 활성화 — A 포함 시 활성
     public bool CanApprove(string href) => GetLevel(href).Contains('A');
 

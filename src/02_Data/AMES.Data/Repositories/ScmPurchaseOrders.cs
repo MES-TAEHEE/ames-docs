@@ -6,10 +6,11 @@ namespace AMES.Data.Repositories;
 public sealed partial class ScmRepository
 {
     public record PurchaseLine(int Id, string Item, string Name, string Unit, decimal Quantity,
-        decimal Price, decimal Received, int PoID = 0, string Version = "", bool ItemExists = true);
+        decimal Price, decimal Received, int PoID = 0, string Version = "", bool ItemExists = true,
+        bool ItemActive = true, string? MasterUnit = null, decimal? DeliveryReceived = null);
     public record PurchaseOrder(string Number, string Vendor, DateTime Ordered, DateTime Due,
         string Destination, string Status, string Currency, List<PurchaseLine> Lines, string VendorName = "",
-        DateTime? SupplierConfirmedAt = null, string? SupplierConfirmedBy = null, string CreatedBy = "");
+        DateTime? SupplierConfirmedAt = null, string? SupplierConfirmedBy = null, string CreatedBy = "", string? DataIssue = null);
 
     public static string PortalOrderStatus(bool cancelled, IEnumerable<(decimal Ordered, decimal Shipped, decimal Received)> lines)
     {
@@ -21,17 +22,43 @@ public sealed partial class ScmRepository
         return "Published";
     }
 
-    public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null, bool confirmedOnly = false, bool packableOnly = false)
+    public static string ProgressOrderStatus(string status, bool confirmed,
+        IEnumerable<(decimal Ordered, decimal Shipped, decimal Received, decimal Registered)> lines)
+    {
+        if (status is "Draft" or "Cancelled") return status;
+        var items = lines.ToList();
+        if (items.Count > 0 && items.All(x => x.Received >= x.Ordered)) return "Received";
+        if (items.Any(x => x.Received > 0)) return "PartiallyReceived";
+        if (items.Any(x => x.Shipped > 0)) return "Shipped";
+        if (items.Any(x => x.Registered > 0)) return "PreparingDelivery";
+        return confirmed ? "SupplierConfirmed" : "AwaitingConfirmation";
+    }
+
+    public record PurchaseOrderFilter(string Search = "", string Vendor = "", string Creator = "", DateTime? From = null, DateTime? To = null);
+
+    public List<PurchaseOrder> ListPurchaseOrders(bool portal = false, string? portalUserId = null, bool confirmedOnly = false, bool packableOnly = false, PurchaseOrderFilter? filter = null)
     {
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand("""
             SELECT p.PoID,p.PoNumber,p.PoLineNo,p.VendorID,p.ItemNo,i.ItemName,p.UnitCode,
                    p.OrderQty,p.UnitPrice,p.ReceivedQty,p.OrderDate,p.DueDate,p.Status,
                    p.Currency,p.DeliveryDestination,p.ScmRowVersion,v.VendorName,p.SupplierConfirmedAt,p.SupplierConfirmedBy,
-                   CAST(CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS bit),p.CreatedBy
+                   CAST(CASE WHEN i.ItemNo IS NULL THEN 0 ELSE 1 END AS bit),p.CreatedBy,
+                   ISNULL(i.ActiveFlag,1),i.DefaultUOM,COALESCE(receipts.Qty,0)
             FROM dbo.WH_PurchaseOrder p LEFT JOIN dbo.MD_Item i ON i.ItemNo=p.ItemNo
             LEFT JOIN dbo.MD_Vendor v ON v.VendorID=p.VendorID
+            LEFT JOIN (SELECT l.PoID,SUM(l.ReceivedQty) Qty FROM dbo.SCM_DeliveryLine l
+                JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID WHERE d.Status<>'Cancelled'
+                GROUP BY l.PoID) receipts ON receipts.PoID=p.PoID
             WHERE NULLIF(p.PoNumber,'') IS NOT NULL
+              AND (@Vendor='' OR EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder q WHERE q.PoNumber=p.PoNumber AND q.VendorID=@Vendor))
+              AND (@Creator='' OR EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder q WHERE q.PoNumber=p.PoNumber AND q.CreatedBy=@Creator))
+              AND ((@From IS NULL AND @To IS NULL) OR EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder q
+                  WHERE q.PoNumber=p.PoNumber AND (@From IS NULL OR q.DueDate>=@From)
+                      AND (@To IS NULL OR q.DueDate<DATEADD(day,1,@To))))
+              AND (@Search='' OR CHARINDEX(@Search,p.PoNumber)>0 OR EXISTS (
+                  SELECT 1 FROM dbo.WH_PurchaseOrder q LEFT JOIN dbo.MD_Item qi ON qi.ItemNo=q.ItemNo
+                  WHERE q.PoNumber=p.PoNumber AND (CHARINDEX(@Search,q.ItemNo)>0 OR CHARINDEX(@Search,qi.ItemName)>0)))
               AND (@ConfirmedOnly=0 OR (p.SupplierConfirmedAt IS NOT NULL
                   AND p.Status IN ('Open','Partial','Complete','Received')
                   AND NOT EXISTS (SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber
@@ -60,6 +87,9 @@ public sealed partial class ScmRepository
             ORDER BY p.OrderDate DESC,p.PoNumber DESC,p.PoLineNo,p.PoID;
             """, conn);
         Filter(cmd,("@Portal", null,portal),("@UserID", "SCM_PortalVendorUser.UserID",portalUserId ?? ""),("@ConfirmedOnly", null,confirmedOnly),("@PackableOnly", null,packableOnly));
+        Filter(cmd,("@Vendor","WH_PurchaseOrder.VendorID",filter?.Vendor ?? ""),("@Creator","WH_PurchaseOrder.CreatedBy",filter?.Creator ?? ""),
+            ("@From","WH_PurchaseOrder.DueDate",(object?)filter?.From?.Date ?? DBNull.Value),("@To","WH_PurchaseOrder.DueDate",(object?)filter?.To?.Date ?? DBNull.Value));
+        cmd.Parameters.Add("@Search",System.Data.SqlDbType.NVarChar,-1).Value=filter?.Search.Trim() ?? "";
         using var r = cmd.ExecuteReader();
         var orders = new Dictionary<string, PurchaseOrder>();
         while (r.Read())
@@ -75,10 +105,13 @@ public sealed partial class ScmRepository
                 orders.Add(number, order);
             }
             // Mixed legacy line states are displayed as an in-progress order until every line is complete.
+            if (order.Vendor != S(3) || order.Currency != S(13) || order.Destination != S(14)
+                || order.Due != (r.IsDBNull(11) ? DateTime.MinValue : r.GetDateTime(11)))
+                orders[number] = order = order with { DataIssue = "PO lines have different suppliers, destinations, currencies or due dates. Correct the source data before editing." };
             if (order.Status != S(12)) orders[number] = order = order with { Status = "Partial" };
             if (r.IsDBNull(17)) orders[number] = order = order with { SupplierConfirmedAt = null, SupplierConfirmedBy = null };
             order.Lines.Add(new(r.IsDBNull(2) ? r.GetInt32(0) : r.GetInt32(2), S(4), S(5), S(6),
-                D(7), D(8), D(9), r.GetInt32(0), Convert.ToHexString((byte[])r[15]),r.GetBoolean(19)));
+                D(7), D(8), D(9), r.GetInt32(0), Convert.ToHexString((byte[])r[15]),r.GetBoolean(19),r.GetBoolean(21),S(22),D(23)));
         }
         return orders.Values.ToList();
     }
@@ -120,6 +153,19 @@ public sealed partial class ScmRepository
         }
         tx.Commit();
         return number;
+    }
+
+    public decimal? FindPurchasePrice(string vendor, string item, string unit)
+    {
+        using var conn=factory.OpenConnection();
+        using var cmd=new SqlCommand("""
+            SELECT TOP(1) UnitPrice FROM dbo.WH_PurchaseOrder
+            WHERE VendorID=@Vendor AND ItemNo=@Item AND UnitCode=@Unit AND Currency='USD'
+                AND Status<>'Cancelled' AND UnitPrice>0
+            ORDER BY OrderDate DESC,PoNumber DESC,PoID DESC;
+            """,conn);
+        Filter(cmd,("@Vendor","WH_PurchaseOrder.VendorID",vendor),("@Item","WH_PurchaseOrder.ItemNo",item),("@Unit","WH_PurchaseOrder.UnitCode",unit));
+        return cmd.ExecuteScalar() is decimal price ? price : null;
     }
 
     public bool ConfirmSupplierOrder(string number, IReadOnlyDictionary<int,string> versions, string userId, string actor)
@@ -211,6 +257,7 @@ public sealed partial class ScmRepository
     static void ValidateOrderValues(PurchaseOrder order)
     {
         if (order.Currency != "USD" || string.IsNullOrWhiteSpace(order.Destination) || order.Destination.Length > 200 ||
+            order.DataIssue is not null ||
             order.Ordered.Year < 1900 || order.Due < order.Ordered || order.Lines.Count == 0 ||
             order.Lines.Select(x => x.Id).Distinct().Count() != order.Lines.Count || order.Lines.Any(x => x.Id <= 0 ||
                 !MasterDataRepository.IsQuantityUnit(x.Unit) || x.Quantity <= 0 || x.Quantity > 999999999.999m || decimal.Round(x.Quantity,3) != x.Quantity ||
@@ -227,7 +274,7 @@ public sealed partial class ScmRepository
                 JOIN dbo.MD_Item i WITH (HOLDLOCK) ON i.ItemNo=m.ItemNo
                 JOIN dbo.MD_Vendor v WITH (HOLDLOCK) ON v.VendorID=m.VendorID
                 WHERE m.VendorID=@Vendor AND m.ItemNo=@Item AND m.ActiveFlag=1
-                  AND i.ItemType='MATERIAL' AND ISNULL(v.ActiveFlag,1)=1
+                  AND i.ItemType='MATERIAL' AND ISNULL(i.ActiveFlag,1)=1 AND ISNULL(v.ActiveFlag,1)=1
                   AND ISNULL(i.DefaultUOM,'')=@Unit;
                 """,conn,tx);
             Filter(cmd,("@Vendor", "SCM_ItemVendor.VendorID",order.Vendor),("@Item", "SCM_ItemVendor.ItemNo",line.Item),("@Unit", "MD_Item.DefaultUOM",line.Unit));

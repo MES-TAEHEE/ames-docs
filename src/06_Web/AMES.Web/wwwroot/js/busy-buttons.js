@@ -25,7 +25,7 @@ window.amesBusy = (() => {
             const modal = close.closest('.ames-modal-bg');
             if (modal) modal.style.display = 'none';
         }
-        if (portal) { clear(); return; }
+        if (portal || path.startsWith('/scm/')) { clear(); return; }
         const btn = e.target.closest && e.target.closest(SEL);
         if (!btn || btn.disabled || btn.closest('[data-no-busy]')) return;
         clear();

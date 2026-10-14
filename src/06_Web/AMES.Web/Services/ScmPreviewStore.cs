@@ -20,6 +20,14 @@ public sealed class ScmPreviewStore
         public decimal Quantity { get; set; } = 1;
         public decimal Price { get; set; }
         public decimal Received { get; set; }
+        public bool ItemExists { get; set; } = true;
+        public bool ItemActive { get; set; } = true;
+        public string? MasterUnit { get; set; }
+        public decimal? DeliveryReceived { get; set; }
+        public string? DataIssue => !ItemExists ? "Item Master missing" : !ItemActive ? "Inactive item"
+            : MasterUnit is not null && !string.Equals(Unit, MasterUnit, StringComparison.OrdinalIgnoreCase) ? $"Unit mismatch: {Unit} / {MasterUnit}"
+            : Received > Quantity ? "Received exceeds order" : Received < 0 ? "Negative receipt quantity"
+            : DeliveryReceived.HasValue && DeliveryReceived.Value != Received ? "PO and delivery receipt totals differ (check legacy receipts)" : null;
         public decimal Amount => Quantity * Price;
         public OrderLine Copy() => (OrderLine)MemberwiseClone();
     }
@@ -29,6 +37,7 @@ public sealed class ScmPreviewStore
         public string Vendor { get; set; } = DemoVendor;
         public string VendorName { get; set; } = "";
         public string CreatedBy { get; set; } = "";
+        public string? DataIssue { get; set; }
         public List<OrderLine> Lines { get; set; } = [new()];
         public string Item => string.Join(", ", Lines.Select(l => l.Item));
         public string Name => string.Join(", ", Lines.Select(l => l.Name));
