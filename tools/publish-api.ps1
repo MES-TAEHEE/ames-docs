@@ -42,6 +42,10 @@ param(
 
     [string]$LocalDbConn = 'Server=localhost\MSSQLSERVER01;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;',
 
+    # 패키지(개발서버 복사용)의 web.config 에 Swagger__Enabled=true 를 넣는다(10-15) — 운영 서버용 패키지는 -DevServerSwagger:$false.
+    # 로컬 IIS 반영(-Target Local)에서는 항상 뺀다.
+    [bool]$DevServerSwagger = $true,
+
     [switch]$Zip
 )
 
@@ -86,6 +90,17 @@ function Get-ActiveConn([string]$path) {
 $conn = Get-ActiveConn (Join-Path $PkgDir 'appsettings.Production.json')
 if (-not $conn) { $conn = Get-ActiveConn (Join-Path $PkgDir 'appsettings.json') }
 if ($conn) { Write-Host "  적용될 접속 문자열: $conn" -ForegroundColor Yellow }
+
+$SwaggerNode = '<environmentVariable name="Swagger__Enabled" value="true" />'
+if ($DevServerSwagger) {
+    $wcPkg = Join-Path $PkgDir 'web.config'
+    $raw = Get-Content $wcPkg -Raw
+    if ($raw -notmatch 'Swagger__Enabled') {
+        if ($raw -notmatch '</environmentVariables>') { throw "web.config 에 environmentVariables 가 없습니다: $wcPkg" }
+        Set-Content -Path $wcPkg -Value $raw.Replace('</environmentVariables>', "  $SwaggerNode`r`n        </environmentVariables>") -Encoding utf8
+    }
+    Write-Host "  개발서버 패키지: Swagger 켬 (/swagger)" -ForegroundColor Yellow
+}
 
 # ---------------------------------------------------------------------------
 # 2. zip (선택)
@@ -156,6 +171,13 @@ if ($Target -eq 'Local') {
     & robocopy $PkgDir $LiveDir /MIR /XF app_offline.htm /NFL /NDL /NJH /NJS /R:2 /W:2 | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy 실패 (exit $LASTEXITCODE)" }
     Write-Host "  파일 $((Get-ChildItem $LiveDir -Recurse -File).Count) 개" -ForegroundColor Green
+
+    # 로컬 IIS 는 개발서버가 아니다 — 패키지에 넣은 Swagger 켜기를 뺀다
+    $wcLive = Join-Path $LiveDir 'web.config'
+    $rawLive = Get-Content $wcLive -Raw
+    if ($rawLive -match 'Swagger__Enabled') {
+        Set-Content -Path $wcLive -Value ($rawLive -replace '\s*<environmentVariable name="Swagger__Enabled"[^>]*/>', '') -Encoding utf8
+    }
 
     if ($DbTarget -eq 'Local') {
         Write-Step "DB 오버라이드 -> 로컬"

@@ -106,7 +106,8 @@ app.Use(async (ctx, next) =>
 });
 app.UseBearerAuth(tokens);
 
-if (app.Environment.IsDevelopment())
+// 운영은 꺼 둔다. 개발서버는 Production 으로 돌지만 게시 패키지의 web.config 가 Swagger__Enabled=true 를 넣는다(publish-api.ps1)
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
 app.UseSwagger();
 app.UseSwaggerUI(c =>
