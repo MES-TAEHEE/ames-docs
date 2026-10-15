@@ -14,6 +14,11 @@
 -- Existing databases: apply migrate_fg_customer_return_columns.sql first.
 
 SET ANSI_NULLS ON;
+IF OBJECT_ID(N'dbo.FG_Shipment',N'U') IS NOT NULL
+BEGIN
+    RAISERROR('Legacy PDA_SCHEMA.sql is retired after the actual FG shipment migration.',16,1);
+    SET NOEXEC ON;
+END;
 SET QUOTED_IDENTIFIER ON;
 SET NOCOUNT ON;
 GO

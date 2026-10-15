@@ -46,7 +46,7 @@
                     <div class="fg-return-detail-row"><span>PART NO</span><strong>@Text(_product.PartNo)</strong></div>
                     <div class="fg-return-detail-row"><span>PART NAME</span><strong>@Text(_product.PartName)</strong></div>
                     <div class="fg-return-detail-row"><span>CUSTOMER</span><strong>@Text(_product.CustomerId) · @Text(_product.CustomerName)</strong></div>
-                    <div class="fg-return-detail-row"><span>SHIPMENT</span><strong>@Text(_product.ShipOrderNumber)</strong></div>
+                    <div class="fg-return-detail-row"><span>SHIPMENT</span><strong>#@_product.ShipmentId · @Text(_product.OutboundBarcode)</strong></div>
                     <div class="fg-return-detail-row"><span>SHIPPED AT</span><strong>@_product.ShippedAt.ToString("MM/dd/yyyy HH:mm")</strong></div>
                 </div>
             </RadzenCard>

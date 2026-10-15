@@ -196,15 +196,15 @@ public abstract class PdaApi
     public sealed record FgStockRow(string LotNo, string ItemNo, string? ItemName,
         int? LotId, string? CustomerCode, decimal Qty, string? Unit,
         string? Location, string? Status, DateTime? StockTs);
-    public sealed record FgDashboard(int OpenOrders, int ReadyToShip, int InTransit, int DeliveredToday,
-        int PendingReturns, decimal StockOnHand);
+    public sealed record FgDashboard(int ShipmentsToday, int LotsShippedToday, decimal QtyShippedToday,
+        int PendingReturns, int StockLots, decimal StockOnHand);
     public sealed record FgPutAwayWaitingRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
         string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
         DateTime? ReadyAt);
-    public sealed record FgReturnRow(int ReturnId, string CustomerId, int ShipmentOrderId,
+    public sealed record FgReturnRow(int ReturnId, string CustomerId, int ShipmentId,
         string PartNo, string PartName, string? LotNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
     public sealed record FgReturnScanRow(string Barcode, int? LotId, string LotNo,
-        int ShipmentOrderId, string? ShipOrderNumber, string CustomerId, string? CustomerName,
+        int ShipmentId, string? OutboundBarcode, string CustomerId, string? CustomerName,
         string PartNo, string? PartName, DateTime ShippedAt, decimal Qty);
     public sealed record FgReturnResult(bool Success, string Message, int? ReturnId, FgReturnScanRow? Row);
 
@@ -218,18 +218,17 @@ public abstract class PdaApi
         string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
         decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
         string ScanType, string ScannedBarcode, string? AreaCode = null);
-    public sealed record FgPutAwayConfirmReq(string Barcode, string LocationId, string? SuggestedLocation,
-        string? OverrideReason, int? PalletCount, int? PalletQty, string? StorageMethod,
-        string? ContainerType, string? ContainerBarcode);
+    public sealed record FgPutAwayConfirmReq(string Barcode, string LocationId);
     public sealed record FgPutAwayResult(bool Success, string Message, string? InventoryLotNo, FgPutAwayScanRow? Row,
         FgPutAwayLocationRow? Location);
     public sealed record FgOutboundUnitItemRow(string LotNo, string UnitType, string PartNo, string? PartName,
         decimal Qty, string? LocationNo);
     public sealed record FgOutboundUnitRow(string OutboundBarcode, string UnitType, string? LocationNo,
-        decimal TotalQty, int ItemCount, List<FgOutboundUnitItemRow> Items);
+        decimal TotalQty, int ItemCount, List<FgOutboundUnitItemRow> Items, string? CustomerId = null, string? CustomerName = null);
     public sealed record FgOutboundUnitResult(bool Success, string Message, FgOutboundUnitRow? Unit,
-        int ProcessedCount = 0);
-    public sealed record FgOutboundUnitReq(string Barcode);
+        int ProcessedCount = 0, int? ShipmentId = null);
+    public sealed record FgOutboundUnitReq(string Barcode, string? CustomerId = null);
+    public sealed record FgOutboundCustomerRow(string CustomerId, string CustomerName);
     public sealed record FgReturnReq(string Barcode, string ReturnReason, string? Note);
 
     protected async Task<T> GetRequiredAsync<T>(string url, string fallback)

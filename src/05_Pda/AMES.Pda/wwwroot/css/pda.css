@@ -11903,7 +11903,7 @@ body:has(.wh01-shell, .wh08-shell) .rz-datepicker-calendar :is(button, select, i
     flex-shrink: 0;
 }
 
-.pda-shell.wh.fg04-shell :is(.rz-card, .rz-button, .rz-textbox, .rz-badge, .wh-modal-card) {
+.pda-shell.wh.fg04-shell :is(.rz-card, .rz-button, .rz-textbox, .rz-badge, .wh-modal-card, .wh-modal-mark) {
     border-radius: 0 !important;
     box-shadow: none !important;
 }

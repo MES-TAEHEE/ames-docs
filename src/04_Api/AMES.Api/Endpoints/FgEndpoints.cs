@@ -17,15 +17,15 @@ public static class FgEndpoints
     public sealed record StockRow(string LotNo, string ItemNo, string? ItemName,
         int? LotId, string? CustomerCode, decimal Qty, string? Unit,
         string? Location, string? Status, DateTime? StockTs);
-    public sealed record DashboardDto(int OpenOrders, int ReadyToShip, int InTransit, int DeliveredToday,
-        int PendingReturns, decimal StockOnHand);
+    public sealed record DashboardDto(int ShipmentsToday, int LotsShippedToday, decimal QtyShippedToday,
+        int PendingReturns, int StockLots, decimal StockOnHand);
     public sealed record PutAwayWaitingRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
         string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
         DateTime? ReadyAt);
-    public sealed record ReturnRow(int ReturnId, string CustomerId, int ShipmentOrderId,
+    public sealed record ReturnRow(int ReturnId, string CustomerId, int ShipmentId,
         string PartNo, string PartName, string? LotNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
     public sealed record ReturnScanRow(string Barcode, int? LotId, string LotNo,
-        int ShipmentOrderId, string? ShipOrderNumber, string CustomerId, string? CustomerName,
+        int ShipmentId, string? OutboundBarcode, string CustomerId, string? CustomerName,
         string PartNo, string? PartName, DateTime ShippedAt, decimal Qty);
     public sealed record ReturnResult(bool Success, string Message, int? ReturnId, ReturnScanRow? Row);
     public sealed record AdjustScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
@@ -48,18 +48,17 @@ public static class FgEndpoints
         string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
         decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
         string ScanType, string ScannedBarcode, string? AreaCode = null);
-    public sealed record PutAwayConfirmReq(string Barcode, string LocationId, string? SuggestedLocation,
-        string? OverrideReason, int? PalletCount, int? PalletQty, string? StorageMethod,
-        string? ContainerType, string? ContainerBarcode);
+    public sealed record PutAwayConfirmReq(string Barcode, string LocationId);
     public sealed record PutAwayResult(bool Success, string Message, string? InventoryLotNo, PutAwayScanRow? Row,
         PutAwayLocationRow? Location);
     public sealed record OutboundUnitItemRow(string LotNo, string UnitType, string PartNo, string? PartName,
         decimal Qty, string? LocationNo);
     public sealed record OutboundUnitRow(string OutboundBarcode, string UnitType, string? LocationNo,
-        decimal TotalQty, int ItemCount, List<OutboundUnitItemRow> Items);
+        decimal TotalQty, int ItemCount, List<OutboundUnitItemRow> Items, string? CustomerId = null, string? CustomerName = null);
     public sealed record OutboundUnitResult(bool Success, string Message, OutboundUnitRow? Unit,
-        int ProcessedCount = 0);
-    public sealed record OutboundUnitReq(string Barcode);
+        int ProcessedCount = 0, int? ShipmentId = null);
+    public sealed record OutboundUnitReq(string Barcode, string? CustomerId = null);
+    public sealed record OutboundCustomerRow(string CustomerId, string CustomerName);
     public sealed record ReturnReq(string Barcode, string ReturnReason, string? Note);
 
     private const string BarcodeLot = "LOT";
@@ -247,26 +246,12 @@ public static class FgEndpoints
                 return Results.NotFound(new PutAwayResult(false, "FG LOT was not found.", null, null, null));
             }
 
-            var success = row.IsProductionCompleted && !row.AlreadyStocked;
+            var success = row.IsProductionCompleted && !row.AlreadyStocked && row.Qty > 0;
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "SCAN_FG_LOT", "FG002", row.BarcodeType, parsed.Raw, success ? "SUCCESS" : "FAIL", row.Message,
                 lotNo: row.LotNo, partNo: row.ItemNo, locationId: row.ExistingLocation, qty: row.Qty));
 
             return Results.Ok(new PutAwayResult(success, row.Message, row.ExistingLotNo, row, null));
-        });
-
-        g.MapGet("/putaway/container", (HttpContext ctx, string storageMethod, string barcode) =>
-        {
-            if (ctx.GetSession() is null) return Results.Unauthorized();
-            var method = storageMethod.Trim().ToUpperInvariant();
-            var error = master.FindActiveCodeItem("FG_STORAGE_METHOD", method) is null
-                ? "Select a valid storage method."
-                : method == BarcodeLocation
-                ? "Location Only does not require a container barcode."
-                : ValidatePutAwayContainer(method, barcode);
-            return error is null
-                ? Results.Ok(new PutAwayResult(true, "Container scanned. Scan Location Barcode.", null, null, null))
-                : Results.BadRequest(new PutAwayResult(false, error, null, null, null));
         });
 
         // FG-02 PDA Put-Away - validate scanned FG location.
@@ -283,7 +268,7 @@ public static class FgEndpoints
                 : Results.Ok(location);
         });
 
-        // FG-02 PDA Put-Away - confirm Stock insert + PutAway history.
+        // FG Put-away writes inventory and its transaction together.
         g.MapPost("/putaway/confirm", (HttpContext ctx, PutAwayConfirmReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
@@ -291,16 +276,6 @@ public static class FgEndpoints
                 return Results.BadRequest(new PutAwayResult(false, "Scan FG LOT first.", null, null, null));
             if (string.IsNullOrWhiteSpace(body.LocationId))
                 return Results.BadRequest(new PutAwayResult(false, "Scan Location No first.", null, null, null));
-
-            var storageMethod = body.StorageMethod?.Trim().ToUpperInvariant() ?? "";
-            if (master.FindActiveCodeItem("FG_STORAGE_METHOD", storageMethod) is null)
-                return Results.BadRequest(new PutAwayResult(false, "Select a valid storage method.", null, null, null));
-            var containerError = ValidatePutAwayContainer(storageMethod, body.ContainerBarcode);
-            if (containerError is not null)
-                return Results.BadRequest(new PutAwayResult(false, containerError, null, null, null));
-            if (!string.IsNullOrWhiteSpace(body.ContainerType) &&
-                !string.Equals(storageMethod, body.ContainerType, StringComparison.OrdinalIgnoreCase))
-                return Results.BadRequest(new PutAwayResult(false, "Container type must match Storage.", null, null, null));
 
             using var conn = factory.OpenConnection();
             using var tx = conn.BeginTransaction();
@@ -331,6 +306,11 @@ public static class FgEndpoints
                         lotNo: row.LotNo, partNo: row.ItemNo, qty: row.Qty));
                     return Results.BadRequest(new PutAwayResult(false, row.Message, null, row, null));
                 }
+                if (row.Qty <= 0)
+                {
+                    tx.Rollback();
+                    return Results.BadRequest(new PutAwayResult(false, row.Message, null, row, null));
+                }
                 if (row.AlreadyStocked)
                 {
                     tx.Rollback();
@@ -338,12 +318,6 @@ public static class FgEndpoints
                         s, "FG_PUTAWAY", "FG002", "LOT", body.Barcode, "FAIL", row.Message,
                         lotNo: row.LotNo, partNo: row.ItemNo, locationId: row.ExistingLocation, qty: row.Qty));
                     return Results.BadRequest(new PutAwayResult(false, row.Message, row.ExistingLotNo, row, null));
-                }
-
-                if (storageMethod != BarcodeLocation && !TableHasColumn(conn, tx, "FG_PutAway", "ContainerBarcode"))
-                {
-                    tx.Rollback();
-                    return Results.BadRequest(new PutAwayResult(false, "Container storage is not configured. Apply the FG Put-Away database migration.", null, row, null));
                 }
 
                 var parsedLocation = ParseFgBarcode(body.LocationId);
@@ -363,10 +337,7 @@ public static class FgEndpoints
                     return Results.BadRequest(new PutAwayResult(false, message, null, row, location));
                 }
 
-                var pack = ResolvePalletSplit(conn, tx, row.ItemNo, row.Qty, body.PalletCount, body.PalletQty);
-                var containerBarcode = storageMethod == BarcodeLocation ? "" : ParseFgBarcode(body.ContainerBarcode).Raw;
-                var stockId = InsertPutAwayStock(conn, tx, row, location, body.SuggestedLocation, body.OverrideReason,
-                    pack.PalletCount, pack.PalletQty, s.EmployeeNo, storageMethod, storageMethod, containerBarcode);
+                var stockId = SavePutAwayStock(conn, tx, row.LotNo, location.LocationId, s.EmployeeNo);
 
                 var updated = row with
                 {
@@ -380,9 +351,14 @@ public static class FgEndpoints
                 tx.Commit();
                 return response;
             }
+            catch (SqlException ex) when (ex.Number is >= 52510 and <= 52518)
+            {
+                if (tx.Connection is not null) tx.Rollback();
+                return Results.BadRequest(new PutAwayResult(false, ex.Message, null, null, null));
+            }
             catch
             {
-                tx.Rollback();
+                if (tx.Connection is not null) tx.Rollback();
                 throw;
             }
         });
@@ -418,20 +394,33 @@ public static class FgEndpoints
             return Results.Ok(rows);
         });
 
+        g.MapGet("/outbound/customers", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            using var conn = factory.OpenConnection();
+            using var cmd = new SqlCommand("SELECT CustomerID,COALESCE(NULLIF(CustomerNameEn,''),CustomerName) CustomerName FROM dbo.MD_Customer WHERE UPPER(ISNULL(Status,'ACTIVE')) NOT IN('INACTIVE','DISABLED') ORDER BY CustomerID;", conn) { CommandTimeout = 10 };
+            using var reader = cmd.ExecuteReader();
+            var rows = new List<OutboundCustomerRow>();
+            while (reader.Read()) rows.Add(new OutboundCustomerRow((string)reader["CustomerID"],(string)reader["CustomerName"]));
+            return Results.Ok(rows);
+        });
+
         g.MapGet("/outbound/scan", (HttpContext ctx, string barcode) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            if (string.IsNullOrWhiteSpace(barcode))
-                return Results.BadRequest(new OutboundUnitResult(false, "Scan an outbound barcode.", null));
+            if (!FgOutboundBarcode.TryNormalize(barcode, out var normalized, out var error))
+                return Results.BadRequest(new OutboundUnitResult(false, error, null));
             try
             {
                 using var conn = factory.OpenConnection();
+                if (FindOutboundLocationError(conn, null, normalized) is { } locationError)
+                    return Results.BadRequest(new OutboundUnitResult(false, locationError, null));
                 using var cmd = new SqlCommand("dbo.FG_PDA_OUTBOUND_SCAN", conn)
                 {
                     CommandType = CommandType.StoredProcedure,
                     CommandTimeout = 15
                 };
-                cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = barcode.Trim();
+                cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = normalized;
                 using var rdr = cmd.ExecuteReader();
                 if (!rdr.Read())
                     return Results.Json(new OutboundUnitResult(false, "Outbound service returned no inventory unit.", null), statusCode: 503);
@@ -441,6 +430,8 @@ public static class FgEndpoints
                 var locationNo = GetString(rdr, "LocationNo");
                 var totalQty = GetDecimal(rdr, "TotalQty");
                 var itemCount = GetInt(rdr, "ItemCount") ?? 0;
+                var customerId = GetString(rdr, "CustomerID");
+                var customerName = GetString(rdr, "CustomerName");
                 var items = new List<OutboundUnitItemRow>();
                 if (rdr.NextResult())
                 {
@@ -457,11 +448,12 @@ public static class FgEndpoints
                 }
                 return Results.Ok(new OutboundUnitResult(true,
                     $"{unitType} loaded. {itemCount} inventory LOT(s) are ready for outbound.",
-                    new OutboundUnitRow(outboundBarcode, unitType, locationNo, totalQty, itemCount, items)));
+                    new OutboundUnitRow(outboundBarcode, unitType, locationNo, totalQty, itemCount, items, customerId, customerName)));
             }
             catch (SqlException ex) when (ex.Number is >= 52000 and <= 52019)
             {
-                return Results.BadRequest(new OutboundUnitResult(false, ex.Message, null));
+                return Results.BadRequest(new OutboundUnitResult(false,
+                    ex.Number is 52000 or 52001 ? ExplainOutboundFailure(factory, normalized, ex.Message) : ex.Message, null));
             }
             catch
             {
@@ -474,35 +466,48 @@ public static class FgEndpoints
         g.MapPost("/outbound", (HttpContext ctx, OutboundUnitReq body) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
-            if (string.IsNullOrWhiteSpace(body.Barcode))
-                return Results.BadRequest(new OutboundUnitResult(false, "Scan an outbound barcode first.", null));
+            if (!FgOutboundBarcode.TryNormalize(body.Barcode, out var normalized, out var error))
+                return Results.BadRequest(new OutboundUnitResult(false, error, null));
+            if (body.CustomerId is not null && !LoginInput.Valid(body.CustomerId, 20))
+                return Results.BadRequest(new OutboundUnitResult(false, "Select a valid customer ID within 20 bytes.", null));
             try
             {
                 using var conn = factory.OpenConnection();
+                using var tx = conn.BeginTransaction();
+                if (FindOutboundLocationError(conn, tx, normalized) is { } locationError)
+                    return Results.BadRequest(new OutboundUnitResult(false, locationError, null));
                 using var cmd = new SqlCommand("dbo.FG_PDA_OUTBOUND_COMPLETE", conn)
                 {
+                    Transaction = tx,
                     CommandType = CommandType.StoredProcedure,
                     CommandTimeout = 30
                 };
-                cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
+                cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = normalized;
                 ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", session.OperatorId);
+                ColumnParams.Add(cmd, "@CustomerID", "MD_Customer.CustomerID", body.CustomerId);
                 using var rdr = cmd.ExecuteReader();
                 if (!rdr.Read())
                     return Results.Json(new OutboundUnitResult(false, "Outbound service returned no result.", null), statusCode: 503);
                 var processed = GetInt(rdr, "ProcessedCount") ?? 0;
                 var totalQty = GetDecimal(rdr, "TotalQty");
                 var unitType = GetString(rdr, "UnitType") ?? "UNIT";
+                var shipmentId = GetInt(rdr, "ShipmentID");
+                // Finish the procedure (including its COMMIT) before committing the outer transaction.
+                while (rdr.NextResult()) { }
+                rdr.Close();
+                tx.Commit();
                 return Results.Ok(new OutboundUnitResult(true,
-                    $"Outbound complete. {unitType}, {processed} inventory LOT(s), {totalQty:N0} EA processed.", null, processed));
+                    $"Shipment #{shipmentId}: {unitType}, {processed} inventory LOT(s), {totalQty:N0} EA processed.", null, processed, shipmentId));
             }
             catch (SqlException ex) when (ex.Number is >= 52000 and <= 52019)
             {
-                return Results.BadRequest(new OutboundUnitResult(false, ex.Message, null));
+                return Results.BadRequest(new OutboundUnitResult(false,
+                    ex.Number is 52000 or 52001 ? ExplainOutboundFailure(factory, normalized, ex.Message) : ex.Message, null));
             }
             catch
             {
                 return Results.Json(new OutboundUnitResult(false,
-                    "Outbound service is unavailable. Check the API and database connection.", null),
+                    "Outbound confirmation could not be verified. Check transaction history before retrying; the stock may already have been processed.", null),
                     statusCode: 503);
             }
         });
@@ -512,27 +517,23 @@ public static class FgEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             using var conn = factory.OpenConnection();
-            using var cmd  = new SqlCommand("""
+            using var cmd = new SqlCommand("""
+                DECLARE @Today date=CONVERT(date,SYSDATETIME());
                 SELECT
-                  (SELECT COUNT(*) FROM dbo.FG_ShipmentOrder WHERE Status IN ('Open','Released'))     AS OpenOrders,
-                  (SELECT COUNT(*) FROM dbo.FG_ShipmentOrder WHERE Status = 'Ready')                  AS ReadyToShip,
-                  (SELECT COUNT(*) FROM dbo.FG_ShipmentOrder WHERE Status = 'Shipped')                AS InTransit,
-                  (SELECT COUNT(*) FROM dbo.FG_ShipmentOrder
-                     WHERE CAST(COALESCE(ShippedAt, DepartureAt) AS DATE) = CAST(GETDATE() AS DATE)) AS DeliveredToday,
-                  (SELECT COUNT(*) FROM dbo.FG_CustomerReturn WHERE Status IN ('Open','Inspecting')) AS PendingReturns,
-                  ISNULL((SELECT SUM(W.Qty) FROM dbo.WH_Inventory W
-                          LEFT JOIN dbo.MD_Location L ON L.LocationID=W.LocationNo
-                          WHERE UPPER(COALESCE(L.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%'), 0) AS StockOnHand;
-                """, conn);
-            using var rdr = cmd.ExecuteReader();
+                    (SELECT COUNT(*) FROM dbo.FG_Shipment WHERE ShippedAt>=@Today) ShipmentsToday,
+                    (SELECT COUNT(*) FROM dbo.WH_InventoryTransaction T JOIN dbo.FG_Shipment S ON S.ShipmentID=T.SourceID
+                        WHERE T.SourceType='FG_OUTBOUND' AND T.TransactionType='OUT' AND S.ShippedAt>=@Today) LotsShippedToday,
+                    (SELECT COALESCE(SUM(-T.QtyChange),0) FROM dbo.WH_InventoryTransaction T JOIN dbo.FG_Shipment S ON S.ShipmentID=T.SourceID
+                        WHERE T.SourceType='FG_OUTBOUND' AND T.TransactionType='OUT' AND S.ShippedAt>=@Today) QtyShippedToday,
+                    (SELECT COUNT(*) FROM dbo.FG_CustomerReturn WHERE Status IN('Open','Inspecting')) PendingReturns,
+                    COUNT(*) StockLots,COALESCE(SUM(W.Qty),0) StockOnHand
+                FROM dbo.WH_Inventory W JOIN dbo.MD_Location L ON L.LocationID=W.LocationNo
+                WHERE W.Qty>0 AND UPPER(ISNULL(L.LocationType,''))='FG';
+                """, conn) { CommandTimeout = 15 };
+            using var rdr=cmd.ExecuteReader();
             rdr.Read();
-            return Results.Ok(new DashboardDto(
-                (int)rdr["OpenOrders"],
-                (int)rdr["ReadyToShip"],
-                (int)rdr["InTransit"],
-                (int)rdr["DeliveredToday"],
-                (int)rdr["PendingReturns"],
-                rdr.GetDecimal(rdr.GetOrdinal("StockOnHand"))));
+            return Results.Ok(new DashboardDto((int)rdr["ShipmentsToday"],(int)rdr["LotsShippedToday"],
+                Convert.ToDecimal(rdr["QtyShippedToday"]),(int)rdr["PendingReturns"],(int)rdr["StockLots"],Convert.ToDecimal(rdr["StockOnHand"])));
         });
 
         // FG-RTN Return
@@ -611,12 +612,12 @@ public static class FgEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             const string sql = """
-                SELECT TOP 50 ReturnID,CustomerID,ShipmentOrderID,PartNo,PartName,LotNo,
+                SELECT TOP 50 ReturnID,CustomerID,ShipmentID,PartNo,PartName,LotNo,
                     ReturnQty AS Qty,ReturnReason,Status,ReceivedAt
                 FROM dbo.FG_CustomerReturn ORDER BY ReceivedAt DESC,ReturnID DESC;
                 """;
             return Query(factory,sql,r=>new ReturnRow((int)r["ReturnID"],(string)r["CustomerID"],
-                (int)r["ShipmentOrderID"],(string)r["PartNo"],(string)r["PartName"],r["LotNo"] as string,
+                (int)r["ShipmentID"],(string)r["PartNo"],(string)r["PartName"],r["LotNo"] as string,
                 Convert.ToDecimal(r["Qty"]),r["ReturnReason"] as string,r["Status"] as string,r["ReceivedAt"] as DateTime?));
         });
     }
@@ -626,14 +627,88 @@ public static class FgEndpoints
         GetString(rdr, "Barcode") ?? "",
         GetInt(rdr, "LotID"),
         GetString(rdr, "LotNo") ?? "",
-        GetInt(rdr, "ShipmentOrderID") ?? 0,
-        GetString(rdr, "ShipOrderNumber"),
+        GetInt(rdr, "ShipmentID") ?? 0,
+        GetString(rdr, "OutboundBarcode"),
         GetString(rdr, "CustomerID") ?? "",
         GetString(rdr, "CustomerName"),
         GetString(rdr, "PartNo") ?? "",
         GetString(rdr, "PartName"),
         GetDate(rdr, "ShippedAt") ?? DateTime.MinValue,
         GetDecimal(rdr, "Qty"));
+    private static string? FindOutboundLocationError(SqlConnection conn, SqlTransaction? tx, string barcode)
+    {
+        using var cmd = new SqlCommand("""
+            ;WITH UnitTree AS
+            (
+                SELECT LotNo,ParentLotNo,UnitType,PartNo,LocationNo,Qty FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode
+                UNION ALL
+                SELECT C.LotNo,C.ParentLotNo,C.UnitType,C.PartNo,C.LocationNo,C.Qty
+                FROM dbo.WH_Inventory C WITH(UPDLOCK,HOLDLOCK) JOIN UnitTree P ON C.ParentLotNo=P.LotNo
+            )
+            SELECT TOP(1) T.LotNo,T.UnitType,T.PartNo,T.LocationNo,L.LocationID AS MasterLocation,L.LocationType
+            FROM UnitTree T LEFT JOIN dbo.MD_Location L WITH(HOLDLOCK) ON L.LocationID=T.LocationNo
+            WHERE T.Qty>0 AND (T.PartNo IS NOT NULL OR UPPER(ISNULL(T.UnitType,'')) NOT IN('PALLET','CASE'))
+              AND NOT EXISTS(SELECT 1 FROM UnitTree C WHERE C.ParentLotNo=T.LotNo AND C.Qty>0)
+              AND (NULLIF(LTRIM(RTRIM(T.PartNo)),'') IS NULL OR NULLIF(LTRIM(RTRIM(T.UnitType)),'') IS NULL
+                   OR NULLIF(LTRIM(RTRIM(T.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR UPPER(ISNULL(L.LocationType,''))<>'FG')
+            ORDER BY T.LotNo
+            OPTION(MAXRECURSION 100);
+            """, conn, tx) { CommandTimeout = 15 };
+        cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = barcode;
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read()) return null;
+        var lot = GetString(reader, "LotNo") ?? barcode;
+        var unit = GetString(reader, "UnitType");
+        var missingPart = string.IsNullOrWhiteSpace(GetString(reader, "PartNo"));
+        if (missingPart || string.IsNullOrWhiteSpace(unit))
+            return FgOutboundBarcode.Failure(lot, true, unit, false, null, false, false, missingPart);
+        return FgOutboundBarcode.LocationFailure(lot, GetString(reader, "LocationNo"),
+            GetString(reader, "MasterLocation"), GetString(reader, "LocationType"));
+    }
+
+    private static string ExplainOutboundFailure(AmesConnectionFactory factory, string barcode, string fallback)
+    {
+        try
+        {
+            using var conn = factory.OpenConnection();
+            using var cmd = new SqlCommand("""
+                ;WITH UnitTree AS
+                (
+                    SELECT LotNo, ParentLotNo, UnitType, PartNo, Qty FROM dbo.WH_Inventory WHERE LotNo=@Barcode
+                    UNION ALL
+                    SELECT C.LotNo,C.ParentLotNo,C.UnitType,C.PartNo,C.Qty
+                    FROM dbo.WH_Inventory C JOIN UnitTree P ON C.ParentLotNo=P.LotNo
+                )
+                SELECT
+                    CASE WHEN EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LotNo=@Barcode) THEN 1 ELSE 0 END AS InventoryExists,
+                    (SELECT TOP(1) UnitType FROM dbo.WH_Inventory WHERE LotNo=@Barcode) AS UnitType,
+                    CASE WHEN EXISTS(SELECT 1 FROM dbo.tbl_Lot WHERE LotCode=@Barcode) THEN 1 ELSE 0 END AS ProductionLotExists,
+                    (SELECT TOP(1) Status FROM dbo.tbl_Lot WHERE LotCode=@Barcode) AS ProductionStatus,
+                    CASE WHEN EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Barcode) THEN 1 ELSE 0 END AS LocationBarcode,
+                    CASE WHEN EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction T
+                         WHERE T.SourceType='FG_OUTBOUND' AND
+                         (T.LotNo=@Barcode OR EXISTS(SELECT 1 FROM UnitTree U WHERE U.LotNo=T.LotNo)))
+                         THEN 1 ELSE 0 END AS PreviouslyOutbound,
+                    CASE WHEN EXISTS(SELECT 1 FROM UnitTree T WHERE T.Qty>0 AND UPPER(ISNULL(T.UnitType,'')) NOT IN('PALLET','CASE')
+                         AND NULLIF(LTRIM(RTRIM(T.PartNo)),'') IS NULL
+                         AND NOT EXISTS(SELECT 1 FROM UnitTree C WHERE C.ParentLotNo=T.LotNo AND C.Qty>0))
+                         THEN 1 ELSE 0 END AS MissingPart
+                OPTION(MAXRECURSION 100);
+                """, conn) { CommandTimeout = 5 };
+            cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = barcode;
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read()) return fallback;
+            return FgOutboundBarcode.Failure(barcode, GetInt(reader, "InventoryExists") == 1,
+                GetString(reader, "UnitType"), GetInt(reader, "ProductionLotExists") == 1,
+                GetString(reader, "ProductionStatus"), GetInt(reader, "LocationBarcode") == 1,
+                GetInt(reader, "PreviouslyOutbound") == 1, GetInt(reader, "MissingPart") == 1);
+        }
+        catch
+        {
+            return "Outbound was rejected, but barcode details could not be loaded. Check the API/database connection and scan again.";
+        }
+    }
+
     private static bool TryNormalizeReturnBarcode(
         string? barcode, out string normalized, out string error)
     {
@@ -658,9 +733,9 @@ public static class FgEndpoints
             value = value[(separator + 1)..].Trim();
         }
 
-        if (value.Length is < 3 or > 80)
+        if (value.Length is < 3 or > 50)
         {
-            error = "Barcode length must be between 3 and 80 characters.";
+            error = "Barcode length must be between 3 and 50 characters.";
             return false;
         }
         if (value.Any(ch => !(char.IsLetterOrDigit(ch) || ch is '-' or '_' or '.' or '/')))
@@ -683,18 +758,21 @@ public static class FgEndpoints
                 L.ItemNo,
                 I.ItemName,
                 NULLIF(IMG.CustomerCode, '') AS CustomerCode,
-                CAST(COALESCE(NULLIF(PR.GoodQty, 0), NULLIF(L.RemainingQty, 0), NULLIF(L.BatchSize, 0), 0) AS DECIMAL(14,3)) AS Qty,
+                CAST(COALESCE(S.Qty, NULLIF(PR.GoodQty, 0), NULLIF(L.RemainingQty, 0), NULLIF(L.BatchSize, 0), 0) AS DECIMAL(14,3)) AS Qty,
                 I.DefaultUOM AS Unit,
                 L.ProducedAt AS MfgDate,
                 L.ExpiryDate,
                 COALESCE(PR.EntryAt, IMG.ConfirmedAt, L.ProducedAt, L.CreatedTS) AS ReadyAt,
                 CASE WHEN UPPER(ISNULL(L.Status, '')) IN ('CONFIRMED', 'STOCKED')
+                           AND I.ItemType='ASSY' AND ISNULL(I.ActiveFlag,1)=1
                            AND COALESCE(PR.GoodQty, 0) > 0 THEN 1 ELSE 0 END AS IsProductionCompleted,
                 S.LotNo AS ExistingLotNo,
                 S.LocationNo AS ExistingLocation,
                 S.Status AS ExistingStatus,
-                P.PackSpecID,
-                P.StorageMethod
+                CASE WHEN (SELECT TOP(1) T.SourceType FROM dbo.WH_InventoryTransaction T
+                    WHERE T.LotNo COLLATE DATABASE_DEFAULT=L.LotCode COLLATE DATABASE_DEFAULT AND T.QtyChange<>0
+                    ORDER BY T.TransactionTime DESC,T.TransactionID DESC)='FG_OUTBOUND'
+                    THEN 1 ELSE 0 END AS AlreadyShipped
             FROM dbo.tbl_Lot L
             LEFT JOIN dbo.MD_Item I
                 ON I.ItemNo = L.ItemNo
@@ -712,30 +790,13 @@ public static class FgEndpoints
             (
                 SELECT TOP (1)
                     FS.LotNo,
+                    FS.Qty,
                     FS.LocationNo,
                     'AVAILABLE' AS Status
                 FROM dbo.WH_Inventory FS WITH (UPDLOCK, HOLDLOCK)
                 WHERE FS.LotNo = L.LotCode
-                  AND FS.Qty > 0
                 ORDER BY FS.ReceivedAt DESC, FS.LotNo DESC
             ) S
-            OUTER APPLY
-            (
-                SELECT TOP (1)
-                    PS.PackSpecID,
-                    UPPER(ISNULL(NULLIF(PS.PackType, ''), 'LOCATION')) AS StorageMethod
-                FROM dbo.MD_PackagingSpec PS
-                WHERE PS.ItemID = L.ItemNo
-                  AND ISNULL(PS.ActiveFlag, 1) = 1
-                ORDER BY
-                    CASE UPPER(ISNULL(PS.PackType, ''))
-                        WHEN 'PALLET' THEN 0
-                        WHEN 'BOX' THEN 1
-                        WHEN 'RACK' THEN 2
-                        ELSE 3
-                    END,
-                    PS.PackSpecID
-            ) P
             WHERE UPPER(L.LotCode) = UPPER(@Barcode)
             ORDER BY L.LotID DESC;
             """, conn, tx);
@@ -749,14 +810,18 @@ public static class FgEndpoints
         var isProductionCompleted = GetBool(rdr, "IsProductionCompleted");
         var lotNo = GetString(rdr, "LotCode") ?? barcode;
         const string barcodeType = BarcodeLot;
-        var storageMethod = NormalizeStorageMethod(GetString(rdr, "StorageMethod"));
+        const string storageMethod = BarcodeLocation;
         var nextScanType = NextScanTypeForStorage(storageMethod);
         var nextScanLabel = NextScanLabel(nextScanType);
         var message = !isProductionCompleted
             ? "POP production completion is required before FG Put-Away."
-            : !string.IsNullOrWhiteSpace(existingLotNo)
-                ? $"This FG LOT is already stocked at {ValueOrDash(existingLocation)}."
-                : $"Production LOT matched. Scan {BarcodeKindLabel(nextScanType)}.";
+            : GetDecimal(rdr, "Qty") <= 0
+                ? GetBool(rdr, "AlreadyShipped")
+                    ? "This product has already been shipped. Put-away is not allowed."
+                    : "This LOT has no available quantity for put-away."
+                : !string.IsNullOrWhiteSpace(existingLocation)
+                    ? $"This FG LOT is already stocked at {existingLocation}."
+                    : $"FG LOT matched. Scan {BarcodeKindLabel(nextScanType)}.";
 
         return new PutAwayScanRow(
             GetInt(rdr, "LotID"),
@@ -771,7 +836,7 @@ public static class FgEndpoints
             GetDate(rdr, "ExpiryDate"),
             GetDate(rdr, "ReadyAt"),
             isProductionCompleted,
-            !string.IsNullOrWhiteSpace(existingLotNo),
+            !string.IsNullOrWhiteSpace(existingLocation) && GetDecimal(rdr, "Qty") > 0,
             existingLotNo,
             existingLocation,
             GetString(rdr, "ExistingStatus"),
@@ -779,26 +844,8 @@ public static class FgEndpoints
             storageMethod,
             nextScanType,
             nextScanLabel,
-            GetString(rdr, "PackSpecID"),
+            null,
             message);
-    }
-
-    private static string? ValidatePutAwayContainer(string storageMethod, string? barcode)
-    {
-        if (storageMethod is not (BarcodeBox or BarcodePallet or BarcodeRack or BarcodeLocation))
-            return "Select Storage first.";
-        if (storageMethod == BarcodeLocation)
-            return string.IsNullOrWhiteSpace(barcode) ? null : "Location Only does not require a container barcode.";
-
-        var parsed = ParseFgBarcode(barcode);
-        if (parsed.Raw.Length == 0)
-            return $"Scan {BarcodeKindLabel(storageMethod)} first.";
-        if (parsed.Raw.Length > 80 || parsed.Value.Length == 0 ||
-            parsed.Value.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '-' and not '_' and not '.'))
-            return "The container barcode format is invalid.";
-        if (parsed.Kind != storageMethod)
-            return $"Scan {BarcodeKindLabel(storageMethod)} using the {storageMethod}: prefix.";
-        return null;
     }
 
     private static PutAwayLocationRow? ValidatePutAwayLocation(SqlConnection conn, SqlTransaction? tx, string locationId, string itemNo, string? customerCode, decimal qty, string? expectedScanType)
@@ -865,132 +912,19 @@ public static class FgEndpoints
         return row with { IsValid = true, Message = $"{BarcodeKindLabel(expected)} ready for FG Put-Away.", ScanType = expected, ScannedBarcode = parsed.Raw };
     }
 
-    private static (int PalletCount, int PalletQty) ResolvePalletSplit(SqlConnection conn, SqlTransaction tx, string itemNo, decimal qty, int? requestedPalletCount, int? requestedPalletQty)
+    private static string SavePutAwayStock(SqlConnection conn, SqlTransaction tx, string lotNo, string location, string operatorId)
     {
-        var palletQty = requestedPalletQty.GetValueOrDefault();
-        if (palletQty <= 0)
+        using var cmd = new SqlCommand("dbo.FG_PDA_PUTAWAY_COMPLETE", conn, tx)
         {
-            using var cmd = new SqlCommand("""
-                SELECT TOP (1)
-                       ISNULL(NULLIF(QtyPerInner, 0), 1)
-                     * ISNULL(NULLIF(InnerPerOuter, 0), 1)
-                     * ISNULL(NULLIF(OuterPerPallet, 0), 1) AS PalletQty
-                FROM dbo.MD_PackagingSpec
-                WHERE ItemID = @ItemNo
-                  AND ISNULL(ActiveFlag, 1) = 1
-                ORDER BY PackSpecID;
-                """, conn, tx);
-            cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = itemNo;
-            var value = cmd.ExecuteScalar();
-            palletQty = value == null || value == DBNull.Value ? 0 : Convert.ToInt32(value);
-        }
-
-        if (palletQty <= 0)
-            palletQty = Math.Max(1, Convert.ToInt32(Math.Ceiling(qty)));
-
-        var palletCount = requestedPalletCount.GetValueOrDefault();
-        if (palletCount <= 0)
-            palletCount = Math.Max(1, Convert.ToInt32(Math.Ceiling(qty / palletQty)));
-
-        return (palletCount, palletQty);
-    }
-
-    private static string InsertPutAwayStock(SqlConnection conn, SqlTransaction tx, PutAwayScanRow row, PutAwayLocationRow location,
-        string? suggestedLocation, string? overrideReason, int palletCount, int palletQty, string operatorId,
-        string storageMethod, string containerType, string containerBarcode)
-    {
-        using (var cmd = new SqlCommand("""
-            INSERT INTO dbo.WH_Inventory
-                (LotNo, UnitType, PartNo, PartName, LocationNo, Qty, ReceivedAt, CreatedAt, UpdatedAt)
-            VALUES (@LotNo, 'PART', @ItemNo, @PartName, @Location, @Qty,
-                    SYSDATETIME(), SYSDATETIME(), SYSDATETIME());
-            """, conn, tx))
-        {
-            cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = row.LotNo;
-            cmd.Parameters.Add("@ItemNo", SqlDbType.VarChar, 50).Value = row.ItemNo;
-            AddNullable(cmd, "@PartName", SqlDbType.NVarChar, 200, row.ItemName);
-            AddDecimal(cmd, "@Qty", row.Qty);
-            cmd.Parameters.Add("@Location", SqlDbType.VarChar, 50).Value = location.LocationId;
-            cmd.ExecuteNonQuery();
-        }
-
-        var hasContainerColumns = TableHasColumn(conn, tx, "FG_PutAway", "ContainerBarcode");
-        var putAwaySql = hasContainerColumns
-            ? """
-              INSERT INTO dbo.FG_PutAway
-                  (LotNo, WoID, ItemNo, Qty, SuggestedLoc, ActualLoc, LocOverrideReason,
-                   PalletCount, PalletQty, StorageMethod, ContainerType, ContainerBarcode,
-                   LabelPrintedTS, OperatorID, Status, CreatedBy, CreatedTS)
-              VALUES (@LotNo, @WoID, @ItemNo, @Qty, @SuggestedLoc, @ActualLoc, @OverrideReason,
-                      @PalletCount, @PalletQty, @StorageMethod, @ContainerType, @ContainerBarcode,
-                      SYSDATETIME(), @OperatorID, 'Confirmed', @OperatorID, SYSDATETIME());
-              """
-            : """
-              INSERT INTO dbo.FG_PutAway
-                  (LotNo, WoID, ItemNo, Qty, SuggestedLoc, ActualLoc, LocOverrideReason,
-                   PalletCount, PalletQty, LabelPrintedTS, OperatorID, Status, CreatedBy, CreatedTS)
-              VALUES (@LotNo, @WoID, @ItemNo, @Qty, @SuggestedLoc, @ActualLoc, @OverrideReason,
-                      @PalletCount, @PalletQty, SYSDATETIME(), @OperatorID, 'Confirmed', @OperatorID, SYSDATETIME());
-              """;
-
-        using (var cmd = new SqlCommand(putAwaySql, conn, tx))
-        {
-            cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = row.LotNo;
-            AddNullable(cmd, "@WoID", SqlDbType.Int, row.WoId);
-            cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = row.ItemNo;
-            AddDecimal(cmd, "@Qty", row.Qty);
-            AddNullable(cmd, "@SuggestedLoc", SqlDbType.NVarChar, 80, suggestedLocation);
-            cmd.Parameters.Add("@ActualLoc", SqlDbType.NVarChar, 80).Value = location.LocationId;
-            AddNullable(cmd, "@OverrideReason", SqlDbType.NVarChar, 120, overrideReason);
-            cmd.Parameters.Add("@PalletCount", SqlDbType.Int).Value = palletCount;
-            cmd.Parameters.Add("@PalletQty", SqlDbType.Int).Value = palletQty;
-            ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", operatorId);
-            if (hasContainerColumns)
-            {
-                cmd.Parameters.Add("@StorageMethod", SqlDbType.NVarChar, 20).Value = storageMethod;
-                cmd.Parameters.Add("@ContainerType", SqlDbType.NVarChar, 20).Value = containerType;
-                cmd.Parameters.Add("@ContainerBarcode", SqlDbType.NVarChar, 80).Value = containerBarcode;
-            }
-            cmd.ExecuteNonQuery();
-        }
-
-        using (var cmd = new SqlCommand("""
-            INSERT dbo.WH_InventoryTransaction
-                (TransactionTime, TransactionType, PartNo, LocationNo, LotNo,
-                 QtyBefore, QtyChange, QtyAfter, ReasonCode, SourceType, OperatorID,
-                 Note, CreatedBy, CreatedTS)
-            VALUES
-                (SYSDATETIME(), 'IN', @ItemNo, @Location, @LotNo,
-                 0, @Qty, @Qty, 'PUTAWAY', 'FG_PUTAWAY', @OperatorID,
-                 N'Finished goods put-away', LEFT(@OperatorID, 20), SYSDATETIME());
-            """, conn, tx))
-        {
-            cmd.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = row.ItemNo;
-            cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location.LocationId;
-            cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = row.LotNo;
-            AddDecimal(cmd, "@Qty", row.Qty);
-            ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", operatorId);
-            cmd.ExecuteNonQuery();
-        }
-
-        if (row.LotId.HasValue)
-        {
-            using var cmd = new SqlCommand("""
-                UPDATE dbo.tbl_Lot
-                   SET CurrentLocationID = @Location,
-                        Status = 'Stocked',
-                        InventoryStatus = 'STOCKED',
-                        ModifiedBy = @OperatorID,
-                       ModifiedTS = SYSDATETIME()
-                 WHERE LotID = @LotID;
-                """, conn, tx);
-            cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location.LocationId;
-            ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", operatorId);
-            cmd.Parameters.Add("@LotID", SqlDbType.Int).Value = row.LotId.Value;
-            cmd.ExecuteNonQuery();
-        }
-
-        return row.LotNo;
+            CommandType = CommandType.StoredProcedure,
+            CommandTimeout = 15
+        };
+        cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = lotNo;
+        cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location;
+        cmd.Parameters.Add("@OperatorID", SqlDbType.VarChar, 20).Value = operatorId;
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read()) throw new InvalidOperationException("Put-away returned no confirmation.");
+        return GetString(reader, "LotNo") ?? lotNo;
     }
 
     private static bool AcquirePutAwayLock(SqlConnection conn, SqlTransaction tx, string scope, string value)
@@ -1142,22 +1076,6 @@ public static class FgEndpoints
             BarcodeWo => "WO barcode",
             _ => "FG LOT or WO"
         };
-
-    private static bool TableHasColumn(SqlConnection conn, SqlTransaction? tx, string tableName, string columnName)
-    {
-        using var cmd = new SqlCommand("""
-            SELECT CASE WHEN EXISTS
-            (
-                SELECT 1
-                FROM sys.columns
-                WHERE object_id = OBJECT_ID(@TableName)
-                  AND name = @ColumnName
-            ) THEN 1 ELSE 0 END;
-            """, conn, tx);
-        cmd.Parameters.Add("@TableName", SqlDbType.NVarChar, 128).Value = $"dbo.{tableName}";
-        cmd.Parameters.Add("@ColumnName", SqlDbType.NVarChar, 128).Value = columnName;
-        return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
-    }
 
     private static IResult Query<T>(AmesConnectionFactory factory, string sql, Func<SqlDataReader, T> map)
     {

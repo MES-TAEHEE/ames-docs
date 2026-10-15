@@ -204,7 +204,7 @@
         decimal? DefRate(RptRepository.MonthlyMetricRow r)  => r.GoodQty + r.DefectQty > 0 ? 100m * r.DefectQty / (r.GoodQty + r.DefectQty) : null;
         decimal? Claims(RptRepository.MonthlyMetricRow r)   => r.GoodQty + r.DefectQty > 0 || r.Shipped > 0 || r.Claims > 0 ? r.Claims : null;  // 활동이 있는 달만 평가
         decimal? Otd(RptRepository.MonthlyMetricRow r)      => r.Orders > 0 ? 100m * (r.Orders - r.LateOrders) / r.Orders : null;        // PP-OTD 정의
-        decimal? ShipOt(RptRepository.MonthlyMetricRow r)   => r.Shipped > 0 ? 100m * r.ShippedOnTime / r.Shipped : null;
+        decimal? ShipOt(RptRepository.MonthlyMetricRow r)   => r.Shipped > 0 && r.ShippedOnTime is { } onTime ? 100m * onTime / r.Shipped : null;
         decimal? Oee(RptRepository.MonthlyMetricRow r)      => r.Oee;
         decimal? Mtbf(RptRepository.MonthlyMetricRow r)     => r.OperMin > 0 ? (r.Failures > 0 ? r.OperMin / 60m / r.Failures : r.OperMin / 60m) : null;   // 가동시간(h) ÷ 고장 수
         decimal? Turnover(RptRepository.MonthlyMetricRow r) => r.Issued > 0 && r.OnHand > 0 ? r.Issued / r.OnHand : null;                // 월 출고 ÷ 현재고

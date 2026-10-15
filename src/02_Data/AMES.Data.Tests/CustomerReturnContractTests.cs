@@ -21,7 +21,7 @@ public sealed class CustomerReturnContractTests
     public void Return_model_uses_explicit_customer_and_part_fields()
     {
         var names=typeof(FinishedGoodsRepository.ReturnRow).GetProperties().Select(p=>p.Name).ToArray();
-        foreach(var name in new[]{"ReturnId","CustomerId","ShipmentOrderId","PartNo","PartName","LotNo"})Assert.Contains(name,names);
+        foreach(var name in new[]{"ReturnId","CustomerId","ShipmentId","OutboundBarcode","PartNo","PartName","LotNo"})Assert.Contains(name,names);
         foreach(var name in new[]{"ReturnNumber","RmaNo","CustomerCode","ItemNo","ItemsJson","CapaTriggered"})Assert.DoesNotContain(name,names);
     }
 
@@ -30,19 +30,17 @@ public sealed class CustomerReturnContractTests
     {
         var table=Regex.Match(Read("dist/AMES_Schema.sql"),@"CREATE TABLE \[dbo\]\.\[FG_CustomerReturn\][\s\S]*?(?=^GO\s*$)",RegexOptions.Multiline).Value;
         Assert.NotEmpty(table);
-        foreach(var name in new[]{"ReturnID","CustomerID","ShipmentOrderID","PartNo","PartName"})Assert.Contains("["+name+"]",table);
+        foreach(var name in new[]{"ReturnID","CustomerID","ShipmentID","PartNo","PartName"})Assert.Contains("["+name+"]",table);
         foreach(var name in new[]{"ReturnNumber","RMANo","CustomerClaimID","OriginalShipmentOrderID","OriginalDeliveryNoteID","ItemNo","ItemsJSON","NcrID","CapaTriggered"})Assert.DoesNotContain("["+name+"]",table);
     }
 
     [Theory]
     [InlineData("dist/AMES_Schema.sql")]
-    [InlineData("dist/pda/PDA_SCHEMA.sql")]
-    [InlineData("dist/migrate_fg_inventory_consolidation.sql")]
-    [InlineData("dist/migrate_fg_customer_return_columns.sql")]
+    [InlineData("dist/migrate_fg_shipment_actual.sql")]
     public void Return_procedures_use_one_contract_across_deployment_paths(string path)
     {
         var source=Read(path);
-        foreach(var name in new[]{"FG_PDA_RETURN_SCAN","FG_PDA_RETURN_RECEIVE","FG_PDA_TRANSACTION_LIST"})
+        foreach(var name in new[]{"FG_PDA_RETURN_SCAN","FG_PDA_RETURN_RECEIVE"})
         {
             var proc=Procedure(source,name);Assert.NotEmpty(proc);
             foreach(var retired in new[]{"ReturnNumber","RMANo","OriginalShipmentOrderID","CustomerClaimID","CapaTriggered","R.ItemsJSON","R.ItemNo"})Assert.DoesNotContain(retired,proc);
@@ -50,7 +48,8 @@ public sealed class CustomerReturnContractTests
         var scan=Procedure(source,"FG_PDA_RETURN_SCAN");
         Assert.Contains("dbo.MD_Customer",scan);
         Assert.Contains("C.CustomerID",scan);
-        Assert.Contains("'SHIPPED'",scan);
+        Assert.Contains("T.SourceType='FG_OUTBOUND'",scan);
+        Assert.Contains("S.ShipmentID=T.SourceID",scan);
         var receive=Procedure(source,"FG_PDA_RETURN_RECEIVE");
         Assert.Contains("PartNo,PartName",receive);
         Assert.Contains("WITH(UPDLOCK,HOLDLOCK)",receive);

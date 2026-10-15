@@ -144,6 +144,8 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         => PostFgPutAwayResultAsync("/api/fg/putaway/confirm", body);
     public Task<FgOutboundUnitResult> FgOutboundScanAsync(string barcode)
         => GetOutboundUnitResultAsync($"/api/fg/outbound/scan?barcode={Uri.EscapeDataString(barcode.Trim())}");
+    public Task<List<FgOutboundCustomerRow>> FgOutboundCustomersAsync()
+        => GetRequiredAsync<List<FgOutboundCustomerRow>>("/api/fg/outbound/customers", "Customer list could not be loaded. Check the API version and connection.");
     public Task<FgOutboundUnitResult> FgOutboundAsync(FgOutboundUnitReq body)
         => PostOutboundUnitResultAsync("/api/fg/outbound", body);
     public Task<FgReturnResult> FgReturnAsync(FgReturnReq body)
@@ -172,9 +174,13 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
             using var response = await _http.GetAsync(url);
             return await ReadOutboundUnitResultAsync(response);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            return new FgOutboundUnitResult(false, $"Outbound service is unavailable. {ex.Message}", null);
+            return new FgOutboundUnitResult(false, "Barcode lookup timed out. Check the connection and scan again.", null);
+        }
+        catch (HttpRequestException)
+        {
+            return new FgOutboundUnitResult(false, "Cannot reach the Outbound API. Check Wi-Fi, Tailscale and the API server.", null);
         }
     }
 
@@ -186,28 +192,33 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
             using var response = await _http.PostAsJsonAsync(url, body);
             return await ReadOutboundUnitResultAsync(response);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            return new FgOutboundUnitResult(false, $"Outbound service is unavailable. {ex.Message}", null);
+            return new FgOutboundUnitResult(false, "Outbound response timed out. Check transaction history before retrying; the stock may already have been processed.", null);
+        }
+        catch (HttpRequestException)
+        {
+            return new FgOutboundUnitResult(false, "Connection lost during outbound. Check transaction history before retrying; the stock may already have been processed.", null);
         }
     }
 
     private static async Task<FgOutboundUnitResult> ReadOutboundUnitResultAsync(HttpResponseMessage response)
     {
+        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            return new FgOutboundUnitResult(false, await ReadServiceErrorAsync(response, "Outbound request was rejected."), null);
         try
         {
             var result = await response.Content.ReadFromJsonAsync<FgOutboundUnitResult>();
-            if (result is not null) return result;
+            if (result is not null && !string.IsNullOrWhiteSpace(result.Message)) return result;
         }
         catch
         {
             // Fall through to a readable status message.
         }
 
-        return new FgOutboundUnitResult(false,
-            response.StatusCode == HttpStatusCode.Unauthorized
-                ? "Session expired. Sign in again."
-                : $"Outbound service failed. HTTP {(int)response.StatusCode}.", null);
+        return new FgOutboundUnitResult(false, response.IsSuccessStatusCode
+            ? "Outbound API returned an invalid or empty response. Contact an administrator."
+            : await ReadServiceErrorAsync(response, $"Outbound API returned HTTP {(int)response.StatusCode}. Check the server status."), null);
     }
 
 
