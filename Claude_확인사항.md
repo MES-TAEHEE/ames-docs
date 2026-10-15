@@ -24,21 +24,12 @@
 
 ## 0. 요약
 
-| 담당  | 미해결 | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                          |
-| --- | --- | --- | --- | --- | ---------------------------------------------------------------------------------- |
-| 심재현 | 23  | 7   | 7묶음 | 32  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · 안돈 보전 호출 작업지시(요청 22) |
-| 안영훈 | 6(적용·검증 3·요청 2·알림 1) | 4 | 3 | 5 | WH PDA 구 프로시저 참조 · 서버 Web·Api/IIS 반영 · 포장 단위 기존 데이터 정책 · PDA 예비품 출고에 보전 작업지시 연결(요청 — 10-16 「예정」·새 출처 반영) · 재구축 목록 MNT 3건 |
-| 이승욱 | 0   | 3   | 5   | 0   | 개발서버 새 패키지 반영 · PP-OEE 가동률이 시연 데이터                                                                        |
-| 오세영 | 5   | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                      |
-
-### 지금 결정이 필요한 것(이승욱 작업분)
-1. **개발서버 반영(가장 급함)**: 개발서버 Web 은 PP-LSB 발행 폐지 뒤 버전이지만, 그 뒤 들어온 심재현 10-13 BoxQty 폐지(`migrate_aps.sql` §1, 개발 DB 적용됨) 이전 버전입니다(10-14 밤 개발서버 화면 확인).
-   - MD-003 품목 목록이 "등록된 품목이 없습니다" 로 비어 보입니다(구 Web 이 삭제된 `BoxQty` 를 읽다 실패). PP-APS 「조회」도 `BoxQty` 를 읽어 실패할 것으로 보입니다(화면은 열리고, 조회는 눌러 보지 않음).
-   - PP-002 「자동 확정」 스위치가 없고, 배정(ASSIGNED) 상태 작업지시의 착수 버튼이 숨습니다(개발 DB 1건 — MWO-2609-004).
-   - **최신 패키지**: `publish\AMES.Web_20261016-045900.zip`·`publish\AMES.Api_20261016-050011.zip`(10-16 05:00, 또는 `publish\AMES.Web`·`AMES.Api` 폴더 — .NET 10.0.13 런타임 포함, 개발서버에서 `/swagger` 를 켜는 판). 들어 있는 것: 10-15 NuGet 업데이트·두 번째 원격 병합(WH·FG·SCM·Api)·보전 상태 공통코드·종료·수동 발행, 10-16 MNT 작업(설비 상태 자동 판정·고장 라인 정지·PM 점검 항목·점검 완료 규칙·PM 일정 규칙·안돈 고장 작업지시 발행)·원격의 SYS-002 역할 사용자 목록 팝업·SYS-009 열 너비·**PP-OEE 계산 수정**(실적 없는 구간에서 실패하던 결함). 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행하고, Api 는 안영훈 2-1 1 의 IIS 상시 기동 설정도 같이 적용합니다.
-   - **개발 DB 는 이 패키지에 필요한 마이그레이션이 모두 적용돼 있습니다**(개발·로컬 DB 같음): 10-15 6개(`migrate_md_paint_fabric_lotno`·`migrate_sys_auditlog_actiontype`·`migrate_by_columns_employee_no`·`migrate_fg_customer_return_columns`·`migrate_wh_fg_scm_column_lengths`·`migrate_fg_location_type`), `migrate_mnt_status_code`(10-15), 10-16 3개(`migrate_mnt_pm_checklist`·`migrate_mnt_failure_downtime` — 뒤의 감사 컬럼 정리는 `PP_LineDowntimeLog` 만, `FG_CustomerReturn` 은 안영훈 문제점 5 처리 뒤 · `migrate_mnt_pm_lead_days` — SYS_Config `MNT_PM_LEAD_DAYS` = 7, SYS-009 Maintenance 에서 바꿈). `migrate_mnt_pm_checklist`·`migrate_mnt_failure_downtime` 은 이 패키지의 Web 과 짝이라, 개발서버의 구 Web 은 MD-027 점검 단계 조회가 실패할 수 있습니다 — 패키지 반영을 미루지 않습니다.
-   - **반영한 뒤에** `dist/migrate_retire_packaging_uom.sql`(안영훈 10-14 — `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 삭제, 단위 BOX·PLT·SH 사용 안 함)을 개발 DB 와 로컬 DB 에 적용합니다. 지금 개발서버 Web 은 이 컬럼을 읽으므로 먼저 적용하면 MD-003·SCM 발주가 깨집니다. 두 DB 모두 아직 적용 전이고, 스키마 파일은 적용 뒤 구조(컬럼 없음)입니다. 적용 전에 안영훈 문제점 4(남는 데이터) 처리 방향을 정하는 것이 좋습니다.
-2. **PP-OEE 가동률 원천**: 지금은 시연 데이터(`PP_LineStateLog`)로 계산됩니다. 실제로 쌓이는 비가동 기록(`PP_LineDowntimeLog`)으로 바꿀지 정해야 합니다(이승욱 테이블 2).
+| 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
+| --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
+| 심재현 | 23                   | 7   | 7묶음 | 32  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · 안돈 보전 호출 작업지시(요청 22)                   |
+| 안영훈 | 6(적용·검증 3·요청 2·알림 1) | 4   | 3   | 5   | WH PDA 구 프로시저 참조 · 개발서버 Api 상시 기동 설정 확인 · 포장 단위 기존 데이터 정책 · PDA 예비품 출고에 보전 작업지시 연결(요청 — 10-16 「예정」·새 출처 반영) · 재구축 목록 MNT 3건 |
+| 이승욱 | 0                    | 3   | 5   | 0   | PP-OEE 가동률이 시연 데이터(`PP_LineStateLog` 기록 — 심재현과 진행 예정)                                                                       |
+| 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
 ---
 
@@ -280,7 +271,7 @@
 ### 2-1. 적용·검증 대기·요청 (6)
 1. **API IIS 상시 기동 설정 — 서버 적용 대기**
    - `tools/publish-api.ps1`에 AlwaysRunning·유휴 종료 해제·사이트 자동 시작·preload 설정을 추가했습니다.
-   - 개발서버 IIS에 이 설정과 새 Web·Api 파일을 적용해야 합니다. 이번 작업에서는 서버 배포·앱풀 재시작을 하지 않았습니다.
+   - 10-16 개발서버에 새 Web·Api(05:00 패키지)와 `iis-watchdog.ps1 -Install` 은 반영됐습니다(이승욱 — 화면·`/api/health` 로 확인). 상시 기동 설정(앱풀 `startMode=AlwaysRunning`·`idleTimeout=0`, 사이트 `preloadEnabled`·`serverAutoStart`)은 명령을 안내했고 적용 여부 확인이 남았습니다.
 2. **재구축 스크립트 — 전체 재구축 검증 대기**
    - Portal 번호 변경은 임시 코드 경유로 충돌을 피하고 현재 001~004 화면에 맞췄습니다.
    - 선택적 개발 시드는 PDA_SEED → seed_portal_dev 순서이며, 기본 실행에서 제외합니다. 테스트 시드 실행에는 AMES_DEVELOPMENT_SEEDS=1과 세션 opt-in이 필요합니다.
@@ -327,8 +318,8 @@
 | `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
 
 ### 2-4. 문제점 (5)
-1. **[하] 사용되지 않는 BOX 내용·포장 단위 컬럼이 DB에 남음**
-   - `MD_Item.BoxContentUnit/BoxContentQty`, `WH_PurchaseOrder.BoxContentUnit/BoxContentQty`, `SCM_ItemVendor.PackingUnitCode`.
+1. **[하] 사용되지 않는 포장 단위 컬럼이 DB에 남음**
+   - `SCM_ItemVendor.PackingUnitCode`(두 DB·스키마 파일 모두 있음). `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 4개는 10-16 `migrate_retire_packaging_uom.sql` 로 두 DB 에서 지웠습니다.
    - 실행 코드 참조는 없습니다. 이번에는 컬럼 삭제 승인이 없으므로 유지했습니다. 컬럼 순서를 맞추기 위한 테이블 재구축도 하지 않습니다.
 2. **[상] WH PDA 프로시저 5개가 지워진 옛 테이블을 가리킴**
     - 위치: 개발 DB 프로시저 `WH_PDA_INBOUND_RECEIVE_LOT`·`WH_PDA_INBOUND_MOVE_LOCATION`·`WH_PDA_INBOUND_CANCEL_RECEIPT`(→ `WH_OLD_Inventory`·`WH_Receiving`·`WH_InboundPackage`), `WH_PDA_RELEASE_PICK_LINES`·`WH_PDA_RELEASE_PICK_LOT`(→ `WH_ReleasePicking`). 스키마 파일에도 같은 정의로 들어 있습니다.
@@ -342,10 +333,10 @@
 4. **[하] 폐지한 포장 단위가 기존 데이터에 그대로 남음**
     - 위치: `dist/migrate_retire_packaging_uom.sql`(10-14), `tools/gen_md_item_bom_seed.py`(`quantity_unit`)
     - 내용
-      - 마이그레이션은 단위 BOX·PLT·SH 를 사용 안 함으로만 바꾸고 데이터는 바꾸지 않습니다. 개발 DB 에는 SH 품목 30개, BOM 줄 77개, BOX 품목 1개, BOX 발주 6건이 남습니다.
+      - 마이그레이션(10-16 개발·로컬 DB 적용)은 단위 BOX·PLT·SH 를 사용 안 함으로만 바꾸고 데이터는 바꾸지 않았습니다. 개발 DB 에는 SH 품목 30개, BOM 줄 77개, BOX 품목 1개, BOX 발주 6건이 그대로 남아 있습니다.
       - 시드 생성기는 SH 를 EA 로 바꿨지만, 이미 들어간 데이터에는 반영되지 않습니다.
-      - 마이그레이션이 지우는 `BoxContentUnit`·`BoxContentQty` 에 값이 든 행이 있습니다(품목 1, 발주 2). 이 값은 옮기지 않고 사라집니다.
-    - 제안: 시드와 같게 SH → EA 로 바꿀지 정하고, BOX 품목·발주를 어떻게 다룰지 정한 뒤 마이그레이션에 데이터 정리를 더합니다.
+      - 지운 `BoxContentUnit`·`BoxContentQty` 의 값(개발 DB 품목 TEST-0001, 발주 1225·1263 — 모두 EA·30, 로컬 DB 는 없음)은 이승욱 PC `AppData\Local\AMES-claude-tools\backup_boxcontent_20261016\dev.tsv` 에 남겨 두었습니다.
+    - 제안: 시드와 같게 SH → EA 로 바꿀지 정하고, BOX 품목·발주를 어떻게 다룰지 정해 데이터 정리 스크립트를 따로 만듭니다.
 
 5. **[하] `FG_CustomerReturn.PartName` 위치가 개발 DB 와 스키마 파일에서 다름**
     - 위치: `dist/migrate_fg_customer_return_columns.sql:23-24`(ALTER ADD), `dist/AMES_Schema.sql` 의 `FG_CustomerReturn`
@@ -360,7 +351,7 @@
 
 ### 3-2. 보류 (3)
 - **B7 MNT-004 금형 정비 등록**(`MoldRepository.cs:53·81`, 호출처 없음): 정비 유형·작업자·샷 리셋·정비일을 남길 곳이 없습니다. 금형 교체를 기록하던 메서드도 옛 POP 화면을 지우면서 끊겼습니다.
-- **B8 PP-ODM 라인 상태 기록**: `PP_LineStateLog` 에 쓰는 곳은 `tools/seed_pp_demo` 뿐입니다(아래 테이블 2).
+- **B8 PP-ODM·PP-OEE 라인 상태 기록**: `PP_LineStateLog` 에 쓰는 곳은 `tools/seed_pp_demo` 뿐입니다. 이 테이블을 원천으로 쓰기로 정했고(10-16, 심재현과 합의) 기록 방식은 심재현과 진행 예정입니다(아래 테이블 2).
 - **개발 완료 시 정리**: 운영 admin 시드 차단, appsettings 비밀번호·AllowedHosts·접속문자열 환경변수(Web).
 
 ### 3-3. 테이블 — 웹 화면이 읽지만 쓰는 곳이 없음 (10-14 전수 조사)
@@ -371,7 +362,7 @@
 2. **`PP_LineStateLog`(720) — 라인 상태 분 단위 기록**
    - 읽는 곳: PP-ODM 비가동 모니터(`PpRepository.cs:1759-1815`), PP-OEE 계산(`OeeRepository.cs:36·199·234`), Api
    - 내용: 기록 코드가 없어 PP-ODM 현황뿐 아니라 **PP-OEE 가동률도 시연 데이터로 계산**됩니다(B8).
-   - 제안: 가장 작은 해결은 PP-OEE 가동률을 실제로 쌓이는 `PP_LineDowntimeLog`(비가동 기록)로 계산하는 것입니다. 큰 해결은 InjAgent 신호(심재현 연계)나 Api Worker 로 상태를 기록하는 것입니다.
+   - 방향(10-16 사용자 결정 — 심재현과 합의): PP-OEE 가동률 원천은 `PP_LineDowntimeLog` 로 바꾸지 않고 **`PP_LineStateLog` 를 그대로 쓴다**. 남은 일은 이 테이블에 실제 라인 상태를 분 단위로 기록하는 쪽을 만드는 것으로, 기록 주체(InjAgent 신호·POP·Api Worker 등)는 심재현과 정해 진행할 예정입니다.
 3. **`PR_MoldChange`(3) — 금형 교체 이력**
    - 읽는 곳: MNT-004 「교체 이력」(`MntRepository.cs:365-386`)
    - 내용: 기록 메서드를 아무도 부르지 않아 시연 3행만 보입니다(B7). 실제 교체는 PP-LSB 금형 교체(MC) 슬롯으로 계획만 있습니다.
@@ -432,8 +423,8 @@
 - **두 DB 구조(10-15 06시)**: 개발 DB 를 기준으로 로컬 DB 를 비교해 **같습니다** — 테이블 175개의 컬럼 순서·형식·NULL·콜레이션·IDENTITY·기본값, 인덱스(키·포함 열·필터), CHECK, 외래키, 프로시저·뷰·함수 정의(도구 `AppData\Local\AMES-claude-tools\schema_compare.ps1`).
   - 그 뒤 10-16 MNT 마이그레이션 3개(`migrate_mnt_pm_checklist`·`migrate_mnt_failure_downtime`·`migrate_mnt_pm_lead_days`)를 두 DB 에 같게 적용했고, `PP_LineDowntimeLog`·`MNT_WorkOrder` 구조가 같은 것을 확인했습니다.
   - 맞추면서 로컬에 한 것: 두 번째 병합의 마이그레이션 3개 적용(그 전에 `WH_InventoryTransaction` 268행 `OperatorID` 를 개발 DB 처럼 NULL 로 — 길이 마이그레이션이 20바이트를 넘는 값을 거부), 개발 DB 에만 있던 `SCM_ItemVendor.PackingUnitCode` 추가, `FG_CustomerReturn.PartName` 을 개발 DB 처럼 맨 끝으로.
-  - 두 DB 모두 `migrate_retire_packaging_uom.sql` 적용 전이라 `BoxContentUnit/Qty` 4개가 남아 있습니다(0절 1).
-  - 스키마 파일과 개발 DB 의 차이: 위 4개 컬럼(스키마 파일은 적용 뒤 구조)과 `FG_CustomerReturn.PartName` 위치(안영훈 문제점 5).
+  - 10-16 `migrate_retire_packaging_uom.sql` 을 두 DB 에 적용해 `BoxContentUnit/Qty` 4개가 없어졌습니다(스키마 파일과 같음).
+  - 스키마 파일과 개발 DB 의 차이: `FG_CustomerReturn.PartName` 위치(안영훈 문제점 5).
 - **NuGet(10-15)**: 취약 패키지 0(`dotnet list package --vulnerable --include-transitive`), 모든 패키지가 최신 안정 버전입니다(SqlClient 7.1.1, EF Core 10.0.13, Radzen 12.1.2, Test.Sdk 18.11.0, xunit 러너 4.0.1 등). 취약성 때문에 `System.Security.Cryptography.Pkcs` 를 AMES.Data 에서 10.0.13 으로 고정했으니 SqlClient 를 올릴 때 다시 확인합니다.
 - **제품 코드 규칙**: `AddWithValue` 0곳(주석 3곳만), Web 의 `DateTime.Now/Today` 0곳, 라이트 테마 토큰화 대상 0.
 - **헤드리스 확인**

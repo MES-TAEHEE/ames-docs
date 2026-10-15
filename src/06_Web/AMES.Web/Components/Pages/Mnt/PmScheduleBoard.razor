@@ -506,8 +506,8 @@
         var tpl = _templates.FirstOrDefault(t => t.PMTemplateID == _f.ChecklistId);
         if (tpl is not null && !MntRepository.TemplateMatchesEquipment(tpl.EquipType, SelectedEquipType)) _f.ChecklistId = "";
     }
-    // 프로필이 없는(SYS-001 에 등록되지 않은) 계정은 고르지 못하게 뺀다 — 이미 저장된 담당자는 수정 창에서 빈칸이 되지 않게 남긴다
-    IEnumerable<DropDownItem> TechOptions => _users.Where(u => (u.IsApproved || u.UserId == _f.TechId || u.UserId == _c.TechId) && (!string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName)))
+    // 담당자 후보 = 부서가 보전(MAINTENANCE)인 등록 계정(MntTechnicians) — 이미 저장된 담당자는 수정 창에서 빈칸이 되지 않게 남긴다
+    IEnumerable<DropDownItem> TechOptions => _users.Where(u => (u.IsApproved && MntTechnicians.IsCandidate(u.Department) || u.UserId == _f.TechId || u.UserId == _c.TechId) && (!string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName)))
         .Select(u => new DropDownItem { Value = u.UserId, Text = string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? u.UserId) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}" });
 
     string MonthTitle => string.Format(L["Fmt.CalYearMonth"].Value, _calYear, _calMonth);

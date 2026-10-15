@@ -614,8 +614,8 @@
             Disabled = !MwoChecklistRules.Allows(c.CodeValue, TaskPending, TaskFailed) });
     int TaskPending => _woTasks.Count(t => !MntResultCodes.IsChecked(t.Result));
     int TaskFailed  => _woTasks.Count(t => t.Result == MntResultCodes.Fail);
-    // 프로필이 없는(SYS-001 에 등록되지 않은) 계정은 고르지 못하게 뺀다 — 이미 저장된 담당자는 수정 창에서 빈칸이 되지 않게 남긴다
-    IEnumerable<DropDownItem> TechOptions => _users.Where(u => (u.IsApproved || u.UserId == _f.TechId) && (!string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName)))
+    // 담당자 후보 = 부서가 보전(MAINTENANCE)인 등록 계정(MntTechnicians) — 이미 저장된 담당자는 수정 창에서 빈칸이 되지 않게 남긴다
+    IEnumerable<DropDownItem> TechOptions => _users.Where(u => (u.IsApproved && MntTechnicians.IsCandidate(u.Department) || u.UserId == _f.TechId) && (!string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName)))
         .Select(u => new DropDownItem { Value = u.UserId, Text = string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? u.UserId) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}" });   // 콤보 = [사번] 이름 (PM 보드와 같은 형식)
 
     static IEnumerable<DropDownItem> WithDataValues(string[] codes, IEnumerable<string?> data, Func<string?, string> label) =>
