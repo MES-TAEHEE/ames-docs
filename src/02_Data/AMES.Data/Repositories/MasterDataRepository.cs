@@ -1309,7 +1309,7 @@ public sealed class MasterDataRepository
         INSERT @r SELECT DISTINCT 'FORECAST', ISNULL(ForecastBatch, CAST(ForecastID AS varchar(20))) FROM dbo.PP_Forecast WHERE CustomerID = @K;
         INSERT @r SELECT 'SHIPDEST', ShipDestID FROM dbo.MD_ShipmentDest WHERE CustomerID = @K;
         INSERT @r SELECT 'LABEL', LabelTemplateID FROM dbo.MD_LabelTemplate WHERE CustomerID = @K;
-        INSERT @r SELECT 'SHIPORDER', ISNULL(ShipOrderNumber, CAST(ShipmentOrderID AS varchar(20))) FROM dbo.FG_ShipmentOrder WHERE @Code IS NOT NULL AND CustomerCode = @Code;
+        INSERT @r SELECT 'SHIPMENT', OutboundBarcode FROM dbo.FG_Shipment WHERE CustomerID = @K;
         INSERT @r SELECT 'QCSTD', StdCode + ISNULL(' ' + VerNo, '') FROM dbo.QC_InspectionStd WHERE @Code IS NOT NULL AND CustomerCode = @Code;
         INSERT @r SELECT 'WORKER', GroupCode + ':' + CodeValue FROM dbo.MD_CodeItem
             WHERE GroupCode IN ('SW_POSYNC_SOURCE', 'SW_DPSYNC_SOURCE') AND Attribute1 = @K;

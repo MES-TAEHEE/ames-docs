@@ -395,15 +395,7 @@
         try
         {
             var result = await Api.FgConfirmPutAwayAsync(new PdaApi.FgPutAwayConfirmReq(
-                _scan.LotNo,
-                _selectedLocation.LocationId,
-                null,
-                null,
-                null,
-                null,
-                "LOCATION",
-                null,
-                null));
+                _scan.LotNo, _selectedLocation.LocationId));
 
             if (!result.Success)
             {

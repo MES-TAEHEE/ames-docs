@@ -32,7 +32,7 @@ Dump("MD_Item");
 Dump("MD_Equipment");
 Dump("PR_AndonCall");
 Dump("SYS_AuditLog");
-Dump("FG_ShipmentOrder");
+Dump("FG_Shipment");
 Dump("MNT_FailureRegister");
 
 Console.WriteLine();

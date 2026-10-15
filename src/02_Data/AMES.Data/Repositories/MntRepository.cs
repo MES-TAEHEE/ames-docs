@@ -1421,6 +1421,24 @@ public sealed class MntRepository
         return Query(sql, MapMwo, ("@Id", "MNT_WorkOrder.WorkOrderID", workOrderId)).FirstOrDefault();
     }
 
+    public List<MwoRow> ListPdaPmWorkOrders(DateTime from,DateTime to,string? techId,bool includeClosed)
+    {
+        const string sql=$"""
+            {MwoSelect}
+            WHERE (w.WoType='PM' OR w.SourceType='CHECK')
+              AND (@Closed=1 OR w.Status NOT IN('COMPLETED','CLOSED'))
+              AND (@Tech IS NULL OR w.AssignedTechID=@Tech)
+              AND ((w.Status IN('COMPLETED','CLOSED')
+                    AND COALESCE(w.CompletedAt,w.ClosedAt,w.IssuedAt)>=@From
+                    AND COALESCE(w.CompletedAt,w.ClosedAt,w.IssuedAt)<DATEADD(day,1,@To))
+                OR (w.Status NOT IN('COMPLETED','CLOSED') AND
+                    (pm.NextDueDate<=@To OR (pm.PMScheduleID IS NULL AND w.IssuedAt<DATEADD(day,1,@To)))))
+            ORDER BY CASE WHEN w.Status='IN_PROGRESS' THEN 0 ELSE 1 END,pm.NextDueDate,w.IssuedAt,w.WorkOrderID;
+            """;
+        return Query(sql,MapMwo,("@From",null,from.Date),("@To",null,to.Date),
+            ("@Tech", "MNT_WorkOrder.AssignedTechID",techId),("@Closed",null,includeClosed));
+    }
+
     /// <summary>PM 「도래」·「예정」을 가르는 N일 — SYS_Config MNT_PM_LEAD_DAYS(PmRules.ParseLeadDays).</summary>
     public int ReadPmLeadDays()
     {
@@ -1434,12 +1452,13 @@ public sealed class MntRepository
     /// <summary>점검 항목 1행. 템플릿 단계의 발행 시점 스냅샷이라 나중에 템플릿을 고쳐도 바뀌지 않는다. PartNo·PartName 은 표시용 조인.</summary>
     public sealed record WoTaskRow(int WorkOrderTaskId, int WorkOrderId, string? PmStepId, int? TaskSeq, string? TaskName,
         string? AcceptanceCriteria, string? RequiredSparePartNo, int? RequiredQty, int? StepDurationMin,
-        string? Result, string? Note, string? CompletedBy, DateTime? CompletedAt, string? PartNo, string? PartName);
+        string? Result, string? Note, string? CompletedBy, DateTime? CompletedAt, string? PartNo, string? PartName,
+        DateTime? ModifiedAt = null);
 
     public List<WoTaskRow> ListWorkOrderTasks(int workOrderId) => Query("""
         SELECT t.WorkOrderTaskID, t.WorkOrderID, t.PMStepID, t.TaskSeq, t.TaskName, t.AcceptanceCriteria,
                t.RequiredSparePartNo, t.RequiredQty, t.StepDurationMin, t.Result, t.Note, t.CompletedBy, t.CompletedAt,
-               p.PartNo, p.PartName
+               p.PartNo, p.PartName,t.ModifiedTS
         FROM   dbo.MNT_WorkOrderTask t
         LEFT JOIN dbo.MD_SparePart p ON p.SparePartNo = t.RequiredSparePartNo
         WHERE  t.WorkOrderID = @W
@@ -1447,7 +1466,7 @@ public sealed class MntRepository
         """, r => new WoTaskRow((int)r["WorkOrderTaskID"], (int)r["WorkOrderID"], r["PMStepID"] as string, r["TaskSeq"] as int?,
             r["TaskName"] as string, r["AcceptanceCriteria"] as string, r["RequiredSparePartNo"] as string, r["RequiredQty"] as int?,
             r["StepDurationMin"] as int?, r["Result"] as string, r["Note"] as string, r["CompletedBy"] as string,
-            r["CompletedAt"] as DateTime?, r["PartNo"] as string, r["PartName"] as string),
+            r["CompletedAt"] as DateTime?, r["PartNo"] as string, r["PartName"] as string,r["ModifiedTS"] as DateTime?),
         ("@W", "MNT_WorkOrderTask.WorkOrderID", workOrderId));
 
     /// <summary>
@@ -1536,7 +1555,8 @@ public sealed class MntRepository
     /// 점검 항목 결과 기록(MNT-007) — 작업지시가 진행 중(IN_PROGRESS)일 때만. 결과는 공통코드 MNT_RESULT 값.
     /// 미점검(PENDING)으로 되돌리면 점검자·시각을 지운다. 메모는 결과와 함께 덮어쓴다(500자).
     /// </summary>
-    public void SetWorkOrderTaskResult(int taskId, string result, string? note, string actor)
+    public void SetWorkOrderTaskResult(int taskId, string result, string? note, string actor,
+        int? workOrderId = null, DateTime? expectedModifiedAt = null, string? requiredTechId = null)
     {
         if (result is not (MntResultCodes.Pass or MntResultCodes.Fail or MntResultCodes.Na or MntResultCodes.Pending))
             throw new ArgumentException($"Unknown check result '{result}'.");
@@ -1559,6 +1579,26 @@ public sealed class MntRepository
             }
             if (status != MwoStatusCodes.InProgress)
                 throw new InvalidOperationException("Check results can be recorded only while the work order is in progress.");
+
+            if (workOrderId is int expectedWo)
+            {
+                using var guard=new SqlCommand("""
+                    SELECT T.ModifiedTS,W.AssignedTechID,
+                        (SELECT COUNT(*) FROM dbo.MNT_WorkOrderTask P WHERE P.WorkOrderID=T.WorkOrderID
+                            AND (ISNULL(P.TaskSeq,9999)<ISNULL(T.TaskSeq,9999)
+                                OR (ISNULL(P.TaskSeq,9999)=ISNULL(T.TaskSeq,9999) AND P.WorkOrderTaskID<T.WorkOrderTaskID))
+                            AND ISNULL(P.Result,'PENDING') NOT IN('PASS','FAIL','NA')) PendingBefore
+                    FROM dbo.MNT_WorkOrderTask T JOIN dbo.MNT_WorkOrder W ON W.WorkOrderID=T.WorkOrderID
+                    WHERE T.WorkOrderTaskID=@Task AND T.WorkOrderID=@Wo;
+                    """,conn,tx);
+                guard.Parameters.Add("@Task",SqlDbType.Int).Value=taskId;
+                guard.Parameters.Add("@Wo",SqlDbType.Int).Value=expectedWo;
+                using var r=guard.ExecuteReader();
+                if(!r.Read()) throw new ArgumentException("The check step does not belong to this work order.");
+                MwoChecklistRules.ValidatePdaStep((int)r["PendingBefore"],r["ModifiedTS"] as DateTime?,expectedModifiedAt,
+                    r["AssignedTechID"] as string,requiredTechId);
+                if(result==MntResultCodes.Pending) throw new ArgumentException("PDA check steps require Pass, Fail or N/A.");
+            }
 
             using (var cmd = new SqlCommand("""
                 UPDATE dbo.MNT_WorkOrderTask
@@ -1669,7 +1709,7 @@ public sealed class MntRepository
     }
 
     /// <summary>착수. 발행·배정 → IN_PROGRESS, StartedAt 기록. 연결된 고장은 IN_PROGRESS 로 따라간다.</summary>
-    public void StartWorkOrder(int woId, string actor)
+    public void StartWorkOrder(int woId, string actor, string? requiredTechId = null)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -1680,10 +1720,12 @@ public sealed class MntRepository
                 UPDATE dbo.MNT_WorkOrder
                 SET    Status = 'IN_PROGRESS', StartedAt = ISNULL(StartedAt, SYSDATETIME()),
                        ModifiedBy = @By, ModifiedTS = SYSDATETIME()
-                WHERE  WorkOrderID = @Id AND ISNULL(Status, 'ISSUED') IN ('ISSUED', 'ASSIGNED');
+                WHERE  WorkOrderID = @Id AND ISNULL(Status, 'ISSUED') IN ('ISSUED', 'ASSIGNED')
+                  AND (@Tech IS NULL OR AssignedTechID=@Tech);
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Id", SqlDbType.Int).Value            = woId;
+                cmd.Parameters.Add("@Tech",SqlDbType.NVarChar,450).Value=(object?)requiredTechId??DBNull.Value;
                 cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = actor;
                 n = cmd.ExecuteNonQuery();
             }
@@ -1715,12 +1757,34 @@ public sealed class MntRepository
     /// 완료 시점에 PartsUsedJSON 으로 스냅샷한다(ReadWoPartReleases, 재고는 PDA 출고 때 이미 줄어 있다).
     /// </summary>
     public WoCompleteOutcome CompleteWorkOrder(int woId, string result, string actionTaken, string? rootCause,
-        int? laborMinutes, DateTime completedAt, string? techId, string actor, DateTime? pmNextDue = null)
+        int? laborMinutes, DateTime completedAt, string? techId, string actor, DateTime? pmNextDue = null,
+        string? requiredTechId = null, bool requireStarted = false)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
+            if(requireStarted)
+            {
+                using (var guard=new SqlCommand("SELECT Status,AssignedTechID FROM dbo.MNT_WorkOrder WITH(UPDLOCK,ROWLOCK) WHERE WorkOrderID=@Id",conn,tx))
+                {
+                    guard.Parameters.Add("@Id",SqlDbType.Int).Value=woId;
+                    using var r=guard.ExecuteReader();
+                    if(!r.Read() || r["Status"] as string != MwoStatusCodes.InProgress)
+                        throw new InvalidOperationException("Start this work order before completing it.");
+                    if(requiredTechId is not null && r["AssignedTechID"] as string != requiredTechId)
+                        throw new InvalidOperationException("This work order is assigned to another technician.");
+                }
+                // Count after acquiring the WO lock, shared with check saves, so the gate cannot use stale results.
+                using var checks=new SqlCommand("""
+                    SELECT COUNT(*) TaskCount,
+                        ISNULL(SUM(CASE WHEN ISNULL(Result,'PENDING') NOT IN('PASS','FAIL','NA') THEN 1 ELSE 0 END),0) PendingCount
+                    FROM dbo.MNT_WorkOrderTask WHERE WorkOrderID=@Id;
+                    """,conn,tx);
+                checks.Parameters.Add("@Id",SqlDbType.Int).Value=woId;
+                using var counts=checks.ExecuteReader(); counts.Read();
+                MwoChecklistRules.ValidatePdaCompletion((int)counts["TaskCount"],(int)counts["PendingCount"]);
+            }
             var o = CompleteWoCore(conn, tx, woId, result, actionTaken, rootCause, laborMinutes, completedAt, techId, actor, pmNextDue);
             tx.Commit();
             return o;

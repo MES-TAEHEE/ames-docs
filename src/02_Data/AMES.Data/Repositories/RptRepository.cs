@@ -288,51 +288,31 @@ public sealed class RptRepository
 
     // ── RPT-003 Daily Shipment ───────────────────────────────────────────
     // ── RPT-003 Daily Shipment (일자 상세) ────────────────────────────────
-    public sealed record ShipmentDetailRow(int ShipmentOrderId, string? ShipOrderNumber, string? CustomerCode,
-        string? CarrierCode, string? DestPlant, string? DestDock, DateTime? ShipDate, string? Status, string? OtdFlag,
-        DateTime? DepartureTs, DateTime? LoadConfirmedAt, DateTime? OrderConfirmedAt, string? LicensePlate, string? LoadOtd,
-        int LineSeq, string? ItemNo, string? ItemName, string? ItemNameEn, decimal OrderedQty, decimal AllocatedQty, decimal? UnitCost,
-        string? Uom = null);
+    public sealed record ShipmentDetailRow(int ShipmentId,string OutboundBarcode,string CustomerId,DateTime ShippedAt,
+        long TransactionId,string? PartNo,string? PartName,string? PartNameEn,decimal Qty,decimal? UnitCost,
+        string? Unit,string? LocationNo,string? ShippedBy);
 
-    /// <summary>출하 예정일(ShipDate) 기준 하루치 출하 오더를 라인 단위로 조회한다.</summary>
-    public List<ShipmentDetailRow> ListShipmentDetail(DateTime day, string? customerCode = null)
+    public List<ShipmentDetailRow> ListShipmentDetail(DateTime day,string? customerCode=null)
     {
         const string sql = """
-            SELECT  o.ShipmentOrderID, o.ShipOrderNumber, o.CustomerCode,
-                    o.CarrierCode,
-                    o.DestPlant, o.DestDock, o.ShipDate, o.Status, o.OTDFlag,
-                    o.DepartureAt AS DepartureTS, o.LoadingConfirmedAt AS LoadConfirmedAt, o.ConfirmedAt AS OrderConfirmedAt,
-                    o.LicensePlate, o.LoadingOTDStatus AS OTDStatus,
-                    ISNULL(sl.LineSeq, 0) AS LineSeq, sl.ItemNo, i.ItemName, i.ItemNameEN,
-                    ISNULL(sl.OrderedQty, 0) AS OrderedQty, ISNULL(sl.AllocatedQty, 0) AS AllocatedQty, i.UnitCost, i.DefaultUOM
-            FROM    dbo.FG_ShipmentOrder o
-            OUTER APPLY OPENJSON(COALESCE(o.ItemsJSON, N'[]')) WITH
-            (
-                LineSeq int '$.lineSeq',
-                ItemNo varchar(20) '$.itemNo',
-                OrderedQty decimal(14,3) '$.orderedQty',
-                AllocatedQty decimal(14,3) '$.allocatedQty'
-            ) sl
-            LEFT JOIN dbo.MD_Item i
-              ON i.ItemNo COLLATE DATABASE_DEFAULT = sl.ItemNo COLLATE DATABASE_DEFAULT
-            WHERE   CAST(o.ShipDate AS DATE) = @D
-              AND  (@C IS NULL OR o.CustomerCode = @C)
-            ORDER BY o.ShipOrderNumber, sl.LineSeq;
+            SELECT S.ShipmentID,S.OutboundBarcode,S.CustomerID,S.ShippedAt,S.ShippedBy,
+                T.TransactionID,T.PartNo,T.LocationNo,I.ItemName,I.ItemNameEN,-T.QtyChange Qty,I.UnitCost,I.DefaultUOM
+            FROM dbo.FG_Shipment S JOIN dbo.MD_Customer C ON C.CustomerID=S.CustomerID
+            JOIN dbo.WH_InventoryTransaction T ON T.SourceType='FG_OUTBOUND' AND T.SourceID=S.ShipmentID AND T.TransactionType='OUT'
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo=T.PartNo
+            WHERE S.ShippedAt>=@D AND S.ShippedAt<DATEADD(day,1,@D)
+              AND (@C IS NULL OR S.CustomerID=@C OR C.CustomerCode=@C)
+            ORDER BY S.ShipmentID,T.TransactionID;
             """;
-        return Query(sql, r => new ShipmentDetailRow(
-            (int)r["ShipmentOrderID"], r["ShipOrderNumber"] as string, r["CustomerCode"] as string,
-            r["CarrierCode"] as string, r["DestPlant"] as string, r["DestDock"] as string,
-            r["ShipDate"] as DateTime?, r["Status"] as string, r["OTDFlag"] as string,
-            r["DepartureTS"] as DateTime?, r["LoadConfirmedAt"] as DateTime?, r["OrderConfirmedAt"] as DateTime?,
-            r["LicensePlate"] as string, r["OTDStatus"] as string,
-            (int)r["LineSeq"], r["ItemNo"] as string, r["ItemName"] as string, r["ItemNameEN"] as string,
-            r["OrderedQty"] as decimal? ?? 0m, r["AllocatedQty"] as decimal? ?? 0m, r["UnitCost"] as decimal?, r["DefaultUOM"] as string),
-            ("@D", null, day.Date), ("@C", "FG_ShipmentOrder.CustomerCode", (object?)customerCode ?? DBNull.Value));
+        return Query(sql,r=>new ShipmentDetailRow((int)r["ShipmentID"],(string)r["OutboundBarcode"],(string)r["CustomerID"],
+            (DateTime)r["ShippedAt"],Convert.ToInt64(r["TransactionID"]),r["PartNo"] as string,r["ItemName"] as string,
+            r["ItemNameEN"] as string,Convert.ToDecimal(r["Qty"]),r["UnitCost"] as decimal?,r["DefaultUOM"] as string,
+            r["LocationNo"] as string,r["ShippedBy"] as string),("@D",null,day.Date),("@C","MD_Customer.CustomerID",customerCode));
     }
 
     public (DateTime? Min, DateTime? Max) ShipmentDateExtent()
     {
-        var rows = Query("SELECT MIN(ShipDate) AS Mn, MAX(ShipDate) AS Mx FROM dbo.FG_ShipmentOrder;",
+        var rows = Query("SELECT MIN(ShippedAt) AS Mn, MAX(ShippedAt) AS Mx FROM dbo.FG_Shipment;",
             r => (r["Mn"] as DateTime?, r["Mx"] as DateTime?));
         return rows.Count > 0 ? rows[0] : (null, null);
     }
@@ -340,54 +320,19 @@ public sealed class RptRepository
     public List<DailyShipmentRow> ListDailyShipment(int daysBack = 14)
     {
         const string sql = """
-            SELECT  CAST(so.ShipDate AS DATE) AS Day,
-                    COUNT(DISTINCT so.ShipmentOrderID)   AS Orders,
-                    ISNULL(SUM(sol.OrderedQty), 0)       AS OrderedQty,
-                    ISNULL(SUM(sol.AllocatedQty), 0)     AS AllocatedQty,
-                    COUNT(DISTINCT so.CustomerCode)      AS CustomerCount
-            FROM    dbo.FG_ShipmentOrder      so
-            OUTER APPLY OPENJSON(COALESCE(so.ItemsJSON, N'[]')) WITH
-            (
-                OrderedQty decimal(14,3) '$.orderedQty',
-                AllocatedQty decimal(14,3) '$.allocatedQty'
-            ) sol
-            WHERE   so.ShipDate >= DATEADD(DAY, -@D, CAST(SYSDATETIME() AS DATE))
-            GROUP BY CAST(so.ShipDate AS DATE)
-            ORDER BY Day DESC;
+            SELECT CONVERT(date,S.ShippedAt) Day,COUNT(DISTINCT S.ShipmentID) Orders,
+                COALESCE(SUM(-T.QtyChange),0) Qty,COUNT(DISTINCT S.CustomerID) CustomerCount
+            FROM dbo.FG_Shipment S JOIN dbo.WH_InventoryTransaction T
+              ON T.SourceType='FG_OUTBOUND' AND T.SourceID=S.ShipmentID AND T.TransactionType='OUT'
+            WHERE S.ShippedAt>=DATEADD(day,-@D,CONVERT(date,SYSDATETIME()))
+            GROUP BY CONVERT(date,S.ShippedAt) ORDER BY Day DESC;
             """;
-        return Query(sql, r => new DailyShipmentRow(
-            (DateTime)r["Day"], (int)r["Orders"],
-            r["OrderedQty"] as decimal? ?? 0m,
-            r["AllocatedQty"] as decimal? ?? 0m,
-            (int)r["CustomerCount"]),
-            ("@D", null, daysBack));
+        return Query(sql,r=>new DailyShipmentRow((DateTime)r["Day"],(int)r["Orders"],0m,Convert.ToDecimal(r["Qty"]),(int)r["CustomerCount"]),("@D",null,daysBack));
     }
 
     // ── RPT-004 OTD (on-time delivery) ───────────────────────────────────
-    public List<OtdRow> ListOtd(int daysBack = 30)
-    {
-        const string sql = """
-            SELECT  CAST(ShipDate AS DATE) AS Day,
-                    COUNT(*) AS TotalOrders,
-                    SUM(CASE WHEN OTDFlag IN ('OnTime','OK') THEN 1 ELSE 0 END) AS OnTime,
-                    SUM(CASE WHEN OTDFlag IN ('Late','NG')   THEN 1 ELSE 0 END) AS Late
-            FROM    dbo.FG_ShipmentOrder
-            WHERE   ShipDate >= DATEADD(DAY, -@D, CAST(SYSDATETIME() AS DATE))
-              AND   ShipDate IS NOT NULL
-            GROUP BY CAST(ShipDate AS DATE)
-            ORDER BY Day DESC;
-            """;
-        var rows = Query(sql, r => new
-        {
-            Day = (DateTime)r["Day"],
-            Tot = (int)r["TotalOrders"],
-            On  = (int)r["OnTime"],
-            Lt  = (int)r["Late"]
-        }, ("@D", null, daysBack));
-
-        return rows.Select(x => new OtdRow(x.Day, x.Tot, x.On, x.Lt,
-            x.Tot > 0 ? (decimal)x.On / x.Tot * 100m : 0m)).ToList();
-    }
+    // Actual barcode shipments do not have a promised date; do not invent an OTD result.
+    public List<OtdRow> ListOtd(int daysBack = 30) => [];
 
     // ── RPT-005 Inventory Status ─────────────────────────────────────────
     // ── RPT-005 Inventory (SKU 단위: 통합 WH_Inventory) ──
@@ -489,7 +434,7 @@ public sealed class RptRepository
     public sealed record MonthlyMetricRow(DateTime Month,
         decimal GoodQty, decimal DefectQty, decimal PlanQty,
         decimal? Avail, decimal? Oee, decimal OperMin, int Failures,
-        int Orders, int LateOrders, int Shipped, int ShippedOnTime, int Claims,
+        int Orders, int LateOrders, int Shipped, int? ShippedOnTime, int Claims,
         decimal Issued, decimal OnHand);
 
     /// <summary>from~to 사이 모든 달(비어 있는 달 포함)의 원천 지표. 각 지표의 정의는 화면 주석 참조.</summary>
@@ -532,11 +477,9 @@ public sealed class RptRepository
                 FROM dbo.PP_CustomerOrder WHERE RequestedDeliveryDate >= @F AND RequestedDeliveryDate < DATEADD(MONTH, 1, @T)
                 GROUP BY DATEFROMPARTS(YEAR(RequestedDeliveryDate), MONTH(RequestedDeliveryDate), 1)),
             ship AS (
-                SELECT DATEFROMPARTS(YEAR(ShipDate), MONTH(ShipDate), 1) AS M,
-                       SUM(CASE WHEN UPPER(ISNULL(Status,'')) IN ('SHIPPED','LOADED','CLOSED') THEN 1 ELSE 0 END) AS Shipped,
-                       SUM(CASE WHEN UPPER(ISNULL(Status,'')) IN ('SHIPPED','LOADED','CLOSED') AND UPPER(ISNULL(OTDFlag,'')) IN ('ONTIME','OK') THEN 1 ELSE 0 END) AS OnTime
-                FROM dbo.FG_ShipmentOrder WHERE ShipDate >= @F AND ShipDate < DATEADD(MONTH, 1, @T)
-                GROUP BY DATEFROMPARTS(YEAR(ShipDate), MONTH(ShipDate), 1)),
+                SELECT DATEFROMPARTS(YEAR(ShippedAt),MONTH(ShippedAt),1) M,COUNT(*) Shipped,CAST(NULL AS int) OnTime
+                FROM dbo.FG_Shipment WHERE ShippedAt>=@F AND ShippedAt<DATEADD(month,1,@T)
+                GROUP BY DATEFROMPARTS(YEAR(ShippedAt),MONTH(ShippedAt),1)),
             claim AS (
                 SELECT DATEFROMPARTS(YEAR(ReceivedAt), MONTH(ReceivedAt), 1) AS M, COUNT(*) AS Claims
                 FROM dbo.FG_CustomerReturn WHERE ReceivedAt >= @F AND ReceivedAt < DATEADD(MONTH, 1, @T)
@@ -550,7 +493,7 @@ public sealed class RptRepository
                    ISNULL(p.Good,0) AS GoodQty, ISNULL(d.Def,0) AS DefectQty, ISNULL(pl.PlanQty,0) AS PlanQty,
                    o.Avail, o.Oee, ISNULL(o.OperMin,0) AS OperMin, ISNULL(f.Failures,0) AS Failures,
                    ISNULL(r.Orders,0) AS Orders, ISNULL(r.LateOrders,0) AS LateOrders,
-                   ISNULL(s.Shipped,0) AS Shipped, ISNULL(s.OnTime,0) AS ShippedOnTime, ISNULL(c.Claims,0) AS Claims,
+                   ISNULL(s.Shipped,0) AS Shipped, s.OnTime AS ShippedOnTime, ISNULL(c.Claims,0) AS Claims,
                    ISNULL(i.Issued,0) AS Issued, h.OnHand
             FROM months m
             LEFT JOIN prod  p  ON p.M  = m.M
@@ -570,7 +513,7 @@ public sealed class RptRepository
             (DateTime)r["M"],
             Convert.ToDecimal(r["GoodQty"]), Convert.ToDecimal(r["DefectQty"]), Convert.ToDecimal(r["PlanQty"]),
             r["Avail"] as decimal?, r["Oee"] as decimal?, Convert.ToDecimal(r["OperMin"]), Convert.ToInt32(r["Failures"]),
-            Convert.ToInt32(r["Orders"]), Convert.ToInt32(r["LateOrders"]), Convert.ToInt32(r["Shipped"]), Convert.ToInt32(r["ShippedOnTime"]), Convert.ToInt32(r["Claims"]),
+            Convert.ToInt32(r["Orders"]), Convert.ToInt32(r["LateOrders"]), Convert.ToInt32(r["Shipped"]), r["ShippedOnTime"] as int?, Convert.ToInt32(r["Claims"]),
             Convert.ToDecimal(r["Issued"]), Convert.ToDecimal(r["OnHand"])),
             ("@F", "MNT_FailureRegister.ReportedAt", new DateTime(fromMonth.Year, fromMonth.Month, 1)), ("@T", null, new DateTime(toMonth.Year, toMonth.Month, 1)),
             ("@Cut", null, (int)ReadDayCutoff().TotalMinutes));
@@ -596,11 +539,8 @@ public sealed class RptRepository
                 GROUP BY YEAR(DetectedAt), MONTH(DetectedAt)
             ),
             ship AS (
-                SELECT YEAR(ShipDate) AS Y, MONTH(ShipDate) AS M,
-                       COUNT(*) AS Orders
-                FROM   dbo.FG_ShipmentOrder
-                WHERE  ShipDate >= @start
-                GROUP BY YEAR(ShipDate), MONTH(ShipDate)
+                SELECT YEAR(ShippedAt) AS Y,MONTH(ShippedAt) AS M,COUNT(*) AS Orders
+                FROM dbo.FG_Shipment WHERE ShippedAt>=@start GROUP BY YEAR(ShippedAt),MONTH(ShippedAt)
             ),
             fail AS (
                 SELECT YEAR(ReportedAt) AS Y, MONTH(ReportedAt) AS M, COUNT(*) AS Cnt
@@ -890,28 +830,20 @@ public sealed class RptRepository
             case "SHIP":
                 keyExpr = dim switch
                 {
-                    "Customer" => "ISNULL(o.CustomerCode,'—')",
-                    "Carrier"  => "ISNULL(o.CarrierCode,'—')",
-                    "Date"     => "CONVERT(varchar(10), CAST(o.ShipDate AS DATE), 120)",
-                    _          => "ISNULL(l.ItemNo,'—')",
+                    "Customer" => "ISNULL(o.CustomerID,'—')",
+                    "Carrier" => "CONCAT('Not tracked',LEFT(o.OutboundBarcode,0))",
+                    "Date" => "CONVERT(varchar(10),CAST(o.ShippedAt AS DATE),120)",
+                    _ => "ISNULL(l.PartNo,'—')",
                 };
                 if (dim == "Item") { labelExpr = "MAX(i.ItemName)"; labelEnExpr = "MAX(i.ItemNameEN)"; }
                 body = $"""
-                    SELECT {keyExpr} AS K, {labelExpr} AS Lbl, {labelEnExpr} AS LblEn,
-                           COUNT(DISTINCT o.ShipmentOrderID) AS Orders,
-                           ISNULL(SUM(ISNULL(l.OrderedQty,0)),0) AS OrderedQty,
-                           ISNULL(SUM(ISNULL(l.AllocatedQty,0)),0) AS AllocatedQty
-                    FROM dbo.FG_ShipmentOrder o
-                    OUTER APPLY OPENJSON(COALESCE(o.ItemsJSON, N'[]')) WITH
-                    (
-                        ItemNo varchar(20) '$.itemNo',
-                        OrderedQty decimal(14,3) '$.orderedQty',
-                        AllocatedQty decimal(14,3) '$.allocatedQty'
-                    ) l
-                    LEFT JOIN dbo.MD_Item i
-                      ON i.ItemNo COLLATE DATABASE_DEFAULT = l.ItemNo COLLATE DATABASE_DEFAULT
-                    WHERE o.ShipDate >= @F AND o.ShipDate < @T
-                    GROUP BY {keyExpr}
+                    SELECT {keyExpr} AS K,{labelExpr} AS Lbl,{labelEnExpr} AS LblEn,
+                        COUNT(DISTINCT o.ShipmentID) AS Orders,CAST(NULL AS decimal(18,3)) AS OrderedQty,
+                        COALESCE(SUM(-l.QtyChange),0) AS AllocatedQty
+                    FROM dbo.FG_Shipment o JOIN dbo.WH_InventoryTransaction l
+                        ON l.SourceType='FG_OUTBOUND' AND l.SourceID=o.ShipmentID AND l.TransactionType='OUT'
+                    LEFT JOIN dbo.MD_Item i ON i.ItemNo=l.PartNo
+                    WHERE o.ShippedAt>=@F AND o.ShippedAt<@T GROUP BY {keyExpr}
                     """;
                 break;
             case "OEE":

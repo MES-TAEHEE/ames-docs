@@ -145,9 +145,11 @@ FILES=(
   migrate_mnt_failure_downtime.sql   # 고장 라인 정지 → 비가동(PP_LineDowntimeLog.FailureID), 쓰지 않는 MNT_WorkOrder.DowntimeID 삭제(10-16)
   migrate_mnt_pm_lead_days.sql       # SYS_Config MNT_PM_LEAD_DAYS — PM 도래·예정 기준 일수(10-16)
   migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
-  migrate_fg_customer_return_columns.sql # Canonical return/customer/part fields and PDA procedures
+  # Fresh schema includes the actual-shipment customer-return contract.
   migrate_wh_fg_scm_column_lengths.sql # WH/FG/SCM keys and 20-byte actor codes
   migrate_fg_location_type.sql # FG-area locations use the explicit FG location type
+  migrate_fg_shipment_actual.sql # Actual barcode shipments; no shipment seeds
+  migrate_fg_putaway_transactions.sql # FG put-away uses inventory transactions only
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
 )
 

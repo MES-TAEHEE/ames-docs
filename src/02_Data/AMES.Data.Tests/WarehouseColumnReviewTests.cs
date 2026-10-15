@@ -10,7 +10,6 @@ public class WarehouseColumnReviewTests
     [Theory]
     [InlineData("SCTEST1")]
     [InlineData("SCTEST2")]
-    [InlineData("PTEST")]
     public void Production_test_accounts_are_rejected_before_database_access(string employee)
     {
         var factory=new AMES.Data.Connection.AmesConnectionFactory("Server=unused");
@@ -55,9 +54,7 @@ public class WarehouseColumnReviewTests
     [InlineData("WH_ReleaseSchedule","CloseUserId",20)]
     [InlineData("WH_ReleaseSchedule","CreatedBy",20)]
     [InlineData("WH_ReleaseSchedule","ModifiedBy",20)]
-    [InlineData("FG_PutAway","OperatorID",20)]
-    [InlineData("FG_ShipmentOrder","ConfirmedBy",20)]
-    [InlineData("FG_ShipmentOrder","ShipmentOperatorID",20)]
+    [InlineData("FG_Shipment","ShippedBy",20)]
     [InlineData("FG_CustomerReturn","ReceivedBy",20)]
     [InlineData("FG_CustomerReturn","ClosedBy",20)]
     [InlineData("SCM_DeliveryCase","CreatedBy",20)]

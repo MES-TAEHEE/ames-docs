@@ -1,0 +1,29 @@
+@page "/mnt"
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<div class="pda-shell wh wh-home-shell mnt-home">
+    <div class="pda-tbar">
+        <button class="pda-tbar-back" @onclick='() => Nav.NavigateTo("/home")' aria-label="Back">&lt;</button>
+        <div class="wh-home-title"><span class="pda-tbar-brand">MAINTENANCE</span><span>@Auth.Session?.EmployeeNo</span></div>
+    </div>
+    <div class="pda-bd">
+        <div class="pda-tile-grid wh-home-grid">
+            <button class="pda-tile sm wh-home-tile mnt-schedule" @onclick='() => Nav.NavigateTo("/mnt/schedules")'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="calendar_month" /></span>
+                <div class="wh-home-tile-copy"><div class="pda-tile-cap">PM Schedule</div></div><span class="wh-home-tile-go">&gt;</span>
+            </button>
+            <button class="pda-tile sm wh-home-tile mnt-work" @onclick='() => Nav.NavigateTo("/mnt/work-orders")'>
+                <span class="wh-home-tile-ic"><RadzenIcon Icon="assignment" /></span>
+                <div class="wh-home-tile-copy"><div class="pda-tile-cap">Work Orders</div></div><span class="wh-home-tile-go">&gt;</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (Auth.Session is null) Nav.NavigateTo("/login", replace: true);
+    }
+}

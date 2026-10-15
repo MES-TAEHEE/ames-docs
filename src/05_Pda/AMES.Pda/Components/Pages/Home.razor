@@ -24,6 +24,11 @@ else
             <div class="pda-greet-sub">@Auth.Session.LineId · @Auth.Session.TerminalId</div>
 
             <div class="pda-tiles">
+                <button class="pda-tile maintenance" @onclick='@(() => Nav.NavigateTo("/mnt"))'>
+                    <div class="pda-tile-ic">🛠</div>
+                    <div class="pda-tile-cap">MAINTENANCE</div>
+                    <div class="pda-tile-sub">2 screens</div>
+                </button>
                 <button class="pda-tile wh" @onclick='@(() => Nav.NavigateTo("/wh"))'>
                     <div class="pda-tile-ic">📦</div>
                     <div class="pda-tile-cap">WAREHOUSE</div>

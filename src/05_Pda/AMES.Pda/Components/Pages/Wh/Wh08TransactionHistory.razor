@@ -31,7 +31,17 @@
 
     <div class="pda-bd wh08-body">
         <RadzenCard class="wh08-date-filter" @onfocusin="BeginFilterEdit" @onpointerdown="BeginFilterEdit">
-            <div class="pda-card-h">TRANSACTION DATE</div>
+            <PdaFilterPanel Title="TRANSACTION DATE" ActiveCount="@((string.IsNullOrWhiteSpace(_worker) ? 0 : 1) + (string.IsNullOrWhiteSpace(_reason) ? 0 : 1))" Open="_filtersOpen" OpenChanged="SetFiltersOpen">
+                <div class="pda-fld">
+                    <label>WORKER ID</label>
+                    <RadzenTextBox class="pda-input wh08-search-input" Value="@_worker" @oninput="OnWorkerInput" Placeholder="Worker ID" />
+                </div>
+                <div class="pda-fld">
+                    <label for="wh08-reason-filter">@(IsFinishedGoods ? "REASON" : "ADJ REASON")</label>
+                    <RadzenDropDown id="wh08-reason-filter" TValue="string" @bind-Value="_reason" Data="ReasonChoices" TextProperty="Text" ValueProperty="Value" class="pda-filter-select" PopupStyle="z-index: 2100; max-height: 260px" />
+                </div>
+                <RadzenButton class="wh08-date-reset" Click="@ClearFilters" Disabled="@_loading" Text="CLEAR FILTERS" />
+            </PdaFilterPanel>
             <div class="wh08-filter-date">
                 <div class="pda-fld">
                     <label>FROM</label>
@@ -53,27 +63,6 @@
                 </div>
             </div>
             <RadzenButton class="wh08-date-apply" Click="@Load" Disabled="@_loading" Text="APPLY" />
-            <details class="wh08-additional-filters">
-                <summary>More Filters</summary>
-                <div class="pda-fld">
-                    <label>WORKER ID</label>
-                    <RadzenTextBox class="pda-input wh08-search-input"
-                                   Value="@_worker"
-                                   @oninput="OnWorkerInput"
-                                   Placeholder="Worker ID" />
-                </div>
-                <div class="pda-fld">
-                    <label>@(IsFinishedGoods ? "REASON" : "ADJ REASON")</label>
-                    <select class="pda-input wh08-search-input wh08-select" @bind="_reason">
-                        <option value="">All reasons</option>
-                        @foreach (var reason in ReasonOptions)
-                        {
-                            <option value="@reason">@reason</option>
-                        }
-                    </select>
-                </div>
-                <RadzenButton class="wh08-date-reset" Click="@ClearFilters" Disabled="@_loading" Text="CLEAR FILTERS" />
-            </details>
         </RadzenCard>
 
         <div class="wh08-kpi-strip">
@@ -82,7 +71,7 @@
                 @foreach (var type in FgHistoryTypes)
                 {
                     <button type="button" class="@($"wh08-kpi {FgTypeClass(type)} {TypeClass(type)}")" @onclick="@(() => SetType(type))">
-                        <span>@(type == "" ? "ALL" : type)</span><strong>@ConditionRows.Count(row => type == "" || IsDirection(row, type))</strong><small>records</small>
+                        <span>@FgTransactionDisplay.Label(type)</span><strong>@ConditionRows.Count(row => type == "" || IsDirection(row, type))</strong><small>records</small>
                     </button>
                 }
             }
@@ -155,7 +144,7 @@
                                 <span>@LogDateText(row)</span>
                                 <strong>@Text(row.LotNo)</strong>
                             </div>
-                            <RadzenBadge class="@($"wh08-status {StatusClass(row.Status)}")" Text="@Text(row.Status)" />
+                            <RadzenBadge class="@($"wh08-status {StatusClass(row.Status)}")" Text="@(IsFinishedGoods ? FgTransactionDisplay.Status(row.Status) : Text(row.Status))" />
                         </div>
 
                         <div class="wh08-row-part">
@@ -171,7 +160,7 @@
                             }
                             else
                             {
-                                <div><dt>@(IsAdjust(row) ? "Change" : $"{row.Direction} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Uom.Symbol(row.Unit)</dd></div>
+                                <div><dt>@(IsAdjust(row) ? "Change" : $"{(IsFinishedGoods ? FgTransactionDisplay.Label(row.Direction) : row.Direction)} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Uom.Symbol(row.Unit)</dd></div>
                             }
                             <div><dt>Worker</dt><dd>@Text(row.WorkerId)</dd></div>
                         </dl>
@@ -261,7 +250,7 @@
                     }
                     else if (!IsMove(detail))
                     {
-                        <div><dt>Type</dt><dd>@Text(detail.Status)</dd></div>
+                        <div><dt>Type</dt><dd>@(IsFinishedGoods ? FgTransactionDisplay.Status(detail.Status) : Text(detail.Status))</dd></div>
                         <div><dt>Qty</dt><dd>@QtyText(detail.Qty) @Uom.Symbol(detail.Unit)</dd></div>
                     }
                     @if (IsFinishedGoods)
@@ -313,8 +302,8 @@
     private string ModuleHome => IsFinishedGoods ? "/fg" : IsSpareParts ? "/sp" : "/wh";
     private string ModuleKey => IsFinishedGoods ? "FG" : IsSpareParts ? "SP" : "WH";
     private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
-    private static readonly string[] FgHistoryTypes = ["", "IN", "PICK", "LOAD", "RETURN", "ADJ"];
-    private static string FgTypeClass(string type) => type switch { "IN" or "RETURN" => "in", "PICK" or "LOAD" => "out", "ADJ" => "adj", _ => "all" };
+    private static readonly string[] FgHistoryTypes = ["", "IN", "PICK", "OUT", "RETURN", "ADJ"];
+    private static string FgTypeClass(string type) => type switch { "IN" or "RETURN" => "in", "PICK" or "OUT" => "out", "ADJ" => "adj", _ => "all" };
     private DateTime _databaseToday;
 
     private DateTime? _dateFrom;
@@ -326,6 +315,7 @@
     private string _msg = "Loading transactions...";
     private bool _loading;
     private bool _editingFilters;
+    private bool _filtersOpen;
     private bool _editingBarcode;
     private List<PdaApi.WarehouseTransactionRow> _rows = new();
     private PdaApi.WarehouseTransactionRow? _detailRow;
@@ -353,6 +343,8 @@
         .Select(r => r!)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(r => r);
+    private IEnumerable<PdaSelectOption> ReasonChoices => new[] { new PdaSelectOption("", "All reasons") }
+        .Concat(ReasonOptions.Select(r => new PdaSelectOption(r, r)));
 
     private string? _lastHistoryMode;
     protected override async Task OnParametersSetAsync()
@@ -362,6 +354,7 @@
         _search = _worker = _reason = _type = "";
         _dateFrom = _dateTo = null;
         _detailRow = null;
+        _filtersOpen = false;
         _pptReady = _pptOpen = _testPanelOpen = false;
         _simulateFgHistoryApiFailure = false;
         await Load();
@@ -394,7 +387,7 @@
 
         await InvokeAsync(async () =>
         {
-            if (_detailRow is not null || _loading || IsScenarioPanelOpen)
+            if (_filtersOpen || _detailRow is not null || _loading || IsScenarioPanelOpen)
                 return;
             _search = value;
             await Load();
@@ -409,7 +402,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_editingFilters || _editingBarcode || _detailRow is not null || IsScenarioPanelOpen)
+        if (_filtersOpen || _editingFilters || _editingBarcode || _detailRow is not null || IsScenarioPanelOpen)
             return;
 
         try
@@ -504,6 +497,11 @@
     }
 
     private void BeginFilterEdit() => _editingFilters = true;
+    private void SetFiltersOpen(bool open)
+    {
+        _filtersOpen = open;
+        _editingFilters = open;
+    }
 
     private void OnSearchInput(ChangeEventArgs e)
     {
@@ -649,14 +647,14 @@
     private static bool IsSpMove(PdaApi.WarehouseTransactionRow row)
         => IsDirection(row, "IN") || IsDirection(row, "OUT");
     private static bool IsDirection(PdaApi.WarehouseTransactionRow row, string direction)
-        => string.Equals(row.Direction, direction, StringComparison.OrdinalIgnoreCase);
+        => string.Equals(FgTransactionDisplay.Direction(row.Direction), FgTransactionDisplay.Direction(direction), StringComparison.Ordinal);
 
     private static string RowCardClass(PdaApi.WarehouseTransactionRow row)
-        => row.Direction?.ToUpperInvariant() switch
+        => FgTransactionDisplay.Direction(row.Direction) switch
         {
             "IN" => "inbound",
             "OUT" => "outbound",
-            "PICK" or "LOAD" => "outbound",
+            "PICK" => "outbound",
             "RETURN" => "inbound",
             "ADJ" => "adjust",
             "MOVE" => "inbound",
@@ -665,10 +663,10 @@
 
     private static string StatusClass(string? status)
     {
-        var value = status?.Trim().ToLowerInvariant() ?? "";
+        var value = FgTransactionDisplay.Status(status).Trim().ToLowerInvariant();
         if (value == "in") return "in";
         if (value is "put-away" or "return") return "in";
-        if (value is "release" or "loading") return "out";
+        if (value == "release") return "out";
         if (value.Contains("adjust")) return "adjust";
         if (value.Contains("location change")) return "in";
         if (value.Contains("cancel")) return "cancel";

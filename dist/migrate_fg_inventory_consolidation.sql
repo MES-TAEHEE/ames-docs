@@ -1,6 +1,11 @@
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 SET ANSI_NULLS ON;
+IF OBJECT_ID(N'dbo.FG_Shipment',N'U') IS NOT NULL
+BEGIN
+    RAISERROR('Legacy FG consolidation cannot overwrite actual shipment procedures.',16,1);
+    SET NOEXEC ON;
+END;
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_PADDING ON;
 GO

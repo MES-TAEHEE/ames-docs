@@ -23,7 +23,17 @@ public class LoginInputTests
         Assert.True(LoginInput.ValidContext("PDA","01","DAY"));
         Assert.False(LoginInput.ValidContext("PDA","","DAY"));
         Assert.False(LoginInput.ValidContext("PDA","01","12345678901"));
-        Assert.True(PdaScenarioUsers.IsTestAccount("PTEST"));
+        Assert.False(PdaScenarioUsers.IsTestAccount("PTEST"));
         Assert.False(PdaScenarioUsers.IsAny("PTEST")); // must not enable the scenario UI
     }
+
+    [Theory]
+    [InlineData("SCTEST1", true)]
+    [InlineData("sctest2", true)]
+    [InlineData("PTEST", false)]
+    [InlineData("ptest", false)]
+    [InlineData("EMP001", false)]
+    [InlineData(null, false)]
+    public void Only_seeded_scenario_accounts_are_restricted(string? employee, bool restricted)
+        => Assert.Equal(restricted, PdaScenarioUsers.IsTestAccount(employee));
 }

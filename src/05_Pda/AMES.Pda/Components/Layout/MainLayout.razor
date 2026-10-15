@@ -3,18 +3,40 @@
 @inject AMES.Pda.Services.AuthState Auth
 @inject NavigationManager Nav
 @inject PdaUomFormat Uom
+@inject SessionValidator Sessions
+@inject DialogService Dialogs
 
 @*  Full-screen PDA layout — no sidebar, no top chrome.
     Each page paints into the full 480×800 portrait viewport. *@
 
 <RadzenComponents />
-<div class="pda-root">@Body</div>
+<div class="pda-root" inert="@(Auth.SessionCheckRequired || _expiryAlert)">@Body</div>
+@if (Auth.SessionCheckRequired)
+{
+    <div class="pda-session-cover" role="status" aria-live="polite">
+        <div class="pda-session-message">
+            @if (Auth.SessionCheckError is { } error)
+            {
+                <p>@error</p>
+                <button @onclick="Sessions.CheckAsync">Retry</button>
+                <button @onclick="Auth.SignOut">Sign in</button>
+            }
+            else
+            {
+                <p>Checking session…</p>
+            }
+        </div>
+    </div>
+}
 
 @code {
+    private string? _loadedToken;
+    private bool _expiryAlert;
+
     protected override async Task OnInitializedAsync()
     {
         Auth.OnChange += OnAuthChanged;
-        if (Auth.Session is not null) await LoadUoms();
+        if (Auth.Session is not null) { _loadedToken = Auth.Token; await LoadUoms(); }
     }
 
     private async Task LoadUoms()
@@ -25,8 +47,25 @@
 
     private void OnAuthChanged()
     {
-        if (Auth.Session is not null) { _ = InvokeAsync(LoadUoms); return; }
-        _ = InvokeAsync(() => Nav.NavigateTo("/login", replace: true));
+        _ = InvokeAsync(async () =>
+        {
+            StateHasChanged();
+            if (Auth.Session is not null)
+            {
+                if (_loadedToken != Auth.Token) { _loadedToken = Auth.Token; await LoadUoms(); }
+                return;
+            }
+            _loadedToken = null;
+            if (_expiryAlert) return;
+            if (Auth.TakeExpiryNotice())
+            {
+                _expiryAlert = true;
+                StateHasChanged();
+                await Dialogs.Alert("Your session has expired. Please sign in again.", "Session expired");
+                _expiryAlert = false;
+            }
+            if (Auth.Session is null) Nav.NavigateTo("/login", replace: true);
+        });
     }
 
     public void Dispose() => Auth.OnChange -= OnAuthChanged;

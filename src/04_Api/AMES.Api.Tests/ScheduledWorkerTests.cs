@@ -19,6 +19,7 @@ public class ScheduledWorkerTests
 
         public ScheduledPlan<FakeTarget> Plan = new([], [], true);
         public Exception? PlanFailure;
+        public int PlanLoadCount;
         public DateTime Clock = new(2026, 9, 17, 9, 0, 0);
         public readonly List<string> Runs = [];
         public readonly List<string> ConfigErrorsRecorded = [];
@@ -30,7 +31,10 @@ public class ScheduledWorkerTests
         protected override DateTime Now => Clock;
 
         protected override ScheduledPlan<FakeTarget> LoadPlan()
-            => PlanFailure is null ? Plan : throw PlanFailure;
+        {
+            PlanLoadCount++;
+            return PlanFailure is null ? Plan : throw PlanFailure;
+        }
 
         protected override string KeyOf(FakeTarget t) => t.Key;
         protected override int IntervalMinOf(FakeTarget t) => t.IntervalMin;
@@ -57,6 +61,20 @@ public class ScheduledWorkerTests
 
     static FakeWorker WithTargets(params FakeTarget[] targets)
         => new() { Plan = new ScheduledPlan<FakeTarget>(targets, [], true) };
+
+    [Fact]
+    public async Task Disabled_local_scheduler_does_not_load_or_run_but_manual_run_still_works()
+    {
+        using var worker = new FakeWorker(Cfg(("ScheduledWorker:Enabled", "false")))
+        {
+            Plan = new([new("A", 30)], [], true)
+        };
+        await worker.StartAsync(CancellationToken.None);
+        await worker.ExecuteTask!;
+        Assert.Equal(0, worker.PlanLoadCount);
+        Assert.Empty(worker.Runs);
+        Assert.True(Assert.Single(await worker.RunNowAsync("A", CancellationToken.None)).Ok);
+    }
 
     [Fact]
     public async Task Tick_runs_every_due_target_once_then_waits_for_its_interval()
