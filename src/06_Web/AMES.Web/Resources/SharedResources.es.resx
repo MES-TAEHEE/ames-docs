@@ -303,12 +303,6 @@
   <data name="MNT.WorkOrder.Empty" xml:space="preserve">
     <value>Sin órdenes de trabajo para el criterio seleccionado.</value>
   </data>
-  <data name="MNT.WorkOrder.InProgress" xml:space="preserve">
-    <value>En Curso</value>
-  </data>
-  <data name="MNT.WorkOrder.Completed" xml:space="preserve">
-    <value>Completado</value>
-  </data>
   <data name="MNT.Downtime.Title" xml:space="preserve">
     <value>Historial de Paradas</value>
   </data>
@@ -5586,9 +5580,6 @@
   <data name="MNT.Dashboard.Panel.StockSub" xml:space="preserve">
     <value>reorden recomendada</value>
   </data>
-  <data name="MNT.Dashboard.Wo.Open" xml:space="preserve">
-    <value>Abierta</value>
-  </data>
   <data name="MNT.Dashboard.Wo.Issued" xml:space="preserve">
     <value>Emitida</value>
   </data>
@@ -5596,7 +5587,7 @@
     <value>En Curso</value>
   </data>
   <data name="MNT.Dashboard.Wo.Completed" xml:space="preserve">
-    <value>Completada</value>
+    <value>Completada/Cerrada</value>
   </data>
   <data name="MNT.Dashboard.Wo.Completion" xml:space="preserve">
     <value>Avance</value>
@@ -6862,7 +6853,7 @@
     <value>Completar la reparación al registrar (ya reparada)</value>
   </data>
   <data name="MNT.Failure.Hint.StatusFixed" xml:space="preserve">
-    <value>El estado y la hora de resolución solo cambian con «Completar reparación» o «Completar» de la orden</value>
+    <value>El estado y la hora de resolución solo cambian con «Completar reparación» o con «Completar» / «Cerrar» de la orden</value>
   </data>
   <data name="MNT.Failure.Lbl.ResolvedAt" xml:space="preserve">
     <value>Fecha de resolución</value>
@@ -6961,16 +6952,7 @@
     <value>No hay datos para exportar.</value>
   </data>
   <data name="MNT.WorkOrder.Hint.Detail" xml:space="preserve">
-    <value>Haga clic en una fila para ver detalles. Las órdenes se emiten desde las pantallas de PM y de fallas.</value>
-  </data>
-  <data name="MNT.WorkOrder.St.Open" xml:space="preserve">
-    <value>Abierta</value>
-  </data>
-  <data name="MNT.WorkOrder.St.Issued" xml:space="preserve">
-    <value>Emitida</value>
-  </data>
-  <data name="MNT.WorkOrder.St.Closed" xml:space="preserve">
-    <value>Cerrada</value>
+    <value>Haga clic en una fila para ver detalles. Las órdenes se emiten automáticamente desde PM y fallas, o directamente con Emitir orden.</value>
   </data>
   <data name="MNT.WorkOrder.Src.PM" xml:space="preserve">
     <value>Plan PM</value>
@@ -7106,9 +7088,6 @@
   </data>
   <data name="MNT.WorkOrder.Lbl.SourceRef" xml:space="preserve">
     <value>Ref. origen</value>
-  </data>
-  <data name="MNT.WorkOrder.Ph.Parts" xml:space="preserve">
-    <value>Nº o nombre de repuesto, separados por coma o salto de línea</value>
   </data>
   <data name="MNT.WorkOrder.Hint.Assign" xml:space="preserve">
     <value>El técnico se elige entre los usuarios web. En órdenes emitidas por PM también se actualiza el técnico del programa.</value>
@@ -10714,5 +10693,89 @@
   </data>
   <data name="MNT.WorkOrder.Hint.FailureMoved" xml:space="preserve">
     <value>Esta avería continúa en la orden de trabajo de seguimiento {0}.</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Issue" xml:space="preserve">
+    <value>Emitir orden</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.CloseWo" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="MNT.WorkOrder.Modal.Issue" xml:space="preserve">
+    <value>Emitir orden de trabajo</value>
+  </data>
+  <data name="MNT.WorkOrder.Modal.Close" xml:space="preserve">
+    <value>Cerrar orden de trabajo</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Issue" xml:space="preserve">
+    <value>Emite trabajo no vinculado a una falla o PM (p. ej. mantenimiento predictivo). Si elige un técnico, se emite como Asignada.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Close" xml:space="preserve">
+    <value>Cierra la orden sin realizar el trabajo (registro erróneo, duplicado, innecesario). A diferencia de completar, no se registra resultado ni tiempo y no se puede deshacer.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.CloseFailure" xml:space="preserve">
+    <value>La falla vinculada {0} también se cerrará sin reparación.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.ClosePm" xml:space="preserve">
+    <value>Se omite este ciclo de PM y el plan pasa a la siguiente fecha (la última fecha de PM no cambia).</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.CloseReason" xml:space="preserve">
+    <value>Motivo de cierre</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.ClosedAt" xml:space="preserve">
+    <value>Cerrada el</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.EquipRequired" xml:space="preserve">
+    <value>Seleccione el equipo.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.TypeRequired" xml:space="preserve">
+    <value>Seleccione un tipo.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.PriorityRequired" xml:space="preserve">
+    <value>Seleccione una prioridad.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.DescRequired" xml:space="preserve">
+    <value>Ingrese la descripción del trabajo.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.CloseReasonRequired" xml:space="preserve">
+    <value>Ingrese el motivo de cierre.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Issued" xml:space="preserve">
+    <value>{0} emitida · estado {1}</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Closed" xml:space="preserve">
+    <value>{0} cerrada</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.FailureClosed" xml:space="preserve">
+    <value>Falla {0} cerrada</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.PmSkipped" xml:space="preserve">
+    <value>PM {0} ciclo omitido, próxima fecha {1}</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.PmSkippedNoDate" xml:space="preserve">
+    <value>PM {0} ciclo omitido</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Assigned" xml:space="preserve">
+    <value>Asignada</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.Closed" xml:space="preserve">
+    <value>Cerrada</value>
+  </data>
+  <data name="MNT.Failure.Closed" xml:space="preserve">
+    <value>Cerrada</value>
+  </data>
+  <data name="MNT.Failure.Tl.Closed" xml:space="preserve">
+    <value>Cerrada (sin reparación)</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Skipped" xml:space="preserve">
+    <value>Omitida</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.PartsPda" xml:space="preserve">
+    <value>Repuestos entregados por PDA</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.PartsPda" xml:space="preserve">
+    <value>Los repuestos se entregan (descuento de stock) en la salida de repuestos del PDA (SP-07) eligiendo esta orden. Al completar, la lista se registra como repuestos usados.</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.PartsNone" xml:space="preserve">
+    <value>No hay repuestos entregados por PDA</value>
   </data>
 </root>

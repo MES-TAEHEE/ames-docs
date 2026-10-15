@@ -140,6 +140,7 @@ FILES=(
   migrate_md_paint_fabric_lotno.sql  # MD_PaintFabric.LotNo varchar(24) → nvarchar(50) — 스키마에 이미 있으면 건너뜀(10-15)
   migrate_sys_auditlog_actiontype.sql # SYS_AuditLog.ActionType varchar(15) → varchar(20) — 스키마에 이미 있으면 건너뜀(10-15)
   migrate_by_columns_employee_no.sql # 사람 컬럼(...By) 33개 varchar(20)·값을 사번으로(SYS_AuditActorMap 에 원문 보존) — 스키마에 이미 있으면 건너뜀(10-15)
+  migrate_mnt_status_code.sql        # 보전 작업지시 상태 공통코드 MNT_STATUS(발행·배정·진행 중·완료·종료), OPEN 정리(10-15)
   migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
   migrate_fg_customer_return_columns.sql # Canonical return/customer/part fields and PDA procedures
   migrate_wh_fg_scm_column_lengths.sql # WH/FG/SCM keys and 20-byte actor codes

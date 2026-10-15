@@ -27,8 +27,8 @@
 | 담당  | 미해결 | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                          |
 | --- | --- | --- | --- | --- | ---------------------------------------------------------------------------------- |
 | 심재현 | 21  | 7   | 7묶음 | 31  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB |
-| 안영훈 | 3(적용·검증) | 4 | 3 | 5 | WH PDA 구 프로시저 참조 · 서버 Web·Api/IIS 반영 · 포장 단위 기존 데이터 정책 |
-| 이승욱 | 0   | 5   | 6   | 0   | PP-OEE 가동률이 시연 데이터로 계산됨                                                              |
+| 안영훈 | 4(적용·검증 3·요청 1) | 4 | 3 | 5 | WH PDA 구 프로시저 참조 · 서버 Web·Api/IIS 반영 · 포장 단위 기존 데이터 정책 · PDA 예비품 출고에 보전 작업지시 연결(요청) |
+| 이승욱 | 0   | 4   | 6   | 0   | PP-OEE 가동률이 시연 데이터로 계산됨                                                              |
 | 오세영 | 5   | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                      |
 
 ### 지금 결정이 필요한 것(이승욱 작업분)
@@ -37,6 +37,7 @@
    - PP-002 「자동 확정」 스위치가 없습니다.
    - 최신 패키지: `publish\AMES.Web_20261015-060006.zip`·`publish\AMES.Api_20261015-061557.zip`(06:16 — 개발서버에서 `/swagger` 를 켜는 판, CLAUDE.md AMES.Api 배포 참고)(또는 `publish\AMES.Web`·`AMES.Api` 폴더 — .NET 10.0.13 런타임 포함). 10-15 NuGet 업데이트(취약 Pkcs 고정·SqlClient 7.1.1·Radzen 12.1.2 등)와 두 번째 원격 병합(WH·FG·SCM·Api)까지 들어 있습니다. 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행합니다(10-15 판은 ANCM 기동 실패 500.3x 와 종료 중 멈춤 503 을 함께 복구). Api 는 안영훈 2-1 1 의 IIS 상시 기동 설정도 같이 적용합니다.
    - DB 는 준비돼 있습니다: 10-15 마이그레이션 6개(`migrate_md_paint_fabric_lotno`·`migrate_sys_auditlog_actiontype`·`migrate_by_columns_employee_no`·`migrate_fg_customer_return_columns`·`migrate_wh_fg_scm_column_lengths`·`migrate_fg_location_type`)가 개발·로컬 DB 모두 적용됐습니다.
+   - 보전 작업지시 상태 공통코드 `dist/migrate_mnt_status_code.sql`(10-15 — MNT_STATUS, OPEN 정리, 배정 상태)도 개발·로컬 DB 에 적용했습니다. 지금 개발서버의 구 Web 은 배정(ASSIGNED) 상태 작업지시의 착수 버튼을 숨기므로(개발 DB 1건 — MWO-2609-004), 이 변경이 든 새 Web 을 올려야 합니다(위 패키지에는 아직 없음 — 커밋 뒤 다시 게시).
    - **반영한 뒤에** `dist/migrate_retire_packaging_uom.sql`(안영훈 10-14 — `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 삭제, 단위 BOX·PLT·SH 사용 안 함)을 개발 DB 와 로컬 DB 에 적용합니다. 지금 개발서버 Web 은 이 컬럼을 읽으므로 먼저 적용하면 MD-003·SCM 발주가 깨집니다. 두 DB 모두 아직 적용 전이고, 스키마 파일은 적용 뒤 구조(컬럼 없음)입니다. 적용 전에 안영훈 문제점 4(남는 데이터) 처리 방향을 정하는 것이 좋습니다.
 2. **PP-OEE 가동률 원천**: 지금은 시연 데이터(`PP_LineStateLog`)로 계산됩니다. 실제로 쌓이는 비가동 기록(`PP_LineDowntimeLog`)으로 바꿀지 정해야 합니다(이승욱 테이블 2).
 3. **화면 저장 검증**: 아래 변경은 DB 테스트·리포지토리 왕복(로컬 DB)·화면 열기(헤드리스)로만 확인했고, 화면에서 실제로 저장해 보지는 않았습니다.
@@ -268,7 +269,7 @@
 
 ## 2. 안영훈 — PDA·Api + Web WH·FG·SCM·Portal + 재구축 스크립트
 
-### 2-1. 적용·검증 대기 (3)
+### 2-1. 적용·검증 대기·요청 (4)
 1. **API IIS 상시 기동 설정 — 서버 적용 대기**
    - `tools/publish-api.ps1`에 AlwaysRunning·유휴 종료 해제·사이트 자동 시작·preload 설정을 추가했습니다.
    - 개발서버 IIS에 이 설정과 새 Web·Api 파일을 적용해야 합니다. 이번 작업에서는 서버 배포·앱풀 재시작을 하지 않았습니다.
@@ -279,6 +280,19 @@
 3. **동시 출고·보충 Worker 부하 검증 대기**
    - 출고의 Serializable을 ReadCommitted로 낮추고 LOT 비교의 UPPER를 제거했습니다. 재고 행 변경 잠금과 피킹 지시 잠금은 유지합니다.
    - 동일 품목 여러 줄의 수요 분배 SQL은 읽기 전용 회귀 검사로 확인했습니다. 실제 PDA 여러 대와 보충 Worker를 겹쳐 실행하는 검증은 아직 하지 않았습니다.
+4. **[요청] PDA 예비품 출고(SP-07)에 보전 작업지시 연결**(10-15 사용자 결정 — 이승욱 요청)
+   - 배경: 보전 작업지시(MNT-007)의 사용 부품은 웹에서 입력·차감하지 않고, **PDA 출고가 재고를 줄이며 웹은 그 출고를 기록만** 합니다. 웹 쪽은 반영돼 있습니다(10-15) — 작업지시 상세·완료 창이 `MNT_SparePartsTxn` 의 `RefType='MWO'`·`RefID`=작업지시 번호·`MoveType='OUT'` 행(되돌림 `ReversalOfTxnID` 가 있는 행 제외)을 「PDA 출고 부품」으로 보이고, 완료·종료 때 `PartsUsedJSON` 에 스냅샷합니다(`MntRepository.ListWoPartReleases`).
+   - 정해진 규칙
+     - 작업지시 선택은 **선택 항목**입니다. 고르지 않은 출고는 지금처럼 `RefType='PDA'` 로 남습니다.
+     - 고를 수 있는 작업지시는 끝나지 않은 것(상태 `ISSUED`·`ASSIGNED`·`IN_PROGRESS`, 공통코드 `MNT_STATUS`)만입니다. 완료·종료된 작업지시로는 출고를 거부합니다.
+     - 작업지시에 묶인 출고는 **그 작업지시가 완료·종료된 뒤에는 취소할 수 없습니다**(완료 때 사용 부품이 기록되므로).
+     - 시리얼이 없는 기존 재고(개발 DB 예비품 17개 중 15개)는 테스트 데이터라 따로 처리하지 않습니다.
+   - 할 일
+     - PDA `Pages/Sp/SpRelease.razor`: 출고 전에 작업지시를 고르는 칸(선택). 진행 중 작업지시 목록에서 고르고(스캔한 시리얼의 설비와 같은 것을 위로), 고른 작업지시는 연속 출고 동안 유지합니다. 출고 메모(지금 고정 "PDA spare parts release")에 작업지시 번호를 넣으면 좋습니다.
+     - Api: 진행 중 보전 작업지시 목록 조회(예: `GET /api/mnt/work-orders/open` — 번호·설비·내용·상태). `POST /api/wh/sp/release` 의 `SparePartMoveReq` 에 `WorkOrderNo`(선택)를 더하고, 있으면 존재·미완료를 확인합니다.
+     - `SP_PDA_STOCK_MOVE`: 작업지시 번호 매개변수(선택)를 더해, 값이 있으면 출고 이력을 `RefType='MWO'`·`RefID`=작업지시 번호로 남깁니다(지금은 `RefType='PDA'`·`RefID`=보관 위치 — 위치는 `MNT_SparePartItem.LocationID` 에 남습니다). 작업지시 번호는 `MNT_WorkOrder.WoNumber` 와 같은 값이어야 웹이 찾습니다. 감사 로그(SP-07 OUT) 메모에도 작업지시 번호를 넣습니다.
+     - `SP_PDA_SP_STOCK_CANCEL`: 되돌릴 원래 출고가 `RefType='MWO'` 이고 그 작업지시 상태가 `COMPLETED`·`CLOSED` 이면 거부합니다.
+   - 배포 순서: 프로시저 → Api → PDA 앱. 작업지시 번호가 선택이라 구 PDA 앱도 그대로 동작합니다.
 
 ### 2-2. 보류 (4)
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.
@@ -325,14 +339,11 @@
 ### 3-1. 미해결
 없습니다.
 
-### 3-2. 보류 (5)
-- **B4 MNT-007 확장**
-  - 위치: `MntRepository.cs:643·835·1298·1436·965-971·1464`, `WorkOrder.razor:252-263`
-  - ① 수동 발행: 고장·PM 밖의 작업(개선·PdM)을 기록할 수 없습니다.
-  - ② 체크리스트: 템플릿 단계를 작업지시로 복사하지 않고, 단계별 결과 입력이 없습니다.
-  - ③ 부품 차감: 사용 부품이 자유 텍스트라 재고가 줄지 않습니다. "예비품 조정은 PDA 에서만" 결정과 충돌해 방향을 정해야 합니다.
-  - 권장 순서는 ③ → ② → ① 입니다.
-- **B5 보전 상태 설계**(`MntCodes.cs:33-40`, `MntRepository.cs:1002`): ASSIGNED 상태가 없고(배정해도 ISSUED), CLOSED 마감 경로가 없으며, OPEN 동의어·PdM 유형이 시연 데이터에만 있습니다.
+### 3-2. 보류 (4)
+- **B4 MNT-007 점검 체크리스트**(수동 발행은 10-15 구현, 사용 부품은 PDA 출고 기록으로 결정 — 안영훈 2-1 4)
+  - 위치: `MntRepository.InsertPm`·`AdvancePm`(점검 단계를 복사하지 않음), `WorkOrder.razor` 상세 체크리스트
+  - 내용: PM 템플릿 단계(`MD_PmTemplateStep`)를 작업지시 점검 항목(`MNT_WorkOrderTask`)으로 복사하지 않고, 단계별 결과 입력이 없습니다. 개발 DB 의 템플릿은 1개이고 PM 일정 11개는 모두 템플릿을 지정하지 않았습니다.
+  - 제안: 발행 때 단계 복사 → 상세에서 항목별 합격·불합격·해당 없음 + 메모 → 단계의 필요 부품·수량을 완료 창 사용 부품 기본값으로. 정할 것은 미점검 항목이 남았을 때 완료를 막을지, 불합격이 있으면 결과 기본값을 부분 완료·후속 조치로 할지입니다.
 - **B7 MNT-004 금형 정비 등록**(`MoldRepository.cs:53·81`, 호출처 없음): 정비 유형·작업자·샷 리셋·정비일을 남길 곳이 없습니다. 금형 교체를 기록하던 메서드도 옛 POP 화면을 지우면서 끊겼습니다.
 - **B8 PP-ODM 라인 상태 기록**: `PP_LineStateLog` 에 쓰는 곳은 `tools/seed_pp_demo` 뿐입니다(아래 테이블 2).
 - **개발 완료 시 정리**: 운영 admin 시드 차단, appsettings 비밀번호·AllowedHosts·접속문자열 환경변수(Web).

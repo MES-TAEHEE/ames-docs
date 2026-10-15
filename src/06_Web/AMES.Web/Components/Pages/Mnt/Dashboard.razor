@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
+@using AMES.Contracts.Dto
 @using AMES.Data.Repositories
 @using AMES.Data.Services
 @using AMES.Web.Services
@@ -223,9 +224,9 @@
         else
         {
             <div class="mnt-db-wo">
-                <div class="open"><b>@WoCount("OPEN")</b><span>@L["MNT.Dashboard.Wo.Open"]</span></div>
-                <div class="issued"><b>@WoCount("ISSUED")</b><span>@L["MNT.Dashboard.Wo.Issued"]</span></div>
-                <div class="prog"><b>@WoCount("IN_PROGRESS")</b><span>@L["MNT.Dashboard.Wo.InProgress"]</span></div>
+                <div class="open"><b>@WoCount(MwoStatusCodes.Issued)</b><span>@L["MNT.Dashboard.Wo.Issued"]</span></div>
+                <div class="issued"><b>@WoCount(MwoStatusCodes.Assigned)</b><span>@L["MNT.Dashboard.Wo.Assigned"]</span></div>
+                <div class="prog"><b>@WoCount(MwoStatusCodes.InProgress)</b><span>@L["MNT.Dashboard.Wo.InProgress"]</span></div>
                 <div class="done"><b>@WoDone</b><span>@L["MNT.Dashboard.Wo.Completed"]</span></div>
             </div>
             <div class="mnt-db-prog">
@@ -421,6 +422,7 @@
         FailureTimeline.Stage.Waiting => L["MNT.Dashboard.Stage.Waiting"],
         FailureTimeline.Stage.Arrived => L["MNT.Dashboard.Stage.Arrived"],
         FailureTimeline.Stage.Acked   => L["MNT.Dashboard.Stage.Acked"],
+        FailureTimeline.Stage.Closed  => L["MNT.Dashboard.Stage.Closed"],
         _                             => L["MNT.Dashboard.Stage.Resolved"],
     };
     static string StageCls(FailureTimeline.Stage s) => s switch
@@ -428,6 +430,7 @@
         FailureTimeline.Stage.Waiting => "bad",
         FailureTimeline.Stage.Arrived => "warn",
         FailureTimeline.Stage.Acked   => "info",
+        FailureTimeline.Stage.Closed  => "mute",
         _                             => "ok",
     };
     string MinShort(int m) => m switch
@@ -438,7 +441,7 @@
     };
 
     // ── 작업지시 ───────────────────────────────────────────────────────
-    static bool IsWoDone(string? s) => s is "COMPLETED" or "CLOSED" or "DONE";
+    static bool IsWoDone(string? s) => MwoStatusRules.IsEnded(s);
     int WoCount(string status) => _wos.Count(w => w.Status == status);
     int WoDone => _wos.Count(w => IsWoDone(w.Status));
     int WoPct  => _wos.Count == 0 ? 0 : (int)Math.Round(100.0 * WoDone / _wos.Count);

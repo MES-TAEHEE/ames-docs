@@ -8,16 +8,20 @@ namespace AMES.Data.Services;
 public static class FailureTimeline
 {
     // Partial·FollowUp = 작업지시를 부분 완료·후속 필요로 끝낸 임시 조치(고장은 후속 작업지시로 넘어가 열린 채, 10-14)
-    public enum Kind { Reported, Arrived, Ack, Partial, FollowUp, Repaired, Resolved, Other }
+    // Closed = 작업지시 종료(MNT-007, 사유 필수)로 수리 없이 닫힘 — 해결 시각·수리 시간을 남기지 않는다(10-15)
+    public enum Kind { Reported, Arrived, Ack, Partial, FollowUp, Repaired, Resolved, Closed, Other }
 
-    public enum Stage { Waiting, Arrived, Acked, Resolved }
+    public enum Stage { Waiting, Arrived, Acked, Resolved, Closed }
 
     public sealed record Action(string? Type, DateTime? At, string? Who, string? Note);
 
     /// <summary><paramref name="Minutes"/> = 발생부터 그 시점까지 분(발생 시각을 모르면 null). <paramref name="RawType"/> = 모르는 조치 유형의 원래 코드.</summary>
     public sealed record Step(Kind Kind, DateTime At, string? Who, string? Note, int? Minutes, string? RawType = null);
 
+    /// <summary>끝난 고장(수리 해결 RESOLVED + 수리 없이 종료 CLOSED).</summary>
     public static bool IsResolved(string? status) => status is "RESOLVED" or "CLOSED";
+
+    public static bool IsClosed(string? status) => status == "CLOSED";
 
     public static List<Step> Build(DateTime? reportedAt, string? reportedBy, string? status, DateTime? resolvedAt,
         IEnumerable<Action> actions)
@@ -29,7 +33,7 @@ public static class FailureTimeline
             .Select(a => (Kind: KindOf(a.Type), A: a))
             .OrderBy(x => x.A.At).ThenBy(x => x.Kind)
             .Select(x => new Step(x.Kind, x.A.At!.Value, x.A.Who,
-                x.Kind is Kind.Repaired or Kind.Partial or Kind.FollowUp or Kind.Other ? x.A.Note : null,
+                x.Kind is Kind.Repaired or Kind.Partial or Kind.FollowUp or Kind.Closed or Kind.Other ? x.A.Note : null,
                 Minutes(reportedAt, x.A.At!.Value),
                 x.Kind == Kind.Other ? x.A.Type : null))
             .ToList();
@@ -43,6 +47,7 @@ public static class FailureTimeline
     /// <summary>해결 여부는 등록 행 상태가 정본이다 — 조치 이력은 해결 전까지의 진행 단계만 정한다.</summary>
     public static Stage CurrentStage(string? status, IEnumerable<string?> actionTypes)
     {
+        if (IsClosed(status)) return Stage.Closed;
         if (IsResolved(status)) return Stage.Resolved;
         var kinds = actionTypes.Select(KindOf).ToHashSet();
         return kinds.Contains(Kind.Ack) || kinds.Contains(Kind.Partial) || kinds.Contains(Kind.FollowUp) ? Stage.Acked
@@ -64,6 +69,7 @@ public static class FailureTimeline
         "PARTIAL"  => Kind.Partial,
         "FOLLOWUP" => Kind.FollowUp,
         "REPAIRED" => Kind.Repaired,
+        "CLOSED"   => Kind.Closed,
         _          => Kind.Other,
     };
 

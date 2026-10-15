@@ -41,7 +41,7 @@ public class MntConcurrencyTests
                 {
                     try
                     {
-                        if (i % 2 == 0) mnt.CompleteWorkOrder(woId, "OK", $"조치 {i}", null, 10, null, DateTime.Now, null, Actor);
+                        if (i % 2 == 0) mnt.CompleteWorkOrder(woId, "OK", $"조치 {i}", null, 10, DateTime.Now, null, Actor);
                         else            mnt.ResolveFailure(failId, "원인", $"조치 {i}", DateTime.Now, 10, Actor);
                         Interlocked.Increment(ref ok);
                     }
@@ -72,7 +72,7 @@ public class MntConcurrencyTests
             Parallel.For(0, ids.Count, i =>
             {
                 if (i % 2 == 0) mnt.ResolveFailure(ids[i], "원인", "조치", DateTime.Now, 5, Actor);
-                else            mnt.CompleteWorkOrder(wos[i], "OK", "조치", null, 5, null, DateTime.Now, null, Actor);
+                else            mnt.CompleteWorkOrder(wos[i], "OK", "조치", null, 5, DateTime.Now, null, Actor);
             });
 
             foreach (var id in ids)
@@ -151,7 +151,7 @@ public class MntConcurrencyTests
             var woId = Convert.ToInt32(Scalar(f!, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
 
             // 화면 입력 최대 길이(원인 200·조치 500)에 가깝게 — 조치 이력 Description 은 nvarchar(500)
-            var o = mnt.CompleteWorkOrder(woId, result, new string('조', 450), new string('원', 200), 30, null, DateTime.Now.AddHours(-1), null, Actor);
+            var o = mnt.CompleteWorkOrder(woId, result, new string('조', 450), new string('원', 200), 30, DateTime.Now.AddHours(-1), null, Actor);
 
             Assert.NotNull(o.FollowUpWoNumber);
             Assert.Equal("COMPLETED", Scalar(f!, "SELECT Status FROM dbo.MNT_WorkOrder WHERE WorkOrderID = @I", ("@I", woId)));
@@ -180,7 +180,7 @@ public class MntConcurrencyTests
             Assert.Equal(failNo + "-R", Assert.Single(mnt.ListFailuresForWo(woId), r => r.FailureId == failId).FailureNumber);
 
             // 후속 작업지시를 정상 완료하면 그때 해결
-            var done = mnt.CompleteWorkOrder(newWo, "OK", "부품 교체", null, 20, null, DateTime.Now, null, Actor);
+            var done = mnt.CompleteWorkOrder(newWo, "OK", "부품 교체", null, 20, DateTime.Now, null, Actor);
             Assert.Null(done.FollowUpWoNumber);
             Assert.Equal("RESOLVED", Scalar(f!, "SELECT Status FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
             Assert.Equal(1, Convert.ToInt32(Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_FailureAction WHERE FailureID = @I AND ActionType = 'REPAIRED' AND WorkOrderID = @W", ("@I", failId), ("@W", newWo))));

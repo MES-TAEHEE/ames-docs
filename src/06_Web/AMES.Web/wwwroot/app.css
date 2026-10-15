@@ -5382,15 +5382,17 @@ html[data-theme="light"] .mnt-db-wo .done   { color: #047857; }
 .mnt-mold-bar-val { font-family: var(--ames-font-code); font-size: 11.5px; min-width: 46px; text-align: right; }
 html[data-theme="light"] .mnt-mold-track { background: rgba(80,60,20,.10); }
 
-/* MNT-005 PM 달력 칩 (PP 캘린더 .ames-cal-wo 변형: 완료·오늘·지연·예정) */
+/* MNT-005 PM 달력 칩 (PP 캘린더 .ames-cal-wo 변형: 완료·건너뜀(작업지시 종료)·오늘·지연·예정) */
 .ames-cal-wo.pm-done    { background: rgba(16,185,129,.16); color: var(--ames-tx-emerald-300); border-left: 2px solid #10b981; }
 .ames-cal-wo.pm-today   { background: rgba(245,158,11,.18); color: var(--ames-tx-amber-300); border-left: 2px solid #f59e0b; }
 .ames-cal-wo.pm-overdue { background: rgba(220,38,38,.18);  color: var(--ames-tx-red-300); border-left: 2px solid #dc2626; }
+.ames-cal-wo.pm-skipped { background: rgba(148,163,184,.14); color: var(--ames-tx-slate-300); border-left: 2px dashed #94a3b8; }
 .ames-cal-wo.pm-planned { background: rgba(99,102,241,.16); color: var(--ames-tx-indigo-200); border-left: 2px solid #6366f1; }
 html[data-theme="light"] .ames-cal-wo.pm-done    { background: #d1fae5; color: #065f46; }
 html[data-theme="light"] .ames-cal-wo.pm-today   { background: #fef3c7; color: #92400e; }
 html[data-theme="light"] .ames-cal-wo.pm-overdue { background: #fee2e2; color: #991b1b; }
 html[data-theme="light"] .ames-cal-wo.pm-planned { background: #e0e7ff; color: #3730a3; }
+html[data-theme="light"] .ames-cal-wo.pm-skipped { background: #f1f5f9; color: #475569; }
 
 /* RPT-001 일별 생산 실적: 시간대 차트(2) + 교대 요약(1), 교대 카드 */
 .rpt-dp-grid2 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 8px; }
