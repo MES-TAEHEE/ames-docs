@@ -40,6 +40,10 @@ public static class MauiProgram
         builder.Services.AddSingleton<AuthState>();
         builder.Services.AddSingleton<PdaUomFormat>();
         builder.Services.AddSingleton(settings);
+        // Separate transport: validation must not recurse through SessionExpiryHandler.
+        builder.Services.AddHttpClient("session-check", c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
+        builder.Services.AddSingleton(sp => new SessionValidator(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("session-check"), sp.GetRequiredService<AuthState>()));
         builder.Services.AddTransient<SessionExpiryHandler>();
         builder.Services.AddHttpClient<AuthApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
         builder.Services.AddHttpClient<WarehouseApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();

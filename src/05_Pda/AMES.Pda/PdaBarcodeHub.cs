@@ -14,6 +14,8 @@ public static class PdaBarcodeHub
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            if (IPlatformApplication.Current?.Services.GetService<Services.AuthState>()?.SessionCheckRequired == true)
+                return;
             var now = Environment.TickCount64;
             if (string.Equals(value, _lastValue, StringComparison.Ordinal) && now - _lastAt < 900)
                 return;

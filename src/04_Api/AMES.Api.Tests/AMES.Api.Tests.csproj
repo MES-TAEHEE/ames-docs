@@ -20,5 +20,6 @@
   <ItemGroup>
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\AuthState.cs" Link="Pda\AuthState.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionExpiryHandler.cs" Link="Pda\SessionExpiryHandler.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionValidator.cs" Link="Pda\SessionValidator.cs" />
   </ItemGroup>
 </Project>

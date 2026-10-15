@@ -125,6 +125,7 @@ window.pdaScan = (() => {
     }
 
     function emitText(text) {
+        if (document.querySelector(".pda-root[inert]")) return;
         if (!dotNetRef || text.length < activeOptions().minLength) {
             return;
         }

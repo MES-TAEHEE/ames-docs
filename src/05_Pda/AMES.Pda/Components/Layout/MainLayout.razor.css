@@ -1,0 +1,13 @@
+.pda-session-cover {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    background: #080e1b;
+    color: #fff;
+    padding: 24px;
+}
+
+.pda-session-message { text-align: center; }
+.pda-session-message button { margin: 8px; padding: 12px 20px; }
