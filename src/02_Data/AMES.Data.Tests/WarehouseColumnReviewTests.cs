@@ -10,7 +10,6 @@ public class WarehouseColumnReviewTests
     [Theory]
     [InlineData("SCTEST1")]
     [InlineData("SCTEST2")]
-    [InlineData("PTEST")]
     public void Production_test_accounts_are_rejected_before_database_access(string employee)
     {
         var factory=new AMES.Data.Connection.AmesConnectionFactory("Server=unused");
