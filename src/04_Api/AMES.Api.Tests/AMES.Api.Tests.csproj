@@ -23,5 +23,6 @@
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionValidator.cs" Link="Pda\SessionValidator.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\PdaApi.cs" Link="Pda\PdaApi.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\FinishedGoodsApi.cs" Link="Pda\FinishedGoodsApi.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\FgTransactionDisplay.cs" Link="Pda\FgTransactionDisplay.cs" />
   </ItemGroup>
 </Project>

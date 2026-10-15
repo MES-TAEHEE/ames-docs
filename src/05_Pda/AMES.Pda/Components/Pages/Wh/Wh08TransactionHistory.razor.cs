@@ -48,7 +48,7 @@ public partial class Wh08TransactionHistory
     private string ActivePptLot => IsFinishedGoods ? "5011FG260908970001" : PptHistoryLot;
     private static readonly PptScenarioPanel.Step[] FgPptSteps =
     [
-        new("유형별 집계", "ALL 5건과 IN·PICK·LOAD·RETURN·ADJ 각 1건, 최신순 목록과 REFRESH를 확인합니다.", new PptScenarioPanel.Value("유형", "IN", "IN"), new PptScenarioPanel.Value("유형", "PICK", "PICK"), new PptScenarioPanel.Value("유형", "LOAD", "LOAD"), new PptScenarioPanel.Value("유형", "RETURN", "RETURN"), new PptScenarioPanel.Value("유형", "ADJ", "ADJ")),
+        new("유형별 집계", "IN·PICK·OUTBOUND·RETURN·ADJ 유형별 최신순 목록과 REFRESH를 확인합니다.", new PptScenarioPanel.Value("유형", "IN", "IN"), new PptScenarioPanel.Value("유형", "PICK", "PICK"), new PptScenarioPanel.Value("유형", "OUTBOUND", "OUT"), new PptScenarioPanel.Value("유형", "RETURN", "RETURN"), new PptScenarioPanel.Value("유형", "ADJ", "ADJ")),
         new("조회 기간·필터", "시작일·종료일과 APPLY를 확인합니다. 샘플은 오늘 5건, 어제 0건이며 Worker·Reason으로도 검색합니다.", new PptScenarioPanel.Value("기간", "오늘", "TODAY"), new PptScenarioPanel.Value("기간", "어제", "YESTERDAY"), new PptScenarioPanel.Value("작업자", "TEST1", "WORKER")),
         new("바코드 검색", "LOT·Stock·Part·출고전표로 이력을 검색하고 CLEAR로 검색어를 초기화합니다.", new PptScenarioPanel.Value("LOT", "5011FG260908970001", "LOT"), new PptScenarioPanel.Value("STOCK", "FG-PPT-STK-970001", "STOCK"), new PptScenarioPanel.Value("PART", "PPT-FG-HIST", "PART"), new PptScenarioPanel.Value("출고전표", "2609089005", "SLIP"), new PptScenarioPanel.Value("검색 없음", "PPT-NOT-FOUND", "UNKNOWN")),
         new("작업 이력 상세", "Put-Away 20, 조정 +2, 피킹·적재·반품 각 22 EA의 일시·LOT·위치·작업자와 DETAIL을 확인합니다.", new PptScenarioPanel.Value("반품 상세", "Reason·Note·Reference", "RETURN_DETAIL"), new PptScenarioPanel.Value("전체", "샘플 5건", "ROWS")),
@@ -227,7 +227,7 @@ public partial class Wh08TransactionHistory
         if (!IsPptTestMode || _loading) return;
         await EnsurePptData();
         await PreparePptRows();
-        if (command is "IN" or "OUT" or "PICK" or "LOAD" or "RETURN" or "ADJ" or "ALL") { SetType(command == "ALL" ? "" : command); return; }
+        if (command is "IN" or "OUT" or "PICK" or "RETURN" or "ADJ" or "ALL") { SetType(command == "ALL" ? "" : command); return; }
         if (command == "YESTERDAY") { _dateFrom = _databaseToday.AddDays(-1); _dateTo = _dateFrom; }
         if (command == "PART") _search = IsFinishedGoods ? "PPT-FG-HIST" : "PPT-WH-HIST-01";
         if (IsFinishedGoods && command == "STOCK") _search = "FG-PPT-STK-970001";

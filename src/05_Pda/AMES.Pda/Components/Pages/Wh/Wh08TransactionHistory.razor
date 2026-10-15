@@ -82,7 +82,7 @@
                 @foreach (var type in FgHistoryTypes)
                 {
                     <button type="button" class="@($"wh08-kpi {FgTypeClass(type)} {TypeClass(type)}")" @onclick="@(() => SetType(type))">
-                        <span>@(type == "" ? "ALL" : type)</span><strong>@ConditionRows.Count(row => type == "" || IsDirection(row, type))</strong><small>records</small>
+                        <span>@FgTransactionDisplay.Label(type)</span><strong>@ConditionRows.Count(row => type == "" || IsDirection(row, type))</strong><small>records</small>
                     </button>
                 }
             }
@@ -155,7 +155,7 @@
                                 <span>@LogDateText(row)</span>
                                 <strong>@Text(row.LotNo)</strong>
                             </div>
-                            <RadzenBadge class="@($"wh08-status {StatusClass(row.Status)}")" Text="@Text(row.Status)" />
+                            <RadzenBadge class="@($"wh08-status {StatusClass(row.Status)}")" Text="@(IsFinishedGoods ? FgTransactionDisplay.Status(row.Status) : Text(row.Status))" />
                         </div>
 
                         <div class="wh08-row-part">
@@ -171,7 +171,7 @@
                             }
                             else
                             {
-                                <div><dt>@(IsAdjust(row) ? "Change" : $"{row.Direction} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Uom.Symbol(row.Unit)</dd></div>
+                                <div><dt>@(IsAdjust(row) ? "Change" : $"{(IsFinishedGoods ? FgTransactionDisplay.Label(row.Direction) : row.Direction)} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Uom.Symbol(row.Unit)</dd></div>
                             }
                             <div><dt>Worker</dt><dd>@Text(row.WorkerId)</dd></div>
                         </dl>
@@ -261,7 +261,7 @@
                     }
                     else if (!IsMove(detail))
                     {
-                        <div><dt>Type</dt><dd>@Text(detail.Status)</dd></div>
+                        <div><dt>Type</dt><dd>@(IsFinishedGoods ? FgTransactionDisplay.Status(detail.Status) : Text(detail.Status))</dd></div>
                         <div><dt>Qty</dt><dd>@QtyText(detail.Qty) @Uom.Symbol(detail.Unit)</dd></div>
                     }
                     @if (IsFinishedGoods)
@@ -313,8 +313,8 @@
     private string ModuleHome => IsFinishedGoods ? "/fg" : IsSpareParts ? "/sp" : "/wh";
     private string ModuleKey => IsFinishedGoods ? "FG" : IsSpareParts ? "SP" : "WH";
     private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
-    private static readonly string[] FgHistoryTypes = ["", "IN", "PICK", "LOAD", "RETURN", "ADJ"];
-    private static string FgTypeClass(string type) => type switch { "IN" or "RETURN" => "in", "PICK" or "LOAD" => "out", "ADJ" => "adj", _ => "all" };
+    private static readonly string[] FgHistoryTypes = ["", "IN", "PICK", "OUT", "RETURN", "ADJ"];
+    private static string FgTypeClass(string type) => type switch { "IN" or "RETURN" => "in", "PICK" or "OUT" => "out", "ADJ" => "adj", _ => "all" };
     private DateTime _databaseToday;
 
     private DateTime? _dateFrom;
@@ -649,14 +649,14 @@
     private static bool IsSpMove(PdaApi.WarehouseTransactionRow row)
         => IsDirection(row, "IN") || IsDirection(row, "OUT");
     private static bool IsDirection(PdaApi.WarehouseTransactionRow row, string direction)
-        => string.Equals(row.Direction, direction, StringComparison.OrdinalIgnoreCase);
+        => string.Equals(FgTransactionDisplay.Direction(row.Direction), FgTransactionDisplay.Direction(direction), StringComparison.Ordinal);
 
     private static string RowCardClass(PdaApi.WarehouseTransactionRow row)
-        => row.Direction?.ToUpperInvariant() switch
+        => FgTransactionDisplay.Direction(row.Direction) switch
         {
             "IN" => "inbound",
             "OUT" => "outbound",
-            "PICK" or "LOAD" => "outbound",
+            "PICK" => "outbound",
             "RETURN" => "inbound",
             "ADJ" => "adjust",
             "MOVE" => "inbound",
@@ -665,10 +665,10 @@
 
     private static string StatusClass(string? status)
     {
-        var value = status?.Trim().ToLowerInvariant() ?? "";
+        var value = FgTransactionDisplay.Status(status).Trim().ToLowerInvariant();
         if (value == "in") return "in";
         if (value is "put-away" or "return") return "in";
-        if (value is "release" or "loading") return "out";
+        if (value == "release") return "out";
         if (value.Contains("adjust")) return "adjust";
         if (value.Contains("location change")) return "in";
         if (value.Contains("cancel")) return "cancel";
