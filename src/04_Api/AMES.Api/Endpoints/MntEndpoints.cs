@@ -11,6 +11,7 @@ public static class MntEndpoints
     {
         var repo = new MntRepository(factory);
         var g = app.MapGroup("/api/mnt").WithTags("Maintenance");
+        app.MapPdaMaintenance(factory);
 
         g.MapGet("/equipment", (HttpContext ctx, string? lineId) =>
             ctx.GetSession() is null ? Results.Unauthorized()

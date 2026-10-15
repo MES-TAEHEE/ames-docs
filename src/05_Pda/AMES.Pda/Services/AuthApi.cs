@@ -68,6 +68,8 @@ public sealed class AuthApi(HttpClient http, AuthState auth, PdaSettings setting
 
     private static async Task<string> LoginHttpErrorAsync(HttpResponseMessage resp, string defaultReason)
     {
+        if (resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            return "Sign-in is blocked by server policy (403). Test accounts are disabled on production APIs. Contact an administrator.";
         if ((int)resp.StatusCode >= 500)
             return "Authentication service failed. Check API database connection.";
 

@@ -44,8 +44,6 @@ BEGIN TRY
     UPDATE t SET LocationNo=m.NewID FROM dbo.WH_InventoryTransaction t JOIN #LocationRename m ON t.LocationNo COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
     UPDATE t SET CurrentLocationID=m.NewID FROM dbo.tbl_Lot t JOIN #LocationRename m ON t.CurrentLocationID COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
     UPDATE t SET LocationID=m.NewID FROM dbo.MNT_SparePartItem t JOIN #LocationRename m ON t.LocationID COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
-    UPDATE t SET ActualLoc=m.NewID FROM dbo.FG_PutAway t JOIN #LocationRename m ON t.ActualLoc COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
-    UPDATE t SET SuggestedLoc=m.NewID FROM dbo.FG_PutAway t JOIN #LocationRename m ON t.SuggestedLoc COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
     UPDATE t SET PhysicalLocation=m.NewID FROM dbo.QC_Hold t JOIN #LocationRename m ON t.PhysicalLocation COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
     UPDATE t SET StorageLoc=m.NewID FROM dbo.MD_Mold t JOIN #LocationRename m ON t.StorageLoc COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
     UPDATE t SET StorageLoc=m.NewID FROM dbo.MNT_MoldShotCount t JOIN #LocationRename m ON t.StorageLoc COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;

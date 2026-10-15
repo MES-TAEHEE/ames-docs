@@ -2,6 +2,11 @@
 -- Run only with coordinated API/Web/PDA deployment and a verified DB backup.
 -- No database recreation, seed reset or return-row deletion.
 SET ANSI_NULLS ON;
+IF OBJECT_ID(N'dbo.FG_Shipment',N'U') IS NOT NULL
+BEGIN
+    RAISERROR('Legacy return migration is retired. Use migrate_fg_shipment_actual.sql.',16,1);
+    SET NOEXEC ON;
+END;
 SET QUOTED_IDENTIFIER ON;
 SET XACT_ABORT ON;
 GO

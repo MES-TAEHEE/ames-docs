@@ -230,6 +230,7 @@ body { font-family: 'Inter', sans-serif; background: #0c1320; color: #e8eef7; fo
 .pda-tile:active { transform: translateY(2px); }
 .pda-tile.wh { border-top: 4px solid #93c5fd; }
 .pda-tile.sp { border-top: 4px solid #34d399; }
+.pda-tile.maintenance { border-top: 4px solid #a78bfa; }
 .pda-tile.fg { border-top: 4px solid #fbbf24; }
 .pda-tile.sm { padding: 16px 8px; }
 .pda-tile-ic  { font-size: 36px; line-height: 1; }
@@ -6188,7 +6189,7 @@ body:has(.wh08-shell) {
 .wh08-filter-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 2000;
+    z-index: 1800;
     background: rgba(15, 23, 42, .42);
 }
 
@@ -6197,7 +6198,7 @@ body:has(.wh08-shell) {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 2001;
+    z-index: 1801;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -8605,8 +8606,8 @@ body:has(.pda-shell.wh),
 .pda-shell.wh.wh08-shell .wh08-filter-sheet {
     left: 14px !important;
     right: 14px !important;
-    bottom: 96px !important;
-    max-height: calc(100vh - 230px) !important;
+    bottom: 24px !important;
+    max-height: calc(100dvh - 100px) !important;
     padding: 16px !important;
     gap: 12px !important;
     border: 1px solid rgba(147, 197, 253, .22) !important;
@@ -8659,6 +8660,23 @@ body:has(.pda-shell.wh),
     background: linear-gradient(180deg, #2563eb, #1e40af) !important;
     color: #ffffff !important;
 }
+
+/* Shared date-heading filters for transaction history and maintenance. */
+.pda-date-filter-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+}
+
+.pda-date-filter-head .pda-card-h { margin: 0 !important; }
+.pda-date-filter-head .wh08-filter-toggle { position: relative; flex: 0 0 40px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+.pda-filter-count { position: absolute; right: -5px; top: -5px; min-width: 18px; padding: 2px; background: #2563eb; color: #fff; border: 1px solid #93c5fd; font-size: 10px; line-height: 14px; }
+.pda-shell.wh.wh08-shell .wh08-filter-sheet .pda-fld { margin: 0 !important; }
+.pda-filter-select.rz-dropdown { display: flex !important; align-items: center; width: 100% !important; min-width: 0; height: 44px !important; min-height: 44px !important; box-sizing: border-box !important; border: 1px solid #344e70 !important; border-radius: 0 !important; background: #071225 !important; color: #e8eef7 !important; }
+.pda-filter-select.rz-dropdown .rz-dropdown-label { display: flex !important; align-items: center !important; height: 100% !important; min-height: 0 !important; min-width: 0; margin: 0 !important; padding: 0 12px !important; background: transparent !important; color: #e8eef7 !important; font: inherit; font-size: 13px !important; line-height: 20px !important; text-align: left; letter-spacing: 0; }
+.pda-filter-select.rz-dropdown .rz-dropdown-trigger { display: flex !important; align-items: center !important; justify-content: center; height: 100% !important; background: transparent !important; color: #93c5fd !important; }
 
 .pda-shell.wh .hardware-scan-panel {
     display: grid !important;
@@ -11865,21 +11883,6 @@ html body .rz-popup .rz-state-highlight span {
     line-height: 1 !important;
 }
 
-.wh08-additional-filters {
-    border-top: 1px solid rgba(147, 197, 253, .22);
-    padding-top: 10px;
-}
-
-.wh08-additional-filters summary {
-    color: #b7c6d9;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.wh08-additional-filters .pda-fld {
-    margin: 12px 0;
-}
-
 body:has(.wh01-shell, .wh08-shell) :is(.rz-datepicker-calendar, .rz-datepicker-calendar-container, .rz-datepicker-popup),
 body:has(.wh01-shell, .wh08-shell) .rz-datepicker-calendar :is(button, select, input, td, td > span) {
     border-radius: 0 !important;
@@ -11903,7 +11906,7 @@ body:has(.wh01-shell, .wh08-shell) .rz-datepicker-calendar :is(button, select, i
     flex-shrink: 0;
 }
 
-.pda-shell.wh.fg04-shell :is(.rz-card, .rz-button, .rz-textbox, .rz-badge, .wh-modal-card) {
+.pda-shell.wh.fg04-shell :is(.rz-card, .rz-button, .rz-textbox, .rz-badge, .wh-modal-card, .wh-modal-mark) {
     border-radius: 0 !important;
     box-shadow: none !important;
 }

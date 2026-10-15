@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Pda.Services;
@@ -21,10 +22,12 @@ public class PdaSessionExpiryHandlerTests
             TerminalId = "PDA", LineId = "01", ShiftCode = "A", AuthMethod = AuthMethod.Badge,
             StartedAt = DateTime.UtcNow, ExpiresAt = DateTime.UtcNow.AddHours(1)
         });
-        using var client = new HttpClient(new SessionExpiryHandler(auth)
+        using var validationClient = new HttpClient(new ResponseHandler(HttpStatusCode.Unauthorized));
+        using var client = new HttpClient(new SessionExpiryHandler(auth, new SessionValidator(validationClient, auth))
         {
             InnerHandler = new ResponseHandler(status)
         }) { BaseAddress = new Uri("https://example.test") };
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
 
         using var response = await client.GetAsync(path);
 

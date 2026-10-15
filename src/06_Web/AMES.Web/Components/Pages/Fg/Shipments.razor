@@ -7,92 +7,81 @@
 @inject UomFormat UomFmt
 @inject FinishedGoodsRepository Fg
 
-<PageTitle>FG-03 @L["FG.Shipments.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="FG-03" TitleKey="FG.Shipments.Title" />
-
-<div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">OUTBOUND LOTS</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">PART TYPES</div><div class="ames-kpi-v">@_rows.Select(x => x.PartNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().Count()</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@UomFmt.Qty(_rows.Sum(x => x.Qty), null)</div></div>
-</div>
-
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert>
-}
-
-<section class="ames-card inventory-summary-panel">
-    <div class="ames-card-h master-list-toolbar">
-        <span>▼ ACTUAL SHIPMENTS · @_rows.Count item(s)</span>
-        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="Search barcode, LOT, part or operator"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;"
-                           @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value"
-                              InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value"
-                              InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base"
-                          Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
-            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base"
-                          Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" />
+<PageTitle>Shipments</PageTitle>
+<section class="ames-grid-section">
+    <div class="ames-grid-title">SHIPMENTS · @_rows.Count</div>
+    <div class="ames-grid-toolbar">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="8px" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_search" Placeholder="Barcode, part or customer" class="ames-rz-input" />
+            <RadzenDatePicker TValue="DateTime?" @bind-Value="_from" DateFormat="MM/dd/yyyy" class="ames-rz-input" />
+            <span>–</span>
+            <RadzenDatePicker TValue="DateTime?" @bind-Value="_to" DateFormat="MM/dd/yyyy" class="ames-rz-input" />
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-
+    @if (!string.IsNullOrWhiteSpace(_message)) { <div class="ames-alert ames-alert-danger">@_message</div> }
     <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentRow" Data="@_rows" AllowPaging="true" PageSize="25"
-                    PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
-                    EmptyText="No actual outbound history found." PageSizeChanged="@(s => _pageRows = s)"
-                    Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+                    PageSizeOptions="@_pageSizeOptions" AllowSorting="true" RowSelect="OpenDetail" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedAt" Title="SHIPPED AT" Width="180px">
-                <Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTimeSec)</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="OutboundBarcode" Title="OUTBOUND BARCODE">
-                <Template Context="r"><span class="code">@r.OutboundBarcode</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="UnitType" Title="UNIT TYPE" Width="105px" TextAlign="TextAlign.Center">
-                <Template Context="r"><span class="pill info">@r.UnitType</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LotNo" Title="LOT NO">
-                <Template Context="r"><span class="code">@r.LotNo</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="PartNo" Title="PART NO / NAME">
-                <Template Context="r"><strong>@Text(r.PartNo)</strong><br /><small>@Text(r.PartName)</small></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LocationNo" Title="LOCATION" Width="130px" />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Qty" Title="QTY" Width="90px" TextAlign="TextAlign.Right">
-                <Template Context="r">@UomFmt.Qty(r.Qty, null)</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="OperatorId" Title="OPERATOR" Width="130px" />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Status" Title="STATUS" Width="100px" TextAlign="TextAlign.Center">
-                <Template Context="r"><span class="pill ok">@r.Status</span></Template>
-            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipmentId" Title="SHIPMENT ID" Width="110px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedAt" Title="SHIPPED AT" Width="180px"><Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTime)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="OutboundBarcode" Title="OUTBOUND BARCODE" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="UnitType" Title="UNIT TYPE" Width="100px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="CustomerId" Title="CUSTOMER"><Template Context="r">@r.CustomerId<div class="dim">@r.CustomerName</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ItemCount" Title="LOTS" Width="80px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Qty" Title="QTY" Width="100px"><Template Context="r">@UomFmt.Qty(r.Qty,null)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedBy" Title="SHIPPED BY" Width="130px" />
         </Columns>
     </RadzenDataGrid>
 </section>
-
+@if (_detail is { } shipment)
+{
+    <div class="ames-modal-backdrop" @onclick="CloseDetail">
+        <div class="ames-modal" style="width:min(1000px,95vw);" @onclick:stopPropagation="true">
+            <div class="ames-modal-header"><strong>SHIPMENT #@shipment.ShipmentId · @shipment.OutboundBarcode</strong><button class="ames-modal-x" @onclick="CloseDetail">×</button></div>
+            <p>@shipment.CustomerId · @shipment.CustomerName · @shipment.ShippedAt.ToString(DateFmt.DateTime) · @shipment.ShippedBy</p>
+            @if (_detailLoading) { <p>Loading items…</p> }
+            @if (_detailError is not null) { <p class="text-danger">@_detailError</p> }
+            <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentItemRow" Data="@_items" AllowPaging="true" PageSize="15" Class="ames-rz-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="PartNo" Title="PART NO / NAME"><Template Context="r">@r.PartNo<div class="dim">@r.PartName</div></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LotNo" Title="LOT NO" />
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LocationNo" Title="FROM LOCATION" />
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="Qty" Title="SHIPPED QTY"><Template Context="r">@UomFmt.QtyUnit(r.Qty,r.Unit)</Template></RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+            <div class="ames-modal-footer"><RadzenButton Text="@L["Btn.Close"].Value" Click="CloseDetail" class="ames-rz-btn" /></div>
+        </div>
+    </div>
+}
 @code {
-    private List<FinishedGoodsRepository.ShipmentRow> _rows = [];
-    private readonly IEnumerable<int> _pageSizeOptions = [25, 50, 100];
-    private int _pageRows = 25;
-    private string _search = "", _message = "";
-    private DateTime? _from = DbClock.Today.AddMonths(-6), _to = DbClock.Today;
-
-    protected override void OnInitialized() => Reload();
-
-    private void Reload()
+    private List<FinishedGoodsRepository.ShipmentRow> _rows=[];
+    private List<FinishedGoodsRepository.ShipmentItemRow> _items=[];
+    private FinishedGoodsRepository.ShipmentRow? _detail;
+    private readonly IEnumerable<int> _pageSizeOptions=[25,50,100];
+    private string _search="",_message="";
+    private string? _detailError;
+    private bool _detailLoading;
+    private DateTime? _from=DbClock.Today.AddMonths(-6),_to=DbClock.Today;
+    protected override async Task OnInitializedAsync()=>await Reload();
+    private async Task Reload()
     {
-        if (_from > _to) { _message = L["Err.DateRange"]; return; }
-        try { _rows = Fg.ListShipments(_search, _from, _to); _message = ""; }
-        catch (Exception ex) { _rows = []; _message = ex.Message; }
+        if(_from>_to) { _message=L["Err.DateRange"]; return; }
+        try { _rows=await Task.Run(()=>Fg.ListShipments(_search,_from,_to)); _message=""; }
+        catch(Exception ex) { _rows=[]; _message=ex.Message; }
     }
-
-    private void Clear()
+    private async Task Clear() { _search=""; _from=DbClock.Today.AddMonths(-6); _to=DbClock.Today; await Reload(); }
+    private async Task OpenDetail(FinishedGoodsRepository.ShipmentRow row)
     {
-        _search = ""; _from = DbClock.Today.AddMonths(-6); _to = DbClock.Today;
-        Reload();
+        _detail=row; _items=[]; _detailError=null; _detailLoading=true;
+        try
+        {
+            var items=await Task.Run(()=>Fg.ListShipmentItems(row.ShipmentId));
+            if(_detail?.ShipmentId==row.ShipmentId) _items=items;
+        }
+        catch(Exception ex) { if(_detail?.ShipmentId==row.ShipmentId) _detailError=ex.Message; }
+        finally { if(_detail?.ShipmentId==row.ShipmentId) _detailLoading=false; }
     }
-
-    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    private void CloseDetail()=>_detail=null;
 }

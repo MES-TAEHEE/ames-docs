@@ -76,6 +76,23 @@ public static class PmRules
 /// </summary>
 public static class MwoChecklistRules
 {
+    public static void ValidatePdaCompletion(int total, int pending)
+    {
+        if (total == 0 || pending > 0)
+            throw new InvalidOperationException("Complete and save every check step before reviewing and completing this work order.");
+    }
+
+    public static void ValidatePdaStep(int pendingBefore,DateTime? modifiedAt,DateTime? expectedModifiedAt,
+        string? assignedTechId,string? requiredTechId)
+    {
+        if(requiredTechId is not null && assignedTechId != requiredTechId)
+            throw new InvalidOperationException("This work order is assigned to another technician.");
+        if(modifiedAt != expectedModifiedAt)
+            throw new InvalidOperationException("This check step changed. Refresh before saving.");
+        if(pendingBefore > 0)
+            throw new InvalidOperationException("Complete the preceding check steps first.");
+    }
+
     public static bool CanCompleteOk(int pending, int failed) => pending == 0 && failed == 0;
 
     public static bool Allows(string? result, int pending, int failed) =>

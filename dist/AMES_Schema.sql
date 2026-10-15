@@ -17,7 +17,7 @@ GO
 DECLARE @DropFk nvarchar(max) = N'';
 SELECT @DropFk += N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(fk.parent_object_id)) + N'.' + QUOTENAME(OBJECT_NAME(fk.parent_object_id)) + N' DROP CONSTRAINT ' + QUOTENAME(fk.name) + N';'
 FROM sys.foreign_keys fk
-WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) = N'dbo' AND (OBJECT_NAME(fk.parent_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_PutAway,FG_ShipmentOrder,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldColor,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule', N',')) OR OBJECT_NAME(fk.referenced_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_PutAway,FG_ShipmentOrder,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldColor,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule', N',')));
+WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) = N'dbo' AND (OBJECT_NAME(fk.parent_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_PutAway,FG_Shipment,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldColor,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule', N',')) OR OBJECT_NAME(fk.referenced_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_PutAway,FG_Shipment,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldColor,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule', N',')));
 EXEC sys.sp_executesql @DropFk;
 GO
 DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_ADJUST_SAVE_QTY];
@@ -67,7 +67,7 @@ DROP TABLE IF EXISTS [dbo].[AspNetUsers];
 DROP TABLE IF EXISTS [dbo].[AspNetUserTokens];
 DROP TABLE IF EXISTS [dbo].[FG_CustomerReturn];
 DROP TABLE IF EXISTS [dbo].[FG_PutAway];
-DROP TABLE IF EXISTS [dbo].[FG_ShipmentOrder];
+DROP TABLE IF EXISTS [dbo].[FG_Shipment];
 DROP TABLE IF EXISTS [dbo].[MD_ApsLineStage];
 DROP TABLE IF EXISTS [dbo].[MD_Bom];
 DROP TABLE IF EXISTS [dbo].[MD_BomVersion];
@@ -462,7 +462,7 @@ GO
 CREATE TABLE [dbo].[FG_CustomerReturn](
 	[ReturnID] [int] IDENTITY(1,1) NOT NULL,
 	[CustomerID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[ShipmentOrderID] [int] NOT NULL,
+	[ShipmentID] [int] NOT NULL,
 	[ReturnReason] [varchar](60) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ReceivedAt] [datetime2](7) NOT NULL,
@@ -524,7 +524,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고객사 코�
 GO
 
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Shipment Order ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ShipmentOrderID'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Shipment Order ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ShipmentID'
 GO
 
 GO
@@ -554,169 +554,22 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고객 반품 (RMA)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn'
 GO
--- Table: dbo.FG_PutAway
-SET ANSI_NULLS ON
+-- Table: dbo.FG_Shipment
+-- One confirmed barcode outbound operation; detail rows are WH_InventoryTransaction FG_OUTBOUND / SourceID.
+CREATE TABLE [dbo].[FG_Shipment](
+    [ShipmentID] [int] IDENTITY(1,1) NOT NULL,
+    [OutboundBarcode] [nvarchar](50) COLLATE DATABASE_DEFAULT NOT NULL,
+    [UnitType] [varchar](10) COLLATE DATABASE_DEFAULT NOT NULL,
+    [CustomerID] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
+    [ShippedAt] [datetime2] NOT NULL CONSTRAINT [DF_FG_Shipment_ShippedAt] DEFAULT SYSDATETIME(),
+    [ShippedBy] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
+    CONSTRAINT [PK_FG_Shipment] PRIMARY KEY CLUSTERED ([ShipmentID] ASC)
+);
 GO
-SET QUOTED_IDENTIFIER ON
+CREATE INDEX IX_FG_Shipment_ShippedAt ON dbo.FG_Shipment(ShippedAt DESC,ShipmentID DESC)
+    INCLUDE(CustomerID,OutboundBarcode,UnitType,ShippedBy);
 GO
-CREATE TABLE [dbo].[FG_PutAway](
-	[PutAwayID] [int] IDENTITY(1,1) NOT NULL,
-	[WoID] [int] NULL,
-	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[Qty] [decimal](12, 3) NULL,
-	[SuggestedLoc] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ActualLoc] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[LocOverrideReason] [varchar](60) COLLATE Korean_Wansung_CI_AS NULL,
-	[PalletCount] [int] NULL,
-	[PalletQty] [int] NULL,
-	[LabelPrintedTS] [datetime2](7) NULL,
-	[OperatorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[StorageMethod] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ContainerType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ContainerBarcode] [varchar](80) COLLATE Korean_Wansung_CI_AS NULL,
-	[LotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_FG_PutAway] PRIMARY KEY CLUSTERED 
-(
-	[PutAwayID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[FG_PutAway] ADD  CONSTRAINT [DF__FG_PutAwa__Creat__5B78929E]  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Put Away ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'PutAwayID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업지시 ID (완제품) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'WoID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품목 번호 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'ItemNo'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'수량 · decimal(12,3)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'Qty'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Suggested Loc · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'SuggestedLoc'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Actual Loc · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'ActualLoc'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Loc Override Reason · varchar(60)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'LocOverrideReason'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Pallet Count · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'PalletCount'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Pallet Qty · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'PalletQty'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Label Printed TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'LabelPrintedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업자 (AspNetUsers.Id) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'OperatorID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완제품 상태 · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'Status'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완제품 적치 (FG-01)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway'
-GO
--- Table: dbo.FG_ShipmentOrder
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[FG_ShipmentOrder](
-	[ShipmentOrderID] [int] IDENTITY(1,1) NOT NULL,
-	[ShipOrderNumber] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
-	[CustomerCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CustomerPO] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[Source] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[ShipDate] [date] NULL,
-	[CarrierCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[DestPlant] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[DestDock] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReceiverName] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReceiverPhone] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[PickslipID] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
-	[OTDFlag] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[ConfirmedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ConfirmedAt] [datetime2](7) NULL,
-	[OutgoingSlipNumber] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
-	[ItemsJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
-	[ShipmentDocumentNo] [varchar](60) COLLATE Korean_Wansung_CI_AS NULL,
-	[ShippedAt] [datetime2](7) NULL,
-	[LoadingNumber] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
-	[LicensePlate] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[DriverName] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
-	[LoadingDockNo] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[ArrivalAt] [datetime2](7) NULL,
-	[DepartureAt] [datetime2](7) NULL,
-	[SealNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[LoadingOTDStatus] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[ShipmentOperatorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[LoadingConfirmedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_FG_ShipmentOrder] PRIMARY KEY CLUSTERED 
-(
-	[ShipmentOrderID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-GO
-SET ANSI_PADDING ON
-GO
-CREATE UNIQUE NONCLUSTERED INDEX [UX_FG_ShipmentOrder_OutgoingSlipNumber] ON [dbo].[FG_ShipmentOrder]
-(
-	[OutgoingSlipNumber] ASC
-)
-WHERE ([OutgoingSlipNumber] IS NOT NULL)
-WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[FG_ShipmentOrder] ADD  CONSTRAINT [DF__FG_Shipme__Creat__5D60DB10]  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 출하 지시 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ShipmentOrderID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'출하 지시 번호 · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ShipOrderNumber'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고객사 코드 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CustomerCode'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Customer PO · varchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CustomerPO'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'발생 출처 / 채널 · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'Source'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ship Date · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ShipDate'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Carrier Code · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CarrierCode'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Dest Plant · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'DestPlant'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Dest Dock · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'DestDock'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Receiver Name · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ReceiverName'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Receiver Phone · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ReceiverPhone'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완제품 상태 · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'Status'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Pickslip ID · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'PickslipID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'OTD Flag · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'OTDFlag'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ConfirmedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ConfirmedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 출하 지시 헤더' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder'
-GO
+-- =====================================================================
 -- Table: dbo.MD_ApsLineStage
 SET ANSI_NULLS ON
 GO
@@ -9478,10 +9331,10 @@ REFERENCES [dbo].[tbl_Lot] ([LotID])
 GO
 ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Lot]
 GO
-ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [FK_FG_CustomerReturn_Order] FOREIGN KEY([ShipmentOrderID])
-REFERENCES [dbo].[FG_ShipmentOrder] ([ShipmentOrderID])
+ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [FK_FG_CustomerReturn_Shipment] FOREIGN KEY([ShipmentID])
+REFERENCES [dbo].[FG_Shipment] ([ShipmentID])
 GO
-ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Order]
+ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Shipment]
 GO
 ALTER TABLE [dbo].[MD_ApsLineStage]  WITH CHECK ADD  CONSTRAINT [FK_MD_ApsLineStage_Line] FOREIGN KEY([LineID])
 REFERENCES [dbo].[MD_Line] ([LineID])
@@ -9760,144 +9613,121 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER OFF
 GO
-CREATE   PROCEDURE dbo.FG_PDA_OUTBOUND_COMPLETE
-    @Barcode nvarchar(50),
-    @OperatorID nvarchar(450)
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_OUTBOUND_COMPLETE
+    @Barcode nvarchar(50),@OperatorID varchar(20),@CustomerID varchar(20)=NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
-
-    BEGIN TRANSACTION;
-
-    DECLARE @UnitType varchar(10);
-    SELECT @UnitType = UnitType
-      FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK)
-     WHERE LotNo = @Barcode;
-    IF @UnitType IS NULL THROW 52000, 'Outbound barcode was not found.', 1;
-
-    DECLARE @Scope TABLE
-    (
-        LotNo nvarchar(50) NOT NULL PRIMARY KEY,
-        ParentLotNo nvarchar(50) NULL,
-        Qty decimal(18,3) NOT NULL
-    );
-
-    ;WITH UnitTree AS
-    (
-        SELECT LotNo, ParentLotNo, Qty
-          FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK)
-         WHERE LotNo = @Barcode
-        UNION ALL
-        SELECT C.LotNo, C.ParentLotNo, C.Qty
-          FROM dbo.WH_Inventory C WITH (UPDLOCK, HOLDLOCK)
-          JOIN UnitTree P ON C.ParentLotNo = P.LotNo
-    )
-    INSERT @Scope (LotNo, ParentLotNo, Qty)
-    SELECT LotNo, ParentLotNo, Qty FROM UnitTree
-    OPTION (MAXRECURSION 100);
-
-    DECLARE @Items TABLE
-    (
-        LotNo nvarchar(50) NOT NULL,
-        PartNo varchar(50) NULL,
-        LocationNo varchar(50) NULL,
-        Qty decimal(18,3) NOT NULL
-    );
-
-    INSERT @Items (LotNo, PartNo, LocationNo, Qty)
-    SELECT I.LotNo, I.PartNo, I.LocationNo, I.Qty
-      FROM dbo.WH_Inventory I WITH (UPDLOCK, HOLDLOCK)
-      JOIN @Scope S ON S.LotNo = I.LotNo
-     WHERE I.Qty > 0
-       AND I.PartNo IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM @Scope C WHERE C.ParentLotNo = I.LotNo AND C.Qty > 0);
-
-    IF NOT EXISTS (SELECT 1 FROM @Items)
-        THROW 52001, 'This unit has already been outbound or contains no available inventory.', 1;
-
-    INSERT dbo.WH_InventoryTransaction
-        (TransactionTime, TransactionType, PartNo, LocationNo, LotNo,
-         QtyBefore, QtyChange, QtyAfter, ReasonCode, SourceType,
-         OperatorID, Note, CreatedBy, CreatedTS)
-    SELECT SYSDATETIME(), 'OUT', PartNo, LocationNo, LotNo,
-           Qty, -Qty, 0, @UnitType + '_OUTBOUND', 'FG_OUTBOUND',
-           @OperatorID, @UnitType + N' LOT: ' + @Barcode,
-           LEFT(COALESCE(NULLIF(@OperatorID, N''), N'system'), 20), SYSDATETIME()
-      FROM @Items;
-
-    UPDATE I
-       SET Qty = 0,
-           UpdatedAt = SYSDATETIME()
-      FROM dbo.WH_Inventory I
-      JOIN @Scope X ON X.LotNo = I.LotNo
-     WHERE I.Qty > 0;
-
-    SELECT COUNT(*) AS ProcessedCount,
-           SUM(Qty) AS TotalQty,
-           @UnitType AS UnitType
-      FROM @Items;
-
-    COMMIT TRANSACTION;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        DECLARE @UnitType varchar(10),@Now datetime2=SYSDATETIME(),@ShipmentID int;
+        IF NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode)
+            THROW 52000,'No inventory record exists for this barcode.',1;
+        SELECT @UnitType=UnitType FROM dbo.WH_Inventory WHERE LotNo=@Barcode;
+        IF NULLIF(LTRIM(RTRIM(@UnitType)),'') IS NULL THROW 52003,'The inventory unit type is missing.',1;
+        IF NULLIF(LTRIM(RTRIM(@OperatorID)),'') IS NULL THROW 52014,'A signed-in operator is required.',1;
+        DECLARE @Scope TABLE(LotNo nvarchar(50) PRIMARY KEY,UnitType varchar(10),ParentLotNo nvarchar(50),
+            PartNo varchar(20),PartName nvarchar(200),LocationNo varchar(20),Qty decimal(18,3));
+        ;WITH UnitTree AS
+        (
+            SELECT LotNo,UnitType,ParentLotNo,PartNo,PartName,LocationNo,Qty FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode
+            UNION ALL
+            SELECT C.LotNo,C.UnitType,C.ParentLotNo,C.PartNo,C.PartName,C.LocationNo,C.Qty
+            FROM dbo.WH_Inventory C WITH(UPDLOCK,HOLDLOCK) JOIN UnitTree P ON C.ParentLotNo=P.LotNo
+        ) INSERT @Scope SELECT * FROM UnitTree OPTION(MAXRECURSION 100);
+        DECLARE @Items TABLE(LotNo nvarchar(50) PRIMARY KEY,PartNo varchar(20),PartName nvarchar(200),
+            LocationNo varchar(20),Qty decimal(18,3),CustomerID varchar(20));
+        INSERT @Items
+        SELECT T.LotNo,T.PartNo,T.PartName,T.LocationNo,T.Qty,C.CustomerID
+        FROM @Scope T OUTER APPLY
+        (
+            SELECT MIN(M.CustomerID) CustomerID
+            FROM dbo.tbl_Lot L JOIN dbo.PR_ImgLot P ON P.LotID=L.LotID
+            JOIN dbo.MD_Customer M ON M.CustomerID COLLATE DATABASE_DEFAULT=P.CustomerCode COLLATE DATABASE_DEFAULT OR M.CustomerCode COLLATE DATABASE_DEFAULT=P.CustomerCode COLLATE DATABASE_DEFAULT
+            WHERE L.LotCode COLLATE DATABASE_DEFAULT=T.LotNo COLLATE DATABASE_DEFAULT HAVING COUNT(DISTINCT M.CustomerID)=1
+        ) C
+        WHERE T.Qty>0 AND NOT EXISTS(SELECT 1 FROM @Scope X WHERE X.ParentLotNo=T.LotNo AND X.Qty>0)
+          AND (T.PartNo IS NOT NULL OR UPPER(ISNULL(T.UnitType,'')) NOT IN('PALLET','CASE'));
+        IF NOT EXISTS(SELECT 1 FROM @Items) THROW 52001,'No available part inventory remains in this unit.',1;
+        IF EXISTS(SELECT 1 FROM @Items WHERE NULLIF(LTRIM(RTRIM(PartNo)),'') IS NULL)
+            THROW 52004,'Outbound inventory has no linked part number.',1;
+        IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.MD_Location L WITH(HOLDLOCK) ON L.LocationID=I.LocationNo
+            WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR UPPER(ISNULL(L.LocationType,''))<>'FG')
+            THROW 52006,'All outbound inventory must be put away in a registered FG location.',1;
+        IF (SELECT COUNT(DISTINCT CustomerID) FROM @Items)>1
+            THROW 52018,'This unit contains products for different customers. Separate them before outbound.',1;
+        SET @CustomerID=NULLIF(LTRIM(RTRIM(@CustomerID)),'');
+        IF @CustomerID IS NULL AND NOT EXISTS(SELECT 1 FROM @Items WHERE CustomerID IS NULL)
+            SELECT @CustomerID=MIN(CustomerID) FROM @Items;
+        IF @CustomerID IS NULL THROW 52017,'Select the outbound customer before confirming shipment.',1;
+        IF NOT EXISTS(SELECT 1 FROM dbo.MD_Customer WITH(HOLDLOCK) WHERE CustomerID=@CustomerID AND UPPER(ISNULL(Status,'ACTIVE')) NOT IN('INACTIVE','DISABLED'))
+            THROW 52017,'Select a valid active customer from Customer Master.',1;
+        IF EXISTS(SELECT 1 FROM @Items WHERE CustomerID<>@CustomerID)
+            THROW 52019,'The selected customer does not match the production LOT customer.',1;
+        INSERT dbo.FG_Shipment(OutboundBarcode,UnitType,CustomerID,ShippedAt,ShippedBy)
+            VALUES(@Barcode,@UnitType,@CustomerID,@Now,@OperatorID);
+        SET @ShipmentID=CONVERT(int,SCOPE_IDENTITY());
+        INSERT dbo.WH_InventoryTransaction
+            (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
+             ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
+        SELECT @Now,'OUT',PartNo,LocationNo,LotNo,Qty,-Qty,0,@UnitType+'_OUTBOUND','FG_OUTBOUND',@ShipmentID,
+            @OperatorID,@UnitType+N' LOT: '+@Barcode,@OperatorID,@Now FROM @Items;
+        UPDATE I SET Qty=0,UpdatedAt=@Now FROM dbo.WH_Inventory I JOIN @Scope S ON S.LotNo=I.LotNo WHERE I.Qty>0;
+        COMMIT TRANSACTION;
+        SELECT @ShipmentID ShipmentID,COUNT(*) ProcessedCount,SUM(Qty) TotalQty,@UnitType UnitType FROM @Items;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER OFF
 GO
-CREATE   PROCEDURE dbo.FG_PDA_OUTBOUND_SCAN
-    @Barcode nvarchar(50)
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_OUTBOUND_SCAN @Barcode nvarchar(50)
 AS
 BEGIN
     SET NOCOUNT ON;
-
-    DECLARE @UnitType varchar(10), @LocationNo varchar(50);
-    SELECT TOP (1) @UnitType = UnitType, @LocationNo = LocationNo
-      FROM dbo.WH_Inventory
-     WHERE LotNo = @Barcode;
-
-    IF @UnitType IS NULL
-        THROW 52000, 'Outbound barcode was not found.', 1;
-
-    DECLARE @Items TABLE
-    (
-        LotNo nvarchar(50) NOT NULL PRIMARY KEY,
-        UnitType varchar(10) NOT NULL,
-        PartNo varchar(50) NULL,
-        PartName nvarchar(200) NULL,
-        LocationNo varchar(50) NULL,
-        Qty decimal(18,3) NOT NULL
-    );
-
+    DECLARE @UnitType varchar(10),@LocationNo varchar(20);
+    IF NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LotNo=@Barcode)
+        THROW 52000,'No inventory record exists for this barcode.',1;
+    SELECT @UnitType=UnitType,@LocationNo=LocationNo FROM dbo.WH_Inventory WHERE LotNo=@Barcode;
+    IF NULLIF(LTRIM(RTRIM(@UnitType)),'') IS NULL THROW 52003,'The inventory unit type is missing.',1;
+    DECLARE @Items TABLE(LotNo nvarchar(50) PRIMARY KEY,UnitType varchar(10),PartNo varchar(20),
+        PartName nvarchar(200),LocationNo varchar(20),Qty decimal(18,3),CustomerID varchar(20));
     ;WITH UnitTree AS
     (
-        SELECT LotNo, UnitType, ParentLotNo, PartNo, PartName, LocationNo, Qty
-          FROM dbo.WH_Inventory
-         WHERE LotNo = @Barcode
+        SELECT LotNo,UnitType,ParentLotNo,PartNo,PartName,LocationNo,Qty FROM dbo.WH_Inventory WHERE LotNo=@Barcode
         UNION ALL
-        SELECT C.LotNo, C.UnitType, C.ParentLotNo, C.PartNo, C.PartName, C.LocationNo, C.Qty
-          FROM dbo.WH_Inventory C
-          JOIN UnitTree P ON C.ParentLotNo = P.LotNo
+        SELECT C.LotNo,C.UnitType,C.ParentLotNo,C.PartNo,C.PartName,C.LocationNo,C.Qty
+        FROM dbo.WH_Inventory C JOIN UnitTree P ON C.ParentLotNo=P.LotNo
     )
-    INSERT @Items (LotNo, UnitType, PartNo, PartName, LocationNo, Qty)
-    SELECT T.LotNo, T.UnitType, T.PartNo, T.PartName, T.LocationNo, T.Qty
-      FROM UnitTree T
-     WHERE T.Qty > 0
-       AND T.PartNo IS NOT NULL
-       AND NOT EXISTS
-           (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo = T.LotNo AND C.Qty > 0)
-    OPTION (MAXRECURSION 100);
-
-    IF NOT EXISTS (SELECT 1 FROM @Items)
-        THROW 52001, 'This unit has already been outbound or contains no available inventory.', 1;
-
-    SELECT @Barcode AS OutboundBarcode, @UnitType AS UnitType, @LocationNo AS LocationNo,
-           SUM(Qty) AS TotalQty, COUNT_BIG(*) AS ItemCount
-      FROM @Items;
-
-    SELECT LotNo, UnitType, PartNo, PartName, Qty, LocationNo
-      FROM @Items
-     ORDER BY LotNo;
+    INSERT @Items
+    SELECT T.LotNo,T.UnitType,T.PartNo,T.PartName,T.LocationNo,T.Qty,C.CustomerID
+    FROM UnitTree T OUTER APPLY
+    (
+        SELECT MIN(M.CustomerID) CustomerID
+        FROM dbo.tbl_Lot L JOIN dbo.PR_ImgLot P ON P.LotID=L.LotID
+        JOIN dbo.MD_Customer M ON M.CustomerID COLLATE DATABASE_DEFAULT=P.CustomerCode COLLATE DATABASE_DEFAULT OR M.CustomerCode COLLATE DATABASE_DEFAULT=P.CustomerCode COLLATE DATABASE_DEFAULT
+        WHERE L.LotCode COLLATE DATABASE_DEFAULT=T.LotNo COLLATE DATABASE_DEFAULT HAVING COUNT(DISTINCT M.CustomerID)=1
+    ) C
+    WHERE T.Qty>0 AND T.PartNo IS NOT NULL
+      AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory X WHERE X.ParentLotNo=T.LotNo AND X.Qty>0)
+    OPTION(MAXRECURSION 100);
+    IF NOT EXISTS(SELECT 1 FROM @Items) THROW 52001,'No available part inventory remains in this unit.',1;
+    IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.MD_Location L ON L.LocationID=I.LocationNo
+        WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR UPPER(ISNULL(L.LocationType,''))<>'FG')
+        THROW 52006,'All outbound inventory must be put away in a registered FG location.',1;
+    IF (SELECT COUNT(DISTINCT CustomerID) FROM @Items)>1
+        THROW 52018,'This unit contains products for different customers. Separate them before outbound.',1;
+    DECLARE @CustomerID varchar(20);
+    IF NOT EXISTS(SELECT 1 FROM @Items WHERE CustomerID IS NULL) SELECT @CustomerID=MIN(CustomerID) FROM @Items;
+    SELECT @Barcode OutboundBarcode,@UnitType UnitType,@LocationNo LocationNo,SUM(Qty) TotalQty,COUNT_BIG(*) ItemCount,
+        @CustomerID CustomerID,(SELECT CustomerName FROM dbo.MD_Customer WHERE CustomerID=@CustomerID) CustomerName FROM @Items;
+    SELECT LotNo,UnitType,PartNo,PartName,Qty,LocationNo FROM @Items ORDER BY LotNo;
 END;
 GO
 SET ANSI_NULLS ON
@@ -9994,51 +9824,11 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER OFF
 GO
-CREATE   PROCEDURE dbo.FG_PDA_PPT_TEST_RESET @Screen varchar(10)
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_PPT_TEST_RESET @Screen varchar(10)
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON;
-    IF @Screen NOT IN('qc','putaway','inventory','return','adjust') THROW 51700,'Unknown FG PPT test screen.',1;
-    DECLARE @SeedBy varchar(50)=CONCAT('pda-ppt-fg-',@Screen);
-    DECLARE @Lots TABLE(LotID int PRIMARY KEY,LotCode varchar(40),ItemNo varchar(20),Qty decimal(12,3),LocationID varchar(20));
-    INSERT @Lots SELECT LotID,LotCode,ItemNo,BatchSize,
-        CASE @Screen WHEN 'putaway' THEN 'FG-PPT-A1' WHEN 'inventory' THEN 'FG-PPT-B1'
-             WHEN 'return' THEN 'FG-PPT-E1' WHEN 'adjust' THEN 'FG-PPT-F1' END
-        FROM dbo.tbl_Lot WHERE CreatedBy=@SeedBy;
-    IF NOT EXISTS(SELECT 1 FROM @Lots) THROW 51701,'FG PPT samples are missing. Run PDA_SEED.sql.',1;
-    BEGIN TRANSACTION;
-    DELETE T FROM dbo.WH_InventoryTransaction T JOIN @Lots L ON L.LotCode=T.LotNo COLLATE DATABASE_DEFAULT WHERE T.SourceType IN('FG_ADJUST','FG_PPT_HISTORY');
-    DELETE P FROM dbo.FG_PutAway P JOIN @Lots L ON L.LotCode=P.LotNo;
-    IF @Screen IN('qc','putaway') DELETE W FROM dbo.WH_Inventory W JOIN @Lots L ON L.LotCode=W.LotNo;
-    ELSE
-        MERGE dbo.WH_Inventory AS T USING
-        (SELECT L.LotCode,L.ItemNo,I.ItemName,L.LocationID,L.Qty FROM @Lots L LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=L.ItemNo) S
-        ON S.LotCode=T.LotNo
-        WHEN MATCHED THEN UPDATE SET PartNo=S.ItemNo,PartName=S.ItemName,LocationNo=S.LocationID,Qty=S.Qty,UpdatedAt=SYSDATETIME()
-        WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
-            VALUES(S.LotCode,'PART',S.ItemNo,S.ItemName,S.LocationID,S.Qty,SYSDATETIME(),SYSDATETIME(),SYSDATETIME());
-    UPDATE L SET RemainingQty=T.Qty,CurrentLocationID=CASE WHEN @Screen IN('qc','putaway') THEN NULL ELSE T.LocationID END,
-        ProcessCode='IMG',Status='CONFIRMED',QualityFlag='OK',ModifiedBy=LEFT(@SeedBy,20),ModifiedTS=SYSDATETIME()
-    FROM dbo.tbl_Lot L JOIN @Lots T ON T.LotID=L.LotID;
-    IF @Screen='return'
-    BEGIN
-        DELETE R FROM dbo.FG_CustomerReturn R JOIN @Lots L ON L.LotCode=R.LotNo;
-        UPDATE O SET Status=CASE WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN 'SHIPPED' ELSE 'OPEN' END,
-            ShippedAt=CASE WHEN O.ShipOrderNumber='FG-PPT-SO-RETURN' THEN DATEADD(day,-1,SYSDATETIME()) ELSE NULL END,
-            ItemsJSON=J.ItemsJSON,ModifiedBy=LEFT(@SeedBy,20),ModifiedTS=SYSDATETIME()
-        FROM dbo.FG_ShipmentOrder O
-        CROSS APPLY
-        (
-            SELECT 10 lineSeq,L.ItemNo itemNo,L.Qty orderedQty,L.Qty allocatedQty,L.LotCode lotNo,L.LotID lotId,L.LocationID location
-            FROM @Lots L
-            WHERE (O.ShipOrderNumber='FG-PPT-SO-RETURN' AND RIGHT(L.LotCode,6)='950001')
-               OR (O.ShipOrderNumber='FG-PPT-SO-NOSHIP' AND RIGHT(L.LotCode,6)='950002')
-            FOR JSON PATH
-        ) J(ItemsJSON)
-        WHERE O.CreatedBy=@SeedBy AND O.ShipOrderNumber IN('FG-PPT-SO-RETURN','FG-PPT-SO-NOSHIP');
-    END;
-    COMMIT TRANSACTION;
+    THROW 51700,'Legacy FG scenario seeding is retired. Use actual barcode operations.',1;
 END;
 GO
 SET ANSI_NULLS ON
@@ -10046,44 +9836,39 @@ GO
 SET QUOTED_IDENTIFIER OFF
 GO
 CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_RECEIVE
-    @Barcode varchar(80),@ReturnReason varchar(60),@Note nvarchar(500)=NULL,@OperatorID nvarchar(450)
+    @Barcode varchar(80),@ReturnReason varchar(60),@Note nvarchar(500)=NULL,@OperatorID varchar(20)
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
-    DECLARE @Reason varchar(60)=UPPER(LTRIM(RTRIM(ISNULL(@ReturnReason,'')))),
-        @CleanNote nvarchar(500)=NULLIF(LTRIM(RTRIM(@Note)),N'');
-    IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='FG_RETURN_REASON'
-        AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
+    DECLARE @Reason varchar(60)=UPPER(LTRIM(RTRIM(ISNULL(@ReturnReason,'')))),@CleanNote nvarchar(500)=NULLIF(LTRIM(RTRIM(@Note)),N'');
+    IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='FG_RETURN_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
         THROW 52009,'Select a valid return reason.',1;
-    IF NULLIF(LTRIM(RTRIM(@OperatorID)),N'') IS NULL THROW 52014,'A signed-in operator is required.',1;
-    DECLARE @P TABLE(Barcode varchar(80),LotID int,LotNo nvarchar(50),ShipmentOrderID int,
-        ShipOrderNumber varchar(40),CustomerID varchar(20),CustomerName nvarchar(200),
-        PartNo varchar(20),PartName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3));
+    IF NULLIF(LTRIM(RTRIM(@OperatorID)),'') IS NULL THROW 52014,'A signed-in operator is required.',1;
+    DECLARE @P TABLE(Barcode varchar(80),LotID int,LotNo nvarchar(50),ShipmentID int,OutboundBarcode nvarchar(50),
+        CustomerID varchar(20),CustomerName nvarchar(200),PartNo varchar(20),PartName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3));
     BEGIN TRY
         BEGIN TRANSACTION;
         INSERT @P EXEC dbo.FG_PDA_RETURN_SCAN @Barcode;
-        DECLARE @Now datetime2=SYSDATETIME(),@ReturnID int,@LotNo nvarchar(50)=(SELECT LotNo FROM @P);
-        IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@LotNo)
-            THROW 52005,'This product was already received as a customer return.',1;
+        DECLARE @Now datetime2=SYSDATETIME(),@ReturnID int,@LotNo nvarchar(50)=(SELECT LotNo FROM @P),@ShipmentID int=(SELECT ShipmentID FROM @P);
+        IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE ShipmentID=@ShipmentID AND LotNo=@LotNo)
+            THROW 52005,'This LOT was already returned for this shipment.',1;
         IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@LotNo AND Qty<>0)
             THROW 52015,'This LOT already has inventory. Resolve the existing stock before receiving a return.',1;
-        INSERT dbo.FG_CustomerReturn
-            (CustomerID,ShipmentOrderID,LotNo,LotID,PartNo,PartName,ReturnQty,
-             ReturnReason,Note,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
-        SELECT CustomerID,ShipmentOrderID,LotNo,LotID,PartNo,PartName,Qty,@Reason,@CleanNote,
-            'Open',@Now,@OperatorID,LEFT(@OperatorID,20),@Now FROM @P;
+        IF (SELECT TOP(1) SourceID FROM dbo.WH_InventoryTransaction
+            WHERE LotNo=@LotNo AND SourceType='FG_OUTBOUND' AND TransactionType='OUT'
+            ORDER BY TransactionTime DESC,TransactionID DESC)<>@ShipmentID
+            THROW 52004,'The latest shipment changed. Scan the returned LOT again.',1;
+        INSERT dbo.FG_CustomerReturn(CustomerID,ShipmentID,LotNo,LotID,PartNo,PartName,ReturnQty,ReturnReason,Note,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
+        SELECT CustomerID,ShipmentID,LotNo,LotID,PartNo,PartName,Qty,@Reason,@CleanNote,'Open',@Now,@OperatorID,@OperatorID,@Now FROM @P;
         SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
-        MERGE dbo.WH_Inventory WITH(HOLDLOCK) AS T
-        USING(SELECT LotNo,PartNo,PartName,Qty FROM @P) S ON S.LotNo=T.LotNo
-        WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,UpdatedAt=@Now
+        MERGE dbo.WH_Inventory WITH(HOLDLOCK) AS T USING(SELECT LotNo,PartNo,PartName,Qty FROM @P) S ON S.LotNo=T.LotNo
+        WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,ParentLotNo=NULL,UpdatedAt=@Now
         WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
             VALUES(S.LotNo,'PART',S.PartNo,S.PartName,NULL,S.Qty,@Now,@Now,@Now);
-        INSERT dbo.WH_InventoryTransaction
-            (TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-             ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
-        SELECT @Now,'IN',PartNo,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,
-            @OperatorID,@CleanNote,LEFT(@OperatorID,20),@Now FROM @P;
+        INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,
+            ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
+        SELECT @Now,'IN',PartNo,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,@OperatorID,@CleanNote,@OperatorID,@Now FROM @P;
         COMMIT TRANSACTION;
         SELECT @ReturnID ReturnID,* FROM @P;
     END TRY
@@ -10103,90 +9888,142 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @B varchar(80)=LTRIM(RTRIM(ISNULL(@Barcode,'')));
-    IF LEN(@B)<3 OR LEN(@B)>80 OR @B COLLATE Latin1_General_100_BIN2 LIKE '%[^A-Za-z0-9_./-]%'
+    IF LEN(@B)<3 OR LEN(@B)>50 OR @B COLLATE Latin1_General_100_BIN2 LIKE '%[^A-Za-z0-9_./-]%'
         THROW 52000,'The finished-good return barcode format is invalid.',1;
-    DECLARE @P TABLE(LotNo nvarchar(50),ShipmentOrderID int,ShipOrderNumber varchar(40),
+    DECLARE @P TABLE(LotNo nvarchar(50),ShipmentID int,OutboundBarcode nvarchar(50),
         CustomerID varchar(20),CustomerName nvarchar(200),PartNo varchar(20),PartName nvarchar(200),
         ShippedAt datetime2,Qty decimal(18,3),LotID int);
     INSERT @P
-    SELECT DISTINCT J.LotNo,O.ShipmentOrderID,O.ShipOrderNumber,C.CustomerID,C.CustomerName,
-        J.PartNo,I.ItemName,COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt),
-        COALESCE(NULLIF(J.AllocatedQty,0),NULLIF(J.OrderedQty,0)),L.LotID
-    FROM dbo.FG_ShipmentOrder O
-    CROSS APPLY OPENJSON(CASE WHEN ISJSON(O.ItemsJSON)=1 THEN O.ItemsJSON ELSE N'[]' END)
-        WITH(LotNo nvarchar(50) '$.lotNo',PartNo varchar(20) '$.itemNo',
-            OrderedQty decimal(18,3) '$.orderedQty',AllocatedQty decimal(18,3) '$.allocatedQty') J
-    LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=J.LotNo COLLATE DATABASE_DEFAULT
-    LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=J.PartNo COLLATE DATABASE_DEFAULT
-    LEFT JOIN dbo.MD_Customer C ON C.CustomerID COLLATE DATABASE_DEFAULT=O.CustomerCode COLLATE DATABASE_DEFAULT
-        OR C.CustomerCode COLLATE DATABASE_DEFAULT=O.CustomerCode COLLATE DATABASE_DEFAULT
-    WHERE J.LotNo COLLATE DATABASE_DEFAULT=@B COLLATE DATABASE_DEFAULT
-        AND UPPER(COALESCE(O.Status,''))='SHIPPED'
-        AND COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt) IS NOT NULL;
-    IF NOT EXISTS(SELECT 1 FROM @P)
-        THROW 52002,'This barcode does not match a shipped finished-good LOT.',1;
-    IF (SELECT COUNT(*) FROM @P)<>1
-        THROW 52004,'The barcode has multiple shipments or customer matches. Verify the source data.',1;
-    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WHERE LotNo COLLATE DATABASE_DEFAULT=@B COLLATE DATABASE_DEFAULT)
-        THROW 52005,'This product was already received as a customer return.',1;
-    IF EXISTS(SELECT 1 FROM @P WHERE NULLIF(ShipOrderNumber,'') IS NULL OR NULLIF(CustomerID,'') IS NULL
-        OR NULLIF(PartNo,'') IS NULL OR NULLIF(PartName,N'') IS NULL OR COALESCE(Qty,0)<=0)
-        THROW 52008,'Verify the shipped customer in Customer Master and the part, name and quantity.',1;
-    SELECT @B Barcode,LotID,LotNo,ShipmentOrderID,ShipOrderNumber,CustomerID,CustomerName,
-        PartNo,PartName,ShippedAt,Qty FROM @P;
+    SELECT TOP(1) T.LotNo,S.ShipmentID,S.OutboundBarcode,S.CustomerID,C.CustomerName,
+        T.PartNo,COALESCE(NULLIF(I.PartName COLLATE DATABASE_DEFAULT,N''),M.ItemName COLLATE DATABASE_DEFAULT),S.ShippedAt,-T.QtyChange,L.LotID
+    FROM dbo.WH_InventoryTransaction T JOIN dbo.FG_Shipment S ON S.ShipmentID=T.SourceID
+    JOIN dbo.MD_Customer C ON C.CustomerID=S.CustomerID
+    LEFT JOIN dbo.WH_Inventory I ON I.LotNo=T.LotNo
+    LEFT JOIN dbo.MD_Item M ON M.ItemNo COLLATE DATABASE_DEFAULT=T.PartNo COLLATE DATABASE_DEFAULT
+    LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=T.LotNo COLLATE DATABASE_DEFAULT
+    WHERE T.LotNo=@B AND T.TransactionType='OUT' AND T.SourceType='FG_OUTBOUND' AND T.QtyChange<0
+    ORDER BY S.ShippedAt DESC,T.TransactionID DESC;
+    IF NOT EXISTS(SELECT 1 FROM @P) THROW 52002,'This LOT has no actual finished-goods shipment history.',1;
+    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R JOIN @P P ON P.ShipmentID=R.ShipmentID AND P.LotNo=R.LotNo)
+        THROW 52005,'This LOT was already received as a return for its latest shipment.',1;
+    IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LotNo=@B AND Qty<>0)
+        THROW 52015,'This LOT already has inventory. Resolve the existing stock before receiving a return.',1;
+    IF EXISTS(SELECT 1 FROM @P WHERE NULLIF(PartName,N'') IS NULL OR Qty<=0)
+        THROW 52008,'Verify the shipped part name and quantity.',1;
+    SELECT @B Barcode,LotID,LotNo,ShipmentID,OutboundBarcode,CustomerID,CustomerName,PartNo,PartName,ShippedAt,Qty FROM @P;
 END;
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER OFF
 GO
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_PUTAWAY_COMPLETE
+    @Barcode nvarchar(50),@Location varchar(20),@OperatorID varchar(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    SET @Barcode=NULLIF(LTRIM(RTRIM(@Barcode)),N'');
+    SET @Location=NULLIF(LTRIM(RTRIM(@Location)),'');
+    IF @Barcode IS NULL OR @Location IS NULL OR NULLIF(LTRIM(RTRIM(@OperatorID)),'') IS NULL
+        THROW 52510,'Scan FG LOT and Location Barcode with a signed-in operator.',1;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        DECLARE @Lock int,@Resource nvarchar(255)=N'FG_PUTAWAY_LOT:'+UPPER(@Barcode);
+        EXEC @Lock=sys.sp_getapplock @Resource=@Resource,@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=5000;
+        IF @Lock<0 THROW 52511,'This FG LOT is being processed. Scan it again.',1;
+        SET @Resource=N'FG_PUTAWAY_LOCATION:'+UPPER(@Location);
+        EXEC @Lock=sys.sp_getapplock @Resource=@Resource,@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=5000;
+        IF @Lock<0 THROW 52512,'This FG location is being updated. Scan it again.',1;
+        DECLARE @LotID int,@PartNo varchar(20),@PartName nvarchar(200),@ProductionQty decimal(18,3),
+            @StoredQty decimal(18,3),@StoredLocation varchar(20),@StoredPart varchar(20),
+            @Qty decimal(18,3),@Capacity decimal(18,3),@Current decimal(18,3),@Now datetime2=SYSDATETIME();
+        SELECT @LotID=L.LotID,@PartNo=L.ItemNo,@PartName=I.ItemName,@ProductionQty=R.Qty
+        FROM dbo.tbl_Lot L WITH(UPDLOCK,HOLDLOCK)
+        JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
+        CROSS APPLY(SELECT SUM(P.GoodQty) Qty FROM dbo.PR_ProductionResult P
+            WHERE P.LotID=L.LotID AND P.ProcessCode=L.ProcessCode AND ISNULL(P.DefectFlag,0)=0) R
+        WHERE L.LotCode COLLATE DATABASE_DEFAULT=@Barcode COLLATE DATABASE_DEFAULT
+          AND UPPER(ISNULL(L.Status,'')) IN('CONFIRMED','STOCKED')
+          AND I.ItemType='ASSY' AND ISNULL(I.ActiveFlag,1)=1 AND R.Qty>0;
+        IF @LotID IS NULL THROW 52513,'A confirmed finished-goods ASSY production LOT is required.',1;
+        SELECT @StoredQty=Qty,@StoredLocation=LocationNo,@StoredPart=PartNo
+        FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode;
+        IF @StoredQty IS NOT NULL AND @StoredQty<=0
+        BEGIN
+            IF (SELECT TOP(1) SourceType FROM dbo.WH_InventoryTransaction
+                WHERE LotNo=@Barcode AND QtyChange<>0 ORDER BY TransactionTime DESC,TransactionID DESC)='FG_OUTBOUND'
+                THROW 52514,'This product has already been shipped. Put-away is not allowed.',1;
+            THROW 52514,'This LOT has no available quantity for put-away.',1;
+        END;
+        IF @StoredQty IS NOT NULL AND NULLIF(LTRIM(RTRIM(@StoredLocation)),'') IS NOT NULL
+            THROW 52515,'This FG LOT is already stocked. Use Relocation to change its location.',1;
+        IF @StoredQty IS NOT NULL AND ISNULL(@StoredPart,'')<>@PartNo
+            THROW 52516,'The inventory part does not match the production LOT.',1;
+        SET @Qty=COALESCE(@StoredQty,@ProductionQty);
+        SELECT @Capacity=Capacity FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK)
+            WHERE LocationID=@Location AND LocationType='FG';
+        IF @@ROWCOUNT=0 THROW 52517,'Scan a registered FG location barcode.',1;
+        SELECT @Current=COALESCE(SUM(Qty),0) FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LocationNo=@Location;
+        IF @Capacity>0 AND @Current+@Qty>@Capacity THROW 52518,'The FG location has insufficient load capacity.',1;
+        IF @StoredQty IS NULL
+            INSERT dbo.WH_Inventory(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+                VALUES(@Barcode,'PART',@PartNo,@PartName,@Location,@Qty,@Now,@Now,@Now);
+        ELSE
+            UPDATE dbo.WH_Inventory SET LocationNo=@Location,UpdatedAt=@Now WHERE LotNo=@Barcode;
+        INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LocationNo,LotNo,
+            QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
+        VALUES(@Now,CASE WHEN @StoredQty IS NULL THEN 'IN' ELSE 'MOVE' END,@PartNo,@Location,@Barcode,
+            COALESCE(@StoredQty,0),CASE WHEN @StoredQty IS NULL THEN @Qty ELSE 0 END,@Qty,
+            'PUTAWAY','FG_PUTAWAY',@OperatorID,
+            CASE WHEN @StoredQty IS NULL THEN N'Finished goods put-away'
+                 ELSE CONCAT(N'Moved from (unassigned) to ',@Location) END,@OperatorID,@Now);
+        UPDATE dbo.tbl_Lot SET CurrentLocationID=@Location,Status='Stocked',InventoryStatus='STOCKED',
+            ModifiedBy=@OperatorID,ModifiedTS=@Now WHERE LotID=@LotID;
+        COMMIT TRANSACTION;
+        SELECT @Barcode LotNo,@Qty Qty,CAST(CASE WHEN @StoredQty IS NULL THEN 0 ELSE 1 END AS bit) ExistingInventory;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
 CREATE OR ALTER PROCEDURE dbo.FG_PDA_TRANSACTION_LIST
     @SearchText nvarchar(120)=NULL,@DateFrom date=NULL,@DateTo date=NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @From date=COALESCE(@DateFrom,DATEADD(day,-30,CAST(GETDATE() AS date))),
-            @To date=COALESCE(@DateTo,CAST(GETDATE() AS date)),
-            @Search nvarchar(130)=N'%'+NULLIF(LTRIM(RTRIM(@SearchText)),N'')+N'%';
-    ;WITH Events AS
-    (
-        SELECT T.TransactionTime EventTime,CONCAT('TX-',T.TransactionID) EventID,T.LotNo,T.PartNo,T.LocationNo,
-            ABS(T.QtyChange) Qty,CASE T.TransactionType WHEN 'IN' THEN N'Inbound' WHEN 'OUT' THEN N'Outbound' ELSE N'Adjust' END Status,
-            T.TransactionType Direction,T.OperatorID Worker,T.ReasonCode,T.Note ReasonNote,T.ApproverID Supervisor,
-            T.QtyBefore BeforeQty,T.QtyChange DeltaQty,T.QtyAfter AfterQty,T.SourceType Source,T.Note Reference
-        FROM dbo.WH_InventoryTransaction T
-        WHERE UPPER(COALESCE(T.SourceType,'')) LIKE 'FG%' AND T.SourceType<>'FG_RETURN'
-        UNION ALL
-        SELECT P.CreatedTS,CONCAT('IN-',P.PutAwayID),P.LotNo,P.ItemNo COLLATE DATABASE_DEFAULT,
-            P.ActualLoc COLLATE DATABASE_DEFAULT,P.Qty,N'Put-Away','IN',
-            COALESCE(P.OperatorID,P.CreatedBy) COLLATE DATABASE_DEFAULT,NULL,
-            P.ContainerBarcode COLLATE DATABASE_DEFAULT,NULL,NULL,NULL,NULL,N'FG_PutAway',
-            P.ContainerBarcode COLLATE DATABASE_DEFAULT
-        FROM dbo.FG_PutAway P WHERE UPPER(COALESCE(P.Status,'')) NOT IN('CANCELLED','CANCELED')
-        UNION ALL
-        SELECT COALESCE(R.ReceivedAt,R.CreatedTS),CONCAT('RETURN-',R.ReturnID),R.LotNo,
-            R.PartNo COLLATE DATABASE_DEFAULT,NULL,R.ReturnQty,N'Return','IN',
-            COALESCE(R.ReceivedBy,R.CreatedBy) COLLATE DATABASE_DEFAULT,
-            R.ReturnReason COLLATE DATABASE_DEFAULT,R.Note COLLATE DATABASE_DEFAULT,
-            NULL,NULL,NULL,NULL,N'FG_CustomerReturn',CONVERT(nvarchar(80),R.ReturnID) COLLATE DATABASE_DEFAULT
-        FROM dbo.FG_CustomerReturn R WHERE UPPER(COALESCE(R.Status,'')) NOT IN('CANCELLED','CANCELED','REJECTED')
-    )
-    SELECT ROW_NUMBER() OVER(ORDER BY E.EventTime DESC,E.EventID DESC) AS ROW_NO,
-        COALESCE(NULLIF(E.LotNo COLLATE DATABASE_DEFAULT,''),'N/A') LOTNO,E.PartNo PARTNO,CONVERT(nvarchar(10),E.EventTime,23) WDATE,
-        CONVERT(nvarchar(8),E.EventTime,108) WTIME,COALESCE(NULLIF(E.LocationNo COLLATE DATABASE_DEFAULT,''),'N/A') LOCATION_NO,
-        COALESCE(E.Qty,0) QTY,I.DefaultUOM UNIT,E.Status STATUS,E.Direction DIRECTION,
-        COALESCE(NULLIF(U.UserName COLLATE DATABASE_DEFAULT,''),E.Worker COLLATE DATABASE_DEFAULT) WORKER_ID,E.ReasonCode REASON_CODE,E.ReasonNote REASON_NOTE,
-        E.Supervisor SUPERVISOR,E.BeforeQty BEFORE_QTY,E.DeltaQty DELTA_QTY,E.AfterQty AFTER_QTY,
-        NULL BEFORE_STATUS,NULL AFTER_STATUS,NULL BEFORE_LOCATION,NULL AFTER_LOCATION,E.Source SOURCE,E.Reference NOTE
-    FROM Events E LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=E.PartNo
-    LEFT JOIN dbo.AspNetUsers U ON U.Id COLLATE DATABASE_DEFAULT=E.Worker
-    WHERE E.EventTime>=@From AND E.EventTime<DATEADD(day,1,@To)
-      AND (@Search IS NULL OR E.LotNo COLLATE DATABASE_DEFAULT LIKE @Search
-        OR E.PartNo COLLATE DATABASE_DEFAULT LIKE @Search
-        OR I.ItemName COLLATE DATABASE_DEFAULT LIKE @Search
-        OR E.LocationNo COLLATE DATABASE_DEFAULT LIKE @Search
-        OR E.Reference COLLATE DATABASE_DEFAULT LIKE @Search)
-    ORDER BY E.EventTime DESC,E.EventID DESC;
+    DECLARE @From date=COALESCE(@DateFrom,DATEADD(day,-30,CAST(SYSDATETIME() AS date))),
+        @To date=COALESCE(@DateTo,CAST(SYSDATETIME() AS date)),
+        @Search nvarchar(130)=N'%'+NULLIF(LTRIM(RTRIM(@SearchText)),N'')+N'%';
+    SELECT ROW_NUMBER() OVER(ORDER BY T.TransactionTime DESC,T.TransactionID DESC) ROW_NO,
+        T.LotNo LOTNO,T.PartNo PARTNO,CONVERT(nvarchar(10),T.TransactionTime,23) WDATE,
+        CONVERT(nvarchar(8),T.TransactionTime,108) WTIME,COALESCE(NULLIF(T.LocationNo,''),'N/A') LOCATION_NO,
+        CASE WHEN T.TransactionType='MOVE' THEN T.QtyAfter ELSE ABS(T.QtyChange) END QTY,I.DefaultUOM UNIT,
+        CASE WHEN T.SourceType='FG_RETURN' THEN N'Return'
+             WHEN T.TransactionType='MOVE' THEN N'Location change'
+             WHEN T.SourceType='FG_PUTAWAY' THEN N'Put-Away'
+             WHEN T.TransactionType='OUT' THEN N'Outbound'
+             WHEN T.TransactionType='IN' THEN N'Inbound' ELSE N'Adjust' END STATUS,
+        CASE WHEN T.SourceType='FG_RETURN' THEN 'RETURN' ELSE T.TransactionType END DIRECTION,
+        COALESCE(NULLIF(U.UserName,''),T.OperatorID) WORKER_ID,T.ReasonCode REASON_CODE,T.Note REASON_NOTE,
+        T.ApproverID SUPERVISOR,T.QtyBefore BEFORE_QTY,T.QtyChange DELTA_QTY,T.QtyAfter AFTER_QTY,
+        NULL BEFORE_STATUS,NULL AFTER_STATUS,
+        CASE WHEN T.TransactionType='MOVE' AND T.Note LIKE N'Moved from % to %'
+             THEN NULLIF(SUBSTRING(T.Note,12,CHARINDEX(N' to ',T.Note)-12),N'(unassigned)') END BEFORE_LOCATION,
+        CASE WHEN T.TransactionType='MOVE' THEN T.LocationNo END AFTER_LOCATION,
+        T.SourceType SOURCE,COALESCE(S.OutboundBarcode,T.Note) NOTE
+    FROM dbo.WH_InventoryTransaction T
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=T.PartNo COLLATE DATABASE_DEFAULT
+    LEFT JOIN dbo.AspNetUsers U ON U.Id COLLATE DATABASE_DEFAULT=T.OperatorID COLLATE DATABASE_DEFAULT
+    LEFT JOIN dbo.FG_Shipment S ON T.SourceType='FG_OUTBOUND' AND S.ShipmentID=T.SourceID
+    WHERE T.SourceType LIKE 'FG%'
+      AND T.TransactionTime>=@From AND T.TransactionTime<DATEADD(day,1,@To)
+      AND (@Search IS NULL OR T.LotNo LIKE @Search OR T.PartNo LIKE @Search
+        OR I.ItemName COLLATE DATABASE_DEFAULT LIKE @Search OR T.LocationNo LIKE @Search
+        OR T.Note LIKE @Search OR S.OutboundBarcode LIKE @Search)
+    ORDER BY T.TransactionTime DESC,T.TransactionID DESC;
 END;
 GO
 SET ANSI_NULLS ON
@@ -14024,4 +13861,15 @@ GROUP BY LEFT(name, 4)
 ORDER BY 1;
 GO
 
+GO
+
+-- Actual shipment linkage indexes and customer integrity.
+IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_Shipment_Customer')
+    ALTER TABLE dbo.FG_Shipment WITH CHECK ADD CONSTRAINT FK_FG_Shipment_Customer
+        FOREIGN KEY(CustomerID) REFERENCES dbo.MD_Customer(CustomerID);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_Source')
+    CREATE INDEX IX_WH_InventoryTransaction_Source ON dbo.WH_InventoryTransaction(SourceType,SourceID,TransactionType)
+        INCLUDE(LotNo,PartNo,QtyChange,LocationNo,TransactionTime);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_CustomerReturn') AND name=N'UX_FG_CustomerReturn_ShipmentLot')
+    CREATE UNIQUE INDEX UX_FG_CustomerReturn_ShipmentLot ON dbo.FG_CustomerReturn(ShipmentID,LotNo) WHERE LotNo IS NOT NULL;
 GO
