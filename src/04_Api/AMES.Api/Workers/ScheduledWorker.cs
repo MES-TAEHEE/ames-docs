@@ -95,6 +95,9 @@ public abstract class ScheduledWorker<TTarget, TResult> : BackgroundService
     /// </summary>
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
+        // A local API can share the server DB without running a second collection scheduler.
+        if (!_cfg.GetValue("ScheduledWorker:Enabled", true)) return;
+
         ScheduledPlan<TTarget>? plan = null;
         // 시작 지연을 정하려고 한 번 읽을 뿐이다 — 실패 기록은 첫 틱이 한다.
         try { plan = LoadPlan(); }
