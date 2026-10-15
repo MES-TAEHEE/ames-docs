@@ -55,7 +55,7 @@ public static class FgDetailedScenarioCatalog
     public static PptScenarioPanel.Step[] Transactions(PptScenarioPanel.Step[] source) => Build("FG008", source,
         new(1,"최신 거래 순서","선택한 기간의 거래가 작업일시 최신순으로 표시되는지 확인합니다."), new(1,"거래 유형별 건수","ALL과 IN, PICK, LOAD, RETURN, ADJ 건수가 목록과 일치하는지 확인합니다."),
         new(1,"새로고침","REFRESH 실행 시 조회 조건을 유지하면서 최신 목록을 다시 불러오는지 확인합니다."), new(2,"조회 기간 적용","APPLY 실행 시 선택한 시작일과 종료일 안의 거래만 표시되는지 확인합니다."),
-        new(2,"작업자 및 사유 필터","More Filters에서 Worker ID와 Reason으로 결과를 좁힐 수 있는지 확인합니다."), new(3,"바코드 검색","LOT, Stock, Part, 출고전표로 거래 이력을 검색할 수 있는지 확인합니다."),
+        new(2,"작업자 및 사유 필터","Transaction Date 오른쪽 필터 아이콘에서 Worker ID와 Reason으로 결과를 좁힐 수 있는지 확인합니다."), new(3,"바코드 검색","LOT, Stock, Part, 출고전표로 거래 이력을 검색할 수 있는지 확인합니다."),
         new(3,"검색 결과 없음","존재하지 않는 바코드는 빈 결과를 표시하고 CLEAR로 초기화되는지 확인합니다."), new(4,"거래 목록 항목","Date, LOT, Part, Location, Qty, Worker, Type이 표시되는지 확인합니다."),
         new(4,"피킹과 적재 구분","PICK과 LOAD가 서로 다른 거래 유형으로 기록되는지 확인합니다."), new(4,"반품 상세 정보","반품 상세에 Reason, Note, Reference가 표시되는지 확인합니다."),
         new(5,"수량 조정 상세 열기","ADJ 행의 DETAIL을 누르면 수량 조정 상세가 열리는지 확인합니다."), new(5,"수량 조정 값","상세 화면에 Before 20, Change +2, After 22가 표시되는지 확인합니다."),
