@@ -271,7 +271,7 @@ public sealed class OeeRepository
                    ISNULL(SUM(x.DefQty), 0)             AS DefectQty,
                    SUM(CASE WHEN b.StdCycle IS NOT NULL
                             THEN (x.GoodQty + x.DefQty) * b.StdCycle END) AS StdSec,
-                   SUM(CASE WHEN b.StdCycle IS NOT NULL THEN 1 ELSE 0 END) AS RowsWithStd,
+                   ISNULL(SUM(CASE WHEN b.StdCycle IS NOT NULL THEN 1 ELSE 0 END), 0) AS RowsWithStd,   -- 실적이 없으면 SUM 이 NULL
                    COUNT(*)                             AS Rows
             FROM (
                 SELECT r.WoID, ISNULL(r.GoodQty,0) AS GoodQty, ISNULL(d.DefQty,0) AS DefQty

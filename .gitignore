@@ -14,6 +14,9 @@ publish/
 bin/
 obj/
 *.pdb
+# 테스트 결과(dotnet test --logger trx) — 실행할 때마다 생기는 결과물, PC 이름·경로·시각이 들어 있다
+TestResults/
+*.trx
 # Ignore Visual Studio publish profiles created per-project
 **/Properties/PublishProfiles/
 # Ignore executable binaries
