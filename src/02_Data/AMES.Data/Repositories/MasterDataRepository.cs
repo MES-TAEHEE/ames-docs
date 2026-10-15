@@ -3752,30 +3752,45 @@ public sealed class MasterDataRepository
             r["ModifiedBy"]      as string,
             r["ModifiedTS"]      is DateTime mt ? mt : null));
 
+    /// <summary>PM 템플릿 점검 단계. 필요 부품은 예비품 마스터(MD_SparePart.SparePartNo)로 연결된다(10-15) — PartNo·PartName 은 표시용 조인.</summary>
     public record PmTemplateStepRow(
         string PMStepID, string? PMTemplateID, int? StepSeq,
         string? StepDescription, string? AcceptanceCriteria,
-        string? RequiredPartNo, decimal? RequiredQty, int? StepDurationMin,
-        string? CreatedBy, DateTime? CreatedTS);
+        string? RequiredSparePartNo, int? RequiredQty, int? StepDurationMin,
+        string? CreatedBy, DateTime? CreatedTS,
+        string? RequiredPartNo = null, string? RequiredPartName = null);
 
     public List<PmTemplateStepRow> ListPmTemplateSteps(string templateId) => Query("""
-        SELECT PMStepID, PMTemplateID, StepSeq,
-               StepDescription, AcceptanceCriteria,
-               RequiredPartNo, RequiredQty, StepDurationMin,
-               CreatedBy, CreatedTS
-        FROM dbo.MD_PmTemplateStep WHERE PMTemplateID = @T ORDER BY ISNULL(StepSeq,9999)
+        SELECT s.PMStepID, s.PMTemplateID, s.StepSeq,
+               s.StepDescription, s.AcceptanceCriteria,
+               s.RequiredSparePartNo, s.RequiredQty, s.StepDurationMin,
+               s.CreatedBy, s.CreatedTS, p.PartNo, p.PartName
+        FROM dbo.MD_PmTemplateStep s
+        LEFT JOIN dbo.MD_SparePart p ON p.SparePartNo = s.RequiredSparePartNo
+        WHERE s.PMTemplateID = @T ORDER BY ISNULL(s.StepSeq,9999)
         """, r => new PmTemplateStepRow(
             r.GetString("PMStepID"),
-            r["PMTemplateID"]       as string,
-            r["StepSeq"]            is int     sq2 ? sq2 : null,
-            r["StepDescription"]    as string,
-            r["AcceptanceCriteria"] as string,
-            r["RequiredPartNo"]     as string,
-            r["RequiredQty"]        is decimal rq3 ? rq3 : null,
-            r["StepDurationMin"]    is int     sds ? sds : null,
-            r["CreatedBy"]          as string,
-            r["CreatedTS"]          is DateTime ct  ? ct  : null),
+            r["PMTemplateID"]        as string,
+            r["StepSeq"]             is int     sq2 ? sq2 : null,
+            r["StepDescription"]     as string,
+            r["AcceptanceCriteria"]  as string,
+            r["RequiredSparePartNo"] as string,
+            r["RequiredQty"]         is int     rq3 ? rq3 : null,
+            r["StepDurationMin"]     is int     sds ? sds : null,
+            r["CreatedBy"]           as string,
+            r["CreatedTS"]           is DateTime ct  ? ct  : null,
+            r["PartNo"]              as string,
+            r["PartName"]            as string),
         ("@T", "MD_PmTemplateStep.PMTemplateID", (object?)templateId));
+
+    /// <summary>점검 단계의 필요 부품 규칙 — 예비품을 고르면 수량 1 이상 필수, 고르지 않으면 수량도 비운다.</summary>
+    public static (string? SparePartNo, int? Qty) NormalizeStepPart(string? sparePartNo, int? qty)
+    {
+        var no = string.IsNullOrWhiteSpace(sparePartNo) ? null : sparePartNo.Trim();
+        if (no is null) return (null, null);
+        if (qty is not > 0) throw new ArgumentException("Required quantity must be 1 or more when a spare part is selected.");
+        return (no, qty);
+    }
 
     // ── MD_LineTimePattern ───────────────────────────────────────────
     public record LineTimePatternRow(
@@ -4514,6 +4529,8 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand("""
             IF EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn WHERE SparePartNo = @P)
                 SELECT 1;
+            ELSE IF EXISTS (SELECT 1 FROM dbo.MD_PmTemplateStep WHERE RequiredSparePartNo = @P)
+                SELECT 2;
             ELSE
             BEGIN
                 DELETE FROM dbo.MD_SparePart WHERE SparePartNo = @P;
@@ -4521,8 +4538,11 @@ public sealed class MasterDataRepository
             END
             """, conn);
         cmd.Parameters.Add("@P", SqlDbType.VarChar, 16).Value = sparePartNo;
-        if (Convert.ToInt32(cmd.ExecuteScalar()) == 1)
-            throw new InvalidOperationException($"{sparePartNo} has stock transactions and cannot be deleted.");
+        switch (Convert.ToInt32(cmd.ExecuteScalar()))
+        {
+            case 1: throw new InvalidOperationException($"{sparePartNo} has stock transactions and cannot be deleted.");
+            case 2: throw new InvalidOperationException($"{sparePartNo} is used by a PM template step (MD-027) and cannot be deleted.");
+        }
     }
 
     // ── MD_PmTemplate CRUD ───────────────────────────────────────────
@@ -4603,47 +4623,51 @@ public sealed class MasterDataRepository
     }
 
     // ── MD_PmTemplateStep CRUD ───────────────────────────────────────
+    // 필요 예비품이 마스터에 없으면 0행 — 호출자가 거부 메시지를 낸다(FK 없음, 정합성은 저장소 책임)
     public string InsertPmTemplateStep(string templateId, int? stepSeq, string? stepDescription,
-        string? acceptanceCriteria, string? requiredPartNo, decimal? requiredQty, int? stepDurationMin, string createdBy)
+        string? acceptanceCriteria, string? requiredSparePartNo, int? requiredQty, int? stepDurationMin, string createdBy)
     {
+        var (part, qty) = NormalizeStepPart(requiredSparePartNo, requiredQty);
         var id = "PMS" + Guid.NewGuid().ToString("N")[..21];
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_PmTemplateStep(PMStepID,PMTemplateID,StepSeq,StepDescription," +
-            "AcceptanceCriteria,RequiredPartNo,RequiredQty,StepDurationMin,CreatedBy)" +
-            " VALUES(@Id,@T,@Sq,@SD,@AC,@RP,@RQ,@DM,@CB);", conn);
+            "AcceptanceCriteria,RequiredSparePartNo,RequiredQty,StepDurationMin,CreatedBy)" +
+            " SELECT @Id,@T,@Sq,@SD,@AC,@RP,@RQ,@DM,@CB" +
+            " WHERE @RP IS NULL OR EXISTS (SELECT 1 FROM dbo.MD_SparePart WHERE SparePartNo=@RP);", conn);
         cmd.Parameters.Add("@Id", SqlDbType.VarChar,  24).Value = id;
         cmd.Parameters.Add("@T",  SqlDbType.VarChar,  20).Value = templateId;
         cmd.Parameters.Add("@Sq", SqlDbType.Int).Value            = (object?)stepSeq            ?? DBNull.Value;
         cmd.Parameters.Add("@SD", SqlDbType.NVarChar,200).Value = (object?)stepDescription    ?? DBNull.Value;
         cmd.Parameters.Add("@AC", SqlDbType.NVarChar,200).Value = (object?)acceptanceCriteria ?? DBNull.Value;
-        cmd.Parameters.Add("@RP", SqlDbType.VarChar,  20).Value = (object?)requiredPartNo     ?? DBNull.Value;
-        var pRq = cmd.Parameters.Add("@RQ", SqlDbType.Decimal); pRq.Precision = 10; pRq.Scale = 3;
-        pRq.Value = (object?)requiredQty ?? DBNull.Value;
+        cmd.Parameters.Add("@RP", SqlDbType.VarChar,  16).Value = (object?)part               ?? DBNull.Value;
+        cmd.Parameters.Add("@RQ", SqlDbType.Int).Value            = (object?)qty                ?? DBNull.Value;
         cmd.Parameters.Add("@DM", SqlDbType.Int).Value            = (object?)stepDurationMin    ?? DBNull.Value;
         cmd.Parameters.Add("@CB", SqlDbType.VarChar,  20).Value = createdBy;
-        cmd.ExecuteNonQuery();
+        if (cmd.ExecuteNonQuery() == 0) throw new InvalidOperationException($"Spare part {part} does not exist.");
         return id;
     }
 
     public void UpdatePmTemplateStep(string stepId, int? stepSeq, string? stepDescription,
-        string? acceptanceCriteria, string? requiredPartNo, decimal? requiredQty, int? stepDurationMin, string modifiedBy)
+        string? acceptanceCriteria, string? requiredSparePartNo, int? requiredQty, int? stepDurationMin, string modifiedBy)
     {
+        var (part, qty) = NormalizeStepPart(requiredSparePartNo, requiredQty);
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_PmTemplateStep SET StepSeq=@Sq,StepDescription=@SD," +
-            "AcceptanceCriteria=@AC,RequiredPartNo=@RP,RequiredQty=@RQ,StepDurationMin=@DM," +
-            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PMStepID=@Id;", conn);
+            "AcceptanceCriteria=@AC,RequiredSparePartNo=@RP,RequiredQty=@RQ,StepDurationMin=@DM," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB WHERE PMStepID=@Id" +
+            " AND (@RP IS NULL OR EXISTS (SELECT 1 FROM dbo.MD_SparePart WHERE SparePartNo=@RP));" +
+            " SELECT CASE WHEN @@ROWCOUNT > 0 THEN 1 WHEN @RP IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.MD_SparePart WHERE SparePartNo=@RP) THEN -1 ELSE 0 END;", conn);
         cmd.Parameters.Add("@Id", SqlDbType.VarChar,  24).Value = stepId;
         cmd.Parameters.Add("@Sq", SqlDbType.Int).Value            = (object?)stepSeq            ?? DBNull.Value;
         cmd.Parameters.Add("@SD", SqlDbType.NVarChar,200).Value = (object?)stepDescription    ?? DBNull.Value;
         cmd.Parameters.Add("@AC", SqlDbType.NVarChar,200).Value = (object?)acceptanceCriteria ?? DBNull.Value;
-        cmd.Parameters.Add("@RP", SqlDbType.VarChar,  20).Value = (object?)requiredPartNo     ?? DBNull.Value;
-        var pRq = cmd.Parameters.Add("@RQ", SqlDbType.Decimal); pRq.Precision = 10; pRq.Scale = 3;
-        pRq.Value = (object?)requiredQty ?? DBNull.Value;
+        cmd.Parameters.Add("@RP", SqlDbType.VarChar,  16).Value = (object?)part               ?? DBNull.Value;
+        cmd.Parameters.Add("@RQ", SqlDbType.Int).Value            = (object?)qty                ?? DBNull.Value;
         cmd.Parameters.Add("@DM", SqlDbType.Int).Value            = (object?)stepDurationMin    ?? DBNull.Value;
         cmd.Parameters.Add("@MB", SqlDbType.VarChar, 20).Value = modifiedBy;
-        cmd.ExecuteNonQuery();
+        if (Convert.ToInt32(cmd.ExecuteScalar()) == -1) throw new InvalidOperationException($"Spare part {part} does not exist.");
     }
 
     public void DeletePmTemplateStep(string stepId)

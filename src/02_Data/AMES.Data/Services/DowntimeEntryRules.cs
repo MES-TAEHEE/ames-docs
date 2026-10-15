@@ -10,6 +10,9 @@ public static class DowntimeEntryRules
 
     public static bool IsPopRow(int? andonId) => andonId is not null;
 
+    /// <summary>시각·사유를 웹에서 고치지 못하는 행 — 안돈 행과 보전 고장의 「라인 정지」가 연 행(10-16, 고장 해결·종료가 닫는다).</summary>
+    public static bool IsLockedRow(int? andonId, int? failureId) => andonId is not null || failureId is not null;
+
     /// <summary>종료 없음 = 진행 중. 미래 시각은 실적이 아니라 계획이라 받지 않는다(<paramref name="now"/> = DB 시각).</summary>
     public static Issue Validate(DateTime start, DateTime? end, DateTime now)
     {

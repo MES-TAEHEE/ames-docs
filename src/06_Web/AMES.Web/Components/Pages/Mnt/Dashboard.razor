@@ -76,7 +76,7 @@
         <div class="ames-kpi-l">@L["MNT.Dashboard.Kpi.PmDue"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@_k.PmDueIn7d</div>
-            <div class="ames-kpi-s">@L["MNT.Dashboard.Kpi.PmDueSub"]</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.Dashboard.Kpi.PmDueSplit"].Value, _k.PmDueEquip, _k.PmDueMaint)</div>
         </div>
     </div>
     <div class="ames-kpi @(_k.LowStockParts > 0 ? "bad" : "ok")">
@@ -180,7 +180,7 @@
                 @foreach (var p in _pms)
                 {
                     <div class="mnt-db-row">
-                        <span class="t">@EquipName(p.EquipId)<small>@(p.PmType is null ? (p.PmPlanNumber ?? "") : PmTypeName(p.PmType))</small></span>
+                        <span class="t">@EquipName(p.EquipId)<small>@(p.PmType is null ? (p.PmPlanNumber ?? "") : PmTypeName(p.PmType))@(AMES.Data.Services.PmRules.IsMaint(p.PmClass) ? $" · {L["MNT.Dashboard.PmMaint"]}" : "")</small></span>
                         <span class="pill @PmCls(p.DaysToDue)">@PmBadge(p.DaysToDue)</span>
                     </div>
                 }
@@ -269,7 +269,8 @@
     @Tile("mnt/equipment-card", "🏭", L["MNT.Dashboard.Tile.Equipment"].Value, string.Format(L["MNT.Dashboard.Tile.EquipmentSub"].Value, _k.EquipTotal, _k.EquipRun))
     @Tile("mnt/failure",        "🚨", L["MNT.Dashboard.Tile.Failure"].Value,   string.Format(L["MNT.Dashboard.Tile.FailureSub"].Value, _k.OpenFailures))
     @Tile("mnt/work-order",     "🔧", L["MNT.Dashboard.Tile.Wo"].Value,        string.Format(L["MNT.Dashboard.Tile.WoSub"].Value, _k.OpenWos))
-    @Tile("mnt/pm-schedule",    "📅", L["MNT.Dashboard.Tile.Pm"].Value,        string.Format(L["MNT.Dashboard.Tile.PmSub"].Value, _k.PmDueIn7d))
+    @Tile("mnt/pm-schedule",    "📅", L["MNT.Dashboard.Tile.Pm"].Value,        string.Format(L["MNT.Dashboard.Tile.PmSub"].Value, _k.PmDueEquip))
+    @Tile("mnt/maint-pm-schedule", "🧰", L["MNT.Dashboard.Tile.MaintPm"].Value, string.Format(L["MNT.Dashboard.Tile.PmSub"].Value, _k.PmDueMaint))
     @Tile("mnt/spare-parts",    "📦", L["MNT.Dashboard.Tile.Spare"].Value,     string.Format(L["MNT.Dashboard.Tile.SpareSub"].Value, _k.LowStockParts))
     @Tile("mnt/oee-analysis",   "📊", L["MNT.Dashboard.Tile.Oee"].Value,       string.Format(L["MNT.Dashboard.Tile.OeeSub"].Value, _k.OeeDate is null ? "—" : $"{_k.AvgOeeToday:0.0}%"))
     @Tile("mnt/downtime",       "⏱️", L["MNT.Dashboard.Tile.Downtime"].Value,  string.Format(L["MNT.Dashboard.Tile.DowntimeSub"].Value, _k.DowntimeMin24h))
@@ -279,7 +280,7 @@
 @code {
     const int LiveSec = 60;   // 실시간 토글 On 일 때 조회 주기(초)
 
-    MntRepository.DashboardKpi _k = new(0, 0, 0, 0, 0, 0, 0, 0, 0m, 0);
+    MntRepository.DashboardKpi _k = new(0, 0, 0, 0, 0, 0, 0, 0, 0m, 0);   // PM 7일 내는 분류별(PmDueEquip·PmDueMaint)로도 보인다
     List<MntRepository.EquipCardRow>        _equips   = new();
     List<MntRepository.FailureRow>          _alerts   = new();
     ILookup<int, MntRepository.FailureActionRow> _alertActs = Array.Empty<MntRepository.FailureActionRow>().ToLookup(a => a.FailureId);

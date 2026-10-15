@@ -1,6 +1,6 @@
 -- ============================================================
 -- Seed: MD_CodeGroup + MD_CodeItem
--- Regenerated: 2026-10-15 from live DB AMES_DEV (dev server 192.168.0.132) — 87 groups / 426 items
+-- Regenerated: 2026-10-15 from live DB AMES_DEV (dev server 192.168.0.132) — 88 groups / 430 items
 -- Excluded: integration config groups SW_* / FG_SHIPMENT_* (URL·auth tokens) —
 --           created by migrate_po_sync*.sql / migrate_demand_plan.sql / migrate_fg_shipment_api.sql
 --           and left untouched by the reset below (10-09 — the reset used to delete them too)
@@ -55,6 +55,7 @@ INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, Us
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('LOCATION_TYPE', N'지역 유형', N'Location type', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('MATERIAL_STATUS', N'자재 상태', N'Material status', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('MATERIAL_TYPE', N'자재 유형', N'Material type', NULL, 1, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('MNT_RESULT', N'보전 점검 결과', N'Maintenance check result', N'MNT_WorkOrderTask.Result — PASS 합격·FAIL 불합격·NA 해당 없음·PENDING 미점검', 1, 'system');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('MNT_SLOT', N'보전 랙 층', N'Maintenance Rack Level', N'Spare-parts rack level', 1, 'pda-seed');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('MNT_STATUS', N'보전 작업지시 상태', N'Maintenance WO status', N'MNT_WorkOrder.Status — ISSUED 발행·ASSIGNED 배정·IN_PROGRESS 진행 중·COMPLETED 완료(정상 종료)·CLOSED 종료(작업 없이 닫음)', 1, 'system');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('MNT_ZONE', N'보전 위치', N'Maintenance Zone', N'Spare-parts storage zone', 1, 'pda-seed');
@@ -276,6 +277,10 @@ INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MATERIAL_TYPE_PAINT', 'MATERIAL_TYPE', 'PAINT', N'도료', N'Paint', NULL, 10, NULL, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MATERIAL_TYPE_PRIMER', 'MATERIAL_TYPE', 'PRIMER', N'프라이머', N'Primer', NULL, 30, NULL, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MATERIAL_TYPE_THINNER', 'MATERIAL_TYPE', 'THINNER', N'희석제', N'Thinner', NULL, 50, NULL, NULL, 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MNT_RESULT_FAIL', 'MNT_RESULT', 'FAIL', N'불합격', N'Fail', NULL, 20, NULL, NULL, 1, N'합격 기준 미달 — 후속 조치 검토', 'system');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MNT_RESULT_NA', 'MNT_RESULT', 'NA', N'해당 없음', N'Not applicable', NULL, 30, NULL, NULL, 1, N'이번 작업에 해당하지 않음', 'system');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MNT_RESULT_PASS', 'MNT_RESULT', 'PASS', N'합격', N'Pass', NULL, 10, NULL, NULL, 1, N'합격 기준 충족', 'system');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MNT_RESULT_PENDING', 'MNT_RESULT', 'PENDING', N'미점검', N'Pending', NULL, 40, NULL, NULL, 1, N'아직 점검하지 않음(발행 때 기본값)', 'system');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MNT_SLOT_01', 'MNT_SLOT', '01', N'1층', N'Level 1', NULL, 10, NULL, NULL, 1, NULL, 'pda-seed');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MNT_SLOT_02', 'MNT_SLOT', '02', N'2층', N'Level 2', NULL, 20, NULL, NULL, 1, NULL, 'pda-seed');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('MNT_SLOT_03', 'MNT_SLOT', '03', N'3층', N'Level 3', NULL, 30, NULL, NULL, 1, NULL, 'pda-seed');

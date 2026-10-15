@@ -122,7 +122,9 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="100px" Property="AndonId" Title="@L["Col.Source"]" Width="100px" TextAlign="TextAlign.Center">
                 <Template Context="r">
-                    @if (r.IsPop) { <span class="pill info">@L["PP.Downtime.Src.Pop"]</span> } else { <span class="pill mute">@L["PP.Downtime.Src.Web"]</span> }
+                    @if (r.IsPop) { <span class="pill info">@L["PP.Downtime.Src.Pop"]</span> }
+                    else if (r.IsMaint) { <span class="pill orange" title="@r.FailureNumber">@L["PP.Downtime.Src.Maint"]</span> }
+                    else { <span class="pill mute">@L["PP.Downtime.Src.Web"]</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="200px" Property="Comment" Title="@L["Col.Comment"]">
@@ -152,7 +154,7 @@
 
             @if (PopOnly)
             {
-                <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["PP.Downtime.Hint.PopOnly"]</div>
+                <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@(_sel?.IsMaint == true ? string.Format(L["PP.Downtime.Hint.MaintOnly"].Value, _sel.FailureNumber) : L["PP.Downtime.Hint.PopOnly"].Value)</div>
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -256,7 +258,7 @@
     PpRepository.DowntimeRow? _sel;
     string? _editLine, _editReason, _editCause; string _editComment = "";
     DateTime? _editStart, _editEnd;
-    bool PopOnly => _modal == "edit" && _sel?.IsPop == true;
+    bool PopOnly => _modal == "edit" && _sel?.IsLocked == true;   // 안돈·보전 고장 행 — 원인·비고만
     bool CommentRequired => _causes.Any(c => c.ReasonCode == _editCause && c.RequiresComment);
     string  _modalErr = "";
     bool    _busy, _bgMouseDownOnSelf;

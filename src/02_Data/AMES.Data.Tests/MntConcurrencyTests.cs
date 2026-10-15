@@ -33,7 +33,7 @@ public class MntConcurrencyTests
         {
             for (var round = 0; round < 5; round++)
             {
-                var (failId, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 동시 완료", "MINOR", "WEB", DateTime.Now, null, Actor);
+                var (failId, _, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 동시 완료", "MINOR", "WEB", DateTime.Now, null, Actor);
                 var woId = Convert.ToInt32(Scalar(f!, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
 
                 var ok = 0; var rejected = 0;
@@ -91,7 +91,7 @@ public class MntConcurrencyTests
             var results = new System.Collections.Concurrent.ConcurrentBag<(string Fail, string Wo)>();
             Parallel.For(0, 8, _ =>
             {
-                var (_, failNo, woNo) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 동시 등록", "MINOR", "WEB", DateTime.Now, null, Actor);
+                var (_, failNo, woNo, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 동시 등록", "MINOR", "WEB", DateTime.Now, null, Actor);
                 results.Add((failNo, woNo));
             });
             Assert.Equal(8, results.Select(r => r.Fail).Distinct().Count());
@@ -111,7 +111,7 @@ public class MntConcurrencyTests
         var mnt = new MntRepository(f!);
         try
         {
-            var (openId, openNo, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 삭제", "MINOR", "WEB", DateTime.Now, null, Actor);
+            var (openId, openNo, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 삭제", "MINOR", "WEB", DateTime.Now, null, Actor);
             Exec(f!, "INSERT dbo.MNT_FailureAction (FailureID, ActionType, Description, ActionAt, CreatedBy, CreatedTS) VALUES (@I, 'ARRIVED', N'itest', SYSDATETIME(), @A, SYSDATETIME())",
                 ("@I", openId), ("@A", Actor));
             var woId = Convert.ToInt32(Scalar(f!, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", openId)));
@@ -125,12 +125,12 @@ public class MntConcurrencyTests
                 Assert.Equal(0, Convert.ToInt32(Scalar(f!, sql, ("@I", id))));
             Assert.Null(mnt.DeleteFailure(openId));
 
-            var (doneId, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 해결 후 삭제", "MINOR", "WEB", DateTime.Now, null, Actor);
+            var (doneId, _, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 해결 후 삭제", "MINOR", "WEB", DateTime.Now, null, Actor);
             mnt.ResolveFailure(doneId, "원인", "조치", DateTime.Now, 5, Actor);
             var ex = Assert.Throws<MntRepository.FailureNotDeletableException>(() => mnt.DeleteFailure(doneId));
             Assert.Equal(Services.FailureDeleteRules.Block.NotOpen, ex.Reason);
 
-            var (andonId, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 안돈", "MINOR", "ANDON", DateTime.Now, null, Actor);
+            var (andonId, _, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 안돈", "MINOR", "ANDON", DateTime.Now, null, Actor);
             Assert.Equal(Services.FailureDeleteRules.Block.FromAndon,
                 Assert.Throws<MntRepository.FailureNotDeletableException>(() => mnt.DeleteFailure(andonId)).Reason);
         }
@@ -147,7 +147,7 @@ public class MntConcurrencyTests
         var mnt = new MntRepository(f!);
         try
         {
-            var (failId, failNo, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 부분 완료", "MAJOR", "WEB", DateTime.Now.AddHours(-2), null, Actor);
+            var (failId, failNo, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 부분 완료", "MAJOR", "WEB", DateTime.Now.AddHours(-2), null, Actor);
             var woId = Convert.ToInt32(Scalar(f!, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
 
             // 화면 입력 최대 길이(원인 200·조치 500)에 가깝게 — 조치 이력 Description 은 nvarchar(500)

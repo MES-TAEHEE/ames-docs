@@ -5352,7 +5352,17 @@ a.mnt-tl-cap:hover { opacity: 1; }
 .mnt-tl-min { opacity: .75; }
 .mnt-tl-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mnt-tl-note { grid-column: 2 / -1; opacity: .8; white-space: pre-wrap; word-break: break-word; }
+.mnt-tl-dt { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--ames-bd-white-a10); font-size: 12.5px; }
 html[data-theme="light"] .mnt-tl { border-top-color: rgba(80,60,20,.12); }
+/* MNT-007 작업지시 점검 항목(PM 템플릿 단계 복사본) */
+.mnt-chk { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(148,163,184,.2); }
+.mnt-chk-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 700; margin-bottom: 6px; }
+.mnt-chk-row { padding: 6px 0; border-bottom: 1px dashed rgba(148,163,184,.2); }
+.mnt-chk-row:last-child { border-bottom: none; }
+.mnt-chk-top { display: flex; align-items: center; gap: 8px; }
+.mnt-chk-name { flex: 1; min-width: 0; }
+.mnt-chk-sub { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--ames-fs-hint); margin-top: 2px; padding-left: 22px; }
+html[data-theme="light"] .mnt-chk, html[data-theme="light"] .mnt-chk-row { border-color: rgba(80,60,20,.12); }
 html[data-theme="light"] a.mnt-db-row.link:hover { background: rgba(80,60,20,.06); }
 .mnt-db-wo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 6px 0 12px; }
 .mnt-db-wo div { border-radius: 8px; padding: 12px 6px; text-align: center; background: rgba(148,163,184,.10); }
@@ -5387,12 +5397,14 @@ html[data-theme="light"] .mnt-mold-track { background: rgba(80,60,20,.10); }
 .ames-cal-wo.pm-today   { background: rgba(245,158,11,.18); color: var(--ames-tx-amber-300); border-left: 2px solid #f59e0b; }
 .ames-cal-wo.pm-overdue { background: rgba(220,38,38,.18);  color: var(--ames-tx-red-300); border-left: 2px solid #dc2626; }
 .ames-cal-wo.pm-skipped { background: rgba(148,163,184,.14); color: var(--ames-tx-slate-300); border-left: 2px dashed #94a3b8; }
+.ames-cal-wo.pm-cancelled { background: rgba(148,163,184,.10); color: var(--ames-tx-slate-400); border-left: 2px solid #64748b; text-decoration: line-through; }
 .ames-cal-wo.pm-planned { background: rgba(99,102,241,.16); color: var(--ames-tx-indigo-200); border-left: 2px solid #6366f1; }
 html[data-theme="light"] .ames-cal-wo.pm-done    { background: #d1fae5; color: #065f46; }
 html[data-theme="light"] .ames-cal-wo.pm-today   { background: #fef3c7; color: #92400e; }
 html[data-theme="light"] .ames-cal-wo.pm-overdue { background: #fee2e2; color: #991b1b; }
 html[data-theme="light"] .ames-cal-wo.pm-planned { background: #e0e7ff; color: #3730a3; }
 html[data-theme="light"] .ames-cal-wo.pm-skipped { background: #f1f5f9; color: #475569; }
+html[data-theme="light"] .ames-cal-wo.pm-cancelled { background: #f1f5f9; color: #64748b; }
 
 /* RPT-001 일별 생산 실적: 시간대 차트(2) + 교대 요약(1), 교대 카드 */
 .rpt-dp-grid2 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 8px; }

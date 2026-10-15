@@ -5502,9 +5502,6 @@
   <data name="MNT.Dashboard.Kpi.PmDue" xml:space="preserve">
     <value>PM Due 7D</value>
   </data>
-  <data name="MNT.Dashboard.Kpi.PmDueSub" xml:space="preserve">
-    <value>preventive maintenance</value>
-  </data>
   <data name="MNT.Dashboard.Kpi.LowStock" xml:space="preserve">
     <value>Low Stock</value>
   </data>
@@ -10777,5 +10774,152 @@
   </data>
   <data name="MNT.WorkOrder.Lbl.PartsNone" xml:space="preserve">
     <value>No parts released by PDA</value>
+  </data>
+  <data name="MD.PmTemplate.Err.PartQty" xml:space="preserve">
+    <value>Quantity must be 1 or more when a required part is selected.</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.Title" xml:space="preserve">
+    <value>Checklist</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.HintStart" xml:space="preserve">
+    <value>Start the work order to record results</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.ReadOnly" xml:space="preserve">
+    <value>Read only</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.Minutes" xml:space="preserve">
+    <value>{0} min</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.PhNote" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.WarnComplete" xml:space="preserve">
+    <value>Checklist: {0} pending · {1} failed — it cannot be completed as OK. Complete it as partial or follow-up, or close it. Failed items go to a follow-up CM work order.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ph.ChecklistEquipFirst" xml:space="preserve">
+    <value>Select equipment first</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.ChecklistType" xml:space="preserve">
+    <value>The checklist template must be for the same equipment type as the equipment.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Reason.Failure" xml:space="preserve">
+    <value>Failure {0}</value>
+  </data>
+  <data name="MNT.EquipmentCard.Reason.Pm" xml:space="preserve">
+    <value>PM work {0}</value>
+  </data>
+  <data name="MNT.EquipmentCard.Reason.Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.AutoStatus" xml:space="preserve">
+    <value>Only Run and Idle are set here. Down (andon or critical failure) and PM (PM work order in progress) are shown automatically.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.OpenWoCount" xml:space="preserve">
+    <value>{0} open work orders</value>
+  </data>
+  <data name="MNT.Failure.Lbl.LineStop" xml:space="preserve">
+    <value>Line stopped</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStop" xml:space="preserve">
+    <value>When checked, it is recorded as line downtime and closed when the failure is resolved or closed</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStopCritical" xml:space="preserve">
+    <value>Critical failures are always recorded as a line stop</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStopAndon" xml:space="preserve">
+    <value>The andon records the line stop of andon failures</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStopDone" xml:space="preserve">
+    <value>Cannot be changed after the failure is resolved or closed</value>
+  </data>
+  <data name="MNT.Failure.Warn.LineStopNoLine" xml:space="preserve">
+    <value>Line stop not recorded: the equipment has no line</value>
+  </data>
+  <data name="MNT.Failure.Warn.LineStopOverlap" xml:space="preserve">
+    <value>Line stop not recorded: it overlaps existing downtime on the line (check PP-DTL)</value>
+  </data>
+  <data name="MNT.Failure.Warn.LineStopFuture" xml:space="preserve">
+    <value>Line stop not recorded: the occurrence time is in the future</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStop" xml:space="preserve">
+    <value>Line stop</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStopOpen" xml:space="preserve">
+    <value>ongoing</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStopShared" xml:space="preserve">
+    <value>opened by another record</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStopGone" xml:space="preserve">
+    <value>downtime record not found</value>
+  </data>
+  <data name="PP.Downtime.Src.Maint" xml:space="preserve">
+    <value>Maint.</value>
+  </data>
+  <data name="PP.Downtime.Hint.MaintOnly" xml:space="preserve">
+    <value>Line stop of maintenance failure {0}. Its times follow the failure resolution, so only the cause and remark can be edited</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.FailureStop" xml:space="preserve">
+    <value>Failure stop</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Sub.StopCount" xml:space="preserve">
+    <value>{0} stops</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Hint.FailureStop" xml:space="preserve">
+    <value>Total line downtime linked to failures (line stop and andon)</value>
+  </data>
+  <data name="MNT.WorkOrder.Status.Planned" xml:space="preserve">
+    <value>Planned</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.OpenSubPlanned" xml:space="preserve">
+    <value>Issued · assigned (excl. {0} planned)</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Planned" xml:space="preserve">
+    <value>PM due {0} — counted as open from {1} days before (status {2})</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.Check" xml:space="preserve">
+    <value>Failed check</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.ChecklistIncomplete" xml:space="preserve">
+    <value>It cannot be completed as OK — {0} pending and {1} failed check items.</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.PmNextDue" xml:space="preserve">
+    <value>Next PM due</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.PmNextDue" xml:space="preserve">
+    <value>This PM has no time-based cycle — enter the next due date.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.PmNextDueRequired" xml:space="preserve">
+    <value>Enter the next PM due date.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.PmNextDueInvalid" xml:space="preserve">
+    <value>The next PM due date must be after the completion date.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.CheckFollowUp" xml:space="preserve">
+    <value>Failed check items → follow-up work order {0} issued</value>
+  </data>
+  <data name="MNT.Failure.Btn.IssueWo" xml:space="preserve">
+    <value>Issue work order</value>
+  </data>
+  <data name="MNT.Failure.Hint.NoWo" xml:space="preserve">
+    <value>This failure has no work order. Issue one to use assignment, start, checks and PDA part issues in MNT-007.</value>
+  </data>
+  <data name="MNT.Failure.Ok.WoIssued" xml:space="preserve">
+    <value>Work order {1} issued for {0}.</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Cancelled" xml:space="preserve">
+    <value>Cancelled (no longer performed)</value>
+  </data>
+  <data name="MNT.PmSchedule.Hint.Cancelled" xml:space="preserve">
+    <value>Cancelling deletes the not-started work order. On time / due / overdue is calculated from the due date.</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.PmDueSplit" xml:space="preserve">
+    <value>Equipment {0} · Maint. {1}</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.MaintPm" xml:space="preserve">
+    <value>Maintenance PM</value>
+  </data>
+  <data name="MNT.Dashboard.PmMaint" xml:space="preserve">
+    <value>Maint.</value>
   </data>
 </root>

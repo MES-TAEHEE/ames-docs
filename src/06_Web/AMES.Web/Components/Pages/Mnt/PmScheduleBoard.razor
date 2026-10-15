@@ -1,4 +1,5 @@
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -256,7 +257,7 @@
                 <div class="ames-detail-label">@L["MNT.PmSchedule.Lbl.Tech"]</div>
                 <div>@TechText(d.AssignedTechId)</div>
                 <div class="ames-detail-label">@L["Col.Status"]</div>
-                <div><span class="pill @PillCls(_detail.Cls)">@LegendText(_detail.Cls)</span> <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-left:6px;">@CodeName(_pmStatuses, d.Status)</span></div>
+                <div><span class="pill @PillCls(_detail.Cls)">@LegendText(_detail.Cls)</span> <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-left:6px;">@CodeName(_pmStatuses, PmRules.DisplayStatus(d.Status, d.NextDueDate, DbClock.Today, _leadDays))</span></div>
                 <div class="ames-detail-label">@L["Col.OpenWo"]</div>
                 <div>@(d.ActiveWoId is { } wo ? $"#{wo}" : "—")</div>
                 <div class="ames-detail-label">@L["MNT.PmSchedule.Hist"]</div>
@@ -281,7 +282,7 @@
                 </div>
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                @if (_canApprove)
+                @if (_canApprove && !PmRules.IsCancelled(d.Status))
                 {
                     <RadzenButton Text="@L["MNT.PmSchedule.Btn.Complete"]" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenComplete(d))" class="ames-rz-btn" />
                 }
@@ -318,6 +319,15 @@
                     <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Tech"]" class="ames-rz-modal-label" Component="PmCompleteDropDownTech" />
                     <RadzenDropDown AllowFiltering="true" Name="PmCompleteDropDownTech" @bind-Value="_c.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
+
+                @if (PmRules.NeedsManualNextDue(_cpm.CycleBasis, _cpm.CycleValue))
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                        <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.PmNextDue"]} *")' class="ames-rz-modal-label" Component="PmCompleteDateNext" />
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="PmCompleteDateNext" @bind-Value="_c.NextDue" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                        <span class="dim" style="flex:2;font-size:var(--ames-fs-hint);">@L["MNT.WorkOrder.Hint.PmNextDue"]</span>
+                    </RadzenStack>
+                }
 
                 <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">
                     <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Note"]" Component="PmCompleteTextAreaNote" Style="margin-bottom:6px;" />
@@ -357,7 +367,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text='@($"{L["Col.Equip"]} *")' class="ames-rz-modal-label" Component="PmDropDownEquip" />
-                    <RadzenDropDown AllowFiltering="true" Name="PmDropDownEquip" @bind-Value="_f.EquipId" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown TValue="string" AllowFiltering="true" Name="PmDropDownEquip" Value="@_f.EquipId" ValueChanged="@OnPmEquipChanged" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -381,7 +391,8 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Checklist"]" class="ames-rz-modal-label" Component="PmDropDownChecklist" />
-                    <RadzenDropDown AllowFiltering="true" Name="PmDropDownChecklist" @bind-Value="_f.ChecklistId" Data="@TemplateOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    @* 점검 템플릿 = 고른 설비와 설비 유형(EQUIP_TYPE)이 같은 활성 템플릿만 — 설비를 고르기 전에는 비활성 *@
+                    <RadzenDropDown AllowFiltering="true" Name="PmDropDownChecklist" @bind-Value="_f.ChecklistId" Data="@TemplateOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@(string.IsNullOrEmpty(_f.EquipId) ? L["MNT.PmSchedule.Ph.ChecklistEquipFirst"] : L["Opt.None"])" Disabled="@string.IsNullOrEmpty(_f.EquipId)" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -389,10 +400,15 @@
                     <RadzenDropDown AllowFiltering="true" Name="PmDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["Col.Status"]" class="ames-rz-modal-label" Component="PmDropDownStatus" />
-                    <RadzenDropDown Name="PmDropDownStatus" @bind-Value="_f.Status" Data="@CodeOptions(_pmStatuses)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-                </RadzenStack>
+                @* 상태(정상·도래·지연)는 예정일로 계산한다(PmRules) — 손으로 정하는 것은 취소 여부뿐, 새 일정은 항상 사용 *@
+                @if (editing)
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                        <RadzenCheckBox TValue="bool" @bind-Value="_f.Cancelled" Name="PmChkCancelled" />
+                        <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Cancelled"]" Component="PmChkCancelled" style="cursor:pointer;" />
+                        <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.PmSchedule.Hint.Cancelled"]</span>
+                    </RadzenStack>
+                }
             </RadzenStack>
 
             @if (editing && _confirmDelete)
@@ -448,6 +464,7 @@
     List<MasterDataRepository.CodeItemRow>  _cycleBases = new();   // 공통코드 PM_CYCLE_BASIS
     List<MasterDataRepository.CodeItemRow>  _pmStatuses = new();   // 공통코드 PM_STATUS
     List<MasterDataRepository.CodeItemRow>  _results    = new();   // 공통코드 MWO_RESULT (완료 결과)
+    int _leadDays = PmRules.DefaultLeadDays;   // 「도래」 기준 N일(SYS_Config MNT_PM_LEAD_DAYS)
 
     int _calYear  = DbClock.Today.Year;
     int _calMonth = DbClock.Today.Month;
@@ -476,7 +493,19 @@
     IEnumerable<DropDownItem> StatusOptions => new[] { "pm-done", "pm-skipped", "pm-today", "pm-overdue", "pm-planned" }.Select(c => new DropDownItem { Value = c, Text = LegendText(c) });
     IEnumerable<DropDownItem> CodeOptions(List<MasterDataRepository.CodeItemRow> items) =>
         items.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
-    IEnumerable<DropDownItem> TemplateOptions => _templates.Where(t => t.ActiveFlag).Select(t => new DropDownItem { Value = t.PMTemplateID, Text = $"[{t.PMTemplateID}] {t.TemplateName}" });
+    // 점검 템플릿 후보 = 고른 설비와 설비 유형이 같은 활성 템플릿(규칙 정본 MntRepository.TemplateMatchesEquipment)
+    string? SelectedEquipType => _equipList.FirstOrDefault(e => e.EquipID == _f.EquipId)?.EquipType;
+    IEnumerable<DropDownItem> TemplateOptions => _templates
+        .Where(t => t.ActiveFlag && MntRepository.TemplateMatchesEquipment(t.EquipType, SelectedEquipType))
+        .Select(t => new DropDownItem { Value = t.PMTemplateID, Text = $"[{t.PMTemplateID}] {t.TemplateName}" });
+
+    // 설비를 바꾸면 유형이 다른 템플릿은 비운다
+    void OnPmEquipChanged(string? value)
+    {
+        _f.EquipId = value ?? "";
+        var tpl = _templates.FirstOrDefault(t => t.PMTemplateID == _f.ChecklistId);
+        if (tpl is not null && !MntRepository.TemplateMatchesEquipment(tpl.EquipType, SelectedEquipType)) _f.ChecklistId = "";
+    }
     // 프로필이 없는(SYS-001 에 등록되지 않은) 계정은 고르지 못하게 뺀다 — 이미 저장된 담당자는 수정 창에서 빈칸이 되지 않게 남긴다
     IEnumerable<DropDownItem> TechOptions => _users.Where(u => (u.IsApproved || u.UserId == _f.TechId || u.UserId == _c.TechId) && (!string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName)))
         .Select(u => new DropDownItem { Value = u.UserId, Text = string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? u.UserId) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}" });
@@ -504,6 +533,7 @@
         try { _cycleBases  = MD.ListCodeItems("PM_CYCLE_BASIS"); } catch { }
         try { _pmStatuses  = MD.ListCodeItems("PM_STATUS"); } catch { }
         try { _results     = MD.ListCodeItems(AMES.Contracts.Dto.MwoResultCodes.Group); } catch { }
+        try { _leadDays    = Mnt.ReadPmLeadDays(); } catch { }
         Reload();
 
         // 이번 달에 PM 이 하나도 없으면 데이터가 있는 가장 최근 달로 이동
@@ -559,7 +589,8 @@
             if (p.NextDueDate is { } due && due.Date >= from && due.Date <= to)
             {
                 // 예정일이 지났는데 그 뒤로 실시(LastPMDate ≥ NextDueDate) 기록이 없으면 지연
-                var cls = due.Date == today ? "pm-today"
+                var cls = PmRules.IsCancelled(p.Status) ? "pm-cancelled"
+                        : due.Date == today ? "pm-today"
                         : due.Date > today  ? "pm-planned"
                         : p.LastPmDate is { } lp && lp.Date >= due.Date ? "pm-done" : "pm-overdue";
                 // 이행된 예정일: 그 뒤 실행 이력이 있으면 이력 칩이 이미 대신하므로 예정일 자리에 완료 칩을 또 놓지 않는다(구 데이터만 예정일 자리 표시)
@@ -619,7 +650,7 @@
     // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
     void OpenCreate()
     {
-        _f = new() { NextDueDate = new DateTime(_calYear, _calMonth, Math.Min(DbClock.Today.Day, DateTime.DaysInMonth(_calYear, _calMonth))), Status = "OK" };
+        _f = new() { NextDueDate = new DateTime(_calYear, _calMonth, Math.Min(DbClock.Today.Day, DateTime.DaysInMonth(_calYear, _calMonth))) };
         _editId = null; _editRow = null; _modalErr = ""; _confirmDelete = false;
         _modal = "create";
     }
@@ -633,7 +664,7 @@
             PlanNo = p.PmPlanNumber ?? "", EquipId = p.EquipId ?? "", PmType = p.PmType ?? "",
             CycleBasis = p.CycleBasis ?? "", CycleValue = p.CycleValue,
             LastPmDate = p.LastPmDate, NextDueDate = p.NextDueDate,
-            ChecklistId = p.ChecklistId ?? "", TechId = p.AssignedTechId ?? "", Status = p.Status ?? "",
+            ChecklistId = p.ChecklistId ?? "", TechId = p.AssignedTechId ?? "", Cancelled = PmRules.IsCancelled(p.Status),
         };
         _editId = p.PmScheduleId; _editRow = p; _modalErr = ""; _confirmDelete = false;
         _modal = "edit";
@@ -642,10 +673,21 @@
     void CloseModal() { _modal = ""; _editId = null; _editRow = null; _modalErr = ""; _confirmDelete = false; _cpm = null; }
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
 
-    // ── 완료 처리 — 활성 작업지시가 있으면 그 완료로, 없으면(구 데이터) 실행 이력·예정일만 ──
+    // ── 완료 처리 — 열린 활성 작업지시가 있으면 MNT-007 의 그 작업지시 완료 창으로 보낸다(점검 항목·PDA 출고 부품·완료 규칙이
+    //    한 곳에 있게 — 10-16 사용자 결정). 없으면(구 데이터) 이 창에서 실행 이력·예정일만 ──
     void OpenComplete(MntRepository.PmRow p)
     {
         if (!_canApprove) return;
+        if (p.ActiveWoId is int woId)
+        {
+            MntRepository.MwoRow? wo = null;
+            try { wo = Mnt.FindWorkOrder(woId); } catch { }
+            if (wo is not null && !AMES.Data.Services.MwoStatusRules.IsEnded(wo.Status))
+            {
+                Nav.NavigateTo($"/mnt/work-order?id={woId}&complete=1");
+                return;
+            }
+        }
         _showDetail = false;
         _cpm = p; _modalErr = "";
         _c = new() { Result = AMES.Contracts.Dto.MwoResultCodes.Ok, CompletedAt = DbClock.Now, TechId = p.AssignedTechId ?? "" };
@@ -660,12 +702,16 @@
         if (string.IsNullOrWhiteSpace(_c.Result)) { _modalErr = L["MNT.WorkOrder.Err.ResultRequired"]; return; }
         if (_c.CompletedAt is null)               { _modalErr = L["MNT.WorkOrder.Err.CompletedRequired"]; return; }
         if (_c.LaborMinutes is < 0)               { _modalErr = L["MNT.WorkOrder.Err.LaborInvalid"]; return; }
+        var needsNext = PmRules.NeedsManualNextDue(_cpm.CycleBasis, _cpm.CycleValue);
+        if (needsNext && _c.NextDue is null)      { _modalErr = L["MNT.WorkOrder.Err.PmNextDueRequired"]; return; }
+        if (needsNext && !PmRules.ValidManualNextDue(_c.NextDue, _c.CompletedAt.Value)) { _modalErr = L["MNT.WorkOrder.Err.PmNextDueInvalid"]; return; }
 
         _busy = true;
         try
         {
             var planNo = _cpm.PmPlanNumber ?? $"PM#{_cpm.PmScheduleId}";
-            var o = Mnt.CompletePm(_cpm.PmScheduleId, _c.Result, NE(_c.Note), _c.LaborMinutes, _c.CompletedAt.Value, NE(_c.TechId), _actor);
+            var o = Mnt.CompletePm(_cpm.PmScheduleId, _c.Result, NE(_c.Note), _c.LaborMinutes, _c.CompletedAt.Value, NE(_c.TechId), _actor,
+                needsNext ? _c.NextDue : null);
             Audit.Log(Scr, "COMPLETE", "MNT_PMSchedule", planNo, _cpm, new { Form = _c, Outcome = o });
             var parts = new List<string> { string.Format(L["MNT.PmSchedule.Ok.Completed"].Value, planNo) };
             if (o.WoNumber is { Length: > 0 }) parts.Add(string.Format(L["MNT.WorkOrder.Ok.Completed"].Value, o.WoNumber));
@@ -676,6 +722,8 @@
             _calYear = _c.CompletedAt.Value.Year; _calMonth = _c.CompletedAt.Value.Month;
             CloseModal(); Reload();
         }
+        catch (MntRepository.ChecklistIncompleteException cx) { _modalErr = string.Format(L["MNT.WorkOrder.Err.ChecklistIncomplete"].Value, cx.Pending, cx.Failed); }
+        catch (MntRepository.PmNextDueRequiredException nx) { _modalErr = L[nx.Invalid ? "MNT.WorkOrder.Err.PmNextDueInvalid" : "MNT.WorkOrder.Err.PmNextDueRequired"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -687,6 +735,7 @@
         public int?      LaborMinutes { get; set; }
         public string    TechId       { get; set; } = "";
         public string    Note         { get; set; } = "";
+        public DateTime? NextDue      { get; set; }   // 기간 주기가 아닌 PM 의 다음 예정일(PmRules)
     }
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
@@ -698,6 +747,9 @@
         if (string.IsNullOrWhiteSpace(_f.PmType))   { _modalErr = L["MNT.PmSchedule.Err.TypeRequired"]; return; }
         if (_f.NextDueDate is null)                 { _modalErr = L["MNT.PmSchedule.Err.DueRequired"]; return; }
         if (_f.CycleValue is < 1)                   { _modalErr = L["MNT.PmSchedule.Err.CycleValue"]; return; }
+        if (!string.IsNullOrEmpty(_f.ChecklistId)
+            && !MntRepository.TemplateMatchesEquipment(_templates.FirstOrDefault(t => t.PMTemplateID == _f.ChecklistId)?.EquipType, SelectedEquipType))
+                                                    { _modalErr = L["MNT.PmSchedule.Err.ChecklistType"]; return; }
 
         _busy = true;
         try
@@ -707,14 +759,14 @@
             if (_editId is int id)
             {
                 planNo = Mnt.UpdatePm(id, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
-                    _f.LastPmDate, _f.NextDueDate.Value, NE(_f.ChecklistId), NE(_f.TechId), NE(_f.Status), _actor);
+                    _f.LastPmDate, _f.NextDueDate.Value, NE(_f.ChecklistId), NE(_f.TechId), PmRules.Stored(_f.Cancelled), _actor);
                 Audit.Updated(Scr, "MNT_PMSchedule", planNo, _editRow, _f);
                 ShowMsg(string.Format(L["MNT.PmSchedule.Ok.Updated"].Value, planNo), false);
             }
             else
             {
                 (_, planNo, var woNo) = Mnt.InsertPm(PmClass, planNo, _f.EquipId, _f.PmType, NE(_f.CycleBasis), _f.CycleValue,
-                    _f.LastPmDate, _f.NextDueDate.Value, NE(_f.ChecklistId), NE(_f.TechId), NE(_f.Status), _actor);
+                    _f.LastPmDate, _f.NextDueDate.Value, NE(_f.ChecklistId), NE(_f.TechId), PmRules.Ok, _actor);
                 Audit.Created(Scr, "MNT_PMSchedule", planNo, new { PmClass, Form = _f, WoNumber = woNo });
                 ShowMsg(string.Format(L["MNT.PmSchedule.Ok.CreatedWo"].Value, planNo, woNo), false);
             }
@@ -723,6 +775,7 @@
             CloseModal(); Reload();
         }
         catch (MntRepository.DuplicateNumberException dx) { _modalErr = string.Format(L["MNT.PmSchedule.Err.Duplicate"].Value, dx.Number); }
+        catch (MntRepository.TemplateTypeMismatchException) { _modalErr = L["MNT.PmSchedule.Err.ChecklistType"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -763,7 +816,7 @@
         public DateTime? NextDueDate { get; set; }
         public string    ChecklistId { get; set; } = "";
         public string    TechId      { get; set; } = "";
-        public string    Status      { get; set; } = "";
+        public bool      Cancelled   { get; set; }   // 저장 상태는 사용·취소만(PmRules)
     }
 
     // ── 표시 헬퍼 ─────────────────────────────────────────────────────
@@ -804,9 +857,10 @@
         "pm-skipped" => L["MNT.PmSchedule.Legend.Skipped"].Value,
         "pm-today"   => L["MNT.PmSchedule.Legend.Today"].Value,
         "pm-overdue" => L["MNT.PmSchedule.Legend.Overdue"].Value,
+        "pm-cancelled" => CodeName(_pmStatuses, PmRules.Cancelled),
         _            => L["MNT.PmSchedule.Legend.Planned"].Value,
     };
-    static string PillCls(string cls) => cls switch { "pm-done" => "ok", "pm-skipped" => "mute", "pm-today" => "warn", "pm-overdue" => "bad", _ => "info" };
+    static string PillCls(string cls) => cls switch { "pm-done" => "ok", "pm-skipped" or "pm-cancelled" => "mute", "pm-today" => "warn", "pm-overdue" => "bad", _ => "info" };
 
     // 작업지시 종료로 건너뛴 회차(MNT_PMExecution.Result = CLOSED, 10-15)는 완료와 다른 칩·이름
     static string ExecCls(string? result) => result == AMES.Contracts.Dto.MwoStatusCodes.Closed ? "pm-skipped" : "pm-done";

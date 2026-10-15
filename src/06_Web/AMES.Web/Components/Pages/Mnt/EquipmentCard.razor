@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using Radzen
 
 @attribute [Authorize]
@@ -37,6 +38,10 @@
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@StatusLabel("DOWN")</div>
         <div class="ames-kpi-v">@_allRows.Count(r => IsDown(r.Status))</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@StatusLabel("PM")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == EquipStatusRules.Pm)</div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MNT.EquipmentCard.Kpi.AvgOee"]</div>
@@ -92,7 +97,7 @@
                 <Template Context="r"><span class="dim">@(r.MakerModel ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
-                <Template Context="r"><span class="pill @StatusCls(r.Status)">@StatusLabel(r.Status)</span></Template>
+                <Template Context="r"><span class="pill @StatusCls(r.Status)" title="@StatusReason(r)">@StatusLabel(r.Status)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="TodayOee" Title="@L["Col.OEE"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r">@(r.TodayOee?.ToString("0.0") ?? "—")</Template>
@@ -106,9 +111,9 @@
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="NextPmDate" Title="@L["Col.NextPm"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="@(IsPmOverdue(r.NextPmDate) ? "" : "dim")" style="@(IsPmOverdue(r.NextPmDate) ? "color:var(--ames-tx-red-400);" : "")">@(r.NextPmDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="OpenWoId" Title="@L["Col.OpenWo"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="OpenWoNumber" Title="@L["Col.OpenWo"]" TextAlign="TextAlign.Center" Width="170px">
                 <Template Context="r">
-                    @if (r.OpenWoId is { } wo) { <span class="pill orange">@wo</span> } else { <span class="dim">—</span> }
+                    @if (r.OpenWoNumber is { } wo) { <span class="pill orange" title="@string.Format(L["MNT.EquipmentCard.Hint.OpenWoCount"].Value, r.OpenWoCount)">@OpenWoText(r)</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="PlcConnTs" Title="@L["Col.PlcConn"]" TextAlign="TextAlign.Center" Width="160px">
@@ -157,7 +162,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
-                    <div style="padding-top:4px;"><span class="pill @StatusCls(_sel.Status)">@StatusLabel(_sel.Status)</span></div>
+                    <div style="padding-top:4px;"><span class="pill @StatusCls(_sel.Status)">@StatusLabel(_sel.Status)</span> <span class="dim" style="font-size:var(--ames-fs-hint);">@StatusReason(_sel)</span></div>
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.OEE"]" />
@@ -183,7 +188,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.OpenWo"]" />
-                    <RadzenTextBox Value="@(_sel.OpenWoId?.ToString() ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox Value="@(_sel.OpenWoNumber is null ? "" : OpenWoText(_sel))" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -242,8 +247,8 @@
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["Col.Status"]" class="ames-rz-modal-label" Component="CardDropDownStatus" />
-                    <RadzenDropDown Name="CardDropDownStatus" @bind-Value="_f.Status" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["Col.Status"]" class="ames-rz-modal-label" Component="CardDropDownStatus" title="@L["MNT.EquipmentCard.Hint.AutoStatus"]" />
+                    <RadzenDropDown Name="CardDropDownStatus" @bind-Value="_f.Status" Data="@ManualStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -254,8 +259,6 @@
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["Col.NextPm"]" class="ames-rz-modal-label" Component="CardDateNextPm" />
-                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="CardDateNextPm" @bind-Value="_f.NextPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text="@L["Col.MoldId"]" class="ames-rz-modal-label" Component="CardDropDownMold" />
                     <RadzenDropDown AllowFiltering="true" Name="CardDropDownMold" @bind-Value="_f.MountedMoldId" Data="@MoldOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
@@ -358,7 +361,7 @@
     void OpenCreate(MntRepository.EquipCardRow? preselect)
     {
         if (!_allRows.Any(r => r.EquipStatusId is null)) { ShowMsg(L["MNT.EquipmentCard.Err.NoCandidates"], true); return; }
-        _f = new() { EquipId = preselect?.EquipId ?? "", Status = preselect?.Status ?? "IDLE", NextPmDate = preselect?.NextPmDate };
+        _f = new() { EquipId = preselect?.EquipId ?? "", Status = preselect?.ManualStatus ?? EquipStatusRules.Run };
         _editId = null; _editRow = null; _sel = null; _modalErr = ""; _confirmDelete = false;
         _modal = "create";
     }
@@ -368,8 +371,8 @@
         if (r is null || r.EquipStatusId is null || !_canEdit) return;
         _f = new()
         {
-            EquipId = r.EquipId, Status = r.Status ?? "", RuntimeHours = r.RuntimeHours, CycleCount = r.CycleCount,
-            NextPmDate = r.NextPmDate, MountedMoldId = r.MountedMoldId ?? "",
+            EquipId = r.EquipId, Status = r.ManualStatus ?? EquipStatusRules.Run, RuntimeHours = r.RuntimeHours, CycleCount = r.CycleCount,
+            MountedMoldId = r.MountedMoldId ?? "",
         };
         _editId = r.EquipStatusId; _editRow = r; _sel = null; _modalErr = ""; _confirmDelete = false;
         _modal = "edit";
@@ -386,7 +389,7 @@
         {
             if (_editId is int id)
             {
-                Mnt.UpdateEquipStatus(id, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, _f.NextPmDate, NE(_f.MountedMoldId), _actor);
+                Mnt.UpdateEquipStatus(id, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, NE(_f.MountedMoldId), _actor);
                 Audit.Updated("MNT-001", "MNT_EquipmentStatus", _f.EquipId, _editRow, _f);
                 ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Updated"].Value, _f.EquipId), false);
             }
@@ -394,7 +397,7 @@
             {
                 // 2차 관문: 다른 세션이 먼저 등록했을 수 있으므로 저장 직전 DB 에서 다시 확인 (INSERT 자체도 중복이면 THROW)
                 if (Mnt.EquipStatusExists(_f.EquipId)) { _modalErr = string.Format(L["MNT.EquipmentCard.Err.Duplicate"].Value, _f.EquipId); return; }
-                Mnt.InsertEquipStatus(_f.EquipId, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, _f.NextPmDate, NE(_f.MountedMoldId), _actor);
+                Mnt.InsertEquipStatus(_f.EquipId, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, NE(_f.MountedMoldId), _actor);
                 Audit.Created("MNT-001", "MNT_EquipmentStatus", _f.EquipId, _f);
                 ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Created"].Value, _f.EquipId), false);
             }
@@ -430,7 +433,6 @@
         public string    Status        { get; set; } = "";
         public decimal?  RuntimeHours  { get; set; }
         public long?     CycleCount    { get; set; }
-        public DateTime? NextPmDate    { get; set; }
         public string    MountedMoldId { get; set; } = "";
     }
 
@@ -508,7 +510,7 @@
         {
             r.EquipId, r.EquipName, EquipTypeLabel(r.EquipType), LineText(r.LineId),
             r.MakerModel, r.InstallDate?.ToString(DateFmt.Date), StatusLabel(r.Status), r.TodayOee,
-            r.RuntimeHours, r.CycleCount, r.NextPmDate?.ToString(DateFmt.Date), r.OpenWoId,
+            r.RuntimeHours, r.CycleCount, r.NextPmDate?.ToString(DateFmt.Date), OpenWoText(r),
             r.MountedMoldId, r.PlcConnTs?.ToString(DateFmt.DateTime),
         });
 
@@ -537,4 +539,18 @@
         IsRun(s) ? "ok" : IsDown(s) ? "bad" : s == "PM" ? "orange" : IsIdle(s) ? "mute" : "mute";
 
     static bool IsPmOverdue(DateTime? d) => d is { } dt && dt.Date < DbClock.Today;
+
+    // 자동 판정 근거(EquipStatusRules) — 중지 = 설비를 멈추는 고장, 예방보전 = 착수된 PM 작업지시, 그 밖은 수동 입력
+    string StatusReason(MntRepository.EquipCardRow r) =>
+        r.StopFailureNumber is { } f ? string.Format(L["MNT.EquipmentCard.Reason.Failure"].Value, f)
+        : r.PmWoNumber is { } w     ? string.Format(L["MNT.EquipmentCard.Reason.Pm"].Value, w)
+        : L["MNT.EquipmentCard.Reason.Manual"].Value;
+
+    string OpenWoText(MntRepository.EquipCardRow r) =>
+        r.OpenWoCount > 1 ? $"{r.OpenWoNumber} (+{r.OpenWoCount - 1})" : r.OpenWoNumber ?? "";
+
+    // 손으로 고르는 상태 = 가동·유휴(중지·예방보전은 고장·PM 작업지시로 자동)
+    IEnumerable<DropDownItem> ManualStatusOptions => _equipStatus
+        .Where(s => s.UseFlag && EquipStatusRules.ManualStatuses.Contains(s.CodeValue ?? ""))
+        .Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
 }

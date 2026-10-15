@@ -128,11 +128,11 @@
                 <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateStepRow" Property="AcceptanceCriteria" Title="@L["Col.PassCriteria"]">
                     <Template Context="s"><span class="dim">@(s.AcceptanceCriteria ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateStepRow" Property="RequiredPartNo" Title="@L["Col.RequiredPart"]">
-                    <Template Context="s"><span class="dim">@(s.RequiredPartNo ?? "—")</span></Template>
+                <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateStepRow" Property="RequiredSparePartNo" Title="@L["Col.RequiredPart"]">
+                    <Template Context="s"><span class="dim">@StepPartText(s.RequiredSparePartNo, s.RequiredPartNo, s.RequiredPartName)</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateStepRow" Property="RequiredQty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right" Width="70px">
-                    <Template Context="s">@(s.RequiredQty?.ToString("0.###") ?? "—")</Template>
+                    <Template Context="s">@(s.RequiredQty?.ToString("N0") ?? "—")</Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.PmTemplateStepRow" Property="StepDurationMin" Title="@L["Col.DurationMin"]" TextAlign="TextAlign.Right" Width="130px">
                     <Template Context="s">@(s.StepDurationMin?.ToString() ?? "—")</Template>
@@ -328,13 +328,16 @@
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                @* 필요 부품 = 예비품 마스터(MD-026)에서 선택 — 고르면 수량 1 이상 필수, 비우면 수량도 비운다 *@
+                <RadzenColumn Size="8">
                     <RadzenLabel Text="@L["Col.RequiredPart"]" />
-                    <RadzenTextBox @bind-Value="_stepF.RequiredPartNo" MaxLength="20" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown TValue="string" Value="@_stepF.RequiredSparePartNo" ValueChanged="@OnStepPartChanged" Data="@SparePartOptions" TextProperty="Text" ValueProperty="Value"
+                                    AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowClear="true" Placeholder="@L["Opt.None"]"
+                                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Qty"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_stepF.RequiredQty" Min="0" Step="0.001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_stepF.RequiredQty" Min="1" Disabled="@string.IsNullOrEmpty(_stepF.RequiredSparePartNo)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -588,9 +591,34 @@
     }
 
     // ── Step(점검 단계) CRUD ──
+    // 필요 부품 콤보 = 활성 예비품 ∪ 지금 단계가 가리키는 예비품(비활성이어도 빈칸이 되지 않게)
+    List<MasterDataRepository.SparePartMasterRow> _spareParts = new();
+
+    IEnumerable<DropDownItem> SparePartOptions => _spareParts
+        .Where(p => p.ActiveFlag || p.SparePartNo == _stepF.RequiredSparePartNo)
+        .Select(p => new DropDownItem { Value = p.SparePartNo, Text = $"[{p.SparePartNo}] {p.PartNo}" + (string.IsNullOrEmpty(p.PartName) ? "" : $" {p.PartName}") });
+
+    void OnStepPartChanged(string? value)
+    {
+        _stepF.RequiredSparePartNo = value ?? "";
+        if (string.IsNullOrEmpty(value)) _stepF.RequiredQty = null;
+        else if (_stepF.RequiredQty is not > 0) _stepF.RequiredQty = 1;
+    }
+
+    static string StepPartText(string? sparePartNo, string? partNo, string? partName) =>
+        string.IsNullOrEmpty(sparePartNo) ? "—"
+        : string.IsNullOrEmpty(partNo) ? sparePartNo
+        : $"[{partNo}] {partName}".TrimEnd();
+
+    void LoadSpareParts()
+    {
+        try { _spareParts = MD.ListSparePartMasters(); } catch { _spareParts = new(); }
+    }
+
     void OpenStepCreate()
     {
         if (!_canEdit || _expandedId is null) return;
+        LoadSpareParts();
         _stepSel = null; _stepErr = ""; _stepConfirmDelete = false;
         _stepF = new() { StepSeq = _steps.Count == 0 ? 1 : _steps.Max(s => s.StepSeq ?? 0) + 1 };
         _stepModal = "create";
@@ -599,14 +627,15 @@
     void OpenStepEdit(MasterDataRepository.PmTemplateStepRow s)
     {
         if (!_canEdit) return;
+        LoadSpareParts();
         _stepSel = s; _stepErr = ""; _stepConfirmDelete = false;
         _stepF = new()
         {
             StepSeq            = s.StepSeq,
             StepDescription    = s.StepDescription    ?? "",
             AcceptanceCriteria = s.AcceptanceCriteria ?? "",
-            RequiredPartNo     = s.RequiredPartNo     ?? "",
-            RequiredQty        = s.RequiredQty,
+            RequiredSparePartNo = s.RequiredSparePartNo ?? "",
+            RequiredQty         = s.RequiredQty,
             StepDurationMin    = s.StepDurationMin,
         };
         _stepModal = "edit";
@@ -625,15 +654,16 @@
         if (_expandedId is null) return;
         _stepErr = "";
         if (string.IsNullOrWhiteSpace(_stepF.StepDescription)) { _stepErr = L["MD.PmTemplate.Err.StepDescRequired"]; return; }
+        if (!string.IsNullOrEmpty(_stepF.RequiredSparePartNo) && _stepF.RequiredQty is not > 0) { _stepErr = L["MD.PmTemplate.Err.PartQty"]; return; }
         _busy = true;
         try
         {
             if (_stepModal == "edit" && _stepSel is not null)
                 MD.UpdatePmTemplateStep(_stepSel.PMStepID, _stepF.StepSeq, NE(_stepF.StepDescription),
-                    NE(_stepF.AcceptanceCriteria), NE(_stepF.RequiredPartNo), _stepF.RequiredQty, _stepF.StepDurationMin, _actor);
+                    NE(_stepF.AcceptanceCriteria), NE(_stepF.RequiredSparePartNo), _stepF.RequiredQty, _stepF.StepDurationMin, _actor);
             else
                 MD.InsertPmTemplateStep(_expandedId, _stepF.StepSeq, NE(_stepF.StepDescription),
-                    NE(_stepF.AcceptanceCriteria), NE(_stepF.RequiredPartNo), _stepF.RequiredQty, _stepF.StepDurationMin, _actor);
+                    NE(_stepF.AcceptanceCriteria), NE(_stepF.RequiredSparePartNo), _stepF.RequiredQty, _stepF.StepDurationMin, _actor);
                 Audit.Log("MD-027", _stepModal == "edit" && _stepSel is not null ? "UPDATE" : "CREATE", "MD_PmTemplateStep", _stepModal == "edit" && _stepSel is not null ? (object?)_stepSel.PMStepID : _expandedId, _stepModal == "edit" ? _stepSel : null, _stepF);
             CloseStepModal(); ReloadSteps();
             ShowMsg(L["Msg.Saved"].Value, false);
@@ -684,8 +714,8 @@
         public int?     StepSeq            { get; set; }
         public string   StepDescription    { get; set; } = "";
         public string   AcceptanceCriteria { get; set; } = "";
-        public string   RequiredPartNo     { get; set; } = "";
-        public decimal? RequiredQty        { get; set; }
+        public string   RequiredSparePartNo { get; set; } = "";   // MD_SparePart.SparePartNo
+        public int?     RequiredQty        { get; set; }
         public int?     StepDurationMin    { get; set; }
     }
 }

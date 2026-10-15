@@ -201,7 +201,21 @@
 
             <FailureTimelinePanel Failure="_sel" />
 
+            @* 작업지시가 없는 열린 고장(안돈 고장 등) — 발행하면 MNT-007 에서 배정·착수·점검·PDA 부품 출고를 쓴다 *@
+            @if (_sel.WorkOrderId is null && !IsRes(_sel.Status))
+            {
+                <div class="dim" style="font-size:var(--ames-fs-hint);margin-top:6px;">@L["MNT.Failure.Hint.NoWo"]</div>
+            }
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_canEdit && _sel.WorkOrderId is null && !IsRes(_sel.Status))
+                {
+                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.Failure.Btn.IssueWo"])" Icon="build" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@IssueWo" Disabled="@_busy" class="ames-rz-btn" />
+                }
                 @* 수리 완료(고장 종료 + 보전 WO 완료)는 승인 권한(A) — 등록·수정·삭제는 수정 권한(E) *@
                 @if (_canApprove && !IsRes(_sel.Status))
                 {
@@ -285,6 +299,13 @@
                     <RadzenDropDown Name="FailDropDownType" @bind-Value="_f.FailureType" Data="@CodeOptions(_typeItems)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text='@($"{L["Col.Severity"]} *")' class="ames-rz-modal-label" Component="FailDropDownSeverity" />
                     <RadzenDropDown Name="FailDropDownSeverity" @bind-Value="_f.Severity" Data="@CodeOptions(_sevItems)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                @* 라인 정지 = 라인 비가동(PP_LineDowntimeLog) 기록 — CRITICAL 은 항상, 그 밖은 사용자가 정한다(FailureDowntimeRules, 10-16) *@
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                    <RadzenCheckBox TValue="bool" Value="@LineStopShown" ValueChanged="@(v => _f.LineStop = v)" Disabled="@(!LineStopEditable || LineStopForced)" Name="FailChkLineStop" />
+                    <RadzenLabel Text="@L["MNT.Failure.Lbl.LineStop"]" Component="FailChkLineStop" style="cursor:pointer;" />
+                    <span class="dim" style="font-size:var(--ames-fs-hint);">@LineStopHint</span>
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -551,6 +572,30 @@
             if (again is not null) OpenDetail(again);
             await InvokeAsync(StateHasChanged);
         }
+        catch (MntRepository.ChecklistIncompleteException cx) { _modalErr = string.Format(L["MNT.WorkOrder.Err.ChecklistIncomplete"].Value, cx.Pending, cx.Failed); }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // ── 작업지시 없는 열린 고장에 CM 작업지시 발행(10-16) — 배정은 MNT-007 에서 ──
+    async Task IssueWo()
+    {
+        if (_sel is null || !_canEdit) return;
+        _modalErr = "";
+        _busy = true;
+        try
+        {
+            var id    = _sel.FailureId;
+            var failNo = _sel.FailureNumber ?? $"F#{id}";
+            var woNo  = Mnt.IssueFailureWorkOrder(id, null, _actor);
+            Audit.Log("MNT-002", "ISSUE_WO", "MNT_FailureRegister", failNo, _sel, new { WoNumber = woNo });
+            ShowMsg(string.Format(L["MNT.Failure.Ok.WoIssued"].Value, failNo, woNo), false);
+            Reload();
+            MntRepository.FailureRow? again = _allRows.FirstOrDefault(x => x.FailureId == id);
+            if (again is null) try { again = Mnt.FindFailure(id); } catch { }
+            if (again is not null) OpenDetail(again);
+            await InvokeAsync(StateHasChanged);
+        }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -583,6 +628,7 @@
             Symptom = r.Symptom ?? "", Severity = r.Severity ?? "", Source = r.Source ?? "",
             Status = NormStatus(r.Status) is { Length: > 0 } st ? st : "OPEN",
             ReportedAt = r.ReportedAt, ResolvedAt = r.ResolvedAt, ReportedBy = r.ReportedBy ?? "",
+            LineStop = r.DowntimeId is not null,
         };
         _editId = r.FailureId; _editRow = r; _sel = null; _modalErr = ""; _confirmDelete = false;
         _modal = "edit";
@@ -608,17 +654,17 @@
             var failNo = _f.FailNo.Trim();
             if (_editId is int id)
             {
-                failNo = Mnt.UpdateFailure(id, failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
-                    NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor);
-                Audit.Updated("MNT-002", "MNT_FailureRegister", failNo, _editRow, _f);
-                ShowMsg(string.Format(L["MNT.Failure.Ok.Updated"].Value, failNo), false);
+                (failNo, var dt) = Mnt.UpdateFailure(id, failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
+                    NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor, LineStopEditable ? LineStopShown : null);
+                Audit.Updated("MNT-002", "MNT_FailureRegister", failNo, _editRow, new { Form = _f, DowntimeId = dt.DowntimeId });
+                ShowSaved(string.Format(L["MNT.Failure.Ok.Updated"].Value, failNo), dt);
             }
             else
             {
-                (var newId, failNo, var woNo) = Mnt.InsertFailure(failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
-                    NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor);
-                Audit.Created("MNT-002", "MNT_FailureRegister", failNo, new { Form = _f, WoNumber = woNo });
-                ShowMsg(string.Format(L["MNT.Failure.Ok.CreatedWo"].Value, failNo, woNo), false);
+                (var newId, failNo, var woNo, var dt) = Mnt.InsertFailure(failNo, _f.EquipId, _f.FailureType, _f.Symptom.Trim(), _f.Severity,
+                    NE(_f.Source), _f.ReportedAt.Value, NE(_f.ReportedBy), _actor, LineStopShown);
+                Audit.Created("MNT-002", "MNT_FailureRegister", failNo, new { Form = _f, WoNumber = woNo, DowntimeId = dt.DowntimeId });
+                ShowSaved(string.Format(L["MNT.Failure.Ok.CreatedWo"].Value, failNo, woNo), dt);
                 resolveNowId = _f.ResolveAfterCreate && _canApprove ? newId : null;
             }
             // 발생일이 조회 기간 밖이면 기간을 넓혀 결과가 바로 보이게
@@ -643,7 +689,7 @@
         try
         {
             var before = _editRow;
-            if (Mnt.DeleteFailure(id) is not { } gone)
+            if (Mnt.DeleteFailure(id, _actor) is not { } gone)
             {
                 _modalErr = string.Format(L["MNT.Failure.Err.Gone"].Value, _f.FailNo); _confirmDelete = false;
                 return;
@@ -669,6 +715,28 @@
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
+    // 라인 정지 — CRITICAL 은 항상(체크 고정), 안돈 고장은 안돈이 열고 닫으며, 해결·종료된 고장은 바꾸지 않는다
+    bool LineStopForced   => FailureDowntimeRules.Forced(_f.Severity);
+    bool LineStopEditable => _modal == "create" || (_editRow is { } r && r.AndonRefId is null && !IsRes(r.Status));
+    bool LineStopShown    => LineStopForced && LineStopEditable || _f.LineStop;
+    string LineStopHint   =>
+        _modal == "edit" && _editRow is { AndonRefId: not null } ? L["MNT.Failure.Hint.LineStopAndon"]
+        : !LineStopEditable ? L["MNT.Failure.Hint.LineStopDone"]
+        : LineStopForced    ? L["MNT.Failure.Hint.LineStopCritical"]
+        : L["MNT.Failure.Hint.LineStop"];
+
+    void ShowSaved(string ok, MntRepository.FailureDowntimeResult dt)
+    {
+        var warn = dt.Issue switch
+        {
+            FailureDowntimeRules.Issue.NoLine        => L["MNT.Failure.Warn.LineStopNoLine"].Value,
+            FailureDowntimeRules.Issue.Overlap       => L["MNT.Failure.Warn.LineStopOverlap"].Value,
+            FailureDowntimeRules.Issue.StartInFuture => L["MNT.Failure.Warn.LineStopFuture"].Value,
+            _                                        => null,
+        };
+        ShowMsg(warn is null ? ok : $"{ok} · {warn}", warn is not null);
+    }
+
     class FormModel
     {
         public string    FailNo      { get; set; } = "";
@@ -679,6 +747,7 @@
         public string    Source      { get; set; } = "";
         public string    Status      { get; set; } = "OPEN";   // 보기 전용 — 저장하지 않는다
         public bool      ResolveAfterCreate { get; set; }
+        public bool      LineStop    { get; set; }
         public DateTime? ReportedAt  { get; set; }
         public DateTime? ResolvedAt  { get; set; }
         public string    ReportedBy  { get; set; } = "";

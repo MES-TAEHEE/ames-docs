@@ -141,6 +141,9 @@ FILES=(
   migrate_sys_auditlog_actiontype.sql # SYS_AuditLog.ActionType varchar(15) → varchar(20) — 스키마에 이미 있으면 건너뜀(10-15)
   migrate_by_columns_employee_no.sql # 사람 컬럼(...By) 33개 varchar(20)·값을 사번으로(SYS_AuditActorMap 에 원문 보존) — 스키마에 이미 있으면 건너뜀(10-15)
   migrate_mnt_status_code.sql        # 보전 작업지시 상태 공통코드 MNT_STATUS(발행·배정·진행 중·완료·종료), OPEN 정리(10-15)
+  migrate_mnt_pm_checklist.sql       # PM 점검 단계 필요 부품 = 예비품(RequiredSparePartNo·int 수량), 작업지시 점검 항목 컬럼·인덱스, 공통코드 MNT_RESULT(10-15)
+  migrate_mnt_failure_downtime.sql   # 고장 라인 정지 → 비가동(PP_LineDowntimeLog.FailureID), 쓰지 않는 MNT_WorkOrder.DowntimeID 삭제(10-16)
+  migrate_mnt_pm_lead_days.sql       # SYS_Config MNT_PM_LEAD_DAYS — PM 도래·예정 기준 일수(10-16)
   migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
   migrate_fg_customer_return_columns.sql # Canonical return/customer/part fields and PDA procedures
   migrate_wh_fg_scm_column_lengths.sql # WH/FG/SCM keys and 20-byte actor codes

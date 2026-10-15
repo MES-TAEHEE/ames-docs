@@ -5475,9 +5475,6 @@
   <data name="MNT.Dashboard.Kpi.PmDue" xml:space="preserve">
     <value>PM en 7 días</value>
   </data>
-  <data name="MNT.Dashboard.Kpi.PmDueSub" xml:space="preserve">
-    <value>mantenimiento preventivo</value>
-  </data>
   <data name="MNT.Dashboard.Kpi.LowStock" xml:space="preserve">
     <value>Stock Bajo</value>
   </data>
@@ -10777,5 +10774,152 @@
   </data>
   <data name="MNT.WorkOrder.Lbl.PartsNone" xml:space="preserve">
     <value>No hay repuestos entregados por PDA</value>
+  </data>
+  <data name="MD.PmTemplate.Err.PartQty" xml:space="preserve">
+    <value>La cantidad debe ser 1 o más cuando se elige un repuesto.</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.Title" xml:space="preserve">
+    <value>Lista de verificación</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.HintStart" xml:space="preserve">
+    <value>Inicie la orden para registrar resultados</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.ReadOnly" xml:space="preserve">
+    <value>Solo lectura</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.Minutes" xml:space="preserve">
+    <value>{0} min</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.PhNote" xml:space="preserve">
+    <value>Nota</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.WarnComplete" xml:space="preserve">
+    <value>Lista: {0} pendientes · {1} fallidos — no se puede completar como OK. Complétela como parcial o seguimiento, o ciérrela. Los fallidos pasan a una orden CM de seguimiento.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ph.ChecklistEquipFirst" xml:space="preserve">
+    <value>Seleccione primero el equipo</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.ChecklistType" xml:space="preserve">
+    <value>La plantilla debe ser del mismo tipo de equipo que el equipo.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Reason.Failure" xml:space="preserve">
+    <value>Falla {0}</value>
+  </data>
+  <data name="MNT.EquipmentCard.Reason.Pm" xml:space="preserve">
+    <value>Trabajo PM {0}</value>
+  </data>
+  <data name="MNT.EquipmentCard.Reason.Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.AutoStatus" xml:space="preserve">
+    <value>Aquí solo se fija En marcha o Inactivo. Detenido (andon o falla crítica) y PM (orden PM en curso) se muestran automáticamente.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.OpenWoCount" xml:space="preserve">
+    <value>{0} órdenes de trabajo abiertas</value>
+  </data>
+  <data name="MNT.Failure.Lbl.LineStop" xml:space="preserve">
+    <value>Línea detenida</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStop" xml:space="preserve">
+    <value>Si se marca, se registra como paro de línea y se cierra al resolver o cerrar la falla</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStopCritical" xml:space="preserve">
+    <value>Las fallas críticas siempre se registran como paro de línea</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStopAndon" xml:space="preserve">
+    <value>El andon registra el paro de línea de las fallas de andon</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStopDone" xml:space="preserve">
+    <value>No se puede cambiar una falla resuelta o cerrada</value>
+  </data>
+  <data name="MNT.Failure.Warn.LineStopNoLine" xml:space="preserve">
+    <value>No se registró el paro: el equipo no tiene línea</value>
+  </data>
+  <data name="MNT.Failure.Warn.LineStopOverlap" xml:space="preserve">
+    <value>No se registró el paro: se superpone con un paro existente de la línea (ver PP-DTL)</value>
+  </data>
+  <data name="MNT.Failure.Warn.LineStopFuture" xml:space="preserve">
+    <value>No se registró el paro: la hora de ocurrencia es futura</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStop" xml:space="preserve">
+    <value>Paro de línea</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStopOpen" xml:space="preserve">
+    <value>en curso</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStopShared" xml:space="preserve">
+    <value>abierto por otro registro</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStopGone" xml:space="preserve">
+    <value>registro de paro no encontrado</value>
+  </data>
+  <data name="PP.Downtime.Src.Maint" xml:space="preserve">
+    <value>Mant.</value>
+  </data>
+  <data name="PP.Downtime.Hint.MaintOnly" xml:space="preserve">
+    <value>Paro de línea de la falla de mantenimiento {0}. Las horas siguen la resolución de la falla; solo se pueden editar la causa y la observación</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.FailureStop" xml:space="preserve">
+    <value>Paro por falla</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Sub.StopCount" xml:space="preserve">
+    <value>{0} paros</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Hint.FailureStop" xml:space="preserve">
+    <value>Tiempo total de paro de línea vinculado a fallas (paro y andon)</value>
+  </data>
+  <data name="MNT.WorkOrder.Status.Planned" xml:space="preserve">
+    <value>Programada</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.OpenSubPlanned" xml:space="preserve">
+    <value>Emitidas · asignadas (excl. {0} programadas)</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Planned" xml:space="preserve">
+    <value>PM vence {0} — se cuenta como abierta desde {1} días antes (estado {2})</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.Check" xml:space="preserve">
+    <value>Inspección fallida</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.ChecklistIncomplete" xml:space="preserve">
+    <value>No se puede completar como OK — {0} pendientes y {1} fallidos.</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.PmNextDue" xml:space="preserve">
+    <value>Próximo PM</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.PmNextDue" xml:space="preserve">
+    <value>Este PM no tiene ciclo por tiempo — indique la próxima fecha.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.PmNextDueRequired" xml:space="preserve">
+    <value>Indique la próxima fecha de PM.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.PmNextDueInvalid" xml:space="preserve">
+    <value>La próxima fecha de PM debe ser posterior a la de finalización.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.CheckFollowUp" xml:space="preserve">
+    <value>Puntos fallidos → orden de seguimiento {0} emitida</value>
+  </data>
+  <data name="MNT.Failure.Btn.IssueWo" xml:space="preserve">
+    <value>Emitir orden</value>
+  </data>
+  <data name="MNT.Failure.Hint.NoWo" xml:space="preserve">
+    <value>Esta falla no tiene orden. Emita una para usar asignación, inicio, revisión y salida de repuestos por PDA en MNT-007.</value>
+  </data>
+  <data name="MNT.Failure.Ok.WoIssued" xml:space="preserve">
+    <value>Orden {1} emitida para {0}.</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Cancelled" xml:space="preserve">
+    <value>Cancelado (ya no se realiza)</value>
+  </data>
+  <data name="MNT.PmSchedule.Hint.Cancelled" xml:space="preserve">
+    <value>Al cancelar se elimina la orden no iniciada. A tiempo / próximo / vencido se calcula por la fecha.</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.PmDueSplit" xml:space="preserve">
+    <value>Equipo {0} · Mant. {1}</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.MaintPm" xml:space="preserve">
+    <value>PM de mantenimiento</value>
+  </data>
+  <data name="MNT.Dashboard.PmMaint" xml:space="preserve">
+    <value>Mant.</value>
   </data>
 </root>

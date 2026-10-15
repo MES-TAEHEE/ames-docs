@@ -38,6 +38,14 @@
             <div class="ames-kpi-s">@L["MNT.OeeAnalysis.Sub.Minutes"]</div>
         </div>
     </div>
+    @* 고장으로 라인이 실제로 멈춘 시간 — 고장에 연결된 비가동(PP_LineDowntimeLog) 합, MTTR(신고 → 해결)과 따로 본다 *@
+    <div class="ames-kpi" title="@L["MNT.OeeAnalysis.Hint.FailureStop"]">
+        <div class="ames-kpi-l">@L["MNT.OeeAnalysis.Kpi.FailureStop"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@(_kpiStopCount > 0 ? $"{_kpiStopMin:N0} min" : "—")</div>
+            <div class="ames-kpi-s">@string.Format(L["MNT.OeeAnalysis.Sub.StopCount"].Value, _kpiStopCount)</div>
+        </div>
+    </div>
     <div class="ames-kpi @KpiCls(_avg.A, 80, 90)">
         <div class="ames-kpi-l">@L["MNT.OeeAnalysis.Kpi.Availability"]</div>
         <div class="ames-kpi-row">
@@ -187,6 +195,7 @@
     bool     _isErr, _monthly;
     (decimal? Oee, decimal? A, decimal? P, decimal? Q) _avg;
     decimal? _kpiMtbf, _kpiMttr;
+    int _kpiStopMin, _kpiStopCount;
     int      _kpiFailures;
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
@@ -263,6 +272,11 @@
         _kpiFailures = fails.Count;
         _kpiMtbf = fails.Count > 0 ? opHours / fails.Count : null;
         _kpiMttr = Mttr(fails);
+        // 한 비가동에 여러 고장이 연결될 수 있어 비가동 단위로 한 번만 센다
+        var stops = fails.Where(f => f.DowntimeId is not null && f.DowntimeStart is not null)
+                         .GroupBy(f => f.DowntimeId!.Value).Select(g => g.First()).ToList();
+        _kpiStopCount = stops.Count;
+        _kpiStopMin = stops.Sum(f => Math.Max(0, (int)((f.DowntimeEnd ?? DbClock.Now) - f.DowntimeStart!.Value).TotalMinutes));
 
         _equipAgg = _rows.GroupBy(r => r.EquipId ?? "")
             .Select(g =>

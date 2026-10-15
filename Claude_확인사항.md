@@ -2,7 +2,7 @@
 
 > **이 파일이 미해결·보류·문제점·다음 개발 항목의 유일한 정본입니다**(10-14 사용자 결정). CLAUDE.md·다른 문서·작업 메모에는 목록을 두지 않습니다. 항목을 해결하면 같은 커밋에서 여기 항목을 지우고, 새로 찾은 문제는 담당자 절에 더합니다.
 
-- **작성**: 2026-10-14, Claude Code(이승욱 세션). 10-15 원격 병합(안영훈 SCM·포탈 10건) 뒤, 10-15 06시 두 번째 원격 병합(안영훈 WH·FG·SCM·Api 7건) 뒤 다시 정리했습니다. 해결된 항목은 지우고 남은 것만 둡니다.
+- **작성**: 2026-10-14, Claude Code(이승욱 세션). 10-15 원격 병합(안영훈 SCM·포탈 10건) 뒤, 10-15 06시 두 번째 원격 병합(안영훈 WH·FG·SCM·Api 7건) 뒤, 10-16 MNT 작업(설비 상태 자동 판정·고장 라인 정지·PM 점검 완료 규칙·PM 일정 규칙) 뒤 다시 정리했습니다. 해결된 항목은 지우고 남은 것만 둡니다.
 - **기준 소스**: `dev` 브랜치 10-15 두 번째 병합(3a573d9e 병합) 이후. 줄 번호는 점검 당시 기준이라 몇 줄 어긋날 수 있습니다.
 - **점검 방법**
   - 5영역(POP·InjAgent·QC·PNT / PP·APS·MRP / Api·WH·FG·SCM·Portal / SYS·MD·MNT·RPT / DB 스크립트·스키마·공통 규칙)을 소스로 다시 확인했습니다.
@@ -26,9 +26,9 @@
 
 | 담당  | 미해결 | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                          |
 | --- | --- | --- | --- | --- | ---------------------------------------------------------------------------------- |
-| 심재현 | 21  | 7   | 7묶음 | 31  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB |
-| 안영훈 | 4(적용·검증 3·요청 1) | 4 | 3 | 5 | WH PDA 구 프로시저 참조 · 서버 Web·Api/IIS 반영 · 포장 단위 기존 데이터 정책 · PDA 예비품 출고에 보전 작업지시 연결(요청) |
-| 이승욱 | 0   | 4   | 6   | 0   | PP-OEE 가동률이 시연 데이터로 계산됨                                                              |
+| 심재현 | 23  | 7   | 7묶음 | 32  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · 안돈 보전 호출 작업지시(요청 22) |
+| 안영훈 | 6(적용·검증 3·요청 2·알림 1) | 4 | 3 | 5 | WH PDA 구 프로시저 참조 · 서버 Web·Api/IIS 반영 · 포장 단위 기존 데이터 정책 · PDA 예비품 출고에 보전 작업지시 연결(요청 — 10-16 「예정」·새 출처 반영) · 재구축 목록 MNT 3건 |
+| 이승욱 | 0   | 3   | 5   | 0   | 개발 DB 마이그레이션 대기(PM 도래 일수) · PP-OEE 가동률이 시연 데이터                                                                        |
 | 오세영 | 5   | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                      |
 
 ### 지금 결정이 필요한 것(이승욱 작업분)
@@ -38,6 +38,10 @@
    - 최신 패키지: `publish\AMES.Web_20261015-230731.zip`·`publish\AMES.Api_20261015-230845.zip`(10-15 23:08 — 보전 상태 공통코드·종료·수동 발행까지 포함, 개발서버에서 `/swagger` 를 켜는 판, CLAUDE.md AMES.Api 배포 참고)(또는 `publish\AMES.Web`·`AMES.Api` 폴더 — .NET 10.0.13 런타임 포함). 10-15 NuGet 업데이트(취약 Pkcs 고정·SqlClient 7.1.1·Radzen 12.1.2 등)와 두 번째 원격 병합(WH·FG·SCM·Api)까지 들어 있습니다. 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행합니다(10-15 판은 ANCM 기동 실패 500.3x 와 종료 중 멈춤 503 을 함께 복구). Api 는 안영훈 2-1 1 의 IIS 상시 기동 설정도 같이 적용합니다.
    - DB 는 준비돼 있습니다: 10-15 마이그레이션 6개(`migrate_md_paint_fabric_lotno`·`migrate_sys_auditlog_actiontype`·`migrate_by_columns_employee_no`·`migrate_fg_customer_return_columns`·`migrate_wh_fg_scm_column_lengths`·`migrate_fg_location_type`)가 개발·로컬 DB 모두 적용됐습니다.
    - 보전 작업지시 상태 공통코드 `dist/migrate_mnt_status_code.sql`(10-15 — MNT_STATUS, OPEN 정리, 배정 상태)도 개발·로컬 DB 에 적용했습니다. 지금 개발서버의 구 Web 은 배정(ASSIGNED) 상태 작업지시의 착수 버튼을 숨기므로(개발 DB 1건 — MWO-2609-004), 이 변경이 든 새 Web 을 올려야 합니다(위 23:08 패키지에 들어 있음).
+   - PM 점검 항목 `dist/migrate_mnt_pm_checklist.sql`(10-15 — MD_PmTemplateStep 필요 부품 예비품 연결, MNT_WorkOrderTask 컬럼 추가·재생성, 공통코드 MNT_RESULT)은 개발·로컬 DB 에 적용했고(10-16) 스키마 파일에도 두 표를 반영했습니다. 새 패키지는 아직 만들지 않았습니다 — 이 변경이 든 Web 은 마이그레이션 없는 DB 에서 MD-027 점검 단계·MNT-007 상세가 실패하고, 구 Web 은 마이그레이션 뒤 MD-027 점검 단계 조회가 실패하므로 둘을 함께 반영합니다.
+   - 고장 ↔ 라인 비가동 `dist/migrate_mnt_failure_downtime.sql`(10-16 — `PP_LineDowntimeLog.FailureID` 추가, `MNT_WorkOrder.DowntimeID` 삭제)은 **개발·로컬 DB 모두 적용**했고(뒤에 감사 컬럼 정리 — 개발 DB 는 `PP_LineDowntimeLog` 만, 아래 `FG_CustomerReturn` 참조), 스키마 파일에 반영했습니다. 구 Web 은 이 마이그레이션 뒤에도 동작합니다(두 컬럼을 읽지 않음).
+   - PM 도래·예정 기준 일수 `dist/migrate_mnt_pm_lead_days.sql`(10-16 — SYS_Config `MNT_PM_LEAD_DAYS` 행만 추가, 기본 7)은 **로컬 DB 에만 적용**했습니다. 행이 없어도 코드는 7 로 동작하므로 순서 제약은 없고, SYS-009 에서 값을 고치려면 개발 DB 에도 적용합니다.
+   - 개발 DB 의 `FG_CustomerReturn` 은 감사 컬럼 뒤에 `PartName` 이 있어 `migrate_audit_columns_last.sql` 을 그대로 돌리면 옮겨집니다(10-16 기준, 안영훈 미푸시 FG 변경으로 보여 건드리지 않았습니다 — 원격에 올라온 뒤 정리).
    - **반영한 뒤에** `dist/migrate_retire_packaging_uom.sql`(안영훈 10-14 — `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 삭제, 단위 BOX·PLT·SH 사용 안 함)을 개발 DB 와 로컬 DB 에 적용합니다. 지금 개발서버 Web 은 이 컬럼을 읽으므로 먼저 적용하면 MD-003·SCM 발주가 깨집니다. 두 DB 모두 아직 적용 전이고, 스키마 파일은 적용 뒤 구조(컬럼 없음)입니다. 적용 전에 안영훈 문제점 4(남는 데이터) 처리 방향을 정하는 것이 좋습니다.
 2. **PP-OEE 가동률 원천**: 지금은 시연 데이터(`PP_LineStateLog`)로 계산됩니다. 실제로 쌓이는 비가동 기록(`PP_LineDowntimeLog`)으로 바꿀지 정해야 합니다(이승욱 테이블 2).
 3. **화면 저장 검증**: 아래 변경은 DB 테스트·리포지토리 왕복(로컬 DB)·화면 열기(헤드리스)로만 확인했고, 화면에서 실제로 저장해 보지는 않았습니다.
@@ -48,7 +52,7 @@
 
 ## 1. 심재현 — POP(QC 포함)·InjAgent·Devices + Web PP-001~006·PP-APS
 
-### 1-1. 미해결 (21)
+### 1-1. 미해결 (23)
 
 1. **[상] POP·InjAgent 배포 설정이 로컬 DB 를 가리킴**
    - 위치: Pop `appsettings.Production.json:3`, `AppConfig.cs:48·84-85` / InjAgent `appsettings.json:3`, `AgentConfig.cs:56-57`
@@ -136,6 +140,14 @@
     - 위치: `ImgLotRepository.cs:138`(CreateFromCore → `CoreItemResolver.Read`)
     - 내용: 웹 WO 발행은 10-14 부터 PP-APS 와 같은 InjFlag 기준(`CoreItemResolver.ReadByInjFlag`)으로 코어를 정하는데, IMG 코어 스캔의 `CoreMismatch` 검사는 아직 품명 CORE 규칙입니다. 개발 DB 완제품 77개는 두 규칙의 결과가 같지만, 레일만 있는 품번처럼 둘이 갈리면 WO 의 사출 단계 품번과 IMG 검사가 다른 코어를 봅니다.
     - 제안: `ReadByInjFlag` 로 바꿉니다(POP 담당 작업 예정).
+22. **[중] [요청] 안돈 보전 호출에 CM 작업지시 발행·안돈 종료 때 함께 닫기**(10-16 사용자 결정 — 이승욱 요청)
+    - 위치: `AndonRepository`(보전 호출 → `MNT_FailureRegister` 만 생성, `WorkOrderID` NULL · 안돈 종료 → 고장만 RESOLVED)
+    - 내용: 안돈 고장에는 작업지시가 없어 MNT-007 배정·착수·점검·PDA 부품 출고를 쓸 수 없습니다(개발 DB 작업지시 없는 열린 고장 9건). 웹은 10-16 부터 MNT-002 상세의 「작업지시 발행」(`MntRepository.IssueFailureWorkOrder` — CM, 출처 ANDON, SourceRefID 고장번호)으로 수동 연결합니다. 그런데 그렇게 연결한 고장이 안돈 종료로 RESOLVED 가 되면 작업지시는 열린 채 남아 MNT-007 에서 따로 완료·종료해야 합니다.
+    - 요청: ① 보전 호출 때 같은 트랜잭션에서 CM 작업지시를 발행해 `WorkOrderID` 를 채웁니다(웹과 같은 규칙 — `MntRepository.IssueFailureWorkOrder` 를 그대로 쓰거나 같은 값: WoType CM·SourceType ANDON·SourceRefID 고장번호·우선순위는 심각도·상태 ISSUED, 번호는 `MWO-yyMM-nnn` 범위 잠금 채번). ② 안돈 종료 때 연결된 작업지시가 끝나지 않았으면 같이 완료합니다(결과 OK — CM 작업지시는 점검 항목이 없어 완료 차단 규칙 `MwoChecklistRules` 에 걸리지 않습니다).
+23. **[하] [요청] 금형 샷 누적 기록 — 사이클 PM 자동화의 전제**(10-16 이승욱 요청)
+    - 위치: InjAgent(샷은 `PR_ShotCount` 에만 기록), `MNT_MoldShotCount`(0행 — 이승욱 테이블 4)
+    - 내용: 사이클(CYCLE) 주기 PM 은 지금 완료할 때 사람이 다음 예정일을 넣습니다(10-16 사용자 결정 — 샷 누적 연동 전까지, `PmRules`). 샷이 쌓이지 않아 금형 소진율·정비 한계 알림도 비어 있습니다.
+    - 요청: InjAgent 가 샷을 기록할 때 `MNT_MoldShotCount` 도 올립니다. 그 뒤 이승욱이 사이클 PM 의 다음 회차를 샷 기준으로 자동 발행하도록 바꿉니다.
 
 ### 1-2. 보류 (7)
 - **APS 금형 교체(MC) 한계**: "직전 금형"을 그 라인·그 날 처리 순서상 마지막 금형으로 보므로, 하루 안에 금형이 여러 번 바뀌면 그 사이 되돌림 MC 를 만들지 않습니다(같은 라인·같은 날 금형 그룹당 MC 최대 1개). 교체 자리가 없을 때 억지로 둔 MC 는 휴게·점유 구간과 겹칠 수 있습니다. 조정은 PP-LSB 에서 합니다.
@@ -171,7 +183,7 @@
 - 읽기만 있는 테이블: 등록 화면·수집기를 만들지, 화면을 「시연용」으로 표시하거나 숨길지
 - 아무도 안 쓰는 테이블: DROP 할지(두 리포지토리 삭제 포함). FK 가 없어 지워도 다른 테이블에는 영향이 없습니다.
 
-### 1-4. 문제점 (31)
+### 1-4. 문제점 (32)
 1. **[상] `PP_WorkOrder.WoNumber` 인덱스가 없어 POP 확정이 막힘**
    - 위치: `PpRepository.cs:931-940`(NextWoSeq), `WorkOrderRepository.cs:428`. 개발·로컬 DB 둘 다 확인
    - 내용: WO 번호를 매길 때 잠금이 테이블 전체에 걸립니다. APS WO 미리보기(읽기 권한 사용자도 가능)나 PP-003 이 도는 동안 POP 스캔 확정이 기다리다, 30초를 넘으면 실패합니다. `dist/migrate_wonumber_unique.sql` 은 있지만 스키마·재구축 목록에 없고 어느 DB 에도 적용되지 않았습니다.
@@ -264,12 +276,16 @@
     - 위치: `AndonRepository.cs:255·261`
     - 내용: RIGHT 3자리로 읽어 1000번째부터 같은 번호가 되풀이되고, 웹 번호와 겹칠 수 있습니다.
     - 제안: 웹 `ClaimNumber` 와 같은 방식으로 맞춥니다.
+32. **[중] 안돈 발동이 같은 라인의 열린 비가동을 보지 않고 새 행을 엶**
+    - 위치: `AndonRepository.cs:35`(PP_LineDowntimeLog INSERT)
+    - 내용: 같은 라인에 이미 열린 비가동(PP-DTL 웹 등록, 10-16 부터 웹 고장의 「라인 정지」)이 있어도 안돈이 또 하나를 열어, 두 행이 겹친 시간만큼 OEE·비가동 분석이 두 번 셉니다. 웹 쪽(PP-DTL 등록, MNT-002 라인 정지)은 겹침을 막거나 열린 행에 연결합니다.
+    - 제안: 열린 행이 있으면 그 행의 `AndonID` 를 채워 연결하거나(종료는 안돈 종료 시각과 그 행 소유자 중 늦은 쪽), 최소한 안돈 행 시작 시각에 기존 열린 행을 닫습니다 — POP 코드 변경이라 이승욱과 방식을 맞춥니다.
 
 ---
 
 ## 2. 안영훈 — PDA·Api + Web WH·FG·SCM·Portal + 재구축 스크립트
 
-### 2-1. 적용·검증 대기·요청 (4)
+### 2-1. 적용·검증 대기·요청 (6)
 1. **API IIS 상시 기동 설정 — 서버 적용 대기**
    - `tools/publish-api.ps1`에 AlwaysRunning·유휴 종료 해제·사이트 자동 시작·preload 설정을 추가했습니다.
    - 개발서버 IIS에 이 설정과 새 Web·Api 파일을 적용해야 합니다. 이번 작업에서는 서버 배포·앱풀 재시작을 하지 않았습니다.
@@ -292,7 +308,18 @@
      - Api: 진행 중 보전 작업지시 목록 조회(예: `GET /api/mnt/work-orders/open` — 번호·설비·내용·상태). `POST /api/wh/sp/release` 의 `SparePartMoveReq` 에 `WorkOrderNo`(선택)를 더하고, 있으면 존재·미완료를 확인합니다.
      - `SP_PDA_STOCK_MOVE`: 작업지시 번호 매개변수(선택)를 더해, 값이 있으면 출고 이력을 `RefType='MWO'`·`RefID`=작업지시 번호로 남깁니다(지금은 `RefType='PDA'`·`RefID`=보관 위치 — 위치는 `MNT_SparePartItem.LocationID` 에 남습니다). 작업지시 번호는 `MNT_WorkOrder.WoNumber` 와 같은 값이어야 웹이 찾습니다. 감사 로그(SP-07 OUT) 메모에도 작업지시 번호를 넣습니다.
      - `SP_PDA_SP_STOCK_CANCEL`: 되돌릴 원래 출고가 `RefType='MWO'` 이고 그 작업지시 상태가 `COMPLETED`·`CLOSED` 이면 거부합니다.
+   - 10-16 웹 변경으로 더할 것(이승욱 — CLAUDE.md MNT 규칙 ⑦·⑩·⑪)
+     - 목록에서 **「예정」 PM 작업지시는 빼거나 따로 보입니다** — 착수 전이고 PM 예정일이 오늘 + N일(`SYS_Config.MNT_PM_LEAD_DAYS`, 기본 7)보다 뒤인 PM 작업지시입니다. 웹은 MNT-007 기본 목록·열린 작업지시 수에서 뺍니다. 판정은 `MntRepository.ListWorkOrders` 의 `MwoRow.Planned` 또는 SQL `PmRules.PlannedWoSql`(별칭 `w`)을 그대로 씁니다.
+     - 새 출처 2가지도 출고 대상입니다: `CHECK`(PM 점검 불합격으로 생긴 CM 후속 작업지시, SourceRefID = 원래 작업지시 번호)·`ANDON`(MNT-002 에서 안돈 고장에 발행한 CM 작업지시).
+     - PM 작업지시는 점검 항목에 필요 예비품·수량이 있습니다(`MNT_WorkOrderTask.RequiredSparePartNo`·`RequiredQty`, `MntRepository.ListWorkOrderTasks`). 작업지시를 고르면 그 목록을 참고로 보여 주면 출고가 쉽습니다(선택).
    - 배포 순서: 프로시저 → Api → PDA 앱. 작업지시 번호가 선택이라 구 PDA 앱도 그대로 동작합니다.
+5. **[요청] 재구축 목록에 MNT 마이그레이션 3개 추가됨 — 전체 재구축 검증에 포함**(10-16 이승욱)
+   - `dist/rebuild_db.sh` 에 `migrate_mnt_pm_checklist.sql` → `migrate_mnt_failure_downtime.sql` → `migrate_mnt_pm_lead_days.sql` 순서로 넣었습니다(모두 재실행 안전, 스키마 파일은 이미 적용 뒤 구조라 대부분 건너뜁니다). 위 2(전체 재구축 검증) 때 같이 확인합니다.
+   - `migrate_mnt_failure_downtime.sql` 은 `MNT_WorkOrder.DowntimeID` 를 지우고, 값이 있으면 THROW 합니다(개발·로컬 DB 0건).
+6. **[알림] AMES.Api 응답 필드 추가·집계 규칙 변경**(10-16 이승욱 — Api 는 AMES.Data 를 그대로 쓰므로 새 Api 게시로 반영됩니다)
+   - `/api/mnt` 설비 목록·대시보드: 설비 상태를 고장·PM 작업지시로 계산합니다(중지 = 안돈·CRITICAL·라인 정지 고장, 예방보전 = 착수된 설비 PM — 보전 PM 제외). 열린 작업지시 수에서 「예정」 PM 작업지시는 뺍니다. 대시보드 KPI 에 `PmDueEquip`·`PmDueMaint` 가 붙습니다.
+   - 작업지시 행(`MwoRow`)에 `PmClass`·`PmDueDate`·`Planned`·`TaskFail`·`PmNeedsNextDue` 가 붙습니다(뒤에 더한 필드라 기존 PDA 는 영향 없음).
+   - PDA 에 보전 작업 화면을 만들 때는 완료 규칙(미점검·불합격이 있으면 정상 완료 불가 — `MwoChecklistRules`)과 다음 예정일 규칙(기간 주기가 아닌 PM 은 완료 때 입력 — `PmRules`)을 `MntRepository.CompleteWorkOrder` 로 그대로 씁니다.
 
 ### 2-2. 보류 (4)
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.
@@ -339,11 +366,7 @@
 ### 3-1. 미해결
 없습니다.
 
-### 3-2. 보류 (4)
-- **B4 MNT-007 점검 체크리스트**(수동 발행은 10-15 구현, 사용 부품은 PDA 출고 기록으로 결정 — 안영훈 2-1 4)
-  - 위치: `MntRepository.InsertPm`·`AdvancePm`(점검 단계를 복사하지 않음), `WorkOrder.razor` 상세 체크리스트
-  - 내용: PM 템플릿 단계(`MD_PmTemplateStep`)를 작업지시 점검 항목(`MNT_WorkOrderTask`)으로 복사하지 않고, 단계별 결과 입력이 없습니다. 개발 DB 의 템플릿은 1개이고 PM 일정 11개는 모두 템플릿을 지정하지 않았습니다.
-  - 제안: 발행 때 단계 복사 → 상세에서 항목별 합격·불합격·해당 없음 + 메모 → 단계의 필요 부품·수량을 완료 창 사용 부품 기본값으로. 정할 것은 미점검 항목이 남았을 때 완료를 막을지, 불합격이 있으면 결과 기본값을 부분 완료·후속 조치로 할지입니다.
+### 3-2. 보류 (3)
 - **B7 MNT-004 금형 정비 등록**(`MoldRepository.cs:53·81`, 호출처 없음): 정비 유형·작업자·샷 리셋·정비일을 남길 곳이 없습니다. 금형 교체를 기록하던 메서드도 옛 POP 화면을 지우면서 끊겼습니다.
 - **B8 PP-ODM 라인 상태 기록**: `PP_LineStateLog` 에 쓰는 곳은 `tools/seed_pp_demo` 뿐입니다(아래 테이블 2).
 - **개발 완료 시 정리**: 운영 admin 시드 차단, appsettings 비밀번호·AllowedHosts·접속문자열 환경변수(Web).
@@ -357,24 +380,21 @@
    - 읽는 곳: PP-ODM 비가동 모니터(`PpRepository.cs:1759-1815`), PP-OEE 계산(`OeeRepository.cs:36·199·234`), Api
    - 내용: 기록 코드가 없어 PP-ODM 현황뿐 아니라 **PP-OEE 가동률도 시연 데이터로 계산**됩니다(B8).
    - 제안: 가장 작은 해결은 PP-OEE 가동률을 실제로 쌓이는 `PP_LineDowntimeLog`(비가동 기록)로 계산하는 것입니다. 큰 해결은 InjAgent 신호(심재현 연계)나 Api Worker 로 상태를 기록하는 것입니다.
-3. **`MNT_WorkOrderTask`(24) — 정비 점검 항목**
-   - 읽는 곳: MNT-007 상세 체크리스트, 목록의 「작업 n/m」(`MntRepository.cs:971`), Api
-   - 내용: 발행 때 템플릿 단계를 복사하지 않고 결과 입력도 없어, 진행 수치가 늘 시연 값입니다(B4②).
-4. **`PR_MoldChange`(3) — 금형 교체 이력**
+3. **`PR_MoldChange`(3) — 금형 교체 이력**
    - 읽는 곳: MNT-004 「교체 이력」(`MntRepository.cs:365-386`)
    - 내용: 기록 메서드를 아무도 부르지 않아 시연 3행만 보입니다(B7). 실제 교체는 PP-LSB 금형 교체(MC) 슬롯으로 계획만 있습니다.
    - 제안: POP 교체 시작·종료 버튼(심재현) 또는 B7 정비 등록과 함께 기록합니다.
-5. **`MNT_MoldShotCount`(0) — 금형 샷 누적**
+4. **`MNT_MoldShotCount`(0) — 금형 샷 누적**
    - 읽는 곳: MNT-004 금형 목록(`MntRepository.cs:346`), MD 금형·설비 삭제 사용처
    - 내용: 샷을 쌓는 곳이 없어(InjAgent 는 `PR_ShotCount` 에만 씀) 소진율이 비어 있고 정비 한계 알림이 동작하지 않습니다.
    - 제안: InjAgent 가 샷을 기록할 때 이 카운터도 올립니다(심재현 연계).
-6. **`MD_InjCondItem`(2) — 사출 조건 항목 마스터**
+5. **`MD_InjCondItem`(2) — 사출 조건 항목 마스터**
    - 읽는 곳: InjAgent(`InjCondRepository.cs:18`), MD 라인 삭제 사용처(`MasterDataRepository.cs:2513`)
    - 내용: 등록 화면이 없어 라인·항목을 늘리려면 SQL 로 넣어야 합니다.
    - 제안: MD 화면을 추가하거나 SQL 관리로 결정합니다(심재현과 요구사항 확인).
 
 ### 3-4. 문제점
-없습니다.
+없습니다. 10-16 MNT 흐름 점검의 6건은 같은 날 사용자 결정대로 처리했습니다(CLAUDE.md MNT 규칙 ⑦·⑩·⑪). 안돈 보전 호출의 작업지시 자동 발행은 심재현 미해결 22 로 옮겼습니다.
 
 ---
 

@@ -114,7 +114,7 @@ public class MntWorkOrderFlowTests
         var mnt = new MntRepository(f!);
         try
         {
-            var (failId, failNo, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 종료", "MAJOR", "WEB", DateTime.Now.AddHours(-1), null, Actor);
+            var (failId, failNo, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 종료", "MAJOR", "WEB", DateTime.Now.AddHours(-1), null, Actor);
             var woId = Convert.ToInt32(Scalar(f!, "SELECT WorkOrderID FROM dbo.MNT_FailureRegister WHERE FailureID = @I", ("@I", failId)));
             Assert.Equal("ISSUED", Wo(f!, woId, "Status"));
             mnt.AssignWorkOrder(woId, Tech, Actor);

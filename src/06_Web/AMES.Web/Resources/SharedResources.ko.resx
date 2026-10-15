@@ -5475,9 +5475,6 @@
   <data name="MNT.Dashboard.Kpi.PmDue" xml:space="preserve">
     <value>PM 예정 (7일)</value>
   </data>
-  <data name="MNT.Dashboard.Kpi.PmDueSub" xml:space="preserve">
-    <value>예방보전</value>
-  </data>
   <data name="MNT.Dashboard.Kpi.LowStock" xml:space="preserve">
     <value>재고 부족 부품</value>
   </data>
@@ -10777,5 +10774,152 @@
   </data>
   <data name="MNT.WorkOrder.Lbl.PartsNone" xml:space="preserve">
     <value>PDA 로 출고된 부품이 없습니다</value>
+  </data>
+  <data name="MD.PmTemplate.Err.PartQty" xml:space="preserve">
+    <value>필요 부품을 고르면 수량은 1 이상이어야 합니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.Title" xml:space="preserve">
+    <value>점검 항목</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.HintStart" xml:space="preserve">
+    <value>착수하면 항목별 결과를 기록할 수 있습니다</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.ReadOnly" xml:space="preserve">
+    <value>보기 전용</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.Minutes" xml:space="preserve">
+    <value>소요 {0}분</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.PhNote" xml:space="preserve">
+    <value>메모</value>
+  </data>
+  <data name="MNT.WorkOrder.Chk.WarnComplete" xml:space="preserve">
+    <value>점검 항목: 미점검 {0} · 불합격 {1} — 정상 완료는 할 수 없습니다. 부분 완료·후속 조치로 완료하거나 종료하세요. 불합격 항목은 CM 후속 작업지시로 넘어갑니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Ph.ChecklistEquipFirst" xml:space="preserve">
+    <value>설비를 먼저 선택하세요</value>
+  </data>
+  <data name="MNT.PmSchedule.Err.ChecklistType" xml:space="preserve">
+    <value>점검 템플릿은 설비와 설비 유형이 같은 것만 지정할 수 있습니다.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Reason.Failure" xml:space="preserve">
+    <value>고장 {0}</value>
+  </data>
+  <data name="MNT.EquipmentCard.Reason.Pm" xml:space="preserve">
+    <value>PM 작업 {0}</value>
+  </data>
+  <data name="MNT.EquipmentCard.Reason.Manual" xml:space="preserve">
+    <value>수동 입력</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.AutoStatus" xml:space="preserve">
+    <value>가동·유휴만 직접 정합니다. 중지는 안돈·치명 고장, 예방보전은 착수된 PM 작업지시로 자동 표시됩니다.</value>
+  </data>
+  <data name="MNT.EquipmentCard.Hint.OpenWoCount" xml:space="preserve">
+    <value>열린 작업지시 {0}건</value>
+  </data>
+  <data name="MNT.Failure.Lbl.LineStop" xml:space="preserve">
+    <value>라인 정지</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStop" xml:space="preserve">
+    <value>켜면 라인 비가동으로 기록하고 고장이 해결·종료될 때 닫습니다</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStopCritical" xml:space="preserve">
+    <value>치명 고장은 항상 라인 정지로 기록합니다</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStopAndon" xml:space="preserve">
+    <value>안돈 고장의 라인 정지는 안돈이 기록합니다</value>
+  </data>
+  <data name="MNT.Failure.Hint.LineStopDone" xml:space="preserve">
+    <value>해결·종료된 고장은 바꿀 수 없습니다</value>
+  </data>
+  <data name="MNT.Failure.Warn.LineStopNoLine" xml:space="preserve">
+    <value>설비에 라인이 없어 라인 정지를 기록하지 못했습니다</value>
+  </data>
+  <data name="MNT.Failure.Warn.LineStopOverlap" xml:space="preserve">
+    <value>같은 라인의 비가동과 겹쳐 라인 정지를 기록하지 못했습니다(PP-DTL 확인)</value>
+  </data>
+  <data name="MNT.Failure.Warn.LineStopFuture" xml:space="preserve">
+    <value>발생 시각이 미래라 라인 정지를 기록하지 못했습니다</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStop" xml:space="preserve">
+    <value>라인 정지</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStopOpen" xml:space="preserve">
+    <value>진행 중</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStopShared" xml:space="preserve">
+    <value>다른 기록이 연 비가동</value>
+  </data>
+  <data name="MNT.Failure.Tl.LineStopGone" xml:space="preserve">
+    <value>비가동 기록 없음</value>
+  </data>
+  <data name="PP.Downtime.Src.Maint" xml:space="preserve">
+    <value>보전</value>
+  </data>
+  <data name="PP.Downtime.Hint.MaintOnly" xml:space="preserve">
+    <value>보전 고장 {0} 의 라인 정지입니다. 시각은 고장 해결·종료가 정하므로 원인·비고만 수정할 수 있습니다</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Kpi.FailureStop" xml:space="preserve">
+    <value>고장 정지</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Sub.StopCount" xml:space="preserve">
+    <value>{0}건</value>
+  </data>
+  <data name="MNT.OeeAnalysis.Hint.FailureStop" xml:space="preserve">
+    <value>고장에 연결된 라인 비가동 시간 합계(라인 정지·안돈)</value>
+  </data>
+  <data name="MNT.WorkOrder.Status.Planned" xml:space="preserve">
+    <value>예정</value>
+  </data>
+  <data name="MNT.WorkOrder.Kpi.OpenSubPlanned" xml:space="preserve">
+    <value>발행·배정 (예정 {0}건 제외)</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Planned" xml:space="preserve">
+    <value>PM 예정일 {0} — {1}일 전부터 열린 작업지시로 셉니다 (상태 {2})</value>
+  </data>
+  <data name="MNT.WorkOrder.Src.Check" xml:space="preserve">
+    <value>점검 불합격</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.ChecklistIncomplete" xml:space="preserve">
+    <value>미점검 {0}건 · 불합격 {1}건이 있어 정상 완료할 수 없습니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.PmNextDue" xml:space="preserve">
+    <value>다음 PM 예정일</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.PmNextDue" xml:space="preserve">
+    <value>기간 주기가 아닌 PM 이라 다음 예정일을 직접 넣습니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.PmNextDueRequired" xml:space="preserve">
+    <value>다음 PM 예정일을 넣으세요.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.PmNextDueInvalid" xml:space="preserve">
+    <value>다음 PM 예정일은 완료일 뒤여야 합니다.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.CheckFollowUp" xml:space="preserve">
+    <value>불합격 점검 항목 → 후속 작업지시 {0} 발행</value>
+  </data>
+  <data name="MNT.Failure.Btn.IssueWo" xml:space="preserve">
+    <value>작업지시 발행</value>
+  </data>
+  <data name="MNT.Failure.Hint.NoWo" xml:space="preserve">
+    <value>이 고장에는 작업지시가 없습니다. 발행하면 MNT-007 에서 배정·착수·점검·PDA 부품 출고를 쓸 수 있습니다.</value>
+  </data>
+  <data name="MNT.Failure.Ok.WoIssued" xml:space="preserve">
+    <value>{0} 에 작업지시 {1} 을(를) 발행했습니다.</value>
+  </data>
+  <data name="MNT.PmSchedule.Lbl.Cancelled" xml:space="preserve">
+    <value>취소(더 이상 하지 않음)</value>
+  </data>
+  <data name="MNT.PmSchedule.Hint.Cancelled" xml:space="preserve">
+    <value>취소하면 착수 전 작업지시를 지웁니다. 정상·도래·지연은 예정일로 계산합니다.</value>
+  </data>
+  <data name="MNT.Dashboard.Kpi.PmDueSplit" xml:space="preserve">
+    <value>설비 {0} · 보전 {1}</value>
+  </data>
+  <data name="MNT.Dashboard.Tile.MaintPm" xml:space="preserve">
+    <value>보전 PM</value>
+  </data>
+  <data name="MNT.Dashboard.PmMaint" xml:space="preserve">
+    <value>보전</value>
   </data>
 </root>

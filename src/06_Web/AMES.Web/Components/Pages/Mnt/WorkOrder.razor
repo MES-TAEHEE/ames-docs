@@ -36,7 +36,7 @@
         <div class="ames-kpi-l">@L["MNT.WorkOrder.Kpi.Open"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@OpenCount</div>
-            <div class="ames-kpi-s">ISSUED · ASSIGNED</div>
+            <div class="ames-kpi-s">@(PlannedCount > 0 ? string.Format(L["MNT.WorkOrder.Kpi.OpenSubPlanned"].Value, PlannedCount) : "ISSUED · ASSIGNED")</div>
         </div>
     </div>
     <div class="ames-kpi @(UnassignedCount > 0 ? "warn" : "")">
@@ -108,7 +108,7 @@
                 <Template Context="r"><span class="code">@WoNo(r)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="WoType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="120px">
-                <Template Context="r"><span class="pill @TypeCls(r.WoType)">@TypeLabel(r.WoType)</span></Template>
+                <Template Context="r"><span class="pill @TypeCls(r.WoType)">@TypeLabel(r.WoType)</span>@if (PmRules.IsMaint(r.PmClass)) { <span class="pill mute" style="margin-left:4px;">@PmClassLabel(r.PmClass)</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@(r.EquipId ?? "—")</span></Template>
@@ -126,7 +126,7 @@
                 <Template Context="r"><span class="@(r.AssignedTechId is null ? "dim" : "")" style="white-space:nowrap;">@TechText(r.AssignedTechId)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px">
-                <Template Context="r"><span class="pill @StCls(r.Status)">@StatusLabel(r.Status)</span></Template>
+                <Template Context="r"><span class="pill @RowStCls(r)" title="@PlannedTip(r)">@RowStatusLabel(r)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MwoRow" Property="IssuedAt" Title="@L["Col.IssuedDate"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="dim">@(r.IssuedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
@@ -171,7 +171,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Status"]" />
-                    <div style="padding-top:4px;"><span class="pill @StCls(_sel.Status)">@StatusLabel(_sel.Status)</span></div>
+                    <div style="padding-top:4px;"><span class="pill @RowStCls(_sel)" title="@PlannedTip(_sel)">@RowStatusLabel(_sel)</span></div>
                 </RadzenColumn>
             </RadzenRow>
 
@@ -189,6 +189,20 @@
                     <RadzenTextBox Value="@(_sel.AssignedTechId is null ? "" : TechText(_sel.AssignedTechId))" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
+
+            @if (_sel.PmClass is not null)
+            {
+                <RadzenRow Gap="8px" Style="margin-top:6px;">
+                    <RadzenColumn Size="4">
+                        <RadzenLabel Text="@L["MNT.PmSchedule.Col.Class"]" />
+                        <div style="padding-top:4px;"><span class="pill @(PmRules.IsMaint(_sel.PmClass) ? "mute" : "info")">@PmClassLabel(_sel.PmClass)</span></div>
+                    </RadzenColumn>
+                    <RadzenColumn Size="4">
+                        <RadzenLabel Text="@L["Col.NextDue"]" />
+                        <RadzenTextBox Value="@(_sel.PmDueDate?.ToString(DateFmt.Date) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                </RadzenRow>
+            }
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
@@ -232,6 +246,53 @@
                 <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Desc"]" />
                 <RadzenTextArea Value="@(_sel.ActionDesc ?? "")" Disabled="true" Rows="2" class="ames-rz-input" Style="width:100%;" />
             </RadzenStack>
+
+            @* 점검 항목 — PM 발행 때 템플릿(MD-027) 단계를 복사한 것. 진행 중이고 수정 권한이면 항목마다 결과·메모를 기록한다 *@
+            @if (_woTasks.Count > 0)
+            {
+                var canCheck = _canEdit && _sel.Status == MwoStatusCodes.InProgress;
+                <div class="mnt-chk">
+                    <div class="mnt-chk-h">
+                        <span>@L["MNT.WorkOrder.Chk.Title"] <span class="dim">@_woTasks.Count(t => MntResultCodes.IsChecked(t.Result)) / @_woTasks.Count</span></span>
+                        @if (!canCheck)
+                        {
+                            <span class="dim" style="font-size:var(--ames-fs-hint);">@L[_canEdit && !IsDone(_sel.Status) ? "MNT.WorkOrder.Chk.HintStart" : "MNT.WorkOrder.Chk.ReadOnly"]</span>
+                        }
+                    </div>
+                    @foreach (var t in _woTasks)
+                    {
+                        var task = t;
+                        <div class="mnt-chk-row">
+                            <div class="mnt-chk-top">
+                                <span class="code">@(task.TaskSeq?.ToString() ?? "—")</span>
+                                <span class="mnt-chk-name">@(task.TaskName ?? "—")</span>
+                                @if (canCheck)
+                                {
+                                    <RadzenDropDown TValue="string" Value="@(task.Result ?? MntResultCodes.Pending)" ValueChanged="@(v => SaveTaskResult(task, v, task.Note))" Data="@ChkResultOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                                }
+                                else
+                                {
+                                    <span class="pill @ChkCls(task.Result)">@ChkLabel(task.Result)</span>
+                                }
+                            </div>
+                            <div class="mnt-chk-sub dim">
+                                @if (!string.IsNullOrEmpty(task.AcceptanceCriteria)) { <span>@L["Col.PassCriteria"]: @task.AcceptanceCriteria</span> }
+                                @if (!string.IsNullOrEmpty(task.RequiredSparePartNo)) { <span>@L["Col.RequiredPart"]: @(task.PartNo is null ? task.RequiredSparePartNo : $"[{task.PartNo}] {task.PartName}") × @task.RequiredQty</span> }
+                                @if (task.StepDurationMin is int dm) { <span>@string.Format(L["MNT.WorkOrder.Chk.Minutes"].Value, dm)</span> }
+                                @if (task.CompletedAt is DateTime ca) { <span>@Actors.Display(task.CompletedBy) · @ca.ToString(DateFmt.DateTime)</span> }
+                            </div>
+                            @if (canCheck)
+                            {
+                                <RadzenTextBox Value="@(task.Note ?? "")" Change="@(v => SaveTaskResult(task, task.Result ?? MntResultCodes.Pending, v))" MaxLength="500" Placeholder="@L["MNT.WorkOrder.Chk.PhNote"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;margin-top:4px;" />
+                            }
+                            else if (!string.IsNullOrEmpty(task.Note))
+                            {
+                                <div class="mnt-chk-sub">@task.Note</div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
 
             @if (IsClosed(_sel.Status))
             {
@@ -292,6 +353,11 @@
                     </div>
                 }
                 <FailureTimelinePanel @key="f.FailureId" Failure="f" Caption="@(f.FailureNumber ?? $"F#{f.FailureId}")" Href="@(_canOpenFailure ? $"/mnt/failure?id={f.FailureId}" : null)" />
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
@@ -356,10 +422,23 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Result"]} *")' class="ames-rz-modal-label" Component="CompleteDropDownResult" />
-                    <RadzenDropDown Name="CompleteDropDownResult" @bind-Value="_f.Result" Data="@ResultOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown Name="CompleteDropDownResult" @bind-Value="_f.Result" Data="@ResultOptions" TextProperty="Text" ValueProperty="Value" DisabledProperty="Disabled" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CompletedAt"]} *")' class="ames-rz-modal-label" Component="CompleteDateAt" />
                     <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="CompleteDateAt" @bind-Value="_f.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
+                @* 미점검·불합격이 있으면 정상 완료는 막고(MwoChecklistRules), 불합격은 부분·후속 완료 때 CM 후속 작업지시로 넘어간다 *@
+                @if (TaskPending + TaskFailed > 0)
+                {
+                    <div class="pill warn" style="white-space:normal;">@string.Format(L["MNT.WorkOrder.Chk.WarnComplete"].Value, TaskPending, TaskFailed)</div>
+                }
+                @if (_sel.PmNeedsNextDue)
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                        <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.PmNextDue"]} *")' class="ames-rz-modal-label" Component="CompleteDatePmNext" />
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="CompleteDatePmNext" @bind-Value="_f.PmNextDue" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                        <span class="dim" style="flex:2;font-size:var(--ames-fs-hint);">@L["MNT.WorkOrder.Hint.PmNextDue"]</span>
+                    </RadzenStack>
+                }
                 @if (_f.Result is MwoResultCodes.Partial or MwoResultCodes.FollowUp && HasFailureSource(_sel))
                 {
                     <div class="pill warn" style="white-space:normal;">@L["MNT.WorkOrder.Hint.FollowUp"]</div>
@@ -511,11 +590,14 @@
     static readonly int[]    TopNs         = { 50, 100, 200, 500 };
     static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
 
-    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; public bool Disabled { get; set; } }
     public class TopNItem     { public string Text { get; set; } = ""; public int Value { get; set; } }
 
     // 상태 콤보: MNT_STATUS 공통코드 ∪ 데이터에만 있는 값
-    IEnumerable<DropDownItem> StatusFilterOptions   => WithDataValues(_statusItems.Where(c => c.UseFlag).Select(c => c.CodeValue ?? "").ToArray(), _allRows.Select(r => r.Status), StatusLabel);
+    // 「예정」은 상태 코드가 아니라 계산값 — 기본 목록에서는 빠지고 이 항목을 고르면 그것만 보인다
+    const string PlannedFilter = "*PLANNED";
+    IEnumerable<DropDownItem> StatusFilterOptions   => WithDataValues(_statusItems.Where(c => c.UseFlag).Select(c => c.CodeValue ?? "").ToArray(), _allRows.Select(r => r.Status), StatusLabel)
+        .Append(new DropDownItem { Value = PlannedFilter, Text = L["MNT.WorkOrder.Status.Planned"].Value });
     IEnumerable<DropDownItem> TypeOptions =>
         _typeItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     IEnumerable<DropDownItem> PriorityOptions => PriorityCodes.Select(p => new DropDownItem { Value = p, Text = p });
@@ -526,8 +608,12 @@
         .Concat(_allRows.Select(r => r.WoType).Where(t => t is { Length: > 0 } && !_typeItems.Any(c => c.CodeValue == t)).Distinct().Select(t => new DropDownItem { Value = t!, Text = $"[{t}]" }));
     IEnumerable<DropDownItem> PriorityFilterOptions => WithDataValues(PriorityCodes, _allRows.Select(r => r.Priority), p => p ?? "");
     IEnumerable<TopNItem>     TopNOptions           => TopNs.Select(n => new TopNItem { Value = n, Text = $"{n}{L["Lbl.Items"]}" });
+    // 미점검·불합격이 있으면 정상 완료는 고를 수 없다(MwoChecklistRules)
     IEnumerable<DropDownItem> ResultOptions =>
-        _resultItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+        _resultItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}",
+            Disabled = !MwoChecklistRules.Allows(c.CodeValue, TaskPending, TaskFailed) });
+    int TaskPending => _woTasks.Count(t => !MntResultCodes.IsChecked(t.Result));
+    int TaskFailed  => _woTasks.Count(t => t.Result == MntResultCodes.Fail);
     // 프로필이 없는(SYS-001 에 등록되지 않은) 계정은 고르지 못하게 뺀다 — 이미 저장된 담당자는 수정 창에서 빈칸이 되지 않게 남긴다
     IEnumerable<DropDownItem> TechOptions => _users.Where(u => (u.IsApproved || u.UserId == _f.TechId) && (!string.IsNullOrEmpty(u.EmployeeName) || !string.IsNullOrEmpty(u.UserName)))
         .Select(u => new DropDownItem { Value = u.UserId, Text = string.IsNullOrEmpty(u.EmployeeNo) ? (u.EmployeeName ?? u.UserName ?? u.UserId) : $"[{u.EmployeeNo}] {u.EmployeeName ?? u.UserName}" });   // 콤보 = [사번] 이름 (PM 보드와 같은 형식)
@@ -536,10 +622,12 @@
         codes.Concat(data.Where(v => v is { Length: > 0 } && !codes.Contains(v)).Distinct()!)
              .Select(c => new DropDownItem { Value = c!, Text = $"[{c}] {label(c)}" });
 
-    int OpenCount       => _allRows.Count(r => IsOpen(r.Status));
+    // 「예정」 PM 작업지시(PmRules — 예정일까지 N일보다 많이 남음)는 미착수·미배정에서 빼고 따로 센다
+    int OpenCount       => _allRows.Count(r => IsOpen(r.Status) && !r.Planned);
+    int PlannedCount    => _allRows.Count(r => r.Planned);
     int ProgCount       => _allRows.Count(r => IsProg(r.Status));
     int DoneCount       => _allRows.Count(r => IsDone(r.Status));
-    int UnassignedCount => _allRows.Count(r => !IsDone(r.Status) && string.IsNullOrEmpty(r.AssignedTechId));
+    int UnassignedCount => _allRows.Count(r => !IsDone(r.Status) && !r.Planned && string.IsNullOrEmpty(r.AssignedTechId));
 
     protected override async Task OnInitializedAsync()
     {
@@ -554,9 +642,30 @@
         try { _typeItems   = MD.ListCodeItems(MwoTypeCodes.Group); } catch { }
         try { _resultItems = MD.ListCodeItems(MwoResultCodes.Group); } catch { }
         try { _statusItems = MD.ListCodeItems(MwoStatusCodes.Group); } catch { }
+        try { _chkItems    = MD.ListCodeItems(MntResultCodes.Group); } catch { }
+        try { _pmClasses   = MD.ListCodeItems("PM_CLASS"); } catch { }
+        try { _leadDays    = Mnt.ReadPmLeadDays(); } catch { }
         try { _users       = Sys.ListUsers(500); } catch { }
         Reload();
+
+        // MNT-005·010 「PM 완료」 → ?id=작업지시&complete=1 — 목록(최근 N건) 밖이면 한 건을 따로 읽는다
+        if (QId is int qid)
+        {
+            MntRepository.MwoRow? row = _allRows.FirstOrDefault(r => r.WorkOrderId == qid);
+            if (row is null) try { row = Mnt.FindWorkOrder(qid); } catch { }
+            if (row is not null)
+            {
+                OpenDetail(row);
+                if (QComplete == 1 && _canApprove && MwoStatusRules.CanComplete(row.Status)) OpenComplete(row);
+            }
+        }
     }
+
+    [SupplyParameterFromQuery(Name = "id")]       public int? QId { get; set; }
+    [SupplyParameterFromQuery(Name = "complete")] public int? QComplete { get; set; }
+
+    List<MasterDataRepository.CodeItemRow> _pmClasses = new();   // 공통코드 PM_CLASS (EQUIP/MAINT)
+    int _leadDays = PmRules.DefaultLeadDays;
 
     RadzenDataGrid<MntRepository.MwoRow>? _pgGrid;
     int _pgIndex;
@@ -583,7 +692,7 @@
             (r.EquipId ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             EquipName(r.EquipId).Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             TechText(r.AssignedTechId).Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fStatus)   || r.Status   == _fStatus) &&
+        (_fStatus == PlannedFilter ? r.Planned : !r.Planned && (string.IsNullOrEmpty(_fStatus) || r.Status == _fStatus)) &&
         (string.IsNullOrEmpty(_fType)     || r.WoType   == _fType) &&
         (string.IsNullOrEmpty(_fPriority) || r.Priority == _fPriority)
     ).ToList();
@@ -617,6 +726,39 @@
     void LoadReleases(MntRepository.MwoRow r)
     {
         try { _woReleases = Mnt.ListWoPartReleases(WoNo(r)); } catch { _woReleases = new(); }
+        try { _woTasks    = Mnt.ListWorkOrderTasks(r.WorkOrderId); } catch { _woTasks = new(); }
+    }
+
+    // ── 점검 항목(MNT_WorkOrderTask) — 결과는 공통코드 MNT_RESULT ──
+    List<MntRepository.WoTaskRow> _woTasks = new();
+    List<MasterDataRepository.CodeItemRow> _chkItems = new();
+
+    IEnumerable<DropDownItem> ChkResultOptions =>
+        _chkItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = MasterDataRepository.LocalName(c) });
+
+    string ChkLabel(string? r) =>
+        _chkItems.FirstOrDefault(c => c.CodeValue == (r ?? MntResultCodes.Pending)) is { } c ? MasterDataRepository.LocalName(c) : r ?? "—";
+
+    static string ChkCls(string? r) => r switch
+    {
+        MntResultCodes.Pass => "ok",
+        MntResultCodes.Fail => "bad",
+        MntResultCodes.Na   => "mute",
+        _                   => "warn",
+    };
+
+    async Task SaveTaskResult(MntRepository.WoTaskRow task, string? result, string? note)
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = "";
+        var r = string.IsNullOrEmpty(result) ? MntResultCodes.Pending : result;
+        try
+        {
+            Mnt.SetWorkOrderTaskResult(task.WorkOrderTaskId, r, note, _actor);
+            Audit.Log("MNT-007", "CHECK", "MNT_WorkOrderTask", task.WorkOrderTaskId, task, new { Result = r, Note = note });
+            await AfterChange(_sel.WorkOrderId);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
     }
 
     List<MntRepository.FailureRow> _woFailures = new();
@@ -741,7 +883,7 @@
         LoadReleases(r);
         _f = new()
         {
-            Result = MwoResultCodes.Ok, CompletedAt = DbClock.Now, TechId = r.AssignedTechId ?? "",
+            Result = MwoChecklistRules.DefaultResult(TaskPending, TaskFailed), CompletedAt = DbClock.Now, TechId = r.AssignedTechId ?? "",
             // 착수 시각이 있으면 소요 시간 기본값 = 착수 → 지금
             LaborMinutes = r.StartedAt is { } st && st < DbClock.Now ? (int)Math.Round((DbClock.Now - st).TotalMinutes) : null,
         };
@@ -758,16 +900,21 @@
         if (_sel.IssuedAt is { } iss && _f.CompletedAt < iss) { _modalErr = L["MNT.WorkOrder.Err.CompletedBefore"]; return; }
         if (_f.LaborMinutes is < 0)                   { _modalErr = L["MNT.WorkOrder.Err.LaborInvalid"]; return; }
         if (string.IsNullOrWhiteSpace(_f.Action))     { _modalErr = L["MNT.WorkOrder.Err.ActionRequired"]; return; }
+        if (!MwoChecklistRules.Allows(_f.Result, TaskPending, TaskFailed)) { _modalErr = string.Format(L["MNT.WorkOrder.Err.ChecklistIncomplete"].Value, TaskPending, TaskFailed); return; }
+        if (_sel.PmNeedsNextDue && _f.PmNextDue is null) { _modalErr = L["MNT.WorkOrder.Err.PmNextDueRequired"]; return; }
+        if (_sel.PmNeedsNextDue && !PmRules.ValidManualNextDue(_f.PmNextDue, _f.CompletedAt.Value)) { _modalErr = L["MNT.WorkOrder.Err.PmNextDueInvalid"]; return; }
 
         _busy = true;
         try
         {
             var o = Mnt.CompleteWorkOrder(_sel.WorkOrderId, _f.Result, _f.Action.Trim(), NE(_f.RootCause), _f.LaborMinutes,
-                _f.CompletedAt.Value, NE(_f.TechId), _actor);
+                _f.CompletedAt.Value, NE(_f.TechId), _actor, _sel.PmNeedsNextDue ? _f.PmNextDue : null);
             Audit.Log("MNT-007", "COMPLETE", "MNT_WorkOrder", o.WoNumber, _sel, new { Status = MwoStatusCodes.Completed, Form = _f, Outcome = o });
             ShowMsg(CompleteMsg(o), false);
             await AfterChange(_sel.WorkOrderId);
         }
+        catch (MntRepository.ChecklistIncompleteException cx) { _modalErr = string.Format(L["MNT.WorkOrder.Err.ChecklistIncomplete"].Value, cx.Pending, cx.Failed); }
+        catch (MntRepository.PmNextDueRequiredException nx) { _modalErr = L[nx.Invalid ? "MNT.WorkOrder.Err.PmNextDueInvalid" : "MNT.WorkOrder.Err.PmNextDueRequired"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -779,6 +926,7 @@
         if (o.FailureNumber is not null) parts.Add(o.FollowUpWoNumber is { } fw
             ? string.Format(L["MNT.WorkOrder.Ok.FailureFollowUp"].Value, o.FailureNumber, fw)
             : string.Format(L["MNT.WorkOrder.Ok.FailureResolved"].Value, o.FailureNumber));
+        else if (o.FollowUpWoNumber is { } cw) parts.Add(string.Format(L["MNT.WorkOrder.Ok.CheckFollowUp"].Value, cw));
         if (o.PmPlanNumber  is not null) parts.Add(o.PmNextDue is { } nd
             ? string.Format(L["MNT.WorkOrder.Ok.PmAdvanced"].Value, o.PmPlanNumber, nd.ToString(DateFmt.Date))
             : string.Format(L["MNT.WorkOrder.Ok.PmDone"].Value, o.PmPlanNumber));
@@ -798,6 +946,7 @@
     {
         Reload();
         var again = _allRows.FirstOrDefault(r => r.WorkOrderId == woId);
+        if (again is null) try { again = Mnt.FindWorkOrder(woId); } catch { }
         if (again is not null) OpenDetail(again); else CloseModal();
         await InvokeAsync(StateHasChanged);
     }
@@ -816,6 +965,7 @@
         public string    WoType       { get; set; } = "";
         public string    Priority     { get; set; } = "";
         public string    Desc         { get; set; } = "";
+        public DateTime? PmNextDue    { get; set; }   // 기간 주기가 아닌 PM 의 다음 예정일(완료 때 입력)
     }
 
     // 현재 조회 결과(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
@@ -871,6 +1021,14 @@
     // 상태 라벨은 MNT_STATUS 공통코드 LocalName, 미등록 코드는 원문
     string StatusLabel(string? s) =>
         s is null ? "—" : _statusItems.FirstOrDefault(c => c.CodeValue == s) is { } c ? MasterDataRepository.LocalName(c) : s;
+    // 목록·상세 상태 — 「예정」(계산값)이면 상태 코드 대신 예정으로 보인다
+    string RowStatusLabel(MntRepository.MwoRow r) => r.Planned ? L["MNT.WorkOrder.Status.Planned"].Value : StatusLabel(r.Status);
+    static string RowStCls(MntRepository.MwoRow r) => r.Planned ? "info" : StCls(r.Status);
+    string? PlannedTip(MntRepository.MwoRow r) => r.Planned && r.PmDueDate is { } d
+        ? string.Format(L["MNT.WorkOrder.Hint.Planned"].Value, d.ToString(DateFmt.Date), _leadDays, StatusLabel(r.Status)) : null;
+    string PmClassLabel(string? c) =>
+        c is null ? "—" : _pmClasses.FirstOrDefault(x => x.CodeValue == c) is { } i ? MasterDataRepository.LocalName(i) : c;
+
     static string StCls(string? s) => s switch
     {
         MwoStatusCodes.Issued     => "bad",
@@ -899,6 +1057,7 @@
         "FAILURE" => L["MNT.WorkOrder.Src.Failure"],
         "ANDON"   => L["MNT.WorkOrder.Src.Andon"],
         "MANUAL"  => L["MNT.WorkOrder.Src.Manual"],
+        MntRepository.CheckFollowUpSource => L["MNT.WorkOrder.Src.Check"],
         _         => s,
     };
 

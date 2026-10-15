@@ -53,6 +53,28 @@
             </div>
         }
     }
+    @if (Failure.DowntimeId is int dt)
+    {
+        @* 라인 정지(PP_LineDowntimeLog) — 웹 고장의 「라인 정지」·안돈이 연 비가동, 10-16 *@
+        <div class="mnt-tl-dt">
+            <span class="pill @(Failure.DowntimeEnd is null && Failure.DowntimeStart is not null ? "bad" : "mute")">@L["MNT.Failure.Tl.LineStop"]</span>
+            <span class="code">#@dt</span>
+            @if (Failure.DowntimeStart is { } ds)
+            {
+                <span>@Failure.DowntimeLineId</span>
+                <span>@ds.ToString(DateFmt.DateTime) ~ @(Failure.DowntimeEnd?.ToString(DateFmt.DateTime) ?? L["MNT.Failure.Tl.LineStopOpen"].Value)</span>
+                <span class="dim">@MinText((int)Math.Max(0, ((Failure.DowntimeEnd ?? DbClock.Now) - ds).TotalMinutes))</span>
+                @if (!Failure.DowntimeOwned)
+                {
+                    <span class="dim">@L["MNT.Failure.Tl.LineStopShared"]</span>
+                }
+            }
+            else
+            {
+                <span class="dim">@L["MNT.Failure.Tl.LineStopGone"]</span>
+            }
+        </div>
+    }
 </div>
 
 @code {

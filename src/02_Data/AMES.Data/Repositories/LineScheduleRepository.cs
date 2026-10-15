@@ -506,7 +506,7 @@ public sealed class LineScheduleRepository
     }
 
     // ── PM 후보 (MNT_PMSchedule → 해당 라인 설비) ─────────────────────────────
-    // 라인은 설비(MD_Equipment.LineID)로 해석. 마감(완료)된 PM은 제외.
+    // 라인은 설비(MD_Equipment.LineID)로 해석. 취소된 PM 과 보전 PM(MAINT — 라인을 멈추지 않는 점검, PmRules)은 제외.
     public sealed record PmCandidate(
         int PmScheduleId, string EquipId, string? EquipName, string? PmType, DateTime? NextDueDate, string? PmClass = null);
 
@@ -517,7 +517,8 @@ public sealed class LineScheduleRepository
             FROM   dbo.MNT_PMSchedule p
             JOIN   dbo.MD_Equipment   e ON e.EquipID = p.EquipID
             WHERE  e.LineID = @LineId
-              AND  ISNULL(p.Status,'') NOT IN ('CLOSED','DONE','CANCELLED')
+              AND  ISNULL(p.Status,'') <> 'CANCELLED'
+              AND  ISNULL(p.PMClass,'') <> 'MAINT'
             ORDER  BY p.NextDueDate, p.EquipID;
             """;
         using var conn = _f.OpenConnection();

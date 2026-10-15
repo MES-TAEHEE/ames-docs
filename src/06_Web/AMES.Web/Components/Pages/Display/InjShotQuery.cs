@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Web.Components.Pages.Display;
@@ -39,10 +40,13 @@ public static partial class InjShotQuery
 
     static async Task<IReadOnlyList<Tile>> QueryAsync(AmesConnectionFactory factory, CancellationToken ct)
     {
-        const string sql = """
+        // 상태는 MNT-001 과 같은 자동 판정(EquipStatusRules): 멈추는 고장 → STOP, 착수된 PM 작업지시 → PM, 그 밖은 카드의 수동 상태
+        const string sql = $"""
             SELECT l.LineID, l.LineName, l.LotPrefix,
                    e.EquipID, e.EquipName, e.MakerModel,
-                   st.Status AS EquipStatus,
+                   CASE WHEN EXISTS (SELECT 1 FROM dbo.MNT_FailureRegister f WHERE f.EquipID = e.EquipID AND {EquipStatusRules.StopFailureSql}) THEN '{EquipStatusRules.Down}'
+                        WHEN EXISTS (SELECT 1 FROM dbo.MNT_WorkOrder w WHERE w.EquipID = e.EquipID AND {EquipStatusRules.PmInProgressSql}) THEN '{EquipStatusRules.Pm}'
+                        ELSE st.Status END AS EquipStatus,
                    COALESCE(st.MountedMoldID, lastLot.MoldID) AS MoldID,
                    CAST(CASE WHEN st.MountedMoldID IS NULL AND lastLot.MoldID IS NOT NULL THEN 1 ELSE 0 END AS bit) AS FromLastLot,
                    m.MoldName, m.RatedShots, m.CurrentShots, m.Tonnage AS MoldTonnage, l.LineNameEn, lastLot.LotID AS LastLotID, e.Tonnage AS EquipTonnage

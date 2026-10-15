@@ -1,5 +1,6 @@
 ﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-14 from the development DB (192.168.0.132) with SMO.
--- 175 tables / 2430 columns, 38 procedures, 0 views, 0 functions.
+-- 175 tables / 2435 columns, 38 procedures, 0 views, 0 functions.
+-- 2026-10-16: MD_PmTemplateStep·MNT_WorkOrderTask 블록만 개발 DB 에서 다시 떠 반영(migrate_mnt_pm_checklist.sql).
 -- Excludes TEST_* tables and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
 -- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).
 -- Schema only from the live database; sample seeds below are retained from the repository.
@@ -2263,8 +2264,8 @@ CREATE TABLE [dbo].[MD_PmTemplateStep](
 	[StepSeq] [int] NULL,
 	[StepDescription] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[AcceptanceCriteria] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
-	[RequiredPartNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[RequiredQty] [decimal](10, 3) NULL,
+	[RequiredSparePartNo] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
+	[RequiredQty] [int] NULL,
 	[StepDurationMin] [int] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -2288,9 +2289,9 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Step Descripti
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Acceptance Criteria · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'AcceptanceCriteria'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Required Part No · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'RequiredPartNo'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'필요 예비품 · MD_SparePart.SparePartNo · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'RequiredSparePartNo'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Required Qty · decimal(10,3)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'RequiredQty'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'필요 수량 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'RequiredQty'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Step Duration Min · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PmTemplateStep', @level2type=N'COLUMN',@level2name=N'StepDurationMin'
 GO
@@ -3478,7 +3479,6 @@ CREATE TABLE [dbo].[MNT_WorkOrder](
 	[StartedAt] [datetime2](7) NULL,
 	[CompletedAt] [datetime2](7) NULL,
 	[ClosedAt] [datetime2](7) NULL,
-	[DowntimeID] [int] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -3534,8 +3534,6 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완료 시각 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마감 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'ClosedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'다운타임 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'DowntimeID'
-GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrder', @level2type=N'COLUMN',@level2name=N'CreatedTS'
@@ -3552,8 +3550,13 @@ GO
 CREATE TABLE [dbo].[MNT_WorkOrderTask](
 	[WorkOrderTaskID] [int] IDENTITY(1,1) NOT NULL,
 	[WorkOrderID] [int] NULL,
+	[PMStepID] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
 	[TaskSeq] [int] NULL,
-	[TaskName] [nvarchar](120) COLLATE Korean_Wansung_CI_AS NULL,
+	[TaskName] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
+	[AcceptanceCriteria] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
+	[RequiredSparePartNo] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
+	[RequiredQty] [int] NULL,
+	[StepDurationMin] [int] NULL,
 	[TaskType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Result] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
@@ -3570,19 +3573,35 @@ CREATE TABLE [dbo].[MNT_WorkOrderTask](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MNT_WorkOrderTask] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+CREATE NONCLUSTERED INDEX [IX_MNT_WorkOrderTask_WorkOrderID] ON [dbo].[MNT_WorkOrderTask]
+(
+	[WorkOrderID] ASC,
+	[TaskSeq] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[MNT_WorkOrderTask] ADD  CONSTRAINT [DF_MNT_WorkOrderTask_CreatedTS]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Work Order Task ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'WorkOrderTaskID'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'정비 WO ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'WorkOrderID'
 GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'원래 PM 템플릿 단계 · MD_PmTemplateStep.PMStepID · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'PMStepID'
+GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Task Seq · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'TaskSeq'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Task Name · nvarchar(120)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'TaskName'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'점검 항목 · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'TaskName'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'합격 기준 · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'AcceptanceCriteria'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'필요 예비품 · MD_SparePart.SparePartNo · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'RequiredSparePartNo'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'필요 수량 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'RequiredQty'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'단계 소요 시간(분) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'StepDurationMin'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Task Type · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'TaskType'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결과 (OK/FAIL 등) · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'Result'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'점검 결과 · 공통코드 MNT_RESULT (PASS/FAIL/NA/PENDING) · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'Result'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'비고 · nvarchar(500)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'Note'
 GO
@@ -5230,6 +5249,7 @@ CREATE TABLE [dbo].[PP_LineDowntimeLog](
 	[WoID] [int] NULL,
 	[LoggedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[AndonID] [int] NULL,
+	[FailureID] [int] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -5263,6 +5283,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'LoggedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'안돈 콜 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'AndonID'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'이 비가동을 연 고장 ID (MNT_FailureRegister — 웹 고장의 라인 정지, 안돈·PP-DTL 행은 NULL) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'FailureID'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO

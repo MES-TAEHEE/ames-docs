@@ -100,9 +100,12 @@ public sealed partial class PpRepository
         decimal Availability, decimal Performance, decimal Quality, decimal OEE);
 
     public sealed record DowntimeRow(int DowntimeId, string? LineId, DateTime? StartTs, DateTime? EndTs,
-        int DurationMin, string? ReasonCode, string? CauseCode, string? Comment, int? WoId, int? AndonId = null)
+        int DurationMin, string? ReasonCode, string? CauseCode, string? Comment, int? WoId, int? AndonId = null,
+        int? FailureId = null, string? FailureNumber = null)   // 보전 고장의 「라인 정지」가 연 행(10-16)
     {
-        public bool IsPop => AMES.Data.Services.DowntimeEntryRules.IsPopRow(AndonId);
+        public bool IsPop    => AMES.Data.Services.DowntimeEntryRules.IsPopRow(AndonId);
+        public bool IsMaint  => FailureId is not null;
+        public bool IsLocked => AMES.Data.Services.DowntimeEntryRules.IsLockedRow(AndonId, FailureId);
     }
 
     /// <summary>PP-DTL 웹 등록·수정 입력. EndTs 없음 = 진행 중.</summary>
@@ -1641,18 +1644,19 @@ public sealed partial class PpRepository
         int      limit        = 500)
     {
         var sql = $"""
-            SELECT TOP (@Limit) DowntimeID, LineID, StartTS, EndTS,
-                   ISNULL(DurationMin,0) AS DurationMin,
-                   ReasonCode, CauseCode, Comment, WoID, AndonID
-            FROM   dbo.PP_LineDowntimeLog
+            SELECT TOP (@Limit) d.DowntimeID, d.LineID, d.StartTS, d.EndTS,
+                   ISNULL(d.DurationMin,0) AS DurationMin,
+                   d.ReasonCode, d.CauseCode, d.Comment, d.WoID, d.AndonID, d.FailureID, f.FailureNumber
+            FROM   dbo.PP_LineDowntimeLog d
+            LEFT JOIN dbo.MNT_FailureRegister f ON f.FailureID = d.FailureID
             WHERE  1=1
-            {(lineId     != null ? "AND LineID     = @LineId "      : "")}
-            {(from       != null ? "AND StartTS   >= @From "        : "")}
-            {(to         != null ? "AND StartTS   <  @To "          : "")}
-            {(status == "open"   ? "AND EndTS     IS NULL "         : "")}
-            {(status == "closed" ? "AND EndTS     IS NOT NULL "     : "")}
-            {(reasonCode != null ? "AND ReasonCode = @ReasonCode "  : "")}
-            ORDER BY StartTS DESC;
+            {(lineId     != null ? "AND d.LineID     = @LineId "      : "")}
+            {(from       != null ? "AND d.StartTS   >= @From "        : "")}
+            {(to         != null ? "AND d.StartTS   <  @To "          : "")}
+            {(status == "open"   ? "AND d.EndTS     IS NULL "         : "")}
+            {(status == "closed" ? "AND d.EndTS     IS NOT NULL "     : "")}
+            {(reasonCode != null ? "AND d.ReasonCode = @ReasonCode "  : "")}
+            ORDER BY d.StartTS DESC;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
@@ -1669,7 +1673,8 @@ public sealed partial class PpRepository
                 rdr["StartTS"] as DateTime?, rdr["EndTS"] as DateTime?,
                 (int)rdr["DurationMin"], rdr["ReasonCode"] as string,
                 rdr["CauseCode"] as string, rdr["Comment"] as string,
-                rdr["WoID"] as int?, rdr["AndonID"] as int?));
+                rdr["WoID"] as int?, rdr["AndonID"] as int?,
+                rdr["FailureID"] as int?, rdr["FailureNumber"] as string));
         return list;
     }
 
@@ -1725,15 +1730,15 @@ public sealed partial class PpRepository
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
-        int? andonId;
-        using (var chk = new SqlCommand("SELECT AndonID FROM dbo.PP_LineDowntimeLog WITH (UPDLOCK, HOLDLOCK) WHERE DowntimeID = @Id;", conn, tx))
+        int? andonId, failureId;
+        using (var chk = new SqlCommand("SELECT AndonID, FailureID FROM dbo.PP_LineDowntimeLog WITH (UPDLOCK, HOLDLOCK) WHERE DowntimeID = @Id;", conn, tx))
         {
             chk.Parameters.Add("@Id", SqlDbType.Int).Value = downtimeId;
-            var v = chk.ExecuteScalar();
-            if (v is null) { tx.Rollback(); return DowntimeSaveResult.NotFound; }
-            andonId = v as int?;
+            using var r = chk.ExecuteReader();
+            if (!r.Read()) { r.Close(); tx.Rollback(); return DowntimeSaveResult.NotFound; }
+            andonId = r["AndonID"] as int?; failureId = r["FailureID"] as int?;
         }
-        if (AMES.Data.Services.DowntimeEntryRules.IsPopRow(andonId)) { tx.Rollback(); return DowntimeSaveResult.NotEditable; }
+        if (AMES.Data.Services.DowntimeEntryRules.IsLockedRow(andonId, failureId)) { tx.Rollback(); return DowntimeSaveResult.NotEditable; }
         if (HasDowntimeOverlap(conn, tx, e.LineId, e.StartTs, e.EndTs, exceptId: downtimeId)) { tx.Rollback(); return DowntimeSaveResult.Overlap; }
 
         const string sql = """
@@ -1746,7 +1751,7 @@ public sealed partial class PpRepository
                 Comment     = @Comment,
                 ModifiedBy  = @By,
                 ModifiedTS  = SYSDATETIME()
-            WHERE DowntimeID = @Id AND AndonID IS NULL;
+            WHERE DowntimeID = @Id AND AndonID IS NULL AND FailureID IS NULL;
             """;
         using var cmd = new SqlCommand(sql, conn, tx);
         AddDowntimeEntryParams(cmd, e, actor);
