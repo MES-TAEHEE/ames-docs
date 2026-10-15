@@ -28,7 +28,7 @@
 | --- | --- | --- | --- | --- | ---------------------------------------------------------------------------------- |
 | 심재현 | 23  | 7   | 7묶음 | 32  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · 안돈 보전 호출 작업지시(요청 22) |
 | 안영훈 | 6(적용·검증 3·요청 2·알림 1) | 4 | 3 | 5 | WH PDA 구 프로시저 참조 · 서버 Web·Api/IIS 반영 · 포장 단위 기존 데이터 정책 · PDA 예비품 출고에 보전 작업지시 연결(요청 — 10-16 「예정」·새 출처 반영) · 재구축 목록 MNT 3건 |
-| 이승욱 | 0   | 3   | 5   | 0   | 개발 DB 마이그레이션 대기(PM 도래 일수) · PP-OEE 가동률이 시연 데이터                                                                        |
+| 이승욱 | 0   | 3   | 5   | 0   | 개발서버 새 패키지 반영 · PP-OEE 가동률이 시연 데이터                                                                        |
 | 오세영 | 5   | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                      |
 
 ### 지금 결정이 필요한 것(이승욱 작업분)
@@ -37,7 +37,7 @@
    - PP-002 「자동 확정」 스위치가 없고, 배정(ASSIGNED) 상태 작업지시의 착수 버튼이 숨습니다(개발 DB 1건 — MWO-2609-004).
    - **최신 패키지**: `publish\AMES.Web_20261016-031608.zip`·`publish\AMES.Api_20261016-031716.zip`(10-16 03:17, 또는 `publish\AMES.Web`·`AMES.Api` 폴더 — .NET 10.0.13 런타임 포함, 개발서버에서 `/swagger` 를 켜는 판). 10-15 NuGet 업데이트·두 번째 원격 병합(WH·FG·SCM·Api)·보전 상태 공통코드·종료·수동 발행(10-15)에 더해 10-16 MNT 작업(설비 상태 자동 판정·고장 라인 정지·PM 점검 항목·점검 완료 규칙·PM 일정 규칙·안돈 고장 작업지시 발행)과 원격의 SYS-002 역할 사용자 목록 팝업까지 들어 있습니다. 반영 뒤 그 PC 에서 관리자로 `tools\iis-watchdog.ps1 -Install` 을 한 번 실행하고, Api 는 안영훈 2-1 1 의 IIS 상시 기동 설정도 같이 적용합니다.
    - **개발 DB 는 이 패키지에 필요한 마이그레이션이 모두 적용돼 있습니다**: 10-15 6개(`migrate_md_paint_fabric_lotno`·`migrate_sys_auditlog_actiontype`·`migrate_by_columns_employee_no`·`migrate_fg_customer_return_columns`·`migrate_wh_fg_scm_column_lengths`·`migrate_fg_location_type`), `migrate_mnt_status_code`(10-15), `migrate_mnt_pm_checklist`(10-16), `migrate_mnt_failure_downtime`(10-16 — 뒤에 감사 컬럼 정리는 `PP_LineDowntimeLog` 만; `FG_CustomerReturn` 은 안영훈 문제점 5 처리 뒤). 마지막 두 개는 이 패키지의 Web 과 짝이라, 개발서버의 구 Web 은 MD-027 점검 단계 조회가 실패할 수 있습니다 — 패키지 반영을 미루지 않습니다.
-   - **개발 DB 미적용(선택)**: `migrate_mnt_pm_lead_days`(10-16 — SYS_Config `MNT_PM_LEAD_DAYS` 행만 추가, 로컬 DB 적용). 행이 없어도 코드는 7일로 동작하고, SYS-009 에서 값을 바꾸려면 적용합니다.
+   - `migrate_mnt_pm_lead_days`(10-16 — SYS_Config `MNT_PM_LEAD_DAYS` 행만 추가, 기본 7)도 개발·로컬 DB 모두 적용했습니다(SYS-009 Maintenance 에서 값을 바꿉니다).
    - **반영한 뒤에** `dist/migrate_retire_packaging_uom.sql`(안영훈 10-14 — `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 삭제, 단위 BOX·PLT·SH 사용 안 함)을 개발 DB 와 로컬 DB 에 적용합니다. 지금 개발서버 Web 은 이 컬럼을 읽으므로 먼저 적용하면 MD-003·SCM 발주가 깨집니다. 두 DB 모두 아직 적용 전이고, 스키마 파일은 적용 뒤 구조(컬럼 없음)입니다. 적용 전에 안영훈 문제점 4(남는 데이터) 처리 방향을 정하는 것이 좋습니다.
 2. **PP-OEE 가동률 원천**: 지금은 시연 데이터(`PP_LineStateLog`)로 계산됩니다. 실제로 쌓이는 비가동 기록(`PP_LineDowntimeLog`)으로 바꿀지 정해야 합니다(이승욱 테이블 2).
 3. **화면 저장 검증**: 아래 변경은 DB 테스트·리포지토리 왕복(로컬 DB)·화면 열기(헤드리스)로만 확인했고, 화면에서 실제로 저장해 보지는 않았습니다.
@@ -433,7 +433,8 @@
   - Data 1,258건 중 1,240 통과, 10 실패, 8 건너뜀(Data 테스트는 10-15 부터 직렬 실행)
   - 실패 10건은 모두 기존 항목입니다(PlanScheduleTests 5, WorkOrderRepositoryTests 4, GetMoldItems 1 — 심재현 보류).
 - **헤드리스 확인 10-16 03시**(로컬 IIS·개발 DB, ko, 1920): MNT-007(상태 필터 「예정」·`?id=&complete=1` 로 완료 창 바로 열림)·MNT-002(작업지시 없는 안돈 고장의 「작업지시 발행」)·MNT-005·MNT-009(PM 예정 「설비 n · 보전 m」·보전 PM 타일)·SYS-002(역할 사용자 팝업)가 Blazor 오류·가로 넘침 없이 열립니다. 저장은 하지 않았고, 점검 로그인의 admin 기록은 되돌렸습니다.
-- **두 DB 구조(10-15 06시)**: 그 뒤 10-16 MNT 마이그레이션 2개(`migrate_mnt_pm_checklist`·`migrate_mnt_failure_downtime`)는 두 DB 에 같게 적용했고 `PP_LineDowntimeLog`·`MNT_WorkOrder` 구조가 같은 것을 확인했습니다. `SYS_Config.MNT_PM_LEAD_DAYS` 행은 로컬 DB 에만 있습니다(데이터 행이라 구조 비교 대상 아님). 개발 DB 를 기준으로 로컬 DB 를 비교해 **같습니다** — 테이블 175개의 컬럼 순서·형식·NULL·콜레이션·IDENTITY·기본값, 인덱스(키·포함 열·필터), CHECK, 외래키, 프로시저·뷰·함수 정의(도구 `AppData\Local\AMES-claude-tools\schema_compare.ps1`).
+- **두 DB 구조(10-15 06시)**: 개발 DB 를 기준으로 로컬 DB 를 비교해 **같습니다** — 테이블 175개의 컬럼 순서·형식·NULL·콜레이션·IDENTITY·기본값, 인덱스(키·포함 열·필터), CHECK, 외래키, 프로시저·뷰·함수 정의(도구 `AppData\Local\AMES-claude-tools\schema_compare.ps1`).
+  - 그 뒤 10-16 MNT 마이그레이션 3개(`migrate_mnt_pm_checklist`·`migrate_mnt_failure_downtime`·`migrate_mnt_pm_lead_days`)를 두 DB 에 같게 적용했고, `PP_LineDowntimeLog`·`MNT_WorkOrder` 구조가 같은 것을 확인했습니다.
   - 맞추면서 로컬에 한 것: 두 번째 병합의 마이그레이션 3개 적용(그 전에 `WH_InventoryTransaction` 268행 `OperatorID` 를 개발 DB 처럼 NULL 로 — 길이 마이그레이션이 20바이트를 넘는 값을 거부), 개발 DB 에만 있던 `SCM_ItemVendor.PackingUnitCode` 추가, `FG_CustomerReturn.PartName` 을 개발 DB 처럼 맨 끝으로.
   - 두 DB 모두 `migrate_retire_packaging_uom.sql` 적용 전이라 `BoxContentUnit/Qty` 4개가 남아 있습니다(0절 1).
   - 스키마 파일과 개발 DB 의 차이: 위 4개 컬럼(스키마 파일은 적용 뒤 구조)과 `FG_CustomerReturn.PartName` 위치(안영훈 문제점 5).
