@@ -29,7 +29,7 @@
             @foreach(var item in _draftCases)
             {
                 <button type="button" class="case-tile @(_activeCase==item?"active":"")" @onclick="()=>SelectDraftCase(item)" disabled="@_busy">
-                    <RadzenIcon Icon="inventory_2" /><strong>Pallet @(_draftCases.IndexOf(item)+1)</strong><span>@item.Count boxes</span>
+                    <RadzenIcon Icon="inventory_2" /><strong>Pallet (Case) @(_draftCases.IndexOf(item)+1)</strong><span>@item.Count boxes</span>
                 </button>
             }
             @foreach(var item in _loose)
@@ -39,7 +39,7 @@
                 </button>
             }
             <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Case")' disabled="@_busy">
-                <RadzenIcon Icon="add_box" /><strong>Add Pallet</strong>
+                <RadzenIcon Icon="add_box" /><strong>Add Pallet (Case)</strong>
             </button>
             <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Box")' disabled="@_busy"><RadzenIcon Icon="inventory" /><strong>Add Box</strong></button>
             <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Part")' disabled="@_busy"><RadzenIcon Icon="category" /><strong>Add Part</strong></button>
@@ -47,8 +47,8 @@
         @if(_activeCase is {} detail)
         {
             <div class="case-detail">
-                <div class="case-toolbar"><strong>Pallet @(_draftCases.IndexOf(detail)+1)</strong>
-                    <RadzenButton Text="Remove Pallet" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="()=>RemoveDraftCase(detail)" Disabled="@_busy" />
+                <div class="case-toolbar"><strong>Pallet (Case) @(_draftCases.IndexOf(detail)+1)</strong>
+                    <RadzenButton Text="Remove Pallet (Case)" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="()=>RemoveDraftCase(detail)" Disabled="@_busy" />
                 </div>
                 <div class="case-table-scroll"><table class="ames-table">
                     <thead><tr><th>Box</th><th>PO No</th><th>Part No / Name</th><th>Qty</th></tr></thead>
@@ -69,7 +69,7 @@
     @if(NoteBoxes.Any())
     {
         <section class="ames-card case-review">
-            <div class="ames-card-h">Review Delivery Note · @_draftCases.Count pallets · @NoteBoxCount boxes · @_loose.Count(i=>i.IsPart) individual parts</div>
+            <div class="ames-card-h">Review Delivery Note · @_draftCases.Count pallets (cases) · @NoteBoxCount boxes · @_loose.Count(i=>i.IsPart) individual parts</div>
             <div class="case-table-scroll"><table class="ames-table">
                 <thead><tr><th>PO No</th><th>Part No / Name</th><th>Selected Qty</th><th>Boxes / Parts</th></tr></thead>
                 <tbody>@foreach(var item in NoteBoxes.GroupBy(b=>new { b.Row.Order, b.Row.Part.Item, b.Row.Part.Name, b.Row.Part.Unit }))
@@ -82,17 +82,17 @@
         </section>
     }
     <div class="case-toolbar case-create-footer">
-        <label>Delivery Date <RadzenDatePicker TValue="DateTime" @bind-Value="_deliveryDate" DateFormat="@DateFmt.Date" Disabled="@_busy" /></label>
+        <label>Delivery Date <input type="date" class="ames-input" @bind="_deliveryDate" @bind:format="yyyy-MM-dd" disabled="@_busy" /></label>
         <RadzenButton Text="Create Delivery Note" Icon="description" Click="CreateNote" Disabled="@(_busy || _draftCases.Count+_loose.Count==0)" />
     </div>
 }
 @if(_allowed && _editingCase)
 {
     <section class="ames-card">
-        <div class="ames-card-h">Add @(_editingKind=="Case"?"Pallet":_editingKind) · Confirmed Purchase Orders</div>
+        <div class="ames-card-h">Add @(_editingKind=="Case"?"Pallet (Case)":_editingKind) · Confirmed Purchase Orders</div>
         <div class="case-po-scroll"><table class="ames-table">
-            <thead><tr><th></th><th>PO No</th><th>PO Date ↓</th><th>Supplier</th><th>Destination</th><th>Due Date</th><th>Status</th></tr></thead>
-            <tbody>@foreach(var order in _orders.OrderByDescending(o=>o.Ordered).ThenByDescending(o=>o.Number))
+            <thead><tr><th></th><th>PO No</th><th>PO Date ↑</th><th>Supplier</th><th>Destination</th><th>Due Date</th><th>Status</th></tr></thead>
+            <tbody>@foreach(var order in _orders.OrderBy(o=>o.Ordered).ThenBy(o=>o.Number))
             {
                 var expanded=_expandedOrders.Contains(order.Number);
                 var boxes=_draft.Where(b=>b.Row.Order==order.Number).ToList();
@@ -106,7 +106,7 @@
                         <section class="case-step">
                         <div class="case-step-heading"><span class="case-step-number">1</span><div><h3>Set quantities</h3><p>Enter the delivery quantity. @(_editingKind=="Part"?"Individual parts":"Boxes") update automatically.</p></div></div>
                         <div class="case-table-scroll case-part-table"><table class="ames-table">
-                            <thead><tr><th>Part No / Name</th><th>Available</th><th>Total Delivery Qty</th><th>@(_editingKind=="Part"?"Parts Needed":"Boxes Needed")</th></tr></thead>
+                            <thead><tr><th>Part No / Name</th><th>Qty to Deliver</th><th>Total Delivery Qty</th><th>@(_editingKind=="Part"?"Parts Needed":"Boxes Needed")</th></tr></thead>
                             <tbody>@foreach(var row in _parts.Where(p=>p.Order==order.Number))
                             {
                                 <tr @key="row.Part.PoID" class="@(Available(row)<=0?"case-part-unavailable":"")"><td>@row.Part.Item<div class="dim">@row.Part.Name</div></td>
@@ -119,8 +119,8 @@
                                             @foreach(var item in VisibleCases.Where(c=>c.Boxes.Any(b=>b.PoID==row.Part.PoID)))
                                             {<div class="case-allocation">@item.Number · Already packed</div>}
                                             @foreach(var draftCase in _draftCases.Where(c=>c.Any(b=>b.Row.Part.PoID==row.Part.PoID)))
-                                            {<div class="case-allocation">Pallet @(_draftCases.IndexOf(draftCase)+1) · Added to this note</div>}
-                                            @if(documents.Length==0 && row.Part.Prepared==0){<div class="dim">@(row.Part.Received>0?"Already received":"No available quantity")</div>}
+                                            {<div class="case-allocation">Pallet (Case) @(_draftCases.IndexOf(draftCase)+1) · Added to this note</div>}
+                                            @if(documents.Length==0 && row.Part.Prepared==0){<div class="dim">@(row.Part.Received>0?"Already received":"Nothing left to send")</div>}
                                         }
                                     </td>
                                     <td><label class="case-quantity-editor"><input class="ames-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="0"
@@ -170,12 +170,12 @@
                 }
             }</tbody>
         </table></div>
-        @if(_orders.Count==0){<p class="case-empty">No confirmed purchase orders with available quantities.</p>}
+        @if(_orders.Count==0){<p class="case-empty">No confirmed purchase orders with quantities left to send.</p>}
     </section>
     @if(_draft.Any(b=>b.Selected))
     {
         <section class="ames-card case-review">
-            <div class="ames-card-h">Selected for @(_editingKind=="Case"?"Pallet":_editingKind)</div>
+            <div class="ames-card-h">Selected for @(_editingKind=="Case"?"Pallet (Case)":_editingKind)</div>
             <div class="case-table-scroll"><table class="ames-table">
                 <thead><tr><th>PO No</th><th>Part No / Name</th><th>Qty to Add</th><th>@(_editingKind=="Part"?"Parts":"Boxes")</th></tr></thead>
                 <tbody>@foreach(var item in _draft.Where(b=>b.Selected).GroupBy(b=>new { b.Row.Order, b.Row.Part.Item, b.Row.Part.Name, b.Row.Part.Unit }))
@@ -249,13 +249,9 @@
     decimal Available(PartEdit row)=>Math.Max(0,row.Part.Available-_draftCases.SelectMany(c=>c).Where(b=>b.Row.Part.PoID==row.Part.PoID).Sum(b=>b.Quantity)
         -_loose.Where(i=>i.Box.Row.Part.PoID==row.Part.PoID).Sum(i=>i.Box.Quantity));
     decimal PackSize(PartEdit row)=>_editingKind=="Part"?1:row.Part.PackingQty;
-    string BoxCapacityText(PartEdit row)=>row.Part.Unit=="BOX" && row.Part.BoxContentQty>0
-        ? $"{QtyFormat.Text(row.Part.BoxContentQty.Value,row.Part.BoxContentUnit)} {UomFmt.Sym(row.Part.BoxContentUnit)} / box"
-        : $"{QtyFormat.Text(PackSize(row),row.Part.Unit)} {UomFmt.Sym(row.Part.Unit)} / box";
+    string BoxCapacityText(PartEdit row)=>$"{QtyFormat.Text(PackSize(row),row.Part.Unit)} {UomFmt.Sym(row.Part.Unit)} / box";
     string QtyWithContents(decimal qty,ScmRepository.CasePart part)
-        =>part.Unit=="BOX" && part.BoxContentQty>0 && !string.IsNullOrWhiteSpace(part.BoxContentUnit)
-            ? $"{QtyFormat.Text(qty,part.Unit)} BOX ({QtyFormat.Text(qty*part.BoxContentQty.Value,part.BoxContentUnit)} {UomFmt.Sym(part.BoxContentUnit)})"
-            : $"{QtyFormat.Text(qty,part.Unit)} {UomFmt.Sym(part.Unit)}";
+        =>$"{QtyFormat.Text(qty,part.Unit)} {UomFmt.Sym(part.Unit)}";
     bool CanPack(PartEdit row)=>(_editingKind!="Part" || row.Part.Unit=="EA")
         && (row.Part.Issue.Length==0 || _editingKind=="Part" && row.Part.Issue=="Packing quantity missing");
     bool _allowed,_busy,_quantityError;
@@ -271,22 +267,21 @@
         var key=$"{_user}|{order}";if(_loadedKey==key)return;_loadedKey=key;
         _selectedOrders.Clear();_expandedOrders.Clear();
         if(order.Length>0){_selectedOrders.Add(order);_expandedOrders.Add(order);}
-        Reload();
+        await Reload();
     }
-    void Reload()
+    async Task Reload()
     {
         if(!_allowed)return;
         _error="";_message="";
         try
         {
-            _orders=Scm.ListPurchaseOrders(true,_user,confirmedOnly:true,packableOnly:true)
-                .Where(o=>o.Status is "Open" or "Partial" && o.SupplierConfirmedAt.HasValue && o.Lines.Any(l=>l.ItemExists)).ToList();
+            var data=await Task.Run(()=>(Orders:Scm.ListPurchaseOrders(true,_user,confirmedOnly:true,packableOnly:true),Cases:Scm.ListDeliveryCases(null,_user),Deliveries:Scm.ListSupplierDeliveries(true,_user)));
+            _orders=data.Orders.Where(o=>o.Status is "Open" or "Partial" && o.SupplierConfirmedAt.HasValue && o.Lines.Any(l=>l.ItemExists && MasterDataRepository.IsQuantityUnit(l.Unit))).ToList();
             _selectedOrders.RemoveWhere(n=>!_orders.Any(p=>p.Number==n));
-            _cases=Scm.ListDeliveryCases(null,_user);
-            _deliveries=Scm.ListSupplierDeliveries(true,_user);
-            LoadParts();
+            _cases=data.Cases;_deliveries=data.Deliveries;
+            await LoadParts();
         }
-        catch(Exception ex){_orders=[];_cases=[];_deliveries=[];_parts=[];_draft=[];Fail(ex,"Unable to load PO items and cases.");}
+        catch(Exception ex){_orders=[];_cases=[];_deliveries=[];_parts=[];_draft=[];Fail(ex,"Unable to load PO items and pallets (cases).");}
     }
     bool CanSelectOrder(ScmRepository.PurchaseOrder order)
     {
@@ -295,24 +290,29 @@
         var first=_orders.FirstOrDefault(o=>o.Number==selectedOrder);
         return first is null||(first.Vendor==order.Vendor && first.Destination==order.Destination);
     }
-    void ToggleOrder(string order)
+    async Task ToggleOrder(string order)
     {
         if(_busy)return;
         if(_expandedOrders.Remove(order))return;
         _expandedOrders.Add(order);
         if(!_selectedOrders.Add(order))return;
-        try{LoadParts(true);}catch(Exception ex){_parts=[];_draft=[];Fail(ex,"Unable to load PO items.");}
+        try{await LoadParts(true);}catch(Exception ex){_parts=[];_draft=[];Fail(ex,"Unable to load PO items.");}
     }
-    void LoadParts(bool preserve=false)
+    int _partsLoadId;
+    async Task LoadParts(bool preserve=false)
     {
-        var previous=_parts.ToDictionary(p=>p.Part.PoID);_parts=[];
-        foreach(var order in _selectedOrders.Order(StringComparer.Ordinal))
-            _parts.AddRange(Scm.ListCaseParts(order,_user).Where(p=>p.Available>0).Select(p=>new PartEdit(order,p)
+        var request=++_partsLoadId;
+        var orders=_selectedOrders.Order(StringComparer.Ordinal).ToArray();
+        var parts=await Task.Run(()=>orders.SelectMany(order=>Scm.ListCaseParts(order,_user)
+            .Where(p=>p.Available>0 && MasterDataRepository.IsQuantityUnit(p.Unit)).Select(p=>(Order:order,Part:p))).ToList());
+        if(request!=_partsLoadId)return;
+        var previous=_parts.ToDictionary(p=>p.Part.PoID);
+        _parts=parts.Select(p=>new PartEdit(p.Order,p.Part)
             {
-                Quantity=preserve&&previous.TryGetValue(p.PoID,out var old)?old.Quantity:0,
-                QuantityText=preserve&&previous.TryGetValue(p.PoID,out var text)?text.QuantityText:"",
-                InputValid=!preserve||!previous.TryGetValue(p.PoID,out var valid)||valid.InputValid
-            }));
+                Quantity=preserve&&previous.TryGetValue(p.Part.PoID,out var old)?old.Quantity:0,
+                QuantityText=preserve&&previous.TryGetValue(p.Part.PoID,out var text)?text.QuantityText:"",
+                InputValid=!preserve||!previous.TryGetValue(p.Part.PoID,out var valid)||valid.InputValid
+            }).ToList();
         RebuildBoxes();
     }
     void ChangeQuantity(PartEdit row,string? text)
@@ -321,20 +321,24 @@
         var valid=decimal.TryParse(row.QuantityText,System.Globalization.NumberStyles.None,System.Globalization.CultureInfo.InvariantCulture,out var qty);
         row.Quantity=valid?qty:0;row.InputValid=row.QuantityText.Length==0||valid;RebuildBoxes();
     }
-    void SavePacking(PartEdit row)
+    async Task SavePacking(PartEdit row)
     {
         if(_busy||!_allowed||row.Part.Unit=="BOX")return;
         if(row.NewPackingQty is null or <=0 || decimal.Truncate(row.NewPackingQty.Value)!=row.NewPackingQty.Value)
         {_error="Enter a positive whole-number Qty / Box.";return;}
         var order=_orders.FirstOrDefault(o=>o.Number==row.Order);
         if(order is null)return;
+        _busy=true;
         try
         {
-            if(!Scm.CreatePortalPackingQuantity(_user,row.Part.Item,order.Vendor,row.NewPackingQty.Value))
+            if(!await Task.Run(()=>Scm.CreatePortalPackingQuantity(_user,row.Part.Item,order.Vendor,row.NewPackingQty.Value)))
             {_error="Packing quantity changed or item setup is incomplete. Refresh and check Packing Quantities.";return;}
-            LoadParts(true);_message=$"Qty / Box saved for {row.Part.Item}.";
+            Audit.Updated("PORTAL-004", "SCM_ItemVendor", $"{order.Vendor}/{row.Part.Item}",
+                new { PackingQty=row.Part.PackingQty }, new { PackingQty=row.NewPackingQty });
+            await LoadParts(true);_message=$"Qty / Box saved for {row.Part.Item}.";
         }
         catch(Exception ex){Fail(ex,"Unable to save Qty / Box.");}
+        finally{_busy=false;}
     }
     void RebuildBoxes()
     {
@@ -343,7 +347,7 @@
         bool Valid(PartEdit p)=>p.InputValid&&p.Quantity>=0&&p.Quantity<=Available(p)&&decimal.Truncate(p.Quantity)==p.Quantity&&
             (p.Quantity==0||(PackSize(p)>0&&CanPack(p)));
         _quantityError=_parts.Any(p=>!Valid(p));
-        if(_quantityError)_error="Enter whole-number quantities within the available PO balance and check packing quantities.";
+        if(_quantityError)_error="Enter whole-number quantities within the quantity left to send and check packing quantities.";
         if(_parts.Where(Valid).Sum(p=>PackSize(p)>0?decimal.Ceiling(p.Quantity/PackSize(p)):0)+_draftCases.Sum(c=>c.Count)+_loose.Count>1000)
         {_quantityError=true;_error="At most 1,000 boxes can be prepared at once.";return;}
         foreach(var row in _parts.Where(p=>Valid(p)&&p.Quantity>0))
@@ -374,7 +378,7 @@
     }
     void CancelCase()
     {
-        _editingCase=false;_draft=[];_parts=[];_error="";
+        ++_partsLoadId;_editingCase=false;_draft=[];_parts=[];_error="";
     }
     void CompleteCase()
     {
@@ -407,14 +411,16 @@
         if(_busy||!_allowed||_editingCase||_draftCases.Count+_loose.Count==0)return;_busy=true;_createdNote="";
         try
         {
-            var note=Scm.CreateDeliveryNoteFromDraftCases(_draftCases.Select(boxes=>new ScmRepository.CaseDraftInput(
+            var cases=_draftCases.Select(boxes=>new ScmRepository.CaseDraftInput(
                 boxes.Select(b=>b.Row.Order).Distinct().ToArray(),
-                boxes.Select(b=>new ScmRepository.CaseBoxInput(b.Row.Part.PoID,b.Quantity)).ToArray())).ToArray(),_deliveryDate,_user,_actor,
-                _loose.Select(i=>new ScmRepository.LooseItemInput(i.Box.Row.Order,i.Box.Row.Part.PoID,i.Box.Quantity,i.IsPart)).ToArray());
-            _draftCases.Clear();_loose.Clear();_activeCase=null;_activeLoose=null;Reload();_createdNote=note.Number;_message=$"{note.Number} created.";
+                boxes.Select(b=>new ScmRepository.CaseBoxInput(b.Row.Part.PoID,b.Quantity)).ToArray())).ToArray();
+            var loose=_loose.Select(i=>new ScmRepository.LooseItemInput(i.Box.Row.Order,i.Box.Row.Part.PoID,i.Box.Quantity,i.IsPart)).ToArray();
+            var date=_deliveryDate;
+            var note=await Task.Run(()=>Scm.CreateDeliveryNoteFromDraftCases(cases,date,_user,_actor,loose));
+            _draftCases.Clear();_loose.Clear();_activeCase=null;_activeLoose=null;await Reload();_createdNote=note.Number;_message=$"{note.Number} created.";
             LogCreated("SCM_DeliveryNote",note.Number);await Changed.InvokeAsync();
         }
-        catch(Exception ex){Fail(ex,"Unable to create Delivery Note. Check the date, PO balances and selected cases.");}
+        catch(Exception ex){Fail(ex,"Unable to create Delivery Note. Check the date, PO balances and selected pallets (cases).");}
         finally{_busy=false;}
     }
     void LogCreated(string table,string number)

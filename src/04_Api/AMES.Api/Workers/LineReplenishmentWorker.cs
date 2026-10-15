@@ -22,10 +22,19 @@ public sealed class LineReplenishmentWorker(AmesConnectionFactory factory,
                     var result = new WarehouseRepository(factory).GenerateLinePickingOrders();
                     log.LogInformation("Line replenishment: {Orders} orders, {Lines} materials, {Invalid} invalid requests",
                         result.Orders, result.Lines, result.InvalidRequests);
+                    new SysRepository(factory).UpsertInterfaceMonitor("WH-REPLENISH", "Line replenishment", "", 10,
+                        ok: result.InvalidRequests == 0, recordCount: result.Lines,
+                        error: result.InvalidRequests == 0 ? null : $"{result.InvalidRequests} invalid material requests", actor: "WH-AUTO");
                 }
                 catch (Exception ex)
                 {
                     log.LogError(ex, "Line replenishment failed; will retry on the next 10-minute tick");
+                    try
+                    {
+                        new SysRepository(factory).UpsertInterfaceMonitor("WH-REPLENISH", "Line replenishment", "", 10,
+                            ok: false, recordCount: null, error: ex.GetType().Name + ": " + ex.Message, actor: "WH-AUTO");
+                    }
+                    catch (Exception monitorError) { log.LogWarning(monitorError, "Unable to record replenishment failure"); }
                 }
             }
         }

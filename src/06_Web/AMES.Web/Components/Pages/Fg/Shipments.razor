@@ -28,9 +28,9 @@
             <RadzenTextBox @bind-Value="_search" Placeholder="Search barcode, LOT, part or operator"
                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;"
                            @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
-            <RadzenDatePicker @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base"
                           Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />

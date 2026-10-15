@@ -102,6 +102,42 @@ public class CoreItemDbTests
         Assert.Equal(77, Expected.Length);
     }
 
+    // 10-14 — 웹 WO 발행은 InjFlag 기준(ReadByInjFlag): 코어+레일(31건)은 품명 CORE 로 골라 품명 규칙과 같은 코어가 나와야 한다
+    [SkippableFact]
+    public void ReadByInjFlag_resolves_every_master_list_assembly_to_the_same_core()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Skip.If((int)Scalar(f, "SELECT COUNT(*) FROM dbo.MD_Item WHERE ItemType='ASSY' AND CreatedBy='seed';")! != 77,
+                "BOM Master List seed (77 ASSY) not applied");
+        Skip.If((int)Scalar(f, "SELECT COUNT(*) FROM dbo.MD_Item WHERE InjFlag = 1;")! == 0, "MD_Item.InjFlag not set");
+        using var conn = f.OpenConnection();
+        var bad = new List<string>();
+        foreach (var (assy, core) in Expected)
+        {
+            var r = CoreItemResolver.ReadByInjFlag(conn, null, assy);
+            if (r.Outcome != CoreItemResolver.Outcome.Core || r.CoreItemNo != core)
+                bad.Add($"{assy}: {r.Outcome} {r.CoreItemNo}");
+        }
+        Assert.Empty(bad);
+    }
+
+    [SkippableFact]
+    public void ReadByInjFlag_uses_injflag_and_effective_versions()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        try
+        {
+            // 유효 버전 자식 Core 는 InjFlag 0 → 사출품이 아니다(서브조립인데 하위가 없음 = Missing). InjFlag 를 켜면 Core
+            using var conn = f.OpenConnection();
+            Assert.Equal(CoreItemResolver.Outcome.Missing, CoreItemResolver.ReadByInjFlag(conn, null, Fg).Outcome);
+            Exec(f, "UPDATE dbo.MD_Item SET InjFlag = 1 WHERE ItemNo IN (@C, @O, @D);", ("@C", Core), ("@O", Old), ("@D", Draft));
+            var r = CoreItemResolver.ReadByInjFlag(conn, null, Fg);
+            Assert.Equal((CoreItemResolver.Outcome.Core, Core), (r.Outcome, r.CoreItemNo));   // 만료·DRAFT 버전의 자식은 보지 않는다
+        }
+        finally { Cleanup(f); }
+    }
+
     [SkippableFact]
     public void Dev_seed_maps_a_mold_and_inj_bop_to_exactly_the_resolver_core()
     {

@@ -39,9 +39,9 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
-        <PackageReference Include="Radzen.Blazor" Version="11.1.2" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.13" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.13" />
+        <PackageReference Include="Radzen.Blazor" Version="12.1.2" />
     </ItemGroup>
 
     <ItemGroup>

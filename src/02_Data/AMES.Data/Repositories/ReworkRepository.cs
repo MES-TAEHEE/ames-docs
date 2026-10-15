@@ -160,7 +160,7 @@ public sealed class ReworkRepository
         cmd.Parameters.Add("@Disp",  SqlDbType.VarChar,  20 ).Value = disposition;
         cmd.Parameters.Add("@Cause", SqlDbType.VarChar,  16 ).Value = causeCode;
         cmd.Parameters.Add("@Note",  SqlDbType.NVarChar, 500).Value = string.IsNullOrWhiteSpace(note) ? DBNull.Value : note.Trim();
-        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  50 ).Value = employeeNo;
+        cmd.Parameters.Add("@By",    SqlDbType.VarChar,  20 ).Value = employeeNo;
         cmd.Parameters.Add("@Op",    SqlDbType.VarChar,   20).Value = operatorId;
         cmd.ExecuteNonQuery();
     }

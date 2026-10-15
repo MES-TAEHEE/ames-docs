@@ -255,7 +255,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.NextPm"]" class="ames-rz-modal-label" Component="CardDateNextPm" />
-                    <RadzenDatePicker TValue="DateTime?" Name="CardDateNextPm" @bind-Value="_f.NextPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="CardDateNextPm" @bind-Value="_f.NextPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text="@L["Col.MoldId"]" class="ames-rz-modal-label" Component="CardDropDownMold" />
                     <RadzenDropDown AllowFiltering="true" Name="CardDropDownMold" @bind-Value="_f.MountedMoldId" Data="@MoldOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>

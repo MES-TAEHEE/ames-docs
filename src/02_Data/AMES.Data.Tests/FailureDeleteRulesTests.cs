@@ -10,7 +10,7 @@ public class FailureDeleteRulesTests
     [Theory]
     [InlineData("OPEN",        "WEB",   1,    "ISSUED",      B.None)]
     [InlineData("OPEN",        null,    null, null,          B.None)]
-    [InlineData(null,          "WEB",   1,    "OPEN",        B.None)]
+    [InlineData(null,          "WEB",   1,    "ASSIGNED",    B.None)]
     [InlineData("REGISTERED",  "WEB",   1,    "ISSUED",      B.None)]
     [InlineData("OPEN",        "WEB",   1,    null,          B.None)]      // 연결 WO 행이 없어진 경우
     [InlineData("IN_PROGRESS", "WEB",   1,    "IN_PROGRESS", B.NotOpen)]

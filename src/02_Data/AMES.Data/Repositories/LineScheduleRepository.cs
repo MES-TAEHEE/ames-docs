@@ -65,25 +65,6 @@ public sealed class LineScheduleRepository
         return list;
     }
 
-    public void PlaceWo(string lineId, DateTime date, int woId,
-                        int startMin, int endMin, decimal plannedQty)
-    {
-        const string sql = """
-            INSERT INTO dbo.PP_LineSchedule
-                   (LineID, ScheduleDate, WoID, StartMin, EndMin, PlannedQty, Status)
-            VALUES (@LineId, @Date, @WoId, @Start, @End, @Qty, 'Planned');
-            """;
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@LineId", SqlDbType.VarChar, 20).Value = lineId;
-        cmd.Parameters.Add("@Date",   SqlDbType.Date).Value        = date.Date;
-        cmd.Parameters.Add("@WoId",   SqlDbType.Int).Value         = woId;
-        cmd.Parameters.Add("@Start",  SqlDbType.SmallInt).Value         = startMin;
-        cmd.Parameters.Add("@End",    SqlDbType.SmallInt).Value         = endMin;
-        cmd.Parameters.Add("@Qty",    SqlDbType.Decimal).Value     = plannedQty;
-        cmd.ExecuteNonQuery();
-    }
-
     public void RemoveSlot(int scheduleId)
     {
         using var conn = _f.OpenConnection();
@@ -100,6 +81,28 @@ public sealed class LineScheduleRepository
         int StartMin, int EndMin, decimal PlannedQty, string? Status,
         string? EntryType, string? Title, string? RefType, int? RefId,
         string? MoldId = null);
+
+    public sealed record ScheduleAuditRow(string Kind, string Time, string? WoNumber, decimal Qty, string? MoldId, string? Title, string? Ref);
+    public sealed record ScheduleAuditView(string? PatternId, IReadOnlyList<ScheduleAuditRow> Rows);
+
+    /// <summary>
+    /// PP-LSB 「적용」·「초기화」 감사 로그용 요약(10-14) — 행마다 종류(WO·PM·MC)·시각(HH:mm–HH:mm)·WO 번호·수량·금형·제목·연계를
+    /// 시작 시각 순으로. 행이 없으면 null(=그 라인·날짜에 저장된 계획 없음). 테스트: LineScheduleAuditViewTests.
+    /// </summary>
+    public static ScheduleAuditView? AuditView(IEnumerable<ScheduleRow> rows)
+    {
+        var list = rows.OrderBy(r => r.StartMin).ThenBy(r => r.ScheduleId).ToList();
+        if (list.Count == 0) return null;
+        static string Hm(int m) => $"{m / 60:00}:{m % 60:00}";
+        return new ScheduleAuditView(
+            list.Select(r => r.PatternId).FirstOrDefault(p => !string.IsNullOrEmpty(p)),
+            list.Select(r => new ScheduleAuditRow(
+                string.IsNullOrEmpty(r.EntryType) ? "WO" : r.EntryType!,
+                $"{Hm(r.StartMin)}–{Hm(r.EndMin)}",
+                r.WoNumber ?? (r.WoId is int w ? $"#{w}" : null),
+                r.PlannedQty, r.MoldId, r.Title,
+                string.IsNullOrEmpty(r.RefType) ? null : $"{r.RefType}:{r.RefId}")).ToList());
+    }
 
     /// <summary>보드가 읽은 (라인, 일자) 행 집합의 지문 — 적용·초기화 때 DB 의 현재 행과 비교해 그 사이 바뀌었으면 거부한다.</summary>
     public static string VersionOf(IEnumerable<ScheduleRow> rows)

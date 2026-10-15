@@ -12,21 +12,11 @@ public sealed class FinishedGoodsRepository
     public FinishedGoodsRepository(AmesConnectionFactory factory) => _factory = factory;
 
     public record ReturnRow(
-        int ReturnId,
-        string ReturnNumber,
-        string? RmaNo,
-        string? CustomerCode,
-        int? ShipmentOrderId,
-        string? ShipmentOrderNumber,
-        string? CustomerPo,
-        string? ItemNo,
-        decimal Qty,
-        string? ReturnReason,
-        string? Status,
-        DateTime? ReceivedAt,
-        string? ReceivedBy,
-        bool CapaTriggered,
-        string? ItemsJson);
+        int ReturnId, string CustomerId, string? CustomerName,
+        int ShipmentOrderId, string? ShipmentOrderNumber, string? CustomerPo,
+        string PartNo, string PartName, string? LotNo, decimal Qty,
+        string? ReturnReason, string? Status, DateTime? ReceivedAt,
+        string? ReceivedBy, string? Note);
 
     public record ShipmentRow(
         long TransactionId,
@@ -114,58 +104,29 @@ public sealed class FinishedGoodsRepository
         DateTime? to = null)
     {
         const string sql = """
-            SELECT
-                R.ReturnID,
-                R.ReturnNumber,
-                R.RMANo,
-                R.CustomerCode,
-                R.OriginalShipmentOrderID,
-                O.ShipOrderNumber,
-                O.CustomerPO,
-                COALESCE(R.ItemNo, JSON_VALUE(R.ItemsJSON, '$[0].itemNo')) AS ItemNo,
-                COALESCE(R.ReturnQty, TRY_CONVERT(decimal(14,3), JSON_VALUE(R.ItemsJSON, '$[0].qty'))) AS Qty,
-                R.ReturnReason,
-                R.Status,
-                R.ReceivedAt,
-                R.ReceivedBy,
-                CAST(ISNULL(R.CapaTriggered, 0) AS bit) AS CapaTriggered,
-                R.ItemsJSON
+            SELECT R.ReturnID,R.CustomerID,C.CustomerName,R.ShipmentOrderID,O.ShipOrderNumber,
+                O.CustomerPO,R.PartNo,R.PartName,R.LotNo,R.ReturnQty AS Qty,R.ReturnReason,
+                R.Status,R.ReceivedAt,R.ReceivedBy,R.Note
             FROM dbo.FG_CustomerReturn R
-            LEFT JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID = R.OriginalShipmentOrderID
-            WHERE (@Status IS NULL OR UPPER(R.Status) = UPPER(@Status))
-              AND (@From IS NULL OR R.ReceivedAt >= @From)
-              AND (@To IS NULL OR R.ReceivedAt < DATEADD(day, 1, @To))
-              AND (@Search IS NULL
-                   OR R.ReturnNumber LIKE @Search
-                   OR R.RMANo LIKE @Search
-                   OR R.CustomerCode LIKE @Search
-                   OR R.ReturnReason LIKE @Search
-                   OR R.ReceivedBy LIKE @Search
-                   OR O.ShipOrderNumber LIKE @Search
-                   OR R.ItemsJSON LIKE @Search)
-            ORDER BY R.ReceivedAt DESC, R.ReturnID DESC;
+            LEFT JOIN dbo.FG_ShipmentOrder O ON O.ShipmentOrderID=R.ShipmentOrderID
+            LEFT JOIN dbo.MD_Customer C ON C.CustomerID=R.CustomerID
+            WHERE (@Status IS NULL OR UPPER(R.Status)=UPPER(@Status))
+              AND (@From IS NULL OR R.ReceivedAt>=@From)
+              AND (@To IS NULL OR R.ReceivedAt<DATEADD(day,1,@To))
+              AND (@Search IS NULL OR CONVERT(varchar(20),R.ReturnID) LIKE @Search
+                  OR R.CustomerID LIKE @Search OR C.CustomerName LIKE @Search
+                  OR R.PartNo LIKE @Search OR R.PartName LIKE @Search OR R.LotNo LIKE @Search
+                  OR R.ReturnReason LIKE @Search OR R.ReceivedBy LIKE @Search OR O.ShipOrderNumber LIKE @Search)
+            ORDER BY R.ReceivedAt DESC,R.ReturnID DESC;
             """;
-
-        return Query(sql, r => new ReturnRow(
-            GetInt(r, "ReturnID"),
-            GetString(r, "ReturnNumber") ?? "",
-            GetString(r, "RMANo"),
-            GetString(r, "CustomerCode"),
-            GetNullableInt(r, "OriginalShipmentOrderID"),
-            GetString(r, "ShipOrderNumber"),
-            GetString(r, "CustomerPO"),
-            GetString(r, "ItemNo"),
-            GetDecimal(r, "Qty"),
-            GetString(r, "ReturnReason"),
-            GetString(r, "Status"),
-            GetDate(r, "ReceivedAt"),
-            GetString(r, "ReceivedBy"),
-            GetBool(r, "CapaTriggered"),
-            GetString(r, "ItemsJSON")),
-            ("@Search", "FG_CustomerReturn.ReceivedBy", Like(search)),
-            ("@Status", "FG_CustomerReturn.Status", NullIfBlank(status)),
-            ("@From", "FG_CustomerReturn.ReceivedAt", from?.Date),
-            ("@To", null, to?.Date));
+        return Query(sql,r=>new ReturnRow(GetInt(r,"ReturnID"),GetString(r,"CustomerID") ?? "",
+            GetString(r,"CustomerName"),GetInt(r,"ShipmentOrderID"),GetString(r,"ShipOrderNumber"),
+            GetString(r,"CustomerPO"),GetString(r,"PartNo") ?? "",GetString(r,"PartName") ?? "",
+            GetString(r,"LotNo"),GetDecimal(r,"Qty"),GetString(r,"ReturnReason"),GetString(r,"Status"),
+            GetDate(r,"ReceivedAt"),GetString(r,"ReceivedBy"),GetString(r,"Note")),
+            ("@Search","FG_CustomerReturn.ReceivedBy",Like(search)),
+            ("@Status","FG_CustomerReturn.Status",NullIfBlank(status)),
+            ("@From","FG_CustomerReturn.ReceivedAt",from?.Date),("@To",null,to?.Date));
     }
 
     public List<ShipmentPlanSourceRow> ListShipmentPlanSources(string? search = null)
@@ -324,7 +285,7 @@ public sealed class FinishedGoodsRepository
         {
             using var readCmd = new SqlCommand("""
                 SELECT ShipOrderNumber, Source, Status,
-                       CASE WHEN EXISTS (SELECT 1 FROM dbo.FG_CustomerReturn WHERE OriginalShipmentOrderID=@ID)
+                       CASE WHEN EXISTS (SELECT 1 FROM dbo.FG_CustomerReturn WHERE ShipmentOrderID=@ID)
                              THEN 1 ELSE 0 END AS HasDependencies
                 FROM dbo.FG_ShipmentOrder WITH (UPDLOCK, HOLDLOCK)
                 WHERE ShipmentOrderID=@ID;
@@ -676,9 +637,9 @@ public sealed class FinishedGoodsRepository
                 SELECT
                     COALESCE(R.ReceivedAt, R.CreatedTS),
                     'RETURN',
-                    CAST(COALESCE(R.ReturnNumber, R.RMANo, CONCAT('RETURN-', R.ReturnID)) AS nvarchar(80)),
-                    CAST(R.CustomerCode AS nvarchar(80)),
-                    CAST(COALESCE(R.ReturnQty, TRY_CONVERT(decimal(14,3), JSON_VALUE(R.ItemsJSON, '$[0].qty')), 0) AS decimal(14,3)),
+                    CAST(R.ReturnID AS nvarchar(80)),
+                    CAST(R.CustomerID AS nvarchar(80)),
+                    CAST(ISNULL(R.ReturnQty,0) AS decimal(14,3)),
                     NULL,
                     CAST(COALESCE(R.ReceivedBy, R.CreatedBy) AS nvarchar(120)),
                     CAST(R.Status AS nvarchar(40)),

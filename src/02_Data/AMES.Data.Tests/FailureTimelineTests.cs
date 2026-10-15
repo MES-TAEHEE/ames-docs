@@ -33,6 +33,21 @@ public class FailureTimelineTests
         Assert.Equal("베어링 마모 → 교체", steps[1].Note);
     }
 
+    // 10-15 — 작업지시 종료로 수리 없이 닫힌 고장: 종료 단계에 사유, 해결 시각·소요가 없다
+    [Fact]
+    public void Closed_without_repair_shows_the_close_reason_and_no_resolution()
+    {
+        var steps = Build(Rep, "W001", "CLOSED", null, new[]
+        {
+            new FailureTimeline.Action("ARRIVED", Rep.AddMinutes(5),  "W003", null),
+            new FailureTimeline.Action("CLOSED",  Rep.AddMinutes(20), null,   "중복 등록"),
+        });
+        Assert.Equal(new[] { Kind.Reported, Kind.Arrived, Kind.Closed }, steps.Select(s => s.Kind));
+        Assert.Equal(("중복 등록", 20), (steps[2].Note, steps[2].Minutes));
+        Assert.True(IsResolved("CLOSED"));
+        Assert.Null(ElapsedMinutes(Rep, "CLOSED", null, Rep.AddMinutes(60)));
+    }
+
     [Fact]
     public void Partial_fix_then_repair_shows_both_steps_with_notes()
     {
@@ -73,7 +88,7 @@ public class FailureTimelineTests
     [InlineData("IN_PROGRESS", new[] { "ARRIVED" },          Stage.Arrived)]
     [InlineData("IN_PROGRESS", new[] { "ARRIVED", "ACK" },   Stage.Acked)]
     [InlineData("RESOLVED",    new string[0],                Stage.Resolved)]
-    [InlineData("CLOSED",      new[] { "ARRIVED" },          Stage.Resolved)]
+    [InlineData("CLOSED",      new[] { "ARRIVED" },          Stage.Closed)]    // 작업지시 종료로 수리 없이 닫힘(10-15)
     [InlineData("OPEN",        new[] { "REPAIRED" },         Stage.Waiting)]   // 해결은 등록 행 상태가 정본
     [InlineData("IN_PROGRESS", new[] { "PARTIAL" },          Stage.Acked)]     // 임시 조치 = 조치 중(10-14)
     [InlineData("IN_PROGRESS", new[] { "ARRIVED", "FOLLOWUP" }, Stage.Acked)]

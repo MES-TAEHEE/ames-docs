@@ -147,7 +147,7 @@ MD: { cols: 4, tables: [
     ['MatCode','VARCHAR(20)',''],
     ['MatName','NVARCHAR(60)',''],
     ['MatType','VARCHAR(14)',''],
-    ['LotNo','VARCHAR(24)',''],
+    ['LotNo','NVARCHAR(50)',''],
     ['SupplierID','VARCHAR(20)','FK:MD_Vendor.VendorID'],
     ['UOM','VARCHAR(10)','FK:MD_Uom.UOMCode'],
     ['QtyOnHand','DECIMAL(12,3)',''],
@@ -580,7 +580,7 @@ PP: { cols: 4, tables: [
     ['Confidence','VARCHAR(10)',''],
     ['Source','VARCHAR(20)',''],
     ['ImportedAt','DATETIME2',''],
-    ['ImportedBy','NVARCHAR(450)','FK:AspNetUsers.Id']
+    ['ImportedBy','VARCHAR(20)','FK:AspNetUsers.Id']
   ]},
   {name:'PP_ForecastHistory', ko:'예측 이력', cols:[
     ['HistoryID','BIGINT IDENTITY','PK'],
@@ -589,7 +589,7 @@ PP: { cols: 4, tables: [
     ['PrevQty','DECIMAL(14,3)',''],
     ['NewQty','DECIMAL(14,3)',''],
     ['ChangedAt','DATETIME2',''],
-    ['ChangedBy','NVARCHAR(450)','FK:AspNetUsers.Id']
+    ['ChangedBy','VARCHAR(20)','FK:AspNetUsers.Id']
   ]},
   {name:'PP_CustomerOrder', ko:'수주 (SO)', cols:[
     ['SoID','INT IDENTITY','PK'],
@@ -611,7 +611,7 @@ PP: { cols: 4, tables: [
     ['PlanPeriod','DATE',''],
     ['Status','VARCHAR(20)',''],
     ['ConfirmedAt','DATETIME2',''],
-    ['ConfirmedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['ConfirmedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['SapImportBatch','VARCHAR(40)','']
   ]},
   {name:'PP_SupplyPlanDetail', ko:'공급계획 상세', cols:[
@@ -648,7 +648,7 @@ PP: { cols: 4, tables: [
     ['TerminalLock','VARCHAR(20)',''],
     ['Priority','TINYINT',''],
     ['ReleasedAt','DATETIME2',''],
-    ['ReleasedBy','NVARCHAR(450)','FK:AspNetUsers.Id']
+    ['ReleasedBy','VARCHAR(20)','FK:AspNetUsers.Id']
   ]},
   {name:'PP_WorkOrderRouting', ko:'WO 라우팅 (BOP 스냅샷)', cols:[
     ['RoutingLineID','INT IDENTITY','PK'],
@@ -699,7 +699,7 @@ PP: { cols: 4, tables: [
   {name:'PP_MRPLog', ko:'MRP 실행 로그', cols:[
     ['MrpRunID','INT IDENTITY','PK'],
     ['RunAt','DATETIME2',''],
-    ['RunBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['RunBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['HorizonStart','DATE',''],
     ['HorizonEnd','DATE',''],
     ['WosConsidered','INT',''],
@@ -741,7 +741,7 @@ PP: { cols: 4, tables: [
     ['CauseCode','VARCHAR(30)',''],
     ['Comment','NVARCHAR(500)',''],
     ['WoID','INT','FK:PP_WorkOrder.WoID'],
-    ['LoggedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['LoggedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['AndonID','INT','FK:PR_AndonCall.AndonID']
   ]},
   {name:'PP_LineOEE', ko:'OEE 스냅샷', cols:[
@@ -856,7 +856,7 @@ PR: { cols: 4, tables: [
     ['CorrectiveAction','NVARCHAR(500)',''],
     ['Disposition','VARCHAR(20)',''],
     ['DetectedAt','DATETIME2',''],
-    ['RegisteredBy','NVARCHAR(450)','FK:AspNetUsers.Id']
+    ['RegisteredBy','VARCHAR(20)','FK:AspNetUsers.Id']
   ]},
   {name:'PR_DefectAutoLink', ko:'불량 자동 원인', cols:[
     ['LinkID','INT IDENTITY','PK'],
@@ -888,7 +888,7 @@ PR: { cols: 4, tables: [
     ['DowntimeMin','INT',''],
     ['StartedAt','DATETIME2',''],
     ['CompletedAt','DATETIME2',''],
-    ['ChangedBy','NVARCHAR(450)','FK:AspNetUsers.Id']
+    ['ChangedBy','VARCHAR(20)','FK:AspNetUsers.Id']
   ]},
   {name:'PR_ShotCount', ko:'금형 쇼트 이력', cols:[
     ['ShotCountID','BIGINT IDENTITY','PK'],
@@ -918,7 +918,7 @@ PR: { cols: 4, tables: [
     ['RuleID','VARCHAR(20)',''],
     ['Severity','VARCHAR(10)',''],
     ['TriggeredAt','DATETIME2',''],
-    ['AckedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['AckedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['AckedAt','DATETIME2',''],
     ['ReasonCode','VARCHAR(30)',''],
     ['CorrectiveAction','NVARCHAR(500)',''],
@@ -951,8 +951,8 @@ PR: { cols: 4, tables: [
     ['ProcessCode','VARCHAR(10)',''],
     ['SummaryJson','NVARCHAR(MAX)',''],
     ['PdfUrl','VARCHAR(300)',''],
-    ['SignedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
-    ['ReceivedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['SignedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
+    ['ReceivedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['SignedAt','DATETIME2','']
   ]},
   {name:'PR_DashTileCache', ko:'POP 대시 캐시', cols:[
@@ -989,7 +989,7 @@ PR: { cols: 4, tables: [
     ['ScannedColor','VARCHAR(10)',''],
     ['ExpectedColor','VARCHAR(10)',''],
     ['Result','VARCHAR(10)',''],
-    ['AttemptedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['AttemptedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['AttemptedAt','DATETIME2','']
   ]},
   {name:'PR_FabricDeductionLog', ko:'원단 차감 (7년)', cols:[
@@ -1011,7 +1011,7 @@ PR: { cols: 4, tables: [
     ['HoldSecSp','INT',''],
     ['TensionSp','DECIMAL(6,2)',''],
     ['LoadedAt','DATETIME2',''],
-    ['LoadedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['LoadedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['Status','VARCHAR(20)','']
   ]},
   {name:'PR_BondCycleLog', ko:'본드 사이클 PLC', cols:[
@@ -1032,7 +1032,7 @@ PR: { cols: 4, tables: [
     ['OldValue','NVARCHAR(100)',''],
     ['NewValue','NVARCHAR(100)',''],
     ['ReasonCode','VARCHAR(30)',''],
-    ['ChangedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['ChangedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['ApprovedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
     ['ChangedAt','DATETIME2','']
   ]}
@@ -1070,7 +1070,7 @@ PNT: { cols: 4, tables: [
     ['Status','VARCHAR(20)',''],
     ['EnhancedInspection','BIT',''],
     ['IssuedAt','DATETIME2',''],
-    ['IssuedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['IssuedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['BindAt','DATETIME2',''],
     ['BindReason','VARCHAR(40)','']
   ]},
@@ -1120,7 +1120,7 @@ PNT: { cols: 4, tables: [
     ['FailedAt','DATETIME2',''],
     ['FailType','VARCHAR(20)',''],
     ['FallbackAction','VARCHAR(30)',''],
-    ['ResolvedBy','NVARCHAR(450)','FK:AspNetUsers.Id']
+    ['ResolvedBy','VARCHAR(20)','FK:AspNetUsers.Id']
   ]},
   {name:'PNT_OvenLog', ko:'오븐 체류 (PNT-05)', cols:[
     ['OvenLogID','INT IDENTITY','PK'],
@@ -1177,7 +1177,7 @@ PNT: { cols: 4, tables: [
     ['LossQty','INT',''],
     ['ReasonCode','VARCHAR(30)',''],
     ['ReasonNote','NVARCHAR(300)',''],
-    ['LoggedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['LoggedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['LoggedAt','DATETIME2','']
   ]},
   {name:'PNT_StationStatsCache', ko:'라인보드 캐시', cols:[
@@ -1193,9 +1193,9 @@ PNT: { cols: 4, tables: [
     ['SeqNo','INT',''],
     ['TotalQty','INT',''],
     ['PrintedAt','DATETIME2',''],
-    ['PrintedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['PrintedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['AppliedAt','DATETIME2',''],
-    ['AppliedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['AppliedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['Status','VARCHAR(20)','']
   ]},
   {name:'PNT_LabelPrintJob', ko:'라벨 프린트 잡', cols:[
@@ -1214,7 +1214,7 @@ PNT: { cols: 4, tables: [
     ['LabelID','INT','FK:PNT_LotLabel.LabelID'],
     ['ScannedSeq','INT',''],
     ['Position','VARCHAR(10)',''],
-    ['ScannedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['ScannedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['ScannedAt','DATETIME2','']
   ]},
   {name:'PNT_ShiftReport', ko:'교대 보고서 헤더', cols:[
@@ -1231,7 +1231,7 @@ PNT: { cols: 4, tables: [
     ['JigSwaps','INT',''],
     ['YieldPct','DECIMAL(5,2)',''],
     ['CompiledAt','DATETIME2',''],
-    ['SignedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['SignedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['SignedAt','DATETIME2',''],
     ['PdfUrl','VARCHAR(300)',''],
     ['Version','TINYINT','']
@@ -1251,7 +1251,7 @@ PNT: { cols: 4, tables: [
   {name:'PNT_ShiftReportAudit', ko:'교대 수정 감사 (7년)', cols:[
     ['AuditID','INT IDENTITY','PK'],
     ['ReportID','INT','FK:PNT_ShiftReport.ReportID'],
-    ['ChangedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['ChangedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['ChangedAt','DATETIME2',''],
     ['FieldName','VARCHAR(40)',''],
     ['OldValue','NVARCHAR(200)',''],
@@ -1307,7 +1307,7 @@ QC: { cols: 3, tables: [
     ['HoldID','INT','FK:QC_Hold.HoldID'],
     ['InspectorID','NVARCHAR(450)','FK:AspNetUsers.Id'],
     ['ApproverID','NVARCHAR(450)','FK:AspNetUsers.Id'],
-    ['ResumeBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['ResumeBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['InsStartTS','DATETIME2',''],
     ['InsEndTS','DATETIME2','']
   ]},
@@ -1336,7 +1336,7 @@ QC: { cols: 3, tables: [
     ['KPITargetsJSON','NVARCHAR(MAX)',''],
     ['Status','VARCHAR(15)',''],
     ['EffectiveDate','DATE',''],
-    ['DraftedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['DraftedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['ApprovedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
     ['CapaLinkID','INT','FK:QC_CAPA.CapaID']
   ]},
@@ -1358,7 +1358,7 @@ QC: { cols: 3, tables: [
     ['HoldID','INT','FK:QC_Hold.HoldID'],
     ['CapaID','INT','FK:QC_CAPA.CapaID'],
     ['Status','VARCHAR(15)',''],
-    ['ReportedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['ReportedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['ReportedAt','DATETIME2',''],
     ['ApprovedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
     ['ClosedAt','DATETIME2','']
@@ -1370,7 +1370,7 @@ QC: { cols: 3, tables: [
     ['ActionRefID','VARCHAR(24)',''],
     ['ActionNote','NVARCHAR(500)',''],
     ['ActionTS','DATETIME2',''],
-    ['ActionBy','NVARCHAR(450)','FK:AspNetUsers.Id']
+    ['ActionBy','VARCHAR(20)','FK:AspNetUsers.Id']
   ]},
   {name:'QC_Hold', ko:'보류/격리', cols:[
     ['HoldID','INT IDENTITY','PK'],
@@ -1386,7 +1386,7 @@ QC: { cols: 3, tables: [
     ['PhysicalLocation','VARCHAR(20)',''],
     ['LabelPrintedTS','DATETIME2',''],
     ['Status','VARCHAR(15)',''],
-    ['HeldBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['HeldBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['HeldAt','DATETIME2','']
   ]},
   {name:'QC_HoldRelease', ko:'보류 해제 이력', cols:[
@@ -1397,7 +1397,7 @@ QC: { cols: 3, tables: [
     ['ReleaseReason','NVARCHAR(500)',''],
     ['PlantMgrApprovalID','NVARCHAR(450)','FK:AspNetUsers.Id'],
     ['ActorPINHash','VARCHAR(255)',''],
-    ['ReleasedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['ReleasedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['ReleasedAt','DATETIME2',''],
     ['Note','NVARCHAR(500)','']
   ]},
@@ -1653,7 +1653,7 @@ MNT: { cols: 3, tables: [
     ['WorkOrderID','INT','FK:MNT_WorkOrder.WorkOrderID'],
     ['DowntimeID','INT','FK:PP_LineDowntimeLog.DowntimeID'],
     ['Status','VARCHAR(15)',''],
-    ['ReportedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['ReportedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['ReportedAt','DATETIME2',''],
     ['ResolvedAt','DATETIME2','']
   ]},
@@ -1739,7 +1739,7 @@ MNT: { cols: 3, tables: [
     ['Result','VARCHAR(10)',''],
     ['Note','NVARCHAR(500)',''],
     ['EvidenceURL','VARCHAR(255)',''],
-    ['CompletedBy','NVARCHAR(450)','FK:AspNetUsers.Id'],
+    ['CompletedBy','VARCHAR(20)','FK:AspNetUsers.Id'],
     ['CompletedAt','DATETIME2','']
   ]},
   {name:'MNT_SparePartsTxn', ko:'정비 자재 입출고', cols:[
@@ -1808,7 +1808,7 @@ SYS: { cols: 3, tables: [
     ['ActorUserID','NVARCHAR(450)','FK:AspNetUsers.Id'],
     ['ModuleCode','VARCHAR(10)',''],
     ['ScreenCode','VARCHAR(20)',''],
-    ['ActionType','VARCHAR(15)',''],
+    ['ActionType','VARCHAR(20)',''],
     ['TargetEntity','VARCHAR(40)',''],
     ['TargetID','VARCHAR(40)',''],
     ['BeforeValueJSON','NVARCHAR(MAX)',''],

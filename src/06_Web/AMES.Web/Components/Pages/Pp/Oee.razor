@@ -67,9 +67,9 @@
         <span style="white-space:nowrap;">▼ @L["PP.Oee.ByLine.Title"] · @_rows.Count @L["Lbl.Items"] · @string.Format(L["PP.Oee.Kpi.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date), _snaps.Count)</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Lbl.Period"]" Component="DatePickerFrom" />
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <span class="dim">~</span>
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Shift"]" Component="DropDownShift" />
             <RadzenDropDown Name="DropDownShift" @bind-Value="_fShift" Data="@ShiftOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
             <RadzenLabel Text="@L["PP.Oee.Lbl.Target"]" Component="NumericTarget" />
@@ -83,10 +83,10 @@
                     RowClick="@(e => { if (e.Data is { } d) Select(d.LineId); })" RowRender="@LineRowRender"
                     EmptyText="@L["PP.Oee.ByLine.NoData"]" Class="ames-rz-grid pp-oee-lines">
         <Columns>
-            <RadzenDataGridColumn TItem="LineAgg" Property="LineId" Title="@L["Col.Line"]" Width="130px">
+            <RadzenDataGridColumn TItem="LineAgg" MinWidth="130px" Property="LineId" Title="@L["Col.Line"]" Width="130px">
                 <Template Context="r"><span class="code">@r.LineId</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="Name" Title="@L["Col.Name"]">
+            <RadzenDataGridColumn TItem="LineAgg" MinWidth="160px" Property="Name" Title="@L["Col.Name"]">
                 <Template Context="r"><span style="white-space:nowrap;">@(r.Name ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="A" Title="@L["PP.Oee.Kpi.Availability"]" Width="17%">
@@ -98,17 +98,17 @@
             <RadzenDataGridColumn TItem="LineAgg" Property="Q" Title="@L["PP.Oee.Kpi.Quality"]" Width="17%">
                 <Template Context="r">@(r.HasData ? Bar(r.Q, "q") : Dash)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="LineAgg" MinWidth="90px" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
                 <Template Context="r">
                     @if (r.HasData) { <span class="pp-oee-pill @GradeKey(r.Oee)">@($"{r.Oee:F1}%")</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Title="@L["PP.Oee.Col.Grade"]" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
+            <RadzenDataGridColumn TItem="LineAgg" MinWidth="180px" Title="@L["PP.Oee.Col.Grade"]" Width="180px" TextAlign="TextAlign.Center" Sortable="false">
                 <Template Context="r">
                     @if (r.HasData) { <b style="font-size:calc(11px + var(--ames-fs-bump));">@GradeText(r.Oee)</b> } else { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Oee.ByLine.NoData"]</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="TotalLoss" Title="@L["PP.Oee.Col.Loss"]" Width="100px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="LineAgg" MinWidth="140px" Property="TotalLoss" Title="@L["PP.Oee.Col.Loss"]" Width="140px" TextAlign="TextAlign.Right">
                 <Template Context="r">
                     @if (r.HasData) { <span class="code" style="color:var(--ames-tx-red-400);">@r.TotalLoss.ToString("N0")</span> } else { <span class="dim">—</span> }
                 </Template>
@@ -212,8 +212,8 @@
                 <RadzenChart class="pp-oee-chart" Style="width:100%;height:260px;">
                     <RadzenChartTooltipOptions Visible="true" />
                     <RadzenLegend Position="LegendPosition.Bottom" />
-                    <RadzenCategoryAxis FormatString="@DateFmt.Fmt(DateFmt.DateShort)" Padding="24" />
-                    <RadzenValueAxis Min="0" Max="100" Step="25" FormatString="{0}%">
+                    <RadzenCategoryAxis LabelFit="CategoryAxisLabelFit.None" FormatString="@DateFmt.Fmt(DateFmt.DateShort)" Padding="24" />
+                    <RadzenValueAxis Range="ValueAxisRange.Data" Min="0" Max="100" Step="25" FormatString="{0}%">
                         <RadzenGridLines Visible="true" />
                     </RadzenValueAxis>
                     <RadzenLineSeries TItem="TrendPoint" Data="@pts" CategoryProperty="At" ValueProperty="A"
@@ -243,38 +243,38 @@
                             PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                             AllowSorting="true" EmptyText="@L["PP.Oee.Trend.NoSnap"]" Class="ames-rz-grid ames-grid-fixed ames-grid-top">
                 <Columns>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="PeriodDate" Title="@L["PP.Oee.Snap.Col.Date"]" Width="110px">
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="110px" Property="PeriodDate" Title="@L["PP.Oee.Snap.Col.Date"]" Width="110px">
                         <Template Context="s"><span class="code">@s.PeriodDate.ToString(DateFmt.Date)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="ShiftCode" Title="@L["Col.Shift"]" Width="90px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="90px" Property="ShiftCode" Title="@L["Col.Shift"]" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="s"><span class="pill info">@(s.ShiftCode ?? L["PP.Oee.Shift.None"].Value)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="LoadingMin"       Title="@L["PP.Oee.Snap.Col.Load"]"      TextAlign="TextAlign.Right" />
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="OperatingMin"     Title="@L["PP.Oee.Snap.Col.Operating"]" TextAlign="TextAlign.Right" />
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="TotalProducedQty" Title="@L["PP.Oee.Snap.Col.Produced"]"  TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="130px" Width="130px" Property="LoadingMin"       Title="@L["PP.Oee.Snap.Col.Load"]"      TextAlign="TextAlign.Right" />
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="120px" Width="120px" Property="OperatingMin"     Title="@L["PP.Oee.Snap.Col.Operating"]" TextAlign="TextAlign.Right" />
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="120px" Width="120px" Property="TotalProducedQty" Title="@L["PP.Oee.Snap.Col.Produced"]"  TextAlign="TextAlign.Right">
                         <Template Context="s">@UomFmt.Qty(s.TotalProducedQty, null)</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="GoodQty" Title="@L["PP.Oee.Snap.Col.Good"]" TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="100px" Width="100px" Property="GoodQty" Title="@L["PP.Oee.Snap.Col.Good"]" TextAlign="TextAlign.Right">
                         <Template Context="s">@UomFmt.Qty(s.GoodQty, null)</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Availability" Title="@L["PP.Oee.Snap.Col.Avail"]" TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="150px" Width="150px" Property="Availability" Title="@L["PP.Oee.Snap.Col.Avail"]" TextAlign="TextAlign.Right">
                         <Template Context="s">@($"{s.Availability:F1}%")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Performance" Title="@L["PP.Oee.Snap.Col.Perf"]" TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="140px" Width="140px" Property="Performance" Title="@L["PP.Oee.Snap.Col.Perf"]" TextAlign="TextAlign.Right">
                         <Template Context="s">@($"{s.Performance:F1}%")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Quality" Title="@L["PP.Oee.Snap.Col.Qual"]" TextAlign="TextAlign.Right">
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="100px" Width="100px" Property="Quality" Title="@L["PP.Oee.Snap.Col.Qual"]" TextAlign="TextAlign.Right">
                         <Template Context="s">@($"{s.Quality:F1}%")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="90px" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="s"><span class="pp-oee-pill @GradeKey(s.Oee)">@($"{s.Oee:F1}%")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" Property="CreatedTs" Title="@L["PP.Oee.Snap.Col.SavedAt"]" Width="160px">
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="160px" Property="CreatedTs" Title="@L["PP.Oee.Snap.Col.SavedAt"]" Width="160px">
                         <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString(DateFmt.DateTime) ?? "")</span></Template>
                     </RadzenDataGridColumn>
                     @if (_canEdit)
                     {
-                        <RadzenDataGridColumn TItem="OeeSnapshotDto" Title="" Width="60px" Sortable="false" TextAlign="TextAlign.Center">
+                        <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="60px" Title="" Width="60px" Sortable="false" TextAlign="TextAlign.Center">
                             <Template Context="s">
                                 <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => DeleteSnap(s.OeeSnapshotId))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
                             </Template>
@@ -578,8 +578,10 @@
         _err = "";
         try
         {
-            var snapId = Repo.SaveSnapshot(_result, _actor);
-            Audit.Log("PP-OEE", "SAVE", "PP_LineOEE", snapId, null, _result);   // 같은 라인·날짜·교대면 덮어쓰는 저장
+            // 같은 라인·날짜·교대가 있으면 덮어쓴다 — 새로 만들었으면 등록, 덮어썼으면 이전 값과 함께 수정으로 남긴다
+            var saved = Repo.SaveSnapshot(_result, _actor);
+            if (saved.Created) Audit.Created("PP-OEE", "PP_LineOEE", saved.Id, _result);
+            else               Audit.Updated("PP-OEE", "PP_LineOEE", saved.Id, saved.Before, _result);
             ShowMsg(L["PP.Oee.Ok.Snapshot"]);
             if (_result.PeriodDate < _fFrom) _fFrom = _result.PeriodDate;
             if (_result.PeriodDate > _fTo)   _fTo   = _result.PeriodDate;

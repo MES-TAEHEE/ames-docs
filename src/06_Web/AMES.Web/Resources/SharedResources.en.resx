@@ -303,12 +303,6 @@
   <data name="MNT.WorkOrder.Empty" xml:space="preserve">
     <value>No work orders for the selected criteria.</value>
   </data>
-  <data name="MNT.WorkOrder.InProgress" xml:space="preserve">
-    <value>In Progress</value>
-  </data>
-  <data name="MNT.WorkOrder.Completed" xml:space="preserve">
-    <value>Completed</value>
-  </data>
   <data name="MNT.Downtime.Title" xml:space="preserve">
     <value>Downtime History</value>
   </data>
@@ -2360,6 +2354,27 @@
   </data>
   <data name="PP.SupplyPlanImport.Err.NoneSelected" xml:space="preserve">
     <value>Select at least one order to confirm.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm" xml:space="preserve">
+    <value>Auto-confirm</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.Hint" xml:space="preserve">
+    <value>When on, sales orders arriving by Excel upload, API import or PO Sync are confirmed as they are saved</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.Title" xml:space="preserve">
+    <value>Auto-confirm</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.ConfirmOn" xml:space="preserve">
+    <value>With auto-confirm on, incoming sales orders are confirmed as soon as they are saved. The {0} order(s) currently awaiting confirmation will also be confirmed now. Continue?</value>
+  </data>
+  <data name="PP.SupplyPlanImport.AutoConfirm.Btn.On" xml:space="preserve">
+    <value>Turn on and confirm</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.AutoConfirmOn" xml:space="preserve">
+    <value>Auto-confirm turned on — {0} pending order(s) confirmed.</value>
+  </data>
+  <data name="PP.SupplyPlanImport.Ok.AutoConfirmOff" xml:space="preserve">
+    <value>Auto-confirm turned off. Incoming sales orders will stay open until confirmed.</value>
   </data>
   <data name="PP.SupplyPlanImport.Btn.ApiImport" xml:space="preserve">
     <value>API Import</value>
@@ -5601,9 +5616,6 @@
   <data name="MNT.Dashboard.Panel.StockSub" xml:space="preserve">
     <value>reorder recommended</value>
   </data>
-  <data name="MNT.Dashboard.Wo.Open" xml:space="preserve">
-    <value>Open</value>
-  </data>
   <data name="MNT.Dashboard.Wo.Issued" xml:space="preserve">
     <value>Issued</value>
   </data>
@@ -5611,7 +5623,7 @@
     <value>In Progress</value>
   </data>
   <data name="MNT.Dashboard.Wo.Completed" xml:space="preserve">
-    <value>Completed</value>
+    <value>Completed/Closed</value>
   </data>
   <data name="MNT.Dashboard.Wo.Completion" xml:space="preserve">
     <value>Completion</value>
@@ -6877,7 +6889,7 @@
     <value>Complete repair right after registering (already fixed)</value>
   </data>
   <data name="MNT.Failure.Hint.StatusFixed" xml:space="preserve">
-    <value>Status and resolved time change only through "Complete Repair" or work order "Complete"</value>
+    <value>Status and resolved time change only through &quot;Complete Repair&quot; or work order &quot;Complete&quot; / &quot;Close&quot;</value>
   </data>
   <data name="MNT.Failure.Lbl.ResolvedAt" xml:space="preserve">
     <value>Resolved at</value>
@@ -6976,16 +6988,7 @@
     <value>No data to export.</value>
   </data>
   <data name="MNT.WorkOrder.Hint.Detail" xml:space="preserve">
-    <value>Click a row for details. Work orders are issued from the PM schedule and failure screens.</value>
-  </data>
-  <data name="MNT.WorkOrder.St.Open" xml:space="preserve">
-    <value>Open</value>
-  </data>
-  <data name="MNT.WorkOrder.St.Issued" xml:space="preserve">
-    <value>Issued</value>
-  </data>
-  <data name="MNT.WorkOrder.St.Closed" xml:space="preserve">
-    <value>Closed</value>
+    <value>Click a row for details. Work orders are issued automatically from PM schedules and failures, or directly with Issue work order.</value>
   </data>
   <data name="MNT.WorkOrder.Src.PM" xml:space="preserve">
     <value>PM Schedule</value>
@@ -7121,9 +7124,6 @@
   </data>
   <data name="MNT.WorkOrder.Lbl.SourceRef" xml:space="preserve">
     <value>Source Ref.</value>
-  </data>
-  <data name="MNT.WorkOrder.Ph.Parts" xml:space="preserve">
-    <value>Part no. or name, separated by comma or newline</value>
   </data>
   <data name="MNT.WorkOrder.Hint.Assign" xml:space="preserve">
     <value>Technician is chosen among web users. For PM-issued orders the PM schedule's technician is updated too.</value>
@@ -9623,11 +9623,8 @@
     <value>{0}d {1}h</value>
   </data>
   <data name="MD.Items.ScanRequired" xml:space="preserve"><value>Individual Barcode Scan Required</value></data>
-  <data name="MD.Items.Col.BoxQty" xml:space="preserve">
-    <value>Qty/Box</value>
-  </data>
-  <data name="MD.Items.Lbl.BoxQty" xml:space="preserve">
-    <value>Pieces per box — APS supply round-up unit (blank = 1 + warning)</value>
+  <data name="MD.Items.Lbl.PalletQty" xml:space="preserve">
+    <value>Qty/Pallet (pieces per pallet) is also the APS supply / WO pack round-up unit (blank = 1 + warning)</value>
   </data>
   <data name="PP.Aps.Title" xml:space="preserve">
     <value>APS Production Plan</value>
@@ -10329,7 +10326,7 @@
     <value>Pack</value>
   </data>
   <data name="PP.DemandPlan.Badge.PackMismatch" xml:space="preserve">
-    <value>BoxQty mismatch</value>
+    <value>Qty/Pallet mismatch</value>
   </data>
   <data name="PP.DemandPlan.Btn.Upload" xml:space="preserve">
     <value>Excel Upload (daily)</value>
@@ -10350,7 +10347,7 @@
     <value>{0} items not in MD_Item (saved, but excluded from APS demand)</value>
   </data>
   <data name="PP.DemandPlan.Preview.PackMismatch" xml:space="preserve">
-    <value>{0} items whose pack qty differs from BoxQty</value>
+    <value>{0} items whose SRM pack qty differs from Qty/Pallet</value>
   </data>
   <data name="PP.DemandPlan.Ok.Imported" xml:space="preserve">
     <value>Uploaded — {0} items · {1} cells · {2} unregistered · {3} pack mismatches</value>
@@ -10696,5 +10693,98 @@
   </data>
   <data name="MNT.WorkOrder.Hint.FollowUp" xml:space="preserve">
     <value>Completing as Partial or Follow-up does not resolve the failure; a new follow-up work order is issued for the remaining work. The failure is resolved when the follow-up work order is completed normally or repaired in MNT-002.</value>
+  </data>
+  <data name="SYS.Rbac.Err.LoadFailed" xml:space="preserve">
+    <value>Permissions could not be loaded. The checkboxes may not match the saved permissions, so saving is blocked. Click Reload.</value>
+  </data>
+  <data name="SYS.Rbac.Btn.Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.FailureMoved" xml:space="preserve">
+    <value>This failure continues on follow-up work order {0}.</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.Issue" xml:space="preserve">
+    <value>Issue work order</value>
+  </data>
+  <data name="MNT.WorkOrder.Btn.CloseWo" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="MNT.WorkOrder.Modal.Issue" xml:space="preserve">
+    <value>Issue work order</value>
+  </data>
+  <data name="MNT.WorkOrder.Modal.Close" xml:space="preserve">
+    <value>Close work order</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Issue" xml:space="preserve">
+    <value>Issues work not tied to a failure or PM (e.g. predictive maintenance). Choosing a technician issues it as Assigned.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.Close" xml:space="preserve">
+    <value>Closes the work order without doing the work (wrong entry, duplicate, not needed). Unlike completion, no result or labor time is recorded, and it cannot be undone.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.CloseFailure" xml:space="preserve">
+    <value>Linked failure {0} will also be closed without repair.</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.ClosePm" xml:space="preserve">
+    <value>This PM cycle is skipped and the schedule moves to the next due date (last PM date unchanged).</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.CloseReason" xml:space="preserve">
+    <value>Close reason</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.ClosedAt" xml:space="preserve">
+    <value>Closed at</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.EquipRequired" xml:space="preserve">
+    <value>Select equipment.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.TypeRequired" xml:space="preserve">
+    <value>Select a type.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.PriorityRequired" xml:space="preserve">
+    <value>Select a priority.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.DescRequired" xml:space="preserve">
+    <value>Enter the work description.</value>
+  </data>
+  <data name="MNT.WorkOrder.Err.CloseReasonRequired" xml:space="preserve">
+    <value>Enter the close reason.</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Issued" xml:space="preserve">
+    <value>{0} issued · status {1}</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.Closed" xml:space="preserve">
+    <value>{0} closed</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.FailureClosed" xml:space="preserve">
+    <value>Failure {0} closed</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.PmSkipped" xml:space="preserve">
+    <value>PM {0} cycle skipped, next due {1}</value>
+  </data>
+  <data name="MNT.WorkOrder.Ok.PmSkippedNoDate" xml:space="preserve">
+    <value>PM {0} cycle skipped</value>
+  </data>
+  <data name="MNT.Dashboard.Wo.Assigned" xml:space="preserve">
+    <value>Assigned</value>
+  </data>
+  <data name="MNT.Dashboard.Stage.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="MNT.Failure.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="MNT.Failure.Tl.Closed" xml:space="preserve">
+    <value>Closed (no repair)</value>
+  </data>
+  <data name="MNT.PmSchedule.Legend.Skipped" xml:space="preserve">
+    <value>Skipped</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.PartsPda" xml:space="preserve">
+    <value>Parts released by PDA</value>
+  </data>
+  <data name="MNT.WorkOrder.Hint.PartsPda" xml:space="preserve">
+    <value>Parts are issued (stock deducted) in PDA spare-part release (SP-07) by choosing this work order. On completion the list below is recorded as parts used.</value>
+  </data>
+  <data name="MNT.WorkOrder.Lbl.PartsNone" xml:space="preserve">
+    <value>No parts released by PDA</value>
   </data>
 </root>

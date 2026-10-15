@@ -85,9 +85,10 @@ FILES=(
   migrate_md_item_mount_pos.sql       # MD_Item.MountPos 완제품 라벨 장착위치 (순서 무관)
   migrate_pr_result_prod_shift.sql    # PR_ProductionResult.ProdDate·ShiftCode + 백필 (순서 무관)
   migrate_day_cutoff_config.sql       # 전기일 기준 시각 공통코드 DAY_CUTOFF → SYS_Config.DAY_CUTOFF_TIME 이관 (재실행 안전)
+  migrate_pp_so_auto_confirm.sql      # PP-002 수주 자동 확정 플래그 SYS_Config.PP_SO_AUTO_CONFIRM (기본 false, 순서 무관)
   migrate_bom_status_code.sql         # BOM 버전 상태 공통코드 BOM_STATUS + 기간 지난 승인 버전 EXPIRED (재실행 안전)
-  migrate_md_codeitem_attribute2.sql  # MD_CodeItem.Attribute2 nvarchar(200) (Attribute1 다음, 재생성 — 스키마에 이미 있으면 건너뜀)
   migrate_md_codeitem_widen.sql       # PO source URLs and service-key metadata need current widths
+  migrate_md_codeitem_attribute2.sql  # MD_CodeItem.Attribute2 nvarchar(200) (Attribute1 다음, 재생성 — widen 다음, 스키마에 이미 있으면 건너뜀)
   migrate_md_item_inj_flag.sql        # MD_Item.InjFlag 사출품 여부 bit (ItemCategory 다음, 재생성 — 스키마에 이미 있으면 건너뜀)
   migrate_sys_factory_calendar_net_hours.sql # SYS_FactoryCalendar.NetWorkHours decimal(4,1) → (4,2) (스키마에 이미 있으면 건너뜀)
   migrate_sys_public_holiday.sql      # SYS_PublicHoliday 테이블 + SP_SYS_FactoryCalendar_Fill (에이전트 작업은 setup_job_factory_calendar_fill.sql, sysadmin)
@@ -99,13 +100,13 @@ FILES=(
   migrate_img_core_lot.sql            # IMG 완제품↔사출 Core 1:1 필터 유니크 인덱스 UX_tbl_Lot_ImgParent (순서 무관, -I 필수)
   seed_defect_first_article.sql       # INJ·IMG 초품 불량코드 INJ-D07·IMG-D07 (재실행 안전, 기본 원인은 있을 때만 연결)
   migrate_md_equipment_type_tonnage.sql # 설비 유형 공통코드 EQUIP_TYPE(INJ·WRAP·PNT) + 값 변환 + MD_Equipment.Tonnage (순서 무관)
-  migrate_aps.sql                     # APS: MD_Item.BoxQty 재생성(PartCavityCount 는 폐지·삭제) + MD_ApsLineStage·PP_ApsRun/PlanLine/RunWo + 공통코드 APS_SETTING/APS_COVER_TIER (migrate_mold_master 이후, -I 필수)
+  migrate_aps.sql                     # APS: MD_Item.BoxQty·MD_MoldItem.PartCavityCount 폐지·삭제 + MD_ApsLineStage·PP_ApsRun/PlanLine/RunWo + 공통코드 APS_SETTING/APS_COVER_TIER (migrate_mold_master 이후, -I 필수)
   migrate_pp_aps_screen.sql           # PP-APS 생산계획 화면 등록 + Admin 권한 (seed_admin_permissions 이후)
   migrate_demand_plan.sql             # 일별 구매계획(MM30011) 테이블·PP_ApsRun.IncludeDailyPlan·SW_DPSYNC* (migrate_aps 이후)
   migrate_po_sync.sql                 # SW_POSYNC* code groups
   migrate_po_sync_service_key.sql     # Web→API manual import key; created once per DB
   migrate_aps_plan_line_shift.sql     # APS 계획 행 교대별 수량 PP_ApsPlanLineShift (migrate_aps 이후)
-  seed_aps_dev.sql                    #   → 개발용 APS 시드: BoxQty·LINE-INJ-01 2교대 패턴·MD_ApsLineStage·확정 수주·BOP 보강 (migrate_aps 이후)
+  seed_aps_dev.sql                    #   → 개발용 APS 시드: PalletQty·LINE-INJ-01 2교대 패턴·MD_ApsLineStage·확정 수주·BOP 보강 (migrate_aps 이후)
   seed_demand_plan_dev.sql            #   → 개발용 일별계획 수집 소스 SEMS(URL 자리표시자)
   migrate_portal.sql                  # 외부 포탈: PROCESS/PORTAL 코드 · 구 출하 계획 화면 정리
   migrate_scm_item_vendor.sql         # SCM-003 발주품목-협력업체 매핑 SCM_ItemVendor
@@ -120,14 +121,12 @@ FILES=(
   migrate_scm_delivery_note.sql      # 딜리버리 노트 발행 스냅샷
   migrate_scm_delivery_note_batch.sql      # 복수 납품서 딜리버리 노트
   migrate_portal_legacy_cleanup.sql   # 구 외부 역할 ExternalCustomer·계정·포탈 RBAC 정리 (신규 DB 에서는 no-op)
-  seed_portal_dev.sql                 #   → 개발용 외부 사용자 adminext@ames.local → V1007 (admin 과 같은 비밀번호)
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions
+  seed_portal_dev.sql                 # optional development user; requires the vendor from PDA_SEED
   cleanup_legacy_sis_test.sql
   cleanup_cancelled_wo_slots.sql      # 취소 WO 가 남긴 라인 스케줄 슬롯 정리 (신규 DB 에서는 no-op)
   migrate_user_profile_backfill.sql   # 프로필 없는 내부 계정 보강(역할 있음 ACTIVE·없음 INACTIVE) — 시드가 만든 계정까지 보도록 맨 끝
   migrate_pda_bearer_session.sql      # PDA bearer hash + session snapshot (recycle-safe)
-  migrate_scm_box_po_contents.sql     # BOX PO contents (no-op on fresh schema)
-  migrate_md_item_box_contents.sql    # BOX item contents; copy consistent legacy PO values
   migrate_user_status_mail_cleanup.sql  # 계정 메일 기능 폐지 — UNVERIFIED·PENDING → ACTIVE, 이메일 인증 정리, USER_STATUS 코드 삭제
   migrate_notification_push.sql      # 알림 채널 PUSH 전환 — EMAIL·SMS 는 남긴 채 사용 안 함, 규칙에 PUSH 추가(10-08)
   migrate_aspnetuserroles_pk.sql     # AspNetUserRoles 복합 PK(UserId, RoleId)+IX_RoleId — 스키마로 만든 DB 는 이미 있어 건너뜀(10-08)
@@ -135,6 +134,17 @@ FILES=(
   migrate_role_permission_orphan_cleanup.sql # 화면이 없는 SYS_RolePermission 행 정리 — SYS-003 화면 삭제가 권한 행을 남기던 것(10-09)
   migrate_sys_screen_permission_criteria.sql # 화면 기본 권한 SYS_Screen.PermissionCriteria(LidLabel 다음, varchar(10), _/X) + 역할 권한 3자리(R·E·A, _ 미부여, X 기능 없음) — create_sys_screen 이 다시 만든 표에도 넣는다(10-10)
   migrate_lsb_publish_removal.sql    # PP-LSB 발행 폐지 — PUBLISHED→DRAFT·PublishedAt/By 컬럼·발행 기록 테이블 삭제, SCHEDULE_STATUS 정리, PP-LSB 승인 기능 X(10-14)
+  migrate_mnt_number_index.sql       # MNT 채번 범위 잠금용 일반 인덱스(고장·보전 WO·PM 계획 번호) — 스키마에 이미 있으면 건너뜀(10-13)
+  migrate_mnt_failure_action_wo.sql  #고장 조치 이력의 작업지시(MNT_FailureAction.WorkOrderID) — 부분 완료한 원래 작업지시에서도 고장이 보이게(10-14)
+  migrate_pp_lineoee_unique.sql      # PP-OEE 스냅샷 (LineID, PeriodDate, ShiftCode) 유니크 인덱스 — 스키마에 이미 있으면 건너뜀(10-14)
+  migrate_md_paint_fabric_lotno.sql  # MD_PaintFabric.LotNo varchar(24) → nvarchar(50) — 스키마에 이미 있으면 건너뜀(10-15)
+  migrate_sys_auditlog_actiontype.sql # SYS_AuditLog.ActionType varchar(15) → varchar(20) — 스키마에 이미 있으면 건너뜀(10-15)
+  migrate_by_columns_employee_no.sql # 사람 컬럼(...By) 33개 varchar(20)·값을 사번으로(SYS_AuditActorMap 에 원문 보존) — 스키마에 이미 있으면 건너뜀(10-15)
+  migrate_mnt_status_code.sql        # 보전 작업지시 상태 공통코드 MNT_STATUS(발행·배정·진행 중·완료·종료), OPEN 정리(10-15)
+  migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
+  migrate_fg_customer_return_columns.sql # Canonical return/customer/part fields and PDA procedures
+  migrate_wh_fg_scm_column_lengths.sql # WH/FG/SCM keys and 20-byte actor codes
+  migrate_fg_location_type.sql # FG-area locations use the explicit FG location type
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
 )
 
@@ -179,6 +189,15 @@ docker cp "$DIST_DIR/." "$CONTAINER:/tmp/dist/"
 # 3) 스키마 → 시드 순서대로 적용
 echo "[3/3] 스키마 + 시드 적용..."
 for f in "${FILES[@]}"; do
+  if [[ "$f" == "pda/PDA_SEED.sql" || "$f" == "seed_portal_dev.sql" ]]; then
+    if [[ "${AMES_DEVELOPMENT_SEEDS:-0}" != "1" ]]; then
+      echo "  -> $f skipped (development seed opt-in required)"
+      continue
+    fi
+    printf '%s\n' "EXEC sys.sp_set_session_context @key=N'AMES_DEVELOPMENT_SEED', @value=1;" "GO" ":r /tmp/dist/$f" |
+      docker exec -i "$CONTAINER" "$SQLCMD" "${sql_base[@]}" -d "$DB"
+    continue
+  fi
   echo "  -> $f"
   run_file "$f"
 done

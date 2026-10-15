@@ -232,7 +232,7 @@ header{padding:24px 32px 16px;border-bottom:1px solid var(--border2);display:fle
   <div class="col-row"><div class="col-icon"></div><div class="col-name">MatCode</div><div class="col-type">VARCHAR(20)</div><div class="col-note"></div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">MatName</div><div class="col-type">NVARCHAR(60)</div><div class="col-note"></div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">MatType</div><div class="col-type">VARCHAR(14)</div><div class="col-note">LIQ/POWDER/FAB/ADH</div></div>
-  <div class="col-row"><div class="col-icon"></div><div class="col-name">LotNo</div><div class="col-type">VARCHAR(24)</div><div class="col-note">공급사 LOT</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">LotNo</div><div class="col-type">NVARCHAR(50)</div><div class="col-note">공급사 LOT</div></div>
   <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">SupplierID</div><div class="col-type">VARCHAR(20)</div><div class="col-note">→ MD_Vendor</div></div>
   <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">UOM</div><div class="col-type">VARCHAR(10)</div><div class="col-note">→ MD_Uom</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">QtyOnHand</div><div class="col-type">DECIMAL(12,3)</div><div class="col-note"></div></div>
@@ -1040,7 +1040,7 @@ header{padding:24px 32px 16px;border-bottom:1px solid var(--border2);display:fle
   <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">MntWoID</div><div class="col-type">INT</div><div class="col-note">→ MNT_WorkOrder</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">DowntimeMin</div><div class="col-type">INT</div><div class="col-note">OEE 가용성</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">Started/CompletedAt</div><div class="col-type">DATETIME2</div><div class="col-note"></div></div>
-  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ChangedBy</div><div class="col-type">NVARCHAR(450)</div><div class="col-note">→ AspNetUsers</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ChangedBy</div><div class="col-type">VARCHAR(20)</div><div class="col-note">→ AspNetUsers</div></div>
 </div></div>
 
 <div class="tbl-card" data-mod="PR"><div class="tbl-head"><span class="tbl-badge" style="background:#1e3a8a;color:#93c5fd">PR</span><span class="tbl-name">PR_ShotCount</span><span class="tbl-ko">금형 쇼트수 일일 이력</span></div><div class="tbl-body">
@@ -1237,7 +1237,7 @@ header{padding:24px 32px 16px;border-bottom:1px solid var(--border2);display:fle
   <div class="col-row"><div class="col-icon"></div><div class="col-name">TagID / ReaderID</div><div class="col-type">VARCHAR</div><div class="col-note"></div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">FailedAt / FailType</div><div class="col-type">DATETIME2/VARCHAR</div><div class="col-note">MISS/WEAK/MISMAT/INV</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">FallbackAction</div><div class="col-type">VARCHAR(30)</div><div class="col-note">MAN_PDA/SPARE/SKIP</div></div>
-  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ResolvedBy</div><div class="col-type">NVARCHAR(450)</div><div class="col-note">→ AspNetUsers</div></div>
+  <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ResolvedBy</div><div class="col-type">VARCHAR(20)</div><div class="col-note">→ AspNetUsers</div></div>
 </div></div>
 
 <div class="tbl-card" data-mod="PNT"><div class="tbl-head"><span class="tbl-badge" style="background:#7c2d12;color:#fdba74">PNT</span><span class="tbl-name">PNT_OvenLog</span><span class="tbl-ko">오븐 체류 로그 (PNT-05)</span></div><div class="tbl-body">
@@ -1764,7 +1764,7 @@ header{padding:24px 32px 16px;border-bottom:1px solid var(--border2);display:fle
   <div class="col-row"><div class="col-icon"></div><div class="col-name">EventTS</div><div class="col-type">DATETIME2</div><div class="col-note">서버 시간</div></div>
   <div class="col-row fk"><div class="col-icon fk">FK</div><div class="col-name">ActorUserID</div><div class="col-type">NVARCHAR(450)</div><div class="col-note">SYSTEM 허용</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">ModuleCode / ScreenCode</div><div class="col-type">VARCHAR</div><div class="col-note"></div></div>
-  <div class="col-row"><div class="col-icon"></div><div class="col-name">ActionType</div><div class="col-type">VARCHAR(15)</div><div class="col-note">CREATE/UPD/DEL/APP/LOGIN/EXP</div></div>
+  <div class="col-row"><div class="col-icon"></div><div class="col-name">ActionType</div><div class="col-type">VARCHAR(20)</div><div class="col-note">CREATE/UPD/DEL/APP/LOGIN/EXP</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">TargetEntity / TargetID</div><div class="col-type">VARCHAR(40)</div><div class="col-note"></div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">Before/AfterValueJSON</div><div class="col-type">NVARCHAR(MAX)</div><div class="col-note">변경 전/후</div></div>
   <div class="col-row"><div class="col-icon"></div><div class="col-name">IPAddress / Result / Note</div><div class="col-type">VARCHAR/NVARCHAR</div><div class="col-note">SUCC/FAIL/BLOCK</div></div>

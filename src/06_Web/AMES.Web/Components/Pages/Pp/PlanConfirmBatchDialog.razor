@@ -32,7 +32,7 @@
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--ames-bd-white-a12);">
             <span class="dim">@L["PP.PlanConfirm.Dlg.StartDate"]</span>
-            <RadzenDatePicker @bind-Value="_startDate" @bind-Value:after="Recompute" TValue="DateTime"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_startDate" @bind-Value:after="Recompute" TValue="DateTime"
                               DateFormat="@DateFmt.Date" Min="DbClock.Today" Disabled="_busy" Style="width:165px" />
         </div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;">

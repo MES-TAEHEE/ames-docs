@@ -207,7 +207,7 @@
                     <span class="pill @(late is null ? "dim" : late > 0 ? "bad" : "ok")">@LateText(late)</span>
                 </div>
                 <div class="ames-detail-label">@L["MNT.WorkOrder.Lbl.Result"]</div>
-                <div>@if (x.Result is { Length: > 0 }) { <span class="pill @(x.Result == AMES.Contracts.Dto.MwoResultCodes.Ok ? "ok" : "warn")">@CodeName(_results, x.Result)</span> } else { <span>—</span> }</div>
+                <div>@if (x.Result is { Length: > 0 }) { <span class="pill @(x.Result == AMES.Contracts.Dto.MwoResultCodes.Ok ? "ok" : x.Result == AMES.Contracts.Dto.MwoStatusCodes.Closed ? "mute" : "warn")">@ResultName(x.Result)</span> } else { <span>—</span> }</div>
                 <div class="ames-detail-label">@L["MNT.WorkOrder.Lbl.Labor"]</div>
                 <div>@(x.LaborMinutes?.ToString("N0") ?? "—")</div>
                 <div class="ames-detail-label">@L["MNT.PmSchedule.Lbl.Tech"]</div>
@@ -270,10 +270,10 @@
                         @foreach (var h in _detailHist)
                         {
                             var capH = h;
-                            <div class="ames-cal-wo pm-done" style="position:static;display:block;font-size:12px;padding:4px 8px;margin-bottom:4px;opacity:1;"
+                            <div class="ames-cal-wo @ExecCls(h.Result)" style="position:static;display:block;font-size:12px;padding:4px 8px;margin-bottom:4px;opacity:1;"
                                  title="@L["MNT.PmSchedule.Modal.Exec"]" @onclick="() => ShowExec(capH)">
                                 <span style="font-weight:700;">@(h.CompletedAt?.ToString(DateFmt.DateTime) ?? "—")</span>
-                                <span style="opacity:.8;margin-left:6px;">@CodeName(_results, h.Result) · @TechText(h.TechnicianId)</span>
+                                <span style="opacity:.8;margin-left:6px;">@ResultName(h.Result) · @TechText(h.TechnicianId)</span>
                                 @if (h.LaborMinutes is { } lm) { <span style="opacity:.6;margin-left:6px;">@lm min</span> }
                             </div>
                         }
@@ -309,7 +309,7 @@
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Result"]} *")' class="ames-rz-modal-label" Component="PmCompleteDropDownResult" />
                     <RadzenDropDown Name="PmCompleteDropDownResult" @bind-Value="_c.Result" Data="@CodeOptions(_results)" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CompletedAt"]} *")' class="ames-rz-modal-label" Component="PmCompleteDateAt" />
-                    <RadzenDatePicker TValue="DateTime?" Name="PmCompleteDateAt" @bind-Value="_c.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="PmCompleteDateAt" @bind-Value="_c.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -374,9 +374,9 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.LastPm"]" class="ames-rz-modal-label" Component="PmDateLast" />
-                    <RadzenDatePicker TValue="DateTime?" Name="PmDateLast" @bind-Value="_f.LastPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="PmDateLast" @bind-Value="_f.LastPmDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text='@($"{L["Col.NextDue"]} *")' class="ames-rz-modal-label" Component="PmDateDue" />
-                    <RadzenDatePicker TValue="DateTime?" Name="PmDateDue" @bind-Value="_f.NextDueDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="PmDateDue" @bind-Value="_f.NextDueDate" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -473,7 +473,7 @@
     // 설비 콤보: 마스터(MD_Equipment) 기준 [ID] 명칭 — 다른 MNT 화면과 같은 규칙
     IEnumerable<DropDownItem> EquipOptions => _equipList.Select(e => new DropDownItem { Value = e.EquipID, Text = string.IsNullOrEmpty(e.EquipName) ? $"[{e.EquipID}]" : $"[{e.EquipID}] {e.EquipName}" });
     // 상태 콤보(조회부): 달력 범례와 같은 4가지(완료·오늘·지연·예정)
-    IEnumerable<DropDownItem> StatusOptions => new[] { "pm-done", "pm-today", "pm-overdue", "pm-planned" }.Select(c => new DropDownItem { Value = c, Text = LegendText(c) });
+    IEnumerable<DropDownItem> StatusOptions => new[] { "pm-done", "pm-skipped", "pm-today", "pm-overdue", "pm-planned" }.Select(c => new DropDownItem { Value = c, Text = LegendText(c) });
     IEnumerable<DropDownItem> CodeOptions(List<MasterDataRepository.CodeItemRow> items) =>
         items.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     IEnumerable<DropDownItem> TemplateOptions => _templates.Where(t => t.ActiveFlag).Select(t => new DropDownItem { Value = t.PMTemplateID, Text = $"[{t.PMTemplateID}] {t.TemplateName}" });
@@ -546,7 +546,7 @@
         {
             var pm = x.PmScheduleId is { } sid ? _all.FirstOrDefault(p => p.PmScheduleId == sid) : null;
             var label = $"{ShortEquip(x.EquipId)} {(x.PmType is null ? "" : PmTypeName(x.PmType))}".Trim();
-            list.Add(new PmEvent(pm, x.CompletedAt!.Value.Date, "pm-done", label, x));
+            list.Add(new PmEvent(pm, x.CompletedAt!.Value.Date, ExecCls(x.Result), label, x));
         }
 
         foreach (var p in rows)
@@ -585,7 +585,7 @@
     // 완료 칩은 보기 전용 모달(이력 1행), 나머지는 일정 상세(완료 처리·수정 버튼 포함)
     void ShowDetail(PmEvent ev)
     {
-        if (ev.Cls == "pm-done")
+        if (ev.Cls is "pm-done" or "pm-skipped")
         {
             ShowExec(ev.Exec ?? LegacyExec(ev.Pm!));
             return;
@@ -613,13 +613,8 @@
         _    => L["MNT.PmSchedule.Exec.OnTime"].Value,
     };
 
-    // MNT_WorkOrder.PartsUsedJSON(문자열 배열) → "a, b". JSON 이 아니면 원문.
-    static string PartsText(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return "—";
-        try { var arr = System.Text.Json.JsonSerializer.Deserialize<string[]>(json); return arr is { Length: > 0 } ? string.Join(", ", arr) : "—"; }
-        catch { return json; }
-    }
+    // MNT_WorkOrder.PartsUsedJSON → "부품 × 수량"(옛 자유 입력은 그대로) — 규칙은 MwoPartsUsed
+    static string PartsText(string? json) => AMES.Data.Services.MwoPartsUsed.Describe(json) is { Length: > 0 } s ? s : "—";
 
     // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
     void OpenCreate()
@@ -790,7 +785,7 @@
     static string ShortEquip(string? id) => id ?? "—";
 
     string Tip(PmEvent ev) => ev.Exec is { } x
-        ? $"{x.PmPlanNumber} | {EquipText(x.EquipId)}\n{PmClassName(x.PmClass)} · {PmTypeName(x.PmType)}\n{LegendText(ev.Cls)} | {x.CompletedAt?.ToString(DateFmt.DateTime) ?? "—"} | {CodeName(_results, x.Result)} | {TechText(x.TechnicianId)}"
+        ? $"{x.PmPlanNumber} | {EquipText(x.EquipId)}\n{PmClassName(x.PmClass)} · {PmTypeName(x.PmType)}\n{LegendText(ev.Cls)} | {x.CompletedAt?.ToString(DateFmt.DateTime) ?? "—"} | {ResultName(x.Result)} | {TechText(x.TechnicianId)}"
         : ev.Pm is { } p
         ? $"{p.PmPlanNumber} | {EquipText(p.EquipId)}\n{PmClassName(p.PmClass)} · {PmTypeName(p.PmType)} · {CodeName(_cycleBases, p.CycleBasis)} {p.CycleValue}\n{LegendText(ev.Cls)} | {L["Col.LastPm"]}: {p.LastPmDate?.ToString(DateFmt.Date) ?? "—"} | {L["Col.NextDue"]}: {p.NextDueDate?.ToString(DateFmt.Date) ?? "—"}"
         : ev.Label;
@@ -806,15 +801,20 @@
     string LegendText(string cls) => cls switch
     {
         "pm-done"    => L["MNT.PmSchedule.Legend.Completed"].Value,
+        "pm-skipped" => L["MNT.PmSchedule.Legend.Skipped"].Value,
         "pm-today"   => L["MNT.PmSchedule.Legend.Today"].Value,
         "pm-overdue" => L["MNT.PmSchedule.Legend.Overdue"].Value,
         _            => L["MNT.PmSchedule.Legend.Planned"].Value,
     };
-    static string PillCls(string cls) => cls switch { "pm-done" => "ok", "pm-today" => "warn", "pm-overdue" => "bad", _ => "info" };
+    static string PillCls(string cls) => cls switch { "pm-done" => "ok", "pm-skipped" => "mute", "pm-today" => "warn", "pm-overdue" => "bad", _ => "info" };
+
+    // 작업지시 종료로 건너뛴 회차(MNT_PMExecution.Result = CLOSED, 10-15)는 완료와 다른 칩·이름
+    static string ExecCls(string? result) => result == AMES.Contracts.Dto.MwoStatusCodes.Closed ? "pm-skipped" : "pm-done";
+    string ResultName(string? c) => c == AMES.Contracts.Dto.MwoStatusCodes.Closed ? L["MNT.PmSchedule.Legend.Skipped"].Value : CodeName(_results, c);
 
     RenderFragment Legend() => __builder =>
     {
-        foreach (var cls in new[] { "pm-done", "pm-today", "pm-overdue", "pm-planned" })
+        foreach (var cls in new[] { "pm-done", "pm-skipped", "pm-today", "pm-overdue", "pm-planned" })
         {
             __builder.OpenElement(0, "span");
             __builder.AddAttribute(1, "class", $"ames-cal-wo {cls}");

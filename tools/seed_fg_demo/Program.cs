@@ -140,7 +140,7 @@ internal static class Program
                 WHERE L.ShipmentOrderID=@So ORDER BY L.LineSeq FOR JSON PATH);
             INSERT dbo.FG_PickingFifo(PickNumber,ShipmentOrderID,PickerID,StartTS,EndTS,PicksJSON,
                 PickedQty,OrderedQty,Status,CreatedBy,CreatedTS)
-            SELECT 'PICK-SEED-001',@So,'user-e001',DATEADD(hour,-25,SYSDATETIME()),DATEADD(hour,-24,SYSDATETIME()),
+            SELECT 'PICK-SEED-001',@So,'E001',DATEADD(hour,-25,SYSDATETIME()),DATEADD(hour,-24,SYSDATETIME()),
                 @PickJson,SUM(OrderedQty),SUM(OrderedQty),'Picked','fg-seed',SYSDATETIME()
             FROM dbo.FG_ShipmentOrderLine WHERE ShipmentOrderID=@So;
             DECLARE @Pick INT=CONVERT(int,SCOPE_IDENTITY());
@@ -157,7 +157,7 @@ internal static class Program
             VALUES ('LDG-SEED-001', @So, @Pick, 'AL-2026-X1', 'FedEx',
                     N'Mike Johnson', 'DOCK-1',
                     DATEADD(hour, -25, SYSDATETIME()), DATEADD(hour, -22, SYSDATETIME()),
-                    @PickJson, 'SEAL-9912', 'OnTime', 'user-e001',
+                    @PickJson, 'SEAL-9912', 'OnTime', 'E001',
                     DATEADD(hour, -22, SYSDATETIME()), 'fg-seed', SYSDATETIME());
 
             DECLARE @Ld INT = SCOPE_IDENTITY();
@@ -167,7 +167,7 @@ internal static class Program
                  FormatTemplate, Revision, IssuedAt, IssuedBy,
                  EdiStatus, CreatedBy, CreatedTS)
             VALUES ('DN-SEED-001', @So, @Ld, 'SAV', 'STANDARD', 1,
-                    DATEADD(hour, -22, SYSDATETIME()), 'user-e001',
+                    DATEADD(hour, -22, SYSDATETIME()), 'E001',
                     'Sent', 'fg-seed', SYSDATETIME());
             """);
         Console.WriteLine("  ldg   1 loading + 1 delivery note for the shipped order");
@@ -180,7 +180,7 @@ internal static class Program
                 (CloseNumber, CloseDate, ClosedBy, ClosedAt, CloseMode,
                  ChecklistJSON, KpiJSON, ErpFeedStatus, CreatedBy, CreatedTS)
             VALUES ('DEC-SEED-001', DATEADD(day,-1,CAST(GETDATE() AS DATE)),
-                    'user-s001', DATEADD(hour, -14, SYSDATETIME()),
+                    'S001', DATEADD(hour, -14, SYSDATETIME()),
                     'Auto',
                     N'{"itemsCount":48,"shipped":48,"reconciled":true}',
                     N'{"otd":98.0,"defectRate":1.8}',

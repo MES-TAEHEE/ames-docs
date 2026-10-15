@@ -243,7 +243,7 @@ internal static class Program
         Console.WriteLine("[seed-img] Rebuilding in-progress state ...");
 
         const string LineId       = "LINE-IMG-01";
-        const string OperatorUser = "user-i001";
+        const string OperatorUser = "I001";
         const string WoNumber     = "WO-IMG-2026-0529-301";
         const string ItemNo       = "DR-TRM-LH-W";
         const string FabricLotCode= "FAB-GY-2507-020";

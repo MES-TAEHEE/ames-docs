@@ -261,7 +261,7 @@ internal static class Program
             ("PM",  "MINOR",  "PM",      "COMPLETED",  30, 180),
             ("CM",  "MINOR",  "FAILURE", "COMPLETED",  48, 240),
             ("PdM", "MINOR",  "MANUAL",  "ISSUED",     12,   0),
-            ("CM",  "MAJOR",  "ANDON",   "OPEN",        1,   0),
+            ("CM",  "MAJOR",  "ANDON",   "ISSUED",      1,   0),
             ("PM",  "MINOR",  "PM",      "COMPLETED",  72, 150),
         };
         int n = 0;
@@ -284,7 +284,7 @@ internal static class Program
                 """,
                 ("@N",  $"MWO-{DateTime.Today:yyMM}-{i + 1:D3}"),
                 ("@T",  s.Typ), ("@E", eq), ("@P", s.Pr), ("@Sr", s.Src), ("@St", s.St),
-                ("@SA", s.St == "ISSUED" || s.St == "OPEN"
+                ("@SA", s.St == "ISSUED"
                     ? DBNull.Value : (object)DateTime.Now.AddHours(-s.HoursAgo + 1)),
                 ("@CA", s.St == "COMPLETED"
                     ? (object)DateTime.Now.AddHours(-s.HoursAgo + 4) : DBNull.Value),

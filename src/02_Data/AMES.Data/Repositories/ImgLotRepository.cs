@@ -507,7 +507,7 @@ public sealed class ImgLotRepository
             {
                 cmd.Parameters.Add("@WoID",     SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID",    SqlDbType.Int          ).Value = lotId;
-                cmd.Parameters.Add("@Op",       SqlDbType.NVarChar,  20).Value = operatorId;
+                cmd.Parameters.Add("@Op",       SqlDbType.VarChar,   20).Value = operatorId;
                 cmd.Parameters.Add("@Sess",     SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }

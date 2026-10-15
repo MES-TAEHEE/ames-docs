@@ -1054,8 +1054,8 @@ public class ApsWoCreateTests
         finally { Cleanup(f); }
     }
 
-    /// BOM 규칙 WO 수량은 완제품 포장 단위(MD_Item.BoxQty, 없으면 APS_SETTING.ROUND_TO)로 올린다(10-06 사용자 요청) — 비율 분배로 생기는 2~3개짜리 WO 를 막는다.
-    /// P1 BoxQty 30: 100 → 120, 자식 슬롯도 120 × QtyPer. P2 는 BoxQty 없음 → ROUND_TO(dev 5) → 50 그대로.
+    /// BOM 규칙 WO 수량은 완제품 포장 단위(MD_Item.PalletQty, 없으면 APS_SETTING.ROUND_TO)로 올린다(10-06 사용자 요청, 10-13 BoxQty 폐지) — 비율 분배로 생기는 2~3개짜리 WO 를 막는다.
+    /// P1 PalletQty 30: 100 → 120, 자식 슬롯도 120 × QtyPer. P2 는 PalletQty 없음 → ROUND_TO(dev 5) → 50 그대로.
     [SkippableFact]
     public void Bom_rule_parent_quantity_rounds_up_to_the_parent_pack_size()
     {
@@ -1064,7 +1064,7 @@ public class ApsWoCreateTests
         try
         {
             SeedBomParents(f);
-            Exec(f, "UPDATE dbo.MD_Item SET BoxQty = 30 WHERE ItemNo = @P1;", ("@P1", P1));
+            Exec(f, "UPDATE dbo.MD_Item SET PalletQty = 30 WHERE ItemNo = @P1;", ("@P1", P1));
             int run = SeedRun(f);
             SeedBundleBom(f, run, new BomEdge(P1, K, 1), new BomEdge(P1, K2, 2), new BomEdge(P2, K, 1));
             var d1 = PlusWorkdays(D0, _offset);

@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Contracts.Dto
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -35,7 +36,7 @@
         <div class="ames-kpi-l">@L["MNT.WorkOrder.Kpi.Open"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@OpenCount</div>
-            <div class="ames-kpi-s">OPEN · ISSUED</div>
+            <div class="ames-kpi-s">ISSUED · ASSIGNED</div>
         </div>
     </div>
     <div class="ames-kpi @(UnassignedCount > 0 ? "warn" : "")">
@@ -89,6 +90,10 @@
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
             <RadzenButton Text="@L["MNT.WorkOrder.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["MNT.WorkOrder.Btn.Issue"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenIssue" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
     <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MNT.WorkOrder.Hint.Detail"]</div>
@@ -195,8 +200,16 @@
                     <RadzenTextBox Value="@(_sel.StartedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
-                    <RadzenLabel Text="@L["Col.CompletedDate"]" />
-                    <RadzenTextBox Value="@(_sel.CompletedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    @if (IsClosed(_sel.Status))
+                    {
+                        <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.ClosedAt"]" />
+                        <RadzenTextBox Value="@(_sel.ClosedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    }
+                    else
+                    {
+                        <RadzenLabel Text="@L["Col.CompletedDate"]" />
+                        <RadzenTextBox Value="@(_sel.CompletedAt?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    }
                 </RadzenColumn>
             </RadzenRow>
 
@@ -220,7 +233,15 @@
                 <RadzenTextArea Value="@(_sel.ActionDesc ?? "")" Disabled="true" Rows="2" class="ames-rz-input" Style="width:100%;" />
             </RadzenStack>
 
-            @if (res is not null || !string.IsNullOrEmpty(_sel.PartsUsedJson))
+            @if (IsClosed(_sel.Status))
+            {
+                @* 종료 — 결과 JSON 의 Action 이 종료 사유(MntRepository.CloseWorkOrder) *@
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="margin-top:6px;">
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.CloseReason"]" />
+                    <RadzenTextArea Value="@(res?.Action ?? "")" Disabled="true" Rows="2" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+            }
+            else if (res is not null || !string.IsNullOrEmpty(_sel.PartsUsedJson))
             {
                 <RadzenRow Gap="8px" Style="margin-top:6px;">
                     <RadzenColumn Size="4">
@@ -242,22 +263,51 @@
                 </RadzenStack>
             }
 
+            @if (!IsDone(_sel.Status) && _woReleases.Count > 0)
+            {
+                @* 진행 중 작업지시에 PDA 로 이미 출고된 부품 — 완료·종료 때 사용 부품으로 기록된다 *@
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="margin-top:6px;">
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.PartsPda"]" />
+                    <RadzenTextBox Value="@ReleasesText()" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+            }
+
             @* 연결된 고장의 대응 이력(고장 등록 → 보전 도착·ACK → 수리 완료) — 고장 번호를 누르면 MNT-002 상세 *@
             @foreach (var f in _woFailures)
             {
+                @* 부분·후속 완료로 후속 작업지시에 넘어간 고장 — 이 작업지시의 조치 이력으로 찾았다(MNT_FailureAction.WorkOrderID) *@
+                @if (f.WorkOrderId is int curWo && curWo != _sel.WorkOrderId)
+                {
+                    var next = _allRows.FirstOrDefault(w => w.WorkOrderId == curWo);
+                    var txt  = L["MNT.WorkOrder.Hint.FailureMoved"].Value.Split("{0}");
+                    <div class="dim" style="margin-top:8px;">
+                        @txt[0]@if (next is not null)
+                        {
+                            <a href="javascript:void(0)" @onclick="@(() => OpenDetail(next))">@(f.WoNumber ?? next.WoNumber)</a>
+                        }
+                        else
+                        {
+                            <b>@(f.WoNumber ?? $"#{curWo}")</b>
+                        }@(txt.Length > 1 ? txt[1] : "")
+                    </div>
+                }
                 <FailureTimelinePanel @key="f.FailureId" Failure="f" Caption="@(f.FailureNumber ?? $"F#{f.FailureId}")" Href="@(_canOpenFailure ? $"/mnt/failure?id={f.FailureId}" : null)" />
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                @if (_canEdit && !IsDone(_sel.Status))
+                @if (_canEdit && MwoStatusRules.CanAssign(_sel.Status))
                 {
                     <RadzenButton Text="@L["MNT.WorkOrder.Btn.Assign"]" Icon="person_add" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => OpenAssign(_sel))" class="ames-rz-btn" />
-                    @if (IsOpen(_sel.Status))
-                    {
-                        <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.WorkOrder.Btn.Start"])" Icon="play_arrow" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@(() => Start(_sel))" Disabled="@_busy" class="ames-rz-btn" />
-                    }
                 }
-                @if (_canApprove && !IsDone(_sel.Status))
+                @if (_canEdit && MwoStatusRules.CanStart(_sel.Status))
+                {
+                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.WorkOrder.Btn.Start"])" Icon="play_arrow" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@(() => Start(_sel))" Disabled="@_busy" class="ames-rz-btn" />
+                }
+                @if (_canApprove && MwoStatusRules.CanClose(_sel.Status))
+                {
+                    <RadzenButton Text="@L["MNT.WorkOrder.Btn.CloseWo"]" Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(() => OpenCloseWo(_sel))" class="ames-rz-btn" />
+                }
+                @if (_canApprove && MwoStatusRules.CanComplete(_sel.Status))
                 {
                     <RadzenButton Text="@L["MNT.WorkOrder.Btn.Complete"]" Icon="task_alt" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenComplete(_sel))" class="ames-rz-btn" />
                 }
@@ -308,7 +358,7 @@
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Result"]} *")' class="ames-rz-modal-label" Component="CompleteDropDownResult" />
                     <RadzenDropDown Name="CompleteDropDownResult" @bind-Value="_f.Result" Data="@ResultOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CompletedAt"]} *")' class="ames-rz-modal-label" Component="CompleteDateAt" />
-                    <RadzenDatePicker TValue="DateTime?" Name="CompleteDateAt" @bind-Value="_f.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="CompleteDateAt" @bind-Value="_f.CompletedAt" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
                 @if (_f.Result is MwoResultCodes.Partial or MwoResultCodes.FollowUp && HasFailureSource(_sel))
                 {
@@ -335,9 +385,11 @@
                     <RadzenTextArea Name="CompleteTextAreaAction" @bind-Value="_f.Action" MaxLength="500" Rows="3" class="ames-rz-input" Style="width:100%;" />
                 </RadzenStack>
 
+                @* 사용 부품 — 웹은 입력·차감하지 않는다. PDA 예비품 출고(SP-07)가 이 작업지시로 출고한 부품을 완료 때 기록한다(10-15 (b)) *@
                 <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">
-                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Parts"]" Component="CompleteTextAreaParts" Style="margin-bottom:6px;" />
-                    <RadzenTextArea Name="CompleteTextAreaParts" @bind-Value="_f.Parts" MaxLength="1000" Rows="2" Placeholder="@L["MNT.WorkOrder.Ph.Parts"]" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.PartsPda"]" />
+                    <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.WorkOrder.Hint.PartsPda"]</div>
+                    <RadzenTextBox Value="@ReleasesText()" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenStack>
             </RadzenStack>
 
@@ -354,6 +406,85 @@
     </div>
 }
 
+@* ── 수동 발행 모달 — 고장·PM 과 무관한 작업지시(출처 MANUAL), 담당자를 고르면 배정 상태로 (MntRepository.IssueWorkOrder) ── *@
+@if (_modal == "issue")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.WorkOrder.Modal.Issue"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.WorkOrder.Hint.Issue"]</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["Col.Equip"]} *")' class="ames-rz-modal-label" Component="IssueDropDownEquip" />
+                    <RadzenDropDown AllowFiltering="true" Name="IssueDropDownEquip" @bind-Value="_f.EquipId" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["Col.Type"]} *")' class="ames-rz-modal-label" Component="IssueDropDownType" />
+                    <RadzenDropDown Name="IssueDropDownType" @bind-Value="_f.WoType" Data="@TypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text='@($"{L["Col.Priority"]} *")' class="ames-rz-modal-label" Component="IssueDropDownPriority" />
+                    <RadzenDropDown Name="IssueDropDownPriority" @bind-Value="_f.Priority" Data="@PriorityOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Tech"]" class="ames-rz-modal-label" Component="IssueDropDownTech" />
+                    <RadzenDropDown AllowFiltering="true" Name="IssueDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Desc"]} *")' Component="IssueTextAreaDesc" Style="margin-bottom:6px;" />
+                    <RadzenTextArea Name="IssueTextAreaDesc" @bind-Value="_f.Desc" MaxLength="@MntRepository.WoDescMax" Rows="3" class="ames-rz-input" Style="width:100%;" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.WorkOrder.Btn.Issue"])" Click="@SaveIssue" Disabled="@_busy" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 종료 모달 — 작업 없이 닫는다(사유 필수). 연결 고장은 종료, PM 은 이번 회차 건너뜀 (MntRepository.CloseWorkOrder) ── *@
+@if (_modal == "close" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.WorkOrder.Modal.Close"] <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@WoNo(_sel) · @EquipText(_sel.EquipId)</span></div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MNT.WorkOrder.Hint.Close"]</div>
+            @if (_woFailures.Any(x => x.WorkOrderId == _sel.WorkOrderId && !FailureTimeline.IsResolved(x.Status)))
+            {
+                <div class="pill warn" style="white-space:normal;">@string.Format(L["MNT.WorkOrder.Hint.CloseFailure"].Value, string.Join(", ", _woFailures.Where(x => x.WorkOrderId == _sel.WorkOrderId && !FailureTimeline.IsResolved(x.Status)).Select(x => x.FailureNumber ?? $"F#{x.FailureId}")))</div>
+            }
+            @if (_sel.SourceType == "PM")
+            {
+                <div class="pill warn" style="white-space:normal;">@L["MNT.WorkOrder.Hint.ClosePm"]</div>
+            }
+
+            <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.CloseReason"]} *")' Component="CloseTextAreaReason" Style="margin-bottom:6px;" />
+                <RadzenTextArea Name="CloseTextAreaReason" @bind-Value="_f.Action" MaxLength="@MntRepository.CloseReasonMax" Rows="3" class="ames-rz-input" Style="width:100%;" />
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["MNT.WorkOrder.Btn.CloseWo"])" Click="@SaveCloseWo" Disabled="@_busy" Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@(() => OpenDetail(_sel))" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
@@ -363,6 +494,7 @@
     List<MasterDataRepository.EquipmentRow> _equipList   = new();
     List<MasterDataRepository.CodeItemRow>  _typeItems   = new();   // 공통코드 MWO_TYPE (PM/CM/PdM)
     List<MasterDataRepository.CodeItemRow>  _resultItems = new();   // 공통코드 MWO_RESULT (OK/PARTIAL/FOLLOWUP)
+    List<MasterDataRepository.CodeItemRow>  _statusItems = new();   // 공통코드 MNT_STATUS (ISSUED/ASSIGNED/IN_PROGRESS/COMPLETED/CLOSED)
     List<SysRepository.UserRow>             _users       = new();   // 담당자 후보 = 웹 사용자 (PM 일정의 AssignedTechID 와 같은 기준)
     MntRepository.MwoRow? _sel;
 
@@ -374,8 +506,7 @@
     string  _actor = "system";
     FormModel _f = new();
 
-    // 상태·우선순위는 공통코드 그룹이 없어 발행 코드가 쓰는 값을 정본으로 두고, 데이터에만 있는 값을 뒤에 붙인다
-    static readonly string[] StatusCodes   = { MwoStatusCodes.Open, MwoStatusCodes.Issued, MwoStatusCodes.InProgress, MwoStatusCodes.Completed, MwoStatusCodes.Closed };
+    // 우선순위는 공통코드 그룹이 없어 발행 코드가 쓰는 값을 정본으로 두고, 데이터에만 있는 값을 뒤에 붙인다
     static readonly string[] PriorityCodes = { "URGENT", "HIGH", "MED", "LOW" };
     static readonly int[]    TopNs         = { 50, 100, 200, 500 };
     static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
@@ -383,7 +514,12 @@
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
     public class TopNItem     { public string Text { get; set; } = ""; public int Value { get; set; } }
 
-    IEnumerable<DropDownItem> StatusFilterOptions   => WithDataValues(StatusCodes,   _allRows.Select(r => r.Status),   StatusLabel);
+    // 상태 콤보: MNT_STATUS 공통코드 ∪ 데이터에만 있는 값
+    IEnumerable<DropDownItem> StatusFilterOptions   => WithDataValues(_statusItems.Where(c => c.UseFlag).Select(c => c.CodeValue ?? "").ToArray(), _allRows.Select(r => r.Status), StatusLabel);
+    IEnumerable<DropDownItem> TypeOptions =>
+        _typeItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> PriorityOptions => PriorityCodes.Select(p => new DropDownItem { Value = p, Text = p });
+    IEnumerable<DropDownItem> EquipOptions => _equipList.Select(e => new DropDownItem { Value = e.EquipID, Text = string.IsNullOrEmpty(e.EquipName) ? $"[{e.EquipID}]" : $"[{e.EquipID}] {e.EquipName}" });
     // 유형 콤보: MWO_TYPE 공통코드 ∪ 데이터에만 있는 값(코드 미등록 값도 걸러 볼 수 있게)
     IEnumerable<DropDownItem> TypeFilterOptions =>
         _typeItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" })
@@ -417,6 +553,7 @@
         try { _equipList   = MD.ListEquipments(); } catch { }
         try { _typeItems   = MD.ListCodeItems(MwoTypeCodes.Group); } catch { }
         try { _resultItems = MD.ListCodeItems(MwoResultCodes.Group); } catch { }
+        try { _statusItems = MD.ListCodeItems(MwoStatusCodes.Group); } catch { }
         try { _users       = Sys.ListUsers(500); } catch { }
         Reload();
     }
@@ -474,6 +611,12 @@
         if (r is null) return;
         _sel = r; _modal = "detail"; _modalErr = "";
         try { _woFailures = Mnt.ListFailuresForWo(r.WorkOrderId); } catch { _woFailures = new(); }
+        LoadReleases(r);
+    }
+
+    void LoadReleases(MntRepository.MwoRow r)
+    {
+        try { _woReleases = Mnt.ListWoPartReleases(WoNo(r)); } catch { _woReleases = new(); }
     }
 
     List<MntRepository.FailureRow> _woFailures = new();
@@ -525,10 +668,77 @@
         finally { _busy = false; }
     }
 
+    void OpenIssue()
+    {
+        if (!_canEdit) return;
+        _sel = null; _modalErr = "";
+        _f = new() { WoType = MwoTypeCodes.Cm, Priority = "MED" };
+        _modal = "issue";
+    }
+
+    async Task SaveIssue()
+    {
+        if (!_canEdit) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.EquipId))  { _modalErr = L["MNT.WorkOrder.Err.EquipRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.WoType))   { _modalErr = L["MNT.WorkOrder.Err.TypeRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.Priority)) { _modalErr = L["MNT.WorkOrder.Err.PriorityRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.Desc))     { _modalErr = L["MNT.WorkOrder.Err.DescRequired"]; return; }
+        _busy = true;
+        try
+        {
+            var (id, no, st) = Mnt.IssueWorkOrder(_f.WoType, _f.EquipId, _f.Priority, _f.Desc.Trim(), NE(_f.TechId), _actor);
+            Audit.Created("MNT-007", "MNT_WorkOrder", no, new { WoNumber = no, _f.WoType, _f.EquipId, _f.Priority, Description = _f.Desc.Trim(), AssignedTechId = NE(_f.TechId), Status = st, SourceType = "MANUAL" });
+            ShowMsg(string.Format(L["MNT.WorkOrder.Ok.Issued"].Value, no, StatusLabel(st)), false);
+            await AfterChange(id);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    void OpenCloseWo(MntRepository.MwoRow? r)
+    {
+        if (r is null || !_canApprove) return;
+        _sel = r; _modalErr = "";
+        _f = new();
+        _modal = "close";
+    }
+
+    async Task SaveCloseWo()
+    {
+        if (!_canApprove) return;
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.Action)) { _modalErr = L["MNT.WorkOrder.Err.CloseReasonRequired"]; return; }
+        _busy = true;
+        try
+        {
+            var o = Mnt.CloseWorkOrder(_sel.WorkOrderId, _f.Action.Trim(), _actor);
+            Audit.Log("MNT-007", "CLOSE", "MNT_WorkOrder", o.WoNumber, _sel, new { Status = MwoStatusCodes.Closed, Reason = _f.Action.Trim(), Outcome = o });
+            ShowMsg(CloseMsg(o), false);
+            await AfterChange(_sel.WorkOrderId);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // 종료 메시지: WO 종료 + 같이 닫힌 고장 · 건너뛴 PM 회차 · 발행된 다음 WO
+    string CloseMsg(MntRepository.WoCloseOutcome o)
+    {
+        var parts = new List<string> { string.Format(L["MNT.WorkOrder.Ok.Closed"].Value, o.WoNumber) };
+        if (o.FailureNumber is not null) parts.Add(string.Format(L["MNT.WorkOrder.Ok.FailureClosed"].Value, o.FailureNumber));
+        if (o.PmPlanNumber  is not null) parts.Add(o.PmNextDue is { } nd
+            ? string.Format(L["MNT.WorkOrder.Ok.PmSkipped"].Value, o.PmPlanNumber, nd.ToString(DateFmt.Date))
+            : string.Format(L["MNT.WorkOrder.Ok.PmSkippedNoDate"].Value, o.PmPlanNumber));
+        if (o.NextWoNumber  is not null) parts.Add(string.Format(L["MNT.WorkOrder.Ok.NextWo"].Value, o.NextWoNumber));
+        return string.Join(" · ", parts);
+    }
+
     void OpenComplete(MntRepository.MwoRow? r)
     {
         if (r is null || !_canApprove) return;
         _sel = r; _modalErr = "";
+        LoadReleases(r);
         _f = new()
         {
             Result = MwoResultCodes.Ok, CompletedAt = DbClock.Now, TechId = r.AssignedTechId ?? "",
@@ -553,7 +763,7 @@
         try
         {
             var o = Mnt.CompleteWorkOrder(_sel.WorkOrderId, _f.Result, _f.Action.Trim(), NE(_f.RootCause), _f.LaborMinutes,
-                NE(_f.Parts), _f.CompletedAt.Value, NE(_f.TechId), _actor);
+                _f.CompletedAt.Value, NE(_f.TechId), _actor);
             Audit.Log("MNT-007", "COMPLETE", "MNT_WorkOrder", o.WoNumber, _sel, new { Status = MwoStatusCodes.Completed, Form = _f, Outcome = o });
             ShowMsg(CompleteMsg(o), false);
             await AfterChange(_sel.WorkOrderId);
@@ -576,6 +786,13 @@
         return string.Join(" · ", parts);
     }
 
+    // ── 사용 부품 = PDA 가 이 작업지시로 출고한 부품(취소분 제외) — 상세·완료 창에서 읽기만 ──
+    List<MntRepository.PartReleaseRow> _woReleases = new();
+
+    string ReleasesText() => _woReleases.Count == 0
+        ? L["MNT.WorkOrder.Lbl.PartsNone"].Value
+        : MwoPartsUsed.Describe(MwoPartsUsed.Merge(_woReleases.Select(r => r.ToLine())));
+
     // 저장 뒤 목록을 다시 읽고 같은 WO 의 상세를 다시 연다(갱신된 상태·시각이 바로 보이게)
     async Task AfterChange(int woId)
     {
@@ -595,7 +812,10 @@
         public int?      LaborMinutes { get; set; }
         public string    RootCause    { get; set; } = "";
         public string    Action       { get; set; } = "";
-        public string    Parts        { get; set; } = "";
+        public string    EquipId      { get; set; } = "";   // 수동 발행
+        public string    WoType       { get; set; } = "";
+        public string    Priority     { get; set; } = "";
+        public string    Desc         { get; set; } = "";
     }
 
     // 현재 조회 결과(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
@@ -641,23 +861,24 @@
     // 담당자 = AspNetUsers.Id → "이름 (사번)" (행위자 표시 규칙). 사전에 없는 값(구 데이터)은 그대로
     string TechText(string? id) => string.IsNullOrEmpty(id) ? "—" : Actors.Display(id);
 
-    static bool IsOpen(string? s) => s is MwoStatusCodes.Open or MwoStatusCodes.Issued;
-    static bool IsProg(string? s) => s == MwoStatusCodes.InProgress;
-    static bool IsDone(string? s) => s is MwoStatusCodes.Completed or MwoStatusCodes.Closed;
+    static bool IsOpen(string? s)   => MwoStatusRules.IsNotStarted(s);
+    static bool IsProg(string? s)   => s == MwoStatusCodes.InProgress;
+    static bool IsDone(string? s)   => MwoStatusRules.IsEnded(s);
+    static bool IsClosed(string? s) => s == MwoStatusCodes.Closed;
     // 고장·안돈 원천이면 완료 모달에 근본 원인 칸을 보인다
     static bool HasFailureSource(MntRepository.MwoRow r) => r.SourceType is "FAILURE" or "ANDON" || r.WoType == MwoTypeCodes.Cm;
 
-    string StatusLabel(string? s) => s switch
+    // 상태 라벨은 MNT_STATUS 공통코드 LocalName, 미등록 코드는 원문
+    string StatusLabel(string? s) =>
+        s is null ? "—" : _statusItems.FirstOrDefault(c => c.CodeValue == s) is { } c ? MasterDataRepository.LocalName(c) : s;
+    static string StCls(string? s) => s switch
     {
-        null                      => "—",
-        MwoStatusCodes.Open       => L["MNT.WorkOrder.St.Open"],
-        MwoStatusCodes.Issued     => L["MNT.WorkOrder.St.Issued"],
-        MwoStatusCodes.InProgress => L["MNT.WorkOrder.InProgress"],
-        MwoStatusCodes.Completed  => L["MNT.WorkOrder.Completed"],
-        MwoStatusCodes.Closed     => L["MNT.WorkOrder.St.Closed"],
-        _                         => s,
+        MwoStatusCodes.Issued     => "bad",
+        MwoStatusCodes.Assigned   => "orange",
+        MwoStatusCodes.InProgress => "warn",
+        MwoStatusCodes.Completed  => "ok",
+        _                         => "mute",   // CLOSED(종료)·미등록
     };
-    static string StCls(string? s) => IsOpen(s) ? "bad" : IsProg(s) ? "warn" : IsDone(s) ? "ok" : "mute";
 
     // 유형 라벨은 MWO_TYPE 공통코드 LocalName, 미등록 코드는 원문
     string TypeLabel(string? t) =>
@@ -668,13 +889,8 @@
         c is null ? "—" : _resultItems.FirstOrDefault(x => x.CodeValue == c) is { } i ? MasterDataRepository.LocalName(i) : c;
     static string ResultCls(string? c) => c switch { MwoResultCodes.Ok => "ok", MwoResultCodes.Partial => "warn", MwoResultCodes.FollowUp => "bad", _ => "mute" };
 
-    // PartsUsedJSON = 문자열 배열. 다른 형식(구 데이터)이면 원문
-    static string PartsText(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return "";
-        try { return string.Join(", ", System.Text.Json.JsonSerializer.Deserialize<string[]>(json) ?? Array.Empty<string>()); }
-        catch { return json; }
-    }
+    // PartsUsedJSON → "부품 × 수량"(옛 자유 입력은 그대로) — 규칙은 MwoPartsUsed
+    static string PartsText(string? json) => MwoPartsUsed.Describe(json);
 
     string SourceLabel(string? s) => s switch
     {

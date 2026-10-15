@@ -13,7 +13,11 @@ public sealed record LocationMapCell(
     string Row,
     string Floor,
     decimal Qty,
-    string Status);
+    string Status,
+    decimal? Capacity = null)
+{
+    public bool IsFull => AMES.Data.Services.LocationCapacity.IsFull(Qty, Capacity);
+}
 
 public sealed record LocationMapStock(
     string LocationNo,

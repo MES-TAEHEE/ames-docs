@@ -60,21 +60,21 @@
     <div class="ames-card-h">▼ @L["PP.Delivery.Cust.Title"] · @_custAgg.Count @L["Lbl.Items"]</div>
     <RadzenDataGrid TItem="CustAgg" Data="@_custAgg" AllowPaging="false" AllowSorting="true" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid pp-dtl-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="CustAgg" Property="CustomerId" Title="@L["Col.Customer"]" Width="130px">
+            <RadzenDataGridColumn TItem="CustAgg" MinWidth="130px" Property="CustomerId" Title="@L["Col.Customer"]" Width="130px">
                 <Template Context="c"><span class="code">@c.CustomerId</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="CustAgg" Property="Name" Title="@L["Col.CustomerName"]">
+            <RadzenDataGridColumn TItem="CustAgg" MinWidth="160px" Property="Name" Title="@L["Col.CustomerName"]">
                 <Template Context="c"><span style="white-space:nowrap;">@(c.Name ?? "—")</span>@(c.Registered ? "" : $" ({L["PP.Delivery.Cust.Unregistered"]})")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="CustAgg" Property="Type" Title="@L["Col.Type"]" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="CustAgg" MinWidth="90px" Property="Type" Title="@L["Col.Type"]" Width="90px" TextAlign="TextAlign.Center">
                 <Template Context="c">@if (c.Type is { } t) { <span class="pill info">@t</span> } else { <span class="dim">—</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="CustAgg" Property="Orders"  Title="@L["PP.Delivery.Cust.Col.Orders"]"  Width="90px" TextAlign="TextAlign.Right" />
-            <RadzenDataGridColumn TItem="CustAgg" Property="Shipped" Title="@L["PP.Delivery.Cust.Col.Shipped"]" Width="90px" TextAlign="TextAlign.Right" />
-            <RadzenDataGridColumn TItem="CustAgg" Property="Late"    Title="@L["PP.Delivery.Cust.Col.Late"]"    Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="CustAgg" MinWidth="100px" Property="Orders"  Title="@L["PP.Delivery.Cust.Col.Orders"]"  Width="100px" TextAlign="TextAlign.Right" />
+            <RadzenDataGridColumn TItem="CustAgg" MinWidth="110px" Property="Shipped" Title="@L["PP.Delivery.Cust.Col.Shipped"]" Width="110px" TextAlign="TextAlign.Right" />
+            <RadzenDataGridColumn TItem="CustAgg" MinWidth="130px" Property="Late"    Title="@L["PP.Delivery.Cust.Col.Late"]"    Width="130px" TextAlign="TextAlign.Right">
                 <Template Context="c"><span class="code" style="@(c.Late > 0 ? "color:var(--ames-tx-red-400);" : "")">@c.Late</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="CustAgg" Property="Otd" Title="@L["PP.Delivery.Cust.Col.Otd"]" Width="110px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="CustAgg" MinWidth="110px" Property="Otd" Title="@L["PP.Delivery.Cust.Col.Otd"]" Width="110px" TextAlign="TextAlign.Center">
                 <Template Context="c">
                     @if (c.Orders == 0) { <span class="dim">—</span> } else { <span class="pill @(c.Otd >= 95 ? "ok" : c.Otd >= 85 ? "warn" : "bad")">@($"{c.Otd:F1}%")</span> }
                 </Template>
@@ -89,9 +89,9 @@
         <span style="white-space:nowrap;">▼ @L["PP.Delivery.Title"] · @_rows.Count @L["Lbl.Items"] · @string.Format(L["PP.Delivery.Lbl.Range"].Value, _fFrom.ToString(DateFmt.Date), _fTo.ToString(DateFmt.Date))</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Col.Requested"]" Component="DatePickerFrom" />
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerFrom" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <span class="dim">~</span>
-            <RadzenDatePicker TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Customer"]" Component="DropDownCustomer" />
             <RadzenDropDown AllowFiltering="true" Name="DropDownCustomer" @bind-Value="_fCustomer" Data="@CustomerFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
@@ -107,28 +107,28 @@
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     AllowSorting="true" RowRender="@RowRender" EmptyText="@L["PP.Delivery.Empty"]" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="130px" Property="SoNumber" Title="@L["Col.SoNo"]" Width="130px">
                 <Template Context="r"><span class="code">@(r.SoNumber ?? "—")</span>@(r.SoLineNo is { } ln ? $"-{ln}" : "")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="CustomerId" Title="@L["Col.Customer"]" Width="220px">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="220px" Property="CustomerId" Title="@L["Col.Customer"]">
                 <Template Context="r">
                     <span class="code">[@(r.CustomerId ?? "—")]</span>
                     <span style="margin-left:4px;white-space:nowrap;">@CustomerName(r)</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="ItemNo" Title="@L["Col.Item"]">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="200px" Property="ItemNo" Title="@L["Col.Item"]">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
                     <span class="dim" style="font-size:var(--ames-fs-hint);margin-left:4px;white-space:nowrap;">@MasterDataRepository.LocalName(r.ItemName, r.ItemNameEn)</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="OrderQty" Title="@L["Col.Order"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="90px" Property="OrderQty" Title="@L["Col.Order"]" Width="90px" TextAlign="TextAlign.Right">
                 <Template Context="r">@UomFmt.Qty(r.OrderQty, null)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="ShippedQty" Title="@L["Col.Ship"]" Width="80px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="90px" Property="ShippedQty" Title="@L["Col.Ship"]" Width="90px" TextAlign="TextAlign.Right">
                 <Template Context="r">@UomFmt.Qty(r.ShippedQty, null)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="ProgressPct" Title="@L["PP.Delivery.Col.Progress"]" Width="130px">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="130px" Property="ProgressPct" Title="@L["PP.Delivery.Col.Progress"]" Width="130px">
                 <Template Context="r">
                     <div class="pp-oee-apq">
                         <div class="pp-oee-track" style="height:8px;"><i class="@(r.IsLate ? "otd-fill-bad" : "otd-fill-ok")" style="width:@(r.ProgressPct.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;"></i></div>
@@ -136,21 +136,21 @@
                     </div>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"]" Width="100px">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="120px" Property="RequestedDeliveryDate" Title="@L["Col.Requested"]" Width="120px">
                 <Template Context="r">@(r.RequestedDeliveryDate?.ToString(DateFmt.DateShort) ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="PromisedDate" Title="@L["Col.Promised"]" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="120px" Property="PromisedDate" Title="@L["Col.Promised"]" Width="120px">
                 <Template Context="r">
                     @(r.PromisedDate?.ToString(DateFmt.DateShort) ?? "—")
                     @if (r.PromiseGapDays is > 0) { <span class="pill warn" style="margin-left:4px;padding:0 6px;font-size:var(--ames-fs-hint);" title="@L["PP.Delivery.Col.PromiseGap"]">+@r.PromiseGapDays</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="DaysLate" Title="@L["Col.DaysLate"]" Width="90px" TextAlign="TextAlign.Right">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="160px" Property="DaysLate" Title="@L["Col.DaysLate"]" Width="160px" TextAlign="TextAlign.Right">
                 <Template Context="r">
                     @if (r.DaysLate > 0) { <span class="code" style="color:var(--ames-tx-red-400);">+@r.DaysLate@L["Lbl.Days"]</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.OtdRow" Property="Status" Title="@L["Col.Status"]" Width="100px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="100px" Property="Status" Title="@L["Col.Status"]" Width="100px" TextAlign="TextAlign.Center">
                 <Template Context="r">
                     @if (r.IsShipped)   { <span class="pill ok">@L["PP.Delivery.Badge.Shipped"]</span> }
                     else if (r.IsLate)  { <span class="pill bad">@L["PP.Delivery.Badge.Late"]</span> }

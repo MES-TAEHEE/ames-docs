@@ -252,7 +252,12 @@ builder.Services.AddScoped<AMES.Web.Services.PortalQuantityFormat>();
 builder.Services.AddScoped<AMES.Web.Services.BoxLabelSelection>();
 builder.Services.AddSingleton(sp => new MntRepository(factory));
 builder.Services.AddSingleton(sp => new RptRepository(factory));
-builder.Services.AddSingleton(sp => new WarehouseRepository(factory));
+builder.Services.AddScoped(sp => new WarehouseRepository(factory, () =>
+{
+    var state = sp.GetRequiredService<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider>().GetAuthenticationStateAsync();
+    if (!state.IsCompletedSuccessfully) throw new InvalidOperationException("Sign in before changing warehouse data.");
+    return AMES.Web.Services.ActorCode.Of(state.Result.User);
+}));
 builder.Services.AddSingleton(sp => new FinishedGoodsRepository(factory));
 builder.Services.AddSingleton(sp => new SysRepository(factory));
 builder.Services.AddSingleton(sp => new AuthRepository(factory));

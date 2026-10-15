@@ -34,10 +34,6 @@ var views = db.Views.Cast<View>().Where(v => !v.IsSystemObject && v.Schema == "d
 var funcs = db.UserDefinedFunctions.Cast<UserDefinedFunction>().Where(f => !f.IsSystemObject && f.Schema == "dbo" && !DiagramObject(f.Name))
                 .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
-// 이전 파일에 있었지만 개발 DB 에서 정리된 옛 WH 객체 — 오래된 DB 위에 다시 돌려도 남지 않게 지운다
-string[] legacyTables = ["WH_AreaLayout", "WH_AreaMaster", "WH_AreaSection", "WH_InboundPackage", "WH_OLD_Inventory",
-                         "WH_Receiving", "WH_ReleasePicking", "WH_TransactionHistory", "WH_WarehouseMaster"];
-
 var sb = new StringBuilder();
 void L(string s = "") => sb.Append(s).Append("\r\n");
 void Batch(StringCollection sc) { foreach (string? s in sc) { L(s!.TrimEnd()); L("GO"); } }
@@ -57,8 +53,9 @@ L("SET QUOTED_IDENTIFIER ON;");
 L("SET ANSI_PADDING ON;");
 L("SET NOCOUNT ON;");
 L("GO");
-L("-- Drop every foreign key on the recreated tables (and legacy WH tables) before dropping tables.");
-var allNames = tables.Select(t => t.Name).Concat(legacyTables).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+// 개발 DB 에 있는 테이블만 지우고 다시 만든다(10-14 — 개발 DB 에서 정리된 옛 WH 테이블 9개·트리거 DROP 은 뺐다)
+L("-- Drop every foreign key on the recreated tables before dropping tables.");
+var allNames = tables.Select(t => t.Name).ToList();
 L("DECLARE @DropFk nvarchar(max) = N'';");
 L("SELECT @DropFk += N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(fk.parent_object_id)) + N'.' + QUOTENAME(OBJECT_NAME(fk.parent_object_id)) + N' DROP CONSTRAINT ' + QUOTENAME(fk.name) + N';'");
 L("FROM sys.foreign_keys fk");
@@ -66,12 +63,10 @@ L("WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) = N'dbo' AND (OBJECT_NAME(fk.pa
 sb.Replace("@Names", "N'" + string.Join(",", allNames) + "'");
 L("EXEC sys.sp_executesql @DropFk;");
 L("GO");
-L("DROP TRIGGER IF EXISTS [dbo].[TR_WH_OLD_Inventory_SyncUnifiedInventory];");
 foreach (var p in procs) L($"DROP PROCEDURE IF EXISTS [dbo].[{p.Name}];");
 foreach (var v in views) L($"DROP VIEW IF EXISTS [dbo].[{v.Name}];");
 foreach (var f in funcs) L($"DROP FUNCTION IF EXISTS [dbo].[{f.Name}];");
 foreach (var t in tables) L($"DROP TABLE IF EXISTS [dbo].[{t.Name}];");
-foreach (var t in legacyTables) L($"DROP TABLE IF EXISTS [dbo].[{t}];");
 L("GO");
 
 var tableOpt = new ScriptingOptions

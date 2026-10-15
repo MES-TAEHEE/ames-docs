@@ -1279,6 +1279,10 @@ html[data-theme="light"] .ames-user-av--none  { --av-bg: rgba(100,116,139,.10); 
     max-height: calc(100vh - 40px); overflow-y: auto;
 }
 .ames-modal.ames-modal-wide { max-width: 800px; }
+.portal-shell input[type="date"].ames-input { width:160px; min-height:32px; color-scheme:dark; }
+.portal-shell .portal-rows-control { display:inline-flex; align-items:center; gap:8px; flex:0 0 auto; white-space:nowrap; }
+.portal-shell .portal-rows-control select.ames-input { width:auto; min-width:76px; min-height:32px; padding:4px 10px; }
+html[data-theme="light"] .portal-shell input[type="date"].ames-input { color-scheme:light; }
 .ames-modal.ames-modal-fullwide { max-width: 1400px; }
 .ames-modal-h {
     font-family: var(--ames-font-mono); font-size: 16px;
@@ -1427,10 +1431,13 @@ select.ames-rz-input {
     text-align: center !important;
     padding-inline-start: 0 !important;
 }
-/* MD/SYS 헤더 좌우 여백 — 위 .rz-column-header 의 padding 은 Radzen 11 에서 그 클래스가 없어져 먹지 않는다.
-   여백이 0 이면 열이 글자폭까지 줄었을 때 헤더끼리 붙는다. */
+/* MD/SYS·PP·SCM·외부 포탈 헤더 좌우 여백 — 위 .rz-column-header 의 padding 은 Radzen 11 에서 그 클래스가 없어져 먹지 않는다.
+   여백이 0 이면 열이 글자폭까지 줄었을 때 헤더끼리 붙는다(열 너비 = 3언어 헤더 최대 + 정렬 아이콘 20 + 24). */
 .ames-sec-md  .ames-rz-grid thead th > div,
-.ames-sec-sys .ames-rz-grid thead th > div { padding-inline: 8px !important; }
+.ames-sec-sys .ames-rz-grid thead th > div,
+.ames-sec-pp  .ames-rz-grid thead th > div,
+.ames-sec-scm .ames-rz-grid thead th > div,
+.ames-sec-portal .ames-rz-grid thead th > div { padding-inline: 8px !important; }
 
 /* 4. 데이터 셀 */
 .ames-rz-grid .rz-data-cell {
@@ -4964,6 +4971,7 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
 .location-map-legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .location-map-legend i { width: 10px; height: 10px; border: 1px solid rgba(148,163,184,.35); background: var(--ames-sf-1e293b-a70); }
 .location-map-legend i.stocked { border-color: #22c55e; background: rgba(22,163,74,.25); }
+.location-map-legend i.capacity-full { border-color: #f97316; background: rgba(249,115,22,.25); }
 .location-map-legend i.matched { border-color: #f59e0b; background: rgba(217,119,6,.24); }
 .location-map-zoom { overflow: hidden; border: 1px solid rgba(148,163,184,.28); border-radius: 5px; }
 .location-map-zoom button { width: 31px; height: 31px; color: var(--ames-tx-slate-200); border: 0; background: var(--ames-sf-1e293b-a75); cursor: pointer; }
@@ -5034,6 +5042,8 @@ html[data-theme="light"] .ames-rz-grid tr.otd-row-late .rz-data-cell { backgroun
 .location-map-cell.warning { color: var(--ames-tx-amber-200); border-color: rgba(245,158,11,.7); background: rgba(180,83,9,.2); }
 .location-map-cell.matched { color: var(--ames-tx-amber-200); border-color: #f59e0b; background: rgba(180,83,9,.28); box-shadow: inset 0 0 0 1px #f59e0b; }
 .location-map-cell.missing { border-style: dashed; opacity: .28; background: transparent; }
+.location-map-cell.capacity-full { color: var(--ames-tx-orange-300); border-color: #f97316; background: rgba(249,115,22,.22); }
+.location-map-cell.capacity-full > small { color: inherit; }
 
 .location-detail-pane { display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgba(8,15,28,.22); }
 .location-search-panel,
@@ -5093,6 +5103,7 @@ html[data-theme="light"] .location-result-heading strong { color: var(--ames-tex
 html[data-theme="light"] .location-map-cell.stocked { color: #15803d; border-color: rgba(22,163,74,.55); background: rgba(22,163,74,.1); }
 html[data-theme="light"] .location-map-cell.warning,
 html[data-theme="light"] .location-map-cell.matched { color: #b45309; border-color: rgba(217,119,6,.65); background: rgba(217,119,6,.12); }
+html[data-theme="light"] .location-map-cell.capacity-full { color: #c2410c; border-color: #f97316; background: rgba(249,115,22,.15); }
 html[data-theme="light"] .location-result-table { color: var(--ames-text); }
 html[data-theme="light"] .location-result-table th { color: var(--ames-accent); background: var(--ames-surface-3); }
 html[data-theme="light"] .location-result-table td { border-color: var(--ames-border-soft); }
@@ -5371,15 +5382,17 @@ html[data-theme="light"] .mnt-db-wo .done   { color: #047857; }
 .mnt-mold-bar-val { font-family: var(--ames-font-code); font-size: 11.5px; min-width: 46px; text-align: right; }
 html[data-theme="light"] .mnt-mold-track { background: rgba(80,60,20,.10); }
 
-/* MNT-005 PM 달력 칩 (PP 캘린더 .ames-cal-wo 변형: 완료·오늘·지연·예정) */
+/* MNT-005 PM 달력 칩 (PP 캘린더 .ames-cal-wo 변형: 완료·건너뜀(작업지시 종료)·오늘·지연·예정) */
 .ames-cal-wo.pm-done    { background: rgba(16,185,129,.16); color: var(--ames-tx-emerald-300); border-left: 2px solid #10b981; }
 .ames-cal-wo.pm-today   { background: rgba(245,158,11,.18); color: var(--ames-tx-amber-300); border-left: 2px solid #f59e0b; }
 .ames-cal-wo.pm-overdue { background: rgba(220,38,38,.18);  color: var(--ames-tx-red-300); border-left: 2px solid #dc2626; }
+.ames-cal-wo.pm-skipped { background: rgba(148,163,184,.14); color: var(--ames-tx-slate-300); border-left: 2px dashed #94a3b8; }
 .ames-cal-wo.pm-planned { background: rgba(99,102,241,.16); color: var(--ames-tx-indigo-200); border-left: 2px solid #6366f1; }
 html[data-theme="light"] .ames-cal-wo.pm-done    { background: #d1fae5; color: #065f46; }
 html[data-theme="light"] .ames-cal-wo.pm-today   { background: #fef3c7; color: #92400e; }
 html[data-theme="light"] .ames-cal-wo.pm-overdue { background: #fee2e2; color: #991b1b; }
 html[data-theme="light"] .ames-cal-wo.pm-planned { background: #e0e7ff; color: #3730a3; }
+html[data-theme="light"] .ames-cal-wo.pm-skipped { background: #f1f5f9; color: #475569; }
 
 /* RPT-001 일별 생산 실적: 시간대 차트(2) + 교대 요약(1), 교대 카드 */
 .rpt-dp-grid2 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 8px; }

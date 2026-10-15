@@ -35,10 +35,10 @@
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text='@($"{L["PP.PlanConfirm.Col.Due"]} {L["PP.Forecast.Fld.Period"]}")' />
-            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text='@($"{L["Col.SoNo"]}/{L["Col.PartNo"]}")' />
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
@@ -67,7 +67,7 @@ else
                     class="ames-rz-grid">
         <Columns>
             @* 선택은 WO 일괄 생성에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Width="46px" Sortable="false" Visible="@_canEdit"
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="46px" Width="46px" Sortable="false" Visible="@_canEdit"
                                   Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
                 <HeaderTemplate>
                     <input type="checkbox" class="pc-ck" checked="@AllSelected"
@@ -79,14 +79,14 @@ else
                            @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="SoNumber" Title="@L["Col.SoNo"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="150px" Property="SoNumber" Title="@L["Col.SoNo"].Value"
                                   Frozen="true" Width="150px">
                 <Template Context="r">
                     <span class="code">@r.SoNumber</span>@if (r.SoLineNo is int ln) { <span class="dim">-@ln</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="CustomerId" Title="@L["Col.Customer"].Value" Width="120px" />
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="120px" Property="CustomerId" Title="@L["Col.Customer"].Value" Width="120px" />
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="240px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
                     @if (!r.ItemExists)
@@ -96,27 +96,27 @@ else
                     @if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="OrderQty" Title="@L["Col.Order"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="100px" Property="OrderQty" Title="@L["Col.Order"].Value"
                                   TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@r.OrderQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="IssuedQty" Title="@L["PP.PlanConfirm.Col.Issued"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="100px" Property="IssuedQty" Title="@L["PP.PlanConfirm.Col.Issued"].Value"
                                   TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">
                     @if (r.IssuedQty > 0) { <span style="color:var(--ames-tx-amber-400);">@r.IssuedQty.ToString("#,0")</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="FgOnHand" Title="@L["PP.PlanConfirm.Col.FgStock"].Value"
-                                  TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="110px" Property="FgOnHand" Title="@L["PP.PlanConfirm.Col.FgStock"].Value"
+                                  TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r"><span style="color:var(--ames-tx-green-300);">@r.FgOnHand.ToString("#,0")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="NetReq" Title="@L["PP.PlanConfirm.Col.NetReq"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="110px" Property="NetReq" Title="@L["PP.PlanConfirm.Col.NetReq"].Value"
                                   TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r">
                     <span style="font-weight:700;color:@(r.Blocked ? "var(--ames-tx-red-400)" : "var(--ames-tx-blue-300)");">@r.NetReq.ToString("#,0")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="LineLoadPct" Title="@L["PP.PlanConfirm.Col.LineLoad"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="170px" Property="LineLoadPct" Title="@L["PP.PlanConfirm.Col.LineLoad"].Value"
                                   Filterable="false" Width="170px">
                 <Template Context="r">
                     @if (r.LineLoadPct is int pct)
@@ -128,7 +128,7 @@ else
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Property="DueDate" Title="@L["PP.PlanConfirm.Col.Due"].Value" Width="120px">
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="120px" Property="DueDate" Title="@L["PP.PlanConfirm.Col.Due"].Value" Width="120px">
                 <Template Context="r">
                     @if (r.DueDate is DateTime d)
                     {
@@ -137,8 +137,8 @@ else
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" Title="@L["Col.Status"].Value"
-                                  Sortable="false" Filterable="false" Width="150px">
+            <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="190px" Title="@L["Col.Status"].Value"
+                                  Sortable="false" Filterable="false" Width="190px">
                 <Template Context="r">
                     @if (r.Blocked)
                     {

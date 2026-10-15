@@ -66,55 +66,55 @@ else
                     RowExpand="@LoadSteps"
                     class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="150px" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
                 <Template Context="w"><span class="code">@w.WoNumber</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="230px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="230px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="230px">
                 <Template Context="w">
                     <span class="code">@w.ItemNo</span>
                     @{ var nm = w.ItemName; }
                     @if (!string.IsNullOrEmpty(nm)) { <span class="dim"> · @nm</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="RouteLines" Title="@L["Col.Line"].Value" Width="260px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="260px" Property="RouteLines" Title="@L["Col.Line"].Value" Width="260px">
                 <Template Context="w"><span class="code dim">@(string.IsNullOrEmpty(w.RouteLines) ? "—" : w.RouteLines)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="RoutingType" Title="@L["Col.Routing"].Value" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="100px" Property="RoutingType" Title="@L["Col.Routing"].Value" Width="100px" TextAlign="TextAlign.Center">
                 <Template Context="w">
                     @if (w.RoutingType == "A") { <span class="pill info" title="@FlowText("A")">A</span> }
                     else if (w.RoutingType == "B") { <span class="pill warn" title="@FlowText("B")">B</span> }
                     else { <span class="dim" title="@FlowText(null)">INJ</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="OrderQty" Title="@L["Col.Order"].Value" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="90px" Property="OrderQty" Title="@L["Col.Order"].Value" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="w">@w.OrderQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="CompletedQty" Title="@L["Col.Done"].Value" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="90px" Property="CompletedQty" Title="@L["Col.Done"].Value" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="w">@w.CompletedQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="ProgressPct" Title="@L["Col.Progress"].Value" Width="160px" Filterable="false">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="160px" Property="ProgressPct" Title="@L["Col.Progress"].Value" Width="160px" Filterable="false">
                 <Template Context="w">
                     @{ var p = (int)Math.Clamp(w.ProgressPct, 0, 100); }
                     <span class="wo-bar"><i style="width:@(p)%;background:@ProgColor(p);"></i></span>
                     <span class="code" style="margin-left:6px;">@p%</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="DaysToDue" Title="D-Day" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="90px" Property="DaysToDue" Title="D-Day" Width="90px" TextAlign="TextAlign.Center">
                 <Template Context="w"><span class="pill @DdClass(w)">@DdText(w)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="Status" Title="@L["Col.Status"].Value" Width="110px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="130px" Property="Status" Title="@L["Col.Status"].Value" Width="130px">
                 <Template Context="w"><span class="pill @StatusClass(w.Status)">@w.Status</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="Phase0Complete" Title="P0" Width="56px" TextAlign="TextAlign.Center" Filterable="false">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="60px" Property="Phase0Complete" Title="P0" Width="60px" TextAlign="TextAlign.Center" Filterable="false">
                 <Template Context="w">
                     @if (!w.Phase0Complete && w.Status == "Draft") { <span class="pill bad" title="@L["PP.WorkOrder.Ttl.Phase0Fail"]">🚧</span> }
                     else { <span class="pill ok" title="@L["PP.WorkOrder.Ttl.Phase0Pass"]">✓</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="SoNumber" Title="SAP SO" Width="140px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="140px" Property="SoNumber" Title="SAP SO" Width="140px">
                 <Template Context="w"><span class="dim">@(w.SoNumber ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Title="@L["PP.WorkOrder.Col.Action"].Value"
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="180px" Title="@L["PP.WorkOrder.Col.Action"].Value"
                                   Sortable="false" Filterable="false" Width="180px">
                 <Template Context="w">
                     @if (_canApprove && w.Status == "Draft")

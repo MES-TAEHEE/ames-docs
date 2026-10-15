@@ -97,7 +97,7 @@
                             else if (c.ConfigType == "TIME")
                             {
                                 @* 시각 전용 선택기(PP-LSB·SYS-005 와 같은 설정) — 값은 HH:mm 문자열로 저장 *@
-                                <RadzenDatePicker TValue="DateTime?" Value="@TimeValue(ed.Value)" Change="@(v => { ed.Value = TimeText(v); _dirty = true; })"
+                                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Value="@TimeValue(ed.Value)" Change="@(v => { ed.Value = TimeText(v); _dirty = true; })"
                                                   TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" Placeholder="00:00"
                                                   Disabled="@Locked(c, ed)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
                             }

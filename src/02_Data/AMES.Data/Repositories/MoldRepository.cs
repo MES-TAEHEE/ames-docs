@@ -69,7 +69,7 @@ public sealed class MoldRepository
         cmd.Parameters.Add("@New", SqlDbType.VarChar,  20 ).Value = newMoldId;
         cmd.Parameters.Add("@OF",  SqlDbType.Int          ).Value = oldFinalShots;
         cmd.Parameters.Add("@R",   SqlDbType.VarChar,  20 ).Value = reason;
-        cmd.Parameters.Add("@Op",  SqlDbType.NVarChar, 450).Value = operatorId;
+        cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorId;
         cmd.Parameters.Add("@By",  SqlDbType.VarChar,   20).Value = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }

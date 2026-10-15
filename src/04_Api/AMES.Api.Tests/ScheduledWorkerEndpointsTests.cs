@@ -20,11 +20,26 @@ public class ScheduledWorkerEndpointsTests
                 SessionId = 1, OperatorId = "W001", EmployeeNo = "W001", EmployeeName = "Test",
                 TerminalId = "T", LineId = "L", ShiftCode = "DAY", AuthMethod = AuthMethod.Pin,
                 StartedAt = DateTime.Now, ExpiresAt = DateTime.Now.AddHours(1),
+                IsAdmin = true,
             };
         return ctx;
     }
 
     static int? Status(IResult r) => (r as IStatusCodeHttpResult)?.StatusCode;
+
+    [Fact]
+    public async Task Operator_session_is_403_and_nothing_runs()
+    {
+        var context=Ctx(false);
+        context.Items[BearerAuth.SessionKey]=new PopSessionDto
+        {
+            SessionId=1,OperatorId="W001",EmployeeNo="W001",EmployeeName="Worker",TerminalId="T",LineId="L",
+            ShiftCode="DAY",AuthMethod=AuthMethod.Pin,StartedAt=DateTime.MinValue,ExpiresAt=DateTime.MaxValue,IsAdmin=false
+        };
+        var worker=OneTarget();
+        Assert.Equal(403,Status(await ScheduledWorkerEndpoints.RunAsync(context,worker,"A",CancellationToken.None)));
+        Assert.Empty(worker.Runs);
+    }
 
     [Fact]
     public async Task No_session_is_401_and_nothing_runs()

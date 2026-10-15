@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using AMES.Data.Connection;
 using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
@@ -292,9 +292,9 @@ public sealed class MasterDataRepository
         var sql = """
             SELECT ItemNo, ItemName, ItemType, ItemCategory, InjFlag, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
-                   PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, BoxQty, ScanRequired,
+                   PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, ScanRequired,
                    ISNULL(ActiveFlag,1) AS ActiveFlag,
-                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS, BoxContentUnit, BoxContentQty
+                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
             """ + " WHERE 1=1" + (string.IsNullOrWhiteSpace(search) ? "" :
             " AND (ItemNo LIKE @S OR ItemName LIKE @S OR ItemCategory LIKE @S OR CarType LIKE @S OR PGN LIKE @S OR ALC LIKE @S)") +
@@ -323,15 +323,12 @@ public sealed class MasterDataRepository
             r["PalletQty"]     as int?,
             r["MaxPalletQty"]  as int?,
             (bool)r["ToteFlag"],
-            r["BoxQty"]        as int?,
             (bool)r["ActiveFlag"],
             r["CreatedBy"]     as string,
             r["CreatedTS"]     is DateTime ct ? ct : null,
             r["ModifiedBy"]    as string,
             r["ModifiedTS"]    is DateTime mt ? mt : null,
-            (bool)r["ScanRequired"],
-            r["BoxContentUnit"] as string,
-            r["BoxContentQty"] is decimal bc ? bc : null), p);
+            (bool)r["ScanRequired"]), p);
     }
 
     public bool UpdateMaterialUnitCost(string itemNo, decimal unitCost, decimal? originalCost, string modifiedBy)
@@ -372,19 +369,18 @@ public sealed class MasterDataRepository
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
-        int? palletQty, int? maxPalletQty, bool toteFlag, int? boxQty,
-        bool activeFlag, string createdBy, bool scanRequired = false,
-        string? boxContentUnit = null, decimal? boxContentQty = null)
+        int? palletQty, int? maxPalletQty, bool toteFlag,
+        bool activeFlag, string createdBy, bool scanRequired = false)
     {
-        ValidateItemBoxContent(defaultUom, boxContentUnit, boxContentQty);
+        ValidateQuantityUnit(defaultUom);
         Exec("""
             INSERT INTO dbo.MD_Item
                    (ItemNo,ItemName,ItemType,ItemCategory,InjFlag,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,BoxQty,ActiveFlag,CreatedBy,CreatedTS,ScanRequired,BoxContentUnit,BoxContentQty)
+                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS,ScanRequired)
             VALUES (@No,@Name,@Type,@Cat,@Inj,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Box,@Active,@By,SYSDATETIME(),@BoxScan,@ContentUnit,@ContentQty)
+                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME(),@BoxScan)
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
             ("@Type", "MD_Item.ItemType", itemType), ("@Cat", "MD_Item.ItemCategory", itemCategory), ("@Car", "MD_Item.CarType", carType),
@@ -393,28 +389,25 @@ public sealed class MasterDataRepository
             ("@Route", "MD_Item.RoutingType", routingType), ("@Min", "MD_Item.MinStock", minStock),  ("@Max", "MD_Item.MaxStock", maxStock),
             ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
-            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag), ("@Box", "MD_Item.BoxQty", boxQty),
-            ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
-            ("@ContentUnit", "MD_Item.BoxContentUnit", boxContentUnit), ("@ContentQty", "MD_Item.BoxContentQty", boxContentQty));
+            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag),
+            ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired));
     }
 
     public void UpdateItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
-        int? palletQty, int? maxPalletQty, bool toteFlag, int? boxQty,
-        bool activeFlag, string modifiedBy, bool scanRequired = false,
-        string? boxContentUnit = null, decimal? boxContentQty = null)
+        int? palletQty, int? maxPalletQty, bool toteFlag,
+        bool activeFlag, string modifiedBy, bool scanRequired = false)
     {
-        ValidateItemBoxContent(defaultUom, boxContentUnit, boxContentQty);
+        ValidateQuantityUnit(defaultUom);
         Exec("""
             UPDATE dbo.MD_Item
             SET    ItemName=@Name, ItemType=@Type,
                    ItemCategory=@Cat, InjFlag=@Inj, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
                    PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
-                   PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, BoxQty=@Box, ScanRequired=@BoxScan,
-                   BoxContentUnit=@ContentUnit,BoxContentQty=@ContentQty,
+                   PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, ScanRequired=@BoxScan,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
@@ -425,26 +418,17 @@ public sealed class MasterDataRepository
             ("@Route", "MD_Item.RoutingType", routingType), ("@Min", "MD_Item.MinStock", minStock),  ("@Max", "MD_Item.MaxStock", maxStock),
             ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
-            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag), ("@Box", "MD_Item.BoxQty", boxQty),
-            ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
-            ("@ContentUnit", "MD_Item.BoxContentUnit", boxContentUnit), ("@ContentQty", "MD_Item.BoxContentQty", boxContentQty));
+            ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag),
+            ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired));
     }
 
-    void ValidateItemBoxContent(string? itemUom, string? contentUnit, decimal? contentQty)
+    public static bool IsQuantityUnit(string? unit) => !string.IsNullOrWhiteSpace(unit)
+        && unit.Trim().ToUpperInvariant() is not ("BOX" or "PLT" or "PALLET" or "SH" or "SHEET");
+
+    static void ValidateQuantityUnit(string? unit)
     {
-        if (itemUom != "BOX")
-        {
-            if (contentUnit is not null || contentQty is not null)
-                throw new ArgumentException("BOX contents can only be set for BOX items.");
-            return;
-        }
-        if (contentQty is null or <= 0 or > 999999999999999.999m || decimal.Round(contentQty.Value,3)!=contentQty.Value ||
-            string.IsNullOrWhiteSpace(contentUnit) || contentUnit.Length>10 || contentUnit is "BOX" or "PLT" or "SH")
-            throw new ArgumentException("Set a positive BOX contents quantity and unit.");
-        using var conn=_factory.OpenConnection();
-        using var cmd=new SqlCommand("SELECT COUNT(*) FROM dbo.MD_Uom WHERE UOMCode=@U AND ActiveFlag=1",conn);
-        cmd.Parameters.Add("@U",SqlDbType.VarChar,10).Value=contentUnit;
-        if((int)cmd.ExecuteScalar()! != 1) throw new ArgumentException("Select an active contents unit.");
+        if (!string.IsNullOrWhiteSpace(unit) && !IsQuantityUnit(unit))
+            throw new ArgumentException("Select a quantity unit such as EA, KG, G or M. BOX, PALLET and SHEET are packaging only.");
     }
 
     const string ItemUsageSql = """
@@ -893,11 +877,10 @@ public sealed class MasterDataRepository
         string? RoutingType,
         decimal? MinStock, decimal? MaxStock, decimal? SafetyStock, decimal? UnitCost,
         string? PGN, string? ALC, string? DrawingNo,
-        int? PalletQty, int? MaxPalletQty, bool ToteFlag, int? BoxQty,
+        int? PalletQty, int? MaxPalletQty, bool ToteFlag,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false,
-        string? BoxContentUnit = null, decimal? BoxContentQty = null);
+        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false);
 
     public record CodeItemRow(
         string CodeID, string? GroupCode, string? CodeValue,
@@ -3285,7 +3268,7 @@ public sealed class MasterDataRepository
             "INSERT INTO dbo.MD_Location" +
             "(LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
             "Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy)" +
-            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,@LT,@PL,@AF,@CB);", conn);
+            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,@PL,@AF,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
         cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
@@ -3313,7 +3296,7 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_Location SET " +
             "LocationName=@N,WhCode=@WH,AreaCode=@AR,ZoneCode=@Z,Aisle=@A,Bay=@B,Slot=@S," +
-            "Capacity=@CAP,LocationType=@LT,PlantCode=@PL,ActiveFlag=@AF," +
+            "Capacity=@CAP,LocationType=CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,PlantCode=@PL,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
             "WHERE LocationID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
@@ -3413,7 +3396,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@MC",  SqlDbType.VarChar,   20).Value = (object?)matCode    ?? DBNull.Value;
         cmd.Parameters.Add("@MN",  SqlDbType.NVarChar,  60).Value = (object?)matName    ?? DBNull.Value;
         cmd.Parameters.Add("@MT",  SqlDbType.VarChar,   14).Value = (object?)matType    ?? DBNull.Value;
-        cmd.Parameters.Add("@LN",  SqlDbType.VarChar,   24).Value = (object?)lotNo      ?? DBNull.Value;
+        cmd.Parameters.Add("@LN",  SqlDbType.NVarChar,  50).Value = (object?)lotNo      ?? DBNull.Value;
         cmd.Parameters.Add("@SID", SqlDbType.VarChar,   20).Value = (object?)supplierId ?? DBNull.Value;
         cmd.Parameters.Add("@UOM", SqlDbType.VarChar,   10).Value = (object?)uom        ?? DBNull.Value;
         cmd.Parameters.Add("@QTY", SqlDbType.Decimal).Value       = (object?)qtyOnHand  ?? DBNull.Value;
@@ -3443,7 +3426,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@MC",  SqlDbType.VarChar,   20).Value = (object?)matCode    ?? DBNull.Value;
         cmd.Parameters.Add("@MN",  SqlDbType.NVarChar,  60).Value = (object?)matName    ?? DBNull.Value;
         cmd.Parameters.Add("@MT",  SqlDbType.VarChar,   14).Value = (object?)matType    ?? DBNull.Value;
-        cmd.Parameters.Add("@LN",  SqlDbType.VarChar,   24).Value = (object?)lotNo      ?? DBNull.Value;
+        cmd.Parameters.Add("@LN",  SqlDbType.NVarChar,  50).Value = (object?)lotNo      ?? DBNull.Value;
         cmd.Parameters.Add("@SID", SqlDbType.VarChar,   20).Value = (object?)supplierId ?? DBNull.Value;
         cmd.Parameters.Add("@UOM", SqlDbType.VarChar,   10).Value = (object?)uom        ?? DBNull.Value;
         cmd.Parameters.Add("@QTY", SqlDbType.Decimal).Value       = (object?)qtyOnHand  ?? DBNull.Value;
@@ -3477,7 +3460,9 @@ public sealed class MasterDataRepository
                ISNULL(BaseFlag,0) AS BaseFlag, BaseUOM, ConvFactor,
                DecimalPrec, Symbol, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
-        FROM dbo.MD_Uom ORDER BY UOMCode
+        FROM dbo.MD_Uom
+        WHERE UPPER(LTRIM(RTRIM(UOMCode))) NOT IN ('BOX','PLT','PALLET','SH','SHEET')
+        ORDER BY UOMCode
         """, r => new UomRow(
             r.GetString("UOMCode"),
             r["UOMName"]     as string,
@@ -3916,6 +3901,8 @@ public sealed class MasterDataRepository
         bool baseFlag, string? baseUOM, decimal? convFactor,
         int? decimalPrec, string? symbol, bool activeFlag, string createdBy)
     {
+        ValidateQuantityUnit(uomCode);
+        ValidateQuantityUnit(baseUOM);
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_Uom(UOMCode,UOMName,UOMCategory,BaseFlag,BaseUOM," +
@@ -3939,6 +3926,8 @@ public sealed class MasterDataRepository
         bool baseFlag, string? baseUOM, decimal? convFactor,
         int? decimalPrec, string? symbol, bool activeFlag, string modifiedBy)
     {
+        ValidateQuantityUnit(uomCode);
+        ValidateQuantityUnit(baseUOM);
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_Uom SET UOMName=@N,UOMCategory=@CAT,BaseFlag=@BF,BaseUOM=@BU," +

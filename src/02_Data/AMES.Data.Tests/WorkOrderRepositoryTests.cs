@@ -33,6 +33,7 @@ public class WorkOrderRepositoryTests
               (@Core, N'CORE-ITEST wo core', 'SUB',  NULL, 1, 'ITEST'),
               (@Nc,   N'ITEST wo nocore',    'ASSY', 'A', 1, 'ITEST'),
               (@Rail, N'RAIL-ITEST wo rail', 'SUB',  NULL, 1, 'ITEST');
+            UPDATE dbo.MD_Item SET InjFlag = 1 WHERE ItemNo = @Core;   -- 코어는 사출품(웹 WO 발행은 InjFlag 기준, 10-14)
             INSERT INTO dbo.MD_BomVersion (VersionID, RootItemNo, VersionNo, EffFrom, Status, CreatedBy) VALUES
               ('ITEST-WO-V-FG', @Fg, 'V1', '2026-01-01', 'APPROVED', 'ITEST'),
               ('ITEST-WO-V-NC', @Nc, 'V1', '2026-01-01', 'APPROVED', 'ITEST');

@@ -223,7 +223,7 @@ public sealed class AndonRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@ID", SqlDbType.Int          ).Value = andonId;
-        cmd.Parameters.Add("@W",  SqlDbType.NVarChar, 450).Value = workerNo;
+        cmd.Parameters.Add("@W",  SqlDbType.VarChar,   20).Value = workerNo;
         cmd.Parameters.Add("@N",  SqlDbType.NVarChar,  50).Value = (object?)name ?? DBNull.Value;
         cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value = operatorNo;
         cmd.ExecuteNonQuery();
@@ -315,7 +315,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@Ref", SqlDbType.VarChar,   24).Value = andonId.ToString();
                 cmd.Parameters.Add("@C",   SqlDbType.VarChar,   15).Value = causeCode;
                 cmd.Parameters.Add("@S",   SqlDbType.VarChar,   10).Value = severity;
-                cmd.Parameters.Add("@By",  SqlDbType.NVarChar, 450).Value = calledBy;
+                cmd.Parameters.Add("@By",  SqlDbType.VarChar,   20).Value = calledBy;
                 cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorNo;
                 cmd.ExecuteNonQuery();
             }

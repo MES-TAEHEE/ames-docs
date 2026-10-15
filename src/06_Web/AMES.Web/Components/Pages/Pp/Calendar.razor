@@ -321,7 +321,7 @@
                 <div>@L["PP.Calendar.Lbl.CurrentDue"] <span class="dim">@(_detail.DueDate?.ToString(DateFmt.Date) ?? "—")</span></div>
             </div>
             <RadzenLabel Text="@L["PP.Calendar.Lbl.NewDue"]" />
-            <RadzenDatePicker TValue="DateTime" @bind-Value="_reschedDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_reschedDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             <RadzenLabel Text="@L["PP.Calendar.Lbl.Pin"]" style="margin-top:8px;" />
             <input type="password" class="ames-input" placeholder="@L["PP.Calendar.Ph.Pin"]" maxlength="6"
                    @bind="_pinInput" @bind:event="oninput" autocomplete="off" />

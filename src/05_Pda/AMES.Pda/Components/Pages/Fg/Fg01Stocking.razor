@@ -47,36 +47,6 @@
             </RadzenCard>
         }
 
-        @if (ReadyForStorage)
-        {
-            <RadzenCard class="wh02-panel fg01-storage-panel">
-                <div class="pda-fld">
-                    <label>STORAGE</label>
-                    <RadzenDropDown TValue="string" class="fg01-storage-select"
-                                    Data="@StorageOptions" TextProperty="Name" ValueProperty="CodeValue"
-                                    Value="@_storageMethod" Change="@OnStorageChanged"
-                                    Disabled="@IsBusy" Placeholder="Select Storage" />
-                </div>
-            </RadzenCard>
-
-            @if (RequiresContainer)
-            {
-                <RadzenCard class="@($"wh02-panel fg01-panel fg01-container-panel {ScanPanelClass} {(ContainerScanned ? "scanned" : "")}")">
-                    <div class="pda-fld">
-                        <label>@ContainerTitle BARCODE SCAN</label>
-                        <RadzenTextBox class="pda-input fg01-container-input pda-scan-input"
-                                       Value="@_containerBarcode" @oninput="OnContainerInput" @onkeydown="OnContainerKey"
-                                       Placeholder="@($"Scan {ContainerTitle} Barcode")" Disabled="@ContainerEntryDisabled" />
-                    </div>
-                    @if (ShowDeveloperScanButtons)
-                    {
-                        <RadzenButton class="wh02-location-scan-btn fg01-location-scan-btn" Click="@ScanContainer"
-                                      Disabled="@(ContainerEntryDisabled || string.IsNullOrWhiteSpace(_containerBarcode))" Text="SCAN" />
-                    }
-                </RadzenCard>
-            }
-        }
-
         @if (ReadyForLocation)
         {
             <RadzenCard class="@($"wh02-panel wh02-location-panel fg01-panel fg01-location-panel {ScanPanelClass} {(_highlightLocationScan ? "location-attention" : "")}")">
@@ -147,14 +117,10 @@
     private string _lastInitialLot = "";
     private string _barcode = "";
     private string _locationNo = "";
-    private string? _storageMethod;
-    private string _containerBarcode = "";
-    private string _confirmedContainerBarcode = "";
     private string _msg = "";
     private string _cls = "dim";
     private bool _isScanning;
     private bool _isLocationScanning;
-    private bool _isContainerScanning;
     private bool _scrollLocationAfterRender;
     private bool _highlightLocationScan;
     private bool _isConfirming;
@@ -179,26 +145,14 @@
 
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
     private static string ScanPanelClass => ShowDeveloperScanButtons ? "dev-scan-panel" : "hardware-scan-panel";
-    private bool IsBusy => _isScanning || _isContainerScanning || _isLocationScanning || _isConfirming;
-    private bool ReadyForStorage => _scan is { IsProductionCompleted: true, AlreadyStocked: false };
-    private bool RequiresContainer => _storageMethod is "BOX" or "PALLET" or "RACK";
-    private bool ContainerScanned => !string.IsNullOrEmpty(_confirmedContainerBarcode);
-    private bool ContainerEntryDisabled => !ReadyForStorage || !RequiresContainer || IsBusy;
-    private bool ReadyForLocation => ReadyForStorage && (_storageMethod == "LOCATION" || (RequiresContainer && ContainerScanned));
+    private bool IsBusy => _isScanning || _isLocationScanning || _isConfirming;
+    private bool ReadyForLocation => _scan is { IsProductionCompleted: true, AlreadyStocked: false };
     private bool LocationEntryDisabled => !ReadyForLocation || IsBusy;
     private bool DisableLotScan => IsBusy || string.IsNullOrWhiteSpace(_barcode);
     private bool DisableLocationScan => LocationEntryDisabled || string.IsNullOrWhiteSpace(_locationNo);
     private bool DisableConfirm => IsBusy || !ReadyForLocation || _selectedLocation is not { IsValid: true };
     private string ConfirmButtonClass => DisableConfirm ? "blocked" : "ready";
     private string LotCardClass => _scan is null ? "" : _scan.AlreadyStocked ? "stocked" : _scan.IsProductionCompleted ? "ready" : "blocked";
-    private List<PdaApi.CodeOption> StorageOptions = [];
-    private string ContainerTitle => _storageMethod switch
-    {
-        "BOX" => "Box",
-        "PALLET" => "Pallet",
-        "RACK" => "Rack",
-        _ => "Container"
-    };
     private string ModalMark => _modalKind switch
     {
         "danger" => "!",
@@ -224,12 +178,6 @@
         await FocusScannerAsync();
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        try { StorageOptions = await Api.CodeItemsAsync("FG_STORAGE_METHOD"); }
-        catch (Exception ex) { ShowAlert("Code List Unavailable", ex.Message, "fail"); }
-    }
-
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
     {
@@ -242,19 +190,10 @@
         {
             if (IsBusy || _modalOpen) return;
 
-            if (!ReadyForStorage)
+            if (!ReadyForLocation)
             {
                 _barcode = value;
                 await ScanFgLot();
-            }
-            else if (string.IsNullOrEmpty(_storageMethod))
-            {
-                ShowAlert("Storage Required", "Select Storage before scanning a container or location.", "warn");
-            }
-            else if (RequiresContainer && !ContainerScanned)
-            {
-                _containerBarcode = value;
-                await ScanContainer();
             }
             else
             {
@@ -273,13 +212,12 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_pptOpen || _modalOpen || IsBusy || (ReadyForStorage && string.IsNullOrEmpty(_storageMethod)))
+        if (_pptOpen || _modalOpen || IsBusy)
             return;
 
         try
         {
-            var selector = ReadyForLocation ? ".fg01-location-input"
-                : ReadyForStorage && RequiresContainer ? ".fg01-container-input" : ".fg01-scan-input";
+            var selector = ReadyForLocation ? ".fg01-location-input" : ".fg01-scan-input";
             await JS.InvokeVoidAsync("pdaScan.focus", selector);
         }
         catch
@@ -326,16 +264,6 @@
             await ScanLocation();
     }
 
-    private void OnStorageChanged(object? value)
-    {
-        _storageMethod = value?.ToString();
-        _containerBarcode = "";
-        _confirmedContainerBarcode = "";
-        ResetLocation();
-        _msg = "";
-        if (ReadyForLocation) PromptLocationScan();
-    }
-
     private void ResetLocation()
     {
         _locationNo = "";
@@ -348,46 +276,6 @@
     {
         _highlightLocationScan = true;
         _scrollLocationAfterRender = true;
-    }
-
-    private void OnContainerInput(ChangeEventArgs e)
-    {
-        _containerBarcode = e.Value?.ToString() ?? "";
-        if (!string.Equals(_containerBarcode.Trim(), _confirmedContainerBarcode, StringComparison.Ordinal))
-        {
-            _confirmedContainerBarcode = "";
-            ResetLocation();
-        }
-    }
-
-    private async Task OnContainerKey(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter") await ScanContainer();
-    }
-
-    private async Task ScanContainer()
-    {
-        if (ContainerEntryDisabled || string.IsNullOrWhiteSpace(_containerBarcode)) return;
-        _isContainerScanning = true;
-        _confirmedContainerBarcode = "";
-        ResetLocation();
-        try
-        {
-            var result = await Api.FgValidatePutAwayContainerAsync(_storageMethod!, _containerBarcode.Trim());
-            _msg = result.Message;
-            _cls = result.Success ? "ok" : "fail";
-            if (!result.Success)
-            {
-                ShowAlert("Container Scan Failed", result.Message, "warn");
-                return;
-            }
-            _confirmedContainerBarcode = _containerBarcode.Trim();
-            PromptLocationScan();
-        }
-        finally
-        {
-            _isContainerScanning = false;
-        }
     }
 
     private void OnLocationInput(ChangeEventArgs e)
@@ -403,7 +291,7 @@
 
         _isScanning = true;
         _scan = null;
-        OnStorageChanged(null);
+        ResetLocation();
         _msg = "Scanning FG LOT...";
         _cls = "dim";
 
@@ -428,7 +316,8 @@
                 ShowAlert(_scan.AlreadyStocked ? "Already Stocked" : "Put-Away Blocked", result.Message, _scan.AlreadyStocked ? "warn" : "danger");
                 return;
             }
-            _msg = "Select Storage.";
+            _msg = "Scan Location Barcode.";
+            PromptLocationScan();
         }
         catch (Exception ex)
         {
@@ -512,9 +401,9 @@
                 null,
                 null,
                 null,
-                _storageMethod,
-                RequiresContainer ? _storageMethod : null,
-                RequiresContainer ? _confirmedContainerBarcode : null));
+                "LOCATION",
+                null,
+                null));
 
             if (!result.Success)
             {
@@ -542,10 +431,6 @@
             return "POP production completion is required before FG Put-Away.";
         if (_scan.AlreadyStocked)
             return "This FG LOT is already stocked.";
-        if (string.IsNullOrEmpty(_storageMethod))
-            return "Select Storage first.";
-        if (RequiresContainer && !ContainerScanned)
-            return $"Scan {ContainerTitle} Barcode first.";
         if (_selectedLocation is null)
             return "Scan Location Barcode first.";
         if (!_selectedLocation.IsValid)
@@ -556,7 +441,7 @@
     private void ResetForm()
     {
         _barcode = "";
-        OnStorageChanged(null);
+        ResetLocation();
         _msg = "";
         _cls = "dim";
         _scan = null;
@@ -596,11 +481,12 @@
 
     private IEnumerable<(string Label, string Value)> LocationFields(PdaApi.FgPutAwayLocationRow row)
     {
-        yield return ("Zone", Text(row.ZoneCode));
+        yield return ("Area", Text(row.AreaCode));
+        yield return ("Aisle", Text(row.Aisle));
         yield return ("Bay", Text(row.Bay));
         yield return ("Slot", Text(row.Slot));
         yield return ("Current", Qty(row.CurrentQty, null));
-        yield return ("Free", Qty(row.AvailableQty, null));
+        yield return ("Load Capacity", row.Capacity > 0 ? Qty(row.Capacity, null) : "-");
     }
 
     private string Qty(decimal qty, string? unit)

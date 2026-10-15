@@ -137,7 +137,7 @@ public sealed class PntRepository
         cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value  = itemNo;
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 12).Value  = ralColor;
         cmd.Parameters.Add("@T",  SqlDbType.Int).Value          = targetQty;
-        cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value= operatorId;
+        cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value= operatorId;
         cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value  = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }

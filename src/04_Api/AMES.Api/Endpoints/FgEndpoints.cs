@@ -22,11 +22,11 @@ public static class FgEndpoints
     public sealed record PutAwayWaitingRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
         string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
         DateTime? ReadyAt);
-    public sealed record ReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
-        string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
+    public sealed record ReturnRow(int ReturnId, string CustomerId, int ShipmentOrderId,
+        string PartNo, string PartName, string? LotNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
     public sealed record ReturnScanRow(string Barcode, int? LotId, string LotNo,
-        int ShipmentOrderId, string? ShipOrderNumber, string CustomerCode,
-        string ItemNo, string? ItemName, DateTime ShippedAt, decimal Qty);
+        int ShipmentOrderId, string? ShipOrderNumber, string CustomerId, string? CustomerName,
+        string PartNo, string? PartName, DateTime ShippedAt, decimal Qty);
     public sealed record ReturnResult(bool Success, string Message, int? ReturnId, ReturnScanRow? Row);
     public sealed record AdjustScanRow(string ReceiveType, string? Yn, string LotNo, string Barcode,
         string? SourceTable, string? NoteNo, string? CaseBarcode, string? CaseNo, string? InvoiceNo,
@@ -35,7 +35,7 @@ public static class FgEndpoints
         DateTime? ArrivalDate, DateTime? ShipDate, DateTime? PackDate, string? ReceivedLocation,
         string? ReceivedStatus);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
-        string? ReasonNote);
+        string? ReasonNote, bool SimulateFailure = false, decimal? ExpectedQty = null, string? ExpectedLocation = null);
     public sealed record AdjustResult(bool Success, string Message, AdjustScanRow? Row);
 
     public sealed record PutAwayScanRow(int? LotId, string LotNo, int? WoId,
@@ -47,7 +47,7 @@ public static class FgEndpoints
     public sealed record PutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
         decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
-        string ScanType, string ScannedBarcode);
+        string ScanType, string ScannedBarcode, string? AreaCode = null);
     public sealed record PutAwayConfirmReq(string Barcode, string LocationId, string? SuggestedLocation,
         string? OverrideReason, int? PalletCount, int? PalletQty, string? StorageMethod,
         string? ContainerType, string? ContainerBarcode);
@@ -156,6 +156,10 @@ public static class FgEndpoints
         g.MapPost("/adjust/save", (HttpContext ctx, AdjustSaveReq body) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (string.IsNullOrWhiteSpace(body.Barcode) || body.Barcode.Length>50
+                || body.DeltaQty==0 || decimal.Truncate(body.DeltaQty)!=body.DeltaQty
+                || body.ExpectedQty is null || body.ExpectedQty<0 || body.ExpectedLocation is null)
+                return Results.BadRequest(new AdjustResult(false, "Scan stock again. A whole-number adjustment and current quantity/location are required.", null));
             if (master.FindActiveCodeItem("INV_ADJUST_REASON", body.ReasonCode?.Trim() ?? "") is null)
                 return Results.BadRequest(new AdjustResult(false, "Select a valid reason code.", null));
 
@@ -198,6 +202,7 @@ public static class FgEndpoints
                       AND ISNULL(R.DefectFlag, 0) = 0
                 ) PR
                 WHERE UPPER(ISNULL(L.Status, '')) = 'CONFIRMED'
+                  AND UPPER(ISNULL(I.ItemType, '')) = 'ASSY'
                   AND COALESCE(PR.GoodQty, 0) > 0
                   AND NOT EXISTS
                 (
@@ -480,7 +485,7 @@ public static class FgEndpoints
                     CommandTimeout = 30
                 };
                 cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-                cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = session.OperatorId;
+                ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", session.OperatorId);
                 using var rdr = cmd.ExecuteReader();
                 if (!rdr.Read())
                     return Results.Json(new OutboundUnitResult(false, "Outbound service returned no result.", null), statusCode: 503);
@@ -584,7 +589,7 @@ public static class FgEndpoints
                 cmd.Parameters.Add("@Barcode", SqlDbType.VarChar, 80).Value = normalized;
                 cmd.Parameters.Add("@ReturnReason", SqlDbType.VarChar, 60).Value = returnReason;
                 cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = (object?)note ?? DBNull.Value;
-                cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = s.OperatorId;
+                ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", s.OperatorId);
                 using var rdr = cmd.ExecuteReader();
                 if (!rdr.Read())
                     return Results.Json(new ReturnResult(false, "Customer return service returned no confirmation.", null, null), statusCode: 503);
@@ -606,18 +611,13 @@ public static class FgEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             const string sql = """
-                SELECT TOP 50
-                    ReturnID, ReturnNumber, CustomerCode,
-                    COALESCE(ItemNo,JSON_VALUE(ItemsJSON, '$[0].itemNo')) AS ItemNo,
-                    COALESCE(ReturnQty,TRY_CONVERT(decimal(12,3), JSON_VALUE(ItemsJSON, '$[0].qty'))) AS Qty,
-                    ReturnReason, Status, ReceivedAt
-                FROM dbo.FG_CustomerReturn
-                ORDER BY ReceivedAt DESC, ReturnID DESC;
+                SELECT TOP 50 ReturnID,CustomerID,ShipmentOrderID,PartNo,PartName,LotNo,
+                    ReturnQty AS Qty,ReturnReason,Status,ReceivedAt
+                FROM dbo.FG_CustomerReturn ORDER BY ReceivedAt DESC,ReturnID DESC;
                 """;
-            return Query(factory, sql, r => new ReturnRow(
-                (int)r["ReturnID"], r["ReturnNumber"] as string, r["CustomerCode"] as string,
-                r["ItemNo"] as string, r["Qty"] == DBNull.Value ? 0 : Convert.ToDecimal(r["Qty"]),
-                r["ReturnReason"] as string, r["Status"] as string, r["ReceivedAt"] as DateTime?));
+            return Query(factory,sql,r=>new ReturnRow((int)r["ReturnID"],(string)r["CustomerID"],
+                (int)r["ShipmentOrderID"],(string)r["PartNo"],(string)r["PartName"],r["LotNo"] as string,
+                Convert.ToDecimal(r["Qty"]),r["ReturnReason"] as string,r["Status"] as string,r["ReceivedAt"] as DateTime?));
         });
     }
 
@@ -628,9 +628,10 @@ public static class FgEndpoints
         GetString(rdr, "LotNo") ?? "",
         GetInt(rdr, "ShipmentOrderID") ?? 0,
         GetString(rdr, "ShipOrderNumber"),
-        GetString(rdr, "CustomerCode") ?? "",
-        GetString(rdr, "ItemNo") ?? "",
-        GetString(rdr, "ItemName"),
+        GetString(rdr, "CustomerID") ?? "",
+        GetString(rdr, "CustomerName"),
+        GetString(rdr, "PartNo") ?? "",
+        GetString(rdr, "PartName"),
         GetDate(rdr, "ShippedAt") ?? DateTime.MinValue,
         GetDecimal(rdr, "Qty"));
     private static bool TryNormalizeReturnBarcode(
@@ -832,13 +833,12 @@ public static class FgEndpoints
                 WHERE FS.Qty > 0
                 GROUP BY FS.LocationNo
             )
-            SELECT L.LocationID, L.LocationName, L.ZoneCode, L.Aisle, L.Bay, L.Slot,
-                   CAST(ISNULL(NULLIF(L.Capacity, 0), 999999) AS DECIMAL(14,3)) AS Capacity,
+            SELECT L.LocationID, L.LocationName, L.ZoneCode, L.AreaCode, L.Aisle, L.Bay, L.Slot,
+                   CAST(ISNULL(L.Capacity, 0) AS DECIMAL(14,3)) AS Capacity,
                    CAST(ISNULL(S.CurrentQty, 0) AS DECIMAL(14,3)) AS CurrentQty,
-                   CAST(ISNULL(NULLIF(L.Capacity, 0), 999999) - ISNULL(S.CurrentQty, 0) AS DECIMAL(14,3)) AS AvailableQty,
+                   CAST(CASE WHEN L.Capacity > 0 THEN L.Capacity - ISNULL(S.CurrentQty, 0) ELSE 0 END AS DECIMAL(14,3)) AS AvailableQty,
                    S.CurrentCustomerCode,
-                   CASE WHEN UPPER(ISNULL(L.LocationType, '')) IN ('FG', 'FINISHED_GOODS', 'FINISHED GOODS')
-                             OR UPPER(L.LocationID) LIKE 'FG%' THEN 1 ELSE 0 END AS IsFgLocation
+                   CASE WHEN UPPER(ISNULL(L.LocationType, '')) = 'FG' THEN 1 ELSE 0 END AS IsFgLocation
             FROM dbo.MD_Location L
             LEFT JOIN StockByLocation S
                 ON S.LocationNo = L.LocationID
@@ -859,7 +859,7 @@ public static class FgEndpoints
             !string.IsNullOrWhiteSpace(customerCode) &&
             !string.Equals(row.CurrentCustomerCode, customerCode, StringComparison.OrdinalIgnoreCase))
             return row with { IsValid = false, Message = $"Customer mix is blocked. Current customer is {row.CurrentCustomerCode}.", ScanType = expected, ScannedBarcode = parsed.Raw };
-        if (row.AvailableQty < qty)
+        if (row.Capacity > 0 && row.AvailableQty < qty)
             return row with { IsValid = false, Message = $"Location capacity is short by {qty - row.AvailableQty:0.###}.", ScanType = expected, ScannedBarcode = parsed.Raw };
 
         return row with { IsValid = true, Message = $"{BarcodeKindLabel(expected)} ready for FG Put-Away.", ScanType = expected, ScannedBarcode = parsed.Raw };
@@ -944,7 +944,7 @@ public static class FgEndpoints
             AddNullable(cmd, "@OverrideReason", SqlDbType.NVarChar, 120, overrideReason);
             cmd.Parameters.Add("@PalletCount", SqlDbType.Int).Value = palletCount;
             cmd.Parameters.Add("@PalletQty", SqlDbType.Int).Value = palletQty;
-            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar,  20).Value = operatorId;
+            ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", operatorId);
             if (hasContainerColumns)
             {
                 cmd.Parameters.Add("@StorageMethod", SqlDbType.NVarChar, 20).Value = storageMethod;
@@ -969,7 +969,7 @@ public static class FgEndpoints
             cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location.LocationId;
             cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = row.LotNo;
             AddDecimal(cmd, "@Qty", row.Qty);
-            cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = operatorId;
+            ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", operatorId);
             cmd.ExecuteNonQuery();
         }
 
@@ -985,7 +985,7 @@ public static class FgEndpoints
                  WHERE LotID = @LotID;
                 """, conn, tx);
             cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location.LocationId;
-            cmd.Parameters.Add("@OperatorID", SqlDbType.VarChar, 20).Value = operatorId;
+            ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", operatorId);
             cmd.Parameters.Add("@LotID", SqlDbType.Int).Value = row.LotId.Value;
             cmd.ExecuteNonQuery();
         }
@@ -1016,7 +1016,7 @@ public static class FgEndpoints
         var currentQty = GetDecimal(rdr, "CurrentQty");
         var availableQty = GetDecimal(rdr, "AvailableQty");
         var currentCustomer = GetString(rdr, "CurrentCustomerCode");
-        var valid = availableQty >= qty &&
+        var valid = (capacity <= 0 || availableQty >= qty) &&
                     (string.IsNullOrWhiteSpace(currentCustomer) ||
                      string.IsNullOrWhiteSpace(customerCode) ||
                      string.Equals(currentCustomer, customerCode, StringComparison.OrdinalIgnoreCase));
@@ -1035,7 +1035,8 @@ public static class FgEndpoints
             valid,
             valid ? $"{BarcodeKindLabel(scanType)} ready for FG Put-Away." : "Location cannot accept this FG LOT.",
             scanType,
-            scannedBarcode ?? GetString(rdr, "LocationID") ?? "");
+            scannedBarcode ?? GetString(rdr, "LocationID") ?? "",
+            GetString(rdr, "AreaCode"));
     }
 
     private static ParsedFgBarcode ParseFgBarcode(string? barcode)
@@ -1253,8 +1254,16 @@ public static class FgEndpoints
         try
         {
             using var conn = factory.OpenConnection();
-
-            using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn)
+            using var tx = conn.BeginTransaction();
+            using (var check = new SqlCommand("SELECT Qty,LocationNo FROM dbo.WH_Inventory WITH(UPDLOCK,ROWLOCK) WHERE LotNo=@Lot;", conn, tx))
+            {
+                ColumnParams.AddFilter(check,"@Lot","WH_Inventory.LotNo",body.Barcode.Trim());
+                using var current = check.ExecuteReader();
+                if (!current.Read() || current.GetDecimal(0)!=body.ExpectedQty
+                    || !string.Equals(current[1] as string ?? "",body.ExpectedLocation,StringComparison.OrdinalIgnoreCase))
+                    return new(false,"Stock quantity or location changed. Scan again.",null);
+            }
+            using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn, tx)
             {
                 CommandType = CommandType.StoredProcedure,
                 CommandTimeout = 15
@@ -1264,10 +1273,10 @@ public static class FgEndpoints
             cmd.Parameters.Add("@ReasonCode", SqlDbType.NVarChar, 30).Value = body.ReasonCode.Trim();
             cmd.Parameters.Add("@ReasonNote", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.ReasonNote) ? DBNull.Value : body.ReasonNote.Trim();
-            cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 40).Value = userId;
-
-            using var rdr = cmd.ExecuteReader();
-            var row = rdr.Read() ? ReadAdjustScanRow(rdr) : null;
+            ColumnParams.Add(cmd,"@UserId","WH_InventoryTransaction.CreatedBy",userId);
+            AdjustScanRow? row;
+            using (var rdr = cmd.ExecuteReader()) row = rdr.Read() ? ReadAdjustScanRow(rdr) : null;
+            tx.Commit();
             return new AdjustResult(true, "Finished goods quantity adjusted", row);
         }
         catch (Exception ex)

@@ -7,6 +7,7 @@
 @inject NavigationManager Nav
 @inject DialogService Dialog
 @inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.AuditLogger Audit
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -37,10 +38,10 @@
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text='@($"{L["Col.Order"]} {L["PP.Forecast.Fld.Period"]}")' />
-            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
                               Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text="@L["Col.Status"]" />
             <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
@@ -56,6 +57,14 @@
                               Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn"
                               Disabled="@(_selected.Count == 0)" Click="ConfirmSelected" />
             }
+            @* 자동 확정 토글 — 수주 확정과 같은 승인 권한. 없으면 현재 상태만 보이는 비활성 스위치 *@
+            <span style="display:inline-flex;align-items:center;gap:0.4rem;white-space:nowrap;" title="@L["PP.SupplyPlanImport.AutoConfirm.Hint"]">
+                <span class="dim">|</span>
+                <RadzenSwitch Name="SwitchAutoConfirm" Value="@_autoConfirm" Change="@OnAutoConfirmChanged"
+                              Disabled="@(!_canApprove || _autoBusy)" />
+                <RadzenLabel Text="@L["PP.SupplyPlanImport.AutoConfirm"]" Component="SwitchAutoConfirm"
+                             style="@(_canApprove ? "cursor:pointer;" : null)" />
+            </span>
             @if (_canEdit)
             {
                 <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Upload"].Value" Icon="upload"
@@ -82,7 +91,7 @@ else
                     class="ames-rz-grid">
         <Columns>
             @* 선택은 확정 버튼에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Width="46px" Sortable="false" Visible="@_canApprove"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="46px" Width="46px" Sortable="false" Visible="@_canApprove"
                                   Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
                 <HeaderTemplate>
                     <input type="checkbox" class="spi-ck" checked="@AllSelected"
@@ -94,15 +103,15 @@ else
                            @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoNumber" Title="@L["Col.SoNo"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="140px" Property="SoNumber" Title="@L["Col.SoNo"].Value"
                                   Frozen="true" Width="140px">
                 <Template Context="r"><span class="code">@r.SoNumber</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoLineNo" Title="@L["Col.Line"].Value"
-                                  TextAlign="TextAlign.Right" Width="80px" />
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="CustomerId" Title="@L["Col.Customer"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="100px" Property="SoLineNo" Title="@L["Col.Line"].Value"
+                                  TextAlign="TextAlign.Right" Width="100px" />
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="130px" Property="CustomerId" Title="@L["Col.Customer"].Value"
                                   Width="130px" />
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="240px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
                     @if (!r.ItemExists)
@@ -115,15 +124,15 @@ else
                     }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="OrderQty" Title="@L["Col.Order"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="100px" Property="OrderQty" Title="@L["Col.Order"].Value"
                                   Filterable="false" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@r.OrderQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ShippedQty" Title="@L["Col.Ship"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="100px" Property="ShippedQty" Title="@L["Col.Ship"].Value"
                                   Filterable="false" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@r.ShippedQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="120px" Property="RequestedDeliveryDate" Title="@L["Col.Requested"].Value"
                                   Filterable="false" Width="120px">
                 <Template Context="r">
                     @if (r.RequestedDeliveryDate is DateTime d)
@@ -133,17 +142,17 @@ else
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="PromisedDate" Title="@L["Col.Promised"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="120px" Property="PromisedDate" Title="@L["Col.Promised"].Value"
                                   Filterable="false" Width="120px">
                 <Template Context="r"><span class="dim">@(r.PromisedDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="Status" Title="@L["Col.Status"].Value" Width="100px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="110px" Property="Status" Title="@L["Col.Status"].Value" Width="110px">
                 <Template Context="r">
                     <span class="pill @(r.Status == "Confirmed" ? "ok" : "warn")">@r.Status</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["PP.SupplyPlanImport.Col.Wo"].Value"
-                                  Filterable="false" Sortable="false" Width="180px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="240px" Title="@L["PP.SupplyPlanImport.Col.Wo"].Value"
+                                  Filterable="false" Sortable="false" Width="240px">
                 <Template Context="r">
                     @if (!string.IsNullOrEmpty(r.WoNumber))
                     {
@@ -156,7 +165,7 @@ else
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["PP.SupplyPlanImport.Col.Action"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="110px" Title="@L["PP.SupplyPlanImport.Col.Action"].Value"
                                   Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @if (_canApprove && r.Status == "Open")
@@ -211,6 +220,8 @@ else
 
     string _msg = "";
     bool   _isErr;
+    bool   _autoConfirm;   // SYS_Config PP_SO_AUTO_CONFIRM — 세 유입 경로의 신규 수주를 저장 즉시 Confirmed 로
+    bool   _autoBusy;
 
     static bool IsOpen(PpRepository.SoRow r) => r.Status == "Open";
     IEnumerable<PpRepository.SoRow> Selectable => _view.Where(IsOpen);
@@ -229,7 +240,51 @@ else
         _canApprove = PermSvc.CanApprove(Href);
 
         try { _customers = MD.ListCustomers(); } catch { }
+        try { _autoConfirm = Pp.GetSoAutoConfirm(); } catch { }
         Search();
+    }
+
+    // 자동 확정 토글(10-13 사용자 결정): 켤 때는 확인창 뒤 플래그 ON + 현재 Open 전부 확정을 한 트랜잭션으로,
+    // 「아니오」면 아무것도 바꾸지 않는다. Open 이 0건이면 확인창 없이 켠다. 끄기는 즉시(이미 확정된 건은 그대로).
+    async Task OnAutoConfirmChanged(bool on)
+    {
+        if (!_canApprove || _autoBusy || on == _autoConfirm) return;
+        _autoBusy = true;
+        try
+        {
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+
+            if (on)
+            {
+                var open = await Task.Run(() => Pp.CountOpenCustomerOrders());
+                if (open > 0)
+                {
+                    var go = await Dialog.Confirm(
+                        string.Format(L["PP.SupplyPlanImport.AutoConfirm.ConfirmOn"].Value, open),
+                        L["PP.SupplyPlanImport.AutoConfirm.Title"].Value,
+                        new ConfirmOptions { OkButtonText = L["PP.SupplyPlanImport.AutoConfirm.Btn.On"].Value, CancelButtonText = L["Btn.Cancel"].Value });
+                    if (go != true) return;   // 스위치는 _autoConfirm(false) 로 다시 그려져 되돌아간다
+                }
+                var n = await Task.Run(() => Pp.EnableSoAutoConfirm(actor));
+                _autoConfirm = true;
+                _selected.Clear();
+                Audit.Log("PP-002", "AUTOCONFIRM_ON", "SYS_Config", AMES.Data.Services.SoAutoConfirm.ConfigKey,
+                    new { AutoConfirm = false }, new { AutoConfirm = true, Confirmed = n });
+                ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.AutoConfirmOn"].Value, n), false);
+            }
+            else
+            {
+                await Task.Run(() => Pp.DisableSoAutoConfirm(actor));
+                _autoConfirm = false;
+                Audit.Log("PP-002", "AUTOCONFIRM_OFF", "SYS_Config", AMES.Data.Services.SoAutoConfirm.ConfigKey,
+                    new { AutoConfirm = true }, new { AutoConfirm = false });
+                ShowMsg(L["PP.SupplyPlanImport.Ok.AutoConfirmOff"].Value, false);
+            }
+            Search();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        finally { _autoBusy = false; }
     }
 
     void Search()

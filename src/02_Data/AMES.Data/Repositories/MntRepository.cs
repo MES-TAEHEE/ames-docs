@@ -70,7 +70,11 @@ public sealed class MntRepository
     public sealed record WoCompleteOutcome(int WorkOrderId, string WoNumber, string? FailureNumber,
         string? PmPlanNumber, DateTime? PmNextDue, string? NextWoNumber, string? FollowUpWoNumber = null);
 
-    /// <summary>MNT_WorkOrder.ChecklistResultsJSON 에 남기는 완료 결과. 전용 컬럼이 없어 JSON 으로 둔다.</summary>
+    /// <summary>종료 처리 결과 — 같이 닫힌 고장·건너뛴 PM 회차·발행된 다음 PM 작업지시.</summary>
+    public sealed record WoCloseOutcome(int WorkOrderId, string WoNumber, string? FailureNumber,
+        string? PmPlanNumber, DateTime? PmNextDue, string? NextWoNumber);
+
+    /// <summary>MNT_WorkOrder.ChecklistResultsJSON 에 남기는 완료 결과(종료면 Result = CLOSED, Action = 종료 사유). 전용 컬럼이 없어 JSON 으로 둔다.</summary>
     public sealed record WoResult(string? Result, string? Action, string? RootCause, string? By, DateTime? At);
 
     public sealed record SparePartRow(string PartNo, string? PartName, string? Category, string? Uom,
@@ -249,12 +253,17 @@ public sealed class MntRepository
         return Query(sql, MapFailure, ("@Id", "MNT_FailureRegister.FailureID", failureId)).FirstOrDefault();
     }
 
-    /// <summary>작업지시에 연결된 고장(MNT_FailureRegister.WorkOrderID) — 발생순.</summary>
+    /// <summary>
+    /// 작업지시의 고장 — 지금 연결된 고장(MNT_FailureRegister.WorkOrderID) + 이 작업지시로 조치 이력을 남긴 고장
+    /// (부분·후속 완료로 후속 작업지시에 넘어간 고장, MNT_FailureAction.WorkOrderID — 10-14). 발생순.
+    /// 넘어간 고장은 FailureRow.WorkOrderId·WoNumber 가 지금 담당하는 후속 작업지시다.
+    /// </summary>
     public List<FailureRow> ListFailuresForWo(int workOrderId)
     {
         const string sql = $"""
             {FailureSelect}
             WHERE  f.WorkOrderID = @Wo
+               OR  EXISTS (SELECT 1 FROM dbo.MNT_FailureAction a WHERE a.FailureID = f.FailureID AND a.WorkOrderID = @Wo)
             ORDER  BY f.ReportedAt, f.FailureID;
             """;
         return Query(sql, MapFailure, ("@Wo", "MNT_FailureRegister.WorkOrderID", workOrderId));
@@ -632,7 +641,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Sym",   SqlDbType.NVarChar, 500).Value = symptom;
                 cmd.Parameters.Add("@Sev",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@Src",   SqlDbType.VarChar,   15).Value = (object?)source ?? DBNull.Value;
-                cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = (object?)reportedBy ?? DBNull.Value;
                 cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
                 cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
                 failId = Convert.ToInt32(cmd.ExecuteScalar());
@@ -671,7 +680,7 @@ public sealed class MntRepository
         catch { tx.Rollback(); throw; }
     }
 
-    /// <summary>고장 수정(내용만). 연결된 작업지시가 착수 전(ISSUED/OPEN)이면 설비·우선순위·설명을 같이 맞춘다.
+    /// <summary>고장 수정(내용만). 연결된 작업지시가 착수 전(발행·배정)이면 설비·우선순위·설명을 같이 맞춘다.
     /// 상태·해결일시는 바꾸지 않는다 — 수정 창에서 바꾸면 작업지시가 발행 상태로 남아 닫을 수 없었다(10-10).
     /// 저장한 고장번호를 돌려준다(비우면 새로 채번, 다른 고장과 겹치면 DuplicateNumberException).</summary>
     public string UpdateFailure(int id, string? failNo, string equipId, string failureType, string symptom, string severity,
@@ -697,19 +706,21 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@Sym",   SqlDbType.NVarChar, 500).Value = symptom;
                 cmd.Parameters.Add("@Sev",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@Src",   SqlDbType.VarChar,   15).Value = (object?)source ?? DBNull.Value;
-                cmd.Parameters.Add("@By",    SqlDbType.NVarChar, 450).Value = (object?)reportedBy ?? DBNull.Value;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = (object?)reportedBy ?? DBNull.Value;
                 cmd.Parameters.Add("@Rep",   SqlDbType.DateTime2).Value      = reportedAt;
                 cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
                 cmd.ExecuteNonQuery();
             }
 
+            // 진행 중 고장의 후속 작업지시(부분·후속 완료로 발행) 설명은 남은 작업 내용이라 덮어쓰지 않는다
             using (var cmd = new SqlCommand("""
                 UPDATE w
-                SET    w.EquipID = @Eq, w.Priority = @Pri, w.SourceRefID = @Ref, w.ActionDesc = @Desc,
+                SET    w.EquipID = @Eq, w.Priority = @Pri, w.SourceRefID = @Ref,
+                       w.ActionDesc = CASE WHEN ISNULL(f.Status, 'OPEN') IN ('OPEN', 'REGISTERED') THEN @Desc ELSE w.ActionDesc END,
                        w.ModifiedBy = @By, w.ModifiedTS = SYSDATETIME()
                 FROM   dbo.MNT_WorkOrder w
                 JOIN   dbo.MNT_FailureRegister f ON f.WorkOrderID = w.WorkOrderID
-                WHERE  f.FailureID = @Id AND w.Status IN ('ISSUED', 'OPEN');
+                WHERE  f.FailureID = @Id AND w.Status IN ('ISSUED', 'ASSIGNED');
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Id",   SqlDbType.Int).Value             = id;
@@ -796,7 +807,7 @@ public sealed class MntRepository
 
     /// <summary>
     /// PM 등록 = MNT_PMSchedule 1행 + 정비 작업지시(MNT_WorkOrder, WoType='PM') 1행을 한 트랜잭션으로 만든다.
-    /// 작업지시는 ISSUED 상태로 발행되고 PM 행의 ActiveWoID 가 이를 가리킨다. 계획번호가 비어 있으면 채번한다(입력값이 겹치면 DuplicateNumberException).
+    /// 작업지시는 담당자가 있으면 ASSIGNED, 없으면 ISSUED 로 발행되고 PM 행의 ActiveWoID 가 이를 가리킨다. 계획번호가 비어 있으면 채번한다(입력값이 겹치면 DuplicateNumberException).
     /// </summary>
     public (int PmScheduleId, string PlanNumber, string WoNumber) InsertPm(string pmClass, string? planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
         DateTime? lastPm, DateTime nextDue, string? checklistId, string? techId, string? status, string actor)
@@ -836,10 +847,11 @@ public sealed class MntRepository
                 INSERT INTO dbo.MNT_WorkOrder
                     (WoNumber, WoType, EquipID, Priority, SourceType, SourceRefID, AssignedTechID, ChecklistID,
                      ActionDesc, Status, IssuedAt, CreatedBy, CreatedTS)
-                VALUES (@Wo, @Type, @Eq, 'MED', 'PM', @Ref, @Tech, @Chk, @Desc, 'ISSUED', SYSDATETIME(), @By, SYSDATETIME());
+                VALUES (@Wo, @Type, @Eq, 'MED', 'PM', @Ref, @Tech, @Chk, @Desc, @St, SYSDATETIME(), @By, SYSDATETIME());
                 SELECT CAST(SCOPE_IDENTITY() AS int);
                 """, conn, tx))
             {
+                cmd.Parameters.Add("@St",   SqlDbType.VarChar,    15).Value = MwoStatusRules.Initial(techId);
                 cmd.Parameters.Add("@Wo",   SqlDbType.VarChar,    28).Value = woNumber;
                 cmd.Parameters.Add("@Type", SqlDbType.VarChar,    15).Value = MwoTypeCodes.Pm;
                 cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = equipId;
@@ -869,7 +881,7 @@ public sealed class MntRepository
 
     /// <summary>
     /// PMClass 는 화면이 정하므로 바꾸지 않는다(설비 PM 화면에서 보전 PM 으로 옮길 수 없음).
-    /// 연결된 작업지시가 아직 착수 전(ISSUED/OPEN)이면 설비·담당자·템플릿·설명을 같이 맞춘다.
+    /// 연결된 작업지시가 아직 착수 전(발행·배정)이면 설비·담당자·템플릿·설명을 같이 맞추고, 담당자 유무로 발행·배정 상태도 맞춘다.
     /// 저장한 계획번호를 돌려준다(비우면 새로 채번, 다른 일정과 겹치면 DuplicateNumberException).
     /// </summary>
     public string UpdatePm(int id, string? planNo, string equipId, string pmType, string? cycleBasis, int? cycleValue,
@@ -906,10 +918,11 @@ public sealed class MntRepository
             using (var cmd = new SqlCommand("""
                 UPDATE w
                 SET    w.EquipID = @Eq, w.AssignedTechID = @Tech, w.ChecklistID = @Chk,
-                       w.ActionDesc = @Desc, w.ModifiedBy = @By, w.ModifiedTS = SYSDATETIME()
+                       w.ActionDesc = @Desc, w.Status = CASE WHEN @Tech IS NULL THEN 'ISSUED' ELSE 'ASSIGNED' END,
+                       w.ModifiedBy = @By, w.ModifiedTS = SYSDATETIME()
                 FROM   dbo.MNT_WorkOrder w
                 JOIN   dbo.MNT_PMSchedule p ON p.ActiveWoID = w.WorkOrderID
-                WHERE  p.PMScheduleID = @Id AND w.Status IN ('ISSUED', 'OPEN');
+                WHERE  p.PMScheduleID = @Id AND w.Status IN ('ISSUED', 'ASSIGNED');
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Id",   SqlDbType.Int).Value             = id;
@@ -927,7 +940,7 @@ public sealed class MntRepository
         catch { tx.Rollback(); throw; }
     }
 
-    /// <summary>PM 삭제. 연결된 작업지시가 착수 전(ISSUED/OPEN)이면 함께 지우고, 이미 진행·완료된 WO 는 남긴다.</summary>
+    /// <summary>PM 삭제. 연결된 작업지시가 착수 전(발행·배정)이면 함께 지우고, 이미 진행·완료·종료된 WO 는 남긴다.</summary>
     public void DeletePm(int id)
     {
         using var conn = _f.OpenConnection();
@@ -938,7 +951,7 @@ public sealed class MntRepository
                 DELETE w
                 FROM   dbo.MNT_WorkOrder w
                 JOIN   dbo.MNT_PMSchedule p ON p.ActiveWoID = w.WorkOrderID
-                WHERE  p.PMScheduleID = @Id AND w.Status IN ('ISSUED', 'OPEN');
+                WHERE  p.PMScheduleID = @Id AND w.Status IN ('ISSUED', 'ASSIGNED');
                 DELETE FROM dbo.MNT_PMSchedule WHERE PMScheduleID = @Id;
                 """, conn, tx))
             {
@@ -985,10 +998,57 @@ public sealed class MntRepository
             ("@N", null, topN), ("@S", "MNT_WorkOrder.Status", (object?)statusFilter ?? DBNull.Value));
     }
 
-    // ── MNT-007 배정 · 착수 · 완료 (+ MNT-002 수리 완료 · MNT-005/010 PM 완료) ──────
+    // ── MNT-007 발행 · 배정 · 착수 · 완료 · 종료 (+ MNT-002 수리 완료 · MNT-005/010 PM 완료) ──────
     // 완료의 역방향 반영은 CompleteWoCore 한 곳에만 있다 — 세 화면이 모두 여기를 지나야 고장·PM 이 같은 규칙으로 닫힌다.
 
-    /// <summary>담당자 배정. OPEN 은 ISSUED 로 올린다. PM 발행 WO 면 PM 일정의 담당자도 같이 바꾼다. 완료·마감된 WO 는 거부.</summary>
+    public const int WoDescMax = 1000;   // MNT_WorkOrder.ActionDesc nvarchar(1000)
+    public const int CloseReasonMax = 500;   // MNT_FailureAction.Description·MNT_PMExecution.ResultNote 와 같은 길이
+
+    /// <summary>
+    /// 수동 발행(MNT-007, 10-15) — 고장·PM 과 무관한 작업지시(SourceType MANUAL). PdM 은 이 경로로만 생긴다.
+    /// 담당자를 고르면 ASSIGNED, 아니면 ISSUED(MwoStatusRules.Initial). 번호는 같은 트랜잭션에서 채번한다.
+    /// </summary>
+    public (int WorkOrderId, string WoNumber, string Status) IssueWorkOrder(string woType, string equipId, string priority,
+        string description, string? techId, string actor)
+    {
+        if (string.IsNullOrWhiteSpace(woType) || string.IsNullOrWhiteSpace(equipId) || string.IsNullOrWhiteSpace(priority) || string.IsNullOrWhiteSpace(description))
+            throw new ArgumentException("Type, equipment, priority and description are required.");
+        var desc   = description.Trim();
+        if (desc.Length > WoDescMax) throw new ArgumentException($"Description is longer than {WoDescMax} characters.");
+        var tech   = string.IsNullOrWhiteSpace(techId) ? null : techId;
+        var status = MwoStatusRules.Initial(tech);
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            var woNumber = NextMwoNumber(conn, tx);
+            int woId;
+            using (var cmd = new SqlCommand("""
+                INSERT INTO dbo.MNT_WorkOrder
+                    (WoNumber, WoType, EquipID, Priority, SourceType, SourceRefID, AssignedTechID,
+                     ActionDesc, Status, IssuedAt, CreatedBy, CreatedTS)
+                VALUES (@Wo, @Type, @Eq, @Pri, 'MANUAL', NULL, @Tech, @Desc, @St, SYSDATETIME(), @By, SYSDATETIME());
+                SELECT CAST(SCOPE_IDENTITY() AS int);
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Wo",   SqlDbType.VarChar,    28).Value = woNumber;
+                cmd.Parameters.Add("@Type", SqlDbType.VarChar,    15).Value = woType;
+                cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = equipId;
+                cmd.Parameters.Add("@Pri",  SqlDbType.VarChar,    10).Value = priority;
+                cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)tech ?? DBNull.Value;
+                cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = desc;
+                cmd.Parameters.Add("@St",   SqlDbType.VarChar,    15).Value = status;
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
+                woId = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+            tx.Commit();
+            return (woId, woNumber, status);
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>담당자 배정(MwoStatusRules.AfterAssign) — 착수 전이면 ASSIGNED, 진행 중이면 담당자만 바꾼다. PM 발행 WO 면 PM 일정의 담당자도 같이 바꾼다. 완료·종료된 WO 는 거부.</summary>
     public void AssignWorkOrder(int woId, string techId, string actor)
     {
         using var conn = _f.OpenConnection();
@@ -999,7 +1059,7 @@ public sealed class MntRepository
             using (var cmd = new SqlCommand("""
                 UPDATE dbo.MNT_WorkOrder
                 SET    AssignedTechID = @Tech,
-                       Status = CASE WHEN Status = 'OPEN' THEN 'ISSUED' ELSE Status END,
+                       Status = CASE WHEN Status = 'IN_PROGRESS' THEN 'IN_PROGRESS' ELSE 'ASSIGNED' END,
                        ModifiedBy = @By, ModifiedTS = SYSDATETIME()
                 WHERE  WorkOrderID = @Id AND ISNULL(Status, '') NOT IN ('COMPLETED', 'CLOSED');
                 """, conn, tx))
@@ -1009,7 +1069,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
                 n = cmd.ExecuteNonQuery();
             }
-            if (n == 0) throw new InvalidOperationException($"Work order #{woId} is already completed or does not exist.");
+            if (n == 0) throw new InvalidOperationException($"Work order #{woId} is already completed/closed or does not exist.");
 
             using (var cmd = new SqlCommand("""
                 UPDATE dbo.MNT_PMSchedule SET AssignedTechID = @Tech, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
@@ -1026,7 +1086,7 @@ public sealed class MntRepository
         catch { tx.Rollback(); throw; }
     }
 
-    /// <summary>착수. OPEN/ISSUED → IN_PROGRESS, StartedAt 기록. 연결된 고장은 IN_PROGRESS 로 따라간다.</summary>
+    /// <summary>착수. 발행·배정 → IN_PROGRESS, StartedAt 기록. 연결된 고장은 IN_PROGRESS 로 따라간다.</summary>
     public void StartWorkOrder(int woId, string actor)
     {
         using var conn = _f.OpenConnection();
@@ -1038,14 +1098,14 @@ public sealed class MntRepository
                 UPDATE dbo.MNT_WorkOrder
                 SET    Status = 'IN_PROGRESS', StartedAt = ISNULL(StartedAt, SYSDATETIME()),
                        ModifiedBy = @By, ModifiedTS = SYSDATETIME()
-                WHERE  WorkOrderID = @Id AND ISNULL(Status, 'ISSUED') IN ('OPEN', 'ISSUED');
+                WHERE  WorkOrderID = @Id AND ISNULL(Status, 'ISSUED') IN ('ISSUED', 'ASSIGNED');
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@Id", SqlDbType.Int).Value            = woId;
                 cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = actor;
                 n = cmd.ExecuteNonQuery();
             }
-            if (n == 0) throw new InvalidOperationException($"Work order #{woId} is not in ISSUED/OPEN state.");
+            if (n == 0) throw new InvalidOperationException($"Work order #{woId} is not in ISSUED/ASSIGNED state.");
 
             using (var cmd = new SqlCommand("""
                 UPDATE dbo.MNT_FailureRegister SET Status = 'IN_PROGRESS', ModifiedBy = @By, ModifiedTS = SYSDATETIME()
@@ -1068,15 +1128,17 @@ public sealed class MntRepository
     ///     기간(TIME) 주기면 NextDueDate = 완료일 + 주기 로 미루고 다음 작업지시를 발행(ActiveWoID 갱신),
     ///     사이클(CYCLE) 주기면 예정일은 그대로 두고 Status = DONE
     /// 결과·조치·근본원인은 MNT_WorkOrder 에 전용 컬럼이 없어 ChecklistResultsJSON 에 JSON(WoResult)으로 남긴다.
+    /// 사용 부품은 웹에서 입력·차감하지 않는다(10-15 사용자 결정 (b)) — PDA 예비품 출고(SP-07)가 이 작업지시를 골라 출고한 이력을
+    /// 완료 시점에 PartsUsedJSON 으로 스냅샷한다(ReadWoPartReleases, 재고는 PDA 출고 때 이미 줄어 있다).
     /// </summary>
     public WoCompleteOutcome CompleteWorkOrder(int woId, string result, string actionTaken, string? rootCause,
-        int? laborMinutes, string? partsUsed, DateTime completedAt, string? techId, string actor)
+        int? laborMinutes, DateTime completedAt, string? techId, string actor)
     {
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
-            var o = CompleteWoCore(conn, tx, woId, result, actionTaken, rootCause, laborMinutes, partsUsed, completedAt, techId, actor);
+            var o = CompleteWoCore(conn, tx, woId, result, actionTaken, rootCause, laborMinutes, completedAt, techId, actor);
             tx.Commit();
             return o;
         }
@@ -1118,12 +1180,12 @@ public sealed class MntRepository
 
             if (woId is int w && woStatus is not (MwoStatusCodes.Completed or MwoStatusCodes.Closed))
             {
-                var o = CompleteWoCore(conn, tx, w, MwoResultCodes.Ok, actionTaken, rootCause, laborMinutes, null, resolvedAt, null, actor);
+                var o = CompleteWoCore(conn, tx, w, MwoResultCodes.Ok, actionTaken, rootCause, laborMinutes, resolvedAt, null, actor);
                 tx.Commit();
                 return (failNo, o.WoNumber);
             }
 
-            if (ResolveFailureRows(conn, tx, new[] { failureId }, rootCause, actionTaken, resolvedAt, null, actor) == 0)
+            if (ResolveFailureRows(conn, tx, new[] { failureId }, rootCause, actionTaken, resolvedAt, null, actor, woId) == 0)
                 throw new InvalidOperationException($"{failNo} is already resolved.");
             tx.Commit();
             return (failNo, null);
@@ -1162,7 +1224,7 @@ public sealed class MntRepository
 
             WoCompleteOutcome o;
             if (activeWo is int w && woStatus is not (MwoStatusCodes.Completed or MwoStatusCodes.Closed))
-                o = CompleteWoCore(conn, tx, w, result, note ?? "", null, laborMinutes, null, completedAt, techId, actor);
+                o = CompleteWoCore(conn, tx, w, result, note ?? "", null, laborMinutes, completedAt, techId, actor);
             else
             {
                 var (planNo, next, nextWo) = AdvancePm(conn, tx, pm, null, result, note, laborMinutes, completedAt, techId, actor);
@@ -1189,7 +1251,7 @@ public sealed class MntRepository
     }
 
     private WoCompleteOutcome CompleteWoCore(SqlConnection conn, SqlTransaction tx, int woId, string result, string actionTaken,
-        string? rootCause, int? laborMinutes, string? partsUsed, DateTime completedAt, string? techId, string actor)
+        string? rootCause, int? laborMinutes, DateTime completedAt, string? techId, string actor)
     {
         // 잠금 순서는 WO → 고장 → PM (배정·착수·완료·수리 완료·PM 완료 공통) — 동시 완료의 두 번째는 여기서 기다렸다가 완료 상태를 보고 거부된다.
         string woNumber; string? status;
@@ -1205,13 +1267,15 @@ public sealed class MntRepository
             throw new InvalidOperationException($"{woNumber} is already completed.");
 
         var resultJson = System.Text.Json.JsonSerializer.Serialize(new WoResult(result, actionTaken, rootCause, actor, completedAt), JsonReadable);
-        var partsJson  = PartsToJson(partsUsed);
+
+        // PDA 로 이 작업지시에 출고된 부품(취소분 제외) — 없으면 기존 값(옛 자유 입력)을 그대로 둔다
+        var partsJson = MwoPartsUsed.Serialize(MwoPartsUsed.Merge(ReadWoPartReleases(conn, tx, woNumber).Select(r => r.ToLine())));
 
         using (var cmd = new SqlCommand("""
             UPDATE dbo.MNT_WorkOrder
             SET    Status = 'COMPLETED', CompletedAt = @At,
                    StartedAt = ISNULL(StartedAt, DATEADD(MINUTE, -ISNULL(@Labor, 0), @At)),
-                   LaborMinutes = @Labor, PartsUsedJSON = @Parts, ChecklistResultsJSON = @Res,
+                   LaborMinutes = @Labor, PartsUsedJSON = ISNULL(@Parts, PartsUsedJSON), ChecklistResultsJSON = @Res,
                    AssignedTechID = ISNULL(@Tech, AssignedTechID),
                    ModifiedBy = @By, ModifiedTS = SYSDATETIME()
             WHERE  WorkOrderID = @Id AND ISNULL(Status, '') NOT IN ('COMPLETED', 'CLOSED');
@@ -1245,13 +1309,57 @@ public sealed class MntRepository
             if (result is MwoResultCodes.Partial or MwoResultCodes.FollowUp)
                 followUpWo = CarryFailuresToFollowUp(conn, tx, woId, woNumber, failures.Select(f => f.Id), result, rootCause, actionTaken, completedAt, techId, actor);
             else
-                ResolveFailureRows(conn, tx, failures.Select(f => f.Id), rootCause, actionTaken, completedAt, techId, actor);
+                ResolveFailureRows(conn, tx, failures.Select(f => f.Id), rootCause, actionTaken, completedAt, techId, actor, woId);
         }
 
-        // PM 역방향 — 이 WO 를 활성 WO 로 가진 일정(구 데이터는 SourceRefID 로 보조 매칭)
-        // 고장·PM 조회는 인덱스 없는 스캔이라 UPDLOCK 을 걸지 않는다(다른 WO 를 동시에 완료하는 트랜잭션끼리 교착) — 이중 반영은 위 WO 행 잠금이 막는다.
-        PmCore? pm = null;
-        using (var cmd = new SqlCommand($"""
+        var pm = FindPmForWo(conn, tx, woId);
+        string? pmNo = null; DateTime? nextDue = null; string? nextWo = null;
+        if (pm is not null)
+            (pmNo, nextDue, nextWo) = AdvancePm(conn, tx, pm, woId, result, actionTaken, laborMinutes, completedAt, techId, actor);
+
+        return new WoCompleteOutcome(woId, woNumber, failures.Count > 0 ? string.Join(", ", failures.Select(f => f.No)) : null, pmNo, nextDue, nextWo, followUpWo);
+    }
+
+    /// <summary>PDA 예비품 출고(SP-07)가 이 작업지시로 출고한 부품 1행 — 시리얼 1개 = 1행. 취소된 출고(ReversalOfTxnID 로 되돌린 행)는 빠진다.</summary>
+    public sealed record PartReleaseRow(int TxnId, string SparePartNo, string? PartNo, string? PartName, string? SerialNo,
+        int Qty, DateTime? TxnAt, string? ActorId)
+    {
+        public MwoPartsUsed.Line ToLine() => new(SparePartNo, Qty, PartNo, PartName);
+    }
+
+    // 출고 이력의 작업지시 연결 = RefType 'MWO' + RefID 작업지시 번호(PDA 출고 프로시저가 남긴다 — 확인사항 안영훈 요청)
+    private const string WoPartReleaseSql = """
+        SELECT  t.SparePartsTxnID, t.SparePartNo, p.PartNo, p.PartName, i.SerialNo, t.Qty, t.TxnAt, t.ActorID
+        FROM    dbo.MNT_SparePartsTxn t
+        LEFT JOIN dbo.MD_SparePart p      ON p.SparePartNo = t.SparePartNo
+        LEFT JOIN dbo.MNT_SparePartItem i ON i.SparePartItemID = t.SparePartItemID
+        WHERE   t.RefType = 'MWO' AND t.RefID = @Wo AND t.MoveType = 'OUT'
+          AND   NOT EXISTS (SELECT 1 FROM dbo.MNT_SparePartsTxn r WHERE r.ReversalOfTxnID = t.SparePartsTxnID)
+        ORDER BY t.TxnAt, t.SparePartsTxnID;
+        """;
+
+    private static PartReleaseRow MapPartRelease(IDataReader r) => new(
+        (int)r["SparePartsTxnID"], (string)r["SparePartNo"], r["PartNo"] as string, r["PartName"] as string, r["SerialNo"] as string,
+        r["Qty"] as int? ?? 0, r["TxnAt"] as DateTime?, r["ActorID"] as string);
+
+    public List<PartReleaseRow> ListWoPartReleases(string woNumber) =>
+        Query(WoPartReleaseSql, MapPartRelease, ("@Wo", "MNT_SparePartsTxn.RefID", woNumber));
+
+    private static List<PartReleaseRow> ReadWoPartReleases(SqlConnection conn, SqlTransaction tx, string woNumber)
+    {
+        using var cmd = new SqlCommand(WoPartReleaseSql, conn, tx);
+        cmd.Parameters.Add("@Wo", SqlDbType.VarChar, 24).Value = woNumber;
+        using var r = cmd.ExecuteReader();
+        var list = new List<PartReleaseRow>();
+        while (r.Read()) list.Add(MapPartRelease(r));
+        return list;
+    }
+
+    // PM 역방향 — 이 WO 를 활성 WO 로 가진 일정(구 데이터는 SourceRefID 로 보조 매칭)
+    // 고장·PM 조회는 인덱스 없는 스캔이라 UPDLOCK 을 걸지 않는다(다른 WO 를 동시에 완료하는 트랜잭션끼리 교착) — 이중 반영은 WO 행 잠금이 막는다.
+    private static PmCore? FindPmForWo(SqlConnection conn, SqlTransaction tx, int woId)
+    {
+        using var cmd = new SqlCommand($"""
             SELECT {PmCoreCols}
             FROM   dbo.MNT_PMSchedule p
             WHERE  p.ActiveWoID = @Id
@@ -1259,17 +1367,89 @@ public sealed class MntRepository
                       SELECT 1 FROM dbo.MNT_WorkOrder w
                       WHERE  w.WorkOrderID = @Id AND w.SourceType = 'PM' AND TRY_CAST(w.SourceRefID AS int) = p.PMScheduleID))
             ORDER  BY CASE WHEN p.ActiveWoID = @Id THEN 0 ELSE 1 END;
-            """, conn, tx))
-        {
-            cmd.Parameters.Add("@Id", SqlDbType.Int).Value = woId;
-            using var r = cmd.ExecuteReader();
-            if (r.Read()) pm = MapPmCore(r);
-        }
-        string? pmNo = null; DateTime? nextDue = null; string? nextWo = null;
-        if (pm is not null)
-            (pmNo, nextDue, nextWo) = AdvancePm(conn, tx, pm, woId, result, actionTaken, laborMinutes, completedAt, techId, actor);
+            """, conn, tx);
+        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = woId;
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? MapPmCore(r) : null;
+    }
 
-        return new WoCompleteOutcome(woId, woNumber, failures.Count > 0 ? string.Join(", ", failures.Select(f => f.No)) : null, pmNo, nextDue, nextWo, followUpWo);
+    /// <summary>
+    /// 작업지시 종료(10-15 사용자 결정) — 정상 완료(COMPLETED)와 달리 작업 없이 닫는다(오등록·중복·불필요). 끝나기 전 어느 상태에서든 가능, 사유 필수.
+    ///   · WO: Status CLOSED · ClosedAt · 결과 JSON(Result CLOSED, Action = 사유). 완료 시각·소요 시간은 남기지 않는다.
+    ///   · 연결된 열린 고장: Status CLOSED(해결 시각 없음) + 조치 이력 CLOSED(사유, 이 작업지시) 1행.
+    ///   · PM: 이번 회차 건너뜀 — 실행 이력 Result CLOSED(사유), 마지막 실시일은 그대로, 기간 주기면 다음 예정일 = 이번 예정일 + 주기로 넘기고 다음 작업지시 발행.
+    /// 잠금 순서는 완료와 같은 WO → 고장 → PM.
+    /// </summary>
+    public WoCloseOutcome CloseWorkOrder(int woId, string reason, string actor)
+    {
+        var note = reason?.Trim() ?? "";
+        if (note.Length == 0) throw new ArgumentException("Close reason is required.");
+        if (note.Length > CloseReasonMax) throw new ArgumentException($"Close reason is longer than {CloseReasonMax} characters.");
+
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            string woNumber; string? status;
+            using (var cmd = new SqlCommand("SELECT WoNumber, Status FROM dbo.MNT_WorkOrder WITH (UPDLOCK, ROWLOCK) WHERE WorkOrderID = @Id", conn, tx))
+            {
+                cmd.Parameters.Add("@Id", SqlDbType.Int).Value = woId;
+                using var r = cmd.ExecuteReader();
+                if (!r.Read()) throw new InvalidOperationException($"Work order #{woId} not found.");
+                woNumber = r["WoNumber"] as string ?? $"MWO#{woId}";
+                status   = r["Status"] as string;
+            }
+            if (!MwoStatusRules.CanClose(status)) throw new InvalidOperationException($"{woNumber} is already completed or closed.");
+
+            DateTime at;
+            using (var cmd = new SqlCommand("SELECT SYSDATETIME()", conn, tx)) at = (DateTime)cmd.ExecuteScalar()!;
+            var resultJson = System.Text.Json.JsonSerializer.Serialize(new WoResult(MwoStatusCodes.Closed, note, null, actor, at), JsonReadable);
+            // 종료 전에 PDA 로 이미 출고된 부품도 기록으로 남긴다(재고는 PDA 출고 때 줄었다)
+            var partsJson = MwoPartsUsed.Serialize(MwoPartsUsed.Merge(ReadWoPartReleases(conn, tx, woNumber).Select(r => r.ToLine())));
+
+            using (var cmd = new SqlCommand("""
+                UPDATE dbo.MNT_WorkOrder
+                SET    Status = 'CLOSED', ClosedAt = @At, ChecklistResultsJSON = @Res, PartsUsedJSON = ISNULL(@Parts, PartsUsedJSON),
+                       ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+                WHERE  WorkOrderID = @Id AND ISNULL(Status, '') NOT IN ('COMPLETED', 'CLOSED');
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Id",  SqlDbType.Int).Value          = woId;
+                cmd.Parameters.Add("@At",  SqlDbType.DateTime2).Value    = at;
+                cmd.Parameters.Add("@Res", SqlDbType.NVarChar, -1).Value = resultJson;
+                cmd.Parameters.Add("@Parts", SqlDbType.NVarChar, -1).Value = (object?)partsJson ?? DBNull.Value;
+                cmd.Parameters.Add("@By",  SqlDbType.VarChar,  20).Value = actor;
+                if (cmd.ExecuteNonQuery() == 0) throw new InvalidOperationException($"{woNumber} is already completed or closed.");
+            }
+
+            var failures = new List<string>();
+            using (var cmd = new SqlCommand("""
+                DECLARE @closed TABLE (FailureID int, FailureNumber varchar(24));
+                UPDATE dbo.MNT_FailureRegister
+                SET    Status = 'CLOSED', ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+                OUTPUT inserted.FailureID, inserted.FailureNumber INTO @closed
+                WHERE  WorkOrderID = @Id AND ISNULL(Status, 'OPEN') NOT IN ('RESOLVED', 'CLOSED');
+                INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, WorkOrderID, CreatedBy, CreatedTS)
+                SELECT FailureID, 'CLOSED', @Note, NULL, @At, @Id, @By, SYSDATETIME() FROM @closed;
+                SELECT ISNULL(FailureNumber, CONCAT('F#', FailureID)) FROM @closed ORDER BY FailureID;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Id",   SqlDbType.Int).Value            = woId;
+                cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = note;
+                cmd.Parameters.Add("@At",   SqlDbType.DateTime2).Value      = at;
+                cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) failures.Add(r.GetString(0));
+            }
+
+            string? pmNo = null; DateTime? nextDue = null; string? nextWo = null;
+            if (FindPmForWo(conn, tx, woId) is { } pm)
+                (pmNo, nextDue, nextWo) = AdvancePm(conn, tx, pm, woId, MwoStatusCodes.Closed, note, null, at, null, actor, skipped: true);
+
+            tx.Commit();
+            return new WoCloseOutcome(woId, woNumber, failures.Count > 0 ? string.Join(", ", failures) : null, pmNo, nextDue, nextWo);
+        }
+        catch { tx.Rollback(); throw; }
     }
 
     /// <summary>
@@ -1313,7 +1493,7 @@ public sealed class MntRepository
             newId = Convert.ToInt32(cmd.ExecuteScalar());
         }
 
-        if (note.Length > 1000) note = note[..1000];
+        if (note.Length > 500) note = note[..500];   // MNT_FailureAction.Description nvarchar(500) — ResolveFailureRows 와 같게
         foreach (var id in failureIds)
         {
             using var cmd = new SqlCommand("""
@@ -1321,13 +1501,14 @@ public sealed class MntRepository
                 SET    Status = 'IN_PROGRESS', WorkOrderID = @New, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
                 WHERE  FailureID = @Id AND ISNULL(Status, 'OPEN') NOT IN ('RESOLVED', 'CLOSED');
                 IF @@ROWCOUNT > 0
-                    INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
-                    VALUES (@Id, @Type, @Desc, @Tech, @At, @By, SYSDATETIME());
+                    INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, WorkOrderID, CreatedBy, CreatedTS)
+                    VALUES (@Id, @Type, @Desc, @Tech, @At, @Wo, @By, SYSDATETIME());
                 """, conn, tx);
             cmd.Parameters.Add("@Id",   SqlDbType.Int).Value             = id;
             cmd.Parameters.Add("@New",  SqlDbType.Int).Value             = newId;
+            cmd.Parameters.Add("@Wo",   SqlDbType.Int).Value             = woId;   // 원래 작업지시 — 고장이 넘어가도 그 상세에 남게
             cmd.Parameters.Add("@Type", SqlDbType.VarChar,    20).Value = result;
-            cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = note;
+            cmd.Parameters.Add("@Desc", SqlDbType.NVarChar,  500).Value = note;
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)techId ?? DBNull.Value;
             cmd.Parameters.Add("@At",   SqlDbType.DateTime2).Value       = at;
             cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
@@ -1339,7 +1520,7 @@ public sealed class MntRepository
     /// <summary>고장 RESOLVED + 조치 이력(MNT_FailureAction 'REPAIRED') — 안돈의 ARRIVED/ACK 와 같은 테이블에 쌓인다.
     /// 이미 해결·마감된 고장은 건너뛰며(조치 행도 남기지 않음) 실제로 닫은 건수를 돌려준다.</summary>
     private static int ResolveFailureRows(SqlConnection conn, SqlTransaction tx, IEnumerable<int> failureIds,
-        string? rootCause, string actionTaken, DateTime resolvedAt, string? techId, string actor)
+        string? rootCause, string actionTaken, DateTime resolvedAt, string? techId, string actor, int? woId)
     {
         var desc = string.IsNullOrWhiteSpace(rootCause) ? actionTaken.Trim() : $"{rootCause.Trim()} → {actionTaken.Trim()}";
         if (desc.Length > 500) desc = desc[..500];
@@ -1351,11 +1532,12 @@ public sealed class MntRepository
                 SET    Status = 'RESOLVED', ResolvedAt = @At, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
                 WHERE  FailureID = @Id AND ISNULL(Status, 'OPEN') NOT IN ('RESOLVED', 'CLOSED');
                 IF @@ROWCOUNT = 0 BEGIN SELECT 0; RETURN; END;
-                INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
-                VALUES (@Id, 'REPAIRED', @Desc, @Tech, @At, @By, SYSDATETIME());
+                INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, WorkOrderID, CreatedBy, CreatedTS)
+                VALUES (@Id, 'REPAIRED', @Desc, @Tech, @At, @Wo, @By, SYSDATETIME());
                 SELECT 1;
                 """, conn, tx);
             cmd.Parameters.Add("@Id",   SqlDbType.Int).Value            = id;
+            cmd.Parameters.Add("@Wo",   SqlDbType.Int).Value            = (object?)woId ?? DBNull.Value;
             cmd.Parameters.Add("@At",   SqlDbType.DateTime2).Value      = resolvedAt;
             cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 500).Value = desc;
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)techId ?? DBNull.Value;
@@ -1377,12 +1559,14 @@ public sealed class MntRepository
         r["PMClass"] as string, r["NextDueDate"] as DateTime?);
 
     /// <summary>
-    /// PM 실행 이력 + 일정 전진. 기간(TIME) 주기면 다음 예정일 = 완료일 + 주기 로 두고 다음 작업지시(ISSUED)를 발행해 ActiveWoID 를 잇는다.
+    /// PM 실행 이력 + 일정 전진. 기간(TIME) 주기면 다음 예정일 = 완료일 + 주기 로 두고 다음 작업지시(담당자가 있으면 ASSIGNED, 없으면 ISSUED)를 발행해 ActiveWoID 를 잇는다.
     /// 사이클(CYCLE) 주기는 날짜로 다음 예정을 정할 수 없어 예정일은 그대로, Status = DONE 으로 둔다(ActiveWoID 는 비움).
     /// 이력 행에는 분류·계획번호·설비·유형·이행한 예정일을 스냅샷으로 남긴다 — 일정이 지워지거나 바뀌어도 달력의 완료 칩은 그대로다.
+    /// <paramref name="skipped"/> = 작업지시 종료로 이번 회차를 건너뜀(10-15): 마지막 실시일은 그대로, 다음 예정일 = 이번 예정일 + 주기
+    /// (예정일이 없으면 종료일 + 주기), 사이클 주기는 일정 상태도 그대로 두고 활성 작업지시만 비운다.
     /// </summary>
     private (string? PlanNo, DateTime? NextDue, string? NextWoNumber) AdvancePm(SqlConnection conn, SqlTransaction tx, PmCore pm, int? woId,
-        string result, string? note, int? laborMinutes, DateTime completedAt, string? techId, string actor)
+        string result, string? note, int? laborMinutes, DateTime completedAt, string? techId, string actor, bool skipped = false)
     {
         var tech = techId ?? pm.TechId;
         var resultNote = note is { Length: > 500 } ? note[..500] : note;
@@ -1406,24 +1590,25 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)tech ?? DBNull.Value;
             cmd.Parameters.Add("@Res",  SqlDbType.VarChar,   15).Value = result;
             cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = (object?)resultNote ?? DBNull.Value;
-            cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor.Length > 50 ? actor[..50] : actor;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
             cmd.ExecuteNonQuery();
         }
 
+        var basis = skipped ? (pm.NextDue ?? completedAt).Date : completedAt.Date;
         DateTime? next = string.Equals(pm.CycleBasis, "TIME", StringComparison.OrdinalIgnoreCase) && pm.CycleValue is > 0
-            ? completedAt.Date.AddDays(pm.CycleValue.Value) : null;
+            ? basis.AddDays(pm.CycleValue.Value) : null;
 
         using (var cmd = new SqlCommand("""
             UPDATE dbo.MNT_PMSchedule
-            SET    LastPMDate = @Last, NextDueDate = ISNULL(@Next, NextDueDate), Status = @St, ActiveWoID = NULL,
+            SET    LastPMDate = ISNULL(@Last, LastPMDate), NextDueDate = ISNULL(@Next, NextDueDate), Status = ISNULL(@St, Status), ActiveWoID = NULL,
                    AssignedTechID = ISNULL(@Tech, AssignedTechID), ModifiedBy = @By, ModifiedTS = SYSDATETIME()
             WHERE  PMScheduleID = @Pm;
             """, conn, tx))
         {
             cmd.Parameters.Add("@Pm",   SqlDbType.Int).Value            = pm.Id;
-            cmd.Parameters.Add("@Last", SqlDbType.Date).Value           = completedAt.Date;
+            cmd.Parameters.Add("@Last", SqlDbType.Date).Value           = skipped ? DBNull.Value : completedAt.Date;
             cmd.Parameters.Add("@Next", SqlDbType.Date).Value           = (object?)next ?? DBNull.Value;
-            cmd.Parameters.Add("@St",   SqlDbType.VarChar,   10).Value = next is null ? "DONE" : "OK";
+            cmd.Parameters.Add("@St",   SqlDbType.VarChar,   10).Value = next is not null ? "OK" : skipped ? DBNull.Value : "DONE";
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar, 450).Value = (object?)tech ?? DBNull.Value;
             cmd.Parameters.Add("@By",   SqlDbType.VarChar,   20).Value = actor;
             cmd.ExecuteNonQuery();
@@ -1437,10 +1622,11 @@ public sealed class MntRepository
             INSERT INTO dbo.MNT_WorkOrder
                 (WoNumber, WoType, EquipID, Priority, SourceType, SourceRefID, AssignedTechID, ChecklistID,
                  ActionDesc, Status, IssuedAt, CreatedBy, CreatedTS)
-            VALUES (@Wo, @Type, @Eq, 'MED', 'PM', @Ref, @Tech, @Chk, @Desc, 'ISSUED', SYSDATETIME(), @By, SYSDATETIME());
+            VALUES (@Wo, @Type, @Eq, 'MED', 'PM', @Ref, @Tech, @Chk, @Desc, @St, SYSDATETIME(), @By, SYSDATETIME());
             SELECT CAST(SCOPE_IDENTITY() AS int);
             """, conn, tx))
         {
+            cmd.Parameters.Add("@St",   SqlDbType.VarChar,    15).Value = MwoStatusRules.Initial(tech);
             cmd.Parameters.Add("@Wo",   SqlDbType.VarChar,    28).Value = nextWoNumber;
             cmd.Parameters.Add("@Type", SqlDbType.VarChar,    15).Value = MwoTypeCodes.Pm;
             cmd.Parameters.Add("@Eq",   SqlDbType.VarChar,    20).Value = (object?)pm.EquipId ?? DBNull.Value;
@@ -1448,7 +1634,7 @@ public sealed class MntRepository
             cmd.Parameters.Add("@Tech", SqlDbType.NVarChar,  450).Value = (object?)tech ?? DBNull.Value;
             cmd.Parameters.Add("@Chk",  SqlDbType.VarChar,    20).Value = (object?)pm.ChecklistId ?? DBNull.Value;
             cmd.Parameters.Add("@Desc", SqlDbType.NVarChar, 1000).Value = $"{pm.PmType} PM — {pm.PlanNo} ({nd:yyyy-MM-dd})";
-            cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor.Length > 50 ? actor[..50] : actor;
+            cmd.Parameters.Add("@By",   SqlDbType.VarChar,    20).Value = actor;
             nextWoId = Convert.ToInt32(cmd.ExecuteScalar());
         }
         using (var cmd = new SqlCommand("UPDATE dbo.MNT_PMSchedule SET ActiveWoID = @Wo WHERE PMScheduleID = @Pm", conn, tx))
@@ -1458,14 +1644,6 @@ public sealed class MntRepository
             cmd.ExecuteNonQuery();
         }
         return (pm.PlanNo, nd, nextWoNumber);
-    }
-
-    /// <summary>사용 부품 입력(줄바꿈·쉼표·세미콜론 구분)을 JSON 문자열 배열로. 비어 있으면 null.</summary>
-    private static string? PartsToJson(string? partsUsed)
-    {
-        if (string.IsNullOrWhiteSpace(partsUsed)) return null;
-        var parts = partsUsed.Split(new[] { '\n', '\r', ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return parts.Length == 0 ? null : System.Text.Json.JsonSerializer.Serialize(parts, JsonReadable);
     }
 
     // 한글을 \uXXXX 로 이스케이프하지 않는다 — DB 에서 바로 읽히게
@@ -1599,7 +1777,7 @@ public sealed class MntRepository
                 cmd.Parameters.Add("@RID",   SqlDbType.VarChar,   24).Value = (object?)refId ?? DBNull.Value;
                 cmd.Parameters.Add("@Note",  SqlDbType.NVarChar, 500).Value = (object?)note ?? DBNull.Value;
                 cmd.Parameters.Add("@Actor", SqlDbType.NVarChar, 450).Value = actor;
-                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = actor.Length > 50 ? actor[..50] : actor;
+                cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = actor;
                 txnId = Convert.ToInt32(cmd.ExecuteScalar());
             }
             tx.Commit();
@@ -1620,7 +1798,7 @@ public sealed class MntRepository
               (SELECT COUNT(*) FROM dbo.MNT_EquipmentStatus WHERE Status IN ('DOWN','STOP','FAULT'))                     AS EquipDown,
               (SELECT COUNT(*) FROM dbo.MNT_EquipmentStatus WHERE Status IN ('IDLE','SETUP','READY'))                    AS EquipIdle,
               (SELECT COUNT(*) FROM dbo.MNT_FailureRegister WHERE Status IN ('OPEN','REGISTERED','IN_PROGRESS'))         AS OpenFailures,
-              (SELECT COUNT(*) FROM dbo.MNT_WorkOrder       WHERE Status IN ('OPEN','ISSUED','IN_PROGRESS'))             AS OpenWos,
+              (SELECT COUNT(*) FROM dbo.MNT_WorkOrder       WHERE Status IN ('ISSUED','ASSIGNED','IN_PROGRESS'))         AS OpenWos,
               (SELECT COUNT(*) FROM dbo.MNT_PMSchedule
                  WHERE NextDueDate BETWEEN @today AND DATEADD(DAY, 7, @today))                                           AS PmDueIn7d,
               (SELECT COUNT(*) FROM dbo.MD_SparePart p

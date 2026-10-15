@@ -1,5 +1,5 @@
-﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-10 from the development DB (192.168.0.132) with SMO.
--- 176 tables / 2446 columns, 38 procedures, 0 views, 0 functions.
+﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-14 from the development DB (192.168.0.132) with SMO.
+-- 175 tables / 2430 columns, 38 procedures, 0 views, 0 functions.
 -- Excludes TEST_* tables and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
 -- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).
 -- Schema only from the live database; sample seeds below are retained from the repository.
@@ -12,14 +12,13 @@ SET QUOTED_IDENTIFIER ON;
 SET ANSI_PADDING ON;
 SET NOCOUNT ON;
 GO
--- Drop every foreign key on the recreated tables (and legacy WH tables) before dropping tables.
+-- Drop every foreign key on the recreated tables before dropping tables.
 DECLARE @DropFk nvarchar(max) = N'';
 SELECT @DropFk += N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(fk.parent_object_id)) + N'.' + QUOTENAME(OBJECT_NAME(fk.parent_object_id)) + N' DROP CONSTRAINT ' + QUOTENAME(fk.name) + N';'
 FROM sys.foreign_keys fk
-WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) = N'dbo' AND (OBJECT_NAME(fk.parent_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_PutAway,FG_ShipmentOrder,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldColor,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule,WH_AreaLayout,WH_AreaMaster,WH_AreaSection,WH_InboundPackage,WH_OLD_Inventory,WH_Receiving,WH_ReleasePicking,WH_TransactionHistory,WH_WarehouseMaster', N',')) OR OBJECT_NAME(fk.referenced_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_PutAway,FG_ShipmentOrder,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldColor,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule,WH_AreaLayout,WH_AreaMaster,WH_AreaSection,WH_InboundPackage,WH_OLD_Inventory,WH_Receiving,WH_ReleasePicking,WH_TransactionHistory,WH_WarehouseMaster', N',')));
+WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) = N'dbo' AND (OBJECT_NAME(fk.parent_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_PutAway,FG_ShipmentOrder,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldColor,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule', N',')) OR OBJECT_NAME(fk.referenced_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_PutAway,FG_ShipmentOrder,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldColor,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule', N',')));
 EXEC sys.sp_executesql @DropFk;
 GO
-DROP TRIGGER IF EXISTS [dbo].[TR_WH_OLD_Inventory_SyncUnifiedInventory];
 DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_ADJUST_SAVE_QTY];
 DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_ADJUST_SCAN_STOCK];
 DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_HISTORY_TEST_RESET];
@@ -233,15 +232,6 @@ DROP TABLE IF EXISTS [dbo].[WH_InventoryTransaction];
 DROP TABLE IF EXISTS [dbo].[WH_PickSlip];
 DROP TABLE IF EXISTS [dbo].[WH_PurchaseOrder];
 DROP TABLE IF EXISTS [dbo].[WH_ReleaseSchedule];
-DROP TABLE IF EXISTS [dbo].[WH_AreaLayout];
-DROP TABLE IF EXISTS [dbo].[WH_AreaMaster];
-DROP TABLE IF EXISTS [dbo].[WH_AreaSection];
-DROP TABLE IF EXISTS [dbo].[WH_InboundPackage];
-DROP TABLE IF EXISTS [dbo].[WH_OLD_Inventory];
-DROP TABLE IF EXISTS [dbo].[WH_Receiving];
-DROP TABLE IF EXISTS [dbo].[WH_ReleasePicking];
-DROP TABLE IF EXISTS [dbo].[WH_TransactionHistory];
-DROP TABLE IF EXISTS [dbo].[WH_WarehouseMaster];
 GO
 -- Table: dbo.AspNetRoleClaims
 SET ANSI_NULLS ON
@@ -470,24 +460,18 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[FG_CustomerReturn](
 	[ReturnID] [int] IDENTITY(1,1) NOT NULL,
-	[ReturnNumber] [varchar](24) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[RMANo] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[CustomerCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CustomerClaimID] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
-	[OriginalShipmentOrderID] [int] NOT NULL,
-	[OriginalDeliveryNoteID] [int] NULL,
+	[CustomerID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[ShipmentOrderID] [int] NOT NULL,
 	[ReturnReason] [varchar](60) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[ItemsJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ReceivedAt] [datetime2](7) NOT NULL,
-	[ReceivedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[NcrID] [int] NULL,
-	[CapaTriggered] [bit] NULL,
+	[ReceivedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ClosedAt] [datetime2](7) NULL,
-	[ClosedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ClosedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[LotID] [int] NULL,
-	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[PartNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[PartName] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ReturnQty] [decimal](12, 3) NOT NULL,
 	[LotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -498,7 +482,7 @@ CREATE TABLE [dbo].[FG_CustomerReturn](
 (
 	[ReturnID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+) ON [PRIMARY]
 GO
 SET ANSI_PADDING ON
 GO
@@ -517,18 +501,13 @@ CREATE NONCLUSTERED INDEX [IX_FG_CustomerReturn_Received] ON [dbo].[FG_CustomerR
 GO
 SET ANSI_PADDING ON
 GO
-CREATE UNIQUE NONCLUSTERED INDEX [UX_FG_CustomerReturn_ReturnNumber] ON [dbo].[FG_CustomerReturn]
-(
-	[ReturnNumber] ASC
-)
-WHERE ([ReturnNumber] IS NOT NULL)
-WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+
 GO
 ALTER TABLE [dbo].[FG_CustomerReturn] ADD  CONSTRAINT [DF__FG_Custom__Creat__56B3DD81]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
-ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [CK_FG_CustomerReturn_ItemsJSON] CHECK  (([ItemsJSON] IS NULL OR isjson([ItemsJSON])=(1)))
+
 GO
-ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [CK_FG_CustomerReturn_ItemsJSON]
+
 GO
 ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [CK_FG_CustomerReturn_Qty] CHECK  (([ReturnQty] IS NULL OR [ReturnQty]>(0)))
 GO
@@ -536,41 +515,41 @@ ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [CK_FG_CustomerReturn_Qty
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Return ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ReturnID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Return Number · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ReturnNumber'
+
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'RMA No · varchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'RMANo'
+
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고객사 코드 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CustomerCode'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고객사 코드 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CustomerID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Customer Claim ID · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CustomerClaimID'
+
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Original Shipment Order ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'OriginalShipmentOrderID'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Shipment Order ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ShipmentOrderID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Original Delivery Note ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'OriginalDeliveryNoteID'
+
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Return Reason · varchar(60)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ReturnReason'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Items JSON · nvarchar' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ItemsJSON'
+
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완제품 상태 · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'Status'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Received At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ReceivedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Received By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ReceivedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Received By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ReceivedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'NCR(부적합) ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'NcrID'
+
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Capa Triggered · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CapaTriggered'
+
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마감 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ClosedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Closed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ClosedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Closed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ClosedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고객 반품 (RMA)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_CustomerReturn'
 GO
@@ -590,7 +569,7 @@ CREATE TABLE [dbo].[FG_PutAway](
 	[PalletCount] [int] NULL,
 	[PalletQty] [int] NULL,
 	[LabelPrintedTS] [datetime2](7) NULL,
-	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[OperatorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[StorageMethod] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ContainerType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -628,15 +607,15 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Pallet Qty · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Label Printed TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'LabelPrintedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업자 (AspNetUsers.Id) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'OperatorID'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업자 (AspNetUsers.Id) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'OperatorID'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완제품 상태 · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완제품 적치 (FG-01)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_PutAway'
 GO
@@ -660,7 +639,7 @@ CREATE TABLE [dbo].[FG_ShipmentOrder](
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[PickslipID] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
 	[OTDFlag] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[ConfirmedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ConfirmedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedAt] [datetime2](7) NULL,
 	[OutgoingSlipNumber] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
 	[ItemsJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
@@ -674,7 +653,7 @@ CREATE TABLE [dbo].[FG_ShipmentOrder](
 	[DepartureAt] [datetime2](7) NULL,
 	[SealNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LoadingOTDStatus] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[ShipmentOperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ShipmentOperatorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LoadingConfirmedAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -725,15 +704,15 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Pickslip ID ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'OTD Flag · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'OTDFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ConfirmedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ConfirmedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ConfirmedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 출하 지시 헤더' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'FG_ShipmentOrder'
 GO
@@ -1402,9 +1381,6 @@ CREATE TABLE [dbo].[MD_Item](
 	[PalletQty] [int] NULL,
 	[MaxPalletQty] [int] NULL,
 	[ToteFlag] [bit] NOT NULL,
-	[BoxQty] [int] NULL,
-	[BoxContentUnit] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentQty] [decimal](18, 3) NULL,
 	[ScanRequired] [bit] NOT NULL,
 	[ActiveFlag] [bit] NULL,
 	[CarType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1470,8 +1446,6 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최대 적재 — 출하 차량(컨테이너)에 싣는 최대 팔레트 수 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'MaxPalletQty'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'TOTE 출하 여부 — 1 이면 팔레트가 아니라 토트 박스로 출하 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ToteFlag'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'박스 수량 — 포장 단위(박스 1개당 제품 수). APS 공급 올림 단위, NULL 이면 1 + 경고 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'BoxQty'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사용 여부 — 단종 시 FALSE (물리 삭제 금지).  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
@@ -2171,7 +2145,7 @@ CREATE TABLE [dbo].[MD_PaintFabric](
 	[MatCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[MatName] [nvarchar](60) COLLATE Korean_Wansung_CI_AS NULL,
 	[MatType] [varchar](14) COLLATE Korean_Wansung_CI_AS NULL,
-	[LotNo] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
+	[LotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
 	[SupplierID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[UOM] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[QtyOnHand] [decimal](12, 3) NULL,
@@ -2199,7 +2173,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Mat Name · nv
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Mat Type · varchar(14)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'MatType'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lot No · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'LotNo'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lot No · nvarchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'LotNo'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Supplier ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PaintFabric', @level2type=N'COLUMN',@level2name=N'SupplierID'
 GO
@@ -3046,6 +3020,7 @@ CREATE TABLE [dbo].[MNT_FailureAction](
 	[EvidenceURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
 	[TechnicianID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActionAt] [datetime2](7) NULL,
+	[WorkOrderID] [int] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -3056,7 +3031,13 @@ CREATE TABLE [dbo].[MNT_FailureAction](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MNT_FailureAction] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+CREATE NONCLUSTERED INDEX [IX_MNT_FailureAction_WorkOrderID] ON [dbo].[MNT_FailureAction]
+(
+	[WorkOrderID] ASC
+)
+INCLUDE([FailureID]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[MNT_FailureAction] ADD  CONSTRAINT [DF__MNT_Failu__Creat__23F3538A]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Failure Action ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'FailureActionID'
 GO
@@ -3071,6 +3052,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Technician ID · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'TechnicianID'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'ActionAt'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'조치를 남긴 보전 작업지시 ID (MNT_WorkOrder, 안돈 도착·ACK 는 NULL) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'WorkOrderID'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -3098,7 +3081,7 @@ CREATE TABLE [dbo].[MNT_FailureRegister](
 	[WorkOrderID] [int] NULL,
 	[DowntimeID] [int] NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReportedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReportedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReportedAt] [datetime2](7) NULL,
 	[ResolvedAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -3144,7 +3127,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'다운타임 I
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'정비 상태 · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reported By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'ReportedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reported By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'ReportedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reported At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'ReportedAt'
 GO
@@ -3575,7 +3558,7 @@ CREATE TABLE [dbo].[MNT_WorkOrderTask](
 	[Result] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[EvidenceURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
-	[CompletedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[CompletedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CompletedAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -3605,7 +3588,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'비고 · nvar
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Evidence URL · varchar(255)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'EvidenceURL'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Completed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'CompletedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Completed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'CompletedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완료 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_WorkOrderTask', @level2type=N'COLUMN',@level2name=N'CompletedAt'
 GO
@@ -3943,7 +3926,7 @@ CREATE TABLE [dbo].[PNT_LabelScanLog](
 	[LabelID] [int] NULL,
 	[ScannedSeq] [int] NULL,
 	[Position] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[ScannedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ScannedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ScannedAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -3967,7 +3950,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Scanned Seq ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Position · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'Position'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Scanned By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ScannedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Scanned By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ScannedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Scanned At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ScannedAt'
 GO
@@ -4051,9 +4034,9 @@ CREATE TABLE [dbo].[PNT_LotLabel](
 	[SeqNo] [int] NULL,
 	[TotalQty] [int] NULL,
 	[PrintedAt] [datetime2](7) NULL,
-	[PrintedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[PrintedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[AppliedAt] [datetime2](7) NULL,
-	[AppliedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[AppliedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -4077,11 +4060,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Total Qty · i
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Printed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'PrintedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Printed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'PrintedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Printed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'PrintedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Applied At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'AppliedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Applied By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'AppliedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Applied By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'AppliedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'도장 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'Status'
 GO
@@ -4298,7 +4281,7 @@ CREATE TABLE [dbo].[PNT_PartLossLog](
 	[LossQty] [int] NULL,
 	[ReasonCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReasonNote] [nvarchar](300) COLLATE Korean_Wansung_CI_AS NULL,
-	[LoggedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[LoggedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LoggedAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -4324,7 +4307,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 코드 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reason Note · nvarchar(300)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'ReasonNote'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'LoggedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'LoggedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'LoggedAt'
 GO
@@ -4440,7 +4423,7 @@ CREATE TABLE [dbo].[PNT_ShiftReport](
 	[JigSwaps] [int] NULL,
 	[YieldPct] [decimal](5, 2) NULL,
 	[CompiledAt] [datetime2](7) NULL,
-	[SignedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[SignedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SignedAt] [datetime2](7) NULL,
 	[PdfUrl] [varchar](300) COLLATE Korean_Wansung_CI_AS NULL,
 	[Version] [tinyint] NULL,
@@ -4482,7 +4465,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Yield Pct · d
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Compiled At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'CompiledAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'SignedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'SignedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'SignedAt'
 GO
@@ -4506,7 +4489,7 @@ GO
 CREATE TABLE [dbo].[PNT_ShiftReportAudit](
 	[AuditID] [int] IDENTITY(1,1) NOT NULL,
 	[ReportID] [int] NULL,
-	[ChangedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ChangedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ChangedAt] [datetime2](7) NULL,
 	[FieldName] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[OldValue] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
@@ -4528,7 +4511,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Audit ID
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Report ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ReportID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ChangedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ChangedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ChangedAt'
 GO
@@ -4659,7 +4642,7 @@ CREATE TABLE [dbo].[PNT_TagFailureLog](
 	[FailedAt] [datetime2](7) NULL,
 	[FailType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[FallbackAction] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[ResolvedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ResolvedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -4684,7 +4667,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Fail Type · v
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Fallback Action · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'FallbackAction'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Resolved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'ResolvedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Resolved By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'ResolvedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_TagFailureLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -4713,7 +4696,7 @@ CREATE TABLE [dbo].[PNT_VirtualLot](
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[EnhancedInspection] [bit] NULL,
 	[IssuedAt] [datetime2](7) NULL,
-	[IssuedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[IssuedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[BindAt] [datetime2](7) NULL,
 	[BindReason] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -4754,7 +4737,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Enhanced Inspe
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Issued At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'IssuedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Issued By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'IssuedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Issued By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'IssuedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Bind At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_VirtualLot', @level2type=N'COLUMN',@level2name=N'BindAt'
 GO
@@ -5126,7 +5109,7 @@ CREATE TABLE [dbo].[PP_Forecast](
 	[Confidence] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[Source] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ImportedAt] [datetime2](7) NULL,
-	[ImportedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ImportedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[WeekStartDate] [date] NULL,
 	[WeekLabel] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[BaseInv] [decimal](14, 3) NULL,
@@ -5173,7 +5156,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'발생 출처 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Imported At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'ImportedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Imported By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'ImportedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Imported By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'ImportedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -5195,7 +5178,7 @@ CREATE TABLE [dbo].[PP_ForecastHistory](
 	[PrevQty] [decimal](14, 3) NULL,
 	[NewQty] [decimal](14, 3) NULL,
 	[ChangedAt] [datetime2](7) NULL,
-	[ChangedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ChangedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -5220,7 +5203,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'New Qty · dec
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'ChangedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'ChangedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'ChangedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ForecastHistory', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -5245,7 +5228,7 @@ CREATE TABLE [dbo].[PP_LineDowntimeLog](
 	[CauseCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[Comment] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[WoID] [int] NULL,
-	[LoggedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[LoggedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[AndonID] [int] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -5277,7 +5260,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'비고 · nvar
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업지시 ID (생산 계획) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'WoID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'LoggedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'LoggedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'안돈 콜 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineDowntimeLog', @level2type=N'COLUMN',@level2name=N'AndonID'
 GO
@@ -5318,6 +5301,15 @@ CREATE TABLE [dbo].[PP_LineOEE](
 	[OeeSnapshotID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_LineOEE_Line_Date_Shift] ON [dbo].[PP_LineOEE]
+(
+	[LineID] ASC,
+	[PeriodDate] ASC,
+	[ShiftCode] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[PP_LineOEE] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -5499,7 +5491,7 @@ GO
 CREATE TABLE [dbo].[PP_MRPLog](
 	[MrpRunID] [int] IDENTITY(1,1) NOT NULL,
 	[RunAt] [datetime2](7) NULL,
-	[RunBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[RunBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[HorizonStart] [date] NULL,
 	[HorizonEnd] [date] NULL,
 	[WosConsidered] [int] NULL,
@@ -5523,7 +5515,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · MRP 실�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Run At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'RunAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Run By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'RunBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Run By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'RunBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Horizon Start · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_MRPLog', @level2type=N'COLUMN',@level2name=N'HorizonStart'
 GO
@@ -5722,7 +5714,7 @@ CREATE TABLE [dbo].[PP_SupplyPlan](
 	[PlanPeriod] [date] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedAt] [datetime2](7) NULL,
-	[ConfirmedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ConfirmedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SapImportBatch] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -5746,7 +5738,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 계획 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'ConfirmedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'ConfirmedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confirmed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'ConfirmedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sap Import Batch · varchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_SupplyPlan', @level2type=N'COLUMN',@level2name=N'SapImportBatch'
 GO
@@ -5835,7 +5827,7 @@ CREATE TABLE [dbo].[PP_WorkOrder](
 	[TerminalLock] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Priority] [tinyint] NULL,
 	[ReleasedAt] [datetime2](7) NULL,
-	[ReleasedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReleasedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ProdDeadline] [date] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -5897,7 +5889,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'우선순위 �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'릴리즈 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'ReleasedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Released By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'ReleasedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Released By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'ReleasedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -6005,7 +5997,7 @@ CREATE TABLE [dbo].[PR_AndonCall](
 	[RuleID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Severity] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[TriggeredAt] [datetime2](7) NULL,
-	[AckedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[AckedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[AckedAt] [datetime2](7) NULL,
 	[ReasonCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[CorrectiveAction] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
@@ -6048,7 +6040,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'중대도 · v
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'발생 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'TriggeredAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Acked By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'AckedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Acked By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'AckedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'확인 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'AckedAt'
 GO
@@ -6219,7 +6211,7 @@ CREATE TABLE [dbo].[PR_BondSetup](
 	[HoldSecSp] [int] NULL,
 	[TensionSp] [decimal](6, 2) NULL,
 	[LoadedAt] [datetime2](7) NULL,
-	[LoadedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[LoadedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -6251,7 +6243,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Tension Sp · 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Loaded At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'LoadedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Loaded By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'LoadedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Loaded By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'LoadedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 실적 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup', @level2type=N'COLUMN',@level2name=N'Status'
 GO
@@ -6275,7 +6267,7 @@ CREATE TABLE [dbo].[PR_BondSetupAudit](
 	[OldValue] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
 	[NewValue] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReasonCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[ChangedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ChangedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ChangedAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -6302,7 +6294,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'New Value · n
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 코드 · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ReasonCode'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ChangedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ChangedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
 GO
@@ -6470,9 +6462,9 @@ CREATE TABLE [dbo].[PR_DefectDetail](
 	[CorrectiveAction] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[Disposition] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[DetectedAt] [datetime2](7) NULL,
-	[RegisteredBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[RegisteredBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CauseCode] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
-	[DispositionBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[DispositionBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[DispositionAt] [datetime2](7) NULL,
 	[PriorStatus] [varchar](16) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReversalResultID] [int] NULL,
@@ -6538,7 +6530,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Disposition ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Detected At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'DetectedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Registered By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'RegisteredBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Registered By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'RegisteredBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -6759,7 +6751,7 @@ CREATE TABLE [dbo].[PR_FabricIssueAttempt](
 	[ScannedColor] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ExpectedColor] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[Result] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[AttemptedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[AttemptedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[AttemptedAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -6785,7 +6777,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Expected Color
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결과 (OK/FAIL 등) · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'Result'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Attempted By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'AttemptedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Attempted By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'AttemptedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Attempted At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_FabricIssueAttempt', @level2type=N'COLUMN',@level2name=N'AttemptedAt'
 GO
@@ -6807,7 +6799,7 @@ CREATE TABLE [dbo].[PR_ImgLot](
 	[EquipID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmStatus] [varchar](16) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ConfirmedAt] [datetime2](7) NULL,
-	[ConfirmedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ConfirmedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedSessionID] [int] NULL,
 	[CustomerCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[FabricRollLotID] [int] NULL,
@@ -6887,7 +6879,7 @@ CREATE TABLE [dbo].[PR_InjLot](
 	[MachineShotCount] [bigint] NULL,
 	[ConfirmStatus] [varchar](16) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ConfirmedAt] [datetime2](7) NULL,
-	[ConfirmedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ConfirmedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ConfirmedSessionID] [int] NULL,
 	[PrintedCount] [int] NOT NULL,
 	[PrintClaimTS] [datetime2](7) NULL,
@@ -6949,7 +6941,7 @@ CREATE TABLE [dbo].[PR_MoldChange](
 	[DowntimeMin] [int] NULL,
 	[StartedAt] [datetime2](7) NULL,
 	[CompletedAt] [datetime2](7) NULL,
-	[ChangedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ChangedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -6986,7 +6978,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'시작 시각 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완료 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'CompletedAt'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'ChangedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'ChangedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -7103,6 +7095,8 @@ CREATE TABLE [dbo].[PR_PopSession](
 	[ExpiresAt] [datetime2](7) NULL,
 	[LoggedOutAt] [datetime2](7) NULL,
 	[LogoutReason] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[BearerHash] [char](64) COLLATE Korean_Wansung_CI_AS NULL,
+	[SessionJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -7111,9 +7105,20 @@ CREATE TABLE [dbo].[PR_PopSession](
 (
 	[SessionID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PR_PopSession] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+SET ANSI_PADDING ON
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_PR_PopSession_BearerHash] ON [dbo].[PR_PopSession]
+(
+	[BearerHash] ASC
+)
+WHERE ([BearerHash] IS NOT NULL)
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[PR_PopSession] ADD  CONSTRAINT [DF__PR_PopSes__Creat__6F4A8121]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_PR_PopSession_BearerHash] ON [dbo].[PR_PopSession]([BearerHash]) WHERE [BearerHash] IS NOT NULL
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · POP 세션 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopSession', @level2type=N'COLUMN',@level2name=N'SessionID'
 GO
@@ -7281,8 +7286,8 @@ CREATE TABLE [dbo].[PR_ShiftHandover](
 	[ProcessCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[SummaryJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[PdfUrl] [varchar](300) COLLATE Korean_Wansung_CI_AS NULL,
-	[SignedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReceivedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[SignedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReceivedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[SignedAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -7310,9 +7315,9 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Summary Json �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Pdf Url · varchar(300)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'PdfUrl'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'SignedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'SignedBy'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Received By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'ReceivedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Received By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'ReceivedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'SignedAt'
 GO
@@ -7647,7 +7652,7 @@ CREATE TABLE [dbo].[QC_Hold](
 	[PhysicalLocation] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LabelPrintedTS] [datetime2](7) NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[HeldBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[HeldBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[HeldAt] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -7687,7 +7692,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Label Printed 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품질 상태 · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Held By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'HeldBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Held By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'HeldBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Held At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Hold', @level2type=N'COLUMN',@level2name=N'HeldAt'
 GO
@@ -7712,7 +7717,7 @@ CREATE TABLE [dbo].[QC_HoldRelease](
 	[ReleaseReason] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[PlantMgrApprovalID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActorPINHash] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReleasedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReleasedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReleasedAt] [datetime2](7) NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -7741,7 +7746,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Plant Mgr Appr
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Actor PIN Hash · varchar(255)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'ActorPINHash'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Released By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'ReleasedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Released By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'ReleasedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'릴리즈 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_HoldRelease', @level2type=N'COLUMN',@level2name=N'ReleasedAt'
 GO
@@ -7785,7 +7790,7 @@ CREATE TABLE [dbo].[QC_Inspection](
 	[HoldID] [int] NULL,
 	[InspectorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApproverID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[ResumeBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ResumeBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[InsStartTS] [datetime2](7) NULL,
 	[InsEndTS] [datetime2](7) NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -7850,7 +7855,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'검사자 (Asp
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결재자 (AspNetUsers.Id) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'ApproverID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Resume By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'ResumeBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Resume By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'ResumeBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ins Start TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Inspection', @level2type=N'COLUMN',@level2name=N'InsStartTS'
 GO
@@ -7934,7 +7939,7 @@ CREATE TABLE [dbo].[QC_InspectionStd](
 	[KPITargetsJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
 	[EffectiveDate] [date] NULL,
-	[DraftedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[DraftedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CapaLinkID] [int] NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -7977,7 +7982,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품질 상태 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Effective Date · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'EffectiveDate'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Drafted By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'DraftedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Drafted By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'DraftedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_InspectionStd', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
 GO
@@ -8014,7 +8019,7 @@ CREATE TABLE [dbo].[QC_NCR](
 	[HoldID] [int] NULL,
 	[CapaID] [int] NULL,
 	[Status] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReportedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReportedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReportedAt] [datetime2](7) NULL,
 	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ClosedAt] [datetime2](7) NULL,
@@ -8064,7 +8069,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Capa ID · int
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품질 상태 · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reported By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ReportedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reported By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ReportedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reported At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ReportedAt'
 GO
@@ -8092,7 +8097,7 @@ CREATE TABLE [dbo].[QC_NCR_Action](
 	[ActionRefID] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActionNote] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActionTS] [datetime2](7) NULL,
-	[ActionBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ActionBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -8117,7 +8122,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action Note ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -8206,7 +8211,7 @@ CREATE TABLE [dbo].[SCM_DeliveryBox](
 	[BoxSeq] [int] NOT NULL,
 	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ItemName] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[UnitCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[UnitCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[Quantity] [decimal](18, 3) NOT NULL,
 	[ActiveFlag] [bit] NOT NULL,
 	[VoidedTS] [datetime2](7) NULL,
@@ -8265,12 +8270,12 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[SCM_DeliveryCase](
 	[CaseNo] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[PoNumber] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
+	[PoNumber] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[VendorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[DeliveryID] [int] NULL,
 	[NoteID] [int] NULL,
 	[CreatedAt] [datetime2](7) NOT NULL,
-	[CreatedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
  CONSTRAINT [PK_SCM_DeliveryCase] PRIMARY KEY CLUSTERED 
 (
 	[CaseNo] ASC
@@ -8376,6 +8381,7 @@ CREATE TABLE [dbo].[SCM_ItemVendor](
 	[VendorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ActiveFlag] [bit] NOT NULL,
 	[PackingQty] [decimal](18, 3) NULL,
+	[PackingUnitCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -8493,7 +8499,7 @@ CREATE TABLE [dbo].[SYS_AuditLog](
 	[ModuleCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ProcessCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[ScreenCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ActionType] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
+	[ActionType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[TargetEntity] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[TargetID] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[BeforeValueJSON] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
@@ -9156,16 +9162,16 @@ CREATE TABLE [dbo].[WH_Inventory](
 	[LotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[UnitType] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ParentLotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
-	[PartNo] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[PartNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PartName] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
-	[CaseNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
-	[LocationNo] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[CaseNo] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[LocationNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Qty] [decimal](18, 3) NOT NULL,
 	[InvoiceNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReceivedAt] [datetime2](7) NOT NULL,
 	[CreatedAt] [datetime2](7) NOT NULL,
 	[UpdatedAt] [datetime2](7) NOT NULL,
-	[DeliveryNoteNo] [nvarchar](30) COLLATE Korean_Wansung_CI_AS NULL,
+	[DeliveryNoteNo] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
  CONSTRAINT [PK_WH_Inventory] PRIMARY KEY CLUSTERED 
 (
 	[LotNo] ASC
@@ -9246,12 +9252,12 @@ CREATE TABLE [dbo].[WH_InventoryTransaction](
 	[ReasonCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[SourceType] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[SourceID] [int] NULL,
-	[OperatorID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
-	[ApproverID] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[OperatorID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ApproverID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[LotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[PartNo] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
-	[LocationNo] [varchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[PartNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[LocationNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NOT NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -9312,12 +9318,12 @@ CREATE TABLE [dbo].[WH_PickSlip](
 	[Priority] [tinyint] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PickSlipNo] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReqLocation] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReqLocation] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReqSeqNo] [int] NULL,
-	[ReqUserId] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReqUserId] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PrintDate] [datetime2](7) NULL,
 	[CloseDate] [datetime2](7) NULL,
-	[CloseUserId] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[CloseUserId] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -9355,11 +9361,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'우선순위 �
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'창고 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_PickSlip', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_PickSlip', @level2type=N'COLUMN',@level2name=N'CreatedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_PickSlip', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_PickSlip', @level2type=N'COLUMN',@level2name=N'CreatedTS'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_PickSlip', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_PickSlip', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'출고 예정 (WO 수요)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_PickSlip'
 GO
@@ -9377,8 +9383,6 @@ CREATE TABLE [dbo].[WH_PurchaseOrder](
 	[OrderQty] [decimal](12, 3) NULL,
 	[ReceivedQty] [decimal](12, 3) NULL,
 	[UnitCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentUnit] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[BoxContentQty] [decimal](18, 3) NULL,
 	[UnitPrice] [decimal](14, 4) NULL,
 	[Currency] [char](3) COLLATE Korean_Wansung_CI_AS NULL,
 	[OrderDate] [date] NULL,
@@ -9419,15 +9423,15 @@ CREATE TABLE [dbo].[WH_ReleaseSchedule](
 	[Priority] [tinyint] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PickSlipNo] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReqLocation] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReqLocation] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ReqSeqNo] [int] NULL,
-	[ReqUserId] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReqUserId] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[PrintDate] [datetime2](7) NULL,
 	[CloseDate] [datetime2](7) NULL,
-	[CloseUserId] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](50) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[CloseUserId] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [nvarchar](450) COLLATE Korean_Wansung_CI_AS NULL,
+	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ModifiedTS] [datetime2](7) NULL,
  CONSTRAINT [PK_WH_ReleaseSchedule] PRIMARY KEY CLUSTERED 
 (
@@ -9452,7 +9456,7 @@ REFERENCES [dbo].[tbl_Lot] ([LotID])
 GO
 ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Lot]
 GO
-ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [FK_FG_CustomerReturn_Order] FOREIGN KEY([OriginalShipmentOrderID])
+ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [FK_FG_CustomerReturn_Order] FOREIGN KEY([ShipmentOrderID])
 REFERENCES [dbo].[FG_ShipmentOrder] ([ShipmentOrderID])
 GO
 ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Order]
@@ -10019,48 +10023,52 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER OFF
 GO
-CREATE   PROCEDURE dbo.FG_PDA_RETURN_RECEIVE
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_RECEIVE
     @Barcode varchar(80),@ReturnReason varchar(60),@Note nvarchar(500)=NULL,@OperatorID nvarchar(450)
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
     DECLARE @Reason varchar(60)=UPPER(LTRIM(RTRIM(ISNULL(@ReturnReason,'')))),
-            @CleanNote nvarchar(500)=NULLIF(LTRIM(RTRIM(@Note)),N'');
-    IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='FG_RETURN_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
+        @CleanNote nvarchar(500)=NULLIF(LTRIM(RTRIM(@Note)),N'');
+    IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='FG_RETURN_REASON'
+        AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
         THROW 52009,'Select a valid return reason.',1;
-    DECLARE @P TABLE
-    (
-        Barcode varchar(80),LotID int,LotNo varchar(80),
-        ShipmentOrderID int,ShipOrderNumber varchar(40),CustomerCode varchar(20),ItemNo varchar(20),
-        ItemName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3)
-    );
-    INSERT @P EXEC dbo.FG_PDA_RETURN_SCAN @Barcode;
-    BEGIN TRANSACTION;
-    DECLARE @Now datetime2=SYSDATETIME(),@ReturnID int,@ReturnNumber varchar(24),@LotNo nvarchar(50)=(SELECT LotNo FROM @P);
-    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@LotNo)
-        THROW 52005,'This product was already received as a customer return.',1;
-    SET @ReturnNumber=CONCAT('RMA-',FORMAT(@Now,'yyMMddHHmmssfff'),LEFT(REPLACE(CONVERT(varchar(36),NEWID()),'-',''),5));
-    INSERT dbo.FG_CustomerReturn
-        (ReturnNumber,CustomerCode,OriginalShipmentOrderID,LotNo,LotID,ItemNo,ReturnQty,
-         ReturnReason,Note,ItemsJSON,Status,ReceivedAt,ReceivedBy,CapaTriggered,CreatedBy,CreatedTS)
-    SELECT @ReturnNumber,CustomerCode,ShipmentOrderID,LotNo,LotID,ItemNo,Qty,@Reason,@CleanNote,
-        (SELECT ItemNo AS itemNo,LotNo AS lotNo,LotNo AS stockNumber,Barcode AS barcode,
-                Qty AS qty,CAST(NULL AS varchar(50)) AS location FOR JSON PATH),
-        'Open',@Now,@OperatorID,0,'pda',@Now FROM @P;
-    SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
-    MERGE dbo.WH_Inventory AS T
-    USING (SELECT LotNo,ItemNo,ItemName,Qty FROM @P) AS S ON S.LotNo=T.LotNo
-    WHEN MATCHED THEN UPDATE SET Qty=S.Qty,LocationNo=NULL,UpdatedAt=@Now
-    WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
-        VALUES(S.LotNo,'PART',S.ItemNo,S.ItemName,NULL,S.Qty,@Now,@Now,@Now);
-    INSERT dbo.WH_InventoryTransaction
-        (TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,
-         ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
-    SELECT @Now,'IN',ItemNo,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,
-        @OperatorID,@CleanNote,LEFT(COALESCE(NULLIF(@OperatorID,N''),N'pda'),20),@Now FROM @P;
-    COMMIT TRANSACTION;
-    SELECT @ReturnID AS ReturnID,* FROM @P;
+    IF NULLIF(LTRIM(RTRIM(@OperatorID)),N'') IS NULL THROW 52014,'A signed-in operator is required.',1;
+    DECLARE @P TABLE(Barcode varchar(80),LotID int,LotNo nvarchar(50),ShipmentOrderID int,
+        ShipOrderNumber varchar(40),CustomerID varchar(20),CustomerName nvarchar(200),
+        PartNo varchar(20),PartName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3));
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        INSERT @P EXEC dbo.FG_PDA_RETURN_SCAN @Barcode;
+        DECLARE @Now datetime2=SYSDATETIME(),@ReturnID int,@LotNo nvarchar(50)=(SELECT LotNo FROM @P);
+        IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@LotNo)
+            THROW 52005,'This product was already received as a customer return.',1;
+        IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@LotNo AND Qty<>0)
+            THROW 52015,'This LOT already has inventory. Resolve the existing stock before receiving a return.',1;
+        INSERT dbo.FG_CustomerReturn
+            (CustomerID,ShipmentOrderID,LotNo,LotID,PartNo,PartName,ReturnQty,
+             ReturnReason,Note,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
+        SELECT CustomerID,ShipmentOrderID,LotNo,LotID,PartNo,PartName,Qty,@Reason,@CleanNote,
+            'Open',@Now,@OperatorID,LEFT(@OperatorID,20),@Now FROM @P;
+        SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
+        MERGE dbo.WH_Inventory WITH(HOLDLOCK) AS T
+        USING(SELECT LotNo,PartNo,PartName,Qty FROM @P) S ON S.LotNo=T.LotNo
+        WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,UpdatedAt=@Now
+        WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+            VALUES(S.LotNo,'PART',S.PartNo,S.PartName,NULL,S.Qty,@Now,@Now,@Now);
+        INSERT dbo.WH_InventoryTransaction
+            (TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,
+             ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
+        SELECT @Now,'IN',PartNo,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,
+            @OperatorID,@CleanNote,LEFT(@OperatorID,20),@Now FROM @P;
+        COMMIT TRANSACTION;
+        SELECT @ReturnID ReturnID,* FROM @P;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
 END;
 GO
 SET ANSI_NULLS ON
@@ -10068,53 +10076,49 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE   PROCEDURE dbo.FG_PDA_RETURN_SCAN
-    @Barcode varchar(80)
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_SCAN @Barcode varchar(80)
 AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @B varchar(80)=LTRIM(RTRIM(ISNULL(@Barcode,'')));
     IF LEN(@B)<3 OR LEN(@B)>80 OR @B COLLATE Latin1_General_100_BIN2 LIKE '%[^A-Za-z0-9_./-]%'
         THROW 52000,'The finished-good return barcode format is invalid.',1;
-    DECLARE @P TABLE
-    (
-        LotNo nvarchar(50),ShipmentOrderID int,ShipOrderNumber varchar(40),CustomerCode varchar(20),
-        ItemNo varchar(20),ItemName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3),LotID int
-    );
+    DECLARE @P TABLE(LotNo nvarchar(50),ShipmentOrderID int,ShipOrderNumber varchar(40),
+        CustomerID varchar(20),CustomerName nvarchar(200),PartNo varchar(20),PartName nvarchar(200),
+        ShippedAt datetime2,Qty decimal(18,3),LotID int);
     INSERT @P
-    SELECT DISTINCT J.LotNo,O.ShipmentOrderID,O.ShipOrderNumber,O.CustomerCode,J.ItemNo,I.ItemName,
-        COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt),
-        COALESCE(NULLIF(J.AllocatedQty,0),NULLIF(J.OrderedQty,0),W.Qty),L.LotID
+    SELECT DISTINCT J.LotNo,O.ShipmentOrderID,O.ShipOrderNumber,C.CustomerID,C.CustomerName,
+        J.PartNo,I.ItemName,COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt),
+        COALESCE(NULLIF(J.AllocatedQty,0),NULLIF(J.OrderedQty,0)),L.LotID
     FROM dbo.FG_ShipmentOrder O
     CROSS APPLY OPENJSON(CASE WHEN ISJSON(O.ItemsJSON)=1 THEN O.ItemsJSON ELSE N'[]' END)
-        WITH (LotNo nvarchar(50) '$.lotNo',ItemNo varchar(20) '$.itemNo',
-              OrderedQty decimal(18,3) '$.orderedQty',AllocatedQty decimal(18,3) '$.allocatedQty') J
-    LEFT JOIN dbo.WH_Inventory W ON W.LotNo=J.LotNo
-    LEFT JOIN dbo.tbl_Lot L ON L.LotCode=J.LotNo
-    LEFT JOIN dbo.MD_Item I ON I.ItemNo=J.ItemNo
-    WHERE UPPER(J.LotNo)=UPPER(@B) AND UPPER(COALESCE(O.Status,''))='SHIPPED'
-      AND COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt) IS NOT NULL;
+        WITH(LotNo nvarchar(50) '$.lotNo',PartNo varchar(20) '$.itemNo',
+            OrderedQty decimal(18,3) '$.orderedQty',AllocatedQty decimal(18,3) '$.allocatedQty') J
+    LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=J.LotNo COLLATE DATABASE_DEFAULT
+    LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=J.PartNo COLLATE DATABASE_DEFAULT
+    LEFT JOIN dbo.MD_Customer C ON C.CustomerID COLLATE DATABASE_DEFAULT=O.CustomerCode COLLATE DATABASE_DEFAULT
+        OR C.CustomerCode COLLATE DATABASE_DEFAULT=O.CustomerCode COLLATE DATABASE_DEFAULT
+    WHERE J.LotNo COLLATE DATABASE_DEFAULT=@B COLLATE DATABASE_DEFAULT
+        AND UPPER(COALESCE(O.Status,''))='SHIPPED'
+        AND COALESCE(O.ShippedAt,O.DepartureAt,O.LoadingConfirmedAt) IS NOT NULL;
     IF NOT EXISTS(SELECT 1 FROM @P)
-    BEGIN
-        IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE UPPER(LotNo)=UPPER(@B))
-            THROW 52001,'The product exists, but no completed shipment history was found.',1;
         THROW 52002,'This barcode does not match a shipped finished-good LOT.',1;
-    END;
-    IF (SELECT COUNT(*) FROM @P)>1 THROW 52004,'This barcode matches multiple shipped products.',1;
-    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WHERE UPPER(LotNo)=UPPER(@B))
+    IF (SELECT COUNT(*) FROM @P)<>1
+        THROW 52004,'The barcode has multiple shipments or customer matches. Verify the source data.',1;
+    IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WHERE LotNo COLLATE DATABASE_DEFAULT=@B COLLATE DATABASE_DEFAULT)
         THROW 52005,'This product was already received as a customer return.',1;
-    IF EXISTS(SELECT 1 FROM @P WHERE NULLIF(ShipOrderNumber,'') IS NULL OR NULLIF(CustomerCode,'') IS NULL
-        OR NULLIF(ItemNo,'') IS NULL OR NULLIF(ItemName,'') IS NULL OR COALESCE(Qty,0)<=0)
-        THROW 52008,'The shipment record is incomplete. Verify shipment, customer, part, and quantity.',1;
-    SELECT @B AS Barcode,LotID,LotNo,
-        ShipmentOrderID,ShipOrderNumber,CustomerCode,ItemNo,ItemName,ShippedAt,Qty FROM @P;
+    IF EXISTS(SELECT 1 FROM @P WHERE NULLIF(ShipOrderNumber,'') IS NULL OR NULLIF(CustomerID,'') IS NULL
+        OR NULLIF(PartNo,'') IS NULL OR NULLIF(PartName,N'') IS NULL OR COALESCE(Qty,0)<=0)
+        THROW 52008,'Verify the shipped customer in Customer Master and the part, name and quantity.',1;
+    SELECT @B Barcode,LotID,LotNo,ShipmentOrderID,ShipOrderNumber,CustomerID,CustomerName,
+        PartNo,PartName,ShippedAt,Qty FROM @P;
 END;
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER OFF
 GO
-CREATE   PROCEDURE dbo.FG_PDA_TRANSACTION_LIST
+CREATE OR ALTER PROCEDURE dbo.FG_PDA_TRANSACTION_LIST
     @SearchText nvarchar(120)=NULL,@DateFrom date=NULL,@DateTo date=NULL
 AS
 BEGIN
@@ -10129,7 +10133,7 @@ BEGIN
             T.TransactionType Direction,T.OperatorID Worker,T.ReasonCode,T.Note ReasonNote,T.ApproverID Supervisor,
             T.QtyBefore BeforeQty,T.QtyChange DeltaQty,T.QtyAfter AfterQty,T.SourceType Source,T.Note Reference
         FROM dbo.WH_InventoryTransaction T
-        WHERE UPPER(COALESCE(T.SourceType,'')) LIKE 'FG%'
+        WHERE UPPER(COALESCE(T.SourceType,'')) LIKE 'FG%' AND T.SourceType<>'FG_RETURN'
         UNION ALL
         SELECT P.CreatedTS,CONCAT('IN-',P.PutAwayID),P.LotNo,P.ItemNo COLLATE DATABASE_DEFAULT,
             P.ActualLoc COLLATE DATABASE_DEFAULT,P.Qty,N'Put-Away','IN',
@@ -10139,10 +10143,10 @@ BEGIN
         FROM dbo.FG_PutAway P WHERE UPPER(COALESCE(P.Status,'')) NOT IN('CANCELLED','CANCELED')
         UNION ALL
         SELECT COALESCE(R.ReceivedAt,R.CreatedTS),CONCAT('RETURN-',R.ReturnID),R.LotNo,
-            R.ItemNo COLLATE DATABASE_DEFAULT,NULL,R.ReturnQty,N'Return','IN',
+            R.PartNo COLLATE DATABASE_DEFAULT,NULL,R.ReturnQty,N'Return','IN',
             COALESCE(R.ReceivedBy,R.CreatedBy) COLLATE DATABASE_DEFAULT,
             R.ReturnReason COLLATE DATABASE_DEFAULT,R.Note COLLATE DATABASE_DEFAULT,
-            NULL,NULL,NULL,NULL,N'FG_CustomerReturn',R.ReturnNumber COLLATE DATABASE_DEFAULT
+            NULL,NULL,NULL,NULL,N'FG_CustomerReturn',CONVERT(nvarchar(80),R.ReturnID) COLLATE DATABASE_DEFAULT
         FROM dbo.FG_CustomerReturn R WHERE UPPER(COALESCE(R.Status,'')) NOT IN('CANCELLED','CANCELED','REJECTED')
     )
     SELECT ROW_NUMBER() OVER(ORDER BY E.EventTime DESC,E.EventID DESC) AS ROW_NO,
@@ -12569,8 +12573,6 @@ GO
 -- UOMs
 INSERT INTO dbo.MD_Uom (UOMCode, UOMName, UOMCategory, BaseFlag, ConvFactor, DecimalPrec, Symbol, ActiveFlag, CreatedBy, CreatedTS) VALUES
   ('EA',  'Each',       'QTY',    1, 1,      0, 'ea',  1, 'admin', SYSDATETIME()),
-  ('BOX', 'Box',        'QTY',    0, 1,      0, 'box', 1, 'admin', SYSDATETIME()),
-  ('PLT', 'Pallet',     'QTY',    0, 1,      0, 'plt', 1, 'admin', SYSDATETIME()),
   ('LB',  'Pound',      'WEIGHT', 1, 1,      2, 'lb',  1, 'admin', SYSDATETIME()),
   ('KG',  'Kilogram',   'WEIGHT', 0, 2.205,  3, 'kg',  1, 'admin', SYSDATETIME()),
   ('M',   'Meter',      'LENGTH', 1, 1,      3, 'm',   1, 'admin', SYSDATETIME()),
@@ -13863,7 +13865,7 @@ INSERT INTO dbo.MD_InjCondItem (LineID, ItemCode, ItemName, SetAddress, ActualAd
 GO
 PRINT '✓ Seed data inserted: 4 Molds, 2 InjCondItem (사출 자동수집)';
 GO
--- Seed: SYS_Screen — regenerated 2026-10-10 from the development DB (all modules)
+-- Seed: SYS_Screen — regenerated 2026-10-14 from the development DB (all modules)
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-01', 'WEB', 'FG', NULL, N'고객사 리턴', N'Customer Returns', 'fg/customer-returns', 'FG-01', '_XX', 1, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-02', 'WEB', 'FG', NULL, N'출하 계획', N'Shipment Plan', 'fg/shipment-plan', 'FG-02', '_XX', 2, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-03', 'WEB', 'FG', NULL, N'출하 목록', N'Shipments', 'fg/shipments', 'FG-03', '_XX', 3, 1, 'seed');

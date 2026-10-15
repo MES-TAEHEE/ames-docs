@@ -15,6 +15,7 @@
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
+@inject AMES.Web.Services.AuditLogger Audit
 
 @implements IDisposable
 
@@ -78,7 +79,7 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <RadzenLabel Text="@L["Col.Line"]" />
             <RadzenDropDown TValue="string" @bind-Value="_lineId" @bind-Value:after="LoadData" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Placeholder="@L["PP.LineSchedule.Ph.SelectLine"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
-            <RadzenDatePicker TValue="DateTime" @bind-Value="_date" @bind-Value:after="LoadData" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_date" @bind-Value:after="LoadData" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Pattern"]" />
             @* 적용된 라인+일자는 패턴 변경 불가, 저장 스케줄이 없을 때만 선택 가능 *@
             <RadzenDropDown TValue="string" @bind-Value="_patternId" @bind-Value:after="OnPatternChanged" Data="@PatternDdOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" AllowClear="true" Disabled="@(string.IsNullOrEmpty(_lineId) || _savedStatus != null)" Placeholder="@L["PP.LineSchedule.Ph.SelectPattern"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:400px;" />
@@ -144,28 +145,28 @@
         <RadzenDataGrid TItem="StagedWo" Data="@_slots.ToList()" AllowPaging="false"
                         RowClick="@(a => { if (Editable && a.Data is not null) EditSlot(a.Data.WoId); })" RowRender="@SlotRowRender" EmptyText="@L["PP.LineSchedule.Empty.NoSlot"]" Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Col.Label"]" TextAlign="TextAlign.Center" Width="60px" Sortable="false">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="90px" Title="@L["PP.LineSchedule.Col.Label"]" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
                     <Template Context="s"><span class="pill info">@SlotLabel(s)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Col.Wo"]" TextAlign="TextAlign.Center" Width="130px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="130px" Title="@L["PP.LineSchedule.Col.Wo"]" TextAlign="TextAlign.Center" Width="130px">
                     <Template Context="s"><span class="code">@s.WoNumber</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Item"]" >
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="200px" Title="@L["Col.Item"]" >
                     <Template Context="s"><span class="dim">@(s.ItemName ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="90px" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="s"><span class="code">@MinToTime(s.StartMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="90px" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="s"><span class="code">@MinToTime(s.EndMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="90px" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="s">@(s.EndMin - s.StartMin)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["PP.LineSchedule.Lbl.PlannedQty"]" TextAlign="TextAlign.Right" Width="120px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="150px" Title="@L["PP.LineSchedule.Lbl.PlannedQty"]" TextAlign="TextAlign.Right" Width="150px">
                     <Template Context="s">@UomFmt.Qty(s.Qty, null)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StagedWo" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                <RadzenDataGridColumn TItem="StagedWo" MinWidth="100px" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                     <Template Context="s">
                         @if (ConflictIds.Contains(s.WoId)) { <span class="pill bad">@L["PP.LineSchedule.Cf.Conflict"]</span> }
                         else { <span class="pill ok">@L["PP.LineSchedule.Cf.Ok"]</span> }
@@ -173,7 +174,7 @@
                 </RadzenDataGridColumn>
                 @if (Editable)
                 {
-                    <RadzenDataGridColumn TItem="StagedWo" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
+                    <RadzenDataGridColumn TItem="StagedWo" MinWidth="120px" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
                         <Template Context="s">
                             <div @onclick:stopPropagation>
                                 <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => RemoveSlot(s.WoId))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
@@ -191,24 +192,24 @@
         <RadzenDataGrid TItem="PmBand" Data="@_pmBands.OrderBy(p => p.StartMin).ToList()" AllowPaging="false"
                         RowClick="@(a => { if (Editable && a.Data is not null) EditPm(a.Data.Id); })" RowRender="@PmRowRender" EmptyText="@L["PP.LineSchedule.Pm.Empty"]" Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["PP.LineSchedule.Pm.Name"]">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="200px" Title="@L["PP.LineSchedule.Pm.Name"]">
                     <Template Context="p"><span class="pill orange">@L["PP.LineSchedule.Lgd.Pm"]</span> <span>@(string.IsNullOrWhiteSpace(p.Title) ? "—" : p.Title)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["PP.LineSchedule.Pm.Ref"]">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="200px" Title="@L["PP.LineSchedule.Pm.Ref"]">
                     <Template Context="p"><span class="dim">@(p.RefLabel ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="90px" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="p"><span class="code">@MinToTime(p.StartMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="90px" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="90px">
                     <Template Context="p"><span class="code">@MinToTime(p.EndMin)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PmBand" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
+                <RadzenDataGridColumn TItem="PmBand" MinWidth="90px" Title="@L["Col.Duration"]" TextAlign="TextAlign.Right" Width="90px">
                     <Template Context="p">@(p.EndMin - p.StartMin)</Template>
                 </RadzenDataGridColumn>
                 @if (Editable)
                 {
-                    <RadzenDataGridColumn TItem="PmBand" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
+                    <RadzenDataGridColumn TItem="PmBand" MinWidth="120px" TextAlign="TextAlign.Center" Width="120px" Sortable="false">
                         <Template Context="p">
                             <div @onclick:stopPropagation>
                                 <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => RemovePm(p.Id))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
@@ -252,7 +253,7 @@
                     <RadzenColumn Size="4">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
                         @* 시작시간은 자동 결정(밴드 클릭/편집) — 수정 불가. 지속 변경 시 이후 WO가 자동 이동 *@
-                        <RadzenDatePicker TValue="DateTime?" @bind-Value="PlaceStartDt" Disabled="true" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="PlaceStartDt" Disabled="true" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="4">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />
@@ -313,7 +314,7 @@
                 <RadzenRow Gap="8px">
                     <RadzenColumn Size="6">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
-                        <RadzenDatePicker TValue="DateTime?" @bind-Value="PmStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="PmStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="6">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />
@@ -356,7 +357,7 @@
                 <RadzenRow Gap="8px">
                     <RadzenColumn Size="6">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.StartTime"]" />
-                        <RadzenDatePicker TValue="DateTime?" @bind-Value="McStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="McStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="6">
                         <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Duration"]" />
@@ -594,6 +595,7 @@
     int _dayStart = 6 * 60;   // 하루 시작 분(= 첫 교대 시작, 축이 A→B→C 순이 되도록)
     string _err = "", _msg = "";
     string? _version;          // 마지막으로 읽은 행의 지문(LineScheduleRepository.VersionOf) — 적용·초기화 때 DB 와 비교
+    List<LineScheduleRepository.ScheduleRow> _loadedRows = new();   // 마지막으로 읽은 행 — 적용·초기화 감사의 「이전」(지문이 같아야 저장되므로 실제 직전 DB 내용)
     bool    _changedByOthers;  // 적용·초기화가 다른 사람의 변경으로 거부됨 — 경고에 「다시 불러오기」
 
     record StagedWo(int WoId, string WoNumber, string? ItemName, int StartMin, int EndMin, decimal Qty, string? MoldId = null);
@@ -793,7 +795,7 @@
 
     void LoadData()
     {
-        _err = ""; _slots = new(); _segments = new(); _pmBands = new(); _mcBlocks = new(); _version = null; _changedByOthers = false;
+        _err = ""; _slots = new(); _segments = new(); _pmBands = new(); _mcBlocks = new(); _version = null; _changedByOthers = false; _loadedRows = new();
         _patternId = ""; _savedStatus = null; _dirty = false;
         if (string.IsNullOrEmpty(_lineId)) { _lineWos = new(); _pmCandidates = new(); ResetPlaceForm(); return; }
         try
@@ -801,6 +803,7 @@
             _lineWos = LSB.ListLineWos(_lineId, _date);
             try { _pmCandidates = LSB.ListDuePmForLine(_lineId); } catch { _pmCandidates = new(); }
             var rows = LSB.GetSchedule(_lineId, _date);
+            _loadedRows  = rows;
             _version     = LineScheduleRepository.VersionOf(rows);
             _patternId   = rows.FirstOrDefault(r => r.PatternId != null)?.PatternId ?? "";
             _savedStatus = rows.FirstOrDefault()?.Status;
@@ -836,10 +839,12 @@
         if (!_canEdit || _busy is not null || string.IsNullOrEmpty(_lineId) || _savedStatus is null) return;
         if (_version is null) return;
         var (line, date, version) = (_lineId, _date, _version);
+        var before = LineScheduleRepository.AuditView(_loadedRows);
         _busy = "reset";
         try
         {
             await Task.Run(() => LSB.DeleteSchedule(line, date, version));
+            Audit.Deleted("PP-LSB", "PP_LineSchedule", AuditKey(line, date), before);
             ShowMsg(L["PP.LineSchedule.Ok.Reset"].Value);
             LoadData();
         }
@@ -1163,12 +1168,17 @@
         var slots = _slots.Select(s => (s.WoId, s.StartMin, s.EndMin, s.Qty, s.MoldId)).ToList();
         var pms   = _pmBands.Select(p => (p.StartMin, p.EndMin, p.Title, p.RefType, p.RefId)).ToList();
         var mcs   = _mcBlocks.Select(m => (m.StartMin, m.EndMin, m.Title, m.WoRefId, m.MoldId)).ToList();
+        var before = LineScheduleRepository.AuditView(_loadedRows);
         _busy = "apply";
         try
         {
             await Task.Run(() => LSB.SaveSchedule(line, date, pattern, slots, pms, actor, mcs, version));
             ShowMsg(L["PP.LineSchedule.Ok.Applied"].Value);
             LoadData();
+            // 「이후」는 저장 뒤 다시 읽은 실제 행(저장소가 되살린 APS 0분 슬롯 포함) — 다시 읽기가 실패하면 비운다
+            var after = string.IsNullOrEmpty(_err) ? LineScheduleRepository.AuditView(_loadedRows) : null;
+            if (before is null) Audit.Created("PP-LSB", "PP_LineSchedule", AuditKey(line, date), after);
+            else                Audit.Updated("PP-LSB", "PP_LineSchedule", AuditKey(line, date), before, after);
         }
         catch (LineScheduleRepository.ScheduleChangedException) { _err = L["PP.LineSchedule.Err.ChangedByOthers"]; _changedByOthers = true; }
         catch (Exception ex) { _err = ex.Message; }
@@ -1180,6 +1190,7 @@
 
     // ── Helpers ──────────────────────────────────────────────────────────
     static string MinToTime(int m) => $"{m / 60:00}:{m % 60:00}";
+    static string AuditKey(string line, DateTime date) => $"{line}/{date:yyyy-MM-dd}";
 
     // 배치 라벨 — 등록(_slots) 순서대로 A1~A9, B1~B9, … Z1~Z9
     string SlotLabel(StagedWo s)

@@ -55,11 +55,11 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SCM.PortalUsers.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" />
             <RadzenLabel Text="@L["SCM.PortalUsers.Col.Vendor"]" Component="DropDownVendor" />
-            <RadzenDropDown Name="DropDownVendor" @bind-Value="_fVendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+            <select id="DropDownVendor" class="ames-input" style="width:220px;" @bind="_fVendor" @bind:after="ApplyFilter"><option value="">@L["Filter.All"]</option>@foreach(var option in VendorFilterOptions){<option value="@option.Value">@option.Text</option>}</select>
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+            <select id="DropDownStatus" class="ames-input" style="width:140px;" @bind="_fStatus" @bind:after="ApplyFilter"><option value="">@L["Filter.All"]</option>@foreach(var option in StatusOptions){<option value="@option.Value">@option.Text</option>}</select>
 
-            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click=@(args => Reload()) class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             @if (_canEdit)
             {
                 <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click=@OpenCreate class="ames-rz-btn" />
@@ -73,27 +73,27 @@
             <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="u"><span class="dim">@GridRowNo.Of(_pgGrid, u)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="UserID" Title="@L["SCM.PortalUsers.Col.Email"]">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="260px" Width="260px" Property="UserID" Title="@L["SCM.PortalUsers.Col.Email"]">
                 <Template Context="u"><span class="code">@u.UserID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="UserName" Title="@L["SCM.PortalUsers.Col.Name"]" TextAlign="TextAlign.Center" Width="140px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="160px" Property="UserName" Title="@L["SCM.PortalUsers.Col.Name"]" TextAlign="TextAlign.Center">
                 <Template Context="u"><span class="dim">@(u.UserName ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="VendorID" Title="@L["SCM.PortalUsers.Col.Vendor"]" Width="260px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="260px" Property="VendorID" Title="@L["SCM.PortalUsers.Col.Vendor"]" Width="260px">
                 <Template Context="u"><span class="code">@u.VendorID</span><span class="dim" style="font-size:.8em;margin-left:4px;">@u.VendorName</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="110px" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="u">
                     @if (u.LockedFlag) { <span class="pill bad">@L["SCM.PortalUsers.Status.Locked"]</span> }
                     else if (!u.ActiveFlag) { <span class="pill mute">@L["SCM.PortalUsers.Status.Inactive"]</span> }
                     else { <span class="pill ok">@L["SCM.PortalUsers.Status.Active"]</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="FailedLoginCount" Title="@L["SCM.PortalUsers.Col.FailCount"]" TextAlign="TextAlign.Right" Width="110px" />
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="LastLoginTS" Title="@L["SCM.PortalUsers.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="170px" Property="FailedLoginCount" Title="@L["SCM.PortalUsers.Col.FailCount"]" TextAlign="TextAlign.Right" Width="170px" />
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="160px" Property="LastLoginTS" Title="@L["SCM.PortalUsers.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="u"><span class="dim">@(u.LastLoginTS?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" Property="CreatedTS" Title="@L["SCM.PortalUsers.Col.Created"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="160px" Property="CreatedTS" Title="@L["SCM.PortalUsers.Col.Created"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="u"><span class="dim">@u.CreatedTS.ToString(DateFmt.DateTime)</span></Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -115,6 +115,7 @@
             <input type="text"     style="display:none" autocomplete="username" />
             <input type="password" style="display:none" autocomplete="new-password" />
 
+            <fieldset disabled="@_busy" style="border:0;padding:0;margin:0;width:100%;">
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 @if (!isEdit)
                 {
@@ -153,6 +154,7 @@
                 }
             </RadzenStack>
 
+            </fieldset>
             @if (_confirmDelete)
             {
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
@@ -177,7 +179,7 @@
                 {
                     <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
                 }
-                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Disabled="@_busy" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
@@ -225,8 +227,8 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
-        try { _vendors = MD.ListVendors(); } catch { }
-        Reload();
+        try { _vendors = await Task.Run(()=>MD.ListVendors()); } catch { ShowMsg("Unable to load suppliers. Refresh to retry.",true); }
+        await Reload();
     }
 
     RadzenDataGrid<ScmRepository.PortalUserRow>? _pgGrid;
@@ -235,7 +237,7 @@
 
     async Task ReloadRestorePage()
     {
-        Reload();
+        await Reload();
         await InvokeAsync(StateHasChanged);
         if (_pgGrid is not null)
         {
@@ -244,9 +246,9 @@
         }
     }
 
-    void Reload()
+    async Task Reload()
     {
-        try { _allRows = Scm.ListPortalUsers(); }
+        try { _allRows = await Task.Run(Scm.ListPortalUsers); }
         catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
         ApplyFilter();
     }
@@ -267,7 +269,7 @@
     static string StatusOf(ScmRepository.PortalUserRow r) => r.LockedFlag ? "LOCKED" : r.ActiveFlag ? "ACTIVE" : "INACTIVE";
 
     void OnSearchChanged(string value) => _fSearch = value ?? "";
-    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+    async Task OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") { ApplyFilter(); if(_pgGrid is not null)await _pgGrid.GoToPage(0); } }
 
     void RowRender(RowRenderEventArgs<ScmRepository.PortalUserRow> args)
     {
@@ -297,7 +299,8 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { if(_busy)return; CloseModalAfterSave(); }
+    void CloseModalAfterSave() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
@@ -314,7 +317,23 @@
         return null;
     }
 
-    async Task SaveCreate()
+    Task SaveCreate()=>Write(SaveCreateCore);
+    Task SaveEdit()=>Write(SaveEditCore);
+    Task Unlock()=>Write(UnlockCore);
+    Task SaveDelete()=>Write(SaveDeleteCore);
+    async Task Write(Func<Task> action)
+    {
+        if(_busy)return;
+        _busy=true;
+        try
+        {
+            _canEdit=await PermSvc.RecheckEditAsync(AuthPrvd,Href);
+            if(!_canEdit){_modalErr="You no longer have permission to change these accounts.";return;}
+            await action();
+        }
+        finally{_busy=false;}
+    }
+    async Task SaveCreateCore()
     {
         _modalErr = "";
         var email = ScmRepository.NormalizePortalUserId(_f.Email ?? "");
@@ -327,21 +346,22 @@
         try
         {
             // 로그인 ID 는 외부·내부 사용자를 합쳐 유일해야 한다 — 같으면 로그인 때 어느 계정인지 갈리지 않는다
-            if (Scm.FindPortalUser(email) is not null) { _modalErr = L["SCM.PortalUsers.Err.Duplicate"]; return; }
-            if (Scm.EmailUsedByWebUser(email)) { _modalErr = L["SCM.PortalUsers.Err.WebUser"]; return; }
+            if (await Task.Run(()=>Scm.FindPortalUser(email)) is not null) { _modalErr = L["SCM.PortalUsers.Err.Duplicate"]; return; }
+            if (await Task.Run(()=>Scm.EmailUsedByWebUser(email))) { _modalErr = L["SCM.PortalUsers.Err.WebUser"]; return; }
             if (await PasswordError(email, _f.Password) is { } pwErr) { _modalErr = pwErr; return; }
 
             var name = string.IsNullOrWhiteSpace(_f.UserName) ? null : _f.UserName.Trim();
-            Scm.InsertPortalUser(email, _f.VendorID, name, PortalAuth.HashPassword(_f.Password), _f.ActiveFlag, _actor);
+            var vendor=_f.VendorID;var active=_f.ActiveFlag;var password=_f.Password;
+            await Task.Run(()=>Scm.InsertPortalUser(email, vendor, name, PortalAuth.HashPassword(password), active, _actor));
             Audit.Created("SCM-004", "SCM_PortalVendorUser", email, new { UserID = email, _f.VendorID, UserName = name, _f.ActiveFlag });
-            CloseModal(); await ReloadRestorePage();
+            CloseModalAfterSave(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SCM.PortalUsers.Ok.Created"].Value, email), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    async Task SaveEdit()
+    async Task SaveEditCore()
     {
         if (_sel is null) return;
         _modalErr = "";
@@ -357,46 +377,49 @@
                 hash = PortalAuth.HashPassword(_f.Password);
             }
             var name = string.IsNullOrWhiteSpace(_f.UserName) ? null : _f.UserName.Trim();
-            Scm.UpdatePortalUser(_sel.UserID, _f.VendorID, name, _f.ActiveFlag, hash, _actor);
+            var selected=_sel;var vendor=_f.VendorID;var active=_f.ActiveFlag;
+            await Task.Run(()=>Scm.UpdatePortalUser(selected.UserID, vendor, name, active, hash, _actor, selected));
             Audit.Updated("SCM-004", "SCM_PortalVendorUser", _sel.UserID,
                 new { _sel.UserID, _sel.VendorID, _sel.UserName, _sel.ActiveFlag },
                 new { _sel.UserID, _f.VendorID, UserName = name, _f.ActiveFlag });
             if (hash is not null) Audit.Log("SCM-004", "PWD_RESET", "SCM_PortalVendorUser", _sel.UserID, null, null);
             var id = _sel.UserID;
-            CloseModal(); await ReloadRestorePage();
+            CloseModalAfterSave(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SCM.PortalUsers.Ok.Updated"].Value, id), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    async Task Unlock()
+    async Task UnlockCore()
     {
         if (_sel is null) return;
         _busy = true;
         try
         {
-            Scm.UnlockPortalUser(_sel.UserID, _actor);
+            var selected=_sel;
+            await Task.Run(()=>Scm.UnlockPortalUser(selected.UserID, _actor, selected));
             Audit.Log("SCM-004", "UNLOCK", "SCM_PortalVendorUser", _sel.UserID,
                 new { _sel.FailedLoginCount, LockedFlag = true }, new { FailedLoginCount = 0, LockedFlag = false });
             var id = _sel.UserID;
-            CloseModal(); await ReloadRestorePage();
+            CloseModalAfterSave(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SCM.PortalUsers.Ok.Unlocked"].Value, id), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
-    async Task SaveDelete()
+    async Task SaveDeleteCore()
     {
         if (_sel is null) return;
         _busy = true;
         try
         {
-            Scm.DeletePortalUser(_sel.UserID);
+            var selected=_sel;
+            await Task.Run(()=>Scm.DeletePortalUser(selected.UserID, selected));
             Audit.Deleted("SCM-004", "SCM_PortalVendorUser", _sel.UserID, new { _sel.UserID, _sel.VendorID, _sel.UserName, _sel.ActiveFlag });
             var id = _sel.UserID;
-            CloseModal(); await ReloadRestorePage();
+            CloseModalAfterSave(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SCM.PortalUsers.Ok.Deleted"].Value, id), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }

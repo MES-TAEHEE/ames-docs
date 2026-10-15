@@ -201,11 +201,11 @@ public abstract class PdaApi
     public sealed record FgPutAwayWaitingRow(int LotId, string LotNo, string? WoNumber, string ItemNo,
         string? ItemName, string? CustomerCode, decimal Qty, string? Unit, DateTime? ProducedAt,
         DateTime? ReadyAt);
-    public sealed record FgReturnRow(int ReturnId, string? ReturnNumber, string? CustomerCode,
-        string? ItemNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
+    public sealed record FgReturnRow(int ReturnId, string CustomerId, int ShipmentOrderId,
+        string PartNo, string PartName, string? LotNo, decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt);
     public sealed record FgReturnScanRow(string Barcode, int? LotId, string LotNo,
-        int ShipmentOrderId, string? ShipOrderNumber, string CustomerCode,
-        string ItemNo, string? ItemName, DateTime ShippedAt, decimal Qty);
+        int ShipmentOrderId, string? ShipOrderNumber, string CustomerId, string? CustomerName,
+        string PartNo, string? PartName, DateTime ShippedAt, decimal Qty);
     public sealed record FgReturnResult(bool Success, string Message, int? ReturnId, FgReturnScanRow? Row);
 
     public sealed record FgPutAwayScanRow(int? LotId, string LotNo, int? WoId,
@@ -217,7 +217,7 @@ public abstract class PdaApi
     public sealed record FgPutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
         decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
-        string ScanType, string ScannedBarcode);
+        string ScanType, string ScannedBarcode, string? AreaCode = null);
     public sealed record FgPutAwayConfirmReq(string Barcode, string LocationId, string? SuggestedLocation,
         string? OverrideReason, int? PalletCount, int? PalletQty, string? StorageMethod,
         string? ContainerType, string? ContainerBarcode);
@@ -276,6 +276,8 @@ public abstract class PdaApi
     {
         if (resp.StatusCode == HttpStatusCode.Unauthorized)
             return "Session expired. Sign in again.";
+        if (resp.StatusCode == HttpStatusCode.Forbidden)
+            return "Access denied. Ask an administrator to check your permissions.";
         string body;
         try
         {

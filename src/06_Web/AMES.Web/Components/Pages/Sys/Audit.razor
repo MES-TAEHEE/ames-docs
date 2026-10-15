@@ -52,9 +52,9 @@
         <span style="white-space:nowrap;">▼ @L["SYS.Audit.List"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Lbl.Period"]" />
-            <RadzenDatePicker TValue="DateTime" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
             <span class="dim">~</span>
-            <RadzenDatePicker TValue="DateTime" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
 
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SYS.Audit.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Module"]" Component="DropDownModule" />
@@ -107,7 +107,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ActionType" Title="@L["SYS.Audit.Col.Action"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="ActionType" Title="@L["SYS.Audit.Col.Action"]" TextAlign="TextAlign.Center" Width="210px" MinWidth="210px">
                 <Template Context="a"><span class="pill @ActClass(a.ActionType)">@(a.ActionType ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.AuditRow" Property="TargetEntity" Title="@L["SYS.Audit.Col.Entity"]">
