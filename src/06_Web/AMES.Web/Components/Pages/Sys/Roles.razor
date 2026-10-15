@@ -11,6 +11,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject SysRepository Sys
+@inject MasterDataRepository MD
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
@@ -72,7 +73,8 @@
                 <Template Context="r">
                     @if (r.UserCount > 0)
                     {
-                        <span class="pill ok">@r.UserCount</span>
+                        <button type="button" class="pill ok" style="cursor:pointer;border:0;font-family:inherit;" title="@L["SYS.Roles.Members.Open"]"
+                                @onclick="() => OpenMembers(r)" @onclick:stopPropagation>@r.UserCount</button>
                     }
                     else
                     {
@@ -131,7 +133,7 @@
                 @if (_sel.UserCount > 0)
                 {
                     <div style="font-size:.82em;color:var(--ames-tx-slate-400);">
-                        @L["SYS.Roles.InUseBy"] <strong style="color:var(--ames-tx-amber-400);">@_sel.UserCount @L["Lbl.Persons"]</strong>
+                        @L["SYS.Roles.InUseBy"] <a role="button" title="@L["SYS.Roles.Members.Open"]" @onclick="() => OpenMembers(_sel!)" style="cursor:pointer;color:var(--ames-tx-amber-400);font-weight:700;text-decoration:underline;">@_sel.UserCount @L["Lbl.Persons"]</a>
                         @if (!IsProtected)
                         {
                             <br />@($"ⓘ {string.Format(L["SYS.Roles.Err.InUse"].Value, _sel.UserCount)}")
@@ -162,6 +164,57 @@
                     <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── Members Modal — 그리드 인원 수·수정 창의 인원 링크에서 연다(수정 창 위에 겹쳐 뜬다) ── *@
+@if (_membersOf is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="() => _membersBgDown = true" @onclick="OnMembersBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["SYS.Roles.Members.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@_membersOf.RoleName · @_members.Count @L["Lbl.Persons"]</span></div>
+
+            @if (!string.IsNullOrEmpty(_membersErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_membersErr</RadzenAlert>
+            }
+
+            <RadzenDataGrid TItem="SysRepository.RoleMemberRow" Data="@_members" AllowPaging="false" AllowSorting="true" EmptyText="@L["SYS.Roles.Members.Empty"]" Class="ames-rz-grid" Style="max-height:60vh;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["Col.RowNo"]" Width="60px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="m"><span class="dim">@(_members.IndexOf(m) + 1)</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]" Width="110px">
+                        <Template Context="m"><span class="code">@(m.EmployeeNo ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" Width="130px">
+                        <Template Context="m">@(m.EmployeeName ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
+                        <Template Context="m"><span class="dim">@(m.Email ?? m.UserName ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["SYS.Users.Col.Dept"]" TextAlign="TextAlign.Center" Width="110px">
+                        <Template Context="m"><span class="dim">@DeptName(m.Department)</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+                        <Template Context="m">
+                            @{
+                                var st = MemberStatus(m);
+                                var cls = st switch { "LOCKED" => "bad", "INACTIVE" => "mute", "SUSPENDED" => "warn", NoProfile => "warn", _ => "ok" };
+                            }
+                            <span class="pill @cls">@StatusName(st)</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="LastLoginTs" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="160px">
+                        <Template Context="m"><span class="dim">@(m.LastLoginTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseMembers" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
@@ -320,6 +373,56 @@
         SysRepository.RoleChangeResult.InUse     => string.Format(L["SYS.Roles.Err.InUse"].Value, _sel?.UserCount ?? 0),
         _                                        => L["SYS.Roles.Err.NotFound"],
     };
+
+    // ── 역할 사용자 목록 ─────────────────────────────────────────────
+    SysRepository.RoleRow? _membersOf;
+    List<SysRepository.RoleMemberRow> _members = new();
+    string _membersErr = "";
+    bool _membersBgDown;
+    List<MasterDataRepository.CodeItemRow>? _deptItems, _statusItems;
+
+    const string NoProfile = "NOPROFILE";
+
+    async Task OpenMembers(SysRepository.RoleRow r)
+    {
+        _membersOf = r; _members = new(); _membersErr = "";
+        try
+        {
+            var roleId = r.RoleId;
+            _members = await Task.Run(() => Sys.ListRoleMembers(roleId));
+            _deptItems   ??= await Task.Run(() => MD.ListCodeItems("DEPARTMENT"));
+            _statusItems ??= await Task.Run(() => MD.ListCodeItems("USER_STATUS"));
+        }
+        catch (Exception ex) { _membersErr = ex.Message; }
+    }
+
+    void CloseMembers() { _membersOf = null; _members = new(); _membersErr = ""; }
+
+    void OnMembersBgClick()
+    {
+        if (_membersBgDown) CloseMembers();
+        _membersBgDown = false;
+    }
+
+    // SYS-001 목록과 같은 표시 규칙 — 잠금 우선, 프로필 없는 계정은 로그인 불가라 따로 보인다
+    static string MemberStatus(SysRepository.RoleMemberRow m) =>
+        (m.LockedOut || string.Equals(m.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) ? "LOCKED"
+        : !m.HasProfile ? NoProfile
+        : (m.AccountStatus ?? "ACTIVE").ToUpperInvariant();
+
+    string StatusName(string code)
+    {
+        if (code == NoProfile) return L["SYS.Users.Status.NoProfile"];
+        var found = _statusItems?.FirstOrDefault(s => string.Equals(s.CodeValue, code, StringComparison.OrdinalIgnoreCase));
+        return found is null ? code : MasterDataRepository.LocalName(found);
+    }
+
+    string DeptName(string? code)
+    {
+        if (string.IsNullOrEmpty(code)) return "—";
+        var item = _deptItems?.FirstOrDefault(i => i.CodeValue == code);
+        return item is null ? code : MasterDataRepository.LocalName(item);
+    }
 
     void ShowMsg(string msg, bool isErr)
     {

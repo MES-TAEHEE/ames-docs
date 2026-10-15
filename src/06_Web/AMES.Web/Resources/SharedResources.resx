@@ -771,6 +771,15 @@
   <data name="SYS.Calendar.Legend.ShiftC" xml:space="preserve">
     <value>C교대</value>
   </data>
+  <data name="SYS.Roles.Members.Title" xml:space="preserve">
+    <value>역할 사용자</value>
+  </data>
+  <data name="SYS.Roles.Members.Empty" xml:space="preserve">
+    <value>이 역할이 배정된 사용자가 없습니다.</value>
+  </data>
+  <data name="SYS.Roles.Members.Open" xml:space="preserve">
+    <value>사용자 목록 보기</value>
+  </data>
   <data name="SYS.Roles.Empty" xml:space="preserve">
     <value>등록된 역할이 없습니다.</value>
   </data>
