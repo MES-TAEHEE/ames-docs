@@ -777,6 +777,15 @@
   <data name="SYS.Calendar.Legend.ShiftC" xml:space="preserve">
     <value>Shift C</value>
   </data>
+  <data name="SYS.Roles.Members.Title" xml:space="preserve">
+    <value>Role Users</value>
+  </data>
+  <data name="SYS.Roles.Members.Empty" xml:space="preserve">
+    <value>No users are assigned to this role.</value>
+  </data>
+  <data name="SYS.Roles.Members.Open" xml:space="preserve">
+    <value>View users</value>
+  </data>
   <data name="SYS.Roles.Empty" xml:space="preserve">
     <value>No roles found.</value>
   </data>

@@ -274,6 +274,38 @@ public sealed class SysRepository
         return Query(sql, r => new RoleRow((string)r["Id"], (string)r["Name"], (int)r["Cnt"]));
     }
 
+    public sealed record RoleMemberRow(string UserId, string? UserName, string? Email,
+        string? EmployeeNo, string? EmployeeName, string? Department,
+        string? AccountStatus, bool LockedOut, bool HasProfile, DateTime? LastLoginTs);
+
+    // SYS-002 인원 수 팝업 — 계정이 지워진 고아 AspNetUserRoles 행은 보일 사람이 없어 뺀다(ListRoles 의 UserCount 는 센다)
+    public List<RoleMemberRow> ListRoleMembers(string roleId)
+    {
+        const string sql = """
+            SELECT u.Id, u.UserName, u.Email,
+                   p.EmployeeNo, p.EmployeeName, p.Department, p.AccountStatus, p.LastLoginTS,
+                   CASE WHEN u.LockoutEnd IS NOT NULL AND u.LockoutEnd > SYSDATETIMEOFFSET()
+                        THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS LockedOut,
+                   CAST(CASE WHEN p.UserID IS NULL THEN 0 ELSE 1 END AS BIT) AS HasProfile
+            FROM   dbo.AspNetUserRoles ur
+            JOIN   dbo.AspNetUsers     u ON u.Id = ur.UserId
+            LEFT JOIN dbo.SYS_UserProfile p ON p.UserID = u.Id
+            WHERE  ur.RoleId = @RoleId
+            ORDER  BY p.EmployeeNo, u.UserName;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@RoleId", SqlDbType.NVarChar, 450).Value = roleId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<RoleMemberRow>();
+        while (r.Read())
+            list.Add(new RoleMemberRow((string)r["Id"], r["UserName"] as string, r["Email"] as string,
+                r["EmployeeNo"] as string, r["EmployeeName"] as string, r["Department"] as string,
+                r["AccountStatus"] as string, (bool)r["LockedOut"], (bool)r["HasProfile"],
+                r["LastLoginTS"] as DateTime?));
+        return list;
+    }
+
     public enum RoleChangeResult { Ok, NotFound, Protected, Duplicate, InUse }
 
     // 화면 권한·알림 수신·Admin/Supervisor 판정은 모두 역할 ID 로 하므로 이름 변경은 표시만 바뀐다 — 다시 로그인시키지 않는다.
