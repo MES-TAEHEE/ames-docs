@@ -27,7 +27,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 심재현 | 23                   | 7   | 7묶음 | 32  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · 안돈 보전 호출 작업지시(요청 22)                   |
-| 안영훈 | 6(적용·검증 3·요청 2·알림 1) | 4   | 3   | 6   | WH PDA 구 프로시저 참조 · 개발서버 Api 상시 기동 설정 확인 · 포장 단위 기존 데이터 정책 · PDA 예비품 출고에 보전 작업지시 연결(요청 — 10-16 「예정」·새 출처 반영) · 재구축 목록 MNT 3건 |
+| 안영훈 | 5(적용·검증 2·요청 2·알림 1) | 4   | 3   | 6   | WH PDA 구 프로시저 참조 · 포장 단위 기존 데이터 정책 · PDA 예비품 출고에 보전 작업지시 연결(요청 — 10-16 「예정」·새 출처 반영) · 재구축 목록 MNT 3건 |
 | 이승욱 | 0                    | 3   | 5   | 0   | PP-OEE 가동률이 시연 데이터(`PP_LineStateLog` 기록 — 심재현과 진행 예정)                                                                       |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
@@ -268,18 +268,15 @@
 
 ## 2. 안영훈 — PDA·Api + Web WH·FG·SCM·Portal + 재구축 스크립트
 
-### 2-1. 적용·검증 대기·요청 (6)
-1. **API IIS 상시 기동 설정 — 서버 적용 대기**
-   - `tools/publish-api.ps1`에 AlwaysRunning·유휴 종료 해제·사이트 자동 시작·preload 설정을 추가했습니다.
-   - 10-16 개발서버에 새 Web·Api(05:00 패키지)와 `iis-watchdog.ps1 -Install` 은 반영됐습니다(이승욱 — 화면·`/api/health` 로 확인). 상시 기동 설정(앱풀 `startMode=AlwaysRunning`·`idleTimeout=0`, 사이트 `preloadEnabled`·`serverAutoStart`)은 명령을 안내했고 적용 여부 확인이 남았습니다.
-2. **재구축 스크립트 — 전체 재구축 검증 대기**
+### 2-1. 적용·검증 대기·요청 (5)
+1. **재구축 스크립트 — 전체 재구축 검증 대기**
    - Portal 번호 변경은 임시 코드 경유로 충돌을 피하고 현재 001~004 화면에 맞췄습니다.
    - 선택적 개발 시드는 PDA_SEED → seed_portal_dev 순서이며, 기본 실행에서 제외합니다. 테스트 시드 실행에는 AMES_DEVELOPMENT_SEEDS=1과 세션 opt-in이 필요합니다.
    - SQL 구문 검사는 통과했습니다. 사용자 지시에 따라 DB 삭제·재생성·전체 재구축은 실행하지 않았습니다.
-3. **동시 출고·보충 Worker 부하 검증 대기**
+2. **동시 출고·보충 Worker 부하 검증 대기**
    - 출고의 Serializable을 ReadCommitted로 낮추고 LOT 비교의 UPPER를 제거했습니다. 재고 행 변경 잠금과 피킹 지시 잠금은 유지합니다.
    - 동일 품목 여러 줄의 수요 분배 SQL은 읽기 전용 회귀 검사로 확인했습니다. 실제 PDA 여러 대와 보충 Worker를 겹쳐 실행하는 검증은 아직 하지 않았습니다.
-4. **[요청] PDA 예비품 출고(SP-07)에 보전 작업지시 연결**(10-15 사용자 결정 — 이승욱 요청)
+3. **[요청] PDA 예비품 출고(SP-07)에 보전 작업지시 연결**(10-15 사용자 결정 — 이승욱 요청)
    - 배경: 보전 작업지시(MNT-007)의 사용 부품은 웹에서 입력·차감하지 않고, **PDA 출고가 재고를 줄이며 웹은 그 출고를 기록만** 합니다. 웹 쪽은 반영돼 있습니다(10-15) — 작업지시 상세·완료 창이 `MNT_SparePartsTxn` 의 `RefType='MWO'`·`RefID`=작업지시 번호·`MoveType='OUT'` 행(되돌림 `ReversalOfTxnID` 가 있는 행 제외)을 「PDA 출고 부품」으로 보이고, 완료·종료 때 `PartsUsedJSON` 에 스냅샷합니다(`MntRepository.ListWoPartReleases`).
    - 정해진 규칙
      - 작업지시 선택은 **선택 항목**입니다. 고르지 않은 출고는 지금처럼 `RefType='PDA'` 로 남습니다.
@@ -296,10 +293,10 @@
      - 새 출처 2가지도 출고 대상입니다: `CHECK`(PM 점검 불합격으로 생긴 CM 후속 작업지시, SourceRefID = 원래 작업지시 번호)·`ANDON`(MNT-002 에서 안돈 고장에 발행한 CM 작업지시).
      - PM 작업지시는 점검 항목에 필요 예비품·수량이 있습니다(`MNT_WorkOrderTask.RequiredSparePartNo`·`RequiredQty`, `MntRepository.ListWorkOrderTasks`). 작업지시를 고르면 그 목록을 참고로 보여 주면 출고가 쉽습니다(선택).
    - 배포 순서: 프로시저 → Api → PDA 앱. 작업지시 번호가 선택이라 구 PDA 앱도 그대로 동작합니다.
-5. **[요청] 재구축 목록에 MNT 마이그레이션 3개 추가됨 — 전체 재구축 검증에 포함**(10-16 이승욱)
-   - `dist/rebuild_db.sh` 에 `migrate_mnt_pm_checklist.sql` → `migrate_mnt_failure_downtime.sql` → `migrate_mnt_pm_lead_days.sql` 순서로 넣었습니다(모두 재실행 안전, 스키마 파일은 이미 적용 뒤 구조라 대부분 건너뜁니다). 위 2(전체 재구축 검증) 때 같이 확인합니다.
+4. **[요청] 재구축 목록에 MNT 마이그레이션 3개 추가됨 — 전체 재구축 검증에 포함**(10-16 이승욱)
+   - `dist/rebuild_db.sh` 에 `migrate_mnt_pm_checklist.sql` → `migrate_mnt_failure_downtime.sql` → `migrate_mnt_pm_lead_days.sql` 순서로 넣었습니다(모두 재실행 안전, 스키마 파일은 이미 적용 뒤 구조라 대부분 건너뜁니다). 위 1(전체 재구축 검증) 때 같이 확인합니다.
    - `migrate_mnt_failure_downtime.sql` 은 `MNT_WorkOrder.DowntimeID` 를 지우고, 값이 있으면 THROW 합니다(개발·로컬 DB 0건).
-6. **[알림] AMES.Api 응답 필드 추가·집계 규칙 변경**(10-16 이승욱 — Api 는 AMES.Data 를 그대로 쓰므로 새 Api 게시로 반영됩니다)
+5. **[알림] AMES.Api 응답 필드 추가·집계 규칙 변경**(10-16 이승욱 — Api 는 AMES.Data 를 그대로 쓰므로 새 Api 게시로 반영됩니다)
    - `/api/mnt` 설비 목록·대시보드: 설비 상태를 고장·PM 작업지시로 계산합니다(중지 = 안돈·CRITICAL·라인 정지 고장, 예방보전 = 착수된 설비 PM — 보전 PM 제외). 열린 작업지시 수에서 「예정」 PM 작업지시는 뺍니다. 대시보드 KPI 에 `PmDueEquip`·`PmDueMaint` 가 붙습니다.
    - 작업지시 행(`MwoRow`)에 `PmClass`·`PmDueDate`·`Planned`·`TaskFail`·`PmNeedsNextDue` 가 붙습니다(뒤에 더한 필드라 기존 PDA 는 영향 없음).
    - PDA 에 보전 작업 화면을 만들 때는 완료 규칙(미점검·불합격이 있으면 정상 완료 불가 — `MwoChecklistRules`)과 다음 예정일 규칙(기간 주기가 아닌 PM 은 완료 때 입력 — `PmRules`)을 `MntRepository.CompleteWorkOrder` 로 그대로 씁니다.
