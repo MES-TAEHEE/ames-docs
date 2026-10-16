@@ -10931,4 +10931,376 @@
   <data name="MNT.Dashboard.PmMaint" xml:space="preserve">
     <value>Mant.</value>
   </data>
+  <data name="SCM.Preview.Col.CreatedBy" xml:space="preserve">
+    <value>Creado por</value>
+  </data>
+  <data name="SCM.Preview.Lbl.IncludeClosed" xml:space="preserve">
+    <value>Incluir cerrados</value>
+  </data>
+  <data name="SCM.Preview.Lbl.IncludeReceived" xml:space="preserve">
+    <value>Incluir recibidos</value>
+  </data>
+  <data name="SCM.Preview.Lbl.IncludeCancelled" xml:space="preserve">
+    <value>Incluir cancelados</value>
+  </data>
+  <data name="SCM.Preview.Btn.CreateNote" xml:space="preserve">
+    <value>Crear albarán</value>
+  </data>
+  <data name="SCM.Preview.Col.ShipmentAction" xml:space="preserve">
+    <value>Acción de envío</value>
+  </data>
+  <data name="SCM.Preview.Btn.StartShipment" xml:space="preserve">
+    <value>Iniciar envío</value>
+  </data>
+  <data name="SCM.Preview.Msg.AlreadyShipped" xml:space="preserve">
+    <value>Ya enviado</value>
+  </data>
+  <data name="SCM.Preview.Msg.NoAction" xml:space="preserve">
+    <value>Sin acción</value>
+  </data>
+  <data name="SCM.Preview.Col.QtyMismatch" xml:space="preserve">
+    <value>Diferencia de cant.</value>
+  </data>
+  <data name="SCM.Preview.Hint.ViewMismatch" xml:space="preserve">
+    <value>Ver diferencias de cantidad</value>
+  </data>
+  <data name="SCM.Preview.Msg.None" xml:space="preserve">
+    <value>Ninguna</value>
+  </data>
+  <data name="SCM.Preview.Status.NotShipped" xml:space="preserve">
+    <value>No enviado</value>
+  </data>
+  <data name="SCM.Preview.Status.Unavailable" xml:space="preserve">
+    <value>No disponible</value>
+  </data>
+  <data name="SCM.Preview.Col.PoNo" xml:space="preserve">
+    <value>N.º pedido</value>
+  </data>
+  <data name="SCM.Preview.Col.RegisteredQty" xml:space="preserve">
+    <value>Cant. registrada</value>
+  </data>
+  <data name="SCM.Preview.Col.QtyToDeliver" xml:space="preserve">
+    <value>Cant. por entregar</value>
+  </data>
+  <data name="SCM.Preview.Col.Confirmation" xml:space="preserve">
+    <value>Confirmación</value>
+  </data>
+  <data name="SCM.Preview.Print.Title" xml:space="preserve">
+    <value>Impresión</value>
+  </data>
+  <data name="SCM.Preview.Print.Note" xml:space="preserve">
+    <value>Albarán</value>
+  </data>
+  <data name="SCM.Preview.Col.Action" xml:space="preserve">
+    <value>Acción</value>
+  </data>
+  <data name="SCM.Preview.Btn.IssuePrint" xml:space="preserve">
+    <value>Emitir / Imprimir</value>
+  </data>
+  <data name="SCM.Preview.Print.CaseBarcode" xml:space="preserve">
+    <value>Código de barras de palé (caja)</value>
+  </data>
+  <data name="SCM.Preview.Col.CaseNo" xml:space="preserve">
+    <value>N.º de palé (caja)</value>
+  </data>
+  <data name="SCM.Preview.Print.NoCases" xml:space="preserve">
+    <value>Esta entrega no tiene palés (cajas).</value>
+  </data>
+  <data name="SCM.Preview.Print.BoxBarcode" xml:space="preserve">
+    <value>Código de barras de caja / pieza</value>
+  </data>
+  <data name="SCM.Preview.Print.Preview" xml:space="preserve">
+    <value>Vista previa de impresión</value>
+  </data>
+  <data name="SCM.Preview.Detail.Items" xml:space="preserve">
+    <value>Artículos</value>
+  </data>
+  <data name="SCM.Preview.Col.PartNoName" xml:space="preserve">
+    <value>N.º de pieza / Nombre</value>
+  </data>
+  <data name="SCM.Preview.Col.Delivered" xml:space="preserve">
+    <value>Entregado</value>
+  </data>
+  <data name="SCM.Preview.Col.AdjustedAt" xml:space="preserve">
+    <value>Ajustado el</value>
+  </data>
+  <data name="SCM.Preview.Col.BoxLot" xml:space="preserve">
+    <value>Caja / LOTE</value>
+  </data>
+  <data name="SCM.Preview.Col.Before" xml:space="preserve">
+    <value>Antes</value>
+  </data>
+  <data name="SCM.Preview.Col.After" xml:space="preserve">
+    <value>Después</value>
+  </data>
+  <data name="SCM.Preview.Col.Difference" xml:space="preserve">
+    <value>Diferencia</value>
+  </data>
+  <data name="SCM.Preview.Col.ReasonNote" xml:space="preserve">
+    <value>Motivo / Nota</value>
+  </data>
+  <data name="SCM.Preview.Lbl.Case" xml:space="preserve">
+    <value>Palé (caja)</value>
+  </data>
+  <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
+    <value>{0} cajas</value>
+  </data>
+  <data name="SCM.Preview.Hint.CaseFixed" xml:space="preserve">
+    <value>Las cantidades las fija el contenido del palé (caja).</value>
+  </data>
+  <data name="SCM.Preview.Hint.ReceiptAfterShip" xml:space="preserve">
+    <value>Los detalles de recepción estarán disponibles tras el envío.</value>
+  </data>
+  <data name="SCM.Preview.Err.LoadCases" xml:space="preserve">
+    <value>No se pudieron cargar los palés (cajas) de este albarán.</value>
+  </data>
+  <data name="SCM.Preview.Err.Receipts" xml:space="preserve">
+    <value>Los resultados de recepción no están disponibles. Actualice para reintentar.</value>
+  </data>
+  <data name="SCM.Preview.Err.LoadCaseInfo" xml:space="preserve">
+    <value>No se pudo cargar la información del palé (caja). Actualice y reintente.</value>
+  </data>
+  <data name="SCM.Preview.Err.LastPrice" xml:space="preserve">
+    <value>No se pudo cargar el último precio. Revise el precio unitario antes de guardar.</value>
+  </data>
+  <data name="SCM.Preview.Err.UnitChangedFmt" xml:space="preserve">
+    <value>{0}: la unidad cambió ({1} / {2}). Vuelva a seleccionar el artículo y revise la cantidad.</value>
+  </data>
+  <data name="SCM.Preview.Dlg.ConfirmOrderFmt" xml:space="preserve">
+    <value>¿Confirmar el pedido {0}?</value>
+  </data>
+  <data name="SCM.Preview.Err.ShipDate" xml:space="preserve">
+    <value>Seleccione una fecha de envío válida hasta hoy.</value>
+  </data>
+  <data name="SCM.Preview.Err.ConfirmShipment" xml:space="preserve">
+    <value>No se pudo confirmar el envío. Actualice la lista y reintente.</value>
+  </data>
+  <data name="SCM.Preview.Msg.ShipReloadFailed" xml:space="preserve">
+    <value>Envío confirmado. Actualice la lista para ver el estado actualizado.</value>
+  </data>
+  <data name="Portal.Issue.ItemMissing" xml:space="preserve">
+    <value>Falta en el maestro de artículos</value>
+  </data>
+  <data name="Portal.Issue.ItemInactive" xml:space="preserve">
+    <value>Artículo inactivo</value>
+  </data>
+  <data name="Portal.Issue.VendorInactive" xml:space="preserve">
+    <value>Vínculo de proveedor inactivo</value>
+  </data>
+  <data name="Portal.Issue.VendorMissing" xml:space="preserve">
+    <value>Falta el vínculo con el proveedor</value>
+  </data>
+  <data name="Portal.Issue.PackingMissing" xml:space="preserve">
+    <value>Falta la cantidad de empaque</value>
+  </data>
+  <data name="Portal.PackingQty.Kpi.NeedsSetup" xml:space="preserve">
+    <value>Requiere configuración</value>
+  </data>
+  <data name="Portal.PackingQty.Hint" xml:space="preserve">
+    <value>Los artículos y cantidades de empaque se cargan automáticamente de los vínculos proveedor-artículo de EOS.</value>
+  </data>
+  <data name="Portal.PackingQty.NotSetHint" xml:space="preserve">
+    <value>Cantidad de empaque sin definir. Introduzca la cantidad por caja y guarde.</value>
+  </data>
+  <data name="Portal.PackingQty.Issue.ItemMissing" xml:space="preserve">
+    <value>Falta en el maestro de artículos. Pida a EOS que registre esta pieza en el maestro de materiales.</value>
+  </data>
+  <data name="Portal.PackingQty.Issue.ItemInactive" xml:space="preserve">
+    <value>El artículo está inactivo. Pida a EOS que revise el maestro de artículos.</value>
+  </data>
+  <data name="Portal.PackingQty.Issue.NotMaterial" xml:space="preserve">
+    <value>No es un artículo de material. Pida a EOS que revise el tipo de artículo.</value>
+  </data>
+  <data name="Portal.PackingQty.Issue.LinkInactive" xml:space="preserve">
+    <value>El vínculo con el proveedor está inactivo. Pida a EOS que revise el vínculo.</value>
+  </data>
+  <data name="Portal.Boxes.Col.Labels" xml:space="preserve">
+    <value>Etiquetas</value>
+  </data>
+  <data name="Portal.Boxes.Title" xml:space="preserve">
+    <value>Cajas / piezas</value>
+  </data>
+  <data name="Portal.Boxes.Col.Barcode" xml:space="preserve">
+    <value>Código de barras</value>
+  </data>
+  <data name="Portal.CaseLabel.Title" xml:space="preserve">
+    <value>Etiqueta de palé (caja)</value>
+  </data>
+  <data name="Portal.CaseLabel.Err.NotFound" xml:space="preserve">
+    <value>Palé (caja) no encontrado o sin acceso.</value>
+  </data>
+  <data name="Portal.CaseLabel.Err.Load" xml:space="preserve">
+    <value>No se pudo cargar esta etiqueta de palé (caja).</value>
+  </data>
+  <data name="Portal.Create.Title" xml:space="preserve">
+    <value>Creación de entregas</value>
+  </data>
+  <data name="Portal.Create.BackToList" xml:space="preserve">
+    <value>Volver a la lista de pedidos</value>
+  </data>
+  <data name="Portal.Create.PrintNote" xml:space="preserve">
+    <value>Imprimir albarán</value>
+  </data>
+  <data name="Portal.Create.Items" xml:space="preserve">
+    <value>Artículos de entrega</value>
+  </data>
+  <data name="Portal.Create.Part" xml:space="preserve">
+    <value>Pieza</value>
+  </data>
+  <data name="Portal.Create.Box" xml:space="preserve">
+    <value>Caja</value>
+  </data>
+  <data name="Portal.Create.AddCase" xml:space="preserve">
+    <value>Añadir palé (caja)</value>
+  </data>
+  <data name="Portal.Create.AddBox" xml:space="preserve">
+    <value>Añadir caja</value>
+  </data>
+  <data name="Portal.Create.AddPart" xml:space="preserve">
+    <value>Añadir pieza</value>
+  </data>
+  <data name="Portal.Create.RemoveCase" xml:space="preserve">
+    <value>Quitar palé (caja)</value>
+  </data>
+  <data name="Portal.Create.ReviewFmt" xml:space="preserve">
+    <value>Revisar albarán · {0} palés (cajas) · {1} cajas · {2} piezas sueltas</value>
+  </data>
+  <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
+    <value>Cant. seleccionada</value>
+  </data>
+  <data name="Portal.Create.Col.BoxesParts" xml:space="preserve">
+    <value>Cajas / piezas</value>
+  </data>
+  <data name="Portal.Create.BoxesPartsFmt" xml:space="preserve">
+    <value>{0} cajas · {1} piezas</value>
+  </data>
+  <data name="Portal.Create.AddHeadFmt" xml:space="preserve">
+    <value>Añadir {0} · Pedidos confirmados</value>
+  </data>
+  <data name="Portal.Create.ExpandFmt" xml:space="preserve">
+    <value>Expandir {0}</value>
+  </data>
+  <data name="Portal.Create.Step1" xml:space="preserve">
+    <value>Definir cantidades</value>
+  </data>
+  <data name="Portal.Create.Step1Hint.Parts" xml:space="preserve">
+    <value>Introduzca la cantidad de entrega. Las piezas sueltas se actualizan automáticamente.</value>
+  </data>
+  <data name="Portal.Create.Step1Hint.Boxes" xml:space="preserve">
+    <value>Introduzca la cantidad de entrega. Las cajas se actualizan automáticamente.</value>
+  </data>
+  <data name="Portal.Create.Col.TotalQty" xml:space="preserve">
+    <value>Cant. total de entrega</value>
+  </data>
+  <data name="Portal.Create.Col.PartsNeeded" xml:space="preserve">
+    <value>Piezas necesarias</value>
+  </data>
+  <data name="Portal.Create.Col.BoxesNeeded" xml:space="preserve">
+    <value>Cajas necesarias</value>
+  </data>
+  <data name="Portal.Create.AlreadyRegistered" xml:space="preserve">
+    <value>Ya registrado</value>
+  </data>
+  <data name="Portal.Create.AlreadyPacked" xml:space="preserve">
+    <value>Ya empacado</value>
+  </data>
+  <data name="Portal.Create.AddedToNote" xml:space="preserve">
+    <value>Añadido a este albarán</value>
+  </data>
+  <data name="Portal.Create.AlreadyReceived" xml:space="preserve">
+    <value>Ya recibido</value>
+  </data>
+  <data name="Portal.Create.NothingLeft" xml:space="preserve">
+    <value>Nada pendiente de enviar</value>
+  </data>
+  <data name="Portal.Create.Err.PartsNeedEa" xml:space="preserve">
+    <value>Las piezas sueltas requieren EA.</value>
+  </data>
+  <data name="Portal.Create.Err.WholeNumber" xml:space="preserve">
+    <value>Introduzca solo números enteros.</value>
+  </data>
+  <data name="Portal.Create.PerBoxFmt" xml:space="preserve">
+    <value>{0} / caja</value>
+  </data>
+  <data name="Portal.Create.Ph.QtyPerBox" xml:space="preserve">
+    <value>Cant. / caja</value>
+  </data>
+  <data name="Portal.Create.Btn.SaveBoxSize" xml:space="preserve">
+    <value>Guardar cant. por caja</value>
+  </data>
+  <data name="Portal.Create.AskEos" xml:space="preserve">
+    <value>Pida a EOS que revise el maestro de materiales / vínculo de proveedor.</value>
+  </data>
+  <data name="Portal.Create.Step2.Parts" xml:space="preserve">
+    <value>Seleccionar piezas</value>
+  </data>
+  <data name="Portal.Create.Step2.Boxes" xml:space="preserve">
+    <value>Seleccionar cajas</value>
+  </data>
+  <data name="Portal.Create.Step2Hint.Parts" xml:space="preserve">
+    <value>Marque las piezas que desea añadir a esta entrega.</value>
+  </data>
+  <data name="Portal.Create.Step2Hint.Boxes" xml:space="preserve">
+    <value>Marque las cajas que desea añadir a esta entrega.</value>
+  </data>
+  <data name="Portal.Create.Step2Empty.Parts" xml:space="preserve">
+    <value>Introduzca una cantidad en el paso 1 para ver las piezas aquí.</value>
+  </data>
+  <data name="Portal.Create.Step2Empty.Boxes" xml:space="preserve">
+    <value>Introduzca una cantidad en el paso 1 para ver las cajas aquí.</value>
+  </data>
+  <data name="Portal.Create.SelectedFmt" xml:space="preserve">
+    <value>Seleccionados {0} / {1} · Cant. total de entrega {2}</value>
+  </data>
+  <data name="Portal.Create.NoOrders" xml:space="preserve">
+    <value>No hay pedidos confirmados con cantidades pendientes de enviar.</value>
+  </data>
+  <data name="Portal.Create.SelectedForFmt" xml:space="preserve">
+    <value>Seleccionado para {0}</value>
+  </data>
+  <data name="Portal.Create.Col.QtyToAdd" xml:space="preserve">
+    <value>Cant. a añadir</value>
+  </data>
+  <data name="Portal.Create.Col.Parts" xml:space="preserve">
+    <value>Piezas</value>
+  </data>
+  <data name="Portal.Create.Col.Boxes" xml:space="preserve">
+    <value>Cajas</value>
+  </data>
+  <data name="Portal.Create.FooterFmt" xml:space="preserve">
+    <value>{0} seleccionados · {1} números de pieza</value>
+  </data>
+  <data name="Portal.Create.Btn.Done" xml:space="preserve">
+    <value>Listo</value>
+  </data>
+  <data name="Portal.Create.Err.Load" xml:space="preserve">
+    <value>No se pudieron cargar los artículos del pedido y los palés (cajas).</value>
+  </data>
+  <data name="Portal.Create.Err.LoadItems" xml:space="preserve">
+    <value>No se pudieron cargar los artículos del pedido.</value>
+  </data>
+  <data name="Portal.Create.Err.BoxQty" xml:space="preserve">
+    <value>Introduzca una cantidad por caja entera y positiva.</value>
+  </data>
+  <data name="Portal.Create.Err.PackingChanged" xml:space="preserve">
+    <value>La cantidad de empaque cambió o la configuración del artículo está incompleta. Actualice y revise las cantidades de empaque.</value>
+  </data>
+  <data name="Portal.Create.Ok.BoxQtyFmt" xml:space="preserve">
+    <value>Cantidad por caja guardada para {0}.</value>
+  </data>
+  <data name="Portal.Create.Err.SaveBoxQty" xml:space="preserve">
+    <value>No se pudo guardar la cantidad por caja.</value>
+  </data>
+  <data name="Portal.Create.Err.Quantities" xml:space="preserve">
+    <value>Introduzca cantidades enteras dentro de lo pendiente de enviar y revise las cantidades de empaque.</value>
+  </data>
+  <data name="Portal.Create.Err.MaxBoxes" xml:space="preserve">
+    <value>Se pueden preparar como máximo 1.000 cajas a la vez.</value>
+  </data>
+  <data name="Portal.Create.Ok.CreatedFmt" xml:space="preserve">
+    <value>{0} creado.</value>
+  </data>
+  <data name="Portal.Create.Err.Create" xml:space="preserve">
+    <value>No se pudo crear el albarán. Revise la fecha, los saldos del pedido y los palés (cajas) seleccionados.</value>
+  </data>
 </root>

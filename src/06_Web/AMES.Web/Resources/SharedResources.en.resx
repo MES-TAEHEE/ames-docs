@@ -10931,4 +10931,376 @@
   <data name="MNT.Dashboard.PmMaint" xml:space="preserve">
     <value>Maint.</value>
   </data>
+  <data name="SCM.Preview.Col.CreatedBy" xml:space="preserve">
+    <value>Created By</value>
+  </data>
+  <data name="SCM.Preview.Lbl.IncludeClosed" xml:space="preserve">
+    <value>Include Closed</value>
+  </data>
+  <data name="SCM.Preview.Lbl.IncludeReceived" xml:space="preserve">
+    <value>Include Received</value>
+  </data>
+  <data name="SCM.Preview.Lbl.IncludeCancelled" xml:space="preserve">
+    <value>Include Cancelled</value>
+  </data>
+  <data name="SCM.Preview.Btn.CreateNote" xml:space="preserve">
+    <value>Create Delivery Note</value>
+  </data>
+  <data name="SCM.Preview.Col.ShipmentAction" xml:space="preserve">
+    <value>Shipment Action</value>
+  </data>
+  <data name="SCM.Preview.Btn.StartShipment" xml:space="preserve">
+    <value>Start Shipment</value>
+  </data>
+  <data name="SCM.Preview.Msg.AlreadyShipped" xml:space="preserve">
+    <value>Already shipped</value>
+  </data>
+  <data name="SCM.Preview.Msg.NoAction" xml:space="preserve">
+    <value>No action</value>
+  </data>
+  <data name="SCM.Preview.Col.QtyMismatch" xml:space="preserve">
+    <value>Qty Mismatch</value>
+  </data>
+  <data name="SCM.Preview.Hint.ViewMismatch" xml:space="preserve">
+    <value>View quantity mismatches</value>
+  </data>
+  <data name="SCM.Preview.Msg.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="SCM.Preview.Status.NotShipped" xml:space="preserve">
+    <value>Not shipped</value>
+  </data>
+  <data name="SCM.Preview.Status.Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="SCM.Preview.Col.PoNo" xml:space="preserve">
+    <value>PO No</value>
+  </data>
+  <data name="SCM.Preview.Col.RegisteredQty" xml:space="preserve">
+    <value>Registered Qty</value>
+  </data>
+  <data name="SCM.Preview.Col.QtyToDeliver" xml:space="preserve">
+    <value>Qty to Deliver</value>
+  </data>
+  <data name="SCM.Preview.Col.Confirmation" xml:space="preserve">
+    <value>Confirmation</value>
+  </data>
+  <data name="SCM.Preview.Print.Title" xml:space="preserve">
+    <value>Printing</value>
+  </data>
+  <data name="SCM.Preview.Print.Note" xml:space="preserve">
+    <value>Delivery Note</value>
+  </data>
+  <data name="SCM.Preview.Col.Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="SCM.Preview.Btn.IssuePrint" xml:space="preserve">
+    <value>Issue / Print</value>
+  </data>
+  <data name="SCM.Preview.Print.CaseBarcode" xml:space="preserve">
+    <value>Pallet (Case) Barcode</value>
+  </data>
+  <data name="SCM.Preview.Col.CaseNo" xml:space="preserve">
+    <value>Pallet (Case) No</value>
+  </data>
+  <data name="SCM.Preview.Print.NoCases" xml:space="preserve">
+    <value>No pallets (cases) in this delivery.</value>
+  </data>
+  <data name="SCM.Preview.Print.BoxBarcode" xml:space="preserve">
+    <value>Box / Part Barcode</value>
+  </data>
+  <data name="SCM.Preview.Print.Preview" xml:space="preserve">
+    <value>Print Preview</value>
+  </data>
+  <data name="SCM.Preview.Detail.Items" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="SCM.Preview.Col.PartNoName" xml:space="preserve">
+    <value>Part No / Name</value>
+  </data>
+  <data name="SCM.Preview.Col.Delivered" xml:space="preserve">
+    <value>Delivered</value>
+  </data>
+  <data name="SCM.Preview.Col.AdjustedAt" xml:space="preserve">
+    <value>Adjusted At</value>
+  </data>
+  <data name="SCM.Preview.Col.BoxLot" xml:space="preserve">
+    <value>Box / LOT</value>
+  </data>
+  <data name="SCM.Preview.Col.Before" xml:space="preserve">
+    <value>Before</value>
+  </data>
+  <data name="SCM.Preview.Col.After" xml:space="preserve">
+    <value>After</value>
+  </data>
+  <data name="SCM.Preview.Col.Difference" xml:space="preserve">
+    <value>Difference</value>
+  </data>
+  <data name="SCM.Preview.Col.ReasonNote" xml:space="preserve">
+    <value>Reason / Note</value>
+  </data>
+  <data name="SCM.Preview.Lbl.Case" xml:space="preserve">
+    <value>Pallet (Case)</value>
+  </data>
+  <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
+    <value>{0} boxes</value>
+  </data>
+  <data name="SCM.Preview.Hint.CaseFixed" xml:space="preserve">
+    <value>Quantities are fixed by the pallet (case) contents.</value>
+  </data>
+  <data name="SCM.Preview.Hint.ReceiptAfterShip" xml:space="preserve">
+    <value>Receipt details become available after shipment.</value>
+  </data>
+  <data name="SCM.Preview.Err.LoadCases" xml:space="preserve">
+    <value>Unable to load pallets (cases) for this Delivery Note.</value>
+  </data>
+  <data name="SCM.Preview.Err.Receipts" xml:space="preserve">
+    <value>Receipt results are unavailable. Refresh to retry.</value>
+  </data>
+  <data name="SCM.Preview.Err.LoadCaseInfo" xml:space="preserve">
+    <value>Unable to load pallet (case) information. Refresh and retry.</value>
+  </data>
+  <data name="SCM.Preview.Err.LastPrice" xml:space="preserve">
+    <value>Unable to load the last price. Review the unit price before saving.</value>
+  </data>
+  <data name="SCM.Preview.Err.UnitChangedFmt" xml:space="preserve">
+    <value>{0}: Unit changed ({1} / {2}). Select the item again and review the quantity.</value>
+  </data>
+  <data name="SCM.Preview.Dlg.ConfirmOrderFmt" xml:space="preserve">
+    <value>Confirm order {0}?</value>
+  </data>
+  <data name="SCM.Preview.Err.ShipDate" xml:space="preserve">
+    <value>Select a valid ship date up to today.</value>
+  </data>
+  <data name="SCM.Preview.Err.ConfirmShipment" xml:space="preserve">
+    <value>Unable to confirm shipment. Refresh the list and retry.</value>
+  </data>
+  <data name="SCM.Preview.Msg.ShipReloadFailed" xml:space="preserve">
+    <value>Shipment confirmed. Refresh the list to see the updated status.</value>
+  </data>
+  <data name="Portal.Issue.ItemMissing" xml:space="preserve">
+    <value>Item master missing</value>
+  </data>
+  <data name="Portal.Issue.ItemInactive" xml:space="preserve">
+    <value>Item inactive</value>
+  </data>
+  <data name="Portal.Issue.VendorInactive" xml:space="preserve">
+    <value>Vendor mapping inactive</value>
+  </data>
+  <data name="Portal.Issue.VendorMissing" xml:space="preserve">
+    <value>Vendor mapping missing</value>
+  </data>
+  <data name="Portal.Issue.PackingMissing" xml:space="preserve">
+    <value>Packing quantity missing</value>
+  </data>
+  <data name="Portal.PackingQty.Kpi.NeedsSetup" xml:space="preserve">
+    <value>Needs Setup</value>
+  </data>
+  <data name="Portal.PackingQty.Hint" xml:space="preserve">
+    <value>Items and packing quantities are loaded automatically from EOS supplier-item mappings.</value>
+  </data>
+  <data name="Portal.PackingQty.NotSetHint" xml:space="preserve">
+    <value>Packing quantity not set. Enter Qty / Box and save.</value>
+  </data>
+  <data name="Portal.PackingQty.Issue.ItemMissing" xml:space="preserve">
+    <value>Item master missing. Ask EOS to register this part in Material Item Master.</value>
+  </data>
+  <data name="Portal.PackingQty.Issue.ItemInactive" xml:space="preserve">
+    <value>Item is inactive. Ask EOS to check the item master.</value>
+  </data>
+  <data name="Portal.PackingQty.Issue.NotMaterial" xml:space="preserve">
+    <value>Not a material item. Ask EOS to check the item type.</value>
+  </data>
+  <data name="Portal.PackingQty.Issue.LinkInactive" xml:space="preserve">
+    <value>Supplier link is inactive. Ask EOS to check the supplier mapping.</value>
+  </data>
+  <data name="Portal.Boxes.Col.Labels" xml:space="preserve">
+    <value>Labels</value>
+  </data>
+  <data name="Portal.Boxes.Title" xml:space="preserve">
+    <value>Boxes / Parts</value>
+  </data>
+  <data name="Portal.Boxes.Col.Barcode" xml:space="preserve">
+    <value>Barcode</value>
+  </data>
+  <data name="Portal.CaseLabel.Title" xml:space="preserve">
+    <value>Pallet (Case) Label</value>
+  </data>
+  <data name="Portal.CaseLabel.Err.NotFound" xml:space="preserve">
+    <value>Pallet (Case) not found or access denied.</value>
+  </data>
+  <data name="Portal.CaseLabel.Err.Load" xml:space="preserve">
+    <value>Unable to load this pallet (case) label.</value>
+  </data>
+  <data name="Portal.Create.Title" xml:space="preserve">
+    <value>Delivery Creation</value>
+  </data>
+  <data name="Portal.Create.BackToList" xml:space="preserve">
+    <value>Back to PO List</value>
+  </data>
+  <data name="Portal.Create.PrintNote" xml:space="preserve">
+    <value>Print Delivery Note</value>
+  </data>
+  <data name="Portal.Create.Items" xml:space="preserve">
+    <value>Delivery Items</value>
+  </data>
+  <data name="Portal.Create.Part" xml:space="preserve">
+    <value>Part</value>
+  </data>
+  <data name="Portal.Create.Box" xml:space="preserve">
+    <value>Box</value>
+  </data>
+  <data name="Portal.Create.AddCase" xml:space="preserve">
+    <value>Add Pallet (Case)</value>
+  </data>
+  <data name="Portal.Create.AddBox" xml:space="preserve">
+    <value>Add Box</value>
+  </data>
+  <data name="Portal.Create.AddPart" xml:space="preserve">
+    <value>Add Part</value>
+  </data>
+  <data name="Portal.Create.RemoveCase" xml:space="preserve">
+    <value>Remove Pallet (Case)</value>
+  </data>
+  <data name="Portal.Create.ReviewFmt" xml:space="preserve">
+    <value>Review Delivery Note · {0} pallets (cases) · {1} boxes · {2} individual parts</value>
+  </data>
+  <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
+    <value>Selected Qty</value>
+  </data>
+  <data name="Portal.Create.Col.BoxesParts" xml:space="preserve">
+    <value>Boxes / Parts</value>
+  </data>
+  <data name="Portal.Create.BoxesPartsFmt" xml:space="preserve">
+    <value>{0} boxes · {1} parts</value>
+  </data>
+  <data name="Portal.Create.AddHeadFmt" xml:space="preserve">
+    <value>Add {0} · Confirmed Purchase Orders</value>
+  </data>
+  <data name="Portal.Create.ExpandFmt" xml:space="preserve">
+    <value>Expand {0}</value>
+  </data>
+  <data name="Portal.Create.Step1" xml:space="preserve">
+    <value>Set quantities</value>
+  </data>
+  <data name="Portal.Create.Step1Hint.Parts" xml:space="preserve">
+    <value>Enter the delivery quantity. Individual parts update automatically.</value>
+  </data>
+  <data name="Portal.Create.Step1Hint.Boxes" xml:space="preserve">
+    <value>Enter the delivery quantity. Boxes update automatically.</value>
+  </data>
+  <data name="Portal.Create.Col.TotalQty" xml:space="preserve">
+    <value>Total Delivery Qty</value>
+  </data>
+  <data name="Portal.Create.Col.PartsNeeded" xml:space="preserve">
+    <value>Parts Needed</value>
+  </data>
+  <data name="Portal.Create.Col.BoxesNeeded" xml:space="preserve">
+    <value>Boxes Needed</value>
+  </data>
+  <data name="Portal.Create.AlreadyRegistered" xml:space="preserve">
+    <value>Already registered</value>
+  </data>
+  <data name="Portal.Create.AlreadyPacked" xml:space="preserve">
+    <value>Already packed</value>
+  </data>
+  <data name="Portal.Create.AddedToNote" xml:space="preserve">
+    <value>Added to this note</value>
+  </data>
+  <data name="Portal.Create.AlreadyReceived" xml:space="preserve">
+    <value>Already received</value>
+  </data>
+  <data name="Portal.Create.NothingLeft" xml:space="preserve">
+    <value>Nothing left to send</value>
+  </data>
+  <data name="Portal.Create.Err.PartsNeedEa" xml:space="preserve">
+    <value>Individual parts require EA.</value>
+  </data>
+  <data name="Portal.Create.Err.WholeNumber" xml:space="preserve">
+    <value>Enter whole numbers only.</value>
+  </data>
+  <data name="Portal.Create.PerBoxFmt" xml:space="preserve">
+    <value>{0} / box</value>
+  </data>
+  <data name="Portal.Create.Ph.QtyPerBox" xml:space="preserve">
+    <value>Qty / box</value>
+  </data>
+  <data name="Portal.Create.Btn.SaveBoxSize" xml:space="preserve">
+    <value>Save box size</value>
+  </data>
+  <data name="Portal.Create.AskEos" xml:space="preserve">
+    <value>Ask EOS to check Material Item Master / supplier mapping.</value>
+  </data>
+  <data name="Portal.Create.Step2.Parts" xml:space="preserve">
+    <value>Select Parts</value>
+  </data>
+  <data name="Portal.Create.Step2.Boxes" xml:space="preserve">
+    <value>Select Boxes</value>
+  </data>
+  <data name="Portal.Create.Step2Hint.Parts" xml:space="preserve">
+    <value>Check the parts to add to this delivery.</value>
+  </data>
+  <data name="Portal.Create.Step2Hint.Boxes" xml:space="preserve">
+    <value>Check the boxes to add to this delivery.</value>
+  </data>
+  <data name="Portal.Create.Step2Empty.Parts" xml:space="preserve">
+    <value>Enter a quantity in step 1 to see parts here.</value>
+  </data>
+  <data name="Portal.Create.Step2Empty.Boxes" xml:space="preserve">
+    <value>Enter a quantity in step 1 to see boxes here.</value>
+  </data>
+  <data name="Portal.Create.SelectedFmt" xml:space="preserve">
+    <value>Selected {0} / {1} · Total Delivery Qty {2}</value>
+  </data>
+  <data name="Portal.Create.NoOrders" xml:space="preserve">
+    <value>No confirmed purchase orders with quantities left to send.</value>
+  </data>
+  <data name="Portal.Create.SelectedForFmt" xml:space="preserve">
+    <value>Selected for {0}</value>
+  </data>
+  <data name="Portal.Create.Col.QtyToAdd" xml:space="preserve">
+    <value>Qty to Add</value>
+  </data>
+  <data name="Portal.Create.Col.Parts" xml:space="preserve">
+    <value>Parts</value>
+  </data>
+  <data name="Portal.Create.Col.Boxes" xml:space="preserve">
+    <value>Boxes</value>
+  </data>
+  <data name="Portal.Create.FooterFmt" xml:space="preserve">
+    <value>{0} selected · {1} part numbers</value>
+  </data>
+  <data name="Portal.Create.Btn.Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Portal.Create.Err.Load" xml:space="preserve">
+    <value>Unable to load PO items and pallets (cases).</value>
+  </data>
+  <data name="Portal.Create.Err.LoadItems" xml:space="preserve">
+    <value>Unable to load PO items.</value>
+  </data>
+  <data name="Portal.Create.Err.BoxQty" xml:space="preserve">
+    <value>Enter a positive whole-number Qty / Box.</value>
+  </data>
+  <data name="Portal.Create.Err.PackingChanged" xml:space="preserve">
+    <value>Packing quantity changed or item setup is incomplete. Refresh and check Packing Quantities.</value>
+  </data>
+  <data name="Portal.Create.Ok.BoxQtyFmt" xml:space="preserve">
+    <value>Qty / Box saved for {0}.</value>
+  </data>
+  <data name="Portal.Create.Err.SaveBoxQty" xml:space="preserve">
+    <value>Unable to save Qty / Box.</value>
+  </data>
+  <data name="Portal.Create.Err.Quantities" xml:space="preserve">
+    <value>Enter whole-number quantities within the quantity left to send and check packing quantities.</value>
+  </data>
+  <data name="Portal.Create.Err.MaxBoxes" xml:space="preserve">
+    <value>At most 1,000 boxes can be prepared at once.</value>
+  </data>
+  <data name="Portal.Create.Ok.CreatedFmt" xml:space="preserve">
+    <value>{0} created.</value>
+  </data>
+  <data name="Portal.Create.Err.Create" xml:space="preserve">
+    <value>Unable to create Delivery Note. Check the date, PO balances and selected pallets (cases).</value>
+  </data>
 </root>

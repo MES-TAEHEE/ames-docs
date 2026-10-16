@@ -10,9 +10,9 @@
 <PageTitle>@L["Portal.Text.PackingQuantities"] · AMES</PageTitle>
 <AmesPageHeader Code="PORTAL-004" Title='@L["Portal.Text.PackingQuantities"]' />
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">Linked Items</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["Portal.Text.LinkedItems"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Portal.Text.PackingQuantitySet"]</div><div class="ames-kpi-v">@_rows.Count(r=>r.Source.CanSave && r.Source.PackingQty>0)</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">Needs Setup</div><div class="ames-kpi-v">@_rows.Count(r=>!r.Source.CanSave || r.Source.PackingQty is null or <=0)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Portal.PackingQty.Kpi.NeedsSetup"]</div><div class="ames-kpi-v">@_rows.Count(r=>!r.Source.CanSave || r.Source.PackingQty is null or <=0)</div></div>
 </div>
 @if (_message.Length>0) { <RadzenAlert AlertStyle="@(_error?AlertStyle.Warning:AlertStyle.Success)" Variant="Variant.Flat">@_message</RadzenAlert> }
 <div class="ames-card">
@@ -23,18 +23,18 @@
             <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <div class="packing-hint dim">Items and packing quantities are loaded automatically from EOS supplier-item mappings.</div>
+    <div class="packing-hint dim">@L["Portal.PackingQty.Hint"]</div>
     <RadzenDataGrid @ref="_grid" TItem="EditRow" Data="@Rows" AllowSorting="true" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center"
         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PageSizeChanged="@(s => _pageRows = s)"
         EmptyText='@L["Portal.Text.NoLinkedItems"]' Class="ames-rz-grid ames-grid-fixed" Style="@($"--ames-page-rows:{_pageRows}")">
         <Columns>
-            <RadzenDataGridColumn TItem="EditRow" Title="No." Width="60px" MinWidth="60px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EditRow" Title='@L["Col.RowNo"]' Width="60px" MinWidth="60px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Property="Source.VendorName" Title='@L["Scm.Text.Supplier"]' MinWidth="160px" CssClass="packing-nowrap"><Template Context="r"><span class="code">@r.Source.VendorID</span> @r.Source.VendorName</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Property="Source.ItemNo" Title='@L["Portal.Text.ItemCode"]' Width="180px" MinWidth="180px" TextAlign="TextAlign.Center"><Template Context="r"><span class="code">@r.Source.ItemNo</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" MinWidth="200px" Property="Source.ItemName" Title='@L["Scm.Text.Description"]'>
                 <Template Context="r">@r.Source.ItemName
-                    @if(!r.Source.CanSave){<div class="packing-issue" role="status">@r.Source.Issue</div>}
-                    else if(r.Source.PackingQty is null or <=0){<div class="dim">Packing quantity not set. Enter Qty / Box and save.</div>}
+                    @if(!r.Source.CanSave){<div class="packing-issue" role="status">@IssueText(r.Source.Issue)</div>}
+                    else if(r.Source.PackingQty is null or <=0){<div class="dim">@L["Portal.PackingQty.NotSetHint"]</div>}
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Property="Source.Unit" Title='@L["Scm.Text.Unit"]' Width="100px" MinWidth="100px" TextAlign="TextAlign.Center" />
@@ -64,6 +64,13 @@
     int _pageRows=25;
     string _user="",_search="",_message="";
     bool _allowed,_error;
+    // 저장소 SQL 이 영어 문장으로 넘기는 품목 문제(PackingQuantityRow.Issue) — 표시만 바꾼다
+    string IssueText(string issue)=>issue switch {
+        "Item master missing. Ask EOS to register this part in Material Item Master."=>L["Portal.PackingQty.Issue.ItemMissing"],
+        "Item is inactive. Ask EOS to check the item master."=>L["Portal.PackingQty.Issue.ItemInactive"],
+        "Not a material item. Ask EOS to check the item type."=>L["Portal.PackingQty.Issue.NotMaterial"],
+        "Supplier link is inactive. Ask EOS to check the supplier mapping."=>L["Portal.PackingQty.Issue.LinkInactive"],
+        _=>issue };
     List<EditRow> Rows=>_rows.Where(r=>string.Join(" ",r.Source.ItemNo,r.Source.ItemName,r.Source.VendorID,r.Source.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
     protected override async Task OnInitializedAsync()
     {

@@ -6,13 +6,14 @@
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<CaseLabel> Logger
 @inject PortalQuantityFormat QtyFormat
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Pallet (Case) Label · @Number</PageTitle>
+<PageTitle>@L["Portal.CaseLabel.Title"] · @Number</PageTitle>
 <div class="label-tools portal-print-toolbar">
-    <a href="/portal/deliveries">Delivery Management</a>
+    <a href="/portal/deliveries">@L["Portal.Text.BackToDeliveryManagement"]</a>
     @if (_case is not null)
     {
-        <button type="button" class="ames-btn" data-delivery-note-print data-no-busy>Print</button>
+        <button type="button" class="ames-btn" data-delivery-note-print data-no-busy>@L["Btn.Print"]</button>
     }
     @if(_message.Length>0){<p role="alert">@_message</p>}
 </div>
@@ -46,12 +47,12 @@
         _case = null; _message = "";
         var u = (await Authentication.GetAuthenticationStateAsync()).User;
         var id = u.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!PortalAuth.IsPortalUser(u) || string.IsNullOrWhiteSpace(id)) { _message = "Access denied."; return; }
+        if (!PortalAuth.IsPortalUser(u) || string.IsNullOrWhiteSpace(id)) { _message = L["Portal.Note.AccessDenied"]; return; }
         try
         {
             _case = Scm.GetDeliveryCase(Number, id);
-            if (_case is null || _case.Boxes.Count == 0) { _case = null; _message = "Pallet (Case) not found or access denied."; }
+            if (_case is null || _case.Boxes.Count == 0) { _case = null; _message = L["Portal.CaseLabel.Err.NotFound"]; }
         }
-        catch (Exception ex) { Logger.LogError(ex, "Case label lookup failed"); _message = "Unable to load this pallet (case) label."; }
+        catch (Exception ex) { Logger.LogError(ex, "Case label lookup failed"); _message = L["Portal.CaseLabel.Err.Load"]; }
     }
 }

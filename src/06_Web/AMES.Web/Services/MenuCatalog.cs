@@ -277,6 +277,7 @@ public sealed class MenuCatalog
         ["portal/deliveries"] = "Gestión de entregas",
         ["portal/delivery-notes"] = "Notas de entrega",
         ["portal/receipts"] = "Estado de recepción",
+        ["portal/packing-quantities"] = "Cantidades de empaque",
         // WH
         ["wh/location-map"] = "Mapa de Ubicaciones",
         ["wh/picking-orders"] = "Órdenes de Picking",
