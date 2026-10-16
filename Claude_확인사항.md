@@ -27,7 +27,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 심재현 | 23                   | 7   | 7묶음 | 37  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 32) · 안돈 보전 호출 작업지시(요청 22) |
-| 안영훈 | 6(적용·검증 3·요청 2·알림 1) | 4   | 3   | 7   | [중] 케이스 입고가 구 프로시저 매개변수 태그에 의존(문제점 6 — 프로시저 삭제 전 필수) · PDA 직접 SQL 서버 배포·통합 검증(2-1 6) · 포장 단위 기존 데이터 정책 · PDA 예비품 출고에 보전 작업지시 연결(요청 3) · 재구축 목록 MNT 3건 |
+| 안영훈 | 7(배포·적용·검증 대기 포함) | 4   | 3   | 6   | [중] 케이스 입고의 구 프로시저 매개변수 태그 의존 · LOT 입고 취소 누적량 · 예비품 출고↔보전 작업지시 배포·검증 · FG 외래키 정리 승인 · 포장 단위 기존 데이터 정책 |
 | 이승욱 | 0                    | 3   | 5   | 0   | PP-OEE 가동률이 시연 데이터(`PP_LineStateLog` 기록 — 심재현과 진행 예정)                                                                       |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
@@ -289,7 +289,7 @@
 
 ## 2. 안영훈 — PDA·Api + Web WH·FG·SCM·Portal + 재구축 스크립트
 
-### 2-1. 적용·검증 대기·요청 (6)
+### 2-1. 적용·검증 대기·요청 (7)
 1. **재구축 스크립트 — 전체 재구축 검증 대기**
    - Portal 번호 변경은 임시 코드 경유로 충돌을 피하고 현재 001~004 화면에 맞췄습니다.
    - 선택적 개발 시드는 PDA_SEED → seed_portal_dev 순서이며, 기본 실행에서 제외합니다. 테스트 시드 실행에는 AMES_DEVELOPMENT_SEEDS=1과 세션 opt-in이 필요합니다.
@@ -310,7 +310,11 @@
 5. **[알림] AMES.Api 응답 필드 추가·집계 규칙 변경**(10-16 이승욱 — Api 는 AMES.Data 를 그대로 쓰므로 새 Api 게시로 반영됩니다)
    - `/api/mnt` 설비 목록·대시보드: 설비 상태를 고장·PM 작업지시로 계산합니다(중지 = 안돈·CRITICAL·라인 정지 고장, 예방보전 = 착수된 설비 PM — 보전 PM 제외). 열린 작업지시 수에서 「예정」 PM 작업지시는 뺍니다. 대시보드 KPI 에 `PmDueEquip`·`PmDueMaint` 가 붙습니다.
    - 작업지시 행(`MwoRow`)에 `PmClass`·`PmDueDate`·`Planned`·`TaskFail`·`PmNeedsNextDue` 가 붙습니다(뒤에 더한 필드라 기존 PDA 는 영향 없음).
-6. **PDA 일반 업무 직접 SQL 전환·구형 정의 정리 — 서버 최종 배포·통합 검증 대기**
+6. **FG 신규 외래키 2개 제거 — 실제 DB 적용 승인 대기**
+   - 스키마·실출하 마이그레이션은 `FK_FG_Shipment_Customer`·`FK_FG_CustomerReturn_Shipment`를 새로 만들지 않습니다. 저장 SQL의 고객 존재·최신 출하 검증은 유지합니다.
+   - `migrate_fg_shipment_no_foreign_keys.sql`은 이 두 제약만 제거하며 테이블·컬럼·데이터는 삭제하지 않습니다. 재구축 목록에 추가했지만 실제 DB에는 실행하지 않았습니다.
+
+7. **PDA 일반 업무 직접 SQL 전환·구형 정의 정리 — 서버 최종 배포·통합 검증 대기**
    - PDA WH·FG·SP의 조회·입고·적재·출고·조정·반품·예비품 라벨 생성은 애플리케이션의 매개변수 SQL로 처리합니다. 케이스 일괄 입고의 공통 저장소도 같은 경로를 사용합니다.
    - API 직접 SQL 전환본은 사용자 서버 교체 후 응답을 확인했습니다. 이후 취소·재입고 수정본 API·AMES.Data는 추가 교체가 필요합니다. 웹의 공통 케이스 입고 경로에도 새 AMES.Data가 포함돼야 합니다. API 응답 형식은 유지했습니다.
    - 개발용 테스트 초기화 프로시저, SYS 공장 달력·SQL Server 잠금 기능은 변경하지 않았습니다. 기존 DB 프로시저 삭제·재구축은 하지 않았습니다.
@@ -334,7 +338,7 @@
 | `WH_ReleaseSchedule` | 미사용 | DROP 후보입니다. 이번에는 다른 WH 테이블과 식별자·행위자 길이만 맞췄고 테이블은 보존했습니다. |
 | `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
 
-### 2-4. 문제점 (7)
+### 2-4. 문제점 (6)
 1. **[하] 사용되지 않는 포장 단위 컬럼이 DB에 남음**
    - `SCM_ItemVendor.PackingUnitCode`(두 DB·스키마 파일 모두 있음). `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 4개는 10-16 `migrate_retire_packaging_uom.sql` 로 두 DB 에서 지웠습니다.
    - 실행 코드 참조는 없습니다. 이번에는 컬럼 삭제 승인이 없으므로 유지했습니다. 컬럼 순서를 맞추기 위한 테이블 재구축도 하지 않습니다.
@@ -350,14 +354,10 @@
       - 지운 `BoxContentUnit`·`BoxContentQty` 의 값(개발 DB 품목 TEST-0001, 발주 1225·1263 — 모두 EA·30, 로컬 DB 는 없음)은 이승욱 PC `AppData\Local\AMES-claude-tools\backup_boxcontent_20261016\dev.tsv` 에 남겨 두었습니다.
     - 제안: 시드와 같게 SH → EA 로 바꿀지 정하고, BOX 품목·발주를 어떻게 다룰지 정해 데이터 정리 스크립트를 따로 만듭니다.
 
-4. **[하] `FG_CustomerReturn.PartName` 위치가 개발 DB·로컬 DB·스키마 파일에서 모두 다름**
+4. **[하] `FG_CustomerReturn.PartName` 개발 DB 컬럼 순서 — 적용 승인 대기**
     - 위치: `dist/migrate_fg_customer_return_columns.sql`(ALTER ADD), `dist/migrate_fg_shipment_actual.sql`, `dist/AMES_Schema.sql` 의 `FG_CustomerReturn`
-    - 내용(10-16 기준): 개발 DB 는 감사 컬럼 뒤 맨 끝, 로컬 DB 는 `migrate_fg_shipment_actual.sql` 적용 뒤 감사 컬럼 바로 앞(`LotNo` 다음), 스키마 파일은 `PartNo` 바로 뒤입니다. 감사 컬럼을 맨 뒤에 두는 규칙(10-08)과 어긋나는 것은 개발 DB 뿐이고, 재구축·마이그레이션 경로마다 컬럼 순서가 갈립니다(코드는 이름으로만 써서 동작 영향은 없음).
-    - 제안: 개발 DB 에 `migrate_audit_columns_last.sql` 을 다시 돌려 감사 컬럼을 맨 뒤로 보내고(로컬 DB 와 같아짐), 스키마 파일을 그 순서로 맞춥니다.
-5. **[하] FG 실출하 마이그레이션이 외래키 2개를 새로 만듦**(10-16 병합)
-    - 위치: `dist/migrate_fg_shipment_actual.sql`(`FK_FG_Shipment_Customer` → `MD_Customer`, `FK_FG_CustomerReturn_Shipment` → `FG_Shipment`), 스키마 파일에도 같은 FK
-    - 내용: FK 를 두지 않는 원칙(10-08 사용자 결정 — FK 위반이 현장 저장을 막지 않게 정합성은 리포지토리가 맡는다)과 다릅니다. 두 DB·스키마 파일은 서로 같습니다(심재현 미해결 18 의 APS FK 와 같은 종류).
-    - 제안: FK 를 빼고 저장 코드에서 고객·출하 존재를 확인하거나, 이 두 FK 는 예외로 둘지 정합니다.
+    - 스키마 파일은 로컬·감사 컬럼 정리 후 순서(`LotNo` → `PartName` → 감사 컬럼)로 맞췄습니다. 코드는 컬럼 이름으로 읽으므로 현재 순서 차이는 실행에 영향을 주지 않습니다.
+    - 실제 개발 DB의 재정렬은 감사 컬럼 값 복사·삭제·재생성이 필요한 `migrate_audit_columns_last.sql`을 사용하므로 승인 전에는 실행하지 않습니다.
 6. **[중] 케이스 입고가 지울 예정인 프로시저의 매개변수 정보에 기댐**(10-16 PDA 직접 SQL 전환 뒤)
     - 위치: `src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs:427`(실행 SQL 은 `PdaWarehouseSql.InboundReceive`, 매개변수 태그는 `"WH_PDA_INBOUND_RECEIVE_LOT.@ReceiveMode"` 등 5개), 같은 원인 `WhEndpoints.cs:1193-1199`(`WH_PDA_SCHEDULE_INBOUND_LIST.@…`)
     - 내용: SCM 공용 `Add` → `ColumnParams.Add` 는 태그를 `INFORMATION_SCHEMA.PARAMETERS` 에서 못 찾으면 예외를 냅니다(`ColumnParams.cs:37`). d87090fc 뒤 `AMES_Schema.sql` 은 이 프로시저를 DROP 만 하고 다시 만들지 않으므로, 스키마로 다시 만든 DB 나 예정대로 프로시저를 지운 DB 에서는 **PDA 케이스 일괄 입고(`WhEndpoints.cs:271`)가 매번 실패**합니다. 개발·로컬 DB 는 프로시저가 아직 있어(37개) 지금은 동작하고 `ColumnTagsTests` 도 통과합니다. 입고 예정 조회 태그는 `AddFilter` 라 예외는 없지만 프로시저를 지우는 순간 `ColumnTagsTests` 가 깨집니다.

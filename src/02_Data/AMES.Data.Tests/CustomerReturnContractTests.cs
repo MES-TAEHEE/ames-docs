@@ -30,6 +30,26 @@ public sealed class CustomerReturnContractTests
         Assert.NotEmpty(table);
         foreach(var name in new[]{"ReturnID","CustomerID","ShipmentID","PartNo","PartName"})Assert.Contains("["+name+"]",table);
         foreach(var name in new[]{"ReturnNumber","RMANo","CustomerClaimID","OriginalShipmentOrderID","OriginalDeliveryNoteID","ItemNo","ItemsJSON","NcrID","CapaTriggered"})Assert.DoesNotContain("["+name+"]",table);
+        Assert.True(table.IndexOf("[LotNo]",StringComparison.Ordinal)<table.IndexOf("[PartName]",StringComparison.Ordinal));
+        Assert.True(table.IndexOf("[PartName]",StringComparison.Ordinal)<table.IndexOf("[CreatedBy]",StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Shipment_schema_does_not_recreate_new_foreign_keys_and_cleanup_only_drops_two_constraints()
+    {
+        foreach(var file in new[]{"dist/AMES_Schema.sql","dist/migrate_fg_shipment_actual.sql"})
+        {
+            var sql=Read(file);
+            Assert.DoesNotMatch(@"(?i)ADD\s+CONSTRAINT\s+\[?FK_FG_Shipment_Customer",sql);
+            Assert.DoesNotMatch(@"(?i)ADD\s+CONSTRAINT\s+\[?FK_FG_CustomerReturn_Shipment",sql);
+        }
+        var cleanup=Read("dist/migrate_fg_shipment_no_foreign_keys.sql");
+        Assert.Equal(2,Regex.Matches(cleanup,@"(?i)DROP\s+CONSTRAINT").Count);
+        Assert.DoesNotMatch(@"(?i)\b(?:DELETE|UPDATE|INSERT|TRUNCATE)\b",cleanup);
+        Assert.DoesNotMatch(@"(?i)DROP\s+(?:TABLE|COLUMN)\b",cleanup);
+        Assert.Contains("dbo.MD_Customer WITH(HOLDLOCK)",PdaFinishedGoodsSql.OutboundComplete);
+        Assert.Contains("latest shipment changed",PdaFinishedGoodsSql.ReturnReceive);
+        Assert.Contains("migrate_fg_shipment_no_foreign_keys.sql",Read("dist/rebuild_db.sh"));
     }
 
     [Fact]

@@ -150,6 +150,7 @@ FILES=(
   migrate_wh_fg_scm_column_lengths.sql # WH/FG/SCM keys and 20-byte actor codes
   migrate_fg_location_type.sql # FG-area locations use the explicit FG location type
   migrate_fg_shipment_actual.sql # Actual barcode shipments; no shipment seeds
+  migrate_fg_shipment_no_foreign_keys.sql # No new shipment FKs; application SQL validates references
   migrate_fg_putaway_transactions.sql # FG put-away uses inventory transactions only
   migrate_md_sap_trans_flag.sql      # MD_Item·MD_Vendor·MD_Location.SAPTransFlag — SAP 전송 대상 여부(10-16)
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
