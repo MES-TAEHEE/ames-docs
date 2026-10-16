@@ -447,7 +447,7 @@ public static class PdaWarehouseSql
                        SELECT 1
                        FROM dbo.WH_Inventory W
                        WHERE W.LotNo COLLATE DATABASE_DEFAULT = T.LotNo COLLATE DATABASE_DEFAULT
-                         AND (W.CaseNo LIKE @Like
+                         AND (W.PalletNo LIKE @Like
                               OR W.InvoiceNo LIKE @Like
                               OR W.DeliveryNoteNo LIKE @Like)))
             ORDER BY T.TransactionTime DESC, T.TransactionID DESC;
@@ -492,8 +492,8 @@ public static class PdaWarehouseSql
                 W.LotNo AS BARCODE,
                 N'dbo.WH_Inventory' AS SOURCE_TABLE,
                 W.DeliveryNoteNo AS NOTENO,
-                W.CaseNo AS CASE_BARCODE,
-                W.CaseNo AS CASE_NO,
+                W.PalletNo AS CASE_BARCODE,
+                W.PalletNo AS CASE_NO,
                 W.InvoiceNo AS INVOICE_NO,
                 W.ParentLotNo AS CONTAINER_NO,
                 W.PartNo AS PARTNO,
@@ -701,7 +701,7 @@ public static class PdaWarehouseSql
                 ELSE
                     UPDATE dbo.WH_Inventory
                     SET UnitType='BOX',PartNo=@PortalItemNo,PartName=@PortalPartName,
-                        LocationNo=@Location,Qty=@PortalQty,ParentLotNo=NULL,CaseNo=NULL,
+                        LocationNo=@Location,Qty=@PortalQty,ParentLotNo=NULL,PalletNo=NULL,
                         InvoiceNo=@PortalPoNumber,DeliveryNoteNo=@PortalNoteNo,
                         ReceivedAt=SYSDATETIME(),UpdatedAt=SYSDATETIME()
                     WHERE LotNo=@Barcode AND Qty=0;
@@ -1195,8 +1195,8 @@ public static class PdaWarehouseSql
                 W.LotNo AS BARCODE,
                 N'dbo.WH_Inventory' AS SOURCE_TABLE,
                 W.DeliveryNoteNo AS NOTENO,
-                W.CaseNo AS CASE_BARCODE,
-                W.CaseNo AS CASE_NO,
+                W.PalletNo AS CASE_BARCODE,
+                W.PalletNo AS CASE_NO,
                 W.InvoiceNo AS INVOICE_NO,
                 W.ParentLotNo AS CONTAINER_NO,
                 W.PartNo AS PARTNO,

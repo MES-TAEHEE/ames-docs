@@ -11312,4 +11312,124 @@
   <data name="SCM.PurchaseItems.Err.NoPermission" xml:space="preserve">
     <value>Ya no tiene permiso para modificar los vínculos de proveedores.</value>
   </data>
+  <data name="MD.Pallet.Title" xml:space="preserve">
+    <value>Maestro de Pallets</value>
+  </data>
+  <data name="MD.Pallet.List" xml:space="preserve">
+    <value>Lista de pallets</value>
+  </data>
+  <data name="MD.Pallet.Empty" xml:space="preserve">
+    <value>No hay pallets registrados.</value>
+  </data>
+  <data name="MD.Pallet.Ph.Search" xml:space="preserve">
+    <value>N.º pallet/Cliente/Nota</value>
+  </data>
+  <data name="MD.Pallet.Ph.Shared" xml:space="preserve">
+    <value>Vacío = compartido</value>
+  </data>
+  <data name="MD.Pallet.Col.PalletNo" xml:space="preserve">
+    <value>N.º de pallet</value>
+  </data>
+  <data name="MD.Pallet.Col.Use" xml:space="preserve">
+    <value>Uso</value>
+  </data>
+  <data name="MD.Pallet.Col.Customer" xml:space="preserve">
+    <value>Cliente dedicado</value>
+  </data>
+  <data name="MD.Pallet.Col.Shipped" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="MD.Pallet.Col.Registered" xml:space="preserve">
+    <value>Registrado</value>
+  </data>
+  <data name="MD.Pallet.Lbl.Shared" xml:space="preserve">
+    <value>Compartido</value>
+  </data>
+  <data name="MD.Pallet.Lbl.Shipped" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="MD.Pallet.Lbl.InStock" xml:space="preserve">
+    <value>En planta</value>
+  </data>
+  <data name="MD.Pallet.Lbl.Count" xml:space="preserve">
+    <value>Cantidad</value>
+  </data>
+  <data name="MD.Pallet.Kpi.Internal" xml:space="preserve">
+    <value>Internos</value>
+  </data>
+  <data name="MD.Pallet.Kpi.Dedicated" xml:space="preserve">
+    <value>Externos · dedicados</value>
+  </data>
+  <data name="MD.Pallet.Kpi.Shared" xml:space="preserve">
+    <value>Externos · compartidos</value>
+  </data>
+  <data name="MD.Pallet.Kpi.Shipped" xml:space="preserve">
+    <value>Enviados</value>
+  </data>
+  <data name="MD.Pallet.Hint.Shipped" xml:space="preserve">
+    <value>«Enviado» se activa automáticamente con la salida de PT. Desactívelo cuando el pallet regrese.</value>
+  </data>
+  <data name="MD.Pallet.Err.UseRequired" xml:space="preserve">
+    <value>Seleccione el uso del pallet.</value>
+  </data>
+  <data name="MD.Pallet.Msg.CreatedMany" xml:space="preserve">
+    <value>{0} pallets registrados ({1} – {2})</value>
+  </data>
+  <data name="MD.Usage.Kind.PALLET" xml:space="preserve">
+    <value>Pallets</value>
+  </data>
+  <data name="MD.Usage.Kind.SHIPMENT" xml:space="preserve">
+    <value>Envíos</value>
+  </data>
+  <data name="MD.InjCond.Title" xml:space="preserve">
+    <value>Maestro de Elementos de Condición de Inyección</value>
+  </data>
+  <data name="MD.InjCond.List" xml:space="preserve">
+    <value>Lista de elementos de condición</value>
+  </data>
+  <data name="MD.InjCond.Empty" xml:space="preserve">
+    <value>No hay elementos de condición registrados.</value>
+  </data>
+  <data name="MD.InjCond.Ph.Search" xml:space="preserve">
+    <value>Código/Nombre</value>
+  </data>
+  <data name="MD.InjCond.Col.ItemCode" xml:space="preserve">
+    <value>Código</value>
+  </data>
+  <data name="MD.InjCond.Col.ItemName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="MD.InjCond.Col.SetAddress" xml:space="preserve">
+    <value>Dir. consigna</value>
+  </data>
+  <data name="MD.InjCond.Col.ActualAddress" xml:space="preserve">
+    <value>Dir. real</value>
+  </data>
+  <data name="MD.InjCond.Col.DataType" xml:space="preserve">
+    <value>Tipo de dato</value>
+  </data>
+  <data name="MD.InjCond.Col.Enabled" xml:space="preserve">
+    <value>Recolectar</value>
+  </data>
+  <data name="MD.InjCond.Lbl.Enabled" xml:space="preserve">
+    <value>Recolectar este elemento</value>
+  </data>
+  <data name="MD.InjCond.Kpi.Enabled" xml:space="preserve">
+    <value>Recolectando</value>
+  </data>
+  <data name="MD.InjCond.Kpi.Lines" xml:space="preserve">
+    <value>Líneas</value>
+  </data>
+  <data name="MD.InjCond.Hint.Keys" xml:space="preserve">
+    <value>La línea y el código identifican el historial recolectado y no se pueden cambiar. Elimine y vuelva a registrar para cambiarlos.</value>
+  </data>
+  <data name="MD.InjCond.Err.LineRequired" xml:space="preserve">
+    <value>Seleccione una línea.</value>
+  </data>
+  <data name="MD.InjCond.Err.CodeRequired" xml:space="preserve">
+    <value>Introduzca el código.</value>
+  </data>
+  <data name="MD.Pallet.Hint.AutoNo" xml:space="preserve">
+    <value>Los números de pallet se emiten automáticamente como {0} al guardar.</value>
+  </data>
 </root>

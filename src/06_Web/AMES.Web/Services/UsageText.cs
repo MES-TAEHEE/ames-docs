@@ -13,10 +13,10 @@ public static class UsageText
     static readonly string[] Order =
     [
         "LINE", "STATION", "EQUIP", "SUPERVISOR", "PATTERN", "WCDEFAULT", "OVEN", "RFID", "INJCOND", "CARD",
-        "BOM", "BOP", "MOLD", "RESIN", "MOLDITEM", "MOLDLINE", "MOUNTED", "SHOTCOUNT", "SHIPDEST", "LABEL", "QCSTD", "ITEMVENDOR", "SPARE", "FABRIC", "PORTALUSER", "WORKER",
+        "BOM", "BOP", "MOLD", "RESIN", "MOLDITEM", "MOLDLINE", "MOUNTED", "SHOTCOUNT", "SHIPDEST", "LABEL", "PALLET", "QCSTD", "ITEMVENDOR", "SPARE", "FABRIC", "PORTALUSER", "WORKER",
         "WO", "SO", "DEMAND", "FORECAST", "SHIPORDER", "LOT", "SCHEDULE", "APSLINE", "APSDEFAULT",
         "PM", "MWO", "FAILURE",
-        "STOCK", "VENDOR", "PR", "PO", "DELIVERY", "DNOTE", "DCASE",
+        "STOCK", "SHIPMENT", "VENDOR", "PR", "PO", "DELIVERY", "DNOTE", "DCASE",
     ];
 
     public static string Format(IStringLocalizer L, IEnumerable<MasterDataRepository.UsageRef> refs)

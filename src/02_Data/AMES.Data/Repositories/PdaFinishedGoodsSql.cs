@@ -83,7 +83,7 @@ public static class PdaFinishedGoodsSql
 
             SELECT N'FG' AS RECEIVE_TYPE,N'N' AS YN,W.LotNo AS LOTNO,W.LotNo AS BARCODE,
                 N'dbo.WH_Inventory' AS SOURCE_TABLE,CAST(NULL AS nvarchar(50)) AS NOTENO,
-                CAST(NULL AS nvarchar(50)) AS CASE_BARCODE,W.CaseNo AS CASE_NO,W.InvoiceNo AS INVOICE_NO,
+                CAST(NULL AS nvarchar(50)) AS CASE_BARCODE,W.PalletNo AS CASE_NO,W.InvoiceNo AS INVOICE_NO,
                 W.ParentLotNo AS CONTAINER_NO,W.PartNo AS PARTNO,COALESCE(NULLIF(W.PartName,N''),I.ItemName COLLATE DATABASE_DEFAULT) AS PARTNM,
                 W.Qty AS QTY,COALESCE(NULLIF(I.DefaultUOM,''),'EA') AS UNIT,CAST(NULL AS nvarchar(30)) AS PONO,
                 CAST(NULL AS int) AS PONO_SEQ,CAST(NULL AS nvarchar(30)) AS VENDCD,
@@ -269,10 +269,10 @@ public static class PdaFinishedGoodsSql
             SET XACT_ABORT ON;
             BEGIN TRY
                 BEGIN TRANSACTION;
-                DECLARE @UnitType varchar(10),@Now datetime2=SYSDATETIME(),@ShipmentID int;
+                DECLARE @UnitType varchar(10),@PalletNo varchar(50),@Now datetime2=SYSDATETIME(),@ShipmentID int;
                 IF NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode)
                     THROW 52000,'No inventory record exists for this barcode.',1;
-                SELECT @UnitType=UnitType FROM dbo.WH_Inventory WHERE LotNo=@Barcode;
+                SELECT @UnitType=UnitType,@PalletNo=NULLIF(LTRIM(RTRIM(PalletNo)),'') FROM dbo.WH_Inventory WHERE LotNo=@Barcode;
                 IF NULLIF(LTRIM(RTRIM(@UnitType)),'') IS NULL THROW 52003,'The inventory unit type is missing.',1;
                 IF NULLIF(LTRIM(RTRIM(@OperatorID)),'') IS NULL THROW 52014,'A signed-in operator is required.',1;
                 DECLARE @Scope TABLE(LotNo nvarchar(50) PRIMARY KEY,UnitType varchar(10),ParentLotNo nvarchar(50),
@@ -313,9 +313,12 @@ public static class PdaFinishedGoodsSql
                     THROW 52017,'Select a valid active customer from Customer Master.',1;
                 IF EXISTS(SELECT 1 FROM @Items WHERE CustomerID<>@CustomerID)
                     THROW 52019,'The selected customer does not match the production LOT customer.',1;
-                INSERT dbo.FG_Shipment(OutboundBarcode,UnitType,CustomerID,ShippedAt,ShippedBy)
-                    VALUES(@Barcode,@UnitType,@CustomerID,@Now,@OperatorID);
+                INSERT dbo.FG_Shipment(OutboundBarcode,UnitType,PalletNo,CustomerID,ShippedAt,ShippedBy)
+                    VALUES(@Barcode,@UnitType,@PalletNo,@CustomerID,@Now,@OperatorID);
                 SET @ShipmentID=CONVERT(int,SCOPE_IDENTITY());
+                IF @PalletNo IS NOT NULL
+                    UPDATE dbo.MD_Pallet SET ShippedFlag=1,ModifiedBy=LEFT(@OperatorID,20),ModifiedTS=@Now
+                    WHERE PalletNo=@PalletNo AND ShippedFlag=0;
                 INSERT dbo.WH_InventoryTransaction
                     (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
                      ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
@@ -453,7 +456,7 @@ public static class PdaFinishedGoodsSql
 
             SELECT N'FG' AS RECEIVE_TYPE,N'N' AS YN,W.LotNo AS LOTNO,W.LotNo AS BARCODE,
                 N'dbo.WH_Inventory' AS SOURCE_TABLE,CAST(NULL AS nvarchar(50)) AS NOTENO,
-                CAST(NULL AS nvarchar(50)) AS CASE_BARCODE,W.CaseNo AS CASE_NO,W.InvoiceNo AS INVOICE_NO,
+                CAST(NULL AS nvarchar(50)) AS CASE_BARCODE,W.PalletNo AS CASE_NO,W.InvoiceNo AS INVOICE_NO,
                 W.ParentLotNo AS CONTAINER_NO,W.PartNo AS PARTNO,COALESCE(NULLIF(W.PartName,N''),I.ItemName COLLATE DATABASE_DEFAULT) AS PARTNM,
                 W.Qty AS QTY,COALESCE(NULLIF(I.DefaultUOM,''),'EA') AS UNIT,CAST(NULL AS nvarchar(30)) AS PONO,
                 CAST(NULL AS int) AS PONO_SEQ,CAST(NULL AS nvarchar(30)) AS VENDCD,

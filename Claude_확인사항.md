@@ -313,12 +313,7 @@
    - `/api/mnt` 설비 목록·대시보드: 설비 상태를 고장·PM 작업지시로 계산합니다(중지 = 안돈·CRITICAL·라인 정지 고장, 예방보전 = 착수된 설비 PM — 보전 PM 제외). 열린 작업지시 수에서 「예정」 PM 작업지시는 뺍니다. 대시보드 KPI 에 `PmDueEquip`·`PmDueMaint` 가 붙습니다.
    - 작업지시 행(`MwoRow`)에 `PmClass`·`PmDueDate`·`Planned`·`TaskFail`·`PmNeedsNextDue` 가 붙습니다(뒤에 더한 필드라 기존 PDA 는 영향 없음).
    - 현재 PDA의 `/api/mnt/pda/*`는 `MntRepository`의 작업지시·완료 규칙을 이미 사용합니다. 별도 동일 기능을 만들지 않으며 서버 반영 여부만 게시본으로 확인합니다(`PdaMaintenanceEndpoints.cs`, `PdaMaintenanceRepository.cs`).
-6. **FG 신규 외래키 2개 제거 — 실제 DB 적용 승인 대기**
-   - 스키마·실출하 마이그레이션은 `FK_FG_Shipment_Customer`·`FK_FG_CustomerReturn_Shipment`를 새로 만들지 않습니다. 저장 SQL의 고객 존재·최신 출하 검증은 유지합니다.
-   - `migrate_fg_shipment_no_foreign_keys.sql`은 이 두 제약만 제거하며 테이블·컬럼·데이터는 삭제하지 않습니다. 재구축 목록에 추가했지만 실제 DB에는 실행하지 않았습니다.
-   - 재판정: FK를 두지 않는 합의(`CLAUDE.md` DB 규칙)에 맞춘 스키마 정책 정리입니다. 고객·최신 출하 검증이 이미 애플리케이션 SQL에 있으므로 이 FK가 존재한다는 사실만으로 현재 입출고 장애를 단정하지 않습니다. 문서 제안만을 근거로 실제 DB 제약을 삭제하지 않습니다.
-
-7. **PDA 일반 업무 직접 SQL 전환·구형 정의 정리 — 서버 최종 배포·통합 검증 대기**
+6. **PDA 일반 업무 직접 SQL 전환·구형 정의 정리 — 서버 최종 배포·통합 검증 대기**
    - PDA WH·FG·SP의 조회·입고·적재·출고·조정·반품·예비품 라벨 생성은 애플리케이션의 매개변수 SQL로 처리합니다. 케이스 일괄 입고의 공통 저장소도 같은 경로를 사용합니다.
    - 사용자가 API 게시본을 교체했고 응답을 확인했습니다. 서버에 어느 수정까지 설치됐는지는 DLL 버전·해시를 아직 대조하지 않았으므로 추가 교체가 필요하다고 단정하지 않습니다. `/api/health`의 `ok`는 접속·DB 확인이지 최신 커밋 확인이 아닙니다. 웹의 공통 케이스 입고 경로도 설치된 AMES.Data를 확인한 뒤 필요한 게시본만 교체합니다. API 응답 형식은 유지했습니다.
    - 개발용 테스트 초기화 프로시저, SYS 공장 달력·SQL Server 잠금 기능은 변경하지 않았습니다. 기존 DB 프로시저 삭제·재구축은 하지 않았습니다.
@@ -328,6 +323,10 @@
    - BOX-56 취소·재입고의 누적 입고량 오차는 사용자 승인으로 PoID 522·DeliveryLineID 30만 175→170 보정하고 감사 기록을 남겼습니다. 재고·재고 거래 이력은 변경하지 않았습니다.
    - 10-16 예비품 연동 추가 후 SQL 27개 컴파일(NOEXEC), 열린 작업지시 목록 읽기, API 214건·관련 Data 47건·SP 소스 검증과 API/PDA 빌드를 확인했습니다. 이는 개발 코드의 검증이며 서버 최신 배포나 재고 쓰기 통합 검증을 대신하지 않습니다. FG 반품·동시 PDA 쓰기 검증은 남아 있습니다.
    - (10-16 재대조) Api 의 프로시저 실행은 테스트 초기화(`*_TEST_RESET`)만 남았지만 메타데이터 의존까지 없어진 것은 아닙니다. 케이스 입고(`ScmDeliveryCases.cs`의 `ReceiveDeliveryCase`)와 WH 입고 예정 조회가 아직 구 프로시저 매개변수를 형식 태그로 씁니다 — 프로시저를 지우기 전에 문제점 1을 확인해야 합니다.
+7. **[알림·코드 반영] `WH_Inventory.CaseNo` → `PalletNo` 이름 변경과 `FG_Shipment.PalletNo` 추가 — 개발서버 Web·Api 게시 대기**(10-17 이승욱, 사용자 요청 — MD-034 팔레트 마스터)
+   - 컬럼 이름만 바꿨고 값·위치는 그대로입니다. 고친 곳: `PdaWarehouseSql`(재고 검색·`CASE_NO`/`CASE_BARCODE` 조회 2곳·포탈 박스 입고의 `PalletNo=NULL`), `PdaFinishedGoodsSql`(조회 2곳 — 응답 필드 이름은 그대로), `ScmDeliveryCases`(케이스 박스 연결 `PalletNo=@Case`, 형식 태그는 `SCM_DeliveryBox.CaseNo` 로), 테스트 2개, `tools/check_wh_line_replenishment.cs`, `dist/pda/PDA_SCHEMA.sql`(퇴역 스크립트 — `WH_Inventory.PalletNo` 를 지우던 블록 삭제). DB 의 옛 프로시저 4개(`FG_PDA_OUTBOUND_TEST_RESET`·`WH_PDA_TRANSACTION_LIST`·`WH_PDA_ADJUST_SCAN_STOCK`·`FG_PDA_ADJUST_SCAN_STOCK`)는 `migrate_md_pallet.sql` 이 고칩니다.
+   - FG 출고(`OutboundComplete`)는 출고 바코드 재고 행의 `PalletNo` 를 `FG_Shipment.PalletNo` 에 남기고 `MD_Pallet.ShippedFlag` 를 켭니다. 검사는 더하지 않았습니다.
+   - `FG_Shipment` 를 컬럼 순서 때문에 다시 만들므로 `migrate_fg_shipment_no_foreign_keys.sql`(FG 신규 FK 2개 제거)을 먼저 적용합니다. **10-17 사용자 지시로 두 마이그레이션을 개발·로컬 DB 에 모두 적용했습니다**(두 DB 구조 동일 — 남은 차이는 2-5 의 3 `FG_CustomerReturn.PartName` 위치뿐). 개발서버의 Web·Api 를 새 게시본(`publish/AMES.Web_20261017-030232.zip`·`AMES.Api_20261017-030348.zip` 이후)으로 바꾸기 전까지는 서버의 구 Api·Web 이 PDA 입고·재고 조회·SCM 케이스 처리에서 `Invalid column name 'CaseNo'` 로 실패합니다.
 
 ### 2-2. 보류 (4)
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.

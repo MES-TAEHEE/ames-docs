@@ -40,7 +40,7 @@ public class WarehouseColumnReviewTests
     [Theory]
     [InlineData("WH_Inventory","PartNo",20)]
     [InlineData("WH_Inventory","LocationNo",20)]
-    [InlineData("WH_Inventory","CaseNo",50)]
+    [InlineData("WH_Inventory","PalletNo",50)]
     [InlineData("WH_Inventory","DeliveryNoteNo",30)]
     [InlineData("WH_InventoryTransaction","PartNo",20)]
     [InlineData("WH_InventoryTransaction","LocationNo",20)]

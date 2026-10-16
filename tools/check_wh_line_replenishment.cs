@@ -53,7 +53,7 @@ try
         CREATE TABLE MD_CodeItem(GroupCode varchar(30),CodeValue varchar(30),UseFlag bit);
         CREATE TABLE WH_Inventory(LotNo nvarchar(50) PRIMARY KEY,UnitType varchar(10),ParentLotNo nvarchar(50),PartNo varchar(50),PartName nvarchar(200),
             LocationNo varchar(50),Qty decimal(18,3),ReceivedAt datetime2 DEFAULT SYSDATETIME(),CreatedAt datetime2 DEFAULT SYSDATETIME(),UpdatedAt datetime2,
-            CaseNo nvarchar(50),InvoiceNo nvarchar(50),DeliveryNoteNo nvarchar(30));
+            PalletNo nvarchar(50),InvoiceNo nvarchar(50),DeliveryNoteNo nvarchar(30));
         CREATE TABLE WH_PickSlip(PickSlipID int IDENTITY PRIMARY KEY,PickSlipNo nvarchar(40) COLLATE Korean_Wansung_CI_AS,
             ReqLocation nvarchar(40) COLLATE Korean_Wansung_CI_AS,ReqSeqNo int,ReqUserId nvarchar(80),ItemNo varchar(20) COLLATE Korean_Wansung_CI_AS,
             DemandQty decimal(14,3),PickedQty decimal(14,3),RequiredAt datetime2,Priority tinyint,Status varchar(20),CreatedBy varchar(20),CreatedTS datetime2,

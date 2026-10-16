@@ -11312,4 +11312,124 @@
   <data name="SCM.PurchaseItems.Err.NoPermission" xml:space="preserve">
     <value>You no longer have permission to change supplier mappings.</value>
   </data>
+  <data name="MD.Pallet.Title" xml:space="preserve">
+    <value>Pallet Master</value>
+  </data>
+  <data name="MD.Pallet.List" xml:space="preserve">
+    <value>Pallet List</value>
+  </data>
+  <data name="MD.Pallet.Empty" xml:space="preserve">
+    <value>No pallets registered.</value>
+  </data>
+  <data name="MD.Pallet.Ph.Search" xml:space="preserve">
+    <value>Pallet No/Customer/Note</value>
+  </data>
+  <data name="MD.Pallet.Ph.Shared" xml:space="preserve">
+    <value>Blank = shared</value>
+  </data>
+  <data name="MD.Pallet.Col.PalletNo" xml:space="preserve">
+    <value>Pallet No.</value>
+  </data>
+  <data name="MD.Pallet.Col.Use" xml:space="preserve">
+    <value>Use</value>
+  </data>
+  <data name="MD.Pallet.Col.Customer" xml:space="preserve">
+    <value>Dedicated Customer</value>
+  </data>
+  <data name="MD.Pallet.Col.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="MD.Pallet.Col.Registered" xml:space="preserve">
+    <value>Registered</value>
+  </data>
+  <data name="MD.Pallet.Lbl.Shared" xml:space="preserve">
+    <value>Shared</value>
+  </data>
+  <data name="MD.Pallet.Lbl.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="MD.Pallet.Lbl.InStock" xml:space="preserve">
+    <value>In plant</value>
+  </data>
+  <data name="MD.Pallet.Lbl.Count" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="MD.Pallet.Kpi.Internal" xml:space="preserve">
+    <value>Internal</value>
+  </data>
+  <data name="MD.Pallet.Kpi.Dedicated" xml:space="preserve">
+    <value>External · Dedicated</value>
+  </data>
+  <data name="MD.Pallet.Kpi.Shared" xml:space="preserve">
+    <value>External · Shared</value>
+  </data>
+  <data name="MD.Pallet.Kpi.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
+  <data name="MD.Pallet.Hint.Shipped" xml:space="preserve">
+    <value>Shipped is turned on automatically by FG outbound. Turn it off when the pallet comes back.</value>
+  </data>
+  <data name="MD.Pallet.Err.UseRequired" xml:space="preserve">
+    <value>Select the pallet use.</value>
+  </data>
+  <data name="MD.Pallet.Msg.CreatedMany" xml:space="preserve">
+    <value>{0} pallets registered ({1} – {2})</value>
+  </data>
+  <data name="MD.Usage.Kind.PALLET" xml:space="preserve">
+    <value>Pallets</value>
+  </data>
+  <data name="MD.Usage.Kind.SHIPMENT" xml:space="preserve">
+    <value>Shipments</value>
+  </data>
+  <data name="MD.InjCond.Title" xml:space="preserve">
+    <value>Injection Condition Item Master</value>
+  </data>
+  <data name="MD.InjCond.List" xml:space="preserve">
+    <value>Condition Item List</value>
+  </data>
+  <data name="MD.InjCond.Empty" xml:space="preserve">
+    <value>No injection condition items registered.</value>
+  </data>
+  <data name="MD.InjCond.Ph.Search" xml:space="preserve">
+    <value>Item Code/Item Name</value>
+  </data>
+  <data name="MD.InjCond.Col.ItemCode" xml:space="preserve">
+    <value>Item Code</value>
+  </data>
+  <data name="MD.InjCond.Col.ItemName" xml:space="preserve">
+    <value>Item Name</value>
+  </data>
+  <data name="MD.InjCond.Col.SetAddress" xml:space="preserve">
+    <value>Set Address</value>
+  </data>
+  <data name="MD.InjCond.Col.ActualAddress" xml:space="preserve">
+    <value>Actual Address</value>
+  </data>
+  <data name="MD.InjCond.Col.DataType" xml:space="preserve">
+    <value>Data Type</value>
+  </data>
+  <data name="MD.InjCond.Col.Enabled" xml:space="preserve">
+    <value>Collect</value>
+  </data>
+  <data name="MD.InjCond.Lbl.Enabled" xml:space="preserve">
+    <value>Collect this item</value>
+  </data>
+  <data name="MD.InjCond.Kpi.Enabled" xml:space="preserve">
+    <value>Collecting</value>
+  </data>
+  <data name="MD.InjCond.Kpi.Lines" xml:space="preserve">
+    <value>Lines</value>
+  </data>
+  <data name="MD.InjCond.Hint.Keys" xml:space="preserve">
+    <value>Line and item code identify the collected history and cannot be changed. Delete and register again to change them.</value>
+  </data>
+  <data name="MD.InjCond.Err.LineRequired" xml:space="preserve">
+    <value>Select a line.</value>
+  </data>
+  <data name="MD.InjCond.Err.CodeRequired" xml:space="preserve">
+    <value>Enter the item code.</value>
+  </data>
+  <data name="MD.Pallet.Hint.AutoNo" xml:space="preserve">
+    <value>Pallet numbers are issued automatically as {0} when saved.</value>
+  </data>
 </root>

@@ -464,10 +464,11 @@ public sealed class MasterDataRepository
     public sealed record UsageRef(string Kind, int Count, string? Samples);
 
     // 삭제 확인창을 띄우기 전에 사용처만 본다 — 실제 삭제는 DeleteIfUnused 가 같은 SQL 로 다시 검사한다
-    List<UsageRef> UsagesOf(string collectSql, string key) => DeleteIfUnused(collectSql, "", key, checkOnly: true);
+    List<UsageRef> UsagesOf(string collectSql, string key, int keyLength = 20)
+        => DeleteIfUnused(collectSql, "", key, checkOnly: true, keyLength: keyLength);
 
     // 키 행을 잠근 채 사용처(@r: K = 종류, R = 식별값)를 모아 없으면 지운다. 한 트랜잭션이라 검사와 삭제 사이에 새 사용처가 끼지 않는다
-    List<UsageRef> DeleteIfUnused(string collectSql, string deleteSql, string key, bool checkOnly = false)
+    List<UsageRef> DeleteIfUnused(string collectSql, string deleteSql, string key, bool checkOnly = false, int keyLength = 20)
     {
         var sql = $"""
             SET NOCOUNT ON;
@@ -487,7 +488,7 @@ public sealed class MasterDataRepository
         var refs = new List<UsageRef>();
         using (var cmd = new SqlCommand(sql, conn, tx))
         {
-            cmd.Parameters.Add("@K", SqlDbType.VarChar, 20).Value = key;
+            cmd.Parameters.Add("@K", SqlDbType.VarChar, keyLength).Value = key;
             using var r = cmd.ExecuteReader();
             while (r.Read()) refs.Add(new((string)r["K"], (int)r["Cnt"], r["Samples"] as string));
         }
@@ -1302,7 +1303,7 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    // 사용처 = 수주·일별 구매계획·예측·출하지·라벨 양식·출하 지시·검사 기준(고객 코드)·PO/일별 계획 수집 소스(공통코드 Attribute1).
+    // 사용처 = 수주·일별 구매계획·예측·출하지·라벨 양식·출하 지시·전용 팔레트·검사 기준(고객 코드)·PO/일별 계획 수집 소스(공통코드 Attribute1).
     // APS 실행의 고객 필터·업로드 배치 같은 이력은 보지 않는다
     const string CustomerUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_Customer WITH (UPDLOCK, HOLDLOCK) WHERE CustomerID = @K) RETURN;
@@ -1313,6 +1314,7 @@ public sealed class MasterDataRepository
         INSERT @r SELECT 'SHIPDEST', ShipDestID FROM dbo.MD_ShipmentDest WHERE CustomerID = @K;
         INSERT @r SELECT 'LABEL', LabelTemplateID FROM dbo.MD_LabelTemplate WHERE CustomerID = @K;
         INSERT @r SELECT 'SHIPMENT', OutboundBarcode FROM dbo.FG_Shipment WHERE CustomerID = @K;
+        INSERT @r SELECT 'PALLET', PalletNo FROM dbo.MD_Pallet WHERE CustomerID = @K;
         INSERT @r SELECT 'QCSTD', StdCode + ISNULL(' ' + VerNo, '') FROM dbo.QC_InspectionStd WHERE @Code IS NOT NULL AND CustomerCode = @Code;
         INSERT @r SELECT 'WORKER', GroupCode + ':' + CodeValue FROM dbo.MD_CodeItem
             WHERE GroupCode IN ('SW_POSYNC_SOURCE', 'SW_DPSYNC_SOURCE') AND Attribute1 = @K;
@@ -4990,4 +4992,170 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = recipeId;
         cmd.ExecuteNonQuery();
     }
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  MD_Pallet (MD-034)                                              ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    public const string PalletInternal = "INTERNAL";
+    public const string PalletExternal = "EXTERNAL";
+    public const int    PalletBatchMax = 500;
+
+    public sealed record PalletRow(
+        string PalletNo, string PalletUse, string? CustomerID, string? CustomerName,
+        bool ShippedFlag, string? Remark, bool ActiveFlag,
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+
+    /// <summary>전용 고객은 외부용 팔레트만 가진다 — 내부용이면 비운다(빈 값 = 공용).</summary>
+    public static string? NormalizePalletCustomer(string? palletUse, string? customerId)
+        => palletUse == PalletExternal && !string.IsNullOrWhiteSpace(customerId) ? customerId.Trim() : null;
+
+    public List<PalletRow> ListPallets()
+        => Query("""
+            SELECT p.PalletNo, p.PalletUse, p.CustomerID, c.CustomerName, p.ShippedFlag, p.Remark, p.ActiveFlag,
+                   p.CreatedBy, p.CreatedTS, p.ModifiedBy, p.ModifiedTS
+            FROM   dbo.MD_Pallet p
+            LEFT JOIN dbo.MD_Customer c ON c.CustomerID = p.CustomerID
+            ORDER  BY p.PalletNo DESC;
+            """,
+            r => new PalletRow(
+                (string)r["PalletNo"], (string)r["PalletUse"], r["CustomerID"] as string, r["CustomerName"] as string,
+                (bool)r["ShippedFlag"], r["Remark"] as string, (bool)r["ActiveFlag"],
+                r["CreatedBy"] as string, r["CreatedTS"] as DateTime?, r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?));
+
+    /// <summary>팔레트 번호 접두어 — EOS-PLT-yyMM-(DB 날짜 기준 그 달)</summary>
+    public static string PalletNoPrefix(DateTime day) => $"EOS-PLT-{day:yyMM}-";
+
+    /// <summary>
+    /// 팔레트를 <paramref name="count"/> 개 등록하고 만든 번호를 돌려준다. 번호는 손으로 넣지 않고 항상 EOS-PLT-yyMM-nnnn 으로
+    /// 발행한다(사용자 결정) — 그 달 범위를 잠그고 최대 순번 다음부터라 동시 등록이 같은 번호를 받지 않는다.
+    /// </summary>
+    public List<string> InsertPallets(int count, string palletUse, string? customerId,
+        string? remark, bool activeFlag, string createdBy)
+    {
+        if (count < 1 || count > PalletBatchMax) throw new ArgumentOutOfRangeException(nameof(count));
+        customerId = NormalizePalletCustomer(palletUse, customerId);
+
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        var numbers = new List<string>();
+        var prefix  = PalletNoPrefix(DbClock.Today);
+        using (var seq = new SqlCommand("""
+            SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(PalletNo, LEN(@P) + 1, 10) AS int)), 0)
+            FROM   dbo.MD_Pallet WITH (UPDLOCK, HOLDLOCK) WHERE PalletNo LIKE @P + '%';
+            """, conn, tx))
+        {
+            ColumnParams.AddFilter(seq, "@P", "MD_Pallet.PalletNo", prefix);
+            var last = Convert.ToInt32(seq.ExecuteScalar());
+            if (last + count > 9999) throw new InvalidOperationException($"No pallet numbers left after {prefix}9999 this month.");
+            for (var i = 1; i <= count; i++) numbers.Add($"{prefix}{last + i:D4}");
+        }
+        foreach (var no in numbers)
+        {
+            using var cmd = new SqlCommand("""
+                INSERT dbo.MD_Pallet (PalletNo, PalletUse, CustomerID, ShippedFlag, Remark, ActiveFlag, CreatedBy, CreatedTS)
+                VALUES (@N, @U, @C, 0, @R, @A, @By, SYSDATETIME());
+                """, conn, tx);
+            ColumnParams.Add(cmd, "@N",  "MD_Pallet.PalletNo",   no);
+            ColumnParams.Add(cmd, "@U",  "MD_Pallet.PalletUse",  palletUse);
+            ColumnParams.Add(cmd, "@C",  "MD_Pallet.CustomerID", customerId);
+            ColumnParams.Add(cmd, "@R",  "MD_Pallet.Remark",     remark);
+            ColumnParams.Add(cmd, "@A",  "MD_Pallet.ActiveFlag", activeFlag);
+            ColumnParams.Add(cmd, "@By", "MD_Pallet.CreatedBy",  createdBy);
+            cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
+        return numbers;
+    }
+
+    public void UpdatePallet(string palletNo, string palletUse, string? customerId, bool shippedFlag,
+        string? remark, bool activeFlag, string modifiedBy)
+        => Exec("""
+            UPDATE dbo.MD_Pallet SET PalletUse = @U, CustomerID = @C, ShippedFlag = @S, Remark = @R, ActiveFlag = @A,
+                   ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE  PalletNo = @N;
+            """,
+            ("@N",  "MD_Pallet.PalletNo",    palletNo),
+            ("@U",  "MD_Pallet.PalletUse",   palletUse),
+            ("@C",  "MD_Pallet.CustomerID",  NormalizePalletCustomer(palletUse, customerId)),
+            ("@S",  "MD_Pallet.ShippedFlag", shippedFlag),
+            ("@R",  "MD_Pallet.Remark",      remark),
+            ("@A",  "MD_Pallet.ActiveFlag",  activeFlag),
+            ("@By", "MD_Pallet.ModifiedBy",  modifiedBy));
+
+    // 사용처 = 수량이 남은 재고 행·출고 기록. 출고된 적이 있으면 지우지 않고 「사용 안 함」으로 돌린다
+    const string PalletUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Pallet WITH (UPDLOCK, HOLDLOCK) WHERE PalletNo = @K) RETURN;
+        INSERT @r SELECT 'LOT', LotNo FROM dbo.WH_Inventory WHERE PalletNo = @K AND Qty <> 0;
+        INSERT @r SELECT 'SHIPMENT', OutboundBarcode FROM dbo.FG_Shipment WHERE PalletNo = @K;
+        """;
+
+    public List<UsageRef> PalletUsages(string palletNo) => UsagesOf(PalletUsageSql, palletNo, 50);
+
+    /// <summary>사용처가 없을 때만 지우고 빈 목록, 있으면 지우지 않고 그 목록.</summary>
+    public List<UsageRef> DeletePallet(string palletNo)
+        => DeleteIfUnused(PalletUsageSql, "DELETE dbo.MD_Pallet WHERE PalletNo = @K;", palletNo, keyLength: 50);
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  MD_InjCondItem (MD-035) — 사출 조건 항목(InjAgent 가 라인별로 읽는 PLC 주소)   ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    /// <summary>InjAgent(MachinePoller)가 아는 값 형식 — FLOAT 이 아니면 LONG 으로 읽는다.</summary>
+    public static readonly string[] InjCondDataTypes = ["LONG", "FLOAT"];
+
+    public sealed record InjCondItemRow(
+        int CondItemID, string LineID, string ItemCode, string? ItemName,
+        int? SetAddress, int? ActualAddress, string DataType, bool Enabled,
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+
+    public List<InjCondItemRow> ListInjCondItems()
+        => Query($"""
+            SELECT CondItemID, LineID, ItemCode, ItemName, SetAddress, ActualAddress, DataType, Enabled,
+                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+            FROM   dbo.MD_InjCondItem
+            ORDER  BY {LineOrder.RankSql("LineID")}, LineID, ItemCode;
+            """,
+            r => new InjCondItemRow(
+                (int)r["CondItemID"], (string)r["LineID"], (string)r["ItemCode"], r["ItemName"] as string,
+                r["SetAddress"] as int?, r["ActualAddress"] as int?, (string)r["DataType"], (bool)r["Enabled"],
+                r["CreatedBy"] as string, r["CreatedTS"] as DateTime?, r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?));
+
+    public bool InjCondItemExists(string lineId, string itemCode)
+        => Query("SELECT 1 AS X FROM dbo.MD_InjCondItem WHERE LineID = @L AND ItemCode = @C;", r => 1,
+            ("@L", "MD_InjCondItem.LineID", lineId), ("@C", "MD_InjCondItem.ItemCode", itemCode.Trim())).Count > 0;
+
+    public void InsertInjCondItem(string lineId, string itemCode, string? itemName, int? setAddress, int? actualAddress,
+        string dataType, bool enabled, string createdBy)
+        => Exec("""
+            INSERT dbo.MD_InjCondItem (LineID, ItemCode, ItemName, SetAddress, ActualAddress, DataType, Enabled, CreatedBy, CreatedTS)
+            VALUES (@L, @C, @Nm, @S, @A, @T, @E, @By, SYSDATETIME());
+            """,
+            ("@L",  "MD_InjCondItem.LineID",        lineId),
+            ("@C",  "MD_InjCondItem.ItemCode",      itemCode.Trim()),
+            ("@Nm", "MD_InjCondItem.ItemName",      itemName),
+            ("@S",  "MD_InjCondItem.SetAddress",    setAddress),
+            ("@A",  "MD_InjCondItem.ActualAddress", actualAddress),
+            ("@T",  "MD_InjCondItem.DataType",      dataType),
+            ("@E",  "MD_InjCondItem.Enabled",       enabled),
+            ("@By", "MD_InjCondItem.CreatedBy",     createdBy));
+
+    // 라인·항목 코드는 키라 바꾸지 않는다 — 샷별 이력(PR_InjCondLog)이 이 두 값으로 남는다
+    public void UpdateInjCondItem(int condItemId, string? itemName, int? setAddress, int? actualAddress,
+        string dataType, bool enabled, string modifiedBy)
+        => Exec("""
+            UPDATE dbo.MD_InjCondItem SET ItemName = @Nm, SetAddress = @S, ActualAddress = @A, DataType = @T, Enabled = @E,
+                   ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            WHERE  CondItemID = @Id;
+            """,
+            ("@Id", "MD_InjCondItem.CondItemID",    condItemId),
+            ("@Nm", "MD_InjCondItem.ItemName",      itemName),
+            ("@S",  "MD_InjCondItem.SetAddress",    setAddress),
+            ("@A",  "MD_InjCondItem.ActualAddress", actualAddress),
+            ("@T",  "MD_InjCondItem.DataType",      dataType),
+            ("@E",  "MD_InjCondItem.Enabled",       enabled),
+            ("@By", "MD_InjCondItem.ModifiedBy",    modifiedBy));
+
+    // 수집 이력(PR_InjCondLog)은 이력이라 남긴다 — 다시 수집하려면 같은 라인·코드로 다시 등록한다
+    public void DeleteInjCondItem(int condItemId)
+        => Exec("DELETE dbo.MD_InjCondItem WHERE CondItemID = @Id;", ("@Id", "MD_InjCondItem.CondItemID", condItemId));
 }

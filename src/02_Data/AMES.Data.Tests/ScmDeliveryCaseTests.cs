@@ -96,7 +96,7 @@ public sealed class ScmDeliveryCaseTests
                 CREATE TABLE MD_Location(LocationID varchar(50),ActiveFlag bit,LocationType varchar(20),Capacity decimal(18,3),AreaCode varchar(20));
                 CREATE TABLE MD_CodeItem(GroupCode varchar(30),CodeValue varchar(30),UseFlag bit);
                 INSERT MD_CodeItem VALUES('INV_ADJUST_REASON','COUNT_DIFF',1);
-                CREATE TABLE WH_Inventory(LotNo nvarchar(50) PRIMARY KEY,UnitType varchar(10),ParentLotNo nvarchar(50),CaseNo varchar(50),PartNo varchar(50),PartName nvarchar(200),
+                CREATE TABLE WH_Inventory(LotNo nvarchar(50) PRIMARY KEY,UnitType varchar(10),ParentLotNo nvarchar(50),PalletNo varchar(50),PartNo varchar(50),PartName nvarchar(200),
                     Qty decimal(18,3),LocationNo varchar(50),InvoiceNo nvarchar(100),DeliveryNoteNo nvarchar(60),ReceivedAt datetime2,CreatedAt datetime2,UpdatedAt datetime2);
                 CREATE TABLE WH_InventoryTransaction(TransactionID bigint IDENTITY PRIMARY KEY,TransactionTime datetime2 DEFAULT SYSDATETIME(),
                     TransactionType varchar(10),PartNo varchar(50),LocationNo varchar(50),LotNo nvarchar(50),QtyBefore decimal(18,3),QtyChange decimal(18,3),QtyAfter decimal(18,3),
@@ -262,7 +262,7 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(note.Number,Assert.Single(repo.ListNoteDeliveries("case-user"),x=>x.Number==delivery).NoteNumber);
             Assert.Equal(3,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
             Assert.Equal(0,Count($"SELECT Qty FROM WH_Inventory WHERE LotNo='{first}'"));
-            Assert.Equal(2,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE ParentLotNo='{first}' AND CaseNo='{first}'"));
+            Assert.Equal(2,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE ParentLotNo='{first}' AND PalletNo='{first}'"));
             Sql($"UPDATE WH_Inventory SET Qty=(SELECT Quantity FROM SCM_DeliveryBox WHERE BoxNumber='{box}') WHERE LotNo='{box}';");
             var originalBoxQty=Count($"SELECT Qty FROM WH_Inventory WHERE LotNo='{box}'");
             Assert.True(originalBoxQty>1);

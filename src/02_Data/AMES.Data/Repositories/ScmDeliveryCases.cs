@@ -171,7 +171,7 @@ public sealed partial class ScmRepository
                 THROW 51441,'Only unassigned cases can be cancelled.',1;
             UPDATE dbo.SCM_DeliveryBox SET ActiveFlag=0,VoidedTS=SYSDATETIME() WHERE CaseNo=@N AND ActiveFlag=1;
             """,c,tx);
-        Filter(cmd,("@N", "WH_Inventory.CaseNo",number),("@U", "SCM_PortalVendorUser.UserID",userId));cmd.ExecuteNonQuery();tx.Commit();
+        Filter(cmd,("@N", "SCM_DeliveryBox.CaseNo",number),("@U", "SCM_PortalVendorUser.UserID",userId));cmd.ExecuteNonQuery();tx.Commit();
     }
 
     public List<DeliveryCase> ListDeliveryCases(string? order,string userId,string? note=null,string? delivery=null)
@@ -411,7 +411,7 @@ public sealed partial class ScmRepository
                 WHERE w.LotNo COLLATE DATABASE_DEFAULT=b.BoxNumber COLLATE DATABASE_DEFAULT)
             ORDER BY b.BoxID;
             """,c,tx);
-        Filter(select,("@N", "WH_Inventory.CaseNo",caseNo));var boxes=new List<string>();
+        Filter(select,("@N", "SCM_DeliveryBox.CaseNo",caseNo));var boxes=new List<string>();
         var scanned = new HashSet<string>(scannedBoxes ?? [], StringComparer.OrdinalIgnoreCase);
         using(var r=select.ExecuteReader())while(r.Read())
         {
@@ -443,7 +443,7 @@ public sealed partial class ScmRepository
             IF NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Case)
                 INSERT dbo.WH_Inventory(LotNo,UnitType,PartNo,PartName,Qty,DeliveryNoteNo,ReceivedAt,CreatedAt,UpdatedAt)
                 VALUES(@Case,'CASE',NULL,NULL,0,@Note,SYSDATETIME(),SYSDATETIME(),SYSDATETIME());
-            UPDATE dbo.WH_Inventory SET UnitType='BOX',ParentLotNo=@Case,CaseNo=@Case,UpdatedAt=SYSDATETIME()
+            UPDATE dbo.WH_Inventory SET UnitType='BOX',ParentLotNo=@Case,PalletNo=@Case,UpdatedAt=SYSDATETIME()
             WHERE LotNo=@B;
             """,c,tx);
         Filter(cmd,("@B", "WH_Inventory.LotNo",barcode));cmd.ExecuteNonQuery();

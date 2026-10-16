@@ -139,6 +139,8 @@ public sealed class MenuCatalog
         new("md", "md/ql/common-code",         "MD-030", "코드 기준정보 관리",     "Common Code Master"),
         new("md", "md/fd/workers",             "MD-032", "현장 작업자 관리",       "Worker Master"),
         new("md", "md/fd/line-supervisors",    "MD-033", "라인 책임자 관리",    "Line Supervisor Master"),
+        new("md", "md/ql/pallet",              "MD-034", "팔레트 관리",           "Pallet Master"),
+        new("md", "md/rp/inj-cond-item",       "MD-035", "사출 조건 항목 관리",    "Injection Condition Item Master"),
 
         // ── SYS ──
         new("sys", "sys/users",         "SYS-001", "사용자 관리",         "User Management"),
@@ -353,6 +355,8 @@ public sealed class MenuCatalog
         ["md/re/spare-part"] = "Maestro de Repuestos",
         ["md/rp/pm-template"] = "Maestro de Plantillas PM",
         ["md/rp/line-time-pattern"] = "Maestro de Patrones de Tiempo de Línea",
+        ["md/rp/inj-cond-item"] = "Maestro de Elementos de Condición de Inyección",
+        ["md/ql/pallet"] = "Maestro de Pallets",
         ["md/ql/recipe"] = "Maestro de Recetas",
         ["md/ql/common-code"] = "Maestro de Códigos Comunes",
         // SYS

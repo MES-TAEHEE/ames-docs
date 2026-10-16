@@ -174,14 +174,14 @@ BEGIN
     IF EXISTS (SELECT 1 FROM dbo.WH_Inventory WHERE LotNo = N'FGPAL-DEMO-001')
         UPDATE dbo.WH_Inventory
            SET UnitType = 'PALLET', ParentLotNo = NULL, PartNo = NULL, PartName = NULL,
-               CaseNo = NULL,
+               PalletNo = NULL,
                LocationNo = N'FG-A01-01', Qty = 60,
                InvoiceNo = N'INV-FG-DEMO-001', DeliveryNoteNo = N'DN-FG-DEMO-001',
                ReceivedAt = DATEADD(day, -1, SYSDATETIME()), UpdatedAt = SYSDATETIME()
          WHERE LotNo = N'FGPAL-DEMO-001';
     ELSE
         INSERT dbo.WH_Inventory
-            (LotNo, UnitType, ParentLotNo, PartNo, PartName, CaseNo,
+            (LotNo, UnitType, ParentLotNo, PartNo, PartName, PalletNo,
              LocationNo, Qty, InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
         VALUES
             (N'FGPAL-DEMO-001', 'PALLET', NULL, NULL, NULL, NULL,
@@ -192,14 +192,14 @@ BEGIN
         UPDATE dbo.WH_Inventory
            SET UnitType = 'PART', ParentLotNo = N'FGPAL-DEMO-001',
                PartNo = N'81710-PI010NNB', PartName = N'TRIM ASSY-TAIL GATE SIDE,LH',
-               CaseNo = NULL,
+               PalletNo = NULL,
                LocationNo = N'FG-A01-01', Qty = 40,
                InvoiceNo = N'INV-FG-DEMO-001', DeliveryNoteNo = N'DN-FG-DEMO-001',
                ReceivedAt = DATEADD(day, -1, SYSDATETIME()), UpdatedAt = SYSDATETIME()
          WHERE LotNo = N'FGLOT-DEMO-001-A';
     ELSE
         INSERT dbo.WH_Inventory
-            (LotNo, UnitType, ParentLotNo, PartNo, PartName, CaseNo,
+            (LotNo, UnitType, ParentLotNo, PartNo, PartName, PalletNo,
              LocationNo, Qty, InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
         VALUES
             (N'FGLOT-DEMO-001-A', 'PART', N'FGPAL-DEMO-001', N'81710-PI010NNB',
@@ -211,14 +211,14 @@ BEGIN
         UPDATE dbo.WH_Inventory
            SET UnitType = 'PART', ParentLotNo = N'FGPAL-DEMO-001',
                PartNo = N'81710-PI000YGN', PartName = N'TRIM ASSY-TAIL GATE SIDE,RH',
-               CaseNo = NULL,
+               PalletNo = NULL,
                LocationNo = N'FG-A01-01', Qty = 20,
                InvoiceNo = N'INV-FG-DEMO-001', DeliveryNoteNo = N'DN-FG-DEMO-001',
                ReceivedAt = DATEADD(day, -1, SYSDATETIME()), UpdatedAt = SYSDATETIME()
          WHERE LotNo = N'FGLOT-DEMO-001-B';
     ELSE
         INSERT dbo.WH_Inventory
-            (LotNo, UnitType, ParentLotNo, PartNo, PartName, CaseNo,
+            (LotNo, UnitType, ParentLotNo, PartNo, PartName, PalletNo,
              LocationNo, Qty, InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
         VALUES
             (N'FGLOT-DEMO-001-B', 'PART', N'FGPAL-DEMO-001', N'81710-PI000YGN',
@@ -230,13 +230,13 @@ BEGIN
         UPDATE dbo.WH_Inventory
            SET UnitType = 'PART', ParentLotNo = NULL,
                PartNo = N'85710-NQ500NNB', PartName = N'FRT U/TRIM LARGE PART',
-               CaseNo = NULL, LocationNo = N'FG-A02-01', Qty = 1,
+               PalletNo = NULL, LocationNo = N'FG-A02-01', Qty = 1,
                InvoiceNo = N'INV-FG-DEMO-002', DeliveryNoteNo = N'DN-FG-DEMO-002',
                ReceivedAt = DATEADD(day, -1, SYSDATETIME()), UpdatedAt = SYSDATETIME()
          WHERE LotNo = N'FGPART-DEMO-001';
     ELSE
         INSERT dbo.WH_Inventory
-            (LotNo, UnitType, ParentLotNo, PartNo, PartName, CaseNo,
+            (LotNo, UnitType, ParentLotNo, PartNo, PartName, PalletNo,
              LocationNo, Qty, InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
         VALUES
             (N'FGPART-DEMO-001', 'PART', NULL, N'85710-NQ500NNB', N'FRT U/TRIM LARGE PART', NULL,
@@ -1678,23 +1678,19 @@ BEGIN
     MERGE dbo.WH_Inventory AS Target
     USING SourceRows AS Source ON Target.LotNo = Source.LotNo
     WHEN MATCHED AND Source.Qty > 0 AND Source.InventoryStatus NOT IN ('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED') THEN
-        UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,CaseNo=Source.CaseNo,
+        UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,PalletNo=Source.CaseNo,
                    LocationNo=Source.LocationNo,Qty=Source.Qty,
                    InvoiceNo=Source.InvoiceNo,ReceivedAt=Source.ReceivedAt,UpdatedAt=Source.UpdatedAt
     WHEN NOT MATCHED AND Source.Qty > 0 AND Source.InventoryStatus NOT IN ('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED') THEN
-        INSERT (LotNo,UnitType,PartNo,PartName,CaseNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
+        INSERT (LotNo,UnitType,PartNo,PartName,PalletNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
         VALUES (Source.LotNo,'PART',Source.PartNo,Source.PartName,Source.CaseNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt)
     WHEN MATCHED AND (Source.Qty <= 0 OR Source.InventoryStatus IN ('CANCELED','CANCELLED','RELEASED','PICKED','SHIPPED','DELIVERED','CLOSED')) THEN DELETE;
 END;
 GO
 
--- Pallet and box identifiers are canonical LOT numbers.
-IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_PalletNo')
-    DROP INDEX IX_WH_Inventory_PalletNo ON dbo.WH_Inventory;
+-- Box identifiers are canonical LOT numbers. WH_Inventory.PalletNo is the MD_Pallet number (renamed from CaseNo by migrate_md_pallet.sql).
 IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_Inventory') AND name=N'IX_WH_Inventory_BoxNo')
     DROP INDEX IX_WH_Inventory_BoxNo ON dbo.WH_Inventory;
-IF COL_LENGTH(N'dbo.WH_Inventory',N'PalletNo') IS NOT NULL
-    ALTER TABLE dbo.WH_Inventory DROP COLUMN PalletNo;
 IF COL_LENGTH(N'dbo.WH_Inventory',N'BoxNo') IS NOT NULL
     ALTER TABLE dbo.WH_Inventory DROP COLUMN BoxNo;
 GO
@@ -2217,10 +2213,10 @@ BEGIN
     MERGE dbo.WH_Inventory AS Target
     USING SourceRows AS Source ON Target.LotNo=Source.LotNo
     WHEN MATCHED AND Source.Qty>0 AND Source.InventoryStatus='AVAILABLE' THEN
-        UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,CaseNo=Source.CaseNo,LocationNo=Source.LocationNo,
+        UPDATE SET PartNo=Source.PartNo,PartName=Source.PartName,PalletNo=Source.CaseNo,LocationNo=Source.LocationNo,
                    Qty=Source.Qty,InvoiceNo=Source.InvoiceNo,ReceivedAt=Source.ReceivedAt,UpdatedAt=Source.UpdatedAt
     WHEN NOT MATCHED AND Source.Qty>0 AND Source.InventoryStatus='AVAILABLE' THEN
-        INSERT(LotNo,UnitType,PartNo,PartName,CaseNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
+        INSERT(LotNo,UnitType,PartNo,PartName,PalletNo,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
         VALUES(Source.LotNo,'PART',Source.PartNo,Source.PartName,Source.CaseNo,Source.LocationNo,Source.Qty,Source.InvoiceNo,Source.ReceivedAt,Source.CreatedAt,Source.UpdatedAt)
     WHEN MATCHED AND (Source.Qty<=0 OR Source.InventoryStatus<>'AVAILABLE') THEN DELETE;
 END;
