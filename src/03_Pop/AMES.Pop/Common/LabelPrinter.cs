@@ -21,7 +21,7 @@ internal static class LabelPrinter
     public static void Print(ImgLotDto lot, string shiftCode)
         => Print(ImgLabelBuilder.Build(new ImgLabel(
             lot.LotCode, lot.ItemNo, lot.CustomerCode, lot.Pgn, lot.Alc, lot.MountPos,
-            ShiftLetter(shiftCode), DateTime.Now)), lot.LotCode);
+            ShiftLetter(shiftCode), DbClock.Now)), lot.LotCode);
 
     /// <summary>POP 교대 코드 → 라벨 part4M 교대 글자. DAY=A, NIGHT=B, 그 외(3교대 확장분)=C.</summary>
     public static string ShiftLetter(string? shiftCode) => shiftCode?.ToUpperInvariant() switch

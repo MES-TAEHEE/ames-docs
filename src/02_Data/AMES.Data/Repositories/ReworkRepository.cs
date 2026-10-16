@@ -128,11 +128,11 @@ public sealed class ReworkRepository
     }
 
     // 판정 대상 행 잠금 + 재검증. 반환 null 이면 호출자가 outcome 을 이미 정했다.
-    private static (int LotId, int? WoId, string ProcessCode, string ItemNo, string LineId)? LockOpenRow(
+    private static (int LotId, int? WoId, string ProcessCode, string ItemNo, string LineId, string? PriorStatus)? LockOpenRow(
         SqlConnection conn, SqlTransaction tx, int defectId, out ReworkOutcome outcome)
     {
         using var cmd = new SqlCommand("""
-            SELECT d.LotID, d.WoID, d.ProcessCode, d.Disposition, l.ItemNo, l.LineID
+            SELECT d.LotID, d.WoID, d.ProcessCode, d.Disposition, d.PriorStatus, l.ItemNo, l.LineID
             FROM   dbo.PR_DefectDetail d WITH (UPDLOCK, ROWLOCK)
             JOIN   dbo.tbl_Lot         l WITH (UPDLOCK, ROWLOCK) ON l.LotID = d.LotID
             WHERE  d.DefectID = @D;
@@ -143,7 +143,8 @@ public sealed class ReworkRepository
         if (!LotDefectRules.CanDecide(rdr["Disposition"] as string)) { outcome = ReworkOutcome.AlreadyDecided; return null; }
         outcome = ReworkOutcome.Done;
         return ((int)rdr["LotID"], rdr["WoID"] as int?, rdr["ProcessCode"] as string ?? "INJ",
-                rdr["ItemNo"] as string ?? string.Empty, rdr["LineID"] as string ?? string.Empty);
+                rdr["ItemNo"] as string ?? string.Empty, rdr["LineID"] as string ?? string.Empty,
+                rdr["PriorStatus"] as string);
     }
 
     private static void CloseRow(SqlConnection conn, SqlTransaction tx, int defectId, string disposition,
@@ -180,14 +181,21 @@ public sealed class ReworkRepository
     /// </summary>
     public ReworkOutcome Rework(int defectId, string causeCode, string? note,
                                 string reworkLineId, string operatorId, int? sessionId, string employeeNo)
+        => Rework(defectId, causeCode, note, reworkLineId, operatorId, sessionId, employeeNo, out _);
+
+    /// <param name="backflush">확정된 적 없는 LOT(RAW → DEFECT → 수리)만 실제로 빠진다 — 이미 확정됐던 LOT 은 Apply 가 멱등으로 건너뛴다.</param>
+    public ReworkOutcome Rework(int defectId, string causeCode, string? note,
+                                string reworkLineId, string operatorId, int? sessionId, string employeeNo,
+                                out BackflushResult backflush)
     {
+        backflush = BackflushResult.None;
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
             var row = LockOpenRow(conn, tx, defectId, out var outcome);
             if (row is null) { tx.Rollback(); return outcome; }
-            var (lotId, rowWoId, processCode, itemNo, lineId) = row.Value;
+            var (lotId, rowWoId, processCode, itemNo, lineId, priorStatus) = row.Value;
 
             int? woId = null, stepId = null;
             if (rowWoId is int w && WorkOrderRepository.FindStepId(conn, tx, w, lineId) is int s) { woId = w; stepId = s; }
@@ -238,12 +246,23 @@ public sealed class ReworkRepository
             }
 
             if (stepId is int step) WorkOrderRepository.BumpStepCompleted(conn, tx, step, 1m, operatorId);
+            // 확정된 적 없는 LOT(등록 전 상태 RAW·NG_BLOCKED)만 — 전에 CONFIRMED 였던 LOT 은 그때 자재가 들어갔다(배포 전 확정이라
+            // 차감 기록이 없어도 다시 빼지 않는다). 자재는 LOT 의 원래 라인(lineId)에서 썼다 — 재작업 라인이 아니다
+            if (LotDefectRules.WasNeverConfirmed(priorStatus))
+                backflush = BackflushRepository.Apply(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo, lineId, operatorId, employeeNo);
             CloseRow(conn, tx, defectId, LotDefectRules.DispositionReworked, causeCode, note, operatorId, employeeNo);
 
             tx.Commit();
             return ReworkOutcome.Done;
         }
         catch { tx.Rollback(); throw; }
+    }
+
+    static string ReadLotCode(SqlConnection conn, SqlTransaction tx, int lotId)
+    {
+        using var cmd = new SqlCommand("SELECT LotCode FROM dbo.tbl_Lot WHERE LotID = @L;", conn, tx);
+        ColumnParams.AddFilter(cmd, "@L", "tbl_Lot.LotID", lotId);
+        return cmd.ExecuteScalar() as string ?? lotId.ToString();
     }
 
     /// <summary>폐기: LOT SCRAPPED + tbl_Lot SCRAP, 행 SCRAPPED. 실적은 건드리지 않는다(등록 시 이미 역분개됐거나 애초에 없다).</summary>
@@ -255,7 +274,7 @@ public sealed class ReworkRepository
         {
             var row = LockOpenRow(conn, tx, defectId, out var outcome);
             if (row is null) { tx.Rollback(); return outcome; }
-            var (lotId, _, processCode, _, _) = row.Value;
+            var (lotId, _, processCode, _, _, _) = row.Value;
 
             using (var cmd = new SqlCommand($"""
                 UPDATE {LotTable(processCode)}

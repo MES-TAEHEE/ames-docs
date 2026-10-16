@@ -48,4 +48,11 @@ public static class LotDefectRules
 
     /// <summary>Disposition 이 비어 있어야 판정할 수 있다.</summary>
     public static bool CanDecide(string? disposition) => string.IsNullOrEmpty(disposition);
+
+    /// <summary>
+    /// 재작업 수리 때 BOM 자재를 빼도 되는 LOT — 불량 등록 전 상태가 RAW·NG_BLOCKED(확정된 적 없음)일 때만.
+    /// 전에 CONFIRMED 였던 LOT 은 그때 이미 자재가 들어갔다(배포 전 확정이라 차감 기록이 없어도 마찬가지).
+    /// PriorStatus 가 비면(구 행) 확정됐던 것으로 보고 빼지 않는다 — 이중 차감이 누락보다 나쁘다.
+    /// </summary>
+    public static bool WasNeverConfirmed(string? priorStatus) => priorStatus is Raw or NgBlocked;
 }

@@ -11,7 +11,8 @@
 --
 --  ① MD_WorkCenter.ProcessCode — 스키마 시드 INJECTION/WRAPPING/PAINTING 을 INJ/IMG/PNT 로 (리빌드 직후 DB 대비, 가드형)
 --  ② (폐지 09-30) 품번별 캐비티는 APS 가 금형 CavityCount ÷ 활성 품번 수로 추정한다 — 시드 없음
---  ③ MD_Item.PalletQty(적입수량) — NULL 인 금형 품번만: 형제(같은 금형 활성 품번 2개 이상) 36, 단일 5 (dev 임의값, 10-13 BoxQty 폐지로 PalletQty 가 APS 포장 단위)
+--  ③ MD_Item.PalletQty(적입수량) — NULL 인 금형 품번만: 그 사출품을 쓰는 완제품 PalletQty 의 최소값, 완제품에도 없으면 레일 24·그 밖 8
+--     (10-15 사용자 요청 — 전에는 형제 36/단일 5 임의값; 10-13 BoxQty 폐지로 PalletQty 가 APS 포장 단위)
 --  ④ LINE-INJ-01 전용 2교대 패턴 LP-APS-INJ01 — A 0800-1600 · B 1600-2400 OPERATING(휴게 없음).
 --     그 라인에 라인 전용 ACTIVE 패턴이 이미 있으면 건너뛴다(ReadDayCapacity 는 라인 전용을 전역보다 먼저 고른다).
 --     나머지 INJ 라인은 전역 LP-INJ-001(주간 A / 야간 B)을 그대로 쓴다.
@@ -42,17 +43,35 @@ GO
 
 -- ── ② (폐지) 품번 캐비티 — 시드 없음 ───────────────────────────────
 
--- ── ③ 적입수량(APS 포장 단위) ───────────────────────────────────────
+-- ── ③ 적입수량(APS 포장 단위) — 사출품(활성 MD_MoldItem 품번)만, NULL 인 행만 ──────────────────
+--    규칙(10-15): 그 사출품을 BOM(SUB 를 따라 다단계)으로 쓰는 완제품(ASSY)의 PalletQty 중 최소값 — 완제품 수주가
+--    적입수량 배수로 오므로 코어도 같은 단위면 APS 포장 올림이 자투리를 안 만든다. 완제품에도 없으면 레일 24 · 그 밖 8 (dev 임의값).
+;WITH eff AS (
+    SELECT v.VersionID, v.EffFrom FROM dbo.MD_BomVersion v
+    WHERE  v.Status = 'APPROVED' AND (v.EffFrom IS NULL OR v.EffFrom <= CAST(SYSDATETIME() AS date)) AND (v.EffTo IS NULL OR v.EffTo >= CAST(SYSDATETIME() AS date))),
+lines AS (
+    SELECT b.ParentItemNo, b.CompItemNo,
+           DENSE_RANK() OVER (PARTITION BY b.ParentItemNo ORDER BY e.EffFrom DESC, e.VersionID DESC) AS Rk
+    FROM   dbo.MD_Bom b JOIN eff e ON e.VersionID = b.VersionID
+    WHERE  ISNULL(b.ActiveFlag,1) = 1 AND b.ParentItemNo IS NOT NULL AND b.CompItemNo IS NOT NULL),
+subs AS (SELECT l.ParentItemNo, l.CompItemNo FROM lines l JOIN dbo.MD_Item c ON c.ItemNo = l.CompItemNo WHERE l.Rk = 1 AND c.ItemType = 'SUB'),
+walk AS (
+    SELECT a.ItemNo AS Assy, a.PalletQty, s.CompItemNo AS Node, 1 AS Lvl, CAST('|' + a.ItemNo + '|' + s.CompItemNo + '|' AS varchar(400)) AS Path
+    FROM   dbo.MD_Item a JOIN subs s ON s.ParentItemNo = a.ItemNo
+    WHERE  a.ItemType = 'ASSY' AND ISNULL(a.ActiveFlag,1) = 1
+    UNION ALL
+    SELECT w.Assy, w.PalletQty, s.CompItemNo, w.Lvl + 1, CAST(w.Path + s.CompItemNo + '|' AS varchar(400))
+    FROM   walk w JOIN subs s ON s.ParentItemNo = w.Node
+    WHERE  w.Lvl < 8 AND w.Path NOT LIKE '%|' + s.CompItemNo + '|%'),
+parentPallet AS (SELECT w.Node AS ItemNo, MIN(w.PalletQty) AS PalletQty FROM walk w WHERE w.PalletQty > 0 GROUP BY w.Node)
 UPDATE i
-SET    i.PalletQty = CASE WHEN sib.n >= 2 THEN 36 ELSE 5 END,
+SET    i.PalletQty = COALESCE(pp.PalletQty, CASE WHEN i.ItemName LIKE 'RAIL%' THEN 24 ELSE 8 END),
        i.ModifiedBy = 'seed-aps', i.ModifiedTS = SYSDATETIME()
 FROM   dbo.MD_Item i
-JOIN   (SELECT mi.ItemNo, MAX(cnt.n) AS n
-        FROM   dbo.MD_MoldItem mi
-        JOIN   (SELECT MoldID, COUNT(*) AS n FROM dbo.MD_MoldItem WHERE ActiveFlag = 1 GROUP BY MoldID) cnt ON cnt.MoldID = mi.MoldID
-        WHERE  mi.ActiveFlag = 1 AND mi.MoldID NOT LIKE 'ITEST-%' AND mi.ItemNo NOT LIKE 'ITEST-%'
-        GROUP  BY mi.ItemNo) sib ON sib.ItemNo = i.ItemNo
-WHERE  i.PalletQty IS NULL;
+LEFT JOIN parentPallet pp ON pp.ItemNo = i.ItemNo
+WHERE  i.PalletQty IS NULL
+  AND  EXISTS (SELECT 1 FROM dbo.MD_MoldItem mi WHERE mi.ItemNo = i.ItemNo AND mi.ActiveFlag = 1
+               AND mi.MoldID NOT LIKE 'ITEST-%' AND mi.ItemNo NOT LIKE 'ITEST-%');
 PRINT CONCAT(N'③ MD_Item.PalletQty filled: ', @@ROWCOUNT);
 GO
 

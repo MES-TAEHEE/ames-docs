@@ -9893,6 +9893,9 @@
   <data name="PP.Aps.Ok.Autofill" xml:space="preserve">
     <value>Autofill done — {0} warnings</value>
   </data>
+  <data name="PP.Aps.Ok.AutoUnlock" xml:space="preserve">
+    <value>Unlocked {0} registered-plan injection cell(s) and rescheduled: {1}</value>
+  </data>
   <data name="PP.Aps.Ok.Reschedule" xml:space="preserve">
     <value>Reschedule done — {0} warnings</value>
   </data>

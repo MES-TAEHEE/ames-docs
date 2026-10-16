@@ -459,9 +459,15 @@ public sealed class InjLotRepository
     /// CycleSec = 같은 설비의 직전 원천 LOT 과 이 LOT 의 CreatedTS 차 (샷 발생 시각 기준).
     /// </summary>
     public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
+        string lotCode, string lineId, string operatorId, int? sessionId, string employeeNo)
+        => ConfirmByLotCode(lotCode, lineId, operatorId, sessionId, employeeNo, out _);
+
+    /// <param name="backflush">같은 트랜잭션에서 돈 BOM 자동 차감 결과 — 확정되지 않으면 <see cref="BackflushResult.None"/>.</param>
+    public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
         string lotCode, string lineId,
-        string operatorId, int? sessionId, string employeeNo)
+        string operatorId, int? sessionId, string employeeNo, out BackflushResult backflush)
     {
+        backflush = BackflushResult.None;
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
@@ -577,6 +583,9 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@Sess",  SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
                 cmd.ExecuteNonQuery();
             }
+
+            // BOM 자동 차감 — 실패해도 확정은 커밋된다(세이브포인트). 단계 반영보다 앞에 두어 WO 유무와 무관하게 돈다.
+            backflush = BackflushRepository.Apply(conn, tx, lotId, lotCode, itemNo, lineId, operatorId, employeeNo);
 
             if (stepId is int step) WorkOrderRepository.BumpStepCompleted(conn, tx, step, 1m, operatorId);
 

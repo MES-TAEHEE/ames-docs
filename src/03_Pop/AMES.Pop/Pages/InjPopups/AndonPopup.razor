@@ -215,7 +215,7 @@
         {
             if (_wf.Call is { } c)
             {
-                var t = DateTime.Now - c.TriggeredAt;
+                var t = DbClock.Now - c.TriggeredAt;
                 _elapsed = $"{(int)t.TotalMinutes:00}:{t.Seconds:00}";
                 StateHasChanged();
             }

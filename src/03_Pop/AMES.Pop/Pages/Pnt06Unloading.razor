@@ -110,13 +110,13 @@
     private int    _goodQty;
     private int    _defectQty;
     private string _status = "", _statusCls = "dim";
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _timer;
 
     protected override void OnInitialized()
     {
         Refresh();
-        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DbClock.Now; StateHasChanged(); }),
                                             null, 4000, 4000);
     }
 

@@ -9119,7 +9119,7 @@ ALTER TABLE [dbo].[WH_Inventory] ADD  CONSTRAINT [DF_WH_Inventory_CreatedAt]  DE
 GO
 ALTER TABLE [dbo].[WH_Inventory] ADD  CONSTRAINT [DF_WH_Inventory_UpdatedAt]  DEFAULT (sysdatetime()) FOR [UpdatedAt]
 GO
-ALTER TABLE [dbo].[WH_Inventory]  WITH CHECK ADD  CONSTRAINT [CK_WH_Inventory_Qty] CHECK  (([Qty]>=(0)))
+ALTER TABLE [dbo].[WH_Inventory]  WITH CHECK ADD  CONSTRAINT [CK_WH_Inventory_Qty] CHECK  (([Qty]>=(0) OR [LotNo] like N'BF-%'))
 GO
 ALTER TABLE [dbo].[WH_Inventory] CHECK CONSTRAINT [CK_WH_Inventory_Qty]
 GO
@@ -9179,6 +9179,12 @@ CREATE NONCLUSTERED INDEX [IX_WH_InventoryTransaction_Time] ON [dbo].[WH_Invento
 (
 	[TransactionTime] DESC,
 	[TransactionID] DESC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_WH_InventoryTransaction_Source] ON [dbo].[WH_InventoryTransaction]
+(
+	[SourceType] ASC,
+	[SourceID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[WH_InventoryTransaction] ADD  CONSTRAINT [DF_WH_InventoryTransaction_Time]  DEFAULT (sysdatetime()) FOR [TransactionTime]

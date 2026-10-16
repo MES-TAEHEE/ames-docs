@@ -48,7 +48,7 @@
                     <span>▼ @T("PartNo")</span>
                     @* 타이핑 금지 — 누르면 달력만 뜬다. 키 입력을 막아 HID 스캔이 날짜 칸으로 새지도 않는다. *@
                     <input type="date" class="imgm-date-input" value="@ViewDate.ToString("yyyy-MM-dd")"
-                           max="@DateTime.Today.ToString("yyyy-MM-dd")" @onchange="OnDateChange"
+                           max="@DbClock.Today.ToString("yyyy-MM-dd")" @onchange="OnDateChange"
                            onclick="try { this.showPicker(); } catch (e) { }"
                            onkeydown="return false" onpaste="return false" ondrop="return false" />
                 </div>
@@ -225,8 +225,8 @@
 
     // null = 금일 추종 — 자정을 넘기면 좌측 패널도 다음 날로 넘어간다.
     private DateTime? _viewDate;
-    private DateTime ViewDate => _viewDate ?? DateTime.Today;
-    private bool IsToday => ViewDate >= DateTime.Today;
+    private DateTime ViewDate => _viewDate ?? DbClock.Today;
+    private bool IsToday => ViewDate >= DbClock.Today;
     private string? _selItemNo;
     private InjItemDailyDto? SelItem =>
         _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
@@ -240,7 +240,7 @@
     private bool _andonAutoRaise;
     private static string AndonElapsed(AndonCallDto a)
     {
-        var t = DateTime.Now - a.TriggeredAt;
+        var t = DbClock.Now - a.TriggeredAt;
         return $"{(int)t.TotalMinutes:00}:{t.Seconds:00}";
     }
     private string?  _refreshError;
@@ -260,7 +260,7 @@
     private ElementReference _scanInput;
     private bool _scannerOn;
 
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _clockTimer;
     private System.Threading.Timer? _refreshTimer;
 
@@ -271,7 +271,7 @@
         _scannerOn = Scanner.IsConnected;
         Scanner.OnScan            += OnSerialScan;
         Scanner.ConnectionChanged += OnScannerConnection;
-        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }),
+        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); }),
                                                    null, 1000, 1000);
         _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
                                                    null, 5000, 5000);
@@ -293,7 +293,7 @@
         if (Session is null) return;
         try
         {
-            var today = PopServices.ImgLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, DateTime.Today);
+            var today = PopServices.ImgLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, DbClock.Today);
             _items = IsToday ? today
                    : PopServices.ImgLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, ViewDate);
 
@@ -328,7 +328,7 @@
         {
             // 스캔 결과 배너는 건드리지 않는다 — 5초마다 덮어쓰면 방금 스캔한 결과가 사라진다.
             _refreshError   = ex.Message;
-            _refreshErrorAt = DateTime.Now;
+            _refreshErrorAt = DbClock.Now;
             System.Diagnostics.Debug.WriteLine($"[ImgMain refresh] {ex.Message}");
         }
     }
@@ -339,7 +339,7 @@
     }
     private void SetDate(DateTime d)
     {
-        _viewDate = d.Date >= DateTime.Today ? null : d.Date;
+        _viewDate = d.Date >= DbClock.Today ? null : d.Date;
         Refresh();
         _focusScan = true;
     }

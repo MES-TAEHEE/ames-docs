@@ -83,12 +83,12 @@
     private string _input = "";
     private List<QcTraceNodeDto> _nodes = new();
     private string _status = "", _statusCls = "dim";
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _timer;
 
     protected override void OnInitialized()
     {
-        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }),
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); }),
                                             null, 1000, 1000);
     }
 
