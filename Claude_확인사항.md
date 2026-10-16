@@ -416,7 +416,7 @@
 
 ## 6. 참고 — 검증 기준선
 
-- **테스트(2026-10-16 06시, 10-16 MNT 작업·원격 병합 2회(SYS-002, 안영훈 FG 실출하·PDA 보전)·PP-OEE 계산 수정 후, Data 는 로컬 DB)** — 20시 SAPTransFlag 뒤 다시 돌려 Pop·Api·InjAgent 같은 수치, Data 1,266건 중 1,248 통과(새 `SapTransFlagTests` 1건)·같은 10 실패·8 건너뜀.
+- **테스트(2026-10-16 06시, 10-16 MNT 작업·원격 병합 2회(SYS-002, 안영훈 FG 실출하·PDA 보전)·PP-OEE 계산 수정 후, Data 는 로컬 DB)** — 20시 SAPTransFlag 뒤 다시 돌려 Pop·Api·InjAgent 같은 수치, Data 1,266건 중 1,248 통과(새 `SapTransFlagTests` 1건)·같은 10 실패·8 건너뜀. **22시 원격 병합(심재현 백플러시·POP DbClock·PP-APS) 뒤**: Pop 153, Api 204(건너뜀 1), InjAgent 54 통과, Data 1,291건 중 1,270 통과·같은 10 실패·11 건너뜀. 로컬 DB 에 `migrate_wh_inventory_backflush_placeholder.sql` 적용(개발 DB 는 작성자 적용), 개발용 시드 변경(`seed_aps_dev.sql` 적입수량·`seed_md_mold_master.sql` CBK)은 두 DB 모두 미적용(작성자도 미적용) — 두 DB 구조 차이는 `FG_CustomerReturn.PartName` 위치뿐.
   - Pop 149, Api 204(건너뜀 1), InjAgent 54 모두 통과. InjAgent `PollerRunnerTests.Stop_timeout_keeps_running_flag_until_loop_exits` 는 타이밍에 기대어 가끔 1건 실패합니다(바로 5번 다시 돌려 모두 통과 — 심재현 문제점 27 과 같은 정지 경합 부분).
   - Data 1,265건 중 1,247 통과, 10 실패, 8 건너뜀(Data 테스트는 10-15 부터 직렬 실행). 병합 뒤 `CodeGroupsUsedByCodeTests` 가 깨져 `FG_STORAGE_METHOD`(FG 입고 테이블 폐지로 읽는 코드가 없어짐)를 삭제 금지 목록에서 뺐습니다.
   - 실패 10건은 모두 기존 항목입니다(PlanScheduleTests 5, WorkOrderRepositoryTests 4, GetMoldItems 1 — 심재현 보류).
