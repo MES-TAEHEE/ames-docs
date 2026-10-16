@@ -3,7 +3,8 @@
 -- 팔레트 마스터(MD-034)와 사출 조건 항목 화면(MD-035) — 사용자 요청
 --
 --  1) MD_Pallet — 실물 팔레트 마스터. 키 PalletNo varchar(50)(라벨 바코드 번호), 용도 PalletUse(공통코드 PALLET_USE:
---     INTERNAL 내부용 · EXTERNAL 외부 출입용), 외부용만 CustomerID(값 = 그 고객 전용, NULL = 공용), 출고됨 ShippedFlag.
+--     INTERNAL 내부용 · EXTERNAL 외부 출입용), 외부용만 CustomerID(값 = 그 고객 전용, NULL = 공용), 출고됨 ShippedFlag,
+--     마지막 출고 시각·고객 ShippedAt·ShippedCustomerID, 마지막 회수 시각 ReturnedAt(값은 출고·회수 처리가 관리, MD-034 는 보기만).
 --     위치·유형·수량·회수 이력은 두지 않는다(수량은 MD_Item.PalletQty·MaxPalletQty, 사용자 결정).
 --  2) 공통코드 PALLET_USE — 없는 행만 넣는다(MD-030 에서 고친 이름은 보존).
 --  3) WH_Inventory.CaseNo → PalletNo 로 이름 변경(값·위치 그대로 — SCM 납품 케이스 번호가 들어 있던 행은 그 값이 그대로 남는다),
@@ -32,51 +33,111 @@ IF EXISTS (SELECT 1 FROM sys.foreign_keys
 GO
 
 -- ── 1) MD_Pallet ─────────────────────────────────────────────────────────
+-- 출고 시각·출고 고객·회수 시각(ShippedAt·ShippedCustomerID·ReturnedAt)은 10-17 사용자 요청으로 ShippedFlag 다음에 둔다 —
+-- 값은 출고·회수 처리 쪽이 넣고 지운다(MD-034 는 목록에 보이기만). 초판(이 세 컬럼 없음)으로 만든 DB 는 아래 1-b 가 행을 보존해 다시 만든다.
 IF OBJECT_ID(N'dbo.MD_Pallet', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.MD_Pallet (
-        PalletNo    varchar(50)   NOT NULL,
-        PalletUse   varchar(10)   NOT NULL,
-        CustomerID  varchar(20)   NULL,
-        ShippedFlag bit           NOT NULL CONSTRAINT DF_MD_Pallet_ShippedFlag DEFAULT (0),
-        Remark      nvarchar(200) NULL,
-        ActiveFlag  bit           NOT NULL CONSTRAINT DF_MD_Pallet_ActiveFlag  DEFAULT (1),
-        CreatedBy   varchar(20)   NOT NULL,
-        CreatedTS   datetime2(7)  NOT NULL CONSTRAINT DF_MD_Pallet_CreatedTS   DEFAULT (SYSDATETIME()),
-        ModifiedBy  varchar(20)   NULL,
-        ModifiedTS  datetime2(7)  NULL,
+        PalletNo          varchar(50)   NOT NULL,
+        PalletUse         varchar(10)   NOT NULL,
+        CustomerID        varchar(20)   NULL,
+        ShippedFlag       bit           NOT NULL CONSTRAINT DF_MD_Pallet_ShippedFlag DEFAULT (0),
+        ShippedAt         datetime2(7)  NULL,
+        ShippedCustomerID varchar(20)   NULL,
+        ReturnedAt        datetime2(7)  NULL,
+        Remark            nvarchar(200) NULL,
+        ActiveFlag        bit           NOT NULL CONSTRAINT DF_MD_Pallet_ActiveFlag  DEFAULT (1),
+        CreatedBy         varchar(20)   NOT NULL,
+        CreatedTS         datetime2(7)  NOT NULL CONSTRAINT DF_MD_Pallet_CreatedTS   DEFAULT (SYSDATETIME()),
+        ModifiedBy        varchar(20)   NULL,
+        ModifiedTS        datetime2(7)  NULL,
         CONSTRAINT PK_MD_Pallet PRIMARY KEY CLUSTERED (PalletNo)
     );
     CREATE INDEX IX_MD_Pallet_Customer ON dbo.MD_Pallet (CustomerID);
-
-    DECLARE @d TABLE (Col sysname, Txt nvarchar(400));
-    INSERT @d VALUES
-        (N'PalletNo',    N'PK · 팔레트 번호(라벨 바코드) — 등록할 때 EOS-PLT-yyMM-nnnn 자동 발행(수동 입력 없음) · varchar(50)'),
-        (N'PalletUse',   N'용도 — 공통코드 PALLET_USE(INTERNAL 내부용 · EXTERNAL 외부 출입용) · varchar(10)'),
-        (N'CustomerID',  N'전용 고객(MD_Customer) — 외부용만, NULL = 공용 · varchar(20)'),
-        (N'ShippedFlag', N'출고됨 — FG 출고가 켜고, 돌아오면 MD-034 에서 끈다 · bit'),
-        (N'Remark',      N'비고(사용 안 함 사유 등) · nvarchar(200)'),
-        (N'ActiveFlag',  N'사용 여부 — 분실·폐기는 0 · bit'),
-        (N'CreatedBy',   N'등록자 사번 · varchar(20)'),
-        (N'CreatedTS',   N'등록 시각 · datetime2'),
-        (N'ModifiedBy',  N'최종 수정자 사번 · varchar(20)'),
-        (N'ModifiedTS',  N'최종 수정 시각 · datetime2');
-    DECLARE @c sysname, @t nvarchar(400);
-    DECLARE dc CURSOR LOCAL FAST_FORWARD FOR SELECT Col, Txt FROM @d;
-    OPEN dc; FETCH NEXT FROM dc INTO @c, @t;
-    WHILE @@FETCH_STATUS = 0
-    BEGIN
-        EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = @t,
-             @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_Pallet',
-             @level2type = N'COLUMN', @level2name = @c;
-        FETCH NEXT FROM dc INTO @c, @t;
-    END
-    CLOSE dc; DEALLOCATE dc;
-    EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'팔레트 마스터 (MD-034)',
-         @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_Pallet';
     PRINT N'✓ MD_Pallet 생성';
 END
 ELSE PRINT N'· MD_Pallet 이미 있음';
+GO
+
+-- ── 1-b) 초판 MD_Pallet → 세 컬럼을 ShippedFlag 다음에(행 보존 재생성) ─────
+IF COL_LENGTH(N'dbo.MD_Pallet', N'ReturnedAt') IS NULL
+   OR (SELECT COUNT(*) FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.MD_Pallet')
+       AND column_id < COLUMNPROPERTY(OBJECT_ID(N'dbo.MD_Pallet'), N'ReturnedAt', 'ColumnId')) <> 6
+BEGIN
+    BEGIN TRAN;
+    CREATE TABLE dbo.MD_Pallet_new (
+        PalletNo          varchar(50)   NOT NULL,
+        PalletUse         varchar(10)   NOT NULL,
+        CustomerID        varchar(20)   NULL,
+        ShippedFlag       bit           NOT NULL CONSTRAINT DF_MD_Pallet_new_ShippedFlag DEFAULT (0),
+        ShippedAt         datetime2(7)  NULL,
+        ShippedCustomerID varchar(20)   NULL,
+        ReturnedAt        datetime2(7)  NULL,
+        Remark            nvarchar(200) NULL,
+        ActiveFlag        bit           NOT NULL CONSTRAINT DF_MD_Pallet_new_ActiveFlag  DEFAULT (1),
+        CreatedBy         varchar(20)   NOT NULL,
+        CreatedTS         datetime2(7)  NOT NULL CONSTRAINT DF_MD_Pallet_new_CreatedTS   DEFAULT (SYSDATETIME()),
+        ModifiedBy        varchar(20)   NULL,
+        ModifiedTS        datetime2(7)  NULL,
+        CONSTRAINT PK_MD_Pallet_new PRIMARY KEY CLUSTERED (PalletNo)
+    );
+    DECLARE @has bit = CASE WHEN COL_LENGTH(N'dbo.MD_Pallet', N'ShippedAt') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @copy nvarchar(max) = N'
+        INSERT dbo.MD_Pallet_new (PalletNo, PalletUse, CustomerID, ShippedFlag, ShippedAt, ShippedCustomerID, ReturnedAt,
+                                  Remark, ActiveFlag, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS)
+        SELECT PalletNo, PalletUse, CustomerID, ShippedFlag, '
+        + CASE WHEN @has = 1 THEN N'ShippedAt, ShippedCustomerID, ReturnedAt' ELSE N'NULL, NULL, NULL' END
+        + N', Remark, ActiveFlag, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS FROM dbo.MD_Pallet;';
+    EXEC (@copy);
+    DROP TABLE dbo.MD_Pallet;   -- 컬럼 설명은 같이 지워진다 — 아래 1-c 가 다시 붙인다
+    EXEC sp_rename N'dbo.MD_Pallet_new', N'MD_Pallet';
+    EXEC sp_rename N'dbo.PK_MD_Pallet_new', N'PK_MD_Pallet', N'OBJECT';
+    EXEC sp_rename N'dbo.DF_MD_Pallet_new_ShippedFlag', N'DF_MD_Pallet_ShippedFlag', N'OBJECT';
+    EXEC sp_rename N'dbo.DF_MD_Pallet_new_ActiveFlag', N'DF_MD_Pallet_ActiveFlag', N'OBJECT';
+    EXEC sp_rename N'dbo.DF_MD_Pallet_new_CreatedTS', N'DF_MD_Pallet_CreatedTS', N'OBJECT';
+    CREATE INDEX IX_MD_Pallet_Customer ON dbo.MD_Pallet (CustomerID);
+    COMMIT;
+    PRINT N'✓ MD_Pallet 재생성 — ShippedAt·ShippedCustomerID·ReturnedAt 을 ShippedFlag 다음에';
+END
+GO
+
+-- ── 1-c) 컬럼 설명(없는 것만) ────────────────────────────────────────────
+DECLARE @d TABLE (Col sysname NULL, Txt nvarchar(400));
+INSERT @d VALUES
+    (N'PalletNo',          N'PK · 팔레트 번호(라벨 바코드) — 등록할 때 EOS-PLT-yyMM-nnnn 자동 발행(수동 입력 없음) · varchar(50)'),
+    (N'PalletUse',         N'용도 — 공통코드 PALLET_USE(INTERNAL 내부용 · EXTERNAL 외부 출입용) · varchar(10)'),
+    (N'CustomerID',        N'전용 고객(MD_Customer) — 외부용만, NULL = 공용 · varchar(20)'),
+    (N'ShippedFlag',       N'출고됨 — FG 출고가 켠다. MD-034 마스터 화면에서는 바꾸지 않음 · bit'),
+    (N'ShippedAt',         N'마지막 출고 시각 — 출고 처리가 넣는다(MD-034 는 보기만) · datetime2'),
+    (N'ShippedCustomerID', N'마지막 출고 고객(MD_Customer) — 출고 처리가 넣는다(MD-034 는 보기만) · varchar(20)'),
+    (N'ReturnedAt',        N'마지막 회수 시각 — 회수 처리가 넣는다(MD-034 는 보기만) · datetime2'),
+    (N'Remark',            N'비고(사용 안 함 사유 등) · nvarchar(200)'),
+    (N'ActiveFlag',        N'사용 여부 — 분실·폐기는 0 · bit'),
+    (N'CreatedBy',         N'등록자 사번 · varchar(20)'),
+    (N'CreatedTS',         N'등록 시각 · datetime2'),
+    (N'ModifiedBy',        N'최종 수정자 사번 · varchar(20)'),
+    (N'ModifiedTS',        N'최종 수정 시각 · datetime2'),
+    (NULL,                 N'팔레트 마스터 (MD-034)');
+DECLARE @c sysname, @t nvarchar(400);
+DECLARE dc CURSOR LOCAL FAST_FORWARD FOR SELECT Col, Txt FROM @d;
+OPEN dc; FETCH NEXT FROM dc INTO @c, @t;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.extended_properties WHERE class = 1 AND name = N'MS_Description'
+                   AND major_id = OBJECT_ID(N'dbo.MD_Pallet')
+                   AND minor_id = ISNULL(COLUMNPROPERTY(OBJECT_ID(N'dbo.MD_Pallet'), @c, 'ColumnId'), 0))
+    BEGIN
+        IF @c IS NULL
+            EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = @t,
+                 @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_Pallet';
+        ELSE
+            EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = @t,
+                 @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_Pallet',
+                 @level2type = N'COLUMN', @level2name = @c;
+    END
+    FETCH NEXT FROM dc INTO @c, @t;
+END
+CLOSE dc; DEALLOCATE dc;
 GO
 
 -- ── 2) 공통코드 PALLET_USE ───────────────────────────────────────────────

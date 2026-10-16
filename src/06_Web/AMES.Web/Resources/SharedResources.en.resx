@@ -11339,9 +11339,6 @@
   <data name="MD.Pallet.Col.Shipped" xml:space="preserve">
     <value>Shipped</value>
   </data>
-  <data name="MD.Pallet.Col.Registered" xml:space="preserve">
-    <value>Registered</value>
-  </data>
   <data name="MD.Pallet.Lbl.Shared" xml:space="preserve">
     <value>Shared</value>
   </data>
@@ -11365,9 +11362,6 @@
   </data>
   <data name="MD.Pallet.Kpi.Shipped" xml:space="preserve">
     <value>Shipped</value>
-  </data>
-  <data name="MD.Pallet.Hint.Shipped" xml:space="preserve">
-    <value>Shipped is turned on automatically by FG outbound. Turn it off when the pallet comes back.</value>
   </data>
   <data name="MD.Pallet.Err.UseRequired" xml:space="preserve">
     <value>Select the pallet use.</value>
@@ -11431,5 +11425,14 @@
   </data>
   <data name="MD.Pallet.Hint.AutoNo" xml:space="preserve">
     <value>Pallet numbers are issued automatically as {0} when saved.</value>
+  </data>
+  <data name="MD.Pallet.Col.ShippedAt" xml:space="preserve">
+    <value>Shipped At</value>
+  </data>
+  <data name="MD.Pallet.Col.ShippedCustomer" xml:space="preserve">
+    <value>Shipped To</value>
+  </data>
+  <data name="MD.Pallet.Col.ReturnedAt" xml:space="preserve">
+    <value>Returned At</value>
   </data>
 </root>

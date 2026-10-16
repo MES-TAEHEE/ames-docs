@@ -11339,9 +11339,6 @@
   <data name="MD.Pallet.Col.Shipped" xml:space="preserve">
     <value>출고</value>
   </data>
-  <data name="MD.Pallet.Col.Registered" xml:space="preserve">
-    <value>등록일</value>
-  </data>
   <data name="MD.Pallet.Lbl.Shared" xml:space="preserve">
     <value>공용</value>
   </data>
@@ -11365,9 +11362,6 @@
   </data>
   <data name="MD.Pallet.Kpi.Shipped" xml:space="preserve">
     <value>출고됨</value>
-  </data>
-  <data name="MD.Pallet.Hint.Shipped" xml:space="preserve">
-    <value>출고됨은 FG 출고 때 자동으로 켜집니다. 팔레트가 돌아오면 끄세요.</value>
   </data>
   <data name="MD.Pallet.Err.UseRequired" xml:space="preserve">
     <value>용도를 선택하세요.</value>
@@ -11431,5 +11425,14 @@
   </data>
   <data name="MD.Pallet.Hint.AutoNo" xml:space="preserve">
     <value>팔레트 번호는 저장할 때 {0} 으로 자동 발행합니다.</value>
+  </data>
+  <data name="MD.Pallet.Col.ShippedAt" xml:space="preserve">
+    <value>출고 일시</value>
+  </data>
+  <data name="MD.Pallet.Col.ShippedCustomer" xml:space="preserve">
+    <value>출고 고객</value>
+  </data>
+  <data name="MD.Pallet.Col.ReturnedAt" xml:space="preserve">
+    <value>회수 일시</value>
   </data>
 </root>

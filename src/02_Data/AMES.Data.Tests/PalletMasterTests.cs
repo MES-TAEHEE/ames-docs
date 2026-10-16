@@ -38,7 +38,9 @@ public class PalletMasterTests
             Assert.Null(row.CustomerID);
             Assert.False(row.ShippedFlag);
 
-            md.UpdatePallet(first, MasterDataRepository.PalletExternal, customer, true, null, false, Actor);
+            // 출고됨은 출고 처리가 켠다 — 마스터 수정은 그 값을 건드리지 않는다
+            Exec(f!, "UPDATE dbo.MD_Pallet SET ShippedFlag = 1 WHERE PalletNo = @N", ("@N", first));
+            md.UpdatePallet(first, MasterDataRepository.PalletExternal, customer, null, false, Actor);
             row = Assert.Single(md.ListPallets(), p => p.PalletNo == first);
             Assert.Equal(customer, row.CustomerID);
             Assert.True(row.ShippedFlag);
@@ -107,6 +109,11 @@ public class PalletMasterTests
 
         Assert.Equal("ITEST-PLT-OUT", Value("SELECT PalletNo FROM dbo.FG_Shipment WHERE OutboundBarcode = N'ITEST-PLTLOT'"));
         Assert.True((bool)Value("SELECT ShippedFlag FROM dbo.MD_Pallet WHERE PalletNo = 'ITEST-PLT-OUT'")!);
+        Assert.Equal(customer, Value("SELECT ShippedCustomerID FROM dbo.MD_Pallet WHERE PalletNo = 'ITEST-PLT-OUT'"));
+        Assert.Equal(1, (int)Value("""
+            SELECT COUNT(*) FROM dbo.MD_Pallet p JOIN dbo.FG_Shipment s ON s.PalletNo = p.PalletNo AND s.ShippedAt = p.ShippedAt
+            WHERE p.PalletNo = 'ITEST-PLT-OUT'
+            """)!);
         tx.Rollback();
     }
 

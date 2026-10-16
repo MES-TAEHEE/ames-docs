@@ -79,11 +79,11 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="PalletUse" Title="@L["MD.Pallet.Col.Use"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="r"><span class="pill @(r.PalletUse == MasterDataRepository.PalletExternal ? "info" : "")">@UseName(r.PalletUse)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="CustomerName" Title="@L["MD.Pallet.Col.Customer"]" MinWidth="200px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="CustomerName" Title="@L["MD.Pallet.Col.Customer"]" Width="200px" MinWidth="200px">
                 <Template Context="r">
                     @if (r.PalletUse != MasterDataRepository.PalletExternal) { <span class="dim">—</span> }
                     else if (r.CustomerID is null) { <span class="pill ok">@L["MD.Pallet.Lbl.Shared"]</span> }
-                    else { <span title="@r.CustomerID">@(r.CustomerName ?? r.CustomerID)</span> }
+                    else { <span style="display:block;max-width:184px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="@($"[{r.CustomerID}] {r.CustomerName}")">@(r.CustomerName ?? r.CustomerID)</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="ShippedFlag" Title="@L["MD.Pallet.Col.Shipped"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
@@ -92,11 +92,21 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="Remark" Title="@L["Col.Note"]" MinWidth="160px">
-                <Template Context="r"><span class="dim">@(r.Remark ?? "—")</span></Template>
+            @* 출고·회수 처리 쪽이 넣는 값 — 여기서는 보기만 한다 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="ShippedAt" Title="@L["MD.Pallet.Col.ShippedAt"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
+                <Template Context="r"><span class="dim">@(r.ShippedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="CreatedTS" Title="@L["MD.Pallet.Col.Registered"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
-                <Template Context="r"><span class="dim">@(r.CreatedTS?.ToString(DateFmt.Date) ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="ShippedCustomerName" Title="@L["MD.Pallet.Col.ShippedCustomer"]" Width="200px" MinWidth="200px">
+                <Template Context="r">
+                    @if (r.ShippedCustomerID is null) { <span class="dim">—</span> }
+                    else { <span style="display:block;max-width:184px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="@($"[{r.ShippedCustomerID}] {r.ShippedCustomerName}")">@(r.ShippedCustomerName ?? r.ShippedCustomerID)</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="ReturnedAt" Title="@L["MD.Pallet.Col.ReturnedAt"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
+                <Template Context="r"><span class="dim">@(r.ReturnedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="Remark" Title="@L["Col.Note"]" MinWidth="120px">
+                <Template Context="r"><span class="dim">@(r.Remark ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r">
@@ -182,17 +192,10 @@
                 <RadzenTextBox Name="EditTextBoxRemark" @bind-Value="_f.Remark" MaxLength="200" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1.5rem" Style="margin-top:8px;">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ShippedFlag" Name="EditChkShipped" />
-                    <RadzenLabel Text="@L["MD.Pallet.Lbl.Shipped"]" Component="EditChkShipped" style="cursor:pointer;" />
-                </RadzenStack>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
-                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
-                    <RadzenLabel Text="@L["Lbl.Active"]" Component="EditChkActive" style="cursor:pointer;" />
-                </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
+                <RadzenLabel Text="@L["Lbl.Active"]" Component="EditChkActive" style="cursor:pointer;" />
             </RadzenStack>
-            <div class="dim" style="margin-top:4px;font-size:.9em;">@L["MD.Pallet.Hint.Shipped"]</div>
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
@@ -338,7 +341,6 @@
             PalletNo    = r.PalletNo,
             PalletUse   = r.PalletUse,
             CustomerID  = r.CustomerID,
-            ShippedFlag = r.ShippedFlag,
             Remark      = r.Remark ?? "",
             ActiveFlag  = r.ActiveFlag,
         };
@@ -378,7 +380,7 @@
         _busy = true;
         try
         {
-            MD.UpdatePallet(_sel.PalletNo, _f.PalletUse, _f.CustomerID, _f.ShippedFlag, NE(_f.Remark), _f.ActiveFlag, _actor);
+            MD.UpdatePallet(_sel.PalletNo, _f.PalletUse, _f.CustomerID, NE(_f.Remark), _f.ActiveFlag, _actor);
             Audit.Updated("MD-034", "MD_Pallet", _sel.PalletNo, _sel, _f);
             var key = _sel.PalletNo;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
@@ -437,7 +439,6 @@
         public int     Count       { get; set; } = 1;
         public string  PalletUse   { get; set; } = MasterDataRepository.PalletExternal;
         public string? CustomerID  { get; set; }
-        public bool    ShippedFlag { get; set; }
         public string  Remark      { get; set; } = "";
         public bool    ActiveFlag  { get; set; } = true;
     }

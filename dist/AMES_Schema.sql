@@ -2072,6 +2072,9 @@ CREATE TABLE [dbo].[MD_Pallet](
 	[PalletUse] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CustomerID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ShippedFlag] [bit] NOT NULL,
+	[ShippedAt] [datetime2](7) NULL,
+	[ShippedCustomerID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ReturnedAt] [datetime2](7) NULL,
 	[Remark] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
@@ -2103,7 +2106,13 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'용도 — 공
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'전용 고객(MD_Customer) — 외부용만, NULL = 공용 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Pallet', @level2type=N'COLUMN',@level2name=N'CustomerID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'출고됨 — FG 출고가 켜고, 돌아오면 MD-034 에서 끈다 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Pallet', @level2type=N'COLUMN',@level2name=N'ShippedFlag'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'출고됨 — FG 출고가 켠다. MD-034 마스터 화면에서는 바꾸지 않음 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Pallet', @level2type=N'COLUMN',@level2name=N'ShippedFlag'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마지막 출고 시각 — 출고 처리가 넣는다(MD-034 는 보기만) · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Pallet', @level2type=N'COLUMN',@level2name=N'ShippedAt'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마지막 출고 고객(MD_Customer) — 출고 처리가 넣는다(MD-034 는 보기만) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Pallet', @level2type=N'COLUMN',@level2name=N'ShippedCustomerID'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마지막 회수 시각 — 회수 처리가 넣는다(MD-034 는 보기만) · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Pallet', @level2type=N'COLUMN',@level2name=N'ReturnedAt'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'비고(사용 안 함 사유 등) · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Pallet', @level2type=N'COLUMN',@level2name=N'Remark'
 GO

@@ -5003,7 +5003,8 @@ public sealed class MasterDataRepository
 
     public sealed record PalletRow(
         string PalletNo, string PalletUse, string? CustomerID, string? CustomerName,
-        bool ShippedFlag, string? Remark, bool ActiveFlag,
+        bool ShippedFlag, DateTime? ShippedAt, string? ShippedCustomerID, string? ShippedCustomerName, DateTime? ReturnedAt,
+        string? Remark, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
     /// <summary>전용 고객은 외부용 팔레트만 가진다 — 내부용이면 비운다(빈 값 = 공용).</summary>
@@ -5012,15 +5013,19 @@ public sealed class MasterDataRepository
 
     public List<PalletRow> ListPallets()
         => Query("""
-            SELECT p.PalletNo, p.PalletUse, p.CustomerID, c.CustomerName, p.ShippedFlag, p.Remark, p.ActiveFlag,
-                   p.CreatedBy, p.CreatedTS, p.ModifiedBy, p.ModifiedTS
+            SELECT p.PalletNo, p.PalletUse, p.CustomerID, c.CustomerName, p.ShippedFlag,
+                   p.ShippedAt, p.ShippedCustomerID, sc.CustomerName AS ShippedCustomerName, p.ReturnedAt,
+                   p.Remark, p.ActiveFlag, p.CreatedBy, p.CreatedTS, p.ModifiedBy, p.ModifiedTS
             FROM   dbo.MD_Pallet p
-            LEFT JOIN dbo.MD_Customer c ON c.CustomerID = p.CustomerID
+            LEFT JOIN dbo.MD_Customer c  ON c.CustomerID  = p.CustomerID
+            LEFT JOIN dbo.MD_Customer sc ON sc.CustomerID = p.ShippedCustomerID
             ORDER  BY p.PalletNo DESC;
             """,
             r => new PalletRow(
                 (string)r["PalletNo"], (string)r["PalletUse"], r["CustomerID"] as string, r["CustomerName"] as string,
-                (bool)r["ShippedFlag"], r["Remark"] as string, (bool)r["ActiveFlag"],
+                (bool)r["ShippedFlag"], r["ShippedAt"] as DateTime?, r["ShippedCustomerID"] as string,
+                r["ShippedCustomerName"] as string, r["ReturnedAt"] as DateTime?,
+                r["Remark"] as string, (bool)r["ActiveFlag"],
                 r["CreatedBy"] as string, r["CreatedTS"] as DateTime?, r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?));
 
     /// <summary>팔레트 번호 접두어 — EOS-PLT-yyMM-(DB 날짜 기준 그 달)</summary>
@@ -5068,17 +5073,17 @@ public sealed class MasterDataRepository
         return numbers;
     }
 
-    public void UpdatePallet(string palletNo, string palletUse, string? customerId, bool shippedFlag,
+    // 출고됨·출고 시각·출고 고객·회수 시각은 마스터 화면이 바꾸지 않는다 — 출고·회수 처리 쪽이 관리한다(10-17 사용자 결정)
+    public void UpdatePallet(string palletNo, string palletUse, string? customerId,
         string? remark, bool activeFlag, string modifiedBy)
         => Exec("""
-            UPDATE dbo.MD_Pallet SET PalletUse = @U, CustomerID = @C, ShippedFlag = @S, Remark = @R, ActiveFlag = @A,
+            UPDATE dbo.MD_Pallet SET PalletUse = @U, CustomerID = @C, Remark = @R, ActiveFlag = @A,
                    ModifiedBy = @By, ModifiedTS = SYSDATETIME()
             WHERE  PalletNo = @N;
             """,
             ("@N",  "MD_Pallet.PalletNo",    palletNo),
             ("@U",  "MD_Pallet.PalletUse",   palletUse),
             ("@C",  "MD_Pallet.CustomerID",  NormalizePalletCustomer(palletUse, customerId)),
-            ("@S",  "MD_Pallet.ShippedFlag", shippedFlag),
             ("@R",  "MD_Pallet.Remark",      remark),
             ("@A",  "MD_Pallet.ActiveFlag",  activeFlag),
             ("@By", "MD_Pallet.ModifiedBy",  modifiedBy));

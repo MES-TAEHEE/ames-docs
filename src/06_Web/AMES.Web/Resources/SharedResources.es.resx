@@ -11339,9 +11339,6 @@
   <data name="MD.Pallet.Col.Shipped" xml:space="preserve">
     <value>Enviado</value>
   </data>
-  <data name="MD.Pallet.Col.Registered" xml:space="preserve">
-    <value>Registrado</value>
-  </data>
   <data name="MD.Pallet.Lbl.Shared" xml:space="preserve">
     <value>Compartido</value>
   </data>
@@ -11365,9 +11362,6 @@
   </data>
   <data name="MD.Pallet.Kpi.Shipped" xml:space="preserve">
     <value>Enviados</value>
-  </data>
-  <data name="MD.Pallet.Hint.Shipped" xml:space="preserve">
-    <value>«Enviado» se activa automáticamente con la salida de PT. Desactívelo cuando el pallet regrese.</value>
   </data>
   <data name="MD.Pallet.Err.UseRequired" xml:space="preserve">
     <value>Seleccione el uso del pallet.</value>
@@ -11431,5 +11425,14 @@
   </data>
   <data name="MD.Pallet.Hint.AutoNo" xml:space="preserve">
     <value>Los números de pallet se emiten automáticamente como {0} al guardar.</value>
+  </data>
+  <data name="MD.Pallet.Col.ShippedAt" xml:space="preserve">
+    <value>Fecha de envío</value>
+  </data>
+  <data name="MD.Pallet.Col.ShippedCustomer" xml:space="preserve">
+    <value>Cliente de envío</value>
+  </data>
+  <data name="MD.Pallet.Col.ReturnedAt" xml:space="preserve">
+    <value>Fecha de retorno</value>
   </data>
 </root>
