@@ -1,8 +1,21 @@
+using AMES.Data.Services;
+
 namespace AMES.Data.Repositories;
 
 // Parameterized batches owned by the application; no database procedure installation is required.
 public static class PdaSparePartsSql
 {
+    public const string OpenWorkOrders = $$"""
+        SET QUOTED_IDENTIFIER ON;
+        SET ANSI_NULLS ON;
+        SELECT w.WoNumber,w.EquipID,e.EquipName,w.ActionDesc,w.Status
+        FROM dbo.MNT_WorkOrder w
+        LEFT JOIN dbo.MD_Equipment e ON e.EquipID=w.EquipID
+        WHERE w.Status IN ('ISSUED','ASSIGNED','IN_PROGRESS')
+          AND NOT {{PmRules.PlannedWoSql}}
+        ORDER BY w.IssuedAt DESC,w.WorkOrderID DESC;
+        """;
+
     public const string SerialCreate = """
         SET QUOTED_IDENTIFIER ON;
         SET ANSI_NULLS ON;
@@ -45,7 +58,7 @@ public static class PdaSparePartsSql
         END;
         """;
 
-    public const string Move = """
+    public const string Move = $$"""
         SET QUOTED_IDENTIFIER ON;
         SET ANSI_NULLS ON;
         BEGIN
@@ -64,11 +77,28 @@ public static class PdaSparePartsSql
             DECLARE @ZoneCode varchar(20);
             DECLARE @Slot varchar(5);
             DECLARE @StoredLocation varchar(20);
+            DECLARE @WorkOrder varchar(28)=NULLIF(LTRIM(RTRIM(@WorkOrderNo)),'');
+            DECLARE @WorkStatus varchar(15),@Planned bit;
+            DECLARE @MoveNote nvarchar(500)=@Note;
+            IF @WorkOrder IS NOT NULL SET @MoveNote=LEFT(CONCAT(N'MWO ',@WorkOrder,N' · ',@Note),500);
 
             IF @Serial = '' THROW 51810, 'Serial No is required.', 1;
             IF @Move NOT IN ('IN', 'OUT') THROW 51811, 'Move type must be IN or OUT.', 1;
             IF COALESCE(@Qty, 0) <> 1 THROW 51812, 'Serialized spare parts must move one item at a time.', 1;
+            IF @WorkOrder IS NOT NULL AND @Move<>'OUT'
+                THROW 51825, 'A maintenance work order can only be linked to spare parts release.', 1;
             BEGIN TRANSACTION;
+
+            -- Same lock order as maintenance completion: work order before spare-part stock.
+            IF @WorkOrder IS NOT NULL
+            BEGIN
+                SELECT @WorkStatus=w.Status,@Planned=CASE WHEN {{PmRules.PlannedWoSql}} THEN 1 ELSE 0 END
+                FROM dbo.MNT_WorkOrder w WITH (UPDLOCK,HOLDLOCK) WHERE w.WoNumber=@WorkOrder;
+                IF @WorkStatus IS NULL THROW 51826, 'Maintenance work order was not found.', 1;
+                IF @WorkStatus NOT IN ('ISSUED','ASSIGNED','IN_PROGRESS')
+                    THROW 51827, 'This work order is completed or closed. Select an open work order.', 1;
+                IF @Planned=1 THROW 51828, 'This PM work order is not due yet. Select a due or in-progress work order.', 1;
+            END;
 
             SELECT @ItemId=I.SparePartItemID,@SpNo=I.SparePartNo,@Status=I.StatusCode,
                    @StoredLocation=I.LocationID,@ZoneCode=P.ZoneCode,@Slot=P.Slot
@@ -109,14 +139,15 @@ public static class PdaSparePartsSql
                 (SparePartNo, SparePartItemID, MoveType, Qty, BalanceBefore, BalanceAfter, RefType, RefID,
                  Note, TxnAt, ActorID, CreatedBy, CreatedTS)
             VALUES
-                (@SpNo, @ItemId, @Move, 1, @Before, @After, 'PDA', COALESCE(@Location,(SELECT LocationID FROM dbo.MNT_SparePartItem WHERE SparePartItemID=@ItemId)),
-                 @Note, SYSDATETIME(), @User, LEFT(@User, 20), SYSDATETIME());
+                (@SpNo, @ItemId, @Move, 1, @Before, @After, CASE WHEN @WorkOrder IS NULL THEN 'PDA' ELSE 'MWO' END,
+                 COALESCE(@WorkOrder,@Location,(SELECT LocationID FROM dbo.MNT_SparePartItem WHERE SparePartItemID=@ItemId)),
+                 @MoveNote, SYSDATETIME(), @User, LEFT(@User, 20), SYSDATETIME());
 
             IF OBJECT_ID(N'dbo.SYS_AuditLog',N'U') IS NOT NULL
                 INSERT dbo.SYS_AuditLog(ActorUserID,ModuleCode,ProcessCode,ScreenCode,ActionType,TargetEntity,TargetID,AfterValueJSON,Result,Note,CreatedBy,CreatedTS)
                 VALUES(@User,'SP','PDA',CASE WHEN @Move='IN' THEN 'SP-02' ELSE 'SP-07' END,@Move,'MNT_SparePartItem',@Serial,
                        CONCAT(N'{"status":"',CASE WHEN @Move='IN' THEN 'IN_STOCK' ELSE 'RELEASED' END,N'","location":"',COALESCE(@Location,N''),N'"}'),
-                       'SUCCESS',@Note,LEFT(@User,20),SYSDATETIME());
+                       'SUCCESS',@MoveNote,LEFT(@User,20),SYSDATETIME());
 
             COMMIT TRANSACTION;
         END;
@@ -132,9 +163,25 @@ public static class PdaSparePartsSql
             DECLARE @Move varchar(10)=UPPER(LTRIM(RTRIM(ISNULL(@MoveType,''))));
             DECLARE @User nvarchar(450)=COALESCE(NULLIF(LTRIM(RTRIM(@UserId)),N''),N'PDA');
             DECLARE @ItemId bigint,@SpNo varchar(16),@Status varchar(15),@Location varchar(20),@OriginalTxn int,@Before int,@After int;
+            DECLARE @ExpectedTxn int,@RefType varchar(20),@WorkOrder varchar(28),@WorkStatus varchar(15);
+            DECLARE @CancelNote nvarchar(500)=@Note;
             IF @Move NOT IN ('IN','OUT') THROW 51821, 'Cancellation type must be IN or OUT.', 1;
 
             BEGIN TRANSACTION;
+            -- Discover the reference without locking inventory, then lock WO first and recheck the transaction.
+            SELECT TOP (1) @ExpectedTxn=T.SparePartsTxnID,@RefType=T.RefType,@WorkOrder=T.RefID
+            FROM dbo.MNT_SparePartsTxn T JOIN dbo.MNT_SparePartItem I ON I.SparePartItemID=T.SparePartItemID
+            WHERE I.SerialNo=@Serial AND T.MoveType=@Move
+              AND NOT EXISTS(SELECT 1 FROM dbo.MNT_SparePartsTxn R WHERE R.ReversalOfTxnID=T.SparePartsTxnID)
+            ORDER BY T.SparePartsTxnID DESC;
+            IF @RefType='MWO'
+            BEGIN
+                SET @CancelNote=LEFT(CONCAT(N'MWO ',@WorkOrder,N' · ',@Note),500);
+                SELECT @WorkStatus=Status FROM dbo.MNT_WorkOrder WITH (UPDLOCK,HOLDLOCK) WHERE WoNumber=@WorkOrder;
+                IF @WorkStatus IS NULL OR @WorkStatus NOT IN ('ISSUED','ASSIGNED','IN_PROGRESS')
+                    THROW 51829, 'Release cannot be cancelled after its maintenance work order is completed or closed.', 1;
+            END;
+
             SELECT @ItemId=SparePartItemID,@SpNo=SparePartNo,@Status=StatusCode,@Location=LocationID
             FROM dbo.MNT_SparePartItem WITH (UPDLOCK,HOLDLOCK) WHERE SerialNo=@Serial;
             IF @ItemId IS NULL THROW 51815, 'Serial No was not found.', 1;
@@ -147,6 +194,8 @@ public static class PdaSparePartsSql
               AND NOT EXISTS(SELECT 1 FROM dbo.MNT_SparePartsTxn R WHERE R.ReversalOfTxnID=T.SparePartsTxnID)
             ORDER BY T.SparePartsTxnID DESC;
             IF @OriginalTxn IS NULL THROW 51824, 'A cancellable transaction was not found.', 1;
+            IF @OriginalTxn<>@ExpectedTxn OR @ExpectedTxn IS NULL
+                THROW 51830, 'This serial transaction changed. Scan it again before cancelling.', 1;
 
             SELECT @Before=OnHandQty FROM dbo.MD_SparePart WITH (UPDLOCK,HOLDLOCK) WHERE SparePartNo=@SpNo;
             SET @After=@Before+CASE WHEN @Move='IN' THEN -1 ELSE 1 END;
@@ -160,13 +209,13 @@ public static class PdaSparePartsSql
 
             INSERT dbo.MNT_SparePartsTxn
                 (SparePartNo,SparePartItemID,MoveType,Qty,BalanceBefore,BalanceAfter,RefType,RefID,Note,TxnAt,ActorID,CreatedBy,CreatedTS,ReversalOfTxnID)
-            VALUES(@SpNo,@ItemId,CONCAT(@Move,'_CANCEL'),1,@Before,@After,'PDA_CANCEL',@Location,@Note,SYSDATETIME(),@User,LEFT(@User,20),SYSDATETIME(),@OriginalTxn);
+            VALUES(@SpNo,@ItemId,CONCAT(@Move,'_CANCEL'),1,@Before,@After,'PDA_CANCEL',@Location,@CancelNote,SYSDATETIME(),@User,LEFT(@User,20),SYSDATETIME(),@OriginalTxn);
 
             IF OBJECT_ID(N'dbo.SYS_AuditLog',N'U') IS NOT NULL
                 INSERT dbo.SYS_AuditLog(ActorUserID,ModuleCode,ProcessCode,ScreenCode,ActionType,TargetEntity,TargetID,AfterValueJSON,Result,Note,CreatedBy,CreatedTS)
                 VALUES(@User,'SP','PDA',CASE WHEN @Move='IN' THEN 'SP-02' ELSE 'SP-07' END,CONCAT(@Move,'_CANCEL'),'MNT_SparePartItem',@Serial,
                        CONCAT(N'{"status":"',CASE WHEN @Move='IN' THEN 'CREATED' ELSE 'IN_STOCK' END,N'","reversalOf":',@OriginalTxn,N'}'),
-                       'SUCCESS',@Note,LEFT(@User,20),SYSDATETIME());
+                       'SUCCESS',@CancelNote,LEFT(@User,20),SYSDATETIME());
             COMMIT;
         END;
         """;

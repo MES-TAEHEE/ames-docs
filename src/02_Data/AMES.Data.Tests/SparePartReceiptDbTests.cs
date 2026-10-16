@@ -81,6 +81,7 @@ public class SparePartReceiptDbTests
         move.Parameters.Add("@MoveType", SqlDbType.VarChar, 10).Value = type;
         move.Parameters.Add("@Qty", SqlDbType.Int).Value = 1;
         move.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value = DBNull.Value;
+        move.Parameters.Add("@WorkOrderNo", SqlDbType.VarChar, 28).Value = DBNull.Value;
         move.Parameters.Add("@UserId", SqlDbType.VarChar, 20).Value = "receipt-test";
         move.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = "Rollback-only movement";
         move.ExecuteNonQuery();

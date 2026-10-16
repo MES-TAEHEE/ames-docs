@@ -292,6 +292,9 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 모듈 코드는 `AppState.ModuleCode` 에 실리고, 라우팅과 라벨 디스패처 게이트가 이를 본다.
 
 ### 인증 흐름
+
+**PDA 세션 배포 순서**: ① 기존 DB에 `dist/migrate_pda_bearer_session.sql` 적용(`PR_PopSession.BearerHash`·`SessionJson` 및 인덱스, 재실행 안전) → ② AMES.Api 게시본 → ③ AMES.Pda. 새 DB는 `AMES_Schema.sql`에 포함돼 있다. 기존 DB에 컬럼이 없으면 새 API의 PDA 로그인·세션 조회가 실패하므로 API보다 먼저 적용한다. 기존 세션·재고 행은 삭제하지 않는다.
+
 - **Pop**: `PopAuthService` → `AuthRepository.FindByEmployeeNo()` → 없으면 `WorkerRepository.FindByEmployeeNo()` → `PinHasher` (PBKDF2) → `PopSessionRepository.CreateSession()`
   - POP 로그인은 두 곳을 본다: 웹 계정 작업자(`SYS_UserProfile` + `AspNetUsers`)와 POP 전용 작업자(`MD_Worker`). **사번이 겹치면 웹 계정이 이긴다.**
   - **POP·PDA 로그인에 라인 제한은 없다**(09-24) — 웹 계정의 라인 배정 컬럼 `SYS_UserProfile.AssignedLines` 와 SYS-001 라인 선택, `PopAuthService` 라인 검사를 없앴다(`dist/migrate_drop_user_assigned_lines.sql`, 신 Web·Pop·Api 배포 **후** 적용 — 구 바이너리는 이 컬럼을 SELECT 해서 먼저 적용하면 SYS-001 목록·POP 로그인이 `Invalid column name` 으로 실패). `AuthResult.LineNotAuthorized` 값은 과거 `PR_PopAuthLog` 해석용으로만 남아 있다.

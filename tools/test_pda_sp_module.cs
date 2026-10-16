@@ -36,6 +36,11 @@ Check(release.Contains("@page \"/sp/07\"")
       && release.Contains("STORAGE LOCATION")
       && release.Contains("SpReleaseAsync")
       && release.Contains("SpItemAsync"), "SP release scans one serial and shows storage location");
+Check(release.Contains("MAINTENANCE WORK ORDER (OPTIONAL)")
+      && release.Contains("WorkOrderNo: _workOrderNo")
+      && release.Contains("OrderWorkOrders(_workOrders, _lot?.ApplicableEquipment)")
+      && release.Contains("private void Clear() { _lotNo = _message = \"\"; _lot = null; }"),
+      "SP release optionally links a work order, prioritizes matching equipment and keeps the choice across scans");
 Check(inventory.Contains("@page \"/sp/03\"") && inventory.Contains("WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure, AreaScope)"), "Inventory and Adjust use the SP area scope");
 Check(inventoryLogic.Contains("SpPptInventorySteps")
       && inventoryLogic.Contains("EOS-SP-K9-269999")
@@ -54,6 +59,10 @@ Check(Read("src/05_Pda/AMES.Pda/Services/WarehouseApi.cs").Contains("/api/wh/loc
       && apiEndpoints.Contains("l.WhCode AS WarehouseCode")
       && apiEndpoints.Contains("l.AreaCode AS AreaCode"), "Location API uses normalized warehouse and area columns");
 var spareSql = Read("src/02_Data/AMES.Data/Repositories/PdaSparePartsSql.cs");
+Check(api.Contains("/api/wh/sp/work-orders")
+      && spareSql.Contains("CASE WHEN @WorkOrder IS NULL THEN 'PDA' ELSE 'MWO' END")
+      && spareSql.Contains("Release cannot be cancelled after its maintenance work order is completed or closed"),
+      "SP release history links maintenance usage and blocks cancellation after work completion");
 var warehouseSql = Read("src/02_Data/AMES.Data/Repositories/PdaWarehouseSql.cs");
 Check(apiEndpoints.Contains("PdaSparePartsSql.Move")
       && spareSql.Contains("UPDATE dbo.MD_SparePart")

@@ -57,12 +57,8 @@ GO
 IF COL_LENGTH(N'dbo.FG_CustomerReturn',N'ShipmentOrderID') IS NOT NULL
     EXEC sys.sp_rename N'dbo.FG_CustomerReturn.ShipmentOrderID',N'ShipmentID',N'COLUMN';
 GO
-IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_Shipment_Customer')
-    ALTER TABLE dbo.FG_Shipment WITH CHECK ADD CONSTRAINT FK_FG_Shipment_Customer
-        FOREIGN KEY(CustomerID) REFERENCES dbo.MD_Customer(CustomerID);
-IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_CustomerReturn_Shipment')
-    ALTER TABLE dbo.FG_CustomerReturn WITH CHECK ADD CONSTRAINT FK_FG_CustomerReturn_Shipment
-        FOREIGN KEY(ShipmentID) REFERENCES dbo.FG_Shipment(ShipmentID);
+-- Customer/shipment existence is validated by PdaFinishedGoodsSql in the save transaction.
+-- Do not recreate foreign keys: existing databases use migrate_fg_shipment_no_foreign_keys.sql.
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_Shipment') AND name=N'IX_FG_Shipment_ShippedAt')
     CREATE INDEX IX_FG_Shipment_ShippedAt ON dbo.FG_Shipment(ShippedAt DESC,ShipmentID DESC) INCLUDE(CustomerID,OutboundBarcode,UnitType,ShippedBy);
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_Source')

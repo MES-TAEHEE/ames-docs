@@ -472,9 +472,9 @@ CREATE TABLE [dbo].[FG_CustomerReturn](
 	[Note] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[LotID] [int] NULL,
 	[PartNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[PartName] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[ReturnQty] [decimal](12, 3) NOT NULL,
 	[LotNo] [nvarchar](50) COLLATE Korean_Wansung_CI_AS NULL,
+	[PartName] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -9352,11 +9352,6 @@ REFERENCES [dbo].[tbl_Lot] ([LotID])
 GO
 ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Lot]
 GO
-ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [FK_FG_CustomerReturn_Shipment] FOREIGN KEY([ShipmentID])
-REFERENCES [dbo].[FG_Shipment] ([ShipmentID])
-GO
-ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Shipment]
-GO
 ALTER TABLE [dbo].[MD_ApsLineStage]  WITH CHECK ADD  CONSTRAINT [FK_MD_ApsLineStage_Line] FOREIGN KEY([LineID])
 REFERENCES [dbo].[MD_Line] ([LineID])
 GO
@@ -11395,10 +11390,7 @@ GO
 
 GO
 
--- Actual shipment linkage indexes and customer integrity.
-IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_FG_Shipment_Customer')
-    ALTER TABLE dbo.FG_Shipment WITH CHECK ADD CONSTRAINT FK_FG_Shipment_Customer
-        FOREIGN KEY(CustomerID) REFERENCES dbo.MD_Customer(CustomerID);
+-- Actual shipment linkage indexes. Customer/shipment integrity is checked in application SQL.
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_Source')
     CREATE INDEX IX_WH_InventoryTransaction_Source ON dbo.WH_InventoryTransaction(SourceType,SourceID,TransactionType)
         INCLUDE(LotNo,PartNo,QtyChange,LocationNo,TransactionTime);

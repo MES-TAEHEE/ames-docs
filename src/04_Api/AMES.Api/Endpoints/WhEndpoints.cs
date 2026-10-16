@@ -116,7 +116,7 @@ public static class WhEndpoints
         int? SafetyStock = null, string? SerialNo = null, string? ItemStatus = null,
         string? ExtraLocation = null, int? LastTxnId = null);
     public sealed record SparePartMoveReq(string EosSpNo, int Qty = 1,
-        string? LocationId = null, string? Note = null);
+        string? LocationId = null, string? Note = null, string? WorkOrderNo = null);
     public sealed record SparePartSerialRow(string SerialNo, string StatusCode, DateTime CreatedAt);
     public sealed record SparePartLabelCreateReq(string EosSpNo, int Count);
     public sealed record SparePartCancelReq(string SerialNo, string MoveType, string? Note = null);
@@ -378,6 +378,18 @@ public static class WhEndpoints
 
         g.MapPost("/sp/inbound", (HttpContext ctx, SparePartMoveReq body) => MoveSparePart(ctx, body, "IN"));
         g.MapPost("/sp/release", (HttpContext ctx, SparePartMoveReq body) => MoveSparePart(ctx, body, "OUT"));
+        g.MapGet("/sp/work-orders", (HttpContext ctx) =>
+        {
+            if (ctx.GetSession() is null) return Results.Unauthorized();
+            using var conn = factory.OpenConnection();
+            using var cmd = new SqlCommand(PdaSparePartsSql.OpenWorkOrders, conn) { CommandTimeout = 15 };
+            using var reader = cmd.ExecuteReader();
+            var rows = new List<PdaSparePartWorkOrder>();
+            while (reader.Read())
+                rows.Add(new(GetString(reader, "WoNumber")!, GetString(reader, "EquipID"),
+                    GetString(reader, "EquipName"), GetString(reader, "ActionDesc"), GetString(reader, "Status")!));
+            return Results.Ok(rows);
+        });
         g.MapPost("/sp/cancel", (HttpContext ctx, SparePartCancelReq body) =>
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
@@ -2020,6 +2032,10 @@ public static class WhEndpoints
             return new SparePartMoveResult(false, "Scan a Serial No first.");
         if (body.Qty != 1)
             return new SparePartMoveResult(false, "Serialized spare parts must move one item at a time.");
+        if (body.EosSpNo.Trim().Length > 24 || body.LocationId?.Trim().Length > 20 || body.Note?.Trim().Length > 500)
+            return new(false, "Serial No, location or note exceeds its maximum length.");
+        if (body.WorkOrderNo?.Trim().Length > 28)
+            return new(false, "Work order number must be 28 characters or less.");
 
         try
         {
@@ -2033,6 +2049,8 @@ public static class WhEndpoints
             cmd.Parameters.Add("@Qty", SqlDbType.Int).Value = body.Qty;
             cmd.Parameters.Add("@LocationId", SqlDbType.VarChar, 20).Value =
                 string.IsNullOrWhiteSpace(body.LocationId) ? DBNull.Value : body.LocationId.Trim();
+            cmd.Parameters.Add("@WorkOrderNo", SqlDbType.VarChar, 28).Value =
+                string.IsNullOrWhiteSpace(body.WorkOrderNo) ? DBNull.Value : body.WorkOrderNo.Trim();
             ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
             cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value =
                 string.IsNullOrWhiteSpace(body.Note) ? DBNull.Value : body.Note.Trim();

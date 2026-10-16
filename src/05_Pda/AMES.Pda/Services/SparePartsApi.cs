@@ -1,11 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
+using AMES.Contracts.Dto;
 
 namespace AMES.Pda.Services;
 
 public sealed class SparePartsApi(HttpClient http, AuthState auth) : PdaApi(http, auth)
 {
     public const string AreaCode = SparePartsAreaCode;
+
+    public Task<List<PdaSparePartWorkOrder>> OpenWorkOrdersAsync()
+        => GetRequiredAsync<List<PdaSparePartWorkOrder>>("/api/wh/sp/work-orders",
+            "Maintenance work orders could not be loaded. Retry before linking a release.");
 
     public Task<List<SparePartRow>> MastersAsync(string? query = null)
         => GetRequiredAsync<List<SparePartRow>>(
