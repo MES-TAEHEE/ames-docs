@@ -415,10 +415,11 @@
 - `AMES.Data`: inline SQL → `dbo.SP_*` 스토어드 프로시저 전환 — 공통
 - `AMES.Web`: 실제 데이터 바인딩 완성(일부 화면 scaffold 상태) — 각 화면 담당
 - `AMES.Pop`: 추가 공정 모듈(필요 시) — 심재현
+- **SAP 마스터 전송**: `MD_Item`·`MD_Vendor`·`MD_Location.SAPTransFlag`(10-16, MD-003·MD-009·MD-018 체크박스)는 저장·표시만 하고 실제로 SAP 에 보내는 연동이 없습니다. 전송 방식(SAP B1 Service Layer 등)·주기·결과 기록(보낸 시각·오류)·담당을 정해야 합니다.
 
 ## 6. 참고 — 검증 기준선
 
-- **테스트(2026-10-16 06시, 10-16 MNT 작업·원격 병합 2회(SYS-002, 안영훈 FG 실출하·PDA 보전)·PP-OEE 계산 수정 후, Data 는 로컬 DB)**
+- **테스트(2026-10-16 06시, 10-16 MNT 작업·원격 병합 2회(SYS-002, 안영훈 FG 실출하·PDA 보전)·PP-OEE 계산 수정 후, Data 는 로컬 DB)** — 20시 SAPTransFlag 뒤 다시 돌려 Pop·Api·InjAgent 같은 수치, Data 1,266건 중 1,248 통과(새 `SapTransFlagTests` 1건)·같은 10 실패·8 건너뜀.
   - Pop 149, Api 204(건너뜀 1), InjAgent 54 모두 통과. InjAgent `PollerRunnerTests.Stop_timeout_keeps_running_flag_until_loop_exits` 는 타이밍에 기대어 가끔 1건 실패합니다(바로 5번 다시 돌려 모두 통과 — 심재현 문제점 27 과 같은 정지 경합 부분).
   - Data 1,265건 중 1,247 통과, 10 실패, 8 건너뜀(Data 테스트는 10-15 부터 직렬 실행). 병합 뒤 `CodeGroupsUsedByCodeTests` 가 깨져 `FG_STORAGE_METHOD`(FG 입고 테이블 폐지로 읽는 코드가 없어짐)를 삭제 금지 목록에서 뺐습니다.
   - 실패 10건은 모두 기존 항목입니다(PlanScheduleTests 5, WorkOrderRepositoryTests 4, GetMoldItems 1 — 심재현 보류).
@@ -430,9 +431,11 @@
   - 10-16 `migrate_retire_packaging_uom.sql` 을 두 DB 에 적용해 `BoxContentUnit/Qty` 4개가 없어졌습니다(스키마 파일과 같음).
   - **10-16 06시 원격 병합(안영훈 FG 실출하·PDA 보전 9건)** 뒤 로컬 DB 에 `migrate_fg_shipment_actual.sql`·`migrate_fg_putaway_transactions.sql`·`migrate_wh_fg_scm_column_lengths.sql` 을 적용했습니다(개발 DB 는 작성자가 이미 적용, 적용 전 로컬 백업 `AMES_DEV_before_fg_actual_20261016.bak`). `schema_compare.ps1` 결과 두 DB 모두 **테이블 174개**이고 차이는 `FG_CustomerReturn.PartName` 위치 하나입니다(안영훈 문제점 5).
   - 스키마 파일과 개발 DB 의 차이: `FG_CustomerReturn.PartName` 위치(안영훈 문제점 5).
+  - **10-16 20시** `migrate_md_sap_trans_flag.sql`(`MD_Item`·`MD_Vendor`·`MD_Location.SAPTransFlag`)을 두 DB 에 적용했고, 세 테이블의 컬럼 순서·형식·NULL·기본값이 두 DB 에서 같습니다(68행 비교, 차이 0). 스키마 파일에도 같은 위치로 넣었습니다.
 - **NuGet(10-15)**: 취약 패키지 0(`dotnet list package --vulnerable --include-transitive`), 모든 패키지가 최신 안정 버전입니다(SqlClient 7.1.1, EF Core 10.0.13, Radzen 12.1.2, Test.Sdk 18.11.0, xunit 러너 4.0.1 등). 취약성 때문에 `System.Security.Cryptography.Pkcs` 를 AMES.Data 에서 10.0.13 으로 고정했으니 SqlClient 를 올릴 때 다시 확인합니다.
 - **제품 코드 규칙**: `AddWithValue` 0곳(주석 3곳만), Web 의 `DateTime.Now/Today` 0곳, 라이트 테마 토큰화 대상 0.
 - **헤드리스 확인**
+  - 10-16 20시(로컬 IIS·개발 DB, ko, 1920, 저장 없음 — 도구 `sap_flag_check.mjs`): MD-003·MD-009·MD-018 목록에 「SAP 전송」 열이 있고 등록·수정 창에 체크박스가 보이며 Blazor 오류·가로 넘침이 없습니다. 테스트 `SapTransFlagTests`·`TypedSaveRoundTripTests`·`ColumnTagsTests`·`MdDeleteUsageTests` 등 29건 통과(로컬 DB). 점검 로그인의 admin 기록은 되돌렸습니다.
   - 10-15 06시(로컬 DB, ko, 1920): Radzen 12 게시본에서 RPT-001·RPT-010·MNT-008·PP-OEE·MD-008·SYS-007·PP-001·FG 반품·MD 위치·MNT-002 10화면이 Blazor 오류 없이 열리고, 날짜 선택기는 모두 11.x 와 같은 월·연 드롭다운입니다. 차트 축 눈금·카테고리 라벨(회전·생략 없음)은 11.5.1 게시본과 같은 값입니다(OEE 두 화면은 로컬 DB 에 추이 데이터가 없어 차트 없음). 점검 로그인의 admin 기록은 되돌렸습니다.
   - 10-15 새벽(ko·en·es, 1920): 첫 병합 뒤 SCM·PP 내부 17화면과 포탈 8화면 목록에서 헤더 잘림·두 줄·셀 넘침이 없습니다. 포탈 「박스 라벨」 납품서 열의 두 줄은 원래 설계입니다.
 - **두 번째 병합의 WH·FG·SCM 변경 검증(안영훈)**: API 74개 통과, 용량·위치 규칙 테스트 17개 통과, Web·PDA Android 빌드 성공. 실제 입출고·동시 PDA 부하 검증과 DB 전체 재구축은 실행하지 않았습니다.

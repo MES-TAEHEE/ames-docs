@@ -2640,6 +2640,9 @@
   <data name="Col.SapPo" xml:space="preserve">
     <value>OC SAP</value>
   </data>
+  <data name="Col.SapTrans" xml:space="preserve">
+    <value>Envío a SAP</value>
+  </data>
   <data name="Col.DtNo" xml:space="preserve">
     <value>DT #</value>
   </data>

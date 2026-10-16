@@ -92,6 +92,11 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Capacity" Title="@L["Col.LoadCapacity"]" TextAlign="TextAlign.Right" Width="180px">
                 <Template Context="r">@(r.Capacity?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="SAPTransFlag" Title="@L["Col.SapTrans"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r">
+                    @if (r.SAPTransFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
+                </Template>
+            </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </div>
@@ -146,6 +151,11 @@
                 </RadzenColumn>
             </RadzenRow>
 
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.SAPTransFlag" Name="CreateChkSapTrans" />
+                <RadzenLabel Text="@L["Col.SapTrans"]" Component="CreateChkSapTrans" style="cursor:pointer;" />
+            </RadzenStack>
+
             @if (!string.IsNullOrEmpty(_modalErr))
             {
                 <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
@@ -174,6 +184,11 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:8px;">
                 <RadzenLabel Text="@L["MD.Location.Lbl.Capacity"]" class="ames-rz-modal-label" />
                 <RadzenNumeric TValue="decimal?" @bind-Value="_f.Capacity" Min="0" Step="1" Format="N0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.SAPTransFlag" Name="EditChkSapTrans" />
+                <RadzenLabel Text="@L["Col.SapTrans"]" Component="EditChkSapTrans" style="cursor:pointer;" />
             </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -323,6 +338,7 @@
             Bay          = r.Bay          ?? "",
             Slot         = r.Slot         ?? "",
             Capacity     = r.Capacity,
+            SAPTransFlag = r.SAPTransFlag,
         };
         _modal = "edit";
     }
@@ -360,7 +376,7 @@
             if (existing is not null) throw new InvalidOperationException("This location already exists. Select its row to edit it.");
             if (MD.LocationExists(created)) throw new InvalidOperationException($"Location ID {created} already exists.");
             MD.InsertLocation(created, name, _f.WhCode, _f.AreaCode, null, _f.Aisle, _f.Bay, _f.Slot,
-                _f.Capacity, null, null, true, _actor);
+                _f.Capacity, null, null, true, _actor, _f.SAPTransFlag);
             Audit.Created("MD-018", "MD_Location", created, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Location.Ok.Created"].Value, created), false);
@@ -391,7 +407,7 @@
             }
             MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), _sel.WhCode, _sel.AreaCode, _sel.ZoneCode,
                 _sel.Aisle, _sel.Bay, _sel.Slot,
-                _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor);
+                _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor, _f.SAPTransFlag);
             Audit.Updated("MD-018", "MD_Location", _sel.LocationID, _sel, _f);
             var key = _sel.LocationID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
@@ -419,5 +435,6 @@
         public string   Bay          { get; set; } = "";
         public string   Slot         { get; set; } = "";
         public decimal? Capacity     { get; set; }
+        public bool     SAPTransFlag { get; set; }
     }
 }

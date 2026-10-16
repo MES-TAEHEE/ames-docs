@@ -293,7 +293,7 @@ public sealed class MasterDataRepository
             SELECT ItemNo, ItemName, ItemType, ItemCategory, InjFlag, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
                    PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, ScanRequired,
-                   ISNULL(ActiveFlag,1) AS ActiveFlag,
+                   ISNULL(ActiveFlag,1) AS ActiveFlag, SAPTransFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
             """ + " WHERE 1=1" + (string.IsNullOrWhiteSpace(search) ? "" :
@@ -328,7 +328,8 @@ public sealed class MasterDataRepository
             r["CreatedTS"]     is DateTime ct ? ct : null,
             r["ModifiedBy"]    as string,
             r["ModifiedTS"]    is DateTime mt ? mt : null,
-            (bool)r["ScanRequired"]), p);
+            (bool)r["ScanRequired"],
+            (bool)r["SAPTransFlag"]), p);
     }
 
     public bool UpdateMaterialUnitCost(string itemNo, decimal unitCost, decimal? originalCost, string modifiedBy)
@@ -370,17 +371,17 @@ public sealed class MasterDataRepository
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
-        bool activeFlag, string createdBy, bool scanRequired = false)
+        bool activeFlag, string createdBy, bool scanRequired = false, bool sapTransFlag = false)
     {
         ValidateQuantityUnit(defaultUom);
         Exec("""
             INSERT INTO dbo.MD_Item
                    (ItemNo,ItemName,ItemType,ItemCategory,InjFlag,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS,ScanRequired)
+                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS,ScanRequired,SAPTransFlag)
             VALUES (@No,@Name,@Type,@Cat,@Inj,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME(),@BoxScan)
+                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME(),@BoxScan,@Sap)
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
             ("@Type", "MD_Item.ItemType", itemType), ("@Cat", "MD_Item.ItemCategory", itemCategory), ("@Car", "MD_Item.CarType", carType),
@@ -390,7 +391,8 @@ public sealed class MasterDataRepository
             ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
             ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag),
-            ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired));
+            ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
+            ("@Sap", "MD_Item.SAPTransFlag", sapTransFlag));
     }
 
     public void UpdateItem(string itemNo, string itemName,
@@ -398,7 +400,7 @@ public sealed class MasterDataRepository
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
-        bool activeFlag, string modifiedBy, bool scanRequired = false)
+        bool activeFlag, string modifiedBy, bool scanRequired = false, bool? sapTransFlag = null)
     {
         ValidateQuantityUnit(defaultUom);
         Exec("""
@@ -408,7 +410,7 @@ public sealed class MasterDataRepository
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
                    PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
                    PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, ScanRequired=@BoxScan,
-                   ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+                   ActiveFlag=@Active, SAPTransFlag=ISNULL(@Sap, SAPTransFlag), ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
@@ -419,7 +421,8 @@ public sealed class MasterDataRepository
             ("@Safe", "MD_Item.SafetyStock", safetyStock), ("@Cost", "MD_Item.UnitCost", unitCost), ("@PGN", "MD_Item.PGN", pgn),
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
             ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag),
-            ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired));
+            ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
+            ("@Sap", "MD_Item.SAPTransFlag", sapTransFlag));
     }
 
     public static bool IsQuantityUnit(string? unit) => !string.IsNullOrWhiteSpace(unit)
@@ -880,7 +883,7 @@ public sealed class MasterDataRepository
         int? PalletQty, int? MaxPalletQty, bool ToteFlag,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false);
+        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false, bool SAPTransFlag = false);
 
     public record CodeItemRow(
         string CodeID, string? GroupCode, string? CodeValue,
@@ -1457,7 +1460,7 @@ public sealed class MasterDataRepository
         string? ScmURL, bool EdiFlag, decimal? OtdTargetRate,
         string? PaymentTerms, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS);
+        string? ModifiedBy, DateTime? ModifiedTS, bool SAPTransFlag = false);
 
     public List<VendorRow> ListVendors(string? search = null)
     {
@@ -1466,7 +1469,7 @@ public sealed class MasterDataRepository
             SELECT VendorID, VendorName, VendorType, VendorCategory,
                    BizRegNo, ContactPerson, Phone, Email, ScmURL,
                    ISNULL(EdiFlag,0) AS EdiFlag, OtdTargetRate,
-                   PaymentTerms, ISNULL(ActiveFlag,1) AS ActiveFlag,
+                   PaymentTerms, ISNULL(ActiveFlag,1) AS ActiveFlag, SAPTransFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM dbo.MD_Vendor
             WHERE @S IS NULL
@@ -1498,7 +1501,8 @@ public sealed class MasterDataRepository
                 r["CreatedBy"] as string,
                 r["CreatedTS"] as DateTime?,
                 r["ModifiedBy"] as string,
-                r["ModifiedTS"] as DateTime?));
+                r["ModifiedTS"] as DateTime?,
+                (bool)r["SAPTransFlag"]));
         }
         return list;
     }
@@ -1516,19 +1520,19 @@ public sealed class MasterDataRepository
         string vendorId, string? vendorName, string? vendorType, string? vendorCategory,
         string? bizRegNo, string? contactPerson, string? phone, string? email,
         string? scmUrl, bool ediFlag, decimal? otdTargetRate,
-        string? paymentTerms, bool activeFlag, string createdBy)
+        string? paymentTerms, bool activeFlag, string createdBy, bool sapTransFlag = false)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Vendor
               (VendorID,VendorName,VendorType,VendorCategory,
                BizRegNo,ContactPerson,Phone,Email,ScmURL,
-               EdiFlag,OtdTargetRate,PaymentTerms,ActiveFlag,
+               EdiFlag,OtdTargetRate,PaymentTerms,ActiveFlag,SAPTransFlag,
                CreatedBy,CreatedTS)
             VALUES
               (@ID,@Name,@Type,@Cat,
                @Biz,@CP,@Ph,@Em,@Url,
-               @EDI,@Otd,@Pay,@Active,
+               @EDI,@Otd,@Pay,@Active,@Sap,
                @By,SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",   SqlDbType.VarChar,  20).Value = vendorId;
@@ -1545,6 +1549,7 @@ public sealed class MasterDataRepository
         cmd.Parameters["@Otd"].Precision = 5; cmd.Parameters["@Otd"].Scale = 2;
         cmd.Parameters.Add("@Pay",  SqlDbType.VarChar,  30).Value = (object?)paymentTerms   ?? DBNull.Value;
         cmd.Parameters.Add("@Active",SqlDbType.Bit).Value         = activeFlag;
+        cmd.Parameters.Add("@Sap",  SqlDbType.Bit).Value          = sapTransFlag;
         cmd.Parameters.Add("@By",   SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
@@ -1553,7 +1558,7 @@ public sealed class MasterDataRepository
         string vendorId, string? vendorName, string? vendorType, string? vendorCategory,
         string? bizRegNo, string? contactPerson, string? phone, string? email,
         string? scmUrl, bool ediFlag, decimal? otdTargetRate,
-        string? paymentTerms, bool activeFlag, string modifiedBy)
+        string? paymentTerms, bool activeFlag, string modifiedBy, bool? sapTransFlag = null)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
@@ -1561,7 +1566,7 @@ public sealed class MasterDataRepository
               VendorName=@Name, VendorType=@Type, VendorCategory=@Cat,
               BizRegNo=@Biz, ContactPerson=@CP, Phone=@Ph, Email=@Em, ScmURL=@Url,
               EdiFlag=@EDI, OtdTargetRate=@Otd, PaymentTerms=@Pay,
-              ActiveFlag=@Active,
+              ActiveFlag=@Active, SAPTransFlag=ISNULL(@Sap, SAPTransFlag),
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE VendorID=@ID;
             """, conn);
@@ -1579,6 +1584,7 @@ public sealed class MasterDataRepository
         cmd.Parameters["@Otd"].Precision = 5; cmd.Parameters["@Otd"].Scale = 2;
         cmd.Parameters.Add("@Pay",  SqlDbType.VarChar,  30).Value = (object?)paymentTerms   ?? DBNull.Value;
         cmd.Parameters.Add("@Active",SqlDbType.Bit).Value         = activeFlag;
+        cmd.Parameters.Add("@Sap",  SqlDbType.Bit).Value          = (object?)sapTransFlag   ?? DBNull.Value;
         cmd.Parameters.Add("@By",   SqlDbType.VarChar, 20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
@@ -3215,7 +3221,7 @@ public sealed class MasterDataRepository
         string LocationID, string? LocationName, string WhCode, string AreaCode, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot,
         decimal? Capacity, string? LocationType, string? PlantCode, bool ActiveFlag,
-        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS, bool SAPTransFlag = false);
 
     public List<LocationRow> ListLocations()
     {
@@ -3223,7 +3229,7 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand(
             "SELECT LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
             "Capacity,LocationType,PlantCode,ISNULL(ActiveFlag,1)," +
-            "CreatedBy,CreatedTS,ModifiedBy,ModifiedTS " +
+            "CreatedBy,CreatedTS,ModifiedBy,ModifiedTS,SAPTransFlag " +
             "FROM dbo.MD_Location ORDER BY LocationID;", conn);
         using var rdr = cmd.ExecuteReader();
         var list = new List<LocationRow>();
@@ -3244,7 +3250,8 @@ public sealed class MasterDataRepository
                 rdr.IsDBNull(12) ? null : rdr.GetString(12),
                 rdr.IsDBNull(13) ? null : rdr.GetDateTime(13),
                 rdr.IsDBNull(14) ? null : rdr.GetString(14),
-                rdr.IsDBNull(15) ? null : rdr.GetDateTime(15)));
+                rdr.IsDBNull(15) ? null : rdr.GetDateTime(15),
+                rdr.GetBoolean(16)));
         return list;
     }
 
@@ -3261,14 +3268,14 @@ public sealed class MasterDataRepository
         string locationId, string? name, string whCode, string areaCode, string? zoneCode,
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
-        bool activeFlag, string createdBy)
+        bool activeFlag, string createdBy, bool sapTransFlag = false)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_Location" +
             "(LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
-            "Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy)" +
-            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,@PL,@AF,@CB);", conn);
+            "Capacity,LocationType,PlantCode,ActiveFlag,SAPTransFlag,CreatedBy)" +
+            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,@PL,@AF,@SAP,@CB);", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
         cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
@@ -3282,6 +3289,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)locationType  ?? DBNull.Value;
         cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   20).Value = (object?)plantCode     ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
+        cmd.Parameters.Add("@SAP", SqlDbType.Bit).Value           = sapTransFlag;
         cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
@@ -3290,13 +3298,13 @@ public sealed class MasterDataRepository
         string locationId, string? name, string whCode, string areaCode, string? zoneCode,
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
-        bool activeFlag, string modifiedBy)
+        bool activeFlag, string modifiedBy, bool? sapTransFlag = null)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_Location SET " +
             "LocationName=@N,WhCode=@WH,AreaCode=@AR,ZoneCode=@Z,Aisle=@A,Bay=@B,Slot=@S," +
-            "Capacity=@CAP,LocationType=CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,PlantCode=@PL,ActiveFlag=@AF," +
+            "Capacity=@CAP,LocationType=CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,PlantCode=@PL,ActiveFlag=@AF,SAPTransFlag=ISNULL(@SAP,SAPTransFlag)," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
             "WHERE LocationID=@I;", conn);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
@@ -3312,6 +3320,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)locationType  ?? DBNull.Value;
         cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   20).Value = (object?)plantCode     ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
+        cmd.Parameters.Add("@SAP", SqlDbType.Bit).Value           = (object?)sapTransFlag  ?? DBNull.Value;
         cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }

@@ -99,6 +99,11 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="PaymentTerms" Title="@L["Col.PayTerm"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r"><span class="dim">@(r.PaymentTerms ?? "—")</span></Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="SAPTransFlag" Title="@L["Col.SapTrans"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r">
+                    @if (r.SAPTransFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
@@ -176,6 +181,10 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.EdiFlag" Name="CreateChkEdi" />
                     <RadzenLabel Text="@L["MD.Vendor.Lbl.EDI"]" Component="CreateChkEdi" style="cursor:pointer;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SAPTransFlag" Name="CreateChkSapTrans" />
+                    <RadzenLabel Text="@L["Col.SapTrans"]" Component="CreateChkSapTrans" style="cursor:pointer;" />
                 </RadzenStack>
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="CreateChkActive" />
@@ -263,6 +272,10 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.EdiFlag" Name="EditChkEdi" />
                     <RadzenLabel Text="@L["MD.Vendor.Lbl.EDI"]" Component="EditChkEdi" style="cursor:pointer;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SAPTransFlag" Name="EditChkSapTrans" />
+                    <RadzenLabel Text="@L["Col.SapTrans"]" Component="EditChkSapTrans" style="cursor:pointer;" />
                 </RadzenStack>
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
@@ -400,6 +413,7 @@
             EdiFlag        = r.EdiFlag,
             OtdTargetRate  = r.OtdTargetRate,
             PaymentTerms   = r.PaymentTerms   ?? "",
+            SAPTransFlag   = r.SAPTransFlag,
             ActiveFlag     = r.ActiveFlag,
         };
         _modal = "edit";
@@ -422,7 +436,7 @@
             MD.InsertVendor(newId, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
                 NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
-                NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
+                NE(_f.PaymentTerms), _f.ActiveFlag, _actor, _f.SAPTransFlag);
             Audit.Created("MD-009", "MD_Vendor", newId, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Created"].Value, _f.VendorName), false);
@@ -443,7 +457,7 @@
             MD.UpdateVendor(_sel.VendorID, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
                 NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
-                NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
+                NE(_f.PaymentTerms), _f.ActiveFlag, _actor, _f.SAPTransFlag);
             Audit.Updated("MD-009", "MD_Vendor", _sel.VendorID, _sel, _f);
             var name = _f.VendorName;
             CloseModal(); await ReloadRestorePage();
@@ -509,6 +523,7 @@
         public bool     EdiFlag        { get; set; } = false;
         public decimal? OtdTargetRate  { get; set; }
         public string   PaymentTerms   { get; set; } = "";
+        public bool     SAPTransFlag   { get; set; }
         public bool     ActiveFlag     { get; set; } = true;
     }
 }
