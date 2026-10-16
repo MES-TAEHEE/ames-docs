@@ -187,6 +187,28 @@ public class PdaForegroundSessionTests
         Assert.False(auth.TakeExpiryNotice());
     }
 
+    [Fact]
+    public void ExpiryAlertUsesDarkWarehouseModalAndAcknowledgementBeforeLogin()
+    {
+        var layout = ReadPdaSource("Components/Layout/MainLayout.razor");
+        var css = ReadPdaSource("Components/Layout/MainLayout.razor.css");
+        Assert.DoesNotContain("Dialogs.Alert", layout);
+        Assert.Contains("wh-modal-backdrop pda-session-expiry", layout);
+        Assert.Contains("role=\"alertdialog\"", layout);
+        Assert.Contains("aria-describedby=\"session-expired-message\"", layout);
+        Assert.Contains("@onclick=\"ConfirmExpiry\"", layout);
+        Assert.Contains("await _expiryButton.FocusAsync()", layout);
+        Assert.Contains("inert=\"@(Auth.SessionCheckRequired || _expiryAlert)\"", layout);
+        var expiry = layout[layout.IndexOf("if (Auth.TakeExpiryNotice())", StringComparison.Ordinal)..];
+        Assert.True(expiry.IndexOf("return;", StringComparison.Ordinal) < expiry.IndexOf("Nav.NavigateTo", StringComparison.Ordinal));
+        Assert.Contains("background: #0f1d33", css);
+        Assert.Contains(".wh-modal-title { color: #fff; }", css);
+        Assert.Contains(".wh-modal-message { color: #e2e8f0; }", css);
+    }
+
+    private static string ReadPdaSource(string relative, [System.Runtime.CompilerServices.CallerFilePath] string file = "")
+        => File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!, "../../05_Pda/AMES.Pda", relative)));
+
     private static HttpClient Client(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> callback)
         => new(new CallbackHandler(callback)) { BaseAddress = new Uri("https://example.test") };
 
