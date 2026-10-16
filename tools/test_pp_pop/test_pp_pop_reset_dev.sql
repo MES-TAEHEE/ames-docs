@@ -8,10 +8,11 @@
 --   §2 마스터 점검: 고객·라우팅·BOM 코어·금형/UPH·BOP 스테이션·사이클·라인/스테이션/LotPrefix·가동 시간 패턴·
 --                  공장 달력·SYS_Config·교대·APS 기본 패턴·불량코드/원인·REWORK 라인·작업자·라인 슈퍼바이저·IMG 라벨 항목.
 --                  FAIL 이 하나라도 있으면 THROW(아무것도 바꾸지 않음), WARN 은 목록으로만 보인다.
---                  자동 보정 두 가지: ① 선택 금형의 MD_MoldItem.Color 가 2자 검정 'BK' 면 'CBK' 로 바꾼다(InjAgent 는 PLC 금형
+--                  자동 보정 세 가지: ① 선택 금형의 MD_MoldItem.Color 가 2자 검정 'BK' 면 'CBK' 로 바꾼다(InjAgent 는 PLC 금형
 --                  문자열 끝 3자를 색상으로 읽는다 — 10-14 사용자 결정 black = CBK; 그 밖의 3자 아닌 색상은 자동 선택에서 뒤로 미루고
---                  고를 수밖에 없으면 FAIL) ② 선택 라인에 활성 슈퍼바이저가 없으면 슈퍼바이저가 있는 첫 라인의 것을 복사한다
---                  (없으면 안돈이 OPEN 에서 못 벗어난다). 둘 다 트랜잭션 안이라 FAIL·ROLLBACK 이면 되돌아간다.
+--                  고를 수밖에 없으면 FAIL) ② 선택 금형 코어의 PalletQty 가 비면 그 코어를 쓰는 완제품 PalletQty 의 최소값(없으면 8)
+--                  으로 채운다(seed_aps_dev.sql ③ 규칙) ③ 선택 라인에 활성 슈퍼바이저가 없으면 슈퍼바이저가 있는 첫 라인의 것을
+--                  복사한다(없으면 안돈이 OPEN 에서 못 벗어난다). 모두 트랜잭션 안이라 FAIL·ROLLBACK 이면 되돌아간다.
 --   §3 초기화    : PP 계획 데이터 전부(예측·일별계획·공급계획·수주·WO·단계·WO/MC 슬롯·APS 실행·MRP·구매요청) +
 --                  생산 데이터(INJ/IMG/FINAL LOT·사출/감싸기 LOT·실적·불량·접수·안돈·비가동·안돈 고장·빈 LotSeq).
 --                  남기는 것: PM 슬롯, 창고·FG·QC·PNT·MNT 데이터, POP 세션/인증 로그, 금형 샷·교체 이력.
@@ -153,6 +154,16 @@ WHERE  MoldID IN (@Mold1, @Mold2) AND RTRIM(Color) = 'BK';
 DECLARE @ColorFixed int = @@ROWCOUNT;
 UPDATE #cand SET Color = 'CBK' WHERE MoldID IN (@Mold1, @Mold2) AND RTRIM(Color) = 'BK';
 
+-- 1-d') 자동 보정 ②: 선택 금형 코어의 PalletQty(APS 포장 단위)가 비면 그 코어를 쓰는 완제품 PalletQty 의 최소값, 완제품에도 없으면 8
+--       (seed_aps_dev.sql ③ 과 같은 규칙 — 완제품 수주가 적입수량 배수로 오므로 코어도 같은 단위면 APS 포장 올림이 자투리를 안 만든다)
+UPDATE ci SET PalletQty = COALESCE(pp.PalletQty, 8), ModifiedBy = @Actor, ModifiedTS = @Now
+FROM   dbo.MD_Item ci
+OUTER APPLY (SELECT MIN(a.PalletQty) AS PalletQty FROM #core c JOIN dbo.MD_Item a ON a.ItemNo = c.Assy
+             WHERE c.CoreItemNo = ci.ItemNo AND a.PalletQty > 0) pp
+WHERE  ci.ItemNo IN (SELECT ItemNo FROM dbo.MD_MoldItem WHERE MoldID IN (@Mold1, @Mold2) AND ActiveFlag = 1)
+  AND  ISNULL(ci.PalletQty, 0) <= 0;
+DECLARE @PalletFixed int = @@ROWCOUNT;
+
 -- 1-e) 코어마다 완제품 1개 (점수 → 품번순)
 IF OBJECT_ID('tempdb..#pick') IS NOT NULL DROP TABLE #pick;
 SELECT Kind, Assy, CoreItemNo, MoldID, CavityCount, InjStation, InjLine, InjCycle, ImgStation, ImgLine, ImgCycle, Uph, MoldCode, Color,
@@ -201,6 +212,10 @@ INSERT INTO #chk SELECT 'WARN', N'Item', CONCAT(p.Assy, N': PGN/ALC/MountPos emp
 FROM   #pick p JOIN dbo.MD_Item a ON a.ItemNo = p.Assy WHERE a.PGN IS NULL OR a.ALC IS NULL OR a.MountPos IS NULL;
 INSERT INTO #chk SELECT 'WARN', N'Item', CONCAT(p.Assy, N': DefaultUOM ', ISNULL(a.DefaultUOM,'(NULL)'), N' not in MD_Uom - qty decimals fall back to default')
 FROM   #pick p JOIN dbo.MD_Item a ON a.ItemNo = p.Assy WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Uom u WHERE u.UomCode = a.DefaultUOM);
+IF @PalletFixed > 0
+    INSERT INTO #chk SELECT 'OK', N'Item', CONCAT(N'Core PalletQty was empty - set ', STRING_AGG(CONCAT(ci.ItemNo, N'=', ci.PalletQty), N', '), N' (finished-item minimum, else 8; check in MD-003)')
+    FROM   dbo.MD_Item ci WHERE ci.ItemNo IN (SELECT ItemNo FROM dbo.MD_MoldItem WHERE MoldID IN (@Mold1, @Mold2) AND ActiveFlag = 1)
+      AND  ci.ModifiedBy = @Actor AND ci.ModifiedTS = @Now;
 INSERT INTO #chk SELECT 'WARN', N'Item', CONCAT(p.CoreItemNo, N': core PalletQty is NULL - APS treats the pack unit as 1 (MD-003 / dev: seed_aps_dev.sql section 3)')
 FROM   #pick p JOIN dbo.MD_Item ci ON ci.ItemNo = p.CoreItemNo WHERE ISNULL(ci.PalletQty, 0) <= 0;
 INSERT INTO #chk SELECT 'WARN', N'Item', CONCAT(p.CoreItemNo, N': core InjFlag=0 - fine for PP-003, but PP-APS BOM rule will not treat it as injection (MD-003)')
