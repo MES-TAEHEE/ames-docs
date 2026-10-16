@@ -32,23 +32,49 @@ public class ZplLabelBuilderTests
     }
 
     [Fact]
-    public void Build_sets_4x2_inch_media_geometry()
+    public void Build_sets_560x320_media_geometry()
     {
         var zpl = ZplLabelBuilder.Build(Sample());
-        Assert.Contains("^PW812", zpl);   // 4" @ 203dpi
-        Assert.Contains("^LL406", zpl);   // 2" @ 203dpi
+        Assert.Contains("^PW560", zpl);
+        Assert.Contains("^LL320", zpl);
+        Assert.Contains("^LH10,0", zpl);
         Assert.Contains("^CI28", zpl);    // UTF-8
+        Assert.EndsWith("^PQ1\n^XZ", zpl.Replace("\r\n", "\n"));
+    }
+
+    [Fact]
+    public void Build_matches_the_measured_label_layout_for_a_manual_lot()
+    {
+        var label = new ZplLabel(
+            LotCode: "AAGI10002", ItemNo: "D0101-QI000", ItemName: "", ColorCode: null,
+            CavityPos: null, PressType: null, LineId: "LINE-INJ-01",
+            ProducedAt: new DateTime(2026, 10, 16, 9, 0, 0));
+        var expected = string.Join("\n", new[]
+        {
+            "^XA",
+            "^CI28",
+            "^PW560",
+            "^LL320",
+            "^LH10,0",
+            "^FO30,40^BXN,9,200^FDAAGI10002^FS",
+            "^FO190,45^A0N,35,35^FD10/16/2026^FS",
+            "^FO190,105^A0N,60,60^FDAAGI10002^FS",
+            "^FO30,235^A0N,70,70^FDD0101-QI000^FS",
+            "^PQ1",
+            "^XZ",
+        });
+        Assert.Equal(expected, ZplLabelBuilder.Build(label).Replace("\r\n", "\n"));
     }
 
     [Fact]
     public void Build_contains_item_color_cavity_press_and_date()
     {
         var zpl = ZplLabelBuilder.Build(Sample());
-        Assert.Contains("^FO50,260^A0N,100,78^FD83335-P8000RBQ^FS", zpl);
-        Assert.Contains("^FO280,164^A0N,62,54^FDCBK^FS", zpl);
-        Assert.Contains("^FO640,28^A0N,86,68^FDLH^FS", zpl);
-        Assert.Contains("^FO640,146^A0N,86,68^FDM^FS", zpl);
-        Assert.Contains("^FO290,40^A0N,60,60^FD07/17/2026^FS", zpl);
+        Assert.Contains("^FO30,235^A0N,70,70^FD83335-P8000RBQ^FS", zpl);
+        Assert.Contains("^FO190,170^A0N,40,34^FDCBK^FS", zpl);
+        Assert.Contains("^FO450,30^A0N,60,48^FDLH^FS", zpl);
+        Assert.Contains("^FO450,170^A0N,60,48^FDM^FS", zpl);
+        Assert.Contains("^FO190,45^A0N,35,35^FD07/17/2026^FS", zpl);
     }
 
     [Fact]
@@ -69,10 +95,10 @@ public class ZplLabelBuilderTests
         var zpl = ZplLabelBuilder.Build(label);
         Assert.StartsWith("^XA", zpl);
         Assert.EndsWith("^XZ", zpl.TrimEnd());
-        Assert.DoesNotContain("^FO280,164", zpl);   // 색상 줄 생략
-        Assert.DoesNotContain("^FO640,28", zpl);   // 캐비티 줄 생략
-        Assert.DoesNotContain("^FO640,146", zpl);   // 호기 줄 생략
-        Assert.Contains("^FO50,260^A0N,100,78^FD83335-P8000RBQ^FS", zpl);
+        Assert.DoesNotContain("^FO190,170", zpl);   // 색상 줄 생략
+        Assert.DoesNotContain("^FO450,30", zpl);    // 캐비티 줄 생략
+        Assert.DoesNotContain("^FO450,170", zpl);   // 호기 줄 생략
+        Assert.Contains("^FO30,235^A0N,70,70^FD83335-P8000RBQ^FS", zpl);
     }
 
     [Fact]

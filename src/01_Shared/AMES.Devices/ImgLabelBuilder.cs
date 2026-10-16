@@ -4,7 +4,7 @@ using System.Text;
 namespace AMES.Devices;
 
 /// <summary>
-/// IMG 완제품 라벨 4"×2"(812×406 dot @ 203dpi).
+/// IMG 완제품 라벨 560×320 dot @ 203dpi(약 70×40mm, 좌측 여백 ^LH10 — 10-16 실제 라벨지에 맞춘 값).
 /// 좌측 DataMatrix 는 고객 표준(ISO 15434 / MH10.8.2) 포맷:
 ///   [)> RS 06 GS V{수주처코드} GS P{품번(하이픈 제거)} GS S{PGN+ALC} GS T{yyMMdd}{part4M}{LotNo} GS E GS C: RS EOT
 /// 제어문자는 ^FH_ 로 16진 이스케이프(_1E RS · _1D GS · _04 EOT)한다 — 없으면 글자 그대로 찍힌다.
@@ -33,17 +33,18 @@ public static class ImgLabelBuilder
 
         var sb = new StringBuilder();
         sb.AppendLine("^XA");
-        sb.AppendLine("^PW812");
-        sb.AppendLine("^LL406");
-        sb.AppendLine("^LH0,0");
         sb.AppendLine("^CI28");
-        sb.AppendLine($"^FO36,68^BXN,7,200^FH_^FD{dm}^FS");
-        Field(sb, "^FO260,50^A0N,124,96", l.Alc);
-        Field(sb, "^FO500,50^A0N,80,64", l.MountPos);
+        sb.AppendLine("^PW560");
+        sb.AppendLine("^LL320");
+        sb.AppendLine("^LH10,0");
+        sb.AppendLine($"^FO30,70^BXN,5,200^FH_^FD{dm}^FS");
+        Field(sb, "^FO225,45^A0N,80,60", l.Alc);
+        // ALC(4자 × 60dot) 오른쪽 — LH 10 을 더해도 라벨 폭 560 안에 들어가는 크기.
+        Field(sb, "^FO470,52^A0N,48,36", l.MountPos);
         // Invariant 고정 — 서식의 '/' 는 문화권 날짜구분자로 치환된다(ko → '-').
-        sb.AppendLine($"^FO260,160^A0N,58,46^FD{l.IssuedAt.ToString("M/d/yyyy", CultureInfo.InvariantCulture)}^FS");
-        sb.AppendLine($"^FO260,220^A0N,78,56^FD{Zf(l.ItemNo)}^FS");
-        sb.AppendLine($"^FO260,300^A0N,78,56^FD{Zf(l.LotCode)}^FS");
+        sb.AppendLine($"^FO225,125^A0N,40,30^FD{l.IssuedAt.ToString("M/d/yyyy", CultureInfo.InvariantCulture)}^FS");
+        sb.AppendLine($"^FO225,180^A0N,50,40^FD{Zf(l.ItemNo)}^FS");
+        sb.AppendLine($"^FO225,240^A0N,50,40^FD{Zf(l.LotCode)}^FS");
         sb.Append("^XZ");
         return sb.ToString();
     }
