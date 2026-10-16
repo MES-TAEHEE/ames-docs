@@ -78,7 +78,7 @@ internal static class PopShell
         var clock = new Label
         {
             Name      = "lblClock",
-            Text      = DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+            Text      = DbClock.Now.ToString("yyyy-MM-dd HH:mm"),
             Font      = PopTheme.Mono,
             ForeColor = PopTheme.TextDim,
             AutoSize  = true,

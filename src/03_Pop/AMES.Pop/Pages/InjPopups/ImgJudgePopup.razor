@@ -3,6 +3,7 @@
 @using AMES.Pop.Common
 @using AMES.Pop.Services
 @inject ScannerService Scanner
+@inject ToastService Toasts
 @implements IDisposable
 
 @*  IMG 완제품 판정 팝업 — Core 스캔 발행 · 예외 발행 · RAW 완제품 라벨 재스캔 뒤에 뜬다.
@@ -115,9 +116,10 @@
         try
         {
             var (outcome, _, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
-                Lot.LotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+                Lot.LotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo, out var backflush);
             if (outcome == ImgConfirmOutcome.Confirmed)
             {
+                BackflushNotice.Show(Toasts, backflush, Lot.LotCode);
                 var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
                 await OnDone.InvokeAsync((true, $"{T("Confirmed")}: {Lot.LotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}", itemNo));
                 return;

@@ -1,11 +1,13 @@
 @page "/rework"
 @using AMES.Contracts.Enums
+@using AMES.Data.Repositories
 @using AMES.Pop.Common
 @using AMES.Pop.Pages.InjPopups
 @implements IDisposable
 @inject NavigationManager Nav
 @inject AppState State
 @inject ConfirmService Confirmer
+@inject ToastService Toasts
 @inject AMES.Pop.Services.ScannerService Scanner
 
 @*  REWORK — 독립 재작업 스테이션(공정코드 RWK). 좌측 전 라인 재작업 대기열, 우측 판정.
@@ -227,7 +229,7 @@
     private bool _focusScan;
     private ElementReference _scanInput;
     private bool _scannerOn;
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _clockTimer, _refreshTimer;
 
     protected override void OnInitialized()
@@ -237,7 +239,7 @@
         _scannerOn = Scanner.IsConnected;
         Scanner.OnScan            += OnSerialScan;
         Scanner.ConnectionChanged += OnScannerConnection;
-        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }), null, 1000, 1000);
+        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); }), null, 1000, 1000);
         _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }), null, 5000, 5000);
     }
 
@@ -270,7 +272,7 @@
         catch (Exception ex)
         {
             _refreshError   = ex.Message;
-            _refreshErrorAt = DateTime.Now;
+            _refreshErrorAt = DbClock.Now;
         }
     }
 
@@ -347,10 +349,12 @@
         var session = Session; var note = _note;
         if (!await Confirmer.AskAsync(T("RwkConfirmReworkTitle"), T("RwkConfirmReworkBody", sel.LotCode),
                                       T("RwkReworkBtn"), T("Cancel"))) return;
+        var bf = BackflushResult.None;
         Decide(sel.LotCode,
                () => PopServices.Rework.Rework(sel.DefectId, cause, note, session.LineId,
-                                               session.OperatorId, session.SessionId, session.EmployeeNo),
+                                               session.OperatorId, session.SessionId, session.EmployeeNo, out bf),
                T("RwkDoneRework"));
+        BackflushNotice.Show(Toasts, bf, sel.LotCode);
     }
 
     private async Task DoScrap()

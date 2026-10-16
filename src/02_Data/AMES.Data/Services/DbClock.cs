@@ -10,8 +10,8 @@ namespace AMES.Data.Services;
 /// 왜: 기록 시각의 정본은 DB(SYSDATETIME, 공장 현지시각)인데 화면 기본값·"오늘" 필터·채번 접두어는 호스트 시계를 썼다.
 /// 웹 서버와 DB 서버의 시간대가 다르면(예: 한국시간 PC 의 IIS + 미국 동부시간 DB) 같은 건의 시각이 13시간 어긋난다.
 ///
-/// 동기화는 Web 이 기동 시 1회 + 로그인(회로 시작) 시 <see cref="EnsureSynced"/> 로 한다. Configure 하지 않은 프로세스
-/// (POP·API)는 Offset 0 이라 DateTime.Now 와 같다 — 기존 동작 그대로.
+/// 동기화는 Web 이 기동 시 1회 + 로그인(회로 시작) 시, POP 이 로그인 화면·로그인 때 <see cref="EnsureSynced"/> 로 한다.
+/// Configure 하지 않은 프로세스(API)와 동기화에 실패한 프로세스는 Offset 0 이라 DateTime.Now 와 같다 — 기존 동작 그대로.
 /// </summary>
 public static class DbClock
 {

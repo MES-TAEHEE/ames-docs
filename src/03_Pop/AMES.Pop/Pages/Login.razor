@@ -210,7 +210,7 @@
     string   _status = " ", _statusClass = "dim";
     bool     _showPicker;
     List<EmployeeProfileDto> _profiles = new();
-    DateTime _now = DateTime.Now;
+    DateTime _now = DbClock.Now;
     System.Threading.Timer? _clock;
 
     List<MasterDataRepository.PopLineOptionRow> _lines    = new();
@@ -233,7 +233,9 @@
     protected override void OnInitialized()
     {
         _profiles = LoadPickerProfiles();
-        _clock = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }), null, 1000, 1000);
+        // 로그인 화면이 뜰 때 DB 시각을 한 번 맞춘다 — 화면을 막지 않게 백그라운드, 실패해도 Offset 0 으로 둔다
+        _ = Task.Run(() => DbClock.EnsureSynced(TimeSpan.FromMinutes(10)));
+        _clock = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); }), null, 1000, 1000);
         LoadLines();
 
         _scannerOn = Scanner.IsConnected;
@@ -468,6 +470,8 @@
     void EnterShopFloor(PopSessionDto session)
     {
         if (_selLine is null) return;
+        // 로그인마다 DB 시각 보정을 확인(Web TopBar 와 같은 규칙) — 10분 안에 맞춘 값이 있으면 DB 를 가지 않는다
+        DbClock.EnsureSynced(TimeSpan.FromMinutes(10));
         State.SignIn(session, _selLine.ProcessCode);
         // _loggingIn 은 켠 채로 둔다 — 화면을 떠나는 중에 들어온 스캔을 막는다.
         _loggingIn = true;

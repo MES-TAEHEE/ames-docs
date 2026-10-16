@@ -108,13 +108,13 @@
     private string  _sev = "Major", _src = "INSPECTION", _item = "DR-TRM-LH-A1", _disp = "HOLD";
     private int     _qty = 24;
     private string  _status = "", _statusCls = "dim";
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _timer;
 
     protected override void OnInitialized()
     {
         Refresh();
-        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DbClock.Now; StateHasChanged(); }),
                                             null, 5000, 5000);
     }
 
@@ -124,7 +124,7 @@
         {
             _ncrs = PopServices.Qc.ListNcrs("Open,Investigating", 60);
             var closed = PopServices.Qc.ListNcrs("Closed", 60);
-            _closed7 = closed.Count(n => (n.ReportedAt ?? DateTime.MinValue) >= DateTime.Now.AddDays(-7));
+            _closed7 = closed.Count(n => (n.ReportedAt ?? DateTime.MinValue) >= DbClock.Now.AddDays(-7));
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc04] {ex.Message}"); }
     }

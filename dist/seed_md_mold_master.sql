@@ -14,7 +14,7 @@
 --  · 엑셀처럼 LH/RH 는 한 금형(CavitySeq LH 1 · RH 2), 옵션(STD/CUR/IMS)과 색은 품번 행으로 구분.
 --  · MD_Mold      : Status AVAILABLE(공통코드 MOLD_STATUS) · RatedShots 500000 · CavityCount = LH/RH 합 ·
 --                   Tonnage 코어 650 / 레일 450 · MoldChangeMin 코어 30 / 레일 20 · CarType = 품목 차종.
---  · MD_MoldItem  : Color = 품번 11자 뒤 색 접미(LX3A 레일 NNB/YGU), 접미 없으면 BK(BOM Master 규칙 "BK 는 무접미") ·
+--  · MD_MoldItem  : Color = 품번 11자 뒤 색 접미(LX3A 레일 NNB/YGU), 접미 없으면 CBK(BOM Master 규칙 "BK 는 무접미" — 10-14 InjAgent 가 PLC 금형코드 끝 3자를 색상으로 읽어 2자 BK 는 매칭되지 않아 3자 CBK 로, 원본 SIS 테스트 데이터 LQ2DTRUCBK 와 같은 코드) ·
 --                   Usage 1 · ResinItemNo/ResinUsage = 그 품번 BOM 의 RESIN 자식·QtyPer(G) (NQ5A 레일만 없음) ·
 --                   CavityCount 1 · MoldCategory INJECTION.
 --  · MD_MoldColor : MoldItem 색 파생.   MD_MoldLine : 차종 → INJ 라인(NE1A 01 · LQ2 02 · LX3A 03 · ME1A 04 ·
@@ -161,7 +161,7 @@ PRINT CONCAT(N'§4 MD_Mold: ', @@ROWCOUNT);
 INSERT INTO dbo.MD_MoldItem (MoldID, ItemNo, Color, CavitySeq, CavityPos, [Usage], ResinItemNo, ResinUsage,
                              CavityCount, MoldCategory, ActiveFlag, CreatedBy, CreatedTS)
 SELECT d.MoldID, d.ItemNo,
-       CASE WHEN LEN(d.ItemNo) > 11 THEN SUBSTRING(d.ItemNo, 12, 10) ELSE 'BK' END,
+       CASE WHEN LEN(d.ItemNo) > 11 THEN SUBSTRING(d.ItemNo, 12, 10) ELSE 'CBK' END,
        CASE d.Pos WHEN 'RH' THEN 2 ELSE 1 END, d.Pos, 1,
        r.ItemNo, r.QtyPer, 1, 'INJECTION', 1, 'MOLD-SEED', SYSDATETIME()
 FROM   #def d
