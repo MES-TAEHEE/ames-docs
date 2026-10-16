@@ -26,13 +26,13 @@ public sealed class FinishedGoodsShipmentTests
     [Fact]
     public void Shipments_and_returns_use_the_same_source_link()
     {
-        var sql=Read("dist/migrate_fg_shipment_actual.sql");
+        var sql=PdaFinishedGoodsSql.OutboundComplete+PdaFinishedGoodsSql.ReturnScan+PdaFinishedGoodsSql.ReturnReceive;
         Assert.Contains("INSERT dbo.FG_Shipment(OutboundBarcode,UnitType,CustomerID,ShippedAt,ShippedBy)",sql);
         Assert.Contains("'FG_OUTBOUND',@ShipmentID",sql);
         Assert.Contains("S.ShipmentID=T.SourceID",sql);
         Assert.Contains("ParentLotNo=NULL",sql);
         Assert.Contains("WHERE ShipmentID=@ShipmentID AND LotNo=@LotNo",sql);
-        Assert.Contains("The latest shipment changed",sql);
+        Assert.Contains("latest shipment changed",sql);
         Assert.Contains("ROLLBACK TRANSACTION",sql);
         Assert.DoesNotMatch(@"(?i)DELETE\s+(?:FROM\s+)?dbo\.WH_Inventory(?:Transaction)?\b",sql);
         Assert.DoesNotContain("DROP TABLE",sql);
@@ -41,9 +41,7 @@ public sealed class FinishedGoodsShipmentTests
     [Fact]
     public void Customer_is_validated_before_shipment_and_stock_changes()
     {
-        var sql=Read("dist/migrate_fg_shipment_actual.sql");
-        var start=sql.IndexOf("CREATE OR ALTER PROCEDURE dbo.FG_PDA_OUTBOUND_COMPLETE",StringComparison.Ordinal);
-        var body=sql[start..];
+        var body=PdaFinishedGoodsSql.OutboundComplete;
         Assert.True(body.IndexOf("Select the outbound customer",StringComparison.Ordinal)<body.IndexOf("INSERT dbo.FG_Shipment",StringComparison.Ordinal));
         Assert.Contains("The selected customer does not match",body);
         Assert.Contains("Different customers",body,StringComparison.OrdinalIgnoreCase);

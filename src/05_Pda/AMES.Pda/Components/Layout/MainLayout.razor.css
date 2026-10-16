@@ -11,3 +11,30 @@
 
 .pda-session-message { text-align: center; }
 .pda-session-message button { margin: 8px; padding: 12px 20px; }
+
+.pda-session-expiry {
+    z-index: 10001;
+    background: rgba(0, 0, 0, .58);
+}
+
+.pda-session-expiry .wh-modal-card {
+    width: min(420px, 100%);
+    padding: 22px 20px 18px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 0;
+    background: #0f1d33;
+    color: #fff;
+}
+
+.pda-session-expiry .wh-modal-title { color: #fff; }
+.pda-session-expiry .wh-modal-message { color: #e2e8f0; }
+.pda-session-expiry .wh-modal-mark {
+    border-radius: 0;
+    background: #422d16;
+    color: #fbbf24;
+}
+.pda-session-expiry .wh-modal-btn { border-radius: 0; }
+.pda-session-expiry .wh-modal-btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+}

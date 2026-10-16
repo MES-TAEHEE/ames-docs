@@ -66,6 +66,9 @@ public sealed class ScmDeliveryCaseTests
             Sql("""
                 CREATE TABLE MD_Vendor(VendorID varchar(20) PRIMARY KEY,VendorName nvarchar(100),ActiveFlag bit);
                 CREATE TABLE MD_Item(ItemNo varchar(20) PRIMARY KEY,ItemName nvarchar(200),ItemType varchar(20),DefaultUOM varchar(20),ActiveFlag bit);
+                CREATE TABLE tbl_Lot(LotID int IDENTITY PRIMARY KEY,LotCode nvarchar(50),ItemNo varchar(20),
+                    RemainingQty decimal(18,3),BatchSize decimal(18,3),ProducedAt datetime2,
+                    CurrentLocationID varchar(50),ModifiedBy varchar(20),ModifiedTS datetime2);
                 CREATE TABLE SCM_ItemVendor(ItemNo varchar(20),VendorID varchar(20),PackingQty decimal(18,3),ActiveFlag bit,
                     CreatedBy varchar(20),CreatedTS datetime2 DEFAULT SYSDATETIME(),ModifiedBy varchar(20),ModifiedTS datetime2,PRIMARY KEY(ItemNo,VendorID));
                 CREATE TABLE SCM_PortalVendorUser(UserID nvarchar(450),VendorID varchar(20),ActiveFlag bit,LockedFlag bit);
@@ -112,14 +115,6 @@ public sealed class ScmDeliveryCaseTests
             foreach(var pass in Enumerable.Range(0,2))
                 foreach(var batch in Regex.Split(migration,@"(?im)^\s*GO\s*$"))
                     if(!string.IsNullOrWhiteSpace(batch))Sql(batch);
-            var schema=File.ReadAllText(Path.Combine(root.FullName,"dist","pda","PDA_SCHEMA.sql"));
-            var procedure=Regex.Match(schema,@"(?ms)^CREATE OR ALTER PROCEDURE dbo\.WH_PDA_INBOUND_RECEIVE_LOT\b.*?^\s*GO\s*$").Value;
-            var portalEnd=procedure.IndexOf("        RETURN;",StringComparison.Ordinal);
-            Assert.True(portalEnd>0);
-            // Real Portal receipt branch, unchanged. The unrelated legacy LOT branch is not in this fixture.
-            procedure=procedure[..(portalEnd+"        RETURN;".Length)]+"\n    END;\n    THROW 51402,'Not a portal box.',1;\nEND;";
-            Sql("CREATE PROCEDURE dbo.WH_PDA_INBOUND_SCAN_LOT @ReceiveMode nvarchar(10),@LotBarcode nvarchar(50) AS SELECT @LotBarcode AS LOTNO;");
-            Sql(procedure);
 
             Assert.Equal(2,repo.ListPurchaseOrders(true,"case-user",confirmedOnly:true).Count);
             Sql("""
@@ -246,12 +241,19 @@ public sealed class ScmDeliveryCaseTests
             Assert.Throws<InvalidOperationException>(()=>Update(delivery,"PO-CASE-1",1,12,cancel:true));
 
             var box=repo.GetDeliveryCase(first,"case-user")!.Boxes[0].Number;
-            using(var c=factory.OpenConnection())
-            using(var tx=c.BeginTransaction())
+            void ReceiveBox()
             {
-                using var cmd=new SqlCommand("EXEC dbo.WH_PDA_INBOUND_RECEIVE_LOT 'LOCAL',@B,NULL,'case-user'",c,tx);
-                cmd.Parameters.AddWithValue("@B",box);cmd.ExecuteNonQuery();ScmRepository.LinkReceivedCase(c,tx,box);tx.Commit();
+                using var c=factory.OpenConnection();
+                using var tx=c.BeginTransaction();
+                using var cmd=new SqlCommand(PdaWarehouseSql.InboundReceive,c,tx);
+                cmd.Parameters.Add("@ReceiveMode",SqlDbType.NVarChar,10).Value="LOCAL";
+                cmd.Parameters.Add("@LotBarcode",SqlDbType.NVarChar,50).Value=box;
+                cmd.Parameters.Add("@LocationId",SqlDbType.NVarChar,50).Value=DBNull.Value;
+                cmd.Parameters.Add("@UserId",SqlDbType.VarChar,20).Value="case-user";
+                cmd.Parameters.Add("@SimulateFailure",SqlDbType.Bit).Value=false;
+                cmd.ExecuteNonQuery();ScmRepository.LinkReceivedCase(c,tx,box);tx.Commit();
             }
+            ReceiveBox();
             Sql($"UPDATE WH_Inventory SET Qty=0 WHERE LotNo='{box}';");
             Assert.Equal(1,repo.ReceiveDeliveryCase(first,"CKD","case-user"));
             Assert.Throws<InvalidOperationException>(()=>repo.ReceiveDeliveryCase(first,"LOCAL","case-user"));
@@ -261,6 +263,36 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(3,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
             Assert.Equal(0,Count($"SELECT Qty FROM WH_Inventory WHERE LotNo='{first}'"));
             Assert.Equal(2,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE ParentLotNo='{first}' AND CaseNo='{first}'"));
+            Sql($"UPDATE WH_Inventory SET Qty=(SELECT Quantity FROM SCM_DeliveryBox WHERE BoxNumber='{box}') WHERE LotNo='{box}';");
+            var originalBoxQty=Count($"SELECT Qty FROM WH_Inventory WHERE LotNo='{box}'");
+            Assert.True(originalBoxQty>1);
+            Sql($"UPDATE WH_Inventory SET Qty={originalBoxQty-1} WHERE LotNo='{box}';");
+            using(var c=factory.OpenConnection())
+            using(var cancel=new SqlCommand(PdaWarehouseSql.InboundCancel,c))
+            {
+                cancel.Parameters.Add("@ReceiveMode",SqlDbType.NVarChar,10).Value="LOCAL";
+                cancel.Parameters.Add("@LotBarcode",SqlDbType.NVarChar,50).Value=box;
+                cancel.Parameters.Add("@UserId",SqlDbType.VarChar,20).Value="case-user";
+                cancel.ExecuteNonQuery();
+            }
+            Assert.Equal(12-originalBoxQty,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=1"));
+            Assert.Equal(12-originalBoxQty,Count("SELECT SUM(ReceivedQty) FROM SCM_DeliveryLine WHERE PoID=1"));
+            Assert.Equal(originalBoxQty-1,Count($"SELECT -QtyChange FROM WH_InventoryTransaction WHERE LotNo='{box}' AND ReasonCode='INBOUND_CANCEL'"));
+            // Reproduce the zero row retained by legacy cancellation, without removing the cancellation history.
+            Sql($"""
+                INSERT WH_Inventory(LotNo,UnitType,PartNo,PartName,Qty,InvoiceNo,DeliveryNoteNo,ReceivedAt,CreatedAt,UpdatedAt)
+                SELECT BoxNumber,'BOX',ItemNo,ItemName,0,'PO-CASE-1','{note.Number}',SYSDATETIME(),SYSDATETIME(),SYSDATETIME()
+                FROM SCM_DeliveryBox WHERE BoxNumber='{box}';
+                """);
+            ReceiveBox();
+            Assert.Equal(1,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE LotNo='{box}'"));
+            Assert.Equal(originalBoxQty,Count($"SELECT Qty FROM WH_Inventory WHERE LotNo='{box}'"));
+            Assert.Equal(12,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=1"));
+            Assert.Equal(12,Count("SELECT SUM(ReceivedQty) FROM SCM_DeliveryLine WHERE PoID=1"));
+            Assert.Throws<SqlException>(ReceiveBox);
+            Sql($"UPDATE WH_Inventory SET Qty=0 WHERE LotNo='{box}';");
+            Assert.Throws<SqlException>(ReceiveBox); // Consumption/adjustment to zero is not cancellation.
+            Sql($"UPDATE WH_Inventory SET Qty={originalBoxQty} WHERE LotNo='{box}';");
             var otherDelivery=repo.RegisterSupplierDelivery("PO-CASE-2",DateTime.Today,[new(2,10)],Versions("PO-CASE-2"),Guid.NewGuid(),"case-user","case-user",[rollbackCase]);
             Update(otherDelivery,"PO-CASE-2",2,10,ship:true);
             var fullyAllocated=repo.ListCaseParts("PO-CASE-2","case-user").Single();
@@ -374,13 +406,20 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(2,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE ParentLotNo='{mixed}' AND DeliveryNoteNo='{mixedNote.Number}'"));
             Sql("DELETE MD_Item WHERE ItemNo='PART-3';");
             Assert.Empty(repo.ListCaseParts("PO-CASE-3","other-user"));
-            // Exercise the real PDA adjustment procedure and read its history through the supplier portal.
-            Sql("CREATE PROCEDURE dbo.WH_PDA_ADJUST_SCAN_STOCK @ScanText nvarchar(100) AS SELECT @ScanText AS LOTNO;");
-            var adjustProcedure=Regex.Match(schema,@"(?ms)^CREATE OR ALTER PROCEDURE dbo\.WH_PDA_ADJUST_SAVE_QTY\b.*?(?=^\s*GO\s*$)").Value;
-            Assert.NotEmpty(adjustProcedure);Sql(adjustProcedure);
+            // Exercise the same parameterized batch used by the PDA and read its history through the portal.
             var adjustedBox=repo.GetDeliveryCase(mixed,"case-user")!.Boxes.First(b=>b.Item=="PART-1").Number;
             var receiptsBeforeAdjust=repo.ListPortalReceiptResults("case-user").Select(r=>(r.Id,r.Received,r.Remaining)).ToArray();
-            Sql($"EXEC dbo.WH_PDA_ADJUST_SAVE_QTY @ScanText='{adjustedBox}',@DeltaQty=-1,@ReasonCode='COUNT_DIFF',@ReasonNote=N'One unit short',@UserId='tester';");
+            using(var c=factory.OpenConnection())
+            using(var cmd=new SqlCommand(PdaWarehouseSql.AdjustSave,c))
+            {
+                cmd.Parameters.Add("@ScanText",SqlDbType.NVarChar,100).Value=adjustedBox;
+                cmd.Parameters.Add("@DeltaQty",SqlDbType.Decimal).Value=-1m;
+                cmd.Parameters.Add("@ReasonCode",SqlDbType.NVarChar,30).Value="COUNT_DIFF";
+                cmd.Parameters.Add("@ReasonNote",SqlDbType.NVarChar,500).Value="One unit short";
+                cmd.Parameters.Add("@UserId",SqlDbType.VarChar,20).Value="tester";
+                cmd.Parameters.Add("@SimulateFailure",SqlDbType.Bit).Value=false;
+                cmd.ExecuteNonQuery();
+            }
             var discrepancy=Assert.Single(repo.ListPortalDeliveryDiscrepancies("case-user"));
             Assert.Equal(adjustedBox,discrepancy.Lot);Assert.Equal(mixedNote.Number,discrepancy.Note);
             Assert.Equal("PART-1",discrepancy.Item);Assert.Equal(2m,discrepancy.Before);Assert.Equal(-1m,discrepancy.Change);Assert.Equal(1m,discrepancy.After);
@@ -388,9 +427,21 @@ public sealed class ScmDeliveryCaseTests
             Assert.Empty(repo.ListPortalDeliveryDiscrepancies("other-user"));
             Assert.Empty(repo.ListPortalDeliveryDiscrepancies("case-user",delivery)); // same part, different delivery
             Assert.Single(repo.ListPortalDeliveryDiscrepancies("case-user",discrepancy.Delivery));
-            Assert.Throws<SqlException>(()=>Sql($"EXEC dbo.WH_PDA_ADJUST_SAVE_QTY @ScanText='{adjustedBox}',@DeltaQty=1,@ReasonCode='COUNT_DIFF',@UserId='tester',@SimulateFailure=1;"));
+            void AdjustBox(bool fail)
+            {
+                using var c=factory.OpenConnection();
+                using var cmd=new SqlCommand(PdaWarehouseSql.AdjustSave,c);
+                cmd.Parameters.Add("@ScanText",SqlDbType.NVarChar,100).Value=adjustedBox;
+                cmd.Parameters.AddWithValue("@DeltaQty",1m);
+                cmd.Parameters.Add("@ReasonCode",SqlDbType.NVarChar,30).Value="COUNT_DIFF";
+                cmd.Parameters.Add("@ReasonNote",SqlDbType.NVarChar,500).Value=DBNull.Value;
+                cmd.Parameters.Add("@UserId",SqlDbType.VarChar,20).Value="tester";
+                cmd.Parameters.Add("@SimulateFailure",SqlDbType.Bit).Value=fail;
+                cmd.ExecuteNonQuery();
+            }
+            Assert.Throws<SqlException>(()=>AdjustBox(true));
             Assert.Single(repo.ListPortalDeliveryDiscrepancies("case-user"));
-            Sql($"EXEC dbo.WH_PDA_ADJUST_SAVE_QTY @ScanText='{adjustedBox}',@DeltaQty=1,@ReasonCode='COUNT_DIFF',@UserId='tester';");
+            AdjustBox(false);
             Assert.Equal(2,repo.ListPortalDeliveryDiscrepancies("case-user").Count);
             Assert.Equal(receiptsBeforeAdjust,repo.ListPortalReceiptResults("case-user").Select(r=>(r.Id,r.Received,r.Remaining)).ToArray());
             Assert.Equal(2,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=4"));
