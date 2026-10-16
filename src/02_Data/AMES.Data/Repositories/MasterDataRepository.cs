@@ -1747,7 +1747,7 @@ public sealed class MasterDataRepository
 
     // 사용처 = 제품정보(MD_MoldItem — 품번·색상)·라인 배정(MD_MoldLine)·설비 장착(MNT_EquipmentStatus)·라인 스케줄(지난 날짜 포함)·
     // 작업지시·샷 카운트(MNT_MoldShotCount)·사출 LOT(10-12 사용자 결정). 실적·샷·교체 이력(PR_ProductionResult·PR_ShotCount·PR_MoldChange)은
-    // 품목 삭제와 같이 보지 않는다 — 사출 LOT 가 대신 막는다. 색상(MD_MoldColor)은 금형에 딸린 행이라 같이 지운다
+    // 품목 삭제와 같이 보지 않는다 — 사출 LOT 가 대신 막는다
     const string MoldUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_Mold WITH (UPDLOCK, HOLDLOCK) WHERE MoldID = @K) RETURN;
         INSERT @r SELECT 'MOLDITEM', ItemNo + ISNULL(' ' + Color, '') FROM dbo.MD_MoldItem WHERE MoldID = @K;
@@ -1761,61 +1761,9 @@ public sealed class MasterDataRepository
 
     public List<UsageRef> MoldUsages(string moldId) => UsagesOf(MoldUsageSql, moldId);
 
-    /// <summary>사용처가 없을 때만 색상과 금형을 함께 지우고 빈 목록, 있으면 지우지 않고 그 목록(10-12 — 전에는 검사·색상·금형을 따로 처리했다).</summary>
+    /// <summary>사용처가 없을 때만 금형을 지우고 빈 목록, 있으면 지우지 않고 그 목록.</summary>
     public List<UsageRef> DeleteMold(string moldId)
-        => DeleteIfUnused(MoldUsageSql, """
-            DELETE dbo.MD_MoldColor WHERE MoldID = @K;
-            DELETE dbo.MD_Mold      WHERE MoldID = @K;
-            """, moldId);
-
-    // ╔══════════════════════════════════════════════════════════════════╗
-    // ║  MD_MoldColor (ZPD20041 — 금형 색상)                             ║
-    // ╚══════════════════════════════════════════════════════════════════╝
-
-    public record MoldColorRow(string MoldID, string Color, string? CreatedBy, DateTime? CreatedTS);
-
-    public List<MoldColorRow> ListMoldColors(string moldId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            SELECT MoldID, Color, CreatedBy, CreatedTS
-            FROM   dbo.MD_MoldColor
-            WHERE  MoldID=@I
-            ORDER  BY Color;
-            """, conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
-        using var r = cmd.ExecuteReader();
-        var list = new List<MoldColorRow>();
-        while (r.Read())
-            list.Add(new MoldColorRow(
-                (string)r["MoldID"], (string)r["Color"],
-                r["CreatedBy"] as string, r["CreatedTS"] as DateTime?));
-        return list;
-    }
-
-    public void InsertMoldColor(string moldId, string color, string createdBy)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            IF NOT EXISTS (SELECT 1 FROM dbo.MD_MoldColor WHERE MoldID=@I AND Color=@C)
-              INSERT INTO dbo.MD_MoldColor (MoldID, Color, CreatedBy, CreatedTS)
-              VALUES (@I, @C, @By, SYSDATETIME());
-            """, conn);
-        cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value = moldId;
-        cmd.Parameters.Add("@C",  SqlDbType.VarChar, 10).Value = color;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = createdBy;
-        cmd.ExecuteNonQuery();
-    }
-
-    public void DeleteMoldColor(string moldId, string color)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_MoldColor WHERE MoldID=@I AND Color=@C;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = moldId;
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = color;
-        cmd.ExecuteNonQuery();
-    }
+        => DeleteIfUnused(MoldUsageSql, "DELETE dbo.MD_Mold WHERE MoldID = @K;", moldId);
 
     // ╔══════════════════════════════════════════════════════════════════╗
     // ║  MD_MoldItem (ZPD20042 — 금형별 제품정보, SIS APM2120)           ║

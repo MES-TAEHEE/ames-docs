@@ -115,19 +115,18 @@ public class MdDeleteUsageTests
         finally { Clean(); }
     }
 
-    // 금형 삭제 — 라인 배정이 있으면 금형·색상 모두 남고, 없으면 색상과 함께 지운다
+    // 금형 삭제 — 라인 배정이 있으면 남고, 없으면 지운다
     [SkippableFact]
-    public void Mold_in_use_is_kept_and_unused_mold_is_deleted_with_colors()
+    public void Mold_in_use_is_kept_and_unused_mold_is_deleted()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         const string M = "ITEST-MOLD-1012";
-        void Clean() => Exec(f, "DELETE dbo.MD_MoldLine WHERE MoldID = @M; DELETE dbo.MD_MoldColor WHERE MoldID = @M; DELETE dbo.MD_Mold WHERE MoldID = @M;", ("@M", M));
+        void Clean() => Exec(f, "DELETE dbo.MD_MoldLine WHERE MoldID = @M; DELETE dbo.MD_Mold WHERE MoldID = @M;", ("@M", M));
         Clean();
         try
         {
             Exec(f, """
                 INSERT dbo.MD_Mold      (MoldID, CreatedBy)                 VALUES (@M, 'itest');
-                INSERT dbo.MD_MoldColor (MoldID, Color, CreatedBy)          VALUES (@M, 'NNB', 'itest');
                 INSERT dbo.MD_MoldLine  (LineCode, MoldID, CreatedBy)       VALUES ('ITEST-LN-1012', @M, 'itest');
                 """, ("@M", M));
             var md = new MasterDataRepository(f);
@@ -135,12 +134,10 @@ public class MdDeleteUsageTests
             Assert.Equal("MOLDLINE", Assert.Single(used).Kind);
             Assert.Equal("MOLDLINE", Assert.Single(md.MoldUsages(M)).Kind);
             Assert.Equal(1, Count(f, "MD_Mold", "MoldID", M));
-            Assert.Equal(1, Count(f, "MD_MoldColor", "MoldID", M));
 
             Exec(f, "DELETE dbo.MD_MoldLine WHERE MoldID = @M", ("@M", M));
             Assert.Empty(md.DeleteMold(M));
             Assert.Equal(0, Count(f, "MD_Mold", "MoldID", M));
-            Assert.Equal(0, Count(f, "MD_MoldColor", "MoldID", M));
         }
         finally { Clean(); }
     }
