@@ -17,9 +17,9 @@
 --  · MD_MoldItem  : Color = 품번 11자 뒤 색 접미(LX3A 레일 NNB/YGU), 접미 없으면 CBK(BOM Master 규칙 "BK 는 무접미" — 10-14 InjAgent 가 PLC 금형코드 끝 3자를 색상으로 읽어 2자 BK 는 매칭되지 않아 3자 CBK 로, 원본 SIS 테스트 데이터 LQ2DTRUCBK 와 같은 코드) ·
 --                   Usage 1 · ResinItemNo/ResinUsage = 그 품번 BOM 의 RESIN 자식·QtyPer(G) (NQ5A 레일만 없음) ·
 --                   CavityCount 1 · MoldCategory INJECTION.
---  · MD_MoldColor : MoldItem 색 파생.   MD_MoldLine : 차종 → INJ 라인(NE1A 01 · LQ2 02 · LX3A 03 · ME1A 04 ·
+--  · MD_MoldLine  : 차종 → INJ 라인(NE1A 01 · LQ2 02 · LX3A 03 · ME1A 04 ·
 --                   MV1A 05 · NQ5A/NX5A 06, seed_inj_img_master_dev 와 같은 규칙), UPH = 60 × 캐비티, PrepTime = MoldChangeMin.
---  · 적재 전에 MD_MoldLine·MD_MoldColor·MD_MoldItem·MD_Mold 를 전부 비운다. 사라지는 금형을 가리키는
+--  · 적재 전에 MD_MoldLine·MD_MoldItem·MD_Mold 를 전부 비운다. 사라지는 금형을 가리키는
 --    PP_LineSchedule WO 슬롯의 MoldID 는 NULL, 금형교체(MC) 행은 삭제, MNT_EquipmentStatus.MountedMoldID 는 NULL.
 --    PR_InjLot·PR_ShotCount·MNT_MoldShotCount·PR_MoldChange 의 구 MoldID 는 이력이라 건드리지 않는다(FK 없음).
 --  · 대상 품번이 MD_Item 에 없으면 THROW — seed_md_item_bom_master_list 가 바뀌면 여기도 맞춘다.
@@ -147,7 +147,6 @@ PRINT CONCAT(N'§3 MNT_EquipmentStatus.MountedMoldID NULL: ', @@ROWCOUNT);
 
 -- 4) 전부 비우고 재적재
 DELETE FROM dbo.MD_MoldLine;
-DELETE FROM dbo.MD_MoldColor;
 DELETE FROM dbo.MD_MoldItem;
 DELETE FROM dbo.MD_Mold;
 
@@ -170,11 +169,6 @@ OUTER APPLY (SELECT TOP 1 c.ItemNo, CASE WHEN b.UOM = 'G' THEN b.QtyPer END AS Q
              WHERE  b.ParentItemNo = d.ItemNo AND c.ItemCategory = 'RESIN' AND ISNULL(b.ActiveFlag, 1) = 1
              ORDER  BY b.QtyPer DESC) r;
 PRINT CONCAT(N'§4 MD_MoldItem: ', @@ROWCOUNT);
-
-INSERT INTO dbo.MD_MoldColor (MoldID, Color, CreatedBy, CreatedTS)
-SELECT DISTINCT i.MoldID, i.Color, 'MOLD-SEED', SYSDATETIME()
-FROM   dbo.MD_MoldItem i;
-PRINT CONCAT(N'§4 MD_MoldColor: ', @@ROWCOUNT);
 
 INSERT INTO dbo.MD_MoldLine (LineCode, MoldID, UPH, PrepTime, CreatedBy, CreatedTS)
 SELECT l.LineID, m.MoldID, 60 * m.CavityCount, m.MoldChangeMin, 'MOLD-SEED', SYSDATETIME()
