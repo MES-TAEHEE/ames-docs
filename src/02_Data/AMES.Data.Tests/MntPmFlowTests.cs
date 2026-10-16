@@ -11,7 +11,7 @@ public class MntPmFlowTests
 {
     const string WriteSkip = "set AMES_TEST_CONN (local DB) to run — creates and removes test PM schedules, work orders, templates and failures";
     const string Actor = "itest-mntpm";
-    const string Equip = "INJ-650-01";   // 템플릿과 같은 설비 유형(INJ)
+    const string Equip = "INJ-01-01-1800";   // 템플릿과 같은 설비 유형(INJ)
     const string Tpl   = "ITEST-PMF-T1";
 
     static void Cleanup(Connection.AmesConnectionFactory f) => Exec(f, """

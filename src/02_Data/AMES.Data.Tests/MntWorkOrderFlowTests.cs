@@ -9,7 +9,7 @@ public class MntWorkOrderFlowTests
 {
     const string WriteSkip = "set AMES_TEST_CONN (local DB) to run — creates and removes test work orders/failures/PM schedules";
     const string Actor = "itest-mntwo";
-    const string Equip = "IMG-EQ-01";
+    const string Equip = "INJ-09-01-450";
     const string Tech  = "itest-tech";
 
     static void Cleanup(Connection.AmesConnectionFactory f) => Exec(f, """

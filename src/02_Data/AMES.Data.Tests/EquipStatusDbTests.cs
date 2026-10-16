@@ -10,7 +10,7 @@ public class EquipStatusDbTests
 {
     const string WriteSkip = "set AMES_TEST_CONN (local DB) to run — creates and removes a test failure and work order";
     const string Actor = "itest-eqstat";
-    const string Equip = "INJ-650-01";
+    const string Equip = "INJ-01-01-1800";
     const string Fail  = "ITEST-ES-FAIL";
     const string Wo    = "ITEST-ES-WO";
 

@@ -38,11 +38,11 @@ public class FailureStatusFlowTests
         {
             var mnt = new MntRepository(f);
             var rep = DateTime.Today.AddHours(-3);
-            var (id, _, _, _) = mnt.InsertFailure(No, "IMG-EQ-01", "ELEC", "ITEST 증상", "MINOR", "WEB", rep, null, "itest");
+            var (id, _, _, _) = mnt.InsertFailure(No, "INJ-09-01-450", "ELEC", "ITEST 증상", "MINOR", "WEB", rep, null, "itest");
             Assert.Equal(("OPEN", (DateTime?)null, "ISSUED"), State(f));
 
             // 수정은 내용만 — 상태·해결일시 그대로
-            mnt.UpdateFailure(id, No, "IMG-EQ-01", "ELEC", "ITEST 증상 수정", "MAJOR", "WEB", rep, null, "itest");
+            mnt.UpdateFailure(id, No, "INJ-09-01-450", "ELEC", "ITEST 증상 수정", "MAJOR", "WEB", rep, null, "itest");
             Assert.Equal(("OPEN", (DateTime?)null, "ISSUED"), State(f));
 
             // 수리 완료 — 고장과 작업지시가 같이 닫힌다
@@ -52,7 +52,7 @@ public class FailureStatusFlowTests
             Assert.NotNull(s.ResolvedAt);
 
             // 해결된 고장을 수정해도 해결 상태 유지
-            mnt.UpdateFailure(id, No, "IMG-EQ-01", "ELEC", "ITEST 증상 재수정", "MAJOR", "WEB", rep, null, "itest");
+            mnt.UpdateFailure(id, No, "INJ-09-01-450", "ELEC", "ITEST 증상 재수정", "MAJOR", "WEB", rep, null, "itest");
             Assert.Equal(("RESOLVED", "COMPLETED"), (State(f).Fail, State(f).Wo));
         }
         finally { Cleanup(f); }

@@ -59,7 +59,7 @@ public class InjLotRepositoryTests
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         var repo = new InjLotRepository(f);
-        var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 12345);
+        var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), 12345);
         try
         {
             Assert.True(lotId > 0);
@@ -74,7 +74,7 @@ public class InjLotRepositoryTests
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         var repo = new InjLotRepository(f);
-        var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 12347);
+        var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), 12347);
         try
         {
             Assert.Equal(1, repo.IncrementPrintedCount(lotId, "E-ITEST"));   // 디스패처 자동 발행
@@ -89,10 +89,10 @@ public class InjLotRepositoryTests
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         var repo = new InjLotRepository(f);
-        var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 12346);
+        var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), 12346);
         try
         {
-            repo.SaveInspection(lotId, "INJ-650-01", "LH", "OK", "OK", "OK", "NG", overallNg: true);
+            repo.SaveInspection(lotId, "INJ-01-01-1800", "LH", "OK", "OK", "OK", "NG", overallNg: true);
             repo.MarkNgBlocked(lotId);
             var (outcome, _, _, _) = repo.ConfirmByLotCode(lotCode, "LINE-INJ-01", "test-op", null, "E-TEST");
             Assert.Equal(InjConfirmOutcome.NgBlocked, outcome);
@@ -135,7 +135,7 @@ public class InjLotRepositoryTests
             { cmd.Parameters.AddWithValue("@W", woId); cmd.ExecuteNonQuery(); }
 
             string lotCode;
-            (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 99001);
+            (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), 99001);
 
             // woId 는 더 이상 전달하지 않는다 — 리포지토리가 LOT 품번으로 WO 를 찾아야 한다.
             var (outcome, resultId, itemNo, confirmedWoId) = repo.ConfirmByLotCode(
@@ -285,7 +285,7 @@ public class InjLotRepositoryTests
             { cmd.Parameters.AddWithValue("@Fg", fg); woId = (int)cmd.ExecuteScalar()!; }
 
             string lotCode;
-            (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 99002);   // LOT 품번 = 83335-P8000RBQ(코어 역할)
+            (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), 99002);   // LOT 품번 = 83335-P8000RBQ(코어 역할)
 
             var (outcome, resultId, itemNo, confirmedWoId) = repo.ConfirmByLotCode(lotCode, "LINE-INJ-01", "itest-op", null, "E-ITEST");
 
@@ -505,8 +505,8 @@ public class InjLotRepositoryTests
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         var repo = new InjLotRepository(f);
-        var (id1, c1) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 90001);
-        var (id2, c2) = repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 90002);
+        var (id1, c1) = repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), 90001);
+        var (id2, c2) = repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), 90002);
         try
         {
             Assert.Matches(@"^[A-Z][1-9A-C][1-9A-V]I1\d{4}$", c1);
@@ -550,7 +550,7 @@ public class InjLotRepositoryTests
         var repo = new InjLotRepository(f);
         var results = new System.Collections.Concurrent.ConcurrentBag<(int LotId, string LotCode)>();
         Parallel.For(0, 8, i =>
-            results.Add(repo.CreateRawLot("LINE-INJ-01", "INJ-650-01", Lh(), 91000 + i)));
+            results.Add(repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), 91000 + i)));
         try
         {
             Assert.Equal(8, results.Count);
