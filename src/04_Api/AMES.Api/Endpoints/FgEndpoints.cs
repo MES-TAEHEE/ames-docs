@@ -10,8 +10,6 @@ namespace AMES.Api.Endpoints;
 
 public static class FgEndpoints
 {
-    private const string PdaAdjustScanStockProcedure = "FG_PDA_ADJUST_SCAN_STOCK";
-    private const string PdaAdjustSaveQtyProcedure = "FG_PDA_ADJUST_SAVE_QTY";
 
     // ── DTOs ─────────────────────────────────────────────────────────────
     public sealed record StockRow(string LotNo, string ItemNo, string? ItemName,
@@ -112,9 +110,9 @@ public static class FgEndpoints
                 return Results.BadRequest(new { Message = "From date cannot be after To date." });
 
             using var connection = factory.OpenConnection();
-            using var command = new SqlCommand("dbo.FG_PDA_TRANSACTION_LIST", connection)
+            using var command = new SqlCommand(PdaFinishedGoodsSql.Transactions, connection)
             {
-                CommandType = CommandType.StoredProcedure
+                CommandType = CommandType.Text
             };
             command.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value = (object?)search?.Trim() ?? DBNull.Value;
             command.Parameters.Add("@DateFrom", SqlDbType.Date).Value = (object?)dateFrom?.Date ?? DBNull.Value;
@@ -368,9 +366,9 @@ public static class FgEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             using var connection = factory.OpenConnection();
-            using var command = new SqlCommand("dbo.FG_PDA_INVENTORY_LIST", connection)
+            using var command = new SqlCommand(PdaFinishedGoodsSql.Inventory, connection)
             {
-                CommandType = CommandType.StoredProcedure,
+                CommandType = CommandType.Text,
                 CommandTimeout = 15
             };
             command.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
@@ -415,9 +413,9 @@ public static class FgEndpoints
                 using var conn = factory.OpenConnection();
                 if (FindOutboundLocationError(conn, null, normalized) is { } locationError)
                     return Results.BadRequest(new OutboundUnitResult(false, locationError, null));
-                using var cmd = new SqlCommand("dbo.FG_PDA_OUTBOUND_SCAN", conn)
+                using var cmd = new SqlCommand(PdaFinishedGoodsSql.OutboundScan, conn)
                 {
-                    CommandType = CommandType.StoredProcedure,
+                    CommandType = CommandType.Text,
                     CommandTimeout = 15
                 };
                 cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = normalized;
@@ -476,10 +474,10 @@ public static class FgEndpoints
                 using var tx = conn.BeginTransaction();
                 if (FindOutboundLocationError(conn, tx, normalized) is { } locationError)
                     return Results.BadRequest(new OutboundUnitResult(false, locationError, null));
-                using var cmd = new SqlCommand("dbo.FG_PDA_OUTBOUND_COMPLETE", conn)
+                using var cmd = new SqlCommand(PdaFinishedGoodsSql.OutboundComplete, conn)
                 {
                     Transaction = tx,
-                    CommandType = CommandType.StoredProcedure,
+                    CommandType = CommandType.Text,
                     CommandTimeout = 30
                 };
                 cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = normalized;
@@ -492,7 +490,7 @@ public static class FgEndpoints
                 var totalQty = GetDecimal(rdr, "TotalQty");
                 var unitType = GetString(rdr, "UnitType") ?? "UNIT";
                 var shipmentId = GetInt(rdr, "ShipmentID");
-                // Finish the procedure (including its COMMIT) before committing the outer transaction.
+                // Finish all result sets before committing the outer transaction.
                 while (rdr.NextResult()) { }
                 rdr.Close();
                 tx.Commit();
@@ -545,7 +543,7 @@ public static class FgEndpoints
             try
             {
                 using var conn = factory.OpenConnection();
-                using var cmd = new SqlCommand("dbo.FG_PDA_RETURN_SCAN", conn) { CommandType = CommandType.StoredProcedure };
+                using var cmd = new SqlCommand(PdaFinishedGoodsSql.ReturnScan, conn) { CommandType = CommandType.Text };
                 cmd.Parameters.Add("@Barcode", SqlDbType.VarChar, 80).Value = normalized;
                 using var rdr = cmd.ExecuteReader();
                 if (!rdr.Read())
@@ -586,7 +584,7 @@ public static class FgEndpoints
             try
             {
                 using var conn = factory.OpenConnection();
-                using var cmd = new SqlCommand("dbo.FG_PDA_RETURN_RECEIVE", conn) { CommandType = CommandType.StoredProcedure };
+                using var cmd = new SqlCommand(PdaFinishedGoodsSql.ReturnReceive, conn) { CommandType = CommandType.Text };
                 cmd.Parameters.Add("@Barcode", SqlDbType.VarChar, 80).Value = normalized;
                 cmd.Parameters.Add("@ReturnReason", SqlDbType.VarChar, 60).Value = returnReason;
                 cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 500).Value = (object?)note ?? DBNull.Value;
@@ -914,13 +912,13 @@ public static class FgEndpoints
 
     private static string SavePutAwayStock(SqlConnection conn, SqlTransaction tx, string lotNo, string location, string operatorId)
     {
-        using var cmd = new SqlCommand("dbo.FG_PDA_PUTAWAY_COMPLETE", conn, tx)
+        using var cmd = new SqlCommand(PdaFinishedGoodsSql.PutAway, conn, tx)
         {
-            CommandType = CommandType.StoredProcedure,
+            CommandType = CommandType.Text,
             CommandTimeout = 15
         };
         cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = lotNo;
-        cmd.Parameters.Add("@Location", SqlDbType.VarChar, 20).Value = location;
+        cmd.Parameters.Add("@Location", SqlDbType.VarChar, 50).Value = location;
         cmd.Parameters.Add("@OperatorID", SqlDbType.VarChar, 20).Value = operatorId;
         using var reader = cmd.ExecuteReader();
         if (!reader.Read()) throw new InvalidOperationException("Put-away returned no confirmation.");
@@ -1157,9 +1155,9 @@ public static class FgEndpoints
     private static AdjustScanRow? ExecuteAdjustScan(AmesConnectionFactory factory, string scanText)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand($"[dbo].[{PdaAdjustScanStockProcedure}]", conn)
+        using var cmd = new SqlCommand(PdaFinishedGoodsSql.AdjustScan, conn)
         {
-            CommandType = CommandType.StoredProcedure,
+            CommandType = CommandType.Text,
             CommandTimeout = 15
         };
         cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = scanText.Trim();
@@ -1181,9 +1179,9 @@ public static class FgEndpoints
                     || !string.Equals(current[1] as string ?? "",body.ExpectedLocation,StringComparison.OrdinalIgnoreCase))
                     return new(false,"Stock quantity or location changed. Scan again.",null);
             }
-            using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn, tx)
+            using var cmd = new SqlCommand(PdaFinishedGoodsSql.AdjustSave, conn, tx)
             {
-                CommandType = CommandType.StoredProcedure,
+                CommandType = CommandType.Text,
                 CommandTimeout = 15
             };
             cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = body.Barcode.Trim();

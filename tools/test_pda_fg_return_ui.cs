@@ -30,24 +30,22 @@ Check(client.Contains("FgReturnReq(string Barcode, string ReturnReason, string? 
 
 var api = File.ReadAllText(Path.Combine(root, "src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs"));
 Check(api.Contains("ReturnReq(string Barcode, string ReturnReason, string? Note)")
-    && api.Contains("dbo.FG_PDA_RETURN_SCAN")
-    && api.Contains("dbo.FG_PDA_RETURN_RECEIVE")
+    && api.Contains("PdaFinishedGoodsSql.ReturnScan")
+    && api.Contains("PdaFinishedGoodsSql.ReturnReceive")
     && api.Contains("cmd.Parameters.Add(\"@Note\"")
     && api.Contains("Return note must be 500 characters or fewer."),
-    "The API must validate Note and use the transactional return procedures.");
+    "The API must validate Note and use the transactional return batches.");
 
 var schema = File.ReadAllText(Path.Combine(root, "dist/AMES_Schema.sql"));
-var migration = File.ReadAllText(Path.Combine(root, "dist/pda/PDA_SCHEMA.sql"));
-Check(schema.Contains("[Note]                      NVARCHAR(500)")
-    && migration.Contains("COL_LENGTH(N'dbo.FG_CustomerReturn', N'Note') IS NULL")
-    && migration.Contains("ALTER TABLE dbo.FG_CustomerReturn ADD [Note] NVARCHAR(500) NULL")
-    && migration.Contains("CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_SCAN")
-    && migration.Contains("CREATE OR ALTER PROCEDURE dbo.FG_PDA_RETURN_RECEIVE")
-    && migration.Contains("JOIN dbo.FG_PickingDetail D ON D.PickID=C.PickID")
-    && migration.Contains("Status='RETURN_HOLD',HoldFlag=1,Location=NULL")
-    && migration.Contains("UX_FG_CustomerReturn_Stock")
+var sql = File.ReadAllText(Path.Combine(root, "src/02_Data/AMES.Data/Repositories/PdaFinishedGoodsSql.cs"));
+Check(schema.Contains("[Note]")
+    && sql.Contains("public const string ReturnScan")
+    && sql.Contains("public const string ReturnReceive")
+    && sql.Contains("T.SourceType='FG_OUTBOUND'")
+    && sql.Contains("LocationNo=NULL,ParentLotNo=NULL")
+    && sql.Contains("This LOT was already received as a return for its latest shipment.")
     && !schema.Contains("CREATE TABLE dbo.FG_ReturnDisposition"),
-    "Customer Return must use picked stock, hold returned inventory, enforce integrity, and omit the unused disposition table.");
+    "Customer Return must use actual shipment history, unlocated inventory, and duplicate-return guards.");
 
 var css = File.ReadAllText(Path.Combine(root, "src/05_Pda/AMES.Pda/wwwroot/css/pda.css"));
 Check(css.Contains(".fg-return-reason-card .pda-fld")

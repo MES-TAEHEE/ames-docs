@@ -1,59 +1,49 @@
 # AMES PDA Database Scripts
 
-This folder contains the consolidated WH/FG database contract used by the PDA
-and its related current web screens.
+## Current contract
 
-For fresh databases, `../AMES_Schema.sql` includes the deployed WH/FG/SP tables,
-columns, indexes and procedures as of 2026-09-23, including the inbound/release
-schedule procedures. `PDA_SCHEMA.sql` remains a legacy incremental upgrade
-script; it is no longer a separate step in the fresh-database rebuild. Use
-`PDA_SEED.sql` for rerunnable development data and current menu cleanup. Do not
-create separate migration or seed files per screen.
+PDA WH/FG/SP business operations execute parameterized SQL owned by the API:
 
-For an existing database, run `../migrate_fg_shipment_consolidation.sql` once
-to move shipment line data into `FG_ShipmentOrder.ItemsJSON`, preserve the
-shipment document number/time, and retire `FG_ShipmentOrderLine`,
-`FG_DeliveryNote`, and the external Shipment API configuration.
-Then run `../migrate_fg_inventory_consolidation.sql` once to preserve legacy
-finished-goods LOTs and adjustment history in `WH_Inventory` and
-`WH_InventoryTransaction`, then retire `FG_Inventory` and
-`FG_InventoryAdjust`.
+- `src/02_Data/AMES.Data/Repositories/PdaWarehouseSql.cs`
+- `src/02_Data/AMES.Data/Repositories/PdaFinishedGoodsSql.cs`
+- `src/02_Data/AMES.Data/Repositories/PdaSparePartsSql.cs`
 
-## Naming
+Inbound, cancellation, put-away, inventory, adjustment, release, outbound,
+customer return and spare-part movement no longer require application stored
+procedures. Other modules and SQL Server system procedures are unchanged.
 
-- Procedures: use the main AMES Warehouse procedure style, `dbo.WH_PDA_<Workflow>_<Action>`.
-- Tables: use the main AMES Warehouse table style, `dbo.WH_<Entity>`.
-- Avoid screen-number-based procedure names for new work.
+`../AMES_Schema.sql` remains the fresh-install schema. PDA business procedure
+definitions were removed from it and from legacy migrations so they cannot
+overwrite the current API logic or recreate retired procedures.
+`PDA_SCHEMA.sql` is a legacy upgrade and refuses to run after the actual
+`FG_Shipment` migration; do not include it in a fresh-database rebuild.
 
-Examples:
+## Retained development resets
 
-- `dbo.WH_PDA_INBOUND_SCAN_LOT`
-- `dbo.WH_PDA_INBOUND_RECEIVE_LOT`
-- `dbo.WH_PDA_INBOUND_MOVE_LOCATION`
-- `dbo.WH_PDA_INBOUND_CANCEL_RECEIPT`
-- `dbo.WH_PDA_INVENTORY_STATUS_LIST`
-- `dbo.WH_PDA_INVENTORY_LOCATION_LIST`
-- `dbo.WH_PDA_INVENTORY_SCAN_LOOKUP`
-- `dbo.WH_PDA_RELEASE_SLIP_STATUS`
-- `dbo.WH_PDA_RELEASE_PICK_LINES`
-- `dbo.WH_PDA_RELEASE_SCAN_LOT`
-- `dbo.WH_PDA_RELEASE_PICK_LOT`
-- `dbo.WH_PurchaseOrder`
-- `dbo.WH_PickSlip`
-- `dbo.WH_Inventory`
-- `dbo.WH_InventoryTransaction`
+These are still called by guarded development-only API endpoints:
 
-## Apply
+- `FG_PDA_HISTORY_TEST_RESET`
+- `FG_PDA_OUTBOUND_TEST_RESET`
+- `FG_PDA_PPT_TEST_RESET`
+- `SP_PDA_SIMPLE_TEST_RESET`
+- `WH_PDA_INBOUND_SIMPLE_TEST_RESET`
+- `WH_PDA_PPT_TEST_RESET`
+
+`PDA_SEED.sql` and reset procedures may overwrite their named development test
+records. Never run them against production data.
+
+## Existing databases
+
+Removing a definition from a source file does not drop an installed procedure.
+Deploy the latest API **and web** to every instance sharing the database before
+retiring old PDA business procedures. Older binaries may still call them.
+Check external callers, back up the definitions and approve the exact removal
+list first. Do not run a rebuild or historical migration just to remove procedures.
+
+Source-only regression checks (no database writes):
 
 ```powershell
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\pda\PDA_SCHEMA.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\migrate_wh_core_tables.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\migrate_fg_shipment_consolidation.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\migrate_fg_inventory_consolidation.sql
-sqlcmd -S localhost,11433 -U ames_app -P "!Dev2026" -C -b -d AMES_DEV -i dist\pda\PDA_SEED.sql
+dotnet test src/02_Data/AMES.Data.Tests/AMES.Data.Tests.csproj --filter FullyQualifiedName~PdaDirectSqlTests
 ```
 
-The schema command above is for older databases only; skip it after the current
-`dist/AMES_Schema.sql`. Keep future fresh-install schema changes in that file.
-Both PDA scripts are rerunnable, but
-`PDA_SEED.sql` resets its named test records and must not be run on production data.
+Database integration tests require separate approval even if they roll back.

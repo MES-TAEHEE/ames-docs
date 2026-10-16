@@ -14,8 +14,6 @@ public sealed class CustomerReturnContractTests
         throw new DirectoryNotFoundException("Repository schema directory not found.");
     }
     static string Read(string path)=>File.ReadAllText(Path.Combine(Root(),path));
-    static string Procedure(string source,string name)
-        =>Regex.Match(source,@"CREATE\s+(?:OR\s+ALTER\s+)?PROCEDURE\s+dbo\."+name+@"\b[\s\S]*?(?=^GO\s*$)",RegexOptions.Multiline|RegexOptions.IgnoreCase).Value;
 
     [Fact]
     public void Return_model_uses_explicit_customer_and_part_fields()
@@ -34,23 +32,19 @@ public sealed class CustomerReturnContractTests
         foreach(var name in new[]{"ReturnNumber","RMANo","CustomerClaimID","OriginalShipmentOrderID","OriginalDeliveryNoteID","ItemNo","ItemsJSON","NcrID","CapaTriggered"})Assert.DoesNotContain("["+name+"]",table);
     }
 
-    [Theory]
-    [InlineData("dist/AMES_Schema.sql")]
-    [InlineData("dist/migrate_fg_shipment_actual.sql")]
-    public void Return_procedures_use_one_contract_across_deployment_paths(string path)
+    [Fact]
+    public void Return_batches_use_one_contract_without_installed_procedures()
     {
-        var source=Read(path);
-        foreach(var name in new[]{"FG_PDA_RETURN_SCAN","FG_PDA_RETURN_RECEIVE"})
+        foreach(var sql in new[]{PdaFinishedGoodsSql.ReturnScan,PdaFinishedGoodsSql.ReturnReceive})
         {
-            var proc=Procedure(source,name);Assert.NotEmpty(proc);
-            foreach(var retired in new[]{"ReturnNumber","RMANo","OriginalShipmentOrderID","CustomerClaimID","CapaTriggered","R.ItemsJSON","R.ItemNo"})Assert.DoesNotContain(retired,proc);
+            foreach(var retired in new[]{"ReturnNumber","RMANo","OriginalShipmentOrderID","CustomerClaimID","CapaTriggered","R.ItemsJSON","R.ItemNo"})Assert.DoesNotContain(retired,sql);
         }
-        var scan=Procedure(source,"FG_PDA_RETURN_SCAN");
+        var scan=PdaFinishedGoodsSql.ReturnScan;
         Assert.Contains("dbo.MD_Customer",scan);
         Assert.Contains("C.CustomerID",scan);
         Assert.Contains("T.SourceType='FG_OUTBOUND'",scan);
         Assert.Contains("S.ShipmentID=T.SourceID",scan);
-        var receive=Procedure(source,"FG_PDA_RETURN_RECEIVE");
+        var receive=PdaFinishedGoodsSql.ReturnReceive;
         Assert.Contains("PartNo,PartName",receive);
         Assert.Contains("WITH(UPDLOCK,HOLDLOCK)",receive);
         Assert.Contains("ROLLBACK TRANSACTION",receive);

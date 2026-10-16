@@ -12,20 +12,6 @@ public static class WhEndpoints
 {
     private const string WhLocationCorcd = "5010";
     private const string WhLocationBizcd = "5011";
-    private const string PdaScheduleInboundProcedure = "WH_PDA_SCHEDULE_INBOUND_LIST";
-    private const string PdaScheduleReleaseProcedure = "WH_PDA_SCHEDULE_RELEASE_LIST";
-    private const string PdaInboundDocumentInfoProcedure = "WH_PDA_INBOUND_DOCUMENT_INFO";
-    private const string PdaInboundScanLotProcedure = "WH_PDA_INBOUND_SCAN_LOT";
-    private const string PdaInboundReceiveLotProcedure = "WH_PDA_INBOUND_RECEIVE_LOT";
-    private const string PdaInboundMoveLocationProcedure = "WH_PDA_INBOUND_MOVE_LOCATION";
-    private const string PdaInboundCancelReceiptProcedure = "WH_PDA_INBOUND_CANCEL_RECEIPT";
-    private const string PdaAdjustScanStockProcedure = "WH_PDA_ADJUST_SCAN_STOCK";
-    private const string PdaAdjustSaveQtyProcedure = "WH_PDA_ADJUST_SAVE_QTY";
-    private const string PdaReleaseSlipStatusProcedure = "WH_PDA_RELEASE_SLIP_STATUS";
-    private const string PdaReleasePickLinesProcedure = "WH_PDA_RELEASE_PICK_LINES";
-    private const string PdaReleaseScanLotProcedure = "WH_PDA_RELEASE_SCAN_LOT";
-    private const string PdaReleasePickLotProcedure = "WH_PDA_RELEASE_PICK_LOT";
-    private const string PdaSparePartStockMoveProcedure = "SP_PDA_STOCK_MOVE";
 
     // ── DTOs ─────────────────────────────────────────────────────────────
     public sealed record Wh001ScheduleInboundItem(int ScheduleItemId, string PurchaseOrderNo, int? PurchaseOrderLineNo,
@@ -215,7 +201,7 @@ public static class WhEndpoints
                     && sqlEx.Errors.Count > 0
                     && sqlEx.Errors[0].Number >= 51400
                     && sqlEx.Errors[0].Number < 51500;
-                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: isValidationError
+                return Results.Problem(WarehouseErrorMessage(ex), statusCode: isValidationError
                     ? StatusCodes.Status400BadRequest
                     : StatusCodes.Status503ServiceUnavailable);
             }
@@ -242,10 +228,10 @@ public static class WhEndpoints
                     && sqlEx.Errors[0].Number < 51500;
 
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "SCAN_BOX", "WH002", "BOX", barcode, "FAIL", WarehouseProcedureMessage(ex),
+                    s, "SCAN_BOX", "WH002", "BOX", barcode, "FAIL", WarehouseErrorMessage(ex),
                     lotNo: barcode));
                 return Results.Problem(
-                    WarehouseProcedureMessage(ex),
+                    WarehouseErrorMessage(ex),
                     statusCode: isValidationError
                         ? StatusCodes.Status400BadRequest
                         : StatusCodes.Status503ServiceUnavailable);
@@ -262,7 +248,7 @@ public static class WhEndpoints
                         && body.Barcode is "5011LL260908800001" or "5011LL260908800002" or "5011LL260908800003"
                             or "CKD260908800000001" or "CKD260908800000002" or "CKD260908800000003"));
             var result = ExecuteInboundReceive(
-                factory, body, s.EmployeeNo, PdaInboundReceiveLotProcedure, "Received", simulateFailure);
+                factory, body, s.EmployeeNo, PdaWarehouseSql.InboundReceive, "Received", simulateFailure);
             WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                 s, "RECEIVE", "WH002", "LOT", body.Barcode, result.Success ? "SUCCESS" : "FAIL", result.Message,
                 lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo, locationId: body.LocationId, qty: result.Row?.Qty));
@@ -291,7 +277,7 @@ public static class WhEndpoints
             }
             catch (Exception ex)
             {
-                var message = WarehouseProcedureMessage(ex);
+                var message = WarehouseErrorMessage(ex);
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "RECEIVE", "WH002", "CASE", body.Barcode, "FAIL", message, lotNo: body.Barcode));
                 var validation = ex is InvalidOperationException or ArgumentException
@@ -375,7 +361,7 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is not { } session) return Results.Unauthorized();
             try { return Results.Ok(CreateSparePartLabels(factory, body, session.EmployeeNo)); }
-            catch (Exception ex) { return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status400BadRequest); }
+            catch (Exception ex) { return Results.Problem(WarehouseErrorMessage(ex), statusCode: StatusCodes.Status400BadRequest); }
         });
         g.MapGet("/sp/labels/{eosSpNo}", (HttpContext ctx, string eosSpNo) =>
             ctx.GetSession() is null ? Results.Unauthorized()
@@ -443,7 +429,7 @@ public static class WhEndpoints
             }
             catch (Exception ex)
             {
-                return Results.BadRequest(new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null));
+                return Results.BadRequest(new InboundReceiveResult(false, WarehouseErrorMessage(ex), null));
             }
         });
         g.MapPost("/sp/move-location", (HttpContext ctx, InboundReceiveReq body) =>
@@ -474,7 +460,7 @@ public static class WhEndpoints
             }
             catch (Exception ex)
             {
-                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+                return Results.Problem(WarehouseErrorMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         }).WithTags("PDA Test Scenarios");
 
@@ -495,7 +481,7 @@ public static class WhEndpoints
             }
             catch (Exception ex)
             {
-                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+                return Results.Problem(WarehouseErrorMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         }).WithTags("PDA Test Scenarios");
 
@@ -505,7 +491,7 @@ public static class WhEndpoints
 
             try
             {
-                var result = ExecuteInboundReceive(factory, body, s.EmployeeNo, PdaInboundMoveLocationProcedure, "Location changed");
+                var result = ExecuteInboundReceive(factory, body, s.EmployeeNo, PdaWarehouseSql.InboundMove, "Location changed");
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "MOVE_LOCATION", "WH002", "LOCATION", body.LocationId, result.Success ? "SUCCESS" : "FAIL", result.Message,
                     lotNo: result.Row?.LotNo ?? body.Barcode, partNo: result.Row?.PartNo, locationId: body.LocationId, qty: result.Row?.Qty));
@@ -520,10 +506,10 @@ public static class WhEndpoints
                     && sqlEx.Errors[0].Number < 51500;
 
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "MOVE_LOCATION", "WH002", "LOCATION", body.LocationId, "FAIL", WarehouseProcedureMessage(ex),
+                    s, "MOVE_LOCATION", "WH002", "LOCATION", body.LocationId, "FAIL", WarehouseErrorMessage(ex),
                     lotNo: body.Barcode, locationId: body.LocationId));
                 return Results.Problem(
-                    WarehouseProcedureMessage(ex),
+                    WarehouseErrorMessage(ex),
                     statusCode: isValidationError
                         ? StatusCodes.Status400BadRequest
                         : StatusCodes.Status503ServiceUnavailable);
@@ -563,10 +549,10 @@ public static class WhEndpoints
                     && sqlEx.Errors[0].Number < 51600;
 
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "SCAN_STOCK", "WH005", "LOT", scanText, "FAIL", WarehouseProcedureMessage(ex),
+                    s, "SCAN_STOCK", "WH005", "LOT", scanText, "FAIL", WarehouseErrorMessage(ex),
                     lotNo: scanText));
                 return Results.Problem(
-                    WarehouseProcedureMessage(ex),
+                    WarehouseErrorMessage(ex),
                     statusCode: isValidationError
                         ? StatusCodes.Status400BadRequest
                         : StatusCodes.Status503ServiceUnavailable);
@@ -623,7 +609,7 @@ public static class WhEndpoints
             catch (Exception ex)
             {
                 tx.Rollback();
-                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+                return Results.Problem(WarehouseErrorMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         }).WithTags("PDA Test Scenarios");
 
@@ -648,7 +634,7 @@ public static class WhEndpoints
             catch (Exception ex)
             {
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "SCAN_LOCATION", "WH002", "LOCATION", locationId, "FAIL", WarehouseProcedureMessage(ex),
+                    s, "SCAN_LOCATION", "WH002", "LOCATION", locationId, "FAIL", WarehouseErrorMessage(ex),
                     locationId: locationId));
                 return Results.Problem("Warehouse database is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
             }
@@ -787,7 +773,7 @@ public static class WhEndpoints
             catch (Exception ex)
             {
                 tx.Rollback();
-                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+                return Results.Problem(WarehouseErrorMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         }).WithTags("PDA Test Scenarios");
 
@@ -1013,20 +999,18 @@ public static class WhEndpoints
                 if (Convert.ToInt32(auto.ExecuteScalar()) > 0)
                     return Results.BadRequest(new PickResult(false, "Scan all requested boxes and use Release Complete for line replenishment.", null));
             }
-            if (ProcedureExists(conn, "dbo", PdaReleasePickLotProcedure))
-            {
-                var result = ExecuteReleasePickStoredProcedure(conn, body, s.EmployeeNo, s.TerminalId);
-                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
-                    s, "RELEASE_PICK", "WH003", "LOT", body.LotNo,
-                    result.Success ? "SUCCESS" : "FAIL", result.Message,
-                    refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
-                    lotNo: result.Row?.LotNo ?? body.LotNo, partNo: result.Row?.ItemNo,
-                    locationId: result.Row?.LocationNo, qty: result.Row?.Qty ?? body.Qty));
-                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
-            }
-
-            return Results.Problem("Warehouse release procedure is missing. Apply the WH schema migration.",
-                statusCode: StatusCodes.Status503ServiceUnavailable);
+            var preview = ValidateReleaseLot(conn, null, body.PickSlipNo, body.LotNo);
+            if (!preview.IsValid) return Results.BadRequest(new PickResult(false, preview.Message ?? "LOT cannot be released.", preview));
+            var result = ExecuteReleaseBatch(factory, body.PickSlipNo,
+                [new ReleasePickInput(preview.LotNo, preview.Qty)], "RELEASE_PICK", s.EmployeeNo, s.TerminalId);
+            WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                s, "RELEASE_PICK", "WH003", "LOT", preview.LotNo,
+                result.Success ? "SUCCESS" : "FAIL", result.Message,
+                refDocType: "PICK_SLIP", refDocNo: body.PickSlipNo,
+                lotNo: preview.LotNo, partNo: preview.ItemNo, locationId: preview.LocationNo, qty: preview.Qty));
+            return result.Success
+                ? Results.Ok(new PickResult(true, result.Message, preview with { InvStatus = "RELEASED", Message = result.Message }))
+                : Results.BadRequest(new PickResult(false, result.Message, preview));
         });
 
         g.MapPost("/release/complete", (HttpContext ctx, ReleaseCompleteReq body) =>
@@ -1148,7 +1132,7 @@ public static class WhEndpoints
             }
             catch (Exception ex)
             {
-                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+                return Results.Problem(WarehouseErrorMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         }).WithTags("PDA Test Scenarios");
 
@@ -1170,7 +1154,7 @@ public static class WhEndpoints
             }
             catch (Exception ex)
             {
-                return Results.Problem(WarehouseProcedureMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
+                return Results.Problem(WarehouseErrorMessage(ex), statusCode: StatusCodes.Status503ServiceUnavailable);
             }
         }).WithTags("PDA Test Scenarios");
 
@@ -1204,14 +1188,7 @@ public static class WhEndpoints
         var language = string.IsNullOrWhiteSpace(lang) ? "EN" : lang;
 
         using var conn = factory.OpenConnection();
-        var hasScheduleProcedure = ProcedureExists(conn, "dbo", PdaScheduleInboundProcedure);
-        if (!hasScheduleProcedure)
-            return new List<Wh001ScheduleInboundItem>();
-
-        using var cmd = new SqlCommand($"[dbo].[{PdaScheduleInboundProcedure}]", conn)
-        {
-            CommandType = CommandType.StoredProcedure
-        };
+        using var cmd = new SqlCommand(PdaWarehouseSql.ScheduleInbound, conn) { CommandTimeout = 15 };
 
         ColumnParams.AddFilter(cmd, "@CompanyCode", "WH_PDA_SCHEDULE_INBOUND_LIST.@CompanyCode", "1000");
         ColumnParams.AddFilter(cmd, "@BusinessCode", "WH_PDA_SCHEDULE_INBOUND_LIST.@BusinessCode", "5011");
@@ -1238,21 +1215,6 @@ public static class WhEndpoints
         DateTime? dateTo)
     {
         using var conn = factory.OpenConnection();
-        if (ProcedureExists(conn, "dbo", PdaScheduleReleaseProcedure))
-        {
-            using var wh001Cmd = new SqlCommand($"[dbo].[{PdaScheduleReleaseProcedure}]", conn)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-            wh001Cmd.Parameters.Add("@DueDateFrom", SqlDbType.Date).Value = (object?)dateFrom?.Date ?? DBNull.Value;
-            wh001Cmd.Parameters.Add("@DueDateTo", SqlDbType.Date).Value = (object?)dateTo?.Date ?? DBNull.Value;
-
-            using var wh001Rdr = wh001Cmd.ExecuteReader();
-            var wh001Rows = new List<Wh001ScheduleReleaseItem>();
-            while (wh001Rdr.Read()) wh001Rows.Add(ReadWh001ScheduleReleaseItem(wh001Rdr));
-            return wh001Rows;
-        }
-
         if (!TableExists(conn, null, "dbo", "PP_WorkOrder"))
             return [];
 
@@ -1293,141 +1255,9 @@ public static class WhEndpoints
     {
         // Keep legacy JSON quantity names for older clients; QuantityUnit identifies EA replenishment.
         var lines = new WarehouseRepository(factory).ListPickingSlipLines(pickSlipNo);
-        if (lines.Count > 0)
-            return lines.Select(x => new ReleasePickLineRow(x.PickSlipNo, x.PartNo ?? "", x.PartName,
+        return lines.Select(x => new ReleasePickLineRow(x.PickSlipNo, x.PartNo ?? "", x.PartName,
                 x.ReqBoxQty, x.PickedBoxQty, x.PickedQty, x.ReqUserId,
                 x.Loc01, x.Loc02, x.Loc03, x.Status, x.QuantityUnit)).ToList();
-        using var conn = factory.OpenConnection();
-        if (ProcedureExists(conn, "dbo", PdaReleasePickLinesProcedure))
-        {
-            using var pdaCmd = new SqlCommand($"[dbo].[{PdaReleasePickLinesProcedure}]", conn)
-            {
-                CommandType = CommandType.StoredProcedure,
-                CommandTimeout = 15
-            };
-            pdaCmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo.Trim();
-
-            using var pdaRdr = pdaCmd.ExecuteReader();
-            var pdaRows = new List<ReleasePickLineRow>();
-            while (pdaRdr.Read())
-            {
-                pdaRows.Add(new ReleasePickLineRow(
-                    GetString(pdaRdr, "PICK_SLIPNO") ?? "",
-                    GetString(pdaRdr, "PARTNO") ?? "",
-                    GetString(pdaRdr, "PARTNM"),
-                    GetDecimal(pdaRdr, "REQ_BOX_QTY"),
-                    GetDecimal(pdaRdr, "PICKED_BOX_QTY"),
-                    GetDecimal(pdaRdr, "PICKED_QTY"),
-                    GetString(pdaRdr, "REQ_USERID"),
-                    GetString(pdaRdr, "LOC_01"),
-                    GetString(pdaRdr, "LOC_02"),
-                    GetString(pdaRdr, "LOC_03"),
-                    GetString(pdaRdr, "STATUS") ?? "Open"));
-            }
-
-            return pdaRows;
-        }
-
-        if (!HasReleaseTables(conn)) return new List<ReleasePickLineRow>();
-
-        using var cmd = new SqlCommand("""
-            WITH RequiredParts AS (
-                SELECT
-                    A.PICK_SLIPNO,
-                    A.PARTNO,
-                    COALESCE(MAX(P.PARTNM), A.PARTNO) AS PARTNM,
-                    SUM(COALESCE(TRY_CONVERT(decimal(18,3), A.REQ_BOX_QTY), 0)) AS REQ_BOX_QTY,
-                    MAX(A.REQ_USERID) AS REQ_USERID
-                FROM SIS_TEST.WMS3050 A
-                LEFT JOIN SIS_TEST.ACD0020L P
-                       ON P.PARTNO = A.PARTNO
-                      AND (P.LANG_SET = N'EN' OR P.LANG_SET IS NULL)
-                WHERE A.PICK_SLIPNO = @PickSlipNo
-                GROUP BY A.PICK_SLIPNO, A.PARTNO
-            ),
-            Picked AS (
-                SELECT
-                    W.PICK_SLIPNO,
-                    W.PARTNO,
-                    COUNT(*) AS PICKED_BOX_QTY,
-                    SUM(COALESCE(TRY_CONVERT(decimal(18,3), W.QTY), 0)) AS PICKED_QTY
-                FROM SIS_TEST.WMS2020 W
-                WHERE W.PICK_SLIPNO = @PickSlipNo
-                  AND W.INV_STATUS = N'O1'
-                GROUP BY W.PICK_SLIPNO, W.PARTNO
-            ),
-            RankedLocations AS (
-                SELECT
-                    S.PARTNO,
-                    S.LOCATION_NO,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY S.PARTNO
-                        ORDER BY COALESCE(TRY_CONVERT(date, S.RCV_DATE), TRY_CONVERT(date, S.PROD_DATE), CONVERT(date, '9999-12-31')),
-                                 S.LOCATION_NO,
-                                 S.LOTNO
-                    ) AS RN
-                FROM SIS_TEST.WMS2020 S
-                INNER JOIN RequiredParts R
-                        ON R.PARTNO = S.PARTNO
-                WHERE S.INV_STATUS LIKE N'I%'
-                  AND S.INV_STATUS <> N'IC'
-                  AND NULLIF(LTRIM(RTRIM(S.LOCATION_NO)), N'') IS NOT NULL
-            ),
-            Locations AS (
-                SELECT
-                    PARTNO,
-                    MAX(CASE WHEN RN = 1 THEN LOCATION_NO END) AS LOC_01,
-                    MAX(CASE WHEN RN = 2 THEN LOCATION_NO END) AS LOC_02,
-                    MAX(CASE WHEN RN = 3 THEN LOCATION_NO END) AS LOC_03
-                FROM RankedLocations
-                WHERE RN <= 3
-                GROUP BY PARTNO
-            )
-            SELECT
-                R.PICK_SLIPNO,
-                R.PARTNO,
-                R.PARTNM,
-                R.REQ_BOX_QTY,
-                COALESCE(P.PICKED_BOX_QTY, 0) AS PICKED_BOX_QTY,
-                COALESCE(P.PICKED_QTY, 0) AS PICKED_QTY,
-                R.REQ_USERID,
-                L.LOC_01,
-                L.LOC_02,
-                L.LOC_03,
-                CASE
-                    WHEN COALESCE(P.PICKED_BOX_QTY, 0) >= R.REQ_BOX_QTY AND R.REQ_BOX_QTY > 0 THEN N'Picked'
-                    WHEN COALESCE(P.PICKED_BOX_QTY, 0) > 0 THEN N'Partial'
-                    ELSE N'Open'
-                END AS STATUS
-            FROM RequiredParts R
-            LEFT JOIN Picked P
-                   ON P.PICK_SLIPNO = R.PICK_SLIPNO
-                  AND P.PARTNO = R.PARTNO
-            LEFT JOIN Locations L
-                   ON L.PARTNO = R.PARTNO
-            ORDER BY R.PARTNO;
-            """, conn);
-        ColumnParams.AddFilter(cmd, "@PickSlipNo", null, pickSlipNo.Trim());
-
-        using var rdr = cmd.ExecuteReader();
-        var rows = new List<ReleasePickLineRow>();
-        while (rdr.Read())
-        {
-            rows.Add(new ReleasePickLineRow(
-                GetString(rdr, "PICK_SLIPNO") ?? "",
-                GetString(rdr, "PARTNO") ?? "",
-                GetString(rdr, "PARTNM"),
-                GetDecimal(rdr, "REQ_BOX_QTY"),
-                GetDecimal(rdr, "PICKED_BOX_QTY"),
-                GetDecimal(rdr, "PICKED_QTY"),
-                GetString(rdr, "REQ_USERID"),
-                GetString(rdr, "LOC_01"),
-                GetString(rdr, "LOC_02"),
-                GetString(rdr, "LOC_03"),
-                GetString(rdr, "STATUS") ?? "Open"));
-        }
-
-        return rows;
     }
 
     private static List<ReleaseFifoLotRow> QueryReleaseFifoLots(AmesConnectionFactory factory, string pickSlipNo)
@@ -1524,31 +1354,14 @@ public static class WhEndpoints
         DateTime? dateFrom, DateTime? dateTo, string? areaCode)
     {
         using var conn = factory.OpenConnection();
-        var usePdaProcedure = ProcedureExists(conn, "dbo", "WH_PDA_INVENTORY_STATUS_LIST");
-        using var cmd = new SqlCommand(
-            usePdaProcedure ? "[dbo].[WH_PDA_INVENTORY_STATUS_LIST]" : "[SIS_TEST].[PDA_WH03_INVENTORY_STATUS]", conn)
-        {
-            CommandType = CommandType.StoredProcedure
-        };
-        if (usePdaProcedure)
-        {
-            cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 80).Value =
-                string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
-            cmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
-            cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
-            cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value =
-                string.IsNullOrWhiteSpace(areaCode) ? DBNull.Value : areaCode.Trim();
-        }
-        else
-        {
-            cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
-            cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
-            cmd.Parameters.Add("@IN_Q", SqlDbType.NVarChar, 80).Value =
-                string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
-            cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
-            cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
-            cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
-        }
+        using var cmd = new SqlCommand(PdaWarehouseSql.Inventory, conn) { CommandTimeout = 15 };
+
+        cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 80).Value =
+            string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
+        cmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+        cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+        cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value =
+            string.IsNullOrWhiteSpace(areaCode) ? DBNull.Value : areaCode.Trim();
 
         using var rdr = cmd.ExecuteReader();
         var rows = new List<InventoryRow>();
@@ -1583,69 +1396,25 @@ public static class WhEndpoints
     {
         var value = scanText.Trim();
         using var conn = factory.OpenConnection();
-        if (ProcedureExists(conn, "dbo", "WH_PDA_INVENTORY_SCAN_LOOKUP"))
-        {
-            using var cmd = new SqlCommand("[dbo].[WH_PDA_INVENTORY_SCAN_LOOKUP]", conn)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-            cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = value;
-            using var rdr = cmd.ExecuteReader();
-            if (rdr.Read())
-                return new InventoryScanLookupRow(
-                    GetString(rdr, "SEARCH_KIND") ?? "TEXT",
-                    GetString(rdr, "SEARCH_TEXT") ?? value,
-                    GetString(rdr, "DISPLAY_TEXT"));
-        }
-
-        var lookups = new (string Kind, string Schema, string Table, string Sql)[]
-        {
-            ("LOCATION", "dbo", "MD_Location", "SELECT TOP (1) LocationID FROM dbo.MD_Location WHERE UPPER(LocationID)=UPPER(@ScanText) AND COALESCE(ActiveFlag,1)=1"),
-            ("PART", "dbo", "tbl_Lot", "SELECT TOP (1) ItemNo FROM dbo.tbl_Lot WHERE UPPER(LotCode)=UPPER(@ScanText) OR UPPER(ItemNo)=UPPER(@ScanText) ORDER BY CASE WHEN UPPER(LotCode)=UPPER(@ScanText) THEN 0 ELSE 1 END, LotID DESC"),
-            ("PART", "dbo", "MD_Item", "SELECT TOP (1) ItemNo FROM dbo.MD_Item WHERE UPPER(ItemNo)=UPPER(@ScanText) AND COALESCE(ActiveFlag,1)=1"),
-            ("LOCATION", "SIS_TEST", "WMS1040", "SELECT TOP (1) LOCATION_NO FROM SIS_TEST.WMS1040 WHERE UPPER(LOCATION_NO)=UPPER(@ScanText) AND COALESCE(USE_YN,N'Y')=N'Y'"),
-            ("LOCATION", "SIS_TEST", "WMS2000", "SELECT TOP (1) LOCATION_NO FROM SIS_TEST.WMS2000 WHERE UPPER(LOCATION_NO)=UPPER(@ScanText) AND COALESCE(QTY,0)>0"),
-            ("PART", "SIS_TEST", "WMS2020", "SELECT TOP (1) PARTNO FROM SIS_TEST.WMS2020 WHERE UPPER(LOTNO)=UPPER(@ScanText) OR UPPER(PARTNO)=UPPER(@ScanText) ORDER BY CASE WHEN UPPER(LOTNO)=UPPER(@ScanText) THEN 0 ELSE 1 END"),
-            ("PART", "SIS_TEST", "WMS2010", "SELECT TOP (1) PARTNO FROM SIS_TEST.WMS2010 WHERE UPPER(LOTNO)=UPPER(@ScanText) OR UPPER(PARTNO)=UPPER(@ScanText) ORDER BY CASE WHEN UPPER(LOTNO)=UPPER(@ScanText) THEN 0 ELSE 1 END"),
-            ("PART", "SIS_TEST", "ACD0020", "SELECT TOP (1) PARTNO FROM SIS_TEST.ACD0020 WHERE UPPER(PARTNO)=UPPER(@ScanText)")
-        };
-        foreach (var lookup in lookups)
-        {
-            if (!TableExists(conn, null, lookup.Schema, lookup.Table)) continue;
-            var result = ScalarString(conn, null, lookup.Sql, ("@ScanText", "MD_Location.LocationID", value));
-            if (!string.IsNullOrWhiteSpace(result))
-                return new InventoryScanLookupRow(lookup.Kind, result, null);
-        }
-        return new InventoryScanLookupRow("TEXT", value, null);
+        using var cmd = new SqlCommand(PdaWarehouseSql.InventoryLookup, conn) { CommandTimeout = 15 };
+        cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 80).Value = value;
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read() ? new InventoryScanLookupRow(
+            GetString(rdr, "SEARCH_KIND") ?? "TEXT", GetString(rdr, "SEARCH_TEXT") ?? value,
+            GetString(rdr, "DISPLAY_TEXT")) : new InventoryScanLookupRow("TEXT", value, null);
     }
 
     private static List<InventoryLocationRow> QueryInventoryLocations(AmesConnectionFactory factory, string itemNo,
         DateTime? dateFrom, DateTime? dateTo, string? areaCode)
     {
         using var conn = factory.OpenConnection();
-        var usePdaProcedure = ProcedureExists(conn, "dbo", "WH_PDA_INVENTORY_LOCATION_LIST");
-        using var cmd = new SqlCommand(
-            usePdaProcedure ? "[dbo].[WH_PDA_INVENTORY_LOCATION_LIST]" : "[SIS_TEST].[PDA_WH03_INVENTORY_LOCATIONS]", conn)
-        {
-            CommandType = CommandType.StoredProcedure
-        };
-        if (usePdaProcedure)
-        {
-            cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
-            cmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
-            cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
-            cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value =
-                string.IsNullOrWhiteSpace(areaCode) ? DBNull.Value : areaCode.Trim();
-        }
-        else
-        {
-            cmd.Parameters.Add("@IN_CORCD", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
-            cmd.Parameters.Add("@IN_BIZCD", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
-            cmd.Parameters.Add("@IN_PARTNO", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
-            cmd.Parameters.Add("@IN_DATE_FROM", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
-            cmd.Parameters.Add("@IN_DATE_TO", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
-            cmd.Parameters.Add("@IN_LANG_SET", SqlDbType.NVarChar, 10).Value = "EN";
-        }
+        using var cmd = new SqlCommand(PdaWarehouseSql.InventoryLocations, conn) { CommandTimeout = 15 };
+
+        cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
+        cmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
+        cmd.Parameters.Add("@StockDateTo", SqlDbType.Date).Value = dateTo.HasValue ? dateTo.Value.Date : (object)DBNull.Value;
+        cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 20).Value =
+            string.IsNullOrWhiteSpace(areaCode) ? DBNull.Value : areaCode.Trim();
 
         using var rdr = cmd.ExecuteReader();
         var rows = new List<InventoryLocationRow>();
@@ -1677,14 +1446,7 @@ public static class WhEndpoints
         DateTime? dateTo)
     {
         using var conn = factory.OpenConnection();
-        if (!ProcedureExists(conn, "dbo", "WH_PDA_TRANSACTION_LIST"))
-            throw new InvalidOperationException("Warehouse transaction procedure is missing. Apply the WH schema migration.");
-
-        using var cmd = new SqlCommand("[dbo].[WH_PDA_TRANSACTION_LIST]", conn)
-        {
-            CommandType = CommandType.StoredProcedure,
-            CommandTimeout = 15
-        };
+        using var cmd = new SqlCommand(PdaWarehouseSql.Transactions, conn) { CommandTimeout = 15 };
         cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
             string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
         cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value =
@@ -1708,67 +1470,25 @@ public static class WhEndpoints
             return new ReleaseSlipStatusRow("", false, false, 0, null, null, null, "Pick Slip No is required.");
 
         using var conn = factory.OpenConnection();
-        if (ProcedureExists(conn, "dbo", PdaReleaseSlipStatusProcedure))
+        using var pdaCmd = new SqlCommand(PdaWarehouseSql.ReleaseStatus, conn)
         {
-            using var pdaCmd = new SqlCommand($"[dbo].[{PdaReleaseSlipStatusProcedure}]", conn)
-            {
-                CommandType = CommandType.StoredProcedure,
-                CommandTimeout = 15
-            };
-            pdaCmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
+            CommandTimeout = 15
+        };
+        pdaCmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
 
-            using var pdaRdr = pdaCmd.ExecuteReader();
-            if (!pdaRdr.Read())
-                return new ReleaseSlipStatusRow(pickSlipNo, false, false, 0, null, null, null, "Pick Slip was not found.");
-
-            return new ReleaseSlipStatusRow(
-                GetString(pdaRdr, "PICK_SLIPNO") ?? pickSlipNo,
-                GetInt(pdaRdr, "EXISTS_FLAG") == 1,
-                GetInt(pdaRdr, "IS_CLOSED") == 1,
-                GetInt(pdaRdr, "LINE_COUNT") ?? 0,
-                GetString(pdaRdr, "REQ_LOCATION"),
-                GetDate(pdaRdr, "REQ_DATE"),
-                GetDate(pdaRdr, "CLOSE_DATE"),
-                GetString(pdaRdr, "MESSAGE") ?? "Pick Slip is ready.");
-        }
-
-        if (!HasReleaseTables(conn))
-            return new ReleaseSlipStatusRow(pickSlipNo, false, false, 0, null, null, null,
-                "Release tables are not available in SIS_TEST.");
-
-        using var cmd = new SqlCommand("""
-            SELECT
-                COUNT(*) AS LINE_COUNT,
-                MIN(REQ_LOCATION) AS REQ_LOCATION,
-                MAX(TRY_CONVERT(date, REQ_DATE)) AS REQ_DATE_DT,
-                MAX(TRY_CONVERT(datetime2, CLOSE_DATE)) AS CLOSE_DATE,
-                MAX(CASE WHEN ISNULL(CLOSE_YN, N'N') = N'Y' THEN 1 ELSE 0 END) AS CLOSE_YN_FLAG
-            FROM SIS_TEST.WMS3050
-            WHERE PICK_SLIPNO = @PickSlipNo;
-            """, conn);
-        ColumnParams.AddFilter(cmd, "@PickSlipNo", null, pickSlipNo);
-
-        using var rdr = cmd.ExecuteReader();
-        if (!rdr.Read())
+        using var pdaRdr = pdaCmd.ExecuteReader();
+        if (!pdaRdr.Read())
             return new ReleaseSlipStatusRow(pickSlipNo, false, false, 0, null, null, null, "Pick Slip was not found.");
-
-        var lineCount = GetInt(rdr, "LINE_COUNT") ?? 0;
-        if (lineCount <= 0)
-            return new ReleaseSlipStatusRow(pickSlipNo, false, false, 0, null, null, null, "Pick Slip was not found.");
-
-        var closeDate = GetDate(rdr, "CLOSE_DATE");
-        var isClosed = closeDate.HasValue || GetInt(rdr, "CLOSE_YN_FLAG") == 1;
-        var message = isClosed ? "Pick Slip is already closed." : "Pick Slip is ready.";
 
         return new ReleaseSlipStatusRow(
-            pickSlipNo,
-            true,
-            isClosed,
-            lineCount,
-            GetString(rdr, "REQ_LOCATION"),
-            GetDate(rdr, "REQ_DATE_DT"),
-            closeDate,
-            message);
+            GetString(pdaRdr, "PICK_SLIPNO") ?? pickSlipNo,
+            GetInt(pdaRdr, "EXISTS_FLAG") == 1,
+            GetInt(pdaRdr, "IS_CLOSED") == 1,
+            GetInt(pdaRdr, "LINE_COUNT") ?? 0,
+            GetString(pdaRdr, "REQ_LOCATION"),
+            GetDate(pdaRdr, "REQ_DATE"),
+            GetDate(pdaRdr, "CLOSE_DATE"),
+            GetString(pdaRdr, "MESSAGE") ?? "Pick Slip is ready.");
     }
 
     private static ReleaseLotRow ValidateReleaseLot(SqlConnection conn, SqlTransaction? tx, string pickSlipNo, string lotNo)
@@ -1779,22 +1499,6 @@ public static class WhEndpoints
         var autoReplenishment = ScalarDecimal(conn, tx,
             "SELECT COUNT(*) FROM dbo.WH_PickSlip WHERE PickSlipNo=@Slip AND CreatedBy=@Actor;",
             ("@Slip", "WH_PickSlip.PickSlipNo", pickSlipNo), ("@Actor", "WH_PickSlip.CreatedBy", WarehouseRepository.ReplenishmentActor)) > 0;
-
-        if (!autoReplenishment && ProcedureExists(conn, tx, "dbo", PdaReleaseScanLotProcedure))
-        {
-            using var pdaCmd = new SqlCommand($"[dbo].[{PdaReleaseScanLotProcedure}]", conn, tx)
-            {
-                CommandType = CommandType.StoredProcedure,
-                CommandTimeout = 15
-            };
-            pdaCmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
-            pdaCmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = lotNo;
-
-            using var pdaRdr = pdaCmd.ExecuteReader();
-            return pdaRdr.Read()
-                ? ReadReleaseLotRow(pdaRdr, pickSlipNo, lotNo)
-                : InvalidReleaseLot(pickSlipNo, lotNo, "LOT was not found.");
-        }
 
         if (string.IsNullOrWhiteSpace(pickSlipNo))
             return InvalidReleaseLot(pickSlipNo, lotNo, "Pick Slip No is required.");
@@ -1908,29 +1612,7 @@ public static class WhEndpoints
         return row with { IsFifoSuggested = true, IsValid = true, Message = "LOT is ready to pick." };
     }
 
-    private static void EnsureReleaseAuditTable(SqlConnection conn, SqlTransaction tx)
-    {
-        using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'SIS_TEST.PDA_WH_RELEASE_PICK_AUDIT', N'U') IS NULL
-            BEGIN
-                CREATE TABLE SIS_TEST.PDA_WH_RELEASE_PICK_AUDIT
-                (
-                    AUDIT_ID bigint IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                    PICK_SLIPNO nvarchar(30) NOT NULL,
-                    LOTNO nvarchar(50) NOT NULL,
-                    PARTNO nvarchar(50) NULL,
-                    QTY decimal(18,3) NOT NULL,
-                    LOCATION_NO nvarchar(50) NULL,
-                    BEFORE_STATUS nvarchar(20) NULL,
-                    AFTER_STATUS nvarchar(20) NOT NULL,
-                    WORKER_ID nvarchar(80) NULL,
-                    TERMINAL_ID nvarchar(80) NULL,
-                    CREATED_AT datetime2 NOT NULL
-                );
-            END
-            """, conn, tx);
-        cmd.ExecuteNonQuery();
-    }
+
 
     private static DirectOutgoingLotRow QueryDirectOutgoingLot(AmesConnectionFactory factory, string lotNo)
     {
@@ -2342,9 +2024,9 @@ public static class WhEndpoints
         try
         {
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand(PdaSparePartStockMoveProcedure, conn)
+            using var cmd = new SqlCommand(PdaSparePartsSql.Move, conn)
             {
-                CommandType = CommandType.StoredProcedure
+                CommandType = CommandType.Text
             };
             cmd.Parameters.Add("@SerialNo", SqlDbType.VarChar, 24).Value = body.EosSpNo.Trim();
             cmd.Parameters.Add("@MoveType", SqlDbType.VarChar, 10).Value = moveType;
@@ -2362,7 +2044,7 @@ public static class WhEndpoints
         }
         catch (Exception ex)
         {
-            return new SparePartMoveResult(false, WarehouseProcedureMessage(ex));
+            return new SparePartMoveResult(false, WarehouseErrorMessage(ex));
         }
     }
 
@@ -2371,7 +2053,7 @@ public static class WhEndpoints
     {
         if (string.IsNullOrWhiteSpace(body.EosSpNo)) throw new InvalidOperationException("Select a spare part first.");
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand("dbo.SP_PDA_SP_SERIAL_CREATE", conn) { CommandType = CommandType.StoredProcedure };
+        using var cmd = new SqlCommand(PdaSparePartsSql.SerialCreate, conn) { CommandType = CommandType.Text };
         cmd.Parameters.Add("@SparePartNo", SqlDbType.VarChar, 16).Value = body.EosSpNo.Trim();
         cmd.Parameters.Add("@Count", SqlDbType.Int).Value = body.Count;
         ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
@@ -2410,7 +2092,7 @@ public static class WhEndpoints
         try
         {
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand("dbo.SP_PDA_SP_STOCK_CANCEL", conn) { CommandType = CommandType.StoredProcedure };
+            using var cmd = new SqlCommand(PdaSparePartsSql.Cancel, conn) { CommandType = CommandType.Text };
             cmd.Parameters.Add("@SerialNo", SqlDbType.VarChar, 24).Value = body.SerialNo.Trim();
             cmd.Parameters.Add("@MoveType", SqlDbType.VarChar, 10).Value = move;
             ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
@@ -2418,7 +2100,7 @@ public static class WhEndpoints
             cmd.ExecuteNonQuery();
             return new(true, move == "IN" ? "Inbound cancelled." : "Release cancelled.", QuerySparePart(factory, body.SerialNo));
         }
-        catch (Exception ex) { return new(false, WarehouseProcedureMessage(ex)); }
+        catch (Exception ex) { return new(false, WarehouseErrorMessage(ex)); }
     }
 
     private static DirectOutgoingResult ExecuteDirectOutgoing(
@@ -2679,7 +2361,7 @@ public static class WhEndpoints
             var selectedLotNos = lots.Select(x => x.LotNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var lot in lots)
             {
-                using var fifoCmd = new SqlCommand(lot.LineDestination is null ? "dbo.WH_PDA_FIFO_VIEW" : $"""
+                using var fifoCmd = new SqlCommand(lot.LineDestination is null ? PdaWarehouseSql.FifoEarlier : $"""
                     SELECT W.LotNo AS LOTNO FROM dbo.WH_Inventory W
                     JOIN dbo.WH_Inventory T ON T.LotNo=@LotNo
                     WHERE W.PartNo=T.PartNo AND ({WarehouseRepository.WarehouseBoxPredicate})
@@ -2687,7 +2369,7 @@ public static class WhEndpoints
                            OR (W.ReceivedAt=T.ReceivedAt AND W.CreatedAt=T.CreatedAt AND W.LotNo<T.LotNo))
                     ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo;
                     """, conn, tx)
-                { CommandType = lot.LineDestination is null ? CommandType.StoredProcedure : CommandType.Text };
+                { CommandType = CommandType.Text };
                 ColumnParams.AddFilter(fifoCmd, "@LotNo", "WH_Inventory.LotNo", lot.LotNo);
                 using var fifoRdr = fifoCmd.ExecuteReader();
                 while (fifoRdr.Read())
@@ -2795,59 +2477,18 @@ public static class WhEndpoints
             try { tx.Rollback(); } catch { }
             return new ReleaseCompleteResult(false, simulateFailure
                 ? "Simulated Release API failure. Database transaction was rolled back."
-                : WarehouseProcedureMessage(ex));
+                : WarehouseErrorMessage(ex));
         }
     }
 
-    private static PickResult ExecuteReleasePickStoredProcedure(SqlConnection conn, PickReq body, string userId, string terminalId)
-    {
-        using var cmd = new SqlCommand($"[dbo].[{PdaReleasePickLotProcedure}]", conn)
-        {
-            CommandType = CommandType.StoredProcedure,
-            CommandTimeout = 15
-        };
-        cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = body.PickSlipNo.Trim();
-        cmd.Parameters.Add("@LotNo", SqlDbType.NVarChar, 50).Value = body.LotNo.Trim();
-        ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
-        cmd.Parameters.Add("@TerminalId", SqlDbType.NVarChar, 80).Value = terminalId;
 
-        using var rdr = cmd.ExecuteReader();
-        var row = rdr.Read()
-            ? ReadReleaseLotRow(rdr, body.PickSlipNo.Trim(), body.LotNo.Trim())
-            : InvalidReleaseLot(body.PickSlipNo, body.LotNo, "Release pick service returned an empty response.");
 
-        return new PickResult(row.IsValid, row.Message ?? (row.IsValid ? "Release pick completed." : "LOT cannot be picked."), row);
-    }
 
-    private static ReleaseLotRow ReadReleaseLotRow(SqlDataReader rdr, string pickSlipNo, string lotNo)
-    {
-        return new ReleaseLotRow(
-            GetString(rdr, "PICK_SLIPNO") ?? pickSlipNo,
-            GetString(rdr, "LOTNO") ?? lotNo,
-            GetString(rdr, "PARTNO"),
-            GetString(rdr, "PARTNM"),
-            GetDecimal(rdr, "QTY"),
-            GetString(rdr, "UNIT"),
-            GetString(rdr, "LOCATION_NO"),
-            GetString(rdr, "LOCATION_NM"),
-            GetString(rdr, "ZONECD"),
-            GetString(rdr, "INV_STATUS"),
-            GetString(rdr, "PROD_DATE"),
-            GetString(rdr, "RCV_DATE"),
-            GetInt(rdr, "IS_FIFO_SUGGESTED") == 1,
-            GetInt(rdr, "IS_VALID") == 1,
-            GetString(rdr, "MESSAGE"));
-    }
 
     private static ReleaseLotRow InvalidReleaseLot(string pickSlipNo, string lotNo, string message)
         => new(pickSlipNo, lotNo, null, null, 0, null, null, null, null, null, null, null, false, false, message);
 
-    private static bool HasReleaseTables(SqlConnection conn, SqlTransaction? tx = null)
-        => TableExists(conn, tx, "SIS_TEST", "WMS3050")
-           && TableExists(conn, tx, "SIS_TEST", "WMS2020")
-           && TableExists(conn, tx, "SIS_TEST", "WMS1040")
-           && TableExists(conn, tx, "SIS_TEST", "ACD0020")
-           && TableExists(conn, tx, "SIS_TEST", "ACD0020L");
+
 
     private static Wh001ScheduleInboundItem ReadWh001ScheduleInboundItem(
         SqlDataReader rdr,
@@ -2906,15 +2547,7 @@ public static class WhEndpoints
         return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
     }
 
-    private static bool ProcedureExists(SqlConnection conn, string schema, string procedure)
-        => ProcedureExists(conn, null, schema, procedure);
 
-    private static bool ProcedureExists(SqlConnection conn, SqlTransaction? tx, string schema, string procedure)
-    {
-        using var cmd = new SqlCommand("SELECT CASE WHEN OBJECT_ID(@ObjectName, N'P') IS NULL THEN 0 ELSE 1 END;", conn, tx);
-        cmd.Parameters.Add("@ObjectName", SqlDbType.NVarChar, 256).Value = $"{schema}.{procedure}";
-        return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
-    }
 
     private static decimal ScalarDecimal(SqlConnection conn, SqlTransaction? tx, string sql, params (string Name, string? Column, object? Value)[] parameters)
     {
@@ -2957,9 +2590,9 @@ public static class WhEndpoints
             return new(caseDocument, caseLines, ApplyCaseReceivePolicy(factory, caseBoxes));
         }
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand($"[dbo].[{PdaInboundDocumentInfoProcedure}]", conn)
+        using var cmd = new SqlCommand(PdaWarehouseSql.InboundDocument, conn)
         {
-            CommandType = CommandType.StoredProcedure,
+            CommandType = CommandType.Text,
             CommandTimeout = 15
         };
         cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = mode.Trim();
@@ -3007,9 +2640,9 @@ public static class WhEndpoints
     private static InboundScanRow? ExecuteInboundScan(AmesConnectionFactory factory, string mode, string barcode)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand($"[dbo].[{PdaInboundScanLotProcedure}]", conn)
+        using var cmd = new SqlCommand(PdaWarehouseSql.InboundScan, conn)
         {
-            CommandType = CommandType.StoredProcedure,
+            CommandType = CommandType.Text,
             CommandTimeout = 15
         };
         cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = mode.Trim();
@@ -3022,9 +2655,9 @@ public static class WhEndpoints
     private static InboundScanRow? ExecuteAdjustScan(AmesConnectionFactory factory, string scanText)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand($"[dbo].[{PdaAdjustScanStockProcedure}]", conn)
+        using var cmd = new SqlCommand(PdaWarehouseSql.AdjustScan, conn)
         {
-            CommandType = CommandType.StoredProcedure,
+            CommandType = CommandType.Text,
             CommandTimeout = 15
         };
         cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 100).Value = scanText.Trim();
@@ -3037,7 +2670,7 @@ public static class WhEndpoints
         AmesConnectionFactory factory,
         InboundReceiveReq body,
         string userId,
-        string proc,
+        string sql,
         string successMessage,
         bool simulateFailure = false)
     {
@@ -3045,16 +2678,16 @@ public static class WhEndpoints
         {
             using var conn = factory.OpenConnection();
             using var tx = conn.BeginTransaction();
-            using var cmd = new SqlCommand($"[dbo].[{proc}]", conn, tx)
+            using var cmd = new SqlCommand(sql, conn, tx)
             {
-                CommandType = CommandType.StoredProcedure,
+                CommandType = CommandType.Text,
                 CommandTimeout = 15
             };
             cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
             cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 30).Value = body.LocationId.Trim();
+            cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 50).Value = body.LocationId.Trim();
             ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
-            if (string.Equals(proc, PdaInboundReceiveLotProcedure, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(sql, PdaWarehouseSql.InboundReceive, StringComparison.OrdinalIgnoreCase))
                 cmd.Parameters.Add("@SimulateFailure", SqlDbType.Bit).Value = simulateFailure;
 
             InboundScanRow? row;
@@ -3063,14 +2696,14 @@ public static class WhEndpoints
                 row = rdr.Read() ? ReadInboundScanRow(rdr) : null;
                 while (rdr.NextResult()) { while (rdr.Read()) { } }
             }
-            if (string.Equals(proc, PdaInboundReceiveLotProcedure, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(sql, PdaWarehouseSql.InboundReceive, StringComparison.OrdinalIgnoreCase))
                 ScmRepository.LinkReceivedCase(conn, tx, body.Barcode.Trim());
             tx.Commit();
             return new InboundReceiveResult(true, successMessage, row);
         }
         catch (Exception ex)
         {
-            return new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null);
+            return new InboundReceiveResult(false, WarehouseErrorMessage(ex), null);
         }
     }
 
@@ -3088,14 +2721,14 @@ public static class WhEndpoints
             InboundScanRow? lastRow = null;
             foreach (var row in rows)
             {
-                using var cmd = new SqlCommand($"[dbo].[{PdaInboundMoveLocationProcedure}]", conn, transaction)
+                using var cmd = new SqlCommand(PdaWarehouseSql.InboundMove, conn, transaction)
                 {
-                    CommandType = CommandType.StoredProcedure,
+                    CommandType = CommandType.Text,
                     CommandTimeout = 15
                 };
                 cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = row.Mode.Trim();
                 cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = row.Barcode.Trim();
-                cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 30).Value = locationId.Trim();
+                cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 50).Value = locationId.Trim();
                 ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
 
                 using var rdr = cmd.ExecuteReader();
@@ -3116,7 +2749,7 @@ public static class WhEndpoints
             {
                 // The server may already have rolled back the transaction because XACT_ABORT is enabled.
             }
-            return new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null);
+            return new InboundReceiveResult(false, WarehouseErrorMessage(ex), null);
         }
     }
 
@@ -3125,9 +2758,9 @@ public static class WhEndpoints
         try
         {
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand($"[dbo].[{PdaInboundCancelReceiptProcedure}]", conn)
+            using var cmd = new SqlCommand(PdaWarehouseSql.InboundCancel, conn)
             {
-                CommandType = CommandType.StoredProcedure,
+                CommandType = CommandType.Text,
                 CommandTimeout = 15
             };
             cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
@@ -3140,7 +2773,7 @@ public static class WhEndpoints
         }
         catch (Exception ex)
         {
-            return new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null);
+            return new InboundReceiveResult(false, WarehouseErrorMessage(ex), null);
         }
     }
 
@@ -3163,9 +2796,9 @@ public static class WhEndpoints
                     return new InboundReceiveResult(false, "Stock quantity or location changed. Select the line or scan the LOT again.", null);
             }
 
-            using var cmd = new SqlCommand($"[dbo].[{PdaAdjustSaveQtyProcedure}]", conn, tx)
+            using var cmd = new SqlCommand(PdaWarehouseSql.AdjustSave, conn, tx)
             {
-                CommandType = CommandType.StoredProcedure,
+                CommandType = CommandType.Text,
                 CommandTimeout = 15
             };
             cmd.Parameters.Add("@ScanText", SqlDbType.NVarChar, 100).Value = body.Barcode.Trim();
@@ -3186,7 +2819,7 @@ public static class WhEndpoints
         }
         catch (Exception ex)
         {
-            return new InboundReceiveResult(false, WarehouseProcedureMessage(ex), null);
+            return new InboundReceiveResult(false, WarehouseErrorMessage(ex), null);
         }
     }
 
@@ -3305,7 +2938,7 @@ public static class WhEndpoints
         };
         cmd.Parameters.Add("@LocationCorcd", SqlDbType.NVarChar, 10).Value = WhLocationCorcd;
         cmd.Parameters.Add("@LocationBizcd", SqlDbType.NVarChar, 10).Value = WhLocationBizcd;
-        cmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 30).Value = locationId.Trim();
+        cmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 50).Value = locationId.Trim();
 
         using var rdr = cmd.ExecuteReader();
         return rdr.Read() ? ReadLocationRow(rdr) : null;
@@ -3348,7 +2981,7 @@ public static class WhEndpoints
         {
             CommandTimeout = 15
         };
-        dboCmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 30).Value = locationId.Trim();
+        dboCmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 50).Value = locationId.Trim();
 
         using var dboRdr = dboCmd.ExecuteReader();
         return dboRdr.Read() ? ReadLocationRow(dboRdr) : null;
@@ -3396,7 +3029,7 @@ public static class WhEndpoints
         return rdr.Read() ? ReadLocationRow(rdr) : null;
     }
 
-    private static string WarehouseProcedureMessage(Exception ex)
+    private static string WarehouseErrorMessage(Exception ex)
     {
         if (ex is InvalidOperationException && ex.Message.StartsWith("This spare part has not been received yet.", StringComparison.Ordinal))
             return ex.Message;
