@@ -5,7 +5,7 @@
 > **재검토 원칙**(10-16 사용자 확인): 이 문서의 지적·제안 자체가 구현 원칙이나 수정 지시는 아닙니다. 현재 호출 경로·합의된 업무 방향과 대조해 실제 결함인지 먼저 확인합니다. 지적이 틀렸거나 방향이 바뀌었다면 코드·DB를 억지로 바꾸지 않고, 이 문서에 해당하지 않는 이유·근거·현재 방향을 정정합니다. 운영 결함, 배포·검증 대기, 정책 결정, 선택적 정리를 구분하며 과거 DB 점검값을 현재 값으로 단정하지 않습니다.
 
 - **작성**: 2026-10-14, Claude Code(이승욱 세션). 10-15 원격 병합(안영훈 SCM·포탈 10건) 뒤, 10-15 06시 두 번째 원격 병합(안영훈 WH·FG·SCM·Api 7건) 뒤, 10-16 MNT 작업(설비 상태 자동 판정·고장 라인 정지·PM 점검 완료 규칙·PM 일정 규칙)과 화면 저장 검증 뒤, 10-16 23시 그날 들어온 커밋(심재현 백플러시·POP DbClock·PP-APS·LOT 라벨, 안영훈 PDA 직접 SQL 전환·구 프로시저 정의 정리, 이승욱 SAPTransFlag·포탈/SCM 화면 표준화·다국어화)과 항목을 대조해 다시 정리했습니다. 해결된 항목은 지우고 남은 것만 둡니다. **10-17 전 항목을 현재 소스(ba968b99 — MD-034 팔레트·MD-035 사출 조건 항목, 심재현 설비 재시드 병합 뒤)와 다시 대조**해 해결된 1건(이승욱 테이블 5 `MD_InjCondItem` — MD-035 화면)을 지우고, 줄 번호·경로·행 수를 고치고, 새로 찾은 3건을 더했습니다. 10-16 이후 POP·PP·PNT·QC 쪽 코드는 바뀌지 않아 심재현 항목은 모두 그대로 유효합니다.
-- **기준 소스**: `dev` 브랜치 10-17(ba968b99). 줄 번호는 전 절을 이 시점으로 고쳤습니다.
+- **기준 소스**: `dev` 브랜치 10-17(ba968b99). 줄 번호는 전 절을 이 시점으로 고쳤습니다. 그 뒤 10-17 오후 dd8df481(심재현 `MD_MoldColor` 폐지 병합 — 심재현 항목에 영향 없음, 이승욱 테이블 4 줄 번호만 갱신)과 대조했습니다.
 - **점검 방법**
   - 5영역(POP·InjAgent·QC·PNT / PP·APS·MRP / Api·WH·FG·SCM·Portal / SYS·MD·MNT·RPT / DB 스크립트·스키마·공통 규칙)을 소스로 다시 확인했습니다.
   - 테이블 175개의 읽기·쓰기 사용처를 전수 조사했습니다. 테스트 코드는 빼고, 실제로 호출되는 DB 프로시저는 포함했습니다.
@@ -29,7 +29,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 심재현 | 23                   | 7   | 7묶음 | 38  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 32) · 안돈 보전 호출 작업지시(요청 22) |
-| 안영훈 | 7(배포·검증·승인 대기·알림) | 4   | 3   | 2   | [중] 케이스 입고의 구 프로시저 매개변수 태그 의존 · LOT 조정→취소→재입고 누적량 · 예비품 출고↔보전 작업지시 배포·검증 · 비결함·선택적 정리 3건은 2-5 참조 |
+| 안영훈 | 8(배포·검증·승인 대기·알림) | 4   | 3   | 2   | [상] 개발 DB 에만 있는 FG 구조 변경(2-1 8 — 저장소 코드의 FG 출하·반품·일별 출하가 개발 DB 에서 실패) · [중] 케이스 입고의 구 프로시저 매개변수 태그 의존 · LOT 조정→취소→재입고 누적량 · 예비품 출고↔보전 작업지시 배포·검증 · 비결함·선택적 정리 3건은 2-5 참조 |
 | 이승욱 | 0                    | 3   | 4   | 0   | PP-OEE 가동률이 시연 데이터(`PP_LineStateLog` 기록 — 심재현과 진행 예정)                                                                       |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
@@ -295,7 +295,7 @@
 
 ## 2. 안영훈 — PDA·Api + Web WH·FG·SCM·Portal + 재구축 스크립트
 
-### 2-1. 적용·검증 대기·요청 (7)
+### 2-1. 적용·검증 대기·요청 (8)
 1. **재구축 스크립트 — 전체 재구축 검증 대기**
    - Portal 번호 변경은 임시 코드 경유로 충돌을 피하고 현재 001~004 화면에 맞췄습니다.
    - 선택적 개발 시드는 PDA_SEED → seed_portal_dev 순서이며, 기본 실행에서 제외합니다. 테스트 시드 실행에는 AMES_DEVELOPMENT_SEEDS=1과 세션 opt-in이 필요합니다.
@@ -329,8 +329,13 @@
    - (10-16 재대조) Api 의 프로시저 실행은 테스트 초기화(`*_TEST_RESET`)만 남았지만 메타데이터 의존까지 없어진 것은 아닙니다. 케이스 입고(`ScmDeliveryCases.cs`의 `ReceiveDeliveryCase`)와 WH 입고 예정 조회가 아직 구 프로시저 매개변수를 형식 태그로 씁니다 — 프로시저를 지우기 전에 문제점 1을 확인해야 합니다.
 7. **[알림·코드 반영] `WH_Inventory.CaseNo` → `PalletNo` 이름 변경과 `FG_Shipment.PalletNo` 추가 — 개발서버 Web·Api 게시 대기**(10-17 이승욱, 사용자 요청 — MD-034 팔레트 마스터)
    - 컬럼 이름만 바꿨고 값·위치는 그대로입니다. 고친 곳: `PdaWarehouseSql`(재고 검색·`CASE_NO`/`CASE_BARCODE` 조회 2곳·포탈 박스 입고의 `PalletNo=NULL`), `PdaFinishedGoodsSql`(조회 2곳 — 응답 필드 이름은 그대로), `ScmDeliveryCases`(케이스 박스 연결 `PalletNo=@Case`, 형식 태그는 `SCM_DeliveryBox.CaseNo` 로), 테스트 2개, `tools/check_wh_line_replenishment.cs`, `dist/pda/PDA_SCHEMA.sql`(퇴역 스크립트 — `WH_Inventory.PalletNo` 를 지우던 블록 삭제). DB 의 옛 프로시저 4개(`FG_PDA_OUTBOUND_TEST_RESET`·`WH_PDA_TRANSACTION_LIST`·`WH_PDA_ADJUST_SCAN_STOCK`·`FG_PDA_ADJUST_SCAN_STOCK`)는 `migrate_md_pallet.sql` 이 고칩니다.
-   - FG 출고(`OutboundComplete`)는 출고 바코드 재고 행의 `PalletNo` 를 `FG_Shipment.PalletNo` 에 남기고 `MD_Pallet.ShippedFlag` 를 켭니다. 검사는 더하지 않았습니다.
-   - `FG_Shipment` 를 컬럼 순서 때문에 다시 만들므로 `migrate_fg_shipment_no_foreign_keys.sql`(FG 신규 FK 2개 제거)을 먼저 적용합니다. **10-17 사용자 지시로 두 마이그레이션을 개발·로컬 DB 에 모두 적용했습니다**(두 DB 구조 동일 — 남은 차이는 2-5 의 3 `FG_CustomerReturn.PartName` 위치뿐). 개발서버의 Web·Api 를 새 게시본(`publish/AMES.Web_20261017-030232.zip`·`AMES.Api_20261017-030348.zip` 이후)으로 바꾸기 전까지는 서버의 구 Api·Web 이 PDA 입고·재고 조회·SCM 케이스 처리에서 `Invalid column name 'CaseNo'` 로 실패합니다.
+   - FG 출고(`OutboundComplete`)는 출고 바코드 재고 행의 `PalletNo` 를 `FG_Shipment.PalletNo` 에 남기고, 그 번호의 `MD_Pallet` 에 `ShippedFlag` = 1·`ShippedAt`·`ShippedCustomerID` 를 채웁니다. 검사는 더하지 않았습니다.
+   - (10-17 오후) `MD_Pallet` 에 `ShippedAt`·`ShippedCustomerID`·`ReturnedAt` 을 되살렸고(사용자 요청, `migrate_md_pallet.sql` 1-b — 두 DB 적용), MD-034 는 출고됨·출고·회수 값을 목록에 보이기만 하고 고치지 않습니다(사용자 결정 — 다른 곳에서 넣고 뺌). **회수 처리(ShippedFlag 해제·ReturnedAt 기록)를 하는 곳은 아직 없습니다** — PDA/FG 쪽에서 만들지 정해야 합니다.
+   - `FG_Shipment` 를 컬럼 순서 때문에 다시 만들므로 `migrate_fg_shipment_no_foreign_keys.sql`(FG 신규 FK 2개 제거)을 먼저 적용합니다. **10-17 사용자 지시로 두 마이그레이션을 개발·로컬 DB 에 모두 적용했습니다**(두 DB 구조 동일 — 남은 차이는 2-5 의 3 `FG_CustomerReturn.PartName` 위치뿐). 개발서버의 Web·Api 를 새 게시본(`publish/AMES.Web_20261017-044941.zip`·`AMES.Api_20261017-045111.zip` 이후)으로 바꾸기 전까지는 서버의 구 Api·Web 이 PDA 입고·재고 조회·SCM 케이스 처리에서 `Invalid column name 'CaseNo'` 로 실패합니다.
+8. **[상] [확인 요청] 개발 DB 에만 있고 저장소에 없는 FG·WH 구조 변경**(10-17 이승욱 재대조 — 원격 어느 브랜치에도 없음)
+   - 개발 DB 에서 서버 시각 10-16 14:53 에 바뀜(`sys.tables.modify_date`): `FG_Shipment.OutboundBarcode` → `LotNo` 이름 변경(인덱스 `IX_FG_Shipment_ShippedAt` 포함 열도 `LotNo`), 새 테이블 `FG_Delivery`·`FG_DeliveryLoad`(필터 유니크 `UX_FG_DeliveryLoad_Lot`)·`FG_ShippingOrder`·`FG_ShippingOrderLine`(모두 0행), `MD_Location` 에 `LineID`·`PartNo`·`MinimumQty` 컬럼과 `IX_MD_Location_Line`(감사 컬럼 뒤에 붙음). 로컬 DB·스키마 파일에는 없습니다.
+   - 영향: 저장소 코드는 `FG_Shipment.OutboundBarcode` 를 읽으므로(`PdaFinishedGoodsSql.cs`·`FinishedGoodsRepository.cs`·`RptRepository.cs`·`FgEndpoints.cs`·`FgOutboundBarcode.cs`·`MasterDataRepository.cs` 고객·팔레트 삭제 사용처, Web `Fg/Shipments`·`Fg/CustomerReturns`·`Rpt/DailyShipment`, PDA `Fg04FifoPicking`·`FgRtnReturn`) 개발 DB 에서 `Invalid column name 'OutboundBarcode'` 입니다(10-17 SELECT 로 재현). 화면은 오류를 빈 목록으로 삼켜 FG 출하·일별 출하가 비어 보이고(출하 2건 있음), PDA FG 출고와 고객 삭제 검사는 실패합니다.
+   - 요청: 이 변경의 코드·마이그레이션을 push 하거나, 아직 진행 중이면 개발 DB 를 저장소 구조로 되돌려 주세요. 이승욱은 따라 고치지 않았습니다(로컬 DB 에도 적용하지 않음).
 
 ### 2-2. 보류 (4)
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.
@@ -390,7 +395,7 @@
    - 내용: 기록 메서드를 아무도 부르지 않아 시연 3행만 보입니다(B7). 실제 교체는 PP-LSB 금형 교체(MC) 슬롯으로 계획만 있습니다.
    - 제안: POP 교체 시작·종료 버튼(심재현) 또는 B7 정비 등록과 함께 기록합니다.
 4. **`MNT_MoldShotCount`(0) — 금형 샷 누적**
-   - 읽는 곳: MNT-004 금형 목록(`MntRepository.cs:406`), MD 금형·설비 삭제 사용처(`MasterDataRepository.cs:1760·2864`)
+   - 읽는 곳: MNT-004 금형 목록(`MntRepository.cs:406`), MD 금형·설비 삭제 사용처(`MasterDataRepository.cs:1760·2812`)
    - 내용: 샷을 쌓는 곳이 없어(InjAgent 는 `PR_ShotCount` 에만 씀) 소진율이 비어 있고 정비 한계 알림이 동작하지 않습니다.
    - 제안: InjAgent 가 샷을 기록할 때 이 카운터도 올립니다(심재현 연계).
 
@@ -433,6 +438,7 @@
 
 ## 6. 참고 — 검증 기준선
 
+- **10-17 05시(MD-034 출고 컬럼 a7c460d2 + 심재현 `MD_MoldColor` 폐지 병합 dd8df481 뒤, Release 빌드, Data 는 로컬 DB)**: Pop 154, Api 214(건너뜀 1), InjAgent 54 통과, Data 1,335건 중 1,314 통과·같은 10 실패·11 건너뜀. `migrate_drop_md_mold_color.sql` 로컬 적용(개발 DB 는 작성자 적용). 두 DB 구조 차이는 `FG_CustomerReturn.PartName` 위치와 안영훈 2-1 8(개발 DB 에만 있는 FG·WH 변경). 헤드리스(로컬 IIS·개발 DB, 저장 없음): MD-034·MD-007·MD-035·MD-010·FG 출하·일별 출하 열기 7/7(FG 두 화면은 빈 목록 — 2-1 8), MD-034 등록·수정·삭제 23/23(로컬 DB). 게시본 `publish/AMES.Web_20261017-044941.zip`·`AMES.Api_20261017-045111.zip`.
 - **10-17 03시(MD-034·035 커밋 de3ae140 + 심재현 설비 재시드 병합 ba968b99 뒤, Data 는 로컬 DB)**: Pop 154, Api 214(건너뜀 1), InjAgent 54 통과, Data 1,335건 중 1,314 통과·같은 10 실패·11 건너뜀. 두 DB 175 테이블, 구조 차이는 `FG_CustomerReturn.PartName` 위치 하나(`migrate_fg_shipment_no_foreign_keys`·`migrate_md_pallet`·`reseed_md_equipment_inj_lines` 모두 두 DB 적용). 헤드리스: MD-034·035 등록·수정·삭제 22/22(로컬 DB), 개발 DB 경유 화면 열기 5/5.
 
 - **테스트(2026-10-16 06시, 10-16 MNT 작업·원격 병합 2회(SYS-002, 안영훈 FG 실출하·PDA 보전)·PP-OEE 계산 수정 후, Data 는 로컬 DB)** — 20시 SAPTransFlag 뒤 다시 돌려 Pop·Api·InjAgent 같은 수치, Data 1,266건 중 1,248 통과(새 `SapTransFlagTests` 1건)·같은 10 실패·8 건너뜀. **22시 원격 병합(심재현 백플러시·POP DbClock·PP-APS) 뒤**: Pop 153, Api 204(건너뜀 1), InjAgent 54 통과, Data 1,291건 중 1,270 통과·같은 10 실패·11 건너뜀. 이어 22시 10분 안영훈 PDA 직접 SQL 전환 병합 뒤: Api 206(건너뜀 1), Data 1,323건 중 1,302 통과·같은 10 실패·11 건너뜀(Pop·InjAgent 같음), 웹 WH·FG·SCM·PP-APS 8화면 헤드리스 열기 정상. 22시 50분 심재현 LOT 라벨 병합·포탈 다국어화 뒤: Pop 154(나머지 같음), 포탈 한국어 화면 영어 문구 0(목록·상세·인쇄·납품서 생성 창). 구 PDA 프로시저는 스키마·마이그레이션 파일에서만 빠졌고 두 DB 에는 그대로 있습니다(37개, 두 DB 같음 — 삭제는 작성자 보류). 로컬 DB 에 `migrate_wh_inventory_backflush_placeholder.sql` 적용(개발 DB 는 작성자 적용), 개발용 시드 변경(`seed_aps_dev.sql` 적입수량·`seed_md_mold_master.sql` CBK)은 두 DB 모두 미적용(작성자도 미적용) — 두 DB 구조 차이는 `FG_CustomerReturn.PartName` 위치뿐.
