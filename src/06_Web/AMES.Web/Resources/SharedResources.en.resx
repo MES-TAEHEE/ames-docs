@@ -11303,4 +11303,13 @@
   <data name="Portal.Create.Err.Create" xml:space="preserve">
     <value>Unable to create Delivery Note. Check the date, PO balances and selected pallets (cases).</value>
   </data>
+  <data name="SCM.PortalUsers.Err.LoadVendors" xml:space="preserve">
+    <value>Unable to load suppliers. Refresh to retry.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.NoPermission" xml:space="preserve">
+    <value>You no longer have permission to change these accounts.</value>
+  </data>
+  <data name="SCM.PurchaseItems.Err.NoPermission" xml:space="preserve">
+    <value>You no longer have permission to change supplier mappings.</value>
+  </data>
 </root>

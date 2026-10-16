@@ -55,9 +55,9 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["SCM.PortalUsers.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" />
             <RadzenLabel Text="@L["SCM.PortalUsers.Col.Vendor"]" Component="DropDownVendor" />
-            <select id="DropDownVendor" class="ames-input" style="width:220px;" @bind="_fVendor" @bind:after="ApplyFilter"><option value="">@L["Filter.All"]</option>@foreach(var option in VendorFilterOptions){<option value="@option.Value">@option.Text</option>}</select>
+            <RadzenDropDown Name="DropDownVendor" @bind-Value:get="_fVendor" @bind-Value:set="SetVendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:360px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
-            <select id="DropDownStatus" class="ames-input" style="width:140px;" @bind="_fStatus" @bind:after="ApplyFilter"><option value="">@L["Filter.All"]</option>@foreach(var option in StatusOptions){<option value="@option.Value">@option.Text</option>}</select>
+            <RadzenDropDown Name="DropDownStatus" @bind-Value:get="_fStatus" @bind-Value:set="SetStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
             @if (_canEdit)
@@ -227,7 +227,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
-        try { _vendors = await Task.Run(()=>MD.ListVendors()); } catch { ShowMsg("Unable to load suppliers. Refresh to retry.",true); }
+        try { _vendors = await Task.Run(()=>MD.ListVendors()); } catch { ShowMsg(L["SCM.PortalUsers.Err.LoadVendors"],true); }
         await Reload();
     }
 
@@ -253,6 +253,8 @@
         ApplyFilter();
     }
 
+    void SetVendor(string? value) { _fVendor = value ?? ""; ApplyFilter(); }
+    void SetStatus(string? value) { _fStatus = value ?? ""; ApplyFilter(); }
     void ApplyFilter()
     {
         _rows = _allRows.Where(r =>
@@ -328,7 +330,7 @@
         try
         {
             _canEdit=await PermSvc.RecheckEditAsync(AuthPrvd,Href);
-            if(!_canEdit){_modalErr="You no longer have permission to change these accounts.";return;}
+            if(!_canEdit){_modalErr=L["SCM.PortalUsers.Err.NoPermission"];return;}
             await action();
         }
         finally{_busy=false;}

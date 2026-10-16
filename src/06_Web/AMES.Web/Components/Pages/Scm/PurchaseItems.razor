@@ -37,7 +37,7 @@
                         PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
                         EmptyText="@L["Scm.Text.NoItemsFound"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
             <Columns>
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="No." Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                     <Template Context="row"><span class="dim">@GridRowNo.Of(_grid, row)</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="170px" Property="ItemNo" Title="@L["Scm.Text.ItemCode"]" Width="170px">
@@ -86,10 +86,10 @@
                     <div class="vendor-check-list" role="group" aria-label="@L["Scm.Text.SelectVendorsToLink"]">
                         @foreach (var vendor in VendorOptions)
                         {
-                            <label class="vendor-check-item" @key="vendor.Value">
-                                <input type="checkbox" checked="@_selectedVendors.Contains(vendor.Value)" @onchange="@(e => ToggleVendor(vendor.Value, e.Value is true))" />
-                                <span>@vendor.Text</span>
-                            </label>
+                            <div class="vendor-check-item" @key="vendor.Value">
+                                <RadzenCheckBox TValue="bool" Value="@_selectedVendors.Contains(vendor.Value)" Change="@(v => ToggleVendor(vendor.Value, v))" Name="@($"PiChkVendor_{vendor.Value}")" />
+                                <RadzenLabel Text="@vendor.Text" Component="@($"PiChkVendor_{vendor.Value}")" style="cursor:pointer;" />
+                            </div>
                         }
                         @if (!VendorOptions.Any())
                         { <span class="dim">@L["Scm.Text.NoVendorsAvailableToLink"]</span> }
@@ -193,7 +193,7 @@
         ++_reloadRevision;
         try
         {
-            if(!await Permissions.RecheckEditAsync(Authentication,Href)){_editError="You no longer have permission to change supplier mappings.";return;}
+            if(!await Permissions.RecheckEditAsync(Authentication,Href)){_editError=L["SCM.PurchaseItems.Err.NoPermission"];return;}
             await action();
         }
         finally{_busy=false;}

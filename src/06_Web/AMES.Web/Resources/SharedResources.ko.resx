@@ -11303,4 +11303,13 @@
   <data name="Portal.Create.Err.Create" xml:space="preserve">
     <value>납품서를 만들지 못했습니다. 날짜·발주 잔량·선택한 팔레트(케이스)를 확인하세요.</value>
   </data>
+  <data name="SCM.PortalUsers.Err.LoadVendors" xml:space="preserve">
+    <value>협력업체 목록을 불러오지 못했습니다. 새로고침해 다시 시도하세요.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.NoPermission" xml:space="preserve">
+    <value>이 계정을 바꿀 권한이 더 이상 없습니다.</value>
+  </data>
+  <data name="SCM.PurchaseItems.Err.NoPermission" xml:space="preserve">
+    <value>협력업체 연결을 바꿀 권한이 더 이상 없습니다.</value>
+  </data>
 </root>

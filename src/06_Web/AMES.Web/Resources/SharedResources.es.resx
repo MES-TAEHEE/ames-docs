@@ -11303,4 +11303,13 @@
   <data name="Portal.Create.Err.Create" xml:space="preserve">
     <value>No se pudo crear el albarán. Revise la fecha, los saldos del pedido y los palés (cajas) seleccionados.</value>
   </data>
+  <data name="SCM.PortalUsers.Err.LoadVendors" xml:space="preserve">
+    <value>No se pudieron cargar los proveedores. Actualice para reintentar.</value>
+  </data>
+  <data name="SCM.PortalUsers.Err.NoPermission" xml:space="preserve">
+    <value>Ya no tiene permiso para modificar estas cuentas.</value>
+  </data>
+  <data name="SCM.PurchaseItems.Err.NoPermission" xml:space="preserve">
+    <value>Ya no tiene permiso para modificar los vínculos de proveedores.</value>
+  </data>
 </root>

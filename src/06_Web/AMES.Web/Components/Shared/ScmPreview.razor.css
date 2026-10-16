@@ -87,7 +87,7 @@
 .scm-delivery-detail td[data-field="quantity"] { min-width:130px; }
 .scm-delivery-detail td[data-field="lot"] { min-width:190px; }
 .scm-delivery-detail td[data-field="production-date"] { min-width:175px; }
-.scm-delivery-detail input.ames-input { width:100%; box-sizing:border-box; }
+.scm-delivery-detail ::deep .rz-datepicker, .scm-delivery-detail ::deep .rz-textbox { width:100%; box-sizing:border-box; }
 .scm-shipment-date { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
 .scm-delivery-detail ::deep .rz-numeric,
 .scm-delivery-detail ::deep .rz-datepicker { width:100%; min-width:0; }

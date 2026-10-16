@@ -22,14 +22,13 @@
     margin: 0;
 }
 
-.vendor-check-item input {
-    width: 19px;
-    height: 19px;
-    margin: 0;
-    flex-shrink: 0;
-    accent-color: var(--rz-primary, #32a5ff);
+.vendor-check-item ::deep .rz-label {
     cursor: pointer;
-    color-scheme: dark;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    text-transform: none;
+    letter-spacing: normal;
 }
 
 .vendor-check-item:focus-within {

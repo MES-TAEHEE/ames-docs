@@ -49,7 +49,7 @@
                 @if (!IsPortal)
                 {
                     <RadzenLabel Text='@L["Scm.Text.Supplier"]' Component="ScmDropDownVendor" />
-                    <RadzenDropDown Name="ScmDropDownVendor" @bind-Value:get="_vendor" @bind-Value:set="SetVendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+                    <RadzenDropDown Name="ScmDropDownVendor" @bind-Value:get="_vendor" @bind-Value:set="SetVendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:360px;" />
                 }
                 @if (!IsPortal && Mode == "Orders")
                 {
@@ -422,7 +422,7 @@
                     <span>@L["Scm.Text.ConfirmShipment"] · @shipment.Number</span>
                     <RadzenButton Icon="close" aria-label='@L["Btn.Close"]' data-portal-close ButtonStyle="ButtonStyle.Light" Click="CloseShipment" />
                 </div>
-                <label class="scm-shipment-date">@L["Scm.Text.ShipDate"] <input type="date" class="ames-input" @bind="_shipDate" @bind:format="yyyy-MM-dd" max="@DbClock.Today.ToString("yyyy-MM-dd")" disabled="@_shipmentBusy" /></label>
+                <div class="scm-shipment-date"><RadzenLabel Text='@L["Scm.Text.ShipDate"]' Component="ScmDateShip" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="ScmDateShip" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" Max="@DbClock.Today" Disabled="@_shipmentBusy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" /></div>
                 <div class="scm-scroll"><table class="ames-table"><thead><tr><th>@L["SCM.Preview.Col.PoNo"]</th><th>@L["SCM.Preview.Col.PartNoName"]</th><th>@L["Col.Qty"]</th></tr></thead><tbody>
                     @foreach(var line in Store.Deliveries.Where(d=>shipment.Numbers.Contains(d.Number) && d.Status=="Registered"))
                     {
@@ -451,7 +451,7 @@
                 </div>
             }
             <div class="scm-act">
-                <label>@L["Scm.Text.DeliveryDate.246618"]<input type="date" class="ames-input" @bind:get="_delivery.Date" @bind:set="ChangeEditedDeliveryDate" @bind:format="yyyy-MM-dd" disabled="@(!DeliveryContentEditable)" /></label>
+                <RadzenLabel Text='@L["Scm.Text.DeliveryDate.246618"]' Component="ScmDateDelivery" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="ScmDateDelivery" @bind-Value:get="_delivery.Date" @bind-Value:set="ChangeEditedDeliveryDate" DateFormat="@DateFmt.Date" Disabled="@(!DeliveryContentEditable)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
 
                 @if (DeliveryEditable)
                 {
@@ -469,8 +469,8 @@
                 <tbody>@foreach(var line in _deliveryEditLines)
                 {
                     <tr @key="line.PoID"><td data-field="item" data-label='@L["Portal.Text.ItemCode.7b3b81"]'>@line.Item</td><td data-label='@L["Scm.Text.Unit"]'>@UomFmt.Sym(line.Unit)</td>@if (DeliveryContentEditable) { <td data-label='@L["Scm.Text.MaximumQuantity"]'>@QuantityText(EditableDeliveryBalance(line), line.Unit, 3)</td> }
-                        <td data-field="quantity" data-label='@L["Portal.Text.DeliveryQuantity"]'>@if (DeliveryContentEditable && _assignedCases.Count==0) { <RadzenNumeric TValue="decimal" class="ames-rz-input scm-number" aria-label='@L["Scm.Accessibility.EditQuantity", line.Item]' Min="0.001m" Step="0.001" @bind-Value="line.Quantity" Format="@QtyFormat.Format(line.Unit)" ShowUpDown="false" /> } else { @QuantityText(line.Quantity, line.Unit, 3) }</td><td data-field="lot" data-label='@L["Portal.Text.VendorLOT"]'><input class="ames-input" maxlength="30" aria-label='@L["Scm.Accessibility.VendorLot", line.Item]' @bind="line.VendorLotNo" disabled="@(!DeliveryContentEditable)" /></td>
-                        <td data-field="production-date" data-label='@L["Scm.Text.ProductionDate"]'><input type="date" class="ames-input" @bind="line.ProductionDate" @bind:format="yyyy-MM-dd" disabled="@(!DeliveryContentEditable)" /></td></tr>
+                        <td data-field="quantity" data-label='@L["Portal.Text.DeliveryQuantity"]'>@if (DeliveryContentEditable && _assignedCases.Count==0) { <RadzenNumeric TValue="decimal" class="ames-rz-input scm-number" aria-label='@L["Scm.Accessibility.EditQuantity", line.Item]' Min="0.001m" Step="0.001" @bind-Value="line.Quantity" Format="@QtyFormat.Format(line.Unit)" ShowUpDown="false" /> } else { @QuantityText(line.Quantity, line.Unit, 3) }</td><td data-field="lot" data-label='@L["Portal.Text.VendorLOT"]'><RadzenTextBox @bind-Value="line.VendorLotNo" MaxLength="30" aria-label='@L["Scm.Accessibility.VendorLot", line.Item]' Disabled="@(!DeliveryContentEditable)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></td>
+                        <td data-field="production-date" data-label='@L["Scm.Text.ProductionDate"]'><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="line.ProductionDate" DateFormat="@DateFmt.Date" aria-label='@L["Scm.Text.ProductionDate"]' Disabled="@(!DeliveryContentEditable)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></td></tr>
                 }</tbody>
             </table></div>
             @if (IsPortal && Mode=="Deliveries")
@@ -526,11 +526,11 @@
                 <RadzenRow Gap="8px">
                     <RadzenColumn Size="4">
                         <RadzenLabel Text='@L["Scm.Text.Supplier"]' />
-                        <RadzenDropDown @bind-Value="_edit.Vendor" @bind-Value:after="ChangeVendor" Data="@VendorEditOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Scm.Text.SelectVendor"]' AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDropDown Name="ScmEditDropDownVendor" @bind-Value="_edit.Vendor" @bind-Value:after="ChangeVendor" Data="@VendorEditOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Scm.Text.SelectVendor"]' AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="3">
                         <RadzenLabel Text='@L["Scm.Text.DueDate"]' />
-                        <input type="date" @bind="_edit.Due" @bind:format="yyyy-MM-dd" class="ames-input" style="width:100%;" />
+                        <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_edit.Due" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="5">
                         <RadzenLabel Text='@L["Scm.Text.Destination"]' />
