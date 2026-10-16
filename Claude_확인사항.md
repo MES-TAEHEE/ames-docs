@@ -29,7 +29,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 심재현 | 23                   | 7   | 7묶음 | 38  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 32) · 안돈 보전 호출 작업지시(요청 22) |
-| 안영훈 | 8(배포·검증·승인 대기·알림) | 4   | 3   | 2   | [상] 개발 DB 에만 있는 FG 구조 변경(2-1 8 — 저장소 코드의 FG 출하·반품·일별 출하가 개발 DB 에서 실패) · [중] 케이스 입고의 구 프로시저 매개변수 태그 의존 · LOT 조정→취소→재입고 누적량 · 예비품 출고↔보전 작업지시 배포·검증 · 비결함·선택적 정리 3건은 2-5 참조 |
+| 안영훈 | 8(배포·검증·승인 대기·알림) | 4   | 3   | 3   | [상] 개발 DB 에만 있는 FG 구조 변경(2-1 8 — 저장소 코드의 FG 출하·반품·일별 출하가 개발 DB 에서 실패) · [중] RPT-003·FG 출하 화면이 표준 디자인·다국어에서 벗어남(2-4 3) · [중] 케이스 입고의 구 프로시저 매개변수 태그 의존 · LOT 조정→취소→재입고 누적량 · 예비품 출고↔보전 작업지시 배포·검증 · 비결함·선택적 정리 3건은 2-5 참조 |
 | 이승욱 | 0                    | 3   | 4   | 0   | PP-OEE 가동률이 시연 데이터(`PP_LineStateLog` 기록 — 심재현과 진행 예정)                                                                       |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
@@ -350,7 +350,7 @@
 | `WH_ReleaseSchedule` | 미사용 | DROP 후보입니다. 이번에는 다른 WH 테이블과 식별자·행위자 길이만 맞췄고 테이블은 보존했습니다. |
 | `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
 
-### 2-4. 유효한 문제점 (2 — 코드 재대조, 실제 쓰기 재현 없음)
+### 2-4. 유효한 문제점 (3 — 코드 재대조, 실제 쓰기 재현 없음)
 1. **[중] 프로시저 실행은 없어졌지만 케이스 입고의 매개변수 메타데이터 의존은 남음**
     - 위치: `src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs:427`(실행 SQL 은 `PdaWarehouseSql.InboundReceive`, 매개변수 태그는 `"WH_PDA_INBOUND_RECEIVE_LOT.@ReceiveMode"` 등 5개), 같은 원인 `WhEndpoints.cs:1205-1211`(`WH_PDA_SCHEDULE_INBOUND_LIST.@…`)
     - 재판정: 유효합니다. `ReceiveDeliveryCase` → SCM 공용 `Add` → `ColumnParams.Add` → `Info`가 실제 호출되며, `Info`는 없는 태그를 예외로 처리합니다(`Connection/ColumnParams.cs`). 따라서 실행 SQL을 직접 SQL로 바꾼 것만으로 의존이 제거된 것은 아닙니다. 해당 프로시저가 없는 DB에서는 케이스 일괄 입고가 실패합니다. 현재 서버에서 실패하고 있다는 뜻은 아니며, 프로시저 잔존·메모리 캐시 때문에 지금 동작할 수도 있습니다. 입고 예정 조회의 `AddFilter`는 태그가 없어도 값 형식으로 돌아가므로 같은 조건에서 런타임 오류가 난다고 묶어서는 안 됩니다(`ColumnTagsTests`는 별도 실패 가능).
@@ -359,6 +359,11 @@
     - 위치: `src/02_Data/AMES.Data/Repositories/PdaWarehouseSql.cs:967-981`
     - 재판정: 코드상 유효한 반례가 있습니다. 다른 미입고 발주가 없어 재입고 시 같은 발주가 선택되는 경우, 일반 LOT 30개 입고 시 발주 누적=30·`tbl_Lot.RemainingQty`=30 → Adjust에서 재고만 25로 변경 → 취소는 25만 차감해 누적=5 → 재입고는 LOT에 남은 30을 다시 더해 누적=35가 됩니다. `AdjustSave`는 `WH_Inventory.Qty`만 바꾸고 LOT 잔량은 바꾸지 않으며, 일반 취소도 LOT의 위치만 비웁니다. 이 경로는 `InboundReceive`·`InboundCancel`에 남아 있고 PDA가 일반 LOT의 취소 버튼을 일괄 차단하지 않으므로 미사용 코드라고 단정할 수 없습니다. 실제 DB에서 이 순서를 실행하지는 않았습니다.
     - 방향: 단순 조정 후 입고 취소의 원 입고량 복원과, 이미 출고·소비한 수량의 취소 허용 정책은 구분해야 합니다. "남은 수량만 차감은 언제나 잘못" 또는 "원 입고량을 언제나 전량 차감"으로 고치지 않습니다. 원거래·조정·출고 이력 기준의 규칙과 회귀 테스트를 정한 뒤 수정합니다. `Status='Open'` 고정과 화면의 상태 매핑도 별도로 대조해야 하며, 상태 어휘가 다르다는 이유만으로 일괄 변경하지 않습니다.
+3. **[중] RPT-003 일별 출하 현황·FG 출하 화면이 표준 디자인·다국어에서 벗어남**(10-17 이승욱 — 사용자가 "화면이 이상하게 보인다" 고 확인 요청)
+    - 위치: `src/06_Web/AMES.Web/Components/Pages/Rpt/DailyShipment.razor`(76줄)·`Components/Pages/Fg/Shipments.razor`(87줄) — 10-15 `a9e1fbd7`(FG 출하 통합)에서 새로 짬. RPT-003 은 그 전 약 320줄 표준 화면이었습니다.
+    - 내용: ① 두 화면이 쓰는 `ames-grid-section`·`ames-grid-toolbar`(RPT-003 은 `ames-kpi-strip`·`ames-kpi-label` 도) 클래스가 `app.css` 에 없어, 필터·그리드가 카드 밖에 맨 모양으로 보이고 RPT-003 의 KPI 3개는 서식 없이 세로로 쌓입니다(표준은 `ames-kpis`/`ames-kpi-l`·`ames-card`/`ames-card-h` 카드 헤더 필터). ② 화면 문구가 resx 없이 영어 고정입니다 — KPI(`SHIPMENTS`·`SHIPPED QTY`·`CUSTOMERS`), 열 제목 전부(`SHIPMENT ID`·`OUTBOUND BARCODE` 등), `All Customers`·`Print`·`Export` 버튼, 고객 선택은 Radzen 콤보가 아닌 맨 `<select>`. ③ 날짜 선택기가 `DateFormat="MM/dd/yyyy"` 고정(규칙은 `DateFmt.Date` — 언어별 서식). ④ 그리드에 `PagingSummaryFormat`·`PageSizeText`·`EmptyText` 가 없어 페이저·빈 목록 문구가 영어. ⑤ RPT-003 은 고객사별 누적 막대·운송사별 요약·합계 행이 빠졌고, 기존 resx 키 `RPT.DailyShipment.*` 33개는 이제 쓰이지 않습니다.
+    - 데이터: 개발 DB 에서는 2-1 8(`OutboundBarcode` → `LotNo`) 때문에 두 화면 모두 `Invalid column name 'OutboundBarcode'.` 를 빨간 글씨로 보이고 목록이 빕니다 — 디자인 문제와 별개입니다.
+    - 제안: 새 데이터 모델(`RptRepository.ShipmentDetailRow`·`FinishedGoodsRepository.ShipmentRow`)은 그대로 두고 화면만 표준 구성(KPI·카드 헤더 필터·resx 4파일·`DateFmt`·페이저 문구)으로 맞춥니다. RPT 화면은 이승욱 담당 영역이라 고칠 때 알려 주면 같이 확인합니다(이승욱은 따라 고치지 않았습니다).
 
 ### 2-5. 재검토 정정 — 운영 결함 아님·선택적 정리 (3)
 1. **`SCM_ItemVendor.PackingUnitCode`가 남아 있음 — 미사용 컬럼 정리이지 기능 결함은 아님**
