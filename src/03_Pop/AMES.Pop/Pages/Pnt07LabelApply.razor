@@ -75,7 +75,7 @@
                         <div>LOT    : VL-@_selected</div>
                         <div>JIG    : @(_preview?.JigId ?? "—")</div>
                         <div>LINE   : @Session?.LineId</div>
-                        <div>DATE   : @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</div>
+                        <div>DATE   : @DbClock.Now.ToString("yyyy-MM-dd HH:mm")</div>
                         <div>SHIFT  : @Session?.ShiftCode  ·  OP: @Session?.EmployeeNo</div>
                     </div>
                     <div style="margin-top:16px; font-size:11px; color:#444;">[barcode area]  ▮▮▯▮▯▯▮▯▮▮▯▮▯▯▮▯▮▮</div>
@@ -114,13 +114,13 @@
     private int    _selected, _labeledToday;
     private string _selectedItem = "";
     private string _status = "", _statusCls = "dim";
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _timer;
 
     protected override void OnInitialized()
     {
         Refresh();
-        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DbClock.Now; StateHasChanged(); }),
                                             null, 4000, 4000);
     }
 

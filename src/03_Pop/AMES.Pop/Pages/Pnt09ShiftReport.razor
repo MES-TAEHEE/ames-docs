@@ -96,13 +96,13 @@
     private List<PntVirtualLotDto>  _lots   = new();
     private int     _closed, _good, _defect;
     private double  _defectPct;
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _timer;
 
     protected override void OnInitialized()
     {
         Refresh();
-        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DbClock.Now; StateHasChanged(); }),
                                             null, 6000, 6000);
     }
 

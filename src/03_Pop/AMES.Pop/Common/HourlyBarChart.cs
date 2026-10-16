@@ -47,7 +47,7 @@ internal sealed class HourlyBarChart : Control
         foreach (var h in _data)
             if (h.GoodQty + h.DefectQty > maxVal) maxVal = h.GoodQty + h.DefectQty;
 
-        var curHour = DateTime.Now.Hour;
+        var curHour = DbClock.Now.Hour;
         using var brGood   = new SolidBrush(Color.FromArgb(34, 197, 94));
         using var brDefect = new SolidBrush(Color.FromArgb(220, 38, 38));
         using var brFuture = new SolidBrush(Color.FromArgb(28, 38, 60));

@@ -227,7 +227,7 @@
     private bool _focusScan;
     private ElementReference _scanInput;
     private bool _scannerOn;
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _clockTimer, _refreshTimer;
 
     protected override void OnInitialized()
@@ -237,7 +237,7 @@
         _scannerOn = Scanner.IsConnected;
         Scanner.OnScan            += OnSerialScan;
         Scanner.ConnectionChanged += OnScannerConnection;
-        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DateTime.Now; StateHasChanged(); }), null, 1000, 1000);
+        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); }), null, 1000, 1000);
         _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }), null, 5000, 5000);
     }
 
@@ -270,7 +270,7 @@
         catch (Exception ex)
         {
             _refreshError   = ex.Message;
-            _refreshErrorAt = DateTime.Now;
+            _refreshErrorAt = DbClock.Now;
         }
     }
 

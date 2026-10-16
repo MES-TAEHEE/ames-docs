@@ -35,6 +35,8 @@ internal static class PopServices
     public static void Initialize()
     {
         ConnectionFactory = new AmesConnectionFactory(AppConfig.Current.ConnectionString);
+        // "오늘"·시각 표시는 DB 서버 시각 기준 — 실제 동기화는 로그인 화면이 한다(DB 가 죽어 있으면 Offset 0 으로 종전 동작)
+        DbClock.Configure(ConnectionFactory);
         Auth              = new AuthRepository      (ConnectionFactory);
         Workers           = new WorkerRepository    (ConnectionFactory);
         Sessions          = new PopSessionRepository(ConnectionFactory);

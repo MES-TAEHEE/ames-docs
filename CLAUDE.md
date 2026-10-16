@@ -272,7 +272,8 @@ Health check: `GET /api/health`
 ### 시각 기준 — DbClock
 - 기록 시각의 정본은 DB 서버 시각(`SYSDATETIME()`, 공장 현지시각 — 개발서버는 미국 동부시간)이다. 화면 기본값·"오늘" 필터·채번 접두어에 **`DateTime.Now`/`DateTime.Today` 를 쓰지 말고 `DbClock.Now`/`DbClock.Today`**(`AMES.Data.Services.DbClock`, Web 은 `GlobalUsings.cs` 의 전역 별칭)를 쓴다.
 - `DbClock` 은 DB 시각 − 호스트 시각(Offset)을 한 번 읽어 두고 `DateTime.Now + Offset` 으로 계산한다(호출마다 DB 를 가지 않음, Kind=Unspecified). `AMES.Contracts` 는 DbClock 을 참조할 수 없어 `WorkOrderDto.DaysToDue`(PP-004·PP-CAL·POP 작업지시 팝업의 D-day)의 "오늘"은 정적 공급자 `WorkOrderDto.Today` 이고 Web 기동 때 `DbClock.Today` 로 지정한다(10-13). Web 은 기동 시 `Program.cs` 가 1회, 로그인(회로 시작) 때 `TopBar` 가 10분보다 오래됐을 때만 다시 맞춘다. PP-LSB 는 Now 선 때문에 1분 기준. 상태는 `GET /api/health` 의 `dbClock`(now·offsetMinutes·syncAgeSec)로 확인한다.
-- `Configure` 하지 않은 프로세스(POP·API)는 Offset 0 = 호스트 시계 그대로다. 웹과 DB 가 같은 기계면 Offset 은 0 에 가깝고, 한국시간 PC 의 로컬 IIS + 개발 DB 조합에서는 −780분이 정상이다.
+- **POP 도 10-15 부터 DbClock 을 쓴다**(사용자 결정 — PP-003·PP-LSB 가 DB 날짜(복제본은 UTC)로 놓은 오늘 슬롯을 EDT 터미널이 호스트 날짜로 읽어 저녁 20~24시에 INJ-MAIN PLAN 이 0 이던 문제): `PopServices.Initialize` 가 `Configure`, 로그인 화면이 뜰 때 백그라운드 + 로그인 성공 때 `EnsureSynced(10분)`. INJ/IMG-MAIN 의 "오늘"·달력 최대값·REWORK·QC·PNT 의 시계·안돈 경과·라벨 발행일(IMG)·스캔 이력 시각이 전부 `DbClock`(전역 별칭 `GlobalUsings.cs`)이고, 유휴 만료(`IdleWatcher`)·로그 파일명(`PopLog`)·토스트는 호스트 시계 그대로다. 정본 테스트 `DbClockTests`(AMES_DEV 필요).
+- `Configure` 하지 않은 프로세스(API)와 동기화에 실패한 프로세스는 Offset 0 = 호스트 시계 그대로다. 웹과 DB 가 같은 기계면 Offset 은 0 에 가깝고, 한국시간 PC 의 로컬 IIS + 개발 DB 조합에서는 −780분이 정상이다.
 
 ### Repository 패턴
 - 모든 DB 접근은 `AMES.Data.Repositories.*Repository` 경유
