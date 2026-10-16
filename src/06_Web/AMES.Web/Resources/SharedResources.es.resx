@@ -8563,9 +8563,6 @@
   <data name="Scm.Text.Supplier" xml:space="preserve">
     <value>Proveedor</value>
   </data>
-  <data name="Scm.Text.All" xml:space="preserve">
-    <value>Todos</value>
-  </data>
   <data name="Scm.Text.DeliveryDate" xml:space="preserve">
     <value>Entrega</value>
   </data>
@@ -9249,9 +9246,6 @@
   </data>
   <data name="Portal.Text.PerPage" xml:space="preserve">
     <value>por página</value>
-  </data>
-  <data name="Portal.Text.Page0Of12Items" xml:space="preserve">
-    <value>Página {0} de {1} ({2} registros)</value>
   </data>
   <data name="Portal.Text.YouDoNotHavePermissionToViewThisPage" xml:space="preserve">
     <value>No tiene permiso para consultar esta página.</value>

@@ -9,8 +9,6 @@
 .scm-log { line-height:1.9; font-size:.92em; }
 .scm-act { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
 .scm-date-range { display:flex; align-items:center; flex-wrap:nowrap; flex:0 0 auto; gap:8px; white-space:nowrap; }
-.scm-creation-actions { display:flex; flex-wrap:nowrap; align-items:center; gap:10px; margin:0 0 12px; overflow-x:auto; }
-.scm-creation-actions ::deep button { flex-shrink:0; white-space:nowrap; }
 .scm-line-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .scm-lines { width:100%; }
 .scm-data-issue { color:var(--ames-tx-red-500); white-space:normal; overflow-wrap:anywhere; font-size:12px; }

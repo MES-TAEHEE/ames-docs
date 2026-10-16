@@ -41,12 +41,6 @@
         <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" AllowClose="false">@_message</RadzenAlert>
     }
 
-    @if(IsPortal && Mode=="Due" && _isExternalPortalUser)
-    {
-        <div class="scm-creation-actions">
-            <RadzenButton Text="Create Delivery Note" Icon="description" Size="ButtonSize.Small" Click="OpenCaseSelection" />
-        </div>
-    }
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">▼ @Title · @(IsPortal && Mode=="Deliveries" ? PortalNoteRows.Count : Mode is "Deliveries" or "Receipts" ? DeliveryRows.Count : Rows.Count) @L["Scm.Text.Items"]</span>
@@ -55,38 +49,41 @@
                 @if (!IsPortal)
                 {
                     <RadzenLabel Text='@L["Scm.Text.Supplier"]' Component="ScmDropDownVendor" />
-                    <select id="ScmDropDownVendor" class="ames-input" style="width:200px;" @bind="_vendor" @bind:after="Search"><option value="">@L["Scm.Text.All"]</option>@foreach(var option in VendorFilterOptions){<option value="@option.Value">@option.Text</option>}</select>
+                    <RadzenDropDown Name="ScmDropDownVendor" @bind-Value:get="_vendor" @bind-Value:set="SetVendor" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
                 }
                 @if (!IsPortal && Mode == "Orders")
                 {
                     <RadzenLabel Text="Created By" Component="ScmDropDownCreator" />
-                    <select id="ScmDropDownCreator" class="ames-input" style="width:210px;" @bind="_creator" @bind:after="Search"><option value="">All users</option>@foreach(var option in CreatorFilterOptions){<option value="@option.Value">@option.Text</option>}</select>
+                    <RadzenDropDown Name="ScmDropDownCreator" @bind-Value:get="_creator" @bind-Value:set="SetCreator" Data="@CreatorFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
                 }
                 <RadzenLabel Text='@L["Col.Status"]' Component="ScmDropDownStatus" />
-                <select id="ScmDropDownStatus" class="ames-input" style="width:160px;" @bind="_status"><option value="">@L["Scm.Text.All"]</option>@foreach(var option in StatusFilterOptions){<option value="@option.Value">@option.Text</option>}</select>
-                @if (IsPortal && (Mode is "Orders" or "Deliveries"))
+                <RadzenDropDown Name="ScmDropDownStatus" @bind-Value:get="_status" @bind-Value:set="SetStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+                @if ((IsPortal && (Mode is "Orders" or "Deliveries")) || (!IsPortal && Mode == "Progress"))
                 {
-                    <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><input type="checkbox" checked="@_includeClosed" @onchange="e=>ToggleClosed(e.Value is true)" /> Include Closed</label>
-                    <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><input type="checkbox" checked="@_includeCancelled" @onchange="e=>ToggleCancelled(e.Value is true)" /> Include Cancelled</label>
-                }
-                @if (!IsPortal && Mode == "Progress")
-                {
-                    <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><input type="checkbox" checked="@_includeClosed" @onchange="e=>ToggleClosed(e.Value is true)" /> Include Received</label>
-                    <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;"><input type="checkbox" checked="@_includeCancelled" @onchange="e=>ToggleCancelled(e.Value is true)" /> Include Cancelled</label>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                        <RadzenCheckBox TValue="bool" Value="@_includeClosed" Change="@ToggleClosed" Name="ScmChkClosed" />
+                        <RadzenLabel Text='@(IsPortal ? "Include Closed" : "Include Received")' Component="ScmChkClosed" style="cursor:pointer;" />
+                    </RadzenStack>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                        <RadzenCheckBox TValue="bool" Value="@_includeCancelled" Change="@ToggleCancelled" Name="ScmChkCancelled" />
+                        <RadzenLabel Text="Include Cancelled" Component="ScmChkCancelled" style="cursor:pointer;" />
+                    </RadzenStack>
                 }
                 <div class="scm-date-range">
-                    <RadzenLabel Text='@(Mode == "Deliveries" ? L["Scm.Text.DeliveryDate"] : L["Scm.Text.Due"])' />
-                        <input type="date" class="ames-input" aria-label="From date" @bind="_from" @bind:after="Search" @bind:format="yyyy-MM-dd" />
-                        <span class="dim">~</span>
-                        <input type="date" class="ames-input" aria-label="To date" @bind="_to" @bind:after="Search" @bind:format="yyyy-MM-dd" />
-
+                    <RadzenLabel Text='@(Mode == "Deliveries" ? L["Scm.Text.DeliveryDate"] : L["Scm.Text.Due"])' Component="ScmDateFrom" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="ScmDateFrom" @bind-Value="_from" @bind-Value:after="Search" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                    <span class="dim">~</span>
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="ScmDateTo" @bind-Value="_to" @bind-Value:after="Search" DateFormat="@DateFmt.Date" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
                 </div>
                 <RadzenButton Text='@L["Btn.Search"]' Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
-                <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="ResetAndReload" class="ames-rz-btn" />
-                @if(IsPortal){<label class="portal-rows-control">Rows <select class="ames-input" aria-label="Rows per page" @bind="_pageRows" @bind:after="PortalPageSizeChanged"><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>}
+                <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="ResetAndReload" class="ames-rz-btn" />
                 @if (!IsPortal && Mode == "Orders" && CanEdit)
                 {
                     <RadzenButton Text='@L["Scm.Text.NewOrder"]' Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="NewOrder" class="ames-rz-btn" />
+                }
+                @if (IsPortal && Mode == "Due" && _isExternalPortalUser)
+                {
+                    <RadzenButton Text="Create Delivery Note" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="OpenCaseSelection" class="ames-rz-btn" />
                 }
             </RadzenStack>
         </div>
@@ -106,10 +103,12 @@
 
         @if (IsPortal && Mode=="Deliveries")
         {
-            <RadzenDataGrid @ref="_portalNoteGrid" TItem="PortalNoteRow" Data="@PortalNoteRows" AllowPaging="true" PageSize="@_pageRows" AllowSorting="true"
-                            RowClick="@(args => { if(args.Data is not null) SelectNote(args.Data); })" RowRender="RowLinkNote" EmptyText="@Empty" Class="ames-rz-grid ames-grid-fixed">
+            <RadzenDataGrid @ref="_portalNoteGrid" TItem="PortalNoteRow" Data="@PortalNoteRows" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
+                            RowClick="@(args => { if(args.Data is not null) SelectNote(args.Data); })" RowRender="RowLinkNote" EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="60px" MinWidth="60px" Title="No." TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><span class="dim">@GridRowNo.Of(_portalNoteGrid,n)</span></Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PortalNoteRow" Width="110px" MinWidth="110px" Title='@L["Btn.Print"]' TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true"><RadzenButton Text='@L["Btn.Print"]' Icon="print" Size="ButtonSize.ExtraSmall" Disabled="@(n.Deliveries.All(d=>d.Status=="Cancelled") || _noteBusy)" Click="@(()=>OpenPrintingGroup(n))" /></div></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="190px" MinWidth="190px" Property="Number" Title='@L["Scm.Text.DeliveryNote"]' TextAlign="TextAlign.Center"><Template Context="n"><span class="code">@n.Number</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="170px" MinWidth="170px" Title='@L["Scm.Text.Order"]'><Template Context="n">@string.Join(", ",n.Deliveries.Select(d=>d.OrderNumber).Distinct())</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" MinWidth="200px" Title='@L["Scm.Text.ItemLabel"]'><Template Context="n">@string.Join(", ",Store.Deliveries.Where(d=>n.Numbers.Contains(d.Number)).Select(d=>d.Item).Distinct())</Template></RadzenDataGridColumn>
@@ -122,14 +121,13 @@
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title="Shipment Action" TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true">@if(_isExternalPortalUser && n.Deliveries.Any(d=>d.Status=="Registered")){<RadzenButton Text="Start Shipment" Icon="local_shipping" Size="ButtonSize.ExtraSmall" Disabled="@_shipmentBusy" Click="@(()=>StartShipping(n))" />}else{<span class="dim">@(NoteStatus(n)=="Cancelled"?"Cancelled":n.Deliveries.Any(d=>d.Status is "Shipped" or "Received")?"Already shipped":"No action")</span>}</div></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title="Receipt Status" TextAlign="TextAlign.Center"><Template Context="n"><span class="pill @(NoteReceiptStatus(n)=="Received"?"ok":NoteReceiptStatus(n)=="Partially received"?"warn":"info")">@NoteReceiptStatus(n)</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="120px" MinWidth="120px" Title="Qty Mismatch" TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true">@if(NoteMismatches(n).Count>0){<button type="button" class="scm-mismatch-button" title="View quantity mismatches" aria-label="View quantity mismatches" @onclick="()=>OpenNoteMismatch(n)"><RadzenIcon Icon="check_circle" /> Yes</button>}else{<span class="dim">None</span>}</div></Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PortalNoteRow" Width="110px" MinWidth="110px" Title='@L["Btn.Print"]' TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true"><RadzenButton Text='@L["Btn.Print"]' Icon="print" Size="ButtonSize.ExtraSmall" Disabled="@(n.Deliveries.All(d=>d.Status=="Cancelled") || _noteBusy)" Click="@(()=>OpenPrintingGroup(n))" /></div></Template></RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
         }
         else if (Mode is "Deliveries" or "Receipts")
         {
             <RadzenDataGrid @ref="_deliveryGrid" TItem="ScmPreviewStore.Delivery" Data="@DeliveryRows" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@(IsPortal ? null : _pageSizeOptions)" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
                             RowClick="@(args => { if (args.Data is not null) SelectDelivery(args.Data); })" RowRender="@RowLinkDelivery" EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Delivery" Width="60px" Title="No." MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
@@ -177,9 +175,14 @@
         }
         else if(IsPortal && Mode=="Due")
         {
-            <RadzenDataGrid @ref="_orderGrid" TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="@_pageRows" AllowSorting="true" EmptyText="@Empty" Class="ames-rz-grid">
+            <RadzenDataGrid @ref="_orderGrid" TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
+                            EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
-                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="190px" MinWidth="190px" TextAlign="TextAlign.Center" Property="Number" Title="PO No" />
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="60px" Title="No." MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                        <Template Context="o"><span class="dim">@GridRowNo.Of(_orderGrid, o)</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="190px" MinWidth="190px" TextAlign="TextAlign.Center" Property="Number" Title="PO No"><Template Context="o"><span class="code">@o.Number</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="130px" MinWidth="130px" TextAlign="TextAlign.Center" Property="Due" Title="Due Date"><Template Context="o"><span style="@(o.Due.Date < DbClock.Today ? "color:var(--ames-tx-red-500)" : null)">@o.Due.ToString(DateFmt.Date)</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" MinWidth="160px" Property="VendorName" Title="Supplier" />
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="90px" MinWidth="90px" TextAlign="TextAlign.Right" Title="Items"><Template Context="o">@o.Lines.Count</Template></RadzenDataGridColumn>
@@ -192,7 +195,7 @@
         else
         {
             <RadzenDataGrid @ref="_orderGrid" TItem="ScmPreviewStore.Order" Data="@Rows" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@(IsPortal ? null : _pageSizeOptions)" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@PagerSummary" PageSizeText="@PagerSize"
                             RowClick="@(args => { if (args.Data is not null) Select(args.Data); })" RowRender="@RowLinkOrder" EmptyText="@Empty" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
                     <RadzenDataGridColumn TItem="ScmPreviewStore.Order" Width="60px" Title="No." MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
@@ -825,10 +828,13 @@
     }
     // 필터는 입력 즉시 적용된다 — 조회는 조건을 둔 채 DB 에서 다시 읽는다(다른 사용자·외부 변경분 반영)
     async Task SearchKeyDown(KeyboardEventArgs e){if(e.Key=="Enter")await Search();}
-    async Task Search() { if(_orderBusy)return; _message = ""; await ReloadOrdersAsync(); await PortalPageSizeChanged(); }
+    async Task Search() { if(_orderBusy)return; _message = ""; await ReloadOrdersAsync(); await FirstPage(); }
+    Task SetVendor(string? value) { _vendor = value ?? ""; return Search(); }
+    Task SetCreator(string? value) { _creator = value ?? ""; return Search(); }
+    void SetStatus(string? value) => _status = value ?? "";
     void Reset() { _search = _vendor = _creator = _message = _status = ""; _includeClosed=_includeCancelled=false; _from = _to = null; _selected = _edit = null; _delivery = null; _selectedNote=null; }
     async Task ResetAndReload() { if(_orderBusy)return; Reset();if(_ready)await ReloadOrdersAsync(); }
-    async Task PortalPageSizeChanged()
+    async Task FirstPage()
     {
         if(_portalNoteGrid is not null)await _portalNoteGrid.GoToPage(0);
         if(_orderGrid is not null)await _orderGrid.GoToPage(0);

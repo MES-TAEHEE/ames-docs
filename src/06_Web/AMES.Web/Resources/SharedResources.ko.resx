@@ -8563,9 +8563,6 @@
   <data name="Scm.Text.Supplier" xml:space="preserve">
     <value>협력업체</value>
   </data>
-  <data name="Scm.Text.All" xml:space="preserve">
-    <value>전체</value>
-  </data>
   <data name="Scm.Text.DeliveryDate" xml:space="preserve">
     <value>납품 예정일</value>
   </data>
@@ -9249,9 +9246,6 @@
   </data>
   <data name="Portal.Text.PerPage" xml:space="preserve">
     <value>건씩 보기</value>
-  </data>
-  <data name="Portal.Text.Page0Of12Items" xml:space="preserve">
-    <value>{0} / {1} 페이지 (총 {2}건)</value>
   </data>
   <data name="Portal.Text.YouDoNotHavePermissionToViewThisPage" xml:space="preserve">
     <value>조회 권한이 없습니다.</value>

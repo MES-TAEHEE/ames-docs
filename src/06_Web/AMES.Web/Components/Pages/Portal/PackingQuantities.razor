@@ -17,16 +17,16 @@
 @if (_message.Length>0) { <RadzenAlert AlertStyle="@(_error?AlertStyle.Warning:AlertStyle.Success)" Variant="Variant.Flat">@_message</RadzenAlert> }
 <div class="ames-card">
     <div class="ames-card-h packing-toolbar">
-        <span>▼ @L["Portal.Text.PackingQuantities"] · @Rows.Count</span>
+        <span style="white-space:nowrap;">▼ @L["Portal.Text.PackingQuantities"] · @Rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.PackingQty.Ph.Search"]' aria-label='@L["Portal.Text.SearchItems"]' InputSize="InputSize.Small" class="ames-rz-input" />
-            <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <label class="portal-rows-control">Rows <select class="ames-input" aria-label="Rows per page" @bind="_pageRows" @bind:after="PageSizeChanged"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>
+            <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder='@L["Portal.PackingQty.Ph.Search"]' aria-label='@L["Portal.Text.SearchItems"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px;" />
+            <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Load" Disabled="@_rows.Any(r=>r.Dirty)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
     <div class="packing-hint dim">Items and packing quantities are loaded automatically from EOS supplier-item mappings.</div>
     <RadzenDataGrid @ref="_grid" TItem="EditRow" Data="@Rows" AllowSorting="true" AllowPaging="true" PageSize="@_pageRows" PagerHorizontalAlign="HorizontalAlign.Center"
-        ShowPagingSummary="true" PagingSummaryFormat='@L["Portal.Text.Page0Of12Items"]' EmptyText='@L["Portal.Text.NoLinkedItems"]' Class="ames-rz-grid ames-grid-fixed" Style="@($"--ames-page-rows:{_pageRows}")">
+        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PageSizeChanged="@(s => _pageRows = s)"
+        EmptyText='@L["Portal.Text.NoLinkedItems"]' Class="ames-rz-grid ames-grid-fixed" Style="@($"--ames-page-rows:{_pageRows}")">
         <Columns>
             <RadzenDataGridColumn TItem="EditRow" Title="No." Width="60px" MinWidth="60px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r">@GridRowNo.Of(_grid,r)</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="EditRow" Property="Source.VendorName" Title='@L["Scm.Text.Supplier"]' MinWidth="160px" CssClass="packing-nowrap"><Template Context="r"><span class="code">@r.Source.VendorID</span> @r.Source.VendorName</Template></RadzenDataGridColumn>
@@ -60,11 +60,11 @@
     }
     List<EditRow> _rows=[];
     RadzenDataGrid<EditRow>? _grid;
+    IEnumerable<int> _pageSizeOptions=new int[]{25,50,100};
     int _pageRows=25;
     string _user="",_search="",_message="";
     bool _allowed,_error;
     List<EditRow> Rows=>_rows.Where(r=>string.Join(" ",r.Source.ItemNo,r.Source.ItemName,r.Source.VendorID,r.Source.VendorName).Contains(_search,StringComparison.OrdinalIgnoreCase)).ToList();
-    async Task PageSizeChanged(){if(_grid is not null)await _grid.GoToPage(0);}
     protected override async Task OnInitializedAsync()
     {
         var u=(await Authentication.GetAuthenticationStateAsync()).User;
