@@ -195,7 +195,7 @@ else
                                                     @if (CanEditCells && !d.Locked)
                                                     {
                                                         <span @onclick:stopPropagation="true">
-                                                            <RadzenNumeric TValue="double" Value="@d.Supply" Change="@((double v) => SetSupply(d, v))"
+                                                            <RadzenNumeric TValue="double" Value="@d.Supply" Change="@((double v) => SetSupply(r.Row.PartNo, d, v))"
                                                                            Min="0" Step="1" Format="#,##0.##" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input aps-num" />
                                                         </span>
                                                     }
@@ -400,7 +400,7 @@ else
     int    _gridKey;   // 조회마다 증가 — 날짜 컬럼이 바뀌므로 그리드를 새로 만든다
 
     // 필터
-    string   _fLine = "", _fCust = "";
+    string   _fLine = ApsRepository.AllLines, _fCust = "";   // 기본 = 전체 완제품 라인 (10-15 사용자 요청)
     DateTime _fBase = DbClock.Today;
     int      _fDays = 5;   // 기본 계획 일수(사용자 결정 10-05: 7 → 5)
     bool     _fOpen;
@@ -559,18 +559,24 @@ else
 
     // 완제품 공급을 고치면 사출 계획을 바로 다시 나눈다(잠긴 사출 칸은 그대로). 저장·「WO 생성」은 사출 행 수량을 쓰므로 공급만 바뀐 채
     // 두면 WO 가 옛 공급으로 나온다 — 2026-10-12 실행 #475: 10-14 공급을 96 → 196 으로 고쳐 저장했지만 사출 행은 96 기준이라 WO 도 96
-    void SetSupply(AssemblyDay d, double v)
+    // 공급을 **올리면** 그 소요가 떨어지는 사출 칸(공급일 − 선행일)의 등록 계획 잠금을 먼저 푼다(ApsSupplyEdit) — 잠긴 채면 엔진이 늘어난 소요를
+    // 뒤 날짜로 밀어 WO 가 조립일 뒤에 나왔다(실행 #507). 10-15 사용자 결정 "잠금을 풀어서 자동으로 늘리게". 내릴 때는 잠금을 둔다.
+    void SetSupply(string partNo, AssemblyDay d, double v)
     {
         if (!CanEditCells || d.Locked) return;
         v = Math.Max(0, v);
         if (Math.Abs(d.Supply - v) < 0.0005) return;
+        var raised = v > d.Supply;
         d.Supply = v;
         var s = _state!;
         try
         {
+            var unlocked = raised ? ApsSupplyEdit.UnlockInjectionFor(s.Bundle, s.Build.Stages, partNo, s.Bundle.Dates.IndexOf(d.Date)) : new();
             s.Reschedule();
             Rebuild();
-            if (s.ScheduleWarnings.Count > 0) ShowMsg(string.Format(L["PP.Aps.Ok.Reschedule"].Value, s.ScheduleWarnings.Count), true);
+            if (unlocked.Count > 0)
+                ShowMsg(string.Format(L["PP.Aps.Ok.AutoUnlock"].Value, unlocked.Count, string.Join(", ", unlocked.Select(u => $"{u.PartNo} {u.Date}"))), false);
+            else if (s.ScheduleWarnings.Count > 0) ShowMsg(string.Format(L["PP.Aps.Ok.Reschedule"].Value, s.ScheduleWarnings.Count), true);
         }
         catch (Exception ex)
         {
