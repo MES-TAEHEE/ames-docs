@@ -25,6 +25,24 @@ public class PdaDirectSqlTests
     }
 
     [Fact]
+    public void Schema_and_migrations_cannot_recreate_retired_pda_procedures()
+    {
+        var directory = Path.GetDirectoryName(Path.GetFullPath(ReadPath("dist/AMES_Schema.sql")))!;
+        var count = 0;
+        foreach (var file in Directory.EnumerateFiles(directory, "*.sql", SearchOption.AllDirectories))
+        {
+            var definitions = Regex.Matches(File.ReadAllText(file),
+                @"(?im)^CREATE\s+(?:OR\s+ALTER\s+)?PROC(?:EDURE)?\s+(?:\[?dbo\]?\.)\[?(?<name>(?:WH_PDA_|FG_PDA_|SP_PDA_)\w+)");
+            foreach (Match definition in definitions)
+            {
+                count++;
+                Assert.Contains("TEST_RESET", definition.Groups["name"].Value);
+            }
+        }
+        Assert.True(count >= 6, "Still-used development reset procedures must remain available.");
+    }
+
+    [Fact]
     public void Cancel_sets_required_options_before_writes_without_calling_legacy_procedure()
     {
         var sql = PdaWarehouseSql.InboundCancel.TrimStart();

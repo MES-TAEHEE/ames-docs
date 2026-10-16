@@ -1,4 +1,5 @@
 using System.Data;
+using AMES.Data.Repositories;
 using Microsoft.Data.SqlClient;
 using Xunit;
 
@@ -16,14 +17,14 @@ public sealed class FinishedGoodsPutAwayTests
         Assert.DoesNotContain("dbo.FG_PutAway",api);
         Assert.DoesNotContain("ResolvePalletSplit",api);
         Assert.Contains("record PutAwayConfirmReq(string Barcode, string LocationId)",api);
-        Assert.Contains("dbo.FG_PDA_PUTAWAY_COMPLETE",api);
+        Assert.Contains("PdaFinishedGoodsSql.PutAway",api);
         Assert.DoesNotContain("dbo.FG_PutAway",Read("src/02_Data/AMES.Data/Repositories/FinishedGoodsRepository.cs"));
         Assert.DoesNotContain("CREATE TABLE [dbo].[FG_PutAway]",Read("dist/AMES_Schema.sql"));
         var migration=Read("dist/migrate_fg_putaway_transactions.sql");
         Assert.Contains("Not all old put-away events were preserved",migration);
         Assert.Contains("DROP TABLE dbo.FG_PutAway",migration);
         Assert.DoesNotContain("DELETE",migration,StringComparison.OrdinalIgnoreCase);
-        var history=migration[migration.IndexOf("CREATE OR ALTER PROCEDURE dbo.FG_PDA_TRANSACTION_LIST",StringComparison.Ordinal)..];
+        var history=PdaFinishedGoodsSql.Transactions;
         Assert.DoesNotContain("UNION ALL",history);
         Assert.DoesNotContain("dbo.FG_PutAway",history);
     }
@@ -51,7 +52,7 @@ public sealed class FinishedGoodsPutAwayTests
                 seed.Parameters.Add("@Lot",SqlDbType.NVarChar,50).Value=lot;
                 seed.ExecuteNonQuery();
             }
-            using(var putaway=new SqlCommand("dbo.FG_PDA_PUTAWAY_COMPLETE",conn,tx){CommandType=CommandType.StoredProcedure})
+            using(var putaway=new SqlCommand(PdaFinishedGoodsSql.PutAway,conn,tx))
             {
                 putaway.Parameters.Add("@Barcode",SqlDbType.NVarChar,50).Value=lot;
                 putaway.Parameters.Add("@Location",SqlDbType.VarChar,20).Value="FA01C1F1";
@@ -79,7 +80,7 @@ public sealed class FinishedGoodsPutAwayTests
                 Assert.Equal(1,reader.GetInt32(5));
                 Assert.False(reader.Read());
             }
-            using var duplicate=new SqlCommand("dbo.FG_PDA_PUTAWAY_COMPLETE",conn,tx){CommandType=CommandType.StoredProcedure};
+            using var duplicate=new SqlCommand(PdaFinishedGoodsSql.PutAway,conn,tx);
             duplicate.Parameters.Add("@Barcode",SqlDbType.NVarChar,50).Value=lot;
             duplicate.Parameters.Add("@Location",SqlDbType.VarChar,20).Value="FA01C1F1";
             duplicate.Parameters.Add("@OperatorID",SqlDbType.VarChar,20).Value="FG-PA-VERIFY";
@@ -134,7 +135,7 @@ public sealed class FinishedGoodsPutAwayTests
                 seed.Parameters.Add("@Source",SqlDbType.VarChar,30).Value=source;
                 seed.ExecuteNonQuery();
             }
-            using var cmd=new SqlCommand("dbo.FG_PDA_PUTAWAY_COMPLETE",conn,tx){CommandType=CommandType.StoredProcedure};
+            using var cmd=new SqlCommand(PdaFinishedGoodsSql.PutAway,conn,tx);
             cmd.Parameters.Add("@Barcode",SqlDbType.NVarChar,50).Value=lot;
             cmd.Parameters.Add("@Location",SqlDbType.VarChar,20).Value="FA01C1F1";
             cmd.Parameters.Add("@OperatorID",SqlDbType.VarChar,20).Value="FG-PA-VERIFY";

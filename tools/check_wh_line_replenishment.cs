@@ -158,13 +158,6 @@ try
     Check(!((WhEndpoints.ReleaseCompleteResult)Invoke("ExecuteReleaseBatch", factory, header.PickSlipNo, new[] { lots[0] }, "LINE", "TEST", "TEST", false)).Success,
         "Duplicate completion rejected");
 
-    var schema = File.ReadAllText(Path.Combine("dist", "AMES_Schema.sql"));
-    foreach (var name in new[] { "WH_PDA_ADJUST_SCAN_STOCK", "WH_PDA_ADJUST_SAVE_QTY" })
-    {
-        var procedure = Regex.Match(schema, @"CREATE\s+PROCEDURE\s+dbo\." + name + @"\b[\s\S]*?(?=\r?\nGO\s*\r?\n)", RegexOptions.IgnoreCase).Value;
-        Check(procedure.Length > 0, "Find canonical adjustment procedure " + name);
-        Exec(procedure);
-    }
     var stale = new WhEndpoints.AdjustSaveReq("LOCAL", "BOX-1", -5, "COUNT", null, ExpectedQty: 21, ExpectedLocation: "I1");
     Check(!((WhEndpoints.InboundReceiveResult)Invoke("ExecuteAdjustSave", factory, stale, "TEST", false)).Success, "Reject stale quantity");
     var moved = stale with { ExpectedQty = 20, ExpectedLocation = "W1" };

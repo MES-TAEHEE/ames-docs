@@ -8,7 +8,7 @@ namespace AMES.Data.Tests;
 public class WarehouseCoreMigrationTests
 {
     [SqlServerFact]
-    public void Indexed_lot_migration_is_repeatable_and_pick_lines_and_long_locations_work()
+    public void Indexed_lot_migration_is_repeatable_and_long_locations_work()
     {
         var settings = SqlServerFactAttribute.Settings();
         var database = "AMES_WH_TEST_" + Guid.NewGuid().ToString("N");
@@ -50,17 +50,6 @@ public class WarehouseCoreMigrationTests
             Execute(sql[start..end]);
             using (var verify = new SqlCommand("SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID('WH_InventoryTransaction') AND name='IX_WH_InventoryTransaction_LotNo'", conn))
                 Assert.Equal(1, Convert.ToInt32(verify.ExecuteScalar()));
-            start = sql.IndexOf("CREATE OR ALTER PROCEDURE dbo.WH_PDA_RELEASE_PICK_LINES ", StringComparison.Ordinal);
-            end = sql.IndexOf("\nGO", start, StringComparison.Ordinal);
-            Execute(sql[start..end]);
-            using (var query = new SqlCommand("EXEC dbo.WH_PDA_RELEASE_PICK_LINES N'PICK-1'", conn))
-            using (var rows = query.ExecuteReader())
-            {
-                Assert.True(rows.Read());
-                Assert.Equal("PART-1", rows["PARTNO"]);
-                Assert.Equal(5m, rows["PICKED_QTY"]);
-                Assert.Equal("LOC-1", rows["LOC_01"]);
-            }
             var repo = new WarehouseRepository(new AmesConnectionFactory(settings.ConnectionString));
             Assert.True(repo.LocationExists(new string('L',50)));
             repo.DeleteLocation(new string('L',50));

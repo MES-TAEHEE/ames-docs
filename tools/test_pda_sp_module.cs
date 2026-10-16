@@ -18,7 +18,7 @@ var inventoryLogic = Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh03Inventory
 var whRelease = Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh07PdaRelease.razor");
 var release = Read("src/05_Pda/AMES.Pda/Components/Pages/Sp/SpRelease.razor");
 var transactions = Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh08TransactionHistory.razor");
-var api = Read("src/05_Pda/AMES.Pda/Services/PdaApi.cs");
+var api = Read("src/05_Pda/AMES.Pda/Services/PdaApi.cs") + Read("src/05_Pda/AMES.Pda/Services/SparePartsApi.cs");
 
 Check(home.Contains("Nav.NavigateTo(\"/sp\")") && home.Contains("SPARE PARTS"), "PDA launcher exposes Spare Parts");
 foreach (var route in new[] { "/sp/02", "/sp/07", "/sp/03", "/sp/03?tab=adjust", "/sp/08" })
@@ -26,16 +26,16 @@ foreach (var route in new[] { "/sp/02", "/sp/07", "/sp/03", "/sp/03?tab=adjust",
 
 Check(!whInbound.Contains("@page \"/sp/02\"") && !whRelease.Contains("@page \"/sp/07\""), "SP inbound and release are isolated from WH document flows");
 Check(inbound.Contains("@page \"/sp/02\"")
-      && inbound.Contains("<label>EOS SP NO</label>")
+      && inbound.Contains("<label>SERIAL NO</label>")
       && inbound.Contains("APPLICABLE EQUIPMENT")
       && inbound.Contains("SpReceiveAsync")
       && inbound.Contains("SpItemAsync")
-      && !inbound.Contains("CKD"), "SP inbound uses one EOS SP No scan flow and hides Local/CKD selection");
+      && !inbound.Contains("CKD"), "SP inbound scans one serial and hides Local/CKD selection");
 Check(release.Contains("@page \"/sp/07\"")
-      && release.Contains("<label>EOS SP NO</label>")
+      && release.Contains("<label>SERIAL NO</label>")
       && release.Contains("STORAGE LOCATION")
       && release.Contains("SpReleaseAsync")
-      && release.Contains("SpItemAsync"), "SP release scans EOS SP No and shows storage location");
+      && release.Contains("SpItemAsync"), "SP release scans one serial and shows storage location");
 Check(inventory.Contains("@page \"/sp/03\"") && inventory.Contains("WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure, AreaScope)"), "Inventory and Adjust use the SP area scope");
 Check(inventoryLogic.Contains("SpPptInventorySteps")
       && inventoryLogic.Contains("EOS-SP-K9-269999")
@@ -50,12 +50,14 @@ Check(api.Contains("public const string SparePartsAreaCode = \"SPARE_PARTS_AREA\
 var schema = Read("dist/pda/PDA_SCHEMA.sql");
 var seed = Read("dist/pda/PDA_SEED.sql");
 var apiEndpoints = Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs");
-Check(api.Contains("/api/wh/locations")
+Check(Read("src/05_Pda/AMES.Pda/Services/WarehouseApi.cs").Contains("/api/wh/locations")
       && apiEndpoints.Contains("l.WhCode AS WarehouseCode")
       && apiEndpoints.Contains("l.AreaCode AS AreaCode"), "Location API uses normalized warehouse and area columns");
-Check(schema.Contains("CREATE OR ALTER PROCEDURE dbo.SP_PDA_STOCK_MOVE")
-      && schema.Contains("UPDATE dbo.MD_SparePart")
-      && schema.Contains("INSERT INTO dbo.MNT_SparePartsTxn")
+var spareSql = Read("src/02_Data/AMES.Data/Repositories/PdaSparePartsSql.cs");
+var warehouseSql = Read("src/02_Data/AMES.Data/Repositories/PdaWarehouseSql.cs");
+Check(apiEndpoints.Contains("PdaSparePartsSql.Move")
+      && spareSql.Contains("UPDATE dbo.MD_SparePart")
+      && spareSql.Contains("INSERT INTO dbo.MNT_SparePartsTxn")
       && schema.Contains("CREATE OR ALTER PROCEDURE dbo.SP_PDA_SIMPLE_TEST_RESET"), "Schema stores spare-parts metadata and resets simple tests");
 Check(seed.Contains("EOS-SP-K9-269999")
       && seed.Contains("INSERT INTO dbo.MD_SparePart")
@@ -75,7 +77,7 @@ Check(apiEndpoints.Contains("MapGet(\"/sp/item\"")
       && apiEndpoints.Contains("P.PartName, P.PartNo, P.Maker")
       && apiEndpoints.Contains("P.SparePartImage")
       && apiEndpoints.Contains("GetImageDataUrl(rdr, \"SparePartImage\")")
-      && apiEndpoints.Contains("L.ZoneCode = P.ZoneCode")
+      && apiEndpoints.Contains("COALESCE(I.LocationID, ML.LocationID) AS StorageLocation")
       && !apiEndpoints.Contains("P.StorageLoc")
       && apiEndpoints.Contains("SP_PDA_SIMPLE_TEST_RESET")
       && api.Contains("SpItemAsync")
@@ -83,9 +85,8 @@ Check(apiEndpoints.Contains("MapGet(\"/sp/item\"")
       && api.Contains("SpReleaseAsync")
       && api.Contains("SpResetTestAsync"), "API exposes EOS SP No detail, stock movement, and test reset operations");
 Check(release.Contains("_lot.ImageDataUrl") && release.Contains("sp-release-image"), "SP release shows the stored image only when available");
-Check(schema.Contains("CREATE OR ALTER PROCEDURE dbo.WH_PDA_INVENTORY_STATUS_LIST")
-      && schema.Contains("@AreaCode nvarchar(20) = NULL")
-      && schema.Contains("@AreaCode IS NULL OR WL.AreaCode = @AreaCode"), "Inventory summary procedure supports an optional area scope");
-Check(schema.Contains("CREATE OR ALTER PROCEDURE dbo.WH_PDA_INVENTORY_LOCATION_LIST")
-      && schema.Contains("L.WhCode AS WHCD")
-      && schema.Contains("L.AreaCode AS AREACD"), "Inventory location procedure returns normalized hierarchy fields");
+Check(apiEndpoints.Contains("PdaWarehouseSql.Inventory")
+      && warehouseSql.Contains("@AreaCode IS NULL OR L.AreaCode=@AreaCode"), "Inventory summary batch supports an optional area scope");
+Check(apiEndpoints.Contains("PdaWarehouseSql.InventoryLocations")
+      && warehouseSql.Contains("L.WhCode WHCD")
+      && warehouseSql.Contains("L.AreaCode AREACD"), "Inventory location batch returns normalized hierarchy fields");
