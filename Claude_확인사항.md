@@ -27,7 +27,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 심재현 | 23                   | 7   | 7묶음 | 37  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 32) · 안돈 보전 호출 작업지시(요청 22) |
-| 안영훈 | 7(배포·적용·검증 대기 포함) | 4   | 3   | 6   | [중] 케이스 입고의 구 프로시저 매개변수 태그 의존 · LOT 입고 취소 누적량 · 예비품 출고↔보전 작업지시 배포·검증 · FG 외래키 정리 승인 · 포장 단위 기존 데이터 정책 |
+| 안영훈 | 7(배포·적용·검증 대기 포함) | 4   | 3   | 5   | [중] 케이스 입고의 구 프로시저 매개변수 태그 의존 · LOT 입고 취소 누적량 · 예비품 출고↔보전 작업지시 배포·검증 · FG 외래키 정리 승인 · 포장 단위 기존 데이터 정책 |
 | 이승욱 | 0                    | 3   | 5   | 0   | PP-OEE 가동률이 시연 데이터(`PP_LineStateLog` 기록 — 심재현과 진행 예정)                                                                       |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
@@ -323,7 +323,7 @@
    - 0수량 재고는 최근 입고 취소 이력이 확인될 때만 재사용하고, 출고/소진된 LOT 재입고는 차단합니다. 취소 시 PO·납품 누적 입고량은 조정 후 잔량이 아닌 원래 박스 입고량으로 차감합니다.
    - BOX-56 취소·재입고의 누적 입고량 오차는 사용자 승인으로 PoID 522·DeliveryLineID 30만 175→170 보정하고 감사 기록을 남겼습니다. 재고·재고 거래 이력은 변경하지 않았습니다.
    - 실제 DB의 SQL 26개 컴파일(NOEXEC)·조회 9개, API 206건·관련 Data 42건, WH/FG/SP 소스 검증 3개를 확인했습니다. 재고를 변경하는 자동화 통합 테스트는 실행하지 않았으며 FG 반품·동시 PDA 쓰기 검증은 남아 있습니다.
-   - (10-16 이승욱 대조) Api 의 프로시저 호출은 테스트 초기화(`*_TEST_RESET`)만 남았습니다. 다만 케이스 입고(`ScmDeliveryCases.cs:427`)와 WH 입고 예정 조회(`WhEndpoints.cs:1193-1199`)가 아직 구 프로시저의 매개변수 이름을 형식 태그로 씁니다 — 프로시저를 지우기 전에 고쳐야 합니다(문제점 6).
+   - (10-16 이승욱 대조) Api 의 프로시저 호출은 테스트 초기화(`*_TEST_RESET`)만 남았습니다. 다만 케이스 입고(`ScmDeliveryCases.cs:427`)와 WH 입고 예정 조회(`WhEndpoints.cs:1193-1199`)가 아직 구 프로시저의 매개변수 이름을 형식 태그로 씁니다 — 프로시저를 지우기 전에 고쳐야 합니다(문제점 4).
 
 ### 2-2. 보류 (4)
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.
@@ -338,15 +338,11 @@
 | `WH_ReleaseSchedule` | 미사용 | DROP 후보입니다. 이번에는 다른 WH 테이블과 식별자·행위자 길이만 맞췄고 테이블은 보존했습니다. |
 | `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
 
-### 2-4. 문제점 (6)
+### 2-4. 문제점 (5)
 1. **[하] 사용되지 않는 포장 단위 컬럼이 DB에 남음**
    - `SCM_ItemVendor.PackingUnitCode`(두 DB·스키마 파일 모두 있음). `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 4개는 10-16 `migrate_retire_packaging_uom.sql` 로 두 DB 에서 지웠습니다.
    - 실행 코드 참조는 없습니다. 이번에는 컬럼 삭제 승인이 없으므로 유지했습니다. 컬럼 순서를 맞추기 위한 테이블 재구축도 하지 않습니다.
-2. **[하] `PR_PopSession` 새 컬럼이 CLAUDE.md 배포 순서에 없음**
-    - 위치: `migrate_pda_bearer_session.sql:6-9`
-    - 내용: `BearerHash`·`SessionJson` 을 만드는 이 마이그레이션이 CLAUDE.md 배포 순서에 없습니다(스키마 파일·`rebuild_db.sh` 에는 있음). 이 마이그레이션이 빠진 기존 DB 에서는 PDA 로그인이 전부 500 입니다.
-
-3. **[하] 폐지한 포장 단위가 기존 데이터에 그대로 남음**
+2. **[하] 폐지한 포장 단위가 기존 데이터에 그대로 남음**
     - 위치: `dist/migrate_retire_packaging_uom.sql`(10-14), `tools/gen_md_item_bom_seed.py`(`quantity_unit`)
     - 내용
       - 마이그레이션(10-16 개발·로컬 DB 적용)은 단위 BOX·PLT·SH 를 사용 안 함으로만 바꾸고 데이터는 바꾸지 않았습니다. 개발 DB 에는 SH 품목 30개, BOM 줄 77개, BOX 품목 1개, BOX 발주 6건이 그대로 남아 있습니다.
@@ -354,15 +350,15 @@
       - 지운 `BoxContentUnit`·`BoxContentQty` 의 값(개발 DB 품목 TEST-0001, 발주 1225·1263 — 모두 EA·30, 로컬 DB 는 없음)은 이승욱 PC `AppData\Local\AMES-claude-tools\backup_boxcontent_20261016\dev.tsv` 에 남겨 두었습니다.
     - 제안: 시드와 같게 SH → EA 로 바꿀지 정하고, BOX 품목·발주를 어떻게 다룰지 정해 데이터 정리 스크립트를 따로 만듭니다.
 
-4. **[하] `FG_CustomerReturn.PartName` 개발 DB 컬럼 순서 — 적용 승인 대기**
+3. **[하] `FG_CustomerReturn.PartName` 개발 DB 컬럼 순서 — 적용 승인 대기**
     - 위치: `dist/migrate_fg_customer_return_columns.sql`(ALTER ADD), `dist/migrate_fg_shipment_actual.sql`, `dist/AMES_Schema.sql` 의 `FG_CustomerReturn`
     - 스키마 파일은 로컬·감사 컬럼 정리 후 순서(`LotNo` → `PartName` → 감사 컬럼)로 맞췄습니다. 코드는 컬럼 이름으로 읽으므로 현재 순서 차이는 실행에 영향을 주지 않습니다.
     - 실제 개발 DB의 재정렬은 감사 컬럼 값 복사·삭제·재생성이 필요한 `migrate_audit_columns_last.sql`을 사용하므로 승인 전에는 실행하지 않습니다.
-6. **[중] 케이스 입고가 지울 예정인 프로시저의 매개변수 정보에 기댐**(10-16 PDA 직접 SQL 전환 뒤)
+4. **[중] 케이스 입고가 지울 예정인 프로시저의 매개변수 정보에 기댐**(10-16 PDA 직접 SQL 전환 뒤)
     - 위치: `src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs:427`(실행 SQL 은 `PdaWarehouseSql.InboundReceive`, 매개변수 태그는 `"WH_PDA_INBOUND_RECEIVE_LOT.@ReceiveMode"` 등 5개), 같은 원인 `WhEndpoints.cs:1193-1199`(`WH_PDA_SCHEDULE_INBOUND_LIST.@…`)
     - 내용: SCM 공용 `Add` → `ColumnParams.Add` 는 태그를 `INFORMATION_SCHEMA.PARAMETERS` 에서 못 찾으면 예외를 냅니다(`ColumnParams.cs:37`). d87090fc 뒤 `AMES_Schema.sql` 은 이 프로시저를 DROP 만 하고 다시 만들지 않으므로, 스키마로 다시 만든 DB 나 예정대로 프로시저를 지운 DB 에서는 **PDA 케이스 일괄 입고(`WhEndpoints.cs:271`)가 매번 실패**합니다. 개발·로컬 DB 는 프로시저가 아직 있어(37개) 지금은 동작하고 `ColumnTagsTests` 도 통과합니다. 입고 예정 조회 태그는 `AddFilter` 라 예외는 없지만 프로시저를 지우는 순간 `ColumnTagsTests` 가 깨집니다.
     - 제안: 태그를 실제 대상 컬럼(`WH_InventoryTransaction.CreatedBy`·`WH_Inventory.LotNo` 등)으로 바꾸거나 `ExecuteInboundReceive`(`WhEndpoints.cs:2686-2691`) 처럼 형식을 직접 지정합니다. 프로시저 삭제 전에 `ColumnTagsTests` 에 프로시저 태그 금지 검사를 더합니다.
-7. **[하] LOT(`tbl_Lot`) 경로 입고 취소가 발주 입고량을 남은 재고만큼만 되돌림**
+5. **[하] LOT(`tbl_Lot`) 경로 입고 취소가 발주 입고량을 남은 재고만큼만 되돌림**
     - 위치: `src/02_Data/AMES.Data/Repositories/PdaWarehouseSql.cs:967-981`
     - 내용: 입고는 입고 당시 수량만큼 `WH_PurchaseOrder.ReceivedQty` 를 올리는데(:789-790), 취소는 현재 `WH_Inventory.Qty` 만큼만 빼고 상태를 무조건 `'Open'` 으로 둡니다. 일부 출고 뒤 취소하면 발주 입고량이 소비분만큼 부풀어 남습니다. b60ae72f 는 포털 박스 경로만 "원래 박스 입고량으로 차감" 으로 고쳤습니다. 포털 취소는 `'Received'/'Partial'`, 입고는 `'Complete'/'Open'` 으로 상태 어휘도 갈립니다(구 프로시저 때부터).
     - 제안: 포털 경로처럼 원 입고 거래(`WH_InventoryTransaction` IN 행의 `QtyChange`)로 차감하고 상태는 다시 계산합니다.
