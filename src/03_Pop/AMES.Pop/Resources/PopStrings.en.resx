@@ -36,6 +36,7 @@
   <data name="AndonSupervisorCalled" xml:space="preserve"><value>SUPERVISOR CALLED</value></data>
   <data name="AndonUnknownBadge" xml:space="preserve"><value>Unknown employee number.</value></data>
   <data name="AndonWaiting" xml:space="preserve"><value>Waiting</value></data>
+  <data name="BackflushFailed" xml:space="preserve"><value>Material backflush failed — lot confirmed. See log</value></data>
   <data name="BadgeScanOrPinEntry" xml:space="preserve"><value>Badge scan or PIN entry</value></data>
   <data name="BlockedByInspectionNgHandleInDefectPopup" xml:space="preserve"><value>Blocked by inspection NG — handle in Defect popup</value></data>
   <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
@@ -91,6 +92,7 @@
   <data name="LogOut2" xml:space="preserve"><value>Log out</value></data>
   <data name="Logout" xml:space="preserve"><value>Logout</value></data>
   <data name="LotBarcodeScanConfirm" xml:space="preserve"><value>LOT BARCODE SCAN · CONFIRM</value></data>
+  <data name="MaterialShort" xml:space="preserve"><value>Line material short</value></data>
   <data name="LotBelongsToAnotherLine" xml:space="preserve"><value>Lot belongs to another line</value></data>
   <data name="LotNotFound" xml:space="preserve"><value>Lot not found</value></data>
   <data name="Lotno" xml:space="preserve"><value>LOTNO</value></data>

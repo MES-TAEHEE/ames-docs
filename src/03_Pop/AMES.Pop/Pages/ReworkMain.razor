@@ -1,11 +1,13 @@
 @page "/rework"
 @using AMES.Contracts.Enums
+@using AMES.Data.Repositories
 @using AMES.Pop.Common
 @using AMES.Pop.Pages.InjPopups
 @implements IDisposable
 @inject NavigationManager Nav
 @inject AppState State
 @inject ConfirmService Confirmer
+@inject ToastService Toasts
 @inject AMES.Pop.Services.ScannerService Scanner
 
 @*  REWORK — 독립 재작업 스테이션(공정코드 RWK). 좌측 전 라인 재작업 대기열, 우측 판정.
@@ -347,10 +349,12 @@
         var session = Session; var note = _note;
         if (!await Confirmer.AskAsync(T("RwkConfirmReworkTitle"), T("RwkConfirmReworkBody", sel.LotCode),
                                       T("RwkReworkBtn"), T("Cancel"))) return;
+        var bf = BackflushResult.None;
         Decide(sel.LotCode,
                () => PopServices.Rework.Rework(sel.DefectId, cause, note, session.LineId,
-                                               session.OperatorId, session.SessionId, session.EmployeeNo),
+                                               session.OperatorId, session.SessionId, session.EmployeeNo, out bf),
                T("RwkDoneRework"));
+        BackflushNotice.Show(Toasts, bf, sel.LotCode);
     }
 
     private async Task DoScrap()

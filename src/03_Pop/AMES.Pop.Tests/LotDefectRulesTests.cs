@@ -44,4 +44,12 @@ public class LotDefectRulesTests
     [InlineData("LEGACY",   false)]
     public void Only_open_rows_can_be_decided(string? disposition, bool expected)
         => Assert.Equal(expected, LotDefectRules.CanDecide(disposition));
+
+    [Theory]
+    [InlineData("RAW",        true)]
+    [InlineData("NG_BLOCKED", true)]
+    [InlineData("CONFIRMED",  false)]
+    [InlineData(null,         false)]   // 구 행 — 확정됐던 것으로 보고 다시 빼지 않는다
+    public void WasNeverConfirmed_allows_rework_backflush_only_for_lots_never_confirmed(string? prior, bool expected)
+        => Assert.Equal(expected, LotDefectRules.WasNeverConfirmed(prior));
 }
