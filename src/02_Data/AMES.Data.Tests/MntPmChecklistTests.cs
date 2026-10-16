@@ -10,8 +10,8 @@ public class MntPmChecklistTests
 {
     const string WriteSkip = "set AMES_TEST_CONN (local DB) to run — creates and removes a test template, spare part, PM schedules and work orders";
     const string Actor = "itest-mntchk";
-    const string Equip = "INJ-650-01";   // 템플릿과 같은 설비 유형(INJ)
-    const string OtherTypeEquip = "IMG-EQ-01";   // WRAP
+    const string Equip = "INJ-01-01-1800";   // 템플릿과 같은 설비 유형(INJ)
+    const string OtherTypeEquip = "ITEST-EQ-WRAP";   // 시험 안에서 만들고 지우는 WRAP 설비
     const string Tpl1  = "ITEST-CHK-T1";
     const string Tpl2  = "ITEST-CHK-T2";
     const string Part  = "ITEST-SP-CHK";
@@ -49,7 +49,8 @@ public class MntPmChecklistTests
         DELETE dbo.MD_PmTemplateStep WHERE PMTemplateID IN (@T1, @T2);
         DELETE dbo.MD_PmTemplate WHERE PMTemplateID IN (@T1, @T2);
         DELETE dbo.MD_SparePart WHERE SparePartNo = @P;
-        """, ("@A", Actor), ("@T1", Tpl1), ("@T2", Tpl2), ("@P", Part));
+        DELETE dbo.MD_Equipment WHERE EquipID = @E;
+        """, ("@A", Actor), ("@T1", Tpl1), ("@T2", Tpl2), ("@P", Part), ("@E", OtherTypeEquip));
 
     static Connection.AmesConnectionFactory? WriteFactory()
     {
@@ -69,6 +70,8 @@ public class MntPmChecklistTests
         try
         {
             Cleanup(f!);
+            Exec(f!, "INSERT dbo.MD_Equipment (EquipID, EquipName, EquipType, LineID, Status, ActiveFlag, CreatedBy, CreatedTS) VALUES (@E, N'ITEST 감싸기', 'WRAP', 'LINE-IMG-01', 'RUN', 1, @A, SYSDATETIME())",
+                ("@E", OtherTypeEquip), ("@A", Actor));
             Exec(f!, "INSERT dbo.MD_SparePart (SparePartNo, PartNo, PartName, OnHandQty, ActiveFlag, CreatedBy, CreatedTS) VALUES (@P, 'ITEST-PCHK', N'점검 부품', 5, 1, @A, SYSDATETIME())",
                 ("@P", Part), ("@A", Actor));
             md.InsertPmTemplate(Tpl1, "ITEST 월간", "INJ", "TIME", 30, "DAY", 60, false, true, Actor);

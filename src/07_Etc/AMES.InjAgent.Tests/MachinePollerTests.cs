@@ -85,7 +85,7 @@ public class MachinePollerTests
         var m = new FakeMachine();
         var r = new FakeRobot();
         var s = new FakeStore();
-        var cfg = new MachineConfig { EquipId = "INJ-650-01", LineId = "LINE-INJ-01", ModbusIp = "x", FenetIp = "y" };
+        var cfg = new MachineConfig { EquipId = "INJ-01-01-1800", LineId = "LINE-INJ-01", ModbusIp = "x", FenetIp = "y" };
         var poller = new MachinePoller(cfg, m, r, s, _ => { });
         return (poller, m, r, s);
     }

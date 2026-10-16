@@ -9,7 +9,7 @@ public class MntConcurrencyTests
 {
     const string WriteSkip = "set AMES_TEST_CONN (local DB) to run — creates and removes test failures/work orders";
     const string Actor = "itest-mntcc";
-    const string Equip = "IMG-EQ-01";
+    const string Equip = "INJ-09-01-450";
 
     static void Cleanup(Connection.AmesConnectionFactory f) => Exec(f, """
         DELETE a FROM dbo.MNT_FailureAction a JOIN dbo.MNT_FailureRegister r ON r.FailureID = a.FailureID WHERE r.CreatedBy = @A;
