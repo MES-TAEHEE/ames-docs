@@ -170,7 +170,6 @@
     List<MasterDataRepository.MoldRow>     _molds    = new();
     List<MasterDataRepository.MoldItemRow> _items    = new();
     List<MasterDataRepository.ItemRow>     _itemList = new();
-    List<string>                           _colorOptions = new();
     MasterDataRepository.MoldRow? _selMold;
 
     string _search = "";
@@ -230,7 +229,6 @@
     void OnMoldRowSelect(MasterDataRepository.MoldRow m)
     {
         _selMold = m;
-        try { _colorOptions = MD.ListMoldColors(m.MoldID).Select(c => c.Color).ToList(); } catch { _colorOptions = new(); }
         LoadItems();
     }
 
@@ -278,7 +276,7 @@
         {
             var itemNo = _f.ItemNo.Trim();
             if (MD.MoldItemExists(_selMold.MoldID, itemNo)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"].Value, itemNo); return; }
-            MD.InsertMoldItem(_selMold.MoldID, itemNo, NE(_f.Color), _f.CavitySeq, NE(_f.CavityPos),
+            MD.InsertMoldItem(_selMold.MoldID, itemNo, NE(_f.Color)?.ToUpperInvariant(), _f.CavitySeq, NE(_f.CavityPos),
                 _f.Usage, NE(_f.ResinItemNo), _f.ResinUsage, _f.CavityCount, NE(_f.MoldCategory),
                 _f.ActiveFlag, _actor);
             Audit.Created("MD-007", "MD_MoldItem", $"{_selMold.MoldID}/{itemNo}", _f);
@@ -297,7 +295,7 @@
         _busy = true;
         try
         {
-            MD.UpdateMoldItem(_selMold.MoldID, _f.ItemNo, NE(_f.Color), _f.CavitySeq, NE(_f.CavityPos),
+            MD.UpdateMoldItem(_selMold.MoldID, _f.ItemNo, NE(_f.Color)?.ToUpperInvariant(), _f.CavitySeq, NE(_f.CavityPos),
                 _f.Usage, NE(_f.ResinItemNo), _f.ResinUsage, _f.CavityCount, NE(_f.MoldCategory),
                 _f.ActiveFlag, _actor);
             Audit.Updated("MD-007", "MD_MoldItem", $"{_selMold.MoldID}/{_f.ItemNo}", _items.FirstOrDefault(i => i.ItemNo == _f.ItemNo), _f);
@@ -345,7 +343,7 @@
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["Col.Color"]" />
-                <RadzenDropDown TValue="string" @bind-Value="_f.Color" Data="@_colorOptions" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox @bind-Value="_f.Color" Placeholder="@L["MD.Mold.Ph.Color"]" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;text-transform:uppercase;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["Col.CavitySeq"]" />

@@ -301,25 +301,6 @@
                 <RadzenLabel Text="@L["Col.AssyInjResult"]" Component="EditChkAssyInj" style="cursor:pointer;" />
             </RadzenStack>
 
-            @* ── 색상 관리 (MD_MoldColor, ZPD20041) ── *@
-            <div style="margin-top:10px;">
-                <RadzenLabel Text="@L["Col.Color"]" />
-                <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px;">
-                    @foreach (var c in _colors)
-                    {
-                        <span class="pill info" style="display:inline-flex;align-items:center;gap:5px;">
-                            @c.Color
-                            <span style="cursor:pointer;font-weight:700;line-height:1;" title="@L["Btn.Delete"]" @onclick="() => RemoveColor(c.Color)">×</span>
-                        </span>
-                    }
-                    @if (_colors.Count == 0) { <span class="dim" style="font-size:.85em;">—</span> }
-                </div>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:6px;">
-                    <RadzenTextBox @bind-Value="_newColor" @onkeydown="OnColorKeyDown" Placeholder="@L["MD.Mold.Ph.Color"]" MaxLength="10" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
-                    <RadzenButton Text="@L["Btn.Add"]" Icon="add" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@AddColor" Disabled="@_busy" class="ames-rz-btn" />
-                </RadzenStack>
-            </div>
-
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
             {
@@ -358,9 +339,7 @@
     List<MasterDataRepository.MoldRow>     _allRows    = new();
     List<MasterDataRepository.MoldRow>     _rows       = new();
     List<MasterDataRepository.CodeItemRow>  _moldStatus = new();
-    List<MasterDataRepository.MoldColorRow> _colors     = new();
     MasterDataRepository.MoldRow? _sel;
-    string _newColor = "";
 
     string _fSearch = "";
     string? _fStatus, _fLoc;
@@ -454,8 +433,6 @@
             RefCode           = r.RefCode       ?? "",
             AssyInjResultFlag = r.AssyInjResultFlag,
         };
-        _newColor = "";
-        try { _colors = MD.ListMoldColors(r.MoldID); } catch { _colors = new(); }
         _modal = "edit";
     }
 
@@ -551,38 +528,6 @@
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }
     }
-
-    // ── 색상 관리 (edit 모달) ─────────────────────────────────────────────
-    void AddColor()
-    {
-        if (!_canEdit) return;
-        if (_sel is null || string.IsNullOrWhiteSpace(_newColor)) return;
-        _modalErr = "";
-        try
-        {
-            MD.InsertMoldColor(_sel.MoldID, _newColor.Trim().ToUpper(), _actor);
-            Audit.Created("MD-007", "MD_MoldColor", $"{_sel.MoldID}/{_newColor.Trim().ToUpper()}", null);
-            _newColor = "";
-            _colors = MD.ListMoldColors(_sel.MoldID);
-        }
-        catch (Exception ex) { _modalErr = ex.Message; }
-    }
-
-    void RemoveColor(string color)
-    {
-        if (!_canEdit) return;
-        if (_sel is null) return;
-        _modalErr = "";
-        try
-        {
-            MD.DeleteMoldColor(_sel.MoldID, color);
-            Audit.Deleted("MD-007", "MD_MoldColor", $"{_sel.MoldID}/{color}", null);
-            _colors = MD.ListMoldColors(_sel.MoldID);
-        }
-        catch (Exception ex) { _modalErr = ex.Message; }
-    }
-
-    void OnColorKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") AddColor(); }
 
     void ShowMsg(string msg, bool isErr)
     {

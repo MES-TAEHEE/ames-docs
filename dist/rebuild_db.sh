@@ -71,7 +71,7 @@ FILES=(
   migrate_wo_step_line.sql            # WO 공정 단계: PP_WorkOrderRouting CompletedQty·TerminalLock·인덱스 + 백필 (migrate_routing_step 이후)
   migrate_wo_step_item.sql            # WO 단계 생산 품번: PP_WorkOrderRouting.ItemNo (INJ 단계 = BOM 코어) + (LineID, ItemNo) 인덱스 (migrate_wo_step_line 이후)
   seed_inj_img_master_dev.sql         #   → 개발용 INJ(코어)/IMG(완제품) 스테이션 BOP (품목 시드 이후, 운영 금지)
-  seed_md_mold_master.sql             # 금형 마스터 정본 — MD_Item 사출 성형 SUB(코어·레일) 기준 MD_Mold·MoldItem·MoldColor·MoldLine 전체 재적재 (품목 시드·migrate_mold_master·migrate_mold_change_plan 이후)
+  seed_md_mold_master.sql             # 금형 마스터 정본 — MD_Item 사출 성형 SUB(코어·레일) 기준 MD_Mold·MoldItem·MoldLine 전체 재적재 (품목 시드·migrate_mold_master·migrate_mold_change_plan 이후)
   seed_pp_customer_order_dev.sql      #   → 개발용 가상 수주 231건(ASSY 77 × 3회차, Confirmed) — seed_md_customer_seoyon 이 먼저여야 함
   migrate_wo_prod_deadline.sql        # WO 생산 마감일 컬럼 + PP_PROD_BUFFER_WORKDAYS 설정 (순서 무관)
   migrate_mnt_failure_severity.sql    # MNT 고장 등록: Urgency → Severity 컬럼명 변경 (순서 무관)
@@ -154,6 +154,7 @@ FILES=(
   migrate_fg_putaway_transactions.sql # FG put-away uses inventory transactions only
   migrate_md_sap_trans_flag.sql      # MD_Item·MD_Vendor·MD_Location.SAPTransFlag — SAP 전송 대상 여부(10-16)
   migrate_md_pallet.sql              # MD_Pallet·PALLET_USE, WH_Inventory.CaseNo→PalletNo, FG_Shipment.PalletNo, MD-034·035 화면(10-17) — FK 제거(no_foreign_keys) 뒤
+  migrate_drop_md_mold_color.sql     # MD_MoldColor 삭제 — 금형 제품 색상은 MD_MoldItem.Color 직접 입력(10-16)
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
 )
 
