@@ -163,7 +163,7 @@
             };
             if (ok)
             {
-                _today.Insert(0, new TodayRow(_lot.LotCode, _selected.DefectCode, DateTime.Now));
+                _today.Insert(0, new TodayRow(_lot.LotCode, _selected.DefectCode, DbClock.Now));
                 _lot = null; _selected = null;
                 await OnChanged.InvokeAsync();
             }

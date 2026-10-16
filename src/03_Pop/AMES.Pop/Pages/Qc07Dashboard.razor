@@ -97,13 +97,13 @@
     private List<QcModuleDefectDto> _modules = new();
     private List<QcDefectParetoDto> _pareto  = new();
     private int _openNcr, _activeHold, _openCapa, _passToday, _failToday;
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _timer;
 
     protected override void OnInitialized()
     {
         Refresh();
-        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DbClock.Now; StateHasChanged(); }),
                                             null, 5000, 5000);
     }
 
@@ -116,8 +116,8 @@
             (var oN, var aH, var oC) = PopServices.Qc.GetDashboardCounts();
             _openNcr = oN; _activeHold = aH; _openCapa = oC;
             var insp = PopServices.Qc.ListInspections("", 100);
-            _passToday = insp.Count(i => i.Verdict == "PASS" && i.InsStartTs.Date == DateTime.Today);
-            _failToday = insp.Count(i => i.Verdict == "FAIL" && i.InsStartTs.Date == DateTime.Today);
+            _passToday = insp.Count(i => i.Verdict == "PASS" && i.InsStartTs.Date == DbClock.Today);
+            _failToday = insp.Count(i => i.Verdict == "FAIL" && i.InsStartTs.Date == DbClock.Today);
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc07] {ex.Message}"); }
     }

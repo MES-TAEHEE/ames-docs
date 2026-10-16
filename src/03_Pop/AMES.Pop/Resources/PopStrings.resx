@@ -36,6 +36,7 @@
   <data name="AndonSupervisorCalled" xml:space="preserve"><value>슈퍼바이저 호출됨</value></data>
   <data name="AndonUnknownBadge" xml:space="preserve"><value>등록되지 않은 사번입니다.</value></data>
   <data name="AndonWaiting" xml:space="preserve"><value>대기</value></data>
+  <data name="BackflushFailed" xml:space="preserve"><value>자재 자동 차감 실패 — 확정은 완료됨. 로그 확인</value></data>
   <data name="BadgeScanOrPinEntry" xml:space="preserve"><value>배지 스캔 또는 핀 번호 입력</value></data>
   <data name="BlockedByInspectionNgHandleInDefectPopup" xml:space="preserve"><value>검사 불량 차단 로트 — 불량 등록에서 처리하세요</value></data>
   <data name="Cancel" xml:space="preserve"><value>취소</value></data>
@@ -91,6 +92,7 @@
   <data name="LogOut2" xml:space="preserve"><value>로그아웃</value></data>
   <data name="Logout" xml:space="preserve"><value>로그아웃</value></data>
   <data name="LotBarcodeScanConfirm" xml:space="preserve"><value>로트 바코드 스캔 · 실적 확정</value></data>
+  <data name="MaterialShort" xml:space="preserve"><value>라인 자재 부족</value></data>
   <data name="LotBelongsToAnotherLine" xml:space="preserve"><value>다른 라인의 로트입니다</value></data>
   <data name="LotNotFound" xml:space="preserve"><value>로트 없음</value></data>
   <data name="Lotno" xml:space="preserve"><value>로트 번호</value></data>
