@@ -28,6 +28,25 @@
             </div>
         </RadzenCard>
 
+        <RadzenCard class="wh02-panel">
+            <div class="pda-fld">
+                <label>MAINTENANCE WORK ORDER (OPTIONAL)</label>
+                <RadzenDropDown TValue="string" class="pda-filter-select" Style="width:100%"
+                                Data="@OrderedWorkOrders" TextProperty="DisplayName" ValueProperty="WorkOrderNo"
+                                @bind-Value="_workOrderNo" AllowClear="true" AllowFiltering="true"
+                                Placeholder="No work order" Disabled="@(_busy || _workOrdersLoading)" />
+                @if (!string.IsNullOrWhiteSpace(_workOrdersError))
+                {
+                    <div class="pda-status fail">@_workOrdersError</div>
+                    <RadzenButton Text="RETRY" Click="LoadWorkOrders" Disabled="@(_busy || _workOrdersLoading)" />
+                }
+                @if (SelectedWorkOrder is { } work && !string.IsNullOrWhiteSpace(work.Description))
+                {
+                    <div class="pda-status dim">@work.Description</div>
+                }
+            </div>
+        </RadzenCard>
+
         @if (_lot is not null)
         {
             <RadzenCard class="@($"wh02-lot-card {(_lot.IsReleaseEligible ? "ready" : "received")}")">
@@ -117,6 +136,12 @@
     private string _modalMessage = "";
     private string _modalKind = "info";
     private PdaApi.SparePartRow? _lot;
+    private List<PdaSparePartWorkOrder> _workOrders = [];
+    private string? _workOrderNo;
+    private string? _workOrdersError;
+    private bool _workOrdersLoading;
+    private List<PdaSparePartWorkOrder> OrderedWorkOrders => SparePartValidation.OrderWorkOrders(_workOrders, _lot?.ApplicableEquipment);
+    private PdaSparePartWorkOrder? SelectedWorkOrder => _workOrders.FirstOrDefault(w => w.WorkOrderNo == _workOrderNo);
     private DotNetObjectReference<SpRelease>? _scannerRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -125,7 +150,18 @@
         PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
         _scannerRef = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
+        await LoadWorkOrders();
         await FocusScannerAsync();
+    }
+
+    private async Task LoadWorkOrders()
+    {
+        if (_workOrdersLoading) return;
+        _workOrdersLoading = true;
+        _workOrdersError = null;
+        try { _workOrders = await Api.OpenWorkOrdersAsync(); }
+        catch (Exception ex) { _workOrdersError = ex.Message; }
+        finally { _workOrdersLoading = false; await InvokeAsync(StateHasChanged); }
     }
 
     [JSInvokable]
@@ -193,14 +229,15 @@
         _busy = true;
         try
         {
-            var result = await Api.SpReleaseAsync(new(lot.SerialNo!, 1, Note: "PDA spare parts release"));
+            var result = await Api.SpReleaseAsync(new(lot.SerialNo!, 1, Note: "PDA spare parts release", WorkOrderNo: _workOrderNo));
             if (!result.Success)
             {
                 ShowModal("Release Failed", result.Message, "fail");
                 return;
             }
             _lot = result.Row;
-            ShowModal("Release Complete", $"Serial {lot.SerialNo} was released.", "success");
+            ShowModal("Release Complete", $"Serial {lot.SerialNo} was released."
+                + (string.IsNullOrWhiteSpace(_workOrderNo) ? "" : $" Work order: {_workOrderNo}."), "success");
         }
         catch (Exception ex) { ShowModal("Release Failed", ex.Message, "fail"); }
         finally { _busy = false; }

@@ -166,7 +166,7 @@ public abstract class PdaApi
         int? SafetyStock = null, string? SerialNo = null, string? ItemStatus = null,
         string? ExtraLocation = null, int? LastTxnId = null);
     public sealed record SparePartMoveReq(string EosSpNo, int Qty = 1,
-        string? LocationId = null, string? Note = null);
+        string? LocationId = null, string? Note = null, string? WorkOrderNo = null);
     public sealed record SparePartSerialRow(string SerialNo, string StatusCode, DateTime CreatedAt);
     public sealed record SparePartLabelCreateReq(string EosSpNo, int Count);
     public sealed record SparePartCancelReq(string SerialNo, string MoveType, string? Note = null);

@@ -297,24 +297,13 @@
 2. **동시 출고·보충 Worker 부하 검증 대기**
    - 출고의 Serializable을 ReadCommitted로 낮추고 LOT 비교의 UPPER를 제거했습니다. 재고 행 변경 잠금과 피킹 지시 잠금은 유지합니다.
    - 동일 품목 여러 줄의 수요 분배 SQL은 읽기 전용 회귀 검사로 확인했습니다. 실제 PDA 여러 대와 보충 Worker를 겹쳐 실행하는 검증은 아직 하지 않았습니다.
-3. **[요청] PDA 예비품 출고(SP-07)에 보전 작업지시 연결**(10-15 사용자 결정 — 이승욱 요청)
-   - 배경: 보전 작업지시(MNT-007)의 사용 부품은 웹에서 입력·차감하지 않고, **PDA 출고가 재고를 줄이며 웹은 그 출고를 기록만** 합니다. 웹 쪽은 반영돼 있습니다(10-15) — 작업지시 상세·완료 창이 `MNT_SparePartsTxn` 의 `RefType='MWO'`·`RefID`=작업지시 번호·`MoveType='OUT'` 행(되돌림 `ReversalOfTxnID` 가 있는 행 제외)을 「PDA 출고 부품」으로 보이고, 완료·종료 때 `PartsUsedJSON` 에 스냅샷합니다(`MntRepository.ListWoPartReleases`).
-   - 정해진 규칙
-     - 작업지시 선택은 **선택 항목**입니다. 고르지 않은 출고는 지금처럼 `RefType='PDA'` 로 남습니다.
-     - 고를 수 있는 작업지시는 끝나지 않은 것(상태 `ISSUED`·`ASSIGNED`·`IN_PROGRESS`, 공통코드 `MNT_STATUS`)만입니다. 완료·종료된 작업지시로는 출고를 거부합니다.
-     - 작업지시에 묶인 출고는 **그 작업지시가 완료·종료된 뒤에는 취소할 수 없습니다**(완료 때 사용 부품이 기록되므로).
-     - 시리얼이 없는 기존 재고(개발 DB 예비품 17개 중 15개)는 테스트 데이터라 따로 처리하지 않습니다.
-   - 할 일
-     - PDA `Components/Pages/Sp/SpRelease.razor`: 출고 전에 작업지시를 고르는 칸(선택). 진행 중 작업지시 목록에서 고르고(스캔한 시리얼의 설비와 같은 것을 위로), 고른 작업지시는 연속 출고 동안 유지합니다. 출고 메모(지금 고정 "PDA spare parts release")에 작업지시 번호를 넣으면 좋습니다.
-     - Api: 진행 중 보전 작업지시 목록 조회(예: `GET /api/mnt/work-orders/open` — 번호·설비·내용·상태). `POST /api/wh/sp/release` 의 `SparePartMoveReq` 에 `WorkOrderNo`(선택)를 더하고, 있으면 존재·미완료를 확인합니다.
-     - `PdaSparePartsSql.Move`(`src/02_Data/AMES.Data/Repositories/PdaSparePartsSql.cs:48`, 호출 `WhEndpoints.ExecuteSparePartMove` — 10-16 프로시저 `SP_PDA_STOCK_MOVE` 를 대신함): `@WorkOrderNo`(선택)를 받아, 값이 있으면 출고 이력을 `RefType='MWO'`·`RefID`=작업지시 번호로 남깁니다(지금은 `RefType='PDA'`·`RefID`=보관 위치 — 위치는 `MNT_SparePartItem.LocationID` 에 남습니다). 작업지시 번호는 `MNT_WorkOrder.WoNumber` 와 같은 값이어야 웹이 찾습니다. 감사 로그(SP-07 OUT) 메모에도 작업지시 번호를 넣습니다.
-     - `PdaSparePartsSql.Cancel`(같은 파일 :125, 호출 `WhEndpoints.CancelSparePartMove` — 구 `SP_PDA_SP_STOCK_CANCEL`): 되돌릴 원래 출고가 `RefType='MWO'` 이고 그 작업지시 상태가 `COMPLETED`·`CLOSED` 이면 거부합니다.
-   - 10-16 웹 변경으로 더할 것(이승욱 — CLAUDE.md MNT 규칙 ⑦·⑩·⑪)
-     - 목록에서 **「예정」 PM 작업지시는 빼거나 따로 보입니다** — 착수 전이고 PM 예정일이 오늘 + N일(`SYS_Config.MNT_PM_LEAD_DAYS`, 기본 7)보다 뒤인 PM 작업지시입니다. 웹은 MNT-007 기본 목록·열린 작업지시 수에서 뺍니다. 판정은 `MntRepository.ListWorkOrders` 의 `MwoRow.Planned` 또는 SQL `PmRules.PlannedWoSql`(별칭 `w`)을 그대로 씁니다.
-     - 새 출처 2가지도 출고 대상입니다: `CHECK`(PM 점검 불합격으로 생긴 CM 후속 작업지시, SourceRefID = 원래 작업지시 번호)·`ANDON`(MNT-002 에서 안돈 고장에 발행한 CM 작업지시).
-     - PM 작업지시는 점검 항목에 필요 예비품·수량이 있습니다(`MNT_WorkOrderTask.RequiredSparePartNo`·`RequiredQty`, `MntRepository.ListWorkOrderTasks`). 작업지시를 고르면 그 목록을 참고로 보여 주면 출고가 쉽습니다(선택).
-     - PDA 보전 API(`/api/mnt/pda/*`)의 작업지시 조회(`Work()`)는 PM·`CHECK` 작업지시만 받으므로, CM·ANDON 까지 고르는 SP-07 작업지시 목록은 따로 만들어야 합니다.
-   - 배포 순서: Api(AMES.Data 포함) → PDA 앱 — DB 프로시저 변경은 없습니다. 작업지시 번호가 선택이라 구 PDA 앱도 그대로 동작합니다.
+3. **PDA 예비품 출고(SP-07) 보전 작업지시 연결 — API/PDA 배포·실출고 검증 대기**
+   - `GET /api/wh/sp/work-orders`는 미완료 작업지시만 DB에서 조회하고 `PmRules.PlannedWoSql`로 아직 먼 예정 PM을 제외합니다. CHECK·ANDON 등 출처는 제한하지 않습니다.
+   - PDA 출고에서 작업지시를 선택할 수 있고, 스캔한 예비품의 설비와 일치하는 것을 위에 보입니다. 선택은 연속 출고·Clear 동안 유지하며 선택 해제로 일반 출고가 가능합니다.
+   - 요청의 `WorkOrderNo`는 선택입니다. 미선택은 기존 `RefType='PDA'`, 선택은 `RefType='MWO'`·`RefID`=작업지시 번호로 기록하며 출고·감사 메모에 번호를 포함합니다. 웹의 기존 `ListWoPartReleases`가 그대로 읽습니다.
+   - 애플리케이션 SQL에서 작업지시를 재고보다 먼저 잠그고 존재·미완료·예정 여부를 확인합니다. 연결 출고의 취소도 완료·종료된 작업지시는 거부하고 원거래를 다시 확인합니다.
+   - PM·CHECK만 받는 보전 작업 화면 API와 별개로 SP 전용 목록을 사용하므로 CM·ANDON 작업지시도 선택할 수 있습니다. 시리얼 없는 기존 테스트 재고는 변환하지 않습니다.
+   - 프로시저를 추가·변경하지 않습니다. 배포 순서는 API(Contracts/Data 포함) → PDA이며 구 PDA의 작업지시 없는 출고도 호환합니다. 실제 재고 출고·취소 및 동시에 완료하는 테스트는 아직 실행하지 않았습니다.
 4. **[요청] 재구축 목록에 MNT 마이그레이션 3개 추가됨 — 전체 재구축 검증에 포함**(10-16 이승욱)
    - `dist/rebuild_db.sh` 에 `migrate_mnt_pm_checklist.sql` → `migrate_mnt_failure_downtime.sql` → `migrate_mnt_pm_lead_days.sql` 순서로 넣었습니다(모두 재실행 안전, 스키마 파일은 이미 적용 뒤 구조라 대부분 건너뜁니다). 위 1(전체 재구축 검증) 때 같이 확인합니다.
    - `migrate_mnt_failure_downtime.sql` 은 `MNT_WorkOrder.DowntimeID` 를 지우고, 값이 있으면 THROW 합니다(개발·로컬 DB 0건).
