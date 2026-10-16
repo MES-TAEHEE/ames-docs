@@ -10,7 +10,7 @@ public class FailureDowntimeDbTests
 {
     const string WriteSkip = "set AMES_TEST_CONN (local DB) to run — creates and removes test failures, work orders and downtime rows";
     const string Actor = "itest-fdt";
-    const string Equip = "INJ-850-02";
+    const string Equip = "INJ-02-01-1800";
 
     static void Cleanup(Connection.AmesConnectionFactory f) => Exec(f, """
         DELETE d FROM dbo.PP_LineDowntimeLog d JOIN dbo.MNT_FailureRegister r ON r.FailureID = d.FailureID WHERE r.CreatedBy = @A;

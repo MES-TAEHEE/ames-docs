@@ -58,7 +58,7 @@ public class BackflushConfirmTests
         var f = WriteFactory(); Skip.If(f is null, WriteSkip);
         SkipUnlessIsolated(f!);
         var repo = new InjLotRepository(f!);
-        var (lotId, lotCode) = repo.CreateRawLot(Line, "INJ-650-01", CoreMap(), 990015);
+        var (lotId, lotCode) = repo.CreateRawLot(Line, "INJ-01-01-1800", CoreMap(), 990015);
         try
         {
             SeedLineStock(f!);
@@ -88,7 +88,7 @@ public class BackflushConfirmTests
         Skip.If(defectCode is null || cause is null, "replica has no defect code / cause");
         var inj = new InjLotRepository(f!);
         var rwk = new ReworkRepository(f!);
-        var (lotId, lotCode) = inj.CreateRawLot(Line, "INJ-650-01", CoreMap(), 990016);
+        var (lotId, lotCode) = inj.CreateRawLot(Line, "INJ-01-01-1800", CoreMap(), 990016);
         try
         {
             SeedLineStock(f!);
@@ -115,7 +115,7 @@ public class BackflushConfirmTests
         Skip.If(defectCode is null || cause is null, "replica has no defect code / cause");
         var inj = new InjLotRepository(f!);
         var rwk = new ReworkRepository(f!);
-        var (lotId, lotCode) = inj.CreateRawLot(Line, "INJ-650-01", CoreMap(), 990017);
+        var (lotId, lotCode) = inj.CreateRawLot(Line, "INJ-01-01-1800", CoreMap(), 990017);
         try
         {
             SeedLineStock(f!);
