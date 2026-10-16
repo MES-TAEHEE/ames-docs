@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-MES · VOL.4 · PP → POP · 데이터 흐름 분석 가이드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Bebas+Neue&display=swap');
+:root{
+  --gold:#d4a017; --gold-lt:#fdf6e3; --gold-dk:#a07810;
+  --ink:#0d1117; --ink2:#161b22; --ink3:#21262d;
+  --surface:#ffffff; --bg:#f6f8fa; --border:#d0d7de;
+  --text:#24292f; --sub:#656d76;
+  --pp:#059669; --md:#d97706; --inj:#2563eb; --img:#7c3aed; --qc:#dc2626; --rwk:#0891b2; --sys:#475569;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;}
+.ames-nav{position:sticky;top:0;z-index:9999;background:var(--ink);border-bottom:1px solid rgba(212,160,23,.2);box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.ames-nav-inner{display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none;}
+.ames-nav-inner::-webkit-scrollbar{display:none;}
+.nav-home{display:flex;align-items:center;gap:8px;padding:0 16px;background:rgba(212,160,23,.1);border-right:1px solid rgba(212,160,23,.15);text-decoration:none;flex-shrink:0;min-height:40px;}
+.nav-home-logo{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--gold);letter-spacing:2px;}
+.nav-home-sub{font-size:9px;color:rgba(255,255,255,.3);}
+.nav-vol{display:flex;align-items:center;gap:5px;padding:0 11px;text-decoration:none;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;white-space:nowrap;min-height:40px;}
+.nav-vol:hover{color:rgba(255,255,255,.8);}
+.nav-vol.active{color:#fff;border-bottom-color:var(--gold);}
+.nav-vol .nv-code{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;}
+.l3-crumb{background:var(--ink2);border-bottom:1px solid var(--ink3);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;flex-wrap:wrap;}
+.l3-crumb a{color:rgba(255,255,255,.55);text-decoration:none;}
+.l3-crumb a:hover{color:#fff;}
+.l3-crumb .arr{color:rgba(255,255,255,.2);}
+.l3-crumb .current{color:var(--gold);font-weight:700;}
+.l3-crumb .lvl{font-size:8px;padding:1px 6px;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:rgba(255,255,255,.4);margin-right:4px;}
+.page-wrap{display:flex;}
+.sidebar{width:240px;min-width:240px;background:var(--ink2);position:sticky;top:69px;height:calc(100vh - 69px);overflow-y:auto;border-right:1px solid var(--ink3);}
+.sb-head{padding:16px 14px 12px;border-bottom:1px solid var(--ink3);}
+.sb-vol{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(212,160,23,.5);letter-spacing:2px;margin-bottom:4px;}
+.sb-mod-en{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:#fff;}
+.sb-mod-ko{font-size:10px;color:rgba(255,255,255,.3);}
+.sb-section{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.18);padding:14px 14px 6px;}
+.sb-link{display:flex;align-items:center;gap:7px;padding:6px 14px;text-decoration:none;color:rgba(255,255,255,.45);font-size:11px;border-left:2px solid transparent;}
+.sb-link:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.03);}
+.sb-link.on{color:#fff;border-left-color:var(--gold);background:rgba(212,160,23,.07);}
+.sb-link .sl-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;width:48px;flex-shrink:0;color:rgba(52,211,153,.7);}
+.sb-link.on .sl-id{color:var(--gold);}
+.sb-link .sl-en{font-size:10px;font-weight:600;}
+.sb-link .sl-ko{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px;}
+.sb-toc{padding:6px 14px 14px;border-top:1px solid var(--ink3);margin-top:6px;}
+.sb-toc-title{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(212,160,23,.5);margin-bottom:6px;}
+.sb-toc a{display:block;padding:4px 8px;border-radius:3px;font-size:10px;color:rgba(255,255,255,.45);text-decoration:none;}
+.sb-toc a:hover{color:#fff;background:rgba(255,255,255,.03);}
+.sb-toc a .num{font-family:'JetBrains Mono',monospace;color:rgba(212,160,23,.5);font-size:9px;margin-right:6px;}
+.main{flex:1;min-width:0;}
+.scr-hdr{padding:32px 48px 26px;background:linear-gradient(135deg,#031712 0%,#052e1f 50%,#0b1f3a 100%);position:relative;overflow:hidden;border-bottom:1px solid rgba(52,211,153,.2);}
+.scr-hdr::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(52,211,153,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.04) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.scr-hdr-inner{position:relative;z-index:1;}
+.scr-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#34d399;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.scr-eyebrow .dot{width:5px;height:5px;background:#34d399;border-radius:50%;box-shadow:0 0 8px #34d399;}
+.scr-id-block{display:flex;align-items:flex-end;gap:18px;margin-bottom:14px;flex-wrap:wrap;}
+.scr-id{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:2px;color:#34d399;line-height:.9;}
+.scr-title-en{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:#fff;line-height:.95;}
+.scr-title-ko{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:4px;margin-bottom:14px;}
+.scr-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;}
+.meta-chip{display:flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:3px;font-size:10px;color:rgba(255,255,255,.75);}
+.meta-chip .mc-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase;}
+.meta-chip .mc-val{font-weight:700;}
+.meta-chip.web{border-color:rgba(26,111,255,.3);color:#7ab4ff;}
+.meta-chip.phase{border-color:rgba(212,160,23,.3);color:#fbbf24;}
+.meta-chip.role{border-color:rgba(52,211,153,.3);color:#6ee7b7;}
+.content{padding:0 48px 60px;}
+.sec{margin-top:36px;}
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.sec-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--pp);letter-spacing:1px;line-height:1;min-width:42px;}
+.sec-title-wrap{flex:1;}
+.sec-title-en{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px;}
+.sec-title-ko{font-size:11px;color:var(--sub);margin-top:1px;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--pp),transparent);max-width:200px;}
+.ov-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;}
+.ov-desc{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pp);border-radius:0 6px 6px 0;padding:16px 18px;}
+.ov-desc-en{font-size:12px;color:var(--text);line-height:1.85;margin-bottom:10px;}
+.ov-desc-ko{font-size:11px;color:var(--sub);line-height:1.85;padding-top:10px;border-top:1px dashed var(--border);}
+.ov-meta{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.ov-meta-row{display:flex;border-bottom:1px solid var(--border);font-size:11px;}
+.ov-meta-row:last-child{border-bottom:none;}
+.ov-meta-k{flex:0 0 110px;background:#f6f8fa;padding:8px 12px;font-weight:700;color:var(--sub);font-size:10px;letter-spacing:.5px;text-transform:uppercase;border-right:1px solid var(--border);}
+.ov-meta-v{flex:1;padding:8px 12px;color:var(--text);}
+code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:var(--pp);}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);}
+.tbl th{background:#f0f3f7;padding:7px 9px;font-weight:700;border:1px solid var(--border);text-align:left;font-size:10px;}
+.tbl td{padding:6px 9px;border:1px solid var(--border);vertical-align:top;line-height:1.65;}
+.tbl .k{font-weight:700;white-space:nowrap;}
+.b{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;}
+.b-ok{background:#dcfce7;color:#166534;}.b-w{background:#fef9c3;color:#92400e;}.b-e{background:#fee2e2;color:#991b1b;}.b-i{background:#dbeafe;color:#1e40af;}.b-g{background:#e5e7eb;color:#374151;}.b-v{background:#ede9fe;color:#5b21b6;}
+.rule-tbl{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.rule-tbl th{background:linear-gradient(180deg,#03251a,#031712);color:#6ee7b7;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.rule-tbl td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.7;}
+.rule-tbl tr:last-child td{border-bottom:none;}
+.rule-tbl .k{font-weight:700;color:var(--text);white-space:nowrap;}
+.rule-tbl .k small{display:block;font-weight:400;color:var(--sub);font-size:10px;}
+.ef-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;}
+.ef-step{display:grid;grid-template-columns:46px 1fr;gap:14px;padding:10px 0;position:relative;}
+.ef-step:not(:last-child)::before{content:'';position:absolute;left:23px;top:42px;bottom:-10px;width:2px;background:linear-gradient(180deg,var(--pp),rgba(5,150,105,.15));}
+.ef-num{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--pp),#047857);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;position:relative;z-index:1;}
+.ef-step.inj .ef-num{background:linear-gradient(135deg,#2563eb,#1d4ed8);}
+.ef-step.img .ef-num{background:linear-gradient(135deg,#7c3aed,#6d28d9);}
+.ef-step.qc .ef-num{background:linear-gradient(135deg,#dc2626,#b91c1c);}
+.ef-step.rwk .ef-num{background:linear-gradient(135deg,#0891b2,#0e7490);}
+.ef-trig{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
+.ef-trig-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+.ef-trig-tag.user{background:#dbeafe;color:#1e40af;}
+.ef-trig-tag.system{background:#f3e8ff;color:#7c3aed;}
+.ef-trig-tag.agent{background:#ffedd5;color:#9a3412;}
+.ef-trig-name{font-size:12px;font-weight:700;color:var(--text);}
+.ef-action{font-size:12px;color:var(--text);line-height:1.75;margin-bottom:3px;}
+.ef-result{margin-top:6px;padding:7px 10px;background:#f6f8fa;border-left:2px solid var(--pp);border-radius:0 3px 3px 0;font-size:10px;color:var(--text);line-height:1.7;}
+.ef-result .er-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:var(--pp);letter-spacing:1px;margin-right:6px;}
+.ef-step.inj .ef-result{border-left-color:#2563eb;background:#eff6ff;}.ef-step.inj .er-lbl{color:#2563eb;}
+.ef-step.img .ef-result{border-left-color:#7c3aed;background:#f5f3ff;}.ef-step.img .er-lbl{color:#7c3aed;}
+.ef-step.qc .ef-result{border-left-color:#dc2626;background:#fef2f2;}.ef-step.qc .er-lbl{color:#dc2626;}
+.ef-step.rwk .ef-result{border-left-color:#0891b2;background:#ecfeff;}.ef-step.rwk .er-lbl{color:#0891b2;}
+.lnk-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;}
+.lnk-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.lnk-node{padding:12px 16px;border-radius:6px;text-align:center;min-width:130px;border:2px solid;}
+.lnk-node.up{background:#fffbeb;border-color:var(--md);}
+.lnk-node.cur{background:linear-gradient(135deg,#031712,#052e1f);border-color:#34d399;color:#fff;}
+.lnk-node.pop{background:linear-gradient(135deg,#0b1f3a,#1e3a8a);border-color:#60a5fa;color:#fff;}
+.lnk-node.down{background:#fef2f2;border-color:#dc2626;}
+.lnk-id{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-bottom:3px;}
+.lnk-node.up .lnk-id{color:#b45309;}
+.lnk-node.cur .lnk-id{color:#34d399;}
+.lnk-node.pop .lnk-id{color:#93c5fd;}
+.lnk-node.down .lnk-id{color:#b91c1c;}
+.lnk-name{font-size:11px;font-weight:700;}
+.lnk-node.cur .lnk-name,.lnk-node.pop .lnk-name{color:#fff;}
+.lnk-ko{font-size:9px;opacity:.6;margin-top:2px;}
+.lnk-arrow{font-size:18px;color:var(--sub);}
+.note{background:var(--gold-lt);border:1px solid #f1dfa6;border-left:3px solid var(--gold);border-radius:0 5px 5px 0;padding:10px 14px;font-size:11px;line-height:1.75;margin-top:12px;}
+.note.blue{background:#eff6ff;border-color:#bfdbfe;border-left-color:#2563eb;}
+.note.red{background:#fef2f2;border-color:#fecaca;border-left-color:#dc2626;}
+.note b{color:var(--text);}
+.cmd{background:var(--ink);color:#e6edf3;font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:10px 14px;border-radius:5px;line-height:1.7;overflow-x:auto;margin-top:8px;white-space:pre;}
+.cmd .c{color:#8b949e;} .cmd .kw{color:#79c0ff;} .cmd .t{color:#ffa657;} .cmd .s{color:#a5d6ff;}
+ul.plain{padding-left:18px;font-size:11px;line-height:1.8;}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 16px;}
+.card h4{font-size:12px;font-weight:800;margin-bottom:8px;color:var(--text);display:flex;align-items:center;gap:8px;}
+.card h4 .tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;background:#f0f3f7;color:var(--pp);}
+.diag{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px;overflow-x:auto;}
+.diag svg{display:block;min-width:900px;width:100%;height:auto;font-family:'Noto Sans KR',sans-serif;}
+.diag .mono{font-family:'JetBrains Mono',monospace;}
+.lane-lbl{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;}
+.tb{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;}
+.tbs{font-size:8.5px;fill:#656d76;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--sub);margin-top:8px;}
+.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+.legend .lmd::before{background:var(--md);} .legend .lpp::before{background:var(--pp);} .legend .linj::before{background:var(--inj);} .legend .limg::before{background:var(--img);} .legend .lqc::before{background:var(--qc);} .legend .lrwk::before{background:var(--rwk);}
+.state{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:10px;margin:6px 0;}
+.state .st{padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:#fff;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px;}
+.state .st.raw{border-color:#9ca3af;color:#374151;}
+.state .st.ok{border-color:#22c55e;color:#166534;background:#f0fdf4;}
+.state .st.ng{border-color:#f59e0b;color:#92400e;background:#fffbeb;}
+.state .st.def{border-color:#dc2626;color:#991b1b;background:#fef2f2;}
+.state .st.scr{border-color:#374151;color:#fff;background:#374151;}
+.state .ar{color:var(--sub);}
+.ref-tbl td:first-child{white-space:nowrap;}
+.w{color:#9a3412;font-weight:700;} .r{color:#1e40af;font-weight:700;}
+.page-footer{padding:24px 48px;border-top:1px solid var(--border);background:var(--ink);color:rgba(255,255,255,.4);display:flex;justify-content:space-between;align-items:center;font-size:10px;}
+.page-footer .pf-l{font-family:'JetBrains Mono',monospace;}
+.page-footer .pf-r{color:rgba(212,160,23,.6);font-family:'JetBrains Mono',monospace;}
+@media (max-width:1100px){.ov-grid{grid-template-columns:1fr;}.two{grid-template-columns:1fr;}}
+@media (max-width:900px){.sidebar{display:none;}.content{padding:0 16px 40px;}.scr-hdr{padding:24px 16px;}.page-footer{padding:16px;flex-direction:column;gap:6px;}.scr-id{font-size:40px;}.scr-title-en{font-size:34px;}}
+</style>
+</head>
+<body>
+<nav class="ames-nav"><div class="ames-nav-inner">
+  <a class="nav-home" href="INDEX.html"><div><div class="nav-home-logo">A-MES</div><div class="nav-home-sub">Index</div></div></a>
+  <a href="VOL03_WH_Warehouse.html" class="nav-vol"><span class="nv-code" style="color:#0891b2;">WH</span><span>Warehouse</span></a>
+  <a href="VOL04_PP_Production_Plan.html" class="nav-vol active"><span class="nv-code" style="color:#059669;">PP</span><span>Plan</span></a>
+  <a href="VOL05_INJ_Injection.html" class="nav-vol"><span class="nv-code" style="color:#2563eb;">INJ</span><span>Injection</span></a>
+  <a href="VOL06_IMG_Wrapping.html" class="nav-vol"><span class="nv-code" style="color:#7c3aed;">IMG</span><span>Wrapping</span></a>
+  <a href="VOL07_PNT_Painting.html" class="nav-vol"><span class="nv-code" style="color:#ea580c;">PNT</span><span>Painting</span></a>
+  <a href="VOL08_QC_Quality.html" class="nav-vol"><span class="nv-code" style="color:#dc2626;">QC</span><span>Quality</span></a>
+  <a href="VOL09_FG_Finished_Goods.html" class="nav-vol"><span class="nv-code" style="color:#0db87a;">FG</span><span>Finished Goods</span></a>
+  <a href="VOL10_MNT_Maintenance.html" class="nav-vol"><span class="nv-code" style="color:#0284c7;">MNT</span><span>Maintenance</span></a>
+  <a href="VOL11_RPT_Reports.html" class="nav-vol"><span class="nv-code" style="color:#6366f1;">RPT</span><span>Reports</span></a>
+  <a href="VOL12_SYS_System.html" class="nav-vol"><span class="nv-code" style="color:#475569;">SYS</span><span>System</span></a>
+  <a href="VOL13_MD_Master_Data.html" class="nav-vol"><span class="nv-code" style="color:#d97706;">MD</span><span>Master Data</span></a>
+</div></nav>
+<div class="l3-crumb">
+  <span class="lvl">L1</span><a href="INDEX.html">A-MES Index</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L2</span><a href="VOL04_PP_Production_Plan.html">VOL.4 · PP Production Plan</a>
+  <span class="arr">▸</span>
+  <span class="lvl">L3</span><span class="current">PP → POP 데이터 흐름 분석 가이드</span>
+</div>
+<div class="page-wrap">
+<nav class="sidebar">
+  <div class="sb-head">
+    <div class="sb-vol">VOL.4 · PP → POP</div>
+    <div class="sb-mod-en">DATA FLOW</div>
+    <div class="sb-mod-ko">테이블 흐름 분석 가이드</div>
+  </div>
+  <div class="sb-section">Related · 관련 문서</div>
+  <a class="sb-link" href="VOL04_PP03_Plan_Confirm.html"><span class="sl-id">PP-03</span><div><div class="sl-en">Plan &amp; Confirm</div><div class="sl-ko">생산계획 수립 · WO 발행</div></div></a>
+  <a class="sb-link" href="VOL04_PP_LSB_Line_Schedule_Board.html"><span class="sl-id">PP-LSB</span><div><div class="sl-en">Line Schedule Board</div><div class="sl-ko">라인 스케줄 보드</div></div></a>
+  <a class="sb-link" href="VOL04_PP_APS_How_It_Works.html"><span class="sl-id">APS</span><div><div class="sl-en">APS How It Works</div><div class="sl-ko">APS 동작 가이드</div></div></a>
+  <a class="sb-link" href="VOL05_INJ_Injection.html"><span class="sl-id">INJ</span><div><div class="sl-en">Injection POP</div><div class="sl-ko">사출 터미널</div></div></a>
+  <a class="sb-link" href="VOL06_IMG_Wrapping.html"><span class="sl-id">IMG</span><div><div class="sl-en">Wrapping POP</div><div class="sl-ko">감싸기 터미널</div></div></a>
+  <a class="sb-link" href="AMES_ERD.html"><span class="sl-id">ERD</span><div><div class="sl-en">Schema Diagram</div><div class="sl-ko">전체 테이블 관계도</div></div></a>
+  <div class="sb-toc">
+    <div class="sb-toc-title">On this page</div>
+    <a href="#s0"><span class="num">00</span>이 문서의 범위</a>
+    <a href="#s1"><span class="num">01</span>전체 흐름 한 장</a>
+    <a href="#s2"><span class="num">02</span>전제 마스터 (MD_*)</a>
+    <a href="#s3"><span class="num">03</span>수요 유입 (PP-001·002)</a>
+    <a href="#s4"><span class="num">04</span>WO 발행 (PP-003·APS)</a>
+    <a href="#s5"><span class="num">05</span>라인 슬롯 (PP_LineSchedule)</a>
+    <a href="#s6"><span class="num">06</span>POP 로그인·화면 조립</a>
+    <a href="#s7"><span class="num">07</span>INJ — LOT·라벨·확정</a>
+    <a href="#s8"><span class="num">08</span>IMG — Core 스캔·판정</a>
+    <a href="#s9"><span class="num">09</span>불량·재작업</a>
+    <a href="#s10"><span class="num">10</span>WO 진척 역전파</a>
+    <a href="#s11"><span class="num">11</span>테이블 레퍼런스</a>
+    <a href="#s12"><span class="num">12</span>추적 SQL</a>
+    <a href="#s13"><span class="num">13</span>함정 · 점검표</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="scr-hdr">
+    <div class="scr-hdr-inner">
+      <div class="scr-eyebrow"><span class="dot"></span>VOL.4 · PP → POP · 시스템 분석 가이드</div>
+      <div class="scr-id-block">
+        <div class="scr-id">PP→POP</div>
+        <div><div class="scr-title-en">Data Flow by Table</div></div>
+      </div>
+      <div class="scr-title-ko">마 스 터 → 수 주 → W O · 단 계 → 슬 롯 → 세 션 → L O T → 실 적 → 불 량 · 재 작 업 → W O 진 척 — 테 이 블 이 바 뀌 는 순 서 전 부</div>
+      <div class="scr-meta">
+        <div class="meta-chip web"><span class="mc-lbl">Audience</span><span class="mc-val">시스템 분석 · 운영 · 개발자</span></div>
+        <div class="meta-chip phase"><span class="mc-lbl">Basis</span><span class="mc-val">소스 2026-10-14 (dev 9b96b88a) · dist/AMES_Schema.sql</span></div>
+        <div class="meta-chip role"><span class="mc-lbl">Scope</span><span class="mc-val">PP(Web) → INJ·IMG·RWK(POP) · 1 LOT = 1 EA</span></div>
+        <div class="meta-chip"><span class="mc-lbl">Writers</span><span class="mc-val" style="font-family:'JetBrains Mono',monospace;">PpRepository · WorkOrderRepository · InjLotRepository · ImgLotRepository · ReworkRepository</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- 00 -->
+    <div class="sec" id="s0">
+      <div class="sec-hdr"><div class="sec-num">00</div><div class="sec-title-wrap"><div class="sec-title-en">Scope</div><div class="sec-title-ko">이 문서의 범위 — 화면 가이드와 무엇이 다른가</div></div><div class="sec-line"></div></div>
+      <div class="ov-grid">
+        <div class="ov-desc">
+          <div class="ov-desc-en">화면별 가이드(PP-003, PP-LSB, INJ·IMG POP)는 <b>버튼을 어떻게 쓰는지</b>를 다룹니다. 이 문서는 사무실에서 수주가 들어온 순간부터 현장 터미널이 라벨을 스캔해 실적이 WO 로 되돌아갈 때까지 <b>어떤 테이블의 어떤 행이 어떤 순서로 생기고 바뀌는지</b>를 다룹니다. 모든 단계는 한 트랜잭션 단위로 끊어 "이 메서드가 이 테이블들을 같이 쓴다"로 적었고, 상태값·키 컬럼·해석 규칙은 리포지토리 SQL 에서 그대로 옮겼습니다.</div>
+          <div class="ov-desc-ko">대상은 <b>라우팅 A(코어 사출 INJ → 완제품 IMG)</b>와 <b>C(INJ 전용)</b>의 현행 흐름입니다. 도장(PNT)·품질(QC)·창고(WH)·완성품 출하(FG)는 여기서 다루지 않습니다. 설계 문서(VOL·DEMO)의 화면 ID 와 소스 ID 가 다른 곳은 소스 ID(<code>SYS_Screen</code>)를 썼습니다.</div>
+        </div>
+        <div class="ov-meta">
+          <div class="ov-meta-row"><div class="ov-meta-k">PP 쓰기</div><div class="ov-meta-v"><code>PpRepository.UpsertCustomerOrders</code> · <code>CreateScheduledWorkOrders</code> · <code>PpRepository.Aps.CreateApsWorkOrders</code> · <code>WorkOrderRepository.ReleaseCore</code> · <code>LineScheduleRepository.SaveSchedule</code></div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">POP 쓰기</div><div class="ov-meta-v"><code>PopSessionRepository.CreateSession</code> · <code>InjLotRepository.CreateRawLot/ConfirmByLotCode/RegisterDefect</code> · <code>ImgLotRepository.CreateFromCore/ConfirmByLotCode</code> · <code>ReworkRepository.Rework/Scrap</code></div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">역전파</div><div class="ov-meta-v"><code>WorkOrderRepository.BumpStepCompleted</code> — 실적 1건이 단계 행·헤더로 올라가는 유일한 길</div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">규칙 정본</div><div class="ov-meta-v"><code>CoreItemResolver</code> · <code>LotDefectRules</code> · <code>CoreLotRules</code> · <code>LotNoGenerator</code> · <code>ProdCalendar</code> · <code>MoldResolver</code> · <code>DeadlinePacker</code> · <code>WoStatusRules</code></div></div>
+          <div class="ov-meta-row"><div class="ov-meta-k">스키마</div><div class="ov-meta-v"><code>dist/AMES_Schema.sql</code> 175 테이블 중 이 흐름이 쓰는 34개 (11 절)</div></div>
+        </div>
+      </div>
+      <div class="note blue"><b>읽는 순서 제안.</b> 처음이면 <b>01</b>(한 장 그림)과 <b>11</b>(테이블 레퍼런스)을 먼저 보고, 데이터가 어디서 끊겼는지 찾을 때는 <b>12</b>의 추적 SQL 과 <b>13</b>의 점검표를 쓰세요. 숫자가 안 맞을 때는 <b>07·10</b>의 "한 트랜잭션 안에서 바뀌는 행" 표가 기준입니다.</div>
+    </div>
+
+    <!-- 01 -->
+    <div class="sec" id="s1">
+      <div class="sec-hdr"><div class="sec-num">01</div><div class="sec-title-wrap"><div class="sec-title-en">Flow at a Glance</div><div class="sec-title-ko">전체 흐름 한 장 — 레이어와 테이블</div></div><div class="sec-line"></div></div>
+      <div class="lnk-wrap">
+        <div class="lnk-row">
+          <div class="lnk-node up"><div class="lnk-id">① MD</div><div class="lnk-name">마스터</div><div class="lnk-ko">품목·BOM·라우팅·BOP·금형·패턴</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node cur"><div class="lnk-id">② 수요</div><div class="lnk-name">수주 · 일별계획</div><div class="lnk-ko">PP_CustomerOrder · PP_DemandPlan</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node cur"><div class="lnk-id">③ WO</div><div class="lnk-name">작업지시 · 단계</div><div class="lnk-ko">PP_WorkOrder · PP_WorkOrderRouting</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node cur"><div class="lnk-id">④ 슬롯</div><div class="lnk-name">라인 일정</div><div class="lnk-ko">PP_LineSchedule</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node pop"><div class="lnk-id">⑤ POP</div><div class="lnk-name">세션 · LOT · 라벨</div><div class="lnk-ko">PR_PopSession · tbl_Lot · PR_InjLot · PR_ImgLot</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node pop"><div class="lnk-id">⑥ 실적</div><div class="lnk-name">스캔 확정</div><div class="lnk-ko">PR_ProductionResult</div></div>
+          <span class="lnk-arrow">→</span>
+          <div class="lnk-node down"><div class="lnk-id">⑦ 품질</div><div class="lnk-name">불량 · 재작업</div><div class="lnk-ko">PR_DefectDetail</div></div>
+          <span class="lnk-arrow">↩</span>
+          <div class="lnk-node cur"><div class="lnk-id">⑧ 역전파</div><div class="lnk-name">WO 진척</div><div class="lnk-ko">CompletedQty · Status</div></div>
+        </div>
+      </div>
+      <div class="diag" style="margin-top:14px;">
+        <svg viewBox="0 0 1180 640" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#656d76"/></marker>
+            <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+          </defs>
+          <!-- lanes -->
+          <rect x="0" y="0" width="1180" height="120" fill="#fffbeb"/><text x="12" y="22" class="lane-lbl" fill="#b45309">MD · 마스터 (Web MD-0xx)</text>
+          <rect x="0" y="124" width="1180" height="150" fill="#ecfdf5"/><text x="12" y="146" class="lane-lbl" fill="#047857">PP · 생산계획 (Web)</text>
+          <rect x="0" y="278" width="1180" height="190" fill="#eff6ff"/><text x="12" y="300" class="lane-lbl" fill="#1d4ed8">POP · 현장 터미널 + InjAgent</text>
+          <rect x="0" y="472" width="1180" height="168" fill="#fef2f2"/><text x="12" y="494" class="lane-lbl" fill="#b91c1c">PR · 실적 · 품질 · 역전파</text>
+
+          <!-- MD boxes -->
+          <g>
+            <rect x="20" y="40" width="150" height="64" rx="5" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+            <text x="95" y="58" text-anchor="middle" class="tb" fill="#b45309">MD_Item</text>
+            <text x="95" y="72" text-anchor="middle" class="tbs">RoutingType A/C · InjFlag</text>
+            <text x="95" y="84" text-anchor="middle" class="tbs">PalletQty · PGN/ALC/MountPos</text>
+            <text x="95" y="97" text-anchor="middle" class="tbs">ItemType ASSY/SUB/MATERIAL</text>
+          </g>
+          <g>
+            <rect x="190" y="40" width="160" height="64" rx="5" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+            <text x="270" y="58" text-anchor="middle" class="tb" fill="#b45309">MD_BomVersion · MD_Bom</text>
+            <text x="270" y="72" text-anchor="middle" class="tbs">APPROVED · EffFrom/EffTo</text>
+            <text x="270" y="84" text-anchor="middle" class="tbs">SUB 하위 품명 CORE* = 코어</text>
+            <text x="270" y="97" text-anchor="middle" class="tbs">CoreItemResolver</text>
+          </g>
+          <g>
+            <rect x="370" y="40" width="130" height="64" rx="5" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+            <text x="435" y="58" text-anchor="middle" class="tb" fill="#b45309">MD_RoutingStep</text>
+            <text x="435" y="72" text-anchor="middle" class="tbs">RoutingType × StepSeq</text>
+            <text x="435" y="84" text-anchor="middle" class="tbs">A: 1 INJ → 2 IMG</text>
+            <text x="435" y="97" text-anchor="middle" class="tbs">C: 1 INJ</text>
+          </g>
+          <g>
+            <rect x="520" y="40" width="250" height="64" rx="5" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+            <text x="645" y="58" text-anchor="middle" class="tb" fill="#b45309">MD_WorkCenter → MD_Line → MD_Station → MD_Bop</text>
+            <text x="645" y="72" text-anchor="middle" class="tbs">ProcessCode(INJ/IMG/RWK) · WCID · LotPrefix · DailyCap</text>
+            <text x="645" y="84" text-anchor="middle" class="tbs">StationCode = POP TerminalId · Bop.ItemNo = 스테이션 품번</text>
+            <text x="645" y="97" text-anchor="middle" class="tbs">Bop.StdCycleTime → 단계 StdCycleSec · 능력</text>
+          </g>
+          <g>
+            <rect x="790" y="40" width="175" height="64" rx="5" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+            <text x="877" y="58" text-anchor="middle" class="tb" fill="#b45309">MD_Mold · MoldItem · MoldLine</text>
+            <text x="877" y="72" text-anchor="middle" class="tbs">품번×색상 → 금형 · 캐비티</text>
+            <text x="877" y="84" text-anchor="middle" class="tbs">라인×금형 UPH · PrepTime</text>
+            <text x="877" y="97" text-anchor="middle" class="tbs">MoldResolver · NoMold 거부</text>
+          </g>
+          <g>
+            <rect x="985" y="40" width="180" height="64" rx="5" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+            <text x="1075" y="58" text-anchor="middle" class="tb" fill="#b45309">MD_LineTimePattern/Segment</text>
+            <text x="1075" y="72" text-anchor="middle" class="tbs">OPERATING 분 · ShiftCode</text>
+            <text x="1075" y="84" text-anchor="middle" class="tbs">SYS_FactoryCalendar(근무일)</text>
+            <text x="1075" y="97" text-anchor="middle" class="tbs">SYS_Config DAY_CUTOFF_TIME</text>
+          </g>
+
+          <!-- PP boxes -->
+          <g>
+            <rect x="20" y="166" width="170" height="90" rx="5" fill="#fff" stroke="#059669" stroke-width="1.5"/>
+            <text x="105" y="184" text-anchor="middle" class="tb" fill="#047857">PP_CustomerOrder</text>
+            <text x="105" y="198" text-anchor="middle" class="tbs">SoID · SoNumber+SoLineNo</text>
+            <text x="105" y="210" text-anchor="middle" class="tbs">ItemNo · OrderQty · ShippedQty</text>
+            <text x="105" y="222" text-anchor="middle" class="tbs">RequestedDeliveryDate</text>
+            <text x="105" y="236" text-anchor="middle" class="tbs" fill="#047857" font-weight="700">Open → Confirmed</text>
+            <text x="105" y="249" text-anchor="middle" class="tbs">엑셀 · API · PO Sync 워커</text>
+          </g>
+          <g>
+            <rect x="20" y="226" width="0" height="0"/>
+          </g>
+          <g>
+            <rect x="215" y="166" width="150" height="90" rx="5" fill="#fff" stroke="#059669" stroke-width="1.2" stroke-dasharray="4 3"/>
+            <text x="290" y="184" text-anchor="middle" class="tb" fill="#047857">PP_DemandPlan</text>
+            <text x="290" y="198" text-anchor="middle" class="tbs">고객×품번×일자 ScheduledQty</text>
+            <text x="290" y="212" text-anchor="middle" class="tb" fill="#047857">PP_ApsRun · ApsPlanLine</text>
+            <text x="290" y="226" text-anchor="middle" class="tbs">ApsPlanLineShift · ApsRunWo</text>
+            <text x="290" y="240" text-anchor="middle" class="tbs">Saved → Released</text>
+            <text x="290" y="252" text-anchor="middle" class="tbs">(APS 경로 — 선택)</text>
+          </g>
+          <g>
+            <rect x="400" y="166" width="190" height="90" rx="5" fill="#fff" stroke="#059669" stroke-width="2"/>
+            <text x="495" y="184" text-anchor="middle" class="tb" fill="#047857">PP_WorkOrder</text>
+            <text x="495" y="198" text-anchor="middle" class="tbs">WoID · WoNumber WO-yyyyMMdd-NNN</text>
+            <text x="495" y="210" text-anchor="middle" class="tbs">SoID · ItemNo(완제품) · OrderQty/OpenQty</text>
+            <text x="495" y="222" text-anchor="middle" class="tbs">DueDate · ProdDeadline · RoutingType</text>
+            <text x="495" y="236" text-anchor="middle" class="tbs" fill="#047857" font-weight="700">Draft → Released → In Progress → Closed</text>
+            <text x="495" y="249" text-anchor="middle" class="tbs">CompletedQty = 마지막 라인 단계 값</text>
+          </g>
+          <g>
+            <rect x="615" y="166" width="200" height="90" rx="5" fill="#fff" stroke="#059669" stroke-width="2"/>
+            <text x="715" y="184" text-anchor="middle" class="tb" fill="#047857">PP_WorkOrderRouting</text>
+            <text x="715" y="198" text-anchor="middle" class="tbs">RoutingLineID · WoID · StepSeq · ProcessCode</text>
+            <text x="715" y="210" text-anchor="middle" class="tbs">LineID (정본 라인) · ItemNo (코어, NULL=WO 품번)</text>
+            <text x="715" y="222" text-anchor="middle" class="tbs">StdCycleSec · CompletedQty · TerminalLock</text>
+            <text x="715" y="236" text-anchor="middle" class="tbs" fill="#047857" font-weight="700">Released → In Progress → Closed</text>
+            <text x="715" y="249" text-anchor="middle" class="tbs">POP 이 "열린 WO" 를 찾는 곳</text>
+          </g>
+          <g>
+            <rect x="840" y="166" width="200" height="90" rx="5" fill="#fff" stroke="#059669" stroke-width="2"/>
+            <text x="940" y="184" text-anchor="middle" class="tb" fill="#047857">PP_LineSchedule</text>
+            <text x="940" y="198" text-anchor="middle" class="tbs">LineID × ScheduleDate · WoID</text>
+            <text x="940" y="210" text-anchor="middle" class="tbs">StartMin/EndMin · PlannedQty · MoldID</text>
+            <text x="940" y="222" text-anchor="middle" class="tbs">EntryType WO / MC / PM · PatternID</text>
+            <text x="940" y="236" text-anchor="middle" class="tbs" fill="#047857" font-weight="700">Status DRAFT (= 적용됨)</text>
+            <text x="940" y="249" text-anchor="middle" class="tbs">POP PLAN = 오늘 WO 슬롯 Σ PlannedQty</text>
+          </g>
+          <g>
+            <rect x="1060" y="166" width="105" height="90" rx="5" fill="#fff" stroke="#059669" stroke-width="1.2"/>
+            <text x="1112" y="184" text-anchor="middle" class="tb" fill="#047857">PP-LSB</text>
+            <text x="1112" y="200" text-anchor="middle" class="tbs">보드 적용</text>
+            <text x="1112" y="212" text-anchor="middle" class="tbs">SaveSchedule</text>
+            <text x="1112" y="226" text-anchor="middle" class="tbs">지문 비교</text>
+            <text x="1112" y="238" text-anchor="middle" class="tbs">sp_getapplock</text>
+          </g>
+
+          <!-- POP boxes -->
+          <g>
+            <rect x="20" y="320" width="160" height="76" rx="5" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
+            <text x="100" y="338" text-anchor="middle" class="tb" fill="#1d4ed8">PR_PopSession</text>
+            <text x="100" y="352" text-anchor="middle" class="tbs">OperatorID = 사번 · LineID</text>
+            <text x="100" y="364" text-anchor="middle" class="tbs">TerminalID = StationCode</text>
+            <text x="100" y="376" text-anchor="middle" class="tbs">ShiftCode(ProdCalendar)</text>
+            <text x="100" y="389" text-anchor="middle" class="tbs">← SYS_UserProfile / MD_Worker</text>
+          </g>
+          <g>
+            <rect x="210" y="320" width="215" height="76" rx="5" fill="#fff" stroke="#2563eb" stroke-width="2"/>
+            <text x="317" y="338" text-anchor="middle" class="tb" fill="#1d4ed8">tbl_Lot + PR_InjLot (INJ 코어 LOT)</text>
+            <text x="317" y="352" text-anchor="middle" class="tbs">LotCode 9자리 · ItemNo=코어 · WoID NULL</text>
+            <text x="317" y="364" text-anchor="middle" class="tbs">EquipID · MoldID · CavityPos · ShotCount</text>
+            <text x="317" y="376" text-anchor="middle" class="tbs" fill="#1d4ed8" font-weight="700">RAW → CONFIRMED (NG_BLOCKED)</text>
+            <text x="317" y="389" text-anchor="middle" class="tbs">InjAgent CreateRawLot · 수동 라벨</text>
+          </g>
+          <g>
+            <rect x="445" y="320" width="150" height="76" rx="5" fill="#fff" stroke="#2563eb" stroke-width="1.2"/>
+            <text x="520" y="338" text-anchor="middle" class="tb" fill="#1d4ed8">라벨 발행</text>
+            <text x="520" y="352" text-anchor="middle" class="tbs">PR_InjLot.PrintClaimTS</text>
+            <text x="520" y="364" text-anchor="middle" class="tbs">PrintClaimStation</text>
+            <text x="520" y="376" text-anchor="middle" class="tbs">PrintedCount +1</text>
+            <text x="520" y="389" text-anchor="middle" class="tbs">LabelDispatcher (INJ 세션만)</text>
+          </g>
+          <g>
+            <rect x="615" y="320" width="215" height="76" rx="5" fill="#fff" stroke="#7c3aed" stroke-width="2"/>
+            <text x="722" y="338" text-anchor="middle" class="tb" fill="#6d28d9">tbl_Lot + PR_ImgLot (IMG 완제품 LOT)</text>
+            <text x="722" y="352" text-anchor="middle" class="tbs">ItemNo=완제품 · ParentLotID = 코어 LotID</text>
+            <text x="722" y="364" text-anchor="middle" class="tbs">CustomerCode(라벨 V 토큰 고정)</text>
+            <text x="722" y="376" text-anchor="middle" class="tbs" fill="#6d28d9" font-weight="700">RAW → CONFIRMED</text>
+            <text x="722" y="389" text-anchor="middle" class="tbs">Core 스캔 CreateFromCore · 동기 출력</text>
+          </g>
+          <g>
+            <rect x="850" y="320" width="150" height="76" rx="5" fill="#fff" stroke="#2563eb" stroke-width="1.2"/>
+            <text x="925" y="338" text-anchor="middle" class="tb" fill="#1d4ed8">스캔 확정</text>
+            <text x="925" y="352" text-anchor="middle" class="tbs">ConfirmByLotCode</text>
+            <text x="925" y="364" text-anchor="middle" class="tbs">열린 WO 해석</text>
+            <text x="925" y="376" text-anchor="middle" class="tbs">OpenStepForItemFilter</text>
+            <text x="925" y="389" text-anchor="middle" class="tbs">WO 없어도 확정 (WoID NULL)</text>
+          </g>
+          <g>
+            <rect x="1020" y="320" width="145" height="76" rx="5" fill="#fff" stroke="#2563eb" stroke-width="1.2"/>
+            <text x="1092" y="338" text-anchor="middle" class="tb" fill="#1d4ed8">SYS_LotSeq · MD_Line</text>
+            <text x="1092" y="352" text-anchor="middle" class="tbs">Header 5자 · LastSeq</text>
+            <text x="1092" y="364" text-anchor="middle" class="tbs">[년][월][일][LotPrefix 2]</text>
+            <text x="1092" y="376" text-anchor="middle" class="tbs">+ 순번 4 = 9자리</text>
+            <text x="1092" y="389" text-anchor="middle" class="tbs">LotNoGenerator</text>
+          </g>
+          <g>
+            <rect x="210" y="410" width="215" height="48" rx="5" fill="#fff" stroke="#9a3412" stroke-width="1.2" stroke-dasharray="4 3"/>
+            <text x="317" y="428" text-anchor="middle" class="tb" fill="#9a3412">PR_RobotInspection · PR_ShotCount · MD_Mold</text>
+            <text x="317" y="442" text-anchor="middle" class="tbs">에이전트 부수 기록: 로봇 NG → NG_BLOCKED · 타수 누적</text>
+          </g>
+          <g>
+            <rect x="615" y="410" width="215" height="48" rx="5" fill="#fff" stroke="#1d4ed8" stroke-width="1.2" stroke-dasharray="4 3"/>
+            <text x="722" y="428" text-anchor="middle" class="tb" fill="#1d4ed8">INJ-MAIN / IMG-MAIN 좌측 그리드</text>
+            <text x="722" y="442" text-anchor="middle" class="tbs">PLAN(슬롯) · INPUT/FINAL/NG/미확정(LOT 상태) — GetDailyItemSummary</text>
+          </g>
+
+          <!-- PR boxes -->
+          <g>
+            <rect x="210" y="514" width="260" height="96" rx="5" fill="#fff" stroke="#dc2626" stroke-width="2"/>
+            <text x="340" y="532" text-anchor="middle" class="tb" fill="#b91c1c">PR_ProductionResult</text>
+            <text x="340" y="546" text-anchor="middle" class="tbs">ResultID · EntryNo E…/R… · WoID(NULL 허용) · LotID</text>
+            <text x="340" y="558" text-anchor="middle" class="tbs">LineID · ProcessCode INJ/IMG/RWK · GoodQty +1 / −1</text>
+            <text x="340" y="570" text-anchor="middle" class="tbs">CycleSec · MoldID · OperatorID · SessionID</text>
+            <text x="340" y="582" text-anchor="middle" class="tbs">EntryAt · ProdDate(전기일) · ShiftCode</text>
+            <text x="340" y="596" text-anchor="middle" class="tbs" fill="#b91c1c" font-weight="700">확정 +1 · 불량 역분개 −1 · 재작업 +1</text>
+          </g>
+          <g>
+            <rect x="520" y="514" width="260" height="96" rx="5" fill="#fff" stroke="#dc2626" stroke-width="2"/>
+            <text x="650" y="532" text-anchor="middle" class="tb" fill="#b91c1c">PR_DefectDetail</text>
+            <text x="650" y="546" text-anchor="middle" class="tbs">DefectID · LotID · WoID · ResultID(확정 전 NULL)</text>
+            <text x="650" y="558" text-anchor="middle" class="tbs">DefectCode · Qty 1 · PriorStatus · ReversalResultID</text>
+            <text x="650" y="570" text-anchor="middle" class="tbs">CauseCode · DispositionBy/At · CorrectiveAction</text>
+            <text x="650" y="584" text-anchor="middle" class="tbs" fill="#b91c1c" font-weight="700">Disposition NULL(대기) → REWORKED / SCRAPPED</text>
+            <text x="650" y="598" text-anchor="middle" class="tbs">REWORK 스테이션 대기열 = Disposition IS NULL</text>
+          </g>
+          <g>
+            <rect x="830" y="514" width="335" height="96" rx="5" fill="#fff" stroke="#059669" stroke-width="1.5"/>
+            <text x="997" y="532" text-anchor="middle" class="tb" fill="#047857">BumpStepCompleted — 역전파 (한 트랜잭션)</text>
+            <text x="997" y="548" text-anchor="middle" class="tbs">PP_WorkOrderRouting.CompletedQty ± · Released → In Progress → Closed</text>
+            <text x="997" y="560" text-anchor="middle" class="tbs">ActualStart = 첫 실적 · ActualEnd = OrderQty 도달</text>
+            <text x="997" y="574" text-anchor="middle" class="tbs">PP_WorkOrder.Status Released → In Progress</text>
+            <text x="997" y="586" text-anchor="middle" class="tbs">헤더 CompletedQty·Closed 는 라인 있는 마지막 단계(MAX StepSeq)만</text>
+            <text x="997" y="600" text-anchor="middle" class="tbs">음수(역분개)는 Closed → In Progress 되돌림</text>
+          </g>
+
+          <!-- arrows MD → PP -->
+          <path d="M95,104 L95,166" stroke="#656d76" stroke-width="1.2" marker-end="url(#ar)" fill="none"/>
+          <path d="M435,104 L470,166" stroke="#656d76" stroke-width="1.2" marker-end="url(#ar)" fill="none"/>
+          <path d="M270,104 L440,166" stroke="#656d76" stroke-width="1.2" marker-end="url(#ar)" fill="none"/>
+          <path d="M645,104 L700,166" stroke="#656d76" stroke-width="1.2" marker-end="url(#ar)" fill="none"/>
+          <path d="M877,104 L920,166" stroke="#656d76" stroke-width="1.2" marker-end="url(#ar)" fill="none"/>
+          <path d="M1075,104 L1000,166" stroke="#656d76" stroke-width="1.2" marker-end="url(#ar)" fill="none"/>
+          <!-- PP chain -->
+          <path d="M190,211 L400,211" stroke="#059669" stroke-width="1.8" marker-end="url(#ar)" fill="none"/>
+          <text x="382" y="205" text-anchor="end" class="tbs" fill="#047857">PP-003 Confirmed 잔량</text>
+          <path d="M365,236 L400,236" stroke="#059669" stroke-width="1.2" marker-end="url(#ar)" fill="none" stroke-dasharray="3 2"/>
+          <path d="M590,211 L615,211" stroke="#059669" stroke-width="1.8" marker-end="url(#ar)" fill="none"/>
+          <path d="M815,211 L840,211" stroke="#059669" stroke-width="1.8" marker-end="url(#ar)" fill="none"/>
+          <path d="M1040,211 L1060,211" stroke="#059669" stroke-width="1.2" marker-end="url(#ar)" fill="none"/>
+          <!-- PP → POP -->
+          <path d="M940,256 L722,320" stroke="#656d76" stroke-width="1.2" marker-end="url(#ar)" fill="none" stroke-dasharray="3 2"/>
+          <path d="M715,256 L925,320" stroke="#656d76" stroke-width="1.2" marker-end="url(#ar)" fill="none"/>
+          <text x="800" y="296" text-anchor="middle" class="tbs">열린 단계 = LineID + 품번 + Status</text>
+          <path d="M645,104 L100,320" stroke="#656d76" stroke-width="1" fill="none" stroke-dasharray="2 3" marker-end="url(#ar)"/>
+          <!-- POP chain -->
+          <path d="M1020,358 L1000,358" stroke="#656d76" stroke-width="1" marker-end="url(#ar)" fill="none" stroke-dasharray="3 2"/>
+          <path d="M425,358 L445,358" stroke="#2563eb" stroke-width="1.5" marker-end="url(#ar)" fill="none"/>
+          <path d="M595,358 L615,358" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#ar)" fill="none"/>
+          <text x="605" y="352" text-anchor="middle" class="tbs" fill="#6d28d9">Core 스캔</text>
+          <path d="M830,358 L850,358" stroke="#2563eb" stroke-width="1.5" marker-end="url(#ar)" fill="none"/>
+          <path d="M317,396 L317,410" stroke="#9a3412" stroke-width="1" marker-end="url(#ar)" fill="none"/>
+          <path d="M317,458 L317,514" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arb)" fill="none"/>
+          <text x="330" y="490" class="tbs" fill="#b91c1c">확정 → GoodQty +1</text>
+          <path d="M925,396 L925,420 L470,420 L470,514" stroke="#dc2626" stroke-width="1.5" marker-end="url(#arb)" fill="none"/>
+          <path d="M470,562 L520,562" stroke="#dc2626" stroke-width="1.2" marker-end="url(#arb)" fill="none" stroke-dasharray="3 2"/>
+          <text x="495" y="556" text-anchor="middle" class="tbs" fill="#b91c1c">역분개</text>
+          <path d="M780,562 L830,562" stroke="#059669" stroke-width="1.5" marker-end="url(#ar)" fill="none"/>
+          <path d="M1130,514 L1130,480 L1140,480 L1140,256 L1040,256" stroke="#059669" stroke-width="1.5" marker-end="url(#ar)" fill="none" stroke-dasharray="5 3"/>
+          <text x="1150" y="400" class="tbs" fill="#047857" transform="rotate(90 1150 400)">단계·헤더 갱신</text>
+        </svg>
+        <div class="legend"><span class="lmd">MD 마스터 (읽기 전용 전제)</span><span class="lpp">PP 계획 — Web 이 쓴다</span><span class="linj">POP INJ — 터미널·에이전트가 쓴다</span><span class="limg">POP IMG</span><span class="lqc">PR 실적·품질 — 스캔·판정이 쓴다</span></div>
+      </div>
+      <div class="note"><b>한 줄 요약.</b> PP 는 <code>PP_WorkOrder</code>·<code>PP_WorkOrderRouting</code>·<code>PP_LineSchedule</code> 세 테이블까지만 쓰고, POP 는 그 중 <b>단계 행(라인·품번·상태)</b>으로 "열린 WO" 를 찾아 <code>tbl_Lot</code>·<code>PR_*Lot</code>·<code>PR_ProductionResult</code> 를 쓴 뒤 <code>BumpStepCompleted</code> 한 곳으로만 단계·헤더를 되돌려 쓴다. 슬롯(<code>PP_LineSchedule</code>)은 POP 좌측 PLAN 숫자에만 쓰이고 확정 판정에는 관여하지 않는다.</div>
+    </div>
+
+    <!-- 02 -->
+    <div class="sec" id="s2">
+      <div class="sec-hdr"><div class="sec-num">02</div><div class="sec-title-wrap"><div class="sec-title-en">Master Prerequisites</div><div class="sec-title-ko">전제 마스터 — 흐름이 시작되기 전에 있어야 하는 행</div></div><div class="sec-line"></div></div>
+      <table class="rule-tbl">
+        <thead><tr><th style="width:230px;">테이블</th><th>흐름에서의 역할 · 키 컬럼</th><th style="width:280px;">없거나 틀리면</th></tr></thead>
+        <tbody>
+          <tr><td class="k">MD_Item<small>MD-003</small></td><td><code>RoutingType</code>(A = INJ→IMG, C = INJ, NULL = 라우팅 없음)이 WO 템플릿을 고른다. <code>ItemType</code> SUB + 품명 <code>CORE*</code> 가 코어 판정의 기준(<code>CoreItemResolver.IsCoreName</code>). <code>PalletQty</code> 는 APS WO 포장 올림, <code>PGN·ALC·MountPos</code> 는 IMG 라벨.</td><td>PP-003 후보에서 <code>Blocked</code>(품목 없음·라우팅 없음) — WO 를 만들 수 없다.</td></tr>
+          <tr><td class="k">MD_BomVersion · MD_Bom<small>MD-004</small></td><td>오늘 유효한 <code>APPROVED</code> 버전(부모당 EffFrom 최신 1개)의 SUB 하위를 내려가 품명 CORE 인 품번 <b>정확히 1개</b>를 코어로 정한다. 그 코어가 INJ 단계 품번(<code>PP_WorkOrderRouting.ItemNo</code>)으로 스냅샷된다.</td><td>코어 0개·2개 이상 → PP-003 <code>NoCore</code> 거부, PP-004 수동 발행은 예외. SUB 하위가 없으면 WO 품번 그대로(Self).</td></tr>
+          <tr><td class="k">MD_RoutingStep<small>스키마 시드</small></td><td><code>RoutingType × StepSeq × ProcessCode</code> 가 단계 템플릿. <code>ReadPreview</code> 가 StepSeq 순으로 읽어 단계마다 품번·BOP 라인·라인 필수 여부·사이클을 붙인다.</td><td>ActiveFlag 0 이면 그 단계가 빠진다. 라우팅 A 인데 IMG 단계가 없으면 완제품 실적이 WO 에 안 붙는다.</td></tr>
+          <tr><td class="k">MD_WorkCenter → MD_Line → MD_Station<small>MD-005·020</small></td><td><code>MD_WorkCenter.ProcessCode</code> 가 라인의 공정이고 POP 로그인 모듈 분기(<code>MD_Line.WCID</code>)와 "단계의 라인 후보" 둘 다 여기서 나온다. <code>MD_Line.LotPrefix</code>(2자)는 LotNo 채번, <code>DailyCap</code> 은 수량 모드 능력. <code>MD_Station.StationCode</code> 가 POP 세션 <code>TerminalId</code> 이자 BOP 의 키.</td><td>LotPrefix 없음 → 채번 예외(에이전트·수동 라벨·IMG 발행 전부 실패). IMG 라인에 스테이션이 없으면 로그인 자체가 안 된다.</td></tr>
+          <tr><td class="k">MD_Bop<small>MD-005</small></td><td><code>StationCode × ItemNo × RoutingType</code>. INJ 스테이션은 <b>코어</b> 품번, IMG 스테이션은 <b>완제품</b> 품번. <code>StdCycleTime</code> → 단계 <code>StdCycleSec</code>·배치 능력. POP 좌측 품번 목록의 첫 번째 원천.</td><td>좌측 패널이 비고 수동 라벨·불량 팝업이 동작하지 않는다(스캔 확정은 LOT 품번으로 WO 를 찾으므로 계속 된다).</td></tr>
+          <tr><td class="k">MD_Mold · MD_MoldItem · MD_MoldLine<small>MD-007</small></td><td>INJ 단계 품번(코어)의 활성 <code>MD_MoldItem</code> 이 금형 후보, <code>MD_MoldLine</code> 의 <code>UPH·PrepTime</code> 이 슬롯 길이와 교체 시간. <code>MoldResolver</code>: 직전 금형 → 교체 최소 → MoldID 순.</td><td>후보 없음 → 그 수주 <code>NoMold</code> 거부(라인 미배정은 거부 사유 아님). UPH 없음 → APS 는 <code>NoUph</code>.</td></tr>
+          <tr><td class="k">MD_LineTimePattern · MD_LineTimeSegment<small>MD-028</small></td><td>하루 1440분을 OPERATING/IDLE 로 칠한 구간 + <code>ShiftCode</code>. <code>GetDayCapacity</code> 가 패턴을 해석(그 날 저장 행 → 라인 전용 ACTIVE → 전역)해 가동 밴드를 만들고 <code>DeadlinePacker</code> 가 그 안에 슬롯을 놓는다.</td><td>가동 구간 0 → 슬롯 없이 Released 로 남아 PP-LSB 미배치 목록에 간다.</td></tr>
+          <tr><td class="k">SYS_FactoryCalendar · SYS_Config<small>SYS-005·009</small></td><td>근무일(WORKDAY·SPECIAL)만 세어 <code>ProdDeadline = 납기 − PP_PROD_BUFFER_WORKDAYS</code>. <code>DAY_CUTOFF_TIME</code>(07:00) + 공통코드 <code>WORK_SHIFT.Attribute1</code> 이 실적의 전기일·교대를 정한다(<code>ProdCalendar.ResolveNow</code>).</td><td>달력 행 없는 날은 토·일만 휴일로 본다. 설정 없으면 자정 기준.</td></tr>
+          <tr><td class="k">SYS_UserProfile + AspNetUsers · MD_Worker<small>SYS-001 · MD-032</small></td><td>POP 로그인 두 원천. 사번이 겹치면 웹 계정이 이긴다. 세션의 <code>OperatorID</code>·실적의 <code>OperatorID/CreatedBy</code> 는 전부 사번.</td><td>미등록 사번은 EOS 배지 스캔이면 <code>MD_Worker</code> 자동 생성, 아니면 로그인 실패.</td></tr>
+        </tbody>
+      </table>
+      <div class="two" style="margin-top:14px;">
+        <div class="card"><h4><span class="tag">JOIN</span>라인 → 공정 해석 체인 (모든 "열린 WO"·BOP 조회가 쓴다)</h4>
+          <div class="cmd"><span class="t">MD_Bop</span>.StationCode → <span class="t">MD_Station</span>.LineID
+  → <span class="t">MD_Line</span>.WCID → <span class="t">MD_WorkCenter</span>.ProcessCode   <span class="c">-- INJ / IMG / PNT / RWK</span>
+<span class="c">-- ReadPreview: 단계 ProcessCode 와 같은 공정의 BOP 가 있는 라인 = 기본 라인 후보</span>
+<span class="c">-- POP 로그인: 선택 라인의 ProcessCode 가 AppState.ModuleCode</span></div></div>
+        <div class="card"><h4><span class="tag">RULE</span>코어 해석 — 완제품 WO 와 INJ 단계 품번이 다른 이유</h4>
+          <ul class="plain">
+            <li>WO 헤더 <code>PP_WorkOrder.ItemNo</code> = <b>완제품</b>(수주 품번).</li>
+            <li>INJ 단계 <code>PP_WorkOrderRouting.ItemNo</code> = <b>코어</b>(BOM 에서 1개 해석). 같으면 NULL 로 저장(= WO 품번).</li>
+            <li>모든 열린 WO 조회는 <code>COALESCE(r.ItemNo, w.ItemNo)</code> — INJ 스캔은 코어로, IMG 스캔은 완제품으로 찾는다.</li>
+            <li>INJ 스테이션 BOP·금형 매핑·INJ LOT 품번은 코어, IMG 는 완제품. 4색 완제품이 코어 1개를 공유할 수 있다.</li>
+          </ul></div>
+      </div>
+    </div>
+
+    <!-- 03 -->
+    <div class="sec" id="s3">
+      <div class="sec-hdr"><div class="sec-num">03</div><div class="sec-title-wrap"><div class="sec-title-en">Demand Intake</div><div class="sec-title-ko">수요 유입 — PP_CustomerOrder 가 Confirmed 가 되기까지</div></div><div class="sec-line"></div></div>
+      <div class="ef-wrap">
+        <div class="ef-step">
+          <div class="ef-num">1</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">PP-002</span><span class="ef-trig-tag system">PO SYNC</span><span class="ef-trig-name">수주 업서트 — 세 경로가 같은 메서드</span></div>
+            <div class="ef-action">엑셀 업로드 · 「API 가져오기」 · AMES.Api <code>PoSyncWorker</code>(SRM MM31006) 가 모두 <code>PpRepository.UpsertCustomerOrders</code> 를 탄다. 키는 <code>SoNumber + SoLineNo</code>(SRM `PONO` 4100172316-10 → 번호/라인). 있으면 UPDATE(수량·납기·ShippedQty 덮어씀, <b>상태 유지</b>), 없으면 INSERT.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>PP_CustomerOrder</code> — <code>Status</code> 신규 = <code>Open</code>, 단 <code>SYS_Config.PP_SO_AUTO_CONFIRM = true</code> 면 같은 트랜잭션에서 읽어 신규 행을 바로 <code>Confirmed</code>. <code>SapSyncedAt = SYSDATETIME()</code>, <code>CreatedBy</code> = 업로더 사번 / <code>PO-SYNC</code>.</div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">2</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">PP-002 · 승인 권한 A</span><span class="ef-trig-name">수주 확정</span></div>
+            <div class="ef-action">Open 행을 <code>Confirmed</code> 로 바꾼다. PP-003·APS·MRP 가 보는 수요는 <b>Confirmed 만</b>(APS 는 "Open 포함" 옵션). 「자동 확정」 스위치를 켜면 <code>EnableSoAutoConfirm</code> 이 플래그 ON + 그 시점 Open 전부 확정을 한 트랜잭션으로 처리한다.</div>
+            <div class="ef-result"><span class="er-lbl">STATE</span><code>Open → Confirmed</code>. 출하가 끝나면 <code>ShippedQty ≥ OrderQty</code>(상태는 그대로). 취소·삭제된 SRM 라인은 반영되지 않고 Open 으로 남는다(정합 처리 후속 과제).</div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">3</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">PP-001</span><span class="ef-trig-tag system">DPSYNC</span><span class="ef-trig-name">일별 구매계획 (APS 전용 수요)</span></div>
+            <div class="ef-action">SRM MM30011 업로드·수집이 <code>ReplaceDemandPlan</code> 으로 고객 × 날짜 창을 통째로 교체한다. PP-003 은 이 테이블을 보지 않는다 — <b>APS 가 <code>IncludeDailyPlan</code> 일 때만</b> 수주 잔량에 더해 셀 수요가 된다.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>PP_DemandPlan</code>(CustomerID × ItemNo × PlanDate 유니크, <code>ScheduledQty</code>) + <code>PP_DemandPlanBatch</code> 1행. 빈 응답(셀 0)은 아무것도 지우지 않는다.</div></div>
+        </div>
+      </div>
+      <table class="tbl" style="margin-top:12px;">
+        <thead><tr><th>PP_CustomerOrder 컬럼</th><th>의미</th><th>이후 누가 읽는가</th></tr></thead>
+        <tbody>
+          <tr><td class="k">SoID</td><td>내부 키</td><td><code>PP_WorkOrder.SoID</code>(WO ↔ 수주 연결) · <code>PP_ApsRunWo.SoID</code> · IMG 라벨 수주처(<code>MD_Customer.CustomerCode</code>)</td></tr>
+          <tr><td class="k">SoNumber · SoLineNo</td><td>SRM PO 번호·라인</td><td>업서트 키 · 화면 표시</td></tr>
+          <tr><td class="k">ItemNo</td><td>완제품 품번</td><td>PP-003 후보(<code>MD_Item.RoutingType</code> 확인) · WO 헤더 품번</td></tr>
+          <tr><td class="k">OrderQty · ShippedQty</td><td>수주량 · 출하량</td><td>PP-003 잔량 = OrderQty − 기발행 WO(취소 제외) · APS 잔량 = OrderQty − ShippedQty − 기발행 WO</td></tr>
+          <tr><td class="k">RequestedDeliveryDate</td><td>납기</td><td>WO <code>DueDate</code> · <code>ProdDeadline</code> 계산 · EDD 정렬 · APS 수요 버킷(휴무일은 직전 근무일)</td></tr>
+          <tr><td class="k">Status</td><td>Open / Confirmed</td><td>PP-003 후보 조건 <code>Status = 'Confirmed'</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 04 -->
+    <div class="sec" id="s4">
+      <div class="sec-hdr"><div class="sec-num">04</div><div class="sec-title-wrap"><div class="sec-title-en">Work Order Issue</div><div class="sec-title-ko">WO 발행 — PP-003 「일괄 생성」 한 트랜잭션이 쓰는 행</div></div><div class="sec-line"></div></div>
+      <div class="ef-wrap">
+        <div class="ef-step">
+          <div class="ef-num">1</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">PP-003</span><span class="ef-trig-name">후보 조회 <code>ListPlanCandidates</code></span></div>
+            <div class="ef-action"><code>PP_CustomerOrder</code> Confirmed 중 <b>잔량 &gt; 0</b>(OrderQty − Σ <code>PP_WorkOrder.OrderQty</code> WHERE SoID 같고 Status ≠ Cancelled). FG 재고는 <code>WH_Inventory</code>(PartNo, Qty &gt; 0, <code>MD_Location.AreaCode = FG_AREA</code>) 합. 최근 WO 의 단계 라인을 기본 라인으로 제안. 수량 기준은 순수요·수주량·직접 입력.</div>
+            <div class="ef-result"><span class="er-lbl">READ</span>PP_CustomerOrder · MD_Item · PP_WorkOrder · PP_WorkOrderRouting · WH_Inventory · MD_Location — 쓰기 없음.</div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">2</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag system">CreateScheduledWorkOrders</span><span class="ef-trig-name">준비 — 달력·능력·채번·정렬</span></div>
+            <div class="ef-action">트랜잭션 시작 후 <code>SYSDATETIME()</code> 으로 오늘, <code>SYS_FactoryCalendar</code> 로 <code>WorkdayCalendar</code>, <code>MD_Line.DailyCap</code>, 라인×날짜 능력 캐시(<code>ReadDayCapacity</code>) 를 만든다. 주문은 <b>납기 → 수주번호 → 라인 순(EDD)</b>으로 서버가 다시 정렬한다. WO 번호는 <code>NextWoSeq</code> 가 <code>PP_WorkOrder</code> 를 <code>UPDLOCK, HOLDLOCK</code> 으로 잡고 오늘 접두 <code>WO-yyyyMMdd-</code> 의 MAX+1.</div>
+            <div class="ef-result"><span class="er-lbl">RULE</span>deadline = <code>cal.SubtractWorkdays(납기, PP_PROD_BUFFER_WORKDAYS)</code>(기본 3, 1 미만·미등록은 3).</div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">3</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag system">ReadPreview · MoldResolver</span><span class="ef-trig-name">수주마다 템플릿·금형 판정 (WO 만들기 전)</span></div>
+            <div class="ef-action"><code>ReadPreview(itemNo, routingType)</code>: <code>CoreItemResolver.Read</code> 로 코어를 한 번 해석 → <code>MD_RoutingStep</code> 단계마다 <code>StepItemNo</code>(INJ 는 코어, 그 밖은 완제품) · BOP 라인 후보 · 라인 필수 여부 · <code>StdCycleSec</code>. INJ 단계는 <code>MoldResolver.Choose</code>(활성 <code>MD_MoldItem</code> × 그 라인 <code>MD_MoldLine</code>, 직전 금형 = 그 라인 오늘 꼬리).</div>
+            <div class="ef-result"><span class="er-lbl">REJECT</span><code>NoCore</code>(코어 0·2개 이상) · <code>NoMold</code>(금형 후보 없음) → 그 수주만 <code>RejectedOrder</code> 로 건너뛰고 나머지는 계속.</div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">4</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag system">INSERT</span><span class="ef-trig-name">헤더 — <code>PP_WorkOrder</code></span></div>
+            <div class="ef-action"><code>BuildInsertWoForOrder</code> 가 수주 행에서 그대로 INSERT … SELECT.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>WoNumber</code> · <code>SoID</code> · <code>ItemNo</code>(완제품) · <code>OrderQty = OpenQty</code>(잔량 또는 직접 입력, 이후 OpenQty 는 불변) · <code>DueDate</code> = 납기 · <code>ProdDeadline</code> · <code>RoutingType</code> = MD_Item 값 · <code>Status = 'Draft'</code> · <code>CreatedBy</code> = 사번. 헤더 <code>LineID</code>·<code>MoldID</code> 는 쓰지 않는다(잔존 컬럼).</div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">5</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag system">WorkOrderRepository.ReleaseCore</span><span class="ef-trig-name">릴리스 — 단계 행 생성 (PP-004 수동 릴리스도 같은 문)</span></div>
+            <div class="ef-action">헤더를 <code>UPDLOCK</code> 으로 잡고 Draft/Planned 만 통과 → <code>Status = 'Released'</code>, <code>ReleasedAt/By</code> → 기존 단계 DELETE → 템플릿 단계마다 INSERT. 단계 품번은 WO 품번과 같으면 NULL. <code>StdCycleSec</code> 는 그 공정 라인의 BOP 에서 서브쿼리.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>PP_WorkOrderRouting</code> 행 × 단계 수 — <code>StepSeq · ProcessCode · LineID(선택 라인, 라인 불필요 공정은 NULL) · ItemNo(코어 or NULL) · StdCycleSec · Status 'Released' · CompletedQty 0</code>. <b>이 뒤로 라인·상태·완료수량의 정본은 단계 행이다.</b></div></div>
+        </div>
+        <div class="ef-step">
+          <div class="ef-num">6</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag system">DeadlinePacker.Pack</span><span class="ef-trig-name">슬롯 배치 — <code>PP_LineSchedule</code></span></div>
+            <div class="ef-action">단계별 <code>StepDemand</code>(라인·수량·사이클·DailyCap·금형·교체분)를 오늘부터 마감일까지 능력(<code>ReadDayCapacity</code> 의 OPERATING 밴드 − 기존 슬롯)에 맞춰 날짜별로 쪼갠다. 마감 초과분은 납기까지 <code>Late</code>, 그래도 남으면 <code>Shortfall</code>(슬롯 없음). 직전 금형과 다르면 MC 행을 앞에 둔다.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>AppendWoSlot</code> → <code>EntryType 'WO'</code> · WoID · StartMin/EndMin · PlannedQty · PatternID · MoldID · <code>Status 'DRAFT'</code>. <code>AppendMoldChangeSlot</code> → <code>EntryType 'MC'</code> · WoID NULL · <code>RefType 'WO', RefID = WoID</code> · Title "구→신". 커밋은 전체 수주가 끝난 뒤 한 번 — 중간 예외면 아무 WO 도 남지 않는다.</div></div>
+        </div>
+      </div>
+      <div class="two" style="margin-top:14px;">
+        <div class="card"><h4><span class="tag">APS</span>PP-APS 「WO 생성」 — 같은 세 테이블, 다른 입구</h4>
+          <ul class="plain">
+            <li>입력은 저장된 실행 <code>PP_ApsRun</code>(Saved) 의 <code>PP_ApsPlanLine</code>(Kind INJ, 교대별 <code>PP_ApsPlanLineShift</code>).</li>
+            <li>WO 단위 = (완제품, 사출 계획일). BOM 규칙 행은 부모(완제품) 품번으로 WO 를 내고 자식(코어)마다 INJ 슬롯. 수주는 <code>ApsWoAllocator</code> 가 납기순 FIFO 배정 → 수주가 갈리면 WO 를 쪼갠다(<code>SoID</code> 각각, 남는 양은 <code>SoID NULL</code> 재고 보충 WO).</li>
+            <li>헤더 INSERT·<code>ReleaseCore</code>·슬롯 INSERT 는 PP-003 과 같은 메서드. INJ 슬롯만 <code>ShiftBands</code> 고정 배치(초과는 마지막 슬롯 <code>OverQty</code>, 형제 품번은 0분 슬롯).</li>
+            <li>추가로 <code>PP_ApsRunWo</code>(계획 행 ↔ WO ↔ SoID 조각) INSERT, <code>PP_ApsPlanLine.WoID</code> 첫 WO, 대상이 다 나가면 <code>PP_ApsRun.Status = 'Released'</code>.</li>
+            <li>그 날·라인·품번에 이미 있는 WO 슬롯 수량은 빼고 낸다(<code>SkippedExisting</code>) — PP-003 과 APS 가 섞여도 이중 발행은 없다.</li>
+          </ul></div>
+        <div class="card"><h4><span class="tag">STATE</span>WO 헤더 · 단계 상태 기계</h4>
+          <div class="state"><span class="st raw">Draft</span><span class="ar">→ ReleaseCore</span><span class="st ok">Released</span><span class="ar">→ 첫 실적</span><span class="st ng">In Progress</span><span class="ar">→ 마지막 단계 OrderQty</span><span class="st scr">Closed</span></div>
+          <div class="state"><span class="st def">Cancelled</span><span class="ar">PP-004 취소 — 슬롯 삭제(<code>cleanup_cancelled_wo_slots.sql</code> 참고), 열린 WO 조회에서 제외</span></div>
+          <ul class="plain" style="margin-top:6px;">
+            <li>단계 행: <code>Released → In Progress → Closed</code>. INJ 는 접수(<code>AcceptWo</code>)가 없어 <b>첫 실적이 착수</b>다(<code>ActualStart</code>).</li>
+            <li>헤더 <code>CompletedQty</code>·Closed 는 <b>라인 있는 마지막 단계</b>(MAX StepSeq WHERE LineID IS NOT NULL)가 움직일 때만 따라간다 — 라우팅 A 는 IMG, C 는 INJ.</li>
+            <li>끝난 WO 판정은 <code>WoStatusRules.Finished</code>(Completed·Stocked·Closed·Cancelled) — MRP·APS·납기 변경이 같은 목록을 쓴다.</li>
+            <li><code>OpenQty</code> 는 생성 때 채운 뒤 바뀌지 않는다. PP-LSB 수동 배치의 "미배치 수량" = OpenQty − 다른 날짜 슬롯 합.</li>
+          </ul></div>
+      </div>
+    </div>
+
+    <!-- 05 -->
+    <div class="sec" id="s5">
+      <div class="sec-hdr"><div class="sec-num">05</div><div class="sec-title-wrap"><div class="sec-title-en">Line Slots</div><div class="sec-title-ko">라인 슬롯 — PP_LineSchedule 한 행의 의미와 POP 가 읽는 부분</div></div><div class="sec-line"></div></div>
+      <table class="rule-tbl">
+        <thead><tr><th style="width:180px;">컬럼</th><th>값 · 규칙</th><th style="width:300px;">읽는 곳</th></tr></thead>
+        <tbody>
+          <tr><td class="k">LineID · ScheduleDate</td><td>라인 × 달력 날짜. 하루 축은 그 패턴 첫 교대의 시작(07:00)부터 1440분 — 자정을 넘는 슬롯도 같은 ScheduleDate.</td><td>POP <code>GetDailyItemSummary</code>: <code>LineID = 세션 라인 AND ScheduleDate = 오늘</code></td></tr>
+          <tr><td class="k">EntryType</td><td><code>WO</code> 작업 슬롯 · <code>MC</code> 금형 교체(WoID NULL, RefType WO/RefID) · <code>PM</code> 예방보전(가동을 깎음). MC 는 PM 과 달리 WO 처럼 부하로 센다.</td><td>POP 는 <b><code>EntryType = 'WO'</code> 만</b> 읽는다. 능력 계산은 셋 다.</td></tr>
+          <tr><td class="k">WoID</td><td>WO 슬롯의 작업지시. 단계 품번은 <code>PP_WorkOrderRouting</code> 에서 <code>WoID + LineID</code> 로 찾아 <code>COALESCE(r.ItemNo, w.ItemNo)</code>.</td><td>POP PLAN 집계 키 = 단계 품번(사출 라인은 코어)</td></tr>
+          <tr><td class="k">StartMin · EndMin</td><td>smallint 분. <code>EndMin ≤ StartMin</code> 인 <b>0분 슬롯</b>은 APS 형제 품번의 수량 기록용 — 능력엔 안 세고 POP 는 수량만 읽는다.</td><td><code>ReadDayCapacity</code> 는 <code>EndMin &gt; StartMin</code> 만, 수동 배치 UnplacedQty 도 같은 조건</td></tr>
+          <tr><td class="k">PlannedQty</td><td>그 슬롯의 계획 수량. 초과 배치(<code>OverQty</code>)는 UPH 기준을 넘는 수량이 마지막 슬롯에 얹힌다.</td><td>POP 좌측 PLAN = Σ PlannedQty(취소 WO 제외) · PP-LSB 보드</td></tr>
+          <tr><td class="k">PatternID</td><td>그 날 쓴 가동 시간 패턴. 능력 해석 순서: 그 날 저장 행의 PatternID → 라인 전용 ACTIVE → 전역 ACTIVE(APS 사출 라인은 APS 설정이 우선).</td><td><code>ReadDayCapacity</code> · PP-LSB 축</td></tr>
+          <tr><td class="k">MoldID</td><td>INJ 슬롯의 금형(형제 0분 슬롯엔 대표에만). 직전 금형 판정 <code>LineLastMoldBefore</code> 의 원천.</td><td>MC 삽입 판단 · PP-LSB 표시</td></tr>
+          <tr><td class="k">Status</td><td><code>DRAFT</code> = 공통코드 <code>SCHEDULE_STATUS</code> 「적용됨」. 발행(PUBLISHED)은 10-14 폐지 — 저장은 「적용」 하나.</td><td>POP 는 Status 를 보지 않는다 — 적용만으로 현장에 반영</td></tr>
+        </tbody>
+      </table>
+      <div class="two" style="margin-top:14px;">
+        <div class="card"><h4><span class="tag">PP-LSB</span>보드 「적용」 <code>SaveSchedule</code> 이 지키는 것</h4>
+          <ul class="plain">
+            <li>보드를 연 시점의 행 지문(<code>VersionOf</code>)을 DB 현재 행과 비교 — 다르면 <code>ScheduleChangedException</code>, 아무것도 안 바꾼다.</li>
+            <li>라인·날짜 단위 <code>sp_getapplock</code> 으로 보드끼리 직렬화, 확인한 행만 UPDLOCK 으로 잡아 그 ID 만 지운다(그 사이 PP-003·APS 가 넣은 행은 남는다).</li>
+            <li>APS 형제 0분 행(<code>WO · WoID 있음 · EndMin ≤ StartMin · 수량 &gt; 0</code>)은 지우기 전에 읽어 되살린다 — 보드가 그 WO 에 실제 슬롯을 주면 그 슬롯이 대신한다.</li>
+            <li>「초기화」는 그 라인·날짜 행 전부 삭제.</li>
+          </ul></div>
+        <div class="card"><h4><span class="tag">POP</span>INJ-MAIN 좌측 PLAN 이 나오는 SQL (sched CTE)</h4>
+          <div class="cmd"><span class="kw">SELECT</span> COALESCE(st.ItemNo, w.ItemNo) <span class="kw">AS</span> ItemNo, SUM(s.PlannedQty)
+<span class="kw">FROM</span>   <span class="t">PP_LineSchedule</span> s
+<span class="kw">JOIN</span>   <span class="t">PP_WorkOrder</span> w <span class="kw">ON</span> w.WoID = s.WoID
+<span class="kw">OUTER APPLY</span> (<span class="kw">SELECT TOP 1</span> r.ItemNo <span class="kw">FROM</span> <span class="t">PP_WorkOrderRouting</span> r
+             <span class="kw">WHERE</span> r.WoID = s.WoID <span class="kw">AND</span> r.LineID = s.LineID <span class="kw">ORDER BY</span> r.StepSeq) st
+<span class="kw">WHERE</span>  s.LineID = @Line <span class="kw">AND</span> s.ScheduleDate = @Today <span class="kw">AND</span> s.EntryType = <span class="s">'WO'</span>
+  <span class="kw">AND</span>  ISNULL(w.Status,<span class="s">'Draft'</span>) &lt;&gt; <span class="s">'Cancelled'</span>
+<span class="kw">GROUP BY</span> COALESCE(st.ItemNo, w.ItemNo)</div>
+          <div class="note" style="margin-top:8px;">PLAN 은 <b>달력 날짜 오늘</b>의 슬롯이다. 실적 전기일(07:00 경계)과 축이 다르므로 자정 이후 B 교대의 PLAN 은 이미 "내일" 슬롯이 아니라 오늘 슬롯이다 — 슬롯 자체가 07:00 시작 근무일 축이라 그대로 맞는다.</div></div>
+      </div>
+    </div>
+
+    <!-- 06 -->
+    <div class="sec" id="s6">
+      <div class="sec-hdr"><div class="sec-num">06</div><div class="sec-title-wrap"><div class="sec-title-en">POP Login &amp; Screen Assembly</div><div class="sec-title-ko">POP 로그인·화면 조립 — 세션 행과 좌측 그리드의 원천</div></div><div class="sec-line"></div></div>
+      <div class="ef-wrap">
+        <div class="ef-step inj">
+          <div class="ef-num">1</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">Login.razor</span><span class="ef-trig-name">라인·스테이션 선택 → PIN 또는 배지 스캔</span></div>
+            <div class="ef-action"><code>PopAuthService</code>: ① <code>AuthRepository.FindByEmployeeNo</code>(<code>SYS_UserProfile</code> + <code>AspNetUsers</code>, ACTIVE) → ② 없으면 <code>WorkerRepository.FindByEmployeeNo</code>(<code>MD_Worker</code>) → <code>PinHasher</code>(PBKDF2). EOS 양식 배지(<code>EOS*사번*이름</code>)면 PIN 없이 즉시, 미등록 사번은 <code>MD_Worker</code> INSERT(자동 등록). 시도는 <code>PR_PopAuthLog</code>.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>PR_PopSession</code> — <code>OperatorID = 사번</code> · <code>TerminalID = StationCode</code> · <code>LineID</code> · <code>ShiftCode</code>(<code>MasterDataRepository.CurrentShiftCode</code>, WORK_SHIFT 창) · <code>AuthMethod</code> PIN/Badge · <code>ExpiresAt</code>. 이 <code>SessionID</code>·사번이 이후 모든 실적·LOT·불량 행의 <code>SessionID / OperatorID / CreatedBy</code> 로 흘러간다.</div></div>
+        </div>
+        <div class="ef-step inj">
+          <div class="ef-num">2</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag system">AppState</span><span class="ef-trig-name">모듈 분기</span></div>
+            <div class="ef-action">선택 라인의 <code>MD_Line.WCID → MD_WorkCenter.ProcessCode</code> 가 <code>AppState.ModuleCode</code>(INJ / IMG / PNT / QC / RWK). INJ 면 <code>LabelDispatcher</code> 가 돌고, RWK 는 <code>LINE-RWK-01</code> 전용 화면 <code>/rework</code>.</div>
+            <div class="ef-result"><span class="er-lbl">READ</span>MD_Line · MD_WorkCenter · MD_Station(세션 TerminalId). 라인 제한 없음(09-24).</div></div>
+        </div>
+        <div class="ef-step inj">
+          <div class="ef-num">3</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag system">5초 폴링</span><span class="ef-trig-name">INJ-MAIN · IMG-MAIN 좌측 그리드 <code>GetDailyItemSummary(line, station, date)</code></span></div>
+            <div class="ef-action">품번 키 = <b>BOP(스테이션)</b> ∪ <b>오늘 슬롯 품번</b> ∪ <b>오늘 생성 LOT 품번</b>. 열마다 원천이 다르다:</div>
+            <div class="ef-result"><span class="er-lbl">COLUMNS</span><code>PLAN</code> = PP_LineSchedule(05 절) · <code>INPUT</code> = 그 날 생성 LOT 수(<code>tbl_Lot.CreatedTS</code> 자정 기준) · <code>FINAL</code> = ConfirmStatus CONFIRMED · <code>NG</code> = NG_BLOCKED + DEFECT + SCRAPPED(IMG 는 DEFECT + SCRAPPED) · <code>미확정</code> = RAW · <code>InBop</code> · <code>HasOpenWo</code>(단계 Released/In Progress 존재). 불변식 <b>INPUT = FINAL + NG + 미확정</b>. <code>PR_DefectDetail</code> 은 집계에 쓰지 않는다.</div></div>
+        </div>
+        <div class="ef-step inj">
+          <div class="ef-num">4</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">품번 행 선택</span><span class="ef-trig-name"><code>WorkOrderRepository.FindOpenForItem(line, item)</code></span></div>
+            <div class="ef-action">WO 접수 없이 <b>열린 단계</b>를 자동 해석해 우측에 띄운다 — 스캔 확정이 쓰는 <code>OpenStepForItemFilter</code> 와 같은 규칙이라 화면에 보인 WO 와 확정되는 WO 가 늘 같다. 없으면 「WO 없음」 배지(안내일 뿐, 생산은 막지 않는다).</div>
+            <div class="ef-result"><span class="er-lbl">RULE</span><code>r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item AND r.Status IN ('Released','In Progress') AND w.Status ≠ 'Cancelled'</code> ORDER BY In Progress 먼저 → Priority → DueDate → WoID.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 -->
+    <div class="sec" id="s7">
+      <div class="sec-hdr"><div class="sec-num">07</div><div class="sec-title-wrap"><div class="sec-title-en">INJ — Lot · Label · Confirm</div><div class="sec-title-ko">사출 — 원천 LOT 생성, 라벨 발행, 스캔 확정</div></div><div class="sec-line"></div></div>
+      <div class="ef-wrap">
+        <div class="ef-step inj">
+          <div class="ef-num">1</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag agent">InjAgent MachinePoller</span><span class="ef-trig-name">샷 감지 → <code>InjLotRepository.CreateRawLot</code> (캐비티마다 1 LOT)</span></div>
+            <div class="ef-action">사출기 Modbus 타수가 오르면 금형×색상 매핑(<code>GetMoldItems</code>: MD_MoldItem × MD_Item)의 캐비티마다 호출. <code>LotNoGenerator.NextLotNo</code> 가 <code>MD_Line.LotPrefix</code> 로 헤더 5자(<code>[년 A~Z][월 1-9A-C][일 1-9A-V][접두 2]</code>)를 만들고 <code>SYS_LotSeq</code> 를 <code>UPDATE … OUTPUT</code> 으로 원자 증가(첫 채번은 INSERT, PK 충돌 시 UPDATE 재시도).</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span>① <code>tbl_Lot</code>(LotCode 9자리 · ItemNo = 코어 · <b>WoID NULL</b> · LineID · ProcessCode 'INJ' · BatchSize 1 · Status 'RAW' · QualityFlag 'PENDING' · CreatedBy 'AGENT') ② <code>PR_InjLot</code>(LotID · EquipID · MoldCode · ColorCode · MoldID · CavityNo/Pos · PressType 'M' · MachineShotCount · ConfirmStatus 'RAW') ③ 캐비티 1일 때만 <code>MD_Mold.CurrentShots/CumulativeShots +1</code> + <code>PR_ShotCount</code> MERGE(일자별). 한 트랜잭션.</div></div>
+        </div>
+        <div class="ef-step inj">
+          <div class="ef-num">2</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag agent">취출 로봇 FEnet</span><span class="ef-trig-name">검사 판정 → <code>SaveInspection</code> · <code>MarkNgBlocked</code></span></div>
+            <div class="ef-action">로봇 검사 결과를 <code>PR_RobotInspection</code> 에 넣고 종합 NG 면 LOT 을 막는다.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>PR_InjLot.ConfirmStatus RAW → NG_BLOCKED</code> + <code>tbl_Lot.QualityFlag 'NG'</code>. NG_BLOCKED 는 스캔 확정이 거부되고 불량 팝업으로만 DEFECT 가 된다(INJ 전용 상태).</div></div>
+        </div>
+        <div class="ef-step inj">
+          <div class="ef-num">3</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">INJ-MAIN 버튼</span><span class="ef-trig-name">수동 라벨 생성 <code>CreateManualRawLots</code> (qty = 1)</span></div>
+            <div class="ef-action">PLC 미연결·누락 보정. 좌측 선택 품번(열린 WO 가 있으면 <code>WorkOrderDto.StepItemNo</code>)으로 에이전트와 같은 모양의 원천 LOT 을 만든다. <b>실적은 만들지 않는다</b> — 라벨을 스캔해야 확정된다(이 클래스의 불변식: PR_ProductionResult 는 스캔 경유만).</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>tbl_Lot</code> + <code>PR_InjLot</code>(RAW, EquipID = 라인 첫 활성 설비, CreatedBy = 사번). WoID NULL.</div></div>
+        </div>
+        <div class="ef-step inj">
+          <div class="ef-num">4</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag system">LabelDispatcher (1초 틱, INJ 세션)</span><span class="ef-trig-name">라벨 자동 발행 <code>ClaimForPrint</code> → ZPL → <code>IncrementPrintedCount</code></span></div>
+            <div class="ef-action">세션 라인의 <code>PrintedCount = 0</code> 이고 워터마크(<code>GetMaxLotId</code>, 로그인 시점) 이후인 LOT 을 TOP 5 씩 <code>UPDATE … OUTPUT</code> 으로 선점(<code>PrintClaimTS/Station</code>, 60초 지나면 재선점 가능). 출력 성공 시 PrintedCount +1, 실패 시 <code>ReleasePrintClaim</code>.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>PR_InjLot.PrintClaimTS · PrintClaimStation · PrintedCount</code> — 업무 상태가 아니라 디스패처 내부 상태(ModifiedTS 안 찍음). 같은 라인에 터미널이 여럿이어도 선점이 원자적이라 중복 발행 없음. 재시작·재로그인은 워터마크를 리셋 → 그 이전 미출력 LOT 은 「재출력」으로만.</div></div>
+        </div>
+        <div class="ef-step inj">
+          <div class="ef-num">5</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">라벨 스캔 (HID · 시리얼)</span><span class="ef-trig-name">실적 확정 <code>ConfirmByLotCode(lotCode, line, operatorId, sessionId, employeeNo)</code> — 한 트랜잭션</span></div>
+            <div class="ef-action">
+              ① <code>tbl_Lot ⋈ PR_InjLot</code> 을 <code>UPDLOCK</code> 으로 잡고 LotCode 로 찾는다(없음 → NotFound, 다른 라인 → WrongLine).<br>
+              ② <code>LotDefectRules.ConfirmBlock(status)</code>: RAW 만 통과(CONFIRMED → AlreadyConfirmed · NG_BLOCKED → NgBlocked · DEFECT → InRework · SCRAPPED → Scrapped).<br>
+              ③ 열린 단계 해석 <code>OpenStepForItemFilter</code>(라인 + LOT 품번 = 코어) — <b>없어도 계속</b>(woId·stepId NULL).<br>
+              ④ <code>CycleSec</code> = 같은 설비·캐비티의 직전 LOT 과의 초 차이. ⑤ <code>ProdCalendar.ResolveNow</code> → 전기일·교대.
+            </div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span>
+              ⑥ <code>PR_ProductionResult</code> INSERT — <code>EntryNo 'E'+yyMMddHHmmssfff+'-'+라인</code> · WoID(NULL 허용) · LotID · LineID · ProcessCode 'INJ' · <b>GoodQty 1</b> · CycleSec · MoldID · OperatorID · SessionID · DefectFlag 0 · EntryAt · <b>ProdDate · ShiftCode</b> · CreatedBy = 사번<br>
+              ⑦ <code>tbl_Lot</code> SET Status 'CONFIRMED', QualityFlag 'OK', <b>WoID = 해석한 WO</b> · <code>PR_InjLot</code> SET ConfirmStatus 'CONFIRMED', ConfirmedAt/By/SessionID<br>
+              ⑧ stepId 가 있으면 <code>BumpStepCompleted(step, +1)</code> → 10 절. 커밋.
+            </div></div>
+        </div>
+      </div>
+      <table class="tbl" style="margin-top:12px;">
+        <thead><tr><th style="width:150px;">INJ 동작</th><th>tbl_Lot</th><th>PR_InjLot</th><th>PR_ProductionResult</th><th>PP_WorkOrderRouting / PP_WorkOrder</th><th>그 밖</th></tr></thead>
+        <tbody>
+          <tr><td class="k">에이전트 샷</td><td><span class="w">INSERT</span> RAW / PENDING / WoID NULL</td><td><span class="w">INSERT</span> RAW</td><td>—</td><td>—</td><td>MD_Mold 타수 · PR_ShotCount · SYS_LotSeq</td></tr>
+          <tr><td class="k">로봇 NG</td><td><span class="w">UPDATE</span> QualityFlag NG</td><td><span class="w">UPDATE</span> NG_BLOCKED</td><td>—</td><td>—</td><td>PR_RobotInspection</td></tr>
+          <tr><td class="k">수동 라벨</td><td><span class="w">INSERT</span> RAW</td><td><span class="w">INSERT</span> RAW</td><td>—</td><td>—</td><td>SYS_LotSeq</td></tr>
+          <tr><td class="k">라벨 발행</td><td>—</td><td><span class="w">UPDATE</span> PrintClaim* · PrintedCount</td><td>—</td><td>—</td><td>—</td></tr>
+          <tr><td class="k">스캔 확정</td><td><span class="w">UPDATE</span> CONFIRMED / OK / WoID</td><td><span class="w">UPDATE</span> CONFIRMED · ConfirmedBy</td><td><span class="w">INSERT</span> GoodQty +1 · INJ</td><td><span class="w">UPDATE</span> CompletedQty +1 · 상태 · ActualStart (WO 있을 때만)</td><td><span class="r">READ</span> SYS_Config · WORK_SHIFT</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 08 -->
+    <div class="sec" id="s8">
+      <div class="sec-hdr"><div class="sec-num">08</div><div class="sec-title-wrap"><div class="sec-title-en">IMG — Core Scan · Judge</div><div class="sec-title-ko">감싸기 — 코어 스캔으로 완제품 LOT 을 만들고 OK/NG 판정</div></div><div class="sec-line"></div></div>
+      <div class="ef-wrap">
+        <div class="ef-step img">
+          <div class="ef-num">1</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">사출 Core 라벨 스캔</span><span class="ef-trig-name"><code>ImgLotRepository.CreateFromCore(coreLotCode, line, employeeNo, finishedItemNo)</code> — 한 트랜잭션</span></div>
+            <div class="ef-action">
+              ① <code>tbl_Lot(ProcessCode 'INJ') ⋈ PR_InjLot</code> 잠금 → <code>CoreLotRules.Check</code>: <b>CONFIRMED 만</b> 받는다(RAW → NotConfirmed, DEFECT/SCRAPPED 거부).<br>
+              ② <code>FindCoreUser</code>: 이미 <code>tbl_Lot.ParentLotID = 코어 LotID</code> 인 IMG LOT 이 있으면 <code>CoreUsed</code>(최후 방어선 = 필터 유니크 인덱스 <code>UX_tbl_Lot_ImgParent</code>).<br>
+              ③ 완제품 WO 해석 <code>OpenStepByCoreFilter</code>: 이 IMG 라인에 열린 단계가 있고 같은 WO 의 INJ 단계 품번이 이 코어인 WO(좌측 선택 품번 <code>@Fg</code> 가 있으면 그 품번만). <b>완제품 품번 = 그 WO 의 <code>PP_WorkOrder.ItemNo</code></b>.<br>
+              ④ WO 가 없으면 좌측 선택 품번으로: 품번 없음·마스터 없음 → <code>NoFinishedItem</code>, 그 품번의 BOM 코어(<code>CoreItemResolver</code>)가 스캔 코어와 다르면 <code>CoreMismatch</code>(BOM 이 코어를 못 정하면 선택을 믿는다).
+            </div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>InsertRawLot</code>: 수주처 = WO → <code>PP_CustomerOrder.SoID → MD_Customer.CustomerCode</code>(WO 없으면 NULL) · <code>MD_Item</code> 에서 품명·PGN·ALC·MountPos · 설비 = 라인 첫 활성 <code>MD_Equipment</code> · LotNo 채번(IMG 라인 접두 W1~W5) → ① <code>tbl_Lot</code>(ItemNo = 완제품 · ProcessCode 'IMG' · <b>ParentLotID = 코어 LotID</b> · WoID NULL · RAW/PENDING) ② <code>PR_ImgLot</code>(RAW · EquipID · <b>CustomerCode 고정</b> · PrintedCount 0). 커밋 직후 <code>LabelPrinter.Print</code> 동기 출력(고객 표준 DataMatrix) + 판정 팝업.</div></div>
+        </div>
+        <div class="ef-step img">
+          <div class="ef-num">2</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">ImgJudgePopup · OK</span><span class="ef-trig-name"><code>ImgLotRepository.ConfirmByLotCode</code> — INJ 와 같은 뼈대</span></div>
+            <div class="ef-action"><code>tbl_Lot ⋈ PR_ImgLot</code> 잠금 → <code>ConfirmBlock</code>(RAW 만; IMG 에 NG_BLOCKED 는 없다) → <code>OpenStepForItemFilter</code>(라인 + <b>완제품</b> 품번) → CycleSec = 이 라인 직전 IMG LOT 과의 초 차 → <code>ProdCalendar.ResolveNow</code>.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>PR_ProductionResult</code>(ProcessCode 'IMG', GoodQty 1, WoID NULL 허용) · <code>tbl_Lot</code> CONFIRMED/OK/WoID · <code>PR_ImgLot</code> CONFIRMED · <code>BumpStepCompleted(+1)</code> → 라우팅 A 의 IMG 단계가 <b>마지막 라인 단계</b>라 여기서 헤더 <code>CompletedQty</code>·Closed 가 움직인다.</div></div>
+        </div>
+        <div class="ef-step img">
+          <div class="ef-num">3</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">ImgJudgePopup · NG</span><span class="ef-trig-name">불량 코드 터치 → <code>ImgLotRepository.RegisterDefect</code></span></div>
+            <div class="ef-action">판정 없이 닫은 LOT 은 RAW 로 남고 완제품 라벨을 다시 스캔하면 팝업이 다시 뜬다. NG 는 09 절의 불량 등록과 동일(RAW 라 역분개 없음, <code>PR_DefectDetail.ResultID NULL</code>).</div>
+            <div class="ef-result"><span class="er-lbl">STATE</span><code>PR_ImgLot RAW → DEFECT</code>, 코어는 그대로 CONFIRMED·사용됨(ParentLotID 연결 유지).</div></div>
+        </div>
+        <div class="ef-step img">
+          <div class="ef-num">4</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">예외용 「라벨 발행」</span><span class="ef-trig-name"><code>CreateRawLot(line, item, employeeNo)</code> — 코어 없이</span></div>
+            <div class="ef-action">좌측 선택 품번만 있으면 ParentLotID NULL 로 발행. 수주처는 라인·완제품 품번의 열린 WO 로 해석(<code>OpenStepForItemFilter</code>). 같은 판정 팝업.</div>
+            <div class="ef-result"><span class="er-lbl">NOTE</span>원단 롤·본딩 컬럼(<code>FabricRollLotID · FabricConsumedM · BondSetupID</code>)은 현행 흐름에서 쓰지 않는다.</div></div>
+        </div>
+      </div>
+      <div class="note blue"><b>추적 연결고리.</b> 완제품 라벨 DataMatrix 의 T 토큰 끝 9자 = <code>tbl_Lot.LotCode</code>(IMG) → <code>ParentLotID</code> → 코어 <code>tbl_Lot</code>(INJ) → <code>PR_InjLot.EquipID · MoldID · CavityPos · MachineShotCount</code> → <code>PR_InjCondLog</code>(사출 조건) 까지 한 줄로 이어진다. 12 절의 역추적 SQL 참조.</div>
+    </div>
+
+    <!-- 09 -->
+    <div class="sec" id="s9">
+      <div class="sec-hdr"><div class="sec-num">09</div><div class="sec-title-wrap"><div class="sec-title-en">Defect &amp; Rework</div><div class="sec-title-ko">불량 등록 · 재작업 판정 — 실적을 되돌리고 다시 올리는 길</div></div><div class="sec-line"></div></div>
+      <div class="card" style="margin-bottom:14px;"><h4><span class="tag">STATE</span>LOT 상태 기계 — <code>PR_InjLot / PR_ImgLot.ConfirmStatus</code> (정본 <code>LotDefectRules</code>)</h4>
+        <div class="state"><span class="st raw">RAW</span><span class="ar">─ 스캔 →</span><span class="st ok">CONFIRMED</span><span class="ar">─ 불량 팝업 →</span><span class="st def">DEFECT</span><span class="ar">─ 수리 →</span><span class="st ok">CONFIRMED</span><span class="ar">/ ─ 폐기 →</span><span class="st scr">SCRAPPED</span></div>
+        <div class="state"><span class="st raw">RAW</span><span class="ar">─ 로봇 NG (INJ 만) →</span><span class="st ng">NG_BLOCKED</span><span class="ar">─ 불량 팝업 →</span><span class="st def">DEFECT</span></div>
+        <div class="state"><span class="st raw">RAW</span><span class="ar">─ 불량 팝업 →</span><span class="st def">DEFECT</span><span class="ar">(확정 전이라 역분개 없음 · PR_DefectDetail.ResultID NULL)</span></div>
+        <ul class="plain" style="margin-top:6px;"><li><code>tbl_Lot</code> 는 따라간다: Status RAW / CONFIRMED / SCRAP, QualityFlag PENDING / OK / NG. <code>NG_CONFIRMED</code> 는 폐지(마이그레이션이 SCRAPPED 로 이관).</li></ul></div>
+      <div class="ef-wrap">
+        <div class="ef-step qc">
+          <div class="ef-num">1</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">DefectPopup (INJ·IMG 공유)</span><span class="ef-trig-name">LOT 스캔 → 불량코드 → <code>RegisterDefect(lotCode, line, defectCode, …)</code></span></div>
+            <div class="ef-action">잠금·라인 검사 → <code>CheckRegister</code>: RAW·CONFIRMED·NG_BLOCKED 만(DEFECT → AlreadyInRework, SCRAPPED → Scrapped). 불량코드는 <code>MD_DefectCode</code>(<code>DefectRepository.ListForProcess</code>).</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span>
+              ① 이전 상태가 CONFIRMED 면 <code>LotDefectWriter.ReverseConfirmedResult</code>: 그 LOT 의 마지막 GoodQty &gt; 0 실적을 찾아 <code>PR_ProductionResult</code> 에 <b>GoodQty −1</b> 행(EntryNo 'R…', DefectFlag 0, 같은 WoID·라인·공정) + <code>FindStepId(WoID, LOT 라인)</code> 로 단계를 찾아 <code>BumpStepCompleted(−1)</code>.<br>
+              ② WoID 가 없으면 열린 WO 를 다시 해석(<code>ResolveOpenWo</code>)해 붙인다.<br>
+              ③ <code>PR_DefectDetail</code> INSERT — LotID · WoID · <code>ResultID</code>(원래 실적, 확정 전이면 NULL) · ProcessCode · DefectCode · <b>Qty 1</b> · <code>PriorStatus</code> · <code>ReversalResultID</code> · <b>Disposition NULL</b> · RegisteredBy.<br>
+              ④ <code>PR_InjLot/PR_ImgLot.ConfirmStatus 'DEFECT'</code> + <code>tbl_Lot.QualityFlag 'NG'</code>. 한 트랜잭션 — 부분 반영 없음.
+            </div></div>
+        </div>
+        <div class="ef-step rwk">
+          <div class="ef-num">2</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">REWORK (/rework · LINE-RWK-01)</span><span class="ef-trig-name">대기열 <code>ListPending</code> · 스캔 <code>FindPendingByLotCode</code></span></div>
+            <div class="ef-action">전 라인 공용: <code>PR_DefectDetail WHERE Disposition IS NULL AND LotID IS NOT NULL</code> ⋈ tbl_Lot ⋈ MD_Item ⋈ MD_DefectCode ⋈ PP_WorkOrder. 원인코드는 <code>MD_DefectCause</code>(불량코드 <code>DefaultCauseCode</code> 기본 선택, 비어 있으면 버튼 비활성).</div>
+            <div class="ef-result"><span class="er-lbl">READ</span>구 수량 행(<code>LotID NULL/0</code>)은 <code>Disposition 'LEGACY'</code> 로 봉인돼 대기열에 안 보인다.</div></div>
+        </div>
+        <div class="ef-step rwk">
+          <div class="ef-num">3</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">수리 완료 → 양품</span><span class="ef-trig-name"><code>ReworkRepository.Rework(defectId, causeCode, note, 'LINE-RWK-01', …)</code></span></div>
+            <div class="ef-action"><code>LockOpenRow</code>(PR_DefectDetail ⋈ tbl_Lot UPDLOCK, Disposition 비어 있어야) → WO = 등록 행 WoID 의 단계(<code>FindStepId(WoID, 원래 라인)</code>) → 없으면 원래 라인 열린 WO(<code>ResolveOpenWo</code>) → 둘 다 없으면 WO 없이.</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>PR_ProductionResult</code> <b>GoodQty +1</b>(ProcessCode 'RWK', LineID 'LINE-RWK-01', CycleSec 0) · <code>PR_InjLot/PR_ImgLot</code> CONFIRMED · <code>tbl_Lot</code> CONFIRMED/OK/WoID · <code>BumpStepCompleted(+1)</code> · <code>PR_DefectDetail</code> SET Disposition 'REWORKED', CauseCode, CorrectiveAction, DispositionBy/At.</div></div>
+        </div>
+        <div class="ef-step rwk">
+          <div class="ef-num">4</div>
+          <div><div class="ef-trig"><span class="ef-trig-tag user">폐기</span><span class="ef-trig-name"><code>ReworkRepository.Scrap</code></span></div>
+            <div class="ef-action">실적은 건드리지 않는다(등록 때 이미 역분개됐거나 애초에 없다).</div>
+            <div class="ef-result"><span class="er-lbl">WRITE</span><code>PR_*Lot</code> SCRAPPED · <code>tbl_Lot</code> Status 'SCRAP' / QualityFlag 'NG' · <code>PR_DefectDetail</code> Disposition 'SCRAPPED'.</div></div>
+        </div>
+      </div>
+      <div class="note red"><b>보고서 집계 주의.</b> 불량은 <code>PR_DefectDetail</code> 이 센다(역분개 행은 <code>DefectFlag 0</code>). 확정 전 LOT 의 불량은 <code>ResultID NULL</code> 이라 실적에 조인해 세면 빠진다 — RPT 는 그 행을 <code>tbl_Lot.LineID</code>·<code>DetectedAt − 경계시각</code> 으로 따로 더한다. 새 집계도 <code>ResultID</code> 조인만으로 불량을 세지 말 것.</div>
+    </div>
+
+    <!-- 10 -->
+    <div class="sec" id="s10">
+      <div class="sec-hdr"><div class="sec-num">10</div><div class="sec-title-wrap"><div class="sec-title-en">Back-propagation to WO</div><div class="sec-title-ko">WO 진척 역전파 — <code>BumpStepCompleted(routingLineId, ±qty)</code> 한 문장</div></div><div class="sec-line"></div></div>
+      <div class="two">
+        <div class="card"><h4><span class="tag">SQL</span>단계 행 (항상)</h4>
+          <div class="cmd"><span class="kw">UPDATE</span> <span class="t">PP_WorkOrderRouting</span>
+<span class="kw">SET</span> CompletedQty = CompletedQty + @Qty,
+    Status = <span class="kw">CASE</span>
+      <span class="kw">WHEN</span> CompletedQty+@Qty &gt;= @OrderQty       <span class="kw">THEN</span> <span class="s">'Closed'</span>
+      <span class="kw">WHEN</span> @Qty &lt; 0 <span class="kw">AND</span> Status = <span class="s">'Closed'</span>    <span class="kw">THEN</span> <span class="s">'In Progress'</span>
+      <span class="kw">WHEN</span> Status = <span class="s">'Released'</span>             <span class="kw">THEN</span> <span class="s">'In Progress'</span>
+      <span class="kw">ELSE</span> Status <span class="kw">END</span>,
+    ActualStart = ISNULL(ActualStart, SYSDATETIME()),
+    ActualEnd   = <span class="kw">CASE WHEN</span> 도달 <span class="kw">THEN</span> ISNULL(ActualEnd, now)
+                       <span class="kw">WHEN</span> @Qty &lt; 0 <span class="kw">THEN NULL ELSE</span> ActualEnd <span class="kw">END</span>
+<span class="kw">WHERE</span> RoutingLineID = @RL;
+
+<span class="kw">UPDATE</span> <span class="t">PP_WorkOrder</span>              <span class="c">-- 헤더 착수만</span>
+<span class="kw">SET</span> Status = <span class="kw">CASE WHEN</span> Status=<span class="s">'Released'</span> <span class="kw">THEN</span> <span class="s">'In Progress'</span> <span class="kw">ELSE</span> Status <span class="kw">END</span>,
+    ActualStart = ISNULL(ActualStart, SYSDATETIME())
+<span class="kw">WHERE</span> WoID=@WoID <span class="kw">AND</span> Status <span class="kw">NOT IN</span> (<span class="s">'Cancelled'</span>,<span class="s">'Closed'</span>);</div></div>
+        <div class="card"><h4><span class="tag">SQL</span>헤더 수량 (라인 있는 마지막 단계일 때만)</h4>
+          <div class="cmd"><span class="kw">SELECT</span> @LastSeq = MAX(StepSeq) <span class="kw">FROM</span> <span class="t">PP_WorkOrderRouting</span>
+<span class="kw">WHERE</span>  WoID=@WoID <span class="kw">AND</span> LineID <span class="kw">IS NOT NULL</span>;
+
+<span class="kw">IF</span> @Seq = @LastSeq
+<span class="kw">UPDATE</span> <span class="t">PP_WorkOrder</span>
+<span class="kw">SET</span> CompletedQty = @New,            <span class="c">-- 그 단계의 누적값을 복사</span>
+    Status = <span class="kw">CASE WHEN</span> @New &gt;= @OrderQty <span class="kw">THEN</span> <span class="s">'Closed'</span>
+                  <span class="kw">WHEN</span> @Qty&lt;0 <span class="kw">AND</span> Status=<span class="s">'Closed'</span> <span class="kw">THEN</span> <span class="s">'In Progress'</span>
+                  <span class="kw">ELSE</span> Status <span class="kw">END</span>,
+    ActualEnd = …
+<span class="kw">WHERE</span> WoID = @WoID;</div>
+          <ul class="plain" style="margin-top:8px;">
+            <li>호출처 4곳: INJ 확정 +1 · IMG 확정 +1 · 불량 역분개 −1(<code>LotDefectWriter</code>) · 재작업 +1(<code>ReworkRepository</code>). PNT 등 다른 실적 경로는 <code>ProductionRepository.RecordCycle</code>.</li>
+            <li>라우팅 A: INJ 단계 +1 은 헤더 수량을 안 움직이고, IMG 단계가 헤더를 올린다. 라우팅 C: INJ 가 마지막 단계라 바로 헤더.</li>
+            <li>PP-004 진척률 = 헤더 <code>CompletedQty / OrderQty</code>, 단계별 진척은 단계 행. 역분개로 Closed 가 다시 In Progress 가 되는 것은 정상이다.</li>
+            <li>WO 없이 확정한 실적(WoID NULL)은 이 문장을 타지 않는다 — 보고서는 WO 를 LEFT JOIN 하므로 집계엔 그대로 잡힌다.</li>
+          </ul></div>
+      </div>
+      <div class="card" style="margin-top:14px;"><h4><span class="tag">SIDE</span>흐름 옆에서 같이 쌓이는 행 (POP 가 쓰지만 WO 진척과 무관)</h4>
+        <table class="tbl">
+          <thead><tr><th>동작</th><th>테이블</th><th>요점</th></tr></thead>
+          <tbody>
+            <tr><td class="k">안돈 발동</td><td><code>PR_AndonCall</code> · <code>PP_LineDowntimeLog</code>(ReasonCode ANDON, AndonID) · <code>PR_AndonPush</code></td><td>OPEN → SUP_ACKED(슈퍼바이저 배지 = <code>MD_LineSupervisor</code>) → DEPT_CALLED(<code>PR_AndonDeptCall</code>) → RESOLVED. 보전 호출은 <code>MNT_FailureRegister</code>(Source ANDON) + <code>MNT_FailureAction</code>. 종료 때 비가동 <code>EndTS·DurationMin</code> 닫힘 → OEE 가동률.</td></tr>
+            <tr><td class="k">사출 조건</td><td><code>PR_InjCondLog</code> · <code>MD_InjCondItem</code></td><td>InjAgent 가 샷마다 조건값을 남긴다. LOT 과 EquipID·시각으로 연결.</td></tr>
+            <tr><td class="k">로그인 시도</td><td><code>PR_PopAuthLog</code></td><td>성공·실패·사유. 웹 계정 PIN 실패는 <code>SYS_UserProfile.FailedLoginCount</code>(5회 LOCKED), 워커는 잠기지 않는다.</td></tr>
+          </tbody>
+        </table></div>
+    </div>
+
+    <!-- 11 -->
+    <div class="sec" id="s11">
+      <div class="sec-hdr"><div class="sec-num">11</div><div class="sec-title-wrap"><div class="sec-title-en">Table Reference</div><div class="sec-title-ko">테이블 레퍼런스 — 흐름 순서대로, 누가 쓰고 누가 읽는가</div></div><div class="sec-line"></div></div>
+      <table class="rule-tbl ref-tbl">
+        <thead><tr><th>테이블</th><th>역할 · 키</th><th>핵심 컬럼</th><th>쓰는 곳 (W)</th><th>읽는 곳 (R)</th></tr></thead>
+        <tbody>
+          <tr><td class="k">MD_Item</td><td>품목. PK ItemNo</td><td>ItemType · RoutingType · InjFlag · PalletQty · PGN/ALC/MountPos · ActiveFlag</td><td>MD-003 · BOM 시드</td><td>PP-003 후보 · ReadPreview · APS · IMG 라벨 · 모든 품명 표시</td></tr>
+          <tr><td class="k">MD_BomVersion · MD_Bom</td><td>BOM. VersionID / BOMID</td><td>Status APPROVED · EffFrom/To · ParentItemNo · CompItemNo · QtyPer · ScrapPct</td><td>MD-004</td><td>CoreItemResolver · APS BOM 규칙 · MRP</td></tr>
+          <tr><td class="k">MD_RoutingStep</td><td>라우팅 템플릿. PK (RoutingType, StepSeq)</td><td>ProcessCode · ActiveFlag</td><td>스키마 시드</td><td>ReadPreview → 단계 행</td></tr>
+          <tr><td class="k">MD_WorkCenter · MD_Line · MD_Station</td><td>공정·라인·스테이션</td><td>WC.ProcessCode · Line.WCID · LotPrefix · DailyCap · Status · Station.LineID</td><td>MD-005 · MD-020</td><td>POP 로그인 분기 · 라인 후보 · LotNo 채번 · 능력</td></tr>
+          <tr><td class="k">MD_Bop</td><td>스테이션 BOP. PK BOPID</td><td>StationCode · ItemNo · RoutingType · StepSeq · StdCycleTime · ActiveFlag</td><td>MD-005</td><td>POP 좌측 품번 · 단계 StdCycleSec · APS 완제품 사이클</td></tr>
+          <tr><td class="k">MD_Mold · MD_MoldItem · MD_MoldLine</td><td>금형·품번 매핑·라인별 UPH</td><td>CavityCount · MoldChangeMin · CurrentShots/CumulativeShots · MoldItem.Color/CavityPos · MoldLine.UPH/PrepTime</td><td>MD-007 · 에이전트 타수</td><td>MoldResolver · APS UPH · 에이전트 품번 매핑</td></tr>
+          <tr><td class="k">MD_LineTimePattern · MD_LineTimeSegment</td><td>가동 시간 패턴</td><td>LineID(NULL = 전역) · Status · EffectiveFrom/To · Segment.StartMin/EndMin/SegmentState/ShiftCode</td><td>MD-028</td><td>ReadDayCapacity · PP-LSB 축 · APS 교대</td></tr>
+          <tr><td class="k">SYS_FactoryCalendar · SYS_Config · MD_CodeItem</td><td>달력·설정·공통코드</td><td>DayType · PP_PROD_BUFFER_WORKDAYS · DAY_CUTOFF_TIME · PP_SO_AUTO_CONFIRM · WORK_SHIFT.Attribute1/2</td><td>SYS-005 · SYS-009 · MD-030</td><td>ProdDeadline · ProdCalendar · 세션 교대 · 자동 확정</td></tr>
+          <tr><td class="k">PP_CustomerOrder</td><td>수주. PK SoID, 키 SoNumber+SoLineNo</td><td>CustomerID · ItemNo · OrderQty · ShippedQty · RequestedDeliveryDate · Status</td><td>PP-002 · PoSyncWorker (<code>UpsertCustomerOrders</code>)</td><td>PP-003 · APS · MRP · IMG 수주처 · OTD</td></tr>
+          <tr><td class="k">PP_DemandPlan · PP_DemandPlanBatch</td><td>일별 구매계획. 유니크 (CustomerID, ItemNo, PlanDate)</td><td>ScheduledQty · PoQty · Batch · Source</td><td>PP-001 · DPSYNC (<code>ReplaceDemandPlan</code>)</td><td>APS IncludeDailyPlan</td></tr>
+          <tr><td class="k">PP_ApsRun · PP_ApsPlanLine · PP_ApsPlanLineShift · PP_ApsRunWo</td><td>APS 실행·정규화 사본·WO 조각</td><td>Status Saved/Released · BundleJson/ResultJson · Kind ASM/INJ · PlanDate · Supply · PlanDay/Night · Locked · WoID</td><td>PP-APS 저장 · WO 생성</td><td>PP-APS 재현 · WO 미리보기</td></tr>
+          <tr><td class="k">PP_WorkOrder</td><td>WO 헤더. PK WoID, WoNumber</td><td>SoID · ItemNo(완제품) · OrderQty · OpenQty · CompletedQty · DueDate · ProdDeadline · RoutingType · Status · ReleasedAt/By · ActualStart/End</td><td>PP-003 · APS · PP-004(릴리스·취소·납기) · BumpStepCompleted</td><td>POP 열린 WO(JOIN) · PP-004 · PP-CAL · RPT · MRP</td></tr>
+          <tr><td class="k">PP_WorkOrderRouting</td><td>WO 단계 = 라인·상태·완료수량 정본. PK RoutingLineID</td><td>WoID · StepSeq · ProcessCode · LineID · ItemNo(코어) · StdCycleSec · Status · CompletedQty · ActualStart/End · TerminalLock</td><td>ReleaseCore · BumpStepCompleted · APS 슬롯 편집(LineID) · AcceptWo(IMG 구 경로)</td><td>POP <code>OpenStepForItemFilter / OpenStepByCoreFilter</code> · POP PLAN 품번 · PP-LSB 후보 · RPT 계획 품번</td></tr>
+          <tr><td class="k">PP_LineSchedule</td><td>라인 일정 슬롯. PK ScheduleID</td><td>LineID · ScheduleDate · WoID · StartMin/EndMin · PlannedQty · PatternID · EntryType · RefType/RefID · Status · MoldID</td><td>DeadlinePacker(PP-003·APS) · PP-LSB SaveSchedule/Delete · APS 슬롯 편집</td><td>POP PLAN · ReadDayCapacity · 직전 금형 · RPT 일정 준수 · APS 잠긴 칸</td></tr>
+          <tr><td class="k">SYS_UserProfile · AspNetUsers · MD_Worker</td><td>로그인 원천</td><td>EmployeeNo · PinHash · AccountStatus / ActiveFlag</td><td>SYS-001 · MD-032 · 배지 자동 등록</td><td>PopAuthService</td></tr>
+          <tr><td class="k">PR_PopSession</td><td>POP 세션. PK SessionID</td><td>OperatorID(사번) · TerminalID · LineID · ShiftCode · AuthMethod · StartedAt/ExpiresAt/LoggedOutAt</td><td>CreateSession · 로그아웃</td><td>실적 SessionID · 감사</td></tr>
+          <tr><td class="k">SYS_LotSeq</td><td>LotNo 순번. PK Header(5)</td><td>LastSeq</td><td>LotNoGenerator(INJ·IMG·RecordCycle)</td><td>—</td></tr>
+          <tr><td class="k">tbl_Lot</td><td>공통 LOT. PK LotID, LotCode 유니크</td><td>LotCode · ItemNo · WoID · LineID · ProcessCode · ParentLotID · Status · QualityFlag · CreatedTS</td><td>CreateRawLot · CreateManualRawLots · CreateFromCore · ConfirmByLotCode · RegisterDefect · Rework/Scrap</td><td>POP 좌측 집계 · 라벨 · REWORK 대기열 · RPT 품번 · IMG 코어 1:1</td></tr>
+          <tr><td class="k">PR_InjLot</td><td>INJ 원천 LOT 확장. PK LotID</td><td>EquipID · MoldCode/ColorCode/MoldID · CavityNo/Pos · MachineShotCount · ConfirmStatus · ConfirmedAt/By/SessionID · PrintedCount · PrintClaimTS/Station</td><td>에이전트 · LabelDispatcher · 확정 · 불량 · 재작업</td><td>INJ-MAIN · Core 스캔 검증 · RPT</td></tr>
+          <tr><td class="k">PR_ImgLot</td><td>IMG 완제품 LOT 확장. PK LotID</td><td>EquipID · ConfirmStatus · ConfirmedAt/By · CustomerCode · PrintedCount</td><td>CreateFromCore/CreateRawLot · 확정 · 불량 · 재작업</td><td>IMG-MAIN 오늘 목록 · 라벨 재출력</td></tr>
+          <tr><td class="k">PR_RobotInspection · PR_ShotCount · PR_InjCondLog</td><td>에이전트 부수 기록</td><td>LotID/EquipID/CavityPos 판정 · MoldID×RecordDate 타수 · 조건값</td><td>InjAgent</td><td>INJ LOT 뷰 · MNT 금형 · 추적</td></tr>
+          <tr><td class="k">PR_ProductionResult</td><td>실적 원장. PK ResultID</td><td>EntryNo(E/R) · WoID(NULL 허용) · LotID · LineID · ProcessCode · GoodQty(+1/−1) · CycleSec · MoldID · OperatorID · SessionID · DefectFlag · EntryAt · ProdDate · ShiftCode</td><td>INJ/IMG ConfirmByLotCode · LotDefectWriter(−1) · Rework(+1, RWK) · ProductionRepository.RecordCycle(PNT 등)</td><td>RPT-001/002/008/010 · OEE · APS 실적 · 일정 준수 · Api 일별 생산</td></tr>
+          <tr><td class="k">PR_DefectDetail</td><td>불량 원장(1 LOT = 1 행). PK DefectID, 열린 LOT 유니크 <code>UX_PR_DefectDetail_OpenLot</code></td><td>LotID · WoID · ResultID · ProcessCode · DefectCode · Qty 1 · PriorStatus · ReversalResultID · Disposition · CauseCode · DispositionBy/At · DetectedAt</td><td>RegisterDefect · Rework/Scrap</td><td>REWORK 대기열 · RPT 파레토/불량 원본 · OEE Q</td></tr>
+          <tr><td class="k">PR_AndonCall · PR_AndonDeptCall · PP_LineDowntimeLog</td><td>안돈·비가동</td><td>Status · Severity · AckedBy · DeptCode · StartTS/EndTS · DurationMin · AndonID</td><td>AndonRepository · PP-DTL</td><td>PP-ODM · OEE · MNT-002/009</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 12 -->
+    <div class="sec" id="s12">
+      <div class="sec-hdr"><div class="sec-num">12</div><div class="sec-title-wrap"><div class="sec-title-en">Trace Queries</div><div class="sec-title-ko">추적 SQL — 데이터가 어디서 끊겼는지 바로 보는 질의</div></div><div class="sec-line"></div></div>
+      <div class="two">
+        <div class="card"><h4><span class="tag">A</span>수주 → WO → 단계 → 슬롯 (계획 쪽이 다 만들어졌나)</h4>
+          <div class="cmd"><span class="kw">SELECT</span> so.SoNumber, so.SoLineNo, so.Status <span class="kw">AS</span> SoStatus,
+       w.WoNumber, w.Status <span class="kw">AS</span> WoStatus, w.OrderQty, w.CompletedQty, w.ProdDeadline,
+       r.StepSeq, r.ProcessCode, r.LineID, COALESCE(r.ItemNo, w.ItemNo) <span class="kw">AS</span> StepItem,
+       r.Status <span class="kw">AS</span> StepStatus, r.CompletedQty <span class="kw">AS</span> StepDone,
+       s.ScheduleDate, s.StartMin, s.EndMin, s.PlannedQty, s.EntryType, s.MoldID
+<span class="kw">FROM</span>   dbo.<span class="t">PP_CustomerOrder</span> so
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PP_WorkOrder</span> w <span class="kw">ON</span> w.SoID = so.SoID <span class="kw">AND</span> w.Status &lt;&gt; <span class="s">'Cancelled'</span>
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PP_WorkOrderRouting</span> r <span class="kw">ON</span> r.WoID = w.WoID
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PP_LineSchedule</span> s <span class="kw">ON</span> s.WoID = w.WoID <span class="kw">AND</span> s.LineID = r.LineID <span class="kw">AND</span> s.EntryType = <span class="s">'WO'</span>
+<span class="kw">WHERE</span>  so.SoNumber = @So
+<span class="kw">ORDER BY</span> w.WoID, r.StepSeq, s.ScheduleDate, s.StartMin;
+<span class="c">-- r 가 NULL: 릴리스 안 됨(Draft).  s 가 NULL: 슬롯 없음 → PP-LSB 미배치</span></div></div>
+        <div class="card"><h4><span class="tag">B</span>오늘 POP 가 보는 "열린 WO" (라인·품번별)</h4>
+          <div class="cmd"><span class="kw">SELECT</span> r.LineID, COALESCE(r.ItemNo, w.ItemNo) <span class="kw">AS</span> StepItem,
+       w.WoNumber, r.Status, w.Priority, w.DueDate, r.CompletedQty, w.OrderQty
+<span class="kw">FROM</span>   dbo.<span class="t">PP_WorkOrderRouting</span> r
+<span class="kw">JOIN</span>   dbo.<span class="t">PP_WorkOrder</span> w <span class="kw">ON</span> w.WoID = r.WoID
+<span class="kw">WHERE</span>  r.LineID = @Line
+  <span class="kw">AND</span>  r.Status <span class="kw">IN</span> (<span class="s">'Released'</span>,<span class="s">'In Progress'</span>)
+  <span class="kw">AND</span>  ISNULL(w.Status,<span class="s">'Draft'</span>) &lt;&gt; <span class="s">'Cancelled'</span>
+<span class="kw">ORDER BY</span> StepItem,
+       <span class="kw">CASE WHEN</span> r.Status = <span class="s">'In Progress'</span> <span class="kw">THEN</span> 0 <span class="kw">ELSE</span> 1 <span class="kw">END</span>,
+       ISNULL(w.Priority,5), ISNULL(w.DueDate,<span class="s">'9999-12-31'</span>), w.WoID;
+<span class="c">-- 품번당 첫 행이 스캔 확정이 붙는 WO (OpenStepForItemFilter 와 동일 순서)</span></div></div>
+        <div class="card"><h4><span class="tag">C</span>WO → LOT → 실적 (현장 쪽이 어디까지 왔나)</h4>
+          <div class="cmd"><span class="kw">SELECT</span> l.LotCode, l.ProcessCode, l.ItemNo, l.Status, l.QualityFlag,
+       COALESCE(i.ConfirmStatus, g.ConfirmStatus) <span class="kw">AS</span> LotState,
+       i.PrintedCount, i.MoldID, i.CavityPos, g.CustomerCode,
+       p.EntryNo, p.GoodQty, p.ProdDate, p.ShiftCode, p.LineID <span class="kw">AS</span> ResultLine
+<span class="kw">FROM</span>   dbo.<span class="t">tbl_Lot</span> l
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PR_InjLot</span> i <span class="kw">ON</span> i.LotID = l.LotID
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PR_ImgLot</span> g <span class="kw">ON</span> g.LotID = l.LotID
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PR_ProductionResult</span> p <span class="kw">ON</span> p.LotID = l.LotID
+<span class="kw">WHERE</span>  l.WoID = @WoID
+   <span class="kw">OR</span> (l.WoID <span class="kw">IS NULL AND</span> l.LineID = @Line <span class="kw">AND</span> l.CreatedTS &gt;= @Day)  <span class="c">-- WO 없이 생산된 LOT</span>
+<span class="kw">ORDER BY</span> l.LotID, p.ResultID;</div></div>
+        <div class="card"><h4><span class="tag">D</span>완제품 라벨 역추적 — IMG LOT → 코어 → 사출기·금형·캐비티</h4>
+          <div class="cmd"><span class="kw">SELECT</span> fg.LotCode <span class="kw">AS</span> FgLot, fg.ItemNo <span class="kw">AS</span> FgItem, gl.CustomerCode, gl.ConfirmStatus <span class="kw">AS</span> FgState,
+       core.LotCode <span class="kw">AS</span> CoreLot, core.ItemNo <span class="kw">AS</span> CoreItem,
+       ci.EquipID, ci.MoldID, ci.ColorCode, ci.CavityPos, ci.MachineShotCount,
+       core.CreatedTS <span class="kw">AS</span> ShotAt, ci.ConfirmedAt <span class="kw">AS</span> CoreConfirmedAt, ci.ConfirmedBy
+<span class="kw">FROM</span>   dbo.<span class="t">tbl_Lot</span> fg
+<span class="kw">JOIN</span>   dbo.<span class="t">PR_ImgLot</span> gl <span class="kw">ON</span> gl.LotID = fg.LotID
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">tbl_Lot</span> core <span class="kw">ON</span> core.LotID = fg.ParentLotID
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PR_InjLot</span> ci <span class="kw">ON</span> ci.LotID = core.LotID
+<span class="kw">WHERE</span>  fg.LotCode = @FgLotCode;   <span class="c">-- DataMatrix T 토큰 끝 9자</span></div></div>
+        <div class="card"><h4><span class="tag">E</span>일일 정합성 — INPUT = FINAL + NG + 미확정 (POP 좌측과 같은 셈)</h4>
+          <div class="cmd"><span class="kw">SELECT</span> l.ItemNo,
+       COUNT(*)                                                       <span class="kw">AS</span> Input,
+       SUM(<span class="kw">CASE WHEN</span> e.ConfirmStatus=<span class="s">'CONFIRMED'</span> <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>)   <span class="kw">AS</span> Final,
+       SUM(<span class="kw">CASE WHEN</span> e.ConfirmStatus <span class="kw">IN</span> (<span class="s">'NG_BLOCKED'</span>,<span class="s">'DEFECT'</span>,<span class="s">'SCRAPPED'</span>) <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> Ng,
+       SUM(<span class="kw">CASE WHEN</span> e.ConfirmStatus=<span class="s">'RAW'</span> <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>)         <span class="kw">AS</span> Pending,
+       (<span class="kw">SELECT</span> SUM(GoodQty) <span class="kw">FROM</span> dbo.<span class="t">PR_ProductionResult</span> p
+         <span class="kw">WHERE</span> p.LotID <span class="kw">IN</span> (<span class="kw">SELECT</span> LotID <span class="kw">FROM</span> dbo.tbl_Lot x <span class="kw">WHERE</span> x.ItemNo=l.ItemNo <span class="kw">AND</span> x.LineID=@Line
+                           <span class="kw">AND</span> x.CreatedTS &gt;= @Day <span class="kw">AND</span> x.CreatedTS &lt; DATEADD(day,1,@Day))) <span class="kw">AS</span> NetGood
+<span class="kw">FROM</span>   dbo.<span class="t">tbl_Lot</span> l <span class="kw">JOIN</span> dbo.<span class="t">PR_InjLot</span> e <span class="kw">ON</span> e.LotID = l.LotID
+<span class="kw">WHERE</span>  l.LineID = @Line <span class="kw">AND</span> l.CreatedTS &gt;= @Day <span class="kw">AND</span> l.CreatedTS &lt; DATEADD(day,1,@Day)
+<span class="kw">GROUP BY</span> l.ItemNo;
+<span class="c">-- NetGood = Final 이어야 한다(역분개 −1 포함). 다르면 확정 뒤 불량 역분개가 빠졌거나 실적만 남은 LOT</span></div></div>
+        <div class="card"><h4><span class="tag">F</span>불량 한 건의 전후 — 역분개·단계 차감 확인</h4>
+          <div class="cmd"><span class="kw">SELECT</span> d.DefectID, l.LotCode, d.DefectCode, d.PriorStatus, d.Disposition, d.CauseCode,
+       d.ResultID <span class="kw">AS</span> OrigResult, d.ReversalResultID,
+       o.GoodQty <span class="kw">AS</span> OrigQty, rv.GoodQty <span class="kw">AS</span> RevQty, rv.EntryNo <span class="kw">AS</span> RevEntry,
+       w.WoNumber, r.StepSeq, r.LineID, r.CompletedQty <span class="kw">AS</span> StepDone, w.CompletedQty <span class="kw">AS</span> HeaderDone
+<span class="kw">FROM</span>   dbo.<span class="t">PR_DefectDetail</span> d
+<span class="kw">JOIN</span>   dbo.<span class="t">tbl_Lot</span> l <span class="kw">ON</span> l.LotID = d.LotID
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PR_ProductionResult</span> o  <span class="kw">ON</span> o.ResultID  = d.ResultID
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PR_ProductionResult</span> rv <span class="kw">ON</span> rv.ResultID = d.ReversalResultID
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PP_WorkOrder</span> w <span class="kw">ON</span> w.WoID = d.WoID
+<span class="kw">LEFT JOIN</span> dbo.<span class="t">PP_WorkOrderRouting</span> r <span class="kw">ON</span> r.WoID = d.WoID <span class="kw">AND</span> r.LineID = l.LineID
+<span class="kw">WHERE</span>  l.LotCode = @LotCode;
+<span class="c">-- PriorStatus CONFIRMED 인데 ReversalResultID NULL 이면 비정상</span></div></div>
+      </div>
+      <div class="note"><b>실행 환경.</b> 개발 DB 는 <code>AMES_DEV @ 192.168.0.132</code>(<code>ames_app</code>). <code>tbl_Lot</code> 필터 인덱스 때문에 수동 INSERT 는 <code>sqlcmd -I</code> 가 필요하지만 위 SELECT 는 무관하다. 전기일(<code>ProdDate</code>) 기준으로 보려면 E 의 <code>CreatedTS</code> 창을 <code>DAY_CUTOFF_TIME</code> 만큼 옮긴다.</div>
+    </div>
+
+    <!-- 13 -->
+    <div class="sec" id="s13">
+      <div class="sec-hdr"><div class="sec-num">13</div><div class="sec-title-wrap"><div class="sec-title-en">Pitfalls &amp; Checklist</div><div class="sec-title-ko">함정 · 점검표 — "숫자가 안 맞는다"의 흔한 원인</div></div><div class="sec-line"></div></div>
+      <table class="rule-tbl">
+        <thead><tr><th style="width:260px;">증상</th><th>원인 (테이블 관점)</th><th style="width:280px;">확인</th></tr></thead>
+        <tbody>
+          <tr><td class="k">POP 에 계획(PLAN)이 0 인데 WO 는 있다</td><td><code>PP_LineSchedule</code> 에 오늘·그 라인의 <code>EntryType 'WO'</code> 슬롯이 없다 — Shortfall 로 미배치되었거나 다른 날짜·라인에 놓였거나 0분 슬롯뿐. 확정은 슬롯과 무관하게 된다.</td><td>SQL A · PP-LSB 미배치 목록</td></tr>
+          <tr><td class="k">스캔은 되는데 WO 진척이 안 오른다</td><td>열린 단계가 없어 <code>WoID NULL</code> 로 확정됐다: 단계 <code>LineID</code> 가 세션 라인과 다름 · 단계 품번(코어) ≠ LOT 품번 · 단계 Status 가 Closed/Released 아님 · WO Cancelled. 라우팅 A 에서 INJ 실적은 헤더를 안 올리는 것이 정상.</td><td>SQL B 로 그 라인·품번의 열린 단계 유무 · SQL C 의 <code>p.WoID</code></td></tr>
+          <tr><td class="k">좌측 품번 목록이 비었다</td><td><code>MD_Bop.StationCode</code> = 세션 스테이션인 행이 없다(INJ 는 코어 품번, IMG 는 완제품 품번으로 등록해야 한다). 당일 LOT 있는 품번만 "미등록"으로 뜬다.</td><td><code>SELECT * FROM MD_Bop WHERE StationCode = @St</code></td></tr>
+          <tr><td class="k">라벨·LOT 이 아예 안 생긴다</td><td><code>MD_Line.LotPrefix</code> 미등록 → <code>LotNoGenerator</code> 예외(에이전트·수동·IMG 전부). 또는 <code>migrate_inj_lot_print_claim.sql</code> 없이 신 Pop → 디스패처 매 틱 예외(화면 표시 없음, dispatch 로그만).</td><td>MD_Line · <code>{Printer:OutputDir}/dispatch-*.log</code></td></tr>
+          <tr><td class="k">Core 스캔이 거부된다</td><td>코어가 CONFIRMED 가 아니다(RAW = 사출에서 스캔 안 함) · 이미 다른 완제품에 쓰였다(<code>ParentLotID</code>) · 열린 IMG WO 도 없고 좌측 선택 품번의 BOM 코어가 다르다(<code>CoreMismatch</code>).</td><td>SQL D 를 코어 LotCode 로 역으로</td></tr>
+          <tr><td class="k">INPUT ≠ FINAL + NG + 미확정</td><td>POP 좌측은 <b>LOT 상태</b>만 센다 — 세 항목이 ConfirmStatus 를 분할하므로 어긋날 수 없다. 어긋나 보이면 날짜 축 차이(좌측은 <code>CreatedTS</code> 자정 기준, 보고서는 <code>ProdDate</code> 07:00 경계) 또는 우측 칩(항상 금일)을 과거일 좌측과 비교한 것.</td><td>SQL E</td></tr>
+          <tr><td class="k">보고서 양품이 POP 보다 적다</td><td>확정 뒤 불량 등록이 <code>GoodQty −1</code> 역분개 행을 남긴다. 보고서는 <code>SUM(GoodQty)</code>, POP FINAL 은 상태 카운트라 DEFECT 로 간 LOT 이 빠지는 것과 같은 값이다. 재작업 양품은 <code>LINE-RWK-01 · RWK</code> 실적으로 되돌아온다(원래 라인 집계에는 안 잡힘).</td><td>SQL F</td></tr>
+          <tr><td class="k">헤더 CompletedQty 가 줄었다</td><td>백필 WO 중 헤더 라인이 마지막 단계가 아닌 건은 첫 후속 실적에서 마지막 단계 값으로 덮인다(1회). 또는 불량 역분개가 Closed 를 In Progress 로 되돌렸다 — 둘 다 설계된 동작.</td><td>PP-004 단계 탭</td></tr>
+          <tr><td class="k">APS WO 수량이 계획 셀과 다르다</td><td>WO 는 <b>저장본</b>(마지막 「저장」) 기준. 같은 날·라인·품번의 기존 슬롯 수량을 뺀다(<code>SkippedExisting</code>). 포장 단위(<code>PalletQty</code>) 올림. 형제 품번은 0분 슬롯에 수량만.</td><td>PP_ApsRunWo · SQL A</td></tr>
+          <tr><td class="k">신 바이너리에서 매번 예외</td><td>마이그레이션 순서: <code>migrate_wo_step_line → migrate_wo_step_item</code>(단계 ItemNo) · <code>migrate_lotno_rule → migrate_img_lot</code> · <code>migrate_inj_agent → migrate_inj_lot_print_claim</code> · <code>migrate_lot_defect_rework</code>(<code>-I</code> 필수) · <code>migrate_pr_result_prod_shift</code>(ProdDate/ShiftCode) · <code>migrate_mold_change_plan</code>(PP_LineSchedule.MoldID). 없는 컬럼은 <code>Invalid column name</code> 으로 그 화면이 매번 실패한다.</td><td>이벤트 뷰어 · <code>dist/*.sql</code> 머리말</td></tr>
+          <tr><td class="k">FK 가 없어 고아가 보인다</td><td>설계상 FK 를 두지 않는다(10-08 — 현장 저장이 FK 로 막히지 않게). 정합성은 리포지토리(삭제 거부 <code>DeleteIfUnused</code>, 같은 트랜잭션 처리)가 맡는다. 수주·WO·LOT·재고 참조는 품목 시드가 검사하지 않아 고아로 남을 수 있다.</td><td>SQL A/C 의 NULL 조인</td></tr>
+        </tbody>
+      </table>
+      <div class="note blue" style="margin-top:14px;"><b>배포 순서 요약(현장이 멈추지 않는 쪽).</b> ① 마이그레이션 → ② AMES.InjAgent(발행 중단) → ③ AMES.Pop → ④ AMES.Web. 뒤집으면 라벨 이중 발행(Pop 신 + InjAgent 구) 또는 구 Pop 이 신 Web 의 WO 를 못 본다(헤더 LineID NULL). 롤백은 정확히 역순.</div>
+    </div>
+
+  </div>
+  <div class="page-footer">
+    <div class="pf-l">A-MES · VOL.4 · PP → POP Data Flow · 테이블 흐름 분석 가이드 v1.0 · 2026-10-14 · 소스 기준 dev 9b96b88a</div>
+    <div class="pf-r">Automotive Parts MES · Production Planning → Shop Floor · Confidential</div>
+  </div>
+</div>
+</div>
+</body>
+</html>

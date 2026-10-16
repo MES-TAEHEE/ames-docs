@@ -121,7 +121,7 @@ internal static class Program
                      InspectorID, InsStartTS, InsEndTS, CreatedBy, CreatedTS)
                 VALUES ('{r.No}', '{r.Type}', NULL, '{r.Item}', 'Normal', {r.Sample}, {r.Sample * 6},
                         {r.Good}, {r.Defect}, '{r.Verdict}', {(r.Verdict == "FAIL" ? 1 : 0)},
-                        'user-q001',
+                        'Q001',
                         DATEADD(minute, -{r.MinAgo},     SYSDATETIME()),
                         DATEADD(minute, -{Math.Max(0, r.MinAgo - 15)}, SYSDATETIME()),
                         'qc-seed', SYSDATETIME());
@@ -162,14 +162,14 @@ internal static class Program
             VALUES
                 ('NCR-25060001', 'INSPECTION', 'IP-25060103',
                  (SELECT InspectionID FROM dbo.QC_Inspection WHERE InspectionNo='IP-25060103'),
-                 'Major', 'DR-TRM-RH-A1', 96, 'HOLD', 'Open', 'user-q001',
+                 'Major', 'DR-TRM-RH-A1', 96, 'HOLD', 'Open', 'Q001',
                  DATEADD(minute, -88, SYSDATETIME()), 'qc-seed', SYSDATETIME()),
                 ('NCR-25060002', 'POP-DEFECT', 'INJ-08', NULL,
-                 'Minor', 'DR-TRM-LH-A1', 6, 'REWORK', 'Open', 'user-q001',
+                 'Minor', 'DR-TRM-LH-A1', 6, 'REWORK', 'Open', 'Q001',
                  DATEADD(hour,  -3,  SYSDATETIME()), 'qc-seed', SYSDATETIME()),
                 ('NCR-25060003', 'CUSTOMER', 'CR-2025-014', NULL,
                  'Critical', 'DR-TRM-LH-A1', 32, 'RTV', 'Investigating',
-                 'user-q001', DATEADD(hour, -28, SYSDATETIME()),
+                 'Q001', DATEADD(hour, -28, SYSDATETIME()),
                  'qc-seed', SYSDATETIME());
             """);
         Console.WriteLine("  ncrs   3 NCRs (Minor + Major + Critical)");
@@ -185,12 +185,12 @@ internal static class Program
                 ('HLD-25060001',
                  (SELECT NcrID FROM dbo.QC_NCR WHERE NcrNumber='NCR-25060001'),
                  'Major', 'LOT', 'DR-TRM-RH-A1', 96, 'BAY-Q-01', 'Held',
-                 'user-q001', DATEADD(minute, -85, SYSDATETIME()),
+                 'Q001', DATEADD(minute, -85, SYSDATETIME()),
                  'qc-seed', SYSDATETIME()),
                 ('HLD-25060002',
                  (SELECT NcrID FROM dbo.QC_NCR WHERE NcrNumber='NCR-25060003'),
                  'Critical', 'FG', 'DR-TRM-LH-A1', 32, 'BAY-Q-02', 'Held',
-                 'user-q001', DATEADD(hour, -27, SYSDATETIME()),
+                 'Q001', DATEADD(hour, -27, SYSDATETIME()),
                  'qc-seed', SYSDATETIME());
             """);
         Console.WriteLine("  holds  2 active holds");
@@ -205,11 +205,11 @@ internal static class Program
             VALUES
                 ('CAPA-25060001', 'Corrective', 'NCR', 'Action', 'In Progress',
                  N'Bond pressure drift on IMG-02', 'Machine',
-                 'user-q001', DATEADD(day, -3, SYSDATETIME()), DATEADD(day, 4, GETDATE()),
+                 'Q001', DATEADD(day, -3, SYSDATETIME()), DATEADD(day, 4, GETDATE()),
                  'qc-seed', SYSDATETIME()),
                 ('CAPA-25060002', 'Preventive', 'Audit', 'Plan', 'Open',
                  N'Calibration logbook for callipers missing', 'Method',
-                 'user-q001', DATEADD(day, -1, SYSDATETIME()), DATEADD(day, 12, GETDATE()),
+                 'Q001', DATEADD(day, -1, SYSDATETIME()), DATEADD(day, 12, GETDATE()),
                  'qc-seed', SYSDATETIME());
 
             INSERT INTO dbo.QC_CAPA_Action
@@ -219,7 +219,7 @@ internal static class Program
                    N'Replace pneumatic regulator on IMG-02',
                    N'Pressure stability ±0.1 bar',
                    N'<=0.10', N'0.08', 'PASS',
-                   'user-q001', DATEADD(day, -1, GETDATE()), DATEADD(day, -1, SYSDATETIME()),
+                   'Q001', DATEADD(day, -1, GETDATE()), DATEADD(day, -1, SYSDATETIME()),
                    'qc-seed', SYSDATETIME()
             FROM   dbo.QC_CAPA c WHERE c.CapaNumber='CAPA-25060001';
 
@@ -230,7 +230,7 @@ internal static class Program
                    N'7-day stability check after regulator swap',
                    N'Defect rate',
                    N'<= 2 %',
-                   'user-q001', DATEADD(day, 4, GETDATE()),
+                   'Q001', DATEADD(day, 4, GETDATE()),
                    'qc-seed', SYSDATETIME()
             FROM   dbo.QC_CAPA c WHERE c.CapaNumber='CAPA-25060001';
 
@@ -241,7 +241,7 @@ internal static class Program
                    N'Re-issue calliper calibration logbooks',
                    N'Logbook coverage',
                    N'100 %',
-                   'user-q001', DATEADD(day, 2, GETDATE()),
+                   'Q001', DATEADD(day, 2, GETDATE()),
                    'qc-seed', SYSDATETIME()
             FROM   dbo.QC_CAPA c WHERE c.CapaNumber='CAPA-25060002';
             """);

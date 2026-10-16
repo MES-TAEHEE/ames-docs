@@ -1,0 +1,40 @@
+.fg04-body {
+    gap: 12px;
+    padding: 12px 12px 100px;
+    overflow-y: auto;
+}
+
+.fg04-unit, .fg04-items {
+    flex-shrink: 0;
+    border: 1px solid #415773;
+    background: #111b30;
+    color: #e8eef7;
+}
+
+.fg04-unit-head, .fg04-item-head, .fg04-items header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.fg04-unit-head { padding: 12px; border-bottom: 1px solid #415773; }
+.fg04-unit-head > div { min-width: 0; }
+.fg04-unit-head span, .fg04-totals span { display: block; color: #a9bed8; font-size: 10px; }
+.fg04-unit-head strong { display: block; margin-top: 4px; overflow-wrap: anywhere; font-size: 15px; }
+.fg04-unit-head .fg04-ready { padding: 4px 7px; border: 1px solid #4ba988; color: #8ee6b7; font-size: 10px; }
+.fg04-totals { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; padding: 12px; }
+.fg04-totals strong { display: block; margin-top: 4px; font-size: 13px; overflow-wrap: anywhere; }
+.fg04-items header { padding: 10px 12px; background: #20324b; color: #c5dcf8; font-size: 11px; font-weight: 700; }
+.fg04-item { padding: 12px; border-top: 1px solid #415773; }
+.fg04-item-head strong { overflow-wrap: anywhere; font-size: 14px; }
+.fg04-qty { flex-shrink: 0; color: #8ee6b7; }
+.fg04-part-name { margin-top: 5px; color: #c2cddd; font-size: 12px; overflow-wrap: anywhere; }
+.fg04-item dl { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 6px 8px; margin: 12px 0 0; }
+.fg04-item dt { color: #a9bed8; font-size: 10px; font-weight: 500; }
+.fg04-item dd { margin: 0; font-size: 12px; overflow-wrap: anywhere; }
+.fg04-customer { padding: 12px; border-top: 1px solid #415773; display: grid; gap: 6px; }
+.fg04-customer label { color: #a9bed8; font-size: 10px; }
+.fg04-customer select { width: 100%; min-height: 44px; border: 1px solid #6d89ac; border-radius: 0; background: #080e1b; color: #fff; padding: 8px; }
+.fg04-customer strong { font-size: 13px; overflow-wrap: anywhere; }
+.fg04-customer small { color: #fca5a5; }

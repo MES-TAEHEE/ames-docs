@@ -1,122 +1,556 @@
 @page "/mnt/equipment-card"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.MntRepository Mnt
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Data.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@using AMES.Web.Services
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject MntRepository Mnt
+@inject AuditLogger Audit
+@inject MasterDataRepository MD
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>MNT-001 @L["MNT.EquipmentCard.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="MNT-001" TitleKey="MNT.EquipmentCard.Title" />
 
+@* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">RUNNING</div>
-        <div class="ames-kpi-v">@_running</div>
-        <div class="ames-kpi-s">live RUN state</div>
+        <div class="ames-kpi-l">@StatusLabel("RUN")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => IsRun(r.Status))</div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">IDLE / SETUP</div>
-        <div class="ames-kpi-v">@_idle</div>
-        <div class="ames-kpi-s">stopped, no failure</div>
+        <div class="ames-kpi-l">@StatusLabel("IDLE")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => IsIdle(r.Status))</div>
     </div>
     <div class="ames-kpi bad">
-        <div class="ames-kpi-l">DOWN</div>
-        <div class="ames-kpi-v">@_down</div>
-        <div class="ames-kpi-s">failure / fault</div>
+        <div class="ames-kpi-l">@StatusLabel("DOWN")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => IsDown(r.Status))</div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">AVG OEE</div>
-        <div class="ames-kpi-v">@_avgOee.ToString("0.0")%</div>
-        <div class="ames-kpi-s">today, all equip</div>
+        <div class="ames-kpi-l">@StatusLabel("PM")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == EquipStatusRules.Pm)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MNT.EquipmentCard.Kpi.AvgOee"]</div>
+        <div class="ames-kpi-v">@(AvgOee is { } a ? $"{a:0.0}%" : "—")</div>
     </div>
 </div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
 
 <div class="ames-card">
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MNT.EquipmentCard.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input class="ames-input" style="width:220px;padding:4px 8px;"
-                   placeholder="@L["MNT.EquipmentCard.Ph.Search"]"
-                   @bind="_fSearch" @bind:event="oninput" @bind:after="ApplyFilter"
-                   autocomplete="off" />
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
-        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MNT.EquipmentCard.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
+            <RadzenLabel Text="@L["Col.Line"]" Component="DropDownLine" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownLine" @bind-Value="_fLine" Data="@LineFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
+            <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
+            <RadzenDropDown Name="DropDownType" @bind-Value="_fType" Data="@EquipTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+            <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            <RadzenButton Text="@L["MNT.EquipmentCard.Btn.Export"]" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@ExportXlsx" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenCreate(null))" class="ames-rz-btn" />
+            }
+        </RadzenStack>
     </div>
 
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["MNT.EquipmentCard.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.Equip"]</th><th>@L["Col.EquipName"]</th><th>@L["Col.Line"]</th><th>@L["Col.EquipType"]</th>
-                    <th>@L["Col.Status"]</th><th class="num">@L["Col.OEE"]</th><th class="num">@L["Col.Runtime"]</th>
-                    <th class="num">@L["Col.Cycles"]</th><th>@L["Col.NextPm"]</th><th>@L["Col.OpenWo"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var e in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    <tr>
-                        <td class="code">@e.EquipId</td>
-                        <td>@(e.EquipName ?? "—")</td>
-                        <td class="dim">@(e.LineId ?? "—")</td>
-                        <td class="dim">@(e.EquipType ?? "—")</td>
-                        <td><span class="pill @StatusClass(e.Status)">@(e.Status ?? "—")</span></td>
-                        <td class="num">@(e.TodayOee?.ToString("0.0") ?? "—")</td>
-                        <td class="num">@(e.RuntimeHours?.ToString("0") ?? "—")</td>
-                        <td class="num">@(e.CycleCount?.ToString("N0") ?? "—")</td>
-                        <td class="dim">@(e.NextPmDate?.ToString("MM-dd") ?? "—")</td>
-                        <td class="dim">@(e.OpenWoId?.ToString() ?? "—")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.EquipCardRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.EquipmentCard.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+        <Columns>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code">@r.EquipId</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="EquipName" Title="@L["Col.EquipName"]">
+                <Template Context="r">@(r.EquipName ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="EquipType" Title="@L["Col.EquipType"]" Width="120px">
+                <Template Context="r"><span class="pill">@EquipTypeLabel(r.EquipType)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="dim">@(r.LineId ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="MakerModel" Title="@L["Col.MakerModel"]" Width="150px">
+                <Template Context="r"><span class="dim">@(r.MakerModel ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r"><span class="pill @StatusCls(r.Status)" title="@StatusReason(r)">@StatusLabel(r.Status)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="TodayOee" Title="@L["Col.OEE"]" TextAlign="TextAlign.Right" Width="90px">
+                <Template Context="r">@(r.TodayOee?.ToString("0.0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="RuntimeHours" Title="@L["Col.Runtime"]" TextAlign="TextAlign.Right" Width="110px">
+                <Template Context="r">@(r.RuntimeHours?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="CycleCount" Title="@L["Col.Cycles"]" TextAlign="TextAlign.Right" Width="100px">
+                <Template Context="r">@(r.CycleCount?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="NextPmDate" Title="@L["Col.NextPm"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="@(IsPmOverdue(r.NextPmDate) ? "" : "dim")" style="@(IsPmOverdue(r.NextPmDate) ? "color:var(--ames-tx-red-400);" : "")">@(r.NextPmDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="OpenWoNumber" Title="@L["Col.OpenWo"]" TextAlign="TextAlign.Center" Width="170px">
+                <Template Context="r">
+                    @if (r.OpenWoNumber is { } wo) { <span class="pill orange" title="@string.Format(L["MNT.EquipmentCard.Hint.OpenWoCount"].Value, r.OpenWoCount)">@OpenWoText(r)</span> } else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="PlcConnTs" Title="@L["Col.PlcConn"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="r"><span class="dim">@(r.PlcConnTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
 </div>
 
-@code {
-    List<AMES.Data.Repositories.MntRepository.EquipCardRow> _allRows = new();
-    List<AMES.Data.Repositories.MntRepository.EquipCardRow> _rows    = new();
-    int     _page = 0;
-    const int _pageSize = 20;
-    int     _running, _idle, _down;
-    decimal _avgOee;
-    string  _fSearch = "";
+@* ── Detail Modal (읽기 전용 설비 카드) ───────────────────────────── *@
+@if (_modal == "detail" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MNT.EquipmentCard.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.EquipId</span>
+                @if (_sel.EquipStatusId is null) { <span class="pill warn" style="margin-left:8px;font-size:var(--ames-fs-hint);">@L["MNT.EquipmentCard.Lbl.Unregistered"]</span> }
+            </div>
 
-    protected override void OnInitialized() => Reload();
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text="@L["Col.EquipName"]" class="ames-rz-modal-label" Component="DetailTextBoxEquipName" />
+                <RadzenTextBox Name="DetailTextBoxEquipName" Value="@(_sel.EquipName ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            </RadzenStack>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.EquipType"]" />
+                    <RadzenTextBox Value="@EquipTypeText(_sel.EquipType)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Line"]" />
+                    <RadzenTextBox Value="@LineText(_sel.LineId)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.MakerModel"]" />
+                    <RadzenTextBox Value="@(_sel.MakerModel ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.InstallDate"]" />
+                    <RadzenTextBox Value="@(_sel.InstallDate?.ToString(DateFmt.Date) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Status"]" />
+                    <div style="padding-top:4px;"><span class="pill @StatusCls(_sel.Status)">@StatusLabel(_sel.Status)</span> <span class="dim" style="font-size:var(--ames-fs-hint);">@StatusReason(_sel)</span></div>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.OEE"]" />
+                    <RadzenTextBox Value="@(_sel.TodayOee is { } o ? $"{o:0.0} %" : "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Runtime"]" />
+                    <RadzenTextBox Value="@(_sel.RuntimeHours?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.Cycles"]" />
+                    <RadzenTextBox Value="@(_sel.CycleCount?.ToString("N0") ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.NextPm"]" />
+                    <RadzenTextBox Value="@(_sel.NextPmDate?.ToString(DateFmt.Date) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="@(IsPmOverdue(_sel.NextPmDate) ? "width:100%;color:var(--ames-tx-red-400);" : "width:100%;")" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.OpenWo"]" />
+                    <RadzenTextBox Value="@(_sel.OpenWoNumber is null ? "" : OpenWoText(_sel))" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.MoldId"]" />
+                    <RadzenTextBox Value="@MoldText(_sel.MountedMoldId)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.PlcConn"]" />
+                    <RadzenTextBox Value="@(_sel.PlcConnTs?.ToString(DateFmt.DateTime) ?? "")" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_canEdit)
+                {
+                    @if (_sel.EquipStatusId is null)
+                    {
+                        <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenCreate(_sel))" class="ames-rz-btn" />
+                    }
+                    else
+                    {
+                        <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => OpenEdit(_sel))" class="ames-rz-btn" />
+                    }
+                }
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── 등록 / 수정 모달 — MNT_EquipmentStatus (설비 카드) — MD_Equipment 기준, 설비 1대당 1장 ── *@
+@if (_modal is "create" or "edit")
+{
+    var editing = _modal == "edit";
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                @L["MNT.EquipmentCard.Modal.Card"] — @(editing ? L["Modal.Edit"] : L["Modal.Create"])
+                @if (editing) { <span class="dim" style="font-weight:400;font-size:.9em;margin-left:6px;">@_f.EquipId</span> }
+            </div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@(editing ? L["MNT.EquipmentCard.Hint.System"] : L["MNT.EquipmentCard.Hint.Create"])</div>
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["Col.Equip"]} *")' class="ames-rz-modal-label" Component="CardDropDownEquip" />
+                    @if (editing)
+                    {
+                        <RadzenTextBox Name="CardDropDownEquip" Value="@EquipText(_f.EquipId)" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    }
+                    else
+                    {
+                        <RadzenDropDown AllowFiltering="true" Name="CardDropDownEquip" @bind-Value="_f.EquipId" Data="@UnregisteredEquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    }
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Status"]" class="ames-rz-modal-label" Component="CardDropDownStatus" title="@L["MNT.EquipmentCard.Hint.AutoStatus"]" />
+                    <RadzenDropDown Name="CardDropDownStatus" @bind-Value="_f.Status" Data="@ManualStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Runtime"]" class="ames-rz-modal-label" Component="CardNumericRuntime" />
+                    <RadzenNumeric TValue="decimal?" Name="CardNumericRuntime" @bind-Value="_f.RuntimeHours" Min="0" Step="0.1" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["Col.Cycles"]" class="ames-rz-modal-label" Component="CardNumericCycles" />
+                    <RadzenNumeric TValue="long?" Name="CardNumericCycles" @bind-Value="_f.CycleCount" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.MoldId"]" class="ames-rz-modal-label" Component="CardDropDownMold" />
+                    <RadzenDropDown AllowFiltering="true" Name="CardDropDownMold" @bind-Value="_f.MountedMoldId" Data="@MoldOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (editing && _confirmDelete)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : (editing ? L["Btn.Save"] : L["Btn.Create"]))" Click="@Save" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (editing)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
+    List<MntRepository.EquipCardRow>        _allRows     = new();
+    List<MntRepository.EquipCardRow>        _rows        = new();
+    // 라인 표시 순서: 공정 순(사출 → 감싸기 → 도장 → 재작업) → 라인 ID
+    Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
+    List<MasterDataRepository.LineRow>      _lineList    = new();
+    List<MasterDataRepository.CodeItemRow>  _equipStatus = new();
+    List<MasterDataRepository.CodeItemRow>  _equipTypes  = new();
+    MntRepository.EquipCardRow? _sel;
+
+    string _fSearch = "";
+    string? _fLine, _fType, _fStatus;
+    string _modal = "", _msg = "", _modalErr = "";
+    bool _bgMouseDownOnSelf, _isErr, _busy, _confirmDelete, _canEdit;
+    string _actor = "system";
+    int? _editId;
+    FormModel _f = new();
+    List<MasterDataRepository.MoldRow> _molds = new();
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    // 등록 후보 = 설비 마스터에는 있으나 카드(MNT_EquipmentStatus)가 없는 설비 — 중복 등록 방지의 1차 관문
+    IEnumerable<DropDownItem> UnregisteredEquipOptions => _allRows.Where(r => r.EquipStatusId is null)
+        .Select(r => new DropDownItem { Value = r.EquipId, Text = EquipText(r.EquipId) });
+    IEnumerable<DropDownItem> MoldOptions => _molds.Select(m => new DropDownItem { Value = m.MoldID, Text = string.IsNullOrEmpty(m.MoldName) ? $"[{m.MoldID}]" : $"[{m.MoldID}] {m.MoldName}" });
+    string MoldText(string? id) =>
+        string.IsNullOrEmpty(id) ? "" : _molds.FirstOrDefault(m => m.MoldID == id) is { } m && !string.IsNullOrEmpty(m.MoldName) ? $"[{id}] {m.MoldName}" : $"[{id}]";
+    string EquipText(string? id) =>
+        id is null ? "" : _allRows.FirstOrDefault(r => r.EquipId == id) is { } r && !string.IsNullOrEmpty(r.EquipName) ? $"[{id}] {r.EquipName}" : $"[{id}]";
+
+    IEnumerable<DropDownItem> LineFilterOptions => _lineList.Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" });
+    // 설비 유형 = 공통코드 EQUIP_TYPE — MD-014 설비 기준정보와 같은 표시(목록은 명칭, 상세는 [코드] 명칭)
+    IEnumerable<DropDownItem> EquipTypeOptions => _equipTypes.Where(t => t.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = MasterDataRepository.LocalName(t) });
+    string EquipTypeLabel(string? code) => string.IsNullOrEmpty(code) ? "—" : _equipTypes.FirstOrDefault(t => t.CodeValue == code) is { } t ? MasterDataRepository.LocalName(t) : code;
+    string EquipTypeText(string? code) => string.IsNullOrEmpty(code) ? "" : _equipTypes.FirstOrDefault(t => t.CodeValue == code) is { } t ? $"[{code}] {MasterDataRepository.LocalName(t)}" : code;
+    IEnumerable<DropDownItem> StatusFilterOptions => _equipStatus.Where(s => s.UseFlag).Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
+
+    // 상태 라벨: EQUIP_STATUS 공통코드 LocalName (다국어), 미등록 코드는 원문 표시
+    string StatusLabel(string? code) =>
+        code is null ? "—" : _equipStatus.FirstOrDefault(s => s.CodeValue == code) is { } c ? MasterDataRepository.LocalName(c) : code;
+
+    decimal? AvgOee
+    {
+        get
+        {
+            var v = _allRows.Where(r => r.TodayOee.HasValue).Select(r => r.TodayOee!.Value).ToList();
+            return v.Count > 0 ? v.Average() : null;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("mnt/equipment-card");
+
+        try { _lineList    = MD.ListLines();                   } catch { }
+        try { _equipStatus = MD.ListCodeItems("EQUIP_STATUS"); } catch { }
+        try { _equipTypes  = MD.ListCodeItems("EQUIP_TYPE");   } catch { }
+        try { _molds       = MD.ListMolds();                   } catch { }
+        Reload();
+    }
+
+    // ── 등록 / 수정 / 삭제 ─────────────────────────────────────────────
+    void OpenCreate(MntRepository.EquipCardRow? preselect)
+    {
+        if (!_allRows.Any(r => r.EquipStatusId is null)) { ShowMsg(L["MNT.EquipmentCard.Err.NoCandidates"], true); return; }
+        _f = new() { EquipId = preselect?.EquipId ?? "", Status = preselect?.ManualStatus ?? EquipStatusRules.Run };
+        _editId = null; _editRow = null; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _modal = "create";
+    }
+
+    void OpenEdit(MntRepository.EquipCardRow? r)
+    {
+        if (r is null || r.EquipStatusId is null || !_canEdit) return;
+        _f = new()
+        {
+            EquipId = r.EquipId, Status = r.ManualStatus ?? EquipStatusRules.Run, RuntimeHours = r.RuntimeHours, CycleCount = r.CycleCount,
+            MountedMoldId = r.MountedMoldId ?? "",
+        };
+        _editId = r.EquipStatusId; _editRow = r; _sel = null; _modalErr = ""; _confirmDelete = false;
+        _modal = "edit";
+    }
+
+    async Task Save()
+    {
+        if (!_canEdit) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.EquipId)) { _modalErr = L["MNT.EquipmentCard.Err.EquipRequired"]; return; }
+
+        _busy = true;
+        try
+        {
+            if (_editId is int id)
+            {
+                Mnt.UpdateEquipStatus(id, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, NE(_f.MountedMoldId), _actor);
+                Audit.Updated("MNT-001", "MNT_EquipmentStatus", _f.EquipId, _editRow, _f);
+                ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Updated"].Value, _f.EquipId), false);
+            }
+            else
+            {
+                // 2차 관문: 다른 세션이 먼저 등록했을 수 있으므로 저장 직전 DB 에서 다시 확인 (INSERT 자체도 중복이면 THROW)
+                if (Mnt.EquipStatusExists(_f.EquipId)) { _modalErr = string.Format(L["MNT.EquipmentCard.Err.Duplicate"].Value, _f.EquipId); return; }
+                Mnt.InsertEquipStatus(_f.EquipId, NE(_f.Status), _f.RuntimeHours, _f.CycleCount, NE(_f.MountedMoldId), _actor);
+                Audit.Created("MNT-001", "MNT_EquipmentStatus", _f.EquipId, _f);
+                ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Created"].Value, _f.EquipId), false);
+            }
+            CloseModal(); await ReloadRestorePage();
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveDelete()
+    {
+        if (!_canEdit) return;
+        if (_editId is not int id) return;
+        _busy = true;
+        try
+        {
+            var equipId = _f.EquipId;
+            var before = _editRow;
+            Mnt.DeleteEquipStatus(id);
+            Audit.Deleted("MNT-001", "MNT_EquipmentStatus", equipId, before);
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Deleted"].Value, equipId), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    class FormModel
+    {
+        public string    EquipId       { get; set; } = "";
+        public string    Status        { get; set; } = "";
+        public decimal?  RuntimeHours  { get; set; }
+        public long?     CycleCount    { get; set; }
+        public string    MountedMoldId { get; set; } = "";
+    }
+
+    RadzenDataGrid<MntRepository.EquipCardRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
 
     void Reload()
     {
         try { _allRows = Mnt.ListEquipment(); }
-        catch { _allRows = new(); }
+        catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
+        try { _lineOrder = MD.LineProcessOrder(); } catch { }
         ApplyFilter();
     }
 
-    void ApplyFilter()
-    {
-        _page = 0;
-        _rows = string.IsNullOrWhiteSpace(_fSearch)
-            ? _allRows
-            : _allRows.Where(r =>
-                (r.LineId   ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-                (r.EquipName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
-        _running = _rows.Count(r => r.Status is "RUN" or "RUNNING" or "OPERATING");
-        _idle    = _rows.Count(r => r.Status is "IDLE" or "SETUP" or "READY");
-        _down    = _rows.Count(r => r.Status is "DOWN" or "STOP" or "FAULT");
-        var withOee = _rows.Where(r => r.TodayOee.HasValue).Select(r => r.TodayOee!.Value).ToList();
-        _avgOee = withOee.Count > 0 ? withOee.Average() : 0m;
+    void ApplyFilter() { _rows = _allRows.Where(r =>
+        (string.IsNullOrEmpty(_fSearch) ||
+            r.EquipId.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.EquipName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_fLine)   || r.LineId    == _fLine) &&
+        (string.IsNullOrEmpty(_fType)   || r.EquipType == _fType) &&
+        (string.IsNullOrEmpty(_fStatus) || r.Status    == _fStatus)
+    ).OrderBy(r => AMES.Data.Services.LineOrder.Rank(_lineOrder, r.LineId)).ThenBy(r => r.LineId).ThenBy(r => r.EquipId).ToList();
     }
 
-    static string StatusClass(string? s) => s switch
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    void RowRender(RowRenderEventArgs<MntRepository.EquipCardRow> args)
     {
-        "RUN" or "RUNNING" or "OPERATING" => "ok",
-        "DOWN" or "STOP" or "FAULT"       => "bad",
-        "IDLE" or "SETUP" or "READY"      => "warn",
-        _                                  => "info"
-    };
+        if (args.Attributes.TryGetValue("class", out var existing))
+            args.Attributes["class"] = existing + " ames-row-link";
+        else
+            args.Attributes["class"] = "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<MntRepository.EquipCardRow> args)
+    {
+        if (args.Data is not null) OpenDetail(args.Data);
+    }
+
+    void OpenDetail(MntRepository.EquipCardRow r) { _sel = r; _modal = "detail"; }
+
+    void CloseModal() { _modal = ""; _sel = null; _editId = null; _editRow = null; _modalErr = ""; _confirmDelete = false; }
+    MntRepository.EquipCardRow? _editRow;   // 수정 창을 연 카드 — 수정·삭제 감사의 이전 값
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    // 현재 조회 결과(필터 적용분)를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로
+    async Task ExportXlsx()
+    {
+        if (_rows.Count == 0) { ShowMsg(L["MNT.EquipmentCard.Err.NoExport"], true); return; }
+
+        var headers = new[]
+        {
+            L["Col.EquipId"].Value, L["Col.EquipName"].Value, L["Col.EquipType"].Value, L["Col.Line"].Value,
+            L["Col.MakerModel"].Value, L["Col.InstallDate"].Value, L["Col.Status"].Value, L["Col.OEE"].Value,
+            L["Col.Runtime"].Value, L["Col.Cycles"].Value, L["Col.NextPm"].Value, L["Col.OpenWo"].Value,
+            L["Col.MoldId"].Value, L["Col.PlcConn"].Value,
+        };
+        var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
+        {
+            r.EquipId, r.EquipName, EquipTypeLabel(r.EquipType), LineText(r.LineId),
+            r.MakerModel, r.InstallDate?.ToString(DateFmt.Date), StatusLabel(r.Status), r.TodayOee,
+            r.RuntimeHours, r.CycleCount, r.NextPmDate?.ToString(DateFmt.Date), OpenWoText(r),
+            r.MountedMoldId, r.PlcConnTs?.ToString(DateFmt.DateTime),
+        });
+
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["MNT.EquipmentCard.Title"].Value, headers, data);
+        var name  = $"EquipmentCard_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        ShowMsg(string.Format(L["MNT.EquipmentCard.Ok.Exported"].Value, _rows.Count), false);
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    string LineText(string? id) =>
+        id is null ? "" : _lineList.FirstOrDefault(l => l.LineID == id) is { } l && MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{id}] {nm}" : $"[{id}]";
+
+    // MNT_EquipmentStatus 는 라이브 상태라 EQUIP_STATUS 외 값(RUNNING/SETUP/FAULT 등)이 올 수 있어 동의어를 함께 본다
+    static bool IsRun(string? s)  => s is "RUN" or "RUNNING" or "OPERATING";
+    static bool IsIdle(string? s) => s is "IDLE" or "SETUP" or "READY";
+    static bool IsDown(string? s) => s is "DOWN" or "STOP" or "FAULT";
+
+    static string StatusCls(string? s) =>
+        IsRun(s) ? "ok" : IsDown(s) ? "bad" : s == "PM" ? "orange" : IsIdle(s) ? "mute" : "mute";
+
+    static bool IsPmOverdue(DateTime? d) => d is { } dt && dt.Date < DbClock.Today;
+
+    // 자동 판정 근거(EquipStatusRules) — 중지 = 설비를 멈추는 고장, 예방보전 = 착수된 PM 작업지시, 그 밖은 수동 입력
+    string StatusReason(MntRepository.EquipCardRow r) =>
+        r.StopFailureNumber is { } f ? string.Format(L["MNT.EquipmentCard.Reason.Failure"].Value, f)
+        : r.PmWoNumber is { } w     ? string.Format(L["MNT.EquipmentCard.Reason.Pm"].Value, w)
+        : L["MNT.EquipmentCard.Reason.Manual"].Value;
+
+    string OpenWoText(MntRepository.EquipCardRow r) =>
+        r.OpenWoCount > 1 ? $"{r.OpenWoNumber} (+{r.OpenWoCount - 1})" : r.OpenWoNumber ?? "";
+
+    // 손으로 고르는 상태 = 가동·유휴(중지·예방보전은 고장·PM 작업지시로 자동)
+    IEnumerable<DropDownItem> ManualStatusOptions => _equipStatus
+        .Where(s => s.UseFlag && EquipStatusRules.ManualStatuses.Contains(s.CodeValue ?? ""))
+        .Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
 }

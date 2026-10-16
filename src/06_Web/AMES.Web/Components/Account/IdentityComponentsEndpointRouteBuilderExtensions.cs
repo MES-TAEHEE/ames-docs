@@ -2,12 +2,8 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
-using AMES.Web.Components.Account.Pages;
-using AMES.Web.Components.Account.Pages.Manage;
 using AMES.Web.Data;
 
 namespace Microsoft.AspNetCore.Routing;
@@ -21,25 +17,6 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
 
         var accountGroup = endpoints.MapGroup("/Account");
 
-        accountGroup.MapPost("/PerformExternalLogin", (
-            HttpContext context,
-            [FromServices] SignInManager<ApplicationUser> signInManager,
-            [FromForm] string provider,
-            [FromForm] string returnUrl) =>
-        {
-            IEnumerable<KeyValuePair<string, StringValues>> query = [
-                new("ReturnUrl", returnUrl),
-                new("Action", ExternalLogin.LoginCallbackAction)];
-
-            var redirectUrl = UriHelper.BuildRelative(
-                context.Request.PathBase,
-                "/Account/ExternalLogin",
-                QueryString.Create(query));
-
-            var properties = signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-            return TypedResults.Challenge(properties, [provider]);
-        });
-
         accountGroup.MapPost("/Logout", async (
             ClaimsPrincipal user,
             [FromServices] SignInManager<ApplicationUser> signInManager,
@@ -49,24 +26,27 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             return TypedResults.LocalRedirect($"~/{returnUrl}");
         });
 
-        var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();
-
-        manageGroup.MapPost("/LinkExternalLogin", async (
-            HttpContext context,
+        // 상단바 비밀번호 변경 직후 — 회로가 발급한 1회용 표로 새 로그인 쿠키를 준다(AMES.Web.Services.SignInRefreshTickets).
+        // 기존 쿠키는 스탬프가 바뀌어 거부될 수 있으므로 현재 인증에 기대지 않는다. ACTIVE 계정만, 로그인 유지(IsPersistent)는 기존 쿠키 값을 따른다.
+        accountGroup.MapGet("/RefreshSignIn", async (
+            HttpContext ctx,
+            [FromQuery(Name = "t")] string? token,
+            [FromQuery] string? returnUrl,
+            [FromServices] AMES.Web.Services.SignInRefreshTickets tickets,
+            [FromServices] UserManager<ApplicationUser> userManager,
             [FromServices] SignInManager<ApplicationUser> signInManager,
-            [FromForm] string provider) =>
+            [FromServices] AMES.Data.Repositories.AuthRepository authRepo) =>
         {
-            // Clear the existing external cookie to ensure a clean login process
-            await context.SignOutAsync(IdentityConstants.ExternalScheme);
+            var userId = tickets.Redeem(token);
+            var user = userId is null ? null : await userManager.FindByIdAsync(userId);
+            if (user is null || !string.Equals(authRepo.GetProfileStatus(user.Id).AccountStatus, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                return Results.LocalRedirect("~/Account/Login");
+            var current = await ctx.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+            await signInManager.SignInAsync(user, isPersistent: current.Properties?.IsPersistent ?? false);
+            return Results.LocalRedirect(AMES.Web.Services.LocalUrl.OrDefault(returnUrl, "/"));
+        }).AllowAnonymous();
 
-            var redirectUrl = UriHelper.BuildRelative(
-                context.Request.PathBase,
-                "/Account/Manage/ExternalLogins",
-                QueryString.Create("Action", ExternalLogins.LinkLoginCallbackAction));
-
-            var properties = signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl, signInManager.UserManager.GetUserId(context.User));
-            return TypedResults.Challenge(properties, [provider]);
-        });
+        var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();
 
         var loggerFactory = endpoints.ServiceProvider.GetRequiredService<ILoggerFactory>();
         var downloadLogger = loggerFactory.CreateLogger("DownloadPersonalData");
@@ -100,7 +80,6 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
                 personalData.Add($"{l.LoginProvider} external login provider key", l.ProviderKey);
             }
 
-            personalData.Add("Authenticator Key", (await userManager.GetAuthenticatorKeyAsync(user))!);
             var fileBytes = JsonSerializer.SerializeToUtf8Bytes(personalData);
 
             context.Response.Headers.TryAdd("Content-Disposition", "attachment; filename=PersonalData.json");

@@ -16,6 +16,7 @@ internal static class PopServices
 {
     public static AmesConnectionFactory  ConnectionFactory { get; private set; } = null!;
     public static AuthRepository         Auth              { get; private set; } = null!;
+    public static WorkerRepository       Workers           { get; private set; } = null!;
     public static PopSessionRepository   Sessions          { get; private set; } = null!;
     public static PopAuthService         PopAuth           { get; private set; } = null!;
     public static WorkOrderRepository    WorkOrders        { get; private set; } = null!;
@@ -24,20 +25,22 @@ internal static class PopServices
     public static MoldRepository         Molds             { get; private set; } = null!;
     public static EquipmentRepository    Equipment         { get; private set; } = null!;
     public static AndonRepository        Andon             { get; private set; } = null!;
-    public static DashboardRepository    Dashboard         { get; private set; } = null!;
     public static MasterDataRepository   Master            { get; private set; } = null!;
-    public static FabricRepository       Fabric            { get; private set; } = null!;
-    public static BondRepository         Bond              { get; private set; } = null!;
     public static PntRepository          Pnt               { get; private set; } = null!;
     public static QcRepository           Qc                { get; private set; } = null!;
     public static InjLotRepository      InjLots           { get; private set; } = null!;
+    public static ImgLotRepository      ImgLots           { get; private set; } = null!;
+    public static ReworkRepository      Rework            { get; private set; } = null!;
 
     public static void Initialize()
     {
         ConnectionFactory = new AmesConnectionFactory(AppConfig.Current.ConnectionString);
+        // "오늘"·시각 표시는 DB 서버 시각 기준 — 실제 동기화는 로그인 화면이 한다(DB 가 죽어 있으면 Offset 0 으로 종전 동작)
+        DbClock.Configure(ConnectionFactory);
         Auth              = new AuthRepository      (ConnectionFactory);
+        Workers           = new WorkerRepository    (ConnectionFactory);
         Sessions          = new PopSessionRepository(ConnectionFactory);
-        PopAuth           = new PopAuthService      (Auth, Sessions);
+        PopAuth           = new PopAuthService      (Auth, Workers, Sessions);
 
         WorkOrders        = new WorkOrderRepository (ConnectionFactory);
         Production        = new ProductionRepository(ConnectionFactory);
@@ -45,12 +48,11 @@ internal static class PopServices
         Molds             = new MoldRepository      (ConnectionFactory);
         Equipment         = new EquipmentRepository (ConnectionFactory);
         Andon             = new AndonRepository     (ConnectionFactory);
-        Dashboard         = new DashboardRepository (ConnectionFactory);
         Master            = new MasterDataRepository(ConnectionFactory);
-        Fabric            = new FabricRepository    (ConnectionFactory);
-        Bond              = new BondRepository      (ConnectionFactory);
         Pnt               = new PntRepository       (ConnectionFactory);
         Qc                = new QcRepository        (ConnectionFactory);
         InjLots           = new InjLotRepository    (ConnectionFactory);
+        ImgLots           = new ImgLotRepository    (ConnectionFactory);
+        Rework            = new ReworkRepository    (ConnectionFactory);
     }
 }

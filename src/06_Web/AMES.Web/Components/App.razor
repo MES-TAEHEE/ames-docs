@@ -1,28 +1,48 @@
 ﻿<!DOCTYPE html>
-<html lang="en" data-theme="@_theme">
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName" data-theme="@_theme">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <script>try{if((localStorage.getItem('ames.theme')||'dark')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
-    <link rel="stylesheet" href="_content/Radzen.Blazor/css/humanistic-dark-base.css" />
+    @* Radzen 테마는 둘 다 받아 두고 media 로 하나만 켠다 — 전환 때 다시 받지 않아 깜박임이 없다(theme.js 가 같은 id 로 전환) *@
+    <link id="ames-rz-dark" rel="stylesheet" href="_content/Radzen.Blazor/css/humanistic-dark-base.css" media="@(_theme == "light" ? "not all" : "all")" />
+    <link id="ames-rz-light" rel="stylesheet" href="_content/Radzen.Blazor/css/humanistic-base.css" media="@(_theme == "light" ? "all" : "not all")" />
+    <script>try{var l=(localStorage.getItem('ames.theme')||'dark')==='light';if(l)document.documentElement.setAttribute('data-theme','light');document.getElementById('ames-rz-dark').media=l?'not all':'all';document.getElementById('ames-rz-light').media=l?'all':'not all';}catch(e){}</script>
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["AMES.Web.styles.css"]" />
     <ImportMap />
-    <link rel="icon" type="image/png" href="favicon.png" />
+    @* 파비콘은 브라우저가 URL 단위로 오래 캐시한다 — 이미지를 바꾸면 ?v= 값을 올려 다시 받게 한다 (2026-09-15 회사 CI 체브런) *@
+    <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=eos1" />
+    <link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png?v=eos1" />
+    <link rel="icon" type="image/png" sizes="16x16" href="brand/favicon-16.png?v=eos1" />
+    <link rel="shortcut icon" href="favicon.png?v=eos1" />
     <HeadOutlet />
 </head>
 
 <body>
     <Routes />
     <script src='js/gantt-drag.js'></script>
+    <script src='js/wo-preview-drag.js'></script>
     <script src='js/line-pattern-drag.js?v=20260721b'></script>
-    <script src='js/file-download.js'></script>
+    <script src='js/file-download.js?v=20260922c'></script>
+    <script src='js/delivery-note-print.js?v=2'></script>
     <script src='js/frozen-columns.js'></script>
     <script src='js/nav-progress.js'></script>
-    <script src='js/theme.js'></script>
-    <script src="_framework/blazor.web.js"></script>
+    <script src='js/busy-buttons.js?v=20261006b'></script>
+    <script src='js/nav-keep.js?v=20261010'></script>
+    <script src='js/theme.js?v=20260930'></script>
+    <script src='js/location-map-scroll.js?v=20260903'></script>
+    @if (_portal)
+    {
+        @* 외부 화면은 회로를 /portal/_blazor 로 — 경로가 갈려야 내부 쿠키가 같이 있어도 외부 사용자로 붙는다(Program.cs 스킴 선택) *@
+        <script src="_framework/blazor.web.js" autostart="false"></script>
+        <script>Blazor.start({ circuit: { configureSignalR: b => b.withUrl('@(PortalAuth.HubPath.TrimStart('/'))') } });</script>
+    }
+    else
+    {
+        <script src="_framework/blazor.web.js"></script>
+    }
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
 </body>
 
@@ -32,6 +52,10 @@
     // 서버 렌더 시 쿠키 기반으로 data-theme 를 심어, 향상된 네비게이션에도 테마가 유지되도록 함.
     [CascadingParameter] public HttpContext? HttpContext { get; set; }
     string? _theme;
+    bool _portal;
     protected override void OnInitialized()
-        => _theme = HttpContext?.Request.Cookies["ames.theme"] == "light" ? "light" : null;
+    {
+        _theme = HttpContext?.Request.Cookies["ames.theme"] == "light" ? "light" : null;
+        _portal = HttpContext is not null && PortalAuth.IsPortalPath(HttpContext.Request.Path);
+    }
 }

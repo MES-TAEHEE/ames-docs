@@ -10,6 +10,9 @@ namespace AMES.Web.Services;
 /// </summary>
 public sealed class AppLanguageState
 {
+    /// <summary>앱이 지원하는 서식 컬처 — 요청 지역화 설정과 언어 스위처(LANGUAGE 공통코드 값 검증)가 같이 쓴다.</summary>
+    public static readonly string[] SupportedCultures = ["ko-KR", "en-US", "es-MX", "es-ES"];
+
     const string Key = "LANGUAGE_DEFAULT";
     readonly SysRepository _sys;
     readonly object _lock = new();

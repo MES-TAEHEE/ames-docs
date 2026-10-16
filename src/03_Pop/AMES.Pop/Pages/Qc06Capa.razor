@@ -23,8 +23,8 @@
     <div class="pop-bd">
         <div class="qc-kpis k4">
             <div class="qc-kpi"><div class="lbl">OPEN CAPAs</div><div class="val">@_capas.Count</div><div class="sub">active</div></div>
-            <div class="qc-kpi warn"><div class="lbl">DUE 7-DAY</div><div class="val">@_capas.Count(c => (c.DueDate ?? DateTime.MaxValue) <= DateTime.Today.AddDays(7))</div><div class="sub">approaching</div></div>
-            <div class="qc-kpi bad"><div class="lbl">OVERDUE</div><div class="val">@_capas.Count(c => (c.DueDate ?? DateTime.MaxValue) < DateTime.Today)</div><div class="sub">past due</div></div>
+            <div class="qc-kpi warn"><div class="lbl">DUE 7-DAY</div><div class="val">@_capas.Count(c => (c.DueDate ?? DateTime.MaxValue) <= DbClock.Today.AddDays(7))</div><div class="sub">approaching</div></div>
+            <div class="qc-kpi bad"><div class="lbl">OVERDUE</div><div class="val">@_capas.Count(c => (c.DueDate ?? DateTime.MaxValue) < DbClock.Today)</div><div class="sub">past due</div></div>
             <div class="qc-kpi ok"><div class="lbl">ACTIONS DONE</div><div class="val">@_capas.Sum(c => c.ActionsCompleted)</div><div class="sub">/ @_capas.Sum(c => c.ActionsTotal)</div></div>
         </div>
 
@@ -111,13 +111,13 @@
     private List<QcCapaDto>       _capas   = new();
     private List<QcCapaActionDto> _actions = new();
     private int _sel;
-    private DateTime _now = DateTime.Now;
+    private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _timer;
 
     protected override void OnInitialized()
     {
         Refresh();
-        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DateTime.Now; StateHasChanged(); }),
+        _timer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); _now = DbClock.Now; StateHasChanged(); }),
                                             null, 5000, 5000);
     }
 

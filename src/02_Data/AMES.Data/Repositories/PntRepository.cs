@@ -137,8 +137,8 @@ public sealed class PntRepository
         cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value  = itemNo;
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 12).Value  = ralColor;
         cmd.Parameters.Add("@T",  SqlDbType.Int).Value          = targetQty;
-        cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value= operatorId;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value  = employeeNo;
+        cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value= operatorId;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value  = employeeNo;
         return (int)cmd.ExecuteScalar()!;
     }
 
@@ -199,7 +199,7 @@ public sealed class PntRepository
                 upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
                 upd.Parameters.Add("@J",     SqlDbType.VarChar,  20   ).Value = jigId;
                 upd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = loadedQty;
-                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
+                upd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = operatorId;
                 upd.ExecuteNonQuery();
             }
 
@@ -215,7 +215,7 @@ public sealed class PntRepository
                 ins.Parameters.Add("@Q",  SqlDbType.Int).Value         = loadedQty;
                 ins.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value = operatorId;
                 ins.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value = lineId;
-                ins.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+                ins.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
                 ins.ExecuteNonQuery();
             }
 
@@ -228,7 +228,7 @@ public sealed class PntRepository
                 """, conn, tx))
             {
                 ev.Parameters.Add("@J",  SqlDbType.VarChar, 20).Value = jigId;
-                ev.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+                ev.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
                 ev.ExecuteNonQuery();
             }
 
@@ -355,7 +355,7 @@ public sealed class PntRepository
                 upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
                 upd.Parameters.Add("@G",     SqlDbType.Int            ).Value = goodQty;
                 upd.Parameters.Add("@D",     SqlDbType.Int            ).Value = defectQty;
-                upd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
+                upd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = operatorId;
                 upd.ExecuteNonQuery();
             }
 
@@ -369,7 +369,7 @@ public sealed class PntRepository
                 """, conn, tx))
             {
                 ev.Parameters.Add("@V",  SqlDbType.Int).Value         = virtualLotId;
-                ev.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+                ev.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
                 ev.ExecuteNonQuery();
             }
 
@@ -389,7 +389,7 @@ public sealed class PntRepository
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
-        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
+        cmd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 
@@ -431,7 +431,7 @@ public sealed class PntRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
         cmd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = qty;
-        cmd.Parameters.Add("@ModBy", SqlDbType.NVarChar, 450  ).Value = operatorId;
+        cmd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = operatorId;
         cmd.ExecuteNonQuery();
     }
 
@@ -440,7 +440,7 @@ public sealed class PntRepository
     {
         const string sql = """
             SELECT  ISNULL(p.LineID,@L) AS LineID,
-                    CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 6 AND 17 THEN 'DAY' ELSE 'NIGHT' END AS ShiftCode,
+                    CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, v.IssuedAt) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END AS ShiftCode,
                     COUNT(CASE WHEN v.Status IN ('CONFIRMED','LABELED','CLOSED') THEN 1 END) AS LotsClosed,
                     SUM(ISNULL(v.ConfirmedQty,0)) AS GoodQty,
                     SUM(ISNULL(v.DefectQty,0))    AS DefectQty
@@ -448,7 +448,7 @@ public sealed class PntRepository
             JOIN    dbo.PNT_DailyPlan  p ON p.PlanID = v.PlanID
             WHERE   p.PlanDate = CAST(GETDATE() AS DATE)
               AND   p.LineID   = @L
-            GROUP BY CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 6 AND 17 THEN 'DAY' ELSE 'NIGHT' END,
+            GROUP BY CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, v.IssuedAt) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END,
                      ISNULL(p.LineID,@L);
             """;
         using var conn = _factory.OpenConnection();

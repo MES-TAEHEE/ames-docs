@@ -1,0 +1,105 @@
+﻿/* SCM·포탈 공용 화면 — 목록·모달은 표준 클래스(ames-card·ames-rz-grid·ames-modal)를 쓰고, 상세 모달 안의 정보 타일·품목 표만 여기서 정한다(PP-006 상세와 같은 모양). */
+.scm-dgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin:4px 0 12px; }
+.scm-dt { padding:8px 10px; border:1px solid rgba(148,163,184,.22); border-radius:6px; background:rgba(148,163,184,.06); }
+.scm-dl { font-size:var(--ames-fs-hint, 12px); color:var(--rz-text-secondary-color, var(--ames-tx-slate-400)); margin-bottom:3px; white-space:nowrap; }
+.scm-dv { font-weight:600; word-break:break-word; }
+.scm-dsub { margin:14px 0 6px; font-weight:600; font-size:.92em; color:var(--rz-text-secondary-color, var(--ames-tx-slate-400)); }
+.scm-scroll { overflow-x:auto; }
+.scm-scroll .num, .scm-scroll th.num { text-align:right; white-space:nowrap; }
+.scm-log { line-height:1.9; font-size:.92em; }
+.scm-act { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.scm-date-range { display:flex; align-items:center; flex-wrap:nowrap; flex:0 0 auto; gap:8px; white-space:nowrap; }
+.scm-line-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.scm-lines { width:100%; }
+.scm-data-issue { color:var(--ames-tx-red-500); white-space:normal; overflow-wrap:anywhere; font-size:12px; }
+.scm-mismatch-button { display:inline-flex; align-items:center; justify-content:center; gap:4px; border:0; border-radius:6px; padding:4px 8px; color:var(--ames-tx-green-300); background:rgba(34,197,94,.14); cursor:pointer; font:inherit; }
+.scm-mismatch-button:hover { background:rgba(34,197,94,.25); }
+.scm-mismatch-button ::deep .rzi { font-size:17px; }
+.scm-lines td:nth-child(2) { min-width:240px; }
+.scm-lines td { vertical-align:middle; }
+.scm-lines .dim { white-space:normal; max-width:390px; padding-top:4px; }
+.scm-total { display:flex; justify-content:flex-end; align-items:center; gap:20px; padding:10px 4px 0; font-size:15px; }
+.scm-print-body { display:grid; gap:18px; }
+.scm-print-section { min-width:0; }
+.scm-print-section h3 { margin:0 0 8px; font-size:16px; color:var(--ames-tx-blue-300); }
+.scm-print-table { table-layout:fixed; }
+.scm-print-table th:last-child,.scm-print-table td:last-child { width:150px; text-align:right; }
+.scm-print-table th,.scm-print-table td { white-space:normal; overflow-wrap:anywhere; vertical-align:middle; }
+
+.scm-act { margin:12px 0; }
+.scm-act label { display:flex; align-items:center; gap:8px; }
+.scm-number { width:100%; min-width:100px; min-height:32px; padding:6px 10px; }
+
+/* Keep the purchase editor within the viewport without clipping editable columns. */
+.ames-modal.scm-editor { max-width:1200px; min-width:0; box-sizing:border-box; }
+.ames-modal.scm-order-detail { max-width:1200px; min-width:0; box-sizing:border-box; }
+.scm-order-detail > .scm-scroll { flex-shrink:0; }
+.scm-order-detail .ames-table { width:100%; table-layout:fixed; }
+.scm-order-detail .ames-table th,
+.scm-order-detail .ames-table td { min-width:0; white-space:normal; overflow-wrap:anywhere; }
+.scm-order-detail .ames-table:not(.scm-lines) th:nth-child(1) { width:14%; }
+.scm-order-detail .ames-table:not(.scm-lines) th:nth-child(2) { width:26%; }
+.scm-order-detail .ames-table:not(.scm-lines) th:nth-child(3) { width:16%; }
+/* 수량은 단위 자릿수(UomQty)로 길어진다 — 숫자는 끊지 않고 품명이 줄바꿈해 폭을 내준다 */
+.scm-order-detail .ames-table:not(.scm-lines) { table-layout:auto; }
+.scm-order-detail .ames-table:not(.scm-lines) .num { white-space:nowrap; overflow-wrap:normal; }
+.scm-order-detail .scm-number { min-width:0; padding:6px 4px; }
+.scm-editor .scm-lines { table-layout:fixed; }
+.scm-editor .scm-lines th:nth-child(1) { width:4%; }
+.scm-editor .scm-lines th:nth-child(2) { width:30%; }
+.scm-editor .scm-lines th:nth-child(3) { width:16%; }
+.scm-editor .scm-lines th:nth-child(4),
+.scm-editor .scm-lines th:nth-child(5) { width:15%; }
+.scm-editor .scm-lines th:nth-child(6) { width:15%; }
+.scm-editor .scm-lines th:nth-child(7) { width:5%; }
+.scm-editor .scm-lines td { min-width:0; overflow-wrap:anywhere; }
+.scm-editor .scm-lines th { white-space:normal; }
+.scm-editor .scm-lines .num { white-space:normal; overflow-wrap:anywhere; }
+.scm-editor .scm-lines .scm-unit,
+.scm-order-detail .ames-table .scm-unit { white-space:nowrap; overflow-wrap:normal; }
+.scm-editor .scm-lines .dim { max-width:none; overflow-wrap:anywhere; }
+.scm-editor .scm-lines ::deep .rz-dropdown,
+.scm-editor .scm-lines ::deep .rz-numeric { width:100% !important; min-width:0; max-width:100%; }
+.scm-editor .scm-lines ::deep .rz-dropdown-label { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.scm-editor .scm-lines ::deep .rz-numeric-input { min-width:0; width:100%; }
+@media(max-width:700px) {
+    .ames-modal.scm-editor { padding:16px; }
+    .scm-editor .scm-lines thead { display:none; }
+    .scm-editor .scm-lines tbody { display:block; }
+    .scm-editor .scm-lines tr { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); margin-bottom:16px; }
+    .scm-editor .scm-lines td:nth-child(2) { grid-column:1 / -1; }
+    .scm-editor .scm-lines td:nth-child(1) { grid-column:1 / -1; }
+    .scm-editor .scm-lines td:nth-child(4)::before { content:"수량 / Qty"; display:block; }
+    .scm-editor .scm-lines td:nth-child(5)::before { content:"단가 / Price"; display:block; }
+    .scm-editor .scm-lines td:nth-child(6)::before { content:"금액 / Amount"; display:block; }
+}
+
+
+
+/* Delivery editor has its own column sizing; do not inherit purchase-order proportions. */
+.ames-modal.scm-delivery-detail { width:calc(100vw - 48px); max-width:1200px; min-width:0; box-sizing:border-box; }
+.scm-delivery-detail .scm-scroll { flex-shrink:0; }
+.scm-delivery-detail .ames-table { width:100%; table-layout:auto; }
+.scm-delivery-detail .ames-table th { white-space:normal; }
+.scm-delivery-detail .ames-table td { white-space:normal; overflow-wrap:anywhere; }
+.scm-delivery-detail .scm-lines td:nth-child(2) { min-width:50px; }
+.scm-delivery-detail td[data-field="item"] { min-width:140px; }
+.scm-delivery-detail td[data-field="quantity"] { min-width:130px; }
+.scm-delivery-detail td[data-field="lot"] { min-width:190px; }
+.scm-delivery-detail td[data-field="production-date"] { min-width:175px; }
+.scm-delivery-detail input.ames-input { width:100%; box-sizing:border-box; }
+.scm-shipment-date { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.scm-delivery-detail ::deep .rz-numeric,
+.scm-delivery-detail ::deep .rz-datepicker { width:100%; min-width:0; }
+.scm-delivery-detail ::deep .rz-numeric-input { width:100%; min-width:0; }
+@media(max-width:1150px) {
+    .ames-modal.scm-delivery-detail { padding:20px; }
+    .scm-delivery-detail .ames-table thead { display:none; }
+    .scm-delivery-detail .ames-table tbody { display:block; }
+    .scm-delivery-detail .ames-table tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:12px 0; }
+    .scm-delivery-detail .ames-table td { display:block; min-width:0; padding:6px; }
+    .scm-delivery-detail .ames-table td::before { content:attr(data-label); display:block; margin-bottom:6px; font-size:12px; color:var(--rz-text-secondary-color,var(--ames-tx-slate-400)); }
+}
+@media(max-width:480px) {
+    .scm-delivery-detail .ames-table tr { grid-template-columns:minmax(0,1fr); }
+}

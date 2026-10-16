@@ -6,7 +6,7 @@ namespace AMES.Contracts.Dto;
 /// </summary>
 public sealed class EmployeeProfileDto
 {
-    /// <summary>AspNetUsers.Id (NVARCHAR(450)) — used as OperatorID FK everywhere.</summary>
+    /// <summary>AspNetUsers.Id (NVARCHAR(450)) — 역할 조회·SYS_UserProfile 갱신 키. POP 이 기록하는 "누가" 는 EmployeeNo.</summary>
     public required string UserId { get; init; }
 
     /// <summary>AspNetUsers.UserName — login handle (often equals EmployeeNo).</summary>
@@ -21,12 +21,6 @@ public sealed class EmployeeProfileDto
     public string? Department { get; init; }
     public string? DefaultShift { get; init; }
 
-    /// <summary>
-    /// JSON array of LineIDs the operator may log into.
-    /// Empty / null => not restricted (treated as 'all lines' for now).
-    /// </summary>
-    public string? AssignedLinesJson { get; init; }
-
     /// <summary>Active / Locked / Disabled.</summary>
     public string? AccountStatus { get; init; }
 
@@ -35,6 +29,12 @@ public sealed class EmployeeProfileDto
 
     /// <summary>AspNetUsers.PasswordHash — checked by PinHasher.Verify(pin, hash).</summary>
     public required string PasswordHash { get; init; }
+
+    /// <summary>
+    /// True when the profile came from MD_Worker (POP-only account, no AspNetUsers row).
+    /// The SYS_UserProfile lock counters must be skipped for these — there is no row to update.
+    /// </summary>
+    public bool IsWorker { get; init; }
 
     /// <summary>
     /// SYS_UserProfile.PinHash — the operator's 4-digit POP PIN (PBKDF2), checked by

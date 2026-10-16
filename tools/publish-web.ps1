@@ -59,11 +59,13 @@ Write-Step "패키지 생성 -> $PkgDir"
 if (Test-Path $PkgDir) { Remove-Item $PkgDir -Recurse -Force }
 New-Item -ItemType Directory -Path $PkgDir -Force | Out-Null
 
-# IIS.pubxml 과 동일한 조건: framework-dependent / win-x64 / Production
+# self-contained / win-x64 / Production — .NET 런타임을 앱 폴더에 넣는다(10-14). 공용 런타임(C:\Program Files\dotnet)을
+# 빌려 쓰면 Windows Update·VS 가 .NET 을 바꾸는 도중 뜬 작업자 프로세스가 500.31/500.30 으로 죽은 채 남았다.
+# 런타임 보안 패치는 다음 게시 때 같이 들어간다(빌드 PC 의 SDK 가 받은 최신 패치).
 & dotnet publish $Project `
     -c $Configuration `
     -r win-x64 `
-    --self-contained false `
+    --self-contained true `
     -p:EnvironmentName=Production `
     -o $PkgDir `
     --nologo -v m
@@ -173,7 +175,8 @@ if ($Target -eq 'Package') {
     3. app_offline.htm 제거 / 앱풀 시작
 
   서버 사전 조건
-    - ASP.NET Core 10 Hosting Bundle 설치  (9.x 만 있으면 HTTP 500.31)
+    - ASP.NET Core Hosting Bundle 설치  (IIS 연결 모듈 ANCM 용 — .NET 런타임은 패키지에 들어 있다)
+    - 기동 실패 자동 복구: tools\iis-watchdog.ps1 -Install  (관리자, 서버마다 1회)
     - 앱풀: 관리 코드 없음(No Managed Code), Load User Profile = True
     - 배포 폴더에 앱풀 계정 읽기/실행 권한
 "@ -ForegroundColor Gray

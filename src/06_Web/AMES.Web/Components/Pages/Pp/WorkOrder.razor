@@ -1,8 +1,10 @@
-@page "/pp/work-order"
+﻿@page "/pp/work-order"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject NavigationManager Nav
 @inject DialogService Dialog
 @inject AuthenticationStateProvider AuthPrvd
 @inject IJSRuntime JS
@@ -12,49 +14,47 @@
 <PageTitle>PP-004 @L["PP.WorkOrder.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-004" TitleKey="PP.WorkOrder.Title" />
 
-<div class="wo-page">
+<div class="ames-page-fill">
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
 }
 
-<div class="ames-kpis compact">
-    <div class="ames-kpi"><div class="ames-kpi-l">DRAFT</div><div class="ames-kpi-v">@Count("Draft")</div></div>
-    <div class="ames-kpi info"><div class="ames-kpi-l">RELEASED</div><div class="ames-kpi-v">@Count("Released")</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">IN PROGRESS</div><div class="ames-kpi-v">@Count("In Progress")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">CLOSED</div><div class="ames-kpi-v">@Count("Closed")</div></div>
-    <div class="ames-kpi @(CriticalCount > 0 ? "warn" : "")"><div class="ames-kpi-l">D-3 CRITICAL</div><div class="ames-kpi-v">@CriticalCount</div></div>
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.Draft"]</div><div class="ames-kpi-v">@Count("Draft")</div></div>
+    <div class="ames-kpi info"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.Released"]</div><div class="ames-kpi-v">@Count("Released")</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.InProgress"]</div><div class="ames-kpi-v">@Count("In Progress")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.Closed"]</div><div class="ames-kpi-v">@Count("Closed")</div></div>
+    <div class="ames-kpi @(CriticalCount > 0 ? "warn" : "")"><div class="ames-kpi-l">@L["PP.WorkOrder.Kpi.Critical"]</div><div class="ames-kpi-v">@CriticalCount</div></div>
 </div>
 
-<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
-    <div class="ames-fld">
-        <label>@L["Col.Status"]</label>
-        <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
-                        AllowClear="true" Placeholder="@L["Filter.All"].Value" Style="width:150px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.Routing"]</label>
-        <RadzenDropDown Data="_routings" @bind-Value="_fRouting" @bind-Value:after="ApplyFilters"
-                        AllowClear="true" Placeholder="@L["Filter.All"].Value" Style="width:110px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.WoNo"] / @L["Col.Item"]</label>
-        <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
-                       Placeholder="—" Style="width:200px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["PP.WorkOrder.Filter.ClosedDays"]</label>
-        <RadzenDropDown AllowFiltering="true" Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" Style="width:130px" />
-    </div>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-        <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Reload" />
-        <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Click="Reset" />
-        <RadzenButton Text="@L["PP.WorkOrder.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Light" Click="ExportCsv" />
-        <RadzenButton Text="@L["PP.WorkOrder.Btn.Manual"].Value" Icon="add" ButtonStyle="ButtonStyle.Secondary" Click="OpenManual" />
-    </div>
-</div>
+<div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.WorkOrder.Title"] · @_view.Count @L["Lbl.Items"]@(_view.Count < _rows.Count ? $" / {L["Lbl.TotalOf"]} {_rows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Status"]" />
+            <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
+                            AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenLabel Text="@L["Col.Routing"]" />
+            <RadzenDropDown Data="_routings" @bind-Value="_fRouting" @bind-Value:after="ApplyFilters"
+                            AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px" />
+            <RadzenLabel Text='@($"{L["Col.WoNo"]}/{L["Col.Item"]}")' />
+            <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
+                           Placeholder="@L["PP.WorkOrder.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenLabel Text="@L["PP.WorkOrder.Filter.ClosedDays"]" />
+            <RadzenDropDown AllowFiltering="true" Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" />
 
-<div class="wo-grid">
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reload" />
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
+            <RadzenButton Text="@L["PP.WorkOrder.Btn.Export"].Value" Icon="download" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.WorkOrder.Btn.Manual"].Value" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenManual" />
+            }
+        </RadzenStack>
+    </div>
+
+<div class="ames-grid-virtual">
 @if (_rows.Count == 0)
 {
     <div class="ames-empty">@L["PP.WorkOrder.Empty"]</div>
@@ -62,69 +62,69 @@
 else
 {
     <RadzenDataGrid Data="_view" TItem="WorkOrderDto" AllowVirtualization="true" Style="height:100%"
-                    AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     RowExpand="@LoadSteps"
                     class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="150px" Property="WoNumber" Title="@L["Col.WoNo"].Value" Frozen="true" Width="150px">
                 <Template Context="w"><span class="code">@w.WoNumber</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="230px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="230px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="230px">
                 <Template Context="w">
                     <span class="code">@w.ItemNo</span>
                     @{ var nm = w.ItemName; }
                     @if (!string.IsNullOrEmpty(nm)) { <span class="dim"> · @nm</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="RouteLines" Title="@L["Col.Line"].Value" Width="260px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="260px" Property="RouteLines" Title="@L["Col.Line"].Value" Width="260px">
                 <Template Context="w"><span class="code dim">@(string.IsNullOrEmpty(w.RouteLines) ? "—" : w.RouteLines)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="RoutingType" Title="@L["Col.Routing"].Value" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="100px" Property="RoutingType" Title="@L["Col.Routing"].Value" Width="100px" TextAlign="TextAlign.Center">
                 <Template Context="w">
                     @if (w.RoutingType == "A") { <span class="pill info" title="@FlowText("A")">A</span> }
                     else if (w.RoutingType == "B") { <span class="pill warn" title="@FlowText("B")">B</span> }
                     else { <span class="dim" title="@FlowText(null)">INJ</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="OrderQty" Title="@L["Col.Order"].Value" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="90px" Property="OrderQty" Title="@L["Col.Order"].Value" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="w">@w.OrderQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="CompletedQty" Title="@L["Col.Done"].Value" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="90px" Property="CompletedQty" Title="@L["Col.Done"].Value" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="w">@w.CompletedQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="ProgressPct" Title="@L["Col.Progress"].Value" Width="160px" Filterable="false">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="160px" Property="ProgressPct" Title="@L["Col.Progress"].Value" Width="160px" Filterable="false">
                 <Template Context="w">
                     @{ var p = (int)Math.Clamp(w.ProgressPct, 0, 100); }
                     <span class="wo-bar"><i style="width:@(p)%;background:@ProgColor(p);"></i></span>
                     <span class="code" style="margin-left:6px;">@p%</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="DaysToDue" Title="D-Day" Width="90px" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="90px" Property="DaysToDue" Title="D-Day" Width="90px" TextAlign="TextAlign.Center">
                 <Template Context="w"><span class="pill @DdClass(w)">@DdText(w)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="Status" Title="@L["Col.Status"].Value" Width="110px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="130px" Property="Status" Title="@L["Col.Status"].Value" Width="130px">
                 <Template Context="w"><span class="pill @StatusClass(w.Status)">@w.Status</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="Phase0Complete" Title="P0" Width="56px" TextAlign="TextAlign.Center" Filterable="false">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="60px" Property="Phase0Complete" Title="P0" Width="60px" TextAlign="TextAlign.Center" Filterable="false">
                 <Template Context="w">
                     @if (!w.Phase0Complete && w.Status == "Draft") { <span class="pill bad" title="@L["PP.WorkOrder.Ttl.Phase0Fail"]">🚧</span> }
                     else { <span class="pill ok" title="@L["PP.WorkOrder.Ttl.Phase0Pass"]">✓</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Property="SoNumber" Title="SAP SO" Width="140px">
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="140px" Property="SoNumber" Title="SAP SO" Width="140px">
                 <Template Context="w"><span class="dim">@(w.SoNumber ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkOrderDto" Title="@L["PP.WorkOrder.Col.Action"].Value"
+            <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="180px" Title="@L["PP.WorkOrder.Col.Action"].Value"
                                   Sortable="false" Filterable="false" Width="180px">
                 <Template Context="w">
-                    @if (w.Status == "Draft")
+                    @if (_canApprove && w.Status == "Draft")
                     {
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Release"].Value" Icon="play_arrow" ButtonStyle="ButtonStyle.Success"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Release(w))" />
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" style="margin-left:4px;" />
                     }
-                    else if (w.Status == "Released")
+                    else if (_canApprove && w.Status == "Released")
                     {
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" />
@@ -143,6 +143,7 @@ else
                             var s   = steps[i];
                             var cls = s.Status == "Closed" ? "done" : s.Status == "In Progress" ? "cur" : "todo";
                             <span class="wo-step @cls" title="@StepTitle(s, w)">@s.ProcessCode</span>
+                            @if (!string.Equals(s.ItemNo, w.ItemNo, StringComparison.OrdinalIgnoreCase)) { <span class="dim" style="font-size:.75em;">@s.ItemNo</span> }
                             @if (i < steps.Count - 1) { <span class="dim">→</span> }
                         }
                     }
@@ -161,7 +162,9 @@ else
                          <div>@w.OrderQty.ToString("#,0") EA · @((int)w.ProgressPct)%</div></div>
                     <div><div class="dim" style="font-size:.8em;">SAP SO</div><div>@(w.SoNumber ?? "—")</div></div>
                     <div><div class="dim" style="font-size:.8em;">@L["PP.PlanConfirm.Col.Due"]</div>
-                         <div>@(w.DueDate?.ToString("yyyy-MM-dd") ?? "—")</div></div>
+                         <div>@(w.DueDate?.ToString(DateFmt.Date) ?? "—")</div></div>
+                    <div><div class="dim" style="font-size:.8em;">@L["PP.WorkOrder.Detail.ProdDeadline"]</div>
+                         <div>@(w.ProdDeadline?.ToString(DateFmt.Date) ?? "—")</div></div>
                     <div><div class="dim" style="font-size:.8em;">@L["PP.WorkOrder.Detail.Reservation"]</div>
                          <div>@ReservationText(w.Status)</div></div>
                 </div>
@@ -169,6 +172,7 @@ else
         </Template>
     </RadzenDataGrid>
 }
+</div>
 </div>
 </div>
 
@@ -186,7 +190,7 @@ else
     }
 
     static string StepTitle(AMES.Data.Repositories.WorkOrderRepository.StepRow s, WorkOrderDto w) =>
-        $"{s.LineId ?? "—"} · {s.CompletedQty:#,0}/{w.OrderQty:#,0}";
+        $"{s.LineId ?? "—"} · {s.ItemNo} · {s.CompletedQty:#,0}/{w.OrderQty:#,0}";
 
     readonly string[] _statuses = { "Draft", "Planned", "Released", "In Progress", "Closed", "Cancelled" };
     string[] _routings = Array.Empty<string>();
@@ -205,8 +209,18 @@ else
     int CriticalCount => _rows.Count(r => r.DaysToDue is int d && d <= 3
                                           && (r.Status is "Draft" or "Released" or "In Progress"));
 
-    protected override void OnInitialized()
+    // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = 수동 발행·Release·Cancel
+    const string Href = "pp/work-order";
+    bool _canEdit, _canApprove;   // WO 릴리스·취소는 승인 권한(A) — 수동 등록은 수정 권한(E)
+
+    protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+        _canApprove = PermSvc.CanApprove(Href);
+
         // 라우팅 옵션·공정 시퀀스를 공통코드 ROUTING / MD_RoutingStep 에서 로드
         try { _routings = MD.ListCodeItems("ROUTING").Where(c => c.UseFlag).Select(c => c.CodeValue ?? "").Where(v => v.Length > 0).ToArray(); }
         catch { _routings = new[] { "A", "B" }; }
@@ -268,11 +282,13 @@ else
     async Task<string> Actor()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        return auth.User.Identity?.Name ?? "system";
+        return AMES.Web.Services.ActorCode.Of(auth.User, "system");
     }
 
     async Task Release(WorkOrderDto w)
     {
+        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+
         var result = await Dialog.OpenAsync<WoReleaseLineDialog>(
             $"{L["PP.WorkOrder.Btn.Release"].Value} · {w.WoNumber}",
             new Dictionary<string, object?>
@@ -294,6 +310,8 @@ else
 
     async Task Cancel(WorkOrderDto w)
     {
+        if (!_canEdit) return;
+
         var ok = await Dialog.Confirm(
             string.Format(L["PP.WorkOrder.Cancel.Confirm"].Value, w.WoNumber, w.ItemNo, w.OrderQty.ToString("#,0")),
             L["PP.WorkOrder.Cancel.Title"].Value,
@@ -310,6 +328,8 @@ else
 
     async Task OpenManual()
     {
+        if (!_canEdit) return;
+
         List<WorkOrderManualDialog.ItemVm> items;
         try
         {
@@ -352,12 +372,11 @@ else
 
         var bytes = System.Text.Encoding.UTF8.GetPreamble()
             .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        var name = $"WorkOrder_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        var name = $"WorkOrder_{DbClock.Now:yyyyMMdd_HHmmss}.csv";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/csv");
     }
 
-    static string Csv(string s) =>
-        s.Contains(',') || s.Contains('"') || s.Contains('\n') ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
+    static string Csv(string s) => AMES.Contracts.Formatting.CsvCell.Escape(s);   // 엑셀 수식 주입 방지 포함
 
     void ShowMsg(string msg, bool isErr)
     {

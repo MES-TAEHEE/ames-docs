@@ -1,0 +1,26 @@
+@inherits LayoutComponentBase
+@inject IStringLocalizer<SharedResources> L
+
+@*  외부 개방 화면(/portal) 전용 셸 — 내부 셸(MainLayout = TopBar + NavMenu)과 같은 구조·같은 CSS 클래스를 쓰되 청록 테마와 외부 화면 전용 메뉴로 분리된다.
+    레이아웃은 정적이라 클릭이 필요한 상단바·좌측 메뉴는 대화형 컴포넌트(PortalTopBar·PortalNavMenu)로 둔다(내부 셸과 같은 이유). *@
+
+<div class="ames-shell portal-shell">
+    <PortalTopBar />
+    <div class="ames-body">
+        <PortalNavMenu />
+        <main class="ames-main">
+            <SessionGuard Portal="true" />
+            <div class="ames-content ames-sec-portal">
+                @Body
+            </div>
+        </main>
+    </div>
+</div>
+
+<RadzenComponents @rendermode="InteractiveServer" />
+
+<div id="blazor-error-ui" data-nosnippet>
+    @L["App.Error.Unhandled"]
+    <a href="." class="reload">@L["App.Error.Reload"]</a>
+    <span class="dismiss">🗙</span>
+</div>

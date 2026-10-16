@@ -1,0 +1,26 @@
+@page "/areas"
+@inject TabletAuthState Auth
+@inject NavigationManager Nav
+
+<div class="area-screen">
+    <header class="area-header">
+        <div>
+            <span>A-MES TABLET</span>
+            <h1>Select Area</h1>
+        </div>
+    </header>
+    <main class="area-list" style="--area-grid-size:1;--area-card-size:340px">
+        <button type="button" class="area-card" @onclick="OpenArea">
+            <strong>Material Area</strong>
+        </button>
+    </main>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (Auth.Session is null) Nav.NavigateTo("/login", replace: true);
+    }
+
+    private void OpenArea() => Nav.NavigateTo("/map");
+}

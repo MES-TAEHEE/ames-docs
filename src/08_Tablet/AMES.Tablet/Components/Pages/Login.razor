@@ -1,0 +1,92 @@
+@page "/"
+@page "/login"
+@inject TabletAuthService Api
+@inject NavigationManager Nav
+
+<div class="tablet-login">
+    <div class="tablet-login-panel">
+        <div class="tablet-login-brand">A-MES</div>
+        <div class="tablet-login-sub">SHIFT LOGIN / TABLET</div>
+
+        <label class="tablet-login-field">
+            <span>EMPLOYEE NO</span>
+            <input value="@_employeeNo" @oninput="SetEmployeeNo" disabled="@_submitting" autocomplete="username" />
+        </label>
+
+        <div class="tablet-pin-dots" aria-label="@($"{_pin.Length} of 4 PIN digits entered")">
+            @for (var i = 0; i < 4; i++)
+            {
+                <span class="@(i < _pin.Length ? "on" : "")"></span>
+            }
+        </div>
+
+        <div class="tablet-keypad">
+            @foreach (var digit in new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" })
+            {
+                var key = digit;
+                <button type="button" disabled="@_submitting" @onclick="@(() => PressAsync(key))">@key</button>
+            }
+            <button type="button" class="delete" disabled="@_submitting" @onclick="Back">DEL</button>
+            <button type="button" disabled="@_submitting" @onclick='@(() => PressAsync("0"))'>0</button>
+            <button type="button" class="confirm" disabled="@_submitting" @onclick="SubmitAsync">OK</button>
+        </div>
+
+        <div class="tablet-login-status @(_failed ? "failed" : "")">@_status</div>
+    </div>
+</div>
+
+@code {
+    private string _employeeNo = "admin";
+    private string _pin = "";
+    private string _status = " ";
+    private bool _failed;
+    private bool _submitting;
+
+    private void SetEmployeeNo(ChangeEventArgs args) => _employeeNo = args.Value?.ToString() ?? "";
+
+    private async Task PressAsync(string digit)
+    {
+        if (_submitting || _pin.Length >= 4 || digit.Length != 1 || !char.IsDigit(digit[0])) return;
+        _pin += digit;
+        SetStatus(" ");
+        if (_pin.Length == 4) await SubmitAsync();
+    }
+
+    private void Back()
+    {
+        if (_submitting || _pin.Length == 0) return;
+        _pin = _pin[..^1];
+        SetStatus(" ");
+    }
+
+    private async Task SubmitAsync()
+    {
+        var employeeNo = _employeeNo.Trim();
+        if (employeeNo.Length == 0) { SetStatus("Employee No is required.", true); return; }
+        if (_pin.Length != 4) { SetStatus("PIN must be 4 digits.", true); return; }
+
+        _submitting = true;
+        SetStatus("Signing in...");
+        try
+        {
+            var error = await Api.LoginAsync(employeeNo, _pin);
+            if (error is null) Nav.NavigateTo("/areas", replace: true);
+            else { _pin = ""; SetStatus(error, true); }
+        }
+        catch
+        {
+            _pin = "";
+            SetStatus("Authentication service is unavailable.", true);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private void SetStatus(string message, bool failed = false)
+    {
+        _status = message;
+        _failed = failed;
+    }
+}

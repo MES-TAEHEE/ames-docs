@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using AMES.Contracts.Dto;
 
 namespace AMES.Api.Auth;
@@ -9,26 +10,80 @@ namespace AMES.Api.Auth;
 /// Tokens live until ExpiresAt elapses or /auth/logout removes them.
 /// Singleton — registered in Program.cs.
 /// </summary>
-public sealed class TokenStore
+public sealed class TokenStore(Func<DateTime> databaseNow, Func<long>? timestamp = null, long? frequency = null,
+    SqlTokenPersistence? persistence = null, Func<string, PopSessionDto?>? refresh = null)
 {
-    private readonly ConcurrentDictionary<string, (PopSessionDto Session, DateTime Expires)> _map = new();
+    private readonly ConcurrentDictionary<string, (PopSessionDto Session, DateTime Expires, long CheckedAt)> _map = new();
+    private readonly Func<long> _timestamp = timestamp ?? Stopwatch.GetTimestamp;
+    private readonly long _frequency = frequency ?? Stopwatch.Frequency;
+    private readonly object _clockGate = new();
+    private DateTime _clockAt;
+    private long _tickAt;
+    private bool _clockLoaded;
+    private readonly SqlTokenPersistence? _persistence = persistence;
+
+    private DateTime Now()
+    {
+        lock (_clockGate)
+        {
+            var tick = _timestamp();
+            var elapsed = _clockLoaded ? (double)(tick - _tickAt) / _frequency : double.MaxValue;
+            if (!_clockLoaded || elapsed < 0 || elapsed >= 60)
+            {
+                _clockAt = databaseNow();
+                _tickAt = tick;
+                _clockLoaded = true;
+                return _clockAt;
+            }
+            return _clockAt.AddSeconds(elapsed);
+        }
+    }
 
     public string Issue(PopSessionDto session)
     {
         var token = Guid.NewGuid().ToString("N");
-        _map[token] = (session, session.ExpiresAt);
+        _persistence?.Save(token, session);
+        _map[token] = (session, session.ExpiresAt, _timestamp());
         return token;
     }
 
     public PopSessionDto? Resolve(string? token)
     {
-        if (string.IsNullOrEmpty(token) || !_map.TryGetValue(token, out var entry)) return null;
-        if (entry.Expires < DateTime.UtcNow) { _map.TryRemove(token, out _); return null; }
+        if (string.IsNullOrEmpty(token)) return null;
+        if (!_map.TryGetValue(token, out var entry))
+        {
+            var restored = _persistence?.Load(token);
+            if (restored is null) return null;
+            entry = (restored, restored.ExpiresAt, _timestamp());
+            _map.TryAdd(token, entry);
+        }
+        if (entry.Expires <= Now()) { _map.TryRemove(token, out _); return null; }
+        if ((refresh is not null || _persistence is not null)
+            && (double)(_timestamp() - entry.CheckedAt) / _frequency >= 60)
+        {
+            var current = refresh is not null ? refresh(token) : _persistence!.Load(token);
+            if (current is null) { _map.TryRemove(token, out _); return null; }
+            entry = (current, current.ExpiresAt, _timestamp());
+            _map[token] = entry;
+        }
         return entry.Session;
     }
 
     public void Revoke(string? token)
     {
-        if (!string.IsNullOrEmpty(token)) _map.TryRemove(token, out _);
+        if (!string.IsNullOrEmpty(token))
+        {
+            _persistence?.Revoke(token);
+            _map.TryRemove(token, out _);
+        }
+    }
+
+    public int PruneExpired()
+    {
+        var now = Now();
+        var removed = 0;
+        foreach (var (token, entry) in _map)
+            if (entry.Expires <= now && _map.TryRemove(token, out _)) removed++;
+        return removed;
     }
 }

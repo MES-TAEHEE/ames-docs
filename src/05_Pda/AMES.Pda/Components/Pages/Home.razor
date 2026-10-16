@@ -1,7 +1,7 @@
 @page "/"
 @page "/home"
 @inject AuthState Auth
-@inject PdaApi Api
+@inject AuthApi Api
 @inject NavigationManager Nav
 
 @*  Module tile launcher — first screen after login. *@
@@ -24,10 +24,20 @@ else
             <div class="pda-greet-sub">@Auth.Session.LineId · @Auth.Session.TerminalId</div>
 
             <div class="pda-tiles">
+                <button class="pda-tile maintenance" @onclick='@(() => Nav.NavigateTo("/mnt"))'>
+                    <div class="pda-tile-ic">🛠</div>
+                    <div class="pda-tile-cap">MAINTENANCE</div>
+                    <div class="pda-tile-sub">2 screens</div>
+                </button>
                 <button class="pda-tile wh" @onclick='@(() => Nav.NavigateTo("/wh"))'>
                     <div class="pda-tile-ic">📦</div>
                     <div class="pda-tile-cap">WAREHOUSE</div>
-                    <div class="pda-tile-sub">8 screens</div>
+                    <div class="pda-tile-sub">6 screens</div>
+                </button>
+                <button class="pda-tile sp" @onclick='@(() => Nav.NavigateTo("/sp"))'>
+                    <div class="pda-tile-ic">🔧</div>
+                    <div class="pda-tile-cap">SPARE PARTS</div>
+                    <div class="pda-tile-sub">5 screens</div>
                 </button>
                 <button class="pda-tile fg" @onclick='@(() => Nav.NavigateTo("/fg"))'>
                     <div class="pda-tile-ic">🚚</div>

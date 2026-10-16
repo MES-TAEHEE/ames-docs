@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -10,9 +11,11 @@
 
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
+@inject ScreenCatalogNotifier ScreenCatalog
 @inject SysRepository Sys
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>SYS-003 @L["SYS.Screen.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-003" TitleKey="SYS.Screen.Title" />
@@ -62,16 +65,20 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.ScreenRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.ScreenRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Screen.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="90px">
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="r"><span class="dim">@GridRowNo.Of(_pgGrid, r)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="code">@r.ScreenCode</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="pill info">@r.ModuleCode</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="140px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="150px">
                 <Template Context="r">
                     @if (r.ProcessCode != null)
                     {
@@ -85,22 +92,36 @@
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SubProcessCode" Title="@L["Col.SubProcess"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r">
                     @if (r.SubProcessCode is not null)
-                    { <span class="pill" style="background:rgba(134,239,172,.12);color:#86efac;">@r.SubProcessCode</span> }
+                    { <span class="pill" style="background:rgba(134,239,172,.12);color:var(--ames-tx-green-300);">@r.SubProcessCode</span> }
                     else
                     { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenName" Title="@L["SYS.Screen.Col.NameKo"]" />
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenNameEn" Title="@L["SYS.Screen.Col.NameEn"]">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenName" Title="@L["SYS.Screen.Col.NameKo"]" Width="250px" />
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenNameEn" Title="@L["SYS.Screen.Col.NameEn"]" Width="250px">
                 <Template Context="r"><span class="dim" style="font-size:12px;">@(r.ScreenNameEn ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="HRef" Title="@L["SYS.Screen.Col.Path"]">
-                <Template Context="r"><span class="dim" style="font-size:12px;font-family:'JetBrains Mono',monospace;">@(r.HRef ?? "—")</span></Template>
+                <Template Context="r"><span class="dim" style="font-size:12px;font-family:var(--ames-font-mono);">@(r.HRef ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="dim code" style="font-size:12px;">@(r.LidLabel ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SortOrder" Title="@L["SYS.Screen.Col.SortOrder"]" TextAlign="TextAlign.Center" Width="80px">
+            @* 화면 기본 권한 — 그 화면에 있는 기능(읽기는 항상). SYS-004 는 없는 기능의 칸을 끈다 *@
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="PermissionCriteria" Title="@L["SYS.Screen.Col.PermLevel"]" TextAlign="TextAlign.Center" Width="170px" Sortable="false">
+                <Template Context="r">
+                    <span style="white-space:nowrap;" title="@r.PermissionCriteria">
+                        @foreach (var slot in PermissionSlots.Slots)
+                        {
+                            @if (PermissionSlots.Has(r.PermissionCriteria, slot))
+                            { <span class="pill ok" style="margin:0 2px;">@L[$"SYS.Screen.Perm.{slot}"]</span> }
+                            else
+                            { <span class="dim" style="margin:0 4px;text-decoration:line-through;">@L[$"SYS.Screen.Perm.{slot}"]</span> }
+                        }
+                    </span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SortOrder" Title="@L["SYS.Screen.Col.SortOrder"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r"><span class="dim">@(r.SortOrder?.ToString() ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="IsVisible" Title="@L["SYS.Screen.Col.Visible"]" TextAlign="TextAlign.Center" Width="110px">
@@ -129,7 +150,7 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.Code"].Value + " *")" class="ames-rz-modal-label" Component="CreateTextBoxScreenCode" />
-                    <RadzenTextBox Name="CreateTextBoxScreenCode" @bind-Value="_f.ScreenCode" Placeholder="@L["SYS.Screen.Ph.Code"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxScreenCode" @bind-Value="_f.ScreenCode" MaxLength="20" Placeholder="@L["SYS.Screen.Ph.Code"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -149,22 +170,31 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.NameKo"].Value + " *")" class="ames-rz-modal-label" Component="CreateTextBoxScreenNameKo" />
-                    <RadzenTextBox Name="CreateTextBoxScreenNameKo" @bind-Value="_f.ScreenName" Placeholder="@L["SYS.Screen.Ph.NameKo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxScreenNameKo" @bind-Value="_f.ScreenName" MaxLength="100" Placeholder="@L["SYS.Screen.Ph.NameKo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.NameEn"]" class="ames-rz-modal-label" Component="CreateTextBoxScreenNameEn" />
-                    <RadzenTextBox Name="CreateTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" MaxLength="100" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Path"]" class="ames-rz-modal-label" Component="CreateTextBoxHRef" />
-                    <RadzenTextBox Name="CreateTextBoxHRef" @bind-Value="_f.HRef" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxHRef" @bind-Value="_f.HRef" MaxLength="200" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.LidLabel"]" class="ames-rz-modal-label" Component="CreateTextBoxLidLabel" />
-                    <RadzenTextBox Name="CreateTextBoxLidLabel" @bind-Value="_f.LidLabel" Placeholder="@L["SYS.Screen.Ph.LidLabel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxLidLabel" @bind-Value="_f.LidLabel" MaxLength="20" Placeholder="@L["SYS.Screen.Ph.LidLabel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Screen.Col.PermLevel"]" class="ames-rz-modal-label" />
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="flex:1;" title="@L["SYS.Screen.Hint.PermLevel"]">
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" Value="true" Disabled="true" Name="CreateChkPermR" /><RadzenLabel Text="@L["SYS.Screen.Perm.R"]" Component="CreateChkPermR" /></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasEdit" Name="CreateChkPermE" /><RadzenLabel Text="@L["SYS.Screen.Perm.E"]" Component="CreateChkPermE" style="cursor:pointer;" /></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasApprove" Name="CreateChkPermA" /><RadzenLabel Text="@L["SYS.Screen.Perm.A"]" Component="CreateChkPermA" style="cursor:pointer;" /></span>
+                    </RadzenStack>
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -201,7 +231,7 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.Code"].Value + " *")" class="ames-rz-modal-label" Component="EditTextBoxScreenCode" />
-                    <RadzenTextBox Name="EditTextBoxScreenCode" @bind-Value="_f.ScreenCode" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxScreenCode" @bind-Value="_f.ScreenCode" MaxLength="20" Disabled="@_protected" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -221,22 +251,31 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@(L["SYS.Screen.Col.NameKo"].Value + " *")" class="ames-rz-modal-label" Component="EditTextBoxScreenNameKo" />
-                    <RadzenTextBox Name="EditTextBoxScreenNameKo" @bind-Value="_f.ScreenName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxScreenNameKo" @bind-Value="_f.ScreenName" MaxLength="100" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.NameEn"]" class="ames-rz-modal-label" Component="EditTextBoxScreenNameEn" />
-                    <RadzenTextBox Name="EditTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxScreenNameEn" @bind-Value="_f.ScreenNameEn" MaxLength="100" Placeholder="@L["SYS.Screen.Ph.NameEn"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.Path"]" class="ames-rz-modal-label" Component="EditTextBoxHRef" />
-                    <RadzenTextBox Name="EditTextBoxHRef" @bind-Value="_f.HRef" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxHRef" @bind-Value="_f.HRef" MaxLength="200" Disabled="@_protected" Placeholder="@L["SYS.Screen.Ph.HRef"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.LidLabel"]" class="ames-rz-modal-label" Component="EditTextBoxLidLabel" />
-                    <RadzenTextBox Name="EditTextBoxLidLabel" @bind-Value="_f.LidLabel" Placeholder="@L["SYS.Screen.Ph.LidLabelEdit"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxLidLabel" @bind-Value="_f.LidLabel" MaxLength="20" Placeholder="@L["SYS.Screen.Ph.LidLabelEdit"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["SYS.Screen.Col.PermLevel"]" class="ames-rz-modal-label" />
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="flex:1;" title="@L["SYS.Screen.Hint.PermLevel"]">
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" Value="true" Disabled="true" Name="EditChkPermR" /><RadzenLabel Text="@L["SYS.Screen.Perm.R"]" Component="EditChkPermR" /></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasEdit" Name="EditChkPermE" Disabled="@_protected" /><RadzenLabel Text="@L["SYS.Screen.Perm.E"]" Component="EditChkPermE" style="cursor:pointer;" /></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><RadzenCheckBox TValue="bool" @bind-Value="_f.HasApprove" Name="EditChkPermA" /><RadzenLabel Text="@L["SYS.Screen.Perm.A"]" Component="EditChkPermA" style="cursor:pointer;" /></span>
+                    </RadzenStack>
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
@@ -249,6 +288,11 @@
                     <RadzenLabel Text="@($"{L["SYS.Screen.Col.Visible"]} {L["SYS.Screen.Lbl.NavMenu"]}")" Component="EditChkVisible" style="cursor:pointer;" />
                 </RadzenStack>
             </RadzenStack>
+
+            @if (_protected)
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" AllowClose="false">@L["SYS.Screen.Hint.Protected"]</RadzenAlert>
+            }
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
@@ -267,7 +311,10 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (!_protected)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -275,8 +322,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<SysRepository.ScreenRow> _allRows      = new();
     List<SysRepository.ScreenRow> _rows         = new();
     List<MasterDataRepository.CodeItemRow> _moduleItems      = new();
@@ -287,6 +335,7 @@
     string _fSearch = "", _fModule = "", _fProcess = "", _fVisible = "";
     string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
+    bool _protected;   // SYS-003·SYS-004 — 코드·주소·수정 기능·삭제 잠금(ProtectedScreens)
     bool _canEdit;
     string _actor = "system";
 
@@ -306,7 +355,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/screens");
         _moduleItems      = MD.ListCodeItems("MODULE");
@@ -371,6 +420,7 @@
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false;
+        _protected = ProtectedScreens.IsProtected(r.HRef);
         _f = new()
         {
             ScreenCode     = r.ScreenCode,
@@ -381,19 +431,22 @@
             ScreenNameEn   = r.ScreenNameEn  ?? "",
             HRef           = r.HRef           ?? "",
             LidLabel       = r.LidLabel       ?? "",
+            HasEdit        = PermissionSlots.Has(r.PermissionCriteria, 'E'),
+            HasApprove     = PermissionSlots.Has(r.PermissionCriteria, 'A'),
             SortOrderStr   = r.SortOrder?.ToString() ?? "",
             IsVisible      = r.IsVisible,
         };
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; _protected = false; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ScreenCode)) { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value;   return; }
         if (string.IsNullOrWhiteSpace(_f.ModuleCode)) { _modalErr = L["SYS.Screen.Err.ModuleRequired"].Value; return; }
@@ -405,7 +458,9 @@
                 _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
                 Nz(_f.SubProcessCode),
                 _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
-                _f.SortOrder, _f.IsVisible, _actor);
+                _f.SortOrder, _f.IsVisible, _actor, _f.PermissionCriteria);
+            Audit.Created("SYS-003", "SYS_Screen", _f.ScreenCode.Trim(), _f);
+            ScreenCatalog.Notify();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Created"].Value, _f.ScreenCode), false);
         }
@@ -415,6 +470,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ScreenCode)) { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value;   return; }
@@ -423,11 +479,18 @@
         _busy = true;
         try
         {
+            var code = _f.ScreenCode.Trim();
+            var lid = Nz(_f.LidLabel);
+            if (!string.Equals(code, _sel.ScreenCode, StringComparison.OrdinalIgnoreCase) &&
+                (string.IsNullOrWhiteSpace(lid) || string.Equals(lid.Trim(), _sel.ScreenCode, StringComparison.OrdinalIgnoreCase)))
+                lid = code;
             Sys.UpdateScreen(
-                _sel.ScreenId, _f.ScreenCode.Trim(), _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
+                _sel.ScreenId, code, _f.ModuleCode.Trim(), Nz(_f.ProcessCode),
                 Nz(_f.SubProcessCode),
-                _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), Nz(_f.LidLabel),
-                _f.SortOrder, _f.IsVisible, _actor);
+                _f.ScreenName.Trim(), Nz(_f.ScreenNameEn), Nz(_f.HRef), lid,
+                _f.SortOrder, _f.IsVisible, _actor, _f.PermissionCriteria);
+            Audit.Updated("SYS-003", "SYS_Screen", _sel.ScreenCode, _sel, _f);
+            ScreenCatalog.Notify();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Updated"].Value, _f.ScreenCode), false);
         }
@@ -437,12 +500,16 @@
 
     async Task SaveDelete()
     {
-        if (_sel is null) return;
+        if (!_canEdit) return;
+        if (_sel is null || _protected) return;
         _busy = true;
         try
         {
             var code = _sel.ScreenCode;
-            Sys.DeleteScreen(_sel.ScreenId, _actor);
+            var perms = Sys.DeleteScreen(_sel.ScreenId, _actor);
+            // 화면과 함께 지운 역할 권한도 전 스냅샷에 남긴다
+            Audit.Deleted("SYS-003", "SYS_Screen", _sel.ScreenCode, new { Screen = _sel, Permissions = perms });
+            ScreenCatalog.Notify();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Deleted"].Value, code), false);
         }
@@ -468,6 +535,10 @@
         public string ScreenNameEn   { get; set; } = "";
         public string HRef           { get; set; } = "";
         public string LidLabel       { get; set; } = "";
+        // 화면 기본 권한 — 읽기는 항상 있다. 새 화면은 수정·승인 모두 있다고 본다(PermissionSlots.Default)
+        public bool   HasEdit        { get; set; } = true;
+        public bool   HasApprove     { get; set; } = true;
+        public string PermissionCriteria => PermissionSlots.TemplateOf(HasEdit, HasApprove);
         public string SortOrderStr   { get; set; } = "";
         public bool   IsVisible      { get; set; } = true;
         public int?   SortOrder      => int.TryParse(SortOrderStr, out var n) ? n : null;

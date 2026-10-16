@@ -33,6 +33,7 @@ internal sealed class LabelDispatcher
 
     private string? _lineId;
     private string  _stationId = string.Empty;
+    private string  _employeeNo = string.Empty;
     private int     _watermark;
     private int     _consecutiveFailures;
     private int     _running;            // 재진입 게이트 (0=유휴, 1=실행중)
@@ -56,10 +57,12 @@ internal sealed class LabelDispatcher
         _log         = log;
     }
 
-    public void Start(string lineId, string stationId)
+    /// <param name="employeeNo">로그인 사번 — 발행 횟수 갱신의 ModifiedBy.</param>
+    public void Start(string lineId, string stationId, string employeeNo)
     {
         _lineId              = lineId;
         _stationId           = stationId;
+        _employeeNo          = employeeNo;
         _consecutiveFailures = 0;
         _watermark           = 0;
         IsStopped            = false;
@@ -100,7 +103,8 @@ internal sealed class LabelDispatcher
             // 겹치면(프린터 타임아웃 2초) 아래 반납이 새 세션의 StationId 로 나가
             // ReleasePrintClaim 의 소유권 검증이 무력화된다.
             var lineId    = _lineId;
-            var stationId = _stationId;
+            var stationId  = _stationId;
+            var employeeNo = _employeeNo;
             if (lineId is null) return;
 
             // 워터마크를 못 잡으면 과거분이 쏟아지므로 발행하지 않는다. 다만 여기서
@@ -156,7 +160,7 @@ internal sealed class LabelDispatcher
                 // staleSeconds 후 재선점되어 **같은 라벨이 한 장 더 나간다.** 재시도가 아니라
                 // 중복이다. 짧은 재시도로 그 창을 좁힌다 — DB 가 계속 죽어 있으면 결국
                 // 중복이 발생하고, 그건 라벨을 아예 잃는 것보다 낫다는 판단이다.
-                TryIncrementPrintedCount(lot);
+                TryIncrementPrintedCount(lot, employeeNo);
                 _consecutiveFailures = 0;
             }
         }
@@ -167,11 +171,11 @@ internal sealed class LabelDispatcher
     /// 출력 성공 후 카운트 확정. 실패하면 그 LOT 은 staleSeconds 후 재선점되어
     /// 중복 라벨이 되므로, 놓치는 비용이 큰 만큼 짧게 재시도한다.
     /// </summary>
-    private void TryIncrementPrintedCount(InjLotDto lot)
+    private void TryIncrementPrintedCount(InjLotDto lot, string employeeNo)
     {
         for (var attempt = 1; attempt <= IncrementAttempts; attempt++)
         {
-            try { _source.IncrementPrintedCount(lot.LotId); return; }
+            try { _source.IncrementPrintedCount(lot.LotId, employeeNo); return; }
             catch (Exception ex)
             {
                 if (attempt == IncrementAttempts)

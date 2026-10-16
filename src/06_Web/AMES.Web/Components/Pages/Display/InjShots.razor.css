@@ -1,0 +1,114 @@
+/* 공장 디스플레이 — 내부 사이트 디자인과 무관하게 화면 전체(100vw × 100vh)를 스크롤 없이 덮는다.
+   클래스는 모두 ds- 접두어(공용 app.css 와 이름이 겹치지 않게), 타일 글자는 타일 크기(--u)에 비례한다. */
+.dsp {
+    --ds-bg: #1c2535;
+    --ds-tile: #05070b;
+    --ds-line: #2b3648;
+    --ds-dim: #93a3bd;
+    --ds-ok: #3d8ef8;
+    --ds-warn: #f59e0b;
+    --ds-over: #ef4444;
+    --ds-clock: #ffe14d;
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column;
+    background: var(--ds-bg); color: #fff; overflow: hidden;
+    font-family: "Segoe UI", "Malgun Gothic", Tahoma, Arial, sans-serif; font-weight: 700;
+    font-variant-numeric: tabular-nums; letter-spacing: 0; line-height: 1.2;
+}
+.dsp.ds-idle { cursor: none; }
+
+.ds-bar {
+    flex: 0 0 auto; height: 4.2vh; min-height: 30px;
+    display: flex; align-items: center; gap: 2vw; padding: 0 1vw;
+    font-size: clamp(12px, 1.9vh, 26px);
+}
+.ds-title { color: #dbe7ff; letter-spacing: .04em; }
+.ds-legend { display: flex; gap: 1.2vw; color: var(--ds-dim); font-weight: 600; }
+.ds-lg { display: inline-block; width: 1.4em; height: .7em; margin-right: .35em; border-radius: 2px; vertical-align: middle; }
+.ds-lg.ds-ok { background: var(--ds-ok); }
+.ds-lg.ds-warn { background: var(--ds-warn); }
+.ds-lg.ds-over { background: var(--ds-over); }
+.ds-fs {
+    margin-left: auto; background: transparent; border: 1px solid var(--ds-line); color: var(--ds-dim); border-radius: 6px;
+    font: inherit; font-size: 1.1em; line-height: 1; padding: .15em .45em; cursor: pointer;
+}
+.ds-fs:hover { color: #fff; border-color: #53627a; }
+
+.ds-grid { flex: 1 1 auto; min-height: 0; display: grid; gap: .6vh .5vw; padding: .3vh .6vw 1vh; }
+.ds-grid.ds-one { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.ds-empty { display: flex; align-items: center; justify-content: center; color: var(--ds-dim); font-size: 3vh; }
+
+.ds-tile {
+    container-type: size; position: relative; min-width: 0; min-height: 0;
+    /* 글자 단위 — 타일 높이의 1%, 단 폭이 모자라면(원본 타일 비율 1.9:1 기준) 폭에 맞춘다 */
+    --u: min(1cqh, 0.53cqw);
+    background: var(--ds-tile); border: 1px solid #111827;
+}
+/* 행 배치는 타일 안 상자에 둔다 — 컨테이너 단위(cqh)는 자기 자신이 아니라 바깥 컨테이너 기준이라 타일 자신에 쓰면 화면 높이로 계산된다.
+   행 높이도 글자 단위로 고정하고 남는 세로 공간은 행 사이에 나눈다 — 세로로 긴 타일(?rows=3)에서도 배지·칩이 늘어나지 않는다 */
+.ds-in {
+    height: 100%;
+    display: grid; grid-template-rows: calc(19 * var(--u)) calc(24 * var(--u)) calc(13 * var(--u)) calc(28 * var(--u));
+    align-content: space-evenly; padding: 2cqh 3cqw;
+}
+.ds-tile.ds-stale { opacity: .55; }
+
+/* 1행: 코드 배지 + 진행률 막대 */
+.ds-r1 { display: flex; align-items: center; gap: 2.5cqw; min-height: 0; }
+.ds-code {
+    flex: 0 0 auto; height: 86%; min-width: 21cqw; padding: 0 1.8cqw;
+    display: flex; align-items: center; justify-content: center;
+    background: #f4f1ea; color: #111; border: 1px solid #c9c2b3; border-radius: 3px;
+    font-size: calc(14 * var(--u)); line-height: 1;
+}
+.ds-pbar { position: relative; flex: 1 1 auto; height: 78%; background: #0b1220; border: 1px solid #4b5b75; overflow: hidden; }
+.ds-fill { position: absolute; inset: 0 auto 0 0; background: var(--ds-ok); }
+.ds-pbar.ds-warn .ds-fill { background: var(--ds-warn); }
+.ds-pbar.ds-over .ds-fill { background: var(--ds-over); }
+.ds-pbar.ds-none .ds-fill { background: transparent; }
+.ds-pct {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: calc(11 * var(--u)); color: #fff; text-shadow: 0 0 3px #000, 0 0 2px #000, 0 0 1px #000;
+}
+
+/* 2행: 톤수 + 상태 */
+.ds-r2 { display: flex; align-items: center; justify-content: space-between; gap: 2cqw; min-height: 0; }
+.ds-ton { font-size: calc(20 * var(--u)); line-height: 1; white-space: nowrap; }
+.ds-ton.ds-t1 { color: #ffd21f; }
+.ds-ton.ds-t2 { color: #7cf05a; }
+.ds-ton.ds-t3 { color: #ffffff; }
+.ds-ton.ds-t4 { color: #4fe3ff; }
+.ds-ton.ds-t0 { color: var(--ds-dim); }
+.ds-st {
+    flex: 0 0 auto; width: 44cqw; height: 72%;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 3px; font-size: calc(12 * var(--u)); color: #0a1a0a;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.35);
+}
+.ds-st.ds-st-RUN  { background: linear-gradient(#b7ff9a, #34d314 55%, #1f9e08); }
+.ds-st.ds-st-STOP { background: linear-gradient(#ffb0a8, #ff3b30 55%, #c21a10); color: #fff; }
+.ds-st.ds-st-IDLE { background: linear-gradient(#ffe7a3, #f5b014 55%, #c98500); }
+.ds-st.ds-st-PM   { background: linear-gradient(#bfe0ff, #3d8ef8 55%, #1d5fc4); color: #fff; }
+.ds-st.ds-st-OFF, .ds-st.ds-st-NONE { background: linear-gradient(#8a8272, #5f594e); color: #d6d0c4; }
+
+/* 3행: 장착 금형 */
+.ds-r3 { display: flex; align-items: center; gap: 2cqw; min-height: 0; overflow: hidden; }
+.ds-mold { font-size: calc(10 * var(--u)); color: #c7d2e4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.ds-id { color: #e8eefa; font-weight: 700; margin-right: 1.5cqw; }
+.ds-mold.ds-none { color: var(--ds-dim); }
+.ds-tag { flex: 0 0 auto; font-size: calc(7 * var(--u)); color: #9fb3d1; border: 1px solid #3a4a63; border-radius: 3px; padding: .1em .4em; font-weight: 600; }
+
+/* 4행: 현재 / 최대 Shot */
+.ds-r4 { display: flex; align-items: center; justify-content: center; min-height: 0; white-space: nowrap; }
+.ds-shots { font-size: calc(22 * var(--u)); line-height: 1; }
+.ds-sep { color: #cfd8e6; margin: 0 .25em; }
+.ds-shots.ds-none { color: var(--ds-dim); }
+
+/* 시계 칸 */
+.ds-clock {
+    container-type: size; min-width: 0; min-height: 0; --u: min(1cqh, 0.53cqw);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--ds-clock);
+}
+.ds-d { font-size: calc(17 * var(--u)); line-height: 1.2; }
+.ds-t { font-size: calc(34 * var(--u)); line-height: 1.05; }
+.ds-z { font-size: calc(8 * var(--u)); color: var(--ds-dim); font-weight: 600; }

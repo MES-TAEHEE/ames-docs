@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-009 @L["MD.Vendor.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-009" TitleKey="MD.Vendor.Title" />
@@ -59,10 +60,14 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.VendorRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Vendor.Empty"]" Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.VendorRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Vendor.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" TextAlign="TextAlign.Center" Width="110px">
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r"><span class="code">@r.VendorID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorName" Title="@L["Col.VendorName"]">
@@ -79,7 +84,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorCategory" Title="@L["Col.Category"]" Width="120px">
                 <Template Context="r"><span class="dim">@(r.VendorCategory ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ContactPerson" Title="@L["Col.Contact"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ContactPerson" Title="@L["Col.Contact"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r">@(r.ContactPerson ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="EdiFlag" Title="@L["Col.EDI"]" TextAlign="TextAlign.Center" Width="70px">
@@ -88,11 +93,16 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="OtdTargetRate" Title="@L["Col.OtdPct"]" TextAlign="TextAlign.Right" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="OtdTargetRate" Title="@L["Col.OtdPct"]" TextAlign="TextAlign.Right" Width="90px">
                 <Template Context="r">@(r.OtdTargetRate?.ToString("F1") ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="PaymentTerms" Title="@L["Col.PayTerm"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="r"><span class="dim">@(r.PaymentTerms ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="SAPTransFlag" Title="@L["Col.SapTrans"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r">
+                    @if (r.SAPTransFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
+                </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
@@ -171,6 +181,10 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.EdiFlag" Name="CreateChkEdi" />
                     <RadzenLabel Text="@L["MD.Vendor.Lbl.EDI"]" Component="CreateChkEdi" style="cursor:pointer;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SAPTransFlag" Name="CreateChkSapTrans" />
+                    <RadzenLabel Text="@L["Col.SapTrans"]" Component="CreateChkSapTrans" style="cursor:pointer;" />
                 </RadzenStack>
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="CreateChkActive" />
@@ -260,6 +274,10 @@
                     <RadzenLabel Text="@L["MD.Vendor.Lbl.EDI"]" Component="EditChkEdi" style="cursor:pointer;" />
                 </RadzenStack>
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.SAPTransFlag" Name="EditChkSapTrans" />
+                    <RadzenLabel Text="@L["Col.SapTrans"]" Component="EditChkSapTrans" style="cursor:pointer;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
                     <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
                     <RadzenLabel Text="@L["Lbl.Active"]" Component="EditChkActive" style="cursor:pointer;" />
                 </RadzenStack>
@@ -273,6 +291,13 @@
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
+            else if (!string.IsNullOrEmpty(_deleteBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_deleteBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _deleteBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -281,7 +306,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveEdit" Disabled="@_busy" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@AskDelete" Disabled="@_busy" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseModal" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -289,8 +314,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.VendorRow>   _allRows     = new();
     List<MasterDataRepository.VendorRow>   _rows        = new();
     List<MasterDataRepository.CodeItemRow> _vendorTypes = new();
@@ -301,6 +327,7 @@
     string? _fType, _fActive;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _deleteBlocked = "";
     string _msg = "", _modalErr = "";
     bool _isErr;
     bool   _canEdit;
@@ -318,7 +345,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/re/vendor");
         try { _vendorTypes = MD.ListCodeItems("VENDOR_TYPE"); } catch { }
@@ -367,12 +394,12 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.VendorRow r)
     {
         if (!_canEdit) return;
-        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _sel = r; _modalErr = ""; _confirmDelete = false; _deleteBlocked = "";
         _f = new()
         {
             VendorName     = r.VendorName     ?? "",
@@ -386,18 +413,20 @@
             EdiFlag        = r.EdiFlag,
             OtdTargetRate  = r.OtdTargetRate,
             PaymentTerms   = r.PaymentTerms   ?? "",
+            SAPTransFlag   = r.SAPTransFlag,
             ActiveFlag     = r.ActiveFlag,
         };
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.VendorName)) { _modalErr = L["MD.Vendor.Err.NameRequired"]; return; }
         _busy = true;
@@ -407,7 +436,8 @@
             MD.InsertVendor(newId, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
                 NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
-                NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
+                NE(_f.PaymentTerms), _f.ActiveFlag, _actor, _f.SAPTransFlag);
+            Audit.Created("MD-009", "MD_Vendor", newId, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Created"].Value, _f.VendorName), false);
         }
@@ -417,6 +447,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.VendorName)) { _modalErr = L["MD.Vendor.Err.NameRequired"]; return; }
@@ -426,7 +457,8 @@
             MD.UpdateVendor(_sel.VendorID, _f.VendorName, NE(_f.VendorType), NE(_f.VendorCategory),
                 NE(_f.BizRegNo), NE(_f.ContactPerson), NE(_f.Phone), NE(_f.Email),
                 NE(_f.ScmURL), _f.EdiFlag, _f.OtdTargetRate,
-                NE(_f.PaymentTerms), _f.ActiveFlag, _actor);
+                NE(_f.PaymentTerms), _f.ActiveFlag, _actor, _f.SAPTransFlag);
+            Audit.Updated("MD-009", "MD_Vendor", _sel.VendorID, _sel, _f);
             var name = _f.VendorName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Updated"].Value, name), false);
@@ -435,14 +467,34 @@
         finally { _busy = false; }
     }
 
+    // 확인을 묻기 전에 사용처를 본다 — 사용 중이면 확인 대신 사용처 안내만 보인다(삭제할 때 저장소가 같은 규칙으로 다시 검사)
+    void AskDelete()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = ""; _deleteBlocked = "";
+        try
+        {
+            var usages = MD.VendorUsages(_sel.VendorID);
+            if (usages.Count > 0) _deleteBlocked = InUseText(_sel.VendorID, usages);
+            else _confirmDelete = true;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    string InUseText(string key, List<MasterDataRepository.UsageRef> usages)
+        => string.Format(L["MD.Usage.Err.InUse"].Value, key, AMES.Web.Services.UsageText.Format(L, usages));
+
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var name = _sel.VendorName ?? _sel.VendorID;
-            MD.DeleteVendor(_sel.VendorID);
+            var usages = MD.DeleteVendor(_sel.VendorID);
+            if (usages.Count > 0) { _deleteBlocked = InUseText(_sel.VendorID, usages); _confirmDelete = false; return; }
+            Audit.Deleted("MD-009", "MD_Vendor", _sel.VendorID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Vendor.Ok.Deleted"].Value, name), false);
         }
@@ -471,6 +523,7 @@
         public bool     EdiFlag        { get; set; } = false;
         public decimal? OtdTargetRate  { get; set; }
         public string   PaymentTerms   { get; set; } = "";
+        public bool     SAPTransFlag   { get; set; }
         public bool     ActiveFlag     { get; set; } = true;
     }
 }

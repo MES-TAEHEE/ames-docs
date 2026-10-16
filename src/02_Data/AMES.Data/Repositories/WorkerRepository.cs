@@ -1,0 +1,277 @@
+using System.Data;
+using AMES.Contracts.Dto;
+using AMES.Data.Connection;
+using Microsoft.Data.SqlClient;
+
+namespace AMES.Data.Repositories;
+
+/// <summary>
+/// Read access to MD_Worker — shop-floor operators who log into POP with a
+/// badge number + PIN and have no AspNetUsers row at all.
+///
+/// Rows are mapped onto <see cref="EmployeeProfileDto"/> rather than a type of
+/// their own so the whole POP login path (PopAuthService, PopSessionRepository)
+/// stays single-shaped. MD_Worker carries no line assignment and no failure
+/// counter, so workers are unrestricted by line and never lock out; that
+/// difference is expressed through the mapping below, not through branches
+/// in the auth service.
+/// </summary>
+public sealed class WorkerRepository
+{
+    private const string SelectList = """
+        SELECT EmployeeNo, EmployeeName, PinHash, ActiveFlag
+        FROM   dbo.MD_Worker
+        """;
+
+    private readonly AmesConnectionFactory _connFactory;
+
+    public WorkerRepository(AmesConnectionFactory connFactory)
+    {
+        _connFactory = connFactory ?? throw new ArgumentNullException(nameof(connFactory));
+    }
+
+    /// <summary>
+    /// Lookup by MD_Worker.EmployeeNo (badge number typed / scanned at the terminal).
+    /// Returns null when no such worker exists.
+    /// </summary>
+    public EmployeeProfileDto? FindByEmployeeNo(string workerNo)
+    {
+        const string sql = $"""
+            {SelectList}
+            WHERE  EmployeeNo = @EmployeeNo;
+            """;
+
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar, 20).Value = workerNo;
+
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read() ? MapToDto(rdr) : null;
+    }
+
+    /// <summary>
+    /// Active workers ordered by EmployeeNo. Feeds the POP login user picker
+    /// alongside AuthRepository.ListAllProfiles.
+    /// </summary>
+    public List<EmployeeProfileDto> ListAllActive()
+    {
+        const string sql = $"""
+            {SelectList}
+            WHERE  ActiveFlag = 1
+            ORDER  BY EmployeeNo;
+            """;
+
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        using var rdr  = cmd.ExecuteReader();
+
+        var list = new List<EmployeeProfileDto>();
+        while (rdr.Read()) list.Add(MapToDto(rdr));
+        return list;
+    }
+
+    /// <summary>
+    /// Creates a badge-only worker row when EmployeeNo is not registered yet, and
+    /// returns true when this call is the one that created it.
+    ///
+    /// Feeds the POP login screen's badge scan: a scanned EOS badge whose number
+    /// nobody knows becomes a worker on the spot so the operator is not stuck at
+    /// the terminal. Only ever inserts — an ActiveFlag=0 row stays disabled, so a
+    /// worker an administrator switched off cannot come back by rescanning the
+    /// badge, and a name already corrected in the admin screen is not overwritten.
+    /// PinHash is left null, which means the account can only sign in by badge.
+    /// </summary>
+    /// <param name="workerName">Name read off the badge; falls back to the number.</param>
+    public bool EnsureRegistered(string workerNo, string? workerName = null)
+    {
+        const string sql = """
+            INSERT INTO dbo.MD_Worker (EmployeeNo, EmployeeName, ActiveFlag, CreatedBy)
+            SELECT @EmployeeNo, @EmployeeName, 1, @EmployeeNo
+            WHERE  NOT EXISTS (SELECT 1 FROM dbo.MD_Worker WHERE EmployeeNo = @EmployeeNo);
+            """;
+
+        var name = string.IsNullOrWhiteSpace(workerName) ? workerNo : workerName.Trim();
+        if (name.Length > 50) name = name[..50];   // MD_Worker.EmployeeName NVARCHAR(50)
+
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@EmployeeNo",   SqlDbType.VarChar,  20).Value = workerNo;
+        cmd.Parameters.Add("@EmployeeName", SqlDbType.NVarChar, 50).Value = name;
+
+        try { return cmd.ExecuteNonQuery() > 0; }
+        catch (SqlException ex) when (ex.Number is 2601 or 2627)
+        {
+            // Two terminals scanned the same new badge at once — the unique index
+            // did its job and the row exists either way.
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Stores the operator's POP PIN. Called when a badge-only worker picks one on
+    /// the login screen, which is the only backup path they have if the scanner dies.
+    /// </summary>
+    public void SetPin(string workerNo, string pinHash)
+    {
+        const string sql = """
+            UPDATE dbo.MD_Worker
+            SET    PinHash    = @PinHash,
+                   ModifiedBy = @EmployeeNo,
+                   ModifiedTS = SYSDATETIME()
+            WHERE  EmployeeNo   = @EmployeeNo;
+            """;
+
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar,   20).Value = workerNo;
+        cmd.Parameters.Add("@PinHash",  SqlDbType.NVarChar, 200).Value = pinHash;
+        cmd.ExecuteNonQuery();
+    }
+
+    // ── MD-032 현장 작업자 관리 (Web) ─────────────────────────────────────
+    // POP 로그인 경로는 위의 DTO 매핑을 쓰고, 관리 화면은 행 그대로를 본다.
+    // PinHash 는 화면에 내려보내지 않고 설정 여부(HasPin)만 노출한다.
+
+    public sealed record WorkerRow(int WorkerId, string EmployeeNo, string EmployeeName, bool HasPin, bool ActiveFlag,
+        string CreatedBy, DateTime? CreatedTs, string? ModifiedBy, DateTime? ModifiedTs);
+
+    private const string AdminSelect = """
+        SELECT WorkerID, EmployeeNo, EmployeeName,
+               CASE WHEN PinHash IS NULL OR PinHash = '' THEN 0 ELSE 1 END AS HasPin,
+               ActiveFlag, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+        FROM   dbo.MD_Worker
+        """;
+
+    public List<WorkerRow> ListAll()
+    {
+        const string sql = $"""
+            {AdminSelect}
+            ORDER  BY EmployeeNo;
+            """;
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        using var rdr  = cmd.ExecuteReader();
+        var list = new List<WorkerRow>();
+        while (rdr.Read()) list.Add(MapRow(rdr));
+        return list;
+    }
+
+    /// <summary>다른 작업자(MD_Worker)가 쓰는 사번인지 — 대소문자·공백 무시. excludeWorkerId 는 수정 시 본인 제외.</summary>
+    public bool EmployeeNoExists(string employeeNo, int? excludeWorkerId = null)
+    {
+        const string sql = """
+            SELECT COUNT(*) FROM dbo.MD_Worker
+            WHERE  UPPER(LTRIM(RTRIM(EmployeeNo))) = UPPER(LTRIM(RTRIM(@No)))
+              AND  (@Exclude IS NULL OR WorkerID <> @Exclude)
+            """;
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@No",      SqlDbType.VarChar, 20).Value = employeeNo.Trim();
+        cmd.Parameters.Add("@Exclude", SqlDbType.Int).Value         = (object?)excludeWorkerId ?? DBNull.Value;
+        return (int)cmd.ExecuteScalar()! > 0;
+    }
+
+    /// <summary>웹 계정(SYS_UserProfile)이 쓰는 사번인지 — POP 로그인은 사번이 겹치면 웹 계정이 이겨 이 작업자가 막힌다.</summary>
+    public bool EmployeeNoUsedByWebUser(string employeeNo)
+    {
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT COUNT(*) FROM dbo.SYS_UserProfile WHERE UPPER(LTRIM(RTRIM(EmployeeNo))) = UPPER(LTRIM(RTRIM(@No)))", conn);
+        cmd.Parameters.Add("@No", SqlDbType.VarChar, 20).Value = employeeNo.Trim();
+        return (int)cmd.ExecuteScalar()! > 0;
+    }
+
+    public void Insert(string workerNo, string workerName, string? pinHash, bool activeFlag, string actor)
+    {
+        const string sql = """
+            INSERT INTO dbo.MD_Worker (EmployeeNo, EmployeeName, PinHash, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES (@EmployeeNo, @EmployeeName, @PinHash, @ActiveFlag, @Actor, SYSDATETIME());
+            """;
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@EmployeeNo",   SqlDbType.VarChar,   20).Value = workerNo;
+        cmd.Parameters.Add("@EmployeeName", SqlDbType.NVarChar,  50).Value = workerName;
+        cmd.Parameters.Add("@PinHash",    SqlDbType.NVarChar, 200).Value = (object?)pinHash ?? DBNull.Value;
+        cmd.Parameters.Add("@ActiveFlag", SqlDbType.Bit).Value            = activeFlag;
+        cmd.Parameters.Add("@Actor",      SqlDbType.VarChar,   20).Value = actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>이름·사용여부 수정. EmployeeNo 는 PR_PopSession.OperatorID 로 실적에 남아 있어 바꾸지 않는다.</summary>
+    public void Update(int workerId, string workerName, bool activeFlag, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.MD_Worker
+            SET    EmployeeName = @EmployeeName,
+                   ActiveFlag = @ActiveFlag,
+                   ModifiedBy = @Actor,
+                   ModifiedTS = SYSDATETIME()
+            WHERE  WorkerID   = @WorkerID;
+            """;
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@WorkerID",   SqlDbType.Int).Value            = workerId;
+        cmd.Parameters.Add("@EmployeeName", SqlDbType.NVarChar,  50).Value = workerName;
+        cmd.Parameters.Add("@ActiveFlag", SqlDbType.Bit).Value            = activeFlag;
+        cmd.Parameters.Add("@Actor",      SqlDbType.VarChar,   20).Value = actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>관리자 PIN 설정. null 이면 PIN 을 지워 배지 전용 계정으로 되돌린다(다음 배지 로그인 때 PIN 재설정을 강제받는다).</summary>
+    public void SetPinByAdmin(int workerId, string? pinHash, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.MD_Worker
+            SET    PinHash    = @PinHash,
+                   ModifiedBy = @Actor,
+                   ModifiedTS = SYSDATETIME()
+            WHERE  WorkerID   = @WorkerID;
+            """;
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@WorkerID", SqlDbType.Int).Value            = workerId;
+        cmd.Parameters.Add("@PinHash",  SqlDbType.NVarChar, 200).Value = (object?)pinHash ?? DBNull.Value;
+        cmd.Parameters.Add("@Actor",    SqlDbType.VarChar,   20).Value = actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// 작업자는 지우지 않고 사용 안 함(ActiveFlag 0)으로만 둔다(10-13 사용자 결정) — 행을 지우면 POP 로그인 화면이 처음 보는 EOS 배지로
+    /// 보고 <see cref="EnsureRegistered"/> 가 PIN 없는 새 계정을 다시 만들었다. 행이 남으면 스캔해도 새로 생기지 않고 로그인도 막힌다.
+    /// </summary>
+    public void Deactivate(int workerId, string actor)
+    {
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand("""
+            UPDATE dbo.MD_Worker SET ActiveFlag = 0, ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+            WHERE  WorkerID = @WorkerID
+            """, conn);
+        cmd.Parameters.Add("@WorkerID", SqlDbType.Int).Value       = workerId;
+        cmd.Parameters.Add("@Actor",    SqlDbType.VarChar, 20).Value = actor;
+        cmd.ExecuteNonQuery();
+    }
+
+    private static WorkerRow MapRow(SqlDataReader r) => new(
+        (int)r["WorkerID"], (string)r["EmployeeNo"], (string)r["EmployeeName"],
+        Convert.ToInt32(r["HasPin"]) == 1, (bool)r["ActiveFlag"],
+        (string)r["CreatedBy"], r["CreatedTS"] as DateTime?, r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?);
+
+    private static EmployeeProfileDto MapToDto(SqlDataReader rdr)
+    {
+        var workerNo = (string)rdr["EmployeeNo"];
+        return new EmployeeProfileDto
+        {
+            // Workers have no GUID; the badge number stands in for the key.
+            UserId            = workerNo,
+            UserName          = workerNo,
+            EmployeeNo        = workerNo,
+            EmployeeName      = (string)rdr["EmployeeName"],
+            PinHash           = rdr["PinHash"] as string,
+            PasswordHash      = string.Empty,          // workers never sign into the web portal
+            AccountStatus     = (bool)rdr["ActiveFlag"] ? "Active" : "Disabled",
+            Department        = null,
+            DefaultShift      = null,
+            FailedLoginCount  = 0,
+            IsWorker          = true,
+        };
+    }
+}

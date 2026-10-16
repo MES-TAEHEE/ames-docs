@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-025 @L["MD.ReasonCode.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-025" TitleKey="MD.ReasonCode.Title" />
@@ -62,30 +63,34 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ReasonCodeRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ReasonCode.Empty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ReasonCode.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="DisplayOrder" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="60px">
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="DisplayOrder" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="r"><span class="dim">@(r.DisplayOrder?.ToString() ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonCode" Title="@L["Col.ReasonCode"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonCode" Title="@L["Col.ReasonCode"]" TextAlign="TextAlign.Center" Width="170px">
                 <Template Context="r"><span class="code">@r.ReasonCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonName" Title="@L["Col.ReasonName"]">
                 <Template Context="r">@(r.ReasonName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonType" Title="@L["Col.ReasonType"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ReasonType" Title="@L["Col.ReasonType"]" TextAlign="TextAlign.Center" Width="150px">
                 <Template Context="r"><span class="pill">@(r.ReasonType ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ModuleCode is not null) { <span class="pill @ModClass(r.ModuleCode)">@r.ModuleCode</span> }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="PlannedFlag" Title="@L["Col.Planned"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="PlannedFlag" Title="@L["Col.Planned"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">@if (r.PlannedFlag) { <span class="pill ok">@L["MD.ReasonCode.PillPlanned"]</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="RequiresComment" Title="@L["Col.NoteRequired"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="RequiresComment" Title="@L["Col.NoteRequired"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">@if (r.RequiresComment) { <span class="pill warn">@L["MD.ReasonCode.PillRequired"]</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ReasonCodeRow" Property="Description" Title="@L["Col.Description"]" Width="400px">
@@ -110,18 +115,18 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.ReasonCode"]" class="ames-rz-modal-label" Component="CreateTextBoxReasonCode" />
-                <RadzenTextBox Name="CreateTextBoxReasonCode" @bind-Value="_f.ReasonCode" Placeholder="DT-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxReasonCode" @bind-Value="_f.ReasonCode" MaxLength="16" Placeholder="DT-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.ReasonName"]" class="ames-rz-modal-label" Component="CreateTextBoxReasonName" />
-                <RadzenTextBox Name="CreateTextBoxReasonName" @bind-Value="_f.ReasonName" Placeholder='@L["MD.ReasonCode.Ph.ReasonName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxReasonName" @bind-Value="_f.ReasonName" MaxLength="60" Placeholder='@L["MD.ReasonCode.Ph.ReasonName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ReasonType"]" />
-                    <RadzenTextBox @bind-Value="_f.ReasonType" Placeholder="DOWNTIME / DEFECT / SCRAP" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.ReasonType" MaxLength="12" Placeholder="DOWNTIME / DEFECT / SCRAP" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Module"]" />
@@ -146,7 +151,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text="@L["Col.Description"]" />
-                    <RadzenTextBox @bind-Value="_f.Description" Placeholder='@L["MD.ReasonCode.Ph.Description"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Description" MaxLength="120" Placeholder='@L["MD.ReasonCode.Ph.Description"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -183,13 +188,13 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.ReasonName"]" class="ames-rz-modal-label" Component="EditTextBoxReasonName" />
-                <RadzenTextBox Name="EditTextBoxReasonName" @bind-Value="_f.ReasonName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxReasonName" @bind-Value="_f.ReasonName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ReasonType"]" />
-                    <RadzenTextBox @bind-Value="_f.ReasonType" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.ReasonType" MaxLength="12" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Module"]" />
@@ -214,7 +219,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text="@L["Col.Description"]" />
-                    <RadzenTextBox @bind-Value="_f.Description" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Description" MaxLength="120" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -254,8 +259,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.ReasonCodeRow> _allRows = new();
     List<MasterDataRepository.ReasonCodeRow> _rows    = new();
     MasterDataRepository.ReasonCodeRow? _sel;
@@ -282,7 +288,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/re/reason-code");
         try { _moduleItems = MD.ListCodeItems("MODULE"); } catch { }
@@ -351,6 +357,7 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
+            ReasonCode = r.ReasonCode ?? "",
             ReasonName      = r.ReasonName      ?? "",
             ReasonType      = r.ReasonType      ?? "",
             ModuleCode      = r.ModuleCode      ?? "",
@@ -370,6 +377,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ReasonCode)) { _modalErr = L["Err.ReasonCodeRequired"]; return; }
         var code = _f.ReasonCode.Trim();
@@ -380,6 +388,7 @@
             MD.InsertReasonCode(code, NE(_f.ReasonName), NE(_f.ReasonType),
                 NE(_f.ModuleCode), _f.RequiresComment, _f.PlannedFlag,
                 _f.DisplayOrder, NE(_f.Description), _f.ActiveFlag, _actor);
+            Audit.Created("MD-025", "MD_ReasonCode", code, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Created"]}", false);
         }
@@ -389,6 +398,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         _busy = true;
@@ -397,8 +407,10 @@
             MD.UpdateReasonCode(_sel.ReasonCode, NE(_f.ReasonName), NE(_f.ReasonType),
                 NE(_f.ModuleCode), _f.RequiresComment, _f.PlannedFlag,
                 _f.DisplayOrder, NE(_f.Description), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-025", "MD_ReasonCode", _sel.ReasonCode, _sel, _f);
+            var key = _sel.ReasonCode;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.ReasonCode} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -406,12 +418,14 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var code = _sel.ReasonCode;
             MD.DeleteReasonCode(_sel.ReasonCode);
+            Audit.Deleted("MD-025", "MD_ReasonCode", _sel.ReasonCode, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Deleted"]}", false);
         }

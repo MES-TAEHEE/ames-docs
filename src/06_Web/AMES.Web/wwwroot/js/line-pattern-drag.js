@@ -14,7 +14,9 @@ window.linePatternDrag = (() => {
     function pxPerMin(s) { return s.el.getBoundingClientRect().width / s.rangeMin; }
     function pxToMin(s, px) { return s.startMin + Math.round(px / pxPerMin(s)); }
     function fmt(m) {
-        m = Math.max(0, Math.min(1440, m));
+        // 자정을 넘는 교대 창은 1440 을 넘는 분을 쓴다 — 다음 날 시각으로 표시(1440 은 24:00)
+        m = Math.max(0, Math.min(2880, m));
+        if (m > 1440) m -= 1440;
         return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
     }
 

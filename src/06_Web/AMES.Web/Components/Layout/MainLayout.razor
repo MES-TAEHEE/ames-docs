@@ -1,14 +1,28 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.PermissionService PermSvc
 
 <div class="ames-shell">
     <TopBar />
     <div class="ames-body">
         <NavMenu />
         <main class="ames-main">
+            <SessionGuard />
             <div class="ames-content @SectionClass()">
-                @Body
+                @if (_allowed)
+                {
+                    @Body
+                }
+                else if (_dbDown)
+                {
+                    <div class="ames-db-down-page">
+                        <div class="ames-db-down-page-t">⚠ @L["App.DbDown.Title"]</div>
+                        <div class="dim">@L["App.DbDown.Page"]</div>
+                        <a class="ames-btn ok" href="@Nav.Uri" data-enhance-nav="false">@L["App.DbDown.Retry"]</a>
+                    </div>
+                }
             </div>
         </main>
     </div>
@@ -17,13 +31,36 @@
 <RadzenComponents @rendermode="InteractiveServer" />
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+    @L["App.Error.Unhandled"]
+    <a href="." class="reload">@L["App.Error.Reload"]</a>
     <span class="dismiss">🗙</span>
 </div>
 
 @code {
-    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+    [CascadingParameter] Task<AuthenticationState>? AuthState { get; set; }
+    bool _allowed, _dbDown;
+
+    // 화면 읽기 권한(R) 공통 검사 — 라우터가 정적이라 화면 이동마다 이 레이아웃이 서버에서 먼저 돈다.
+    // 화면마다 검사를 넣지 않아도 SYS_Screen 에 등록된 내부 화면은 모두 막히고, 권한이 없으면 화면 본문을 그리지 않는다.
+    // 로그인 안 한 사용자는 AuthorizeRouteView 가 로그인으로 보내므로 내부 계정만 검사한다.
+    protected override async Task OnInitializedAsync()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        var user = AuthState is null ? null : (await AuthState).User;
+        if (AMES.Web.Services.PortalAuth.IsInternalUser(user))
+        {
+            await PermSvc.EnsureAsync(AuthState!);
+            if (!PermSvc.CanOpen(Nav.ToBaseRelativePath(Nav.Uri)))
+            {
+                // 권한을 못 읽은 원인이 DB 장애면 "권한 없음" 대신 장애 안내를 그린다
+                if (PermSvc.LoadFailed && AMES.Data.Connection.DbHealth.IsDown) { _dbDown = true; return; }
+                Nav.NavigateTo("/unauthorized", replace: true);
+                return;
+            }
+        }
+        _allowed = true;
+    }
+
     void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
         => InvokeAsync(StateHasChanged);
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
@@ -35,6 +72,11 @@
         if (p == "md"  || p.StartsWith("md/"))  return "ames-sec-md";
         if (p == "sys" || p.StartsWith("sys/")) return "ames-sec-sys";
         if (p == "pp"  || p.StartsWith("pp/"))  return "ames-sec-pp";
+        if (p == "mnt" || p.StartsWith("mnt/")) return "ames-sec-mnt";
+        if (p == "rpt" || p.StartsWith("rpt/")) return "ames-sec-rpt";
+        if (p == "wh"  || p.StartsWith("wh/"))  return "ames-sec-wh";
+        if (p == "fg"  || p.StartsWith("fg/"))  return "ames-sec-fg";
+        if (p == "scm" || p.StartsWith("scm/")) return "ames-sec-scm";
         return "";
     }
 }

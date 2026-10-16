@@ -1,12 +1,13 @@
 ﻿@page "/Account/AccessDenied"
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Access denied · A-MES</PageTitle>
+<PageTitle>@L["Auth.Title.AccessDenied"] · A-MES</PageTitle>
 
-<AuthCard Sub="ACCESS DENIED">
-    <div class="ames-auth-error">✕ 이 리소스에 접근 권한이 없습니다.</div>
+<AuthCard Sub="@L["Auth.Sub.AccessDenied"].Value">
+    <div class="ames-auth-error">✕ @L["Auth.AccessDenied.Msg"]</div>
     <div class="ames-auth-meta">
-        <a href="/">← 홈으로</a>
+        <a href="/">← @L["Auth.GoHome"]</a>
         <span>·</span>
-        <a href="/Account/Login">sign in</a>
+        <a href="/Account/Login">@L["Auth.GoSignIn"]</a>
     </div>
 </AuthCard>

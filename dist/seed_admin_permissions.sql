@@ -17,7 +17,6 @@ USING (VALUES
   ('PP-04',  'PP', N'작업 지시',                  N'Work Order',                  'pp/work-order',          'PP-004',  4, 1),
   ('PP-05',  'PP', N'MRP',                         N'MRP',                         'pp/mrp',                 'PP-005',  5, 1),
   ('PP-06',  'PP', N'구매 요청',                  N'Purchase Req',                'pp/purchase-req',        'PP-006',  6, 1),
-  ('PP-07',  'PP', N'작업 지시 릴리스',           N'WO Release',                  'pp/wo-release',          'PP-007',  7, 1),
   ('PP-CAL', 'PP', N'캘린더',                     N'Calendar',                    'pp/calendar',            'CAL',     8, 1),
   ('PP-LSB', 'PP', N'라인 일정',                  N'Line Schedule',               'pp/line-schedule',       'LSB',     9, 1),
   ('PP-OEE', 'PP', N'라인 OEE',                   N'Line OEE',                    'pp/oee',                 'OEE',    10, 1),
@@ -29,11 +28,12 @@ USING (VALUES
   ('MNT-02', 'MNT', N'고장 등록',                 N'Failure Register',            'mnt/failure',            'MNT-002', 2, 1),
   ('MNT-03', 'MNT', N'OEE 분석',                  N'OEE Analysis',                'mnt/oee-analysis',       'MNT-003', 3, 1),
   ('MNT-04', 'MNT', N'금형 관리',                 N'Mold Management',             'mnt/mold',               'MNT-004', 4, 1),
-  ('MNT-05', 'MNT', N'PM 일정',                   N'PM Schedule',                 'mnt/pm-schedule',        'MNT-005', 5, 1),
+  ('MNT-05', 'MNT', N'설비 PM 일정',              N'Equipment PM Schedule',       'mnt/pm-schedule',        'MNT-005', 5, 1),
   ('MNT-06', 'MNT', N'비가동 이력',               N'Downtime Log',                'mnt/downtime',           'MNT-006', 6, 1),
   ('MNT-07', 'MNT', N'작업 지시',                 N'Work Order',                  'mnt/work-order',         'MNT-007', 7, 1),
   ('MNT-08', 'MNT', N'예비 부품',                 N'Spare Parts',                 'mnt/spare-parts',        'MNT-008', 8, 1),
   ('MNT-09', 'MNT', N'대시보드',                  N'Dashboard',                   'mnt/dashboard',          'MNT-009', 9, 1),
+  ('MNT-10', 'MNT', N'보전 PM 일정',              N'Maintenance PM Schedule',     'mnt/maint-pm-schedule',  'MNT-010', 10, 1),
   -- RPT · 보고서
   ('RPT-01', 'RPT', N'일별 생산 실적',             N'Daily Production',            'rpt/daily-production',   'RPT-001',  1, 1),
   ('RPT-02', 'RPT', N'불량 파레토',               N'Defect Pareto',               'rpt/defect-pareto',      'RPT-002',  2, 1),
@@ -76,6 +76,18 @@ USING (VALUES
   ('MD-028', 'MD', N'라인 시간 패턴 관리',        N'Line Time Pattern Master',    'md/rp/line-time-pattern','MD-028', 28, 1),
   ('MD-029', 'MD', N'레시피 관리',                N'Recipe Master',               'md/ql/recipe',              'MD-029', 29, 1),
   ('MD-030', 'MD', N'코드 기준정보 관리',         N'Common Code Master',          'md/ql/common-code',         'MD-030', 30, 1),
+  ('MD-032', 'MD', N'현장 작업자 관리',           N'Worker Master',               'md/fd/workers',             'MD-032', 32, 1),
+  -- WH · 창고관리 (Web)
+  ('WH-006', 'WH', N'재고 조회', N'Inventory Search', 'wh/inventory', 'WH-006', 1, 1),
+  ('WH-003', 'WH', N'로케이션 맵', N'Location Map', 'wh/location-map', 'WH-003', 2, 1),
+  ('WH-004', 'WH', N'재고 이력', N'Inventory History', 'wh/log-history', 'WH-004', 3, 1),
+  ('WH-002', 'WH', N'피킹 오더', N'Picking Orders', 'wh/picking-orders', 'WH-002', 4, 1),
+  ('WH-005', 'WH', N'재고 설정', N'Inventory Setting', 'wh/inventory-setting', 'WH-005', 5, 1),
+  -- FG · 완제품 (Web)
+  ('FG-01', 'FG', N'고객사 리턴', N'Customer Returns', 'fg/customer-returns', 'FG-01', 1, 1),
+  ('FG-02', 'FG', N'출하 계획', N'Shipment Plan', 'fg/shipment-plan', 'FG-02', 2, 1),
+  ('FG-03', 'FG', N'출하 목록', N'Shipments', 'fg/shipments', 'FG-03', 3, 1),
+  ('FG-04', 'FG', N'작업 이력', N'History', 'fg/history', 'FG-04', 4, 1),
   -- SYS · 시스템
   ('SYS-001', 'SYS', N'사용자 관리',              N'User Management',             'sys/users',              'SYS-001',  1, 1),
   ('SYS-002', 'SYS', N'역할 관리',                N'Role Management',             'sys/roles',              'SYS-002',  2, 1),
@@ -117,21 +129,25 @@ UPDATE dbo.SYS_Screen SET SubProcessCode=NULL WHERE ProcessCode='MD' AND HRef NO
 GO
 
 -- ── Step 2: Admin Role 확보 ───────────────────────────────────────────────
+-- 시스템 역할 ID 는 고정이다(ROLE-SYSADMIN, AMES.Data.Services.SystemRoles) — 이름은 SYS-002 에서 바뀔 수 있어 ID 로 찾는다.
+-- 'Admin' 이 다른 ID(GUID)로 있는 옛 DB 는 dist/migrate_system_roles.sql 이 먼저 옮겨야 한다.
 
-IF NOT EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE Name = 'Admin')
+IF NOT EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE Id = N'ROLE-SYSADMIN')
 BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.AspNetRoles WHERE NormalizedName IN ('ADMIN', 'SYSTEM ADMINISTRATOR'))
+        THROW 50001, 'Admin role exists with another ID. Apply dist/migrate_system_roles.sql first.', 1;
     INSERT INTO dbo.AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
-    VALUES (NEWID(), 'Admin', 'ADMIN', CAST(NEWID() AS NVARCHAR(MAX)));
-    PRINT 'Admin 롤 생성 완료';
+    VALUES (N'ROLE-SYSADMIN', 'System Administrator', 'SYSTEM ADMINISTRATOR', CAST(NEWID() AS NVARCHAR(MAX)));
+    PRINT 'Admin 롤(ROLE-SYSADMIN) 생성 완료';
 END
 ELSE
-    PRINT 'Admin 롤 이미 존재';
+    PRINT 'Admin 롤(ROLE-SYSADMIN) 이미 존재';
 GO
 
 -- ── Step 3: SYS_RolePermission — Admin FULL 권한 upsert ──────────────────
 
-DECLARE @AdminRoleId NVARCHAR(450);
-SELECT @AdminRoleId = Id FROM dbo.AspNetRoles WHERE Name = 'Admin';
+DECLARE @AdminRoleId NVARCHAR(450) = N'ROLE-SYSADMIN';
+DECLARE @AdminRoleName VARCHAR(40) = (SELECT Name FROM dbo.AspNetRoles WHERE Id = N'ROLE-SYSADMIN');
 
 -- PermissionService는 'R'/'RE'/'REA' 문자 조합으로 권한 판단
 DECLARE @FullLevel VARCHAR(10);
@@ -141,7 +157,7 @@ MERGE dbo.SYS_RolePermission AS tgt
 USING (
     SELECT s.ScreenCode, s.ModuleCode
     FROM   dbo.SYS_Screen s
-) AS src ON tgt.RoleName = 'Admin' AND tgt.ScreenCode = src.ScreenCode
+) AS src ON tgt.RoleID = @AdminRoleId AND tgt.ScreenCode = src.ScreenCode
 WHEN MATCHED THEN
     UPDATE SET
         tgt.RoleID          = @AdminRoleId,
@@ -152,7 +168,7 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (RoleID, RoleName, ModuleCode, ScreenCode, PermissionLevel,
             IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
-    VALUES (@AdminRoleId, 'Admin', src.ModuleCode, src.ScreenCode, @FullLevel,
+    VALUES (@AdminRoleId, @AdminRoleName, src.ModuleCode, src.ScreenCode, @FullLevel,
             1, SYSDATETIME(), 'seed', SYSDATETIME());
 
 PRINT CONCAT('SYS_RolePermission Admin FULL(', @FullLevel, '): ', @@ROWCOUNT, '행 처리됨');
@@ -191,7 +207,7 @@ DECLARE @UserId    NVARCHAR(450);
 DECLARE @AdminRoleId2 NVARCHAR(450);
 
 SELECT @UserId       = Id FROM dbo.AspNetUsers WHERE NormalizedEmail = 'ADMIN@AMES.LOCAL';
-SELECT @AdminRoleId2 = Id FROM dbo.AspNetRoles  WHERE Name = 'Admin';
+SELECT @AdminRoleId2 = Id FROM dbo.AspNetRoles  WHERE Id = N'ROLE-SYSADMIN';
 
 IF @UserId IS NOT NULL AND @AdminRoleId2 IS NOT NULL
 BEGIN
@@ -217,11 +233,11 @@ SELECT
     rp.PermissionLevel
 FROM   dbo.SYS_RolePermission rp
 JOIN   dbo.SYS_Screen         s  ON s.ScreenCode = rp.ScreenCode
-WHERE  rp.RoleName = 'Admin'
+WHERE  rp.RoleID = N'ROLE-SYSADMIN'
 ORDER  BY rp.ModuleCode, rp.ScreenCode;
 
 SELECT COUNT(*) AS [Admin FULL 권한 수]
 FROM   dbo.SYS_RolePermission
-WHERE  RoleName = 'Admin'
+WHERE  RoleID = N'ROLE-SYSADMIN'
   AND  PermissionLevel = 'REA';   -- PermissionService 문자 모델(R/E/A). 구 숫자 CAST 모델 폐기.
 GO

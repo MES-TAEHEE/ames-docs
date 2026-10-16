@@ -1,15 +1,25 @@
 @page "/wh/07"
-@inject PdaApi Api
+@inject PdaUomFormat Uom
+@inject WarehouseApi Api
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="pda-shell wh wh07-shell">
+<div class="pda-shell wh wh07-shell wh07-release-shell">
     <div class="pda-tbar">
-        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <div class="wh07-tbar-title">
             <span class="pda-tbar-brand">RELEASE</span>
         </div>
+        @if (IsTestMode)
+        {
+            <button class="wh02-test-nav" @onclick="OpenTestPanel">SCENARIO</button>
+        }
+        @if (IsPptTestMode)
+        {
+            <PptScenarioPanel Title="RELEASE" Steps="PptSteps" Busy="_isBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+        }
     </div>
 
     <div class="pda-bd wh07-body">
@@ -29,82 +39,121 @@
             }
         </RadzenCard>
 
-        @if (_lines.Count > 0)
+        @if (!HasReleaseWork)
         {
-            <div class="wh07-line-list">
-                @for (var index = 0; index < _lines.Count; index++)
+            <section class="wh07-order-panel">
+                <div class="wh07-order-head">
+                    <div><strong>PICKING LIST</strong><span>OPEN / PARTIAL</span></div>
+                    <button type="button" @onclick="LoadOpenPickingOrdersAsync" disabled="@_isBusy">REFRESH</button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_pickingListError))
                 {
-                    var line = _lines[index];
-                    <RadzenCard id="@($"wh07-line-{index}")" class="@LineCardClass(line)">
-                        <div class="wh07-line-top">
-                            <div class="wh07-line-main">
-                                <strong>@line.ItemNo</strong>
-                                <span class="wh07-line-name">@Text(line.ItemName)</span>
-                                <div class="wh07-line-qty">
-                                    <span>REQUESTED <strong>@line.RequestBoxQty.ToString("N0")</strong></span>
-                                    <span>PICKED <strong>@DisplayPickedBox(line).ToString("N0")</strong></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="wh07-lot-list">
-                            @foreach (var lot in LotsFor(line.ItemNo))
-                            {
-                                var scanned = IsScannedLot(lot.LotNo);
-                                <div id="@LotElementId(lot.LotNo)" class="@($"wh07-lot-row {(scanned ? "scanned" : "")}")">
-                                    <div>
-                                        <strong>@lot.LotNo</strong>
-                                        <span>@(lot.LocationNo ?? "-")</span>
-                                    </div>
-                                    <div class="wh07-lot-qty">
-                                        <strong>@lot.Qty.ToString("N0")</strong>
-                                        <span>@(scanned ? "SCANNED" : "READY")</span>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </RadzenCard>
+                    <div class="wh07-order-empty error">@_pickingListError</div>
                 }
-            </div>
-        }
-        else if (!string.IsNullOrWhiteSpace(_loadedSlipNo))
-        {
-            <div class="pda-empty">No lines found for this Pick Slip.</div>
-        }
-
-        @if (_directLot is not null)
-        {
-            <RadzenCard class="wh07-direct-card">
-                <div class="wh07-direct-row"><span>LOT NO</span><strong>@_directLot.LotNo</strong></div>
-                <div class="wh07-direct-row"><span>PART NO</span><strong>@Text(_directLot.ItemNo)</strong></div>
-                <div class="wh07-direct-row"><span>PART NAME</span><strong>@Text(_directLot.ItemName)</strong></div>
-                <div class="wh07-direct-row"><span>QTY</span><strong>@QuantityText(_directLot.Qty, _directLot.Unit)</strong></div>
-                <div class="wh07-direct-row"><span>LOCATION</span><strong>@Text(_directLot.LocationId)</strong></div>
-                @if (_outgoingType == "DEFECT")
+                else if (_openPickingOrders.Count == 0)
                 {
-                    <div class="wh07-direct-row wh07-qty-row">
-                        <span>OUTGOING QTY</span>
-                        <div class="wh07-qty-stepper">
-                            <RadzenButton Icon="remove" Click='@(() => ChangeDirectQty(-1))' Disabled="@(_directQty <= 1)" />
-                            <strong>@QuantityText(_directQty, _directLot.Unit)</strong>
-                            <RadzenButton Icon="add" Click='@(() => ChangeDirectQty(1))' Disabled="@(_directQty >= _directLot.Qty)" />
-                        </div>
+                    <div class="wh07-order-empty">No open picking orders.</div>
+                }
+                else
+                {
+                    <div class="wh07-order-list">
+                        @foreach (var order in _openPickingOrders)
+                        {
+                            <button type="button" class="wh07-order-row" @onclick="@(() => SelectPickingOrderAsync(order))" disabled="@_isBusy">
+                                <div class="wh07-order-main"><strong>@PickingOrderTitle(order)</strong><span>@Text(order.RequestLocation)</span></div>
+                                <div class="wh07-order-progress">
+                                    <strong>@order.PickedQty.ToString("N0") / @order.RequestedQty.ToString("N0") @Uom.Symbol(order.QuantityUnit)</strong>
+                                    <span>@order.LineCount MATERIALS · @order.Status.ToUpperInvariant()</span>
+                                </div>
+                                <span class="wh07-order-go">›</span>
+                            </button>
+                        }
                     </div>
                 }
-            </RadzenCard>
+            </section>
         }
 
-        @if (CanChooseOutgoingType)
-        {
-            <RadzenCard class="@($"wh07-panel wh07-type-panel {(_highlightOutgoingType ? "type-attention" : "")}")">
-                <div class="pda-fld">
-                    <label>OUTGOING TYPE</label>
-                    <RadzenDropDown TValue="string" class="wh07-type-select"
-                                    Data="@OutgoingTypes" TextProperty="Name" ValueProperty="Code"
-                                    Value="@_outgoingType" Change="@OnOutgoingTypeChanged"
-                                    Placeholder="Select Outgoing Type" />
+        <div class="wh07-result-scroll">
+            @if (_lines.Count > 0)
+            {
+                <div class="wh07-line-list">
+                    @for (var index = 0; index < _lines.Count; index++)
+                    {
+                        var line = _lines[index];
+                        <RadzenCard id="@($"wh07-line-{index}")" class="@LineCardClass(line)">
+                            <div class="wh07-line-top">
+                                <div class="wh07-line-main">
+                                    <strong>@line.ItemNo</strong>
+                                    <span class="wh07-line-name">@Text(line.ItemName)</span>
+                                    <div class="wh07-pick-from">
+                                        <span>PICK FROM</span>
+                                        <strong>@PickingLocations(line.ItemNo)</strong>
+                                    </div>
+                                    <div class="wh07-line-qty">
+                                        <span>REQUESTED <strong>@line.RequestBoxQty.ToString("N0") @Uom.Symbol(line.QuantityUnit)</strong></span>
+                                        <span>PICKED <strong>@DisplayPickedQuantity(line).ToString("N0") @Uom.Symbol(line.QuantityUnit)</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="wh07-lot-list">
+                                @foreach (var lot in DisplayFifoLotsFor(line.ItemNo))
+                                {
+                                    <div class="wh07-lot-row @(IsPendingPick(lot.LotNo) ? "scanned" : "")">
+                                        <div>
+                                            <strong>@lot.LotNo</strong>
+                                            <span>@Text(lot.LocationNo)</span>
+                                        </div>
+                                        <div class="wh07-lot-qty">
+                                            <strong>@lot.Qty.ToString("N0")</strong>
+                                            <span>@Text(lot.ProductionDate)</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </RadzenCard>
+                    }
                 </div>
-            </RadzenCard>
-        }
+            }
+            else if (!string.IsNullOrWhiteSpace(_loadedSlipNo))
+            {
+                <div class="pda-empty">No lines found for this Pick Slip.</div>
+            }
+
+            @if (_directLot is not null)
+            {
+                <RadzenCard class="wh07-direct-card">
+                    <div class="wh07-direct-row"><span>LOT NO</span><strong>@_directLot.LotNo</strong></div>
+                    <div class="wh07-direct-row"><span>PART NO</span><strong>@Text(_directLot.ItemNo)</strong></div>
+                    <div class="wh07-direct-row"><span>PART NAME</span><strong>@Text(_directLot.ItemName)</strong></div>
+                    <div class="wh07-direct-row"><span>QTY</span><strong>@QuantityText(_directLot.Qty, _directLot.Unit)</strong></div>
+                    <div class="wh07-direct-row"><span>LOCATION</span><strong>@Text(_directLot.LocationId)</strong></div>
+                    @if (_outgoingType == "DEFECT")
+                    {
+                        <div class="wh07-direct-row wh07-qty-row">
+                            <span>OUTGOING QTY</span>
+                            <div class="wh07-qty-stepper">
+                                <RadzenButton Icon="remove" Click='@(() => ChangeDirectQty(-1))' Disabled="@(_directQty <= 1)" />
+                                <strong>@QuantityText(_directQty, _directLot.Unit)</strong>
+                                <RadzenButton Icon="add" Click='@(() => ChangeDirectQty(1))' Disabled="@(_directQty >= _directLot.Qty)" />
+                            </div>
+                        </div>
+                    }
+                </RadzenCard>
+            }
+
+            @if (CanChooseOutgoingType)
+            {
+                <RadzenCard class="@($"wh07-panel wh07-type-panel {(_highlightOutgoingType ? "type-attention" : "")}")">
+                    <div class="pda-fld">
+                        <label>OUTGOING TYPE</label>
+                        <RadzenDropDown TValue="string" class="wh07-type-select"
+                                        Data="@OutgoingTypes" TextProperty="Name" ValueProperty="CodeValue"
+                                        Value="@_outgoingType" Change="@OnOutgoingTypeChanged"
+                                        Placeholder="Select Outgoing Type" />
+                    </div>
+                </RadzenCard>
+            }
+        </div>
 
         @if (HasReleaseWork)
         {
@@ -155,7 +204,7 @@
                                 <strong>@line.ItemNo</strong>
                                 <div class="wh07-line-qty">
                                     <span>REQ BOX <strong>@line.RequestBoxQty.ToString("N0")</strong></span>
-                                    <span>PICKED BOX <strong>@DisplayPickedBox(line).ToString("N0")</strong></span>
+                                    <span>PICKED BOX <strong>@DisplayPickedQuantity(line).ToString("N0")</strong></span>
                                     @if (IsScannedLine(line))
                                     {
                                         <span class="wh07-check">✓ CHECKED</span>
@@ -185,6 +234,59 @@
         *@
     </div>
 
+    @if (IsTestMode && _testPanelOpen)
+    {
+        <div class="wh02-test-backdrop" @onclick="CloseTestPanel">
+            <section class="wh02-test-panel" @onclick:stopPropagation="true">
+                <div class="wh02-test-head">
+                    <div><span>TEST MODE</span><strong>RELEASE TEST SCENARIOS</strong></div>
+                    <b>@CurrentTestScenario.No.ToString("00") / @ReleaseTestScenarios.Length</b>
+                    <button class="wh02-test-close" @onclick="CloseTestPanel" aria-label="Close scenarios">×</button>
+                </div>
+                <div class="wh02-test-tabs">
+                    @foreach (var scenario in ReleaseTestScenarios)
+                    {
+                        var index = scenario.No - 1;
+                        <button class="@(index == _testScenarioIndex ? "on" : "")"
+                                @onclick="@(() => SelectTestScenario(index))">@scenario.No.ToString("00")</button>
+                    }
+                </div>
+                <div class="wh02-test-case">
+                    <div class="wh02-test-summary">
+                        <span>@CurrentTestScenario.TestCaseId</span>
+                        <strong>@CurrentTestScenario.Title</strong>
+                    </div>
+                    @if (CurrentTestScenario.Values.Length > 0)
+                    {
+                        <div class="wh02-test-values">
+                            @foreach (var value in CurrentTestScenario.Values)
+                            {
+                                <button @onclick="@(() => LoadTestValue(value))">
+                                    <span>@value.Label</span><b>@value.Value</b>
+                                </button>
+                            }
+                        </div>
+                    }
+                    @if (CurrentTestScenario.No == 17)
+                    {
+                        <div class="wh02-test-actions">
+                            <button @onclick='@(() => OpenScenarioPage("/wh/03"))'>OPEN INVENTORY</button>
+                            <button @onclick='@(() => OpenScenarioPage("/wh/08"))'>OPEN TRANSACTIONS</button>
+                        </div>
+                    }
+                    else if (CurrentTestScenario.No == 18)
+                    {
+                        <button class="@($"wh02-test-error {(_simulateReleaseApiFailure ? "on" : "")}")"
+                                @onclick="ToggleReleaseApiFailure">
+                            API ERROR: @(_simulateReleaseApiFailure ? "ON" : "OFF")
+                        </button>
+                    }
+                    <button class="wh02-test-start" @onclick="StartTestScenario">START SCENARIO</button>
+                </div>
+            </section>
+        </div>
+    }
+
     @if (_modalOpen)
     {
         <div class="wh-modal-backdrop" @onclick="DismissModal">
@@ -201,13 +303,84 @@
 </div>
 
 @code {
-    private sealed record OutgoingTypeOption(string Code, string Name);
+    private sealed record ReleaseTestValue(string Label, string Value, bool IsOutgoingType = false);
+    private sealed record ReleaseTestScenario(int No, string TestCaseId, string Title, string Steps,
+        bool AutoScan, params ReleaseTestValue[] Values);
 
-    private static readonly IReadOnlyList<OutgoingTypeOption> OutgoingTypes =
+    private List<PdaApi.CodeOption> OutgoingTypes = [];
+
+    private static readonly ReleaseTestScenario[] ReleaseTestScenarios =
     [
-        new("PRODUCTION", "To Production Line"),
-        new("OTHER", "Other Outgoing"),
-        new("DEFECT", "Defect Outgoing")
+        new(1, "WH003-TC-001", "Pick Slip 바코드 분기",
+            "Pick Slip을 스캔해 요청 품목 목록이 조회되는지 확인합니다.", true,
+            new ReleaseTestValue("PICK SLIP", "2026082801")),
+        new(2, "WH003-TC-002", "LOT 단일 출고 분기",
+            "Pick Slip 없이 LOT을 스캔해 단일 출고 정보가 조회되는지 확인합니다.", true,
+            new ReleaseTestValue("STANDALONE LOT", "5011LL260820000010")),
+        new(3, "WH003-TC-003", "지원하지 않는 바코드",
+            "등록되지 않은 바코드를 스캔해 오류 알림을 확인합니다.", true,
+            new ReleaseTestValue("UNKNOWN", "WH-RELEASE-UNKNOWN-999999")),
+        new(4, "WH003-TC-004", "요청 품목·수량 조회",
+            "Pick Slip의 Part No, 요청 Box 수량과 LOT 목록을 확인합니다.", true,
+            new ReleaseTestValue("PICK SLIP", "2026082801")),
+        new(5, "WH003-TC-005", "FIFO 순서 조회",
+            "표시된 LOT이 ProducedAt, LastReceivedAt, LotID 순서인지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("FIFO 1", "5011LL260701000001"), new("FIFO 2", "5011LL260715000002"),
+            new("FIFO 3", "5011LL260801000003"), new("OTHER PART", "5011LL260601000004")),
+        new(6, "WH003-TC-006", "요청 LOT 하이라이트",
+            "첫 FIFO LOT을 스캔해 해당 행만 초록색으로 바뀌는지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("FIFO LOT", "5011LL260701000001")),
+        new(7, "WH003-TC-007", "비요청 LOT 차단",
+            "Pick Slip에 없는 LOT을 스캔해 Pick Blocked 알림을 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("NOT REQUESTED", "5011LL260101000018")),
+        new(8, "WH003-TC-008", "동일 LOT 중복 차단",
+            "FIFO LOT을 두 번 눌러 Already Scanned 알림과 수량 유지 여부를 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("SCAN TWICE", "5011LL260701000001")),
+        new(9, "WH003-TC-009", "부분 스캔 Release 차단",
+            "요청 LOT 일부만 스캔했을 때 RELEASE가 비활성인지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("ONE LOT", "5011LL260701000001")),
+        new(10, "WH003-TC-010", "FIFO 위반 차단",
+            "두 번째 LOT을 먼저 스캔해 먼저 스캔할 LOT과 위치 안내를 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("SKIP FIFO", "5011LL260715000002")),
+        new(11, "WH003-TC-011", "FIFO 정상 스캔",
+            "첫 FIFO LOT을 스캔해 정상 반영되는지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"), new("FIFO LOT", "5011LL260701000001")),
+        new(12, "WH003-TC-012", "전체 LOT 스캔",
+            "모든 LOT을 순서대로 스캔해 OUTGOING TYPE이 나타나는지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004")),
+        new(13, "WH003-TC-013", "Production Line 유형 선택",
+            "전체 스캔 후 Production Line을 선택해 RELEASE 활성화를 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004"),
+            new("OUTGOING TYPE", "PRODUCTION", true)),
+        new(14, "WH003-TC-014", "Other / Defect 유형 선택",
+            "전체 스캔 후 Other와 Defect 유형이 각각 선택되는지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004"),
+            new("OTHER", "OTHER", true), new("DEFECT", "DEFECT", true)),
+        new(15, "WH003-TC-015", "출고 유형 미선택 차단",
+            "전체 LOT만 스캔하고 유형을 선택하지 않아 RELEASE가 비활성인지 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004")),
+        new(16, "WH003-TC-016", "Release 완료",
+            "모든 LOT과 유형을 선택한 뒤 RELEASE를 눌러 완료 알림을 확인합니다.", true,
+            new("PICK SLIP", "2026082801"),
+            new("LOT 1", "5011LL260701000001"), new("LOT 2", "5011LL260715000002"),
+            new("LOT 3", "5011LL260801000003"), new("LOT 4", "5011LL260601000004"),
+            new("OUTGOING TYPE", "PRODUCTION", true)),
+        new(17, "WH003-TC-017", "재고·거래이력 검증",
+            "시나리오 16 완료 후 Inventory와 Transactions에서 출고 결과를 확인합니다.", false,
+            new ReleaseTestValue("RELEASED LOT", "5011LL260701000001")),
+        new(18, "WH003-TC-018", "Release API 실패 및 롤백",
+            "API ERROR를 켜고 전체 스캔·유형 선택 후 RELEASE하여 롤백과 입력 유지 여부를 확인합니다.", true,
+            new("ROLLBACK SLIP", "PDA-REL-TEST-02"), new("ROLLBACK LOT", "5011LL260101000018"),
+            new("OUTGOING TYPE", "PRODUCTION", true))
     ];
 
     [SupplyParameterFromQuery]
@@ -220,11 +393,11 @@
     private List<PdaApi.ReleasePickLineRow> _lines = new();
     private List<PdaApi.ReleaseFifoLotRow> _fifoLots = new();
     private List<PdaApi.ReleaseLotRow> _pendingPicks = new();
+    private List<PdaApi.OpenPickingOrderRow> _openPickingOrders = new();
+    private string _pickingListError = "";
     private PdaApi.ReleaseLotRow? _scan;
     private PdaApi.DirectOutgoingLotRow? _directLot;
     private decimal _directQty = 1;
-    private string? _scrollLotNo;
-    private bool _scrollLotAfterRender;
     private bool _scrollOutgoingTypeAfterRender;
     private bool _highlightOutgoingType;
     private bool _isBusy;
@@ -236,6 +409,68 @@
     private string _modalMessage = "";
     private Func<Task>? _modalAfterOk;
     private DotNetObjectReference<Wh07PdaRelease>? _scannerRef;
+    private int _testScenarioIndex;
+    private bool _testPanelOpen;
+    private bool _simulateReleaseApiFailure;
+
+    private bool IsSpareParts => Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.StartsWith("/sp/", StringComparison.OrdinalIgnoreCase);
+    private string ModuleHome => IsSpareParts ? "/sp" : "/wh";
+    private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
+    private bool IsTestMode => !IsSpareParts && PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
+    private ReleaseTestScenario CurrentTestScenario => ReleaseTestScenarios[_testScenarioIndex];
+
+    private void OpenTestPanel() => _testPanelOpen = true;
+    private void CloseTestPanel() => _testPanelOpen = false;
+    private void OpenScenarioPage(string route)
+    {
+        CloseTestPanel();
+        Nav.NavigateTo(route);
+    }
+    private void ToggleReleaseApiFailure() => _simulateReleaseApiFailure = !_simulateReleaseApiFailure;
+
+    private void SelectTestScenario(int index)
+    {
+        if (index < 0 || index >= ReleaseTestScenarios.Length)
+            return;
+
+        _testScenarioIndex = index;
+        if (CurrentTestScenario.No != 18)
+            _simulateReleaseApiFailure = false;
+        PrepareTestScenario(CurrentTestScenario);
+    }
+
+    private async Task StartTestScenario()
+    {
+        var scenario = CurrentTestScenario;
+        CloseTestPanel();
+        PrepareTestScenario(scenario);
+
+        if (scenario.AutoScan && !string.IsNullOrWhiteSpace(_barcode))
+            await ProcessBarcodeAsync(_barcode);
+        else
+            ShowModal($"Scenario {scenario.No:00} Ready", scenario.Steps, "info");
+    }
+
+    private void PrepareTestScenario(ReleaseTestScenario scenario)
+    {
+        ClearRelease();
+        var first = scenario.Values.FirstOrDefault(value => !value.IsOutgoingType);
+        if (first is not null)
+            _barcode = first.Value;
+    }
+
+    private async Task LoadTestValue(ReleaseTestValue value)
+    {
+        CloseTestPanel();
+        if (value.IsOutgoingType)
+        {
+            OnOutgoingTypeChanged(value.Value);
+            return;
+        }
+
+        _barcode = value.Value;
+        await ProcessBarcodeAsync(value.Value);
+    }
 
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
     protected override async Task OnParametersSetAsync()
@@ -243,11 +478,35 @@
         if (_initialized) return;
         _initialized = true;
 
+        try { OutgoingTypes = await Api.CodeItemsAsync("WH_OUTGOING_TYPE"); }
+        catch (Exception ex)
+        {
+            ShowModal("Code List Unavailable", ex.Message, "fail");
+            return;
+        }
+
+        await LoadOpenPickingOrdersAsync();
+
         if (!string.IsNullOrWhiteSpace(PickSlipNo))
         {
             _pickSlipNo = PickSlipNo.Trim();
             await LoadSlip();
         }
+    }
+
+    private async Task LoadOpenPickingOrdersAsync()
+    {
+        _pickingListError = "";
+        try { _openPickingOrders = await Api.WhOpenPickingOrdersAsync(); }
+        catch (Exception ex) { _openPickingOrders.Clear(); _pickingListError = ex.Message; }
+    }
+
+    private async Task SelectPickingOrderAsync(PdaApi.OpenPickingOrderRow order)
+    {
+        if (_isBusy) return;
+        ClearRelease();
+        _pickSlipNo = order.PickSlipNo;
+        await LoadSlip();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -264,12 +523,6 @@
             _scrollOutgoingTypeAfterRender = false;
             await JS.InvokeVoidAsync("pdaScan.scrollTo", ".wh07-type-panel");
         }
-        else if (_scrollLotAfterRender)
-        {
-            _scrollLotAfterRender = false;
-            if (!string.IsNullOrWhiteSpace(_scrollLotNo))
-                await JS.InvokeVoidAsync("pdaScan.scrollTo", $"#{LotElementId(_scrollLotNo)}");
-        }
         await FocusScannerAsync();
     }
 
@@ -282,6 +535,7 @@
 
         await InvokeAsync(async () =>
         {
+            if (_pptOpen) return;
             await ProcessBarcodeAsync(value);
             StateHasChanged();
         });
@@ -294,7 +548,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_modalOpen)
+        if (_modalOpen || _testPanelOpen || _pptOpen)
             return;
 
         try
@@ -380,6 +634,9 @@
         => barcode.StartsWith("PS-", StringComparison.OrdinalIgnoreCase)
            || barcode.Length > 2 && barcode.StartsWith("PS", StringComparison.OrdinalIgnoreCase) && barcode[2..].All(char.IsDigit)
            || barcode.StartsWith("RS-", StringComparison.OrdinalIgnoreCase)
+           || barcode.StartsWith("PA-", StringComparison.OrdinalIgnoreCase)
+           || barcode.Length >= 13 && barcode.StartsWith("PK", StringComparison.OrdinalIgnoreCase)
+              && barcode[2..4].All(char.IsLetterOrDigit) && barcode[4..].All(char.IsDigit)
            || barcode.StartsWith("PDA-FIFO-", StringComparison.OrdinalIgnoreCase)
            || barcode.StartsWith("PDA-REL-TEST-", StringComparison.OrdinalIgnoreCase)
            || string.IsNullOrWhiteSpace(_loadedSlipNo) && barcode.Length == 10 && barcode.All(char.IsDigit);
@@ -405,7 +662,6 @@
         {
             _loadedSlipNo = _pickSlipNo.Trim();
             _scan = null;
-            _scrollLotNo = null;
             _outgoingType = "";
             _highlightOutgoingType = false;
             _lines.Clear();
@@ -436,13 +692,24 @@
             }
 
             _lines = await Api.WhReleaseLinesAsync(_loadedSlipNo);
-            _fifoLots = await Api.WhReleaseFifoLotsAsync(_loadedSlipNo);
+            _fifoLots = await Api.WhReleaseFifoLotsAsync(_loadedSlipNo, AreaScope);
 
             if (_lines.Count == 0)
             {
                 ShowModal("No Lines Found", "No release lines were found for this Pick Slip.", "warn");
                 _loadedSlipNo = null;
             }
+            else
+            {
+                _outgoingType = "PRODUCTION";
+            }
+        }
+        catch (Exception ex)
+        {
+            _loadedSlipNo = null;
+            _lines.Clear();
+            _fifoLots.Clear();
+            ShowModal("Load Failed", ex.Message, "fail");
         }
         finally
         {
@@ -467,7 +734,7 @@
         _isBusy = true;
         try
         {
-            _scan = await Api.WhReleaseLotAsync(_loadedSlipNo, scanText.Trim());
+            _scan = await Api.WhReleaseLotAsync(_loadedSlipNo, scanText.Trim(), AreaScope);
             if (_scan is null)
             {
                 ShowModal("Scan Failed", "LOT lookup failed. Check API connection.", "fail");
@@ -482,7 +749,7 @@
                 var fifoBlocked = _scan.Message?.Contains("FIFO", StringComparison.OrdinalIgnoreCase) == true;
                 ShowModal(alreadySufficient ? "Already Sufficient" : fifoBlocked ? "FIFO Order" : "Pick Blocked",
                     alreadySufficient
-                        ? "This part already has all requested boxes picked."
+                        ? "The requested quantity for this part has already been picked."
                         : fifoBlocked
                             ? FifoBlockedMessage(_scan)
                             : _scan.Message ?? "This LOT cannot be picked.",
@@ -492,7 +759,7 @@
 
             if (IsPartAlreadySufficient(_scan.ItemNo))
             {
-                ShowModal("Already Sufficient", "This part already has all requested boxes picked.", "warn");
+                ShowModal("Already Sufficient", "The requested quantity for this part has already been picked.", "warn");
                 return;
             }
 
@@ -504,15 +771,14 @@
 
             _scan = _scan with { IsValid = true, Message = "LOT added. It will be saved when RELEASE is pressed." };
             _pendingPicks.Add(_scan);
-            _scrollLotNo = _scan.LotNo;
-            if (CanCompleteRelease)
+            var line = _lines.First(x => string.Equals(x.ItemNo, _scan.ItemNo, StringComparison.OrdinalIgnoreCase));
+            var excess = DisplayPickedQuantity(line) - line.RequestBoxQty;
+            if (line.QuantityUnit == "EA" && excess > 0)
+                ShowModal("Extra Quantity", $"The full final box was added. Requested: {line.RequestBoxQty:N0} EA. Picked: {DisplayPickedQuantity(line):N0} EA. Extra: {excess:N0} EA.", "warn");
+            if (CanCompleteRelease && string.IsNullOrWhiteSpace(_outgoingType))
             {
                 _highlightOutgoingType = true;
                 _scrollOutgoingTypeAfterRender = true;
-            }
-            else
-            {
-                _scrollLotAfterRender = true;
             }
         }
         catch (Exception ex)
@@ -530,7 +796,7 @@
         _isBusy = true;
         try
         {
-            _directLot = await Api.WhDirectOutgoingLotAsync(barcode.Trim());
+            _directLot = await Api.WhDirectOutgoingLotAsync(barcode.Trim(), AreaScope);
             if (_directLot is null || !_directLot.IsValid)
             {
                 var message = _directLot?.Message ?? "LOT lookup failed. Check API connection.";
@@ -555,19 +821,46 @@
         }
     }
 
-    private static string LineCardClass(PdaApi.ReleasePickLineRow line) => "wh07-line-card";
+    private string LineCardClass(PdaApi.ReleasePickLineRow line)
+    {
+        var picked = DisplayPickedQuantity(line);
+        return picked >= line.RequestBoxQty
+            ? "wh07-line-card picked"
+            : picked > 0 ? "wh07-line-card partial" : "wh07-line-card open";
+    }
+
+    private IEnumerable<PdaApi.ReleaseFifoLotRow> DisplayFifoLotsFor(string itemNo)
+        => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
+
+    private string PickingLocations(string itemNo)
+    {
+        var locations = DisplayFifoLotsFor(itemNo)
+            .Select(lot => lot.LocationNo)
+            .Where(location => !string.IsNullOrWhiteSpace(location))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        return string.Join(" · ", locations) is { Length: > 0 } value ? value : "NO STOCK LOCATION";
+    }
+
+    private static string PickingOrderTitle(PdaApi.OpenPickingOrderRow order)
+        => order.PickSlipNo.StartsWith("PA-", StringComparison.OrdinalIgnoreCase) && order.PickSlipNo.Length > 25
+            ? $"AUTO PICK · {Text(order.RequestDate)}"
+            : order.PickSlipNo;
+
+    private bool IsPendingPick(string lotNo)
+        => _pendingPicks.Any(pick => string.Equals(pick.LotNo, lotNo, StringComparison.OrdinalIgnoreCase));
 
     private List<PdaApi.ReleaseFifoLotRow> FifoLotsFor(string itemNo)
         => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)
                                   && !_pendingPicks.Any(pick => string.Equals(pick.LotNo, lot.LotNo, StringComparison.OrdinalIgnoreCase)))
                     .ToList();
 
-    private decimal DisplayPickedBox(PdaApi.ReleasePickLineRow line)
-        => line.PickedBoxQty + _pendingPicks.Count(pick => string.Equals(pick.ItemNo, line.ItemNo, StringComparison.OrdinalIgnoreCase));
+    private decimal DisplayPickedQuantity(PdaApi.ReleasePickLineRow line)
+        => line.PickedBoxQty + _pendingPicks.Where(pick => string.Equals(pick.ItemNo, line.ItemNo, StringComparison.OrdinalIgnoreCase))
+            .Sum(pick => line.QuantityUnit == "EA" ? pick.Qty : 1);
 
     private bool IsPartAlreadySufficient(string? itemNo)
         => _lines.FirstOrDefault(line => string.Equals(line.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)) is { } line
-           && DisplayPickedBox(line) >= line.RequestBoxQty;
+           && DisplayPickedQuantity(line) >= line.RequestBoxQty;
 
     private bool CanAcceptPendingFifoFollowUp(PdaApi.ReleaseLotRow row)
     {
@@ -590,7 +883,7 @@
             : $"Scan {expected.LotNo} first. Location: {expected.LocationNo ?? "-"}.";
     }
 
-    private bool CanCompleteRelease => _lines.Count > 0 && _lines.All(line => line.RequestBoxQty > 0 && DisplayPickedBox(line) >= line.RequestBoxQty);
+    private bool CanCompleteRelease => _lines.Count > 0 && _pendingPicks.Count > 0;
 
     private bool CanChooseOutgoingType => CanCompleteRelease || _directLot?.IsValid == true;
     private bool HasReleaseWork => _lines.Count > 0 || _directLot is not null;
@@ -611,20 +904,9 @@
         _scan = null;
         _directLot = null;
         _directQty = 1;
-        _scrollLotNo = null;
-        _scrollLotAfterRender = false;
         _scrollOutgoingTypeAfterRender = false;
         _highlightOutgoingType = false;
     }
-
-    private List<PdaApi.ReleaseFifoLotRow> LotsFor(string itemNo)
-        => _fifoLots.Where(lot => string.Equals(lot.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)).ToList();
-
-    private bool IsScannedLot(string lotNo)
-        => _pendingPicks.Any(pick => string.Equals(pick.LotNo, lotNo, StringComparison.OrdinalIgnoreCase));
-
-    private static string LotElementId(string lotNo)
-        => $"wh07-lot-{string.Concat(lotNo.Select(ch => char.IsLetterOrDigit(ch) ? ch : '-'))}";
 
     private Task ReleaseAsync()
         => _directLot is null ? CompleteReleaseAsync() : CompleteDirectOutgoingAsync();
@@ -640,7 +922,8 @@
                 .Select(pick => new PdaApi.ReleasePickInput(pick.LotNo, pick.Qty))
                 .ToList();
             var response = await Api.WhReleaseCompleteAsync(new PdaApi.ReleaseCompleteReq(
-                _loadedSlipNo, releaseLots, _outgoingType));
+                _loadedSlipNo, releaseLots, _outgoingType,
+                IsTestMode && CurrentTestScenario.No == 18 && _simulateReleaseApiFailure));
             var result = await response.Content.ReadFromJsonAsync<PdaApi.ReleaseCompleteResult>();
             if (response.IsSuccessStatusCode && result?.Success == true)
             {
@@ -653,7 +936,8 @@
                 _fifoLots.Clear();
                 _pendingPicks.Clear();
                 _highlightOutgoingType = false;
-                ShowModal("Release Complete", $"{completedSlip} has been completed.", "ok");
+                await LoadOpenPickingOrdersAsync();
+                ShowModal("BOX Release", $"{completedSlip}\n{result.Message}", "ok");
             }
             else
             {
@@ -715,8 +999,8 @@
     private static string Text(string? value)
         => string.IsNullOrWhiteSpace(value) ? "-" : value;
 
-    private static string QuantityText(decimal quantity, string? unit)
-        => $"{quantity:N0} {Text(unit)}";
+    private string QuantityText(decimal quantity, string? unit)
+        => $"{quantity:N0} {Uom.Symbol(unit)}";
 
     private void ShowModal(string title, string message, string kind, Func<Task>? afterOk = null)
     {

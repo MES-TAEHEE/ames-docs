@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-031 @L["MD.Routing.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-031" TitleKey="MD.Routing.Title" />
@@ -49,7 +50,7 @@
                 <span class="dim">:</span>
                 @for (var i = 0; i < seq.Count; i++)
                 {
-                    <span style="padding:2px 9px;border-radius:10px;background:rgba(148,163,184,.18);font-family:'JetBrains Mono',monospace;font-size:.82em;">@seq[i].ProcessCode</span>
+                    <span style="padding:2px 9px;border-radius:10px;background:rgba(148,163,184,.18);font-family:var(--ames-font-mono);font-size:.82em;">@seq[i].ProcessCode</span>
                     @if (i < seq.Count - 1) { <span class="dim">→</span> }
                 }
             </div>
@@ -87,7 +88,7 @@
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="ProcessCode" Title="@L["Col.Process"]">
                     <Template Context="s">
-                        <span class="code" style="color:#22d3ee;">@s.ProcessCode</span>
+                        <span class="code" style="color:var(--ames-tx-cyan-400);">@s.ProcessCode</span>
                         @{ var pn = ProcLabel(s.ProcessCode); }
                         @if (!string.IsNullOrEmpty(pn) && pn != s.ProcessCode)
                         {
@@ -200,7 +201,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor   = auth.User.Identity?.Name ?? "system";
+        _actor   = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/rp/routing");
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
@@ -268,6 +269,7 @@
 
     async Task Save()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.RoutingType)) { _modalErr = L["Err.RoutingTypeRequired"]; return; }
         if (_f.StepSeq <= 0)                           { _modalErr = L["Err.StepSeqMin1"]; return; }
@@ -286,12 +288,14 @@
                 if (dup) { _modalErr = $"{_f.RoutingType} · Step {_f.StepSeq} {L["Err.Duplicate"]}"; _busy = false; return; }
                 MD.InsertRoutingStep(_f.RoutingType, _f.StepSeq, _f.ProcessCode.Trim().ToUpper(),
                     _f.QcRequired, _f.ActiveFlag, _actor);
+                Audit.Created("MD-031", "MD_RoutingStep", $"{_f.RoutingType}/{_f.StepSeq}", _f);
                 ShowMsg($"{_f.RoutingType} · Step {_f.StepSeq} {L["Msg.Created"]}", false);
             }
             else
             {
                 MD.UpdateRoutingStep(_f.RoutingType, _f.StepSeq, _f.ProcessCode.Trim().ToUpper(),
                     _f.QcRequired, _f.ActiveFlag, _actor);
+                Audit.Updated("MD-031", "MD_RoutingStep", $"{_f.RoutingType}/{_f.StepSeq}", _steps.FirstOrDefault(s => s.RoutingType == _f.RoutingType && s.StepSeq == _f.StepSeq), _f);
                 ShowMsg($"{_f.RoutingType} · Step {_f.StepSeq} {L["Msg.Updated"]}", false);
             }
             LoadSteps(); CloseModal();
@@ -302,10 +306,12 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         _busy = true;
         try
         {
             MD.DeleteRoutingStep(_f.RoutingType, _f.StepSeq);
+            Audit.Deleted("MD-031", "MD_RoutingStep", $"{_f.RoutingType}/{_f.StepSeq}", _steps.FirstOrDefault(s => s.RoutingType == _f.RoutingType && s.StepSeq == _f.StepSeq));
             LoadSteps(); CloseModal();
             ShowMsg($"{_f.RoutingType} · Step {_f.StepSeq} {L["Msg.Deleted"]}", false);
         }

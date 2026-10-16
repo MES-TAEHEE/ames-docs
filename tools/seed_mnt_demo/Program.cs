@@ -97,18 +97,18 @@ internal static class Program
 
         var samples = new (string Type, string Sym, string Urg, string Src, string St, int HoursAgo)[]
         {
-            ("MECHANICAL", "Hydraulic pressure fluctuation",     "HIGH",   "OPERATOR", "OPEN",        2),
-            ("ELECTRICAL", "Servo amp E-stop tripped",            "URGENT", "ANDON",    "IN_PROGRESS", 6),
-            ("TOOLING",    "Mold cooling water low flow",         "MED",    "PLC",      "RESOLVED",   28),
-            ("MECHANICAL", "Clamp cylinder seal leak",            "MED",    "OPERATOR", "OPEN",       10),
-            ("ELECTRICAL", "PLC IO module timeout",               "HIGH",   "PLC",      "IN_PROGRESS",15),
-            ("QUALITY",    "Burn marks on flow front",            "LOW",    "QC",       "OPEN",        3),
-            ("PROCESS",    "Cycle time drift +12 %",              "LOW",    "OPERATOR", "OPEN",       18),
-            ("TOOLING",    "Mold venting blocked",                "MED",    "OPERATOR", "RESOLVED",   45),
-            ("MECHANICAL", "Robot arm calibration drift",         "MED",    "ANDON",    "OPEN",       20),
-            ("ELECTRICAL", "Heater band failure zone 4",          "URGENT", "PLC",      "IN_PROGRESS", 1),
-            ("PROCESS",    "Short shot on cavity 3",              "MED",    "QC",       "OPEN",        8),
-            ("MECHANICAL", "Ejector pin sticking",                "LOW",    "OPERATOR", "RESOLVED",   60),
+            ("MECHANICAL", "Hydraulic pressure fluctuation",     "MAJOR",  "OPERATOR", "OPEN",        2),
+            ("ELECTRICAL", "Servo amp E-stop tripped",            "CRITICAL", "ANDON",    "IN_PROGRESS", 6),
+            ("TOOLING",    "Mold cooling water low flow",         "MINOR",  "PLC",      "RESOLVED",   28),
+            ("MECHANICAL", "Clamp cylinder seal leak",            "MINOR",  "OPERATOR", "OPEN",       10),
+            ("ELECTRICAL", "PLC IO module timeout",               "MAJOR",  "PLC",      "IN_PROGRESS",15),
+            ("QUALITY",    "Burn marks on flow front",            "MINOR",  "QC",       "OPEN",        3),
+            ("PROCESS",    "Cycle time drift +12 %",              "MINOR",  "OPERATOR", "OPEN",       18),
+            ("TOOLING",    "Mold venting blocked",                "MINOR",  "OPERATOR", "RESOLVED",   45),
+            ("MECHANICAL", "Robot arm calibration drift",         "MINOR",  "ANDON",    "OPEN",       20),
+            ("ELECTRICAL", "Heater band failure zone 4",          "CRITICAL", "PLC",      "IN_PROGRESS", 1),
+            ("PROCESS",    "Short shot on cavity 3",              "MINOR",  "QC",       "OPEN",        8),
+            ("MECHANICAL", "Ejector pin sticking",                "MINOR",  "OPERATOR", "RESOLVED",   60),
         };
         int n = 0;
         for (int i = 0; i < samples.Length; i++)
@@ -117,7 +117,7 @@ internal static class Program
             var eq = equips[i % equips.Count];
             Exec(conn, $"""
                 INSERT INTO dbo.MNT_FailureRegister
-                    (FailureNumber, EquipID, FailureType, Symptom, Urgency, Source, Status,
+                    (FailureNumber, EquipID, FailureType, Symptom, Severity, Source, Status,
                      ReportedAt, ResolvedAt, CreatedBy, CreatedTS)
                 VALUES (@N, @E, @T, @Sym, @U, @Sr, @St,
                         DATEADD(HOUR, -{s.HoursAgo}, SYSDATETIME()),
@@ -218,7 +218,7 @@ internal static class Program
             "SELECT TOP 15 EquipID FROM dbo.MD_Equipment WHERE ISNULL(ActiveFlag,1)=1 ORDER BY EquipID");
         if (equips.Count == 0) return;
 
-        var types = new[] { "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "ANNUAL" };
+        var types = new[] { "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "ANNUALLY" };   // 공통코드 PM_TYPE
         var bases = new[] { "TIME",  "TIME",   "CYCLE",   "TIME",      "TIME"   };
         var cycles = new[] { 1,        7,       50_000,    90,           365     };
 
@@ -231,9 +231,9 @@ internal static class Program
             var st  = due < 0 ? "OVERDUE" : (due <= 3 ? "DUE" : "OK");
             Exec(conn, $"""
                 INSERT INTO dbo.MNT_PMSchedule
-                    (PMPlanNumber, EquipID, PMType, CycleBasis, CycleValue,
+                    (PMPlanNumber, EquipID, PMClass, PMType, CycleBasis, CycleValue,
                      LastPMDate, NextDueDate, Status, CreatedBy, CreatedTS)
-                VALUES (@P, @E, @T, @B, {cycles[ti]},
+                VALUES (@P, @E, 'EQUIP', @T, @B, {cycles[ti]},
                         DATEADD(DAY, -{rng.Next(2, 60)}, CAST(SYSDATETIME() AS DATE)),
                         DATEADD(DAY,  {due},             CAST(SYSDATETIME() AS DATE)),
                         @S, 'mnt-seed', SYSDATETIME());
@@ -255,14 +255,14 @@ internal static class Program
 
         var samples = new (string Typ, string Pr, string Src, string St, int HoursAgo, int Lab)[]
         {
-            ("CM",  "HIGH",   "FAILURE", "IN_PROGRESS", 3,  90),
-            ("PM",  "MED",    "PM",      "ISSUED",      6,   0),
-            ("CM",  "URGENT", "ANDON",   "IN_PROGRESS", 2, 120),
-            ("PM",  "LOW",    "PM",      "COMPLETED",  30, 180),
-            ("CM",  "MED",    "FAILURE", "COMPLETED",  48, 240),
-            ("PdM", "LOW",    "MANUAL",  "ISSUED",     12,   0),
-            ("CM",  "HIGH",   "ANDON",   "OPEN",        1,   0),
-            ("PM",  "MED",    "PM",      "COMPLETED",  72, 150),
+            ("CM",  "MAJOR",  "FAILURE", "IN_PROGRESS", 3,  90),
+            ("PM",  "MINOR",  "PM",      "ISSUED",      6,   0),
+            ("CM",  "CRITICAL", "ANDON",   "IN_PROGRESS", 2, 120),
+            ("PM",  "MINOR",  "PM",      "COMPLETED",  30, 180),
+            ("CM",  "MINOR",  "FAILURE", "COMPLETED",  48, 240),
+            ("PdM", "MINOR",  "MANUAL",  "ISSUED",     12,   0),
+            ("CM",  "MAJOR",  "ANDON",   "ISSUED",      1,   0),
+            ("PM",  "MINOR",  "PM",      "COMPLETED",  72, 150),
         };
         int n = 0;
         for (int i = 0; i < samples.Length; i++)
@@ -284,7 +284,7 @@ internal static class Program
                 """,
                 ("@N",  $"MWO-{DateTime.Today:yyMM}-{i + 1:D3}"),
                 ("@T",  s.Typ), ("@E", eq), ("@P", s.Pr), ("@Sr", s.Src), ("@St", s.St),
-                ("@SA", s.St == "ISSUED" || s.St == "OPEN"
+                ("@SA", s.St == "ISSUED"
                     ? DBNull.Value : (object)DateTime.Now.AddHours(-s.HoursAgo + 1)),
                 ("@CA", s.St == "COMPLETED"
                     ? (object)DateTime.Now.AddHours(-s.HoursAgo + 4) : DBNull.Value),
@@ -324,34 +324,54 @@ internal static class Program
     // ── MNT-08 Spare parts master + transactions ────────────────────────
     private static void SeedSpareParts(SqlConnection conn)
     {
-        var parts = new (string No, string Name, string Cat, int Safety, int Reorder, int Lead, decimal Cost, string Loc)[]
+        const string vendorId = "SP-DEMO-V01";
+        Exec(conn, """
+            MERGE dbo.MD_Vendor AS T
+            USING (SELECT @ID AS VendorID) AS S ON T.VendorID = S.VendorID
+            WHEN MATCHED THEN UPDATE SET
+                VendorName = N'Demo Spare Parts Supply', VendorType = 'SUPPLIER',
+                VendorCategory = N'Spare Parts', ActiveFlag = 1,
+                ModifiedBy = N'mnt-seed', ModifiedTS = SYSDATETIME()
+            WHEN NOT MATCHED THEN INSERT
+                (VendorID, VendorName, VendorType, VendorCategory, ActiveFlag, CreatedBy, CreatedTS)
+            VALUES
+                (@ID, N'Demo Spare Parts Supply', 'SUPPLIER', N'Spare Parts', 1, N'mnt-seed', SYSDATETIME());
+            """, ("@ID", vendorId));
+
+        var parts = new (string No, string Name, string Cat, string Maker, int Safety, int Reorder, int Lead, decimal Cost, string Loc)[]
         {
-            ("SP-BRG-6204", "Ball bearing 6204",     "BRG",  20,  30, 14,    8.50m, "WH-MNT-A1"),
-            ("SP-BRG-6206", "Ball bearing 6206",     "BRG",  15,  25, 14,   11.20m, "WH-MNT-A1"),
-            ("SP-SEAL-32",  "Cylinder seal Ø32",     "SEAL", 30,  50,  7,    2.40m, "WH-MNT-A2"),
-            ("SP-SEAL-50",  "Cylinder seal Ø50",     "SEAL", 25,  40,  7,    3.60m, "WH-MNT-A2"),
-            ("SP-FLT-HYD",  "Hydraulic filter",      "FLT",  10,  20, 21,   38.00m, "WH-MNT-B1"),
-            ("SP-FLT-AIR",  "Air filter cart",       "FLT",  12,  18, 14,   18.00m, "WH-MNT-B1"),
-            ("SP-HTR-2KW",  "Heater band 2kW",       "ELE",   8,  12, 28,   54.00m, "WH-MNT-C1"),
-            ("SP-SENS-PT100","Temp sensor PT100",    "ELE",   6,  10, 21,   32.00m, "WH-MNT-C1"),
-            ("SP-MOT-1HP",  "Servo motor 1HP",       "ELE",   2,   3, 45,  680.00m, "WH-MNT-C2"),
-            ("SP-OIL-46",   "Hydraulic oil ISO 46",  "LUB",  50, 100,  3,    4.20m, "WH-MNT-D1"),
-            ("SP-GREASE-EP","Grease EP-2 cart",      "LUB",  20,  35,  3,    6.80m, "WH-MNT-D1"),
-            ("SP-FUSE-25A", "Fuse 25A NH00",         "ELE",  40,  60,  7,    1.20m, "WH-MNT-C3"),
+            ("SP-BRG-6204", "Ball bearing 6204",     "G", "DEMO MOTION",      20,  30, 14,    8.50m, "SP-A1-01"),
+            ("SP-BRG-6206", "Ball bearing 6206",     "G", "DEMO MOTION",      15,  25, 14,   11.20m, "SP-A1-01"),
+            ("SP-SEAL-32",  "Cylinder seal Ø32",     "H", "DEMO MOTION",      30,  50,  7,    2.40m, "SP-A2-01"),
+            ("SP-SEAL-50",  "Cylinder seal Ø50",     "H", "DEMO MOTION",      25,  40,  7,    3.60m, "SP-A2-01"),
+            ("SP-FLT-HYD",  "Hydraulic filter",      "H", "DEMO INDUSTRIAL",  10,  20, 21,   38.00m, "SP-B1-01"),
+            ("SP-FLT-AIR",  "Air filter cart",       "I", "DEMO INDUSTRIAL",  12,  18, 14,   18.00m, "SP-B1-01"),
+            ("SP-HTR-2KW",  "Heater band 2kW",       "C", "DEMO CONTROLS",     8,  12, 28,   54.00m, "SP-C1-01"),
+            ("SP-SENS-PT100","Temp sensor PT100",    "C", "DEMO CONTROLS",     6,  10, 21,   32.00m, "SP-C1-01"),
+            ("SP-MOT-1HP",  "Servo motor 1HP",       "E", "DEMO CONTROLS",     2,   3, 45,  680.00m, "SP-C2-01"),
+            ("SP-OIL-46",   "Hydraulic oil ISO 46",  "H", "DEMO INDUSTRIAL",  50, 100,  3,    4.20m, "SP-D1-01"),
+            ("SP-GREASE-EP","Grease EP-2 cart",      "K", "DEMO INDUSTRIAL",  20,  35,  3,    6.80m, "SP-D1-01"),
+            ("SP-FUSE-25A", "Fuse 25A NH00",         "C", "DEMO CONTROLS",    40,  60,  7,    1.20m, "SP-C3-01"),
         };
+        // SparePartNo = EOS-SP-{분류}{적용설비}-{yy}{순번4} — 시연 부품은 적용설비 9(기타), 분류별 순번
+        var spSeq = new Dictionary<string, int>();
         foreach (var p in parts)
         {
+            var pfx = $"EOS-SP-{p.Cat}9-{DateTime.Today:yy}";
+            spSeq[pfx] = spSeq.GetValueOrDefault(pfx) + 1;
+            var location = p.Loc.Split('-');
             Exec(conn, """
                 INSERT INTO dbo.MD_SparePart
-                    (PartNo, PartName, Category, UnitCost, UOM,
+                    (SparePartNo, PartNo, PartName, Category, ApplicableEquip, Maker, UnitCost, UOM,
                      SafetyStock, ReorderPoint, ReorderQty, LeadTimeDays,
-                     StorageLoc, ActiveFlag, CreatedBy, CreatedTS)
-                VALUES (@N, @Nm, @C, @UC, 'EA',
-                        @SS, @RP, @RQ, @LT, @SL, 1, 'mnt-seed', SYSDATETIME());
+                     SupplierID, ZoneCode, Slot, ActiveFlag, CreatedBy, CreatedTS)
+                VALUES (@SP, @N, @Nm, @C, '9', @MK, @UC, 'EA',
+                        @SS, @RP, @RQ, @LT, @VI, @ZN, @SL, 1, 'mnt-seed', SYSDATETIME());
                 """,
-                ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat), ("@UC", p.Cost),
+                ("@SP", pfx + spSeq[pfx].ToString("D4")),
+                ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat), ("@MK", p.Maker), ("@UC", p.Cost),
                 ("@SS", p.Safety), ("@RP", p.Reorder), ("@RQ", p.Reorder * 2),
-                ("@LT", p.Lead), ("@SL", p.Loc));
+                ("@LT", p.Lead), ("@VI", vendorId), ("@ZN", $"SP_{location[1]}"), ("@SL", location[2]));
         }
 
         // initial stock + a couple of issue transactions per part
@@ -361,16 +381,16 @@ internal static class Program
         {
             var open = p.Reorder + rng.Next(-5, 30);   // some below RP
             // initial receipt
+            // 이력은 SparePartNo 로 연결, 처리 전/후 재고 스냅샷만 (부품명·분류·위치는 마스터에)
             Exec(conn, """
                 INSERT INTO dbo.MNT_SparePartsTxn
-                    (PartNo, PartName, Category, MoveType, Qty, BalanceAfter, UnitPrice,
-                     StorageLoc, RefType, RefID, TxnAt, Note, CreatedBy, CreatedTS)
-                VALUES (@N, @Nm, @C, 'IN', @Q, @Q, @UC, @SL, 'PO', @REF,
-                        DATEADD(DAY, -30, SYSDATETIME()), 'opening receipt',
-                        'mnt-seed', SYSDATETIME());
+                    (SparePartNo, MoveType, Qty, BalanceBefore, BalanceAfter,
+                     RefType, RefID, TxnAt, Note, CreatedBy, CreatedTS)
+                SELECT SparePartNo, 'IN', @Q, 0, @Q, 'PO', @REF,
+                       DATEADD(DAY, -30, SYSDATETIME()), 'opening receipt', 'mnt-seed', SYSDATETIME()
+                FROM   dbo.MD_SparePart WHERE PartNo = @N;
                 """,
-                ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat),
-                ("@Q", open + 30), ("@UC", p.Cost), ("@SL", p.Loc),
+                ("@N", p.No), ("@Q", open + 30),
                 ("@REF", $"PO-2026-{rng.Next(100, 999)}"));
             tx++;
 
@@ -379,22 +399,23 @@ internal static class Program
             for (int i = 0; i < 2; i++)
             {
                 var q = rng.Next(2, 15);
+                var before = bal;
                 bal -= q;
                 Exec(conn, """
                     INSERT INTO dbo.MNT_SparePartsTxn
-                        (PartNo, PartName, Category, MoveType, Qty, BalanceAfter, UnitPrice,
-                         StorageLoc, RefType, RefID, TxnAt, Note, CreatedBy, CreatedTS)
-                    VALUES (@N, @Nm, @C, 'OUT', @Q, @B, @UC, @SL, 'MWO', @REF,
-                            DATEADD(HOUR, -@H, SYSDATETIME()), 'issued to MWO',
-                            'mnt-seed', SYSDATETIME());
+                        (SparePartNo, MoveType, Qty, BalanceBefore, BalanceAfter,
+                         RefType, RefID, TxnAt, Note, CreatedBy, CreatedTS)
+                    SELECT SparePartNo, 'OUT', @Q, @BB, @B, 'MWO', @REF,
+                           DATEADD(HOUR, -@H, SYSDATETIME()), 'issued to MWO', 'mnt-seed', SYSDATETIME()
+                    FROM   dbo.MD_SparePart WHERE PartNo = @N;
                     """,
-                    ("@N", p.No), ("@Nm", p.Name), ("@C", p.Cat),
-                    ("@Q", q), ("@B", bal), ("@UC", p.Cost),
-                    ("@SL", p.Loc),
+                    ("@N", p.No), ("@Q", q), ("@BB", before), ("@B", bal),
                     ("@REF", $"MWO-{DateTime.Today:yyMM}-{rng.Next(1, 8):D3}"),
                     ("@H", rng.Next(1, 120)));
                 tx++;
             }
+            // 마스터 현재고 = 마지막 잔량
+            Exec(conn, "UPDATE dbo.MD_SparePart SET OnHandQty = @B WHERE PartNo = @N;", ("@N", p.No), ("@B", bal));
         }
         Console.WriteLine($"  sp    {parts.Length} spare parts + {tx} stock txns");
     }

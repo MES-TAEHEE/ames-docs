@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-016 @L["MD.Jig.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-016" TitleKey="MD.Jig.Title" />
@@ -66,24 +67,28 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.JigRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Jig.Empty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Jig.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="JigID" Title="@L["Col.JigId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.JigID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="JigName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.JigName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HangerCount" Title="@L["Col.HangerCount"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HangerCount" Title="@L["Col.HangerCount"]" TextAlign="TextAlign.Right" Width="130px">
                 <Template Context="r">@(r.HangerCount?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="RatedCycle" Title="@L["Col.RatedCycle"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="RatedCycle" Title="@L["Col.RatedCycle"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.RatedCycle?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="CycleCount" Title="@L["Col.ShotsCurrent"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="CycleCount" Title="@L["Col.ShotsCurrent"]" TextAlign="TextAlign.Right" Width="160px">
                 <Template Context="r">@(r.CycleCount?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Title="@L["Col.UsagePct"]" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Title="@L["Col.UsagePct"]" TextAlign="TextAlign.Center" Width="90px" Sortable="false">
                 <Template Context="r">
                     @{
                         var pct    = r.RatedCycle is > 0 && r.CycleCount.HasValue ? (double)r.CycleCount.Value / r.RatedCycle.Value * 100 : (double?)null;
@@ -93,10 +98,10 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ReadFailRate" Title="@L["Col.ReadFailRate"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ReadFailRate" Title="@L["Col.ReadFailRate"]" TextAlign="TextAlign.Right" Width="190px">
                 <Template Context="r">@(r.ReadFailRate?.ToString("F2") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HealthStatus" Title="@L["Col.Health"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="HealthStatus" Title="@L["Col.Health"]" TextAlign="TextAlign.Center" Width="180px">
                 <Template Context="r">
                     @{
                         var hCss = r.HealthStatus switch { "OK" => "ok", "WARN" => "warn", "FAIL" => "bad", _ => "" };
@@ -105,7 +110,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="LastServiceDate" Title="@L["Col.LastMaint"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="LastServiceDate" Title="@L["Col.LastMaint"]" Width="140px">
                 <Template Context="r"><span class="dim">@(r.LastServiceDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.JigRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
@@ -164,7 +169,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LastService"]" />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -227,7 +232,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LastService"]" />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_f.LastServiceDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -261,8 +266,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.JigRow> _allRows = new();
     List<MasterDataRepository.JigRow> _rows    = new();
     MasterDataRepository.JigRow? _sel;
@@ -292,7 +298,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/re/jig");
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
@@ -370,6 +376,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.JigID))  { _modalErr = L["Err.JigIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.JigName)) { _modalErr = L["Err.NameRequired"]; return; }
@@ -380,6 +387,7 @@
             MD.InsertJig(_f.JigID.Trim(), _f.JigName, _f.HangerCount,
                 _f.RatedCycle, _f.CycleCount, _f.ReadFailRate,
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
+            Audit.Created("MD-016", "MD_Jig", _f.JigID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.JigName} {L["Msg.Created"]}", false);
         }
@@ -389,6 +397,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.JigName)) { _modalErr = L["Err.NameRequired"]; return; }
@@ -398,6 +407,7 @@
             MD.UpdateJig(_sel.JigID, _f.JigName, _f.HangerCount,
                 _f.RatedCycle, _f.CycleCount, _f.ReadFailRate,
                 NE(_f.HealthStatus), _f.LastServiceDate, _f.ActiveFlag, _actor);
+            Audit.Updated("MD-016", "MD_Jig", _sel.JigID, _sel, _f);
             var name = _f.JigName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -408,12 +418,14 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var name = _sel.JigName ?? _sel.JigID;
             MD.DeleteJig(_sel.JigID);
+            Audit.Deleted("MD-016", "MD_Jig", _sel.JigID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

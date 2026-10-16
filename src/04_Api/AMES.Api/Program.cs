@@ -1,8 +1,14 @@
 using AMES.Api.Auth;
 using AMES.Api.Endpoints;
+using AMES.Api.Workers.DemandPlanSync;
+using AMES.Api.Workers.PoSync;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using AMES.Data.Services;
+using AMES.Data.Services.DemandPlan;
+using AMES.Data.Services.PoSync;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,62 +18,132 @@ var cs = builder.Configuration.GetConnectionString("AMES")
 var factory = new AmesConnectionFactory(cs);
 builder.Services.AddSingleton(factory);
 builder.Services.AddSingleton(new AuthRepository(factory));
+builder.Services.AddSingleton(new WorkerRepository(factory));
 builder.Services.AddSingleton(new PopSessionRepository(factory));
 builder.Services.AddSingleton(sp => new PopAuthService(
     sp.GetRequiredService<AuthRepository>(),
-    sp.GetRequiredService<PopSessionRepository>()));
+    sp.GetRequiredService<WorkerRepository>(),
+    sp.GetRequiredService<PopSessionRepository>(), builder.Environment.IsDevelopment()));
+builder.Services.AddHttpClient();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+});
+
+// ── 외부 API 연동 Worker (Workers/ScheduledWorker 상속, API 마다 하나) ────
+// PO sync — 고객사 SRM 구매오더 자동 수집
+builder.Services.AddHttpClient(HttpPoSource.ClientName);
+builder.Services.AddSingleton<IPoSource>(sp => new HttpPoSource(
+    sp.GetRequiredService<IHttpClientFactory>(),
+    sp.GetRequiredService<IConfiguration>()));
+builder.Services.AddSingleton<PoSyncWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<PoSyncWorker>());
+builder.Services.AddHostedService<AMES.Api.Workers.LineReplenishmentWorker>();
+
+// Demand plan sync — 고객사 SRM 일별 구매계획(MM30011) 자동 수집
+builder.Services.AddHttpClient(HttpDemandPlanSource.ClientName);
+builder.Services.AddSingleton<IDemandPlanSource>(sp => new HttpDemandPlanSource(
+    sp.GetRequiredService<IHttpClientFactory>(),
+    sp.GetRequiredService<IConfiguration>()));
+builder.Services.AddSingleton<DemandPlanSyncWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DemandPlanSyncWorker>());
 
 // ── Auth token registry ─────────────────────────────────────────────────
-var tokens = new TokenStore();
+var tokens = new TokenStore(() => DbClock.ReadNow(factory), persistence: new SqlTokenPersistence(factory));
 builder.Services.AddSingleton(tokens);
+builder.Services.AddHostedService<AMES.Api.Workers.SessionCleanupWorker>();
 
-// ── CORS — PDA clients come from arbitrary devices on the LAN ───────────
+// Native PDA clients do not need CORS. Browser origins are explicitly configured.
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
-    p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+{
+    var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+    if (origins.Length > 0) p.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
+}));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "AMES API", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
+    {
+        Title = "AMES API",
+        Version = "v1",
+        Description = "PDA, Tablet, authentication and shared AMES endpoints. Sign in with POST /api/auth/login, then enter the returned token in Authorize."
+    });
+    // 엔드포인트 파일마다 같은 이름의 중첩 요청 레코드(예: Wh/Fg 의 AdjustSaveReq)가 있어
+    // 기본 schemaId(타입 단순명)로는 충돌해 swagger.json 이 500 을 낸다 — 선언 타입까지 포함한 이름을 쓴다.
+    c.CustomSchemaIds(SwaggerSchemaId);
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.OpenApiSecurityScheme
     {
         Name        = "Authorization",
-        Type        = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Type        = Microsoft.OpenApi.SecuritySchemeType.Http,
         Scheme      = "bearer",
         Description = "POST /api/auth/login 으로 발급받은 토큰을 입력하세요."
     });
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    c.AddSecurityRequirement(document => new Microsoft.OpenApi.OpenApiSecurityRequirement
     {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id   = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
+        [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
 
 var app = builder.Build();
 
 app.UseCors();
+app.UseRateLimiter();
+app.Use(async (ctx, next) =>
+{
+    var invalid = HttpMethods.IsGet(ctx.Request.Method) && ctx.Request.Path.StartsWithSegments("/api")
+        ? NumericQueryGuard.InvalidParameter(ctx.Request.Query) : null;
+    if (invalid is not null)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await ctx.Response.WriteAsJsonAsync(new { error = $"Invalid query parameter: {invalid}" });
+        return;
+    }
+    await next();
+});
 app.UseBearerAuth(tokens);
 
+// 운영은 꺼 둔다. 개발서버는 Production 으로 돌지만 게시 패키지의 web.config 가 Swagger__Enabled=true 를 넣는다(publish-api.ps1)
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
+{
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AMES API v1");
+    c.RoutePrefix = "swagger";
+    c.EnablePersistAuthorization();
+    c.DisplayRequestDuration();
+});
+}
 
 // ── Endpoints ───────────────────────────────────────────────────────────
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.UtcNow }));
-app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens);
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DbClock.ReadNow(factory) }));
+app.MapGet("/api/time", () => Results.Ok(DbClock.ReadNow(factory)))
+    .WithTags("Shared").WithSummary("Current database local time for PDA dates and elapsed-day displays");
+app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens, app.Services.GetRequiredService<PopSessionRepository>());
 app.MapWh(factory);
 app.MapFg(factory);
+app.MapTablet(factory);
 app.MapPp(factory);
 app.MapMnt(factory);
 app.MapRpt(factory);
 app.MapSys(factory);
 
 app.Run();
+
+// Swagger schemaId: 중첩 레코드는 선언 타입까지, 제너릭은 인자 이름까지 포함해 유일하게 만든다.
+static string SwaggerSchemaId(Type t)
+{
+    if (t.IsGenericType)
+    {
+        var bare = t.Name[..t.Name.IndexOf('`')];
+        return bare + "Of" + string.Join("And", t.GetGenericArguments().Select(SwaggerSchemaId));
+    }
+    return (t.FullName ?? t.Name)
+        .Replace("AMES.Api.Endpoints.", "")
+        .Replace("AMES.Contracts.Dto.", "")
+        .Replace('+', '.');
+}

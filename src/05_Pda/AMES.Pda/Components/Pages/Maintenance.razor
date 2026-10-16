@@ -1,0 +1,331 @@
+@page "/mnt/schedules"
+@page "/mnt/work-orders"
+@inject MaintenanceApi Api
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+<div class="pda-shell wh wh08-shell mnt">
+    <div class="pda-tbar" inert="@alertOpen">
+        <RadzenButton class="pda-tbar-back" Click="Back" Disabled="@busy" Text="&lt;" aria-label="Back" />
+        <span class="pda-tbar-brand">@(detail is not null ? "PM WORK ORDER" : IsSchedule ? "PM SCHEDULE" : "WORK ORDERS")</span>
+        <div class="wh08-tbar-actions"><RadzenButton class="wh08-refresh" Click="Refresh" Disabled="@busy" Text="REFRESH" /></div>
+    </div>
+    <div class="pda-bd mnt-body" inert="@alertOpen">
+    @if (!string.IsNullOrEmpty(error)) { <div class="notice error" role="alert">@error</div> }
+    @if (!string.IsNullOrEmpty(message)) { <div class="notice success" role="status">@message</div> }
+    @if (board is null)
+    {
+        <p class="empty">@(busy ? "Loading maintenance…" : "No maintenance data.")</p>
+    }
+    else if (detail is null)
+    {
+        @if (IsSchedule)
+        {
+            <div class="schedule-tabs" role="tablist" aria-label="PM schedule type">
+                <button id="mnt-equip-tab" role="tab" aria-selected="@(scheduleClass == "EQUIP")" aria-controls="mnt-schedule-panel" class="@(scheduleClass == "EQUIP" ? "selected" : "")" disabled="@(busy || !board.Access.CanReadEquip)" @onclick='() => SelectScheduleClass("EQUIP")'>Equipment PM <span>@board.Schedules.Count(p => p.PmClass == "EQUIP")</span></button>
+                <button id="mnt-maint-tab" role="tab" aria-selected="@(scheduleClass == "MAINT")" aria-controls="mnt-schedule-panel" class="@(scheduleClass == "MAINT" ? "selected" : "")" disabled="@(busy || !board.Access.CanReadMaint)" @onclick='() => SelectScheduleClass("MAINT")'>Maintenance PM <span>@board.Schedules.Count(p => p.PmClass == "MAINT")</span></button>
+            </div>
+        }
+        <div class="wh08-date-filter mnt-filter">
+            <PdaFilterPanel Title="DUE DATE" ActiveCount="ActiveFilterCount" @bind-Open="filtersOpen">
+                <div class="mnt-filter-fields">
+                    @if (IsSchedule)
+                    {
+                        <div class="pda-fld"><label for="mnt-filter-type">TYPE</label><RadzenDropDown id="mnt-filter-type" TValue="string" @bind-Value="filterType" Data="TypeChoices" TextProperty="Text" ValueProperty="Value" Disabled="@busy" class="pda-filter-select" PopupStyle="z-index: 2100; max-height: 260px" /></div>
+                    }
+                    <div class="mnt-filter-row @(IsSchedule ? "paired" : "")">
+                        <div class="pda-fld"><label for="mnt-filter-status">STATUS</label><RadzenDropDown id="mnt-filter-status" TValue="string" @bind-Value="filterStatus" Data="StatusChoices" TextProperty="Text" ValueProperty="Value" Disabled="@busy" class="pda-filter-select" PopupStyle="z-index: 2100; max-height: 260px" /></div>
+                        @if (IsSchedule)
+                        {
+                            <div class="pda-fld"><label for="mnt-filter-basis">BASIS</label><RadzenDropDown id="mnt-filter-basis" TValue="string" @bind-Value="filterBasis" Data="BasisChoices" TextProperty="Text" ValueProperty="Value" Disabled="@busy" class="pda-filter-select" PopupStyle="z-index: 2100; max-height: 260px" /></div>
+                        }
+                    </div>
+                </div>
+                <div class="filters">
+                    <label><input id="mnt-filter-assignment" type="checkbox" @bind="onlyMine" disabled="@busy" /> My work only</label>
+                    @if (!IsSchedule) { <label><input type="checkbox" @bind="closed" @bind:after="ClosedChanged" disabled="@busy" /> Include completed</label> }
+                </div>
+                <button disabled="@busy" @onclick="ClearFilters">CLEAR FILTERS</button>
+            </PdaFilterPanel>
+            <div class="wh08-filter-date">
+                <div class="pda-fld"><label>FROM</label><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="from" DateFormat="yyyy-MM-dd" AllowClear="false" Max="@to" class="wh08-date-picker" /></div>
+                <div class="pda-fld"><label>TO</label><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="to" DateFormat="yyyy-MM-dd" AllowClear="false" Min="@from" class="wh08-date-picker" /></div>
+            </div>
+            <RadzenButton class="wh08-date-apply" Click="Load" Disabled="@busy" Text="APPLY" />
+            <p class="hint">Includes overdue work.</p>
+        </div>
+        @if (IsSchedule)
+        {
+            <div class="list-head"><h2>@(scheduleClass == "EQUIP" ? "Equipment schedules" : "Maintenance schedules") <span>@FilteredSchedules.Count() / @ClassSchedules.Count()</span></h2></div>
+            <div class="mnt-list" id="mnt-schedule-panel" role="tabpanel" aria-labelledby="@(scheduleClass == "EQUIP" ? "mnt-equip-tab" : "mnt-maint-tab")">
+            @foreach (var p in FilteredSchedules)
+            {
+                <section class="card" @key="p.Id">
+                    <div class="title"><strong>@p.Number</strong><span class="badge @p.Status.ToLowerInvariant()">@p.Status</span></div>
+                    <h3>@p.EquipName</h3><p>@p.EquipId · @p.PmClass · @p.PmType</p>
+                    <div class="facts"><span>Due <b>@Date(p.DueDate)</b></span><span>@p.CycleValue @(p.CycleBasis == "TIME" ? "days" : "cycles")</span></div>
+                    <div class="actions">
+                        @if (p.WorkOrderId is int id && board.Access.CanReadWork) { <button disabled="@busy" @onclick="() => OpenWork(id)">Open work order</button> }
+
+                    </div>
+                </section>
+            }
+            </div>
+            @if (!FilteredSchedules.Any()) { <p class="empty">No schedules match the selected filters.</p> }
+        }
+        else
+        {
+            <div class="list-head"><h2>Work orders <span>@FilteredWorks.Count() / @board.WorkOrders.Count</span></h2></div>
+            <div class="mnt-list">
+            @foreach (var w in FilteredWorks)
+            {
+                <button class="card work" disabled="@busy" @onclick="() => OpenWork(w.Id)" @key="w.Id">
+                    <div class="title"><strong>@w.Number</strong><span class="badge">@Status(w.Status)</span></div>
+                    <h3>@(w.EquipName ?? w.EquipId)</h3><p>@w.EquipId · Due @Date(w.DueDate)</p>
+                    <progress value="@w.TaskDone" max="@Math.Max(1, w.TaskCount)"></progress>
+                    <div class="facts"><span>@w.TaskDone / @w.TaskCount checks</span><span class="@(w.TaskFail > 0 ? "failed" : "")">@(w.TaskFail > 0 ? $"{w.TaskFail} failed" : "View steps ›")</span></div>
+                </button>
+            }
+            </div>
+            @if (!FilteredWorks.Any()) { <p class="empty">No work orders match the selected filters.</p> }
+        }
+    }
+    else
+    {
+        var w = detail.Work;
+        <section class="card summary">
+            <div class="title"><strong>@w.Number</strong><span class="badge">@Status(w.Status)</span></div>
+            <h3>@(w.EquipName ?? w.EquipId)</h3><p>@w.EquipId · Due @Date(w.DueDate)</p><p>@w.Description</p>
+            <progress value="@w.TaskDone" max="@Math.Max(1,w.TaskCount)"></progress>
+            <div class="facts"><b>@w.TaskDone / @w.TaskCount checks</b><span class="failed">@(w.TaskFail > 0 ? $"{w.TaskFail} failed" : "")</span></div>
+        </section>
+        @if (w.Status is "ISSUED" or "ASSIGNED")
+        {
+            @if (w.RequiresLoto) { <label class="loto"><input type="checkbox" @bind="loto" /> Lockout / tagout completed</label> }
+            @if (w.TaskCount == 0) { <div class="notice error">No check steps. Ask an administrator to set the PM template on the web.</div> }
+            <button class="primary wide" disabled="@(busy || !CanAct || w.TaskCount == 0 || (w.RequiresLoto && !loto))" @onclick="Start">Start work</button>
+        }
+        @if (!CanOwn) { <div class="notice readonly" role="status">@ReadOnlyNotice</div> }
+        <h2>Check steps · @detail.Tasks.Count(Done) / @detail.Tasks.Count saved</h2>
+        <div class="steps">
+            @foreach (var t in detail.Tasks)
+            {
+                var state = MaintenanceChecks.StepState(detail.Tasks, t);
+                <button class="step @state @(t.Result == "FAIL" ? "failed" : "") @(current?.Id == t.Id ? "viewing" : "")" disabled="@(busy || state == "upcoming")" aria-current="@(state == "active" ? "step" : null)" @onclick="() => SelectTask(t)">
+                    <span class="step-no">@(Done(t) ? "✓ " : "")@(t.Sequence?.ToString() ?? "–")</span><span class="step-name">@t.Name</span><span class="result @t.Result?.ToLowerInvariant()">@(Done(t) ? $"Saved · {t.Result}" : state == "upcoming" ? "Not yet" : "Current")</span>
+                </button>
+            }
+        </div>
+        @if (current is { } task)
+        {
+            <section class="card check" @ref="checkPanel" tabindex="-1">
+                <span class="eyebrow">STEP @task.Sequence</span><h3>@task.Name</h3>
+                @if (!string.IsNullOrWhiteSpace(task.Criteria)) { <p class="criteria">@task.Criteria</p> }
+                @if (!string.IsNullOrEmpty(task.SparePartNo)) { <p>Required part: <b>@task.SparePartNo</b> · @task.PartName × @task.RequiredQty</p> }
+                @if (task.DurationMin > 0) { <p class="hint">Standard time: @task.DurationMin min</p> }
+                <fieldset disabled="@(busy || !CanCheck || PendingBefore(task))">
+                    <div class="results">
+                        @foreach (var r in new[] { "PASS", "FAIL", "NA" })
+                        { <button class="@(result == r ? "chosen " + r.ToLowerInvariant() : "")" aria-pressed="@(result == r)" @onclick="() => SelectResult(r)">@(r == "NA" ? "N/A" : r)</button> }
+                    </div>
+                    <label class="note-field @(noteRequired ? "invalid" : "")" for="mnt-check-note">
+                        <span>Note @(result == "FAIL" ? "(required)" : "")</span>
+                        <textarea id="mnt-check-note" @ref="noteInput" maxlength="500" rows="3" @bind="note" @bind:event="oninput" @bind:after="NoteChanged" aria-invalid="@(noteRequired ? "true" : "false")" aria-describedby="@(noteRequired ? "mnt-note-error" : null)" placeholder="Observation or failed-check reason"></textarea>
+                        @if (noteRequired) { <span id="mnt-note-error" role="alert">Please enter a failure reason.</span> }
+                    </label>
+                    <button class="primary wide" disabled="@(result is not ("PASS" or "FAIL" or "NA"))" @onclick="SaveTask">Save &amp; next</button>
+                </fieldset>
+                @if (Done(task)) { <p class="hint">Saved by @task.CompletedBy · @task.CompletedAt?.ToString("yyyy-MM-dd HH:mm")</p> }
+                @if (PendingBefore(task)) { <p class="hint">Complete the preceding steps first.</p> }
+            </section>
+        }
+        @if (w.Status == "IN_PROGRESS")
+        {
+            <button class="wide review-button @(CanReview ? "ready" : "waiting")" @ref="reviewButton" disabled="@(!CanReview)" aria-describedby="mnt-review-hint" @onclick="Review">Review &amp; complete</button>
+            <p class="hint" id="mnt-review-hint">@(AllChecksSaved ? "All steps saved. Review the results to complete this work order." : "Complete and save every step to continue.")</p>
+        }
+    }
+    </div>
+    @if (alertOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="CloseAlert">
+            <RadzenCard class="wh-modal-card warn" role="alertdialog" aria-modal="true" aria-labelledby="mnt-alert-title" aria-describedby="mnt-alert-message" @onclick:stopPropagation="true">
+                <div @ref="alertPanel" tabindex="-1" @onkeydown="AlertKeyDown">
+                    <div class="wh-modal-mark">!</div>
+                    <div class="wh-modal-title" id="mnt-alert-title">@alertTitle</div>
+                    <div class="wh-modal-message" id="mnt-alert-message">@alertMessage</div>
+                    <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseAlert" Text="OK" /></div>
+                </div>
+            </RadzenCard>
+        </div>
+    }
+</div>
+
+@if (reviewOpen && detail is not null)
+{
+    <div class="overlay"><section class="dialog" role="dialog" aria-modal="true" aria-label="Complete work order">
+        <div class="title"><h2>Complete work order</h2><button disabled="@busy" @onclick="() => reviewOpen = false" aria-label="Close">×</button></div>
+        @if (error is not null) { <div class="notice error" role="alert">@error</div> }
+        <p>@detail.Work.Number</p>
+        <div class="review-count"><b>@detail.Tasks.Count(t => t.Result == "PASS") Pass</b><b>@detail.Tasks.Count(t => t.Result == "FAIL") Fail</b><b>@detail.Tasks.Count(t => !Done(t)) Pending</b></div>
+        <fieldset disabled="@busy">
+            <label>Result<RadzenDropDown TValue="string" @bind-Value="completionResult" Data="CompletionChoices" TextProperty="Text" ValueProperty="Value" Disabled="@busy" class="pda-filter-select" PopupStyle="z-index: 2100; max-height: 260px" /></label>
+            <label>Work performed<textarea rows="3" maxlength="1000" @bind="action"></textarea></label>
+            <label>Root cause (optional)<textarea rows="2" maxlength="1000" @bind="rootCause"></textarea></label>
+            <label>Labor minutes<input type="number" min="0" step="1" @bind="labor" /></label>
+            @if (detail.Work.NeedsNextDue) { <div class="pda-fld"><label>NEXT DUE DATE</label><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="nextDue" DateFormat="yyyy-MM-dd" AllowClear="false" class="mnt-date-picker" /></div> }
+            <p class="hint">Failed checks generate a corrective follow-up. Completion advances the PM schedule.</p>
+            <button class="primary wide" @onclick="Complete">Confirm completion</button>
+        </fieldset>
+    </section></div>
+}
+
+@code {
+    private PdaMntBoard? board;
+    private PdaMntDetail? detail;
+    private PdaMntTask? current;
+    private string result = "", note = "", scheduleClass = "EQUIP";
+    private string filterType = "", filterBasis = "", filterStatus = "";
+    private bool onlyMine;
+    private IEnumerable<PdaMntSchedule> ClassSchedules => board?.Schedules.Where(p => p.PmClass == scheduleClass) ?? [];
+    private IEnumerable<PdaMntSchedule> FilteredSchedules => board is null ? [] : ClassSchedules.Where(p =>
+        MaintenanceChecks.MatchesSchedule(p, board.Access, filterType, filterBasis, filterStatus, onlyMine));
+    private IEnumerable<PdaMntWork> FilteredWorks => board is null ? [] : board.WorkOrders.Where(w =>
+        MaintenanceChecks.MatchesValue(w.Status, filterStatus)
+        && MaintenanceChecks.MatchesAssignment(board.Access, w.TechId, onlyMine));
+    private int ActiveFilterCount => new[] { filterType, filterBasis, filterStatus }.Count(v => v != "") + (onlyMine ? 1 : 0) + (closed ? 1 : 0);
+    private IEnumerable<PdaSelectOption> TypeChoices => new[] { new PdaSelectOption("", "All types") }
+        .Concat(FilterOptions(ClassSchedules.Select(p => p.PmType)).Select(v => new PdaSelectOption(v, v)));
+    private IEnumerable<PdaSelectOption> StatusChoices => new[] { new PdaSelectOption("", "All statuses") }
+        .Concat(MaintenanceChecks.StatusOptions(IsSchedule, closed).Select(v => new PdaSelectOption(v, Status(v))));
+    private static readonly PdaSelectOption[] BasisChoices = [new("", "All bases"), new("TIME", "Time (days)"), new("CYCLE", "Cycle"), new("__NONE", "Not set")];
+    private IEnumerable<PdaSelectOption> CompletionChoices => (detail?.Tasks.All(t => Done(t) && t.Result != "FAIL") == true
+        ? new[] { new PdaSelectOption("OK", "Completed — OK") } : [])
+        .Concat(new PdaSelectOption[] { new("PARTIAL", "Partial work"), new("FOLLOWUP", "Follow-up required") });
+    private static IEnumerable<string> FilterOptions(IEnumerable<string?> values)
+        => values.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v!).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(v => v, StringComparer.OrdinalIgnoreCase);
+    private bool IsSchedule => new Uri(Nav.Uri).AbsolutePath.EndsWith("/schedules", StringComparison.OrdinalIgnoreCase);
+    private string completionResult = "OK", action = "", rootCause = "";
+    private string? error, message, alertTitle, alertMessage;
+    private bool busy, closed, loto, reviewOpen, noteRequired, focusNext, alertOpen, focusAlert, focusNote, filtersOpen;
+    private ElementReference noteInput, checkPanel, reviewButton, alertPanel;
+    private DateTime from, to;
+    private DateTime? nextDue;
+    private int? labor;
+    private bool CanOwn => detail is not null && board?.Access.IsAssignedTo(detail.Work.TechId) == true;
+    private string ReadOnlyNotice => string.IsNullOrWhiteSpace(detail?.Work.TechId)
+        ? "This work order is unassigned. You can view it, but cannot start, check or complete it. Ask an administrator to assign a technician on the web."
+        : "This work order is not assigned to you. You can view it, but cannot start, check or complete it.";
+    private string ReadOnlyTitle => string.IsNullOrWhiteSpace(detail?.Work.TechId)
+        ? "Work Order Not Assigned" : "Not Your Work Order";
+    private bool CanAct => board?.Access.CanAct == true && CanOwn;
+    private bool CanCheck => board?.Access.CanEdit == true && CanOwn && detail?.Work.Status == "IN_PROGRESS";
+    private bool AllChecksSaved => detail is not null && MaintenanceChecks.AllSaved(detail.Tasks);
+    private bool CanReview => !busy && CanAct && detail?.Work.Status == "IN_PROGRESS" && AllChecksSaved;
+    private static string Date(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "–";
+    private static string Status(string? s) => s?.Replace('_', ' ') ?? "–";
+    private static bool Done(PdaMntTask t) => MaintenanceChecks.IsSaved(t);
+    private bool PendingBefore(PdaMntTask task) => detail?.Tasks.TakeWhile(t => t.Id != task.Id).Any(t => !Done(t)) == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Auth.Session is null) { Nav.NavigateTo("/login", replace: true); return; }
+        await Load();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (alertOpen)
+        {
+            if (focusAlert) { focusAlert = false; await alertPanel.FocusAsync(); }
+            return;
+        }
+        if (focusNote) { focusNote = false; await noteInput.FocusAsync(); return; }
+        if (!focusNext || detail is null || busy) return;
+        focusNext = false;
+        if (CanReview) await reviewButton.FocusAsync();
+        else if (current is not null) await checkPanel.FocusAsync();
+    }
+    private async Task Run(Func<Task> work)
+    {
+        if (busy) return;
+        busy = true; error = null;
+        try { await work(); }
+        catch (Exception ex) { error = ex is InvalidOperationException ? ex.Message : "Maintenance could not complete the request. Refresh before retrying."; }
+        finally { busy = false; }
+    }
+    private Task Load() => Run(async () =>
+    {
+        var initial = board is null;
+        board = await Api.Board(initial ? null : from, initial ? null : to, false, closed);
+        if (initial)
+        {
+            from = board.Today; to = board.Today.AddDays(board.LeadDays);
+            if (!board.Access.CanReadEquip && board.Access.CanReadMaint) scheduleClass = "MAINT";
+        }
+    });
+    private void ClearFilters() { filterType = ""; filterBasis = ""; filterStatus = ""; onlyMine = false; }
+    private void SelectScheduleClass(string value)
+    {
+        scheduleClass = value; filterType = ""; filterBasis = ""; filterStatus = "";
+    }
+    private async Task ClosedChanged() { filterStatus = ""; await Load(); }
+    private Task Refresh() => detail is null ? Load() : OpenWork(detail.Work.Id, showNotice: false);
+    private async Task Back()
+    {
+        if (busy) return;
+        if (detail is null) Nav.NavigateTo("/mnt");
+        else { detail = null; current = null; error = null; await Load(); }
+    }
+    private Task OpenWork(int id, bool showNotice = true) => Run(async () =>
+    {
+        detail = await Api.Detail(id); loto = false; message = null; SelectNext();
+        if (showNotice && !CanOwn)
+        {
+            ShowAlert(ReadOnlyTitle, ReadOnlyNotice);
+        }
+    });
+    private void ShowAlert(string title, string text, bool returnToNote = false)
+    {
+        alertTitle = title; alertMessage = text;
+        alertOpen = true; focusAlert = true; focusNote = returnToNote;
+    }
+    private void CloseAlert() { alertOpen = false; focusAlert = false; }
+    private void AlertKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is "Escape" or "Enter") CloseAlert();
+    }
+    private void SelectNext() { current = detail?.Tasks.FirstOrDefault(t => !Done(t)) ?? detail?.Tasks.LastOrDefault(); if (current is not null) SelectTask(current); }
+    private void SelectTask(PdaMntTask t) { current = t; result = Done(t) ? t.Result! : ""; note = t.Note ?? ""; noteRequired = false; }
+    private void SelectResult(string value) { result = value; if (value != "FAIL") noteRequired = false; }
+    private void NoteChanged() { if (!MaintenanceChecks.RequiresNote(result, note)) noteRequired = false; }
+    private Task Start() => Run(async () => { detail = await Api.Start(detail!.Work.Id, loto); SelectNext(); });
+    private async Task SaveTask()
+    {
+        if (busy || !CanCheck || current is null || PendingBefore(current)) return;
+        if (MaintenanceChecks.RequiresNote(result, note))
+        {
+            noteRequired = true;
+            ShowAlert("Failure Reason Required", "Enter the reason for this failed check in Note before saving.", returnToNote: true);
+            return;
+        }
+        await Run(async () =>
+        {
+            detail = await Api.SaveTask(detail!.Work.Id, current, result, note);
+            SelectNext(); focusNext = true;
+        });
+    }
+    private void Review()
+    {
+        if (!CanReview) return;
+        completionResult = detail!.Tasks.All(t => Done(t) && t.Result != "FAIL") ? "OK" : "FOLLOWUP";
+        action = ""; rootCause = ""; labor = null; nextDue = null; error = null; reviewOpen = true;
+    }
+    private Task Complete() => Run(async () =>
+    {
+        var saved = await Api.Complete(detail!.Work.Id, new(completionResult, action, rootCause, labor, nextDue));
+        reviewOpen = false; message = saved.Message;
+        if (saved.NextWorkOrder is not null) message += $" Next: {saved.NextWorkOrder}.";
+        if (saved.FollowUpWorkOrder is not null) message += $" Follow-up: {saved.FollowUpWorkOrder}.";
+        detail = null; current = null; board = await Api.Board(from, to, false, closed);
+    });
+}

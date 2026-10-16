@@ -1,94 +1,76 @@
-﻿@page "/rpt/daily-shipment"
+@page "/rpt/daily-shipment"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.RptRepository Rpt
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using Radzen
+@attribute [Authorize]
+@inject RptRepository Rpt
+@inject MasterDataRepository MD
+@inject UomFormat UomFmt
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>RPT-003 @L["RPT.DailyShipment.Title"] · AMES</PageTitle>
-
 <AmesPageHeader Code="RPT-003" TitleKey="RPT.DailyShipment.Title" />
-
-<div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.Days"]</div>
-        <div class="ames-kpi-v">@_rows.Count</div><div class="ames-kpi-s">distinct ship days</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.Orders"]</div>
-        <div class="ames-kpi-v">@_orders.ToString("N0")</div><div class="ames-kpi-s">shipment orders</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.OrderQty"]</div>
-        <div class="ames-kpi-v">@_ord.ToString("N0")</div><div class="ames-kpi-s">total ordered</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.AllocQty"]</div>
-        <div class="ames-kpi-v">@_alloc.ToString("N0")</div><div class="ames-kpi-s">total allocated</div></div>
+<div class="ames-kpi-strip">
+    <div class="ames-kpi"><div class="ames-kpi-label">SHIPMENTS</div><div class="ames-kpi-v">@_rows.Select(r=>r.ShipmentId).Distinct().Count()</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-label">SHIPPED QTY</div><div class="ames-kpi-v">@UomFmt.Qty(_rows.Sum(r=>r.Qty),null)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-label">CUSTOMERS</div><div class="ames-kpi-v">@_rows.Select(r=>r.CustomerId).Distinct().Count()</div></div>
 </div>
-
-<div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="white-space:nowrap;">▼ @L["RPT.DailyShipment.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <span class="dim" style="font-size:.82em;white-space:nowrap;">@L["Lbl.Period"]</span>
-            <select class="ames-input" style="width:100px;" @bind="_daysBack">
-                <option value="7">7@(L["Lbl.Days"])</option>
-                <option value="14">14@(L["Lbl.Days"])</option>
-                <option value="30">30@(L["Lbl.Days"])</option>
-                <option value="60">60@(L["Lbl.Days"])</option>
-                <option value="90">90@(L["Lbl.Days"])</option>
+<section class="ames-grid-section">
+    <div class="ames-grid-toolbar">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="8px" Wrap="FlexWrap.Wrap">
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_date" DateFormat="MM/dd/yyyy" class="ames-rz-input" />
+            <select class="ames-rz-input" @bind="_customer"><option value="">All Customers</option>
+                @foreach(var c in _customers) { <option value="@c.CustomerID">@c.CustomerID · @MasterDataRepository.LocalName(c.CustomerName,c.CustomerNameEn)</option> }
             </select>
-            <button class="ames-btn ok" @onclick="Reload">@L["Btn.Reload"]</button>
-        </div>
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Reload" Disabled="_loading" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="Print" Icon="print" Click="Print" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="Export" Icon="download" Click="Export" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
     </div>
-
-    @if (_rows.Count == 0)
-    {
-        <div class="ames-empty">@L["RPT.DailyShipment.Empty"]</div>
-    }
-    else
-    {
-        <table class="ames-table">
-            <thead>
-                <tr>
-                    <th>@L["Col.Date"]</th><th class="num">@L["RPT.DailyShipment.Col.Orders"]</th>
-                    <th class="num">@L["RPT.DailyShipment.Col.OrderQty"]</th><th class="num">@L["RPT.DailyShipment.Col.AllocQty"]</th>
-                    <th class="num">@L["RPT.DailyShipment.Col.FillRate"]</th><th class="num">@L["RPT.DailyShipment.Col.Customers"]</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in _rows.Skip(_page * _pageSize).Take(_pageSize))
-                {
-                    var fill = r.OrderedQty > 0 ? r.AllocatedQty / r.OrderedQty * 100m : 0m;
-                    <tr>
-                        <td class="dim">@r.Day.ToString("MM-dd (ddd)")</td>
-                        <td class="num">@r.Orders</td>
-                        <td class="num">@r.OrderedQty.ToString("N0")</td>
-                        <td class="num">@r.AllocatedQty.ToString("N0")</td>
-                        <td class="num">
-                            <span class="pill @(fill >= 100m ? "ok" : fill >= 90m ? "warn" : "bad")">
-                                @fill.ToString("0.0")%
-                            </span>
-                        </td>
-                        <td class="num">@r.CustomerCount</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <Pager Page="_page" Total="_rows.Count" PageSize="_pageSize" OnPageChange="p => _page = p" />
-    }
-</div>
-
+    @if(_error is not null) { <p class="text-danger">@_error</p> }
+    <RadzenDataGrid TItem="RptRepository.ShipmentDetailRow" Data="_rows" AllowPaging="true" PageSize="25" AllowSorting="true" Class="ames-rz-grid ames-grid-fixed">
+        <Columns>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShipmentId" Title="SHIPMENT ID" Width="110px" />
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="OutboundBarcode" Title="OUTBOUND BARCODE" />
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="CustomerId" Title="CUSTOMER"><Template Context="r">@r.CustomerId<div class="dim">@CustomerName(r.CustomerId)</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="PartNo" Title="PART NO / NAME"><Template Context="r">@r.PartNo<div class="dim">@MasterDataRepository.LocalName(r.PartName,r.PartNameEn)</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="Qty" Title="SHIPPED QTY"><Template Context="r">@UomFmt.Qty(r.Qty,r.Unit)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="LocationNo" Title="FROM LOCATION" />
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShippedAt" Title="SHIPPED AT"><Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTime)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShippedBy" Title="SHIPPED BY" />
+        </Columns>
+    </RadzenDataGrid>
+</section>
 @code {
-    List<AMES.Data.Repositories.RptRepository.DailyShipmentRow> _rows = new();
-    int _page = 0;
-    const int _pageSize = 20;
-
-    int     _daysBack = 14;
-    long    _orders;
-    decimal _ord, _alloc;
-
-    protected override void OnInitialized() => Reload();
-
-    void Reload()
+    private List<RptRepository.ShipmentDetailRow> _rows=[];
+    private List<MasterDataRepository.CustomerRow> _customers=[];
+    private DateTime _date=DbClock.Today;
+    private string _customer="";
+    private string? _error;
+    private bool _loading;
+    protected override async Task OnInitializedAsync()
     {
-        _page = 0;
-        try { _rows = Rpt.ListDailyShipment(_daysBack); } catch { _rows = new(); }
-        _orders = _rows.Sum(r => (long)r.Orders);
-        _ord    = _rows.Sum(r => r.OrderedQty);
-        _alloc  = _rows.Sum(r => r.AllocatedQty);
+        try { _customers=await Task.Run(()=>MD.ListCustomers()); } catch(Exception ex) { _error=ex.Message; }
+        await Reload();
+    }
+    private async Task Reload()
+    {
+        if(_loading) return;
+        _loading=true;
+        try { _rows=await Task.Run(()=>Rpt.ListShipmentDetail(_date,string.IsNullOrWhiteSpace(_customer)?null:_customer)); _error=null; }
+        catch(Exception ex) { _rows=[]; _error=ex.Message; }
+        finally { _loading=false; }
+    }
+    private string CustomerName(string id)=>_customers.FirstOrDefault(c=>c.CustomerID==id) is { } c ? MasterDataRepository.LocalName(c.CustomerName,c.CustomerNameEn) : "";
+    private async Task Print()=>await JS.InvokeVoidAsync("print");
+    private async Task Export()
+    {
+        var headers=new[]{"Shipment ID","Outbound Barcode","Customer ID","Customer Name","Part No","Part Name","Shipped Qty","Unit","From Location","Shipped At","Shipped By"};
+        var data=_rows.Select(r=>(IReadOnlyList<object?>)new object?[]{r.ShipmentId,r.OutboundBarcode,r.CustomerId,CustomerName(r.CustomerId),r.PartNo,
+            MasterDataRepository.LocalName(r.PartName,r.PartNameEn),r.Qty,UomFmt.Sym(r.Unit),r.LocationNo,r.ShippedAt.ToString(DateFmt.DateTime),r.ShippedBy});
+        var bytes=AMES.Web.Services.XlsxWriter.Build($"Daily Shipments {_date:yyyy-MM-dd}",headers,data);
+        await JS.InvokeVoidAsync("amesDownload",$"DailyShipment_{_date:yyyyMMdd}.xlsx",Convert.ToBase64String(bytes),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 }

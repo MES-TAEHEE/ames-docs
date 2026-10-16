@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AMES.Api\AMES.Api.csproj" />
+    <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\AuthState.cs" Link="Pda\AuthState.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionExpiryHandler.cs" Link="Pda\SessionExpiryHandler.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionValidator.cs" Link="Pda\SessionValidator.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\PdaApi.cs" Link="Pda\PdaApi.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\FinishedGoodsApi.cs" Link="Pda\FinishedGoodsApi.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\MaintenanceApi.cs" Link="Pda\MaintenanceApi.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\MaintenanceChecks.cs" Link="Pda\MaintenanceChecks.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\FgTransactionDisplay.cs" Link="Pda\FgTransactionDisplay.cs" />
+  </ItemGroup>
+</Project>

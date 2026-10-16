@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-006 @L["MD.WorkCenter.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-006" TitleKey="MD.WorkCenter.Title" />
@@ -59,16 +60,20 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.WorkCenterRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.WorkCenter.Empty"]" Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.WorkCenterRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.WorkCenter.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCID" Title="@L["Col.WCID"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="code">@r.WCID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCName" Title="@L["Col.WcName"]">
                 <Template Context="r">@(r.WCName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DefaultLineID" Title="@L["Col.DefaultLine"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DefaultLineID" Title="@L["Col.DefaultLine"]" TextAlign="TextAlign.Center" Width="170px">
                 <Template Context="r"><span class="dim">@(r.DefaultLineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px">
@@ -85,10 +90,10 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DailyCapacity" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="200px">
                 <Template Context="r">@(r.DailyCapacity?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="StdManpower" Title="@L["Col.StdHeadcount"]" TextAlign="TextAlign.Right" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="StdManpower" Title="@L["Col.StdHeadcount"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.StdManpower?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="CostCenterCode" Title="@L["Col.CostCenter"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="CostCenterCode" Title="@L["Col.CostCenter"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="dim">@(r.CostCenterCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LocationDesc" Title="@L["Col.Loc"]" Width="250px">
@@ -231,6 +236,13 @@
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
+            else if (!string.IsNullOrEmpty(_deleteBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_deleteBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _deleteBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -239,7 +251,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click="@AskDelete" Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -247,8 +259,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.WorkCenterRow> _allRows  = new();
     List<MasterDataRepository.WorkCenterRow> _rows     = new();
     List<MasterDataRepository.LineRow>       _lineList = new();
@@ -260,6 +273,7 @@
     string? _fType, _fActive;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _deleteBlocked = "";
     string _msg = "", _modalErr = "";
     bool _isErr;
     bool   _canEdit;
@@ -281,7 +295,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/rp/work-center");
         try { _lineList = MD.ListLines(); } catch { }
@@ -331,12 +345,12 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.WorkCenterRow r)
     {
         if (!_canEdit) return;
-        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _sel = r; _modalErr = ""; _confirmDelete = false; _deleteBlocked = "";
         _f = new()
         {
             WCID           = r.WCID,
@@ -352,13 +366,14 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.WCID))   { _modalErr = L["Err.WcIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.WCName))  { _modalErr = L["Err.NameRequired"]; return; }
@@ -370,6 +385,7 @@
             MD.InsertWorkCenter(_f.WCID.Trim(), _f.WCName, NE(_f.ProcessCode),
                 NE(_f.DefaultLineID), _f.DailyCapacity, _f.StdManpower,
                 NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
+            Audit.Created("MD-006", "MD_WorkCenter", _f.WCID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.WCName} {L["Msg.Created"]}", false);
         }
@@ -379,6 +395,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.WCName)) { _modalErr = L["Err.NameRequired"]; return; }
@@ -389,6 +406,7 @@
             MD.UpdateWorkCenter(_sel.WCID, _f.WCName, NE(_f.ProcessCode),
                 NE(_f.DefaultLineID), _f.DailyCapacity, _f.StdManpower,
                 NE(_f.CostCenterCode), NE(_f.LocationDesc), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-006", "MD_WorkCenter", _sel.WCID, _sel, _f);
             var name = _f.WCName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -397,14 +415,34 @@
         finally { _busy = false; }
     }
 
+    // 확인을 묻기 전에 사용처를 본다 — 사용 중이면 확인 대신 사용처 안내만 보인다(삭제할 때 저장소가 같은 규칙으로 다시 검사)
+    void AskDelete()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = ""; _deleteBlocked = "";
+        try
+        {
+            var usages = MD.WorkCenterUsages(_sel.WCID);
+            if (usages.Count > 0) _deleteBlocked = InUseText(_sel.WCID, usages);
+            else _confirmDelete = true;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    string InUseText(string key, List<MasterDataRepository.UsageRef> usages)
+        => string.Format(L["MD.Usage.Err.InUse"].Value, key, AMES.Web.Services.UsageText.Format(L, usages));
+
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var name = _sel.WCName ?? _sel.WCID;
-            MD.DeleteWorkCenter(_sel.WCID);
+            var usages = MD.DeleteWorkCenter(_sel.WCID);
+            if (usages.Count > 0) { _deleteBlocked = InUseText(_sel.WCID, usages); _confirmDelete = false; return; }
+            Audit.Deleted("MD-006", "MD_WorkCenter", _sel.WCID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

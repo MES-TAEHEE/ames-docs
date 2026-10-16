@@ -1,0 +1,6 @@
+@page "/portal/receipts"
+@inject NavigationManager Nav
+
+@code {
+    protected override void OnInitialized() => Nav.NavigateTo("/portal/deliveries", replace: true);
+}

@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-023 @L["MD.PackSpec.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-023" TitleKey="MD.PackSpec.Title" />
@@ -59,9 +60,13 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.PackagingSpecRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PackSpec.Empty"]" Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.PackagingSpecRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.PackSpec.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="PackSpecID" Title="@L["Col.SpecId"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.PackSpecID</span></Template>
             </RadzenDataGridColumn>
@@ -75,34 +80,34 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="PackType" Title="@L["Col.PackType"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="PackType" Title="@L["Col.PackType"]" Width="160px">
                 <Template Context="r">
                     @{ var ptEntry = _packingTypes.FirstOrDefault(x => x.CodeValue == r.PackType); }
                     @(ptEntry != null ? MasterDataRepository.LocalName(ptEntry) : r.PackType ?? "—")
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="QtyPerInner" Title="@L["Col.InnerQty"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="QtyPerInner" Title="@L["Col.InnerQty"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.QtyPerInner?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="InnerPerOuter" Title="@L["Col.InnerPerOuter"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="InnerPerOuter" Title="@L["Col.InnerPerOuter"]" TextAlign="TextAlign.Right" Width="160px">
                 <Template Context="r">@(r.InnerPerOuter?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="OuterPerPallet" Title="@L["Col.OuterPerPallet"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="OuterPerPallet" Title="@L["Col.OuterPerPallet"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.OuterPerPallet?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="NetWeightKg" Title="@L["Col.NetWeight"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="NetWeightKg" Title="@L["Col.NetWeight"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.NetWeightKg?.ToString("0.000") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="GrossWeightKg" Title="@L["Col.GrossWeight"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="GrossWeightKg" Title="@L["Col.GrossWeight"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.GrossWeightKg?.ToString("0.000") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="DimLxWxH" Title="@L["Col.Dimensions"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="DimLxWxH" Title="@L["Col.Dimensions"]" Width="130px">
                 <Template Context="r"><span class="dim">@(r.DimLxWxH ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="ReturnableFlag" Title="@L["Col.Returnable"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="ReturnableFlag" Title="@L["Col.Returnable"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">@if (r.ReturnableFlag) { <span class="pill ok">@L["MD.PackagingSpec.PillReturn"]</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="LabelTemplateID" Title="@L["Col.LabelTemplate"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="LabelTemplateID" Title="@L["Col.LabelTemplate"]" Width="200px">
                 <Template Context="r"><span class="dim">@(r.LabelTemplateID ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PackagingSpecRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
@@ -295,8 +300,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.PackagingSpecRow> _allRows = new();
     List<MasterDataRepository.PackagingSpecRow> _rows = new();
     List<MasterDataRepository.CodeItemRow> _packingTypes = new();
@@ -323,7 +329,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/ql/packaging-spec");
         try { _packingTypes = MD.ListCodeItems("PACKING_TYPE"); } catch { }
@@ -383,6 +389,7 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
+            PackSpecID = r.PackSpecID ?? "",
             ItemID          = r.ItemID          ?? "",
             PackType        = r.PackType,
             QtyPerInner     = r.QtyPerInner,
@@ -405,6 +412,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.PackSpecID)) { _modalErr = L["Err.SpecIdRequired"]; return; }
         var id = _f.PackSpecID.Trim();
@@ -416,6 +424,7 @@
                 _f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet,
                 _f.NetWeightKg, _f.GrossWeightKg, NE(_f.DimLxWxH),
                 _f.ReturnableFlag, NE(_f.LabelTemplateID), _f.ActiveFlag, _actor);
+            Audit.Created("MD-023", "MD_PackagingSpec", id, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Created"]}", false);
         }
@@ -425,6 +434,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
@@ -433,8 +443,10 @@
                 _f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet,
                 _f.NetWeightKg, _f.GrossWeightKg, NE(_f.DimLxWxH),
                 _f.ReturnableFlag, NE(_f.LabelTemplateID), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-023", "MD_PackagingSpec", _sel.PackSpecID, _sel, _f);
+            var key = _sel.PackSpecID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.PackSpecID} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -442,12 +454,14 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var id = _sel.PackSpecID;
             MD.DeletePackagingSpec(_sel.PackSpecID);
+            Audit.Deleted("MD-023", "MD_PackagingSpec", _sel.PackSpecID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);
         }

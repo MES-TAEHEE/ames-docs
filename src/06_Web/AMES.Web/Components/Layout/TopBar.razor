@@ -4,12 +4,17 @@
 @inject PageHeaderState Header
 @inject AMES.Web.Services.AppLanguageState Lang
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Data.Repositories.SysRepository Sys
+@using System.Security.Claims
 
 <header class="ames-topbar">
     <div class="ames-brand">
         <div class="ames-brand-row">
-            <span class="ames-brand-mark">⬢</span>
-            <div style="display:flex;align-items:baseline;gap:10px;">
+            @* 회사 CI(EOS) — 흰 배경을 지운 PNG. 파비콘은 같은 CI 의 체브런만 잘라 wwwroot/favicon.png 로 둔다 *@
+            <img class="ames-brand-mark" src="brand/eos-logo.png" alt="EOS" />
+            <div style="display:flex;align-items:baseline;gap:8px;">
                 <div class="ames-brand-logo">A-MES</div>
                 <div class="ames-brand-sub">OFFICE WEB</div>
             </div>
@@ -42,11 +47,14 @@
     <AuthorizeView>
         <Authorized>
             <div class="ames-user">
-                <div class="ames-user-av">@(context.User.Identity?.Name?.Substring(0,1).ToUpper() ?? "?")</div>
+                @* 역할별 아이콘(Material Symbols) — 이메일 첫 글자 대신. 역할이 없으면 회색 person *@
+                <div class="ames-user-av ames-user-av--@RoleKey(context.User)" title="@RoleTip(context.User)"><RadzenIcon Icon="@RoleIcon(context.User)" /></div>
                 <div class="ames-user-info">
                     <div class="ames-user-name">@context.User.Identity?.Name</div>
-                    <div class="ames-user-role">Administrator</div>
+                    @* 역할은 로그인 쿠키의 Role 클레임(AspNetUserRoles) — PermissionService 가 권한을 판정하는 것과 같은 출처 *@
+                    <div class="ames-user-role">@RoleText(context.User)</div>
                 </div>
+                <button type="button" class="ames-user-cred" title="@L["TopBar.Cred.Button"]" aria-label="@L["TopBar.Cred.Button"]" @onclick="() => _cred = true"><RadzenIcon Icon="key" /></button>
                 <form action="Account/Logout" method="post" style="display:inline;">
                     <AntiforgeryToken />
                     <input type="hidden" name="ReturnUrl" value="@_url" />
@@ -56,21 +64,40 @@
         </Authorized>
         <NotAuthorized>
             <div class="ames-user dim">
-                <div class="ames-user-av">?</div>
-                <div class="ames-user-info"><div class="ames-user-name">Not signed in</div></div>
+                <div class="ames-user-av ames-user-av--none"><RadzenIcon Icon="person" /></div>
+                <div class="ames-user-info"><div class="ames-user-name">@L["App.NotSignedIn"]</div></div>
             </div>
         </NotAuthorized>
     </AuthorizeView>
 </header>
 
+@* 헤더 밖에 둔다 — .ames-topbar 의 backdrop-filter 가 고정 위치(fixed) 대화상자를 헤더 안에 가둔다 *@
+<MyCredentialsDialog Visible="@_cred" OnClose="@(() => _cred = false)" />
+
 @code {
     string? _url;
     string _theme = "dark";
+    bool _cred;
+    // 로그인 사용자의 역할 ID — 역할 이름은 바뀔 수 있어 쿠키의 이름이 아니라 ID 로 DB 에서 읽는다(null = 못 읽음 → 쿠키 기준)
+    HashSet<string>? _roleIds;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        // 로그인(회로 시작)마다 DB 시각 보정을 확인 — 10분 안에 맞춘 값이 있으면 DB 를 가지 않는다
+        DbClock.EnsureSynced(TimeSpan.FromMinutes(10));
         _url = Nav.ToBaseRelativePath(Nav.Uri);
         Header.OnChanged += OnHeaderChanged;
+        try
+        {
+            var user = (await AuthPrvd.GetAuthenticationStateAsync()).User;
+            var userId = user.Identity?.IsAuthenticated == true ? user.FindFirstValue(ClaimTypes.NameIdentifier) : null;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var roles = await Task.Run(() => Sys.ListUserRoles(userId));
+                _roleIds = new HashSet<string>(roles.Select(r => r.Id), StringComparer.OrdinalIgnoreCase);
+            }
+        }
+        catch { /* DB 장애 — 아이콘만 일반 사용자로 보인다 */ }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -87,6 +114,45 @@
     }
 
     void OnHeaderChanged() => InvokeAsync(StateHasChanged);
+
+    static List<string> Roles(ClaimsPrincipal user) =>
+        user.FindAll(ClaimTypes.Role).Select(c => c.Value).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList();
+
+    string RoleText(ClaimsPrincipal user)
+    {
+        var roles = Roles(user);
+        return roles.Count == 0 ? L["TopBar.NoRole"] : string.Join(", ", roles);
+    }
+
+    // 아이콘은 역할 ID 로 고른다(이름은 바뀔 수 있다). 여러 역할이면 관리자 → 보전 → 작업자 → 그 밖의 기본 역할(ROLE-xxx) →
+    // 추가 역할(SYS-002 에서 새로 만든 GUID 역할, Extra) 순. CSS 는 --admin/--maint/--oper/--user/--extra/--none 여섯 색상
+    (string Key, string Icon) RoleVisual(ClaimsPrincipal user)
+    {
+        if (_roleIds is null) return Roles(user).Count == 0 ? ("none", "person") : ("user", "person");
+        if (_roleIds.Count == 0) return ("none", "person");
+        if (_roleIds.Contains(AMES.Data.Services.SystemRoles.AdminId))       return ("admin", "admin_panel_settings");
+        if (_roleIds.Contains(AMES.Data.Services.SystemRoles.MaintenanceId)) return ("maint", "engineering");
+        if (_roleIds.Contains(AMES.Data.Services.SystemRoles.OperatorId))    return ("oper",  "precision_manufacturing");
+        if (_roleIds.Any(AMES.Data.Services.SystemRoles.IsSystem))           return ("user",  "person");
+        return ("extra", "extension");
+    }
+    string RoleKey(ClaimsPrincipal user)  => RoleVisual(user).Key;
+    string RoleIcon(ClaimsPrincipal user) => RoleVisual(user).Icon;
+
+    // 툴팁 = 역할 이름 + 역할 설명(resx TopBar.RoleDesc.*). 역할 설명은 DB 에 없어 리소스로 둔다 — 여러 역할이면 첫 역할의 설명
+    string RoleTip(ClaimsPrincipal user)
+    {
+        var descKey = RoleKey(user) switch
+        {
+            "admin" => "TopBar.RoleDesc.Admin",
+            "maint" => "TopBar.RoleDesc.Maintenance",
+            "oper"  => "TopBar.RoleDesc.Operator",
+            "extra" => "TopBar.RoleDesc.Extra",
+            "none"  => "TopBar.RoleDesc.None",
+            _       => "TopBar.RoleDesc.Default",
+        };
+        return $"{RoleText(user)}\n{L[descKey]}";
+    }
 
     public void Dispose() => Header.OnChanged -= OnHeaderChanged;
 }

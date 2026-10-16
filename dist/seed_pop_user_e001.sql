@@ -71,25 +71,24 @@ WHEN MATCHED THEN UPDATE SET
     EmployeeNo       = 'E001',
     EmployeeName     = N'Kim Min-jun',
     Department       = 'Production',
-    DefaultShift     = 'DAY',
-    AssignedLines    = N'["LINE-INJ-01"]',
+    DefaultShift     = 'A',
     PinHash          = @PinHash,
     AccountStatus    = 'Active',
     FailedLoginCount = 0,
     ModifiedTS       = SYSDATETIME()
 WHEN NOT MATCHED THEN INSERT
     (UserID, EmployeeNo, EmployeeName, Department, PlantCode, DefaultShift,
-     AssignedLines, PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
+     PinHash, AccountStatus, FailedLoginCount, CreatedBy, CreatedTS)
 VALUES
-    (@UserId, 'E001', N'Kim Min-jun', 'Production', 'SEH-US-01', 'DAY',
-     N'["LINE-INJ-01"]', @PinHash, 'Active', 0, 'seed', SYSDATETIME());
+    (@UserId, 'E001', N'Kim Min-jun', 'Production', 'SEH-US-01', 'A',
+     @PinHash, 'Active', 0, 'seed', SYSDATETIME());
 PRINT CONCAT('SYS_UserProfile E001: ', @@ROWCOUNT, '행 처리됨');
 GO
 
 -- ── Step 3: Admin 롤 부여 (Web NavMenu 표시용) ──────────────────────────────
 DECLARE @UserId     NVARCHAR(450) = 'user-e001';
 DECLARE @AdminRoleId NVARCHAR(450);
-SELECT @AdminRoleId = Id FROM dbo.AspNetRoles WHERE NormalizedName = 'ADMIN';
+SELECT @AdminRoleId = Id FROM dbo.AspNetRoles WHERE Id = N'ROLE-SYSADMIN';   -- 시스템 역할 고정 ID(이름은 바뀔 수 있다)
 
 IF @AdminRoleId IS NULL
     PRINT N'⚠ Admin 롤 미발견 — seed_admin_permissions.sql 먼저 적용 필요';
@@ -104,7 +103,7 @@ GO
 
 -- ── 결과 확인 ──────────────────────────────────────────────────────────────
 SELECT u.UserName, u.Email, p.EmployeeNo, p.EmployeeName,
-       p.AssignedLines, p.AccountStatus,
+       p.AccountStatus,
        CASE WHEN u.PasswordHash IS NOT NULL THEN 'SET' ELSE 'NULL' END AS WebPw,
        CASE WHEN p.PinHash      IS NOT NULL THEN 'SET' ELSE 'NULL' END AS PopPin,
        (SELECT COUNT(*) FROM dbo.AspNetUserRoles ur WHERE ur.UserId = u.Id) AS Roles

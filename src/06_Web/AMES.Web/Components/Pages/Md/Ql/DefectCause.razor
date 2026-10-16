@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-013 @L["MD.DefectCause.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-013" TitleKey="MD.DefectCause.Title" />
@@ -61,10 +62,14 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.DefectCauseRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.DefectCause.Empty"]" Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.DefectCauseRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.DefectCause.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseCode" Title="@L["Col.CauseCode"]" TextAlign="TextAlign.Center" Width="120px">
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseCode" Title="@L["Col.CauseCode"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="code">@r.CauseCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="CauseName" Title="@L["Col.CauseName"]">
@@ -95,7 +100,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="ParentCauseCode" Title="@L["Col.UpperCause"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="ParentCauseCode" Title="@L["Col.UpperCause"]" Width="150px">
                 <Template Context="r"><span class="dim">@(r.ParentCauseCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="ResponsibleDept" Title="@L["Col.Dept"]" Width="110px">
@@ -107,7 +112,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="SortOrder" Title="@L["Col.Seq"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r"><span class="dim">@(r.SortOrder?.ToString() ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="RootCauseFlag" Title="@L["Col.RootCause"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.DefectCauseRow" Property="RootCauseFlag" Title="@L["Col.RootCause"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r">
                     @if (r.RootCauseFlag) { <span class="pill ok">Y</span> }
                     else { <span class="dim">—</span> }
@@ -311,8 +316,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.DefectCauseRow> _allRows = new();
     List<MasterDataRepository.DefectCauseRow> _rows = new();
     List<MasterDataRepository.CodeItemRow> _deptCodes = new();
@@ -342,7 +348,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/ql/defect-cause");
         try { _deptCodes    = MD.ListCodeItems("DEPARTMENT");     } catch { }
@@ -428,6 +434,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.CauseCode)) { _modalErr = L["Err.CauseCodeRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = L["Err.CauseNameRequired"]; return; }
@@ -439,6 +446,7 @@
                 _f.ParentCauseCode, NE(_f.ProcessCode), _f.RootCauseFlag,
                 NE(_f.CorrectiveGuide), _f.ResponsibleDept, _f.SortOrder,
                 _f.ActiveFlag, _actor);
+            Audit.Created("MD-013", "MD_DefectCause", _f.CauseCode.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.CauseName} {L["Msg.Created"]}", false);
         }
@@ -448,6 +456,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.CauseName)) { _modalErr = L["Err.CauseNameRequired"]; return; }
@@ -458,6 +467,7 @@
                 _f.ParentCauseCode, NE(_f.ProcessCode), _f.RootCauseFlag,
                 NE(_f.CorrectiveGuide), _f.ResponsibleDept, _f.SortOrder,
                 _f.ActiveFlag, _actor);
+            Audit.Updated("MD-013", "MD_DefectCause", _sel.CauseCode, _sel, _f);
             var name = _f.CauseName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -468,12 +478,14 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var name = _sel.CauseName ?? _sel.CauseCode;
             MD.DeleteDefectCause(_sel.CauseCode);
+            Audit.Deleted("MD-013", "MD_DefectCause", _sel.CauseCode, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

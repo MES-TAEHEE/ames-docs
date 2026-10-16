@@ -42,7 +42,7 @@ internal static class Program
         Console.WriteLine("To test IMG locally — no appsettings.json edit needed:");
         Console.WriteLine("  F5 → login as I001 (PIN 1234)  or  I002 (PIN 2345)");
         Console.WriteLine("  PopAuthService reroutes the session to LINE-IMG-01 →");
-        Console.WriteLine("  LoginForm dispatches to IMG-02 Wrapping Dashboard.");
+        Console.WriteLine("  Login dispatches to IMG-MAIN (seed_md_bop_img_dev.sql first).");
         return 0;
     }
 
@@ -60,11 +60,11 @@ internal static class Program
                 MERGE dbo.MD_Item AS t
                 USING (SELECT @No AS ItemNo) s ON t.ItemNo = s.ItemNo
                 WHEN MATCHED THEN UPDATE SET ItemName=@N, ItemNameEN=@NE,
-                                              ItemType='FABRIC', ItemCategory='WRAP',
+                                              ItemType='MATERIAL', ItemCategory='FABRIC',
                                               DefaultUOM='M', ActiveFlag=1, ModifiedTS=SYSDATETIME()
                 WHEN NOT MATCHED THEN INSERT (ItemNo, ItemName, ItemNameEN, ItemType, ItemCategory,
                                               DefaultUOM, ActiveFlag, CreatedBy, CreatedTS)
-                  VALUES (@No, @N, @NE, 'FABRIC', 'WRAP', 'M', 1, 'seed', SYSDATETIME());
+                  VALUES (@No, @N, @NE, 'MATERIAL', 'FABRIC', 'M', 1, 'seed', SYSDATETIME());
                 """,
                 ("@No", i.No), ("@N", i.Name), ("@NE", i.NameEn));
             Console.WriteLine($"  item   {i.No,-12} {i.NameEn}");
@@ -85,7 +85,7 @@ internal static class Program
         Upsert(conn, """
             MERGE dbo.MD_Equipment AS t
             USING (SELECT @Id AS EquipID) s ON t.EquipID = s.EquipID
-            WHEN MATCHED THEN UPDATE SET EquipName=@N, EquipType='IMG', LineID=@L,
+            WHEN MATCHED THEN UPDATE SET EquipName=@N, EquipType='WRAP', LineID=@L,
                                           MakerModel='Husky-WrapPro', Status='RUN', ActiveFlag=1,
                                           ModifiedTS=SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT (EquipID, EquipName, EquipType, LineID, MakerModel,
@@ -243,7 +243,7 @@ internal static class Program
         Console.WriteLine("[seed-img] Rebuilding in-progress state ...");
 
         const string LineId       = "LINE-IMG-01";
-        const string OperatorUser = "user-i001";
+        const string OperatorUser = "I001";
         const string WoNumber     = "WO-IMG-2026-0529-301";
         const string ItemNo       = "DR-TRM-LH-W";
         const string FabricLotCode= "FAB-GY-2507-020";

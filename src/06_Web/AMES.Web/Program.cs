@@ -1,10 +1,12 @@
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
+using AMES.Data.Services;
 using AMES.Web.Components;
 using AMES.Web.Components.Account;
 using AMES.Web.Data;
 using AMES.Web.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -16,11 +18,10 @@ System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Inst
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents()
-    .AddInteractiveServerComponents(options =>
-    {
-        options.DetailedErrors = true;
-    });
+    // 회로 예외 상세(SQL·스택)를 브라우저로 보내는 건 개발 환경에서만 — IIS(Production)는 서버 로그에만 남는다
+    .AddInteractiveServerComponents(options => options.DetailedErrors = builder.Environment.IsDevelopment())
+    // JS → .NET 로 돌아오는 값(차트 PNG base64 등)이 기본 32KB 를 넘을 수 있어 넉넉히 둔다
+    .AddHubOptions(o => o.MaximumReceiveMessageSize = 4 * 1024 * 1024);
 
 builder.Services.AddRadzenComponents();
 builder.Services.AddRadzenCookieThemeService(options =>
@@ -29,21 +30,127 @@ builder.Services.AddRadzenCookieThemeService(options =>
     options.Duration = TimeSpan.FromDays(365);
 });
 
+// 앱풀 loadUserProfile·setProfileEnvironment 가 꺼져 있으면 Data Protection 이 ephemeral 키로 떨어져
+// 재활용마다 전원 로그아웃된다. IIS 설정에 기대지 않도록 키를 고정 폴더에 둔다.
+// 배포 폴더 안은 안 된다 — publish-web.ps1 의 robocopy /MIR 가 게시 때마다 지운다.
+var dpKeyDir = builder.Configuration["DataProtection:KeyPath"];
+if (string.IsNullOrWhiteSpace(dpKeyDir))
+    dpKeyDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                            "AMES", "DataProtection-Keys", "AMES.Web");
+string? dpKeyError = null;
+try
+{
+    Directory.CreateDirectory(dpKeyDir);
+    var probe = Path.Combine(dpKeyDir, $".probe-{Guid.NewGuid():N}");
+    File.WriteAllText(probe, "");
+    File.Delete(probe);
+
+    var dp = builder.Services.AddDataProtection()
+        .SetApplicationName("AMES.Web")
+        .PersistKeysToFileSystem(new DirectoryInfo(dpKeyDir));
+    // 머신 범위 DPAPI 는 사용자 프로필 없이 동작한다
+    if (OperatingSystem.IsWindows()) dp.ProtectKeysWithDpapi(protectToLocalMachine: true);
+}
+catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+{
+    // 쓰기 권한이 없으면 기동을 막지 않고 프레임워크 기본 동작(프로필 → 레지스트리 → ephemeral)으로 둔다
+    dpKeyError = ex.Message;
+}
+
 builder.Services.AddLocalization();
 
 builder.Services.AddScoped<AMES.Web.Services.PageHeaderState>();
+builder.Services.AddSingleton<ScreenCatalogNotifier>();
+builder.Services.AddSingleton<AMES.Web.Services.SignInRefreshTickets>();   // 상단바 비밀번호 변경 후 쿠키 재발급용 1회용 표
+builder.Services.AddSingleton<AMES.Web.Services.TrustedDevices>();   // 내부 로그인 신뢰 기기 쿠키(잠금 공격 완화)
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-builder.Services.AddAuthentication(options =>
+// 로그인 제출(내부 /Account/Login*·외부 /portal/login POST)은 IP 당 분당 Auth:LoginPerMinute(기본 10)회까지 —
+// 잠금은 관리자만 풀 수 있어서, 한 PC 에서 여러 계정을 연달아 잠그거나 비밀번호를 대입하는 속도를 늦춘다.
+// 넘치면 같은 화면으로 돌려보내 안내한다(throttled=1). 그 밖의 요청은 제한하지 않는다.
+var loginPerMinute = builder.Configuration.GetValue<int?>("Auth:LoginPerMinute") is int lpm && lpm >= 1 ? lpm : 10;
+builder.Services.AddRateLimiter(o =>
+{
+    o.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        AMES.Web.Services.PortalAuth.IsLoginPost(ctx.Request)
+            ? System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                ctx.Connection.RemoteIpAddress?.ToString() ?? "-",
+                _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                     { PermitLimit = loginPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })
+            : System.Threading.RateLimiting.RateLimitPartition.GetNoLimiter("-"));
+    o.OnRejected = (c, _) =>
     {
-        options.DefaultScheme = IdentityConstants.ApplicationScheme;
+        var req = c.HttpContext.Request;
+        var query = req.QueryString.Value ?? "";
+        if (!query.Contains("throttled=1")) query += (query.Length == 0 ? "?" : "&") + "throttled=1";
+        c.HttpContext.Response.Redirect(req.Path.Value + query);
+        return ValueTask.CompletedTask;
+    };
+});
+
+// 인증 스킴 2개: 내부 Identity 쿠키 + 외부 개방 화면(/portal) 전용 쿠키(AmesPortal).
+// 기본 스킴은 경로로 고르는 선택형이다 — /portal(외부 화면의 Blazor 회로 /portal/_blazor 포함)은 AmesPortal, 그 밖은 Identity.
+// 두 쿠키는 한 브라우저에 같이 있어도 된다(내부·외부 동시 로그인).
+var authBuilder = builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = AMES.Web.Services.PortalAuth.DynamicScheme;
         options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    });
+authBuilder.AddIdentityCookies();
+authBuilder
+    .AddCookie(AMES.Web.Services.PortalAuth.Scheme, o =>
+    {
+        o.Cookie.Name        = AMES.Web.Services.PortalAuth.CookieName;
+        o.Cookie.HttpOnly    = true;
+        o.Cookie.SameSite    = SameSiteMode.Lax;
+        o.LoginPath          = AMES.Web.Services.PortalAuth.LoginPath;
+        // 내부 화면 /unauthorized 는 Identity 로 판단되고 외부 호스트에서는 막힌다 — 외부 쪽 거부는 외부 로그인으로
+        o.AccessDeniedPath   = AMES.Web.Services.PortalAuth.LoginPath;
+        o.SlidingExpiration  = true;
+        // 외부 사용자(SCM_PortalVendorUser)가 비활성·잠금되거나 협력업체가 바뀌면 이미 발급된 쿠키도 끊는다.
+        // 인증은 정적 파일 요청에도 돌므로 확장자 있는 경로·프레임워크 경로는 건너뛴다(DB 조회 절약).
+        o.Events.OnValidatePrincipal = async ctx =>
+        {
+            var path = ctx.HttpContext.Request.Path.Value ?? "";
+            if (Path.HasExtension(path) || path.StartsWith("/_framework", StringComparison.Ordinal) || path.StartsWith("/_content", StringComparison.Ordinal)) return;
+            var id = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var vendor = ctx.Principal?.FindFirst(AMES.Web.Services.PortalAuth.VendorClaim)?.Value;
+            AMES.Data.Repositories.ScmRepository.PortalUserRow? user = null;
+            try { if (id is not null) user = ctx.HttpContext.RequestServices.GetRequiredService<AMES.Data.Repositories.ScmRepository>().FindPortalUser(id); }
+            catch { return; }   // DB 장애로 로그인된 사용자를 전부 내보내지는 않는다
+            if (user is null || !user.ActiveFlag || user.LockedFlag || !user.VendorActive || !string.Equals(user.VendorID, vendor, StringComparison.OrdinalIgnoreCase)
+                || !AMES.Web.Services.PortalAuth.PasswordVersionMatches(ctx.Principal, user.PasswordHash))   // 비밀번호가 바뀌었으면(본인 변경·SCM-004 재설정) 끊는다
+            {
+                ctx.RejectPrincipal();
+                await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx.HttpContext, AMES.Web.Services.PortalAuth.Scheme);
+            }
+        };
     })
-    .AddIdentityCookies();
+    .AddPolicyScheme(AMES.Web.Services.PortalAuth.DynamicScheme, "AMES cookie selector", o =>
+    {
+        // /portal 은 항상 AmesPortal, 그 밖은 항상 Identity — 다른 쪽 쿠키는 보지 않는다.
+        // 회로도 경로로 갈린다: 외부 화면은 /portal/_blazor(App.razor 가 그 화면에서만 주소를 바꾼다), 내부 화면은 /_blazor.
+        o.ForwardDefaultSelector = ctx => AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path)
+            ? AMES.Web.Services.PortalAuth.Scheme
+            : IdentityConstants.ApplicationScheme;
+    });
+
+// 인가 정책: 기본 정책([Authorize] 만 붙은 내부 화면 66개·AuthorizeView)은 내부 Identity 스킴으로 인증된 사용자만 통과 →
+// 외부 쿠키로 내부 화면 URL 을 직접 쳐도 전부 거부된다. 외부 화면은 PortalAccess(외부 쿠키 사용자만).
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireAssertion(ctx => AMES.Web.Services.PortalAuth.IsInternalUser(ctx.User))
+        .Build();
+    options.AddPolicy(AMES.Web.Services.PortalAuth.Policy, p => p
+        .RequireAuthenticatedUser()
+        .RequireAssertion(ctx => AMES.Web.Services.PortalAuth.AllowsPortalAccess(ctx.User)));
+});
 
 // ── Identity tables live in AMES_DEV alongside the operational data ────
 var connectionString = builder.Configuration.GetConnectionString("AMES")
@@ -54,8 +161,8 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
-        // 자기가입은 이메일 자기인증 필수. (관리자 생성 계정은 EmailConfirmed=true 로 생성해 영향 없음)
-        options.SignIn.RequireConfirmedAccount   = true;
+        // 계정은 SYS-001 에서 관리자만 만든다 — 메일 인증 단계가 없으므로 로그인은 계정 상태(SYS_UserProfile.AccountStatus)만 본다(10-07)
+        options.SignIn.RequireConfirmedAccount   = false;
         options.Password.RequireDigit            = true;
         // 최소 길이는 SYS_Config(PASSWORD_MIN_LEN) 기준 ConfigPasswordValidator 가 동적 관장 → 내장 게이트는 완화
         options.Password.RequiredLength          = 1;
@@ -66,18 +173,32 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
+    .AddClaimsPrincipalFactory<AMES.Web.Services.AmesClaimsPrincipalFactory>()   // 로그인 클레임에 행위자 코드(사번) — CreatedBy/ModifiedBy varchar(20)
     .AddDefaultTokenProviders();
+
+// 내부 쿠키 재확인 주기(보안 스탬프 + 계정 상태) = 회로 재검증 주기(Auth:RevalidationMinutes, 기본 5분).
+// SYS-001 이 상태·역할·비밀번호를 바꾸면 스탬프를 갱신하므로 막은 계정은 이 주기 안에 화면 이동·열린 화면 모두 끊긴다
+var authRevalidation = AMES.Web.Services.AuthRevalidation.Interval(builder.Configuration);
+builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = authRevalidation);
+builder.Services.ConfigureApplicationCookie(o =>
+{
+    var stampCheck = o.Events.OnValidatePrincipal;
+    o.Events.OnValidatePrincipal = async ctx =>
+    {
+        await stampCheck(ctx);
+        await AMES.Web.Services.AuthRevalidation.ValidateCookieAsync(ctx, authRevalidation);
+    };
+});
 
 // 비밀번호 최소 길이 = SYS_Config(PASSWORD_MIN_LEN) 동적 검증 (앱 재시작 없이 Config 저장 시 반영)
 builder.Services.AddSingleton<AMES.Web.Services.AppSecurityState>();
 builder.Services.AddScoped<IPasswordValidator<ApplicationUser>, AMES.Web.Services.ConfigPasswordValidator>();
-// 이메일 발신: Smtp:Host 설정이 있으면 실제 SMTP 발송, 없으면 NoOp(개발환경은 Register 화면에 인증링크 노출)
-if (!string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
-    builder.Services.AddSingleton<IEmailSender<ApplicationUser>, AMES.Web.Services.SmtpEmailSender>();
-else
-    builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<ScmPreviewStore>();
+builder.Services.AddScoped<AuditLogger>();   // MD·SYS 변경 감사 이력
+builder.Services.AddScoped<AMES.Web.Services.WebSignIn>();   // 내부·외부 로그인 공용
+builder.Services.AddScoped<AMES.Web.Services.MenuCatalog>();   // 좌측 메뉴·홈 사이트맵 공용 화면 카탈로그(SYS_Screen WEB)
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -107,7 +228,18 @@ builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOption
             o.ExpireTimeSpan    = TimeSpan.FromMinutes(sp.GetRequiredService<AMES.Web.Services.AppSessionState>().Minutes);
             o.SlidingExpiration = true;
         }));
+// 외부 포탈 쿠키도 같은 SESSION_TIMEOUT_MIN 을 따른다
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>>(sp =>
+    new Microsoft.Extensions.Options.ConfigureNamedOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
+        AMES.Web.Services.PortalAuth.Scheme,
+        o =>
+        {
+            o.ExpireTimeSpan    = TimeSpan.FromMinutes(sp.GetRequiredService<AMES.Web.Services.AppSessionState>().Minutes);
+            o.SlidingExpiration = true;
+        }));
 builder.Services.AddSingleton(sp => new WorkOrderRepository(factory));
+builder.Services.AddSingleton<AMES.Web.Services.ActorNames>();   // 행위자 코드(사번) → 이름 표시, 5분 캐시
+builder.Services.AddSingleton<AMES.Web.Services.UomFormat>();    // 수량 표시 = MD_Uom.DecimalPrec 자릿수, 5분 캐시
 builder.Services.AddSingleton(sp => new EquipmentRepository(factory));
 builder.Services.AddSingleton(sp => new MasterDataRepository(factory));
 builder.Services.AddSingleton(sp => new ProductionRepository(factory));
@@ -115,19 +247,53 @@ builder.Services.AddSingleton(sp => new DefectRepository(factory));
 builder.Services.AddSingleton(sp => new PntRepository(factory));
 builder.Services.AddSingleton(sp => new QcRepository(factory));
 builder.Services.AddSingleton(sp => new PpRepository(factory));
+builder.Services.AddSingleton(sp => new ScmRepository(factory));
+builder.Services.AddScoped<AMES.Web.Services.PortalQuantityFormat>();
+builder.Services.AddScoped<AMES.Web.Services.BoxLabelSelection>();
 builder.Services.AddSingleton(sp => new MntRepository(factory));
 builder.Services.AddSingleton(sp => new RptRepository(factory));
-builder.Services.AddSingleton(sp => new WarehouseRepository(factory));
+builder.Services.AddScoped(sp => new WarehouseRepository(factory, () =>
+{
+    var state = sp.GetRequiredService<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider>().GetAuthenticationStateAsync();
+    if (!state.IsCompletedSuccessfully) throw new InvalidOperationException("Sign in before changing warehouse data.");
+    return AMES.Web.Services.ActorCode.Of(state.Result.User);
+}));
 builder.Services.AddSingleton(sp => new FinishedGoodsRepository(factory));
 builder.Services.AddSingleton(sp => new SysRepository(factory));
 builder.Services.AddSingleton(sp => new AuthRepository(factory));
+builder.Services.AddSingleton(sp => new WorkerRepository(factory));
+builder.Services.AddSingleton(sp => new LineSupervisorRepository(factory));
 builder.Services.AddSingleton(sp => new LineScheduleRepository(factory));
+builder.Services.AddSingleton(sp => new ApsRepository(factory));   // PP-APS 생산계획 — BuildBundle·SaveRun·LoadRun·MD_ApsLineStage
 builder.Services.AddSingleton(sp => new OeeRepository(factory));
 builder.Services.AddSingleton<ServerMonitorService>();
+builder.Services.AddSingleton<AMES.Web.Services.PoSyncClient>();   // PP-002 API 가져오기 → AMES.Api PO Sync Worker 수동 실행
+builder.Services.AddSingleton<AMES.Web.Services.DemandPlanSyncClient>();   // PP-001 일별 탭 API 가져오기 → AMES.Api DemandPlanSync Worker 수동 실행
 // LANGUAGE_DEFAULT(SYS_Config) 캐시 — 컬처 강제/언어 스위처 판정
 builder.Services.AddSingleton<AMES.Web.Services.AppLanguageState>();
 
 var app = builder.Build();
+
+// 저장 전 컬럼 검사(ColumnParams) 실패 문구 — 화면은 ex.Message 를 그대로 보이므로 여기서 회로의 UI 언어로 만든다
+{
+    var dbText = app.Services.GetRequiredService<Microsoft.Extensions.Localization.IStringLocalizerFactory>().Create(typeof(AMES.Web.SharedResources));
+    AMES.Data.Connection.DbValueException.Formatter = e => e.Problem switch
+    {
+        AMES.Data.Connection.DbValueProblem.TooLong when e.BytesUnit => string.Format(dbText["Err.Db.TooLongBytes"].Value, e.Column, e.Limit, e.Actual),
+        AMES.Data.Connection.DbValueProblem.TooLong     => string.Format(dbText["Err.Db.TooLong"].Value, e.Column, e.Limit, e.Actual),
+        AMES.Data.Connection.DbValueProblem.Unencodable => string.Format(dbText["Err.Db.Unencodable"].Value, e.Column, e.BadChar),
+        _                                               => string.Format(dbText["Err.Db.OutOfRange"].Value, e.Column),
+    };
+}
+
+if (dpKeyError is null) app.Logger.LogInformation("Data Protection keys -> {Dir}", dpKeyDir);
+else app.Logger.LogWarning("Data Protection key folder {Dir} is not writable ({Error}) — falling back to framework default; logins may drop on app pool recycle", dpKeyDir, dpKeyError);
+
+// DB 서버 시각 기준의 Now/Today (AMES.Data.Services.DbClock) — 기동 시 1회 맞추고, 이후 로그인(회로 시작) 때 TopBar 가
+// 10분보다 오래됐을 때만 다시 읽는다. DB 가 아직 안 뜬 상태여도 실패를 삼키고 Offset 0(호스트 시계)으로 계속 간다.
+DbClock.Configure(factory);
+DbClock.Sync();
+AMES.Contracts.Dto.WorkOrderDto.Today = () => DbClock.Today;   // PP-004·PP-CAL 의 D-day 도 DB 날짜로
 
 // ── Startup seeds ──────────────────────────────────────────────────────
 // 여기서 예외가 새어나가면 ANCM 이 프로세스를 못 올려 모든 요청이 500 이 되고,
@@ -154,13 +320,22 @@ await RunSeedAsync("admin", async scope =>
     var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     const string email = "admin@ames.local";
-    const string adminRole = "Admin";
-    if (await roleMgr.FindByNameAsync(adminRole) is null)
+    // 기본 역할(ROLE-xxx)은 ID 가 고정이다(SystemRoles) — 없으면 기본 이름으로 만든다. 같은 이름·옛 이름이 다른 ID 로 있으면(옛 DB)
+    // 여기서 옮기지 않는다: dist/migrate_system_roles.sql 이 사용자 배정·권한 행까지 한 트랜잭션으로 옮긴다
+    foreach (var (roleId, defaultName, oldName) in SystemRoles.All)
     {
-        var roleRes = await roleMgr.CreateAsync(new IdentityRole(adminRole));
+        if (await roleMgr.FindByIdAsync(roleId) is not null) continue;
+        if (await roleMgr.FindByNameAsync(defaultName) is not null || (oldName is not null && await roleMgr.FindByNameAsync(oldName) is not null))
+        {
+            app.Logger.LogWarning("system role {RoleId}: '{Name}' exists with another ID — apply dist/migrate_system_roles.sql", roleId, oldName ?? defaultName);
+            continue;
+        }
+        var roleRes = await roleMgr.CreateAsync(new IdentityRole(defaultName) { Id = roleId });
         if (!roleRes.Succeeded)
-            app.Logger.LogWarning("admin role seed failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
+            app.Logger.LogWarning("system role seed failed {RoleId}: {Errs}", roleId, string.Join("; ", roleRes.Errors.Select(e => e.Description)));
     }
+    // 역할 배정 API 는 이름을 받으므로 고정 ID 역할의 현재 이름을 읽어 쓴다(이름은 SYS-002 에서 바뀔 수 있다)
+    var adminRole = (await roleMgr.FindByIdAsync(SystemRoles.AdminId))?.Name;
 
     var adminUser = await userMgr.FindByEmailAsync(email);
     if (adminUser is null)
@@ -176,16 +351,22 @@ await RunSeedAsync("admin", async scope =>
         }
     }
 
-    if (adminUser is not null && !await userMgr.IsInRoleAsync(adminUser, adminRole))
+    if (adminUser is not null && adminRole is not null && !await userMgr.IsInRoleAsync(adminUser, adminRole))
     {
         var roleRes = await userMgr.AddToRoleAsync(adminUser, adminRole);
         if (!roleRes.Succeeded)
             app.Logger.LogWarning("admin role assignment failed: {Errs}", string.Join("; ", roleRes.Errors.Select(e => e.Description)));
     }
+
+    // 프로필 없는 계정은 로그인이 거부된다 — 시드 관리자는 활성 프로필을 함께 둔다. 이미 있으면 건드리지 않는다
+    if (adminUser is not null)
+        scope.ServiceProvider.GetRequiredService<SysRepository>().EnsureActiveProfile(adminUser.Id, "Administrator", "SEED");
 });
 
 // ── Role seed: SYS_RolePermission.RoleName → AspNetRoles + RoleID backfill ──
 // Idempotent: skips roles that already exist, skips rows where RoleID is set.
+// RoleID 가 있는 행은 이름으로 역할을 만들지 않는다 — 시스템 역할 이름을 바꾼 뒤 옛 이름의 권한 행이 남아 있어도
+// 같은 의미의 역할이 새 GUID 로 하나 더 생기지 않게
 await RunSeedAsync("role", async scope =>
 {
     var roleMgr     = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -195,7 +376,7 @@ await RunSeedAsync("role", async scope =>
     var roleNames = new List<string>();
     using (var conn = connFactory.OpenConnection())
     using (var cmd  = new SqlCommand(
-        "SELECT DISTINCT RoleName FROM dbo.SYS_RolePermission WHERE RoleName IS NOT NULL ORDER BY RoleName", conn))
+        "SELECT DISTINCT RoleName FROM dbo.SYS_RolePermission WHERE RoleID IS NULL AND RoleName IS NOT NULL ORDER BY RoleName", conn))
     using (var rdr  = cmd.ExecuteReader())
         while (rdr.Read()) roleNames.Add((string)rdr["RoleName"]);
 
@@ -228,6 +409,10 @@ await RunSeedAsync("role", async scope =>
 });
 
 // Configure the HTTP request pipeline.
+// 외부 개방 화면(/portal)에서 난 예외는 내부 셸(MainLayout)의 /Error 가 아니라 맨몸 /portal/error 로 — 외부 사용자에게 내부 메뉴가 보이지 않게
+app.UseWhen(ctx => AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path),
+    branch => branch.UseExceptionHandler("/portal/error", createScopeForErrors: true));
+
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -237,12 +422,16 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// 엔드포인트 목록은 로그인 없이 보이므로 개발 환경에서만
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "AMES Web API v1");
-    c.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AMES Web API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
 
 // HTTPS redirect/HSTS only when an HTTPS port is actually configured.
 // IIS sets ANCM_HTTPS_PORT automatically when an HTTPS binding exists.
@@ -261,24 +450,112 @@ var locOptions = new RequestLocalizationOptions
 {
     DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(culture: "ko-KR", uiCulture: "ko")
 };
-locOptions.AddSupportedCultures("ko-KR", "en-US", "es-MX", "es-ES");
+locOptions.AddSupportedCultures(AMES.Web.Services.AppLanguageState.SupportedCultures);
 locOptions.AddSupportedUICultures("ko", "en", "es");
 // LANGUAGE_DEFAULT 비활성 시 en-US 강제(쿠키보다 우선) — 맨 앞에 삽입
 locOptions.RequestCultureProviders.Insert(0, new AMES.Web.Services.LanguageDefaultCultureProvider());
 app.UseRequestLocalization(locOptions);
 
 app.UseStaticFiles();
+app.UseRateLimiter();
+
+// 위조 방지 토큰이 만료·불일치한 폼 POST(재배포·앱풀 재활용 전에 열어 둔 로그인/로그아웃 화면에서 제출, 또는
+// Data Protection 키가 바뀐 경우)는 본문 없는 HTTP 400 으로 끝나 사용자에게 "서버 400 오류"로만 보인다.
+// /Account 의 폼 POST 에 한해 같은 화면의 GET 으로 돌려보내 새 토큰을 받게 한다. API(JSON)·Blazor 허브는 건드리지 않는다.
+// 주의: 검증이 실패한 요청에서 Request.HasFormContentType·Request.Form 을 읽으면 프레임워크가 InvalidOperationException 을 던진다
+// (500 으로 악화) — Content-Type 헤더 문자열만 본다.
+app.Use(async (ctx, next) =>
+{
+    await next();
+    var contentType = ctx.Request.ContentType ?? "";
+    bool isFormPost = contentType.StartsWith("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)
+                   || contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase);
+    if (ctx.Response.StatusCode == StatusCodes.Status400BadRequest && !ctx.Response.HasStarted
+        && HttpMethods.IsPost(ctx.Request.Method) && isFormPost
+        && (ctx.Request.Path.StartsWithSegments("/Account") || AMES.Web.Services.PortalAuth.IsPortalPath(ctx.Request.Path)))
+    {
+        // ReturnUrl 등 원래 쿼리는 유지한다(로그인 후 가려던 화면)
+        var query = ctx.Request.QueryString.Value ?? "";
+        var target = ctx.Request.Path.StartsWithSegments("/Account/Logout") ? "/Account/Login"
+                   : ctx.Request.Path.Value + (query.Contains("expired=1") ? query : query + (query.Length == 0 ? "?" : "&") + "expired=1");
+        if (target == "/Account/Login") target += "?expired=1";
+        ctx.Response.Redirect(target);
+    }
+});
+
+// 로그인 화면(내부·외부)은 늘 로그인 전 사용자로 처리한다. 위조 방지 토큰은 화면을 연 시점의 사용자에 묶이는데,
+// 화면을 열어 둔 채 다른 탭에서 내부·외부로 로그인하면 쿠키가 바뀌어 제출 때 사용자가 달라지고 첫 POST 가 400(→ expired=1)이 돼
+// 로그인 버튼을 두 번 눌러야 했다. 두 화면은 현재 사용자를 쓰지 않는다(계정은 폼 값, 쿠키 정리는 WebSignIn).
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Path.Equals("/Account/Login", StringComparison.OrdinalIgnoreCase)
+        || ctx.Request.Path.Equals(AMES.Web.Services.PortalAuth.LoginPath, StringComparison.OrdinalIgnoreCase))
+        ctx.User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity());
+    await next();
+});
+
+// 외부 노출 게이트: appsettings Portal:ExternalHosts 에 적힌 호스트명(예 portal.example.com)으로 들어온 요청은
+// 외부 화면(/portal)·Blazor 회로·정적 파일만 허용하고 나머지는 403. 목록이 비어 있으면(기본) 아무것도 막지 않는다.
+// IIS URL Rewrite 모듈 없이 소스로 관리하려는 것. 사내 호스트명은 전체를 서비스한다.
+var externalHosts = builder.Configuration.GetSection("Portal:ExternalHosts").Get<string[]>() ?? [];
+if (externalHosts.Length > 0)
+{
+    var hostSet = new HashSet<string>(externalHosts.Select(h => h.Trim()), StringComparer.OrdinalIgnoreCase);
+    app.Use(async (ctx, next) =>
+    {
+        if (hostSet.Contains(ctx.Request.Host.Host) && !AMES.Web.Services.PortalAuth.IsAllowedOnExternalHost(ctx.Request.Path))
+        {
+            if (ctx.Request.Path == "/") { ctx.Response.Redirect(AMES.Web.Services.PortalAuth.LoginPath); return; }
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+        await next();
+    });
+}
 
 app.UseAntiforgery();
+
+// 외부 포탈 로그아웃 — 외부 쿠키만 지우고 외부 로그인으로 돌아간다(내부 쿠키·내부 로그인과는 무관).
+app.MapPost("/portal/logout", async (HttpContext ctx) =>
+{
+    try { await ctx.RequestServices.GetRequiredService<Microsoft.AspNetCore.Antiforgery.IAntiforgery>().ValidateRequestAsync(ctx); }
+    catch (Microsoft.AspNetCore.Antiforgery.AntiforgeryValidationException) { return Results.BadRequest(); }
+    await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx, AMES.Web.Services.PortalAuth.Scheme);
+    return Results.Redirect(AMES.Web.Services.PortalAuth.LoginPath);
+});
+
+// 포탈 상단바 비밀번호 변경 직후 — 비밀번호 버전이 바뀐 기존 쿠키 대신 새 쿠키를 준다(1회용 표, 내부 /Account/RefreshSignIn 과 같은 방식).
+// 표는 "portal:" + 이메일. 사용할 수 없는 계정(비활성·잠금·업체 비활성)이면 외부 로그인으로 보낸다.
+app.MapGet("/portal/refresh-signin", async (HttpContext ctx, string? t, string? returnUrl,
+    AMES.Web.Services.SignInRefreshTickets tickets, AMES.Data.Repositories.ScmRepository scm) =>
+{
+    var key = tickets.Redeem(t);
+    var user = key is not null && key.StartsWith("portal:", StringComparison.Ordinal) ? scm.FindPortalUser(key["portal:".Length..]) : null;
+    if (user is null || !user.ActiveFlag || user.LockedFlag || !user.VendorActive)
+        return Results.Redirect(AMES.Web.Services.PortalAuth.LoginPath);
+    await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignInAsync(ctx, AMES.Web.Services.PortalAuth.Scheme,
+        AMES.Web.Services.PortalAuth.BuildPrincipal(user), new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = false });
+    var back = AMES.Web.Services.LocalUrl.IsLocal(returnUrl) && AMES.Web.Services.PortalAuth.IsPortalPath(new PathString(returnUrl!.Split('?', '#')[0]))
+        ? returnUrl! : AMES.Web.Services.PortalAuth.HomePath;
+    return Results.Redirect(back);
+}).AllowAnonymous();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+// 외부 화면 전용 Blazor 회로 — 기본 /_blazor 와 같은 허브를 /portal 아래에 하나 더 둔다.
+// 회로의 사용자는 연결 요청의 인증으로 정해지므로, 경로가 갈려야 내부·외부 쿠키가 같이 있어도 각 화면이 자기 사용자로 붙는다.
+app.MapBlazorHub(AMES.Web.Services.PortalAuth.HubPath);
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.UtcNow }))
+app.MapGet("/api/health", () => Results.Ok(new
+    {
+        status = "ok", at = DateTime.UtcNow,
+        // 시각 보정 상태 — 화면의 Now/Today 가 DB 서버 시각과 맞는지 운영 중 확인용
+        dbClock = new { now = DbClock.Now.ToString("yyyy-MM-dd HH:mm:ss"), offsetMinutes = Math.Round(DbClock.Offset.TotalMinutes, 1), synced = DbClock.IsSynced, syncAgeSec = DbClock.SyncAge is { } a ? (int?)a.TotalSeconds : null },
+    }))
     .WithTags("System")
     .WithSummary("헬스 체크")
     .WithDescription("서버 상태를 반환합니다.");
@@ -287,17 +564,5 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "ok", at = DateTime.Ut
 app.MapGet("/keep-alive", () => Results.NoContent())
     .RequireAuthorization()
     .ExcludeFromDescription();
-
-app.MapGet("/culture/set", (string culture, string redirectUri, HttpContext ctx) =>
-{
-    ctx.Response.Cookies.Append(
-        Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.DefaultCookieName,
-        Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.MakeCookieValue(
-            new Microsoft.AspNetCore.Localization.RequestCulture(culture)),
-        new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true });
-    // Nav.Uri returns absolute URL — extract local path only for LocalRedirect
-    var localPath = Uri.TryCreate(redirectUri, UriKind.Absolute, out var u) ? u.PathAndQuery : "/";
-    return Results.LocalRedirect(localPath);
-}).ExcludeFromDescription();
 
 app.Run();

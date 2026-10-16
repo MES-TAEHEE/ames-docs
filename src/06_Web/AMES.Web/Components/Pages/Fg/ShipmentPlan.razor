@@ -1,0 +1,227 @@
+@page "/fg/shipment-plan"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject PpRepository Pp
+@inject UomFormat UomFmt
+@inject MasterDataRepository MD
+@inject PermissionService PermSvc
+@inject AuthenticationStateProvider AuthPrvd
+@inject NavigationManager Nav
+@inject DialogService Dialog
+
+<PageTitle>FG-02 Shipment Plan - AMES</PageTitle>
+<AmesPageHeader Code="FG-02" Title="Shipment Plan" />
+
+<div class="ames-page-fill shipment-plan-page">
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" AllowClose="false">@_error</RadzenAlert>
+    }
+    @if (!ValidDateRange)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" AllowClose="false">Select a valid ship-date range. From must be on or before To.</RadzenAlert>
+    }
+    <section class="ames-card ames-card-fill">
+        <div class="ames-card-h plan-toolbar">
+            <span>SUPPLY PLAN LINES · @_view.Count <small class="preview-tag" title="Display-only plan. Pallet quantity comes from Item Master. Maximum 18 pallets per trailer. No database changes.">PREVIEW</small></span>
+            <div class="plan-filters">
+                <RadzenLabel Text="Ship date" Component="ShipDateFrom" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipDateFrom" @bind-Value="_shipFrom" @bind-Value:after="Load"
+                    DateFormat="@DateFmt.Date" AllowClear="false" Placeholder="From"
+                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+                <span aria-hidden="true">–</span>
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipDateTo" @bind-Value="_shipTo" @bind-Value:after="Load"
+                    DateFormat="@DateFmt.Date" AllowClear="false" Placeholder="To"
+                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+                <RadzenDropDown Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter"
+                    AllowClear="true" AllowFiltering="true" Placeholder="All customers"
+                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
+                <RadzenTextBox @bind-Value="_search" @bind-Value:after="Filter" Placeholder="Search"
+                    InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px" />
+                <RadzenButton Text="Refresh" Icon="refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small"
+                    class="ames-rz-btn" Click="Load" />
+                <RadzenButton Text="Trailer Preview" Icon="local_shipping" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                    class="ames-rz-btn" Disabled="@(_view.Count == 0)" Click="OpenTrailerPreview" />
+            </div>
+        </div>
+        <div class="ames-grid-virtual">
+            <RadzenDataGrid @ref="_grid" Data="_view" TItem="TrailerLoadDraft.Line" AllowVirtualization="true"
+                Style="height:100%" AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                AllowFiltering="true" FilterMode="FilterMode.CheckBoxList" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                EmptyText="No supply plan lines in this ship-date range. Change the dates to view another period." class="ames-rz-grid shipment-plan-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="SHIP QTY ÷ QTY PER PALLET = PALLETS" Width="340px" Sortable="false" Filterable="false">
+                        <HeaderTemplate>
+                            <div class="load-estimate load-estimate-header" aria-label="Ship quantity divided by quantity per pallet equals estimated pallets">
+                                <span>SHIP QTY</span>
+                                <span class="calculation-separator" aria-hidden="true">÷</span>
+                                <span>QTY / PALLET</span>
+                                <span class="calculation-separator" aria-hidden="true">=</span>
+                                <span>PALLETS</span>
+                            </div>
+                        </HeaderTemplate>
+                        <Template Context="line">
+                            <div class="load-estimate" @key="line.Source.SoId">
+                                <input type="number" min="0" max="@Whole(decimal.Floor(line.Balance))" step="1"
+                                    aria-label="Shipment quantity for @line.Source.ItemNo" value="@line.QuantityText"
+                                    aria-invalid="@(line.QuantityError.Length > 0 ? "true" : "false")"
+                                    title="@($"Shipment quantity · remaining: {UomFmt.Qty(line.Balance, null)}")"
+                                    @oninput="e => ChangeLoad(line, e.Value?.ToString())" />
+                                <span class="calculation-separator" aria-hidden="true">@(line.IsTote ? "/" : "÷")</span>
+                                <span class="packing-value">
+                                    @if (line.PerPallet is decimal packing)
+                                    {
+                                        <span title="@(line.IsTote ? "Item Master packing quantity; not used to calculate TOTE pallets." : "Item Master · Pallet Qty")">@packing.ToString("N0")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="packing-missing">Not determined</span>
+                                        <button type="button" class="packing-info" title="@PackingHelp(line.IsTote)"
+                                            aria-label="Why the packing quantity is not determined"
+                                            @onclick="() => ShowPackingHelp(line.IsTote)">ⓘ</button>
+                                    }
+                                </span>
+                                <span class="calculation-separator" aria-hidden="true">@(line.IsTote ? "·" : "=")</span>
+                                <span class="pallet-count" aria-live="polite">
+                                    @if (line.IsTote && line.Quantity > 0)
+                                    {
+                                        <span>Group</span>
+                                        <button type="button" class="packing-info" title="@PackingHelp(true)"
+                                            aria-label="Set estimated pallets for the TOTE group"
+                                            @onclick="() => ShowPackingHelp(true)">ⓘ</button>
+                                    }
+                                    else
+                                    {
+                                        @(line.PalletCount?.ToString("N0") ?? "—") <small>PLT</small>
+                                    }
+                                </span>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.SoNumber" Title="SO" Width="110px" />
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.CustomerId" Title="CUSTOMER" Width="95px" />
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemNo" Title="PART #">
+                        <Template Context="line">
+                            <span class="part-summary" title="@($"{line.Source.ItemNo} · {line.Source.ItemName}")">
+                                <span>@line.Source.ItemNo</span>
+                                @if (!line.Source.ItemExists) { <span class="badge-bad">Unregistered</span> }
+                                @if (!string.IsNullOrEmpty(line.Source.ItemName)) { <span> · @line.Source.ItemName</span> }
+                            </span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.RequestedDeliveryDate" Title="REQUESTED"
+                        FormatString="@DateFmt.Fmt(DateFmt.Date)" Width="105px" Filterable="false" />
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="ORDER / SHIPPED / REMAINING" Width="205px" Sortable="false" Filterable="false">
+                        <Template Context="line">
+                            <div class="quantity-summary">
+                                <span title="Order quantity">@UomFmt.Qty(line.Source.OrderQty, null)</span><span>/</span>
+                                <span title="Shipped quantity">@UomFmt.Qty(line.Source.ShippedQty, null)</span><span>/</span>
+                                <strong title="Remaining quantity">@UomFmt.Qty(line.Balance, null)</strong>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </section>
+</div>
+
+@code {
+    List<TrailerLoadDraft.Line> _lines = [];
+    List<TrailerLoadDraft.Line> _view = [];
+    List<string> _customers = [];
+    RadzenDataGrid<TrailerLoadDraft.Line>? _grid;
+    TrailerLoadDraft? _draft;
+    string _scope = "";
+    string _error = "";
+    string? _customer;
+    string? _search;
+    DateTime? _shipFrom = DbClock.Today;
+    DateTime? _shipTo = DbClock.Today.AddDays(6);
+    bool ValidDateRange => _shipFrom.HasValue && _shipTo.HasValue && _shipFrom.Value.Date <= _shipTo.Value.Date;
+    bool _allowed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _allowed = PermSvc.CanOpen("fg/shipment-plan");
+        if (!_allowed) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        Load();
+    }
+
+    void Load()
+    {
+        if (!_allowed) return;
+        _error = "";
+        _draft = null;
+        if (!ValidDateRange)
+        {
+            _lines = [];
+            _view = [];
+            _customers = [];
+            return;
+        }
+        try
+        {
+            // Same read-only source as PP supply plans. No plan/order/inventory writes.
+            var packing = MD.ListItems().ToDictionary(x => x.ItemNo.Trim(), StringComparer.OrdinalIgnoreCase);
+            _lines = Pp.ListShipmentPlanOrders(_shipFrom!.Value, _shipTo!.Value)
+                .Where(TrailerLoadDraft.IsShipmentCandidate)
+                .Select(x => new TrailerLoadDraft.Line(x, packing.GetValueOrDefault(x.ItemNo.Trim())?.PalletQty,
+                    packing.GetValueOrDefault(x.ItemNo.Trim())?.ToteFlag ?? false)).ToList();
+            _customers = _lines.Select(x => x.Source.CustomerId).Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!).Distinct().Order().ToList();
+            if (_customer is not null && !_customers.Contains(_customer)) _customer = null;
+        }
+        catch
+        {
+            _lines = [];
+            _customers = [];
+            _error = "Unable to load supply plan or Item Master data. Check the database connection and try Refresh.";
+        }
+        Filter();
+    }
+
+    void Filter()
+    {
+        _draft = null;
+        _view = _lines.Where(x => TrailerLoadDraft.IsInShipDateRange(x, _shipFrom, _shipTo)
+            && (string.IsNullOrEmpty(_customer) || x.Source.CustomerId == _customer)
+            && (string.IsNullOrWhiteSpace(_search)
+                || x.Source.ItemNo.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                || (x.Source.ItemName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (x.Source.SoNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
+    }
+
+    static string Whole(decimal value) => value.ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+
+    void ChangeLoad(TrailerLoadDraft.Line line, string? text)
+    {
+        _draft = null;
+        line.TryChange(text, out _error);
+    }
+
+    static string PackingHelp(bool tote) => tote
+        ? "TOTE pallet quantities are not determined per part. Open Trailer Preview > Details & TOTE and enter Estimated pallets for the customer and ship-date group. These pallets will then be included in the estimated pallet and trailer totals. Item Master packing quantities are not used for this calculation."
+        : "The packing quantity has not been determined yet. Set Pallet Qty for this part in Product Item Master, save it, then click Refresh here. Its calculated pallets will then be included in the estimated pallet and trailer totals.";
+
+    Task ShowPackingHelp(bool tote) => Dialog.Alert(PackingHelp(tote), "Packing quantity information");
+
+    async Task OpenTrailerPreview()
+    {
+        var visible = (_grid?.View ?? _view.AsQueryable()).ToList();
+        var scope = string.Join(",", visible.Select(x => x.Source.SoId).Order());
+        if (_scope != scope) _draft = null;
+        if (_draft is null)
+        {
+            var draft = new TrailerLoadDraft();
+            if (!draft.Build(visible, out _error)) return;
+            _draft = draft;
+            _scope = scope;
+        }
+        _error = "";
+        await Dialog.OpenAsync<ShipmentTrailerDialog>("Trailer Load Preview",
+            new Dictionary<string, object?> { ["Plan"] = _draft, ["ShipFrom"] = _shipFrom!.Value.Date, ["ShipTo"] = _shipTo!.Value.Date },
+            new DialogOptions { Width = "95vw", CloseDialogOnOverlayClick = false, Resizable = true });
+    }
+}

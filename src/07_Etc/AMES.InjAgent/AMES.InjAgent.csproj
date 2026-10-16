@@ -12,8 +12,8 @@
     <ProjectReference Include="..\..\02_Data\AMES.Data\AMES.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NModbus" Version="3.0.81" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
+    <PackageReference Include="NModbus" Version="3.0.83" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.13" />
   </ItemGroup>
   <ItemGroup>
     <None Update="appsettings.json">

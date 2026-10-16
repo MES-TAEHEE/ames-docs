@@ -1,0 +1,77 @@
+.auto-order-page {
+    display: block;
+}
+
+.auto-order-page .wh-pick-list {
+    min-height: 330px;
+}
+
+.auto-order-page > .ames-card + .ames-card {
+    margin-top: 12px;
+}
+
+.slip-detail-card {
+    margin-top: 12px;
+}
+
+.slip-detail-card .code {
+    display: block;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.2;
+}
+
+.wh-slip-paper {
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.wh-slip-paper .wh-slip-meta div,
+.wh-slip-barcode-box,
+.wh-slip-table th,
+.wh-slip-table td {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.wh-slip-table {
+    max-width: 100%;
+}
+
+.wh-slip-table .slip-col-no { width: 4%; }
+.wh-slip-table .slip-col-part { width: 15%; }
+.wh-slip-table .slip-col-name { width: 22%; }
+.wh-slip-table .slip-col-qty { width: 9%; }
+.wh-slip-table .slip-col-lot { width: 20%; }
+.wh-slip-table .slip-col-location { width: 18%; }
+.wh-slip-table .slip-col-destination { width: 12%; }
+
+.wh-slip-table th,
+.wh-slip-table td {
+    max-width: 0;
+    hyphens: none;
+}
+
+.wh-slip-table td.num {
+    white-space: nowrap;
+}
+
+.pick-source {
+    display: block;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+
+@media print {
+    .auto-order-page,
+    .slip-detail-card,
+    .ames-page-header,
+    .rz-alert {
+        display: none !important;
+    }
+}

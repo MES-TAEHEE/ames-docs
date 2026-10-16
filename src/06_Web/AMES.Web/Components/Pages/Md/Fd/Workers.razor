@@ -1,0 +1,457 @@
+@page "/md/fd/workers"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Data.Security
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject AMES.Web.Services.ActorNames Actors
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject WorkerRepository WorkerRepo
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
+
+<PageTitle>MD-032 @L["MD.Workers.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="MD-032" TitleKey="MD.Workers.Title" />
+
+@* ── KPI strip ──────────────────────────────────────────────────── *@
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
+        <div class="ames-kpi-v">@_allRows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["MD.Workers.Kpi.NoPin"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.ActiveFlag && !r.HasPin)</div>
+    </div>
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["MD.Workers.Kpi.BadgeCreated"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => IsBadgeCreated(r))</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["MD.Workers.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Workers.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px;" />
+            <RadzenLabel Text="@L["MD.Workers.Col.Pin"]" Component="DropDownPin" />
+            <RadzenDropDown Name="DropDownPin" @bind-Value="_fPin" Data="@PinFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+            <RadzenLabel Text="@L["Col.Active"]" Component="DropDownStatus" />
+            <RadzenDropDown Name="DropDownStatus" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@(args => Reload())" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["MD.Workers.Hint"]</div>
+
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="WorkerRepository.WorkerRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Workers.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+        <Columns>
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="EmployeeNo" Title="@L["MD.Workers.Col.WorkerNo"]" TextAlign="TextAlign.Center" Width="140px">
+                <Template Context="w"><span class="code">@w.EmployeeNo</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="EmployeeName" Title="@L["MD.Workers.Col.WorkerName"]" />
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="HasPin" Title="@L["MD.Workers.Col.Pin"]" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="w">
+                    @if (w.HasPin) { <span class="pill ok">@L["MD.Workers.Pin.Set"]</span> }
+                    else { <span class="pill warn">@L["MD.Workers.Pin.None"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="w">
+                    @if (w.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                    else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="CreatedBy" Title="@L["MD.Workers.Col.CreatedBy"]" TextAlign="TextAlign.Center" Width="150px">
+                <Template Context="w">
+                    @if (IsBadgeCreated(w)) { <span class="pill info">@L["MD.Workers.Src.Badge"]</span> }
+                    else { <span class="dim">@Actors.Display(w.CreatedBy)</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="CreatedTs" Title="@L["MD.Workers.Col.CreatedTs"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="w"><span class="dim">@(w.CreatedTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="ModifiedTs" Title="@L["MD.Workers.Col.ModifiedTs"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="w"><span class="dim">@(w.ModifiedTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@* ── Create Modal ─────────────────────────────────────────────────── *@
+@if (_modal == "create")
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.Workers.Title"] — @L["Modal.Create"]</div>
+
+            @* Chrome 자동완성/비밀번호 관리자 억제용 더미 필드 *@
+            <input type="text"     style="display:none" autocomplete="username" />
+            <input type="password" style="display:none" autocomplete="new-password" />
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerNo"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxEmployeeNo" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" MaxLength="20" Placeholder="@L["MD.Workers.Ph.WorkerNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerName"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxEmployeeName" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeName" @bind-Value="_f.EmployeeName" MaxLength="50" Placeholder="@L["MD.Workers.Ph.WorkerName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["MD.Workers.Lbl.Pin"]" class="ames-rz-modal-label" Component="CreateTextBoxPin" />
+                    <RadzenTextBox Name="CreateTextBoxPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["MD.Workers.Ph.Pin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Active"]" class="ames-rz-modal-label" Component="CreateChkActive" />
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="CreateChkActive" />
+                </RadzenStack>
+            </RadzenStack>
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@* ── Edit Modal ──────────────────────────────────────────────────── *@
+@if (_modal == "edit" && _sel is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+        <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.Workers.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.EmployeeNo</span></div>
+
+            <input type="text"     style="display:none" autocomplete="username" />
+            <input type="password" style="display:none" autocomplete="new-password" />
+
+            <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["MD.Workers.Lbl.WorkerNo"]" class="ames-rz-modal-label" Component="EditTextBoxEmployeeNo" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeNo" Value="@_sel.EmployeeNo" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                </RadzenStack>
+                <div class="dim" style="font-size:var(--ames-fs-hint);margin-top:-10px;">@L["MD.Workers.Hint.WorkerNoFixed"]</div>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text='@($"{L["MD.Workers.Lbl.WorkerName"]} *")' class="ames-rz-modal-label" Component="EditTextBoxEmployeeName" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeName" @bind-Value="_f.EmployeeName" MaxLength="50" Placeholder="@L["MD.Workers.Ph.WorkerName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["MD.Workers.Lbl.NewPin"]" class="ames-rz-modal-label" Component="EditTextBoxNewPin" />
+                    <RadzenTextBox Name="EditTextBoxNewPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["MD.Workers.Ph.NewPin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["MD.Workers.Col.Pin"]" class="ames-rz-modal-label" />
+                    @if (_sel.HasPin)
+                    {
+                        <span class="pill ok">@L["MD.Workers.Pin.Set"]</span>
+                        <RadzenButton Text="@L["MD.Workers.Btn.ClearPin"]" Icon="lock_reset" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.ExtraSmall" Click="@ClearPin" Disabled="@_busy" class="ames-rz-btn" />
+                    }
+                    else
+                    {
+                        <span class="pill warn">@L["MD.Workers.Pin.None"]</span>
+                        <span class="dim" style="font-size:var(--ames-fs-hint);">@L["MD.Workers.Hint.NoPin"]</span>
+                    }
+                </RadzenStack>
+
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                    <RadzenLabel Text="@L["Col.Active"]" class="ames-rz-modal-label" Component="EditChkActive" />
+                    <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="EditChkActive" />
+                </RadzenStack>
+
+                <div class="dim" style="font-size:var(--ames-fs-hint);">
+                    @L["MD.Workers.Col.CreatedBy"]: @Actors.Display(_sel.CreatedBy) · @(_sel.CreatedTs?.ToString(DateFmt.DateTime) ?? "—")
+                    @if (!string.IsNullOrEmpty(_sel.ModifiedBy)) { <span> · @L["MD.Workers.Lbl.Modified"]: @Actors.Display(_sel.ModifiedBy) · @(_sel.ModifiedTs?.ToString(DateFmt.DateTime) ?? "—")</span> }
+                </div>
+            </RadzenStack>
+
+            @if (_confirmDelete)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@L["MD.Workers.Msg.ConfirmDeactivate"]</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDeactivate" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (_sel.ActiveFlag)
+                {
+                    <RadzenButton Text="@L["MD.Workers.Btn.Deactivate"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="person_off" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
+    List<WorkerRepository.WorkerRow> _allRows = new();
+    List<WorkerRepository.WorkerRow> _rows    = new();
+    List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
+    WorkerRepository.WorkerRow? _sel;
+
+    string  _fSearch = "";
+    string? _fPin, _fActive;
+
+    string _modal = "";   // "" | "create" | "edit"
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf, _canEdit, _isErr;
+    string _actor = "system";
+    string _msg = "", _modalErr = "";
+
+    FormModel _f = new();
+
+    // POP 로그인 화면의 배지 스캔이 만든 행 (WorkerRepository.EnsureRegistered) — CreatedBy 가 본인 사번.
+    // 구 버전이 남긴 행은 'POP-SCAN' 이다.
+    const string LegacyBadgeCreatedBy = "POP-SCAN";
+    static bool IsBadgeCreated(WorkerRepository.WorkerRow w) =>
+        string.Equals(w.CreatedBy, w.EmployeeNo, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(w.CreatedBy, LegacyBadgeCreatedBy, StringComparison.OrdinalIgnoreCase);
+
+    public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
+
+    // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
+    private IEnumerable<DropDownItem> ActiveFilterOptions =>
+        _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
+    private IEnumerable<DropDownItem> PinFilterOptions => new[]
+    {
+        new DropDownItem { Value = "SET",  Text = L["MD.Workers.Pin.Set"] },
+        new DropDownItem { Value = "NONE", Text = L["MD.Workers.Pin.None"] },
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("md/fd/workers");
+        try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
+        Reload();
+    }
+
+    RadzenDataGrid<WorkerRepository.WorkerRow>? _pgGrid;
+    int _pgIndex;
+    void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
+
+    async Task ReloadRestorePage()
+    {
+        Reload();
+        await InvokeAsync(StateHasChanged);
+        if (_pgGrid is not null)
+        {
+            int pages = Math.Max(1, (int)Math.Ceiling(_rows.Count / (double)_pgGrid.PageSize));
+            await _pgGrid.GoToPage(Math.Min(_pgIndex, pages - 1));
+        }
+    }
+
+    void Reload()
+    {
+        try { _allRows = WorkerRepo.ListAll(); }
+        catch (Exception ex) { _allRows = new(); ShowMsg(ex.Message, true); }
+        ApplyFilter();
+    }
+
+    void ApplyFilter()
+    {
+        _rows = _allRows.Where(r =>
+            (string.IsNullOrEmpty(_fSearch) ||
+                r.EmployeeNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+                r.EmployeeName.Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(_fPin) || (_fPin == "SET" ? r.HasPin : !r.HasPin)) &&
+            (string.IsNullOrEmpty(_fActive) || (_fActive == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
+        ).ToList();
+    }
+
+    void OnSearchChanged(string value) => _fSearch = value ?? "";
+    void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
+
+    void RowRender(RowRenderEventArgs<WorkerRepository.WorkerRow> args)
+    {
+        args.Attributes["class"] = args.Attributes.TryGetValue("class", out var existing) ? $"{existing} ames-row-link" : "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<WorkerRepository.WorkerRow> args)
+    {
+        if (args.Data is not null) OpenEdit(args.Data);
+    }
+
+    void OpenCreate()
+    {
+        _f = new(); _modalErr = ""; _confirmDelete = false;
+        _modal = "create";
+    }
+
+    void OpenEdit(WorkerRepository.WorkerRow w)
+    {
+        if (!_canEdit) return;
+        _sel = w; _modalErr = ""; _confirmDelete = false;
+        _f = new() { EmployeeNo = w.EmployeeNo, EmployeeName = w.EmployeeName, ActiveFlag = w.ActiveFlag };
+        _modal = "edit";
+    }
+
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
+
+    // 사번 중복 검사 — 다른 작업자(MD_Worker)·웹 사용자(SYS_UserProfile) 와 겹치면 _modalErr 를 채우고 false (SYS-001 Users.razor 와 동일)
+    bool EmployeeNoIsFree(string employeeNo, int? excludeWorkerId)
+    {
+        var no = employeeNo.Trim();
+        try
+        {
+            if (WorkerRepo.EmployeeNoExists(no, excludeWorkerId)) { _modalErr = string.Format(L["MD.Workers.Err.Duplicate"].Value, no); return false; }
+            if (WorkerRepo.EmployeeNoUsedByWebUser(no))          { _modalErr = string.Format(L["MD.Workers.Err.WebUser"].Value, no);   return false; }
+        }
+        catch (Exception ex) { _modalErr = ex.Message; return false; }
+        return true;
+    }
+
+    async Task SaveCreate()
+    {
+        if (!_canEdit) return;
+        _modalErr = "";
+        var no = _f.EmployeeNo.Trim();
+        if (string.IsNullOrWhiteSpace(no))            { _modalErr = L["MD.Workers.Err.WorkerNoRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["MD.Workers.Err.NameRequired"]; return; }
+        if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["MD.Workers.Err.PinFormat"]; return; }
+        // 사번은 SYS_UserProfile·MD_Worker 두 테이블을 합쳐 유일해야 한다 — SYS-001 과 같은 검사
+        if (!EmployeeNoIsFree(no, excludeWorkerId: null)) return;
+
+        _busy = true;
+        try
+        {
+            WorkerRepo.Insert(no, _f.EmployeeName.Trim(),
+                string.IsNullOrWhiteSpace(_f.Pin) ? null : PinHasher.Hash(_f.Pin), _f.ActiveFlag, _actor);
+            Audit.Created("MD-032", "MD_Worker", no, _f);
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["MD.Workers.Ok.Created"].Value, no), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task SaveEdit()
+    {
+        if (!_canEdit) return;
+        if (_sel is null) return;
+        _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["MD.Workers.Err.NameRequired"]; return; }
+        if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["MD.Workers.Err.PinFormat"]; return; }
+        if (!EmployeeNoIsFree(_sel.EmployeeNo, excludeWorkerId: _sel.WorkerId)) return;
+
+        _busy = true;
+        try
+        {
+            WorkerRepo.Update(_sel.WorkerId, _f.EmployeeName.Trim(), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-032", "MD_Worker", _sel.EmployeeNo, _sel, _f);
+            if (!string.IsNullOrWhiteSpace(_f.Pin))
+                WorkerRepo.SetPinByAdmin(_sel.WorkerId, PinHasher.Hash(_f.Pin), _actor);
+                if (!string.IsNullOrWhiteSpace(_f.Pin)) Audit.Log("MD-032", "PIN_SET", "MD_Worker", _sel.EmployeeNo, null, null);
+
+            var no = _sel.EmployeeNo;
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["MD.Workers.Ok.Updated"].Value, no), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // PIN 삭제 → 배지 전용 계정. 다음 배지 로그인 때 POP 이 PIN 설정을 강제한다.
+    async Task ClearPin()
+    {
+        if (!_canEdit) return;
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            WorkerRepo.SetPinByAdmin(_sel.WorkerId, null, _actor);
+            Audit.Log("MD-032", "PIN_RESET", "MD_Worker", _sel.EmployeeNo, null, null);
+            var no = _sel.EmployeeNo;
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["MD.Workers.Ok.PinCleared"].Value, no), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // 삭제 대신 사용 안 함 — 행을 지우면 다음 EOS 배지 스캔 때 PIN 없는 계정으로 다시 생겼다(10-13)
+    async Task SaveDeactivate()
+    {
+        if (!_canEdit) return;
+        if (_sel is null) return;
+        _busy = true;
+        try
+        {
+            WorkerRepo.Deactivate(_sel.WorkerId, _actor);
+            Audit.Updated("MD-032", "MD_Worker", _sel.EmployeeNo, _sel, _sel with { ActiveFlag = false });
+            var no = _sel.EmployeeNo;
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["MD.Workers.Ok.Deactivated"].Value, no), false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    class FormModel
+    {
+        public string EmployeeNo   { get; set; } = "";
+        public string EmployeeName { get; set; } = "";
+        public string Pin        { get; set; } = "";
+        public bool   ActiveFlag { get; set; } = true;
+    }
+
+    // POP 키패드 제약과 동일: 정확히 숫자 4자리만 유효.
+    static bool IsPin(string s) => s.Length == 4 && s.All(char.IsDigit);
+}

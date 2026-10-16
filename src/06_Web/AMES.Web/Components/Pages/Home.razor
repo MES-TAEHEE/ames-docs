@@ -1,8 +1,15 @@
 @page "/"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.Globalization
+@using AMES.Web.Services
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.WorkOrderRepository Wo
+@inject MenuCatalog Catalog
+@inject PermissionService PermSvc
+@inject ScreenCatalogNotifier ScreenCatalog
+@inject IStringLocalizer<SharedResources> L
+@implements IDisposable
 
 <PageTitle>A-MES Office Web</PageTitle>
 
@@ -10,63 +17,93 @@
 
 <div class="ames-kpis">
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">RELEASABLE WO</div>
-        <div class="ames-kpi-v">@_kpiReleasable</div>
-        <div class="ames-kpi-s">work orders ready to release</div>
+        <div class="ames-kpi-l">@L["Home.Kpi.Releasable"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_kpiReleasable</div>
+            <div class="ames-kpi-s">@L["Home.Kpi.ReleasableSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi">
-        <div class="ames-kpi-l">SCHEDULED 7D</div>
-        <div class="ames-kpi-v">@_kpiSchedule</div>
-        <div class="ames-kpi-s">line schedule slots next 7d</div>
+        <div class="ames-kpi-l">@L["Home.Kpi.Scheduled"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_kpiSchedule</div>
+            <div class="ames-kpi-s">@L["Home.Kpi.ScheduledSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi warn">
-        <div class="ames-kpi-l">DOWNTIME 7D</div>
-        <div class="ames-kpi-v">@_kpiDt</div>
-        <div class="ames-kpi-s">downtime events last 7d</div>
+        <div class="ames-kpi-l">@L["Home.Kpi.Downtime"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_kpiDt</div>
+            <div class="ames-kpi-s">@L["Home.Kpi.DowntimeSub"]</div>
+        </div>
     </div>
     <div class="ames-kpi @(_kpiOtdPct >= 95 ? "ok" : _kpiOtdPct >= 85 ? "warn" : "bad")">
-        <div class="ames-kpi-l">ON-TIME 30D</div>
-        <div class="ames-kpi-v">@_kpiOtdPct.ToString("0.0")%</div>
-        <div class="ames-kpi-s">delivery performance</div>
+        <div class="ames-kpi-l">@L["Home.Kpi.OnTime"]</div>
+        <div class="ames-kpi-row">
+            <div class="ames-kpi-v">@_kpiOtdPct.ToString("0.0")%</div>
+            <div class="ames-kpi-s">@L["Home.Kpi.OnTimeSub"]</div>
+        </div>
     </div>
 </div>
 
-<div class="ames-tiles">
-    <a class="ames-tile pp" href="pp/work-order">
-        <div class="ames-tile-ic">📅</div>
-        <div class="ames-tile-h">PP · PRODUCTION PLAN</div>
-        <div class="ames-tile-sub">13 screens · forecast · work orders · MRP · OEE · OTD</div>
-    </a>
-    <a class="ames-tile mnt" href="mnt/dashboard">
-        <div class="ames-tile-ic">🔧</div>
-        <div class="ames-tile-h">MNT · MAINTENANCE</div>
-        <div class="ames-tile-sub">9 screens · equipment · PM · spare parts · failures</div>
-    </a>
-    <a class="ames-tile rpt" href="rpt/daily-production">
-        <div class="ames-tile-ic">📊</div>
-        <div class="ames-tile-h">RPT · REPORTS</div>
-        <div class="ames-tile-sub">10 screens · KPI · pareto · OTD · custom builder</div>
-    </a>
-    <a class="ames-tile md" href="md/line">
-        <div class="ames-tile-ic">🗂️</div>
-        <div class="ames-tile-h">MD · MASTER DATA</div>
-        <div class="ames-tile-sub">30 screens · items · BOM · equipment · customers · codes</div>
-    </a>
-    <a class="ames-tile sys" href="sys/users">
-        <div class="ames-tile-ic">⚙️</div>
-        <div class="ames-tile-h">SYS · SYSTEM</div>
-        <div class="ames-tile-sub">10 screens · users · RBAC · audit · config · health</div>
-    </a>
+@* ── 사이트맵(제목 없음): 좌측 메뉴와 동일하게 R 권한이 있는 화면만 표시 ── *@
+<div class="ames-sitemap">
+    @foreach (var sec in MenuCatalog.Sections)
+    {
+        var items = Catalog.SectionItems(sec.Key).Where(i => Vis(i.Href)).ToList();
+        if (items.Count == 0) { continue; }
+        var open  = items.Count(i => Vis(i.Href));
+        <div class="ames-map-row @sec.Key @(open == 0 ? "is-locked" : "")">
+            @* 타일은 링크가 아니다(사용자 요청) — 이동은 우측 화면 칩으로만 *@
+            <div class="ames-tile ames-map-tile @sec.Key" title="@(open == 0 ? L["Home.Map.Locked"].Value : "")">
+                <div class="ames-map-tile-top"><span class="ames-tile-ic">@sec.Icon</span><span class="ames-tile-h">@sec.Key.ToUpperInvariant() · @MenuCatalog.Label(sec, _lang)</span></div>
+                <div class="ames-tile-sub ames-map-tile-cnt">@string.Format(L["Home.Map.Access"].Value, open, items.Count)</div>
+            </div>
+            <div class="ames-map-links">
+                @if (sec.Key == "md" && Catalog.SubprocessItems.Count > 0)
+                {
+                    @foreach (var g in Catalog.GroupedMd(items))
+                    {
+                        <div class="ames-map-group">
+                            <div class="ames-map-group-h"><span class="letter">@g.Letter</span>@GroupLabel(g)</div>
+                            <div class="ames-map-chips">@foreach (var it in g.Items) { @Chip(it) }</div>
+                        </div>
+                    }
+                    var rest = Catalog.UngroupedMd(items);
+                    @if (rest.Count > 0)
+                    {
+                        <div class="ames-map-chips">@foreach (var it in rest) { @Chip(it) }</div>
+                    }
+                }
+                else
+                {
+                    <div class="ames-map-chips">@foreach (var it in items) { @Chip(it) }</div>
+                }
+            </div>
+        </div>
+    }
 </div>
 
 @code {
+    [CascadingParameter] Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState>? AuthState { get; set; }
+
     int _kpiReleasable;
     int _kpiSchedule;
     int _kpiDt;
     double _kpiOtdPct;
+    string _lang = "ko";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        _lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        Catalog.Load();
+        if (AuthState is not null)
+        {
+            try { await PermSvc.EnsureAsync(AuthState); }
+            catch { /* 권한을 못 읽으면 권한 없음 — DB 폴백 카탈로그(Vis)만 전부 표시 */ }
+        }
+        ScreenCatalog.Changed += OnScreensChanged;   // SYS-003 화면 마스터 편집 시 좌측 메뉴와 같이 갱신
+
         try { _kpiReleasable = Pp.ListReleasable(200).Count; } catch {}
         try { _kpiSchedule = Pp.ListSchedule(7).Count; } catch {}
         try { _kpiDt = Pp.ListDowntime(7).Count; } catch {}
@@ -81,4 +118,36 @@
         }
         catch {}
     }
+
+    // 알림은 스레드 풀에서 온다 — DB 재조회는 회로 밖, 같은 세션의 메뉴와 겹쳐도 한 번만 읽는다
+    void OnScreensChanged() => _ = Task.Run(async () =>
+    {
+        Catalog.ReloadFor(ScreenCatalog.Version);
+        await InvokeAsync(async () =>
+        {
+            if (AuthState is not null) { try { await PermSvc.EnsureAsync(AuthState); } catch { } }
+            StateHasChanged();
+        });
+    });
+
+    public void Dispose() => ScreenCatalog.Changed -= OnScreensChanged;
+
+    // 좌측 메뉴(NavMenu.V)와 같은 판정 — DB 폴백 시 전부 허용
+    bool Vis(string href) => Catalog.UsingFallback || PermSvc.IsVisible(href.TrimStart('/'));
+
+    string GroupLabel(MenuCatalog.MdGroup g) => _lang switch { "en" => g.En, "es" => g.Es, _ => g.Ko };
+
+    // 화면 칩: 권한 있으면 링크, 없으면 잠금 아이콘이 붙은 비활성 칩
+    RenderFragment Chip(MenuCatalog.Item it) => __builder =>
+    {
+        var label = MenuCatalog.Label(it, _lang);
+        if (Vis(it.Href))
+        {
+            <a class="ames-map-link" href="@it.Href"><span class="lid">@it.Lid</span><span class="t">@label</span></a>
+        }
+        else
+        {
+            <span class="ames-map-link is-off" title="@L["Home.Map.NoAccess"]" aria-disabled="true"><span class="lid">@it.Lid</span><span class="t">@label</span><RadzenIcon Icon="lock" /></span>
+        }
+    };
 }

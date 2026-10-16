@@ -1,0 +1,240 @@
+@page "/sp/02"
+@inject SparePartsApi Api
+@inject PdaUomFormat Uom
+@inject AuthState Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="pda-shell wh wh02-shell sp-screen">
+    <div class="pda-tbar">
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/sp"))' Text="&lt;" />
+        <span class="pda-tbar-brand">INBOUND</span>
+        @if (IsSimpleTestMode)
+        {
+            <PptScenarioPanel Title="SP INBOUND" Steps="ScenarioSteps" Busy="_busy"
+                              OnStart="StartScenario" OnValue="RunScenario" OnReset="ResetScenario"
+                              OpenChanged="@((bool open) => _scenarioOpen = open)" />
+        }
+    </div>
+
+    <div class="pda-bd wh02-body sp-body">
+        <RadzenCard class="wh02-panel wh02-scan-panel hardware-scan-panel">
+            <div class="pda-fld">
+                <label>SERIAL NO</label>
+                <RadzenTextBox class="pda-input wh02-barcode-input pda-scan-input"
+                               Value="@_lotNo" @oninput="OnLotInput" @onkeydown="OnLotKey"
+                               Placeholder="Scan Serial No" />
+            </div>
+        </RadzenCard>
+
+        @if (_lot is not null)
+        {
+            <RadzenCard class="wh02-lot-card ready">
+                <div class="wh02-lot-top">
+                    <div class="wh02-lot-main"><span>SERIAL NO</span><strong>@_lot.SerialNo</strong></div>
+                    <RadzenBadge class="wh02-status-chip ready" Text="@(_lot.ItemStatus ?? "READY")" />
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_lot.ImageDataUrl))
+                {
+                    <div class="sp-release-image">
+                        <img src="@_lot.ImageDataUrl" alt="@($"{Text(_lot.PartName)} image")" />
+                    </div>
+                }
+                <div class="sp-detail-grid">
+                    @foreach (var field in DetailFields())
+                    {
+                        <div class="sp-detail-row"><span>@field.Label</span><strong>@Text(field.Value)</strong></div>
+                    }
+                </div>
+            </RadzenCard>
+
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <div class="pda-status @_messageClass">@_message</div>
+        }
+
+        <div class="wh02-action-bar has-reset">
+            <RadzenButton class="wh02-clear-btn" Text="CLEAR" Click="Clear" Disabled="@_busy" />
+            @if (CanCancelInbound)
+            {
+                <RadzenButton class="wh02-cancel-btn" Text="CANCEL INBOUND" Click="CancelInbound" Disabled="@_busy" />
+            }
+            else
+            {
+                <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {(CanReceive ? "ready" : "blocked")}")"
+                              Text="RECEIVE" Click="Receive" Disabled="@_busy" />
+            }
+        </div>
+    </div>
+
+    @if (_modalOpen)
+    {
+        <div class="wh-modal-backdrop" @onclick="CloseModal">
+            <RadzenCard class="@($"wh-modal-card {_modalKind}")" @onclick:stopPropagation="true">
+                <div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div>
+                <div class="wh-modal-title">@_modalTitle</div>
+                <div class="wh-modal-message">@_modalMessage</div>
+                <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div>
+            </RadzenCard>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly PptScenarioPanel.Step[] ScenarioSteps =
+    [
+        new("Serial 입고", "발행된 Serial No를 스캔하여 마스터 정보와 저장 위치를 확인한 뒤 1 EA 입고합니다.",
+            new PptScenarioPanel.Value("SERIAL NO", "SPI-TEST-000001", "INBOUND")),
+        new("미등록 Serial No", "등록되지 않은 Serial No의 조회 오류를 확인합니다.",
+            new PptScenarioPanel.Value("SERIAL NO", "SPI-TEST-999999", "UNKNOWN"))
+    ];
+
+    private bool IsSimpleTestMode => PdaScenarioUsers.IsSimple(Auth.Session?.EmployeeNo);
+    private bool CanReceive => _lot?.ItemStatus == "CREATED" && !string.IsNullOrWhiteSpace(_lot.StorageLocation);
+    private bool CanCancelInbound => _lot?.ItemStatus == "IN_STOCK";
+    private string _lotNo = "";
+    private string _locationNo = "";
+    private string _message = "";
+    private string _messageClass = "dim";
+    private bool _busy;
+    private bool _scenarioOpen;
+    private bool _modalOpen;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalKind = "info";
+    private PdaApi.SparePartRow? _lot;
+    private DotNetObjectReference<SpInbound>? _scannerRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+        _scannerRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
+        await FocusScannerAsync();
+    }
+
+    [JSInvokable]
+    public async Task OnHardwareScanAsync(string scanText)
+    {
+        if (_busy || _scenarioOpen || _modalOpen) return;
+        var value = NormalizeScan(scanText);
+        _lotNo = value;
+        await ScanLot();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnNativeBarcodeScanned(string value) => _ = InvokeAsync(() => OnHardwareScanAsync(value));
+    private void OnLotInput(ChangeEventArgs e) => _lotNo = e.Value?.ToString() ?? "";
+    private async Task OnLotKey(KeyboardEventArgs e) { if (e.Key == "Enter") await ScanLot(); }
+
+    private async Task ScanLot()
+    {
+        if (_busy || _modalOpen) return;
+        var value = NormalizeScan(_lotNo);
+        if (value.Length == 0) { ShowModal("Serial No Required", "Scan a Serial No.", "warn"); return; }
+        _busy = true;
+        _lot = null;
+        _locationNo = "";
+        try
+        {
+            _lot = await Api.SpItemAsync(value);
+            if (_lot is null || string.IsNullOrWhiteSpace(_lot.SerialNo)) { _message = "Serial No was not found."; _messageClass = "fail"; return; }
+            _lotNo = _lot.SerialNo;
+            _locationNo = _lot.StorageLocation?.Trim() ?? "";
+            var missing = SparePartValidation.MissingFields(
+                ("Spare Part No", _lot.EosSpNo), ("Category", _lot.Category),
+                ("Applicable Equipment", _lot.ApplicableEquipment), ("Part Name", _lot.PartName),
+                ("Part No", _lot.PartNo), ("Maker", _lot.Maker), ("Vendor", _lot.Vendor),
+                ("Unit", Uom.Symbol(_lot.Unit)), ("Storage Location", _lot.StorageLocation));
+            _message = CanCancelInbound ? "This serial is already received. You can cancel inbound."
+                : CanReceive ? "Spare part loaded. Ready to receive at the master storage location."
+                : "A valid storage location is required. Update the spare part master and scan again.";
+            _messageClass = CanReceive || CanCancelInbound ? "ok" : "fail";
+            if (missing.Length > 0)
+            {
+                var warning = $"The following information is missing: {string.Join(", ", missing)}. ";
+                ShowModal("Incomplete Spare Part Information", warning + "Please check the spare part master.", "warn");
+            }
+        }
+        catch (Exception ex) { _message = ex.Message; _messageClass = "fail"; ShowModal("Scan Failed", ex.Message, "fail"); }
+        finally { _busy = false; }
+    }
+
+    private async Task Receive()
+    {
+        if (_busy || _modalOpen) return;
+        if (!CanReceive) { ShowModal("Not Ready", _lot is null ? "Scan a Serial No first." : "This serial cannot be received.", "warn"); return; }
+        _busy = true;
+        try
+        {
+            var result = await Api.SpReceiveAsync(new(_lot!.SerialNo!, 1, _lot.StorageLocation, "PDA spare parts inbound"));
+            if (!result.Success) { ShowModal("Inbound Failed", result.Message, "fail"); return; }
+            _lot = result.Row ?? await Api.SpItemAsync(_lot.SerialNo!);
+            ShowModal("Inbound Complete", $"1 EA of {_lotNo} was received at {_locationNo}.", "success");
+        }
+        catch (Exception ex) { ShowModal("Inbound Failed", ex.Message, "fail"); }
+        finally { _busy = false; }
+    }
+
+    private async Task CancelInbound()
+    {
+        if (!CanCancelInbound || _lot?.SerialNo is not { } serial) return;
+        _busy = true;
+        try
+        {
+            var result = await Api.CancelMoveAsync(serial, "IN", "PDA spare parts inbound cancellation");
+            if (!result.Success) { ShowModal("Cancellation Failed", result.Message, "fail"); return; }
+            _lot = result.Row;
+            ShowModal("Inbound Cancelled", $"Inbound for {serial} was cancelled. This serial can be received again.", "success");
+        }
+        catch (Exception ex) { ShowModal("Cancellation Failed", ex.Message, "fail"); }
+        finally { _busy = false; }
+    }
+
+    private (string Label, string? Value)[] DetailFields() =>
+    [
+        ("SERIAL NO", _lot?.SerialNo), ("SPARE PART NO", _lot?.EosSpNo),
+        ("CATEGORY", _lot?.Category), ("APPLICABLE EQUIPMENT", _lot?.ApplicableEquipment),
+        ("PART NAME", _lot?.PartName), ("PART NO", _lot?.PartNo),
+        ("MAKER", _lot?.Maker), ("VENDOR", _lot?.Vendor),
+        ("QTY", _lot is null ? null : $"{_lot.Qty:N0} {Uom.Symbol(_lot.Unit)}"),
+        ("STORAGE LOCATION", _lot?.StorageLocation), ("EXTRA LOCATION", _lot?.ExtraLocation)
+    ];
+
+    private async Task StartScenario(int step)
+    {
+        await RunScenario(step == 1 ? "INBOUND" : "UNKNOWN");
+    }
+
+    private async Task RunScenario(string command)
+    {
+        if (command == "INBOUND") await Api.SpResetTestAsync();
+        _lotNo = command == "INBOUND" ? "SPI-TEST-000001" : "SPI-TEST-999999";
+        await ScanLot();
+    }
+
+    private async Task ResetScenario()
+    {
+        await Api.SpResetTestAsync();
+        Clear();
+        ShowModal("Test Data Ready", "The serialized spare part test data was reset.", "success");
+    }
+
+    private void Clear() { _lotNo = _locationNo = _message = ""; _lot = null; }
+    private void ShowModal(string title, string message, string kind) { _modalTitle = title; _modalMessage = message; _modalKind = kind; _modalOpen = true; }
+    private void CloseModal() { _modalOpen = false; _ = FocusScannerAsync(); }
+    private async Task FocusScannerAsync() { try { await JS.InvokeVoidAsync("pdaScan.focus", ".sp-screen .pda-scan-input"); } catch { } }
+    private static string NormalizeScan(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
+        _scannerRef?.Dispose();
+    }
+}

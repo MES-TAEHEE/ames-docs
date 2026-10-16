@@ -1,4 +1,4 @@
-namespace AMES.Contracts.Dto;
+﻿namespace AMES.Contracts.Dto;
 
 public sealed class WorkOrderDto
 {
@@ -13,6 +13,8 @@ public sealed class WorkOrderDto
     public string?           MoldId        { get; init; }
     public string?           RecipeId      { get; init; }
     public DateTime?         DueDate       { get; init; }
+    /// <summary>생산 마감일 = 납기 − 버퍼 근무일. PP-003 생성 시점 스냅샷; 그 경로 밖에서 만든 WO 는 null.</summary>
+    public DateTime?         ProdDeadline  { get; init; }
     public required string   Status        { get; init; }
     public string?           TerminalLock  { get; init; }
     public int               Priority      { get; init; }
@@ -41,13 +43,21 @@ public sealed class WorkOrderDto
     public string?           ProcessCode   { get; init; }
     /// <summary>"LINE-INJ-01 → LINE-IMG-01". 라인 없는 단계는 "QC(—)". 단계 행 없으면 null.</summary>
     public string?           RouteLines    { get; init; }
+    /// <summary>라인 범위 조회에서 그 단계가 생산하는 품번(COALESCE(PP_WorkOrderRouting.ItemNo, PP_WorkOrder.ItemNo)). 헤더 조회는 null.</summary>
+    public string?           StepItemNo    { get; init; }
 
     /// <summary>0–100 % of CompletedQty / OrderQty.</summary>
     public double ProgressPct =>
         OrderQty == 0 ? 0 : Math.Min(100, (double)(CompletedQty * 100 / OrderQty));
 
+    /// <summary>
+    /// <see cref="DaysToDue"/> 의 "오늘"(10-13) — 기본은 이 PC 날짜. 이 프로젝트는 DbClock(AMES.Data)을 참조할 수 없어서
+    /// Web 이 기동 때 DB 서버 날짜(DbClock.Today)로 바꾼다. POP·Api 는 DbClock 을 맞추지 않아 호스트 날짜 그대로다.
+    /// </summary>
+    public static Func<DateTime> Today { get; set; } = () => DateTime.Today;
+
     /// <summary>Days until DueDate (negative = overdue). Null when no due date.</summary>
     public int? DaysToDue =>
         DueDate is null ? null
-            : (int)Math.Ceiling((DueDate.Value.Date - DateTime.Today).TotalDays);
+            : (int)Math.Ceiling((DueDate.Value.Date - Today().Date).TotalDays);
 }

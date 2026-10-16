@@ -69,7 +69,7 @@ public sealed class EquipmentRepository
         cmd.Parameters.Add("@S",  SqlDbType.VarChar,  8).Value = status;
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 30).Value = reason;
         cmd.Parameters.Add("@W",  SqlDbType.Int        ).Value = (object?)woId ?? DBNull.Value;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 50).Value = employeeNo;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
         cmd.ExecuteNonQuery();
     }
 }

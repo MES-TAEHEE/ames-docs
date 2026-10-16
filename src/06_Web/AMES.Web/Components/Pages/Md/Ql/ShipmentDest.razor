@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-011 @L["MD.ShipDest.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-011" TitleKey="MD.ShipDest.Title" />
@@ -57,10 +58,14 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ShipmentDestRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ShipDest.Empty"]" Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.ShipmentDestRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.ShipDest.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" TextAlign="TextAlign.Center" Width="150px">
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="code">@r.ShipDestID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="CustomerName" Title="@L["Col.Customer"]" TextAlign="TextAlign.Center" Width="150px">
@@ -85,7 +90,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DeliveryDock" Title="@L["Col.Dock"]" Width="150px">
                 <Template Context="r"><span class="dim">@(r.DeliveryDock ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="210px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DefaultCarrier" Title="@L["Col.Carrier"]" Width="200px">
@@ -271,8 +276,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.ShipmentDestRow> _allRows   = new();
     List<MasterDataRepository.ShipmentDestRow> _rows      = new();
     List<MasterDataRepository.CustomerRow>     _customers = new();
@@ -301,7 +307,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/ql/shipment-dest");
         _customers = MD.ListCustomers();
@@ -382,6 +388,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.DestName)) { _modalErr = L["Err.DestNameRequired"]; return; }
         _busy = true;
@@ -391,6 +398,7 @@
             MD.InsertShipmentDest(newId, _f.CustomerID, _f.DestName, _f.DestType,
                 NE(_f.Address), NE(_f.Country), NE(_f.DeliveryDock), _f.LeadTimeDays,
                 NE(_f.DefaultCarrier), NE(_f.DeliveryWindow), _f.Status, _actor);
+            Audit.Created("MD-011", "MD_ShipmentDest", newId, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.DestName} {L["Msg.Created"]}", false);
         }
@@ -400,6 +408,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.DestName)) { _modalErr = L["Err.DestNameRequired"]; return; }
@@ -409,6 +418,7 @@
             MD.UpdateShipmentDest(_sel.ShipDestID, _f.CustomerID, _f.DestName, _f.DestType,
                 NE(_f.Address), NE(_f.Country), NE(_f.DeliveryDock), _f.LeadTimeDays,
                 NE(_f.DefaultCarrier), NE(_f.DeliveryWindow), _f.Status, _actor);
+            Audit.Updated("MD-011", "MD_ShipmentDest", _sel.ShipDestID, _sel, _f);
             var name = _f.DestName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -419,12 +429,14 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var name = _sel.DestName ?? _sel.ShipDestID;
             MD.DeleteShipmentDest(_sel.ShipDestID);
+            Audit.Deleted("MD-011", "MD_ShipmentDest", _sel.ShipDestID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

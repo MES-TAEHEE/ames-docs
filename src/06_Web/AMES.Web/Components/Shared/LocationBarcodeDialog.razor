@@ -1,14 +1,13 @@
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
 
 <div class="ames-modal-bg location-label-modal-bg" @onclick="CloseAsync">
     <div class="ames-modal location-label-modal" @onclick:stopPropagation>
-        <div class="ames-modal-h">Location Barcode</div>
+        <div class="ames-modal-h">@L["WH.LocBarcode.Title"]</div>
 
         <div class="location-label-preview">
             <div class="location-label-print-area">
                 <div class="location-label-paper">
-                    <div class="location-label-caption">AMES LOCATION</div>
-                    <div class="location-label-code">@LocationCode</div>
                     @{
                         var barcode = BuildCode128(LocationCode);
                     }
@@ -19,29 +18,19 @@
                         }
                     </svg>
                     <div class="location-label-readable">@LocationCode</div>
-                    <div class="location-label-name">@Display(LocationName)</div>
-                    <div class="location-label-path">
-                        <span>@Display(Warehouse)</span>
-                        <span>@Display(Area)</span>
-                        <span>@Display(Zone)</span>
-                    </div>
                 </div>
             </div>
         </div>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer location-label-actions">
-            <RadzenButton Text="Print" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" class="ames-rz-btn" />
-            <RadzenButton Text="Close" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Print"].Value" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Close"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 </div>
 
 @code {
     [Parameter, EditorRequired] public string LocationCode { get; set; } = "";
-    [Parameter] public string? LocationName { get; set; }
-    [Parameter] public string? Warehouse { get; set; }
-    [Parameter] public string? Area { get; set; }
-    [Parameter] public string? Zone { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
     private async Task PrintAsync()
@@ -50,8 +39,6 @@
     }
 
     private Task CloseAsync() => OnClose.InvokeAsync();
-
-    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
 
     private static BarcodeImage BuildCode128(string value)
     {

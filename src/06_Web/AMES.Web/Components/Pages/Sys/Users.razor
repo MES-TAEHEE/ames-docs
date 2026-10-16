@@ -1,8 +1,6 @@
 ﻿@page "/sys/users"
 @rendermode InteractiveServer
 
-@using System.Globalization
-@using System.Text.Json
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
 @using AMES.Data.Security
@@ -15,10 +13,13 @@
 @inject PermissionService PermSvc
 @inject AuthRepository AuthRepo
 @inject SysRepository Sys
+@inject ScmRepository Scm
 @inject MasterDataRepository MD
 @inject UserManager<ApplicationUser> UserMgr
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
+@inject AMES.Web.Data.ApplicationDbContext IdentityDb
 
 <PageTitle>SYS-001 @L["SYS.Users.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-001" TitleKey="SYS.Users.Title" />
@@ -30,8 +31,8 @@
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
     <div class="ames-kpi ok">
-        <div class="ames-kpi-l">@L["SYS.Users.Kpi.Verified"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.EmailConfirmed)</div>
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => EffectiveStatus(r) == "ACTIVE")</div>
     </div>
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@L["SYS.Users.Kpi.Locked"]</div>
@@ -39,7 +40,7 @@
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["SYS.Users.Kpi.RecentLogin"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.LastLoginTs.HasValue && (DateTime.Now - r.LastLoginTs.Value).TotalHours <= 24)</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.LastLoginTs.HasValue && (DbClock.Now - r.LastLoginTs.Value).TotalHours <= 24)</div>
     </div>
 </div>
 
@@ -64,16 +65,20 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.UserRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Users.Empty"]" Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.UserRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Users.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="u"><span class="dim">@GridRowNo.Of(_pgGrid, u)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="UserName" Title="@L["SYS.Users.Col.UserName"]">
                 <Template Context="u"><span class="code">@(u.UserName ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
                 <Template Context="u"><span class="dim">@(u.Email ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]" TextAlign="TextAlign.Center" Width="140px">
                 <Template Context="u"><span class="dim">@(u.EmployeeNo ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" TextAlign="TextAlign.Center" Width="140px" />
@@ -84,19 +89,16 @@
                 <Template Context="u">
                     @{
                         var stEff = EffectiveStatus(u);
-                        var nonvf = string.Equals(stEff, "UNVERIFIED", StringComparison.OrdinalIgnoreCase);
-                        var stCls = nonvf ? "ghost" : stEff switch
+                        var stCls = stEff switch
                         {
                             "LOCKED" => "bad",
                             "INACTIVE" => "mute",
                             "SUSPENDED" => "warn",
-                            "PENDING" => "orange",
+                            "NOPROFILE" => "warn",
                             _ => "ok"
                         };
 
-                        var stLbl = nonvf
-                            ? L["SYS.Users.Status.Unverified"].Value
-                            : StatusName(stEff);
+                        var stLbl = StatusName(stEff);
                     }
                     <span class="pill @stCls">@stLbl</span>
                 </Template>
@@ -104,9 +106,9 @@
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="u"><span class="dim">@(u.RolesCsv ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" Width="130px" />
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="110px">
-                <Template Context="u"><span class="dim">@(u.LastLoginTs?.ToString(DateFmt.MonthDayTime) ?? "—")</span>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" Width="170px" />
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="150px">
+                <Template Context="u"><span class="dim">@(u.LastLoginTs?.ToString(DateFmt.DateTime) ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -142,12 +144,12 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeNo"]" class="ames-rz-modal-label" Component="CreateTextBoxEmployeeNo" />
-                    <RadzenTextBox Name="CreateTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" MaxLength="@SysRepository.EmployeeNoMax" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeName"]" class="ames-rz-modal-label" Component="CreateTextBoxEmployeeName" />
-                    <RadzenTextBox Name="CreateTextBoxEmployeeName" @bind-Value="_f.EmployeeName" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxEmployeeName" @bind-Value="_f.EmployeeName" MaxLength="@SysRepository.EmployeeNameMax" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -167,27 +169,12 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="CreateDropDownRole" />
-                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" Disabled="@(!_isAdmin)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
-
-                <RadzenLabel Text="@L["SYS.Users.Lbl.Lines"]" />
-                <RadzenStack Gap="0.5rem" class="ames-line-picker" Style="flex:1;width:100%;">
-                    @if (_lines.Count == 0)
-                    {
-                        <span class="dim">@L["SYS.Users.Lbl.NoLines"]</span>
-                    }
-                    else
-                    {
-                        @foreach (var ln in _lines)
-                        {
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-line-item" Style="width:100%;">
-                                <RadzenCheckBox TValue="bool" Value="@(_f.SelectedLines?.Contains(ln.LineId) ?? false)" Change="@(args => ToggleLine(ln.LineId, args))" />
-                                <span class="code">@ln.LineId</span>
-                                <span class="dim">@LineLocalName(ln)</span>
-                            </RadzenStack>
-                        }
-                    }
-                </RadzenStack>
+                @if (!_isAdmin)
+                {
+                    <span class="dim" style="font-size:.85em;">ⓘ @AdminMsg("SYS.Users.Hint.CreateInactive")</span>
+                }
             </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -217,12 +204,12 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeNo"]" class="ames-rz-modal-label" Component="EditTextBoxEmployeeNo" />
-                    <RadzenTextBox Name="EditTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeNo" @bind-Value="_f.EmployeeNo" MaxLength="@SysRepository.EmployeeNoMax" Placeholder="@L["SYS.Users.Ph.EmployeeNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.EmployeeName"]" class="ames-rz-modal-label" Component="EditTextBoxEmployeeName" />
-                    <RadzenTextBox Name="EditTextBoxEmployeeName" @bind-Value="_f.EmployeeName" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxEmployeeName" @bind-Value="_f.EmployeeName" MaxLength="@SysRepository.EmployeeNameMax" Placeholder="@L["SYS.Users.Ph.Name"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -242,69 +229,56 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.AccountStatus"]" class="ames-rz-modal-label" />
-                    @if (!_sel!.EmailConfirmed)
-                    {
-                        <div style="flex:1;background:rgba(203,213,225,.08);border:1px solid rgba(203,213,225,.25);color:#cbd5e1;padding:6px 10px;font-size:.85em;border-radius:6px;">
-                            @L["SYS.Users.Status.Unverified"] · @L["SYS.Users.Hint.Unverified"]
-                        </div>
-                    }
-                    else
-                    {
-                        <RadzenStack Orientation="Orientation.Vertical" Gap="0.4rem" Style="flex:1;width:100%;">
-                            @if (string.Equals(_sel!.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
-                            {
-                                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="padding:5px 10px;font-size:.85em;">
-                                    🔒 @L["SYS.Users.Locked.Domain"] · @L["SYS.Users.Col.FailCount"]: @_sel.FailedLoginCount
-                                </RadzenAlert>
-                            }
-                            <RadzenDropDown Name="EditDropDownStatus" @bind-Value="_f.AccountStatus" Data="@EditStatusOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                        </RadzenStack>
-                    }
-                </RadzenStack>
-
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="EditDropDownRole" />
-                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-                </RadzenStack>
-
-                <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Users.Lbl.Lines"]" />
-                    <RadzenStack Gap="0.5rem" class="ames-line-picker" Style="flex:1;width:100%;">
-                        @if (_lines.Count == 0)
+                    <RadzenStack Orientation="Orientation.Vertical" Gap="0.4rem" Style="flex:1;width:100%;">
+                        @if (string.Equals(_sel!.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
                         {
-                            <span class="dim">@L["SYS.Users.Lbl.NoLines"]</span>
+                            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="padding:5px 10px;font-size:.85em;">
+                                🔒 @L["SYS.Users.Locked.Domain"] · @L["SYS.Users.Col.FailCount"]: @_sel.FailedLoginCount
+                            </RadzenAlert>
                         }
-                        else
-                        {
-                            @foreach (var ln in _lines)
-                            {
-                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-line-item" Style="width:100%;">
-                                    <RadzenCheckBox TValue="bool" Value="@(_f.SelectedLines.Contains(ln.LineId))" Change="@(args => ToggleLine(ln.LineId, args))" />
-                                    <span class="code">@ln.LineId</span>
-                                    <span class="dim">@LineLocalName(ln)</span>
-                                </RadzenStack>
-                            }
-                        }
+                        <RadzenDropDown Name="EditDropDownStatus" @bind-Value="_f.AccountStatus" Data="@EditStatusOptions" TextProperty="Text" ValueProperty="Value" Disabled="@(!CanChangeRoleStatus)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenStack>
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Users.Lbl.NewPassword"]" class="ames-rz-modal-label" Component="EditTextBoxNewPassword" />
-                    <RadzenTextBox Name="EditTextBoxNewPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.NewPassword"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
+                    <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="EditDropDownRole" />
+                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.None"]" AllowClear="true" Disabled="@(!CanChangeRoleStatus)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Users.Lbl.NewPin"]" class="ames-rz-modal-label" Component="EditTextBoxNewPin" />
-                    <RadzenTextBox Name="EditTextBoxNewPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["SYS.Users.Ph.NewPin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
-                </RadzenStack>
-
-                @if (_sel.LockedOut)
+                @if (_isAdmin)
                 {
-                    <RadzenButton Text="@L["SYS.Users.Unlock"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockUser" class="ames-rz-btn" />
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                        <RadzenLabel Text="@L["SYS.Users.Lbl.NewPassword"]" class="ames-rz-modal-label" Component="EditTextBoxNewPassword" />
+                        <RadzenTextBox Name="EditTextBoxNewPassword" @bind-Value="_f.Password" Type="Password" Placeholder="@L["SYS.Users.Ph.NewPassword"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.NewPassword" />
+                    </RadzenStack>
                 }
-                @if (string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
+
+                @if (CanSetPin)
                 {
-                    <RadzenButton Text="@L["SYS.Users.Unlock.Domain"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockDomainAccount" class="ames-rz-btn" />
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                        <RadzenLabel Text="@L["SYS.Users.Lbl.NewPin"]" class="ames-rz-modal-label" Component="EditTextBoxNewPin" />
+                        <RadzenTextBox Name="EditTextBoxNewPin" @bind-Value="_f.Pin" MaxLength="4" Placeholder="@L["SYS.Users.Ph.NewPin"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    </RadzenStack>
+                }
+
+                @if (_isAdmin)
+                {
+                    @if (_sel.LockedOut)
+                    {
+                        <RadzenButton Text="@L["SYS.Users.Unlock"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockUser" Disabled="@_busy" class="ames-rz-btn" />
+                    }
+                    @if (string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <RadzenButton Text="@L["SYS.Users.Unlock.Domain"]" Icon="lock_open" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@UnlockDomainAccount" Disabled="@_busy" class="ames-rz-btn" />
+                    }
+                }
+                @if (!_isAdmin)
+                {
+                    <span class="dim" style="font-size:.85em;">ⓘ @AdminMsg("SYS.Users.Hint.AdminOnly")</span>
+                }
+                else if (IsSelf)
+                {
+                    <span class="dim" style="font-size:.85em;">ⓘ @L["SYS.Users.Hint.Self"]</span>
                 }
             </RadzenStack>
 
@@ -325,7 +299,10 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (CanDelete)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -335,10 +312,10 @@
 @code {
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<SysRepository.UserRow> _allRows = new();
     List<SysRepository.UserRow> _rows    = new();
     List<string> _roles = new();
-    List<SysRepository.LineRow> _lines = new();
     List<MasterDataRepository.CodeItemRow> _deptItems  = new();
     List<MasterDataRepository.CodeItemRow> _plantItems = new();
     List<MasterDataRepository.CodeItemRow> _shiftItems = new();
@@ -354,6 +331,21 @@
     bool _bgMouseDownOnSelf;
     bool _canEdit;
     string _actorEmail = "system";
+
+    // 계정 보안 동작(역할·상태·비밀번호·다른 사람의 PIN·잠금 해제·삭제)은 화면 수정 권한(E)이 아니라 Admin 역할만 한다(10-07 사용자 결정).
+    // 화면 E 권한만 가진 사용자는 사번·이름·부서·공장·교대만 고치고, Admin 계정은 열지 못한다.
+    // Admin 은 자기 자신을 지우거나 자기 역할·상태를 바꾸지 못한다 — 마지막 Admin 이 스스로 잠기는 것을 막는다.
+    // Admin 판정은 역할 이름(쿠키)이 아니라 고정 ID SystemRoles.AdminId 를 DB 에서 본다 — 역할 이름을 바꿔도 같다(10-09)
+    bool _isAdmin;
+    // 안내 문구에 넣는 관리자 역할의 현재 이름(SYS-002 에서 바뀔 수 있다)
+    string _adminRoleName = AMES.Data.Services.SystemRoles.AdminDefaultName;
+    string AdminMsg(string key) => string.Format(L[key].Value, _adminRoleName);
+    string? _myUserId;
+    bool IsSelf => _sel is not null && _sel.UserId == _myUserId;
+    bool CanChangeRoleStatus => _isAdmin && !IsSelf;
+    bool CanDelete => _isAdmin && !IsSelf;
+    bool CanSetPin => _isAdmin || IsSelf;   // 자기 PIN 은 Admin 이 아니어도 바꾼다(10-07 사용자 결정)
+    static bool HasAdminRole(SysRepository.UserRow u) => u.IsAdmin;
     string _msg = "", _modalErr = "";
     bool _isErr;
 
@@ -364,9 +356,9 @@
     private IEnumerable<DropDownItem> DeptOptions  => _deptItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> PlantOptions => _plantItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> ShiftOptions => _shiftItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
-    private IEnumerable<DropDownItem> SearchStatusItems => _statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" });
+    private IEnumerable<DropDownItem> SearchStatusItems => _statusItems.Where(s => s.UseFlag).Select(s => new DropDownItem { Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}", Value = s.CodeValue ?? "" })
+        .Append(new DropDownItem { Text = L["SYS.Users.Status.NoProfile"].Value, Value = NoProfile });
     private IEnumerable<DropDownItem> EditStatusOptions => _statusItems.Where(s => s.UseFlag
-                && !string.Equals(s.CodeValue, "UNVERIFIED", StringComparison.OrdinalIgnoreCase)
                 && (_sel is null
                     || !string.Equals(_sel.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)
                     || !string.Equals(s.CodeValue, "LOCKED", StringComparison.OrdinalIgnoreCase)))
@@ -375,11 +367,13 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actorEmail = auth.User.Identity?.Name ?? "system";
+        _actorEmail = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/users");
+        _myUserId = auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        _isAdmin = !string.IsNullOrEmpty(_myUserId) && Sys.UserHasRole(_myUserId, AMES.Data.Services.SystemRoles.AdminId);
+        _adminRoleName = (await RoleMgr.FindByIdAsync(AMES.Data.Services.SystemRoles.AdminId))?.Name ?? _adminRoleName;
         _roles = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList();
-        _lines = Sys.ListActiveLines();
         _deptItems = MD.ListCodeItems("DEPARTMENT");
         _deptSearchNames = _deptItems
             .Where(c => c.UseFlag && !string.IsNullOrWhiteSpace(c.CodeValue))
@@ -424,13 +418,16 @@
 
     void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
 
+    // 프로필 없는 계정은 로그인이 거부된다 — 목록에서 사용 가능한 계정처럼 보이지 않게 따로 표시한다
+    const string NoProfile = "NOPROFILE";
+
     static string EffectiveStatus(SysRepository.UserRow r) =>
-        (r.LockedOut || string.Equals(r.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) ? "LOCKED" : (r.AccountStatus ?? "ACTIVE");
+        (r.LockedOut || string.Equals(r.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) ? "LOCKED"
+        : !r.HasProfile ? NoProfile
+        : (r.AccountStatus ?? "ACTIVE").ToUpperInvariant();
 
     static bool MatchStatus(SysRepository.UserRow r, string s)
     {
-        if (s == "UNVERIFIED")
-            return !r.EmailConfirmed && string.Equals(EffectiveStatus(r), "ACTIVE", StringComparison.OrdinalIgnoreCase);
         return EffectiveStatus(r) == s;
     }
 
@@ -444,6 +441,7 @@
     string StatusName(string? code)
     {
         if (string.IsNullOrEmpty(code)) return "—";
+        if (code == NoProfile) return L["SYS.Users.Status.NoProfile"];
         var found = _statusItems.FirstOrDefault(s => string.Equals(s.CodeValue, code, StringComparison.OrdinalIgnoreCase));
         return found is null ? code : MasterDataRepository.LocalName(found);
     }
@@ -470,24 +468,19 @@
     void OpenEdit(SysRepository.UserRow u)
     {
         if (!_canEdit) return;
+        if (!_isAdmin && HasAdminRole(u)) { ShowMsg(AdminMsg("SYS.Users.Err.AdminTarget"), true); return; }
         _sel = u; _modalErr = ""; _confirmDelete = false;
-        List<string> parsedLines = new();
-        if (!string.IsNullOrEmpty(u.AssignedLines))
-        {
-            try { parsedLines = JsonSerializer.Deserialize<List<string>>(u.AssignedLines) ?? new(); }
-            catch { parsedLines = new(); }
-        }
 
         _f = new()
         {
+            Email = u.Email ?? "",
             EmployeeNo    = u.EmployeeNo    ?? "",
             EmployeeName  = u.EmployeeName  ?? "",
             Department    = u.Department    ?? "",
             PlantCode     = u.PlantCode     ?? "",
             DefaultShift  = u.DefaultShift  ?? "",
-            AccountStatus = u.AccountStatus ?? "ACTIVE",
-            Role          = u.RolesCsv?.Split(',').FirstOrDefault()?.Trim() ?? "",
-            SelectedLines = parsedLines
+            AccountStatus = u.HasProfile ? (u.AccountStatus ?? "ACTIVE").ToUpperInvariant() : "ACTIVE",
+            Role          = u.RolesCsv?.Split(',').FirstOrDefault()?.Trim() ?? ""
         };
         _modal = "edit";
     }
@@ -497,14 +490,38 @@
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
+    // 사번 중복 검사 — 다른 웹 사용자(SYS_UserProfile)·현장 작업자(MD_Worker) 와 겹치면 _modalErr 를 채우고 false
+    bool EmployeeNoIsFree(string employeeNo, string? excludeUserId)
+    {
+        var no = employeeNo.Trim();
+        try
+        {
+            if (Sys.EmployeeNoExists(no, excludeUserId)) { _modalErr = string.Format(L["SYS.Users.Err.EmpNoDuplicate"].Value, no); return false; }
+            if (Sys.EmployeeNoUsedByWorker(no))          { _modalErr = string.Format(L["SYS.Users.Err.EmpNoWorker"].Value, no);    return false; }
+        }
+        catch (Exception ex) { _modalErr = ex.Message; return false; }
+        return true;
+    }
+
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.Email))        { _modalErr = L["SYS.Users.Err.EmailRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.Password))     { _modalErr = L["SYS.Users.Err.PasswordRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
+        if (_f.EmployeeNo.Trim().Length > SysRepository.EmployeeNoMax || _f.EmployeeName.Trim().Length > SysRepository.EmployeeNameMax)
+        { _modalErr = string.Format(L["SYS.Users.Err.TooLong"].Value, SysRepository.EmployeeNoMax, SysRepository.EmployeeNameMax); return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
+        // 사번은 행위자 코드·POP 로그인 키라 전사 유일해야 한다 — 다른 웹 사용자·현장 작업자와 겹치면 등록을 막는다
+        if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: null)) return;
+        // 로그인 ID(이메일)는 외부 사용자(SCM-004)와도 겹치면 안 된다 — 같으면 로그인 때 외부 계정이 먼저 잡힌다
+        try
+        {
+            if (Scm.FindPortalUser(_f.Email) is not null) { _modalErr = L["SYS.Users.Err.PortalEmail"]; return; }
+        }
+        catch (Exception ex) { Fail(ex); return; }
 
         _busy = true;
         try
@@ -517,135 +534,202 @@
                 return;
             }
 
-            var linesJson = _f.SelectedLines.Count > 0
-                ? JsonSerializer.Serialize(_f.SelectedLines)
-                : null;
-            Sys.CreateProfile(user.Id, _f.EmployeeNo, _f.EmployeeName,
-                _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, linesJson);
+            // 상태는 Admin 만 정한다(10-07 규칙 ④) — Admin 이 아니면 사용 안 함으로 만들어 Admin 이 SYS-001 에서 켜야 로그인된다
+            var status = _isAdmin ? "ACTIVE" : "INACTIVE";
+            var roleMissing = false;
+            try
+            {
+                Sys.CreateProfile(user.Id, _f.EmployeeNo, _f.EmployeeName,
+                    _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, status);
 
-            if (!string.IsNullOrWhiteSpace(_f.Pin))
-                Sys.SetPin(user.Id, PinHasher.Hash(_f.Pin), _actorEmail);
+                if (!string.IsNullOrWhiteSpace(_f.Pin))
+                    Sys.SetPin(user.Id, PinHasher.Hash(_f.Pin), _actorEmail);
 
-            if (!string.IsNullOrEmpty(_f.Role))
-                await UserMgr.AddToRoleAsync(user, _f.Role);
+                if (_isAdmin && !string.IsNullOrEmpty(_f.Role))
+                    roleMissing = Sys.SetUserRole(user.Id, _f.Role) != SysRepository.RoleChangeResult.Ok;
+            }
+            catch
+            {
+                // 프로필 없이 남은 Identity 계정은 "프로필 없음" 고아가 된다 — 계정째 되돌린다
+                Sys.DeleteUser(user.Id); ForgetIdentityUser(user.Id);
+                throw;
+            }
+            // 고른 역할이 그사이 SYS-002 에서 바뀌거나 지워졌다 — 역할 없는 계정을 남기지 않게 등록째 되돌린다
+            if (roleMissing)
+            {
+                Sys.DeleteUser(user.Id); ForgetIdentityUser(user.Id);
+                RoleMissing(_f.Role);
+                return;
+            }
 
             CloseModal(); await ReloadRestorePage();
+            _f.AccountStatus = status;
+            Audit.Created("SYS-001", "AspNetUsers", _f.Email, _f);
             ShowMsg(string.Format(L["SYS.Users.Ok.Created"].Value, _f.Email), false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; }
+        catch (Exception ex) { Fail(ex); }
         finally { _busy = false; }
     }
 
     async Task SaveEdit()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_canEdit) return;
         _modalErr = "";
+        if (!_isAdmin && HasAdminRole(_sel)) { _modalErr = AdminMsg("SYS.Users.Err.AdminTarget"); return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeNo))   { _modalErr = L["SYS.Users.Err.EmpNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.EmployeeName)) { _modalErr = L["SYS.Users.Err.NameRequired"]; return; }
+        if (_f.EmployeeNo.Trim().Length > SysRepository.EmployeeNoMax || _f.EmployeeName.Trim().Length > SysRepository.EmployeeNameMax)
+        { _modalErr = string.Format(L["SYS.Users.Err.TooLong"].Value, SysRepository.EmployeeNoMax, SysRepository.EmployeeNameMax); return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
+        if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: _sel.UserId)) return;
+
+        // Admin 이 아니거나 자기 계정이면 상태·역할은 그대로 둔다(화면이 막아도 서버에서 다시 본다).
+        // 프로필 없는 계정은 Admin 이 아니면 INACTIVE 로 만든다 — 프로필 생성이 곧 사용 승인이다
+        var oldStatus = _sel.HasProfile ? (_sel.AccountStatus ?? "ACTIVE").ToUpperInvariant() : null;
+        var newStatus = CanChangeRoleStatus ? _f.AccountStatus : (oldStatus ?? "INACTIVE");
+        var setPin      = CanSetPin && !string.IsNullOrWhiteSpace(_f.Pin);
+        var setPassword = _isAdmin && !string.IsNullOrWhiteSpace(_f.Password);
 
         _busy = true;
         try
         {
-            var linesJson = _f.SelectedLines.Count > 0
-                ? JsonSerializer.Serialize(_f.SelectedLines)
-                : null;
-            if (Sys.ProfileExists(_sel.UserId))
-                Sys.UpdateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
-                    _f.Department, _f.PlantCode, _f.DefaultShift, _f.AccountStatus, _actorEmail, linesJson);
-            else
-                Sys.CreateProfile(_sel.UserId, _f.EmployeeNo, _f.EmployeeName,
-                    _f.Department, _f.PlantCode, _f.DefaultShift, _actorEmail, linesJson);
+            var iUser = await UserMgr.FindByIdAsync(_sel.UserId);
 
-            if (!string.IsNullOrWhiteSpace(_f.Pin))
-                Sys.SetPin(_sel.UserId, PinHasher.Hash(_f.Pin), _actorEmail);
-
-            if (!string.IsNullOrWhiteSpace(_f.Password))
+            // 비밀번호는 아무것도 저장하기 전에 규칙부터 검사하고, 바꿀 때는 한 번에 바꾼다 — 예전에는 프로필 저장 → 기존 비밀번호 삭제 → 새 비밀번호 추가 순이라
+            // 새 비밀번호가 규칙에 걸리면 비밀번호 없는 계정 + 반쯤 저장된 프로필이 남았다
+            if (setPassword && iUser is not null)
             {
-                var u = await UserMgr.FindByIdAsync(_sel.UserId);
-                if (u is not null)
+                var errs = new List<string>();
+                foreach (var v in UserMgr.PasswordValidators)
                 {
-                    await UserMgr.RemovePasswordAsync(u);
-                    var pr = await UserMgr.AddPasswordAsync(u, _f.Password);
-                    if (!pr.Succeeded)
-                    {
-                        _modalErr = string.Join(" ", pr.Errors.Select(e => e.Description));
-                        return;
-                    }
+                    var vr = await v.ValidateAsync(UserMgr, iUser, _f.Password);
+                    if (!vr.Succeeded) errs.AddRange(vr.Errors.Select(e => e.Description));
                 }
+                if (errs.Count > 0) { _modalErr = string.Join(" ", errs); return; }
             }
 
-            var iUser = await UserMgr.FindByIdAsync(_sel.UserId);
-            if (iUser is not null)
+            bool roleChanged = false;
+            if (CanChangeRoleStatus && iUser is not null)
             {
                 var currentRoles = await UserMgr.GetRolesAsync(iUser);
-                await UserMgr.RemoveFromRolesAsync(iUser, currentRoles);
-                if (!string.IsNullOrEmpty(_f.Role))
-                    await UserMgr.AddToRoleAsync(iUser, _f.Role);
+                var wanted = string.IsNullOrEmpty(_f.Role) ? Array.Empty<string>() : new[] { _f.Role };
+                roleChanged = !currentRoles.OrderBy(r => r).SequenceEqual(wanted, StringComparer.OrdinalIgnoreCase);
             }
+            bool statusChanged = !string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase);
+            var applyPassword = setPassword && iUser is not null;
 
+            // 역할·프로필·PIN·비밀번호·보안 스탬프를 한 트랜잭션으로 — 하나라도 실패하면(역할이 그사이 없어짐 등) 아무것도 바뀌지 않는다.
+            // 상태·역할·비밀번호가 바뀌면 보안 스탬프를 갱신해 그 사용자의 열린 세션이 재확인 주기(기본 5분) 안에 끊긴다
+            var result = Sys.SaveUserEdit(new SysRepository.UserEditRequest(
+                _sel.UserId, _f.EmployeeNo.Trim(), _f.EmployeeName.Trim(),
+                _f.Department, _f.PlantCode, _f.DefaultShift, newStatus,
+                ChangeRole: roleChanged, RoleName: string.IsNullOrEmpty(_f.Role) ? null : _f.Role,
+                PasswordHash: applyPassword ? UserMgr.PasswordHasher.HashPassword(iUser!, _f.Password) : null,
+                PinHash: setPin ? PinHasher.Hash(_f.Pin) : null,
+                RenewSecurityStamp: iUser is not null && (statusChanged || roleChanged || applyPassword),
+                Actor: _actorEmail));
+            if (result == SysRepository.UserEditResult.RoleMissing) { RoleMissing(_f.Role); return; }
+            if (result == SysRepository.UserEditResult.UserNotFound) { _modalErr = L["SYS.Users.Err.UserGone"]; return; }
+
+            // 같은 회로의 Identity 가 들고 있는 옛 해시·스탬프를 버린다 — 그대로 두면 이어지는 삭제·잠금 해제가 동시성 오류로 실패한다
+            if (iUser is not null) await IdentityDb.Entry(iUser).ReloadAsync();
+
+            if (setPin) Audit.Log("SYS-001", "PIN_SET", "AspNetUsers", _sel.Email, null, null);
+            if (setPassword) Audit.Log("SYS-001", "PWD_RESET", "AspNetUsers", _sel.Email, null, null);
+            Audit.Updated("SYS-001", "AspNetUsers", _sel.Email, _sel, _f);
             var email = _sel.Email;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Users.Ok.Updated"].Value, email), false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; }
+        catch (Exception ex) { Fail(ex); }
         finally { _busy = false; }
     }
 
     async Task SaveDelete()
     {
-        if (_sel is null) return;
+        if (_sel is null || !CanDelete) return;
         _busy = true;
         try
         {
-            Sys.DeleteProfile(_sel.UserId);
-            var u = await UserMgr.FindByIdAsync(_sel.UserId);
-            if (u is not null) await UserMgr.DeleteAsync(u);
+            // 프로필·역할·계정을 한 트랜잭션으로 — 하나라도 실패하면 아무것도 지워지지 않고 오류로 보인다
+            if (!Sys.DeleteUser(_sel.UserId)) { _confirmDelete = false; _modalErr = L["SYS.Users.Err.UserGone"]; return; }
+            ForgetIdentityUser(_sel.UserId);
 
+            Audit.Deleted("SYS-001", "AspNetUsers", _sel.Email, _sel);
             var email = _sel.Email;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Users.Ok.Deleted"].Value, email), false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        catch (Exception ex) { _confirmDelete = false; Fail(ex); }
         finally { _busy = false; }
+    }
+
+    // SQL 로 지운 계정이 이 회로의 Identity 컨텍스트에 추적된 채 남지 않게 떼어 낸다(같은 이메일 재등록 등)
+    void ForgetIdentityUser(string userId)
+    {
+        foreach (var e in IdentityDb.ChangeTracker.Entries<ApplicationUser>().Where(x => x.Entity.Id == userId).ToList())
+            e.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
     }
 
     async Task UnlockUser()
     {
-        if (_sel is null) return;
-        var u = await UserMgr.FindByIdAsync(_sel.UserId);
-        if (u is null) return;
-        await UserMgr.SetLockoutEndDateAsync(u, null);
-        await UserMgr.ResetAccessFailedCountAsync(u);
-        CloseModal(); await ReloadRestorePage();
-        ShowMsg(string.Format(L["SYS.Users.Ok.Unlocked"].Value, _sel.Email), false);
+        if (_sel is null || !_isAdmin) return;
+        _modalErr = ""; _busy = true;
+        try
+        {
+            var u = await UserMgr.FindByIdAsync(_sel.UserId);
+            if (u is null) return;
+            await UserMgr.SetLockoutEndDateAsync(u, null);
+            await UserMgr.ResetAccessFailedCountAsync(u);
+            Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, null);
+            var email = _sel.Email;
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["SYS.Users.Ok.Unlocked"].Value, email), false);
+        }
+        catch (Exception ex) { Fail(ex); }
+        finally { _busy = false; }
     }
 
     async Task UnlockDomainAccount()
     {
-        if (_sel is null) return;
-        AuthRepo.UnlockAccount(_sel.UserId, _actorEmail);
-        var u = await UserMgr.FindByIdAsync(_sel.UserId);
-        if (u is not null)
+        if (_sel is null || !_isAdmin) return;
+        _modalErr = ""; _busy = true;
+        try
         {
-            await UserMgr.SetLockoutEndDateAsync(u, null);
-            await UserMgr.ResetAccessFailedCountAsync(u);
+            AuthRepo.UnlockAccount(_sel.UserId, _actorEmail);
+            var u = await UserMgr.FindByIdAsync(_sel.UserId);
+            if (u is not null)
+            {
+                await UserMgr.SetLockoutEndDateAsync(u, null);
+                await UserMgr.ResetAccessFailedCountAsync(u);
+            }
+            Audit.Log("SYS-001", "UNLOCK", "AspNetUsers", _sel.Email, null, new { Domain = true });
+            var email = _sel.Email;
+            CloseModal(); await ReloadRestorePage();
+            ShowMsg(string.Format(L["SYS.Users.Ok.DomainUnlocked"].Value, email), false);
         }
-        var email = _sel.Email;
-        CloseModal(); await ReloadRestorePage();
-        ShowMsg(string.Format(L["SYS.Users.Ok.DomainUnlocked"].Value, email), false);
+        catch (Exception ex) { Fail(ex); }
+        finally { _busy = false; }
+    }
+
+    // DB 오류 등 예외는 화면 연결을 끊지 않고 보인다 — 창이 열려 있으면 창 안에, 저장 뒤 목록 새로고침에서 났으면(창이 닫힘) 상단 알림으로
+    // 고른 역할이 SYS-002 에서 이름이 바뀌거나 지워진 경우 — 역할 목록을 새로 읽어 다시 고르게 한다
+    void RoleMissing(string? role)
+    {
+        _roles = RoleMgr.Roles.Select(r => r.Name!).OrderBy(n => n).ToList();
+        _modalErr = string.Format(L["SYS.Users.Err.RoleMissing"].Value, role);
+    }
+
+    void Fail(Exception ex)
+    {
+        if (_modal == "") ShowMsg(ex.Message, true);
+        else _modalErr = ex.Message;
     }
 
     void ShowMsg(string msg, bool isErr)
     {
         _msg = msg; _isErr = isErr;
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
-    }
-
-    void ToggleLine(string lineId, bool check)
-    {
-        if (check) { if (!_f.SelectedLines.Contains(lineId)) _f.SelectedLines.Add(lineId); }
-        else _f.SelectedLines.Remove(lineId);
     }
 
     class FormModel
@@ -660,14 +744,8 @@
         public string       DefaultShift  { get; set; } = "";
         public string       AccountStatus { get; set; } = "ACTIVE";
         public string       Role          { get; set; } = "";
-        public List<string> SelectedLines { get; set; } = new();
     }
 
     // POP 키패드 제약과 동일: 정확히 숫자 4자리만 유효.
     static bool IsPin(string s) => s.Length == 4 && s.All(char.IsDigit);
-
-    static string LineLocalName(SysRepository.LineRow r) =>
-        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko"
-            ? r.LineName
-            : (r.LineNameEn ?? r.LineName);
 }

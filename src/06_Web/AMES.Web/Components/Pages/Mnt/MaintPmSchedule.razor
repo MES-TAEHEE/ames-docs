@@ -1,0 +1,14 @@
+@page "/mnt/maint-pm-schedule"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize]
+
+@inject IStringLocalizer<SharedResources> L
+
+@* MNT-010 보전 PM 일정 — 공통코드 PM_CLASS = MAINT 만. 달력·등록 본체는 PmScheduleBoard (MNT-005 설비 PM 과 공유, 테이블은 MNT_PMSchedule 공용) *@
+<PageTitle>MNT-010 @L["MNT.MaintPmSchedule.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="MNT-010" TitleKey="MNT.MaintPmSchedule.Title" />
+
+<PmScheduleBoard PmClass="MAINT" Href="mnt/maint-pm-schedule" />

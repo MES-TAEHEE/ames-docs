@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-007 @L["MD.Mold.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-007" TitleKey="MD.Mold.Title" />
@@ -62,31 +63,38 @@
                 </RadzenStack>
             </div>
 
-            <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.MoldRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Mold.Empty"]" Class="ames-rz-grid">
+            <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.MoldRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                            PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Mold.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
                 <Columns>
+                    @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                        <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+                    </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldID" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="110px">
                         <Template Context="r"><span class="code">@r.MoldID</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldName" Title="@L["Col.MoldName"]">
                         <Template Context="r">@(r.MoldName ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CavityCount" Title="@L["Col.Cavities"]" TextAlign="TextAlign.Right" Width="100px">
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CavityCount" Title="@L["Col.Cavities"]" TextAlign="TextAlign.Right" Width="120px">
                         <Template Context="r">@(r.CavityCount?.ToString() ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="100px">
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="110px">
                         <Template Context="r">@(r.Tonnage?.ToString("N0") ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="RatedShots" Title="@L["Col.ShotsLifetime"]" TextAlign="TextAlign.Right" Width="100px">
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="MoldChangeMin" Title="@L["Col.MoldChangeMin"]" TextAlign="TextAlign.Right" Width="200px">
+                        <Template Context="r">@(r.MoldChangeMin?.ToString("N0") ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="RatedShots" Title="@L["Col.ShotsLifetime"]" TextAlign="TextAlign.Right" Width="110px">
                         <Template Context="r">@(r.RatedShots?.ToString("N0") ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CurrentShots" Title="@L["Col.ShotsCurrent"]" TextAlign="TextAlign.Right" Width="120px">
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CurrentShots" Title="@L["Col.ShotsCurrent"]" TextAlign="TextAlign.Right" Width="160px">
                         <Template Context="r">@(r.CurrentShots?.ToString("N0") ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CumulativeShots" Title="@L["Col.ShotsCumulative"]" TextAlign="TextAlign.Right" Width="100px">
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="CumulativeShots" Title="@L["Col.ShotsCumulative"]" TextAlign="TextAlign.Right" Width="140px">
                         <Template Context="r">@r.CumulativeShots.ToString("N0")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Title="@L["Col.UsagePct"]" TextAlign="TextAlign.Right" Width="80px" Sortable="false">
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Title="@L["Col.UsagePct"]" TextAlign="TextAlign.Right" Width="90px" Sortable="false">
                         <Template Context="r">
                             @{
                                 var pct = r.RatedShots.HasValue && r.RatedShots > 0 && r.CurrentShots.HasValue
@@ -101,10 +109,10 @@
                             else { <span class="dim">—</span> }
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="120px">
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="200px">
                         <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="LastMaintDate" Title="@L["Col.LastMaint"]" TextAlign="TextAlign.Center" Width="120px">
+                    <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="LastMaintDate" Title="@L["Col.LastMaint"]" TextAlign="TextAlign.Center" Width="140px">
                         <Template Context="r"><span class="dim">@(r.LastMaintDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="120px">
@@ -177,7 +185,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LastMaint"]" />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastMaintDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_f.LastMaintDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -185,6 +193,10 @@
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.MoldChangeMin"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.MoldChangeMin" Min="0" Max="1440" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -258,7 +270,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LastMaint"]" />
-                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_f.LastMaintDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_f.LastMaintDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -266,6 +278,10 @@
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text="@L["Col.MoldChangeMin"]" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.MoldChangeMin" Min="0" Max="1440" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -313,6 +329,13 @@
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
+            else if (!string.IsNullOrEmpty(_deleteBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_deleteBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _deleteBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -321,7 +344,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click="@AskDelete" Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -329,8 +352,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.MoldRow>     _allRows    = new();
     List<MasterDataRepository.MoldRow>     _rows       = new();
     List<MasterDataRepository.CodeItemRow>  _moldStatus = new();
@@ -342,6 +366,7 @@
     string? _fStatus, _fLoc;
     string _modal = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    string _deleteBlocked = "";
     string _msg = "", _modalErr = "";
     bool _isErr;
     bool   _canEdit;
@@ -357,7 +382,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/re/mold");
         try { _moldStatus = MD.ListCodeItems("MOLD_STATUS"); } catch { }
@@ -407,12 +432,12 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.MoldRow r)
     {
         if (!_canEdit) return;
-        _sel = r; _modalErr = ""; _confirmDelete = false;
+        _sel = r; _modalErr = ""; _confirmDelete = false; _deleteBlocked = "";
         _f = new()
         {
             MoldID            = r.MoldID,
@@ -421,6 +446,7 @@
             CurrentShots      = r.CurrentShots,
             CavityCount       = r.CavityCount,
             Tonnage           = r.Tonnage,
+            MoldChangeMin     = r.MoldChangeMin,
             StorageLoc        = r.StorageLoc    ?? "",
             LastMaintDate     = r.LastMaintDate,
             Status            = r.Status        ?? "AVAILABLE",
@@ -433,24 +459,34 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.MoldID))   { _modalErr = L["Err.MoldIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.MoldName))  { _modalErr = L["Err.MoldNameRequired"]; return; }
-        if (MD.MoldExists(_f.MoldID.Trim())) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], _f.MoldID.Trim()); return; }
+        var newId = _f.MoldID.Trim();
+        var dupId = MD.FindMoldIdByCleanCode(newId);
+        if (dupId is not null)
+        {
+            _modalErr = string.Equals(dupId, newId, StringComparison.OrdinalIgnoreCase)
+                ? string.Format(L["Err.AlreadyExistsFmt"], newId)
+                : string.Format(L["Err.MoldCodeCleanDupFmt"], newId, dupId);
+            return;
+        }
         _busy = true;
         try
         {
             MD.InsertMold(_f.MoldID.Trim(), _f.MoldName,
                 _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
                 NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor,
-                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag);
+                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag, moldChangeMin: _f.MoldChangeMin);
+            Audit.Created("MD-007", "MD_Mold", _f.MoldID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.MoldName} {L["Msg.Created"]}", false);
         }
@@ -460,6 +496,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.MoldName)) { _modalErr = L["Err.MoldNameRequired"]; return; }
@@ -469,7 +506,8 @@
             MD.UpdateMold(_sel.MoldID, _f.MoldName,
                 _f.RatedShots, _f.CurrentShots, _f.CavityCount, _f.Tonnage,
                 NE(_f.StorageLoc), _f.LastMaintDate, _f.Status, _actor,
-                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag);
+                carType: NE(_f.CarType), refCode: NE(_f.RefCode), assyInjResultFlag: _f.AssyInjResultFlag, moldChangeMin: _f.MoldChangeMin);
+            Audit.Updated("MD-007", "MD_Mold", _sel.MoldID, _sel, _f);
             var name = _f.MoldName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -478,25 +516,35 @@
         finally { _busy = false; }
     }
 
+    // 확인을 묻기 전에 사용처를 본다 — 사용 중이면 확인 대신 사용처 안내만 보인다(삭제할 때 저장소가 같은 규칙으로 다시 검사)
+    void AskDelete()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = ""; _deleteBlocked = "";
+        try
+        {
+            var usages = MD.MoldUsages(_sel.MoldID);
+            if (usages.Count > 0) _deleteBlocked = InUseText(_sel.MoldID, usages);
+            else _confirmDelete = true;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    string InUseText(string key, List<MasterDataRepository.UsageRef> usages)
+        => string.Format(L["MD.Usage.Err.InUse"].Value, key, AMES.Web.Services.UsageText.Format(L, usages));
+
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
-            // ZPD20041 삭제 가드: 제품정보/라인배정에서 사용 중이면 삭제 불가
-            var (ic, lc, cc) = MD.MoldUsage(_sel.MoldID);
-            if (ic > 0 || lc > 0)
-            {
-                _modalErr = string.Format(L["Err.MoldInUse"], ic, lc);
-                _confirmDelete = false;
-                return;
-            }
-            if (cc > 0)
-                foreach (var c in MD.ListMoldColors(_sel.MoldID))
-                    MD.DeleteMoldColor(_sel.MoldID, c.Color);
+            // ZPD20041 삭제 가드: 제품정보/라인배정에서 사용 중이면 삭제 불가 — 검사·색상·금형 삭제는 저장소가 한 트랜잭션으로
             var name = _sel.MoldName ?? _sel.MoldID;
-            MD.DeleteMold(_sel.MoldID);
+            var usages = MD.DeleteMold(_sel.MoldID);
+            if (usages.Count > 0) { _deleteBlocked = InUseText(_sel.MoldID, usages); _confirmDelete = false; return; }
+            Audit.Deleted("MD-007", "MD_Mold", _sel.MoldID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }
@@ -507,11 +555,13 @@
     // ── 색상 관리 (edit 모달) ─────────────────────────────────────────────
     void AddColor()
     {
+        if (!_canEdit) return;
         if (_sel is null || string.IsNullOrWhiteSpace(_newColor)) return;
         _modalErr = "";
         try
         {
             MD.InsertMoldColor(_sel.MoldID, _newColor.Trim().ToUpper(), _actor);
+            Audit.Created("MD-007", "MD_MoldColor", $"{_sel.MoldID}/{_newColor.Trim().ToUpper()}", null);
             _newColor = "";
             _colors = MD.ListMoldColors(_sel.MoldID);
         }
@@ -520,11 +570,13 @@
 
     void RemoveColor(string color)
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         try
         {
             MD.DeleteMoldColor(_sel.MoldID, color);
+            Audit.Deleted("MD-007", "MD_MoldColor", $"{_sel.MoldID}/{color}", null);
             _colors = MD.ListMoldColors(_sel.MoldID);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -548,6 +600,7 @@
         public int?      CurrentShots      { get; set; }
         public int?      CavityCount       { get; set; }
         public int?      Tonnage           { get; set; }
+        public int?      MoldChangeMin     { get; set; }
         public string    StorageLoc        { get; set; } = "";
         public DateOnly? LastMaintDate     { get; set; }
         public string    Status            { get; set; } = "AVAILABLE";

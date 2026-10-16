@@ -20,11 +20,19 @@ internal sealed class IdentityRedirectManager(NavigationManager navigationManage
     {
         uri ??= "";
 
-        // Prevent open redirects.
-        if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
+        // Open Redirect 방지 — 같은 사이트 경로("/x")·앱 기준 상대 경로("Account/Manage")만 그대로 두고,
+        // 같은 사이트의 절대 주소는 상대 경로로 바꾸며, 그 밖("//host"·외부 주소 등)은 홈으로 보낸다.
+        // (템플릿의 IsWellFormedUriString(…, Relative) 검사는 "//host" 를 통과시켰다)
+        if (!AMES.Web.Services.LocalUrl.IsLocal(uri) && !AMES.Web.Services.LocalUrl.IsAppRelative(uri))
         {
-            uri = navigationManager.ToBaseRelativePath(uri);
+            try
+            {
+                var rel = navigationManager.ToBaseRelativePath(uri);
+                uri = rel.Length == 0 || AMES.Web.Services.LocalUrl.IsAppRelative(rel) ? rel : "";
+            }
+            catch (ArgumentException) { uri = ""; }
         }
+        if (uri.Length > 0 && !AMES.Web.Services.LocalUrl.ResolvesToSameSite(uri, navigationManager.BaseUri)) uri = "";
 
         // During static rendering, NavigateTo throws a NavigationException which is handled by the framework as a redirect.
         // So as long as this is called from a statically rendered Identity component, the InvalidOperationException is never thrown.

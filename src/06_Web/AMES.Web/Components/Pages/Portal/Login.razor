@@ -1,0 +1,79 @@
+@page "/portal/login"
+@layout AMES.Web.Components.Layout.EmptyLayout
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+
+@using System.ComponentModel.DataAnnotations
+
+@inject AMES.Web.Services.WebSignIn SignIn
+@inject IStringLocalizer<SharedResources> L
+
+@*  외부 개방 화면 전용 로그인. 계정은 SCM-004 에서 등록한 SCM_PortalVendorUser(이메일·비밀번호)만 받는다 — 내부 계정은 거부(WebSignIn). *@
+
+<PageTitle>@L["Portal.Login.Title"] · A-MES</PageTitle>
+
+<div class="ames-auth-page portal-auth">
+    <div class="ames-auth-bg-grid"></div>
+
+    <div class="ames-auth-card">
+        <div class="ames-auth-brand">
+            <div class="ames-auth-logo">A-MES</div>
+            <div class="ames-auth-sub">@L["Portal.Sub"] · @L["Portal.Login.Sub"]</div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="ames-auth-error">✕ @errorMessage</div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="portal-login"
+                  class="ames-auth-form" Enhance="false">
+            <DataAnnotationsValidator />
+
+            <label class="ames-auth-label">@L["Auth.Lbl.Email"]</label>
+            <InputText @bind-Value="Input.Email" class="ames-auth-input" autocomplete="username" placeholder="user@partner.com" />
+            <ValidationMessage For="() => Input.Email" class="ames-auth-vm" />
+
+            <label class="ames-auth-label">@L["Auth.Lbl.Password"]</label>
+            <InputText type="password" @bind-Value="Input.Password" class="ames-auth-input" autocomplete="current-password" placeholder="••••••••" />
+            <ValidationMessage For="() => Input.Password" class="ames-auth-vm" />
+
+            <button type="submit" class="ames-auth-submit">@L["Auth.Btn.SignIn"]  →</button>
+        </EditForm>
+
+        <div class="ames-auth-hint">@L["Portal.Login.Hint"]</div>
+    </div>
+
+    <div class="ames-auth-foot">A-MES · EOS · 2026</div>
+</div>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = default!;
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+    [SupplyParameterFromQuery(Name = "throttled")] private string? Throttled { get; set; }
+
+    private string? errorMessage;
+
+    protected override void OnInitialized()
+    {
+        Input ??= new();
+        if (Throttled == "1" && HttpMethods.IsGet(HttpContext.Request.Method)) errorMessage = L["Auth.Err.Throttled"];
+    }
+
+    // 계정 종류로 갈린다 — 내부 사용자는 이 화면에서 로그인해도 내부 쿠키를 받아 내부 화면으로 간다
+    public async Task LoginUser()
+    {
+        var signIn = SignIn.SignInPortalAsync(HttpContext, Input.Email, Input.Password, ReturnUrl);
+        try { await signIn; }
+        catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsConnectionFailure(ex)) { errorMessage = L["App.DbDown.Login"]; return; }
+        var result = signIn.Result;
+        if (!result.Succeeded) { errorMessage = L[result.ErrorKey!]; return; }
+        HttpContext.Response.Redirect(result.Redirect!);
+    }
+
+    private sealed class InputModel
+    {
+        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required, DataType(DataType.Password)] public string Password { get; set; } = "";
+    }
+}

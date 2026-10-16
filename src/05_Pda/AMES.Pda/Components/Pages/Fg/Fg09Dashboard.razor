@@ -1,5 +1,5 @@
 @page "/fg/09"
-@inject PdaApi Api
+@inject FinishedGoodsApi Api
 @inject NavigationManager Nav
 
 <div class="pda-shell fg">
@@ -8,11 +8,15 @@
         <span class="pda-tbar-brand">FG-009 DASHBOARD</span>
     </div>
     <div class="pda-bd">
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="pda-alert err">@_error</div>
+        }
         <div class="pda-kpi-grid">
-            <div class="pda-kpi"><div class="lbl">OPEN ORDERS</div><div class="val">@_d.OpenOrders</div></div>
-            <div class="pda-kpi warn"><div class="lbl">READY TO SHIP</div><div class="val">@_d.ReadyToShip</div></div>
-            <div class="pda-kpi ok"><div class="lbl">IN TRANSIT</div><div class="val">@_d.InTransit</div></div>
-            <div class="pda-kpi ok"><div class="lbl">DELIVERED TODAY</div><div class="val">@_d.DeliveredToday</div></div>
+            <div class="pda-kpi"><div class="lbl">SHIPMENTS TODAY</div><div class="val">@_d.ShipmentsToday</div></div>
+            <div class="pda-kpi"><div class="lbl">LOTS SHIPPED TODAY</div><div class="val">@_d.LotsShippedToday</div></div>
+            <div class="pda-kpi ok"><div class="lbl">QTY SHIPPED TODAY</div><div class="val">@_d.QtyShippedToday.ToString("0")</div></div>
+            <div class="pda-kpi"><div class="lbl">STOCK LOTS</div><div class="val">@_d.StockLots</div></div>
             <div class="pda-kpi bad"><div class="lbl">PENDING RETURNS</div><div class="val">@_d.PendingReturns</div></div>
             <div class="pda-kpi"><div class="lbl">STOCK ON HAND</div><div class="val">@_d.StockOnHand.ToString("0")</div></div>
         </div>
@@ -22,6 +26,12 @@
 
 @code {
     PdaApi.FgDashboard _d = new(0,0,0,0,0,0);
+    string? _error;
     protected override async Task OnInitializedAsync() => await Load();
-    async Task Load() { _d = await Api.FgDashboardAsync(); }
+    async Task Load()
+    {
+        _error = null;
+        try { _d = await Api.FgDashboardAsync(); }
+        catch (Exception ex) { _error = $"Dashboard could not be loaded. {ex.Message}"; }
+    }
 }

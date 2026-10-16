@@ -1,7 +1,107 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject AMES.Pda.Services.AuthState Auth
+@inject NavigationManager Nav
+@inject PdaUomFormat Uom
+@inject SessionValidator Sessions
 
 @*  Full-screen PDA layout — no sidebar, no top chrome.
     Each page paints into the full 480×800 portrait viewport. *@
 
-<RadzenComponents />
-<div class="pda-root">@Body</div>
+<div inert="@_expiryAlert"><RadzenComponents /></div>
+<div class="pda-root" inert="@(Auth.SessionCheckRequired || _expiryAlert)">@Body</div>
+@if (_expiryAlert)
+{
+    <div class="wh-modal-backdrop pda-session-expiry" @onkeydown="ExpiryKeyDown">
+        <div class="wh-modal-card warn" role="alertdialog" aria-modal="true"
+             aria-labelledby="session-expired-title" aria-describedby="session-expired-message">
+            <div class="wh-modal-mark" aria-hidden="true">!</div>
+            <div class="wh-modal-title" id="session-expired-title">Session expired</div>
+            <div class="wh-modal-message" id="session-expired-message">Your session has expired. Please sign in again.</div>
+            <div class="wh-modal-actions">
+                <button @ref="_expiryButton" class="wh-modal-btn primary" @onclick="ConfirmExpiry">OK</button>
+            </div>
+        </div>
+    </div>
+}
+@if (Auth.SessionCheckRequired)
+{
+    <div class="pda-session-cover" role="status" aria-live="polite">
+        <div class="pda-session-message">
+            @if (Auth.SessionCheckError is { } error)
+            {
+                <p>@error</p>
+                <button @onclick="Sessions.CheckAsync">Retry</button>
+                <button @onclick="Auth.SignOut">Sign in</button>
+            }
+            else
+            {
+                <p>Checking session…</p>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private string? _loadedToken;
+    private bool _expiryAlert;
+    private bool _focusExpiryAlert;
+    private ElementReference _expiryButton;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusExpiryAlert && _expiryAlert)
+        {
+            _focusExpiryAlert = false;
+            await _expiryButton.FocusAsync();
+        }
+    }
+
+    private void ConfirmExpiry()
+    {
+        _expiryAlert = false;
+        if (Auth.Session is null) Nav.NavigateTo("/login", replace: true);
+    }
+
+    private void ExpiryKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") ConfirmExpiry();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.OnChange += OnAuthChanged;
+        if (Auth.Session is not null) { _loadedToken = Auth.Token; await LoadUoms(); }
+    }
+
+    private async Task LoadUoms()
+    {
+        try { await Uom.RefreshAsync(); StateHasChanged(); }
+        catch { /* Unit codes remain visible if the master is unavailable. */ }
+    }
+
+    private void OnAuthChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            StateHasChanged();
+            if (Auth.Session is not null)
+            {
+                if (_loadedToken != Auth.Token) { _loadedToken = Auth.Token; await LoadUoms(); }
+                return;
+            }
+            _loadedToken = null;
+            if (_expiryAlert) return;
+            if (Auth.TakeExpiryNotice())
+            {
+                _expiryAlert = true;
+                _focusExpiryAlert = true;
+                StateHasChanged();
+                return;
+            }
+            if (Auth.Session is null) Nav.NavigateTo("/login", replace: true);
+        });
+    }
+
+    public void Dispose() => Auth.OnChange -= OnAuthChanged;
+}

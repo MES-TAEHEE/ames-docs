@@ -1,6 +1,8 @@
 ﻿@page "/sys/rbac"
 @rendermode InteractiveServer
+@implements IDisposable
 
+@using AMES.Data.Services
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
 @using AMES.Web.Services
@@ -13,6 +15,8 @@
 @inject SysRepository Sys
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
+@inject AMES.Web.Services.ScreenCatalogNotifier ScreenCatalog
 
 <PageTitle>SYS-004 @L["SYS.Rbac.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-004" TitleKey="SYS.Rbac.Title" />
@@ -104,14 +108,27 @@
 
                         @if (_canEdit)
                         {
-                            <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveAll" Disabled="@(!_dirty || _busy)" Icon="save" ButtonStyle="@(_dirty ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveAll" Disabled="@(!_dirty || _busy || _loadFailed)" Icon="save" ButtonStyle="@(_dirty && !_loadFailed ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
                         }
                     </RadzenStack>
                 </div>
+                @if (_loadFailed)
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false" Style="margin:8px 12px 0;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Wrap="FlexWrap.Wrap">
+                            <span>@L["SYS.Rbac.Err.LoadFailed"]</span>
+                            <RadzenButton Text="@L["SYS.Rbac.Btn.Reload"]" Icon="refresh" Click="@ReloadRole" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                        </RadzenStack>
+                    </RadzenAlert>
+                }
 
                 <div style="flex:1;min-height:0;overflow:auto;">
-                <RadzenDataGrid TItem="SysRepository.ScreenRow" Data="@ScreensFiltered.ToList()" AllowPaging="false" AllowSorting="false" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
+                <RadzenDataGrid @ref="_screenGrid" TItem="SysRepository.ScreenRow" Data="@ScreensFiltered.ToList()" AllowPaging="false" AllowSorting="false" EmptyText="@L["SYS.Screen.Empty"]" Class="ames-rz-grid">
                     <Columns>
+                        @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+                        <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                            <Template Context="s"><span class="dim">@GridRowNo.Of(_screenGrid, s)</span></Template>
+                        </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="100px">
                             <Template Context="s"><span class="code" style="white-space:nowrap;">@s.ScreenCode</span></Template>
                         </RadzenDataGridColumn>
@@ -128,7 +145,18 @@
                                     </span>
                                 </HeaderTemplate>
                                 <Template Context="s">
-                                    <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit)" />
+                                    @if (HasSlot(s.ScreenCode, plCap) && IsLocked(s, plCap))
+                                    {
+                                        <span title="@L["SYS.Rbac.AdminLocked"]"><RadzenCheckBox TValue="bool" Value="true" Disabled="true" /></span>
+                                    }
+                                    else if (HasSlot(s.ScreenCode, plCap))
+                                    {
+                                        <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit || _loadFailed)" />
+                                    }
+                                    else
+                                    {
+                                        <span title="@L["SYS.Rbac.NoFeature"]"><RadzenCheckBox TValue="bool" Value="false" Disabled="true" Style="opacity:.35;" /></span>
+                                    }
                                 </Template>
                             </RadzenDataGridColumn>
                         }
@@ -141,6 +169,7 @@
 </div>
 
 @code {
+    RadzenDataGrid<SysRepository.ScreenRow>? _screenGrid;   // No. 열용
     List<SysRepository.RoleRow>            _roles      = new();
     List<SysRepository.RolePermRow>        _rows       = new();
     List<SysRepository.ScreenRow>          _screens    = new();
@@ -156,6 +185,8 @@
 
     // ScreenCode → PermissionLevel 문자열 (현재 선택 역할, e.g. "RE")
     Dictionary<string, string> _grants = new();
+    Dictionary<string, string> _baseline = new();
+    bool _loadFailed;
 
     string _fModule  = "";
     string _fProcess = "";
@@ -176,7 +207,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actorEmail = auth.User.Identity?.Name ?? "system";
+        _actorEmail = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/rbac");
         try { _permLevelItems = MD.ListCodeItems("PERMISSION_LEVEL").Where(p => p.UseFlag).ToList(); } catch { }
@@ -186,13 +217,21 @@
         if (_fModule == "" && _moduleItems.Count > 0)
             _fModule = _moduleItems[0].CodeValue ?? "";
         _fProcess = ProcessOptions.FirstOrDefault()?.Value ?? "";
+        ScreenCatalog.Changed += OnScreensChanged;
     }
+
+    public void Dispose() => ScreenCatalog.Changed -= OnScreensChanged;
+
+    // 포탈 화면(ProcessCode PORTAL)은 RBAC 대상이 아니다 — 외부 사용자는 SCM-004 계정의 협력업체로만 걸러진다
+    List<SysRepository.ScreenRow> LoadScreens()
+        => Sys.ListScreens().Where(s => !string.Equals(s.ProcessCode, "PORTAL", StringComparison.OrdinalIgnoreCase)).ToList();
 
     void Reload()
     {
-        try { _roles   = Sys.ListRoles(); } catch { }
-        try { _rows    = Sys.ListRolePermissions(); } catch { }
-        try { _screens = Sys.ListScreens(); } catch { }
+        _loadFailed = false;
+        try { _roles   = Sys.ListRoles(); } catch { _loadFailed = true; }
+        try { _rows    = Sys.ListRolePermissions(); } catch { _loadFailed = true; }
+        try { _screens = LoadScreens(); } catch { _loadFailed = true; }
 
         if (_selRole is not null)
         {
@@ -204,41 +243,104 @@
         _dirty = false;
     }
 
+    // 「다시 불러오기」 — 역할 목록과 선택 역할의 권한을 새로 읽는다(저장 안 한 편집은 버린다)
+    void ReloadRole()
+    {
+        var keep = _selRole;
+        Reload();
+        if (keep is not null && _selRole is null) _selRole = _roles.FirstOrDefault(r => r.RoleId == keep.RoleId);
+        if (_selRole is not null && !_loadFailed) BuildGrants();
+        if (!_loadFailed) ShowMsg("", false);
+    }
+
     void OnModuleChanged()
     {
         _fProcess = ProcessOptions.FirstOrDefault()?.Value ?? "";
     }
 
+    // 역할을 고를 때마다 화면 기본 권한·권한 행을 다시 읽는다 — 알림이 오지 않는 변경(다른 서버의 Web·DB 직접 수정)도 여기서 맞춰진다
     void SelectRole(SysRepository.RoleRow r)
     {
+        _loadFailed = false;
+        try { _screens = LoadScreens(); } catch { _loadFailed = true; }
+        try { _rows    = Sys.ListRolePermissions(); } catch { _loadFailed = true; }
         _selRole = r;
         _dirty   = false;
         BuildGrants();
     }
 
+    // SYS-003·SYS-004 저장 알림(ScreenCatalogNotifier, 스레드 풀) — DB 조회는 회로 밖, 반영만 회로에서
+    void OnScreensChanged() => _ = Task.Run(async () =>
+    {
+        List<SysRepository.ScreenRow> screens;
+        List<SysRepository.RolePermRow> rows;
+        try { screens = LoadScreens(); rows = Sys.ListRolePermissions(); }
+        catch { return; }
+        await InvokeAsync(() => { ApplyScreens(screens, rows); StateHasChanged(); });
+    });
+
+    // 화면 기본 권한이 바뀌면 체크박스 켜짐·꺼짐을 새 값으로. 저장 안 한 편집은 두고 없어진 기능 칸만 풀며,
+    // 편집이 없으면 SYS-003 이 같은 트랜잭션에서 맞춘 권한 행을 다시 읽는다
+    void ApplyScreens(List<SysRepository.ScreenRow> screens, List<SysRepository.RolePermRow> rows)
+    {
+        static string Key(IEnumerable<SysRepository.ScreenRow> list)
+            => string.Join(";", list.OrderBy(s => s.ScreenCode, StringComparer.Ordinal)
+                                    .Select(s => s.ScreenCode + "=" + PermissionSlots.NormalizeTemplate(s.PermissionCriteria)));
+        var changed = Key(_screens) != Key(screens);
+        _screens = screens;
+        if (_dirty)
+        {
+            foreach (var code in _grants.Keys.ToList())
+                _grants[code] = PermissionSlots.Granted(_grants[code], Tpl(code));
+            EnforceLocked();
+        }
+        else
+        {
+            _rows = rows;
+            _loadFailed = false;
+            if (_selRole is not null) BuildGrants();
+        }
+        if (changed) ShowMsg(L["SYS.Rbac.Msg.CriteriaChanged"].Value, false);
+    }
+
+    // 기준(_baseline) = DB 에서 읽은 그대로의 부여 — 저장은 이것과 달라진 화면만 보낸다(RolePermissionDiff)
     void BuildGrants()
     {
-        _grants = _rows
-            .Where(x => x.RoleName == _selRole!.RoleName && x.ScreenCode is not null)
-            .ToDictionary(x => x.ScreenCode!, x => NormalizeLevel(x.PermissionLevel));
+        _baseline = _rows
+            .Where(x => OfRole(x, _selRole!) && x.ScreenCode is not null)
+            .ToDictionary(x => x.ScreenCode!, x => PermissionSlots.Granted(x.PermissionLevel, Tpl(x.ScreenCode!)));
+        _grants = new Dictionary<string, string>(_baseline);
+        EnforceLocked();
     }
 
-    /// 저장된 값에서 유효 문자(R/E/A)만 추출, REA 순 정렬
-    static string NormalizeLevel(string? level)
+    // 관리자의 SYS-003·SYS-004 읽기·수정은 끌 수 없다 — 잃으면 권한을 다시 줄 화면이 없다(ProtectedScreens, 저장소도 같은 규칙)
+    bool IsLocked(SysRepository.ScreenRow s, MasterDataRepository.CodeItemRow pl)
     {
-        if (string.IsNullOrWhiteSpace(level)) return "";
-        return new string(level.ToUpperInvariant()
-                               .Where(c => c == 'R' || c == 'E' || c == 'A')
-                               .Distinct()
-                               .OrderBy(c => "REA".IndexOf(c))
-                               .ToArray());
+        var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
+        return letter.Length == 1 && ProtectedScreens.IsLocked(_selRole?.RoleId, s.HRef, letter[0]);
     }
 
-    static string ToggleLetter(string current, char letter, bool add)
+    void EnforceLocked()
     {
-        var chars = current.ToUpperInvariant().ToHashSet();
-        if (add) chars.Add(letter); else chars.Remove(letter);
-        return new string(chars.OrderBy(c => "REA".IndexOf(c)).ToArray());
+        if (_selRole?.RoleId != SystemRoles.AdminId) return;
+        foreach (var s in _screens.Where(x => ProtectedScreens.IsProtected(x.HRef)))
+        {
+            _grants.TryGetValue(s.ScreenCode, out var cur);
+            _grants[s.ScreenCode] = PermissionSlots.Granted(ProtectedScreens.ApplyRole(_selRole.RoleId, s.HRef, cur), s.PermissionCriteria);
+        }
+    }
+
+    /// 저장된 값에서 부여된 문자(R/E/A)만 추출, REA 순 — '_'(미부여)·'X'(기능 없음)는 버린다
+    static string NormalizeLevel(string? level) => PermissionSlots.Granted(level);
+
+    // 화면 기본 권한(SYS-003 의 SYS_Screen.PermissionCriteria) — 없는 화면은 세 기능 모두 있다고 본다
+    string Tpl(string screenCode) => _screens.FirstOrDefault(x => x.ScreenCode == screenCode)?.PermissionCriteria ?? PermissionSlots.Default;
+
+    // 그 화면에 이 권한 기능이 있는가 — 없으면(X) 체크박스를 끄고 일괄 선택에서도 건너뛴다
+    bool HasSlot(string screenCode, MasterDataRepository.CodeItemRow pl)
+    {
+        var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
+        return letter.Length == 1 && PermissionSlots.Has(Tpl(screenCode), letter[0]);
     }
 
     bool IsChecked(string screenCode, MasterDataRepository.CodeItemRow pl)
@@ -252,33 +354,35 @@
     void ToggleCell(SysRepository.ScreenRow s,
         MasterDataRepository.CodeItemRow pl, bool isChecked)
     {
-        if (!_canEdit || _selRole is null) return;
+        if (!_canEdit || _loadFailed || _selRole is null) return;
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
-        if (letter.Length != 1) return;
+        if (letter.Length != 1 || !PermissionSlots.Has(s.PermissionCriteria, letter[0])) return;
         _grants.TryGetValue(s.ScreenCode, out var cur);
-        _grants[s.ScreenCode] = ToggleLetter(cur ?? "", letter[0], isChecked);
+        _grants[s.ScreenCode] = PermissionSlots.Toggle(cur, letter[0], isChecked);
+        EnforceLocked();
         _dirty = true;
     }
 
     void ToggleColumn(MasterDataRepository.CodeItemRow pl)
     {
-        if (!_canEdit || _selRole is null) return;
+        if (!_canEdit || _loadFailed || _selRole is null) return;
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
         if (letter.Length != 1) return;
         var ch       = letter[0];
-        var filtered = ScreensFiltered.ToList();
+        var filtered = ScreensFiltered.Where(s => PermissionSlots.Has(s.PermissionCriteria, ch)).ToList();
         var allSet   = filtered.All(s => _grants.TryGetValue(s.ScreenCode, out var m) && m.Contains(ch));
         foreach (var s in filtered)
         {
             _grants.TryGetValue(s.ScreenCode, out var cur);
-            _grants[s.ScreenCode] = ToggleLetter(cur ?? "", ch, !allSet);
+            _grants[s.ScreenCode] = PermissionSlots.Toggle(cur, ch, !allSet);
         }
+        EnforceLocked();
         _dirty = true;
     }
 
     void ToggleModule(string moduleCode)
     {
-        if (!_canEdit || _selRole is null) return;
+        if (!_canEdit || _loadFailed || _selRole is null) return;
         var filtered  = ScreensFiltered.ToList();
         var fullLevel = new string(_permLevelItems
             .Select(pl => (pl.CodeValue ?? "").Trim().ToUpperInvariant())
@@ -287,29 +391,44 @@
             .Distinct()
             .OrderBy(c => "REA".IndexOf(c))
             .ToArray());
-        var allSet = filtered.All(s => _grants.TryGetValue(s.ScreenCode, out var m) && m == fullLevel);
+        // 화면마다 있는 기능까지만 — 조회 전용 화면은 R 만
+        string FullFor(string code) => PermissionSlots.Granted(fullLevel, Tpl(code));
+        var allSet = filtered.All(s => _grants.TryGetValue(s.ScreenCode, out var m) && m == FullFor(s.ScreenCode));
         foreach (var s in filtered)
-            _grants[s.ScreenCode] = allSet ? "" : fullLevel;
+            _grants[s.ScreenCode] = allSet ? "" : FullFor(s.ScreenCode);
+        EnforceLocked();
         _dirty = true;
     }
 
     void SaveAll()
     {
+        if (!_canEdit) return;
         if (_selRole is null) return;
+        // 조회가 실패한 화면은 기준을 믿을 수 없다 — 다시 불러오기 전에는 저장하지 않는다
+        if (_loadFailed) { ShowMsg(L["SYS.Rbac.Err.LoadFailed"].Value, true); return; }
+        var role = _selRole;
+        // 역할을 고를 때 읽은 값과 달라진 화면만 보낸다 — 손대지 않은 화면(그사이 다른 사람이 고친 것 포함)은 그대로 둔다
+        var changed = RolePermissionDiff.Changed(_baseline, _grants)
+            .Select(code => _screens.FirstOrDefault(s => string.Equals(s.ScreenCode, code, StringComparison.OrdinalIgnoreCase)))
+            .Where(s => s is not null).Select(s => s!).ToList();
+        if (changed.Count == 0) { _dirty = false; ShowMsg(L["Msg.Saved"].Value, false); return; }
         _busy = true;
         try
         {
-            foreach (var s in _screens)
-            {
-                _grants.TryGetValue(s.ScreenCode, out var level);
-                Sys.SetRolePermission(
-                    _selRole.RoleId, _selRole.RoleName,
-                    s.ModuleCode, s.ProcessCode,
-                    s.ScreenCode, level, _actorEmail);
-            }
-            _rows  = Sys.ListRolePermissions();
+            // 바뀐 화면을 한 트랜잭션으로 — 중간에 실패하면 이 역할의 권한은 저장 전 그대로 남는다
+            // 저장소가 DB 의 현재 화면 기본 권한으로 다시 맞춰 쓴다 — 감사 「이후」도 그 저장값으로 남긴다
+            var saved = Sys.SaveRolePermissions(role.RoleId, role.RoleName,
+                changed.Select(s => new SysRepository.RolePermissionItem(
+                    s.ModuleCode, s.ScreenCode, _grants.TryGetValue(s.ScreenCode, out var level) ? PermissionSlots.Compose(s.PermissionCriteria, level) : null)),
+                _actorEmail);
+            Audit.Updated("SYS-004", "SYS_RolePermission", role.RoleName,
+                changed.ToDictionary(s => s.ScreenCode, s => _rows.FirstOrDefault(r => OfRole(r, role) && string.Equals(r.ScreenCode, s.ScreenCode, StringComparison.OrdinalIgnoreCase))?.PermissionLevel),
+                changed.ToDictionary(s => s.ScreenCode, s => saved.GetValueOrDefault(s.ScreenCode)));
             _dirty = false;
-            PermSvc.Reset(); // 권한 변경 후 캐시 무효화
+            try { _rows = Sys.ListRolePermissions(); BuildGrants(); }
+            catch { _loadFailed = true; }
+            // 이 서버의 모든 세션(이 세션 포함)이 메뉴·홈 권한을 바로 다시 읽는다(열려 있는 화면의 버튼은 화면 이동 시 반영)
+            ScreenCatalog.Notify();
             ShowMsg(L["Msg.Saved"].Value, false);
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
@@ -324,10 +443,14 @@
 
     int TotalCells() => _screens.Count * _permLevelItems.Count;
 
+    // 권한 행은 RoleID 로 역할에 묶인다(이름은 바뀔 수 있다) — RoleID 가 빈 옛 행만 이름으로
+    static bool OfRole(SysRepository.RolePermRow x, SysRepository.RoleRow r) =>
+        string.IsNullOrEmpty(x.RoleId) ? x.RoleName == r.RoleName : x.RoleId == r.RoleId;
+
     string ModuleSummary(SysRepository.RoleRow r)
     {
         var mods = _rows
-            .Where(x => x.RoleName == r.RoleName && x.ModuleCode is not null
+            .Where(x => OfRole(x, r) && x.ModuleCode is not null
                      && NormalizeLevel(x.PermissionLevel).Contains('R'))
             .Select(x => x.ModuleCode!)
             .Distinct()

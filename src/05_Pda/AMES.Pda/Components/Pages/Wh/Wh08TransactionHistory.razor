@@ -1,27 +1,51 @@
 @page "/wh/08"
-@inject PdaApi Api
+@inject PdaUomFormat Uom
+@page "/sp/08"
+@page "/fg/history"
+@inject WarehouseApi Api
+@inject SparePartsApi SpApi
+@inject FinishedGoodsApi FgApi
+@inject AuthState Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="pda-shell wh wh08-shell">
+<div class="@($"pda-shell wh wh08-shell {(IsSpareParts ? "sp-screen" : "")} {(IsFinishedGoods ? "fg-history-shell" : "")}")">
     <div class="pda-tbar">
-        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <div class="wh08-tbar-title">
             <span class="pda-tbar-brand">TRANSACTIONS</span>
         </div>
         <div class="wh08-tbar-actions">
+            @if (IsDetailedWhTestMode)
+            {
+                <button class="wh02-test-nav" disabled="@_loading" @onclick="OpenDetailedTestPanel">SCENARIO</button>
+            }
+            else if (IsPptTestMode)
+            {
+                <PptScenarioPanel @key="IsFinishedGoods" Title="@(IsFinishedGoods ? "FG TRANSACTIONS" : "TRANSACTIONS")" Steps="ActivePptSteps" ModeLabel="@ScenarioModeLabel" Busy="_loading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+            }
             <RadzenButton class="wh08-refresh" Click="@Load" Disabled="@_loading" Text="REFRESH" />
         </div>
     </div>
 
     <div class="pda-bd wh08-body">
         <RadzenCard class="wh08-date-filter" @onfocusin="BeginFilterEdit" @onpointerdown="BeginFilterEdit">
-            <div class="pda-card-h">TRANSACTION DATE</div>
+            <PdaFilterPanel Title="TRANSACTION DATE" ActiveCount="@((string.IsNullOrWhiteSpace(_worker) ? 0 : 1) + (string.IsNullOrWhiteSpace(_reason) ? 0 : 1))" Open="_filtersOpen" OpenChanged="SetFiltersOpen">
+                <div class="pda-fld">
+                    <label>WORKER ID</label>
+                    <RadzenTextBox class="pda-input wh08-search-input" Value="@_worker" @oninput="OnWorkerInput" Placeholder="Worker ID" />
+                </div>
+                <div class="pda-fld">
+                    <label for="wh08-reason-filter">@(IsFinishedGoods ? "REASON" : "ADJ REASON")</label>
+                    <RadzenDropDown id="wh08-reason-filter" TValue="string" @bind-Value="_reason" Data="ReasonChoices" TextProperty="Text" ValueProperty="Value" class="pda-filter-select" PopupStyle="z-index: 2100; max-height: 260px" />
+                </div>
+                <RadzenButton class="wh08-date-reset" Click="@ClearFilters" Disabled="@_loading" Text="CLEAR FILTERS" />
+            </PdaFilterPanel>
             <div class="wh08-filter-date">
                 <div class="pda-fld">
                     <label>FROM</label>
-                    <RadzenDatePicker TValue="DateTime?"
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?"
                                       @bind-Value="_dateFrom"
                                       DateFormat="yyyy-MM-dd"
                                       AllowClear="false"
@@ -30,7 +54,7 @@
                 </div>
                 <div class="pda-fld">
                     <label>TO</label>
-                    <RadzenDatePicker TValue="DateTime?"
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?"
                                       @bind-Value="_dateTo"
                                       DateFormat="yyyy-MM-dd"
                                       AllowClear="false"
@@ -39,30 +63,20 @@
                 </div>
             </div>
             <RadzenButton class="wh08-date-apply" Click="@Load" Disabled="@_loading" Text="APPLY" />
-            <details class="wh08-additional-filters">
-                <summary>More Filters</summary>
-                <div class="pda-fld">
-                    <label>WORKER ID</label>
-                    <RadzenTextBox class="pda-input wh08-search-input"
-                                   Value="@_worker"
-                                   @oninput="OnWorkerInput"
-                                   Placeholder="Worker ID" />
-                </div>
-                <div class="pda-fld">
-                    <label>ADJ REASON</label>
-                    <select class="pda-input wh08-search-input wh08-select" @bind="_reason">
-                        <option value="">All reasons</option>
-                        @foreach (var reason in ReasonOptions)
-                        {
-                            <option value="@reason">@reason</option>
-                        }
-                    </select>
-                </div>
-                <RadzenButton class="wh08-date-reset" Click="@ClearFilters" Disabled="@_loading" Text="CLEAR FILTERS" />
-            </details>
         </RadzenCard>
 
         <div class="wh08-kpi-strip">
+            @if (IsFinishedGoods)
+            {
+                @foreach (var type in FgHistoryTypes)
+                {
+                    <button type="button" class="@($"wh08-kpi {FgTypeClass(type)} {TypeClass(type)}")" @onclick="@(() => SetType(type))">
+                        <span>@FgTransactionDisplay.Label(type)</span><strong>@ConditionRows.Count(row => type == "" || IsDirection(row, type))</strong><small>records</small>
+                    </button>
+                }
+            }
+            else
+            {
             <button type="button" class="@($"wh08-kpi all {TypeClass("")}")" @onclick='@(() => SetType(""))'>
                 <span>ALL</span>
                 <strong>@ConditionRows.Count().ToString("N0")</strong>
@@ -78,11 +92,18 @@
                 <strong>@OutCount.ToString("N0")</strong>
                 <small>records</small>
             </button>
-            <button type="button" class="@($"wh08-kpi adj {TypeClass("ADJ")}")" @onclick='@(() => SetType("ADJ"))'>
-                <span>ADJ</span>
-                <strong>@AdjCount.ToString("N0")</strong>
-                <small>records</small>
-            </button>
+            @if (!IsSpareParts)
+            {
+                <button type="button" class="@($"wh08-kpi {TypeClass("MOVE")}")" @onclick='@(() => SetType("MOVE"))'>
+                    <span>LOCATION</span><strong>@MoveCount.ToString("N0")</strong><small>changes</small>
+                </button>
+                <button type="button" class="@($"wh08-kpi adj {TypeClass("ADJ")}")" @onclick='@(() => SetType("ADJ"))'>
+                    <span>ADJ</span>
+                    <strong>@AdjCount.ToString("N0")</strong>
+                    <small>records</small>
+                </button>
+            }
+            }
         </div>
 
         <RadzenCard class="wh08-search-card">
@@ -116,26 +137,35 @@
             <div class="wh08-list">
                 @foreach (var row in FilteredRows)
                 {
-                    <RadzenCard class="@($"wh08-row-card {RowCardClass(row)}")">
+                    <RadzenCard class="@($"wh08-row-card {RowCardClass(row)} {(IsSpareParts && IsSpMove(row) ? "interactive" : "")}")"
+                                @onclick="@(() => OpenSpDetail(row))">
                         <div class="wh08-row-top">
                             <div class="wh08-row-main">
                                 <span>@LogDateText(row)</span>
                                 <strong>@Text(row.LotNo)</strong>
                             </div>
-                            <RadzenBadge class="@($"wh08-status {StatusClass(row.Status)}")" Text="@Text(row.Status)" />
+                            <RadzenBadge class="@($"wh08-status {StatusClass(row.Status)}")" Text="@(IsFinishedGoods ? FgTransactionDisplay.Status(row.Status) : Text(row.Status))" />
                         </div>
 
                         <div class="wh08-row-part">
                             <strong>@Text(row.PartNo)</strong>
-                            <span>@Text(row.LocationId)</span>
+                            <span>@(IsMove(row) ? $"To {Text(row.AfterLocation ?? row.LocationId)}" : Text(row.LocationId))</span>
                         </div>
 
                         <dl class="wh08-value-rows">
-                            <div><dt>@(IsAdjust(row) ? "Change" : $"{row.Direction} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Text(row.Unit)</dd></div>
+                            @if (IsMove(row))
+                            {
+                                <div><dt>From</dt><dd>@Text(row.BeforeLocation)</dd></div>
+                                <div><dt>To</dt><dd>@Text(row.AfterLocation ?? row.LocationId)</dd></div>
+                            }
+                            else
+                            {
+                                <div><dt>@(IsAdjust(row) ? "Change" : $"{(IsFinishedGoods ? FgTransactionDisplay.Label(row.Direction) : row.Direction)} Qty")</dt><dd>@(IsAdjust(row) ? SignedQtyText(row.DeltaQty) : QtyText(MovementQty(row))) @Uom.Symbol(row.Unit)</dd></div>
+                            }
                             <div><dt>Worker</dt><dd>@Text(row.WorkerId)</dd></div>
                         </dl>
 
-                        @if (IsAdjust(row))
+                        @if (IsAdjust(row) || IsMove(row) || IsFinishedGoods)
                         {
                             <button type="button" class="wh08-detail-btn" @onclick="@(() => OpenDetail(row))">
                                 DETAIL
@@ -147,27 +177,119 @@
         }
     </div>
 
+    @if (IsDetailedWhTestMode && _testPanelOpen)
+    {
+        <div class="wh02-test-backdrop" @onclick="CloseDetailedTestPanel">
+            <section class="wh02-test-panel" role="dialog" aria-modal="true" aria-label="Warehouse transaction test scenarios" @onclick:stopPropagation="true">
+                <div class="wh02-test-head">
+                    <div><span>TEST MODE</span><strong>TRANSACTIONS TEST SCENARIOS</strong></div>
+                    <b>@CurrentDetailedTestScenario.No.ToString("00") / @DetailedTestScenarios.Length</b>
+                    <button class="wh02-test-close" @onclick="CloseDetailedTestPanel" aria-label="Close scenarios">×</button>
+                </div>
+                <div class="wh02-test-tabs">
+                    @foreach (var scenario in DetailedTestScenarios)
+                    {
+                        var index = scenario.No - 1;
+                        <button class="@(index == _testScenarioIndex ? "on" : "")"
+                                @onclick="@(() => SelectDetailedTestScenario(index))">@scenario.No.ToString("00")</button>
+                    }
+                </div>
+                <div class="wh02-test-case">
+                    <div class="wh02-test-summary">
+                        <span>@CurrentDetailedTestScenario.TestCaseId</span>
+                        <strong>@CurrentDetailedTestScenario.Title</strong>
+                    </div>
+                    <p class="wh02-simple-guide">@CurrentDetailedTestScenario.Steps</p>
+                    @if (CurrentDetailedTestScenario.Values.Length > 0)
+                    {
+                        <div class="wh02-test-values">
+                            @foreach (var value in CurrentDetailedTestScenario.Values)
+                            {
+                                <button @onclick="@(() => RunDetailedTestValue(value))">
+                                    <span>@value.Label</span><b>@value.Value</b>
+                                </button>
+                            }
+                        </div>
+                    }
+                    @if (CurrentDetailedTestScenario.No == 17)
+                    {
+                        <button class="@($"wh02-test-error {(_simulateHistoryApiFailure ? "on" : "")}")"
+                                @onclick="ToggleHistoryApiFailure">
+                            API ERROR: @(_simulateHistoryApiFailure ? "ON" : "OFF")
+                        </button>
+                    }
+                    <button class="wh02-test-start" disabled="@_loading" @onclick="StartDetailedTestScenario">START SCENARIO</button>
+                </div>
+            </section>
+        </div>
+    }
+
     @if (_detailRow is { } detail)
     {
         <div class="wh-modal-backdrop" @onclick="CloseDetail" @onkeydown="OnDetailKey" tabindex="-1" @ref="_detailDialog">
             <RadzenCard class="wh-modal-card wh08-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="wh08-detail-title" @onclick:stopPropagation="true">
-                <h2 id="wh08-detail-title" class="wh-modal-title">Adjustment Detail</h2>
+                <h2 id="wh08-detail-title" class="wh-modal-title">@(IsMove(detail) ? "Location Change" : IsAdjust(detail) ? "Adjustment Detail" : "Transaction Detail")</h2>
                 <dl class="wh08-value-rows wh08-detail-rows">
-                    <div><dt>Lot No</dt><dd>@Text(detail.LotNo)</dd></div>
+                    <div><dt>@(IsSpareParts ? "EOS SP No" : "Lot No")</dt><dd>@Text(detail.LotNo)</dd></div>
                     <div><dt>Part No</dt><dd>@Text(detail.PartNo)</dd></div>
-                    <div><dt>Location</dt><dd>@Text(detail.LocationId)</dd></div>
+                    @if (IsMove(detail))
+                    {
+                        <div><dt>From</dt><dd>@Text(detail.BeforeLocation)</dd></div>
+                        <div><dt>To</dt><dd>@Text(detail.AfterLocation ?? detail.LocationId)</dd></div>
+                    }
+                    else
+                    {
+                        <div><dt>Location</dt><dd>@Text(detail.LocationId)</dd></div>
+                    }
                     <div><dt>Date</dt><dd>@LogDateText(detail)</dd></div>
-                    <div><dt>Before</dt><dd>@QtyText(detail.BeforeQty) @Text(detail.Unit)</dd></div>
-                    <div><dt>Change</dt><dd class="@DeltaClass(detail.DeltaQty)">@SignedQtyText(detail.DeltaQty) @Text(detail.Unit)</dd></div>
-                    <div><dt>After</dt><dd>@QtyText(detail.AfterQty) @Text(detail.Unit)</dd></div>
+                    @if (IsAdjust(detail))
+                    {
+                    <div><dt>Before</dt><dd>@QtyText(detail.BeforeQty) @Uom.Symbol(detail.Unit)</dd></div>
+                    <div><dt>Change</dt><dd class="@DeltaClass(detail.DeltaQty)">@SignedQtyText(detail.DeltaQty) @Uom.Symbol(detail.Unit)</dd></div>
+                    <div><dt>After</dt><dd>@QtyText(detail.AfterQty) @Uom.Symbol(detail.Unit)</dd></div>
+                    }
+                    else if (!IsMove(detail))
+                    {
+                        <div><dt>Type</dt><dd>@(IsFinishedGoods ? FgTransactionDisplay.Status(detail.Status) : Text(detail.Status))</dd></div>
+                        <div><dt>Qty</dt><dd>@QtyText(detail.Qty) @Uom.Symbol(detail.Unit)</dd></div>
+                    }
+                    @if (IsFinishedGoods)
+                    {
+                        <div><dt>Reference</dt><dd>@Text(detail.Note)</dd></div>
+                    }
                     <div><dt>Reason</dt><dd>@Text(detail.ReasonCode)</dd></div>
                     <div><dt>Note</dt><dd>@Text(detail.ReasonNote)</dd></div>
                     <div><dt>Worker</dt><dd>@Text(detail.WorkerId)</dd></div>
-                    <div><dt>Supervisor</dt><dd>@Text(detail.Supervisor)</dd></div>
                 </dl>
-                <div class="wh-modal-actions">
-                    <RadzenButton class="wh-modal-btn primary wh08-detail-close" Click="CloseDetail" Text="CLOSE" />
-                </div>
+                @if (!string.IsNullOrWhiteSpace(_actionMessage))
+                {
+                    <div class="pda-status @(_actionError ? "fail" : "ok")">@_actionMessage</div>
+                }
+                @if (IsSpareParts && IsSpMove(detail))
+                {
+                    @if (_cancelPending)
+                    {
+                        <div class="wh08-cancel-confirm">Cancel this @detail.Direction transaction for @Text(detail.LotNo)?</div>
+                        <div class="wh-modal-actions wh08-sp-actions">
+                            <RadzenButton class="wh-modal-btn" Click="DismissCancel" Disabled="@_actionBusy" Text="KEEP" />
+                            <RadzenButton class="wh-modal-btn danger" Click="@(() => CancelSpTransaction(detail))" Disabled="@_actionBusy" Text="CONFIRM CANCEL" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="wh-modal-actions wh08-sp-actions three">
+                            <RadzenButton class="wh-modal-btn primary" Click="@(() => ReprintSpLabel(detail))" Disabled="@_actionBusy" Text="REPRINT" />
+                            <RadzenButton class="wh-modal-btn danger" Click="RequestCancel" Disabled="@_actionBusy" Text="CANCEL" />
+                            <RadzenButton class="wh-modal-btn wh08-detail-close" Click="CloseDetail" Disabled="@_actionBusy" Text="CLOSE" />
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="wh-modal-actions">
+                        <RadzenButton class="wh-modal-btn primary wh08-detail-close" Click="CloseDetail" Text="CLOSE" />
+                    </div>
+                }
             </RadzenCard>
         </div>
     }
@@ -175,11 +297,17 @@
 </div>
 
 @code {
-    private static DateTime DefaultDateFrom => DateTime.Today.AddDays(-30);
-    private static DateTime DefaultDateTo => DateTime.Today;
+    private bool IsFinishedGoods => Nav?.Uri?.Contains("/fg/history", StringComparison.OrdinalIgnoreCase) == true;
+    private bool IsSpareParts => Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.StartsWith("/sp/", StringComparison.OrdinalIgnoreCase);
+    private string ModuleHome => IsFinishedGoods ? "/fg" : IsSpareParts ? "/sp" : "/wh";
+    private string ModuleKey => IsFinishedGoods ? "FG" : IsSpareParts ? "SP" : "WH";
+    private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
+    private static readonly string[] FgHistoryTypes = ["", "IN", "PICK", "OUT", "RETURN", "ADJ"];
+    private static string FgTypeClass(string type) => type switch { "IN" or "RETURN" => "in", "PICK" or "OUT" => "out", "ADJ" => "adj", _ => "all" };
+    private DateTime _databaseToday;
 
-    private DateTime? _dateFrom = DefaultDateFrom;
-    private DateTime? _dateTo = DefaultDateTo;
+    private DateTime? _dateFrom;
+    private DateTime? _dateTo;
     private string _search = "";
     private string _worker = "";
     private string _reason = "";
@@ -187,29 +315,50 @@
     private string _msg = "Loading transactions...";
     private bool _loading;
     private bool _editingFilters;
+    private bool _filtersOpen;
     private bool _editingBarcode;
     private List<PdaApi.WarehouseTransactionRow> _rows = new();
     private PdaApi.WarehouseTransactionRow? _detailRow;
     private ElementReference _detailDialog;
     private bool _focusDetail;
+    private bool _cancelPending;
+    private bool _actionBusy;
+    private bool _actionError;
+    private string _actionMessage = "";
     private DotNetObjectReference<Wh08TransactionHistory>? _scannerRef;
 
     private DateTime? DateFrom => _dateFrom?.Date;
     private DateTime? DateTo => _dateTo?.Date;
-    private IEnumerable<PdaApi.WarehouseTransactionRow> ConditionRows => _rows.Where(MatchesConditions).ToList();
+    private IEnumerable<PdaApi.WarehouseTransactionRow> ConditionRows => _rows
+        .Where(row => (!IsSpareParts || !IsAdjust(row)) && MatchesConditions(row)).ToList();
     private IEnumerable<PdaApi.WarehouseTransactionRow> FilteredRows => ConditionRows.Where(MatchesType).ToList();
     private int InCount => ConditionRows.Count(r => IsDirection(r, "IN"));
     private int OutCount => ConditionRows.Count(r => IsDirection(r, "OUT"));
     private int AdjCount => ConditionRows.Count(r => IsDirection(r, "ADJ"));
+    private int MoveCount => ConditionRows.Count(IsMove);
     private IEnumerable<string> ReasonOptions => _rows
-        .Where(IsAdjust)
+        .Where(row => IsFinishedGoods || IsAdjust(row))
         .Select(r => r.ReasonCode)
         .Where(r => !string.IsNullOrWhiteSpace(r))
         .Select(r => r!)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(r => r);
+    private IEnumerable<PdaSelectOption> ReasonChoices => new[] { new PdaSelectOption("", "All reasons") }
+        .Concat(ReasonOptions.Select(r => new PdaSelectOption(r, r)));
 
-    protected override async Task OnInitializedAsync() => await Load();
+    private string? _lastHistoryMode;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_lastHistoryMode == ModuleKey) return;
+        _lastHistoryMode = ModuleKey;
+        _search = _worker = _reason = _type = "";
+        _dateFrom = _dateTo = null;
+        _detailRow = null;
+        _filtersOpen = false;
+        _pptReady = _pptOpen = _testPanelOpen = false;
+        _simulateFgHistoryApiFailure = false;
+        await Load();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -238,7 +387,7 @@
 
         await InvokeAsync(async () =>
         {
-            if (_detailRow is not null || _loading)
+            if (_filtersOpen || _detailRow is not null || _loading || IsScenarioPanelOpen)
                 return;
             _search = value;
             await Load();
@@ -253,7 +402,7 @@
 
     private async Task FocusScannerAsync()
     {
-        if (_editingFilters || _editingBarcode || _detailRow is not null)
+        if (_filtersOpen || _editingFilters || _editingBarcode || _detailRow is not null || IsScenarioPanelOpen)
             return;
 
         try
@@ -297,6 +446,13 @@
 
         try
         {
+            if (SimulateHistoryApiFailure)
+                throw new HttpRequestException("Simulated warehouse transaction API failure.");
+
+            _databaseToday = (await Api.DatabaseTimeAsync()).Date;
+            _dateFrom ??= _databaseToday.AddDays(-30);
+            _dateTo ??= _databaseToday;
+
             if (DateFrom.HasValue && DateTo.HasValue && DateFrom.Value > DateTo.Value)
             {
                 _rows = new();
@@ -304,7 +460,7 @@
                 return;
             }
 
-            _rows = await Api.WhWarehouseTransactionsAsync(_search, DateFrom, DateTo);
+            _rows = await Api.WhWarehouseTransactionsAsync(_search, DateFrom, DateTo, IsFinishedGoods, AreaScope);
             _detailRow = null;
             _msg = string.IsNullOrWhiteSpace(_search)
                 ? "No transactions found for the selected conditions."
@@ -313,7 +469,12 @@
         catch
         {
             _rows = new();
-            _msg = "Warehouse transaction service is unavailable. Please try again.";
+            if (Auth.Session is null) { _msg = ""; return; }
+            _msg = IsFinishedGoods
+                ? "FG transaction service is unavailable. Please try again."
+                : IsSpareParts
+                    ? "Spare parts transaction service is unavailable. Please try again."
+                    : "Warehouse transaction service is unavailable. Please try again.";
         }
         finally
         {
@@ -331,12 +492,16 @@
     {
         _worker = "";
         _reason = "";
-        _dateFrom = DefaultDateFrom;
-        _dateTo = DefaultDateTo;
+        _dateFrom = _dateTo = null;
         await Load();
     }
 
     private void BeginFilterEdit() => _editingFilters = true;
+    private void SetFiltersOpen(bool open)
+    {
+        _filtersOpen = open;
+        _editingFilters = open;
+    }
 
     private void OnSearchInput(ChangeEventArgs e)
     {
@@ -365,10 +530,70 @@
     private void OpenDetail(PdaApi.WarehouseTransactionRow row)
     {
         _detailRow = row;
+        _cancelPending = _actionBusy = _actionError = false;
+        _actionMessage = "";
         _focusDetail = true;
     }
 
-    private void CloseDetail() => _detailRow = null;
+    private void OpenSpDetail(PdaApi.WarehouseTransactionRow row)
+    {
+        if (IsSpareParts && IsSpMove(row)) OpenDetail(row);
+    }
+
+    private void CloseDetail()
+    {
+        if (_actionBusy) return;
+        _detailRow = null;
+        _cancelPending = _actionError = false;
+        _actionMessage = "";
+    }
+
+    private void ReprintSpLabel(PdaApi.WarehouseTransactionRow row)
+    {
+        if (string.IsNullOrWhiteSpace(row.LotNo))
+        {
+            _actionMessage = "Serial No is unavailable for reprint.";
+            _actionError = true;
+            return;
+        }
+
+        Nav.NavigateTo($"/sp/master?serial={Uri.EscapeDataString(row.LotNo)}");
+    }
+
+    private void RequestCancel()
+    {
+        _cancelPending = true;
+        _actionMessage = "";
+        _actionError = false;
+    }
+
+    private void DismissCancel() => _cancelPending = false;
+
+    private async Task CancelSpTransaction(PdaApi.WarehouseTransactionRow row)
+    {
+        if (_actionBusy || string.IsNullOrWhiteSpace(row.LotNo) || !IsSpMove(row)) return;
+        _actionBusy = true;
+        _actionMessage = "Cancelling transaction...";
+        _actionError = false;
+        try
+        {
+            var result = await SpApi.CancelMoveAsync(row.LotNo, row.Direction, "Cancelled from Transactions.");
+            if (!result.Success) throw new InvalidOperationException(result.Message);
+            _detailRow = null;
+            _cancelPending = false;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _actionMessage = ex.Message;
+            _actionError = true;
+            _cancelPending = false;
+        }
+        finally
+        {
+            _actionBusy = false;
+        }
+    }
 
     private void OnDetailKey(KeyboardEventArgs e)
     {
@@ -418,23 +643,32 @@
     }
 
     private static bool IsAdjust(PdaApi.WarehouseTransactionRow row) => IsDirection(row, "ADJ");
+    private static bool IsMove(PdaApi.WarehouseTransactionRow row) => IsDirection(row, "MOVE");
+    private static bool IsSpMove(PdaApi.WarehouseTransactionRow row)
+        => IsDirection(row, "IN") || IsDirection(row, "OUT");
     private static bool IsDirection(PdaApi.WarehouseTransactionRow row, string direction)
-        => string.Equals(row.Direction, direction, StringComparison.OrdinalIgnoreCase);
+        => string.Equals(FgTransactionDisplay.Direction(row.Direction), FgTransactionDisplay.Direction(direction), StringComparison.Ordinal);
 
     private static string RowCardClass(PdaApi.WarehouseTransactionRow row)
-        => row.Direction?.ToUpperInvariant() switch
+        => FgTransactionDisplay.Direction(row.Direction) switch
         {
             "IN" => "inbound",
             "OUT" => "outbound",
+            "PICK" => "outbound",
+            "RETURN" => "inbound",
             "ADJ" => "adjust",
+            "MOVE" => "inbound",
             _ => "other"
         };
 
     private static string StatusClass(string? status)
     {
-        var value = status?.Trim().ToLowerInvariant() ?? "";
+        var value = FgTransactionDisplay.Status(status).Trim().ToLowerInvariant();
         if (value == "in") return "in";
+        if (value is "put-away" or "return") return "in";
+        if (value == "release") return "out";
         if (value.Contains("adjust")) return "adjust";
+        if (value.Contains("location change")) return "in";
         if (value.Contains("cancel")) return "cancel";
         if (value.Contains("out")) return "out";
         if (value.Contains("loss")) return "loss";

@@ -11,7 +11,7 @@ internal interface IInjLotClaimStore
     /// <summary>내가 선점한 것만 반납된다 — stationId 가 소유권 검증에 쓰인다.</summary>
     void ReleasePrintClaim(int lotId, string stationId);
 
-    void IncrementPrintedCount(int lotId);
+    void IncrementPrintedCount(int lotId, string employeeNo);
 }
 
 /// <summary>라벨 출력 대상 — 실패 시 예외.</summary>

@@ -19,3 +19,5 @@
 @using Microsoft.AspNetCore.Localization
 @using Radzen
 @using Radzen.Blazor
+@* 처리 중에 다시 누른 클릭이 처리 뒤에 또 실행되지 않게 하는 공통 기반 — AmesComponentBase 참조. 레이아웃은 각자 LayoutComponentBase 를 지정한다 *@
+@inherits AmesComponentBase

@@ -90,10 +90,10 @@ internal static class Program
                  ReasonCode, CorrectiveAction, ResumedAt, DowntimeSec, Status, CreatedBy, CreatedTS)
             VALUES ('LINE-INJ-01', @E, 'OPERATOR', 'HIGH',
                     DATEADD(second, -90, SYSDATETIME()),
-                    'user-s001',
+                    'S001',
                     DATEADD(second, -60, SYSDATETIME()),
                     'MACHINE', N'Supervisor on site, inspecting',
-                    NULL, NULL, 'Acked', 'scenario:andon', SYSDATETIME());
+                    NULL, NULL, 'ACKED', 'scenario:andon', SYSDATETIME());
             """, ("@E", equipId));
 
         Console.WriteLine("  → ANDON raised 90 s ago, supervisor acked 60 s ago");
@@ -117,7 +117,7 @@ internal static class Program
                 (WoID, LotID, ProcessCode, DefectCode, Qty, ReasonNote,
                  DetectedAt, RegisteredBy, CreatedBy, CreatedTS)
             VALUES (@W, @L, 'IMG', 'IMG-D04', 6, N'Adhesion below 4 N/mm',
-                    DATEADD(minute,-12,SYSDATETIME()), 'user-i001',
+                    DATEADD(minute,-12,SYSDATETIME()), 'I001',
                     'scenario:qc-escalation', SYSDATETIME());
             """, ("@W", woId), ("@L", lotId));
 
@@ -130,7 +130,7 @@ internal static class Program
                  InsStartTS, InsEndTS, CreatedBy, CreatedTS)
             VALUES (CONCAT('IP-SCN-', FORMAT(SYSDATETIME(),'yyMMddHHmm')),
                     'InProcess', @L, 'DR-TRM-LH-A1', 'Enhanced',
-                    20, 96, 14, 6, 'FAIL', 1, 'user-q001',
+                    20, 96, 14, 6, 'FAIL', 1, 'Q001',
                     DATEADD(minute,-10,SYSDATETIME()),
                     DATEADD(minute, -8,SYSDATETIME()),
                     'scenario:qc-escalation', SYSDATETIME());
@@ -143,7 +143,7 @@ internal static class Program
                  Disposition, Status, ReportedBy, ReportedAt, CreatedBy, CreatedTS)
             VALUES (CONCAT('NCR-SCN-', FORMAT(SYSDATETIME(),'yyMMddHHmm')),
                     'INSPECTION', 'IP-SCN', 'Major', 'DR-TRM-LH-A1', 96, 'HOLD',
-                    'Open', 'user-q001', DATEADD(minute,-7,SYSDATETIME()),
+                    'OPEN', 'Q001', DATEADD(minute,-7,SYSDATETIME()),
                     'scenario:qc-escalation', SYSDATETIME());
             """);
         var ncrId = Scalar<int>(conn, """
@@ -158,7 +158,7 @@ internal static class Program
                  CreatedBy, CreatedTS)
             VALUES (CONCAT('HLD-SCN-', FORMAT(SYSDATETIME(),'yyMMddHHmm')),
                     @N, 'Major', 'LOT', @L, 'DR-TRM-LH-A1', 96, 'BAY-Q-03',
-                    'Held', 'user-q001', DATEADD(minute,-5,SYSDATETIME()),
+                    'Held', 'Q001', DATEADD(minute,-5,SYSDATETIME()),
                     'scenario:qc-escalation', SYSDATETIME());
             """, ("@N", ncrId), ("@L", lotId));
 
@@ -186,7 +186,7 @@ internal static class Program
                  CreatedBy, CreatedTS)
             VALUES (@P, @J, 'DR-TRM-LH-A1', 'RAL 9005', 32, 32,
                     30, 2, 'LABELED', 0,
-                    DATEADD(minute,-30,SYSDATETIME()), 'user-p001',
+                    DATEADD(minute,-30,SYSDATETIME()), 'P001',
                     DATEADD(minute,-29,SYSDATETIME()), 'PDA',
                     'scenario:pnt-full', SYSDATETIME());
             """, ("@P", planId), ("@J", jigId));
@@ -214,7 +214,7 @@ internal static class Program
             INSERT INTO dbo.PNT_JigLoad
                 (JigID, LotID, LoadedQty, OperatorID, PdaScanAt, R1ReadAt,
                  MatchStatus, LineID, CreatedBy, CreatedTS)
-            VALUES (@J, NULL, 32, 'user-p001',
+            VALUES (@J, NULL, 32, 'P001',
                     DATEADD(minute,-28,SYSDATETIME()),
                     DATEADD(minute,-28,SYSDATETIME()),
                     'OK', 'LINE-PNT-01', 'scenario:pnt-full', SYSDATETIME());
@@ -255,7 +255,7 @@ internal static class Program
                  ChangedBy, CreatedBy, CreatedTS)
             VALUES (@E, 'LINE-INJ-01', @A, @B, 9876, 0, 'Scheduled', NULL,
                     DATEADD(minute, -4, SYSDATETIME()), NULL,
-                    'user-e001', 'scenario:mold-change', SYSDATETIME());
+                    'E001', 'scenario:mold-change', SYSDATETIME());
             """, ("@E", equipId), ("@A", moldA), ("@B", moldB));
 
         Console.WriteLine($"  → Mold change {moldA} → {moldB} started 4 min ago, still running");
@@ -285,7 +285,7 @@ internal static class Program
                      CreatedBy, CreatedTS)
                 VALUES (CONCAT('SCN-', FORMAT(SYSDATETIME(),'yyMMddHHmmss'),'-',@C),
                         @W, @L, 'LINE-INJ-01', 'INJ', 1, @S, @M,
-                        'user-e001', 0,
+                        'E001', 0,
                         DATEADD(minute, -@A, SYSDATETIME()),
                         'scenario:morning-ramp', SYSDATETIME());
                 """,

@@ -1,4 +1,4 @@
-@inject AMES.Data.Repositories.WorkOrderRepository Wos
+﻿@inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject DialogService Dialog
 @inject IStringLocalizer<SharedResources> L
 @using AMES.Data.Repositories
@@ -12,6 +12,10 @@
     @if (_err is not null)
     {
         <div class="ames-alert bad">@_err</div>
+    }
+    @if (NoCore)
+    {
+        <div class="ames-alert bad">@L["PP.PlanConfirm.Dlg.Err.NoCore"]</div>
     }
     else if (_steps.Count == 0)
     {
@@ -93,8 +97,9 @@
         catch (Exception ex) { _err = ex.Message; _steps = new(); }
     }
 
+    bool NoCore => _steps.Any(v => v.Step.NoCore);   // 서버(ReleaseCore)도 같은 이유로 거부한다 — 여기서는 미리 보여 줄 뿐
     bool CanRelease =>
-        _err is null && _steps.Count > 0 &&
+        _err is null && !NoCore && _steps.Count > 0 &&
         _steps.All(v => !v.Step.LineRequired || !string.IsNullOrEmpty(v.LineId));
 
     static (string Cls, string Key) Badge(StepVm vm) =>

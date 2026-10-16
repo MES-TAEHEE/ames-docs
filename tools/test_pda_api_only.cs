@@ -1,0 +1,60 @@
+#:property PublishAot=false
+
+static string SourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
+var root = Directory.GetParent(Path.GetDirectoryName(SourcePath())!)!.FullName;
+string Read(string path) => File.ReadAllText(Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar)));
+void Check(bool condition, string message)
+{
+    if (!condition) throw new Exception(message);
+    Console.WriteLine("PASS: " + message);
+}
+
+var pdaRoot = Path.Combine(root, "src", "05_Pda", "AMES.Pda");
+var pdaSources = Directory.EnumerateFiles(pdaRoot, "*", SearchOption.AllDirectories)
+    .Where(path => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+    .Select(File.ReadAllText)
+    .ToList();
+var forbidden = new[] { "AmesConnectionFactory", "SqlConnection", "SqlCommand", "SqlDataReader", "Microsoft.Data.SqlClient", "AMES.Data" };
+Check(forbidden.All(token => pdaSources.All(source => !source.Contains(token, StringComparison.Ordinal))),
+    "PDA has no direct database dependency");
+
+var sharedClient = Read("src/05_Pda/AMES.Pda/Services/PdaApi.cs");
+var authClient = Read("src/05_Pda/AMES.Pda/Services/AuthApi.cs");
+var warehouseClient = Read("src/05_Pda/AMES.Pda/Services/WarehouseApi.cs");
+var finishedGoodsClient = Read("src/05_Pda/AMES.Pda/Services/FinishedGoodsApi.cs");
+var sparePartsClient = Read("src/05_Pda/AMES.Pda/Services/SparePartsApi.cs");
+var mauiProgram = Read("src/05_Pda/AMES.Pda/MauiProgram.cs");
+var components = Directory.EnumerateFiles(Path.Combine(pdaRoot, "Components"), "*.razor", SearchOption.AllDirectories)
+    .Select(File.ReadAllText)
+    .ToList();
+foreach (var service in new[] { "AuthApi", "WarehouseApi", "FinishedGoodsApi", "SparePartsApi" })
+{
+    Check(File.Exists(Path.Combine(pdaRoot, "Services", service + ".cs")), $"PDA exposes {service}");
+    Check(mauiProgram.Contains($"AddHttpClient<{service}>", StringComparison.Ordinal), $"PDA registers {service}");
+}
+Check(components.All(source => !source.Contains("@inject PdaApi", StringComparison.Ordinal)),
+    "PDA screens use domain API services instead of the combined client");
+var endpoints = Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs");
+var fgEndpoints = Read("src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs");
+var apiProgram = Read("src/04_Api/AMES.Api/Program.cs");
+foreach (var route in new[] { "/api/wh/inventory", "/api/wh/inventory/scan", "/api/wh/inventory/locations", "/api/wh/inventory/location-list", "/api/wh/locations", "/api/wh/inventory/lots" })
+    Check(warehouseClient.Contains(route, StringComparison.Ordinal), $"WarehouseApi uses API route {route}");
+Check(authClient.Contains("/api/auth/login", StringComparison.Ordinal), "AuthApi owns authentication calls");
+Check(finishedGoodsClient.Contains("/api/fg/inventory", StringComparison.Ordinal), "FinishedGoodsApi owns FG calls");
+Check(sparePartsClient.Contains("/api/wh/sp/inventory", StringComparison.Ordinal), "SparePartsApi owns spare-parts calls");
+Check(!sharedClient.Contains("/api/auth/", StringComparison.Ordinal)
+      && !sharedClient.Contains("/api/wh/", StringComparison.Ordinal)
+      && !sharedClient.Contains("/api/fg/", StringComparison.Ordinal),
+    "PdaApi contains no domain endpoint implementation");
+foreach (var route in new[] { "MapGet(\"/inventory\"", "MapGet(\"/inventory/scan\"", "MapGet(\"/inventory/locations\"", "MapGet(\"/inventory/location-list\"" })
+    Check(endpoints.Contains(route, StringComparison.Ordinal), $"API exposes {route[8..^1]}");
+Check(endpoints.Contains("FROM dbo.WH_Inventory W", StringComparison.Ordinal)
+      && endpoints.Contains("='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%'", StringComparison.Ordinal),
+    "Warehouse inventory location list reads WH_Inventory and excludes FG locations");
+Check(apiProgram.Contains("CustomSchemaIds", StringComparison.Ordinal)
+      && apiProgram.Contains("UseSwaggerUI", StringComparison.Ordinal),
+    "Swagger supports duplicate PDA DTO names and exposes its UI");
+Check(endpoints.Split("WithTags(\"PDA Test Scenarios\")").Length - 1 == 6
+      && fgEndpoints.Split("WithTags(\"PDA Test Scenarios\")").Length - 1 == 1,
+    "Swagger separates all seven PDA test endpoints from operation groups");

@@ -13,7 +13,7 @@
         <ApplicationTitle>A-MES Tablet</ApplicationTitle>
         <ApplicationId>com.seyon.ames.tablet</ApplicationId>
         <ApplicationDisplayVersion>0.1</ApplicationDisplayVersion>
-        <ApplicationVersion>1</ApplicationVersion>
+        <ApplicationVersion>2</ApplicationVersion>
         <WindowsPackageType>None</WindowsPackageType>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
@@ -32,12 +32,12 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
-        <PackageReference Include="Radzen.Blazor" Version="11.1.2" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.13" />
+        <PackageReference Include="Radzen.Blazor" Version="12.1.2" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\02_Data\AMES.Data\AMES.Data.csproj" />
+        <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
     </ItemGroup>
 
 </Project>

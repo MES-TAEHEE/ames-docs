@@ -2,6 +2,7 @@ using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
@@ -32,36 +33,53 @@ public sealed class PopSessionRepository
         string shiftCode,
         AuthMethod method)
     {
-        var startedAt  = DateTime.Now;
-        var expiresAt  = startedAt + DefaultLifetime;
-
         const string sql = """
+            DECLARE @Now datetime2 = SYSDATETIME();
             INSERT INTO dbo.PR_PopSession
                 (OperatorID, TerminalID, LineID, ShiftCode, AuthMethod,
                  StartedAt, ExpiresAt, CreatedBy, CreatedTS)
-            OUTPUT INSERTED.SessionID
+            OUTPUT INSERTED.SessionID, INSERTED.StartedAt, INSERTED.ExpiresAt
             VALUES
                 (@OperatorID, @TerminalID, @LineID, @ShiftCode, @AuthMethod,
-                 @StartedAt, @ExpiresAt, @CreatedBy, SYSDATETIME());
+                 @Now, DATEADD(second, @Lifetime, @Now), @CreatedBy, @Now);
             """;
 
         using var conn = _connFactory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = profile.UserId;
+        // 세션의 "누가" 는 사번이다 — 이 값이 실적·감사 컬럼(OperatorID·CreatedBy·ModifiedBy 등)으로 그대로 흘러간다.
+        // 웹 계정 GUID(profile.UserId)는 아래 역할 조회에만 쓴다.
+        cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = profile.EmployeeNo;
         cmd.Parameters.Add("@TerminalID", SqlDbType.VarChar,   20 ).Value = terminalId;
         cmd.Parameters.Add("@LineID",     SqlDbType.VarChar,   20 ).Value = lineId;
         cmd.Parameters.Add("@ShiftCode",  SqlDbType.VarChar,   10 ).Value = shiftCode;
         cmd.Parameters.Add("@AuthMethod", SqlDbType.VarChar,   20 ).Value = method.ToString();
-        cmd.Parameters.Add("@StartedAt",  SqlDbType.DateTime2     ).Value = startedAt;
-        cmd.Parameters.Add("@ExpiresAt",  SqlDbType.DateTime2     ).Value = expiresAt;
-        cmd.Parameters.Add("@CreatedBy",  SqlDbType.VarChar,   50 ).Value = profile.EmployeeNo;
+        cmd.Parameters.Add("@Lifetime", SqlDbType.Int).Value = (int)DefaultLifetime.TotalSeconds;
+        cmd.Parameters.Add("@CreatedBy",  SqlDbType.VarChar,    20).Value = profile.EmployeeNo;
 
-        var sessionId = (int)cmd.ExecuteScalar()!;
+        int sessionId;
+        DateTime startedAt, expiresAt;
+        using (var reader = cmd.ExecuteReader())
+        {
+            if (!reader.Read()) throw new InvalidOperationException("Session was not created.");
+            sessionId = reader.GetInt32(0);
+            startedAt = reader.GetDateTime(1);
+            expiresAt = reader.GetDateTime(2);
+        }
+
+        using var roleCmd = new SqlCommand("""
+            SELECT CAST(CASE WHEN EXISTS (
+                SELECT 1 FROM dbo.AspNetUserRoles ur
+                WHERE ur.UserId = @UserId AND ur.RoleId = @RoleId
+            ) THEN 1 ELSE 0 END AS bit);
+            """, conn);
+        roleCmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = profile.UserId;
+        roleCmd.Parameters.Add("@RoleId", SqlDbType.NVarChar, 450).Value = SystemRoles.AdminId;
+        var isAdmin = (bool)roleCmd.ExecuteScalar()!;
 
         return new PopSessionDto
         {
             SessionId    = sessionId,
-            OperatorId   = profile.UserId,
+            OperatorId   = profile.EmployeeNo,
             EmployeeNo   = profile.EmployeeNo,
             EmployeeName = profile.EmployeeName,
             TerminalId   = terminalId,
@@ -70,6 +88,9 @@ public sealed class PopSessionRepository
             AuthMethod   = method,
             StartedAt    = startedAt,
             ExpiresAt    = expiresAt,
+            IsAdmin      = isAdmin,
+            IsWorker     = profile.IsWorker,
+            HasPin       = !string.IsNullOrEmpty(profile.PinHash),
         };
     }
 
@@ -93,8 +114,21 @@ public sealed class PopSessionRepository
         using var cmd  = new SqlCommand(sql, conn);
         cmd.Parameters.Add("@SessionID", SqlDbType.Int            ).Value = sessionId;
         cmd.Parameters.Add("@Reason",    SqlDbType.VarChar,  20   ).Value = reason;
-        cmd.Parameters.Add("@ModBy",     SqlDbType.NVarChar, 450  ).Value = (object?)userId ?? DBNull.Value;
+        cmd.Parameters.Add("@ModBy",     SqlDbType.VarChar,     20).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
+    }
+
+    public int CloseExpiredSessions()
+    {
+        const string sql = """
+            UPDATE dbo.PR_PopSession
+            SET LoggedOutAt=ExpiresAt, LogoutReason='EXPIRED', ModifiedBy='system', ModifiedTS=SYSDATETIME(),
+                BearerHash=NULL, SessionJson=NULL
+            WHERE LoggedOutAt IS NULL AND ExpiresAt <= SYSDATETIME();
+            """;
+        using var conn = _connFactory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        return cmd.ExecuteNonQuery();
     }
 
     /// <summary>
@@ -123,7 +157,8 @@ public sealed class PopSessionRepository
         cmd.Parameters.Add("@AuthMethod",  SqlDbType.VarChar, 20).Value = method.ToString();
         cmd.Parameters.Add("@Result",      SqlDbType.VarChar, 10).Value = ShortResult(result);
         cmd.Parameters.Add("@FailReason",  SqlDbType.VarChar, 40).Value = (object?)failReason ?? DBNull.Value;
-        cmd.Parameters.Add("@CreatedBy",   SqlDbType.VarChar, 50).Value = terminalId;
+        // 시도한 사번. 모르는 배지는 스캔값 전체가 오므로 사번 폭(20)으로 자른다.
+        cmd.Parameters.Add("@CreatedBy",   SqlDbType.VarChar, 20).Value = attemptedId.Length > 20 ? attemptedId[..20] : attemptedId;
         cmd.ExecuteNonQuery();
     }
 

@@ -1,4 +1,3 @@
-using AMES.Data.Connection;
 using AMES.Pda.Services;
 using Microsoft.Extensions.Logging;
 using Radzen;
@@ -18,20 +17,9 @@ public static class MauiProgram
         }
     }
 
-    /// <summary>
-    /// API base URL used by the PDA client.
-    /// Windows / macCatalyst → localhost. Override at runtime later via
-    /// a settings screen.
-    /// </summary>
-    public static string ApiBaseUrl =>
-#if ANDROID
-        "http://192.168.1.100:5210";
-#else
-        "http://localhost:5210";
-#endif
-
     public static MauiApp CreateMauiApp()
     {
+        var settings = PdaSettings.Load();
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
@@ -50,9 +38,18 @@ public static class MauiProgram
 
         // ── Auth + API ──────────────────────────────────────────────────
         builder.Services.AddSingleton<AuthState>();
-        builder.Services.AddSingleton(new AmesConnectionFactory(
-            "Server=tcp:192.168.1.100,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;"));
-        builder.Services.AddHttpClient<PdaApi>(c => c.BaseAddress = new Uri(ApiBaseUrl));
+        builder.Services.AddSingleton<PdaUomFormat>();
+        builder.Services.AddSingleton(settings);
+        // Separate transport: validation must not recurse through SessionExpiryHandler.
+        builder.Services.AddHttpClient("session-check", c => c.BaseAddress = new Uri(settings.ApiBaseUrl));
+        builder.Services.AddSingleton(sp => new SessionValidator(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("session-check"), sp.GetRequiredService<AuthState>()));
+        builder.Services.AddTransient<SessionExpiryHandler>();
+        builder.Services.AddHttpClient<AuthApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
+        builder.Services.AddHttpClient<WarehouseApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
+        builder.Services.AddHttpClient<FinishedGoodsApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
+        builder.Services.AddHttpClient<SparePartsApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
+        builder.Services.AddHttpClient<MaintenanceApi>(c => c.BaseAddress = new Uri(settings.ApiBaseUrl)).AddHttpMessageHandler<SessionExpiryHandler>();
 
         return builder.Build();
     }

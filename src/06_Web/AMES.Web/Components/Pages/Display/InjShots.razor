@@ -1,0 +1,228 @@
+@page "/display/inj-shots"
+@layout DisplayLayout
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@using System.Globalization
+@using AMES.Data.Connection
+@inject AmesConnectionFactory Factory
+@inject IJSRuntime JS
+@inject IConfiguration Config
+@inject ILogger<InjShots> Logger
+
+@*  공장 디스플레이 — 사출기 금형 Shot 현황(표시 언어 영어, 30초 갱신). 로그인 없이 어디서든 띄우는 전체 화면(더블클릭·⛶ 버튼, 무인 설치는 브라우저 --kiosk).
+    내부 사이트 셸·디자인과 무관하게 이 폴더(Pages/Display) 안에서만 동작한다.
+    ?rows=3 처럼 줄 수를 고정할 수 있고, 없으면 화면 비율에 맞춰 타일이 가장 크게 보이는 줄·칸을 고른다. *@
+
+<PageTitle>Injection Mold Shot Status</PageTitle>
+
+<div class="dsp" @ondblclick="ToggleFullscreen">
+    <div class="ds-bar">
+        <div class="ds-title">INJECTION MOLD SHOT STATUS</div>
+        <div class="ds-legend">
+            <span><i class="ds-lg ds-ok"></i>Normal</span>
+            <span><i class="ds-lg ds-warn"></i>90% or more</span>
+            <span><i class="ds-lg ds-over"></i>Limit reached</span>
+        </div>
+        <button type="button" class="ds-fs" title="Full screen (or double-click)" @onclick="ToggleFullscreen">⛶</button>
+    </div>
+
+    @if (_tiles is null)
+    {
+        <div class="ds-grid ds-one"><div class="ds-empty">Loading…</div></div>
+    }
+    else if (_tiles.Count == 0)
+    {
+        <div class="ds-grid ds-one"><div class="ds-empty">No injection lines to display</div></div>
+    }
+    else
+    {
+        <div class="ds-grid" style="grid-template-columns:repeat(@_cols, minmax(0, 1fr));grid-template-rows:repeat(@_rows, minmax(0, 1fr));">
+            @foreach (var t in _tiles)
+            {
+                <div class="ds-tile @(_error ? "ds-stale" : "")" title="@TileTitle(t)">
+                    <div class="ds-in">
+                        <div class="ds-r1">
+                            <div class="ds-code">@t.Code</div>
+                            <div class="ds-pbar ds-@BarClass(t.Percent)">
+                                <div class="ds-fill" style="width:@(Math.Min(100m, t.Percent ?? 0m).ToString(CultureInfo.InvariantCulture))%"></div>
+                                <div class="ds-pct">@(t.Percent is { } p ? p.ToString("0.0", CultureInfo.InvariantCulture) + "%" : "--")</div>
+                            </div>
+                        </div>
+                        <div class="ds-r2">
+                            <div class="ds-ton ds-@TonClass(t.Tonnage)">@(t.Tonnage is { } ton ? ton + "T" : "--")</div>
+                            <div class="ds-st ds-st-@t.Status">@StatusText(t.Status)</div>
+                        </div>
+                        <div class="ds-r3">
+                            @if (t.MoldId is not null)
+                            {
+                                <div class="ds-mold"><span class="ds-id">@t.MoldId</span>@t.MoldName</div>
+                                @if (t.MoldFromLastLot)
+                                {
+                                    <span class="ds-tag" title="No mount record — showing the mold of the latest injection LOT">LATEST LOT</span>
+                                }
+                            }
+                            else
+                            {
+                                <div class="ds-mold ds-none">@(t.EquipId is null ? "No machine" : "No mold data")</div>
+                            }
+                        </div>
+                        <div class="ds-r4">
+                            @if (t.CurrentShots is { } cur && t.RatedShots is { } rated)
+                            {
+                                <div class="ds-shots">@cur.ToString("N0", Num)<span class="ds-sep">/</span>@rated.ToString("N0", Num)</div>
+                            }
+                            else
+                            {
+                                <div class="ds-shots ds-none">--</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            @* 공장 시각은 항상 맨 아래 줄 맨 오른쪽 칸 — 타일은 그 앞 칸들을 차례로 채운다 *@
+            <div class="ds-clock" style="grid-column:@_cols;grid-row:@_rows;">
+                <div class="ds-d">@_now.ToString("MM.dd.yyyy", CultureInfo.InvariantCulture)</div>
+                <div class="ds-t">@_now.ToString("HH:mm:ss", CultureInfo.InvariantCulture)</div>
+                <div class="ds-z">FACTORY TIME</div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "rows")] public int? FixedRows { get; set; }
+
+    static readonly CultureInfo Num = CultureInfo.GetCultureInfo("en-US");
+    const double TileAspect = 1.9;   // 기준 타일 비율(원본 현황판 하단 타일)
+
+    IReadOnlyList<InjShotQuery.Tile>? _tiles;
+    DateTime _now = DbClock.Now;
+    bool _error;
+    int _rows = 1, _cols = 1;
+    double _gridW = 1920, _gridH = 1030;   // JS 가 실제 크기를 알려 주기 전(사전 렌더)의 가정값 — 16:9 화면
+    int _refreshSec = 30;
+
+    CancellationTokenSource? _cts;
+    IJSObjectReference? _module;
+    DotNetObjectReference<InjShots>? _self;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _refreshSec = Math.Max(3, Config.GetValue("Display:RefreshSec", 30));
+        await RefreshAsync(CancellationToken.None);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Pages/Display/InjShots.razor.js");
+            _self = DotNetObjectReference.Create(this);
+            await _module.InvokeVoidAsync("start", _self);
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException)
+        {
+            Logger.LogDebug(ex, "display js init skipped");
+        }
+        _cts = new CancellationTokenSource();
+        _ = TickClockAsync(_cts.Token);
+        _ = RefreshLoopAsync(_cts.Token);
+    }
+
+    [JSInvokable]
+    public Task OnResize(double width, double height)
+    {
+        _gridW = width; _gridH = height;
+        Layout();
+        return InvokeAsync(StateHasChanged);
+    }
+
+    async Task RefreshLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(_refreshSec));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                await RefreshAsync(ct);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    async Task TickClockAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                _now = DbClock.Now;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    async Task RefreshAsync(CancellationToken ct)
+    {
+        try
+        {
+            _tiles = await InjShotQuery.LoadAsync(Factory, ct);
+            _error = false;
+            _now = DbClock.Now;
+            Layout();
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            // 직전 화면은 흐리게 남겨 두고 다음 주기에 다시 읽는다
+            _error = true;
+            Logger.LogWarning(ex, "display inj-shots load failed");
+        }
+    }
+
+    void Layout()
+    {
+        var cells = (_tiles?.Count ?? 0) + 1;   // + 시계 칸
+        int rows;
+        if (FixedRows is > 0) rows = Math.Min(FixedRows.Value, cells);
+        else
+        {
+            // 타일이 가장 크게 보이는 줄 수 — 크기 차이가 5% 이내면 줄이 적은(가로로 넓은) 배치를 고른다
+            var sizes = Enumerable.Range(1, cells)
+                .Select(r => (Rows: r, Size: Math.Min(_gridH / r, _gridW / Math.Ceiling(cells / (double)r) / TileAspect)))
+                .ToList();
+            var best = sizes.Max(x => x.Size);
+            rows = sizes.First(x => x.Size >= best * 0.95).Rows;
+        }
+        _cols = Math.Max(1, (int)Math.Ceiling(cells / (double)rows));
+        _rows = (int)Math.Ceiling(cells / (double)_cols);
+    }
+
+    async Task ToggleFullscreen()
+    {
+        if (_module is null) return;
+        try { await _module.InvokeVoidAsync("toggleFullscreen"); }
+        catch (JSException) { }
+    }
+
+    static string BarClass(decimal? p) => p is null ? "none" : p >= 100 ? "over" : p >= 90 ? "warn" : "ok";
+    static string TonClass(int? t) => t is null ? "t0" : t >= 2500 ? "t1" : t >= 1500 ? "t2" : t >= 600 ? "t3" : "t4";
+    static string StatusText(string s) => s switch { "RUN" => "RUN", "STOP" => "STOP", "IDLE" => "IDLE", "PM" => "PM", _ => "- - -" };
+    static string TileTitle(InjShotQuery.Tile t) => string.Join(" · ", new[] { t.LineName, t.EquipName, t.MoldName }.Where(s => !string.IsNullOrEmpty(s)));
+
+    public async ValueTask DisposeAsync()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        if (_module is not null)
+        {
+            try { await _module.InvokeVoidAsync("stop"); await _module.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+        _self?.Dispose();
+    }
+}

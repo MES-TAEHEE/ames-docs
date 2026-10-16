@@ -11,8 +11,11 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
 @inject SysRepository Sys
+@inject MasterDataRepository MD
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
+@inject AMES.Web.Services.ScreenCatalogNotifier ScreenCatalog
 
 <PageTitle>SYS-002 @L["SYS.Roles.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-002" TitleKey="SYS.Roles.Title" />
@@ -50,17 +53,28 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Roles.Empty"]" Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="SysRepository.RoleRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Roles.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
-                <Template Context="r"><span class="code">@(r.RoleName ?? "—")</span></Template>
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="r"><span class="dim">@GridRowNo.Of(_pgGrid, r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="RoleName" Title="@L["Col.RoleName"]">
+                <Template Context="r">
+                    <span class="code">@(r.RoleName ?? "—")</span>
+                    @if (AMES.Data.Services.SystemRoles.IsSystem(r.RoleId))
+                    {
+                        <span class="pill info" style="margin-left:6px;" title="@r.RoleId">@L["SYS.Roles.SystemBadge"]</span>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
                     @if (r.UserCount > 0)
                     {
-                        <span class="pill ok">@r.UserCount</span>
+                        <button type="button" class="pill ok" style="cursor:pointer;border:0;font-family:inherit;" title="@L["SYS.Roles.Members.Open"]"
+                                @onclick="() => OpenMembers(r)" @onclick:stopPropagation>@r.UserCount</button>
                     }
                     else
                     {
@@ -82,7 +96,7 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Roles.Lbl.RoleName"]" class="ames-rz-modal-label" Component="CreateTextBoxRoleName" />
-                    <RadzenTextBox Name="CreateTextBoxRoleName" @bind-Value="_roleName" Placeholder="@L["SYS.Roles.Ph.RoleName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateTextBoxRoleName" @bind-Value="_roleName" MaxLength="40" Placeholder="@L["SYS.Roles.Ph.RoleName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
             </RadzenStack>
 
@@ -109,13 +123,21 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Roles.Lbl.RoleName"]" class="ames-rz-modal-label" Component="EditTextBoxRoleName" />
-                    <RadzenTextBox Name="EditTextBoxRoleName" @bind-Value="_roleName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditTextBoxRoleName" @bind-Value="_roleName" MaxLength="40" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
 
+                @if (IsProtected)
+                {
+                    <div style="font-size:.82em;color:var(--ames-tx-slate-400);">ⓘ @L["SYS.Roles.Err.Protected"]</div>
+                }
                 @if (_sel.UserCount > 0)
                 {
-                    <div style="font-size:.82em;color:#94a3b8;">
-                        @L["SYS.Roles.InUseBy"] <strong style="color:#fbbf24;">@_sel.UserCount @L["Lbl.Persons"]</strong>
+                    <div style="font-size:.82em;color:var(--ames-tx-slate-400);">
+                        @L["SYS.Roles.InUseBy"] <a role="button" title="@L["SYS.Roles.Members.Open"]" @onclick="() => OpenMembers(_sel!)" style="cursor:pointer;color:var(--ames-tx-amber-400);font-weight:700;text-decoration:underline;">@_sel.UserCount @L["Lbl.Persons"]</a>
+                        @if (!IsProtected)
+                        {
+                            <br />@($"ⓘ {string.Format(L["SYS.Roles.Err.InUse"].Value, _sel.UserCount)}")
+                        }
                     </div>
                 }
             </RadzenStack>
@@ -124,14 +146,7 @@
             @if (_confirmDelete)
             {
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
-                    @if (_sel.UserCount > 0)
-                    {
-                        <span>@string.Format(L["SYS.Roles.ConfirmDeleteInUse"].Value, _sel.UserCount)</span>
-                    }
-                    else
-                    {
-                        <span>@L["Msg.Confirm.Delete"]</span>
-                    }
+                    <span>@L["Msg.Confirm.Delete"]</span>
                     <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
@@ -144,16 +159,71 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (!IsProtected && _sel.UserCount == 0)
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
 }
 
+@* ── Members Modal — 그리드 인원 수·수정 창의 인원 링크에서 연다(수정 창 위에 겹쳐 뜬다) ── *@
+@if (_membersOf is not null)
+{
+    <div class="ames-modal-bg" @onmousedown="() => _membersBgDown = true" @onclick="OnMembersBgClick">
+        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["SYS.Roles.Members.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@_membersOf.RoleName · @_members.Count @L["Lbl.Persons"]</span></div>
+
+            @if (!string.IsNullOrEmpty(_membersErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_membersErr</RadzenAlert>
+            }
+
+            <RadzenDataGrid TItem="SysRepository.RoleMemberRow" Data="@_members" AllowPaging="false" AllowSorting="true" EmptyText="@L["SYS.Roles.Members.Empty"]" Class="ames-rz-grid" Style="max-height:60vh;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["Col.RowNo"]" Width="60px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="m"><span class="dim">@(_members.IndexOf(m) + 1)</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]" Width="110px">
+                        <Template Context="m"><span class="code">@(m.EmployeeNo ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" Width="130px">
+                        <Template Context="m">@(m.EmployeeName ?? "—")</Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
+                        <Template Context="m"><span class="dim">@(m.Email ?? m.UserName ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["SYS.Users.Col.Dept"]" TextAlign="TextAlign.Center" Width="110px">
+                        <Template Context="m"><span class="dim">@DeptName(m.Department)</span></Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+                        <Template Context="m">
+                            @{
+                                var st = MemberStatus(m);
+                                var cls = st switch { "LOCKED" => "bad", "INACTIVE" => "mute", "SUSPENDED" => "warn", NoProfile => "warn", _ => "ok" };
+                            }
+                            <span class="pill @cls">@StatusName(st)</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="LastLoginTs" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="160px">
+                        <Template Context="m"><span class="dim">@(m.LastLoginTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Click="@CloseMembers" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<SysRepository.RoleRow> _rows = new();
     SysRepository.RoleRow? _sel;
 
@@ -230,6 +300,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_roleName)) { _modalErr = L["SYS.Roles.Err.NameRequired"]; return; }
 
@@ -242,6 +313,7 @@
                 _modalErr = string.Join(" ", result.Errors.Select(e => e.Description));
                 return;
             }
+            Audit.Created("SYS-002", "AspNetRoles", _roleName.Trim(), new { RoleName = _roleName.Trim() });
             var name = _roleName.Trim();
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Created"].Value, name), false);
@@ -252,26 +324,20 @@
 
     async Task SaveEdit()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_roleName)) { _modalErr = L["SYS.Roles.Err.NameRequired"]; return; }
 
         _busy = true;
         try
         {
-            var role = await RoleMgr.FindByIdAsync(_sel.RoleId);
-            if (role is null) { _modalErr = L["SYS.Roles.Err.NotFound"]; return; }
-
-            role.Name = _roleName.Trim();
-            var result = await RoleMgr.UpdateAsync(role);
-            if (!result.Succeeded)
-            {
-                _modalErr = string.Join(" ", result.Errors.Select(e => e.Description));
-                return;
-            }
-            var name = _roleName.Trim();
+            var newName = _roleName.Trim();
+            var r = await Task.Run(() => Sys.RenameRole(_sel.RoleId, newName));
+            if (r != SysRepository.RoleChangeResult.Ok) { _modalErr = RoleError(r); return; }
+            ScreenCatalog.Notify();
+            Audit.Updated("SYS-002", "AspNetRoles", _sel.RoleId, _sel, new { RoleName = newName });
             CloseModal(); await ReloadRestorePage();
-            ShowMsg(string.Format(L["SYS.Roles.Ok.Updated"].Value, name), false);
+            ShowMsg(string.Format(L["SYS.Roles.Ok.Updated"].Value, newName), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -279,19 +345,83 @@
 
     async Task SaveDelete()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_canEdit) return;
         _busy = true;
         try
         {
-            var role = await RoleMgr.FindByIdAsync(_sel.RoleId);
-            if (role is not null) await RoleMgr.DeleteAsync(role);
+            var r = await Task.Run(() => Sys.DeleteRole(_sel.RoleId));
+            if (r != SysRepository.RoleChangeResult.Ok) { _modalErr = RoleError(r); _confirmDelete = false; return; }
+            ScreenCatalog.Notify();
 
+
+            Audit.Deleted("SYS-002", "AspNetRoles", _sel.RoleId, _sel);
             var name = _sel.RoleName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Roles.Ok.Deleted"].Value, name), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }
+    }
+
+    // 기본 역할(고정 ID ROLE-xxx, SystemRoles) — 이름은 바꿀 수 있고 삭제만 막는다(10-09 사용자 결정)
+    bool IsProtected => _sel is not null && AMES.Data.Services.SystemRoles.IsSystem(_sel.RoleId);
+
+    string RoleError(SysRepository.RoleChangeResult r) => r switch
+    {
+        SysRepository.RoleChangeResult.Protected => L["SYS.Roles.Err.Protected"],
+        SysRepository.RoleChangeResult.Duplicate => L["SYS.Roles.Err.Duplicate"],
+        SysRepository.RoleChangeResult.InUse     => string.Format(L["SYS.Roles.Err.InUse"].Value, _sel?.UserCount ?? 0),
+        _                                        => L["SYS.Roles.Err.NotFound"],
+    };
+
+    // ── 역할 사용자 목록 ─────────────────────────────────────────────
+    SysRepository.RoleRow? _membersOf;
+    List<SysRepository.RoleMemberRow> _members = new();
+    string _membersErr = "";
+    bool _membersBgDown;
+    List<MasterDataRepository.CodeItemRow>? _deptItems, _statusItems;
+
+    const string NoProfile = "NOPROFILE";
+
+    async Task OpenMembers(SysRepository.RoleRow r)
+    {
+        _membersOf = r; _members = new(); _membersErr = "";
+        try
+        {
+            var roleId = r.RoleId;
+            _members = await Task.Run(() => Sys.ListRoleMembers(roleId));
+            _deptItems   ??= await Task.Run(() => MD.ListCodeItems("DEPARTMENT"));
+            _statusItems ??= await Task.Run(() => MD.ListCodeItems("USER_STATUS"));
+        }
+        catch (Exception ex) { _membersErr = ex.Message; }
+    }
+
+    void CloseMembers() { _membersOf = null; _members = new(); _membersErr = ""; }
+
+    void OnMembersBgClick()
+    {
+        if (_membersBgDown) CloseMembers();
+        _membersBgDown = false;
+    }
+
+    // SYS-001 목록과 같은 표시 규칙 — 잠금 우선, 프로필 없는 계정은 로그인 불가라 따로 보인다
+    static string MemberStatus(SysRepository.RoleMemberRow m) =>
+        (m.LockedOut || string.Equals(m.AccountStatus, "LOCKED", StringComparison.OrdinalIgnoreCase)) ? "LOCKED"
+        : !m.HasProfile ? NoProfile
+        : (m.AccountStatus ?? "ACTIVE").ToUpperInvariant();
+
+    string StatusName(string code)
+    {
+        if (code == NoProfile) return L["SYS.Users.Status.NoProfile"];
+        var found = _statusItems?.FirstOrDefault(s => string.Equals(s.CodeValue, code, StringComparison.OrdinalIgnoreCase));
+        return found is null ? code : MasterDataRepository.LocalName(found);
+    }
+
+    string DeptName(string? code)
+    {
+        if (string.IsNullOrEmpty(code)) return "—";
+        var item = _deptItems?.FirstOrDefault(i => i.CodeValue == code);
+        return item is null ? code : MasterDataRepository.LocalName(item);
     }
 
     void ShowMsg(string msg, bool isErr)

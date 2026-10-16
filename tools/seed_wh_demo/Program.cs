@@ -33,7 +33,7 @@ internal static class Program
     private static void Wipe(SqlConnection conn) => Exec(conn, """
         DELETE FROM dbo.WH_TransactionHistory WHERE OperatorID = 'wh-seed' OR Note = 'wh-seed';
         DELETE FROM dbo.WH_ReleaseSchedule    WHERE CreatedBy='wh-seed';
-        DELETE FROM dbo.WH_Inventory          WHERE CreatedBy='wh-seed';
+        DELETE FROM dbo.WH_OLD_Inventory          WHERE CreatedBy='wh-seed';
         DELETE FROM dbo.WH_PurchaseOrder      WHERE CreatedBy='wh-seed';
         DELETE FROM dbo.MD_Location           WHERE CreatedBy='wh-seed';
         """);
@@ -93,7 +93,7 @@ internal static class Program
         Console.WriteLine("  po    8 PO lines (3 received · 3 open · 2 late)");
     }
 
-    // ── WH_Inventory (12 stock lines spread across 6 locations) ──────────
+    // ── WH_OLD_Inventory (12 stock lines spread across 6 locations) ──────────
     private static void SeedInventory(SqlConnection conn)
     {
         var rows = new (string Item, string Loc, decimal OnHand, decimal Res, int ExpiryOffsetDays)[]
@@ -114,7 +114,7 @@ internal static class Program
         foreach (var r in rows)
         {
             Exec(conn, $"""
-                INSERT INTO dbo.WH_Inventory
+                INSERT INTO dbo.WH_OLD_Inventory
                     (ItemNo, LocationID, OnHandQty, ReservedQty,
                      LastReceivedAt, ExpiryDate, Status, CreatedBy, CreatedTS)
                 VALUES (@I, @L, @O, @R,

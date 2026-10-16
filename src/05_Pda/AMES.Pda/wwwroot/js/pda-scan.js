@@ -125,6 +125,7 @@ window.pdaScan = (() => {
     }
 
     function emitText(text) {
+        if (document.querySelector(".pda-root[inert]")) return;
         if (!dotNetRef || text.length < activeOptions().minLength) {
             return;
         }
@@ -282,14 +283,16 @@ window.pdaScan = (() => {
         }, 50);
     }
 
-    function scrollTo(selector) {
+    function scrollTo(selector, topOffset) {
         const element = document.querySelector(selector);
         if (!element) return;
         const container = element.closest(".pda-bd");
         if (!container) return;
         const top = container.scrollTop + element.getBoundingClientRect().top
             - container.getBoundingClientRect().top - container.clientTop
-            - (container.clientHeight - element.getBoundingClientRect().height) / 2;
+            - (Number.isFinite(topOffset)
+                ? topOffset
+                : (container.clientHeight - element.getBoundingClientRect().height) / 2);
         container.scrollTo({
             top: Math.max(0, Math.min(top, container.scrollHeight - container.clientHeight)),
             behavior: "smooth"

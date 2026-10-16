@@ -1,4 +1,3 @@
-using AMES.Data.Connection;
 using AMES.Tablet.Services;
 using Microsoft.Extensions.Logging;
 using Radzen;
@@ -16,8 +15,10 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddRadzenComponents();
-        builder.Services.AddSingleton(new AmesConnectionFactory(ConnectionString));
-        builder.Services.AddSingleton<TabletInventoryService>();
+        builder.Services.AddSingleton<TabletAuthState>();
+        builder.Services.AddSingleton(new HttpClient { BaseAddress = new Uri(ApiBaseUrl) });
+        builder.Services.AddSingleton<TabletAuthService>();
+        builder.Services.AddSingleton<TabletInventoryApi>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
@@ -27,11 +28,10 @@ public static class MauiProgram
         return builder.Build();
     }
 
-    private static string ConnectionString =>
-        Environment.GetEnvironmentVariable("AMES_CONNECTION_STRING")
+    private static string ApiBaseUrl =>
 #if ANDROID
-        ?? "Server=tcp:192.168.1.100,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;";
+        "http://192.168.0.132:5210";
 #else
-        ?? "Server=localhost,1433;Database=AMES_DEV;User Id=sa;Password=AmesDev!2026Sa;TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;";
+        "http://localhost:5210";
 #endif
 }

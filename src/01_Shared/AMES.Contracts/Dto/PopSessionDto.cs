@@ -9,7 +9,7 @@ namespace AMES.Contracts.Dto;
 public sealed class PopSessionDto
 {
     public required int SessionId { get; init; }
-    public required string OperatorId { get; init; }        // AspNetUsers.Id
+    public required string OperatorId { get; init; }        // 사번 (= EmployeeNo). 실적·감사 컬럼에 기록되는 "누가"
     public required string EmployeeNo { get; init; }
     public required string EmployeeName { get; init; }
     public required string TerminalId { get; init; }
@@ -18,4 +18,16 @@ public sealed class PopSessionDto
     public required AuthMethod AuthMethod { get; init; }
     public required DateTime StartedAt { get; init; }
     public required DateTime ExpiresAt { get; init; }
+
+    public bool IsAdmin { get; init; }
+
+    /// <summary>Signed in from MD_Worker rather than a web account.</summary>
+    public bool IsWorker { get; init; }
+
+    /// <summary>
+    /// The account has a PIN set. False for a badge-only worker — POP makes those
+    /// pick a PIN before it lets them onto the work screen, so the scanner dying
+    /// does not lock them out.
+    /// </summary>
+    public bool HasPin { get; init; }
 }

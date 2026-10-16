@@ -8,9 +8,13 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
+    <ProjectReference Include="..\..\01_Shared\AMES.Devices\AMES.Devices.csproj" />
     <ProjectReference Include="..\..\02_Data\AMES.Data\AMES.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AMES.Api.Tests" />
   </ItemGroup>
 </Project>

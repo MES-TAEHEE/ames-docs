@@ -4,8 +4,14 @@
 @inject AMES.Data.Repositories.WorkOrderRepository Wos
 @inject AMES.Data.Repositories.MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject AMES.Data.Repositories.AuthRepository AuthRepo
+@inject AMES.Web.Services.AuditLogger Audit
 @using AMES.Contracts.Dto
+@using AMES.Data.Services
 @using Radzen
 
 <PageTitle>CAL @L["PP.Calendar.Title"] · AMES</PageTitle>
@@ -58,7 +64,7 @@
             <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
-                    <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
+                    <span style="font-family:var(--ames-font-display);font-size:26px;letter-spacing:2px;color:var(--ames-tx-white);">
                         @string.Format(L["Fmt.CalYearMonth"], _calYear, _calMonth)
                     </span>
                     <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
@@ -73,7 +79,7 @@
                 int rows         = (int)Math.Ceiling((startOffset + daysInMonth) / 7.0);
             }
 
-            <div class="ames-cal-grid pp-wo-grid">
+            <div class="ames-cal-grid pp-wo-grid ames-cal-fill" style="--cal-weeks:@rows">
                 @foreach (var (key, cls) in new[] {
                     ("PP.Calendar.Day.Sun","sun"),
                     ("PP.Calendar.Day.Mon",""),
@@ -100,7 +106,7 @@
                         int dow      = (int)date.DayOfWeek;
                         bool isSun   = dow == 0;
                         bool isSat   = dow == 6;
-                        bool isToday = date.Date == DateTime.Today;
+                        bool isToday = date.Date == DbClock.Today;
 
                         string cellCls = "ames-cal-cell";
                         if (isToday)        cellCls += " ames-cal-cell--today";
@@ -142,14 +148,16 @@
     @* ── WEEK VIEW ──────────────────────────────────────────────────── *@
     @* ══════════════════════════════════════════════════════════════════ *@
     <AmesTab Title="@($"≡ {L["PP.Calendar.Tab.Week"].Value}")">
-        @{ var weekDates = GetWeekDates(); }
+        @{
+            var weekDates = GetWeekDates();
+        }
         <div class="ames-card">
             <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevWeek" class="ames-rz-btn" />
-                    <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;">
-                        @weekDates[0].ToString("MM/dd") — @weekDates[6].ToString("MM/dd")
-                        <span style="font-size:14px;color:#64748b;letter-spacing:1px;margin-left:8px;">
+                    <span style="font-family:var(--ames-font-display);font-size:22px;letter-spacing:2px;color:var(--ames-tx-white);">
+                        @weekDates[0].ToString(DateFmt.Date) — @weekDates[6].ToString(DateFmt.Date)
+                        <span style="font-size:14px;color:var(--ames-tx-slate-500);letter-spacing:1px;margin-left:8px;">
                             @_weekStart.Year@L["Lbl.Year"]
                         </span>
                     </span>
@@ -158,31 +166,30 @@
                 @FilterBar()
             </div>
 
-            <div style="margin-top:6px;">
+            <div class="ames-cal-weeklist ames-cal-fill">
                 @foreach (var date in weekDates)
                 {
                     var wos      = GetWosForDate(date);
                     int dow      = (int)date.DayOfWeek;
                     bool isSun   = dow == 0;
                     bool isSat   = dow == 6;
-                    bool isToday = date.Date == DateTime.Today;
+                    bool isToday = date.Date == DbClock.Today;
 
                     string rowBg = isToday        ? "background:rgba(147,197,253,.06);border-color:rgba(147,197,253,.35);"
                                  : (isSat||isSun) ? "background:rgba(251,191,36,.02);border-color:rgba(251,191,36,.08);"
                                                   : "border-color:rgba(255,255,255,.06);";
                     <div style="display:grid;grid-template-columns:90px 1fr;gap:0;
-                                border:1px solid;border-radius:6px;margin-bottom:5px;
-                                min-height:44px;overflow:hidden;@rowBg">
+                                border:1px solid;border-radius:6px;overflow:hidden;@rowBg">
                         <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;
-                                    border-right:1px solid rgba(255,255,255,.06);">
-                            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;
+                                    border-right:1px solid var(--ames-bd-white-a06);">
+                            <span style="font-family:var(--ames-font-mono);font-size:var(--ames-fs-hint);
                                          text-transform:uppercase;letter-spacing:.05em;
-                                         color:@(isSun?"#fca5a5":isSat?"#93c5fd":"#64748b");">
+                                         color:@(isSun?"var(--ames-tx-red-300)":isSat?"var(--ames-tx-blue-300)":"var(--ames-tx-slate-500)");">
                                 @date.ToString("ddd")
                             </span>
-                            <span style="font-family:'JetBrains Mono',monospace;font-size:18px;
+                            <span style="font-family:var(--ames-font-mono);font-size:18px;
                                          font-weight:700;
-                                         color:@(isSun?"#fca5a5":isSat?"#93c5fd":isToday?"#93c5fd":"#cbd5e1");
+                                         color:@(isSun?"var(--ames-tx-red-300)":isSat?"var(--ames-tx-blue-300)":isToday?"var(--ames-tx-blue-300)":"var(--ames-tx-slate-300)");
                                          line-height:1;display:flex;align-items:center;gap:4px;">
                                 @date.Day
                                 @if (isToday) { <span class="ames-cal-today-dot"></span> }
@@ -191,7 +198,7 @@
                         <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:6px 10px;">
                             @if (wos.Count == 0)
                             {
-                                <span style="color:#334155;font-size:11px;font-family:'JetBrains Mono',monospace;">—</span>
+                                <span style="color:#334155;font-size:calc(11px + var(--ames-fs-bump));font-family:var(--ames-font-mono);">—</span>
                             }
                             @foreach (var wo in wos)
                             {
@@ -200,7 +207,7 @@
                                      style="margin-top:0;white-space:nowrap;"
                                      @onclick="() => ShowDetail(capWo)">
                                     <span style="font-weight:700;">@wo.WoNumber</span>
-                                    <span style="opacity:.7;margin-left:4px;font-size:9px;">@(wo.ItemName ?? wo.ItemNo)</span>
+                                    <span style="opacity:.7;margin-left:4px;font-size:calc(9px + var(--ames-fs-bump));">@(wo.ItemName ?? wo.ItemNo)</span>
                                 </div>
                             }
                         </div>
@@ -220,7 +227,7 @@
     var dayWos = GetWosForDate(_dayDate.Value);
     <div class="ames-modal-bg" @onclick="() => _showDay = false">
         <div class="ames-modal" style="max-width:500px;" @onclick:stopPropagation>
-            <div class="ames-modal-h">@_dayDate.Value.ToString("yyyy-MM-dd ddd") — @L["PP.Calendar.Modal.WoList"]</div>
+            <div class="ames-modal-h">@_dayDate.Value.ToString(DateFmt.DateWeekday) — @L["PP.Calendar.Modal.WoList"]</div>
             @foreach (var wo in dayWos)
             {
                 var capWo = wo;
@@ -228,7 +235,7 @@
                      @onclick="() => { _showDay = false; ShowDetail(capWo); }">
                     <span style="font-weight:700;">@wo.WoNumber</span>
                     <span style="opacity:.75;margin-left:6px;">@(wo.ItemName ?? wo.ItemNo)</span>
-                    <span class="pill @(GetWoCls(wo))" style="float:right;font-size:10px;padding:1px 6px;">@StatusText(wo.Status)</span>
+                    <span class="pill @(GetWoCls(wo))" style="float:right;font-size:var(--ames-fs-hint);padding:1px 6px;">@StatusText(wo.Status)</span>
                 </div>
             }
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
@@ -249,7 +256,7 @@
                 <div class="ames-detail-label">@L["Col.Item"]</div>
                 <div>
                     @(d.ItemName ?? d.ItemNo)
-                    <span class="dim" style="font-size:11px;"> (@d.ItemNo)</span>
+                    <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));"> (@d.ItemNo)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Line"]</div>
                 <div class="code">@d.LineId</div>
@@ -264,16 +271,16 @@
                 </div>
                 <div class="ames-detail-label">@L["PP.Calendar.Detail.OrderDone"]</div>
                 <div>
-                    @d.OrderQty.ToString("N0") / @d.CompletedQty.ToString("N0")
-                    <span class="dim" style="font-size:11px;"> (@((int)d.ProgressPct)%)</span>
+                    @UomFmt.Qty(d.OrderQty, null) / @UomFmt.Qty(d.CompletedQty, null)
+                    <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));"> (@((int)d.ProgressPct)%)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Status"]</div>
                 <div>
-                    @{ var stc = d.Status switch { "In Progress"=>"ok","Released"=>"info","Draft"=>"warn",_=>"dim" }; }
+                    @{ var stc = d.Status switch { "In Progress"=>"ok","Released"=>"info","Draft"=>"warn","Cancelled"=>"bad",_=>"dim" }; }
                     <span class="pill @stc">@StatusText(d.Status)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Due"]</div>
-                <div>@(d.DueDate?.ToString("yyyy-MM-dd") ?? "—")</div>
+                <div>@(d.DueDate?.ToString(DateFmt.Date) ?? "—")</div>
                 <div class="ames-detail-label">@L["PP.Calendar.Detail.DDay"]</div>
                 <div>
                     @{ var dd = d.DaysToDue; var ddc = dd is null?"dim":dd<0?"bad":dd<=3?"warn":"ok"; }
@@ -288,7 +295,14 @@
                 </div>
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@L["PP.Calendar.Btn.Reschedule"]" Icon="event" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@OpenReschedule" class="ames-rz-btn" />
+                @if (_canEdit && WoStatusRules.IsFinished(d.Status))
+                {
+                    <span class="dim" style="font-size:calc(12px + var(--ames-fs-bump)); margin-right:auto;">@L["PP.Calendar.Hint.FinishedNoReschedule"]</span>
+                }
+                else if (_canEdit)
+                {
+                    <RadzenButton Text="@L["PP.Calendar.Btn.Reschedule"]" Icon="event" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@OpenReschedule" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["PP.Calendar.Btn.WorkOrder"]" Icon="list" ButtonStyle="ButtonStyle.Info" Size="ButtonSize.Small" Click='() => Nav.NavigateTo("/pp/work-order")' class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="() => _showDetail = false" class="ames-rz-btn" />
             </RadzenStack>
@@ -302,12 +316,12 @@
     <div class="ames-modal-bg">
         <div class="ames-modal" style="max-width:360px;">
             <div class="ames-modal-h">@L["PP.Calendar.Modal.Reschedule"]</div>
-            <div style="font-size:14px;color:#94a3b8;margin-bottom:12px;line-height:1.8;">
+            <div style="font-size:14px;color:var(--ames-tx-slate-400);margin-bottom:12px;line-height:1.8;">
                 <div>@L["PP.Calendar.Lbl.WoNo"] <span class="code">@_detail.WoNumber</span></div>
-                <div>@L["PP.Calendar.Lbl.CurrentDue"] <span class="dim">@(_detail.DueDate?.ToString("yyyy-MM-dd") ?? "—")</span></div>
+                <div>@L["PP.Calendar.Lbl.CurrentDue"] <span class="dim">@(_detail.DueDate?.ToString(DateFmt.Date) ?? "—")</span></div>
             </div>
             <RadzenLabel Text="@L["PP.Calendar.Lbl.NewDue"]" />
-            <RadzenDatePicker TValue="DateTime" @bind-Value="_reschedDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_reschedDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             <RadzenLabel Text="@L["PP.Calendar.Lbl.Pin"]" style="margin-top:8px;" />
             <input type="password" class="ames-input" placeholder="@L["PP.Calendar.Ph.Pin"]" maxlength="6"
                    @bind="_pinInput" @bind:event="oninput" autocomplete="off" />
@@ -324,7 +338,12 @@
 }
 
 @code {
-    const string DevPin = "1234";
+    // 납기 변경은 로그인한 본인의 PIN(SYS_UserProfile.PinHash)으로 다시 확인한다.
+    // 4자리 PIN 은 무차별 대입에 약하므로 틀린 횟수를 로그인 실패와 같은 계정 카운터(FailedLoginCount)에 센다 —
+    // 5회면 계정이 LOCKED 가 되고 SYS-001 에서 Admin 이 풀어야 한다(화면을 새로 열어도 초기화되지 않는다, 10-07).
+    string _userName = "";
+    string _userId   = "";
+    string _actor    = "system";
 
     List<WorkOrderDto> _all = [];
     Dictionary<DateTime, List<WorkOrderDto>> _byDue = [];
@@ -333,10 +352,10 @@
     string? _err;
     List<MasterDataRepository.CodeItemRow> _routingItems = new();
 
-    int _calYear  = DateTime.Today.Year;
-    int _calMonth = DateTime.Today.Month;
+    int _calYear  = DbClock.Today.Year;
+    int _calMonth = DbClock.Today.Month;
 
-    DateTime _weekStart = GetSunday(DateTime.Today);
+    DateTime _weekStart = GetSunday(DbClock.Today);
 
     bool       _showDay;
     DateTime?  _dayDate;
@@ -374,6 +393,7 @@
         new() { Value = "Released",    Text = StatusText("Released") },
         new() { Value = "In Progress", Text = StatusText("In Progress") },
         new() { Value = "Closed",      Text = StatusText("Closed") },
+        new() { Value = "Cancelled",   Text = StatusText("Cancelled") },
     };
 
     // WO 상태 코드 → 다국어 라벨 (값은 DB 코드 유지)
@@ -383,6 +403,7 @@
         "Released"    => L["PP.Calendar.Status.Released"].Value,
         "In Progress" => L["PP.Calendar.Status.InProgress"].Value,
         "Closed"      => L["PP.Calendar.Status.Closed"].Value,
+        "Cancelled"   => L["PP.Calendar.Status.Cancelled"].Value,
         _             => s ?? ""
     };
 
@@ -395,8 +416,21 @@
         <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
     </div>;
 
-    protected override void OnInitialized()
+    // 권한 키(SYS_Screen.HRef) — MD·SYS 화면과 같은 규칙: R = 화면 조회, E = 납기 변경
+    const string Href = "pp/calendar";
+    bool _canEdit;
+
+    protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        var user = (await AuthPrvd.GetAuthenticationStateAsync()).User;
+        _userName = user.Identity?.Name ?? "";
+        _userId   = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+        _actor    = AMES.Web.Services.ActorCode.Of(user, "system");
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
         Reload();
     }
@@ -437,9 +471,9 @@
 
     void GoToday()
     {
-        _calYear   = DateTime.Today.Year;
-        _calMonth  = DateTime.Today.Month;
-        _weekStart = GetSunday(DateTime.Today);
+        _calYear   = DbClock.Today.Year;
+        _calMonth  = DbClock.Today.Month;
+        _weekStart = GetSunday(DbClock.Today);
     }
 
     static DateTime GetSunday(DateTime d)
@@ -464,7 +498,8 @@
 
     void OpenReschedule()
     {
-        _reschedDate    = _detail?.DueDate ?? DateTime.Today.AddDays(1);
+        if (!_canEdit || WoStatusRules.IsFinished(_detail?.Status)) return;
+        _reschedDate    = _detail?.DueDate ?? DbClock.Today.AddDays(1);
         _pinInput       = "";
         _pinError       = "";
         _showReschedule = true;
@@ -472,11 +507,34 @@
 
     void ConfirmReschedule()
     {
-        if (_pinInput != DevPin) { _pinError = L["PP.Calendar.Err.WrongPin"]; return; }
+        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
         if (_detail is null) return;
+        string? pinHash;
         try
         {
-            Wos.UpdateDueDate(_detail.WoId, _reschedDate);
+            var (status, _) = AuthRepo.GetProfileStatus(_userId);
+            if (string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase)) { _pinError = L["PP.Calendar.Err.PinLocked"]; return; }
+            pinHash = AuthRepo.GetPinHashByUserName(_userName);
+        }
+        catch (Exception ex) { _pinError = string.Format(L["PP.Calendar.Err.Reschedule"].Value, ex.Message); return; }
+        if (string.IsNullOrEmpty(pinHash)) { _pinError = L["PP.Calendar.Err.NoPin"]; return; }
+        if (!AMES.Data.Security.PinHasher.Verify(_pinInput, pinHash))
+        {
+            _pinInput = "";
+            bool locked;
+            try { locked = AuthRepo.IncrementFailedCount(_userId); }
+            catch (Exception ex) { _pinError = string.Format(L["PP.Calendar.Err.Reschedule"].Value, ex.Message); return; }
+            Audit.Log("PP-CAL", "PIN_FAIL", "PP_WorkOrder", _detail.WoNumber, null, new { Locked = locked });
+            _pinError = locked ? L["PP.Calendar.Err.PinLocked"] : L["PP.Calendar.Err.WrongPin"];
+            return;
+        }
+        try
+        {
+            // 대상이 없거나(다른 화면에서 삭제) 그사이 끝난 WO 면 바뀐 것이 없다 — 성공처럼 닫지 않고 알린다
+            var res = Wos.UpdateDueDate(_detail.WoId, _reschedDate, _actor);
+            if (res == WorkOrderRepository.DueDateResult.Finished) { _pinError = L["PP.Calendar.Err.Finished"]; return; }
+            if (res != WorkOrderRepository.DueDateResult.Updated) { _pinError = L["PP.Calendar.Err.NotChanged"]; return; }
+            Audit.Updated("PP-CAL", "PP_WorkOrder", _detail.WoNumber, new { _detail.DueDate, _detail.ProdDeadline }, new { DueDate = _reschedDate });
             _showReschedule = false;
             _showDetail     = false;
             Reload();
@@ -512,7 +570,7 @@
             0     => L["PP.Calendar.DdTxt.DDay"].Value,
             { } v => string.Format(L["PP.Calendar.DdTxt.DaysTo"].Value, v)
         };
-        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.RouteLines ?? "—"} | {w.RoutingType ?? "INJ"}\n{StatusText(w.Status)} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{w.OrderQty:N0} {L["PP.Calendar.WoTooltip.Done"]}:{w.CompletedQty:N0} ({(int)w.ProgressPct}%)";
+        return $"{w.WoNumber} | {w.ItemName ?? w.ItemNo}\n{L["PP.Calendar.WoTooltip.Line"]}: {w.RouteLines ?? "—"} | {w.RoutingType ?? "INJ"}\n{StatusText(w.Status)} | {ddStr}\n{L["PP.Calendar.WoTooltip.Order"]}:{UomFmt.Qty(w.OrderQty, null)} {L["PP.Calendar.WoTooltip.Done"]}:{UomFmt.Qty(w.CompletedQty, null)} ({(int)w.ProgressPct}%)";
     }
 
     string DdTxt(int? days) => days switch

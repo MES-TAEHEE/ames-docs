@@ -12,6 +12,8 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
+@inject UomFormat UomFmt
 
 <PageTitle>MD-026 @L["MD.SparePart.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-026" TitleKey="MD.SparePart.Title" />
@@ -48,7 +50,9 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.SparePart.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCategory" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownCategory" @bind-Value="_fCat" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+            <RadzenDropDown AllowFiltering="true" Name="DropDownCategory" @bind-Value="_fCat" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:230px;" />
+            <RadzenLabel Text="@L["Col.ApplicableEquip"]" Component="DropDownEquip" />
+            <RadzenDropDown Name="DropDownEquip" @bind-Value="_fEquip" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:90px;" />
 
@@ -61,13 +65,14 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.SparePartMasterRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.SparePart.Empty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.SparePart.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="PartNo" Title="@L["Col.PartNo"]" TextAlign="TextAlign.Center" Width="110px">
-                <Template Context="r"><span class="code">@r.PartNo</span></Template>
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="PartName" Title="@L["Col.Name"]">
-                <Template Context="r">@(r.PartName ?? "—")</Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="SparePartNo" Title="@L["Col.SparePartNo"]" TextAlign="TextAlign.Center" Width="160px">
+                <Template Context="r"><span class="code">@r.SparePartNo</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="Category" Title="@L["Col.Category"]" Width="140px">
                 <Template Context="r">
@@ -80,23 +85,65 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="70px">
-                <Template Context="r"><span class="code dim">@(r.UOM ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ApplicableEquip" Title="@L["Col.ApplicableEquip"]" Width="120px">
+                <Template Context="r">
+                    @{ var ei = _equipItems.FirstOrDefault(x => x.CodeValue == r.ApplicableEquip); }
+                    @if (!string.IsNullOrEmpty(r.ApplicableEquip))
+                    {
+                        <span class="code">@r.ApplicableEquip</span>
+                        @if (ei != null) { <span class="dim" style="font-size:.8em;margin-left:4px;">@MasterDataRepository.LocalName(ei)</span> }
+                    }
+                    else { <span class="dim">—</span> }
+                </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="PartNo" Title="@L["Col.PartNo"]" TextAlign="TextAlign.Center" Width="120px">
+                <Template Context="r"><span class="code">@r.PartNo</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="PartName" Title="@L["Col.Name"]">
+                <Template Context="r">@(r.PartName ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
+                <Template Context="r"><span class="code dim">@(UomFmt.Sym(r.UOM) ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.UnitCost?.ToString("N2") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r">@(r.SafetyStock?.ToString() ?? "—")</Template>
+            @* 목록은 이미지 유무만 표시(MD-005 BOP 의 QC 열과 같은 체크 아이콘) — 이미지 자체는 수정 모달에서 본다 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="HasImage" Title="@L["Col.Image"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r">
+                    @if (r.HasImage)
+                    {
+                        <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" />
+                    }
+                    else
+                    {
+                        <span class="dim">—</span>
+                    }
+                </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderPoint" Title="@L["Col.Reorder"]" TextAlign="TextAlign.Right" Width="90px">
-                <Template Context="r">@(r.ReorderPoint?.ToString() ?? "—")</Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ZoneCode" Title="@L["Col.Zone"]" TextAlign="TextAlign.Center" Width="80px">
+                <Template Context="r"><span class="pill">@CodeLabel(_zoneItems, r.ZoneCode)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderQty" Title="@L["Col.ReorderQty"]" TextAlign="TextAlign.Right" Width="120px">
-                <Template Context="r">@(r.ReorderQty?.ToString() ?? "—")</Template>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="Slot" Title="@L["Col.Slot"]" TextAlign="TextAlign.Center" Width="100px">
+                <Template Context="r"><span class="dim" title="@r.ExtraLocation">@CodeLabel(_slotItems, r.Slot)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="OnHandQty" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="140px">
+                <Template Context="r"><b>@UomFmt.Qty(r.OnHandQty, r.UOM)</b></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="SafetyStock" Title="@L["Col.Safety"]" TextAlign="TextAlign.Right" Width="120px">
+                <Template Context="r">@UomFmt.Qty(r.SafetyStock, r.UOM)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderPoint" Title="@L["Col.Reorder"]" TextAlign="TextAlign.Right" Width="120px">
+                <Template Context="r">@UomFmt.Qty(r.ReorderPoint, r.UOM)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ReorderQty" Title="@L["Col.ReorderQty"]" TextAlign="TextAlign.Right" Width="170px">
+                <Template Context="r">@UomFmt.Qty(r.ReorderQty, r.UOM)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="210px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="Maker" Title="@L["Col.Maker"]" Width="140px">
+                <Template Context="r">@(string.IsNullOrEmpty(r.Maker) ? "—" : r.Maker)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="SupplierID" Title="@L["Col.Supplier"]" Width="150px">
                 <Template Context="r">
@@ -108,9 +155,6 @@
                     }
                     else { <span class="dim">—</span> }
                 </Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" Width="110px">
-                <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.SparePartMasterRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="90px">
                 <Template Context="r">
@@ -128,37 +172,78 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.SparePart.Title"] — @L["Modal.Create"]</div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MD.SparePart.Hint.AutoNo"]</div>
 
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text="@L["Col.PartNo"]" class="ames-rz-modal-label" Component="CreateTextBoxPartNo" />
-                <RadzenTextBox Name="CreateTextBoxPartNo" @bind-Value="_f.PartNo" Placeholder="SP-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            @* 예비품번호는 분류·적용 설비로 채번되므로 그 둘을 먼저 고른다 — 순서가 DB 컬럼 순서와 같다 *@
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.SparePartNo"]" Component="CreateTextBoxSparePartNo" />
+                    <RadzenTextBox Name="CreateTextBoxSparePartNo" Value="@_previewNo" Disabled="true" Placeholder="@L["MD.SparePart.Ph.AutoNo"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@($"{L["Col.Category"]} *")' />
+                    <RadzenDropDown @bind-Value="_f.Category" Change="@(_ => RefreshPreview())" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text='@($"{L["Col.ApplicableEquip"]} *")' />
+                    <RadzenDropDown @bind-Value="_f.ApplicableEquip" Change="@(_ => RefreshPreview())" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text='@($"{L["Col.PartNo"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxPartNo" />
+                <RadzenTextBox Name="CreateTextBoxPartNo" @bind-Value="_f.PartNo" MaxLength="20" Placeholder="SP-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.Name"]" class="ames-rz-modal-label" Component="CreateTextBoxPartName" />
-                <RadzenTextBox Name="CreateTextBoxPartName" @bind-Value="_f.PartName" Placeholder='@L["MD.SparePart.Ph.PartName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxPartName" @bind-Value="_f.PartName" MaxLength="60" Placeholder='@L["MD.SparePart.Ph.PartName"]' InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Category"]" />
-                    <RadzenDropDown @bind-Value="_f.Category" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Uom"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOM" Data="UomOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.UnitPrice"]" />
                     <RadzenNumeric TValue="decimal?" @bind-Value="_f.UnitCost" Min="0m" Step="0.01" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.OnHand"]" />
+                    <RadzenNumeric TValue="int" @bind-Value="_f.OnHandQty" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Safety"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.SafetyStock" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
+            </RadzenRow>
+            @* 현재고는 등록 시 초기 재고(IN 이력)로만 정하고 이후 조정은 PDA 예비품 Adjust 에서 한다 — 화면을 연 시점 값으로 차이를 내면 그사이 PDA 입출고를 덮는다 *@
+            <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
+
+            @ImageBlock
+
+            @* 보관 구역·칸 — 공통코드 MNT_ZONE · MNT_SLOT (DB 컬럼 순서: 이미지 다음) *@
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Zone"]" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ZoneCode" Change="@(_ => OnZoneChanged())" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Slot"]" />
+                    <RadzenDropDown AllowClear="@(!IsExtraZone)" Disabled="@IsExtraZone" @bind-Value="_f.Slot" Data="@SlotOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                @* 구역이 SP_EXTRA 일 때만 — 칸은 EX 로 고정되고 실제 위치를 글로 적는다 *@
+                @if (IsExtraZone)
+                {
+                    <RadzenColumn Size="4">
+                        <RadzenLabel Text="@L["MD.SparePart.Lbl.ExtraLocation"]" Component="CreateTextBoxExtraLocation" />
+                        <RadzenTextBox Name="CreateTextBoxExtraLocation" @bind-Value="_f.ExtraLocation" MaxLength="60" Placeholder="@L["MD.SparePart.Ph.ExtraLocation"]" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                }
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -173,20 +258,17 @@
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.LeadDays"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.LeadTimeDays" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Maker"]" />
+                    <RadzenTextBox @bind-Value="_f.Maker" MaxLength="100" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Supplier"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.SupplierID" Data="VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.StorageLoc"]" />
-                    <RadzenTextBox @bind-Value="_f.StorageLoc" Placeholder="A-01-01" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -213,33 +295,67 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.SparePart.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.PartNo</span></div>
+            <div class="ames-modal-h">@L["MD.SparePart.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.SparePartNo · @_sel.PartNo</span></div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.Name"]" class="ames-rz-modal-label" Component="EditTextBoxPartName" />
-                <RadzenTextBox Name="EditTextBoxPartName" @bind-Value="_f.PartName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxPartName" @bind-Value="_f.PartName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Category"]" />
-                    <RadzenDropDown @bind-Value="_f.Category" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    @* 분류·적용 설비는 예비품번호에 들어간 값이라 등록 후 바꾸지 않는다(저장도 하지 않음) *@
+                    <RadzenDropDown @bind-Value="_f.Category" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" title="@L["MD.SparePart.Hint.CodeLocked"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.ApplicableEquip"]" />
+                    <RadzenDropDown @bind-Value="_f.ApplicableEquip" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" title="@L["MD.SparePart.Hint.CodeLocked"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Uom"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOM" Data="UomOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
+            <div class="dim" style="font-size:.78em;margin-top:2px;">ⓘ @L["MD.SparePart.Hint.CodeLocked"]</div>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.UnitPrice"]" />
                     <RadzenNumeric TValue="decimal?" @bind-Value="_f.UnitCost" Min="0m" Step="0.01" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.OnHand"]" />
+                    <RadzenNumeric TValue="int" @bind-Value="_f.OnHandQty" Disabled="true" title="@L["MD.SparePart.Hint.OnHand"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Safety"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.SafetyStock" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
+            </RadzenRow>
+            @* 현재고는 등록 시 초기 재고(IN 이력)로만 정하고 이후 조정은 PDA 예비품 Adjust 에서 한다 — 화면을 연 시점 값으로 차이를 내면 그사이 PDA 입출고를 덮는다 *@
+            <div class="dim" style="font-size:var(--ames-fs-hint);padding:2px 0 0;">@(_modal == "create" ? L["MD.SparePart.Hint.InitStock"] : L["MD.SparePart.Hint.OnHand"])</div>
+
+            @ImageBlock
+
+            @* 보관 구역·칸 — 공통코드 MNT_ZONE · MNT_SLOT (DB 컬럼 순서: 이미지 다음) *@
+            <RadzenRow Gap="8px" Style="margin-top:6px;">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Zone"]" />
+                    <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ZoneCode" Change="@(_ => OnZoneChanged())" Data="@ZoneOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Slot"]" />
+                    <RadzenDropDown AllowClear="@(!IsExtraZone)" Disabled="@IsExtraZone" @bind-Value="_f.Slot" Data="@SlotOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                @* 구역이 SP_EXTRA 일 때만 — 칸은 EX 로 고정되고 실제 위치를 글로 적는다 *@
+                @if (IsExtraZone)
+                {
+                    <RadzenColumn Size="4">
+                        <RadzenLabel Text="@L["MD.SparePart.Lbl.ExtraLocation"]" Component="EditTextBoxExtraLocation" />
+                        <RadzenTextBox Name="EditTextBoxExtraLocation" @bind-Value="_f.ExtraLocation" MaxLength="60" Placeholder="@L["MD.SparePart.Ph.ExtraLocation"]" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    </RadzenColumn>
+                }
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -254,20 +370,17 @@
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.LeadDays"]" />
                     <RadzenNumeric TValue="int?" @bind-Value="_f.LeadTimeDays" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
-                <RadzenColumn Size="6">
+                <RadzenColumn Size="4">
+                    <RadzenLabel Text="@L["Col.Maker"]" />
+                    <RadzenTextBox @bind-Value="_f.Maker" MaxLength="100" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.Supplier"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.SupplierID" Data="VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
-
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.StorageLoc"]" />
-                    <RadzenTextBox @bind-Value="_f.StorageLoc" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -301,8 +414,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.SparePartMasterRow> _allRows = new();
     List<MasterDataRepository.SparePartMasterRow> _rows    = new();
     List<MasterDataRepository.UomRow>    _uomList = new();
@@ -320,8 +434,27 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
-    List<MasterDataRepository.CodeItemRow> _categoryItems = new();
+    List<MasterDataRepository.CodeItemRow> _categoryItems = new();   // 공통코드 SPAREPARTS_CATEGORY (A~K)
     IEnumerable<DropDownItem> CategoryOptions => _categoryItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    List<MasterDataRepository.CodeItemRow> _equipItems = new();      // 공통코드 SPAREPARTS_EQUIP (1~9)
+    IEnumerable<DropDownItem> EquipOptions => _equipItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    List<MasterDataRepository.CodeItemRow> _zoneItems = new();       // 공통코드 MNT_ZONE (보관 구역)
+    List<MasterDataRepository.CodeItemRow> _slotItems = new();       // 공통코드 MNT_SLOT (보관 칸)
+    // 구역 SP_EXTRA ↔ 칸 EX ↔ 자유 입력 위치 (규칙 정본: MasterDataRepository.NormalizeSpareLocation)
+    bool IsExtraZone => string.Equals(_f.ZoneCode, MasterDataRepository.SpareZoneExtra, StringComparison.OrdinalIgnoreCase);
+    void OnZoneChanged()
+    {
+        if (IsExtraZone) { _f.Slot = MasterDataRepository.SpareSlotExtra; return; }
+        if (_f.Slot == MasterDataRepository.SpareSlotExtra) _f.Slot = "";
+        _f.ExtraLocation = "";
+    }
+
+    IEnumerable<DropDownItem> ZoneOptions => _zoneItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    IEnumerable<DropDownItem> SlotOptions => _slotItems.Where(c => c.UseFlag && (IsExtraZone || c.CodeValue != MasterDataRepository.SpareSlotExtra)).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
+    static string CodeLabel(List<MasterDataRepository.CodeItemRow> codes, string? value)
+        => string.IsNullOrEmpty(value) ? "—"
+         : codes.FirstOrDefault(c => c.CodeValue == value) is { } ci ? MasterDataRepository.LocalName(ci) : value;
+    string? _fEquip;
     List<MasterDataRepository.CodeItemRow> _activeFlagItems = new();
     IEnumerable<DropDownItem> ActiveFilterOptions =>
         _activeFlagItems.Where(a => a.UseFlag).Select(a => new DropDownItem { Value = a.CodeValue ?? "", Text = MasterDataRepository.LocalName(a) });
@@ -332,13 +465,16 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/re/spare-part");
         try { _uomList = MD.ListUoms().OrderBy(u => u.UOMCode).ToList(); } catch { }
         try { _vendors = MD.ListVendors(); } catch { }
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         try { _categoryItems = MD.ListCodeItems("SPAREPARTS_CATEGORY"); } catch { }
+        try { _equipItems    = MD.ListCodeItems("SPAREPARTS_EQUIP"); } catch { }
+        try { _zoneItems     = MD.ListCodeItems("MNT_ZONE"); } catch { }
+        try { _slotItems     = MD.ListCodeItems("MNT_SLOT"); } catch { }
         Reload();
     }
 
@@ -368,10 +504,13 @@
         _rows = _allRows;
         if (!string.IsNullOrWhiteSpace(_fSearch))
             _rows = _rows.Where(r =>
+                r.SparePartNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
                 r.PartNo.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
                 (r.PartName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)).ToList();
         if (!string.IsNullOrWhiteSpace(_fCat))
             _rows = _rows.Where(r => r.Category == _fCat).ToList();
+        if (!string.IsNullOrWhiteSpace(_fEquip))
+            _rows = _rows.Where(r => r.ApplicableEquip == _fEquip).ToList();
         if (_fActive == "ACTIVE")   _rows = _rows.Where(r => r.ActiveFlag).ToList();
         if (_fActive == "INACTIVE") _rows = _rows.Where(r => !r.ActiveFlag).ToList();
     }
@@ -380,12 +519,14 @@
 
     void OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") ApplyFilter(); }
 
+    // 현재고 < 안전재고 인 행은 붉게 (.ames-row-low) — MNT-008 과 같은 규칙
     void RowRender(RowRenderEventArgs<MasterDataRepository.SparePartMasterRow> args)
     {
+        var cls = "ames-row-link" + (args.Data is { } d && d.OnHandQty < (d.SafetyStock ?? 0) ? " ames-row-low" : "");
         if (args.Attributes.TryGetValue("class", out var existing))
-            args.Attributes["class"] = existing + " ames-row-link";
+            args.Attributes["class"] = existing + " " + cls;
         else
-            args.Attributes["class"] = "ames-row-link";
+            args.Attributes["class"] = cls;
     }
 
     void OnRowClick(DataGridRowMouseEventArgs<MasterDataRepository.SparePartMasterRow> args)
@@ -393,7 +534,16 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new(); _previewNo = ""; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+
+    // 등록 모달의 예비품번호 미리보기 — 분류·적용 설비가 모두 정해지면 다음 번호를 읽어 보인다(확정은 저장 시 트랜잭션 안에서)
+    string _previewNo = "";
+    void RefreshPreview()
+    {
+        _previewNo = "";
+        if (string.IsNullOrEmpty(_f.Category) || string.IsNullOrEmpty(_f.ApplicableEquip)) return;
+        try { _previewNo = MD.NextSparePartNo(_f.Category, _f.ApplicableEquip); } catch { }
+    }
 
     void OpenEdit(MasterDataRepository.SparePartMasterRow r)
     {
@@ -401,18 +551,27 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
+            PartNo = r.PartNo ?? "",
             PartName     = r.PartName     ?? "",
             Category     = r.Category     ?? "",
+            ApplicableEquip = r.ApplicableEquip ?? "",
+            OnHandQty    = r.OnHandQty,
             UOM          = r.UOM          ?? "",
             UnitCost     = r.UnitCost,
+            Image        = r.HasImage ? LoadImage(r.SparePartNo) : null,
+            ImageChanged = false,
             SafetyStock  = r.SafetyStock,
             ReorderPoint = r.ReorderPoint,
             ReorderQty   = r.ReorderQty,
             LeadTimeDays = r.LeadTimeDays,
             SupplierID   = r.SupplierID   ?? "",
-            StorageLoc   = r.StorageLoc   ?? "",
+            ZoneCode     = r.ZoneCode     ?? "",
+            Slot         = r.Slot         ?? "",
+            ExtraLocation = r.ExtraLocation ?? "",
+            Maker        = r.Maker        ?? "",
             ActiveFlag   = r.ActiveFlag,
         };
+        _origImageSize = _f.Image?.Length;
         _modal = "edit";
     }
 
@@ -423,35 +582,55 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
+        if (string.IsNullOrWhiteSpace(_f.Category))        { _modalErr = L["MD.SparePart.Err.CategoryRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.ApplicableEquip)) { _modalErr = L["MD.SparePart.Err.EquipRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.PartNo)) { _modalErr = L["Err.PartNoRequired"]; return; }
+        if (_f.OnHandQty < 0) { _modalErr = L["MD.SparePart.Err.OnHandInvalid"]; return; }
         var no = _f.PartNo.Trim();
         if (MD.SparePartExists(no)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], no); return; }
         _busy = true;
         try
         {
-            MD.InsertSparePart(no, NE(_f.PartName), NE(_f.Category),
+            // 채번·등록·초기 재고 입고(IN 이력)를 저장소가 한 트랜잭션으로 — 중간에 실패하면 아무것도 남지 않는다
+            var spNo = MD.InsertSparePart(no, NE(_f.PartName), NE(_f.Category), NE(_f.ApplicableEquip),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
-                NE(_f.SupplierID), NE(_f.StorageLoc), _f.ActiveFlag, _actor);
+                NE(_f.SupplierID), _f.ActiveFlag, _actor, _f.Image, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker), NE(_f.ExtraLocation),
+                _f.OnHandQty, L["MD.SparePart.Note.InitStock"].Value);
+            Audit.Created("MD-026", "MD_SparePart", spNo, AuditLogger.Patch(_f, null, "ImageChanged"));
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{no} {L["Msg.Created"]}", false);
+            ShowMsg(string.Format(L["MD.SparePart.Ok.CreatedNo"].Value, no, spNo), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
 
+    int? _origImageSize;   // 수정 창을 열 때의 이미지 크기 — 감사 「이전」용(목록 행에는 바이트가 없다)
+    static string? ImageNote(int? bytes) => bytes is null ? null : $"({bytes} bytes)";
+
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         _busy = true;
         try
         {
-            MD.UpdateSparePart(_sel.PartNo, NE(_f.PartName), NE(_f.Category),
+            MD.UpdateSparePart(_sel.SparePartNo, NE(_f.PartName),
                 _f.UnitCost, NE(_f.UOM),
                 _f.SafetyStock, _f.ReorderPoint, _f.ReorderQty, _f.LeadTimeDays,
-                NE(_f.SupplierID), NE(_f.StorageLoc), _f.ActiveFlag, _actor);
+                NE(_f.SupplierID), _f.ActiveFlag, _actor, NE(_f.ZoneCode), NE(_f.Slot), NE(_f.Maker), NE(_f.ExtraLocation),
+                _f.ImageChanged, _f.Image);
+            // 감사는 저장이 끝난 뒤 한 번 — 이미지는 바꿨을 때만 전/후 크기를 남기고, 안 바꿨으면 항목에서 뺀다
+            var before = _f.ImageChanged
+                ? AuditLogger.Patch(_sel, new Dictionary<string, string?> { ["Image"] = ImageNote(_origImageSize) }, "HasImage")
+                : AuditLogger.Patch(_sel, null, "HasImage");
+            var after = _f.ImageChanged
+                ? AuditLogger.Patch(_f, new Dictionary<string, string?> { ["Image"] = ImageNote(_f.Image?.Length) }, "ImageChanged")
+                : AuditLogger.Patch(_f, null, "Image", "ImageChanged");
+            Audit.Updated("MD-026", "MD_SparePart", _sel.SparePartNo, before, after);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_sel.PartNo} {L["Msg.Updated"]}", false);
         }
@@ -461,15 +640,18 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var no = _sel.PartNo;
-            MD.DeleteSparePart(_sel.PartNo);
+            MD.DeleteSparePart(_sel.SparePartNo);
+            Audit.Deleted("MD-026", "MD_SparePart", _sel.SparePartNo, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{no} {L["Msg.Deleted"]}", false);
         }
+        catch (InvalidOperationException) { _modalErr = L["MD.SparePart.Err.HasTxn"]; _confirmDelete = false; }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
         finally { _busy = false; }
     }
@@ -482,11 +664,76 @@
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
+    // ── 부품 이미지 ─────────────────────────────────────────────────
+    // 브라우저(canvas)가 320×180 이내로 비율을 지켜 축소한 바이트만 받는다 — 어떤 크기를 올려도 DB 에는 축소본만 들어간다.
+    // 미리보기(저장 전)와 저장 후 표시가 같은 바이트를 쓰므로 보이는 그대로 저장된다. PNG 는 투명을 지키고 나머지는 JPEG.
+    const int  ImgMaxW = 320, ImgMaxH = 180;
+    const long MaxImageBytes = 2 * 1024 * 1024;   // 축소본 상한 — 320×180 PNG 도 수십 KB 라 넉넉하다
+
+    async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        _modalErr = "";
+        var file = e.File;
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) { _modalErr = L["MD.SparePart.Err.ImageType"]; return; }
+        try
+        {
+            var format  = file.ContentType.Equals("image/png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
+            var resized = await file.RequestImageFileAsync(format, ImgMaxW, ImgMaxH);
+            using var ms = new MemoryStream();
+            await using (var s = resized.OpenReadStream(MaxImageBytes)) await s.CopyToAsync(ms);
+            _f.Image = ms.ToArray(); _f.ImageChanged = true;
+        }
+        catch (Exception ex) { _modalErr = string.Format(L["MD.SparePart.Err.ImageFailed"].Value, ex.Message); }
+    }
+
+    void RemoveImage() { _f.Image = null; _f.ImageChanged = true; }
+
+    byte[]? LoadImage(string sparePartNo) { try { return MD.GetSparePartImage(sparePartNo); } catch { return null; } }
+
+    string ImageSizeLabel => _f.Image is { } b ? string.Format(L["MD.SparePart.Lbl.ImageSize"].Value, Math.Max(1, b.Length / 1024)) : "";
+
+    RenderFragment ImageBlock => @<RadzenRow Gap="8px" Style="margin-top:6px;">
+        <RadzenColumn Size="4">
+            <RadzenLabel Text="@L["Col.Image"]" />
+            <div class="ames-img-preview">
+                @if (_f.Image is { Length: > 0 })
+                {
+                    <img src="@ImageBytes.DataUrl(_f.Image)" alt="" />
+                }
+                else
+                {
+                    <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["MD.SparePart.NoImage"]</span>
+                }
+            </div>
+        </RadzenColumn>
+        <RadzenColumn Size="8">
+            <div style="display:flex;flex-direction:column;gap:6px;padding-top:20px;">
+                @* 브라우저 기본 파일 입력은 글자("파일 선택 · 선택된 파일 없음")가 브라우저 언어라 다국어가 안 된다 → 숨기고 label 버튼으로 연다 *@
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <InputFile id="spImgInput" OnChange="OnImageSelected" accept="image/*" style="display:none;" disabled="@_busy" />
+                    <label for="spImgInput" class="rz-button rz-button-sm rz-variant-filled rz-base rz-shade-default ames-rz-btn" style="cursor:pointer;margin:0;text-transform:none;letter-spacing:normal;font-family:inherit;font-weight:inherit;">
+                        <span class="rz-button-box"><i class="rz-button-icon-left rzi">image</i><span class="rz-button-text">@L["MD.SparePart.Btn.SelectImage"]</span></span>
+                    </label>
+                    @if (_f.Image is { Length: > 0 })
+                    {
+                        <span class="dim" style="font-size:var(--ames-fs-hint);">@ImageSizeLabel</span>
+                        <RadzenButton Text="@L["MD.SparePart.Btn.RemoveImage"]" Click="@RemoveImage" Icon="delete" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Disabled="@_busy" class="ames-rz-btn" />
+                    }
+                </div>
+                <div class="dim" style="font-size:var(--ames-fs-hint);">@L["MD.SparePart.Hint.Image"]</div>
+            </div>
+        </RadzenColumn>
+    </RadzenRow>;
+
     class FormModel
     {
+        public byte[]?  Image        { get; set; }
+        public bool     ImageChanged { get; set; }
         public string   PartNo       { get; set; } = "";
         public string   PartName     { get; set; } = "";
         public string   Category     { get; set; } = "";
+        public string   ApplicableEquip { get; set; } = "";
+        public int      OnHandQty    { get; set; }
         public string   UOM          { get; set; } = "";
         public decimal? UnitCost     { get; set; }
         public int?     SafetyStock  { get; set; }
@@ -494,7 +741,10 @@
         public int?     ReorderQty   { get; set; }
         public int?     LeadTimeDays { get; set; }
         public string   SupplierID   { get; set; } = "";
-        public string   StorageLoc   { get; set; } = "";
+        public string   ZoneCode     { get; set; } = "";
+        public string   Slot         { get; set; } = "";
+        public string   ExtraLocation { get; set; } = "";
+        public string   Maker        { get; set; } = "";
         public bool     ActiveFlag   { get; set; } = true;
     }
 }

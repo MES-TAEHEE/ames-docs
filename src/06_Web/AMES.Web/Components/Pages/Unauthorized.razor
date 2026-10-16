@@ -8,7 +8,12 @@
 
 <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;text-align:center;">
     <div style="font-size:3rem;line-height:1;">🔒</div>
-    <div style="font-size:1.5rem;font-weight:700;color:#ef4444;">@L["Err.Unauthorized"]</div>
-    <div style="color:#94a3b8;max-width:400px;">@L["Err.UnauthorizedDesc"]</div>
-    <button class="ames-btn ok" @onclick='() => Nav.NavigateTo("/")'>@L["Btn.GoHome"]</button>
+    <div style="font-size:1.5rem;font-weight:700;color:var(--ames-tx-red-500);">@L["Err.Unauthorized"]</div>
+    <div style="color:var(--ames-tx-slate-400);max-width:400px;">@L["Err.UnauthorizedDesc"]</div>
+    <button class="ames-btn ok" @onclick="GoHome">@L["Btn.GoHome"]</button>
 </div>
+
+@code {
+    // 내부 화면 전용 — 이 경로는 늘 내부 Identity 로 판단된다(외부 쪽 거부는 외부 로그인으로 간다, Program.cs)
+    void GoHome() => Nav.NavigateTo("/");
+}

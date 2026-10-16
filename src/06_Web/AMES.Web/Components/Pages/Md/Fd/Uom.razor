@@ -12,6 +12,8 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
+@inject UomFormat UomFmt
 
 <PageTitle>MD-019 @L["MD.Uom.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-019" TitleKey="MD.Uom.Title" />
@@ -59,10 +61,14 @@
         </RadzenStack>
     </div>
 
-    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.UomRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Uom.Empty"]" Class="ames-rz-grid">
+    <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.UomRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Uom.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCode" Title="@L["Col.UomCode"]" TextAlign="TextAlign.Center" Width="100px">
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCode" Title="@L["Col.UomCode"]" TextAlign="TextAlign.Center" Width="130px">
                 <Template Context="r"><span class="code">@r.UOMCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMName" Title="@L["Col.UomName"]">
@@ -71,19 +77,19 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="UOMCategory" Title="@L["Col.UomCategory"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="r"><span class="dim">@(_unitCategories.FirstOrDefault(x => x.CodeValue == r.UOMCategory) is { } cat ? MasterDataRepository.LocalName(cat) : r.UOMCategory ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="Symbol" Title="@L["Col.UomSymbol"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="Symbol" Title="@L["Col.UomSymbol"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@(r.Symbol ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseFlag" Title="@L["MD.Uom.PillBase"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseFlag" Title="@L["MD.Uom.PillBase"]" TextAlign="TextAlign.Center" Width="80px">
                 <Template Context="r">@if (r.BaseFlag) { <span class="pill ok">@L["MD.Uom.PillBase"]</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseUOM" Title="@L["Col.BaseUom"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="BaseUOM" Title="@L["Col.BaseUom"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.BaseUOM ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ConvFactor" Title="@L["Col.ConvFactor"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ConvFactor" Title="@L["Col.ConvFactor"]" TextAlign="TextAlign.Right" Width="140px">
                 <Template Context="r">@(r.ConvFactor?.ToString("0.########") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="DecimalPrec" Title="@L["Col.Decimals"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="DecimalPrec" Title="@L["Col.Decimals"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.DecimalPrec?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
@@ -105,12 +111,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.UomCode"]" class="ames-rz-modal-label" Component="CreateTextBoxUOMCode" />
-                <RadzenTextBox Name="CreateTextBoxUOMCode" @bind-Value="_f.UOMCode" Placeholder="EA" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxUOMCode" @bind-Value="_f.UOMCode" MaxLength="10" Placeholder="EA" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.UomName"]" class="ames-rz-modal-label" Component="CreateTextBoxUOMName" />
-                <RadzenTextBox Name="CreateTextBoxUOMName" @bind-Value="_f.UOMName" Placeholder="@L["MD.Uom.Ph.UomName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxUOMName" @bind-Value="_f.UOMName" MaxLength="30" Placeholder="@L["MD.Uom.Ph.UomName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -120,7 +126,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomSymbol"]" />
-                    <RadzenTextBox @bind-Value="_f.Symbol" Placeholder="ea" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Symbol" MaxLength="8" Placeholder="ea" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -140,7 +146,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ConvFactor"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ConvFactor" Placeholder="1.0" Step="0.000001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ConvFactor" Placeholder="1.0" Step="0.00000001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Decimals"]" />
@@ -175,7 +181,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.UomName"]" class="ames-rz-modal-label" Component="EditTextBoxUOMName" />
-                <RadzenTextBox Name="EditTextBoxUOMName" @bind-Value="_f.UOMName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxUOMName" @bind-Value="_f.UOMName" MaxLength="30" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -185,7 +191,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomSymbol"]" />
-                    <RadzenTextBox @bind-Value="_f.Symbol" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.Symbol" MaxLength="8" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -205,7 +211,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.ConvFactor"]" />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ConvFactor" Step="0.000001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.ConvFactor" Step="0.00000001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Decimals"]" />
@@ -243,8 +249,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.UomRow> _allRows = new();
     List<MasterDataRepository.UomRow> _rows = new();
     List<MasterDataRepository.CodeItemRow> _unitCategories = new();
@@ -285,7 +292,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/fd/uom");
         try { _unitCategories = MD.ListCodeItems("UNIT_CATEGORY"); } catch { }
@@ -350,6 +357,7 @@
         _sel = r; _modalErr = ""; _confirmDelete = false;
         _f = new()
         {
+            UOMCode = r.UOMCode ?? "",
             UOMName     = r.UOMName     ?? "",
             UOMCategory = r.UOMCategory ?? "",
             BaseFlag    = r.BaseFlag,
@@ -369,6 +377,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.UOMCode)) { _modalErr = L["Err.UomCodeRequired"]; return; }
         var code = _f.UOMCode.Trim().ToUpper();
@@ -379,6 +388,8 @@
             MD.InsertUom(code, NE(_f.UOMName), NE(_f.UOMCategory),
                 _f.BaseFlag, _f.BaseFlag ? null : NE(_f.BaseUOM), _f.ConvFactor,
                 _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
+            Audit.Created("MD-019", "MD_Uom", code, _f);
+            UomFmt.Invalidate();
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Created"]}", false);
         }
@@ -388,6 +399,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         _busy = true;
@@ -396,8 +408,11 @@
             MD.UpdateUom(_sel.UOMCode, NE(_f.UOMName), NE(_f.UOMCategory),
                 _f.BaseFlag, _f.BaseFlag ? null : NE(_f.BaseUOM), _f.ConvFactor,
                 _f.DecimalPrec, NE(_f.Symbol), _f.ActiveFlag, _actor);
+            Audit.Updated("MD-019", "MD_Uom", _sel.UOMCode, _sel, _f);
+            UomFmt.Invalidate();
+            var key = _sel.UOMCode;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
-            ShowMsg($"{_sel.UOMCode} {L["Msg.Updated"]}", false);
+            ShowMsg($"{key} {L["Msg.Updated"]}", false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -405,12 +420,15 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var code = _sel.UOMCode;
             MD.DeleteUom(_sel.UOMCode);
+            Audit.Deleted("MD-019", "MD_Uom", _sel.UOMCode, _sel);
+            UomFmt.Invalidate();
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{code} {L["Msg.Deleted"]}", false);
         }

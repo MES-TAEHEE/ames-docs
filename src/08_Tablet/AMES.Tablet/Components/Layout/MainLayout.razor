@@ -1,4 +1,34 @@
 @inherits LayoutComponentBase
+@inject TabletAuthState Auth
+@inject NavigationManager Nav
 
 <RadzenComponents />
-<main class="tablet-root">@Body</main>
+<main class="tablet-root @(_darkMode ? "theme-dark" : "theme-light")">
+    <div class="layout-actions">
+        <button type="button"
+                class="theme-toggle"
+                role="switch"
+                aria-checked="@_darkMode"
+                aria-label="@(_darkMode ? "Switch to light mode" : "Switch to dark mode")"
+                @onclick="ToggleTheme">
+            <span class="theme-caption">THEME</span>
+            <strong>@(_darkMode ? "DARK" : "LIGHT")</strong>
+        </button>
+        @if (Auth.Session is not null)
+        {
+            <button type="button" class="signout-button" @onclick="SignOut">SIGN OUT</button>
+        }
+    </div>
+    @Body
+</main>
+
+@code {
+    private bool _darkMode;
+    private void ToggleTheme() => _darkMode = !_darkMode;
+
+    private void SignOut()
+    {
+        Auth.SignOut();
+        Nav.NavigateTo("/login", replace: true);
+    }
+}

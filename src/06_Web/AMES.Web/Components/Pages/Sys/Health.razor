@@ -82,7 +82,8 @@
         <div class="ames-card-h">▼ @L["SYS.Health.Res.Title"]</div>
         @if (_srv is not null)
         {
-            <div style="display:flex;flex-direction:column;gap:28px;padding:8px 0;">
+            @* 항목마다 머리줄(이름 좌측 · 용량/퍼센트 우측 끝) + 그 아래 막대 *@
+            <div class="sh-res">
             @foreach (var (lbl, pct, val) in new[] {
                 (L["SYS.Health.Res.Cpu"].Value,  _srv.CpuPct,  $"{_srv.Cores} cores · {Math.Max(_srv.CpuPct, 0)}%"),
                 (L["SYS.Health.Res.Mem"].Value,  _srv.MemPct,  $"{_srv.MemTotalGb} GB · {Math.Max(_srv.MemPct, 0)}%"),
@@ -91,10 +92,12 @@
             })
             {
                 var barStyle = pct >= 90 ? ProgressBarStyle.Danger : pct >= 75 ? ProgressBarStyle.Warning : ProgressBarStyle.Success;
-                <div class="pp-oee-bar-row">
-                    <span class="pp-oee-bar-lbl">@lbl</span>
-                    <RadzenProgressBar Value="@Math.Clamp(pct, 0, 100)" Max="100" ShowValue="false" ProgressBarStyle="@barStyle" Style="flex:1;" />
-                    <span class="pp-oee-bar-val" style="width:auto;white-space:nowrap;text-align:left;">@val</span>
+                <div class="sh-res-row">
+                    <div class="sh-res-head">
+                        <span class="sh-res-lbl">@lbl</span>
+                        <span class="sh-res-val">@val</span>
+                    </div>
+                    <RadzenProgressBar Value="@Math.Clamp(pct, 0, 100)" Max="100" ShowValue="false" ProgressBarStyle="@barStyle" Style="width:100%;" />
                 </div>
             }
         </div>
@@ -189,14 +192,14 @@
 <div class="ames-card">
     <div class="ames-card-h">▼ @L["SYS.Health.Db.Title"]</div>
     <div style="display:flex;align-items:baseline;gap:14px;padding:6px 0 16px">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:56px;color:#fff;letter-spacing:2px;">
+        <div style="font-family:var(--ames-font-display);font-size:56px;color:var(--ames-tx-white);letter-spacing:2px;">
             @_k.DbRowsApprox.ToString("N0")
         </div>
-        <div style="color:rgba(255,255,255,.55);font-size:13px;font-family:'JetBrains Mono',monospace;">
+        <div style="color:var(--ames-tx-white-a55);font-size:13px;font-family:var(--ames-font-mono);">
             @L["SYS.Health.Db.Desc"]
         </div>
     </div>
-    <div style="color:rgba(255,255,255,.5);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px;">
+    <div style="color:var(--ames-tx-white-a50);font-size:calc(11px + var(--ames-fs-bump));font-family:var(--ames-font-mono);letter-spacing:.5px;">
         @L["SYS.Health.Db.Source"]
     </div>
 </div>

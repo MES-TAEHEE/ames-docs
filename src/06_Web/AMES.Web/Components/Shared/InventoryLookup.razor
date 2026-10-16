@@ -1,0 +1,209 @@
+@inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
+<div class="inventory-lookup">
+    <div class="ames-kpis">
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Inventory.Kpi.Parts"]</div><div class="ames-kpi-v">@SummaryRows.Count</div></div>
+        <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Col.Quantity"]</div><div class="ames-kpi-v">@UomFmt.Qty(FilteredInventory.Sum(x => x.Qty), null)</div></div>
+        <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Col.Locations"]</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["Col.Lots"]</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
+    </div>
+
+    <section class="ames-card inventory-summary-panel">
+        <div class="ames-card-h master-list-toolbar">
+            <span>▼ @L["WH.Inventory.List"] · @SummaryRows.Count @L["Lbl.Items"]</span>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                <RadzenTextBox Name="@SearchId" @bind-Value="_query" Placeholder="@L["WH.Inventory.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" AutoComplete="false" @onkeydown="HandleKey" />
+                <RadzenLabel Text="@L["Col.Warehouse"].Value" Component="InventoryWarehouse" />
+                <RadzenDropDown Name="InventoryWarehouse" Value="@_warehouse" Change="ChangeWarehouse" Data="@WarehouseOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllWarehouses"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
+                <RadzenLabel Text="@L["Col.Area"].Value" Component="InventoryArea" />
+                <RadzenDropDown Name="InventoryArea" Value="@_area" Change="ChangeArea" Data="@AreaOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllAreas"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+                <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reset" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+
+        <RadzenDataGrid TItem="SummaryRow" Data="@SummaryRows" AllowPaging="true" PageSize="25"
+                        PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center"
+                        ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" AllowSorting="true" RowSelect="SelectPartRow"
+                        SelectionMode="DataGridSelectionMode.Single" EmptyText="@L["WH.Inventory.Empty"].Value"
+                        PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
+                        Class="ames-rz-grid ames-grid-fixed inventory-summary-grid">
+            <Columns>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="180px" Property="PartNo" Title="@L["Col.ItemNo"].Value" TextAlign="TextAlign.Center" Width="180px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="200px" Property="PartName" Title="@L["Col.ItemName"].Value" />
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="120px" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="120px" Sortable="false"><Template Context="r"><span class="pill ok">@L["WH.Inventory.Available"]</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="100px" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="100px"><Template Context="r"><span class="code dim">@UomFmt.Sym(r.Unit)</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="Qty" Title="@L["Col.TotalQty"].Value" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.Qty, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="LocationCount" Title="@L["Col.Locations"].Value" TextAlign="TextAlign.Right" Width="130px" />
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="90px" Property="LotCount" Title="@L["Col.Lots"].Value" TextAlign="TextAlign.Right" Width="90px" />
+            </Columns>
+        </RadzenDataGrid>
+    </section>
+
+
+    @if (_drawerOpen && SelectedSummary is not null)
+    {
+        <div class="inventory-detail-backdrop" @onclick="CloseDetail">
+            <aside class="inventory-detail-drawer" role="dialog" aria-modal="true" aria-label="Inventory detail" @onclick:stopPropagation="true">
+                <header class="inventory-drawer-header">
+                    <div>
+                        <span>@L["WH.Inventory.Detail"]</span>
+                        <strong>@SelectedSummary.PartNo</strong>
+                        <small>@SelectedSummary.PartName</small>
+                    </div>
+                    <button type="button" @onclick="CloseDetail" aria-label="Close inventory detail"><RadzenIcon Icon="close" /></button>
+                </header>
+
+                <div class="inventory-drawer-summary inventory-detail-summary">
+                    <div><span>@L["Col.Warehouse"]</span><strong>@DetailWarehouses</strong></div>
+                    <div><span>@L["Col.Area"]</span><strong>@DetailAreas</strong></div>
+                </div>
+
+                <div class="inventory-drawer-table-wrap">
+                    <table class="inventory-lookup-table inventory-drawer-table">
+                        <thead><tr><th>@L["Col.Location"]</th><th>@L["Col.Floor"]</th><th>@L["Col.LotNo"]</th><th>@L["Col.Qty"]</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in DetailRows)
+                            {
+                                <tr>
+                                    <td>@row.LocationNo</td>
+                                    <td>@Floor(row.LocationNo)</td>
+                                    <td>@Text(row.LotNo)</td>
+                                    <td class="number">@UomFmt.QtyUnit(row.Qty, row.Unit)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<LocationMapStock> Inventory { get; set; } = [];
+    [Parameter] public string SearchId { get; set; } = "inventory-search";
+
+    private sealed record SummaryRow(string PartNo, string PartName, string Unit, decimal Qty, int LocationCount, int LotCount);
+    private sealed record FilterOption(string Code, string Name);
+
+    private string _query = "";
+    private string _filter = "";
+    private string _warehouse = "";
+    private string _area = "";
+    private string? _selectedPart;
+    private bool _drawerOpen;
+
+    private List<FilterOption> WarehouseOptions => Inventory
+        .Where(x => !string.IsNullOrWhiteSpace(x.WarehouseCode))
+        .GroupBy(x => x.WarehouseCode, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new FilterOption(group.Key, Text(group.First().WarehouseName)))
+        .OrderBy(x => x.Name)
+        .ToList();
+
+    private List<FilterOption> AreaOptions => Inventory
+        .Where(x => string.IsNullOrWhiteSpace(_warehouse) || Same(x.WarehouseCode, _warehouse))
+        .Where(x => !string.IsNullOrWhiteSpace(x.AreaCode))
+        .GroupBy(x => x.AreaCode, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new FilterOption(group.Key, Text(group.First().AreaName)))
+        .OrderBy(x => x.Name)
+        .ToList();
+
+    private List<LocationMapStock> FilteredInventory
+    {
+        get
+        {
+            var rows = Inventory.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(_warehouse)) rows = rows.Where(x => Same(x.WarehouseCode, _warehouse));
+            if (!string.IsNullOrWhiteSpace(_area)) rows = rows.Where(x => Same(x.AreaCode, _area));
+            if (!string.IsNullOrWhiteSpace(_filter)) rows = rows.Where(Matches);
+            return rows.ToList();
+        }
+    }
+
+    private List<SummaryRow> SummaryRows => FilteredInventory
+        .GroupBy(x => new { x.PartNo, PartName = Text(x.PartName), x.Unit })
+        .Select(group => new SummaryRow(
+            group.Key.PartNo,
+            group.Key.PartName,
+            group.Key.Unit,
+            group.Sum(x => x.Qty),
+            group.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+            group.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()))
+        .OrderBy(x => x.PartNo)
+        .ToList();
+
+    private List<LocationMapStock> DetailRows => string.IsNullOrWhiteSpace(_selectedPart)
+        ? []
+        : FilteredInventory.Where(x => x.PartNo == _selectedPart).OrderBy(x => x.LocationNo).ThenBy(x => x.LotNo).ToList();
+    private SummaryRow? SelectedSummary => SummaryRows.FirstOrDefault(x => x.PartNo == _selectedPart);
+    private string DetailWarehouses => ScopeNames(DetailRows.Select(x => (x.WarehouseCode, x.WarehouseName)));
+    private string DetailAreas => ScopeNames(DetailRows.Select(x => (x.AreaCode, x.AreaName)));
+
+    protected override void OnParametersSet()
+    {
+        if (_selectedPart is not null && SummaryRows.All(x => x.PartNo != _selectedPart)) CloseDetail();
+    }
+
+    private readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
+    private int _pageRows = 25;
+
+    private void ChangeWarehouse(object? value)
+    {
+        _warehouse = value?.ToString() ?? "";
+        _area = "";
+        CloseDetail();
+    }
+
+    private void ChangeArea(object? value)
+    {
+        _area = value?.ToString() ?? "";
+        CloseDetail();
+    }
+
+    private void HandleKey(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter") Search();
+    }
+
+    private void Search()
+    {
+        _filter = _query.Trim();
+        CloseDetail();
+    }
+
+    private void Reset()
+    {
+        _query = _filter = _warehouse = _area = "";
+        CloseDetail();
+    }
+
+    private void SelectPartRow(SummaryRow row) => SelectPart(row.PartNo);
+
+    private void SelectPart(string partNo)
+    {
+        _selectedPart = partNo;
+        _drawerOpen = true;
+    }
+
+    private void CloseDetail()
+    {
+        _drawerOpen = false;
+        _selectedPart = null;
+    }
+    private bool Matches(LocationMapStock row) => new[] { row.LocationNo, row.PartNo, row.PartName, row.LotNo }
+        .Any(value => value?.Contains(_filter, StringComparison.OrdinalIgnoreCase) == true);
+    private static bool Same(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+    private static string Floor(string locationNo) => locationNo.Split('-', 2)[0];
+    private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+    private static string ScopeNames(IEnumerable<(string? Code, string? Name)> values)
+    {
+        var names = values
+            .Select(x => string.IsNullOrWhiteSpace(x.Name) ? x.Code : x.Name)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        var text = string.Join(", ", names);
+        return string.IsNullOrWhiteSpace(text) ? "-" : text;
+    }
+}

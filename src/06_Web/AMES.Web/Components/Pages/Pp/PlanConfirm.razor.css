@@ -1,22 +1,3 @@
-/* PP-003 그리드가 화면 남은 세로 영역을 꽉 채우도록.
-   TopBar 60px + .ames-content 상단 12 / 하단 16 패딩 = 88px */
-.pc-page {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 88px);
-    min-height: 360px;
-}
-
-.pc-grid {
-    flex: 1;
-    min-height: 0;
-}
-
-.pc-grid ::deep .rz-data-grid,
-.pc-grid ::deep .rz-datatable {
-    height: 100%;
-}
-
 /* 라인 부하 바 */
 .pc-bar {
     height: 6px;

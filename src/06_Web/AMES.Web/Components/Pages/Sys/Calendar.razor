@@ -13,6 +13,7 @@
 @inject SysRepository Sys
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>SYS-005 @L["SYS.Calendar.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-005" TitleKey="SYS.Calendar.Title" />
@@ -62,9 +63,9 @@
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <span>▼ @L["SYS.Calendar.Tab.List"] · @_byDay.Count @L["Lbl.Days"]</span>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <RadzenDatePicker TValue="DateTime" @bind-Value="_filterFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_filterFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
                 <span class="dim">~</span>
-                <RadzenDatePicker TValue="DateTime" @bind-Value="_filterTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_filterTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:125px;" />
 
                 <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Load" class="ames-rz-btn" />
                 @if (_canEdit)
@@ -74,10 +75,14 @@
             </div>
         </div>
 
-        <RadzenDataGrid TItem="CalendarDaySummary" Data="@DaySummaries.ToList()" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
-                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" AllowSorting="true" RowRender="@CalDayRowRender"
-                        RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })" EmptyText="@L["SYS.Calendar.Empty"]" Class="ames-rz-grid">
+        <RadzenDataGrid @ref="_dayGrid" TItem="CalendarDaySummary" Data="@DaySummaries.ToList()" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" AllowSorting="true" RowRender="@CalDayRowRender"
+                        RowClick="@(args => { if (args.Data is not null) OpenEdit(args.Data.Date, args.Data.Shifts); })" EmptyText="@L["SYS.Calendar.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
             <Columns>
+                @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+                <RadzenDataGridColumn TItem="CalendarDaySummary" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                    <Template Context="row"><span class="dim">@GridRowNo.Of(_dayGrid, row)</span></Template>
+                </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="CalendarDaySummary" Property="Date" Title="@L["SYS.Calendar.Col.Date"]" TextAlign="TextAlign.Center" Width="130px">
                     <Template Context="row"><span class="code">@(row.Date.ToString(DateFmt.DateWeekday))</span></Template>
                 </RadzenDataGridColumn>
@@ -113,7 +118,7 @@
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
             <div style="display:flex;align-items:center;gap:12px;">
                 <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@PrevMonth" class="ames-rz-btn" />
-                <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;">
+                <span style="font-family:var(--ames-font-display);font-size:26px;letter-spacing:2px;color:var(--ames-tx-white);">
                     @string.Format(L["SYS.Calendar.Fmt.YearMonth"].Value, _calYear, _calMonth.ToString("D2"))
                 </span>
                 <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@NextMonth" class="ames-rz-btn" />
@@ -137,7 +142,7 @@
         }
 
         @* Day-of-week header *@
-        <div class="ames-cal-grid">
+        <div class="ames-cal-grid ames-cal-fill" style="--cal-weeks:@rows">
             @foreach (var (label, cls) in new[] { (L["Day.Sun"].Value,"sun"),(L["Day.Mon"].Value,""),(L["Day.Tue"].Value,""),(L["Day.Wed"].Value,""),(L["Day.Thu"].Value,""),(L["Day.Fri"].Value,""),(L["Day.Sat"].Value,"sat") })
             {
                 <div class="ames-cal-head @cls">@label</div>
@@ -159,7 +164,7 @@
                     int  dow     = (int)date.DayOfWeek;   // 0=Sun, 6=Sat
                     bool isSun   = dow == 0;
                     bool isSat   = dow == 6;
-                    bool isToday = date.Date == DateTime.Today;
+                    bool isToday = date.Date == DbClock.Today;
                     bool hasA    = ds?.Any(r => r.ShiftCode == "A") ?? false;
                     bool hasB    = ds?.Any(r => r.ShiftCode == "B") ?? false;
                     bool hasC    = ds?.Any(r => r.ShiftCode == "C") ?? false;
@@ -233,18 +238,18 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
                     <label>@L["Col.From"] *</label>
-                    <RadzenDatePicker TValue="DateTime" @bind-Value="_genFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_genFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <label>@L["SYS.Calendar.Lbl.EndDate"]</label>
-                    <RadzenDatePicker TValue="DateTime" @bind-Value="_genTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_genTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
             </div>
 
             <label style="margin-top:8px;">@L["SYS.Calendar.Lbl.Plant"]</label>
             <RadzenDropDown AllowFiltering="true" @bind-Value="_genPlant" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
-            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">@L["SYS.Calendar.Lbl.ShiftConfig"]</div>
+            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:var(--ames-tx-slate-400);letter-spacing:.05em;">@L["SYS.Calendar.Lbl.ShiftConfig"]</div>
             <table class="ames-table" style="margin-top:4px;">
                 <thead>
                     <tr>
@@ -264,16 +269,16 @@
                             <td><RadzenCheckBox TValue="bool" @bind-Value="_genShifts[i].Active" /></td>
                             <td><span class="ames-cal-sh @ShiftBadgeCls(_genShifts[i].Code, _genShifts[i].Active)">@_genShifts[i].Code</span></td>
                             <td>
-                                <RadzenDatePicker TValue="DateTime?" @bind-Value="_genShifts[i].StartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" Disabled="@(!_genShifts[i].Active)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_genShifts[i].StartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" Disabled="@(!_genShifts[i].Active)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                             </td>
                             <td>
-                                <RadzenDatePicker TValue="DateTime?" @bind-Value="_genShifts[i].EndDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" Disabled="@(!_genShifts[i].Active)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_genShifts[i].EndDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" Disabled="@(!_genShifts[i].Active)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                             </td>
                             <td>
                                 <RadzenNumeric TValue="int" @bind-Value="_genShifts[i].BreakMin" Min="0" Max="120" Disabled="@(!_genShifts[i].Active)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                             </td>
                             <td class="num dim">
-                                @(_genShifts[i].Active ? CalcNet(_genShifts[i].Start, _genShifts[i].End, _genShifts[i].BreakMin).ToString("0.0") : "—")
+                                @(_genShifts[i].Active ? CalcNet(_genShifts[i].Start, _genShifts[i].End, _genShifts[i].BreakMin).ToString("0.00") : "—")
                             </td>
                         </tr>
                     }
@@ -287,7 +292,7 @@
                 </label>
             </div>
 
-            <div style="margin-top:10px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">
+            <div style="margin-top:10px;font-size:.84em;font-weight:600;color:var(--ames-tx-slate-400);letter-spacing:.05em;">
                 @L["SYS.Calendar.Lbl.Holidays"] <span class="dim" style="font-weight:400;">@L["SYS.Calendar.Hint.Holidays"]</span>
                 <RadzenButton Text="@L["Btn.Add"]" Icon="add" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" Click="@AddHoliday" class="ames-rz-btn" Style="margin-left:8px;" />
             </div>
@@ -301,10 +306,10 @@
                             var hidx = hi;
                             <tr>
                                 <td>
-                                    <RadzenDatePicker TValue="DateOnly?" @bind-Value="_genHolidays[hidx].DateD" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_genHolidays[hidx].DateD" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                                 </td>
                                 <td>
-                                    <RadzenTextBox @bind-Value="_genHolidays[hidx].Name" Placeholder="@L["SYS.Calendar.Ph.HolidayName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoComplete="false" />
+                                    <RadzenTextBox @bind-Value="_genHolidays[hidx].Name" MaxLength="@SysRepository.HolidayNameMax" Placeholder="@L["SYS.Calendar.Ph.HolidayName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoComplete="false" />
                                 </td>
                                 <td>
                                     <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="() => _genHolidays.RemoveAt(hidx)" class="ames-rz-btn" />
@@ -351,12 +356,12 @@
                 {
                     <div style="flex:1;">
                         <label>@L["SYS.Calendar.Lbl.HolidayName"]</label>
-                        <RadzenTextBox @bind-Value="_editHolidayName" Placeholder="@L["SYS.Calendar.Ph.HolidayNameInput"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoComplete="false" />
+                        <RadzenTextBox @bind-Value="_editHolidayName" MaxLength="@SysRepository.HolidayNameMax" Placeholder="@L["SYS.Calendar.Ph.HolidayNameInput"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoComplete="false" />
                     </div>
                 }
             </div>
 
-            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:#94a3b8;letter-spacing:.05em;">
+            <div style="margin-top:12px;font-size:.84em;font-weight:600;color:var(--ames-tx-slate-400);letter-spacing:.05em;">
                 @L["SYS.Calendar.Lbl.ShiftConfig"]
                 <span class="dim" style="font-weight:400;margin-left:8px;">@L["SYS.Calendar.Lbl.ShiftNote"]</span>
             </div>
@@ -380,16 +385,16 @@
                             <td><RadzenCheckBox TValue="bool" @bind-Value="_editShifts[i].Active" /></td>
                             <td><span class="ames-cal-sh @ShiftBadgeCls(_editShifts[i].Code, _editShifts[i].Active)">@_editShifts[i].Code</span></td>
                             <td>
-                                <RadzenDatePicker TValue="DateTime?" @bind-Value="_editShifts[i].StartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" Disabled="@timeDis" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_editShifts[i].StartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" Disabled="@timeDis" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                             </td>
                             <td>
-                                <RadzenDatePicker TValue="DateTime?" @bind-Value="_editShifts[i].EndDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" Disabled="@timeDis" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_editShifts[i].EndDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" Disabled="@timeDis" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                             </td>
                             <td>
                                 <RadzenNumeric TValue="int" @bind-Value="_editShifts[i].BreakMin" Min="0" Max="120" Disabled="@timeDis" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                             </td>
                             <td class="num dim">
-                                @(timeDis ? "—" : CalcNet(_editShifts[i].Start, _editShifts[i].End, _editShifts[i].BreakMin).ToString("0.0"))
+                                @(timeDis ? "—" : CalcNet(_editShifts[i].Start, _editShifts[i].End, _editShifts[i].BreakMin).ToString("0.00"))
                             </td>
                         </tr>
                     }
@@ -421,18 +426,19 @@
 
 @code {
     // ── State ────────────────────────────────────────────────────────────
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.CodeItemRow> _dayTypes = new();
     List<MasterDataRepository.CodeItemRow> _plants   = new();
     List<SysRepository.CalendarRow> _rows = new();
     Dictionary<DateTime, List<SysRepository.CalendarRow>> _byDay = new();
     int _days, _work, _wknd, _hol;
 
-    DateTime _filterFrom = DateTime.Today.AddDays(-14);
-    DateTime _filterTo   = DateTime.Today.AddDays(60);
-    int      _calYear    = DateTime.Today.Year;
-    int      _calMonth   = DateTime.Today.Month;
+    DateTime _filterFrom = DbClock.Today.AddDays(-14);
+    DateTime _filterTo   = DbClock.Today.AddDays(60);
+    int      _calYear    = DbClock.Today.Year;
+    int      _calMonth   = DbClock.Today.Month;
 
     string _modal = "";
     bool   _busy, _confirmDelete, _bgMouseDownOnSelf, _isErr;
@@ -448,27 +454,54 @@
     ShiftRow[] _editShifts      = Array.Empty<ShiftRow>();
 
     // ── Generate form ────────────────────────────────────────────────────
-    DateTime      _genFrom         = DateTime.Today;
-    DateTime      _genTo           = DateTime.Today.AddMonths(1).AddDays(-1);
+    DateTime      _genFrom         = DbClock.Today;
+    DateTime      _genTo           = DbClock.Today.AddMonths(1).AddDays(-1);
     string        _genPlant        = "";
     bool          _genSkipExisting = true;
-    ShiftGenRow[] _genShifts       = new[]
+    ShiftGenRow[] _genShifts       = Array.Empty<ShiftGenRow>();
+
+    // 교대 기본 시각 = 공통코드 WORK_SHIFT.Attribute2(실제 생산 시간, 'HHMM-HHMM'). 비었거나 형식이 틀리면 아래 값.
+    // 휴게(분)는 공통코드에 자리가 없어 교대별 기본값으로 둔다(사용자 결정 10-03: A 65 · B 65 · C 0).
+    static readonly (string Code, bool Active, string Start, string End)[] ShiftFallback =
     {
-        new ShiftGenRow("A", true,  "08:00", "16:00", 60),
-        new ShiftGenRow("B", true,  "16:00", "00:00", 60),
-        new ShiftGenRow("C", false, "00:00", "08:00", 60),
+        ("A", true,  "07:30", "16:30"),
+        ("B", true,  "16:30", "01:30"),
+        ("C", false, "02:00", "07:00"),
     };
+    static readonly Dictionary<string, int> DefaultBreakMin = new(StringComparer.OrdinalIgnoreCase) { ["A"] = 65, ["B"] = 65, ["C"] = 0 };
+    Dictionary<string, (string Start, string End)> _shiftTimes = new(StringComparer.OrdinalIgnoreCase);
+
+    static int BreakOf(string code) => DefaultBreakMin.TryGetValue(code, out var m) ? m : 0;
+
+    (string Start, string End) ShiftTime(string code)
+        => _shiftTimes.TryGetValue(code, out var t) ? t : ShiftFallback.Where(f => f.Code == code).Select(f => (f.Start, f.End)).FirstOrDefault();
+
+    void LoadShiftTimes()
+    {
+        _shiftTimes.Clear();
+        try
+        {
+            foreach (var w in MD.ListCodeItems("WORK_SHIFT").Where(w => w.UseFlag && !string.IsNullOrEmpty(w.CodeValue)))
+                if (AMES.Data.Services.ProdCalendar.TryParseWindow(w.Attribute2, out var s, out var e))
+                    _shiftTimes[w.CodeValue!] = (MinToHHmm(s), MinToHHmm(e));
+        }
+        catch { }
+        _genShifts = ShiftFallback.Select(f => { var t = ShiftTime(f.Code); return new ShiftGenRow(f.Code, f.Active, t.Start, t.End, BreakOf(f.Code)); }).ToArray();
+    }
+
+    static string MinToHHmm(int m) => $"{m / 60 % 24:00}:{m % 60:00}";
     List<HolidayEntry> _genHolidays = new();
 
     // ── Init ─────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/calendar");
         try { _dayTypes = MD.ListCodeItems("DAY_TYPE"); } catch { }
         try { _plants = MD.ListCodeItems("PLANT"); } catch { }
+        LoadShiftTimes();
         if (_dayTypes.Count == 0)
             _dayTypes = new()
             {
@@ -517,7 +550,7 @@
 
     void GoToday()
     {
-        _calYear = DateTime.Today.Year; _calMonth = DateTime.Today.Month;
+        _calYear = DbClock.Today.Year; _calMonth = DbClock.Today.Month;
         LoadCalendarMonth();
     }
 
@@ -533,6 +566,7 @@
     {
         _modalErr = ""; _confirmDelete = false;
         _genHolidays.Clear();
+        LoadShiftTimes();   // 열 때마다 WORK_SHIFT 를 다시 읽어 기본값으로 되돌린다
         if (string.IsNullOrEmpty(_genPlant))
             _genPlant = _plants.FirstOrDefault()?.CodeValue ?? "";
         _modal = "create";
@@ -550,9 +584,9 @@
         _editHolidayName = shifts.FirstOrDefault()?.HolidayName ?? "";
         _editShifts = new[]
         {
-            MakeShiftRow("A", "08:00", "16:00", shifts),
-            MakeShiftRow("B", "16:00", "00:00", shifts),
-            MakeShiftRow("C", "00:00", "08:00", shifts),
+            MakeShiftRow("A", shifts),
+            MakeShiftRow("B", shifts),
+            MakeShiftRow("C", shifts),
         };
         _confirmDelete = false; _modalErr = "";
         _modal = "edit";
@@ -575,56 +609,56 @@
     // ── Generate ──────────────────────────────────────────────────────────
     void Generate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (_genFrom > _genTo) { _modalErr = L["SYS.Calendar.Err.DateRange"].Value; return; }
         var active = _genShifts.Where(s => s.Active).ToList();
 
-        var holidays = _genHolidays
-            .Where(h => DateTime.TryParse(h.Date, out _) && !string.IsNullOrEmpty(h.Name))
-            .ToDictionary(h => DateTime.Parse(h.Date).Date, h => h.Name.Trim());
+        var entered = _genHolidays
+            .Where(h => DateTime.TryParse(h.Date, out _) && !string.IsNullOrWhiteSpace(h.Name))
+            .Select(h => (Date: DateTime.Parse(h.Date).Date, Name: h.Name.Trim()))
+            .ToList();
+        // 같은 날짜가 두 번 들어오면 어느 이름을 쓸지 정할 수 없어 저장 전에 막는다(전에는 ToDictionary 예외로 화면이 끊겼다)
+        var dupDates = entered.GroupBy(h => h.Date).Where(g => g.Count() > 1).Select(g => g.Key).OrderBy(d => d).ToList();
+        if (dupDates.Count > 0)
+        {
+            _modalErr = string.Format(L["SYS.Calendar.Err.DuplicateHoliday"].Value, string.Join(", ", dupDates.Select(d => d.ToString(DateFmt.Date))));
+            return;
+        }
+        var tooLong = entered.Where(h => h.Name.Length > SysRepository.HolidayNameMax).Select(h => h.Date).OrderBy(d => d).ToList();
+        if (tooLong.Count > 0)
+        {
+            _modalErr = string.Format(L["SYS.Calendar.Err.HolidayNameLength"].Value, SysRepository.HolidayNameMax, string.Join(", ", tooLong.Select(d => d.ToString(DateFmt.Date))));
+            return;
+        }
+        var holidays = entered.ToDictionary(h => h.Date, h => h.Name);
 
-        int inserted = 0;
+        var days = new List<(DateTime Date, IReadOnlyList<SysRepository.CalendarShiftInput> Rows)>();
+        for (var d = _genFrom.Date; d <= _genTo.Date; d = d.AddDays(1))
+        {
+            string dayType; string? holidayName = null;
+            if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                dayType = "WEEKEND";
+            else if (holidays.TryGetValue(d, out var hname))
+            { dayType = "HOLIDAY"; holidayName = hname; }
+            else
+                dayType = "WORKDAY";
+
+            var rows = dayType is "WORKDAY" && active.Count > 0
+                ? active.Select(shift => new SysRepository.CalendarShiftInput(dayType, holidayName, active.Count, shift.Code,
+                      TimeSpan.TryParse(shift.Start, out var ts) ? ts : null,
+                      TimeSpan.TryParse(shift.End,   out var te) ? te : null,
+                      shift.BreakMin, CalcNet(shift.Start, shift.End, shift.BreakMin), _genPlant)).ToList()
+                : new List<SysRepository.CalendarShiftInput> { new(dayType, holidayName, null, null, null, null, null, null, _genPlant) };
+            days.Add((d, rows));
+        }
+
         _busy = true;
         try
         {
-            for (var d = _genFrom.Date; d <= _genTo.Date; d = d.AddDays(1))
-            {
-                if (_genSkipExisting && Sys.CalendarDateExists(d)) continue;
-
-                string dayType; string? holidayName = null;
-                if (d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-                    dayType = "WEEKEND";
-                else if (holidays.TryGetValue(d, out var hname))
-                { dayType = "HOLIDAY"; holidayName = hname; }
-                else
-                    dayType = "WORKDAY";
-
-                if (dayType is "HOLIDAY" or "WEEKEND")
-                {
-                    Sys.InsertCalendarShift(d, dayType, holidayName,
-                        null, null, null, null, null, null, d.Year, _genPlant, _actor);
-                    inserted++;
-                }
-                else if (active.Count > 0)
-                {
-                    foreach (var shift in active)
-                    {
-                        TimeSpan? start = TimeSpan.TryParse(shift.Start, out var ts) ? ts : null;
-                        TimeSpan? end   = TimeSpan.TryParse(shift.End,   out var te) ? te : null;
-                        decimal   net   = CalcNet(shift.Start, shift.End, shift.BreakMin);
-                        Sys.InsertCalendarShift(d, dayType, holidayName, active.Count,
-                            shift.Code, start, end, shift.BreakMin, net, d.Year, _genPlant, _actor);
-                        inserted++;
-                    }
-                }
-                else
-                {
-                    Sys.InsertCalendarShift(d, dayType, holidayName,
-                        null, null, null, null, null, null, d.Year, _genPlant, _actor);
-                    inserted++;
-                }
-            }
+            var inserted = Sys.GenerateCalendar(days, _genSkipExisting, _actor);
             CloseModal(); Reload();
+            Audit.Log("SYS-005", "CREATE", "SYS_FactoryCalendar", $"{_genFrom:yyyy-MM-dd}~{_genTo:yyyy-MM-dd}", null, new { From = _genFrom.Date, To = _genTo.Date, Plant = _genPlant, SkipExisting = _genSkipExisting, Inserted = inserted });
             ShowMsg(string.Format(L["SYS.Calendar.Ok.Generated"].Value, inserted), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
@@ -634,37 +668,34 @@
     // ── Save Edit ─────────────────────────────────────────────────────────
     void SaveEdit()
     {
+        if (!_canEdit) return;
         if (!_selDate.HasValue) return;
-        _modalErr = ""; _busy = true;
+        _modalErr = "";
+        if (_editDayType == "HOLIDAY" && _editHolidayName.Trim().Length > SysRepository.HolidayNameMax)
+        {
+            _modalErr = string.Format(L["SYS.Calendar.Err.HolidayNameLength"].Value, SysRepository.HolidayNameMax, _selDate.Value.ToString(DateFmt.Date));
+            return;
+        }
+        _busy = true;
         try
         {
             string? actualHoliday = _editDayType == "HOLIDAY"
                 ? (string.IsNullOrWhiteSpace(_editHolidayName) ? null : _editHolidayName.Trim())
                 : null;
 
-            Sys.DeleteCalendarDate(_selDate.Value);
-
+            var date   = _selDate.Value;
             var active = _editShifts.Where(s => s.Active).ToList();
-            if (active.Count > 0)
-            {
-                foreach (var shift in active)
-                {
-                    TimeSpan? start = TimeSpan.TryParse(shift.Start, out var ts) ? ts : null;
-                    TimeSpan? end   = TimeSpan.TryParse(shift.End,   out var te) ? te : null;
-                    decimal   net   = CalcNet(shift.Start, shift.End, shift.BreakMin);
-                    Sys.InsertCalendarShift(_selDate.Value, _editDayType, actualHoliday,
-                        active.Count, shift.Code, start, end, shift.BreakMin, net,
-                        _selDate.Value.Year, _selPlant, _actor);
-                }
-            }
-            else
-            {
-                Sys.InsertCalendarShift(_selDate.Value, _editDayType, actualHoliday,
-                    null, null, null, null, null, null,
-                    _selDate.Value.Year, _selPlant, _actor);
-            }
+            var rows   = active.Count > 0
+                ? active.Select(shift => new SysRepository.CalendarShiftInput(_editDayType, actualHoliday, active.Count, shift.Code,
+                      TimeSpan.TryParse(shift.Start, out var ts) ? ts : null,
+                      TimeSpan.TryParse(shift.End,   out var te) ? te : null,
+                      shift.BreakMin, CalcNet(shift.Start, shift.End, shift.BreakMin), _selPlant)).ToList()
+                : new List<SysRepository.CalendarShiftInput> { new(_editDayType, actualHoliday, null, null, null, null, null, null, _selPlant) };
+            Sys.ReplaceCalendarDate(date, rows, _actor);
+
+            Audit.Updated("SYS-005", "SYS_FactoryCalendar", date.ToString("yyyy-MM-dd"), null, new { Plant = _selPlant, DayType = _editDayType, HolidayName = actualHoliday, Shifts = active });
             CloseModal(); Reload();
-            ShowMsg(string.Format(L["SYS.Calendar.Ok.Edited"].Value, _selDate.Value.ToString(DateFmt.Date)), false);
+            ShowMsg(string.Format(L["SYS.Calendar.Ok.Edited"].Value, date.ToString(DateFmt.Date)), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -673,6 +704,7 @@
     // ── Save Delete ───────────────────────────────────────────────────────
     void SaveDelete()
     {
+        if (!_canEdit) return;
         if (!_selDate.HasValue) return;
         _busy = true;
         try
@@ -680,6 +712,7 @@
             Sys.DeleteCalendarDate(_selDate.Value);
             var d = _selDate.Value;
             CloseModal(); Reload();
+            Audit.Deleted("SYS-005", "SYS_FactoryCalendar", d.ToString("yyyy-MM-dd"), null);
             ShowMsg(string.Format(L["SYS.Calendar.Ok.Deleted"].Value, d.ToString(DateFmt.Date)), false);
         }
         catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
@@ -695,12 +728,14 @@
         if (!TimeSpan.TryParse(start, out var s) || !TimeSpan.TryParse(end, out var e)) return 0m;
         var diff = e - s;
         if (diff < TimeSpan.Zero) diff += TimeSpan.FromHours(24);
-        return Math.Round((decimal)(diff.TotalHours - breakMin / 60.0), 1);
+        // NetWorkHours decimal(4,2) — 소수 2자리, 반올림은 SQL ROUND·SP_SYS_FactoryCalendar_Fill 과 같게
+        return Math.Round((decimal)(diff.TotalHours - breakMin / 60.0), 2, MidpointRounding.AwayFromZero);
     }
 
-    static ShiftRow MakeShiftRow(string code, string defStart, string defEnd,
-        List<SysRepository.CalendarRow> existing)
+    // 그 날 저장된 교대가 있으면 저장값, 없으면 WORK_SHIFT.Attribute2 시각 + 교대별 기본 휴게
+    ShiftRow MakeShiftRow(string code, List<SysRepository.CalendarRow> existing)
     {
+        var (defStart, defEnd) = ShiftTime(code);
         var found = existing.FirstOrDefault(r => r.ShiftCode == code);
         return found is not null
             ? new ShiftRow
@@ -708,9 +743,9 @@
                 Code = code, Active = true, ExistingId = found.FactoryCalendarId,
                 Start = found.StartTime?.ToString(@"hh\:mm") ?? defStart,
                 End   = found.EndTime?.ToString(@"hh\:mm")   ?? defEnd,
-                BreakMin = found.BreakMinutes ?? 30
+                BreakMin = found.BreakMinutes ?? BreakOf(code)
             }
-            : new ShiftRow { Code = code, Active = false, Start = defStart, End = defEnd, BreakMin = 60 };
+            : new ShiftRow { Code = code, Active = false, Start = defStart, End = defEnd, BreakMin = BreakOf(code) };
     }
 
     string DayTypeName(string? code)
@@ -742,6 +777,8 @@
 
     private IEnumerable<DropDownItem> DayTypeOptions =>
         _dayTypes.Select(d => new DropDownItem { Value = d.CodeValue ?? "", Text = $"[{d.CodeValue}] {MasterDataRepository.LocalName(d)}" });
+
+    RadzenDataGrid<CalendarDaySummary>? _dayGrid;   // No. 열용
 
     private record CalendarDaySummary(
         DateTime Date, string? DayType, string? HolidayName,
@@ -780,12 +817,12 @@
         // Radzen DatePicker(TimeOnly) 바인딩용 어댑터 — 백킹은 "HH:mm" 문자열 유지
         public DateTime? StartDt
         {
-            get => TimeSpan.TryParse(Start, out var t) ? DateTime.Today.Add(t) : (DateTime?)null;
+            get => TimeSpan.TryParse(Start, out var t) ? DbClock.Today.Add(t) : (DateTime?)null;
             set => Start = value.HasValue ? value.Value.ToString("HH:mm") : Start;
         }
         public DateTime? EndDt
         {
-            get => TimeSpan.TryParse(End, out var t) ? DateTime.Today.Add(t) : (DateTime?)null;
+            get => TimeSpan.TryParse(End, out var t) ? DbClock.Today.Add(t) : (DateTime?)null;
             set => End = value.HasValue ? value.Value.ToString("HH:mm") : End;
         }
     }
@@ -802,12 +839,12 @@
 
         public DateTime? StartDt
         {
-            get => TimeSpan.TryParse(Start, out var t) ? DateTime.Today.Add(t) : (DateTime?)null;
+            get => TimeSpan.TryParse(Start, out var t) ? DbClock.Today.Add(t) : (DateTime?)null;
             set => Start = value.HasValue ? value.Value.ToString("HH:mm") : Start;
         }
         public DateTime? EndDt
         {
-            get => TimeSpan.TryParse(End, out var t) ? DateTime.Today.Add(t) : (DateTime?)null;
+            get => TimeSpan.TryParse(End, out var t) ? DbClock.Today.Add(t) : (DateTime?)null;
             set => End = value.HasValue ? value.Value.ToString("HH:mm") : End;
         }
     }

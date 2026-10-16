@@ -3,8 +3,11 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject AMES.Data.Repositories.PpRepository Pp
 @inject AMES.Data.Repositories.MasterDataRepository MD
+@inject AMES.Web.Services.PermissionService PermSvc
+@inject NavigationManager Nav
 @inject DialogService Dialog
 @inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.AuditLogger Audit
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
@@ -12,56 +15,69 @@
 
 <AmesPageHeader Code="PP-002" TitleKey="PP.SupplyPlanImport.Title" />
 
-<div class="spi-page">
+<div class="ames-page-fill">
 @if (!string.IsNullOrEmpty(_msg))
 {
-    <div class="ames-alert @(_isErr ? "bad" : "ok")">@_msg</div>
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat" AllowClose="false">@_msg</RadzenAlert>
 }
 
-<div class="ames-kpis compact">
-    <div class="ames-kpi"><div class="ames-kpi-l">IMPORTED</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">CONFIRMED</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Confirmed")</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">OPEN</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Open")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">TOTAL QTY</div><div class="ames-kpi-v">@_rows.Sum(r => r.OrderQty).ToString("#,0")</div></div>
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Imported"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Selected"]</div><div class="ames-kpi-v">@_selected.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Confirmed"]</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Confirmed")</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.Open"]</div><div class="ames-kpi-v">@_rows.Count(r => r.Status == "Open")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["PP.SupplyPlanImport.Kpi.TotalQty"]</div><div class="ames-kpi-v">@_rows.Sum(r => r.OrderQty).ToString("#,0")</div></div>
 </div>
 
-<div class="ames-card-h" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;text-transform:none;">
-    <div class="ames-fld">
-        <label>@L["Col.Customer"]</label>
-        <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
-                        @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
-                        Style="width:200px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.Order"] @L["PP.Forecast.Fld.Period"]</label>
-        <div style="display:flex;align-items:center;gap:6px;">
-            <RadzenDatePicker @bind-Value="_fFrom" DateFormat="MM/dd/yyyy" AllowClear="true"
-                              Placeholder="—" Style="width:165px" />
+<div class="ames-card ames-card-fill">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["PP.SupplyPlanImport.Title"] · @_view.Count @L["Lbl.Items"]@(_view.Count < _rows.Count ? $" / {L["Lbl.TotalOf"]} {_rows.Count}" : "")</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["Col.Customer"]" />
+            <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                            @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenLabel Text='@($"{L["Col.Order"]} {L["PP.Forecast.Fld.Period"]}")' />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" DateFormat="@DateFmt.Date" AllowClear="true"
+                              Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <span class="dim">~</span>
-            <RadzenDatePicker @bind-Value="_fTo" DateFormat="MM/dd/yyyy" AllowClear="true"
-                              Placeholder="—" Style="width:165px" />
-        </div>
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.Status"]</label>
-        <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
-                        AllowClear="true" Placeholder="@L["Filter.All"].Value" Style="width:140px" />
-    </div>
-    <div class="ames-fld">
-        <label>@L["Col.SoNo"] / @L["Col.PartNo"]</label>
-        <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
-                       Placeholder="—" Style="width:200px" />
-    </div>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-        <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Search" />
-        <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Upload"].Value" Icon="upload"
-                      ButtonStyle="ButtonStyle.Secondary" Click="OpenUpload" />
-        <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Export"].Value" Icon="download"
-                      ButtonStyle="ButtonStyle.Light" Click="ExportCsv" />
-    </div>
-</div>
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fTo" DateFormat="@DateFmt.Date" AllowClear="true"
+                              Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
+            <RadzenLabel Text="@L["Col.Status"]" />
+            <RadzenDropDown Data="_statuses" @bind-Value="_fStatus" @bind-Value:after="ApplyFilters"
+                            AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenLabel Text='@($"{L["Col.SoNo"]}/{L["Col.PartNo"]}")' />
+            <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
+                           Placeholder="@L["PP.SupplyPlanImport.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
 
-<div class="spi-grid">
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Search" />
+            @if (_canApprove)
+            {
+                <RadzenButton Text="@string.Format(L["PP.SupplyPlanImport.Btn.ConfirmSel"].Value, _selected.Count)"
+                              Icon="check" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn"
+                              Disabled="@(_selected.Count == 0)" Click="ConfirmSelected" />
+            }
+            @* 자동 확정 토글 — 수주 확정과 같은 승인 권한. 없으면 현재 상태만 보이는 비활성 스위치 *@
+            <span style="display:inline-flex;align-items:center;gap:0.4rem;white-space:nowrap;" title="@L["PP.SupplyPlanImport.AutoConfirm.Hint"]">
+                <span class="dim">|</span>
+                <RadzenSwitch Name="SwitchAutoConfirm" Value="@_autoConfirm" Change="@OnAutoConfirmChanged"
+                              Disabled="@(!_canApprove || _autoBusy)" />
+                <RadzenLabel Text="@L["PP.SupplyPlanImport.AutoConfirm"]" Component="SwitchAutoConfirm"
+                             style="@(_canApprove ? "cursor:pointer;" : null)" />
+            </span>
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Upload"].Value" Icon="upload"
+                              ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenUpload" />
+                <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.ApiImport"].Value" Icon="cloud_download"
+                              ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" class="ames-rz-btn" Click="OpenApiImport" />
+            }
+            <RadzenButton Text="@L["PP.SupplyPlanImport.Btn.Export"].Value" Icon="download"
+                          ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" class="ames-rz-btn" Click="ExportCsv" />
+        </RadzenStack>
+    </div>
+
+<div class="ames-grid-virtual">
 @if (_rows.Count == 0)
 {
     <div class="ames-empty">@L["PP.SupplyPlanImport.Empty"]</div>
@@ -69,20 +85,33 @@
 else
 {
     <RadzenDataGrid Data="_view" TItem="PpRepository.SoRow" AllowVirtualization="true" Style="height:100%"
-                    AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
+                    AllowSorting="true" EmptyText="@L["Grid.Empty"].Value" AllowColumnResize="true" Density="Density.Compact"
                     AllowFiltering="true" FilterMode="FilterMode.CheckBoxList"
                     FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                     class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoNumber" Title="@L["Col.SoNo"].Value"
+            @* 선택은 확정 버튼에만 쓰이므로 E 권한이 없으면 열 자체를 내린다 *@
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="46px" Width="46px" Sortable="false" Visible="@_canApprove"
+                                  Filterable="false" TextAlign="TextAlign.Center" Frozen="true">
+                <HeaderTemplate>
+                    <input type="checkbox" class="spi-ck" checked="@AllSelected"
+                           @onchange="e => ToggleAll((bool)(e.Value ?? false))" />
+                </HeaderTemplate>
+                <Template Context="r">
+                    <input type="checkbox" class="spi-ck" disabled="@(!IsOpen(r))"
+                           checked="@_selected.Contains(r.SoId)"
+                           @onchange="e => ToggleRow(r.SoId, (bool)(e.Value ?? false))" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="140px" Property="SoNumber" Title="@L["Col.SoNo"].Value"
                                   Frozen="true" Width="140px">
                 <Template Context="r"><span class="code">@r.SoNumber</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoLineNo" Title="@L["Col.Line"].Value"
-                                  TextAlign="TextAlign.Right" Width="80px" />
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="CustomerId" Title="@L["Col.Customer"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="100px" Property="SoLineNo" Title="@L["Col.Line"].Value"
+                                  TextAlign="TextAlign.Right" Width="100px" />
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="130px" Property="CustomerId" Title="@L["Col.Customer"].Value"
                                   Width="130px" />
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="240px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
                     @if (!r.ItemExists)
@@ -95,39 +124,39 @@ else
                     }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="OrderQty" Title="@L["Col.Order"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="100px" Property="OrderQty" Title="@L["Col.Order"].Value"
                                   Filterable="false" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@r.OrderQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ShippedQty" Title="@L["Col.Ship"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="100px" Property="ShippedQty" Title="@L["Col.Ship"].Value"
                                   Filterable="false" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@r.ShippedQty.ToString("#,0")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="120px" Property="RequestedDeliveryDate" Title="@L["Col.Requested"].Value"
                                   Filterable="false" Width="120px">
                 <Template Context="r">
                     @if (r.RequestedDeliveryDate is DateTime d)
                     {
-                        <span style="@(IsUrgent(d) ? "color:#f87171;font-weight:600;" : "")">@d.ToString("yyyy-MM-dd")</span>
+                        <span style="@(IsUrgent(d) ? "color:var(--ames-tx-red-400);font-weight:600;" : "")">@d.ToString(DateFmt.Date)</span>
                     }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="PromisedDate" Title="@L["Col.Promised"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="120px" Property="PromisedDate" Title="@L["Col.Promised"].Value"
                                   Filterable="false" Width="120px">
-                <Template Context="r"><span class="dim">@(r.PromisedDate?.ToString("yyyy-MM-dd") ?? "—")</span></Template>
+                <Template Context="r"><span class="dim">@(r.PromisedDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="Status" Title="@L["Col.Status"].Value" Width="100px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="110px" Property="Status" Title="@L["Col.Status"].Value" Width="110px">
                 <Template Context="r">
                     <span class="pill @(r.Status == "Confirmed" ? "ok" : "warn")">@r.Status</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["PP.SupplyPlanImport.Col.Wo"].Value"
-                                  Filterable="false" Sortable="false" Width="180px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="240px" Title="@L["PP.SupplyPlanImport.Col.Wo"].Value"
+                                  Filterable="false" Sortable="false" Width="240px">
                 <Template Context="r">
                     @if (!string.IsNullOrEmpty(r.WoNumber))
                     {
-                        <span class="code">@r.WoNumber</span> <span class="pill info">@r.WoStatus</span>
+                        <span class="code">@r.WoNumber</span> <span class="pill info">@r.WoStatus</span>@if (r.WoCount > 1) { <span class="dim" title="@string.Format(L["PP.SupplyPlanImport.WoMoreTip"].Value, r.WoCount)"> +@(r.WoCount - 1)</span> }
                     }
                     else if (r.Status == "Confirmed")
                     {
@@ -136,10 +165,10 @@ else
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["PP.SupplyPlanImport.Col.Action"].Value"
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="110px" Title="@L["PP.SupplyPlanImport.Col.Action"].Value"
                                   Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r">
-                    @if (r.Status == "Open")
+                    @if (_canApprove && r.Status == "Open")
                     {
                         <RadzenButton Text="@L["Btn.Confirm"].Value" Icon="check" ButtonStyle="ButtonStyle.Success"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Confirm(r.SoId))" />
@@ -154,7 +183,7 @@ else
                     @{ var dd = DaysTo(r.RequestedDeliveryDate); }
                     @if (dd is int n)
                     {
-                        <div style="@(n <= 14 ? "color:#f87171;font-weight:600;" : "")">@(n >= 0 ? $"D-{n}" : $"D+{-n}")</div>
+                        <div style="@(n <= 14 ? "color:var(--ames-tx-red-400);font-weight:600;" : "")">@(n >= 0 ? $"D-{n}" : $"D+{-n}")</div>
                     }
                     else { <div class="dim">—</div> }
                 </div>
@@ -172,6 +201,7 @@ else
 }
 </div>
 </div>
+</div>
 
 @code {
     List<MasterDataRepository.CustomerRow> _customers = new();
@@ -186,20 +216,82 @@ else
 
     List<PpRepository.SoRow> _rows = new();   // 조회 결과
     List<PpRepository.SoRow> _view = new();   // 텍스트·상태 필터 적용 표시용
+    HashSet<int> _selected = new();           // 체크된 SoID
 
     string _msg = "";
     bool   _isErr;
+    bool   _autoConfirm;   // SYS_Config PP_SO_AUTO_CONFIRM — 세 유입 경로의 신규 수주를 저장 즉시 Confirmed 로
+    bool   _autoBusy;
 
-    protected override void OnInitialized()
+    static bool IsOpen(PpRepository.SoRow r) => r.Status == "Open";
+    IEnumerable<PpRepository.SoRow> Selectable => _view.Where(IsOpen);
+    bool AllSelected => Selectable.Any() && Selectable.All(r => _selected.Contains(r.SoId));
+
+    // 권한 키(SYS_Screen.HRef) — R = 화면 조회, E = 업로드·수주 확정
+    const string Href = "pp/supply-plan-import";
+    bool _canEdit, _canApprove;   // 수주 확정은 승인 권한(A) — 업로드·API 가져오기는 수정 권한(E)
+
+    protected override async Task OnInitializedAsync()
     {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        // 메뉴에서 숨겨도 주소를 직접 치면 열리므로 읽기 권한은 화면에서도 확인한다
+        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        _canEdit = PermSvc.CanEdit(Href);
+        _canApprove = PermSvc.CanApprove(Href);
+
         try { _customers = MD.ListCustomers(); } catch { }
+        try { _autoConfirm = Pp.GetSoAutoConfirm(); } catch { }
         Search();
+    }
+
+    // 자동 확정 토글(10-13 사용자 결정): 켤 때는 확인창 뒤 플래그 ON + 현재 Open 전부 확정을 한 트랜잭션으로,
+    // 「아니오」면 아무것도 바꾸지 않는다. Open 이 0건이면 확인창 없이 켠다. 끄기는 즉시(이미 확정된 건은 그대로).
+    async Task OnAutoConfirmChanged(bool on)
+    {
+        if (!_canApprove || _autoBusy || on == _autoConfirm) return;
+        _autoBusy = true;
+        try
+        {
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+
+            if (on)
+            {
+                var open = await Task.Run(() => Pp.CountOpenCustomerOrders());
+                if (open > 0)
+                {
+                    var go = await Dialog.Confirm(
+                        string.Format(L["PP.SupplyPlanImport.AutoConfirm.ConfirmOn"].Value, open),
+                        L["PP.SupplyPlanImport.AutoConfirm.Title"].Value,
+                        new ConfirmOptions { OkButtonText = L["PP.SupplyPlanImport.AutoConfirm.Btn.On"].Value, CancelButtonText = L["Btn.Cancel"].Value });
+                    if (go != true) return;   // 스위치는 _autoConfirm(false) 로 다시 그려져 되돌아간다
+                }
+                var n = await Task.Run(() => Pp.EnableSoAutoConfirm(actor));
+                _autoConfirm = true;
+                _selected.Clear();
+                Audit.Log("PP-002", "AUTOCONFIRM_ON", "SYS_Config", AMES.Data.Services.SoAutoConfirm.ConfigKey,
+                    new { AutoConfirm = false }, new { AutoConfirm = true, Confirmed = n });
+                ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.AutoConfirmOn"].Value, n), false);
+            }
+            else
+            {
+                await Task.Run(() => Pp.DisableSoAutoConfirm(actor));
+                _autoConfirm = false;
+                Audit.Log("PP-002", "AUTOCONFIRM_OFF", "SYS_Config", AMES.Data.Services.SoAutoConfirm.ConfigKey,
+                    new { AutoConfirm = true }, new { AutoConfirm = false });
+                ShowMsg(L["PP.SupplyPlanImport.Ok.AutoConfirmOff"].Value, false);
+            }
+            Search();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        finally { _autoBusy = false; }
     }
 
     void Search()
     {
         try   { _rows = Pp.ListCustomerOrders(_fCustomer ?? "", _fFrom, _fTo); }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); _rows = new(); }
+        _selected.RemoveWhere(id => !_rows.Any(r => r.SoId == id && IsOpen(r)));
         ApplyFilters();
     }
 
@@ -220,15 +312,17 @@ else
         _view = q.ToList();
     }
 
-    static int? DaysTo(DateTime? d) => d is DateTime x ? (x.Date - DateTime.Today).Days : null;
-    static bool IsUrgent(DateTime d) => (d.Date - DateTime.Today).Days <= 14;
+    static int? DaysTo(DateTime? d) => d is DateTime x ? (x.Date - DbClock.Today).Days : null;
+    static bool IsUrgent(DateTime d) => (d.Date - DbClock.Today).Days <= 14;
 
     async Task Confirm(int soId)
     {
+        if (!_canApprove) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+
         try
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
-            var actor = auth.User.Identity?.Name ?? "system";
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
             var n = Pp.ConfirmCustomerOrder(soId, actor);
             if (n > 0) ShowMsg(L["PP.SupplyPlanImport.Ok.Confirmed"].Value, false);
             Search();
@@ -236,8 +330,40 @@ else
         catch (Exception ex) { ShowMsg(ex.Message, true); }
     }
 
+    void ToggleRow(int soId, bool on)
+    {
+        if (on) _selected.Add(soId); else _selected.Remove(soId);
+    }
+
+    void ToggleAll(bool on)
+    {
+        foreach (var r in Selectable)
+            if (on) _selected.Add(r.SoId); else _selected.Remove(r.SoId);
+    }
+
+    async Task ConfirmSelected()
+    {
+        if (!_canApprove) return;
+
+        var ids = _rows.Where(r => _selected.Contains(r.SoId) && IsOpen(r)).Select(r => r.SoId).ToList();
+        if (ids.Count == 0) { ShowMsg(L["PP.SupplyPlanImport.Err.NoneSelected"], true); return; }
+
+        try
+        {
+            var auth  = await AuthPrvd.GetAuthenticationStateAsync();
+            var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+            var n = ids.Sum(id => Pp.ConfirmCustomerOrder(id, actor));
+            _selected.Clear();
+            ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.ConfirmedN"].Value, n), false);
+            Search();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+    }
+
     async Task OpenUpload()
     {
+        if (!_canEdit) return;
+
         var result = await Dialog.OpenAsync<SupplyPlanImportUploadDialog>(
             L["PP.SupplyPlanImport.Upload.Title"].Value,
             new Dictionary<string, object?> { ["Customers"] = _customers });
@@ -249,6 +375,18 @@ else
             _fFrom = null; _fTo = null;
             Search();
         }
+    }
+
+    async Task OpenApiImport()
+    {
+        if (!_canEdit) return;
+
+        var result = await Dialog.OpenAsync<SupplyPlanImportApiDialog>(L["PP.SupplyPlanImport.Api.Title"].Value);
+
+        if (result is AMES.Data.Services.PoSync.PoSyncRunResult { Ok: true } r)
+            ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.Imported"].Value, r.Inserted, r.Updated), false);
+        // X 로 닫으면 결과가 안 넘어온다 — 실행했을 수 있으니 항상 다시 읽는다
+        Search();
     }
 
     async Task ExportCsv()
@@ -272,13 +410,12 @@ else
 
         var bytes = System.Text.Encoding.UTF8.GetPreamble()
             .Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        var name = $"SupplyPlanImport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        var name = $"SupplyPlanImport_{DbClock.Now:yyyyMMdd_HHmmss}.csv";
         await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/csv");
         ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.Exported"].Value, _rows.Count), false);
     }
 
-    static string Csv(string s) =>
-        s.Contains(',') || s.Contains('"') || s.Contains('\n') ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
+    static string Csv(string s) => AMES.Contracts.Formatting.CsvCell.Escape(s);   // 엑셀 수식 주입 방지 포함
 
     void ShowMsg(string msg, bool isErr)
     {

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AMES.Contracts.Auth;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
@@ -17,21 +16,33 @@ namespace AMES.Data.Services;
 public sealed class PopAuthService
 {
     private readonly AuthRepository       _auth;
+    private readonly WorkerRepository     _workers;
     private readonly PopSessionRepository _sessions;
+    private readonly bool _allowTestAccounts;
 
-    public PopAuthService(AuthRepository auth, PopSessionRepository sessions)
+    public PopAuthService(AuthRepository auth, WorkerRepository workers, PopSessionRepository sessions, bool? allowTestAccounts = null)
     {
         _auth     = auth     ?? throw new ArgumentNullException(nameof(auth));
+        _workers  = workers  ?? throw new ArgumentNullException(nameof(workers));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
+        _allowTestAccounts=allowTestAccounts ?? string.Equals(
+            Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+            "Development",StringComparison.OrdinalIgnoreCase);
     }
 
     public LoginOutcome Login(LoginRequest req)
     {
         ArgumentNullException.ThrowIfNull(req);
+        if (PdaScenarioUsers.IsTestAccount(req.AttemptedId) && !_allowTestAccounts)
+            return LoginOutcome.Failure(AuthResult.InactiveAccount, "Test accounts are disabled outside Development.");
 
         // 1) Find the operator. Both Badge and Pin paths key off EmployeeNo
         //    because the badge barcode encodes the EmployeeNo as well.
-        var profile = _auth.FindByEmployeeNo(req.AttemptedId);
+        //
+        //    Web-account profiles win over MD_Worker on a duplicated badge number
+        //    so an existing office user keeps behaving exactly as before.
+        var profile = _auth.FindByEmployeeNo(req.AttemptedId)
+                      ?? _workers.FindByEmployeeNo(req.AttemptedId);
         if (profile is null)
         {
             _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
@@ -53,7 +64,10 @@ public sealed class PopAuthService
         {
             if (string.IsNullOrEmpty(req.Pin) || !PinHasher.Verify(req.Pin, profile.PinHash))
             {
-                var isNowLocked = _auth.IncrementFailedCount(profile.UserId);
+                // MD_Worker has no failure counter, and profile.UserId is a badge
+                // number there — running the SYS_UserProfile update would silently
+                // match nothing. Skip it rather than rely on that no-op.
+                var isNowLocked = !profile.IsWorker && _auth.IncrementFailedCount(profile.UserId, profile.EmployeeNo);
                 if (isNowLocked)
                 {
                     _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
@@ -67,25 +81,12 @@ public sealed class PopAuthService
             }
         }
 
-        // 4) Line authorization.
-        //
-        //    The operator picks the line explicitly on the login screen, so an
-        //    unauthorized pick is rejected outright — no silent reroute.
-        //    AssignedLines null/empty → unrestricted (e.g. supervisors).
-        if (!IsLineAuthorized(profile.AssignedLinesJson, req.LineId))
-        {
-            _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
-                AuthResult.LineNotAuthorized, $"line {req.LineId}");
-            return LoginOutcome.Failure(AuthResult.LineNotAuthorized,
-                $"not authorized for {req.LineId}");
-        }
-
-        // 5) All checks passed — create session + log + reset failure counter.
+        // 4) All checks passed — create session + log + reset failure counter.
         var session = _sessions.CreateSession(profile, req.TerminalId, req.LineId,
                                               req.ShiftCode, req.Method);
         _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
                                AuthResult.Ok, null);
-        _auth.RecordSuccessfulLogin(profile.UserId);
+        if (!profile.IsWorker) _auth.RecordSuccessfulLogin(profile.UserId, profile.EmployeeNo);
 
         return LoginOutcome.Success(session);
     }
@@ -93,19 +94,4 @@ public sealed class PopAuthService
     private static bool IsActive(string? status) =>
         string.IsNullOrEmpty(status) ||
         string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsLineAuthorized(string? assignedLinesJson, string lineId)
-    {
-        if (string.IsNullOrWhiteSpace(assignedLinesJson)) return true;
-        var lines = ParseLines(assignedLinesJson);
-        if (lines is null || lines.Length == 0) return true;
-        return lines.Any(l => string.Equals(l, lineId, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string[]? ParseLines(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonSerializer.Deserialize<string[]>(json); }
-        catch (JsonException) { return null; }
-    }
 }

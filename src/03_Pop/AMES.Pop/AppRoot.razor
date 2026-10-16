@@ -1,6 +1,9 @@
 @inject AppState State
 @inject NavigationManager Nav
+@inject IdleWatcher Idle
+@inject ScannerService Scanner
 @implements IDisposable
+@implements IHandleEvent
 
 @*  AppRoot subscribes to AppState changes and re-cascades the current
     Session down to every page. Login.razor sets the session; logout clears
@@ -9,27 +12,65 @@
     Auth guard — when Session is null and the operator is somehow on a
     protected route (manual nav, post-logout flicker, hot-reload), bounce
     back to /login so no protected page renders against a null cascade
-    and throws on @Session.X. *@
+    and throws on @Session.X.
 
-<CascadingValue Value="State.Session">
-    <CascadingValue Value="State">
-        <App />
-        <ToastHost />
-        <ConfirmHost />
+    Idle guard — the wrapper below is display:contents (no layout box), so it
+    only exists to catch pointer/key events bubbling out of whatever page is
+    mounted. IHandleEvent is implemented to drop Blazor's automatic
+    StateHasChanged: without it every touch would re-render the router and
+    diff the whole INJ-MAIN grid. Pokes render only when the warning is up. *@
+
+<div class="idle-hook" @onpointerdown="Poke" @onkeydown="Poke">
+    <CascadingValue Value="State.Session">
+        <CascadingValue Value="State">
+            <App />
+            <ToastHost />
+            <ConfirmHost />
+        </CascadingValue>
     </CascadingValue>
-</CascadingValue>
+
+    @if (_warnSeconds > 0)
+    {
+        <div class="idle-backdrop">
+            <div class="idle-modal">
+                <div class="idle-title">@PopLang.T("IdleWarnTitle")</div>
+                <div class="idle-count">@_warnSeconds<span>@PopLang.T("IdleSeconds")</span></div>
+                <div class="idle-body">@PopLang.T("IdleWarnBody")</div>
+                <button class="idle-btn" @onclick="Poke">@PopLang.T("IdleStayLoggedIn")</button>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
+    private System.Threading.Timer? _idleTimer;
+    private int _warnSeconds;
+
+    // PIN 설정 중에는 SignIn 전이지만 PR_PopSession 행이 이미 있다 — 그 구간도 감시한다.
+    private PopSessionDto? Watched => State.Session ?? State.PendingSession;
+
     protected override void OnInitialized()
     {
         State.OnChange       += OnStateChanged;
+        State.SigningOut     += OnSigningOut;
         Nav.LocationChanged  += OnLocationChanged;
+        Scanner.OnScan       += OnScan;
+
+        if (Idle.IsEnabled)
+            _idleTimer = new System.Threading.Timer(
+                OnIdleTick, null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+
+        SyncIdleTimer();
         EnsureAuthed();
     }
+
+    // 이벤트 핸들러 뒤에 붙는 자동 렌더를 끈다. AppRoot 의 렌더는 아래에서 명시적으로만 부른다.
+    Task IHandleEvent.HandleEventAsync(EventCallbackWorkItem item, object? arg) => item.InvokeAsync(arg);
 
     private void OnStateChanged()
     {
         EnsureAuthed();
+        SyncIdleTimer();
         InvokeAsync(StateHasChanged);
     }
 
@@ -44,9 +85,85 @@
         Nav.NavigateTo("/login", forceLoad: false, replace: true);
     }
 
+    // ── 유휴 감시 ─────────────────────────────────────────────────────
+    // 시리얼 스캔은 DOM 을 거치지 않아 위 래퍼가 못 본다. 스캔도 작업이다.
+    private void OnScan(string _) => Idle.Poke(DateTime.Now);
+
+    private void Poke()
+    {
+        Idle.Poke(DateTime.Now);
+        if (_warnSeconds == 0) return;
+        _warnSeconds = 0;
+        StateHasChanged();
+    }
+
+    private void SyncIdleTimer()
+    {
+        if (_idleTimer is null) return;
+
+        if (Watched is null)
+        {
+            _idleTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+            _warnSeconds = 0;
+            return;
+        }
+
+        Idle.Poke(DateTime.Now);
+        _idleTimer.Change(1000, 1000);
+    }
+
+    // 백그라운드 스레드. 예외가 새어 나가면 프로세스가 죽는다.
+    private void OnIdleTick(object? _)
+    {
+        try
+        {
+            if (Watched is null) return;
+
+            var status = Idle.Evaluate(DateTime.Now);
+            if (status.State == IdleState.Expired)
+            {
+                _idleTimer!.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+                InvokeAsync(Expire);
+                return;
+            }
+
+            var warn = status.State == IdleState.Warning ? status.RemainingSeconds : 0;
+            if (warn == _warnSeconds) return;   // Active 인 동안은 초당 렌더를 하지 않는다
+            _warnSeconds = warn;
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            PopLog.Append("idle", "IdleWatcher", $"tick failed: {ex.Message}");
+        }
+    }
+
+    // 화면마다 흩어진 로그아웃 버튼이 전부 State.SignOut() 을 거치므로, 세션 행 닫기는 여기 한 곳뿐이다.
+    // UI 스레드에서 DB 를 타면 최악 Connect Timeout 만큼 화면이 언다 — 던지고 잊는다.
+    // 실패해도 로그인 복귀를 막지 않는다: 남은 행은 ExpiresAt 으로 정리된다.
+    private static void OnSigningOut(PopSessionDto session, string reason) => Task.Run(() =>
+    {
+        try { PopServices.Sessions.CloseSession(session.SessionId, reason, session.OperatorId); }
+        catch (Exception ex)
+        {
+            PopLog.Append("session", "PopSession",
+                $"close session {session.SessionId} ({reason}) failed: {ex.Message}");
+        }
+    });
+
+    private void Expire()
+    {
+        _warnSeconds = 0;
+        Nav.NavigateTo("/login", replace: true);
+        State.SignOut("IDLE");   // PIN 설정 중이었다면 그 세션이 닫히고 오버레이도 사라진다
+    }
+
     public void Dispose()
     {
         State.OnChange      -= OnStateChanged;
+        State.SigningOut    -= OnSigningOut;
         Nav.LocationChanged -= OnLocationChanged;
+        Scanner.OnScan      -= OnScan;
+        _idleTimer?.Dispose();
     }
 }

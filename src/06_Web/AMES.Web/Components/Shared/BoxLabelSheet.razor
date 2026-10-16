@@ -1,0 +1,35 @@
+@inject UomFormat UomFmt
+<article class="delivery-note box-labels">
+@foreach(var page in Boxes.Chunk(6))
+{
+    <div class="label-page">
+    @foreach(var row in page.Chunk(2))
+    {
+        <div class="label-pair">
+        @foreach(var b in row)
+        {
+            <section class="box-label">
+                <header class="label-header"><strong>@(b.Number.StartsWith("PT-",StringComparison.OrdinalIgnoreCase)?"PART":"BOX")</strong><span>@b.VendorName</span></header>
+                <div class="box-barcode"><Code128Barcode Value="@b.Number" Height="48" /><strong>@b.Number</strong></div>
+                <div class="part-row"><small>Part No</small><strong class="part-value @(b.Item.Length>18 ? "compact" : "")">@b.Item</strong></div>
+                <div class="desc-row @(b.Name.Length>85 ? "compact" : "")"><small>Description</small><strong>@b.Name</strong></div>
+                <div class="label-details">
+                    <div><small>Quantity</small><strong>@QuantityText(b.Quantity,b.Unit) @UomFmt.Sym(b.Unit)</strong></div>
+                    <div><small>@(b.Number.StartsWith("PT-",StringComparison.OrdinalIgnoreCase)?"Part":"Box")</small><strong>@b.Sequence / @b.BoxCount</strong></div>
+                    <div><small>Delivery No</small><strong>@b.Delivery</strong></div>
+                    <div><small>PO No</small><strong>@b.Order</strong></div>
+                    <div><small>Vendor Lot</small><strong>@b.VendorLotNo</strong></div>
+                    <div><small>Production Date</small><strong>@b.ProductionDate.ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture)</strong></div>
+                </div>
+                <div class="destination"><small>Destination</small><strong>@b.Destination</strong></div>
+            </section>
+        }
+        </div>
+    }
+    </div>
+}
+</article>
+@code {
+    [Parameter] public IReadOnlyList<ScmRepository.DeliveryBox> Boxes {get;set;}=[];
+    [Parameter] public Func<decimal,string,string> QuantityText {get;set;}=(q,u)=>q.ToString("0.###");
+}

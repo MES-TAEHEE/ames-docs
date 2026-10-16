@@ -12,6 +12,7 @@
 @inject PermissionService PermSvc
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>MD-015 @L["MD.Oven.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-015" TitleKey="MD.Oven.Title" />
@@ -60,8 +61,12 @@
     </div>
 
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.OvenRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
-                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Oven.Empty"]" Class="ames-rz-grid">
+                    PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Oven.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+            @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="OvenID" Title="@L["Col.OvenId"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@r.OvenID</span></Template>
             </RadzenDataGridColumn>
@@ -71,22 +76,22 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ZoneCount" Title="@L["Col.ZoneCount"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ZoneCount" Title="@L["Col.ZoneCount"]" TextAlign="TextAlign.Right" Width="100px">
                 <Template Context="r">@(r.ZoneCount?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="TargetTemp" Title="@L["Col.TargetTemp"]" TextAlign="TextAlign.Right" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="TargetTemp" Title="@L["Col.TargetTemp"]" TextAlign="TextAlign.Right" Width="170px">
                 <Template Context="r">@(r.TargetTemp?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Tolerance" Title="@L["Col.TempTolerance"]" TextAlign="TextAlign.Right" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Tolerance" Title="@L["Col.TempTolerance"]" TextAlign="TextAlign.Right" Width="160px">
                 <Template Context="r">@(r.Tolerance.HasValue ? $"±{r.Tolerance}" : "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="DwellSec" Title="@L["Col.DwellTime"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="DwellSec" Title="@L["Col.DwellTime"]" TextAlign="TextAlign.Right" Width="230px">
                 <Template Context="r">@(r.DwellSec?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ConveyorSpeed" Title="@L["Col.ConveyorSpeed"]" TextAlign="TextAlign.Right" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ConveyorSpeed" Title="@L["Col.ConveyorSpeed"]" TextAlign="TextAlign.Right" Width="180px">
                 <Template Context="r">@(r.ConveyorSpeed?.ToString("F2") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="MaxLoadKg" Title="@L["Col.MaxLoad"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="MaxLoadKg" Title="@L["Col.MaxLoad"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="r">@(r.MaxLoadKg?.ToString("F1") ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
@@ -257,8 +262,9 @@
 }
 
 @code {
-    IEnumerable<int> _pageSizeOptions = new int[] { 15, 30, 50, 100 };
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
+    int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.OvenRow> _allRows = new();
     List<MasterDataRepository.OvenRow> _rows = new();
     List<MasterDataRepository.LineRow> _lineList = new();
@@ -286,7 +292,7 @@
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
-        _actor = auth.User.Identity?.Name ?? "system";
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/re/oven");
         try { _lineList   = MD.ListLines();                   } catch { }
@@ -364,6 +370,7 @@
 
     async Task SaveCreate()
     {
+        if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.OvenID))  { _modalErr = L["Err.OvenIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.OvenName)) { _modalErr = L["Err.NameRequired"]; return; }
@@ -374,6 +381,7 @@
             MD.InsertOven(_f.OvenID.Trim(), _f.OvenName, NE(_f.LineID),
                 _f.ZoneCount, _f.TargetTemp, _f.Tolerance, _f.DwellSec,
                 _f.ConveyorSpeed, _f.MaxLoadKg, NE(_f.Status), _actor);
+            Audit.Created("MD-015", "MD_Oven", _f.OvenID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.OvenName} {L["Msg.Created"]}", false);
         }
@@ -383,6 +391,7 @@
 
     async Task SaveEdit()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.OvenName)) { _modalErr = L["Err.NameRequired"]; return; }
@@ -392,6 +401,7 @@
             MD.UpdateOven(_sel.OvenID, _f.OvenName, NE(_f.LineID),
                 _f.ZoneCount, _f.TargetTemp, _f.Tolerance, _f.DwellSec,
                 _f.ConveyorSpeed, _f.MaxLoadKg, NE(_f.Status), _actor);
+            Audit.Updated("MD-015", "MD_Oven", _sel.OvenID, _sel, _f);
             var name = _f.OvenName;
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
@@ -402,12 +412,14 @@
 
     async Task SaveDelete()
     {
+        if (!_canEdit) return;
         if (_sel is null) return;
         _busy = true;
         try
         {
             var name = _sel.OvenName ?? _sel.OvenID;
             MD.DeleteOven(_sel.OvenID);
+            Audit.Deleted("MD-015", "MD_Oven", _sel.OvenID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);
         }

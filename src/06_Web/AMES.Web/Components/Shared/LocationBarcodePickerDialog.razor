@@ -1,17 +1,18 @@
+@inject IStringLocalizer<SharedResources> L
 @using Radzen
 
 <div class="ames-modal-bg" @onclick="CloseAsync">
     <div class="ames-modal location-barcode-picker-modal" @onclick:stopPropagation>
-        <div class="ames-modal-h">Print Location Barcode</div>
+        <div class="ames-modal-h">@L["WH.LocBarcode.PrintTitle"]</div>
 
         <div class="location-barcode-picker-body">
-            <RadzenLabel Text="Location" />
+            <RadzenLabel Text="@L["Col.Location"].Value" />
             <RadzenDropDown TValue="string"
                             @bind-Value="_selectedCode"
                             Data="@Items"
                             TextProperty="Label"
                             ValueProperty="Code"
-                            Placeholder="Select Location"
+                            Placeholder="@L["WH.LocBarcode.Ph.Select"].Value"
                             AllowClear="true"
                             AllowFiltering="true"
                             FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
@@ -20,8 +21,8 @@
         </div>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-            <RadzenButton Text="Preview" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SelectAsync" Disabled="@string.IsNullOrWhiteSpace(_selectedCode)" class="ames-rz-btn" />
-            <RadzenButton Text="Cancel" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
+            <RadzenButton Text="@L["WH.LocBarcode.Btn.Preview"].Value" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="SelectAsync" Disabled="@string.IsNullOrWhiteSpace(_selectedCode)" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 </div>

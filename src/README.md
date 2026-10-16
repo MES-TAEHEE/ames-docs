@@ -88,7 +88,7 @@ When the form opens, click **▶ TEST DB CONNECTION**. Expected output:
   "PopTerminal": {
     "StationId":    "POP-DEV-01",
     "LineId":       "LINE-INJ-01",
-    "DefaultShift": "DAY"
+    "DefaultShift": "A"
   }
 }
 ```

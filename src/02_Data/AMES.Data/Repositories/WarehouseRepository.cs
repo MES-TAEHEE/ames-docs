@@ -1,16 +1,22 @@
 using System.Data;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
+using AMES.Data.Services;
 
 namespace AMES.Data.Repositories;
 
-public sealed class WarehouseRepository
+public sealed partial class WarehouseRepository
 {
     private const string DefaultNormalColor = "#16A34A";
 
     private readonly AmesConnectionFactory _factory;
 
-    public WarehouseRepository(AmesConnectionFactory factory) => _factory = factory;
+    private readonly Func<string> _actor;
+    public WarehouseRepository(AmesConnectionFactory factory, Func<string>? actor = null)
+    {
+        _factory = factory;
+        _actor = actor ?? (() => "WH-SVC");
+    }
 
     public record WarehouseLocationRow(
         string LocationNo,
@@ -44,7 +50,8 @@ public sealed class WarehouseRepository
         int LocationCount,
         decimal TotalQty,
         string? WhCode,
-        string? WhName);
+        string? WhName,
+        string? LocationPrefix);
 
     public record WarehouseSectionRow(
         string AreaCode,
@@ -86,7 +93,8 @@ public sealed class WarehouseRepository
         decimal ReqBoxQty,
         decimal PickedQty,
         string? FirstPartNo,
-        string? FirstPartName);
+        string? FirstPartName,
+        string QuantityUnit = "BOX");
 
     public record PickingSlipLineRow(
         string PickSlipNo,
@@ -105,7 +113,8 @@ public sealed class WarehouseRepository
         decimal Loc02Qty,
         string? Loc03,
         decimal Loc03Qty,
-        string Status);
+        string Status,
+        string QuantityUnit = "BOX");
 
     public record PickingSlipCandidateRow(
         DateTime ReqDate,
@@ -154,6 +163,18 @@ public sealed class WarehouseRepository
         string? RackZ,
         decimal Qty);
 
+    public record UnifiedInventoryRow(
+        string LocationNo,
+        string PartNo,
+        string? PartName,
+        string LotNo,
+        decimal Qty,
+        string Unit,
+        string WarehouseCode,
+        string WarehouseName,
+        string AreaCode,
+        string AreaName);
+
     public record LocationAreaLayoutRow(
         string AreaCode,
         string? AreaName,
@@ -178,8 +199,8 @@ public sealed class WarehouseRepository
         string Result,
         string? Message,
         string? ClientIp,
-        string? RefDocType,
-        string? RefDocNo,
+        string? SourceType,
+        int? SourceId,
         string? LotNo,
         string? PartNo,
         string? LocationId,
@@ -201,48 +222,59 @@ public sealed class WarehouseRepository
 
     public List<WarehouseLocationRow> ListLocations(string? search = null, bool includeInactive = false, string? areaCode = null, string? sectionCode = null, string? whCode = null)
     {
-        EnsureWarehouseSectionTable();
         var like = Like(search);
         return Query("""
+            WITH Stock AS (
+                SELECT LocationNo,
+                       COUNT(DISTINCT LotNo) AS LotCount,
+                       COUNT(DISTINCT PartNo) AS PartCount,
+                       SUM(Qty) AS TotalQty
+                FROM dbo.WH_Inventory
+                WHERE Qty <> 0
+                GROUP BY LocationNo
+            )
             SELECT
                 L.LocationID AS LOCATION_NO,
                 L.LocationName AS LOCATION_NM,
-                L.PlantCode AS WHCD,
-                COALESCE(NULLIF(W.WhName, ''), L.PlantCode) AS WHNM,
-                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
-                COALESCE(NULLIF(A.AreaName, ''), COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)) AS AREANM,
+                L.WhCode AS WHCD,
+                COALESCE(NULLIF(W.CodeName, ''), L.WhCode) AS WHNM,
+                L.AreaCode AS AREACD,
+                COALESCE(NULLIF(A.CodeName, ''), L.AreaCode) AS AREANM,
                 L.ZoneCode AS ZONECD,
-                L.LocationType AS ZONENM,
+                L.ZoneCode AS ZONENM,
                 L.Aisle AS RACK_X,
                 L.Bay AS RACK_Y,
                 L.Slot AS RACK_Z,
                 CAST(COALESCE(L.ActiveFlag, 1) AS bit) AS USE_YN,
-                COUNT(DISTINCT S.LotID) AS LOT_COUNT,
-                COUNT(DISTINCT S.ItemNo) AS PART_COUNT,
-                COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY
+                COALESCE(S.LotCount, 0) AS LOT_COUNT,
+                COALESCE(S.PartCount, 0) AS PART_COUNT,
+                COALESCE(S.TotalQty, 0) AS TOTAL_QTY
             FROM dbo.MD_Location L
-            LEFT JOIN dbo.WH_WarehouseMaster W
-                   ON W.WhCode = L.PlantCode
-            LEFT JOIN dbo.WH_AreaMaster A
-                   ON A.AreaCode = COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)
-                  AND COALESCE(A.WhCode, L.PlantCode) = L.PlantCode
-            LEFT JOIN dbo.WH_Inventory S
-                   ON S.LocationID = L.LocationID
-                  AND COALESCE(S.OnHandQty, 0) <> 0
-                  AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
+            OUTER APPLY (
+                SELECT TOP (1) CodeID, CodeName
+                FROM dbo.MD_CodeItem
+                WHERE GroupCode = 'WH_CODE' AND CodeValue = L.WhCode
+                ORDER BY CodeID
+            ) W
+            OUTER APPLY (
+                SELECT TOP (1) CodeName
+                FROM dbo.MD_CodeItem
+                WHERE GroupCode = 'WH_AREA' AND CodeValue = L.AreaCode
+                  AND (ParentCodeID IS NULL OR ParentCodeID = W.CodeID)
+                ORDER BY CASE WHEN ParentCodeID = W.CodeID THEN 0 ELSE 1 END, CodeID
+            ) A
+            LEFT JOIN Stock S ON S.LocationNo = L.LocationID
             WHERE (@IncludeInactive = 1 OR COALESCE(L.ActiveFlag, 1) = 1)
-              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
-              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
-              AND (@SectionCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @SectionCode)
+              AND (@WhCode IS NULL OR L.WhCode = @WhCode)
+              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
+              AND (@SectionCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = @SectionCode)
               AND (@Search IS NULL
                    OR L.LocationID LIKE @Search
                    OR L.LocationName LIKE @Search
                    OR L.ZoneCode LIKE @Search
-                   OR L.LocationType LIKE @Search
-                   OR L.PlantCode LIKE @Search)
-            GROUP BY L.LocationID, L.LocationName, L.PlantCode, W.WhName, L.ZoneCode, A.AreaName,
-                     L.LocationType, L.Aisle, L.Bay, L.Slot, L.ActiveFlag
-            ORDER BY L.PlantCode, COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode), L.ZoneCode,
+                   OR L.AreaCode LIKE @Search
+                   OR L.WhCode LIKE @Search)
+            ORDER BY L.WhCode, L.AreaCode, L.ZoneCode,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
                      TRY_CONVERT(int, L.Bay), L.Bay,
                      TRY_CONVERT(int, L.Slot), L.Slot,
@@ -263,43 +295,76 @@ public sealed class WarehouseRepository
                 GetInt(r, "LOT_COUNT"),
                 GetInt(r, "PART_COUNT"),
                 GetDecimal(r, "TOTAL_QTY")),
-            ("@Search", like),
-            ("@IncludeInactive", includeInactive),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@SectionCode", NullIfBlank(sectionCode)),
-            ("@WhCode", NullIfBlank(whCode)));
+            ("@Search", "MD_Location.LocationName", like),
+            ("@IncludeInactive", null, includeInactive),
+            ("@AreaCode", "MD_Location.AreaCode", NullIfBlank(areaCode)),
+            ("@SectionCode", "MD_Location.ZoneCode", NullIfBlank(sectionCode)),
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)));
+    }
+
+    public List<UnifiedInventoryRow> ListUnifiedInventory(bool finishedGoods)
+    {
+        return Query("""
+            SELECT
+                I.LocationNo AS LOCATION_NO,
+                I.PartNo AS PART_NO,
+                COALESCE(NULLIF(I.PartName, ''), M.ItemName) AS PART_NAME,
+                I.LotNo AS LOT_NO,
+                I.Qty AS QTY,
+                COALESCE(NULLIF(M.DefaultUOM, ''), 'EA') AS UOM,
+                COALESCE(NULLIF(L.WhCode, ''), 'EOS') AS WH_CODE,
+                COALESCE(NULLIF(W.CodeName, ''), NULLIF(L.WhCode, ''), 'EOS') AS WH_NAME,
+                COALESCE(L.AreaCode, '') AS AREA_CODE,
+                COALESCE(NULLIF(A.CodeName, ''), L.AreaCode, '') AS AREA_NAME
+            FROM dbo.WH_Inventory I
+            LEFT JOIN dbo.MD_Location L
+                   ON L.LocationID = I.LocationNo
+            LEFT JOIN dbo.MD_CodeItem W ON W.GroupCode='WH_CODE' AND W.CodeValue=L.WhCode
+            LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.CodeValue=L.AreaCode
+                  AND (A.ParentCodeID IS NULL OR A.ParentCodeID=W.CodeID)
+            LEFT JOIN dbo.MD_Item M
+                   ON M.ItemNo = I.PartNo
+            WHERE I.Qty > 0
+              AND I.PartNo IS NOT NULL
+              AND ((@FinishedGoods = 1 AND L.AreaCode = 'FG_AREA')
+                OR (@FinishedGoods = 0 AND COALESCE(L.AreaCode, '') <> 'FG_AREA'))
+            ORDER BY I.ReceivedAt, I.CreatedAt, I.LotNo;
+            """, r => new UnifiedInventoryRow(
+                GetString(r, "LOCATION_NO") ?? "",
+                GetString(r, "PART_NO") ?? "",
+                GetString(r, "PART_NAME"),
+                GetString(r, "LOT_NO") ?? "",
+                GetDecimal(r, "QTY"),
+                GetString(r, "UOM") ?? "EA",
+                GetString(r, "WH_CODE") ?? "EOS",
+                GetString(r, "WH_NAME") ?? "EOS",
+                GetString(r, "AREA_CODE") ?? "",
+                GetString(r, "AREA_NAME") ?? ""),
+            ("@FinishedGoods", null, finishedGoods));
     }
 
     public List<WarehouseMasterRow> ListWarehouses(string? search = null, bool includeInactive = false)
     {
-        EnsureWarehouseMasterTable();
-        EnsureWarehouseAreaTable();
         var like = Like(search);
         return Query("""
             SELECT
-                W.WhCode AS WHCD,
-                W.WhName AS WHNM,
-                CAST(COALESCE(W.ActiveFlag, 1) AS bit) AS USE_YN,
-                COUNT(DISTINCT A.AreaCode) AS AREA_COUNT,
+                W.CodeValue AS WHCD,
+                W.CodeName AS WHNM,
+                CAST(COALESCE(W.UseFlag, 1) AS bit) AS USE_YN,
+                COUNT(DISTINCT A.CodeValue) AS AREA_COUNT,
                 COUNT(DISTINCT L.LocationID) AS LOCATION_COUNT,
-                COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY
-            FROM dbo.WH_WarehouseMaster W
-            LEFT JOIN dbo.WH_AreaMaster A
-                   ON A.WhCode = W.WhCode
-                  AND COALESCE(A.ActiveFlag, 1) = 1
-            LEFT JOIN dbo.MD_Location L
-                   ON L.PlantCode = W.WhCode
-                  AND COALESCE(L.ActiveFlag, 1) = 1
-            LEFT JOIN dbo.WH_Inventory S
-                   ON S.LocationID = L.LocationID
-                  AND COALESCE(S.OnHandQty, 0) <> 0
-                  AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
-            WHERE (@IncludeInactive = 1 OR COALESCE(W.ActiveFlag, 1) = 1)
+                COALESCE(SUM(S.Qty), 0) AS TOTAL_QTY
+            FROM dbo.MD_CodeItem W
+            LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.ParentCodeID=W.CodeID AND COALESCE(A.UseFlag,1)=1
+            LEFT JOIN dbo.MD_Location L ON L.WhCode=W.CodeValue AND COALESCE(L.ActiveFlag,1)=1
+            LEFT JOIN dbo.WH_Inventory S ON S.LocationNo=L.LocationID AND S.Qty<>0
+            WHERE W.GroupCode='WH_CODE'
+              AND (@IncludeInactive = 1 OR COALESCE(W.UseFlag, 1) = 1)
               AND (@Search IS NULL
-                   OR W.WhCode LIKE @Search
-                   OR W.WhName LIKE @Search)
-            GROUP BY W.WhCode, W.WhName, W.ActiveFlag
-            ORDER BY W.WhCode;
+                   OR W.CodeValue LIKE @Search
+                   OR W.CodeName LIKE @Search)
+            GROUP BY W.CodeValue,W.CodeName,W.UseFlag,W.SortOrder
+            ORDER BY W.SortOrder,W.CodeValue;
             """, r => new WarehouseMasterRow(
                 GetString(r, "WHCD") ?? "",
                 GetString(r, "WHNM"),
@@ -307,16 +372,15 @@ public sealed class WarehouseRepository
                 GetInt(r, "AREA_COUNT"),
                 GetInt(r, "LOCATION_COUNT"),
                 GetDecimal(r, "TOTAL_QTY")),
-            ("@Search", like),
-            ("@IncludeInactive", includeInactive));
+            ("@Search", "MD_CodeItem.CodeName", like),
+            ("@IncludeInactive", null, includeInactive));
     }
 
     public bool WarehouseExists(string whCode)
     {
-        EnsureWarehouseMasterTable();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
-            "SELECT 1 FROM dbo.WH_WarehouseMaster WHERE WhCode = @WhCode;", conn);
+            "SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue=@WhCode;", conn);
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = whCode.Trim();
         return cmd.ExecuteScalar() is not null;
     }
@@ -326,24 +390,23 @@ public sealed class WarehouseRepository
         if (string.IsNullOrWhiteSpace(whCode))
             throw new ArgumentException("Warehouse code is required.", nameof(whCode));
 
-        EnsureWarehouseMasterTable();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            MERGE dbo.WH_WarehouseMaster AS tgt
-            USING (SELECT @WhCode AS WhCode) AS src
-               ON tgt.WhCode = src.WhCode
+            MERGE dbo.MD_CodeItem AS tgt
+            USING (SELECT CONCAT('WH_CODE_',@WhCode) AS CodeID) AS src ON tgt.CodeID=src.CodeID
             WHEN MATCHED THEN UPDATE SET
-                WhName = @WhName,
-                ActiveFlag = @UseYn,
-                ModifiedBy = 'web',
+                CodeName=@WhName,UseFlag=@UseYn,
+                ModifiedBy = @Actor,
                 ModifiedTS = SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT
-                (WhCode, WhName, ActiveFlag, CreatedBy, CreatedTS)
+                (CodeID,GroupCode,CodeValue,CodeName,SortOrder,UseFlag,CreatedBy,CreatedTS)
             VALUES
-                (@WhCode, @WhName, @UseYn, 'web', SYSDATETIME());
+                (src.CodeID,'WH_CODE',@WhCode,@WhName,100,@UseYn,@Actor,SYSDATETIME());
+
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = Truncate(whCode.Trim(), 20);
-        AddNullable(cmd, "@WhName", SqlDbType.NVarChar, 120, whName);
+        ColumnParams.Add(cmd,"@WhName","MD_CodeItem.CodeName",NullIfBlank(whName));
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
         cmd.ExecuteNonQuery();
     }
@@ -353,57 +416,49 @@ public sealed class WarehouseRepository
         if (string.IsNullOrWhiteSpace(whCode))
             return;
 
-        EnsureWarehouseMasterTable();
         using var conn = _factory.OpenConnection();
         using var check = new SqlCommand("""
             SELECT COUNT(1)
             FROM dbo.MD_Location
-            WHERE PlantCode = @WhCode;
+            WHERE WhCode = @WhCode;
             """, conn);
         check.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = whCode.Trim();
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)
             throw new InvalidOperationException("Warehouse has locations and cannot be deleted.");
 
-        using var area = new SqlCommand("DELETE FROM dbo.WH_AreaMaster WHERE WhCode = @WhCode;", conn);
-        area.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = whCode.Trim();
-        area.ExecuteNonQuery();
-
-        using var cmd = new SqlCommand("DELETE FROM dbo.WH_WarehouseMaster WHERE WhCode = @WhCode;", conn);
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue=@WhCode;", conn);
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = whCode.Trim();
         cmd.ExecuteNonQuery();
     }
 
     public List<WarehouseAreaRow> ListWarehouseAreas(string? search = null, bool includeInactive = false, string? whCode = null)
     {
-        EnsureWarehouseAreaTable();
         var like = Like(search);
         return Query("""
             SELECT
-                A.AreaCode AS AREACD,
-                A.AreaName AS AREANM,
-                A.WhCode AS WHCD,
-                COALESCE(NULLIF(W.WhName, ''), A.WhCode) AS WHNM,
-                CAST(COALESCE(A.ActiveFlag, 1) AS bit) AS USE_YN,
+                A.CodeValue AS AREACD,
+                A.CodeName AS AREANM,
+                A.Attribute1 AS LOCATION_PREFIX,
+                W.CodeValue AS WHCD,
+                COALESCE(NULLIF(W.CodeName,''),W.CodeValue) AS WHNM,
+                CAST(COALESCE(A.UseFlag, 1) AS bit) AS USE_YN,
                 COUNT(DISTINCT L.LocationID) AS LOCATION_COUNT,
-                COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY
-            FROM dbo.WH_AreaMaster A
-            LEFT JOIN dbo.WH_WarehouseMaster W
-                   ON W.WhCode = A.WhCode
+                COALESCE(SUM(S.Qty), 0) AS TOTAL_QTY
+            FROM dbo.MD_CodeItem A
+            LEFT JOIN dbo.MD_CodeItem W ON W.CodeID=A.ParentCodeID AND W.GroupCode='WH_CODE'
             LEFT JOIN dbo.MD_Location L
-                   ON COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = A.AreaCode
-                  AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
+                   ON L.AreaCode=A.CodeValue
+                  AND (@WhCode IS NULL OR L.WhCode = @WhCode)
                   AND COALESCE(L.ActiveFlag, 1) = 1
-            LEFT JOIN dbo.WH_Inventory S
-                   ON S.LocationID = L.LocationID
-                  AND COALESCE(S.OnHandQty, 0) <> 0
-                  AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
-            WHERE (@IncludeInactive = 1 OR COALESCE(A.ActiveFlag, 1) = 1)
-              AND (@WhCode IS NULL OR A.WhCode = @WhCode)
+            LEFT JOIN dbo.WH_Inventory S ON S.LocationNo=L.LocationID AND S.Qty<>0
+            WHERE A.GroupCode='WH_AREA'
+              AND (@IncludeInactive = 1 OR COALESCE(A.UseFlag, 1) = 1)
+              AND (@WhCode IS NULL OR W.CodeValue=@WhCode)
               AND (@Search IS NULL
-                   OR A.AreaCode LIKE @Search
-                   OR A.AreaName LIKE @Search)
-            GROUP BY A.AreaCode, A.AreaName, A.WhCode, W.WhName, A.ActiveFlag
-            ORDER BY A.AreaCode;
+                   OR A.CodeValue LIKE @Search
+                   OR A.CodeName LIKE @Search)
+            GROUP BY A.CodeValue,A.CodeName,A.Attribute1,W.CodeValue,W.CodeName,A.UseFlag,A.SortOrder
+            ORDER BY A.SortOrder,A.CodeValue;
             """, r => new WarehouseAreaRow(
                 GetString(r, "AREACD") ?? "",
                 GetString(r, "AREANM"),
@@ -411,43 +466,47 @@ public sealed class WarehouseRepository
                 GetInt(r, "LOCATION_COUNT"),
                 GetDecimal(r, "TOTAL_QTY"),
                 GetString(r, "WHCD"),
-                GetString(r, "WHNM")),
-            ("@Search", like),
-            ("@IncludeInactive", includeInactive),
-            ("@WhCode", NullIfBlank(whCode)));
+                GetString(r, "WHNM"),
+                GetString(r, "LOCATION_PREFIX")),
+            ("@Search", "MD_CodeItem.CodeName", like),
+            ("@IncludeInactive", null, includeInactive),
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)));
     }
 
     public List<WarehouseSectionRow> ListWarehouseSections(string? areaCode = null, string? search = null, bool includeInactive = false, string? whCode = null)
     {
-        EnsureWarehouseSectionTable();
         var like = Like(search);
         return Query("""
+            WITH ZoneBase AS
+            (
+                SELECT CodeValue AS SectionCode,CodeName AS SectionName,UseFlag,SortOrder
+                FROM dbo.MD_CodeItem WHERE GroupCode='WH_ZONE'
+                UNION
+                SELECT DISTINCT COALESCE(NULLIF(ZoneCode,''),'DEFAULT'),COALESCE(NULLIF(ZoneCode,''),'DEFAULT'),CAST(1 AS bit),999
+                FROM dbo.MD_Location
+            )
             SELECT
-                S.AreaCode AS AREACD,
+                @AreaCode AS AREACD,
                 S.SectionCode AS SECTIONCD,
                 S.SectionName AS SECTIONNM,
-                S.WhCode AS WHCD,
-                CAST(COALESCE(S.ActiveFlag, 1) AS bit) AS USE_YN,
+                @WhCode AS WHCD,
+                CAST(COALESCE(S.UseFlag, 1) AS bit) AS USE_YN,
                 COUNT(DISTINCT L.LocationID) AS LOCATION_COUNT,
-                COALESCE(SUM(I.OnHandQty), 0) AS TOTAL_QTY
-            FROM dbo.WH_AreaSection S
+                COALESCE(SUM(I.Qty), 0) AS TOTAL_QTY
+            FROM ZoneBase S
             LEFT JOIN dbo.MD_Location L
-                   ON COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = S.AreaCode
-                  AND COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = S.SectionCode
-                  AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
+                   ON (@AreaCode IS NULL OR L.AreaCode=@AreaCode)
+                  AND COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = S.SectionCode
+                  AND (@WhCode IS NULL OR L.WhCode = @WhCode)
                   AND COALESCE(L.ActiveFlag, 1) = 1
-            LEFT JOIN dbo.WH_Inventory I
-                   ON I.LocationID = L.LocationID
-                  AND COALESCE(I.OnHandQty, 0) <> 0
-                  AND UPPER(COALESCE(I.Status, 'RECEIVED')) NOT IN ('CANCELED')
-            WHERE (@AreaCode IS NULL OR S.AreaCode = @AreaCode)
-              AND (@WhCode IS NULL OR S.WhCode = @WhCode)
-              AND (@IncludeInactive = 1 OR COALESCE(S.ActiveFlag, 1) = 1)
+            LEFT JOIN dbo.WH_Inventory I ON I.LocationNo=L.LocationID AND I.Qty<>0
+            WHERE (@IncludeInactive = 1 OR COALESCE(S.UseFlag, 1) = 1)
               AND (@Search IS NULL
                    OR S.SectionCode LIKE @Search
                    OR S.SectionName LIKE @Search)
-            GROUP BY S.AreaCode, S.SectionCode, S.SectionName, S.WhCode, S.ActiveFlag
-            ORDER BY S.AreaCode, S.SectionCode;
+            GROUP BY S.SectionCode,S.SectionName,S.UseFlag,S.SortOrder
+            HAVING COUNT(L.LocationID)>0 OR EXISTS(SELECT 1 FROM dbo.MD_CodeItem C WHERE C.GroupCode='WH_ZONE' AND C.CodeValue=S.SectionCode)
+            ORDER BY S.SortOrder,S.SectionCode;
             """, r => new WarehouseSectionRow(
                 GetString(r, "AREACD") ?? "",
                 GetString(r, "SECTIONCD") ?? "",
@@ -456,22 +515,20 @@ public sealed class WarehouseRepository
                 GetInt(r, "LOCATION_COUNT"),
                 GetDecimal(r, "TOTAL_QTY"),
                 GetString(r, "WHCD")),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@Search", like),
-            ("@IncludeInactive", includeInactive),
-            ("@WhCode", NullIfBlank(whCode)));
+            ("@AreaCode", "MD_Location.AreaCode", NullIfBlank(areaCode)),
+            ("@Search", null, like),
+            ("@IncludeInactive", null, includeInactive),
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)));
     }
 
     public bool WarehouseSectionExists(string areaCode, string sectionCode, string? whCode = null)
     {
-        EnsureWarehouseSectionTable();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             SELECT 1
-            FROM dbo.WH_AreaSection
-            WHERE AreaCode = @AreaCode
-              AND SectionCode = @SectionCode
-              AND (@WhCode IS NULL OR WhCode = @WhCode);
+            WHERE EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_ZONE' AND CodeValue=@SectionCode)
+               OR EXISTS(SELECT 1 FROM dbo.MD_Location WHERE AreaCode=@AreaCode AND ZoneCode=@SectionCode
+                         AND (@WhCode IS NULL OR WhCode=@WhCode));
             """, conn);
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
         cmd.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = sectionCode.Trim();
@@ -486,28 +543,23 @@ public sealed class WarehouseRepository
         if (string.IsNullOrWhiteSpace(sectionCode))
             throw new ArgumentException("Section code is required.", nameof(sectionCode));
 
-        EnsureWarehouseSectionTable();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            MERGE dbo.WH_AreaSection AS tgt
-            USING (SELECT @WhCode AS WhCode, @AreaCode AS AreaCode, @SectionCode AS SectionCode) AS src
-               ON tgt.AreaCode = src.AreaCode
-              AND tgt.SectionCode = src.SectionCode
-              AND ISNULL(tgt.WhCode, '') = ISNULL(src.WhCode, '')
+            MERGE dbo.MD_CodeItem AS tgt
+            USING(SELECT CONCAT('WH_ZONE_',@SectionCode) CodeID) src ON src.CodeID=tgt.CodeID
             WHEN MATCHED THEN UPDATE SET
-                SectionName = @SectionName,
-                ActiveFlag = @UseYn,
-                ModifiedBy = 'web',
-                ModifiedTS = SYSDATETIME()
+                CodeName=@SectionName,UseFlag=@UseYn,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT
-                (WhCode, AreaCode, SectionCode, SectionName, ActiveFlag, CreatedBy, CreatedTS)
+                (CodeID,GroupCode,CodeValue,CodeName,SortOrder,UseFlag,CreatedBy,CreatedTS)
             VALUES
-                (@WhCode, @AreaCode, @SectionCode, @SectionName, @UseYn, 'web', SYSDATETIME());
+                (src.CodeID,'WH_ZONE',@SectionCode,@SectionName,100,@UseYn,@Actor,SYSDATETIME());
+
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(Truncate(whCode?.Trim() ?? "", 20)) ?? DBNull.Value;
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = Truncate(areaCode.Trim(), 20);
         cmd.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = Truncate(sectionCode.Trim(), 20);
-        AddNullable(cmd, "@SectionName", SqlDbType.NVarChar, 120, sectionName);
+        ColumnParams.Add(cmd,"@SectionName","MD_CodeItem.CodeName",NullIfBlank(sectionName));
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
         cmd.ExecuteNonQuery();
     }
@@ -517,14 +569,13 @@ public sealed class WarehouseRepository
         if (string.IsNullOrWhiteSpace(areaCode) || string.IsNullOrWhiteSpace(sectionCode))
             return;
 
-        EnsureWarehouseSectionTable();
         using var conn = _factory.OpenConnection();
         using var check = new SqlCommand("""
             SELECT COUNT(1)
             FROM dbo.MD_Location
-            WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode) = @AreaCode
-              AND COALESCE(NULLIF(LocationType, ''), 'DEFAULT') = @SectionCode
-              AND (@WhCode IS NULL OR PlantCode = @WhCode);
+            WHERE AreaCode = @AreaCode
+              AND COALESCE(NULLIF(ZoneCode, ''), 'DEFAULT') = @SectionCode
+              AND (@WhCode IS NULL OR WhCode = @WhCode);
             """, conn);
         check.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
         check.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = sectionCode.Trim();
@@ -533,10 +584,7 @@ public sealed class WarehouseRepository
             throw new InvalidOperationException("Section has locations and cannot be deleted.");
 
         using var cmd = new SqlCommand("""
-            DELETE FROM dbo.WH_AreaSection
-            WHERE AreaCode = @AreaCode
-              AND SectionCode = @SectionCode
-              AND (@WhCode IS NULL OR WhCode = @WhCode);
+            DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_ZONE' AND CodeValue=@SectionCode;
             """, conn);
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
         cmd.Parameters.Add("@SectionCode", SqlDbType.VarChar, 20).Value = sectionCode.Trim();
@@ -546,13 +594,12 @@ public sealed class WarehouseRepository
 
     public bool WarehouseAreaExists(string areaCode, string? whCode = null)
     {
-        EnsureWarehouseAreaTable();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             SELECT 1
-            FROM dbo.WH_AreaMaster
-            WHERE AreaCode = @AreaCode
-              AND (@WhCode IS NULL OR WhCode = @WhCode);
+            FROM dbo.MD_CodeItem A LEFT JOIN dbo.MD_CodeItem W ON W.CodeID=A.ParentCodeID
+            WHERE A.GroupCode='WH_AREA' AND A.CodeValue=@AreaCode
+              AND (@WhCode IS NULL OR W.CodeValue=@WhCode);
             """, conn);
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode;
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
@@ -564,27 +611,27 @@ public sealed class WarehouseRepository
         if (string.IsNullOrWhiteSpace(areaCode))
             throw new ArgumentException("Area code is required.", nameof(areaCode));
 
-        EnsureWarehouseAreaTable();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            MERGE dbo.WH_AreaMaster AS tgt
-            USING (SELECT @WhCode AS WhCode, @AreaCode AS AreaCode) AS src
-               ON tgt.AreaCode = src.AreaCode
-              AND ISNULL(tgt.WhCode, '') = ISNULL(src.WhCode, '')
+            MERGE dbo.MD_CodeItem AS tgt
+            USING (SELECT CONCAT('WH_AREA_',@AreaCode) AS CodeID) AS src ON tgt.CodeID=src.CodeID
             WHEN MATCHED THEN UPDATE SET
-                WhCode = @WhCode,
-                AreaName = @AreaName,
-                ActiveFlag = @UseYn,
-                ModifiedBy = 'web',
+                ParentCodeID=CASE WHEN @WhCode IS NULL THEN NULL ELSE CONCAT('WH_CODE_',@WhCode) END,
+                CodeName=@AreaName,UseFlag=@UseYn,
+                ModifiedBy = @Actor,
                 ModifiedTS = SYSDATETIME()
             WHEN NOT MATCHED THEN INSERT
-                (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy, CreatedTS)
+                (CodeID,GroupCode,CodeValue,CodeName,ParentCodeID,SortOrder,UseFlag,CreatedBy,CreatedTS)
             VALUES
-                (@WhCode, @AreaCode, @AreaName, @UseYn, 'web', SYSDATETIME());
+                (src.CodeID,'WH_AREA',@AreaCode,@AreaName,
+                 CASE WHEN @WhCode IS NULL THEN NULL ELSE CONCAT('WH_CODE_',@WhCode) END,
+                 100,@UseYn,@Actor,SYSDATETIME());
+
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(Truncate(whCode?.Trim() ?? "", 20)) ?? DBNull.Value;
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = Truncate(areaCode.Trim(), 20);
-        AddNullable(cmd, "@AreaName", SqlDbType.NVarChar, 120, areaName);
+        ColumnParams.Add(cmd,"@AreaName","MD_CodeItem.CodeName",NullIfBlank(areaName));
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
         cmd.ExecuteNonQuery();
     }
@@ -594,37 +641,108 @@ public sealed class WarehouseRepository
         if (string.IsNullOrWhiteSpace(areaCode))
             return;
 
-        EnsureWarehouseAreaTable();
-        EnsureAreaLayoutTable();
-
         using var conn = _factory.OpenConnection();
         using var check = new SqlCommand("""
             SELECT COUNT(1)
             FROM dbo.MD_Location
-            WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode) = @AreaCode
-              AND (@WhCode IS NULL OR PlantCode = @WhCode);
+            WHERE AreaCode = @AreaCode
+              AND (@WhCode IS NULL OR WhCode = @WhCode);
             """, conn);
         check.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
         check.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)
             throw new InvalidOperationException("Area has locations and cannot be deleted.");
 
-        using var layout = new SqlCommand("""
-            DELETE FROM dbo.WH_AreaLayout
-            WHERE AREACD = @OldLayoutKey
-               OR AREACD = @LayoutKey
-               OR (@WhCode IS NULL AND AREACD LIKE @AnyWhLayoutKey);
-            """, conn);
-        layout.Parameters.Add("@OldLayoutKey", SqlDbType.NVarChar, 80).Value = OldAreaLayoutKey(areaCode);
-        layout.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = AreaLayoutKey(whCode ?? "", areaCode);
-        layout.Parameters.Add("@AnyWhLayoutKey", SqlDbType.NVarChar, 80).Value = $"AREA|%|{areaCode.Trim()}";
-        layout.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
-        layout.ExecuteNonQuery();
-
-        using var cmd = new SqlCommand("DELETE FROM dbo.WH_AreaMaster WHERE AreaCode = @AreaCode AND (@WhCode IS NULL OR WhCode = @WhCode);", conn);
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@AreaCode;", conn);
         cmd.Parameters.Add("@AreaCode", SqlDbType.VarChar, 20).Value = areaCode.Trim();
         cmd.Parameters.Add("@WhCode", SqlDbType.VarChar, 20).Value = (object?)NullIfBlank(whCode) ?? DBNull.Value;
         cmd.ExecuteNonQuery();
+    }
+
+    public record LocationMapDeleteImpact(int Locations, int StockRows, decimal StockQty);
+
+    public LocationMapDeleteImpact GetLocationMapDeleteImpact(string whCode, string? areaCode, string? floor = null)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT COUNT(DISTINCT l.LocationID), COUNT(i.LotNo), COALESCE(SUM(ABS(i.Qty)),0)
+            FROM dbo.MD_Location l
+            LEFT JOIN dbo.WH_Inventory i ON i.LocationNo=l.LocationID
+            WHERE l.WhCode=@Wh AND (@Area IS NULL OR l.AreaCode=@Area) AND (@Floor IS NULL OR l.Slot=@Floor);
+            """, conn);
+        cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+        cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = (object?)areaCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = (object?)floor ?? DBNull.Value;
+        using var r = cmd.ExecuteReader();
+        r.Read();
+        return new(r.GetInt32(0), r.GetInt32(1), r.GetDecimal(2));
+    }
+
+    public void DeleteLocationMapScope(string whCode, string? areaCode, string? floor = null)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        using var cmd = new SqlCommand("""
+            SET XACT_ABORT ON;
+            SET QUOTED_IDENTIFIER ON;
+            SET ANSI_NULLS ON;
+            SET ANSI_WARNINGS ON;
+            SET ANSI_PADDING ON;
+            SET CONCAT_NULL_YIELDS_NULL ON;
+            SET ARITHABORT ON;
+            SET NUMERIC_ROUNDABORT OFF;
+            IF @Area IS NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK) WHERE GroupCode='WH_CODE' AND CodeValue=@Wh)
+                    THROW 51020,'Warehouse no longer exists.',1;
+            END
+            ELSE IF NOT EXISTS (SELECT 1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK)
+                                WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh))
+                THROW 51021,'Area no longer exists in this warehouse.',1;
+            IF @Floor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK)
+                                                  WHERE WhCode=@Wh AND AreaCode=@Area AND Slot=@Floor AND ActiveFlag=1)
+                THROW 51029,'Floor no longer exists in this area.',1;
+            IF @Area IS NULL AND EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE ParentCodeID=CONCAT('WH_CODE_',@Wh) AND GroupCode<>'WH_AREA')
+                THROW 51026,'Warehouse contains other linked master codes.',1;
+            IF @Area IS NULL AND EXISTS (SELECT 1 FROM dbo.MD_CodeItem child JOIN dbo.MD_CodeItem area ON area.CodeID=child.ParentCodeID
+                                         WHERE area.GroupCode='WH_AREA' AND area.ParentCodeID=CONCAT('WH_CODE_',@Wh))
+                THROW 51028,'A warehouse area contains linked master codes.',1;
+            IF @Floor IS NULL AND @Area IS NOT NULL AND EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE ParentCodeID=CONCAT('WH_AREA_',@Area))
+                THROW 51027,'Area contains linked master codes.',1;
+
+            SELECT LocationID INTO #Scope FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK)
+            WHERE WhCode=@Wh AND (@Area IS NULL OR AreaCode=@Area) AND (@Floor IS NULL OR Slot=@Floor);
+            IF EXISTS (SELECT 1 FROM dbo.WH_Inventory i WITH (UPDLOCK,HOLDLOCK)
+                       JOIN #Scope s ON s.LocationID=i.LocationNo)
+                THROW 51022,'Inventory was found. Move it before deleting this scope.',1;
+            IF EXISTS (SELECT 1 FROM dbo.MNT_SparePartItem p JOIN #Scope s ON s.LocationID=p.LocationID)
+                THROW 51023,'A spare part is linked to a location. Move it before deleting this scope.',1;
+            IF EXISTS (SELECT 1 FROM dbo.WH_Inventory child
+                       WHERE child.ParentLotNo IN (SELECT i.LotNo FROM dbo.WH_Inventory i JOIN #Scope s ON s.LocationID=i.LocationNo)
+                         AND child.LocationNo NOT IN (SELECT LocationID FROM #Scope))
+                THROW 51024,'Inventory contains units linked to locations outside this scope.',1;
+            IF EXISTS (SELECT 1 FROM dbo.WH_Inventory child JOIN #Scope s ON s.LocationID=child.LocationNo
+                       WHERE child.ParentLotNo IS NOT NULL AND EXISTS (
+                           SELECT 1 FROM dbo.WH_Inventory parent WHERE parent.LotNo=child.ParentLotNo
+                             AND parent.LocationNo NOT IN (SELECT LocationID FROM #Scope)))
+                THROW 51025,'Inventory is linked to a parent outside this scope.',1;
+
+            UPDATE l SET ActiveFlag=0, ModifiedBy=@Actor, ModifiedTS=SYSDATETIME()
+            FROM dbo.MD_Location l JOIN #Scope s ON s.LocationID=l.LocationID;
+            IF @Floor IS NULL AND @Area IS NULL
+            BEGIN
+                DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND ParentCodeID=CONCAT('WH_CODE_',@Wh);
+                DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue=@Wh;
+            END
+            IF @Floor IS NULL AND @Area IS NOT NULL
+                DELETE FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);
+            """, conn, tx);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
+        cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+        cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = (object?)areaCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = (object?)floor ?? DBNull.Value;
+        cmd.ExecuteNonQuery();
+        tx.Commit();
     }
 
     public bool LocationExists(string locationNo)
@@ -632,8 +750,17 @@ public sealed class WarehouseRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "SELECT 1 FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn);
-        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
+        ColumnParams.AddFilter(cmd,"@LocationNo","MD_Location.LocationID",locationNo);
         return cmd.ExecuteScalar() is not null;
+    }
+
+    public decimal GetLocationStockQty(string locationNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "SELECT COALESCE(SUM(Qty),0) FROM dbo.WH_Inventory WHERE LocationNo=@LocationNo AND Qty>0;", conn);
+        ColumnParams.AddFilter(cmd, "@LocationNo", "WH_Inventory.LocationNo", locationNo);
+        return Convert.ToDecimal(cmd.ExecuteScalar());
     }
 
     public void InsertLocation(
@@ -653,12 +780,14 @@ public sealed class WarehouseRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Location
-                (LocationID, LocationName, ZoneCode, Aisle, Bay, Slot,
+                (LocationID, LocationName, WhCode, AreaCode, ZoneCode, Aisle, Bay, Slot,
                  LocationType, PlantCode, ActiveFlag, CreatedBy, CreatedTS)
             VALUES
-                (@LocationNo, @LocationName, @ZoneCode, @RackX, @RackY, @RackZ,
-                 @LocationType, @PlantCode, @UseYn, 'web', SYSDATETIME());
+                (@LocationNo, @LocationName, @WhCode, @AreaCode, @ZoneCode, @RackX, @RackY, @RackZ,
+                 @LocationType, @PlantCode, @UseYn, @Actor, SYSDATETIME());
+
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
         AddLocationParameters(cmd, locationNo, locationName, whCode,
             areaCode, areaName, zoneCode, zoneName, rackX, rackY, rackZ, useYn);
         cmd.ExecuteNonQuery();
@@ -682,6 +811,8 @@ public sealed class WarehouseRepository
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Location
             SET LocationName = @LocationName,
+                WhCode = @WhCode,
+                AreaCode = @AreaCode,
                 ZoneCode = @ZoneCode,
                 Aisle = @RackX,
                 Bay = @RackY,
@@ -689,10 +820,12 @@ public sealed class WarehouseRepository
                 LocationType = @LocationType,
                 PlantCode = @PlantCode,
                 ActiveFlag = @UseYn,
-                ModifiedBy = 'web',
+                ModifiedBy = @Actor,
                 ModifiedTS = SYSDATETIME()
             WHERE LocationID = @LocationNo;
             """, conn);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
+
         AddLocationParameters(cmd, locationNo, locationName, whCode,
             areaCode, areaName, zoneCode, zoneName, rackX, rackY, rackZ, useYn);
         cmd.ExecuteNonQuery();
@@ -701,15 +834,17 @@ public sealed class WarehouseRepository
     public void DeleteLocation(string locationNo)
     {
         using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
         using var check = new SqlCommand(
-            "SELECT COUNT(1) FROM dbo.WH_Inventory WHERE LocationID = @LocationNo AND COALESCE(OnHandQty, 0) <> 0;", conn);
-        check.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
+            "SELECT COUNT(1) FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LocationNo=@LocationNo AND Qty<>0;", conn, tx);
+        ColumnParams.AddFilter(check,"@LocationNo","WH_Inventory.LocationNo",locationNo);
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)
             throw new InvalidOperationException("Location has inventory and cannot be deleted.");
 
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn);
-        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = locationNo;
+        using var cmd = new SqlCommand("DELETE FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn, tx);
+        ColumnParams.AddFilter(cmd,"@LocationNo","MD_Location.LocationID",locationNo);
         cmd.ExecuteNonQuery();
+        tx.Commit();
     }
 
     public void UpdateOrInsertLocation(
@@ -748,9 +883,220 @@ public sealed class WarehouseRepository
         }
     }
 
+    public void SaveLocationMapAreaPrefix(string whCode, string areaCode, string prefix, string? areaName = null)
+    {
+        prefix = prefix.Trim().ToUpperInvariant();
+        if (!LocationMapNaming.ValidPrefix(prefix))
+            throw new ArgumentException("Area prefix must be two letters (A–Z).");
+        if (areaCode.Length is < 1 or > 20 || whCode.Length is < 1 or > 20)
+            throw new ArgumentException("Invalid warehouse or area code.");
+        if (areaName is not null && !areaCode.Equals(prefix, StringComparison.Ordinal))
+            throw new ArgumentException("New Area Code must match its two-letter prefix.");
+
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        using var cmd = new SqlCommand("""
+            IF NOT EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue=@Wh AND COALESCE(UseFlag,1)=1)
+                THROW 51000, 'Warehouse does not exist.', 1;
+            IF EXISTS (SELECT 1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK)
+                       WHERE GroupCode='WH_AREA' AND (Attribute1=@Prefix OR (LEN(CodeValue)=2 AND CodeValue=@Prefix)) AND CodeValue<>@Area)
+                THROW 51001, 'Area prefix is already in use.', 1;
+            IF EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Area)
+            BEGIN
+                IF @Name IS NOT NULL THROW 51002, 'Area code already exists.', 1;
+                IF EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Area
+                           AND NULLIF(Attribute1,'') IS NOT NULL AND Attribute1<>@Prefix)
+                   AND EXISTS (SELECT 1 FROM dbo.MD_Location WHERE AreaCode=@Area)
+                    THROW 51005, 'Area prefix cannot change after locations are created.', 1;
+                UPDATE dbo.MD_CodeItem SET Attribute1=@Prefix,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
+                WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);
+
+                IF @@ROWCOUNT=0 THROW 51003, 'Area is not in this warehouse.', 1;
+            END
+            ELSE
+            BEGIN
+                IF @Name IS NULL THROW 51004, 'Area does not exist.', 1;
+                INSERT dbo.MD_CodeItem
+                    (CodeID,GroupCode,CodeValue,CodeName,ParentCodeID,Attribute1,SortOrder,UseFlag,CreatedBy,CreatedTS)
+                VALUES (CONCAT('WH_AREA_',@Area),'WH_AREA',@Area,@Name,CONCAT('WH_CODE_',@Wh),@Prefix,100,1,@Actor,SYSDATETIME());
+            END
+            """, conn, tx);
+        ColumnParams.Add(cmd, "@Actor", "MD_Location.CreatedBy", _actor());
+        cmd.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+        cmd.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+        cmd.Parameters.Add("@Prefix", SqlDbType.NVarChar, 200).Value = prefix;
+        ColumnParams.Add(cmd,"@Name","MD_CodeItem.CodeName",areaName);
+        cmd.ExecuteNonQuery();
+        tx.Commit();
+    }
+
+    public string AddLocationMapAxis(string whCode, string areaCode, string kind, string? floor, string? name = null, decimal? capacity = null)
+    {
+        if (kind is not ("Floor" or "Row" or "Column"))
+            throw new ArgumentException("Invalid map axis.");
+        if (name?.Length > 60) throw new ArgumentException("Location name is too long.");
+        if (capacity is < 0 or > 9999999.999m)
+            throw new ArgumentOutOfRangeException(nameof(capacity), "Load Capacity must be between 0 and 9,999,999.999.");
+
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        string prefix;
+        using (var area = new SqlCommand("""
+            SELECT COALESCE(Attribute1,'') FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK)
+            WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh) AND COALESCE(UseFlag,1)=1;
+            """, conn, tx))
+        {
+            area.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            area.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            prefix = area.ExecuteScalar() as string ?? throw new InvalidOperationException("Area does not exist in this warehouse.");
+        }
+        if (!LocationMapNaming.ValidPrefix(prefix))
+        {
+            var used = new List<string?>();
+            using (var readPrefixes = new SqlCommand("SELECT CodeValue,Attribute1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK) WHERE GroupCode='WH_AREA' AND CodeValue<>@Area;", conn, tx))
+            {
+                readPrefixes.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+                using var reader = readPrefixes.ExecuteReader();
+                while (reader.Read())
+                {
+                    if (reader.GetString(0).Length == 2) used.Add(reader.GetString(0));
+                    if (!reader.IsDBNull(1)) used.Add(reader.GetString(1));
+                }
+            }
+            prefix = LocationMapNaming.AvailablePrefix(areaCode, used);
+            using var savePrefix = new SqlCommand("UPDATE dbo.MD_CodeItem SET Attribute1=@Prefix,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh);", conn, tx);
+            ColumnParams.Add(savePrefix, "@Actor", "MD_Location.CreatedBy", _actor());
+            savePrefix.Parameters.Add("@Prefix", SqlDbType.NVarChar, 200).Value = prefix;
+            savePrefix.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            savePrefix.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            savePrefix.ExecuteNonQuery();
+        }
+        var existing = new List<(string Row, string Column, string Floor)>();
+        using (var read = new SqlCommand("SELECT Aisle,Bay,Slot FROM dbo.MD_Location WHERE WhCode=@Wh AND AreaCode=@Area;", conn, tx))
+        {
+            read.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            read.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            using var reader = read.ExecuteReader();
+            while (reader.Read())
+                existing.Add((reader.IsDBNull(0) ? "" : reader.GetString(0), reader.IsDBNull(1) ? "" : reader.GetString(1), reader.IsDBNull(2) ? "" : reader.GetString(2)));
+        }
+
+        var plan = LocationMapNaming.PlanAxis(existing, kind, floor);
+        var cells = LocationMapNaming.MissingCells(existing, plan);
+        if (cells.Count is 0 or > 1000) throw new InvalidOperationException("Add at most 1,000 locations at a time.");
+        var planned = plan.Cells.ToHashSet();
+
+        foreach (var cell in cells)
+        {
+            if (cell.Column.Length is < 2 or > 5 || !int.TryParse(cell.Column, out var x) || x < 1
+                || LocationMapNaming.YOrder(cell.Row) == 0
+                || cell.Floor.Length is < 2 or > 5 || cell.Floor[0] != 'F' || !int.TryParse(cell.Floor[1..], out var level) || level < 1)
+                throw new InvalidOperationException("Generated coordinates must use X=01, Y=A1, Floor=F1 format.");
+            var id = LocationMapNaming.LocationNo(prefix, cell.Column, cell.Row, cell.Floor);
+            using var insert = new SqlCommand("""
+                INSERT INTO dbo.MD_Location
+                    (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,Capacity,LocationType,ActiveFlag,CreatedBy)
+                VALUES (@Id,@Name,@Wh,@Area,@Row,@Column,@Floor,@Capacity,CASE WHEN UPPER(@Area)='FG_AREA' THEN 'FG' END,1,@Actor);
+
+                """, conn, tx);
+            ColumnParams.Add(insert, "@Actor", "MD_Location.CreatedBy", _actor());
+            insert.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
+            ColumnParams.Add(insert,"@Name","MD_Location.LocationName",planned.Contains(cell) && !string.IsNullOrWhiteSpace(name) ? name.Trim() : id);
+            insert.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            insert.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            insert.Parameters.Add("@Row", SqlDbType.VarChar, 5).Value = cell.Row;
+            insert.Parameters.Add("@Column", SqlDbType.VarChar, 5).Value = cell.Column;
+            insert.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = cell.Floor;
+            var capacityParameter = insert.Parameters.Add("@Capacity", SqlDbType.Decimal);
+            capacityParameter.Precision = 10;
+            capacityParameter.Scale = 3;
+            capacityParameter.Value = planned.Contains(cell) ? (object?)capacity ?? DBNull.Value : DBNull.Value;
+            insert.ExecuteNonQuery();
+        }
+        tx.Commit();
+        return plan.Floor;
+    }
+
+    public void SetLocationMapGrid(string whCode, string areaCode, string floor, int aisles, int bays)
+    {
+        if (LocationMapNaming.FloorCode(floor) != floor || aisles < 1 || bays < 1 || (long)aisles * bays > 1000)
+            throw new ArgumentException("Grid must contain 1 to 1,000 locations on a valid floor.");
+
+        using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        string prefix;
+        using (var area = new SqlCommand("SELECT Attribute1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK) WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh) AND COALESCE(UseFlag,1)=1;", conn, tx))
+        {
+            area.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            area.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            prefix = area.ExecuteScalar() as string ?? throw new InvalidOperationException("Select a registered Area first.");
+        }
+        if (!LocationMapNaming.ValidPrefix(prefix)) throw new InvalidOperationException("Area needs a two-letter location prefix.");
+
+        var existing = new List<(string Id, string Aisle, string Bay, bool Active)>();
+        using (var read = new SqlCommand("SELECT LocationID,Aisle,Bay,ActiveFlag FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK) WHERE WhCode=@Wh AND AreaCode=@Area AND Slot=@Floor;", conn, tx))
+        {
+            read.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            read.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            read.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = floor;
+            using var reader = read.ExecuteReader();
+            while (reader.Read()) existing.Add((reader.GetString(0), reader.IsDBNull(1) ? "" : reader.GetString(1), reader.IsDBNull(2) ? "" : reader.GetString(2), reader.IsDBNull(3) || reader.GetBoolean(3)));
+        }
+        var wanted = (from row in Enumerable.Range(1, aisles)
+                      from column in Enumerable.Range(1, bays)
+                      select (Aisle: LocationMapNaming.YCode(row), Bay: column.ToString("D2"))).ToHashSet();
+        var removing = existing.Where(x => x.Active && !wanted.Contains((x.Aisle, x.Bay))).Select(x => x.Id).ToList();
+        foreach (var id in removing)
+        {
+            using var check = new SqlCommand("""
+                SELECT CASE WHEN EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LocationNo=@Id AND Qty<>0)
+                    OR EXISTS(SELECT 1 FROM dbo.MNT_SparePartItem WHERE LocationID=@Id)
+                    THEN 1 ELSE 0 END;
+                """, conn, tx);
+            check.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
+            if (Convert.ToInt32(check.ExecuteScalar()) != 0)
+                throw new InvalidOperationException($"Cannot reduce the grid: location {id} contains stock or linked parts.");
+        }
+        foreach (var id in removing)
+        {
+            using var remove = new SqlCommand("""
+                IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LocationNo=@Id)
+                   OR EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction WHERE LocationNo=@Id)
+                    UPDATE dbo.MD_Location SET ActiveFlag=0 WHERE LocationID=@Id;
+                ELSE DELETE FROM dbo.MD_Location WHERE LocationID=@Id;
+                """, conn, tx);
+            remove.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
+            remove.ExecuteNonQuery();
+        }
+        foreach (var row in existing.Where(x => !x.Active && wanted.Contains((x.Aisle, x.Bay))))
+        {
+            using var reactivate = new SqlCommand("UPDATE dbo.MD_Location SET ActiveFlag=1 WHERE LocationID=@Id;", conn, tx);
+            reactivate.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = row.Id;
+            reactivate.ExecuteNonQuery();
+        }
+        var occupied = existing.Where(x => !removing.Contains(x.Id)).Select(x => (x.Aisle, x.Bay)).ToHashSet();
+        foreach (var cell in wanted.Where(x => !occupied.Contains(x)))
+        {
+            var id = LocationMapNaming.LocationNo(prefix, cell.Bay, cell.Aisle, floor);
+            using var insert = new SqlCommand("""
+                INSERT dbo.MD_Location (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,LocationType,ActiveFlag,CreatedBy)
+                VALUES (@Id,@Id,@Wh,@Area,@Aisle,@Bay,@Floor,CASE WHEN UPPER(@Area)='FG_AREA' THEN 'FG' END,1,@Actor);
+
+                """, conn, tx);
+            ColumnParams.Add(insert, "@Actor", "MD_Location.CreatedBy", _actor());
+            insert.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
+            insert.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
+            insert.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
+            insert.Parameters.Add("@Aisle", SqlDbType.VarChar, 5).Value = cell.Aisle;
+            insert.Parameters.Add("@Bay", SqlDbType.VarChar, 5).Value = cell.Bay;
+            insert.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = floor;
+            insert.ExecuteNonQuery();
+        }
+        tx.Commit();
+    }
+
     public List<PickingOrderRow> ListPickingOrders(string? search = null, bool includeClosed = true)
     {
-        EnsureReleaseSchedulePickingSlipColumns();
         var headers = ListPickingSlipHeaders(search, includeClosed);
         var rows = new List<PickingOrderRow>();
         foreach (var h in headers)
@@ -780,21 +1126,21 @@ public sealed class WarehouseRepository
 
     public List<PickingSlipHeaderRow> ListPickingSlipHeaders(string? search = null, bool includeClosed = true)
     {
-        EnsureReleaseSchedulePickingSlipColumns();
         var like = Like(search);
         return Query("""
             ;WITH Lines AS
             (
                 SELECT
-                    COALESCE(NULLIF(O.PickSlipNo, N''), CONCAT(N'RS-', O.ReleaseScheduleID)) AS PICK_SLIPNO,
+                    COALESCE(NULLIF(O.PickSlipNo, N''), CONCAT(N'RS-', O.PickSlipID)) AS PICK_SLIPNO,
                     CONVERT(varchar(10), O.RequiredAt, 23) AS REQ_DATE,
                     COALESCE(NULLIF(O.ReqLocation, N''), N'-') AS REQ_LOCATION,
                     COALESCE(NULLIF(O.ReqUserId, N''), O.CreatedBy) AS REQ_USERID,
                     CONVERT(varchar(8), CONVERT(time(0), COALESCE(O.CreatedTS, O.RequiredAt))) AS REQ_TIME,
                     O.PrintDate,
-                    O.ReleaseScheduleID,
+                    O.PickSlipID,
                     O.ItemNo,
                     I.ItemName,
+                    CASE WHEN O.CreatedBy='WH-AUTO' THEN 'EA' ELSE 'BOX' END AS QUANTITY_UNIT,
                     COALESCE(O.DemandQty, 0) AS REQ_BOX_QTY,
                     COALESCE(O.PickedQty, 0) AS PICKED_QTY,
                     CASE
@@ -803,7 +1149,7 @@ public sealed class WarehouseRepository
                         WHEN COALESCE(O.PickedQty, 0) > 0 THEN N'Partial'
                         ELSE N'Open'
                     END AS LINE_STATUS
-                FROM dbo.WH_ReleaseSchedule O
+                FROM dbo.WH_PickSlip O
                 LEFT JOIN dbo.MD_Item I
                        ON I.ItemNo = O.ItemNo
             ),
@@ -821,7 +1167,7 @@ public sealed class WarehouseRepository
                     SUM(CASE WHEN LINE_STATUS = N'Closed' THEN 1 ELSE 0 END) AS CLOSED_LINES,
                     SUM(CASE WHEN LINE_STATUS = N'Picked' THEN 1 ELSE 0 END) AS PICKED_LINES,
                     SUM(CASE WHEN LINE_STATUS = N'Partial' THEN 1 ELSE 0 END) AS PARTIAL_LINES,
-                    MIN(ReleaseScheduleID) AS FIRST_ID
+                    MIN(PickSlipID) AS FIRST_ID
                 FROM Lines
                 GROUP BY PICK_SLIPNO
             ),
@@ -849,6 +1195,7 @@ public sealed class WarehouseRepository
                 G.LINE_COUNT,
                 G.REQ_BOX_QTY,
                 G.PICKED_QTY,
+                L.QUANTITY_UNIT,
                 L.ItemNo AS FIRST_PARTNO,
                 L.ItemName AS FIRST_PARTNM,
                 CASE
@@ -863,7 +1210,7 @@ public sealed class WarehouseRepository
                    AND R.RN = 1
             LEFT JOIN Lines L
                    ON L.PICK_SLIPNO = G.PICK_SLIPNO
-                  AND L.ReleaseScheduleID = G.FIRST_ID
+                  AND L.PickSlipID = G.FIRST_ID
             WHERE (@IncludeClosed = 1 OR G.CLOSED_LINES <> G.LINE_COUNT)
               AND (@Search IS NULL
                    OR G.PICK_SLIPNO LIKE @Search
@@ -884,21 +1231,21 @@ public sealed class WarehouseRepository
                 GetDecimal(r, "REQ_BOX_QTY"),
                 GetDecimal(r, "PICKED_QTY"),
                 GetString(r, "FIRST_PARTNO"),
-                GetString(r, "FIRST_PARTNM")),
-            ("@Search", like),
-            ("@IncludeClosed", includeClosed));
+                GetString(r, "FIRST_PARTNM"),
+                GetString(r, "QUANTITY_UNIT") ?? "BOX"),
+            ("@Search", null, like),
+            ("@IncludeClosed", null, includeClosed));
     }
 
     public List<PickingSlipLineRow> ListPickingSlipLines(string pickSlipNo)
     {
-        EnsureReleaseSchedulePickingSlipColumns();
         return Query("""
             ;WITH Base AS
             (
                 SELECT
-                    COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) AS PICK_SLIPNO,
-                    COALESCE(RS.ReqSeqNo, ROW_NUMBER() OVER (PARTITION BY COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) ORDER BY RS.ReleaseScheduleID)) AS SEQNO,
-                    RS.ReleaseScheduleID,
+                    COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) AS PICK_SLIPNO,
+                    COALESCE(RS.ReqSeqNo, ROW_NUMBER() OVER (PARTITION BY COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) ORDER BY RS.PickSlipID)) AS SEQNO,
+                    RS.PickSlipID,
                     RS.ItemNo,
                     COALESCE(I.ItemName, RS.ItemNo) AS ItemName,
                     COALESCE(RS.DemandQty, 0) AS DemandQty,
@@ -906,72 +1253,42 @@ public sealed class WarehouseRepository
                     COALESCE(NULLIF(RS.ReqUserId, N''), RS.CreatedBy) AS RequestUserId,
                     NULLIF(RS.ReqLocation, N'') AS LineCode,
                     COALESCE(ML.LineName, NULLIF(RS.ReqLocation, N'')) AS LineName,
-                    RS.Status
-                FROM dbo.WH_ReleaseSchedule RS
+                    RS.Status,
+                    CASE WHEN RS.CreatedBy='WH-AUTO' THEN 'EA' ELSE 'BOX' END AS QUANTITY_UNIT
+                FROM dbo.WH_PickSlip RS
                 LEFT JOIN dbo.MD_Item I
                        ON I.ItemNo = RS.ItemNo
                 LEFT JOIN dbo.MD_Line ML
                        ON ML.LineID = RS.ReqLocation
-                WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.ReleaseScheduleID)) = @PickSlipNo
+                WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) = @PickSlipNo
             ),
             PickedPhysical AS
             (
-                SELECT P.ReleaseScheduleID, SUM(COALESCE(P.PickedQty, 0)) AS PickedQty
-                FROM dbo.WH_ReleasePicking P
+                SELECT T.SourceID AS PickSlipID, SUM(-COALESCE(T.QtyChange,0)) AS PickedQty
+                FROM dbo.WH_InventoryTransaction T
                 INNER JOIN Base B
-                        ON B.ReleaseScheduleID = P.ReleaseScheduleID
-                GROUP BY P.ReleaseScheduleID
-            ),
-            AllocationLocations AS
-            (
-                SELECT
-                    A.ReleaseScheduleID,
-                    CONCAT(COALESCE(NULLIF(ML.ZoneCode, N''), N'-'), N'|', A.LocationID) AS LocationLabel,
-                    SUM(A.AllocatedQty) AS AllocatedQty,
-                    ROW_NUMBER() OVER
-                    (
-                        PARTITION BY A.ReleaseScheduleID
-                        ORDER BY MIN(COALESCE(A.ProductionDate, CONVERT(datetime2, '9999-12-31'))),
-                                 A.LocationID
-                    ) AS RN
-                FROM dbo.WH_ReleasePickAllocation A
-                LEFT JOIN dbo.MD_Location ML
-                       ON ML.LocationID = A.LocationID
-                INNER JOIN Base B
-                        ON B.ReleaseScheduleID = A.ReleaseScheduleID
-                GROUP BY A.ReleaseScheduleID, A.LocationID, ML.ZoneCode
-            ),
-            Locations AS
-            (
-                SELECT
-                    ReleaseScheduleID,
-                    MAX(CASE WHEN RN = 1 THEN LocationLabel END) AS LOC_01,
-                    MAX(CASE WHEN RN = 1 THEN AllocatedQty END) AS LOC_01_QTY,
-                    MAX(CASE WHEN RN = 2 THEN LocationLabel END) AS LOC_02,
-                    MAX(CASE WHEN RN = 2 THEN AllocatedQty END) AS LOC_02_QTY,
-                    MAX(CASE WHEN RN = 3 THEN LocationLabel END) AS LOC_03,
-                    MAX(CASE WHEN RN = 3 THEN AllocatedQty END) AS LOC_03_QTY
-                FROM AllocationLocations
-                WHERE RN <= 3
-                GROUP BY ReleaseScheduleID
+                        ON B.PickSlipID=T.SourceID
+                WHERE T.TransactionType='OUT' AND T.SourceType='PICK_SLIP'
+                GROUP BY T.SourceID
             )
             SELECT
                 B.PICK_SLIPNO,
                 B.SEQNO,
                 B.ItemNo AS PARTNO,
                 B.ItemName AS PARTNM,
+                B.QUANTITY_UNIT,
                 B.DemandQty AS REQ_BOX_QTY,
                 B.PickedQty AS PICKED_BOX_QTY,
                 COALESCE(P.PickedQty, 0) AS PICKED_QTY,
                 B.RequestUserId AS REQ_USERID,
                 B.LineCode AS LINECD,
                 B.LineName AS LINENM,
-                L.LOC_01,
-                COALESCE(L.LOC_01_QTY, 0) AS LOC_01_QTY,
-                L.LOC_02,
-                COALESCE(L.LOC_02_QTY, 0) AS LOC_02_QTY,
-                L.LOC_03,
-                COALESCE(L.LOC_03_QTY, 0) AS LOC_03_QTY,
+                CAST(NULL AS nvarchar(50)) AS LOC_01,
+                CAST(0 AS decimal(14,3)) AS LOC_01_QTY,
+                CAST(NULL AS nvarchar(50)) AS LOC_02,
+                CAST(0 AS decimal(14,3)) AS LOC_02_QTY,
+                CAST(NULL AS nvarchar(50)) AS LOC_03,
+                CAST(0 AS decimal(14,3)) AS LOC_03_QTY,
                 CASE
                     WHEN UPPER(COALESCE(B.Status, 'OPEN')) IN ('CLOSED', 'CANCELED') THEN N'Closed'
                     WHEN B.DemandQty > 0 AND B.PickedQty >= B.DemandQty THEN N'Picked'
@@ -980,10 +1297,8 @@ public sealed class WarehouseRepository
                 END AS STATUS
             FROM Base B
             LEFT JOIN PickedPhysical P
-                   ON P.ReleaseScheduleID = B.ReleaseScheduleID
-            LEFT JOIN Locations L
-                   ON L.ReleaseScheduleID = B.ReleaseScheduleID
-            ORDER BY B.SEQNO, B.ReleaseScheduleID;
+                   ON P.PickSlipID = B.PickSlipID
+            ORDER BY B.SEQNO, B.PickSlipID;
             """, r => new PickingSlipLineRow(
                 GetString(r, "PICK_SLIPNO") ?? pickSlipNo,
                 GetInt(r, "SEQNO"),
@@ -1001,8 +1316,9 @@ public sealed class WarehouseRepository
                 GetDecimal(r, "LOC_02_QTY"),
                 GetString(r, "LOC_03"),
                 GetDecimal(r, "LOC_03_QTY"),
-                GetString(r, "STATUS") ?? "Open"),
-            ("@PickSlipNo", pickSlipNo.Trim()));
+                GetString(r, "STATUS") ?? "Open",
+                GetString(r, "QUANTITY_UNIT") ?? "BOX"),
+            ("@PickSlipNo", "WH_PickSlip.PickSlipID", pickSlipNo.Trim()));
     }
 
     public List<PickingSlipCandidateRow> ListPickingSlipCandidates(DateTime reqDate, string? lineCode = null, string? partNo = null)
@@ -1052,7 +1368,7 @@ public sealed class WarehouseRepository
                     I.DefaultUOM AS UNIT,
                     CAST(1 AS decimal(14, 3)) AS UNIT_PACK_QTY,
                     SUM(COALESCE(RS.DemandQty, 0)) AS REQ_QTY
-                FROM dbo.WH_ReleaseSchedule RS
+                FROM dbo.WH_PickSlip RS
                 LEFT JOIN dbo.MD_Line ML
                        ON ML.LineID = RS.ReqLocation
                 LEFT JOIN dbo.MD_Item I
@@ -1095,9 +1411,9 @@ public sealed class WarehouseRepository
                 GetDecimal(r, "UNIT_PACK_QTY"),
                 GetDecimal(r, "REQ_QTY"),
                 GetDecimal(r, "REQ_BOX_QTY")),
-            ("@ReqDate", reqDate.Date),
-            ("@LineCode", NullIfBlank(lineCode)),
-            ("@PartNo", like));
+            ("@ReqDate", "WH_PickSlip.RequiredAt", reqDate.Date),
+            ("@LineCode", null, NullIfBlank(lineCode)),
+            ("@PartNo", "MD_Item.ItemName", like));
     }
 
     public List<PickingSlipLineOption> ListPickingSlipLineOptions()
@@ -1121,7 +1437,7 @@ public sealed class WarehouseRepository
         decimal reqBoxQty,
         string reqUserId)
     {
-        var requiredAt = DateTime.TryParse(reqDate, out var parsedDate) ? parsedDate.Date : DateTime.Today;
+        var requiredAt = DateTime.TryParse(reqDate, out var parsedDate) ? parsedDate.Date : DbClock.Today;
         var slip = CreatePickingSlip(requiredAt, reqUserId, new[] { new CreatePickingSlipLine(partNo, reqLocation, reqBoxQty) }, pickSlipNo);
         return slip;
     }
@@ -1132,8 +1448,6 @@ public sealed class WarehouseRepository
         IEnumerable<CreatePickingSlipLine> lines,
         string? requestedPickSlipNo = null)
     {
-        EnsureReleaseSchedulePickingSlipColumns();
-
         var cleanLines = lines
             .Where(l => !string.IsNullOrWhiteSpace(l.PartNo) && !string.IsNullOrWhiteSpace(l.LineCode) && l.ReqBoxQty > 0)
             .Select(l => new CreatePickingSlipLine(
@@ -1143,13 +1457,15 @@ public sealed class WarehouseRepository
             .ToList();
         if (cleanLines.Count == 0)
             throw new InvalidOperationException("At least one requested line is required.");
+        if (cleanLines.Select(l => l.LineCode).Distinct(StringComparer.OrdinalIgnoreCase).Skip(1).Any())
+            throw new InvalidOperationException("A Pick Slip must belong to one production line.");
 
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction();
         try
         {
             var pickSlipNo = string.IsNullOrWhiteSpace(requestedPickSlipNo)
-                ? GeneratePickSlipNo(conn, tx)
+                ? GeneratePickSlipNo(conn, tx, cleanLines[0].LineCode)
                 : Truncate(requestedPickSlipNo.Trim().ToUpperInvariant(), 40);
 
             if (PickSlipExists(conn, tx, pickSlipNo))
@@ -1159,26 +1475,25 @@ public sealed class WarehouseRepository
             foreach (var line in cleanLines)
             {
                 using var cmd = new SqlCommand("""
-                    INSERT INTO dbo.WH_ReleaseSchedule
+                    INSERT INTO dbo.WH_PickSlip
                         (PickSlipNo, ReqLocation, ReqSeqNo, ReqUserId,
                          ItemNo, DemandQty, PickedQty, RequiredAt, Priority, Status,
                          CreatedBy, CreatedTS)
                     VALUES
                         (@PickSlipNo, @ReqLocation, @ReqSeqNo, @ReqUserId,
                          @PartNo, @ReqBoxQty, 0, @RequiredAt, @Priority, 'Open',
-                         @ReqUserId, SYSDATETIME());
-                    SELECT CAST(SCOPE_IDENTITY() AS int);
+                         @CreatedBy, SYSDATETIME());
                     """, conn, tx);
                 cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
                 cmd.Parameters.Add("@ReqLocation", SqlDbType.NVarChar, 40).Value = line.LineCode;
                 cmd.Parameters.Add("@ReqSeqNo", SqlDbType.Int).Value = seq;
                 cmd.Parameters.Add("@ReqUserId", SqlDbType.NVarChar, 80).Value = Truncate(reqUserId, 80);
+                cmd.Parameters.Add("@CreatedBy", SqlDbType.VarChar, 20).Value = Truncate(reqUserId, 20);
                 cmd.Parameters.Add("@PartNo", SqlDbType.VarChar, 20).Value = line.PartNo;
                 AddQtyDecimal(cmd, "@ReqBoxQty", line.ReqBoxQty);
                 cmd.Parameters.Add("@RequiredAt", SqlDbType.DateTime2).Value = reqDate.Date;
                 cmd.Parameters.Add("@Priority", SqlDbType.TinyInt).Value = Math.Clamp(seq, 1, 9);
-                var releaseScheduleId = Convert.ToInt32(cmd.ExecuteScalar());
-                BuildPickAllocations(conn, tx, pickSlipNo, releaseScheduleId, line.PartNo, line.ReqBoxQty, reqUserId);
+                cmd.ExecuteNonQuery();
                 seq++;
             }
 
@@ -1202,95 +1517,18 @@ public sealed class WarehouseRepository
         }
     }
 
-    private static void BuildPickAllocations(
-        SqlConnection conn,
-        SqlTransaction tx,
-        string pickSlipNo,
-        int releaseScheduleId,
-        string itemNo,
-        decimal requestedBoxQty,
-        string createdBy)
-    {
-        decimal remainingBoxes = requestedBoxQty;
-        var allocationSeq = 1;
-
-        using var source = new SqlCommand("""
-            SELECT
-                W.LotID,
-                W.LocationID,
-                L.LotCode,
-                L.ProducedAt,
-                COALESCE(W.OnHandQty, 0) AS OnHandQty
-            FROM dbo.WH_Inventory W
-            INNER JOIN dbo.tbl_Lot L
-                    ON L.LotID = W.LotID
-            WHERE W.ItemNo = @ItemNo
-              AND COALESCE(W.OnHandQty, 0) > 0
-              AND UPPER(COALESCE(W.Status, 'RECEIVED')) NOT IN ('CANCELED', 'RELEASED', 'PICKED')
-            ORDER BY COALESCE(L.ProducedAt, CONVERT(datetime2, '9999-12-31')),
-                     W.LocationID,
-                     L.LotCode;
-            """, conn, tx);
-        source.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo;
-
-        using var reader = source.ExecuteReader();
-        var allocations = new List<(int LotId, string LocationId, string LotNo, DateTime? ProductionDate, decimal Qty)>();
-        while (reader.Read() && remainingBoxes > 0)
-        {
-            var available = reader.GetDecimal(reader.GetOrdinal("OnHandQty"));
-            if (available <= 0) continue;
-
-            allocations.Add((
-                reader.GetInt32(reader.GetOrdinal("LotID")),
-                reader.GetString(reader.GetOrdinal("LocationID")),
-                reader.GetString(reader.GetOrdinal("LotCode")),
-                reader.IsDBNull(reader.GetOrdinal("ProducedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("ProducedAt")),
-                available));
-            remainingBoxes -= 1;
-        }
-        reader.Close();
-
-        foreach (var allocation in allocations)
-        {
-            using var insert = new SqlCommand("""
-                INSERT INTO dbo.WH_ReleasePickAllocation
-                    (PickSlipNo, ReleaseScheduleID, ItemNo, AllocationSeq, LocationID, LotID, LotNo,
-                     ProductionDate, AllocatedQty, AllocatedBoxQty, PickedQty, PickedBoxQty, Status, CreatedBy)
-                VALUES
-                    (@PickSlipNo, @ReleaseScheduleID, @ItemNo, @AllocationSeq, @LocationID, @LotID, @LotNo,
-                     @ProductionDate, @AllocatedQty, 1, 0, 0, 'Open', @CreatedBy);
-                """, conn, tx);
-            insert.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
-            insert.Parameters.Add("@ReleaseScheduleID", SqlDbType.Int).Value = releaseScheduleId;
-            insert.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo;
-            insert.Parameters.Add("@AllocationSeq", SqlDbType.Int).Value = allocationSeq++;
-            insert.Parameters.Add("@LocationID", SqlDbType.VarChar, 20).Value = allocation.LocationId;
-            insert.Parameters.Add("@LotID", SqlDbType.Int).Value = allocation.LotId;
-            insert.Parameters.Add("@LotNo", SqlDbType.VarChar, 50).Value = allocation.LotNo;
-            insert.Parameters.Add("@ProductionDate", SqlDbType.DateTime2).Value = (object?)allocation.ProductionDate ?? DBNull.Value;
-            AddQtyDecimal(insert, "@AllocatedQty", allocation.Qty);
-            insert.Parameters.Add("@CreatedBy", SqlDbType.NVarChar, 80).Value = Truncate(createdBy, 80);
-            insert.ExecuteNonQuery();
-        }
-
-        // A pick slip is a request, not a physical-pick completion.  Keep the
-        // FIFO allocations that exist and let the printout show the remaining
-        // locations as Shortage instead of cancelling the whole request.
-    }
-
     public void MarkPickingSlipPrinted(string pickSlipNo, string printedBy)
     {
-        EnsureReleaseSchedulePickingSlipColumns();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            UPDATE dbo.WH_ReleaseSchedule
+            UPDATE dbo.WH_PickSlip
                SET PrintDate = SYSDATETIME(),
                    ModifiedBy = @PrintedBy,
                    ModifiedTS = SYSDATETIME()
-             WHERE COALESCE(NULLIF(PickSlipNo, N''), CONCAT(N'RS-', ReleaseScheduleID)) = @PickSlipNo;
+             WHERE COALESCE(NULLIF(PickSlipNo, N''), CONCAT(N'RS-', PickSlipID)) = @PickSlipNo;
             """, conn);
         cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo.Trim();
-        cmd.Parameters.Add("@PrintedBy", SqlDbType.NVarChar, 80).Value = Truncate(printedBy, 80);
+        cmd.Parameters.Add("@PrintedBy", SqlDbType.VarChar, 20).Value = Truncate(printedBy, 20);
         var changed = cmd.ExecuteNonQuery();
         if (changed == 0)
             throw new InvalidOperationException("Pick Slip was not found.");
@@ -1309,20 +1547,20 @@ public sealed class WarehouseRepository
 
     public void ClosePickingSlip(string pickSlipNo, string closedBy)
     {
-        EnsureReleaseSchedulePickingSlipColumns();
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
-            UPDATE dbo.WH_ReleaseSchedule
+            UPDATE dbo.WH_PickSlip
                SET Status = 'Closed',
                    CloseDate = SYSDATETIME(),
                    CloseUserId = @ClosedBy,
-                   ModifiedBy = @ClosedBy,
+                   ModifiedBy = @ModifiedBy,
                    ModifiedTS = SYSDATETIME()
-             WHERE COALESCE(NULLIF(PickSlipNo, N''), CONCAT(N'RS-', ReleaseScheduleID)) = @PickSlipNo
+             WHERE COALESCE(NULLIF(PickSlipNo, N''), CONCAT(N'RS-', PickSlipID)) = @PickSlipNo
                AND UPPER(COALESCE(Status, 'OPEN')) <> 'CLOSED';
             """, conn);
         cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo.Trim();
         cmd.Parameters.Add("@ClosedBy", SqlDbType.NVarChar, 80).Value = Truncate(closedBy, 80);
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar, 20).Value = Truncate(closedBy, 20);
         var changed = cmd.ExecuteNonQuery();
         if (changed == 0)
             throw new InvalidOperationException("Pick Slip was not found or is already closed.");
@@ -1344,9 +1582,9 @@ public sealed class WarehouseRepository
         return Query("""
             SELECT TOP (300) PARTNO
             FROM (
-                SELECT ItemNo AS PARTNO FROM dbo.WH_Inventory WHERE ItemNo IS NOT NULL AND ItemNo <> N''
+                SELECT PartNo AS PARTNO FROM dbo.WH_Inventory WHERE PartNo IS NOT NULL AND PartNo <> N''
                 UNION
-                SELECT ItemNo AS PARTNO FROM dbo.WH_ReleaseSchedule WHERE ItemNo IS NOT NULL AND ItemNo <> N''
+                SELECT ItemNo AS PARTNO FROM dbo.WH_PickSlip WHERE ItemNo IS NOT NULL AND ItemNo <> N''
                 UNION
                 SELECT ItemNo AS PARTNO FROM dbo.MD_Item WHERE ItemNo IS NOT NULL AND ItemNo <> N''
             ) P
@@ -1356,42 +1594,36 @@ public sealed class WarehouseRepository
 
     public List<LocationMapRow> ListLocationMap(string? areaCode = null, string? rackZ = null, string? zoneCode = null, string? whCode = null)
     {
-        EnsureWarehouseAreaTable();
         return Query("""
             SELECT
                 L.LocationID AS LOCATION_NO,
                 L.LocationName AS LOCATION_NM,
-                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
-                COALESCE(NULLIF(A.AreaName, ''), COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)) AS AREANM,
+                L.AreaCode AS AREACD,
+                COALESCE(NULLIF(A.CodeName, ''), L.AreaCode) AS AREANM,
                 L.ZoneCode AS ZONECD,
-                L.LocationType AS ZONENM,
+                L.ZoneCode AS ZONENM,
                 L.Aisle AS RACK_X,
                 L.Bay AS RACK_Y,
                 L.Slot AS RACK_Z,
-                COUNT(DISTINCT S.LotID) AS LOT_COUNT,
-                COUNT(DISTINCT S.ItemNo) AS PART_COUNT,
-                COALESCE(SUM(S.OnHandQty), 0) AS TOTAL_QTY,
+                COUNT(DISTINCT S.LotNo) AS LOT_COUNT,
+                COUNT(DISTINCT S.PartNo) AS PART_COUNT,
+                COALESCE(SUM(S.Qty), 0) AS TOTAL_QTY,
                 CASE
-                    WHEN COALESCE(SUM(S.OnHandQty), 0) = 0 THEN N'Empty'
-                    WHEN COUNT(DISTINCT S.ItemNo) > 1 THEN N'Mixed'
+                    WHEN COALESCE(SUM(S.Qty), 0) = 0 THEN N'Empty'
+                    WHEN COUNT(DISTINCT S.PartNo) > 1 THEN N'Mixed'
                     ELSE N'Stocked'
                 END AS STATUS
             FROM dbo.MD_Location L
-            LEFT JOIN dbo.WH_AreaMaster A
-                   ON A.AreaCode = COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)
-                  AND COALESCE(A.WhCode, L.PlantCode) = L.PlantCode
-            LEFT JOIN dbo.WH_Inventory S
-                   ON S.LocationID = L.LocationID
-                  AND COALESCE(S.OnHandQty, 0) <> 0
-                  AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
+            LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.CodeValue=L.AreaCode
+            LEFT JOIN dbo.WH_Inventory S ON S.LocationNo=L.LocationID AND S.Qty<>0
             WHERE COALESCE(L.ActiveFlag, 1) = 1
-              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
-              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
-              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @ZoneCode)
+              AND (@WhCode IS NULL OR L.WhCode = @WhCode)
+              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
+              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = @ZoneCode)
               AND (@RackZ IS NULL OR L.Slot = @RackZ)
-            GROUP BY L.LocationID, L.LocationName, L.PlantCode, L.ZoneCode, A.AreaName,
+            GROUP BY L.LocationID, L.LocationName, L.WhCode, L.AreaCode, L.ZoneCode, A.CodeName,
                      L.LocationType, L.Aisle, L.Bay, L.Slot
-            ORDER BY COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode), L.ZoneCode,
+            ORDER BY L.AreaCode, L.ZoneCode,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
                      TRY_CONVERT(int, L.Bay), L.Bay,
                      TRY_CONVERT(int, L.Slot), L.Slot,
@@ -1410,10 +1642,10 @@ public sealed class WarehouseRepository
                 GetInt(r, "PART_COUNT"),
                 GetDecimal(r, "TOTAL_QTY"),
                 GetString(r, "STATUS") ?? "Empty"),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@ZoneCode", NullIfBlank(zoneCode)),
-            ("@WhCode", NullIfBlank(whCode)),
-            ("@RackZ", NullIfBlank(rackZ)));
+            ("@AreaCode", "MD_Location.AreaCode", NullIfBlank(areaCode)),
+            ("@ZoneCode", "MD_Location.ZoneCode", NullIfBlank(zoneCode)),
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)),
+            ("@RackZ", "MD_Location.Slot", NullIfBlank(rackZ)));
     }
 
     public List<LocationInventoryRow> ListLocationInventory(
@@ -1423,51 +1655,45 @@ public sealed class WarehouseRepository
         string? rackZ = null,
         string? search = null)
     {
-        EnsureWarehouseAreaTable();
         var like = Like(search);
 
         return Query("""
             SELECT
-                S.ItemNo AS PART_NO,
-                COALESCE(NULLIF(I.ItemName, N''), S.ItemNo) AS PART_NAME,
+                S.PartNo AS PART_NO,
+                COALESCE(NULLIF(S.PartName,N''),NULLIF(I.ItemName,N''),S.PartNo) AS PART_NAME,
                 I.DefaultUOM AS UOM,
-                S.LocationID AS LOCATION_NO,
-                L.PlantCode AS WHCD,
-                COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) AS AREACD,
-                COALESCE(NULLIF(A.AreaName, ''), COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)) AS AREANM,
-                COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') AS ZONECD,
-                COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') AS ZONENM,
+                S.LocationNo AS LOCATION_NO,
+                L.WhCode AS WHCD,
+                L.AreaCode AS AREACD,
+                COALESCE(NULLIF(A.CodeName, ''), L.AreaCode) AS AREANM,
+                COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') AS ZONECD,
+                COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') AS ZONENM,
                 L.Aisle AS RACK_X,
                 L.Bay AS RACK_Y,
                 L.Slot AS RACK_Z,
-                COALESCE(SUM(S.OnHandQty), 0) AS QTY
+                COALESCE(SUM(S.Qty), 0) AS QTY
             FROM dbo.WH_Inventory S
-            INNER JOIN dbo.MD_Location L ON L.LocationID = S.LocationID
-            LEFT JOIN dbo.MD_Item I ON I.ItemNo = S.ItemNo
-            LEFT JOIN dbo.WH_AreaMaster A
-                   ON A.AreaCode = COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode)
-                  AND COALESCE(A.WhCode, L.PlantCode) = L.PlantCode
-            WHERE COALESCE(S.OnHandQty, 0) <> 0
-              AND UPPER(COALESCE(S.Status, 'RECEIVED')) NOT IN ('CANCELED')
+            INNER JOIN dbo.MD_Location L ON L.LocationID=S.LocationNo
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo=S.PartNo
+            LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.CodeValue=L.AreaCode
+            WHERE S.Qty<>0
               AND COALESCE(L.ActiveFlag, 1) = 1
-              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
-              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
-              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @ZoneCode)
+              AND (@WhCode IS NULL OR L.WhCode = @WhCode)
+              AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)
+              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), 'DEFAULT') = @ZoneCode)
               AND (@RackZ IS NULL OR L.Slot = @RackZ)
               AND (@Search IS NULL
-                   OR S.ItemNo LIKE @Search
+                   OR S.PartNo LIKE @Search
                    OR I.ItemName LIKE @Search
-                   OR S.LocationID LIKE @Search)
-            GROUP BY S.ItemNo, I.ItemName, I.DefaultUOM, S.LocationID,
-                     L.PlantCode, L.ZoneCode, A.AreaName, L.LocationType,
+                   OR S.LocationNo LIKE @Search)
+            GROUP BY S.PartNo,S.PartName,I.ItemName,I.DefaultUOM,S.LocationNo,
+                     L.WhCode,L.AreaCode,L.ZoneCode,A.CodeName,
                      L.Aisle, L.Bay, L.Slot
-            ORDER BY S.ItemNo, L.PlantCode,
-                     COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode),
-                     COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT'),
+            ORDER BY S.PartNo,L.WhCode,L.AreaCode,L.ZoneCode,
                      TRY_CONVERT(int, L.Slot), L.Slot,
                      TRY_CONVERT(int, L.Bay), L.Bay,
                      TRY_CONVERT(int, L.Aisle), L.Aisle,
-                     S.LocationID;
+                     S.LocationNo;
             """, r => new LocationInventoryRow(
                 GetString(r, "PART_NO") ?? "",
                 GetString(r, "PART_NAME"),
@@ -1482,249 +1708,11 @@ public sealed class WarehouseRepository
                 GetString(r, "RACK_Y"),
                 GetString(r, "RACK_Z"),
                 GetDecimal(r, "QTY")),
-            ("@WhCode", NullIfBlank(whCode)),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@ZoneCode", NullIfBlank(zoneCode)),
-            ("@RackZ", NullIfBlank(rackZ)),
-            ("@Search", like));
-    }
-
-    public List<LocationAreaLayoutRow> ListWarehouseMapPlacements()
-    {
-        EnsureAreaLayoutTable();
-        EnsureWarehouseMasterTable();
-
-        return Query("""
-            SELECT
-                W.WhCode AS AREACD,
-                COALESCE(NULLIF(W.WhName, ''), W.WhCode) AS AREANM,
-                M.X_PCT,
-                M.Y_PCT,
-                M.W_PCT,
-                M.H_PCT
-            FROM dbo.WH_AreaLayout M
-            INNER JOIN dbo.WH_WarehouseMaster W
-                    ON M.AREACD = CONCAT(N'WH|', W.WhCode)
-            WHERE COALESCE(W.ActiveFlag, 1) = 1
-            ORDER BY M.MODIFIED_TS, W.WhCode;
-            """, r => new LocationAreaLayoutRow(
-                GetString(r, "AREACD") ?? "",
-                GetString(r, "AREANM"),
-                GetDecimal(r, "X_PCT"),
-                GetDecimal(r, "Y_PCT"),
-                GetDecimal(r, "W_PCT"),
-                GetDecimal(r, "H_PCT")));
-    }
-
-    public List<LocationAreaLayoutRow> ListLocationAreaLayouts(string? whCode = null)
-    {
-        EnsureAreaLayoutTable();
-        EnsureWarehouseAreaTable();
-
-        return Query("""
-            SELECT
-                A.AreaCode AS AREACD,
-                COALESCE(NULLIF(A.AreaName, ''), A.AreaCode) AS AREANM,
-                M.X_PCT,
-                M.Y_PCT,
-                M.W_PCT,
-                M.H_PCT
-            FROM dbo.WH_AreaLayout M
-            INNER JOIN dbo.WH_AreaMaster A
-                    ON M.AREACD = CONCAT(N'AREA|', A.WhCode, N'|', A.AreaCode)
-            WHERE COALESCE(A.ActiveFlag, 1) = 1
-              AND (@WhCode IS NULL OR A.WhCode = @WhCode)
-            ORDER BY M.MODIFIED_TS, A.AreaCode;
-            """, r => new LocationAreaLayoutRow(
-                GetString(r, "AREACD") ?? "",
-                GetString(r, "AREANM"),
-                GetDecimal(r, "X_PCT"),
-                GetDecimal(r, "Y_PCT"),
-                GetDecimal(r, "W_PCT"),
-                GetDecimal(r, "H_PCT")),
-            ("@WhCode", NullIfBlank(whCode)));
-    }
-
-    public List<LocationAreaLayoutRow> ListZoneMapPlacements(string? areaCode = null, string? whCode = null)
-    {
-        EnsureAreaLayoutTable();
-        EnsureWarehouseSectionTable();
-
-        return Query("""
-            SELECT
-                Z.SectionCode AS AREACD,
-                COALESCE(NULLIF(Z.SectionName, ''), Z.SectionCode) AS AREANM,
-                M.X_PCT,
-                M.Y_PCT,
-                M.W_PCT,
-                M.H_PCT
-            FROM dbo.WH_AreaLayout M
-            INNER JOIN dbo.WH_AreaSection Z
-                    ON M.AREACD = CONCAT(N'ZONE|', Z.WhCode, N'|', Z.AreaCode, N'|', Z.SectionCode)
-            WHERE COALESCE(Z.ActiveFlag, 1) = 1
-              AND (@AreaCode IS NULL OR Z.AreaCode = @AreaCode)
-              AND (@WhCode IS NULL OR Z.WhCode = @WhCode)
-            ORDER BY M.MODIFIED_TS, Z.AreaCode, Z.SectionCode;
-            """, r => new LocationAreaLayoutRow(
-                GetString(r, "AREACD") ?? "",
-                GetString(r, "AREANM"),
-                GetDecimal(r, "X_PCT"),
-                GetDecimal(r, "Y_PCT"),
-                GetDecimal(r, "W_PCT"),
-                GetDecimal(r, "H_PCT")),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@WhCode", NullIfBlank(whCode)));
-    }
-
-    public List<LocationAreaLayoutRow> ListLocationMapPlacements(string? areaCode = null, string? zoneCode = null, string? whCode = null)
-    {
-        EnsureAreaLayoutTable();
-
-        return Query("""
-            SELECT
-                L.LocationID AS AREACD,
-                COALESCE(NULLIF(L.LocationName, ''), L.LocationID) AS AREANM,
-                M.X_PCT,
-                M.Y_PCT,
-                M.W_PCT,
-                M.H_PCT
-            FROM dbo.WH_AreaLayout M
-            INNER JOIN dbo.MD_Location L
-                    ON M.AREACD = CONCAT(N'LOC|', L.LocationID)
-            WHERE COALESCE(L.ActiveFlag, 1) = 1
-              AND (@WhCode IS NULL OR L.PlantCode = @WhCode)
-              AND (@AreaCode IS NULL OR COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = @AreaCode)
-              AND (@ZoneCode IS NULL OR COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = @ZoneCode)
-            ORDER BY M.MODIFIED_TS, M.AREACD;
-            """, r => new LocationAreaLayoutRow(
-                GetString(r, "AREACD") ?? "",
-                GetString(r, "AREANM"),
-                GetDecimal(r, "X_PCT"),
-                GetDecimal(r, "Y_PCT"),
-                GetDecimal(r, "W_PCT"),
-                GetDecimal(r, "H_PCT")),
-            ("@AreaCode", NullIfBlank(areaCode)),
-            ("@ZoneCode", NullIfBlank(zoneCode)),
-            ("@WhCode", NullIfBlank(whCode)));
-    }
-
-    public void SaveLocationAreaLayout(
-        string areaCode,
-        decimal xPct,
-        decimal yPct,
-        decimal wPct,
-        decimal hPct,
-        string modifiedBy = "web")
-    {
-        if (string.IsNullOrWhiteSpace(areaCode))
-            throw new ArgumentException("Layout key is required.", nameof(areaCode));
-
-        EnsureAreaLayoutTable();
-
-        xPct = ClampDecimal(xPct, 0m, 92m);
-        yPct = ClampDecimal(yPct, 0m, 92m);
-        wPct = ClampDecimal(wPct, 8m, 100m - xPct);
-        hPct = ClampDecimal(hPct, 8m, 100m - yPct);
-
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            MERGE dbo.WH_AreaLayout AS tgt
-            USING (SELECT @AreaCode AS AREACD) AS src ON tgt.AREACD = src.AREACD
-            WHEN MATCHED THEN UPDATE SET
-                X_PCT = @XPct,
-                Y_PCT = @YPct,
-                W_PCT = @WPct,
-                H_PCT = @HPct,
-                MODIFIED_BY = @ModifiedBy,
-                MODIFIED_TS = SYSDATETIME()
-            WHEN NOT MATCHED THEN INSERT
-                (AREACD, X_PCT, Y_PCT, W_PCT, H_PCT, MODIFIED_BY, MODIFIED_TS)
-            VALUES
-                (@AreaCode, @XPct, @YPct, @WPct, @HPct, @ModifiedBy, SYSDATETIME());
-            """, conn);
-        cmd.Parameters.Add("@AreaCode", SqlDbType.NVarChar, 80).Value = areaCode.Trim();
-        AddDecimal(cmd, "@XPct", xPct);
-        AddDecimal(cmd, "@YPct", yPct);
-        AddDecimal(cmd, "@WPct", wPct);
-        AddDecimal(cmd, "@HPct", hPct);
-        cmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar, 80).Value = modifiedBy;
-        cmd.ExecuteNonQuery();
-    }
-
-    public void SaveWarehouseMapPlacement(string whCode, decimal xPct, decimal yPct, decimal wPct, decimal hPct) =>
-        SaveLocationAreaLayout(WarehouseLayoutKey(whCode), xPct, yPct, wPct, hPct);
-
-    public void SaveFactoryAreaLayout(string whCode, string areaCode, decimal xPct, decimal yPct, decimal wPct, decimal hPct) =>
-        SaveLocationAreaLayout(AreaLayoutKey(whCode, areaCode), xPct, yPct, wPct, hPct);
-
-    public void SaveZoneMapPlacement(string whCode, string areaCode, string zoneCode, decimal xPct, decimal yPct, decimal wPct, decimal hPct) =>
-        SaveLocationAreaLayout(ZoneLayoutKey(whCode, areaCode, zoneCode), xPct, yPct, wPct, hPct);
-
-    public void SaveLocationMapPlacement(string locationNo, decimal xPct, decimal yPct, decimal wPct, decimal hPct) =>
-        SaveLocationAreaLayout(LocationLayoutKey(locationNo), xPct, yPct, wPct, hPct);
-
-    public void DeleteWarehouseMapPlacement(string whCode)
-    {
-        if (string.IsNullOrWhiteSpace(whCode))
-            return;
-
-        EnsureAreaLayoutTable();
-
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            DELETE FROM dbo.WH_AreaLayout
-             WHERE AREACD = @LayoutKey;
-            """, conn);
-        cmd.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = WarehouseLayoutKey(whCode);
-        cmd.ExecuteNonQuery();
-    }
-
-    public void DeleteFactoryAreaPlacement(string whCode, string areaCode)
-    {
-        if (string.IsNullOrWhiteSpace(whCode) || string.IsNullOrWhiteSpace(areaCode))
-            return;
-
-        EnsureAreaLayoutTable();
-
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            DELETE FROM dbo.WH_AreaLayout
-             WHERE AREACD = @LayoutKey;
-            """, conn);
-        cmd.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = AreaLayoutKey(whCode, areaCode);
-        cmd.ExecuteNonQuery();
-    }
-
-    public void DeleteZoneMapPlacement(string whCode, string areaCode, string zoneCode)
-    {
-        if (string.IsNullOrWhiteSpace(whCode) || string.IsNullOrWhiteSpace(areaCode) || string.IsNullOrWhiteSpace(zoneCode))
-            return;
-
-        EnsureAreaLayoutTable();
-
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            DELETE FROM dbo.WH_AreaLayout
-             WHERE AREACD = @LayoutKey;
-            """, conn);
-        cmd.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = ZoneLayoutKey(whCode, areaCode, zoneCode);
-        cmd.ExecuteNonQuery();
-    }
-
-    public void DeleteLocationMapPlacement(string locationNo)
-    {
-        if (string.IsNullOrWhiteSpace(locationNo))
-            return;
-
-        EnsureAreaLayoutTable();
-
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            DELETE FROM dbo.WH_AreaLayout
-             WHERE AREACD = @LayoutKey;
-            """, conn);
-        cmd.Parameters.Add("@LayoutKey", SqlDbType.NVarChar, 80).Value = LocationLayoutKey(locationNo);
-        cmd.ExecuteNonQuery();
+            ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)),
+            ("@AreaCode", "MD_Location.AreaCode", NullIfBlank(areaCode)),
+            ("@ZoneCode", "MD_Location.ZoneCode", NullIfBlank(zoneCode)),
+            ("@RackZ", "MD_Location.Slot", NullIfBlank(rackZ)),
+            ("@Search", "MD_Item.ItemName", like));
     }
 
     public List<OperationLogRow> ListOperationLogs(
@@ -1734,179 +1722,68 @@ public sealed class WarehouseRepository
         DateTime? to = null)
     {
         using var conn = _factory.OpenConnection();
-        EnsureOperationLogTable(conn);
         using var cmd = new SqlCommand("""
-            ;WITH InventoryActivity AS
-            (
-                SELECT
-                    OperationLogID, EventTime, EventType,
-                    CASE
-                        WHEN EventType IN ('RECEIVE', 'CANCEL_RECEIPT') THEN 'INBOUND'
-                        WHEN EventType = 'RELEASE_PICK' THEN 'OUTBOUND'
-                        WHEN EventType = 'MOVE_LOCATION' THEN 'RELOCATION'
-                        WHEN EventType = 'ADJUST_SAVE' THEN 'ADJUSTMENT'
-                    END AS OperationType,
-                    ScreenCode, EmployeeNo, EmployeeName, WorkerID, TerminalID,
-                    LineID, ShiftCode, ScanType, ScanValue, Result, Message,
-                    ClientIP, RefDocType, RefDocNo, LotNo, PartNo, LocationID, Qty
-                FROM dbo.WH_OperationLog
-                WHERE Result = 'SUCCESS'
-                  AND EventType IN ('RECEIVE', 'CANCEL_RECEIPT', 'RELEASE_PICK', 'MOVE_LOCATION', 'ADJUST_SAVE')
-
-                UNION ALL
-
-                SELECT
-                    -H.LotStatusHistoryID, H.ChangedAt, 'STATUS_CHANGE', 'STATUS',
-                    NULL, H.ChangedBy, NULL, H.ChangedBy, NULL,
-                    NULL, NULL, NULL, H.LotNo, 'SUCCESS',
-                    CONCAT(COALESCE(H.BeforeStatus, 'CREATED'), ' -> ', H.AfterStatus),
-                    NULL, H.ReasonCode, H.ReferenceNo, H.LotNo, L.ItemNo, NULL, NULL
-                FROM dbo.WH_LotStatusHistory H
-                LEFT JOIN dbo.tbl_Lot L ON L.LotID = H.LotID
-
-                UNION ALL
-
-                SELECT
-                    CAST(-1000000000 AS bigint) - R.ReceivingID,
-                    R.ReceivedAt, 'RECEIVE', 'INBOUND', 'WH002',
-                    R.ReceivedBy, NULL, R.ReceivedBy, R.TerminalID,
-                    NULL, NULL, 'LOT', R.LotCode, 'SUCCESS',
-                    CONCAT('Inbound received: ', R.ReceivedQty, ' ', COALESCE(I.DefaultUom, 'EA')),
-                    NULL, 'WH_Receiving', R.ReceivingNo, R.LotCode, R.ItemNo, R.LocationID, R.ReceivedQty
-                FROM dbo.WH_Receiving R
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = R.ItemNo
-                WHERE NOT EXISTS
-                (
-                    SELECT 1
-                    FROM dbo.WH_OperationLog O
-                    WHERE O.Result = 'SUCCESS'
-                      AND O.EventType = 'RECEIVE'
-                      AND (O.LotNo = R.LotCode OR O.ScanValue = R.LotCode)
-                      AND ABS(DATEDIFF(minute, O.EventTime, R.ReceivedAt)) <= 5
-                )
-
-                UNION ALL
-
-                SELECT
-                    CAST(-2000000000 AS bigint) - T.TransactionID,
-                    T.TransactionTime,
-                    CASE UPPER(T.TransactionType)
-                        WHEN 'IN' THEN 'RECEIVE'
-                        WHEN 'OUT' THEN 'RELEASE_PICK'
-                        WHEN 'ADJ' THEN 'ADJUST_SAVE'
-                        WHEN 'MOVE' THEN 'MOVE_LOCATION'
-                        WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
-                        ELSE UPPER(T.TransactionType)
-                    END,
-                    CASE UPPER(T.TransactionType)
-                        WHEN 'IN' THEN 'INBOUND'
-                        WHEN 'OUT' THEN 'OUTBOUND'
-                        WHEN 'ADJ' THEN 'ADJUSTMENT'
-                        WHEN 'MOVE' THEN 'RELOCATION'
-                        WHEN 'CANCEL' THEN 'INBOUND'
-                    END,
-                    CASE UPPER(T.TransactionType)
-                        WHEN 'OUT' THEN 'WH003'
-                        WHEN 'ADJ' THEN 'WH005'
-                        ELSE 'WH002'
-                    END,
-                    T.OperatorID, NULL, T.OperatorID, NULL,
-                    NULL, NULL, 'LOT', L.LotCode, 'SUCCESS',
-                    CONCAT(
-                        COALESCE(NULLIF(T.Note, ''), COALESCE(T.ReasonCode, T.TransactionType)),
-                        ' (', COALESCE(T.QtyBefore, 0), ' -> ', COALESCE(T.QtyAfter, 0), ')'),
-                    NULL, T.RefDocType, CONVERT(nvarchar(80), T.RefDocID),
-                    L.LotCode, T.ItemNo, T.LocationID, T.QtyChange
-                FROM dbo.WH_InventoryTransaction T
-                LEFT JOIN dbo.tbl_Lot L ON L.LotID = T.LotID
-                WHERE NOT (UPPER(T.TransactionType) = 'IN' AND T.RefDocType = 'WH_Receiving')
-                  AND NOT EXISTS
-                  (
-                      SELECT 1
-                      FROM dbo.WH_OperationLog O
-                      WHERE O.Result = 'SUCCESS'
-                        AND O.EventType = CASE UPPER(T.TransactionType)
-                            WHEN 'IN' THEN 'RECEIVE'
-                            WHEN 'OUT' THEN 'RELEASE_PICK'
-                            WHEN 'ADJ' THEN 'ADJUST_SAVE'
-                            WHEN 'MOVE' THEN 'MOVE_LOCATION'
-                            WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
-                            ELSE UPPER(T.TransactionType)
-                        END
-                        AND (O.LotNo = L.LotCode OR O.PartNo = T.ItemNo)
-                        AND ABS(DATEDIFF(minute, O.EventTime, T.TransactionTime)) <= 5
-                  )
-
-                UNION ALL
-
-                SELECT
-                    CAST(-3000000000 AS bigint) - P.PickingID,
-                    P.PickedAt, 'RELEASE_PICK', 'OUTBOUND', 'WH003',
-                    P.PickedBy, NULL, P.PickedBy, P.TerminalID,
-                    NULL, NULL, 'LOT', L.LotCode, 'SUCCESS',
-                    CONCAT('Outbound picked: ', P.PickedQty, ' ', COALESCE(I.DefaultUom, 'EA')),
-                    NULL, 'WH_ReleasePicking', P.PickingNo, L.LotCode, P.ItemNo, P.LocationID, -P.PickedQty
-                FROM dbo.WH_ReleasePicking P
-                LEFT JOIN dbo.tbl_Lot L ON L.LotID = P.LotID
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = P.ItemNo
-                WHERE NOT EXISTS
-                (
-                    SELECT 1
-                    FROM dbo.WH_InventoryTransaction T
-                    WHERE UPPER(T.TransactionType) = 'OUT'
-                      AND T.LotID = P.LotID
-                      AND ABS(DATEDIFF(minute, T.TransactionTime, P.PickedAt)) <= 5
-                )
-                  AND NOT EXISTS
-                  (
-                      SELECT 1
-                      FROM dbo.WH_OperationLog O
-                      WHERE O.Result = 'SUCCESS'
-                        AND O.EventType = 'RELEASE_PICK'
-                        AND (O.LotNo = L.LotCode OR O.PartNo = P.ItemNo)
-                        AND ABS(DATEDIFF(minute, O.EventTime, P.PickedAt)) <= 5
-                  )
-            )
             SELECT TOP (500)
-                OperationLogID,
-                EventTime,
-                EventType,
-                ScreenCode,
-                EmployeeNo,
-                EmployeeName,
-                WorkerID,
-                TerminalID,
-                LineID,
-                ShiftCode,
-                ScanType,
-                ScanValue,
-                Result,
-                Message,
-                ClientIP,
-                RefDocType,
-                RefDocNo,
-                LotNo,
-                PartNo,
-                LocationID,
-                Qty
-            FROM InventoryActivity
-            WHERE (@OperationType IS NULL OR OperationType = @OperationType)
-              AND (@DateFrom IS NULL OR EventTime >= @DateFrom)
-              AND (@DateTo IS NULL OR EventTime < DATEADD(day, 1, @DateTo))
+                T.TransactionID AS OperationLogID,
+                T.TransactionTime AS EventTime,
+                X.EventType,
+                X.ScreenCode,
+                T.OperatorID AS EmployeeNo,
+                CAST(NULL AS nvarchar(120)) AS EmployeeName,
+                T.OperatorID AS WorkerID,
+                CAST(NULL AS nvarchar(80)) AS TerminalID,
+                CAST(NULL AS nvarchar(40)) AS LineID,
+                CAST(NULL AS nvarchar(20)) AS ShiftCode,
+                'LOT' AS ScanType,
+                T.LotNo AS ScanValue,
+                'SUCCESS' AS Result,
+                CASE WHEN T.TransactionType = 'MOVE' THEN CONCAT('Location Change to ', T.LocationNo)
+                     ELSE CONCAT(COALESCE(NULLIF(T.Note, ''), COALESCE(T.ReasonCode, T.TransactionType)),
+                                 ' (', COALESCE(T.QtyBefore, 0), ' -> ', COALESCE(T.QtyAfter, 0), ')')
+                END AS Message,
+                CAST(NULL AS nvarchar(64)) AS ClientIP,
+                T.SourceType,
+                T.SourceID,
+                T.LotNo,
+                T.PartNo,
+                T.LocationNo AS LocationID,
+                T.QtyChange AS Qty
+            FROM dbo.WH_InventoryTransaction T
+            CROSS APPLY (SELECT
+                CASE UPPER(T.TransactionType)
+                    WHEN 'IN' THEN 'RECEIVE'
+                    WHEN 'OUT' THEN 'RELEASE_PICK'
+                    WHEN 'ADJ' THEN 'ADJUST_SAVE'
+                    WHEN 'MOVE' THEN 'MOVE_LOCATION'
+                    WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
+                    ELSE UPPER(T.TransactionType)
+                END AS EventType,
+                CASE UPPER(T.TransactionType)
+                    WHEN 'IN' THEN 'INBOUND'
+                    WHEN 'OUT' THEN 'OUTBOUND'
+                    WHEN 'ADJ' THEN 'ADJUSTMENT'
+                    WHEN 'MOVE' THEN 'RELOCATION'
+                    WHEN 'CANCEL' THEN 'INBOUND'
+                END AS OperationType,
+                CASE UPPER(T.TransactionType)
+                    WHEN 'OUT' THEN 'WH003'
+                    WHEN 'ADJ' THEN 'WH005'
+                    ELSE 'WH002'
+                END AS ScreenCode) X
+            WHERE (@OperationType IS NULL OR X.OperationType = @OperationType)
+              AND (@DateFrom IS NULL OR T.TransactionTime >= @DateFrom)
+              AND (@DateTo IS NULL OR T.TransactionTime < DATEADD(day, 1, @DateTo))
               AND (@Like IS NULL
-                   OR EventType LIKE @Like
-                   OR ScreenCode LIKE @Like
-                   OR EmployeeNo LIKE @Like
-                   OR EmployeeName LIKE @Like
-                   OR WorkerID LIKE @Like
-                   OR TerminalID LIKE @Like
-                   OR ScanValue LIKE @Like
-                   OR Message LIKE @Like
-                   OR LotNo LIKE @Like
-                   OR PartNo LIKE @Like
-                   OR LocationID LIKE @Like
-                   OR RefDocNo LIKE @Like)
-            ORDER BY EventTime DESC, OperationLogID DESC;
+                   OR X.EventType LIKE @Like
+                   OR X.ScreenCode LIKE @Like
+                   OR T.OperatorID LIKE @Like
+                   OR T.LotNo LIKE @Like
+                   OR T.Note LIKE @Like
+                   OR T.ReasonCode LIKE @Like
+                   OR T.PartNo LIKE @Like
+                   OR T.LocationNo LIKE @Like
+                   OR CONVERT(nvarchar(80), T.SourceID) LIKE @Like)
+            ORDER BY T.TransactionTime DESC, T.TransactionID DESC;
             """, conn)
         {
             CommandTimeout = 15
@@ -1941,8 +1818,8 @@ public sealed class WarehouseRepository
                 GetString(rdr, "Result") ?? "INFO",
                 GetString(rdr, "Message"),
                 GetString(rdr, "ClientIP"),
-                GetString(rdr, "RefDocType"),
-                GetString(rdr, "RefDocNo"),
+                GetString(rdr, "SourceType"),
+                GetNullableInt(rdr, "SourceID"),
                 GetString(rdr, "LotNo"),
                 GetString(rdr, "PartNo"),
                 GetString(rdr, "LocationID"),
@@ -1950,45 +1827,6 @@ public sealed class WarehouseRepository
         }
 
         return list;
-    }
-
-    public long WriteWebOperationLog(
-        string eventType,
-        string? screenCode,
-        string? workerId,
-        string? workerName,
-        string? message,
-        string? refDocType = null,
-        string? refDocNo = null,
-        string? locationId = null,
-        string result = "SUCCESS")
-    {
-        if (string.IsNullOrWhiteSpace(eventType))
-            throw new ArgumentException("Event Type is required.", nameof(eventType));
-
-        using var conn = _factory.OpenConnection();
-        EnsureOperationLogTable(conn);
-
-        using var insert = new SqlCommand("""
-            INSERT INTO dbo.WH_OperationLog
-            (
-                EventTime, EventType, ScreenCode, EmployeeNo, EmployeeName, WorkerID,
-                TerminalID, ScanType, ScanValue, Result, Message,
-                RefDocType, RefDocNo, LocationID, CreatedBy, CreatedTS
-            )
-            OUTPUT INSERTED.OperationLogID
-            VALUES
-            (
-                SYSDATETIME(), @EventType, @ScreenCode, @EmployeeNo, @EmployeeName, @WorkerID,
-                @TerminalID, @ScanType, @ScanValue, @Result, @Message,
-                @RefDocType, @RefDocNo, @LocationID, @CreatedBy, SYSDATETIME()
-            );
-            """, conn)
-        {
-            CommandTimeout = 15
-        };
-        AddOperationLogParameters(insert, eventType, screenCode, workerId, workerName, message, refDocType, refDocNo, locationId, result);
-        return Convert.ToInt64(insert.ExecuteScalar());
     }
 
     public bool TryWriteWebOperationLog(
@@ -2002,15 +1840,7 @@ public sealed class WarehouseRepository
         string? locationId = null,
         string result = "SUCCESS")
     {
-        try
-        {
-            WriteWebOperationLog(eventType, screenCode, workerId, workerName, message, refDocType, refDocNo, locationId, result);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        return true;
     }
 
     public List<InventorySettingRow> ListInventorySettings(string? search = null, string? status = null)
@@ -2019,14 +1849,13 @@ public sealed class WarehouseRepository
         return Query("""
             WITH Stock AS (
                 SELECT
-                    W.ItemNo,
-                    SUM(COALESCE(W.OnHandQty, 0)) AS CURRENT_QTY,
-                    COUNT(DISTINCT W.LocationID) AS LOCATION_COUNT,
-                    COUNT(DISTINCT W.LotID) AS LOT_COUNT
+                    W.PartNo AS ItemNo,
+                    SUM(COALESCE(W.Qty, 0)) AS CURRENT_QTY,
+                    COUNT(DISTINCT W.LocationNo) AS LOCATION_COUNT,
+                    COUNT(DISTINCT W.LotNo) AS LOT_COUNT
                 FROM dbo.WH_Inventory W
-                WHERE W.ItemNo IS NOT NULL
-                  AND UPPER(COALESCE(W.Status, 'RECEIVED')) NOT IN ('CANCELED')
-                GROUP BY W.ItemNo
+                WHERE W.PartNo IS NOT NULL AND W.Qty<>0
+                GROUP BY W.PartNo
             ),
             SettingBase AS (
                 SELECT
@@ -2091,8 +1920,8 @@ public sealed class WarehouseRepository
                 GetInt(r, "LOCATION_COUNT"),
                 GetInt(r, "LOT_COUNT"),
                 GetDateTime(r, "MODIFIED_TS")),
-            ("@Search", like),
-            ("@Status", NullIfBlank(status)));
+            ("@Search", "MD_Item.ItemName", like),
+            ("@Status", null, NullIfBlank(status)));
     }
 
     public void SaveInventorySetting(
@@ -2120,491 +1949,47 @@ public sealed class WarehouseRepository
         itemCmd.Parameters.Add("@ItemNo", SqlDbType.VarChar, 20).Value = itemNo.Trim();
         AddQtyDecimal(itemCmd, "@MinQty", minQty, scale: 4);
         AddQtyDecimal(itemCmd, "@MaxQty", maxQty, scale: 4);
-        itemCmd.Parameters.Add("@ModifiedBy", SqlDbType.NVarChar, 80).Value = modifiedBy;
+        itemCmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar, 20).Value = Truncate(modifiedBy, 20);
         if (itemCmd.ExecuteNonQuery() == 0)
             throw new InvalidOperationException("Item was not found.");
-    }
-
-    private void EnsureReleaseSchedulePickingSlipColumns()
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'dbo.WH_ReleaseSchedule', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_ReleaseSchedule
-                (
-                    ReleaseScheduleID int IDENTITY(1,1) NOT NULL,
-                    WoID int NULL,
-                    ItemNo varchar(20) NULL,
-                    DemandQty decimal(14,3) NULL,
-                    PickedQty decimal(14,3) NULL,
-                    RequiredAt datetime2 NULL,
-                    Priority tinyint NULL,
-                    Status varchar(20) NULL,
-                    CreatedBy varchar(50) NOT NULL,
-                    CreatedTS datetime2 NULL CONSTRAINT DF_WH_ReleaseSchedule_CreatedTS DEFAULT SYSDATETIME(),
-                    ModifiedBy nvarchar(450) NULL,
-                    ModifiedTS datetime2 NULL,
-                    CONSTRAINT PK_WH_ReleaseSchedule PRIMARY KEY CLUSTERED (ReleaseScheduleID)
-                );
-            END;
-
-            IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'PickSlipNo') IS NULL
-                ALTER TABLE dbo.WH_ReleaseSchedule ADD PickSlipNo nvarchar(40) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'ReqLocation') IS NULL
-                ALTER TABLE dbo.WH_ReleaseSchedule ADD ReqLocation nvarchar(40) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'ReqSeqNo') IS NULL
-                ALTER TABLE dbo.WH_ReleaseSchedule ADD ReqSeqNo int NULL;
-
-            IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'ReqUserId') IS NULL
-                ALTER TABLE dbo.WH_ReleaseSchedule ADD ReqUserId nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'PrintDate') IS NULL
-                ALTER TABLE dbo.WH_ReleaseSchedule ADD PrintDate datetime2 NULL;
-
-            IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'CloseDate') IS NULL
-                ALTER TABLE dbo.WH_ReleaseSchedule ADD CloseDate datetime2 NULL;
-
-            IF COL_LENGTH(N'dbo.WH_ReleaseSchedule', N'CloseUserId') IS NULL
-                ALTER TABLE dbo.WH_ReleaseSchedule ADD CloseUserId nvarchar(80) NULL;
-
-            UPDATE dbo.WH_ReleaseSchedule
-               SET PickSlipNo = CONCAT(N'RS-', ReleaseScheduleID)
-             WHERE NULLIF(PickSlipNo, N'') IS NULL;
-
-            UPDATE dbo.WH_ReleaseSchedule
-               SET ReqSeqNo = 1
-             WHERE ReqSeqNo IS NULL;
-
-            UPDATE dbo.WH_ReleaseSchedule
-               SET ReqUserId = CreatedBy
-             WHERE NULLIF(ReqUserId, N'') IS NULL;
-
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.WH_ReleaseSchedule') AND name = N'IX_WH_ReleaseSchedule_PickSlipNo')
-                CREATE INDEX IX_WH_ReleaseSchedule_PickSlipNo ON dbo.WH_ReleaseSchedule (PickSlipNo, ReqSeqNo, ReleaseScheduleID);
-
-            IF OBJECT_ID(N'dbo.WH_ReleasePickAllocation', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_ReleasePickAllocation
-                (
-                    PickAllocationID int IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                    PickSlipNo nvarchar(40) NOT NULL,
-                    ReleaseScheduleID int NOT NULL,
-                    ItemNo varchar(20) NOT NULL,
-                    AllocationSeq int NOT NULL,
-                    LocationID varchar(20) NOT NULL,
-                    LotID int NOT NULL,
-                    LotNo varchar(50) NOT NULL,
-                    ProductionDate datetime2 NULL,
-                    AllocatedQty decimal(14,3) NOT NULL,
-                    AllocatedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_AllocatedBoxQty DEFAULT (1),
-                    PickedQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_PickedQty DEFAULT (0),
-                    PickedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_PickedBoxQty DEFAULT (0),
-                    Status varchar(20) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_Status DEFAULT ('Open'),
-                    CreatedBy nvarchar(80) NULL,
-                    CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_CreatedTS DEFAULT (SYSDATETIME()),
-                    ModifiedBy nvarchar(80) NULL,
-                    ModifiedTS datetime2 NULL,
-                    CONSTRAINT UQ_WH_ReleasePickAllocation_Lot UNIQUE (ReleaseScheduleID, LotID)
-                );
-
-                CREATE INDEX IX_WH_ReleasePickAllocation_Slip
-                    ON dbo.WH_ReleasePickAllocation (PickSlipNo, ReleaseScheduleID, AllocationSeq);
-            END;
-
-            IF COL_LENGTH(N'dbo.WH_ReleasePickAllocation', N'AllocatedBoxQty') IS NULL
-                ALTER TABLE dbo.WH_ReleasePickAllocation
-                    ADD AllocatedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_AllocatedBoxQty_Existing DEFAULT (1);
-
-            IF COL_LENGTH(N'dbo.WH_ReleasePickAllocation', N'PickedBoxQty') IS NULL
-                ALTER TABLE dbo.WH_ReleasePickAllocation
-                    ADD PickedBoxQty decimal(14,3) NOT NULL CONSTRAINT DF_WH_ReleasePickAllocation_PickedBoxQty_Existing DEFAULT (0);
-
-            """, conn)
-        {
-            CommandTimeout = 15
-        };
-        cmd.ExecuteNonQuery();
-
-        using var backfill = new SqlCommand("""
-            UPDATE dbo.WH_ReleasePickAllocation
-               SET AllocatedBoxQty = 1
-             WHERE COALESCE(AllocatedBoxQty, 0) = 0;
-            """, conn)
-        {
-            CommandTimeout = 15
-        };
-        backfill.ExecuteNonQuery();
     }
 
     private static bool PickSlipExists(SqlConnection conn, SqlTransaction tx, string pickSlipNo)
     {
         using var cmd = new SqlCommand("""
             SELECT 1
-            FROM dbo.WH_ReleaseSchedule
-            WHERE COALESCE(NULLIF(PickSlipNo, N''), CONCAT(N'RS-', ReleaseScheduleID)) = @PickSlipNo;
+            FROM dbo.WH_PickSlip
+            WHERE COALESCE(NULLIF(PickSlipNo, N''), CONCAT(N'RS-', PickSlipID)) = @PickSlipNo;
             """, conn, tx);
         cmd.Parameters.Add("@PickSlipNo", SqlDbType.NVarChar, 40).Value = pickSlipNo;
         return cmd.ExecuteScalar() is not null;
     }
 
-    private static string GeneratePickSlipNo(SqlConnection conn, SqlTransaction tx)
+    private static string GeneratePickSlipNo(SqlConnection conn, SqlTransaction tx, string lineCode)
     {
         using var cmd = new SqlCommand("""
-            DECLARE @Prefix char(8) = CONVERT(char(8), SYSDATETIME(), 112);
+            DECLARE @LinePrefix char(2) = (
+                SELECT TOP (1) LotPrefix
+                FROM dbo.MD_Line
+                WHERE LEN(LotPrefix) = 2 AND (LineID = @Line OR LotPrefix = @Line)
+                ORDER BY CASE WHEN LineID = @Line THEN 0 ELSE 1 END
+            );
+            IF @LinePrefix IS NULL THROW 51026, 'The production line needs a two-character LotPrefix.', 1;
+
+            DECLARE @Prefix nvarchar(10) = CONCAT(N'PK', @LinePrefix, CONVERT(char(6), SYSDATETIME(), 12));
             DECLARE @Seq int;
 
-            SELECT @Seq = COALESCE(MAX(TRY_CONVERT(int, RIGHT(PickSlipNo, 2))), 0) + 1
-            FROM dbo.WH_ReleaseSchedule WITH (UPDLOCK, HOLDLOCK)
-            WHERE PickSlipNo LIKE @Prefix + N'[0-9][0-9]';
+            SELECT @Seq = COALESCE(MAX(TRY_CONVERT(int, SUBSTRING(PickSlipNo, 11, 30))), 0) + 1
+            FROM dbo.WH_PickSlip WITH (UPDLOCK, HOLDLOCK)
+            WHERE PickSlipNo LIKE @Prefix + N'[0-9][0-9][0-9]%'
+              AND SUBSTRING(PickSlipNo, 11, 30) NOT LIKE N'%[^0-9]%';
 
-            SELECT @Prefix + RIGHT(N'00' + CONVERT(nvarchar(10), COALESCE(@Seq, 1)), 2);
+            SELECT @Prefix + CASE WHEN @Seq < 1000
+                THEN RIGHT(N'000' + CONVERT(nvarchar(10), @Seq), 3)
+                ELSE CONVERT(nvarchar(10), @Seq) END;
             """, conn, tx);
-        return Convert.ToString(cmd.ExecuteScalar()) ?? DateTime.Now.ToString("yyyyMMdd") + "01";
-    }
-
-    private void EnsureAreaLayoutTable()
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'dbo.WH_AreaLayout', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_AreaLayout (
-                    AREACD NVARCHAR(20) NOT NULL CONSTRAINT PK_WH_AREA_LAYOUT PRIMARY KEY,
-                    X_PCT DECIMAL(8,2) NOT NULL,
-                    Y_PCT DECIMAL(8,2) NOT NULL,
-                    W_PCT DECIMAL(8,2) NOT NULL,
-                    H_PCT DECIMAL(8,2) NOT NULL,
-                    MODIFIED_BY NVARCHAR(80) NULL,
-                    MODIFIED_TS DATETIME2 NOT NULL CONSTRAINT DF_WH_AREA_LAYOUT_MODIFIED_TS DEFAULT SYSDATETIME()
-                );
-            END;
-
-            IF OBJECT_ID(N'dbo.WH_AreaLayout', N'U') IS NOT NULL
-               AND COL_LENGTH(N'dbo.WH_AreaLayout', N'AREACD') < 160
-            BEGIN
-                DECLARE @pkName sysname;
-                SELECT @pkName = kc.name
-                FROM sys.key_constraints kc
-                WHERE kc.parent_object_id = OBJECT_ID(N'dbo.WH_AreaLayout')
-                  AND kc.[type] = 'PK';
-
-                IF @pkName IS NOT NULL
-                BEGIN
-                    DECLARE @dropSql nvarchar(max) = N'ALTER TABLE dbo.WH_AreaLayout DROP CONSTRAINT ' + QUOTENAME(@pkName);
-                    EXEC sys.sp_executesql @dropSql;
-                END;
-
-                ALTER TABLE dbo.WH_AreaLayout ALTER COLUMN AREACD NVARCHAR(80) NOT NULL;
-
-                ALTER TABLE dbo.WH_AreaLayout
-                    ADD CONSTRAINT PK_WH_AREA_LAYOUT PRIMARY KEY (AREACD);
-            END;
-
-            IF OBJECT_ID(N'dbo.WH_AreaLayout', N'U') IS NOT NULL
-               AND EXISTS (
-                   SELECT 1
-                   FROM sys.columns
-                   WHERE object_id = OBJECT_ID(N'dbo.WH_AreaLayout')
-                     AND name IN (N'X_PCT', N'Y_PCT', N'W_PCT', N'H_PCT')
-                     AND precision < 8
-               )
-            BEGIN
-                ALTER TABLE dbo.WH_AreaLayout ALTER COLUMN X_PCT DECIMAL(8,2) NOT NULL;
-                ALTER TABLE dbo.WH_AreaLayout ALTER COLUMN Y_PCT DECIMAL(8,2) NOT NULL;
-                ALTER TABLE dbo.WH_AreaLayout ALTER COLUMN W_PCT DECIMAL(8,2) NOT NULL;
-                ALTER TABLE dbo.WH_AreaLayout ALTER COLUMN H_PCT DECIMAL(8,2) NOT NULL;
-            END;
-        """, conn);
-        cmd.ExecuteNonQuery();
-    }
-
-    private static void EnsureOperationLogTable(SqlConnection conn)
-    {
-        using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'dbo.WH_OperationLog', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_OperationLog
-                (
-                    OperationLogID bigint IDENTITY(1,1) NOT NULL,
-                    EventTime datetime2 NOT NULL CONSTRAINT DF_WH_OperationLog_EventTime DEFAULT SYSDATETIME(),
-                    EventType varchar(40) NOT NULL,
-                    ScreenCode varchar(20) NULL,
-                    EmployeeNo nvarchar(40) NULL,
-                    EmployeeName nvarchar(120) NULL,
-                    WorkerID nvarchar(450) NULL,
-                    TerminalID nvarchar(80) NULL,
-                    LineID nvarchar(40) NULL,
-                    ShiftCode nvarchar(20) NULL,
-                    ScanType varchar(30) NULL,
-                    ScanValue nvarchar(120) NULL,
-                    Result varchar(20) NOT NULL CONSTRAINT DF_WH_OperationLog_Result DEFAULT 'INFO',
-                    Message nvarchar(500) NULL,
-                    ClientIP nvarchar(64) NULL,
-                    UserAgent nvarchar(300) NULL,
-                    RefDocType varchar(30) NULL,
-                    RefDocNo nvarchar(80) NULL,
-                    LotNo nvarchar(80) NULL,
-                    PartNo nvarchar(80) NULL,
-                    LocationID nvarchar(80) NULL,
-                    Qty decimal(14,3) NULL,
-                    CreatedBy varchar(50) NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedBy DEFAULT 'system',
-                    CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedTS DEFAULT SYSDATETIME(),
-                    CONSTRAINT PK_WH_OperationLog PRIMARY KEY CLUSTERED (OperationLogID)
-                );
-            END;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EventTime') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD EventTime datetime2 NOT NULL DEFAULT SYSDATETIME();
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EventType') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD EventType varchar(40) NOT NULL DEFAULT 'INFO';
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ScreenCode') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ScreenCode varchar(20) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EmployeeNo') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD EmployeeNo nvarchar(40) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'EmployeeName') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD EmployeeName nvarchar(120) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'WorkerID') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD WorkerID nvarchar(450) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'TerminalID') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD TerminalID nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'LineID') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD LineID nvarchar(40) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ShiftCode') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ShiftCode nvarchar(20) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ScanType') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ScanType varchar(30) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ScanValue') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ScanValue nvarchar(120) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'Result') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD Result varchar(20) NOT NULL DEFAULT 'INFO';
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'Message') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD Message nvarchar(500) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'ClientIP') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD ClientIP nvarchar(64) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'UserAgent') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD UserAgent nvarchar(300) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'RefDocType') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD RefDocType varchar(30) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'RefDocNo') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD RefDocNo nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'LotNo') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD LotNo nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'PartNo') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD PartNo nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'LocationID') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD LocationID nvarchar(80) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'Qty') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD Qty decimal(14,3) NULL;
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'CreatedBy') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD CreatedBy varchar(50) NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedBy DEFAULT 'system';
-
-            IF COL_LENGTH(N'dbo.WH_OperationLog', N'CreatedTS') IS NULL
-                ALTER TABLE dbo.WH_OperationLog ADD CreatedTS datetime2 NOT NULL CONSTRAINT DF_WH_OperationLog_CreatedTS DEFAULT SYSDATETIME();
-
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_OperationLog_Time' AND object_id = OBJECT_ID(N'dbo.WH_OperationLog'))
-                CREATE INDEX IX_WH_OperationLog_Time ON dbo.WH_OperationLog (EventTime DESC, OperationLogID DESC);
-
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_OperationLog_Search' AND object_id = OBJECT_ID(N'dbo.WH_OperationLog'))
-                CREATE INDEX IX_WH_OperationLog_Search ON dbo.WH_OperationLog (EventType, EmployeeNo, WorkerID, ScanValue);
-            """, conn)
-        {
-            CommandTimeout = 15
-        };
-        cmd.ExecuteNonQuery();
-    }
-
-    private void EnsureWarehouseMasterTable()
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'dbo.WH_WarehouseMaster', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_WarehouseMaster (
-                    WhCode VARCHAR(20) NOT NULL CONSTRAINT PK_WH_WAREHOUSE_MASTER PRIMARY KEY,
-                    WhName NVARCHAR(120) NULL,
-                    ActiveFlag BIT NOT NULL CONSTRAINT DF_WH_WAREHOUSE_MASTER_ACTIVE DEFAULT 1,
-                    CreatedBy NVARCHAR(80) NULL,
-                    CreatedTS DATETIME2 NOT NULL CONSTRAINT DF_WH_WAREHOUSE_MASTER_CREATED_TS DEFAULT SYSDATETIME(),
-                    ModifiedBy NVARCHAR(80) NULL,
-                    ModifiedTS DATETIME2 NULL
-                );
-            END;
-
-            MERGE dbo.WH_WarehouseMaster AS tgt
-            USING (
-                SELECT DISTINCT
-                    CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode
-                FROM dbo.MD_Location
-                WHERE COALESCE(NULLIF(PlantCode, ''), 'WH') IS NOT NULL
-            ) AS src ON tgt.WhCode = src.WhCode
-            WHEN NOT MATCHED THEN INSERT
-                (WhCode, WhName, ActiveFlag, CreatedBy, CreatedTS)
-            VALUES
-                (src.WhCode, src.WhCode, 1, 'system', SYSDATETIME());
-        """, conn);
-        cmd.ExecuteNonQuery();
-    }
-
-    private void EnsureWarehouseAreaTable()
-    {
-        EnsureWarehouseMasterTable();
-
-        using var conn = _factory.OpenConnection();
-        using (var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'dbo.WH_AreaMaster', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_AreaMaster (
-                    WhCode VARCHAR(20) NULL,
-                    AreaCode VARCHAR(20) NOT NULL CONSTRAINT PK_WH_AREA_MASTER PRIMARY KEY,
-                    AreaName NVARCHAR(120) NULL,
-                    ActiveFlag BIT NOT NULL CONSTRAINT DF_WH_AREA_MASTER_ACTIVE DEFAULT 1,
-                    CreatedBy NVARCHAR(80) NULL,
-                    CreatedTS DATETIME2 NOT NULL CONSTRAINT DF_WH_AREA_MASTER_CREATED_TS DEFAULT SYSDATETIME(),
-                    ModifiedBy NVARCHAR(80) NULL,
-                    ModifiedTS DATETIME2 NULL
-                );
-            END;
-
-            IF COL_LENGTH(N'dbo.WH_AreaMaster', N'WhCode') IS NULL
-            BEGIN
-                ALTER TABLE dbo.WH_AreaMaster ADD WhCode VARCHAR(20) NULL;
-            END;
-        """, conn))
-        {
-            cmd.ExecuteNonQuery();
-        }
-
-        using (var cmd = new SqlCommand("""
-            UPDATE A
-               SET WhCode = COALESCE(NULLIF(A.WhCode, ''), X.WhCode, A.AreaCode)
-            FROM dbo.WH_AreaMaster A
-            OUTER APPLY (
-                SELECT TOP (1) L.PlantCode AS WhCode
-                FROM dbo.MD_Location L
-                WHERE COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = A.AreaCode
-                  AND NULLIF(L.PlantCode, '') IS NOT NULL
-                ORDER BY L.PlantCode
-            ) X
-            WHERE NULLIF(A.WhCode, '') IS NULL;
-        """, conn))
-        {
-            cmd.ExecuteNonQuery();
-        }
-
-        using (var cmd = new SqlCommand("""
-            MERGE dbo.WH_AreaMaster AS tgt
-            USING (
-                SELECT DISTINCT
-                    CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode,
-                    CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode
-                FROM dbo.MD_Location
-                WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
-            ) AS src ON tgt.AreaCode = src.AreaCode
-            WHEN NOT MATCHED THEN INSERT
-                (WhCode, AreaCode, AreaName, ActiveFlag, CreatedBy, CreatedTS)
-            VALUES
-                (src.WhCode, src.AreaCode, src.AreaCode, 1, 'system', SYSDATETIME());
-        """, conn))
-        {
-            cmd.ExecuteNonQuery();
-        }
-    }
-
-    private void EnsureWarehouseSectionTable()
-    {
-        EnsureWarehouseAreaTable();
-
-        using var conn = _factory.OpenConnection();
-        using (var cmd = new SqlCommand("""
-            IF OBJECT_ID(N'dbo.WH_AreaSection', N'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.WH_AreaSection (
-                    WhCode VARCHAR(20) NULL,
-                    AreaCode VARCHAR(20) NOT NULL,
-                    SectionCode VARCHAR(20) NOT NULL,
-                    SectionName NVARCHAR(120) NULL,
-                    ActiveFlag BIT NOT NULL CONSTRAINT DF_WH_AREA_SECTION_ACTIVE DEFAULT 1,
-                    CreatedBy NVARCHAR(80) NULL,
-                    CreatedTS DATETIME2 NOT NULL CONSTRAINT DF_WH_AREA_SECTION_CREATED_TS DEFAULT SYSDATETIME(),
-                    ModifiedBy NVARCHAR(80) NULL,
-                    ModifiedTS DATETIME2 NULL,
-                    CONSTRAINT PK_WH_AREA_SECTION PRIMARY KEY (AreaCode, SectionCode)
-                );
-            END;
-
-            IF COL_LENGTH(N'dbo.WH_AreaSection', N'WhCode') IS NULL
-            BEGIN
-                ALTER TABLE dbo.WH_AreaSection ADD WhCode VARCHAR(20) NULL;
-            END;
-        """, conn))
-        {
-            cmd.ExecuteNonQuery();
-        }
-
-        using (var cmd = new SqlCommand("""
-            UPDATE S
-               SET WhCode = COALESCE(NULLIF(S.WhCode, ''), A.WhCode, X.WhCode)
-            FROM dbo.WH_AreaSection S
-            LEFT JOIN dbo.WH_AreaMaster A
-                   ON A.AreaCode = S.AreaCode
-            OUTER APPLY (
-                SELECT TOP (1) L.PlantCode AS WhCode
-                FROM dbo.MD_Location L
-                WHERE COALESCE(NULLIF(L.ZoneCode, ''), L.PlantCode) = S.AreaCode
-                  AND COALESCE(NULLIF(L.LocationType, ''), 'DEFAULT') = S.SectionCode
-                  AND NULLIF(L.PlantCode, '') IS NOT NULL
-                ORDER BY L.PlantCode
-            ) X
-            WHERE NULLIF(S.WhCode, '') IS NULL;
-        """, conn))
-        {
-            cmd.ExecuteNonQuery();
-        }
-
-        using (var cmd = new SqlCommand("""
-            MERGE dbo.WH_AreaSection AS tgt
-            USING (
-                SELECT DISTINCT
-                    CAST(COALESCE(NULLIF(PlantCode, ''), 'WH') AS varchar(20)) AS WhCode,
-                    CAST(COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') AS varchar(20)) AS AreaCode,
-                    CAST(COALESCE(NULLIF(LocationType, ''), 'DEFAULT') AS varchar(20)) AS SectionCode
-                FROM dbo.MD_Location
-                WHERE COALESCE(NULLIF(ZoneCode, ''), PlantCode, 'WH') IS NOT NULL
-            ) AS src
-               ON tgt.AreaCode = src.AreaCode
-              AND tgt.SectionCode = src.SectionCode
-            WHEN NOT MATCHED THEN INSERT
-                (WhCode, AreaCode, SectionCode, SectionName, ActiveFlag, CreatedBy, CreatedTS)
-            VALUES
-                (src.WhCode, src.AreaCode, src.SectionCode, src.SectionCode, 1, 'system', SYSDATETIME());
-        """, conn))
-        {
-            cmd.ExecuteNonQuery();
-        }
+        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 40).Value = lineCode;
+        return Convert.ToString(cmd.ExecuteScalar())!;
     }
 
     private static void AddLocationParameters(
@@ -2621,23 +2006,26 @@ public sealed class WarehouseRepository
         string? rackZ,
         bool useYn)
     {
-        cmd.Parameters.Add("@LocationNo", SqlDbType.VarChar, 20).Value = Truncate(locationNo, 20);
-        AddNullable(cmd, "@LocationName", SqlDbType.NVarChar, 120, locationName);
-        AddNullable(cmd, "@PlantCode", SqlDbType.VarChar, 20, whCode);
-        AddNullable(cmd, "@ZoneCode", SqlDbType.VarChar, 10, FirstNonBlank(areaCode, zoneCode));
-        AddNullable(cmd, "@LocationType", SqlDbType.VarChar, 20, FirstNonBlank(zoneCode, zoneName, areaName));
-        AddNullable(cmd, "@RackX", SqlDbType.VarChar, 5, rackX);
-        AddNullable(cmd, "@RackY", SqlDbType.VarChar, 5, rackY);
-        AddNullable(cmd, "@RackZ", SqlDbType.VarChar, 5, rackZ);
+        ColumnParams.Add(cmd, "@LocationNo", "MD_Location.LocationID", locationNo);
+        ColumnParams.Add(cmd, "@LocationName", "MD_Location.LocationName", NullIfBlank(locationName));
+        ColumnParams.Add(cmd,"@WhCode","MD_Location.WhCode",NullIfBlank(whCode));
+        ColumnParams.Add(cmd,"@AreaCode","MD_Location.AreaCode",NullIfBlank(areaCode));
+        ColumnParams.Add(cmd,"@PlantCode","MD_Location.PlantCode",NullIfBlank(whCode));
+        ColumnParams.Add(cmd,"@ZoneCode","MD_Location.ZoneCode",NullIfBlank(zoneCode));
+        ColumnParams.Add(cmd,"@LocationType","MD_Location.LocationType",
+            string.Equals(areaCode?.Trim(), "FG_AREA", StringComparison.OrdinalIgnoreCase) ? "FG" : FirstNonBlank(zoneCode,zoneName,areaName));
+        ColumnParams.Add(cmd,"@RackX","MD_Location.Aisle",NullIfBlank(rackX));
+        ColumnParams.Add(cmd,"@RackY","MD_Location.Bay",NullIfBlank(rackY));
+        ColumnParams.Add(cmd,"@RackZ","MD_Location.Slot",NullIfBlank(rackZ));
         cmd.Parameters.Add("@UseYn", SqlDbType.Bit).Value = useYn;
     }
 
-    private List<T> Query<T>(string sql, Func<SqlDataReader, T> map, params (string Name, object? Val)[] p)
+    private List<T> Query<T>(string sql, Func<SqlDataReader, T> map, params (string Name, string? Column, object? Val)[] p)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(sql, conn);
-        foreach (var (n, v) in p)
-            cmd.Parameters.AddWithValue(n, v ?? DBNull.Value);
+        foreach (var (n, c, v) in p)
+            ColumnParams.AddFilter(cmd, n, c, v);
         using var rdr = cmd.ExecuteReader();
         var list = new List<T>();
         while (rdr.Read()) list.Add(map(rdr));
@@ -2650,73 +2038,14 @@ public sealed class WarehouseRepository
     private static string? NullIfBlank(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static string WarehouseLayoutKey(string whCode) =>
-        $"WH|{Truncate(whCode.Trim(), 76)}";
-
-    private static string OldAreaLayoutKey(string areaCode) =>
-        $"AREA|{Truncate(areaCode.Trim(), 74)}";
-
-    private static string AreaLayoutKey(string whCode, string areaCode) =>
-        $"AREA|{Truncate(whCode.Trim(), 20)}|{Truncate(areaCode.Trim(), 52)}";
-
-    private static string ZoneLayoutKey(string whCode, string areaCode, string zoneCode) =>
-        $"ZONE|{Truncate(whCode.Trim(), 18)}|{Truncate(areaCode.Trim(), 26)}|{Truncate(zoneCode.Trim(), 26)}";
-
-    private static string LocationLayoutKey(string locationNo) =>
-        $"LOC|{Truncate(locationNo.Trim(), 75)}";
-
     private static string? FirstNonBlank(params string?[] values)
         => values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v))?.Trim();
 
     private static string Truncate(string value, int maxLength)
     {
         value = value.Trim();
-        return value.Length <= maxLength ? value : value[..maxLength];
-    }
-
-    private static void AddNullable(SqlCommand cmd, string name, SqlDbType type, int size, string? value)
-    {
-        var p = cmd.Parameters.Add(name, type, size);
-        p.Value = string.IsNullOrWhiteSpace(value) ? DBNull.Value : value.Trim();
-    }
-
-    private static void AddOperationLogParameters(
-        SqlCommand cmd,
-        string eventType,
-        string? screenCode,
-        string? workerId,
-        string? workerName,
-        string? message,
-        string? refDocType,
-        string? refDocNo,
-        string? locationId,
-        string result)
-    {
-        AddNullable(cmd, "@EventType", SqlDbType.VarChar, 40, eventType.ToUpperInvariant());
-        AddNullable(cmd, "@ScreenCode", SqlDbType.VarChar, 20, TruncateOrNull(screenCode, 20));
-        AddNullable(cmd, "@EmployeeNo", SqlDbType.NVarChar, 40, TruncateOrNull(workerId, 40));
-        AddNullable(cmd, "@EmployeeName", SqlDbType.NVarChar, 120, TruncateOrNull(workerName, 120));
-        AddNullable(cmd, "@WorkerID", SqlDbType.NVarChar, 450, TruncateOrNull(workerId, 450));
-        AddNullable(cmd, "@TerminalID", SqlDbType.NVarChar, 80, "WEB");
-        AddNullable(cmd, "@ScanType", SqlDbType.VarChar, 30, "MASTER");
-        AddNullable(cmd, "@ScanValue", SqlDbType.NVarChar, 120, TruncateOrNull(refDocNo ?? locationId, 120));
-        AddNullable(cmd, "@Result", SqlDbType.VarChar, 20, string.IsNullOrWhiteSpace(result) ? "SUCCESS" : result.ToUpperInvariant());
-        AddNullable(cmd, "@Message", SqlDbType.NVarChar, 500, TruncateOrNull(message, 500));
-        AddNullable(cmd, "@ClientIP", SqlDbType.NVarChar, 64, null);
-        AddNullable(cmd, "@UserAgent", SqlDbType.NVarChar, 300, null);
-        AddNullable(cmd, "@RefDocType", SqlDbType.VarChar, 30, TruncateOrNull(refDocType, 30));
-        AddNullable(cmd, "@RefDocNo", SqlDbType.NVarChar, 80, TruncateOrNull(refDocNo, 80));
-        AddNullable(cmd, "@LotNo", SqlDbType.NVarChar, 80, null);
-        AddNullable(cmd, "@PartNo", SqlDbType.NVarChar, 80, null);
-        AddNullable(cmd, "@LocationID", SqlDbType.NVarChar, 80, TruncateOrNull(locationId, 80));
-        if (!cmd.Parameters.Contains("@Qty"))
-        {
-            var qty = cmd.Parameters.Add("@Qty", SqlDbType.Decimal);
-            qty.Precision = 14;
-            qty.Scale = 3;
-            qty.Value = DBNull.Value;
-        }
-        AddNullable(cmd, "@CreatedBy", SqlDbType.VarChar, 50, TruncateOrNull(workerId, 50) ?? "web");
+        if (value.Length>maxLength) throw new ArgumentException($"Value must be at most {maxLength} characters.");
+        return value;
     }
 
     private static string? TruncateOrNull(string? value, int maxLength)

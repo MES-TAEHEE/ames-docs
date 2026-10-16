@@ -1,0 +1,235 @@
+@page "/scm/purchase-items"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject UomFormat UomFmt
+@inject MasterDataRepository MD
+@inject ScmRepository Scm
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Nav
+@inject AuditLogger Audit
+@inject ILogger<PurchaseItems> Logger
+@inject IStringLocalizer<SharedResources> L
+@using System.Globalization
+
+<PageTitle>SCM-003 @Title · AMES</PageTitle>
+<AmesPageHeader Code="SCM-003" Title="@Title" />
+@if (_ready)
+{
+    <div class="ames-kpis">
+        <div class="ames-kpi"><div class="ames-kpi-l">@L["Scm.Text.PurchaseItems"]</div><div class="ames-kpi-v">@_all.Count</div></div>
+        <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Scm.Text.MappedItems"]</div><div class="ames-kpi-v">@_all.Count(x => Links(x.ItemNo).Any())</div></div>
+        <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Scm.Text.UnmappedItems"]</div><div class="ames-kpi-v">@_all.Count(x => !Links(x.ItemNo).Any())</div></div>
+    </div>
+    @if (_message.Length > 0)
+    {
+        <RadzenAlert AlertStyle="@(_error ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_message</RadzenAlert>
+    }
+    <div class="ames-card">
+        <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="white-space:nowrap;">▼ @Title · @_rows.Count @L["Scm.Text.Items"]@(_rows.Count < _all.Count ? $" / {L["Scm.Text.Total"]} {_all.Count}" : "") · MATERIAL</span>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                <RadzenTextBox @bind-Value="_search" Immediate="true" @onkeydown="OnSearchKeyDown" Placeholder="@L["SCM.PurchaseItems.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
+                <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+        <RadzenDataGrid @ref="_grid" TItem="MasterDataRepository.ItemRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
+                        PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
+                        EmptyText="@L["Scm.Text.NoItemsFound"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
+            <Columns>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="No." Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                    <Template Context="row"><span class="dim">@GridRowNo.Of(_grid, row)</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="170px" Property="ItemNo" Title="@L["Scm.Text.ItemCode"]" Width="170px">
+                    <Template Context="row"><span class="code">@row.ItemNo</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="200px" Property="ItemName" Title="@L["Scm.Text.ItemName"]" />
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="120px" Property="ItemCategory" Title="@L["Scm.Text.Category"]" TextAlign="TextAlign.Center" Width="120px">
+                    <Template Context="row"><span class="dim">@(row.ItemCategory ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="100px" Property="DefaultUOM" Title="@L["Scm.Text.Unit"]" TextAlign="TextAlign.Center" Width="100px">
+                    <Template Context="row"><span class="dim">@(UomFmt.Sym(row.DefaultUOM) ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="200px" Title="@L["Scm.Text.LinkedVendors"]" Sortable="false">
+                    <Template Context="row">
+                        @foreach (var v in Links(row.ItemNo)) { <span class="code" style="margin-right:4px;">@v.VendorID</span><span class="dim" style="font-size:.8em;margin-right:10px;">@v.VendorName</span> }
+                        @if (!Links(row.ItemNo).Any()) { <span class="dim">—</span> }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="150px" Property="UnitCost" Title="@L["Scm.Text.UnitCost"]" Width="150px" TextAlign="TextAlign.Right">
+                    <Template Context="row">@((row.UnitCost ?? 0).ToString("#,##0.00##"))</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="100px" Property="ActiveFlag" Title="@L["Scm.Text.Active"]" TextAlign="TextAlign.Center" Width="100px">
+                    <Template Context="row"><span class="pill @(row.ActiveFlag ? "ok" : "bad")">@(row.ActiveFlag ? L["Scm.Text.Active"] : L["Scm.Text.Inactive"])</span></Template>
+                </RadzenDataGridColumn>
+                @if (CanEdit)
+                {
+                    <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="130px" Title="" Width="130px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="row"><RadzenButton Text="@L["Scm.Text.LinkVendors"]" Icon="link" Click="@(() => Open(row))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" /></Template>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+    @if (_edit is not null)
+    {
+        <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
+            <div class="ames-modal ames-modal-wide" role="dialog" aria-label="@L["Scm.Text.LinkVendors"]" @onmousedown:stopPropagation @onclick:stopPropagation>
+                <div class="ames-modal-h">@L["Scm.Text.PurchaseItemVendors"] <span class="code" style="font-weight:400;font-size:.9em;">@_edit.ItemNo</span></div>
+                <div class="pi-dgrid">
+                    <div class="pi-dt"><div class="pi-dl">@L["Scm.Text.ItemName"]</div><div class="pi-dv">@_edit.ItemName</div></div>
+                    <div class="pi-dt"><div class="pi-dl">@L["Scm.Text.Unit"]</div><div class="pi-dv">@(UomFmt.Sym(_edit.DefaultUOM) ?? "—")</div></div>
+                    <div class="pi-dt"><div class="pi-dl">@L["Scm.Text.LinkedVendors"]</div><div class="pi-dv">@Links(_edit.ItemNo).Count()</div></div>
+                </div>
+                <RadzenStack Gap="0.5rem">
+                    <span class="pi-dsub">@L["Scm.Text.SelectVendorsToLink"]</span>
+                    <div class="vendor-check-list" role="group" aria-label="@L["Scm.Text.SelectVendorsToLink"]">
+                        @foreach (var vendor in VendorOptions)
+                        {
+                            <label class="vendor-check-item" @key="vendor.Value">
+                                <input type="checkbox" checked="@_selectedVendors.Contains(vendor.Value)" @onchange="@(e => ToggleVendor(vendor.Value, e.Value is true))" />
+                                <span>@vendor.Text</span>
+                            </label>
+                        }
+                        @if (!VendorOptions.Any())
+                        { <span class="dim">@L["Scm.Text.NoVendorsAvailableToLink"]</span> }
+                    </div>
+                    <RadzenButton Text="@($"{L["Scm.Text.LinkVendors.53723e"]} ({_selectedVendors.Count})")" Icon="add_link" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="Link" Disabled="@(_busy || _selectedVendors.Count == 0)" Style="align-self:flex-start" class="ames-rz-btn" />
+                </RadzenStack>
+                <span class="pi-dsub" style="display:block;margin-top:14px;">@L["Scm.Text.LinkedVendors.e8d8ad"]</span>
+                <RadzenDataGrid TItem="ScmRepository.ItemVendorRow" Data="@Links(_edit.ItemNo)" AllowPaging="true" PageSize="5" PagerHorizontalAlign="HorizontalAlign.Center" Class="ames-rz-grid" EmptyText="@L["Scm.Text.NoLinkedVendors"]">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" MinWidth="130px" Property="VendorID" Title="@L["Scm.Text.VendorCode"]" Width="130px">
+                            <Template Context="link"><span class="code">@link.VendorID</span></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" MinWidth="160px" Property="VendorName" Title="@L["Scm.Text.VendorName"]" />
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" MinWidth="100px" Property="VendorType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="100px" />
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" MinWidth="130px" Title="@L["Scm.Text.VendorActive"]" TextAlign="TextAlign.Center" Width="130px">
+                            <Template Context="link"><span class="pill @(link.VendorActive ? "ok" : "bad")">@(link.VendorActive ? L["Scm.Text.Active"] : L["Scm.Text.Inactive"])</span></Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ScmRepository.ItemVendorRow" MinWidth="120px" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
+                            <Template Context="link"><RadzenButton Text="@L["Scm.Text.Unlink"]" Icon="link_off" Click="@(() => Unlink(link))" Disabled="@_busy" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" /></Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+                @if (_editError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_editError</RadzenAlert> }
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                    <RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(() => _edit = null)" Disabled="@_busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                </RadzenStack>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    RadzenDataGrid<MasterDataRepository.ItemRow>? _grid;
+    IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
+    int _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
+    bool _bgMouseDownOnSelf;
+    void OnBgMouseDown() => _bgMouseDownOnSelf = true;
+    void OnBgClick() { if (!_busy && _bgMouseDownOnSelf) _edit = null; _bgMouseDownOnSelf = false; }
+    async Task OnSearchKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await Search(); }
+    const string Href = "scm/purchase-items";
+    string Title => L["Scm.Text.PurchaseItems.a37216"];
+    List<MasterDataRepository.ItemRow> _all = new(), _rows = new();
+    List<MasterDataRepository.VendorRow> _vendors = new();
+    List<ScmRepository.ItemVendorRow> _links = new();
+    MasterDataRepository.ItemRow? _edit;
+    readonly HashSet<string> _selectedVendors = new(StringComparer.OrdinalIgnoreCase);
+    string _search = "", _message = "", _editError = "", _actor = "";
+    bool _ready, _error;
+    bool CanEdit => Permissions.CanEdit(Href);
+    ILookup<string,ScmRepository.ItemVendorRow> _linksByItem=Array.Empty<ScmRepository.ItemVendorRow>().ToLookup(x=>x.ItemNo,StringComparer.OrdinalIgnoreCase);
+    IEnumerable<ScmRepository.ItemVendorRow> Links(string itemNo) => _linksByItem[itemNo];
+    record VendorOption(string Value, string Text);
+    IEnumerable<VendorOption> VendorOptions => _vendors.Where(x => x.ActiveFlag && !Links(_edit?.ItemNo ?? "").Any(m => m.VendorID == x.VendorID))
+        .Select(x => new VendorOption(x.VendorID, $"{x.VendorID} · {x.VendorName} ({x.VendorType})"));
+    protected override async Task OnInitializedAsync()
+    {
+        await Permissions.EnsureAsync(Authentication);
+        if (!Permissions.IsVisible(Href)) { Nav.NavigateTo("/unauthorized"); return; }
+        _actor = ActorCode.Of((await Authentication.GetAuthenticationStateAsync()).User);
+        _ready = true;
+        await Reload();
+    }
+    bool _busy;
+    int _reloadRevision;
+    async Task Search(){if(!_busy)await Reload();}
+    async Task Reload()
+    {
+        var revision=++_reloadRevision;
+        try
+        {
+            var data=await Task.Run(()=>(Items:MD.ListItems(itemType:"MATERIAL"),Vendors:MD.ListVendors(),Links:Scm.ListItemVendors()));
+            if(revision!=_reloadRevision)return;
+            _all=data.Items;_vendors=data.Vendors;_links=data.Links;
+            _linksByItem=_links.ToLookup(x=>x.ItemNo,StringComparer.OrdinalIgnoreCase);
+            var term=_search.Trim();
+            var byItem=_links.ToLookup(x=>x.ItemNo);
+            _rows=_all.Where(x=>term.Length==0 || x.ItemNo.Contains(term,StringComparison.OrdinalIgnoreCase)
+                || x.ItemName.Contains(term,StringComparison.OrdinalIgnoreCase)
+                || byItem[x.ItemNo].Any(v=>v.VendorID.Contains(term,StringComparison.OrdinalIgnoreCase)||v.VendorName.Contains(term,StringComparison.OrdinalIgnoreCase))).ToList();
+            _error=false;_message="";
+            if(_grid is not null)await _grid.GoToPage(0);
+        }
+        catch(Exception ex){if(revision!=_reloadRevision)return;Logger.LogError(ex,"SCM-003 load failed");_all.Clear();_rows.Clear();_links.Clear();_linksByItem=_links.ToLookup(x=>x.ItemNo,StringComparer.OrdinalIgnoreCase);_edit=null;_error=true;_message=L["Scm.Text.UnableToLoadPleaseRetry"];}
+    }
+    void Open(MasterDataRepository.ItemRow row)
+    {
+        if(!CanEdit || _busy)return;
+        _edit=row;_selectedVendors.Clear();_editError="";
+    }
+    void ToggleVendor(string vendorId, bool selected)
+    {
+        if (selected) _selectedVendors.Add(vendorId);
+        else _selectedVendors.Remove(vendorId);
+    }
+    Task Link()=>WriteMapping(LinkCore);
+    Task Unlink(ScmRepository.ItemVendorRow link)=>WriteMapping(()=>UnlinkCore(link));
+    async Task WriteMapping(Func<Task> action)
+    {
+        if(_busy)return;
+        _busy=true;
+        ++_reloadRevision;
+        try
+        {
+            if(!await Permissions.RecheckEditAsync(Authentication,Href)){_editError="You no longer have permission to change supplier mappings.";return;}
+            await action();
+        }
+        finally{_busy=false;}
+    }
+    async Task LinkCore()
+    {
+        if (!CanEdit || _edit is null || _selectedVendors.Count == 0) return;
+        try
+        {
+            var item=_edit.ItemNo;var vendors=_selectedVendors.ToArray();
+            var changed = await Task.Run(()=>Scm.LinkItemVendors(item, vendors, _actor));
+            foreach (var vendorId in changed) Audit.Log("SCM-003", "LINK", "SCM_ItemVendor", _edit.ItemNo, null,
+                new { _edit.ItemNo, VendorID = vendorId, ActiveFlag = true });
+            _selectedVendors.Clear();
+            _editError = "";
+            await RefreshAfterSave();
+        }
+        catch (Exception ex) { Logger.LogError(ex, "SCM-003 link failed"); _editError = L["Scm.Text.UnableToLinkCheckTheMATERIALItemAndActive"]; }
+    }
+    async Task UnlinkCore(ScmRepository.ItemVendorRow link)
+    {
+        if (!CanEdit || _edit?.ItemNo != link.ItemNo) return;
+        try
+        {
+            if (await Task.Run(()=>Scm.UnlinkItemVendor(link.ItemNo, link.VendorID, _actor)))
+                Audit.Log("SCM-003", "UNLINK", "SCM_ItemVendor", link.ItemNo,
+                    new { link.ItemNo, link.VendorID, ActiveFlag = true }, new { link.ItemNo, link.VendorID, ActiveFlag = false });
+            _editError = "";
+            await RefreshAfterSave();
+        }
+        catch (Exception ex) { Logger.LogError(ex, "SCM-003 unlink failed"); _editError = L["Scm.Text.UnableToUnlink"]; }
+    }
+    async Task RefreshAfterSave()
+    {
+        await Reload();
+        if(!_error)_message=L["Scm.Text.VendorMappingsSaved"];
+        else _message=L["Scm.Text.SavedButRefreshFailedCloseAndReload"];
+    }
+}
