@@ -423,7 +423,7 @@ public sealed partial class ScmRepository
         if(boxes.Count==0)throw new InvalidOperationException("This case has already been fully received.");
         foreach(var barcode in boxes)
         {
-            using var receive=new SqlCommand("dbo.WH_PDA_INBOUND_RECEIVE_LOT",c,tx){CommandType=CommandType.StoredProcedure,CommandTimeout=60};
+            using var receive=new SqlCommand(PdaWarehouseSql.InboundReceive,c,tx){CommandTimeout=60};
             Add(receive,("@ReceiveMode", "WH_PDA_INBOUND_RECEIVE_LOT.@ReceiveMode",mode),("@LotBarcode", "WH_PDA_INBOUND_RECEIVE_LOT.@LotBarcode",barcode),("@LocationId", "WH_PDA_INBOUND_RECEIVE_LOT.@LocationId",""),("@UserId", "WH_PDA_INBOUND_RECEIVE_LOT.@UserId",actor),("@SimulateFailure", "WH_PDA_INBOUND_RECEIVE_LOT.@SimulateFailure",false));
             receive.ExecuteNonQuery();LinkReceivedCase(c,tx,barcode);
         }

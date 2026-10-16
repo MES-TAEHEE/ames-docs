@@ -1,0 +1,90 @@
+using System.Reflection;
+using System.Text.RegularExpressions;
+using AMES.Data.Repositories;
+using Xunit;
+
+namespace AMES.Data.Tests;
+
+public class PdaDirectSqlTests
+{
+    public static IEnumerable<object[]> Operations() => new[]
+        { typeof(PdaWarehouseSql), typeof(PdaFinishedGoodsSql), typeof(PdaSparePartsSql) }
+        .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => field.IsLiteral && field.FieldType == typeof(string))
+            .Select(field => new object[] { type.Name + "." + field.Name, (string)field.GetRawConstantValue()! }));
+
+    [Theory]
+    [MemberData(nameof(Operations))]
+    public void Operational_batches_need_no_installed_application_procedures_or_retired_tables(string operation, string sql)
+    {
+        Assert.False(string.IsNullOrWhiteSpace(sql), operation);
+        Assert.DoesNotMatch(@"(?i)\b(?:CREATE|ALTER|DROP|TRUNCATE)\s+(?:TABLE|PROC(?:EDURE)?)\b", sql);
+        Assert.DoesNotMatch(@"(?i)\bEXEC(?:UTE)?\s+(?:dbo\.)?(?:WH_|FG_|SP_PDA_)\w+", sql);
+        Assert.DoesNotMatch(@"(?i)\b(?:FROM|JOIN|UPDATE|INTO|MERGE|DELETE)\s+(?:dbo\.)?(?:WH_OLD_Inventory|WH_Receiving|WH_InboundPackage|WH_ReleasePicking|FG_Inventory|FG_Putaway|FG_ShipmentOrder)\b", sql);
+        Assert.Contains("SET QUOTED_IDENTIFIER ON;", sql);
+    }
+
+    [Fact]
+    public void Cancel_sets_required_options_before_writes_without_calling_legacy_procedure()
+    {
+        var sql = PdaWarehouseSql.InboundCancel.TrimStart();
+        Assert.StartsWith("SET QUOTED_IDENTIFIER ON;", sql);
+        Assert.True(sql.IndexOf("SET ANSI_NULLS ON;", StringComparison.Ordinal)
+            < sql.IndexOf("BEGIN TRANSACTION;", StringComparison.Ordinal));
+        Assert.DoesNotContain("WH_PDA_INBOUND_CANCEL_RECEIPT", sql);
+        Assert.Contains("new SqlCommand(PdaWarehouseSql.InboundCancel, conn)",
+            Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs"));
+    }
+
+    [Fact]
+    public void Receipt_preserves_portal_balance_capacity_history_and_rollback_guards()
+    {
+        var sql = PdaWarehouseSql.InboundReceive;
+        Assert.Contains("SCM_DeliveryLine DL WITH (UPDLOCK, HOLDLOCK)", sql);
+        Assert.Contains("received quantity would exceed", sql);
+        Assert.Contains("Location capacity would be exceeded", sql);
+        Assert.Contains("SCM_DeliveryLine', @PortalDeliveryLineID", sql);
+        Assert.Contains("IF @SimulateFailure", sql);
+        Assert.Contains("GOTO PdaInboundResult;", sql);
+        Assert.Single(Regex.Matches(sql, @"DECLARE @ResultMode\b").Cast<Match>());
+        Assert.Contains("WH_InventoryTransaction", sql);
+    }
+
+    [Fact]
+    public void Return_validates_latest_shipment_in_the_same_batch_without_insert_exec()
+    {
+        var sql = PdaFinishedGoodsSql.ReturnReceive;
+        Assert.DoesNotMatch(@"(?i)INSERT\s+@\w+\s+EXEC", sql);
+        Assert.Contains("INSERT @P SELECT @ReturnScanB Barcode", sql);
+        Assert.Contains("latest shipment changed", sql);
+        Assert.Contains("WH_Inventory WITH(UPDLOCK,HOLDLOCK)", sql);
+        Assert.Contains("FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK)", sql);
+    }
+
+    [Fact]
+    public void Pda_endpoints_only_keep_procedure_calls_in_guarded_development_reset_handlers()
+    {
+        foreach (var file in new[] { "WhEndpoints.cs", "FgEndpoints.cs" })
+        {
+            var source = Read("src/04_Api/AMES.Api/Endpoints/" + file);
+            Assert.DoesNotContain("ProcedureExists(", source);
+            var calls = Regex.Matches(source, @"new SqlCommand\((?<argument>[^;{}]+?)\)\s*\{\s*CommandType\s*=\s*CommandType.StoredProcedure");
+            Assert.Equal(file == "WhEndpoints.cs" ? 4 : 1, calls.Count);
+            foreach (Match call in calls)
+                Assert.True(call.Groups["argument"].Value.Contains("TEST_RESET") || call.Groups["argument"].Value.Trim() == "procedure, connection");
+            Assert.Contains("PdaTestDatabaseGuard.AllowsReset(app, factory)", source);
+        }
+        var wh = Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs");
+        Assert.DoesNotContain("ExecuteReleasePickStoredProcedure", wh);
+        Assert.Contains("ExecuteReleaseBatch(factory, body.PickSlipNo", wh);
+        Assert.Contains("PdaWarehouseSql.FifoEarlier", wh);
+        Assert.Contains("SqlDbType.NVarChar, 50).Value = locationId.Trim()", wh);
+        Assert.Contains("new SqlCommand(PdaWarehouseSql.InboundReceive,c,tx)", Read("src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs"));
+    }
+
+    private static string Read(string relative, [System.Runtime.CompilerServices.CallerFilePath] string file = "")
+        => File.ReadAllText(ReadPath(relative, file));
+
+    private static string ReadPath(string relative, [System.Runtime.CompilerServices.CallerFilePath] string file = "")
+        => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!, "../../..", relative));
+}
