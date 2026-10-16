@@ -301,6 +301,16 @@
    - 작업지시 행(`MwoRow`)에 `PmClass`·`PmDueDate`·`Planned`·`TaskFail`·`PmNeedsNextDue` 가 붙습니다(뒤에 더한 필드라 기존 PDA 는 영향 없음).
    - PDA 에 보전 작업 화면을 만들 때는 완료 규칙(미점검·불합격이 있으면 정상 완료 불가 — `MwoChecklistRules`)과 다음 예정일 규칙(기간 주기가 아닌 PM 은 완료 때 입력 — `PmRules`)을 `MntRepository.CompleteWorkOrder` 로 그대로 씁니다.
 
+7. **PDA 일반 업무 직접 SQL 전환·구형 정의 정리 — 서버 최종 배포·통합 검증 대기**
+   - PDA WH·FG·SP의 조회·입고·적재·출고·조정·반품·예비품 라벨 생성은 애플리케이션의 매개변수 SQL로 처리합니다. 케이스 일괄 입고의 공통 저장소도 같은 경로를 사용합니다.
+   - API 직접 SQL 전환본은 사용자 서버 교체 후 응답을 확인했습니다. 이후 취소·재입고 수정본 API·AMES.Data는 추가 교체가 필요합니다. 웹의 공통 케이스 입고 경로에도 새 AMES.Data가 포함돼야 합니다. API 응답 형식은 유지했습니다.
+   - 개발용 테스트 초기화 프로시저, SYS 공장 달력·SQL Server 잠금 기능은 변경하지 않았습니다. 기존 DB 프로시저 삭제·재구축은 하지 않았습니다.
+   - 신규·구형 스키마/마이그레이션 7개에서 구형 PDA 업무 프로시저 정의 96개(중복 포함)를 제거하고, 테스트는 직접 SQL 기준으로 전환했습니다. 초기화 프로시저 6종은 유지합니다. 실제 DB 프로시저 삭제는 전체 API·Web 배포 확인 전까지 보류합니다.
+   - 세션 만료 알럿은 WH/FG 다크 모달과 통일했습니다. 공통 PDA 주소를 개발 PC(.133)에서 서버 Tailscale 주소로 복구하고 Honeywell을 재설치했습니다.
+   - 0수량 재고는 최근 입고 취소 이력이 확인될 때만 재사용하고, 출고/소진된 LOT 재입고는 차단합니다. 취소 시 PO·납품 누적 입고량은 조정 후 잔량이 아닌 원래 박스 입고량으로 차감합니다.
+   - BOX-56 취소·재입고의 누적 입고량 오차는 사용자 승인으로 PoID 522·DeliveryLineID 30만 175→170 보정하고 감사 기록을 남겼습니다. 재고·재고 거래 이력은 변경하지 않았습니다.
+   - 실제 DB의 SQL 26개 컴파일(NOEXEC)·조회 9개, API 206건·관련 Data 42건, WH/FG/SP 소스 검증 3개를 확인했습니다. 재고를 변경하는 자동화 통합 테스트는 실행하지 않았으며 FG 반품·동시 PDA 쓰기 검증은 남아 있습니다.
+
 ### 2-2. 보류 (4)
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.
 - **배지 단독 로그인 정책**: 사용자 요청대로 EOS 양식 QR은 PIN 없이 로그인합니다. 임의 사번 문자열 로그인은 차단했고 로그인 횟수 제한·브라우저 CORS 기본 차단을 추가했지만, EOS QR 자체는 서명된 인증 수단이 아닙니다. 관리자 배지 복제 방지를 위한 서명/PIN 도입은 정책 결정 대기입니다.
@@ -314,20 +324,15 @@
 | `WH_ReleaseSchedule` | 미사용 | DROP 후보입니다. 이번에는 다른 WH 테이블과 식별자·행위자 길이만 맞췄고 테이블은 보존했습니다. |
 | `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
 
-### 2-4. 문제점 (6)
+### 2-4. 문제점 (5)
 1. **[하] 사용되지 않는 포장 단위 컬럼이 DB에 남음**
    - `SCM_ItemVendor.PackingUnitCode`(두 DB·스키마 파일 모두 있음). `MD_Item`·`WH_PurchaseOrder` 의 `BoxContentUnit`·`BoxContentQty` 4개는 10-16 `migrate_retire_packaging_uom.sql` 로 두 DB 에서 지웠습니다.
    - 실행 코드 참조는 없습니다. 이번에는 컬럼 삭제 승인이 없으므로 유지했습니다. 컬럼 순서를 맞추기 위한 테이블 재구축도 하지 않습니다.
-2. **[상] WH PDA 프로시저 5개가 지워진 옛 테이블을 가리킴**
-    - 위치: 개발 DB 프로시저 `WH_PDA_INBOUND_RECEIVE_LOT`·`WH_PDA_INBOUND_MOVE_LOCATION`·`WH_PDA_INBOUND_CANCEL_RECEIPT`(→ `WH_OLD_Inventory`·`WH_Receiving`·`WH_InboundPackage`), `WH_PDA_RELEASE_PICK_LINES`·`WH_PDA_RELEASE_PICK_LOT`(→ `WH_ReleasePicking`). 스키마 파일에도 같은 정의로 들어 있습니다.
-    - 내용: 네 테이블은 개발 DB 에 없습니다(`sys.sql_expression_dependencies` 에서 참조 대상 없음으로 확인). `WH_PDA_INBOUND_RECEIVE_LOT` 은 Api `WhEndpoints`·`ScmDeliveryCases`(케이스 입고)가 실제로 호출하므로, 그 문장에 닿는 입고·이동·취소·출고 피킹이 `Invalid object name` 으로 실패할 수 있습니다(실행해 보지는 않음). 옛 `migrate_wh_core_tables.sql` 이 프로시저를 옛 정의로 덮은 흔적으로 보입니다.
-    - 제안: 통합 재고(`WH_Inventory`) 기준 정의로 다시 만들고, 스키마 파일을 다시 뜹니다.
-
-3. **[하] `PR_PopSession` 새 컬럼이 CLAUDE.md 배포 순서에 없음**
+2. **[하] `PR_PopSession` 새 컬럼이 CLAUDE.md 배포 순서에 없음**
     - 위치: `migrate_pda_bearer_session.sql:6-9`
     - 내용: `BearerHash`·`SessionJson` 을 만드는 이 마이그레이션이 CLAUDE.md 배포 순서에 없습니다(스키마 파일·`rebuild_db.sh` 에는 있음). 이 마이그레이션이 빠진 기존 DB 에서는 PDA 로그인이 전부 500 입니다.
 
-4. **[하] 폐지한 포장 단위가 기존 데이터에 그대로 남음**
+3. **[하] 폐지한 포장 단위가 기존 데이터에 그대로 남음**
     - 위치: `dist/migrate_retire_packaging_uom.sql`(10-14), `tools/gen_md_item_bom_seed.py`(`quantity_unit`)
     - 내용
       - 마이그레이션(10-16 개발·로컬 DB 적용)은 단위 BOX·PLT·SH 를 사용 안 함으로만 바꾸고 데이터는 바꾸지 않았습니다. 개발 DB 에는 SH 품목 30개, BOM 줄 77개, BOX 품목 1개, BOX 발주 6건이 그대로 남아 있습니다.
@@ -335,11 +340,11 @@
       - 지운 `BoxContentUnit`·`BoxContentQty` 의 값(개발 DB 품목 TEST-0001, 발주 1225·1263 — 모두 EA·30, 로컬 DB 는 없음)은 이승욱 PC `AppData\Local\AMES-claude-tools\backup_boxcontent_20261016\dev.tsv` 에 남겨 두었습니다.
     - 제안: 시드와 같게 SH → EA 로 바꿀지 정하고, BOX 품목·발주를 어떻게 다룰지 정해 데이터 정리 스크립트를 따로 만듭니다.
 
-5. **[하] `FG_CustomerReturn.PartName` 위치가 개발 DB·로컬 DB·스키마 파일에서 모두 다름**
+4. **[하] `FG_CustomerReturn.PartName` 위치가 개발 DB·로컬 DB·스키마 파일에서 모두 다름**
     - 위치: `dist/migrate_fg_customer_return_columns.sql`(ALTER ADD), `dist/migrate_fg_shipment_actual.sql`, `dist/AMES_Schema.sql` 의 `FG_CustomerReturn`
     - 내용(10-16 기준): 개발 DB 는 감사 컬럼 뒤 맨 끝, 로컬 DB 는 `migrate_fg_shipment_actual.sql` 적용 뒤 감사 컬럼 바로 앞(`LotNo` 다음), 스키마 파일은 `PartNo` 바로 뒤입니다. 감사 컬럼을 맨 뒤에 두는 규칙(10-08)과 어긋나는 것은 개발 DB 뿐이고, 재구축·마이그레이션 경로마다 컬럼 순서가 갈립니다(코드는 이름으로만 써서 동작 영향은 없음).
     - 제안: 개발 DB 에 `migrate_audit_columns_last.sql` 을 다시 돌려 감사 컬럼을 맨 뒤로 보내고(로컬 DB 와 같아짐), 스키마 파일을 그 순서로 맞춥니다.
-6. **[하] FG 실출하 마이그레이션이 외래키 2개를 새로 만듦**(10-16 병합)
+5. **[하] FG 실출하 마이그레이션이 외래키 2개를 새로 만듦**(10-16 병합)
     - 위치: `dist/migrate_fg_shipment_actual.sql`(`FK_FG_Shipment_Customer` → `MD_Customer`, `FK_FG_CustomerReturn_Shipment` → `FG_Shipment`), 스키마 파일에도 같은 FK
     - 내용: FK 를 두지 않는 원칙(10-08 사용자 결정 — FK 위반이 현장 저장을 막지 않게 정합성은 리포지토리가 맡는다)과 다릅니다. 두 DB·스키마 파일은 서로 같습니다(심재현 미해결 18 의 APS FK 와 같은 종류).
     - 제안: FK 를 빼고 저장 코드에서 고객·출하 존재를 확인하거나, 이 두 FK 는 예외로 둘지 정합니다.

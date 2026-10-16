@@ -643,14 +643,27 @@ public static class PdaWarehouseSql
                 IF @PortalDeliveryLineID IS NULL
                     THROW 51421, 'Portal box is not linked to a shipped delivery note.', 1;
 
-                IF EXISTS
-                (
-                    SELECT 1
-                    FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK)
-                    WHERE LotNo = @Barcode
-                      AND Qty > 0
-                )
+                DECLARE @PortalExistingQty decimal(18,3);
+                SELECT @PortalExistingQty=Qty
+                FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK)
+                WHERE LotNo=@Barcode;
+                IF @PortalExistingQty <> 0
                     THROW 51416, 'LOT is already received.', 1;
+
+                -- Legacy cancellations may retain a zero-quantity row; depleted stock is not a cancelled receipt.
+                IF @PortalExistingQty = 0 AND NOT EXISTS
+                (
+                    SELECT 1 FROM
+                    (
+                        SELECT TOP(1) ReasonCode,SourceType,SourceID
+                        FROM dbo.WH_InventoryTransaction WITH (UPDLOCK, HOLDLOCK)
+                        WHERE LotNo=@Barcode AND (TransactionType='IN' OR ReasonCode='INBOUND_CANCEL')
+                        ORDER BY TransactionID DESC
+                    ) LastReceipt
+                    WHERE ReasonCode='INBOUND_CANCEL'
+                      AND SourceType='SCM_DeliveryLine' AND SourceID=@PortalDeliveryLineID
+                )
+                    THROW 51416, 'This barcode was already received. Zero stock does not cancel a receipt. Check its transaction history.', 1;
 
                 IF EXISTS
                 (
@@ -678,12 +691,20 @@ public static class PdaWarehouseSql
                 )
                     THROW 51420, 'Portal delivery received quantity would exceed the remaining quantity.', 1;
 
-                INSERT dbo.WH_Inventory
-                    (LotNo, UnitType, PartNo, PartName, LocationNo, Qty,
-                     InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
-                VALUES
-                    (@Barcode, 'BOX', @PortalItemNo, @PortalPartName, @Location, @PortalQty,
-                     @PortalPoNumber, @PortalNoteNo, SYSDATETIME(), SYSDATETIME(), SYSDATETIME());
+                IF @PortalExistingQty IS NULL
+                    INSERT dbo.WH_Inventory
+                        (LotNo, UnitType, PartNo, PartName, LocationNo, Qty,
+                         InvoiceNo, DeliveryNoteNo, ReceivedAt, CreatedAt, UpdatedAt)
+                    VALUES
+                        (@Barcode, 'BOX', @PortalItemNo, @PortalPartName, @Location, @PortalQty,
+                         @PortalPoNumber, @PortalNoteNo, SYSDATETIME(), SYSDATETIME(), SYSDATETIME());
+                ELSE
+                    UPDATE dbo.WH_Inventory
+                    SET UnitType='BOX',PartNo=@PortalItemNo,PartName=@PortalPartName,
+                        LocationNo=@Location,Qty=@PortalQty,ParentLotNo=NULL,CaseNo=NULL,
+                        InvoiceNo=@PortalPoNumber,DeliveryNoteNo=@PortalNoteNo,
+                        ReceivedAt=SYSDATETIME(),UpdatedAt=SYSDATETIME()
+                    WHERE LotNo=@Barcode AND Qty=0;
 
                 UPDATE dbo.WH_PurchaseOrder
                    SET ReceivedQty = COALESCE(ReceivedQty, 0) + @PortalQty,
@@ -855,6 +876,7 @@ public static class PdaWarehouseSql
                     @PortalItemNo varchar(20),
                     @PortalLocation varchar(50),
                     @PortalQty decimal(18,3),
+                    @PortalReceiptQty decimal(18,3),
                     @PortalPoID int,
                     @PortalNoteNo nvarchar(30);
 
@@ -865,6 +887,7 @@ public static class PdaWarehouseSql
                     @PortalItemNo = W.PartNo,
                     @PortalLocation = W.LocationNo,
                     @PortalQty = W.Qty,
+                    @PortalReceiptQty = B.Quantity,
                     @PortalNoteNo = W.DeliveryNoteNo
                 FROM dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK)
                 JOIN dbo.SCM_DeliveryBox B ON B.BoxNumber = W.LotNo AND B.ActiveFlag = 1
@@ -899,15 +922,15 @@ public static class PdaWarehouseSql
                 FROM dbo.WH_PurchaseOrder PO
                 CROSS APPLY (VALUES
                 (
-                    CASE WHEN COALESCE(PO.ReceivedQty, 0) < @PortalQty
-                         THEN 0 ELSE PO.ReceivedQty - @PortalQty END
+                    CASE WHEN COALESCE(PO.ReceivedQty, 0) < @PortalReceiptQty
+                         THEN 0 ELSE PO.ReceivedQty - @PortalReceiptQty END
                 )) X(NewReceivedQty)
                 WHERE PO.PoID = @PortalPoID;
 
                 UPDATE dbo.SCM_DeliveryLine
                    SET ReceivedQty = CASE
-                           WHEN COALESCE(ReceivedQty, 0) - @PortalQty < 0 THEN 0
-                           ELSE COALESCE(ReceivedQty, 0) - @PortalQty
+                           WHEN COALESCE(ReceivedQty, 0) - @PortalReceiptQty < 0 THEN 0
+                           ELSE COALESCE(ReceivedQty, 0) - @PortalReceiptQty
                        END
                  WHERE DeliveryLineID = @PortalDeliveryLineID;
 

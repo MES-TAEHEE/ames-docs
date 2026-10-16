@@ -263,6 +263,36 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(3,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
             Assert.Equal(0,Count($"SELECT Qty FROM WH_Inventory WHERE LotNo='{first}'"));
             Assert.Equal(2,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE ParentLotNo='{first}' AND CaseNo='{first}'"));
+            Sql($"UPDATE WH_Inventory SET Qty=(SELECT Quantity FROM SCM_DeliveryBox WHERE BoxNumber='{box}') WHERE LotNo='{box}';");
+            var originalBoxQty=Count($"SELECT Qty FROM WH_Inventory WHERE LotNo='{box}'");
+            Assert.True(originalBoxQty>1);
+            Sql($"UPDATE WH_Inventory SET Qty={originalBoxQty-1} WHERE LotNo='{box}';");
+            using(var c=factory.OpenConnection())
+            using(var cancel=new SqlCommand(PdaWarehouseSql.InboundCancel,c))
+            {
+                cancel.Parameters.Add("@ReceiveMode",SqlDbType.NVarChar,10).Value="LOCAL";
+                cancel.Parameters.Add("@LotBarcode",SqlDbType.NVarChar,50).Value=box;
+                cancel.Parameters.Add("@UserId",SqlDbType.VarChar,20).Value="case-user";
+                cancel.ExecuteNonQuery();
+            }
+            Assert.Equal(12-originalBoxQty,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=1"));
+            Assert.Equal(12-originalBoxQty,Count("SELECT SUM(ReceivedQty) FROM SCM_DeliveryLine WHERE PoID=1"));
+            Assert.Equal(originalBoxQty-1,Count($"SELECT -QtyChange FROM WH_InventoryTransaction WHERE LotNo='{box}' AND ReasonCode='INBOUND_CANCEL'"));
+            // Reproduce the zero row retained by legacy cancellation, without removing the cancellation history.
+            Sql($"""
+                INSERT WH_Inventory(LotNo,UnitType,PartNo,PartName,Qty,InvoiceNo,DeliveryNoteNo,ReceivedAt,CreatedAt,UpdatedAt)
+                SELECT BoxNumber,'BOX',ItemNo,ItemName,0,'PO-CASE-1','{note.Number}',SYSDATETIME(),SYSDATETIME(),SYSDATETIME()
+                FROM SCM_DeliveryBox WHERE BoxNumber='{box}';
+                """);
+            ReceiveBox();
+            Assert.Equal(1,Count($"SELECT COUNT(*) FROM WH_Inventory WHERE LotNo='{box}'"));
+            Assert.Equal(originalBoxQty,Count($"SELECT Qty FROM WH_Inventory WHERE LotNo='{box}'"));
+            Assert.Equal(12,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=1"));
+            Assert.Equal(12,Count("SELECT SUM(ReceivedQty) FROM SCM_DeliveryLine WHERE PoID=1"));
+            Assert.Throws<SqlException>(ReceiveBox);
+            Sql($"UPDATE WH_Inventory SET Qty=0 WHERE LotNo='{box}';");
+            Assert.Throws<SqlException>(ReceiveBox); // Consumption/adjustment to zero is not cancellation.
+            Sql($"UPDATE WH_Inventory SET Qty={originalBoxQty} WHERE LotNo='{box}';");
             var otherDelivery=repo.RegisterSupplierDelivery("PO-CASE-2",DateTime.Today,[new(2,10)],Versions("PO-CASE-2"),Guid.NewGuid(),"case-user","case-user",[rollbackCase]);
             Update(otherDelivery,"PO-CASE-2",2,10,ship:true);
             var fullyAllocated=repo.ListCaseParts("PO-CASE-2","case-user").Single();

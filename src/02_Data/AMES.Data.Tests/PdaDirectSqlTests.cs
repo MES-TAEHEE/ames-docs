@@ -55,6 +55,32 @@ public class PdaDirectSqlTests
     }
 
     [Fact]
+    public void Cancellation_reverses_original_receipt_balance_but_removes_only_remaining_stock()
+    {
+        var sql=PdaWarehouseSql.InboundCancel;
+        Assert.Contains("@PortalReceiptQty = B.Quantity",sql);
+        Assert.Contains("PO.ReceivedQty - @PortalReceiptQty",sql);
+        Assert.Contains("COALESCE(ReceivedQty, 0) - @PortalReceiptQty",sql);
+        Assert.Contains("@PortalQty, -@PortalQty, 0",sql);
+        Assert.DoesNotContain("PO.ReceivedQty - @PortalQty",sql);
+    }
+
+    [Fact]
+    public void Re_receipt_reuses_only_cancelled_zero_stock_under_the_inventory_lock()
+    {
+        var sql=PdaWarehouseSql.InboundReceive;
+        Assert.Contains("SELECT @PortalExistingQty=Qty",sql);
+        Assert.Contains("FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK)\n",sql.Replace("\r\n","\n"));
+        Assert.Contains("IF @PortalExistingQty <> 0",sql);
+        Assert.Contains("IF @PortalExistingQty = 0 AND NOT EXISTS",sql);
+        Assert.Contains("TransactionType='IN' OR ReasonCode='INBOUND_CANCEL'",sql);
+        Assert.Contains("SourceType='SCM_DeliveryLine' AND SourceID=@PortalDeliveryLineID",sql);
+        Assert.Contains("IF @PortalExistingQty IS NULL\n",sql.Replace("\r\n","\n"));
+        Assert.Contains("WHERE LotNo=@Barcode AND Qty=0",sql);
+        Assert.Contains("Zero stock does not cancel a receipt",sql);
+    }
+
+    [Fact]
     public void Receipt_preserves_portal_balance_capacity_history_and_rollback_guards()
     {
         var sql = PdaWarehouseSql.InboundReceive;
