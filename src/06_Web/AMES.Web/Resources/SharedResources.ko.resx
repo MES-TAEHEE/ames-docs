@@ -8116,7 +8116,7 @@
     <value>출하</value>
   </data>
   <data name="FG.Shipments.Empty" xml:space="preserve">
-    <value>상차 또는 출하된 오더가 없습니다.</value>
+    <value>출하 내역이 없습니다.</value>
   </data>
   <data name="FG.Shipments.Col.ShipOrder" xml:space="preserve">
     <value>출하 오더</value>
@@ -11434,5 +11434,38 @@
   </data>
   <data name="MD.Pallet.Col.ReturnedAt" xml:space="preserve">
     <value>회수 일시</value>
+  </data>
+  <data name="Shipment.Customers" xml:space="preserve">
+    <value>고객사</value>
+  </data>
+  <data name="Shipment.Lots" xml:space="preserve">
+    <value>LOT 수</value>
+  </data>
+  <data name="Shipment.Id" xml:space="preserve">
+    <value>출하 ID</value>
+  </data>
+  <data name="Shipment.FromLocation" xml:space="preserve">
+    <value>출발 위치</value>
+  </data>
+  <data name="Shipment.ShippedBy" xml:space="preserve">
+    <value>출하 작업자</value>
+  </data>
+  <data name="Shipment.PalletNo" xml:space="preserve">
+    <value>팔레트 번호</value>
+  </data>
+  <data name="Shipment.UnitType" xml:space="preserve">
+    <value>단위 유형</value>
+  </data>
+  <data name="Shipment.Search" xml:space="preserve">
+    <value>바코드, 품번 또는 고객사</value>
+  </data>
+  <data name="Shipment.DetailsFmt" xml:space="preserve">
+    <value>출하 {0}의 LOT 목록</value>
+  </data>
+  <data name="Shipment.LoadError" xml:space="preserve">
+    <value>출하 정보를 불러오지 못했습니다. 다시 시도하세요.</value>
+  </data>
+  <data name="Shipment.DetailsError" xml:space="preserve">
+    <value>출하 상세 정보를 불러오지 못했습니다. 다시 시도하세요.</value>
   </data>
 </root>

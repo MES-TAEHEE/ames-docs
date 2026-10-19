@@ -36,6 +36,25 @@ public sealed class FinishedGoodsShipmentTests
         Assert.Contains("MapPalletReturns(factory)", Read("src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs"));
     }
 
+    [Fact]
+    public void Shipment_pages_use_common_radzen_layout_and_localized_columns()
+    {
+        var report = Read("src/06_Web/AMES.Web/Components/Pages/Rpt/DailyShipment.razor");
+        foreach (var token in new[] { "ames-kpis", "ames-card", "RadzenDatePicker", "RadzenDropDown", "RadzenDataGrid", "RadzenColumnSeries", "UomFmt.QtyUnit" })
+            Assert.Contains(token, report);
+        Assert.DoesNotContain("<select", report);
+        var shipments = Read("src/06_Web/AMES.Web/Components/Pages/Fg/Shipments.razor");
+        Assert.Contains("Shipment.FromLocation", shipments);
+        Assert.Contains("Shipment.DetailsFmt", shipments);
+        var keys = Regex.Matches(report + shipments, "L\\[\"([^\"]+)\"").Select(x => x.Groups[1].Value).Distinct().ToArray();
+        foreach (var language in new[] { "", ".en", ".ko", ".es" })
+        {
+            var resources = System.Xml.Linq.XDocument.Load(Path.Combine(Root(), "src/06_Web/AMES.Web/Resources/SharedResources" + language + ".resx"));
+            var names = resources.Root!.Elements("data").Select(x => (string?)x.Attribute("name")).ToHashSet();
+            foreach (var key in keys) Assert.Contains(key, names);
+        }
+    }
+
     private static string Root([System.Runtime.CompilerServices.CallerFilePath] string path="")
         =>Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!,"../../.."));
     private static string Read(string path)=>File.ReadAllText(Path.Combine(Root(),path));

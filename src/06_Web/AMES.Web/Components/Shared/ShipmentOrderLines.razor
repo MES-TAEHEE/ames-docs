@@ -1,0 +1,28 @@
+@using AMES.Contracts.Dto
+@inject UomFormat UomFmt
+@inject IStringLocalizer<SharedResources> L
+
+<div class="shipment-order-lines">
+    <RadzenDataGrid TItem="ShippingOrderLineDto" Data="Lines" AllowPaging="false" AllowSorting="true"
+                    Density="Density.Compact" EmptyText='@L["Grid.Empty"]' class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" Width="140px" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="PART NO" Width="160px" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartName" Title="PART NAME" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="SHIP QTY ÷ QTY / PALLET = PALLETS" Width="310px" Sortable="false">
+                <Template Context="line">
+                    <span>@UomFmt.QtyUnit(line.Qty,line.Unit)</span>
+                    @if (!line.ToteFlag && line.PalletQty is > 0)
+                    {
+                        <span> ÷ @UomFmt.Qty(line.PalletQty.Value,line.Unit) = </span>
+                        <strong>@FinishedGoodsRepository.EstimateShippingPallets(line.Qty,line.PalletQty)!.Value.ToString("N0") PLT</strong>
+                    }
+                    else { <span class="dim"> · @(line.ToteFlag ? "TOTE · manual estimate" : "Pallet qty not set")</span> }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ShippingOrderLineDto> Lines { get; set; } = [];
+}

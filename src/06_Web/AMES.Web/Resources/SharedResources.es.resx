@@ -8116,7 +8116,7 @@
     <value>Envíos</value>
   </data>
   <data name="FG.Shipments.Empty" xml:space="preserve">
-    <value>No se encontraron órdenes cargadas o enviadas.</value>
+    <value>No se encontraron envíos.</value>
   </data>
   <data name="FG.Shipments.Col.ShipOrder" xml:space="preserve">
     <value>Orden de envío</value>
@@ -11434,5 +11434,38 @@
   </data>
   <data name="MD.Pallet.Col.ReturnedAt" xml:space="preserve">
     <value>Fecha de retorno</value>
+  </data>
+  <data name="Shipment.Customers" xml:space="preserve">
+    <value>Clientes</value>
+  </data>
+  <data name="Shipment.Lots" xml:space="preserve">
+    <value>LOTs</value>
+  </data>
+  <data name="Shipment.Id" xml:space="preserve">
+    <value>ID de envío</value>
+  </data>
+  <data name="Shipment.FromLocation" xml:space="preserve">
+    <value>Ubicación de origen</value>
+  </data>
+  <data name="Shipment.ShippedBy" xml:space="preserve">
+    <value>Enviado por</value>
+  </data>
+  <data name="Shipment.PalletNo" xml:space="preserve">
+    <value>N.º de palé</value>
+  </data>
+  <data name="Shipment.UnitType" xml:space="preserve">
+    <value>Tipo de unidad</value>
+  </data>
+  <data name="Shipment.Search" xml:space="preserve">
+    <value>Código de barras, pieza o cliente</value>
+  </data>
+  <data name="Shipment.DetailsFmt" xml:space="preserve">
+    <value>LOTs del envío {0}</value>
+  </data>
+  <data name="Shipment.LoadError" xml:space="preserve">
+    <value>No se pudieron cargar los envíos. Reintente.</value>
+  </data>
+  <data name="Shipment.DetailsError" xml:space="preserve">
+    <value>No se pudo cargar el detalle del envío. Reintente.</value>
   </data>
 </root>
