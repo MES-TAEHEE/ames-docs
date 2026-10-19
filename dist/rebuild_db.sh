@@ -156,6 +156,7 @@ FILES=(
   migrate_md_sap_trans_flag.sql      # MD_Item·MD_Vendor·MD_Location.SAPTransFlag — SAP 전송 대상 여부(10-16)
   migrate_md_item_procure_type.sql   # MD_Item.ProcureType(SAPTransFlag 앞) + 공통코드 PROCURE_TYPE — 조달형태(10-20)
   migrate_md_item_allowance_pct.sql  # MD_Item.IssueAddPct·MrpAllowPct — 추가 불출율·MRP 여유율(%)(10-20)
+  migrate_md_bomversion_sap_trans_flag.sql  # MD_BomVersion.SAPTransFlag — BOM 버전 SAP 전송 대상(10-20)
   migrate_md_pallet.sql              # MD_Pallet·PALLET_USE, WH_Inventory.CaseNo→PalletNo, FG_Shipment.PalletNo, MD-034·035 화면(10-17) — FK 제거(no_foreign_keys) 뒤
   migrate_line_locations_shipping_orders.sql # Location minima, actual shipment LOT naming, shipment orders and DCR loads
   migrate_shipping_ui_line_defaults.sql # FG display order and registered production-line locations

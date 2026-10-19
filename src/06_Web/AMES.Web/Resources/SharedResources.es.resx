@@ -11465,4 +11465,31 @@
   <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
     <value>No se puede cambiar la unidad: el componente tiene stock o registros de producción.</value>
   </data>
+  <data name="MD.Bom.SapChange" xml:space="preserve">
+    <value>Cambiar envío a SAP</value>
+  </data>
+  <data name="MD.Bom.Hint.SapOnly" xml:space="preserve">
+    <value>En una versión enviada o aprobada solo se puede cambiar el envío a SAP. Actualice también el tipo y el motivo del cambio.</value>
+  </data>
+  <data name="MD.Bom.Hint.SapReason" xml:space="preserve">
+    <value>Al cambiar el envío a SAP debe ingresar un nuevo motivo de cambio.</value>
+  </data>
+  <data name="MD.Bom.Err.SapReason" xml:space="preserve">
+    <value>Ingrese un nuevo motivo de cambio para cambiar el envío a SAP (debe ser distinto del actual).</value>
+  </data>
+  <data name="MD.Bom.NoVersion" xml:space="preserve">
+    <value>Sin versión de BOM</value>
+  </data>
+  <data name="MD.Bom.WhereUsedHint" xml:space="preserve">
+    <value>Este artículo no tiene versión de BOM. Se muestran las BOM superiores (versión vigente) que lo usan como componente (solo lectura)</value>
+  </data>
+  <data name="MD.Bom.NoParents" xml:space="preserve">
+    <value>Ninguna BOM superior usa este artículo como componente</value>
+  </data>
+  <data name="MD.Bom.WhereUsedCount" xml:space="preserve">
+    <value>{0} línea(s) de BOM superior ({1} directas)</value>
+  </data>
+  <data name="MD.Items.Hint.UomLocked" xml:space="preserve">
+    <value>No se puede cambiar la unidad: el artículo tiene stock o registros de producción.</value>
+  </data>
 </root>

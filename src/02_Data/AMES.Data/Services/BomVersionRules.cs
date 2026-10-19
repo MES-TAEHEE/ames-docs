@@ -58,6 +58,15 @@ public static class BomVersionRules
         return true;
     }
 
+    /// <summary>
+    /// SAP 전송 여부를 바꾸면 변경 사유를 새로 적어야 한다(10-20) — 바꾸는데 사유가 비었거나 저장된 사유와 같으면 true(거부).
+    /// 저장소의 SQL 검사(<c>MasterDataRepository.BomSapReasonGuardSql</c>)와 같은 규칙이다(공백 무시·대소문자 무시).
+    /// </summary>
+    public static bool SapChangeMissingReason(bool storedFlag, bool newFlag, string? storedReason, string? newReason)
+        => storedFlag != newFlag
+        && (string.IsNullOrWhiteSpace(newReason)
+            || string.Equals((storedReason ?? "").Trim(), newReason.Trim(), StringComparison.OrdinalIgnoreCase));
+
     public static bool Overlaps(DateOnly? aFrom, DateOnly? aTo, DateOnly? bFrom, DateOnly? bTo)
         => (aFrom ?? DateOnly.MinValue) <= (bTo ?? DateOnly.MaxValue)
         && (bFrom ?? DateOnly.MinValue) <= (aTo ?? DateOnly.MaxValue);

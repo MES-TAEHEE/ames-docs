@@ -199,7 +199,11 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@_uomInUse" title="@(_uomInUse ? L["MD.Items.Hint.UomLocked"].Value : "")" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    @if (_uomInUse)
+                    {
+                        <div class="dim" style="font-size:.78em;margin-top:2px;">🔒 @L["MD.Items.Hint.UomLocked"]</div>
+                    }
                 </RadzenColumn>
             </RadzenRow>
 
@@ -417,8 +421,12 @@
             SAPTransFlag = r.SAPTransFlag,
             ActiveFlag   = r.ActiveFlag,
         };
+        try { _uomInUse = MD.ItemUomInUse(r.ItemNo); } catch { _uomInUse = false; }
         _confirmDelete = false; _modalErr = ""; _deleteBlocked = ""; _modal = "edit";
     }
+
+    // 재고·실적이 있는 품목은 기본 단위를 바꿀 수 없다(10-20) — 수정 창의 단위를 끄고, 저장소(UpdateItem)도 거부한다
+    bool _uomInUse;
 
     void CloseModal() { _modal = ""; _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; }
 
@@ -456,6 +464,7 @@
         if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ItemName)) { _modalErr = L["MD.Items.Err.NameRequired"]; return; }
+        if (_uomInUse) _f.Uom = _sel?.DefaultUOM ?? _f.Uom;
         _busy = true;
         try
         {
@@ -470,6 +479,7 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo), false);
         }
+        catch (MasterDataRepository.ItemUomLockedException) { _uomInUse = true; _f.Uom = _sel?.DefaultUOM ?? ""; _modalErr = L["MD.Items.Hint.UomLocked"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }

@@ -11465,4 +11465,31 @@
   <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
     <value>The unit cannot change: this component has stock or production records.</value>
   </data>
+  <data name="MD.Bom.SapChange" xml:space="preserve">
+    <value>Change SAP Transfer</value>
+  </data>
+  <data name="MD.Bom.Hint.SapOnly" xml:space="preserve">
+    <value>Only the SAP transfer can change on a submitted or approved version. Update the change type and reason with it.</value>
+  </data>
+  <data name="MD.Bom.Hint.SapReason" xml:space="preserve">
+    <value>Changing the SAP transfer needs a new change reason.</value>
+  </data>
+  <data name="MD.Bom.Err.SapReason" xml:space="preserve">
+    <value>Enter a new change reason to change the SAP transfer (it must differ from the current reason).</value>
+  </data>
+  <data name="MD.Bom.NoVersion" xml:space="preserve">
+    <value>No BOM version</value>
+  </data>
+  <data name="MD.Bom.WhereUsedHint" xml:space="preserve">
+    <value>This item has no BOM version. Showing the parent BOMs (current versions) that use it as a component — read-only</value>
+  </data>
+  <data name="MD.Bom.NoParents" xml:space="preserve">
+    <value>No parent BOM uses this item as a component</value>
+  </data>
+  <data name="MD.Bom.WhereUsedCount" xml:space="preserve">
+    <value>{0} parent BOM line(s) ({1} direct)</value>
+  </data>
+  <data name="MD.Items.Hint.UomLocked" xml:space="preserve">
+    <value>The unit cannot change: this item has stock or production records.</value>
+  </data>
 </root>

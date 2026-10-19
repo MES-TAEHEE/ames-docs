@@ -431,7 +431,25 @@ public sealed class MasterDataRepository
         decimal? issueAddPct = null, decimal? mrpAllowPct = null)
     {
         ValidateQuantityUnit(defaultUom);
+        try { UpdateItemCore(itemNo, itemName, itemType, itemCategory, injFlag, carType, defaultUom, routingType, minStock, maxStock, safetyStock,
+                             unitCost, pgn, alc, drawingNo, palletQty, maxPalletQty, toteFlag, activeFlag, modifiedBy, scanRequired,
+                             sapTransFlag, procureType, issueAddPct, mrpAllowPct); }
+        catch (SqlException ex) when (ex.Number == 51832) { throw new ItemUomLockedException(itemNo); }
+    }
+
+    void UpdateItemCore(string itemNo, string itemName,
+        string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
+        string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
+        decimal? unitCost, string? pgn, string? alc, string? drawingNo,
+        int? palletQty, int? maxPalletQty, bool toteFlag,
+        bool activeFlag, string modifiedBy, bool scanRequired, bool? sapTransFlag, string? procureType,
+        decimal? issueAddPct, decimal? mrpAllowPct)
+    {
         Exec($"""
+            IF EXISTS (SELECT 1 FROM dbo.MD_Item mi
+                       WHERE mi.ItemNo = @No AND ISNULL(mi.DefaultUOM, '') <> ISNULL(@Uom, '')
+                         AND {ItemStockOrResultSql("mi.ItemNo")})
+                THROW 51832, 'Item unit is locked: the item has stock or production records.', 1;
             UPDATE dbo.MD_Item
             SET    ItemName=@Name, ItemType=@Type,
                    ItemCategory=@Cat, InjFlag=@Inj, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
@@ -456,6 +474,13 @@ public sealed class MasterDataRepository
             ("@IssuePct", "MD_Item.IssueAddPct", NormalizeAllowancePct(issueAddPct, nameof(issueAddPct))),
             ("@MrpPct", "MD_Item.MrpAllowPct", NormalizeAllowancePct(mrpAllowPct, nameof(mrpAllowPct))),
             ("@Sap", "MD_Item.SAPTransFlag", sapTransFlag));
+    }
+
+    /// <summary>재고·실적이 있는 품목의 기본 단위를 바꾸려 했다(10-20).</summary>
+    public sealed class ItemUomLockedException(string itemNo)
+        : InvalidOperationException($"The unit of item {itemNo} cannot change: the item has stock or production records.")
+    {
+        public string ItemNo { get; } = itemNo;
     }
 
     public static bool IsQuantityUnit(string? unit) => !string.IsNullOrWhiteSpace(unit)
@@ -545,7 +570,7 @@ public sealed class MasterDataRepository
                    v.VersionNo, v.EffFrom, v.EffTo,
                    v.ChangeType, v.ChangeReason,
                    v.RequestedBy, v.ApprovedBy, v.ApprovedTS,
-                   ISNULL(v.Status,'DRAFT') AS Status,
+                   ISNULL(v.Status,'DRAFT') AS Status, v.SAPTransFlag,
                    v.CreatedBy, v.CreatedTS, v.ModifiedBy, v.ModifiedTS
             FROM   dbo.MD_BomVersion v
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = v.RootItemNo
@@ -568,7 +593,8 @@ public sealed class MasterDataRepository
                 r["CreatedBy"]    as string,
                 r["CreatedTS"]    is DateTime ct ? ct : null,
                 r["ModifiedBy"]   as string,
-                r["ModifiedTS"]   is DateTime mt ? mt : null), p);
+                r["ModifiedTS"]   is DateTime mt ? mt : null,
+                (bool)r["SAPTransFlag"]), p);
     }
 
     public bool BomVersionExists(string versionId)
@@ -582,33 +608,83 @@ public sealed class MasterDataRepository
 
     public void InsertBomVersion(string versionId, string? rootItemNo, string? versionNo,
         DateOnly? effFrom, DateOnly? effTo, string? changeType, string? changeReason,
-        string createdBy)
+        string createdBy, bool sapTransFlag = false)
         => Exec("""
             INSERT INTO dbo.MD_BomVersion
                    (VersionID,RootItemNo,VersionNo,EffFrom,EffTo,
-                    ChangeType,ChangeReason,Status,CreatedBy,CreatedTS)
-            VALUES (@ID,@Root,@VNo,@EF,@ET,@CT,@CR,'DRAFT',@By,SYSDATETIME())
-            """,
+                    ChangeType,ChangeReason,Status,SAPTransFlag,CreatedBy,CreatedTS)
+            VALUES (@ID,@Root,@VNo,@EF,@ET,@CT,@CR,'DRAFT',@Sap,@By,SYSDATETIME())
+            """, ("@Sap", "MD_BomVersion.SAPTransFlag", sapTransFlag),
             ("@ID", "MD_BomVersion.VersionID", versionId),  ("@Root", "MD_BomVersion.RootItemNo", rootItemNo), ("@VNo", "MD_BomVersion.VersionNo", versionNo),
             ("@EF", "MD_BomVersion.EffFrom", effFrom.HasValue ? (object)effFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value),
             ("@ET", "MD_BomVersion.EffTo", effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
             ("@CT", "MD_BomVersion.ChangeType", changeType),  ("@CR", "MD_BomVersion.ChangeReason", changeReason), ("@By", "MD_BomVersion.CreatedBy", createdBy));
 
-    /// <summary>DRAFT 버전만 고친다. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
+    /// <summary>
+    /// DRAFT 버전만 고친다. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음). sapTransFlag 가 null 이면 저장된 값을 그대로 둔다.
+    /// SAP 전송을 바꾸면서 변경 사유를 새로 적지 않으면 <see cref="BomSapReasonRequiredException"/>.
+    /// </summary>
     public bool UpdateBomVersion(string versionId, string? rootItemNo, string? versionNo,
         DateOnly? effFrom, DateOnly? effTo, string? changeType, string? changeReason,
-        string modifiedBy)
-        => ExecCount("""
+        string modifiedBy, bool? sapTransFlag = null)
+    {
+        try { return UpdateBomVersionCore(versionId, rootItemNo, versionNo, effFrom, effTo, changeType, changeReason, modifiedBy, sapTransFlag); }
+        catch (SqlException ex) when (ex.Number == 51831) { throw new BomSapReasonRequiredException(versionId); }
+    }
+
+    bool UpdateBomVersionCore(string versionId, string? rootItemNo, string? versionNo,
+        DateOnly? effFrom, DateOnly? effTo, string? changeType, string? changeReason,
+        string modifiedBy, bool? sapTransFlag)
+        => ExecCount($"""
+            {BomSapReasonGuardSql}
             UPDATE dbo.MD_BomVersion
             SET    RootItemNo=@Root, VersionNo=@VNo, EffFrom=@EF, EffTo=@ET,
-                   ChangeType=@CT, ChangeReason=@CR,
+                   ChangeType=@CT, ChangeReason=@CR, SAPTransFlag=ISNULL(@Sap, SAPTransFlag),
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@ID AND Status='DRAFT'
-            """,
+            """, ("@Sap", "MD_BomVersion.SAPTransFlag", sapTransFlag),
             ("@ID", "MD_BomVersion.VersionID", versionId),  ("@Root", "MD_BomVersion.RootItemNo", rootItemNo), ("@VNo", "MD_BomVersion.VersionNo", versionNo),
             ("@EF", "MD_BomVersion.EffFrom", effFrom.HasValue ? (object)effFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value),
             ("@ET", "MD_BomVersion.EffTo", effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
             ("@CT", "MD_BomVersion.ChangeType", changeType), ("@CR", "MD_BomVersion.ChangeReason", changeReason), ("@By", "MD_BomVersion.ModifiedBy", modifiedBy)) > 0;
+
+    // SAP 전송을 바꾸면 변경 사유를 새로 적어야 한다(10-20, 규칙 정본 BomVersionRules.SapChangeMissingReason) — 어기면 51831
+    const string BomSapReasonGuardSql = """
+            IF EXISTS (SELECT 1 FROM dbo.MD_BomVersion WITH (UPDLOCK, HOLDLOCK)
+                       WHERE VersionID = @ID AND @Sap IS NOT NULL AND SAPTransFlag <> @Sap
+                         AND (LTRIM(RTRIM(ISNULL(@CR, N''))) = N''
+                              OR LTRIM(RTRIM(ISNULL(ChangeReason, N''))) = LTRIM(RTRIM(ISNULL(@CR, N'')))))
+                THROW 51831, 'Changing the SAP transfer flag needs a new change reason.', 1;
+            """;
+
+    /// <summary>
+    /// 승인 요청·승인·반려·만료 버전의 SAP 전송을 바꾼다(10-20) — BOM 내용이 아니라서 상태와 관계없이 바꿀 수 있지만,
+    /// 변경 유형·사유를 함께 고쳐야 한다(사유를 새로 적지 않으면 <see cref="BomSapReasonRequiredException"/>).
+    /// 버전이 없거나 SAP 전송이 이미 그 값이면(다른 사용자가 먼저 바꿈) false.
+    /// </summary>
+    public bool ChangeBomVersionSapTransFlag(string versionId, bool sapTransFlag, string? changeType, string? changeReason, string modifiedBy)
+    {
+        try
+        {
+            return ExecCount($"""
+                {BomSapReasonGuardSql}
+                UPDATE dbo.MD_BomVersion
+                SET    SAPTransFlag=@Sap, ChangeType=@CT, ChangeReason=@CR, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+                WHERE  VersionID=@ID AND SAPTransFlag<>@Sap
+                """,
+                ("@ID", "MD_BomVersion.VersionID", versionId), ("@Sap", "MD_BomVersion.SAPTransFlag", sapTransFlag),
+                ("@CT", "MD_BomVersion.ChangeType", changeType), ("@CR", "MD_BomVersion.ChangeReason", changeReason),
+                ("@By", "MD_BomVersion.ModifiedBy", modifiedBy)) > 0;
+        }
+        catch (SqlException ex) when (ex.Number == 51831) { throw new BomSapReasonRequiredException(versionId); }
+    }
+
+    /// <summary>SAP 전송을 바꾸면서 변경 사유를 새로 적지 않았다(10-20).</summary>
+    public sealed class BomSapReasonRequiredException(string versionId)
+        : InvalidOperationException($"Changing the SAP transfer flag of BOM version {versionId} needs a new change reason.")
+    {
+        public string VersionId { get; } = versionId;
+    }
 
     /// <summary>
     /// DRAFT 버전을 라인째 한 트랜잭션으로 지운다. 다른 사용자가 이미 승인 요청·승인 등으로 상태를 바꿨거나
@@ -900,7 +976,7 @@ public sealed class MasterDataRepository
         => ExecCount($"""
             IF EXISTS (SELECT 1 FROM dbo.MD_Bom b
                        WHERE b.BOMID = @ID AND b.CompItemNo = @Comp AND ISNULL(b.UOM,'') <> ISNULL(@UOM,'')
-                         AND {BomCompInUseSql("b.CompItemNo")})
+                         AND {ItemStockOrResultSql("b.CompItemNo")})
                 THROW 51830, 'BOM line unit is locked: the component has stock or production records.', 1;
             UPDATE b
             SET    ParentItemNo=@Par, CompItemNo=@Comp, BOMLevel=@Lv,
@@ -914,17 +990,19 @@ public sealed class MasterDataRepository
             ("@Scrap", "MD_Bom.ScrapPct", scrapPct), ("@Pos", "MD_Bom.Position", position),     ("@Note", "MD_Bom.Note", note),
             ("@By", "MD_Bom.ModifiedBy", modifiedBy)) > 0;
 
-    /// <summary>BOM 라인 단위 잠금 — 구성품에 재고(수량 0 아닌 재고 행)·생산 실적(그 품번 LOT 의 실적)·자동 차감(BACKFLUSH 출고)이 있다.</summary>
-    static string BomCompInUseSql(string item) => $"""
+    /// <summary>단위 잠금 판정 — 품목에 재고(수량 0 아닌 재고 행)·생산 실적(그 품번 LOT 의 실적)·자동 차감(BACKFLUSH 출고)이 있다.</summary>
+    // 안쪽 별칭 i·r·l·t 를 쓰므로 item 에 같은 별칭을 넘기지 말 것
+    static string ItemStockOrResultSql(string item) => $"""
         (EXISTS (SELECT 1 FROM dbo.WH_Inventory i WHERE i.PartNo = {item} AND i.Qty <> 0)
          OR EXISTS (SELECT 1 FROM dbo.PR_ProductionResult r JOIN dbo.tbl_Lot l ON l.LotID = r.LotID WHERE l.ItemNo = {item})
          OR EXISTS (SELECT 1 FROM dbo.WH_InventoryTransaction t WHERE t.PartNo = {item} AND t.SourceType = 'BACKFLUSH'))
         """;
 
-    public bool BomUomLocked(string? compItemNo)
-        => !string.IsNullOrWhiteSpace(compItemNo)
-           && Query($"SELECT CASE WHEN {BomCompInUseSql("@C")} THEN 1 ELSE 0 END", r => (int)r[0] == 1,
-                    ("@C", "MD_Bom.CompItemNo", (object?)compItemNo)).FirstOrDefault();
+    // 품목의 재고·실적 여부 — MD-003 기본 단위 잠금과 MD-004 BOM 라인 단위 잠금이 같이 쓴다(10-20)
+    public bool ItemUomInUse(string? itemNo)
+        => !string.IsNullOrWhiteSpace(itemNo)
+           && Query($"SELECT CASE WHEN {ItemStockOrResultSql("@C")} THEN 1 ELSE 0 END", r => (int)r[0] == 1,
+                    ("@C", "MD_Item.ItemNo", (object?)itemNo)).FirstOrDefault();
 
     /// <summary>재고·실적이 있는 구성품 라인의 단위를 바꾸려 했다(10-20).</summary>
     public sealed class BomUomLockedException(string compItemNo)
@@ -1272,7 +1350,8 @@ public sealed class MasterDataRepository
         string? RequestedBy, string? ApprovedBy, DateTime? ApprovedTS,
         string Status,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS);
+        string? ModifiedBy, DateTime? ModifiedTS,
+        bool SAPTransFlag = false);
 
     public static BomVersionRules.VersionInfo ToVersionInfo(BomVersionRow v)
         => new(v.VersionID, v.RootItemNo, v.Status, v.EffFrom, v.EffTo, v.CreatedTS);

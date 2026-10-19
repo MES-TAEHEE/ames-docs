@@ -45,13 +45,13 @@ public class BomUomLockTests
             md.InsertBomVersion(Ver, Parent, "V1.0", new DateOnly(2099, 1, 1), null, null, null, Actor);
             Assert.True(md.InsertBomLine(Line, Parent, Comp, 1, 1m, "EA", null, Ver, 10, null, Actor));
 
-            Assert.False(md.BomUomLocked(Comp));                 // 재고·실적 없음 — 단위 변경 가능
+            Assert.False(md.ItemUomInUse(Comp));                 // 재고·실적 없음 — 단위 변경 가능
             Assert.True(Update(md, Comp, "KG"));
             Assert.Equal("KG", Uom(f!));
             Assert.True(Update(md, Comp, "EA"));
 
             Exec(f!, "INSERT dbo.WH_Inventory (LotNo, PartNo, Qty, ReceivedAt) VALUES (@Lot, @C, 5, SYSDATETIME())", ("@Lot", Lot), ("@C", Comp));
-            Assert.True(md.BomUomLocked(Comp));                  // 재고 있음 — 잠김
+            Assert.True(md.ItemUomInUse(Comp));                  // 재고 있음 — 잠김
             Assert.Throws<MasterDataRepository.BomUomLockedException>(() => Update(md, Comp, "KG"));
             Assert.Equal("EA", Uom(f!));
             Assert.True(Update(md, Comp, "EA", 2m));             // 단위 그대로 다른 값 수정은 된다
@@ -59,12 +59,12 @@ public class BomUomLockTests
             Assert.True(Update(md, Comp, "EA"));
 
             Exec(f!, "UPDATE dbo.WH_Inventory SET Qty = 0 WHERE LotNo = @Lot", ("@Lot", Lot));
-            Assert.False(md.BomUomLocked(Comp));                 // 재고 0 은 잠그지 않는다
+            Assert.False(md.ItemUomInUse(Comp));                 // 재고 0 은 잠그지 않는다
             Exec(f!, """
                 INSERT dbo.WH_InventoryTransaction (TransactionType, QtyChange, LotNo, PartNo, SourceType, CreatedBy)
                 VALUES ('OUT', -1, @Lot, @C, 'BACKFLUSH', @By)
                 """, ("@Lot", Lot), ("@C", Comp), ("@By", Actor));
-            Assert.True(md.BomUomLocked(Comp));                  // 자동 차감 기록 — 잠김
+            Assert.True(md.ItemUomInUse(Comp));                  // 자동 차감 기록 — 잠김
             Assert.Throws<MasterDataRepository.BomUomLockedException>(() => Update(md, Comp, "G"));
             Assert.Equal("EA", Uom(f!));
         }

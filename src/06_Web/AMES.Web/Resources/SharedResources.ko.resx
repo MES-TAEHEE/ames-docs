@@ -11465,4 +11465,31 @@
   <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
     <value>구성품에 재고·실적이 있어 단위를 바꿀 수 없습니다.</value>
   </data>
+  <data name="MD.Bom.SapChange" xml:space="preserve">
+    <value>SAP 전송 변경</value>
+  </data>
+  <data name="MD.Bom.Hint.SapOnly" xml:space="preserve">
+    <value>승인 요청·승인된 버전은 SAP 전송만 바꿀 수 있습니다. 바꿀 때는 변경 유형·사유를 함께 고칩니다.</value>
+  </data>
+  <data name="MD.Bom.Hint.SapReason" xml:space="preserve">
+    <value>SAP 전송을 바꾸면 변경 사유를 새로 입력해야 합니다.</value>
+  </data>
+  <data name="MD.Bom.Err.SapReason" xml:space="preserve">
+    <value>SAP 전송을 바꾸려면 변경 사유를 새로 입력하세요(기존 사유와 달라야 합니다).</value>
+  </data>
+  <data name="MD.Bom.NoVersion" xml:space="preserve">
+    <value>BOM 버전 없음</value>
+  </data>
+  <data name="MD.Bom.WhereUsedHint" xml:space="preserve">
+    <value>이 품번의 BOM 버전은 없습니다. 이 품번을 구성품으로 쓰는 상위 BOM(대표 버전)을 보여 줍니다 — 읽기 전용</value>
+  </data>
+  <data name="MD.Bom.NoParents" xml:space="preserve">
+    <value>이 품번을 구성품으로 쓰는 상위 BOM 이 없습니다</value>
+  </data>
+  <data name="MD.Bom.WhereUsedCount" xml:space="preserve">
+    <value>상위 BOM {0}행 (직접 쓰는 BOM {1}개)</value>
+  </data>
+  <data name="MD.Items.Hint.UomLocked" xml:space="preserve">
+    <value>재고·실적이 있는 품목이라 단위를 바꿀 수 없습니다.</value>
+  </data>
 </root>
