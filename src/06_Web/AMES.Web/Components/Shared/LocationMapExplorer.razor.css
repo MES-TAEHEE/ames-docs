@@ -1,0 +1,27 @@
+.location-hierarchy-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+}
+.location-hierarchy-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-content: flex-start;
+    gap: 16px;
+    padding: 16px;
+    overflow: auto;
+    min-height: 0;
+}
+.location-hierarchy-tile { flex: 0 0 auto; width: 220px; max-width: 100%; aspect-ratio: 1; }
+.location-hierarchy-tile ::deep .location-stage-card { width: 100%; height: 100%; white-space: normal; }
+.location-hierarchy-tile ::deep .rz-button-box { width: 100%; }
+.location-hierarchy-content { display: grid; gap: 9px; width: 100%; text-align: left; text-transform: none; letter-spacing: normal; }
+.location-hierarchy-content > span { color: var(--ames-tx-sky-300); font: 900 .68rem var(--ames-font-mono); text-transform: uppercase; }
+.location-hierarchy-content > strong { color: var(--ames-tx-slate-50); font-size: 1.1rem; line-height: 1.25; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.location-hierarchy-content > small { color: var(--ames-tx-slate-400); font-size: .76rem; }
+.location-hierarchy-content > b { margin-top: 12px; color: var(--ames-tx-green-300); font: 900 1.15rem var(--ames-font-mono); }
+.location-hierarchy-content em { color: var(--ames-tx-slate-500); font-size: .62rem; font-style: normal; }
+.inventory-drawer-table-wrap ::deep .location-defect-qty { color: var(--ames-tx-red-400); }

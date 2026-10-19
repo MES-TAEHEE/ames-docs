@@ -484,12 +484,12 @@ public sealed class MasterDataRepository
     }
 
     public static bool IsQuantityUnit(string? unit) => !string.IsNullOrWhiteSpace(unit)
-        && unit.Trim().ToUpperInvariant() is not ("BOX" or "PLT" or "PALLET" or "SH" or "SHEET");
+        && unit.Trim().ToUpperInvariant() is not ("BOX" or "PLT" or "PALLET");
 
     static void ValidateQuantityUnit(string? unit)
     {
         if (!string.IsNullOrWhiteSpace(unit) && !IsQuantityUnit(unit))
-            throw new ArgumentException("Select a quantity unit such as EA, KG, G or M. BOX, PALLET and SHEET are packaging only.");
+            throw new ArgumentException("Select a quantity unit such as EA, SH, KG, G or M. BOX and PALLET are packaging only.");
     }
 
     const string ItemUsageSql = """
@@ -2622,7 +2622,10 @@ public sealed class MasterDataRepository
             WHERE LineID=@ID;
             UPDATE A SET CodeName=@NameEn,CodeNameEn=@NameEn,ModifiedBy=@By,ModifiedTS=SYSDATETIME()
             FROM dbo.MD_CodeItem A JOIN dbo.MD_Line L ON L.LotPrefix=A.CodeValue
-            WHERE L.LineID=@ID AND A.GroupCode='WH_AREA' AND A.ParentCodeID='WH_CODE_LINE' AND NULLIF(@NameEn,'') IS NOT NULL;
+            WHERE L.LineID=@ID AND A.GroupCode='WH_AREA' AND A.ParentCodeID=(
+                SELECT CodeID FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue='EOS') AND NULLIF(@NameEn,'') IS NOT NULL;
+            UPDATE dbo.MD_Location SET LocationName=@NameEn,ModifiedBy=@By,ModifiedTS=SYSDATETIME()
+            WHERE LineID=@ID AND NULLIF(LTRIM(RTRIM(@NameEn)),'') IS NOT NULL AND COALESCE(LocationName,'')<>@NameEn;
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
@@ -3634,14 +3637,14 @@ public sealed class MasterDataRepository
         int? DecimalPrec, string? Symbol, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
-    // 포장 단위(BOX·PLT·SH 등, 10-14 비활성)는 선택 콤보에서 빼지만 MD-019 단위 관리·단위 기호 표시는 과거 값 때문에 포함한다(includeRetired)
+    // BOX·PLT·PALLET은 선택 콤보에서 빼지만 MD-019 관리·과거 단위 표시는 포함한다(includeRetired). SH는 수량 단위로 유지한다.
     public List<UomRow> ListUoms(bool includeRetired = false) => Query("""
         SELECT UOMCode, UOMName, UOMCategory,
                ISNULL(BaseFlag,0) AS BaseFlag, BaseUOM, ConvFactor,
                DecimalPrec, Symbol, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
         FROM dbo.MD_Uom
-        WHERE @All = 1 OR UPPER(LTRIM(RTRIM(UOMCode))) NOT IN ('BOX','PLT','PALLET','SH','SHEET')
+        WHERE @All = 1 OR UPPER(LTRIM(RTRIM(UOMCode))) NOT IN ('BOX','PLT','PALLET')
         ORDER BY UOMCode
         """, r => new UomRow(
             r.GetString("UOMCode"),

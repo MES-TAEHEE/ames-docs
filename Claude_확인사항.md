@@ -29,7 +29,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 심재현 | 23                   | 7   | 7묶음 | 38  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 32) · 안돈 보전 호출 작업지시(요청 22) |
-| 안영훈 | 8(배포·검증·승인 대기·알림) | 4   | 3   | 3   | [상] 개발 DB 에만 있는 FG 구조 변경(2-1 8 — 저장소 코드의 FG 출하·반품·일별 출하가 개발 DB 에서 실패) · [중] RPT-003·FG 출하 화면이 표준 디자인·다국어에서 벗어남(2-4 3) · [중] 케이스 입고의 구 프로시저 매개변수 태그 의존 · LOT 조정→취소→재입고 누적량 · 예비품 출고↔보전 작업지시 배포·검증 · 비결함·선택적 정리 3건은 2-5 참조 |
+| 안영훈 | 7(배포·검증·승인 대기·알림) | 4 | 3 | 0 | 직접 SQL·LOT 원입고량 취소·빈 팔렛 회수·출하 화면의 서버 배포 및 실제 쓰기 검증 대기 · 비결함·선택적 정리 4건은 2-5 참조 |
 | 이승욱 | 0                    | 3   | 4   | 0   | PP-OEE 가동률이 시연 데이터(`PP_LineStateLog` 기록 — 심재현과 진행 예정)                                                                       |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
@@ -295,7 +295,7 @@
 
 ## 2. 안영훈 — PDA·Api + Web WH·FG·SCM·Portal + 재구축 스크립트
 
-### 2-1. 적용·검증 대기·요청 (8)
+### 2-1. 적용·검증 대기·요청 (7)
 1. **재구축 스크립트 — 전체 재구축 검증 대기**
    - Portal 번호 변경은 임시 코드 경유로 충돌을 피하고 현재 001~004 화면에 맞췄습니다.
    - 선택적 개발 시드는 PDA_SEED → seed_portal_dev 순서이며, 기본 실행에서 제외합니다. 테스트 시드 실행에는 AMES_DEVELOPMENT_SEEDS=1과 세션 opt-in이 필요합니다.
@@ -326,16 +326,13 @@
    - 0수량 재고는 최근 입고 취소 이력이 확인될 때만 재사용하고, 출고/소진된 LOT 재입고는 차단합니다. 취소 시 PO·납품 누적 입고량은 조정 후 잔량이 아닌 원래 박스 입고량으로 차감합니다.
    - BOX-56 취소·재입고의 누적 입고량 오차는 사용자 승인으로 PoID 522·DeliveryLineID 30만 175→170 보정하고 감사 기록을 남겼습니다. 재고·재고 거래 이력은 변경하지 않았습니다.
    - 10-16 예비품 연동 추가 후 SQL 27개 컴파일(NOEXEC), 열린 작업지시 목록 읽기, API 214건·관련 Data 47건·SP 소스 검증과 API/PDA 빌드를 확인했습니다. 이는 개발 코드의 검증이며 서버 최신 배포나 재고 쓰기 통합 검증을 대신하지 않습니다. FG 반품·동시 PDA 쓰기 검증은 남아 있습니다.
-   - (10-16 재대조) Api 의 프로시저 실행은 테스트 초기화(`*_TEST_RESET`)만 남았지만 메타데이터 의존까지 없어진 것은 아닙니다. 케이스 입고(`ScmDeliveryCases.cs`의 `ReceiveDeliveryCase`)와 WH 입고 예정 조회가 아직 구 프로시저 매개변수를 형식 태그로 씁니다 — 프로시저를 지우기 전에 문제점 1을 확인해야 합니다.
-7. **[알림·코드 반영] `WH_Inventory.CaseNo` → `PalletNo` 이름 변경과 `FG_Shipment.PalletNo` 추가 — 안영훈 담당 코드 수정 알림·회수 처리 미정**(10-17 이승욱, 사용자 요청 — MD-034 팔레트 마스터)
-   - 컬럼 이름만 바꿨고 값·위치는 그대로입니다. 고친 곳: `PdaWarehouseSql`(재고 검색·`CASE_NO`/`CASE_BARCODE` 조회 2곳·포탈 박스 입고의 `PalletNo=NULL`), `PdaFinishedGoodsSql`(조회 2곳 — 응답 필드 이름은 그대로), `ScmDeliveryCases`(케이스 박스 연결 `PalletNo=@Case`, 형식 태그는 `SCM_DeliveryBox.CaseNo` 로), 테스트 2개, `tools/check_wh_line_replenishment.cs`, `dist/pda/PDA_SCHEMA.sql`(퇴역 스크립트 — `WH_Inventory.PalletNo` 를 지우던 블록 삭제). DB 의 옛 프로시저 4개(`FG_PDA_OUTBOUND_TEST_RESET`·`WH_PDA_TRANSACTION_LIST`·`WH_PDA_ADJUST_SCAN_STOCK`·`FG_PDA_ADJUST_SCAN_STOCK`)는 `migrate_md_pallet.sql` 이 고칩니다.
-   - FG 출고(`OutboundComplete`)는 출고 바코드 재고 행의 `PalletNo` 를 `FG_Shipment.PalletNo` 에 남기고, 그 번호의 `MD_Pallet` 에 `ShippedFlag` = 1·`ShippedAt`·`ShippedCustomerID` 를 채웁니다. 검사는 더하지 않았습니다.
-   - (10-17 오후) `MD_Pallet` 에 `ShippedAt`·`ShippedCustomerID`·`ReturnedAt` 을 되살렸고(사용자 요청, `migrate_md_pallet.sql` 1-b — 두 DB 적용), MD-034 는 출고됨·출고·회수 값을 목록에 보이기만 하고 고치지 않습니다(사용자 결정 — 다른 곳에서 넣고 뺌). **회수 처리(ShippedFlag 해제·ReturnedAt 기록)를 하는 곳은 아직 없습니다** — PDA/FG 쪽에서 만들지 정해야 합니다.
-   - `FG_Shipment` 를 컬럼 순서 때문에 다시 만들므로 `migrate_fg_shipment_no_foreign_keys.sql`(FG 신규 FK 2개 제거)을 먼저 적용합니다. **10-17 사용자 지시로 두 마이그레이션을 개발·로컬 DB 에 모두 적용했습니다**(두 DB 구조 동일 — 남은 차이는 2-5 의 3 `FG_CustomerReturn.PartName` 위치뿐).
-8. **[상] [확인 요청] 개발 DB 에만 있고 저장소에 없는 FG·WH 구조 변경**(10-17 이승욱 재대조 — 원격 어느 브랜치에도 없음)
-   - 개발 DB 에서 서버 시각 10-16 14:53 에 바뀜(`sys.tables.modify_date`): `FG_Shipment.OutboundBarcode` → `LotNo` 이름 변경(인덱스 `IX_FG_Shipment_ShippedAt` 포함 열도 `LotNo`), 새 테이블 `FG_Delivery`·`FG_DeliveryLoad`(필터 유니크 `UX_FG_DeliveryLoad_Lot`)·`FG_ShippingOrder`·`FG_ShippingOrderLine`(모두 0행), `MD_Location` 에 `LineID`·`PartNo`·`MinimumQty` 컬럼과 `IX_MD_Location_Line`(감사 컬럼 뒤에 붙음). 로컬 DB·스키마 파일에는 없습니다.
-   - 영향: 저장소 코드는 `FG_Shipment.OutboundBarcode` 를 읽으므로(`PdaFinishedGoodsSql.cs`·`FinishedGoodsRepository.cs`·`RptRepository.cs`·`FgEndpoints.cs`·`FgOutboundBarcode.cs`·`MasterDataRepository.cs` 고객·팔레트 삭제 사용처, Web `Fg/Shipments`·`Fg/CustomerReturns`·`Rpt/DailyShipment`, PDA `Fg04FifoPicking`·`FgRtnReturn`) 개발 DB 에서 `Invalid column name 'OutboundBarcode'` 입니다(10-17 SELECT 로 재현). 화면은 오류를 빈 목록으로 삼켜 FG 출하·일별 출하가 비어 보이고(출하 2건 있음), PDA FG 출고와 고객 삭제 검사는 실패합니다.
-   - 요청: 이 변경의 코드·마이그레이션을 push 하거나, 아직 진행 중이면 개발 DB 를 저장소 구조로 되돌려 주세요. 이승욱은 따라 고치지 않았습니다(로컬 DB 에도 적용하지 않음).
+   - WH 입고 예정 조회·공통 팔렛 입고의 구 프로시저 매개변수 태그는 명시 형식으로 대체했습니다. 일반 LOT 취소는 원입고 거래량만 PO에서 되돌리고 현재 잔량만 제거하며, 출고·소비 이력이나 재고/PO 누적량 불일치는 차단합니다. 30입고→25조정→취소→재입고 회귀 테스트를 별도 SQL opt-in 환경에 추가했으나 실제 DB 쓰기는 실행하지 않았습니다.
+   - `FG_Shipment.LotNo` 및 출하 오더·DCR·라인 위치 구조는 `f6530138`·`5ecef7aa`·`300d78f1`에 포함되어 더 이상 저장소 미반영 결함이 아닙니다. RPT-003·FG 출하는 기존 Radzen·공통 카드·다국어·단위별 합계로 맞췄습니다. 서버의 설치 DLL과 웹/PDA 실제 화면 확인은 별개로 남아 있습니다.
+7. **빈 팔렛 회수 — API/PDA 배포·실물 검증 대기**
+   - 사용자 결정: 제품 반품과 빈 팔렛 회수는 별개입니다. PDA `FG → Empty Pallet Return`에서 물리 팔렛 바코드를 스캔·확인하고, `MD_Pallet.ShippedFlag=0`·DB 시각 `ReturnedAt`을 기록합니다. 부품 재고·고객 반품은 변경하지 않습니다.
+   - 미출하·비활성·중복 회수, 스캔 이후 출하 시각 변경, 팔렛에 연결된 양수 재고가 남은 경우는 차단합니다. 따로 반품돼 연결이 해제된 부품의 과거 PalletNo만으로는 빈 팔렛 회수를 막지 않습니다. 회수 상태와 SYS 감사 기록은 같은 트랜잭션으로 저장하며 다음 출하 때 ReturnedAt은 비웁니다.
+   - 기존 MD_Pallet 컬럼을 사용합니다. 신규 테이블·DB 재구축·실제 회수 처리는 실행하지 않았습니다. API(Contracts/Data 포함) → PDA 배포 후 실물 빈 팔렛과 중복·내용물 잔존 사례를 확인해야 합니다.
+
 
 ### 2-2. 보류 (4)
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.
@@ -350,22 +347,11 @@
 | `WH_ReleaseSchedule` | 미사용 | DROP 후보입니다. 이번에는 다른 WH 테이블과 식별자·행위자 길이만 맞췄고 테이블은 보존했습니다. |
 | `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
 
-### 2-4. 유효한 문제점 (3 — 코드 재대조, 실제 쓰기 재현 없음)
-1. **[중] 프로시저 실행은 없어졌지만 케이스 입고의 매개변수 메타데이터 의존은 남음**
-    - 위치: `src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs:427`(실행 SQL 은 `PdaWarehouseSql.InboundReceive`, 매개변수 태그는 `"WH_PDA_INBOUND_RECEIVE_LOT.@ReceiveMode"` 등 5개), 같은 원인 `WhEndpoints.cs:1205-1211`(`WH_PDA_SCHEDULE_INBOUND_LIST.@…`)
-    - 재판정: 유효합니다. `ReceiveDeliveryCase` → SCM 공용 `Add` → `ColumnParams.Add` → `Info`가 실제 호출되며, `Info`는 없는 태그를 예외로 처리합니다(`Connection/ColumnParams.cs`). 따라서 실행 SQL을 직접 SQL로 바꾼 것만으로 의존이 제거된 것은 아닙니다. 해당 프로시저가 없는 DB에서는 케이스 일괄 입고가 실패합니다. 현재 서버에서 실패하고 있다는 뜻은 아니며, 프로시저 잔존·메모리 캐시 때문에 지금 동작할 수도 있습니다. 입고 예정 조회의 `AddFilter`는 태그가 없어도 값 형식으로 돌아가므로 같은 조건에서 런타임 오류가 난다고 묶어서는 안 됩니다(`ColumnTagsTests`는 별도 실패 가능).
-    - 제안: 태그를 실제 대상 컬럼(`WH_InventoryTransaction.CreatedBy`·`WH_Inventory.LotNo` 등)으로 바꾸거나 `ExecuteInboundReceive` 처럼 형식을 직접 지정합니다(정의는 `:2687`). 프로시저 삭제 전에 `ColumnTagsTests` 에 프로시저 태그 금지 검사를 더합니다.
-2. **[중] 일반 LOT 수량 조정→입고 취소→재입고 시 발주 누적 입고량이 부풀 수 있음**
-    - 위치: `src/02_Data/AMES.Data/Repositories/PdaWarehouseSql.cs:967-981`
-    - 재판정: 코드상 유효한 반례가 있습니다. 다른 미입고 발주가 없어 재입고 시 같은 발주가 선택되는 경우, 일반 LOT 30개 입고 시 발주 누적=30·`tbl_Lot.RemainingQty`=30 → Adjust에서 재고만 25로 변경 → 취소는 25만 차감해 누적=5 → 재입고는 LOT에 남은 30을 다시 더해 누적=35가 됩니다. `AdjustSave`는 `WH_Inventory.Qty`만 바꾸고 LOT 잔량은 바꾸지 않으며, 일반 취소도 LOT의 위치만 비웁니다. 이 경로는 `InboundReceive`·`InboundCancel`에 남아 있고 PDA가 일반 LOT의 취소 버튼을 일괄 차단하지 않으므로 미사용 코드라고 단정할 수 없습니다. 실제 DB에서 이 순서를 실행하지는 않았습니다.
-    - 방향: 단순 조정 후 입고 취소의 원 입고량 복원과, 이미 출고·소비한 수량의 취소 허용 정책은 구분해야 합니다. "남은 수량만 차감은 언제나 잘못" 또는 "원 입고량을 언제나 전량 차감"으로 고치지 않습니다. 원거래·조정·출고 이력 기준의 규칙과 회귀 테스트를 정한 뒤 수정합니다. `Status='Open'` 고정과 화면의 상태 매핑도 별도로 대조해야 하며, 상태 어휘가 다르다는 이유만으로 일괄 변경하지 않습니다.
-3. **[중] RPT-003 일별 출하 현황·FG 출하 화면이 표준 디자인·다국어에서 벗어남**(10-17 이승욱 — 사용자가 "화면이 이상하게 보인다" 고 확인 요청)
-    - 위치: `src/06_Web/AMES.Web/Components/Pages/Rpt/DailyShipment.razor`(76줄)·`Components/Pages/Fg/Shipments.razor`(87줄) — 10-15 `a9e1fbd7`(FG 출하 통합)에서 새로 짬. RPT-003 은 그 전 약 320줄 표준 화면이었습니다.
-    - 내용: ① 두 화면이 쓰는 `ames-grid-section`·`ames-grid-toolbar`(RPT-003 은 `ames-kpi-strip`·`ames-kpi-label` 도) 클래스가 `app.css` 에 없어, 필터·그리드가 카드 밖에 맨 모양으로 보이고 RPT-003 의 KPI 3개는 서식 없이 세로로 쌓입니다(표준은 `ames-kpis`/`ames-kpi-l`·`ames-card`/`ames-card-h` 카드 헤더 필터). ② 화면 문구가 resx 없이 영어 고정입니다 — KPI(`SHIPMENTS`·`SHIPPED QTY`·`CUSTOMERS`), 열 제목 전부(`SHIPMENT ID`·`OUTBOUND BARCODE` 등), `All Customers`·`Print`·`Export` 버튼, 고객 선택은 Radzen 콤보가 아닌 맨 `<select>`. ③ 날짜 선택기가 `DateFormat="MM/dd/yyyy"` 고정(규칙은 `DateFmt.Date` — 언어별 서식). ④ 그리드에 `PagingSummaryFormat`·`PageSizeText`·`EmptyText` 가 없어 페이저·빈 목록 문구가 영어. ⑤ RPT-003 은 고객사별 누적 막대·운송사별 요약·합계 행이 빠졌고, 기존 resx 키 `RPT.DailyShipment.*` 33개는 이제 쓰이지 않습니다.
-    - 데이터: 개발 DB 에서는 2-1 8(`OutboundBarcode` → `LotNo`) 때문에 두 화면 모두 `Invalid column name 'OutboundBarcode'.` 를 빨간 글씨로 보이고 목록이 빕니다 — 디자인 문제와 별개입니다.
-    - 제안: 새 데이터 모델(`RptRepository.ShipmentDetailRow`·`FinishedGoodsRepository.ShipmentRow`)은 그대로 두고 화면만 표준 구성(KPI·카드 헤더 필터·resx 4파일·`DateFmt`·페이저 문구)으로 맞춥니다. RPT 화면은 이승욱 담당 영역이라 고칠 때 알려 주면 같이 확인합니다(이승욱은 따라 고치지 않았습니다).
+### 2-4. 유효한 문제점 (0)
 
-### 2-5. 재검토 정정 — 운영 결함 아님·선택적 정리 (3)
+코드 수정 완료 항목은 제거했습니다. 서버 배포·실제 쓰기 검증 대기는 2-1에서 관리합니다.
+
+### 2-5. 재검토 정정 — 운영 결함 아님·선택적 정리 (4)
 1. **`SCM_ItemVendor.PackingUnitCode`가 남아 있음 — 미사용 컬럼 정리이지 기능 결함은 아님**
    - 현재 SCM 품목·공급업체 연결은 `ScmRepository.ItemVendorRow`와 `ListItemVendors`/`LinkItemVendors`를 사용하며 이 컬럼을 읽거나 저장하지 않습니다. 런타임 소스 참조도 없습니다. 컬럼이 남아 있다는 사실만으로 조회·발주·입고가 잘못되지 않으므로 반드시 삭제해야 할 문제로 분류하지 않습니다. 별도 정리 승인 전에는 보존합니다.
 2. **기존 BOX·PLT·SH 기록 — 신규 사용 금지와 과거 데이터 보존을 혼동한 지적 정정**
@@ -374,6 +360,8 @@
 3. **`FG_CustomerReturn.PartName`의 물리적 컬럼 순서 — 실행 오류 아님**
    - `FinishedGoodsRepository.ListReturns`는 컬럼을 명시해 조회하고 `PartName` 등 이름으로 값을 읽으며, PDA 저장 SQL도 INSERT 컬럼을 명시합니다. 물리적 순서 차이로 데이터가 다른 필드에 들어가는 경로는 확인되지 않았습니다.
    - 개발 DB 에서 `PartName` 은 감사 컬럼 뒤 맨 끝(column_id 31)입니다. 새 스키마는 이미 `LotNo` → `PartName` → 감사 컬럼 순서로 통일했습니다. 기존 DB까지 그 순서로 맞추는 것은 선택적 표준화이며, 이 차이만을 없애려고 감사 컬럼 복사·삭제·재생성이 포함된 `migrate_audit_columns_last.sql`을 자동 실행하지 않습니다. 실제 장애 수정과 분리합니다.
+4. **일별 출하의 옛 운송사·회차 요약 — 현재 실출하 모델에는 해당 없음**
+   - 현재 `FG_Shipment`와 보고서 데이터에는 운송사·회차가 없습니다. 예전 출하지시 기준의 요약을 되살리려고 임의 값을 만들거나 컬럼을 추가하지 않습니다. 실제 값이 있는 고객별 출하 건수·단위별 수량을 표시하며 서로 다른 UOM 수량은 합산하지 않습니다.
 ---
 
 ## 3. 이승욱 — Web SYS·MD·MNT·RPT·PP-CAL/LSB/OEE/DTL/ODM·계정·공통

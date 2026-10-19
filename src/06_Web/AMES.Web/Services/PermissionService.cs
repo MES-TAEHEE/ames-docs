@@ -203,6 +203,12 @@ public sealed class PermissionService
 
     /// 기타(승인·특수) 버튼 활성화 — A 포함 시 활성
     public bool CanApprove(string href) => GetLevel(href).Contains('A');
+    public async Task<bool> RecheckApproveAsync(AuthenticationStateProvider provider,string href)
+    {
+        await EnsureAsync(provider);
+        await RefreshAsync();
+        return CanApprove(href);
+    }
 
     /// CanApprove 의 alias (이전 CanFull 호출부 호환)
     public bool CanFull(string href) => CanApprove(href);

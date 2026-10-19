@@ -806,7 +806,7 @@
         new(8, "WH005-TC-008", "조정 정보 한 화면 확인",
             "수량과 Reason을 입력해 조정 전·증감·조정 후 정보가 함께 보이는지 확인합니다.", true, true,
             new AdjustTestValue("LOT", "5011LL260904500001"),
-            new AdjustTestValue("READY", "+3 / DAMAGED / TEST", "PREPARE")),
+            new AdjustTestValue("READY", "+3 / COUNT_DIFF / TEST", "PREPARE")),
         new(9, "WH005-TC-009", "Note 입력 유지",
             "Note 테스트값을 불러와 한글·영문·숫자가 입력란에 유지되는지 확인합니다.", true, true,
             new AdjustTestValue("LOT", "5011LL260904500001"),
@@ -814,14 +814,14 @@
         new(10, "WH005-TC-010", "CLEAR 작업 초기화",
             "READY를 불러온 뒤 화면의 CLEAR를 눌러 입력값이 모두 초기화되는지 확인합니다.", true, true,
             new AdjustTestValue("LOT", "5011LL260904500001"),
-            new AdjustTestValue("READY", "+3 / DAMAGED / TEST", "PREPARE")),
+            new AdjustTestValue("READY", "+3 / COUNT_DIFF / TEST", "PREPARE")),
         new(11, "WH005-TC-011", "Reason Code 목록",
-            "Reason 목록에 Count Diff, Damaged, Lost, Found, Other가 표시되는지 확인합니다.", true, true,
+            "Reason 목록에 Count Diff, Lost, Found, Other가 표시되는지 확인합니다.", true, true,
             new AdjustTestValue("LOT", "5011LL260904500001")),
         new(12, "WH005-TC-012", "Reason 선택 반영",
-            "Damaged를 불러와 선택한 Reason이 화면에 반영되는지 확인합니다.", true, true,
+            "Count Diff를 불러와 선택한 Reason이 화면에 반영되는지 확인합니다.", true, true,
             new AdjustTestValue("LOT", "5011LL260904500001"),
-            new AdjustTestValue("REASON", "DAMAGED", "REASON")),
+            new AdjustTestValue("REASON", "COUNT_DIFF", "REASON")),
         new(13, "WH005-TC-013", "수량 숫자 패드",
             "수량 입력란을 눌러 숫자 패드가 열리고 숫자·DELETE·CANCEL이 동작하는지 확인합니다.", true, true,
             new AdjustTestValue("LOT", "5011LL260904500001"),
@@ -841,7 +841,7 @@
         new(17, "WH005-TC-017", "재고 조정 저장 완료",
             "READY TO SAVE를 불러온 뒤 SAVE를 눌러 Saved 알림과 수량 변경을 확인합니다.", true, true,
             new AdjustTestValue("LOT", "5011LL260904500001"),
-            new AdjustTestValue("READY TO SAVE", "+3 / DAMAGED", "PREPARE_SAVE")),
+            new AdjustTestValue("READY TO SAVE", "+3 / COUNT_DIFF", "PREPARE_SAVE")),
         new(18, "WH005-TC-018", "조정 거래이력 검증",
             "시나리오 17 완료 후 Transactions에서 Before, Change, After, Reason, Worker를 확인합니다.", false, false),
         new(19, "WH005-TC-019", "저장 성공 후 초기화",
@@ -849,7 +849,7 @@
         new(20, "WH005-TC-020", "저장 API 실패 및 롤백",
             "API ERROR를 ON으로 하고 READY TO SAVE 후 SAVE하여 오류, 입력 유지와 재고·이력 롤백을 확인합니다.", true, true,
             new AdjustTestValue("LOT", "5011LL260904500001"),
-            new AdjustTestValue("READY TO SAVE", "+3 / DAMAGED", "PREPARE_SAVE"))
+            new AdjustTestValue("READY TO SAVE", "+3 / COUNT_DIFF", "PREPARE_SAVE"))
     ];
 
     private string _q = "";
@@ -1227,11 +1227,11 @@
             case "QTY_EMPTY": OnAdjustmentQuantityInput(new ChangeEventArgs { Value = "" }); break;
             case "PREPARE":
                 _invAdjustDelta = 3;
-                _invAdjustReason = "DAMAGED";
+                _invAdjustReason = "COUNT_DIFF";
                 break;
             case "PREPARE_SAVE":
                 _invAdjustDelta = 3;
-                _invAdjustReason = "DAMAGED";
+                _invAdjustReason = "COUNT_DIFF";
                 _invAdjustNote = "WH005 scenario adjustment";
                 break;
             default:
@@ -1355,7 +1355,8 @@
         }
         try
         {
-            AdjustReasons = await Api.CodeItemsAsync("INV_ADJUST_REASON");
+            AdjustReasons = (await Api.CodeItemsAsync("INV_ADJUST_REASON"))
+                .Where(reason => reason.CodeValue?.ToUpperInvariant() is not ("DAMAGED" or "DEFECT" or "DEFECTIVE")).ToList();
             if (IsLineAdjust) _adjustLines = await Api.WhAdjustmentLinesAsync();
             if (!AdjustReasons.Any(x => string.Equals(x.CodeValue, _invAdjustReason, StringComparison.OrdinalIgnoreCase)))
                 _invAdjustReason = "";

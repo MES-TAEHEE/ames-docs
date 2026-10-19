@@ -1,9 +1,6 @@
 .shipping-view-tabs {margin-bottom:12px;}
-.shipping-order-items {max-height:280px;overflow:auto;margin:4px 12px 8px;}
+.created-order-list {max-height:65vh;overflow:auto;}
 .shipping-orders-page ::deep .rz-expanded-row-content > td {height:auto !important;background:transparent !important;padding:0 !important;}
-.shipping-orders-page ::deep .shipping-order-items-grid {flex:0 0 auto !important;}
-.shipping-orders-page ::deep .shipping-order-items-grid .rz-data-grid-data {height:auto !important;min-height:0;container-type:normal !important;}
-.shipping-orders-page ::deep .shipping-order-items-grid .rz-data-grid-data tbody > tr > td {height:auto !important;padding:7px 10px !important;}
 .shipping-print {background:white;color:#111;padding:24px;}
 .shipping-print ::deep svg {width:320px;height:65px;fill:black;background:white;}
 .shipping-print h2 {margin:8px 0;}

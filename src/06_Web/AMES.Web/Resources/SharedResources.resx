@@ -8116,7 +8116,7 @@
     <value>출하</value>
   </data>
   <data name="FG.Shipments.Empty" xml:space="preserve">
-    <value>상차 또는 출하된 오더가 없습니다.</value>
+    <value>출하 내역이 없습니다.</value>
   </data>
   <data name="FG.Shipments.Col.ShipOrder" xml:space="preserve">
     <value>출하 오더</value>
@@ -10998,13 +10998,13 @@
     <value>발행·인쇄</value>
   </data>
   <data name="SCM.Preview.Print.CaseBarcode" xml:space="preserve">
-    <value>팔레트 바코드</value>
+    <value>Shipping Unit 바코드</value>
   </data>
   <data name="SCM.Preview.Col.CaseNo" xml:space="preserve">
-    <value>팔레트 번호</value>
+    <value>Shipping Unit 번호</value>
   </data>
   <data name="SCM.Preview.Print.NoCases" xml:space="preserve">
-    <value>이 납품에는 팔레트가 없습니다.</value>
+    <value>이 납품에는 Shipping Unit가 없습니다.</value>
   </data>
   <data name="SCM.Preview.Print.BoxBarcode" xml:space="preserve">
     <value>박스·부품 바코드</value>
@@ -11040,25 +11040,25 @@
     <value>사유 / 비고</value>
   </data>
   <data name="SCM.Preview.Lbl.Case" xml:space="preserve">
-    <value>팔레트</value>
+    <value>Shipping Unit</value>
   </data>
   <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
     <value>박스 {0}개</value>
   </data>
   <data name="SCM.Preview.Hint.CaseFixed" xml:space="preserve">
-    <value>수량은 팔레트에 담긴 내용으로 정해집니다.</value>
+    <value>수량은 Shipping Unit에 담긴 내용으로 정해집니다.</value>
   </data>
   <data name="SCM.Preview.Hint.ReceiptAfterShip" xml:space="preserve">
     <value>출하한 뒤에 입고 내역을 볼 수 있습니다.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCases" xml:space="preserve">
-    <value>이 납품서의 팔레트를 불러오지 못했습니다.</value>
+    <value>이 납품서의 Shipping Unit를 불러오지 못했습니다.</value>
   </data>
   <data name="SCM.Preview.Err.Receipts" xml:space="preserve">
     <value>입고 결과를 불러오지 못했습니다. 새로고침해 다시 시도하세요.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCaseInfo" xml:space="preserve">
-    <value>팔레트 정보를 불러오지 못했습니다. 새로고침해 다시 시도하세요.</value>
+    <value>Shipping Unit 정보를 불러오지 못했습니다. 새로고침해 다시 시도하세요.</value>
   </data>
   <data name="SCM.Preview.Err.LastPrice" xml:space="preserve">
     <value>최근 단가를 불러오지 못했습니다. 저장 전에 단가를 확인하세요.</value>
@@ -11124,13 +11124,13 @@
     <value>바코드</value>
   </data>
   <data name="Portal.CaseLabel.Title" xml:space="preserve">
-    <value>팔레트 라벨</value>
+    <value>Shipping Unit 라벨</value>
   </data>
   <data name="Portal.CaseLabel.Err.NotFound" xml:space="preserve">
-    <value>팔레트가 없거나 조회 권한이 없습니다.</value>
+    <value>Shipping Unit가 없거나 조회 권한이 없습니다.</value>
   </data>
   <data name="Portal.CaseLabel.Err.Load" xml:space="preserve">
-    <value>이 팔레트 라벨을 불러오지 못했습니다.</value>
+    <value>이 Shipping Unit 라벨을 불러오지 못했습니다.</value>
   </data>
   <data name="Portal.Create.Title" xml:space="preserve">
     <value>납품 생성</value>
@@ -11142,7 +11142,7 @@
     <value>납품서 인쇄</value>
   </data>
   <data name="Portal.Create.Items" xml:space="preserve">
-    <value>납품 항목</value>
+    <value>Shipping Units</value>
   </data>
   <data name="Portal.Create.Part" xml:space="preserve">
     <value>부품</value>
@@ -11151,7 +11151,7 @@
     <value>박스</value>
   </data>
   <data name="Portal.Create.AddCase" xml:space="preserve">
-    <value>팔레트 추가</value>
+    <value>Shipping Unit 추가</value>
   </data>
   <data name="Portal.Create.AddBox" xml:space="preserve">
     <value>박스 추가</value>
@@ -11160,10 +11160,10 @@
     <value>부품 추가</value>
   </data>
   <data name="Portal.Create.RemoveCase" xml:space="preserve">
-    <value>팔레트 삭제</value>
+    <value>Shipping Unit 삭제</value>
   </data>
   <data name="Portal.Create.ReviewFmt" xml:space="preserve">
-    <value>납품서 확인 · 팔레트 {0}개 · 박스 {1}개 · 낱개 부품 {2}개</value>
+    <value>납품서 확인 · Shipping Unit {0}개 · 박스 / 파트 {1}개</value>
   </data>
   <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
     <value>선택 수량</value>
@@ -11187,7 +11187,7 @@
     <value>납품 수량을 입력하면 낱개 부품이 자동으로 정해집니다.</value>
   </data>
   <data name="Portal.Create.Step1Hint.Boxes" xml:space="preserve">
-    <value>납품 수량을 입력하면 박스가 자동으로 정해집니다.</value>
+    <value>납품할 수량을 입력하세요. 포장 기준에 따라 라벨이 계산됩니다.</value>
   </data>
   <data name="Portal.Create.Col.TotalQty" xml:space="preserve">
     <value>총 납품 수량</value>
@@ -11235,13 +11235,13 @@
     <value>부품 선택</value>
   </data>
   <data name="Portal.Create.Step2.Boxes" xml:space="preserve">
-    <value>박스 선택</value>
+    <value>내용물 선택</value>
   </data>
   <data name="Portal.Create.Step2Hint.Parts" xml:space="preserve">
     <value>이 납품에 넣을 부품을 체크하세요.</value>
   </data>
   <data name="Portal.Create.Step2Hint.Boxes" xml:space="preserve">
-    <value>이 납품에 넣을 박스를 체크하세요.</value>
+    <value>이 Shipping Unit에 포함할 박스 / 파트를 선택하세요.</value>
   </data>
   <data name="Portal.Create.Step2Empty.Parts" xml:space="preserve">
     <value>1단계에서 수량을 입력하면 여기에 부품이 보입니다.</value>
@@ -11492,4 +11492,54 @@
   <data name="MD.Items.Hint.UomLocked" xml:space="preserve">
     <value>재고·실적이 있는 품목이라 단위를 바꿀 수 없습니다.</value>
   </data>
+  <data name="Shipment.Customers" xml:space="preserve">
+    <value>고객사</value>
+  </data>
+  <data name="Shipment.Lots" xml:space="preserve">
+    <value>LOT 수</value>
+  </data>
+  <data name="Shipment.Id" xml:space="preserve">
+    <value>출하 ID</value>
+  </data>
+  <data name="Shipment.FromLocation" xml:space="preserve">
+    <value>출발 위치</value>
+  </data>
+  <data name="Shipment.ShippedBy" xml:space="preserve">
+    <value>출하 작업자</value>
+  </data>
+  <data name="Shipment.PalletNo" xml:space="preserve">
+    <value>팔레트 번호</value>
+  </data>
+  <data name="Shipment.UnitType" xml:space="preserve">
+    <value>단위 유형</value>
+  </data>
+  <data name="Shipment.Search" xml:space="preserve">
+    <value>바코드, 품번 또는 고객사</value>
+  </data>
+  <data name="Shipment.DetailsFmt" xml:space="preserve">
+    <value>출하 {0}의 LOT 목록</value>
+  </data>
+  <data name="Shipment.LoadError" xml:space="preserve">
+    <value>출하 정보를 불러오지 못했습니다. 다시 시도하세요.</value>
+  </data>
+  <data name="Shipment.DetailsError" xml:space="preserve">
+    <value>출하 상세 정보를 불러오지 못했습니다. 다시 시도하세요.</value>
+  </data>
+  <data name="WH.Inventory.IncludeFinishedGoods" xml:space="preserve"><value>Include finished goods</value></data>
+  <data name="WH.Inventory.DefectAction" xml:space="preserve"><value>Mark Defective</value></data>
+  <data name="WH.Inventory.DefectTitle" xml:space="preserve"><value>Inventory Defect</value></data>
+  <data name="WH.Inventory.DefectSummary" xml:space="preserve"><value>Enter the defective quantity. Only this quantity will be removed from available inventory.</value></data>
+  <data name="WH.Inventory.DefectReason" xml:space="preserve"><value>Defect reason</value></data>
+  <data name="WH.Inventory.DefectNotEligible" xml:space="preserve"><value>Select an individual box or LOT with remaining stock, not a pallet or group.</value></data>
+  <data name="WH.Inventory.DefectConfirm" xml:space="preserve"><value>Mark {1} of LOT {0} as defective?</value></data>
+  <data name="WH.Inventory.DefectDone" xml:space="preserve"><value>The defective quantity was removed from LOT {0}. The remaining stock is still available.</value></data>
+  <data name="WH.Inventory.DefectQty" xml:space="preserve"><value>Defect Qty</value></data>
+  <data name="WH.Inventory.DefectWholeLotSummary" xml:space="preserve"><value>The entire LOT will be marked defective.</value></data>
+  <data name="WH.Inventory.DefectConfirmWholeLot" xml:space="preserve"><value>Mark the entire LOT {0} ({1}) as defective?</value></data>
+  <data name="WH.Inventory.DefectDoneWholeLot" xml:space="preserve"><value>LOT {0} was marked defective in full.</value></data>
+  <data name="WH.Inventory.AvailableQty" xml:space="preserve"><value>Available Qty</value></data>
+  <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>Defect recorded</value></data>
+  <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
+  <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>내용물 {0}개</value></data>
+  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>현재 조회된 {0}개 품목의 가용 수량과 불량 수량을 엑셀로 다운로드하시겠습니까?</value></data>
 </root>

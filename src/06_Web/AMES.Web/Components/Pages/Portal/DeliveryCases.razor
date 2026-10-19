@@ -25,25 +25,17 @@
 @if(_allowed && !_editingCase)
 {
     <section class="ames-card">
-        <div class="ames-card-h">@L["Portal.Create.Items"] · @(_draftCases.Count+_loose.Count)</div>
+        <div class="ames-card-h">@L["Portal.Create.Items"] · @_draftCases.Count</div>
         <div class="case-cards">
             @foreach(var item in _draftCases)
             {
-                <button type="button" class="case-tile @(_activeCase==item?"active":"")" @onclick="()=>SelectDraftCase(item)" disabled="@_busy">
-                    <RadzenIcon Icon="inventory_2" /><strong>@L["SCM.Preview.Lbl.Case"] @(_draftCases.IndexOf(item)+1)</strong><span>@L["SCM.Preview.Fmt.Boxes", item.Count]</span>
-                </button>
+                <RadzenButton class="@($"case-tile {(_activeCase==item?"active":"")}")" Click="()=>SelectDraftCase(item)" Disabled="@_busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small">
+                    <RadzenIcon Icon="inventory_2" /><strong>@L["SCM.Preview.Lbl.Case"] @(_draftCases.IndexOf(item)+1)</strong><span>@L["Portal.ShippingUnit.ContentsCount", item.Count]</span>
+                </RadzenButton>
             }
-            @foreach(var item in _loose)
-            {
-                <button type="button" class="case-tile @(_activeLoose==item?"active":"")" @onclick="()=>SelectLoose(item)" disabled="@_busy">
-                    <RadzenIcon Icon="@(item.IsPart?"category":"inventory")" /><strong>@(item.IsPart?L["Portal.Create.Part"]:L["Portal.Create.Box"])</strong><span>@item.Box.Row.Part.Item · @QtyWithContents(item.Box.Quantity,item.Box.Row.Part)</span>
-                </button>
-            }
-            <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Case")' disabled="@_busy">
+            <RadzenButton class="case-tile case-add" Click="AddShippingUnit" Disabled="@_busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small">
                 <RadzenIcon Icon="add_box" /><strong>@L["Portal.Create.AddCase"]</strong>
-            </button>
-            <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Box")' disabled="@_busy"><RadzenIcon Icon="inventory" /><strong>@L["Portal.Create.AddBox"]</strong></button>
-            <button type="button" class="case-tile case-add" @onclick='()=>AddItem("Part")' disabled="@_busy"><RadzenIcon Icon="category" /><strong>@L["Portal.Create.AddPart"]</strong></button>
+            </RadzenButton>
         </div>
         @if(_activeCase is {} detail)
         {
@@ -60,37 +52,31 @@
                 </table></div>
             </div>
         }
-        @if(_activeLoose is {} loose)
-        {
-            <div class="case-detail"><div class="case-toolbar"><strong>@(loose.IsPart?L["Portal.Create.Part"]:L["Portal.Create.Box"]) · @loose.Box.Row.Part.Item</strong>
-                <RadzenButton Text='@L["Btn.Remove"]' ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="()=>RemoveLoose(loose)" Disabled="@_busy" />
-            </div><div>@loose.Box.Row.Order · @QtyWithContents(loose.Box.Quantity,loose.Box.Row.Part)</div></div>
-        }
     </section>
     @if(NoteBoxes.Any())
     {
         <section class="ames-card case-review">
-            <div class="ames-card-h">@L["Portal.Create.ReviewFmt", _draftCases.Count, NoteBoxCount, _loose.Count(i=>i.IsPart)]</div>
+            <div class="ames-card-h">@L["Portal.Create.ReviewFmt", _draftCases.Count, NoteBoxCount]</div>
             <div class="case-table-scroll"><table class="ames-table">
                 <thead><tr><th>@L["SCM.Preview.Col.PoNo"]</th><th>@L["SCM.Preview.Col.PartNoName"]</th><th>@L["Portal.Create.Col.SelectedQty"]</th><th>@L["Portal.Create.Col.BoxesParts"]</th></tr></thead>
                 <tbody>@foreach(var item in NoteBoxes.GroupBy(b=>new { b.Row.Order, b.Row.Part.Item, b.Row.Part.Name, b.Row.Part.Unit }))
                 {
                     <tr><td class="case-po-code">@item.Key.Order</td><td><strong>@item.Key.Item</strong><div class="dim">@item.Key.Name</div></td>
                         <td>@QtyWithContents(item.Sum(b=>b.Quantity),item.First().Row.Part)</td>
-                        <td>@L["Portal.Create.BoxesPartsFmt", item.Count(b=>!IsLoosePart(b)), item.Count(IsLoosePart)]</td></tr>
+                        <td>@item.Count()</td></tr>
                 }</tbody>
             </table></div>
         </section>
     }
     <div class="case-toolbar case-create-footer">
         <label>@L["Scm.Text.DeliveryDate.246618"] <input type="date" class="ames-input" @bind="_deliveryDate" @bind:format="yyyy-MM-dd" disabled="@_busy" /></label>
-        <RadzenButton Text='@L["SCM.Preview.Btn.CreateNote"]' Icon="description" Click="CreateNote" Disabled="@(_busy || _draftCases.Count+_loose.Count==0)" />
+        <RadzenButton Text='@L["SCM.Preview.Btn.CreateNote"]' Icon="description" Click="CreateNote" Disabled="@(_busy || _draftCases.Count==0)" />
     </div>
 }
 @if(_allowed && _editingCase)
 {
     <section class="ames-card">
-        <div class="ames-card-h">@L["Portal.Create.AddHeadFmt", KindLabel(_editingKind)]</div>
+        <div class="ames-card-h">@L["Portal.Create.AddHeadFmt", L["SCM.Preview.Lbl.Case"]]</div>
         <div class="case-po-scroll"><table class="ames-table">
             <thead><tr><th></th><th>@L["SCM.Preview.Col.PoNo"]</th><th>@L["Scm.Text.OrderDate"] ↑</th><th>@L["Scm.Text.Supplier"]</th><th>@L["Scm.Text.Destination"]</th><th>@L["Scm.Text.DueDate"]</th><th>@L["Col.Status"]</th></tr></thead>
             <tbody>@foreach(var order in _orders.OrderBy(o=>o.Ordered).ThenBy(o=>o.Number))
@@ -105,9 +91,9 @@
                 {
                     <tr class="case-po-content"><td colspan="7">
                         <section class="case-step">
-                        <div class="case-step-heading"><span class="case-step-number">1</span><div><h3>@L["Portal.Create.Step1"]</h3><p>@(_editingKind=="Part"?L["Portal.Create.Step1Hint.Parts"]:L["Portal.Create.Step1Hint.Boxes"])</p></div></div>
+                        <div class="case-step-heading"><span class="case-step-number">1</span><div><h3>@L["Portal.Create.Step1"]</h3><p>@L["Portal.Create.Step1Hint.Boxes"]</p></div></div>
                         <div class="case-table-scroll case-part-table"><table class="ames-table">
-                            <thead><tr><th>@L["SCM.Preview.Col.PartNoName"]</th><th>@L["SCM.Preview.Col.QtyToDeliver"]</th><th>@L["Portal.Create.Col.TotalQty"]</th><th>@(_editingKind=="Part"?L["Portal.Create.Col.PartsNeeded"]:L["Portal.Create.Col.BoxesNeeded"])</th></tr></thead>
+                            <thead><tr><th>@L["SCM.Preview.Col.PartNoName"]</th><th>@L["SCM.Preview.Col.QtyToDeliver"]</th><th>@L["Portal.Create.Col.TotalQty"]</th><th>@L["Portal.Create.Col.BoxesNeeded"]</th></tr></thead>
                             <tbody>@foreach(var row in _parts.Where(p=>p.Order==order.Number))
                             {
                                 <tr @key="row.Part.PoID" class="@(Available(row)<=0?"case-part-unavailable":"")"><td>@row.Part.Item<div class="dim">@row.Part.Name</div></td>
@@ -127,13 +113,13 @@
                                     <td><label class="case-quantity-editor"><input class="ames-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="0"
                                         @bind:get="row.QuantityText" @bind:set="value=>ChangeQuantity(row,value)" @bind:event="oninput" disabled="@(_busy || Available(row)<=0)"
                                         aria-invalid="@(!row.InputValid || row.Quantity>Available(row)?"true":"false")" aria-label='@(L["Portal.Create.Col.TotalQty"] + " " + row.Order + " " + row.Part.Item)' /></label>
-                                        @if(Available(row)>0 && !CanPack(row)){<div class="case-input-message">@(_editingKind=="Part" && row.Part.Unit!="EA"?L["Portal.Create.Err.PartsNeedEa"].Value:IssueText(row.Part.Issue))</div>}
+                                        @if(Available(row)>0 && !CanPack(row)){<div class="case-input-message">@IssueText(row.Part.Issue)</div>}
                                         else if(!row.InputValid){<div class="case-input-message">@L["Portal.Create.Err.WholeNumber"]</div>}
                                     </td>
                                     <td><div class="case-box-result"><strong>@(PackSize(row)>0?decimal.Ceiling(row.Quantity/PackSize(row)):0)</strong>
-                                        @if(_editingKind!="Part" && PackSize(row)>0){<span>(@BoxCapacityText(row))</span>}
+                                        @if(PackSize(row)>0){<span>(@BoxCapacityText(row))</span>}
                                     </div>
-                                        @if(_editingKind!="Part" && PackSize(row)<=0 && Available(row)>0)
+                                        @if(PackSize(row)<=0 && Available(row)>0)
                                         {
                                             <strong>@L["Portal.Text.NotSet"]</strong>
                                             @if(row.Part.Issue is "Packing quantity missing" or "Vendor mapping missing")
@@ -150,15 +136,15 @@
                         </table></div>
                         </section>
                         <section class="case-step">
-                        <div class="case-step-heading"><span class="case-step-number">2</span><div><h3>@(_editingKind=="Part"?L["Portal.Create.Step2.Parts"]:L["Portal.Create.Step2.Boxes"])</h3><p>@(_editingKind=="Part"?L["Portal.Create.Step2Hint.Parts"]:L["Portal.Create.Step2Hint.Boxes"])</p></div></div>
-                        @if(boxes.Count==0){<p class="case-step-empty">@(_editingKind=="Part"?L["Portal.Create.Step2Empty.Parts"]:L["Portal.Create.Step2Empty.Boxes"])</p>}
+                        <div class="case-step-heading"><span class="case-step-number">2</span><div><h3>@L["Portal.Create.Step2.Boxes"]</h3><p>@L["Portal.Create.Step2Hint.Boxes"]</p></div></div>
+                        @if(boxes.Count==0){<p class="case-step-empty">@L["Portal.Create.Step2Empty.Boxes"]</p>}
                         else
                         {
                         <div class="case-toolbar case-box-actions">
                             <label><input type="checkbox" checked="@(boxes.Count>0 && boxes.All(b=>b.Selected))" @onchange="e=>SelectOrderBoxes(order,e.Value is true)" disabled="@(_busy || boxes.Count==0 || !CanSelectOrder(order))" /> @L["Portal.Text.SelectAll"]</label>
                             <span>@L["Portal.Create.SelectedFmt", boxes.Count(b=>b.Selected), boxes.Count, SelectedQuantityText(boxes)]</span>
                         </div>
-                        <div class="case-table-scroll case-box-table"><table class="ames-table"><thead><tr><th>@L["Scm.Text.Select"]</th><th>@(_editingKind=="Part"?L["Portal.Create.Part"]:L["Portal.Create.Box"])</th><th>@L["SCM.Preview.Col.PartNoName"]</th><th>@L["Col.Qty"]</th></tr></thead>
+                        <div class="case-table-scroll case-box-table"><table class="ames-table"><thead><tr><th>@L["Scm.Text.Select"]</th><th>@L["Portal.Create.Col.BoxesParts"]</th><th>@L["SCM.Preview.Col.PartNoName"]</th><th>@L["Col.Qty"]</th></tr></thead>
                             <tbody>@foreach(var box in boxes)
                             {
                                 <tr><td><input type="checkbox" checked="@box.Selected" @onchange="e=>SelectBox(box,e.Value is true)" disabled="@(_busy || !CanSelectOrder(order))" aria-label='@(L["Scm.Text.Select"] + " " + order.Number + " " + box.Row.Part.Item + " " + box.Sequence)' /></td>
@@ -176,9 +162,9 @@
     @if(_draft.Any(b=>b.Selected))
     {
         <section class="ames-card case-review">
-            <div class="ames-card-h">@L["Portal.Create.SelectedForFmt", KindLabel(_editingKind)]</div>
+            <div class="ames-card-h">@L["Portal.Create.SelectedForFmt", L["SCM.Preview.Lbl.Case"]]</div>
             <div class="case-table-scroll"><table class="ames-table">
-                <thead><tr><th>@L["SCM.Preview.Col.PoNo"]</th><th>@L["SCM.Preview.Col.PartNoName"]</th><th>@L["Portal.Create.Col.QtyToAdd"]</th><th>@(_editingKind=="Part"?L["Portal.Create.Col.Parts"]:L["Portal.Create.Col.Boxes"])</th></tr></thead>
+                <thead><tr><th>@L["SCM.Preview.Col.PoNo"]</th><th>@L["SCM.Preview.Col.PartNoName"]</th><th>@L["Portal.Create.Col.QtyToAdd"]</th><th>@L["Portal.Create.Col.BoxesParts"]</th></tr></thead>
                 <tbody>@foreach(var item in _draft.Where(b=>b.Selected).GroupBy(b=>new { b.Row.Order, b.Row.Part.Item, b.Row.Part.Name, b.Row.Part.Unit }))
                 {
                     <tr><td class="case-po-code">@item.Key.Order</td><td><strong>@item.Key.Item</strong><div class="dim">@item.Key.Name</div></td>
@@ -220,7 +206,6 @@
         public int Sequence {get;}=sequence;
         public bool Selected {get;set;}
     }
-    sealed record LooseDraft(DraftBox Box,bool IsPart);
     List<ScmRepository.PurchaseOrder> _orders=[];
     List<PartEdit> _parts=[];
     List<DraftBox> _draft=[];
@@ -233,10 +218,8 @@
     DateTime _deliveryDate=DbClock.Today;
     string _user="",_actor="",_error="",_message="",_createdNote="";
     List<List<DraftBox>> _draftCases=[];
-    List<LooseDraft> _loose=[];
-    IEnumerable<DraftBox> NoteBoxes => _draftCases.SelectMany(c=>c).Concat(_loose.Select(i=>i.Box));
-    int NoteBoxCount => _draftCases.Sum(c=>c.Count)+_loose.Count(i=>!i.IsPart);
-    bool IsLoosePart(DraftBox box) => _loose.Any(i=>i.IsPart && ReferenceEquals(i.Box,box));
+    IEnumerable<DraftBox> NoteBoxes => _draftCases.SelectMany(c=>c);
+    int NoteBoxCount => _draftCases.Sum(c=>c.Count);
     string SelectedQuantityText(IEnumerable<DraftBox> boxes)
     {
         var quantities=boxes.Where(b=>b.Selected).GroupBy(b=>b.Row.Part.Unit)
@@ -244,14 +227,10 @@
         return string.Join(" / ",quantities) is { Length: >0 } text ? text : "0";
     }
     List<DraftBox>? _activeCase;
-    LooseDraft? _activeLoose;
     bool _editingCase;
-    string _editingKind="Case";
-    decimal Available(PartEdit row)=>Math.Max(0,row.Part.Available-_draftCases.SelectMany(c=>c).Where(b=>b.Row.Part.PoID==row.Part.PoID).Sum(b=>b.Quantity)
-        -_loose.Where(i=>i.Box.Row.Part.PoID==row.Part.PoID).Sum(i=>i.Box.Quantity));
-    decimal PackSize(PartEdit row)=>_editingKind=="Part"?1:row.Part.PackingQty;
+    decimal Available(PartEdit row)=>Math.Max(0,row.Part.Available-_draftCases.SelectMany(c=>c).Where(b=>b.Row.Part.PoID==row.Part.PoID).Sum(b=>b.Quantity));
+    decimal PackSize(PartEdit row)=>row.Part.PackingQty;
     string BoxCapacityText(PartEdit row)=>L["Portal.Create.PerBoxFmt", $"{QtyFormat.Text(PackSize(row),row.Part.Unit)} {UomFmt.Sym(row.Part.Unit)}"];
-    string KindLabel(string kind)=>kind switch { "Case"=>L["SCM.Preview.Lbl.Case"], "Part"=>L["Portal.Create.Part"], _=>L["Portal.Create.Box"] };
     // 저장소 SQL 이 영어 문장으로 넘기는 품목 문제(CasePart.Issue) — 비교 코드로도 쓰여 그대로 두고 표시만 바꾼다
     string IssueText(string issue)=>issue switch {
         "Item master missing"=>L["Portal.Issue.ItemMissing"], "Item inactive"=>L["Portal.Issue.ItemInactive"],
@@ -259,8 +238,7 @@
         "Packing quantity missing"=>L["Portal.Issue.PackingMissing"], _=>issue };
     string QtyWithContents(decimal qty,ScmRepository.CasePart part)
         =>$"{QtyFormat.Text(qty,part.Unit)} {UomFmt.Sym(part.Unit)}";
-    bool CanPack(PartEdit row)=>(_editingKind!="Part" || row.Part.Unit=="EA")
-        && (row.Part.Issue.Length==0 || _editingKind=="Part" && row.Part.Issue=="Packing quantity missing");
+    bool CanPack(PartEdit row)=>row.Part.Issue.Length==0;
     bool _allowed,_busy,_quantityError;
     string? _loadedKey;
     protected override async Task OnParametersSetAsync()
@@ -292,7 +270,7 @@
     }
     bool CanSelectOrder(ScmRepository.PurchaseOrder order)
     {
-        var selectedOrder=_draftCases.SelectMany(c=>c).FirstOrDefault()?.Row.Order ?? _loose.FirstOrDefault()?.Box.Row.Order
+        var selectedOrder=_draftCases.SelectMany(c=>c).FirstOrDefault()?.Row.Order
             ?? _draft.FirstOrDefault(b=>b.Selected)?.Row.Order;
         var first=_orders.FirstOrDefault(o=>o.Number==selectedOrder);
         return first is null||(first.Vendor==order.Vendor && first.Destination==order.Destination);
@@ -355,7 +333,7 @@
             (p.Quantity==0||(PackSize(p)>0&&CanPack(p)));
         _quantityError=_parts.Any(p=>!Valid(p));
         if(_quantityError)_error=L["Portal.Create.Err.Quantities"];
-        if(_parts.Where(Valid).Sum(p=>PackSize(p)>0?decimal.Ceiling(p.Quantity/PackSize(p)):0)+_draftCases.Sum(c=>c.Count)+_loose.Count>1000)
+        if(_parts.Where(Valid).Sum(p=>PackSize(p)>0?decimal.Ceiling(p.Quantity/PackSize(p)):0)+_draftCases.Sum(c=>c.Count)>1000)
         {_quantityError=true;_error=L["Portal.Create.Err.MaxBoxes"];return;}
         foreach(var row in _parts.Where(p=>Valid(p)&&p.Quantity>0))
         {
@@ -377,11 +355,11 @@
         if(_busy || (value&&!CanSelectOrder(order)))return;
         foreach(var box in _draft.Where(b=>b.Row.Order==order.Number))box.Selected=value;
     }
-    void AddItem(string kind)
+    void AddShippingUnit()
     {
         if(_busy)return;
         _error="";_message="";_draft=[];_parts=[];_selectedOrders.Clear();_expandedOrders.Clear();
-        _editingKind=kind;_editingCase=true;_quantityError=false;
+        _editingCase=true;_quantityError=false;
     }
     void CancelCase()
     {
@@ -390,15 +368,7 @@
     void CompleteCase()
     {
         if(_busy||!_allowed||_quantityError||!_draft.Any(b=>b.Selected))return;
-        if(_editingKind=="Case")
-        {
-            _activeCase=_draft.Where(b=>b.Selected).ToList();_activeLoose=null;_draftCases.Add(_activeCase);
-        }
-        else
-        {
-            _loose.AddRange(_draft.Where(b=>b.Selected).Select(b=>new LooseDraft(b,_editingKind=="Part")));
-            _activeCase=null;_activeLoose=_loose.Last();
-        }
+        _activeCase=_draft.Where(b=>b.Selected).ToList();_draftCases.Add(_activeCase);
         CancelCase();
     }
     void RemoveDraftCase(List<DraftBox> item)
@@ -406,25 +376,18 @@
         if(_busy)return;
         _draftCases.Remove(item);_activeCase=null;
     }
-    void SelectDraftCase(List<DraftBox> item){_activeCase=_activeCase==item?null:item;_activeLoose=null;}
-    void SelectLoose(LooseDraft item){_activeLoose=_activeLoose==item?null:item;_activeCase=null;}
-    void RemoveLoose(LooseDraft item)
-    {
-        if(_busy)return;
-        _loose.Remove(item);_activeLoose=null;
-    }
+    void SelectDraftCase(List<DraftBox> item){_activeCase=_activeCase==item?null:item;}
     async Task CreateNote()
     {
-        if(_busy||!_allowed||_editingCase||_draftCases.Count+_loose.Count==0)return;_busy=true;_createdNote="";
+        if(_busy||!_allowed||_editingCase||_draftCases.Count==0)return;_busy=true;_createdNote="";
         try
         {
             var cases=_draftCases.Select(boxes=>new ScmRepository.CaseDraftInput(
                 boxes.Select(b=>b.Row.Order).Distinct().ToArray(),
                 boxes.Select(b=>new ScmRepository.CaseBoxInput(b.Row.Part.PoID,b.Quantity)).ToArray())).ToArray();
-            var loose=_loose.Select(i=>new ScmRepository.LooseItemInput(i.Box.Row.Order,i.Box.Row.Part.PoID,i.Box.Quantity,i.IsPart)).ToArray();
             var date=_deliveryDate;
-            var note=await Task.Run(()=>Scm.CreateDeliveryNoteFromDraftCases(cases,date,_user,_actor,loose));
-            _draftCases.Clear();_loose.Clear();_activeCase=null;_activeLoose=null;await Reload();_createdNote=note.Number;_message=L["Portal.Create.Ok.CreatedFmt", note.Number];
+            var note=await Task.Run(()=>Scm.CreateDeliveryNoteFromDraftCases(cases,date,_user,_actor));
+            _draftCases.Clear();_activeCase=null;await Reload();_createdNote=note.Number;_message=L["Portal.Create.Ok.CreatedFmt", note.Number];
             LogCreated("SCM_DeliveryNote",note.Number);await Changed.InvokeAsync();
         }
         catch(Exception ex){Fail(ex,L["Portal.Create.Err.Create"]);}

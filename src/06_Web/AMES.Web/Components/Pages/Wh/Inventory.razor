@@ -1,6 +1,8 @@
 @page "/wh/inventory"
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Data.Repositories.WarehouseRepository InventoryRepo
+@inject MasterDataRepository MD
+@inject ScmRepository SCM
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
@@ -13,22 +15,30 @@
 }
 else
 {
-    <InventoryLookup Inventory="_inventory" SearchId="wh-inventory-search" />
+    <InventoryLookup Inventory="_inventory" ItemVendors="_itemVendors" ItemCodes="_itemCodes" SearchId="wh-inventory-search" AllowLotDefect="true" InventoryChanged="ReloadInventory" />
 }
 
 @code {
     private List<LocationMapStock> _inventory = [];
     private string? _error;
+    private List<ScmRepository.ItemVendorRow> _itemVendors = [];
+    private List<MasterDataRepository.CodeItemRow> _itemCodes = [];
 
-    protected override void OnInitialized()
+    protected override void OnInitialized() => ReloadInventory();
+
+    private void ReloadInventory()
     {
         try
         {
-            _inventory = InventoryRepo.ListUnifiedInventory(finishedGoods: false)
+            _error = null;
+            var stock = InventoryRepo.ListUnifiedInventory(finishedGoods: false, includeFinishedGoods: true, includeDefects: true)
                 .Select(x => new LocationMapStock(
                     x.LocationNo, x.PartNo, x.PartName, x.LotNo, x.Qty, x.Unit,
-                    x.WarehouseCode, x.WarehouseName, x.AreaCode, x.AreaName))
+                    x.WarehouseCode, x.WarehouseName, x.AreaCode, x.AreaName, x.DefectQty))
                 .ToList();
+            _inventory = InventorySearchRows.FromMaster(MD.ListItems(), stock);
+            _itemVendors = SCM.ListItemVendors();
+            _itemCodes = MD.ListCodeItems("ITEM_TYPE").Concat(MD.ListCodeItems("ITEM_CATEGORY")).ToList();
         }
         catch (Exception ex)
         {

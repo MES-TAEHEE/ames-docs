@@ -1,0 +1,4 @@
+.shipment-order-lines { max-height:280px; overflow:auto; padding:4px 12px 8px; }
+.shipment-order-lines ::deep .rz-data-grid { flex:0 0 auto !important; }
+.shipment-order-lines ::deep .rz-data-grid-data { height:auto !important; min-height:0; container-type:normal !important; }
+.shipment-order-lines ::deep .rz-data-grid-data tbody > tr > td { height:auto !important; padding:7px 10px !important; }

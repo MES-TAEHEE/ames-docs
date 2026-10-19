@@ -74,6 +74,7 @@ public static class FgEndpoints
         var master = new MasterDataRepository(factory);
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
         g.MapAdjustmentLocation(factory, finishedGoods: true);
+        g.MapPalletReturns(factory);
 
         if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {
@@ -201,6 +202,7 @@ public static class FgEndpoints
                 WHERE UPPER(ISNULL(L.Status, '')) = 'CONFIRMED'
                   AND UPPER(ISNULL(I.ItemType, '')) = 'ASSY'
                   AND COALESCE(PR.GoodQty, 0) > 0
+                  AND NOT EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction T WHERE T.LotNo=L.LotCode AND T.SourceType IN('FG_DEFECT','INV_DEFECT') AND T.QtyAfter=0)
                   AND NOT EXISTS
                 (
                     SELECT 1

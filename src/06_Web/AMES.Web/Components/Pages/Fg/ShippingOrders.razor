@@ -45,15 +45,7 @@ else
     @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
     <RadzenDataGrid TItem="ShippingOrderDto" Data="_orders" AllowPaging="true" PageSize="25" AllowSorting="true" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed">
         <Template Context="order">
-            <div class="shipping-order-items"><RadzenDataGrid TItem="ShippingOrderLineDto" Data="order.Lines" AllowPaging="false" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid shipping-order-items-grid">
-                <Columns>
-                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" />
-                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="PART NO" />
-                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartName" Title="PART NAME" />
-                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="QTY"><Template Context="line">@UomFmt.QtyUnit(line.Qty,line.Unit)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="EST. PALLETS"><Template Context="line">@(FinishedGoodsRepository.EstimateShippingPallets(line.Qty,line.PalletQty,line.ToteFlag)?.ToString("N0")??"Not determined")</Template></RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid></div>
+            <ShipmentOrderLines Lines="order.Lines" />
         </Template>
         <Columns>
             <RadzenDataGridColumn TItem="ShippingOrderDto" Title="" Width="45px" Sortable="false"><Template Context="r"><RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.OrderId)" Change="@(v=>Select(r.OrderId,v))" Disabled="@(r.DeliveryId is not null || r.Status!="Open" || !_canEdit)" /></Template></RadzenDataGridColumn>
@@ -61,7 +53,7 @@ else
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="CustomerId" Title="CUSTOMER" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Title="PART / QTY"><Template Context="r">
-                @r.Lines.Count <span class="dim">parts · @UomFmt.Qty(r.Lines.Sum(x=>x.Qty),null)</span>
+                @r.Lines.Select(x=>x.PartNo).Distinct().Count() <span class="dim">parts · @string.Join(" · ",r.Lines.GroupBy(x=>x.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(x=>x.Qty),g.Key)))</span>
             </Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="Status" Title="STATUS" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="DeliveryNo" Title="DCR / TRAILER"><Template Context="r">
@@ -72,6 +64,27 @@ else
         </Columns>
     </RadzenDataGrid>
 </section>
+}
+@if(_createdNumbers.Count>0)
+{
+    <div class="ames-modal-bg" data-no-busy @onclick="CloseCreated"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="Shipment orders created" @onclick:stopPropagation>
+        <div class="ames-modal-h">SHIPMENT ORDERS CREATED · @_createdNumbers.Count</div>
+        <div class="created-order-list">
+            <p>@string.Join(", ",_createdNumbers) · @_createdShipDate.ToString(DateFmt.Date)</p>
+            @if(!string.IsNullOrEmpty(_createdError)){<RadzenAlert AlertStyle="AlertStyle.Warning">@_createdError</RadzenAlert>}
+            @foreach(var order in _createdOrders)
+            {
+                <section class="ames-card">
+                    <div class="ames-card-h">@order.OrderNo · @order.CustomerId · @order.ShipDate.ToString(DateFmt.Date)</div>
+                    <ShipmentOrderLines Lines="order.Lines" />
+                </section>
+            }
+        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            @if(_canPlan){<RadzenButton Text="Open Shipment Plan" Icon="local_shipping" Click="OpenCreatedPlan" Size="ButtonSize.Small" class="ames-rz-btn" />}
+            <RadzenButton Text="Close" Icon="close" Click="CloseCreated" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
+    </div></div>
 }
 @if(_deliveryModal)
 {
@@ -108,20 +121,41 @@ else
 }
 @code {
     List<ShippingOrderDto> _orders=[],_printOrders=[];HashSet<int> _selected=[];
+    List<ShippingOrderDto> _createdOrders=[];
+    List<string> _createdNumbers=[];
+    DateTime _createdShipDate;
+    string _createdError="";
     ShippingDeliveryDto? _printDelivery;
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
     DateTime? _from=DbClock.Today,_to=DbClock.Today.AddDays(6);
-    bool _canEdit,_creating=true,_deliveryModal,_busy,_allowed;
+    bool _canEdit,_canPlan,_creating=true,_deliveryModal,_busy,_allowed;
     string _actor="",_message="",_trailer="",_deliveryError="";
     protected override async Task OnInitializedAsync()
     {
         await PermSvc.EnsureAsync(AuthPrvd);_allowed=PermSvc.CanOpen("fg/shipping-orders");
         if(!_allowed){Nav.NavigateTo("/unauthorized");return;}
-        _canEdit=PermSvc.CanEdit("fg/shipping-orders");_creating=_canEdit;_actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);await Reload();
+        _canEdit=PermSvc.CanEdit("fg/shipping-orders");_canPlan=PermSvc.CanOpen("fg/shipment-plan");_creating=_canEdit;_actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);await Reload();
     }
     async Task Reload(){if(!_allowed)return;if(_from>_to){_message="Select a valid date range.";return;}try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();}catch(Exception ex){_message=ex.Message;}}
     void Select(int id,bool value){if(value)_selected.Add(id);else _selected.Remove(id);}
-    async Task Created(List<string> orders){_creating=false;_message=$"Created: {string.Join(", ",orders)}";await Reload();}
+    async Task Created(ShipmentOrderCreate.CreatedOrders result)
+    {
+        _createdNumbers=result.Numbers;_createdShipDate=result.ShipDate;_createdOrders=[];_createdError="";
+        try
+        {
+            var saved=await Task.Run(()=>Fg.ListShippingOrders(result.ShipDate,result.ShipDate));
+            _createdOrders=saved.Where(o=>result.Numbers.Contains(o.OrderNo)).ToList();
+            if(_createdOrders.Count!=result.Numbers.Count)_createdError="Orders were saved, but some details could not be loaded. Open Shipment Plan to refresh them. Do not create them again.";
+        }
+        catch{_createdError="Orders were saved. Details could not be loaded; open Shipment Plan and click Refresh. Do not create them again.";}
+        await Reload();
+    }
+    void CloseCreated(){_createdNumbers=[];_createdOrders=[];_createdError="";}
+    void OpenCreatedPlan()
+    {
+        var date=_createdShipDate.ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture);
+        Nav.NavigateTo($"/fg/shipment-plan?from={date}&to={date}");
+    }
     async Task CreateDelivery()
     {
         await PermSvc.EnsureAsync(AuthPrvd);if(!PermSvc.CanEdit("fg/shipping-orders")||_busy)return;_busy=true;_deliveryError="";

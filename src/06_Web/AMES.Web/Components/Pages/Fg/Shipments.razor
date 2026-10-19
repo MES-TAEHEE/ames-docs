@@ -5,22 +5,23 @@
 @using Radzen
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
+@inject ILogger<Shipments> Logger
 @inject FinishedGoodsRepository Fg
 
-<PageTitle>Shipments</PageTitle>
-<AmesPageHeader Code="FG-04" Title="Shipments" />
+<PageTitle>@L["FG.Shipments.Title"]</PageTitle>
+<AmesPageHeader Code="FG-04" TitleKey="FG.Shipments.Title" />
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">Shipments</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">Customers</div><div class="ames-kpi-v">@_rows.Select(x=>x.CustomerId).Distinct().Count()</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">Lots</div><div class="ames-kpi-v">@_rows.Sum(x=>x.ItemCount)</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">Quantity</div><div class="ames-kpi-v">@UomFmt.Qty(_rows.Sum(x=>x.Qty),null)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.Shipments"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["Shipment.Customers"]</div><div class="ames-kpi-v">@_rows.Select(x=>x.CustomerId).Distinct().Count()</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Shipment.Lots"]</div><div class="ames-kpi-v">@_rows.Sum(x=>x.ItemCount)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["Col.Quantity"]</div><div class="ames-kpi-v">@UomFmt.Qty(_rows.Sum(x=>x.Qty),null)</div></div>
 </div>
 @if (!string.IsNullOrWhiteSpace(_message)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert> }
 <section class="ames-card shipments-page">
     <div class="ames-card-h master-list-toolbar">
-        <span>▼ SHIPMENTS · @_rows.Count @L["Lbl.Items"]</span>
+        <span>▼ @L["FG.Shipments.Title"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="Barcode, part or customer" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
+            <RadzenTextBox @bind-Value="_search" Placeholder='@L["Shipment.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <span>–</span>
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
@@ -30,34 +31,34 @@
     </div>
     <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentRow" Data="@_rows" AllowPaging="true" PageSize="25"
                     PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
-                    PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" AllowSorting="true" RowRender="RenderShipment" RowExpand="LoadChildren" Class="ames-rz-grid ames-grid-fixed shipment-list-grid">
+                    PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" AllowSorting="true" RowRender="RenderShipment" RowExpand="LoadChildren" Class="ames-rz-grid ames-grid-fixed shipment-list-grid" EmptyText='@L["FG.Shipments.Empty"]'>
         <Template Context="shipment">
             @if (_children.TryGetValue(shipment.ShipmentId, out var children))
             {
-                <div class="shipment-items" role="region" aria-label="Lots in shipment @shipment.ShipmentId" tabindex="0">
-                    <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentItemRow" Data="children" AllowPaging="false" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid shipment-items-grid">
+                <div class="shipment-items" role="region" aria-label='@L["Shipment.DetailsFmt",shipment.ShipmentId]' tabindex="0">
+                    <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentItemRow" Data="children" AllowPaging="false" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid shipment-items-grid" EmptyText='@L["Grid.Empty"]'>
                         <Columns>
-                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LotNo" Title="LOT NO" />
-                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="PartNo" Title="PART NO" />
-                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="PartName" Title="PART NAME" />
-                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="Qty" Title="QTY" TextAlign="TextAlign.Right"><Template Context="item">@UomFmt.QtyUnit(item.Qty,item.Unit)</Template></RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LocationNo" Title="FROM LOCATION" />
+                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LotNo" Title='@L["Col.LotNo"]' />
+                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="PartNo" Title='@L["Col.PartNo"]' />
+                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="PartName" Title='@L["Col.PartName"]' />
+                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="Qty" Title='@L["Col.Quantity"]' TextAlign="TextAlign.Right"><Template Context="item">@UomFmt.QtyUnit(item.Qty,item.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LocationNo" Title='@L["Shipment.FromLocation"]' />
                         </Columns>
                     </RadzenDataGrid>
                 </div>
             }
         </Template>
         <Columns>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipmentId" Title="SHIPMENT ID" Width="110px" />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedAt" Title="SHIPPED AT" Width="180px"><Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTime)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LotNo" Title="LOT NO" />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="PalletNo" Title="PALLET NO" />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="PartNo" Title="PART"><Template Context="r">@r.PartNo<div class="dim">@r.PartName</div></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="UnitType" Title="UNIT TYPE" Width="100px" />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="CustomerId" Title="CUSTOMER"><Template Context="r">@r.CustomerId<div class="dim">@r.CustomerName</div></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ItemCount" Title="LOTS" Width="80px" />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Qty" Title="QTY" Width="100px"><Template Context="r">@UomFmt.Qty(r.Qty,null)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedBy" Title="SHIPPED BY" Width="130px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipmentId" Title='@L["Shipment.Id"]' Width="110px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedAt" Title='@L["FG.Shipments.Col.ShippedAt"]' Width="180px"><Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTime)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LotNo" Title='@L["Col.LotNo"]' />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="PalletNo" Title='@L["Shipment.PalletNo"]' />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="PartNo" Title='@L["Col.PartNo"]'><Template Context="r">@r.PartNo<div class="dim">@r.PartName</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="UnitType" Title='@L["Shipment.UnitType"]' Width="100px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="CustomerId" Title='@L["Col.Customer"]'><Template Context="r">@r.CustomerId<div class="dim">@r.CustomerName</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ItemCount" Title='@L["Shipment.Lots"]' Width="80px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Qty" Title='@L["Col.Quantity"]' Width="100px"><Template Context="r">@UomFmt.Qty(r.Qty,null)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedBy" Title='@L["Shipment.ShippedBy"]' Width="130px" />
         </Columns>
     </RadzenDataGrid>
 </section>
@@ -68,7 +69,7 @@
     private async Task LoadChildren(FinishedGoodsRepository.ShipmentRow row)
     {
         try { _children[row.ShipmentId]=await Task.Run(()=>Fg.ListShipmentItems(row.ShipmentId)); }
-        catch(Exception ex) { _message=ex.Message; }
+        catch(Exception ex) { Logger.LogError(ex,"Shipment details load failed");_message=L["Shipment.DetailsError"]; }
     }
     private readonly IEnumerable<int> _pageSizeOptions=[25,50,100];
     private int _pageRows=25;
@@ -79,7 +80,7 @@
     {
         if(_from>_to) { _message=L["Err.DateRange"]; return; }
         try { _rows=await Task.Run(()=>Fg.ListShipments(_search,_from,_to)); _children.Clear(); _message=""; }
-        catch(Exception ex) { _rows=[]; _message=ex.Message; }
+        catch(Exception ex) { Logger.LogError(ex,"Shipments load failed");_rows=[]; _message=L["Shipment.LoadError"]; }
     }
     private async Task Clear() { _search=""; _from=DbClock.Today.AddMonths(-6); _to=DbClock.Today; await Reload(); }
 }
