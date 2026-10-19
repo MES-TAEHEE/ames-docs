@@ -7,6 +7,35 @@ namespace AMES.Data.Tests;
 
 public sealed class FinishedGoodsShipmentTests
 {
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("123456789012345678901234567890123456789012345678901")]
+    public void Empty_pallet_return_rejects_missing_or_oversized_barcodes(string barcode)
+        => Assert.Throws<ArgumentException>(() => FinishedGoodsRepository.ValidatePalletReturnBarcode(barcode));
+
+    [Fact]
+    public void Empty_pallet_return_preserves_inventory_and_audits_in_the_same_transaction()
+    {
+        Assert.Equal("P-001", FinishedGoodsRepository.ValidatePalletReturnBarcode(" P-001 "));
+        var source = Read("src/02_Data/AMES.Data/Repositories/FinishedGoodsRepository.PalletReturns.cs");
+        Assert.Contains("Gate(conn, tx)", source);
+        Assert.Contains("before.ShippedAt != request.ExpectedShippedAt", source);
+        Assert.Contains("already been returned", source);
+        Assert.Contains("WHERE Qty>0", source);
+        Assert.Contains("ParentLotNo=P.LotNo", source);
+        Assert.Contains("ShippedFlag=0,ReturnedAt=SYSDATETIME()", source);
+        Assert.Contains("INSERT dbo.SYS_AuditLog", source);
+        Assert.True(source.IndexOf("audit.ExecuteNonQuery()", StringComparison.Ordinal) < source.IndexOf("tx.Commit()", StringComparison.Ordinal));
+        Assert.DoesNotMatch(@"(?i)(?:INSERT|UPDATE|DELETE|MERGE)\s+(?:INTO\s+|FROM\s+)?dbo\.(?:WH_Inventory|WH_InventoryTransaction|FG_CustomerReturn)\b", source);
+        Assert.DoesNotContain("MD_Pallet", PdaFinishedGoodsSql.ReturnReceive);
+        Assert.Contains("ShippedCustomerID=@CustomerID,ReturnedAt=NULL", PdaFinishedGoodsSql.OutboundComplete);
+        var api = Read("src/04_Api/AMES.Api/Endpoints/PalletReturnEndpoints.cs");
+        Assert.Equal(2, Regex.Matches(api, "ctx.GetSession\\(\\)").Count);
+        Assert.Contains("session.OperatorId", api);
+        Assert.Contains("MapPalletReturns(factory)", Read("src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs"));
+    }
+
     private static string Root([System.Runtime.CompilerServices.CallerFilePath] string path="")
         =>Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!,"../../.."));
     private static string Read(string path)=>File.ReadAllText(Path.Combine(Root(),path));

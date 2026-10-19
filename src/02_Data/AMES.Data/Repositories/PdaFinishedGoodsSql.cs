@@ -328,7 +328,7 @@ public static class PdaFinishedGoodsSql
                     VALUES(@Barcode,@UnitType,@PalletNo,@CustomerID,@Now,@OperatorID);
                 SET @ShipmentID=CONVERT(int,SCOPE_IDENTITY());
                 IF @PalletNo IS NOT NULL
-                    UPDATE dbo.MD_Pallet SET ShippedFlag=1,ShippedAt=@Now,ShippedCustomerID=@CustomerID,
+                    UPDATE dbo.MD_Pallet SET ShippedFlag=1,ShippedAt=@Now,ShippedCustomerID=@CustomerID,ReturnedAt=NULL,
                         ModifiedBy=LEFT(@OperatorID,20),ModifiedTS=@Now
                     WHERE PalletNo=@PalletNo;
                 INSERT dbo.WH_InventoryTransaction

@@ -512,6 +512,75 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(2m,boxLine.Quantity);
             Assert.DoesNotContain(repo.ListPortalPackingQuantities("case-user"),p=>p.ItemNo=="PART-BOX");
             Assert.Throws<InvalidOperationException>(()=>repo.CreatePreparedCase("PO-BOX",[new(8,1)],"case-user"));
+            // Regression: original LOT receipt, not adjusted stock, is the PO reversal basis.
+            Sql("""
+                INSERT MD_Item(ItemNo,ItemName,ItemType,DefaultUOM,ActiveFlag) VALUES('PART-LOT','Normal material','MATERIAL','EA',1);
+                INSERT WH_PurchaseOrder(PoID,PoNumber,PoLineNo,ItemNo,UnitCode,ReceivedQty,OrderQty,Status)
+                VALUES(90,'PO-LOT',1,'PART-LOT','EA',0,100,'Open');
+                INSERT tbl_Lot(LotCode,ItemNo,RemainingQty,BatchSize) VALUES('NORMAL-LOT','PART-LOT',30,30);
+                """);
+            void LotCommand(string sql, bool receive=false)
+            {
+                using var c=factory.OpenConnection();
+                using var cmd=new SqlCommand(sql,c);
+                cmd.Parameters.Add("@ReceiveMode",SqlDbType.NVarChar,10).Value="LOCAL";
+                cmd.Parameters.Add("@LotBarcode",SqlDbType.NVarChar,50).Value="NORMAL-LOT";
+                cmd.Parameters.Add("@UserId",SqlDbType.VarChar,20).Value="tester";
+                if(receive)
+                {
+                    cmd.Parameters.Add("@LocationId",SqlDbType.VarChar,50).Value=DBNull.Value;
+                    cmd.Parameters.Add("@SimulateFailure",SqlDbType.Bit).Value=false;
+                }
+                cmd.ExecuteNonQuery();
+            }
+            LotCommand(PdaWarehouseSql.InboundReceive,true);
+            Sql("""
+                UPDATE WH_Inventory SET Qty=25 WHERE LotNo='NORMAL-LOT';
+                INSERT WH_InventoryTransaction(TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter)
+                VALUES('ADJ','PART-LOT','NORMAL-LOT',30,-5,25);
+                """);
+            LotCommand(PdaWarehouseSql.InboundCancel);
+            Assert.Equal(0,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=90"));
+            LotCommand(PdaWarehouseSql.InboundReceive,true);
+            Assert.Equal(30,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=90"));
+            Sql("""
+                UPDATE WH_Inventory SET Qty=29 WHERE LotNo='NORMAL-LOT';
+                INSERT WH_InventoryTransaction(TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter)
+                VALUES('OUT','PART-LOT','NORMAL-LOT',30,-1,29);
+                """);
+            Assert.Throws<SqlException>(()=>LotCommand(PdaWarehouseSql.InboundCancel));
+            Assert.Equal(30,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=90"));
+            Assert.Equal(29,Count("SELECT Qty FROM WH_Inventory WHERE LotNo='NORMAL-LOT'"));
+
+            // Empty pallet recovery changes the asset only, and repeated/stale scans are rejected.
+            Sql("""
+                CREATE TABLE MD_Customer(CustomerID varchar(20) PRIMARY KEY,CustomerName nvarchar(100));
+                CREATE TABLE MD_Pallet(PalletNo varchar(50) PRIMARY KEY,ShippedCustomerID varchar(20),ShippedAt datetime2,
+                    ReturnedAt datetime2,ShippedFlag bit,ActiveFlag bit,ModifiedBy varchar(20),ModifiedTS datetime2);
+                CREATE TABLE SYS_AuditLog(EventTS datetime2,ActorUserID nvarchar(450),ModuleCode varchar(10),ActionType varchar(20),
+                    TargetEntity varchar(40),TargetID varchar(40),BeforeValueJSON nvarchar(max),AfterValueJSON nvarchar(max),
+                    Result varchar(10),Note nvarchar(500),CreatedBy varchar(20),CreatedTS datetime2);
+                INSERT MD_Customer VALUES('C1','Customer One');
+                INSERT MD_Pallet(PalletNo,ShippedCustomerID,ShippedAt,ShippedFlag,ActiveFlag)
+                VALUES('PALLET-RETURN','C1',SYSDATETIME(),1,1);
+                INSERT WH_Inventory(LotNo,UnitType,Qty) VALUES('PALLET-RETURN','PALLET',0);
+                """);
+            var fg=new FinishedGoodsRepository(factory);
+            var pallet=fg.ScanEmptyPalletReturn("PALLET-RETURN");
+            Assert.Throws<InvalidOperationException>(()=>fg.ReceiveEmptyPalletReturn(new(pallet.PalletNo,pallet.ShippedAt.AddDays(-1)),"tester"));
+            Sql("INSERT WH_Inventory(LotNo,UnitType,ParentLotNo,Qty) VALUES('ATTACHED','PART','PALLET-RETURN',1);");
+            Assert.Throws<SqlException>(()=>fg.ReceiveEmptyPalletReturn(new(pallet.PalletNo,pallet.ShippedAt),"tester"));
+            Assert.Equal(1,Count("SELECT ShippedFlag FROM MD_Pallet WHERE PalletNo='PALLET-RETURN'"));
+            // A separately returned product retains its historical PalletNo but is no longer attached.
+            Sql("UPDATE WH_Inventory SET ParentLotNo=NULL,PalletNo='PALLET-RETURN' WHERE LotNo='ATTACHED';");
+            var inventoryBefore=Count("SELECT SUM(Qty) FROM WH_Inventory");
+            var transactionsBefore=Count("SELECT COUNT(*) FROM WH_InventoryTransaction");
+            Assert.NotNull(fg.ReceiveEmptyPalletReturn(new(pallet.PalletNo,pallet.ShippedAt),"tester").ReturnedAt);
+            Assert.Equal(0,Count("SELECT ShippedFlag FROM MD_Pallet WHERE PalletNo='PALLET-RETURN'"));
+            Assert.Equal(inventoryBefore,Count("SELECT SUM(Qty) FROM WH_Inventory"));
+            Assert.Equal(transactionsBefore,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
+            Assert.Equal(1,Count("SELECT COUNT(*) FROM SYS_AuditLog WHERE TargetEntity='MD_Pallet'"));
+            Assert.Throws<InvalidOperationException>(()=>fg.ReceiveEmptyPalletReturn(new(pallet.PalletNo,pallet.ShippedAt),"tester"));
             Sql("UPDATE SCM_PortalVendorUser SET LockedFlag=1 WHERE UserID='case-user';");
             Assert.Empty(repo.ListPortalDeliveryDiscrepancies("case-user"));
         }
