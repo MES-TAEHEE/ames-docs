@@ -2429,7 +2429,10 @@ public sealed class MasterDataRepository
             WHERE LineID=@ID;
             UPDATE A SET CodeName=@NameEn,CodeNameEn=@NameEn,ModifiedBy=@By,ModifiedTS=SYSDATETIME()
             FROM dbo.MD_CodeItem A JOIN dbo.MD_Line L ON L.LotPrefix=A.CodeValue
-            WHERE L.LineID=@ID AND A.GroupCode='WH_AREA' AND A.ParentCodeID='WH_CODE_LINE' AND NULLIF(@NameEn,'') IS NOT NULL;
+            WHERE L.LineID=@ID AND A.GroupCode='WH_AREA' AND A.ParentCodeID=(
+                SELECT CodeID FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue='EOS') AND NULLIF(@NameEn,'') IS NOT NULL;
+            UPDATE dbo.MD_Location SET LocationName=@NameEn,ModifiedBy=@By,ModifiedTS=SYSDATETIME()
+            WHERE LineID=@ID AND NULLIF(LTRIM(RTRIM(@NameEn)),'') IS NOT NULL AND COALESCE(LocationName,'')<>@NameEn;
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;

@@ -6,6 +6,41 @@ namespace AMES.Data.Tests;
 
 public sealed class ShippingOrderRulesTests
 {
+    [Fact]
+    public void Production_line_locations_belong_to_EOS_without_changing_barcodes_or_stock()
+    {
+        var root=Path.GetFullPath(Path.Combine(Path.GetDirectoryName(SourcePath())!,"../../.."));
+        var source=File.ReadAllText(Path.Combine(root,"src/02_Data/AMES.Data/Repositories/WarehouseRepository.LineLocations.cs"));
+        Assert.Contains("CodeValue='EOS'",source);
+        Assert.Contains("VALUES(@Id,@Name,'EOS',@Prefix",source);
+        Assert.Contains("SET WhCode='EOS',LocationName=@Name,PartNo=@Part",source);
+        Assert.DoesNotContain("WH_CODE_LINE",source);
+        var defaults=File.ReadAllText(Path.Combine(root,"dist/migrate_shipping_ui_line_defaults.sql"));
+        Assert.Contains("'EOS',M.Prefix,'A1','01','F1','LINE'",defaults);
+        Assert.DoesNotContain("VALUES('WH_CODE_LINE'",defaults);
+        var migration=File.ReadAllText(Path.Combine(root,"dist/migrate_line_locations_eos.sql"));
+        Assert.Contains("SET ParentCodeID=@WarehouseID",migration);
+        Assert.Contains("SET WhCode='EOS'",migration);
+        Assert.Contains("SET UseFlag=0",migration);
+        Assert.DoesNotContain("UPDATE dbo.WH_Inventory",migration);
+        Assert.DoesNotContain("SET LocationID",migration);
+        Assert.DoesNotContain("DELETE",migration,StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Location_name_contains_the_line_name_without_a_separate_line_column()
+    {
+        var root=Path.GetFullPath(Path.Combine(Path.GetDirectoryName(SourcePath())!,"../../.."));
+        var page=File.ReadAllText(Path.Combine(root,"src/06_Web/AMES.Web/Components/Pages/Md/Fd/Location.razor"));
+        Assert.Contains("Property=\"LocationName\" Title=\"@L[\"Col.Name\"]\"",page);
+        Assert.DoesNotContain("Property=\"LineName\"",page);
+        var repository=File.ReadAllText(Path.Combine(root,"src/02_Data/AMES.Data/Repositories/MasterDataRepository.cs"));
+        Assert.Contains("UPDATE dbo.MD_Location SET LocationName=@NameEn",repository);
+        var migration=File.ReadAllText(Path.Combine(root,"dist/migrate_line_locations_eos.sql"));
+        Assert.Contains("UPDATE L SET LocationName=M.LineNameEn",migration);
+        Assert.DoesNotContain("SET LocationID",migration);
+    }
+
     [Theory]
     [InlineData(0,100,false,0)]
     [InlineData(100,100,false,1)]
