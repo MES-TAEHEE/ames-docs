@@ -17,33 +17,9 @@
     <div class="ames-kpi"><div class="ames-kpi-l">Line locations</div><div class="ames-kpi-v">@_stock.Select(x=>x.LineCode).Distinct().Count()</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">Below minimum</div><div class="ames-kpi-v">@_stock.Count(x=>x.RequiredQty>0)</div></div>
 </div>
-<RadzenSelectBar TValue="bool" @bind-Value="_showStock" Size="ButtonSize.Small" Style="margin-bottom:12px">
-    <Items><RadzenSelectBarItem Text="Picking Orders" Value="@(false)" /><RadzenSelectBarItem Text="Line Stock" Value="@(true)" /></Items>
-</RadzenSelectBar>
-
 @if (_error.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert> }
-@if(_showStock)
-{
-    <section class="ames-card wh-pick-list">
-        <div class="ames-card-h master-list-toolbar">
-            <span>LINE STOCK · SAFETY STOCK</span>
-            <RadzenButton Text="Refresh" Icon="refresh" Click="Load" Size="ButtonSize.Small" class="ames-rz-btn" />
-        </div>
-        <RadzenDataGrid TItem="LineStockRow" Data="_stock" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_stockPageRows=s)" Style="@($"--ames-page-rows:{_stockPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
-            <Columns>
-                <RadzenDataGridColumn TItem="LineStockRow" Property="LineCode" Title="LINE" Width="80px" />
-                <RadzenDataGridColumn TItem="LineStockRow" Property="PartNo" Title="PART NO" Width="170px" />
-                <RadzenDataGridColumn TItem="LineStockRow" Property="PartName" Title="PART NAME" />
-                <RadzenDataGridColumn TItem="LineStockRow" Property="Qty" Title="LINE QTY (EA)" Width="125px"><Template Context="r">@UomFmt.Qty(r.Qty, "EA")</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="LineStockRow" Property="SafetyStock" Title="SAFETY (EA)" Width="120px"><Template Context="r">@UomFmt.Qty(r.SafetyStock, "EA")</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="LineStockRow" Property="RequiredQty" Title="REQUIRED (EA)" Width="130px"><Template Context="r">@UomFmt.Qty(r.RequiredQty, "EA")</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="LineStockRow" Property="State" Title="STATUS" Width="210px" />
-            </Columns>
-        </RadzenDataGrid>
-    </section>
-}
-else
-{
+<AmesTabs>
+    <AmesTab Title="Picking Orders">
     <section class="ames-card wh-pick-list">
         <div class="ames-card-h master-list-toolbar">
             <span>PICKING ORDERS</span>
@@ -69,7 +45,27 @@ else
             </Columns>
         </RadzenDataGrid>
     </section>
-}
+    </AmesTab>
+    <AmesTab Title="Line Stock">
+        <section class="ames-card wh-pick-list">
+            <div class="ames-card-h master-list-toolbar">
+                <span>LINE STOCK · SAFETY STOCK</span>
+                <RadzenButton Text="Refresh" Icon="refresh" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </div>
+            <RadzenDataGrid TItem="LineStockRow" Data="_stock" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_stockPageRows=s)" Style="@($"--ames-page-rows:{_stockPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
+                <Columns>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="LineCode" Title="LINE" Width="80px" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="PartNo" Title="PART NO" Width="170px" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="PartName" Title="PART NAME" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="Qty" Title="LINE QTY (EA)" Width="125px"><Template Context="r">@UomFmt.Qty(r.Qty, "EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="SafetyStock" Title="SAFETY (EA)" Width="120px"><Template Context="r">@UomFmt.Qty(r.SafetyStock, "EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="RequiredQty" Title="REQUIRED (EA)" Width="130px"><Template Context="r">@UomFmt.Qty(r.RequiredQty, "EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="State" Title="STATUS" Width="210px" />
+                </Columns>
+            </RadzenDataGrid>
+        </section>
+    </AmesTab>
+</AmesTabs>
 
 @if (_selected is not null)
 {
@@ -140,7 +136,6 @@ else
     PickingSlipHeaderRow? _selected;
     string _search = "", _error = "";
     bool _allowed;
-    bool _showStock;
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _stockPageRows=25,_orderPageRows=25;
 
     protected override async Task OnInitializedAsync()

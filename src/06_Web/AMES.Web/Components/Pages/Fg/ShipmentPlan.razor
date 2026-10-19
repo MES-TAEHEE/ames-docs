@@ -14,7 +14,7 @@
 <PageTitle>FG-03 Shipment Plan · AMES</PageTitle>
 <AmesPageHeader Code="FG-03" Title="Shipment Plan" />
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">Shipment orders</div><div class="ames-kpi-v">@_view.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">DCRs</div><div class="ames-kpi-v">@_view.Count</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">Customers</div><div class="ames-kpi-v">@_view.Select(x=>x.CustomerId).Distinct().Count()</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">Estimated pallets</div><div class="ames-kpi-v">@(_draft?.AutoPallets ?? 0)</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">Estimated trailers</div><div class="ames-kpi-v">@(_draft?.Trailers.Count(x=>x.Pallets.Count>0) ?? 0)</div></div>
@@ -22,7 +22,7 @@
 @if (!string.IsNullOrEmpty(_error)) { <RadzenAlert AlertStyle="AlertStyle.Danger" AllowClose="false">@_error</RadzenAlert> }
 <section class="ames-card shipment-plan-orders" data-no-busy>
     <div class="ames-card-h master-list-toolbar">
-        <span>▼ SHIPMENT ORDERS · @_view.Count</span>
+        <span>▼ DCR SHIPMENT PLAN · @_view.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
             <RadzenLabel Text="Ship date" Component="ShipDateFrom" />
             <RadzenDatePicker Name="ShipDateFrom" TValue="DateTime?" @bind-Value="_shipFrom" @bind-Value:after="Load" Disabled="_loading"
@@ -32,33 +32,48 @@
                 NavigationMode="DatePickerNavigationMode.DropDown" DateFormat="@DateFmt.Date" AllowClear="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <RadzenDropDown TValue="string" Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter" Disabled="_loading"
                 AllowClear="true" AllowFiltering="true" Placeholder="All customers" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
-            <RadzenTextBox @bind-Value="_search" @bind-Value:after="Filter" Disabled="_loading" Placeholder="Order / SO / Part" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenTextBox @bind-Value="_search" @bind-Value:after="Filter" Disabled="_loading" Placeholder="DCR/Order/SO/Part" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenButton Text="Refresh" Icon="refresh" Click="Load" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             <RadzenButton Text="Trailer Preview" Icon="local_shipping" Click="OpenTrailerPreview" Disabled="@(_loading || _draft is null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <RadzenDataGrid TItem="ShippingOrderDto" Data="_view" AllowPaging="true" PageSize="25" AllowSorting="true"
+    <RadzenDataGrid TItem="ShipmentPlanRows.Delivery" Data="_view" AllowPaging="true" PageSize="25" AllowSorting="true"
                     PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true"
                     PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]'
                     PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")"
-                    EmptyText="No open shipment orders in this date range. Create a Shipment Order first." class="ames-rz-grid ames-grid-fixed">
-        <Template Context="order"><ShipmentOrderLines Lines="order.Lines" /></Template>
+                    EmptyText="No DCRs in this date range. Select shipment orders and create a DCR first." class="ames-rz-grid ames-grid-fixed">
+        <Template Context="delivery">
+            <div class="shipment-plan-details">
+                @foreach(var order in delivery.Orders)
+                {
+                    <section class="ames-card"><div class="ames-card-h">@order.OrderNo</div><ShipmentOrderLines Lines="order.Lines" /></section>
+                }
+            </div>
+        </Template>
         <Columns>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="ORDER NO" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="CustomerId" Title="CUSTOMER" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="PARTS / SHIP QTY"><Template Context="order">
-                @order.Lines.Select(x=>x.PartNo).Distinct().Count() parts · @OrderQuantity(order)
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Property="DeliveryNo" Title="DCR NO" />
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Property="CustomerId" Title="CUSTOMER" />
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Property="ShipDate" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="ORDERS"><Template Context="delivery">@delivery.Orders.Count</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="PARTS / SHIP QTY"><Template Context="delivery">
+                @delivery.Lines.Select(x=>x.PartNo).Distinct().Count() parts · @DeliveryQuantity(delivery)
             </Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="Status" Title="STATUS" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="DeliveryNo" Title="DCR / TRAILER" />
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Property="Status" Title="STATUS" />
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="PRINT" Width="100px"><Template Context="delivery"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintDelivery(delivery))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </section>
+@if(_printDelivery is not null)
+{
+    <ShippingOrderPrintPreview Orders="_printOrders" Delivery="_printDelivery" Closed="ClosePrint" />
+}
 @code {
     [SupplyParameterFromQuery(Name="from")] public DateTime? From {get;set;}
     [SupplyParameterFromQuery(Name="to")] public DateTime? To {get;set;}
-    List<ShippingOrderDto> _orders=[],_view=[];
+    [SupplyParameterFromQuery(Name="dcr")] public string? Dcr {get;set;}
+    List<ShipmentPlanRows.Delivery> _deliveries=[],_view=[];
+    List<ShippingOrderDto> _printOrders=[];
+    ShippingDeliveryDto? _printDelivery;
     List<string> _customers=[];
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];
     int _pageRows=25;
@@ -84,6 +99,7 @@
         if(!_allowed){Nav.NavigateTo("/unauthorized",replace:true);return;}
         _shipFrom=From?.Date??DbClock.Today;
         _shipTo=To?.Date??DbClock.Today.AddDays(6);
+        _search=Dcr??"";
         await Load();
     }
     async Task Load()
@@ -91,38 +107,44 @@
         if(!_allowed||_loading)return;
         _error="";_draft=null;
         if(_shipFrom is null||_shipTo is null||_shipFrom>_shipTo)
-        { _orders=[];_view=[];_customers=[];_error="Select a valid ship-date range.";return; }
+        { _deliveries=[];_view=[];_customers=[];_error="Select a valid ship-date range.";return; }
         _loading=true;
         var from=_shipFrom;var to=_shipTo;
         try
         {
-            _orders=await Task.Run(()=>Fg.ListShippingOrders(from,to,onlyOpen:true));
-            _customers=_orders.Select(x=>x.CustomerId).Distinct().Order().ToList();
+            _deliveries=ShipmentPlanRows.FromOrders(await Task.Run(()=>Fg.ListShippingOrders(from,to,onlyOpen:true)));
+            _customers=_deliveries.Select(x=>x.CustomerId).Distinct().Order().ToList();
             if(_customer is not null&&!_customers.Contains(_customer))_customer=null;
             Filter();
         }
         catch(Exception ex)
         {
-            Logger.LogError(ex,"Shipment plan orders load failed");
-            _orders=[];_view=[];_customers=[];_draft=null;
-            _error="Unable to load saved shipment orders. Check the connection and click Refresh.";
+            Logger.LogError(ex,"Shipment plan DCRs load failed");
+            _deliveries=[];_view=[];_customers=[];_draft=null;
+            _error="Unable to load saved DCRs. Check the connection and click Refresh.";
         }
         finally{_loading=false;}
     }
     void Filter()
     {
-        _view=_orders.Where(o=>(string.IsNullOrEmpty(_customer)||o.CustomerId==_customer)
-            &&(string.IsNullOrWhiteSpace(_search)||o.OrderNo.Contains(_search,StringComparison.OrdinalIgnoreCase)
+        _view=_deliveries.Where(o=>(string.IsNullOrEmpty(_customer)||o.CustomerId==_customer)
+            &&(string.IsNullOrWhiteSpace(_search)||o.DeliveryNo.Contains(_search,StringComparison.OrdinalIgnoreCase)
                 ||o.CustomerId.Contains(_search,StringComparison.OrdinalIgnoreCase)
-                ||(o.DeliveryNo?.Contains(_search,StringComparison.OrdinalIgnoreCase)??false)
+                ||o.Orders.Any(order=>order.OrderNo.Contains(_search,StringComparison.OrdinalIgnoreCase))
                 ||o.Lines.Any(l=>l.PartNo.Contains(_search,StringComparison.OrdinalIgnoreCase)
                     ||(l.PartName?.Contains(_search,StringComparison.OrdinalIgnoreCase)??false)
                     ||l.SoNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)))).ToList();
         _draft=null;_error="";
         if(_view.Count==0)return;
         var draft=new TrailerLoadDraft();
-        if(draft.Build(TrailerLoadDraft.FromOrders(_view),out _error))_draft=draft;
+        if(draft.Build(TrailerLoadDraft.FromOrders(_view.SelectMany(d=>d.Orders)),out _error))_draft=draft;
     }
-    string OrderQuantity(ShippingOrderDto order)=>string.Join(" · ",order.Lines.GroupBy(l=>l.Unit)
+    string DeliveryQuantity(ShipmentPlanRows.Delivery delivery)=>string.Join(" · ",delivery.Lines.GroupBy(l=>l.Unit)
         .Select(g=>UomFmt.QtyUnit(g.Sum(l=>l.Qty),g.Key)));
+    async Task PrintDelivery(ShipmentPlanRows.Delivery delivery)
+    {
+        try{_printOrders=delivery.Orders;_printDelivery=await Task.Run(()=>Fg.GetShippingDelivery(delivery.DeliveryNo));}
+        catch(Exception ex){Logger.LogError(ex,"DCR print load failed");_error="Unable to load the selected DCR for printing. Refresh and retry.";}
+    }
+    void ClosePrint(){_printDelivery=null;_printOrders=[];}
 }

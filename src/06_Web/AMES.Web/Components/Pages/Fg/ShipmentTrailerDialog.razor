@@ -22,7 +22,7 @@
             <div class="estimate-totals"><span>Auto <b>@Plan.AutoPallets</b> pallets</span><span>TOTE manual <b>@Plan.ManualPallets</b> pallets</span>
                 <span class="@(Plan.IsPartial ? "unestimated" : "")">Not determined <b>@Plan.Unestimated.Select(x => x.Source.ItemNo).Distinct().Count()</b> parts / @QuantityTotal(Plan.Unestimated)
                     <RadzenButton Icon="info" title="@PendingHelp" aria-label="How to determine packing quantities" Click="ShowPendingHelp" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></span></div>
-            <p class="preview-help">18 pallets / trailer · Uses the saved shipment-order ship date. The period total is the sum of separate customer/date loads.</p>
+            <p class="preview-help">18 pallets / trailer · Uses saved DCR contents and ship dates. Different DCRs are estimated separately.</p>
             <p class="preview-help">Drag a pallet to another trailer, or select it and use Move here. Display only; changes are not saved.</p>
     @if (Plan.IsPartial)
     {
@@ -32,7 +32,7 @@
     {
         <section class="estimate-section">
             <h3>TOTE · MANUAL PALLETS</h3>
-            <p>Enter pallets for the combined customer/date group. Quantity or filter changes reset estimates; editing counts rebuilds placement.</p>
+            <p>Enter pallets for each DCR/customer/date group. Quantity or filter changes reset estimates; editing counts rebuilds placement.</p>
             <div class="estimate-table-wrap">
             <RadzenDataGrid TItem="TrailerLoadDraft.ToteGroup" Data="Plan.ToteGroups" AllowPaging="false" AllowSorting="true" class="ames-rz-grid">
                 <Template Context="group"><RadzenDataGrid TItem="TrailerLoadDraft.Line" Data="group.Lines" AllowPaging="false" Density="Density.Compact" class="ames-rz-grid"><Columns>
@@ -41,6 +41,7 @@
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="QTY"><Template Context="line">@UomFmt.QtyUnit(line.Quantity,line.Unit)</Template></RadzenDataGridColumn>
                 </Columns></RadzenDataGrid></Template>
                 <Columns>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="DeliveryNo" Title="DCR" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="Customer" Title="CUSTOMER" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="Date" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="PARTS"><Template Context="group">@group.Lines.Select(x=>x.Source.ItemNo).Distinct().Count()</Template></RadzenDataGridColumn>
@@ -84,6 +85,7 @@
             <section @key="trailer.Number" class="trailer-card @(_selected.HasValue ? "drop-ready" : "")"
                      @ondragover:preventDefault @ondrop="() => Move(trailer.Number)">
                 <header><div><strong>TRAILER @trailer.Number.ToString("00")</strong>
+                    <span>@trailer.DeliveryNo</span>
                     <span>@trailer.Customer</span></div>
                     <b>@trailer.Pallets.Count / 18</b></header>
                 <div class="trailer-meter"><i style="width:@(trailer.Pallets.Count * 100 / 18)%"></i></div>

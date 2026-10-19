@@ -12,17 +12,18 @@ public sealed class TrailerLoadDraft
         .SelectMany(o => o.Lines.Select(l => new Line(
             new PpRepository.SoRow(l.OrderLineId, $"{o.OrderNo} / {l.SoNumber}", null, o.CustomerId,
                 l.PartNo, l.PartName, l.Qty, 0, null, l.RequestedDate, null, "Open", null, null, true),
-            l.PalletQty, l.ToteFlag, o.ShipDate, l.Unit))).ToList();
+            l.PalletQty, l.ToteFlag, o.ShipDate, l.Unit, o.DeliveryNo))).ToList();
     public static bool IsInShipDateRange(Line line, DateTime? from, DateTime? to) =>
         from.HasValue && to.HasValue && from.Value.Date <= to.Value.Date
         && line.ShipDate is DateTime ship && ship >= from.Value.Date && ship <= to.Value.Date;
     public static bool IsShipmentCandidate(PpRepository.SoRow row) =>
         row.OrderQty > row.ShippedQty
         && !string.Equals(row.Status?.Trim(), "Shipped", StringComparison.OrdinalIgnoreCase);
-    public sealed class Line(PpRepository.SoRow source, int? palletQty, bool toteFlag = false, DateTime? shipDate = null, string? unit = "EA")
+    public sealed class Line(PpRepository.SoRow source, int? palletQty, bool toteFlag = false, DateTime? shipDate = null, string? unit = "EA", string? deliveryNo = null)
     {
         public PpRepository.SoRow Source { get; } = source;
         public string? Unit { get; } = unit;
+        public string DeliveryNo { get; } = deliveryNo ?? "";
         public decimal Balance => Math.Max(0, Source.OrderQty - Source.ShippedQty);
         public decimal Quantity { get; private set; } = decimal.Floor(Math.Max(0, source.OrderQty - source.ShippedQty));
         public string QuantityText { get; private set; } = decimal.Floor(Math.Max(0, source.OrderQty - source.ShippedQty)).ToString("0", System.Globalization.CultureInfo.InvariantCulture);
@@ -49,21 +50,23 @@ public sealed class TrailerLoadDraft
         }
     }
 
-    public sealed class ToteGroup(string customer, DateTime date, List<Line> lines)
+    public sealed class ToteGroup(string customer, DateTime date, List<Line> lines, string deliveryNo = "")
     {
         public string Customer { get; } = customer;
         public DateTime Date { get; } = date;
+        public string DeliveryNo { get; } = deliveryNo;
         public List<Line> Lines { get; } = lines;
         public string CountText { get; internal set; } = "";
         public int? PalletCount { get; internal set; }
         public string Error { get; internal set; } = "";
     }
     public sealed record Pallet(int Id, Line? Line, int Sequence, decimal Quantity, ToteGroup? Tote = null);
-    public sealed class Trailer(int number, string customer, DateTime date)
+    public sealed class Trailer(int number, string customer, DateTime date, string deliveryNo = "")
     {
         public int Number { get; } = number;
         public string Customer { get; } = customer;
         public DateTime Date { get; } = date;
+        public string DeliveryNo { get; } = deliveryNo;
         public List<Pallet> Pallets { get; } = [];
     }
     public List<Trailer> Trailers { get; } = [];
@@ -91,9 +94,9 @@ public sealed class TrailerLoadDraft
         _lines = lines;
         ToteGroups.Clear();
         ToteGroups.AddRange(lines.Where(x => x.IsTote)
-            .GroupBy(x => (Customer: x.Source.CustomerId!, Date: x.ShipDate!.Value))
-            .OrderBy(x => x.Key.Date).ThenBy(x => x.Key.Customer)
-            .Select(x => new ToteGroup(x.Key.Customer, x.Key.Date, x.ToList())));
+            .GroupBy(x => (Customer: x.Source.CustomerId!, Date: x.ShipDate!.Value, x.DeliveryNo))
+            .OrderBy(x => x.Key.Date).ThenBy(x => x.Key.Customer).ThenBy(x => x.Key.DeliveryNo)
+            .Select(x => new ToteGroup(x.Key.Customer, x.Key.Date, x.ToList(), x.Key.DeliveryNo)));
         Arrange();
         return true;
     }
@@ -123,15 +126,15 @@ public sealed class TrailerLoadDraft
         Unestimated.AddRange(ToteGroups.Where(x => x.PalletCount is null).SelectMany(x => x.Lines));
         Trailers.Clear();
         var id = 0;
-        foreach (var group in _lines.GroupBy(x => (Customer: x.Source.CustomerId!, Date: x.ShipDate!.Value))
-                     .OrderBy(x => x.Key.Date).ThenBy(x => x.Key.Customer))
+        foreach (var group in _lines.GroupBy(x => (Customer: x.Source.CustomerId!, Date: x.ShipDate!.Value, x.DeliveryNo))
+                     .OrderBy(x => x.Key.Date).ThenBy(x => x.Key.Customer).ThenBy(x => x.Key.DeliveryNo))
         {
             Trailer? trailer = null;
             void Add(Pallet pallet)
             {
                 if (trailer is null || trailer.Pallets.Count == Capacity)
                 {
-                    trailer = new Trailer(Trailers.Count + 1, group.Key.Customer, group.Key.Date);
+                    trailer = new Trailer(Trailers.Count + 1, group.Key.Customer, group.Key.Date, group.Key.DeliveryNo);
                     Trailers.Add(trailer);
                 }
                 trailer.Pallets.Add(pallet);
@@ -142,7 +145,7 @@ public sealed class TrailerLoadDraft
                 for (var i = 0; i < (int)line.PalletCount!.Value; i++)
                     Add(new Pallet(++id, line, i + 1, Math.Min(perPallet, line.Quantity - i * perPallet)));
             }
-            var tote = ToteGroups.FirstOrDefault(x => x.Customer == group.Key.Customer && x.Date == group.Key.Date);
+            var tote = ToteGroups.FirstOrDefault(x => x.Customer == group.Key.Customer && x.Date == group.Key.Date && x.DeliveryNo == group.Key.DeliveryNo);
             if (tote?.PalletCount is int count)
             {
                 // Manual slots have no invented per-pallet part/EA allocation; the group retains its source lines.
@@ -152,7 +155,7 @@ public sealed class TrailerLoadDraft
     }
 
     public void AddTrailer(Trailer sameRoute) =>
-        Trailers.Add(new Trailer(Trailers.Count + 1, sameRoute.Customer, sameRoute.Date));
+        Trailers.Add(new Trailer(Trailers.Count + 1, sameRoute.Customer, sameRoute.Date, sameRoute.DeliveryNo));
 
     public bool Move(int palletId, int targetNumber, out string error)
     {
@@ -161,8 +164,8 @@ public sealed class TrailerLoadDraft
         var target = Trailers.FirstOrDefault(x => x.Number == targetNumber);
         if (source is null || target is null) error = "Select a pallet and a destination trailer.";
         else if (source == target) return true;
-        else if (source.Customer != target.Customer || source.Date != target.Date)
-            error = "Move pallets only between trailers with the same customer and shipment date.";
+        else if (source.Customer != target.Customer || source.Date != target.Date || source.DeliveryNo != target.DeliveryNo)
+            error = "Move pallets only between trailers for the same DCR, customer and shipment date.";
         else if (target.Pallets.Count >= Capacity) error = "A trailer can hold at most 18 pallets.";
         if (error.Length > 0) return false;
         var pallet = source!.Pallets.Single(x => x.Id == palletId);

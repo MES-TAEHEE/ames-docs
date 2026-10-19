@@ -1,1 +1,2 @@
 .shipment-plan-orders ::deep .rz-expanded-row-content > td { height:auto !important; background:transparent !important; padding:0 !important; }
+.shipment-plan-details { max-height:320px; overflow:auto; }

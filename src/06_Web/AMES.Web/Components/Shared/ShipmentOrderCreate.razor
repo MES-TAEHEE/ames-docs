@@ -44,11 +44,14 @@
 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="ames-modal-footer">
     @if(UnestimatedParts>0){<span class="dim">@UnestimatedParts without a pallet estimate</span>}
     <RadzenButton Text="Create Shipment Order" Icon="save" Click="Create" Disabled="@(_busy || !_quantities.Any(x=>x.Value>0))" Size="ButtonSize.Small" class="ames-rz-btn" />
+    <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" Click="@(()=>Closed.InvokeAsync())" Disabled="_busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
 </RadzenStack>
 </section>
 @code {
     public sealed record CreatedOrders(DateTime ShipDate,List<string> Numbers);
     [Parameter]public EventCallback<CreatedOrders> Saved{get;set;}
+    [Parameter]public EventCallback Closed{get;set;}
+    [Parameter]public EventCallback<bool> BusyChanged{get;set;}
     List<PpRepository.SoRow> _rows=[];Dictionary<int,decimal> _quantities=[],_reserved=[];
     Dictionary<string,MasterDataRepository.ItemRow> _packing=[];
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
@@ -79,7 +82,7 @@
         await PermSvc.EnsureAsync(AuthPrvd);if(!PermSvc.CanEdit("fg/shipping-orders")||_busy)return;
         if(_shipDate is null){_error="Select a ship date.";return;}
         if(_rows.Any(r=>_quantities.GetValueOrDefault(r.SoId)>Remaining(r) || _quantities.GetValueOrDefault(r.SoId)<0 || _quantities.GetValueOrDefault(r.SoId)!=decimal.Truncate(_quantities.GetValueOrDefault(r.SoId)))){_error="Enter whole shipment quantities within the remaining SO balance.";return;}
-        _busy=true;_error="";
+        _busy=true;_error="";await BusyChanged.InvokeAsync(true);
         try
         {
             var actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);
@@ -90,6 +93,6 @@
             await Saved.InvokeAsync(new(shipDate,nos));
             await Load();
         }
-        catch(Exception ex){_error=ex.Message;}finally{_busy=false;}
+        catch(Exception ex){_error=ex.Message;}finally{_busy=false;await BusyChanged.InvokeAsync(false);}
     }
 }
