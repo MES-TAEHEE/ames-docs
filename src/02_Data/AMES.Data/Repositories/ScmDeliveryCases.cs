@@ -424,7 +424,11 @@ public sealed partial class ScmRepository
         foreach(var barcode in boxes)
         {
             using var receive=new SqlCommand(PdaWarehouseSql.InboundReceive,c,tx){CommandTimeout=60};
-            Add(receive,("@ReceiveMode", "WH_PDA_INBOUND_RECEIVE_LOT.@ReceiveMode",mode),("@LotBarcode", "WH_PDA_INBOUND_RECEIVE_LOT.@LotBarcode",barcode),("@LocationId", "WH_PDA_INBOUND_RECEIVE_LOT.@LocationId",""),("@UserId", "WH_PDA_INBOUND_RECEIVE_LOT.@UserId",actor),("@SimulateFailure", "WH_PDA_INBOUND_RECEIVE_LOT.@SimulateFailure",false));
+            receive.Parameters.Add("@ReceiveMode",SqlDbType.VarChar,20).Value=mode;
+            receive.Parameters.Add("@LotBarcode",SqlDbType.NVarChar,80).Value=barcode;
+            receive.Parameters.Add("@LocationId",SqlDbType.VarChar,20).Value="";
+            receive.Parameters.Add("@UserId",SqlDbType.VarChar,20).Value=actor;
+            receive.Parameters.Add("@SimulateFailure",SqlDbType.Bit).Value=false;
             receive.ExecuteNonQuery();LinkReceivedCase(c,tx,barcode);
         }
         tx.Commit();return boxes.Count;
