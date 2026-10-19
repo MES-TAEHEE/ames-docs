@@ -195,6 +195,7 @@ builder.Services.AddSingleton<AMES.Web.Services.AppSecurityState>();
 builder.Services.AddScoped<IPasswordValidator<ApplicationUser>, AMES.Web.Services.ConfigPasswordValidator>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<WarehouseInboundTestState>();
 builder.Services.AddScoped<ScmPreviewStore>();
 builder.Services.AddScoped<AuditLogger>();   // MD·SYS 변경 감사 이력
 builder.Services.AddScoped<AMES.Web.Services.WebSignIn>();   // 내부·외부 로그인 공용

@@ -24,7 +24,7 @@
         .Select(g => new { g.Key.Item, g.Key.Name, g.Key.Unit, Boxes = g.Count(), Qty = g.Sum(b => b.Quantity) }).Chunk(14))
     {
         <section class="case-label">
-            <header><strong>PALLET</strong><span>@_case.VendorName</span></header>
+            <header><strong>SHIPPING UNIT</strong><span>@_case.VendorName</span></header>
             <div class="case-barcode"><Code128Barcode Value="@_case.Number" Height="85" /><strong>@_case.Number</strong></div>
             <div class="case-info">
                 <span>Delivery Note<strong>@(string.IsNullOrEmpty(_case.NoteNumber) ? "—" : _case.NoteNumber)</strong></span>

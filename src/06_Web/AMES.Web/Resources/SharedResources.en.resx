@@ -8116,7 +8116,7 @@
     <value>Shipments</value>
   </data>
   <data name="FG.Shipments.Empty" xml:space="preserve">
-    <value>No loaded or shipped orders found.</value>
+    <value>No shipments found.</value>
   </data>
   <data name="FG.Shipments.Col.ShipOrder" xml:space="preserve">
     <value>Ship Order</value>
@@ -10998,13 +10998,13 @@
     <value>Issue / Print</value>
   </data>
   <data name="SCM.Preview.Print.CaseBarcode" xml:space="preserve">
-    <value>Pallet Barcode</value>
+    <value>Shipping Unit Barcode</value>
   </data>
   <data name="SCM.Preview.Col.CaseNo" xml:space="preserve">
-    <value>Pallet No</value>
+    <value>Shipping Unit No</value>
   </data>
   <data name="SCM.Preview.Print.NoCases" xml:space="preserve">
-    <value>No pallets in this delivery.</value>
+    <value>No shipping units in this delivery.</value>
   </data>
   <data name="SCM.Preview.Print.BoxBarcode" xml:space="preserve">
     <value>Box / Part Barcode</value>
@@ -11040,25 +11040,25 @@
     <value>Reason / Note</value>
   </data>
   <data name="SCM.Preview.Lbl.Case" xml:space="preserve">
-    <value>Pallet</value>
+    <value>Shipping Unit</value>
   </data>
   <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
     <value>{0} boxes</value>
   </data>
   <data name="SCM.Preview.Hint.CaseFixed" xml:space="preserve">
-    <value>Quantities are fixed by the pallet contents.</value>
+    <value>Quantities are fixed by the shipping unit contents.</value>
   </data>
   <data name="SCM.Preview.Hint.ReceiptAfterShip" xml:space="preserve">
     <value>Receipt details become available after shipment.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCases" xml:space="preserve">
-    <value>Unable to load pallets for this Delivery Note.</value>
+    <value>Unable to load shipping units for this Delivery Note.</value>
   </data>
   <data name="SCM.Preview.Err.Receipts" xml:space="preserve">
     <value>Receipt results are unavailable. Refresh to retry.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCaseInfo" xml:space="preserve">
-    <value>Unable to load pallet information. Refresh and retry.</value>
+    <value>Unable to load shipping unit information. Refresh and retry.</value>
   </data>
   <data name="SCM.Preview.Err.LastPrice" xml:space="preserve">
     <value>Unable to load the last price. Review the unit price before saving.</value>
@@ -11124,13 +11124,13 @@
     <value>Barcode</value>
   </data>
   <data name="Portal.CaseLabel.Title" xml:space="preserve">
-    <value>Pallet Label</value>
+    <value>Shipping Unit Label</value>
   </data>
   <data name="Portal.CaseLabel.Err.NotFound" xml:space="preserve">
-    <value>Pallet not found or access denied.</value>
+    <value>Shipping Unit not found or access denied.</value>
   </data>
   <data name="Portal.CaseLabel.Err.Load" xml:space="preserve">
-    <value>Unable to load this pallet label.</value>
+    <value>Unable to load this shipping unit label.</value>
   </data>
   <data name="Portal.Create.Title" xml:space="preserve">
     <value>Delivery Creation</value>
@@ -11142,7 +11142,7 @@
     <value>Print Delivery Note</value>
   </data>
   <data name="Portal.Create.Items" xml:space="preserve">
-    <value>Delivery Items</value>
+    <value>Shipping Units</value>
   </data>
   <data name="Portal.Create.Part" xml:space="preserve">
     <value>Part</value>
@@ -11151,7 +11151,7 @@
     <value>Box</value>
   </data>
   <data name="Portal.Create.AddCase" xml:space="preserve">
-    <value>Add Pallet</value>
+    <value>Add Shipping Unit</value>
   </data>
   <data name="Portal.Create.AddBox" xml:space="preserve">
     <value>Add Box</value>
@@ -11160,10 +11160,10 @@
     <value>Add Part</value>
   </data>
   <data name="Portal.Create.RemoveCase" xml:space="preserve">
-    <value>Remove Pallet</value>
+    <value>Remove Shipping Unit</value>
   </data>
   <data name="Portal.Create.ReviewFmt" xml:space="preserve">
-    <value>Review Delivery Note · {0} pallets · {1} boxes · {2} individual parts</value>
+    <value>Review Delivery Note · {0} shipping units · {1} boxes / parts</value>
   </data>
   <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
     <value>Selected Qty</value>
@@ -11187,7 +11187,7 @@
     <value>Enter the delivery quantity. Individual parts update automatically.</value>
   </data>
   <data name="Portal.Create.Step1Hint.Boxes" xml:space="preserve">
-    <value>Enter the delivery quantity. Boxes update automatically.</value>
+    <value>Enter the delivery quantity. Labels are calculated from Packing Quantities.</value>
   </data>
   <data name="Portal.Create.Col.TotalQty" xml:space="preserve">
     <value>Total Delivery Qty</value>
@@ -11235,13 +11235,13 @@
     <value>Select Parts</value>
   </data>
   <data name="Portal.Create.Step2.Boxes" xml:space="preserve">
-    <value>Select Boxes</value>
+    <value>Select Contents</value>
   </data>
   <data name="Portal.Create.Step2Hint.Parts" xml:space="preserve">
     <value>Check the parts to add to this delivery.</value>
   </data>
   <data name="Portal.Create.Step2Hint.Boxes" xml:space="preserve">
-    <value>Check the boxes to add to this delivery.</value>
+    <value>Check the boxes / parts to include in this Shipping Unit.</value>
   </data>
   <data name="Portal.Create.Step2Empty.Parts" xml:space="preserve">
     <value>Enter a quantity in step 1 to see parts here.</value>
@@ -11465,4 +11465,54 @@
   <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
     <value>The unit cannot change: this component has stock or production records.</value>
   </data>
+  <data name="Shipment.Customers" xml:space="preserve">
+    <value>Customers</value>
+  </data>
+  <data name="Shipment.Lots" xml:space="preserve">
+    <value>Lots</value>
+  </data>
+  <data name="Shipment.Id" xml:space="preserve">
+    <value>Shipment ID</value>
+  </data>
+  <data name="Shipment.FromLocation" xml:space="preserve">
+    <value>From Location</value>
+  </data>
+  <data name="Shipment.ShippedBy" xml:space="preserve">
+    <value>Shipped By</value>
+  </data>
+  <data name="Shipment.PalletNo" xml:space="preserve">
+    <value>Pallet No</value>
+  </data>
+  <data name="Shipment.UnitType" xml:space="preserve">
+    <value>Unit Type</value>
+  </data>
+  <data name="Shipment.Search" xml:space="preserve">
+    <value>Barcode, part or customer</value>
+  </data>
+  <data name="Shipment.DetailsFmt" xml:space="preserve">
+    <value>Lots in shipment {0}</value>
+  </data>
+  <data name="Shipment.LoadError" xml:space="preserve">
+    <value>Unable to load shipments. Please retry.</value>
+  </data>
+  <data name="Shipment.DetailsError" xml:space="preserve">
+    <value>Unable to load shipment details. Please retry.</value>
+  </data>
+  <data name="WH.Inventory.IncludeFinishedGoods" xml:space="preserve"><value>Include finished goods</value></data>
+  <data name="WH.Inventory.DefectAction" xml:space="preserve"><value>Mark Defective</value></data>
+  <data name="WH.Inventory.DefectTitle" xml:space="preserve"><value>Inventory Defect</value></data>
+  <data name="WH.Inventory.DefectSummary" xml:space="preserve"><value>Enter the defective quantity. Only this quantity will be removed from available inventory.</value></data>
+  <data name="WH.Inventory.DefectReason" xml:space="preserve"><value>Defect reason</value></data>
+  <data name="WH.Inventory.DefectNotEligible" xml:space="preserve"><value>Select an individual box or LOT with remaining stock, not a pallet or group.</value></data>
+  <data name="WH.Inventory.DefectConfirm" xml:space="preserve"><value>Mark {1} of LOT {0} as defective?</value></data>
+  <data name="WH.Inventory.DefectDone" xml:space="preserve"><value>The defective quantity was removed from LOT {0}. The remaining stock is still available.</value></data>
+  <data name="WH.Inventory.DefectQty" xml:space="preserve"><value>Defect Qty</value></data>
+  <data name="WH.Inventory.DefectWholeLotSummary" xml:space="preserve"><value>The entire LOT will be marked defective.</value></data>
+  <data name="WH.Inventory.DefectConfirmWholeLot" xml:space="preserve"><value>Mark the entire LOT {0} ({1}) as defective?</value></data>
+  <data name="WH.Inventory.DefectDoneWholeLot" xml:space="preserve"><value>LOT {0} was marked defective in full.</value></data>
+  <data name="WH.Inventory.AvailableQty" xml:space="preserve"><value>Available Qty</value></data>
+  <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>Defect recorded</value></data>
+  <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
+  <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>{0} items</value></data>
+  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>Download the available and defective quantities for the {0} currently filtered items as Excel?</value></data>
 </root>

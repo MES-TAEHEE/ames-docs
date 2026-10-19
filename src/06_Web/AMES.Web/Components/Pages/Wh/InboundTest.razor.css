@@ -1,0 +1,40 @@
+.pda-test-workspace { min-height:0; overflow:auto; }
+.pda-test-preview { display:flex; justify-content:center; padding:18px; }
+.pda-device { width:430px; max-width:100%; height:800px; max-height:calc(100dvh - 230px); min-height:460px; display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--ames-bd-white-a12); border-radius:8px; background:var(--ames-sf-0d1b2e); color:var(--ames-tx-white); font-family:var(--ames-font-mono); }
+.pda-device ::deep .pda-test-topbar { display:flex; align-items:center; gap:12px; flex-shrink:0; padding:16px; border-bottom:1px solid var(--ames-bd-white-a12); background:var(--ames-sf-172238); color:var(--ames-tx-blue-300); letter-spacing:2px; }
+.pda-device ::deep .pda-test-body { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:12px; }
+.pda-test-menu { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.pda-test-menu ::deep .pda-test-menu-tile { width:100%; height:auto; aspect-ratio:1; padding:16px; white-space:normal; border:1px solid var(--ames-tx-blue-400); border-radius:4px; background:var(--ames-sf-172238); color:var(--ames-tx-blue-300); }
+.pda-test-menu ::deep .pda-test-menu-tile.putaway { border-color:var(--ames-tx-green-300); color:var(--ames-tx-green-300); }
+.pda-test-menu ::deep .rz-button-box { display:flex; flex-direction:column; justify-content:center; gap:16px; font-size:16px; font-weight:700; }
+.pda-test-menu ::deep .rzi { font-size:36px; }
+.pda-device ::deep .pda-test-modes { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.pda-device ::deep .pda-test-modes .rz-button { min-height:44px; border:1px solid var(--ames-bd-white-a12); background:var(--ames-sf-172238); color:var(--ames-tx-slate-400); }
+.pda-device ::deep .pda-test-modes .on { border-color:var(--ames-tx-blue-400); color:var(--ames-tx-white); background:color-mix(in srgb,var(--ames-tx-blue-400) 25%,var(--ames-sf-0d1b2e)); }
+.pda-device ::deep .pda-test-panel { flex-shrink:0; margin:0; padding:12px; border:1px solid var(--ames-bd-white-a12); border-radius:8px; background:var(--ames-sf-172238); box-shadow:none; }
+.pda-device ::deep .pda-test-scan { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
+.pda-device ::deep .pda-test-scan .rz-label { grid-column:1/-1; color:var(--ames-tx-blue-300); font-size:11px; font-weight:800; letter-spacing:1px; }
+.pda-device ::deep .pda-test-scan .rz-textbox { width:100%; min-width:0; height:44px; font-size:13px; border-radius:4px; }
+.pda-device ::deep .pda-test-card-head { display:flex; justify-content:space-between; align-items:start; gap:10px; margin-bottom:12px; }
+.pda-device ::deep .pda-test-card-head div { display:grid; gap:5px; min-width:0; }
+.pda-device ::deep .pda-test-card-head strong { font-size:16px; overflow-wrap:anywhere; }
+.pda-device ::deep small { display:block; font-size:10px; color:var(--ames-tx-slate-400); }
+.pda-device ::deep .pda-test-part { display:grid; gap:5px; margin:10px 0; padding:12px 0; border-top:1px solid var(--ames-bd-white-a12); }
+.pda-device ::deep .pda-test-part strong { font-size:19px; color:var(--ames-tx-blue-300); overflow-wrap:anywhere; }
+.pda-device ::deep .pda-test-part span { font-size:12px; color:var(--ames-tx-slate-400); }
+.pda-device ::deep .pda-test-badge { padding:5px 8px; border:1px solid var(--ames-bd-white-a12); font-size:10px; white-space:nowrap; }
+.pda-device ::deep .pda-test-badge.ready { color:var(--ames-tx-green-300); }
+.pda-device ::deep .pda-test-facts { display:grid; grid-template-columns:1fr 1fr; gap:14px 10px; }
+.pda-device ::deep .pda-test-facts strong { display:block; margin-top:5px; font-size:12px; overflow-wrap:anywhere; }
+.pda-device ::deep .pda-test-section-title { margin:14px 0 10px; padding-top:12px; border-top:1px solid var(--ames-bd-white-a12); font-size:11px; color:var(--ames-tx-blue-300); }
+.pda-device ::deep .pda-test-box { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 8px; border:1px solid var(--ames-bd-white-a12); margin-top:6px; font-size:11px; }
+.pda-device ::deep .pda-test-box strong { overflow-wrap:anywhere; }
+.pda-device ::deep .pda-test-box small { margin-top:5px; }
+.pda-device ::deep .pda-test-box > div:first-of-type { flex:1; min-width:0; }
+.pda-device ::deep .pda-test-box > div:last-of-type { text-align:right; }
+.pda-device ::deep .pda-test-box.selected { border-color:var(--ames-tx-green-300); }
+.pda-device ::deep .pda-test-box.stored { color:var(--ames-tx-slate-400); background:var(--ames-sf-0d1b2e); }
+.pda-device ::deep .pda-test-location { border-color:var(--ames-tx-blue-400); }
+.pda-device ::deep .pda-test-status { padding:12px; font-size:12px; color:var(--ames-tx-blue-300); }
+.pda-device ::deep .pda-test-actions { display:flex; gap:8px; padding:12px; flex-shrink:0; border-top:1px solid var(--ames-bd-white-a12); background:var(--ames-sf-172238); }
+.pda-device ::deep .pda-test-actions .rz-button { flex:1; min-height:48px; border-radius:4px; font-size:12px; }

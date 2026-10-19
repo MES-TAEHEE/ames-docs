@@ -173,7 +173,8 @@ public sealed partial class WarehouseRepository
         string WarehouseCode,
         string WarehouseName,
         string AreaCode,
-        string AreaName);
+        string AreaName,
+        decimal DefectQty = 0);
 
     public record LocationAreaLayoutRow(
         string AreaCode,
@@ -302,21 +303,40 @@ public sealed partial class WarehouseRepository
             ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)));
     }
 
-    public List<UnifiedInventoryRow> ListUnifiedInventory(bool finishedGoods)
+    public List<UnifiedInventoryRow> ListUnifiedInventory(bool finishedGoods, bool includeFinishedGoods = false, bool includeDefects = false)
     {
         return Query("""
+            WITH Defects AS (
+                SELECT LotNo, PartNo, ISNULL(LocationNo, '') AS LocationNo, SUM(-QtyChange) AS DefectQty
+                FROM dbo.WH_InventoryTransaction
+                WHERE @IncludeDefects = 1 AND SourceType IN ('INV_DEFECT', 'FG_DEFECT') AND QtyChange < 0
+                GROUP BY LotNo, PartNo, ISNULL(LocationNo, '')
+            ), Inventory AS (
+                SELECT I.LocationNo, I.PartNo, I.PartName, I.LotNo, I.Qty, COALESCE(D.DefectQty, 0) AS DefectQty,
+                    I.ReceivedAt, I.CreatedAt
+                FROM dbo.WH_Inventory I
+                LEFT JOIN Defects D ON D.LotNo = I.LotNo AND D.PartNo = I.PartNo
+                    AND ISNULL(D.LocationNo, '') = ISNULL(I.LocationNo, '')
+                WHERE I.Qty > 0 OR D.DefectQty > 0
+                UNION ALL
+                SELECT D.LocationNo, D.PartNo, NULL, D.LotNo, 0, D.DefectQty, NULL, NULL
+                FROM Defects D
+                WHERE NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory I WHERE I.LotNo = D.LotNo AND I.PartNo = D.PartNo
+                    AND ISNULL(I.LocationNo, '') = ISNULL(D.LocationNo, ''))
+            )
             SELECT
                 I.LocationNo AS LOCATION_NO,
                 I.PartNo AS PART_NO,
                 COALESCE(NULLIF(I.PartName, ''), M.ItemName) AS PART_NAME,
                 I.LotNo AS LOT_NO,
                 I.Qty AS QTY,
+                I.DefectQty AS DEFECT_QTY,
                 COALESCE(NULLIF(M.DefaultUOM, ''), 'EA') AS UOM,
                 COALESCE(NULLIF(L.WhCode, ''), 'EOS') AS WH_CODE,
                 COALESCE(NULLIF(W.CodeName, ''), NULLIF(L.WhCode, ''), 'EOS') AS WH_NAME,
                 COALESCE(L.AreaCode, '') AS AREA_CODE,
                 COALESCE(NULLIF(A.CodeName, ''), L.AreaCode, '') AS AREA_NAME
-            FROM dbo.WH_Inventory I
+            FROM Inventory I
             LEFT JOIN dbo.MD_Location L
                    ON L.LocationID = I.LocationNo
             LEFT JOIN dbo.MD_CodeItem W ON W.GroupCode='WH_CODE' AND W.CodeValue=L.WhCode
@@ -324,9 +344,8 @@ public sealed partial class WarehouseRepository
                   AND (A.ParentCodeID IS NULL OR A.ParentCodeID=W.CodeID)
             LEFT JOIN dbo.MD_Item M
                    ON M.ItemNo = I.PartNo
-            WHERE I.Qty > 0
-              AND I.PartNo IS NOT NULL
-              AND ((@FinishedGoods = 1 AND L.AreaCode = 'FG_AREA')
+            WHERE I.PartNo IS NOT NULL
+              AND (@IncludeFinishedGoods = 1 OR (@FinishedGoods = 1 AND L.AreaCode = 'FG_AREA')
                 OR (@FinishedGoods = 0 AND COALESCE(L.AreaCode, '') <> 'FG_AREA'))
             ORDER BY I.ReceivedAt, I.CreatedAt, I.LotNo;
             """, r => new UnifiedInventoryRow(
@@ -339,8 +358,10 @@ public sealed partial class WarehouseRepository
                 GetString(r, "WH_CODE") ?? "EOS",
                 GetString(r, "WH_NAME") ?? "EOS",
                 GetString(r, "AREA_CODE") ?? "",
-                GetString(r, "AREA_NAME") ?? ""),
-            ("@FinishedGoods", null, finishedGoods));
+                GetString(r, "AREA_NAME") ?? "",
+                GetDecimal(r, "DEFECT_QTY")),
+            ("@FinishedGoods", null, finishedGoods), ("@IncludeFinishedGoods", null, includeFinishedGoods),
+            ("@IncludeDefects", null, includeDefects));
     }
 
     public List<WarehouseMasterRow> ListWarehouses(string? search = null, bool includeInactive = false)

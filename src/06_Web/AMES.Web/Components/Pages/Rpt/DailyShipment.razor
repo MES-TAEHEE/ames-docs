@@ -1,76 +1,105 @@
 @page "/rpt/daily-shipment"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
-@using AMES.Data.Repositories
-@using Radzen
 @attribute [Authorize]
 @inject RptRepository Rpt
 @inject MasterDataRepository MD
 @inject UomFormat UomFmt
 @inject IJSRuntime JS
+@inject ILogger<DailyShipment> Logger
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>RPT-003 @L["RPT.DailyShipment.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="RPT-003" TitleKey="RPT.DailyShipment.Title" />
-<div class="ames-kpi-strip">
-    <div class="ames-kpi"><div class="ames-kpi-label">SHIPMENTS</div><div class="ames-kpi-v">@_rows.Select(r=>r.ShipmentId).Distinct().Count()</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-label">SHIPPED QTY</div><div class="ames-kpi-v">@UomFmt.Qty(_rows.Sum(r=>r.Qty),null)</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-label">CUSTOMERS</div><div class="ames-kpi-v">@_rows.Select(r=>r.CustomerId).Distinct().Count()</div></div>
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.Shipments"]</div><div class="ames-kpi-v">@_rows.Select(r=>r.ShipmentId).Distinct().Count()</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["RPT.DailyShipment.Kpi.ShippedQty"]</div><div class="ames-kpi-v" style="font-size:1.2rem;overflow-wrap:anywhere">@QuantityTotal(_rows)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["Shipment.Customers"]</div><div class="ames-kpi-v">@_rows.Select(r=>r.CustomerId).Distinct().Count()</div></div>
 </div>
-<section class="ames-grid-section">
-    <div class="ames-grid-toolbar">
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="8px" Wrap="FlexWrap.Wrap">
-            <RadzenDatePicker TValue="DateTime" @bind-Value="_date" DateFormat="MM/dd/yyyy" class="ames-rz-input" />
-            <select class="ames-rz-input" @bind="_customer"><option value="">All Customers</option>
-                @foreach(var c in _customers) { <option value="@c.CustomerID">@c.CustomerID · @MasterDataRepository.LocalName(c.CustomerName,c.CustomerNameEn)</option> }
-            </select>
-            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Reload" Disabled="_loading" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="Print" Icon="print" Click="Print" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="Export" Icon="download" Click="Export" Size="ButtonSize.Small" class="ames-rz-btn" />
+@if(_error is not null){<RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_error</RadzenAlert>}
+<section class="ames-card">
+    <div class="ames-card-h master-list-toolbar">
+        <span>▼ @L["RPT.DailyShipment.Detail.Title"] · @_rows.Count @L["Lbl.Items"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenDatePicker TValue="DateTime" @bind-Value="_date" DateFormat="@DateFmt.Date" NavigationMode="DatePickerNavigationMode.DropDown" InputSize="InputSize.Small" class="ames-rz-input" Disabled="@_loading" />
+            <RadzenDropDown TValue="string" @bind-Value="_customer" Data="@CustomerOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            AllowClear="true" Placeholder='@L["Filter.All"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:260px" Disabled="@_loading" />
+            <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Reload" Disabled="@_loading" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+            <RadzenButton Text='@L["RPT.DailyShipment.Btn.Print"]' Icon="print" Click="Print" Disabled="@(_loading||_rows.Count==0)" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text='@L["RPT.DailyShipment.Btn.Export"]' Icon="download" Click="Export" Disabled="@(_loading||_rows.Count==0)" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    @if(_error is not null) { <p class="text-danger">@_error</p> }
-    <RadzenDataGrid TItem="RptRepository.ShipmentDetailRow" Data="_rows" AllowPaging="true" PageSize="25" AllowSorting="true" Class="ames-rz-grid ames-grid-fixed">
+    <RadzenDataGrid TItem="RptRepository.ShipmentDetailRow" Data="@_rows" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions" AllowSorting="true"
+                    PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' EmptyText='@L["RPT.DailyShipment.Empty"]'
+                    PageSizeChanged="s=>_pageRows=s" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShipmentId" Title="SHIPMENT ID" Width="110px" />
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="OutboundBarcode" Title="LOT NO" />
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="CustomerId" Title="CUSTOMER"><Template Context="r">@r.CustomerId<div class="dim">@CustomerName(r.CustomerId)</div></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="PartNo" Title="PART NO / NAME"><Template Context="r">@r.PartNo<div class="dim">@MasterDataRepository.LocalName(r.PartName,r.PartNameEn)</div></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="Qty" Title="SHIPPED QTY"><Template Context="r">@UomFmt.Qty(r.Qty,r.Unit)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="LocationNo" Title="FROM LOCATION" />
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShippedAt" Title="SHIPPED AT"><Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTime)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShippedBy" Title="SHIPPED BY" />
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShipmentId" Title='@L["Shipment.Id"]' Width="110px"><FooterTemplate><strong>@L["RPT.DailyShipment.Total"]</strong></FooterTemplate></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="OutboundBarcode" Title='@L["Col.LotNo"]' />
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="CustomerId" Title='@L["Col.Customer"]'><Template Context="r">@r.CustomerId<div class="dim">@CustomerName(r.CustomerId)</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="PartNo" Title='@L["Col.PartNo"]'><Template Context="r">@r.PartNo<div class="dim">@MasterDataRepository.LocalName(r.PartName,r.PartNameEn)</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="Qty" Title='@L["RPT.DailyShipment.Kpi.ShippedQty"]' TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.QtyUnit(r.Qty,r.Unit)</Template><FooterTemplate>@QuantityTotal(_rows)</FooterTemplate></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="LocationNo" Title='@L["Shipment.FromLocation"]' />
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShippedAt" Title='@L["FG.Shipments.Col.ShippedAt"]'><Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTime)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShippedBy" Title='@L["Shipment.ShippedBy"]' />
         </Columns>
     </RadzenDataGrid>
 </section>
+@if(_rows.Count>0)
+{
+    <section class="ames-card">
+        <div class="ames-card-h">@L["RPT.DailyShipment.ByCustomer.Title"]</div>
+        <RadzenChart Style="height:240px">
+            <RadzenLegend Visible="false" />
+            <RadzenColumnSeries TItem="CustomerTotal" Data="@CustomerTotals" CategoryProperty="Customer" ValueProperty="Shipments" Title='@L["RPT.DailyShipment.Kpi.Shipments"]' />
+        </RadzenChart>
+        <RadzenDataGrid TItem="CustomerTotal" Data="@CustomerTotals" Class="ames-rz-grid" AllowPaging="true" PageSize="10" Density="Density.Compact" EmptyText='@L["RPT.DailyShipment.Empty"]'
+                        PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' ShowPagingSummary="true">
+            <Columns>
+                <RadzenDataGridColumn TItem="CustomerTotal" Property="Customer" Title='@L["Col.Customer"]' />
+                <RadzenDataGridColumn TItem="CustomerTotal" Property="Shipments" Title='@L["RPT.DailyShipment.Kpi.Shipments"]' />
+                <RadzenDataGridColumn TItem="CustomerTotal" Property="Quantity" Title='@L["RPT.DailyShipment.Kpi.ShippedQty"]' />
+            </Columns>
+        </RadzenDataGrid>
+    </section>
+}
 @code {
+    record Option(string Value,string Text);
+    record CustomerTotal(string Customer,int Shipments,string Quantity);
     private List<RptRepository.ShipmentDetailRow> _rows=[];
     private List<MasterDataRepository.CustomerRow> _customers=[];
+    private readonly IEnumerable<int> _pageSizeOptions=[25,50,100];
+    private int _pageRows=25;
     private DateTime _date=DbClock.Today;
-    private string _customer="";
+    private string? _customer;
     private string? _error;
     private bool _loading;
+    IEnumerable<Option> CustomerOptions=>_customers.Select(c=>new Option(c.CustomerID,$"{c.CustomerID} · {MasterDataRepository.LocalName(c.CustomerName,c.CustomerNameEn)}"));
+    IEnumerable<CustomerTotal> CustomerTotals=>_rows.GroupBy(r=>r.CustomerId).Select(g=>new CustomerTotal($"{g.Key} · {CustomerName(g.Key)}",g.Select(r=>r.ShipmentId).Distinct().Count(),QuantityTotal(g)));
+    string QuantityTotal(IEnumerable<RptRepository.ShipmentDetailRow> rows)=>string.Join(" · ",rows.GroupBy(r=>r.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(r=>r.Qty),g.Key))) is {Length:>0} value?value:"0";
     protected override async Task OnInitializedAsync()
     {
-        try { _customers=await Task.Run(()=>MD.ListCustomers()); } catch(Exception ex) { _error=ex.Message; }
+        try{_customers=await Task.Run(()=>MD.ListCustomers());}
+        catch(Exception ex){Logger.LogError(ex,"Shipment customer lookup failed");_error=L["Shipment.LoadError"];return;}
         await Reload();
     }
     private async Task Reload()
     {
-        if(_loading) return;
-        _loading=true;
-        try { _rows=await Task.Run(()=>Rpt.ListShipmentDetail(_date,string.IsNullOrWhiteSpace(_customer)?null:_customer)); _error=null; }
-        catch(Exception ex) { _rows=[]; _error=ex.Message; }
-        finally { _loading=false; }
+        if(_loading)return;_loading=true;
+        var date=_date;var customer=_customer;
+        try{_rows=await Task.Run(()=>Rpt.ListShipmentDetail(date,string.IsNullOrWhiteSpace(customer)?null:customer));_error=null;}
+        catch(Exception ex){Logger.LogError(ex,"Daily shipments load failed");_rows=[];_error=L["Shipment.LoadError"];}
+        finally{_loading=false;}
     }
-    private string CustomerName(string id)=>_customers.FirstOrDefault(c=>c.CustomerID==id) is { } c ? MasterDataRepository.LocalName(c.CustomerName,c.CustomerNameEn) : "";
+    private string CustomerName(string id)=>_customers.FirstOrDefault(c=>c.CustomerID==id) is {} c?MasterDataRepository.LocalName(c.CustomerName,c.CustomerNameEn):"";
     private async Task Print()=>await JS.InvokeVoidAsync("print");
     private async Task Export()
     {
-        var headers=new[]{"Shipment ID","Outbound Barcode","Customer ID","Customer Name","Part No","Part Name","Shipped Qty","Unit","From Location","Shipped At","Shipped By"};
+        if(_rows.Count==0)return;
+        var headers=new[]{L["Shipment.Id"].Value,L["Col.LotNo"].Value,L["Col.CustomerId"].Value,L["Col.CustomerName"].Value,L["Col.PartNo"].Value,L["Col.PartName"].Value,
+            L["RPT.DailyShipment.Kpi.ShippedQty"].Value,L["Col.Unit"].Value,L["Shipment.FromLocation"].Value,L["FG.Shipments.Col.ShippedAt"].Value,L["Shipment.ShippedBy"].Value};
         var data=_rows.Select(r=>(IReadOnlyList<object?>)new object?[]{r.ShipmentId,r.OutboundBarcode,r.CustomerId,CustomerName(r.CustomerId),r.PartNo,
             MasterDataRepository.LocalName(r.PartName,r.PartNameEn),r.Qty,UomFmt.Sym(r.Unit),r.LocationNo,r.ShippedAt.ToString(DateFmt.DateTime),r.ShippedBy});
-        var bytes=AMES.Web.Services.XlsxWriter.Build($"Daily Shipments {_date:yyyy-MM-dd}",headers,data);
+        var bytes=AMES.Web.Services.XlsxWriter.Build(L["RPT.DailyShipment.Title"],headers,data);
         await JS.InvokeVoidAsync("amesDownload",$"DailyShipment_{_date:yyyyMMdd}.xlsx",Convert.ToBase64String(bytes),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 }

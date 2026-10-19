@@ -3,6 +3,44 @@ namespace AMES.Data.Repositories;
 // Parameterized batches owned by the application; no database procedure installation is required.
 public static class PdaWarehouseSql
 {
+    public const string PutAwayInventory = """
+        SET QUOTED_IDENTIFIER ON;
+        SET ANSI_NULLS ON;
+        SELECT Q.Mode, Q.Barcode, Q.LotNo, Q.PartNo, Q.PartName, Q.Qty,
+               Q.Unit, Q.DeliveryNoteNo, Q.ReceivedAt, Q.LocationNo, Q.ParentLotNo
+        FROM
+        (
+            SELECT CAST('LOCAL' AS varchar(10)) AS Mode,
+                   W.LotNo AS Barcode,
+                   W.LotNo, W.PartNo, W.PartName, W.Qty,
+                   I.DefaultUOM AS Unit, W.DeliveryNoteNo, W.ReceivedAt, W.LocationNo, W.ParentLotNo
+            FROM dbo.WH_Inventory W
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
+            WHERE W.Qty > 0
+              AND W.DeliveryNoteNo IS NOT NULL
+
+            UNION ALL
+
+            SELECT CAST(CASE WHEN UPPER(COALESCE(L.ProcessCode,'LOCAL'))='CKD' THEN 'CKD' ELSE 'LOCAL' END AS varchar(10)) AS Mode,
+                   W.LotNo AS Barcode,
+                   W.LotNo, W.PartNo, COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS PartName,
+                   W.Qty, I.DefaultUOM AS Unit,
+                   CAST(NULL AS nvarchar(30)) AS DeliveryNoteNo,
+                   W.ReceivedAt, W.LocationNo, W.ParentLotNo
+            FROM dbo.WH_Inventory W
+            LEFT JOIN dbo.tbl_Lot L ON L.LotCode=W.LotNo
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo
+            WHERE W.Qty>0 AND W.DeliveryNoteNo IS NULL
+        ) Q
+        WHERE (@Barcode IS NULL OR UPPER(Q.Barcode) = UPPER(@Barcode)
+            OR UPPER(Q.LotNo) = UPPER(@Barcode)
+            OR UPPER(Q.DeliveryNoteNo) = UPPER(@Barcode)
+            OR EXISTS(SELECT 1 FROM dbo.WH_Inventory C
+                      WHERE C.LotNo=Q.LotNo AND UPPER(C.ParentLotNo)=UPPER(@Barcode)))
+          AND (@OnlyUnassigned = 0 OR NULLIF(LTRIM(RTRIM(Q.LocationNo)), '') IS NULL)
+        ORDER BY Q.ReceivedAt, Q.Barcode;
+        """;
+
     public const string ScheduleInbound = """
         SET QUOTED_IDENTIFIER ON;
         SET ANSI_NULLS ON;
@@ -771,6 +809,13 @@ public static class PdaWarehouseSql
             BEGIN TRANSACTION;
             IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode)
                 THROW 51416,'This barcode has already been received. Check its transaction history.',1;
+            IF EXISTS(
+                SELECT 1 FROM (
+                    SELECT TOP(1) ReasonCode,SourceType FROM dbo.WH_InventoryTransaction WITH(UPDLOCK,HOLDLOCK)
+                    WHERE LotNo=@Barcode AND (TransactionType='IN' OR ReasonCode='INBOUND_CANCEL')
+                    ORDER BY TransactionID DESC
+                ) LastReceipt WHERE COALESCE(ReasonCode,'')<>'INBOUND_CANCEL' OR COALESCE(SourceType,'')<>'LOT')
+                THROW 51416,'This LOT has a receipt history that was not cancelled. Check its transaction history.',1;
             IF EXISTS(SELECT 1 FROM dbo.MD_Location L WITH(UPDLOCK,HOLDLOCK)
                 WHERE L.LocationID=@Location AND L.Capacity>0 AND
                     (SELECT COALESCE(SUM(W.Qty),0) FROM dbo.WH_Inventory W WITH(UPDLOCK,HOLDLOCK)
@@ -963,20 +1008,40 @@ public static class PdaWarehouseSql
             END;
 
 
-            DECLARE @PartNo varchar(20),@Location varchar(50),@Invoice varchar(20),@Po int;
+            DECLARE @PartNo varchar(20),@Location varchar(50),@Invoice varchar(20),@Po int,
+                @ReceiptID bigint,@ReceiptQty decimal(18,3),@ReceiptPart varchar(20),@ExpectedQty decimal(18,3);
             BEGIN TRANSACTION;
             SELECT @PartNo=PartNo,@Location=LocationNo,@Qty=Qty,@Invoice=InvoiceNo
-                FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Qty>0;
+                FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Qty>=0;
             IF @PartNo IS NULL THROW 51433,'LOT is not received yet.',1;
-            SELECT TOP(1) @Po=SourceID FROM dbo.WH_InventoryTransaction
-                WHERE LotNo=@Barcode AND TransactionType='IN' AND SourceType='LOT' ORDER BY TransactionID DESC;
+            SELECT TOP(1) @ReceiptID=TransactionID,@Po=SourceID,@ReceiptQty=QtyChange,@ReceiptPart=PartNo
+            FROM dbo.WH_InventoryTransaction WITH(UPDLOCK,HOLDLOCK)
+            WHERE LotNo=@Barcode AND TransactionType='IN' AND SourceType='LOT' AND ReasonCode='INBOUND_RECEIVE'
+            ORDER BY TransactionID DESC;
+            IF @ReceiptID IS NULL OR @ReceiptQty IS NULL OR @ReceiptQty<=0 OR @ReceiptPart IS NULL OR @ReceiptPart<>@PartNo
+                THROW 51434,'The original LOT receipt could not be verified. Cancellation was not saved.',1;
+            IF EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction WITH(UPDLOCK,HOLDLOCK)
+                WHERE LotNo=@Barcode AND TransactionID>@ReceiptID
+                  AND (ReasonCode='INBOUND_CANCEL' OR (QtyChange<>0 AND COALESCE(TransactionType,'')<>'ADJ')))
+                THROW 51434,'This LOT was released, consumed or received again. Reverse those transactions before cancelling its receipt.',1;
+            SELECT @ExpectedQty=@ReceiptQty+COALESCE(SUM(QtyChange),0)
+            FROM dbo.WH_InventoryTransaction
+            WHERE LotNo=@Barcode AND TransactionID>@ReceiptID AND TransactionType='ADJ';
+            IF @ExpectedQty<>@Qty
+                THROW 51435,'LOT stock does not match its receipt and adjustment history. Cancellation was not saved.',1;
+            IF @Po IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK)
+                WHERE PoID=@Po AND COALESCE(ReceivedQty,0)>=@ReceiptQty)
+                THROW 51435,'The PO receipt balance is inconsistent. Cancellation was not saved.',1;
             DELETE dbo.WH_Inventory WHERE LotNo=@Barcode;
             INSERT dbo.WH_InventoryTransaction(TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
                 ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
-                VALUES('OUT',@PartNo,@Location,@Barcode,@Qty,-@Qty,0,'INBOUND_CANCEL','LOT',@Po,@User,'Inbound receipt cancelled',LEFT(@User,20),SYSDATETIME());
+                VALUES('OUT',@PartNo,@Location,@Barcode,@Qty,-@Qty,0,'INBOUND_CANCEL','LOT',@Po,@User,
+                    CONCAT('Inbound receipt cancelled; PO receipt reversed: ',@ReceiptQty),LEFT(@User,20),SYSDATETIME());
             IF @Po IS NOT NULL UPDATE dbo.WH_PurchaseOrder SET
-                ReceivedQty=CASE WHEN COALESCE(ReceivedQty,0)<@Qty THEN 0 ELSE ReceivedQty-@Qty END,
-                Status='Open',ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE PoID=@Po;
+                ReceivedQty=ReceivedQty-@ReceiptQty,
+                Status=CASE WHEN Status IN('Cancelled','Canceled') THEN Status
+                    WHEN ReceivedQty-@ReceiptQty>=OrderQty THEN 'Complete' ELSE 'Open' END,
+                ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE PoID=@Po;
             UPDATE dbo.tbl_Lot SET CurrentLocationID=NULL,ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME()
                 WHERE LotCode COLLATE DATABASE_DEFAULT=@Barcode;
             COMMIT TRANSACTION;
@@ -1015,6 +1080,8 @@ public static class PdaWarehouseSql
                 THROW 51511, 'Adjustment quantity must be different from zero.', 1;
             IF @Reason = N''
                 THROW 51512, 'Reason code is required.', 1;
+            IF @Reason IN (N'DAMAGED', N'DEFECT', N'DEFECTIVE')
+                THROW 51521, 'Use Inventory Defect to record defective stock, not quantity adjustment.', 1;
             IF NOT EXISTS
                (SELECT 1 FROM dbo.MD_CodeItem
                 WHERE GroupCode='INV_ADJUST_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)

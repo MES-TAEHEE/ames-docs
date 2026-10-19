@@ -10,8 +10,6 @@ public sealed class ScmQuantityUnitTests
     [InlineData("BOX")]
     [InlineData("plt")]
     [InlineData("PALLET")]
-    [InlineData("SH")]
-    [InlineData(" sheet ")]
     public void Packaging_units_cannot_be_used_for_new_purchase_orders(string unit)
     {
         Assert.False(MasterDataRepository.IsQuantityUnit(unit));
@@ -26,8 +24,6 @@ public sealed class ScmQuantityUnitTests
     [InlineData("BOX")]
     [InlineData("PLT")]
     [InlineData("PALLET")]
-    [InlineData("SH")]
-    [InlineData("SHEET")]
     public void Packaging_units_cannot_be_registered_or_used_as_base_units(string unit)
     {
         var master=new MasterDataRepository(new AmesConnectionFactory("Server=unused;Database=unused;Integrated Security=True"));
@@ -66,6 +62,7 @@ public sealed class ScmQuantityUnitTests
         var master=new MasterDataRepository(factory);
         Assert.All(master.ListItems(itemType:"MATERIAL"),item=>Assert.Equal("MATERIAL",item.ItemType));
         master.ListVendors();
+        Assert.Contains(master.ListUoms(),unit=>unit.UOMCode=="SH" && unit.ActiveFlag);
         new ScmRepository(factory).ListItemVendors();
     }
 
@@ -74,6 +71,8 @@ public sealed class ScmQuantityUnitTests
     [InlineData("KG")]
     [InlineData("G")]
     [InlineData("M")]
+    [InlineData("SH")]
+    [InlineData(" sheet ")]
     public void Individual_quantity_units_remain_available(string unit)
         =>Assert.True(MasterDataRepository.IsQuantityUnit(unit));
 }

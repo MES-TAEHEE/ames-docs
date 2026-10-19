@@ -1,4 +1,5 @@
 using AMES.Data.Repositories;
+using AMES.Contracts.Dto;
 
 namespace AMES.Web.Services;
 
@@ -6,15 +7,22 @@ namespace AMES.Web.Services;
 public sealed class TrailerLoadDraft
 {
     public const int Capacity = 18;
+    public static List<Line> FromOrders(IEnumerable<ShippingOrderDto> orders) => orders
+        .Where(o => o.Status is "Open" or "Loading")
+        .SelectMany(o => o.Lines.Select(l => new Line(
+            new PpRepository.SoRow(l.OrderLineId, $"{o.OrderNo} / {l.SoNumber}", null, o.CustomerId,
+                l.PartNo, l.PartName, l.Qty, 0, null, l.RequestedDate, null, "Open", null, null, true),
+            l.PalletQty, l.ToteFlag, o.ShipDate, l.Unit))).ToList();
     public static bool IsInShipDateRange(Line line, DateTime? from, DateTime? to) =>
         from.HasValue && to.HasValue && from.Value.Date <= to.Value.Date
         && line.ShipDate is DateTime ship && ship >= from.Value.Date && ship <= to.Value.Date;
     public static bool IsShipmentCandidate(PpRepository.SoRow row) =>
         row.OrderQty > row.ShippedQty
         && !string.Equals(row.Status?.Trim(), "Shipped", StringComparison.OrdinalIgnoreCase);
-    public sealed class Line(PpRepository.SoRow source, int? palletQty, bool toteFlag = false, DateTime? shipDate = null)
+    public sealed class Line(PpRepository.SoRow source, int? palletQty, bool toteFlag = false, DateTime? shipDate = null, string? unit = "EA")
     {
         public PpRepository.SoRow Source { get; } = source;
+        public string? Unit { get; } = unit;
         public decimal Balance => Math.Max(0, Source.OrderQty - Source.ShippedQty);
         public decimal Quantity { get; private set; } = decimal.Floor(Math.Max(0, source.OrderQty - source.ShippedQty));
         public string QuantityText { get; private set; } = decimal.Floor(Math.Max(0, source.OrderQty - source.ShippedQty)).ToString("0", System.Globalization.CultureInfo.InvariantCulture);
@@ -73,11 +81,11 @@ public sealed class TrailerLoadDraft
         if (error.Length > 0) return false;
         var lines = candidates.Where(x => x.Quantity > 0).ToList();
         error = "";
-        if (lines.Count == 0) error = "No remaining quantity in the displayed supply plan lines.";
+        if (lines.Count == 0) error = "No shipment quantity in the displayed order lines.";
         else if (lines.Any(x => x.ShipDate is null || string.IsNullOrWhiteSpace(x.Source.CustomerId)))
-            error = "A customer and Requested Date are required for every included line. Set shipment quantity to 0 to exclude a line.";
+            error = "A customer and ship date are required for every included order line.";
         else if (lines.Sum(x => x.PalletCount) > 2000)
-            error = "Preview supports up to 2,000 pallets. Narrow the supply plan filters or reduce shipment quantities.";
+            error = "Preview supports up to 2,000 pallets. Narrow the shipment-order date or customer filters.";
         if (error.Length > 0) return false;
 
         _lines = lines;

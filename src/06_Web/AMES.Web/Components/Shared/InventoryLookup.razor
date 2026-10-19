@@ -1,10 +1,15 @@
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
+@inject FinishedGoodsRepository FinishedGoodsRepo
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Auth
+@inject DialogService Dialog
+@inject IJSRuntime JS
 <div class="inventory-lookup">
     <div class="ames-kpis">
         <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Inventory.Kpi.Parts"]</div><div class="ames-kpi-v">@SummaryRows.Count</div></div>
         <div class="ames-kpi ok"><div class="ames-kpi-l">@L["Col.Quantity"]</div><div class="ames-kpi-v">@UomFmt.Qty(FilteredInventory.Sum(x => x.Qty), null)</div></div>
-        <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Col.Locations"]</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
+        <div class="ames-kpi warn"><div class="ames-kpi-l">@L["Col.Locations"]</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LocationNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
         <div class="ames-kpi"><div class="ames-kpi-l">@L["Col.Lots"]</div><div class="ames-kpi-v">@FilteredInventory.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</div></div>
     </div>
 
@@ -17,8 +22,15 @@
                 <RadzenDropDown Name="InventoryWarehouse" Value="@_warehouse" Change="ChangeWarehouse" Data="@WarehouseOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllWarehouses"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
                 <RadzenLabel Text="@L["Col.Area"].Value" Component="InventoryArea" />
                 <RadzenDropDown Name="InventoryArea" Value="@_area" Change="ChangeArea" Data="@AreaOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllAreas"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+                <RadzenLabel Text="@L["Col.Vendor"]" Component="InventoryVendor" />
+                <RadzenDropDown Name="InventoryVendor" @bind-Value="_vendor" Data="@VendorOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" />
+                <RadzenLabel Text="@L["Col.Type"]" Component="InventoryType" />
+                <RadzenDropDown Name="InventoryType" Value="_itemType" Change="ChangeItemType" Data="@TypeOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                <RadzenLabel Text="@L["Col.Category"]" Component="InventoryCategory" />
+                <RadzenDropDown Name="InventoryCategory" @bind-Value="_category" Data="@CategoryOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:160px;" />
                 <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Search" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reset" class="ames-rz-btn" />
+                <RadzenButton Text="@L["WH.Inventory.Export"]" Icon="download" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="ExportXlsx" Disabled="@(SummaryRows.Count == 0)" class="ames-rz-btn" />
             </RadzenStack>
         </div>
 
@@ -31,9 +43,11 @@
             <Columns>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="180px" Property="PartNo" Title="@L["Col.ItemNo"].Value" TextAlign="TextAlign.Center" Width="180px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="200px" Property="PartName" Title="@L["Col.ItemName"].Value" />
-                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="120px" Title="@L["Col.Status"].Value" TextAlign="TextAlign.Center" Width="120px" Sortable="false"><Template Context="r"><span class="pill ok">@L["WH.Inventory.Available"]</span></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="160px" Property="VendorNames" Title="@L["Col.Vendor"]" />
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="110px" Property="ItemCategory" Title="@L["Col.Category"]"><Template Context="r">@CodeName("ITEM_CATEGORY", r.ItemCategory)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="100px" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="100px"><Template Context="r"><span class="code dim">@UomFmt.Sym(r.Unit)</span></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="Qty" Title="@L["Col.TotalQty"].Value" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.Qty, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="Qty" Title="@L["WH.Inventory.AvailableQty"].Value" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.Qty, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"].Value" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.DefectQty, r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="LocationCount" Title="@L["Col.Locations"].Value" TextAlign="TextAlign.Right" Width="130px" />
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="90px" Property="LotCount" Title="@L["Col.Lots"].Value" TextAlign="TextAlign.Right" Width="90px" />
             </Columns>
@@ -60,31 +74,106 @@
                 </div>
 
                 <div class="inventory-drawer-table-wrap">
-                    <RadzenDataGrid TItem="LocationMapStock" Data="DetailRows" AllowPaging="false" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid">
+                    <RadzenDataGrid TItem="LocationMapStock" Data="DetailRows" AllowPaging="false" AllowSorting="true" EmptyText="@L["WH.Inventory.Empty"]" Density="Density.Compact" Class="ames-rz-grid">
                         <Columns>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="LocationNo" Title="@L["Col.Location"]" />
                             <RadzenDataGridColumn TItem="LocationMapStock" Title="@L["Col.Floor"]"><Template Context="row">@Floor(row.LocationNo)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="LotNo" Title="@L["Col.LotNo"]"><Template Context="row">@Text(row.LotNo)</Template></RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.Qty,row.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["WH.Inventory.AvailableQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.Qty,row.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.DefectQty,row.Unit)</Template></RadzenDataGridColumn>
+                            @if(AllowLotDefect)
+                            {
+                                <RadzenDataGridColumn TItem="LocationMapStock" Width="88px" Sortable="false" TextAlign="TextAlign.Center">
+                                <HeaderTemplate><RadzenIcon Icon="report_problem" title="@L["WH.Inventory.DefectAction"]" aria-label="@L["WH.Inventory.DefectAction"]" /></HeaderTemplate>
+                                <Template Context="row">
+                                    @if(row.DefectQty > 0)
+                                    {
+                                        <RadzenIcon Icon="task_alt" title="@L["WH.Inventory.DefectRecorded"]" aria-label="@L["WH.Inventory.DefectRecorded"]" Style="color:var(--ames-tx-green-300);vertical-align:middle;" />
+                                    }
+                                    @if(_eligibleLots.Contains(row.LotNo??"") && row.Qty > 0 && _canReject)
+                                    {
+                                        <RadzenButton Icon="report_problem" title="@L["WH.Inventory.DefectAction"]" aria-label="@L["WH.Inventory.DefectAction"]" Click="@(()=>OpenDefect(row))" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                                    }
+                                    else if(row.DefectQty <= 0) { <span class="dim" title="@L["WH.Inventory.DefectNotEligible"]">—</span> }
+                                </Template></RadzenDataGridColumn>
+                            }
                         </Columns>
                     </RadzenDataGrid>
                 </div>
             </aside>
         </div>
     }
+    @if(_defectLot is {} defectLot)
+    {
+        <div class="ames-modal-bg"><div class="ames-modal" role="dialog" aria-modal="true" aria-label="@L["WH.Inventory.DefectTitle"]">
+            <div class="ames-modal-h">@L["WH.Inventory.DefectTitle"]</div>
+            <p>@defectLot.LotNo · @defectLot.PartNo · @UomFmt.QtyUnit(defectLot.Qty,defectLot.Unit)</p>
+            <p>@L["WH.Inventory.DefectWholeLotSummary"]</p>
+            <RadzenLabel Text="@L["WH.Inventory.DefectReason"]" Component="LotDefectReason" />
+            <RadzenTextArea Name="LotDefectReason" @bind-Value="_defectReason" MaxLength="500" Rows="3" Disabled="_rejecting" class="ames-rz-input" Style="width:100%" />
+            @if(!string.IsNullOrEmpty(_defectError)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_defectError</RadzenAlert>}
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["WH.Inventory.DefectAction"]" Icon="report_problem" Click="RejectLot" Disabled="_rejecting" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@(()=>_defectLot=null)" Disabled="_rejecting" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div></div>
+    }
 </div>
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<LocationMapStock> Inventory { get; set; } = [];
+    [Parameter] public IReadOnlyList<ScmRepository.ItemVendorRow> ItemVendors { get; set; } = [];
+    [Parameter] public IReadOnlyList<MasterDataRepository.CodeItemRow> ItemCodes { get; set; } = [];
     [Parameter] public string SearchId { get; set; } = "inventory-search";
+    [Parameter] public bool AllowLotDefect {get;set;}
+    [Parameter] public EventCallback InventoryChanged {get;set;}
+    bool _canReject,_rejecting;
+    HashSet<string> _eligibleLots=new(StringComparer.OrdinalIgnoreCase);
+    LocationMapStock? _defectLot;
+    string _defectReason="",_defectError="";
+    protected override async Task OnInitializedAsync()
+    {
+        if(!AllowLotDefect)return;
+        await Permissions.EnsureAsync(Auth);
+        _canReject=Permissions.CanApprove(FinishedGoodsRepository.DefectPermissionHref);
+        if(_canReject)
+        {
+            try{_eligibleLots=await Task.Run(()=>FinishedGoodsRepo.ListDefectLots());}
+            catch{_canReject=false;}
+        }
+    }
+    void OpenDefect(LocationMapStock lot)
+    { if(!_canReject||!_eligibleLots.Contains(lot.LotNo??""))return;_drawerOpen=false;_defectLot=lot;_defectReason="";_defectError=""; }
+    async Task RejectLot()
+    {
+        if(_rejecting||_defectLot is not {} lot)return;
+        _rejecting=true;_defectError="";
+        try
+        {
+            if(!await Permissions.RecheckApproveAsync(Auth,FinishedGoodsRepository.DefectPermissionHref))throw new InvalidOperationException("You do not have the Inventory Defect permission.");
+            var reason=FinishedGoodsRepository.ValidateDefectReason(_defectReason);
+            var quantity=FinishedGoodsRepository.ValidateDefectQuantity(lot.Qty,lot.Qty,Math.Clamp(UomFmt.Digits(lot.Unit)??3,0,3));
+            if(await Dialog.Confirm(L["WH.Inventory.DefectConfirmWholeLot",lot.LotNo??"",UomFmt.QtyUnit(quantity,lot.Unit)], L["WH.Inventory.DefectTitle"])!=true)return;
+            var user=(await Auth.GetAuthenticationStateAsync()).User;
+            var id=user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
+            await Task.Run(()=>FinishedGoodsRepo.MarkInventoryDefective(lot.LotNo!,lot.PartNo,lot.Qty,lot.LocationNo,quantity,reason,id,ActorCode.Of(user)));
+            _eligibleLots.Remove(lot.LotNo!);_defectLot=null;
+            await InventoryChanged.InvokeAsync();
+            await Dialog.Alert(L["WH.Inventory.DefectDoneWholeLot",lot.LotNo??""],L["WH.Inventory.DefectTitle"]);
+        }
+        catch(Exception ex){_defectError=ex.Message;}
+        finally{_rejecting=false;}
+    }
 
-    private sealed record SummaryRow(string PartNo, string PartName, string Unit, decimal Qty, int LocationCount, int LotCount);
+    private sealed record SummaryRow(string PartNo, string PartName, string Unit, string ItemType, string ItemCategory, string VendorIds, string VendorNames, decimal Qty, decimal DefectQty, int LocationCount, int LotCount);
     private sealed record FilterOption(string Code, string Name);
 
     private string _query = "";
     private string _filter = "";
     private string _warehouse = "";
     private string _area = "";
+    private string? _vendor, _itemType, _category;
+    private ILookup<string, ScmRepository.ItemVendorRow> _vendorsByPart = Array.Empty<ScmRepository.ItemVendorRow>().ToLookup(x => x.ItemNo, StringComparer.OrdinalIgnoreCase);
     private string? _selectedPart;
     private bool _drawerOpen;
 
@@ -103,17 +192,16 @@
         .OrderBy(x => x.Name)
         .ToList();
 
-    private List<LocationMapStock> FilteredInventory
-    {
-        get
-        {
-            var rows = Inventory.AsEnumerable();
-            if (!string.IsNullOrWhiteSpace(_warehouse)) rows = rows.Where(x => Same(x.WarehouseCode, _warehouse));
-            if (!string.IsNullOrWhiteSpace(_area)) rows = rows.Where(x => Same(x.AreaCode, _area));
-            if (!string.IsNullOrWhiteSpace(_filter)) rows = rows.Where(Matches);
-            return rows.ToList();
-        }
-    }
+    private List<FilterOption> VendorOptions => ItemVendors.GroupBy(x => x.VendorID, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new FilterOption(group.Key, $"[{group.Key}] {group.First().VendorName}")).OrderBy(x => x.Name).ToList();
+    private List<FilterOption> TypeOptions => CodeOptions(Inventory.Select(x => x.ItemType), "ITEM_TYPE");
+    private List<FilterOption> CategoryOptions => CodeOptions(Inventory.Where(x => string.IsNullOrEmpty(_itemType) || Same(x.ItemType, _itemType)).Select(x => x.ItemCategory), "ITEM_CATEGORY");
+    private List<FilterOption> CodeOptions(IEnumerable<string> values, string group) => values.Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct(StringComparer.OrdinalIgnoreCase).Select(code => new FilterOption(code, CodeName(group, code))).OrderBy(x => x.Name).ToList();
+    private string CodeName(string group, string code) => ItemCodes.FirstOrDefault(x => x.GroupCode == group && Same(x.CodeValue, code)) is {} item
+        ? MasterDataRepository.LocalName(item) : Text(code);
+    private IEnumerable<ScmRepository.ItemVendorRow> VendorsFor(string part) => _vendorsByPart[part].Where(x => string.IsNullOrEmpty(_vendor) || Same(x.VendorID, _vendor));
+    private List<LocationMapStock> FilteredInventory => InventorySearchRows.Filter(Inventory, ItemVendors, _filter, _warehouse, _area, _vendor ?? "", _itemType ?? "", _category ?? "");
 
     private List<SummaryRow> SummaryRows => FilteredInventory
         .GroupBy(x => new { x.PartNo, PartName = Text(x.PartName), x.Unit })
@@ -121,22 +209,35 @@
             group.Key.PartNo,
             group.Key.PartName,
             group.Key.Unit,
+            group.First().ItemType,
+            group.First().ItemCategory,
+            string.Join(", ", VendorsFor(group.Key.PartNo).Select(x => x.VendorID).Distinct(StringComparer.OrdinalIgnoreCase)),
+            string.Join(", ", VendorsFor(group.Key.PartNo).Select(x => x.VendorName).Distinct(StringComparer.OrdinalIgnoreCase)),
             group.Sum(x => x.Qty),
-            group.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+            group.Sum(x => x.DefectQty),
+            group.Select(x => x.LocationNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
             group.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()))
         .OrderBy(x => x.PartNo)
         .ToList();
 
     private List<LocationMapStock> DetailRows => string.IsNullOrWhiteSpace(_selectedPart)
         ? []
-        : FilteredInventory.Where(x => x.PartNo == _selectedPart).OrderBy(x => x.LocationNo).ThenBy(x => x.LotNo).ToList();
+        : FilteredInventory.Where(x => x.PartNo == _selectedPart && !string.IsNullOrWhiteSpace(x.LotNo)).OrderBy(x => x.LocationNo).ThenBy(x => x.LotNo).ToList();
     private SummaryRow? SelectedSummary => SummaryRows.FirstOrDefault(x => x.PartNo == _selectedPart);
     private string DetailWarehouses => ScopeNames(DetailRows.Select(x => (x.WarehouseCode, x.WarehouseName)));
     private string DetailAreas => ScopeNames(DetailRows.Select(x => (x.AreaCode, x.AreaName)));
 
     protected override void OnParametersSet()
     {
+        _vendorsByPart = ItemVendors.ToLookup(x => x.ItemNo, StringComparer.OrdinalIgnoreCase);
         if (_selectedPart is not null && SummaryRows.All(x => x.PartNo != _selectedPart)) CloseDetail();
+    }
+
+    private void ChangeItemType(object? value)
+    {
+        _itemType = value?.ToString();
+        _category = null;
+        CloseDetail();
     }
 
     private readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
@@ -169,6 +270,7 @@
     private void Reset()
     {
         _query = _filter = _warehouse = _area = "";
+        _vendor = _itemType = _category = null;
         CloseDetail();
     }
 
@@ -185,8 +287,20 @@
         _drawerOpen = false;
         _selectedPart = null;
     }
-    private bool Matches(LocationMapStock row) => new[] { row.LocationNo, row.PartNo, row.PartName, row.LotNo }
-        .Any(value => value?.Contains(_filter, StringComparison.OrdinalIgnoreCase) == true);
+    private async Task ExportXlsx()
+    {
+        var rows = SummaryRows;
+        if (rows.Count == 0) return;
+        if (await Dialog.Confirm(L["WH.Inventory.ExportConfirm", rows.Count], L["WH.Inventory.Export"],
+            new ConfirmOptions { OkButtonText = L["Btn.Confirm"], CancelButtonText = L["Btn.Cancel"] }) != true) return;
+        var headers = new[] { L["Col.VendorId"].Value, L["Col.VendorName"].Value, L["Col.ItemNo"].Value, L["Col.ItemName"].Value,
+            L["Col.Type"].Value, L["Col.Category"].Value, L["Col.Unit"].Value, L["WH.Inventory.AvailableQty"].Value, L["WH.Inventory.DefectQty"].Value };
+        var data = rows.Select(row => (IReadOnlyList<object?>)new object?[] { row.VendorIds, row.VendorNames, row.PartNo, row.PartName,
+            CodeName("ITEM_TYPE", row.ItemType), CodeName("ITEM_CATEGORY", row.ItemCategory), UomFmt.Sym(row.Unit), row.Qty, row.DefectQty });
+        var bytes = XlsxWriter.Build(L["WH.Inventory.Title"], headers, data, 24);
+        await JS.InvokeVoidAsync("amesDownload", $"Inventory_{AMES.Data.Services.DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
     private static bool Same(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     private static string Floor(string locationNo) => locationNo.Split('-', 2)[0];
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
