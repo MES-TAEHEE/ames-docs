@@ -11542,4 +11542,100 @@
   <data name="WH.Inventory.Export" xml:space="preserve"><value>엑셀</value></data>
   <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>내용물 {0}개</value></data>
   <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>현재 조회된 {0}개 품목의 가용 수량과 불량 수량을 엑셀로 다운로드하시겠습니까?</value></data>
+  <data name="Excel.Download" xml:space="preserve">
+    <value>Excel 다운로드</value>
+  </data>
+  <data name="Excel.Download.Hint" xml:space="preserve">
+    <value>지금 목록을 올리기 양식 그대로 내려받습니다(0건이면 빈 양식)</value>
+  </data>
+  <data name="Excel.Upload" xml:space="preserve">
+    <value>Excel 업로드</value>
+  </data>
+  <data name="Excel.Upload.Hint" xml:space="preserve">
+    <value>다운로드한 양식(.xlsx)을 올리면 없는 항목만 등록하고 이미 있는 항목은 건너뜁니다(수정하지 않음). 열은 머리글 괄호 안의 키로 찾습니다.</value>
+  </data>
+  <data name="Excel.Upload.New" xml:space="preserve">
+    <value>등록 {0}</value>
+  </data>
+  <data name="Excel.Upload.Skip" xml:space="preserve">
+    <value>건너뜀 {0}</value>
+  </data>
+  <data name="Excel.Upload.Problems" xml:space="preserve">
+    <value>문제 {0}</value>
+  </data>
+  <data name="Excel.Upload.NewList" xml:space="preserve">
+    <value>등록할 항목</value>
+  </data>
+  <data name="Excel.Upload.SkipList" xml:space="preserve">
+    <value>이미 있어 건너뛸 항목</value>
+  </data>
+  <data name="Excel.Upload.ProblemList" xml:space="preserve">
+    <value>문제가 있어 등록하지 않는 행</value>
+  </data>
+  <data name="Excel.Upload.Apply" xml:space="preserve">
+    <value>등록</value>
+  </data>
+  <data name="Excel.Upload.Done" xml:space="preserve">
+    <value>등록 {0}건 · 건너뜀 {1}건 · 실패 {2}건</value>
+  </data>
+  <data name="Excel.Upload.RowFmt" xml:space="preserve">
+    <value>{0}행</value>
+  </data>
+  <data name="Excel.Err.NotXlsx" xml:space="preserve">
+    <value>엑셀(.xlsx) 파일이 아닙니다</value>
+  </data>
+  <data name="Excel.Err.TooLarge" xml:space="preserve">
+    <value>파일이 너무 큽니다(최대 10MB)</value>
+  </data>
+  <data name="Excel.Err.NoHeader" xml:space="preserve">
+    <value>양식이 아닙니다 — 필수 열이 없습니다</value>
+  </data>
+  <data name="Excel.Err.Required" xml:space="preserve">
+    <value>값이 필요합니다</value>
+  </data>
+  <data name="Excel.Err.BadNumber" xml:space="preserve">
+    <value>숫자 형식이 아닙니다</value>
+  </data>
+  <data name="Excel.Err.BadFlag" xml:space="preserve">
+    <value>1/0 또는 Y/N 으로 입력하세요</value>
+  </data>
+  <data name="Excel.Err.BadDate" xml:space="preserve">
+    <value>날짜 형식이 아닙니다(yyyy-MM-dd)</value>
+  </data>
+  <data name="Excel.Err.Unknown" xml:space="preserve">
+    <value>등록되지 않은 코드·품번입니다</value>
+  </data>
+  <data name="Excel.Err.Duplicate" xml:space="preserve">
+    <value>파일 안에 같은 값이 또 있습니다</value>
+  </data>
+  <data name="Excel.Err.OutOfRange" xml:space="preserve">
+    <value>허용 범위를 벗어났습니다</value>
+  </data>
+  <data name="Excel.Err.PastDate" xml:space="preserve">
+    <value>오늘 이후 날짜만 등록할 수 있습니다</value>
+  </data>
+  <data name="Excel.Err.DateOrder" xml:space="preserve">
+    <value>종료일이 시작일보다 빠릅니다</value>
+  </data>
+  <data name="Excel.Err.TooLong" xml:space="preserve">
+    <value>너무 깁니다</value>
+  </data>
+  <data name="Excel.Err.SelfComp" xml:space="preserve">
+    <value>최상위 품목을 자기 구성품으로 넣을 수 없습니다</value>
+  </data>
+  <data name="Excel.Err.Cycle" xml:space="preserve">
+    <value>BOM 순환이 생깁니다</value>
+  </data>
+  <data name="Excel.Err.HeaderDiff" xml:space="preserve">
+    <value>같은 버전의 행끼리 버전 정보가 다릅니다</value>
+  </data>
+  <data name="Excel.Err.RootDiff" xml:space="preserve">
+    <value>이미 있는 버전과 최상위 품번이 다릅니다</value>
+  </data>
+  <data name="Excel.Err.Packaging" xml:space="preserve">
+    <value>BOX·PALLET 은 수량 단위로 쓸 수 없습니다</value>
+  </data>
+  <data name="MD.Bom.Hint.SapSuperseded" xml:space="preserve">
+    <value>새 버전이 승인됐거나 만료된 버전이라 SAP 전송 대상에서 빠졌습니다</value>
+  </data>
 </root>

@@ -11542,4 +11542,100 @@
   <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
   <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>{0} items</value></data>
   <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>Download the available and defective quantities for the {0} currently filtered items as Excel?</value></data>
+  <data name="Excel.Download" xml:space="preserve">
+    <value>Download Excel</value>
+  </data>
+  <data name="Excel.Download.Hint" xml:space="preserve">
+    <value>Downloads the current list in the upload format (an empty template when there are no rows)</value>
+  </data>
+  <data name="Excel.Upload" xml:space="preserve">
+    <value>Upload Excel</value>
+  </data>
+  <data name="Excel.Upload.Hint" xml:space="preserve">
+    <value>Upload the downloaded template (.xlsx): only missing entries are created and existing ones are skipped (not updated). Columns are matched by the key in brackets in the header.</value>
+  </data>
+  <data name="Excel.Upload.New" xml:space="preserve">
+    <value>Create {0}</value>
+  </data>
+  <data name="Excel.Upload.Skip" xml:space="preserve">
+    <value>Skip {0}</value>
+  </data>
+  <data name="Excel.Upload.Problems" xml:space="preserve">
+    <value>Problems {0}</value>
+  </data>
+  <data name="Excel.Upload.NewList" xml:space="preserve">
+    <value>To be created</value>
+  </data>
+  <data name="Excel.Upload.SkipList" xml:space="preserve">
+    <value>Already exist (skipped)</value>
+  </data>
+  <data name="Excel.Upload.ProblemList" xml:space="preserve">
+    <value>Rows not created because of problems</value>
+  </data>
+  <data name="Excel.Upload.Apply" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Excel.Upload.Done" xml:space="preserve">
+    <value>Created {0} · skipped {1} · failed {2}</value>
+  </data>
+  <data name="Excel.Upload.RowFmt" xml:space="preserve">
+    <value>Row {0}</value>
+  </data>
+  <data name="Excel.Err.NotXlsx" xml:space="preserve">
+    <value>Not an Excel (.xlsx) file</value>
+  </data>
+  <data name="Excel.Err.TooLarge" xml:space="preserve">
+    <value>The file is too large (max 10 MB)</value>
+  </data>
+  <data name="Excel.Err.NoHeader" xml:space="preserve">
+    <value>Not the template — required columns are missing</value>
+  </data>
+  <data name="Excel.Err.Required" xml:space="preserve">
+    <value>Value required</value>
+  </data>
+  <data name="Excel.Err.BadNumber" xml:space="preserve">
+    <value>Not a valid number</value>
+  </data>
+  <data name="Excel.Err.BadFlag" xml:space="preserve">
+    <value>Enter 1/0 or Y/N</value>
+  </data>
+  <data name="Excel.Err.BadDate" xml:space="preserve">
+    <value>Not a valid date (yyyy-MM-dd)</value>
+  </data>
+  <data name="Excel.Err.Unknown" xml:space="preserve">
+    <value>Unknown code or item</value>
+  </data>
+  <data name="Excel.Err.Duplicate" xml:space="preserve">
+    <value>Duplicated in the file</value>
+  </data>
+  <data name="Excel.Err.OutOfRange" xml:space="preserve">
+    <value>Out of range</value>
+  </data>
+  <data name="Excel.Err.PastDate" xml:space="preserve">
+    <value>Only today or later can be registered</value>
+  </data>
+  <data name="Excel.Err.DateOrder" xml:space="preserve">
+    <value>End date is before start date</value>
+  </data>
+  <data name="Excel.Err.TooLong" xml:space="preserve">
+    <value>Too long</value>
+  </data>
+  <data name="Excel.Err.SelfComp" xml:space="preserve">
+    <value>The root item cannot be its own component</value>
+  </data>
+  <data name="Excel.Err.Cycle" xml:space="preserve">
+    <value>Creates a BOM cycle</value>
+  </data>
+  <data name="Excel.Err.HeaderDiff" xml:space="preserve">
+    <value>Version fields differ between rows of the same version</value>
+  </data>
+  <data name="Excel.Err.RootDiff" xml:space="preserve">
+    <value>Root item differs from the existing version</value>
+  </data>
+  <data name="Excel.Err.Packaging" xml:space="preserve">
+    <value>BOX and PALLET are not quantity units</value>
+  </data>
+  <data name="MD.Bom.Hint.SapSuperseded" xml:space="preserve">
+    <value>A newer version was approved or this one expired, so it is no longer an SAP transfer target</value>
+  </data>
 </root>

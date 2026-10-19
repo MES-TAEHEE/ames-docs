@@ -15,6 +15,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
 @inject UomFormat UomFmt
+@inject IJSRuntime JS
 
 <PageTitle>MD-004 @L["MD.Bom.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-004" TitleKey="MD.Bom.Title" />
@@ -55,13 +56,18 @@
                     <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
                     <RadzenDropDown Name="DropDownStatus" @bind-Value="_statusFilter" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;" />
                 </RadzenStack>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem" Wrap="FlexWrap.Wrap" Style="width:100%;" class="bom-toolbar">
                     <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
-                    <RadzenDropDown Name="DropDownType" @bind-Value="_typeFilter" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
-                    <span style="flex:1;"></span>
+                    <RadzenDropDown Name="DropDownType" @bind-Value="_typeFilter" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;min-width:110px;" />
+
                     <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Search" class="ames-rz-btn" />
                     @if (_canEdit) {
                         <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenVersionCreate" class="ames-rz-btn" />
+                    }
+                    <RadzenButton Text="@L["Excel.Download"]" Icon="download" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ExcelDownload" title="@L["Excel.Download.Hint"]" class="ames-rz-btn" />
+                    @if (_canEdit)
+                    {
+                        <RadzenButton Text="@L["Excel.Upload"]" Icon="upload" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => _excelOpen = true)" class="ames-rz-btn" />
                     }
                 </RadzenStack>
             </div>
@@ -170,6 +176,10 @@
                                     @_selVer.ChangeReason
                                 </div>
                             }
+                            @if (_sapSuperseded.Contains(_selVer.VersionID))
+                            {
+                                <div class="dim" style="font-size:.78em;margin-top:2px;">@L["MD.Bom.Hint.SapSuperseded"]</div>
+                            }
                             @if (_selVer.Status == "PENDING" && !string.IsNullOrEmpty(_selVer.RequestedBy))
                             {
                                 <div style="font-size:.78em;color:var(--ames-tx-amber-400);margin-top:2px;">@L["MD.Bom.ApprovalRequester"]: @Actors.Display(_selVer.RequestedBy)</div>
@@ -193,7 +203,7 @@
                                         <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => _verDelConfirm = true' Disabled="@_busy" class="ames-rz-btn" />
                                     }
                                 }
-                                @if (_selVer.Status != "DRAFT" && _canEdit)
+                                @if (_selVer.Status != "DRAFT" && _canEdit && !_sapSuperseded.Contains(_selVer.VersionID))
                                 {
                                     <RadzenButton Text="@L["MD.Bom.SapChange"]" Icon="sync_alt" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="() => OpenVersionEdit(_selVer)" Disabled="@_busy" class="ames-rz-btn" />
                                 }
@@ -245,6 +255,11 @@
         </div>
     </div>
 </div>
+
+@if (_excelOpen)
+{
+    <ExcelImportModal Title="@L["MD.Bom.Title"]" Parse="@ExcelParse" Apply="@ExcelApply" ColumnLabel="@ExcelLabel" OnClose="@ExcelClosed" />
+}
 
 @* ── BOM 버전 등록 모달 ─────────────────────────────────────────────── *@
 @if (_modal == "ver-create")
@@ -413,6 +428,15 @@
                 Audit.Log("MD-004", "EXPIRE", "MD_BomVersion", id, new { Status = "APPROVED" }, new { Status = "EXPIRED" });
         }
         catch { }
+        // 새 버전이 승인됐거나 만료된 버전은 SAP 전송을 자동으로 끈다(10-20, 규칙 BomVersionRules.SapSuperseded)
+        try
+        {
+            foreach (var id in MD.ClearSupersededBomSapFlags(_actor))
+                Audit.Log("MD-004", "SAP_OFF", "MD_BomVersion", id, new { VersionID = id, SAPTransFlag = true }, new { VersionID = id, SAPTransFlag = false, Reason = "SUPERSEDED" });
+        }
+        catch { }
+        try { _sapSuperseded = AMES.Data.Services.BomVersionRules.SapSuperseded(MD.ListBomVersions().Select(MasterDataRepository.ToVersionInfo)); }
+        catch { _sapSuperseded = new(); }
         try
         {
             _versions = MD.ListBomVersions(string.IsNullOrEmpty(_statusFilter) ? null : _statusFilter);
@@ -522,6 +546,9 @@
 
     // 검색어가 품번과 정확히 같고 그 품번의 BOM 버전이 목록에 없으면(원자재 등) 우측에 상위 BOM 을 보인다(10-20)
     string? _usedItem;
+
+    // SAP 전송에서 빠진 버전(새 승인 버전이 있거나 만료) — 「SAP 전송 변경」을 숨긴다
+    HashSet<string> _sapSuperseded = new(StringComparer.OrdinalIgnoreCase);
 
     void Search()
     {
@@ -908,6 +935,12 @@
             ShowMsg($"{id} {L["Msg.Updated"]}", false);
         }
         catch (MasterDataRepository.BomSapReasonRequiredException) { _modalErr = L["MD.Bom.Err.SapReason"]; }
+        catch (MasterDataRepository.BomSapSupersededException)
+        {
+            CloseModal();
+            await RefreshVersion(id);
+            ShowMsg(L["MD.Bom.Hint.SapSuperseded"], true);
+        }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -1040,6 +1073,89 @@
         if ((_fv.ChangeReason ?? "").Trim().Length <= ChangeReasonMax) return false;
         _modalErr = string.Format(L["Err.MaxLenFmt"], L["Col.ChangeReason"], ChangeReasonMax);
         return true;
+    }
+
+    // ── 엑셀 내려받기·올리기(10-20) — 한 행 = 버전 정보 + 구성 라인 하나. 올리면 없는 버전은 초안으로 만들고,
+    //    있는 초안 버전에는 없는 구성품만 더하며, 승인 요청·승인 등 초안이 아닌 버전은 건너뛴다(규칙 AMES.Data.Services.BomImport)
+    bool _excelOpen;
+    List<AMES.Data.Services.BomImport.Version> _excelPlans = new();
+
+    string ExcelLabel(string key) => key switch
+    {
+        "VersionID" => "VersionID", "RootItemNo" => L["Col.RootItemNo"], "VersionNo" => L["Col.VersionNo"],
+        "EffFrom" => L["Col.StartDate"], "EffTo" => L["Col.EndDate"], "ChangeType" => L["Col.ChangeType"], "ChangeReason" => L["Col.ChangeReason"],
+        "SAPTransFlag" => L["Col.SapTrans"], "Status" => L["Col.Status"], "CompItemNo" => L["Col.ComponentItem"], "QtyPer" => L["Col.Qty"],
+        "UOM" => L["Col.Uom"], "ScrapPct" => L["Col.ScrapPct"], "Position" => L["Col.Seq"], "Note" => L["Col.Note"], _ => key,
+    };
+
+    // 지금 좌측 목록(검색·필터 적용)의 버전과 활성 구성 라인을 올리기 양식 그대로 내려받는다. 상태 열은 참고용(올릴 때 읽지 않음)
+    async Task ExcelDownload()
+    {
+        var headers = AMES.Data.Services.BomImport.Keys.Select(k => AMES.Data.Services.MasterExcel.Header(ExcelLabel(k), k)).ToList();
+        List<MasterDataRepository.BomRow> all;
+        try { all = await Task.Run(() => MD.ListAllBomLines()); } catch (Exception ex) { ShowMsg(ex.Message, true); return; }
+        var byVer = all.Where(l => l.ActiveFlag).GroupBy(l => l.VersionID ?? "").ToDictionary(g => g.Key, g => g.ToList());
+        var data = new List<IReadOnlyList<object?>>();
+        foreach (var v in _versions)
+        {
+            object?[] Head() => [v.VersionID, v.RootItemNo, v.VersionNo, v.EffFrom?.ToString("yyyy-MM-dd"), v.EffTo?.ToString("yyyy-MM-dd"),
+                                 v.ChangeType, v.ChangeReason, v.SAPTransFlag ? 1 : 0, v.Status];
+            if (!byVer.TryGetValue(v.VersionID, out var lines) || lines.Count == 0) { data.Add([.. Head(), null, null, null, null, null, null]); continue; }
+            foreach (var l in lines) data.Add([.. Head(), l.CompItemNo, l.QtyPer, l.UOM, l.ScrapPct, l.Position, l.Note]);
+        }
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["MD.Bom.Title"].Value, headers, data);
+        await JS.InvokeVoidAsync("amesDownload", $"BOM_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+
+    AMES.Web.Services.ExcelImportPreview ExcelParse(List<string[]> sheet)
+    {
+        var lines = MD.ListAllBomLines();
+        var comps = lines.GroupBy(l => l.VersionID ?? "", StringComparer.OrdinalIgnoreCase)
+                         .ToDictionary(g => g.Key, g => (IReadOnlySet<string>)new HashSet<string>(g.Select(l => l.CompItemNo ?? ""), StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
+        var versions = MD.ListBomVersions().ToDictionary(v => v.VersionID,
+            v => new AMES.Data.Services.BomImport.ExistingVersion(v.Status, v.RootItemNo,
+                     comps.TryGetValue(v.VersionID, out var c) ? c : new HashSet<string>(StringComparer.OrdinalIgnoreCase)),
+            StringComparer.OrdinalIgnoreCase);
+        var items = new HashSet<string>(MD.ListItems("").Select(i => i.ItemNo), StringComparer.OrdinalIgnoreCase);
+        var uoms = new HashSet<string>(MD.ListUoms().Where(u => u.ActiveFlag).Select(u => (u.UOMCode ?? "").Trim()), StringComparer.OrdinalIgnoreCase);
+        var r = AMES.Data.Services.BomImport.Parse(sheet, new(versions, items, uoms, DateOnly.FromDateTime(DbClock.Today), (p, c) => MD.BomWouldCycle(p, c)));
+        _excelPlans = r.Plans;
+        var news = r.Plans.Select(v => v.IsNew ? $"{v.VersionId} (+{v.Lines.Count})" : $"{v.VersionId} +{v.Lines.Count} → DRAFT").ToList();
+        var skips = r.SkippedVersions.Select(x => $"{x.VersionId} [{StatusName(x.Status)}]")
+                     .Concat(r.SkippedLines.Select(x => $"{x.VersionId}/{x.CompItemNo}")).ToList();
+        return new(news, skips, r.Problems);
+    }
+
+    async Task<AMES.Web.Services.ExcelImportOutcome> ExcelApply()
+    {
+        if (!_canEdit) return new(0, 0, []);
+        int created = 0, skipped = 0;
+        var failures = new List<string>();
+        foreach (var v in _excelPlans)
+        {
+            try
+            {
+                var added = await Task.Run(() => MD.ImportBomVersion(v, _actor));
+                if (added is null) { skipped++; continue; }   // 확인 뒤 다른 사용자가 같은 버전을 만들었거나 상태를 바꿨다
+                if (v.IsNew) Audit.Created("MD-004", "MD_BomVersion", v.VersionId, v);
+                else Audit.Log("MD-004", "IMPORT", "MD_Bom", v.VersionId, null, new { v.VersionId, Lines = v.Lines });
+                created++;
+            }
+            catch (Exception ex) { failures.Add($"{v.VersionId}: {ex.Message}"); }
+        }
+        return new(created, skipped, failures);
+    }
+
+    async Task ExcelClosed(bool changed)
+    {
+        _excelOpen = false; _excelPlans = new();
+        if (!changed) return;
+        var id = _selVer?.VersionID;
+        LoadVersions();
+        _selVer = id is null ? null : _versions.FirstOrDefault(v => v.VersionID == id);
+        LoadLines();
+        await RestorePages();
     }
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

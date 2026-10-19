@@ -667,6 +667,8 @@ public sealed class MasterDataRepository
         try
         {
             return ExecCount($"""
+                IF EXISTS (SELECT 1 FROM dbo.MD_BomVersion v WHERE v.VersionID = @ID AND {BomSapSupersededSql})
+                    THROW 51833, 'A newer approved version replaced this BOM version; its SAP transfer cannot change.', 1;
                 {BomSapReasonGuardSql}
                 UPDATE dbo.MD_BomVersion
                 SET    SAPTransFlag=@Sap, ChangeType=@CT, ChangeReason=@CR, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
@@ -677,6 +679,14 @@ public sealed class MasterDataRepository
                 ("@By", "MD_BomVersion.ModifiedBy", modifiedBy)) > 0;
         }
         catch (SqlException ex) when (ex.Number == 51831) { throw new BomSapReasonRequiredException(versionId); }
+        catch (SqlException ex) when (ex.Number == 51833) { throw new BomSapSupersededException(versionId); }
+    }
+
+    /// <summary>새 버전이 승인됐거나 만료된 버전이라 SAP 전송을 바꿀 수 없다(10-20, <see cref="BomVersionRules.SapSuperseded"/>).</summary>
+    public sealed class BomSapSupersededException(string versionId)
+        : InvalidOperationException($"BOM version {versionId} was replaced by a newer approved version; its SAP transfer cannot change.")
+    {
+        public string VersionId { get; } = versionId;
     }
 
     /// <summary>SAP 전송을 바꾸면서 변경 사유를 새로 적지 않았다(10-20).</summary>
@@ -876,6 +886,34 @@ public sealed class MasterDataRepository
         return ids;
     }
 
+    // SAP 전송에서 빠지는 버전 — 규칙 정본 BomVersionRules.SapSuperseded(만료, 또는 같은 품번에 시작일이 더 늦은 승인 버전이 있는 승인 버전)
+    const string BomSapSupersededSql = """
+        (v.Status = 'EXPIRED'
+         OR (v.Status = 'APPROVED' AND EXISTS (SELECT 1 FROM dbo.MD_BomVersion n
+                                               WHERE n.RootItemNo = v.RootItemNo AND n.VersionID <> v.VersionID AND n.Status = 'APPROVED'
+                                                 AND ISNULL(n.EffFrom, '19000101') > ISNULL(v.EffFrom, '19000101'))))
+        """;
+
+    /// <summary>
+    /// 새 버전이 승인됐거나 만료된 버전의 SAP 전송을 끈다(10-20) — MD-004 가 목록을 읽을 때마다 만료 처리와 함께 부르고 끈 버전 ID 를 돌려준다(감사용).
+    /// </summary>
+    public List<string> ClearSupersededBomSapFlags(string modifiedBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand($"""
+            UPDATE v
+            SET    SAPTransFlag = 0, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+            OUTPUT inserted.VersionID
+            FROM   dbo.MD_BomVersion v
+            WHERE  v.SAPTransFlag = 1 AND {BomSapSupersededSql};
+            """, conn);
+        ColumnParams.Add(cmd, "@By", "MD_BomVersion.ModifiedBy", modifiedBy);
+        using var r = cmd.ExecuteReader();
+        var ids = new List<string>();
+        while (r.Read()) ids.Add((string)r["VersionID"]);
+        return ids;
+    }
+
     /// <summary>PENDING → REJECTED. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
     public bool RejectBomVersion(string versionId, string rejectedBy)
         => ExecCount("""
@@ -917,6 +955,71 @@ public sealed class MasterDataRepository
             WHERE  b.VersionID = @V
             ORDER  BY ISNULL(b.Position,9999), b.BOMLevel, b.CompItemNo
             """, MapBomRow, ("@V", "MD_Bom.VersionID", (object?)versionId));
+
+    // 모든 버전의 BOM 라인(엑셀 내려받기·올리기 검사용, 10-20)
+    public List<BomRow> ListAllBomLines()
+        => Query(BomLineSelect + """
+            ORDER  BY b.VersionID, ISNULL(b.Position,9999), b.CompItemNo
+            """, MapBomRow);
+
+    /// <summary>
+    /// MD-004 엑셀 올리기 한 버전을 한 트랜잭션으로 등록한다(10-20, 규칙 <see cref="BomImport"/>) — 새 버전이면 DRAFT 로 만들고 라인을 넣는다.
+    /// 있는 버전이면 DRAFT 일 때만 그 버전에 없는 구성품 라인을 더한다. 검사 뒤 다른 사용자가 같은 버전을 만들었거나
+    /// 상태를 바꿨으면 아무것도 쓰지 않고 null. 성공하면 넣은 라인 수.
+    /// </summary>
+    public int? ImportBomVersion(BomImport.Version v, string actor)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        string? status;
+        using (var cmd = new SqlCommand("SELECT Status FROM dbo.MD_BomVersion WITH (UPDLOCK, HOLDLOCK) WHERE VersionID=@V", conn, tx))
+        {
+            ColumnParams.AddFilter(cmd, "@V", "MD_BomVersion.VersionID", v.VersionId);
+            status = cmd.ExecuteScalar() as string;
+        }
+        if (v.IsNew ? status is not null : status != "DRAFT") { tx.Rollback(); return null; }
+        if (v.IsNew)
+        {
+            using var cmd = new SqlCommand("""
+                INSERT INTO dbo.MD_BomVersion
+                       (VersionID,RootItemNo,VersionNo,EffFrom,EffTo,ChangeType,ChangeReason,Status,SAPTransFlag,CreatedBy,CreatedTS)
+                VALUES (@V,@Root,@VNo,@EF,@ET,@CT,@CR,'DRAFT',@Sap,@By,SYSDATETIME())
+                """, conn, tx);
+            ColumnParams.Add(cmd, "@V", "MD_BomVersion.VersionID", v.VersionId);
+            ColumnParams.Add(cmd, "@Root", "MD_BomVersion.RootItemNo", v.RootItemNo);
+            ColumnParams.Add(cmd, "@VNo", "MD_BomVersion.VersionNo", v.VersionNo);
+            ColumnParams.Add(cmd, "@EF", "MD_BomVersion.EffFrom", v.EffFrom.HasValue ? v.EffFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value);
+            ColumnParams.Add(cmd, "@ET", "MD_BomVersion.EffTo", v.EffTo.HasValue ? v.EffTo.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value);
+            ColumnParams.Add(cmd, "@CT", "MD_BomVersion.ChangeType", v.ChangeType);
+            ColumnParams.Add(cmd, "@CR", "MD_BomVersion.ChangeReason", v.ChangeReason);
+            ColumnParams.Add(cmd, "@Sap", "MD_BomVersion.SAPTransFlag", v.SapTransFlag);
+            ColumnParams.Add(cmd, "@By", "MD_BomVersion.CreatedBy", actor);
+            cmd.ExecuteNonQuery();
+        }
+        int added = 0;
+        foreach (var l in v.Lines)
+        {
+            using var cmd = new SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM dbo.MD_Bom WHERE VersionID=@V AND CompItemNo=@Comp)
+                    INSERT INTO dbo.MD_Bom
+                           (BOMID,ParentItemNo,CompItemNo,BOMLevel,QtyPer,UOM,ScrapPct,VersionID,Position,Note,ActiveFlag,CreatedBy,CreatedTS)
+                    VALUES (@ID,@Par,@Comp,1,@Qty,@UOM,@Scrap,@V,@Pos,@Note,1,@By,SYSDATETIME())
+                """, conn, tx);
+            ColumnParams.Add(cmd, "@ID", "MD_Bom.BOMID", "B" + Guid.NewGuid().ToString("N")[..23]);
+            ColumnParams.Add(cmd, "@Par", "MD_Bom.ParentItemNo", v.RootItemNo);
+            ColumnParams.Add(cmd, "@Comp", "MD_Bom.CompItemNo", l.CompItemNo);
+            ColumnParams.Add(cmd, "@Qty", "MD_Bom.QtyPer", l.QtyPer);
+            ColumnParams.Add(cmd, "@UOM", "MD_Bom.UOM", l.Uom);
+            ColumnParams.Add(cmd, "@Scrap", "MD_Bom.ScrapPct", l.ScrapPct);
+            ColumnParams.Add(cmd, "@V", "MD_Bom.VersionID", v.VersionId);
+            ColumnParams.Add(cmd, "@Pos", "MD_Bom.Position", l.Position);
+            ColumnParams.Add(cmd, "@Note", "MD_Bom.Note", l.Note);
+            ColumnParams.Add(cmd, "@By", "MD_Bom.CreatedBy", actor);
+            added += cmd.ExecuteNonQuery() > 0 ? 1 : 0;
+        }
+        tx.Commit();
+        return added;
+    }
 
     // 역전개 — 이 품번을 구성요소로 쓰는 활성 BOM 라인(모든 버전). 어느 버전을 쓸지는 호출자가 대표 버전으로 고른다
     public List<BomRow> ListBomWhereUsed(string compItemNo)

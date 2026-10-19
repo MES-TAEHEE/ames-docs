@@ -67,6 +67,23 @@ public static class BomVersionRules
         && (string.IsNullOrWhiteSpace(newReason)
             || string.Equals((storedReason ?? "").Trim(), newReason.Trim(), StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// SAP 전송에서 빠지는 버전(10-20) — 만료(EXPIRED)이거나, 승인(APPROVED) 버전인데 같은 최상위 품번에 시작일이 더 늦은 승인 버전이 있다.
+    /// 이런 버전의 SAP 전송은 자동으로 끄고(저장소 <c>ClearSupersededBomSapFlags</c>) 「SAP 전송 변경」도 막는다.
+    /// 초안·승인 요청·반려 버전과 아직 승인되지 않은 새 버전은 따지지 않는다(쓰는 중인 승인 버전이 초안 하나로 꺼지지 않게).
+    /// 저장소 SQL <c>BomSapSupersededSql</c> 과 같은 규칙.
+    /// </summary>
+    public static HashSet<string> SapSuperseded(IEnumerable<VersionInfo> versions)
+    {
+        var list = versions.ToList();
+        var approved = list.Where(v => v.Status == "APPROVED").ToList();
+        return list.Where(v => v.Status == "EXPIRED"
+                            || (v.Status == "APPROVED" && approved.Any(n => n.VersionId != v.VersionId
+                                    && string.Equals(n.RootItemNo, v.RootItemNo, StringComparison.OrdinalIgnoreCase)
+                                    && (n.From ?? DateOnly.MinValue) > (v.From ?? DateOnly.MinValue))))
+                   .Select(v => v.VersionId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
     public static bool Overlaps(DateOnly? aFrom, DateOnly? aTo, DateOnly? bFrom, DateOnly? bTo)
         => (aFrom ?? DateOnly.MinValue) <= (bTo ?? DateOnly.MaxValue)
         && (bFrom ?? DateOnly.MinValue) <= (aTo ?? DateOnly.MaxValue);

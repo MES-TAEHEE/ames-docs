@@ -11542,4 +11542,100 @@
   <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
   <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>{0} elementos</value></data>
   <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>¿Descargar en Excel las cantidades disponibles y defectuosas de los {0} artículos filtrados?</value></data>
+  <data name="Excel.Download" xml:space="preserve">
+    <value>Descargar Excel</value>
+  </data>
+  <data name="Excel.Download.Hint" xml:space="preserve">
+    <value>Descarga la lista actual en el formato de carga (plantilla vacía si no hay filas)</value>
+  </data>
+  <data name="Excel.Upload" xml:space="preserve">
+    <value>Subir Excel</value>
+  </data>
+  <data name="Excel.Upload.Hint" xml:space="preserve">
+    <value>Suba la plantilla descargada (.xlsx): solo se crean los registros que faltan y los existentes se omiten (no se actualizan). Las columnas se identifican por la clave entre paréntesis del encabezado.</value>
+  </data>
+  <data name="Excel.Upload.New" xml:space="preserve">
+    <value>Crear {0}</value>
+  </data>
+  <data name="Excel.Upload.Skip" xml:space="preserve">
+    <value>Omitir {0}</value>
+  </data>
+  <data name="Excel.Upload.Problems" xml:space="preserve">
+    <value>Problemas {0}</value>
+  </data>
+  <data name="Excel.Upload.NewList" xml:space="preserve">
+    <value>Se crearán</value>
+  </data>
+  <data name="Excel.Upload.SkipList" xml:space="preserve">
+    <value>Ya existen (se omiten)</value>
+  </data>
+  <data name="Excel.Upload.ProblemList" xml:space="preserve">
+    <value>Filas que no se crean por problemas</value>
+  </data>
+  <data name="Excel.Upload.Apply" xml:space="preserve">
+    <value>Crear</value>
+  </data>
+  <data name="Excel.Upload.Done" xml:space="preserve">
+    <value>Creados {0} · omitidos {1} · fallidos {2}</value>
+  </data>
+  <data name="Excel.Upload.RowFmt" xml:space="preserve">
+    <value>Fila {0}</value>
+  </data>
+  <data name="Excel.Err.NotXlsx" xml:space="preserve">
+    <value>No es un archivo Excel (.xlsx)</value>
+  </data>
+  <data name="Excel.Err.TooLarge" xml:space="preserve">
+    <value>El archivo es demasiado grande (máx. 10 MB)</value>
+  </data>
+  <data name="Excel.Err.NoHeader" xml:space="preserve">
+    <value>No es la plantilla: faltan columnas obligatorias</value>
+  </data>
+  <data name="Excel.Err.Required" xml:space="preserve">
+    <value>Valor obligatorio</value>
+  </data>
+  <data name="Excel.Err.BadNumber" xml:space="preserve">
+    <value>No es un número válido</value>
+  </data>
+  <data name="Excel.Err.BadFlag" xml:space="preserve">
+    <value>Ingrese 1/0 o Y/N</value>
+  </data>
+  <data name="Excel.Err.BadDate" xml:space="preserve">
+    <value>No es una fecha válida (yyyy-MM-dd)</value>
+  </data>
+  <data name="Excel.Err.Unknown" xml:space="preserve">
+    <value>Código o artículo no registrado</value>
+  </data>
+  <data name="Excel.Err.Duplicate" xml:space="preserve">
+    <value>Duplicado en el archivo</value>
+  </data>
+  <data name="Excel.Err.OutOfRange" xml:space="preserve">
+    <value>Fuera de rango</value>
+  </data>
+  <data name="Excel.Err.PastDate" xml:space="preserve">
+    <value>Solo se permite hoy o una fecha posterior</value>
+  </data>
+  <data name="Excel.Err.DateOrder" xml:space="preserve">
+    <value>La fecha final es anterior a la inicial</value>
+  </data>
+  <data name="Excel.Err.TooLong" xml:space="preserve">
+    <value>Demasiado largo</value>
+  </data>
+  <data name="Excel.Err.SelfComp" xml:space="preserve">
+    <value>El artículo raíz no puede ser su propio componente</value>
+  </data>
+  <data name="Excel.Err.Cycle" xml:space="preserve">
+    <value>Crea un ciclo de BOM</value>
+  </data>
+  <data name="Excel.Err.HeaderDiff" xml:space="preserve">
+    <value>Los datos de la versión difieren entre filas de la misma versión</value>
+  </data>
+  <data name="Excel.Err.RootDiff" xml:space="preserve">
+    <value>El artículo raíz difiere de la versión existente</value>
+  </data>
+  <data name="Excel.Err.Packaging" xml:space="preserve">
+    <value>BOX y PALLET no son unidades de cantidad</value>
+  </data>
+  <data name="MD.Bom.Hint.SapSuperseded" xml:space="preserve">
+    <value>Se aprobó una versión más nueva o esta venció, por lo que ya no se envía a SAP</value>
+  </data>
 </root>

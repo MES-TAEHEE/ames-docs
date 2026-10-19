@@ -14,6 +14,7 @@
 @inject AMES.Web.Services.AuditLogger Audit
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
+@inject IJSRuntime JS
 
 <PageTitle>MD-003 @L["MD.Items.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-003" TitleKey="MD.Items.Title" />
@@ -47,7 +48,7 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <span style="white-space:nowrap;">▼ @L["MD.Items.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Items.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
+            <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Items.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fTypeFilter" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["MD.Items.Col.ProcureType"]" Component="DropDownProcure" />
@@ -59,6 +60,11 @@
             @if (_canEdit)
             {
                 <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
+            <RadzenButton Text="@L["Excel.Download"]" Icon="download" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ExcelDownload" title="@L["Excel.Download.Hint"]" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Excel.Upload"]" Icon="upload" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="@(() => _excelOpen = true)" class="ames-rz-btn" />
             }
         </RadzenStack>
     </div>
@@ -151,6 +157,11 @@
         </Columns>
     </RadzenDataGrid>
 </div>
+
+@if (_excelOpen)
+{
+    <ExcelImportModal Title="@L["MD.Items.Title"]" Parse="@ExcelParse" Apply="@ExcelApply" ColumnLabel="@ExcelLabel" OnClose="@ExcelClosed" />
+}
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
@@ -657,6 +668,86 @@
             <RadzenLabel Text="@L["Lbl.Active"]" Component="ItemChkActive" style="cursor:pointer;" />
         </RadzenStack>
     </div>;
+
+    // ── 엑셀 내려받기·올리기(10-20) — 같은 양식으로 내려받아 고쳐 올리면 없는 품번만 등록하고 있는 품번은 건너뛴다(규칙 AMES.Data.Services.ItemImport)
+    bool _excelOpen;
+    List<AMES.Data.Services.ItemImport.Row> _excelRows = new();
+
+    string ExcelLabel(string key) => key switch
+    {
+        "ItemNo" => L["Col.ItemNo"], "ItemName" => L["Col.ItemName"], "ItemType" => L["Col.Type"], "ItemCategory" => L["Col.Category"],
+        "InjFlag" => L["MD.Items.Col.Inj"], "CarType" => L["Col.CarType"], "DefaultUOM" => L["Col.Uom"], "RoutingType" => L["Col.Routing"],
+        "SafetyStock" => L["Col.Safety"], "MinStock" => L["Col.MinStock"], "MaxStock" => L["Col.MaxStock"], "UnitCost" => L["Col.UnitPrice"],
+        "PGN" => L["Col.PGN"], "ALC" => L["Col.ALC"], "DrawingNo" => L["MD.Items.Lbl.DrawingNo"], "PalletQty" => L["MD.Items.Col.PalletQty"],
+        "MaxPalletQty" => L["MD.Items.Col.MaxPalletQty"], "ToteFlag" => L["MD.Items.Col.Tote"], "ScanRequired" => L["MD.Items.ScanRequired"],
+        "IssueAddPct" => L["MD.Items.Col.IssueAddPct"], "MrpAllowPct" => L["MD.Items.Col.MrpAllowPct"], "ProcureType" => L["MD.Items.Col.ProcureType"],
+        "SAPTransFlag" => L["Col.SapTrans"], "ActiveFlag" => L["Col.Active"], _ => key,
+    };
+
+    // 지금 목록(필터 적용)을 올리기 양식 그대로 내려받는다 — 0건이면 머리글만 있는 빈 양식
+    async Task ExcelDownload()
+    {
+        var headers = AMES.Data.Services.ItemImport.Keys.Select(k => AMES.Data.Services.MasterExcel.Header(ExcelLabel(k), k)).ToList();
+        static object? F(bool b) => b ? 1 : 0;
+        var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
+        {
+            r.ItemNo, r.ItemName, r.ItemType, r.ItemCategory, F(r.InjFlag), r.CarType, r.DefaultUOM, r.RoutingType,
+            r.SafetyStock, r.MinStock, r.MaxStock, r.UnitCost, r.PGN, r.ALC, r.DrawingNo,
+            r.PalletQty, r.MaxPalletQty, F(r.ToteFlag), F(r.ScanRequired), r.IssueAddPct, r.MrpAllowPct,
+            r.ProcureType, F(r.SAPTransFlag), F(r.ActiveFlag),
+        });
+        var bytes = AMES.Web.Services.XlsxWriter.Build(L["MD.Items.Title"].Value, headers, data);
+        await JS.InvokeVoidAsync("amesDownload", $"Items_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+
+    AMES.Web.Services.ExcelImportPreview ExcelParse(List<string[]> sheet)
+    {
+        static HashSet<string> Set(IEnumerable<string?> xs) => new(xs.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim().ToUpperInvariant()), StringComparer.OrdinalIgnoreCase);
+        var codes = (string g) => MD.ListCodeItems(g).Where(c => c.UseFlag).ToList();
+        var lookup = new AMES.Data.Services.ItemImport.Lookup(
+            Set(MD.ListItems("").Select(i => i.ItemNo)),
+            Set(codes("ITEM_TYPE").Select(c => c.CodeValue)),
+            codes("ITEM_CATEGORY").Where(c => !string.IsNullOrWhiteSpace(c.CodeValue))
+                .ToDictionary(c => c.CodeValue!.Trim().ToUpperInvariant(),
+                              c => (IReadOnlySet<string>)Set((c.Attribute1 ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)),
+                              StringComparer.OrdinalIgnoreCase),
+            Set(MD.ListUoms().Where(u => u.ActiveFlag).Select(u => u.UOMCode)),
+            Set(codes("ROUTING").Select(c => c.CodeValue)),
+            Set(codes(MasterDataRepository.ProcureTypeGroup).Select(c => c.CodeValue)));
+        var r = AMES.Data.Services.ItemImport.Parse(sheet, lookup);
+        _excelRows = r.New;
+        return new(r.New.Select(x => x.ItemNo).ToList(), r.Existing.Select(x => x.ItemNo).ToList(), r.Problems);
+    }
+
+    async Task<AMES.Web.Services.ExcelImportOutcome> ExcelApply()
+    {
+        if (!_canEdit) return new(0, 0, []);
+        int created = 0, skipped = 0;
+        var failures = new List<string>();
+        foreach (var x in _excelRows)
+        {
+            try
+            {
+                await Task.Run(() => MD.InsertItem(x.ItemNo, x.ItemName, x.ItemType, x.ItemCategory, x.InjFlag, x.CarType, x.DefaultUom, x.RoutingType,
+                    x.MinStock, x.MaxStock, x.SafetyStock, x.UnitCost, x.Pgn, x.Alc, x.DrawingNo,
+                    x.PalletQty, x.ToteFlag ? null : x.MaxPalletQty, x.ToteFlag, x.ActiveFlag, _actor, x.ScanRequired, x.SapTransFlag,
+                    x.ProcureType, x.IssueAddPct, x.MrpAllowPct));
+                Audit.Created("MD-003", "MD_Item", x.ItemNo, x);
+                created++;
+            }
+            catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number is 2627 or 2601) { skipped++; }   // 그사이 다른 사용자가 같은 품번을 만들었다
+            catch (Exception ex) { failures.Add($"{string.Format(L["Excel.Upload.RowFmt"], x.Line)} · {x.ItemNo}: {ex.Message}"); }
+        }
+        if (created > 0) Audit.Log("MD-003", "IMPORT", "MD_Item", "EXCEL", null, new { Created = created, Skipped = skipped, Failed = failures.Count });
+        return new(created, skipped, failures);
+    }
+
+    async Task ExcelClosed(bool changed)
+    {
+        _excelOpen = false; _excelRows = new();
+        if (changed) await ReloadRestorePage();
+    }
 
     static string? N(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
     static decimal? Nz(decimal v) => v == 0 ? null : v;
