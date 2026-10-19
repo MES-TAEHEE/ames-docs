@@ -10,25 +10,25 @@
     @if (!string.IsNullOrEmpty(_actionError)) { <RadzenAlert AlertStyle="Radzen.AlertStyle.Danger">@_actionError</RadzenAlert> }
     <div class="location-explorer-topbar">
         <nav class="location-explorer-breadcrumb" aria-label="Location hierarchy">
-            <button type="button" class="@BreadcrumbClass(MapStage.Warehouse)" @onclick="ShowWarehouses">@L["Col.Warehouse"]</button>
+            <RadzenButton Text="@L["Col.Warehouse"]" class="@($"ames-rz-btn {BreadcrumbClass(MapStage.Warehouse)}")" Click="ShowWarehouses" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" />
             <span>/</span>
-            <button type="button" class="@BreadcrumbClass(MapStage.Area)" disabled="@string.IsNullOrWhiteSpace(_warehouse)" @onclick="ShowAreas">@(_warehouse ?? L["Col.Area"].Value)</button>
+            <RadzenButton Text="@(_warehouse ?? L["Col.Area"].Value)" class="@($"ames-rz-btn {BreadcrumbClass(MapStage.Area)}")" Disabled="@string.IsNullOrWhiteSpace(_warehouse)" Click="ShowAreas" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" />
             <span>/</span>
-            <button type="button" class="@(_stage == MapStage.Map ? "active" : "")" disabled="@string.IsNullOrWhiteSpace(_area)">@(_area ?? L["Col.Area"].Value)</button>
+            <RadzenButton Text="@(_area ?? L["Col.Area"].Value)" Disabled="@string.IsNullOrWhiteSpace(_area)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             <span>/</span>
-            <button type="button" class="@(_selectingFloor ? "active" : "")" disabled="@string.IsNullOrWhiteSpace(_floor)" @onclick="ShowFloors">@FloorLabel</button>
+            <RadzenButton Text="@FloorLabel" Disabled="@string.IsNullOrWhiteSpace(_floor)" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </nav>
 
         <div class="location-explorer-actions">
             @if (_stage != MapStage.Warehouse)
             {
-                <button type="button" class="location-action secondary" @onclick="Back"><RadzenIcon Icon="arrow_back" /> @L["Btn.Back"]</button>
+                <RadzenButton Text="@L["Btn.Back"]" Icon="arrow_back" Click="Back" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             }
             @if (CanEdit && CanAddHierarchy)
             {
-                <button type="button" class="location-action secondary" aria-pressed="@_editing" @onclick="ToggleEdit"><RadzenIcon Icon="edit" /> @(_editing ? "Done" : "Edit")</button>
+                <RadzenButton Text="@(_editing ? "Done" : "Edit")" Icon="edit" aria-pressed="@_editing" Click="ToggleEdit" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             }
-            <button type="button" class="location-action" @onclick="Refresh"><RadzenIcon Icon="refresh" /> @L["Btn.Refresh"]</button>
+            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </div>
     </div>
 
@@ -60,8 +60,8 @@
                 <div class="location-map-view location-panel-enter">
                     <div class="location-map-heading">
                         <div>
-                            <button type="button" class="location-action secondary" @onclick="ShowFloors">@L["WH.LocMap.ChangeFloor"]</button>
-                            @if (CanEdit) { <button type="button" class="location-action secondary" @onclick='() => OpenDialog("Grid")'>Edit Grid</button> }
+                            <RadzenButton Text="@L["WH.LocMap.ChangeFloor"]" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            @if (CanEdit && _warehouse!="LINE") { <RadzenButton Text="Edit Grid" Click='() => OpenDialog("Grid")' ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /> }
                             <strong>@MapScope · @MapLocations.Count @L["WH.LocMap.Locations"]</strong>
                         </div>
                         <div class="location-map-legend">
@@ -109,8 +109,8 @@
                         <small>@MapScope</small>
                     </div>
                     <div class="location-drawer-actions">
-                        <button type="button" class="location-drawer-print" @onclick="OpenLocationBarcode" aria-label="Print location barcode" title="Print location barcode"><RadzenIcon Icon="print" /> Print</button>
-                        <button type="button" @onclick="CloseLocationDetail" aria-label="Close location detail"><RadzenIcon Icon="close" /></button>
+                        <RadzenButton Text="Print" Icon="print" Click="OpenLocationBarcode" aria-label="Print location barcode" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                        <RadzenButton Icon="close" Click="CloseLocationDetail" aria-label="Close location detail" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                     </div>
                 </header>
 
@@ -122,27 +122,14 @@
                 </div>
 
                 <div class="inventory-drawer-table-wrap">
-                    <table class="inventory-lookup-table location-drawer-table">
-                        <thead><tr><th>@L["Col.LotNo"]</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ItemName"]</th><th>@L["Col.Qty"]</th></tr></thead>
-                        <tbody>
-                            @if (LocationDrawerRows.Count == 0)
-                            {
-                                <tr><td colspan="4" class="inventory-no-results">@L["WH.LocMap.EmptyLocation"]</td></tr>
-                            }
-                            else
-                            {
-                                @foreach (var row in LocationDrawerRows)
-                                {
-                                    <tr>
-                                        <td>@Text(row.LotNo)</td>
-                                        <td>@row.PartNo</td>
-                                        <td title="@row.PartName">@Text(row.PartName)</td>
-                                        <td class="number">@Qty(row)</td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
+                    <RadzenDataGrid TItem="LocationMapStock" Data="LocationDrawerRows" AllowPaging="false" AllowSorting="true" EmptyText="@L["WH.LocMap.EmptyLocation"]" Density="Density.Compact" Class="ames-rz-grid">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="LotNo" Title="@L["Col.LotNo"]"><Template Context="row">@Text(row.LotNo)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="PartNo" Title="@L["Col.ItemNo"]" />
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="PartName" Title="@L["Col.ItemName"]"><Template Context="row">@Text(row.PartName)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right"><Template Context="row">@Qty(row)</Template></RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
                 </div>
             </aside>
         </div>

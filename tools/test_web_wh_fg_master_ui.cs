@@ -31,11 +31,38 @@ Check(layout.Contains("ames-sec-wh") && layout.Contains("ames-sec-fg"), "WH and 
 
 var screens = Read("src/06_Web/AMES.Web/Components/Pages/Sys/Screens.razor");
 var nav = Read("src/06_Web/AMES.Web/Components/Layout/NavMenu.razor");
+var catalog = Read("src/06_Web/AMES.Web/Services/MenuCatalog.cs");
 var header = Read("src/06_Web/AMES.Web/Components/Layout/AmesPageHeader.razor");
 var repo = Read("src/02_Data/AMES.Data/Repositories/SysRepository.cs");
 Check(screens.Contains("ScreenCatalog.Notify()") && nav.Contains("ScreenCatalog.Changed += OnScreensChanged") &&
       header.Contains("ScreenCatalog.Changed += OnScreensChanged"), "Screen Master saves refresh open menus and headers");
-Check(header.Contains("Sys.ListScreens(\"WEB\")") && nav.Contains("s.LidLabel ?? s.ScreenCode") &&
-      nav.Contains("s.IsVisible"), "Menu and page header use visible Screen Master entries");
+Check(header.Contains("Sys.ListScreens(\"WEB\")") && catalog.Contains("s.LidLabel ?? s.ScreenCode") &&
+      catalog.Contains("s.IsVisible"), "Menu and page header use visible Screen Master entries");
 Check(screens.Contains("lid = code") && repo.Contains("BEGIN TRANSACTION;") &&
       repo.Contains("UPDATE dbo.SYS_RolePermission"), "Screen code edits retain labels and role permissions");
+
+var shipment = Read("src/06_Web/AMES.Web/Components/Pages/Fg/Shipments.razor");
+var shipmentCss = Read("src/06_Web/AMES.Web/Components/Pages/Fg/Shipments.razor.css");
+Check(!shipment.Contains("<table") && shipment.Contains("shipment-items-grid"), "Shipment details use Radzen instead of hand-built tables");
+Check(shipmentCss.Contains("max-height:280px") && shipmentCss.Contains("height:auto !important"), "Nested shipment details remain content-sized and scroll when long");
+
+var picking = Read("src/06_Web/AMES.Web/Components/Pages/Wh/PickingOrders.razor");
+Check(picking.Contains("ames-kpis") && picking.Contains("master-list-toolbar") && picking.Contains("ames-grid-fixed") && picking.Contains("RadzenSelectBar"), "Picking Orders follows the MD/SYS list and tab patterns");
+
+var orders = Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShippingOrders.razor");
+Check(orders.Contains("RadzenSelectBar") && orders.Contains("master-list-toolbar") && orders.Contains("ames-grid-fixed") && !orders.Contains("<details") && !orders.Contains("<button"), "Shipment Orders uses standard Radzen navigation, grid expansion and buttons");
+var create = Read("src/06_Web/AMES.Web/Components/Shared/ShipmentOrderCreate.razor");
+Check(create.Contains("ames-kpis") && create.Contains("master-list-toolbar") && create.Contains("ames-grid-fixed") && create.Contains("Immediate=\"true\"") && create.Contains("EstimateShippingPallets"), "Standard shipment creation preserves immediate quantity/pallet calculations");
+
+foreach(var path in new[]{
+    "src/06_Web/AMES.Web/Components/Shared/LineLocationEditor.razor",
+    "src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor",
+    "src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor",
+    "src/06_Web/AMES.Web/Components/Pages/Fg/ShipmentTrailerDialog.razor"})
+{
+    var text=Read(path);
+    Check(text.Contains("RadzenDataGrid") && !text.Contains("<table"), Path.GetFileName(path)+" uses Radzen for interactive data tables");
+}
+var lineEditor=Read("src/06_Web/AMES.Web/Components/Shared/LineLocationEditor.razor");
+Check(lineEditor.Contains("RadzenRow") && lineEditor.Contains("RadzenColumn") && lineEditor.Contains("RadzenLabel") && !lineEditor.Contains("<label>"), "Line location forms use the shared master form layout");
+Check(Read("AGENTS.md").Contains("Radzen") && Read("AGENTS.md").Contains("Claude"), "Project instructions preserve the required design-system source and Radzen policy");
