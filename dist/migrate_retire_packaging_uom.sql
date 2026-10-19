@@ -18,7 +18,7 @@ BEGIN TRY
     -- Keep historical unit labels while preventing further use.
     UPDATE dbo.MD_Uom
     SET ActiveFlag=0,ModifiedBy='uom-cleanup',ModifiedTS=SYSDATETIME()
-    WHERE UPPER(LTRIM(RTRIM(UOMCode))) IN ('BOX','PLT','PALLET','SH','SHEET')
+    WHERE UPPER(LTRIM(RTRIM(UOMCode))) IN ('BOX','PLT','PALLET')
       AND ISNULL(ActiveFlag,1)=1;
 
     COMMIT TRANSACTION;

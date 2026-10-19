@@ -426,12 +426,12 @@ public sealed class MasterDataRepository
     }
 
     public static bool IsQuantityUnit(string? unit) => !string.IsNullOrWhiteSpace(unit)
-        && unit.Trim().ToUpperInvariant() is not ("BOX" or "PLT" or "PALLET" or "SH" or "SHEET");
+        && unit.Trim().ToUpperInvariant() is not ("BOX" or "PLT" or "PALLET");
 
     static void ValidateQuantityUnit(string? unit)
     {
         if (!string.IsNullOrWhiteSpace(unit) && !IsQuantityUnit(unit))
-            throw new ArgumentException("Select a quantity unit such as EA, KG, G or M. BOX, PALLET and SHEET are packaging only.");
+            throw new ArgumentException("Select a quantity unit such as EA, SH, KG, G or M. BOX and PALLET are packaging only.");
     }
 
     const string ItemUsageSql = """
@@ -3450,7 +3450,7 @@ public sealed class MasterDataRepository
                DecimalPrec, Symbol, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
         FROM dbo.MD_Uom
-        WHERE UPPER(LTRIM(RTRIM(UOMCode))) NOT IN ('BOX','PLT','PALLET','SH','SHEET')
+        WHERE UPPER(LTRIM(RTRIM(UOMCode))) NOT IN ('BOX','PLT','PALLET')
         ORDER BY UOMCode
         """, r => new UomRow(
             r.GetString("UOMCode"),
