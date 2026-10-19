@@ -8,19 +8,28 @@
 @inject AuthenticationStateProvider Auth
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResources> L
 
 <PageTitle>WH-002 Picking Orders · AMES</PageTitle>
 <AmesPageHeader Code="WH-002" Title="Picking Orders" />
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">Picking orders</div><div class="ames-kpi-v">@_orders.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">Line locations</div><div class="ames-kpi-v">@_stock.Select(x=>x.LineCode).Distinct().Count()</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">Below minimum</div><div class="ames-kpi-v">@_stock.Count(x=>x.RequiredQty>0)</div></div>
+</div>
+<RadzenSelectBar TValue="bool" @bind-Value="_showStock" Size="ButtonSize.Small" Style="margin-bottom:12px">
+    <Items><RadzenSelectBarItem Text="Picking Orders" Value="@(false)" /><RadzenSelectBarItem Text="Line Stock" Value="@(true)" /></Items>
+</RadzenSelectBar>
 
 @if (_error.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert> }
-<div class="auto-order-page">
+@if(_showStock)
+{
     <section class="ames-card wh-pick-list">
-        <div class="ames-card-h wh-pick-card-head">
+        <div class="ames-card-h master-list-toolbar">
             <span>LINE STOCK · SAFETY STOCK</span>
             <RadzenButton Text="Refresh" Icon="refresh" Click="Load" Size="ButtonSize.Small" class="ames-rz-btn" />
         </div>
-        <small>Checked every 10 minutes by the API. Existing open orders are not duplicated.</small>
-        <RadzenDataGrid TItem="LineStockRow" Data="_stock" AllowPaging="true" PageSize="10" AllowSorting="true" class="ames-rz-grid">
+        <RadzenDataGrid TItem="LineStockRow" Data="_stock" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_stockPageRows=s)" Style="@($"--ames-page-rows:{_stockPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
             <Columns>
                 <RadzenDataGridColumn TItem="LineStockRow" Property="LineCode" Title="LINE" Width="80px" />
                 <RadzenDataGridColumn TItem="LineStockRow" Property="PartNo" Title="PART NO" Width="170px" />
@@ -32,16 +41,19 @@
             </Columns>
         </RadzenDataGrid>
     </section>
+}
+else
+{
     <section class="ames-card wh-pick-list">
-        <div class="ames-card-h wh-pick-card-head">
+        <div class="ames-card-h master-list-toolbar">
             <span>PICKING ORDERS</span>
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="8px">
-                <RadzenTextBox @bind-Value="_search" Placeholder="Search" class="ames-rz-input" />
-                <RadzenButton Text="Search" Icon="search" Click="Load" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
+                <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
+                <RadzenButton Text="Search" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
         <RadzenDataGrid TItem="PickingSlipHeaderRow" Data="_orders" RowSelect="SelectOrder"
-            AllowPaging="true" PageSize="10" AllowSorting="true" class="ames-rz-grid">
+            AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_orderPageRows=s)" Style="@($"--ames-page-rows:{_orderPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
             <Columns>
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="PICKING ORDER" />
                 <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqLocation" Title="LINE" Width="100px" />
@@ -57,14 +69,14 @@
             </Columns>
         </RadzenDataGrid>
     </section>
-</div>
+}
 
 @if (_selected is not null)
 {
+    <div class="ames-modal-bg" @onclick="@(()=>_selected=null)"><div class="ames-modal ames-modal-fullwide" @onclick:stopPropagation>
     <section class="ames-card slip-detail-card">
-        <div class="ames-card-h wh-pick-card-head">
+        <div class="ames-modal-h master-list-toolbar">
             <span>@_selected.PickSlipNo · LINE @_selected.ReqLocation</span>
-            <RadzenButton Text="Print Barcode" Icon="print" Click="Print" Size="ButtonSize.Small" class="ames-rz-btn" />
         </div>
         <RadzenDataGrid TItem="PickingSlipLineRow" Data="_details" AllowPaging="false" class="ames-rz-grid">
             <Columns>
@@ -84,6 +96,8 @@
             </Columns>
         </RadzenDataGrid>
     </section>
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="Print Barcode" Icon="print" Click="Print" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="Close" Icon="close" Click="@(()=>_selected=null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+    </div></div>
     <div class="wh-slip-print-area">
         <div class="wh-slip-paper">
             <div class="wh-slip-title">WAREHOUSE PICKING ORDER</div>
@@ -126,6 +140,8 @@
     PickingSlipHeaderRow? _selected;
     string _search = "", _error = "";
     bool _allowed;
+    bool _showStock;
+    readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _stockPageRows=25,_orderPageRows=25;
 
     protected override async Task OnInitializedAsync()
     {

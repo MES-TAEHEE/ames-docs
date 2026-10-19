@@ -46,9 +46,33 @@
                     <div><strong>PICKING LIST</strong><span>OPEN / PARTIAL</span></div>
                     <button type="button" @onclick="LoadOpenPickingOrdersAsync" disabled="@_isBusy">REFRESH</button>
                 </div>
+                <div class="wh07-list-tabs">
+                    <button class="@(!_byPart ? "active" : "")" @onclick="@(() => _byPart=false)">BY ORDER</button>
+                    <button class="@(_byPart ? "active" : "")" @onclick="@(() => _byPart=true)">BY PART</button>
+                </div>
                 @if (!string.IsNullOrWhiteSpace(_pickingListError))
                 {
                     <div class="wh07-order-empty error">@_pickingListError</div>
+                }
+                else if (_byPart)
+                {
+                    <div class="wh07-order-list">
+                        @foreach(var part in _pickingParts)
+                        {
+                            <details class="wh07-part-row">
+                                <summary><strong>@part.PartNo</strong> · @part.RemainingQty.ToString("N0") @part.Unit</summary>
+                                <div>@part.PartName</div>
+                                <div class="wh07-pick-location">WAREHOUSE: @Text(part.WarehouseLocations)</div>
+                                @foreach(var order in part.Orders)
+                                {
+                                    <button type="button" class="wh07-part-order" @onclick="@(() => OpenPartOrder(order.PickSlipNo))" disabled="@_isBusy">
+                                        @order.PickSlipNo · @order.LocationNo · @order.RemainingQty.ToString("N0") @part.Unit
+                                    </button>
+                                }
+                            </details>
+                        }
+                        @if(_pickingParts.Count==0){<div class="wh07-order-empty">No open picking parts.</div>}
+                    </div>
                 }
                 else if (_openPickingOrders.Count == 0)
                 {
@@ -497,7 +521,7 @@
     private async Task LoadOpenPickingOrdersAsync()
     {
         _pickingListError = "";
-        try { _openPickingOrders = await Api.WhOpenPickingOrdersAsync(); }
+        try { _openPickingOrders = await Api.WhOpenPickingOrdersAsync();_pickingParts=await Api.WhOpenPickingPartsAsync(); }
         catch (Exception ex) { _openPickingOrders.Clear(); _pickingListError = ex.Message; }
     }
 
@@ -507,6 +531,14 @@
         ClearRelease();
         _pickSlipNo = order.PickSlipNo;
         await LoadSlip();
+    }
+
+    private bool _byPart;
+    private List<AMES.Contracts.Dto.PickingPartDto> _pickingParts=[];
+    private async Task OpenPartOrder(string slip)
+    {
+        var order=_openPickingOrders.FirstOrDefault(x=>x.PickSlipNo==slip);
+        if(order is not null) await SelectPickingOrderAsync(order);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

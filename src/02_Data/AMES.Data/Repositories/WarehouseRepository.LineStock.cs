@@ -88,6 +88,23 @@ public sealed partial class WarehouseRepository
     }
 
     public const string ReplenishmentActor = "WH-AUTO";
+    public List<AMES.Contracts.Dto.PickingPartDto> ListOpenPickingParts()
+    {
+        var lines=Query($"""
+            SELECT P.ItemNo,I.ItemName,COALESCE(NULLIF(P.PickSlipNo,''),CONCAT('RS-',P.PickSlipID)) Slip,
+                COALESCE(P.ReqLocation,'') Destination,COALESCE(P.DemandQty,0)-COALESCE(P.PickedQty,0) Remaining,
+                CASE WHEN P.CreatedBy='WH-AUTO' THEN 'EA' ELSE 'BOX' END Unit,
+                (SELECT STRING_AGG(A.LocationNo,', ') FROM(SELECT DISTINCT W.LocationNo FROM dbo.WH_Inventory W
+                    WHERE W.PartNo=P.ItemNo AND {WarehouseBoxPredicate}) A) Locations
+            FROM dbo.WH_PickSlip P LEFT JOIN dbo.MD_Item I ON I.ItemNo=P.ItemNo
+            WHERE P.CloseDate IS NULL AND UPPER(COALESCE(P.Status,'OPEN')) NOT IN('CLOSED','RELEASED','CANCELED','CANCELLED')
+              AND COALESCE(P.DemandQty,0)>COALESCE(P.PickedQty,0)
+            ORDER BY P.ItemNo,P.RequiredAt,P.PickSlipID;
+            """,r=>new {Part=GetString(r,"ItemNo")??"",Name=GetString(r,"ItemName"),Unit=GetString(r,"Unit")!,
+                Slip=GetString(r,"Slip")!,Destination=GetString(r,"Destination")!,Qty=GetDecimal(r,"Remaining"),Locations=GetString(r,"Locations")});
+        return lines.GroupBy(x=>(x.Part,x.Unit)).Select(g=>new AMES.Contracts.Dto.PickingPartDto(g.Key.Part,g.First().Name,g.Key.Unit,
+            g.Sum(x=>x.Qty),g.First().Locations,g.Select(x=>new AMES.Contracts.Dto.PickingPartOrder(x.Slip,x.Destination,x.Qty)).ToList())).ToList();
+    }
     // W is the inventory alias; shared by FIFO suggestions, scan validation and completion.
     public const string WarehouseBoxPredicate = """
         W.UnitType='BOX' AND W.Qty>0
@@ -97,15 +114,15 @@ public sealed partial class WarehouseRepository
         AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
         AND NOT EXISTS (SELECT 1 FROM dbo.MD_Location L
                         WHERE L.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT
-                          AND L.AreaCode IN ('FG','FG_AREA','MNT_AREA','SP_AREA'))
+                          AND (L.AreaCode IN ('FG','FG_AREA','MNT_AREA','SP_AREA') OR L.LineID IS NOT NULL OR L.LocationType IN('FG','LINE')))
         """;
 
     public sealed record LineStockRow(string LineCode, string PartNo, string PartName,
-        decimal Qty, decimal SafetyStock, bool HasOpenOrder)
+        decimal Qty, decimal SafetyStock, bool HasOpenOrder, bool WrongPart=false)
     {
         public decimal Shortage => Math.Max(0, SafetyStock - Qty);
         public decimal RequiredQty => decimal.Ceiling(Shortage);
-        public string State => Shortage == 0 ? "Sufficient" : HasOpenOrder ? "Requested"
+        public string State => WrongPart ? "Different part at location" : Shortage == 0 ? "Sufficient" : HasOpenOrder ? "Requested"
             : PartNo.Length > 20 ? "Part number exceeds Pick Slip limit"
             : RequiredQty > 99999999999m ? "Request quantity exceeds Pick Slip limit" : "Pending";
     }
@@ -118,7 +135,7 @@ public sealed partial class WarehouseRepository
 
     public static string? ResolveLineLocation(SqlConnection conn, string? value)
     {
-        using var cmd = new SqlCommand(ActiveLineLocationsSql + " AND LotPrefix=@Location;", conn);
+        using var cmd = new SqlCommand(ActiveLineLocationsSql + " AND LotPrefix=@Location UNION ALL SELECT L.LocationID FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID WHERE L.LocationID=@Location AND COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE';", conn);
         cmd.Parameters.Add("@Location", SqlDbType.VarChar, 80).Value = (object?)value?.Trim() ?? DBNull.Value;
         return (cmd.ExecuteScalar() as string)?.Trim();
     }
@@ -137,15 +154,30 @@ public sealed partial class WarehouseRepository
               AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
             GROUP BY W.LocationNo,W.PartNo
         )
-        SELECT S.LocationNo,S.PartNo,I.ItemName,S.Qty,COALESCE(I.SafetyStock,0),
+        , Demand AS
+        (
+            SELECT S.LocationNo,S.PartNo,S.Qty,COALESCE(I.SafetyStock,0) MinimumQty
+            FROM Stock S JOIN dbo.MD_Item I ON I.ItemNo=S.PartNo
+            UNION ALL
+            SELECT L.LocationID,L.PartNo,COALESCE(S.Qty,0),COALESCE(L.MinimumQty,0)
+            FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID
+            OUTER APPLY(SELECT SUM(W.Qty) Qty FROM dbo.WH_Inventory W
+                WHERE W.LocationNo=L.LocationID AND W.PartNo=L.PartNo
+                  AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)) S
+            WHERE COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE'
+              AND L.PartNo IS NOT NULL AND L.MinimumQty>0
+        )
+        SELECT S.LocationNo,S.PartNo,I.ItemName,S.Qty,S.MinimumQty,
                CONVERT(bit,CASE WHEN EXISTS
                (SELECT 1 FROM dbo.WH_PickSlip O
                 WHERE O.ReqLocation COLLATE DATABASE_DEFAULT=S.LocationNo COLLATE DATABASE_DEFAULT
                   AND O.ItemNo COLLATE DATABASE_DEFAULT=S.PartNo COLLATE DATABASE_DEFAULT
                   AND O.CloseDate IS NULL
                   AND UPPER(COALESCE(O.Status,'OPEN')) NOT IN ('CLOSED','CANCELED','CANCELLED','RELEASED'))
-               THEN 1 ELSE 0 END)
-        FROM Stock S
+               THEN 1 ELSE 0 END),
+               CONVERT(bit,CASE WHEN EXISTS(SELECT 1 FROM dbo.MD_Location L JOIN dbo.WH_Inventory W ON W.LocationNo=L.LocationID
+                    WHERE L.LocationID=S.LocationNo AND L.LineID IS NOT NULL AND W.Qty>0 AND W.PartNo<>S.PartNo) THEN 1 ELSE 0 END)
+        FROM Demand S
         JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=S.PartNo COLLATE DATABASE_DEFAULT
         WHERE COALESCE(I.ActiveFlag,1)=1
         ORDER BY S.LocationNo,S.PartNo;
@@ -164,7 +196,7 @@ public sealed partial class WarehouseRepository
         var rows = new List<LineStockRow>();
         while (reader.Read())
             rows.Add(new(reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? reader.GetString(1) : reader.GetString(2),
-                reader.GetDecimal(3), reader.GetDecimal(4), reader.GetBoolean(5)));
+                reader.GetDecimal(3), reader.GetDecimal(4), reader.GetBoolean(5),reader.GetBoolean(6)));
         return rows;
     }
 

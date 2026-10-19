@@ -1,0 +1,74 @@
+@using AMES.Data.Repositories
+@inject WarehouseRepository Warehouse
+@inject MasterDataRepository MD
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject IStringLocalizer<SharedResources> L
+
+<section class="ames-card">
+    <div class="ames-card-h master-list-toolbar"><span>▼ LINE LOCATIONS · @_rows.Count</span></div>
+    @if (!string.IsNullOrEmpty(_error)) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert> }
+    <RadzenDataGrid TItem="WarehouseRepository.LineLocationRow" Data="_rows" RowSelect="Select" SelectionMode="DataGridSelectionMode.Single" AllowPaging="true" PageSize="8" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="WarehouseRepository.LineLocationRow" Property="LocationId" Title="LOCATION" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.LineLocationRow" Property="AreaName" Title="AREA" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.LineLocationRow" Property="X" Title="X" Width="65px" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.LineLocationRow" Property="Y" Title="Y" Width="65px" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.LineLocationRow" Property="Floor" Title="FLOOR" Width="80px" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.LineLocationRow" Property="PartNo" Title="PART NO" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.LineLocationRow" Property="MinimumQty" Title="MINIMUM" FormatString="{0:N0}" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.LineLocationRow" Property="Qty" Title="ON HAND" FormatString="{0:N0}" />
+        </Columns>
+    </RadzenDataGrid>
+    @if (_canEdit)
+    {
+        <RadzenRow Gap="8px" Style="padding:12px">
+            @if (string.IsNullOrEmpty(LineId))
+            {
+                <RadzenColumn Size="6"><RadzenLabel Text="Line" Component="LineLocationLine" /><RadzenDropDown Name="LineLocationLine" TValue="string" Data="_lines" TextProperty="LineNameEn" ValueProperty="LineID" @bind-Value="_line" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+            }
+            <RadzenColumn Size="6"><RadzenLabel Text="Part" Component="LineLocationPart" /><RadzenDropDown Name="LineLocationPart" TValue="string" Data="_parts" TextProperty="ItemNo" ValueProperty="ItemNo" @bind-Value="_part" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" /></RadzenColumn>
+            <RadzenColumn Size="3"><RadzenLabel Text="X" Component="LineLocationX" /><RadzenNumeric Name="LineLocationX" TValue="int" @bind-Value="_x" Min="1" Max="99" InputSize="InputSize.Small" Style="width:100%" class="ames-rz-input" /></RadzenColumn>
+            <RadzenColumn Size="3"><RadzenLabel Text="Y · A1, B1…" Component="LineLocationY" /><RadzenDropDown Name="LineLocationY" TValue="int" @bind-Value="_y" Data="_yOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" InputSize="InputSize.Small" Style="width:100%" class="ames-rz-input" /></RadzenColumn>
+            <RadzenColumn Size="3"><RadzenLabel Text="Floor" Component="LineLocationFloor" /><RadzenNumeric Name="LineLocationFloor" TValue="int" @bind-Value="_floor" Min="1" Max="99" InputSize="InputSize.Small" Style="width:100%" class="ames-rz-input" /></RadzenColumn>
+            <RadzenColumn Size="3"><RadzenLabel Text="Minimum qty" Component="LineLocationMinimum" /><RadzenNumeric Name="LineLocationMinimum" TValue="decimal" @bind-Value="_minimum" Min="0" Step="1" Format="N0" InputSize="InputSize.Small" Style="width:100%" class="ames-rz-input" /></RadzenColumn>
+        </RadzenRow>
+        @if(_x is >=1 and <=99 && _y is >=1 and <=260 && _floor is >=1 and <=99 && _lines.FirstOrDefault(x=>x.LineID==(LineId??_line)) is { LotPrefix: {} prefix })
+        {
+            <p class="dim">Location code: <strong>@WarehouseRepository.LineLocationNo(prefix.Trim(),_x,_y,_floor)</strong></p>
+        }
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="Save location" Icon="save" Click="Save" Disabled="_busy" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+    }
+</section>
+@code {
+    [Parameter] public string? LineId {get;set;}
+    [Parameter] public string? LocationId {get;set;}
+    [Parameter] public EventCallback Changed {get;set;}
+    List<WarehouseRepository.LineLocationRow> _rows=[];
+    List<MasterDataRepository.LineRow> _lines=[];
+    List<MasterDataRepository.ItemRow> _parts=[];
+    string _line="",_part="",_actor="",_error="";
+    int _x=1,_y=1,_floor=1; decimal _minimum; bool _busy,_canEdit;
+    readonly List<YOption> _yOptions=Enumerable.Range(1,260).Select(i=>new YOption(i,LocationMapNaming.YCode(i))).ToList();
+    sealed record YOption(int Value,string Text);
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit=PermSvc.CanEdit(string.IsNullOrEmpty(LineId)?"md/fd/location":"md/rp/line");
+        _actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User,"system");
+        try { _lines=(await Task.Run(()=>MD.ListLines())).Where(x=>x.LotPrefix?.Trim() is { Length:2 } prefix && prefix.All(char.IsAsciiLetterOrDigit) && !string.IsNullOrWhiteSpace(x.LineNameEn) && x.Status is null or "ACTIVE").ToList();_parts=await Task.Run(()=>MD.ListItems());await Reload();if(_rows.FirstOrDefault(x=>x.LocationId==LocationId) is {} selected)Select(selected); }
+        catch(Exception ex) { _error=ex.Message; }
+    }
+    async Task Reload() => _rows=await Task.Run(()=>Warehouse.ListLineLocations(LineId));
+    void Select(WarehouseRepository.LineLocationRow row)
+    { _line=row.LineId;_x=int.Parse(row.X);_y=LocationMapNaming.YOrder(row.Y);_floor=LocationMapNaming.FloorNumber(row.Floor);_part=row.PartNo??"";_minimum=row.MinimumQty; }
+    async Task Save()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);
+        if(!PermSvc.CanEdit(string.IsNullOrEmpty(LineId)?"md/fd/location":"md/rp/line") || _busy)return;
+        _busy=true;_error="";
+        try { await Task.Run(()=>Warehouse.SaveLineLocation(LineId??_line,_x,_y,_floor,_part,_minimum,_actor));await Reload();await Changed.InvokeAsync(); }
+        catch(Exception ex) { _error=ex.Message; }
+        finally {_busy=false;}
+    }
+}

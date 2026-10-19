@@ -444,6 +444,8 @@ public sealed class MasterDataRepository
         INSERT @r SELECT DISTINCT 'MOLD',  MoldID FROM dbo.MD_MoldItem WHERE ItemNo = @K;
         INSERT @r SELECT DISTINCT 'RESIN', MoldID FROM dbo.MD_MoldItem WHERE ResinItemNo = @K;
         INSERT @r SELECT 'SO', SoNumber + ISNULL('-' + CAST(SoLineNo AS varchar(10)), '') FROM dbo.PP_CustomerOrder WHERE ItemNo = @K;
+        INSERT @r SELECT 'LOCATION',LocationID FROM dbo.MD_Location WHERE PartNo=@K;
+        INSERT @r SELECT DISTINCT 'SHIPORDER',O.OrderNo FROM dbo.FG_ShippingOrder O JOIN dbo.FG_ShippingOrderLine L ON L.OrderID=O.OrderID WHERE L.PartNo=@K;
         INSERT @r SELECT 'LOT', ISNULL(LotCode, CAST(LotID AS varchar(20))) FROM dbo.tbl_Lot WHERE ItemNo = @K;
         INSERT @r SELECT DISTINCT 'STOCK', ISNULL(LocationNo, '-') FROM dbo.WH_Inventory
             WHERE PartNo COLLATE DATABASE_DEFAULT = @K COLLATE DATABASE_DEFAULT AND Qty <> 0;
@@ -1313,7 +1315,9 @@ public sealed class MasterDataRepository
         INSERT @r SELECT DISTINCT 'FORECAST', ISNULL(ForecastBatch, CAST(ForecastID AS varchar(20))) FROM dbo.PP_Forecast WHERE CustomerID = @K;
         INSERT @r SELECT 'SHIPDEST', ShipDestID FROM dbo.MD_ShipmentDest WHERE CustomerID = @K;
         INSERT @r SELECT 'LABEL', LabelTemplateID FROM dbo.MD_LabelTemplate WHERE CustomerID = @K;
-        INSERT @r SELECT 'SHIPMENT', OutboundBarcode FROM dbo.FG_Shipment WHERE CustomerID = @K;
+        INSERT @r SELECT 'SHIPMENT', LotNo FROM dbo.FG_Shipment WHERE CustomerID = @K;
+        INSERT @r SELECT 'SHIPORDER',OrderNo FROM dbo.FG_ShippingOrder WHERE CustomerID=@K;
+        INSERT @r SELECT 'DELIVERY',DeliveryNo FROM dbo.FG_Delivery WHERE CustomerID=@K;
         INSERT @r SELECT 'PALLET', PalletNo FROM dbo.MD_Pallet WHERE CustomerID = @K;
         INSERT @r SELECT 'QCSTD', StdCode + ISNULL(' ' + VerNo, '') FROM dbo.QC_InspectionStd WHERE @Code IS NOT NULL AND CustomerCode = @Code;
         INSERT @r SELECT 'WORKER', GroupCode + ':' + CodeValue FROM dbo.MD_CodeItem
@@ -2282,7 +2286,7 @@ public sealed class MasterDataRepository
         int? DailyCap, string? ShiftPattern,
         bool RfidEnabledFlag, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS);
+        string? ModifiedBy, DateTime? ModifiedTS,string? LotPrefix=null);
 
     /// <summary>
     /// POP 로그인 픽커용 — 활성 라인 + WC 상속 공정코드.
@@ -2340,7 +2344,7 @@ public sealed class MasterDataRepository
             SELECT LineID, LineName, LineNameEn, PlantCode, WCID,
                    DailyCap, ShiftPattern,
                    ISNULL(RfidEnabledFlag,0) AS RfidEnabledFlag, Status,
-                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS, LotPrefix
             FROM dbo.MD_Line ml
             WHERE @S IS NULL
                OR LineID   LIKE '%'+@S+'%'
@@ -2365,7 +2369,7 @@ public sealed class MasterDataRepository
                 r["CreatedBy"]  as string,
                 r["CreatedTS"]  as DateTime?,
                 r["ModifiedBy"] as string,
-                r["ModifiedTS"] as DateTime?));
+                r["ModifiedTS"] as DateTime?,r["LotPrefix"] as string));
         return list;
     }
 
@@ -2423,6 +2427,9 @@ public sealed class MasterDataRepository
               RfidEnabledFlag=@Rfid, Status=@St,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE LineID=@ID;
+            UPDATE A SET CodeName=@NameEn,CodeNameEn=@NameEn,ModifiedBy=@By,ModifiedTS=SYSDATETIME()
+            FROM dbo.MD_CodeItem A JOIN dbo.MD_Line L ON L.LotPrefix=A.CodeValue
+            WHERE L.LineID=@ID AND A.GroupCode='WH_AREA' AND A.ParentCodeID='WH_CODE_LINE' AND NULLIF(@NameEn,'') IS NOT NULL;
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
@@ -2442,6 +2449,7 @@ public sealed class MasterDataRepository
     const string LineUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_Line WITH (UPDLOCK, HOLDLOCK) WHERE LineID = @K) RETURN;
         INSERT @r SELECT 'STATION',    StationCode FROM dbo.MD_Station         WHERE LineID = @K;
+        INSERT @r SELECT 'LOCATION', LocationID FROM dbo.MD_Location WHERE LineID=@K;
         INSERT @r SELECT 'EQUIP',      EquipID     FROM dbo.MD_Equipment       WHERE LineID = @K;
         INSERT @r SELECT 'SUPERVISOR', EmployeeNo  FROM dbo.MD_LineSupervisor  WHERE LineID = @K;
         INSERT @r SELECT 'PATTERN',    PatternID   FROM dbo.MD_LineTimePattern WHERE LineID = @K;
@@ -3171,7 +3179,7 @@ public sealed class MasterDataRepository
         string LocationID, string? LocationName, string WhCode, string AreaCode, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot,
         decimal? Capacity, string? LocationType, string? PlantCode, bool ActiveFlag,
-        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS, bool SAPTransFlag = false);
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS, bool SAPTransFlag = false, string? LineId = null, string? PartNo = null, decimal? MinimumQty = null,string? LineName = null);
 
     public List<LocationRow> ListLocations()
     {
@@ -3179,7 +3187,8 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand(
             "SELECT LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
             "Capacity,LocationType,PlantCode,ISNULL(ActiveFlag,1)," +
-            "CreatedBy,CreatedTS,ModifiedBy,ModifiedTS,SAPTransFlag " +
+            "CreatedBy,CreatedTS,ModifiedBy,ModifiedTS,SAPTransFlag,LineID,PartNo,MinimumQty," +
+            "(SELECT M.LineNameEn FROM dbo.MD_Line M WHERE M.LineID=MD_Location.LineID) LineName " +
             "FROM dbo.MD_Location ORDER BY LocationID;", conn);
         using var rdr = cmd.ExecuteReader();
         var list = new List<LocationRow>();
@@ -3201,7 +3210,7 @@ public sealed class MasterDataRepository
                 rdr.IsDBNull(13) ? null : rdr.GetDateTime(13),
                 rdr.IsDBNull(14) ? null : rdr.GetString(14),
                 rdr.IsDBNull(15) ? null : rdr.GetDateTime(15),
-                rdr.GetBoolean(16)));
+                rdr.GetBoolean(16),rdr.IsDBNull(17)?null:rdr.GetString(17),rdr.IsDBNull(18)?null:rdr.GetString(18),rdr.IsDBNull(19)?null:rdr.GetDecimal(19),rdr.IsDBNull(20)?null:rdr.GetString(20)));
         return list;
     }
 
@@ -3218,14 +3227,15 @@ public sealed class MasterDataRepository
         string locationId, string? name, string whCode, string areaCode, string? zoneCode,
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
-        bool activeFlag, string createdBy, bool sapTransFlag = false)
+        bool activeFlag, string createdBy, bool sapTransFlag = false, string? assignedPartNo = null)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_Location" +
             "(LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
-            "Capacity,LocationType,PlantCode,ActiveFlag,SAPTransFlag,CreatedBy)" +
-            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,@PL,@AF,@SAP,@CB);", conn);
+            "Capacity,LocationType,PlantCode,ActiveFlag,SAPTransFlag,CreatedBy,PartNo)" +
+            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,@PL,@AF,@SAP,@CB,@Part);", conn);
+        AddLocationPart(cmd,assignedPartNo);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
         cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
@@ -3248,15 +3258,16 @@ public sealed class MasterDataRepository
         string locationId, string? name, string whCode, string areaCode, string? zoneCode,
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
-        bool activeFlag, string modifiedBy, bool? sapTransFlag = null)
+        bool activeFlag, string modifiedBy, bool? sapTransFlag = null, string? assignedPartNo = null)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_Location SET " +
             "LocationName=@N,WhCode=@WH,AreaCode=@AR,ZoneCode=@Z,Aisle=@A,Bay=@B,Slot=@S," +
             "Capacity=@CAP,LocationType=CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,PlantCode=@PL,ActiveFlag=@AF,SAPTransFlag=ISNULL(@SAP,SAPTransFlag)," +
-            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB,PartNo=COALESCE(@Part,PartNo) " +
             "WHERE LocationID=@I;", conn);
+        AddLocationPart(cmd,assignedPartNo);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
         cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
@@ -3273,6 +3284,22 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@SAP", SqlDbType.Bit).Value           = (object?)sapTransFlag  ?? DBNull.Value;
         cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
+    }
+
+    private static void AddLocationPart(SqlCommand command,string? partNo)
+    {
+        if(partNo?.Length>20)throw new ArgumentException("Part number must contain at most 20 characters.");
+        command.Parameters.Add("@Part",SqlDbType.VarChar,20).Value=string.IsNullOrWhiteSpace(partNo)?DBNull.Value:partNo.Trim();
+        command.CommandText="""
+            SET XACT_ABORT ON; SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON;
+            BEGIN TRANSACTION;
+            IF @Part IS NOT NULL AND (
+                NOT EXISTS(SELECT 1 FROM dbo.MD_Item WITH(HOLDLOCK) WHERE ItemNo=@Part AND COALESCE(ActiveFlag,1)=1)
+                OR EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LocationNo=@I AND Qty>0 AND PartNo<>@Part)
+                OR EXISTS(SELECT 1 FROM dbo.WH_PickSlip WITH(UPDLOCK,HOLDLOCK) WHERE ReqLocation=@I AND ItemNo<>@Part AND CloseDate IS NULL
+                    AND UPPER(COALESCE(Status,'OPEN')) NOT IN('CLOSED','RELEASED','CANCELLED','CANCELED')))
+                THROW 51050,'Select an active part. Move different stock or close outstanding picking orders before reassignment.',1;
+            """+command.CommandText+" COMMIT TRANSACTION;";
     }
 
     public void DeleteLocation(string locationId)
@@ -5039,8 +5066,11 @@ public sealed class MasterDataRepository
     // 사용처 = 수량이 남은 재고 행·출고 기록. 출고된 적이 있으면 지우지 않고 「사용 안 함」으로 돌린다
     const string PalletUsageSql = """
         IF NOT EXISTS (SELECT 1 FROM dbo.MD_Pallet WITH (UPDLOCK, HOLDLOCK) WHERE PalletNo = @K) RETURN;
-        INSERT @r SELECT 'LOT', LotNo FROM dbo.WH_Inventory WHERE PalletNo = @K AND Qty <> 0;
-        INSERT @r SELECT 'SHIPMENT', OutboundBarcode FROM dbo.FG_Shipment WHERE PalletNo = @K;
+        ;WITH Contents AS(
+            SELECT LotNo,Qty FROM dbo.WH_Inventory WHERE PalletNo=@K OR (LotNo=@K AND UnitType='PALLET')
+            UNION ALL SELECT W.LotNo,W.Qty FROM dbo.WH_Inventory W JOIN Contents C ON W.ParentLotNo=C.LotNo)
+        INSERT @r SELECT DISTINCT 'LOT',LotNo FROM Contents WHERE Qty<>0 OPTION(MAXRECURSION 100);
+        INSERT @r SELECT 'SHIPMENT', LotNo FROM dbo.FG_Shipment WHERE PalletNo = @K;
         """;
 
     public List<UsageRef> PalletUsages(string palletNo) => UsagesOf(PalletUsageSql, palletNo, 50);
