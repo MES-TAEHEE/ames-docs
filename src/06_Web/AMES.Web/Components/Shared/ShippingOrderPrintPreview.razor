@@ -1,0 +1,48 @@
+@using AMES.Contracts.Dto
+@inject IJSRuntime JS
+@inject UomFormat UomFmt
+@inject IStringLocalizer<SharedResources> L
+
+@if(Orders.Count>0)
+{
+    <div class="ames-modal-bg shipping-a4-modal-bg" data-no-busy @onclick="Close">
+        <div class="ames-modal ames-modal-fullwide shipping-a4-modal" role="dialog" aria-modal="true" aria-label="A4 print preview" @onclick:stopPropagation>
+            <div class="ames-modal-h shipping-a4-toolbar">PRINT PREVIEW · A4 (210 × 297 mm)</div>
+            <div class="ames-modal-body fg-document-preview shipping-a4-preview">
+                <div class="fg-print-area">
+                    <article class="fg-dcr-paper shipping-a4-paper">
+                        <h1>@(Delivery is null?"SHIPMENT ORDER":"DCR DELIVERY")</h1>
+                        <Code128Barcode Value="@(Delivery?.DeliveryNo??Orders[0].OrderNo)" Height="65" />
+                        <h2>@(Delivery?.DeliveryNo??Orders[0].OrderNo)</h2>
+                        <p>Customer: @(Delivery?.CustomerId??Orders[0].CustomerId) · Ship date: @((Delivery?.ShipDate??Orders[0].ShipDate).ToString(DateFmt.Date))</p>
+                        @if(!string.IsNullOrWhiteSpace(Delivery?.TrailerNo)){<p>Trailer: @Delivery.TrailerNo</p>}
+                        <table>
+                            <colgroup><col style="width:20%" /><col style="width:17%" /><col style="width:20%" /><col style="width:30%" /><col style="width:13%" /></colgroup>
+                            <thead><tr><th>ORDER</th><th>SO</th><th>PART NO</th><th>DESCRIPTION</th><th class="quantity">REQUIRED QTY</th></tr></thead>
+                            <tbody>
+                                @foreach(var order in Orders)
+                                {
+                                    @foreach(var line in order.Lines)
+                                    {
+                                        <tr><td>@order.OrderNo</td><td>@line.SoNumber</td><td>@line.PartNo</td><td>@line.PartName</td><td class="quantity">@UomFmt.QtyUnit(line.Qty,line.Unit)</td></tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </article>
+                </div>
+            </div>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer shipping-a4-toolbar">
+                <RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="Print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="Close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+@code {
+    [Parameter,EditorRequired] public IReadOnlyList<ShippingOrderDto> Orders {get;set;}=[];
+    [Parameter] public ShippingDeliveryDto? Delivery {get;set;}
+    [Parameter] public EventCallback Closed {get;set;}
+    Task Close()=>Closed.InvokeAsync();
+    Task Print()=>JS.InvokeVoidAsync("window.print").AsTask();
+}
