@@ -34,24 +34,34 @@
 
     <div class="location-explorer-workspace selection-only">
         <section class="location-map-pane" aria-label="Location map">
-            @if (_stage == MapStage.Map && _selectingFloor)
+            @if (_stage != MapStage.Map || _selectingFloor)
             {
-                <div class="location-stage location-panel-enter">
-                    @if (FloorCards.Count == 0) { <div class="location-empty">No floors are registered.</div> }
-                    <div class="location-stage-grid" style="@FloorGridStyle">
-                        @foreach (var floor in FloorCards)
+                <div class="ames-card location-hierarchy-panel location-panel-enter">
+                    <div class="ames-card-h master-list-toolbar">
+                        <span>@SelectionLabel · @SelectionRows.Count @L["Lbl.Items"]</span>
+                        @if (_editing && CanEdit && CanAddHierarchy)
                         {
-                            <div class="location-stage-tile">
-                                <button type="button" class="location-stage-card" @onclick="() => SelectFloor(floor.Key)">
-                                    <span>@L["Col.Floor"]</span>
-                                    <strong>@floor.Name</strong>
-                                    <small>@floor.LocationCount.ToString("N0") @L["WH.LocMap.Locations"]</small>
-                                    <b>@UomFmt.Qty(floor.Qty, null) <em>@L["WH.LocMap.Qty"]</em></b>
-                                </button>
-                                @if (_editing && CanEdit && CanAddHierarchy) { <button type="button" class="location-stage-remove" aria-label="Delete floor @floor.Name" title="Delete floor @floor.Name" @onclick="() => DeleteCard(floor.Key)">×</button> }
+                            <RadzenButton Text="@($"Add {SelectionKind}")" Icon="add" Click="@(() => OpenDialog(SelectionKind))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                        }
+                    </div>
+                    <div @key="SelectionScope" class="location-hierarchy-cards">
+                        @foreach (var row in SelectionRows)
+                        {
+                            <div @key="row.Key" class="location-stage-tile location-hierarchy-tile">
+                                <RadzenButton Click="@(() => SelectStageRow(row))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="location-stage-card" aria-label="@($"{SelectionLabel}: {row.Name}")">
+                                    <div class="location-hierarchy-content">
+                                        <span>@SelectionLabel</span>
+                                        <strong>@row.Name</strong>
+                                        <small>@row.LocationCount.ToString("N0") @L["WH.LocMap.Locations"]</small>
+                                        <b>@UomFmt.Qty(row.Qty, null) <em>@L["WH.LocMap.Qty"]</em></b>
+                                    </div>
+                                </RadzenButton>
+                            @if (_editing && CanEdit && CanAddHierarchy)
+                            {
+                                <RadzenButton Icon="close" Click="@(() => DeleteCard(row.Key))" aria-label="@($"Delete {SelectionKind} {row.Name}")" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="location-stage-remove ames-rz-btn" />
+                            }
                             </div>
                         }
-                        @if (_editing && CanEdit && CanAddHierarchy) { <button type="button" class="location-stage-card location-stage-add" @onclick='() => OpenDialog("Floor")'><strong>+</strong><span>Add Floor</span></button> }
                     </div>
                 </div>
             }
@@ -73,26 +83,6 @@
                     @RenderMap()
                 </div>
             }
-            else
-            {
-                <div class="location-stage location-panel-enter">
-                    <div class="location-stage-grid" style="@StageGridStyle">
-                        @foreach (var card in StageCards)
-                        {
-                            <div class="location-stage-tile">
-                                <button type="button" class="location-stage-card" @onclick="() => SelectCard(card.Key)">
-                                    <span>@StageLabel</span>
-                                    <strong>@card.Name</strong>
-                                    <small>@card.LocationCount.ToString("N0") @L["WH.LocMap.Locations"]</small>
-                                    <b>@UomFmt.Qty(card.Qty, null) <em>@L["WH.LocMap.Qty"]</em></b>
-                                </button>
-                                @if (_editing && CanEdit && CanAddHierarchy) { <button type="button" class="location-stage-remove" aria-label="Delete @StageLabel @card.Name" title="Delete @StageLabel @card.Name" @onclick="() => DeleteCard(card.Key)">×</button> }
-                            </div>
-                        }
-                        @if (_editing && CanEdit && CanAddHierarchy) { <button type="button" class="location-stage-card location-stage-add" @onclick='() => OpenDialog(_stage == MapStage.Warehouse ? "Warehouse" : "Area")'><strong>+</strong><span>Add @(_stage == MapStage.Warehouse ? "Warehouse" : "Area")</span></button> }
-                    </div>
-                </div>
-            }
         </section>
 
     </div>
@@ -109,13 +99,13 @@
                         <small>@MapScope</small>
                     </div>
                     <div class="location-drawer-actions">
-                        <RadzenButton Text="Print" Icon="print" Click="OpenLocationBarcode" aria-label="Print location barcode" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                        <RadzenButton Icon="print" Click="OpenLocationBarcode" title="Print location barcode" aria-label="Print location barcode" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                         <RadzenButton Icon="close" Click="CloseLocationDetail" aria-label="Close location detail" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                     </div>
                 </header>
 
                 <div class="inventory-drawer-summary inventory-detail-summary">
-                    <div><span>@L["WH.Inventory.Lbl.TotalQty"]</span><strong>@UomFmt.QtyUnit(LocationDrawerRows.Sum(x => x.Qty), "EA")</strong></div>
+                    <div><span>@L["WH.Inventory.AvailableQty"]</span><strong>@LocationQuantities()</strong></div>
                     <div><span>@L["Col.LoadCapacity"]</span><strong>@(loadCapacity is > 0 ? loadCapacity.Value.ToString("N0") : "-")</strong></div>
                     <div><span>@L["WH.LocMap.Lbl.Items"]</span><strong>@LocationDrawerRows.Select(x => x.PartNo).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
                     <div><span>@L["WH.Inventory.Lbl.Lots"]</span><strong>@LocationDrawerRows.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()</strong></div>
@@ -128,6 +118,7 @@
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="PartNo" Title="@L["Col.ItemNo"]" />
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="PartName" Title="@L["Col.ItemName"]"><Template Context="row">@Text(row.PartName)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right"><Template Context="row">@Qty(row)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"]" TextAlign="TextAlign.Right"><HeaderTemplate><span class="location-defect-qty">@L["WH.Inventory.DefectQty"]</span></HeaderTemplate><Template Context="row"><span class="location-defect-qty">@UomFmt.QtyUnit(row.DefectQty, row.Unit)</span></Template></RadzenDataGridColumn>
                         </Columns>
                     </RadzenDataGrid>
                 </div>
@@ -217,8 +208,10 @@
     private string StageLabel => _stage == MapStage.Warehouse ? L["Col.Warehouse"].Value : L["Col.Area"].Value;
     private string FloorLabel => string.IsNullOrWhiteSpace(_floor) ? L["Col.Floor"].Value : FloorName(_floor);
     private string MapScope => string.Join(" / ", new[] { _warehouse, _area, FloorLabel }.Where(x => !string.IsNullOrWhiteSpace(x)));
-    private string StageGridStyle => GridStyle(StageCards.Count + (_editing && CanEdit && CanAddHierarchy ? 1 : 0));
-    private string FloorGridStyle => GridStyle(FloorCards.Count + (_editing && CanEdit && CanAddHierarchy ? 1 : 0));
+    private List<StageCard> SelectionRows => _selectingFloor ? FloorCards : StageCards;
+    private string SelectionLabel => _selectingFloor ? L["Col.Floor"].Value : StageLabel;
+    private string SelectionKind => _selectingFloor ? "Floor" : _stage == MapStage.Warehouse ? "Warehouse" : "Area";
+    private string SelectionScope => $"{_stage}/{_warehouse}/{_area}/{_selectingFloor}";
     private int _gridStockAtRisk => MapLocations.Count(x => !LocationMapNaming.InGrid(x.Column, x.Row, _aisles, _bays)
         && Inventory.Any(i => i.Qty > 0 && Same(i.LocationNo, x.LocationNo)));
 
@@ -335,6 +328,12 @@
         }
         catch (Exception ex) { _dialogError = ex.Message; }
         finally { _saving = false; }
+    }
+
+    private void SelectStageRow(StageCard row)
+    {
+        if (_selectingFloor) SelectFloor(row.Key);
+        else SelectCard(row.Key);
     }
 
     private void SelectCard(string key)
@@ -470,7 +469,6 @@
         return string.Join(' ', classes);
     }
 
-    private static string GridStyle(int count) => $"--location-stage-columns:{Math.Max(1, (int)Math.Ceiling(Math.Sqrt(Math.Max(1, count))))};";
     private string MapScrollId => $"{SearchId}-scroll";
     private static string MapStyle(int columns) => $"--location-columns:{Math.Max(1, columns)};--location-cell-width:92px;--location-cell-height:62px;";
     private string BreadcrumbClass(MapStage stage) => _stage == stage ? "active" : "";
@@ -497,4 +495,6 @@
     private static bool Same(string? left, string? right) => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     private string Qty(LocationMapStock row) => UomFmt.QtyUnit(row.Qty, row.Unit);
+    private string LocationQuantities() => string.Join(" / ", LocationDrawerRows.GroupBy(x => x.Unit, StringComparer.OrdinalIgnoreCase)
+        .Select(group => UomFmt.QtyUnit(group.Sum(x => x.Qty), group.Key)).DefaultIfEmpty("0"));
 }

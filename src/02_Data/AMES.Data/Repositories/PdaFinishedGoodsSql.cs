@@ -38,7 +38,8 @@ public static class PdaFinishedGoodsSql
                 T.LotNo LOTNO,T.PartNo PARTNO,CONVERT(nvarchar(10),T.TransactionTime,23) WDATE,
                 CONVERT(nvarchar(8),T.TransactionTime,108) WTIME,COALESCE(NULLIF(T.LocationNo,''),'N/A') LOCATION_NO,
                 CASE WHEN T.TransactionType='MOVE' THEN T.QtyAfter ELSE ABS(T.QtyChange) END QTY,I.DefaultUOM UNIT,
-                CASE WHEN T.SourceType='FG_RETURN' THEN N'Return'
+                CASE WHEN T.SourceType IN('FG_DEFECT','INV_DEFECT') THEN N'Defect'
+                     WHEN T.SourceType='FG_RETURN' THEN N'Return'
                      WHEN T.TransactionType='MOVE' THEN N'Location change'
                      WHEN T.SourceType='FG_PUTAWAY' THEN N'Put-Away'
                      WHEN T.TransactionType='OUT' THEN N'Outbound'
@@ -173,6 +174,8 @@ public static class PdaFinishedGoodsSql
                   AND UPPER(ISNULL(L.Status,'')) IN('CONFIRMED','STOCKED')
                   AND I.ItemType='ASSY' AND ISNULL(I.ActiveFlag,1)=1 AND R.Qty>0;
                 IF @LotID IS NULL THROW 52513,'A confirmed finished-goods ASSY production LOT is required.',1;
+                IF EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction WHERE LotNo=@Barcode AND SourceType IN('FG_DEFECT','INV_DEFECT') AND QtyAfter=0)
+                    THROW 52514,'This LOT was rejected as defective. Put-away is not allowed.',1;
                 SELECT @StoredQty=Qty,@StoredLocation=LocationNo,@StoredPart=PartNo
                 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode;
                 IF @StoredQty IS NOT NULL AND @StoredQty<=0

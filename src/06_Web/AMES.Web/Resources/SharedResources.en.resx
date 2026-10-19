@@ -11468,4 +11468,20 @@
   <data name="Shipment.DetailsError" xml:space="preserve">
     <value>Unable to load shipment details. Please retry.</value>
   </data>
+  <data name="WH.Inventory.IncludeFinishedGoods" xml:space="preserve"><value>Include finished goods</value></data>
+  <data name="WH.Inventory.DefectAction" xml:space="preserve"><value>Mark Defective</value></data>
+  <data name="WH.Inventory.DefectTitle" xml:space="preserve"><value>Inventory Defect</value></data>
+  <data name="WH.Inventory.DefectSummary" xml:space="preserve"><value>Enter the defective quantity. Only this quantity will be removed from available inventory.</value></data>
+  <data name="WH.Inventory.DefectReason" xml:space="preserve"><value>Defect reason</value></data>
+  <data name="WH.Inventory.DefectNotEligible" xml:space="preserve"><value>Select an individual box or LOT with remaining stock, not a pallet or group.</value></data>
+  <data name="WH.Inventory.DefectConfirm" xml:space="preserve"><value>Mark {1} of LOT {0} as defective?</value></data>
+  <data name="WH.Inventory.DefectDone" xml:space="preserve"><value>The defective quantity was removed from LOT {0}. The remaining stock is still available.</value></data>
+  <data name="WH.Inventory.DefectQty" xml:space="preserve"><value>Defect Qty</value></data>
+  <data name="WH.Inventory.DefectWholeLotSummary" xml:space="preserve"><value>The entire LOT will be marked defective.</value></data>
+  <data name="WH.Inventory.DefectConfirmWholeLot" xml:space="preserve"><value>Mark the entire LOT {0} ({1}) as defective?</value></data>
+  <data name="WH.Inventory.DefectDoneWholeLot" xml:space="preserve"><value>LOT {0} was marked defective in full.</value></data>
+  <data name="WH.Inventory.AvailableQty" xml:space="preserve"><value>Available Qty</value></data>
+  <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>Defect recorded</value></data>
+  <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
+  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>Download the available and defective quantities for the {0} currently filtered items as Excel?</value></data>
 </root>

@@ -11468,4 +11468,20 @@
   <data name="Shipment.DetailsError" xml:space="preserve">
     <value>No se pudo cargar el detalle del envío. Reintente.</value>
   </data>
+  <data name="WH.Inventory.IncludeFinishedGoods" xml:space="preserve"><value>Incluir productos terminados</value></data>
+  <data name="WH.Inventory.DefectAction" xml:space="preserve"><value>Marcar defectuoso</value></data>
+  <data name="WH.Inventory.DefectTitle" xml:space="preserve"><value>Defecto de inventario</value></data>
+  <data name="WH.Inventory.DefectSummary" xml:space="preserve"><value>Introduzca la cantidad defectuosa. Solo esta cantidad se descontara del inventario disponible.</value></data>
+  <data name="WH.Inventory.DefectReason" xml:space="preserve"><value>Motivo del defecto</value></data>
+  <data name="WH.Inventory.DefectNotEligible" xml:space="preserve"><value>Seleccione una caja o un LOT individual con existencias, no un palet o grupo.</value></data>
+  <data name="WH.Inventory.DefectConfirm" xml:space="preserve"><value>Marcar {1} del LOT {0} como defectuoso?</value></data>
+  <data name="WH.Inventory.DefectDone" xml:space="preserve"><value>La cantidad defectuosa se desconto del LOT {0}. El resto del inventario sigue disponible.</value></data>
+  <data name="WH.Inventory.DefectQty" xml:space="preserve"><value>Cantidad defectuosa</value></data>
+  <data name="WH.Inventory.DefectWholeLotSummary" xml:space="preserve"><value>Se marcará todo el LOT como defectuoso.</value></data>
+  <data name="WH.Inventory.DefectConfirmWholeLot" xml:space="preserve"><value>Marcar todo el LOT {0} ({1}) como defectuoso?</value></data>
+  <data name="WH.Inventory.DefectDoneWholeLot" xml:space="preserve"><value>El LOT {0} completo se marco como defectuoso.</value></data>
+  <data name="WH.Inventory.AvailableQty" xml:space="preserve"><value>Cantidad disponible</value></data>
+  <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>Defecto registrado</value></data>
+  <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
+  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>¿Descargar en Excel las cantidades disponibles y defectuosas de los {0} artículos filtrados?</value></data>
 </root>

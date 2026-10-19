@@ -11468,4 +11468,20 @@
   <data name="Shipment.DetailsError" xml:space="preserve">
     <value>출하 상세 정보를 불러오지 못했습니다. 다시 시도하세요.</value>
   </data>
+  <data name="WH.Inventory.IncludeFinishedGoods" xml:space="preserve"><value>완제품 포함</value></data>
+  <data name="WH.Inventory.DefectAction" xml:space="preserve"><value>불량 처리</value></data>
+  <data name="WH.Inventory.DefectTitle" xml:space="preserve"><value>재고 불량 처리</value></data>
+  <data name="WH.Inventory.DefectSummary" xml:space="preserve"><value>불량 수량을 입력하세요. 입력한 수량만 가용 재고에서 차감합니다.</value></data>
+  <data name="WH.Inventory.DefectReason" xml:space="preserve"><value>불량 사유</value></data>
+  <data name="WH.Inventory.DefectNotEligible" xml:space="preserve"><value>잔여 재고가 있는 개별 박스 또는 LOT을 선택하세요. 팔렛 등 묶음은 내부 LOT별로 처리합니다.</value></data>
+  <data name="WH.Inventory.DefectConfirm" xml:space="preserve"><value>LOT {0}에서 {1}을 불량 처리하시겠습니까?</value></data>
+  <data name="WH.Inventory.DefectDone" xml:space="preserve"><value>LOT {0}에서 불량 수량만 차감했습니다. 남은 정상 재고는 계속 사용할 수 있습니다.</value></data>
+  <data name="WH.Inventory.DefectQty" xml:space="preserve"><value>불량 수량</value></data>
+  <data name="WH.Inventory.DefectWholeLotSummary" xml:space="preserve"><value>LOT 전체를 불량 처리합니다.</value></data>
+  <data name="WH.Inventory.DefectConfirmWholeLot" xml:space="preserve"><value>LOT {0} 전체({1})를 불량 처리하시겠습니까?</value></data>
+  <data name="WH.Inventory.DefectDoneWholeLot" xml:space="preserve"><value>LOT {0} 전체를 불량 처리했습니다.</value></data>
+  <data name="WH.Inventory.AvailableQty" xml:space="preserve"><value>가용 수량</value></data>
+  <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>불량 처리 이력 있음</value></data>
+  <data name="WH.Inventory.Export" xml:space="preserve"><value>엑셀</value></data>
+  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>현재 조회된 {0}개 품목의 가용 수량과 불량 수량을 엑셀로 다운로드하시겠습니까?</value></data>
 </root>
