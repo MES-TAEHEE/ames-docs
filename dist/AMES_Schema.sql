@@ -1245,6 +1245,9 @@ CREATE TABLE [dbo].[MD_Item](
 	[ApplicableEquipment] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[MakerName] [nvarchar](80) COLLATE Korean_Wansung_CI_AS NULL,
 	[LeadTimeDays] [int] NULL,
+	[IssueAddPct] [decimal](5, 2) NULL,
+	[MrpAllowPct] [decimal](5, 2) NULL,
+	[ProcureType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[SAPTransFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
@@ -1305,6 +1308,12 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'TOTE 출하 여부 — 1 이면 팔레트가 아니라 토트 박스로 출하 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ToteFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사용 여부 — 단종 시 FALSE (물리 삭제 금지).  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'추가 불출율(%) — 작업지시 불출 때 정량(BOM)에 더하는 비율, NULL = 0 · decimal(5,2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'IssueAddPct'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'MRP 여유율(%) — MRP 소요 계산 때 정량(BOM)에 더하는 비율, NULL = 0 · decimal(5,2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'MrpAllowPct'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'조달형태 — 공통코드 PROCURE_TYPE(INHOUSE 내작·PURCHASE 매입·PAID_SUP 유상사급·FREE_SUP 무상사급) · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ProcureType'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 전송 대상 여부 — 1 이면 SAP 로 보낸다 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'SAPTransFlag'
 GO
@@ -3123,7 +3132,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[MNT_OEELog](
-	[OEELogID] [int] IDENTITY(1,1) NOT NULL,
+	[OEELogID] [bigint] IDENTITY(1,1) NOT NULL,
 	[OEERecordNumber] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
 	[EquipID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -3151,7 +3160,7 @@ CREATE TABLE [dbo].[MNT_OEELog](
 GO
 ALTER TABLE [dbo].[MNT_OEELog] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · OEE Log ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog', @level2type=N'COLUMN',@level2name=N'OEELogID'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · OEE Log ID · bigint' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog', @level2type=N'COLUMN',@level2name=N'OEELogID'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'OEE Record Number · varchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_OEELog', @level2type=N'COLUMN',@level2name=N'OEERecordNumber'
 GO

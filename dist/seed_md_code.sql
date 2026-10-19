@@ -1,6 +1,6 @@
 -- ============================================================
 -- Seed: MD_CodeGroup + MD_CodeItem
--- Regenerated: 2026-10-15 from live DB AMES_DEV (dev server 192.168.0.132) — 88 groups / 430 items
+-- Regenerated: 2026-10-15 from live DB AMES_DEV (dev server 192.168.0.132) — 88 groups / 430 items (+ PROCURE_TYPE 10-20 → 89 / 434)
 -- Excluded: integration config groups SW_* / FG_SHIPMENT_* (URL·auth tokens) —
 --           created by migrate_po_sync*.sql / migrate_demand_plan.sql / migrate_fg_shipment_api.sql
 --           and left untouched by the reset below (10-09 — the reset used to delete them too)
@@ -76,6 +76,7 @@ INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, Us
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('PM_STATUS', N'PM 상태', N'PM status', N'MNT_PMSchedule.Status', 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('PM_TYPE', N'PM 유형', N'PM type', N'MNT_PMSchedule.PMType', 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('PROCESS', N'프로세스', N'Process', NULL, 1, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('PROCURE_TYPE', N'조달형태', N'Procurement type', N'MD_Item.ProcureType — INHOUSE 내작·PURCHASE 매입·PAID_SUP 유상사급·FREE_SUP 무상사급', 1, 'system');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('RECIPE_STATUS', N'레시피 상태', N'Recipe status', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('RECIPE_TYPE', N'레시피 유형', N'Recipe type', NULL, 1, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeGroup (GroupCode, GroupName, GroupNameEn, Description, UseFlag, CreatedBy) VALUES ('RFID_READER_STATUS', N'RFID리더 상태', N'RFID reader status', NULL, 1, 'admin@ames.local');
@@ -383,6 +384,10 @@ INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn,
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('PROCESS_SCM', 'PROCESS', 'SCM', N'구매·발주 관리', N'Purchasing', NULL, 85, NULL, NULL, 1, NULL, 'scm-screen');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('PROCESS_SYS', 'PROCESS', 'SYS', N'시스템', N'System', NULL, 110, NULL, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('PROCESS_WH', 'PROCESS', 'WH', N'창고', N'Warehouse', NULL, 10, NULL, NULL, 1, NULL, 'admin@ames.local');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('PROCURE_TYPE_FREE_SUP', 'PROCURE_TYPE', 'FREE_SUP', N'무상사급', N'Free supply', NULL, 40, NULL, NULL, 1, N'고객사가 무상으로 공급', 'system');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('PROCURE_TYPE_INHOUSE', 'PROCURE_TYPE', 'INHOUSE', N'내작', N'In-house', NULL, 10, NULL, NULL, 1, N'자사 생산', 'system');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('PROCURE_TYPE_PAID_SUP', 'PROCURE_TYPE', 'PAID_SUP', N'유상사급', N'Paid supply', NULL, 30, NULL, NULL, 1, N'고객사가 유상으로 공급', 'system');
+INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('PROCURE_TYPE_PURCHASE', 'PROCURE_TYPE', 'PURCHASE', N'매입', N'Purchase', NULL, 20, NULL, NULL, 1, N'협력업체에서 구매', 'system');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('RECIPE_STATUS_ACTIVE', 'RECIPE_STATUS', 'ACTIVE', N'활성', N'Active', NULL, 20, NULL, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('RECIPE_STATUS_DRAFT', 'RECIPE_STATUS', 'DRAFT', N'초안', N'Draft', NULL, 10, NULL, NULL, 1, NULL, 'admin@ames.local');
 INSERT INTO dbo.MD_CodeItem (CodeID, GroupCode, CodeValue, CodeName, CodeNameEn, ParentCodeID, SortOrder, Attribute1, Attribute2, UseFlag, Description, CreatedBy) VALUES ('RECIPE_STATUS_OBS', 'RECIPE_STATUS', 'OBS', N'폐기', N'Obsolete', NULL, 30, NULL, NULL, 1, NULL, 'admin@ames.local');

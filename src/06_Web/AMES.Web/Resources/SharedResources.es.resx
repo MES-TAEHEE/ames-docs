@@ -11435,4 +11435,34 @@
   <data name="MD.Pallet.Col.ReturnedAt" xml:space="preserve">
     <value>Fecha de retorno</value>
   </data>
+  <data name="MD.Items.Col.ProcureType" xml:space="preserve">
+    <value>Aprovisionamiento</value>
+  </data>
+  <data name="MD.Bom.NeedRequestHint" xml:space="preserve">
+    <value>Se requiere al menos 1 línea BOM para solicitar la aprobación</value>
+  </data>
+  <data name="MD.Items.Col.IssueAddPct" xml:space="preserve">
+    <value>Entrega extra (%)</value>
+  </data>
+  <data name="MD.Items.Col.MrpAllowPct" xml:space="preserve">
+    <value>Margen MRP (%)</value>
+  </data>
+  <data name="MD.Items.Hint.Allowance" xml:space="preserve">
+    <value>La entrega extra se suma a la cantidad estándar (BOM) al entregar a órdenes de trabajo y el margen MRP a los requerimientos MRP (0–100, vacío = 0)</value>
+  </data>
+  <data name="MD.Bom.UpperCount" xml:space="preserve">
+    <value>+ {0} línea(s) de BOM superior</value>
+  </data>
+  <data name="MD.Bom.UpperFrom" xml:space="preserve">
+    <value>BOM superior — {0} · {1} (solo lectura)</value>
+  </data>
+  <data name="MD.Bom.Err.PastDate" xml:space="preserve">
+    <value>Las fechas de inicio y fin deben ser hoy o posteriores.</value>
+  </data>
+  <data name="MD.Bom.Err.StartRequired" xml:space="preserve">
+    <value>Ingrese una fecha de inicio (hoy o posterior).</value>
+  </data>
+  <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
+    <value>No se puede cambiar la unidad: el componente tiene stock o registros de producción.</value>
+  </data>
 </root>

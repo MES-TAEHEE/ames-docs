@@ -50,6 +50,8 @@
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Items.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Type"]" Component="DropDownType" />
             <RadzenDropDown Name="DropDownType" @bind-Value="_fTypeFilter" Data="@ItemTypeOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenLabel Text="@L["MD.Items.Col.ProcureType"]" Component="DropDownProcure" />
+            <RadzenDropDown Name="DropDownProcure" @bind-Value="_fProcureFilter" Data="@ProcureFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fActiveOnly" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
@@ -77,6 +79,9 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ItemCategory" Title="@L["Col.Category"]" TextAlign="TextAlign.Center" Width="120px">
                 <Template Context="item"><span class="dim">@CategoryName(item.ItemCategory)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ProcureType" Title="@L["MD.Items.Col.ProcureType"]" TextAlign="TextAlign.Center" Width="140px">
+                <Template Context="item">@ProcureName(item.ProcureType)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="InjFlag" Title="@L["MD.Items.Col.Inj"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="item">
@@ -109,6 +114,12 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="UnitCost" Title="@L["Col.UnitPrice"]" TextAlign="TextAlign.Right" Width="150px">
                 <Template Context="item">@(item.UnitCost?.ToString("N0") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="IssueAddPct" Title="@L["MD.Items.Col.IssueAddPct"]" TextAlign="TextAlign.Right" Width="150px">
+                <Template Context="item">@Pct(item.IssueAddPct)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="MrpAllowPct" Title="@L["MD.Items.Col.MrpAllowPct"]" TextAlign="TextAlign.Right" Width="150px">
+                <Template Context="item">@Pct(item.MrpAllowPct)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="PalletQty" Title="@L["MD.Items.Col.PalletQty"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="item">@(item.PalletQty?.ToString("N0") ?? "—")</Template>
@@ -234,12 +245,13 @@
     List<MasterDataRepository.CodeItemRow>    _itemTypeItems = new();
     List<MasterDataRepository.CodeItemRow>    _categoryItems = new();
     List<MasterDataRepository.CodeItemRow>    _routingItems  = new();
+    List<MasterDataRepository.CodeItemRow>    _procureItems  = new();
     List<MasterDataRepository.CodeItemRow>    _activeFlagItems = new();
     List<MasterDataRepository.UomRow> _uomList = new();
     MasterDataRepository.ItemRow? _sel;
 
     string  _fSearch     = "";
-    string? _fTypeFilter, _fActiveOnly;
+    string? _fTypeFilter, _fProcureFilter, _fActiveOnly;
     string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
     string _deleteBlocked = "";
@@ -286,6 +298,18 @@
         NormalizeCategory();
         if (!InjEnabled) _f.InjFlag = false;
     }
+    // 조달형태: 공통코드 PROCURE_TYPE — 사용 안 함 코드·공통코드에 없는 값은 수정 중인 행의 값일 때만 남겨 저장 때 지워지지 않게 한다
+    private IEnumerable<DropDownItem> ProcureOptions
+    {
+        get
+        {
+            var opts = _procureItems.Where(c => c.UseFlag || c.CodeValue == _f.ProcureType).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" }).ToList();
+            if (!string.IsNullOrEmpty(_f.ProcureType) && !opts.Any(o => o.Value == _f.ProcureType))
+                opts.Add(new DropDownItem { Value = _f.ProcureType, Text = $"[{_f.ProcureType}] {L["MD.Items.Opt.Unregistered"]}" });
+            return opts;
+        }
+    }
+    private IEnumerable<DropDownItem> ProcureFilterOptions => _procureItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = MasterDataRepository.LocalName(c) });
     private IEnumerable<DropDownItem> RoutingOptions => _routingItems.Where(r => r.UseFlag).Select(r => new DropDownItem { Value = r.CodeValue ?? "", Text = $"[{r.CodeValue}] {MasterDataRepository.LocalName(r)}" });
     private IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag && MasterDataRepository.IsQuantityUnit(u.UOMCode)).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
     // 상태 필터: 공통코드 ACTIVE_FLAG (ACTIVE/INACTIVE)
@@ -301,6 +325,7 @@
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
         try { _categoryItems = MD.ListCodeItems("ITEM_CATEGORY"); } catch { }
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
+        try { _procureItems = MD.ListCodeItems(MasterDataRepository.ProcureTypeGroup); } catch { }
         try { _activeFlagItems = MD.ListCodeItems("ACTIVE_FLAG"); } catch { }
         try { _uomList = MD.ListUoms(); } catch { }
         Reload();
@@ -333,6 +358,7 @@
             (r.PGN ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.ALC ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fTypeFilter) || r.ItemType == _fTypeFilter) &&
+        (string.IsNullOrEmpty(_fProcureFilter) || r.ProcureType == _fProcureFilter) &&
         (string.IsNullOrEmpty(_fActiveOnly) || (_fActiveOnly == "ACTIVE" ? r.ActiveFlag : !r.ActiveFlag))
     ).ToList();
     }
@@ -385,6 +411,9 @@
             MaxPalletQty = r.MaxPalletQty,
             ToteFlag     = r.ToteFlag,
             ScanRequired = r.ScanRequired,
+            ProcureType  = r.ProcureType ?? "",
+            IssueAddPct  = r.IssueAddPct,
+            MrpAllowPct  = r.MrpAllowPct,
             SAPTransFlag = r.SAPTransFlag,
             ActiveFlag   = r.ActiveFlag,
         };
@@ -413,7 +442,7 @@
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
-                _f.ActiveFlag, _actor, _f.ScanRequired, _f.SAPTransFlag);
+                _f.ActiveFlag, _actor, _f.ScanRequired, _f.SAPTransFlag, N(_f.ProcureType), _f.IssueAddPct, _f.MrpAllowPct);
             Audit.Created("MD-003", "MD_Item", no, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Created"].Value, no), false);
@@ -436,7 +465,7 @@
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
-                _f.ActiveFlag, _actor, _f.ScanRequired, _f.SAPTransFlag);
+                _f.ActiveFlag, _actor, _f.ScanRequired, _f.SAPTransFlag, _f.ProcureType ?? "", _f.IssueAddPct ?? 0, _f.MrpAllowPct ?? 0);
             Audit.Updated("MD-003", "MD_Item", _f.ItemNo, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo), false);
@@ -496,9 +525,13 @@
                 <RadzenLabel Text="@L["MD.Items.Lbl.ItemName"]" />
                 <RadzenTextBox @bind-Value="_f.ItemName" MaxLength="80" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
-            <RadzenColumn Size="6">
+            <RadzenColumn Size="3">
                 <RadzenLabel Text="@L["MD.Items.Lbl.CarType"]" />
                 <RadzenTextBox @bind-Value="_f.CarType" Placeholder="LQ2" MaxLength="10" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+            <RadzenColumn Size="3">
+                <RadzenLabel Text="@L["MD.Items.Col.ProcureType"]" />
+                <RadzenDropDown @bind-Value="_f.ProcureType" Data="@ProcureOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
@@ -562,6 +595,22 @@
         </RadzenRow>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
+            <RadzenColumn Size="6">
+                <RadzenLabel Text="@L["MD.Items.Col.IssueAddPct"]" />
+                <RadzenNumeric TValue="decimal?" @bind-Value="_f.IssueAddPct" Min="0" Max="@MasterDataRepository.AllowancePctMax" Step="0.5" Format="0.##" Placeholder="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+            <RadzenColumn Size="6">
+                <RadzenLabel Text="@L["MD.Items.Col.MrpAllowPct"]" />
+                <RadzenNumeric TValue="decimal?" @bind-Value="_f.MrpAllowPct" Min="0" Max="@MasterDataRepository.AllowancePctMax" Step="0.5" Format="0.##" Placeholder="0" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            </RadzenColumn>
+        </RadzenRow>
+        <RadzenRow Gap="8px" Style="margin-top:2px;">
+            <RadzenColumn Size="12">
+                <RadzenLabel Text="@L["MD.Items.Hint.Allowance"]" class="dim" Style="display:block;" />
+            </RadzenColumn>
+        </RadzenRow>
+
+        <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["MD.Items.Col.PalletQty"]" />
                 <RadzenNumeric TValue="int?" @bind-Value="_f.PalletQty" Min="1" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
@@ -602,6 +651,13 @@
     static string? N(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
     static decimal? Nz(decimal v) => v == 0 ? null : v;
     // 목록 표시: 공통코드 명칭(현재 언어), 코드에 없는 기존 값은 원문, 빈 값은 —
+    static string Pct(decimal? v) => v is null or 0 ? "—" : v.Value.ToString("0.##");
+    string ProcureName(string? code)
+    {
+        if (string.IsNullOrEmpty(code)) return "—";
+        var c = _procureItems.FirstOrDefault(x => x.CodeValue == code);
+        return c is null ? code : MasterDataRepository.LocalName(c);
+    }
     string CategoryName(string? code)
     {
         if (string.IsNullOrEmpty(code)) return "—";
@@ -631,6 +687,9 @@
         public int?    MaxPalletQty { get; set; }
         public bool    ToteFlag     { get; set; }
         public bool    ScanRequired { get; set; }
+        public string  ProcureType  { get; set; } = "";
+        public decimal? IssueAddPct { get; set; }
+        public decimal? MrpAllowPct { get; set; }
         public bool    SAPTransFlag { get; set; }
         public bool    ActiveFlag   { get; set; } = true;
     }

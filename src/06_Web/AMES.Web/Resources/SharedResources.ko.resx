@@ -11435,4 +11435,34 @@
   <data name="MD.Pallet.Col.ReturnedAt" xml:space="preserve">
     <value>회수 일시</value>
   </data>
+  <data name="MD.Items.Col.ProcureType" xml:space="preserve">
+    <value>조달형태</value>
+  </data>
+  <data name="MD.Bom.NeedRequestHint" xml:space="preserve">
+    <value>구성요소(BOM 라인)를 최소 1개 등록해야 승인 요청할 수 있습니다</value>
+  </data>
+  <data name="MD.Items.Col.IssueAddPct" xml:space="preserve">
+    <value>추가 불출율(%)</value>
+  </data>
+  <data name="MD.Items.Col.MrpAllowPct" xml:space="preserve">
+    <value>MRP 여유율(%)</value>
+  </data>
+  <data name="MD.Items.Hint.Allowance" xml:space="preserve">
+    <value>추가 불출율은 작업지시 불출 때, MRP 여유율은 MRP 소요 계산 때 정량(BOM)에 더하는 비율입니다(0~100, 비우면 0)</value>
+  </data>
+  <data name="MD.Bom.UpperCount" xml:space="preserve">
+    <value>+ 상위 BOM {0}행</value>
+  </data>
+  <data name="MD.Bom.UpperFrom" xml:space="preserve">
+    <value>상위 BOM — {0} · {1} (읽기 전용)</value>
+  </data>
+  <data name="MD.Bom.Err.PastDate" xml:space="preserve">
+    <value>시작일·종료일은 오늘 이후로만 지정할 수 있습니다.</value>
+  </data>
+  <data name="MD.Bom.Err.StartRequired" xml:space="preserve">
+    <value>시작일을 입력하세요(오늘 이후).</value>
+  </data>
+  <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
+    <value>구성품에 재고·실적이 있어 단위를 바꿀 수 없습니다.</value>
+  </data>
 </root>

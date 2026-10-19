@@ -317,7 +317,7 @@
 
     void Reload()
     {
-        try { _allRows = MD.ListUoms(); } catch { _allRows = new(); }
+        try { _allRows = MD.ListUoms(includeRetired: true); } catch { _allRows = new(); }
         ApplyFilter();
     }
 

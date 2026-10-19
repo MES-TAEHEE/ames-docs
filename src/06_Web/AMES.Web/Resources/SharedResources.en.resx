@@ -11435,4 +11435,34 @@
   <data name="MD.Pallet.Col.ReturnedAt" xml:space="preserve">
     <value>Returned At</value>
   </data>
+  <data name="MD.Items.Col.ProcureType" xml:space="preserve">
+    <value>Procurement</value>
+  </data>
+  <data name="MD.Bom.NeedRequestHint" xml:space="preserve">
+    <value>At least 1 BOM line is required to request approval</value>
+  </data>
+  <data name="MD.Items.Col.IssueAddPct" xml:space="preserve">
+    <value>Extra Issue (%)</value>
+  </data>
+  <data name="MD.Items.Col.MrpAllowPct" xml:space="preserve">
+    <value>MRP Allowance (%)</value>
+  </data>
+  <data name="MD.Items.Hint.Allowance" xml:space="preserve">
+    <value>Extra issue is added to the standard (BOM) quantity when issuing to work orders, and MRP allowance to MRP requirements (0–100, blank = 0)</value>
+  </data>
+  <data name="MD.Bom.UpperCount" xml:space="preserve">
+    <value>+ {0} parent BOM line(s)</value>
+  </data>
+  <data name="MD.Bom.UpperFrom" xml:space="preserve">
+    <value>Parent BOM — {0} · {1} (read-only)</value>
+  </data>
+  <data name="MD.Bom.Err.PastDate" xml:space="preserve">
+    <value>Start and end dates must be today or later.</value>
+  </data>
+  <data name="MD.Bom.Err.StartRequired" xml:space="preserve">
+    <value>Enter a start date (today or later).</value>
+  </data>
+  <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
+    <value>The unit cannot change: this component has stock or production records.</value>
+  </data>
 </root>

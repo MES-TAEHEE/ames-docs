@@ -25,7 +25,7 @@ public sealed class UomFormat(MasterDataRepository md, ILogger<UomFormat> logger
             if (_map is not null && DateTime.UtcNow - _loadedAt < Ttl) return _map;
             try
             {
-                var rows = md.ListUoms();
+                var rows = md.ListUoms(includeRetired: true);
                 _symbols = rows.Where(u => !string.IsNullOrWhiteSpace(u.Symbol))
                                .GroupBy(u => u.UOMCode.Trim(), StringComparer.OrdinalIgnoreCase)
                                .ToDictionary(g => g.Key, g => g.First().Symbol!.Trim(), StringComparer.OrdinalIgnoreCase);

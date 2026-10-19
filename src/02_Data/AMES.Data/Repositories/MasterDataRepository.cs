@@ -293,7 +293,7 @@ public sealed class MasterDataRepository
             SELECT ItemNo, ItemName, ItemType, ItemCategory, InjFlag, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
                    PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, ScanRequired,
-                   ISNULL(ActiveFlag,1) AS ActiveFlag, SAPTransFlag,
+                   ISNULL(ActiveFlag,1) AS ActiveFlag, IssueAddPct, MrpAllowPct, ProcureType, SAPTransFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
             """ + " WHERE 1=1" + (string.IsNullOrWhiteSpace(search) ? "" :
@@ -329,7 +329,10 @@ public sealed class MasterDataRepository
             r["ModifiedBy"]    as string,
             r["ModifiedTS"]    is DateTime mt ? mt : null,
             (bool)r["ScanRequired"],
-            (bool)r["SAPTransFlag"]), p);
+            (bool)r["SAPTransFlag"],
+            r["ProcureType"]   as string,
+            r["IssueAddPct"]   is decimal ia ? ia : null,
+            r["MrpAllowPct"]   is decimal ma ? ma : null), p);
     }
 
     public bool UpdateMaterialUnitCost(string itemNo, decimal unitCost, decimal? originalCost, string modifiedBy)
@@ -366,22 +369,41 @@ public sealed class MasterDataRepository
     public static bool NormalizeInjFlag(string? itemType, bool injFlag)
         => injFlag && string.Equals(itemType?.Trim(), ItemTypeSub, StringComparison.OrdinalIgnoreCase);
 
+    // 조달형태 공통코드 그룹(10-20) — INHOUSE 내작·PURCHASE 매입·PAID_SUP 유상사급·FREE_SUP 무상사급
+    public const string ProcureTypeGroup = "PROCURE_TYPE";
+
+    /// <summary>조달형태 저장값 — 앞뒤 공백을 지운 대문자, 빈 값은 NULL.</summary>
+    public static string? NormalizeProcureType(string? procureType)
+        => string.IsNullOrWhiteSpace(procureType) ? null : procureType.Trim().ToUpperInvariant();
+
+    // 추가 불출율·MRP 여유율(%, 10-20) — 0~100, 0 은 NULL(= 0%)로 저장한다
+    public const decimal AllowancePctMax = 100m;
+
+    /// <summary>비율 저장값 — null·0 은 NULL, 0 미만·100 초과는 거부.</summary>
+    public static decimal? NormalizeAllowancePct(decimal? pct, string name)
+    {
+        if (pct is null || pct == 0) return null;
+        if (pct < 0 || pct > AllowancePctMax) throw new ArgumentOutOfRangeException(name, pct, $"{name} must be between 0 and {AllowancePctMax}.");
+        return pct;
+    }
+
     public void InsertItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
-        bool activeFlag, string createdBy, bool scanRequired = false, bool sapTransFlag = false)
+        bool activeFlag, string createdBy, bool scanRequired = false, bool sapTransFlag = false, string? procureType = null,
+        decimal? issueAddPct = null, decimal? mrpAllowPct = null)
     {
         ValidateQuantityUnit(defaultUom);
         Exec("""
             INSERT INTO dbo.MD_Item
                    (ItemNo,ItemName,ItemType,ItemCategory,InjFlag,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS,ScanRequired,SAPTransFlag)
+                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS,ScanRequired,IssueAddPct,MrpAllowPct,ProcureType,SAPTransFlag)
             VALUES (@No,@Name,@Type,@Cat,@Inj,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME(),@BoxScan,@Sap)
+                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME(),@BoxScan,@IssuePct,@MrpPct,@Proc,@Sap)
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
             ("@Type", "MD_Item.ItemType", itemType), ("@Cat", "MD_Item.ItemCategory", itemCategory), ("@Car", "MD_Item.CarType", carType),
@@ -392,25 +414,33 @@ public sealed class MasterDataRepository
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
             ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag),
             ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
+            ("@IssuePct", "MD_Item.IssueAddPct", NormalizeAllowancePct(issueAddPct, nameof(issueAddPct))),
+            ("@MrpPct", "MD_Item.MrpAllowPct", NormalizeAllowancePct(mrpAllowPct, nameof(mrpAllowPct))),
+            ("@Proc", "MD_Item.ProcureType", NormalizeProcureType(procureType)),
             ("@Sap", "MD_Item.SAPTransFlag", sapTransFlag));
     }
 
+    // sapTransFlag·procureType·두 비율이 null 이면 저장된 값을 그대로 둔다(값을 넘기지 않는 저장 경로가 지우지 않게)
+    // — 조달형태를 비우려면 빈 문자열, 비율을 비우려면 0
     public void UpdateItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
-        bool activeFlag, string modifiedBy, bool scanRequired = false, bool? sapTransFlag = null)
+        bool activeFlag, string modifiedBy, bool scanRequired = false, bool? sapTransFlag = null, string? procureType = null,
+        decimal? issueAddPct = null, decimal? mrpAllowPct = null)
     {
         ValidateQuantityUnit(defaultUom);
-        Exec("""
+        Exec($"""
             UPDATE dbo.MD_Item
             SET    ItemName=@Name, ItemType=@Type,
                    ItemCategory=@Cat, InjFlag=@Inj, CarType=@Car, DefaultUOM=@Uom, RoutingType=@Route,
                    MinStock=@Min, MaxStock=@Max, SafetyStock=@Safe, UnitCost=@Cost,
                    PGN=@PGN, ALC=@ALC, DrawingNo=@Draw,
                    PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, ScanRequired=@BoxScan,
-                   ActiveFlag=@Active, SAPTransFlag=ISNULL(@Sap, SAPTransFlag), ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+                   ActiveFlag=@Active, ProcureType=CASE WHEN @Proc IS NULL THEN ProcureType ELSE NULLIF(@Proc, '') END,
+                   {(issueAddPct is null ? "" : "IssueAddPct=@IssuePct, ")}{(mrpAllowPct is null ? "" : "MrpAllowPct=@MrpPct, ")}
+                   SAPTransFlag=ISNULL(@Sap, SAPTransFlag), ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
@@ -422,6 +452,9 @@ public sealed class MasterDataRepository
             ("@ALC", "MD_Item.ALC", alc),      ("@Draw", "MD_Item.DrawingNo", drawingNo), ("@Active", "MD_Item.ActiveFlag", activeFlag),
             ("@Pallet", "MD_Item.PalletQty", palletQty), ("@MaxPallet", "MD_Item.MaxPalletQty", maxPalletQty), ("@Tote", "MD_Item.ToteFlag", toteFlag),
             ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
+            ("@Proc", "MD_Item.ProcureType", procureType is null ? null : NormalizeProcureType(procureType) ?? ""),
+            ("@IssuePct", "MD_Item.IssueAddPct", NormalizeAllowancePct(issueAddPct, nameof(issueAddPct))),
+            ("@MrpPct", "MD_Item.MrpAllowPct", NormalizeAllowancePct(mrpAllowPct, nameof(mrpAllowPct))),
             ("@Sap", "MD_Item.SAPTransFlag", sapTransFlag));
     }
 
@@ -603,15 +636,52 @@ public sealed class MasterDataRepository
         return true;
     }
 
-    /// <summary>DRAFT → PENDING. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
+    /// <summary>승인 요청하려는 버전에 활성 구성요소(BOM 라인)가 하나도 없다(10-20 — 빈 BOM 은 승인 요청할 수 없다).</summary>
+    public sealed class BomHasNoLinesException(string versionId)
+        : InvalidOperationException($"BOM version {versionId} has no active component lines.")
+    {
+        public string VersionId { get; } = versionId;
+    }
+
+    /// <summary>
+    /// DRAFT → PENDING. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).
+    /// 활성 구성요소가 없으면 <see cref="BomHasNoLinesException"/> — 버전 행을 잠그고 보므로 라인 저장(같은 행을 잠그고 DRAFT 확인)과 엇갈리지 않는다.
+    /// </summary>
     public bool RequestBomApproval(string versionId, string requestedBy)
-        => ExecCount("""
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        string? status; int lines;
+        using (var cmd = new SqlCommand("""
+            SELECT v.Status,
+                   (SELECT COUNT(*) FROM dbo.MD_Bom b WHERE b.VersionID = v.VersionID AND ISNULL(b.ActiveFlag,1) = 1) AS Lines
+            FROM   dbo.MD_BomVersion v WITH (UPDLOCK, HOLDLOCK)
+            WHERE  v.VersionID = @V
+            """, conn, tx))
+        {
+            ColumnParams.AddFilter(cmd, "@V", "MD_BomVersion.VersionID", versionId);
+            using var r = cmd.ExecuteReader();
+            if (!r.Read()) { r.Close(); tx.Rollback(); return false; }
+            status = r["Status"] as string;
+            lines  = (int)r["Lines"];
+        }
+        if (status != "DRAFT") { tx.Rollback(); return false; }
+        if (lines == 0) { tx.Rollback(); throw new BomHasNoLinesException(versionId); }
+
+        using (var cmd = new SqlCommand("""
             UPDATE dbo.MD_BomVersion
             SET    Status='PENDING', RequestedBy=@By,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@V AND Status='DRAFT'
-            """,
-            ("@V", "MD_BomVersion.VersionID", versionId), ("@By", "MD_BomVersion.RequestedBy", requestedBy)) > 0;
+            """, conn, tx))
+        {
+            ColumnParams.Add(cmd, "@V",  "MD_BomVersion.VersionID",   versionId);
+            ColumnParams.Add(cmd, "@By", "MD_BomVersion.RequestedBy", requestedBy);
+            cmd.ExecuteNonQuery();
+        }
+        tx.Commit();
+        return true;
+    }
 
     /// <summary>
     /// PENDING 버전을 승인하고, 기간이 겹치는 같은 품번의 기존 승인 버전 종료일을 닫는다(규칙 <see cref="BomVersionRules.PlanApproval"/>).
@@ -751,8 +821,7 @@ public sealed class MasterDataRepository
             ("@V", "MD_BomVersion.VersionID", versionId), ("@By", "MD_BomVersion.ModifiedBy", modifiedBy)) > 0;
 
     // ── MD-03 BomLine ────────────────────────────────────────────────────
-    public List<BomRow> ListBomLines(string versionId)
-        => Query("""
+    const string BomLineSelect = """
             SELECT b.BOMID, b.ParentItemNo,
                    ISNULL(p.ItemName,'') AS ParentItemName,
                    b.CompItemNo,
@@ -764,10 +833,23 @@ public sealed class MasterDataRepository
             FROM   dbo.MD_Bom b
             LEFT JOIN dbo.MD_Item p ON p.ItemNo = b.ParentItemNo
             LEFT JOIN dbo.MD_Item c ON c.ItemNo = b.CompItemNo
+
+            """;
+
+    public List<BomRow> ListBomLines(string versionId)
+        => Query(BomLineSelect + """
             WHERE  b.VersionID = @V
             ORDER  BY ISNULL(b.Position,9999), b.BOMLevel, b.CompItemNo
-            """,
-            r => new BomRow(
+            """, MapBomRow, ("@V", "MD_Bom.VersionID", (object?)versionId));
+
+    // 역전개 — 이 품번을 구성요소로 쓰는 활성 BOM 라인(모든 버전). 어느 버전을 쓸지는 호출자가 대표 버전으로 고른다
+    public List<BomRow> ListBomWhereUsed(string compItemNo)
+        => Query(BomLineSelect + """
+            WHERE  b.CompItemNo = @C AND ISNULL(b.ActiveFlag,1) = 1
+            ORDER  BY b.ParentItemNo, b.VersionID
+            """, MapBomRow, ("@C", "MD_Bom.CompItemNo", (object?)compItemNo));
+
+    static BomRow MapBomRow(SqlDataReader r) => new BomRow(
                 r.GetString("BOMID"),
                 r["ParentItemNo"]   as string, r.GetString("ParentItemName"),
                 r["CompItemNo"]     as string, r.GetString("CompItemName"),
@@ -782,8 +864,7 @@ public sealed class MasterDataRepository
                 r["CreatedBy"]      as string,
                 r["CreatedTS"]      is DateTime ct ? ct : null,
                 r["ModifiedBy"]     as string,
-                r["ModifiedTS"]     is DateTime mt ? mt : null),
-            ("@V", "MD_Bom.VersionID", (object?)versionId));
+                r["ModifiedTS"]     is DateTime mt ? mt : null);
 
     // BOM 라인 추가·수정·삭제·재활성화는 버전이 DRAFT 일 때만 — 승인 요청(PENDING)·승인(APPROVED) 뒤에는 바뀌지 않는다(10-10).
     // 버전 행을 UPDLOCK 으로 잡고 같은 문장에서 상태를 보므로 승인과 엇갈려도 승인된 BOM 이 바뀌지 않는다.
@@ -804,10 +885,23 @@ public sealed class MasterDataRepository
             ("@Scrap", "MD_Bom.ScrapPct", scrapPct),  ("@VID", "MD_Bom.VersionID", versionId),    ("@Pos", "MD_Bom.Position", position),
             ("@Note", "MD_Bom.Note", note),      ("@By", "MD_Bom.CreatedBy", createdBy)) > 0;
 
+    // 구성품의 재고·실적이 있으면 그 라인의 단위는 바꿀 수 없다(10-20) — 같은 구성품인 채로 단위만 바꾸면 51830 → BomUomLockedException
     public bool UpdateBomLine(string bomId, string? parentItemNo, string? compItemNo,
         int bomLevel, decimal qtyPer, string? uom, decimal? scrapPct,
         int position, string? note, string modifiedBy)
+    {
+        try { return UpdateBomLineCore(bomId, parentItemNo, compItemNo, bomLevel, qtyPer, uom, scrapPct, position, note, modifiedBy); }
+        catch (SqlException ex) when (ex.Number == 51830) { throw new BomUomLockedException(compItemNo ?? ""); }
+    }
+
+    bool UpdateBomLineCore(string bomId, string? parentItemNo, string? compItemNo,
+        int bomLevel, decimal qtyPer, string? uom, decimal? scrapPct,
+        int position, string? note, string modifiedBy)
         => ExecCount($"""
+            IF EXISTS (SELECT 1 FROM dbo.MD_Bom b
+                       WHERE b.BOMID = @ID AND b.CompItemNo = @Comp AND ISNULL(b.UOM,'') <> ISNULL(@UOM,'')
+                         AND {BomCompInUseSql("b.CompItemNo")})
+                THROW 51830, 'BOM line unit is locked: the component has stock or production records.', 1;
             UPDATE b
             SET    ParentItemNo=@Par, CompItemNo=@Comp, BOMLevel=@Lv,
                    QtyPer=@Qty, UOM=@UOM, ScrapPct=@Scrap,
@@ -819,6 +913,25 @@ public sealed class MasterDataRepository
             ("@Lv", "MD_Bom.BOMLevel", bomLevel), ("@Qty", "MD_Bom.QtyPer", qtyPer),       ("@UOM", "MD_Bom.UOM", uom),
             ("@Scrap", "MD_Bom.ScrapPct", scrapPct), ("@Pos", "MD_Bom.Position", position),     ("@Note", "MD_Bom.Note", note),
             ("@By", "MD_Bom.ModifiedBy", modifiedBy)) > 0;
+
+    /// <summary>BOM 라인 단위 잠금 — 구성품에 재고(수량 0 아닌 재고 행)·생산 실적(그 품번 LOT 의 실적)·자동 차감(BACKFLUSH 출고)이 있다.</summary>
+    static string BomCompInUseSql(string item) => $"""
+        (EXISTS (SELECT 1 FROM dbo.WH_Inventory i WHERE i.PartNo = {item} AND i.Qty <> 0)
+         OR EXISTS (SELECT 1 FROM dbo.PR_ProductionResult r JOIN dbo.tbl_Lot l ON l.LotID = r.LotID WHERE l.ItemNo = {item})
+         OR EXISTS (SELECT 1 FROM dbo.WH_InventoryTransaction t WHERE t.PartNo = {item} AND t.SourceType = 'BACKFLUSH'))
+        """;
+
+    public bool BomUomLocked(string? compItemNo)
+        => !string.IsNullOrWhiteSpace(compItemNo)
+           && Query($"SELECT CASE WHEN {BomCompInUseSql("@C")} THEN 1 ELSE 0 END", r => (int)r[0] == 1,
+                    ("@C", "MD_Bom.CompItemNo", (object?)compItemNo)).FirstOrDefault();
+
+    /// <summary>재고·실적이 있는 구성품 라인의 단위를 바꾸려 했다(10-20).</summary>
+    public sealed class BomUomLockedException(string compItemNo)
+        : InvalidOperationException($"BOM line unit of {compItemNo} cannot change: the component has stock or production records.")
+    {
+        public string CompItemNo { get; } = compItemNo;
+    }
 
     const string BomLineDraftOnly = """
         FROM   dbo.MD_Bom b
@@ -886,7 +999,8 @@ public sealed class MasterDataRepository
         int? PalletQty, int? MaxPalletQty, bool ToteFlag,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false, bool SAPTransFlag = false);
+        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false, bool SAPTransFlag = false, string? ProcureType = null,
+        decimal? IssueAddPct = null, decimal? MrpAllowPct = null);
 
     public record CodeItemRow(
         string CodeID, string? GroupCode, string? CodeValue,
@@ -3441,13 +3555,14 @@ public sealed class MasterDataRepository
         int? DecimalPrec, string? Symbol, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
 
-    public List<UomRow> ListUoms() => Query("""
+    // 포장 단위(BOX·PLT·SH 등, 10-14 비활성)는 선택 콤보에서 빼지만 MD-019 단위 관리·단위 기호 표시는 과거 값 때문에 포함한다(includeRetired)
+    public List<UomRow> ListUoms(bool includeRetired = false) => Query("""
         SELECT UOMCode, UOMName, UOMCategory,
                ISNULL(BaseFlag,0) AS BaseFlag, BaseUOM, ConvFactor,
                DecimalPrec, Symbol, ISNULL(ActiveFlag,1) AS ActiveFlag,
                CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
         FROM dbo.MD_Uom
-        WHERE UPPER(LTRIM(RTRIM(UOMCode))) NOT IN ('BOX','PLT','PALLET','SH','SHEET')
+        WHERE @All = 1 OR UPPER(LTRIM(RTRIM(UOMCode))) NOT IN ('BOX','PLT','PALLET','SH','SHEET')
         ORDER BY UOMCode
         """, r => new UomRow(
             r.GetString("UOMCode"),
@@ -3462,7 +3577,8 @@ public sealed class MasterDataRepository
             r["CreatedBy"]   as string,
             r["CreatedTS"]   is DateTime ct ? ct  : null,
             r["ModifiedBy"]  as string,
-            r["ModifiedTS"]  is DateTime mt ? mt  : null));
+            r["ModifiedTS"]  is DateTime mt ? mt  : null),
+        ("@All", null, includeRetired));
 
     // ── MD_RfidTag ───────────────────────────────────────────────────
     public record RfidTagRow(

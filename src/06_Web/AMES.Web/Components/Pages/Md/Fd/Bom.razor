@@ -162,7 +162,7 @@
                                 @if (_selVer.Status == "DRAFT" && _canEdit) {
                                     <RadzenButton Text="@L["Btn.Edit"]" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Size="ButtonSize.Small" Click="() => OpenVersionEdit(_selVer)" Disabled="@_busy" class="ames-rz-btn" />
                                     <RadzenButton Text="@L["MD.Bom.AddItem"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenLineCreate" Disabled="@_busy" class="ames-rz-btn" />
-                                    <RadzenButton Text="@L["MD.Bom.RequestApproval"]" Icon="send" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@DoRequestApproval" Disabled="@_busy" class="ames-rz-btn" />
+                                    <RadzenButton Text="@L["MD.Bom.RequestApproval"]" Icon="send" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small" Click="@DoRequestApproval" Disabled="@(_busy || _lines.Count(l => l.ActiveFlag) == 0)" title="@(_lines.Count(l => l.ActiveFlag) == 0 ? L["MD.Bom.NeedRequestHint"].Value : "")" class="ames-rz-btn" />
                                     @if (!_verDelConfirm)
                                     {
                                         <RadzenButton Text="@L["Btn.Delete"]" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click='() => _verDelConfirm = true' Disabled="@_busy" class="ames-rz-btn" />
@@ -195,9 +195,14 @@
                 @* 라인 카운트 + 읽기 전용 안내 *@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="padding:4px 0 6px;">
                     <span class="dim" style="font-size:.82em;">@string.Format(L["MD.Bom.LineCount"], _lines.Count)</span>
+                    @{ int upperRows = _displayLines.Count(l => (l.BOMLevel ?? 0) < 0); }
+                    @if (upperRows > 0)
+                    {
+                        <span class="dim" style="font-size:.78em;">@string.Format(L["MD.Bom.UpperCount"], upperRows)</span>
+                    }
                     @if (_explodedIds.Count > 0)
                     {
-                        <span class="dim" style="font-size:.78em;">@string.Format(L["MD.Bom.ExplodedCount"], _displayLines.Count - _lines.Count)</span>
+                        <span class="dim" style="font-size:.78em;">@string.Format(L["MD.Bom.ExplodedCount"], _displayLines.Count - _lines.Count - upperRows)</span>
                     }
                     @if (_selVer.Status != "DRAFT")
                     {
@@ -210,7 +215,7 @@
                     @* 라인 클릭 = 수정 모달 — 초안이면서 수정 권한이 있을 때만 *@
                     @{ bool editable = _selVer.Status == "DRAFT" && _canEdit; }
                     <RadzenDataGrid @ref="_lineGrid" Page="OnLinePage" TItem="MasterDataRepository.BomRow" Data="_displayLines" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center"
-                                    ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable && !_explodedIds.Contains(l.BOMID)) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid ames-grid-fill">
+                                    ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeOptions="@_pageSizeOptions" RowRender="@(args => LineRowRender(args, editable))" RowSelect="@(l => { if (editable && !_explodedIds.Contains(l.BOMID) && !_upperIds.Contains(l.BOMID)) OpenLineEdit(l); })" EmptyText="@L["MD.Bom.NoLines"]" Class="ames-rz-grid ames-grid-fill">
                         <Columns>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BomRow" Property="BOMLevel" Title="@L["Col.Level"]" TextAlign="TextAlign.Center" Width="50px" MinWidth="50px">
                                 <Template Context="line"><span class="dim">@(line.BOMLevel ?? 0)</span></Template>
@@ -357,6 +362,7 @@
     List<MasterDataRepository.BomRow>        _lines    = new();
     List<MasterDataRepository.BomRow>        _displayLines = new();
     readonly HashSet<string>                 _explodedIds  = new();
+    readonly HashSet<string>                 _upperIds     = new();
     List<MasterDataRepository.ItemRow>       _itemList = new();
     List<MasterDataRepository.UomRow>        _uomList  = new();
     MasterDataRepository.BomVersionRow?      _selVer;
@@ -456,6 +462,7 @@
     {
         _displayLines = new();
         _explodedIds.Clear();
+        _upperIds.Clear();
         if (_selVer is null) return;
         List<MasterDataRepository.BomVersionRow> all;
         try { all = MD.ListBomVersions(); } catch { _displayLines = _lines.ToList(); return; }
@@ -481,7 +488,36 @@
             }
         }
 
+        AddUpper(all, _selVer.RootItemNo);
         Add(_lines, 1, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { _selVer.RootItemNo ?? "" }, false);
+    }
+
+    // 상위 BOM 역전개 — 이 품번을 쓰는 부모 품번의 대표 버전 라인을 목록 위에 LV -1·-2… 로 흐리게 보인다(읽기 전용).
+    // 맨 위 부모부터 내려오도록 부모의 상위를 먼저 붙인다.
+    void AddUpper(List<MasterDataRepository.BomVersionRow> all, string? rootItemNo)
+    {
+        if (string.IsNullOrEmpty(rootItemNo)) return;
+        var cache = new Dictionary<string, List<MasterDataRepository.BomRow>>(StringComparer.OrdinalIgnoreCase);
+
+        void Up(string item, int level, HashSet<string> path)
+        {
+            if (!cache.TryGetValue(item, out var used))
+            {
+                try { used = MD.ListBomWhereUsed(item); } catch { used = new(); }
+                used = used.Where(r => r.ParentItemNo is { } p && RepresentativeVersion(all, p)?.VersionID == r.VersionID).ToList();
+                cache[item] = used;
+            }
+            foreach (var row in used)
+            {
+                var parent = row.ParentItemNo!;
+                if (path.Contains(parent)) continue;
+                if (level > -9) Up(parent, level - 1, new HashSet<string>(path, StringComparer.OrdinalIgnoreCase) { parent });
+                _displayLines.Add(row with { BOMLevel = level });
+                _upperIds.Add(row.BOMID);
+            }
+        }
+
+        Up(rootItemNo, -1, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { rootItemNo });
     }
 
     // 하위 BOM 대표 버전 — 규칙 정본 BomVersionRules.Representative (BOP 상하위 조회와 공용)
@@ -512,6 +548,12 @@
         {
             args.Attributes["style"] = "opacity:.6;";
             args.Attributes["title"] = string.Format(L["MD.Bom.ExplodedFrom"], args.Data.VersionID);
+            return;
+        }
+        if (args.Data is not null && _upperIds.Contains(args.Data.BOMID))
+        {
+            args.Attributes["style"] = "opacity:.6;";
+            args.Attributes["title"] = string.Format(L["MD.Bom.UpperFrom"], args.Data.ParentItemNo, args.Data.VersionID);
             return;
         }
         if (!editable) return;
@@ -596,6 +638,7 @@
     {
         if (!_canEdit) return;
         if (_selVer is null) return;
+        if (_lines.Count(l => l.ActiveFlag) == 0) { ShowMsg(L["MD.Bom.NeedRequestHint"], true); return; }
         var id = _selVer.VersionID;
         _busy = true;
         try
@@ -605,6 +648,8 @@
             await RefreshVersion(id);
             ShowMsg($"{id} {L["Msg.ApprovalRequested"]}", false);
         }
+        // 화면을 연 사이 다른 사용자가 마지막 라인을 지웠다 — 라인을 새로 읽고 안내한다
+        catch (MasterDataRepository.BomHasNoLinesException) { await RefreshVersion(id); ShowMsg(L["MD.Bom.NeedRequestHint"], true); }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
         finally { _busy = false; }
     }
@@ -698,14 +743,16 @@
         _modalErr = ""; _modal = "ver-create";
     }
 
-    // 등록 창에서 최상위 품목을 고르면 시작일을 직전 버전 종료일 다음 날로 이어 붙인다(없으면 오늘)
+    // 등록 창에서 최상위 품목을 고르면 시작일을 직전 버전 종료일 다음 날로 이어 붙인다(없거나 지난 날이면 오늘)
     void OnRootChanged(object? _)
     {
         if (_modal != "ver-create" || string.IsNullOrWhiteSpace(_fv.RootItemNo)) return;
         try
         {
             var all = MD.ListBomVersions().Select(MasterDataRepository.ToVersionInfo);
-            _fv.EffFrom = AMES.Data.Services.BomVersionRules.DefaultStart(all, _fv.RootItemNo, DateOnly.FromDateTime(DbClock.Today));
+            var today = DateOnly.FromDateTime(DbClock.Today);
+            var start = AMES.Data.Services.BomVersionRules.DefaultStart(all, _fv.RootItemNo, today);
+            _fv.EffFrom = start < today ? today : start;
         }
         catch { }
     }
@@ -728,6 +775,19 @@
         if (AMES.Data.Services.BomVersionRules.TryNormalizeVersionNo(_fv.VersionNo, out var v)) { _fv.VersionNo = v; return false; }
         _modalErr = L["MD.Bom.Err.VersionNoFormat"];
         return true;
+    }
+
+    // 등록 때 시작일·종료일은 오늘(DB 날짜)부터 — 달력은 지난 날을 막고, 직접 입력한 지난 날은 달력이 지우므로 시작일은 필수로 저장 직전에 다시 본다(10-20)
+    DateTime TodayMin => DbClock.Today;
+    DateTime EndMin => _fv.EffFrom is { } f && f.ToDateTime(TimeOnly.MinValue) > DbClock.Today ? f.ToDateTime(TimeOnly.MinValue) : DbClock.Today;
+
+    bool CreateDatesInvalid()
+    {
+        var today = DateOnly.FromDateTime(DbClock.Today);
+        if (_fv.EffFrom is null) { _modalErr = L["MD.Bom.Err.StartRequired"]; return true; }   // 비우면 처음부터 유효(= 지난 날)로 읽히므로 필수
+        if (_fv.EffFrom < today || _fv.EffTo < today) { _modalErr = L["MD.Bom.Err.PastDate"]; return true; }
+        if (_fv.EffFrom is { } f && _fv.EffTo is { } t && t < f) { _modalErr = L["Err.DateRange"]; return true; }
+        return false;
     }
 
     // 유효기간 표시 — 종료일이 없으면 "시작일 ~" 로 계속 유효함을 보인다
@@ -757,6 +817,7 @@
         if (string.IsNullOrWhiteSpace(_fv.RootItemNo)) { _modalErr = L["Err.RootItemRequired"]; return; }
         if (VersionNoInvalid()) return;
         if (ChangeReasonTooLong()) return;
+        if (CreateDatesInvalid()) return;
         _busy = true;
         try
         {
@@ -829,8 +890,15 @@
             Note         = line.Note         ?? "",
             ActiveFlag   = line.ActiveFlag,
         };
+        _flOrigComp = _fl.CompItemNo; _flOrigUom = _fl.Uom;
+        try { _flUomInUse = MD.BomUomLocked(_fl.CompItemNo); } catch { _flUomInUse = false; }
         _lineConfirmDelete = false; _modalErr = ""; _modal = "line-edit";
     }
+
+    // 구성품에 재고·실적이 있으면 단위를 바꿀 수 없다(10-20) — 구성품을 다른 품번으로 바꾼 동안만 풀린다. 저장소도 거부한다
+    string _flOrigComp = "", _flOrigUom = "";
+    bool   _flUomInUse;
+    bool UomLocked => _modal == "line-edit" && _flUomInUse && string.Equals(_fl.CompItemNo, _flOrigComp, StringComparison.OrdinalIgnoreCase);
 
     async Task SaveLineCreate()
     {
@@ -861,6 +929,7 @@
         if (string.IsNullOrWhiteSpace(_fl.CompItemNo)) { _modalErr = L["Err.CompItemRequired"]; return; }
         if (_fl.QtyPer <= 0) { _modalErr = L["Err.QtyGtZero"]; return; }
         _busy = true;
+        if (UomLocked) _fl.Uom = _flOrigUom;
         try
         {
             if (LineError(_fl.CompItemNo, _fl.BomId) is { } err) { _modalErr = err; return; }
@@ -871,6 +940,7 @@
             Audit.Updated("MD-004", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId), _fl);
             LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineUpdated"], false);
         }
+        catch (MasterDataRepository.BomUomLockedException) { _flUomInUse = true; _fl.Uom = _flOrigUom; _modalErr = L["MD.Bom.Hint.UomLocked"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -953,12 +1023,12 @@
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="6">
-                <RadzenLabel Text="@L["Col.StartDate"]" />
-                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_fv.EffFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenLabel Text="@(editMode ? L["Col.StartDate"].Value : $"{L["Col.StartDate"]} *")" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_fv.EffFrom" Min="@(editMode ? null : TodayMin)" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["Col.EndDate"]" />
-                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_fv.EffTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateOnly?" @bind-Value="_fv.EffTo" Min="@(editMode ? null : EndMin)" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
@@ -998,13 +1068,17 @@
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
-                <RadzenDropDown AllowFiltering="true" @bind-Value="_fl.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown AllowFiltering="true" @bind-Value="_fl.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@UomLocked" title="@(UomLocked ? L["MD.Bom.Hint.UomLocked"].Value : "")" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["Col.ScrapRate"]" />
                 <RadzenNumeric TValue="decimal" @bind-Value="_fl.ScrapPct" Min="0" Step="0.01" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
+        @if (UomLocked)
+        {
+            <div class="dim" style="font-size:.78em;margin-top:4px;">🔒 @L["MD.Bom.Hint.UomLocked"]</div>
+        }
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">

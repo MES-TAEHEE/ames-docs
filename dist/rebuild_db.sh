@@ -145,6 +145,7 @@ FILES=(
   migrate_mnt_pm_checklist.sql       # PM 점검 단계 필요 부품 = 예비품(RequiredSparePartNo·int 수량), 작업지시 점검 항목 컬럼·인덱스, 공통코드 MNT_RESULT(10-15)
   migrate_mnt_failure_downtime.sql   # 고장 라인 정지 → 비가동(PP_LineDowntimeLog.FailureID), 쓰지 않는 MNT_WorkOrder.DowntimeID 삭제(10-16)
   migrate_mnt_pm_lead_days.sql       # SYS_Config MNT_PM_LEAD_DAYS — PM 도래·예정 기준 일수(10-16)
+  migrate_mnt_oeelog_bigint.sql      # MNT_OEELog.OEELogID int → bigint(10-19)
   migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
   # Fresh schema includes the actual-shipment customer-return contract.
   migrate_wh_fg_scm_column_lengths.sql # WH/FG/SCM keys and 20-byte actor codes
@@ -153,6 +154,8 @@ FILES=(
   migrate_fg_shipment_no_foreign_keys.sql # No new shipment FKs; application SQL validates references
   migrate_fg_putaway_transactions.sql # FG put-away uses inventory transactions only
   migrate_md_sap_trans_flag.sql      # MD_Item·MD_Vendor·MD_Location.SAPTransFlag — SAP 전송 대상 여부(10-16)
+  migrate_md_item_procure_type.sql   # MD_Item.ProcureType(SAPTransFlag 앞) + 공통코드 PROCURE_TYPE — 조달형태(10-20)
+  migrate_md_item_allowance_pct.sql  # MD_Item.IssueAddPct·MrpAllowPct — 추가 불출율·MRP 여유율(%)(10-20)
   migrate_md_pallet.sql              # MD_Pallet·PALLET_USE, WH_Inventory.CaseNo→PalletNo, FG_Shipment.PalletNo, MD-034·035 화면(10-17) — FK 제거(no_foreign_keys) 뒤
   migrate_line_locations_shipping_orders.sql # Location minima, actual shipment LOT naming, shipment orders and DCR loads
   migrate_shipping_ui_line_defaults.sql # FG display order and registered production-line locations

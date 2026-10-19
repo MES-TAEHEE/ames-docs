@@ -51,7 +51,7 @@ public sealed class MntRepository
             new(ActionType, ActionAt, string.IsNullOrEmpty(TechnicianId) ? CreatedBy : TechnicianId, Description);
     }
 
-    public sealed record OeeRow(int OeeLogId, string? OeeRecordNumber, string? EquipId, string? LineId,
+    public sealed record OeeRow(long OeeLogId, string? OeeRecordNumber, string? EquipId, string? LineId,
         string? AggLevel, DateTime? AggDate, string? ShiftCode,
         int? PlannedTimeMin, int? DowntimeMin,
         decimal? Availability, decimal? Performance, decimal? Quality, decimal? Oee,
@@ -356,7 +356,7 @@ public sealed class MntRepository
         """;
 
     private static OeeRow MapOee(IDataReader r) => new(
-        (int)r["OEELogID"], r["OEERecordNumber"] as string, r["EquipID"] as string,
+        Convert.ToInt64(r["OEELogID"]), r["OEERecordNumber"] as string, r["EquipID"] as string,
         r["LineID"] as string, r["AggLevel"] as string, r["AggDate"] as DateTime?,
         r["ShiftCode"] as string,
         r["PlannedTimeMin"] as int?, r["DowntimeMin"] as int?,
