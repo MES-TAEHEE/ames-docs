@@ -242,7 +242,8 @@ public static class BomImport
     public sealed record Version(string VersionId, bool IsNew, string RootItemNo, string? VersionNo, DateOnly? EffFrom, DateOnly? EffTo,
         string? ChangeType, string? ChangeReason, bool SapTransFlag, List<Line> Lines);
 
-    public sealed record ExistingVersion(string Status, string? RootItemNo, IReadOnlySet<string> CompItems);
+    /// <summary>있는 버전 — MaxPosition 은 그 버전 라인의 가장 큰 순서(순서를 비운 새 라인은 그 다음 10 단위로 붙인다).</summary>
+    public sealed record ExistingVersion(string Status, string? RootItemNo, IReadOnlySet<string> CompItems, int MaxPosition = 0);
 
     public sealed record Lookup(IReadOnlyDictionary<string, ExistingVersion> Versions, IReadOnlySet<string> Items, IReadOnlySet<string> Uoms,
         DateOnly Today, Func<string, string, bool> WouldCycle);
@@ -310,7 +311,7 @@ public static class BomImport
 
             var lines = new List<Line>();
             var comps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            int nextPos = 10;
+            int nextPos = (exists?.MaxPosition ?? 0) + 10;
             foreach (var r in grp)
             {
                 var comp = r.Code("CompItemNo");

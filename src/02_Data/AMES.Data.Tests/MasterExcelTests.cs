@@ -63,7 +63,7 @@ public class MasterExcelTests
         new Dictionary<string, BomImport.ExistingVersion>(StringComparer.OrdinalIgnoreCase)
         {
             ["V-APPROVED"] = new("APPROVED", "P1", S("C1")),
-            ["V-DRAFT"] = new("DRAFT", "P2", S("C1")),
+            ["V-DRAFT"] = new("DRAFT", "P2", S("C1"), 30),
         },
         S("P1", "P2", "P3", "C1", "C2", "C3"), S("EA", "G"), Today, cycle ?? ((_, _) => false));
 
@@ -92,7 +92,7 @@ public class MasterExcelTests
         Assert.Equal([("C1", 2m, "EA", 10), ("C2", 0.5m, "G", 20)], nv.Lines.Select(l => (l.CompItemNo, l.QtyPer, l.Uom, l.Position)));
         var dv = r.Plans[1];
         Assert.False(dv.IsNew);
-        Assert.Equal(["C3"], dv.Lines.Select(l => l.CompItemNo));
+        Assert.Equal([("C3", 40)], dv.Lines.Select(l => (l.CompItemNo, l.Position)));   // 순서를 비우면 기존 마지막 순서(30) 다음
         Assert.Empty(r.Plans[2].Lines);
         Assert.Equal([(4, "V-APPROVED", "APPROVED")], r.SkippedVersions);
         Assert.Equal([(5, "V-DRAFT", "C1")], r.SkippedLines);

@@ -1113,9 +1113,12 @@
         var lines = MD.ListAllBomLines();
         var comps = lines.GroupBy(l => l.VersionID ?? "", StringComparer.OrdinalIgnoreCase)
                          .ToDictionary(g => g.Key, g => (IReadOnlySet<string>)new HashSet<string>(g.Select(l => l.CompItemNo ?? ""), StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
+        var maxPos = lines.GroupBy(l => l.VersionID ?? "", StringComparer.OrdinalIgnoreCase)
+                          .ToDictionary(g => g.Key, g => g.Max(l => l.Position ?? 0), StringComparer.OrdinalIgnoreCase);
         var versions = MD.ListBomVersions().ToDictionary(v => v.VersionID,
             v => new AMES.Data.Services.BomImport.ExistingVersion(v.Status, v.RootItemNo,
-                     comps.TryGetValue(v.VersionID, out var c) ? c : new HashSet<string>(StringComparer.OrdinalIgnoreCase)),
+                     comps.TryGetValue(v.VersionID, out var c) ? c : new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                     maxPos.TryGetValue(v.VersionID, out var mp) ? mp : 0),
             StringComparer.OrdinalIgnoreCase);
         var items = new HashSet<string>(MD.ListItems("").Select(i => i.ItemNo), StringComparer.OrdinalIgnoreCase);
         var uoms = new HashSet<string>(MD.ListUoms().Where(u => u.ActiveFlag).Select(u => (u.UOMCode ?? "").Trim()), StringComparer.OrdinalIgnoreCase);
