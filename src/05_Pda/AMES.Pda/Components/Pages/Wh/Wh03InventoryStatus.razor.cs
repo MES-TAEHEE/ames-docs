@@ -21,8 +21,8 @@ public partial class Wh03InventoryStatus
     [
         new("LOT 스캔", "LOT을 스캔해 품목·수량·위치를 조회합니다.", new PptScenarioPanel.Value("LOT", PptAdjustLot, "SCAN")),
         new("재고·수량 조정", "변경 후 수량을 정수로 입력하거나 −/+로 1씩 조절합니다.", new PptScenarioPanel.Value("수량", "+3", "PLUS"), new PptScenarioPanel.Value("수량", "−3", "MINUS")),
-        new("조정 정보 입력", "수량·사유·Note를 확인하고 CLEAR로 입력 초기화를 검수합니다.", new PptScenarioPanel.Value("입력 예시", "+3 / Damaged / Note", "READY")),
-        new("사유 선택", "Reason 목록의 Count Diff·Damaged·Lost·Found·Other와 선택값을 확인합니다.", new PptScenarioPanel.Value("REASON", "Damaged", "REASON")),
+        new("조정 정보 입력", "수량·사유·Note를 확인하고 CLEAR로 입력 초기화를 검수합니다.", new PptScenarioPanel.Value("입력 예시", "+3 / Count Diff / Note", "READY")),
+        new("사유 선택", "Reason 목록의 Count Diff·Lost·Found·Other와 선택값을 확인합니다.", new PptScenarioPanel.Value("REASON", "Count Diff", "REASON")),
         new("정수 입력", "정수를 직접 입력하면 별도 Supervisor 승인 없이 SAVE가 활성화됩니다. 관리자 권한이 필요합니다.", new PptScenarioPanel.Value("수량", "15", "QTY_VALID")),
         new("입력 검증", "소수·음수·빈값 입력 시 SAVE가 비활성화되는지 확인합니다.", new PptScenarioPanel.Value("소수", "1.5", "QTY_DECIMAL"), new PptScenarioPanel.Value("음수", "-1", "QTY_NEGATIVE"), new PptScenarioPanel.Value("빈값", "CLEAR", "QTY_EMPTY")),
         new("저장 완료", "이 단계 시작 후 SAVE를 눌러 Saved 알림과 전체 입력 초기화를 확인합니다.", new PptScenarioPanel.Value("이력 확인", "Transactions", "HISTORY"))
@@ -122,7 +122,7 @@ public partial class Wh03InventoryStatus
         if (step >= 3)
         {
             _invAdjustDelta = 3;
-            _invAdjustReason = "DAMAGED";
+            _invAdjustReason = "COUNT_DIFF";
             _invAdjustNote = "PPT adjustment test";
         }
         if (step == 5) OnAdjustmentQuantityInput(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "15" });
@@ -165,7 +165,7 @@ public partial class Wh03InventoryStatus
             case "PLUS": _invAdjustDelta = 3; break;
             case "MINUS": _invAdjustDelta = Math.Max(-InventoryBeforeQty, -3); break;
             case "READY": await StartPptStep(3); break;
-            case "REASON": _invAdjustReason = "DAMAGED"; break;
+            case "REASON": _invAdjustReason = "COUNT_DIFF"; break;
             case "QTY_VALID": OnAdjustmentQuantityInput(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "15" }); break;
             case "QTY_DECIMAL": OnAdjustmentQuantityInput(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "1.5" }); break;
             case "QTY_NEGATIVE": OnAdjustmentQuantityInput(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "-1" }); break;

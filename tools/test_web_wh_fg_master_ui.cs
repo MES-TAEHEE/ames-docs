@@ -52,6 +52,11 @@ Check(picking.Contains("ames-kpis") && picking.Contains("master-list-toolbar") &
 var orders = Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShippingOrders.razor");
 Check(orders.Contains("RadzenSelectBar") && orders.Contains("master-list-toolbar") && orders.Contains("ames-grid-fixed") && !orders.Contains("<details") && !orders.Contains("<button"), "Shipment Orders uses standard Radzen navigation, grid expansion and buttons");
 var create = Read("src/06_Web/AMES.Web/Components/Shared/ShipmentOrderCreate.razor");
+var planPage=Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShipmentPlan.razor");
+Check(planPage.Contains("TItem=\"ShippingOrderDto\"") && planPage.Contains("<Template Context=\"order\"><ShipmentOrderLines"),"Shipment Plan expands saved orders into their part lists.");
+Check(planPage.Contains("TrailerLoadDraft.FromOrders(_view)") && planPage.Contains("Dialog.OpenAsync<ShipmentTrailerDialog>") && !planPage.Contains("ListShipmentPlanOrders"),"Truck preview opens on demand using saved shipment orders, not raw SOs.");
+Check(planPage.Contains("Click=\"OpenTrailerPreview\"") && planPage.Contains("ames-grid-fixed") && planPage.Contains("--ames-page-rows") && !planPage.Contains("Embedded=\"true\"") && !planPage.Contains("<ShipmentTrailerDialog "),"Shipment Plan defaults to a full-height table; trailers open only from the preview button.");
+Check(orders.Contains("SHIPMENT ORDERS CREATED") && orders.Contains("Open Shipment Plan") && !orders.Contains("_creating=false"),"Creation confirms the exact saved orders in a popup without switching to the list tab.");
 Check(create.Contains("ames-kpis") && create.Contains("master-list-toolbar") && create.Contains("ames-grid-fixed") && create.Contains("Immediate=\"true\"") && create.Contains("EstimateShippingPallets"), "Standard shipment creation preserves immediate quantity/pallet calculations");
 
 foreach(var path in new[]{

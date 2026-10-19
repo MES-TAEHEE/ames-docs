@@ -62,7 +62,44 @@ public sealed class InventoryDefectTests
         Assert.DoesNotContain("Text=",rowAction);Assert.Contains("Icon=\"report_problem\"",rowAction);
         Assert.Contains("aria-label=",rowAction);
     }
+    [Fact]
+    public void Web_inbound_uses_PDA_validation_and_does_not_seed_or_reset()
+    {
+        var source=Read("src/02_Data/AMES.Data/Repositories/WarehouseInboundTestRepository.cs");
+        Assert.Contains("RequireAccess(userId);Mode(mode)",source);
+        Assert.Contains("RequireAccess(userId,receive:true);Mode(mode)",source);
+        Assert.Contains("P.PermissionLevel LIKE '%R%'",source);
+        Assert.Contains("P.PermissionLevel LIKE '%E%'",source);
+        Assert.DoesNotContain("SystemRoles.AdminId",source);
+        Assert.DoesNotContain("@AdminRole",source);
+        Assert.Contains("PdaWarehouseSql.InboundReceive",source);Assert.Contains("PdaWarehouseSql.InboundScan",source);
+        Assert.Contains("ReceiveDeliveryCase(barcode,mode,actor,scannedBoxes)",source);
+        Assert.Contains("Delivery notes are view-only",source);Assert.Contains("ScmRepository.LinkReceivedCase",source);
+        Assert.DoesNotContain("TEST_RESET",source);Assert.DoesNotContain("SEED",source);
+        var state=Read("src/06_Web/AMES.Web/Services/WarehouseInboundTestState.cs");
+        Assert.Contains("if(allowed && ++_clicks>=3)",state);Assert.DoesNotContain("static",state);
+        var page=Read("src/06_Web/AMES.Web/Components/Pages/Wh/InboundTest.razor");
+        Assert.Contains("_allowed=await Task.Run(()=>Repo.CanRead(_userId))",page);
+        Assert.Contains("Repo.CanReceive(_userId)",page);
+        Assert.Contains("CanWrite=\"_canReceive\"",page);
+        Assert.Contains("!CanWrite",Read("src/06_Web/AMES.Web/Components/Shared/WarehouseInboundTester.razor"));
+        Assert.DoesNotContain("TestState.Visible",page);
+    }
 
+    [Fact]
+    public void Web_inbound_requires_explicit_Matrix_grants_without_invalid_user_queries()
+    {
+        var repo=new WarehouseInboundTestRepository(new AmesConnectionFactory("Server=unused;Database=unused;Integrated Security=True"));
+        foreach(var user in new[]{""," ",new string('x',451)})
+        {
+            Assert.False(repo.CanRead(user));Assert.False(repo.CanReceive(user));
+        }
+        var migration=Read("dist/migrate_wh_pda_test_permission.sql");
+        Assert.Equal("WH-PDA-TEST",WarehouseInboundTestRepository.PermissionCode);
+        Assert.Contains("N'WH PDA 테스트'",migration);
+        Assert.Contains("'__X'",migration);Assert.Contains("'REX'",migration);
+        Assert.Contains("WHERE R.Id='ROLE-SYSADMIN'",migration);
+    }
     [Fact]
     public void Location_creation_and_fake_inventory_status_are_not_shown()
     {
@@ -209,4 +246,18 @@ public sealed class InventoryDefectTests
         Assert.True(expected.SetEquals(lots));
     }
 
+    [SkippableFact]
+    public void Web_inbound_Matrix_access_loads_without_receipt_or_permission_writes()
+    {
+        var connection=Environment.GetEnvironmentVariable("AMES_TEST_CONN");
+        Skip.If(string.IsNullOrWhiteSpace(connection),"Set AMES_TEST_CONN for read-only receipt-test access verification.");
+        var factory=new AmesConnectionFactory(connection!);
+        using var conn=factory.OpenConnection();
+        using var cmd=new Microsoft.Data.SqlClient.SqlCommand("SELECT Id FROM dbo.AspNetUsers WHERE NormalizedUserName='ADMIN@AMES.LOCAL';",conn);
+        var user=cmd.ExecuteScalar() as string;
+        Skip.If(user is null,"The standard administrator account is not present.");
+        var repo=new WarehouseInboundTestRepository(factory);
+        Assert.True(repo.CanRead(user!));Assert.True(repo.CanReceive(user!));
+        Assert.False(repo.CanRead("missing-matrix-user"));Assert.False(repo.CanReceive("missing-matrix-user"));
+    }
 }

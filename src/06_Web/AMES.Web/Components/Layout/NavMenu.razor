@@ -7,6 +7,8 @@
 @using AMES.Web.Services
 @inject AMES.Web.Services.ScreenCatalogNotifier ScreenCatalog
 @inject AMES.Web.Services.AppLanguageState Lang
+@inject AMES.Web.Services.WarehouseInboundTestState InboundTestState
+@inject AMES.Data.Connection.AmesConnectionFactory InboundTestFactory
 @using System.Globalization
 @using System.Net
 @using System.Text.Json
@@ -151,6 +153,7 @@
     string          _query = "";
     bool            _favOpen = true;   // 즐겨찾기 섹션: 기본 펼침
     bool            _loaded;   // localStorage 복원 완료 전엔 저장 스킵
+    bool _inboundTestAllowed;
     (double Nav, double Main)? _keepScroll;   // 언어 전환으로 이어 받은 메뉴·본문 스크롤 — 다음 렌더 뒤 한 번 맞춘다
     sealed record NavKeep(string? path, string[]? sec, string[]? sub, double nav, double main);
 
@@ -167,7 +170,7 @@
         var isFav = _favorites.Contains(it.Href);
         var lid = DisplayLid(it);
         <div class="ames-nav-row @(isFav ? "is-fav" : "")">
-            <NavLink class="ames-nav-link" href="@it.Href">
+            <NavLink class="ames-nav-link" href="@it.Href" @onclick="@(()=>PickingMenuClicked(it.Href))">
                 @if (showTag)
                 {
                     <span class="lid @it.Section">@lid</span>
@@ -182,7 +185,21 @@
                     title="@SL(isFav ? "즐겨찾기 해제" : "즐겨찾기 추가", isFav ? "Remove favorite" : "Add favorite")"
                     aria-label="@SL("즐겨찾기", "Favorite")">@(isFav ? "★" : "☆")</button>
         </div>
+        @if(!showTag && string.Equals(it.Href.Trim('/'),"wh/picking-orders",StringComparison.OrdinalIgnoreCase) && _inboundTestAllowed && InboundTestState.Visible)
+        {
+            <div class="ames-nav-row"><NavLink class="ames-nav-link" href="wh/picking-orders/inbound-test"><span class="lid">TEST</span><span>@SL("WH PDA 테스트","WH PDA Test")</span></NavLink></div>
+        }
     };
+
+    async Task PickingMenuClicked(string href)
+    {
+        if(!string.Equals(href.Trim('/'),"wh/picking-orders",StringComparison.OrdinalIgnoreCase)||AuthState is null)return;
+        var user=(await AuthState).User;
+        var userId=user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
+        try{_inboundTestAllowed=userId.Length>0 && await Task.Run(()=>new AMES.Data.Repositories.WarehouseInboundTestRepository(InboundTestFactory).CanRead(userId));}
+        catch{_inboundTestAllowed=false;}
+        InboundTestState.PickingClicked(_inboundTestAllowed);
+    }
 
     void ToggleSide()
     {

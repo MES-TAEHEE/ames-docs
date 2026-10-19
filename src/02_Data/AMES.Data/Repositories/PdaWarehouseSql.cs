@@ -3,6 +3,44 @@ namespace AMES.Data.Repositories;
 // Parameterized batches owned by the application; no database procedure installation is required.
 public static class PdaWarehouseSql
 {
+    public const string PutAwayInventory = """
+        SET QUOTED_IDENTIFIER ON;
+        SET ANSI_NULLS ON;
+        SELECT Q.Mode, Q.Barcode, Q.LotNo, Q.PartNo, Q.PartName, Q.Qty,
+               Q.Unit, Q.DeliveryNoteNo, Q.ReceivedAt, Q.LocationNo, Q.ParentLotNo
+        FROM
+        (
+            SELECT CAST('LOCAL' AS varchar(10)) AS Mode,
+                   W.LotNo AS Barcode,
+                   W.LotNo, W.PartNo, W.PartName, W.Qty,
+                   I.DefaultUOM AS Unit, W.DeliveryNoteNo, W.ReceivedAt, W.LocationNo, W.ParentLotNo
+            FROM dbo.WH_Inventory W
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
+            WHERE W.Qty > 0
+              AND W.DeliveryNoteNo IS NOT NULL
+
+            UNION ALL
+
+            SELECT CAST(CASE WHEN UPPER(COALESCE(L.ProcessCode,'LOCAL'))='CKD' THEN 'CKD' ELSE 'LOCAL' END AS varchar(10)) AS Mode,
+                   W.LotNo AS Barcode,
+                   W.LotNo, W.PartNo, COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS PartName,
+                   W.Qty, I.DefaultUOM AS Unit,
+                   CAST(NULL AS nvarchar(30)) AS DeliveryNoteNo,
+                   W.ReceivedAt, W.LocationNo, W.ParentLotNo
+            FROM dbo.WH_Inventory W
+            LEFT JOIN dbo.tbl_Lot L ON L.LotCode=W.LotNo
+            LEFT JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo
+            WHERE W.Qty>0 AND W.DeliveryNoteNo IS NULL
+        ) Q
+        WHERE (@Barcode IS NULL OR UPPER(Q.Barcode) = UPPER(@Barcode)
+            OR UPPER(Q.LotNo) = UPPER(@Barcode)
+            OR UPPER(Q.DeliveryNoteNo) = UPPER(@Barcode)
+            OR EXISTS(SELECT 1 FROM dbo.WH_Inventory C
+                      WHERE C.LotNo=Q.LotNo AND UPPER(C.ParentLotNo)=UPPER(@Barcode)))
+          AND (@OnlyUnassigned = 0 OR NULLIF(LTRIM(RTRIM(Q.LocationNo)), '') IS NULL)
+        ORDER BY Q.ReceivedAt, Q.Barcode;
+        """;
+
     public const string ScheduleInbound = """
         SET QUOTED_IDENTIFIER ON;
         SET ANSI_NULLS ON;
@@ -1042,6 +1080,8 @@ public static class PdaWarehouseSql
                 THROW 51511, 'Adjustment quantity must be different from zero.', 1;
             IF @Reason = N''
                 THROW 51512, 'Reason code is required.', 1;
+            IF @Reason IN (N'DAMAGED', N'DEFECT', N'DEFECTIVE')
+                THROW 51521, 'Use Inventory Defect to record defective stock, not quantity adjustment.', 1;
             IF NOT EXISTS
                (SELECT 1 FROM dbo.MD_CodeItem
                 WHERE GroupCode='INV_ADJUST_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
