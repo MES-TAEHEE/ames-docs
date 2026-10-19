@@ -8,8 +8,11 @@
 --   §2 마스터 점검: 고객·라우팅·BOM 코어·금형/UPH·BOP 스테이션·사이클·라인/스테이션/LotPrefix·가동 시간 패턴·
 --                  공장 달력·SYS_Config·교대·APS 기본 패턴·불량코드/원인·REWORK 라인·작업자·라인 슈퍼바이저·IMG 라벨 항목.
 --                  FAIL 이 하나라도 있으면 THROW(아무것도 바꾸지 않음), WARN 은 목록으로만 보인다.
---                  유일한 자동 보정: 선택 라인에 활성 슈퍼바이저가 없으면 슈퍼바이저가 있는 첫 라인의 것을 복사한다
---                  (없으면 안돈이 OPEN 에서 못 벗어난다).
+--                  자동 보정 세 가지: ① 선택 금형의 MD_MoldItem.Color 가 2자 검정 'BK' 면 'CBK' 로 바꾼다(InjAgent 는 PLC 금형
+--                  문자열 끝 3자를 색상으로 읽는다 — 10-14 사용자 결정 black = CBK; 그 밖의 3자 아닌 색상은 자동 선택에서 뒤로 미루고
+--                  고를 수밖에 없으면 FAIL) ② 선택 금형 코어의 PalletQty 가 비면 그 코어를 쓰는 완제품 PalletQty 의 최소값(없으면 8)
+--                  으로 채운다(seed_aps_dev.sql ③ 규칙) ③ 선택 라인에 활성 슈퍼바이저가 없으면 슈퍼바이저가 있는 첫 라인의 것을
+--                  복사한다(없으면 안돈이 OPEN 에서 못 벗어난다). 모두 트랜잭션 안이라 FAIL·ROLLBACK 이면 되돌아간다.
 --   §3 초기화    : PP 계획 데이터 전부(예측·일별계획·공급계획·수주·WO·단계·WO/MC 슬롯·APS 실행·MRP·구매요청) +
 --                  생산 데이터(INJ/IMG/FINAL LOT·사출/감싸기 LOT·실적·불량·접수·안돈·비가동·안돈 고장·빈 LotSeq).
 --                  남기는 것: PM 슬롯, 창고·FG·QC·PNT·MNT 데이터, POP 세션/인증 로그, 금형 샷·교체 이력.
@@ -124,25 +127,44 @@ WHERE  c.NCores = 1 AND m.Status = 'AVAILABLE';
 --      두 금형은 **다른 사출 라인**을 우선한다(시험이 두 라인에 걸치게 — 한쪽이 고정돼 있으면 그 라인과 다른 쪽을 고른다).
 --      첫 실행이 복사한 슈퍼바이저 때문에 재실행 때 점수가 같아져 같은 라인의 금형으로 몰리던 것을 막는다.
 IF OBJECT_ID('tempdb..#moldScore') IS NOT NULL DROP TABLE #moldScore;
-SELECT MoldID, CavityCount, COUNT(DISTINCT CoreItemNo) AS Cores, SUM(BestScore) AS Score, MIN(InjLine) AS InjLine
+--      ColorOk = 코어 매핑 색상이 모두 3자이거나 자동 보정되는 'BK' — 아니면 InjAgent 가 LOT 를 못 만들므로 맨 뒤로 미룬다.
+SELECT MoldID, CavityCount, COUNT(DISTINCT CoreItemNo) AS Cores, SUM(BestScore) AS Score, MIN(InjLine) AS InjLine, MIN(ColorOk) AS ColorOk
 INTO   #moldScore
-FROM   (SELECT MoldID, CavityCount, CoreItemNo, MAX(Score) AS BestScore, MIN(InjLine) AS InjLine FROM #cand GROUP BY MoldID, CavityCount, CoreItemNo) x
+FROM   (SELECT MoldID, CavityCount, CoreItemNo, MAX(Score) AS BestScore, MIN(InjLine) AS InjLine,
+               MIN(CASE WHEN LEN(ISNULL(Color, '')) = 3 OR RTRIM(Color) = 'BK' THEN 1 ELSE 0 END) AS ColorOk
+        FROM #cand GROUP BY MoldID, CavityCount, CoreItemNo) x
 GROUP  BY MoldID, CavityCount;
 
 DECLARE @Line1 varchar(20) = (SELECT TOP 1 InjLine FROM #moldScore WHERE MoldID = @Mold1);
 DECLARE @Line2 varchar(20) = (SELECT TOP 1 InjLine FROM #moldScore WHERE MoldID = @Mold2);
 IF @Mold1 IS NULL
     SELECT TOP 1 @Mold1 = MoldID, @Line1 = InjLine FROM #moldScore WHERE CavityCount = 1 AND Cores = 1
-    ORDER BY CASE WHEN @Line2 IS NOT NULL AND InjLine = @Line2 THEN 1 ELSE 0 END, Score DESC, MoldID;
+    ORDER BY ColorOk DESC, CASE WHEN @Line2 IS NOT NULL AND InjLine = @Line2 THEN 1 ELSE 0 END, Score DESC, MoldID;
 IF @Mold2 IS NULL
     SELECT TOP 1 @Mold2 = MoldID, @Line2 = InjLine FROM #moldScore WHERE CavityCount = 2 AND Cores = 2
-    ORDER BY CASE WHEN @Line1 IS NOT NULL AND InjLine = @Line1 THEN 1 ELSE 0 END, Score DESC, MoldID;
+    ORDER BY ColorOk DESC, CASE WHEN @Line1 IS NOT NULL AND InjLine = @Line1 THEN 1 ELSE 0 END, Score DESC, MoldID;
 IF @Mold1 IS NULL THROW 50201, N'No 1-cavity mold candidate - a routing-A finished item core (BOM, name CORE*) needs an active MD_MoldItem on an AVAILABLE mold with CavityCount 1', 1;
 IF @Mold2 IS NULL THROW 50202, N'No 2-cavity mold candidate - both cores need a routing-A finished item', 1;
 IF NOT EXISTS (SELECT 1 FROM #moldScore WHERE MoldID = @Mold1 AND CavityCount = 1 AND Cores = 1) THROW 50203, N'Mold1 is not a 1-cavity candidate (check mold status / core mapping)', 1;
 IF NOT EXISTS (SELECT 1 FROM #moldScore WHERE MoldID = @Mold2 AND CavityCount = 2 AND Cores = 2) THROW 50204, N'Mold2 is not a 2-cavity candidate (both cores need a finished item)', 1;
 
--- 1-d) 코어마다 완제품 1개 (점수 → 품번순)
+-- 1-d) 자동 보정 ①: 선택 금형의 2자 검정 'BK' → 'CBK' (PK = MoldID·ItemNo 라 색상만 바꿔도 겹치지 않는다)
+UPDATE dbo.MD_MoldItem SET Color = 'CBK', ModifiedBy = @Actor, ModifiedTS = @Now
+WHERE  MoldID IN (@Mold1, @Mold2) AND RTRIM(Color) = 'BK';
+DECLARE @ColorFixed int = @@ROWCOUNT;
+UPDATE #cand SET Color = 'CBK' WHERE MoldID IN (@Mold1, @Mold2) AND RTRIM(Color) = 'BK';
+
+-- 1-d') 자동 보정 ②: 선택 금형 코어의 PalletQty(APS 포장 단위)가 비면 그 코어를 쓰는 완제품 PalletQty 의 최소값, 완제품에도 없으면 8
+--       (seed_aps_dev.sql ③ 과 같은 규칙 — 완제품 수주가 적입수량 배수로 오므로 코어도 같은 단위면 APS 포장 올림이 자투리를 안 만든다)
+UPDATE ci SET PalletQty = COALESCE(pp.PalletQty, 8), ModifiedBy = @Actor, ModifiedTS = @Now
+FROM   dbo.MD_Item ci
+OUTER APPLY (SELECT MIN(a.PalletQty) AS PalletQty FROM #core c JOIN dbo.MD_Item a ON a.ItemNo = c.Assy
+             WHERE c.CoreItemNo = ci.ItemNo AND a.PalletQty > 0) pp
+WHERE  ci.ItemNo IN (SELECT ItemNo FROM dbo.MD_MoldItem WHERE MoldID IN (@Mold1, @Mold2) AND ActiveFlag = 1)
+  AND  ISNULL(ci.PalletQty, 0) <= 0;
+DECLARE @PalletFixed int = @@ROWCOUNT;
+
+-- 1-e) 코어마다 완제품 1개 (점수 → 품번순)
 IF OBJECT_ID('tempdb..#pick') IS NOT NULL DROP TABLE #pick;
 SELECT Kind, Assy, CoreItemNo, MoldID, CavityCount, InjStation, InjLine, InjCycle, ImgStation, ImgLine, ImgCycle, Uph, MoldCode, Color,
        MoldCode + Color AS PlcMoldString
@@ -190,6 +212,10 @@ INSERT INTO #chk SELECT 'WARN', N'Item', CONCAT(p.Assy, N': PGN/ALC/MountPos emp
 FROM   #pick p JOIN dbo.MD_Item a ON a.ItemNo = p.Assy WHERE a.PGN IS NULL OR a.ALC IS NULL OR a.MountPos IS NULL;
 INSERT INTO #chk SELECT 'WARN', N'Item', CONCAT(p.Assy, N': DefaultUOM ', ISNULL(a.DefaultUOM,'(NULL)'), N' not in MD_Uom - qty decimals fall back to default')
 FROM   #pick p JOIN dbo.MD_Item a ON a.ItemNo = p.Assy WHERE NOT EXISTS (SELECT 1 FROM dbo.MD_Uom u WHERE u.UomCode = a.DefaultUOM);
+IF @PalletFixed > 0
+    INSERT INTO #chk SELECT 'OK', N'Item', CONCAT(N'Core PalletQty was empty - set ', STRING_AGG(CONCAT(ci.ItemNo, N'=', ci.PalletQty), N', '), N' (finished-item minimum, else 8; check in MD-003)')
+    FROM   dbo.MD_Item ci WHERE ci.ItemNo IN (SELECT ItemNo FROM dbo.MD_MoldItem WHERE MoldID IN (@Mold1, @Mold2) AND ActiveFlag = 1)
+      AND  ci.ModifiedBy = @Actor AND ci.ModifiedTS = @Now;
 INSERT INTO #chk SELECT 'WARN', N'Item', CONCAT(p.CoreItemNo, N': core PalletQty is NULL - APS treats the pack unit as 1 (MD-003 / dev: seed_aps_dev.sql section 3)')
 FROM   #pick p JOIN dbo.MD_Item ci ON ci.ItemNo = p.CoreItemNo WHERE ISNULL(ci.PalletQty, 0) <= 0;
 INSERT INTO #chk SELECT 'WARN', N'Item', CONCAT(p.CoreItemNo, N': core InjFlag=0 - fine for PP-003, but PP-APS BOM rule will not treat it as injection (MD-003)')
@@ -198,6 +224,8 @@ INSERT INTO #chk SELECT 'FAIL', N'Item', CONCAT(p.CoreItemNo, N': core item is i
 FROM   #pick p JOIN dbo.MD_Item ci ON ci.ItemNo = p.CoreItemNo WHERE ISNULL(ci.ActiveFlag,1) <> 1;
 
 -- 금형 (InjAgent PlcCodec.SplitMoldColor 는 PLC 금형 문자열 끝 3자를 색상으로 읽는다 — 3자가 아니면 어떤 문자열도 매칭되지 않아 LOT 가 안 생긴다)
+IF @ColorFixed > 0
+    INSERT INTO #chk VALUES ('OK', N'Mold', CONCAT(N'Selected molds had 2-char black ''BK'' - changed to ''CBK'' (', @ColorFixed, N' MD_MoldItem rows, check in MD-007)'));
 INSERT INTO #chk SELECT 'FAIL', N'Mold', CONCAT(p.MoldID, N' / ', p.CoreItemNo, N': MD_MoldItem.Color ''', p.Color, N''' is not 3 chars - InjAgent reads the last 3 chars of the PLC mold string as color, so no LOT can be created (MD-007; black = CBK)')
 FROM   #pick p WHERE LEN(ISNULL(p.Color, '')) <> 3;
 INSERT INTO #chk SELECT 'FAIL', N'Mold', CONCAT(p.CoreItemNo, N': mold ', p.MoldID, N' has no MD_MoldLine (UPH>0) on INJ BOP line ', p.InjLine, N' - MD-007 line assignment')
