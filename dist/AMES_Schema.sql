@@ -557,7 +557,7 @@ GO
 -- One confirmed barcode outbound operation; detail rows are WH_InventoryTransaction FG_OUTBOUND / SourceID.
 CREATE TABLE [dbo].[FG_Shipment](
     [ShipmentID] [int] IDENTITY(1,1) NOT NULL,
-    [OutboundBarcode] [nvarchar](50) COLLATE DATABASE_DEFAULT NOT NULL,
+    [LotNo] [nvarchar](50) COLLATE DATABASE_DEFAULT NOT NULL,
     [UnitType] [varchar](10) COLLATE DATABASE_DEFAULT NOT NULL,
     [PalletNo] [varchar](50) COLLATE DATABASE_DEFAULT NULL,
     [CustomerID] [varchar](20) COLLATE DATABASE_DEFAULT NOT NULL,
@@ -567,7 +567,7 @@ CREATE TABLE [dbo].[FG_Shipment](
 );
 GO
 CREATE INDEX IX_FG_Shipment_ShippedAt ON dbo.FG_Shipment(ShippedAt DESC,ShipmentID DESC)
-    INCLUDE(CustomerID,OutboundBarcode,UnitType,ShippedBy);
+    INCLUDE(CustomerID,LotNo,UnitType,ShippedBy);
 GO
 -- =====================================================================
 -- Table: dbo.MD_ApsLineStage

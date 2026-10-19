@@ -891,6 +891,12 @@ public static class WhEndpoints
         g.MapGet("/schedule/release", GetWh001ScheduleRelease);
         g.MapGet("/release/schedule", GetWh001ScheduleRelease);
 
+        g.MapGet("/release/picking-parts", (HttpContext ctx) =>
+        {
+            if(ctx.GetSession() is null) return Results.Unauthorized();
+            return Results.Ok(new WarehouseRepository(factory).ListOpenPickingParts());
+        });
+
         g.MapGet("/release/picking-orders", (HttpContext ctx) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
@@ -2312,7 +2318,8 @@ public static class WhEndpoints
                         CASE WHEN RS.CreatedBy='WH-AUTO' THEN RS.ReqLocation END AS LineDestination,
                         CONVERT(bit,CASE WHEN EXISTS
                             (SELECT 1 FROM dbo.MD_Line ML WHERE LEN(ML.LotPrefix)=2
-                             AND ML.LotPrefix COLLATE DATABASE_DEFAULT=RS.ReqLocation COLLATE DATABASE_DEFAULT
+                             AND (ML.LotPrefix COLLATE DATABASE_DEFAULT=RS.ReqLocation COLLATE DATABASE_DEFAULT
+                               OR ML.LineID=(SELECT L.LineID FROM dbo.MD_Location L WHERE L.LocationID=RS.ReqLocation AND L.PartNo=RS.ItemNo AND COALESCE(L.ActiveFlag,1)=1))
                              AND UPPER(COALESCE(ML.Status,'ACTIVE')) NOT IN ('INACTIVE','CLOSED'))
                             THEN 1 ELSE 0 END) AS ValidLineDestination,
                         CONVERT(bit,CASE WHEN {WarehouseRepository.WarehouseBoxPredicate} THEN 1 ELSE 0 END) AS EligibleBox

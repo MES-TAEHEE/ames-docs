@@ -53,7 +53,7 @@ public sealed partial class ScmRepository
         ValidateDeliveryTrace(items);
         if(draftCases is not null && (caseNumbers is not null || draftCases.Count is <1 or >1000
             || draftCases.Any(c=>c is null || c.Count==0) || draftCases.Sum(c=>c.Count)>1000))
-            throw new ArgumentException("Create 1 to 1,000 cases containing at most 1,000 boxes.");
+            throw new ArgumentException("Create 1 to 1,000 pallets containing at most 1,000 boxes.");
         // Serialize all registrations and cancellations for this PO before checking balances.
         using(var gate=new SqlCommand("SELECT PoID FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK) WHERE PoNumber=@N",conn,tx))
         { Filter(gate,("@N", "WH_PurchaseOrder.PoNumber",number)); using var reader=gate.ExecuteReader(); while(reader.Read()){} }
@@ -224,7 +224,7 @@ public sealed partial class ScmRepository
                     using var totals=new SqlCommand("SELECT PoID,Quantity FROM dbo.SCM_DeliveryLine WHERE DeliveryID=@ID",conn,tx);
                     Filter(totals,("@ID", "SCM_DeliveryLine.DeliveryID",id));using var r=totals.ExecuteReader();
                     while(r.Read()) if(!items.Any(i=>i.PoID==r.GetInt32(0)&&i.Quantity==r.GetDecimal(1)))
-                        throw new InvalidOperationException("Case delivery quantities are fixed. Cancel the delivery to select different cases.");
+                        throw new InvalidOperationException("Pallet delivery quantities are fixed. Cancel the delivery to select different pallets.");
                 }
             }
             foreach(var item in items)
@@ -262,7 +262,7 @@ public sealed partial class ScmRepository
                 """,conn,tx);
             Filter(sharedCase,("@ID", "SCM_DeliveryLine.DeliveryID",id));
             if((int)sharedCase.ExecuteScalar()!>0)
-                throw new InvalidOperationException("This delivery shares a Case with another PO. It cannot be cancelled separately.");
+                throw new InvalidOperationException("This delivery shares a Pallet with another PO. It cannot be cancelled separately.");
             // Keep the cancelled document links for history; do not leave orphaned prepared cases.
             using var voidBoxes=new SqlCommand("UPDATE b SET ActiveFlag=0,VoidedTS=SYSDATETIME() FROM dbo.SCM_DeliveryBox b JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID WHERE l.DeliveryID=@ID AND b.ActiveFlag=1",conn,tx);
             Filter(voidBoxes,("@ID", "SCM_DeliveryLine.DeliveryID",id));voidBoxes.ExecuteNonQuery();

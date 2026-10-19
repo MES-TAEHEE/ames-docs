@@ -10998,13 +10998,13 @@
     <value>Issue / Print</value>
   </data>
   <data name="SCM.Preview.Print.CaseBarcode" xml:space="preserve">
-    <value>Pallet (Case) Barcode</value>
+    <value>Pallet Barcode</value>
   </data>
   <data name="SCM.Preview.Col.CaseNo" xml:space="preserve">
-    <value>Pallet (Case) No</value>
+    <value>Pallet No</value>
   </data>
   <data name="SCM.Preview.Print.NoCases" xml:space="preserve">
-    <value>No pallets (cases) in this delivery.</value>
+    <value>No pallets in this delivery.</value>
   </data>
   <data name="SCM.Preview.Print.BoxBarcode" xml:space="preserve">
     <value>Box / Part Barcode</value>
@@ -11040,25 +11040,25 @@
     <value>Reason / Note</value>
   </data>
   <data name="SCM.Preview.Lbl.Case" xml:space="preserve">
-    <value>Pallet (Case)</value>
+    <value>Pallet</value>
   </data>
   <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
     <value>{0} boxes</value>
   </data>
   <data name="SCM.Preview.Hint.CaseFixed" xml:space="preserve">
-    <value>Quantities are fixed by the pallet (case) contents.</value>
+    <value>Quantities are fixed by the pallet contents.</value>
   </data>
   <data name="SCM.Preview.Hint.ReceiptAfterShip" xml:space="preserve">
     <value>Receipt details become available after shipment.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCases" xml:space="preserve">
-    <value>Unable to load pallets (cases) for this Delivery Note.</value>
+    <value>Unable to load pallets for this Delivery Note.</value>
   </data>
   <data name="SCM.Preview.Err.Receipts" xml:space="preserve">
     <value>Receipt results are unavailable. Refresh to retry.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCaseInfo" xml:space="preserve">
-    <value>Unable to load pallet (case) information. Refresh and retry.</value>
+    <value>Unable to load pallet information. Refresh and retry.</value>
   </data>
   <data name="SCM.Preview.Err.LastPrice" xml:space="preserve">
     <value>Unable to load the last price. Review the unit price before saving.</value>
@@ -11124,13 +11124,13 @@
     <value>Barcode</value>
   </data>
   <data name="Portal.CaseLabel.Title" xml:space="preserve">
-    <value>Pallet (Case) Label</value>
+    <value>Pallet Label</value>
   </data>
   <data name="Portal.CaseLabel.Err.NotFound" xml:space="preserve">
-    <value>Pallet (Case) not found or access denied.</value>
+    <value>Pallet not found or access denied.</value>
   </data>
   <data name="Portal.CaseLabel.Err.Load" xml:space="preserve">
-    <value>Unable to load this pallet (case) label.</value>
+    <value>Unable to load this pallet label.</value>
   </data>
   <data name="Portal.Create.Title" xml:space="preserve">
     <value>Delivery Creation</value>
@@ -11151,7 +11151,7 @@
     <value>Box</value>
   </data>
   <data name="Portal.Create.AddCase" xml:space="preserve">
-    <value>Add Pallet (Case)</value>
+    <value>Add Pallet</value>
   </data>
   <data name="Portal.Create.AddBox" xml:space="preserve">
     <value>Add Box</value>
@@ -11160,10 +11160,10 @@
     <value>Add Part</value>
   </data>
   <data name="Portal.Create.RemoveCase" xml:space="preserve">
-    <value>Remove Pallet (Case)</value>
+    <value>Remove Pallet</value>
   </data>
   <data name="Portal.Create.ReviewFmt" xml:space="preserve">
-    <value>Review Delivery Note · {0} pallets (cases) · {1} boxes · {2} individual parts</value>
+    <value>Review Delivery Note · {0} pallets · {1} boxes · {2} individual parts</value>
   </data>
   <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
     <value>Selected Qty</value>
@@ -11274,7 +11274,7 @@
     <value>Done</value>
   </data>
   <data name="Portal.Create.Err.Load" xml:space="preserve">
-    <value>Unable to load PO items and pallets (cases).</value>
+    <value>Unable to load PO items and pallets.</value>
   </data>
   <data name="Portal.Create.Err.LoadItems" xml:space="preserve">
     <value>Unable to load PO items.</value>
@@ -11301,7 +11301,7 @@
     <value>{0} created.</value>
   </data>
   <data name="Portal.Create.Err.Create" xml:space="preserve">
-    <value>Unable to create Delivery Note. Check the date, PO balances and selected pallets (cases).</value>
+    <value>Unable to create Delivery Note. Check the date, PO balances and selected pallets.</value>
   </data>
   <data name="SCM.PortalUsers.Err.LoadVendors" xml:space="preserve">
     <value>Unable to load suppliers. Refresh to retry.</value>

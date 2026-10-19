@@ -162,6 +162,8 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
     }
     public Task<List<OpenPickingOrderRow>> WhOpenPickingOrdersAsync()
         => Get<List<OpenPickingOrderRow>>("/api/wh/release/picking-orders");
+    public Task<List<AMES.Contracts.Dto.PickingPartDto>> WhOpenPickingPartsAsync()
+        => Get<List<AMES.Contracts.Dto.PickingPartDto>>("/api/wh/release/picking-parts");
     public Task<List<ReleasePickLineRow>> WhReleaseLinesAsync(string pickSlipNo)
         => Get<List<ReleasePickLineRow>>($"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo)}/lines");
     public async Task<List<ReleaseFifoLotRow>> WhReleaseFifoLotsAsync(string pickSlipNo, string? areaCode = null)

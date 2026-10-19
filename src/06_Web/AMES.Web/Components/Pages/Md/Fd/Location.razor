@@ -41,7 +41,7 @@
 }
 
 <div class="ames-card">
-    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+    <div class="ames-card-h master-list-toolbar">
         <span style="white-space:nowrap;">▼ @L["MD.Location.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Location.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
@@ -52,6 +52,7 @@
             @if (_canEdit)
             {
                 <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+                <RadzenButton Text="Line locations" Icon="precision_manufacturing" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="OpenLineLocations" class="ames-rz-btn" />
             }
         </RadzenStack>
     </div>
@@ -80,6 +81,9 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="AreaCode" Title="@L["Col.Area"].Value" TextAlign="TextAlign.Center" Width="160px">
                 <Template Context="r"><span class="pill">@CodeLabel(_areaCodes, r.AreaCode)</span></Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="LineName" Title="LINE" Width="190px"><Template Context="r">@r.LineName<div class="dim">@r.LineId</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="PartNo" Title="ASSIGNED PART" Width="160px" />
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="MinimumQty" Title="MINIMUM" Width="100px" FormatString="{0:N0}" />
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Aisle" Title="Y (Row)" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r"><span class="dim">@CodeLabel(_aisleCodes, r.Aisle)</span></Template>
             </RadzenDataGridColumn>
@@ -101,6 +105,15 @@
     </RadzenDataGrid>
 </div>
 
+@if (_showLineLocations)
+{
+    <div class="ames-modal-bg" @onclick="@(()=>_showLineLocations=false)"><div class="ames-modal ames-modal-fullwide" @onclick:stopPropagation>
+        <div class="ames-modal-h">LINE LOCATIONS</div>
+        <LineLocationEditor LocationId="@_lineLocationId" Changed="ReloadRestorePage" />
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="Close" Icon="close" Click="@(()=>_showLineLocations=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+    </div></div>
+}
+
 @if (_barcodeLocation is not null)
 {
     <LocationBarcodeDialog LocationCode="@_barcodeLocation.LocationID" OnClose="CloseBarcode" />
@@ -112,6 +125,7 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Location.Title"] — @L["Modal.Create"]</div>
+            <label>Assigned Part</label><RadzenDropDown TValue="string" @bind-Value="_f.PartNo" Data="_parts" TextProperty="ItemNo" ValueProperty="ItemNo" AllowFiltering="true" AllowClear="true" class="ames-rz-input" Style="width:100%;margin-bottom:8px" />
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["MD.Location.Lbl.LocationName"]" class="ames-rz-modal-label" Component="CreateTextBoxLocationName" />
@@ -175,6 +189,7 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Location.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LocationID</span></div>
+            <label>Assigned Part</label><RadzenDropDown TValue="string" @bind-Value="_f.PartNo" Data="_parts" TextProperty="ItemNo" ValueProperty="ItemNo" AllowFiltering="true" class="ames-rz-input" Style="width:100%;margin-bottom:8px" />
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["MD.Location.Lbl.LocationName"]" class="ames-rz-modal-label" Component="EditTextBoxLocationName" />
@@ -209,6 +224,7 @@
     bool _showPagerSummary = true;
     int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.LocationRow> _allRows = new();
+    List<MasterDataRepository.ItemRow> _parts=[];
     List<MasterDataRepository.LocationRow> _rows    = new();
     List<MasterDataRepository.CodeItemRow> _whCodes = new();
     List<MasterDataRepository.CodeItemRow> _areaCodes = new();
@@ -223,6 +239,8 @@
     string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr;
     bool _canEdit;
+    bool _showLineLocations;
+    string? _lineLocationId;
     string _actor = "system";
 
     FormModel _f = new();
@@ -263,6 +281,7 @@
         _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("md/fd/location");
+        _parts=await Task.Run(()=>MD.ListItems());
         try { _whCodes    = MD.ListCodeItems("WH_CODE"); } catch { }
         try { _areaCodes  = MD.ListCodeItems("WH_AREA"); } catch { }
         try { _aisleCodes = MD.ListCodeItems("WH_AISLE"); } catch { }
@@ -297,7 +316,9 @@
     void ApplyFilter() { _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             r.LocationID.Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
-            (r.LocationName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
+            (r.LocationName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
+            (r.LineName ?? "").Contains(_fSearch,StringComparison.OrdinalIgnoreCase) ||
+            (r.LineId ?? "").Contains(_fSearch,StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fArea) || r.AreaCode == _fArea)
     ).ToList();
     }
@@ -323,10 +344,12 @@
     void CloseBarcode() => _barcodeLocation = null;
 
     void OpenCreate() { _f = new() { WhCode = "EOS", AreaCode = "MAT_AREA", Slot = "F1" }; _modalErr = ""; _modal = "create"; }
+    void OpenLineLocations(){_lineLocationId=null;_showLineLocations=true;}
 
     void OpenEdit(MasterDataRepository.LocationRow r)
     {
         if (!_canEdit) return;
+        if(!string.IsNullOrEmpty(r.LineId)){_lineLocationId=r.LocationID;_showLineLocations=true;return;}
         _sel = r; _modalErr = "";
         _f = new()
         {
@@ -339,6 +362,7 @@
             Slot         = r.Slot         ?? "",
             Capacity     = r.Capacity,
             SAPTransFlag = r.SAPTransFlag,
+            PartNo = r.PartNo??"",
         };
         _modal = "edit";
     }
@@ -376,7 +400,7 @@
             if (existing is not null) throw new InvalidOperationException("This location already exists. Select its row to edit it.");
             if (MD.LocationExists(created)) throw new InvalidOperationException($"Location ID {created} already exists.");
             MD.InsertLocation(created, name, _f.WhCode, _f.AreaCode, null, _f.Aisle, _f.Bay, _f.Slot,
-                _f.Capacity, null, null, true, _actor, _f.SAPTransFlag);
+                _f.Capacity, null, null, true, _actor, _f.SAPTransFlag,_f.PartNo);
             Audit.Created("MD-018", "MD_Location", created, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Location.Ok.Created"].Value, created), false);
@@ -407,7 +431,7 @@
             }
             MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), _sel.WhCode, _sel.AreaCode, _sel.ZoneCode,
                 _sel.Aisle, _sel.Bay, _sel.Slot,
-                _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor, _f.SAPTransFlag);
+                _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor, _f.SAPTransFlag,_f.PartNo);
             Audit.Updated("MD-018", "MD_Location", _sel.LocationID, _sel, _f);
             var key = _sel.LocationID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
@@ -436,5 +460,6 @@
         public string   Slot         { get; set; } = "";
         public decimal? Capacity     { get; set; }
         public bool     SAPTransFlag { get; set; }
+        public string   PartNo {get;set;}="";
     }
 }

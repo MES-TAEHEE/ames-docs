@@ -33,7 +33,7 @@
     <RadzenDataGrid TItem="RptRepository.ShipmentDetailRow" Data="_rows" AllowPaging="true" PageSize="25" AllowSorting="true" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShipmentId" Title="SHIPMENT ID" Width="110px" />
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="OutboundBarcode" Title="OUTBOUND BARCODE" />
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="OutboundBarcode" Title="LOT NO" />
             <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="CustomerId" Title="CUSTOMER"><Template Context="r">@r.CustomerId<div class="dim">@CustomerName(r.CustomerId)</div></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="PartNo" Title="PART NO / NAME"><Template Context="r">@r.PartNo<div class="dim">@MasterDataRepository.LocalName(r.PartName,r.PartNameEn)</div></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="Qty" Title="SHIPPED QTY"><Template Context="r">@UomFmt.Qty(r.Qty,r.Unit)</Template></RadzenDataGridColumn>

@@ -79,7 +79,7 @@ public sealed partial class ScmRepository
                 Filter(prepared,("@L", "SCM_DeliveryBox.DeliveryLineID",l.Id));
                 if((int)prepared.ExecuteScalar()!>0)
                 {
-                    if(l.SavedQty!=l.Qty) throw new InvalidOperationException("Case quantities cannot be edited. Cancel the delivery first.");
+                    if(l.SavedQty!=l.Qty) throw new InvalidOperationException("Pallet quantities cannot be edited. Cancel the delivery first.");
                     continue;
                 }
             }

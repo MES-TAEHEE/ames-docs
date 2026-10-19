@@ -1,0 +1,134 @@
+@page "/fg/shipping-orders"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using AMES.Contracts.Dto
+@inject FinishedGoodsRepository Fg
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject UomFormat UomFmt
+@inject IStringLocalizer<SharedResources> L
+
+<PageTitle>Shipment Orders</PageTitle>
+<AmesPageHeader Code="FG-02" Title="Shipment Orders" />
+<RadzenSelectBar TValue="bool" @bind-Value="_creating" Size="ButtonSize.Small" class="shipping-view-tabs">
+    <Items>
+        @if(_canEdit){<RadzenSelectBarItem Text="Create" Value="@(true)" />}
+        <RadzenSelectBarItem Text="Shipment Orders" Value="@(false)" />
+    </Items>
+</RadzenSelectBar>
+@if(_creating && _canEdit)
+{
+    <ShipmentOrderCreate Saved="Created" />
+}
+else
+{
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">Orders</div><div class="ames-kpi-v">@_orders.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">Open</div><div class="ames-kpi-v">@_orders.Count(x=>x.Status=="Open")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">DCR assigned</div><div class="ames-kpi-v">@_orders.Count(x=>x.DeliveryId is not null)</div></div>
+</div>
+<section class="ames-card shipping-orders-page">
+    <div class="ames-card-h master-list-toolbar">
+        <span>▼ SHIPMENT ORDERS · @_orders.Count</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <span>–</span><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenButton Text="Refresh" Icon="refresh" Click="Reload" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            @if(_canEdit)
+            {
+                <RadzenButton Text="Create DCR / Trailer" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="@(()=>_deliveryModal=true)" Size="ButtonSize.Small" class="ames-rz-btn" />
+            }
+        </RadzenStack>
+    </div>
+    @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
+    <RadzenDataGrid TItem="ShippingOrderDto" Data="_orders" AllowPaging="true" PageSize="25" AllowSorting="true" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed">
+        <Template Context="order">
+            <div class="shipping-order-items"><RadzenDataGrid TItem="ShippingOrderLineDto" Data="order.Lines" AllowPaging="false" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid shipping-order-items-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" />
+                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="PART NO" />
+                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartName" Title="PART NAME" />
+                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="QTY"><Template Context="line">@UomFmt.QtyUnit(line.Qty,line.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="EST. PALLETS"><Template Context="line">@(FinishedGoodsRepository.EstimateShippingPallets(line.Qty,line.PalletQty,line.ToteFlag)?.ToString("N0")??"Not determined")</Template></RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid></div>
+        </Template>
+        <Columns>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="" Width="45px" Sortable="false"><Template Context="r"><RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.OrderId)" Change="@(v=>Select(r.OrderId,v))" Disabled="@(r.DeliveryId is not null || r.Status!="Open" || !_canEdit)" /></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="ORDER NO" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="CustomerId" Title="CUSTOMER" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="PART / QTY"><Template Context="r">
+                @r.Lines.Count <span class="dim">parts · @UomFmt.Qty(r.Lines.Sum(x=>x.Qty),null)</span>
+            </Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="Status" Title="STATUS" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="DeliveryNo" Title="DCR / TRAILER"><Template Context="r">
+                @if(r.DeliveryNo is not null){<RadzenButton Text="@r.DeliveryNo" Click="@(()=>PrintDelivery(r.DeliveryNo))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />}
+                else{<span>Not assigned</span>}
+            </Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="PRINT" Width="100px"><Template Context="r"><RadzenButton Text="Print" Icon="print" Click="@(()=>PrintOrder(r))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</section>
+}
+@if(_deliveryModal)
+{
+    <div class="ames-modal-bg" @onclick="@(()=>_deliveryModal=false)"><div class="ames-modal" @onclick:stopPropagation>
+        <div class="ames-modal-h">CREATE DCR / TRAILER</div>
+        <p>@_selected.Count shipment order(s) · same customer and ship date required</p>
+        <RadzenLabel Text="Trailer / vehicle no" Component="ShippingTrailer" /><RadzenTextBox Name="ShippingTrailer" @bind-Value="_trailer" Placeholder="Optional" MaxLength="50" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" />
+        @if(!string.IsNullOrEmpty(_deliveryError)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_deliveryError</RadzenAlert>}
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="Create" Icon="save" Click="CreateDelivery" Disabled="_busy" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="Close" Icon="close" Click="@(()=>_deliveryModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+    </div></div>
+}
+@if(_printOrders.Count>0)
+{
+    <div class="ames-modal-bg" @onclick="ClosePrint"><div class="ames-modal ames-modal-fullwide" @onclick:stopPropagation>
+        <div class="ames-modal-h">SHIPMENT ORDER · PRINT PREVIEW</div>
+        <div class="shipping-print">
+            @if(_printDelivery is not null)
+            {
+                <h2>TRAILER DELIVERY</h2><Code128Barcode Value="@_printDelivery.DeliveryNo" /><h3>@_printDelivery.DeliveryNo</h3>
+                <p>Customer: @_printDelivery.CustomerId · Ship date: @_printDelivery.ShipDate.ToString(DateFmt.Date) · Trailer: @_printDelivery.TrailerNo</p>
+            }
+            @foreach(var order in _printOrders)
+            {
+                <section class="shipping-print-order"><h2>SHIPMENT ORDER</h2><Code128Barcode Value="@order.OrderNo" /><h3>@order.OrderNo</h3>
+                    <p>Customer: @order.CustomerId · Ship date: @order.ShipDate.ToString(DateFmt.Date)</p>
+                    <table><thead><tr><th>SO</th><th>PART NO</th><th>DESCRIPTION</th><th>REQUIRED QTY</th></tr></thead><tbody>
+                        @foreach(var line in order.Lines){<tr><td>@line.SoNumber</td><td>@line.PartNo</td><td>@line.PartName</td><td>@UomFmt.QtyUnit(line.Qty,line.Unit)</td></tr>}
+                    </tbody></table>
+                </section>
+            }
+        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="Print" Icon="print" Click="@(()=>JS.InvokeVoidAsync("window.print").AsTask())" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="Close" Icon="close" Click="ClosePrint" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+    </div></div>
+}
+@code {
+    List<ShippingOrderDto> _orders=[],_printOrders=[];HashSet<int> _selected=[];
+    ShippingDeliveryDto? _printDelivery;
+    readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
+    DateTime? _from=DbClock.Today,_to=DbClock.Today.AddDays(6);
+    bool _canEdit,_creating=true,_deliveryModal,_busy,_allowed;
+    string _actor="",_message="",_trailer="",_deliveryError="";
+    protected override async Task OnInitializedAsync()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);_allowed=PermSvc.CanOpen("fg/shipping-orders");
+        if(!_allowed){Nav.NavigateTo("/unauthorized");return;}
+        _canEdit=PermSvc.CanEdit("fg/shipping-orders");_creating=_canEdit;_actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);await Reload();
+    }
+    async Task Reload(){if(!_allowed)return;if(_from>_to){_message="Select a valid date range.";return;}try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();}catch(Exception ex){_message=ex.Message;}}
+    void Select(int id,bool value){if(value)_selected.Add(id);else _selected.Remove(id);}
+    async Task Created(List<string> orders){_creating=false;_message=$"Created: {string.Join(", ",orders)}";await Reload();}
+    async Task CreateDelivery()
+    {
+        await PermSvc.EnsureAsync(AuthPrvd);if(!PermSvc.CanEdit("fg/shipping-orders")||_busy)return;_busy=true;_deliveryError="";
+        try{var ids=_selected.ToList();var no=await Task.Run(()=>Fg.CreateShippingDelivery(ids,_trailer,_actor));_deliveryModal=false;_message=$"Created {no}";await Reload();}
+        catch(Exception ex){_deliveryError=ex.Message;}finally{_busy=false;}
+    }
+    void PrintOrder(ShippingOrderDto row){_printDelivery=null;_printOrders=[row];}
+    async Task PrintDelivery(string number){try{_printDelivery=await Task.Run(()=>Fg.GetShippingDelivery(number));_printOrders=_orders.Where(x=>x.DeliveryId==_printDelivery.DeliveryId).ToList();}catch(Exception ex){_message=ex.Message;}}
+    void ClosePrint(){_printOrders=[];_printDelivery=null;}
+}

@@ -1,0 +1,6 @@
+.wh07-list-tabs { display:flex; gap:8px; margin:10px 0; }
+.wh07-list-tabs button { flex:1; min-height:38px; border:1px solid #38516e; border-radius:0; background:#142239; color:#e5edf9; }
+.wh07-list-tabs button.active { border-color:#55aaff; background:#173c60; color:#fff; }
+.wh07-part-row {padding:10px 8px;border-bottom:1px solid #38516e;color:#e5edf9;overflow-wrap:anywhere;font-size:12px;}
+.wh07-part-row summary {color:#9bc9ff;cursor:pointer;font-size:13px;margin-bottom:6px;}
+.wh07-part-order {display:block;width:100%;padding:10px 8px;margin-top:6px;border:1px solid #38516e;background:#142239;color:#e5edf9;text-align:left;}

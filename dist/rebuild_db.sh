@@ -154,6 +154,8 @@ FILES=(
   migrate_fg_putaway_transactions.sql # FG put-away uses inventory transactions only
   migrate_md_sap_trans_flag.sql      # MD_Item·MD_Vendor·MD_Location.SAPTransFlag — SAP 전송 대상 여부(10-16)
   migrate_md_pallet.sql              # MD_Pallet·PALLET_USE, WH_Inventory.CaseNo→PalletNo, FG_Shipment.PalletNo, MD-034·035 화면(10-17) — FK 제거(no_foreign_keys) 뒤
+  migrate_line_locations_shipping_orders.sql # Location minima, actual shipment LOT naming, shipment orders and DCR loads
+  migrate_shipping_ui_line_defaults.sql # FG display order and registered production-line locations
   migrate_drop_md_mold_color.sql     # MD_MoldColor 삭제 — 금형 제품 색상은 MD_MoldItem.Color 직접 입력(10-16)
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
 )

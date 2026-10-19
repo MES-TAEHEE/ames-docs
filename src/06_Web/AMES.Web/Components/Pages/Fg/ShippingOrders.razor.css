@@ -1,0 +1,17 @@
+.shipping-view-tabs {margin-bottom:12px;}
+.shipping-order-items {max-height:280px;overflow:auto;margin:4px 12px 8px;}
+.shipping-orders-page ::deep .rz-expanded-row-content > td {height:auto !important;background:transparent !important;padding:0 !important;}
+.shipping-orders-page ::deep .shipping-order-items-grid {flex:0 0 auto !important;}
+.shipping-orders-page ::deep .shipping-order-items-grid .rz-data-grid-data {height:auto !important;min-height:0;container-type:normal !important;}
+.shipping-orders-page ::deep .shipping-order-items-grid .rz-data-grid-data tbody > tr > td {height:auto !important;padding:7px 10px !important;}
+.shipping-print {background:white;color:#111;padding:24px;}
+.shipping-print ::deep svg {width:320px;height:65px;fill:black;background:white;}
+.shipping-print h2 {margin:8px 0;}
+.shipping-print h3 {margin:4px 0;letter-spacing:2px;}
+.shipping-print table {width:100%;border-collapse:collapse;margin-top:16px;}
+.shipping-print th,.shipping-print td {text-align:left;border-bottom:1px solid #aaa;padding:8px;}
+.shipping-print-order {break-inside:avoid;margin:20px 0;}
+@media print {
+    .shipping-print,.shipping-print ::deep * {visibility:visible;}
+    .shipping-print {position:absolute;left:0;top:0;width:100%;padding:8mm;}
+}

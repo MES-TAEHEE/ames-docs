@@ -94,7 +94,7 @@ public sealed partial class ScmRepository
         foreach (var group in boxes.GroupBy(b=>b.PoID))
         {
             if (!parts.TryGetValue(group.Key,out var part) || group.Sum(b=>b.Quantity)>part.Available)
-                throw new InvalidOperationException("Part unavailable or case quantity exceeds the remaining PO balance. Refresh the list.");
+                throw new InvalidOperationException("Part unavailable or pallet quantity exceeds the remaining PO balance. Refresh the list.");
             if (part.PackingQty<=0 || group.Any(b=>b.Quantity>part.PackingQty))
                 throw new InvalidOperationException("Check Packing Quantities. Each box must not exceed its packing quantity.");
         }
@@ -158,17 +158,17 @@ public sealed partial class ScmRepository
         var orders=new List<string>();
         using(var lookup=new SqlCommand($"SELECT DISTINCT p.PoNumber FROM dbo.SCM_DeliveryCase k JOIN dbo.SCM_DeliveryBox b ON b.CaseNo=k.CaseNo JOIN dbo.WH_PurchaseOrder p ON p.PoID=b.PoID WHERE k.CaseNo=@N AND {CaseVendorAccess}",c,tx))
         {Filter(lookup,("@N", "SCM_DeliveryCase.CaseNo",number),("@U", "SCM_PortalVendorUser.UserID",userId));using var r=lookup.ExecuteReader();while(r.Read())orders.Add(r.GetString(0));}
-        if(orders.Count==0)throw new InvalidOperationException("Case not found.");
+        if(orders.Count==0)throw new InvalidOperationException("Pallet not found.");
         LockCaseOrders(c,tx,orders);
         using var cmd=new SqlCommand($"""
             IF NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryCase k WITH(UPDLOCK,HOLDLOCK)
                 WHERE k.CaseNo=@N AND k.DeliveryID IS NULL AND k.NoteID IS NULL AND {CaseVendorAccess})
-                THROW 51441,'Only unassigned cases can be cancelled.',1;
+                THROW 51441,'Only unassigned pallets can be cancelled.',1;
             IF EXISTS(SELECT 1 FROM dbo.SCM_DeliveryBox b JOIN dbo.WH_Inventory w
                 ON w.LotNo COLLATE DATABASE_DEFAULT=b.BoxNumber COLLATE DATABASE_DEFAULT WHERE b.CaseNo=@N)
-                THROW 51441,'Received cases cannot be cancelled here.',1;
+                THROW 51441,'Received pallets cannot be cancelled here.',1;
             IF EXISTS(SELECT 1 FROM dbo.SCM_DeliveryBox WHERE CaseNo=@N AND DeliveryLineID IS NOT NULL)
-                THROW 51441,'Only unassigned cases can be cancelled.',1;
+                THROW 51441,'Only unassigned pallets can be cancelled.',1;
             UPDATE dbo.SCM_DeliveryBox SET ActiveFlag=0,VoidedTS=SYSDATETIME() WHERE CaseNo=@N AND ActiveFlag=1;
             """,c,tx);
         Filter(cmd,("@N", "SCM_DeliveryBox.CaseNo",number),("@U", "SCM_PortalVendorUser.UserID",userId));cmd.ExecuteNonQuery();tx.Commit();
@@ -192,7 +192,7 @@ public sealed partial class ScmRepository
     {
         looseItems ??=[];
         if(drafts.Count>1000 || drafts.Count+looseItems.Count is <1 or >1000 || drafts.Sum(d=>d.Boxes.Count)+looseItems.Count>1000)
-            throw new ArgumentException("Select 1 to 1,000 cases, boxes or parts.");
+            throw new ArgumentException("Select 1 to 1,000 pallets, boxes or parts.");
         using var c=factory.OpenConnection();using var tx=c.BeginTransaction();
         // Lock every PO in a consistent order before reserving any draft case quantities.
         LockCaseOrders(c,tx,drafts.SelectMany(d=>d.Orders).Concat(looseItems.Select(i=>i.Order))
@@ -208,9 +208,9 @@ public sealed partial class ScmRepository
         looseItems ??=[];
         if(numbers.Count+looseItems.Count is <1 or >1000 || numbers.Any(n=>string.IsNullOrWhiteSpace(n)||n.Length>50)
             || numbers.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=numbers.Count)
-            throw new ArgumentException("Select 1 to 1,000 different cases, boxes or parts.");
+            throw new ArgumentException("Select 1 to 1,000 different pallets, boxes or parts.");
         var selected=ReadDeliveryCases(c,tx,null,null,userId,null,null).Where(k=>numbers.Contains(k.Number,StringComparer.OrdinalIgnoreCase)).ToList();
-        if(selected.Count!=numbers.Count)throw new InvalidOperationException("A case is unavailable or access was denied. Refresh the list.");
+        if(selected.Count!=numbers.Count)throw new InvalidOperationException("A pallet is unavailable or access was denied. Refresh the list.");
         // Exact retries return the issued note, without generating new deliveries or labels.
         var notes=selected.Select(c=>c.NoteNumber).Distinct().ToArray();
         if(looseItems.Count==0 && notes.Length==1 && notes[0].Length>0)
@@ -220,7 +220,7 @@ public sealed partial class ScmRepository
                 return GetDeliveryNote(notes[0],userId) ?? throw new InvalidOperationException("Delivery note is no longer available.");
         }
         if(selected.Any(c=>c.Status!="Prepared" || c.NoteNumber.Length>0 || c.Delivery is not null || c.Boxes.Any(b=>b.Received)))
-            throw new InvalidOperationException("Select only unassigned, unreceived cases.");
+            throw new InvalidOperationException("Select only unassigned, unreceived pallets.");
         var boxes=selected.SelectMany(c=>c.Boxes).ToArray();
         var orders=boxes.Select(b=>b.Order).Concat(looseItems.Select(i=>i.Order)).Distinct().Order(StringComparer.Ordinal).ToArray();
         if(orders.Length>100 || boxes.Length+looseItems.Count>1000)throw new InvalidOperationException("A note may contain at most 100 POs and 1,000 labels.");
@@ -243,10 +243,10 @@ public sealed partial class ScmRepository
             IF (SELECT COUNT(*) FROM dbo.SCM_DeliveryCase k WITH(UPDLOCK,HOLDLOCK)
                 JOIN OPENJSON(@Cases) j ON k.CaseNo=CONVERT(varchar(50),j.value)
                 WHERE k.DeliveryID IS NULL AND k.NoteID IS NULL AND {CaseVendorAccess})<>@Count
-                THROW 51441,'A case has changed or is already assigned. Refresh the list.',1;
+                THROW 51441,'A pallet has changed or is already assigned. Refresh the list.',1;
             IF EXISTS(SELECT 1 FROM dbo.SCM_DeliveryBox b JOIN OPENJSON(@Cases) j ON b.CaseNo=CONVERT(varchar(50),j.value)
                 WHERE b.ActiveFlag=0 OR b.DeliveryLineID IS NOT NULL)
-                THROW 51441,'A case has been cancelled or assigned. Refresh the list.',1;
+                THROW 51441,'A pallet has been cancelled or assigned. Refresh the list.',1;
             """,c,tx))
         {Filter(guard,("@Cases", null,JsonSerializer.Serialize(numbers)),("@Count", null,numbers.Count),("@U", "SCM_PortalVendorUser.UserID",userId));guard.ExecuteNonQuery();}
         var deliveries=new List<string>();
@@ -343,21 +343,21 @@ public sealed partial class ScmRepository
     {
         if(cases.Count is <1 or >1000
             || cases.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=cases.Count)
-            throw new ArgumentException("Select different prepared cases.");
+            throw new ArgumentException("Select different prepared pallets.");
         using var cmd=new SqlCommand("""
             DECLARE @Cases TABLE(CaseNo varchar(50) PRIMARY KEY);
             INSERT @Cases SELECT CONVERT(varchar(50),value) FROM OPENJSON(@CasesJson);
             IF (SELECT COUNT(*) FROM dbo.SCM_DeliveryCase k WITH(UPDLOCK,HOLDLOCK) JOIN @Cases s ON s.CaseNo=k.CaseNo
                 WHERE (@Mixed=1 OR k.PoNumber=@N) AND k.DeliveryID IS NULL AND k.NoteID IS NULL)<>(SELECT COUNT(*) FROM @Cases)
-                THROW 51441,'A case is already assigned or belongs to another PO. Refresh the list.',1;
+                THROW 51441,'A pallet is already assigned or belongs to another PO. Refresh the list.',1;
             IF EXISTS(SELECT 1 FROM @Cases s WHERE NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryBox b
                       WHERE b.CaseNo=s.CaseNo AND b.ActiveFlag=1))
-                THROW 51441,'A case has been cancelled. Refresh the list.',1;
+                THROW 51441,'A pallet has been cancelled. Refresh the list.',1;
             IF EXISTS(SELECT 1 FROM dbo.SCM_DeliveryBox b JOIN @Cases s ON s.CaseNo=b.CaseNo
                 LEFT JOIN dbo.WH_PurchaseOrder p ON p.PoID=b.PoID
                 WHERE b.ActiveFlag=1 AND (@Mixed=0 OR p.PoNumber=@N) AND (b.DeliveryLineID IS NOT NULL OR p.PoNumber<>@N OR p.PoID IS NULL
                   OR EXISTS(SELECT 1 FROM dbo.WH_Inventory w WHERE w.LotNo COLLATE DATABASE_DEFAULT=b.BoxNumber COLLATE DATABASE_DEFAULT)))
-                THROW 51441,'A case contains unavailable boxes.',1;
+                THROW 51441,'A pallet contains unavailable boxes.',1;
             SELECT b.PoID,SUM(b.Quantity) Qty FROM dbo.SCM_DeliveryBox b
             JOIN @Cases s ON s.CaseNo=b.CaseNo JOIN dbo.WH_PurchaseOrder p ON p.PoID=b.PoID
             WHERE b.ActiveFlag=1 AND p.PoNumber=@N GROUP BY b.PoID;
@@ -366,7 +366,7 @@ public sealed partial class ScmRepository
         var totals=new Dictionary<int,decimal>();
         using(var r=cmd.ExecuteReader())while(r.Read()) totals.Add(r.GetInt32(0),r.GetDecimal(1));
         if(totals.Count!=items.Count || items.Any(i=>!totals.TryGetValue(i.PoID,out var q)||q!=i.Quantity))
-            throw new InvalidOperationException("Delivery quantities must match the selected cases.");
+            throw new InvalidOperationException("Delivery quantities must match the selected pallets.");
     }
 
     static void AttachPreparedCases(SqlConnection c,SqlTransaction tx,int deliveryId,IReadOnlyList<string> cases,bool updateHeader=true)
@@ -395,14 +395,14 @@ public sealed partial class ScmRepository
         using var select=new SqlCommand("""
             SET XACT_ABORT ON;
             IF NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryCase WITH(UPDLOCK,HOLDLOCK) WHERE CaseNo=@N)
-                THROW 51440,'Case barcode was not found.',1;
+                THROW 51440,'Pallet barcode was not found.',1;
             IF NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryBox WHERE CaseNo=@N AND ActiveFlag=1)
-                THROW 51442,'This case has been cancelled.',1;
+                THROW 51442,'This pallet has been cancelled.',1;
             IF EXISTS(SELECT 1 FROM dbo.SCM_DeliveryBox b WITH(UPDLOCK,HOLDLOCK)
                 LEFT JOIN dbo.SCM_DeliveryLine l ON l.DeliveryLineID=b.DeliveryLineID
                 LEFT JOIN dbo.SCM_Delivery d ON d.DeliveryID=l.DeliveryID
                 WHERE b.CaseNo=@N AND (b.ActiveFlag=0 OR d.DeliveryID IS NULL OR d.Status NOT IN('Shipped','Received')))
-                THROW 51442,'This case has not been shipped or contains cancelled boxes.',1;
+                THROW 51442,'This pallet has not been shipped or contains cancelled boxes.',1;
             SELECT b.BoxNumber, ISNULL(i.ScanRequired,1)
             FROM dbo.SCM_DeliveryBox b WITH(UPDLOCK,HOLDLOCK)
             LEFT JOIN dbo.MD_Item i WITH(HOLDLOCK) ON i.ItemNo COLLATE DATABASE_DEFAULT=b.ItemNo COLLATE DATABASE_DEFAULT
@@ -417,14 +417,18 @@ public sealed partial class ScmRepository
         {
             var barcode=r.GetString(0);
             if(r.GetBoolean(1) && !scanned.Contains(barcode))
-                throw new InvalidOperationException($"Scan required box {barcode} before receiving this case.");
+                throw new InvalidOperationException($"Scan required box {barcode} before receiving this pallet.");
             boxes.Add(barcode);
         }
-        if(boxes.Count==0)throw new InvalidOperationException("This case has already been fully received.");
+        if(boxes.Count==0)throw new InvalidOperationException("This pallet has already been fully received.");
         foreach(var barcode in boxes)
         {
             using var receive=new SqlCommand(PdaWarehouseSql.InboundReceive,c,tx){CommandTimeout=60};
-            Add(receive,("@ReceiveMode", "WH_PDA_INBOUND_RECEIVE_LOT.@ReceiveMode",mode),("@LotBarcode", "WH_PDA_INBOUND_RECEIVE_LOT.@LotBarcode",barcode),("@LocationId", "WH_PDA_INBOUND_RECEIVE_LOT.@LocationId",""),("@UserId", "WH_PDA_INBOUND_RECEIVE_LOT.@UserId",actor),("@SimulateFailure", "WH_PDA_INBOUND_RECEIVE_LOT.@SimulateFailure",false));
+            receive.Parameters.Add("@ReceiveMode",SqlDbType.VarChar,20).Value=mode;
+            receive.Parameters.Add("@LotBarcode",SqlDbType.NVarChar,80).Value=barcode;
+            receive.Parameters.Add("@LocationId",SqlDbType.VarChar,20).Value="";
+            receive.Parameters.Add("@UserId",SqlDbType.VarChar,20).Value=actor;
+            receive.Parameters.Add("@SimulateFailure",SqlDbType.Bit).Value=false;
             receive.ExecuteNonQuery();LinkReceivedCase(c,tx,barcode);
         }
         tx.Commit();return boxes.Count;

@@ -63,9 +63,10 @@ public sealed class MenuCatalog
 
         // -- FG --
         new("fg", "fg/customer-returns", "FG-01", "고객사 리턴", "Customer Returns"),
-        new("fg", "fg/shipment-plan",    "FG-02", "출하 계획",   "Shipment Plan"),
-        new("fg", "fg/shipments",        "FG-03", "출하 목록",   "Shipments"),
-        new("fg", "fg/history",          "FG-04", "작업 이력",   "History"),
+        new("fg", "fg/shipping-orders",  "FG-02", "출하 오더",   "Shipment Orders"),
+        new("fg", "fg/shipment-plan",    "FG-03", "출하 계획",   "Shipment Plan"),
+        new("fg", "fg/shipments",        "FG-04", "출하 목록",   "Shipments"),
+        new("fg", "fg/history",          "FG-05", "작업 이력",   "History"),
 
         // ── PP ──
         new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),

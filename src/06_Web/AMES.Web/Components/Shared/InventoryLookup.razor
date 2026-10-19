@@ -51,7 +51,7 @@
                         <strong>@SelectedSummary.PartNo</strong>
                         <small>@SelectedSummary.PartName</small>
                     </div>
-                    <button type="button" @onclick="CloseDetail" aria-label="Close inventory detail"><RadzenIcon Icon="close" /></button>
+                    <RadzenButton Icon="close" Click="CloseDetail" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" aria-label="Close inventory detail" />
                 </header>
 
                 <div class="inventory-drawer-summary inventory-detail-summary">
@@ -60,20 +60,14 @@
                 </div>
 
                 <div class="inventory-drawer-table-wrap">
-                    <table class="inventory-lookup-table inventory-drawer-table">
-                        <thead><tr><th>@L["Col.Location"]</th><th>@L["Col.Floor"]</th><th>@L["Col.LotNo"]</th><th>@L["Col.Qty"]</th></tr></thead>
-                        <tbody>
-                            @foreach (var row in DetailRows)
-                            {
-                                <tr>
-                                    <td>@row.LocationNo</td>
-                                    <td>@Floor(row.LocationNo)</td>
-                                    <td>@Text(row.LotNo)</td>
-                                    <td class="number">@UomFmt.QtyUnit(row.Qty, row.Unit)</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                    <RadzenDataGrid TItem="LocationMapStock" Data="DetailRows" AllowPaging="false" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="LocationNo" Title="@L["Col.Location"]" />
+                            <RadzenDataGridColumn TItem="LocationMapStock" Title="@L["Col.Floor"]"><Template Context="row">@Floor(row.LocationNo)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="LotNo" Title="@L["Col.LotNo"]"><Template Context="row">@Text(row.LotNo)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.Qty,row.Unit)</Template></RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
                 </div>
             </aside>
         </div>

@@ -1971,7 +1971,8 @@ public sealed partial class WarehouseRepository
             DECLARE @LinePrefix char(2) = (
                 SELECT TOP (1) LotPrefix
                 FROM dbo.MD_Line
-                WHERE LEN(LotPrefix) = 2 AND (LineID = @Line OR LotPrefix = @Line)
+                WHERE LEN(LotPrefix) = 2 AND (LineID = @Line OR LotPrefix = @Line
+                    OR LineID=(SELECT LineID FROM dbo.MD_Location WHERE LocationID=@Line))
                 ORDER BY CASE WHEN LineID = @Line THEN 0 ELSE 1 END
             );
             IF @LinePrefix IS NULL THROW 51026, 'The production line needs a two-character LotPrefix.', 1;

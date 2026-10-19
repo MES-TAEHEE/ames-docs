@@ -3,6 +3,7 @@
 .plan-toolbar { justify-content:space-between; }
 .preview-tag { margin-left:10px; font-size: calc(10px + var(--ames-fs-bump)); opacity:.65; cursor:help; }
 .load-estimate { display:grid; grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr) 32px minmax(0,1fr); align-items:center; gap:0; }
+.ship-quantity {padding-left:6px;font-variant-numeric:tabular-nums;}
 .load-estimate-header { width:100%; text-align:center; white-space:nowrap; font-size: calc(10px + var(--ames-fs-bump)); }
 .load-estimate input { box-sizing:border-box; width:100%; min-width:0; height:23px; min-height:0; margin:0; padding:1px 6px; border:1px solid var(--ames-border-soft, #718097); border-radius:0; background:transparent; color:inherit; font:inherit; font-size:12px; line-height:19px; text-align:left; appearance:textfield; }
 .load-estimate input[aria-invalid="true"] { border-color:var(--ames-tx-amber-400, #d5a750); }
@@ -17,12 +18,8 @@
 .packing-info { display:inline-flex; align-items:center; justify-content:center; border:0; background:transparent; color:var(--ames-tx-blue-300, #8bb7eb); padding:0 1px; font-size:15px; line-height:20px; cursor:pointer; vertical-align:middle; }
 .packing-info:focus-visible { outline:1px solid currentColor; }
 .part-summary { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-/* Keep this display-only planner as dense as the PP supply table, without changing other FG screens. */
+/* Keep the calculation layout while inheriting the shared MD/SYS grid typography and spacing. */
 .shipment-plan-page ::deep .shipment-plan-grid .rz-data-grid-data > table { table-layout:fixed !important; min-width:1000px; }
-.shipment-plan-page ::deep .shipment-plan-grid .rz-data-row > td { height:29px !important; padding:2px 6px !important; font-size:12px !important; line-height:20px !important; vertical-align:middle; }
-.shipment-plan-page ::deep .shipment-plan-grid .rz-cell-data { font-size:12px !important; line-height:20px !important; }
-.shipment-plan-page ::deep .shipment-plan-grid thead th { font-size: calc(10px + var(--ames-fs-bump)) !important; padding:3px 5px !important; }
-.shipment-plan-page ::deep .shipment-plan-grid .rz-column-title { font-size: calc(10px + var(--ames-fs-bump)) !important; text-align:center; justify-content:center; }
 .shipment-plan-page ::deep .shipment-plan-grid thead th:first-child { padding-left:6px !important; padding-right:6px !important; }
 .shipment-plan-page ::deep .shipment-plan-grid thead th:first-child .rz-column-title,
 .shipment-plan-page ::deep .shipment-plan-grid thead th:first-child .rz-column-title-content { display:block; width:100%; padding:0; }

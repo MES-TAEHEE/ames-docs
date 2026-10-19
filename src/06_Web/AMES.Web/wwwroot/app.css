@@ -5844,3 +5844,13 @@ html[data-theme="light"] .portal-shell .ames-brand-logo, html[data-theme="light"
 .rz-button.ames-busy-btn::before { content: ""; flex: none; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: ames-busy-spin .7s linear infinite; }
 .rz-button.ames-busy-btn::after { content: attr(data-busy-label); font-size: .92em; white-space: nowrap; }
 @keyframes ames-busy-spin { to { transform: rotate(360deg); } }
+
+@media print {
+    body:has(.shipping-print) * { visibility: hidden !important; }
+    body:has(.shipping-print) .shipping-print,
+    body:has(.shipping-print) .shipping-print * { visibility: visible !important; }
+    body:has(.shipping-print) .shipping-print { position: absolute; inset: 0 auto auto 0; width: 100%; background: white; color: black; padding: 8mm; }
+    body:has(.shipping-print) .ames-modal-bg,
+    body:has(.shipping-print) .ames-modal { position: static; transform: none; width: auto !important; height: auto; max-height: none; overflow: visible; border: none; box-shadow: none; padding: 0; }
+    body:has(.shipping-print) .ames-modal-footer { display: none !important; }
+}

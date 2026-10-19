@@ -1,0 +1,3 @@
+.order-balance {display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap;}
+.order-pallet-count {font-weight:700;color:var(--ames-accent);}
+.shipment-order-create ::deep .rz-numeric-input {text-align:left;}

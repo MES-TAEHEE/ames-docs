@@ -12,7 +12,7 @@ public sealed class TrailerLoadDraft
     public static bool IsShipmentCandidate(PpRepository.SoRow row) =>
         row.OrderQty > row.ShippedQty
         && !string.Equals(row.Status?.Trim(), "Shipped", StringComparison.OrdinalIgnoreCase);
-    public sealed class Line(PpRepository.SoRow source, int? palletQty, bool toteFlag = false)
+    public sealed class Line(PpRepository.SoRow source, int? palletQty, bool toteFlag = false, DateTime? shipDate = null)
     {
         public PpRepository.SoRow Source { get; } = source;
         public decimal Balance => Math.Max(0, Source.OrderQty - Source.ShippedQty);
@@ -21,9 +21,9 @@ public sealed class TrailerLoadDraft
         public string QuantityError { get; private set; } = "";
         public decimal? PerPallet { get; } = palletQty is > 0 ? palletQty.Value : null;
         public bool IsTote { get; } = toteFlag;
-        public decimal? PalletCount => QuantityError.Length > 0 ? null : Quantity == 0 ? 0
-            : !IsTote && PerPallet is decimal capacity ? decimal.Ceiling(Quantity / capacity) : null;
-        public DateTime? ShipDate => Source.RequestedDeliveryDate?.Date.AddDays(-1);
+        public decimal? PalletCount => QuantityError.Length > 0 ? null
+            : FinishedGoodsRepository.EstimateShippingPallets(Quantity,palletQty,IsTote);
+        public DateTime? ShipDate => shipDate?.Date ?? Source.RequestedDeliveryDate?.Date.AddDays(-1);
 
         public bool TryChange(string? text, out string error)
         {

@@ -6,6 +6,20 @@ namespace AMES.Pda.Services;
 
 public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(http, auth)
 {
+    public Task<AMES.Contracts.Dto.ShippingActionResult> ShippingDeliveryAsync(string barcode)
+        =>GetRequiredAsync<AMES.Contracts.Dto.ShippingActionResult>($"/api/fg/shipping/delivery?barcode={Uri.EscapeDataString(barcode)}","Shipping service is unavailable.");
+    public Task<AMES.Contracts.Dto.ShippingActionResult> LoadShippingDeliveryAsync(string delivery,string pallet)
+        =>ShippingPost("load",new AMES.Contracts.Dto.DeliveryLoadRequest(delivery,pallet));
+    public Task<AMES.Contracts.Dto.ShippingActionResult> UnloadShippingDeliveryAsync(string delivery,string pallet)
+        =>ShippingPost("unload",new AMES.Contracts.Dto.DeliveryLoadRequest(delivery,pallet));
+    public Task<AMES.Contracts.Dto.ShippingActionResult> CompleteShippingDeliveryAsync(string delivery)
+        =>ShippingPost("complete",new AMES.Contracts.Dto.DeliveryCompleteRequest(delivery));
+    private async Task<AMES.Contracts.Dto.ShippingActionResult> ShippingPost<T>(string path,T body)
+    {
+        Authorize();using var response=await _http.PostAsJsonAsync("/api/fg/shipping/"+path,body);
+        if(!response.IsSuccessStatusCode)throw new InvalidOperationException(await ReadServiceErrorAsync(response,"Shipping service is unavailable."));
+        return await response.Content.ReadFromJsonAsync<AMES.Contracts.Dto.ShippingActionResult>()??throw new InvalidOperationException("Invalid shipping response.");
+    }
     public async Task<List<WarehouseTransactionRow>> TransactionsAsync(string? search = null,
         DateTime? dateFrom = null, DateTime? dateTo = null)
     {

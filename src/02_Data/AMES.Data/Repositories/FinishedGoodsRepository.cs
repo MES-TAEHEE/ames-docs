@@ -4,7 +4,7 @@ using Microsoft.Data.SqlClient;
 
 namespace AMES.Data.Repositories;
 
-public sealed class FinishedGoodsRepository
+public sealed partial class FinishedGoodsRepository
 {
     private readonly AmesConnectionFactory _factory;
     public FinishedGoodsRepository(AmesConnectionFactory factory) => _factory = factory;
@@ -12,8 +12,8 @@ public sealed class FinishedGoodsRepository
     public record ReturnRow(int ReturnId, string CustomerId, string? CustomerName,
         int ShipmentId, string? OutboundBarcode, string PartNo, string PartName, string? LotNo,
         decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt, string? ReceivedBy, string? Note);
-    public record ShipmentRow(int ShipmentId, DateTime ShippedAt, string OutboundBarcode, string UnitType,
-        string CustomerId, string? CustomerName, int ItemCount, decimal Qty, string? ShippedBy);
+    public record ShipmentRow(int ShipmentId, DateTime ShippedAt, string LotNo, string UnitType,
+        string CustomerId, string? CustomerName, int ItemCount, decimal Qty, string? ShippedBy, string? PalletNo,string? PartNo,string? PartName) { public bool HasChildren => UnitType is "PALLET" or "CASE" || ItemCount > 1; }
     public record ShipmentItemRow(long TransactionId, string LotNo, string? PartNo, string? PartName,
         string? LocationNo, decimal Qty, string? Unit);
     public record HistoryRow(DateTime EventAt, string EventType, string? ReferenceNo, string? ItemOrOrder,
@@ -22,7 +22,7 @@ public sealed class FinishedGoodsRepository
     public List<ReturnRow> ListReturns(string? search = null, string? status = null, DateTime? from = null, DateTime? to = null)
     {
         const string sql = """
-            SELECT R.ReturnID,R.CustomerID,C.CustomerName,R.ShipmentID,S.OutboundBarcode,
+            SELECT R.ReturnID,R.CustomerID,C.CustomerName,R.ShipmentID,S.LotNo AS OutboundBarcode,
                 R.PartNo,R.PartName,R.LotNo,R.ReturnQty AS Qty,R.ReturnReason,R.Status,R.ReceivedAt,R.ReceivedBy,R.Note
             FROM dbo.FG_CustomerReturn R
             JOIN dbo.FG_Shipment S ON S.ShipmentID=R.ShipmentID
@@ -31,7 +31,7 @@ public sealed class FinishedGoodsRepository
               AND (@From IS NULL OR R.ReceivedAt>=@From)
               AND (@To IS NULL OR R.ReceivedAt<DATEADD(day,1,@To))
               AND (@Search IS NULL OR CONVERT(varchar(20),R.ReturnID) LIKE @Search
-                OR R.CustomerID LIKE @Search OR S.OutboundBarcode LIKE @Search
+                OR R.CustomerID LIKE @Search OR S.LotNo LIKE @Search
                 OR R.PartNo LIKE @Search OR R.PartName LIKE @Search OR R.LotNo LIKE @Search)
             ORDER BY R.ReceivedAt DESC,R.ReturnID DESC;
             """;
@@ -46,18 +46,20 @@ public sealed class FinishedGoodsRepository
     public List<ShipmentRow> ListShipments(string? search = null, DateTime? from = null, DateTime? to = null)
     {
         const string sql = """
-            SELECT TOP(500) S.ShipmentID,S.ShippedAt,S.OutboundBarcode,S.UnitType,S.CustomerID,C.CustomerName,
-                D.ItemCount,D.Qty,S.ShippedBy
+            SELECT TOP(500) S.ShipmentID,S.ShippedAt,S.LotNo,S.UnitType,S.CustomerID,C.CustomerName,
+                D.ItemCount,D.Qty,S.ShippedBy,S.PalletNo,D.PartNo,P.ItemName AS PartName
             FROM dbo.FG_Shipment S JOIN dbo.MD_Customer C ON C.CustomerID=S.CustomerID
             CROSS APPLY
             (
-                SELECT COUNT(*) ItemCount,COALESCE(SUM(-T.QtyChange),0) Qty
+                SELECT COUNT(*) ItemCount,COALESCE(SUM(-T.QtyChange),0) Qty,
+                    CASE WHEN COUNT(DISTINCT T.PartNo)=1 THEN MIN(T.PartNo) END PartNo
                 FROM dbo.WH_InventoryTransaction T
                 WHERE T.SourceType='FG_OUTBOUND' AND T.SourceID=S.ShipmentID AND T.TransactionType='OUT'
             ) D
+            LEFT JOIN dbo.MD_Item P ON P.ItemNo=D.PartNo
             WHERE (@From IS NULL OR S.ShippedAt>=@From)
               AND (@To IS NULL OR S.ShippedAt<DATEADD(day,1,@To))
-              AND (@Search IS NULL OR S.OutboundBarcode LIKE @Search OR S.CustomerID LIKE @Search
+              AND (@Search IS NULL OR S.LotNo LIKE @Search OR S.CustomerID LIKE @Search
                 OR C.CustomerName LIKE @Search OR S.ShippedBy LIKE @Search
                 OR EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction T
                     WHERE T.SourceType='FG_OUTBOUND' AND T.SourceID=S.ShipmentID AND T.TransactionType='OUT'
@@ -65,8 +67,8 @@ public sealed class FinishedGoodsRepository
             ORDER BY S.ShippedAt DESC,S.ShipmentID DESC;
             """;
         return Query(sql,r=>new ShipmentRow(GetInt(r,"ShipmentID"),GetDate(r,"ShippedAt") ?? DateTime.MinValue,
-            GetString(r,"OutboundBarcode") ?? "",GetString(r,"UnitType") ?? "",GetString(r,"CustomerID") ?? "",
-            GetString(r,"CustomerName"),GetInt(r,"ItemCount"),GetDecimal(r,"Qty"),GetString(r,"ShippedBy")),
+            GetString(r,"LotNo") ?? "",GetString(r,"UnitType") ?? "",GetString(r,"CustomerID") ?? "",
+            GetString(r,"CustomerName"),GetInt(r,"ItemCount"),GetDecimal(r,"Qty"),GetString(r,"ShippedBy"),GetString(r,"PalletNo"),GetString(r,"PartNo"),GetString(r,"PartName")),
             ("@Search",null,Like(search)),("@From",null,from?.Date),("@To",null,to?.Date));
     }
 
@@ -104,7 +106,7 @@ public sealed class FinishedGoodsRepository
                 UNION ALL
                 SELECT S.ShippedAt,'SHIPPED',CONVERT(nvarchar(80),S.ShipmentID) COLLATE DATABASE_DEFAULT,
                     T.PartNo COLLATE DATABASE_DEFAULT,-T.QtyChange,T.LocationNo COLLATE DATABASE_DEFAULT,
-                    S.ShippedBy COLLATE DATABASE_DEFAULT,'SHIPPED',CONVERT(nvarchar(300),S.OutboundBarcode) COLLATE DATABASE_DEFAULT
+                    S.ShippedBy COLLATE DATABASE_DEFAULT,'SHIPPED',CONVERT(nvarchar(300),S.LotNo) COLLATE DATABASE_DEFAULT
                 FROM dbo.FG_Shipment S JOIN dbo.WH_InventoryTransaction T
                     ON T.SourceType='FG_OUTBOUND' AND T.SourceID=S.ShipmentID AND T.TransactionType='OUT'
                 UNION ALL

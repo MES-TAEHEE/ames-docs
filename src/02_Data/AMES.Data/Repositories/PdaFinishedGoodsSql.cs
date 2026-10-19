@@ -50,7 +50,7 @@ public static class PdaFinishedGoodsSql
                 CASE WHEN T.TransactionType='MOVE' AND T.Note LIKE N'Moved from % to %'
                      THEN NULLIF(SUBSTRING(T.Note,12,CHARINDEX(N' to ',T.Note)-12),N'(unassigned)') END BEFORE_LOCATION,
                 CASE WHEN T.TransactionType='MOVE' THEN T.LocationNo END AFTER_LOCATION,
-                T.SourceType SOURCE,COALESCE(S.OutboundBarcode,T.Note) NOTE
+                T.SourceType SOURCE,COALESCE(S.LotNo,T.Note) NOTE
             FROM dbo.WH_InventoryTransaction T
             LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=T.PartNo COLLATE DATABASE_DEFAULT
             LEFT JOIN dbo.AspNetUsers U ON U.Id COLLATE DATABASE_DEFAULT=T.OperatorID COLLATE DATABASE_DEFAULT
@@ -59,7 +59,7 @@ public static class PdaFinishedGoodsSql
               AND T.TransactionTime>=@From AND T.TransactionTime<DATEADD(day,1,@To)
               AND (@Search IS NULL OR T.LotNo LIKE @Search OR T.PartNo LIKE @Search
                 OR I.ItemName COLLATE DATABASE_DEFAULT LIKE @Search OR T.LocationNo LIKE @Search
-                OR T.Note LIKE @Search OR S.OutboundBarcode LIKE @Search)
+                OR T.Note LIKE @Search OR S.LotNo LIKE @Search)
             ORDER BY T.TransactionTime DESC,T.TransactionID DESC;
         END;
         """;
@@ -256,7 +256,7 @@ public static class PdaFinishedGoodsSql
             DECLARE @CustomerID varchar(20);
             IF NOT EXISTS(SELECT 1 FROM @Items WHERE CustomerID IS NULL) SELECT @CustomerID=MIN(CustomerID) FROM @Items;
             SELECT @Barcode OutboundBarcode,@UnitType UnitType,@LocationNo LocationNo,SUM(Qty) TotalQty,COUNT_BIG(*) ItemCount,
-                @CustomerID CustomerID,(SELECT CustomerName FROM dbo.MD_Customer WHERE CustomerID=@CustomerID) CustomerName FROM @Items;
+                @CustomerID CustomerID,(SELECT CustomerName FROM dbo.MD_Customer WHERE CustomerID=@CustomerID) CustomerName,MIN(CustomerID) KnownCustomerID FROM @Items;
             SELECT LotNo,UnitType,PartNo,PartName,Qty,LocationNo FROM @Items ORDER BY LotNo;
         END;
         """;
@@ -264,15 +264,23 @@ public static class PdaFinishedGoodsSql
     public const string OutboundComplete = """
         SET QUOTED_IDENTIFIER ON;
         SET ANSI_NULLS ON;
+        SET ANSI_PADDING ON;
+        SET ANSI_WARNINGS ON;
+        SET ARITHABORT ON;
+        SET CONCAT_NULL_YIELDS_NULL ON;
+        SET NUMERIC_ROUNDABORT OFF;
         BEGIN
             SET NOCOUNT ON;
             SET XACT_ABORT ON;
             BEGIN TRY
                 BEGIN TRANSACTION;
                 DECLARE @UnitType varchar(10),@PalletNo varchar(50),@Now datetime2=SYSDATETIME(),@ShipmentID int;
+                DECLARE @ShippingGate int;
+                EXEC @ShippingGate=sys.sp_getapplock @Resource='FG_SHIPPING_ORDERS',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
+                IF @ShippingGate<0 THROW 52020,'Shipping is busy. Retry shortly.',1;
                 IF NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode)
                     THROW 52000,'No inventory record exists for this barcode.',1;
-                SELECT @UnitType=UnitType,@PalletNo=NULLIF(LTRIM(RTRIM(PalletNo)),'') FROM dbo.WH_Inventory WHERE LotNo=@Barcode;
+                SELECT @UnitType=UnitType,@PalletNo=COALESCE(NULLIF(LTRIM(RTRIM(PalletNo)),''),CASE WHEN UnitType='PALLET' THEN LotNo END) FROM dbo.WH_Inventory WHERE LotNo=@Barcode;
                 IF NULLIF(LTRIM(RTRIM(@UnitType)),'') IS NULL THROW 52003,'The inventory unit type is missing.',1;
                 IF NULLIF(LTRIM(RTRIM(@OperatorID)),'') IS NULL THROW 52014,'A signed-in operator is required.',1;
                 DECLARE @Scope TABLE(LotNo nvarchar(50) PRIMARY KEY,UnitType varchar(10),ParentLotNo nvarchar(50),
@@ -284,6 +292,9 @@ public static class PdaFinishedGoodsSql
                     SELECT C.LotNo,C.UnitType,C.ParentLotNo,C.PartNo,C.PartName,C.LocationNo,C.Qty
                     FROM dbo.WH_Inventory C WITH(UPDLOCK,HOLDLOCK) JOIN UnitTree P ON C.ParentLotNo=P.LotNo
                 ) INSERT @Scope SELECT * FROM UnitTree OPTION(MAXRECURSION 100);
+                IF EXISTS(SELECT 1 FROM dbo.FG_DeliveryLoad D WITH(UPDLOCK,HOLDLOCK) JOIN @Scope S ON S.LotNo=D.LotNo
+                    WHERE D.ShipmentID IS NULL AND D.DeliveryID<>COALESCE(@ShippingDeliveryID,-1))
+                    THROW 52020,'This inventory is loaded on a DCR delivery. Complete that delivery instead of individual outbound.',1;
                 DECLARE @Items TABLE(LotNo nvarchar(50) PRIMARY KEY,PartNo varchar(20),PartName nvarchar(200),
                     LocationNo varchar(20),Qty decimal(18,3),CustomerID varchar(20));
                 INSERT @Items
@@ -313,7 +324,7 @@ public static class PdaFinishedGoodsSql
                     THROW 52017,'Select a valid active customer from Customer Master.',1;
                 IF EXISTS(SELECT 1 FROM @Items WHERE CustomerID<>@CustomerID)
                     THROW 52019,'The selected customer does not match the production LOT customer.',1;
-                INSERT dbo.FG_Shipment(OutboundBarcode,UnitType,PalletNo,CustomerID,ShippedAt,ShippedBy)
+                INSERT dbo.FG_Shipment(LotNo,UnitType,PalletNo,CustomerID,ShippedAt,ShippedBy)
                     VALUES(@Barcode,@UnitType,@PalletNo,@CustomerID,@Now,@OperatorID);
                 SET @ShipmentID=CONVERT(int,SCOPE_IDENTITY());
                 IF @PalletNo IS NOT NULL
@@ -348,7 +359,7 @@ public static class PdaFinishedGoodsSql
                 CustomerID varchar(20),CustomerName nvarchar(200),PartNo varchar(20),PartName nvarchar(200),
                 ShippedAt datetime2,Qty decimal(18,3),LotID int);
             INSERT @P
-            SELECT TOP(1) T.LotNo,S.ShipmentID,S.OutboundBarcode,S.CustomerID,C.CustomerName,
+            SELECT TOP(1) T.LotNo,S.ShipmentID,S.LotNo,S.CustomerID,C.CustomerName,
                 T.PartNo,COALESCE(NULLIF(I.PartName COLLATE DATABASE_DEFAULT,N''),M.ItemName COLLATE DATABASE_DEFAULT),S.ShippedAt,-T.QtyChange,L.LotID
             FROM dbo.WH_InventoryTransaction T JOIN dbo.FG_Shipment S ON S.ShipmentID=T.SourceID
             JOIN dbo.MD_Customer C ON C.CustomerID=S.CustomerID
@@ -391,7 +402,7 @@ public static class PdaFinishedGoodsSql
                 CustomerID varchar(20),CustomerName nvarchar(200),PartNo varchar(20),PartName nvarchar(200),
                 ShippedAt datetime2,Qty decimal(18,3),LotID int);
             INSERT @ReturnScanP
-            SELECT TOP(1) T.LotNo,S.ShipmentID,S.OutboundBarcode,S.CustomerID,C.CustomerName,
+            SELECT TOP(1) T.LotNo,S.ShipmentID,S.LotNo,S.CustomerID,C.CustomerName,
                 T.PartNo,COALESCE(NULLIF(I.PartName COLLATE DATABASE_DEFAULT,N''),M.ItemName COLLATE DATABASE_DEFAULT),S.ShippedAt,-T.QtyChange,L.LotID
             FROM dbo.WH_InventoryTransaction T JOIN dbo.FG_Shipment S ON S.ShipmentID=T.SourceID
             JOIN dbo.MD_Customer C ON C.CustomerID=S.CustomerID

@@ -10998,13 +10998,13 @@
     <value>Emitir / Imprimir</value>
   </data>
   <data name="SCM.Preview.Print.CaseBarcode" xml:space="preserve">
-    <value>Código de barras de palé (caja)</value>
+    <value>Código de barras de palé</value>
   </data>
   <data name="SCM.Preview.Col.CaseNo" xml:space="preserve">
-    <value>N.º de palé (caja)</value>
+    <value>N.º de palé</value>
   </data>
   <data name="SCM.Preview.Print.NoCases" xml:space="preserve">
-    <value>Esta entrega no tiene palés (cajas).</value>
+    <value>Esta entrega no tiene palés.</value>
   </data>
   <data name="SCM.Preview.Print.BoxBarcode" xml:space="preserve">
     <value>Código de barras de caja / pieza</value>
@@ -11040,25 +11040,25 @@
     <value>Motivo / Nota</value>
   </data>
   <data name="SCM.Preview.Lbl.Case" xml:space="preserve">
-    <value>Palé (caja)</value>
+    <value>Palé</value>
   </data>
   <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
     <value>{0} cajas</value>
   </data>
   <data name="SCM.Preview.Hint.CaseFixed" xml:space="preserve">
-    <value>Las cantidades las fija el contenido del palé (caja).</value>
+    <value>Las cantidades las fija el contenido del palé.</value>
   </data>
   <data name="SCM.Preview.Hint.ReceiptAfterShip" xml:space="preserve">
     <value>Los detalles de recepción estarán disponibles tras el envío.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCases" xml:space="preserve">
-    <value>No se pudieron cargar los palés (cajas) de este albarán.</value>
+    <value>No se pudieron cargar los palés de este albarán.</value>
   </data>
   <data name="SCM.Preview.Err.Receipts" xml:space="preserve">
     <value>Los resultados de recepción no están disponibles. Actualice para reintentar.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCaseInfo" xml:space="preserve">
-    <value>No se pudo cargar la información del palé (caja). Actualice y reintente.</value>
+    <value>No se pudo cargar la información del palé. Actualice y reintente.</value>
   </data>
   <data name="SCM.Preview.Err.LastPrice" xml:space="preserve">
     <value>No se pudo cargar el último precio. Revise el precio unitario antes de guardar.</value>
@@ -11124,13 +11124,13 @@
     <value>Código de barras</value>
   </data>
   <data name="Portal.CaseLabel.Title" xml:space="preserve">
-    <value>Etiqueta de palé (caja)</value>
+    <value>Etiqueta de palé</value>
   </data>
   <data name="Portal.CaseLabel.Err.NotFound" xml:space="preserve">
-    <value>Palé (caja) no encontrado o sin acceso.</value>
+    <value>Palé no encontrado o sin acceso.</value>
   </data>
   <data name="Portal.CaseLabel.Err.Load" xml:space="preserve">
-    <value>No se pudo cargar esta etiqueta de palé (caja).</value>
+    <value>No se pudo cargar esta etiqueta de palé.</value>
   </data>
   <data name="Portal.Create.Title" xml:space="preserve">
     <value>Creación de entregas</value>
@@ -11151,7 +11151,7 @@
     <value>Caja</value>
   </data>
   <data name="Portal.Create.AddCase" xml:space="preserve">
-    <value>Añadir palé (caja)</value>
+    <value>Añadir palé</value>
   </data>
   <data name="Portal.Create.AddBox" xml:space="preserve">
     <value>Añadir caja</value>
@@ -11160,10 +11160,10 @@
     <value>Añadir pieza</value>
   </data>
   <data name="Portal.Create.RemoveCase" xml:space="preserve">
-    <value>Quitar palé (caja)</value>
+    <value>Quitar palé</value>
   </data>
   <data name="Portal.Create.ReviewFmt" xml:space="preserve">
-    <value>Revisar albarán · {0} palés (cajas) · {1} cajas · {2} piezas sueltas</value>
+    <value>Revisar albarán · {0} palés · {1} cajas · {2} piezas sueltas</value>
   </data>
   <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
     <value>Cant. seleccionada</value>
@@ -11274,7 +11274,7 @@
     <value>Listo</value>
   </data>
   <data name="Portal.Create.Err.Load" xml:space="preserve">
-    <value>No se pudieron cargar los artículos del pedido y los palés (cajas).</value>
+    <value>No se pudieron cargar los artículos del pedido y los palés.</value>
   </data>
   <data name="Portal.Create.Err.LoadItems" xml:space="preserve">
     <value>No se pudieron cargar los artículos del pedido.</value>
@@ -11301,7 +11301,7 @@
     <value>{0} creado.</value>
   </data>
   <data name="Portal.Create.Err.Create" xml:space="preserve">
-    <value>No se pudo crear el albarán. Revise la fecha, los saldos del pedido y los palés (cajas) seleccionados.</value>
+    <value>No se pudo crear el albarán. Revise la fecha, los saldos del pedido y los palés seleccionados.</value>
   </data>
   <data name="SCM.PortalUsers.Err.LoadVendors" xml:space="preserve">
     <value>No se pudieron cargar los proveedores. Actualice para reintentar.</value>

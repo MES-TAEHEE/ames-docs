@@ -1,0 +1,11 @@
+.wh02-body {overflow-y:auto;min-height:0;padding-bottom:90px;}
+.load-summary,.load-parts {border:1px solid #38516e;background:#111e30;padding:12px;color:#e5edf9;margin-bottom:12px;}
+.load-summary>strong {color:#83bbff;display:block;}
+.load-order {margin-top:6px;font-size:12px;}
+.load-parts header {font-size:12px;letter-spacing:1px;color:#8dbdff;margin-bottom:8px;}
+.load-parts article {padding:10px 0;border-top:1px solid #38516e;}
+.load-parts article>div {display:flex;justify-content:space-between;gap:12px;}
+.load-parts article.complete {border-left:3px solid #45d6a4;padding-left:8px;}
+.load-parts small {color:#a7b9ce;}
+.load-parts details {padding:10px 0;border-top:1px solid #38516e;font-size:12px;}
+.load-parts summary {color:#8dbdff;font-weight:700;font-size:14px;}
