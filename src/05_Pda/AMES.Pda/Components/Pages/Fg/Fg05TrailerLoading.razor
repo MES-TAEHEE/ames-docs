@@ -1,0 +1,89 @@
+@page "/fg/05"
+@using AMES.Contracts.Dto
+@inject FinishedGoodsApi Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="pda-shell wh wh02-shell loading-shell">
+    <div class="pda-tbar"><button class="pda-tbar-back" @onclick='@(()=>Nav.NavigateTo("/fg"))'>&lt;</button><span class="pda-tbar-brand">TRAILER LOADING</span></div>
+    <div class="pda-bd wh02-body">
+        <RadzenCard class="wh02-panel hardware-scan-panel"><div class="pda-fld">
+            <label>@(_delivery is null?"SHIPMENT ORDER / DCR BARCODE":"PALLET BARCODE")</label>
+            <RadzenTextBox Value="@_barcode" @oninput="@(e=>_barcode=e.Value?.ToString()??"")" @onkeydown="OnKey" Disabled="_busy" Placeholder="Scan Barcode" class="pda-input pda-scan-input" />
+        </div></RadzenCard>
+        @if(_delivery is {} delivery)
+        {
+            <section class="load-summary"><strong>@delivery.DeliveryNo</strong><div>@delivery.CustomerId · @delivery.ShipDate.ToString("MM/dd/yyyy")</div><div>TRAILER: @(delivery.TrailerNo??"—") · @delivery.Status</div>
+                @foreach(var order in delivery.OrderNos){<div class="load-order">@order</div>}
+            </section>
+            <section class="load-parts">
+                <header>LOADED / REQUIRED</header>
+                @foreach(var part in delivery.Parts)
+                {
+                    <article class="@(part.LoadedQty==part.RequiredQty?"complete":"")"><div><strong>@part.PartNo</strong><strong>@part.LoadedQty.ToString("N0") / @part.RequiredQty.ToString("N0")</strong></div><small>@part.PartName</small></article>
+                }
+            </section>
+            <section class="load-parts"><header>LOADED PALLETS · @delivery.Loads.Select(x=>x.RootLotNo).Distinct().Count()</header>
+                @foreach(var root in delivery.Loads.GroupBy(x=>x.RootLotNo))
+                {
+                    <details><summary>@root.Key</summary>@foreach(var item in root){<div>@item.LotNo · @item.PartNo · @item.Qty.ToString("N0")</div>}
+                        @if(delivery.Status!="Shipped"){<RadzenButton Text="Remove from trailer" Click="@(()=>RemovePallet(root.Key))" Disabled="_busy" class="wh02-clear-btn" />}
+                    </details>
+                }
+            </section>
+        }
+        <div class="wh02-action-bar has-reset">
+            <RadzenButton Text="CLEAR" Click="Clear" Disabled="_busy" class="wh02-clear-btn" />
+            <RadzenButton Text="CONFIRM SHIPMENT" Click="AskComplete" Disabled="@(_busy||!Ready)" class="pda-btn-pri wh02-receive-btn" />
+        </div>
+    </div>
+    @if(_modal)
+    {
+        <div class="wh-modal-backdrop"><RadzenCard class="wh-modal-card info"><div class="wh-modal-mark">!</div><div class="wh-modal-title">@_title</div><div class="wh-modal-message">@_message</div>
+            <div class="wh-modal-actions">@if(_confirm){<RadzenButton Text="CONFIRM" Click="Complete" Disabled="_busy" class="wh-modal-btn primary" />}<RadzenButton Text="@(_confirm?"CANCEL":"OK")" Click="CloseModal" Disabled="_busy" class="wh-modal-btn primary" /></div>
+        </RadzenCard></div>
+    }
+</div>
+@code {
+    ShippingDeliveryDto? _delivery;string _barcode="",_title="",_message="";bool _busy,_modal,_confirm;
+    DotNetObjectReference<Fg05TrailerLoading>? _scanner;
+    bool Ready=>_delivery is {Status:not "Shipped"} d&&d.Parts.Count>0&&d.Parts.All(x=>x.RequiredQty==x.LoadedQty);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(!firstRender)return;PdaBarcodeHub.Scanned+=NativeScan;_scanner=DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register",_scanner,new {minLength=3,developerMode=MauiProgram.IsDeveloperMode});await Focus();
+    }
+    void NativeScan(string barcode)=>_=InvokeAsync(()=>OnHardwareScanAsync(barcode));
+    [JSInvokable]public async Task OnHardwareScanAsync(string barcode){if(_busy||_modal)return;_barcode=barcode.Trim();await Scan();await InvokeAsync(StateHasChanged);}
+    async Task OnKey(KeyboardEventArgs e){if(e.Key=="Enter")await Scan();}
+    async Task Scan()
+    {
+        if(_busy||_modal||string.IsNullOrWhiteSpace(_barcode))return;_busy=true;
+        try
+        {
+            var value=_barcode.Replace("\u0002","").Replace("\u0003","").Trim();
+            var result=_delivery is null?await Api.ShippingDeliveryAsync(value):await Api.LoadShippingDeliveryAsync(_delivery.DeliveryNo,value);
+            if(!result.Success||result.Delivery is null)Show("Loading Failed",result.Message);else{_delivery=result.Delivery;_barcode="";}
+        }
+        catch(Exception ex){Show("Loading Failed",ex.Message);}finally{_busy=false;await Focus();}
+    }
+    void Clear(){_delivery=null;_barcode="";}
+    async Task RemovePallet(string root)
+    {
+        if(_busy||_delivery is null)return;_busy=true;
+        try{var result=await Api.UnloadShippingDeliveryAsync(_delivery.DeliveryNo,root);if(result.Success)_delivery=result.Delivery;else Show("Remove Failed",result.Message);}
+        catch(Exception ex){Show("Remove Failed",ex.Message);}finally{_busy=false;}
+    }
+    void AskComplete(){if(!Ready)return;_confirm=true;Show("Confirm Shipment","Ship all loaded pallets? Inventory will be deducted and the customer SO shipped quantity will be updated.");}
+    async Task Complete()
+    {
+        if(_busy||!Ready||_delivery is null)return;_busy=true;
+        try{var result=await Api.CompleteShippingDeliveryAsync(_delivery.DeliveryNo);_confirm=false;if(result.Success){_delivery=result.Delivery;Show("Shipment Complete",result.Delivery?.DeliveryNo??result.Message);}else Show("Shipment Failed",result.Message);}
+        catch(Exception ex){_confirm=false;Show("Shipment Failed",ex.Message);}finally{_busy=false;}
+    }
+    void Show(string title,string message){_title=title;_message=message;_modal=true;}
+    void CloseModal(){_modal=false;_confirm=false;_=Focus();}
+    async Task Focus(){if(!_modal)try{await JS.InvokeVoidAsync("pdaScan.focus",".loading-shell .pda-scan-input");}catch{}}
+    public async ValueTask DisposeAsync(){PdaBarcodeHub.Scanned-=NativeScan;try{await JS.InvokeVoidAsync("pdaScan.unregister");}catch{} _scanner?.Dispose();}
+}

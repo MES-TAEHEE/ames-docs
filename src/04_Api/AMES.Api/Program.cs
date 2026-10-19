@@ -126,6 +126,7 @@ app.MapGet("/api/time", () => Results.Ok(DbClock.ReadNow(factory)))
 app.MapAuth(app.Services.GetRequiredService<PopAuthService>(), tokens, app.Services.GetRequiredService<PopSessionRepository>());
 app.MapWh(factory);
 app.MapFg(factory);
+app.MapShipping(factory);
 app.MapTablet(factory);
 app.MapPp(factory);
 app.MapMnt(factory);

@@ -4,13 +4,20 @@
 @inject PpRepository Pp
 @inject UomFormat UomFmt
 @inject MasterDataRepository MD
+@inject FinishedGoodsRepository Fg
 @inject PermissionService PermSvc
 @inject AuthenticationStateProvider AuthPrvd
 @inject NavigationManager Nav
 @inject DialogService Dialog
 
-<PageTitle>FG-02 Shipment Plan - AMES</PageTitle>
-<AmesPageHeader Code="FG-02" Title="Shipment Plan" />
+<PageTitle>FG-03 Shipment Plan - AMES</PageTitle>
+<AmesPageHeader Code="FG-03" Title="Shipment Plan" />
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">Shipment lines</div><div class="ames-kpi-v">@_view.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">Customers</div><div class="ames-kpi-v">@_view.Select(x=>x.Source.CustomerId).Distinct().Count()</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">Ship qty</div><div class="ames-kpi-v">@UomFmt.Qty(_view.Sum(x=>x.Quantity),null)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">Auto pallets</div><div class="ames-kpi-v">@_view.Sum(x=>x.PalletCount??0).ToString("N0")</div></div>
+</div>
 
 <div class="ames-page-fill shipment-plan-page">
     @if (!string.IsNullOrEmpty(_error))
@@ -22,8 +29,8 @@
         <RadzenAlert AlertStyle="AlertStyle.Warning" AllowClose="false">Select a valid ship-date range. From must be on or before To.</RadzenAlert>
     }
     <section class="ames-card ames-card-fill">
-        <div class="ames-card-h plan-toolbar">
-            <span>SUPPLY PLAN LINES · @_view.Count <small class="preview-tag" title="Display-only plan. Pallet quantity comes from Item Master. Maximum 18 pallets per trailer. No database changes.">PREVIEW</small></span>
+        <div class="ames-card-h master-list-toolbar plan-toolbar">
+            <span>SHIPMENT ORDER LINES · @_view.Count <small class="preview-tag">PREVIEW</small></span>
             <div class="plan-filters">
                 <RadzenLabel Text="Ship date" Component="ShipDateFrom" />
                 <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipDateFrom" @bind-Value="_shipFrom" @bind-Value:after="Load"
@@ -48,7 +55,7 @@
             <RadzenDataGrid @ref="_grid" Data="_view" TItem="TrailerLoadDraft.Line" AllowVirtualization="true"
                 Style="height:100%" AllowSorting="true" AllowColumnResize="true" Density="Density.Compact"
                 AllowFiltering="true" FilterMode="FilterMode.CheckBoxList" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                EmptyText="No supply plan lines in this ship-date range. Change the dates to view another period." class="ames-rz-grid shipment-plan-grid">
+                EmptyText="No open shipment orders in this date range. Create a Shipment Order first." class="ames-rz-grid shipment-plan-grid">
                 <Columns>
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="SHIP QTY ÷ QTY PER PALLET = PALLETS" Width="340px" Sortable="false" Filterable="false">
                         <HeaderTemplate>
@@ -62,11 +69,7 @@
                         </HeaderTemplate>
                         <Template Context="line">
                             <div class="load-estimate" @key="line.Source.SoId">
-                                <input type="number" min="0" max="@Whole(decimal.Floor(line.Balance))" step="1"
-                                    aria-label="Shipment quantity for @line.Source.ItemNo" value="@line.QuantityText"
-                                    aria-invalid="@(line.QuantityError.Length > 0 ? "true" : "false")"
-                                    title="@($"Shipment quantity · remaining: {UomFmt.Qty(line.Balance, null)}")"
-                                    @oninput="e => ChangeLoad(line, e.Value?.ToString())" />
+                                <span class="ship-quantity">@line.QuantityText</span>
                                 <span class="calculation-separator" aria-hidden="true">@(line.IsTote ? "/" : "÷")</span>
                                 <span class="packing-value">
                                     @if (line.PerPallet is decimal packing)
@@ -76,9 +79,9 @@
                                     else
                                     {
                                         <span class="packing-missing">Not determined</span>
-                                        <button type="button" class="packing-info" title="@PackingHelp(line.IsTote)"
+                                        <RadzenButton Icon="info" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" title="@PackingHelp(line.IsTote)"
                                             aria-label="Why the packing quantity is not determined"
-                                            @onclick="() => ShowPackingHelp(line.IsTote)">ⓘ</button>
+                                            Click="() => ShowPackingHelp(line.IsTote)" />
                                     }
                                 </span>
                                 <span class="calculation-separator" aria-hidden="true">@(line.IsTote ? "·" : "=")</span>
@@ -86,9 +89,9 @@
                                     @if (line.IsTote && line.Quantity > 0)
                                     {
                                         <span>Group</span>
-                                        <button type="button" class="packing-info" title="@PackingHelp(true)"
+                                        <RadzenButton Icon="info" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" title="@PackingHelp(true)"
                                             aria-label="Set estimated pallets for the TOTE group"
-                                            @onclick="() => ShowPackingHelp(true)">ⓘ</button>
+                                            Click="() => ShowPackingHelp(true)" />
                                     }
                                     else
                                     {
@@ -98,7 +101,7 @@
                             </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.SoNumber" Title="SO" Width="110px" />
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.SoNumber" Title="SHIPMENT ORDER / SO" Width="220px" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.CustomerId" Title="CUSTOMER" Width="95px" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemNo" Title="PART #">
                         <Template Context="line">
@@ -163,12 +166,10 @@
         }
         try
         {
-            // Same read-only source as PP supply plans. No plan/order/inventory writes.
-            var packing = MD.ListItems().ToDictionary(x => x.ItemNo.Trim(), StringComparer.OrdinalIgnoreCase);
-            _lines = Pp.ListShipmentPlanOrders(_shipFrom!.Value, _shipTo!.Value)
-                .Where(TrailerLoadDraft.IsShipmentCandidate)
-                .Select(x => new TrailerLoadDraft.Line(x, packing.GetValueOrDefault(x.ItemNo.Trim())?.PalletQty,
-                    packing.GetValueOrDefault(x.ItemNo.Trim())?.ToteFlag ?? false)).ToList();
+            _lines = Fg.ListShippingOrders(_shipFrom!.Value,_shipTo!.Value).Where(o=>o.Status is "Open" or "Loading")
+                .SelectMany(o=>o.Lines.Select(l=>new TrailerLoadDraft.Line(
+                    new PpRepository.SoRow(l.OrderLineId,$"{o.OrderNo} / {l.SoNumber}",null,o.CustomerId,l.PartNo,l.PartName,l.Qty,0,
+                        null,l.RequestedDate,null,"Open",null,null,true),l.PalletQty,l.ToteFlag,o.ShipDate))).ToList();
             _customers = _lines.Select(x => x.Source.CustomerId).Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(x => x!).Distinct().Order().ToList();
             if (_customer is not null && !_customers.Contains(_customer)) _customer = null;
@@ -177,7 +178,7 @@
         {
             _lines = [];
             _customers = [];
-            _error = "Unable to load supply plan or Item Master data. Check the database connection and try Refresh.";
+            _error = "Unable to load shipment orders. Check the database connection and try Refresh.";
         }
         Filter();
     }
@@ -191,14 +192,6 @@
                 || x.Source.ItemNo.Contains(_search, StringComparison.OrdinalIgnoreCase)
                 || (x.Source.ItemName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
                 || (x.Source.SoNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
-    }
-
-    static string Whole(decimal value) => value.ToString("0", System.Globalization.CultureInfo.InvariantCulture);
-
-    void ChangeLoad(TrailerLoadDraft.Line line, string? text)
-    {
-        _draft = null;
-        line.TryChange(text, out _error);
     }
 
     static string PackingHelp(bool tote) => tote
