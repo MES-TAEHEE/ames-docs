@@ -47,7 +47,7 @@ END;
 GO
 IF OBJECT_ID(N'dbo.FG_Shipment',N'U') IS NULL
     CREATE TABLE dbo.FG_Shipment(ShipmentID int IDENTITY(1,1) NOT NULL CONSTRAINT PK_FG_Shipment PRIMARY KEY);
-IF COL_LENGTH(N'dbo.FG_Shipment',N'OutboundBarcode') IS NULL
+IF COL_LENGTH(N'dbo.FG_Shipment',N'OutboundBarcode') IS NULL AND COL_LENGTH(N'dbo.FG_Shipment',N'LotNo') IS NULL
     ALTER TABLE dbo.FG_Shipment ADD OutboundBarcode nvarchar(50) COLLATE DATABASE_DEFAULT NOT NULL,
         UnitType varchar(10) COLLATE DATABASE_DEFAULT NOT NULL,
         CustomerID varchar(20) COLLATE DATABASE_DEFAULT NOT NULL,
@@ -60,7 +60,11 @@ GO
 -- Customer/shipment existence is validated by PdaFinishedGoodsSql in the save transaction.
 -- Do not recreate foreign keys: existing databases use migrate_fg_shipment_no_foreign_keys.sql.
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.FG_Shipment') AND name=N'IX_FG_Shipment_ShippedAt')
-    CREATE INDEX IX_FG_Shipment_ShippedAt ON dbo.FG_Shipment(ShippedAt DESC,ShipmentID DESC) INCLUDE(CustomerID,OutboundBarcode,UnitType,ShippedBy);
+BEGIN
+    DECLARE @ShipmentIndexSql nvarchar(max)=N'CREATE INDEX IX_FG_Shipment_ShippedAt ON dbo.FG_Shipment(ShippedAt DESC,ShipmentID DESC) INCLUDE(CustomerID,'+
+        CASE WHEN COL_LENGTH(N'dbo.FG_Shipment',N'LotNo') IS NOT NULL THEN N'LotNo' ELSE N'OutboundBarcode' END+N',UnitType,ShippedBy);';
+    EXEC(@ShipmentIndexSql);
+END;
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.WH_InventoryTransaction') AND name=N'IX_WH_InventoryTransaction_Source')
     CREATE INDEX IX_WH_InventoryTransaction_Source ON dbo.WH_InventoryTransaction(SourceType,SourceID,TransactionType)
         INCLUDE(LotNo,PartNo,QtyChange,LocationNo,TransactionTime);
