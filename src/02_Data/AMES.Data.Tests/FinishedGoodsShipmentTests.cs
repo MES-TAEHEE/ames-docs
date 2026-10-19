@@ -17,7 +17,7 @@ public sealed class FinishedGoodsShipmentTests
         var schema=Read("dist/AMES_Schema.sql");
         var table=Regex.Match(schema,@"CREATE TABLE \[dbo\]\.\[FG_Shipment\][\s\S]*?(?=^GO\s*$)",RegexOptions.Multiline).Value;
         Assert.NotEmpty(table);
-        foreach(var name in new[]{"ShipmentID","OutboundBarcode","UnitType","PalletNo","CustomerID","ShippedAt","ShippedBy"})
+        foreach(var name in new[]{"ShipmentID","LotNo","UnitType","PalletNo","CustomerID","ShippedAt","ShippedBy"})
             Assert.Contains("["+name+"]",table);
         foreach(var name in new[]{"Note","ItemsJSON","ShipOrderNumber","Status","LicensePlate"})Assert.DoesNotContain("["+name+"]",table);
         Assert.DoesNotContain("CREATE TABLE [dbo].[FG_ShipmentOrder]",schema);
@@ -27,7 +27,7 @@ public sealed class FinishedGoodsShipmentTests
     public void Shipments_and_returns_use_the_same_source_link()
     {
         var sql=PdaFinishedGoodsSql.OutboundComplete+PdaFinishedGoodsSql.ReturnScan+PdaFinishedGoodsSql.ReturnReceive;
-        Assert.Contains("INSERT dbo.FG_Shipment(OutboundBarcode,UnitType,PalletNo,CustomerID,ShippedAt,ShippedBy)",sql);
+        Assert.Contains("INSERT dbo.FG_Shipment(LotNo,UnitType,PalletNo,CustomerID,ShippedAt,ShippedBy)",sql);
         Assert.Contains("'FG_OUTBOUND',@ShipmentID",sql);
         Assert.Contains("S.ShipmentID=T.SourceID",sql);
         Assert.Contains("ParentLotNo=NULL",sql);

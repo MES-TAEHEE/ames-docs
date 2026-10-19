@@ -103,11 +103,12 @@ public class PalletMasterTests
             cmd.Parameters.Add("@Barcode",    System.Data.SqlDbType.NVarChar, 50).Value = "ITEST-PLTLOT";
             cmd.Parameters.Add("@OperatorID", System.Data.SqlDbType.VarChar,  20).Value = Actor;
             cmd.Parameters.Add("@CustomerID", System.Data.SqlDbType.VarChar,  20).Value = customer;
+            cmd.Parameters.Add("@ShippingDeliveryID",System.Data.SqlDbType.Int).Value=DBNull.Value;
             using var r = cmd.ExecuteReader();
             Assert.True(r.Read());
         }
 
-        Assert.Equal("ITEST-PLT-OUT", Value("SELECT PalletNo FROM dbo.FG_Shipment WHERE OutboundBarcode = N'ITEST-PLTLOT'"));
+        Assert.Equal("ITEST-PLT-OUT", Value("SELECT PalletNo FROM dbo.FG_Shipment WHERE LotNo = N'ITEST-PLTLOT'"));
         Assert.True((bool)Value("SELECT ShippedFlag FROM dbo.MD_Pallet WHERE PalletNo = 'ITEST-PLT-OUT'")!);
         Assert.Equal(customer, Value("SELECT ShippedCustomerID FROM dbo.MD_Pallet WHERE PalletNo = 'ITEST-PLT-OUT'"));
         Assert.Equal(1, (int)Value("""

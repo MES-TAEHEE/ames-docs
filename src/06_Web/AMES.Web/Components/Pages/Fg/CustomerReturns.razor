@@ -45,7 +45,7 @@
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReturnId" Title="Return ID" Width="100px"><Template Context="r"><span class="code">@r.ReturnId</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="CustomerId" Title="@L["Col.Customer"].Value" Width="160px"><Template Context="r">@r.CustomerId<div class="dim">@r.CustomerName</div></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ShipmentId" Title="Shipment ID" Width="110px" />
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="OutboundBarcode" Title="Outbound Barcode" Width="165px"><Template Context="r">@(r.OutboundBarcode ?? "-")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="OutboundBarcode" Title="SHIPMENT LOT NO" Width="165px"><Template Context="r">@(r.OutboundBarcode ?? "-")</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="PartNo" Title="Part No" Width="140px"><Template Context="r"><span class="code">@r.PartNo</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="PartName" Title="Part Name" MinWidth="180px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="LotNo" Title="Lot No" Width="170px" />

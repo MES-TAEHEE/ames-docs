@@ -295,7 +295,7 @@ public sealed class RptRepository
     public List<ShipmentDetailRow> ListShipmentDetail(DateTime day,string? customerCode=null)
     {
         const string sql = """
-            SELECT S.ShipmentID,S.OutboundBarcode,S.CustomerID,S.ShippedAt,S.ShippedBy,
+            SELECT S.ShipmentID,S.LotNo AS OutboundBarcode,S.CustomerID,S.ShippedAt,S.ShippedBy,
                 T.TransactionID,T.PartNo,T.LocationNo,I.ItemName,I.ItemNameEN,-T.QtyChange Qty,I.UnitCost,I.DefaultUOM
             FROM dbo.FG_Shipment S JOIN dbo.MD_Customer C ON C.CustomerID=S.CustomerID
             JOIN dbo.WH_InventoryTransaction T ON T.SourceType='FG_OUTBOUND' AND T.SourceID=S.ShipmentID AND T.TransactionType='OUT'
@@ -831,7 +831,7 @@ public sealed class RptRepository
                 keyExpr = dim switch
                 {
                     "Customer" => "ISNULL(o.CustomerID,'—')",
-                    "Carrier" => "CONCAT('Not tracked',LEFT(o.OutboundBarcode,0))",
+                    "Carrier" => "CONCAT('Not tracked',LEFT(o.LotNo,0))",
                     "Date" => "CONVERT(varchar(10),CAST(o.ShippedAt AS DATE),120)",
                     _ => "ISNULL(l.PartNo,'—')",
                 };

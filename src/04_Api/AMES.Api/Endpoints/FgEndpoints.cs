@@ -448,7 +448,7 @@ public static class FgEndpoints
                     $"{unitType} loaded. {itemCount} inventory LOT(s) are ready for outbound.",
                     new OutboundUnitRow(outboundBarcode, unitType, locationNo, totalQty, itemCount, items, customerId, customerName)));
             }
-            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52019)
+            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020)
             {
                 return Results.BadRequest(new OutboundUnitResult(false,
                     ex.Number is 52000 or 52001 ? ExplainOutboundFailure(factory, normalized, ex.Message) : ex.Message, null));
@@ -480,6 +480,7 @@ public static class FgEndpoints
                     CommandType = CommandType.Text,
                     CommandTimeout = 30
                 };
+                cmd.Parameters.Add("@ShippingDeliveryID",SqlDbType.Int).Value=DBNull.Value;
                 cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = normalized;
                 ColumnParams.Add(cmd, "@OperatorID", "WH_InventoryTransaction.CreatedBy", session.OperatorId);
                 ColumnParams.Add(cmd, "@CustomerID", "MD_Customer.CustomerID", body.CustomerId);
@@ -497,7 +498,7 @@ public static class FgEndpoints
                 return Results.Ok(new OutboundUnitResult(true,
                     $"Shipment #{shipmentId}: {unitType}, {processed} inventory LOT(s), {totalQty:N0} EA processed.", null, processed, shipmentId));
             }
-            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52019)
+            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020)
             {
                 return Results.BadRequest(new OutboundUnitResult(false,
                     ex.Number is 52000 or 52001 ? ExplainOutboundFailure(factory, normalized, ex.Message) : ex.Message, null));
@@ -550,7 +551,7 @@ public static class FgEndpoints
                     return Results.Json(new ReturnResult(false, "Customer return service returned no product.", null, null), statusCode: 503);
                 return Results.Ok(new ReturnResult(true, "Product is eligible for customer return.", null, ReadReturnScanRow(rdr)));
             }
-            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52019)
+            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020)
             {
                 return Results.BadRequest(new ReturnResult(false, ex.Message, null, null));
             }
@@ -595,7 +596,7 @@ public static class FgEndpoints
                 var id = GetInt(rdr, "ReturnID");
                 return Results.Ok(new ReturnResult(true, "Customer return received.", id, ReadReturnScanRow(rdr)));
             }
-            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52019)
+            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020)
             {
                 return Results.BadRequest(new ReturnResult(false, ex.Message, null, null));
             }

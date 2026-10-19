@@ -1,0 +1,6 @@
+.shipment-items {max-height:280px;overflow:auto;margin:4px 12px 8px;border:1px solid var(--ames-border-soft);background:var(--ames-surface);}
+.shipments-page ::deep .rz-expanded-row-content {padding:0 !important;background:transparent !important;}
+.shipments-page ::deep .rz-expanded-row-content > td {height:auto !important;padding:0 !important;background:transparent !important;}
+.shipments-page ::deep .shipment-items-grid {flex:0 0 auto !important;}
+.shipments-page ::deep .shipment-items-grid .rz-data-grid-data {height:auto !important;min-height:0;container-type:normal !important;}
+.shipments-page ::deep .shipment-items-grid .rz-data-grid-data tbody > tr > td {height:auto !important;padding:7px 10px !important;}
