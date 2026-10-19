@@ -1,0 +1,17 @@
+.shipping-a4-preview { max-height:70vh; flex:1; min-height:0; overflow:auto; }
+.shipping-a4-paper { box-sizing:border-box; display:block; flex-shrink:0; overflow:visible; }
+.shipping-a4-paper h1 { font-size:24px; text-align:left; margin:0 0 8mm; }
+.shipping-a4-paper h2 { font-size:18px; letter-spacing:1px; margin:3mm 0 6mm; }
+.shipping-a4-paper ::deep svg { max-width:100%; width:100mm; height:18mm; fill:black; background:white; }
+.shipping-a4-paper table { width:100%; border-collapse:collapse; table-layout:fixed; margin-top:8mm; font-size:10px; }
+.shipping-a4-paper th,.shipping-a4-paper td { border-bottom:1px solid #aaa; padding:3mm 1mm; text-align:left; overflow-wrap:anywhere; vertical-align:top; }
+.shipping-a4-paper .quantity { text-align:right; }
+@media print {
+    .shipping-a4-modal-bg { position:static; display:block; padding:0; background:transparent; }
+    .shipping-a4-modal { display:block; max-width:none; max-height:none; padding:0; border:0; overflow:visible; }
+    .shipping-a4-preview { max-height:none; overflow:visible; padding:0; background:white; }
+    .shipping-a4-paper { margin:0; box-shadow:none; page:fg-dcr; }
+    .shipping-a4-paper thead { display:table-header-group; }
+    .shipping-a4-paper tr { break-inside:avoid; }
+    .shipping-a4-toolbar { display:none !important; }
+}
