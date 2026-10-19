@@ -11483,6 +11483,6 @@
   <data name="WH.Inventory.AvailableQty" xml:space="preserve"><value>Cantidad disponible</value></data>
   <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>Defecto registrado</value></data>
   <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
-  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>¿Descargar en Excel las cantidades disponibles y defectuosas de los {0} artículos filtrados?</value></data>
   <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>{0} elementos</value></data>
+  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>¿Descargar en Excel las cantidades disponibles y defectuosas de los {0} artículos filtrados?</value></data>
 </root>
