@@ -771,6 +771,13 @@ public static class PdaWarehouseSql
             BEGIN TRANSACTION;
             IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode)
                 THROW 51416,'This barcode has already been received. Check its transaction history.',1;
+            IF EXISTS(
+                SELECT 1 FROM (
+                    SELECT TOP(1) ReasonCode,SourceType FROM dbo.WH_InventoryTransaction WITH(UPDLOCK,HOLDLOCK)
+                    WHERE LotNo=@Barcode AND (TransactionType='IN' OR ReasonCode='INBOUND_CANCEL')
+                    ORDER BY TransactionID DESC
+                ) LastReceipt WHERE COALESCE(ReasonCode,'')<>'INBOUND_CANCEL' OR COALESCE(SourceType,'')<>'LOT')
+                THROW 51416,'This LOT has a receipt history that was not cancelled. Check its transaction history.',1;
             IF EXISTS(SELECT 1 FROM dbo.MD_Location L WITH(UPDLOCK,HOLDLOCK)
                 WHERE L.LocationID=@Location AND L.Capacity>0 AND
                     (SELECT COALESCE(SUM(W.Qty),0) FROM dbo.WH_Inventory W WITH(UPDLOCK,HOLDLOCK)
@@ -963,20 +970,40 @@ public static class PdaWarehouseSql
             END;
 
 
-            DECLARE @PartNo varchar(20),@Location varchar(50),@Invoice varchar(20),@Po int;
+            DECLARE @PartNo varchar(20),@Location varchar(50),@Invoice varchar(20),@Po int,
+                @ReceiptID bigint,@ReceiptQty decimal(18,3),@ReceiptPart varchar(20),@ExpectedQty decimal(18,3);
             BEGIN TRANSACTION;
             SELECT @PartNo=PartNo,@Location=LocationNo,@Qty=Qty,@Invoice=InvoiceNo
-                FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Qty>0;
+                FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Qty>=0;
             IF @PartNo IS NULL THROW 51433,'LOT is not received yet.',1;
-            SELECT TOP(1) @Po=SourceID FROM dbo.WH_InventoryTransaction
-                WHERE LotNo=@Barcode AND TransactionType='IN' AND SourceType='LOT' ORDER BY TransactionID DESC;
+            SELECT TOP(1) @ReceiptID=TransactionID,@Po=SourceID,@ReceiptQty=QtyChange,@ReceiptPart=PartNo
+            FROM dbo.WH_InventoryTransaction WITH(UPDLOCK,HOLDLOCK)
+            WHERE LotNo=@Barcode AND TransactionType='IN' AND SourceType='LOT' AND ReasonCode='INBOUND_RECEIVE'
+            ORDER BY TransactionID DESC;
+            IF @ReceiptID IS NULL OR @ReceiptQty IS NULL OR @ReceiptQty<=0 OR @ReceiptPart IS NULL OR @ReceiptPart<>@PartNo
+                THROW 51434,'The original LOT receipt could not be verified. Cancellation was not saved.',1;
+            IF EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction WITH(UPDLOCK,HOLDLOCK)
+                WHERE LotNo=@Barcode AND TransactionID>@ReceiptID
+                  AND (ReasonCode='INBOUND_CANCEL' OR (QtyChange<>0 AND COALESCE(TransactionType,'')<>'ADJ')))
+                THROW 51434,'This LOT was released, consumed or received again. Reverse those transactions before cancelling its receipt.',1;
+            SELECT @ExpectedQty=@ReceiptQty+COALESCE(SUM(QtyChange),0)
+            FROM dbo.WH_InventoryTransaction
+            WHERE LotNo=@Barcode AND TransactionID>@ReceiptID AND TransactionType='ADJ';
+            IF @ExpectedQty<>@Qty
+                THROW 51435,'LOT stock does not match its receipt and adjustment history. Cancellation was not saved.',1;
+            IF @Po IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK)
+                WHERE PoID=@Po AND COALESCE(ReceivedQty,0)>=@ReceiptQty)
+                THROW 51435,'The PO receipt balance is inconsistent. Cancellation was not saved.',1;
             DELETE dbo.WH_Inventory WHERE LotNo=@Barcode;
             INSERT dbo.WH_InventoryTransaction(TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
                 ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
-                VALUES('OUT',@PartNo,@Location,@Barcode,@Qty,-@Qty,0,'INBOUND_CANCEL','LOT',@Po,@User,'Inbound receipt cancelled',LEFT(@User,20),SYSDATETIME());
+                VALUES('OUT',@PartNo,@Location,@Barcode,@Qty,-@Qty,0,'INBOUND_CANCEL','LOT',@Po,@User,
+                    CONCAT('Inbound receipt cancelled; PO receipt reversed: ',@ReceiptQty),LEFT(@User,20),SYSDATETIME());
             IF @Po IS NOT NULL UPDATE dbo.WH_PurchaseOrder SET
-                ReceivedQty=CASE WHEN COALESCE(ReceivedQty,0)<@Qty THEN 0 ELSE ReceivedQty-@Qty END,
-                Status='Open',ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE PoID=@Po;
+                ReceivedQty=ReceivedQty-@ReceiptQty,
+                Status=CASE WHEN Status IN('Cancelled','Canceled') THEN Status
+                    WHEN ReceivedQty-@ReceiptQty>=OrderQty THEN 'Complete' ELSE 'Open' END,
+                ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE PoID=@Po;
             UPDATE dbo.tbl_Lot SET CurrentLocationID=NULL,ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME()
                 WHERE LotCode COLLATE DATABASE_DEFAULT=@Barcode;
             COMMIT TRANSACTION;

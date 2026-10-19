@@ -150,6 +150,8 @@ public static class WhEndpoints
         IResult GetWh001ScheduleInbound(HttpContext ctx, int? year, int? quarter, string? vendorId, string? lang)
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
+            if(year is <1 or >9999 || quarter is <1 or >4 || vendorId?.Length>20)
+                return Results.BadRequest("Use a valid year, quarter (1–4) and vendor code within 20 characters.");
             return Results.Ok(QueryWh001ScheduleInbound(factory, year, quarter, vendorId, lang));
         }
 
@@ -1203,18 +1205,14 @@ public static class WhEndpoints
         var today = AMES.Data.Services.DbClock.ReadNow(factory).Date;
         var queryYear = year ?? today.Year;
         var queryQuarter = quarter ?? ((today.Month - 1) / 3) + 1;
-        var language = string.IsNullOrWhiteSpace(lang) ? "EN" : lang;
 
         using var conn = factory.OpenConnection();
         using var cmd = new SqlCommand(PdaWarehouseSql.ScheduleInbound, conn) { CommandTimeout = 15 };
 
-        ColumnParams.AddFilter(cmd, "@CompanyCode", "WH_PDA_SCHEDULE_INBOUND_LIST.@CompanyCode", "1000");
-        ColumnParams.AddFilter(cmd, "@BusinessCode", "WH_PDA_SCHEDULE_INBOUND_LIST.@BusinessCode", "5011");
-        ColumnParams.AddFilter(cmd, "@ScheduleYear", "WH_PDA_SCHEDULE_INBOUND_LIST.@ScheduleYear", queryYear.ToString());
-        ColumnParams.AddFilter(cmd, "@ScheduleQuarter", "WH_PDA_SCHEDULE_INBOUND_LIST.@ScheduleQuarter", queryQuarter.ToString());
-        cmd.Parameters.Add("@SupplierCode", SqlDbType.NVarChar, 10).Value =
+        cmd.Parameters.Add("@ScheduleYear", SqlDbType.Int).Value = queryYear;
+        cmd.Parameters.Add("@ScheduleQuarter", SqlDbType.Int).Value = queryQuarter;
+        cmd.Parameters.Add("@SupplierCode", SqlDbType.VarChar, 20).Value =
             string.IsNullOrWhiteSpace(vendorId) ? DBNull.Value : vendorId;
-        ColumnParams.AddFilter(cmd, "@LanguageCode", "WH_PDA_SCHEDULE_INBOUND_LIST.@LanguageCode", language);
 
         using var rdr = cmd.ExecuteReader();
         var rows = new List<Wh001ScheduleInboundItem>();
