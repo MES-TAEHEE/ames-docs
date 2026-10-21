@@ -344,6 +344,16 @@
                         }</tbody>
                     </table></div>
                 }
+                <div class="dim">@L["SCM.Preview.Cancellation.Policy"]</div>
+                @if(_cancelNoteError.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_cancelNoteError</RadzenAlert>}
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="ames-modal-footer">
+                    @if(!CanCancelNote(noteDetail))
+                    {
+                        <span class="dim" role="status" style="margin-right:auto">@CancellationBlockedReason(noteDetail)</span>
+                    }
+                    <RadzenButton Text='@L["SCM.Preview.Cancellation.Cancel"]' Icon="cancel" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Disabled="@(_cancelNoteBusy || !CanCancelNote(noteDetail))" Click="@(()=>CancelNote(noteDetail))" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" data-portal-close ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="()=>_selectedNote=null" class="ames-rz-btn" />
+                </RadzenStack>
             </div>
         </div>
     }
@@ -746,7 +756,45 @@
     }
     List<ScmRepository.PortalDiscrepancy> NoteMismatches(PortalNoteRow note) => _portalMismatches.Where(r=>note.Numbers.Contains(r.Delivery)).OrderBy(r=>r.OccurredAt).ToList();
     static void RowLinkNote(RowRenderEventArgs<PortalNoteRow> args)=>args.Attributes["style"]="cursor:pointer";
-    void SelectNote(PortalNoteRow note) { _selectedNote=note; _showMismatch=false; }
+    void SelectNote(PortalNoteRow note) { _selectedNote=note; _showMismatch=false; _cancelNoteError=""; }
+    bool _cancelNoteBusy;
+    string _cancelNoteError="";
+    bool CanCancelNote(PortalNoteRow note) => IsPortal && Mode=="Deliveries" && _isExternalPortalUser
+        && !string.IsNullOrEmpty(_portalUserId) && note.Deliveries.All(d=>d.Status is "Registered" or "Shipped")
+        && Store.Deliveries.Where(d=>note.Numbers.Contains(d.Number)).All(d=>d.Received==0);
+    string CancellationBlockedReason(PortalNoteRow note) => note.Deliveries.Any(d=>d.Status=="Cancelled")
+        ? L["SCM.Preview.Cancellation.AlreadyCancelled"] : NoteStatus(note)=="Received"
+        ? L["SCM.Preview.Cancellation.AlreadyReceived"]
+        : Store.Deliveries.Any(d=>note.Numbers.Contains(d.Number) && d.Received>0)
+        ? L["SCM.Preview.Cancellation.PartiallyReceived"] : L["SCM.Preview.Cancellation.NotAllowed"];
+    async Task CancelNote(PortalNoteRow note)
+    {
+        if(_cancelNoteBusy || !CanCancelNote(note))return;
+        _cancelNoteBusy=true;_cancelNoteError="";
+        var versions=note.Deliveries.ToDictionary(d=>d.Number,d=>d.Version,StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            if(await Dialog.Confirm(L["SCM.Preview.Cancellation.Confirm"],L["SCM.Preview.Cancellation.Cancel"],
+                new ConfirmOptions { OkButtonText=L["Lbl.Yes"],CancelButtonText=L["Msg.No"] })!=true)return;
+            await Task.Run(()=>Scm.CancelSupplierDeliveryNote(note.Number,versions,_portalUserId!,_actor));
+            try{Audit.Log(ScreenCode,"CANCEL","SCM_DeliveryNote",note.Number,new {Versions=versions},new {Status="Cancelled",LabelsVoided=true});}
+            catch(Exception ex){Logger.LogError(ex,"Delivery note cancellation audit failed for {Note}",note.Number);}
+            var refreshed=await ReloadOrdersAsync();
+            if(_selectedNote==note)_selectedNote=null;
+            _message=refreshed ? L["SCM.Preview.Cancellation.Done"] : L["SCM.Preview.Cancellation.ReloadFailed"];
+        }
+        catch(Exception ex)
+        {
+            Logger.LogWarning(ex,"Delivery note cancellation failed for {Note}",note.Number);
+            _cancelNoteError=ex is InvalidOperationException or ArgumentException ? ex.Message : L["SCM.Preview.Cancellation.Failed"];
+            if(await ReloadOrdersAsync())
+            {
+                if(_selectedNote?.Number==note.Number)_selectedNote=PortalNoteRows.FirstOrDefault(n=>n.Number==note.Number);
+                if(_selectedNote is null)_message=_cancelNoteError;
+            }
+        }
+        finally{_cancelNoteBusy=false;}
+    }
     void OpenNoteMismatch(PortalNoteRow note) => SelectNote(note);
     void SelectNoteDelivery(ScmPreviewStore.Delivery delivery) { _selectedNote=null; SelectDelivery(delivery); }
     string DeliveryQuantities(string number) => string.Join(" / ",Store.Deliveries.Where(d=>d.Number==number)

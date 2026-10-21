@@ -11680,4 +11680,14 @@
   <data name="Excel.Err.Packaging" xml:space="preserve">
     <value>BOX and PALLET are not quantity units</value>
   </data>
+  <data name="SCM.Preview.Cancellation.Cancel" xml:space="preserve"><value>Cancel Delivery Note</value></data>
+  <data name="SCM.Preview.Cancellation.Confirm" xml:space="preserve"><value>Cancel this delivery note?</value></data>
+  <data name="SCM.Preview.Cancellation.Policy" xml:space="preserve"><value>Only delivery notes without receiving history can be cancelled. Cancel the complete note before correcting quantities; all old labels become invalid.</value></data>
+  <data name="SCM.Preview.Cancellation.Done" xml:space="preserve"><value>Delivery note and labels cancelled. The quantities are available for a new delivery note.</value></data>
+  <data name="SCM.Preview.Cancellation.Failed" xml:space="preserve"><value>Cancellation failed. Refresh and check vendor access and receiving history.</value></data>
+  <data name="SCM.Preview.Cancellation.ReloadFailed" xml:space="preserve"><value>Cancelled, but the list could not be refreshed. Refresh before creating a replacement.</value></data>
+  <data name="SCM.Preview.Cancellation.AlreadyCancelled" xml:space="preserve"><value>This delivery note is already cancelled.</value></data>
+  <data name="SCM.Preview.Cancellation.AlreadyReceived" xml:space="preserve"><value>Already received. Cannot cancel.</value></data>
+  <data name="SCM.Preview.Cancellation.PartiallyReceived" xml:space="preserve"><value>Partially received. Cannot cancel.</value></data>
+  <data name="SCM.Preview.Cancellation.NotAllowed" xml:space="preserve"><value>Cancellation is unavailable for the current status or permissions.</value></data>
 </root>

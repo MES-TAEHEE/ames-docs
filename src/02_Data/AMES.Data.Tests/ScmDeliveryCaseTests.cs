@@ -505,6 +505,35 @@ public sealed class ScmDeliveryCaseTests
                 Assert.Single(repo.ListNoteDeliveries("case-user").Where(d=>d.NoteNumber==partOnly.Number)).Number,"case-user")).Number);
             Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
                 [new("PO-LOOSE",7,5,false)]));
+            // A whole multi-PO note is cancelled atomically; old labels stay void and replacements get new numbers.
+            Dictionary<string,string> NoteVersions(string noteNumber)=>repo.ListSupplierDeliveries(true,"case-user")
+                .Where(d=>repo.ListNoteDeliveries("case-user").Any(n=>n.Number==d.Number && n.NoteNumber==noteNumber))
+                .GroupBy(d=>d.Number).ToDictionary(g=>g.Key,g=>g.First().Version);
+            var cancelVersions=NoteVersions(draftNote.Number);
+            var cancelledUnits=repo.ListDeliveryCases(null,"case-user",note:draftNote.Number).Select(k=>k.Number).ToArray();
+            var cancelledLabels=cancelVersions.Keys.SelectMany(d=>repo.ListDeliveryBoxes(d,"case-user")).Select(b=>b.Number).ToArray();
+            var availableBefore=repo.ListCaseParts("PO-MIX-1","case-user").Single(p=>p.PoID==4).Available;
+            Assert.Throws<InvalidOperationException>(()=>repo.CancelSupplierDeliveryNote(draftNote.Number,cancelVersions,"other-user","other-user"));
+            Assert.Throws<InvalidOperationException>(()=>repo.CancelSupplierDeliveryNote(draftNote.Number,
+                cancelVersions.Take(1).ToDictionary(x=>x.Key,x=>x.Value),"case-user","case-user"));
+            var staleCancel=new Dictionary<string,string>(cancelVersions);
+            staleCancel[staleCancel.Keys.First()]="0000000000000000";
+            Assert.Throws<InvalidOperationException>(()=>repo.CancelSupplierDeliveryNote(draftNote.Number,staleCancel,"case-user","case-user"));
+            Assert.All(cancelVersions.Keys,d=>Assert.NotEmpty(repo.ListDeliveryBoxes(d,"case-user")));
+            Assert.Throws<InvalidOperationException>(()=>repo.CancelSupplierDeliveryNote(mixedNote.Number,NoteVersions(mixedNote.Number),"case-user","case-user"));
+            repo.CancelSupplierDeliveryNote(draftNote.Number,cancelVersions,"case-user","case-user");
+            Assert.All(cancelVersions.Keys,d=>Assert.Empty(repo.ListDeliveryBoxes(d,"case-user")));
+            Assert.All(cancelledUnits,k=>Assert.Null(repo.GetDeliveryCase(k,"case-user")));
+            Assert.All(repo.ListSupplierDeliveries(true,"case-user").Where(d=>cancelVersions.ContainsKey(d.Number)),d=>Assert.Equal("Cancelled",d.Status));
+            Assert.Equal(availableBefore+2,repo.ListCaseParts("PO-MIX-1","case-user").Single(p=>p.PoID==4).Available);
+            Assert.All(repo.ListNoteDeliveries("case-user").Where(d=>cancelVersions.ContainsKey(d.Number)),d=>Assert.Equal(draftNote.Number,d.NoteNumber));
+            Assert.Throws<InvalidOperationException>(()=>repo.CancelSupplierDeliveryNote(draftNote.Number,cancelVersions,"case-user","case-user"));
+            var replacement=repo.CreateDeliveryNoteFromDraftCases(
+                [new(["PO-MIX-1"],[new(4,1)]),new(["PO-MIX-2"],[new(5,3)])],DateTime.Today,"case-user","case-user");
+            Assert.NotEqual(draftNote.Number,replacement.Number);
+            var replacementCases=repo.ListDeliveryCases(null,"case-user",note:replacement.Number);
+            Assert.DoesNotContain(replacementCases,k=>cancelledUnits.Contains(k.Number));
+            Assert.DoesNotContain(replacementCases.SelectMany(k=>k.Boxes),b=>cancelledLabels.Contains(b.Number));
             Sql("""
                 INSERT MD_Item(ItemNo,ItemName,ItemType,DefaultUOM,ActiveFlag)
                 VALUES('PART-BOX','Box material','MATERIAL','BOX',1);

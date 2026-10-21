@@ -11680,4 +11680,14 @@
   <data name="Excel.Err.Packaging" xml:space="preserve">
     <value>BOX y PALLET no son unidades de cantidad</value>
   </data>
+  <data name="SCM.Preview.Cancellation.Cancel" xml:space="preserve"><value>Cancelar nota de entrega</value></data>
+  <data name="SCM.Preview.Cancellation.Confirm" xml:space="preserve"><value>¿Desea cancelar esta nota de entrega?</value></data>
+  <data name="SCM.Preview.Cancellation.Policy" xml:space="preserve"><value>Solo pueden cancelarse notas sin historial de recepción. Cancele la nota completa antes de corregir cantidades; todas las etiquetas anteriores quedarán invalidadas.</value></data>
+  <data name="SCM.Preview.Cancellation.Done" xml:space="preserve"><value>Nota de entrega y etiquetas canceladas. Las cantidades están disponibles para una nueva nota.</value></data>
+  <data name="SCM.Preview.Cancellation.Failed" xml:space="preserve"><value>No se pudo cancelar. Actualice y compruebe el acceso del proveedor y el historial de recepción.</value></data>
+  <data name="SCM.Preview.Cancellation.ReloadFailed" xml:space="preserve"><value>Cancelado, pero no se pudo actualizar la lista. Actualice antes de crear otra nota.</value></data>
+  <data name="SCM.Preview.Cancellation.AlreadyCancelled" xml:space="preserve"><value>Esta nota de entrega ya está cancelada.</value></data>
+  <data name="SCM.Preview.Cancellation.AlreadyReceived" xml:space="preserve"><value>Ya recibido. No se puede cancelar.</value></data>
+  <data name="SCM.Preview.Cancellation.PartiallyReceived" xml:space="preserve"><value>Recibido parcialmente. No se puede cancelar.</value></data>
+  <data name="SCM.Preview.Cancellation.NotAllowed" xml:space="preserve"><value>No se puede cancelar con el estado o los permisos actuales.</value></data>
 </root>
