@@ -101,7 +101,7 @@ public sealed partial class ScmRepository
         var vendor=ValidateCaseDestination(c,tx,boxes.Select(b=>b.PoID).Distinct().ToArray());
         using var header = new SqlCommand("""
             DECLARE @Sequence varchar(20)=CONVERT(varchar(20),NEXT VALUE FOR dbo.SCM_CaseNumberSequence);
-            DECLARE @CaseNo varchar(50)=CONCAT('CASE-',CONVERT(char(8),SYSDATETIME(),112),'-',CASE WHEN LEN(@Sequence)<6 THEN RIGHT('000000'+@Sequence,6) ELSE @Sequence END);
+            DECLARE @CaseNo varchar(50)=CONCAT('SHU-',CONVERT(char(8),SYSDATETIME(),112),'-',CASE WHEN LEN(@Sequence)<6 THEN RIGHT('000000'+@Sequence,6) ELSE @Sequence END);
             INSERT dbo.SCM_DeliveryCase(CaseNo,PoNumber,VendorID,CreatedBy)
             OUTPUT INSERTED.CaseNo,INSERTED.VendorID,CONVERT(date,INSERTED.CreatedAt)
             VALUES(@CaseNo,@N,@Vendor,@Actor);
@@ -119,7 +119,7 @@ public sealed partial class ScmRepository
                 VALUES(NULL,@P,@Case,@Seq,@Item,@Name,@Unit,@Qty,@Pack,@Barcode);
                 """,c,tx);
             Add(insert,("@P", "SCM_DeliveryBox.PoID",b.PoID),("@Case", "SCM_DeliveryBox.CaseNo",number),("@Seq", "SCM_DeliveryBox.BoxSeq",index+1),("@Item", "SCM_DeliveryBox.ItemNo",p.Item),("@Name", "SCM_DeliveryBox.ItemName",p.Name),("@Unit", "SCM_DeliveryBox.UnitCode",p.Unit),
-                ("@Qty", "SCM_DeliveryBox.Quantity",b.Quantity),("@Pack", "SCM_DeliveryBox.PackingQty",p.PackingQty),("@Barcode", "SCM_DeliveryBox.IssuedBoxNumber",$"BX-{vendor}-{date:yyyyMMdd}-{first+index:D4}"));
+                ("@Qty", "SCM_DeliveryBox.Quantity",b.Quantity),("@Pack", "SCM_DeliveryBox.PackingQty",p.PackingQty),("@Barcode", "SCM_DeliveryBox.IssuedBoxNumber",$"UIT-{vendor}-{date:yyyyMMdd}-{first+index:D4}"));
             insert.ExecuteNonQuery();
         }
         return number;
@@ -255,14 +255,14 @@ public sealed partial class ScmRepository
             var inputs=boxes.Where(b=>b.Order==order).GroupBy(b=>b.PoID).Select(g=>new DeliveryInput(g.Key,g.Sum(b=>b.Quantity))).ToArray();
             var cases=selected.Where(k=>k.Boxes.Any(b=>b.Order==order)).Select(k=>k.Number).ToArray();
             if(cases.Length>0)
-                deliveries.Add(RegisterSupplierDelivery(c,tx,order,date,inputs,versions[order],Guid.NewGuid(),userId,actor,cases,caseBatch:true));
+                deliveries.Add(RegisterSupplierDelivery(c,tx,order,date,inputs,versions[order],Guid.NewGuid(),userId,actor,cases,caseBatch:true,shipImmediately:true));
             var loose=looseItems.Where(i=>i.Order==order).ToArray();
             if(loose.Length>0)
             {
                 var current=LockCaseOrders(c,tx,[order]);
                 deliveries.Add(RegisterSupplierDelivery(c,tx,order,date,
                     loose.GroupBy(i=>i.PoID).Select(g=>new DeliveryInput(g.Key,g.Sum(i=>i.Quantity))).ToArray(),
-                    current[order],Guid.NewGuid(),userId,actor,looseItems:loose));
+                    current[order],Guid.NewGuid(),userId,actor,looseItems:loose,shipImmediately:true));
             }
         }
         var note=IssueDeliveryNote(c,tx,deliveries,userId,actor);

@@ -10,6 +10,7 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <span class="pda-tbar-brand">INBOUND</span>
+        <RadzenButton class="wh08-refresh" Text="DELIVERIES" Click='@(() => Nav.NavigateTo("/wh/01"))' />
         @if (IsTestMode)
         {
             <button class="wh02-test-nav" @onclick="OpenTestPanel">SCENARIO</button>
@@ -146,7 +147,7 @@
             else
             {
                 <RadzenButton class="wh02-clear-btn" Click="@ResetForm" Disabled="@IsBusy" Text="CLEAR" />
-                @if (_document is null || IsCaseDocument)
+                @if (_document is null || IsCaseDocument || IsScheduledDelivery && _scan is not null)
                 {
                     <RadzenButton class="@($"pda-btn-pri wh02-receive-btn wh02-receive-action-btn {ReceiveButtonClass}")" Click="@Receive" Disabled="@IsBusy" Text="RECEIVE" />
                 }
@@ -337,6 +338,17 @@
     };
 
     private string _mode = "LOCAL";
+    [SupplyParameterFromQuery(Name = "delivery")] public string? ScheduledDelivery { get; set; }
+    private string? _openedScheduledDelivery;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrWhiteSpace(ScheduledDelivery) || ScheduledDelivery.Length > 50 || _openedScheduledDelivery == ScheduledDelivery) return;
+        _openedScheduledDelivery = ScheduledDelivery;
+        ResetAllForms();
+        _mode = "LOCAL";
+        _barcode = ScheduledDelivery;
+        await Scan(); // Opens the DN viewer only. Physical unit scans still control receipt.
+    }
     private string _barcode = "";
     private string _loc = "";
     private string _msg = "";
@@ -456,6 +468,9 @@
     private const string BarcodePlaceholder = "Scan Barcode";
     private bool IsPortalCase => _document?.IsPortalCase == true;
     private bool IsCaseDocument => IsPortalCase || !string.IsNullOrWhiteSpace(_document?.CaseNo);
+    private bool IsScheduledDelivery => _document is not null && !IsCaseDocument
+        && !string.IsNullOrWhiteSpace(ScheduledDelivery)
+        && string.Equals(_document.DocumentBarcode, ScheduledDelivery, StringComparison.OrdinalIgnoreCase);
     private string DocumentTitle => IsCaseDocument ? "CASE" : "DELIVERY NOTE";
     private bool LocationEntryDisabled => true;
     private bool DisableScan => IsBusy || string.IsNullOrWhiteSpace(_barcode);
@@ -466,7 +481,7 @@
         && _selectedLocation is not null
         && string.Equals(_selectedLocation.LocationId, _scan.ReceivedLocation, StringComparison.OrdinalIgnoreCase);
     private bool DisableReceive => IsBusy
-        || (_document is not null ? !DocumentReadyToReceive : _scan is null || AlreadyReceived);
+        || (_document is not null && !IsScheduledDelivery ? !DocumentReadyToReceive : _scan is null || AlreadyReceived);
     private bool DisableCancel => IsBusy || _document is not null || _scan is null || !AlreadyReceived;
     private int DisplayScannedBoxes => _document is null
         ? 0
@@ -752,7 +767,7 @@
                 return;
             }
 
-            if (_document is not null && !IsCaseDocument)
+            if (_document is not null && !IsCaseDocument && !IsScheduledDelivery)
             {
                 _document = null;
                 _documentLines = [];
@@ -781,7 +796,7 @@
             _scan = row;
             _barcode = row.Barcode;
 
-            if (_document is not null && !AlreadyReceived)
+            if (_document is not null && !IsScheduledDelivery && !AlreadyReceived)
                 _pendingDocumentBoxes.Add(row.Barcode);
 
             if (_document is null && AlreadyReceived && !string.IsNullOrWhiteSpace(row.ReceivedLocation))
@@ -792,7 +807,8 @@
                 _currentLocation = _selectedLocation;
             }
 
-            _msg = _document is not null
+            _msg = IsScheduledDelivery ? AlreadyReceived ? "This unit item is already received." : "Unit item ready. Press RECEIVE."
+                : _document is not null
                 ? DocumentReadyToReceive
                     ? "All required boxes checked. Review the list and tap Receive."
                     : AlreadyReceived
@@ -953,7 +969,7 @@
                 ShowAlert("Receive Complete", caseResult.Message, "success", ResetFormAsync);
                 return;
             }
-            if (_document is not null)
+            if (_document is not null && !IsScheduledDelivery)
             {
                 var boxes = _documentBoxes.Where(IsBoxReady).Select(b => b.BoxBarcode).ToList();
                 foreach (var boxBarcode in boxes)
@@ -1248,7 +1264,7 @@
 
     private string? ReceiveValidationMessage()
     {
-        if (_document is not null)
+        if (_document is not null && !IsScheduledDelivery)
         {
             if (!IsCaseDocument)
                 return "Delivery Note is for status only. Scan a box barcode to receive it.";

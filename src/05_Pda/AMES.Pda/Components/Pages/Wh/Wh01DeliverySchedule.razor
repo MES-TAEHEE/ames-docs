@@ -1,0 +1,80 @@
+@page "/wh/01"
+@using AMES.Contracts.Dto
+@inject WarehouseApi Api
+@inject PdaUomFormat Uom
+@inject NavigationManager Nav
+
+<div class="pda-shell wh wh08-shell">
+    <div class="pda-tbar">
+        <RadzenButton class="pda-tbar-back" Text="&lt;" Click='@(() => Nav.NavigateTo("/wh"))' />
+        <span class="pda-tbar-brand">DELIVERIES</span>
+        <RadzenButton class="wh08-refresh" Text="REFRESH" Click="Load" Disabled="@_busy" />
+    </div>
+    <div class="pda-bd wh08-body supplier-deliveries">
+        <RadzenCard class="wh08-date-filter">
+            <div class="pda-fld"><label>SHIP DATE</label></div>
+            <div class="wh08-filter-date">
+                <div class="pda-fld"><label>FROM</label><RadzenDatePicker TValue="DateTime?" @bind-Value="_from" DateFormat="yyyy-MM-dd" class="wh08-date-picker" NavigationMode="DatePickerNavigationMode.DropDown" /></div>
+                <div class="pda-fld"><label>TO</label><RadzenDatePicker TValue="DateTime?" @bind-Value="_to" DateFormat="yyyy-MM-dd" class="wh08-date-picker" NavigationMode="DatePickerNavigationMode.DropDown" /></div>
+            </div>
+            <div class="pda-fld"><label>DELIVERY NOTE / PO / PART / SUPPLIER</label><RadzenTextBox @bind-Value="_search" class="pda-input" MaxLength="120" /></div>
+            <RadzenButton class="wh08-date-apply" Text="APPLY" Click="Load" Disabled="@_busy" />
+        </RadzenCard>
+        <div class="pda-status dim">ON THE WAY / PARTIALLY RECEIVED · @_rows.Count delivery notes</div>
+        @if (_error.Length > 0) { <div class="pda-status error" role="alert">@_error</div> }
+        @foreach (var document in _rows)
+        {
+            <RadzenCard class="supplier-delivery-card">
+                <button class="supplier-delivery-head" @onclick="() => Toggle(document)">
+                    <strong>@document.Number</strong><span>@document.VendorName · @document.VendorId</span>
+                    <span>@document.DeliveryDate.ToString("yyyy-MM-dd") · @(document.Status == "PartiallyReceived" ? "PARTIALLY RECEIVED" : "ON THE WAY")</span>
+                    <span>@document.ReceivedItems / @document.UnitItems UNIT ITEMS RECEIVED</span>
+                </button>
+                @if (_selected == document.Number)
+                {
+                    @foreach (var line in document.Lines)
+                    {
+                        <div class="supplier-delivery-line">
+                            <strong>@line.PartNo</strong><span>@line.PartName</span><small>@line.OrderNumber</small>
+                            <span>RECEIVED @Qty(line.Received) / @Qty(line.Quantity) @Uom.Symbol(line.Unit)</span>
+                            @foreach (var item in line.Items)
+                            {
+                                <div class="supplier-delivery-item @(item.Received ? "received" : "")">
+                                    <strong>@(item.Received ? "✓" : "○") @item.Barcode</strong>
+                                    <span>@(item.ShippingUnitNo ?? "UNASSIGNED UNIT") · @Qty(item.Quantity) @Uom.Symbol(line.Unit)</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <RadzenButton class="wh08-date-apply" Text="OPEN INBOUND" Click="() => OpenInbound(document.Number)" />
+                }
+            </RadzenCard>
+        }
+        @if (!_busy && _rows.Count == 0 && _error.Length == 0) { <div class="pda-status dim">No shipped delivery notes remain in this date range.</div> }
+    </div>
+</div>
+
+@code {
+    List<SupplierDeliveryProgressDto> _rows = [];
+    DateTime? _from, _to;
+    string _search = "", _error = "", _selected = "";
+    bool _busy;
+    protected override async Task OnInitializedAsync()
+    {
+        try { _to = (await Api.DatabaseTimeAsync()).Date; _from = _to.Value.AddDays(-6); await Load(); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+    async Task Load()
+    {
+        if (_busy) return;
+        if (_from is null || _to is null || _from > _to || (_to.Value-_from.Value).TotalDays > 366)
+        { _error = "Select a valid delivery date range (up to 366 days)."; return; }
+        _busy = true; _error = "";
+        try { _rows = await Api.SupplierDeliveriesAsync(_from.Value,_to.Value,_search); }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+    void Toggle(SupplierDeliveryProgressDto document) => _selected = _selected == document.Number ? "" : document.Number;
+    void OpenInbound(string number) => Nav.NavigateTo("/wh/02?delivery=" + Uri.EscapeDataString(number));
+    static string Qty(decimal value) => AMES.Contracts.Formatting.UomQty.Format(value, null);
+}

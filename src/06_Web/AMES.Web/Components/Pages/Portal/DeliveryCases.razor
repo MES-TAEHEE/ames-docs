@@ -388,12 +388,12 @@
             var date=_deliveryDate;
             var note=await Task.Run(()=>Scm.CreateDeliveryNoteFromDraftCases(cases,date,_user,_actor));
             _draftCases.Clear();_activeCase=null;await Reload();_createdNote=note.Number;_message=L["Portal.Create.Ok.CreatedFmt", note.Number];
-            LogCreated("SCM_DeliveryNote",note.Number);await Changed.InvokeAsync();
+            LogCreated(note);await Changed.InvokeAsync();
         }
         catch(Exception ex){Fail(ex,L["Portal.Create.Err.Create"]);}
         finally{_busy=false;}
     }
-    void LogCreated(string table,string number)
-    {try{Audit.Created("PORTAL-002",table,number,new {Number=number});}catch(Exception ex){Logger.LogError(ex,"Creation audit failed for {Number}",number);}}
+    void LogCreated(ScmRepository.DeliveryNote note)
+    {try{Audit.Created("PORTAL-002","SCM_DeliveryNote",note.Number,new {note.Number,Status="Shipped",note.ShipDate});}catch(Exception ex){Logger.LogError(ex,"Creation audit failed for {Number}",note.Number);}}
     void Fail(Exception ex,string message){Logger.LogError(ex,"Delivery creation failed");_error=ex is InvalidOperationException or ArgumentException?ex.Message:message;}
 }

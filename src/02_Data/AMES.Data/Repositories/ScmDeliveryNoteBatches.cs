@@ -20,7 +20,7 @@ public sealed partial class ScmRepository
             FROM dbo.SCM_Delivery d
             LEFT JOIN dbo.SCM_DeliveryNoteDelivery x ON x.DeliveryID=d.DeliveryID
             LEFT JOIN dbo.SCM_DeliveryNote n ON n.NoteID=x.NoteID
-            WHERE d.Status IN ('Registered','Shipped','Received') AND {NoteVendorAccess}
+            WHERE d.Status IN ('Registered','Shipped','Received','Cancelled') AND {NoteVendorAccess}
             ORDER BY d.DeliveryID DESC;
             """, c);
         Filter(cmd, ("@U", "SCM_PortalVendorUser.UserID", userId));

@@ -13191,6 +13191,15 @@ body .pda-shell.wh-adjust-box-label .label-master-body > small {
   line-height: 1.35;
 }
 
+/* Supplier delivery schedule follows the existing WH card and date controls. */
+.supplier-deliveries { overflow-y:auto; }
+.supplier-delivery-card { margin-bottom:12px; border:1px solid var(--border, #344861); border-radius:0; }
+.supplier-delivery-head { display:grid; gap:6px; width:100%; padding:8px 0; border:0; background:transparent; color:inherit; text-align:left; }
+.supplier-delivery-head span { font-size:12px; }
+.supplier-delivery-line { display:grid; gap:5px; padding:12px 0; border-top:1px solid var(--border, #344861); }
+.supplier-delivery-item { display:grid; gap:4px; padding:8px; border:1px solid var(--border, #344861); overflow-wrap:anywhere; font-size:12px; }
+.supplier-delivery-item.received { border-left:4px solid var(--success, #38a676); }
+
 body .pda-shell.wh.wh03-shell .wh03-reprint-btn.rz-button {
   display: block;
   width: 100%;
