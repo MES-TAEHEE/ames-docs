@@ -9,9 +9,14 @@ namespace AMES.Pop.Tests;
 /// <summary>INJ/IMG-MAIN 팔레트 칩 문구·색과 확정 결과 → 안내 키 매핑.</summary>
 public class PalletChipTests
 {
-    static PalletStockRepository.PalletStatus Status(int loaded, int? palletQty)
-        => new("EOS-PLT-2610-0002", new PalletLoadRules.PalletState(true, true, false, loaded > 0 ? "ITEM-A" : null, loaded), palletQty,
-               PalletLoadRules.IsFull(loaded, palletQty) ? PalletLoadOutcome.Full : PalletLoadOutcome.Ok);
+    static PalletStockRepository.PalletStatus Status(int loaded, int? palletQty, (string Part, int Count)? sibling = null)
+    {
+        var parts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        if (loaded > 0) parts["ITEM-A"] = loaded;
+        if (sibling is { } s) parts[s.Part] = s.Count;
+        return new("EOS-PLT-2610-0002", new PalletLoadRules.PalletState(true, true, false, parts), "ITEM-A", palletQty,
+                   PalletLoadRules.IsFull(loaded, palletQty) ? PalletLoadOutcome.Full : PalletLoadOutcome.Ok);
+    }
 
     [Fact]
     public void No_pallet_shows_a_red_dash()
@@ -28,6 +33,14 @@ public class PalletChipTests
     [Fact]
     public void Unlimited_pallet_shows_a_dash_for_capacity()
         => Assert.Equal(("EOS-PLT-2610-0002 · 5 / —", "ok"), PalletChip.Of(Status(5, null)));
+
+    [Fact]
+    public void Sibling_counts_are_listed_per_part_with_the_selected_part_first()
+        => Assert.Equal(("EOS-PLT-2610-0002 · ITEM-A 12 · ITEM-B 11 / 24", "ok"), PalletChip.Of(Status(12, 24, ("ITEM-B", 11))));
+
+    [Fact]
+    public void Full_selected_part_turns_red_even_if_the_sibling_has_room()
+        => Assert.Equal("bad", PalletChip.Of(Status(24, 24, ("ITEM-B", 3))).Css);
 
     [Theory]
     [InlineData(InjConfirmOutcome.PalletNotFound,    "PalletNotFound")]

@@ -9,7 +9,8 @@ namespace AMES.Data.Repositories;
 /// WH_Inventory 의 팔레트 묶음 규칙(SCM 케이스·PDA 출고와 같음)을 따른다 — 머리 행(LotNo = 팔레트 번호, UnitType PALLET, Qty 0)
 /// 아래 제품 행(ParentLotNo = PalletNo = 팔레트 번호, UnitType PART, Qty 1, LocationNo NULL = 미배정 — PDA FG 입고가 위치를 준다).
 /// 적재 판정은 확정 트랜잭션 안에서 MD_Pallet 행을 잠그고 하므로 두 터미널이 같은 팔레트에 동시에 실어도 적입수량을 넘지 않는다.
-/// 실린 수 = 그 팔레트 자식 행 중 Qty &gt; 0 인 것 — 출고(OUT)되면 0 이 되고 회수 뒤 다시 쓸 수 있다.
+/// 실린 수 = 그 팔레트 자식 행 중 Qty &gt; 0 인 것을 품번별로 센 것 — 출고(OUT)되면 0 이 되고 회수 뒤 다시 쓸 수 있다.
+/// 형제 품번(같은 활성 금형·색상의 MD_MoldItem 품번)은 함께 실릴 수 있고 적입수량은 품번마다 따로 센다(<see cref="PalletLoadRules"/>).
 /// </summary>
 public sealed class PalletStockRepository
 {
@@ -19,11 +20,12 @@ public sealed class PalletStockRepository
     readonly AmesConnectionFactory _factory;
     public PalletStockRepository(AmesConnectionFactory factory) => _factory = factory;
 
-    /// <param name="PalletQty">품번의 적입수량(MD_Item.PalletQty) — 품번을 안 넘겼거나 없으면 null.</param>
-    public sealed record PalletStatus(string PalletNo, PalletLoadRules.PalletState State, int? PalletQty, PalletLoadOutcome Outcome)
+    /// <param name="ItemNo">판정 기준 품번(화면이 고른 품번) — 적입수량·칩 문구가 이 품번 기준. 없으면 null.</param>
+    /// <param name="PalletQty">그 품번의 적입수량(MD_Item.PalletQty) — 품번을 안 넘겼거나 없으면 null.</param>
+    public sealed record PalletStatus(string PalletNo, PalletLoadRules.PalletState State, string? ItemNo, int? PalletQty, PalletLoadOutcome Outcome)
     {
-        public bool IsFull => PalletLoadRules.IsFull(State.LoadedCount, PalletQty);
-        public string CapacityText => PalletLoadRules.CapacityText(State.LoadedCount, PalletQty);
+        public bool IsFull => PalletLoadRules.IsFull(ItemNo is null ? State.TotalCount : State.CountOf(ItemNo), PalletQty);
+        public string CapacityText => PalletLoadRules.CapacityText(State, ItemNo ?? string.Empty, PalletQty);
     }
 
     /// <summary>화면 칩·팔레트 스캔용 조회(잠금 없음). itemNo 가 있으면 그 품번 기준 적재 가능 여부까지 낸다.</summary>
@@ -32,11 +34,18 @@ public sealed class PalletStockRepository
         var no = PalletLoadRules.NormalizePalletNo(palletNo) ?? string.Empty;
         using var conn = _factory.OpenConnection();
         var state = ReadState(conn, null, no);
-        var qty   = string.IsNullOrEmpty(itemNo) ? null : ReadPalletQty(conn, null, itemNo);
-        var outcome = string.IsNullOrEmpty(itemNo)
-            ? PalletLoadRules.Check(state, state.LoadedPartNo ?? string.Empty, qty)
-            : PalletLoadRules.Check(state, itemNo, qty);
-        return new PalletStatus(no, state, qty, outcome);
+        if (string.IsNullOrEmpty(itemNo))
+        {
+            // 고른 품번이 없으면 실린 첫 품번 기준으로 보여 준다(칩 전용 — 적재 판정은 LOT 품번으로 다시 한다)
+            var first = state.Loaded.Where(kv => kv.Value > 0).OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+                                    .Select(kv => kv.Key).FirstOrDefault();
+            var q0 = first is null ? null : ReadPalletQty(conn, null, first);
+            var o0 = PalletLoadRules.Check(state, first ?? string.Empty, q0, first is null ? EmptySet : ReadSiblings(conn, null, first));
+            return new PalletStatus(no, state, first, q0, o0);
+        }
+        var qty = ReadPalletQty(conn, null, itemNo);
+        var outcome = PalletLoadRules.Check(state, itemNo, qty, ReadSiblings(conn, null, itemNo));
+        return new PalletStatus(no, state, itemNo, qty, outcome);
     }
 
     /// <summary>
@@ -48,7 +57,7 @@ public sealed class PalletStockRepository
     {
         var no = PalletLoadRules.NormalizePalletNo(palletNo) ?? string.Empty;
         var state   = ReadState(conn, tx, no);
-        var outcome = PalletLoadRules.Check(state, itemNo, ReadPalletQty(conn, tx, itemNo));
+        var outcome = PalletLoadRules.Check(state, itemNo, ReadPalletQty(conn, tx, itemNo), ReadSiblings(conn, tx, itemNo));
         if (outcome != PalletLoadOutcome.Ok) return outcome;
 
         using (var cmd = new SqlCommand("""
@@ -92,23 +101,33 @@ public sealed class PalletStockRepository
                  $"{coreLotCode} {coreItemNo} → IMG", operatorId, operatorId);
     }
 
-    /// <summary>팔레트 상태 — tx 가 있으면 MD_Pallet 행을 UPDLOCK·HOLDLOCK 으로 잡아 동시 적재를 줄 세운다.</summary>
+    static readonly IReadOnlySet<string> EmptySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>팔레트 상태 — tx 가 있으면 MD_Pallet 행을 UPDLOCK·HOLDLOCK 으로 잡아 동시 적재를 줄 세운다. 실린 수는 품번별.</summary>
     static PalletLoadRules.PalletState ReadState(SqlConnection conn, SqlTransaction? tx, string palletNo)
     {
         var hint = tx is null ? "" : "WITH (UPDLOCK, HOLDLOCK)";
-        using var cmd = new SqlCommand($"""
-            SELECT p.ActiveFlag, p.ShippedFlag,
-                   (SELECT COUNT(*) FROM dbo.WH_Inventory c WHERE c.ParentLotNo = p.PalletNo AND c.Qty > 0)        AS Loaded,
-                   (SELECT TOP 1 c.PartNo FROM dbo.WH_Inventory c WHERE c.ParentLotNo = p.PalletNo AND c.Qty > 0
-                    ORDER BY c.ReceivedAt DESC)                                                                  AS LoadedPart
-            FROM   dbo.MD_Pallet p {hint}
-            WHERE  p.PalletNo = @P;
-            """, conn, tx);
-        ColumnParams.AddFilter(cmd, "@P", "MD_Pallet.PalletNo", palletNo);
-        using var r = cmd.ExecuteReader();
-        if (!r.Read()) return PalletLoadRules.PalletState.Missing;
-        return new PalletLoadRules.PalletState(true, (bool)r["ActiveFlag"], (bool)r["ShippedFlag"],
-                                               r["LoadedPart"] as string, Convert.ToInt32(r["Loaded"]));
+        bool active, shipped;
+        using (var cmd = new SqlCommand($"SELECT p.ActiveFlag, p.ShippedFlag FROM dbo.MD_Pallet p {hint} WHERE p.PalletNo = @P;", conn, tx))
+        {
+            ColumnParams.AddFilter(cmd, "@P", "MD_Pallet.PalletNo", palletNo);
+            using var r = cmd.ExecuteReader();
+            if (!r.Read()) return PalletLoadRules.PalletState.Missing;
+            active = (bool)r["ActiveFlag"]; shipped = (bool)r["ShippedFlag"];
+        }
+        var loaded = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        using (var cmd = new SqlCommand("""
+            SELECT ISNULL(c.PartNo, '') AS PartNo, COUNT(*) AS Loaded
+            FROM   dbo.WH_Inventory c
+            WHERE  c.ParentLotNo = @P AND c.Qty > 0
+            GROUP  BY c.PartNo;
+            """, conn, tx))
+        {
+            ColumnParams.AddFilter(cmd, "@P", "WH_Inventory.ParentLotNo", palletNo);
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) loaded[(string)r["PartNo"]] = Convert.ToInt32(r["Loaded"]);
+        }
+        return new PalletLoadRules.PalletState(true, active, shipped, loaded);
     }
 
     static int? ReadPalletQty(SqlConnection conn, SqlTransaction? tx, string itemNo)
@@ -116,6 +135,24 @@ public sealed class PalletStockRepository
         using var cmd = new SqlCommand("SELECT PalletQty FROM dbo.MD_Item WHERE ItemNo = @I;", conn, tx);
         ColumnParams.AddFilter(cmd, "@I", "MD_Item.ItemNo", itemNo);
         return cmd.ExecuteScalar() as int?;
+    }
+
+    /// <summary>itemNo 와 같은 활성 금형·색상에 묶인 품번(형제) — APS 가 형제를 묶는 기준(금형 × 색상)과 같다. itemNo 자신도 들어 있다.</summary>
+    static IReadOnlySet<string> ReadSiblings(SqlConnection conn, SqlTransaction? tx, string itemNo)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using var cmd = new SqlCommand("""
+            SELECT DISTINCT s.ItemNo
+            FROM   dbo.MD_MoldItem m
+            JOIN   dbo.MD_MoldItem s ON s.MoldID = m.MoldID
+                                    AND ISNULL(s.Color, '') = ISNULL(m.Color, '')
+                                    AND s.ActiveFlag = 1
+            WHERE  m.ItemNo = @I AND m.ActiveFlag = 1;
+            """, conn, tx);
+        ColumnParams.AddFilter(cmd, "@I", "MD_MoldItem.ItemNo", itemNo);
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) set.Add((string)r["ItemNo"]);
+        return set;
     }
 
     static void WriteTxn(SqlConnection conn, SqlTransaction tx, string type, string sourceType, int sourceId, string lotNo,
