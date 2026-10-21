@@ -49,8 +49,9 @@ public sealed class MenuCatalog
     {
         new("scm", "scm/purchase-orders", "SCM-001", "구매발주 관리", "Purchase Orders"),
         new("scm", "scm/order-progress", "SCM-002", "발주 진행 현황", "Order Progress"),
-        new("scm", "scm/purchase-items", "SCM-003", "발주품목 관리", "Purchase Items"),
-        new("scm", "scm/portal-users", "SCM-004", "외부 사용자 관리", "Portal Users"),
+        new("scm", "scm/delivery-progress", "SCM-003", "납품 진행 현황", "Delivery Progress"),
+        new("scm", "scm/purchase-items", "SCM-004", "발주품목 관리", "Purchase Items"),
+        new("scm", "scm/portal-users", "SCM-005", "외부 사용자 관리", "Portal Users"),
         new("portal", "portal/orders", "PORTAL-001", "발주 조회·수주 확인", "Orders & Confirmation"),
         new("portal", "portal/due-orders", "PORTAL-002", "납품 생성", "Delivery Creation"),
         new("portal", "portal/deliveries", "PORTAL-003", "납품서 관리", "Delivery Management"),
@@ -273,6 +274,7 @@ public sealed class MenuCatalog
     {
         ["scm/purchase-orders"] = "Pedidos de compra",
         ["scm/order-progress"] = "Seguimiento de pedidos",
+        ["scm/delivery-progress"] = "Seguimiento de entregas",
         ["scm/purchase-items"] = "Artículos de compra",
         ["scm/portal-users"] = "Usuarios del portal",
         ["portal/orders"] = "Pedidos y confirmación",

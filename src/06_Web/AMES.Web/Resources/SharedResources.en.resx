@@ -11680,6 +11680,14 @@
   <data name="Excel.Err.Packaging" xml:space="preserve">
     <value>BOX and PALLET are not quantity units</value>
   </data>
+  <data name="SCM.DeliveryProgress.Title" xml:space="preserve"><value>Delivery Progress</value></data>
+  <data name="SCM.DeliveryProgress.OnTheWay" xml:space="preserve"><value>On the Way</value></data>
+  <data name="SCM.DeliveryProgress.Partial" xml:space="preserve"><value>Partially Received</value></data>
+  <data name="SCM.DeliveryProgress.Overdue" xml:space="preserve"><value>Overdue Receipts</value></data>
+  <data name="SCM.DeliveryProgress.Search" xml:space="preserve"><value>Delivery note / PO / part / supplier</value></data>
+  <data name="SCM.DeliveryProgress.ShipDate" xml:space="preserve"><value>Ship Date</value></data>
+  <data name="SCM.DeliveryProgress.NotReceived" xml:space="preserve"><value>Not Received</value></data>
+  <data name="SCM.DeliveryProgress.LoadError" xml:space="preserve"><value>Unable to load delivery progress. Please retry.</value></data>
   <data name="SCM.Preview.Cancellation.Cancel" xml:space="preserve"><value>Cancel Delivery Note</value></data>
   <data name="SCM.Preview.Cancellation.Confirm" xml:space="preserve"><value>Cancel this delivery note?</value></data>
   <data name="SCM.Preview.Cancellation.Policy" xml:space="preserve"><value>Only delivery notes without receiving history can be cancelled. Cancel the complete note before correcting quantities; all old labels become invalid.</value></data>

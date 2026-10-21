@@ -17,12 +17,12 @@
 @inject IStringLocalizer<SharedResources> L
 @inject AuditLogger Audit
 
-@*  SCM-004 외부 사용자 관리 — 외부 포탈(/portal) 로그인 계정(SCM_PortalVendorUser). AspNet 계정과 무관하다.
+@*  SCM-005 외부 사용자 관리 — 외부 포탈(/portal) 로그인 계정(SCM_PortalVendorUser). AspNet 계정과 무관하다.
     이메일이 로그인 ID 이고 계정 하나가 협력업체 하나에 묶여, 포탈 화면은 그 업체의 발주만 보인다.
     로그인 5회 실패로 잠긴 계정은 여기서 해제한다. 비밀번호 규칙은 내부 사용자와 같은 Identity 검증기를 쓴다. *@
 
-<PageTitle>SCM-004 @L["SCM.PortalUsers.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="SCM-004" TitleKey="SCM.PortalUsers.Title" />
+<PageTitle>SCM-005 @L["SCM.PortalUsers.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="SCM-005" TitleKey="SCM.PortalUsers.Title" />
 
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
@@ -355,7 +355,7 @@
             var name = string.IsNullOrWhiteSpace(_f.UserName) ? null : _f.UserName.Trim();
             var vendor=_f.VendorID;var active=_f.ActiveFlag;var password=_f.Password;
             await Task.Run(()=>Scm.InsertPortalUser(email, vendor, name, PortalAuth.HashPassword(password), active, _actor));
-            Audit.Created("SCM-004", "SCM_PortalVendorUser", email, new { UserID = email, _f.VendorID, UserName = name, _f.ActiveFlag });
+            Audit.Created("SCM-005", "SCM_PortalVendorUser", email, new { UserID = email, _f.VendorID, UserName = name, _f.ActiveFlag });
             CloseModalAfterSave(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SCM.PortalUsers.Ok.Created"].Value, email), false);
         }
@@ -381,10 +381,10 @@
             var name = string.IsNullOrWhiteSpace(_f.UserName) ? null : _f.UserName.Trim();
             var selected=_sel;var vendor=_f.VendorID;var active=_f.ActiveFlag;
             await Task.Run(()=>Scm.UpdatePortalUser(selected.UserID, vendor, name, active, hash, _actor, selected));
-            Audit.Updated("SCM-004", "SCM_PortalVendorUser", _sel.UserID,
+            Audit.Updated("SCM-005", "SCM_PortalVendorUser", _sel.UserID,
                 new { _sel.UserID, _sel.VendorID, _sel.UserName, _sel.ActiveFlag },
                 new { _sel.UserID, _f.VendorID, UserName = name, _f.ActiveFlag });
-            if (hash is not null) Audit.Log("SCM-004", "PWD_RESET", "SCM_PortalVendorUser", _sel.UserID, null, null);
+            if (hash is not null) Audit.Log("SCM-005", "PWD_RESET", "SCM_PortalVendorUser", _sel.UserID, null, null);
             var id = _sel.UserID;
             CloseModalAfterSave(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SCM.PortalUsers.Ok.Updated"].Value, id), false);
@@ -401,7 +401,7 @@
         {
             var selected=_sel;
             await Task.Run(()=>Scm.UnlockPortalUser(selected.UserID, _actor, selected));
-            Audit.Log("SCM-004", "UNLOCK", "SCM_PortalVendorUser", _sel.UserID,
+            Audit.Log("SCM-005", "UNLOCK", "SCM_PortalVendorUser", _sel.UserID,
                 new { _sel.FailedLoginCount, LockedFlag = true }, new { FailedLoginCount = 0, LockedFlag = false });
             var id = _sel.UserID;
             CloseModalAfterSave(); await ReloadRestorePage();
@@ -419,7 +419,7 @@
         {
             var selected=_sel;
             await Task.Run(()=>Scm.DeletePortalUser(selected.UserID, selected));
-            Audit.Deleted("SCM-004", "SCM_PortalVendorUser", _sel.UserID, new { _sel.UserID, _sel.VendorID, _sel.UserName, _sel.ActiveFlag });
+            Audit.Deleted("SCM-005", "SCM_PortalVendorUser", _sel.UserID, new { _sel.UserID, _sel.VendorID, _sel.UserName, _sel.ActiveFlag });
             var id = _sel.UserID;
             CloseModalAfterSave(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SCM.PortalUsers.Ok.Deleted"].Value, id), false);

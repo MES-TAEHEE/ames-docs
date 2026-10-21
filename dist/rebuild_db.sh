@@ -148,6 +148,7 @@ FILES=(
   migrate_mnt_oeelog_bigint.sql      # MNT_OEELog.OEELogID int → bigint(10-19)
   migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
   migrate_restore_sheet_uom.sql      # SH remains an individual quantity unit
+  migrate_scm_delivery_progress_screen.sql # SCM-003 delivery receipts; retain grants on renumbered SCM-004/005
   # Fresh schema includes the actual-shipment customer-return contract.
   migrate_wh_fg_scm_column_lengths.sql # WH/FG/SCM keys and 20-byte actor codes
   migrate_fg_location_type.sql # FG-area locations use the explicit FG location type

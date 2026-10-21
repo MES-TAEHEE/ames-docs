@@ -11680,6 +11680,14 @@
   <data name="Excel.Err.Packaging" xml:space="preserve">
     <value>BOX y PALLET no son unidades de cantidad</value>
   </data>
+  <data name="SCM.DeliveryProgress.Title" xml:space="preserve"><value>Seguimiento de entregas</value></data>
+  <data name="SCM.DeliveryProgress.OnTheWay" xml:space="preserve"><value>En tránsito</value></data>
+  <data name="SCM.DeliveryProgress.Partial" xml:space="preserve"><value>Recepción parcial</value></data>
+  <data name="SCM.DeliveryProgress.Overdue" xml:space="preserve"><value>Recepciones vencidas</value></data>
+  <data name="SCM.DeliveryProgress.Search" xml:space="preserve"><value>Albarán / pedido / pieza / proveedor</value></data>
+  <data name="SCM.DeliveryProgress.ShipDate" xml:space="preserve"><value>Fecha de envío</value></data>
+  <data name="SCM.DeliveryProgress.NotReceived" xml:space="preserve"><value>No recibido</value></data>
+  <data name="SCM.DeliveryProgress.LoadError" xml:space="preserve"><value>No se pudo cargar el seguimiento de entregas. Vuelva a intentarlo.</value></data>
   <data name="SCM.Preview.Cancellation.Cancel" xml:space="preserve"><value>Cancelar nota de entrega</value></data>
   <data name="SCM.Preview.Cancellation.Confirm" xml:space="preserve"><value>¿Desea cancelar esta nota de entrega?</value></data>
   <data name="SCM.Preview.Cancellation.Policy" xml:space="preserve"><value>Solo pueden cancelarse notas sin historial de recepción. Cancele la nota completa antes de corregir cantidades; todas las etiquetas anteriores quedarán invalidadas.</value></data>
