@@ -4,8 +4,8 @@
 
 > **재검토 원칙**(10-16 사용자 확인): 이 문서의 지적·제안 자체가 구현 원칙이나 수정 지시는 아닙니다. 현재 호출 경로·합의된 업무 방향과 대조해 실제 결함인지 먼저 확인합니다. 지적이 틀렸거나 방향이 바뀌었다면 코드·DB를 억지로 바꾸지 않고, 이 문서에 해당하지 않는 이유·근거·현재 방향을 정정합니다. 운영 결함, 배포·검증 대기, 정책 결정, 선택적 정리를 구분하며 과거 DB 점검값을 현재 값으로 단정하지 않습니다.
 
-- **작성**: 2026-10-14, Claude Code(이승욱 세션). 10-15 원격 병합(안영훈 SCM·포탈 10건) 뒤, 10-15 06시 두 번째 원격 병합(안영훈 WH·FG·SCM·Api 7건) 뒤, 10-16 MNT 작업(설비 상태 자동 판정·고장 라인 정지·PM 점검 완료 규칙·PM 일정 규칙)과 화면 저장 검증 뒤, 10-16 23시 그날 들어온 커밋(심재현 백플러시·POP DbClock·PP-APS·LOT 라벨, 안영훈 PDA 직접 SQL 전환·구 프로시저 정의 정리, 이승욱 SAPTransFlag·포탈/SCM 화면 표준화·다국어화)과 항목을 대조해 다시 정리했습니다. 해결된 항목은 지우고 남은 것만 둡니다. **10-17 전 항목을 현재 소스(ba968b99 — MD-034 팔레트·MD-035 사출 조건 항목, 심재현 설비 재시드 병합 뒤)와 다시 대조**해 해결된 1건(이승욱 테이블 5 `MD_InjCondItem` — MD-035 화면)을 지우고, 줄 번호·경로·행 수를 고치고, 새로 찾은 3건을 더했습니다. 10-16 이후 POP·PP·PNT·QC 쪽 코드는 바뀌지 않아 심재현 항목은 모두 그대로 유효합니다.
-- **기준 소스**: `dev` 브랜치 10-17(ba968b99). 줄 번호는 전 절을 이 시점으로 고쳤습니다. 그 뒤 10-17 오후 dd8df481(심재현 `MD_MoldColor` 폐지 병합 — 심재현 항목에 영향 없음, 이승욱 테이블 4 줄 번호만 갱신)과 대조했습니다. **10-20 이승욱 세션**은 이승욱 절(보류 4 추가)·공통 「SAP 마스터 전송」·검증 기준선만 고쳤고, 다른 담당 절은 그대로 두었습니다.
+- **작성**: 2026-10-14, Claude Code(이승욱 세션). 그 뒤 원격 병합·작업 때마다 해결된 항목을 지우고 남은 것만 둡니다(지난 판은 커밋 이력). **10-22 재정리**: 기준 소스를 `566893cd` 로 올리고 10-17(ba968b99) 이후 바뀐 파일을 가리키는 줄 번호를 다시 맞췄습니다(AppConfig·LineStock·스키마 파일·PP→POP 초기화 스크립트·MasterDataRepository — 나머지 참조 파일은 그 뒤 바뀌지 않음). 해결된 항목(안영훈 2-5 3 — 두 DB·스키마의 `FG_CustomerReturn.PartName` 위치 차이)을 지우고, 이승욱 10-21~22 작업(SAPFlag·로케이션 2단계)에 맞춰 안영훈 2-1 8·공통 SAP 항목·검증 기준선을 고쳤습니다. 다른 담당자 항목의 판정·문장은 바꾸지 않았습니다.
+- **기준 소스**: `dev` 10-22(`566893cd` — 김현진 Api Scalar·POP 크기·접속 DB 로그, 이승욱 SAPFlag·로케이션 2단계 포함).
 - **점검 방법**
   - 5영역(POP·InjAgent·QC·PNT / PP·APS·MRP / Api·WH·FG·SCM·Portal / SYS·MD·MNT·RPT / DB 스크립트·스키마·공통 규칙)을 소스로 다시 확인했습니다.
   - 테이블 175개의 읽기·쓰기 사용처를 전수 조사했습니다. 테스트 코드는 빼고, 실제로 호출되는 DB 프로시저는 포함했습니다.
@@ -29,7 +29,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 심재현 | 23                   | 7   | 7묶음 | 38  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 32) · 안돈 보전 호출 작업지시(요청 22) |
-| 안영훈 | 7(배포·검증·승인 대기·알림) | 4 | 3 | 0 | 직접 SQL·LOT 원입고량 취소·빈 팔렛 회수·출하 화면의 서버 배포 및 실제 쓰기 검증 대기 · 비결함·선택적 정리 4건은 2-5 참조 |
+| 안영훈 | 8(배포·검증·승인 대기·요청) | 4 | 3 | 0 | 직접 SQL·LOT 원입고량 취소·빈 팔렛 회수·출하 화면의 서버 배포 및 실제 쓰기 검증 대기 · **상위 로케이션을 재고 위치에서 막기·지도 제외(2-1 8 — 개발 DB 에 임시 상위 3건 적용됨)** · 비결함·선택적 정리 3건은 2-5 참조 |
 | 이승욱 | 0                    | 4   | 4   | 0   | PP-OEE 가동률이 시연 데이터(`PP_LineStateLog` 기록 — 심재현과 진행 예정) · 품목 불출율·MRP 여유율 반영 방식 결정(보류 4)                                                                       |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
@@ -40,7 +40,7 @@
 ### 1-1. 미해결 (23)
 
 1. **[상] POP·InjAgent 배포 설정이 로컬 DB 를 가리킴**
-   - 위치: Pop `appsettings.Production.json:3`, `Common/AppConfig.cs:48-49·82-86` / InjAgent `appsettings.json:3`, `Core/AgentConfig.cs:56-57`, LOT 생성 실패 재시도 없음 `Core/MachinePoller.cs:144-154`
+   - 위치: Pop `appsettings.Production.json:3`, `Common/AppConfig.cs:51-52·87-91` / InjAgent `appsettings.json:3`, `Core/AgentConfig.cs:56-57`, LOT 생성 실패 재시도 없음 `Core/MachinePoller.cs:144-154`
    - 내용
      - POP 배포 설정이 비상용 `localhost\MSSQLSERVER01` 이고, 기본 설정(개발서버)을 Production 파일이 덮어씁니다. 그래서 현장 터미널이 비상용 DB 에 쓰거나 접속에 실패합니다.
      - InjAgent 는 `sa@localhost` 에 Connect Timeout 이 없고 재시도도 없어, 샷 LOT 이 유실될 수 있습니다.
@@ -95,7 +95,7 @@
     - 위치: `Login.razor:465·285-286·300`
     - 내용: DB 장애 때 예외를 다시 던지고, 배지 등록·초기 목록 조회가 try 밖이라 로그인 화면 자체가 깨집니다.
 13. **[하] 로그·라벨 폴더가 실행 위치 기준**
-    - 위치: `AppConfig.cs:57`, `PopLog.cs:15`, `Common/BackflushNotice.cs:13`(10-16 백플러시 로그도 같은 `PopLog`)
+    - 위치: `AppConfig.cs:62`, `PopLog.cs:15`, `Common/BackflushNotice.cs:13`(10-16 백플러시 로그도 같은 `PopLog`)
     - 내용: 바로가기의 작업 폴더에 따라 파일 위치가 달라집니다.
     - 제안: 실행 파일 폴더 기준으로 바꿉니다.
 14. **[하] 라벨 선점 순서·출력 후 카운트 실패 시 중복**
@@ -271,21 +271,21 @@
     - 내용: 로봇 NG 샷처럼 RAW/NG_BLOCKED → DEFECT → SCRAPPED 로 끝난 LOT 은 레진을 실제로 썼는데 차감 기록이 없어 라인 재고가 폐기율만큼 부풉니다. CLAUDE.md 는 "되돌리지 않는다" 만 적고 이 경우는 정하지 않았습니다.
     - 제안: 폐기 때 차감할지 사용자 결정을 받습니다.
 34. **[하] 백플러시 멱등 인덱스 정의가 스키마 파일과 두 DB 에서 다름**
-    - 위치: `dist/AMES_Schema.sql:9242-9246`(`IX_WH_InventoryTransaction_Source` — SourceType·SourceID 두 열)·`:11454-11456`(같은 이름의 넓은 정의 — 건너뜀), `migrate_wh_inventory_backflush_placeholder.sql:32-34`(두 열)
+    - 위치: `dist/AMES_Schema.sql:9284-9288`(`IX_WH_InventoryTransaction_Source` — SourceType·SourceID 두 열)·`:11492-11493`(같은 이름의 넓은 정의 — 건너뜀), `migrate_wh_inventory_backflush_placeholder.sql:32-34`(두 열)
     - 내용: 개발·로컬 DB 는 SourceType·SourceID·TransactionType + 포함 열 5개입니다. 스키마로 새로 만든 DB 는 구조 서명이 개발 DB 와 어긋납니다.
     - 제안: 마이그레이션이 넓은 정의로 만들게 바꾸고 스키마 파일을 다시 뜹니다.
 35. **[하] CLAUDE.md 백플러시 문단의 MRP 설명이 코드와 다름**
     - 위치: CLAUDE.md "MRP 가용재고 … 음수 자리표시까지 더한 순수량"(백플러시 문단), 실제 `PpRepository.cs:1014-1020`
-    - 내용: MRP 재고는 `Qty>0 AND AreaCode='MAT_AREA'` 라 라인 위치(I1·W1 등)와 음수 자리표시가 빠집니다. 라인이 불출보다 더 쓴 양은 MRP 에 보이지 않습니다(WH-AUTO 라인 보충 `WarehouseRepository.LineStock.cs:130` 은 음수를 포함해 맞음).
+    - 내용: MRP 재고는 `Qty>0 AND AreaCode='MAT_AREA'` 라 라인 위치(I1·W1 등)와 음수 자리표시가 빠집니다. 라인이 불출보다 더 쓴 양은 MRP 에 보이지 않습니다(WH-AUTO 라인 보충 `WarehouseRepository.LineStock.cs:147` 은 음수를 포함해 맞음).
     - 제안: 문구를 코드에 맞추고, MRP 반영이 필요한지 정합니다.
 36. **[하] Pop 개발 설정에 개인 장치값이 커밋됨**(10-16 e528cbca)
     - 위치: `src/03_Pop/AMES.Pop/appsettings.Development.json:9-19`(Printer `Mode: Tcp`·`192.168.10.20:9100`, Scanner `COM5`)
     - 내용: 어느 PC 에서든 `dotnet run` 하면 실제 네트워크 프린터로 ZPL 을 보내고 COM5 를 엽니다. CLAUDE.md 의 "포트 리포지토리 기본은 빈 값" 과도 어긋납니다(비밀번호는 기본 파일에 이미 있던 값이라 새 노출은 아님).
     - 제안: 저장소에는 File 모드·빈 포트를 두고 장치값은 커밋하지 않는 로컬 파일이나 환경변수로 줍니다.
 37. **[하] PP→POP 시험 초기화 스크립트가 다른 데이터와 어긋나게 지움**(개발 전용, 10-16 943cdf24)
-    - 위치: `tools/test_pp_pop/test_pp_pop_reset_dev.sql:346`
+    - 위치: `tools/test_pp_pop/test_pp_pop_reset_dev.sql:374`
     - 내용: 10-17 기준 끊긴 `DowntimeID` 는 0건이라 실제 피해는 아직 없습니다. `PP_LineDowntimeLog` 를 전부 지워 고장(라인 정지)의 `DowntimeID` 가 없는 행을 가리키고, LOT 은 지우면서 BACKFLUSH 거래·`BF-` 자리표시 재고는 남기며, 공용 개발서버의 다른 개발자 PP 데이터도 통째로 지웁니다.
-      안돈 고장(`MNT_FailureRegister` Source='ANDON')·조치 이력은 지우면서 `MNT_WorkOrder` 는 다루지 않아, 10-16 부터 MNT-002 「작업지시 발행」으로 만든 작업지시가 지워진 고장번호(`SourceRefID`)를 가리킨 채 남습니다(`:348-351`).
+      안돈 고장(`MNT_FailureRegister` Source='ANDON')·조치 이력은 지우면서 `MNT_WorkOrder` 는 다루지 않아, 10-16 부터 MNT-002 「작업지시 발행」으로 만든 작업지시가 지워진 고장번호(`SourceRefID`)를 가리킨 채 남습니다(`:376-379`).
     - 제안: 비가동은 안돈 행만 지우거나 고장의 `DowntimeID` 도 비우고, 그 고장의 작업지시도 같이 지우며, 백플러시 거래·자리표시를 같이 되돌리고, 실행 전 서버 확인 가드를 둡니다.
 38. **[하] PNT 라벨 부착이 넘겨받은 사번을 쓰지 않음**(10-17 재대조)
     - 위치: `PntRepository.cs:382-394`(ApplyLabel), 호출 `Pnt07LabelApply.razor:151`
@@ -332,14 +332,13 @@
    - 사용자 결정: 제품 반품과 빈 팔렛 회수는 별개입니다. PDA `FG → Empty Pallet Return`에서 물리 팔렛 바코드를 스캔·확인하고, `MD_Pallet.ShippedFlag=0`·DB 시각 `ReturnedAt`을 기록합니다. 부품 재고·고객 반품은 변경하지 않습니다.
    - 미출하·비활성·중복 회수, 스캔 이후 출하 시각 변경, 팔렛에 연결된 양수 재고가 남은 경우는 차단합니다. 따로 반품돼 연결이 해제된 부품의 과거 PalletNo만으로는 빈 팔렛 회수를 막지 않습니다. 회수 상태와 SYS 감사 기록은 같은 트랜잭션으로 저장하며 다음 출하 때 ReturnedAt은 비웁니다.
    - 기존 MD_Pallet 컬럼을 사용합니다. 신규 테이블·DB 재구축·실제 회수 처리는 실행하지 않았습니다. API(Contracts/Data 포함) → PDA 배포 후 실물 빈 팔렛과 중복·내용물 잔존 사례를 확인해야 합니다.
-8. **[요청] 로케이션 2단계(1차·상세) — WH·PDA 반영**(10-22 이승욱, 사용자 결정 — 사용자가 따로 협의)
-   - `MD_Location` 에 `LocationLevel`(1 = 1차 — SAP 저장위치 또는 MES 등록, **재고 없음** · 2 = 상세 — 재고 위치, 기본값)과 `ParentLocationID`(상세의 상위 1차, NULL = 미지정)를 더했습니다(`dist/migrate_md_location_parent.sql`, 로컬 DB 만 적용, `rebuild_db.sh` 는 `migrate_line_locations_eos.sql` 다음). 기존 행은 모두 상세·상위 미지정이라 지금 WH·PDA 동작은 바뀌지 않습니다. 1차 재고는 나중에 상세 재고를 합산해 처리합니다(사용자).
-   - 요청 ① **1차(`LocationLevel = 1`)는 재고 위치가 될 수 없게** — PDA·Web 입고·적재·이동·조정·라인 보충·반품이 1차 로케이션 바코드를 받으면 거부. MD-018 은 재고가 있는 로케이션을 상위로 지정하는 것만 막습니다(52075).
-   - 요청 ② WH 로케이션 지도(`Components/Shared/LocationMapDatabase.cs` 가 `ListLocations` 전체를 칸으로 그림)·WH 로케이션 목록 Api 에서 1차 행 제외 — 1차는 위치 칸이 없어 지도에 `-` 셀로 보입니다. 임시 1차 시드(`dist/seed_md_location_temp_primary.sql` — `TMP-FG_AREA`·`TMP-LINE`(구역 코드 `LINE`, 공통코드 `WH_AREA` 에 없는 값)·`TMP-MAT_AREA`)를 적용한 DB 에서는 이런 셀이 1차마다 하나씩 생기므로 **①·② 반영이 필요**합니다 — 사용자 지시로 10-22 개발 DB 에도 적용했으므로(`TMP-FG_AREA` 24·`TMP-LINE` 16·`TMP-MAT_AREA` 100) 지금 개발 DB 의 WH 로케이션 지도에 이 셀 3개가 보이고 PDA 가 `TMP-` 1차를 재고 위치로 받는 것도 막혀 있지 않습니다.
-   - 요청 ③ WH 화면이 상세 로케이션을 만들 때 상위 1차를 고를 수 있게(지금은 상위 미지정으로 생기고 MD-018 수정 창에서 지정). 저장소 `UpdateLocation(…, setParent, parentLocationId)`·`InsertPrimaryLocation`·상수 `MasterDataRepository.LocationLevelPrimary/Detail` 를 쓰면 됩니다.
-   - 알림: 사용자 결정으로 MD-018 「등록」이 상위 로케이션 콤보를 비우면 상위(1차), 고르면 그 아래 하위(재고 위치, 창고·구역은 상위를 따름)를 만듭니다(`InsertPrimaryLocation`·`InsertChildLocation`). 그래서 `InventoryDefectTests.Location_creation_and_fake_inventory_status_are_not_shown`(10-19)의 `OpenCreate` 부재 검사를 「`MD.InsertLocation(`(격자 생성) 부재 + 두 등록 메서드 존재」로 바꿨습니다. MD-018 에서 만든 하위는 통로·열·층(Aisle·Bay·Slot)이 비어 있어 WH 로케이션 지도에서 `-` 칸으로 보입니다. 화면에는 「1차」 대신 상위/하위 로케이션이라고 씁니다.
-   - 알림: 스키마 파일의 `MD_Location` 에 `LineID`·`PartNo`·`MinimumQty`·`IX_MD_Location_Line`(10-19 라인 로케이션)이 없습니다 — `rebuild_db.sh` 의 마이그레이션이 만들므로 재구축은 되지만 파일이 개발 DB 와 다릅니다. 개발 DB 는 이 세 컬럼이 감사 컬럼 뒤에 있는데, 이번 마이그레이션이 `SAPFlag`·감사 컬럼을 맨 뒤로 옮기므로 적용하면 업무 컬럼 쪽으로 정리됩니다.
-
+8. **[요청] 로케이션 2단계(상위·하위) — WH·PDA 반영**(10-22 이승욱, 사용자 결정 — 사용자가 따로 협의)
+   - `MD_Location.LocationLevel`(1 = 상위 로케이션 — SAP 저장위치 또는 MES 등록, **재고 없음** · 2 = 하위 — 재고 위치, 기본값)·`ParentLocationID`(하위의 상위, NULL = 미지정) — `dist/migrate_md_location_parent.sql`, **10-22 두 DB 적용**. 임시 상위 `dist/seed_md_location_temp_primary.sql`(라인 로케이션 → `TMP-LINE`, 나머지는 구역별 `TMP-FG_AREA`·`TMP-MAT_AREA`)도 사용자 지시로 10-22 두 DB 에 적용했습니다(개발 DB 하위 140건 전부 상위 지정). 상위 재고는 나중에 하위 재고를 합산해 처리합니다(사용자).
+   - 요청 ① **상위 로케이션(`LocationLevel = 1`)은 재고 위치가 될 수 없게** — PDA·Web 입고·적재·이동·조정·라인 보충·반품이 상위 로케이션 바코드를 받으면 거부. 지금은 막혀 있지 않습니다(MD-018 은 재고가 있는 로케이션을 상위로 지정하는 것만 막음 — 52075).
+   - 요청 ② WH 로케이션 지도(`Components/Shared/LocationMapDatabase.cs` 가 `ListLocations` 전체를 칸으로 그림)·WH 로케이션 목록 Api 에서 상위 행 제외 — 지금 개발 DB 의 지도에 위치 칸 없는 `-` 셀 3개(`TMP-*`)가 보입니다. `TMP-LINE` 의 구역 코드 `LINE` 은 공통코드 `WH_AREA` 에 없는 값입니다.
+   - 요청 ③ WH 화면이 하위 로케이션을 만들 때 상위를 고를 수 있게(지금은 상위 미지정으로 생기고 MD-018 수정 창에서 지정하거나 임시 상위 시드를 다시 돌리면 구역별로 들어감). 저장소 `UpdateLocation(…, setParent, parentLocationId)`·`InsertPrimaryLocation`·`InsertChildLocation`·상수 `MasterDataRepository.LocationLevelPrimary/Detail` 를 쓰면 됩니다.
+   - 알림: MD-018 「등록」은 상위 콤보를 비우면 상위, 고르면 그 아래 하위(창고·구역은 상위를 따르고 통로·열·층이 비어 지도에서 `-` 칸)를 만듭니다. 그래서 `InventoryDefectTests.Location_creation_and_fake_inventory_status_are_not_shown`(10-19)의 `OpenCreate` 부재 검사를 「`MD.InsertLocation(`(격자 생성) 부재 + 두 등록 메서드 존재」로 바꿨습니다.
+   - 알림: 10-22 두 DB 스키마 동일화 때 개발 DB 에 `migrate_audit_columns_last.sql` 을 적용해 `FG_CustomerReturn`(PartName)·`FG_Delivery` 의 감사 컬럼을 맨 뒤로 옮겼고(로컬도 `FG_Delivery`), 로컬 DB 에만 남아 있던 은퇴 PDA 프로시저 4개(`FG_PDA_OUTBOUND_COMPLETE`·`RETURN_RECEIVE`·`RETURN_SCAN`·`TRANSACTION_LIST`)를 지웠습니다. 스키마 파일 `MD_Location` 에 `LineID`·`PartNo`·`MinimumQty`·`IX_MD_Location_Line` 을 넣었습니다(라인 로케이션 마이그레이션은 컬럼이 있으면 건너뜀).
 
 ### 2-2. 보류 (4)
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.
@@ -358,16 +357,13 @@
 
 코드 수정 완료 항목은 제거했습니다. 서버 배포·실제 쓰기 검증 대기는 2-1에서 관리합니다.
 
-### 2-5. 재검토 정정 — 운영 결함 아님·선택적 정리 (4)
+### 2-5. 재검토 정정 — 운영 결함 아님·선택적 정리 (3)
 1. **`SCM_ItemVendor.PackingUnitCode`가 남아 있음 — 미사용 컬럼 정리이지 기능 결함은 아님**
    - 현재 SCM 품목·공급업체 연결은 `ScmRepository.ItemVendorRow`와 `ListItemVendors`/`LinkItemVendors`를 사용하며 이 컬럼을 읽거나 저장하지 않습니다. 런타임 소스 참조도 없습니다. 컬럼이 남아 있다는 사실만으로 조회·발주·입고가 잘못되지 않으므로 반드시 삭제해야 할 문제로 분류하지 않습니다. 별도 정리 승인 전에는 보존합니다.
 2. **기존 BOX·PLT·SH 기록 — 신규 사용 금지와 과거 데이터 보존을 혼동한 지적 정정**
    - `migrate_retire_packaging_uom.sql`은 기존 수량·단위를 환산하지 않는다고 명시하고 포장 UOM을 비활성화합니다. `MasterDataRepository.IsQuantityUnit`과 `ScmPreview.LoadEditorMaterials`는 신규 발주 품목에서 이 단위들을 제외하며 저장 시 품목 단위도 확인합니다. 따라서 "과거 값이 남았으니 일괄 EA 변환해야 한다"는 결론은 현재 구현 방향과 맞지 않습니다.
    - 생성기의 SH→EA는 새로 생성할 시드 규칙이며 기존 데이터 환산 승인이 아닙니다. 특히 BOX의 내용물 환산 컬럼은 삭제돼 과거 BOX 수량을 EA로 추정 변환하면 의미가 달라질 수 있습니다. 실제 해당 품목을 다시 발주해야 할 때 품목·BOM·발주의 기준 수량을 개별 확인합니다. 과거 점검의 품목·발주 건수는 현재 DB 값으로 재확인하지 않았습니다.
-3. **`FG_CustomerReturn.PartName`의 물리적 컬럼 순서 — 실행 오류 아님**
-   - `FinishedGoodsRepository.ListReturns`는 컬럼을 명시해 조회하고 `PartName` 등 이름으로 값을 읽으며, PDA 저장 SQL도 INSERT 컬럼을 명시합니다. 물리적 순서 차이로 데이터가 다른 필드에 들어가는 경로는 확인되지 않았습니다.
-   - 개발 DB 에서 `PartName` 은 감사 컬럼 뒤 맨 끝(column_id 31)입니다. 새 스키마는 이미 `LotNo` → `PartName` → 감사 컬럼 순서로 통일했습니다. 기존 DB까지 그 순서로 맞추는 것은 선택적 표준화이며, 이 차이만을 없애려고 감사 컬럼 복사·삭제·재생성이 포함된 `migrate_audit_columns_last.sql`을 자동 실행하지 않습니다. 실제 장애 수정과 분리합니다.
-4. **일별 출하의 옛 운송사·회차 요약 — 현재 실출하 모델에는 해당 없음**
+3. **일별 출하의 옛 운송사·회차 요약 — 현재 실출하 모델에는 해당 없음**
    - 현재 `FG_Shipment`와 보고서 데이터에는 운송사·회차가 없습니다. 예전 출하지시 기준의 요약을 되살리려고 임의 값을 만들거나 컬럼을 추가하지 않습니다. 실제 값이 있는 고객별 출하 건수·단위별 수량을 표시하며 서로 다른 UOM 수량은 합산하지 않습니다.
 ---
 
@@ -396,7 +392,7 @@
    - 내용: 기록 메서드를 아무도 부르지 않아 시연 3행만 보입니다(B7). 실제 교체는 PP-LSB 금형 교체(MC) 슬롯으로 계획만 있습니다.
    - 제안: POP 교체 시작·종료 버튼(심재현) 또는 B7 정비 등록과 함께 기록합니다.
 4. **`MNT_MoldShotCount`(0) — 금형 샷 누적**
-   - 읽는 곳: MNT-004 금형 목록(`MntRepository.cs:406`), MD 금형·설비 삭제 사용처(`MasterDataRepository.cs:1760·2812`)
+   - 읽는 곳: MNT-004 금형 목록(`MntRepository.cs:406`), MD 금형·설비 삭제 사용처(`MasterDataRepository.cs:1969·3028`)
    - 내용: 샷을 쌓는 곳이 없어(InjAgent 는 `PR_ShotCount` 에만 씀) 소진율이 비어 있고 정비 한계 알림이 동작하지 않습니다.
    - 제안: InjAgent 가 샷을 기록할 때 이 카운터도 올립니다(심재현 연계).
 
@@ -435,37 +431,17 @@
 - **[방향 확인] `AMES.Data` 의 SQL 위치**: CLAUDE.md 는 "inline SQL → `dbo.SP_*` 스토어드 프로시저 전환 예정" 인데, 10-16 PDA 는 반대로 프로시저를 앱 SQL(`PdaWarehouseSql` 등)로 옮겼습니다. 어느 쪽으로 갈지 정한 뒤 CLAUDE.md 문구와 이 항목을 맞춥니다 — 공통
 - `AMES.Web`: 실제 데이터 바인딩 완성(일부 화면 scaffold 상태) — 각 화면 담당
 - `AMES.Pop`: 추가 공정 모듈(필요 시) — 심재현
-- **SAP 마스터 수신**(10-21 회의 결정 — 이 마스터들은 MES 가 SAP 로 보내는 것이 아니라 **SAP 에서 받는** 데이터): `MD_Item`·`MD_Vendor`·`MD_Location`(1차 로케이션만 — 10-22 2단계, 상세는 MES 전용)·`MD_Customer`·`MD_BomVersion`·`MD_Uom`(10-22) 의 `SAPFlag`(구 `SAPTransFlag`, 1 = SAP 에서 받은 행)는 MES 화면이 표시만 하고(목록 「SAP」 열·수정 창 헤더 ID 옆 SAP 표시) 쓰지 않으며, 등록·수정 창 체크박스와 BOM 의 SAP 전송 규칙(변경 사유 필수·「SAP 전송 변경」·새 승인/만료 버전 자동 해제)은 10-21 삭제했다. 할 일: ① **SAP 에서 직접 받는 데이터(`SAPFlag` = 1 인 행)는 MES 에서 수정할 수 없도록 비활성화해야 한다** — 여섯 화면(MD-003·MD-004·MD-009·MD-010·MD-018·MD-019)의 수정 창 입력·저장·삭제(BOM 은 버전·라인 편집·승인 흐름 포함)와 엑셀 업로드·저장소 `Update*`/`Delete*` 를 함께 막을지, MES 만 쓰는 칸(예: 품목 적입수량·사출품 여부·불출율, 로케이션 적재 용량)은 열어 둘지 칸 단위로 정해야 한다 ② SAP 수신 기능(방식 SAP B1 Service Layer 등·주기·담당, 키 매칭과 새 행/변경/삭제 처리, 받은 시각·오류 기록 테이블, 순서: 단위 → 품목 → 고객사·협력업체·로케이션 → BOM) ③ 이미 MES 에서 만든 행과 SAP 행이 같은 키로 들어올 때의 처리(덮어쓰기·`SAPFlag` 1 로 전환 여부). 그 전까지 `SAPFlag` 는 SQL 로만 1 이 된다.
+- **SAP 마스터 수신**(10-21 회의 결정 — 이 마스터들은 MES 가 SAP 로 보내는 것이 아니라 **SAP 에서 받는** 데이터): `MD_Item`·`MD_Vendor`·`MD_Location`(상위 로케이션만 — 10-22 2단계, 하위는 MES 전용)·`MD_Customer`·`MD_BomVersion`·`MD_Uom`(10-22) 의 `SAPFlag`(구 `SAPTransFlag`, 1 = SAP 에서 받은 행)는 MES 화면이 표시만 하고(목록 「SAP」 열·수정 창 헤더 ID 옆 SAP 표시) 쓰지 않으며, 등록·수정 창 체크박스와 BOM 의 SAP 전송 규칙(변경 사유 필수·「SAP 전송 변경」·새 승인/만료 버전 자동 해제)은 10-21 삭제했다. 할 일: ① **SAP 에서 직접 받는 데이터(`SAPFlag` = 1 인 행)는 MES 에서 수정할 수 없도록 비활성화해야 한다** — 여섯 화면(MD-003·MD-004·MD-009·MD-010·MD-018·MD-019)의 수정 창 입력·저장·삭제(BOM 은 버전·라인 편집·승인 흐름 포함)와 엑셀 업로드·저장소 `Update*`/`Delete*` 를 함께 막을지, MES 만 쓰는 칸(예: 품목 적입수량·사출품 여부·불출율, 로케이션 적재 용량)은 열어 둘지 칸 단위로 정해야 한다 ② SAP 수신 기능(방식 SAP B1 Service Layer 등·주기·담당, 키 매칭과 새 행/변경/삭제 처리, 받은 시각·오류 기록 테이블, 순서: 단위 → 품목 → 고객사·협력업체·로케이션 → BOM) ③ 이미 MES 에서 만든 행과 SAP 행이 같은 키로 들어올 때의 처리(덮어쓰기·`SAPFlag` 1 로 전환 여부). 그 전까지 `SAPFlag` 는 SQL 로만 1 이 된다.
 
 ## 6. 참고 — 검증 기준선
 
-- **10-22 04시(이승욱 SAPFlag 개명·MD_Uom SAPFlag·로케이션 2단계(상위/하위)·임시 상위 로케이션·BOM 소요량 + 김현진 4건(Api Scalar·POP 크기·접속 DB 로그) 병합 caaa520e 뒤, Release 빌드, Data 는 로컬 DB)**: Pop 154, Api 214(건너뜀 1), InjAgent 54 통과, Data 1,435건 중 1,414 통과·같은 10 실패(PlanSchedule 5·WorkOrderRepository 4·InjLot 1)·11 건너뜀, 개발 DB 대상 `ColumnTagsTests`·`UomListTests` 3/3. **개발 DB 적용**(COPY_ONLY 백업 `AMES_DEV_before_sapflag_location_20261022.bak` 서버 기본 백업 폴더): `migrate_md_customer_sap_flag` → `migrate_md_sap_flag_rename` → `migrate_md_uom_sap_flag` → `migrate_md_location_parent` → `seed_md_location_temp_primary`(상위 3건·하위 140건) → `migrate_audit_columns_last`(`FG_CustomerReturn`·`FG_Delivery` 감사 컬럼 정렬 — 로컬도 `FG_Delivery`). 로컬 DB 는 SAP 표시 샘플 8행 0 으로 원복, 개발 DB 에서 은퇴된 구 PDA 프로시저 4개(`FG_PDA_OUTBOUND_COMPLETE`·`RETURN_RECEIVE`·`RETURN_SCAN`·`TRANSACTION_LIST`, 코드 참조 없음)를 지워 **두 DB 구조 동일**(178 테이블, 도구 `schema_compare.ps1` IDENTICAL). 스키마 파일 `MD_Location` 에 안영훈 `LineID`·`PartNo`·`MinimumQty`·`IX_MD_Location_Line` 을 더해 재구축 순서도 DB 와 같게. 헤드리스(로컬 IIS·개발 DB, 저장 없음) 7/7: MD-003·004·009·010·019 「SAP」 열, MD-004 「소요량」, MD-018 상위 로케이션 묶음, admin 로그인 기록 원복·감사 행 증가 없음. 게시본 `publish/AMES.Web_20261022-040608.zip`·`AMES.Api_20261022-040735.zip` — **개발서버 Web·Api 를 이 zip 으로 바꾸기 전까지 서버의 구 Web 은 MD-003·004·009·010·018 과 `ListItems` 를 쓰는 화면이 `Invalid column name 'SAPTransFlag'`, 구 Api 의 `/api/sys/uoms` 는 영향 없음**(구 Api 는 `SAPFlag` 를 읽지 않음).
-- **10-20 06시(이승욱 MD 작업 — 조달형태·불출율/여유율·OEELogID bigint·BOM 상위 품번·승인 요청 차단·등록일·단위 잠금·SAP 전송·품목/BOM 엑셀 — 과 안영훈 WH·FG 13건·심재현 PP→POP 시험 스크립트 병합 뒤, Release 빌드, Data 는 로컬 DB)**: Pop 154, Api 214(건너뜀 1), InjAgent 54 통과, Data 1,444건 중 1,423 통과·같은 10 실패(PlanSchedule 5·WorkOrderRepository 4·InjLot 1)·11 건너뜀. 마이그레이션 `migrate_md_item_procure_type`·`migrate_md_item_allowance_pct`·`migrate_mnt_oeelog_bigint`·`migrate_md_bomversion_sap_trans_flag` 는 두 DB 적용, 안영훈 4개(`restore_sheet_uom`·`line_locations_eos`·`fg_lot_defect_permission`·`wh_pda_test_permission`)는 개발 DB 작성자 적용·로컬 적용. 두 DB 구조 차이는 `FG_CustomerReturn.PartName` 위치뿐. 헤드리스(로컬 IIS·개발 DB, 저장 없음): FG·WH·MD 화면 열기, 엑셀 버튼 순서·색 3언어 7/7, 밀린 BOM 버전 SAP 4/4, 상위 BOM 8/8. 엑셀 업로드(로컬 DB 쓰기, 끝나고 삭제): 다운로드 → 그대로 업로드 등록 0(품목 235·BOM 178 건너뜀), 시험 파일 품목 1·BOM 새 버전 1(라인 2)·초안 버전에 라인 1 더하기 14/14.
-- **10-17 05시(MD-034 출고 컬럼 a7c460d2 + 심재현 `MD_MoldColor` 폐지 병합 dd8df481 뒤, Release 빌드, Data 는 로컬 DB)**: Pop 154, Api 214(건너뜀 1), InjAgent 54 통과, Data 1,335건 중 1,314 통과·같은 10 실패·11 건너뜀. `migrate_drop_md_mold_color.sql` 로컬 적용(개발 DB 는 작성자 적용). 두 DB 구조 차이는 `FG_CustomerReturn.PartName` 위치와 안영훈 2-1 8(개발 DB 에만 있는 FG·WH 변경). 헤드리스(로컬 IIS·개발 DB, 저장 없음): MD-034·MD-007·MD-035·MD-010·FG 출하·일별 출하 열기 7/7(FG 두 화면은 빈 목록 — 2-1 8), MD-034 등록·수정·삭제 23/23(로컬 DB). 게시본 `publish/AMES.Web_20261017-044941.zip`·`AMES.Api_20261017-045111.zip`.
-- **10-17 03시(MD-034·035 커밋 de3ae140 + 심재현 설비 재시드 병합 ba968b99 뒤, Data 는 로컬 DB)**: Pop 154, Api 214(건너뜀 1), InjAgent 54 통과, Data 1,335건 중 1,314 통과·같은 10 실패·11 건너뜀. 두 DB 175 테이블, 구조 차이는 `FG_CustomerReturn.PartName` 위치 하나(`migrate_fg_shipment_no_foreign_keys`·`migrate_md_pallet`·`reseed_md_equipment_inj_lines` 모두 두 DB 적용). 헤드리스: MD-034·035 등록·수정·삭제 22/22(로컬 DB), 개발 DB 경유 화면 열기 5/5.
+지난 기준선은 커밋 이력으로 봅니다. 여기에는 지금 기준만 둡니다.
 
-- **테스트(2026-10-16 06시, 10-16 MNT 작업·원격 병합 2회(SYS-002, 안영훈 FG 실출하·PDA 보전)·PP-OEE 계산 수정 후, Data 는 로컬 DB)** — 20시 SAPTransFlag 뒤 다시 돌려 Pop·Api·InjAgent 같은 수치, Data 1,266건 중 1,248 통과(새 `SapTransFlagTests` 1건)·같은 10 실패·8 건너뜀. **22시 원격 병합(심재현 백플러시·POP DbClock·PP-APS) 뒤**: Pop 153, Api 204(건너뜀 1), InjAgent 54 통과, Data 1,291건 중 1,270 통과·같은 10 실패·11 건너뜀. 이어 22시 10분 안영훈 PDA 직접 SQL 전환 병합 뒤: Api 206(건너뜀 1), Data 1,323건 중 1,302 통과·같은 10 실패·11 건너뜀(Pop·InjAgent 같음), 웹 WH·FG·SCM·PP-APS 8화면 헤드리스 열기 정상. 22시 50분 심재현 LOT 라벨 병합·포탈 다국어화 뒤: Pop 154(나머지 같음), 포탈 한국어 화면 영어 문구 0(목록·상세·인쇄·납품서 생성 창). 구 PDA 프로시저는 스키마·마이그레이션 파일에서만 빠졌고 두 DB 에는 그대로 있습니다(37개, 두 DB 같음 — 삭제는 작성자 보류). 로컬 DB 에 `migrate_wh_inventory_backflush_placeholder.sql` 적용(개발 DB 는 작성자 적용), 개발용 시드 변경(`seed_aps_dev.sql` 적입수량·`seed_md_mold_master.sql` CBK)은 두 DB 모두 미적용(작성자도 미적용) — 두 DB 구조 차이는 `FG_CustomerReturn.PartName` 위치뿐.
-  - Pop 149, Api 204(건너뜀 1), InjAgent 54 모두 통과. InjAgent `PollerRunnerTests.Stop_timeout_keeps_running_flag_until_loop_exits` 는 타이밍에 기대어 가끔 1건 실패합니다(바로 5번 다시 돌려 모두 통과 — 심재현 문제점 27 과 같은 정지 경합 부분).
-  - Data 1,265건 중 1,247 통과, 10 실패, 8 건너뜀(Data 테스트는 10-15 부터 직렬 실행). 병합 뒤 `CodeGroupsUsedByCodeTests` 가 깨져 `FG_STORAGE_METHOD`(FG 입고 테이블 폐지로 읽는 코드가 없어짐)를 삭제 금지 목록에서 뺐습니다.
-  - 실패 10건은 모두 기존 항목입니다(PlanScheduleTests 5, WorkOrderRepositoryTests 4, GetMoldItems 1 — 심재현 보류).
-- **화면 저장 검증 10-16 04시**(로컬 IIS 를 로컬 DB 로 돌려 실제 저장, 끝난 뒤 검증 전 백업으로 로컬 DB 복원·로컬 IIS 는 개발 DB 로 되돌림 — 도구 `AppData\Local\AMES-claude-tools\save_verify_a/b/c*.mjs`): 10-14~10-16 의 저장 경로를 모두 화면에서 저장해 DB·감사 로그로 확인했습니다 — MNT-001 수동 상태, MNT-002 라인 정지 등록·해제·재설정·작업지시 발행·보고자 이름(사번), PP-DTL 보전 행 잠금·비고 저장, MNT-005 PM 등록(템플릿)·「예정」·취소·다시 사용, 달력 「완료 처리」 → MNT-007, 점검 결과·메모, 정상 완료 차단·CM 후속(메모 포함), 사이클 PM 다음 예정일(빈 값·같은 날 거부), 부분 완료 → 후속 작업지시·원래 작업지시 안내, 후속 정상 완료 → 고장 해결·비가동 닫힘, 종료, PP-OEE 스냅샷 생성·덮어쓰기 감사, PP-LSB 적용·초기화 감사, PP-CAL 끝난 WO 안내·그사이 끝난 WO 거부·정상 변경, SYS-004 바뀐 화면만 저장, MD-008 LOT 50자(한글), PP-002 자동 확정 켜기·끄기 → SYS-007 `AUTOCONFIRM_OFF`(15자) 표시, PP-001 업로더 이름(사번). 이 과정에서 **PP-OEE 계산이 실적 없는 구간에서 실패하던 결함**(`OeeRepository.ComputeOee` 의 `RowsWithStd` SUM 이 NULL → DBNull 변환 예외)을 찾아 고쳤습니다(테스트 `OeeComputeTests`).
-- **헤드리스 확인 10-16 05시**(로컬 IIS·개발 DB, ko, 1920): PP-OEE 라인 상세 「계산」(2026-06-02, 저장 없음)이 오류 없이 결과를 내고, MNT-007(상태 필터 「예정」·`?id=&complete=1` 로 완료 창 바로 열림)·MNT-002(작업지시 없는 안돈 고장의 「작업지시 발행」)·MNT-005·MNT-009(PM 예정 「설비 n · 보전 m」·보전 PM 타일)·SYS-002(역할 사용자 팝업)가 Blazor 오류·가로 넘침 없이 열립니다. 저장은 하지 않았고, 점검 로그인의 admin 기록은 되돌렸습니다.
-- **두 DB 구조(10-15 06시)**: 개발 DB 를 기준으로 로컬 DB 를 비교해 **같습니다** — 테이블 175개의 컬럼 순서·형식·NULL·콜레이션·IDENTITY·기본값, 인덱스(키·포함 열·필터), CHECK, 외래키, 프로시저·뷰·함수 정의(도구 `AppData\Local\AMES-claude-tools\schema_compare.ps1`).
-  - 그 뒤 10-16 MNT 마이그레이션 3개(`migrate_mnt_pm_checklist`·`migrate_mnt_failure_downtime`·`migrate_mnt_pm_lead_days`)를 두 DB 에 같게 적용했고, `PP_LineDowntimeLog`·`MNT_WorkOrder` 구조가 같은 것을 확인했습니다.
-  - 맞추면서 로컬에 한 것: 두 번째 병합의 마이그레이션 3개 적용(그 전에 `WH_InventoryTransaction` 268행 `OperatorID` 를 개발 DB 처럼 NULL 로 — 길이 마이그레이션이 20바이트를 넘는 값을 거부), 개발 DB 에만 있던 `SCM_ItemVendor.PackingUnitCode` 추가, `FG_CustomerReturn.PartName` 을 개발 DB 처럼 맨 끝으로.
-  - 10-16 `migrate_retire_packaging_uom.sql` 을 두 DB 에 적용해 `BoxContentUnit/Qty` 4개가 없어졌습니다(스키마 파일과 같음).
-  - **10-16 06시 원격 병합(안영훈 FG 실출하·PDA 보전 9건)** 뒤 로컬 DB 에 `migrate_fg_shipment_actual.sql`·`migrate_fg_putaway_transactions.sql`·`migrate_wh_fg_scm_column_lengths.sql` 을 적용했습니다(개발 DB 는 작성자가 이미 적용, 적용 전 로컬 백업 `AMES_DEV_before_fg_actual_20261016.bak`). `schema_compare.ps1` 결과 두 DB 모두 **테이블 174개**이고 차이는 `FG_CustomerReturn.PartName` 위치 하나입니다(안영훈 문제점 5).
-  - 스키마 파일과 개발 DB 의 차이: `FG_CustomerReturn.PartName` 위치(안영훈 문제점 5).
-  - **10-16 20시** `migrate_md_sap_trans_flag.sql`(`MD_Item`·`MD_Vendor`·`MD_Location.SAPTransFlag`)을 두 DB 에 적용했고, 세 테이블의 컬럼 순서·형식·NULL·기본값이 두 DB 에서 같습니다(68행 비교, 차이 0). 스키마 파일에도 같은 위치로 넣었습니다.
-  - **10-21** `migrate_md_customer_sap_flag.sql`(`MD_Customer.SAPFlag`, `CreatedBy` 바로 앞)과 `migrate_md_sap_flag_rename.sql`(다섯 테이블 `SAPTransFlag` → `SAPFlag`, 기본값 제약·설명 포함)을 **로컬 DB 에만** 적용했습니다 — 개발 DB 는 신 Web 게시와 함께 적용합니다(적용 뒤 구 Web 은 `Invalid column name 'SAPTransFlag'`). 스키마 파일·`rebuild_db.sh` 반영, 옛 SAP 마이그레이션 4개는 `SAPFlag` 가 있으면 옛 컬럼을 다시 만들지 않게 고쳤고 로컬 DB 에서 다시 돌려 확인했습니다. 헤드리스(로컬 웹·로컬 DB, 도구 `sap_flag_recv_check.mjs`, 확인 동안만 다섯 테이블 `SAPFlag` 1 → 끝나고 0, 저장 없음) 13/13: 다섯 목록 「SAP」 열 61~70px, 등록·수정 창 SAP 체크박스 없음, 수정 창 헤더 ID 옆 SAP 표시, MD-004 버전 정보 SAP 표시·SAP 버튼 없음(초안 버전 수정 창은 첫 화면에 초안이 없어 확인 못 함). 테스트 `SapFlagTests`·`BomImport*`·`MasterExcel*`·`ProcureType*` 등 73건 통과(로컬 DB). `ColumnTagsTests` 는 개발 DB 와 대조하므로 개발 DB 적용 전에는 `SAPFlag` 태그로 실패합니다.
-  - **10-22** `migrate_md_uom_sap_flag.sql`(`MD_Uom.SAPFlag`, `ActiveFlag` 다음 = `CreatedBy` 바로 앞)을 **로컬 DB 에만** 적용(두 번 실행해 재실행 안전 확인)했습니다 — 새 컬럼이라 개발 DB 는 신 Web·Api 보다 먼저 적용하면 되고 구 Web·Api 는 적용 뒤에도 안전합니다. 스키마 파일·`rebuild_db.sh` 반영. 헤드리스(로컬 IIS·로컬 DB, 도구 `uom_sap_check.mjs`, 로컬 DB 의 KG·M 을 `SAPFlag` 1 로 둔 상태, 저장 없음) 5/5: MD-019 목록 「SAP」 열 70px·KG·M 만 체크, 등록 창 SAP 없음, KG 수정 창 헤더 SAP 표시·EA 없음. `SapFlagTests`(단위 추가)·`UomListTests`·`ScmQuantityUnitTests` 등 35건 통과(로컬 DB). `UomListTests`·`ColumnTagsTests` 는 개발 DB 적용 전에는 개발 DB 대상으로 실패합니다.
-  - **10-22** `migrate_md_location_parent.sql`(`MD_Location.ParentLocationID`·`LocationLevel`, `SAPFlag`·감사 컬럼을 맨 뒤로)을 **로컬 DB 에만** 적용(재실행 확인)했습니다. 10-21 샘플로 SAP 표시했던 상세 `FA01A1F1`·`FA01B1F1` 은 0 으로 되돌림. 이어서 사용자 요청으로 임시 1차 `seed_md_location_temp_primary.sql` 을 로컬 DB 에 적용(확인용 샘플 `S1000` 은 지움) — 처음에는 구역 18개마다 `TMP-{구역}` 를 만들었다가 사용자 요청으로 사출·감싸기·도장 라인 16개를 1차 하나 `TMP-LINE` 로 묶어 최종 1차 3건(`TMP-FG_AREA` 21·`TMP-LINE` 16·`TMP-MAT_AREA` 100, 상세 137건 전부 상위 지정, 라인별 임시 1차 16건은 스크립트가 지움, 두 번 실행해 재실행 안전 확인). MD-018 목록은 1차 아래에 하위가 이어지는 묶음 정렬 — 헤드리스(`loc_tree_order_check.mjs`) 3/3. 헤드리스(로컬 IIS·로컬 DB, 도구 `loc_parent_check.mjs`, 저장 없음) 10/10: KPI 「1차」, 상위 열(1차 하위 3·상세의 상위 ID), 1차 수정 창(안내·SAP 표시·품번/용량/상위 없음), 상세 수정 창(상위 콤보), 「1차 등록」 창. `LocationHierarchyTests` 와 로케이션·재고 관련 테스트 83건 통과(로컬 DB, 1건은 원래 건너뜀).
+- **테스트(10-22 04시, `caaa520e` 병합 뒤 Release 빌드, Data 는 로컬 DB)**: Pop 154, Api 214(건너뜀 1), InjAgent 54 통과. Data 1,435건 중 1,414 통과·10 실패·11 건너뜀 — 실패 10건은 심재현 보류 「라우팅 B·시드 변경」(PlanSchedule 5·WorkOrderRepository 4·InjLot 금형 1)이고 10-16 부터 같습니다. 개발 DB 대상 `ColumnTagsTests`·`UomListTests` 3/3. `566893cd`(MD-018 조회부·지정 품번) 뒤 로케이션 관련 56건 통과. InjAgent `PollerRunnerTests.Stop_timeout_keeps_running_flag_until_loop_exits` 는 타이밍에 기대어 가끔 1건 실패합니다(다시 돌리면 통과 — 심재현 문제점 27 과 같은 정지 경합).
+- **두 DB 구조(10-22)**: 개발 DB 와 로컬 DB 가 **같습니다** — 178 테이블의 컬럼(순서·형식·NULL·콜레이션·IDENTITY·기본값), 인덱스, CHECK, 외래키, 프로시저·뷰·함수 정의(도구 `AppData\Local\AMES-claude-tools\schema_compare.ps1` IDENTICAL). 개발 DB 는 적용 전 COPY_ONLY 백업 `AMES_DEV_before_sapflag_location_20261022.bak`(서버 기본 백업 폴더). 이번에 두 DB 에 적용: `migrate_md_customer_sap_flag` → `migrate_md_sap_flag_rename` → `migrate_md_uom_sap_flag` → `migrate_md_location_parent` → `seed_md_location_temp_primary` → `migrate_audit_columns_last`. 남은 스키마 파일 차이는 심재현 문제점 34(백플러시 멱등 인덱스 정의)입니다.
+- **게시**: 로컬 IIS Web·Api = 개발 DB. 개발서버용 `publish/AMES.Web_20261022-040608.zip`·`AMES.Api_20261022-040735.zip` — **개발서버 Web 을 바꾸기 전까지 서버의 구 Web 은 MD-003·004·009·010·018 과 `ListItems` 를 쓰는 화면이 `Invalid column name 'SAPTransFlag'`** 입니다(구 Api 는 영향 없음). `566893cd` 의 MD-018 수정은 이 zip 에 없습니다.
+- **헤드리스 확인 방식**: 로컬 IIS·개발 DB 로 화면을 열 때 admin 로그인 기록(LastLoginTS·ModifiedTS·ModifiedBy·FailedLoginCount)과 `SYS_AuditLog` 최대 LogID 를 먼저 읽고 끝나면 되돌립니다. 검증 도구는 `AppData\Local\AMES-claude-tools\`.
 - **NuGet(10-15)**: 취약 패키지 0(`dotnet list package --vulnerable --include-transitive`), 모든 패키지가 최신 안정 버전입니다(SqlClient 7.1.1, EF Core 10.0.13, Radzen 12.1.2, Test.Sdk 18.11.0, xunit 러너 4.0.1 등). 취약성 때문에 `System.Security.Cryptography.Pkcs` 를 AMES.Data 에서 10.0.13 으로 고정했으니 SqlClient 를 올릴 때 다시 확인합니다.
 - **제품 코드 규칙**: `AddWithValue` 0곳(주석 3곳만), Web 의 `DateTime.Now/Today` 0곳, 라이트 테마 토큰화 대상 0.
-- **헤드리스 확인**
-  - 10-16 23시(로컬 IIS·개발 DB, ko, 1920, 저장 없음 — 도구 `scm_design_check.mjs`·`portal_i18n_check.mjs`·`dropdown_shot.mjs`): SCM-001·003·004 조회부·창 입력이 Radzen(기본 select·date·checkbox 0)이고 콤보·체크박스로 목록이 걸러지며, 포탈 한국어·스페인어 화면에 영어 고정 문구가 없고(목록·상세·인쇄·납품서 생성 창), 협력업체 조회 콤보(360px)를 펼쳐도 두 줄 항목이 없습니다. 점검 로그인 기록은 되돌렸습니다.
-  - 10-16 20시(로컬 IIS·개발 DB, ko, 1920, 저장 없음 — 도구 `sap_flag_check.mjs`): MD-003·MD-009·MD-018 목록에 「SAP 전송」 열이 있고 등록·수정 창에 체크박스가 보이며 Blazor 오류·가로 넘침이 없습니다. 테스트 `SapTransFlagTests`·`TypedSaveRoundTripTests`·`ColumnTagsTests`·`MdDeleteUsageTests` 등 29건 통과(로컬 DB). 점검 로그인의 admin 기록은 되돌렸습니다.
-  - 10-15 06시(로컬 DB, ko, 1920): Radzen 12 게시본에서 RPT-001·RPT-010·MNT-008·PP-OEE·MD-008·SYS-007·PP-001·FG 반품·MD 위치·MNT-002 10화면이 Blazor 오류 없이 열리고, 날짜 선택기는 모두 11.x 와 같은 월·연 드롭다운입니다. 차트 축 눈금·카테고리 라벨(회전·생략 없음)은 11.5.1 게시본과 같은 값입니다(OEE 두 화면은 로컬 DB 에 추이 데이터가 없어 차트 없음). 점검 로그인의 admin 기록은 되돌렸습니다.
-  - 10-15 새벽(ko·en·es, 1920): 첫 병합 뒤 SCM·PP 내부 17화면과 포탈 8화면 목록에서 헤더 잘림·두 줄·셀 넘침이 없습니다. 포탈 「박스 라벨」 납품서 열의 두 줄은 원래 설계입니다.
 - **두 번째 병합의 WH·FG·SCM 변경 검증(안영훈)**: API 74개 통과, 용량·위치 규칙 테스트 17개 통과, Web·PDA Android 빌드 성공. 실제 입출고·동시 PDA 부하 검증과 DB 전체 재구축은 실행하지 않았습니다.
 - 항목을 해결하면 같은 커밋에서 이 문서의 해당 항목을 지웁니다(해결 기록은 남기지 않고 커밋 이력으로 봅니다).
