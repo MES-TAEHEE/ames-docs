@@ -23,24 +23,9 @@ public sealed class QcRepository
     // ── QC-01/02/03  Inspections ─────────────────────────────────────────
     public List<QcInspectionDto> ListInspections(string type, int topN = 30)
     {
-        const string sql = """
-            SELECT TOP (@N)
-                   i.InspectionID, i.InspectionNo, i.InspectionType, i.LotID, i.WoID,
-                   i.LineID, i.ItemNo, m.ItemName, i.Mode,
-                   ISNULL(i.SampleSize,0) AS SampleSize,
-                   ISNULL(i.BatchQty,0)   AS BatchQty,
-                   ISNULL(i.CumulativeGood,0) AS CumulativeGood,
-                   ISNULL(i.DefectQtyTotal,0) AS DefectQtyTotal,
-                   ISNULL(i.Verdict,'IN_PROGRESS') AS Verdict,
-                   ISNULL(i.CriticalFlag,0) AS CriticalFlag,
-                   i.InspectorID, i.InsStartTS, i.InsEndTS
-            FROM   dbo.QC_Inspection i
-            LEFT JOIN dbo.MD_Item m ON m.ItemNo = i.ItemNo
-            WHERE  (@T = '' OR i.InspectionType = @T)
-            ORDER BY i.InsStartTS DESC;
-            """;
+        const string sql = "dbo.SP_POP_QC_ListInspections";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@N", SqlDbType.Int).Value         = topN;
         cmd.Parameters.Add("@T", SqlDbType.VarChar, 15).Value = type ?? string.Empty;
         using var rdr = cmd.ExecuteReader();
@@ -51,15 +36,9 @@ public sealed class QcRepository
 
     public List<QcInspectionItemDto> ListInspectionItems(int inspectionId)
     {
-        const string sql = """
-            SELECT InspectionItemID, InspectionID, ISNULL(ItemSeq,0) AS ItemSeq,
-                   ItemName, Standard, Measured, Result
-            FROM   dbo.QC_InspectionItem
-            WHERE  InspectionID = @I
-            ORDER BY ItemSeq;
-            """;
+        const string sql = "dbo.SP_POP_QC_ListInspectionItems";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@I", SqlDbType.Int).Value = inspectionId;
         using var rdr = cmd.ExecuteReader();
         var list = new List<QcInspectionItemDto>();
@@ -80,14 +59,9 @@ public sealed class QcRepository
     /// <summary>Finalize an inspection — sets Verdict + InsEndTS.</summary>
     public void FinalizeInspection(int inspectionId, string verdict, string approverId, string employeeNo)
     {
-        const string sql = """
-            UPDATE dbo.QC_Inspection
-            SET    Verdict = @V, InsEndTS = SYSDATETIME(), ApproverID = @A,
-                   ModifiedBy = @A, ModifiedTS = SYSDATETIME()
-            WHERE  InspectionID = @I;
-            """;
+        const string sql = "dbo.SP_POP_QC_FinalizeInspection";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@I", SqlDbType.Int).Value           = inspectionId;
         cmd.Parameters.Add("@V", SqlDbType.VarChar, 15).Value   = verdict;
         cmd.Parameters.Add("@A", SqlDbType.NVarChar,  20).Value = approverId;
@@ -118,18 +92,9 @@ public sealed class QcRepository
     /// <summary>Create a new in-progress inspection (used by QC-01/02/03).</summary>
     public int CreateInspection(string type, string itemNo, int sampleSize, string inspectorId, string employeeNo)
     {
-        const string sql = """
-            INSERT INTO dbo.QC_Inspection
-                (InspectionNo, InspectionType, ItemNo, Mode, SampleSize, BatchQty,
-                 CumulativeGood, DefectQtyTotal, Verdict, CriticalFlag,
-                 InspectorID, InsStartTS, CreatedBy, CreatedTS)
-            OUTPUT INSERTED.InspectionID
-            VALUES (CONCAT(LEFT(@T,3),'-',FORMAT(SYSDATETIME(),'yyMMddHHmm')),
-                    @T, @I, 'Normal', @S, @S*6, 0, 0,
-                    'IN_PROGRESS', 0, @Op, SYSDATETIME(), @By, SYSDATETIME());
-            """;
+        const string sql = "dbo.SP_POP_QC_CreateInspection";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@T",  SqlDbType.VarChar, 15).Value  = type;
         cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value  = itemNo;
         cmd.Parameters.Add("@S",  SqlDbType.Int).Value          = sampleSize;
@@ -141,20 +106,10 @@ public sealed class QcRepository
     // ── QC-04  NCRs ──────────────────────────────────────────────────────
     public List<QcNcrDto> ListNcrs(string statusFilter = "Open,Investigating", int topN = 50)
     {
-        var sql = $$"""
-            SELECT TOP ({{topN}})
-                   n.NcrID, n.NcrNumber, n.SourceType, n.SourceID, n.Severity,
-                   n.LotID, n.ItemNo, m.ItemName,
-                   ISNULL(n.AffectedQty,0) AS AffectedQty,
-                   n.Disposition, n.Status, n.ReportedBy, n.ReportedAt,
-                   n.HoldID, n.CapaID
-            FROM   dbo.QC_NCR n
-            LEFT JOIN dbo.MD_Item m ON m.ItemNo = n.ItemNo
-            WHERE  (@F = '' OR n.Status IN (SELECT value FROM STRING_SPLIT(@F, ',')))
-            ORDER BY n.ReportedAt DESC;
-            """;
+        var sql = "dbo.SP_POP_QC_ListNcrs";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@TopN", SqlDbType.Int).Value = topN;
         cmd.Parameters.Add("@F", SqlDbType.VarChar, 80).Value = statusFilter ?? string.Empty;
         using var rdr = cmd.ExecuteReader();
         var list = new List<QcNcrDto>();
@@ -165,17 +120,9 @@ public sealed class QcRepository
     public int CreateNcr(string severity, string sourceType, string? sourceId, string itemNo,
                          decimal affectedQty, string disposition, string operatorId, string employeeNo)
     {
-        const string sql = """
-            INSERT INTO dbo.QC_NCR
-                (NcrNumber, SourceType, SourceID, Severity, ItemNo, AffectedQty,
-                 Disposition, Status, ReportedBy, ReportedAt, CreatedBy, CreatedTS)
-            OUTPUT INSERTED.NcrID
-            VALUES (CONCAT('NCR-', FORMAT(SYSDATETIME(),'yyMMddHHmm')),
-                    @ST, @SI, @SV, @I, @Q, @D, 'Open', @Op, SYSDATETIME(),
-                    @By, SYSDATETIME());
-            """;
+        const string sql = "dbo.SP_POP_QC_CreateNcr";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@ST", SqlDbType.VarChar, 20).Value  = sourceType;
         cmd.Parameters.Add("@SI", SqlDbType.VarChar, 24).Value  = (object?)sourceId ?? DBNull.Value;
         cmd.Parameters.Add("@SV", SqlDbType.VarChar, 10).Value  = severity;
@@ -190,20 +137,10 @@ public sealed class QcRepository
     // ── QC-05  Holds ─────────────────────────────────────────────────────
     public List<QcHoldDto> ListHolds(string statusFilter = "Held", int topN = 30)
     {
-        var sql = $$"""
-            SELECT TOP ({{topN}})
-                   h.HoldID, h.HoldNumber, h.SourceNcrID, n.NcrNumber, h.Severity,
-                   h.AffectedType, h.LotID, h.ItemNo, m.ItemName,
-                   ISNULL(h.HeldQty,0) AS HeldQty,
-                   h.PhysicalLocation, h.Status, h.HeldAt
-            FROM   dbo.QC_Hold h
-            LEFT JOIN dbo.QC_NCR  n ON n.NcrID = h.SourceNcrID
-            LEFT JOIN dbo.MD_Item m ON m.ItemNo = h.ItemNo
-            WHERE  (@F = '' OR h.Status IN (SELECT value FROM STRING_SPLIT(@F, ',')))
-            ORDER BY h.HeldAt DESC;
-            """;
+        var sql = "dbo.SP_POP_QC_ListHolds";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@TopN", SqlDbType.Int).Value = topN;
         cmd.Parameters.Add("@F", SqlDbType.VarChar, 80).Value = statusFilter ?? string.Empty;
         using var rdr = cmd.ExecuteReader();
         var list = new List<QcHoldDto>();
@@ -217,13 +154,7 @@ public sealed class QcRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            using (var upd = new SqlCommand("""
-                UPDATE dbo.QC_Hold
-                SET    Status = CASE WHEN @A IN ('USE-AS-IS','REWORK') THEN 'Released' ELSE 'Rejected' END,
-                       ModifiedBy = @By,
-                       ModifiedTS = SYSDATETIME()
-                WHERE  HoldID = @H;
-                """, conn, tx))
+            using (var upd = new SqlCommand("dbo.SP_POP_QC_ReleaseHold_UpdHold", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 upd.Parameters.Add("@H",  SqlDbType.Int            ).Value = holdId;
                 upd.Parameters.Add("@A",  SqlDbType.VarChar, 15    ).Value = action;
@@ -231,12 +162,7 @@ public sealed class QcRepository
                 upd.ExecuteNonQuery();
             }
 
-            using (var ins = new SqlCommand("""
-                INSERT INTO dbo.QC_HoldRelease
-                    (HoldID, EventType, ReleaseAction, ReleaseReason,
-                     ReleasedBy, ReleasedAt, Note, CreatedBy, CreatedTS)
-                VALUES (@H, 'Release', @A, @R, @By, SYSDATETIME(), @R, @Emp, SYSDATETIME());
-                """, conn, tx))
+            using (var ins = new SqlCommand("dbo.SP_POP_QC_ReleaseHold_InsHoldRelease", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 ins.Parameters.Add("@H",  SqlDbType.Int).Value           = holdId;
                 ins.Parameters.Add("@A",  SqlDbType.VarChar, 15).Value   = action;
@@ -254,18 +180,10 @@ public sealed class QcRepository
     // ── QC-06  CAPAs ─────────────────────────────────────────────────────
     public List<QcCapaDto> ListCapas(string statusFilter = "Open,In Progress,Plan,Action,Verify", int topN = 30)
     {
-        var sql = $$"""
-            SELECT TOP ({{topN}})
-                   c.CapaID, c.CapaNumber, c.Type, c.TriggerType, c.Phase, c.Status,
-                   c.RootCause, c.Cause4M, c.OwnerID, c.OpenedAt, c.DueDate, c.ClosedAt,
-                   (SELECT COUNT(*) FROM dbo.QC_CAPA_Action a WHERE a.CapaID = c.CapaID) AS ActionsTotal,
-                   (SELECT COUNT(*) FROM dbo.QC_CAPA_Action a WHERE a.CapaID = c.CapaID AND a.CompletedAt IS NOT NULL) AS ActionsCompleted
-            FROM   dbo.QC_CAPA c
-            WHERE  (@F = '' OR c.Status IN (SELECT value FROM STRING_SPLIT(@F, ',')))
-            ORDER BY c.OpenedAt DESC;
-            """;
+        var sql = "dbo.SP_POP_QC_ListCapas";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@TopN", SqlDbType.Int).Value = topN;
         cmd.Parameters.Add("@F", SqlDbType.VarChar, 120).Value = statusFilter ?? string.Empty;
         using var rdr = cmd.ExecuteReader();
         var list = new List<QcCapaDto>();
@@ -275,16 +193,9 @@ public sealed class QcRepository
 
     public List<QcCapaActionDto> ListCapaActions(int capaId)
     {
-        const string sql = """
-            SELECT CapaActionID, CapaID, ActionType, ISNULL(CheckDay,0) AS CheckDay,
-                   Description, Metric, TargetValue, ActualValue, Verdict,
-                   DueDate, CompletedAt
-            FROM   dbo.QC_CAPA_Action
-            WHERE  CapaID = @C
-            ORDER BY CheckDay, CapaActionID;
-            """;
+        const string sql = "dbo.SP_POP_QC_ListCapaActions";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@C", SqlDbType.Int).Value = capaId;
         using var rdr = cmd.ExecuteReader();
         var list = new List<QcCapaActionDto>();
@@ -309,39 +220,9 @@ public sealed class QcRepository
     // ── QC-07  Dashboard ─────────────────────────────────────────────────
     public List<QcModuleDefectDto> GetModuleDefectRates()
     {
-        const string sql = """
-            ;WITH prod AS (
-              SELECT r.LineID,
-                     CASE WHEN r.LineID LIKE 'LINE-INJ-%' THEN 'INJ'
-                          WHEN r.LineID LIKE 'LINE-IMG-%' THEN 'IMG'
-                          ELSE 'OTHER' END AS Module,
-                     ISNULL(SUM(r.GoodQty),0) AS GoodQty,
-                     -- 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없다 — LOT 의 라인으로 귀속시킨다
-                     ISNULL((SELECT SUM(d.Qty) FROM dbo.PR_DefectDetail d
-                              LEFT JOIN dbo.PR_ProductionResult r2 ON r2.ResultID = d.ResultID
-                              LEFT JOIN dbo.tbl_Lot             tl ON tl.LotID    = d.LotID
-                              WHERE COALESCE(r2.LineID, tl.LineID) = r.LineID
-                                AND CAST(d.DetectedAt AS DATE)=CAST(GETDATE() AS DATE)), 0) AS DefectQty
-              FROM   dbo.PR_ProductionResult r
-              WHERE  CAST(r.EntryAt AS DATE) = CAST(GETDATE() AS DATE)
-              GROUP BY r.LineID
-            )
-            SELECT Module,
-                   SUM(GoodQty)   AS GoodQty,
-                   SUM(DefectQty) AS DefectQty
-            FROM   prod
-            WHERE  Module IN ('INJ','IMG')
-            GROUP BY Module
-            UNION ALL
-            SELECT 'PNT' AS Module,
-                   ISNULL(SUM(v.ConfirmedQty),0) AS GoodQty,
-                   ISNULL(SUM(v.DefectQty),0)    AS DefectQty
-            FROM   dbo.PNT_VirtualLot v
-            JOIN   dbo.PNT_DailyPlan  p ON p.PlanID = v.PlanID
-            WHERE  p.PlanDate = CAST(GETDATE() AS DATE);
-            """;
+        const string sql = "dbo.SP_POP_QC_GetModuleDefectRates";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
         var list = new List<QcModuleDefectDto>();
         while (rdr.Read())
@@ -356,14 +237,9 @@ public sealed class QcRepository
 
     public (int OpenNcr, int ActiveHold, int OpenCapa) GetDashboardCounts()
     {
-        const string sql = """
-            SELECT
-              (SELECT COUNT(*) FROM dbo.QC_NCR  WHERE ISNULL(Status,'Open') IN ('Open','Investigating'))   AS OpenNcr,
-              (SELECT COUNT(*) FROM dbo.QC_Hold WHERE ISNULL(Status,'Held') = 'Held')                      AS ActiveHold,
-              (SELECT COUNT(*) FROM dbo.QC_CAPA WHERE ClosedAt IS NULL)                                    AS OpenCapa;
-            """;
+        const string sql = "dbo.SP_POP_QC_GetDashboardCounts";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
         rdr.Read();
         return ((int)rdr["OpenNcr"], (int)rdr["ActiveHold"], (int)rdr["OpenCapa"]);
@@ -371,17 +247,10 @@ public sealed class QcRepository
 
     public List<QcDefectParetoDto> GetDefectPareto(int topN = 6)
     {
-        var sql = $$"""
-            SELECT TOP ({{topN}})
-                   d.DefectCode, m.DefectName, SUM(ISNULL(d.Qty,1)) AS Count
-            FROM   dbo.PR_DefectDetail d
-            LEFT JOIN dbo.MD_DefectCode m ON m.DefectCode = d.DefectCode
-            WHERE  CAST(d.DetectedAt AS DATE) = CAST(GETDATE() AS DATE)
-            GROUP BY d.DefectCode, m.DefectName
-            ORDER BY SUM(ISNULL(d.Qty,1)) DESC;
-            """;
+        var sql = "dbo.SP_POP_QC_GetDefectPareto";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@TopN", SqlDbType.Int).Value = topN;
         using var rdr  = cmd.ExecuteReader();
         var list = new List<QcDefectParetoDto>();
         while (rdr.Read())
@@ -397,18 +266,9 @@ public sealed class QcRepository
     // ── QC-08  Inspection standards ──────────────────────────────────────
     public List<QcInspectionStdDto> ListInspectionStds()
     {
-        const string sql = """
-            SELECT s.StdID, s.StdCode, s.VerNo, s.StdName, s.InsType,
-                   s.ItemNo, m.ItemName, ISNULL(s.AQLLevel,0) AS AQLLevel,
-                   ISNULL(s.SampleInterval,0) AS SampleInterval, s.InspItemsJSON,
-                   s.Status, s.EffectiveDate
-            FROM   dbo.QC_InspectionStd s
-            LEFT JOIN dbo.MD_Item m ON m.ItemNo = s.ItemNo
-            WHERE  ISNULL(s.Status,'Active') = 'Active'
-            ORDER BY s.StdCode, s.VerNo DESC;
-            """;
+        const string sql = "dbo.SP_POP_QC_ListInspectionStds";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
         var list = new List<QcInspectionStdDto>();
         while (rdr.Read())
@@ -439,56 +299,9 @@ public sealed class QcRepository
     /// </summary>
     public List<QcTraceNodeDto> TraceLot(int lotId)
     {
-        const string sql = """
-            -- ROOT
-            SELECT 'LOT' AS Kind, CAST(l.LotID AS VARCHAR(24)) AS RefID,
-                   l.LotCode AS Title,
-                   CONCAT(l.ItemNo, ' · ', ISNULL(l.Status,'')) AS Subtitle,
-                   l.ProducedAt AS OccurredAt
-            FROM   dbo.tbl_Lot l WHERE l.LotID = @L
-
-            UNION ALL
-            -- WO (parent)
-            SELECT 'WO', CAST(w.WoID AS VARCHAR(24)), w.WoNumber,
-                   CONCAT(w.ItemNo, ' · ', w.Status),
-                   w.ReleasedAt
-            FROM   dbo.tbl_Lot l
-            JOIN   dbo.PP_WorkOrder w ON w.WoID = l.WoID
-            WHERE  l.LotID = @L
-
-            UNION ALL
-            -- Item master
-            SELECT 'ITEM', l.ItemNo, m.ItemName,
-                   CONCAT(ISNULL(m.ItemType,'?'),' · ', m.ItemCategory), NULL
-            FROM   dbo.tbl_Lot l
-            JOIN   dbo.MD_Item  m ON m.ItemNo = l.ItemNo
-            WHERE  l.LotID = @L
-
-            UNION ALL
-            -- Sibling lots from same WO (downstream within prod)
-            SELECT 'LOT', CAST(s.LotID AS VARCHAR(24)), s.LotCode,
-                   CONCAT(s.ItemNo, ' · ', ISNULL(s.Status,'')),
-                   s.ProducedAt
-            FROM   dbo.tbl_Lot l
-            JOIN   dbo.tbl_Lot s ON s.WoID = l.WoID AND s.LotID <> l.LotID
-            WHERE  l.LotID = @L
-
-            UNION ALL
-            -- NCRs touching this lot
-            SELECT 'NCR', n.NcrNumber, CONCAT(n.Severity,' · ',n.Status),
-                   ISNULL(n.Disposition,'?'), n.ReportedAt
-            FROM   dbo.QC_NCR n
-            WHERE  n.LotID = @L
-
-            UNION ALL
-            -- Holds
-            SELECT 'HOLD', h.HoldNumber, CONCAT(h.Severity,' · ',h.Status),
-                   ISNULL(h.PhysicalLocation,'?'), h.HeldAt
-            FROM   dbo.QC_Hold h WHERE h.LotID = @L
-            ;
-            """;
+        const string sql = "dbo.SP_POP_QC_TraceLot";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
         using var rdr = cmd.ExecuteReader();
         var list = new List<QcTraceNodeDto>();
@@ -506,9 +319,9 @@ public sealed class QcRepository
 
     public int? FindLotIdByCode(string lotCode)
     {
-        const string sql = "SELECT TOP 1 LotID FROM dbo.tbl_Lot WHERE LotCode = @C;";
+        const string sql = "dbo.SP_POP_QC_FindLotIdByCode";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@C", SqlDbType.VarChar, 40).Value = lotCode;
         var v = cmd.ExecuteScalar();
         return v is null || v is DBNull ? null : (int)v;

@@ -12,8 +12,8 @@
 @inject IStringLocalizer<SharedResources> L
 @using System.Globalization
 
-<PageTitle>SCM-003 @Title · AMES</PageTitle>
-<AmesPageHeader Code="SCM-003" Title="@Title" />
+<PageTitle>SCM-004 @Title · AMES</PageTitle>
+<AmesPageHeader Code="SCM-004" Title="@Title" />
 @if (_ready)
 {
     <div class="ames-kpis">
@@ -172,7 +172,7 @@
             _error=false;_message="";
             if(_grid is not null)await _grid.GoToPage(0);
         }
-        catch(Exception ex){if(revision!=_reloadRevision)return;Logger.LogError(ex,"SCM-003 load failed");_all.Clear();_rows.Clear();_links.Clear();_linksByItem=_links.ToLookup(x=>x.ItemNo,StringComparer.OrdinalIgnoreCase);_edit=null;_error=true;_message=L["Scm.Text.UnableToLoadPleaseRetry"];}
+        catch(Exception ex){if(revision!=_reloadRevision)return;Logger.LogError(ex,"SCM-004 load failed");_all.Clear();_rows.Clear();_links.Clear();_linksByItem=_links.ToLookup(x=>x.ItemNo,StringComparer.OrdinalIgnoreCase);_edit=null;_error=true;_message=L["Scm.Text.UnableToLoadPleaseRetry"];}
     }
     void Open(MasterDataRepository.ItemRow row)
     {
@@ -205,13 +205,13 @@
         {
             var item=_edit.ItemNo;var vendors=_selectedVendors.ToArray();
             var changed = await Task.Run(()=>Scm.LinkItemVendors(item, vendors, _actor));
-            foreach (var vendorId in changed) Audit.Log("SCM-003", "LINK", "SCM_ItemVendor", _edit.ItemNo, null,
+            foreach (var vendorId in changed) Audit.Log("SCM-004", "LINK", "SCM_ItemVendor", _edit.ItemNo, null,
                 new { _edit.ItemNo, VendorID = vendorId, ActiveFlag = true });
             _selectedVendors.Clear();
             _editError = "";
             await RefreshAfterSave();
         }
-        catch (Exception ex) { Logger.LogError(ex, "SCM-003 link failed"); _editError = L["Scm.Text.UnableToLinkCheckTheMATERIALItemAndActive"]; }
+        catch (Exception ex) { Logger.LogError(ex, "SCM-004 link failed"); _editError = L["Scm.Text.UnableToLinkCheckTheMATERIALItemAndActive"]; }
     }
     async Task UnlinkCore(ScmRepository.ItemVendorRow link)
     {
@@ -219,12 +219,12 @@
         try
         {
             if (await Task.Run(()=>Scm.UnlinkItemVendor(link.ItemNo, link.VendorID, _actor)))
-                Audit.Log("SCM-003", "UNLINK", "SCM_ItemVendor", link.ItemNo,
+                Audit.Log("SCM-004", "UNLINK", "SCM_ItemVendor", link.ItemNo,
                     new { link.ItemNo, link.VendorID, ActiveFlag = true }, new { link.ItemNo, link.VendorID, ActiveFlag = false });
             _editError = "";
             await RefreshAfterSave();
         }
-        catch (Exception ex) { Logger.LogError(ex, "SCM-003 unlink failed"); _editError = L["Scm.Text.UnableToUnlink"]; }
+        catch (Exception ex) { Logger.LogError(ex, "SCM-004 unlink failed"); _editError = L["Scm.Text.UnableToUnlink"]; }
     }
     async Task RefreshAfterSave()
     {

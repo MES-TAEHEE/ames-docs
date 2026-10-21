@@ -209,15 +209,7 @@ public sealed class WorkOrderRepository
     /// <summary>Single WO by id (used by INJ-04 after Accept).</summary>
     public WorkOrderDto? GetById(int woId)
     {
-        const string sql = """
-            SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
-                   w.OrderQty, w.OpenQty, w.CompletedQty, w.LineID,
-                   w.MoldID, w.RecipeID, w.DueDate, w.Status, w.TerminalLock,
-                   ISNULL(w.Priority,5) AS Priority
-            FROM   dbo.PP_WorkOrder w
-            JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
-            WHERE  w.WoID = @WoID;
-            """;
+        const string sql = "dbo.SP_POP_WO_GetById";
 
         return Query(sql, cmd => cmd.Parameters.Add("@WoID", SqlDbType.Int).Value = woId)
                .FirstOrDefault();
@@ -301,18 +293,7 @@ public sealed class WorkOrderRepository
     /// <summary>이 라인에서 품번의 열린 WO 단계 하나. 없으면 null. INJ-MAIN 이 품번 선택 시 활성 WO 로 쓴다.</summary>
     public WorkOrderDto? FindOpenForItem(string lineId, string itemNo)
     {
-        const string sql = """
-            SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
-                   w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
-                   w.MoldID, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
-                   ISNULL(w.Priority,5) AS Priority, w.RoutingType,
-                   r.RoutingLineID, r.StepSeq, r.ProcessCode,
-                   COALESCE(r.ItemNo, w.ItemNo) AS StepItemNo
-            FROM   dbo.PP_WorkOrderRouting r
-            JOIN   dbo.PP_WorkOrder w ON w.WoID   = r.WoID
-            JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
-
-            """ + OpenStepForItemFilter + ";";
+        const string sql = "dbo.SP_POP_WO_FindOpenForItem";
 
         return Query(sql, cmd =>
         {
@@ -327,31 +308,7 @@ public sealed class WorkOrderRepository
     /// </summary>
     public List<WorkOrderDto> ListForItemOnLine(string lineId, string itemNo, int recentClosedDays = 30)
     {
-        const string sql = """
-            SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
-                   w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
-                   w.MoldID, w.RecipeID, w.DueDate, w.ProdDeadline, r.Status, r.TerminalLock,
-                   ISNULL(w.Priority,5) AS Priority, w.RoutingType,
-                   r.RoutingLineID, r.StepSeq, r.ProcessCode,
-                   COALESCE(r.ItemNo, w.ItemNo) AS StepItemNo,
-                   so.SoNumber AS SoNumber
-            FROM   dbo.PP_WorkOrderRouting r
-            JOIN   dbo.PP_WorkOrder w ON w.WoID   = r.WoID
-            JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
-            LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
-            WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
-              AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-              AND (r.Status <> 'Closed'
-                   OR COALESCE(r.ActualEnd, r.ModifiedTS) >= DATEADD(day, -@Days, CAST(GETDATE() AS date)))
-            ORDER  BY CASE r.Status WHEN 'In Progress' THEN 0
-                                    WHEN 'Released'    THEN 1
-                                    WHEN 'Closed'      THEN 3
-                                    ELSE 2 END,
-                      CASE WHEN r.Status = 'Closed' THEN COALESCE(r.ActualEnd, r.ModifiedTS) END DESC,
-                      ISNULL(w.Priority,5),
-                      ISNULL(w.DueDate,'9999-12-31'),
-                      w.WoID, r.StepSeq;
-            """;
+        const string sql = "dbo.SP_POP_WO_ListForItemOnLine";
 
         return Query(sql, cmd =>
         {
@@ -421,55 +378,8 @@ public sealed class WorkOrderRepository
     /// </summary>
     internal static decimal BumpStepCompleted(SqlConnection conn, SqlTransaction tx, int routingLineId, decimal qty, string actor)
     {
-        const string sql = """
-            DECLARE @WoID int, @Seq int, @OrderQty decimal(14,3), @New decimal(14,3), @LastSeq int;
-
-            SELECT @WoID = r.WoID, @Seq = r.StepSeq, @OrderQty = ISNULL(w.OrderQty, 0)
-            FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
-            JOIN   dbo.PP_WorkOrder        w WITH (UPDLOCK, ROWLOCK) ON w.WoID = r.WoID
-            WHERE  r.RoutingLineID = @RL;
-            IF @WoID IS NULL THROW 50001, 'Routing step not found.', 1;
-
-            -- 접수(AcceptWo)가 없는 INJ 에서는 첫 실적이 착수다. Released 만 올린다.
-            -- 양수는 Closed 를 되돌리지 않지만, 음수(불량 역분개)는 OrderQty 밑으로 떨어지면 단계 Closed 를 다시 연다.
-            -- 헤더는 마지막 라인 단계의 동기화 블록에서만 다시 연다 — 헤더 CompletedQty 를 움직이는 건 그 단계뿐이다.
-            UPDATE dbo.PP_WorkOrderRouting
-            SET    CompletedQty = CompletedQty + @Qty,
-                   Status       = CASE WHEN CompletedQty + @Qty >= @OrderQty          THEN 'Closed'
-                                       WHEN @Qty < 0 AND Status = 'Closed'            THEN 'In Progress'
-                                       WHEN Status = 'Released'                       THEN 'In Progress'
-                                       ELSE Status END,
-                   ActualStart  = ISNULL(ActualStart, SYSDATETIME()),
-                   ActualEnd    = CASE WHEN CompletedQty + @Qty >= @OrderQty THEN ISNULL(ActualEnd, SYSDATETIME())
-                                       WHEN @Qty < 0                         THEN NULL
-                                       ELSE ActualEnd END,
-                   ModifiedBy   = @Actor, ModifiedTS = SYSDATETIME()
-            WHERE  RoutingLineID = @RL;
-
-            UPDATE dbo.PP_WorkOrder
-            SET    Status      = CASE WHEN Status = 'Released' THEN 'In Progress' ELSE Status END,
-                   ActualStart = ISNULL(ActualStart, SYSDATETIME()),
-                   ModifiedBy  = @Actor, ModifiedTS = SYSDATETIME()
-            WHERE  WoID = @WoID AND ISNULL(Status,'Draft') NOT IN ('Cancelled','Closed');
-
-            SELECT @New = CompletedQty FROM dbo.PP_WorkOrderRouting WHERE RoutingLineID = @RL;
-            SELECT @LastSeq = MAX(StepSeq) FROM dbo.PP_WorkOrderRouting WHERE WoID = @WoID AND LineID IS NOT NULL;
-
-            IF @Seq = @LastSeq
-                UPDATE dbo.PP_WorkOrder
-                SET    CompletedQty = @New,
-                       Status       = CASE WHEN @New >= @OrderQty                  THEN 'Closed'
-                                           WHEN @Qty < 0 AND Status = 'Closed'     THEN 'In Progress'
-                                           ELSE Status END,
-                       ActualEnd    = CASE WHEN @New >= @OrderQty THEN ISNULL(ActualEnd, SYSDATETIME())
-                                           WHEN @Qty < 0          THEN NULL
-                                           ELSE ActualEnd END,
-                       ModifiedBy   = @Actor, ModifiedTS = SYSDATETIME()
-                WHERE  WoID = @WoID;
-
-            SELECT @New;
-            """;
-        using var cmd = new SqlCommand(sql, conn, tx);
+        const string sql = "dbo.SP_POP_WO_BumpStepCompleted";
+        using var cmd = new SqlCommand(sql, conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@RL",    SqlDbType.Int).Value           = routingLineId;
         cmd.Parameters.Add("@Qty",   SqlDbType.Decimal).Precision   = 14;
         cmd.Parameters["@Qty"].Scale = 3;
@@ -481,11 +391,7 @@ public sealed class WorkOrderRepository
     /// <summary>(WoID, LineID) 로 단계 행을 찾는다. 같은 라인에 단계가 둘이면 StepSeq 가 작은 쪽. 없으면 null.</summary>
     internal static int? FindStepId(SqlConnection conn, SqlTransaction tx, int woId, string lineId)
     {
-        using var cmd = new SqlCommand("""
-            SELECT TOP 1 RoutingLineID FROM dbo.PP_WorkOrderRouting
-            WHERE  WoID = @WoID AND LineID = @LineID
-            ORDER  BY StepSeq;
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_WO_FindStepId", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@WoID",   SqlDbType.Int).Value         = woId;
         cmd.Parameters.Add("@LineID", SqlDbType.VarChar, 20).Value = lineId;
         return cmd.ExecuteScalar() is int id ? id : null;
@@ -772,6 +678,7 @@ public sealed class WorkOrderRepository
     {
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);
+        if (sql.StartsWith("dbo.SP_POP_", StringComparison.Ordinal)) cmd.CommandType = CommandType.StoredProcedure;
         bind(cmd);
         using var rdr  = cmd.ExecuteReader();
         var list = new List<WorkOrderDto>();

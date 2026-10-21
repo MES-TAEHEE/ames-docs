@@ -118,7 +118,6 @@
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title='@L["Portal.Receipts.Col.RemainingQty"]' TextAlign="TextAlign.Right"><Template Context="n">@NoteReceiptQuantities(n,false)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title='@L["Scm.Text.ShipDate"]' TextAlign="TextAlign.Center"><Template Context="n">@n.Deliveries.Where(d=>d.ShipDate.HasValue).Min(d=>d.ShipDate)?.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="240px" MinWidth="240px" Title='@L["Col.Status"]' TextAlign="TextAlign.Center"><Template Context="n"><span class="pill @Badge(NoteStatus(n))">@Status(NoteStatus(n))</span></Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title='@L["SCM.Preview.Col.ShipmentAction"]' TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true">@if(_isExternalPortalUser && n.Deliveries.Any(d=>d.Status=="Registered")){<RadzenButton Text='@L["SCM.Preview.Btn.StartShipment"]' Icon="local_shipping" Size="ButtonSize.ExtraSmall" Disabled="@_shipmentBusy" Click="@(()=>StartShipping(n))" />}else{<span class="dim">@(NoteStatus(n)=="Cancelled"?L["Scm.Text.Cancelled.7cc538"]:n.Deliveries.Any(d=>d.Status is "Shipped" or "Received")?L["SCM.Preview.Msg.AlreadyShipped"]:L["SCM.Preview.Msg.NoAction"])</span>}</div></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="150px" MinWidth="150px" Title='@L["Portal.Text.ReceiptStatus"]' TextAlign="TextAlign.Center"><Template Context="n"><span class="pill @ReceiptBadgeOf(NoteReceiptStatus(n))">@ReceiptLabel(NoteReceiptStatus(n))</span></Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="PortalNoteRow" Width="120px" MinWidth="120px" Title='@L["SCM.Preview.Col.QtyMismatch"]' TextAlign="TextAlign.Center" Sortable="false"><Template Context="n"><div @onclick:stopPropagation="true">@if(NoteMismatches(n).Count>0){<button type="button" class="scm-mismatch-button" title='@L["SCM.Preview.Hint.ViewMismatch"]' aria-label='@L["SCM.Preview.Hint.ViewMismatch"]' @onclick="()=>OpenNoteMismatch(n)"><RadzenIcon Icon="check_circle" /> @L["Lbl.Yes"]</button>}else{<span class="dim">@L["SCM.Preview.Msg.None"]</span>}</div></Template></RadzenDataGridColumn>
                 </Columns>
@@ -345,6 +344,16 @@
                         }</tbody>
                     </table></div>
                 }
+                <div class="dim">@L["SCM.Preview.Cancellation.Policy"]</div>
+                @if(_cancelNoteError.Length>0){<RadzenAlert AlertStyle="AlertStyle.Warning">@_cancelNoteError</RadzenAlert>}
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="ames-modal-footer">
+                    @if(!CanCancelNote(noteDetail))
+                    {
+                        <span class="dim" role="status" style="margin-right:auto">@CancellationBlockedReason(noteDetail)</span>
+                    }
+                    <RadzenButton Text='@L["SCM.Preview.Cancellation.Cancel"]' Icon="cancel" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Disabled="@(_cancelNoteBusy || !CanCancelNote(noteDetail))" Click="@(()=>CancelNote(noteDetail))" class="ames-rz-btn" />
+                    <RadzenButton Text='@L["Btn.Close"]' Icon="close" data-portal-close ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="()=>_selectedNote=null" class="ames-rz-btn" />
+                </RadzenStack>
             </div>
         </div>
     }
@@ -414,29 +423,6 @@
         </div>
     }
 
-    @if (_shipmentNote is { } shipment)
-    {
-        <div class="ames-modal-bg" data-no-busy>
-            <div class="ames-modal ames-modal-wide" role="dialog" aria-modal="true" aria-label='@L["Scm.Text.ConfirmShipment"]'>
-                <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
-                    <span>@L["Scm.Text.ConfirmShipment"] · @shipment.Number</span>
-                    <RadzenButton Icon="close" aria-label='@L["Btn.Close"]' data-portal-close ButtonStyle="ButtonStyle.Light" Click="CloseShipment" />
-                </div>
-                <div class="scm-shipment-date"><RadzenLabel Text='@L["Scm.Text.ShipDate"]' Component="ScmDateShip" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="ScmDateShip" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" Max="@DbClock.Today" Disabled="@_shipmentBusy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" /></div>
-                <div class="scm-scroll"><table class="ames-table"><thead><tr><th>@L["SCM.Preview.Col.PoNo"]</th><th>@L["SCM.Preview.Col.PartNoName"]</th><th>@L["Col.Qty"]</th></tr></thead><tbody>
-                    @foreach(var line in Store.Deliveries.Where(d=>shipment.Numbers.Contains(d.Number) && d.Status=="Registered"))
-                    {
-                        <tr><td>@line.OrderNumber</td><td>@line.Item<div class="dim">@PartName(line.PoID)</div></td><td>@QtyFormat.Text(line.Quantity,line.Unit) @UomFmt.Sym(line.Unit)</td></tr>
-                    }
-                </tbody></table></div>
-                @if (_shipmentError.Length>0) { <RadzenAlert AlertStyle="AlertStyle.Warning">@_shipmentError</RadzenAlert> }
-                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                    <RadzenButton Text='@L["Scm.Text.ConfirmShipment"]' Icon="check" ButtonStyle="ButtonStyle.Success" Disabled="@_shipmentBusy" Click="ConfirmShipment" />
-                    <RadzenButton Text='@L["Btn.Close"]' data-portal-close ButtonStyle="ButtonStyle.Base" Click="CloseShipment" />
-                </RadzenStack>
-            </div>
-        </div>
-    }
 
     @* ── 납품서 상세 ───────────────────────────────────────────────── *@
     @if (_delivery is not null)
@@ -511,7 +497,6 @@
             @if (!DeliveryEditable) { <div class="scm-act">@L["Scm.Text.ShippedCancelledOrReceivingDeliveriesCannotBeEdited"]</div> }
             @if (!string.IsNullOrEmpty(_message)) { <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat">@_message</RadzenAlert> }
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                @if(DeliveryEditable){<RadzenButton Text='@L["Scm.Text.ConfirmShipment"]' ButtonStyle="ButtonStyle.Success" Click="@(()=>StartShipping(_delivery))" />}
                 <RadzenButton Text='@L["Btn.Close"]' Icon="close" data-portal-close Click="CloseDetail" ButtonStyle="ButtonStyle.Base" />
             </RadzenStack>
         </div></div>
@@ -672,7 +657,7 @@
     bool _includeClosed, _includeCancelled;
     void ToggleClosed(bool value) { _includeClosed=value; if(!value && _status is "Received" or "Closed")_status=""; }
     void ToggleCancelled(bool value) { _includeCancelled=value; if(!value && _status is "Cancelled")_status=""; }
-    DateTime? _from, _to;
+    DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today.AddMonths(1);
     decimal _deliveryQuantity = 1;
     int _deliveryLineId;
     ScmPreviewStore.Order? _selected, _edit;
@@ -771,16 +756,47 @@
     }
     List<ScmRepository.PortalDiscrepancy> NoteMismatches(PortalNoteRow note) => _portalMismatches.Where(r=>note.Numbers.Contains(r.Delivery)).OrderBy(r=>r.OccurredAt).ToList();
     static void RowLinkNote(RowRenderEventArgs<PortalNoteRow> args)=>args.Attributes["style"]="cursor:pointer";
-    void SelectNote(PortalNoteRow note) { _selectedNote=note; _showMismatch=false; }
+    void SelectNote(PortalNoteRow note) { _selectedNote=note; _showMismatch=false; _cancelNoteError=""; }
+    bool _cancelNoteBusy;
+    string _cancelNoteError="";
+    bool CanCancelNote(PortalNoteRow note) => IsPortal && Mode=="Deliveries" && _isExternalPortalUser
+        && !string.IsNullOrEmpty(_portalUserId) && note.Deliveries.All(d=>d.Status is "Registered" or "Shipped")
+        && Store.Deliveries.Where(d=>note.Numbers.Contains(d.Number)).All(d=>d.Received==0);
+    string CancellationBlockedReason(PortalNoteRow note) => note.Deliveries.Any(d=>d.Status=="Cancelled")
+        ? L["SCM.Preview.Cancellation.AlreadyCancelled"] : NoteStatus(note)=="Received"
+        ? L["SCM.Preview.Cancellation.AlreadyReceived"]
+        : Store.Deliveries.Any(d=>note.Numbers.Contains(d.Number) && d.Received>0)
+        ? L["SCM.Preview.Cancellation.PartiallyReceived"] : L["SCM.Preview.Cancellation.NotAllowed"];
+    async Task CancelNote(PortalNoteRow note)
+    {
+        if(_cancelNoteBusy || !CanCancelNote(note))return;
+        _cancelNoteBusy=true;_cancelNoteError="";
+        var versions=note.Deliveries.ToDictionary(d=>d.Number,d=>d.Version,StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            if(await Dialog.Confirm(L["SCM.Preview.Cancellation.Confirm"],L["SCM.Preview.Cancellation.Cancel"],
+                new ConfirmOptions { OkButtonText=L["Lbl.Yes"],CancelButtonText=L["Msg.No"] })!=true)return;
+            await Task.Run(()=>Scm.CancelSupplierDeliveryNote(note.Number,versions,_portalUserId!,_actor));
+            try{Audit.Log(ScreenCode,"CANCEL","SCM_DeliveryNote",note.Number,new {Versions=versions},new {Status="Cancelled",LabelsVoided=true});}
+            catch(Exception ex){Logger.LogError(ex,"Delivery note cancellation audit failed for {Note}",note.Number);}
+            var refreshed=await ReloadOrdersAsync();
+            if(_selectedNote==note)_selectedNote=null;
+            _message=refreshed ? L["SCM.Preview.Cancellation.Done"] : L["SCM.Preview.Cancellation.ReloadFailed"];
+        }
+        catch(Exception ex)
+        {
+            Logger.LogWarning(ex,"Delivery note cancellation failed for {Note}",note.Number);
+            _cancelNoteError=ex is InvalidOperationException or ArgumentException ? ex.Message : L["SCM.Preview.Cancellation.Failed"];
+            if(await ReloadOrdersAsync())
+            {
+                if(_selectedNote?.Number==note.Number)_selectedNote=PortalNoteRows.FirstOrDefault(n=>n.Number==note.Number);
+                if(_selectedNote is null)_message=_cancelNoteError;
+            }
+        }
+        finally{_cancelNoteBusy=false;}
+    }
     void OpenNoteMismatch(PortalNoteRow note) => SelectNote(note);
     void SelectNoteDelivery(ScmPreviewStore.Delivery delivery) { _selectedNote=null; SelectDelivery(delivery); }
-    void StartShipping(PortalNoteRow note)
-    {
-        if(_shipmentBusy || !_isExternalPortalUser || !note.Deliveries.Any(d=>d.Status=="Registered")) return;
-        _shipmentNote=note;_shipDate=DbClock.Today;_shipmentError="";
-    }
-    void StartShipping(ScmPreviewStore.Delivery delivery) => StartShipping(new PortalNoteRow(NoteNumber(delivery.Number),[delivery]));
-    void CloseShipment() => _shipmentNote=null;
     string DeliveryQuantities(string number) => string.Join(" / ",Store.Deliveries.Where(d=>d.Number==number)
         .GroupBy(d=>d.Unit).Select(g=>$"{QuantityText(g.Sum(d=>d.Quantity),g.Key,3)} {UomFmt.Sym(g.Key)}"));
     string NoteNumber(string delivery) => _noteDeliveries.TryGetValue(delivery,out var n) && !string.IsNullOrEmpty(n.NoteNumber) ? n.NoteNumber : delivery;
@@ -836,7 +852,7 @@
     Task SetVendor(string? value) { _vendor = value ?? ""; return Search(); }
     Task SetCreator(string? value) { _creator = value ?? ""; return Search(); }
     void SetStatus(string? value) => _status = value ?? "";
-    void Reset() { _search = _vendor = _creator = _message = _status = ""; _includeClosed=_includeCancelled=false; _from = _to = null; _selected = _edit = null; _delivery = null; _selectedNote=null; }
+    void Reset() { _search = _vendor = _creator = _message = _status = ""; _includeClosed=_includeCancelled=false; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today.AddMonths(1); _selected = _edit = null; _delivery = null; _selectedNote=null; }
     async Task ResetAndReload() { if(_orderBusy)return; Reset();if(_ready)await ReloadOrdersAsync(); }
     async Task FirstPage()
     {
@@ -847,17 +863,13 @@
     void Select(ScmPreviewStore.Order o) { if(_orderBusy)return; _selected = o; _delivery = null; _deliveryLineId = o.Lines.FirstOrDefault(l => Store.Remaining(o, l) > 0)?.Id ?? 0; SelectDeliveryLine(); _message = ""; }
     List<ScmPreviewStore.Delivery> _deliveryEditLines = new();
     List<ScmRepository.DeliveryCase> _assignedCases=[];
-    PortalNoteRow? _shipmentNote;
-    bool _shipmentBusy;
-    string _shipmentError="";
-    DateTime _shipDate=DbClock.Today;
     void SelectDelivery(ScmPreviewStore.Delivery d)
     {
         _showMismatch=false;
         _selected = _dbOrders.First(o => o.Number == d.OrderNumber);
         _delivery = d.Copy();
         _deliveryEditLines=Store.Deliveries.Where(x=>x.Number==d.Number).Select(x=>x.Copy()).ToList();
-        _shipDate=DbClock.Today; _message="";
+        _message="";
         _assignedCases=[];
         if(IsPortal)
         {
@@ -1198,37 +1210,6 @@
             if(line.ProductionDate.Date==_delivery.Date.Date) line.ProductionDate=date.Date;
         }
         _delivery.Date=date.Date;
-    }
-    async Task ConfirmShipment()
-    {
-        if(_shipmentBusy || _shipmentNote is not { } note || !_isExternalPortalUser || string.IsNullOrEmpty(_portalUserId))return;
-        var date=_shipDate.Date;
-        if(date.Year<1900 || date>DbClock.Today){_shipmentError=L["SCM.Preview.Err.ShipDate"];return;}
-        var deliveries=Store.Deliveries.Where(d=>note.Numbers.Contains(d.Number) && d.Status=="Registered")
-            .GroupBy(d=>d.Number).Select(g=>new ScmRepository.ShipmentDelivery(g.Key,g.First().OrderNumber,g.First().Version,
-                g.Select(d=>new ScmRepository.DeliveryInput(d.PoID,d.Quantity,d.VendorLotNo,d.ProductionDate)).ToArray())).ToArray();
-        var versions=_dbOrders.Where(o=>deliveries.Any(d=>d.OrderNumber==o.Number))
-            .ToDictionary(o=>o.Number,o=>(IReadOnlyDictionary<int,string>)new Dictionary<int,string>(o.Versions),StringComparer.OrdinalIgnoreCase);
-        _shipmentBusy=true;_shipmentError="";
-        try
-        {
-            await Task.Run(()=>Scm.ConfirmSupplierShipment(deliveries,date,versions,_portalUserId,_actor));
-        }
-        catch(Exception ex)
-        {
-            Logger.LogError(ex,"Shipment confirmation failed for {Note}",note.Number);
-            _shipmentError=ex is InvalidOperationException or ArgumentException?ex.Message:L["SCM.Preview.Err.ConfirmShipment"];
-            _shipmentBusy=false;return;
-        }
-        try
-        {
-            foreach(var delivery in deliveries)
-                Audit.Log(ScreenCode,"SHIP","SCM_Delivery",delivery.Number,null,new {Note=note.Number,ShipDate=date,delivery.Lines});
-        }
-        catch(Exception ex){Logger.LogError(ex,"Shipment audit failed for {Note}",note.Number);}
-        _shipmentNote=null;_selectedNote=null;_delivery=null;
-        _message=await ReloadOrdersAsync() ? L["Scm.Text.ShipmentConfirmedAwaitingEOSReceipt"] : L["SCM.Preview.Msg.ShipReloadFailed"];
-        _shipmentBusy=false;
     }
     void SaveDelivery()
     {

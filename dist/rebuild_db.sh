@@ -148,6 +148,7 @@ FILES=(
   migrate_mnt_oeelog_bigint.sql      # MNT_OEELog.OEELogID int → bigint(10-19)
   migrate_retire_packaging_uom.sql    # Retire packaging UOMs; remove obsolete BOX contents columns
   migrate_restore_sheet_uom.sql      # SH remains an individual quantity unit
+  migrate_scm_delivery_progress_screen.sql # SCM-003 delivery receipts; retain grants on renumbered SCM-004/005
   # Fresh schema includes the actual-shipment customer-return contract.
   migrate_wh_fg_scm_column_lengths.sql # WH/FG/SCM keys and 20-byte actor codes
   migrate_fg_location_type.sql # FG-area locations use the explicit FG location type
@@ -170,6 +171,7 @@ FILES=(
   migrate_wh_pda_test_permission.sql # Hidden Web receipt test in the existing Permission Matrix
   migrate_drop_md_mold_color.sql     # MD_MoldColor 삭제 — 금형 제품 색상은 MD_MoldItem.Color 직접 입력(10-16)
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
+  migrate_pop_stored_procedures.sql  # AMES.Pop 인라인 SQL -> dbo.SP_POP_* 저장 프로시저 145개(10-21) — 신 Pop/Web/Api 보다 먼저
 )
 
 echo "AMES DB rebuild — $DB @ container '$CONTAINER'"

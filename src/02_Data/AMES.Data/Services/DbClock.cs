@@ -18,7 +18,7 @@ public static class DbClock
     public static DateTime ReadNow(AmesConnectionFactory factory)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand("SELECT SYSDATETIME();", conn);
+        using var cmd = new SqlCommand("dbo.SP_POP_CLOCK_ReadNow", conn) { CommandType = System.Data.CommandType.StoredProcedure };
         return DateTime.SpecifyKind((DateTime)cmd.ExecuteScalar()!, DateTimeKind.Unspecified);
     }
 
@@ -46,7 +46,7 @@ public static class DbClock
         try
         {
             using var conn = f.OpenConnection();
-            using var cmd  = new SqlCommand("SELECT SYSDATETIME();", conn);
+            using var cmd  = new SqlCommand("dbo.SP_POP_CLOCK_Sync", conn) { CommandType = System.Data.CommandType.StoredProcedure };
             var before = DateTime.Now;
             var dbNow  = (DateTime)cmd.ExecuteScalar()!;
             var after  = DateTime.Now;

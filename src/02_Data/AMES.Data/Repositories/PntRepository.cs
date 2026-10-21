@@ -25,23 +25,9 @@ public sealed class PntRepository
     // ── PNT-01 ────────────────────────────────────────────────────────────
     public List<PntDailyPlanDto> ListTodayPlan(string lineId)
     {
-        const string sql = """
-            SELECT  p.PlanID, p.PlanDate, p.ItemNo, i.ItemName,
-                    p.RalColor, c.ColorName, c.HexValue,
-                    p.TargetQty, p.LineID, p.OvenID,
-                    CONVERT(VARCHAR(5), p.StartTime, 108) AS StartTime,
-                    p.JigsRequired, p.LotsRequired, p.ReadyFlag,
-                    (SELECT COUNT(*) FROM dbo.PNT_VirtualLot v WHERE v.PlanID = p.PlanID) AS LotsIssued,
-                    (SELECT COUNT(*) FROM dbo.PNT_VirtualLot v WHERE v.PlanID = p.PlanID AND v.Status='BOUND') AS LotsBound
-            FROM    dbo.PNT_DailyPlan p
-            LEFT JOIN dbo.MD_Item     i ON i.ItemNo  = p.ItemNo
-            LEFT JOIN dbo.MD_RalColor c ON c.RALCode = p.RalColor
-            WHERE   p.PlanDate = CAST(GETDATE() AS DATE)
-              AND   p.LineID   = @L
-            ORDER BY p.StartTime, p.PlanID;
-            """;
+        const string sql = "dbo.SP_POP_PNT_ListTodayPlan";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
         using var rdr = cmd.ExecuteReader();
         var list = new List<PntDailyPlanDto>();
@@ -95,23 +81,9 @@ public sealed class PntRepository
 
     public List<PntVirtualLotDto> ListAllTodayLots(string lineId)
     {
-        const string sql = """
-            SELECT  v.VirtualLotID, v.LotID, v.PlanID, v.JigID,
-                    v.ItemNo, i.ItemName,
-                    v.RalColor, c.ColorName, c.HexValue,
-                    v.TargetQty, v.LoadedQty, v.ConfirmedQty, v.DefectQty,
-                    v.Status, ISNULL(v.EnhancedInspection,0) AS EnhancedInspection,
-                    v.IssuedAt, v.BindAt, v.BindReason
-            FROM    dbo.PNT_VirtualLot v
-            JOIN    dbo.PNT_DailyPlan  p ON p.PlanID = v.PlanID
-            LEFT JOIN dbo.MD_Item     i  ON i.ItemNo  = v.ItemNo
-            LEFT JOIN dbo.MD_RalColor c  ON c.RALCode = v.RalColor
-            WHERE   p.PlanDate = CAST(GETDATE() AS DATE)
-              AND   p.LineID   = @L
-            ORDER BY v.IssuedAt;
-            """;
+        const string sql = "dbo.SP_POP_PNT_ListAllTodayLots";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
         using var rdr = cmd.ExecuteReader();
         var list = new List<PntVirtualLotDto>();
@@ -122,17 +94,9 @@ public sealed class PntRepository
     /// <summary>Issue (pre-create) a new virtual lot — PNT-02 button.</summary>
     public int IssueLot(int planId, string itemNo, string ralColor, int targetQty, string operatorId, string employeeNo)
     {
-        const string sql = """
-            INSERT INTO dbo.PNT_VirtualLot
-                (PlanID, ItemNo, RalColor, TargetQty, LoadedQty, ConfirmedQty,
-                 DefectQty, Status, EnhancedInspection, IssuedAt, IssuedBy,
-                 CreatedBy, CreatedTS)
-            OUTPUT INSERTED.VirtualLotID
-            VALUES (@P, @I, @R, @T, 0, 0, 0, 'PRE', 0, SYSDATETIME(), @Op,
-                    @By, SYSDATETIME());
-            """;
+        const string sql = "dbo.SP_POP_PNT_IssueLot";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@P",  SqlDbType.Int).Value          = planId;
         cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value  = itemNo;
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 12).Value  = ralColor;
@@ -145,21 +109,9 @@ public sealed class PntRepository
     // ── PNT-03 (Loading / R1) ─────────────────────────────────────────────
     public List<PntJigDto> ListAvailableJigs()
     {
-        const string sql = """
-            SELECT  j.JigID, j.JigName, ISNULL(j.HangerCount,0) AS HangerCount,
-                    ISNULL(j.RatedCycle,0) AS RatedCycle,
-                    ISNULL(j.CycleCount,0) AS CycleCount,
-                    j.HealthStatus, ISNULL(j.ReadFailRate,0) AS ReadFailRate,
-                    CASE WHEN EXISTS(SELECT 1 FROM dbo.PNT_VirtualLot v
-                                     WHERE v.JigID = j.JigID
-                                       AND v.Status IN ('BOUND','LOADED','OVEN'))
-                         THEN 0 ELSE 1 END AS Available
-            FROM    dbo.MD_Jig j
-            WHERE   ISNULL(j.ActiveFlag,1) = 1
-            ORDER BY j.JigID;
-            """;
+        const string sql = "dbo.SP_POP_PNT_ListAvailableJigs";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
         var list = new List<PntJigDto>();
         while (rdr.Read())
@@ -184,17 +136,7 @@ public sealed class PntRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            using (var upd = new SqlCommand("""
-                UPDATE dbo.PNT_VirtualLot
-                SET    JigID     = @J,
-                       LoadedQty = @Q,
-                       Status    = 'LOADED',
-                       BindAt    = ISNULL(BindAt, SYSDATETIME()),
-                       BindReason= ISNULL(BindReason, 'PDA'),
-                       ModifiedBy= @ModBy,
-                       ModifiedTS= SYSDATETIME()
-                WHERE  VirtualLotID = @V;
-                """, conn, tx))
+            using (var upd = new SqlCommand("dbo.SP_POP_PNT_BindAndLoad_UpdPNT_VirtualLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
                 upd.Parameters.Add("@J",     SqlDbType.VarChar,  20   ).Value = jigId;
@@ -203,13 +145,7 @@ public sealed class PntRepository
                 upd.ExecuteNonQuery();
             }
 
-            using (var ins = new SqlCommand("""
-                INSERT INTO dbo.PNT_JigLoad
-                    (JigID, LotID, LoadedQty, OperatorID, PdaScanAt, R1ReadAt,
-                     MatchStatus, LineID, CreatedBy, CreatedTS)
-                VALUES (@J, NULL, @Q, @Op, SYSDATETIME(), SYSDATETIME(),
-                        'OK', @L, @By, SYSDATETIME());
-                """, conn, tx))
+            using (var ins = new SqlCommand("dbo.SP_POP_PNT_BindAndLoad_InsPNT_JigLoad", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 ins.Parameters.Add("@J",  SqlDbType.VarChar, 20).Value = jigId;
                 ins.Parameters.Add("@Q",  SqlDbType.Int).Value         = loadedQty;
@@ -219,13 +155,7 @@ public sealed class PntRepository
                 ins.ExecuteNonQuery();
             }
 
-            using (var ev = new SqlCommand("""
-                INSERT INTO dbo.PNT_LineEvent
-                    (TagID, JigID, LotID, ReaderID, AntennaPort, TagRole,
-                     EventTS, Rssi, ReadCount, TriggerType, CreatedBy, CreatedTS)
-                VALUES (NULL, @J, NULL, 'R1-LOAD', 1, 'JIG',
-                        SYSDATETIME(), -42, 1, 'PE', @By, SYSDATETIME());
-                """, conn, tx))
+            using (var ev = new SqlCommand("dbo.SP_POP_PNT_BindAndLoad_InsPNT_LineEvent", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 ev.Parameters.Add("@J",  SqlDbType.VarChar, 20).Value = jigId;
                 ev.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
@@ -240,17 +170,9 @@ public sealed class PntRepository
     // ── PNT-04 (Line Track Board) ─────────────────────────────────────────
     public List<PntLineEventDto> ListRecentEvents(string lineId, int topN = 30)
     {
-        const string sql = """
-            SELECT TOP (@N)
-                   e.EventID, e.TagID, e.JigID, e.LotID, e.ReaderID,
-                   r.GateLocation, e.EventTS, e.Rssi, e.TriggerType
-            FROM   dbo.PNT_LineEvent e
-            LEFT JOIN dbo.MD_RfidReader r ON r.ReaderID = e.ReaderID
-            WHERE  r.LineID = @L OR r.LineID IS NULL
-            ORDER BY e.EventTS DESC;
-            """;
+        const string sql = "dbo.SP_POP_PNT_ListRecentEvents";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@N", SqlDbType.Int).Value         = topN;
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
         using var rdr = cmd.ExecuteReader();
@@ -274,24 +196,9 @@ public sealed class PntRepository
     // ── PNT-05 (Oven) ─────────────────────────────────────────────────────
     public PntOvenStatusDto? GetOvenStatus(string lineId)
     {
-        const string sql = """
-            SELECT  TOP 1
-                    o.OvenID, o.OvenName, ISNULL(o.TargetTemp,180) AS TargetTemp,
-                    ISNULL(o.Tolerance,5) AS Tolerance, ISNULL(o.DwellSec,900) AS DwellSec,
-                    (SELECT TOP 1 TempC FROM dbo.PNT_OvenTempSample
-                       WHERE OvenID = o.OvenID ORDER BY SampledAt DESC) AS CurrentTemp,
-                    (SELECT MIN(TempC) FROM dbo.PNT_OvenTempSample
-                       WHERE OvenID = o.OvenID AND SampledAt > DATEADD(hour,-24,SYSDATETIME())) AS MinTemp24h,
-                    (SELECT MAX(TempC) FROM dbo.PNT_OvenTempSample
-                       WHERE OvenID = o.OvenID AND SampledAt > DATEADD(hour,-24,SYSDATETIME())) AS MaxTemp24h,
-                    (SELECT COUNT(*) FROM dbo.PNT_VirtualLot
-                       WHERE Status = 'OVEN') AS JigsInside
-            FROM    dbo.MD_Oven o
-            WHERE   o.LineID = @L
-            ORDER BY o.OvenID;
-            """;
+        const string sql = "dbo.SP_POP_PNT_GetOvenStatus";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
         using var rdr = cmd.ExecuteReader();
         if (!rdr.Read()) return null;
@@ -311,15 +218,9 @@ public sealed class PntRepository
 
     public List<PntOvenSampleDto> ListOvenSamples(string ovenId, int minutes = 10)
     {
-        const string sql = """
-            SELECT  OvenID, ZoneID, TempC, SampledAt
-            FROM    dbo.PNT_OvenTempSample
-            WHERE   OvenID = @O
-              AND   SampledAt > DATEADD(minute, -@M, SYSDATETIME())
-            ORDER BY SampledAt;
-            """;
+        const string sql = "dbo.SP_POP_PNT_ListOvenSamples";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@O", SqlDbType.VarChar, 20).Value = ovenId;
         cmd.Parameters.Add("@M", SqlDbType.Int).Value         = minutes;
         using var rdr = cmd.ExecuteReader();
@@ -342,15 +243,7 @@ public sealed class PntRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            using (var upd = new SqlCommand("""
-                UPDATE dbo.PNT_VirtualLot
-                SET    ConfirmedQty = @G,
-                       DefectQty    = @D,
-                       Status       = 'CONFIRMED',
-                       ModifiedBy   = @ModBy,
-                       ModifiedTS   = SYSDATETIME()
-                WHERE  VirtualLotID = @V;
-                """, conn, tx))
+            using (var upd = new SqlCommand("dbo.SP_POP_PNT_ConfirmUnload_UpdPNT_VirtualLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 upd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
                 upd.Parameters.Add("@G",     SqlDbType.Int            ).Value = goodQty;
@@ -359,14 +252,7 @@ public sealed class PntRepository
                 upd.ExecuteNonQuery();
             }
 
-            using (var ev = new SqlCommand("""
-                INSERT INTO dbo.PNT_LineEvent
-                    (TagID, JigID, LotID, ReaderID, AntennaPort, TagRole,
-                     EventTS, Rssi, ReadCount, TriggerType, CreatedBy, CreatedTS)
-                SELECT NULL, v.JigID, NULL, 'R3-UNLOAD', 1, 'JIG',
-                       SYSDATETIME(), -40, 1, 'PE', @By, SYSDATETIME()
-                FROM   dbo.PNT_VirtualLot v WHERE v.VirtualLotID = @V;
-                """, conn, tx))
+            using (var ev = new SqlCommand("dbo.SP_POP_PNT_ConfirmUnload_InsPNT_LineEvent", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 ev.Parameters.Add("@V",  SqlDbType.Int).Value         = virtualLotId;
                 ev.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
@@ -381,13 +267,9 @@ public sealed class PntRepository
     // ── PNT-07 (Label Apply) ──────────────────────────────────────────────
     public void ApplyLabel(int virtualLotId, string employeeNo, string? userId = null)
     {
-        const string sql = """
-            UPDATE dbo.PNT_VirtualLot
-            SET    Status='LABELED', ModifiedBy=@ModBy, ModifiedTS=SYSDATETIME()
-            WHERE  VirtualLotID = @V;
-            """;
+        const string sql = "dbo.SP_POP_PNT_ApplyLabel";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
         cmd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = (object?)userId ?? DBNull.Value;
         cmd.ExecuteNonQuery();
@@ -396,14 +278,9 @@ public sealed class PntRepository
     // ── PNT-08 (Defect) ───────────────────────────────────────────────────
     public List<DefectCodeDto> ListDefectCodes()
     {
-        const string sql = """
-            SELECT  DefectCode, DefectName, DefectNameEn, ProcessCode, SeverityLevel
-            FROM    dbo.MD_DefectCode
-            WHERE   ActiveFlag = 1 AND ProcessCode='PNT'
-            ORDER BY DefectCode;
-            """;
+        const string sql = "dbo.SP_POP_PNT_ListDefectCodes";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
         var list = new List<DefectCodeDto>();
         while (rdr.Read())
@@ -420,15 +297,9 @@ public sealed class PntRepository
 
     public void RegisterDefect(int virtualLotId, string defectCode, int qty, string operatorId, string employeeNo)
     {
-        const string sql = """
-            UPDATE dbo.PNT_VirtualLot
-            SET    DefectQty = ISNULL(DefectQty,0) + @Q,
-                   ModifiedBy = @ModBy,
-                   ModifiedTS = SYSDATETIME()
-            WHERE  VirtualLotID = @V;
-            """;
+        const string sql = "dbo.SP_POP_PNT_RegisterDefect";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@V",     SqlDbType.Int            ).Value = virtualLotId;
         cmd.Parameters.Add("@Q",     SqlDbType.Int            ).Value = qty;
         cmd.Parameters.Add("@ModBy", SqlDbType.VarChar,     20).Value = operatorId;
@@ -438,21 +309,9 @@ public sealed class PntRepository
     // ── PNT-09 (Shift Report) ─────────────────────────────────────────────
     public List<PntShiftBucketDto> GetShiftBuckets(string lineId)
     {
-        const string sql = """
-            SELECT  ISNULL(p.LineID,@L) AS LineID,
-                    CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, v.IssuedAt) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END AS ShiftCode,
-                    COUNT(CASE WHEN v.Status IN ('CONFIRMED','LABELED','CLOSED') THEN 1 END) AS LotsClosed,
-                    SUM(ISNULL(v.ConfirmedQty,0)) AS GoodQty,
-                    SUM(ISNULL(v.DefectQty,0))    AS DefectQty
-            FROM    dbo.PNT_VirtualLot v
-            JOIN    dbo.PNT_DailyPlan  p ON p.PlanID = v.PlanID
-            WHERE   p.PlanDate = CAST(GETDATE() AS DATE)
-              AND   p.LineID   = @L
-            GROUP BY CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, v.IssuedAt) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END,
-                     ISNULL(p.LineID,@L);
-            """;
+        const string sql = "dbo.SP_POP_PNT_GetShiftBuckets";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
         using var rdr = cmd.ExecuteReader();
         var list = new List<PntShiftBucketDto>();
@@ -470,15 +329,9 @@ public sealed class PntRepository
     // ── Helpers ───────────────────────────────────────────────────────────
     public List<PntRalColorDto> ListRalColors()
     {
-        const string sql = """
-            SELECT RALCode, ColorName, HexValue, ISNULL(CureTemp,180) AS CureTemp,
-                   ISNULL(CureDuration,900) AS CureDuration
-            FROM   dbo.MD_RalColor
-            WHERE  ISNULL(ActiveFlag,1)=1
-            ORDER BY RALCode;
-            """;
+        const string sql = "dbo.SP_POP_PNT_ListRalColors";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
         var list = new List<PntRalColorDto>();
         while (rdr.Read())

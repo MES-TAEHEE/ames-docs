@@ -124,16 +124,7 @@ public static class ProdCalendar
         string? cutoffAttr = null;
         var shifts = new List<(string Code, string? Window)>();
 
-        using var cmd = new SqlCommand($"""
-            SELECT SYSDATETIME();
-
-            SELECT TOP 1 ConfigValue
-            FROM   dbo.SYS_Config
-            WHERE  ConfigKey = @CutoffKey
-            ORDER  BY ConfigID;
-
-            {ShiftsSql};
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_CALENDAR_ResolveNow", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@CutoffKey", System.Data.SqlDbType.VarChar, 60).Value = CutoffConfigKey;
         using var rdr = cmd.ExecuteReader();
         var now = rdr.Read() ? rdr.GetDateTime(0) : DbClock.Now;

@@ -13,16 +13,9 @@ public sealed class MoldRepository
 
     public MoldDto? GetById(string moldId)
     {
-        const string sql = """
-            SELECT TOP 1 MoldID, MoldName, ISNULL(RatedShots,0) AS RatedShots,
-                   ISNULL(CurrentShots,0) AS CurrentShots,
-                   ISNULL(CavityCount,1)  AS CavityCount,
-                   LastMaintDate, Status
-            FROM   dbo.MD_Mold
-            WHERE  MoldID = @M;
-            """;
+        const string sql = "dbo.SP_POP_MOLD_GetById";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@M", SqlDbType.VarChar, 20).Value = moldId;
         using var rdr = cmd.ExecuteReader();
         if (!rdr.Read()) return null;

@@ -82,7 +82,7 @@ public static class BackflushRepository
 
     static bool AlreadyApplied(SqlConnection conn, SqlTransaction tx, int lotId)
     {
-        using var cmd = new SqlCommand("SELECT TOP 1 1 FROM dbo.WH_InventoryTransaction WHERE SourceType = @S AND SourceID = @Lot;", conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_BACKFLUSH_AlreadyApplied", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         ColumnParams.AddFilter(cmd, "@S",   "WH_InventoryTransaction.SourceType", SourceType);
         ColumnParams.AddFilter(cmd, "@Lot", "WH_InventoryTransaction.SourceID",   lotId);
         return cmd.ExecuteScalar() is not null;
@@ -90,7 +90,7 @@ public static class BackflushRepository
 
     static string? LinePrefix(SqlConnection conn, SqlTransaction tx, string lineId)
     {
-        using var cmd = new SqlCommand("SELECT NULLIF(RTRIM(LotPrefix), '') FROM dbo.MD_Line WHERE LineID = @L;", conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_BACKFLUSH_LinePrefix", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         ColumnParams.AddFilter(cmd, "@L", "MD_Line.LineID", lineId);
         return cmd.ExecuteScalar() as string;
     }
@@ -98,26 +98,7 @@ public static class BackflushRepository
     /// <summary>유효 BOM(APPROVED·오늘 기간 내, 부모당 EffFrom 최신)의 직접 자식 — CoreItemResolver·RunMrp 와 같은 선택.</summary>
     static List<BackflushBomRow> ReadBomRows(SqlConnection conn, SqlTransaction tx, string itemNo)
     {
-        using var cmd = new SqlCommand("""
-            WITH eff AS (
-                SELECT v.VersionID, v.EffFrom
-                FROM   dbo.MD_BomVersion v
-                WHERE  v.Status = 'APPROVED'
-                  AND (v.EffFrom IS NULL OR v.EffFrom <= CAST(SYSDATETIME() AS date))
-                  AND (v.EffTo   IS NULL OR v.EffTo   >= CAST(SYSDATETIME() AS date))),
-            rows AS (
-                SELECT b.CompItemNo, b.QtyPer, b.ScrapPct, b.UOM, b.ActiveFlag,
-                       DENSE_RANK() OVER (ORDER BY e.EffFrom DESC, e.VersionID DESC) AS Rk
-                FROM   dbo.MD_Bom b
-                JOIN   eff e ON e.VersionID = b.VersionID
-                WHERE  b.ParentItemNo = @Item)
-            SELECT r.CompItemNo, i.ItemType, ISNULL(r.QtyPer, 0) AS QtyPer, ISNULL(r.ScrapPct, 0) AS ScrapPct,
-                   r.UOM, ISNULL(r.ActiveFlag, 1) AS Active
-            FROM   rows r
-            LEFT JOIN dbo.MD_Item i ON i.ItemNo = r.CompItemNo
-            WHERE  r.Rk = 1 AND r.CompItemNo IS NOT NULL
-            ORDER  BY r.CompItemNo;
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_BACKFLUSH_ReadBomRows", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         ColumnParams.AddFilter(cmd, "@Item", "MD_Bom.ParentItemNo", itemNo);
         using var rdr = cmd.ExecuteReader();
         var list = new List<BackflushBomRow>();
@@ -131,13 +112,7 @@ public static class BackflushRepository
     /// <summary>라인 위치의 양수 창고 LOT, WH-07 과 같은 FIFO 순. 컨테이너 자식·자리표시는 뺀다.</summary>
     static List<BackflushLot> ReadLineLots(SqlConnection conn, SqlTransaction tx, string prefix, string partNo, string placeholder)
     {
-        using var cmd = new SqlCommand("""
-            SELECT W.LotNo, W.Qty
-            FROM   dbo.WH_Inventory W WITH (UPDLOCK, ROWLOCK)
-            WHERE  W.LocationNo = @Loc AND W.PartNo = @Part AND W.Qty > 0 AND W.LotNo <> @Ph
-              AND  NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo = W.LotNo)
-            ORDER  BY W.ReceivedAt, W.CreatedAt, W.LotNo;
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_BACKFLUSH_ReadLineLots", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         ColumnParams.AddFilter(cmd, "@Loc",  "WH_Inventory.LocationNo", prefix);
         ColumnParams.AddFilter(cmd, "@Part", "WH_Inventory.PartNo",     partNo);
         ColumnParams.AddFilter(cmd, "@Ph",   "WH_Inventory.LotNo",      placeholder);
@@ -153,18 +128,14 @@ public static class BackflushRepository
     /// </summary>
     internal static decimal? ReadLotQty(SqlConnection conn, SqlTransaction tx, string lotNo)
     {
-        using var cmd = new SqlCommand("SELECT Qty FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE LotNo = @L;", conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_BACKFLUSH_ReadLotQty", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         ColumnParams.AddFilter(cmd, "@L", "WH_Inventory.LotNo", lotNo);
         return cmd.ExecuteScalar() as decimal?;
     }
 
     static (decimal Before, decimal After) AdjustLot(SqlConnection conn, SqlTransaction tx, string lotNo, decimal delta)
     {
-        using var cmd = new SqlCommand("""
-            UPDATE dbo.WH_Inventory SET Qty = Qty + @D, UpdatedAt = SYSDATETIME()
-            OUTPUT DELETED.Qty AS Before, INSERTED.Qty AS After
-            WHERE  LotNo = @L;
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_BACKFLUSH_AdjustLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         ColumnParams.Add(cmd, "@D", "WH_Inventory.Qty", delta);
         ColumnParams.AddFilter(cmd, "@L", "WH_Inventory.LotNo", lotNo);
         using var rdr = cmd.ExecuteReader();
@@ -182,11 +153,7 @@ public static class BackflushRepository
             phQty = r.After;
             return r;
         }
-        using var cmd = new SqlCommand("""
-            INSERT dbo.WH_Inventory (LotNo, UnitType, PartNo, PartName, LocationNo, Qty, ReceivedAt, CreatedAt, UpdatedAt)
-            SELECT @L, 'PART', @P, (SELECT TOP 1 ItemName FROM dbo.MD_Item WHERE ItemNo = @P), @Loc, @Q,
-                   SYSDATETIME(), SYSDATETIME(), SYSDATETIME();
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_BACKFLUSH_EnsurePlaceholder", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         ColumnParams.Add(cmd, "@L",   "WH_Inventory.LotNo",      lotNo);
         ColumnParams.Add(cmd, "@P",   "WH_Inventory.PartNo",     partNo);
         ColumnParams.Add(cmd, "@Loc", "WH_Inventory.LocationNo", prefix);
@@ -200,13 +167,7 @@ public static class BackflushRepository
                          string partNo, string location, decimal before, decimal change, decimal after, string note,
                          string operatorId, string employeeNo)
     {
-        using var cmd = new SqlCommand("""
-            INSERT dbo.WH_InventoryTransaction
-                (TransactionTime, TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
-                 SourceType, SourceID, OperatorID, Note, CreatedBy, CreatedTS)
-            VALUES
-                (SYSDATETIME(), @T, @P, @Loc, @L, @B, @C, @A, @S, @Src, @Op, @N, @By, SYSDATETIME());
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_BACKFLUSH_WriteTxn", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         ColumnParams.Add(cmd, "@T",   "WH_InventoryTransaction.TransactionType", type);
         ColumnParams.Add(cmd, "@P",   "WH_InventoryTransaction.PartNo",          partNo);
         ColumnParams.Add(cmd, "@Loc", "WH_InventoryTransaction.LocationNo",      location);

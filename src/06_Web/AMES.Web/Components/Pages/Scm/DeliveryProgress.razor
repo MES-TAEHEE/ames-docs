@@ -1,0 +1,131 @@
+@page "/scm/delivery-progress"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using AMES.Contracts.Dto
+@inject ScmRepository Scm
+@inject MasterDataRepository Master
+@inject UomFormat Uom
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Authentication
+@inject IStringLocalizer<SharedResources> L
+@inject ILogger<DeliveryProgress> Logger
+@implements IAsyncDisposable
+
+<PageTitle>SCM-003 @L["SCM.DeliveryProgress.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="SCM-003" TitleKey="SCM.DeliveryProgress.Title" />
+<div class="ames-kpis">
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["Scm.Text.DeliveryNotes"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi info"><div class="ames-kpi-l">@L["SCM.DeliveryProgress.OnTheWay"]</div><div class="ames-kpi-v">@_rows.Count(d=>d.Status=="OnTheWay")</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["SCM.DeliveryProgress.Partial"]</div><div class="ames-kpi-v">@_rows.Count(d=>d.Status=="PartiallyReceived")</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["SCM.DeliveryProgress.Overdue"]</div><div class="ames-kpi-v">@_rows.Count(d=>!d.Complete && d.DeliveryDate.Date<DbClock.Today)</div></div>
+</div>
+@if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_error</RadzenAlert>}
+<div class="ames-card scm-delivery-progress">
+    <div class="ames-card-h master-list-toolbar">
+        <span>▼ @L["SCM.DeliveryProgress.Title"] · @_rows.Count @L["Lbl.Items"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_search" MaxLength="120" Placeholder='@L["SCM.DeliveryProgress.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px" />
+            <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorName" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["Col.Supplier"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+            <RadzenLabel Text='@L["SCM.DeliveryProgress.ShipDate"]' />
+            <RadzenDatePicker TValue="DateTime?" @bind-Value="_from" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
+            <span>~</span><RadzenDatePicker TValue="DateTime?" @bind-Value="_to" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
+            <RadzenCheckBox TValue="bool" @bind-Value="_includeReceived" Name="IncludeReceived" /><RadzenLabel Text='@L["SCM.Preview.Lbl.IncludeReceived"]' Component="IncludeReceived" />
+            <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Reload" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+            <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" Click="Reset" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <RadzenDataGrid @ref="_grid" TItem="SupplierDeliveryProgressDto" Data="_rows" AllowSorting="true" AllowPaging="true" PageSize="_pageSize" PageSizeOptions="@_pageSizes" PageSizeChanged="s=>_pageSize=s"
+        ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PagerHorizontalAlign="HorizontalAlign.Center" RowClick="e=>_selected=e.Data" RowRender="RenderNoteRow"
+        Class="ames-rz-grid ames-grid-fixed" Style="@($"--ames-page-rows:{_pageSize}")" EmptyText='@L["Scm.Text.NoResults"]'>
+        <Columns>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Col.RowNo"]' Width="60px" Sortable="false"><Template Context="d">@GridRowNo.Of(_grid,d)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="Number" Title='@L["Scm.Text.DeliveryNote"]' MinWidth="190px" />
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="VendorName" Title='@L["Col.Supplier"]' MinWidth="170px"><Template Context="d">@d.VendorName<div class="dim">@d.VendorId</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="ShipDate" Title='@L["SCM.DeliveryProgress.ShipDate"]' Width="150px"><Template Context="d">@(d.ShipDate?.ToString(DateFmt.Date)??"—")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="DeliveryDate" Title='@L["Scm.Text.DeliveryDate"]' Width="150px"><Template Context="d">@d.DeliveryDate.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Col.Quantity"]' MinWidth="130px"><Template Context="d">@Totals(d,l=>l.Quantity)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Scm.Text.Received"]' MinWidth="130px"><Template Context="d">@Totals(d,l=>l.Received)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Scm.Text.Remaining"]' MinWidth="130px"><Template Context="d">@Totals(d,l=>l.Remaining)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Portal.Boxes.Title"]' Width="120px"><Template Context="d">@d.ReceivedItems / @d.UnitItems</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="Status" Title='@L["Col.Status"]' Width="160px"><Template Context="d"><span class="pill receipt-status @(d.Complete?"ok":d.Status=="PartiallyReceived"?"warn":"info")">@if(d.Complete){<RadzenIcon Icon="check_circle" />}@Status(d.Status)</span></Template></RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+@if(_selected is {} selected)
+{
+    <div class="ames-modal-bg" @onclick="()=>_selected=null">
+        <div class="ames-modal ames-modal-wide" role="dialog" aria-modal="true" aria-label="@selected.Number" @onclick:stopPropagation="true" style="width:min(1300px,96vw);max-height:92vh;overflow:auto">
+            <div class="ames-modal-h" style="display:flex;justify-content:space-between;align-items:center"><strong>@selected.Number · @selected.VendorName</strong><RadzenButton Icon="close" Click="()=>_selected=null" Size="ButtonSize.Small" class="ames-rz-btn" aria-label='@L["Btn.Close"]' /></div>
+            <div class="ames-modal-body scm-delivery-progress" style="max-height:65vh;overflow:auto">
+                <RadzenDataGrid TItem="UnitItemRow" Data="@UnitItems(selected)" Class="ames-rz-grid" AllowPaging="false" AllowSorting="true" RowRender="RenderItemRow" EmptyText='@L["Scm.Text.NoResults"]'>
+                    <Columns>
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Barcode" Title='@L["SCM.Preview.Print.BoxBarcode"]' MinWidth="230px" />
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Line.PartNo" Title='@L["SCM.Preview.Col.PartNoName"]' MinWidth="200px"><Template Context="row">@row.Line.PartNo<div class="dim">@row.Line.PartName</div></Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Quantity" Title='@L["Col.Quantity"]' MinWidth="120px" TextAlign="TextAlign.Right"><Template Context="row">@Uom.QtyUnit(row.Item.Quantity,row.Line.Unit)</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Received" Title='@L["Col.Status"]' MinWidth="160px"><Template Context="row"><span class="pill receipt-status @(row.Item.Received?"ok":"warn")"><RadzenIcon Icon="@(row.Item.Received?"check_circle":"schedule")" />@(row.Item.Received?L["Scm.Text.Received"]:L["SCM.DeliveryProgress.NotReceived"])</span></Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Line.OrderNumber" Title='@L["SCM.Preview.Col.PoNo"]' MinWidth="170px" />
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.ShippingUnitNo" Title='@L["SCM.Preview.Col.CaseNo"]' MinWidth="190px" />
+                    </Columns>
+                </RadzenDataGrid>
+            </div>
+            <div class="ames-modal-footer"><RadzenButton Text='@L["Btn.Close"]' Click="()=>_selected=null" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" /></div>
+        </div>
+    </div>
+}
+
+@code {
+    RadzenDataGrid<SupplierDeliveryProgressDto>? _grid;
+    List<SupplierDeliveryProgressDto> _rows=[];
+    List<MasterDataRepository.VendorRow> _vendors=[];
+    SupplierDeliveryProgressDto? _selected;
+    sealed record UnitItemRow(SupplierDeliveryLineDto Line,SupplierDeliveryItemDto Item);
+    static List<UnitItemRow> UnitItems(SupplierDeliveryProgressDto note)=>note.Lines
+        .SelectMany(line=>line.Items.Select(item=>new UnitItemRow(line,item))).ToList();
+    static void RenderItemRow(RowRenderEventArgs<UnitItemRow> args)
+    {if(args.Data?.Item.Received==true)args.Attributes["class"]="scm-received-row";}
+    static void RenderNoteRow(RowRenderEventArgs<SupplierDeliveryProgressDto> args)
+    {if(args.Data?.Complete==true)args.Attributes["class"]="scm-received-row";}
+    DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1);
+    string? _vendor;
+    string _search="",_error="";
+    bool _busy,_allowed,_includeReceived;
+    int _pageSize=25;
+    readonly IEnumerable<int> _pageSizes=[25,50,100];
+    readonly CancellationTokenSource _stop=new();
+    Task? _refresh;
+    protected override async Task OnInitializedAsync()
+    {
+        await Permissions.EnsureAsync(Authentication);
+        _allowed=Permissions.IsVisible("scm/delivery-progress");
+        if(!_allowed)return;
+        try{_vendors=await Task.Run(()=>Master.ListVendors());}catch(Exception ex){Logger.LogWarning(ex,"Supplier filter load failed");}
+        await Reload();
+    }
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {if(firstRender && _allowed)_refresh=AutoRefresh();return Task.CompletedTask;}
+    async Task AutoRefresh()
+    {
+        using var timer=new PeriodicTimer(TimeSpan.FromSeconds(30));
+        try{while(await timer.WaitForNextTickAsync(_stop.Token))await InvokeAsync(async()=>{await Reload();StateHasChanged();});}
+        catch(OperationCanceledException){}
+    }
+    async Task Reload()
+    {
+        if(_busy || !_allowed || _stop.IsCancellationRequested)return;
+        if(_from>_to){_error=L["Scm.Text.EndDateMustFollowStartDate"];return;}
+        _busy=true;
+        try
+        {
+            var (from,to,search,vendor,include)=(_from,_to,_search,_vendor,_includeReceived);
+            _rows=await Task.Run(()=>Scm.ListSupplierDeliveryProgress(from,to,search,vendor,include));
+            if(_selected is not null)_selected=_rows.Find(d=>d.Number==_selected.Number);
+            _error="";
+        }
+        catch(Exception ex){Logger.LogError(ex,"Delivery progress load failed");_error=L["SCM.DeliveryProgress.LoadError"];}
+        finally{_busy=false;}
+    }
+    async Task Reset(){_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1);_vendor=null;_search="";_includeReceived=false;await Reload();}
+    string Status(string status)=>status switch{"OnTheWay"=>L["SCM.DeliveryProgress.OnTheWay"],"PartiallyReceived"=>L["SCM.DeliveryProgress.Partial"],"Received"=>L["Scm.Text.Received"],_=>L["Portal.Text.Registered"]};
+    string Totals(SupplierDeliveryProgressDto d,Func<SupplierDeliveryLineDto,decimal> value)=>string.Join(" / ",d.Lines.GroupBy(l=>l.Unit).Select(g=>Uom.QtyUnit(g.Sum(value),g.Key)));
+    public async ValueTask DisposeAsync(){_stop.Cancel();if(_refresh is not null)await _refresh;_stop.Dispose();}
+}

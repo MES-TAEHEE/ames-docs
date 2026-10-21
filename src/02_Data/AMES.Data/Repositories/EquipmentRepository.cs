@@ -17,24 +17,9 @@ public sealed class EquipmentRepository
     /// </summary>
     public EquipmentDto? GetPrimaryForLine(string lineId)
     {
-        const string sql = """
-            WITH latest AS (
-              SELECT EquipID, MAX(EquipStatusLogID) AS MaxId
-              FROM   dbo.PR_EquipStatusLog
-              GROUP  BY EquipID
-            )
-            SELECT TOP 1 e.EquipID, e.EquipName, e.LineID,
-                   COALESCE(es.Status, e.Status, 'OFFLINE') AS Status,
-                   es.StartedAt
-            FROM   dbo.MD_Equipment e
-            LEFT  JOIN latest          l  ON l.EquipID = e.EquipID
-            LEFT  JOIN dbo.PR_EquipStatusLog es ON es.EquipStatusLogID = l.MaxId
-            WHERE  e.LineID = @L
-              AND  ISNULL(e.ActiveFlag,1) = 1
-            ORDER  BY e.EquipID;
-            """;
+        const string sql = "dbo.SP_POP_EQUIP_GetPrimaryForLine";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
         using var rdr = cmd.ExecuteReader();
         if (!rdr.Read()) return null;
@@ -55,15 +40,9 @@ public sealed class EquipmentRepository
     public void LogStatus(string equipId, string lineId, string status,
                           string reason, int? woId, string employeeNo)
     {
-        const string sql = """
-            INSERT INTO dbo.PR_EquipStatusLog
-                (EquipID, LineID, Status, ReasonCode, WoID, StartedAt, CreatedBy, CreatedTS)
-            VALUES (@E, @L, @S, @R, @W, SYSDATETIME(), @By, SYSDATETIME());
-
-            UPDATE dbo.MD_Equipment SET Status = @S, ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE EquipID = @E;
-            """;
+        const string sql = "dbo.SP_POP_EQUIP_LogStatus";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@E",  SqlDbType.VarChar, 20).Value = equipId;
         cmd.Parameters.Add("@L",  SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@S",  SqlDbType.VarChar,  8).Value = status;

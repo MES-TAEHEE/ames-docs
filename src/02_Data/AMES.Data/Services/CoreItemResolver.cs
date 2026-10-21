@@ -120,25 +120,8 @@ public static class CoreItemResolver
     /// <summary><see cref="ResolveByInjFlag"/> 의 DB 판 — <see cref="Read"/> 와 같은 유효 BOM 선택, 활성 품목의 모든 자식(유형·InjFlag 포함).</summary>
     public static Result ReadByInjFlag(SqlConnection conn, SqlTransaction? tx, string itemNo)
     {
-        const string sql = """
-            WITH eff AS (
-                SELECT v.VersionID, v.EffFrom
-                FROM   dbo.MD_BomVersion v
-                WHERE  v.Status = 'APPROVED'
-                  AND (v.EffFrom IS NULL OR v.EffFrom <= @Today)
-                  AND (v.EffTo   IS NULL OR v.EffTo   >= @Today)),
-            lines AS (
-                SELECT b.ParentItemNo, b.CompItemNo,
-                       DENSE_RANK() OVER (PARTITION BY b.ParentItemNo ORDER BY e.EffFrom DESC, e.VersionID DESC) AS Rk
-                FROM   dbo.MD_Bom b
-                JOIN   eff e ON e.VersionID = b.VersionID
-                WHERE  ISNULL(b.ActiveFlag,1) = 1 AND b.ParentItemNo IS NOT NULL AND b.CompItemNo IS NOT NULL)
-            SELECT l.ParentItemNo, l.CompItemNo, c.ItemType, c.ItemName, ISNULL(c.InjFlag, 0) AS InjFlag
-            FROM   lines l
-            JOIN   dbo.MD_Item c ON c.ItemNo = l.CompItemNo
-            WHERE  l.Rk = 1 AND ISNULL(c.ActiveFlag, 1) = 1;
-            """;
-        using var cmd = new SqlCommand(sql, conn, tx);
+        const string sql = "dbo.SP_POP_BOM_ReadByInjFlag";
+        using var cmd = new SqlCommand(sql, conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Today", System.Data.SqlDbType.Date).Value = DbClock.Today;
         using var rdr = cmd.ExecuteReader();
         var edges = new List<InjEdge>();
@@ -155,25 +138,8 @@ public static class CoreItemResolver
     /// </summary>
     public static Result Read(SqlConnection conn, SqlTransaction? tx, string itemNo)
     {
-        const string sql = """
-            WITH eff AS (
-                SELECT v.VersionID, v.EffFrom
-                FROM   dbo.MD_BomVersion v
-                WHERE  v.Status = 'APPROVED'
-                  AND (v.EffFrom IS NULL OR v.EffFrom <= @Today)
-                  AND (v.EffTo   IS NULL OR v.EffTo   >= @Today)),
-            lines AS (
-                SELECT b.ParentItemNo, b.CompItemNo,
-                       DENSE_RANK() OVER (PARTITION BY b.ParentItemNo ORDER BY e.EffFrom DESC, e.VersionID DESC) AS Rk
-                FROM   dbo.MD_Bom b
-                JOIN   eff e ON e.VersionID = b.VersionID
-                WHERE  ISNULL(b.ActiveFlag,1) = 1 AND b.ParentItemNo IS NOT NULL AND b.CompItemNo IS NOT NULL)
-            SELECT l.ParentItemNo, l.CompItemNo, c.ItemType, c.ItemName
-            FROM   lines l
-            JOIN   dbo.MD_Item c ON c.ItemNo = l.CompItemNo
-            WHERE  l.Rk = 1 AND c.ItemType = 'SUB';
-            """;
-        using var cmd = new SqlCommand(sql, conn, tx);
+        const string sql = "dbo.SP_POP_BOM_Read";
+        using var cmd = new SqlCommand(sql, conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Today", System.Data.SqlDbType.Date).Value = DbClock.Today;
         using var rdr = cmd.ExecuteReader();
         var edges = new List<BomEdge>();

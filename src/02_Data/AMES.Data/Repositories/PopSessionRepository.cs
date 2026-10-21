@@ -33,19 +33,10 @@ public sealed class PopSessionRepository
         string shiftCode,
         AuthMethod method)
     {
-        const string sql = """
-            DECLARE @Now datetime2 = SYSDATETIME();
-            INSERT INTO dbo.PR_PopSession
-                (OperatorID, TerminalID, LineID, ShiftCode, AuthMethod,
-                 StartedAt, ExpiresAt, CreatedBy, CreatedTS)
-            OUTPUT INSERTED.SessionID, INSERTED.StartedAt, INSERTED.ExpiresAt
-            VALUES
-                (@OperatorID, @TerminalID, @LineID, @ShiftCode, @AuthMethod,
-                 @Now, DATEADD(second, @Lifetime, @Now), @CreatedBy, @Now);
-            """;
+        const string sql = "dbo.SP_POP_SESSION_CreateSession_InsPopSession";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         // 세션의 "누가" 는 사번이다 — 이 값이 실적·감사 컬럼(OperatorID·CreatedBy·ModifiedBy 등)으로 그대로 흘러간다.
         // 웹 계정 GUID(profile.UserId)는 아래 역할 조회에만 쓴다.
         cmd.Parameters.Add("@OperatorID", SqlDbType.NVarChar, 450).Value = profile.EmployeeNo;
@@ -66,12 +57,7 @@ public sealed class PopSessionRepository
             expiresAt = reader.GetDateTime(2);
         }
 
-        using var roleCmd = new SqlCommand("""
-            SELECT CAST(CASE WHEN EXISTS (
-                SELECT 1 FROM dbo.AspNetUserRoles ur
-                WHERE ur.UserId = @UserId AND ur.RoleId = @RoleId
-            ) THEN 1 ELSE 0 END AS bit);
-            """, conn);
+        using var roleCmd = new SqlCommand("dbo.SP_POP_SESSION_CreateSession_GetAspNetUserRoles", conn) { CommandType = System.Data.CommandType.StoredProcedure };
         roleCmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = profile.UserId;
         roleCmd.Parameters.Add("@RoleId", SqlDbType.NVarChar, 450).Value = SystemRoles.AdminId;
         var isAdmin = (bool)roleCmd.ExecuteScalar()!;
@@ -100,18 +86,10 @@ public sealed class PopSessionRepository
     /// </summary>
     public void CloseSession(int sessionId, string reason, string? userId = null)
     {
-        const string sql = """
-            UPDATE dbo.PR_PopSession
-            SET    LoggedOutAt   = SYSDATETIME(),
-                   LogoutReason  = @Reason,
-                   ModifiedBy    = @ModBy,
-                   ModifiedTS    = SYSDATETIME()
-            WHERE  SessionID     = @SessionID
-              AND  LoggedOutAt IS NULL;
-            """;
+        const string sql = "dbo.SP_POP_SESSION_CloseSession";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@SessionID", SqlDbType.Int            ).Value = sessionId;
         cmd.Parameters.Add("@Reason",    SqlDbType.VarChar,  20   ).Value = reason;
         cmd.Parameters.Add("@ModBy",     SqlDbType.VarChar,     20).Value = (object?)userId ?? DBNull.Value;
@@ -141,17 +119,10 @@ public sealed class PopSessionRepository
         AuthResult  result,
         string? failReason)
     {
-        const string sql = """
-            INSERT INTO dbo.PR_PopAuthLog
-                (TerminalID, AttemptedID, AuthMethod, Result, FailReason,
-                 AttemptedAt, CreatedBy, CreatedTS)
-            VALUES
-                (@TerminalID, @AttemptedID, @AuthMethod, @Result, @FailReason,
-                 SYSDATETIME(), @CreatedBy, SYSDATETIME());
-            """;
+        const string sql = "dbo.SP_POP_SESSION_WriteAuthLog";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@TerminalID",  SqlDbType.VarChar, 20).Value = terminalId;
         cmd.Parameters.Add("@AttemptedID", SqlDbType.VarChar, 50).Value = attemptedId;
         cmd.Parameters.Add("@AuthMethod",  SqlDbType.VarChar, 20).Value = method.ToString();

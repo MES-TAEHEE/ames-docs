@@ -36,13 +36,10 @@ public sealed class WorkerRepository
     /// </summary>
     public EmployeeProfileDto? FindByEmployeeNo(string workerNo)
     {
-        const string sql = $"""
-            {SelectList}
-            WHERE  EmployeeNo = @EmployeeNo;
-            """;
+        const string sql = "dbo.SP_POP_WORKER_FindByEmployeeNo";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar, 20).Value = workerNo;
 
         using var rdr = cmd.ExecuteReader();
@@ -55,14 +52,10 @@ public sealed class WorkerRepository
     /// </summary>
     public List<EmployeeProfileDto> ListAllActive()
     {
-        const string sql = $"""
-            {SelectList}
-            WHERE  ActiveFlag = 1
-            ORDER  BY EmployeeNo;
-            """;
+        const string sql = "dbo.SP_POP_WORKER_ListAllActive";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
 
         var list = new List<EmployeeProfileDto>();
@@ -84,17 +77,13 @@ public sealed class WorkerRepository
     /// <param name="workerName">Name read off the badge; falls back to the number.</param>
     public bool EnsureRegistered(string workerNo, string? workerName = null)
     {
-        const string sql = """
-            INSERT INTO dbo.MD_Worker (EmployeeNo, EmployeeName, ActiveFlag, CreatedBy)
-            SELECT @EmployeeNo, @EmployeeName, 1, @EmployeeNo
-            WHERE  NOT EXISTS (SELECT 1 FROM dbo.MD_Worker WHERE EmployeeNo = @EmployeeNo);
-            """;
+        const string sql = "dbo.SP_POP_WORKER_EnsureRegistered";
 
         var name = string.IsNullOrWhiteSpace(workerName) ? workerNo : workerName.Trim();
         if (name.Length > 50) name = name[..50];   // MD_Worker.EmployeeName NVARCHAR(50)
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@EmployeeNo",   SqlDbType.VarChar,  20).Value = workerNo;
         cmd.Parameters.Add("@EmployeeName", SqlDbType.NVarChar, 50).Value = name;
 
@@ -113,16 +102,10 @@ public sealed class WorkerRepository
     /// </summary>
     public void SetPin(string workerNo, string pinHash)
     {
-        const string sql = """
-            UPDATE dbo.MD_Worker
-            SET    PinHash    = @PinHash,
-                   ModifiedBy = @EmployeeNo,
-                   ModifiedTS = SYSDATETIME()
-            WHERE  EmployeeNo   = @EmployeeNo;
-            """;
+        const string sql = "dbo.SP_POP_WORKER_SetPin";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar,   20).Value = workerNo;
         cmd.Parameters.Add("@PinHash",  SqlDbType.NVarChar, 200).Value = pinHash;
         cmd.ExecuteNonQuery();

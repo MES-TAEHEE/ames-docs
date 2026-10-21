@@ -22,12 +22,7 @@ internal static class LotDefectWriter
         string operatorId, int? sessionId, string employeeNo)
     {
         int origId; int? woId; string lineId, processCode; string? moldId;
-        using (var cmd = new SqlCommand("""
-            SELECT TOP 1 ResultID, WoID, LineID, ProcessCode, MoldID
-            FROM   dbo.PR_ProductionResult
-            WHERE  LotID = @Lot AND GoodQty > 0
-            ORDER  BY ResultID DESC;
-            """, conn, tx))
+        using (var cmd = new SqlCommand("dbo.SP_POP_LOT_ReverseConfirmedResult_GetProductionResult", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
         {
             cmd.Parameters.Add("@Lot", SqlDbType.Int).Value = lotId;
             using var rdr = cmd.ExecuteReader();
@@ -43,15 +38,7 @@ internal static class LotDefectWriter
         int reversalId;
         // DefectFlag = 0: 불량 자체는 PR_DefectDetail 이 센다. 여기에 1 을 주면 상세 Qty 와 겹쳐 보고서가 이중 계상한다.
         // 역분개 행은 GoodQty < 0 과 EntryNo 의 'R' 접두로 식별한다.
-        using (var cmd = new SqlCommand("""
-            INSERT INTO dbo.PR_ProductionResult
-                (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-                 MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
-            OUTPUT INSERTED.ResultID
-            VALUES
-                (@EntryNo, @WoID, @LotID, @LineID, @Proc, -1, 0,
-                 @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
-            """, conn, tx))
+        using (var cmd = new SqlCommand("dbo.SP_POP_LOT_ReverseConfirmedResult_InsProductionResult", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
         {
             var entryNo = $"R{now:yyMMddHHmmssfff}-{lineId}";
             if (entryNo.Length > 28) entryNo = entryNo[..28];
@@ -84,15 +71,7 @@ internal static class LotDefectWriter
         string priorStatus, int? reversalResultId, string? reasonNote,
         string operatorId, string employeeNo)
     {
-        using var cmd = new SqlCommand("""
-            INSERT INTO dbo.PR_DefectDetail
-                (ResultID, WoID, LotID, ProcessCode, DefectCode, Qty, ReasonNote,
-                 PriorStatus, ReversalResultID, DetectedAt, RegisteredBy, CreatedBy, CreatedTS)
-            OUTPUT INSERTED.DefectID
-            VALUES
-                (@R, @W, @L, @P, @C, 1, @N,
-                 @Prior, @Rev, SYSDATETIME(), @Op, @By, SYSDATETIME());
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_LOT_InsertDefectDetail", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@R",     SqlDbType.Int          ).Value = (object?)resultId ?? DBNull.Value;
         cmd.Parameters.Add("@W",     SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
         cmd.Parameters.Add("@L",     SqlDbType.Int          ).Value = lotId;
@@ -109,12 +88,7 @@ internal static class LotDefectWriter
     /// <summary>이 라인에서 품번의 열린 WO 단계 (ConfirmByLotCode 와 같은 규칙, 단계 행 잠금). 없으면 null.</summary>
     internal static (int WoId, int StepId)? ResolveOpenWo(SqlConnection conn, SqlTransaction tx, string lineId, string itemNo)
     {
-        using var cmd = new SqlCommand("""
-            SELECT TOP 1 r.WoID, r.RoutingLineID
-            FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
-            JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
-
-            """ + WorkOrderRepository.OpenStepForItemFilter + ";", conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_LOT_ResolveOpenWo", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
         using var rdr = cmd.ExecuteReader();

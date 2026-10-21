@@ -15,6 +15,7 @@ public static class CodeGroupsUsedByCode
     public static readonly IReadOnlyDictionary<string, string> ReadByDbProcedure = new Dictionary<string, string>
     {
         ["WH_INV_STATUS"] = "WH_SET_LOT_STATUS",
+        ["ANDON_DEPT"]    = "SP_POP_ANDON_GetOpenForLine_GetAndonDeptCall",
     };
 
     public static readonly IReadOnlySet<string> Groups = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
