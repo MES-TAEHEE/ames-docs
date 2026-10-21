@@ -9152,7 +9152,7 @@
     <value>Volver a la lista de cajas</value>
   </data>
   <data name="Portal.Text.BoxBarcodePrinting" xml:space="preserve">
-    <value>Impresión de códigos de barras de cajas</value>
+    <value>Unit Item Barcode Printing</value>
   </data>
   <data name="Portal.Text.DeliveryNoteInquiryIssue" xml:space="preserve">
     <value>Consulta y emisión de notas de entrega</value>
@@ -9161,7 +9161,7 @@
     <value>Cantidades por caja</value>
   </data>
   <data name="Portal.Text.BoxLabels" xml:space="preserve">
-    <value>Etiquetas de cajas</value>
+    <value>Unit Item Labels</value>
   </data>
   <data name="Portal.Text.ClearSelection" xml:space="preserve">
     <value>Borrar selección</value>
@@ -9185,7 +9185,7 @@
     <value>Cajas</value>
   </data>
   <data name="Portal.Text.Boxes.fb6660" xml:space="preserve">
-    <value>Cajas</value>
+    <value>Unit Items</value>
   </data>
   <data name="Portal.Text.BoxNumber" xml:space="preserve">
     <value>Número de caja</value>
@@ -9317,19 +9317,19 @@
     <value>No se pudieron cargar las entregas.</value>
   </data>
   <data name="Portal.Text.UnableToLoadBoxes" xml:space="preserve">
-    <value>No se pudieron cargar las cajas.</value>
+    <value>No se pudieron cargar las unit items.</value>
   </data>
   <data name="Portal.Text.NoSavedBoxesBoxesAreNotAutomaticallyGeneratedFor" xml:space="preserve">
-    <value>No hay cajas guardadas. No se generan cajas automáticamente para entregas anteriores.</value>
+    <value>No hay unit items guardadas. No se generan unit items automáticamente para entregas anteriores.</value>
   </data>
   <data name="Portal.Text.ThisDeliveryIsCancelledLabelsCannotBePrinted" xml:space="preserve">
     <value>La entrega está cancelada. No se pueden imprimir etiquetas.</value>
   </data>
   <data name="Portal.Text.SelectLabelsFromTheBoxList" xml:space="preserve">
-    <value>Seleccione las etiquetas de la lista de cajas.</value>
+    <value>Seleccione las etiquetas de la lista de unit items.</value>
   </data>
   <data name="Portal.Text.TheDeliveryChangedOrWasCancelledSelectBoxesAgain" xml:space="preserve">
-    <value>La entrega cambió o fue cancelada. Vuelva a seleccionar las cajas.</value>
+    <value>La entrega cambió o fue cancelada. Vuelva a seleccionar las unit items.</value>
   </data>
   <data name="Portal.Text.UnableToLoadLabels" xml:space="preserve">
     <value>No se pudieron cargar las etiquetas.</value>
@@ -9536,7 +9536,7 @@
     <value>Activo</value>
   </data>
   <data name="Portal.Accessibility.SelectBox" xml:space="preserve">
-    <value>Seleccionar caja {0}</value>
+    <value>Seleccionar unit item {0}</value>
   </data>
   <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
     <value>Cantidad por caja de {0}</value>
@@ -11064,7 +11064,7 @@
     <value>Esta entrega no tiene Shipping Units.</value>
   </data>
   <data name="SCM.Preview.Print.BoxBarcode" xml:space="preserve">
-    <value>Código de barras de caja / pieza</value>
+    <value>Unit Item Barcode</value>
   </data>
   <data name="SCM.Preview.Print.Preview" xml:space="preserve">
     <value>Vista previa de impresión</value>
@@ -11100,7 +11100,7 @@
     <value>Shipping Unit</value>
   </data>
   <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
-    <value>{0} cajas</value>
+    <value>{0} unit items</value>
   </data>
   <data name="SCM.Preview.Hint.CaseFixed" xml:space="preserve">
     <value>Las cantidades las fija el contenido del Shipping Unit.</value>
@@ -11175,10 +11175,10 @@
     <value>Etiquetas</value>
   </data>
   <data name="Portal.Boxes.Title" xml:space="preserve">
-    <value>Cajas / piezas</value>
+    <value>Unit Items</value>
   </data>
   <data name="Portal.Boxes.Col.Barcode" xml:space="preserve">
-    <value>Código de barras</value>
+    <value>Unit Item Barcode</value>
   </data>
   <data name="Portal.CaseLabel.Title" xml:space="preserve">
     <value>Etiqueta de Shipping Unit</value>
@@ -11205,7 +11205,7 @@
     <value>Pieza</value>
   </data>
   <data name="Portal.Create.Box" xml:space="preserve">
-    <value>Caja</value>
+    <value>Unit Item</value>
   </data>
   <data name="Portal.Create.AddCase" xml:space="preserve">
     <value>Añadir Shipping Unit</value>
@@ -11220,13 +11220,13 @@
     <value>Quitar Shipping Unit</value>
   </data>
   <data name="Portal.Create.ReviewFmt" xml:space="preserve">
-    <value>Revisar albarán · {0} shipping units · {1} cajas / piezas</value>
+    <value>Revisar albarán · {0} shipping units · {1} unit items</value>
   </data>
   <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
     <value>Cant. seleccionada</value>
   </data>
   <data name="Portal.Create.Col.BoxesParts" xml:space="preserve">
-    <value>Cajas / piezas</value>
+    <value>Unit Items</value>
   </data>
   <data name="Portal.Create.BoxesPartsFmt" xml:space="preserve">
     <value>{0} cajas · {1} piezas</value>
@@ -11253,7 +11253,7 @@
     <value>Piezas necesarias</value>
   </data>
   <data name="Portal.Create.Col.BoxesNeeded" xml:space="preserve">
-    <value>Cajas necesarias</value>
+    <value>Unit Items Needed</value>
   </data>
   <data name="Portal.Create.AlreadyRegistered" xml:space="preserve">
     <value>Ya registrado</value>
@@ -11277,13 +11277,13 @@
     <value>Introduzca solo números enteros.</value>
   </data>
   <data name="Portal.Create.PerBoxFmt" xml:space="preserve">
-    <value>{0} / caja</value>
+    <value>{0} / unit item</value>
   </data>
   <data name="Portal.Create.Ph.QtyPerBox" xml:space="preserve">
-    <value>Cant. / caja</value>
+    <value>Cant. / unit item</value>
   </data>
   <data name="Portal.Create.Btn.SaveBoxSize" xml:space="preserve">
-    <value>Guardar cant. por caja</value>
+    <value>Guardar cant. por unit item</value>
   </data>
   <data name="Portal.Create.AskEos" xml:space="preserve">
     <value>Pida a EOS que revise el maestro de materiales / vínculo de proveedor.</value>
@@ -11292,19 +11292,19 @@
     <value>Seleccionar piezas</value>
   </data>
   <data name="Portal.Create.Step2.Boxes" xml:space="preserve">
-    <value>Seleccionar contenido</value>
+    <value>Select Unit Items</value>
   </data>
   <data name="Portal.Create.Step2Hint.Parts" xml:space="preserve">
     <value>Marque las piezas que desea añadir a esta entrega.</value>
   </data>
   <data name="Portal.Create.Step2Hint.Boxes" xml:space="preserve">
-    <value>Seleccione las cajas / piezas que se incluirán en este Shipping Unit.</value>
+    <value>Seleccione las unit items que se incluirán en este Shipping Unit.</value>
   </data>
   <data name="Portal.Create.Step2Empty.Parts" xml:space="preserve">
     <value>Introduzca una cantidad en el paso 1 para ver las piezas aquí.</value>
   </data>
   <data name="Portal.Create.Step2Empty.Boxes" xml:space="preserve">
-    <value>Introduzca una cantidad en el paso 1 para ver las cajas aquí.</value>
+    <value>Introduzca una cantidad en el paso 1 para ver las unit items aquí.</value>
   </data>
   <data name="Portal.Create.SelectedFmt" xml:space="preserve">
     <value>Seleccionados {0} / {1} · Cant. total de entrega {2}</value>
@@ -11331,34 +11331,34 @@
     <value>Listo</value>
   </data>
   <data name="Portal.Create.Err.Load" xml:space="preserve">
-    <value>No se pudieron cargar los artículos del pedido y los palés.</value>
+    <value>No se pudieron cargar los artículos del pedido y los shipping units.</value>
   </data>
   <data name="Portal.Create.Err.LoadItems" xml:space="preserve">
     <value>No se pudieron cargar los artículos del pedido.</value>
   </data>
   <data name="Portal.Create.Err.BoxQty" xml:space="preserve">
-    <value>Introduzca una cantidad por caja entera y positiva.</value>
+    <value>Introduzca una cantidad por unit item entera y positiva.</value>
   </data>
   <data name="Portal.Create.Err.PackingChanged" xml:space="preserve">
     <value>La cantidad de empaque cambió o la configuración del artículo está incompleta. Actualice y revise las cantidades de empaque.</value>
   </data>
   <data name="Portal.Create.Ok.BoxQtyFmt" xml:space="preserve">
-    <value>Cantidad por caja guardada para {0}.</value>
+    <value>Cantidad por unit item guardada para {0}.</value>
   </data>
   <data name="Portal.Create.Err.SaveBoxQty" xml:space="preserve">
-    <value>No se pudo guardar la cantidad por caja.</value>
+    <value>No se pudo guardar la cantidad por unit item.</value>
   </data>
   <data name="Portal.Create.Err.Quantities" xml:space="preserve">
     <value>Introduzca cantidades enteras dentro de lo pendiente de enviar y revise las cantidades de empaque.</value>
   </data>
   <data name="Portal.Create.Err.MaxBoxes" xml:space="preserve">
-    <value>Se pueden preparar como máximo 1.000 cajas a la vez.</value>
+    <value>Se pueden preparar como máximo 1.000 unit items a la vez.</value>
   </data>
   <data name="Portal.Create.Ok.CreatedFmt" xml:space="preserve">
     <value>{0} creado.</value>
   </data>
   <data name="Portal.Create.Err.Create" xml:space="preserve">
-    <value>No se pudo crear el albarán. Revise la fecha, los saldos del pedido y los palés seleccionados.</value>
+    <value>No se pudo crear el albarán. Revise la fecha, los saldos del pedido y los shipping units seleccionados.</value>
   </data>
   <data name="SCM.PortalUsers.Err.LoadVendors" xml:space="preserve">
     <value>No se pudieron cargar los proveedores. Actualice para reintentar.</value>
@@ -11585,7 +11585,7 @@
   <data name="WH.Inventory.AvailableQty" xml:space="preserve"><value>Cantidad disponible</value></data>
   <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>Defecto registrado</value></data>
   <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
-  <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>{0} elementos</value></data>
+  <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>{0} unit items</value></data>
   <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>¿Descargar en Excel las cantidades disponibles y defectuosas de los {0} artículos filtrados?</value></data>
   <data name="Excel.Download" xml:space="preserve">
     <value>Descargar Excel</value>

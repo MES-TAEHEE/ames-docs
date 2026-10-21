@@ -9152,7 +9152,7 @@
     <value>Back to box list</value>
   </data>
   <data name="Portal.Text.BoxBarcodePrinting" xml:space="preserve">
-    <value>Box Barcode Printing</value>
+    <value>Unit Item Barcode Printing</value>
   </data>
   <data name="Portal.Text.DeliveryNoteInquiryIssue" xml:space="preserve">
     <value>Delivery Note Inquiry &amp; Issue</value>
@@ -9161,7 +9161,7 @@
     <value>Packing Quantities</value>
   </data>
   <data name="Portal.Text.BoxLabels" xml:space="preserve">
-    <value>Box Labels</value>
+    <value>Unit Item Labels</value>
   </data>
   <data name="Portal.Text.ClearSelection" xml:space="preserve">
     <value>Clear selection</value>
@@ -9185,7 +9185,7 @@
     <value>Boxes</value>
   </data>
   <data name="Portal.Text.Boxes.fb6660" xml:space="preserve">
-    <value>Boxes</value>
+    <value>Unit Items</value>
   </data>
   <data name="Portal.Text.BoxNumber" xml:space="preserve">
     <value>Box number</value>
@@ -9317,19 +9317,19 @@
     <value>Unable to load deliveries.</value>
   </data>
   <data name="Portal.Text.UnableToLoadBoxes" xml:space="preserve">
-    <value>Unable to load boxes.</value>
+    <value>Unable to load unit items.</value>
   </data>
   <data name="Portal.Text.NoSavedBoxesBoxesAreNotAutomaticallyGeneratedFor" xml:space="preserve">
-    <value>No saved boxes. Boxes are not automatically generated for older deliveries.</value>
+    <value>No saved unit items. Unit items are not automatically generated for older deliveries.</value>
   </data>
   <data name="Portal.Text.ThisDeliveryIsCancelledLabelsCannotBePrinted" xml:space="preserve">
     <value>This delivery is cancelled. Labels cannot be printed.</value>
   </data>
   <data name="Portal.Text.SelectLabelsFromTheBoxList" xml:space="preserve">
-    <value>Select labels from the box list.</value>
+    <value>Select labels from the unit item list.</value>
   </data>
   <data name="Portal.Text.TheDeliveryChangedOrWasCancelledSelectBoxesAgain" xml:space="preserve">
-    <value>The delivery changed or was cancelled. Select boxes again.</value>
+    <value>The delivery changed or was cancelled. Select unit items again.</value>
   </data>
   <data name="Portal.Text.UnableToLoadLabels" xml:space="preserve">
     <value>Unable to load labels.</value>
@@ -9536,7 +9536,7 @@
     <value>Active</value>
   </data>
   <data name="Portal.Accessibility.SelectBox" xml:space="preserve">
-    <value>Select box {0}</value>
+    <value>Select unit item {0}</value>
   </data>
   <data name="Portal.Accessibility.PackingQuantity" xml:space="preserve">
     <value>Packing quantity for {0}</value>
@@ -11064,7 +11064,7 @@
     <value>No shipping units in this delivery.</value>
   </data>
   <data name="SCM.Preview.Print.BoxBarcode" xml:space="preserve">
-    <value>Box / Part Barcode</value>
+    <value>Unit Item Barcode</value>
   </data>
   <data name="SCM.Preview.Print.Preview" xml:space="preserve">
     <value>Print Preview</value>
@@ -11100,7 +11100,7 @@
     <value>Shipping Unit</value>
   </data>
   <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
-    <value>{0} boxes</value>
+    <value>{0} unit items</value>
   </data>
   <data name="SCM.Preview.Hint.CaseFixed" xml:space="preserve">
     <value>Quantities are fixed by the shipping unit contents.</value>
@@ -11175,10 +11175,10 @@
     <value>Labels</value>
   </data>
   <data name="Portal.Boxes.Title" xml:space="preserve">
-    <value>Boxes / Parts</value>
+    <value>Unit Items</value>
   </data>
   <data name="Portal.Boxes.Col.Barcode" xml:space="preserve">
-    <value>Barcode</value>
+    <value>Unit Item Barcode</value>
   </data>
   <data name="Portal.CaseLabel.Title" xml:space="preserve">
     <value>Shipping Unit Label</value>
@@ -11205,7 +11205,7 @@
     <value>Part</value>
   </data>
   <data name="Portal.Create.Box" xml:space="preserve">
-    <value>Box</value>
+    <value>Unit Item</value>
   </data>
   <data name="Portal.Create.AddCase" xml:space="preserve">
     <value>Add Shipping Unit</value>
@@ -11220,13 +11220,13 @@
     <value>Remove Shipping Unit</value>
   </data>
   <data name="Portal.Create.ReviewFmt" xml:space="preserve">
-    <value>Review Delivery Note · {0} shipping units · {1} boxes / parts</value>
+    <value>Review Delivery Note · {0} shipping units · {1} unit items</value>
   </data>
   <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
     <value>Selected Qty</value>
   </data>
   <data name="Portal.Create.Col.BoxesParts" xml:space="preserve">
-    <value>Boxes / Parts</value>
+    <value>Unit Items</value>
   </data>
   <data name="Portal.Create.BoxesPartsFmt" xml:space="preserve">
     <value>{0} boxes · {1} parts</value>
@@ -11253,7 +11253,7 @@
     <value>Parts Needed</value>
   </data>
   <data name="Portal.Create.Col.BoxesNeeded" xml:space="preserve">
-    <value>Boxes Needed</value>
+    <value>Unit Items Needed</value>
   </data>
   <data name="Portal.Create.AlreadyRegistered" xml:space="preserve">
     <value>Already registered</value>
@@ -11277,13 +11277,13 @@
     <value>Enter whole numbers only.</value>
   </data>
   <data name="Portal.Create.PerBoxFmt" xml:space="preserve">
-    <value>{0} / box</value>
+    <value>{0} / unit item</value>
   </data>
   <data name="Portal.Create.Ph.QtyPerBox" xml:space="preserve">
-    <value>Qty / box</value>
+    <value>Qty / unit item</value>
   </data>
   <data name="Portal.Create.Btn.SaveBoxSize" xml:space="preserve">
-    <value>Save box size</value>
+    <value>Save unit item size</value>
   </data>
   <data name="Portal.Create.AskEos" xml:space="preserve">
     <value>Ask EOS to check Material Item Master / supplier mapping.</value>
@@ -11292,19 +11292,19 @@
     <value>Select Parts</value>
   </data>
   <data name="Portal.Create.Step2.Boxes" xml:space="preserve">
-    <value>Select Contents</value>
+    <value>Select Unit Items</value>
   </data>
   <data name="Portal.Create.Step2Hint.Parts" xml:space="preserve">
     <value>Check the parts to add to this delivery.</value>
   </data>
   <data name="Portal.Create.Step2Hint.Boxes" xml:space="preserve">
-    <value>Check the boxes / parts to include in this Shipping Unit.</value>
+    <value>Check the unit items to include in this Shipping Unit.</value>
   </data>
   <data name="Portal.Create.Step2Empty.Parts" xml:space="preserve">
     <value>Enter a quantity in step 1 to see parts here.</value>
   </data>
   <data name="Portal.Create.Step2Empty.Boxes" xml:space="preserve">
-    <value>Enter a quantity in step 1 to see boxes here.</value>
+    <value>Enter a quantity in step 1 to see unit items here.</value>
   </data>
   <data name="Portal.Create.SelectedFmt" xml:space="preserve">
     <value>Selected {0} / {1} · Total Delivery Qty {2}</value>
@@ -11331,34 +11331,34 @@
     <value>Done</value>
   </data>
   <data name="Portal.Create.Err.Load" xml:space="preserve">
-    <value>Unable to load PO items and pallets.</value>
+    <value>Unable to load PO items and shipping units.</value>
   </data>
   <data name="Portal.Create.Err.LoadItems" xml:space="preserve">
     <value>Unable to load PO items.</value>
   </data>
   <data name="Portal.Create.Err.BoxQty" xml:space="preserve">
-    <value>Enter a positive whole-number Qty / Box.</value>
+    <value>Enter a positive whole-number Qty / Unit Item.</value>
   </data>
   <data name="Portal.Create.Err.PackingChanged" xml:space="preserve">
     <value>Packing quantity changed or item setup is incomplete. Refresh and check Packing Quantities.</value>
   </data>
   <data name="Portal.Create.Ok.BoxQtyFmt" xml:space="preserve">
-    <value>Qty / Box saved for {0}.</value>
+    <value>Qty / Unit Item saved for {0}.</value>
   </data>
   <data name="Portal.Create.Err.SaveBoxQty" xml:space="preserve">
-    <value>Unable to save Qty / Box.</value>
+    <value>Unable to save Qty / Unit Item.</value>
   </data>
   <data name="Portal.Create.Err.Quantities" xml:space="preserve">
     <value>Enter whole-number quantities within the quantity left to send and check packing quantities.</value>
   </data>
   <data name="Portal.Create.Err.MaxBoxes" xml:space="preserve">
-    <value>At most 1,000 boxes can be prepared at once.</value>
+    <value>At most 1,000 unit items can be prepared at once.</value>
   </data>
   <data name="Portal.Create.Ok.CreatedFmt" xml:space="preserve">
     <value>{0} created.</value>
   </data>
   <data name="Portal.Create.Err.Create" xml:space="preserve">
-    <value>Unable to create Delivery Note. Check the date, PO balances and selected pallets.</value>
+    <value>Unable to create Delivery Note. Check the date, PO balances and selected shipping units.</value>
   </data>
   <data name="SCM.PortalUsers.Err.LoadVendors" xml:space="preserve">
     <value>Unable to load suppliers. Refresh to retry.</value>
@@ -11585,7 +11585,7 @@
   <data name="WH.Inventory.AvailableQty" xml:space="preserve"><value>Available Qty</value></data>
   <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>Defect recorded</value></data>
   <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
-  <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>{0} items</value></data>
+  <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>{0} unit items</value></data>
   <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>Download the available and defective quantities for the {0} currently filtered items as Excel?</value></data>
   <data name="Excel.Download" xml:space="preserve">
     <value>Download Excel</value>

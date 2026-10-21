@@ -170,11 +170,12 @@ public sealed class ScmDeliveryCaseTests
             Assert.Throws<InvalidOperationException>(()=>repo.CreatePreparedCase("PO-CASE-1",[new(2,4)],"case-user"));
             Assert.Throws<InvalidOperationException>(()=>repo.CreatePreparedCase("PO-CASE-1",[new(1,5)],"case-user"));
             var first=repo.CreatePreparedCase("PO-CASE-1",[new(1,4),new(1,4)],"case-user");
-            Assert.Matches("^CASE-[0-9]{8}-000001$",first);
+            Assert.Matches("^SHU-[0-9]{8}-000001$",first);
             Assert.Equal(0,Count("SELECT COUNT(*) FROM sys.columns WHERE object_id=OBJECT_ID('dbo.SCM_DeliveryCase') AND name='CaseID'"));
             var second=repo.CreatePreparedCase("PO-CASE-1",[new(1,4)],"case-user");
             var rollbackCase=repo.CreatePreparedCase("PO-CASE-2",[new(2,5),new(2,5)],"case-user");
             var originalBoxes=repo.ListDeliveryCases("PO-CASE-1","case-user").SelectMany(c=>c.Boxes).Select(b=>b.Number).Order().ToArray();
+            Assert.All(originalBoxes, barcode => Assert.StartsWith("UIT-", barcode));
             Assert.Equal(0,Count("SELECT COUNT(*) FROM SCM_Delivery"));
             Assert.Equal(0,Count("SELECT COUNT(*) FROM SCM_DeliveryNote"));
             Assert.Equal(8,repo.ListCaseParts("PO-CASE-1","case-user").Single().Available);
@@ -478,8 +479,7 @@ public sealed class ScmDeliveryCaseTests
             var looseDeliveries=repo.ListNoteDeliveries("case-user").Where(d=>d.NoteNumber==looseNote.Number).ToArray();
             Assert.Equal(2,looseDeliveries.Length);
             var looseLabels=looseDeliveries.SelectMany(d=>repo.ListDeliveryBoxes(d.Number,"case-user")).ToArray();
-            Assert.Contains(looseLabels,b=>b.Number.StartsWith("PT-",StringComparison.Ordinal));
-            Assert.Contains(looseLabels,b=>b.Number.StartsWith("BX-",StringComparison.Ordinal));
+            Assert.All(looseLabels,b=>Assert.StartsWith("UIT-",b.Number));
             var shipment=repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number))
                 .GroupBy(d=>d.Number).OrderBy(g=>g.Key,StringComparer.OrdinalIgnoreCase)
                 .Select(g=>new ScmRepository.ShipmentDelivery(g.Key,g.First().OrderNumber,g.First().Version,
@@ -494,7 +494,7 @@ public sealed class ScmDeliveryCaseTests
             var partOnly=repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
                 [new("PO-LOOSE",7,1,true)]);
             Assert.Single(partOnly.Lines);
-            Assert.StartsWith("PT-",Assert.Single(repo.ListDeliveryBoxes(
+            Assert.StartsWith("UIT-",Assert.Single(repo.ListDeliveryBoxes(
                 Assert.Single(repo.ListNoteDeliveries("case-user").Where(d=>d.NoteNumber==partOnly.Number)).Number,"case-user")).Number);
             Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
                 [new("PO-LOOSE",7,5,false)]));

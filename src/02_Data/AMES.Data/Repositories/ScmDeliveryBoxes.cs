@@ -100,7 +100,7 @@ public sealed partial class ScmRepository
                     VALUES(@L,@S,@I,@Name,@Unit,@Q,@Number);
                     """,c,tx);
                 Add(insert,("@L", "SCM_DeliveryBox.DeliveryLineID",l.Id),("@S", "SCM_DeliveryBox.BoxSeq",seq),("@I", "SCM_DeliveryBox.ItemNo",l.Item),("@Name", "SCM_DeliveryBox.ItemName",l.Name),("@Unit", "SCM_DeliveryBox.UnitCode",l.Unit),("@Q", "SCM_DeliveryBox.Quantity",Math.Min(l.Pack,l.Qty-(seq-1)*l.Pack)));
-                Add(insert,("@Number", "SCM_DeliveryBox.IssuedBoxNumber",$"BX-{vendor}-{numberDate.ToString("yyyyMMdd",System.Globalization.CultureInfo.InvariantCulture)}-{(firstNumber+seq-1).ToString("D4",System.Globalization.CultureInfo.InvariantCulture)}"));
+                Add(insert,("@Number", "SCM_DeliveryBox.IssuedBoxNumber",$"UIT-{vendor}-{numberDate.ToString("yyyyMMdd",System.Globalization.CultureInfo.InvariantCulture)}-{(firstNumber+seq-1).ToString("D4",System.Globalization.CultureInfo.InvariantCulture)}"));
                 insert.ExecuteNonQuery();
             }
         }
@@ -143,7 +143,7 @@ public sealed partial class ScmRepository
                 """,c,tx);
             Add(insert,("@Line", "SCM_DeliveryBox.DeliveryLineID",line.Id),("@Po", "SCM_DeliveryBox.PoID",item.PoID),("@Seq", "SCM_DeliveryBox.BoxSeq",sequence),("@Item", "SCM_DeliveryBox.ItemNo",line.Item),("@Name", "SCM_DeliveryBox.ItemName",line.Name),
                 ("@Unit", "SCM_DeliveryBox.UnitCode",line.Unit),("@Qty", "SCM_DeliveryBox.Quantity",item.Quantity),("@Pack", "SCM_DeliveryBox.PackingQty",item.IsPart?1:line.Pack),
-                ("@Number", "SCM_DeliveryBox.IssuedBoxNumber",$"{(item.IsPart?"PT":"BX")}-{vendor}-{day:yyyyMMdd}-{first+index:D4}"));
+                ("@Number", "SCM_DeliveryBox.IssuedBoxNumber",$"UIT-{vendor}-{day:yyyyMMdd}-{first+index:D4}"));
             insert.ExecuteNonQuery();
         }
         foreach(var line in lines.Values)
