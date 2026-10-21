@@ -124,7 +124,7 @@ app.MapScalarApiReference("/scalar", o =>
     o.WithTitle("AMES API")
      .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
      .AddPreferredSecuritySchemes("Bearer")
-     .WithPersistentAuthentication();
+     .EnablePersistentAuthentication();
 });
 }
 
