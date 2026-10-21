@@ -81,6 +81,33 @@ public class PdaDirectSqlTests
     }
 
     [Fact]
+    public void Normal_lot_cancel_uses_original_receipt_and_blocks_consumed_or_inconsistent_stock()
+    {
+        var sql=PdaWarehouseSql.InboundCancel;
+        Assert.Contains("@ReceiptQty=QtyChange",sql);
+        Assert.Contains("ReceivedQty=ReceivedQty-@ReceiptQty",sql);
+        Assert.Contains("@Qty,-@Qty,0,'INBOUND_CANCEL','LOT'",sql);
+        Assert.Contains("TransactionID>@ReceiptID",sql);
+        Assert.Contains("QtyChange<>0 AND COALESCE(TransactionType,'')<>'ADJ'",sql);
+        Assert.Contains("IF @ExpectedQty<>@Qty",sql);
+        Assert.Contains("COALESCE(ReceivedQty,0)>=@ReceiptQty",sql);
+        Assert.Contains("Status IN('Cancelled','Canceled') THEN Status",sql);
+        Assert.True(sql.IndexOf("IF @ExpectedQty<>@Qty",StringComparison.Ordinal)<sql.LastIndexOf("DELETE dbo.WH_Inventory",StringComparison.Ordinal));
+        Assert.Contains("This LOT has a receipt history that was not cancelled",PdaWarehouseSql.InboundReceive);
+    }
+
+    [Fact]
+    public void Inbound_paths_no_longer_use_retired_procedure_parameter_metadata()
+    {
+        foreach(var path in new[]{"src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs","src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs"})
+            Assert.DoesNotMatch(@"(?:WH|FG|SP)_PDA_\w+\.@\w+",Read(path));
+        var endpoint=Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs");
+        Assert.Contains("\"@ScheduleYear\", SqlDbType.Int",endpoint);
+        Assert.Contains("\"@ScheduleQuarter\", SqlDbType.Int",endpoint);
+        Assert.Contains("\"@SupplierCode\", SqlDbType.VarChar, 20",endpoint);
+    }
+
+    [Fact]
     public void Receipt_preserves_portal_balance_capacity_history_and_rollback_guards()
     {
         var sql = PdaWarehouseSql.InboundReceive;

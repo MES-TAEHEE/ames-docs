@@ -1,0 +1,59 @@
+@page "/wh/picking-orders/inbound-test"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using AMES.Data.Connection
+@using System.Security.Claims
+@inject AmesConnectionFactory Factory
+@inject AuthenticationStateProvider Auth
+@inject NavigationManager Nav
+
+<PageTitle>WH PDA Test · AMES</PageTitle>
+<AmesPageHeader Code="WH-PDA-TEST" Title="WH PDA Test" />
+@if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert>}
+@if(_allowed)
+{
+    <section class="ames-card pda-test-workspace" data-no-busy>
+        <div class="ames-card-h master-list-toolbar">
+            <span class="dim">Uses real inventory · No automatic test data</span>
+        </div>
+        <div class="pda-test-preview">
+            <div class="pda-device">
+                @if(_screen.Length==0)
+                {
+                    <header class="pda-test-topbar"><RadzenIcon Icon="warehouse" /><strong>WAREHOUSE</strong></header>
+                    <div class="pda-test-body">
+                        <div class="pda-test-menu">
+                            <RadzenButton class="ames-rz-btn pda-test-menu-tile inbound" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='@(()=>_screen="Inbound")'>
+                                <RadzenIcon Icon="qr_code_scanner" /><span>Inbound</span>
+                            </RadzenButton>
+                            <RadzenButton class="ames-rz-btn pda-test-menu-tile putaway" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='@(()=>_screen="PutAway")'>
+                                <RadzenIcon Icon="move_to_inbox" /><span>Put-away</span>
+                            </RadzenButton>
+                        </div>
+                    </div>
+                }
+                else if(_screen=="Inbound")
+                {<WarehouseInboundTester UserId="@_userId" Actor="@_actor" CanWrite="_canReceive" OnBack="ShowMenu" />}
+                else
+                {<WarehousePutAwayTester UserId="@_userId" Actor="@_actor" CanWrite="_canReceive" OnBack="ShowMenu" />}
+            </div>
+        </div>
+    </section>
+}
+@code {
+    string _screen="",_userId="",_actor="",_error="";
+    bool _allowed,_canReceive;
+    void ShowMenu()=>_screen="";
+    WarehouseInboundTestRepository Repo=>new(Factory);
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var user=(await Auth.GetAuthenticationStateAsync()).User;_userId=user.FindFirstValue(ClaimTypes.NameIdentifier)??"";_actor=ActorCode.Of(user);
+            _allowed=await Task.Run(()=>Repo.CanRead(_userId));
+            if(_allowed)_canReceive=await Task.Run(()=>Repo.CanReceive(_userId));
+            if(!_allowed)Nav.NavigateTo("/unauthorized",replace:true);
+        }
+        catch(Exception ex){_error=ex.Message;}
+    }
+}

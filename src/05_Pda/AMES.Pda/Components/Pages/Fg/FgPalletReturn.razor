@@ -1,0 +1,112 @@
+@page "/fg/pallet-return"
+@using AMES.Contracts.Dto
+@inject FinishedGoodsApi Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="pda-shell wh wh02-shell pallet-return-shell">
+    <div class="pda-tbar">
+        <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
+        <span class="pda-tbar-brand">EMPTY PALLET RETURN</span>
+    </div>
+    <div class="pda-bd wh02-body">
+        <RadzenCard class="wh02-panel hardware-scan-panel">
+            <div class="pda-fld">
+                <label>PALLET BARCODE</label>
+                <RadzenTextBox Value="@_barcode" @oninput="@(e => _barcode = e.Value?.ToString() ?? "")"
+                               @onkeydown="OnKey" Disabled="_busy" Placeholder="Scan physical pallet label"
+                               class="pda-input pda-scan-input" />
+            </div>
+        </RadzenCard>
+        @if (_pallet is { } pallet)
+        {
+            <RadzenCard class="wh02-lot-card">
+                <div class="pda-fld"><label>PALLET</label><strong>@pallet.PalletNo</strong></div>
+                <div class="pda-fld"><label>LAST SHIPPED TO</label><strong>@pallet.CustomerId · @pallet.CustomerName</strong></div>
+                <div class="pda-fld"><label>SHIPPED AT</label><strong>@pallet.ShippedAt.ToString("MM/dd/yyyy HH:mm")</strong></div>
+                <div class="pda-status dim">Empty pallet only. Product inventory will not change.</div>
+            </RadzenCard>
+        }
+        <div class="wh02-action-bar has-reset">
+            <RadzenButton Text="CLEAR" Click="Clear" Disabled="_busy" class="wh02-clear-btn" />
+            <RadzenButton Text="RECEIVE PALLET" Click="AskReturn" Disabled="@(_busy || _pallet is null)" class="pda-btn-pri wh02-receive-btn" />
+        </div>
+    </div>
+    @if (_modal)
+    {
+        <div class="wh-modal-backdrop">
+            <RadzenCard class="@($"wh-modal-card {_kind}")">
+                <div class="wh-modal-mark">@(_kind == "success" ? "OK" : "!")</div>
+                <div class="wh-modal-title">@_title</div><div class="wh-modal-message">@_message</div>
+                <div class="wh-modal-actions">
+                    @if (_confirm) { <RadzenButton Text="CONFIRM" Click="Receive" Disabled="_busy" class="wh-modal-btn primary" /> }
+                    <RadzenButton Text="@(_confirm ? "CANCEL" : "OK")" Click="CloseModal" Disabled="_busy" class="wh-modal-btn primary" />
+                </div>
+            </RadzenCard>
+        </div>
+    }
+</div>
+
+@code {
+    private PalletReturnDto? _pallet;
+    private string _barcode = "", _title = "", _message = "", _kind = "info";
+    private bool _busy, _modal, _confirm;
+    private DotNetObjectReference<FgPalletReturn>? _scanner;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        PdaBarcodeHub.Scanned += NativeScan;
+        _scanner = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("pdaScan.register", _scanner, new { minLength = 3, developerMode = MauiProgram.IsDeveloperMode });
+        await Focus();
+    }
+    private void NativeScan(string barcode) => _ = InvokeAsync(() => OnHardwareScanAsync(barcode));
+    [JSInvokable] public async Task OnHardwareScanAsync(string barcode)
+    {
+        if (_busy || _modal) return;
+        _barcode = barcode.Replace("\u0002", "").Replace("\u0003", "").Trim();
+        await Scan();
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") await Scan(); }
+    private async Task Scan()
+    {
+        if (_busy || _modal || string.IsNullOrWhiteSpace(_barcode)) return;
+        _busy = true; _pallet = null;
+        try { _pallet = await Api.ScanEmptyPalletReturnAsync(_barcode.Trim()); }
+        catch (Exception ex) { Show("Pallet Not Ready", ex.Message, "warn"); }
+        finally { _busy = false; await Focus(); }
+    }
+    private void Clear() { _pallet = null; _barcode = ""; _ = Focus(); }
+    private void AskReturn()
+    {
+        if (_busy || _pallet is null) return;
+        _confirm = true;
+        Show("Confirm Empty Pallet Return", $"Has {_pallet.PalletNo} physically returned empty? Product returns must be received separately.", "info");
+    }
+    private async Task Receive()
+    {
+        if (_busy || !_confirm || _pallet is null) return;
+        _busy = true; _confirm = false;
+        var pallet = _pallet;
+        try
+        {
+            await Api.ReceiveEmptyPalletReturnAsync(new(pallet.PalletNo, pallet.ShippedAt));
+            Clear();
+            Show("Pallet Returned", $"{pallet.PalletNo} was returned. Product inventory was not changed.", "success");
+        }
+        catch (Exception ex) { _pallet = null; Show("Pallet Return Failed", ex.Message, "fail"); }
+        finally { _busy = false; }
+    }
+    private void Show(string title, string message, string kind) { _title = title; _message = message; _kind = kind; _modal = true; }
+    private void CloseModal() { _modal = false; _confirm = false; _ = Focus(); }
+    private async Task Focus() { if (!_modal) try { await JS.InvokeVoidAsync("pdaScan.focus", ".pallet-return-shell .pda-scan-input"); } catch { } }
+    public async ValueTask DisposeAsync()
+    {
+        PdaBarcodeHub.Scanned -= NativeScan;
+        try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
+        _scanner?.Dispose();
+    }
+}

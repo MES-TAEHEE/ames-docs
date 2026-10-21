@@ -657,6 +657,7 @@ CREATE TABLE [dbo].[MD_BomVersion](
 	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApprovedTS] [datetime2](7) NULL,
 	[Status] [varchar](12) COLLATE Korean_Wansung_CI_AS NULL,
+	[SAPTransFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -666,6 +667,8 @@ CREATE TABLE [dbo].[MD_BomVersion](
 	[VersionID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[MD_BomVersion] ADD  CONSTRAINT [DF_MD_BomVersion_SAPTransFlag]  DEFAULT ((0)) FOR [SAPTransFlag]
 GO
 ALTER TABLE [dbo].[MD_BomVersion] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -690,6 +693,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'ApprovedTS'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마스터 상태 · varchar(12)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'Status'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 전송 대상 여부 — 1 이면 이 버전(유효할 때)을 SAP BOM 으로 보낸다 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'SAPTransFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO

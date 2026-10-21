@@ -1,0 +1,126 @@
+@using AMES.Data.Connection
+@inject AmesConnectionFactory Factory
+@inject DialogService Dialog
+@inject UomFormat UomFmt
+
+<header class="pda-test-topbar"><RadzenButton Icon="arrow_back" Click="@(()=>OnBack.InvokeAsync())" Disabled="_busy" aria-label="Back to Warehouse menu" title="Back" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /><strong>PUT-AWAY</strong></header>
+<div class="pda-test-body">
+    <RadzenCard class="pda-test-panel pda-test-scan">
+        <RadzenLabel Text="SCAN BARCODE" Component="WebPutAwayBarcode" />
+        <RadzenTextBox Name="WebPutAwayBarcode" @bind-Value="_barcode" Immediate="true" @onkeydown="ItemKey" Placeholder="Scan Delivery Note, Case, or Box barcode" MaxLength="50" Disabled="_busy" />
+        <RadzenButton Icon="qr_code_scanner" Text="Scan" Click="Scan" Disabled="_busy" Size="ButtonSize.Small" />
+    </RadzenCard>
+    @if(_scan is {} scan)
+    {
+        <RadzenCard class="pda-test-panel">
+            <div class="pda-test-card-head"><div><small>@(scan.Kind=="DELIVERY_NOTE"?"DELIVERY NOTE · VIEW ONLY":scan.Kind=="CASE"?"CASE PUT-AWAY":"BOX PUT-AWAY")</small><strong>@scan.Barcode</strong></div></div>
+            <div class="pda-test-section-title">@Pending.Count PENDING · @Stored.Count STORED</div>
+            @foreach(var row in Pending)
+            {
+                <div class='@($"pda-test-box {(_selected.Contains(row.Barcode)?"selected":"")}")'>
+                    <span>@(_selected.Contains(row.Barcode)?"✓":"")</span><div><strong>@row.Barcode</strong><small>@row.PartNo · @row.PartName</small></div>
+                    <div><strong>@UomFmt.QtyUnit(row.Qty,row.Unit)</strong><small>@row.ReceivedAt?.ToString(DateFmt.Date)</small></div>
+                </div>
+            }
+            @if(Stored.Count>0)
+            {
+                <div class="pda-test-section-title">ALREADY PUT AWAY</div>
+                @foreach(var row in Stored)
+                {
+                    <div class="pda-test-box stored"><span>✓</span><div><strong>@row.Barcode</strong><small>@row.PartNo · @row.PartName</small></div><div><strong>@UomFmt.QtyUnit(row.Qty,row.Unit)</strong><small>AT @row.LocationNo</small></div></div>
+                }
+            }
+        </RadzenCard>
+        @if(scan.Kind!="DELIVERY_NOTE"&&_selected.Count>0)
+        {
+            <RadzenCard class="pda-test-panel pda-test-scan pda-test-location">
+                <RadzenLabel Text="LOCATION BARCODE SCAN" Component="WebPutAwayLocation" />
+                <RadzenTextBox Name="WebPutAwayLocation" Value="@_locationText" Change="LocationChanged" Immediate="true" @onkeydown="LocationKey" Placeholder="Scan location barcode" MaxLength="50" Disabled="_busy" />
+                <RadzenButton Text="Scan" Icon="qr_code_scanner" Click="ScanLocation" Disabled="_busy" Size="ButtonSize.Small" />
+            </RadzenCard>
+        }
+    }
+    @if(_location is {} location)
+    {
+        <RadzenCard class="pda-test-panel pda-test-location">
+            <div class="pda-test-card-head"><div><small>LOCATION NO</small><strong>@location.LocationNo</strong><small>@location.Name</small></div></div>
+            <div class="pda-test-facts"><div><small>WAREHOUSE</small><strong>@location.Warehouse</strong></div><div><small>AREA</small><strong>@location.Area</strong></div><div><small>AISLE</small><strong>@location.Aisle</strong></div><div><small>LOAD CAPACITY</small><strong>@(location.Capacity is >0?location.Capacity.Value.ToString("N0"):"-")</strong></div><div><small>STOCK QTY</small><strong>@UomFmt.Qty(location.Qty,null)</strong></div></div>
+        </RadzenCard>
+    }
+    @if(_message.Length>0){<div class="pda-test-status">@_message</div>}
+</div>
+<footer class="pda-test-actions"><RadzenButton Text="CLEAR" Click="Clear" Disabled="_busy" ButtonStyle="ButtonStyle.Base" /><RadzenButton Text="CONFIRM" Click="Confirm" Disabled="@(_busy||!CanWrite||_scan?.Kind=="DELIVERY_NOTE"||_selected.Count==0||_location is null)" /></footer>
+
+@code {
+    [Parameter] public string UserId {get;set;}="";
+    [Parameter] public string Actor {get;set;}="";
+    [Parameter] public bool CanWrite {get;set;}
+    [Parameter] public EventCallback OnBack {get;set;}
+    string _barcode="",_locationText="",_message="";
+    bool _busy,_relocate;
+    WarehouseInboundTestRepository.StorageSelection? _scan;
+    WarehouseInboundTestRepository.StorageLocation? _location;
+    HashSet<string> _selected=new(StringComparer.OrdinalIgnoreCase);
+    WarehouseInboundTestRepository Repo=>new(Factory);
+    List<WarehouseInboundTestRepository.StorageRow> Pending=>_scan?.Rows.Where(r=>string.IsNullOrWhiteSpace(r.LocationNo)).ToList()??[];
+    List<WarehouseInboundTestRepository.StorageRow> Stored=>_scan?.Rows.Where(r=>!string.IsNullOrWhiteSpace(r.LocationNo)).ToList()??[];
+    async Task ItemKey(KeyboardEventArgs e){if(e.Key=="Enter")await Scan();}
+    async Task LocationKey(KeyboardEventArgs e){if(e.Key=="Enter")await ScanLocation();}
+    void LocationChanged(string value){_locationText=value;if(!string.Equals(_location?.LocationNo,value,StringComparison.OrdinalIgnoreCase))_location=null;}
+    void Clear(){if(!_busy)Reset();}
+    void Reset(){_scan=null;_selected.Clear();_location=null;_relocate=false;_barcode=_locationText=_message="";}
+    async Task Scan()
+    {
+        if(_busy)return;_busy=true;
+        try
+        {
+            var code=_barcode.Trim();var selection=await Task.Run(()=>Repo.ScanPutAway(UserId,code));
+            if(_scan is {Kind:"CASE"} current)
+            {
+                if(selection.Kind!="BOX"||!current.Rows.Any(r=>string.Equals(r.Barcode,code,StringComparison.OrdinalIgnoreCase)))throw new InvalidOperationException("This box does not belong to the scanned case. Clear to scan another document.");
+                var box=selection.Rows.Single();
+                if(!string.IsNullOrWhiteSpace(box.LocationNo))throw new InvalidOperationException($"Box {code} is already at {box.LocationNo}.");
+                _selected.Add(box.Barcode);_scan=current with { Rows=current.Rows.Select(r=>string.Equals(r.Barcode,code,StringComparison.OrdinalIgnoreCase)?box:r).ToList() };
+            }
+            else
+            {
+                Reset();_scan=selection;
+                if(selection.RequiresRelocation)
+                {
+                    if(await Dialog.Confirm($"This box is already put away at {selection.Rows.Single().LocationNo}. Relocate it?","Already Put Away")!=true)return;
+                    _relocate=true;
+                }
+                _selected=selection.Selected.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            }
+            _barcode="";_location=null;_locationText="";
+            _message=_scan.Kind=="DELIVERY_NOTE"?"VIEW ONLY · Scan a case or box to put away.":_selected.Count==0?"No pending boxes.":$"{_selected.Count} box(es) selected. Scan a location.";
+        }
+        catch(Exception ex){await Dialog.Alert(ex.Message,"Put-Away Scan Failed");}
+        finally{_busy=false;}
+    }
+    async Task ScanLocation()
+    {
+        if(_busy||_selected.Count==0||_scan?.Kind=="DELIVERY_NOTE")return;_busy=true;_location=null;
+        try
+        {
+            var code=_locationText.Trim();var location=await Task.Run(()=>Repo.ScanPutAwayLocation(UserId,code));
+            var qty=_scan!.Rows.Where(r=>_selected.Contains(r.Barcode)&&!string.Equals(r.LocationNo,location.LocationNo,StringComparison.OrdinalIgnoreCase)).Sum(r=>r.Qty);
+            if(location.Capacity is >0&&location.Qty+qty>location.Capacity)throw new InvalidOperationException($"Location {location.LocationNo} capacity would be exceeded.");
+            _location=location;_locationText=location.LocationNo;_message=$"{_selected.Count} box(es) ready. Tap Confirm.";
+        }
+        catch(Exception ex){await Dialog.Alert(ex.Message,"Location Scan Failed");}
+        finally{_busy=false;}
+    }
+    async Task Confirm()
+    {
+        if(_busy||!CanWrite||_scan?.Kind=="DELIVERY_NOTE"||_location is not {} location||_selected.Count==0)return;_busy=true;
+        try
+        {
+            if(await Dialog.Confirm($"{(_relocate?"Relocate":"Put away")} {_selected.Count} box(es) at {location.LocationNo}? This updates real inventory.","Confirm Put-Away")!=true)return;
+            var boxes=_selected.ToArray();await Task.Run(()=>Repo.PutAway(UserId,Actor,boxes,location.LocationNo,_relocate));
+            Reset();await Dialog.Alert("Location updated successfully.","Put-Away Complete");
+        }
+        catch(Exception ex){await Dialog.Alert(ex.Message,"Put-Away Failed");}
+        finally{_busy=false;}
+    }
+}

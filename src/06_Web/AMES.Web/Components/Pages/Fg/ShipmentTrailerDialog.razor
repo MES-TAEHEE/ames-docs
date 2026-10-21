@@ -1,7 +1,7 @@
 @inject DialogService Dialog
 @inject UomFormat UomFmt
 
-<div class="trailer-preview" data-feature="fg-shipment-plan">
+<div class="trailer-preview @(Embedded ? "embedded" : "")" data-feature="fg-shipment-plan">
     <div class="preview-summary">
         <div class="preview-heading"><strong>@(Plan.Trailers.Any(x => x.Pallets.Count > 0) ? Plan.Trailers.Count(x => x.Pallets.Count > 0).ToString() : "—") trailers estimated</strong>
             <span>@ShipFrom.ToString(DateFmt.Date) – @ShipTo.ToString(DateFmt.Date)</span>
@@ -9,7 +9,7 @@
         </div>
         <div class="preview-buttons">
             <RadzenButton Text="Details & TOTE" Icon="info" aria-expanded="@_showDetails" aria-controls="packing-details" Click="() => _showDetails = !_showDetails" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="Close" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="() => Dialog.Close()" />
+            @if (!Embedded) { <RadzenButton Text="Close" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="() => Dialog.Close()" /> }
         </div>
     </div>
     @if (!string.IsNullOrEmpty(_error))
@@ -20,9 +20,9 @@
     {
         <div id="packing-details" class="packing-details">
             <div class="estimate-totals"><span>Auto <b>@Plan.AutoPallets</b> pallets</span><span>TOTE manual <b>@Plan.ManualPallets</b> pallets</span>
-                <span class="@(Plan.IsPartial ? "unestimated" : "")">Not determined <b>@Plan.Unestimated.Select(x => x.Source.ItemNo).Distinct().Count()</b> parts / @UomFmt.QtyUnit(Plan.Unestimated.Sum(x => x.Quantity), "EA")
+                <span class="@(Plan.IsPartial ? "unestimated" : "")">Not determined <b>@Plan.Unestimated.Select(x => x.Source.ItemNo).Distinct().Count()</b> parts / @QuantityTotal(Plan.Unestimated)
                     <RadzenButton Icon="info" title="@PendingHelp" aria-label="How to determine packing quantities" Click="ShowPendingHelp" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></span></div>
-            <p class="preview-help">18 pallets / trailer · Uses the saved shipment-order ship date. The period total is the sum of separate customer/date loads.</p>
+            <p class="preview-help">18 pallets / trailer · Uses saved DCR contents and ship dates. Different DCRs are estimated separately.</p>
             <p class="preview-help">Drag a pallet to another trailer, or select it and use Move here. Display only; changes are not saved.</p>
     @if (Plan.IsPartial)
     {
@@ -32,19 +32,20 @@
     {
         <section class="estimate-section">
             <h3>TOTE · MANUAL PALLETS</h3>
-            <p>Enter pallets for the combined customer/date group. Quantity or filter changes reset estimates; editing counts rebuilds placement.</p>
+            <p>Enter pallets for each DCR/customer/date group. Quantity or filter changes reset estimates; editing counts rebuilds placement.</p>
             <div class="estimate-table-wrap">
             <RadzenDataGrid TItem="TrailerLoadDraft.ToteGroup" Data="Plan.ToteGroups" AllowPaging="false" AllowSorting="true" class="ames-rz-grid">
                 <Template Context="group"><RadzenDataGrid TItem="TrailerLoadDraft.Line" Data="group.Lines" AllowPaging="false" Density="Density.Compact" class="ames-rz-grid"><Columns>
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemNo" Title="PART NO" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemName" Title="PART NAME" />
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="QTY"><Template Context="line">@UomFmt.QtyUnit(line.Quantity,"EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="QTY"><Template Context="line">@UomFmt.QtyUnit(line.Quantity,line.Unit)</Template></RadzenDataGridColumn>
                 </Columns></RadzenDataGrid></Template>
                 <Columns>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="DeliveryNo" Title="DCR" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="Customer" Title="CUSTOMER" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="Date" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="PARTS"><Template Context="group">@group.Lines.Select(x=>x.Source.ItemNo).Distinct().Count()</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="TOTAL QTY"><Template Context="group">@UomFmt.QtyUnit(group.Lines.Sum(x=>x.Quantity),"EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="TOTAL QTY"><Template Context="group">@QuantityTotal(group.Lines)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="ESTIMATED PALLETS"><Template Context="group">
                         <RadzenNumeric TValue="int?" Value="group.PalletCount" Change="@(v=>ChangeTote(group,v?.ToString(System.Globalization.CultureInfo.InvariantCulture)))" Min="1" Max="2000" Step="1" Immediate="true" Placeholder="Not determined" InputSize="InputSize.Small" class="ames-rz-input" />
                         @if(group.Error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@group.Error</RadzenAlert>}
@@ -62,7 +63,7 @@
                 <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.CustomerId" Title="CUSTOMER" />
                 <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="ShipDate" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
                 <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemNo" Title="PART NO" />
-                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="SHIP QTY"><Template Context="line">@UomFmt.Qty(line.Quantity,"EA")</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="SHIP QTY"><Template Context="line">@UomFmt.QtyUnit(line.Quantity,line.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="REASON"><Template Context="line">@(line.IsTote?"TOTE estimate not entered":"Pallet Qty not registered")</Template></RadzenDataGridColumn>
             </Columns></RadzenDataGrid></div></ChildContent>
         </RadzenPanel>
@@ -84,6 +85,7 @@
             <section @key="trailer.Number" class="trailer-card @(_selected.HasValue ? "drop-ready" : "")"
                      @ondragover:preventDefault @ondrop="() => Move(trailer.Number)">
                 <header><div><strong>TRAILER @trailer.Number.ToString("00")</strong>
+                    <span>@trailer.DeliveryNo</span>
                     <span>@trailer.Customer</span></div>
                     <b>@trailer.Pallets.Count / 18</b></header>
                 <div class="trailer-meter"><i style="width:@(trailer.Pallets.Count * 100 / 18)%"></i></div>
@@ -103,12 +105,12 @@
                             {
                                 <span class="pallet-caption">TOTE PALLET @pallet.Sequence.ToString("00") / @tote.PalletCount · ESTIMATED</span>
                                 <strong>Mixed TOTE group</strong>
-                                <span>@tote.Lines.Select(x => x.Source.ItemNo).Distinct().Count() parts · @UomFmt.QtyUnit(tote.Lines.Sum(x => x.Quantity), "EA") across the group</span>
+                                <span>@tote.Lines.Select(x => x.Source.ItemNo).Distinct().Count() parts · @QuantityTotal(tote.Lines) across the group</span>
                                 <small>Per-pallet contents not assigned</small>
                             }
                             else if (pallet.Line is { } line)
                             {
-                                <span class="pallet-caption">PALLET @pallet.Sequence.ToString("00") · @UomFmt.QtyUnit(pallet.Quantity, "EA")</span>
+                                <span class="pallet-caption">PALLET @pallet.Sequence.ToString("00") · @UomFmt.QtyUnit(pallet.Quantity, line.Unit)</span>
                                 <strong>@line.Source.ItemNo</strong>
                                 <span>@line.Source.ItemName</span>
                                 <small>@line.Source.SoNumber / @line.Source.SoLineNo</small>
@@ -132,9 +134,11 @@
     [Parameter, EditorRequired] public TrailerLoadDraft Plan { get; set; } = default!;
     [Parameter] public DateTime ShipFrom { get; set; }
     [Parameter] public DateTime ShipTo { get; set; }
+    [Parameter] public bool Embedded { get; set; }
     bool _showDetails;
     int? _selected;
     string _error = "";
+    string QuantityTotal(IEnumerable<TrailerLoadDraft.Line> lines) => string.Join(" · ",lines.GroupBy(x=>x.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(x=>x.Quantity),g.Key)));
     const string PendingHelp = "Packing quantities have not been determined yet. For standard parts, set Pallet Qty in Product Item Master and refresh Shipment Plan. For TOTE parts, enter the group's Estimated pallets above. Once set, these pallets are included in the estimated pallet and trailer totals.";
     Task ShowPendingHelp() => Dialog.Alert(PendingHelp, "Packing quantity information");
     void Select(int id) { _selected = id; _error = ""; }

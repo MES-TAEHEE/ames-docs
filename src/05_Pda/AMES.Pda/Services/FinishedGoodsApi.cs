@@ -6,6 +6,19 @@ namespace AMES.Pda.Services;
 
 public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(http, auth)
 {
+    public Task<AMES.Contracts.Dto.PalletReturnDto> ScanEmptyPalletReturnAsync(string barcode)
+        => GetRequiredAsync<AMES.Contracts.Dto.PalletReturnDto>($"/api/fg/pallet-return/scan?barcode={Uri.EscapeDataString(barcode)}", "Pallet return service is unavailable.");
+
+    public async Task<AMES.Contracts.Dto.PalletReturnDto> ReceiveEmptyPalletReturnAsync(AMES.Contracts.Dto.PalletReturnRequest body)
+    {
+        Authorize();
+        using var response = await _http.PostAsJsonAsync("/api/fg/pallet-return", body);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Pallet return service is unavailable."));
+        return await response.Content.ReadFromJsonAsync<AMES.Contracts.Dto.PalletReturnDto>()
+            ?? throw new InvalidOperationException("Invalid pallet return response.");
+    }
+
     public Task<AMES.Contracts.Dto.ShippingActionResult> ShippingDeliveryAsync(string barcode)
         =>GetRequiredAsync<AMES.Contracts.Dto.ShippingActionResult>($"/api/fg/shipping/delivery?barcode={Uri.EscapeDataString(barcode)}","Shipping service is unavailable.");
     public Task<AMES.Contracts.Dto.ShippingActionResult> LoadShippingDeliveryAsync(string delivery,string pallet)

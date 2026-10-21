@@ -5,6 +5,7 @@
 // Pure UI model; no web host, database connection, or seed execution.
 using AMES.Data.Repositories;
 using AMES.Web.Services;
+using AMES.Contracts.Dto;
 
 static void Check(bool pass, string message) { if (!pass) throw new Exception(message); }
 static TrailerLoadDraft.Line Line(int id, decimal qty, string customer = "A", DateTime? requested = null) =>
@@ -12,6 +13,48 @@ static TrailerLoadDraft.Line Line(int id, decimal qty, string customer = "A", Da
         null, requested ?? new DateTime(2026, 10, 5), null, "Confirmed", null, null, true), 60);
 
 var line = Line(1, 1141);
+var unlock = new WarehouseInboundTestState();
+for(var i=0;i<3;i++)unlock.PickingClicked(false);
+Check(!unlock.Visible,"Clicks without permission cannot reveal inbound testing.");
+unlock.PickingClicked(true);unlock.PickingClicked(true);
+Check(!unlock.Visible,"Two permitted clicks keep inbound testing hidden.");
+unlock.PickingClicked(true);
+Check(unlock.Visible && !new WarehouseInboundTestState().Visible,"Third permitted click reveals testing, but new circuits hide it.");
+var orderDate = new DateTime(2026,10,20);
+ShippingOrderDto[] orders = [
+    new(1,"ORD-1","A",orderDate,"Open",null,null,[new(101,1,"SO-1","A","Part A",200,"EA",100,false,orderDate.AddDays(5))]),
+    new(2,"ORD-2","A",orderDate,"Loading",1,"DCR-1",[new(102,1,"SO-1","A","Part A",100,"EA",100,false)]),
+    new(3,"ORD-3","A",orderDate,"Shipped",1,"DCR-1",[new(103,1,"SO-1","A","Part A",500,"EA",100,false)]),
+    new(4,"ORD-4","A",orderDate,"Cancelled",null,null,[new(104,1,"SO-1","A","Part A",500,"EA",100,false)])];
+var savedLines=TrailerLoadDraft.FromOrders(orders);
+Check(savedLines.Count==2 && savedLines.Select(x=>x.Source.SoId).Distinct().Count()==2,"Saved order-line IDs remain distinct even for the same SO.");
+Check(savedLines.All(x=>x.ShipDate==orderDate),"Saved ship date, not requested date minus one, determines the plan.");
+Check(savedLines.Sum(x=>x.Quantity)==300 && savedLines[0].PalletCount==2,"Only saved order quantities are planned; 200 / 100 creates two pallets.");
+var savedPlan=new TrailerLoadDraft();
+Check(savedPlan.Build(savedLines,out _) && savedPlan.AutoPallets==3 && savedPlan.Trailers.Count==2,"DCR-bound quantities do not merge with unassigned order quantities.");
+Check(savedLines.All(x=>x.Source.SoNumber!.Contains("ORD-")),"Truck pallets keep their shipment-order references.");
+var weighted=TrailerLoadDraft.FromOrders([orders[0] with {Lines=[orders[0].Lines[0] with {Unit="KG"}]}]);
+Check(weighted.Single().Unit=="KG","Truck labels retain the saved line UOM instead of relabelling every quantity as EA.");
+var dcrRows=ShipmentPlanRows.FromOrders(orders.Concat([
+    new ShippingOrderDto(5,"ORD-5","A",orderDate,"Open",1,"DCR-1",[new(105,2,"SO-2","B","Part B",50,"EA",50,false)]),
+    new ShippingOrderDto(6,"ORD-6","A",orderDate,"Open",2,"DCR-2",[new(106,3,"SO-3","C","Part C",100,"EA",100,false)]),
+    orders[0] with {OrderId=7,OrderNo="ORD-NO-DCR",DeliveryId=3,DeliveryNo=null}
+]));
+Check(dcrRows.Count==2 && dcrRows[0].Orders.Count==2 && dcrRows[0].Lines.Sum(l=>l.Qty)==150,
+    "One DCR row combines its assigned orders and excludes unassigned, missing-DCR and closed orders.");
+var dcrPlan=new TrailerLoadDraft();
+Check(dcrPlan.Build(TrailerLoadDraft.FromOrders(dcrRows.SelectMany(d=>d.Orders)),out _) && dcrPlan.AutoPallets==3 && dcrPlan.Trailers.Count==2,
+    "Two DCRs for one customer/date keep separate trailer estimates without dropping quantities.");
+Check(!dcrPlan.Move(dcrPlan.Trailers[0].Pallets[0].Id,dcrPlan.Trailers[1].Number,out _),"Pallets cannot be moved into another DCR.");
+dcrPlan.AddTrailer(dcrPlan.Trailers[0]);
+Check(dcrPlan.Trailers.Last().DeliveryNo=="DCR-1" && dcrPlan.Move(dcrPlan.Trailers[0].Pallets[0].Id,dcrPlan.Trailers.Last().Number,out _),
+    "An extra trailer retains the DCR and permits movement within that DCR.");
+var dcrTotePlan=new TrailerLoadDraft();
+var dcrTotes=TrailerLoadDraft.FromOrders(dcrRows.SelectMany(d=>d.Orders).Select(o=>o with{Lines=o.Lines.Select(l=>l with{ToteFlag=true}).ToList()}));
+Check(dcrTotePlan.Build(dcrTotes,out _) && dcrTotePlan.ToteGroups.Count==2,"Manual TOTE groups are isolated by DCR as well as customer and date.");
+Check(dcrTotePlan.ChangeToteCount(dcrTotePlan.ToteGroups[0],"2",out _) && dcrTotePlan.Trailers.All(t=>t.DeliveryNo=="DCR-1"),
+    "A manual TOTE estimate belongs only to its DCR and does not estimate another DCR's contents.");
+Console.WriteLine("PASS: DCR-only grouping, saved quantities, trailer isolation, manual TOTE isolation and same-DCR movement.");
 Check(line.PalletCount == 20, "Partial pallets round up.");
 Check(line.ShipDate == new DateTime(2026, 10, 4), "Ship on requested date minus one day.");
 var rangeFrom = new DateTime(2026, 10, 1);

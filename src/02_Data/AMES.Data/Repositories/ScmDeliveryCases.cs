@@ -49,7 +49,7 @@ public sealed partial class ScmRepository
             OUTER APPLY(SELECT COALESCE(SUM(b.Quantity),0) Qty FROM dbo.SCM_DeliveryBox b
                 WHERE b.PoID=p.PoID AND b.CaseNo IS NOT NULL AND b.DeliveryLineID IS NULL AND b.ActiveFlag=1) prepared
             WHERE p.PoNumber=@N AND p.Status IN('Open','Partial') AND p.SupplierConfirmedAt IS NOT NULL
-              AND UPPER(LTRIM(RTRIM(COALESCE(p.UnitCode,'')))) NOT IN ('BOX','PLT','PALLET','SH','SHEET')
+              AND UPPER(LTRIM(RTRIM(COALESCE(p.UnitCode,'')))) NOT IN ('BOX','PLT','PALLET')
               AND NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder d WHERE d.PoNumber=p.PoNumber
                   AND (d.SupplierConfirmedAt IS NULL OR d.Status IS NULL OR d.Status NOT IN('Open','Partial','Complete','Received')))
               AND EXISTS(SELECT 1 FROM dbo.SCM_PortalVendorUser u JOIN dbo.MD_Vendor v ON v.VendorID=u.VendorID

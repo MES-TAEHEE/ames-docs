@@ -1,0 +1,140 @@
+@* 엑셀 올리기 공용 모달(MD-003·MD-004) — 파일 선택 → 미리보기(등록·건너뜀·문제) → 「등록」 → 결과.
+   없는 것만 등록하고 있는 것은 건너뛴다. 해석·등록은 화면이 Parse·Apply 로 넘긴다 *@
+@using AMES.Data.Services
+@using AMES.Web.Services
+@inject IStringLocalizer<SharedResources> L
+
+<div class="ames-modal-bg" @onmousedown="() => _bgDown = true" @onclick="OnBgClick">
+    <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal-h">@Title — @L["Excel.Upload"]</div>
+        <div class="dim" style="font-size:.82em;margin-bottom:8px;">@L["Excel.Upload.Hint"]</div>
+
+        @if (_outcome is null)
+        {
+            <InputFile OnChange="OnFile" accept=".xlsx" disabled="@_busy" />
+        }
+        @if (!string.IsNullOrEmpty(_err))
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Style="margin-top:8px;">@_err</RadzenAlert>
+        }
+
+        @if (_preview is not null && _outcome is null)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" Wrap="FlexWrap.Wrap" Style="margin-top:10px;">
+                <span class="pill ok">@string.Format(L["Excel.Upload.New"], _preview.NewKeys.Count)</span>
+                <span class="pill mute">@string.Format(L["Excel.Upload.Skip"], _preview.SkipNotes.Count)</span>
+                <span class="pill @(_preview.Problems.Count > 0 ? "bad" : "mute")">@string.Format(L["Excel.Upload.Problems"], _preview.Problems.Count)</span>
+            </RadzenStack>
+            @if (_preview.NewKeys.Count > 0)
+            {
+                <div style="margin-top:8px;font-size:.8em;">
+                    <div class="dim">@L["Excel.Upload.NewList"]</div>
+                    <div class="code" style="max-height:72px;overflow:auto;word-break:break-all;">@string.Join(", ", _preview.NewKeys.Take(MaxShown))@(_preview.NewKeys.Count > MaxShown ? " …" : "")</div>
+                </div>
+            }
+            @if (_preview.SkipNotes.Count > 0)
+            {
+                <div style="margin-top:8px;font-size:.8em;">
+                    <div class="dim">@L["Excel.Upload.SkipList"]</div>
+                    <div class="code dim" style="max-height:72px;overflow:auto;word-break:break-all;">@string.Join(", ", _preview.SkipNotes.Take(MaxShown))@(_preview.SkipNotes.Count > MaxShown ? " …" : "")</div>
+                </div>
+            }
+            @if (_preview.Problems.Count > 0)
+            {
+                <div style="margin-top:8px;font-size:.8em;">
+                    <div style="color:var(--ames-tx-red-400);">@L["Excel.Upload.ProblemList"]</div>
+                    <div style="max-height:180px;overflow:auto;">
+                        @foreach (var p in _preview.Problems.Take(MaxShown))
+                        {
+                            <div>@ProblemText(p)</div>
+                        }
+                        @if (_preview.Problems.Count > MaxShown) { <div class="dim">…</div> }
+                    </div>
+                </div>
+            }
+        }
+
+        @if (_outcome is not null)
+        {
+            <RadzenAlert AlertStyle="@(_outcome.Failures.Count > 0 ? AlertStyle.Warning : AlertStyle.Success)" Variant="Variant.Flat" Style="margin-top:8px;">
+                @string.Format(L["Excel.Upload.Done"], _outcome.Created, _outcome.Skipped, _outcome.Failures.Count)
+            </RadzenAlert>
+            @if (_outcome.Failures.Count > 0)
+            {
+                <div style="max-height:180px;overflow:auto;font-size:.8em;">
+                    @foreach (var f in _outcome.Failures.Take(MaxShown)) { <div>@f</div> }
+                </div>
+            }
+        }
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            @if (_outcome is null)
+            {
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Excel.Upload.Apply"])" Icon="upload" Click="@DoApply"
+                              Disabled="@(_busy || _preview is null || _preview.NewKeys.Count == 0)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+            }
+            <RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@Close" Disabled="@_busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    /// <summary>시트 행(머리글 포함) → 미리보기. 화면이 마스터를 읽어 규칙(ItemImport·BomImport)으로 해석한다.</summary>
+    [Parameter] public Func<List<string[]>, ExcelImportPreview> Parse { get; set; } = default!;
+    /// <summary>마지막 미리보기의 등록 대상을 등록한다.</summary>
+    [Parameter] public Func<Task<ExcelImportOutcome>> Apply { get; set; } = default!;
+    /// <summary>열 키 → 화면 이름(문제 문구용).</summary>
+    [Parameter] public Func<string, string> ColumnLabel { get; set; } = k => k;
+    /// <summary>닫힘 — 등록한 것이 있으면 true(목록을 다시 읽게).</summary>
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
+
+    const long MaxBytes = 10 * 1024 * 1024;
+    const int MaxShown = 200;
+    ExcelImportPreview? _preview;
+    ExcelImportOutcome? _outcome;
+    string _err = "";
+    bool _busy, _bgDown;
+
+    async Task OnFile(InputFileChangeEventArgs e)
+    {
+        _err = ""; _preview = null;
+        _busy = true;
+        try
+        {
+            using var ms = new MemoryStream();
+            await using (var s = e.File.OpenReadStream(MaxBytes)) await s.CopyToAsync(ms);
+            ms.Position = 0;
+            if (!XlsxSheetReader.IsXlsx(ms)) { _err = L["Excel.Err.NotXlsx"]; return; }
+            var rows = XlsxSheetReader.ReadRows(ms);
+            _preview = await Task.Run(() => Parse(rows));
+        }
+        catch (IOException)  { _err = L["Excel.Err.TooLarge"]; }
+        catch (Exception ex) { _err = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    async Task DoApply()
+    {
+        if (_preview is null || _preview.NewKeys.Count == 0) return;
+        _busy = true;
+        try { _outcome = await Apply(); }
+        catch (Exception ex) { _err = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    string ProblemText(MasterExcel.Problem p)
+    {
+        var col = string.IsNullOrEmpty(p.Key) ? "" : string.Join(", ", p.Key.Split(", ").Select(k => ColumnLabel(k)));
+        var reason = L[$"Excel.Err.{p.Code}"].Value;
+        return $"{string.Format(L["Excel.Upload.RowFmt"], p.Line)} · {(col.Length > 0 ? col + ": " : "")}{reason}{(string.IsNullOrEmpty(p.Value) ? "" : $" ({p.Value})")}";
+    }
+
+    void OnBgClick() { if (_bgDown && !_busy) _ = Close(); _bgDown = false; }
+
+    async Task Close()
+    {
+        if (_busy) return;
+        await OnClose.InvokeAsync(_outcome is { Created: > 0 });
+    }
+}

@@ -1,0 +1,2 @@
+/* 좌측 조회 줄 — 좁은 칸이라 버튼 글자를 두 줄로 나누지 않고, 넘치면 버튼째 다음 줄로(오른쪽 정렬) */
+.ames-card-h ::deep .bom-toolbar .rz-button { white-space: nowrap; flex-shrink: 0; }

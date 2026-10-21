@@ -65,20 +65,22 @@ public sealed partial class WarehouseRepository
             IF EXISTS(SELECT 1 FROM dbo.WH_PickSlip WITH(UPDLOCK,HOLDLOCK) WHERE ReqLocation=@Id AND ItemNo<>@Part AND CloseDate IS NULL
                 AND UPPER(COALESCE(Status,'OPEN')) NOT IN('CLOSED','RELEASED','CANCELLED','CANCELED'))
                 THROW 51050,'Close the outstanding picking order before changing the assigned part.',1;
-            IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue='LINE')
-                INSERT dbo.MD_CodeItem(CodeID,GroupCode,CodeValue,CodeName,CodeNameEn,UseFlag,SortOrder,CreatedBy)
-                VALUES('WH_CODE_LINE','WH_CODE','LINE','Production Lines','Production Lines',1,100,@Actor);
-            IF EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Prefix AND ParentCodeID<>'WH_CODE_LINE')
+            DECLARE @WarehouseID varchar(50);
+            SELECT @WarehouseID=CodeID FROM dbo.MD_CodeItem WITH(UPDLOCK,HOLDLOCK)
+                WHERE GroupCode='WH_CODE' AND CodeValue='EOS' AND COALESCE(UseFlag,1)=1;
+            IF @WarehouseID IS NULL THROW 51050,'Register the active EOS warehouse before creating line locations.',1;
+            IF EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Prefix
+                AND COALESCE(ParentCodeID,'')<>@WarehouseID)
                 THROW 51050,'The line prefix is already used by another warehouse area.',1;
             IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='WH_AREA' AND CodeValue=@Prefix)
                 INSERT dbo.MD_CodeItem(CodeID,GroupCode,CodeValue,CodeName,CodeNameEn,ParentCodeID,Attribute1,UseFlag,SortOrder,CreatedBy)
-                VALUES(CONCAT('WH_AREA_',@Prefix),'WH_AREA',@Prefix,@Name,@Name,'WH_CODE_LINE',@Prefix,1,100,@Actor);
+                VALUES(CONCAT('WH_AREA_',@Prefix),'WH_AREA',@Prefix,@Name,@Name,@WarehouseID,@Prefix,1,100,@Actor);
             ELSE UPDATE dbo.MD_CodeItem SET CodeName=@Name,CodeNameEn=@Name,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME()
                 WHERE GroupCode='WH_AREA' AND CodeValue=@Prefix;
             IF EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Id)
-                UPDATE dbo.MD_Location SET PartNo=@Part,MinimumQty=@Min,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE LocationID=@Id;
+                UPDATE dbo.MD_Location SET WhCode='EOS',LocationName=@Name,PartNo=@Part,MinimumQty=@Min,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE LocationID=@Id;
             ELSE INSERT dbo.MD_Location(LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,LocationType,LineID,PartNo,MinimumQty,ActiveFlag,CreatedBy)
-                VALUES(@Id,@Id,'LINE',@Prefix,@Y,@X,@F,'LINE',@Line,@Part,@Min,1,@Actor);
+                VALUES(@Id,@Name,'EOS',@Prefix,@Y,@X,@F,'LINE',@Line,@Part,@Min,1,@Actor);
             """,conn,tx);
         cmd.Parameters.Add("@Id",SqlDbType.VarChar,20).Value=id;
         cmd.Parameters.Add("@Line",SqlDbType.VarChar,20).Value=lineId;

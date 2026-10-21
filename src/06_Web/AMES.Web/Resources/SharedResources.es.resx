@@ -8116,7 +8116,7 @@
     <value>Envíos</value>
   </data>
   <data name="FG.Shipments.Empty" xml:space="preserve">
-    <value>No se encontraron órdenes cargadas o enviadas.</value>
+    <value>No se encontraron envíos.</value>
   </data>
   <data name="FG.Shipments.Col.ShipOrder" xml:space="preserve">
     <value>Orden de envío</value>
@@ -10998,13 +10998,13 @@
     <value>Emitir / Imprimir</value>
   </data>
   <data name="SCM.Preview.Print.CaseBarcode" xml:space="preserve">
-    <value>Código de barras de palé</value>
+    <value>Código de barras de Shipping Unit</value>
   </data>
   <data name="SCM.Preview.Col.CaseNo" xml:space="preserve">
-    <value>N.º de palé</value>
+    <value>N.º de Shipping Unit</value>
   </data>
   <data name="SCM.Preview.Print.NoCases" xml:space="preserve">
-    <value>Esta entrega no tiene palés.</value>
+    <value>Esta entrega no tiene Shipping Units.</value>
   </data>
   <data name="SCM.Preview.Print.BoxBarcode" xml:space="preserve">
     <value>Código de barras de caja / pieza</value>
@@ -11040,25 +11040,25 @@
     <value>Motivo / Nota</value>
   </data>
   <data name="SCM.Preview.Lbl.Case" xml:space="preserve">
-    <value>Palé</value>
+    <value>Shipping Unit</value>
   </data>
   <data name="SCM.Preview.Fmt.Boxes" xml:space="preserve">
     <value>{0} cajas</value>
   </data>
   <data name="SCM.Preview.Hint.CaseFixed" xml:space="preserve">
-    <value>Las cantidades las fija el contenido del palé.</value>
+    <value>Las cantidades las fija el contenido del Shipping Unit.</value>
   </data>
   <data name="SCM.Preview.Hint.ReceiptAfterShip" xml:space="preserve">
     <value>Los detalles de recepción estarán disponibles tras el envío.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCases" xml:space="preserve">
-    <value>No se pudieron cargar los palés de este albarán.</value>
+    <value>No se pudieron cargar los Shipping Units de este albarán.</value>
   </data>
   <data name="SCM.Preview.Err.Receipts" xml:space="preserve">
     <value>Los resultados de recepción no están disponibles. Actualice para reintentar.</value>
   </data>
   <data name="SCM.Preview.Err.LoadCaseInfo" xml:space="preserve">
-    <value>No se pudo cargar la información del palé. Actualice y reintente.</value>
+    <value>No se pudo cargar la información del Shipping Unit. Actualice y reintente.</value>
   </data>
   <data name="SCM.Preview.Err.LastPrice" xml:space="preserve">
     <value>No se pudo cargar el último precio. Revise el precio unitario antes de guardar.</value>
@@ -11124,13 +11124,13 @@
     <value>Código de barras</value>
   </data>
   <data name="Portal.CaseLabel.Title" xml:space="preserve">
-    <value>Etiqueta de palé</value>
+    <value>Etiqueta de Shipping Unit</value>
   </data>
   <data name="Portal.CaseLabel.Err.NotFound" xml:space="preserve">
-    <value>Palé no encontrado o sin acceso.</value>
+    <value>Shipping Unit no encontrado o sin acceso.</value>
   </data>
   <data name="Portal.CaseLabel.Err.Load" xml:space="preserve">
-    <value>No se pudo cargar esta etiqueta de palé.</value>
+    <value>No se pudo cargar esta etiqueta de Shipping Unit.</value>
   </data>
   <data name="Portal.Create.Title" xml:space="preserve">
     <value>Creación de entregas</value>
@@ -11142,7 +11142,7 @@
     <value>Imprimir albarán</value>
   </data>
   <data name="Portal.Create.Items" xml:space="preserve">
-    <value>Artículos de entrega</value>
+    <value>Shipping Units</value>
   </data>
   <data name="Portal.Create.Part" xml:space="preserve">
     <value>Pieza</value>
@@ -11151,7 +11151,7 @@
     <value>Caja</value>
   </data>
   <data name="Portal.Create.AddCase" xml:space="preserve">
-    <value>Añadir palé</value>
+    <value>Añadir Shipping Unit</value>
   </data>
   <data name="Portal.Create.AddBox" xml:space="preserve">
     <value>Añadir caja</value>
@@ -11160,10 +11160,10 @@
     <value>Añadir pieza</value>
   </data>
   <data name="Portal.Create.RemoveCase" xml:space="preserve">
-    <value>Quitar palé</value>
+    <value>Quitar Shipping Unit</value>
   </data>
   <data name="Portal.Create.ReviewFmt" xml:space="preserve">
-    <value>Revisar albarán · {0} palés · {1} cajas · {2} piezas sueltas</value>
+    <value>Revisar albarán · {0} shipping units · {1} cajas / piezas</value>
   </data>
   <data name="Portal.Create.Col.SelectedQty" xml:space="preserve">
     <value>Cant. seleccionada</value>
@@ -11187,7 +11187,7 @@
     <value>Introduzca la cantidad de entrega. Las piezas sueltas se actualizan automáticamente.</value>
   </data>
   <data name="Portal.Create.Step1Hint.Boxes" xml:space="preserve">
-    <value>Introduzca la cantidad de entrega. Las cajas se actualizan automáticamente.</value>
+    <value>Introduzca la cantidad. Las etiquetas se calculan según las cantidades de embalaje.</value>
   </data>
   <data name="Portal.Create.Col.TotalQty" xml:space="preserve">
     <value>Cant. total de entrega</value>
@@ -11235,13 +11235,13 @@
     <value>Seleccionar piezas</value>
   </data>
   <data name="Portal.Create.Step2.Boxes" xml:space="preserve">
-    <value>Seleccionar cajas</value>
+    <value>Seleccionar contenido</value>
   </data>
   <data name="Portal.Create.Step2Hint.Parts" xml:space="preserve">
     <value>Marque las piezas que desea añadir a esta entrega.</value>
   </data>
   <data name="Portal.Create.Step2Hint.Boxes" xml:space="preserve">
-    <value>Marque las cajas que desea añadir a esta entrega.</value>
+    <value>Seleccione las cajas / piezas que se incluirán en este Shipping Unit.</value>
   </data>
   <data name="Portal.Create.Step2Empty.Parts" xml:space="preserve">
     <value>Introduzca una cantidad en el paso 1 para ver las piezas aquí.</value>
@@ -11464,5 +11464,178 @@
   </data>
   <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
     <value>No se puede cambiar la unidad: el componente tiene stock o registros de producción.</value>
+  </data>
+  <data name="MD.Bom.SapChange" xml:space="preserve">
+    <value>Cambiar envío a SAP</value>
+  </data>
+  <data name="MD.Bom.Hint.SapOnly" xml:space="preserve">
+    <value>En una versión enviada o aprobada solo se puede cambiar el envío a SAP. Actualice también el tipo y el motivo del cambio.</value>
+  </data>
+  <data name="MD.Bom.Hint.SapReason" xml:space="preserve">
+    <value>Al cambiar el envío a SAP debe ingresar un nuevo motivo de cambio.</value>
+  </data>
+  <data name="MD.Bom.Err.SapReason" xml:space="preserve">
+    <value>Ingrese un nuevo motivo de cambio para cambiar el envío a SAP (debe ser distinto del actual).</value>
+  </data>
+  <data name="MD.Bom.NoVersion" xml:space="preserve">
+    <value>Sin versión de BOM</value>
+  </data>
+  <data name="MD.Bom.WhereUsedHint" xml:space="preserve">
+    <value>Este artículo no tiene versión de BOM. Se muestran las BOM superiores (versión vigente) que lo usan como componente (solo lectura)</value>
+  </data>
+  <data name="MD.Bom.NoParents" xml:space="preserve">
+    <value>Ninguna BOM superior usa este artículo como componente</value>
+  </data>
+  <data name="MD.Bom.WhereUsedCount" xml:space="preserve">
+    <value>{0} línea(s) de BOM superior ({1} directas)</value>
+  </data>
+  <data name="MD.Items.Hint.UomLocked" xml:space="preserve">
+    <value>No se puede cambiar la unidad: el artículo tiene stock o registros de producción.</value>
+  </data>
+  <data name="Shipment.Customers" xml:space="preserve">
+    <value>Clientes</value>
+  </data>
+  <data name="Shipment.Lots" xml:space="preserve">
+    <value>LOTs</value>
+  </data>
+  <data name="Shipment.Id" xml:space="preserve">
+    <value>ID de envío</value>
+  </data>
+  <data name="Shipment.FromLocation" xml:space="preserve">
+    <value>Ubicación de origen</value>
+  </data>
+  <data name="Shipment.ShippedBy" xml:space="preserve">
+    <value>Enviado por</value>
+  </data>
+  <data name="Shipment.PalletNo" xml:space="preserve">
+    <value>N.º de palé</value>
+  </data>
+  <data name="Shipment.UnitType" xml:space="preserve">
+    <value>Tipo de unidad</value>
+  </data>
+  <data name="Shipment.Search" xml:space="preserve">
+    <value>Código de barras, pieza o cliente</value>
+  </data>
+  <data name="Shipment.DetailsFmt" xml:space="preserve">
+    <value>LOTs del envío {0}</value>
+  </data>
+  <data name="Shipment.LoadError" xml:space="preserve">
+    <value>No se pudieron cargar los envíos. Reintente.</value>
+  </data>
+  <data name="Shipment.DetailsError" xml:space="preserve">
+    <value>No se pudo cargar el detalle del envío. Reintente.</value>
+  </data>
+  <data name="WH.Inventory.IncludeFinishedGoods" xml:space="preserve"><value>Incluir productos terminados</value></data>
+  <data name="WH.Inventory.DefectAction" xml:space="preserve"><value>Marcar defectuoso</value></data>
+  <data name="WH.Inventory.DefectTitle" xml:space="preserve"><value>Defecto de inventario</value></data>
+  <data name="WH.Inventory.DefectSummary" xml:space="preserve"><value>Introduzca la cantidad defectuosa. Solo esta cantidad se descontara del inventario disponible.</value></data>
+  <data name="WH.Inventory.DefectReason" xml:space="preserve"><value>Motivo del defecto</value></data>
+  <data name="WH.Inventory.DefectNotEligible" xml:space="preserve"><value>Seleccione una caja o un LOT individual con existencias, no un palet o grupo.</value></data>
+  <data name="WH.Inventory.DefectConfirm" xml:space="preserve"><value>Marcar {1} del LOT {0} como defectuoso?</value></data>
+  <data name="WH.Inventory.DefectDone" xml:space="preserve"><value>La cantidad defectuosa se desconto del LOT {0}. El resto del inventario sigue disponible.</value></data>
+  <data name="WH.Inventory.DefectQty" xml:space="preserve"><value>Cantidad defectuosa</value></data>
+  <data name="WH.Inventory.DefectWholeLotSummary" xml:space="preserve"><value>Se marcará todo el LOT como defectuoso.</value></data>
+  <data name="WH.Inventory.DefectConfirmWholeLot" xml:space="preserve"><value>Marcar todo el LOT {0} ({1}) como defectuoso?</value></data>
+  <data name="WH.Inventory.DefectDoneWholeLot" xml:space="preserve"><value>El LOT {0} completo se marco como defectuoso.</value></data>
+  <data name="WH.Inventory.AvailableQty" xml:space="preserve"><value>Cantidad disponible</value></data>
+  <data name="WH.Inventory.DefectRecorded" xml:space="preserve"><value>Defecto registrado</value></data>
+  <data name="WH.Inventory.Export" xml:space="preserve"><value>Excel</value></data>
+  <data name="Portal.ShippingUnit.ContentsCount" xml:space="preserve"><value>{0} elementos</value></data>
+  <data name="WH.Inventory.ExportConfirm" xml:space="preserve"><value>¿Descargar en Excel las cantidades disponibles y defectuosas de los {0} artículos filtrados?</value></data>
+  <data name="Excel.Download" xml:space="preserve">
+    <value>Descargar Excel</value>
+  </data>
+  <data name="Excel.Download.Hint" xml:space="preserve">
+    <value>Descarga la lista actual en el formato de carga (plantilla vacía si no hay filas)</value>
+  </data>
+  <data name="Excel.Upload" xml:space="preserve">
+    <value>Subir Excel</value>
+  </data>
+  <data name="Excel.Upload.Hint" xml:space="preserve">
+    <value>Suba la plantilla descargada (.xlsx): solo se crean los registros que faltan y los existentes se omiten (no se actualizan). Las columnas se identifican por la clave entre paréntesis del encabezado.</value>
+  </data>
+  <data name="Excel.Upload.New" xml:space="preserve">
+    <value>Crear {0}</value>
+  </data>
+  <data name="Excel.Upload.Skip" xml:space="preserve">
+    <value>Omitir {0}</value>
+  </data>
+  <data name="Excel.Upload.Problems" xml:space="preserve">
+    <value>Problemas {0}</value>
+  </data>
+  <data name="Excel.Upload.NewList" xml:space="preserve">
+    <value>Se crearán</value>
+  </data>
+  <data name="Excel.Upload.SkipList" xml:space="preserve">
+    <value>Ya existen (se omiten)</value>
+  </data>
+  <data name="Excel.Upload.ProblemList" xml:space="preserve">
+    <value>Filas que no se crean por problemas</value>
+  </data>
+  <data name="Excel.Upload.Apply" xml:space="preserve">
+    <value>Crear</value>
+  </data>
+  <data name="Excel.Upload.Done" xml:space="preserve">
+    <value>Creados {0} · omitidos {1} · fallidos {2}</value>
+  </data>
+  <data name="Excel.Upload.RowFmt" xml:space="preserve">
+    <value>Fila {0}</value>
+  </data>
+  <data name="Excel.Err.NotXlsx" xml:space="preserve">
+    <value>No es un archivo Excel (.xlsx)</value>
+  </data>
+  <data name="Excel.Err.TooLarge" xml:space="preserve">
+    <value>El archivo es demasiado grande (máx. 10 MB)</value>
+  </data>
+  <data name="Excel.Err.NoHeader" xml:space="preserve">
+    <value>No es la plantilla: faltan columnas obligatorias</value>
+  </data>
+  <data name="Excel.Err.Required" xml:space="preserve">
+    <value>Valor obligatorio</value>
+  </data>
+  <data name="Excel.Err.BadNumber" xml:space="preserve">
+    <value>No es un número válido</value>
+  </data>
+  <data name="Excel.Err.BadFlag" xml:space="preserve">
+    <value>Ingrese 1/0 o Y/N</value>
+  </data>
+  <data name="Excel.Err.BadDate" xml:space="preserve">
+    <value>No es una fecha válida (yyyy-MM-dd)</value>
+  </data>
+  <data name="Excel.Err.Unknown" xml:space="preserve">
+    <value>Código o artículo no registrado</value>
+  </data>
+  <data name="Excel.Err.Duplicate" xml:space="preserve">
+    <value>Duplicado en el archivo</value>
+  </data>
+  <data name="Excel.Err.OutOfRange" xml:space="preserve">
+    <value>Fuera de rango</value>
+  </data>
+  <data name="Excel.Err.PastDate" xml:space="preserve">
+    <value>Solo se permite hoy o una fecha posterior</value>
+  </data>
+  <data name="Excel.Err.DateOrder" xml:space="preserve">
+    <value>La fecha final es anterior a la inicial</value>
+  </data>
+  <data name="Excel.Err.TooLong" xml:space="preserve">
+    <value>Demasiado largo</value>
+  </data>
+  <data name="Excel.Err.SelfComp" xml:space="preserve">
+    <value>El artículo raíz no puede ser su propio componente</value>
+  </data>
+  <data name="Excel.Err.Cycle" xml:space="preserve">
+    <value>Crea un ciclo de BOM</value>
+  </data>
+  <data name="Excel.Err.HeaderDiff" xml:space="preserve">
+    <value>Los datos de la versión difieren entre filas de la misma versión</value>
+  </data>
+  <data name="Excel.Err.RootDiff" xml:space="preserve">
+    <value>El artículo raíz difiere de la versión existente</value>
+  </data>
+  <data name="Excel.Err.Packaging" xml:space="preserve">
+    <value>BOX y PALLET no son unidades de cantidad</value>
+  </data>
+  <data name="MD.Bom.Hint.SapSuperseded" xml:space="preserve">
+    <value>Se aprobó una versión más nueva o esta venció, por lo que ya no se envía a SAP</value>
   </data>
 </root>
