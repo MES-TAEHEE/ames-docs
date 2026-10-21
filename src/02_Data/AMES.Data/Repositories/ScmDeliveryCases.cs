@@ -255,14 +255,14 @@ public sealed partial class ScmRepository
             var inputs=boxes.Where(b=>b.Order==order).GroupBy(b=>b.PoID).Select(g=>new DeliveryInput(g.Key,g.Sum(b=>b.Quantity))).ToArray();
             var cases=selected.Where(k=>k.Boxes.Any(b=>b.Order==order)).Select(k=>k.Number).ToArray();
             if(cases.Length>0)
-                deliveries.Add(RegisterSupplierDelivery(c,tx,order,date,inputs,versions[order],Guid.NewGuid(),userId,actor,cases,caseBatch:true));
+                deliveries.Add(RegisterSupplierDelivery(c,tx,order,date,inputs,versions[order],Guid.NewGuid(),userId,actor,cases,caseBatch:true,shipImmediately:true));
             var loose=looseItems.Where(i=>i.Order==order).ToArray();
             if(loose.Length>0)
             {
                 var current=LockCaseOrders(c,tx,[order]);
                 deliveries.Add(RegisterSupplierDelivery(c,tx,order,date,
                     loose.GroupBy(i=>i.PoID).Select(g=>new DeliveryInput(g.Key,g.Sum(i=>i.Quantity))).ToArray(),
-                    current[order],Guid.NewGuid(),userId,actor,looseItems:loose));
+                    current[order],Guid.NewGuid(),userId,actor,looseItems:loose,shipImmediately:true));
             }
         }
         var note=IssueDeliveryNote(c,tx,deliveries,userId,actor);

@@ -5,6 +5,23 @@ namespace AMES.Data.Tests;
 
 public sealed class ScmShippingUnitUiTests
 {
+    [Fact]
+    public void Note_creation_ships_inside_the_existing_transaction_without_a_second_portal_action()
+    {
+        var groups=Read("src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs");
+        Assert.Contains("caseBatch:true,shipImmediately:true",groups);
+        Assert.Contains("looseItems:loose,shipImmediately:true",groups);
+        Assert.Contains("IssueDeliveryNote(c,tx,deliveries,userId,actor)",groups);
+        var registration=Read("src/02_Data/AMES.Data/Repositories/ScmDeliveries.cs");
+        Assert.Contains("DECLARE @Now datetime2=SYSDATETIME()",registration);
+        Assert.Contains("CASE WHEN @Ship=1 THEN 'Shipped' ELSE 'Registered' END",registration);
+        Assert.Contains("CASE WHEN @Ship=1 THEN CONVERT(date,@Now) END,CASE WHEN @Ship=1 THEN @Now END",registration);
+        Assert.Contains("CASE WHEN @Ship=1 THEN @Actor END,CASE WHEN @Ship=1 THEN @User END",registration);
+        var page=Read("src/06_Web/AMES.Web/Components/Shared/ScmPreview.razor");
+        foreach(var removed in new[]{"StartShipping","_shipmentNote","ConfirmSupplierShipment","ScmDateShip","SCM.Preview.Col.ShipmentAction"})
+            Assert.DoesNotContain(removed,page);
+    }
+
     private static string Root([System.Runtime.CompilerServices.CallerFilePath] string path = "")
         => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, "../../.."));
     private static string Read(string path) => File.ReadAllText(Path.Combine(Root(), path));

@@ -386,13 +386,13 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(mixedNote.Number,repo.CreateDeliveryNoteFromCases([mixed,additional],DateTime.Today,"case-user","case-user").Number);
             Assert.Throws<InvalidOperationException>(()=>repo.CreateDeliveryNoteFromCases([mixed],DateTime.Today,"case-user","case-user"));
             Assert.Equal(mixedBoxes,repo.GetDeliveryCase(mixed,"case-user")!.Boxes.Select(b=>b.Number).ToArray());
-            Assert.Equal("Registered",repo.GetDeliveryCase(mixed,"case-user")!.Status);
+            Assert.Equal("Shipped",repo.GetDeliveryCase(mixed,"case-user")!.Status);
             Assert.Throws<SqlException>(()=>repo.CancelPreparedCase(mixed,"case-user"));
             foreach(var line in mixedNote.Lines)
             {
                 Assert.Contains(repo.ListDeliveryCases(null,"case-user",delivery:line.DeliveryNumber),k=>k.Number==mixed);
                 Assert.Throws<InvalidOperationException>(()=>Update(line.DeliveryNumber,line.OrderNumber,line.PoID,line.Quantity,cancel:true));
-                Update(line.DeliveryNumber,line.OrderNumber,line.PoID,line.Quantity,ship:true);
+                Assert.Equal(1,Count($"SELECT COUNT(*) FROM SCM_Delivery WHERE DeliveryNumber='{line.DeliveryNumber}' AND Status='Shipped' AND ShipDate=CONVERT(date,ShippedAt) AND ShippedBy='case-user' AND ShippedUserID='case-user'"));
             }
             Assert.True(repo.GetDeliveryCase(mixed,"case-user")!.ReadyToReceive);
             Sql("UPDATE MD_Item SET ScanRequired=1 WHERE ItemNo='PART-1';");
@@ -473,7 +473,7 @@ public sealed class ScmDeliveryCaseTests
                 VALUES(7,'PO-LOOSE',1,'V1','PART-1','EA',0,10,'Open',DATEADD(day,-1,SYSDATETIME()),SYSDATETIME(),SYSDATETIME(),'EOS');
                 """);
             var looseNote=repo.CreateDeliveryNoteFromDraftCases(
-                [new(["PO-LOOSE"],[new(7,2)])],DateTime.Today,"case-user","case-user",
+                [new(["PO-LOOSE"],[new(7,2)])],DateTime.Today.AddDays(2),"case-user","case-user",
                 [new("PO-LOOSE",7,3,false),new("PO-LOOSE",7,1,true)]);
             Assert.Equal(6m,looseNote.Lines.Sum(l=>l.Quantity));
             var looseDeliveries=repo.ListNoteDeliveries("case-user").Where(d=>d.NoteNumber==looseNote.Number).ToArray();
@@ -487,9 +487,16 @@ public sealed class ScmDeliveryCaseTests
             var shipmentVersions=new Dictionary<string,IReadOnlyDictionary<int,string>> { ["PO-LOOSE"]=Versions("PO-LOOSE") };
             var staleShipment=shipment.ToArray();staleShipment[^1]=staleShipment[^1] with {Version="STALE"};
             Assert.Throws<InvalidOperationException>(()=>repo.ConfirmSupplierShipment(staleShipment,DateTime.Today,shipmentVersions,"case-user","case-user"));
-            Assert.All(repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number)),d=>Assert.Equal("Registered",d.Status));
-            repo.ConfirmSupplierShipment(shipment,DateTime.Today,shipmentVersions,"case-user","case-user");
-            Assert.All(repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number)),d=>Assert.Equal("Shipped",d.Status));
+            Assert.Throws<InvalidOperationException>(()=>repo.ConfirmSupplierShipment(shipment,DateTime.Today,shipmentVersions,"case-user","case-user"));
+            Assert.All(repo.ListSupplierDeliveries(true,"case-user").Where(d=>looseDeliveries.Any(n=>n.Number==d.Number)),d=>
+            {
+                Assert.Equal("Shipped",d.Status);
+                Assert.Equal(looseNote.IssuedAt.Date,d.ShipDate);
+                Assert.NotNull(d.ShippedAt);
+                Assert.Equal("case-user",d.ShippedBy);
+                Assert.Equal(DateTime.Today.AddDays(2),d.Date);
+            });
+            Assert.Equal(looseNote.IssuedAt.Date,looseNote.ShipDate);
             Assert.Equal(3,looseLabels.Length);
             var partOnly=repo.CreateDeliveryNoteFromDraftCases([],DateTime.Today,"case-user","case-user",
                 [new("PO-LOOSE",7,1,true)]);

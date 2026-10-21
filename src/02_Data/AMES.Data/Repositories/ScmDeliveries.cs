@@ -45,7 +45,7 @@ public sealed partial class ScmRepository
     static string RegisterSupplierDelivery(SqlConnection conn,SqlTransaction tx,string number,DateTime date,
         IReadOnlyList<DeliveryInput> items,IReadOnlyDictionary<int,string> versions,Guid requestId,string userId,string actor,
         IReadOnlyList<string>? caseNumbers=null,IReadOnlyList<IReadOnlyList<CaseBoxInput>>? draftCases=null,bool caseBatch=false,
-        IReadOnlyList<LooseItemInput>? looseItems=null)
+        IReadOnlyList<LooseItemInput>? looseItems=null,bool shipImmediately=false)
     {
         if(requestId==Guid.Empty || items.Count==0 || items.Select(x=>x.PoID).Distinct().Count()!=items.Count ||
             items.Any(x=>x.Quantity<=0 || x.Quantity>999999999.999m || decimal.Round(x.Quantity,3)!=x.Quantity))
@@ -78,9 +78,10 @@ public sealed partial class ScmRepository
             throw new InvalidOperationException("Order is not issued.");
         using(var confirmed=new SqlCommand("""
             SELECT COUNT(*) FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N
-              AND (SupplierConfirmedAt IS NULL OR @Date<OrderDate OR @Date<CONVERT(date,SYSDATETIME()));
+              AND (SupplierConfirmedAt IS NULL OR @Date<OrderDate OR @Date<CONVERT(date,SYSDATETIME())
+                   OR (@Ship=1 AND OrderDate>CONVERT(date,SYSDATETIME())));
             """,conn,tx))
-        {Filter(confirmed,("@N", "WH_PurchaseOrder.PoNumber",number),("@Date", "WH_PurchaseOrder.OrderDate",date.Date));if((int)confirmed.ExecuteScalar()!>0)throw new InvalidOperationException("Confirm the order and check the delivery date.");}
+        {Filter(confirmed,("@N", "WH_PurchaseOrder.PoNumber",number),("@Date", "WH_PurchaseOrder.OrderDate",date.Date),("@Ship", null,shipImmediately));if((int)confirmed.ExecuteScalar()!>0)throw new InvalidOperationException("Confirm the order and check the delivery date.");}
         if(draftCases is not null)
             caseNumbers=draftCases.Select(boxes=>CreatePreparedCase(conn,tx,number,boxes,userId)).ToArray();
         if(caseNumbers is not null) ValidatePreparedCases(conn,tx,number,caseNumbers,items,caseBatch);
@@ -112,11 +113,18 @@ public sealed partial class ScmRepository
         }
         // Temporary unique number is replaced in the same transaction with the generated identity.
         using var header=new SqlCommand("""
-            INSERT dbo.SCM_Delivery(DeliveryNumber,RequestID,PoNumber,VendorID,DeliveryDate,CreatedBy,CreatedUserID)
+            DECLARE @Now datetime2=SYSDATETIME();
+            INSERT dbo.SCM_Delivery(DeliveryNumber,RequestID,PoNumber,VendorID,DeliveryDate,CreatedBy,CreatedUserID,
+                Status,ShipDate,ShippedAt,ShippedBy,ShippedUserID)
             OUTPUT INSERTED.DeliveryID
-            SELECT @Temp,@Request,@N,MIN(VendorID),@Date,@Actor,@User FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N;
+            SELECT @Temp,@Request,@N,MIN(VendorID),@Date,@Actor,@User,
+                CASE WHEN @Ship=1 THEN 'Shipped' ELSE 'Registered' END,
+                CASE WHEN @Ship=1 THEN CONVERT(date,@Now) END,CASE WHEN @Ship=1 THEN @Now END,
+                CASE WHEN @Ship=1 THEN @Actor END,CASE WHEN @Ship=1 THEN @User END
+            FROM dbo.WH_PurchaseOrder WHERE PoNumber=@N;
             """,conn,tx);
         Add(header,("@Temp", "SCM_Delivery.DeliveryNumber",Guid.NewGuid().ToString("N")[..30]),("@Request", "SCM_Delivery.RequestID",requestId),("@N", "SCM_Delivery.PoNumber",number),("@Date", "SCM_Delivery.DeliveryDate",date.Date),("@Actor", "SCM_Delivery.CreatedBy",actor),("@User", "SCM_Delivery.CreatedUserID",userId));
+        Filter(header,("@Ship", null,shipImmediately));
         var id=(int)header.ExecuteScalar()!;
         using var assign=new SqlCommand("UPDATE dbo.SCM_Delivery SET DeliveryNumber=CONCAT('DN-',CONVERT(char(8),CreatedTS,112),'-',@ID) OUTPUT INSERTED.DeliveryNumber WHERE DeliveryID=@ID",conn,tx);
         Filter(assign,("@ID", "SCM_Delivery.DeliveryID",id)); var deliveryNumber=(string)assign.ExecuteScalar()!;
