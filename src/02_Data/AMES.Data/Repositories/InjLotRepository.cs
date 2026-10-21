@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
@@ -460,12 +460,20 @@ public sealed class InjLotRepository
     /// </summary>
     public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
         string lotCode, string lineId, string operatorId, int? sessionId, string employeeNo)
-        => ConfirmByLotCode(lotCode, lineId, operatorId, sessionId, employeeNo, out _);
+        => ConfirmByLotCode(lotCode, lineId, operatorId, sessionId, employeeNo, null, out _);
 
+    public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
+        string lotCode, string lineId, string operatorId, int? sessionId, string employeeNo, out BackflushResult backflush)
+        => ConfirmByLotCode(lotCode, lineId, operatorId, sessionId, employeeNo, null, out backflush);
+
+    /// <param name="palletNo">
+    /// POP 이 먼저 스캔한 팔레트(2026-10-21) — 있으면 같은 트랜잭션에서 <see cref="PalletStockRepository.Load"/> 로 WH_Inventory 에 싣고,
+    /// 팔레트가 없거나·못 쓰거나·혼적·가득 참이면 확정하지 않고 Pallet* 결과로 돌려준다. null 이면 종전대로 재고 없이 확정한다(테스트·다른 호출자).
+    /// </param>
     /// <param name="backflush">같은 트랜잭션에서 돈 BOM 자동 차감 결과 — 확정되지 않으면 <see cref="BackflushResult.None"/>.</param>
     public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
         string lotCode, string lineId,
-        string operatorId, int? sessionId, string employeeNo, out BackflushResult backflush)
+        string operatorId, int? sessionId, string employeeNo, string? palletNo, out BackflushResult backflush)
     {
         backflush = BackflushResult.None;
         using var conn = _factory.OpenConnection();
@@ -502,6 +510,13 @@ public sealed class InjLotRepository
                 case LotConfirmBlock.NgBlocked:        tx.Rollback(); return (InjConfirmOutcome.NgBlocked,        0, itemNo, 0);
                 case LotConfirmBlock.InRework:         tx.Rollback(); return (InjConfirmOutcome.InRework,         0, itemNo, 0);
                 case LotConfirmBlock.Scrapped:         tx.Rollback(); return (InjConfirmOutcome.Scrapped,         0, itemNo, 0);
+            }
+
+            // 팔레트 적재 — 못 실으면 확정도 하지 않는다(확정됐는데 팔레트에 없는 제품이 생기지 않게)
+            if (palletNo is not null)
+            {
+                var load = PalletStockRepository.Load(conn, tx, lotId, lotCode, itemNo, palletNo, operatorId, employeeNo);
+                if (load != PalletLoadOutcome.Ok) { tx.Rollback(); return (PalletOutcome(load), 0, itemNo, 0); }
             }
 
             // WO 가 없어도 생산은 막지 않는다(2026-10-01) — 열린 단계가 없으면 실적·LOT 의 WoID 는 NULL, 단계 반영 없음.
@@ -594,6 +609,14 @@ public sealed class InjLotRepository
         }
         catch { tx.Rollback(); throw; }
     }
+
+    static InjConfirmOutcome PalletOutcome(PalletLoadOutcome o) => o switch
+    {
+        PalletLoadOutcome.NotFound => InjConfirmOutcome.PalletNotFound,
+        PalletLoadOutcome.Mixed    => InjConfirmOutcome.PalletMixed,
+        PalletLoadOutcome.Full     => InjConfirmOutcome.PalletFull,
+        _                          => InjConfirmOutcome.PalletUnavailable,
+    };
 
     /// <summary>로봇 검사 판정 저장 (에이전트).</summary>
     public void SaveInspection(int lotId, string equipId, string cavityPos,

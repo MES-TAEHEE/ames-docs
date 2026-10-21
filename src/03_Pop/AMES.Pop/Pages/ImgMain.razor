@@ -1,5 +1,6 @@
 ﻿@page "/imgmain"
 @using AMES.Contracts.Enums
+@using AMES.Data.Repositories
 @using AMES.Data.Services
 @using AMES.Pop.Pages.InjPopups
 @implements IDisposable
@@ -136,6 +137,7 @@
                         }
                     </div>
                     <div class="injm-chips">
+                        <span class="injm-chip">@T("Pallet") <b class="@PalletChip.Of(_pallet).Css mono">@PalletChip.Of(_pallet).Text</b></span>
                         <span class="injm-chip">@T("TodayGood") <b class="ok">@_todayGood</b></span>
                         <span class="injm-chip">@T("Defect") <b class="@_defClass">@_todayDef · @_defectPct</b></span>
                         <span class="injm-chip">@T("Unconfirmed") <b class="@(_rawCount > 0 ? "warn" : "ok")">@_rawCount</b></span>
@@ -198,7 +200,7 @@
 @switch (_popup)
 {
     case Popup.Judge when _judgeLot is not null:
-        <ImgJudgePopup @key="_judgeLot.LotId" Session="Session" Lot="_judgeLot" OnClose="ClosePopup" OnDone="OnJudged" />
+        <ImgJudgePopup @key="_judgeLot.LotId" Session="Session" Lot="_judgeLot" PalletNo="@_pallet?.PalletNo" OnClose="ClosePopup" OnDone="OnJudged" />
         break;
     case Popup.Defect:
         <DefectPopup Session="Session" ProcessCode="IMG" OnClose="ClosePopup" OnChanged="Refresh" />
@@ -397,6 +399,8 @@
     {
         // 판정분은 금일 수치에 올라가므로 과거 날짜를 보고 있었다면 금일로 돌린다.
         _selItemNo = r.ItemNo; _viewDate = null;
+        // OK 는 팔레트에 실렸다 — 칩을 실제 적재 수로
+        if (r.Good) RefreshPallet(r.ItemNo);
         // NG 등록 성공을 녹색 배너로 띄우면 현장에서 양품으로 읽힌다 — 불량 전용 배너로 구분한다.
         _bannerClass = r.Good ? "ok" : "ng"; _bannerDetail = r.Detail;
         ClosePopup();
@@ -425,13 +429,39 @@
         HandleScan(code);
     }
 
-    // 스캔 한 칸이 두 가지를 받는다 — IMG 완제품 라벨이면 판정, 아니면 사출 Core 로 보고 완제품을 만든다.
+    /// <summary>현재 팔레트 — OK 완제품이 실릴 곳. 화면 메모리뿐이라 재로그인하면 다시 스캔한다(2026-10-21 사용자 결정).</summary>
+    private PalletStockRepository.PalletStatus? _pallet;
+
+    private void SetPallet(string code)
+    {
+        try
+        {
+            var st = PopServices.Pallets.Inspect(code, _selItemNo);
+            if (PalletChip.Accepts(st.Outcome)) _pallet = st;
+            var key = PalletChip.NoticeKey(st.Outcome);
+            SetBanner(key is null, key is null ? $"{T("PalletSet")}: {st.PalletNo} ({st.CapacityText})" : $"{T(key)}: {st.PalletNo}");
+        }
+        catch (Exception ex) { SetBanner(false, $"{T("EntryFailed")}: {ex.Message}"); }
+    }
+
+    private void RefreshPallet(string? itemNo)
+    {
+        if (_pallet is null) return;
+        try { _pallet = PopServices.Pallets.Inspect(_pallet.PalletNo, itemNo ?? _selItemNo); } catch { }
+    }
+
+    // 스캔 한 칸이 세 가지를 받는다 — 팔레트 바코드(EOS-PLT-)면 현재 팔레트, IMG 완제품 라벨이면 판정, 아니면 사출 Core 로 보고 완제품을 만든다.
     // 두 라벨 모두 ExtractLotCode 가 9자 LotNo 를 돌려준다(INJ 라벨은 LotNo 그대로).
+    // 팔레트가 없거나 가득 차면 LOT 스캔을 받지 않는다 — OK 가 팔레트에 실려야 하므로 코어 스캔(라벨 발행) 전에 막는다.
     private void HandleScan(string raw)
     {
         if (Session is null) return;
         try
         {
+            if (PalletLoadRules.IsPalletBarcode(raw)) { SetPallet(raw); return; }
+            if (_pallet is null) { SetBanner(false, $"{T("PalletScanFirst")}: {raw}"); return; }
+            if (_pallet.IsFull)  { SetBanner(false, $"{T("PalletFull")}: {_pallet.PalletNo}"); return; }
+
             var lotCode = AMES.Devices.ImgScanParser.ExtractLotCode(raw);
             if (lotCode is null) { SetBanner(false, $"{T("LotNotFound")}: {raw}"); return; }
 

@@ -63,6 +63,8 @@
 @code {
     [Parameter, EditorRequired] public ImgLotDto      Lot     { get; set; } = null!;
     [Parameter]                 public PopSessionDto? Session { get; set; }
+    /// <summary>메인이 스캔해 둔 현재 팔레트 — OK 는 이 팔레트에 실린다. 없으면 OK 를 받지 않는다(2026-10-21).</summary>
+    [Parameter]                 public string?        PalletNo { get; set; }
     [Parameter]                 public EventCallback  OnClose { get; set; }
     /// <summary>판정 성공 — (양품 여부, 배너 문구, 품번). 메인이 배너·선택 품번을 갱신하고 팝업을 닫는다.</summary>
     [Parameter] public EventCallback<(bool Good, string Detail, string ItemNo)> OnDone { get; set; }
@@ -111,12 +113,14 @@
     private async Task Ok()
     {
         if (Session is null || _busy) return;
+        // 예외용 라벨 발행 버튼은 팔레트 없이도 이 팝업을 연다 — OK(적재)는 팔레트가 있어야 한다
+        if (PalletNo is null) { _error = T("PalletScanFirst"); _focusScan = true; return; }
         _busy = true; _error = null;
         await Task.Yield();   // 버튼 비활성을 먼저 그린다 — DB 호출이 동기라 이게 없으면 연타 방지가 화면에 안 보인다
         try
         {
             var (outcome, _, itemNo, woId) = PopServices.ImgLots.ConfirmByLotCode(
-                Lot.LotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo, out var backflush);
+                Lot.LotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo, PalletNo, out var backflush);
             if (outcome == ImgConfirmOutcome.Confirmed)
             {
                 BackflushNotice.Show(Toasts, backflush, Lot.LotCode);
@@ -131,6 +135,7 @@
                 ImgConfirmOutcome.WrongLine        => $"{T("LotBelongsToAnotherLine")}: {Lot.LotCode}",
                 ImgConfirmOutcome.InRework         => $"{T("LotInRework")}: {Lot.LotCode}",
                 ImgConfirmOutcome.Scrapped         => $"{T("LotScrapped")}: {Lot.LotCode}",
+                _ when PalletChip.NoticeKey(outcome) is { } k => $"{T(k)}: {PalletNo}",
                 _                                  => $"{T("ConfirmFailed")}: {Lot.LotCode}",
             };
         }
