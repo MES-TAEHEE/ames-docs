@@ -82,6 +82,22 @@ public sealed class ScmShippingUnitUiTests
     }
 
     [Fact]
+    public void Scm_and_portal_lists_start_and_reset_to_one_month_before_and_after_today()
+    {
+        var page = Read("src/06_Web/AMES.Web/Components/Shared/ScmPreview.razor");
+        Assert.Contains("DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today.AddMonths(1);", page);
+        Assert.Contains("_from = DbClock.Today.AddMonths(-1); _to = DbClock.Today.AddMonths(1);", page);
+        var progress=Read("src/06_Web/AMES.Web/Components/Pages/Scm/DeliveryProgress.razor");
+        Assert.Contains("_from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1)",progress);
+        Assert.Contains("_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1)",progress);
+        Assert.DoesNotContain("_from = _to = null", page);
+        // Clearing either bound must still permit a user-selected wider range.
+        Assert.Contains("(!_from.HasValue || o.Due >= _from) && (!_to.HasValue || o.Due <= _to)", page);
+        foreach (var path in new[] { "Scm/PurchaseOrders", "Scm/OrderProgress", "Portal/Orders", "Portal/DueOrders", "Portal/Deliveries" })
+            Assert.Contains("<ScmPreview", Read("src/06_Web/AMES.Web/Components/Pages/" + path + ".razor"));
+    }
+
+    [Fact]
     public void New_barcodes_use_shu_and_uit_without_replacing_saved_labels()
     {
         var groups = Read("src/02_Data/AMES.Data/Repositories/ScmDeliveryCases.cs");

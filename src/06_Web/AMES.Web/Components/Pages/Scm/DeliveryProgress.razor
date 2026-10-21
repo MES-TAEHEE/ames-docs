@@ -85,7 +85,7 @@
     {if(args.Data?.Item.Received==true)args.Attributes["class"]="scm-received-row";}
     static void RenderNoteRow(RowRenderEventArgs<SupplierDeliveryProgressDto> args)
     {if(args.Data?.Complete==true)args.Attributes["class"]="scm-received-row";}
-    DateTime? _from=DbClock.Today.AddDays(-6),_to=DbClock.Today;
+    DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1);
     string? _vendor;
     string _search="",_error="";
     bool _busy,_allowed,_includeReceived;
@@ -124,7 +124,7 @@
         catch(Exception ex){Logger.LogError(ex,"Delivery progress load failed");_error=L["SCM.DeliveryProgress.LoadError"];}
         finally{_busy=false;}
     }
-    async Task Reset(){_from=DbClock.Today.AddDays(-6);_to=DbClock.Today;_vendor=null;_search="";_includeReceived=false;await Reload();}
+    async Task Reset(){_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1);_vendor=null;_search="";_includeReceived=false;await Reload();}
     string Status(string status)=>status switch{"OnTheWay"=>L["SCM.DeliveryProgress.OnTheWay"],"PartiallyReceived"=>L["SCM.DeliveryProgress.Partial"],"Received"=>L["Scm.Text.Received"],_=>L["Portal.Text.Registered"]};
     string Totals(SupplierDeliveryProgressDto d,Func<SupplierDeliveryLineDto,decimal> value)=>string.Join(" / ",d.Lines.GroupBy(l=>l.Unit).Select(g=>Uom.QtyUnit(g.Sum(value),g.Key)));
     public async ValueTask DisposeAsync(){_stop.Cancel();if(_refresh is not null)await _refresh;_stop.Dispose();}

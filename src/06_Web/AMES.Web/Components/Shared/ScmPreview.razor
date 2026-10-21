@@ -657,7 +657,7 @@
     bool _includeClosed, _includeCancelled;
     void ToggleClosed(bool value) { _includeClosed=value; if(!value && _status is "Received" or "Closed")_status=""; }
     void ToggleCancelled(bool value) { _includeCancelled=value; if(!value && _status is "Cancelled")_status=""; }
-    DateTime? _from, _to;
+    DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today.AddMonths(1);
     decimal _deliveryQuantity = 1;
     int _deliveryLineId;
     ScmPreviewStore.Order? _selected, _edit;
@@ -852,7 +852,7 @@
     Task SetVendor(string? value) { _vendor = value ?? ""; return Search(); }
     Task SetCreator(string? value) { _creator = value ?? ""; return Search(); }
     void SetStatus(string? value) => _status = value ?? "";
-    void Reset() { _search = _vendor = _creator = _message = _status = ""; _includeClosed=_includeCancelled=false; _from = _to = null; _selected = _edit = null; _delivery = null; _selectedNote=null; }
+    void Reset() { _search = _vendor = _creator = _message = _status = ""; _includeClosed=_includeCancelled=false; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today.AddMonths(1); _selected = _edit = null; _delivery = null; _selectedNote=null; }
     async Task ResetAndReload() { if(_orderBusy)return; Reset();if(_ready)await ReloadOrdersAsync(); }
     async Task FirstPage()
     {
