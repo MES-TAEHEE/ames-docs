@@ -28,7 +28,7 @@ SET ANSI_WARNINGS ON;
 BEGIN TRY
     BEGIN TRANSACTION;
 
-    CREATE TABLE #Targets (ID int IDENTITY PRIMARY KEY, TableName sysname NOT NULL, ColumnName sysname NOT NULL);
+    CREATE TABLE #Targets (ID int IDENTITY PRIMARY KEY, TableName sysname COLLATE DATABASE_DEFAULT NOT NULL, ColumnName sysname COLLATE DATABASE_DEFAULT NOT NULL);  -- tempdb 콜레이션이 DB 와 다른 서버(복제본 Docker)에서 sys.columns 비교가 468 로 실패하지 않게
     INSERT #Targets (TableName, ColumnName) VALUES
         ('PR_AndonCall','AckedBy'),            ('QC_NCR_Action','ActionBy'),          ('PNT_LotLabel','AppliedBy'),
         ('PR_FabricIssueAttempt','AttemptedBy'),('PNT_ShiftReportAudit','ChangedBy'),  ('PP_ForecastHistory','ChangedBy'),
@@ -112,7 +112,7 @@ BEGIN TRY
       AND NOT EXISTS (SELECT 1 FROM dbo.SYS_AuditActorMap m WHERE m.OriginalHash = HASHBYTES('SHA2_256', CONVERT(nvarchar(900), v.Val)));
 
     -- 값 변환 → 형식 변경 → 설명
-    CREATE TABLE #Results (TableName sysname, ColumnName sysname, ConvertedRows int);
+    CREATE TABLE #Results (TableName sysname COLLATE DATABASE_DEFAULT, ColumnName sysname COLLATE DATABASE_DEFAULT, ConvertedRows int);
     SET @i = (SELECT MIN(ID) FROM #Targets);
     WHILE @i IS NOT NULL
     BEGIN
