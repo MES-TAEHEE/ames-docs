@@ -144,9 +144,10 @@ public static class PdaWarehouseSql
             JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = D.DeliveryID
             JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID AND B.ActiveFlag = 1
             LEFT JOIN dbo.MD_Vendor V ON V.VendorID = N.VendorID
-            LEFT JOIN dbo.WH_Inventory W
-              ON W.DeliveryNoteNo COLLATE DATABASE_DEFAULT = N.NoteNumber COLLATE DATABASE_DEFAULT
-                                          AND W.LotNo = B.BoxNumber AND W.Qty > 0
+            OUTER APPLY(SELECT TOP(1) CASE WHEN T.TransactionType='IN' THEN B.BoxNumber END LotNo
+                FROM dbo.WH_InventoryTransaction T WHERE T.LotNo=B.BoxNumber
+                    AND ((T.TransactionType='IN' AND T.SourceType='SCM_DeliveryLine' AND T.SourceID=DL.DeliveryLineID)
+                        OR T.ReasonCode='INBOUND_CANCEL') ORDER BY T.TransactionID DESC) W
             WHERE N.NoteNumber COLLATE DATABASE_DEFAULT = @NoteNumber
             GROUP BY N.NoteID, N.NoteNumber, N.VendorID, V.VendorName;
 
@@ -164,9 +165,10 @@ public static class PdaWarehouseSql
             JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
             JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = ND.DeliveryID
             JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID AND B.ActiveFlag = 1
-            LEFT JOIN dbo.WH_Inventory W
-              ON W.DeliveryNoteNo COLLATE DATABASE_DEFAULT = N.NoteNumber COLLATE DATABASE_DEFAULT
-                                          AND W.LotNo = B.BoxNumber AND W.Qty > 0
+            OUTER APPLY(SELECT TOP(1) CASE WHEN T.TransactionType='IN' THEN B.BoxNumber END LotNo
+                FROM dbo.WH_InventoryTransaction T WHERE T.LotNo=B.BoxNumber
+                    AND ((T.TransactionType='IN' AND T.SourceType='SCM_DeliveryLine' AND T.SourceID=DL.DeliveryLineID)
+                        OR T.ReasonCode='INBOUND_CANCEL') ORDER BY T.TransactionID DESC) W
             WHERE N.NoteNumber COLLATE DATABASE_DEFAULT = @NoteNumber
             GROUP BY B.ItemNo
             ORDER BY B.ItemNo;
@@ -180,9 +182,10 @@ public static class PdaWarehouseSql
             JOIN dbo.SCM_DeliveryNoteDelivery ND ON ND.NoteID = N.NoteID
             JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryID = ND.DeliveryID
             JOIN dbo.SCM_DeliveryBox B ON B.DeliveryLineID = DL.DeliveryLineID AND B.ActiveFlag = 1
-            LEFT JOIN dbo.WH_Inventory W
-              ON W.DeliveryNoteNo COLLATE DATABASE_DEFAULT = N.NoteNumber COLLATE DATABASE_DEFAULT
-                                          AND W.LotNo = B.BoxNumber AND W.Qty > 0
+            OUTER APPLY(SELECT TOP(1) CASE WHEN T.TransactionType='IN' THEN B.BoxNumber END LotNo
+                FROM dbo.WH_InventoryTransaction T WHERE T.LotNo=B.BoxNumber
+                    AND ((T.TransactionType='IN' AND T.SourceType='SCM_DeliveryLine' AND T.SourceID=DL.DeliveryLineID)
+                        OR T.ReasonCode='INBOUND_CANCEL') ORDER BY T.TransactionID DESC) W
             WHERE N.NoteNumber COLLATE DATABASE_DEFAULT = @NoteNumber
             ORDER BY B.ItemNo, B.BoxSeq;
         END;

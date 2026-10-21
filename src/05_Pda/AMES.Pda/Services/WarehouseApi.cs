@@ -6,6 +6,11 @@ namespace AMES.Pda.Services;
 public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi spareParts,
     FinishedGoodsApi fgApi) : PdaApi(http, auth)
 {
+    public Task<List<AMES.Contracts.Dto.SupplierDeliveryProgressDto>> SupplierDeliveriesAsync(DateTime from, DateTime to, string? search = null)
+        => GetRequiredAsync<List<AMES.Contracts.Dto.SupplierDeliveryProgressDto>>(
+            $"/api/wh/inbound/deliveries?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}&search={Uri.EscapeDataString(search ?? "")}",
+            "Delivery schedule service is unavailable.");
+
     public Task<List<string>> WhAdjustmentLinesAsync() => GetRequiredAsync<List<string>>(
         "/api/wh/adjust/lines", "Line inventory service is unavailable.");
 
