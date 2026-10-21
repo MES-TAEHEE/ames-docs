@@ -7,6 +7,7 @@ using AMES.Data.Repositories;
 using AMES.Data.Services;
 using AMES.Data.Services.DemandPlan;
 using AMES.Data.Services.PoSync;
+using Scalar.AspNetCore;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -117,6 +118,14 @@ app.UseSwaggerUI(c =>
     c.EnablePersistAuthorization();
     c.DisplayRequestDuration();
 });
+// Scalar 는 Swashbuckle 이 만든 swagger.json 을 그대로 읽는다(스키마 ID·Bearer 정의 공유) — 같은 켜짐 조건.
+app.MapScalarApiReference("/scalar", o =>
+{
+    o.WithTitle("AMES API")
+     .WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json")
+     .AddPreferredSecuritySchemes("Bearer")
+     .WithPersistentAuthentication();
+});
 }
 
 // ── Endpoints ───────────────────────────────────────────────────────────
@@ -132,6 +141,9 @@ app.MapPp(factory);
 app.MapMnt(factory);
 app.MapRpt(factory);
 app.MapSys(factory);
+
+app.Lifetime.ApplicationStarted.Register(() =>
+    _ = Task.Run(() => app.Logger.LogInformation("AMES.Api started — DB: {Db}", factory.Describe())));
 
 app.Run();
 

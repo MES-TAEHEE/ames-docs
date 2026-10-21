@@ -15,10 +15,12 @@ public class PopForm : Form
 {
     public PopForm()
     {
+        var windowed = AppConfig.Current.DevWindowed;
+
         // chrome
-        FormBorderStyle = FormBorderStyle.None;
-        WindowState     = FormWindowState.Maximized;
-        StartPosition   = FormStartPosition.Manual;
+        FormBorderStyle = windowed ? FormBorderStyle.Sizable : FormBorderStyle.None;
+        WindowState     = windowed ? FormWindowState.Normal  : FormWindowState.Maximized;
+        StartPosition   = windowed ? FormStartPosition.CenterScreen : FormStartPosition.Manual;
         ShowInTaskbar   = true;
         BackColor       = PopTheme.BgOuter;
         ForeColor       = PopTheme.TextWhite;
@@ -30,8 +32,10 @@ public class PopForm : Form
         // Cover the primary screen's full bounds. WindowState=Maximized already
         // does this for us, but setting Bounds explicitly avoids one-pixel
         // mismatches when Visual Studio's debug host stretches the form.
-        var screen = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
-        Bounds = screen;
+        if (windowed)
+            ClientSize = new Size(1280, 800);
+        else
+            Bounds = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
 
         // Universal back / exit shortcut.
         KeyDown += (_, e) =>

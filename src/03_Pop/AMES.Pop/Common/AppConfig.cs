@@ -40,6 +40,9 @@ public sealed class AppConfig
     /// <summary>자동 로그아웃 몇 초 전에 카운트다운 경고를 띄울지.</summary>
     public int IdleWarnSeconds { get; }
 
+    /// <summary>개발용 — true 면 전체 화면(테두리 없음·최대화) 대신 크기 조절 가능한 일반 창으로 연다.</summary>
+    public bool DevWindowed { get; }
+
     private static readonly Lazy<AppConfig> _instance = new(Load);
     public static AppConfig Current => _instance.Value;
 
@@ -48,6 +51,8 @@ public sealed class AppConfig
         ConnectionString = root.GetConnectionString("AMES")
             ?? throw new InvalidOperationException("ConnectionStrings:AMES is missing in appsettings.json");
         DefaultShift = root["PopTerminal:DefaultShift"] ?? "A";   // 공통코드 WORK_SHIFT 기준
+
+        DevWindowed  = bool.TryParse(root["PopTerminal:DevWindowed"], out var dw) && dw;
 
         Language     = (root["PopTerminal:Language"] ?? "ko").ToLowerInvariant() == "en" ? "en" : "ko";
 
