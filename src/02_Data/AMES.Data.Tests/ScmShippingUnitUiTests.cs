@@ -28,6 +28,22 @@ public sealed class ScmShippingUnitUiTests
     }
 
     [Fact]
+    public void Unit_item_label_follows_supplier_sample_without_changing_scan_values()
+    {
+        var page=Read("src/06_Web/AMES.Web/Components/Shared/BoxLabelSheet.razor");
+        Assert.Contains(">@b.VendorName</strong>",page);
+        Assert.Contains("<small>FIFO</small><strong>@LabelDate(b.ProductionDate)</strong>",page);
+        Assert.Contains("<small>Lot No</small><strong>@b.VendorLotNo</strong>",page);
+        Assert.Contains("@QuantityText(b.Quantity,b.Unit)",page);
+        Assert.Contains("@b.Sequence / @b.BoxCount",page);
+        Assert.Contains("readonly DateTime _printedAt=DbClock.Now",page);
+        Assert.True(page.IndexOf("class=\"part-barcode\"",StringComparison.Ordinal)>page.IndexOf("class=\"label-details\"",StringComparison.Ordinal));
+        Assert.Contains("<Code128Barcode Value=\"@b.Number\"",page);
+        Assert.Contains("<Code128Barcode Value=\"@b.Item\"",page);
+        Assert.Contains("Boxes.Chunk(6)",page);
+    }
+
+    [Fact]
     public void Print_keeps_group_and_child_barcode_paths_with_shipping_unit_labels()
     {
         var label = Read("src/06_Web/AMES.Web/Components/Pages/Portal/CaseLabel.razor");

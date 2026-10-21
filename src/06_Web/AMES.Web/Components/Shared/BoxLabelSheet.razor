@@ -9,19 +9,24 @@
         @foreach(var b in row)
         {
             <section class="box-label">
-                <header class="label-header"><strong>UNIT ITEM (UIT)</strong><span>@b.VendorName</span></header>
+                <header class="label-header"><strong class="@(b.VendorName.Length>40 ? "compact" : "")">@b.VendorName</strong><span>@LabelDate(b.ProductionDate) · @b.Sequence</span></header>
                 <div class="box-barcode"><Code128Barcode Value="@b.Number" Height="48" /><strong>@b.Number</strong></div>
-                <div class="part-row"><small>Part No</small><strong class="part-value @(b.Item.Length>18 ? "compact" : "")">@b.Item</strong></div>
-                <div class="desc-row @(b.Name.Length>85 ? "compact" : "")"><small>Description</small><strong>@b.Name</strong></div>
+                <div class="part-row"><small>Product</small><strong class="part-value @(b.Item.Length>18 ? "compact" : "")">@b.Item</strong></div>
+                <div class="desc-row @(b.Name.Length>85 ? "compact" : "")"><small>Desc.</small><strong>@b.Name</strong></div>
                 <div class="label-details">
-                    <div><small>Quantity</small><strong>@QuantityText(b.Quantity,b.Unit) @UomFmt.Sym(b.Unit)</strong></div>
-                    <div><small>Unit Item</small><strong>@b.Sequence / @b.BoxCount</strong></div>
-                    <div><small>Delivery No</small><strong>@b.Delivery</strong></div>
-                    <div><small>PO No</small><strong>@b.Order</strong></div>
-                    <div><small>Vendor Lot</small><strong>@b.VendorLotNo</strong></div>
-                    <div><small>Production Date</small><strong>@b.ProductionDate.ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture)</strong></div>
+                    <div class="label-stock">
+                        <div class="fifo-row"><small>FIFO</small><strong>@LabelDate(b.ProductionDate)</strong></div>
+                        <div class="quantity-row"><small>Quantity</small><strong class="@(QuantityText(b.Quantity,b.Unit).Length>7 ? "compact" : "")">@QuantityText(b.Quantity,b.Unit)</strong><span>@UomFmt.Sym(b.Unit)</span></div>
+                        <div class="destination"><small>Delivery</small><strong>@b.Destination</strong></div>
+                    </div>
+                    <div class="label-reference">
+                        <div class="order-row"><small>PO No</small><strong>@b.Order</strong></div>
+                        <div class="sequence-row"><small>Item Cnt.</small><strong>@b.Sequence / @b.BoxCount</strong></div>
+                        <div class="lot-row"><small>Lot No</small><strong>@b.VendorLotNo</strong></div>
+                    </div>
                 </div>
-                <div class="destination"><small>Destination</small><strong>@b.Destination</strong></div>
+                <div class="part-barcode"><small>Part No</small><Code128Barcode Value="@b.Item" Height="28" /></div>
+                <footer class="label-footer"><span>UNIT ITEM (UIT) · @b.Delivery</span><span>@_printedAt.ToString("dd/MM/yyyy HH:mm",System.Globalization.CultureInfo.InvariantCulture)</span></footer>
             </section>
         }
         </div>
@@ -32,4 +37,6 @@
 @code {
     [Parameter] public IReadOnlyList<ScmRepository.DeliveryBox> Boxes {get;set;}=[];
     [Parameter] public Func<decimal,string,string> QuantityText {get;set;}=(q,u)=>q.ToString("0.###");
+    readonly DateTime _printedAt=DbClock.Now;
+    static string LabelDate(DateTime date)=>date.ToString("dd/MM/yyyy",System.Globalization.CultureInfo.InvariantCulture);
 }
