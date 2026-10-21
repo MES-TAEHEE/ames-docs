@@ -417,7 +417,11 @@
             var key = PalletChip.NoticeKey(st.Outcome);
             SetBanner(key is null, key is null ? $"{T("PalletSet")}: {st.PalletNo} ({st.CapacityText})" : $"{T(key)}: {st.PalletNo}");
         }
-        catch (Exception ex) { SetBanner(false, $"{T("ConfirmFailed")}: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            PopLog.Append("scan", "PALLET", $"{code}: {ex}");
+            SetBanner(false, $"{T("ConfirmFailed")}: {PalletLoadRules.NormalizePalletNo(code)}");
+        }
         finally { _focusScan = true; }
     }
 
@@ -468,7 +472,11 @@
         }
         catch (Exception ex)
         {
-            SetBanner(false, $"{T("ConfirmFailed")}: {ex.Message}");
+            // 작업자 화면에는 LOT 번호와 NG 만 — 예외 본문(SQL 오류 등)은 파일 로그로(10-21 사용자 요청)
+            PopLog.Append("scan", "CONFIRM", $"{lotCode}: {ex}");
+            SetBanner(false, $"{T("ConfirmFailed")}: {lotCode}");
+            _scanHistory.Insert(0, new ScanRecord(lotCode, DbClock.Now, false, ex.Message));
+            if (_scanHistory.Count > 50) _scanHistory.RemoveAt(_scanHistory.Count - 1);
         }
         finally { _focusScan = true; }
     }
