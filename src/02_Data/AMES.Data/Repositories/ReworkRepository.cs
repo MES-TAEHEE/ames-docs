@@ -58,13 +58,9 @@ public sealed class ReworkRepository
     /// <summary>재작업 대기 전부(전 라인), 최신 등록순.</summary>
     public List<ReworkItemDto> ListPending()
     {
-        var sql = SelectView + """
-
-            WHERE  d.Disposition IS NULL AND d.LotID IS NOT NULL
-            ORDER  BY d.DetectedAt DESC, d.DefectID DESC;
-            """;
+        var sql = "dbo.SP_POP_RWK_ListPending";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
         var list = new List<ReworkItemDto>();
         while (rdr.Read()) list.Add(MapToDto(rdr));
@@ -73,12 +69,9 @@ public sealed class ReworkRepository
 
     public ReworkItemDto? FindPendingByLotCode(string lotCode)
     {
-        var sql = SelectView + """
-
-            WHERE  d.Disposition IS NULL AND l.LotCode = @Code;
-            """;
+        var sql = "dbo.SP_POP_RWK_FindPendingByLotCode";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
         using var rdr = cmd.ExecuteReader();
         return rdr.Read() ? MapToDto(rdr) : null;
@@ -87,16 +80,9 @@ public sealed class ReworkRepository
     /// <summary>오늘 판정된 행 최신순 (DispositionAt 기준).</summary>
     public List<ReworkItemDto> ListTodayDecided(int top = 100)
     {
-        var sql = SelectView + """
-
-            WHERE  d.Disposition IN ('REWORKED','SCRAPPED')
-              AND  d.DispositionAt >= CAST(SYSDATETIME() AS date)
-              AND  d.DispositionAt <  DATEADD(day, 1, CAST(SYSDATETIME() AS date))
-            ORDER  BY d.DispositionAt DESC, d.DefectID DESC
-            OFFSET 0 ROWS FETCH NEXT @Top ROWS ONLY;
-            """;
+        var sql = "dbo.SP_POP_RWK_ListTodayDecided";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Top", SqlDbType.Int).Value = top;
         using var rdr = cmd.ExecuteReader();
         var list = new List<ReworkItemDto>();
@@ -106,17 +92,9 @@ public sealed class ReworkRepository
 
     public ReworkStatsDto GetTodayStats()
     {
-        const string sql = """
-            DECLARE @Today date = CAST(SYSDATETIME() AS date);
-            SELECT
-              (SELECT COUNT(*) FROM dbo.PR_DefectDetail WHERE Disposition IS NULL AND LotID IS NOT NULL) AS Pending,
-              (SELECT COUNT(*) FROM dbo.PR_DefectDetail WHERE Disposition = 'REWORKED'
-                 AND DispositionAt >= @Today AND DispositionAt < DATEADD(day,1,@Today)) AS TodayReworked,
-              (SELECT COUNT(*) FROM dbo.PR_DefectDetail WHERE Disposition = 'SCRAPPED'
-                 AND DispositionAt >= @Today AND DispositionAt < DATEADD(day,1,@Today)) AS TodayScrapped;
-            """;
+        const string sql = "dbo.SP_POP_RWK_GetTodayStats";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
         if (!rdr.Read()) return new ReworkStatsDto { Pending = 0, TodayReworked = 0, TodayScrapped = 0 };
         return new ReworkStatsDto
@@ -131,12 +109,7 @@ public sealed class ReworkRepository
     private static (int LotId, int? WoId, string ProcessCode, string ItemNo, string LineId, string? PriorStatus)? LockOpenRow(
         SqlConnection conn, SqlTransaction tx, int defectId, out ReworkOutcome outcome)
     {
-        using var cmd = new SqlCommand("""
-            SELECT d.LotID, d.WoID, d.ProcessCode, d.Disposition, d.PriorStatus, l.ItemNo, l.LineID
-            FROM   dbo.PR_DefectDetail d WITH (UPDLOCK, ROWLOCK)
-            JOIN   dbo.tbl_Lot         l WITH (UPDLOCK, ROWLOCK) ON l.LotID = d.LotID
-            WHERE  d.DefectID = @D;
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_RWK_LockOpenRow", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@D", SqlDbType.Int).Value = defectId;
         using var rdr = cmd.ExecuteReader();
         if (!rdr.Read()) { outcome = ReworkOutcome.NotFound; return null; }
@@ -150,13 +123,7 @@ public sealed class ReworkRepository
     private static void CloseRow(SqlConnection conn, SqlTransaction tx, int defectId, string disposition,
                                  string causeCode, string? note, string operatorId, string employeeNo)
     {
-        using var cmd = new SqlCommand("""
-            UPDATE dbo.PR_DefectDetail
-            SET    Disposition = @Disp, CauseCode = @Cause, CorrectiveAction = @Note,
-                   DispositionBy = @By, DispositionAt = SYSDATETIME(),
-                   ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-            WHERE  DefectID = @D;
-            """, conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_RWK_CloseRow", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@D",     SqlDbType.Int          ).Value = defectId;
         cmd.Parameters.Add("@Disp",  SqlDbType.VarChar,  20 ).Value = disposition;
         cmd.Parameters.Add("@Cause", SqlDbType.VarChar,  16 ).Value = causeCode;
@@ -165,14 +132,6 @@ public sealed class ReworkRepository
         cmd.Parameters.Add("@Op",    SqlDbType.VarChar,   20).Value = operatorId;
         cmd.ExecuteNonQuery();
     }
-
-    // PR_InjLot / PR_ImgLot 은 컬럼 이름이 같아 테이블명만 바꾼다. 다른 공정코드는 없다.
-    private static string LotTable(string processCode) => processCode switch
-    {
-        "INJ" => "dbo.PR_InjLot",
-        "IMG" => "dbo.PR_ImgLot",
-        _     => throw new InvalidOperationException($"No lot table for process '{processCode}'."),
-    };
 
     /// <summary>
     /// 수리 → 양품: 원래 WO 에 실적 +1(ProcessCode RWK, REWORK 라인) + 단계 +1, LOT CONFIRMED, 행 REWORKED.
@@ -202,14 +161,7 @@ public sealed class ReworkRepository
             else if (LotDefectWriter.ResolveOpenWo(conn, tx, lineId, itemNo) is { } open) { woId = open.WoId; stepId = open.StepId; }
 
             var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
-            using (var cmd = new SqlCommand("""
-                INSERT INTO dbo.PR_ProductionResult
-                    (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-                     OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
-                VALUES
-                    (@EntryNo, @WoID, @LotID, @LineID, 'RWK', 1, 0,
-                     @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_RWK_Rework_InsProductionResult", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 var entryNo = $"E{now:yyMMddHHmmssfff}-{reworkLineId}";
                 if (entryNo.Length > 28) entryNo = entryNo[..28];
@@ -226,18 +178,9 @@ public sealed class ReworkRepository
                 cmd.ExecuteNonQuery();
             }
 
-            using (var cmd = new SqlCommand($"""
-                UPDATE {LotTable(processCode)}
-                SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = SYSDATETIME(),
-                       ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
-                       ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-                WHERE  LotID = @Lot;
-                UPDATE dbo.tbl_Lot
-                SET    Status = 'CONFIRMED', QualityFlag = 'OK', WoID = @WoID,
-                       ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-                WHERE  LotID = @Lot;
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_RWK_Rework_UpdLotConfirm", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
+                cmd.Parameters.Add("@ProcessCode", SqlDbType.VarChar, 10).Value = processCode;
                 cmd.Parameters.Add("@Lot",  SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@WoID", SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@Op",   SqlDbType.VarChar,   20).Value = operatorId;
@@ -260,7 +203,7 @@ public sealed class ReworkRepository
 
     static string ReadLotCode(SqlConnection conn, SqlTransaction tx, int lotId)
     {
-        using var cmd = new SqlCommand("SELECT LotCode FROM dbo.tbl_Lot WHERE LotID = @L;", conn, tx);
+        using var cmd = new SqlCommand("dbo.SP_POP_RWK_ReadLotCode", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         ColumnParams.AddFilter(cmd, "@L", "tbl_Lot.LotID", lotId);
         return cmd.ExecuteScalar() as string ?? lotId.ToString();
     }
@@ -276,16 +219,9 @@ public sealed class ReworkRepository
             if (row is null) { tx.Rollback(); return outcome; }
             var (lotId, _, processCode, _, _, _) = row.Value;
 
-            using (var cmd = new SqlCommand($"""
-                UPDATE {LotTable(processCode)}
-                SET    ConfirmStatus = 'SCRAPPED', ConfirmedAt = SYSDATETIME(), ConfirmedBy = @Op,
-                       ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-                WHERE  LotID = @Lot;
-                UPDATE dbo.tbl_Lot
-                SET    Status = 'SCRAP', QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-                WHERE  LotID = @Lot;
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_RWK_Scrap", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
+                cmd.Parameters.Add("@ProcessCode", SqlDbType.VarChar, 10).Value = processCode;
                 cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorId;
                 cmd.ExecuteNonQuery();

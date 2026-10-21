@@ -26,18 +26,10 @@ public sealed class AuthRepository
     /// </summary>
     public EmployeeProfileDto? FindByEmployeeNo(string employeeNo)
     {
-        const string sql = """
-            SELECT TOP 1
-                u.Id, u.UserName, u.PasswordHash, p.PinHash,
-                p.EmployeeNo, p.EmployeeName, p.Department, p.DefaultShift,
-                p.AccountStatus, p.FailedLoginCount
-            FROM   dbo.SYS_UserProfile p
-            JOIN   dbo.AspNetUsers     u ON u.Id = p.UserID
-            WHERE  p.EmployeeNo = @EmployeeNo;
-            """;
+        const string sql = "dbo.SP_POP_AUTH_FindByEmployeeNo";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@EmployeeNo", SqlDbType.VarChar, 20).Value = employeeNo;
 
         using var rdr = cmd.ExecuteReader();
@@ -86,18 +78,10 @@ public sealed class AuthRepository
     /// </summary>
     public List<EmployeeProfileDto> ListAllProfiles()
     {
-        const string sql = """
-            SELECT u.Id, u.UserName, u.PasswordHash, p.PinHash,
-                   p.EmployeeNo, p.EmployeeName, p.Department, p.DefaultShift,
-                   p.AccountStatus, ISNULL(p.FailedLoginCount,0) AS FailedLoginCount
-            FROM   dbo.SYS_UserProfile p
-            JOIN   dbo.AspNetUsers     u ON u.Id = p.UserID
-            WHERE  ISNULL(p.AccountStatus, 'ACTIVE') = 'ACTIVE'
-            ORDER  BY p.EmployeeNo;
-            """;
+        const string sql = "dbo.SP_POP_AUTH_ListAllProfiles";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var rdr  = cmd.ExecuteReader();
         var list = new List<EmployeeProfileDto>();
         while (rdr.Read())
@@ -127,23 +111,10 @@ public sealed class AuthRepository
     /// <param name="modifiedBy">POP 은 시도한 사번을 넘긴다. 생략하면 프로필 사번, 없으면 userId 앞 20자.</param>
     public bool IncrementFailedCount(string userId, string? modifiedBy = null)
     {
-        const string sql = """
-            UPDATE dbo.SYS_UserProfile
-            SET    FailedLoginCount = ISNULL(FailedLoginCount, 0) + 1,
-                   AccountStatus    = CASE
-                                          WHEN ISNULL(FailedLoginCount, 0) + 1 >= 5
-                                          THEN 'LOCKED'
-                                          ELSE ISNULL(AccountStatus, 'ACTIVE')
-                                      END,
-                   -- 행위자 컬럼은 varchar(20) — GUID 대신 본인 사번
-                   ModifiedBy       = COALESCE(@ModifiedBy, NULLIF(LTRIM(RTRIM(EmployeeNo)), ''), LEFT(@UserID, 20)),
-                   ModifiedTS       = SYSDATETIME()
-            WHERE  UserID = @UserID;
-            SELECT ISNULL(AccountStatus, 'ACTIVE') FROM dbo.SYS_UserProfile WHERE UserID = @UserID;
-            """;
+        const string sql = "dbo.SP_POP_AUTH_IncrementFailedCount";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
         cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar,   20).Value = (object?)modifiedBy ?? DBNull.Value;
         var result = cmd.ExecuteScalar();
@@ -257,18 +228,10 @@ public sealed class AuthRepository
     /// <param name="modifiedBy">POP 은 로그인한 사번을 넘긴다. 생략하면 프로필 사번, 없으면 userId 앞 20자.</param>
     public void RecordSuccessfulLogin(string userId, string? modifiedBy = null)
     {
-        const string sql = """
-            UPDATE dbo.SYS_UserProfile
-            SET    FailedLoginCount = 0,
-                   LastLoginTS      = SYSDATETIME(),
-                   -- 행위자 컬럼은 varchar(20)(09-23 migrate_audit_actor_varchar20) — GUID 대신 본인 사번, 없으면 앞 20자
-                   ModifiedBy       = COALESCE(@ModifiedBy, NULLIF(LTRIM(RTRIM(EmployeeNo)), ''), LEFT(@UserID, 20)),
-                   ModifiedTS       = SYSDATETIME()
-            WHERE  UserID = @UserID;
-            """;
+        const string sql = "dbo.SP_POP_AUTH_RecordSuccessfulLogin";
 
         using var conn = _connFactory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
         cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar,   20).Value = (object?)modifiedBy ?? DBNull.Value;
         cmd.ExecuteNonQuery();

@@ -43,7 +43,7 @@ public static class LotNoGenerator
     {
         string? prefix;
         using (var cmd = new SqlCommand(
-            "SELECT LotPrefix FROM dbo.MD_Line WHERE LineID = @L;", conn, tx))
+            "dbo.SP_POP_LOT_NextLotNo", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
         {
             cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
             prefix = (cmd.ExecuteScalar() as string)?.Trim();
@@ -61,13 +61,10 @@ public static class LotNoGenerator
 
     static int NextSeq(SqlConnection conn, SqlTransaction tx, string header)
     {
-        const string updateSql = """
-            UPDATE dbo.SYS_LotSeq SET LastSeq += 1, ModifiedTS = SYSDATETIME()
-            OUTPUT inserted.LastSeq WHERE Header = @H;
-            """;
+        const string updateSql = "dbo.SP_POP_LOT_NextSeq_UpdLotSeq";
         int? Exec(string sql)
         {
-            using var cmd = new SqlCommand(sql, conn, tx);
+            using var cmd = new SqlCommand(sql, conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
             cmd.Parameters.Add("@H", SqlDbType.Char, 5).Value = header;
             return cmd.ExecuteScalar() as int?;
         }
@@ -79,7 +76,7 @@ public static class LotNoGenerator
         try
         {
             using var ins = new SqlCommand(
-                "INSERT INTO dbo.SYS_LotSeq (Header, LastSeq) VALUES (@H, 1);", conn, tx);
+                "dbo.SP_POP_LOT_NextSeq_InsLotSeq", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
             ins.Parameters.Add("@H", SqlDbType.Char, 5).Value = header;
             ins.ExecuteNonQuery();
             return 1;

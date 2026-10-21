@@ -2384,18 +2384,7 @@ public sealed class MasterDataRepository
     public List<StationRow> ListActiveStations(string lineId)
     {
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            SELECT st.StationCode, st.StationName, st.StationNameEn, st.LineID,
-                   wc.ProcessCode AS ProcessCode,
-                   st.FormName, st.OrderSeq, st.Status,
-                   st.CreatedBy, st.CreatedTS, st.ModifiedBy, st.ModifiedTS
-            FROM   dbo.MD_Station st
-            LEFT JOIN dbo.MD_Line       l  ON l.LineID = st.LineID
-            LEFT JOIN dbo.MD_WorkCenter wc ON wc.WCID  = l.WCID
-            WHERE  st.LineID = @L
-              AND  ISNULL(st.Status,'ACTIVE') <> 'INACTIVE'
-            ORDER  BY st.OrderSeq, st.StationCode;
-            """, conn);
+        using var cmd = new SqlCommand("dbo.SP_POP_MASTER_ListActiveStations", conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
         using var r = cmd.ExecuteReader();
         var list = new List<StationRow>();
@@ -2503,14 +2492,7 @@ public sealed class MasterDataRepository
     public List<PopLineOptionRow> ListPopLineOptions()
     {
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            SELECT l.LineID, l.LineName, l.LineNameEn, wc.ProcessCode
-            FROM   dbo.MD_Line l
-            JOIN   dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
-            WHERE  ISNULL(l.Status,'ACTIVE') <> 'INACTIVE'
-              AND  wc.ProcessCode IN ('INJ','IMG','PNT','QC','RWK')
-            ORDER  BY l.LineID;
-            """, conn);
+        using var cmd = new SqlCommand("dbo.SP_POP_MASTER_ListPopLineOptions", conn) { CommandType = System.Data.CommandType.StoredProcedure };
         using var r = cmd.ExecuteReader();
         var list = new List<PopLineOptionRow>();
         while (r.Read())

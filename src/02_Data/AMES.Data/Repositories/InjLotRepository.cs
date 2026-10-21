@@ -166,13 +166,7 @@ public sealed class InjLotRepository
             int?    cavityNo = null;
             if (!string.IsNullOrEmpty(moldId))
             {
-                using var cmd = new SqlCommand("""
-                    SELECT TOP 1 m.MoldCodeClean, mi.Color, mi.CavitySeq, mi.CavityPos
-                    FROM   dbo.MD_MoldItem mi
-                    JOIN   dbo.MD_Mold m ON m.MoldID = mi.MoldID
-                    WHERE  mi.MoldID = @Mold AND mi.ItemNo = @Item AND mi.ActiveFlag = 1
-                    ORDER  BY mi.CavitySeq;
-                    """, conn, tx);
+                using var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_GetMoldItem", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
                 cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = moldId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
                 using var rdr = cmd.ExecuteReader();
@@ -187,18 +181,14 @@ public sealed class InjLotRepository
 
             string? itemName = null;
             using (var cmd = new SqlCommand(
-                "SELECT ItemName FROM dbo.MD_Item WHERE ItemNo = @Item;", conn, tx))
+                "dbo.SP_POP_INJ_CreateManualRawLots_GetItem", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
                 itemName = cmd.ExecuteScalar() as string;
             }
 
             string? equipId = null;
-            using (var cmd = new SqlCommand("""
-                SELECT TOP 1 EquipID FROM dbo.MD_Equipment
-                WHERE  LineID = @L AND ISNULL(ActiveFlag,1) = 1
-                ORDER  BY EquipID;
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_GetEquipment", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
                 equipId = cmd.ExecuteScalar() as string;
@@ -209,15 +199,7 @@ public sealed class InjLotRepository
                 var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
 
                 int lotId; DateTime createdTs;
-                using (var cmd = new SqlCommand("""
-                    INSERT INTO dbo.tbl_Lot
-                        (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty,
-                         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
-                    OUTPUT INSERTED.LotID, INSERTED.CreatedTS
-                    VALUES
-                        (@LotCode, @ItemNo, NULL, @LineID, 'INJ', 1, 1,
-                         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME());
-                    """, conn, tx))
+                using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_InsLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
                 {
                     cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
                     cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
@@ -230,14 +212,7 @@ public sealed class InjLotRepository
                 }
 
                 // MachineShotCount / PressType 은 PLC 값이라 수동 LOT 에는 없다. CreatedBy 가 발행한 사번이다(에이전트는 'AGENT').
-                using (var cmd = new SqlCommand("""
-                    INSERT INTO dbo.PR_InjLot
-                        (LotID, EquipID, MoldCode, ColorCode, MoldID, CavityNo, CavityPos,
-                         PressType, MachineShotCount, ConfirmStatus, CreatedBy, CreatedTS)
-                    VALUES
-                        (@LotID, @Equip, @Mold, @Color, @MoldID, @CavNo, @CavPos,
-                         NULL, NULL, 'RAW', @By, SYSDATETIME());
-                    """, conn, tx))
+                using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_InsInjLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
                 {
                     cmd.Parameters.Add("@LotID",  SqlDbType.Int           ).Value = lotId;
                     cmd.Parameters.Add("@Equip",  SqlDbType.VarChar, 20   ).Value = (object?)equipId   ?? DBNull.Value;
@@ -320,14 +295,9 @@ public sealed class InjLotRepository
     /// <summary>Inj04 스캔 대기 목록 — RAW + NG_BLOCKED (차단 사유 표시용) 최신순.</summary>
     public List<InjLotDto> GetUnconfirmed(string lineId, int top = 30)
     {
-        var sql = SelectLotView + """
-
-            WHERE  l.LineID = @Line AND e.ConfirmStatus IN ('RAW','NG_BLOCKED')
-            ORDER  BY l.CreatedTS DESC
-            OFFSET 0 ROWS FETCH NEXT @Top ROWS ONLY;
-            """;
+        var sql = "dbo.SP_POP_INJ_GetUnconfirmed";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@Top",  SqlDbType.Int        ).Value = top;
         using var rdr = cmd.ExecuteReader();
@@ -339,12 +309,9 @@ public sealed class InjLotRepository
     /// <summary>라벨 재출력용 단건 조회.</summary>
     public InjLotDto? GetByLotCode(string lotCode)
     {
-        var sql = SelectLotView + """
-
-            WHERE  l.LotCode = @Code;
-            """;
+        var sql = "dbo.SP_POP_INJ_GetByLotCode";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
         using var rdr = cmd.ExecuteReader();
         return rdr.Read() ? MapToDto(rdr) : null;
@@ -353,14 +320,9 @@ public sealed class InjLotRepository
     /// <summary>라벨 발행 성공 시 +1 (디스패처 자동 발행·재출력 버튼 공용). 반환 = 누적 횟수.</summary>
     public int IncrementPrintedCount(int lotId, string? employeeNo)
     {
-        const string sql = """
-            UPDATE dbo.PR_InjLot
-            SET    PrintedCount = PrintedCount + 1, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
-            OUTPUT INSERTED.PrintedCount
-            WHERE  LotID = @L;
-            """;
+        const string sql = "dbo.SP_POP_INJ_IncrementPrintedCount";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
         cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = (object?)employeeNo ?? DBNull.Value;
         return cmd.ExecuteScalar() as int? ?? 0;
@@ -373,9 +335,9 @@ public sealed class InjLotRepository
     /// </summary>
     public int GetMaxLotId(string lineId)
     {
-        const string sql = "SELECT ISNULL(MAX(LotID),0) FROM dbo.tbl_Lot WHERE LineID = @Line AND ProcessCode = 'INJ';";
+        const string sql = "dbo.SP_POP_INJ_GetMaxLotId";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
         return cmd.ExecuteScalar() as int? ?? 0;
     }
@@ -398,28 +360,10 @@ public sealed class InjLotRepository
                                          int staleSeconds = 60, int top = 5)
     {
         // ModifiedTS 는 찍지 않는다 — 선점은 디스패처 내부 상태이지 업무 변경이 아니다.
-        var sql = """
-            DECLARE @claimed TABLE (LotID INT);
-
-            UPDATE TOP (@Top) e
-            SET    e.PrintClaimTS = SYSDATETIME(), e.PrintClaimStation = @Station
-            OUTPUT INSERTED.LotID INTO @claimed
-            FROM   dbo.PR_InjLot e
-            JOIN   dbo.tbl_Lot   l ON l.LotID = e.LotID
-            WHERE  l.LineID       = @Line
-              AND  e.LotID        > @After
-              AND  e.PrintedCount = 0
-              AND  (e.PrintClaimTS IS NULL
-                    OR e.PrintClaimTS < DATEADD(second, -@Stale, SYSDATETIME()));
-
-            """ + SelectLotView + """
-
-            WHERE  l.LotID IN (SELECT LotID FROM @claimed)
-            ORDER  BY l.LotID;
-            """;
+        var sql = "dbo.SP_POP_INJ_ClaimForPrint";
 
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Line",    SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@After",   SqlDbType.Int        ).Value = afterLotId;
         cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationId;
@@ -436,13 +380,9 @@ public sealed class InjLotRepository
     {
         // 내가 선점한 것만 반납한다. 스테일 회수로 다른 터미널이 이미 가져간 LOT 을
         // 뒤늦은 실패 보고가 풀어버리면 그 터미널이 출력 중인 라벨이 재선점된다.
-        const string sql = """
-            UPDATE dbo.PR_InjLot
-            SET    PrintClaimTS = NULL, PrintClaimStation = NULL
-            WHERE  LotID = @L AND PrintedCount = 0 AND PrintClaimStation = @Station;
-            """;
+        const string sql = "dbo.SP_POP_INJ_ReleasePrintClaim";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L",       SqlDbType.Int        ).Value = lotId;
         cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationId;
         cmd.ExecuteNonQuery();
@@ -473,13 +413,7 @@ public sealed class InjLotRepository
         try
         {
             int lotId; string itemNo, status; string? equipId, moldId, cavityPos; DateTime createdTs;
-            using (var cmd = new SqlCommand("""
-                SELECT l.LotID, l.ItemNo, l.LineID, l.CreatedTS,
-                       e.ConfirmStatus, e.EquipID, e.MoldID, e.CavityPos
-                FROM   dbo.tbl_Lot l WITH (UPDLOCK, ROWLOCK)
-                JOIN   dbo.PR_InjLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
-                WHERE  l.LotCode = @Code;
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_ConfirmByLotCode_GetLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
                 using var rdr = cmd.ExecuteReader();
@@ -506,12 +440,7 @@ public sealed class InjLotRepository
 
             // WO 가 없어도 생산은 막지 않는다(2026-10-01) — 열린 단계가 없으면 실적·LOT 의 WoID 는 NULL, 단계 반영 없음.
             int? woId = null, stepId = null;
-            using (var cmd = new SqlCommand("""
-                SELECT TOP 1 r.WoID, r.RoutingLineID
-                FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
-                JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
-
-                """ + WorkOrderRepository.OpenStepForItemFilter + ";", conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_ConfirmByLotCode_GetWorkOrderRouting", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
@@ -520,12 +449,7 @@ public sealed class InjLotRepository
             }
 
             int cycleSec;
-            using (var cmd = new SqlCommand("""
-                SELECT ISNULL(DATEDIFF(SECOND, MAX(pl.CreatedTS), @ThisTs), 0)
-                FROM   dbo.tbl_Lot pl
-                JOIN   dbo.PR_InjLot pe ON pe.LotID = pl.LotID
-                WHERE  pe.EquipID = @Equip AND pe.CavityPos = @Pos AND pl.CreatedTS < @ThisTs;
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_ConfirmByLotCode_GetLot2", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@ThisTs", SqlDbType.DateTime2   ).Value = createdTs;
                 cmd.Parameters.Add("@Equip",  SqlDbType.VarChar, 20 ).Value = (object?)equipId ?? DBNull.Value;
@@ -537,15 +461,7 @@ public sealed class InjLotRepository
             // 전기일·교대는 설정 DAY_CUTOFF_TIME·공통코드 WORK_SHIFT로 확정 시점 서버 시각에 판정
             var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
             int resultId;
-            using (var cmd = new SqlCommand("""
-                INSERT INTO dbo.PR_ProductionResult
-                    (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
-                     MoldID, OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
-                OUTPUT INSERTED.ResultID
-                VALUES
-                    (@EntryNo, @WoID, @LotID, @LineID, 'INJ', 1, @CT,
-                     @Mold, @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_ConfirmByLotCode_InsProductionResult", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 var entryNo = $"E{now:yyMMddHHmmssfff}-{lineId}";
                 if (entryNo.Length > 28) entryNo = entryNo[..28];
@@ -564,18 +480,7 @@ public sealed class InjLotRepository
                 resultId = (int)cmd.ExecuteScalar()!;
             }
 
-            using (var cmd = new SqlCommand("""
-                UPDATE dbo.tbl_Lot
-                SET    Status = 'CONFIRMED', QualityFlag = 'OK', WoID = @WoID,
-                       ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-                WHERE  LotID = @LotID;
-
-                UPDATE dbo.PR_InjLot
-                SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = SYSDATETIME(),
-                       ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
-                       ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-                WHERE  LotID = @LotID;
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_ConfirmByLotCode_UpdLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@WoID",  SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@LotID", SqlDbType.Int          ).Value = lotId;
@@ -655,21 +560,7 @@ public sealed class InjLotRepository
         try
         {
             int lotId; string itemNo, status; string? inspection;
-            using (var cmd = new SqlCommand("""
-                SELECT l.LotID, l.ItemNo, l.LineID, e.ConfirmStatus,
-                       CASE WHEN ri.InspectionID IS NULL THEN NULL ELSE
-                         LTRIM(STUFF(
-                           CASE WHEN ri.ShortMold = 'NG' THEN N', 미성형 NG'   ELSE N'' END +
-                           CASE WHEN ri.WeldLine  = 'NG' THEN N', 웰드라인 NG' ELSE N'' END +
-                           CASE WHEN ri.Gas       = 'NG' THEN N', 가스 NG'     ELSE N'' END +
-                           CASE WHEN ri.Weight    = 'NG' THEN N', 중량 NG'     ELSE N'' END,
-                         1, 1, N'')) END AS InspectionSummary
-                FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
-                JOIN   dbo.PR_InjLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
-                OUTER  APPLY (SELECT TOP 1 * FROM dbo.PR_RobotInspection r
-                              WHERE r.LotID = l.LotID ORDER BY r.InspectionID DESC) ri
-                WHERE  l.LotCode = @Code;
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_RegisterDefect_GetLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
                 using var rdr = cmd.ExecuteReader();
@@ -697,14 +588,7 @@ public sealed class InjLotRepository
             var defectId = LotDefectWriter.InsertDefectDetail(conn, tx, lotId, woId, origResultId, "INJ", defectCode,
                                                               status, reversalId, note, operatorId, employeeNo);
 
-            using (var cmd = new SqlCommand("""
-                UPDATE dbo.PR_InjLot
-                SET    ConfirmStatus = 'DEFECT', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-                WHERE  LotID = @Lot;
-                UPDATE dbo.tbl_Lot
-                SET    QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
-                WHERE  LotID = @Lot;
-                """, conn, tx))
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_RegisterDefect_UpdInjLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorId;
@@ -720,19 +604,9 @@ public sealed class InjLotRepository
     /// <summary>Inj02 카드용: 오늘 샷수(캐비티1 기준) / 미확정 / NG 차단 카운트.</summary>
     public (int TodayShots, int RawCount, int NgBlocked) GetTodayStats(string lineId)
     {
-        const string sql = """
-            SELECT
-              (SELECT COUNT(*) FROM dbo.tbl_Lot l JOIN dbo.PR_InjLot e ON e.LotID = l.LotID
-               WHERE l.LineID = @Line AND e.CavityNo = 1
-                 AND l.CreatedTS >= CAST(SYSDATETIME() AS date)
-                 AND l.CreatedTS <  DATEADD(day, 1, CAST(SYSDATETIME() AS date))) AS TodayShots,
-              (SELECT COUNT(*) FROM dbo.tbl_Lot l JOIN dbo.PR_InjLot e ON e.LotID = l.LotID
-               WHERE l.LineID = @Line AND e.ConfirmStatus = 'RAW') AS RawCount,
-              (SELECT COUNT(*) FROM dbo.tbl_Lot l JOIN dbo.PR_InjLot e ON e.LotID = l.LotID
-               WHERE l.LineID = @Line AND e.ConfirmStatus = 'NG_BLOCKED') AS NgBlocked;
-            """;
+        const string sql = "dbo.SP_POP_INJ_GetTodayStats";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
         using var rdr = cmd.ExecuteReader();
         if (!rdr.Read()) return (0, 0, 0);
@@ -750,63 +624,9 @@ public sealed class InjLotRepository
     /// </summary>
     public List<InjItemDailyDto> GetDailyItemSummary(string lineId, string stationCode, DateTime date)
     {
-        const string sql = """
-            WITH bop AS (
-                SELECT DISTINCT b.ItemNo
-                FROM   dbo.MD_Bop b
-                WHERE  b.StationCode = @Station AND ISNULL(b.ActiveFlag,1) = 1
-            ),
-            sched AS (
-                SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
-                FROM   dbo.PP_LineSchedule s
-                JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
-                OUTER  APPLY (SELECT TOP 1 r.ItemNo FROM dbo.PP_WorkOrderRouting r
-                              WHERE  r.WoID = s.WoID AND r.LineID = s.LineID ORDER BY r.StepSeq) st
-                WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-                GROUP  BY COALESCE(st.ItemNo, w.ItemNo)
-            ),
-            lots AS (
-                SELECT l.ItemNo,
-                       COUNT(*)                                                                               AS InputQty,
-                       SUM(CASE WHEN e.ConfirmStatus = 'CONFIRMED' THEN 1 ELSE 0 END)                         AS ConfirmedQty,
-                       SUM(CASE WHEN e.ConfirmStatus IN ('NG_BLOCKED','DEFECT','SCRAPPED') THEN 1 ELSE 0 END) AS NgQty,
-                       SUM(CASE WHEN e.ConfirmStatus = 'RAW' THEN 1 ELSE 0 END)                               AS PendingQty
-                FROM   dbo.tbl_Lot   l
-                JOIN   dbo.PR_InjLot e ON e.LotID = l.LotID
-                WHERE  l.LineID = @Line
-                  AND  l.CreatedTS >= @Today AND l.CreatedTS < DATEADD(day, 1, @Today)
-                GROUP  BY l.ItemNo
-            ),
-            itemkeys AS (
-                SELECT ItemNo FROM bop
-                UNION SELECT ItemNo FROM sched
-                UNION SELECT ItemNo FROM lots
-            )
-            SELECT k.ItemNo,
-                   COALESCE(i.ItemName, N'')  AS ItemName,
-                   ISNULL(p.PlanQty, 0)       AS PlanQty,
-                   ISNULL(t.InputQty, 0)      AS InputQty,
-                   ISNULL(t.ConfirmedQty, 0)  AS ConfirmedQty,
-                   ISNULL(t.NgQty, 0)         AS NgQty,
-                   ISNULL(t.PendingQty, 0)    AS PendingQty,
-                   CASE WHEN b.ItemNo IS NULL THEN 0 ELSE 1 END AS InBop,
-                   CASE WHEN EXISTS (
-                        SELECT 1
-                        FROM   dbo.PP_WorkOrderRouting r
-                        JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
-                        WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = k.ItemNo
-                          AND  r.Status IN ('Released','In Progress')
-                          AND  ISNULL(w.Status,'Draft') <> 'Cancelled') THEN 1 ELSE 0 END AS HasOpenWo
-            FROM   itemkeys k
-            LEFT JOIN dbo.MD_Item i ON i.ItemNo = k.ItemNo
-            LEFT JOIN bop    b ON b.ItemNo = k.ItemNo
-            LEFT JOIN sched  p ON p.ItemNo = k.ItemNo
-            LEFT JOIN lots   t ON t.ItemNo = k.ItemNo
-            ORDER  BY InBop DESC, k.ItemNo;
-            """;
+        const string sql = "dbo.SP_POP_INJ_GetDailyItemSummary";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@Line",    SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@Station", SqlDbType.VarChar, 20).Value = stationCode;
         cmd.Parameters.Add("@Today",   SqlDbType.Date       ).Value = date.Date;
