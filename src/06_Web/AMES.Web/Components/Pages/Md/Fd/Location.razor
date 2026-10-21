@@ -48,13 +48,13 @@
     <div class="ames-card-h master-list-toolbar">
         <span style="white-space:nowrap;">▼ @L["MD.Location.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="@L["MD.Location.Col.Parent"]" Component="DropDownParentFilter" />
+            <RadzenDropDown Name="DropDownParentFilter" @bind-Value="_fParent" Data="@ParentOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Location.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Area"]" Component="DropDownAreaFilter" />
             <RadzenDropDown Name="DropDownAreaFilter" @bind-Value="_fArea" Data="@FilterAreaOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
             <RadzenLabel Text="@L["MD.Location.Lbl.Level"]" Component="DropDownLevelFilter" />
             <RadzenDropDown Name="DropDownLevelFilter" @bind-Value="_fLevel" Data="@LevelFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
-            <RadzenLabel Text="@L["MD.Location.Col.Parent"]" Component="DropDownParentFilter" />
-            <RadzenDropDown Name="DropDownParentFilter" @bind-Value="_fParent" Data="@ParentOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             @if (_canEdit)
@@ -458,9 +458,10 @@
                     if (confirmed != true) return;
                 }
             }
+            // 지정 품번은 바꿨을 때만 보낸다 — 그대로 다시 보내면 품번 재지정 검사(51050)가 명칭만 고치는 저장도 막는다
             MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), _sel.WhCode, _sel.AreaCode, _sel.ZoneCode,
                 _sel.Aisle, _sel.Bay, _sel.Slot,
-                _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor, IsPrimary(_sel) ? null : _f.PartNo,
+                _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor, IsPrimary(_sel) || NE(_f.PartNo) == _sel.PartNo ? null : _f.PartNo,
                 setParent: !IsPrimary(_sel) && NE(_f.ParentLocationID) != _sel.ParentLocationID, parentLocationId: NE(_f.ParentLocationID));
             Audit.Updated("MD-018", "MD_Location", _sel.LocationID, _sel, _f);
             var key = _sel.LocationID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다

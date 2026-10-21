@@ -51,9 +51,9 @@ public class LocationHierarchyTests
             Assert.Equal(P1, Row(D1).ParentLocationID);
             Assert.Equal(1, Row(P1).ChildCount);
 
-            // 상위를 넘기지 않는 저장은 상위를 그대로 둔다
+            // 상위를 넘기지 않는 저장은 상위를 그대로 두고 명칭은 바꾼다
             md.UpdateLocation(D1, "itest 2", "EOS", "MAT_AREA", null, null, null, null, null, null, null, true, Actor);
-            Assert.Equal(P1, Row(D1).ParentLocationID);
+            Assert.Equal((P1, "itest 2"), (Row(D1).ParentLocationID, Row(D1).LocationName));
 
             Assert.Equal(52073, Assert.Throws<SqlException>(() => SetParent(md, D2, D1)).Number);       // 상세는 상위가 될 수 없다
             Assert.Equal(52073, Assert.Throws<SqlException>(() => SetParent(md, D2, D2)).Number);       // 자기 자신
