@@ -657,7 +657,7 @@ CREATE TABLE [dbo].[MD_BomVersion](
 	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[ApprovedTS] [datetime2](7) NULL,
 	[Status] [varchar](12) COLLATE Korean_Wansung_CI_AS NULL,
-	[SAPTransFlag] [bit] NOT NULL,
+	[SAPFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -668,7 +668,7 @@ CREATE TABLE [dbo].[MD_BomVersion](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_BomVersion] ADD  CONSTRAINT [DF_MD_BomVersion_SAPTransFlag]  DEFAULT ((0)) FOR [SAPTransFlag]
+ALTER TABLE [dbo].[MD_BomVersion] ADD  CONSTRAINT [DF_MD_BomVersion_SAPFlag]  DEFAULT ((0)) FOR [SAPFlag]
 GO
 ALTER TABLE [dbo].[MD_BomVersion] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -694,7 +694,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved TS ·
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'마스터 상태 · varchar(12)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'Status'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 전송 대상 여부 — 1 이면 이 버전(유효할 때)을 SAP BOM 으로 보낸다 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'SAPTransFlag'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 에서 받은 데이터 여부 — 1 이면 SAP 에서 받은 행(MES 화면은 표시만) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'SAPFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_BomVersion', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -883,6 +883,7 @@ CREATE TABLE [dbo].[MD_Customer](
 	[EDIFlag] [bit] NULL,
 	[CurrencyCode] [char](3) COLLATE Korean_Wansung_CI_AS NULL,
 	[Status] [varchar](8) COLLATE Korean_Wansung_CI_AS NULL,
+	[SAPFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -892,6 +893,8 @@ CREATE TABLE [dbo].[MD_Customer](
 	[CustomerID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[MD_Customer] ADD  CONSTRAINT [DF_MD_Customer_SAPFlag]  DEFAULT ((0)) FOR [SAPFlag]
 GO
 ALTER TABLE [dbo].[MD_Customer] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -920,6 +923,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'기본 거래 통화 (ISO 4217).  · char(3)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'CurrencyCode'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'상태 — CK: ACTIVE·INACTIVE.  · varchar(8)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'Status'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 에서 받은 데이터 여부 — 1 이면 SAP 에서 받은 행(MES 화면은 표시만) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'SAPFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Customer', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -1253,7 +1258,7 @@ CREATE TABLE [dbo].[MD_Item](
 	[IssueAddPct] [decimal](5, 2) NULL,
 	[MrpAllowPct] [decimal](5, 2) NULL,
 	[ProcureType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[SAPTransFlag] [bit] NOT NULL,
+	[SAPFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1272,7 +1277,7 @@ ALTER TABLE [dbo].[MD_Item] ADD  CONSTRAINT [DF_MD_Item_ScanRequired]  DEFAULT (
 GO
 ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_Item] ADD  CONSTRAINT [DF_MD_Item_SAPTransFlag]  DEFAULT ((0)) FOR [SAPTransFlag]
+ALTER TABLE [dbo].[MD_Item] ADD  CONSTRAINT [DF_MD_Item_SAPFlag]  DEFAULT ((0)) FOR [SAPFlag]
 GO
 ALTER TABLE [dbo].[MD_Item] ADD  CONSTRAINT [DF__MD_Item_n__Creat__1B48FEF0]  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -1320,7 +1325,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'MRP 여유율(
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'조달형태 — 공통코드 PROCURE_TYPE(INHOUSE 내작·PURCHASE 매입·PAID_SUP 유상사급·FREE_SUP 무상사급) · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ProcureType'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 전송 대상 여부 — 1 이면 SAP 로 보낸다 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'SAPTransFlag'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 에서 받은 데이터 여부 — 1 이면 SAP 에서 받은 행(MES 화면은 표시만) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'SAPFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (SYS_User).  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -1671,7 +1676,12 @@ CREATE TABLE [dbo].[MD_Location](
 	[ActiveFlag] [bit] NULL,
 	[WhCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[AreaCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[SAPTransFlag] [bit] NOT NULL,
+	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[PartNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[MinimumQty] [decimal](18, 3) NULL,
+	[ParentLocationID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[LocationLevel] [tinyint] NOT NULL,
+	[SAPFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -1682,15 +1692,37 @@ CREATE TABLE [dbo].[MD_Location](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
+SET ANSI_PADDING ON
+GO
+CREATE NONCLUSTERED INDEX [IX_MD_Location_Line] ON [dbo].[MD_Location]
+(
+	[LineID] ASC,
+	[PartNo] ASC
+)
+INCLUDE([MinimumQty]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE NONCLUSTERED INDEX [IX_MD_Location_Parent] ON [dbo].[MD_Location]
+(
+	[ParentLocationID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
 ALTER TABLE [dbo].[MD_Location] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
 ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF_MD_Location_WhCode]  DEFAULT ('EOS') FOR [WhCode]
 GO
 ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF_MD_Location_AreaCode]  DEFAULT ('MAT_AREA') FOR [AreaCode]
 GO
-ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF_MD_Location_SAPTransFlag]  DEFAULT ((0)) FOR [SAPTransFlag]
+ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF_MD_Location_LocationLevel]  DEFAULT ((2)) FOR [LocationLevel]
+GO
+ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF_MD_Location_SAPFlag]  DEFAULT ((0)) FOR [SAPFlag]
 GO
 ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF__MD_Locati__Creat__7FB5F314]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+ALTER TABLE [dbo].[MD_Location]  WITH CHECK ADD  CONSTRAINT [CK_MD_Location_LocationLevel] CHECK  (([LocationLevel]=(2) OR [LocationLevel]=(1)))
+GO
+ALTER TABLE [dbo].[MD_Location] CHECK CONSTRAINT [CK_MD_Location_LocationLevel]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Location ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'LocationID'
 GO
@@ -1712,7 +1744,11 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Plant ID · va
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'활성 플래그 (FALSE = 비활성/단종) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 전송 대상 여부 — 1 이면 SAP 로 보낸다 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'SAPTransFlag'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'상위(1차) 로케이션 ID — 상세(LocationLevel 2)만, NULL = 상위 미지정 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'ParentLocationID'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'로케이션 단계 — 1 = 1차(SAP 수신 또는 MES 등록, 재고 없음·하위 상세를 묶음), 2 = 상세(MES 전용, 재고 위치) · tinyint' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'LocationLevel'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 에서 받은 데이터 여부 — 1 이면 SAP 에서 받은 행(MES 화면은 표시만) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'SAPFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -2676,6 +2712,7 @@ CREATE TABLE [dbo].[MD_Uom](
 	[DecimalPrec] [int] NULL,
 	[Symbol] [nvarchar](8) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
+	[SAPFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -2687,6 +2724,8 @@ CREATE TABLE [dbo].[MD_Uom](
 ) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[MD_Uom] ADD  DEFAULT ((1)) FOR [ActiveFlag]
+GO
+ALTER TABLE [dbo].[MD_Uom] ADD  CONSTRAINT [DF_MD_Uom_SAPFlag]  DEFAULT ((0)) FOR [SAPFlag]
 GO
 ALTER TABLE [dbo].[MD_Uom] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -2707,6 +2746,8 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Symbol · nvarchar(8)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'Symbol'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'활성 플래그 (FALSE = 비활성/단종) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 에서 받은 데이터 여부 — 1 이면 SAP 에서 받은 행(MES 화면은 표시만) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'SAPFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Uom', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO
@@ -2735,7 +2776,7 @@ CREATE TABLE [dbo].[MD_Vendor](
 	[OtdTargetRate] [decimal](5, 2) NULL,
 	[PaymentTerms] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
 	[ActiveFlag] [bit] NULL,
-	[SAPTransFlag] [bit] NOT NULL,
+	[SAPFlag] [bit] NOT NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -2748,7 +2789,7 @@ CREATE TABLE [dbo].[MD_Vendor](
 GO
 ALTER TABLE [dbo].[MD_Vendor] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_Vendor] ADD  CONSTRAINT [DF_MD_Vendor_SAPTransFlag]  DEFAULT ((0)) FOR [SAPTransFlag]
+ALTER TABLE [dbo].[MD_Vendor] ADD  CONSTRAINT [DF_MD_Vendor_SAPFlag]  DEFAULT ((0)) FOR [SAPFlag]
 GO
 ALTER TABLE [dbo].[MD_Vendor] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -2778,7 +2819,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결제 조건 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'거래 활성 여부.  · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'ActiveFlag'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 전송 대상 여부 — 1 이면 SAP 로 보낸다 · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'SAPTransFlag'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'SAP 에서 받은 데이터 여부 — 1 이면 SAP 에서 받은 행(MES 화면은 표시만) · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'SAPFlag'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자.  · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Vendor', @level2type=N'COLUMN',@level2name=N'CreatedBy'
 GO

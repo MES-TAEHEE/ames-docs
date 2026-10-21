@@ -165,6 +165,9 @@
   <data name="Lbl.Active" xml:space="preserve">
     <value>Active</value>
   </data>
+  <data name="Lbl.SapData" xml:space="preserve">
+    <value>Data received from SAP</value>
+  </data>
   <data name="Lbl.Inactive" xml:space="preserve">
     <value>Inactive</value>
   </data>
@@ -1211,6 +1214,9 @@
   </data>
   <data name="MD.Bom.Title" xml:space="preserve">
     <value>BOM Management</value>
+  </data>
+  <data name="MD.Bom.Col.QtyPer" xml:space="preserve">
+    <value>Qty Per</value>
   </data>
   <data name="MD.Bop.Title" xml:space="preserve">
     <value>BOP Management</value>
@@ -2643,8 +2649,8 @@
   <data name="Col.SapPo" xml:space="preserve">
     <value>SAP PO</value>
   </data>
-  <data name="Col.SapTrans" xml:space="preserve">
-    <value>SAP Transfer</value>
+  <data name="Col.Sap" xml:space="preserve">
+    <value>SAP</value>
   </data>
   <data name="Col.DtNo" xml:space="preserve">
     <value>DT #</value>
@@ -8163,6 +8169,57 @@
   <data name="MD.Location.Col.WhCode" xml:space="preserve">
     <value>WH Code</value>
   </data>
+  <data name="MD.Location.Lbl.AssignedPart" xml:space="preserve">
+    <value>Assigned Part</value>
+  </data>
+  <data name="MD.Location.Hint.NewTop" xml:space="preserve">
+    <value>Registers a parent location — it holds no stock and groups child locations.</value>
+  </data>
+  <data name="MD.Location.Hint.NewChild" xml:space="preserve">
+    <value>Registers a child location of {0} — warehouse and area follow the parent.</value>
+  </data>
+  <data name="MD.Location.Ph.NoParent" xml:space="preserve">
+    <value>None — register as a parent location</value>
+  </data>
+  <data name="MD.Location.Col.Parent" xml:space="preserve">
+    <value>Parent Location</value>
+  </data>
+  <data name="MD.Location.Lbl.Level" xml:space="preserve">
+    <value>Level</value>
+  </data>
+  <data name="MD.Location.Level.Primary" xml:space="preserve">
+    <value>Parent Location</value>
+  </data>
+  <data name="MD.Location.Level.Detail" xml:space="preserve">
+    <value>Child Location</value>
+  </data>
+  <data name="MD.Location.Filter.NoParent" xml:space="preserve">
+    <value>No parent</value>
+  </data>
+  <data name="MD.Location.Children" xml:space="preserve">
+    <value>{0} sub</value>
+  </data>
+  <data name="MD.Location.Hint.Primary" xml:space="preserve">
+    <value>A parent location holds no stock; it groups child locations.</value>
+  </data>
+  <data name="MD.Location.Hint.Parent" xml:space="preserve">
+    <value>Only parent locations can be chosen. Leave empty for no parent.</value>
+  </data>
+  <data name="MD.Location.Err.ParentNotPrimary" xml:space="preserve">
+    <value>Only a parent location can be chosen as the parent.</value>
+  </data>
+  <data name="MD.Location.Err.PrimaryHasParent" xml:space="preserve">
+    <value>A parent location cannot have a parent.</value>
+  </data>
+  <data name="MD.Location.Err.ParentHasStock" xml:space="preserve">
+    <value>A location that holds stock cannot be a parent.</value>
+  </data>
+  <data name="MD.Location.Err.AreaRequired" xml:space="preserve">
+    <value>Select an area.</value>
+  </data>
+  <data name="MD.Location.Err.WhRequired" xml:space="preserve">
+    <value>Warehouse code is required.</value>
+  </data>
   <data name="App.Error.Unhandled" xml:space="preserve">
     <value>An unhandled error has occurred.</value>
   </data>
@@ -11465,18 +11522,6 @@
   <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
     <value>The unit cannot change: this component has stock or production records.</value>
   </data>
-  <data name="MD.Bom.SapChange" xml:space="preserve">
-    <value>Change SAP Transfer</value>
-  </data>
-  <data name="MD.Bom.Hint.SapOnly" xml:space="preserve">
-    <value>Only the SAP transfer can change on a submitted or approved version. Update the change type and reason with it.</value>
-  </data>
-  <data name="MD.Bom.Hint.SapReason" xml:space="preserve">
-    <value>Changing the SAP transfer needs a new change reason.</value>
-  </data>
-  <data name="MD.Bom.Err.SapReason" xml:space="preserve">
-    <value>Enter a new change reason to change the SAP transfer (it must differ from the current reason).</value>
-  </data>
   <data name="MD.Bom.NoVersion" xml:space="preserve">
     <value>No BOM version</value>
   </data>
@@ -11634,8 +11679,5 @@
   </data>
   <data name="Excel.Err.Packaging" xml:space="preserve">
     <value>BOX and PALLET are not quantity units</value>
-  </data>
-  <data name="MD.Bom.Hint.SapSuperseded" xml:space="preserve">
-    <value>A newer version was approved or this one expired, so it is no longer an SAP transfer target</value>
   </data>
 </root>

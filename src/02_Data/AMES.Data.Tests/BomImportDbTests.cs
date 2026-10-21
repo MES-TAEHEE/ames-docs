@@ -20,7 +20,7 @@ public class BomImportDbTests
         """, ("@V", Ver), ("@P", Root), ("@C1", C1), ("@C2", C2));
 
     static BomImport.Version Plan(bool isNew, params string[] comps) =>
-        new(Ver, isNew, Root, "V1.0", new DateOnly(2099, 1, 1), null, "ECO", "itest", true,
+        new(Ver, isNew, Root, "V1.0", new DateOnly(2099, 1, 1), null, "ECO", "itest",
             comps.Select((c, i) => new BomImport.Line(i + 2, c, 1.5m, "EA", null, (i + 1) * 10, null)).ToList());
 
     static int Lines(Connection.AmesConnectionFactory f) => (int)Scalar(f, "SELECT COUNT(*) FROM dbo.MD_Bom WHERE VersionID = @V", ("@V", Ver))!;
@@ -40,7 +40,7 @@ public class BomImportDbTests
 
             Assert.Equal(1, md.ImportBomVersion(Plan(true, C1), Actor));
             var v = md.ListBomVersions().Single(x => x.VersionID == Ver);
-            Assert.Equal(("DRAFT", Root, "V1.0", true, "itest"), (v.Status, v.RootItemNo, v.VersionNo, v.SAPTransFlag, v.ChangeReason));
+            Assert.Equal(("DRAFT", Root, "V1.0", false, "itest"), (v.Status, v.RootItemNo, v.VersionNo, v.SAPFlag, v.ChangeReason));   // SAPFlag 는 엑셀이 쓰지 않는다(SAP 수신만)
             var line = Assert.Single(md.ListBomLines(Ver));
             Assert.Equal((Root, C1, 1.5m, "EA", 1, 10, Actor), (line.ParentItemNo, line.CompItemNo, line.QtyPer, line.UOM, line.BOMLevel, line.Position, line.CreatedBy));
 

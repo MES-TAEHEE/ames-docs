@@ -152,14 +152,14 @@ public static class ItemImport
         "ItemNo", "ItemName", "ItemType", "ItemCategory", "InjFlag", "CarType", "DefaultUOM", "RoutingType",
         "SafetyStock", "MinStock", "MaxStock", "UnitCost", "PGN", "ALC", "DrawingNo",
         "PalletQty", "MaxPalletQty", "ToteFlag", "ScanRequired", "IssueAddPct", "MrpAllowPct",
-        "ProcureType", "SAPTransFlag", "ActiveFlag",
+        "ProcureType", "ActiveFlag",
     ];
     public static readonly string[] RequiredKeys = ["ItemNo", "ItemName"];
 
     public sealed record Row(int Line, string ItemNo, string ItemName, string? ItemType, string? ItemCategory, bool InjFlag,
         string? CarType, string? DefaultUom, string? RoutingType, decimal? SafetyStock, decimal? MinStock, decimal? MaxStock,
         decimal? UnitCost, string? Pgn, string? Alc, string? DrawingNo, int? PalletQty, int? MaxPalletQty, bool ToteFlag,
-        bool ScanRequired, decimal? IssueAddPct, decimal? MrpAllowPct, string? ProcureType, bool SapTransFlag, bool ActiveFlag);
+        bool ScanRequired, decimal? IssueAddPct, decimal? MrpAllowPct, string? ProcureType, bool ActiveFlag);
 
     /// <summary>검사에 쓰는 마스터 — 코드는 사용 중인 것만, 카테고리는 코드 → 허용 유형(빈 집합 = 제한 없음).</summary>
     public sealed record Lookup(
@@ -215,7 +215,7 @@ public static class ItemImport
             var row = new Row(r.Line, no ?? "", name ?? "", type, cat, r.Flag("InjFlag", false), r.Text("CarType"), uom, route,
                 r.Decimal("SafetyStock"), r.Decimal("MinStock"), r.Decimal("MaxStock"), r.Decimal("UnitCost"),
                 r.Text("PGN"), r.Text("ALC"), r.Text("DrawingNo"), r.Int("PalletQty"), r.Int("MaxPalletQty"), r.Flag("ToteFlag", false),
-                r.Flag("ScanRequired", false), Pct("IssueAddPct"), Pct("MrpAllowPct"), proc, r.Flag("SAPTransFlag", false), r.Flag("ActiveFlag", true));
+                r.Flag("ScanRequired", false), Pct("IssueAddPct"), Pct("MrpAllowPct"), proc, r.Flag("ActiveFlag", true));
             if (problems.Count == before) fresh.Add(row);
         }
         return new Result(fresh, existing, problems);
@@ -232,7 +232,7 @@ public static class BomImport
 {
     public static readonly string[] Keys =
     [
-        "VersionID", "RootItemNo", "VersionNo", "EffFrom", "EffTo", "ChangeType", "ChangeReason", "SAPTransFlag", "Status",
+        "VersionID", "RootItemNo", "VersionNo", "EffFrom", "EffTo", "ChangeType", "ChangeReason", "Status",
         "CompItemNo", "QtyPer", "UOM", "ScrapPct", "Position", "Note",
     ];
     public static readonly string[] RequiredKeys = ["VersionID", "RootItemNo", "CompItemNo", "QtyPer"];
@@ -240,7 +240,7 @@ public static class BomImport
     public sealed record Line(int Row, string CompItemNo, decimal QtyPer, string? Uom, decimal? ScrapPct, int Position, string? Note);
 
     public sealed record Version(string VersionId, bool IsNew, string RootItemNo, string? VersionNo, DateOnly? EffFrom, DateOnly? EffTo,
-        string? ChangeType, string? ChangeReason, bool SapTransFlag, List<Line> Lines);
+        string? ChangeType, string? ChangeReason, List<Line> Lines);
 
     /// <summary>있는 버전 — MaxPosition 은 그 버전 라인의 가장 큰 순서(순서를 비운 새 라인은 그 다음 10 단위로 붙인다).</summary>
     public sealed record ExistingVersion(string Status, string? RootItemNo, IReadOnlySet<string> CompItems, int MaxPosition = 0);
@@ -333,10 +333,9 @@ public static class BomImport
                 lines.Add(new Line(r.Line, comp, qty ?? 0, uom, scrap is 0 ? null : scrap, pos, r.Text("Note")));
             }
 
-            var sap = head.Flag("SAPTransFlag", false);
             if (problems.Count > before) continue;
             if (exists is not null && lines.Count == 0) continue;   // 있는 초안 버전에 더할 라인이 없다 — 전부 건너뜀
-            plans.Add(new Version(id, exists is null, root!, versionNo, from, to, head.Text("ChangeType"), head.Text("ChangeReason"), sap, lines));
+            plans.Add(new Version(id, exists is null, root!, versionNo, from, to, head.Text("ChangeType"), head.Text("ChangeReason"), lines));
         }
         return new Result(plans, skippedVersions, skippedLines, problems);
     }

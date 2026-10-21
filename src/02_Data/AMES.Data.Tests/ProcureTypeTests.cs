@@ -5,7 +5,7 @@ using static AMES.Data.Tests.AmesDevDb;
 namespace AMES.Data.Tests;
 
 // 10-20 — MD_Item.ProcureType(조달형태, 공통코드 PROCURE_TYPE)가 MD-003 저장 경로로 왕복하고,
-// 값을 넘기지 않은 수정(null)은 저장된 값을 두며 빈 문자열은 지우는지 + 컬럼이 SAPTransFlag 바로 앞인지
+// 값을 넘기지 않은 수정(null)은 저장된 값을 두며 빈 문자열은 지우는지 + 컬럼이 SAPFlag(10-21 개명) 바로 앞인지
 public class ProcureTypeTests
 {
     const string WriteSkip = "set AMES_TEST_CONN (local DB) to run — creates and removes a test item";
@@ -45,7 +45,7 @@ public class ProcureTypeTests
               AND c.column_id > COLUMNPROPERTY(OBJECT_ID(N'dbo.MD_Item'), N'ProcureType', 'ColumnId')
             ORDER BY c.column_id
             """) as string;
-        Assert.Equal("SAPTransFlag", next);
+        Assert.Equal("SAPFlag", next);
     }
 
     [SkippableFact]

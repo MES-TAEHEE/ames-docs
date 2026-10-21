@@ -92,6 +92,11 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="DecimalPrec" Title="@L["Col.Decimals"]" TextAlign="TextAlign.Right" Width="120px">
                 <Template Context="r">@(r.DecimalPrec?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="SAPFlag" Title="@L["Col.Sap"]" TextAlign="TextAlign.Center" Width="70px">
+                <Template Context="r">
+                    @if (r.SAPFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.UomRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
@@ -177,7 +182,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Uom.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.UOMCode</span></div>
+            <div class="ames-modal-h">@L["MD.Uom.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.UOMCode</span>@if (_sel.SAPFlag) { <span class="pill info" style="margin-left:6px;font-size:.72em;" title="@L["Lbl.SapData"]">SAP</span> }</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["Col.UomName"]" class="ames-rz-modal-label" Component="EditTextBoxUOMName" />

@@ -2797,6 +2797,22 @@ select.ames-rz-input {
     overflow-wrap: anywhere;
 }
 
+.loc-tree {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.loc-tree-mark {
+    padding-left: 10px;
+}
+
+/* MD-018 1차 로케이션 행 — 하위 상세 묶음의 머리 */
+.loc-primary-row > td {
+    background: color-mix(in srgb, var(--rz-info) 10%, transparent) !important;
+}
+
 .location-code-print-btn.rz-button {
     flex: 0 0 32px;
     width: 32px;

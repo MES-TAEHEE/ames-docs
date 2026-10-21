@@ -165,6 +165,9 @@
   <data name="Lbl.Active" xml:space="preserve">
     <value>Activo</value>
   </data>
+  <data name="Lbl.SapData" xml:space="preserve">
+    <value>Datos recibidos de SAP</value>
+  </data>
   <data name="Lbl.Inactive" xml:space="preserve">
     <value>Inactivo</value>
   </data>
@@ -1211,6 +1214,9 @@
   </data>
   <data name="MD.Bom.Title" xml:space="preserve">
     <value>Gestión de BOM</value>
+  </data>
+  <data name="MD.Bom.Col.QtyPer" xml:space="preserve">
+    <value>Consumo</value>
   </data>
   <data name="MD.Bop.Title" xml:space="preserve">
     <value>Gestión de BOP</value>
@@ -2640,8 +2646,8 @@
   <data name="Col.SapPo" xml:space="preserve">
     <value>OC SAP</value>
   </data>
-  <data name="Col.SapTrans" xml:space="preserve">
-    <value>Envío a SAP</value>
+  <data name="Col.Sap" xml:space="preserve">
+    <value>SAP</value>
   </data>
   <data name="Col.DtNo" xml:space="preserve">
     <value>DT #</value>
@@ -8163,6 +8169,57 @@
   <data name="MD.Location.Col.WhCode" xml:space="preserve">
     <value>Cód. almacén</value>
   </data>
+  <data name="MD.Location.Lbl.AssignedPart" xml:space="preserve">
+    <value>Pieza asignada</value>
+  </data>
+  <data name="MD.Location.Hint.NewTop" xml:space="preserve">
+    <value>Registra una ubicación superior — sin inventario, agrupa sububicaciones.</value>
+  </data>
+  <data name="MD.Location.Hint.NewChild" xml:space="preserve">
+    <value>Registra una sububicación de {0} — almacén y área siguen a la superior.</value>
+  </data>
+  <data name="MD.Location.Ph.NoParent" xml:space="preserve">
+    <value>Ninguna — registrar como superior</value>
+  </data>
+  <data name="MD.Location.Col.Parent" xml:space="preserve">
+    <value>Ubicación superior</value>
+  </data>
+  <data name="MD.Location.Lbl.Level" xml:space="preserve">
+    <value>Nivel</value>
+  </data>
+  <data name="MD.Location.Level.Primary" xml:space="preserve">
+    <value>Ubicación superior</value>
+  </data>
+  <data name="MD.Location.Level.Detail" xml:space="preserve">
+    <value>Sububicación</value>
+  </data>
+  <data name="MD.Location.Filter.NoParent" xml:space="preserve">
+    <value>Sin superior</value>
+  </data>
+  <data name="MD.Location.Children" xml:space="preserve">
+    <value>{0} sub</value>
+  </data>
+  <data name="MD.Location.Hint.Primary" xml:space="preserve">
+    <value>Una ubicación superior no tiene inventario; agrupa sububicaciones.</value>
+  </data>
+  <data name="MD.Location.Hint.Parent" xml:space="preserve">
+    <value>Solo se pueden elegir ubicaciones superiores. Vacío = sin superior.</value>
+  </data>
+  <data name="MD.Location.Err.ParentNotPrimary" xml:space="preserve">
+    <value>Solo una ubicación superior puede ser la superior.</value>
+  </data>
+  <data name="MD.Location.Err.PrimaryHasParent" xml:space="preserve">
+    <value>Una ubicación superior no puede tener superior.</value>
+  </data>
+  <data name="MD.Location.Err.ParentHasStock" xml:space="preserve">
+    <value>Una ubicación con inventario no puede ser superior.</value>
+  </data>
+  <data name="MD.Location.Err.AreaRequired" xml:space="preserve">
+    <value>Seleccione un área.</value>
+  </data>
+  <data name="MD.Location.Err.WhRequired" xml:space="preserve">
+    <value>El código de almacén es obligatorio.</value>
+  </data>
   <data name="App.Error.Unhandled" xml:space="preserve">
     <value>Se produjo un error no controlado.</value>
   </data>
@@ -11465,18 +11522,6 @@
   <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
     <value>No se puede cambiar la unidad: el componente tiene stock o registros de producción.</value>
   </data>
-  <data name="MD.Bom.SapChange" xml:space="preserve">
-    <value>Cambiar envío a SAP</value>
-  </data>
-  <data name="MD.Bom.Hint.SapOnly" xml:space="preserve">
-    <value>En una versión enviada o aprobada solo se puede cambiar el envío a SAP. Actualice también el tipo y el motivo del cambio.</value>
-  </data>
-  <data name="MD.Bom.Hint.SapReason" xml:space="preserve">
-    <value>Al cambiar el envío a SAP debe ingresar un nuevo motivo de cambio.</value>
-  </data>
-  <data name="MD.Bom.Err.SapReason" xml:space="preserve">
-    <value>Ingrese un nuevo motivo de cambio para cambiar el envío a SAP (debe ser distinto del actual).</value>
-  </data>
   <data name="MD.Bom.NoVersion" xml:space="preserve">
     <value>Sin versión de BOM</value>
   </data>
@@ -11634,8 +11679,5 @@
   </data>
   <data name="Excel.Err.Packaging" xml:space="preserve">
     <value>BOX y PALLET no son unidades de cantidad</value>
-  </data>
-  <data name="MD.Bom.Hint.SapSuperseded" xml:space="preserve">
-    <value>Se aprobó una versión más nueva o esta venció, por lo que ya no se envía a SAP</value>
   </data>
 </root>

@@ -58,7 +58,7 @@ GO
 
 -- SAPTransFlag·감사 컬럼을 맨 뒤로(MD_Item 만) — ProcureType 이 그 앞에 남는다
 DECLARE @audit TABLE (Ord int PRIMARY KEY, Name sysname COLLATE DATABASE_DEFAULT NOT NULL);
-INSERT @audit VALUES (1, N'SAPTransFlag'), (2, N'CreatedBy'), (3, N'CreatedTS'), (4, N'ModifiedBy'), (5, N'ModifiedTS');
+INSERT @audit VALUES (1, N'SAPTransFlag'), (2, N'SAPFlag'), (3, N'CreatedBy'), (4, N'CreatedTS'), (5, N'ModifiedBy'), (6, N'ModifiedTS');   -- SAPFlag = 10-21 개명 뒤 이름
 
 DECLARE @tables TABLE (Seq int IDENTITY PRIMARY KEY, ObjectId int NOT NULL, TableName sysname COLLATE DATABASE_DEFAULT NOT NULL);
 INSERT @tables (ObjectId, TableName)

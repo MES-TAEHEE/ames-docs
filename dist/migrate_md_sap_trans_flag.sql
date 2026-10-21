@@ -18,11 +18,11 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-IF COL_LENGTH(N'dbo.MD_Item', N'SAPTransFlag') IS NULL
+IF COL_LENGTH(N'dbo.MD_Item', N'SAPTransFlag') IS NULL AND COL_LENGTH(N'dbo.MD_Item', N'SAPFlag') IS NULL   -- 10-21 SAPFlag 로 개명된 DB 는 건너뜀
     ALTER TABLE dbo.MD_Item ADD SAPTransFlag bit NOT NULL CONSTRAINT DF_MD_Item_SAPTransFlag DEFAULT (0) WITH VALUES;
-IF COL_LENGTH(N'dbo.MD_Vendor', N'SAPTransFlag') IS NULL
+IF COL_LENGTH(N'dbo.MD_Vendor', N'SAPTransFlag') IS NULL AND COL_LENGTH(N'dbo.MD_Vendor', N'SAPFlag') IS NULL   -- 10-21 SAPFlag 로 개명된 DB 는 건너뜀
     ALTER TABLE dbo.MD_Vendor ADD SAPTransFlag bit NOT NULL CONSTRAINT DF_MD_Vendor_SAPTransFlag DEFAULT (0) WITH VALUES;
-IF COL_LENGTH(N'dbo.MD_Location', N'SAPTransFlag') IS NULL
+IF COL_LENGTH(N'dbo.MD_Location', N'SAPTransFlag') IS NULL AND COL_LENGTH(N'dbo.MD_Location', N'SAPFlag') IS NULL   -- 10-21 SAPFlag 로 개명된 DB 는 건너뜀
     ALTER TABLE dbo.MD_Location ADD SAPTransFlag bit NOT NULL CONSTRAINT DF_MD_Location_SAPTransFlag DEFAULT (0) WITH VALUES;
 GO
 
@@ -32,7 +32,7 @@ INSERT @tt VALUES (N'MD_Item'), (N'MD_Vendor'), (N'MD_Location');
 WHILE EXISTS (SELECT 1 FROM @tt)
 BEGIN
     SELECT TOP (1) @t = Name FROM @tt ORDER BY Name;
-    IF NOT EXISTS (SELECT 1 FROM sys.extended_properties
+    IF COL_LENGTH(N'dbo.' + @t, N'SAPTransFlag') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM sys.extended_properties
                    WHERE class = 1 AND name = N'MS_Description' AND major_id = OBJECT_ID(N'dbo.' + @t)
                      AND minor_id = COLUMNPROPERTY(OBJECT_ID(N'dbo.' + @t), N'SAPTransFlag', 'ColumnId'))
         EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = @d,

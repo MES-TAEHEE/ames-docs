@@ -293,7 +293,7 @@ public sealed class MasterDataRepository
             SELECT ItemNo, ItemName, ItemType, ItemCategory, InjFlag, CarType, DefaultUOM,
                    RoutingType, MinStock, MaxStock, SafetyStock, UnitCost,
                    PGN, ALC, DrawingNo, PalletQty, MaxPalletQty, ToteFlag, ScanRequired,
-                   ISNULL(ActiveFlag,1) AS ActiveFlag, IssueAddPct, MrpAllowPct, ProcureType, SAPTransFlag,
+                   ISNULL(ActiveFlag,1) AS ActiveFlag, IssueAddPct, MrpAllowPct, ProcureType, SAPFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM   dbo.MD_Item
             """ + " WHERE 1=1" + (string.IsNullOrWhiteSpace(search) ? "" :
@@ -329,7 +329,7 @@ public sealed class MasterDataRepository
             r["ModifiedBy"]    as string,
             r["ModifiedTS"]    is DateTime mt ? mt : null,
             (bool)r["ScanRequired"],
-            (bool)r["SAPTransFlag"],
+            (bool)r["SAPFlag"],
             r["ProcureType"]   as string,
             r["IssueAddPct"]   is decimal ia ? ia : null,
             r["MrpAllowPct"]   is decimal ma ? ma : null), p);
@@ -392,7 +392,7 @@ public sealed class MasterDataRepository
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
-        bool activeFlag, string createdBy, bool scanRequired = false, bool sapTransFlag = false, string? procureType = null,
+        bool activeFlag, string createdBy, bool scanRequired = false, string? procureType = null,
         decimal? issueAddPct = null, decimal? mrpAllowPct = null)
     {
         ValidateQuantityUnit(defaultUom);
@@ -400,10 +400,10 @@ public sealed class MasterDataRepository
             INSERT INTO dbo.MD_Item
                    (ItemNo,ItemName,ItemType,ItemCategory,InjFlag,CarType,DefaultUOM,
                     RoutingType,MinStock,MaxStock,SafetyStock,UnitCost,
-                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS,ScanRequired,IssueAddPct,MrpAllowPct,ProcureType,SAPTransFlag)
+                    PGN,ALC,DrawingNo,PalletQty,MaxPalletQty,ToteFlag,ActiveFlag,CreatedBy,CreatedTS,ScanRequired,IssueAddPct,MrpAllowPct,ProcureType)
             VALUES (@No,@Name,@Type,@Cat,@Inj,@Car,@Uom,
                     @Route,@Min,@Max,@Safe,@Cost,
-                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME(),@BoxScan,@IssuePct,@MrpPct,@Proc,@Sap)
+                    @PGN,@ALC,@Draw,@Pallet,@MaxPallet,@Tote,@Active,@By,SYSDATETIME(),@BoxScan,@IssuePct,@MrpPct,@Proc)
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
             ("@Type", "MD_Item.ItemType", itemType), ("@Cat", "MD_Item.ItemCategory", itemCategory), ("@Car", "MD_Item.CarType", carType),
@@ -416,24 +416,23 @@ public sealed class MasterDataRepository
             ("@By", "MD_Item.CreatedBy", createdBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
             ("@IssuePct", "MD_Item.IssueAddPct", NormalizeAllowancePct(issueAddPct, nameof(issueAddPct))),
             ("@MrpPct", "MD_Item.MrpAllowPct", NormalizeAllowancePct(mrpAllowPct, nameof(mrpAllowPct))),
-            ("@Proc", "MD_Item.ProcureType", NormalizeProcureType(procureType)),
-            ("@Sap", "MD_Item.SAPTransFlag", sapTransFlag));
+            ("@Proc", "MD_Item.ProcureType", NormalizeProcureType(procureType)));
     }
 
-    // sapTransFlag·procureType·두 비율이 null 이면 저장된 값을 그대로 둔다(값을 넘기지 않는 저장 경로가 지우지 않게)
+    // SAPFlag 는 쓰지 않는다(SAP 수신만 쓴다). procureType·두 비율이 null 이면 저장된 값을 그대로 둔다(값을 넘기지 않는 저장 경로가 지우지 않게)
     // — 조달형태를 비우려면 빈 문자열, 비율을 비우려면 0
     public void UpdateItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
-        bool activeFlag, string modifiedBy, bool scanRequired = false, bool? sapTransFlag = null, string? procureType = null,
+        bool activeFlag, string modifiedBy, bool scanRequired = false, string? procureType = null,
         decimal? issueAddPct = null, decimal? mrpAllowPct = null)
     {
         ValidateQuantityUnit(defaultUom);
         try { UpdateItemCore(itemNo, itemName, itemType, itemCategory, injFlag, carType, defaultUom, routingType, minStock, maxStock, safetyStock,
                              unitCost, pgn, alc, drawingNo, palletQty, maxPalletQty, toteFlag, activeFlag, modifiedBy, scanRequired,
-                             sapTransFlag, procureType, issueAddPct, mrpAllowPct); }
+                             procureType, issueAddPct, mrpAllowPct); }
         catch (SqlException ex) when (ex.Number == 51832) { throw new ItemUomLockedException(itemNo); }
     }
 
@@ -442,7 +441,7 @@ public sealed class MasterDataRepository
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
         int? palletQty, int? maxPalletQty, bool toteFlag,
-        bool activeFlag, string modifiedBy, bool scanRequired, bool? sapTransFlag, string? procureType,
+        bool activeFlag, string modifiedBy, bool scanRequired, string? procureType,
         decimal? issueAddPct, decimal? mrpAllowPct)
     {
         Exec($"""
@@ -458,7 +457,7 @@ public sealed class MasterDataRepository
                    PalletQty=@Pallet, MaxPalletQty=@MaxPallet, ToteFlag=@Tote, ScanRequired=@BoxScan,
                    ActiveFlag=@Active, ProcureType=CASE WHEN @Proc IS NULL THEN ProcureType ELSE NULLIF(@Proc, '') END,
                    {(issueAddPct is null ? "" : "IssueAddPct=@IssuePct, ")}{(mrpAllowPct is null ? "" : "MrpAllowPct=@MrpPct, ")}
-                   SAPTransFlag=ISNULL(@Sap, SAPTransFlag), ModifiedBy=@By, ModifiedTS=SYSDATETIME()
+                   ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  ItemNo=@No
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
@@ -472,8 +471,7 @@ public sealed class MasterDataRepository
             ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
             ("@Proc", "MD_Item.ProcureType", procureType is null ? null : NormalizeProcureType(procureType) ?? ""),
             ("@IssuePct", "MD_Item.IssueAddPct", NormalizeAllowancePct(issueAddPct, nameof(issueAddPct))),
-            ("@MrpPct", "MD_Item.MrpAllowPct", NormalizeAllowancePct(mrpAllowPct, nameof(mrpAllowPct))),
-            ("@Sap", "MD_Item.SAPTransFlag", sapTransFlag));
+            ("@MrpPct", "MD_Item.MrpAllowPct", NormalizeAllowancePct(mrpAllowPct, nameof(mrpAllowPct))));
     }
 
     /// <summary>재고·실적이 있는 품목의 기본 단위를 바꾸려 했다(10-20).</summary>
@@ -570,7 +568,7 @@ public sealed class MasterDataRepository
                    v.VersionNo, v.EffFrom, v.EffTo,
                    v.ChangeType, v.ChangeReason,
                    v.RequestedBy, v.ApprovedBy, v.ApprovedTS,
-                   ISNULL(v.Status,'DRAFT') AS Status, v.SAPTransFlag,
+                   ISNULL(v.Status,'DRAFT') AS Status, v.SAPFlag,
                    v.CreatedBy, v.CreatedTS, v.ModifiedBy, v.ModifiedTS
             FROM   dbo.MD_BomVersion v
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = v.RootItemNo
@@ -594,7 +592,7 @@ public sealed class MasterDataRepository
                 r["CreatedTS"]    is DateTime ct ? ct : null,
                 r["ModifiedBy"]   as string,
                 r["ModifiedTS"]   is DateTime mt ? mt : null,
-                (bool)r["SAPTransFlag"]), p);
+                (bool)r["SAPFlag"]), p);
     }
 
     public bool BomVersionExists(string versionId)
@@ -608,93 +606,33 @@ public sealed class MasterDataRepository
 
     public void InsertBomVersion(string versionId, string? rootItemNo, string? versionNo,
         DateOnly? effFrom, DateOnly? effTo, string? changeType, string? changeReason,
-        string createdBy, bool sapTransFlag = false)
+        string createdBy)
         => Exec("""
             INSERT INTO dbo.MD_BomVersion
                    (VersionID,RootItemNo,VersionNo,EffFrom,EffTo,
-                    ChangeType,ChangeReason,Status,SAPTransFlag,CreatedBy,CreatedTS)
-            VALUES (@ID,@Root,@VNo,@EF,@ET,@CT,@CR,'DRAFT',@Sap,@By,SYSDATETIME())
-            """, ("@Sap", "MD_BomVersion.SAPTransFlag", sapTransFlag),
+                    ChangeType,ChangeReason,Status,CreatedBy,CreatedTS)
+            VALUES (@ID,@Root,@VNo,@EF,@ET,@CT,@CR,'DRAFT',@By,SYSDATETIME())
+            """,
             ("@ID", "MD_BomVersion.VersionID", versionId),  ("@Root", "MD_BomVersion.RootItemNo", rootItemNo), ("@VNo", "MD_BomVersion.VersionNo", versionNo),
             ("@EF", "MD_BomVersion.EffFrom", effFrom.HasValue ? (object)effFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value),
             ("@ET", "MD_BomVersion.EffTo", effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
             ("@CT", "MD_BomVersion.ChangeType", changeType),  ("@CR", "MD_BomVersion.ChangeReason", changeReason), ("@By", "MD_BomVersion.CreatedBy", createdBy));
 
-    /// <summary>
-    /// DRAFT 버전만 고친다. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음). sapTransFlag 가 null 이면 저장된 값을 그대로 둔다.
-    /// SAP 전송을 바꾸면서 변경 사유를 새로 적지 않으면 <see cref="BomSapReasonRequiredException"/>.
-    /// </summary>
+    /// <summary>DRAFT 버전만 고친다. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음). SAPFlag 는 건드리지 않는다(SAP 수신만 쓴다).</summary>
     public bool UpdateBomVersion(string versionId, string? rootItemNo, string? versionNo,
         DateOnly? effFrom, DateOnly? effTo, string? changeType, string? changeReason,
-        string modifiedBy, bool? sapTransFlag = null)
-    {
-        try { return UpdateBomVersionCore(versionId, rootItemNo, versionNo, effFrom, effTo, changeType, changeReason, modifiedBy, sapTransFlag); }
-        catch (SqlException ex) when (ex.Number == 51831) { throw new BomSapReasonRequiredException(versionId); }
-    }
-
-    bool UpdateBomVersionCore(string versionId, string? rootItemNo, string? versionNo,
-        DateOnly? effFrom, DateOnly? effTo, string? changeType, string? changeReason,
-        string modifiedBy, bool? sapTransFlag)
-        => ExecCount($"""
-            {BomSapReasonGuardSql}
+        string modifiedBy)
+        => ExecCount("""
             UPDATE dbo.MD_BomVersion
             SET    RootItemNo=@Root, VersionNo=@VNo, EffFrom=@EF, EffTo=@ET,
-                   ChangeType=@CT, ChangeReason=@CR, SAPTransFlag=ISNULL(@Sap, SAPTransFlag),
+                   ChangeType=@CT, ChangeReason=@CR,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE  VersionID=@ID AND Status='DRAFT'
-            """, ("@Sap", "MD_BomVersion.SAPTransFlag", sapTransFlag),
+            """,
             ("@ID", "MD_BomVersion.VersionID", versionId),  ("@Root", "MD_BomVersion.RootItemNo", rootItemNo), ("@VNo", "MD_BomVersion.VersionNo", versionNo),
             ("@EF", "MD_BomVersion.EffFrom", effFrom.HasValue ? (object)effFrom.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value),
             ("@ET", "MD_BomVersion.EffTo", effTo.HasValue   ? (object)effTo.Value.ToDateTime(TimeOnly.MinValue)   : DBNull.Value),
             ("@CT", "MD_BomVersion.ChangeType", changeType), ("@CR", "MD_BomVersion.ChangeReason", changeReason), ("@By", "MD_BomVersion.ModifiedBy", modifiedBy)) > 0;
-
-    // SAP 전송을 바꾸면 변경 사유를 새로 적어야 한다(10-20, 규칙 정본 BomVersionRules.SapChangeMissingReason) — 어기면 51831
-    const string BomSapReasonGuardSql = """
-            IF EXISTS (SELECT 1 FROM dbo.MD_BomVersion WITH (UPDLOCK, HOLDLOCK)
-                       WHERE VersionID = @ID AND @Sap IS NOT NULL AND SAPTransFlag <> @Sap
-                         AND (LTRIM(RTRIM(ISNULL(@CR, N''))) = N''
-                              OR LTRIM(RTRIM(ISNULL(ChangeReason, N''))) = LTRIM(RTRIM(ISNULL(@CR, N'')))))
-                THROW 51831, 'Changing the SAP transfer flag needs a new change reason.', 1;
-            """;
-
-    /// <summary>
-    /// 승인 요청·승인·반려·만료 버전의 SAP 전송을 바꾼다(10-20) — BOM 내용이 아니라서 상태와 관계없이 바꿀 수 있지만,
-    /// 변경 유형·사유를 함께 고쳐야 한다(사유를 새로 적지 않으면 <see cref="BomSapReasonRequiredException"/>).
-    /// 버전이 없거나 SAP 전송이 이미 그 값이면(다른 사용자가 먼저 바꿈) false.
-    /// </summary>
-    public bool ChangeBomVersionSapTransFlag(string versionId, bool sapTransFlag, string? changeType, string? changeReason, string modifiedBy)
-    {
-        try
-        {
-            return ExecCount($"""
-                IF EXISTS (SELECT 1 FROM dbo.MD_BomVersion v WHERE v.VersionID = @ID AND {BomSapSupersededSql})
-                    THROW 51833, 'A newer approved version replaced this BOM version; its SAP transfer cannot change.', 1;
-                {BomSapReasonGuardSql}
-                UPDATE dbo.MD_BomVersion
-                SET    SAPTransFlag=@Sap, ChangeType=@CT, ChangeReason=@CR, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-                WHERE  VersionID=@ID AND SAPTransFlag<>@Sap
-                """,
-                ("@ID", "MD_BomVersion.VersionID", versionId), ("@Sap", "MD_BomVersion.SAPTransFlag", sapTransFlag),
-                ("@CT", "MD_BomVersion.ChangeType", changeType), ("@CR", "MD_BomVersion.ChangeReason", changeReason),
-                ("@By", "MD_BomVersion.ModifiedBy", modifiedBy)) > 0;
-        }
-        catch (SqlException ex) when (ex.Number == 51831) { throw new BomSapReasonRequiredException(versionId); }
-        catch (SqlException ex) when (ex.Number == 51833) { throw new BomSapSupersededException(versionId); }
-    }
-
-    /// <summary>새 버전이 승인됐거나 만료된 버전이라 SAP 전송을 바꿀 수 없다(10-20, <see cref="BomVersionRules.SapSuperseded"/>).</summary>
-    public sealed class BomSapSupersededException(string versionId)
-        : InvalidOperationException($"BOM version {versionId} was replaced by a newer approved version; its SAP transfer cannot change.")
-    {
-        public string VersionId { get; } = versionId;
-    }
-
-    /// <summary>SAP 전송을 바꾸면서 변경 사유를 새로 적지 않았다(10-20).</summary>
-    public sealed class BomSapReasonRequiredException(string versionId)
-        : InvalidOperationException($"Changing the SAP transfer flag of BOM version {versionId} needs a new change reason.")
-    {
-        public string VersionId { get; } = versionId;
-    }
 
     /// <summary>
     /// DRAFT 버전을 라인째 한 트랜잭션으로 지운다. 다른 사용자가 이미 승인 요청·승인 등으로 상태를 바꿨거나
@@ -886,34 +824,6 @@ public sealed class MasterDataRepository
         return ids;
     }
 
-    // SAP 전송에서 빠지는 버전 — 규칙 정본 BomVersionRules.SapSuperseded(만료, 또는 같은 품번에 시작일이 더 늦은 승인 버전이 있는 승인 버전)
-    const string BomSapSupersededSql = """
-        (v.Status = 'EXPIRED'
-         OR (v.Status = 'APPROVED' AND EXISTS (SELECT 1 FROM dbo.MD_BomVersion n
-                                               WHERE n.RootItemNo = v.RootItemNo AND n.VersionID <> v.VersionID AND n.Status = 'APPROVED'
-                                                 AND ISNULL(n.EffFrom, '19000101') > ISNULL(v.EffFrom, '19000101'))))
-        """;
-
-    /// <summary>
-    /// 새 버전이 승인됐거나 만료된 버전의 SAP 전송을 끈다(10-20) — MD-004 가 목록을 읽을 때마다 만료 처리와 함께 부르고 끈 버전 ID 를 돌려준다(감사용).
-    /// </summary>
-    public List<string> ClearSupersededBomSapFlags(string modifiedBy)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand($"""
-            UPDATE v
-            SET    SAPTransFlag = 0, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
-            OUTPUT inserted.VersionID
-            FROM   dbo.MD_BomVersion v
-            WHERE  v.SAPTransFlag = 1 AND {BomSapSupersededSql};
-            """, conn);
-        ColumnParams.Add(cmd, "@By", "MD_BomVersion.ModifiedBy", modifiedBy);
-        using var r = cmd.ExecuteReader();
-        var ids = new List<string>();
-        while (r.Read()) ids.Add((string)r["VersionID"]);
-        return ids;
-    }
-
     /// <summary>PENDING → REJECTED. 다른 사용자가 이미 상태를 바꿨으면 false(변경 없음).</summary>
     public bool RejectBomVersion(string versionId, string rejectedBy)
         => ExecCount("""
@@ -982,8 +892,8 @@ public sealed class MasterDataRepository
         {
             using var cmd = new SqlCommand("""
                 INSERT INTO dbo.MD_BomVersion
-                       (VersionID,RootItemNo,VersionNo,EffFrom,EffTo,ChangeType,ChangeReason,Status,SAPTransFlag,CreatedBy,CreatedTS)
-                VALUES (@V,@Root,@VNo,@EF,@ET,@CT,@CR,'DRAFT',@Sap,@By,SYSDATETIME())
+                       (VersionID,RootItemNo,VersionNo,EffFrom,EffTo,ChangeType,ChangeReason,Status,CreatedBy,CreatedTS)
+                VALUES (@V,@Root,@VNo,@EF,@ET,@CT,@CR,'DRAFT',@By,SYSDATETIME())
                 """, conn, tx);
             ColumnParams.Add(cmd, "@V", "MD_BomVersion.VersionID", v.VersionId);
             ColumnParams.Add(cmd, "@Root", "MD_BomVersion.RootItemNo", v.RootItemNo);
@@ -992,7 +902,6 @@ public sealed class MasterDataRepository
             ColumnParams.Add(cmd, "@ET", "MD_BomVersion.EffTo", v.EffTo.HasValue ? v.EffTo.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value);
             ColumnParams.Add(cmd, "@CT", "MD_BomVersion.ChangeType", v.ChangeType);
             ColumnParams.Add(cmd, "@CR", "MD_BomVersion.ChangeReason", v.ChangeReason);
-            ColumnParams.Add(cmd, "@Sap", "MD_BomVersion.SAPTransFlag", v.SapTransFlag);
             ColumnParams.Add(cmd, "@By", "MD_BomVersion.CreatedBy", actor);
             cmd.ExecuteNonQuery();
         }
@@ -1180,7 +1089,7 @@ public sealed class MasterDataRepository
         int? PalletQty, int? MaxPalletQty, bool ToteFlag,
         bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false, bool SAPTransFlag = false, string? ProcureType = null,
+        string? ModifiedBy, DateTime? ModifiedTS, bool ScanRequired = false, bool SAPFlag = false, string? ProcureType = null,
         decimal? IssueAddPct = null, decimal? MrpAllowPct = null);
 
     public record CodeItemRow(
@@ -1454,7 +1363,7 @@ public sealed class MasterDataRepository
         string Status,
         string? CreatedBy, DateTime? CreatedTS,
         string? ModifiedBy, DateTime? ModifiedTS,
-        bool SAPTransFlag = false);
+        bool SAPFlag = false);
 
     public static BomVersionRules.VersionInfo ToVersionInfo(BomVersionRow v)
         => new(v.VersionID, v.RootItemNo, v.Status, v.EffFrom, v.EffTo, v.CreatedTS);
@@ -1479,7 +1388,8 @@ public sealed class MasterDataRepository
         string? ContactPerson, string? ContactPhone, string? ContactEmail,
         bool EDIFlag, string? CurrencyCode, string? Status,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS);
+        string? ModifiedBy, DateTime? ModifiedTS,
+        bool SAPFlag);
 
     public List<CustomerRow> ListCustomers(string? search = null)
     {
@@ -1489,7 +1399,7 @@ public sealed class MasterDataRepository
                    CustomerType, BizRegNo, Country,
                    ContactPerson, ContactPhone, ContactEmail,
                    ISNULL(EDIFlag,0) AS EDIFlag, CurrencyCode, Status,
-                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+                   CreatedBy, CreatedTS, ModifiedBy, ModifiedTS, SAPFlag
             FROM dbo.MD_Customer
             WHERE @S IS NULL
                OR CustomerID   LIKE '%'+@S+'%'
@@ -1519,7 +1429,8 @@ public sealed class MasterDataRepository
                 r["CreatedBy"] as string,
                 r["CreatedTS"] as DateTime?,
                 r["ModifiedBy"] as string,
-                r["ModifiedTS"] as DateTime?));
+                r["ModifiedTS"] as DateTime?,
+                (bool)r["SAPFlag"]));
         return list;
     }
 
@@ -1762,7 +1673,7 @@ public sealed class MasterDataRepository
         string? ScmURL, bool EdiFlag, decimal? OtdTargetRate,
         string? PaymentTerms, bool ActiveFlag,
         string? CreatedBy, DateTime? CreatedTS,
-        string? ModifiedBy, DateTime? ModifiedTS, bool SAPTransFlag = false);
+        string? ModifiedBy, DateTime? ModifiedTS, bool SAPFlag = false);
 
     public List<VendorRow> ListVendors(string? search = null)
     {
@@ -1771,7 +1682,7 @@ public sealed class MasterDataRepository
             SELECT VendorID, VendorName, VendorType, VendorCategory,
                    BizRegNo, ContactPerson, Phone, Email, ScmURL,
                    ISNULL(EdiFlag,0) AS EdiFlag, OtdTargetRate,
-                   PaymentTerms, ISNULL(ActiveFlag,1) AS ActiveFlag, SAPTransFlag,
+                   PaymentTerms, ISNULL(ActiveFlag,1) AS ActiveFlag, SAPFlag,
                    CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
             FROM dbo.MD_Vendor
             WHERE @S IS NULL
@@ -1804,7 +1715,7 @@ public sealed class MasterDataRepository
                 r["CreatedTS"] as DateTime?,
                 r["ModifiedBy"] as string,
                 r["ModifiedTS"] as DateTime?,
-                (bool)r["SAPTransFlag"]));
+                (bool)r["SAPFlag"]));
         }
         return list;
     }
@@ -1822,19 +1733,19 @@ public sealed class MasterDataRepository
         string vendorId, string? vendorName, string? vendorType, string? vendorCategory,
         string? bizRegNo, string? contactPerson, string? phone, string? email,
         string? scmUrl, bool ediFlag, decimal? otdTargetRate,
-        string? paymentTerms, bool activeFlag, string createdBy, bool sapTransFlag = false)
+        string? paymentTerms, bool activeFlag, string createdBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Vendor
               (VendorID,VendorName,VendorType,VendorCategory,
                BizRegNo,ContactPerson,Phone,Email,ScmURL,
-               EdiFlag,OtdTargetRate,PaymentTerms,ActiveFlag,SAPTransFlag,
+               EdiFlag,OtdTargetRate,PaymentTerms,ActiveFlag,
                CreatedBy,CreatedTS)
             VALUES
               (@ID,@Name,@Type,@Cat,
                @Biz,@CP,@Ph,@Em,@Url,
-               @EDI,@Otd,@Pay,@Active,@Sap,
+               @EDI,@Otd,@Pay,@Active,
                @By,SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",   SqlDbType.VarChar,  20).Value = vendorId;
@@ -1851,7 +1762,6 @@ public sealed class MasterDataRepository
         cmd.Parameters["@Otd"].Precision = 5; cmd.Parameters["@Otd"].Scale = 2;
         cmd.Parameters.Add("@Pay",  SqlDbType.VarChar,  30).Value = (object?)paymentTerms   ?? DBNull.Value;
         cmd.Parameters.Add("@Active",SqlDbType.Bit).Value         = activeFlag;
-        cmd.Parameters.Add("@Sap",  SqlDbType.Bit).Value          = sapTransFlag;
         cmd.Parameters.Add("@By",   SqlDbType.VarChar,  20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
@@ -1860,7 +1770,7 @@ public sealed class MasterDataRepository
         string vendorId, string? vendorName, string? vendorType, string? vendorCategory,
         string? bizRegNo, string? contactPerson, string? phone, string? email,
         string? scmUrl, bool ediFlag, decimal? otdTargetRate,
-        string? paymentTerms, bool activeFlag, string modifiedBy, bool? sapTransFlag = null)
+        string? paymentTerms, bool activeFlag, string modifiedBy)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
@@ -1868,7 +1778,7 @@ public sealed class MasterDataRepository
               VendorName=@Name, VendorType=@Type, VendorCategory=@Cat,
               BizRegNo=@Biz, ContactPerson=@CP, Phone=@Ph, Email=@Em, ScmURL=@Url,
               EdiFlag=@EDI, OtdTargetRate=@Otd, PaymentTerms=@Pay,
-              ActiveFlag=@Active, SAPTransFlag=ISNULL(@Sap, SAPTransFlag),
+              ActiveFlag=@Active,
               ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             WHERE VendorID=@ID;
             """, conn);
@@ -1886,7 +1796,6 @@ public sealed class MasterDataRepository
         cmd.Parameters["@Otd"].Precision = 5; cmd.Parameters["@Otd"].Scale = 2;
         cmd.Parameters.Add("@Pay",  SqlDbType.VarChar,  30).Value = (object?)paymentTerms   ?? DBNull.Value;
         cmd.Parameters.Add("@Active",SqlDbType.Bit).Value         = activeFlag;
-        cmd.Parameters.Add("@Sap",  SqlDbType.Bit).Value          = (object?)sapTransFlag   ?? DBNull.Value;
         cmd.Parameters.Add("@By",   SqlDbType.VarChar, 20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
@@ -3474,11 +3383,16 @@ public sealed class MasterDataRepository
     }
 
     // ── MD_Location ──────────────────────────────────────────────────
+    // 10-22 2단계 — 1차(1) = SAP 수신(SAPFlag 1) 또는 MES 등록, 재고 없이 하위 상세를 묶는다 · 상세(2) = 재고 위치, 상위는 1차만
+    public const byte LocationLevelPrimary = 1;
+    public const byte LocationLevelDetail  = 2;
+
     public record LocationRow(
         string LocationID, string? LocationName, string WhCode, string AreaCode, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot,
         decimal? Capacity, string? LocationType, string? PlantCode, bool ActiveFlag,
-        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS, bool SAPTransFlag = false, string? LineId = null, string? PartNo = null, decimal? MinimumQty = null,string? LineName = null);
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS, bool SAPFlag = false, string? LineId = null, string? PartNo = null, decimal? MinimumQty = null,string? LineName = null,
+        string? ParentLocationID = null, byte LocationLevel = LocationLevelDetail, int ChildCount = 0);
 
     public List<LocationRow> ListLocations()
     {
@@ -3486,8 +3400,10 @@ public sealed class MasterDataRepository
         using var cmd = new SqlCommand(
             "SELECT LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
             "Capacity,LocationType,PlantCode,ISNULL(ActiveFlag,1)," +
-            "CreatedBy,CreatedTS,ModifiedBy,ModifiedTS,SAPTransFlag,LineID,PartNo,MinimumQty," +
-            "(SELECT M.LineNameEn FROM dbo.MD_Line M WHERE M.LineID=MD_Location.LineID) LineName " +
+            "CreatedBy,CreatedTS,ModifiedBy,ModifiedTS,SAPFlag,LineID,PartNo,MinimumQty," +
+            "(SELECT M.LineNameEn FROM dbo.MD_Line M WHERE M.LineID=MD_Location.LineID) LineName," +
+            "ParentLocationID,LocationLevel," +
+            "(SELECT COUNT(*) FROM dbo.MD_Location C WHERE C.ParentLocationID=MD_Location.LocationID) ChildCount " +
             "FROM dbo.MD_Location ORDER BY LocationID;", conn);
         using var rdr = cmd.ExecuteReader();
         var list = new List<LocationRow>();
@@ -3509,7 +3425,8 @@ public sealed class MasterDataRepository
                 rdr.IsDBNull(13) ? null : rdr.GetDateTime(13),
                 rdr.IsDBNull(14) ? null : rdr.GetString(14),
                 rdr.IsDBNull(15) ? null : rdr.GetDateTime(15),
-                rdr.GetBoolean(16),rdr.IsDBNull(17)?null:rdr.GetString(17),rdr.IsDBNull(18)?null:rdr.GetString(18),rdr.IsDBNull(19)?null:rdr.GetDecimal(19),rdr.IsDBNull(20)?null:rdr.GetString(20)));
+                rdr.GetBoolean(16),rdr.IsDBNull(17)?null:rdr.GetString(17),rdr.IsDBNull(18)?null:rdr.GetString(18),rdr.IsDBNull(19)?null:rdr.GetDecimal(19),rdr.IsDBNull(20)?null:rdr.GetString(20),
+                rdr.IsDBNull(21) ? null : rdr.GetString(21), rdr.GetByte(22), rdr.GetInt32(23)));
         return list;
     }
 
@@ -3526,14 +3443,14 @@ public sealed class MasterDataRepository
         string locationId, string? name, string whCode, string areaCode, string? zoneCode,
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
-        bool activeFlag, string createdBy, bool sapTransFlag = false, string? assignedPartNo = null)
+        bool activeFlag, string createdBy, string? assignedPartNo = null)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_Location" +
             "(LocationID,LocationName,WhCode,AreaCode,ZoneCode,Aisle,Bay,Slot," +
-            "Capacity,LocationType,PlantCode,ActiveFlag,SAPTransFlag,CreatedBy,PartNo)" +
-            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,@PL,@AF,@SAP,@CB,@Part);", conn);
+            "Capacity,LocationType,PlantCode,ActiveFlag,CreatedBy,PartNo)" +
+            " VALUES(@I,@N,@WH,@AR,@Z,@A,@B,@S,@CAP,CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,@PL,@AF,@CB,@Part);", conn);
         AddLocationPart(cmd,assignedPartNo);
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
@@ -3548,25 +3465,88 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)locationType  ?? DBNull.Value;
         cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   20).Value = (object?)plantCode     ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@SAP", SqlDbType.Bit).Value           = sapTransFlag;
         cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>MES 에서 1차 로케이션을 등록한다(SAPFlag 0). 1차는 재고를 두지 않으므로 위치 칸·용량·지정 품번이 없다.</summary>
+    public void InsertPrimaryLocation(string locationId, string? name, string whCode, string areaCode, string? plantCode, string createdBy)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand(
+            "INSERT INTO dbo.MD_Location(LocationID,LocationName,WhCode,AreaCode,PlantCode,LocationLevel,ActiveFlag,CreatedBy)" +
+            " VALUES(@I,@N,@WH,@AR,@PL,@Lv,1,@CB);", conn);
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar,  20).Value = locationId;
+        cmd.Parameters.Add("@N",  SqlDbType.NVarChar, 60).Value = (object?)name      ?? DBNull.Value;
+        cmd.Parameters.Add("@WH", SqlDbType.VarChar,  20).Value = whCode;
+        cmd.Parameters.Add("@AR", SqlDbType.VarChar,  20).Value = areaCode;
+        cmd.Parameters.Add("@PL", SqlDbType.VarChar,  20).Value = (object?)plantCode ?? DBNull.Value;
+        cmd.Parameters.Add("@Lv", SqlDbType.TinyInt).Value      = LocationLevelPrimary;
+        cmd.Parameters.Add("@CB", SqlDbType.VarChar,  20).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>상위 로케이션 아래에 하위 로케이션(재고 위치)을 등록한다 — 창고·구역·공장은 상위를 따른다.
+    /// 상위는 상위 로케이션(LocationLevel 1)만(52073), 재고가 있는 로케이션은 상위가 될 수 없다(52075), 지정 품번은 활성 품목만(51050 — 수정과 같은 번호).</summary>
+    public void InsertChildLocation(string locationId, string? name, string parentLocationId, decimal? capacity, string createdBy, string? assignedPartNo = null)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SET XACT_ABORT ON;
+            BEGIN TRANSACTION;
+            DECLARE @WH varchar(20), @AR varchar(20), @PL varchar(20), @Lv tinyint;
+            SELECT @WH = WhCode, @AR = AreaCode, @PL = PlantCode, @Lv = LocationLevel
+            FROM dbo.MD_Location WITH (UPDLOCK, HOLDLOCK) WHERE LocationID = @Parent;
+            IF @Lv IS NULL OR @Lv <> 1
+                THROW 52073, 'The parent must be a primary location.', 1;
+            IF EXISTS (SELECT 1 FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK) WHERE LocationNo = @Parent AND Qty <> 0)
+                THROW 52075, 'A location that holds stock cannot be a parent.', 1;
+            IF @Part IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.MD_Item WITH (HOLDLOCK) WHERE ItemNo = @Part AND COALESCE(ActiveFlag, 1) = 1)
+                THROW 51050, 'Select an active part.', 1;
+            INSERT INTO dbo.MD_Location (LocationID, LocationName, WhCode, AreaCode, PlantCode, Capacity, LocationType,
+                                         ParentLocationID, LocationLevel, PartNo, ActiveFlag, CreatedBy)
+            VALUES (@I, @N, @WH, @AR, @PL, @CAP, CASE WHEN UPPER(@AR) = 'FG_AREA' THEN 'FG' END, @Parent, @Lv2, @Part, 1, @CB);
+            COMMIT TRANSACTION;
+            """, conn);
+        cmd.Parameters.Add("@I",      SqlDbType.VarChar,  20).Value = locationId;
+        cmd.Parameters.Add("@N",      SqlDbType.NVarChar, 60).Value = (object?)name ?? DBNull.Value;
+        cmd.Parameters.Add("@Parent", SqlDbType.VarChar,  20).Value = parentLocationId;
+        cmd.Parameters.Add("@CAP",    SqlDbType.Decimal).Value      = (object?)capacity ?? DBNull.Value;
+        cmd.Parameters["@CAP"].Precision = 10; cmd.Parameters["@CAP"].Scale = 3;
+        cmd.Parameters.Add("@Lv2",    SqlDbType.TinyInt).Value      = LocationLevelDetail;
+        if (assignedPartNo?.Length > 20) throw new ArgumentException("Part number must contain at most 20 characters.");
+        cmd.Parameters.Add("@Part",   SqlDbType.VarChar,  20).Value = string.IsNullOrWhiteSpace(assignedPartNo) ? DBNull.Value : assignedPartNo.Trim();
+        cmd.Parameters.Add("@CB",     SqlDbType.VarChar,  20).Value = createdBy;
+        cmd.ExecuteNonQuery();
+    }
+
+    // setParent 가 true 일 때만 상위를 바꾼다(null = 상위 해제) — 다른 저장 경로가 상위를 지우지 않게.
+    // 상위는 1차만(52073), 1차에는 상위를 둘 수 없고(52074), 재고가 있는 로케이션은 상위가 될 수 없다(52075)
     public void UpdateLocation(
         string locationId, string? name, string whCode, string areaCode, string? zoneCode,
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
-        bool activeFlag, string modifiedBy, bool? sapTransFlag = null, string? assignedPartNo = null)
+        bool activeFlag, string modifiedBy, string? assignedPartNo = null,
+        bool setParent = false, string? parentLocationId = null)
     {
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
+            "IF @SetParent=1 AND @Parent IS NOT NULL BEGIN " +
+            "IF @Parent=@I OR NOT EXISTS(SELECT 1 FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK) WHERE LocationID=@Parent AND LocationLevel=1) " +
+            "THROW 52073,'The parent must be a primary location.',1; " +
+            "IF EXISTS(SELECT 1 FROM dbo.MD_Location WITH(UPDLOCK) WHERE LocationID=@I AND LocationLevel=1) " +
+            "THROW 52074,'A primary location cannot have a parent.',1; " +
+            "IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LocationNo=@Parent AND Qty<>0) " +
+            "THROW 52075,'A location that holds stock cannot be a parent.',1; END; " +
             "UPDATE dbo.MD_Location SET " +
             "LocationName=@N,WhCode=@WH,AreaCode=@AR,ZoneCode=@Z,Aisle=@A,Bay=@B,Slot=@S," +
-            "Capacity=@CAP,LocationType=CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,PlantCode=@PL,ActiveFlag=@AF,SAPTransFlag=ISNULL(@SAP,SAPTransFlag)," +
-            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB,PartNo=COALESCE(@Part,PartNo) " +
+            "Capacity=@CAP,LocationType=CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,PlantCode=@PL,ActiveFlag=@AF," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB,PartNo=COALESCE(@Part,PartNo)," +
+            "ParentLocationID=CASE WHEN @SetParent=1 THEN @Parent ELSE ParentLocationID END " +
             "WHERE LocationID=@I;", conn);
         AddLocationPart(cmd,assignedPartNo);
+        cmd.Parameters.Add("@SetParent", SqlDbType.Bit).Value = setParent;
+        cmd.Parameters.Add("@Parent", SqlDbType.VarChar, 20).Value = string.IsNullOrWhiteSpace(parentLocationId) ? DBNull.Value : parentLocationId.Trim();
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;
         cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name         ?? DBNull.Value;
         cmd.Parameters.Add("@WH",  SqlDbType.VarChar,   20).Value = whCode;
@@ -3580,7 +3560,6 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@LT",  SqlDbType.VarChar,   20).Value = (object?)locationType  ?? DBNull.Value;
         cmd.Parameters.Add("@PL",  SqlDbType.VarChar,   20).Value = (object?)plantCode     ?? DBNull.Value;
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@SAP", SqlDbType.Bit).Value           = (object?)sapTransFlag  ?? DBNull.Value;
         cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
     }
@@ -3611,6 +3590,8 @@ public sealed class MasterDataRepository
                 WHERE LocationNo COLLATE DATABASE_DEFAULT = @I COLLATE DATABASE_DEFAULT AND Qty<>0
             )
                 THROW 52071, 'The location cannot be deleted while inventory exists.', 1;
+            IF EXISTS (SELECT 1 FROM dbo.MD_Location WHERE ParentLocationID = @I)
+                THROW 52076, 'The location cannot be deleted while detail locations belong to it.', 1;
             DELETE FROM dbo.MD_Location WHERE LocationID=@I;
             """, conn);
         cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = locationId;
@@ -3738,14 +3719,15 @@ public sealed class MasterDataRepository
         string UOMCode, string? UOMName, string? UOMCategory,
         bool BaseFlag, string? BaseUOM, decimal? ConvFactor,
         int? DecimalPrec, string? Symbol, bool ActiveFlag,
-        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+        string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS,
+        bool SAPFlag);
 
     // BOX·PLT·PALLET은 선택 콤보에서 빼지만 MD-019 관리·과거 단위 표시는 포함한다(includeRetired). SH는 수량 단위로 유지한다.
     public List<UomRow> ListUoms(bool includeRetired = false) => Query("""
         SELECT UOMCode, UOMName, UOMCategory,
                ISNULL(BaseFlag,0) AS BaseFlag, BaseUOM, ConvFactor,
                DecimalPrec, Symbol, ISNULL(ActiveFlag,1) AS ActiveFlag,
-               CreatedBy, CreatedTS, ModifiedBy, ModifiedTS
+               CreatedBy, CreatedTS, ModifiedBy, ModifiedTS, SAPFlag
         FROM dbo.MD_Uom
         WHERE @All = 1 OR UPPER(LTRIM(RTRIM(UOMCode))) NOT IN ('BOX','PLT','PALLET')
         ORDER BY UOMCode
@@ -3762,7 +3744,8 @@ public sealed class MasterDataRepository
             r["CreatedBy"]   as string,
             r["CreatedTS"]   is DateTime ct ? ct  : null,
             r["ModifiedBy"]  as string,
-            r["ModifiedTS"]  is DateTime mt ? mt  : null),
+            r["ModifiedTS"]  is DateTime mt ? mt  : null,
+            (bool)r["SAPFlag"]),
         ("@All", null, includeRetired));
 
     // ── MD_RfidTag ───────────────────────────────────────────────────

@@ -19,10 +19,10 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-IF COL_LENGTH(N'dbo.MD_BomVersion', N'SAPTransFlag') IS NULL
+IF COL_LENGTH(N'dbo.MD_BomVersion', N'SAPTransFlag') IS NULL AND COL_LENGTH(N'dbo.MD_BomVersion', N'SAPFlag') IS NULL   -- 10-21 SAPFlag 로 개명된 DB 는 건너뜀
     ALTER TABLE dbo.MD_BomVersion ADD SAPTransFlag bit NOT NULL CONSTRAINT DF_MD_BomVersion_SAPTransFlag DEFAULT (0) WITH VALUES;
 GO
-IF NOT EXISTS (SELECT 1 FROM sys.extended_properties
+IF COL_LENGTH(N'dbo.MD_BomVersion', N'SAPTransFlag') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM sys.extended_properties
                WHERE class = 1 AND name = N'MS_Description' AND major_id = OBJECT_ID(N'dbo.MD_BomVersion')
                  AND minor_id = COLUMNPROPERTY(OBJECT_ID(N'dbo.MD_BomVersion'), N'SAPTransFlag', 'ColumnId'))
     EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'SAP 전송 대상 여부 — 1 이면 이 버전(유효할 때)을 SAP BOM 으로 보낸다 · bit',

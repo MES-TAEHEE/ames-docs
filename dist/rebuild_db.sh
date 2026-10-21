@@ -158,10 +158,14 @@ FILES=(
   migrate_md_item_procure_type.sql   # MD_Item.ProcureType(SAPTransFlag 앞) + 공통코드 PROCURE_TYPE — 조달형태(10-20)
   migrate_md_item_allowance_pct.sql  # MD_Item.IssueAddPct·MrpAllowPct — 추가 불출율·MRP 여유율(%)(10-20)
   migrate_md_bomversion_sap_trans_flag.sql  # MD_BomVersion.SAPTransFlag — BOM 버전 SAP 전송 대상(10-20)
+  migrate_md_customer_sap_flag.sql   # MD_Customer.SAPFlag — 고객사 SAP 수신 데이터 표시(10-21)
+  migrate_md_sap_flag_rename.sql     # SAPTransFlag → SAPFlag(품목·협력업체·로케이션·고객사·BOM 버전) — SAP 에서 받는 데이터(10-21)
+  migrate_md_uom_sap_flag.sql        # MD_Uom.SAPFlag — 단위 SAP 수신 데이터 표시(10-22)
   migrate_md_pallet.sql              # MD_Pallet·PALLET_USE, WH_Inventory.CaseNo→PalletNo, FG_Shipment.PalletNo, MD-034·035 화면(10-17) — FK 제거(no_foreign_keys) 뒤
   migrate_line_locations_shipping_orders.sql # Location minima, actual shipment LOT naming, shipment orders and DCR loads
   migrate_shipping_ui_line_defaults.sql # FG display order and registered production-line locations
   migrate_line_locations_eos.sql # Production line areas and locations belong to EOS
+  migrate_md_location_parent.sql     # MD_Location.ParentLocationID·LocationLevel — 1차(SAP·MES)/상세 2단계 로케이션(10-22) — sap_flag_rename·line_locations 뒤
   migrate_fg_lot_defect_permission.sql # Separate Warehouse inventory defect permission
   migrate_wh_pda_test_permission.sql # Hidden Web receipt test in the existing Permission Matrix
   migrate_drop_md_mold_color.sql     # MD_MoldColor 삭제 — 금형 제품 색상은 MD_MoldItem.Color 직접 입력(10-16)

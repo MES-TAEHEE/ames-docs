@@ -143,9 +143,9 @@
                     @if (item.ScanRequired) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="SAPTransFlag" Title="@L["Col.SapTrans"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="SAPFlag" Title="@L["Col.Sap"]" TextAlign="TextAlign.Center" Width="70px">
                 <Template Context="item">
-                    @if (item.SAPTransFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
+                    @if (item.SAPFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
@@ -201,7 +201,7 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Items.Title"] — @L["Modal.Edit"] <span class="code" style="font-weight:400;font-size:.9em;">@_f.ItemNo</span></div>
+            <div class="ames-modal-h">@L["MD.Items.Title"] — @L["Modal.Edit"] <span class="code" style="font-weight:400;font-size:.9em;">@_f.ItemNo</span>@if (_sel?.SAPFlag == true) { <span class="pill info" style="margin-left:6px;font-size:.72em;" title="@L["Lbl.SapData"]">SAP</span> }</div>
 
             <RadzenRow Gap="8px">
                 <RadzenColumn Size="6">
@@ -429,7 +429,6 @@
             ProcureType  = r.ProcureType ?? "",
             IssueAddPct  = r.IssueAddPct,
             MrpAllowPct  = r.MrpAllowPct,
-            SAPTransFlag = r.SAPTransFlag,
             ActiveFlag   = r.ActiveFlag,
         };
         try { _uomInUse = MD.ItemUomInUse(r.ItemNo); } catch { _uomInUse = false; }
@@ -461,7 +460,7 @@
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
-                _f.ActiveFlag, _actor, _f.ScanRequired, _f.SAPTransFlag, N(_f.ProcureType), _f.IssueAddPct, _f.MrpAllowPct);
+                _f.ActiveFlag, _actor, _f.ScanRequired, N(_f.ProcureType), _f.IssueAddPct, _f.MrpAllowPct);
             Audit.Created("MD-003", "MD_Item", no, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Created"].Value, no), false);
@@ -485,7 +484,7 @@
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
-                _f.ActiveFlag, _actor, _f.ScanRequired, _f.SAPTransFlag, _f.ProcureType ?? "", _f.IssueAddPct ?? 0, _f.MrpAllowPct ?? 0);
+                _f.ActiveFlag, _actor, _f.ScanRequired, _f.ProcureType ?? "", _f.IssueAddPct ?? 0, _f.MrpAllowPct ?? 0);
             Audit.Updated("MD-003", "MD_Item", _f.ItemNo, _sel, _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo), false);
@@ -660,10 +659,6 @@
             <RadzenLabel Text="@L["MD.Items.ScanRequired"]" Component="ItemChkCaseBoxScan" style="cursor:pointer;" />
         </RadzenStack>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
-            <RadzenCheckBox TValue="bool" @bind-Value="_f.SAPTransFlag" Name="ItemChkSapTrans" />
-            <RadzenLabel Text="@L["Col.SapTrans"]" Component="ItemChkSapTrans" style="cursor:pointer;" />
-        </RadzenStack>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
             <RadzenCheckBox TValue="bool" @bind-Value="_f.ActiveFlag" Name="ItemChkActive" />
             <RadzenLabel Text="@L["Lbl.Active"]" Component="ItemChkActive" style="cursor:pointer;" />
         </RadzenStack>
@@ -681,7 +676,7 @@
         "PGN" => L["Col.PGN"], "ALC" => L["Col.ALC"], "DrawingNo" => L["MD.Items.Lbl.DrawingNo"], "PalletQty" => L["MD.Items.Col.PalletQty"],
         "MaxPalletQty" => L["MD.Items.Col.MaxPalletQty"], "ToteFlag" => L["MD.Items.Col.Tote"], "ScanRequired" => L["MD.Items.ScanRequired"],
         "IssueAddPct" => L["MD.Items.Col.IssueAddPct"], "MrpAllowPct" => L["MD.Items.Col.MrpAllowPct"], "ProcureType" => L["MD.Items.Col.ProcureType"],
-        "SAPTransFlag" => L["Col.SapTrans"], "ActiveFlag" => L["Col.Active"], _ => key,
+        "ActiveFlag" => L["Col.Active"], _ => key,
     };
 
     // 지금 목록(필터 적용)을 올리기 양식 그대로 내려받는다 — 0건이면 머리글만 있는 빈 양식
@@ -694,7 +689,7 @@
             r.ItemNo, r.ItemName, r.ItemType, r.ItemCategory, F(r.InjFlag), r.CarType, r.DefaultUOM, r.RoutingType,
             r.SafetyStock, r.MinStock, r.MaxStock, r.UnitCost, r.PGN, r.ALC, r.DrawingNo,
             r.PalletQty, r.MaxPalletQty, F(r.ToteFlag), F(r.ScanRequired), r.IssueAddPct, r.MrpAllowPct,
-            r.ProcureType, F(r.SAPTransFlag), F(r.ActiveFlag),
+            r.ProcureType, F(r.ActiveFlag),
         });
         var bytes = AMES.Web.Services.XlsxWriter.Build(L["MD.Items.Title"].Value, headers, data);
         await JS.InvokeVoidAsync("amesDownload", $"Items_{DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
@@ -731,7 +726,7 @@
             {
                 await Task.Run(() => MD.InsertItem(x.ItemNo, x.ItemName, x.ItemType, x.ItemCategory, x.InjFlag, x.CarType, x.DefaultUom, x.RoutingType,
                     x.MinStock, x.MaxStock, x.SafetyStock, x.UnitCost, x.Pgn, x.Alc, x.DrawingNo,
-                    x.PalletQty, x.ToteFlag ? null : x.MaxPalletQty, x.ToteFlag, x.ActiveFlag, _actor, x.ScanRequired, x.SapTransFlag,
+                    x.PalletQty, x.ToteFlag ? null : x.MaxPalletQty, x.ToteFlag, x.ActiveFlag, _actor, x.ScanRequired,
                     x.ProcureType, x.IssueAddPct, x.MrpAllowPct));
                 Audit.Created("MD-003", "MD_Item", x.ItemNo, x);
                 created++;
@@ -791,7 +786,6 @@
         public string  ProcureType  { get; set; } = "";
         public decimal? IssueAddPct { get; set; }
         public decimal? MrpAllowPct { get; set; }
-        public bool    SAPTransFlag { get; set; }
         public bool    ActiveFlag   { get; set; } = true;
     }
 }
