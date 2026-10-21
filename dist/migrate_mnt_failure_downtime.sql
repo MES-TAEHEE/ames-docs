@@ -35,7 +35,10 @@ GO
 
 IF COL_LENGTH('dbo.MNT_WorkOrder', 'DowntimeID') IS NOT NULL
 BEGIN
-    IF EXISTS (SELECT 1 FROM dbo.MNT_WorkOrder WHERE DowntimeID IS NOT NULL)
+    -- 컬럼이 없는 DB(스키마 파일로 새로 만든 DB)에서도 배치가 컴파일되도록 동적 SQL 로 센다 — 직접 쓰면 Msg 207
+    DECLARE @withValue int;
+    EXEC sys.sp_executesql N'SELECT @n = COUNT(*) FROM dbo.MNT_WorkOrder WHERE DowntimeID IS NOT NULL;', N'@n int OUTPUT', @n = @withValue OUTPUT;
+    IF @withValue > 0
         THROW 51000, 'MNT_WorkOrder.DowntimeID has values - check before dropping.', 1;
     IF EXISTS (SELECT 1 FROM sys.extended_properties
                WHERE major_id = OBJECT_ID('dbo.MNT_WorkOrder') AND name = 'MS_Description'

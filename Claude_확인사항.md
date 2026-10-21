@@ -300,6 +300,13 @@
    - Portal 번호 변경은 임시 코드 경유로 충돌을 피하고 현재 001~004 화면에 맞췄습니다.
    - 선택적 개발 시드는 PDA_SEED → seed_portal_dev 순서이며, 기본 실행에서 제외합니다. 테스트 시드 실행에는 AMES_DEVELOPMENT_SEEDS=1과 세션 opt-in이 필요합니다.
    - SQL 구문 검사는 통과했습니다. 사용자 지시에 따라 DB 삭제·재생성·전체 재구축은 실행하지 않았습니다.
+   - **10-22 이승욱 — 로컬 인스턴스에 새 DB `AMES` 를 `rebuild_db.sh` 목록 그대로(개발 시드 opt-in 포함) 처음부터 만들어 본 결과**(도구 `AppDataLocalAMES-claude-toolsebuild_local_named_db.ps1`, `USE AMES_DEV` 8줄만 작업 복사본에서 바꿈, 로컬 `AMES_DEV` 는 그대로). 아래 4가지 때문에 그대로는 끝까지 가지 않았고, 작업 복사본만 보정해 111개 적용을 마쳤습니다(원본 dist 는 그대로 — ⑤만 수정).
+     ① `AMES_Schema.sql` 이 개발 DB 의 **시스템 이름 기본값 제약**(`DF__표__열__8자리 hex`, 37개)을 이름째 만들어, 새 DB 에서 앞 테이블의 이름 없는 기본값이 같은 이름을 받으면 Msg 2714(이번엔 `DF__PR_Defect__Creat__60FC61CA` — `PR_DefectAutoLink` 와 `PR_DefectDetail`). 생성기(`tools/schema_from_db`)가 시스템 이름(`is_system_named`) 제약은 이름 없이 쓰도록 바꾸는 것이 근본 해결입니다.
+     ② `AMES_Schema.sql` 이 `UX_PR_PopSession_BearerHash` 를 두 번 만듦(SMO 정의 7102행 + 1239bc10 이 더한 7111행) — Msg 1913.
+     ③ `migrate_scm_portal_screens.sql`(1239bc10)이 포탈 화면을 PORTAL-001~004(`delivery-entry`)로 다시 매기려 하는데, 스키마 파일 화면 시드(= 개발 DB)는 PORTAL-001~006(`due-orders`·`delivery-notes`·`receipts` 포함)이고 웹 라우트도 그대로라 THROW 50004 — 이번에는 건너뛰었습니다. 개발 DB 를 그 번호로 바꿀지, 마이그레이션을 지금 화면에 맞출지 정해야 합니다.
+     ④ `migrate_inj_agent.sql` 이 `PR_InjLot`·`MD_InjCondItem`·`PR_InjCondLog`·`PR_RobotInspection` 을 **DROP 후 옛 정의로 다시 만들어** 스키마 파일의 최종 구조를 덮습니다(`CreatedBy` varchar(50)·`ModifiedBy` nvarchar(450) — 개발 DB 는 varchar(20)). 재구축 목록에서 빼거나 테이블이 있으면 건너뛰게 해야 합니다. 이번에는 끝난 뒤 `ALTER COLUMN` 으로 맞췄습니다.
+     ⑤ `migrate_mnt_failure_downtime.sql`(이승욱)이 컬럼 없는 DB 에서 Msg 207 — 동적 SQL 로 고쳤습니다.
+     그 밖에 심재현 문제점 34(백플러시 멱등 인덱스가 스키마 파일은 두 열)도 그대로라 끝난 뒤 넓은 정의로 맞췄습니다. 결과 `AMES` 는 로컬 `AMES_DEV` 와 컬럼 2,437·인덱스 263·기본값·CHECK·외래키가 같고, 프로시저는 현행 8개뿐(개발 DB 의 은퇴 PDA 프로시저 34개 없음), 컬럼 설명 17개는 스키마 파일 쪽 문구(FG·WH). 백업 `publish/AMES_20261022.bak`(SQL Server 2025 — 2019 개발서버에는 복원 불가).
 2. **동시 출고·보충 Worker 부하 검증 대기**
    - 출고의 Serializable을 ReadCommitted로 낮추고 LOT 비교의 UPPER를 제거했습니다. 재고 행 변경 잠금과 피킹 지시 잠금은 유지합니다.
    - 동일 품목 여러 줄의 수요 분배 SQL은 읽기 전용 회귀 검사로 확인했습니다. 실제 PDA 여러 대와 보충 Worker를 겹쳐 실행하는 검증은 아직 하지 않았습니다.
