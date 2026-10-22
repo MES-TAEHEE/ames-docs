@@ -16,6 +16,20 @@ public sealed class PalletStockRepository
 {
     public const string ConfirmSourceType = "PROD_CONFIRM";
     public const string CoreUseSourceType = "IMG_CORE";
+    /// <summary>라인 불량 팝업 등록이 팔레트에서 뺀 LOT 의 OUT 거래 SourceType(SourceID = 그 LotID).</summary>
+    public const string DefectSourceType  = "POP_DEFECT";
+    /// <summary>재작업 스테이션 폐기가 팔레트에서 뺀 LOT 의 OUT 거래 SourceType — 불량 등록이 이미 뺐으면 아무것도 쓰지 않는 안전망.</summary>
+    public const string ScrapSourceType   = "POP_SCRAP";
+
+    /// <summary>
+    /// <see cref="Unload"/> 결과 — <paramref name="Removed"/> 면 재고 행이 있어서 지웠고, <paramref name="LocationNo"/> 가 있으면
+    /// 그 행이 이미 PDA FG 입고로 위치를 받은 뒤였다(창고 재고에서 빠졌으니 화면이 경고한다).
+    /// </summary>
+    public sealed record PalletUnloadResult(bool Removed, string? PalletNo, string? LocationNo)
+    {
+        public static readonly PalletUnloadResult None = new(false, null, null);
+        public bool WasLocated => Removed && !string.IsNullOrEmpty(LocationNo);
+    }
 
     readonly AmesConnectionFactory _factory;
     public PalletStockRepository(AmesConnectionFactory factory) => _factory = factory;
@@ -102,6 +116,37 @@ public sealed class PalletStockRepository
                  $"{coreLotCode} {coreItemNo} → IMG", operatorId, operatorId);
     }
 
+    /// <summary>
+    /// 불량 등록·폐기 트랜잭션 안에서: 그 LOT 의 재고 행(팔레트 아래 제품 행 — 1 LOT = 1 EA)을 **지우고** OUT 거래만 남긴다
+    /// (<see cref="ConsumeCore"/> 와 같은 10-22 규칙 — 0 으로 남기지 않는다). 불량품은 팔레트에서 빠져 재작업으로 가므로
+    /// 팔레트 적재 수·APS 가용재고·FG 출고 대상에서 사라져야 한다. 재고 행이 없으면(RAW·NG_BLOCKED 등 실린 적 없는 LOT,
+    /// 팔레트 없이 확정된 옛 LOT, 이미 뺀 LOT) 아무것도 하지 않고, 수량 0 으로 남아 있던 행은 거래 없이 지운다.
+    /// 팔레트 머리 행(UnitType PALLET)은 LotNo 가 팔레트 번호라 이 조건에 걸리지 않는다.
+    /// 이미 위치를 받은 행(PDA FG 입고 뒤)도 지운다 — 물건이 라인으로 돌아왔으니 창고 재고에서도 빠져야 한다; 결과의 LocationNo 로 화면이 경고한다.
+    /// </summary>
+    internal static PalletUnloadResult Unload(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
+                                              string sourceType, string reason, string operatorId, string employeeNo)
+    {
+        decimal before; string? palletNo, locationNo;
+        using (var cmd = new SqlCommand("""
+            DELETE dbo.WH_Inventory
+            OUTPUT DELETED.Qty, DELETED.PalletNo, DELETED.LocationNo
+            WHERE  LotNo = @L AND ISNULL(UnitType, '') <> 'PALLET';
+            """, conn, tx))
+        {
+            ColumnParams.AddFilter(cmd, "@L", "WH_Inventory.LotNo", lotCode);
+            using var r = cmd.ExecuteReader();
+            if (!r.Read()) return PalletUnloadResult.None;
+            before     = r["Qty"] is decimal q ? q : 0m;
+            palletNo   = r["PalletNo"] as string;
+            locationNo = r["LocationNo"] as string;
+        }
+        if (before > 0m)
+            WriteTxn(conn, tx, "OUT", sourceType, lotId, lotCode, itemNo, before, -before, 0m,
+                     $"{lotCode} {itemNo} {reason}{(palletNo is null ? "" : $" ← {palletNo}")}", operatorId, employeeNo, locationNo);
+        return new PalletUnloadResult(true, palletNo, locationNo);
+    }
+
     static readonly IReadOnlySet<string> EmptySet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>팔레트 상태 — tx 가 있으면 MD_Pallet 행을 UPDLOCK·HOLDLOCK 으로 잡아 동시 적재를 줄 세운다. 실린 수는 품번별.</summary>
@@ -157,15 +202,17 @@ public sealed class PalletStockRepository
     }
 
     static void WriteTxn(SqlConnection conn, SqlTransaction tx, string type, string sourceType, int sourceId, string lotNo,
-                         string partNo, decimal before, decimal change, decimal after, string note, string operatorId, string createdBy)
+                         string partNo, decimal before, decimal change, decimal after, string note, string operatorId, string createdBy,
+                         string? locationNo = null)
     {
         using var cmd = new SqlCommand("""
             INSERT dbo.WH_InventoryTransaction
                 (TransactionTime, TransactionType, PartNo, LocationNo, LotNo, QtyBefore, QtyChange, QtyAfter,
                  SourceType, SourceID, OperatorID, Note, CreatedBy, CreatedTS)
             VALUES
-                (SYSDATETIME(), @T, @P, NULL, @L, @B, @C, @A, @S, @Src, @Op, @N, @By, SYSDATETIME());
+                (SYSDATETIME(), @T, @P, @Loc, @L, @B, @C, @A, @S, @Src, @Op, @N, @By, SYSDATETIME());
             """, conn, tx);
+        ColumnParams.Add(cmd, "@Loc", "WH_InventoryTransaction.LocationNo",      (object?)locationNo ?? DBNull.Value);
         ColumnParams.Add(cmd, "@T",   "WH_InventoryTransaction.TransactionType", type);
         ColumnParams.Add(cmd, "@P",   "WH_InventoryTransaction.PartNo",          partNo);
         ColumnParams.Add(cmd, "@L",   "WH_InventoryTransaction.LotNo",           lotNo);

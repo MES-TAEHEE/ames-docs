@@ -231,6 +231,7 @@
   <data name="DfRegistered" xml:space="preserve"><value>불량 등록됨</value></data>
   <data name="DfAlreadyInRework" xml:space="preserve"><value>이미 재작업 대기 중인 LOT</value></data>
   <data name="DfScrapped" xml:space="preserve"><value>폐기된 LOT</value></data>
+  <data name="DfStockRemovedLocated" xml:space="preserve"><value>입고된 재고(위치 {0})에서 뺐습니다 — 창고에 알리세요</value></data>
   <data name="DfPriorConfirmed" xml:space="preserve"><value>확정 후 LOT — 실적 1 EA 역분개</value></data>
   <data name="DfTodayRegistered" xml:space="preserve"><value>이번 세션 등록</value></data>
   <data name="LotInRework" xml:space="preserve"><value>재작업 대기 중인 LOT</value></data>
@@ -255,6 +256,7 @@
   <data name="RwkConfirmScrapBody" xml:space="preserve"><value>{0} 을(를) 폐기합니다. 되돌릴 수 없습니다.</value></data>
   <data name="RwkDoneRework" xml:space="preserve"><value>수리 양품 확정</value></data>
   <data name="RwkDoneScrap" xml:space="preserve"><value>폐기 처리됨</value></data>
+  <data name="RwkStockRemovedLocated" xml:space="preserve"><value>입고된 재고(위치 {0})에서 뺐습니다 — 창고에 알리세요</value></data>
   <data name="RwkAlreadyDecided" xml:space="preserve"><value>이미 판정된 LOT</value></data>
   <data name="RwkNotFound" xml:space="preserve"><value>재작업 행을 찾을 수 없음</value></data>
   <data name="RwkTodayDecided" xml:space="preserve"><value>오늘 판정 이력</value></data>

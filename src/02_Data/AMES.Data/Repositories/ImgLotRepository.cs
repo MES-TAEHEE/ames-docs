@@ -282,7 +282,15 @@ public sealed class ImgLotRepository
     public (DefectRegisterOutcome Outcome, int DefectId, string ItemNo) RegisterDefect(
         string lotCode, string lineId, string defectCode,
         string operatorId, int? sessionId, string employeeNo)
+        => RegisterDefect(lotCode, lineId, defectCode, operatorId, sessionId, employeeNo, out _);
+
+    /// <param name="unload">팔레트에 실려 있던 LOT 이면 같은 트랜잭션에서 재고 행을 지운 결과 — 위치가 있던 행이면 화면이 경고한다.</param>
+    public (DefectRegisterOutcome Outcome, int DefectId, string ItemNo) RegisterDefect(
+        string lotCode, string lineId, string defectCode,
+        string operatorId, int? sessionId, string employeeNo,
+        out PalletStockRepository.PalletUnloadResult unload)
     {
+        unload = PalletStockRepository.PalletUnloadResult.None;
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
@@ -320,6 +328,10 @@ public sealed class ImgLotRepository
                 cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorId;
                 cmd.ExecuteNonQuery();
             }
+
+            // 팔레트에 실린 채 확정된 LOT 은 재고 행을 지운다 — 불량품이 팔레트 적재 수·FG 출고·APS 가용재고에 남지 않게(10-22)
+            unload = PalletStockRepository.Unload(conn, tx, lotId, lotCode, itemNo, PalletStockRepository.DefectSourceType,
+                                                  $"DEFECT {defectCode}", operatorId, employeeNo);
 
             tx.Commit();
             return (DefectRegisterOutcome.Registered, defectId, itemNo);

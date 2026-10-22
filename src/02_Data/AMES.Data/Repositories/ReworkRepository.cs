@@ -211,14 +211,23 @@ public sealed class ReworkRepository
 
     /// <summary>폐기: LOT SCRAPPED + tbl_Lot SCRAP, 행 SCRAPPED. 실적은 건드리지 않는다(등록 시 이미 역분개됐거나 애초에 없다).</summary>
     public ReworkOutcome Scrap(int defectId, string causeCode, string? note, string operatorId, string employeeNo)
+        => Scrap(defectId, causeCode, note, operatorId, employeeNo, out _);
+
+    /// <param name="unload">
+    /// 그 LOT 의 재고 행이 아직 남아 있었으면(불량 등록이 재고를 빼기 전에 등록된 LOT) 같은 트랜잭션에서 지운 결과 —
+    /// 안전망이라 보통은 <see cref="PalletStockRepository.PalletUnloadResult.None"/> 이다. 위치가 있던 행이면 화면이 경고한다.
+    /// </param>
+    public ReworkOutcome Scrap(int defectId, string causeCode, string? note, string operatorId, string employeeNo,
+                               out PalletStockRepository.PalletUnloadResult unload)
     {
+        unload = PalletStockRepository.PalletUnloadResult.None;
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
             var row = LockOpenRow(conn, tx, defectId, out var outcome);
             if (row is null) { tx.Rollback(); return outcome; }
-            var (lotId, _, processCode, _, _, _) = row.Value;
+            var (lotId, _, processCode, itemNo, _, _) = row.Value;
 
             using (var cmd = new SqlCommand("dbo.SP_POP_RWK_Scrap", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
@@ -229,6 +238,8 @@ public sealed class ReworkRepository
             }
 
             CloseRow(conn, tx, defectId, LotDefectRules.DispositionScrapped, causeCode, note, operatorId, employeeNo);
+            unload = PalletStockRepository.Unload(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo,
+                                                  PalletStockRepository.ScrapSourceType, $"SCRAP {causeCode}", operatorId, employeeNo);
             tx.Commit();
             return ReworkOutcome.Done;
         }

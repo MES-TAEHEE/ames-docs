@@ -200,4 +200,66 @@ public class PalletLoadDbTests
         }
         finally { Cleanup(f!); }
     }
+
+    /// <summary>
+    /// 불량 등록은 팔레트에 실린 LOT 의 재고 행을 지우고 OUT(POP_DEFECT)만 남긴다 — 팔레트 적재 수가 줄어 다음 LOT 이 실린다.
+    /// 폐기는 안전망: 불량 등록이 이미 뺐으면 아무것도 쓰지 않고, 행이 남아 있던 LOT(이 기능 전에 등록된 LOT)은 지우며 위치가 있었으면 알린다.
+    /// 실린 적 없는 RAW LOT 의 불량 등록은 재고를 건드리지 않는다.
+    /// </summary>
+    [SkippableFact]
+    public void Defect_registration_takes_the_lot_off_its_pallet_and_scrap_is_the_safety_net()
+    {
+        var f = WriteFactory(); Skip.If(f is null, WriteSkip);
+        Seed(f!);
+        var inj = new InjLotRepository(f!);
+        var rwk = new ReworkRepository(f!);
+        var stock = new PalletStockRepository(f!);
+        try
+        {
+            var (lot1, code1) = inj.CreateRawLot(InjLine, "INJ-01-01-1800", Map(CoreA), 990301);
+            var (lot2, code2) = inj.CreateRawLot(InjLine, "INJ-01-01-1800", Map(CoreA), 990302);
+            var (_,    code3) = inj.CreateRawLot(InjLine, "INJ-01-01-1800", Map(CoreA), 990303);
+            var (_,    code4) = inj.CreateRawLot(InjLine, "INJ-01-01-1800", Map(CoreA), 990304);
+            Assert.Equal(InjConfirmOutcome.Confirmed,  inj.ConfirmByLotCode(code1, InjLine, "E-PLT", null, "E-PLT", Pallet1, out _).Outcome);
+            Assert.Equal(InjConfirmOutcome.Confirmed,  inj.ConfirmByLotCode(code2, InjLine, "E-PLT", null, "E-PLT", Pallet1, out _).Outcome);
+            Assert.Equal(InjConfirmOutcome.PalletFull, inj.ConfirmByLotCode(code3, InjLine, "E-PLT", null, "E-PLT", Pallet1, out _).Outcome);
+
+            // 불량 등록 → 재고 행 삭제 + OUT POP_DEFECT(위치 없음 = 정상 경로, 경고 없음), 팔레트는 1 / 2 로 돌아가 셋째가 실린다
+            var reg1 = inj.RegisterDefect(code1, InjLine, "INJ-D01", "E-PLT", null, "E-PLT", out var u1);
+            Assert.Equal(DefectRegisterOutcome.Registered, reg1.Outcome);
+            Assert.True(u1.Removed); Assert.Equal(Pallet1, u1.PalletNo); Assert.Null(u1.LocationNo); Assert.False(u1.WasLocated);
+            Assert.Equal(0, Count(f!, "SELECT COUNT(*) FROM dbo.WH_Inventory WHERE LotNo=@L", ("@L", code1)));
+            Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE LotNo=@L AND TransactionType='OUT' AND SourceType='POP_DEFECT' AND SourceID=@Id AND QtyBefore=1 AND QtyChange=-1 AND QtyAfter=0 AND LocationNo IS NULL",
+                                  ("@L", code1), ("@Id", lot1)));
+            Assert.Equal(1, stock.Inspect(Pallet1, CoreA).State.CountOf(CoreA));
+            Assert.Equal(InjConfirmOutcome.Confirmed, inj.ConfirmByLotCode(code3, InjLine, "E-PLT", null, "E-PLT", Pallet1, out _).Outcome);
+
+            // 폐기: 불량 등록이 이미 뺐으므로 안전망은 아무것도 쓰지 않는다
+            Assert.Equal(ReworkOutcome.Done, rwk.Scrap(reg1.DefectId, "ITEST-CAUSE", null, "E-PLT", "E-PLT", out var u2));
+            Assert.False(u2.Removed);
+            Assert.Equal(0, Count(f!, "SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE LotNo=@L AND SourceType='POP_SCRAP'", ("@L", code1)));
+
+            // 안전망: 이 기능 전에 등록돼 행이 남은 LOT 을 흉내 — 불량 등록 뒤 재고 행을 위치까지 배정된 채 되살려 두고 폐기하면 지우고 위치를 알린다
+            var reg2 = inj.RegisterDefect(code2, InjLine, "INJ-D01", "E-PLT", null, "E-PLT", out var u2b);
+            Assert.True(u2b.Removed);
+            AmesDevDb.Exec(f!, """
+                INSERT dbo.WH_Inventory (LotNo, UnitType, ParentLotNo, PartNo, PalletNo, LocationNo, Qty, ReceivedAt, CreatedAt, UpdatedAt)
+                VALUES (@L, 'PART', @P, @I, @P, 'ZPLT-LOC', 1, SYSDATETIME(), SYSDATETIME(), SYSDATETIME());
+                """, ("@L", code2), ("@P", Pallet1), ("@I", CoreA));
+            Assert.Equal(ReworkOutcome.Done, rwk.Scrap(reg2.DefectId, "ITEST-CAUSE", null, "E-PLT", "E-PLT", out var u3));
+            Assert.True(u3.Removed); Assert.Equal("ZPLT-LOC", u3.LocationNo); Assert.True(u3.WasLocated);
+            Assert.Equal(0, Count(f!, "SELECT COUNT(*) FROM dbo.WH_Inventory WHERE LotNo=@L", ("@L", code2)));
+            Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE LotNo=@L AND TransactionType='OUT' AND SourceType='POP_SCRAP' AND SourceID=@Id AND QtyChange=-1 AND LocationNo='ZPLT-LOC'",
+                                  ("@L", code2), ("@Id", lot2)));
+            Assert.Equal("SCRAPPED", (string)AmesDevDb.Scalar(f!, "SELECT ConfirmStatus FROM dbo.PR_InjLot WHERE LotID=@L", ("@L", lot2))!);
+
+            // 실린 적 없는 RAW LOT — 재고도 거래도 없다. 팔레트 머리 행은 그대로
+            var reg4 = inj.RegisterDefect(code4, InjLine, "INJ-D01", "E-PLT", null, "E-PLT", out var u4);
+            Assert.Equal(DefectRegisterOutcome.Registered, reg4.Outcome);
+            Assert.False(u4.Removed);
+            Assert.Equal(0, Count(f!, "SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE LotNo=@L", ("@L", code4)));
+            Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.WH_Inventory WHERE LotNo=@P AND UnitType='PALLET'", ("@P", Pallet1)));
+        }
+        finally { Cleanup(f!); }
+    }
 }

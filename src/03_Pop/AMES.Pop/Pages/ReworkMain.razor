@@ -363,9 +363,12 @@
         var session = Session; var note = _note;
         if (!await Confirmer.AskAsync(T("RwkConfirmScrapTitle"), T("RwkConfirmScrapBody", sel.LotCode),
                                       T("RwkScrapBtn"), T("Cancel"), destructive: true)) return;
+        var unload = PalletStockRepository.PalletUnloadResult.None;
         Decide(sel.LotCode,
-               () => PopServices.Rework.Scrap(sel.DefectId, cause, note, session.OperatorId, session.EmployeeNo),
+               () => PopServices.Rework.Scrap(sel.DefectId, cause, note, session.OperatorId, session.EmployeeNo, out unload),
                T("RwkDoneScrap"));
+        // 불량 등록이 재고를 빼기 전에 등록된 LOT 의 안전망 — 입고된(위치 있는) 행을 뺐으면 창고에 알린다
+        if (unload.WasLocated) Toasts.Warn($"{T("RwkStockRemovedLocated", unload.LocationNo!)}: {sel.LotCode}");
     }
 
     private void Decide(string lotCode, Func<ReworkOutcome> act, string doneText)
