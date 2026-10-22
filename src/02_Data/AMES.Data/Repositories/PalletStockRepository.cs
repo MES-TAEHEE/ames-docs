@@ -80,21 +80,22 @@ public sealed class PalletStockRepository
     }
 
     /// <summary>
-    /// IMG 가 코어를 스캔해 완제품 LOT 을 만드는 순간 그 코어는 팔레트에서 나와 제품의 일부가 된다 — 코어 재고 행을 0 으로 내리고 OUT 거래를 남긴다.
-    /// 재고 행이 없거나 이미 0 이면(팔레트 없이 확정된 옛 코어·배포 전 코어) 아무것도 하지 않는다. SourceID = 완제품 LotID.
+    /// IMG 가 코어를 스캔해 완제품 LOT 을 만드는 순간 그 코어는 팔레트에서 나와 제품의 일부가 된다 — 코어 재고 행을 **지우고** OUT 거래만 남긴다
+    /// (2026-10-22 사용자 결정: 0 으로 남기지 않는다. 이력은 WH_InventoryTransaction 이 가진다).
+    /// 재고 행이 없으면(팔레트 없이 확정된 옛 코어·배포 전 코어) 아무것도 하지 않고, 수량 0 으로 남아 있던 옛 행은 거래 없이 지운다. SourceID = 완제품 LotID.
     /// </summary>
     internal static void ConsumeCore(SqlConnection conn, SqlTransaction tx, int finishedLotId, string coreLotCode, string coreItemNo,
                                      string operatorId)
     {
         decimal before;
         using (var cmd = new SqlCommand("""
-            UPDATE dbo.WH_Inventory SET Qty = 0, UpdatedAt = SYSDATETIME()
+            DELETE dbo.WH_Inventory
             OUTPUT DELETED.Qty
-            WHERE  LotNo = @L AND Qty > 0;
+            WHERE  LotNo = @L;
             """, conn, tx))
         {
             ColumnParams.AddFilter(cmd, "@L", "WH_Inventory.LotNo", coreLotCode);
-            if (cmd.ExecuteScalar() is not decimal q) return;
+            if (cmd.ExecuteScalar() is not decimal q || q <= 0m) return;
             before = q;
         }
         WriteTxn(conn, tx, "OUT", CoreUseSourceType, finishedLotId, coreLotCode, coreItemNo, before, -before, 0m,
