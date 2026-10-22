@@ -9,9 +9,10 @@ public static class LocationMapDatabase
     {
         bool Included(string area) => finishedGoods ? area == "FG_AREA" : area != "SPARE_PARTS_AREA";
         var warehouses = warehouse.ListWarehouses().ToDictionary(x => x.WhCode, x => x.WhName ?? x.WhCode, StringComparer.OrdinalIgnoreCase);
-        var locations = md.ListLocations().Where(x => x.ActiveFlag && Included(x.AreaCode)).ToList();
+        var locations = md.ListLocations().Where(x => x.ActiveFlag
+            && x.LocationLevel == MasterDataRepository.LocationLevelDetail && Included(x.AreaCode)).ToList();
         var areas = warehouse.ListWarehouseAreas().Where(x => Included(x.AreaCode) && !string.IsNullOrWhiteSpace(x.WhCode))
-            .Select(x => new LocationMapArea(x.WhCode!, x.WhName ?? x.WhCode!, x.AreaCode, x.AreaName ?? x.AreaCode, x.LocationPrefix)).ToList();
+            .Select(x => new LocationMapArea(x.WhCode!, x.WhName ?? x.WhCode!, x.AreaCode, x.AreaName ?? x.AreaCode, x.LocationPrefix, x.StorageMode)).ToList();
         if (!finishedGoods)
             foreach (var wh in warehouses)
                 if (!areas.Any(x => x.WarehouseCode.Equals(wh.Key, StringComparison.OrdinalIgnoreCase)))

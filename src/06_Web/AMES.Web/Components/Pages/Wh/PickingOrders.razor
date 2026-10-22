@@ -58,7 +58,7 @@
                     <RadzenDataGridColumn TItem="LineStockRow" Property="PartNo" Title="PART NO" Width="170px" />
                     <RadzenDataGridColumn TItem="LineStockRow" Property="PartName" Title="PART NAME" />
                     <RadzenDataGridColumn TItem="LineStockRow" Property="Qty" Title="LINE QTY (EA)" Width="125px"><Template Context="r">@UomFmt.Qty(r.Qty, "EA")</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="SafetyStock" Title="SAFETY (EA)" Width="120px"><Template Context="r">@UomFmt.Qty(r.SafetyStock, "EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="MinimumQty" Title="MINIMUM (EA)" Width="120px"><Template Context="r">@UomFmt.Qty(r.MinimumQty, "EA")</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="LineStockRow" Property="RequiredQty" Title="REQUIRED (EA)" Width="130px"><Template Context="r">@UomFmt.Qty(r.RequiredQty, "EA")</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="LineStockRow" Property="State" Title="STATUS" Width="210px" />
                 </Columns>

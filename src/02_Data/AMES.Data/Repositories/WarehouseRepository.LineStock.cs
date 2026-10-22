@@ -118,9 +118,9 @@ public sealed partial class WarehouseRepository
         """;
 
     public sealed record LineStockRow(string LineCode, string PartNo, string PartName,
-        decimal Qty, decimal SafetyStock, bool HasOpenOrder, bool WrongPart=false)
+        decimal Qty, decimal MinimumQty, bool HasOpenOrder, bool WrongPart=false)
     {
-        public decimal Shortage => Math.Max(0, SafetyStock - Qty);
+        public decimal Shortage => Math.Max(0, MinimumQty - Qty);
         public decimal RequiredQty => decimal.Ceiling(Shortage);
         public string State => WrongPart ? "Different part at location" : Shortage == 0 ? "Sufficient" : HasOpenOrder ? "Requested"
             : PartNo.Length > 20 ? "Part number exceeds Pick Slip limit"
@@ -140,32 +140,17 @@ public sealed partial class WarehouseRepository
         return (cmd.ExecuteScalar() as string)?.Trim();
     }
 
-    // Zero-quantity rows retain the line/part association. Container totals are not counted twice.
+    // Assigned line locations drive demand even at zero stock; container totals are not counted twice.
     private const string LineStockSql = """
-        WITH Stock AS
+        WITH Demand AS
         (
-            SELECT W.LocationNo, W.PartNo, SUM(W.Qty) AS Qty
-            FROM dbo.WH_Inventory W
-            WHERE EXISTS (SELECT 1 FROM dbo.MD_Line ML
-                          WHERE LEN(ML.LotPrefix)=2
-                            AND ML.LotPrefix COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT
-                            AND UPPER(COALESCE(ML.Status,'ACTIVE')) NOT IN ('INACTIVE','CLOSED'))
-              AND NULLIF(W.PartNo,'') IS NOT NULL
-              AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
-            GROUP BY W.LocationNo,W.PartNo
-        )
-        , Demand AS
-        (
-            SELECT S.LocationNo,S.PartNo,S.Qty,COALESCE(I.SafetyStock,0) MinimumQty
-            FROM Stock S JOIN dbo.MD_Item I ON I.ItemNo=S.PartNo
-            UNION ALL
-            SELECT L.LocationID,L.PartNo,COALESCE(S.Qty,0),COALESCE(L.MinimumQty,0)
+            SELECT L.LocationID AS LocationNo,L.PartNo,COALESCE(S.Qty,0) AS Qty,COALESCE(L.MinimumQty,0) AS MinimumQty
             FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID
             OUTER APPLY(SELECT SUM(W.Qty) Qty FROM dbo.WH_Inventory W
                 WHERE W.LocationNo=L.LocationID AND W.PartNo=L.PartNo
                   AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)) S
-            WHERE COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE'
-              AND L.PartNo IS NOT NULL AND L.MinimumQty>0
+            WHERE L.LocationLevel=2 AND COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE'
+              AND NULLIF(L.PartNo,'') IS NOT NULL AND L.MinimumQty>0
         )
         SELECT S.LocationNo,S.PartNo,I.ItemName,S.Qty,S.MinimumQty,
                CONVERT(bit,CASE WHEN EXISTS

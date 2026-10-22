@@ -142,6 +142,8 @@ public sealed class ScmSupplierDeliveryProgressTests
     public void Schedule_opens_document_viewer_but_does_not_receive_on_click()
     {
         var schedule=Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh01DeliverySchedule.razor");
+        Assert.Contains("SUPPLIER DELIVERIES",schedule);
+        Assert.Contains(">Supplier Deliveries</div>",Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/WhHome.razor"));
         Assert.Contains("/wh/02?delivery=",schedule);
         Assert.DoesNotContain("WhReceive",schedule);
         var inbound=Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh02PdaInbound.razor");

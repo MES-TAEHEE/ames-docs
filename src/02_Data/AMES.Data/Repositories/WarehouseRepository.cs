@@ -51,7 +51,8 @@ public sealed partial class WarehouseRepository
         decimal TotalQty,
         string? WhCode,
         string? WhName,
-        string? LocationPrefix);
+        string? LocationPrefix,
+        string StorageMode = "GRID");
 
     public record WarehouseSectionRow(
         string AreaCode,
@@ -460,6 +461,7 @@ public sealed partial class WarehouseRepository
                 A.CodeValue AS AREACD,
                 A.CodeName AS AREANM,
                 A.Attribute1 AS LOCATION_PREFIX,
+                CASE WHEN A.Attribute2='OPEN' THEN 'OPEN' ELSE 'GRID' END AS STORAGE_MODE,
                 W.CodeValue AS WHCD,
                 COALESCE(NULLIF(W.CodeName,''),W.CodeValue) AS WHNM,
                 CAST(COALESCE(A.UseFlag, 1) AS bit) AS USE_YN,
@@ -478,7 +480,7 @@ public sealed partial class WarehouseRepository
               AND (@Search IS NULL
                    OR A.CodeValue LIKE @Search
                    OR A.CodeName LIKE @Search)
-            GROUP BY A.CodeValue,A.CodeName,A.Attribute1,W.CodeValue,W.CodeName,A.UseFlag,A.SortOrder
+            GROUP BY A.CodeValue,A.CodeName,A.Attribute1,A.Attribute2,W.CodeValue,W.CodeName,A.UseFlag,A.SortOrder
             ORDER BY A.SortOrder,A.CodeValue;
             """, r => new WarehouseAreaRow(
                 GetString(r, "AREACD") ?? "",
@@ -488,7 +490,8 @@ public sealed partial class WarehouseRepository
                 GetDecimal(r, "TOTAL_QTY"),
                 GetString(r, "WHCD"),
                 GetString(r, "WHNM"),
-                GetString(r, "LOCATION_PREFIX")),
+                GetString(r, "LOCATION_PREFIX"),
+                GetString(r, "STORAGE_MODE") ?? "GRID"),
             ("@Search", "MD_CodeItem.CodeName", like),
             ("@IncludeInactive", null, includeInactive),
             ("@WhCode", "MD_Location.WhCode", NullIfBlank(whCode)));
@@ -723,6 +726,10 @@ public sealed partial class WarehouseRepository
             IF @Floor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK)
                                                   WHERE WhCode=@Wh AND AreaCode=@Area AND Slot=@Floor AND ActiveFlag=1)
                 THROW 51029,'Floor no longer exists in this area.',1;
+            IF @Floor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.MD_Location WITH (UPDLOCK,HOLDLOCK)
+                                                  WHERE WhCode=@Wh AND AreaCode=@Area AND LocationLevel=2 AND ActiveFlag=1
+                                                    AND NULLIF(Slot,'') IS NOT NULL AND Slot<>@Floor)
+                THROW 51033,'Cannot delete the last floor. Keep at least one floor in this area.',1;
             IF @Area IS NULL AND EXISTS (SELECT 1 FROM dbo.MD_CodeItem WHERE ParentCodeID=CONCAT('WH_CODE_',@Wh) AND GroupCode<>'WH_AREA')
                 THROW 51026,'Warehouse contains other linked master codes.',1;
             IF @Area IS NULL AND EXISTS (SELECT 1 FROM dbo.MD_CodeItem child JOIN dbo.MD_CodeItem area ON area.CodeID=child.ParentCodeID
@@ -738,6 +745,15 @@ public sealed partial class WarehouseRepository
                 THROW 51022,'Inventory was found. Move it before deleting this scope.',1;
             IF EXISTS (SELECT 1 FROM dbo.MNT_SparePartItem p JOIN #Scope s ON s.LocationID=p.LocationID)
                 THROW 51023,'A spare part is linked to a location. Move it before deleting this scope.',1;
+            IF EXISTS (SELECT 1 FROM dbo.WH_InventoryTransaction t WITH (UPDLOCK,HOLDLOCK)
+                       JOIN #Scope s ON s.LocationID=t.LocationNo)
+                THROW 51030,'Transaction history references this location scope. It cannot be deleted.',1;
+            IF EXISTS (SELECT 1 FROM dbo.tbl_Lot l WITH (UPDLOCK,HOLDLOCK)
+                       JOIN #Scope s ON s.LocationID=l.CurrentLocationID)
+                THROW 51031,'A production LOT still references this location. Move it before deleting this scope.',1;
+            IF EXISTS (SELECT 1 FROM dbo.MD_Location child JOIN #Scope parent ON parent.LocationID=child.ParentLocationID
+                       WHERE NOT EXISTS (SELECT 1 FROM #Scope s WHERE s.LocationID=child.LocationID))
+                THROW 51032,'Locations outside this scope belong to a parent being deleted. Move them first.',1;
             IF EXISTS (SELECT 1 FROM dbo.WH_Inventory child
                        WHERE child.ParentLotNo IN (SELECT i.LotNo FROM dbo.WH_Inventory i JOIN #Scope s ON s.LocationID=i.LocationNo)
                          AND child.LocationNo NOT IN (SELECT LocationID FROM #Scope))
@@ -748,7 +764,7 @@ public sealed partial class WarehouseRepository
                              AND parent.LocationNo NOT IN (SELECT LocationID FROM #Scope)))
                 THROW 51025,'Inventory is linked to a parent outside this scope.',1;
 
-            UPDATE l SET ActiveFlag=0, ModifiedBy=@Actor, ModifiedTS=SYSDATETIME()
+            DELETE l
             FROM dbo.MD_Location l JOIN #Scope s ON s.LocationID=l.LocationID;
             IF @Floor IS NULL AND @Area IS NULL
             BEGIN
@@ -964,12 +980,13 @@ public sealed partial class WarehouseRepository
         string prefix;
         using (var area = new SqlCommand("""
             SELECT COALESCE(Attribute1,'') FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK)
-            WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh) AND COALESCE(UseFlag,1)=1;
+            WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh) AND COALESCE(UseFlag,1)=1
+              AND COALESCE(Attribute2,'GRID')<>'OPEN';
             """, conn, tx))
         {
             area.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
             area.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
-            prefix = area.ExecuteScalar() as string ?? throw new InvalidOperationException("Area does not exist in this warehouse.");
+            prefix = area.ExecuteScalar() as string ?? throw new InvalidOperationException("Select a Grid area in this warehouse. Open Storage does not use grid coordinates.");
         }
         if (!LocationMapNaming.ValidPrefix(prefix))
         {
@@ -1016,12 +1033,14 @@ public sealed partial class WarehouseRepository
             var id = LocationMapNaming.LocationNo(prefix, cell.Column, cell.Row, cell.Floor);
             using var insert = new SqlCommand("""
                 INSERT INTO dbo.MD_Location
-                    (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,Capacity,LocationType,ActiveFlag,CreatedBy)
-                VALUES (@Id,@Name,@Wh,@Area,@Row,@Column,@Floor,@Capacity,CASE WHEN UPPER(@Area)='FG_AREA' THEN 'FG' END,1,@Actor);
+                    (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,Capacity,LocationType,ParentLocationID,ActiveFlag,CreatedBy)
+                VALUES (@Id,@Name,@Wh,@Area,@Row,@Column,@Floor,@Capacity,CASE WHEN UPPER(@Area)='FG_AREA' THEN 'FG' END,
+                    (SELECT LocationID FROM dbo.MD_Location WHERE LocationID=@Parent AND WhCode=@Wh AND AreaCode=@Area AND LocationLevel=1 AND ActiveFlag=1),1,@Actor);
 
                 """, conn, tx);
             ColumnParams.Add(insert, "@Actor", "MD_Location.CreatedBy", _actor());
             insert.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
+            insert.Parameters.Add("@Parent", SqlDbType.VarChar, 20).Value = $"{prefix}AREA";
             ColumnParams.Add(insert,"@Name","MD_Location.LocationName",planned.Contains(cell) && !string.IsNullOrWhiteSpace(name) ? name.Trim() : id);
             insert.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
             insert.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
@@ -1046,11 +1065,11 @@ public sealed partial class WarehouseRepository
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
         string prefix;
-        using (var area = new SqlCommand("SELECT Attribute1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK) WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh) AND COALESCE(UseFlag,1)=1;", conn, tx))
+        using (var area = new SqlCommand("SELECT Attribute1 FROM dbo.MD_CodeItem WITH (UPDLOCK,HOLDLOCK) WHERE GroupCode='WH_AREA' AND CodeValue=@Area AND ParentCodeID=CONCAT('WH_CODE_',@Wh) AND COALESCE(UseFlag,1)=1 AND COALESCE(Attribute2,'GRID')<>'OPEN';", conn, tx))
         {
             area.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
             area.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
-            prefix = area.ExecuteScalar() as string ?? throw new InvalidOperationException("Select a registered Area first.");
+            prefix = area.ExecuteScalar() as string ?? throw new InvalidOperationException("Select a Grid area. Open Storage does not use grid coordinates.");
         }
         if (!LocationMapNaming.ValidPrefix(prefix)) throw new InvalidOperationException("Area needs a two-letter location prefix.");
 
@@ -1100,8 +1119,9 @@ public sealed partial class WarehouseRepository
         {
             var id = LocationMapNaming.LocationNo(prefix, cell.Bay, cell.Aisle, floor);
             using var insert = new SqlCommand("""
-                INSERT dbo.MD_Location (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,LocationType,ActiveFlag,CreatedBy)
-                VALUES (@Id,@Id,@Wh,@Area,@Aisle,@Bay,@Floor,CASE WHEN UPPER(@Area)='FG_AREA' THEN 'FG' END,1,@Actor);
+                INSERT dbo.MD_Location (LocationID,LocationName,WhCode,AreaCode,Aisle,Bay,Slot,LocationType,ParentLocationID,ActiveFlag,CreatedBy)
+                VALUES (@Id,@Id,@Wh,@Area,@Aisle,@Bay,@Floor,CASE WHEN UPPER(@Area)='FG_AREA' THEN 'FG' END,
+                    (SELECT LocationID FROM dbo.MD_Location WHERE LocationID=@Parent AND WhCode=@Wh AND AreaCode=@Area AND LocationLevel=1 AND ActiveFlag=1),1,@Actor);
 
                 """, conn, tx);
             ColumnParams.Add(insert, "@Actor", "MD_Location.CreatedBy", _actor());
@@ -1109,6 +1129,7 @@ public sealed partial class WarehouseRepository
             insert.Parameters.Add("@Wh", SqlDbType.VarChar, 20).Value = whCode;
             insert.Parameters.Add("@Area", SqlDbType.VarChar, 20).Value = areaCode;
             insert.Parameters.Add("@Aisle", SqlDbType.VarChar, 5).Value = cell.Aisle;
+            insert.Parameters.Add("@Parent", SqlDbType.VarChar, 20).Value = $"{prefix}AREA";
             insert.Parameters.Add("@Bay", SqlDbType.VarChar, 5).Value = cell.Bay;
             insert.Parameters.Add("@Floor", SqlDbType.VarChar, 5).Value = floor;
             insert.ExecuteNonQuery();

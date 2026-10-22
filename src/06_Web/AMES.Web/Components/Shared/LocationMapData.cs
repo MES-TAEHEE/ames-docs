@@ -18,6 +18,8 @@ public sealed record LocationMapCell(
     decimal DefectQty = 0)
 {
     public bool IsFull => AMES.Data.Services.LocationCapacity.IsFull(Qty, Capacity);
+    public bool HasGridCoordinates => !string.IsNullOrWhiteSpace(Column) && Column != "-"
+        && !string.IsNullOrWhiteSpace(Row) && Row != "-";
 }
 
 public sealed record LocationMapStock(
@@ -35,4 +37,4 @@ public sealed record LocationMapStock(
     string ItemType = "",
     string ItemCategory = "");
 
-public sealed record LocationMapArea(string WarehouseCode, string WarehouseName, string AreaCode, string AreaName, string? Prefix);
+public sealed record LocationMapArea(string WarehouseCode, string WarehouseName, string AreaCode, string AreaName, string? Prefix, string StorageMode = "GRID");

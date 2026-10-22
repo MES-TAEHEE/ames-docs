@@ -1355,6 +1355,12 @@
         }
         try
         {
+            if (!IsSpareParts && !IsAdjustTab)
+            {
+                var today = (await Api.DatabaseTimeAsync()).Date;
+                _dateFrom = today.AddMonths(-1);
+                _dateTo = today.AddMonths(1);
+            }
             AdjustReasons = (await Api.CodeItemsAsync("INV_ADJUST_REASON"))
                 .Where(reason => reason.CodeValue?.ToUpperInvariant() is not ("DAMAGED" or "DEFECT" or "DEFECTIVE")).ToList();
             if (IsLineAdjust) _adjustLines = await Api.WhAdjustmentLinesAsync();

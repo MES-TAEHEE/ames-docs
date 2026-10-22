@@ -74,7 +74,7 @@
     private readonly IEnumerable<int> _pageSizeOptions=[25,50,100];
     private int _pageRows=25;
     private string _search="",_message="";
-    private DateTime? _from=DbClock.Today.AddMonths(-6),_to=DbClock.Today;
+    private DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1);
     protected override async Task OnInitializedAsync()=>await Reload();
     private async Task Reload()
     {
@@ -82,5 +82,5 @@
         try { _rows=await Task.Run(()=>Fg.ListShipments(_search,_from,_to)); _children.Clear(); _message=""; }
         catch(Exception ex) { Logger.LogError(ex,"Shipments load failed");_rows=[]; _message=L["Shipment.LoadError"]; }
     }
-    private async Task Clear() { _search=""; _from=DbClock.Today.AddMonths(-6); _to=DbClock.Today; await Reload(); }
+    private async Task Clear() { _search=""; _from=DbClock.Today.AddMonths(-1); _to=DbClock.Today.AddMonths(1); await Reload(); }
 }

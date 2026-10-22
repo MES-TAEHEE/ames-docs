@@ -105,18 +105,7 @@
     }
     @if(_defectLot is {} defectLot)
     {
-        <div class="ames-modal-bg"><div class="ames-modal" role="dialog" aria-modal="true" aria-label="@L["WH.Inventory.DefectTitle"]">
-            <div class="ames-modal-h">@L["WH.Inventory.DefectTitle"]</div>
-            <p>@defectLot.LotNo · @defectLot.PartNo · @UomFmt.QtyUnit(defectLot.Qty,defectLot.Unit)</p>
-            <p>@L["WH.Inventory.DefectWholeLotSummary"]</p>
-            <RadzenLabel Text="@L["WH.Inventory.DefectReason"]" Component="LotDefectReason" />
-            <RadzenTextArea Name="LotDefectReason" @bind-Value="_defectReason" MaxLength="500" Rows="3" Disabled="_rejecting" class="ames-rz-input" Style="width:100%" />
-            @if(!string.IsNullOrEmpty(_defectError)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_defectError</RadzenAlert>}
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@L["WH.Inventory.DefectAction"]" Icon="report_problem" Click="RejectLot" Disabled="_rejecting" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Cancel"]" Click="@(()=>_defectLot=null)" Disabled="_rejecting" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            </RadzenStack>
-        </div></div>
+        <InventoryDefectDialog @key="defectLot" Lot="defectLot" OnClose="CloseDefect" OnCompleted="DefectCompleted" />
     }
 </div>
 
@@ -127,10 +116,9 @@
     [Parameter] public string SearchId { get; set; } = "inventory-search";
     [Parameter] public bool AllowLotDefect {get;set;}
     [Parameter] public EventCallback InventoryChanged {get;set;}
-    bool _canReject,_rejecting;
+    bool _canReject;
     HashSet<string> _eligibleLots=new(StringComparer.OrdinalIgnoreCase);
     LocationMapStock? _defectLot;
-    string _defectReason="",_defectError="";
     protected override async Task OnInitializedAsync()
     {
         if(!AllowLotDefect)return;
@@ -143,26 +131,12 @@
         }
     }
     void OpenDefect(LocationMapStock lot)
-    { if(!_canReject||!_eligibleLots.Contains(lot.LotNo??""))return;_drawerOpen=false;_defectLot=lot;_defectReason="";_defectError=""; }
-    async Task RejectLot()
+    { if(!_canReject||!_eligibleLots.Contains(lot.LotNo??"")||lot.Qty<=0)return;_drawerOpen=false;_defectLot=lot; }
+    void CloseDefect()=>_defectLot=null;
+    async Task DefectCompleted(LocationMapStock lot)
     {
-        if(_rejecting||_defectLot is not {} lot)return;
-        _rejecting=true;_defectError="";
-        try
-        {
-            if(!await Permissions.RecheckApproveAsync(Auth,FinishedGoodsRepository.DefectPermissionHref))throw new InvalidOperationException("You do not have the Inventory Defect permission.");
-            var reason=FinishedGoodsRepository.ValidateDefectReason(_defectReason);
-            var quantity=FinishedGoodsRepository.ValidateDefectQuantity(lot.Qty,lot.Qty,Math.Clamp(UomFmt.Digits(lot.Unit)??3,0,3));
-            if(await Dialog.Confirm(L["WH.Inventory.DefectConfirmWholeLot",lot.LotNo??"",UomFmt.QtyUnit(quantity,lot.Unit)], L["WH.Inventory.DefectTitle"])!=true)return;
-            var user=(await Auth.GetAuthenticationStateAsync()).User;
-            var id=user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"";
-            await Task.Run(()=>FinishedGoodsRepo.MarkInventoryDefective(lot.LotNo!,lot.PartNo,lot.Qty,lot.LocationNo,quantity,reason,id,ActorCode.Of(user)));
-            _eligibleLots.Remove(lot.LotNo!);_defectLot=null;
-            await InventoryChanged.InvokeAsync();
-            await Dialog.Alert(L["WH.Inventory.DefectDoneWholeLot",lot.LotNo??""],L["WH.Inventory.DefectTitle"]);
-        }
-        catch(Exception ex){_defectError=ex.Message;}
-        finally{_rejecting=false;}
+        _eligibleLots.Remove(lot.LotNo!);_defectLot=null;
+        await InventoryChanged.InvokeAsync();
     }
 
     private sealed record SummaryRow(string PartNo, string PartName, string Unit, string ItemType, string ItemCategory, string VendorIds, string VendorNames, decimal Qty, decimal DefectQty, int LocationCount, int LotCount);

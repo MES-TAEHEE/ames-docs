@@ -97,8 +97,8 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _allowed=PermSvc.CanOpen("fg/shipment-plan");
         if(!_allowed){Nav.NavigateTo("/unauthorized",replace:true);return;}
-        _shipFrom=From?.Date??DbClock.Today;
-        _shipTo=To?.Date??DbClock.Today.AddDays(6);
+        _shipFrom=From?.Date??DbClock.Today.AddMonths(-1);
+        _shipTo=To?.Date??DbClock.Today.AddMonths(1);
         _search=Dcr??"";
         await Load();
     }

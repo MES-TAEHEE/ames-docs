@@ -1,0 +1,65 @@
+@inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
+@inject FinishedGoodsRepository FinishedGoodsRepo
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Auth
+@inject DialogService Dialog
+
+<div class="ames-modal-bg">
+    <div class="ames-modal" role="dialog" aria-modal="true" aria-label="@L["WH.Inventory.DefectTitle"]">
+        <div class="ames-modal-h">@L["WH.Inventory.DefectTitle"]</div>
+        <p>@Lot.LotNo · @Lot.PartNo · @UomFmt.QtyUnit(Lot.Qty, Lot.Unit)</p>
+        <p>@L["Col.Location"]: @Lot.LocationNo</p>
+        <p>@L["WH.Inventory.DefectWholeLotSummary"]</p>
+        <RadzenLabel Text="@L["WH.Inventory.DefectReason"]" Component="LotDefectReason" />
+        <RadzenTextArea Name="LotDefectReason" @bind-Value="_reason" MaxLength="500" Rows="3" Disabled="_saving" class="ames-rz-input" Style="width:100%" />
+        @if (!string.IsNullOrEmpty(_error)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_error</RadzenAlert> }
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            <RadzenButton Text="@L["WH.Inventory.DefectAction"]" Icon="report_problem" Click="RejectLot" Disabled="@(_saving || _committed)" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Cancel"]" Click="Cancel" Disabled="_saving" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public LocationMapStock Lot { get; set; } = default!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<LocationMapStock> OnCompleted { get; set; }
+    private string _reason = "", _error = "";
+    private bool _saving, _committed;
+
+    private Task Cancel() => _saving ? Task.CompletedTask : OnClose.InvokeAsync();
+
+    private async Task RejectLot()
+    {
+        if (_saving || _committed) return;
+        _saving = true;
+        _error = "";
+        try
+        {
+            if (!await Permissions.RecheckApproveAsync(Auth, FinishedGoodsRepository.DefectPermissionHref))
+                throw new InvalidOperationException("You do not have the Inventory Defect permission.");
+            var lot = Lot;
+            var reason = FinishedGoodsRepository.ValidateDefectReason(_reason);
+            var quantity = FinishedGoodsRepository.ValidateDefectQuantity(lot.Qty,lot.Qty, Math.Clamp(UomFmt.Digits(lot.Unit) ?? 3, 0, 3));
+            if (await Dialog.Confirm(L["WH.Inventory.DefectConfirmWholeLot", lot.LotNo ?? "", UomFmt.QtyUnit(quantity, lot.Unit)],
+                L["WH.Inventory.DefectTitle"], new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" }) != true) return;
+            var user = (await Auth.GetAuthenticationStateAsync()).User;
+            var id = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+            await Task.Run(() => FinishedGoodsRepo.MarkInventoryDefective(lot.LotNo!, lot.PartNo, lot.Qty, lot.LocationNo, quantity, reason, id, ActorCode.Of(user)));
+            _committed = true;
+            await OnCompleted.InvokeAsync(lot);
+            await Dialog.Alert(L["WH.Inventory.DefectDoneWholeLot", lot.LotNo ?? ""], L["WH.Inventory.DefectTitle"]);
+        }
+        catch (Exception ex)
+        {
+            if (_committed)
+            {
+                await OnClose.InvokeAsync();
+                await Dialog.Alert("The LOT was marked defective, but the view could not refresh. Refresh the page before continuing.", L["WH.Inventory.DefectTitle"]);
+            }
+            else _error = ex.Message;
+        }
+        finally { _saving = false; }
+    }
+}

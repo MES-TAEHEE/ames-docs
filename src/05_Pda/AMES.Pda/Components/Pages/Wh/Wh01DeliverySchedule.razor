@@ -7,7 +7,7 @@
 <div class="pda-shell wh wh08-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Text="&lt;" Click='@(() => Nav.NavigateTo("/wh"))' />
-        <span class="pda-tbar-brand">DELIVERIES</span>
+        <span class="pda-tbar-brand">SUPPLIER DELIVERIES</span>
         <RadzenButton class="wh08-refresh" Text="REFRESH" Click="Load" Disabled="@_busy" />
     </div>
     <div class="pda-bd wh08-body supplier-deliveries">
@@ -61,7 +61,7 @@
     bool _busy;
     protected override async Task OnInitializedAsync()
     {
-        try { _to = (await Api.DatabaseTimeAsync()).Date; _from = _to.Value.AddDays(-6); await Load(); }
+        try { var today = (await Api.DatabaseTimeAsync()).Date; _from = today.AddMonths(-1); _to = today.AddMonths(1); await Load(); }
         catch (Exception ex) { _error = ex.Message; }
     }
     async Task Load()

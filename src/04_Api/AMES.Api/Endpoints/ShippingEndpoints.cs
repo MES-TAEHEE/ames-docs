@@ -11,6 +11,16 @@ public static class ShippingEndpoints
     public static void MapShipping(this WebApplication app,AmesConnectionFactory factory)
     {
         var group=app.MapGroup("/api/fg/shipping").WithTags("Finished Goods");
+        group.MapGet("/orders",(HttpContext ctx)=>
+        {
+            if(ctx.GetSession() is null)return Results.Unauthorized();
+            try{return Results.Ok(new FinishedGoodsRepository(factory).ListShippingOrders(onlyOpen:true));}
+            catch(Exception ex)
+            {
+                app.Logger.LogError(ex,"FG open shipment orders load failed");
+                return Results.Json(new { Message="Shipment order service is unavailable. Check the API connection and retry." },statusCode:503);
+            }
+        });
         group.MapGet("/delivery",(HttpContext ctx,string barcode)=>
         {
             if(ctx.GetSession() is null)return Results.Unauthorized();

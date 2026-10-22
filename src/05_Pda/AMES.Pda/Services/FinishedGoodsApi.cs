@@ -19,6 +19,8 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
             ?? throw new InvalidOperationException("Invalid pallet return response.");
     }
 
+    public Task<List<AMES.Contracts.Dto.ShippingOrderDto>> OpenShippingOrdersAsync()
+        =>GetRequiredAsync<List<AMES.Contracts.Dto.ShippingOrderDto>>("/api/fg/shipping/orders","Shipment order service is unavailable.");
     public Task<AMES.Contracts.Dto.ShippingActionResult> ShippingDeliveryAsync(string barcode)
         =>GetRequiredAsync<AMES.Contracts.Dto.ShippingActionResult>($"/api/fg/shipping/delivery?barcode={Uri.EscapeDataString(barcode)}","Shipping service is unavailable.");
     public Task<AMES.Contracts.Dto.ShippingActionResult> LoadShippingDeliveryAsync(string delivery,string pallet)

@@ -60,7 +60,7 @@
         ? FinishedGoodsRepository.EstimateShippingPallets(_quantities.GetValueOrDefault(row.SoId),item.PalletQty,item.ToteFlag) : null;
     decimal EstimatedPallets=>_rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).Sum(r=>Pallets(r)??0);
     int UnestimatedParts=>_rows.Count(r=>_quantities.GetValueOrDefault(r.SoId)>0 && Pallets(r) is null);
-    DateTime? _from=DbClock.Today,_to=DbClock.Today.AddDays(6),_shipDate=DbClock.Today;
+    DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1),_shipDate=DbClock.Today;
     string _error="";bool _busy;
     protected override Task OnInitializedAsync()=>Load();
     async Task Load()
