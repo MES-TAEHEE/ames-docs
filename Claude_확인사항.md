@@ -134,7 +134,8 @@
     - 내용: 사이클(CYCLE) 주기 PM 은 지금 완료할 때 사람이 다음 예정일을 넣습니다(10-16 사용자 결정 — 샷 누적 연동 전까지, `PmRules`). 샷이 쌓이지 않아 금형 소진율·정비 한계 알림도 비어 있습니다.
     - 요청: InjAgent 가 샷을 기록할 때 `MNT_MoldShotCount` 도 올립니다. 그 뒤 이승욱이 사이클 PM 의 다음 회차를 샷 기준으로 자동 발행하도록 바꿉니다.
 
-### 1-2. 보류 (7)
+### 1-2. 보류 (8)
+- **POP 팔레트 적재(10-21) 의 범위 밖**: ① 재작업 스테이션의 수리 양품은 팔레트 스캔이 없어 `WH_Inventory` 에 넣지 않는다(INJ·IMG 확정만 싣는다) — 재작업에도 팔레트 스캔을 둘지. ② 현재 팔레트는 화면 메모리뿐이라 재로그인·재시작하면 다시 스캔한다 — 마지막으로 실은 팔레트를 DB(그 라인의 마지막 `PROD_CONFIRM` 거래)에서 되살릴지. ③ 팔레트 바코드는 `EOS-PLT-` 접두어로만 LOT 과 가르므로 다른 양식의 외부 팔레트는 받지 않는다. ④ LH/RH 쌍 팔레트의 `MD_Item.PalletQty` 는 "그 품번이 쌍 팔레트에 실리는 개수" 기준이다(10-21 결정 — 품번별로 센다) — 값이 있는 NEAFUC 쌍(D0111-PI010·D0121-PI010 32/32)이 "LH 32 + RH 32 = 64개" 인지 "16쌍" 인지 현장 적재 기준을 확인해 맞춰야 한다(값을 바꾸면 APS 계획 올림 단위도 같이 바뀐다).
 - **APS 금형 교체(MC) 한계**: "직전 금형"을 그 라인·그 날 처리 순서상 마지막 금형으로 보므로, 하루 안에 금형이 여러 번 바뀌면 그 사이 되돌림 MC 를 만들지 않습니다(같은 라인·같은 날 금형 그룹당 MC 최대 1개). 교체 자리가 없을 때 억지로 둔 MC 는 휴게·점유 구간과 겹칠 수 있습니다. 조정은 PP-LSB 에서 합니다.
 - **B2 IMG 라벨 교대 글자가 항상 C**(`Common/LabelPrinter.cs:27-32`): DAY/NIGHT 만 A/B 로 바꾸는데, 실제 교대 코드는 A/B/C 라 항상 C 가 찍힙니다. 교대 코드를 그대로 쓸지 답을 기다립니다.
 - **B11 InjAgent 시각을 DB 서버 기준으로**: POP 은 10-16(eb5ace39) 로그인 때 `DbClock` 을 DB 시각에 맞추도록 바뀌었습니다(호스트 시계는 유휴·로그·토스트에만 남음). InjAgent 는 아직 `DbClock.Configure` 를 하지 않아, 자동 LOT 채번(`InjLotRepository.cs:66`, `MachinePoller.cs:144` 에서 호출)의 LotNo 날짜 글자가 PC 시계 기준입니다.
@@ -346,6 +347,10 @@
    - 요청 ③ WH 화면이 하위 로케이션을 만들 때 상위를 고를 수 있게(지금은 상위 미지정으로 생기고 MD-018 수정 창에서 지정하거나 임시 상위 시드를 다시 돌리면 구역별로 들어감). 저장소 `UpdateLocation(…, setParent, parentLocationId)`·`InsertPrimaryLocation`·`InsertChildLocation`·상수 `MasterDataRepository.LocationLevelPrimary/Detail` 를 쓰면 됩니다.
    - 알림: MD-018 「등록」은 상위 콤보를 비우면 상위, 고르면 그 아래 하위(창고·구역은 상위를 따르고 통로·열·층이 비어 지도에서 `-` 칸)를 만듭니다. 그래서 `InventoryDefectTests.Location_creation_and_fake_inventory_status_are_not_shown`(10-19)의 `OpenCreate` 부재 검사를 「`MD.InsertLocation(`(격자 생성) 부재 + 두 등록 메서드 존재」로 바꿨습니다.
    - 알림: 10-22 두 DB 스키마 동일화 때 개발 DB 에 `migrate_audit_columns_last.sql` 을 적용해 `FG_CustomerReturn`(PartName)·`FG_Delivery` 의 감사 컬럼을 맨 뒤로 옮겼고(로컬도 `FG_Delivery`), 로컬 DB 에만 남아 있던 은퇴 PDA 프로시저 4개(`FG_PDA_OUTBOUND_COMPLETE`·`RETURN_RECEIVE`·`RETURN_SCAN`·`TRANSACTION_LIST`)를 지웠습니다. 스키마 파일 `MD_Location` 에 `LineID`·`PartNo`·`MinimumQty`·`IX_MD_Location_Line` 을 넣었습니다(라인 로케이션 마이그레이션은 컬럼이 있으면 건너뜀).
+
+8. **[요청] PDA FG 입고 — 팔레트 단위 위치 배정**(10-21 심재현)
+   - 내용: POP INJ/IMG 가 10-21 부터 OK 제품을 스캔한 팔레트에 실어 `WH_Inventory` 에 넣습니다(제품 행 `ParentLotNo` = `PalletNo` = 팔레트 번호, `LocationNo` NULL = 미배정, 머리 행 UnitType `PALLET`). 지금 PDA FG 입고(Fg01, `PdaFinishedGoodsSql` 입고)는 LOT 바코드 하나씩 위치를 배정하므로 팔레트 24개면 24번 찍어야 하고, PDA 출고는 위치가 빈 행이 하나라도 있으면 52006 으로 막힙니다.
+   - 요청: 팔레트 바코드(`EOS-PLT-…`) 하나를 찍으면 그 팔레트의 자식 행(Qty > 0, 위치 NULL) 전부에 같은 FG 위치를 배정(MOVE 거래 행마다)하는 경로를 Fg01 에 더해 주세요. 적재 규칙·테스트는 `AMES.Data.Services.PalletLoadRules`·`PalletLoadDbTests` 를 보면 됩니다.
 
 ### 2-2. 보류 (4)
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.

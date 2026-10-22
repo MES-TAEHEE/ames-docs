@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using AMES.Contracts.Dto;
 using AMES.Contracts.Enums;
 using AMES.Data.Connection;
@@ -132,6 +132,8 @@ public sealed class ImgLotRepository
             }
 
             var lot = InsertRawLot(conn, tx, lineId, finishedItem, coreId, coreLotCode, employeeNo, woId);
+            // 코어는 이 순간 팔레트에서 나와 완제품의 일부가 된다 — 사출 확정이 실은 코어 재고 행을 0 으로(없으면 아무것도 안 함)
+            PalletStockRepository.ConsumeCore(conn, tx, lot.LotId, coreLotCode, itemNo, employeeNo);
             tx.Commit();
             return (ImgCoreOutcome.Created, lot, null, finishedItem);
         }
@@ -334,12 +336,20 @@ public sealed class ImgLotRepository
     /// </summary>
     public (ImgConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
         string lotCode, string lineId, string operatorId, int? sessionId, string employeeNo)
-        => ConfirmByLotCode(lotCode, lineId, operatorId, sessionId, employeeNo, out _);
+        => ConfirmByLotCode(lotCode, lineId, operatorId, sessionId, employeeNo, null, out _);
 
+    public (ImgConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
+        string lotCode, string lineId, string operatorId, int? sessionId, string employeeNo, out BackflushResult backflush)
+        => ConfirmByLotCode(lotCode, lineId, operatorId, sessionId, employeeNo, null, out backflush);
+
+    /// <param name="palletNo">
+    /// POP 이 먼저 스캔한 팔레트(2026-10-21) — 있으면 같은 트랜잭션에서 <see cref="PalletStockRepository.Load"/> 로 WH_Inventory 에 싣고,
+    /// 팔레트가 없거나·못 쓰거나·혼적·가득 참이면 확정하지 않고 Pallet* 결과로 돌려준다. null 이면 종전대로 재고 없이 확정한다(테스트·다른 호출자).
+    /// </param>
     /// <param name="backflush">같은 트랜잭션에서 돈 BOM 자동 차감 결과 — 확정되지 않으면 <see cref="BackflushResult.None"/>.</param>
     public (ImgConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
         string lotCode, string lineId,
-        string operatorId, int? sessionId, string employeeNo, out BackflushResult backflush)
+        string operatorId, int? sessionId, string employeeNo, string? palletNo, out BackflushResult backflush)
     {
         backflush = BackflushResult.None;
         using var conn = _factory.OpenConnection();
@@ -366,6 +376,13 @@ public sealed class ImgLotRepository
                 case LotConfirmBlock.InRework:         tx.Rollback(); return (ImgConfirmOutcome.InRework,         0, itemNo, 0);
                 case LotConfirmBlock.Scrapped:         tx.Rollback(); return (ImgConfirmOutcome.Scrapped,         0, itemNo, 0);
                 case LotConfirmBlock.NgBlocked:        throw new InvalidOperationException("IMG lot cannot be NG_BLOCKED.");
+            }
+
+            // 팔레트 적재 — 못 실으면 확정도 하지 않는다(확정됐는데 팔레트에 없는 제품이 생기지 않게)
+            if (palletNo is not null)
+            {
+                var load = PalletStockRepository.Load(conn, tx, lotId, lotCode, itemNo, palletNo, operatorId, employeeNo);
+                if (load != PalletLoadOutcome.Ok) { tx.Rollback(); return (PalletOutcome(load), 0, itemNo, 0); }
             }
 
             // WO 가 없어도 생산은 막지 않는다(2026-10-01) — 열린 단계가 없으면 실적·LOT 의 WoID 는 NULL, 단계 반영 없음.
@@ -428,6 +445,14 @@ public sealed class ImgLotRepository
         }
         catch { tx.Rollback(); throw; }
     }
+
+    static ImgConfirmOutcome PalletOutcome(PalletLoadOutcome o) => o switch
+    {
+        PalletLoadOutcome.NotFound => ImgConfirmOutcome.PalletNotFound,
+        PalletLoadOutcome.Mixed    => ImgConfirmOutcome.PalletMixed,
+        PalletLoadOutcome.Full     => ImgConfirmOutcome.PalletFull,
+        _                          => ImgConfirmOutcome.PalletUnavailable,
+    };
 
     /// <summary>
     /// IMG-MAIN 좌측 패널: 스테이션 BOP 품번 ∪ 그 날 실적/일정이 있는 품번의 지정일 현황.
