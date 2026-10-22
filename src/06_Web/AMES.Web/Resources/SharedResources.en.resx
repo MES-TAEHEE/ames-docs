@@ -2097,23 +2097,11 @@
   <data name="PP.Oee.Lbl.Target" xml:space="preserve">
     <value>Target</value>
   </data>
-  <data name="PP.Oee.Btn.Compute" xml:space="preserve">
-    <value>▶ Compute</value>
-  </data>
-  <data name="PP.Oee.Btn.SaveSnapshot" xml:space="preserve">
-    <value>💾 Save Snapshot</value>
-  </data>
   <data name="PP.Oee.Tab.Trend" xml:space="preserve">
     <value>📈 Trend</value>
   </data>
   <data name="PP.Oee.Tab.Log" xml:space="preserve">
     <value>📋 State Log</value>
-  </data>
-  <data name="PP.Oee.Result.Above" xml:space="preserve">
-    <value>▲ Above Target</value>
-  </data>
-  <data name="PP.Oee.Result.Below" xml:space="preserve">
-    <value>▼ Below Target ({0}%)</value>
   </data>
   <data name="PP.Oee.Trend.NoSnap" xml:space="preserve">
     <value>No snapshots saved. Calculate and save snapshots to accumulate records.</value>
@@ -2142,20 +2130,8 @@
   <data name="PP.Oee.Snap.Col.SavedAt" xml:space="preserve">
     <value>Saved At</value>
   </data>
-  <data name="PP.Oee.Err.NoLine" xml:space="preserve">
-    <value>Please select a line.</value>
-  </data>
   <data name="PP.Oee.Err.DateRange" xml:space="preserve">
     <value>Start date must be before end date.</value>
-  </data>
-  <data name="PP.Oee.Err.Compute" xml:space="preserve">
-    <value>Calculation error: {0}</value>
-  </data>
-  <data name="PP.Oee.Err.Save" xml:space="preserve">
-    <value>Save error: {0}</value>
-  </data>
-  <data name="PP.Oee.Ok.Snapshot" xml:space="preserve">
-    <value>Snapshot saved.</value>
   </data>
   <data name="PP.PlanConfirm.Title" xml:space="preserve">
     <value>Plan Confirm</value>
@@ -5052,18 +5028,6 @@
   <data name="PP.Oee.Tab.Snapshots" xml:space="preserve">
     <value>📋 Snapshots</value>
   </data>
-  <data name="PP.Oee.Calc.Title" xml:space="preserve">
-    <value>Compute OEE · from state log + results</value>
-  </data>
-  <data name="PP.Oee.Calc.Note" xml:space="preserve">
-    <value>Performance P is assumed 100% when no BOP standard cycle exists</value>
-  </data>
-  <data name="PP.Oee.Calc.Assumed" xml:space="preserve">
-    <value>(P assumed)</value>
-  </data>
-  <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
-    <value>No state log in this window</value>
-  </data>
   <data name="PP.Oee.NoProduction" xml:space="preserve">
     <value>No production — not measured</value>
   </data>
@@ -5072,6 +5036,12 @@
   </data>
   <data name="PP.Oee.Btn.FillNow" xml:space="preserve">
     <value>▶ Fill now</value>
+  </data>
+  <data name="PP.Oee.Lbl.FillDate" xml:space="preserve">
+    <value>Base date</value>
+  </data>
+  <data name="PP.Oee.Lbl.FillDays" xml:space="preserve">
+    <value>Days</value>
   </data>
   <data name="PP.Oee.Auto.Last" xml:space="preserve">
     <value>Auto fill last {0} · {1} rows</value>
@@ -5087,9 +5057,6 @@
   </data>
   <data name="PP.Oee.Err.Fill" xml:space="preserve">
     <value>Fill failed: {0}</value>
-  </data>
-  <data name="PP.Oee.Calc.AutoNote" xml:space="preserve">
-    <value>Yesterday's and today's shift snapshots are recomputed periodically by the agent job, which overwrites a saved value with the same key</value>
   </data>
   <data name="PP.Oee.Log.Timeline" xml:space="preserve">
     <value>Minute-level state timeline</value>
@@ -5117,9 +5084,6 @@
   </data>
   <data name="PP.Oee.Snap.Col.Good" xml:space="preserve">
     <value>Good</value>
-  </data>
-  <data name="PP.Oee.Confirm.DeleteSnap" xml:space="preserve">
-    <value>Delete this snapshot?</value>
   </data>
   <data name="PP.Downtime.Kpi.Events" xml:space="preserve">
     <value>Events</value>

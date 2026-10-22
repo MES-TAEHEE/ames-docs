@@ -2094,23 +2094,11 @@
   <data name="PP.Oee.Lbl.Target" xml:space="preserve">
     <value>Objetivo</value>
   </data>
-  <data name="PP.Oee.Btn.Compute" xml:space="preserve">
-    <value>▶ Calcular</value>
-  </data>
-  <data name="PP.Oee.Btn.SaveSnapshot" xml:space="preserve">
-    <value>💾 Guardar Instantánea</value>
-  </data>
   <data name="PP.Oee.Tab.Trend" xml:space="preserve">
     <value>📈 Tendencia</value>
   </data>
   <data name="PP.Oee.Tab.Log" xml:space="preserve">
     <value>📋 Registro de Estado</value>
-  </data>
-  <data name="PP.Oee.Result.Above" xml:space="preserve">
-    <value>▲ Sobre Objetivo</value>
-  </data>
-  <data name="PP.Oee.Result.Below" xml:space="preserve">
-    <value>▼ Bajo Objetivo ({0}%)</value>
   </data>
   <data name="PP.Oee.Trend.NoSnap" xml:space="preserve">
     <value>Sin instantáneas guardadas. Calcule y guarde instantáneas para acumular registros.</value>
@@ -2139,20 +2127,8 @@
   <data name="PP.Oee.Snap.Col.SavedAt" xml:space="preserve">
     <value>Guardado En</value>
   </data>
-  <data name="PP.Oee.Err.NoLine" xml:space="preserve">
-    <value>Seleccione una línea.</value>
-  </data>
   <data name="PP.Oee.Err.DateRange" xml:space="preserve">
     <value>La fecha de inicio debe ser anterior a la de fin.</value>
-  </data>
-  <data name="PP.Oee.Err.Compute" xml:space="preserve">
-    <value>Error de cálculo: {0}</value>
-  </data>
-  <data name="PP.Oee.Err.Save" xml:space="preserve">
-    <value>Error al guardar: {0}</value>
-  </data>
-  <data name="PP.Oee.Ok.Snapshot" xml:space="preserve">
-    <value>Instantánea guardada.</value>
   </data>
   <data name="PP.PlanConfirm.Title" xml:space="preserve">
     <value>Confirmar Plan</value>
@@ -5025,18 +5001,6 @@
   <data name="PP.Oee.Tab.Snapshots" xml:space="preserve">
     <value>📋 Instantáneas</value>
   </data>
-  <data name="PP.Oee.Calc.Title" xml:space="preserve">
-    <value>Calcular OEE · registro de estado + resultados</value>
-  </data>
-  <data name="PP.Oee.Calc.Note" xml:space="preserve">
-    <value>El rendimiento P se asume 100% si no existe ciclo estándar BOP</value>
-  </data>
-  <data name="PP.Oee.Calc.Assumed" xml:space="preserve">
-    <value>(P asumido)</value>
-  </data>
-  <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
-    <value>Sin registro de estado en este intervalo</value>
-  </data>
   <data name="PP.Oee.NoProduction" xml:space="preserve">
     <value>Sin producción — no medido</value>
   </data>
@@ -5045,6 +5009,12 @@
   </data>
   <data name="PP.Oee.Btn.FillNow" xml:space="preserve">
     <value>▶ Calcular ahora</value>
+  </data>
+  <data name="PP.Oee.Lbl.FillDate" xml:space="preserve">
+    <value>Fecha base</value>
+  </data>
+  <data name="PP.Oee.Lbl.FillDays" xml:space="preserve">
+    <value>Días</value>
   </data>
   <data name="PP.Oee.Auto.Last" xml:space="preserve">
     <value>Cálculo automático último {0} · {1} filas</value>
@@ -5060,9 +5030,6 @@
   </data>
   <data name="PP.Oee.Err.Fill" xml:space="preserve">
     <value>Error al calcular: {0}</value>
-  </data>
-  <data name="PP.Oee.Calc.AutoNote" xml:space="preserve">
-    <value>Las instantáneas por turno de ayer y hoy se recalculan periódicamente por el trabajo del agente, que sobrescribe el valor guardado con la misma clave</value>
   </data>
   <data name="PP.Oee.Log.Timeline" xml:space="preserve">
     <value>Línea de tiempo por minuto</value>
@@ -5090,9 +5057,6 @@
   </data>
   <data name="PP.Oee.Snap.Col.Good" xml:space="preserve">
     <value>Buenos</value>
-  </data>
-  <data name="PP.Oee.Confirm.DeleteSnap" xml:space="preserve">
-    <value>¿Eliminar esta instantánea?</value>
   </data>
   <data name="PP.Downtime.Kpi.Events" xml:space="preserve">
     <value>Eventos</value>
