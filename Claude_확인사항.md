@@ -386,7 +386,7 @@
 
 ### 3-2. 보류 (4)
 - **B7 MNT-004 금형 정비 등록**(`MoldRepository.cs:53·81` StartChange·CompleteChange, 호출처 없음): 정비 유형·작업자·샷 리셋·정비일을 남길 곳이 없습니다. 금형 교체를 기록하던 메서드도 옛 POP 화면을 지우면서 끊겼습니다 — 그런데 `MoldRepository.cs:8`·`MntRepository.cs:419` 주석은 여전히 "POP 금형 교체가 기록" 한다고 씁니다.
-- **B8 PP-ODM·PP-OEE 라인 상태 기록**: `PP_LineStateLog` 에 쓰는 곳은 `tools/seed_pp_demo` 뿐입니다. 이 테이블을 원천으로 쓰기로 정했고(10-16, 심재현과 합의) 기록 방식은 심재현과 진행 예정입니다(아래 테이블 2).
+- **B8 PP-ODM·PP-OEE 라인 상태 기록**: `PP_LineStateLog` 에 쓰는 곳은 `tools/seed_pp_demo` 뿐입니다. 이 테이블을 원천으로 쓰기로 정했고(10-16, 심재현과 합의) 기록 방식은 심재현과 진행 예정입니다(아래 테이블 2). 10-22 부터 PP-OEE 스냅샷은 에이전트 작업 `[AMES] Line OEE Fill`(5분, `dbo.SP_PP_LineOEE_Fill`)이 이 테이블에서 자동으로 계산하므로, 상태 로그가 들어오는 순간부터 PP-OEE 가 채워집니다 — 그 전까지 작업은 OK·0건으로만 돕니다. 개발서버에는 프로시저만 적용했고 **작업 등록은 그 PC 에서 `dist\setup-line-oee-job.ps1`(sysadmin) 실행이 필요**합니다.
 - **개발 완료 시 정리**: 운영 admin 시드 차단, appsettings 비밀번호·AllowedHosts·접속문자열 환경변수(Web).
 - **품목 추가 불출율·MRP 여유율 반영 방식**(10-20 — 고객 요구 10-14 "BOM 은 정량, 원단 불출 +10%·MRP 품목별 여유율"): `MD_Item.IssueAddPct`·`MrpAllowPct`(%, NULL = 0)는 MD-003(화면·엑셀)에서 저장·표시만 하고 **작업지시 불출·BOM 자동 차감·MRP(PP-005) 계산은 아직 읽지 않습니다**. 정할 것: ① 자동 차감(backflush)을 정량으로 할지 불출율을 포함할지 ② MRP 소요에 불출율도 더할지(여유율만 쓸지) ③ 원단 등 품목 분류별 기본값을 둘지 품목마다만 둘지 ④ BOM 불량률(`ScrapPct`, 지금 전부 0)과의 관계. 결정 뒤 구현은 MRP·백플러시 담당(심재현)과 함께합니다. 같은 날 넣은 조달형태 `MD_Item.ProcureType`(내작·매입·유상사급·무상사급)도 저장·표시만 하고 MRP·구매·SAP 에서 읽지 않습니다.
 

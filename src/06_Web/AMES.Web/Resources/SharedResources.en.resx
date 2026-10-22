@@ -5064,6 +5064,27 @@
   <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
     <value>No state log in this window</value>
   </data>
+  <data name="PP.Oee.Btn.FillNow" xml:space="preserve">
+    <value>▶ Fill now</value>
+  </data>
+  <data name="PP.Oee.Auto.Last" xml:space="preserve">
+    <value>Auto fill last {0} · {1} rows</value>
+  </data>
+  <data name="PP.Oee.Auto.None" xml:space="preserve">
+    <value>No auto fill recorded yet — check the agent job [AMES] Line OEE Fill</value>
+  </data>
+  <data name="PP.Oee.Auto.Error" xml:space="preserve">
+    <value>Auto fill error: {0}</value>
+  </data>
+  <data name="PP.Oee.Ok.Fill" xml:space="preserve">
+    <value>Fill done — {0} new · {1} updated · {2} unchanged</value>
+  </data>
+  <data name="PP.Oee.Err.Fill" xml:space="preserve">
+    <value>Fill failed: {0}</value>
+  </data>
+  <data name="PP.Oee.Calc.AutoNote" xml:space="preserve">
+    <value>Yesterday's and today's shift snapshots are recomputed periodically by the agent job, which overwrites a saved value with the same key</value>
+  </data>
   <data name="PP.Oee.Log.Timeline" xml:space="preserve">
     <value>Minute-level state timeline</value>
   </data>

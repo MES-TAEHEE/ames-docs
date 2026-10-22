@@ -76,9 +76,16 @@
             <RadzenNumeric TValue="decimal" Name="NumericTarget" @bind-Value="_fTarget" Min="0" Max="100" InputSize="InputSize.Small" class="ames-rz-input" Style="width:90px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.Oee.Btn.FillNow"]" Icon="autorenew" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@FillNow" Disabled="@_filling" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["PP.Oee.ByLine.Hint"]</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;display:flex;gap:12px;flex-wrap:wrap;">
+        <span>@L["PP.Oee.ByLine.Hint"]</span>
+        <span style="@(FillError ? "color:var(--ames-tx-red-400);" : "")">@FillText</span>
+    </div>
     <RadzenDataGrid TItem="LineAgg" Data="@_rows" AllowPaging="false" AllowSorting="true"
                     RowClick="@(e => { if (e.Data is { } d) Select(d.LineId); })" RowRender="@LineRowRender"
                     EmptyText="@L["PP.Oee.ByLine.NoData"]" Class="ames-rz-grid pp-oee-lines">
@@ -302,7 +309,7 @@
         }
         else if (_tab == "calc")
         {
-            <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-bottom:8px;">@L["PP.Oee.Calc.Title"] · @L["PP.Oee.Calc.Note"]</div>
+            <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-bottom:8px;">@L["PP.Oee.Calc.Title"] · @L["PP.Oee.Calc.Note"] · @L["PP.Oee.Calc.AutoNote"]</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
                 <input type="date" class="ames-input" style="width:148px;padding:3px 7px;"
                        value="@_calcDate.ToString("yyyy-MM-dd")"
@@ -387,6 +394,10 @@
     string?  _calcShift;
     OeeSnapshotDto? _result;
 
+    // 자동 집계(에이전트 작업 "[AMES] Line OEE Fill" · 「지금 집계」) 마지막 기록 — SYS_InterfaceMonitor OEEFILL
+    OeeRepository.FillMonitor? _fill;
+    bool _filling;
+
     bool   _canEdit;
     string _actor = "web";
     string _err = "", _msg = "";
@@ -439,6 +450,7 @@
         try { _lineRefs   = Repo.ListLineRefs(); }               catch { }
         try { _lineOrder  = MD.LineProcessOrder(); }             catch { }
         try { _shiftItems = MD.ListCodeItems("WORK_SHIFT"); }    catch { }
+        try { _fill       = Repo.GetFillMonitor(); }             catch { }
 
         // 기본 기간 = 스냅샷이 있는 마지막 7일 (데이터가 오래됐어도 빈 화면이 되지 않도록)
         try
@@ -588,6 +600,36 @@
             ApplyFilter();
         }
         catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Save"].Value, ex.Message); }
+    }
+
+    // ── 자동 집계 ────────────────────────────────────────────────────────
+    string FillText => _fill?.LastRunTs is { } ts
+        ? string.Format(L["PP.Oee.Auto.Last"].Value, ts.ToString(DateFmt.DateTime), _fill.LastCount ?? 0)
+          + (FillError ? " · " + string.Format(L["PP.Oee.Auto.Error"].Value, _fill.LastError) : "")
+        : FillError ? string.Format(L["PP.Oee.Auto.Error"].Value, _fill!.LastError)
+        : L["PP.Oee.Auto.None"].Value;
+    bool FillError => _fill?.Status == "ERROR";
+
+    // 에이전트가 돌리는 것과 같은 프로시저를 그 자리에서 — 어제·오늘(DaysBack 1). DB 호출은 회로 밖에서(처리 중 재클릭 방지 규칙)
+    async Task FillNow()
+    {
+        if (!_canEdit || _filling) return;
+        _filling = true; _err = "";
+        try
+        {
+            var actor = _actor;
+            var r = await Task.Run(() => Repo.RunFill(null, 1, actor));
+            Audit.Log("PP-OEE", "FILL", "PP_LineOEE", null, null, r);
+            ShowMsg(string.Format(L["PP.Oee.Ok.Fill"].Value, r.Inserted, r.Updated, r.Unchanged));
+            if (_fTo < DbClock.Today) _fTo = DbClock.Today;   // 집계된 오늘 행이 보이게
+            ApplyFilter();
+        }
+        catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Fill"].Value, ex.Message); }
+        finally
+        {
+            _filling = false;
+            try { _fill = Repo.GetFillMonitor(); } catch { }
+        }
     }
 
     async Task DeleteSnap(int id)

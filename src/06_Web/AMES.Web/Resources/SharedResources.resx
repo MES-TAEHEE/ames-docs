@@ -5064,6 +5064,27 @@
   <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
     <value>해당 구간에 상태 로그가 없습니다</value>
   </data>
+  <data name="PP.Oee.Btn.FillNow" xml:space="preserve">
+    <value>▶ 지금 집계</value>
+  </data>
+  <data name="PP.Oee.Auto.Last" xml:space="preserve">
+    <value>자동 집계 마지막 {0} · {1}건</value>
+  </data>
+  <data name="PP.Oee.Auto.None" xml:space="preserve">
+    <value>자동 집계 기록 없음 — 에이전트 작업 [AMES] Line OEE Fill 을 확인하세요</value>
+  </data>
+  <data name="PP.Oee.Auto.Error" xml:space="preserve">
+    <value>자동 집계 오류: {0}</value>
+  </data>
+  <data name="PP.Oee.Ok.Fill" xml:space="preserve">
+    <value>집계 완료 — 등록 {0} · 갱신 {1} · 변경 없음 {2}</value>
+  </data>
+  <data name="PP.Oee.Err.Fill" xml:space="preserve">
+    <value>집계 실패: {0}</value>
+  </data>
+  <data name="PP.Oee.Calc.AutoNote" xml:space="preserve">
+    <value>어제·오늘 교대 스냅샷은 에이전트 작업이 주기적으로 다시 계산해 같은 키의 저장값을 덮어씁니다</value>
+  </data>
   <data name="PP.Oee.Log.Timeline" xml:space="preserve">
     <value>분단위 상태 타임라인</value>
   </data>

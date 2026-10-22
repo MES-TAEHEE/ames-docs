@@ -205,6 +205,41 @@ public sealed class OeeRepository
         cmd.ExecuteNonQuery();
     }
 
+    // ── 자동 집계 (dbo.SP_PP_LineOEE_Fill — 에이전트 작업 "[AMES] Line OEE Fill" 이 5분마다 도는 것과 같은 프로시저) ──
+    public sealed record FillResult(DateTime BaseDate, int DaysBack, int Targets, int Computed, int Inserted, int Updated, int Unchanged);
+    public sealed record FillMonitor(string? Status, DateTime? LastRunTs, int? LastCount, string? LastError);
+
+    /// <summary>
+    /// 프로시저를 그 자리에서 돌린다(화면 「지금 집계」 — 에이전트가 없는 서버·확인용). date null = DB 오늘, daysBack 0~31.
+    /// 계산 규칙은 <see cref="ComputeOee"/> 와 같고(정본 테스트 OeeFillProcTests) 값이 바뀐 행만 덮어쓴다 — 프로시저는 dist/migrate_pp_lineoee_fill.sql.
+    /// </summary>
+    public FillResult RunFill(DateTime? date, int daysBack, string? actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand("dbo.SP_PP_LineOEE_Fill", conn) { CommandType = CommandType.StoredProcedure, CommandTimeout = 300 };
+        cmd.Parameters.Add("@Date",     SqlDbType.Date).Value        = (object?)date?.Date ?? DBNull.Value;
+        cmd.Parameters.Add("@DaysBack", SqlDbType.Int).Value         = daysBack;
+        cmd.Parameters.Add("@Actor",    SqlDbType.VarChar, 20).Value = string.IsNullOrWhiteSpace(actor) ? "web" : actor;
+        using var r = cmd.ExecuteReader();
+        if (!r.Read()) throw new InvalidOperationException("SP_PP_LineOEE_Fill returned no summary row.");
+        return new FillResult((DateTime)r["BaseDate"], Convert.ToInt32(r["DaysBack"]), Convert.ToInt32(r["Targets"]),
+                              Convert.ToInt32(r["Computed"]), Convert.ToInt32(r["Inserted"]), Convert.ToInt32(r["Updated"]),
+                              Convert.ToInt32(r["Unchanged"]));
+    }
+
+    /// <summary>마지막 자동 집계 기록(SYS_InterfaceMonitor 의 OEEFILL 행 — 에이전트·화면 실행 공통) — 한 번도 돌지 않았으면 null.</summary>
+    public FillMonitor? GetFillMonitor()
+    {
+        const string sql = """
+            SELECT TOP (1) ConnStatus, LastSyncTS, LastRecordCount, LastErrorMsg
+            FROM   dbo.SYS_InterfaceMonitor
+            WHERE  InterfaceCode = 'OEEFILL'
+            ORDER  BY InterfaceMonitorID;
+            """;
+        return Query(sql, r => new FillMonitor(r["ConnStatus"] as string, r["LastSyncTS"] as DateTime?,
+                                               r["LastRecordCount"] as int?, r["LastErrorMsg"] as string)).FirstOrDefault();
+    }
+
     // ── Downtime reasons (손실 분할용) ────────────────────────────────────
     public List<DowntimeByReason> GetDowntimeByReason(DateTime from, DateTime to)
     {
