@@ -61,7 +61,7 @@
     bool _busy;
     protected override async Task OnInitializedAsync()
     {
-        try { _to = (await Api.DatabaseTimeAsync()).Date; _from = _to.Value.AddDays(-6); await Load(); }
+        try { var today = (await Api.DatabaseTimeAsync()).Date; _from = today.AddMonths(-1); _to = today.AddMonths(1); await Load(); }
         catch (Exception ex) { _error = ex.Message; }
     }
     async Task Load()

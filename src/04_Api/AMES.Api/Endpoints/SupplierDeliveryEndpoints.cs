@@ -12,8 +12,8 @@ public static class SupplierDeliveryEndpoints
         group.MapGet("/inbound/deliveries", (HttpContext context, DateTime? from, DateTime? to, string? search, string? vendor) =>
         {
             if (context.GetSession() is null) return Results.Unauthorized();
-            from ??= DbClock.Today.AddDays(-6);
-            to ??= DbClock.Today;
+            from ??= DbClock.Today.AddMonths(-1);
+            to ??= DbClock.Today.AddMonths(1);
             if (from > to || to.Value.Date == DateTime.MaxValue.Date || (to.Value - from.Value).TotalDays > 366 || search?.Length > 120 || vendor?.Length > 50)
                 return Results.BadRequest(new { Message = "Select a valid delivery date range (up to 366 days) and search text." });
             try

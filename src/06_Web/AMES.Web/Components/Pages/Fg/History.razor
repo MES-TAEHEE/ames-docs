@@ -32,10 +32,10 @@
     </RadzenDataGrid>
 </div>
 @code {
-    List<AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow> _rows = new(); readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 }; int _pageRows = 25; string _search = "", _message = ""; string? _eventType; DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today; string[] EventTypes = ["PUT AWAY", "SHIPPED", "RETURN"];
+    List<AMES.Data.Repositories.FinishedGoodsRepository.HistoryRow> _rows = new(); readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 }; int _pageRows = 25; string _search = "", _message = ""; string? _eventType; DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today.AddMonths(1); string[] EventTypes = ["PUT AWAY", "SHIPPED", "RETURN"];
     protected override void OnInitialized() => Reload();
     void Reload() { if (_from > _to) { _message = L["Err.DateRange"]; return; } try { _rows = Fg.ListHistory(_search, _eventType, _from, _to); _message = ""; } catch (Exception ex) { _rows = new(); _message = ex.Message; } }
-    void Clear() { _search = ""; _eventType = null; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today; Reload(); }
+    void Clear() { _search = ""; _eventType = null; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today.AddMonths(1); Reload(); }
     int Count(string type) => _rows.Count(x => x.EventType == type);
     static string EventClass(string type) => type switch { "PUT AWAY" => "ok", "SHIPPED" => "ok", "RETURN" => "bad", _ => "mute" };
 }

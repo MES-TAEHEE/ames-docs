@@ -450,8 +450,8 @@
                 throw new HttpRequestException("Simulated warehouse transaction API failure.");
 
             _databaseToday = (await Api.DatabaseTimeAsync()).Date;
-            _dateFrom ??= _databaseToday.AddDays(-30);
-            _dateTo ??= _databaseToday;
+            _dateFrom ??= IsSpareParts ? _databaseToday.AddDays(-30) : _databaseToday.AddMonths(-1);
+            _dateTo ??= IsSpareParts ? _databaseToday : _databaseToday.AddMonths(1);
 
             if (DateFrom.HasValue && DateTo.HasValue && DateFrom.Value > DateTo.Value)
             {

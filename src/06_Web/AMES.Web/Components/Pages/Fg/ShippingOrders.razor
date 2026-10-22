@@ -101,7 +101,7 @@
     string _createdError="";
     ShippingDeliveryDto? _printDelivery;
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
-    DateTime? _from=DbClock.Today,_to=DbClock.Today.AddDays(6);
+    DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1);
     bool _canEdit,_canPlan,_creating,_createBusy,_deliveryModal,_busy,_allowed;
     string _actor="",_message="",_deliveryError="";
     protected override async Task OnInitializedAsync()
