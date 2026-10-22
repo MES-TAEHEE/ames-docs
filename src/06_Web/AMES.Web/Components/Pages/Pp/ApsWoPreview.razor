@@ -790,10 +790,11 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
 
     string ReasonText(PpRepository.ApsRejectedLine rj) => rj.Reason switch
     {
-        PpRepository.RejectNoMold   => L["PP.Aps.Wo.Reject.NoMold"].Value,
-        PpRepository.RejectNoUph    => L["PP.Aps.Wo.Reject.NoUph"].Value,
-        PpRepository.RejectNoParent => L["PP.Aps.Wo.Reject.NoParent"].Value,
-        PpRepository.RejectNoCore   => string.Format(L["PP.Aps.Wo.Reject.NoCore"].Value, rj.Detail ?? rj.ItemNo),
-        _                           => rj.Reason,
+        PpRepository.RejectNoMold      => L["PP.Aps.Wo.Reject.NoMold"].Value,
+        PpRepository.RejectNoUph       => L["PP.Aps.Wo.Reject.NoUph"].Value,
+        PpRepository.RejectNoParent    => L["PP.Aps.Wo.Reject.NoParent"].Value,
+        PpRepository.RejectNoCore      => string.Format(L["PP.Aps.Wo.Reject.NoCore"].Value, rj.Detail ?? rj.ItemNo),
+        PpRepository.RejectNoLotPrefix => L["PP.Aps.Wo.Reject.NoLotPrefix"].Value,
+        _                              => rj.Reason,
     };
 }

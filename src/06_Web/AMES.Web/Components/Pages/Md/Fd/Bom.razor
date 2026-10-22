@@ -64,6 +64,8 @@
                     @if (_canEdit) {
                         <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenVersionCreate" class="ames-rz-btn" />
                     }
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem" Wrap="FlexWrap.Wrap" Style="width:100%;" class="bom-toolbar">
                     <RadzenButton Text="@L["Excel.Download"]" Icon="download" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ExcelDownload" title="@L["Excel.Download.Hint"]" class="ames-rz-btn" />
                     @if (_canEdit)
                     {
@@ -354,7 +356,6 @@
     readonly HashSet<string>                 _explodedIds  = new();
     readonly HashSet<string>                 _upperIds     = new();
     List<MasterDataRepository.ItemRow>       _itemList = new();
-    List<MasterDataRepository.UomRow>        _uomList  = new();
     MasterDataRepository.BomVersionRow?      _selVer;
     MasterDataRepository.BomKpiRow           _bomKpi = new(0, 0);
     List<MasterDataRepository.CodeItemRow>   _itemTypeItems = new();
@@ -380,7 +381,6 @@
 
     private IEnumerable<DropDownItem> ItemOptions => _itemList.Select(i => new DropDownItem { Value = i.ItemNo, Text = $"[{i.ItemNo}] {i.ItemName}" });
     private IEnumerable<DropDownItem> ItemTypeOptions => _itemTypeItems.Where(t => t.UseFlag).Select(t => new DropDownItem { Value = t.CodeValue ?? "", Text = $"[{t.CodeValue}] {MasterDataRepository.LocalName(t)}" });
-    private IEnumerable<DropDownItem> UomOptions => _uomList.Where(u => u.ActiveFlag).Select(u => new DropDownItem { Value = u.UOMCode ?? "", Text = u.UOMCode + (string.IsNullOrEmpty(u.UOMName) ? "" : $"  ({u.UOMName})") });
     // 상태 값·이름은 공통코드 BOM_STATUS (DRAFT·PENDING·APPROVED·REJECTED·EXPIRED)
     private List<DropDownItem> StatusFilterOptions =>
         new List<DropDownItem> { new() { Value = "", Text = L["Filter.All"].Value } }
@@ -401,7 +401,6 @@
         _canEdit = PermSvc.CanEdit("md/fd/bom");
         _canApprove = PermSvc.CanApprove("md/fd/bom");
         try { _itemList = MD.ListItems(); } catch { }
-        try { _uomList  = MD.ListUoms();  } catch { }
         try { _itemTypeItems = MD.ListCodeItems("ITEM_TYPE"); } catch { }
         try { _statusItems   = MD.ListCodeItems("BOM_STATUS"); } catch { }
         LoadVersions();
@@ -593,7 +592,7 @@
         _          => ""
     };
 
-    const int VerPageSize = 16;   // 좌측 버전 목록 — 16행 고정, 페이지 크기 선택기 없음
+    const int VerPageSize = 15;   // 좌측 버전 목록 — 15행 고정, 페이지 크기 선택기 없음
     const int NoteMax = 120, ChangeReasonMax = 200;   // MD_Bom.Note nvarchar(120) · MD_BomVersion.ChangeReason nvarchar(200)
     RadzenDataGrid<MasterDataRepository.BomVersionRow>? _verGrid;
     RadzenDataGrid<MasterDataRepository.BomRow>?        _lineGrid;
@@ -891,21 +890,17 @@
             CompItemNo   = line.CompItemNo   ?? "",
             BomLevel     = line.BOMLevel     ?? 1,
             QtyPer       = line.QtyPer       ?? 1,
-            Uom          = line.UOM          ?? "EA",
+            Uom          = line.UOM          ?? "",
             ScrapPct     = line.ScrapPct     ?? 0,
             Position     = line.Position     ?? 10,
             Note         = line.Note         ?? "",
             ActiveFlag   = line.ActiveFlag,
         };
-        _flOrigComp = _fl.CompItemNo; _flOrigUom = _fl.Uom;
-        try { _flUomInUse = MD.ItemUomInUse(_fl.CompItemNo); } catch { _flUomInUse = false; }
         _lineConfirmDelete = false; _modalErr = ""; _modal = "line-edit";
     }
 
-    // 구성품에 재고·실적이 있으면 단위를 바꿀 수 없다(10-20) — 구성품을 다른 품번으로 바꾼 동안만 풀린다. 저장소도 거부한다
-    string _flOrigComp = "", _flOrigUom = "";
-    bool   _flUomInUse;
-    bool UomLocked => _modal == "line-edit" && _flUomInUse && string.Equals(_fl.CompItemNo, _flOrigComp, StringComparison.OrdinalIgnoreCase);
+    // 라인 단위 = 구성품의 기본 단위(10-23) — 입력받지 않고 저장소가 품목에서 읽어 저장한다. 여기서는 보이기·감사 기록용
+    string CompUom => _itemList.FirstOrDefault(i => string.Equals(i.ItemNo, _fl.CompItemNo, StringComparison.OrdinalIgnoreCase))?.DefaultUOM ?? "";
 
     async Task SaveLineCreate()
     {
@@ -918,8 +913,9 @@
         {
             if (LineError(_fl.CompItemNo, null) is { } err) { _modalErr = err; return; }
             var bomId = "B" + Guid.NewGuid().ToString("N")[..23];
+            _fl.Uom = CompUom;
             if (!MD.InsertBomLine(bomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
-                    1, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
+                    1, _fl.QtyPer, _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
                     _selVer!.VersionID, _fl.Position, NE(_fl.Note), _actor))
             { await LineNotDraft(); return; }
             Audit.Created("MD-004", "MD_Bom", bomId, _fl);
@@ -936,18 +932,17 @@
         if (string.IsNullOrWhiteSpace(_fl.CompItemNo)) { _modalErr = L["Err.CompItemRequired"]; return; }
         if (_fl.QtyPer <= 0) { _modalErr = L["Err.QtyGtZero"]; return; }
         _busy = true;
-        if (UomLocked) _fl.Uom = _flOrigUom;
         try
         {
             if (LineError(_fl.CompItemNo, _fl.BomId) is { } err) { _modalErr = err; return; }
+            _fl.Uom = CompUom;
             if (!MD.UpdateBomLine(_fl.BomId, NE(_fl.ParentItemNo), _fl.CompItemNo.Trim().ToUpper(),
-                    _fl.BomLevel, _fl.QtyPer, NE(_fl.Uom), _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
+                    _fl.BomLevel, _fl.QtyPer, _fl.ScrapPct == 0 ? null : _fl.ScrapPct,
                     _fl.Position, NE(_fl.Note), _actor))
             { await LineNotDraft(); return; }
             Audit.Updated("MD-004", "MD_Bom", _fl.BomId, _lines.FirstOrDefault(l => l.BOMID == _fl.BomId), _fl);
             LoadLines(); CloseModal(); await RestorePages(); ShowMsg(L["Msg.BomLineUpdated"], false);
         }
-        catch (MasterDataRepository.BomUomLockedException) { _flUomInUse = true; _fl.Uom = _flOrigUom; _modalErr = L["MD.Bom.Hint.UomLocked"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -1046,8 +1041,7 @@
                      maxPos.TryGetValue(v.VersionID, out var mp) ? mp : 0),
             StringComparer.OrdinalIgnoreCase);
         var items = new HashSet<string>(MD.ListItems("").Select(i => i.ItemNo), StringComparer.OrdinalIgnoreCase);
-        var uoms = new HashSet<string>(MD.ListUoms().Where(u => u.ActiveFlag).Select(u => (u.UOMCode ?? "").Trim()), StringComparer.OrdinalIgnoreCase);
-        var r = AMES.Data.Services.BomImport.Parse(sheet, new(versions, items, uoms, DateOnly.FromDateTime(DbClock.Today), (p, c) => MD.BomWouldCycle(p, c)));
+        var r = AMES.Data.Services.BomImport.Parse(sheet, new(versions, items, DateOnly.FromDateTime(DbClock.Today), (p, c) => MD.BomWouldCycle(p, c)));
         _excelPlans = r.Plans;
         var news = r.Plans.Select(v => v.IsNew ? $"{v.VersionId} (+{v.Lines.Count})" : $"{v.VersionId} +{v.Lines.Count} → DRAFT").ToList();
         var skips = r.SkippedVersions.Select(x => $"{x.VersionId} [{StatusName(x.Status)}]")
@@ -1209,17 +1203,14 @@
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
-                <RadzenDropDown AllowFiltering="true" @bind-Value="_fl.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@UomLocked" title="@(UomLocked ? L["MD.Bom.Hint.UomLocked"].Value : "")" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenTextBox Value="@(string.IsNullOrEmpty(CompUom) ? "" : UomFmt.Sym(CompUom))" Disabled="true" title="@L["MD.Bom.Hint.UomFromItem"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["Col.ScrapRate"]" />
                 <RadzenNumeric TValue="decimal" @bind-Value="_fl.ScrapPct" Min="0" Step="0.01" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
-        @if (UomLocked)
-        {
-            <div class="dim" style="font-size:.78em;margin-top:4px;">🔒 @L["MD.Bom.Hint.UomLocked"]</div>
-        }
+        <div class="dim" style="font-size:.78em;margin-top:4px;">🔒 @L["MD.Bom.Hint.UomFromItem"]</div>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="4">
@@ -1251,7 +1242,7 @@
         public string  CompItemNo   { get; set; } = "";
         public int     BomLevel     { get; set; } = 1;
         public decimal QtyPer       { get; set; } = 1;
-        public string  Uom          { get; set; } = "EA";
+        public string  Uom          { get; set; } = "";
         public decimal ScrapPct     { get; set; } = 0;
         public int     Position     { get; set; } = 10;
         public string  Note         { get; set; } = "";

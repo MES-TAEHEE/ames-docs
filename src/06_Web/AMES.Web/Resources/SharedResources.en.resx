@@ -11522,9 +11522,6 @@
   <data name="MD.Bom.Err.StartRequired" xml:space="preserve">
     <value>Enter a start date (today or later).</value>
   </data>
-  <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
-    <value>The unit cannot change: this component has stock or production records.</value>
-  </data>
   <data name="MD.Bom.NoVersion" xml:space="preserve">
     <value>No BOM version</value>
   </data>
@@ -11701,4 +11698,19 @@
   <data name="SCM.Preview.Cancellation.AlreadyReceived" xml:space="preserve"><value>Already received. Cannot cancel.</value></data>
   <data name="SCM.Preview.Cancellation.PartiallyReceived" xml:space="preserve"><value>Partially received. Cannot cancel.</value></data>
   <data name="SCM.Preview.Cancellation.NotAllowed" xml:space="preserve"><value>Cancellation is unavailable for the current status or permissions.</value></data>
+  <data name="MD.Bom.Hint.UomFromItem" xml:space="preserve">
+    <value>Uses the component&apos;s base unit — change it on the item (MD-003).</value>
+  </data>
+  <data name="MD.Items.Hint.UomSyncsBom" xml:space="preserve">
+    <value>Changing the unit also changes it on BOM lines that use this item as a component.</value>
+  </data>
+  <data name="MD.Items.Ok.BomUomSynced" xml:space="preserve">
+    <value>The unit of {0} BOM line(s) using this item was also changed to {1}.</value>
+  </data>
+  <data name="MD.Line.Hint.NoLotPrefix" xml:space="preserve">
+    <value>Lines of processes that do not issue LOTs (such as rework) have no LOT PREFIX.</value>
+  </data>
+  <data name="PP.Aps.Wo.Reject.NoLotPrefix" xml:space="preserve">
+    <value>The injection line has no LOT PREFIX (set it in MD-001)</value>
+  </data>
 </root>

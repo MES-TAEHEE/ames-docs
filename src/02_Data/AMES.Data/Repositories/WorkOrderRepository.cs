@@ -26,11 +26,23 @@ public sealed class WorkOrderRepository
     /// LineRequired = 그 공정에 활성 라인이 하나라도 있으면 true. Candidates = 그 공정의 활성 라인.
     /// ItemNo = 그 단계가 생산하는 품번 — 코어 공정(INJ)은 CoreItemResolver 가 찾은 코어, 그 외 WO 품번.
     /// NoCore = 코어 공정인데 코어를 못 정함(Missing/Ambiguous) — PP-003 이 그 수주를 거부한다.
+    /// NoPrefixLines = LOT 을 발행하는 공정인데 LOT PREFIX 가 없는 활성 라인(10-23) — 후보·BOP 라인에서 빼고, 지정하면 릴리스가 거부한다.
     /// </summary>
     public sealed record RoutingStepPreview(
         int StepSeq, string ProcessCode, string? BopLineId, bool LineRequired,
         IReadOnlyList<LineOption> Candidates, int? StdCycleSec = null,
-        string ItemNo = "", bool NoCore = false);
+        string ItemNo = "", bool NoCore = false, IReadOnlyList<string>? NoPrefixLines = null)
+    {
+        public bool LacksPrefix(string? lineId)
+            => lineId is not null && NoPrefixLines is not null && NoPrefixLines.Contains(lineId, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>LOT 을 발행하는 공정 단계에 LOT PREFIX 없는 라인을 지정했다(10-23, LotPrefixRules).</summary>
+    public sealed class LotPrefixMissingException(int stepSeq, string processCode, string lineId)
+        : InvalidOperationException($"Step {stepSeq} {processCode}: line '{lineId}' has no LOT PREFIX — set it in MD-001.")
+    {
+        public string LineId { get; } = lineId;
+    }
 
     public sealed record StepLineChoice(int StepSeq, string? LineId);
 
@@ -73,7 +85,7 @@ public sealed class WorkOrderRepository
         var core = CoreItemResolver.ReadByInjFlag(conn, tx, itemNo);
         var coreItem = core.StepItemNo(itemNo);
 
-        const string sql = """
+        var sql = $"""
             SELECT rs.StepSeq, rs.ProcessCode,
                    CASE WHEN rs.ProcessCode = @CoreProc THEN @Core ELSE @ItemNo END AS StepItemNo,
                    (SELECT TOP 1 st.LineID
@@ -85,6 +97,7 @@ public sealed class WorkOrderRepository
                       AND  b.RoutingType = @RT AND ISNULL(b.ActiveFlag,1) = 1
                       AND  sw.ProcessCode = rs.ProcessCode
                       AND  ISNULL(sl.Status,'ACTIVE') <> 'INACTIVE'
+                      AND  (sw.ProcessCode NOT IN ({LotPrefixRules.LotProcessSqlList}) OR NULLIF(RTRIM(sl.LotPrefix), '') IS NOT NULL)
                     ORDER  BY b.StepSeq) AS BopLineID,
                    CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.MD_Line l
                                           JOIN dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
@@ -104,7 +117,9 @@ public sealed class WorkOrderRepository
             WHERE  rs.RoutingType = @RT AND ISNULL(rs.ActiveFlag,1) = 1
             ORDER  BY rs.StepSeq;
 
-            SELECT wc.ProcessCode, l.LineID, l.LineName
+            SELECT wc.ProcessCode, l.LineID, l.LineName,
+                   CAST(CASE WHEN wc.ProcessCode IN ({LotPrefixRules.LotProcessSqlList}) AND NULLIF(RTRIM(l.LotPrefix), '') IS NULL
+                             THEN 1 ELSE 0 END AS bit) AS NoPrefix
             FROM   dbo.MD_Line l
             JOIN   dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
             WHERE  ISNULL(l.Status,'ACTIVE') <> 'INACTIVE'
@@ -125,10 +140,17 @@ public sealed class WorkOrderRepository
                      rdr["BopLineID"] as string, (bool)rdr["LineRequired"], rdr["StdCycleSec"] as int?));
 
         var cands = new Dictionary<string, List<LineOption>>();
+        var noPrefix = new Dictionary<string, List<string>>();
         if (rdr.NextResult())
             while (rdr.Read())
             {
                 var proc = (string)rdr["ProcessCode"];
+                if ((bool)rdr["NoPrefix"])
+                {
+                    if (!noPrefix.TryGetValue(proc, out var np)) noPrefix[proc] = np = new();
+                    np.Add((string)rdr["LineID"]);
+                    continue;
+                }
                 if (!cands.TryGetValue(proc, out var list)) cands[proc] = list = new();
                 list.Add(new LineOption((string)rdr["LineID"], rdr["LineName"] as string));
             }
@@ -136,7 +158,8 @@ public sealed class WorkOrderRepository
         return raw.Select(r => new RoutingStepPreview(
                 r.Seq, r.Proc, r.Bop, r.Req,
                 cands.TryGetValue(r.Proc, out var c) ? c : Array.Empty<LineOption>(), r.Cyc,
-                r.Item, CoreItemResolver.IsCoreProcess(r.Proc) && core.NoCore))
+                r.Item, CoreItemResolver.IsCoreProcess(r.Proc) && core.NoCore,
+                noPrefix.TryGetValue(r.Proc, out var np) ? np : null))
             .ToList();
     }
 
@@ -553,6 +576,8 @@ public sealed class WorkOrderRepository
             var lineId = bySeq[t.StepSeq];
             if (string.IsNullOrWhiteSpace(lineId))
                 throw new InvalidOperationException($"Step {t.StepSeq} {t.ProcessCode}: line required.");
+            if (t.LacksPrefix(lineId))
+                throw new LotPrefixMissingException(t.StepSeq, t.ProcessCode, lineId);
             if (!t.Candidates.Any(c => c.LineId == lineId))
                 throw new InvalidOperationException($"Step {t.StepSeq} {t.ProcessCode}: '{lineId}' is not an active {t.ProcessCode} line.");
         }

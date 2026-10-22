@@ -99,9 +99,9 @@ public class TypedSaveRoundTripTests
         Same("MD_BomVersion", "VersionID", ver, ("ChangeReason", Max("MD_BomVersion.ChangeReason", uni: '나')), ("EffFrom", null));
         var bom = "ITQ" + new string('B', Len("MD_Bom.BOMID") - 3);
         var qtyScale = Info("MD_Bom.QtyPer").Scale ?? 0;
-        Assert.True(md.InsertBomLine(bom, item, item, 1, 1.123456789m, Max("MD_Bom.UOM"), 0.5m, ver, 10, Max("MD_Bom.Note"), by));
-        Same("MD_Bom", "BOMID", bom, ("QtyPer", Math.Round(1.123456789m, qtyScale, MidpointRounding.AwayFromZero)), ("Note", Max("MD_Bom.Note")), ("UOM", Max("MD_Bom.UOM")));
-        Assert.True(md.UpdateBomLine(bom, item, item, 2, 3m, "EA", null, 20, Max("MD_Bom.Note", uni: '나'), by));
+        Assert.True(md.InsertBomLine(bom, item, item, 1, 1.123456789m, 0.5m, ver, 10, Max("MD_Bom.Note"), by));
+        Same("MD_Bom", "BOMID", bom, ("QtyPer", Math.Round(1.123456789m, qtyScale, MidpointRounding.AwayFromZero)), ("Note", Max("MD_Bom.Note")), ("UOM", null));   // 단위 = 구성품 기본 단위(위에서 비움, 10-23)
+        Assert.True(md.UpdateBomLine(bom, item, item, 2, 3m, null, 20, Max("MD_Bom.Note", uni: '나'), by));
         Same("MD_Bom", "BOMID", bom, ("BOMLevel", 2), ("Note", Max("MD_Bom.Note", uni: '나')), ("ModifiedBy", by));
         Assert.True(md.DeleteBomLine(bom, by));
         Same("MD_Bom", "BOMID", bom, ("ActiveFlag", false));

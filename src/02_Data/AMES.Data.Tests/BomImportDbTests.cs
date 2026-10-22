@@ -21,7 +21,7 @@ public class BomImportDbTests
 
     static BomImport.Version Plan(bool isNew, params string[] comps) =>
         new(Ver, isNew, Root, "V1.0", new DateOnly(2099, 1, 1), null, "ECO", "itest",
-            comps.Select((c, i) => new BomImport.Line(i + 2, c, 1.5m, "EA", null, (i + 1) * 10, null)).ToList());
+            comps.Select((c, i) => new BomImport.Line(i + 2, c, 1.5m, null, (i + 1) * 10, null)).ToList());
 
     static int Lines(Connection.AmesConnectionFactory f) => (int)Scalar(f, "SELECT COUNT(*) FROM dbo.MD_Bom WHERE VersionID = @V", ("@V", Ver))!;
 

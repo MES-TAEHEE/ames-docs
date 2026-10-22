@@ -89,7 +89,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LotPrefix" Title="Line Prefix" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LotPrefix" Title="LOT PREFIX" TextAlign="TextAlign.Center" Width="110px">
                 <Template Context="r"><span class="code">@(r.LotPrefix ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
@@ -115,11 +115,6 @@
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
-                <RadzenLabel Text="Line Prefix *" class="ames-rz-modal-label" Component="CreateLinePrefix" />
-                <RadzenTextBox Name="CreateLinePrefix" @bind-Value="_f.LotPrefix" MaxLength="2" Placeholder="I1" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
-            </RadzenStack>
-
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["MD.Line.Lbl.LineName"]" class="ames-rz-modal-label" Component="CreateTextBoxLineName" />
                 <RadzenTextBox Name="CreateTextBoxLineName" @bind-Value="_f.LineName" Placeholder="@L["MD.Line.Ph.LineName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
@@ -131,12 +126,12 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@(L["MD.Line.Lbl.Wcid"] + " *")' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Plant"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@(L["MD.Line.Lbl.Wcid"] + " *")' />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -153,10 +148,15 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
+                    <RadzenLabel Text="@(PrefixRequired ? "LOT PREFIX *" : "LOT PREFIX")" Component="CreateLinePrefix" />
+                    <RadzenTextBox Name="CreateLinePrefix" @bind-Value="_f.LotPrefix" MaxLength="2" Disabled="@(!PrefixRequired)" Placeholder="I1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
+            <div class="dim" style="font-size:.85em;margin-top:4px;">@(PrefixRequired ? "Used for new LOT numbers. Existing barcodes and Location IDs stay unchanged." : L["MD.Line.Hint.NoLotPrefix"].Value)</div>
 
 
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -179,12 +179,6 @@
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Line.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineID</span></div>
 
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-bottom:6px;">
-                <RadzenLabel Text="Line Prefix *" class="ames-rz-modal-label" Component="EditLinePrefix" />
-                <RadzenTextBox Name="EditLinePrefix" @bind-Value="_f.LotPrefix" MaxLength="2" Placeholder="I1" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
-            </RadzenStack>
-            <div class="dim" style="font-size:.85em;margin-bottom:8px;">Used for new LOT numbers. Existing barcodes and Location IDs stay unchanged.</div>
-
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["MD.Line.Lbl.LineName"]" class="ames-rz-modal-label" Component="EditTextBoxLineName" />
                 <RadzenTextBox Name="EditTextBoxLineName" @bind-Value="_f.LineName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
@@ -197,12 +191,12 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
-                    <RadzenLabel Text='@(L["MD.Line.Lbl.Wcid"] + " *")' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Plant"]" />
                     <RadzenDropDown AllowFiltering="true" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenLabel Text='@(L["MD.Line.Lbl.Wcid"] + " *")' />
+                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.WCID" Data="@WcOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -219,10 +213,15 @@
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
+                    <RadzenLabel Text="@(PrefixRequired ? "LOT PREFIX *" : "LOT PREFIX")" Component="EditLinePrefix" />
+                    <RadzenTextBox Name="EditLinePrefix" @bind-Value="_f.LotPrefix" MaxLength="2" Disabled="@(!PrefixRequired)" Placeholder="I1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
+            <div class="dim" style="font-size:.85em;margin-top:4px;">@(PrefixRequired ? "Used for new LOT numbers. Existing barcodes and Location IDs stay unchanged." : L["MD.Line.Hint.NoLotPrefix"].Value)</div>
 
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
@@ -393,7 +392,7 @@
             MD.InsertLine(_f.LineID.Trim(), _f.LineName, NE(_f.LineNameEn),
                 NE(_f.PlantCode), NE(_f.WCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
-                _f.RfidEnabledFlag, _f.Status, _actor, lotPrefix: _f.LotPrefix);
+                _f.RfidEnabledFlag, _f.Status, _actor, lotPrefix: PrefixRequired ? _f.LotPrefix : null);
             Audit.Created("MD-001", "MD_Line", _f.LineID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Created"].Value, _f.LineName), false);
@@ -416,7 +415,7 @@
             MD.UpdateLine(_sel.LineID, _f.LineName, NE(_f.LineNameEn),
                 NE(_f.PlantCode), NE(_f.WCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
-                _f.RfidEnabledFlag, _f.Status, _actor, lotPrefix: _f.LotPrefix);
+                _f.RfidEnabledFlag, _f.Status, _actor, lotPrefix: PrefixRequired ? _f.LotPrefix : null);
             Audit.Updated("MD-001", "MD_Line", _sel.LineID, _sel, _f);
             var name = _f.LineName;
             CloseModal(); await ReloadRestorePage();
@@ -467,11 +466,18 @@
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
+    // LOT 을 발행하는 공정(사출·감싸기·도장)의 라인만 LOT PREFIX 필수 — 그 밖(재작업 등)은 입력칸을 끄고 보내지 않는다(10-23, LotPrefixRules)
+    bool PrefixRequired => AMES.Data.Services.LotPrefixRules.RequiresPrefix(_wcList.FirstOrDefault(w => w.WCID == _f.WCID)?.ProcessCode);
+
     bool ValidateLinePrefix()
     {
+        if (!PrefixRequired) return true;
         _f.LotPrefix = (_f.LotPrefix ?? "").Trim().ToUpperInvariant();
         if (_f.LotPrefix.Length == 2 && _f.LotPrefix.All(char.IsAsciiLetterOrDigit)) return true;
-        _modalErr = "Line Prefix must contain exactly 2 letters or digits.";
+        // 비우거나 2글자 — 1글자는 받지 않는다. 비우면 LOT 공정 라인 필수 규칙으로 거부(LotPrefixRules)
+        _modalErr = _f.LotPrefix.Length == 0
+            ? "LOT PREFIX is required for injection, wrapping and painting lines."
+            : "LOT PREFIX must contain exactly 2 letters or digits.";
         return false;
     }
 

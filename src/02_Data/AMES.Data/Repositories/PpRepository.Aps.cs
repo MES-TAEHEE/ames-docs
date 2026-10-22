@@ -30,7 +30,7 @@ public sealed partial class PpRepository
         public decimal OverQty  => Placements.Sum(p => p.OverQty);
     }
 
-    /// <summary>거부된 계획 행. Reason = RejectNoMold | RejectNoUph | RejectNoParent | RejectNoCore. Detail = NoCore 면 코어를 못 정한 부모 완제품 품번.</summary>
+    /// <summary>거부된 계획 행. Reason = RejectNoMold | RejectNoUph | RejectNoParent | RejectNoCore | RejectNoLotPrefix. Detail = NoCore 면 코어를 못 정한 부모 완제품 품번.</summary>
     public sealed record ApsRejectedLine(int PlanLineId, string ItemNo, DateOnly PlanDate, string Reason, string? Detail = null);
 
     /// <param name="EditOutcomes">미리보기 보드에서 옮긴 슬롯 편집(ApsSlotEdit)의 적용 결과 — 편집을 넘기지 않았으면 빈 목록.</param>
@@ -107,6 +107,20 @@ public sealed partial class PpRepository
 
     /// <summary>BOM 규칙 사출 행 거부 사유 — 저장본 BundleJson.Bom 에 이 자식을 쓰는 완제품 간선이 없다(실행 저장 뒤 BOM 이 바뀐 경우 등).</summary>
     public const string RejectNoParent = "NoParent";
+
+    // LOT 을 발행하는 공정(LotPrefixRules)의 라인 중 LOT PREFIX 가 없는 라인 — 그 라인의 사출 행을 RejectNoLotPrefix 로 거부 목록에 올린다(10-23,
+    // 거부가 있으면 WO 를 만들지 않는다). 완제품 단계 라인에 없으면 ReleaseCore 가 LotPrefixMissingException 으로 막는다(MD-001 이 막으므로 드문 경우)
+    static HashSet<string> ReadLotLinesWithoutPrefix(SqlConnection conn, SqlTransaction tx)
+    {
+        using var cmd = new SqlCommand($"""
+            SELECT l.LineID FROM dbo.MD_Line l JOIN dbo.MD_WorkCenter wc ON wc.WCID = l.WCID
+            WHERE  wc.ProcessCode IN ({LotPrefixRules.LotProcessSqlList}) AND NULLIF(RTRIM(l.LotPrefix), '') IS NULL
+            """, conn, tx);
+        using var r = cmd.ExecuteReader();
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        while (r.Read()) set.Add(r.GetString(0));
+        return set;
+    }
 
     /// <param name="Shifts">교대별 계획(PP_ApsPlanLineShift, 2026-10-07). 비어 있으면(구 실행) 쓰는 자리에서 그 라인·날짜의 교대 목록으로 PlanDay/PlanNight 를 복원한다.</param>
     sealed record ApsInjLine(int PlanLineId, string ItemNo, string LineId, DateOnly PlanDate, decimal PlanDay, decimal PlanNight, int? WoId, bool SameItem,
@@ -230,9 +244,11 @@ public sealed partial class PpRepository
             var plans   = new Dictionary<(string Item, DateOnly Date), ApsParentPlan>();
             var covered = new HashSet<int>();   // 그 날 기존 슬롯이 수량을 다 덮은 행(스펙 §8.1 등록 계획분 차감)
             var rowLegs = new Dictionary<int, List<ApsLeg>>();
+            var noPrefixLines = ReadLotLinesWithoutPrefix(conn, tx);
             foreach (var r in targets.OrderBy(t => t.PlanDate).ThenBy(t => t.ItemNo, StringComparer.Ordinal))
             {
                 var date = r.PlanDate.ToDateTime(TimeOnly.MinValue);
+                if (noPrefixLines.Contains(r.LineId)) { rejected.Add(new ApsRejectedLine(r.PlanLineId, r.ItemNo, r.PlanDate, RejectNoLotPrefix)); continue; }
                 var mold = MoldResolver.Choose(MasterDataRepository.ReadMoldCandidates(conn, tx, r.ItemNo, r.LineId),
                                                days.LastMoldId(r.LineId, date));
                 if (mold is null) { rejected.Add(new ApsRejectedLine(r.PlanLineId, r.ItemNo, r.PlanDate, RejectNoMold)); continue; }

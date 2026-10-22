@@ -43,15 +43,15 @@ public class BomLineDraftOnlyTests
         {
             var md = new MasterDataRepository(f);
             md.InsertBomVersion(Ver, "ITEST-ROOT", "V1.0", null, null, null, null, "itest");
-            Assert.True(md.InsertBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-A", 1, 2m, "EA", null, Ver, 10, null, "itest"));
-            Assert.True(md.UpdateBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-A", 1, 3m, "EA", null, 10, null, "itest"));
+            Assert.True(md.InsertBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-A", 1, 2m, null, Ver, 10, null, "itest"));
+            Assert.True(md.UpdateBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-A", 1, 3m, null, 10, null, "itest"));
             var draft = Lines(f);
             Assert.Equal("ITEST-BOML-1010-1:ITEST-COMP-A:3.000:1", draft);
 
             SetStatus(f, status);
 
-            Assert.False(md.InsertBomLine(Line2, "ITEST-ROOT", "ITEST-COMP-B", 1, 1m, "EA", null, Ver, 20, null, "itest"));
-            Assert.False(md.UpdateBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-X", 1, 9m, "EA", null, 10, null, "itest"));
+            Assert.False(md.InsertBomLine(Line2, "ITEST-ROOT", "ITEST-COMP-B", 1, 1m, null, Ver, 20, null, "itest"));
+            Assert.False(md.UpdateBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-X", 1, 9m, null, 10, null, "itest"));
             Assert.False(md.DeleteBomLine(Line1, "itest"));
             Assert.Equal(draft, Lines(f));
 
@@ -71,8 +71,8 @@ public class BomLineDraftOnlyTests
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         Cleanup(f);
         var md = new MasterDataRepository(f);
-        Assert.False(md.InsertBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-A", 1, 1m, "EA", null, Ver, 10, null, "itest"));
-        Assert.False(md.UpdateBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-A", 1, 1m, "EA", null, 10, null, "itest"));
+        Assert.False(md.InsertBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-A", 1, 1m, null, Ver, 10, null, "itest"));
+        Assert.False(md.UpdateBomLine(Line1, "ITEST-ROOT", "ITEST-COMP-A", 1, 1m, null, 10, null, "itest"));
         Assert.Equal("", Lines(f));
     }
 }

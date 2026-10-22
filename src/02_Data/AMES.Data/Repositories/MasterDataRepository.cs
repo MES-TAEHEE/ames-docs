@@ -420,8 +420,9 @@ public sealed class MasterDataRepository
     }
 
     // SAPFlag 는 쓰지 않는다(SAP 수신만 쓴다). procureType·두 비율이 null 이면 저장된 값을 그대로 둔다(값을 넘기지 않는 저장 경로가 지우지 않게)
-    // — 조달형태를 비우려면 빈 문자열, 비율을 비우려면 0
-    public void UpdateItem(string itemNo, string itemName,
+    // — 조달형태를 비우려면 빈 문자열, 비율을 비우려면 0.
+    // BOM 라인 단위는 구성품의 기본 단위를 따르므로(10-23) 단위를 바꾸면 이 품목을 구성품으로 쓰는 BOM 라인(모든 버전)의 단위도 같은 트랜잭션에서 바꾼다 — 바꾼 라인 수를 돌려준다
+    public int UpdateItem(string itemNo, string itemName,
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
@@ -430,13 +431,13 @@ public sealed class MasterDataRepository
         decimal? issueAddPct = null, decimal? mrpAllowPct = null)
     {
         ValidateQuantityUnit(defaultUom);
-        try { UpdateItemCore(itemNo, itemName, itemType, itemCategory, injFlag, carType, defaultUom, routingType, minStock, maxStock, safetyStock,
-                             unitCost, pgn, alc, drawingNo, palletQty, maxPalletQty, toteFlag, activeFlag, modifiedBy, scanRequired,
-                             procureType, issueAddPct, mrpAllowPct); }
+        try { return UpdateItemCore(itemNo, itemName, itemType, itemCategory, injFlag, carType, defaultUom, routingType, minStock, maxStock, safetyStock,
+                                    unitCost, pgn, alc, drawingNo, palletQty, maxPalletQty, toteFlag, activeFlag, modifiedBy, scanRequired,
+                                    procureType, issueAddPct, mrpAllowPct); }
         catch (SqlException ex) when (ex.Number == 51832) { throw new ItemUomLockedException(itemNo); }
     }
 
-    void UpdateItemCore(string itemNo, string itemName,
+    int UpdateItemCore(string itemNo, string itemName,
         string? itemType, string? itemCategory, bool injFlag, string? carType, string? defaultUom,
         string? routingType, decimal? minStock, decimal? maxStock, decimal? safetyStock,
         decimal? unitCost, string? pgn, string? alc, string? drawingNo,
@@ -444,7 +445,11 @@ public sealed class MasterDataRepository
         bool activeFlag, string modifiedBy, bool scanRequired, string? procureType,
         decimal? issueAddPct, decimal? mrpAllowPct)
     {
-        Exec($"""
+        return Convert.ToInt32(ExecScalar($"""
+            SET NOCOUNT ON;
+            SET XACT_ABORT ON;
+            BEGIN TRANSACTION;
+            DECLARE @OldUom varchar(10) = (SELECT DefaultUOM FROM dbo.MD_Item WITH (UPDLOCK, HOLDLOCK) WHERE ItemNo = @No);
             IF EXISTS (SELECT 1 FROM dbo.MD_Item mi
                        WHERE mi.ItemNo = @No AND ISNULL(mi.DefaultUOM, '') <> ISNULL(@Uom, '')
                          AND {ItemStockOrResultSql("mi.ItemNo")})
@@ -458,7 +463,16 @@ public sealed class MasterDataRepository
                    ActiveFlag=@Active, ProcureType=CASE WHEN @Proc IS NULL THEN ProcureType ELSE NULLIF(@Proc, '') END,
                    {(issueAddPct is null ? "" : "IssueAddPct=@IssuePct, ")}{(mrpAllowPct is null ? "" : "MrpAllowPct=@MrpPct, ")}
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-            WHERE  ItemNo=@No
+            WHERE  ItemNo=@No;
+            DECLARE @BomLines int = 0;
+            IF ISNULL(@OldUom, '') <> ISNULL(@Uom, '')
+            BEGIN
+                UPDATE dbo.MD_Bom SET UOM = @Uom, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+                WHERE  CompItemNo = @No AND ISNULL(UOM, '') <> ISNULL(@Uom, '');
+                SET @BomLines = @@ROWCOUNT;
+            END;
+            COMMIT TRANSACTION;
+            SELECT @BomLines;
             """,
             ("@No", "MD_Item.ItemNo", itemNo),   ("@Name", "MD_Item.ItemName", itemName),
             ("@Type", "MD_Item.ItemType", itemType), ("@Cat", "MD_Item.ItemCategory", itemCategory), ("@Car", "MD_Item.CarType", carType),
@@ -471,7 +485,7 @@ public sealed class MasterDataRepository
             ("@By", "MD_Item.ModifiedBy", modifiedBy), ("@BoxScan", "MD_Item.ScanRequired", scanRequired),
             ("@Proc", "MD_Item.ProcureType", procureType is null ? null : NormalizeProcureType(procureType) ?? ""),
             ("@IssuePct", "MD_Item.IssueAddPct", NormalizeAllowancePct(issueAddPct, nameof(issueAddPct))),
-            ("@MrpPct", "MD_Item.MrpAllowPct", NormalizeAllowancePct(mrpAllowPct, nameof(mrpAllowPct))));
+            ("@MrpPct", "MD_Item.MrpAllowPct", NormalizeAllowancePct(mrpAllowPct, nameof(mrpAllowPct)))));
     }
 
     /// <summary>재고·실적이 있는 품목의 기본 단위를 바꾸려 했다(10-20).</summary>
@@ -908,17 +922,16 @@ public sealed class MasterDataRepository
         int added = 0;
         foreach (var l in v.Lines)
         {
-            using var cmd = new SqlCommand("""
+            using var cmd = new SqlCommand($"""
                 IF NOT EXISTS (SELECT 1 FROM dbo.MD_Bom WHERE VersionID=@V AND CompItemNo=@Comp)
                     INSERT INTO dbo.MD_Bom
                            (BOMID,ParentItemNo,CompItemNo,BOMLevel,QtyPer,UOM,ScrapPct,VersionID,Position,Note,ActiveFlag,CreatedBy,CreatedTS)
-                    VALUES (@ID,@Par,@Comp,1,@Qty,@UOM,@Scrap,@V,@Pos,@Note,1,@By,SYSDATETIME())
+                    VALUES (@ID,@Par,@Comp,1,@Qty,{CompUomSql},@Scrap,@V,@Pos,@Note,1,@By,SYSDATETIME())
                 """, conn, tx);
             ColumnParams.Add(cmd, "@ID", "MD_Bom.BOMID", "B" + Guid.NewGuid().ToString("N")[..23]);
             ColumnParams.Add(cmd, "@Par", "MD_Bom.ParentItemNo", v.RootItemNo);
             ColumnParams.Add(cmd, "@Comp", "MD_Bom.CompItemNo", l.CompItemNo);
             ColumnParams.Add(cmd, "@Qty", "MD_Bom.QtyPer", l.QtyPer);
-            ColumnParams.Add(cmd, "@UOM", "MD_Bom.UOM", l.Uom);
             ColumnParams.Add(cmd, "@Scrap", "MD_Bom.ScrapPct", l.ScrapPct);
             ColumnParams.Add(cmd, "@V", "MD_Bom.VersionID", v.VersionId);
             ColumnParams.Add(cmd, "@Pos", "MD_Bom.Position", l.Position);
@@ -957,50 +970,41 @@ public sealed class MasterDataRepository
     // BOM 라인 추가·수정·삭제·재활성화는 버전이 DRAFT 일 때만 — 승인 요청(PENDING)·승인(APPROVED) 뒤에는 바뀌지 않는다(10-10).
     // 버전 행을 UPDLOCK 으로 잡고 같은 문장에서 상태를 보므로 승인과 엇갈려도 승인된 BOM 이 바뀌지 않는다.
     // 버전이 DRAFT 가 아니거나(다른 사용자가 이미 승인 요청·승인) 라인이 없으면 false(변경 없음).
+    // 라인 단위는 받지 않는다 — 구성품의 기본 단위(MD_Item.DefaultUOM)를 그대로 저장한다(10-23, 품목 단위를 바꾸면 UpdateItem 이 같이 바꿈)
     public bool InsertBomLine(string bomId, string? parentItemNo, string? compItemNo,
-        int bomLevel, decimal qtyPer, string? uom, decimal? scrapPct,
+        int bomLevel, decimal qtyPer, decimal? scrapPct,
         string versionId, int position, string? note, string createdBy)
-        => ExecCount("""
+        => ExecCount($"""
             INSERT INTO dbo.MD_Bom
                    (BOMID,ParentItemNo,CompItemNo,BOMLevel,QtyPer,UOM,
                     ScrapPct,VersionID,Position,Note,ActiveFlag,CreatedBy,CreatedTS)
-            SELECT @ID,@Par,@Comp,@Lv,@Qty,@UOM,
+            SELECT @ID,@Par,@Comp,@Lv,@Qty,{CompUomSql},
                    @Scrap,@VID,@Pos,@Note,1,@By,SYSDATETIME()
             WHERE  EXISTS (SELECT 1 FROM dbo.MD_BomVersion WITH (UPDLOCK, HOLDLOCK) WHERE VersionID=@VID AND Status='DRAFT')
             """,
             ("@ID", "MD_Bom.BOMID", bomId),     ("@Par", "MD_Bom.ParentItemNo", parentItemNo), ("@Comp", "MD_Bom.CompItemNo", compItemNo),
-            ("@Lv", "MD_Bom.BOMLevel", bomLevel),  ("@Qty", "MD_Bom.QtyPer", qtyPer),       ("@UOM", "MD_Bom.UOM", uom),
+            ("@Lv", "MD_Bom.BOMLevel", bomLevel),  ("@Qty", "MD_Bom.QtyPer", qtyPer),
             ("@Scrap", "MD_Bom.ScrapPct", scrapPct),  ("@VID", "MD_Bom.VersionID", versionId),    ("@Pos", "MD_Bom.Position", position),
             ("@Note", "MD_Bom.Note", note),      ("@By", "MD_Bom.CreatedBy", createdBy)) > 0;
 
-    // 구성품의 재고·실적이 있으면 그 라인의 단위는 바꿀 수 없다(10-20) — 같은 구성품인 채로 단위만 바꾸면 51830 → BomUomLockedException
     public bool UpdateBomLine(string bomId, string? parentItemNo, string? compItemNo,
-        int bomLevel, decimal qtyPer, string? uom, decimal? scrapPct,
-        int position, string? note, string modifiedBy)
-    {
-        try { return UpdateBomLineCore(bomId, parentItemNo, compItemNo, bomLevel, qtyPer, uom, scrapPct, position, note, modifiedBy); }
-        catch (SqlException ex) when (ex.Number == 51830) { throw new BomUomLockedException(compItemNo ?? ""); }
-    }
-
-    bool UpdateBomLineCore(string bomId, string? parentItemNo, string? compItemNo,
-        int bomLevel, decimal qtyPer, string? uom, decimal? scrapPct,
+        int bomLevel, decimal qtyPer, decimal? scrapPct,
         int position, string? note, string modifiedBy)
         => ExecCount($"""
-            IF EXISTS (SELECT 1 FROM dbo.MD_Bom b
-                       WHERE b.BOMID = @ID AND b.CompItemNo = @Comp AND ISNULL(b.UOM,'') <> ISNULL(@UOM,'')
-                         AND {ItemStockOrResultSql("b.CompItemNo")})
-                THROW 51830, 'BOM line unit is locked: the component has stock or production records.', 1;
             UPDATE b
             SET    ParentItemNo=@Par, CompItemNo=@Comp, BOMLevel=@Lv,
-                   QtyPer=@Qty, UOM=@UOM, ScrapPct=@Scrap,
+                   QtyPer=@Qty, UOM={CompUomSql}, ScrapPct=@Scrap,
                    Position=@Pos, Note=@Note,
                    ModifiedBy=@By, ModifiedTS=SYSDATETIME()
             {BomLineDraftOnly}
             """,
             ("@ID", "MD_Bom.BOMID", bomId),    ("@Par", "MD_Bom.ParentItemNo", parentItemNo), ("@Comp", "MD_Bom.CompItemNo", compItemNo),
-            ("@Lv", "MD_Bom.BOMLevel", bomLevel), ("@Qty", "MD_Bom.QtyPer", qtyPer),       ("@UOM", "MD_Bom.UOM", uom),
+            ("@Lv", "MD_Bom.BOMLevel", bomLevel), ("@Qty", "MD_Bom.QtyPer", qtyPer),
             ("@Scrap", "MD_Bom.ScrapPct", scrapPct), ("@Pos", "MD_Bom.Position", position),     ("@Note", "MD_Bom.Note", note),
             ("@By", "MD_Bom.ModifiedBy", modifiedBy)) > 0;
+
+    // 구성품 @Comp 의 기본 단위 — BOM 라인 단위로 저장한다
+    const string CompUomSql = "(SELECT ci.DefaultUOM FROM dbo.MD_Item ci WHERE ci.ItemNo = @Comp)";
 
     /// <summary>단위 잠금 판정 — 품목에 재고(수량 0 아닌 재고 행)·생산 실적(그 품번 LOT 의 실적)·자동 차감(BACKFLUSH 출고)이 있다.</summary>
     // 안쪽 별칭 i·r·l·t 를 쓰므로 item 에 같은 별칭을 넘기지 말 것
@@ -1010,18 +1014,11 @@ public sealed class MasterDataRepository
          OR EXISTS (SELECT 1 FROM dbo.WH_InventoryTransaction t WHERE t.PartNo = {item} AND t.SourceType = 'BACKFLUSH'))
         """;
 
-    // 품목의 재고·실적 여부 — MD-003 기본 단위 잠금과 MD-004 BOM 라인 단위 잠금이 같이 쓴다(10-20)
+    // 품목의 재고·실적 여부 — MD-003 기본 단위 잠금(10-20)
     public bool ItemUomInUse(string? itemNo)
         => !string.IsNullOrWhiteSpace(itemNo)
            && Query($"SELECT CASE WHEN {ItemStockOrResultSql("@C")} THEN 1 ELSE 0 END", r => (int)r[0] == 1,
                     ("@C", "MD_Item.ItemNo", (object?)itemNo)).FirstOrDefault();
-
-    /// <summary>재고·실적이 있는 구성품 라인의 단위를 바꾸려 했다(10-20).</summary>
-    public sealed class BomUomLockedException(string compItemNo)
-        : InvalidOperationException($"BOM line unit of {compItemNo} cannot change: the component has stock or production records.")
-    {
-        public string CompItemNo { get; } = compItemNo;
-    }
 
     const string BomLineDraftOnly = """
         FROM   dbo.MD_Bom b
@@ -1059,6 +1056,14 @@ public sealed class MasterDataRepository
         using var cmd  = new SqlCommand(sql, conn);
         foreach (var (n, c, v) in p) ColumnParams.Add(cmd, n, c, v);
         return cmd.ExecuteNonQuery();
+    }
+
+    private object? ExecScalar(string sql, params (string Name, string Column, object? Val)[] p)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        foreach (var (n, c, v) in p) ColumnParams.Add(cmd, n, c, v);
+        return cmd.ExecuteScalar();
     }
 
     private List<T> Query<T>(string sql, Func<SqlDataReader, T> map,
@@ -2569,6 +2574,14 @@ public sealed class MasterDataRepository
         return cmd.ExecuteScalar() is not null;
     }
 
+    // LOT PREFIX 는 LOT 을 발행하는 공정(사출·감싸기·도장)의 라인만 필수, 그 밖(재작업 등)은 받지 않는다(10-23, LotPrefixRules) — 없으면 52079
+    static readonly string LotPrefixGuardSql = $"""
+        DECLARE @Proc varchar(10) = (SELECT ProcessCode FROM dbo.MD_WorkCenter WHERE WCID = @WC);
+        IF @Proc IS NULL OR @Proc NOT IN ({LotPrefixRules.LotProcessSqlList}) SET @Prefix = NULL;
+        ELSE IF COALESCE(@Prefix, (SELECT NULLIF(RTRIM(LotPrefix), '') FROM dbo.MD_Line WHERE LineID = @ID)) IS NULL
+            THROW 52079, 'LOT PREFIX is required for injection, wrapping and painting lines.', 1;
+        """;
+
     public void InsertLine(
         string lineId, string? lineName, string? lineNameEn,
         string? plantCode, string? defaultWcId,
@@ -2577,9 +2590,10 @@ public sealed class MasterDataRepository
     {
         lotPrefix = NormalizeLinePrefix(lotPrefix);
         using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
+        using var cmd = new SqlCommand($"""
+            {LotPrefixGuardSql}
             IF @Prefix IS NOT NULL AND EXISTS(SELECT 1 FROM dbo.MD_Line WHERE LotPrefix=@Prefix)
-                THROW 52078,'Line Prefix is already assigned to another line.',1;
+                THROW 52078,'LOT PREFIX is already assigned to another line.',1;
             INSERT INTO dbo.MD_Line
               (LineID,LineName,LineNameEn,PlantCode,WCID,
                DailyCap,ShiftPattern,RfidEnabledFlag,Status,LotPrefix,
@@ -2612,9 +2626,10 @@ public sealed class MasterDataRepository
         lotPrefix = NormalizeLinePrefix(lotPrefix);
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction();
-        using var cmd = new SqlCommand("""
+        using var cmd = new SqlCommand($"""
+            {LotPrefixGuardSql}
             IF @Prefix IS NOT NULL AND EXISTS(SELECT 1 FROM dbo.MD_Line WHERE LotPrefix=@Prefix AND LineID<>@ID)
-                THROW 52078,'Line Prefix is already assigned to another line.',1;
+                THROW 52078,'LOT PREFIX is already assigned to another line.',1;
             UPDATE dbo.MD_Line SET
               LineName=@Name, LineNameEn=@NameEn,
               PlantCode=@Plant, WCID=@WC,
@@ -2650,7 +2665,7 @@ public sealed class MasterDataRepository
         if (prefix is null) return null;
         prefix = prefix.Trim().ToUpperInvariant();
         if (prefix.Length != 2 || prefix.Any(c => !char.IsAsciiLetterOrDigit(c)))
-            throw new ArgumentException("Line Prefix must contain exactly 2 letters or digits.", nameof(prefix));
+            throw new ArgumentException("LOT PREFIX must contain exactly 2 letters or digits.", nameof(prefix));
         return prefix;
     }
 

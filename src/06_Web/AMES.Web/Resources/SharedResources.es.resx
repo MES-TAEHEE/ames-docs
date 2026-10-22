@@ -11522,9 +11522,6 @@
   <data name="MD.Bom.Err.StartRequired" xml:space="preserve">
     <value>Ingrese una fecha de inicio (hoy o posterior).</value>
   </data>
-  <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
-    <value>No se puede cambiar la unidad: el componente tiene stock o registros de producción.</value>
-  </data>
   <data name="MD.Bom.NoVersion" xml:space="preserve">
     <value>Sin versión de BOM</value>
   </data>
@@ -11701,4 +11698,19 @@
   <data name="SCM.Preview.Cancellation.AlreadyReceived" xml:space="preserve"><value>Ya recibido. No se puede cancelar.</value></data>
   <data name="SCM.Preview.Cancellation.PartiallyReceived" xml:space="preserve"><value>Recibido parcialmente. No se puede cancelar.</value></data>
   <data name="SCM.Preview.Cancellation.NotAllowed" xml:space="preserve"><value>No se puede cancelar con el estado o los permisos actuales.</value></data>
+  <data name="MD.Bom.Hint.UomFromItem" xml:space="preserve">
+    <value>Usa la unidad base del componente; cámbiela en el artículo (MD-003).</value>
+  </data>
+  <data name="MD.Items.Hint.UomSyncsBom" xml:space="preserve">
+    <value>Al cambiar la unidad también cambia en las líneas de BOM que usan este artículo como componente.</value>
+  </data>
+  <data name="MD.Items.Ok.BomUomSynced" xml:space="preserve">
+    <value>También se cambió la unidad de {0} línea(s) de BOM que usan este artículo a {1}.</value>
+  </data>
+  <data name="MD.Line.Hint.NoLotPrefix" xml:space="preserve">
+    <value>Las líneas de procesos que no emiten LOT (como retrabajo) no tienen LOT PREFIX.</value>
+  </data>
+  <data name="PP.Aps.Wo.Reject.NoLotPrefix" xml:space="preserve">
+    <value>La línea de inyección no tiene LOT PREFIX (regístrelo en MD-001)</value>
+  </data>
 </root>

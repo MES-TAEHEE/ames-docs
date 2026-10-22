@@ -65,7 +65,7 @@ public class MasterExcelTests
             ["V-APPROVED"] = new("APPROVED", "P1", S("C1")),
             ["V-DRAFT"] = new("DRAFT", "P2", S("C1"), 30),
         },
-        S("P1", "P2", "P3", "C1", "C2", "C3"), S("EA", "G"), Today, cycle ?? ((_, _) => false));
+        S("P1", "P2", "P3", "C1", "C2", "C3"), Today, cycle ?? ((_, _) => false));
 
     static readonly string[] BomHeader = ["VersionID", "RootItemNo", "VersionNo", "EffFrom", "EffTo", "Status", "CompItemNo", "QtyPer", "UOM", "Position"];
 
@@ -89,7 +89,7 @@ public class MasterExcelTests
         var nv = r.Plans[0];
         Assert.True(nv.IsNew);
         Assert.Equal(("P3", "V1.0", (DateOnly?)Today), (nv.RootItemNo, nv.VersionNo, nv.EffFrom));
-        Assert.Equal([("C1", 2m, "EA", 10), ("C2", 0.5m, "G", 20)], nv.Lines.Select(l => (l.CompItemNo, l.QtyPer, l.Uom, l.Position)));
+        Assert.Equal([("C1", 2m, 10), ("C2", 0.5m, 20)], nv.Lines.Select(l => (l.CompItemNo, l.QtyPer, l.Position)));   // 단위 열은 읽지 않는다(10-23)
         var dv = r.Plans[1];
         Assert.False(dv.IsNew);
         Assert.Equal([("C3", 40)], dv.Lines.Select(l => (l.CompItemNo, l.Position)));   // 순서를 비우면 기존 마지막 순서(30) 다음

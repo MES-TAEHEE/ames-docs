@@ -215,6 +215,10 @@
                     {
                         <div class="dim" style="font-size:.78em;margin-top:2px;">🔒 @L["MD.Items.Hint.UomLocked"]</div>
                     }
+                    else
+                    {
+                        <div class="dim" style="font-size:.78em;margin-top:2px;">@L["MD.Items.Hint.UomSyncsBom"]</div>
+                    }
                 </RadzenColumn>
             </RadzenRow>
 
@@ -479,15 +483,18 @@
         try
         {
             NormalizeCategory();
-            MD.UpdateItem(_f.ItemNo, _f.ItemName.Trim(), N(_f.ItemType),
+            var bomLines = MD.UpdateItem(_f.ItemNo, _f.ItemName.Trim(), N(_f.ItemType),
                 N(_f.ItemCategory), InjEnabled && _f.InjFlag, N(_f.CarType), N(_f.Uom), N(_f.RoutingType),
                 Nz(_f.MinStock), Nz(_f.MaxStock), Nz(_f.SafetyStock), Nz(_f.UnitCost),
                 N(_f.Pgn), N(_f.Alc), N(_f.DrawingNo),
                 _f.PalletQty, _f.ToteFlag ? null : _f.MaxPalletQty, _f.ToteFlag,
                 _f.ActiveFlag, _actor, _f.ScanRequired, _f.ProcureType ?? "", _f.IssueAddPct ?? 0, _f.MrpAllowPct ?? 0);
             Audit.Updated("MD-003", "MD_Item", _f.ItemNo, _sel, _f);
+            if (bomLines > 0)
+                Audit.Log("MD-003", "BOM_UOM_SYNC", "MD_Bom", _f.ItemNo, new { CompItemNo = _f.ItemNo, UOM = _sel?.DefaultUOM }, new { CompItemNo = _f.ItemNo, UOM = N(_f.Uom), Lines = bomLines });
             CloseModal(); await ReloadRestorePage();
-            ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo), false);
+            ShowMsg(string.Format(L["MD.Items.Ok.Updated"].Value, _f.ItemNo)
+                    + (bomLines > 0 ? " " + string.Format(L["MD.Items.Ok.BomUomSynced"].Value, bomLines, UomFmt.Sym(N(_f.Uom) ?? "")) : ""), false);
         }
         catch (MasterDataRepository.ItemUomLockedException) { _uomInUse = true; _f.Uom = _sel?.DefaultUOM ?? ""; _modalErr = L["MD.Items.Hint.UomLocked"]; }
         catch (Exception ex) { _modalErr = ex.Message; }

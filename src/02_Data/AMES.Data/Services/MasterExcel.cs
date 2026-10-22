@@ -227,6 +227,7 @@ public static class ItemImport
 /// 버전이 없으면 DRAFT 로 만들고 라인을 넣는다. 있는 버전이 DRAFT 면 그 버전에 없는 구성품만 더하고(있는 구성품은 건너뜀),
 /// DRAFT 가 아니면(승인 요청·승인 등) 버전째 건너뛴다. 한 버전에 문제가 하나라도 있으면 그 버전은 통째로 등록하지 않는다(반쪽 BOM 방지).
 /// 새 버전의 시작일·종료일은 화면 등록과 같이 오늘부터만.
+/// 단위(UOM) 열은 내려받기 참고용이다 — 올리면 읽지 않고 구성품의 기본 단위로 저장한다(10-23).
 /// </summary>
 public static class BomImport
 {
@@ -237,7 +238,7 @@ public static class BomImport
     ];
     public static readonly string[] RequiredKeys = ["VersionID", "RootItemNo", "CompItemNo", "QtyPer"];
 
-    public sealed record Line(int Row, string CompItemNo, decimal QtyPer, string? Uom, decimal? ScrapPct, int Position, string? Note);
+    public sealed record Line(int Row, string CompItemNo, decimal QtyPer, decimal? ScrapPct, int Position, string? Note);
 
     public sealed record Version(string VersionId, bool IsNew, string RootItemNo, string? VersionNo, DateOnly? EffFrom, DateOnly? EffTo,
         string? ChangeType, string? ChangeReason, List<Line> Lines);
@@ -245,7 +246,7 @@ public static class BomImport
     /// <summary>있는 버전 — MaxPosition 은 그 버전 라인의 가장 큰 순서(순서를 비운 새 라인은 그 다음 10 단위로 붙인다).</summary>
     public sealed record ExistingVersion(string Status, string? RootItemNo, IReadOnlySet<string> CompItems, int MaxPosition = 0);
 
-    public sealed record Lookup(IReadOnlyDictionary<string, ExistingVersion> Versions, IReadOnlySet<string> Items, IReadOnlySet<string> Uoms,
+    public sealed record Lookup(IReadOnlyDictionary<string, ExistingVersion> Versions, IReadOnlySet<string> Items,
         DateOnly Today, Func<string, string, bool> WouldCycle);
 
     public sealed record Result(List<Version> Plans, List<(int Row, string VersionId, string Status)> SkippedVersions,
@@ -324,13 +325,11 @@ public static class BomImport
                 var qty = r.Decimal("QtyPer");
                 if (qty is null && r.Text("QtyPer") is null) r.Problem("QtyPer", MasterExcel.Codes.Required);
                 else if (qty <= 0) r.Problem("QtyPer", MasterExcel.Codes.OutOfRange, qty.Value.ToString(CultureInfo.InvariantCulture));
-                var uom = r.Code("UOM");
-                if (uom is not null && !lk.Uoms.Contains(uom)) r.Problem("UOM", MasterExcel.Codes.Unknown, uom);
                 var scrap = r.Decimal("ScrapPct");
                 if (scrap is < 0 or > 100) r.Problem("ScrapPct", MasterExcel.Codes.OutOfRange, scrap.Value.ToString(CultureInfo.InvariantCulture));
                 var pos = r.Int("Position") ?? nextPos;
                 nextPos = Math.Max(nextPos, pos + 10);
-                lines.Add(new Line(r.Line, comp, qty ?? 0, uom, scrap is 0 ? null : scrap, pos, r.Text("Note")));
+                lines.Add(new Line(r.Line, comp, qty ?? 0, scrap is 0 ? null : scrap, pos, r.Text("Note")));
             }
 
             if (problems.Count > before) continue;

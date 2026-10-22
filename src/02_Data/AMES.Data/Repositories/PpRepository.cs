@@ -695,10 +695,12 @@ public sealed partial class PpRepository
         public decimal   ShortQty  => Shortfalls.Sum(s => s.Qty);
     }
 
-    /// <summary>계획에서 제외된 수주. Reason = RejectNoMold(코어 품번에 금형 매핑 없음) / RejectNoCore(BOM 에서 코어를 못 정함).</summary>
+    /// <summary>계획에서 제외된 수주. Reason = RejectNoMold(코어 품번에 금형 매핑 없음) / RejectNoCore(BOM 에서 코어를 못 정함) / RejectNoLotPrefix(LOT 공정 단계 라인에 LOT PREFIX 없음).</summary>
     public sealed record RejectedOrder(int SoId, string? SoNumber, string? ItemNo, string Reason);
     public const string RejectNoMold = "NoMold";
     public const string RejectNoCore = "NoCore";
+    /// <summary>LOT 을 발행하는 공정 단계의 라인에 LOT PREFIX 가 없다(10-23, LotPrefixRules) — 릴리스하면 POP 이 LOT 을 만들 수 없다.</summary>
+    public const string RejectNoLotPrefix = "NoLotPrefix";
 
     public sealed record ScheduledCreateResult(List<OrderOutcome> Orders, List<RejectedOrder> Rejected)
     {
@@ -768,6 +770,11 @@ public sealed partial class PpRepository
                 if (template.Any(t => t.NoCore))
                 {
                     rejected.Add(new RejectedOrder(plan.SoId, key.SoNumber, key.ItemNo, RejectNoCore));
+                    continue;
+                }
+                if (template.Any(t => t.LacksPrefix(plan.Steps.FirstOrDefault(s => s.StepSeq == t.StepSeq)?.LineId)))
+                {
+                    rejected.Add(new RejectedOrder(plan.SoId, key.SoNumber, key.ItemNo, RejectNoLotPrefix));
                     continue;
                 }
                 var molds = ResolveMolds(conn, tx, template, plan.Steps, days, today);

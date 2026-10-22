@@ -11522,9 +11522,6 @@
   <data name="MD.Bom.Err.StartRequired" xml:space="preserve">
     <value>시작일을 입력하세요(오늘 이후).</value>
   </data>
-  <data name="MD.Bom.Hint.UomLocked" xml:space="preserve">
-    <value>구성품에 재고·실적이 있어 단위를 바꿀 수 없습니다.</value>
-  </data>
   <data name="MD.Bom.NoVersion" xml:space="preserve">
     <value>BOM 버전 없음</value>
   </data>
@@ -11701,4 +11698,19 @@
   <data name="SCM.Preview.Cancellation.AlreadyReceived" xml:space="preserve"><value>입고 완료되어 취소할 수 없습니다.</value></data>
   <data name="SCM.Preview.Cancellation.PartiallyReceived" xml:space="preserve"><value>일부 입고되어 취소할 수 없습니다.</value></data>
   <data name="SCM.Preview.Cancellation.NotAllowed" xml:space="preserve"><value>현재 상태 또는 권한으로는 취소할 수 없습니다.</value></data>
+  <data name="MD.Bom.Hint.UomFromItem" xml:space="preserve">
+    <value>구성품의 기본 단위를 그대로 씁니다 — 바꾸려면 MD-003 품목에서 단위를 고칩니다.</value>
+  </data>
+  <data name="MD.Items.Hint.UomSyncsBom" xml:space="preserve">
+    <value>단위를 바꾸면 이 품목을 구성품으로 쓰는 BOM 라인의 단위도 같이 바뀝니다.</value>
+  </data>
+  <data name="MD.Items.Ok.BomUomSynced" xml:space="preserve">
+    <value>이 품목을 쓰는 BOM 라인 {0}건의 단위도 {1}(으)로 바꿨습니다.</value>
+  </data>
+  <data name="MD.Line.Hint.NoLotPrefix" xml:space="preserve">
+    <value>LOT 을 발행하지 않는 공정(재작업 등)의 라인은 LOT PREFIX 를 두지 않습니다.</value>
+  </data>
+  <data name="PP.Aps.Wo.Reject.NoLotPrefix" xml:space="preserve">
+    <value>사출 라인에 LOT PREFIX 가 없음(MD-001 에서 등록)</value>
+  </data>
 </root>

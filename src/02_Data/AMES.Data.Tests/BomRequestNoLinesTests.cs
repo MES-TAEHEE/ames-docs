@@ -39,7 +39,7 @@ public class BomRequestNoLinesTests
             Assert.Equal(Ver, ex.VersionId);
             Assert.Equal("DRAFT", Status(f!));
 
-            Assert.True(md.InsertBomLine(Line, Item, Item, 1, 1m, "EA", null, Ver, 10, null, Actor));
+            Assert.True(md.InsertBomLine(Line, Item, Item, 1, 1m, null, Ver, 10, null, Actor));
             Assert.True(md.DeleteBomLine(Line, Actor));   // 비활성 라인만 남음
             Assert.Throws<MasterDataRepository.BomHasNoLinesException>(() => md.RequestBomApproval(Ver, Actor));
             Assert.Equal("DRAFT", Status(f!));
