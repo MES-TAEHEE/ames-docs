@@ -2094,23 +2094,11 @@
   <data name="PP.Oee.Lbl.Target" xml:space="preserve">
     <value>목표</value>
   </data>
-  <data name="PP.Oee.Btn.Compute" xml:space="preserve">
-    <value>▶ 계산</value>
-  </data>
-  <data name="PP.Oee.Btn.SaveSnapshot" xml:space="preserve">
-    <value>💾 스냅샷 저장</value>
-  </data>
   <data name="PP.Oee.Tab.Trend" xml:space="preserve">
     <value>📈 추세</value>
   </data>
   <data name="PP.Oee.Tab.Log" xml:space="preserve">
     <value>📋 상태 로그</value>
-  </data>
-  <data name="PP.Oee.Result.Above" xml:space="preserve">
-    <value>▲ 목표달성</value>
-  </data>
-  <data name="PP.Oee.Result.Below" xml:space="preserve">
-    <value>▼ 목표({0}%) 미달</value>
   </data>
   <data name="PP.Oee.Trend.NoSnap" xml:space="preserve">
     <value>저장된 스냅샷이 없습니다. 계산 후 스냅샷 저장 버튼으로 기록을 누적하세요.</value>
@@ -2139,20 +2127,8 @@
   <data name="PP.Oee.Snap.Col.SavedAt" xml:space="preserve">
     <value>저장일시</value>
   </data>
-  <data name="PP.Oee.Err.NoLine" xml:space="preserve">
-    <value>라인을 선택하세요.</value>
-  </data>
   <data name="PP.Oee.Err.DateRange" xml:space="preserve">
     <value>시작일이 종료일보다 늦습니다.</value>
-  </data>
-  <data name="PP.Oee.Err.Compute" xml:space="preserve">
-    <value>계산 오류: {0}</value>
-  </data>
-  <data name="PP.Oee.Err.Save" xml:space="preserve">
-    <value>저장 오류: {0}</value>
-  </data>
-  <data name="PP.Oee.Ok.Snapshot" xml:space="preserve">
-    <value>스냅샷 저장 완료.</value>
   </data>
   <data name="PP.PlanConfirm.Title" xml:space="preserve">
     <value>계획 확정</value>
@@ -5025,18 +5001,6 @@
   <data name="PP.Oee.Tab.Snapshots" xml:space="preserve">
     <value>📋 스냅샷</value>
   </data>
-  <data name="PP.Oee.Calc.Title" xml:space="preserve">
-    <value>OEE 계산 · 상태 로그 + 실적 기준</value>
-  </data>
-  <data name="PP.Oee.Calc.Note" xml:space="preserve">
-    <value>성능 P 는 BOP 표준 사이클이 없으면 100%로 간주합니다</value>
-  </data>
-  <data name="PP.Oee.Calc.Assumed" xml:space="preserve">
-    <value>(P 가정)</value>
-  </data>
-  <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
-    <value>해당 구간에 상태 로그가 없습니다</value>
-  </data>
   <data name="PP.Oee.NoProduction" xml:space="preserve">
     <value>실적 없음 — 측정 안 됨</value>
   </data>
@@ -5045,6 +5009,12 @@
   </data>
   <data name="PP.Oee.Btn.FillNow" xml:space="preserve">
     <value>▶ 지금 집계</value>
+  </data>
+  <data name="PP.Oee.Lbl.FillDate" xml:space="preserve">
+    <value>기준일</value>
+  </data>
+  <data name="PP.Oee.Lbl.FillDays" xml:space="preserve">
+    <value>일수</value>
   </data>
   <data name="PP.Oee.Auto.Last" xml:space="preserve">
     <value>자동 집계 마지막 {0} · {1}건</value>
@@ -5060,9 +5030,6 @@
   </data>
   <data name="PP.Oee.Err.Fill" xml:space="preserve">
     <value>집계 실패: {0}</value>
-  </data>
-  <data name="PP.Oee.Calc.AutoNote" xml:space="preserve">
-    <value>어제·오늘 교대 스냅샷은 에이전트 작업이 주기적으로 다시 계산해 같은 키의 저장값을 덮어씁니다</value>
   </data>
   <data name="PP.Oee.Log.Timeline" xml:space="preserve">
     <value>분단위 상태 타임라인</value>
@@ -5090,9 +5057,6 @@
   </data>
   <data name="PP.Oee.Snap.Col.Good" xml:space="preserve">
     <value>양품</value>
-  </data>
-  <data name="PP.Oee.Confirm.DeleteSnap" xml:space="preserve">
-    <value>이 스냅샷을 삭제할까요?</value>
   </data>
   <data name="PP.Downtime.Kpi.Events" xml:space="preserve">
     <value>건수</value>

@@ -7,7 +7,6 @@
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
 @inject AuthenticationStateProvider AuthPrvd
-@inject Microsoft.JSInterop.IJSRuntime JS
 @inject AMES.Web.Services.AuditLogger Audit
 @using AMES.Contracts.Dto
 @using AMES.Data.Repositories
@@ -78,6 +77,10 @@
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
             @if (_canEdit)
             {
+                <RadzenLabel Text="@L["PP.Oee.Lbl.FillDate"]" Component="DatePickerFill" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerFill" @bind-Value="_fillDate" DateFormat="@DateFmt.Date" Max="@DbClock.Today" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+                <RadzenLabel Text="@L["PP.Oee.Lbl.FillDays"]" Component="NumericFillDays" />
+                <RadzenNumeric TValue="int" Name="NumericFillDays" @bind-Value="_fillDays" Min="1" Max="31" InputSize="InputSize.Small" class="ames-rz-input" Style="width:80px;" />
                 <RadzenButton Text="@L["PP.Oee.Btn.FillNow"]" Icon="autorenew" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@FillNow" Disabled="@_filling" class="ames-rz-btn" />
             }
         </RadzenStack>
@@ -202,7 +205,6 @@
                 <button class="ames-btn @(_tab == "trend" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => _tab = "trend"'>@L["PP.Oee.Tab.Trend"]</button>
                 <button class="ames-btn @(_tab == "snaps" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => _tab = "snaps"'>@L["PP.Oee.Tab.Snapshots"]</button>
                 <button class="ames-btn @(_tab == "log" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => { _tab = "log"; LoadLogs(); }'>@L["PP.Oee.Tab.Log"]</button>
-                <button class="ames-btn @(_tab == "calc" ? "" : "ghost")" style="padding:3px 10px;" @onclick='() => _tab = "calc"'>@L["PP.Oee.Btn.Compute"]</button>
                 <button class="ames-btn ghost" style="padding:3px 10px;" @onclick="() => Select(null)">✕</button>
             </span>
         </div>
@@ -268,10 +270,10 @@
                         <Template Context="s">@($"{s.Availability:F1}%")</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="140px" Width="140px" Property="Performance" Title="@L["PP.Oee.Snap.Col.Perf"]" TextAlign="TextAlign.Right">
-                        <Template Context="s">@(s.TotalProducedQty > 0 ? $"{s.Performance:F1}%" : NoProd)</Template>
+                        <Template Context="s">@if (s.TotalProducedQty > 0) { @($"{s.Performance:F1}%") } else { @NoProd }</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="100px" Width="100px" Property="Quality" Title="@L["PP.Oee.Snap.Col.Qual"]" TextAlign="TextAlign.Right">
-                        <Template Context="s">@(s.TotalProducedQty > 0 ? $"{s.Quality:F1}%" : NoProd)</Template>
+                        <Template Context="s">@if (s.TotalProducedQty > 0) { @($"{s.Quality:F1}%") } else { @NoProd }</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="90px" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="s"><span class="pp-oee-pill @GradeKey(s.Oee)">@($"{s.Oee:F1}%")</span></Template>
@@ -279,14 +281,6 @@
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="160px" Property="CreatedTs" Title="@L["PP.Oee.Snap.Col.SavedAt"]" Width="160px">
                         <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString(DateFmt.DateTime) ?? "")</span></Template>
                     </RadzenDataGridColumn>
-                    @if (_canEdit)
-                    {
-                        <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="60px" Title="" Width="60px" Sortable="false" TextAlign="TextAlign.Center">
-                            <Template Context="s">
-                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.ExtraSmall" Click="@(() => DeleteSnap(s.OeeSnapshotId))" class="ames-rz-btn" Style="height:24px;padding:0 8px;line-height:1;" />
-                            </Template>
-                        </RadzenDataGridColumn>
-                    }
                 </Columns>
             </RadzenDataGrid>
         }
@@ -306,51 +300,6 @@
             </div>
             @if (_logs.Count == 0) { <div class="ames-empty">@L["PP.Oee.Log.Empty"]</div> }
             else { <div class="pp-oee-chart-wrap">@((MarkupString)BuildTimelineSvg(_logs, _logDate))</div> }
-        }
-        else if (_tab == "calc")
-        {
-            <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-bottom:8px;">@L["PP.Oee.Calc.Title"] · @L["PP.Oee.Calc.Note"] · @L["PP.Oee.Calc.AutoNote"]</div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-                <input type="date" class="ames-input" style="width:148px;padding:3px 7px;"
-                       value="@_calcDate.ToString("yyyy-MM-dd")"
-                       @onchange="e => { if (DateTime.TryParse(e.Value?.ToString(), out var d)) _calcDate = d; }" />
-                <RadzenLabel Text="@L["Col.Shift"]" Component="DropDownCalcShift" />
-                <RadzenDropDown Name="DropDownCalcShift" @bind-Value="_calcShift" Data="@ShiftOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["PP.Oee.Shift.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
-                <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@CalcWindowText</span>
-                <button class="ames-btn ok" @onclick="Compute">@L["PP.Oee.Btn.Compute"]</button>
-                @if (_canEdit)
-                {
-                    <button class="ames-btn" @onclick="SaveSnapshot" disabled="@(_result is null)">@L["PP.Oee.Btn.SaveSnapshot"]</button>
-                }
-            </div>
-            @if (_result is { } r)
-            {
-                <div class="pp-oee-calc">
-                    <div class="pp-oee-donut-wrap @GradeKey(r.Oee)">
-                        @((MarkupString)BuildDonutSvg(r.Oee))
-                        <span class="pill @(r.Oee >= _fTarget ? "ok" : "bad")">
-                            @(r.Oee >= _fTarget ? L["PP.Oee.Result.Above"].Value : string.Format(L["PP.Oee.Result.Below"].Value, _fTarget))
-                        </span>
-                    </div>
-                    <div class="pp-oee-comp" style="margin-top:0;">
-                        @foreach (var (lbl, val, key, note) in new[] {
-                            (L["PP.Oee.Kpi.Availability"].Value, r.Availability, "a", $"{r.OperatingMin} / {r.LoadingMin} min"),
-                            (L["PP.Oee.Kpi.Performance"].Value,  r.Performance,  "p", r.PerformanceAssumed ? L["PP.Oee.Calc.Assumed"].Value : ""),
-                            (L["PP.Oee.Kpi.Quality"].Value,      r.Quality,      "q", r.TotalProducedQty > 0 ? $"{UomFmt.Qty(r.GoodQty, null)} / {UomFmt.Qty(r.TotalProducedQty, null)} ea" : L["PP.Oee.NoProduction"].Value) })
-                        {
-                            <div class="pp-oee-comp-row">
-                                <div class="pp-oee-comp-h"><span>@lbl <span class="dim">@note</span></span><b>@($"{val:F1}%")</b></div>
-                                <div class="pp-oee-track pp-oee-comp-track"><i class="pp-oee-fill-@key" style="width:@(Math.Min(100m, val).ToString("F1"))%;"></i></div>
-                            </div>
-                        }
-                        <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));display:flex;gap:14px;flex-wrap:wrap;">
-                            <span>@L["PP.Oee.Loss.Planned"] @r.PlannedDownMin min</span>
-                            <span style="color:var(--ames-tx-red-400);">@L["PP.Oee.Loss.Cat.Avail"] @r.UnplannedDownMin min</span>
-                            <span>@L["PP.Oee.Snap.Col.Date"] @r.PeriodDate.ToString(DateFmt.Date) @(r.ShiftCode is null ? "" : $"[{r.ShiftCode}]")</span>
-                        </div>
-                    </div>
-                </div>
-            }
         }
     </div>
 }
@@ -390,13 +339,13 @@
 
     DateTime _logDate  = DbClock.Today;
     List<LineStateLogDto> _logs = [];
-    DateTime _calcDate  = DbClock.Today;
-    string?  _calcShift;
-    OeeSnapshotDto? _result;
 
     // 자동 집계(에이전트 작업 "[AMES] Line OEE Fill" · 「지금 집계」) 마지막 기록 — SYS_InterfaceMonitor OEEFILL
     OeeRepository.FillMonitor? _fill;
     bool _filling;
+    // 「지금 집계」 범위 — 기준일부터 거슬러 _fillDays 일(기본 어제·오늘 = 에이전트 작업과 같음, 최대 31일 백필)
+    DateTime _fillDate = DbClock.Today;
+    int      _fillDays = 2;
 
     bool   _canEdit;
     string _actor = "web";
@@ -461,7 +410,7 @@
             if (Repo.LatestSnapshotDate() is { } last) { _fTo = last; _fFrom = last.AddDays(-6); }
         }
         catch { }
-        _logDate = _calcDate = _fTo;
+        _logDate = _fTo;
         ApplyFilter();
     }
 
@@ -537,7 +486,7 @@
     void Select(string? lineId)
     {
         _sel = _sel == lineId ? null : lineId;
-        _result = null; _err = "";
+        _err = "";
         if (_sel is not null && _tab == "log") LoadLogs();
     }
 
@@ -549,62 +498,6 @@
         catch (Exception ex) { _err = ex.Message; }
     }
 
-    void Compute()
-    {
-        _err = ""; _result = null;
-        if (_sel is null) { _err = L["PP.Oee.Err.NoLine"]; return; }
-        var (ws, we) = ShiftWindow(_calcDate, _calcShift ?? "");
-        try
-        {
-            _result = Repo.ComputeOee(_sel, ws, we, string.IsNullOrEmpty(_calcShift) ? null : _calcShift);
-            if (_result is null) _err = L["PP.Oee.Calc.NoLog"];
-        }
-        catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Compute"].Value, ex.Message); }
-    }
-
-    // WORK_SHIFT.Attribute1 = "HHMM-HHMM" (끝이 시작보다 빠르면 익일). 교대 미선택 시 하루 전체.
-    // 선택한 교대의 집계 구간 표시 — 공통코드 Attribute1(HHMM-HHMM) 을 그대로 보여준다
-    string CalcWindowText
-    {
-        get
-        {
-            var (s, e) = ShiftWindow(_calcDate, _calcShift ?? "");
-            return e == s.Date.AddDays(1) && s == s.Date ? "00:00–24:00"
-                 : e.Date > s.Date ? $"{s:HH:mm}–{e:HH:mm} (+1)" : $"{s:HH:mm}–{e:HH:mm}";
-        }
-    }
-
-    (DateTime Start, DateTime End) ShiftWindow(DateTime date, string shiftCode)
-    {
-        var d = date.Date;
-        var w = _shiftItems.FirstOrDefault(c => c.CodeValue == shiftCode)?.Attribute1;
-        if (w is not { Length: 9 }) return (d, d.AddDays(1));
-        if (!int.TryParse(w[..2], out var sh) || !int.TryParse(w[2..4], out var sm)
-         || !int.TryParse(w[5..7], out var eh) || !int.TryParse(w[7..9], out var em)) return (d, d.AddDays(1));
-        var s = d.AddMinutes(sh * 60 + sm);
-        var e = d.AddMinutes(eh * 60 + em);
-        if (e <= s) e = e.AddDays(1);
-        return (s, e);
-    }
-
-    void SaveSnapshot()
-    {
-        if (_result is null || !_canEdit) return;
-        _err = "";
-        try
-        {
-            // 같은 라인·날짜·교대가 있으면 덮어쓴다 — 새로 만들었으면 등록, 덮어썼으면 이전 값과 함께 수정으로 남긴다
-            var saved = Repo.SaveSnapshot(_result, _actor);
-            if (saved.Created) Audit.Created("PP-OEE", "PP_LineOEE", saved.Id, _result);
-            else               Audit.Updated("PP-OEE", "PP_LineOEE", saved.Id, saved.Before, _result);
-            ShowMsg(L["PP.Oee.Ok.Snapshot"]);
-            if (_result.PeriodDate < _fFrom) _fFrom = _result.PeriodDate;
-            if (_result.PeriodDate > _fTo)   _fTo   = _result.PeriodDate;
-            ApplyFilter();
-        }
-        catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Save"].Value, ex.Message); }
-    }
-
     // ── 자동 집계 ────────────────────────────────────────────────────────
     string FillText => _fill?.LastRunTs is { } ts
         ? string.Format(L["PP.Oee.Auto.Last"].Value, ts.ToString(DateFmt.DateTime), _fill.LastCount ?? 0)
@@ -613,7 +506,7 @@
         : L["PP.Oee.Auto.None"].Value;
     bool FillError => _fill?.Status == "ERROR";
 
-    // 에이전트가 돌리는 것과 같은 프로시저를 그 자리에서 — 어제·오늘(DaysBack 1). DB 호출은 회로 밖에서(처리 중 재클릭 방지 규칙)
+    // 에이전트가 돌리는 것과 같은 프로시저를 그 자리에서 — 기준일부터 _fillDays 일(백필 겸용). DB 호출은 회로 밖에서(처리 중 재클릭 방지 규칙)
     async Task FillNow()
     {
         if (!_canEdit || _filling) return;
@@ -621,10 +514,15 @@
         try
         {
             var actor = _actor;
-            var r = await Task.Run(() => Repo.RunFill(null, 1, actor));
+            var baseDate = _fillDate.Date > DbClock.Today ? DbClock.Today : _fillDate.Date;
+            var daysBack = Math.Clamp(_fillDays, 1, 31) - 1;
+            var r = await Task.Run(() => Repo.RunFill(baseDate, daysBack, actor));
             Audit.Log("PP-OEE", "FILL", "PP_LineOEE", null, null, r);
             ShowMsg(string.Format(L["PP.Oee.Ok.Fill"].Value, r.Inserted, r.Updated, r.Unchanged));
-            if (_fTo < DbClock.Today) _fTo = DbClock.Today;   // 집계된 오늘 행이 보이게
+            // 집계한 날짜가 조회 기간에 들어오게
+            var from = baseDate.AddDays(-daysBack);
+            if (from < _fFrom)   _fFrom = from;
+            if (baseDate > _fTo) _fTo   = baseDate;
             ApplyFilter();
         }
         catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Fill"].Value, ex.Message); }
@@ -633,20 +531,6 @@
             _filling = false;
             try { _fill = Repo.GetFillMonitor(); } catch { }
         }
-    }
-
-    async Task DeleteSnap(int id)
-    {
-        if (!_canEdit) return;
-        if (!await JS.InvokeAsync<bool>("confirm", L["PP.Oee.Confirm.DeleteSnap"].Value)) return;
-        try
-        {
-            var before = _snaps.FirstOrDefault(x => x.OeeSnapshotId == id);
-            Repo.DeleteSnapshot(id);
-            Audit.Deleted("PP-OEE", "PP_LineOEE", id, before);
-            ApplyFilter();
-        }
-        catch (Exception ex) { _err = ex.Message; }
     }
 
     void ShowMsg(string msg)
