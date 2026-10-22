@@ -36,6 +36,10 @@
     </div>
 
     <div class="pda-bd wh03-body">
+        @if (!IsSpareParts)
+        {
+            <PdaStockFilter Value="@_stockKind" ValueChanged="SetStockKind" IncludeAll="@(!IsAdjustTab)" Disabled="@(InventoryBusy || _isLoading)" />
+        }
         @if (IsSearchTab)
         {
             <div class="wh03-filter-strip">
@@ -920,7 +924,8 @@
 
     private string PageTitle => IsAdjustTab ? "Adjust" : "Inventory";
     private bool IsSpareParts => Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.StartsWith("/sp/", StringComparison.OrdinalIgnoreCase);
-    private string ModuleHome => IsFinishedGoodsAdjust ? "/fg" : IsSpareParts ? "/sp" : "/wh";
+    private string ModuleHome => IsSpareParts ? "/sp" : "/wh";
+    private string _stockKind = "ALL";
     private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
     private bool IsTestMode => !IsFinishedGoodsAdjust && !IsSpareParts
         && PdaScenarioUsers.IsDetailed(Auth.Session?.EmployeeNo);
@@ -932,10 +937,16 @@
     private bool ShouldSimulateAdjustApiFailure => IsTestMode
         && CurrentAdjustTestScenario.No == 20
         && _simulateAdjustApiFailure;
-    private bool IsFinishedGoodsAdjust => string.Equals(
-        Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.TrimEnd('/'),
-        "/fg/adjust",
-        StringComparison.OrdinalIgnoreCase);
+    private bool IsFinishedGoodsAdjust => !IsSpareParts && _stockKind == "FG";
+    private async Task SetStockKind(string value)
+    {
+        if (InventoryBusy || _isLoading || value == _stockKind) return;
+        _stockKind = value;
+        _rows = []; _inventoryLocations = []; _locationRows = []; _matchedLocationIds = null;
+        _selectedBrowsePart = null; _browsePartLots = [];
+        CloseLocationInventory(); ClearInventoryWork();
+        await Load();
+    }
     private string EmptyMessage => _rows.Count == 0 ? _msg : "No items in this status.";
     private DateTime? DateFrom => _dateFrom?.Date;
     private DateTime? DateTo => _dateTo?.Date;
@@ -1378,7 +1389,10 @@
 
     private void ApplyInitialTab()
     {
-        if (IsFinishedGoodsAdjust)
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        if (uri.Query.Contains("stock=FG", StringComparison.OrdinalIgnoreCase) || uri.AbsolutePath == "/fg/adjust")
+            _stockKind = "FG";
+        if (uri.AbsolutePath == "/fg/adjust")
         {
             _workTab = "Adjust";
             _invMode = "FG";
@@ -1389,6 +1403,7 @@
         if (query.Contains("tab=adjust", StringComparison.OrdinalIgnoreCase))
         {
             _workTab = "Adjust";
+            if (_stockKind == "ALL") _stockKind = "GENERAL";
             return;
         }
 
@@ -1645,7 +1660,7 @@
                 return;
             }
 
-            _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure, AreaScope);
+            _rows = await Api.WhInventoryAsync(_q, DateFrom, DateTo, ShouldSimulateInventoryApiFailure, AreaScope, _stockKind);
             _lastSyncAt = await Api.DatabaseTimeAsync();
             if (!StockStatuses.Contains(_statusFilter, StringComparer.OrdinalIgnoreCase))
                 _statusFilter = "ALL";
@@ -1737,7 +1752,7 @@
         try
         {
             if (_inventoryLocations.Count == 0)
-                _inventoryLocations = await Api.WhLocationsAsync(AreaScope);
+                _inventoryLocations = await Api.WhLocationsAsync(AreaScope, _stockKind);
 
             var lookup = await Api.WhInventoryScanAsync(scanText, AreaScope);
             var location = _inventoryLocations.FirstOrDefault(row =>
@@ -1764,12 +1779,12 @@
             }
 
             var searchText = string.IsNullOrWhiteSpace(lookup?.SearchText) ? scanText : lookup.SearchText.Trim();
-            var inventoryRows = await Api.WhInventoryAsync(searchText, areaCode: AreaScope);
+            var inventoryRows = await Api.WhInventoryAsync(searchText, areaCode: AreaScope, stockKind: _stockKind);
             var locationIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var row in inventoryRows)
             {
-                var itemLocations = await Api.WhInventoryLocationsAsync(row.ItemNo, areaCode: AreaScope);
+                var itemLocations = await Api.WhInventoryLocationsAsync(row.ItemNo, areaCode: AreaScope, stockKind: _stockKind);
                 foreach (var itemLocation in itemLocations.Where(itemLocation => itemLocation.Qty > 0))
                     locationIds.Add(itemLocation.LocationId);
 
@@ -1800,7 +1815,7 @@
 
         try
         {
-            _inventoryLocations = await Api.WhLocationsAsync(AreaScope);
+            _inventoryLocations = await Api.WhLocationsAsync(AreaScope, _stockKind);
             _locationMsg = _inventoryLocations.Count == 0 ? "No locations found." : "";
         }
         catch (Exception ex)
@@ -1835,7 +1850,7 @@
             }
 
             _selectedInventoryLocation = location;
-            _locationItems = await Api.WhLocationMapItemsAsync(location.LocationId, areaCode: AreaScope);
+            _locationItems = await Api.WhLocationMapItemsAsync(location.LocationId, DateFrom, DateTo, areaCode: AreaScope, stockKind: _stockKind);
             _locationMsg = _locationItems.Count == 0
                 ? "No inventory exists in this location."
                 : "";
@@ -1883,7 +1898,7 @@
         {
             var lots = IsSpareParts
                 ? await Api.WhLotStatusesAsync(part.PartNo, AreaScope)
-                : await Api.WhInventoryPartLotsAsync(part.PartNo, DateFrom, DateTo);
+                : await Api.WhInventoryPartLotsAsync(part.PartNo, DateFrom, DateTo, _stockKind);
             _browsePartLots = lots
                 .Where(row => row.RemainingQty > 0
                     && string.Equals(row.ItemNo, part.PartNo, StringComparison.OrdinalIgnoreCase)
@@ -2293,7 +2308,7 @@
 
         try
         {
-            _locationRows = await Api.WhInventoryLocationsAsync(row.ItemNo, DateFrom, DateTo, AreaScope);
+            _locationRows = await Api.WhInventoryLocationsAsync(row.ItemNo, DateFrom, DateTo, AreaScope, _stockKind);
         }
         finally
         {

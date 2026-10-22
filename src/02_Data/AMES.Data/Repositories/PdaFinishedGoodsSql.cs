@@ -20,7 +20,8 @@ public static class PdaFinishedGoodsSql
             LEFT JOIN dbo.PR_PntLot PNT ON PNT.LotID=L.LotID
             LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
             WHERE W.Qty>0
-              AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+              AND I.ItemType='ASSY'
+              AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
               AND (@Search IS NULL OR W.LotNo LIKE @Search OR W.PartNo LIKE @Search
                 OR W.PartName LIKE @Search OR I.ItemName LIKE @Search OR W.LocationNo LIKE @Search)
             ORDER BY W.ReceivedAt DESC,W.LotNo DESC;
@@ -80,7 +81,7 @@ public static class PdaFinishedGoodsSql
                 SELECT 1 FROM dbo.WH_Inventory W
                 LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
                 WHERE UPPER(W.LotNo)=UPPER(@Scan)
-                  AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+                  AND EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY')
             ) THROW 51601,'The specified finished goods Lot No could not be found.',1;
 
             SELECT N'FG' AS RECEIVE_TYPE,N'N' AS YN,W.LotNo AS LOTNO,W.LotNo AS BARCODE,
@@ -123,7 +124,7 @@ public static class PdaFinishedGoodsSql
             LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=W.LotNo
             LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
             WHERE UPPER(W.LotNo)=UPPER(@Scan)
-              AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%');
+              AND EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY');
             IF @ItemNo IS NULL THROW 51614,'The specified finished goods Lot No could not be found.',1;
             SET @After=@Before+@DeltaQty;
             IF @After<0 THROW 51617,'After Qty cannot be below zero.',1;

@@ -8,18 +8,18 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
         <div class="wh01-tbar-title">
-            <span class="pda-tbar-brand">PUT-AWAY WAITING</span>
+            <span class="pda-tbar-brand">ASSY READY</span>
         </div>
         <RadzenButton class="wh01-tbar-refresh" Click="Load" Disabled="@_isLoading" Text="REFRESH" />
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="PUT-AWAY WAITING" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" />
+            <PptScenarioPanel Title="ASSY READY" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@_isLoading" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" />
         }
     </div>
 
     <div class="pda-bd wh01-body">
         <section class="wh01-head">
-            <div class="pda-card-h">PUT-AWAY WAITING</div>
+            <div class="pda-card-h">ASSY READY</div>
             @if (!_loadError && !_isLoading)
             {
             <div class="wh01-summary">

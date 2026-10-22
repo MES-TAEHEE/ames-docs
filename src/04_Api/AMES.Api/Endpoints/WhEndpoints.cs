@@ -657,12 +657,13 @@ public static class WhEndpoints
 
         // WH-03 Inventory Status
         g.MapGet("/inventory", (HttpContext ctx, string? q, DateTime? dateFrom, DateTime? dateTo,
-            string? areaCode, bool? simulateFailure) =>
+            string? areaCode, bool? simulateFailure, string? stockKind) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
+            if (!PdaStockScope.IsValid(stockKind)) return Results.BadRequest("Invalid stock type.");
             if (app.Environment.IsDevelopment() && simulateFailure == true && PdaScenarioUsers.IsDetailed(s.EmployeeNo))
                 return Results.Problem("Simulated Inventory API failure.", statusCode: StatusCodes.Status503ServiceUnavailable);
-            return Results.Ok(QueryInventory(factory, q, dateFrom, dateTo, areaCode));
+            return Results.Ok(QueryInventory(factory, q, dateFrom, dateTo, areaCode, stockKind));
         });
 
         g.MapGet("/inventory/scan", (HttpContext ctx, string scanText) =>
@@ -672,29 +673,30 @@ public static class WhEndpoints
         });
 
         g.MapGet("/inventory/locations", (HttpContext ctx, string itemNo, DateTime? dateFrom,
-            DateTime? dateTo, string? areaCode) =>
+            DateTime? dateTo, string? areaCode, string? stockKind) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            return Results.Ok(QueryInventoryLocations(factory, itemNo, dateFrom, dateTo, areaCode));
+            if (!PdaStockScope.IsValid(stockKind)) return Results.BadRequest("Invalid stock type.");
+            return Results.Ok(QueryInventoryLocations(factory, itemNo, dateFrom, dateTo, areaCode, stockKind));
         });
 
-        g.MapGet("/inventory/part/{itemNo}/lots", (HttpContext ctx, string itemNo, DateTime? dateFrom, DateTime? dateTo) =>
+        g.MapGet("/inventory/part/{itemNo}/lots", (HttpContext ctx, string itemNo, DateTime? dateFrom, DateTime? dateTo, string? stockKind) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
+            if (!PdaStockScope.IsValid(stockKind)) return Results.BadRequest("Invalid stock type.");
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand("""
+            using var cmd = new SqlCommand(PdaStockScope.Inventory("""
                 SELECT W.LotNo, W.PartNo, COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS PartName,
                        W.Qty, W.LocationNo, W.ReceivedAt
                 FROM dbo.WH_Inventory W
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
                 LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
                 WHERE W.PartNo = @PartNo AND W.Qty > 0
-                  AND NULLIF(LTRIM(RTRIM(W.LocationNo)), '') IS NOT NULL
                   AND NOT (UPPER(COALESCE(L.AreaCode,'')) = 'FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
                   AND (@DateFrom IS NULL OR CONVERT(date,W.ReceivedAt) >= @DateFrom)
                   AND (@DateTo IS NULL OR CONVERT(date,W.ReceivedAt) <= @DateTo)
                 ORDER BY W.LocationNo,W.LotNo;
-                """, conn);
+                """, stockKind), conn);
             cmd.Parameters.Add("@PartNo", SqlDbType.NVarChar, 50).Value = itemNo.Trim();
             cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value = dateFrom?.Date ?? (object)DBNull.Value;
             cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value = dateTo?.Date ?? (object)DBNull.Value;
@@ -703,15 +705,16 @@ public static class WhEndpoints
             var rows = new List<LotStatusRow>();
             while (reader.Read())
                 rows.Add(new LotStatusRow(0, GetString(reader, "LotNo") ?? "", GetString(reader, "PartNo"),
-                    GetString(reader, "PartName"), "STORED", GetDecimal(reader, "Qty"),
+                    GetString(reader, "PartName"), string.IsNullOrWhiteSpace(GetString(reader, "LocationNo")) ? "RECEIVED" : "STORED", GetDecimal(reader, "Qty"),
                     GetString(reader, "LocationNo"), null, GetDate(reader, "ReceivedAt")));
             return Results.Ok(rows);
         });
 
-        g.MapGet("/inventory/location-list", (HttpContext ctx) =>
+        g.MapGet("/inventory/location-list", (HttpContext ctx, string? stockKind) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            const string sql = """
+            if (!PdaStockScope.IsValid(stockKind)) return Results.BadRequest("Invalid stock type.");
+            var sql = PdaStockScope.Inventory("""
                 SELECT W.LocationNo AS LocationID,
                        COALESCE(NULLIF(L.LocationName,N''),NULLIF(ML.LineName,N''),
                                 NULLIF(ML.LineNameEn,N''),W.LocationNo) AS LocationName,
@@ -747,7 +750,7 @@ public static class WhEndpoints
                          L.ZoneCode,L.WhCode,WC.CodeName,L.AreaCode,AC.CodeName,L.Aisle,L.Bay,L.Slot,
                          L.PlantCode,ML.PlantCode,L.LocationType,L.Capacity
                 ORDER BY COALESCE(NULLIF(L.ZoneCode,N''),CASE WHEN ML.LineID IS NOT NULL THEN N'LINE' END),W.LocationNo;
-                """;
+                """, stockKind);
             return Query(factory, sql, ReadLocationRow);
         });
 
@@ -792,12 +795,13 @@ public static class WhEndpoints
             }
         }).WithTags("PDA Test Scenarios");
 
-        g.MapGet("/inventory/location/{locationId}", (HttpContext ctx, string locationId, DateTime? dateFrom, DateTime? dateTo) =>
+        g.MapGet("/inventory/location/{locationId}", (HttpContext ctx, string locationId, DateTime? dateFrom, DateTime? dateTo, string? stockKind) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
+            if (!PdaStockScope.IsValid(stockKind)) return Results.BadRequest("Invalid stock type.");
 
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand("""
+            using var cmd = new SqlCommand($"""
                 SELECT
                     W.LotNo AS LOTNO,
                     W.PartNo AS PARTNO,
@@ -810,6 +814,8 @@ public static class WhEndpoints
                 FROM dbo.WH_Inventory W
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
                 WHERE UPPER(W.LocationNo) = UPPER(@LocationID)
+                  AND {PdaStockScope.Predicate(stockKind)}
+                  AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory Child WHERE Child.ParentLotNo=W.LotNo)
                   AND COALESCE(W.Qty, 0) > 0
                   AND (@DateFrom IS NULL OR CONVERT(date, W.ReceivedAt) >= @DateFrom)
                   AND (@DateTo IS NULL OR CONVERT(date, W.ReceivedAt) <= @DateTo)
@@ -1183,10 +1189,11 @@ public static class WhEndpoints
             HttpContext ctx,
             string? search,
             DateTime? dateFrom,
-            DateTime? dateTo) =>
+            DateTime? dateTo, string? stockKind) =>
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
-            try { return Results.Ok(QueryWarehouseTransactions(factory, search, dateFrom, dateTo)); }
+            if (!PdaStockScope.IsValid(stockKind)) return Results.BadRequest("Invalid stock type.");
+            try { return Results.Ok(QueryWarehouseTransactions(factory, search, dateFrom, dateTo, stockKind)); }
             catch (InvalidOperationException ex) when (ex.Message.StartsWith("Warehouse transaction procedure is missing",StringComparison.Ordinal))
             { return Results.Problem(ex.Message,statusCode:StatusCodes.Status503ServiceUnavailable); }
         });
@@ -1334,10 +1341,10 @@ public static class WhEndpoints
     }
 
     private static List<InventoryRow> QueryInventory(AmesConnectionFactory factory, string? search,
-        DateTime? dateFrom, DateTime? dateTo, string? areaCode)
+        DateTime? dateFrom, DateTime? dateTo, string? areaCode, string? stockKind)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand(PdaWarehouseSql.Inventory, conn) { CommandTimeout = 15 };
+        using var cmd = new SqlCommand(PdaStockScope.Inventory(PdaWarehouseSql.Inventory, stockKind), conn) { CommandTimeout = 15 };
 
         cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 80).Value =
             string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
@@ -1388,10 +1395,10 @@ public static class WhEndpoints
     }
 
     private static List<InventoryLocationRow> QueryInventoryLocations(AmesConnectionFactory factory, string itemNo,
-        DateTime? dateFrom, DateTime? dateTo, string? areaCode)
+        DateTime? dateFrom, DateTime? dateTo, string? areaCode, string? stockKind)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand(PdaWarehouseSql.InventoryLocations, conn) { CommandTimeout = 15 };
+        using var cmd = new SqlCommand(PdaStockScope.Inventory(PdaWarehouseSql.InventoryLocations, stockKind), conn) { CommandTimeout = 15 };
 
         cmd.Parameters.Add("@ItemNo", SqlDbType.NVarChar, 40).Value = itemNo.Trim();
         cmd.Parameters.Add("@StockDateFrom", SqlDbType.Date).Value = dateFrom.HasValue ? dateFrom.Value.Date : (object)DBNull.Value;
@@ -1426,10 +1433,10 @@ public static class WhEndpoints
         AmesConnectionFactory factory,
         string? search,
         DateTime? dateFrom,
-        DateTime? dateTo)
+        DateTime? dateTo, string? stockKind)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand(PdaWarehouseSql.Transactions, conn) { CommandTimeout = 15 };
+        using var cmd = new SqlCommand(PdaStockScope.Transactions(stockKind), conn) { CommandTimeout = 15 };
         cmd.Parameters.Add("@SearchText", SqlDbType.NVarChar, 120).Value =
             string.IsNullOrWhiteSpace(search) ? DBNull.Value : search.Trim();
         cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value =

@@ -16,7 +16,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
 
     public Task<List<InboundRow>>         WhInboundTodayAsync()    => Get<List<InboundRow>>("/api/wh/inbound/today");
     public async Task<List<InventoryRow>> WhInventoryAsync(string? q = null, DateTime? dateFrom = null, DateTime? dateTo = null,
-        bool simulateFailure = false, string? areaCode = null)
+        bool simulateFailure = false, string? areaCode = null, string? stockKind = null)
     {
         if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
             return await spareParts.InventoryAsync(q);
@@ -27,6 +27,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         if (dateTo.HasValue) query.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
         if (!string.IsNullOrWhiteSpace(areaCode)) query.Add($"areaCode={Uri.EscapeDataString(areaCode.Trim())}");
         if (simulateFailure) query.Add("simulateFailure=true");
+        if (stockKind is not null) query.Add($"stockKind={Uri.EscapeDataString(stockKind)}");
         var url = "/api/wh/inventory" + (query.Count == 0 ? "" : "?" + string.Join("&", query));
         return await GetRequiredAsync<List<InventoryRow>>(url, "Inventory service is unavailable.");
     }
@@ -55,7 +56,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
     }
 
     public async Task<List<InventoryLocationRow>> WhInventoryLocationsAsync(string itemNo, DateTime? dateFrom = null, DateTime? dateTo = null,
-        string? areaCode = null)
+        string? areaCode = null, string? stockKind = null)
     {
         if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
             return await spareParts.InventoryLocationsAsync(itemNo);
@@ -64,27 +65,29 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         if (dateFrom.HasValue) query.Add($"dateFrom={dateFrom.Value:yyyy-MM-dd}");
         if (dateTo.HasValue) query.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
         if (!string.IsNullOrWhiteSpace(areaCode)) query.Add($"areaCode={Uri.EscapeDataString(areaCode.Trim())}");
+        if (stockKind is not null) query.Add($"stockKind={Uri.EscapeDataString(stockKind)}");
         return await GetRequiredAsync<List<InventoryLocationRow>>(
             "/api/wh/inventory/locations?" + string.Join("&", query),
             "Inventory location service is unavailable.");
     }
 
-    public Task<List<LotStatusRow>> WhInventoryPartLotsAsync(string itemNo, DateTime? dateFrom = null, DateTime? dateTo = null)
+    public Task<List<LotStatusRow>> WhInventoryPartLotsAsync(string itemNo, DateTime? dateFrom = null, DateTime? dateTo = null, string? stockKind = null)
     {
         var query = new List<string>();
         if (dateFrom.HasValue) query.Add($"dateFrom={dateFrom.Value:yyyy-MM-dd}");
         if (dateTo.HasValue) query.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
+        if (stockKind is not null) query.Add($"stockKind={Uri.EscapeDataString(stockKind)}");
         var url = $"/api/wh/inventory/part/{Uri.EscapeDataString(itemNo.Trim())}/lots"
             + (query.Count == 0 ? "" : "?" + string.Join("&", query));
         return GetRequiredAsync<List<LotStatusRow>>(url, "Inventory part LOT service is unavailable.");
     }
-    public async Task<List<LocationRow>> WhLocationsAsync(string? areaCode = null)
+    public async Task<List<LocationRow>> WhLocationsAsync(string? areaCode = null, string? stockKind = null)
     {
         if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
             return await spareParts.LocationsAsync();
 
         return FilterByArea(
-            await GetRequiredAsync<List<LocationRow>>("/api/wh/inventory/location-list", "Location service is unavailable."),
+            await GetRequiredAsync<List<LocationRow>>("/api/wh/inventory/location-list" + (stockKind is null ? "" : "?stockKind=" + Uri.EscapeDataString(stockKind)), "Location service is unavailable."),
             row => row.AreaCode, areaCode);
     }
     public async Task<List<LocationRow>> WhLocationMapAsync()
@@ -100,7 +103,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         return warehouseRows;
     }
     public async Task<List<LocationMapItemRow>> WhLocationMapItemsAsync(string locationId, DateTime? dateFrom = null, DateTime? dateTo = null,
-        string? areaCode = null)
+        string? areaCode = null, string? stockKind = null)
     {
         if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
             return await spareParts.LocationItemsAsync(locationId);
@@ -108,6 +111,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         async Task<List<LocationMapItemRow>> QueryApiAsync()
         {
             var query = new List<string>();
+            if (stockKind is not null) query.Add($"stockKind={Uri.EscapeDataString(stockKind)}");
             if (dateFrom.HasValue)
                 query.Add($"dateFrom={Uri.EscapeDataString(dateFrom.Value.ToString("yyyy-MM-dd"))}");
             if (dateTo.HasValue)
@@ -314,15 +318,16 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
     }
 
     public async Task<List<WarehouseTransactionRow>> WhWarehouseTransactionsAsync(string? search = null, DateTime? dateFrom = null,
-        DateTime? dateTo = null, bool finishedGoods = false, string? areaCode = null)
+        DateTime? dateTo = null, bool finishedGoods = false, string? areaCode = null, string? stockKind = null)
     {
-        if (finishedGoods)
+        if (finishedGoods && stockKind is null)
             return await fgApi.TransactionsAsync(search, dateFrom, dateTo);
         if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
             return await spareParts.TransactionsAsync(search, dateFrom, dateTo);
 
         Authorize();
         var query = new List<string>();
+        if (stockKind is not null) query.Add($"stockKind={Uri.EscapeDataString(stockKind)}");
         if (!string.IsNullOrWhiteSpace(search))
             query.Add($"search={Uri.EscapeDataString(search.Trim())}");
         if (dateFrom.HasValue)

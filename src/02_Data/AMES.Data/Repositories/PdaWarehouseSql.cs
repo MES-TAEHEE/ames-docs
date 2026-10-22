@@ -512,15 +512,15 @@ public static class PdaWarehouseSql
                 FROM dbo.WH_Inventory W
             LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
                 WHERE UPPER(W.LotNo) = UPPER(@Scan)
-                  AND UPPER(COALESCE(L.AreaCode, N'')) = N'FG_AREA')
-                THROW 51505, 'Finished goods cannot be adjusted in Warehouse Adjust.', 1;
+                  AND EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY'))
+                THROW 51505, 'This is finished-goods stock. Select FG (ASSY) before adjusting.', 1;
 
             SELECT TOP (1)
                 @LotNo = W.LotNo
             FROM dbo.WH_Inventory W
             LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
             WHERE UPPER(W.LotNo) = UPPER(@Scan)
-              AND UPPER(COALESCE(L.AreaCode, N'')) <> N'FG_AREA'
+              AND NOT EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY')
             ORDER BY CASE WHEN W.Qty > 0 THEN 0 ELSE 1 END, W.ReceivedAt DESC, W.LotNo;
 
             IF @LotNo IS NULL
@@ -1077,8 +1077,8 @@ public static class PdaWarehouseSql
                 FROM dbo.WH_Inventory W
             LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
                 WHERE UPPER(W.LotNo) = UPPER(@Scan)
-                  AND UPPER(COALESCE(L.AreaCode, N'')) = N'FG_AREA')
-                THROW 51519, 'Finished goods cannot be adjusted in Warehouse Adjust.', 1;
+                  AND EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY'))
+                THROW 51519, 'This is finished-goods stock. Select FG (ASSY) before adjusting.', 1;
             IF COALESCE(@DeltaQty, 0) = 0
                 THROW 51511, 'Adjustment quantity must be different from zero.', 1;
             IF @Reason = N''
@@ -1106,7 +1106,7 @@ public static class PdaWarehouseSql
             FROM dbo.WH_Inventory W WITH (UPDLOCK, HOLDLOCK)
             LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
             WHERE UPPER(W.LotNo) = UPPER(@Scan)
-              AND UPPER(COALESCE(L.AreaCode, N'')) <> N'FG_AREA'
+              AND NOT EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY')
             ORDER BY CASE WHEN W.Qty > 0 THEN 0 ELSE 1 END, W.ReceivedAt DESC, W.LotNo;
 
             IF @LotNo IS NULL
@@ -1244,15 +1244,15 @@ public static class PdaWarehouseSql
                 FROM dbo.WH_Inventory W
             LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
                 WHERE UPPER(W.LotNo) = UPPER(@ResultScan)
-                  AND UPPER(COALESCE(L.AreaCode, N'')) = N'FG_AREA')
-                THROW 51505, 'Finished goods cannot be adjusted in Warehouse Adjust.', 1;
+                  AND EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY'))
+                THROW 51505, 'This is finished-goods stock. Select FG (ASSY) before adjusting.', 1;
 
             SELECT TOP (1)
                 @ResultLotNo = W.LotNo
             FROM dbo.WH_Inventory W
             LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo
             WHERE UPPER(W.LotNo) = UPPER(@ResultScan)
-              AND UPPER(COALESCE(L.AreaCode, N'')) <> N'FG_AREA'
+              AND NOT EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY')
             ORDER BY CASE WHEN W.Qty > 0 THEN 0 ELSE 1 END, W.ReceivedAt DESC, W.LotNo;
 
             IF @ResultLotNo IS NULL
