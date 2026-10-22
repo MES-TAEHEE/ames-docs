@@ -37,6 +37,8 @@ DROP PROCEDURE IF EXISTS [dbo].[SP_PDA_SP_STOCK_CANCEL];
 DROP PROCEDURE IF EXISTS [dbo].[SP_PDA_STOCK_MOVE];
 DROP PROCEDURE IF EXISTS [dbo].[SP_PP_LineOEE_Fill];
 DROP PROCEDURE IF EXISTS [dbo].[SP_PP_LineOEE_Fill_Monitor];
+DROP PROCEDURE IF EXISTS [dbo].[SP_PP_LineStateLog_Fill];
+DROP PROCEDURE IF EXISTS [dbo].[SP_PP_LineStateLog_Fill_Monitor];
 DROP PROCEDURE IF EXISTS [dbo].[SP_SYS_FactoryCalendar_Fill];
 DROP PROCEDURE IF EXISTS [dbo].[WH_PDA_ADJUST_SAVE_QTY];
 DROP PROCEDURE IF EXISTS [dbo].[WH_PDA_ADJUST_SCAN_STOCK];
@@ -5401,12 +5403,12 @@ CREATE TABLE [dbo].[PP_LineStateLog](
 GO
 SET ANSI_PADDING ON
 GO
-CREATE NONCLUSTERED INDEX [IX_PP_LineStateLog_Line_Minute] ON [dbo].[PP_LineStateLog]
+CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_LineStateLog_Line_Minute] ON [dbo].[PP_LineStateLog]
 (
 	[LineID] ASC,
 	[MinuteTS] ASC
 )
-INCLUDE([State],[PlanState]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+INCLUDE([State],[PlanState]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[PP_LineStateLog] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -10018,6 +10020,229 @@ BEGIN
                 CASE WHEN @Ok = 1 THEN 'OK' ELSE 'ERROR' END,
                 CASE WHEN @Ok = 1 THEN SYSDATETIME() ELSE NULL END,
                 10, CASE WHEN @Ok = 1 THEN @Count ELSE NULL END,
+                CASE WHEN @Ok = 1 THEN 0 ELSE 1 END,
+                CASE WHEN @Ok = 1 THEN NULL ELSE @Error END, 1, @Actor);
+END
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE   PROCEDURE dbo.SP_PP_LineStateLog_Fill
+    @From   datetime2(0) = NULL,        -- 분류 시작(분으로 내림). 기본 = @To − 24시간
+    @To     datetime2(0) = NULL,        -- 분류 끝(제외, 분으로 내림). 기본 = 현재 분 — 진행 중인 분은 제외
+    @LineID varchar(20)  = NULL,        -- 한 라인만(마스터에 없어도 됨 — 시험·백필)
+    @Actor  varchar(20)  = 'SQL-AGENT',
+    @DryRun bit          = 0            -- 1 = 계산값만 보이고 저장하지 않는다
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    SET @Actor = ISNULL(NULLIF(LTRIM(RTRIM(@Actor)), ''), 'SQL-AGENT');
+    IF @To IS NULL SET @To = SYSDATETIME();
+    SET @To = DATEADD(MINUTE, DATEDIFF(MINUTE, 0, @To), 0);
+    IF @From IS NULL SET @From = DATEADD(HOUR, -24, @To);
+    SET @From = DATEADD(MINUTE, DATEDIFF(MINUTE, 0, @From), 0);
+
+    IF @From >= @To
+    BEGIN
+        SELECT @From AS FromTS, @To AS ToTS, 0 AS Lines, 0 AS Minutes, 0 AS Inserted, 0 AS Updated, 0 AS Unchanged, @DryRun AS DryRun;
+        RETURN;
+    END
+    IF DATEDIFF(MINUTE, @From, @To) > 31 * 1440
+        THROW 50032, N'The window must not exceed 31 days.', 1;
+
+    -- 설정(없거나 범위 밖이면 기본값)
+    DECLARE @GapCycles int = (SELECT TRY_CAST(ConfigValue AS int) FROM dbo.SYS_Config WHERE ConfigKey = 'PP_LINE_RUN_GAP_CYCLES');
+    DECLARE @GapMin    int = (SELECT TRY_CAST(ConfigValue AS int) FROM dbo.SYS_Config WHERE ConfigKey = 'PP_LINE_RUN_GAP_MIN');
+    IF @GapCycles IS NULL OR @GapCycles < 0 OR @GapCycles > 10 SET @GapCycles = 2;
+    IF @GapMin    IS NULL OR @GapMin    < 1 OR @GapMin    > 60 SET @GapMin    = 3;
+
+    DECLARE @Inserted int = 0, @Updated int = 0, @Minutes int = 0, @Lines int = 0;
+
+    -- ⑴ 라인 + 가동 창(분) — 라인 스테이션 BOP 의 가장 긴 표준 사이클 기준
+    DECLARE @L TABLE (LineID varchar(20) PRIMARY KEY, ThrMin int NOT NULL);
+    IF @LineID IS NOT NULL
+        INSERT @L (LineID, ThrMin) VALUES (@LineID, 0);
+    ELSE
+        INSERT @L (LineID, ThrMin)
+        SELECT l.LineID, 0
+        FROM   dbo.MD_Line l
+        LEFT JOIN dbo.MD_WorkCenter w ON w.WCID = l.WCID
+        WHERE  ISNULL(l.Status, 'ACTIVE') <> 'INACTIVE' AND ISNULL(w.ProcessCode, '') <> 'RWK';
+
+    UPDATE l
+    SET    ThrMin = CASE WHEN c.MaxCycle IS NULL THEN @GapMin
+                         ELSE (SELECT MAX(v) FROM (VALUES (@GapMin), (CEILING(@GapCycles * c.MaxCycle / 60.0))) m(v)) END
+    FROM   @L l
+    OUTER APPLY (SELECT MAX(b.StdCycleTime) AS MaxCycle
+                 FROM   dbo.MD_Bop b
+                 JOIN   dbo.MD_Station s ON s.StationCode = b.StationCode
+                 WHERE  s.LineID = l.LineID AND ISNULL(b.ActiveFlag, 1) = 1 AND b.StdCycleTime > 0) c;
+    SET @Lines = (SELECT COUNT(*) FROM @L);
+
+    -- ⑵ (라인, 날짜) 패턴 — ReadDayCapacity 와 같은 해석
+    DECLARE @D TABLE (D date PRIMARY KEY);
+    ;WITH d AS (SELECT CAST(@From AS date) AS D
+                UNION ALL SELECT DATEADD(DAY, 1, D) FROM d WHERE D < CAST(DATEADD(MINUTE, -1, @To) AS date))
+    INSERT @D SELECT D FROM d OPTION (MAXRECURSION 40);
+
+    DECLARE @P TABLE (LineID varchar(20) NOT NULL, D date NOT NULL, PatternID varchar(20) NULL, PRIMARY KEY (LineID, D));
+    INSERT @P (LineID, D, PatternID)
+    SELECT l.LineID, d.D,
+           COALESCE((SELECT TOP (1) s.PatternID FROM dbo.PP_LineSchedule s
+                     WHERE  s.LineID = l.LineID AND s.ScheduleDate = d.D AND s.PatternID IS NOT NULL
+                     ORDER  BY s.ScheduleID),
+                    (SELECT TOP (1) p.PatternID FROM dbo.MD_LineTimePattern p
+                     WHERE  (p.LineID = l.LineID OR p.LineID IS NULL)
+                       AND  ISNULL(p.Status, 'ACTIVE') = 'ACTIVE'
+                       AND  (p.EffectiveFrom IS NULL OR p.EffectiveFrom <= d.D)
+                       AND  (p.EffectiveTo   IS NULL OR p.EffectiveTo   >= d.D)
+                     ORDER  BY CASE WHEN p.LineID IS NULL THEN 1 ELSE 0 END, p.PatternID))
+    FROM   @L l CROSS JOIN @D d;
+
+    -- ⑶ 분 격자 × 분류
+    DECLARE @R TABLE (LineID varchar(20) NOT NULL, MinuteTS datetime2(0) NOT NULL,
+                      State varchar(20) NOT NULL, PlanState varchar(20) NOT NULL, RunFlag bit NOT NULL, WoID int NULL,
+                      PRIMARY KEY (LineID, MinuteTS));
+    ;WITH n AS (
+        SELECT TOP (DATEDIFF(MINUTE, @From, @To)) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS i
+        FROM   sys.all_objects a CROSS JOIN sys.all_objects b
+    ),
+    g AS (
+        SELECT l.LineID, l.ThrMin, DATEADD(MINUTE, n.i, @From) AS M
+        FROM   @L l CROSS JOIN n
+    ),
+    g2 AS (
+        SELECT g.LineID, g.ThrMin, g.M,
+               CAST(g.M AS date) AS D,
+               DATEDIFF(MINUTE, CAST(CAST(g.M AS date) AS datetime2(0)), g.M) AS Mod
+        FROM   g
+    ),
+    c AS (
+        SELECT g2.LineID, g2.M, g2.D, g2.Mod,
+               CASE WHEN EXISTS (SELECT 1 FROM @P p JOIN dbo.MD_LineTimeSegment sg ON sg.PatternID = p.PatternID
+                                 WHERE  p.LineID = g2.LineID AND p.D = g2.D AND sg.SegmentState = 'OPERATING'
+                                   AND  sg.StartMin <= g2.Mod AND sg.EndMin > g2.Mod)
+                     AND NOT EXISTS (SELECT 1 FROM dbo.PP_LineSchedule s
+                                     WHERE  s.LineID = g2.LineID AND s.ScheduleDate = g2.D AND s.EntryType = 'PM'
+                                       AND  ISNULL(s.Status, '') <> 'CANCELLED'
+                                       AND  ISNULL(s.StartMin, 0) <= g2.Mod AND ISNULL(s.EndMin, 0) > g2.Mod)
+                    THEN 'PLAN-RUN' ELSE 'PLAN-STOP' END AS PlanState,
+               CASE WHEN EXISTS (SELECT 1 FROM dbo.PP_LineDowntimeLog dt
+                                 WHERE  dt.LineID = g2.LineID AND dt.StartTS < DATEADD(MINUTE, 1, g2.M)
+                                   AND  (dt.EndTS IS NULL OR dt.EndTS > g2.M))
+                    THEN 'DOWN'
+                    WHEN EXISTS (SELECT 1 FROM dbo.PR_ProductionResult r
+                                 WHERE  r.LineID = g2.LineID
+                                   AND  r.EntryAt >= DATEADD(MINUTE, -(g2.ThrMin - 1), g2.M) AND r.EntryAt < DATEADD(MINUTE, 1, g2.M))
+                      OR EXISTS (SELECT 1 FROM dbo.tbl_Lot t
+                                 WHERE  t.LineID = g2.LineID
+                                   AND  t.CreatedTS >= DATEADD(MINUTE, -(g2.ThrMin - 1), g2.M) AND t.CreatedTS < DATEADD(MINUTE, 1, g2.M))
+                    THEN 'RUN'
+                    ELSE 'IDLE' END AS State,
+               COALESCE((SELECT TOP (1) s.WoID FROM dbo.PP_LineSchedule s
+                         WHERE  s.LineID = g2.LineID AND s.ScheduleDate = g2.D AND s.EntryType = 'WO' AND s.WoID IS NOT NULL
+                           AND  ISNULL(s.Status, '') <> 'CANCELLED'
+                           AND  ISNULL(s.StartMin, 0) <= g2.Mod AND ISNULL(s.EndMin, 0) > g2.Mod
+                         ORDER  BY s.StartMin, s.ScheduleID),
+                        (SELECT TOP (1) r.WoID FROM dbo.PR_ProductionResult r
+                         WHERE  r.LineID = g2.LineID AND r.WoID IS NOT NULL
+                           AND  r.EntryAt >= DATEADD(MINUTE, -(g2.ThrMin - 1), g2.M) AND r.EntryAt < DATEADD(MINUTE, 1, g2.M)
+                         ORDER  BY r.EntryAt DESC)) AS WoID
+        FROM   g2
+    )
+    INSERT @R (LineID, MinuteTS, State, PlanState, RunFlag, WoID)
+    SELECT LineID, M, State, PlanState, CASE WHEN State = 'RUN' THEN 1 ELSE 0 END, WoID
+    FROM   c;
+    SET @Minutes = @@ROWCOUNT;
+
+    IF @DryRun = 1
+    BEGIN
+        SELECT r.LineID, r.MinuteTS, r.State, r.PlanState, r.RunFlag, r.WoID,
+               CASE WHEN o.StateLogID IS NULL THEN 'INSERT'
+                    WHEN NOT EXISTS (SELECT o.State, o.PlanState, ISNULL(o.RunFlag, 0), o.WoID
+                                     INTERSECT SELECT r.State, r.PlanState, r.RunFlag, r.WoID) THEN 'UPDATE'
+                    ELSE 'UNCHANGED' END AS Action
+        FROM   @R r
+        LEFT JOIN dbo.PP_LineStateLog o ON o.LineID = r.LineID AND o.MinuteTS = r.MinuteTS
+        ORDER  BY r.LineID, r.MinuteTS;
+        SELECT @From AS FromTS, @To AS ToTS, @Lines AS Lines, @Minutes AS Minutes, 0 AS Inserted, 0 AS Updated, @Minutes AS Unchanged, @DryRun AS DryRun;
+        RETURN;
+    END
+
+    -- ⑷ 저장 — 값이 바뀐 분만 덮어쓰고 없는 분은 만든다. 에이전트와 수동 실행이 겹쳐도 한 번에 하나만
+    BEGIN TRY
+        BEGIN TRAN;
+        EXEC sp_getapplock @Resource = 'SP_PP_LineStateLog_Fill', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 60000;
+
+        UPDATE o
+        SET    State = r.State, PlanState = r.PlanState, RunFlag = r.RunFlag, WoID = r.WoID,
+               ClassifiedAt = SYSDATETIME(), ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+        FROM   dbo.PP_LineStateLog o WITH (UPDLOCK, HOLDLOCK)
+        JOIN   @R r ON r.LineID = o.LineID AND r.MinuteTS = o.MinuteTS
+        WHERE  NOT EXISTS (SELECT o.State, o.PlanState, ISNULL(o.RunFlag, 0), o.WoID
+                           INTERSECT SELECT r.State, r.PlanState, r.RunFlag, r.WoID);
+        SET @Updated = @@ROWCOUNT;
+
+        INSERT dbo.PP_LineStateLog (LineID, MinuteTS, State, PlanState, RunFlag, WoID, ClassifiedAt, CreatedBy, CreatedTS)
+        SELECT r.LineID, r.MinuteTS, r.State, r.PlanState, r.RunFlag, r.WoID, SYSDATETIME(), @Actor, SYSDATETIME()
+        FROM   @R r
+        WHERE  NOT EXISTS (SELECT 1 FROM dbo.PP_LineStateLog o WITH (UPDLOCK, HOLDLOCK)
+                           WHERE o.LineID = r.LineID AND o.MinuteTS = r.MinuteTS);
+        SET @Inserted = @@ROWCOUNT;
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK;
+        DECLARE @ErrMsg nvarchar(1000) = ERROR_MESSAGE();
+        EXEC dbo.SP_PP_LineStateLog_Fill_Monitor @Ok = 0, @Count = 0, @Actor = @Actor, @Error = @ErrMsg;
+        THROW;
+    END CATCH;
+
+    DECLARE @Written int = @Inserted + @Updated;
+    EXEC dbo.SP_PP_LineStateLog_Fill_Monitor @Ok = 1, @Count = @Written, @Actor = @Actor, @Error = NULL;
+
+    PRINT CONCAT('SP_PP_LineStateLog_Fill ', CONVERT(varchar(16), @From, 120), '~', CONVERT(varchar(16), @To, 120),
+                 ': lines ', @Lines, ', minutes ', @Minutes, ', inserted ', @Inserted, ', updated ', @Updated,
+                 ', unchanged ', @Minutes - @Inserted - @Updated);
+    SELECT @From AS FromTS, @To AS ToTS, @Lines AS Lines, @Minutes AS Minutes,
+           @Inserted AS Inserted, @Updated AS Updated, @Minutes - @Inserted - @Updated AS Unchanged, @DryRun AS DryRun;
+END
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE   PROCEDURE dbo.SP_PP_LineStateLog_Fill_Monitor
+    @Ok    bit,
+    @Count int,
+    @Actor varchar(20),
+    @Error nvarchar(1000)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Code varchar(20) = 'STATEFILL', @Name nvarchar(60) = N'PP-ODM Line State Fill', @Ep varchar(255) = 'dbo.SP_PP_LineStateLog_Fill';
+    UPDATE dbo.SYS_InterfaceMonitor
+    SET    InterfaceName   = @Name,
+           Endpoint        = @Ep,
+           ConnStatus      = CASE WHEN @Ok = 1 THEN 'OK' ELSE 'ERROR' END,
+           LastSyncTS      = CASE WHEN @Ok = 1 THEN SYSDATETIME() ELSE LastSyncTS END,
+           LastRecordCount = CASE WHEN @Ok = 1 THEN @Count ELSE LastRecordCount END,
+           LastErrorMsg    = CASE WHEN @Ok = 1 THEN NULL ELSE @Error END,
+           RetryCount      = CASE WHEN @Ok = 1 THEN 0 ELSE ISNULL(RetryCount, 0) + 1 END,
+           ModifiedBy      = @Actor, ModifiedTS = SYSDATETIME()
+    WHERE  InterfaceCode = @Code;
+    IF @@ROWCOUNT = 0
+        INSERT INTO dbo.SYS_InterfaceMonitor
+               (InterfaceCode, InterfaceName, Direction, Endpoint, Protocol, ConnStatus,
+                LastSyncTS, MaxGapMinutes, LastRecordCount, RetryCount, LastErrorMsg, IsEnabled, CreatedBy)
+        VALUES (@Code, @Name, 'INBOUND', @Ep, 'TSQL',
+                CASE WHEN @Ok = 1 THEN 'OK' ELSE 'ERROR' END,
+                CASE WHEN @Ok = 1 THEN SYSDATETIME() ELSE NULL END,
+                5, CASE WHEN @Ok = 1 THEN @Count ELSE NULL END,
                 CASE WHEN @Ok = 1 THEN 0 ELSE 1 END,
                 CASE WHEN @Ok = 1 THEN NULL ELSE @Error END, 1, @Actor);
 END

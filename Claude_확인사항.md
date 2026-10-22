@@ -30,7 +30,7 @@
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 심재현 | 23                   | 7   | 7묶음 | 38  | [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 32) · 안돈 보전 호출 작업지시(요청 22) |
 | 안영훈 | 8(배포·검증·승인 대기·요청) | 4 | 3 | 0 | 직접 SQL·LOT 원입고량 취소·빈 팔렛 회수·출하 화면의 서버 배포 및 실제 쓰기 검증 대기 · **상위 로케이션을 재고 위치에서 막기·지도 제외(2-1 8 — 개발 DB 에 임시 상위 3건 적용됨)** · 비결함·선택적 정리 3건은 2-5 참조 |
-| 이승욱 | 0                    | 4   | 4   | 0   | PP-OEE 가동률이 시연 데이터(`PP_LineStateLog` 기록 — 심재현과 진행 예정) · 품목 불출율·MRP 여유율 반영 방식 결정(보류 4)                                                                       |
+| 이승욱 | 0                    | 4   | 4   | 0   | 품목 불출율·MRP 여유율 반영 방식 결정(보류 4)                                                                       |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
 ---
@@ -301,7 +301,8 @@
    - Portal 번호 변경은 임시 코드 경유로 충돌을 피하고 현재 001~004 화면에 맞췄습니다.
    - 선택적 개발 시드는 PDA_SEED → seed_portal_dev 순서이며, 기본 실행에서 제외합니다. 테스트 시드 실행에는 AMES_DEVELOPMENT_SEEDS=1과 세션 opt-in이 필요합니다.
    - SQL 구문 검사는 통과했습니다. 사용자 지시에 따라 DB 삭제·재생성·전체 재구축은 실행하지 않았습니다.
-   - **10-22 이승욱 — 로컬 인스턴스에 새 DB `AMES` 를 `rebuild_db.sh` 목록 그대로(개발 시드 opt-in 포함) 처음부터 만들어 본 결과**(도구 `AppDataLocalAMES-claude-toolsebuild_local_named_db.ps1`, `USE AMES_DEV` 8줄만 작업 복사본에서 바꿈, 로컬 `AMES_DEV` 는 그대로). 아래 4가지 때문에 그대로는 끝까지 가지 않았고, 작업 복사본만 보정해 111개 적용을 마쳤습니다(원본 dist 는 그대로 — ⑤만 수정).
+   - **10-22 이승욱 — 로컬 인스턴스에 새 DB `AMES` 를 `rebuild_db.sh` 목록 그대로(개발 시드 opt-in 포함) 처음부터 만들어 본 결과**(도구 `AppDataLocalAMES-claude-tools
+ebuild_local_named_db.ps1`, `USE AMES_DEV` 8줄만 작업 복사본에서 바꿈, 로컬 `AMES_DEV` 는 그대로). 아래 4가지 때문에 그대로는 끝까지 가지 않았고, 작업 복사본만 보정해 111개 적용을 마쳤습니다(원본 dist 는 그대로 — ⑤만 수정).
      ① `AMES_Schema.sql` 이 개발 DB 의 **시스템 이름 기본값 제약**(`DF__표__열__8자리 hex`, 37개)을 이름째 만들어, 새 DB 에서 앞 테이블의 이름 없는 기본값이 같은 이름을 받으면 Msg 2714(이번엔 `DF__PR_Defect__Creat__60FC61CA` — `PR_DefectAutoLink` 와 `PR_DefectDetail`). 생성기(`tools/schema_from_db`)가 시스템 이름(`is_system_named`) 제약은 이름 없이 쓰도록 바꾸는 것이 근본 해결입니다.
      ② `AMES_Schema.sql` 이 `UX_PR_PopSession_BearerHash` 를 두 번 만듦(SMO 정의 7102행 + 1239bc10 이 더한 7111행) — Msg 1913.
      ③ `migrate_scm_portal_screens.sql`(1239bc10)이 포탈 화면을 PORTAL-001~004(`delivery-entry`)로 다시 매기려 하는데, 스키마 파일 화면 시드(= 개발 DB)는 PORTAL-001~006(`due-orders`·`delivery-notes`·`receipts` 포함)이고 웹 라우트도 그대로라 THROW 50004 — 이번에는 건너뛰었습니다. 개발 DB 를 그 번호로 바꿀지, 마이그레이션을 지금 화면에 맞출지 정해야 합니다.
@@ -386,7 +387,7 @@
 
 ### 3-2. 보류 (4)
 - **B7 MNT-004 금형 정비 등록**(`MoldRepository.cs:53·81` StartChange·CompleteChange, 호출처 없음): 정비 유형·작업자·샷 리셋·정비일을 남길 곳이 없습니다. 금형 교체를 기록하던 메서드도 옛 POP 화면을 지우면서 끊겼습니다 — 그런데 `MoldRepository.cs:8`·`MntRepository.cs:419` 주석은 여전히 "POP 금형 교체가 기록" 한다고 씁니다.
-- **B8 PP-ODM·PP-OEE 라인 상태 기록**: `PP_LineStateLog` 에 쓰는 곳은 `tools/seed_pp_demo` 뿐입니다. 이 테이블을 원천으로 쓰기로 정했고(10-16, 심재현과 합의) 기록 방식은 심재현과 진행 예정입니다(아래 테이블 2). 10-22 부터 PP-OEE 스냅샷은 에이전트 작업 `[AMES] Line OEE Fill`(5분, `dbo.SP_PP_LineOEE_Fill`)이 이 테이블에서 자동으로 계산하므로, 상태 로그가 들어오는 순간부터 PP-OEE 가 채워집니다 — 그 전까지 작업은 OK·0건으로만 돕니다. 개발서버에는 프로시저만 적용했고 **작업 등록은 그 PC 에서 `dist\setup-line-oee-job.ps1`(sysadmin) 실행이 필요**합니다.
+- **B8 PP-ODM·PP-OEE 라인 상태 기록 — 10-22 해결**: `PP_LineStateLog` 는 에이전트 작업 `[AMES] Line State Fill`(1분, `dbo.SP_PP_LineStateLog_Fill`)이 비가동 로그·POP 실적/라벨·라인 시간 패턴에서 분마다 분류해 채운다(InjAgent·`PP_EquipSignal` 불사용 — 사용자 결정). 남은 것: 개발서버 PC 에서 sa 로 `dist\setup_job_pp_linestatelog_fill.sql`·`setup_job_pp_lineoee_fill.sql` 실행(작업 등록), 임계값 `PP_LINE_RUN_GAP_*` 현장 조정.
 - **개발 완료 시 정리**: 운영 admin 시드 차단, appsettings 비밀번호·AllowedHosts·접속문자열 환경변수(Web).
 - **품목 추가 불출율·MRP 여유율 반영 방식**(10-20 — 고객 요구 10-14 "BOM 은 정량, 원단 불출 +10%·MRP 품목별 여유율"): `MD_Item.IssueAddPct`·`MrpAllowPct`(%, NULL = 0)는 MD-003(화면·엑셀)에서 저장·표시만 하고 **작업지시 불출·BOM 자동 차감·MRP(PP-005) 계산은 아직 읽지 않습니다**. 정할 것: ① 자동 차감(backflush)을 정량으로 할지 불출율을 포함할지 ② MRP 소요에 불출율도 더할지(여유율만 쓸지) ③ 원단 등 품목 분류별 기본값을 둘지 품목마다만 둘지 ④ BOM 불량률(`ScrapPct`, 지금 전부 0)과의 관계. 결정 뒤 구현은 MRP·백플러시 담당(심재현)과 함께합니다. 같은 날 넣은 조달형태 `MD_Item.ProcureType`(내작·매입·유상사급·무상사급)도 저장·표시만 하고 MRP·구매·SAP 에서 읽지 않습니다.
 
@@ -397,8 +398,7 @@
    - 제안(권장): 화면들이 `PP_LineOEE`(라인 단위)를 읽도록 바꾸고 이 테이블은 폐기합니다. 다른 길은 PP-OEE 를 설비 단위로 확장하는 것입니다.
 2. **`PP_LineStateLog`(720) — 라인 상태 분 단위 기록**
    - 읽는 곳: PP-ODM 비가동 모니터(`PpRepository.cs:1848-1899`), PP-OEE 계산(`OeeRepository.cs:36·230·265`), Api `PpEndpoints.cs:61`
-   - 내용: 기록 코드가 없어 PP-ODM 현황뿐 아니라 **PP-OEE 가동률도 시연 데이터로 계산**됩니다(B8).
-   - 방향(10-16 사용자 결정 — 심재현과 합의): PP-OEE 가동률 원천은 `PP_LineDowntimeLog` 로 바꾸지 않고 **`PP_LineStateLog` 를 그대로 쓴다**. 남은 일은 이 테이블에 실제 라인 상태를 분 단위로 기록하는 쪽을 만드는 것으로, 기록 주체(InjAgent 신호·POP·Api Worker 등)는 심재현과 정해 진행할 예정입니다.
+   - 10-22 해결: `SP_PP_LineStateLog_Fill`(에이전트 작업 1분)이 채웁니다(B8). 6월 시연 행 720건은 초가 붙은 채 남아 있으며 지워도 됩니다.
 3. **`PR_MoldChange`(3) — 금형 교체 이력**
    - 읽는 곳: MNT-004 「교체 이력」(`MntRepository.cs:425-446`)
    - 내용: 기록 메서드를 아무도 부르지 않아 시연 3행만 보입니다(B7). 실제 교체는 PP-LSB 금형 교체(MC) 슬롯으로 계획만 있습니다.
