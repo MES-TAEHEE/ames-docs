@@ -8,7 +8,7 @@ using Microsoft.Data.SqlClient;
 
 namespace AMES.Api.Endpoints;
 
-public static class FgEndpoints
+public static partial class FgEndpoints
 {
 
     // ── DTOs ─────────────────────────────────────────────────────────────
@@ -41,12 +41,12 @@ public static class FgEndpoints
         DateTime? MfgDate, DateTime? ExpiryDate, DateTime? ReadyAt,
         bool IsProductionCompleted, bool AlreadyStocked, string? ExistingLotNo, string? ExistingLocation,
         string? ExistingStatus, string BarcodeType, string StorageMethod, string NextScanType,
-        string NextScanLabel, string? PackSpecId, string Message);
+        string NextScanLabel, string? PackSpecId, string Message, List<PutAwayScanRow>? Items = null);
     public sealed record PutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
         decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
         string ScanType, string ScannedBarcode, string? AreaCode = null);
-    public sealed record PutAwayConfirmReq(string Barcode, string LocationId);
+    public sealed record PutAwayConfirmReq(string Barcode, string LocationId, Dictionary<string,decimal>? ExpectedItems = null);
     public sealed record PutAwayResult(bool Success, string Message, string? InventoryLotNo, PutAwayScanRow? Row,
         PutAwayLocationRow? Location);
     public sealed record OutboundUnitItemRow(string LotNo, string UnitType, string PartNo, string? PartName,
@@ -228,7 +228,7 @@ public static class FgEndpoints
                 return Results.BadRequest(new PutAwayResult(false, "Scan FG LOT first.", null, null, null));
 
             var parsed = ParseFgBarcode(barcode);
-            if (parsed.Kind == BarcodeWo || IsStorageBarcode(parsed.Kind))
+            if (parsed.Kind == BarcodeWo)
             {
                 var message = $"Scan FG LOT first. You scanned {BarcodeKindLabel(parsed.Kind)}.";
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
@@ -238,7 +238,9 @@ public static class FgEndpoints
             }
 
             using var conn = factory.OpenConnection();
-            var row = FindPutAwayScanRow(conn, null, parsed.Value);
+            PutAwayScanRow? row;
+            try { row = FindPutAwayScanRow(conn, null, parsed.Value); }
+            catch (InvalidOperationException ex) { return Results.BadRequest(new PutAwayResult(false,ex.Message,null,null,null)); }
             if (row is null)
             {
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
@@ -283,7 +285,7 @@ public static class FgEndpoints
             try
             {
                 var parsedLot = ParseFgBarcode(body.Barcode);
-                if (parsedLot.Kind == BarcodeWo || IsStorageBarcode(parsedLot.Kind))
+                if (parsedLot.Kind == BarcodeWo)
                 {
                     tx.Rollback();
                     return Results.BadRequest(new PutAwayResult(false, "Scan FG LOT first.", null, null, null));
@@ -338,7 +340,7 @@ public static class FgEndpoints
                     return Results.BadRequest(new PutAwayResult(false, message, null, row, location));
                 }
 
-                var stockId = SavePutAwayStock(conn, tx, row.LotNo, location.LocationId, s.EmployeeNo);
+                var stockId = SavePutAwayUnit(conn, tx, row, location.LocationId, s.EmployeeNo, body.ExpectedItems);
 
                 var updated = row with
                 {
@@ -351,6 +353,11 @@ public static class FgEndpoints
                 var response = Results.Ok(new PutAwayResult(true, "FG Put-Away confirmed.", stockId, updated, location));
                 tx.Commit();
                 return response;
+            }
+            catch (InvalidOperationException ex)
+            {
+                if (tx.Connection is not null) tx.Rollback();
+                return Results.BadRequest(new PutAwayResult(false, ex.Message, null, null, null));
             }
             catch (SqlException ex) when (ex.Number is >= 52510 and <= 52518)
             {
@@ -750,7 +757,7 @@ public static class FgEndpoints
         return true;
     }
 
-    private static PutAwayScanRow? FindPutAwayScanRow(SqlConnection conn, SqlTransaction? tx, string barcode)
+    private static PutAwayScanRow? FindPutAwayLotRow(SqlConnection conn, SqlTransaction? tx, string barcode)
     {
         using var cmd = new SqlCommand("""
             SELECT TOP (1)

@@ -16,7 +16,7 @@ public sealed class FinishedGoodsPutAwayTests
         var api=Read("src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs");
         Assert.DoesNotContain("dbo.FG_PutAway",api);
         Assert.DoesNotContain("ResolvePalletSplit",api);
-        Assert.Contains("record PutAwayConfirmReq(string Barcode, string LocationId)",api);
+        Assert.Contains("record PutAwayConfirmReq(string Barcode, string LocationId, Dictionary<string,decimal>? ExpectedItems = null)",api);
         Assert.Contains("PdaFinishedGoodsSql.PutAway",api);
         Assert.DoesNotContain("dbo.FG_PutAway",Read("src/02_Data/AMES.Data/Repositories/FinishedGoodsRepository.cs"));
         Assert.DoesNotContain("CREATE TABLE [dbo].[FG_PutAway]",Read("dist/AMES_Schema.sql"));

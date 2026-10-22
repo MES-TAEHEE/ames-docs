@@ -13191,6 +13191,14 @@ body .pda-shell.wh-adjust-box-label .label-master-body > small {
   line-height: 1.35;
 }
 
+.pda-stock-filter { display:flex; gap:6px; flex-shrink:0; }
+.fg-pallet-contents-list { max-height:240px; overflow-y:auto; margin-top:8px; }
+.fg-pallet-contents-list > div { display:grid; gap:4px; padding:10px 0; border-top:1px solid #344861; overflow-wrap:anywhere; }
+.fg-pallet-contents-list span { color:#b7c6d9; font-size:12px; }
+.pda-shell.wh .pda-stock-filter .rz-button { flex:1; min-width:0; min-height:38px; border-radius:0 !important; border:1px solid #43607e; background:#172737; color:#b7c6d9; padding:6px !important; }
+.pda-shell.wh .pda-stock-filter .rz-button.on { background:#2458a2; border-color:#79b7ff; color:#fff; }
+.pda-stock-filter .rz-button-text { font-size:12px; white-space:nowrap; }
+
 /* Supplier deliveries reuse the compact WH list and scrollable detail dialog. */
 .supplier-deliveries { overflow-y:auto; }
 .supplier-delivery-list { display:grid; gap:8px; }
