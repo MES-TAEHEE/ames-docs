@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using AMES.Data.Connection;
 using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
@@ -3516,8 +3516,8 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "IF @Min IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK) " +
-            "WHERE LocationID=@I AND LocationLevel=2 AND NULLIF(LTRIM(RTRIM(LineID)),'') IS NOT NULL) " +
-            "THROW 52077,'Minimum qty can only be changed for a line detail location.',1; " +
+            "WHERE LocationID=@I AND LocationLevel=2) " +
+            "THROW 52077,'Minimum qty can only be changed for a detail location.',1; " +
             "IF @SetParent=1 AND @Parent IS NOT NULL BEGIN " +
             "IF @Parent=@I OR NOT EXISTS(SELECT 1 FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK) WHERE LocationID=@Parent AND LocationLevel=1) " +
             "THROW 52073,'The parent must be a primary location.',1; " +
