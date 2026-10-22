@@ -117,6 +117,8 @@ public class ApsWoCreateTests
             DELETE FROM dbo.MD_MoldItem WHERE MoldID IN (@M, @M2, @M3);
             DELETE FROM dbo.MD_MoldLine WHERE MoldID IN (@M, @M2, @M3);
             DELETE FROM dbo.MD_Mold     WHERE MoldID IN (@M, @M2, @M3);
+            DELETE FROM dbo.MD_Bom        WHERE ParentItemNo IN (@A, @B, @C, @P1, @P2);
+            DELETE FROM dbo.MD_BomVersion WHERE RootItemNo   IN (@A, @B, @C, @P1, @P2);
             DELETE FROM dbo.MD_Item     WHERE ItemNo IN (@A, @B, @C, @P1, @P2, @K, @K2);
             DELETE FROM dbo.MD_LineTimeSegment WHERE PatternID IN (@P, @PX);
             DELETE FROM dbo.MD_LineTimePattern WHERE PatternID IN (@P, @PX);
@@ -950,8 +952,10 @@ public class ApsWoCreateTests
         finally { Cleanup(f); }
     }
 
+    /// 10-22 사용자 결정: 금형·UPH·코어가 빠진 계획 행이 하나라도 있으면 WO 를 하나도 만들지 않는다(전에는 그 행만 빼고 나머지를 만들었다).
+    /// dryRun 은 계속 돌아 만들어질 WO 와 거부 행을 함께 돌려주되 Blocked 로 실제 실행이 막힘을 알린다.
     [SkippableFact]
-    public void Rejects_item_without_mold_and_continues_with_others_leaving_run_saved()
+    public void Item_without_mold_is_rejected_and_blocks_the_whole_run()
     {
         var f = Ready();
         Seed(f);
@@ -961,20 +965,31 @@ public class ApsWoCreateTests
             int plC = SeedInj(f, run, ItemC, D0, day: 40, night: 0);
             int plA = SeedInj(f, run, ItemA, D0, day: 60, night: 0);
 
-            var res = Run(f, run, new[] { plC, plA });
-
-            var rej = Assert.Single(res.Rejected);
+            var dry = Run(f, run, new[] { plC, plA }, dryRun: true);
+            Assert.True(dry.Blocked);
+            var rej = Assert.Single(dry.Rejected);
             Assert.Equal((plC, ItemC, D0, PpRepository.RejectNoMold), (rej.PlanLineId, rej.ItemNo, rej.PlanDate.ToDateTime(TimeOnly.MinValue), rej.Reason));
-            Assert.Equal(ItemA, Assert.Single(res.Orders).ItemNo);
+            Assert.Equal(ItemA, Assert.Single(dry.Orders).ItemNo);   // 미리보기는 정상 행의 WO 를 그대로 보인다
+
+            var res = Run(f, run, new[] { plC, plA });
+            Assert.True(res.Blocked);
+            Assert.Equal(PpRepository.RejectNoMold, Assert.Single(res.Rejected).Reason);
+            Assert.Empty(res.Orders);
+            Assert.Equal(0, WoCount(f, ItemA));   // 정상 행도 만들지 않는다
             Assert.Equal(0, WoCount(f, ItemC));
             Assert.Equal(DBNull.Value, Scalar(f, "SELECT WoID FROM dbo.PP_ApsPlanLine WHERE PlanLineID = @P;", ("@P", plC)));
-            Assert.Equal(ApsRepository.StatusSaved, RunStatus(f, run));   // 거부 행이 WoID 없이 남아 Saved — 금형 등록 후 재실행
+            Assert.Equal(ApsRepository.StatusSaved, RunStatus(f, run));   // 아무것도 쓰지 않아 Saved — 금형 등록 후 재실행
+
+            var only = Run(f, run, new[] { plA });                           // 「대상 선택」에서 문제 행을 빼면 나머지는 만들어진다
+            Assert.False(only.Blocked);
+            Assert.Equal(ItemA, Assert.Single(only.Orders).ItemNo);
+            Assert.Equal(1, WoCount(f, ItemA));
         }
         finally { Cleanup(f); }
     }
 
     [SkippableFact]
-    public void Rejects_line_when_chosen_mold_has_no_uph_on_that_line()
+    public void Line_whose_mold_has_no_uph_on_that_line_is_rejected_and_blocks_the_run()
     {
         var f = Ready();
         Seed(f);
@@ -986,10 +1001,47 @@ public class ApsWoCreateTests
 
             var res = Run(f, run, new[] { pl });
 
+            Assert.True(res.Blocked);
             var rej = Assert.Single(res.Rejected);
             Assert.Equal((pl, PpRepository.RejectNoUph), (rej.PlanLineId, rej.Reason));
             Assert.Empty(res.Orders);
             Assert.Equal(0, WoCount(f, ItemA));
+            Assert.Equal(ApsRepository.StatusSaved, RunStatus(f, run));
+        }
+        finally { Cleanup(f); }
+    }
+
+    /// 코어를 못 정하는 완제품(사출품 InjFlag 자식이 여럿인데 품명 CORE 가 하나가 아님)은 ReleaseCore 가 예외로 막는 WO 다 —
+    /// 전에는 그 예외가 트랜잭션 전체를 롤백해 정상 행의 WO 도 0건이었다(확인사항 문제점 1). 이제 NoCore 거부(Detail = 부모 품번)로 보이고 실행을 막는다.
+    [SkippableFact]
+    public void Parent_without_identifiable_core_is_rejected_as_NoCore_instead_of_failing_the_transaction()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            SeedBomParents(f);   // K·K2 = InjFlag 1 사출품(품명에 CORE 없음)
+            Exec(f, """
+                INSERT INTO dbo.MD_BomVersion (VersionID, RootItemNo, VersionNo, EffFrom, EffTo, Status, CreatedBy)
+                VALUES ('ITEST-APS-V-A', @A, 'V1', DATEADD(day, -10, CAST(GETDATE() AS date)), NULL, 'APPROVED', @By);
+                INSERT INTO dbo.MD_Bom (BOMID, ParentItemNo, CompItemNo, BOMLevel, QtyPer, UOM, VersionID, ActiveFlag, CreatedBy)
+                VALUES ('ITEST-APS-B-A1', @A, @K, 1, 1, 'EA', 'ITEST-APS-V-A', 1, @By),
+                       ('ITEST-APS-B-A2', @A, @K2, 1, 1, 'EA', 'ITEST-APS-V-A', 1, @By);
+                """, ("@A", ItemA), ("@K", K), ("@K2", K2), ("@By", Actor));
+            int run = SeedRun(f);
+            int plA = SeedInj(f, run, ItemA, D0, day: 60, night: 0);   // 자기 금형은 있지만 BOM 코어가 둘이라 Ambiguous
+            int plB = SeedInj(f, run, ItemB, D0, day: 60, night: 0);
+
+            var dry = Run(f, run, new[] { plA, plB }, dryRun: true);
+            Assert.True(dry.Blocked);
+            var rej = Assert.Single(dry.Rejected);
+            Assert.Equal((plA, ItemA, PpRepository.RejectNoCore, ItemA), (rej.PlanLineId, rej.ItemNo, rej.Reason, rej.Detail));
+            Assert.Equal(ItemB, Assert.Single(dry.Orders).ItemNo);
+
+            var res = Run(f, run, new[] { plA, plB });
+            Assert.True(res.Blocked);
+            Assert.Empty(res.Orders);
+            Assert.Equal(0, WoCount(f, ItemA) + WoCount(f, ItemB));
             Assert.Equal(ApsRepository.StatusSaved, RunStatus(f, run));
         }
         finally { Cleanup(f); }
@@ -1122,7 +1174,7 @@ public class ApsWoCreateTests
         finally { Cleanup(f); }
     }
 
-    /// 자식에 활성 금형이 없으면 그 자식 행은 NoMold 거부(부모 WO 없음), 간선이 없는 자식 행은 NoParent 거부 — 둘 다 실행은 Saved.
+    /// 자식에 활성 금형이 없으면 그 자식 행은 NoMold 거부(부모 WO 없음), 간선이 없는 자식 행은 NoParent 거부 — 거부가 있으므로 정상 행 A 의 WO 도 만들지 않고 실행은 Saved(10-22).
     [SkippableFact]
     public void Bom_rule_child_without_mold_or_parent_edge_is_rejected()
     {
@@ -1143,9 +1195,11 @@ public class ApsWoCreateTests
             Assert.Equal(2, res.Rejected.Count);
             Assert.Contains(res.Rejected, r => r.PlanLineId == plC && r.Reason == PpRepository.RejectNoMold);
             Assert.Contains(res.Rejected, r => r.PlanLineId == plK && r.Reason == PpRepository.RejectNoParent);
-            Assert.Equal(ItemA, Assert.Single(res.Orders).ItemNo);
-            Assert.Equal(0, WoCount(f, P1));
+            Assert.True(res.Blocked);
+            Assert.Empty(res.Orders);
+            Assert.Equal(0, WoCount(f, ItemA) + WoCount(f, P1));
             Assert.Equal(ApsRepository.StatusSaved, RunStatus(f, run));
+            Assert.Equal(ItemA, Assert.Single(Run(f, run, new[] { plC, plK, plA }, dryRun: true).Orders).ItemNo);   // 미리보기는 정상 행 A 를 보인다
         }
         finally { Cleanup(f); }
     }

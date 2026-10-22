@@ -10169,6 +10169,18 @@
   <data name="PP.Aps.Wo.Reject.NoUph" xml:space="preserve">
     <value>No mold-line UPH</value>
   </data>
+  <data name="PP.Aps.Wo.Reject.NoCore" xml:space="preserve">
+    <value>No identifiable core for finished item {0} (no or several injection items in the BOM)</value>
+  </data>
+  <data name="PP.Aps.Wo.Reject.NoParent" xml:space="preserve">
+    <value>No finished item uses this injection item in the saved BOM</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.Blocked" xml:space="preserve">
+    <value>{0} plan line(s) have master-data problems; no WO will be created.</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.BlockedHint" xml:space="preserve">
+    <value>Fix the mold item master (MD-007), the mold-line UPH or the BOM injection items (InjFlag) and refresh the preview, or drop those lines in Targets.</value>
+  </data>
   <data name="PP.Aps.Wo.Err.NoneSelected" xml:space="preserve">
     <value>No lines selected</value>
   </data>

@@ -10169,6 +10169,18 @@
   <data name="PP.Aps.Wo.Reject.NoUph" xml:space="preserve">
     <value>금형·라인 UPH 없음</value>
   </data>
+  <data name="PP.Aps.Wo.Reject.NoCore" xml:space="preserve">
+    <value>완제품 {0} 의 코어를 정할 수 없음 (BOM 의 사출품이 없거나 여럿)</value>
+  </data>
+  <data name="PP.Aps.Wo.Reject.NoParent" xml:space="preserve">
+    <value>저장된 BOM 에 이 사출품을 쓰는 완제품 없음</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.Blocked" xml:space="preserve">
+    <value>마스터 문제가 있는 계획 행이 {0}건 있어 WO 를 생성하지 않습니다.</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.BlockedHint" xml:space="preserve">
+    <value>금형 제품정보(MD-007)·금형-라인 UPH·BOM 사출품(InjFlag)을 고친 뒤 「미리보기 갱신」하거나, 「대상 선택」에서 그 행을 빼세요.</value>
+  </data>
   <data name="PP.Aps.Wo.Err.NoneSelected" xml:space="preserve">
     <value>선택된 행이 없습니다</value>
   </data>

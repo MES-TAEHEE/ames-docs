@@ -67,7 +67,7 @@
                 }
                 @if (_canApprove)   @* WO 생성은 승인 권한(A) — 슬롯 편집은 수정 권한(E) *@
                 {
-                    <RadzenButton Text="@L["PP.Aps.Wo.Btn.Run"].Value" Icon="factory" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Click="RunReal" Disabled="@(_busy || _selected.Count == 0 || _preview is null || PreviewStale)" />
+                    <RadzenButton Text="@L["PP.Aps.Wo.Btn.Run"].Value" Icon="factory" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" class="ames-rz-btn" Click="RunReal" Disabled="@(_busy || _selected.Count == 0 || _preview is null || PreviewStale || _preview.Blocked)" />
                 }
             }
             <RadzenButton Text="@L["PP.Aps.Wo.Btn.Back"].Value" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Back" Disabled="@_busy" />
@@ -118,6 +118,17 @@
 @if (PreviewStale)
 {
     <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false">@L["PP.Aps.Wo.Err.PreviewStale"]</RadzenAlert>
+}
+@if (_result is null && _preview is { Blocked: true } blocked)
+{
+    @* 금형·UPH·코어·부모 간선이 빠진 계획 행이 있으면 WO 를 하나도 만들지 않는다(10-22 사용자 결정) — 마스터를 고쳐 갱신하거나 「대상 선택」에서 뺀다 *@
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" AllowClose="false">
+        <div style="font-weight:600;">@string.Format(L["PP.Aps.Wo.Err.Blocked"].Value, blocked.RejectedCount)</div>
+        <ul style="margin:6px 0 0 18px;padding:0;">
+            @foreach (var rj in blocked.Rejected) { <li><span class="code">@rj.PlanDate.ToString(DateFmt.Date) · @rj.ItemNo</span> — @ReasonText(rj)</li> }
+        </ul>
+        <div style="margin-top:6px;">@L["PP.Aps.Wo.Err.BlockedHint"]</div>
+    </RadzenAlert>
 }
 @if (_result is null && _editOutcomes.Any(o => !o.Applied))
 {
@@ -320,7 +331,7 @@ else if (_released)
         {
             <div class="ames-alert bad" style="margin:0 14px 12px;">
                 <div style="font-weight:600;">@L["PP.Aps.Wo.Rejected"]</div>
-                @foreach (var rj in shown.Rejected) { <div><span class="code">@rj.PlanDate.ToString(DateFmt.Date) · @rj.ItemNo</span> — @ReasonText(rj.Reason)</div> }
+                @foreach (var rj in shown.Rejected) { <div><span class="code">@rj.PlanDate.ToString(DateFmt.Date) · @rj.ItemNo</span> — @ReasonText(rj)</div> }
             </div>
         }
         <div class="dim" style="font-size:.8em;line-height:1.5;padding:0 14px 12px;">@L["PP.Aps.Wo.Hint"]</div>
@@ -482,6 +493,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
     {
         if (!_canApprove || _busy) return;
         if (_preview is null || PreviewStale) { ShowMsg(L["PP.Aps.Wo.Err.PreviewStale"], true); return; }
+        if (_preview.Blocked) { ShowMsg(string.Format(L["PP.Aps.Wo.Err.Blocked"].Value, _preview.RejectedCount), true); return; }
         var ids = SelectedIds();
         var go = await Dialog.Confirm(string.Format(L["PP.Aps.Wo.Confirm"].Value, ids.Count), L["PP.Aps.Wo.Title"].Value,
             new ConfirmOptions { OkButtonText = L["PP.Aps.Wo.Btn.ConfirmRun"].Value, CancelButtonText = L["Btn.Cancel"].Value });
@@ -493,7 +505,14 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
             var edits = _edits.ToList();
             var r = await Task.Run(() => Pp.CreateApsWorkOrders(RunId, ids, _actor, dryRun: false, edits: edits));
             Audit.Log("PP-APS", "WO", "PP_ApsRun", RunId, null,
-                new { r.Created, r.Late, r.Over, r.Short, Rejected = r.RejectedCount, r.SkippedExisting, PlanLineIds = ids, Edits = edits.Count, EditsApplied = r.EditsApplied });
+                new { r.Created, r.Late, r.Over, r.Short, Rejected = r.RejectedCount, r.Blocked, r.SkippedExisting, PlanLineIds = ids, Edits = edits.Count, EditsApplied = r.EditsApplied });
+            if (r.Blocked)
+            {
+                // 미리보기 뒤 마스터가 바뀌어 서버가 막은 경우 — 아무것도 쓰지 않았다. 거부 행을 배너에 보이고 미리보기 상태로 남긴다
+                _preview = r; _previewKey = SelectionKey; _days = Array.Empty<ApsWoBoard.Day>(); _dragInit = false;
+                ShowMsg(string.Format(L["PP.Aps.Wo.Err.Blocked"].Value, r.RejectedCount), true);
+                return;
+            }
             await Task.Run(() => BuildBoard(r, ids));   // 실행 뒤 다시 읽은 기존 행에는 자기 슬롯도 섞여 온다 — ApsWoBoard 가 WoId 로 뺀다
             _edits.Clear(); _effective = null; _editOutcomes = new(); _editedPos = new();
             _result = r; _showTargets = false;
@@ -769,10 +788,12 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
         o.Placements.GroupBy(p => (p.LineId, p.Date))
                     .Select(g => $"{g.Key.LineId} {g.Key.Date.ToString(DateFmt.Date)} {Hm(g.First().StartMin)}-{Hm(g.Last().EndMin)}");
 
-    string ReasonText(string reason) => reason switch
+    string ReasonText(PpRepository.ApsRejectedLine rj) => rj.Reason switch
     {
-        PpRepository.RejectNoMold => L["PP.Aps.Wo.Reject.NoMold"].Value,
-        PpRepository.RejectNoUph  => L["PP.Aps.Wo.Reject.NoUph"].Value,
-        _                         => reason,
+        PpRepository.RejectNoMold   => L["PP.Aps.Wo.Reject.NoMold"].Value,
+        PpRepository.RejectNoUph    => L["PP.Aps.Wo.Reject.NoUph"].Value,
+        PpRepository.RejectNoParent => L["PP.Aps.Wo.Reject.NoParent"].Value,
+        PpRepository.RejectNoCore   => string.Format(L["PP.Aps.Wo.Reject.NoCore"].Value, rj.Detail ?? rj.ItemNo),
+        _                           => rj.Reason,
     };
 }
