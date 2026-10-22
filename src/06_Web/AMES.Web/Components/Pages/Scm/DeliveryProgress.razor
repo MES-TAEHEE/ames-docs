@@ -26,12 +26,18 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_search" MaxLength="120" Placeholder='@L["SCM.DeliveryProgress.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:240px" />
             <RadzenDropDown TValue="string" @bind-Value="_vendor" Data="_vendors" TextProperty="VendorName" ValueProperty="VendorID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder='@L["Col.Supplier"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
-            <RadzenLabel Text='@L["SCM.DeliveryProgress.ShipDate"]' />
-            <RadzenDatePicker TValue="DateTime?" @bind-Value="_from" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
-            <span>~</span><RadzenDatePicker TValue="DateTime?" @bind-Value="_to" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
-            <RadzenCheckBox TValue="bool" @bind-Value="_includeReceived" Name="IncludeReceived" /><RadzenLabel Text='@L["SCM.Preview.Lbl.IncludeReceived"]' Component="IncludeReceived" />
-            <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Reload" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
-            <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" Click="Reset" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+            <div class="delivery-progress-filter-group">
+                <RadzenLabel Text='@L["SCM.DeliveryProgress.ShipDate"]' Component="DeliveryShipDateFrom" />
+                <RadzenDatePicker TValue="DateTime?" Name="DeliveryShipDateFrom" @bind-Value="_from" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
+                <span>~</span><RadzenDatePicker TValue="DateTime?" @bind-Value="_to" AllowClear="true" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" NavigationMode="DatePickerNavigationMode.DropDown" class="ames-rz-input" Style="width:145px" />
+            </div>
+            <div class="delivery-progress-filter-group">
+                <RadzenCheckBox TValue="bool" @bind-Value="_includeReceived" Name="IncludeReceived" /><RadzenLabel Text='@L["SCM.Preview.Lbl.IncludeReceived"]' Component="IncludeReceived" style="cursor:pointer" />
+            </div>
+            <div class="delivery-progress-filter-group">
+                <RadzenButton Text='@L["Btn.Search"]' Icon="search" Click="Reload" Disabled="_busy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+                <RadzenButton Text='@L["Btn.Reset"]' Icon="restart_alt" Click="Reset" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" class="ames-rz-btn" />
+            </div>
         </RadzenStack>
     </div>
     <RadzenDataGrid @ref="_grid" TItem="SupplierDeliveryProgressDto" Data="_rows" AllowSorting="true" AllowPaging="true" PageSize="_pageSize" PageSizeOptions="@_pageSizes" PageSizeChanged="s=>_pageSize=s"
