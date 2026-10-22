@@ -23,14 +23,6 @@
         <div class="ames-kpi-l">@L["Lbl.Total"]</div>
         <div class="ames-kpi-v">@_allRows.Count</div>
     </div>
-    <div class="ames-kpi ok">
-        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "ACTIVE")</div>
-    </div>
-    <div class="ames-kpi warn">
-        <div class="ames-kpi-l">@L["MD.Line.Kpi.Rfid"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.RfidEnabledFlag)</div>
-    </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["MD.Line.Kpi.Plants"]</div>
         <div class="ames-kpi-v">@_allRows.Select(r => r.PlantCode).Where(p => p != null).Distinct().Count()</div>
@@ -97,12 +89,6 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="RfidEnabledFlag" Title="@L["Col.RFID"]" TextAlign="TextAlign.Center" Width="80px">
-                <Template Context="r">
-                    @if (r.RfidEnabledFlag) { <span class="pill ok">ON</span> }
-                    else { <span class="dim">—</span> }
-                </Template>
-            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @{ var sLabel = _lineStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status; }
@@ -164,10 +150,6 @@
                 </RadzenColumn>
             </RadzenRow>
 
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
-                <RadzenCheckBox TValue="bool" @bind-Value="_f.RfidEnabledFlag" Name="CreateChkRfid" />
-                <RadzenLabel Text="@L["MD.Line.Lbl.RfidEnabled"]" Component="CreateChkRfid" style="cursor:pointer;" />
-            </RadzenStack>
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -228,10 +210,6 @@
                 </RadzenColumn>
             </RadzenRow>
 
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:6px;">
-                <RadzenCheckBox TValue="bool" @bind-Value="_f.RfidEnabledFlag" Name="EditChkRfid" />
-                <RadzenLabel Text="@L["MD.Line.Lbl.RfidEnabled"]" Component="EditChkRfid" style="cursor:pointer;" />
-            </RadzenStack>
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)
