@@ -140,6 +140,7 @@ FILES=(
   migrate_mnt_number_index.sql       # MNT 채번 범위 잠금용 일반 인덱스(고장·보전 WO·PM 계획 번호) — 스키마에 이미 있으면 건너뜀(10-13)
   migrate_mnt_failure_action_wo.sql  #고장 조치 이력의 작업지시(MNT_FailureAction.WorkOrderID) — 부분 완료한 원래 작업지시에서도 고장이 보이게(10-14)
   migrate_pp_lineoee_unique.sql      # PP-OEE 스냅샷 (LineID, PeriodDate, ShiftCode) 유니크 인덱스 — 스키마에 이미 있으면 건너뜀(10-14)
+  migrate_wonumber_unique.sql        # PP_WorkOrder.WoNumber 유니크 인덱스 — WO 채번 범위 잠금을 접두어 범위로 좁힘(POP 확정 대기 방지), 스키마에 이미 있으면 건너뜀(10-22)
   migrate_pp_lineoee_fill.sql        # PP-OEE 자동 집계 프로시저 SP_PP_LineOEE_Fill(+Monitor) + 상태 로그·실적 인덱스 (에이전트 작업은 setup_job_pp_lineoee_fill.sql, 10-22)
   migrate_pp_linestatelog_fill.sql   # 라인 상태 분 단위 분류 프로시저 SP_PP_LineStateLog_Fill(+Monitor) + UX_PP_LineStateLog_Line_Minute + SYS_Config PP_LINE_RUN_GAP_* (작업은 setup_job_pp_linestatelog_fill.sql, 10-22)
   migrate_md_paint_fabric_lotno.sql  # MD_PaintFabric.LotNo varchar(24) → nvarchar(50) — 스키마에 이미 있으면 건너뜀(10-15)
