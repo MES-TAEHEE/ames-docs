@@ -140,11 +140,11 @@ public class PalletLoadDbTests
             Assert.Equal(InjConfirmOutcome.Confirmed, inj.ConfirmByLotCode(coreCode, InjLine, "E-PLT", null, "E-PLT", Pallet1, out _).Outcome);
             Assert.Equal(1, new PalletStockRepository(f!).Inspect(Pallet1, CoreA).State.CountOf(CoreA));
 
-            // 코어 스캔 = 코어가 팔레트에서 나와 완제품이 됐다 → 코어 재고 0, OUT 거래, 팔레트는 다시 빈다
+            // 코어 스캔 = 코어가 팔레트에서 나와 완제품이 됐다 → 코어 재고 행은 지우고(0 으로 남기지 않음, 2026-10-22 사용자 결정) OUT 거래만 남긴다, 팔레트는 다시 빈다
             var made = img.CreateFromCore(coreCode, ImgLine, "E-PLT", FgA);
             Assert.Equal(ImgCoreOutcome.Created, made.Outcome);
-            Assert.Equal(0m, (decimal)AmesDevDb.Scalar(f!, "SELECT Qty FROM dbo.WH_Inventory WHERE LotNo=@L", ("@L", coreCode))!);
-            Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE LotNo=@L AND TransactionType='OUT' AND SourceType='IMG_CORE' AND SourceID=@Id AND QtyChange=-1",
+            Assert.Equal(0, Count(f!, "SELECT COUNT(*) FROM dbo.WH_Inventory WHERE LotNo=@L", ("@L", coreCode)));
+            Assert.Equal(1, Count(f!, "SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE LotNo=@L AND TransactionType='OUT' AND SourceType='IMG_CORE' AND SourceID=@Id AND QtyChange=-1 AND QtyBefore=1 AND QtyAfter=0",
                                   ("@L", coreCode), ("@Id", made.Lot!.LotId)));
             Assert.Equal(0, new PalletStockRepository(f!).Inspect(Pallet1, CoreA).State.CountOf(CoreA));
 

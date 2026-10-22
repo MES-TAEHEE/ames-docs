@@ -1,6 +1,9 @@
 namespace AMES.Contracts.Dto;
 
-/// <summary>tbl_Lot + PR_ImgLot 조인 뷰 — IMG 원천 LOT 1건 (1 LOT = 1 EA).</summary>
+/// <summary>
+/// 완제품 LOT 뷰 — IMG(tbl_Lot + PR_ImgLot)·PNT(tbl_Lot + PR_PntLot) 공용, 1 LOT = 1 EA.
+/// PNT 는 코어 스캔·원단·본딩이 없어 CoreLotCode·Fabric*·BondSetupId 가 항상 null 이다(2026-10-22).
+/// </summary>
 public sealed class ImgLotDto
 {
     public int       LotId            { get; init; }

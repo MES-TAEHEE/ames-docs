@@ -1,6 +1,7 @@
 namespace AMES.Data.Services;
 
-public sealed record BackflushBomRow(string CompItemNo, string? ItemType, decimal QtyPer, decimal ScrapPct, string? Uom, bool Active);
+/// <param name="InjFlag">MD_Item.InjFlag — 사출품 자식. PNT 확정만 이 자식을 뺀다(includeInjection).</param>
+public sealed record BackflushBomRow(string CompItemNo, string? ItemType, decimal QtyPer, decimal ScrapPct, string? Uom, bool Active, bool InjFlag = false);
 public sealed record BackflushRequirement(string PartNo, decimal Qty, string? Uom);
 public sealed record BackflushLot(string LotNo, decimal Qty);
 /// <summary>양수 LOT 에서 자리표시 LOT 으로 옮기는 양(자리표시 음수 메우기).</summary>
@@ -13,21 +14,29 @@ public sealed record BackflushAllocation(IReadOnlyList<BackflushNet> Nets, IRead
 /// <summary>
 /// BOM 자동 차감 규칙(순수). 소요 = 유효 BOM 의 활성 MATERIAL 자식 × (1 + 스크랩%) × 1 EA,
 /// 배분 = 라인 재고 FIFO → 모자라면 자리표시 LOT(음수 허용). 사용자 결정 2026-10-15.
+/// PNT 는 사출품 자식(InjFlag 1)도 뺀다 — 코어 스캔이 없어 IMG 의 ConsumeCore 를 대신한다(2026-10-22 사용자 결정, <see cref="IncludesInjection"/>).
 /// </summary>
 public static class BackflushRules
 {
     public const string MaterialType = "MATERIAL";
 
+    public const string InjectionConsumingProcess = "PNT";
+
     public static string PlaceholderLotNo(string linePrefix, string partNo) => $"BF-{linePrefix}-{partNo}";
 
-    public static IReadOnlyList<BackflushRequirement> Requirements(IEnumerable<BackflushBomRow> rows)
+    /// <summary>그 공정의 확정·재작업 수리가 BOM 사출품 자식까지 빼는지 — PNT 만.</summary>
+    public static bool IncludesInjection(string? processCode)
+        => string.Equals(processCode, InjectionConsumingProcess, StringComparison.OrdinalIgnoreCase);
+
+    public static IReadOnlyList<BackflushRequirement> Requirements(IEnumerable<BackflushBomRow> rows, bool includeInjection = false)
     {
         var sum   = new Dictionary<string, (decimal Qty, string? Uom)>(StringComparer.OrdinalIgnoreCase);
         var order = new List<string>();
         foreach (var r in rows)
         {
             if (!r.Active || r.QtyPer <= 0m) continue;
-            if (!string.Equals(r.ItemType, MaterialType, StringComparison.OrdinalIgnoreCase)) continue;
+            var material  = string.Equals(r.ItemType, MaterialType, StringComparison.OrdinalIgnoreCase);
+            if (!material && !(includeInjection && r.InjFlag)) continue;
             var qty = r.QtyPer * (1m + r.ScrapPct / 100m);
             if (sum.TryGetValue(r.CompItemNo, out var cur)) sum[r.CompItemNo] = (cur.Qty + qty, cur.Uom ?? r.Uom);
             else { sum[r.CompItemNo] = (qty, r.Uom); order.Add(r.CompItemNo); }

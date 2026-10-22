@@ -134,7 +134,8 @@
     - 내용: 사이클(CYCLE) 주기 PM 은 지금 완료할 때 사람이 다음 예정일을 넣습니다(10-16 사용자 결정 — 샷 누적 연동 전까지, `PmRules`). 샷이 쌓이지 않아 금형 소진율·정비 한계 알림도 비어 있습니다.
     - 요청: InjAgent 가 샷을 기록할 때 `MNT_MoldShotCount` 도 올립니다. 그 뒤 이승욱이 사이클 PM 의 다음 회차를 샷 기준으로 자동 발행하도록 바꿉니다.
 
-### 1-2. 보류 (8)
+### 1-2. 보류 (9)
+- **PNT 확정의 코어 재고 처리 vs PP-APS 가용재고**(10-22 검토에서 발견): PNT 확정은 BOM 사출품 자식을 PNT 라인 위치의 자리표시 `BF-P{n}-{코어}` 음수로 뺀다(사용자 결정 10-22). APS 가용재고는 `WH_Inventory.Qty > 0` 만 더해 음수 자리표시를 보지 않으므로, 도장으로 소비된 코어의 팔레트 행이 창고 라인 보충 전까지 APS 코어 재고에 그대로 잡힌다(IMG 는 `ConsumeCore` 가 코어 재고 행을 지움). **10-22 사용자 결정: 지금은 라인 재고 차감 그대로 둔다.** 후속으로 사출품을 라인 재고로 옮기는 처리(팔레트의 코어 LOT 행 → 그 라인 위치의 품번 수량 행으로 전환)를 만들면 그 수량이 자리표시 음수를 메우고 팔레트 행이 사라져 APS 과대 계상도 함께 풀린다. 그때까지 APS 코어 재고는 도장 소비분만큼 과대하다(IMG 는 영향 없음).
 - **POP 팔레트 적재(10-21) 의 범위 밖**: ① 재작업 스테이션의 수리 양품은 팔레트 스캔이 없어 `WH_Inventory` 에 넣지 않는다(INJ·IMG 확정만 싣는다) — 재작업에도 팔레트 스캔을 둘지. ② 현재 팔레트는 화면 메모리뿐이라 재로그인·재시작하면 다시 스캔한다 — 마지막으로 실은 팔레트를 DB(그 라인의 마지막 `PROD_CONFIRM` 거래)에서 되살릴지. ③ 팔레트 바코드는 `EOS-PLT-` 접두어로만 LOT 과 가르므로 다른 양식의 외부 팔레트는 받지 않는다. ④ LH/RH 쌍 팔레트의 `MD_Item.PalletQty` 는 "그 품번이 쌍 팔레트에 실리는 개수" 기준이다(10-21 결정 — 품번별로 센다) — 값이 있는 NEAFUC 쌍(D0111-PI010·D0121-PI010 32/32)이 "LH 32 + RH 32 = 64개" 인지 "16쌍" 인지 현장 적재 기준을 확인해 맞춰야 한다(값을 바꾸면 APS 계획 올림 단위도 같이 바뀐다).
 - **APS 금형 교체(MC) 한계**: "직전 금형"을 그 라인·그 날 처리 순서상 마지막 금형으로 보므로, 하루 안에 금형이 여러 번 바뀌면 그 사이 되돌림 MC 를 만들지 않습니다(같은 라인·같은 날 금형 그룹당 MC 최대 1개). 교체 자리가 없을 때 억지로 둔 MC 는 휴게·점유 구간과 겹칠 수 있습니다. 조정은 PP-LSB 에서 합니다.
 - **B2 IMG 라벨 교대 글자가 항상 C**(`Common/LabelPrinter.cs:27-32`): DAY/NIGHT 만 A/B 로 바꾸는데, 실제 교대 코드는 A/B/C 라 항상 C 가 찍힙니다. 교대 코드를 그대로 쓸지 답을 기다립니다.
@@ -156,11 +157,9 @@
 |---|---|---|---|
 | `QC_InspectionStd`(3) | 검사 기준서(버전·AQL·항목) | POP QC-08(`QcRepository.cs:267-291` → `migrate_pop_stored_procedures.sql:1280`), 웹 MD 고객 삭제 사용처 | 등록·개정·승인 화면이 없음. QC-01~03 검사도 이 기준을 쓰지 않음 |
 | `QC_CAPA`(2)·`QC_CAPA_Action`(5) | 시정·예방 조치 | POP QC-06·QC-07(`QcRepository.cs:181-218·238-246` → `migrate_pop_stored_procedures.sql:1180-1210·1253`) | 등록·진행 기능 없음 |
-| `PNT_DailyPlan`(2) | 도장 일일 계획 | PNT-01·03·09, QC 집계(`PntRepository.cs:26-55·82-92·310-327` → `migrate_pop_stored_procedures.sql:749·770·999`) | 계획을 만드는 곳 없음(PP 계획과 연결 안 됨) |
-| `PNT_OvenTempSample`(120) | 오븐 5초 온도 | PNT-05(`PntRepository.cs:197-237`) | 온도 수집 장치·에이전트 없음 |
 
 읽기·쓰기 모두 없는 테이블입니다. 소스에는 주석으로만 이름이 남아 있습니다.
-- **PNT_ 17개**: DailyReport, JigBindingLog, JigUnload, LabelPrintJob, LabelScanLog, LotLabel, OvenDeviationLog, OvenLog(1행), OvenSpikeLog, PartLossLog, QcQueue, SeqAllocator, ShiftReport, ShiftReportAudit, ShiftReportLineItem, StationStatsCache, TagFailureLog. 도장 공정 설계 때 만든 상세 기록 테이블입니다.
+- **PNT_ 22개**: DailyPlan(2행), DailyReport, JigBindingLog, JigLoad(1행), JigUnload, LabelPrintJob, LabelScanLog, LineEvent(12행), LotLabel, OvenDeviationLog, OvenLog(1행), OvenSpikeLog, OvenTempSample(120행), PartLossLog, QcQueue, SeqAllocator, ShiftReport, ShiftReportAudit, ShiftReportLineItem, StationStatsCache, TagFailureLog, VirtualLot(7행). 구 도장 모듈(가상 LOT·지그·오븐)의 테이블 — **10-22 PNT-MAIN 전환으로 읽는 코드·프로시저가 없다**(PNT 실적은 `tbl_Lot`/`PR_PntLot`, QC-07 도 실적 테이블로 센다). 행은 시연 데이터뿐. DROP 여부 결정 대기.
 - **PR_ 7개**: BondSetupAudit(3행), CycleAnomalyLog, DashTileCache, DefectAutoLink, DefectRateCache, PlcInterlock, ShiftHandover.
 - **QC_ 2개**: QC_Disposition(부적합 처분), QC_NCR_Action(NCR 처리 이력). QC-04·05 가 처분·이력을 남기지 않는다는 뜻이기도 합니다.
 - **죽은 코드만 쓰는 5개**: `BondRepository`·`FabricRepository` 는 어디서도 생성되지 않습니다(IMG 는 원단·본딩을 다루지 않기로 함). 대상은 PR_BondSetup(2), PR_BondCycleLog(14), PR_FabricIssue(1), PR_FabricDeductionLog(14), PR_FabricIssueAttempt(0) 입니다.

@@ -26,10 +26,10 @@ internal static class PopServices
     public static EquipmentRepository    Equipment         { get; private set; } = null!;
     public static AndonRepository        Andon             { get; private set; } = null!;
     public static MasterDataRepository   Master            { get; private set; } = null!;
-    public static PntRepository          Pnt               { get; private set; } = null!;
     public static QcRepository           Qc                { get; private set; } = null!;
     public static InjLotRepository      InjLots           { get; private set; } = null!;
     public static ImgLotRepository      ImgLots           { get; private set; } = null!;
+    public static PntLotRepository      PntLots           { get; private set; } = null!;
     public static ReworkRepository      Rework            { get; private set; } = null!;
     public static PalletStockRepository Pallets           { get; private set; } = null!;
 
@@ -50,10 +50,10 @@ internal static class PopServices
         Equipment         = new EquipmentRepository (ConnectionFactory);
         Andon             = new AndonRepository     (ConnectionFactory);
         Master            = new MasterDataRepository(ConnectionFactory);
-        Pnt               = new PntRepository       (ConnectionFactory);
         Qc                = new QcRepository        (ConnectionFactory);
         InjLots           = new InjLotRepository    (ConnectionFactory);
         ImgLots           = new ImgLotRepository    (ConnectionFactory);
+        PntLots           = new PntLotRepository    (ConnectionFactory);
         Rework            = new ReworkRepository    (ConnectionFactory);
         Pallets           = new PalletStockRepository(ConnectionFactory);
     }

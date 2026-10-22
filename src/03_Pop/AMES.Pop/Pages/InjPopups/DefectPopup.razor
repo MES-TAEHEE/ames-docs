@@ -6,7 +6,8 @@
 @implements IDisposable
 
 @*  불량 등록 팝업 — LOT 라벨 스캔 → 불량코드 선택 → 등록. 수량 입력은 없다(1 LOT = 1 EA).
-    INJ·IMG 가 ProcessCode 로 공유한다. 등록된 LOT 은 DEFECT 가 되어 REWORK 스테이션 대기열로 간다.
+    INJ·IMG·PNT 가 ProcessCode 로 공유한다. 완제품 공정(IMG·PNT)은 DataMatrix 라벨을 파싱하고 각자의 LOT 리포지토리를 쓴다.
+    등록된 LOT 은 DEFECT 가 되어 REWORK 스테이션 대기열로 간다.
     시리얼 스캔은 메인 화면이 팝업 중엔 무시하므로 여기서 직접 구독한다(안돈 팝업과 같은 방식). *@
 
 <PopupShell Title='@($"❌ {T("DefectRegister")}")' Width="1200px" OnClose="OnClose">
@@ -56,8 +57,11 @@
 
 @code {
     [Parameter] public PopSessionDto? Session     { get; set; }
-    /// <summary>불량코드 목록·등록 공정 INJ / IMG.</summary>
+    /// <summary>불량코드 목록·등록 공정 INJ / IMG / PNT.</summary>
     [Parameter] public string         ProcessCode { get; set; } = "INJ";
+    /// <summary>완제품 공정 — 라벨이 고객 DataMatrix 이고 LOT 이 ImgLotDto 공용 뷰다.</summary>
+    private bool FinishedProcess => ProcessCode is "IMG" or "PNT";
+    private bool IsPnt => ProcessCode == "PNT";
     [Parameter] public EventCallback  OnClose     { get; set; }
     [Parameter] public EventCallback  OnChanged   { get; set; }
 
@@ -112,13 +116,14 @@
         _focusScan = true;
         try
         {
-            var lotCode = ProcessCode == "IMG" ? AMES.Devices.ImgScanParser.ExtractLotCode(raw) : raw.Trim();
+            var lotCode = FinishedProcess ? AMES.Devices.ImgScanParser.ExtractLotCode(raw) : raw.Trim();
             if (string.IsNullOrEmpty(lotCode)) { SetBanner(false, $"{T("LotNotFound")}: {raw}"); return; }
 
             LotInfo? info = null;
-            if (ProcessCode == "IMG")
+            if (FinishedProcess)
             {
-                if (PopServices.ImgLots.GetByLotCode(lotCode) is { } im)
+                var fin = IsPnt ? PopServices.PntLots.GetByLotCode(lotCode) : PopServices.ImgLots.GetByLotCode(lotCode);
+                if (fin is { } im)
                     info = new LotInfo(im.LotCode, im.ItemNo, im.ItemName, im.LineId, im.ConfirmStatus, im.CreatedTS, null);
             }
             else if (PopServices.InjLots.GetByLotCode(lotCode) is { } ij)
@@ -149,9 +154,12 @@
         _busy = true;
         try
         {
-            var (outcome, _, itemNo) = ProcessCode == "IMG"
-                ? PopServices.ImgLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo)
-                : PopServices.InjLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            var (outcome, _, itemNo) = ProcessCode switch
+            {
+                "PNT" => PopServices.PntLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo),
+                "IMG" => PopServices.ImgLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo),
+                _     => PopServices.InjLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo),
+            };
             var (ok, detail) = outcome switch
             {
                 DefectRegisterOutcome.Registered      => (true,  $"{T("DfRegistered")}: {_lot.LotCode} ({itemNo}) · {_selected.DefectCode}"),

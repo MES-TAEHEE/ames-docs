@@ -181,16 +181,17 @@ public static class FgEndpoints
                     W.WoNumber,
                     COALESCE(NULLIF(L.ItemNo, ''), W.ItemNo) AS ItemNo,
                     I.ItemName,
-                    IMG.CustomerCode,
+                    COALESCE(IMG.CustomerCode, PNT.CustomerCode) AS CustomerCode,
                     CAST(COALESCE(NULLIF(PR.GoodQty, 0), NULLIF(L.RemainingQty, 0),
                          NULLIF(L.BatchSize, 0), NULLIF(W.CompletedQty, 0), 0) AS DECIMAL(14,3)) AS Qty,
                     I.DefaultUOM AS Unit,
                     L.ProducedAt,
-                    COALESCE(PR.EntryAt, IMG.ConfirmedAt, L.ProducedAt, L.CreatedTS) AS ReadyAt
+                    COALESCE(PR.EntryAt, IMG.ConfirmedAt, PNT.ConfirmedAt, L.ProducedAt, L.CreatedTS) AS ReadyAt
                 FROM dbo.tbl_Lot L
                 LEFT JOIN dbo.PP_WorkOrder W ON W.WoID = L.WoID
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo = COALESCE(NULLIF(L.ItemNo, ''), W.ItemNo)
                 LEFT JOIN dbo.PR_ImgLot IMG ON IMG.LotID = L.LotID
+                LEFT JOIN dbo.PR_PntLot PNT ON PNT.LotID = L.LotID   -- 도장 완제품(10-22) — 수주처·확정 시각을 IMG 와 같이 읽는다
                 CROSS APPLY
                 (
                     SELECT SUM(COALESCE(R.GoodQty, 0)) AS GoodQty, MAX(R.EntryAt) AS EntryAt
@@ -210,7 +211,7 @@ public static class FgEndpoints
                     WHERE S.LotNo = L.LotCode
                       AND S.Qty > 0
                 )
-                ORDER BY COALESCE(IMG.ConfirmedAt, PR.EntryAt, L.ProducedAt, L.CreatedTS), L.LotID;
+                ORDER BY COALESCE(IMG.ConfirmedAt, PNT.ConfirmedAt, PR.EntryAt, L.ProducedAt, L.CreatedTS), L.LotID;
                 """;
             return Query(factory, sql, r => new PutAwayWaitingRow(
                 (int)r["LotID"], r["LotNo"] as string ?? "", r["WoNumber"] as string,
@@ -758,12 +759,12 @@ public static class FgEndpoints
                 L.WoID,
                 L.ItemNo,
                 I.ItemName,
-                NULLIF(IMG.CustomerCode, '') AS CustomerCode,
+                NULLIF(COALESCE(IMG.CustomerCode, PNT.CustomerCode), '') AS CustomerCode,
                 CAST(COALESCE(S.Qty, NULLIF(PR.GoodQty, 0), NULLIF(L.RemainingQty, 0), NULLIF(L.BatchSize, 0), 0) AS DECIMAL(14,3)) AS Qty,
                 I.DefaultUOM AS Unit,
                 L.ProducedAt AS MfgDate,
                 L.ExpiryDate,
-                COALESCE(PR.EntryAt, IMG.ConfirmedAt, L.ProducedAt, L.CreatedTS) AS ReadyAt,
+                COALESCE(PR.EntryAt, IMG.ConfirmedAt, PNT.ConfirmedAt, L.ProducedAt, L.CreatedTS) AS ReadyAt,
                 CASE WHEN UPPER(ISNULL(L.Status, '')) IN ('CONFIRMED', 'STOCKED')
                            AND I.ItemType='ASSY' AND ISNULL(I.ActiveFlag,1)=1
                            AND COALESCE(PR.GoodQty, 0) > 0 THEN 1 ELSE 0 END AS IsProductionCompleted,
@@ -779,6 +780,8 @@ public static class FgEndpoints
                 ON I.ItemNo = L.ItemNo
             LEFT JOIN dbo.PR_ImgLot IMG
                 ON IMG.LotID = L.LotID
+            LEFT JOIN dbo.PR_PntLot PNT
+                ON PNT.LotID = L.LotID
             OUTER APPLY
             (
                 SELECT SUM(COALESCE(R.GoodQty, 0)) AS GoodQty, MAX(R.EntryAt) AS EntryAt

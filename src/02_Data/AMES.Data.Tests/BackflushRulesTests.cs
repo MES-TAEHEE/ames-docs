@@ -95,4 +95,27 @@ public class BackflushRulesTests
     [Fact]
     public void PlaceholderLotNo_is_prefixed_by_line_and_part()
         => Assert.Equal("BF-I1-21343A0-PIDHA", BackflushRules.PlaceholderLotNo("I1", "21343A0-PIDHA"));
+
+    [Fact]
+    public void Requirements_include_injection_children_only_when_asked()
+    {
+        var rows = new[]
+        {
+            Row("RESIN", qtyPer: 100m),
+            new BackflushBomRow("CORE-LH", "SUB", 1m, 0m, "EA", true, InjFlag: true),
+            new BackflushBomRow("S-ASSY",  "SUB", 1m, 0m, "EA", true, InjFlag: false),
+        };
+        Assert.Equal(new[] { "RESIN" }, BackflushRules.Requirements(rows).Select(r => r.PartNo));
+        Assert.Equal(new[] { "CORE-LH", "RESIN" }, BackflushRules.Requirements(rows, includeInjection: true).Select(r => r.PartNo));
+    }
+
+    [Fact]
+    public void IncludesInjection_is_true_only_for_pnt()
+    {
+        Assert.True(BackflushRules.IncludesInjection("PNT"));
+        Assert.True(BackflushRules.IncludesInjection("pnt"));
+        Assert.False(BackflushRules.IncludesInjection("IMG"));
+        Assert.False(BackflushRules.IncludesInjection("INJ"));
+        Assert.False(BackflushRules.IncludesInjection(null));
+    }
 }

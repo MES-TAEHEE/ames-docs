@@ -80,4 +80,13 @@ public class PalletChipTests
     [InlineData(PalletLoadOutcome.Shipped,  false)]
     public void Only_a_usable_pallet_becomes_the_current_pallet(PalletLoadOutcome o, bool accepted)
         => Assert.Equal(accepted, PalletChip.Accepts(o));
+
+    [Fact]
+    public void Scan_block_key_demands_a_pallet_first_then_a_new_one_when_full()
+    {
+        Assert.Equal("PalletScanFirst", PalletChip.ScanBlockKey(null));
+        Assert.Equal("PalletFull",      PalletChip.ScanBlockKey(Status(24, 24)));
+        Assert.Null(PalletChip.ScanBlockKey(Status(3, 24)));
+        Assert.Null(PalletChip.ScanBlockKey(Status(3, null)));   // 적입수량 없는 품번은 제한 없음
+    }
 }

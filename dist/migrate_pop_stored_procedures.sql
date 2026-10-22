@@ -1,5 +1,5 @@
 ﻿-- ============================================================================
--- AMES.Pop 이 쓰는 인라인 SQL 을 저장 프로시저로 이전 (AMES.Data 리포지토리 -> dbo.SP_POP_*) — 145개
+-- AMES.Pop 이 쓰는 인라인 SQL 을 저장 프로시저로 이전 (AMES.Data 리포지토리 -> dbo.SP_POP_*) — 144개
 --   · 프로시저 이름 규칙: dbo.SP_POP_{영역}_{메서드}[_{동작테이블}]  (docs/POP_SP_전환목록_v2.xlsx 참조)
 --   · 파라미터 이름·타입은 기존 C# 호출과 같다. SET NOCOUNT ON 은 넣지 않았다 —
 --     ExecuteNonQuery 의 영향 행 수를 쓰는 호출(상태 전이 등)이 인라인 SQL 과 똑같이 동작해야 한다.
@@ -734,285 +734,302 @@ BEGIN
 END;
 GO
 
--- ===== Pnt.ListTodayPlan (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ListTodayPlan
-    @L VARCHAR(20)
+-- ===== PntLot.InsertRawLot (PNT) =====
+-- PNT(도장) 원천 LOT — IMG 판(SP_POP_IMG_*)과 같은 흐름에서 코어 스캔(ParentLotID)·원단·본딩만 뺐다.
+-- 조회 SELECT 목록은 ImgLotDto 공용 뷰에 맞춰 원단·코어 컬럼을 NULL 로 돌려준다.
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_InsertRawLot_GetItem
+    @Item VARCHAR(20)
 AS
 BEGIN
-    SELECT  p.PlanID, p.PlanDate, p.ItemNo, i.ItemName,
-            p.RalColor, c.ColorName, c.HexValue,
-            p.TargetQty, p.LineID, p.OvenID,
-            CONVERT(VARCHAR(5), p.StartTime, 108) AS StartTime,
-            p.JigsRequired, p.LotsRequired, p.ReadyFlag,
-            (SELECT COUNT(*) FROM dbo.PNT_VirtualLot v WHERE v.PlanID = p.PlanID) AS LotsIssued,
-            (SELECT COUNT(*) FROM dbo.PNT_VirtualLot v WHERE v.PlanID = p.PlanID AND v.Status='BOUND') AS LotsBound
-    FROM    dbo.PNT_DailyPlan p
-    LEFT JOIN dbo.MD_Item     i ON i.ItemNo  = p.ItemNo
-    LEFT JOIN dbo.MD_RalColor c ON c.RALCode = p.RalColor
-    WHERE   p.PlanDate = CAST(GETDATE() AS DATE)
-      AND   p.LineID   = @L
-    ORDER BY p.StartTime, p.PlanID;
+    SELECT ItemName, PGN, ALC, MountPos FROM dbo.MD_Item WHERE ItemNo = @Item;
 END;
 GO
 
--- ===== Pnt.ListAllTodayLots (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ListAllTodayLots
-    @L VARCHAR(20)
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_InsertRawLot_GetWorkOrderRouting
+    @Line VARCHAR(20),
+    @Item VARCHAR(20)
 AS
 BEGIN
-    SELECT  v.VirtualLotID, v.LotID, v.PlanID, v.JigID,
-            v.ItemNo, i.ItemName,
-            v.RalColor, c.ColorName, c.HexValue,
-            v.TargetQty, v.LoadedQty, v.ConfirmedQty, v.DefectQty,
-            v.Status, ISNULL(v.EnhancedInspection,0) AS EnhancedInspection,
-            v.IssuedAt, v.BindAt, v.BindReason
-    FROM    dbo.PNT_VirtualLot v
-    JOIN    dbo.PNT_DailyPlan  p ON p.PlanID = v.PlanID
-    LEFT JOIN dbo.MD_Item     i  ON i.ItemNo  = v.ItemNo
-    LEFT JOIN dbo.MD_RalColor c  ON c.RALCode = v.RalColor
-    WHERE   p.PlanDate = CAST(GETDATE() AS DATE)
-      AND   p.LineID   = @L
-    ORDER BY v.IssuedAt;
+    SELECT TOP 1 c.CustomerCode
+    FROM   dbo.PP_WorkOrderRouting r
+    JOIN   dbo.PP_WorkOrder        w  ON w.WoID  = r.WoID
+    LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+    LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
+    WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
+      AND          r.Status IN ('Released','In Progress')
+                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+    ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
+                      ISNULL(w.Priority,5),
+                      ISNULL(w.DueDate,'9999-12-31'),
+                      w.WoID
+    ;
 END;
 GO
 
--- ===== Pnt.IssueLot (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_IssueLot
-    @P INT,
-    @I VARCHAR(20),
-    @R VARCHAR(12),
-    @T INT,
-    @Op VARCHAR(20),
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_InsertRawLot_GetEquipment
+    @L VARCHAR(20)
+AS
+BEGIN
+    SELECT TOP 1 EquipID FROM dbo.MD_Equipment
+    WHERE  LineID = @L AND ISNULL(ActiveFlag,1) = 1
+    ORDER  BY EquipID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_InsertRawLot_InsLot
+    @LotCode VARCHAR(40),
+    @ItemNo VARCHAR(20),
+    @LineID VARCHAR(20),
+    @Proc VARCHAR(10),
     @By VARCHAR(20)
 AS
 BEGIN
-    INSERT INTO dbo.PNT_VirtualLot
-        (PlanID, ItemNo, RalColor, TargetQty, LoadedQty, ConfirmedQty,
-         DefectQty, Status, EnhancedInspection, IssuedAt, IssuedBy,
-         CreatedBy, CreatedTS)
-    OUTPUT INSERTED.VirtualLotID
-    VALUES (@P, @I, @R, @T, 0, 0, 0, 'PRE', 0, SYSDATETIME(), @Op,
-            @By, SYSDATETIME());
+    INSERT INTO dbo.tbl_Lot
+        (LotCode, ItemNo, WoID, LineID, ProcessCode, BatchSize, RemainingQty, ParentLotID,
+         ProducedAt, Status, QualityFlag, CreatedBy, CreatedTS)
+    OUTPUT INSERTED.LotID, INSERTED.CreatedTS
+    VALUES
+        (@LotCode, @ItemNo, NULL, @LineID, @Proc, 1, 1, NULL,
+         SYSDATETIME(), 'RAW', 'PENDING', @By, SYSDATETIME());
 END;
 GO
 
--- ===== Pnt.ListAvailableJigs (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ListAvailableJigs
-AS
-BEGIN
-    SELECT  j.JigID, j.JigName, ISNULL(j.HangerCount,0) AS HangerCount,
-            ISNULL(j.RatedCycle,0) AS RatedCycle,
-            ISNULL(j.CycleCount,0) AS CycleCount,
-            j.HealthStatus, ISNULL(j.ReadFailRate,0) AS ReadFailRate,
-            CASE WHEN EXISTS(SELECT 1 FROM dbo.PNT_VirtualLot v
-                             WHERE v.JigID = j.JigID
-                               AND v.Status IN ('BOUND','LOADED','OVEN'))
-                 THEN 0 ELSE 1 END AS Available
-    FROM    dbo.MD_Jig j
-    WHERE   ISNULL(j.ActiveFlag,1) = 1
-    ORDER BY j.JigID;
-END;
-GO
-
--- ===== Pnt.BindAndLoad (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_BindAndLoad_UpdPNT_VirtualLot
-    @J VARCHAR(20),
-    @Q INT,
-    @ModBy VARCHAR(20),
-    @V INT
-AS
-BEGIN
-    UPDATE dbo.PNT_VirtualLot
-    SET    JigID     = @J,
-           LoadedQty = @Q,
-           Status    = 'LOADED',
-           BindAt    = ISNULL(BindAt, SYSDATETIME()),
-           BindReason= ISNULL(BindReason, 'PDA'),
-           ModifiedBy= @ModBy,
-           ModifiedTS= SYSDATETIME()
-    WHERE  VirtualLotID = @V;
-END;
-GO
-
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_BindAndLoad_InsPNT_JigLoad
-    @J VARCHAR(20),
-    @Q INT,
-    @Op NVARCHAR(450),
-    @L VARCHAR(20),
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_InsertRawLot_InsPntLot
+    @LotID INT,
+    @Equip VARCHAR(20),
+    @Cust VARCHAR(20),
     @By VARCHAR(20)
 AS
 BEGIN
-    INSERT INTO dbo.PNT_JigLoad
-        (JigID, LotID, LoadedQty, OperatorID, PdaScanAt, R1ReadAt,
-         MatchStatus, LineID, CreatedBy, CreatedTS)
-    VALUES (@J, NULL, @Q, @Op, SYSDATETIME(), SYSDATETIME(),
-            'OK', @L, @By, SYSDATETIME());
+    INSERT INTO dbo.PR_PntLot (LotID, EquipID, CustomerCode, ConfirmStatus, PrintedCount, CreatedBy, CreatedTS)
+    VALUES (@LotID, @Equip, @Cust, 'RAW', 0, @By, SYSDATETIME());
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_BindAndLoad_InsPNT_LineEvent
-    @J VARCHAR(20),
-    @By VARCHAR(20)
+-- ===== PntLot.GetTodayLots (PNT) =====
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_GetTodayLots
+    @Line VARCHAR(20),
+    @Top INT
 AS
 BEGIN
-    INSERT INTO dbo.PNT_LineEvent
-        (TagID, JigID, LotID, ReaderID, AntennaPort, TagRole,
-         EventTS, Rssi, ReadCount, TriggerType, CreatedBy, CreatedTS)
-    VALUES (NULL, @J, NULL, 'R1-LOAD', 1, 'JIG',
-            SYSDATETIME(), -42, 1, 'PE', @By, SYSDATETIME());
+    SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, mi.PGN, mi.ALC, mi.MountPos, l.LineID,
+           e.EquipID, e.CustomerCode, e.ConfirmStatus, e.ConfirmedAt,
+           CAST(NULL AS INT) AS FabricRollLotID, CAST(NULL AS DECIMAL(8,3)) AS FabricConsumedM, CAST(NULL AS INT) AS BondSetupID,
+           e.PrintedCount, l.CreatedTS, CAST(NULL AS VARCHAR(40)) AS CoreLotCode
+    FROM   dbo.tbl_Lot l
+    JOIN   dbo.PR_PntLot e ON e.LotID = l.LotID
+    LEFT   JOIN dbo.MD_Item mi ON mi.ItemNo = l.ItemNo
+    WHERE  l.LineID = @Line
+      AND  l.CreatedTS >= CAST(SYSDATETIME() AS date)
+      AND  l.CreatedTS <  DATEADD(day, 1, CAST(SYSDATETIME() AS date))
+    ORDER  BY l.CreatedTS DESC, l.LotID DESC
+    OFFSET 0 ROWS FETCH NEXT @Top ROWS ONLY;
 END;
 GO
 
--- ===== Pnt.ListRecentEvents (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ListRecentEvents
-    @N INT,
-    @L VARCHAR(20)
+-- ===== PntLot.GetByLotCode (PNT) =====
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_GetByLotCode
+    @Code VARCHAR(40)
 AS
 BEGIN
-    SELECT TOP (@N)
-           e.EventID, e.TagID, e.JigID, e.LotID, e.ReaderID,
-           r.GateLocation, e.EventTS, e.Rssi, e.TriggerType
-    FROM   dbo.PNT_LineEvent e
-    LEFT JOIN dbo.MD_RfidReader r ON r.ReaderID = e.ReaderID
-    WHERE  r.LineID = @L OR r.LineID IS NULL
-    ORDER BY e.EventTS DESC;
+    SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, mi.PGN, mi.ALC, mi.MountPos, l.LineID,
+           e.EquipID, e.CustomerCode, e.ConfirmStatus, e.ConfirmedAt,
+           CAST(NULL AS INT) AS FabricRollLotID, CAST(NULL AS DECIMAL(8,3)) AS FabricConsumedM, CAST(NULL AS INT) AS BondSetupID,
+           e.PrintedCount, l.CreatedTS, CAST(NULL AS VARCHAR(40)) AS CoreLotCode
+    FROM   dbo.tbl_Lot l
+    JOIN   dbo.PR_PntLot e ON e.LotID = l.LotID
+    LEFT   JOIN dbo.MD_Item mi ON mi.ItemNo = l.ItemNo
+    WHERE  l.LotCode = @Code AND l.ProcessCode = 'PNT';
 END;
 GO
 
--- ===== Pnt.GetOvenStatus (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_GetOvenStatus
-    @L VARCHAR(20)
-AS
-BEGIN
-    SELECT  TOP 1
-            o.OvenID, o.OvenName, ISNULL(o.TargetTemp,180) AS TargetTemp,
-            ISNULL(o.Tolerance,5) AS Tolerance, ISNULL(o.DwellSec,900) AS DwellSec,
-            (SELECT TOP 1 TempC FROM dbo.PNT_OvenTempSample
-               WHERE OvenID = o.OvenID ORDER BY SampledAt DESC) AS CurrentTemp,
-            (SELECT MIN(TempC) FROM dbo.PNT_OvenTempSample
-               WHERE OvenID = o.OvenID AND SampledAt > DATEADD(hour,-24,SYSDATETIME())) AS MinTemp24h,
-            (SELECT MAX(TempC) FROM dbo.PNT_OvenTempSample
-               WHERE OvenID = o.OvenID AND SampledAt > DATEADD(hour,-24,SYSDATETIME())) AS MaxTemp24h,
-            (SELECT COUNT(*) FROM dbo.PNT_VirtualLot
-               WHERE Status = 'OVEN') AS JigsInside
-    FROM    dbo.MD_Oven o
-    WHERE   o.LineID = @L
-    ORDER BY o.OvenID;
-END;
-GO
-
--- ===== Pnt.ListOvenSamples (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ListOvenSamples
-    @O VARCHAR(20),
-    @M INT
-AS
-BEGIN
-    SELECT  OvenID, ZoneID, TempC, SampledAt
-    FROM    dbo.PNT_OvenTempSample
-    WHERE   OvenID = @O
-      AND   SampledAt > DATEADD(minute, -@M, SYSDATETIME())
-    ORDER BY SampledAt;
-END;
-GO
-
--- ===== Pnt.ConfirmUnload (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ConfirmUnload_UpdPNT_VirtualLot
-    @G INT,
-    @D INT,
-    @ModBy VARCHAR(20),
-    @V INT
-AS
-BEGIN
-    UPDATE dbo.PNT_VirtualLot
-    SET    ConfirmedQty = @G,
-           DefectQty    = @D,
-           Status       = 'CONFIRMED',
-           ModifiedBy   = @ModBy,
-           ModifiedTS   = SYSDATETIME()
-    WHERE  VirtualLotID = @V;
-END;
-GO
-
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ConfirmUnload_InsPNT_LineEvent
+-- ===== PntLot.IncrementPrintedCount (PNT) =====
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_IncrementPrintedCount
     @By VARCHAR(20),
-    @V INT
+    @LotID INT
 AS
 BEGIN
-    INSERT INTO dbo.PNT_LineEvent
-        (TagID, JigID, LotID, ReaderID, AntennaPort, TagRole,
-         EventTS, Rssi, ReadCount, TriggerType, CreatedBy, CreatedTS)
-    SELECT NULL, v.JigID, NULL, 'R3-UNLOAD', 1, 'JIG',
-           SYSDATETIME(), -40, 1, 'PE', @By, SYSDATETIME()
-    FROM   dbo.PNT_VirtualLot v WHERE v.VirtualLotID = @V;
+    UPDATE dbo.PR_PntLot
+    SET    PrintedCount = PrintedCount + 1, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+    OUTPUT INSERTED.PrintedCount
+    WHERE  LotID = @LotID;
 END;
 GO
 
--- ===== Pnt.ApplyLabel (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ApplyLabel
-    @ModBy VARCHAR(20),
-    @V INT
+-- ===== PntLot.RegisterDefect (PNT) =====
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_RegisterDefect_GetLot
+    @Code VARCHAR(40)
 AS
 BEGIN
-    UPDATE dbo.PNT_VirtualLot
-    SET    Status='LABELED', ModifiedBy=@ModBy, ModifiedTS=SYSDATETIME()
-    WHERE  VirtualLotID = @V;
+    SELECT l.LotID, l.ItemNo, l.LineID, e.ConfirmStatus
+    FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
+    JOIN   dbo.PR_PntLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
+    WHERE  l.LotCode = @Code;
 END;
 GO
 
--- ===== Pnt.ListDefectCodes (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ListDefectCodes
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_RegisterDefect_UpdPntLot
+    @Op VARCHAR(20),
+    @Lot INT
 AS
 BEGIN
-    SELECT  DefectCode, DefectName, DefectNameEn, ProcessCode, SeverityLevel
-    FROM    dbo.MD_DefectCode
-    WHERE   ActiveFlag = 1 AND ProcessCode='PNT'
-    ORDER BY DefectCode;
+    UPDATE dbo.PR_PntLot
+    SET    ConfirmStatus = 'DEFECT', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    WHERE  LotID = @Lot;
+    UPDATE dbo.tbl_Lot
+    SET    QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    WHERE  LotID = @Lot;
 END;
 GO
 
--- ===== Pnt.RegisterDefect (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_RegisterDefect
-    @Q INT,
-    @ModBy VARCHAR(20),
-    @V INT
+-- ===== PntLot.ConfirmByLotCode (PNT) =====
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ConfirmByLotCode_GetLot
+    @Code VARCHAR(40)
 AS
 BEGIN
-    UPDATE dbo.PNT_VirtualLot
-    SET    DefectQty = ISNULL(DefectQty,0) + @Q,
-           ModifiedBy = @ModBy,
-           ModifiedTS = SYSDATETIME()
-    WHERE  VirtualLotID = @V;
+    SELECT l.LotID, l.ItemNo, l.LineID, l.CreatedTS, e.ConfirmStatus
+    FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
+    JOIN   dbo.PR_PntLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
+    WHERE  l.LotCode = @Code;
 END;
 GO
 
--- ===== Pnt.GetShiftBuckets (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_GetShiftBuckets
-    @L VARCHAR(20)
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ConfirmByLotCode_GetWorkOrderRouting
+    @Line VARCHAR(20),
+    @Item VARCHAR(20)
 AS
 BEGIN
-    SELECT  ISNULL(p.LineID,@L) AS LineID,
-            CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, v.IssuedAt) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END AS ShiftCode,
-            COUNT(CASE WHEN v.Status IN ('CONFIRMED','LABELED','CLOSED') THEN 1 END) AS LotsClosed,
-            SUM(ISNULL(v.ConfirmedQty,0)) AS GoodQty,
-            SUM(ISNULL(v.DefectQty,0))    AS DefectQty
-    FROM    dbo.PNT_VirtualLot v
-    JOIN    dbo.PNT_DailyPlan  p ON p.PlanID = v.PlanID
-    WHERE   p.PlanDate = CAST(GETDATE() AS DATE)
-      AND   p.LineID   = @L
-    GROUP BY CASE WHEN DATEPART(hour, v.IssuedAt) BETWEEN 8 AND 15 THEN 'A' WHEN DATEPART(hour, v.IssuedAt) BETWEEN 16 AND 23 THEN 'B' ELSE 'C' END,
-             ISNULL(p.LineID,@L);
+    SELECT TOP 1 r.WoID, r.RoutingLineID
+    FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
+    JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
+    WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
+      AND          r.Status IN ('Released','In Progress')
+                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+    ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
+                      ISNULL(w.Priority,5),
+                      ISNULL(w.DueDate,'9999-12-31'),
+                      w.WoID
+    ;
 END;
 GO
 
--- ===== Pnt.ListRalColors (PNT) =====
-CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ListRalColors
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ConfirmByLotCode_GetLot2
+    @ThisTs DATETIME2,
+    @Line VARCHAR(20)
 AS
 BEGIN
-    SELECT RALCode, ColorName, HexValue, ISNULL(CureTemp,180) AS CureTemp,
-           ISNULL(CureDuration,900) AS CureDuration
-    FROM   dbo.MD_RalColor
-    WHERE  ISNULL(ActiveFlag,1)=1
-    ORDER BY RALCode;
+    SELECT ISNULL(DATEDIFF(SECOND, MAX(pl.CreatedTS), @ThisTs), 0)
+    FROM   dbo.tbl_Lot pl
+    JOIN   dbo.PR_PntLot pe ON pe.LotID = pl.LotID
+    WHERE  pl.LineID = @Line AND pl.CreatedTS < @ThisTs;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ConfirmByLotCode_InsProductionResult
+    @EntryNo VARCHAR(28),
+    @WoID INT,
+    @LotID INT,
+    @LineID VARCHAR(20),
+    @Proc VARCHAR(10),
+    @CT INT,
+    @Op NVARCHAR(450),
+    @Sess INT,
+    @Now DATETIME2,
+    @ProdDate DATE,
+    @Shift VARCHAR(10),
+    @By VARCHAR(20)
+AS
+BEGIN
+    INSERT INTO dbo.PR_ProductionResult
+        (EntryNo, WoID, LotID, LineID, ProcessCode, GoodQty, CycleSec,
+         OperatorID, SessionID, DefectFlag, EntryAt, ProdDate, ShiftCode, CreatedBy, CreatedTS)
+    OUTPUT INSERTED.ResultID
+    VALUES
+        (@EntryNo, @WoID, @LotID, @LineID, @Proc, 1, @CT,
+         @Op, @Sess, 0, @Now, @ProdDate, @Shift, @By, SYSDATETIME());
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ConfirmByLotCode_UpdLot
+    @WoID INT,
+    @Op NVARCHAR(450),
+    @LotID INT,
+    @Sess INT
+AS
+BEGIN
+    UPDATE dbo.tbl_Lot
+    SET    Status = 'CONFIRMED', QualityFlag = 'OK', WoID = @WoID,
+           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    WHERE  LotID = @LotID;
+
+    UPDATE dbo.PR_PntLot
+    SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = SYSDATETIME(),
+           ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
+           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    WHERE  LotID = @LotID;
+END;
+GO
+
+-- ===== PntLot.GetDailyItemSummary (PNT) =====
+CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_GetDailyItemSummary
+    @Station VARCHAR(20),
+    @Line VARCHAR(20),
+    @Today DATE
+AS
+BEGIN
+    WITH bop AS (
+        SELECT DISTINCT b.ItemNo
+        FROM   dbo.MD_Bop b
+        WHERE  b.StationCode = @Station AND ISNULL(b.ActiveFlag,1) = 1
+    ),
+    sched AS (
+        SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
+        FROM   dbo.PP_LineSchedule s
+        JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
+        OUTER  APPLY (SELECT TOP 1 r.ItemNo FROM dbo.PP_WorkOrderRouting r
+                      WHERE  r.WoID = s.WoID AND r.LineID = s.LineID ORDER BY r.StepSeq) st
+        WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
+          AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+        GROUP  BY COALESCE(st.ItemNo, w.ItemNo)
+    ),
+    lots AS (
+        SELECT l.ItemNo,
+               COUNT(*)                                                                  AS InputQty,
+               SUM(CASE WHEN e.ConfirmStatus = 'CONFIRMED' THEN 1 ELSE 0 END)            AS ConfirmedQty,
+               SUM(CASE WHEN e.ConfirmStatus IN ('DEFECT','SCRAPPED') THEN 1 ELSE 0 END) AS NgQty,
+               SUM(CASE WHEN e.ConfirmStatus = 'RAW'       THEN 1 ELSE 0 END)            AS PendingQty
+        FROM   dbo.tbl_Lot   l
+        JOIN   dbo.PR_PntLot e ON e.LotID = l.LotID
+        WHERE  l.LineID = @Line
+          AND  l.CreatedTS >= @Today AND l.CreatedTS < DATEADD(day, 1, @Today)
+        GROUP  BY l.ItemNo
+    ),
+    itemkeys AS (
+        SELECT ItemNo FROM bop
+        UNION SELECT ItemNo FROM sched
+        UNION SELECT ItemNo FROM lots
+    )
+    SELECT k.ItemNo,
+           COALESCE(i.ItemName, N'')  AS ItemName,
+           ISNULL(p.PlanQty, 0)       AS PlanQty,
+           ISNULL(t.InputQty, 0)      AS InputQty,
+           ISNULL(t.ConfirmedQty, 0)  AS ConfirmedQty,
+           ISNULL(t.NgQty, 0)         AS NgQty,
+           ISNULL(t.PendingQty, 0)    AS PendingQty,
+           CASE WHEN b.ItemNo IS NULL THEN 0 ELSE 1 END AS InBop,
+           CASE WHEN EXISTS (
+                SELECT 1
+                FROM   dbo.PP_WorkOrderRouting r
+                JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
+                WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = k.ItemNo
+                  AND  r.Status IN ('Released','In Progress')
+                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled') THEN 1 ELSE 0 END AS HasOpenWo
+    FROM   itemkeys k
+    LEFT JOIN dbo.MD_Item i ON i.ItemNo = k.ItemNo
+    LEFT JOIN bop    b ON b.ItemNo = k.ItemNo
+    LEFT JOIN sched  p ON p.ItemNo = k.ItemNo
+    LEFT JOIN lots   t ON t.ItemNo = k.ItemNo
+    ORDER  BY InBop DESC, k.ItemNo;
 END;
 GO
 
@@ -1215,6 +1232,7 @@ BEGIN
       SELECT r.LineID,
              CASE WHEN r.LineID LIKE 'LINE-INJ-%' THEN 'INJ'
                   WHEN r.LineID LIKE 'LINE-IMG-%' THEN 'IMG'
+                  WHEN r.LineID LIKE 'LINE-PNT-%' THEN 'PNT'
                   ELSE 'OTHER' END AS Module,
              ISNULL(SUM(r.GoodQty),0) AS GoodQty,
              -- 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없다 — LOT 의 라인으로 귀속시킨다
@@ -1231,15 +1249,8 @@ BEGIN
            SUM(GoodQty)   AS GoodQty,
            SUM(DefectQty) AS DefectQty
     FROM   prod
-    WHERE  Module IN ('INJ','IMG')
-    GROUP BY Module
-    UNION ALL
-    SELECT 'PNT' AS Module,
-           ISNULL(SUM(v.ConfirmedQty),0) AS GoodQty,
-           ISNULL(SUM(v.DefectQty),0)    AS DefectQty
-    FROM   dbo.PNT_VirtualLot v
-    JOIN   dbo.PNT_DailyPlan  p ON p.PlanID = v.PlanID
-    WHERE  p.PlanDate = CAST(GETDATE() AS DATE);
+    WHERE  Module IN ('INJ','IMG','PNT')   -- PNT 도 10-22 부터 같은 실적·불량 테이블(PNT-MAIN) — 구 가상 LOT 테이블 UNION 폐지
+    GROUP BY Module;
 END;
 GO
 
@@ -2268,6 +2279,14 @@ BEGIN
            ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
     WHERE  LotID = @Lot;
     END
+    ELSE IF @ProcessCode = 'PNT'
+    BEGIN
+    UPDATE dbo.PR_PntLot
+    SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = SYSDATETIME(),
+           ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
+           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    WHERE  LotID = @Lot;
+    END
     ELSE
         THROW 51000, N'No lot table for process', 1;
     UPDATE dbo.tbl_Lot
@@ -2303,6 +2322,13 @@ BEGIN
     ELSE IF @ProcessCode = 'IMG'
     BEGIN
     UPDATE dbo.PR_ImgLot
+    SET    ConfirmStatus = 'SCRAPPED', ConfirmedAt = SYSDATETIME(), ConfirmedBy = @Op,
+           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    WHERE  LotID = @Lot;
+    END
+    ELSE IF @ProcessCode = 'PNT'
+    BEGIN
+    UPDATE dbo.PR_PntLot
     SET    ConfirmStatus = 'SCRAPPED', ConfirmedAt = SYSDATETIME(), ConfirmedBy = @Op,
            ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
     WHERE  LotID = @Lot;
@@ -2433,7 +2459,7 @@ BEGIN
         JOIN   eff e ON e.VersionID = b.VersionID
         WHERE  b.ParentItemNo = @Item)
     SELECT r.CompItemNo, i.ItemType, ISNULL(r.QtyPer, 0) AS QtyPer, ISNULL(r.ScrapPct, 0) AS ScrapPct,
-           r.UOM, ISNULL(r.ActiveFlag, 1) AS Active
+           r.UOM, ISNULL(r.ActiveFlag, 1) AS Active, ISNULL(i.InjFlag, 0) AS InjFlag
     FROM   rows r
     LEFT JOIN dbo.MD_Item i ON i.ItemNo = r.CompItemNo
     WHERE  r.Rk = 1 AND r.CompItemNo IS NOT NULL

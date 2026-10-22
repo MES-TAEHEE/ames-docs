@@ -1,7 +1,8 @@
 -- ════════════════════════════════════════════════════════════════════════
 -- migrate_routing_step.sql — 라우팅 템플릿 마스터(MD_RoutingStep) 도입
---   · MD_RoutingStep 생성 + A/B 라우팅 공정 시퀀스 시드
---       A: INJ → IMG → QC → FG     B: INJ → PNT → QC → FG
+--   · MD_RoutingStep 생성 + A/B/C 라우팅 공정 시퀀스 시드 (2026-10-22 — QC·FG 단계 없음, 남은 행은 지운다)
+--       A: INJ → IMG     B: INJ → PNT     C: INJ
+--     ※ 주의: MERGE 가 A·B·C 의 다른 단계 행을 DELETE 한다 — MD-031 에서 이 라우팅에 단계를 더했다면 재실행 전에 아래 VALUES 에 반영할 것.
 --   · SYS_Screen MD-031(md/rp/routing) 등록 (Bop=MD-005 바로 이전) + Admin 권한
 --   · PP_WorkOrder.Routing → RoutingType 리네임 (타 테이블 명명 규칙 통일, 스냅샷용)
 -- idempotent(멱등). 적용: sqlcmd(ODBC17) -f 65001 -b -i dist/migrate_routing_step.sql
@@ -38,12 +39,9 @@ MERGE dbo.MD_RoutingStep AS tgt
 USING (VALUES
     ('A', 1, 'INJ', 0),
     ('A', 2, 'IMG', 0),
-    ('A', 3, 'QC',  1),
-    ('A', 4, 'FG',  0),
     ('B', 1, 'INJ', 0),
     ('B', 2, 'PNT', 0),
-    ('B', 3, 'QC',  1),
-    ('B', 4, 'FG',  0)
+    ('C', 1, 'INJ', 0)
 ) AS src (RoutingType, StepSeq, ProcessCode, QcRequiredFlag)
 ON  tgt.RoutingType = src.RoutingType AND tgt.StepSeq = src.StepSeq
 WHEN MATCHED THEN
@@ -53,7 +51,9 @@ WHEN MATCHED THEN
                tgt.ModifiedTS     = SYSDATETIME()
 WHEN NOT MATCHED THEN
     INSERT (RoutingType, StepSeq, ProcessCode, QcRequiredFlag, ActiveFlag, CreatedBy, CreatedTS)
-    VALUES (src.RoutingType, src.StepSeq, src.ProcessCode, src.QcRequiredFlag, 1, 'seed', SYSDATETIME());
+    VALUES (src.RoutingType, src.StepSeq, src.ProcessCode, src.QcRequiredFlag, 1, 'seed', SYSDATETIME())
+WHEN NOT MATCHED BY SOURCE AND tgt.RoutingType IN ('A','B','C') THEN
+    DELETE;
 PRINT CONCAT(N'✓ MD_RoutingStep 시드: ', @@ROWCOUNT, N'행 처리됨');
 GO
 

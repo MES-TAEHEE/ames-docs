@@ -24,11 +24,12 @@ public static class BackflushRepository
     public const string NetSourceType = "BACKFLUSH_NET";
     const string Savepoint = "backflush";
 
+    /// <param name="includeInjection">true(PNT)면 MATERIAL 자식에 더해 사출품(InjFlag 1) 자식도 뺀다 — <see cref="BackflushRules.IncludesInjection"/>.</param>
     public static BackflushResult Apply(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
-                                        string lineId, string operatorId, string employeeNo)
+                                        string lineId, string operatorId, string employeeNo, bool includeInjection = false)
     {
         tx.Save(Savepoint);
-        try { return ApplyCore(conn, tx, lotId, lotCode, itemNo, lineId, operatorId, employeeNo); }
+        try { return ApplyCore(conn, tx, lotId, lotCode, itemNo, lineId, operatorId, employeeNo, includeInjection); }
         catch (Exception ex)
         {
             // 교착 희생(1205)·심각도 20 이상이면 서버가 트랜잭션 전체를 이미 되돌려 세이브포인트 롤백이 또 던진다 —
@@ -40,7 +41,7 @@ public static class BackflushRepository
     }
 
     static BackflushResult ApplyCore(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
-                                     string lineId, string operatorId, string employeeNo)
+                                     string lineId, string operatorId, string employeeNo, bool includeInjection)
     {
         if (AlreadyApplied(conn, tx, lotId)) return BackflushResult.None;
 
@@ -48,7 +49,7 @@ public static class BackflushRepository
         if (prefix is null)
             return new BackflushResult(Array.Empty<BackflushShortage>(), $"line {lineId} has no LotPrefix — no line stock location", false);
 
-        var requirements = BackflushRules.Requirements(ReadBomRows(conn, tx, itemNo));
+        var requirements = BackflushRules.Requirements(ReadBomRows(conn, tx, itemNo), includeInjection);
         var shortages = new List<BackflushShortage>();
         var note = $"{lotCode} {itemNo}";
         foreach (var req in requirements)
@@ -105,7 +106,7 @@ public static class BackflushRepository
         while (rdr.Read())
             list.Add(new BackflushBomRow((string)rdr["CompItemNo"], rdr["ItemType"] as string,
                 Convert.ToDecimal(rdr["QtyPer"]), Convert.ToDecimal(rdr["ScrapPct"]), rdr["UOM"] as string,
-                Convert.ToBoolean(rdr["Active"])));
+                Convert.ToBoolean(rdr["Active"]), Convert.ToBoolean(rdr["InjFlag"])));
         return list;
     }
 
