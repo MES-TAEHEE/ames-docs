@@ -1,4 +1,4 @@
-@page "/md/fd/location"
+﻿@page "/md/fd/location"
 @rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
@@ -151,6 +151,14 @@
                     <RadzenLabel Text="@L["MD.Location.Lbl.AssignedPart"]" class="ames-rz-modal-label" Component="EditDropDownAssignedPart" />
                     <RadzenDropDown Name="EditDropDownAssignedPart" TValue="string" @bind-Value="_f.PartNo" Data="_parts" TextProperty="ItemNo" ValueProperty="ItemNo" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
+
+                @if (!string.IsNullOrWhiteSpace(_sel.LineId))
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:8px;">
+                        <RadzenLabel Text="Minimum qty" class="ames-rz-modal-label" Component="EditMinimumQty" />
+                        <RadzenNumeric Name="EditMinimumQty" TValue="decimal" @bind-Value="_f.MinimumQty" Min="0" Max="99999999999" Step="1" Format="N0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    </RadzenStack>
+                }
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:8px;">
                     <RadzenLabel Text="@L["MD.Location.Lbl.Capacity"]" class="ames-rz-modal-label" />
@@ -319,6 +327,7 @@
             Slot         = r.Slot         ?? "",
             Capacity     = r.Capacity,
             PartNo = r.PartNo??"",
+            MinimumQty = r.MinimumQty ?? 0,
             ParentLocationID = r.ParentLocationID,
         };
         _modal = "edit";
@@ -347,6 +356,10 @@
         _busy = true;
         try
         {
+            if (!await PermSvc.RecheckEditAsync(AuthPrvd, "md/fd/location")) throw new InvalidOperationException("You do not have permission to edit locations.");
+            if (!IsPrimary(_sel) && !string.IsNullOrWhiteSpace(_sel.LineId)
+                && (_f.MinimumQty < 0 || _f.MinimumQty > 99999999999m || _f.MinimumQty != decimal.Truncate(_f.MinimumQty)))
+                throw new InvalidOperationException("Minimum qty must be a whole number from 0 to 99,999,999,999.");
             if (_f.Capacity is not null && _f.Capacity != decimal.Truncate(_f.Capacity.Value)) throw new InvalidOperationException("Load Capacity must be a whole number.");
             var saveConfirmed = false;
             if (_f.Capacity != _sel.Capacity)
@@ -367,7 +380,8 @@
             MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), _sel.WhCode, _sel.AreaCode, _sel.ZoneCode,
                 _sel.Aisle, _sel.Bay, _sel.Slot,
                 _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor, IsPrimary(_sel) || NE(_f.PartNo) == _sel.PartNo ? null : _f.PartNo,
-                setParent: !IsPrimary(_sel) && NE(_f.ParentLocationID) != _sel.ParentLocationID, parentLocationId: NE(_f.ParentLocationID));
+                setParent: !IsPrimary(_sel) && NE(_f.ParentLocationID) != _sel.ParentLocationID, parentLocationId: NE(_f.ParentLocationID),
+                minimumQty: !IsPrimary(_sel) && !string.IsNullOrWhiteSpace(_sel.LineId) && _f.MinimumQty != (_sel.MinimumQty ?? 0) ? _f.MinimumQty : null);
             Audit.Updated("MD-018", "MD_Location", _sel.LocationID, _sel, _f);
             var key = _sel.LocationID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
@@ -397,6 +411,7 @@
         public string   Slot         { get; set; } = "";
         public decimal? Capacity     { get; set; }
         public string   PartNo {get;set;}="";
+        public decimal  MinimumQty { get; set; }
         public string?  ParentLocationID { get; set; }
     }
 }

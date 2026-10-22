@@ -3509,10 +3509,15 @@ public sealed class MasterDataRepository
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
         bool activeFlag, string modifiedBy, string? assignedPartNo = null,
-        bool setParent = false, string? parentLocationId = null)
+        bool setParent = false, string? parentLocationId = null, decimal? minimumQty = null)
     {
+        if (minimumQty is { } minimum && (minimum < 0 || minimum > 99999999999m || minimum != decimal.Truncate(minimum)))
+            throw new ArgumentException("Minimum qty must be a whole number from 0 to 99,999,999,999.", nameof(minimumQty));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
+            "IF @Min IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK) " +
+            "WHERE LocationID=@I AND LocationLevel=2 AND NULLIF(LTRIM(RTRIM(LineID)),'') IS NOT NULL) " +
+            "THROW 52077,'Minimum qty can only be changed for a line detail location.',1; " +
             "IF @SetParent=1 AND @Parent IS NOT NULL BEGIN " +
             "IF @Parent=@I OR NOT EXISTS(SELECT 1 FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK) WHERE LocationID=@Parent AND LocationLevel=1) " +
             "THROW 52073,'The parent must be a primary location.',1; " +
@@ -3523,10 +3528,13 @@ public sealed class MasterDataRepository
             "UPDATE dbo.MD_Location SET " +
             "LocationName=@N,WhCode=@WH,AreaCode=@AR,ZoneCode=@Z,Aisle=@A,Bay=@B,Slot=@S," +
             "Capacity=@CAP,LocationType=CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,PlantCode=@PL,ActiveFlag=@AF," +
-            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB,PartNo=COALESCE(@Part,PartNo)," +
+            "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB,PartNo=COALESCE(@Part,PartNo),MinimumQty=COALESCE(@Min,MinimumQty)," +
             "ParentLocationID=CASE WHEN @SetParent=1 THEN @Parent ELSE ParentLocationID END " +
             "WHERE LocationID=@I;", conn);
         AddLocationPart(cmd,assignedPartNo);
+        var minimumParameter = cmd.Parameters.Add("@Min", SqlDbType.Decimal);
+        minimumParameter.Precision = 18; minimumParameter.Scale = 3;
+        minimumParameter.Value = (object?)minimumQty ?? DBNull.Value;
         cmd.Parameters.Add("@SetParent", SqlDbType.Bit).Value = setParent;
         cmd.Parameters.Add("@Parent", SqlDbType.VarChar, 20).Value = string.IsNullOrWhiteSpace(parentLocationId) ? DBNull.Value : parentLocationId.Trim();
         cmd.Parameters.Add("@I",   SqlDbType.VarChar,   20).Value = locationId;

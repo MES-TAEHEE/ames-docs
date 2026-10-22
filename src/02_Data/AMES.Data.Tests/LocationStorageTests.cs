@@ -7,6 +7,39 @@ namespace AMES.Data.Tests;
 public sealed class LocationStorageTests
 {
     [Theory]
+    [InlineData(-1)]
+    [InlineData(1.5)]
+    [InlineData(100000000000)]
+    public void Invalid_line_minimum_is_rejected_before_opening_a_database(double value)
+    {
+        var repository = new MasterDataRepository(new AmesConnectionFactory("invalid connection string"));
+        var error = Assert.Throws<ArgumentException>(() => repository.UpdateLocation(
+            "I101A1F1", "Line", "EOS", "I1", null, "A1", "01", "F1", null, "LINE", null, true, "TEST",
+            minimumQty: (decimal)value));
+        Assert.Equal("minimumQty", error.ParamName);
+    }
+
+    [Fact]
+    public void Location_editor_saves_line_minimum_with_existing_edit_permission_and_confirmation()
+    {
+        var page = Read("src/06_Web/AMES.Web/Components/Pages/Md/Fd/Location.razor");
+        Assert.Contains("!string.IsNullOrWhiteSpace(_sel.LineId)", page);
+        Assert.Contains("Name=\"EditMinimumQty\" TValue=\"decimal\" @bind-Value=\"_f.MinimumQty\"", page);
+        Assert.Contains("MinimumQty = r.MinimumQty ?? 0", page);
+        Assert.Contains("PermSvc.RecheckEditAsync(AuthPrvd, \"md/fd/location\")", page);
+        Assert.Contains("_f.MinimumQty != (_sel.MinimumQty ?? 0) ? _f.MinimumQty : null", page);
+        var repo = Read("src/02_Data/AMES.Data/Repositories/MasterDataRepository.cs");
+        var update = repo[repo.IndexOf("public void UpdateLocation(", StringComparison.Ordinal)..repo.IndexOf("private static void AddLocationPart", StringComparison.Ordinal)];
+        Assert.Contains("decimal? minimumQty = null", update);
+        Assert.Contains("MinimumQty=COALESCE(@Min,MinimumQty)", update);
+        Assert.Contains("LocationLevel=2 AND NULLIF(LTRIM(RTRIM(LineID)),'') IS NOT NULL", update);
+        Assert.Contains("minimumParameter.Precision = 18; minimumParameter.Scale = 3", update);
+        Assert.Contains("AddLocationPart(cmd,assignedPartNo)", update);
+        Assert.DoesNotContain("WH_Inventory SET", update);
+        Assert.DoesNotContain("INSERT dbo.WH_PickSlip", update);
+    }
+
+    [Theory]
     [InlineData("", "MA", "GRID")]
     [InlineData("EOS", " ", "GRID")]
     [InlineData("EOS", "MA", "BULK")]
