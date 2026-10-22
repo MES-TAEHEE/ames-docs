@@ -6,6 +6,9 @@
 @inject WarehouseRepository Warehouse
 @inject AuditLogger Audit
 @inject DialogService Dialog
+@inject FinishedGoodsRepository FinishedGoodsRepo
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Auth
 
 @if (!string.IsNullOrEmpty(_actionError)) { <RadzenAlert AlertStyle="Radzen.AlertStyle.Danger" Variant="Variant.Flat">@_actionError</RadzenAlert> }
 <div class="ames-card location-explorer">
@@ -172,11 +175,30 @@
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="PartName" Title="@L["Col.ItemName"]"><Template Context="row">@Text(row.PartName)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right"><Template Context="row">@Qty(row)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"]" TextAlign="TextAlign.Right"><HeaderTemplate><span class="location-defect-qty">@L["WH.Inventory.DefectQty"]</span></HeaderTemplate><Template Context="row"><span class="location-defect-qty">@UomFmt.QtyUnit(row.DefectQty, row.Unit)</span></Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Width="88px" Sortable="false" TextAlign="TextAlign.Center">
+                                <HeaderTemplate><RadzenIcon Icon="report_problem" title="@L["WH.Inventory.DefectAction"]" aria-label="@L["WH.Inventory.DefectAction"]" /></HeaderTemplate>
+                                <Template Context="row">
+                                    @if (row.DefectQty > 0)
+                                    {
+                                        <RadzenIcon Icon="task_alt" title="@L["WH.Inventory.DefectRecorded"]" aria-label="@L["WH.Inventory.DefectRecorded"]" Style="color:var(--ames-tx-green-300);vertical-align:middle;" />
+                                    }
+                                    @if (_canReject && row.Qty > 0 && _eligibleLots.Contains(row.LotNo ?? ""))
+                                    {
+                                        <RadzenButton Icon="report_problem" title="@L["WH.Inventory.DefectAction"]" aria-label="@L["WH.Inventory.DefectAction"]" Click="@(() => OpenDefect(row))" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                                    }
+                                    else if (row.DefectQty <= 0) { <span class="dim" title="@L["WH.Inventory.DefectNotEligible"]">—</span> }
+                                </Template>
+                            </RadzenDataGridColumn>
                         </Columns>
                     </RadzenDataGrid>
                 </div>
             </aside>
         </div>
+    }
+
+    @if (_defectLot is {} defectLot)
+    {
+        <InventoryDefectDialog @key="defectLot" Lot="defectLot" OnClose="CloseDefect" OnCompleted="DefectCompleted" />
     }
 
     @if (_barcodeLocation is not null)
@@ -243,6 +265,9 @@
     private MapStage _stage;
     private string? _warehouse, _area, _floor, _highlightedLocation;
     private bool _selectingFloor, _locationDrawerOpen, _saving, _editing;
+    private bool _canReject;
+    private HashSet<string> _eligibleLots = new(StringComparer.OrdinalIgnoreCase);
+    private LocationMapStock? _defectLot;
     private LocationMapCell? _barcodeLocation;
     private string? _dialog, _actionError;
     private string _code = "", _name = "", _dialogError = "";
@@ -288,6 +313,41 @@
     private int _gridStockAtRisk => MapLocations.Count(x => !LocationMapNaming.InGrid(x.Column, x.Row, _aisles, _bays)
         && Inventory.Any(i => i.Qty > 0 && Same(i.LocationNo, x.LocationNo)));
 
+    protected override async Task OnInitializedAsync() => await LoadDefectAccess();
+
+    private async Task LoadDefectAccess()
+    {
+        try
+        {
+            await Permissions.EnsureAsync(Auth);
+            _canReject = Permissions.CanApprove(FinishedGoodsRepository.DefectPermissionHref);
+            _eligibleLots = _canReject ? await Task.Run(() => FinishedGoodsRepo.ListDefectLots()) : [];
+        }
+        catch { _canReject = false; _eligibleLots.Clear(); }
+    }
+
+    private void OpenDefect(LocationMapStock lot)
+    {
+        if (!_canReject || lot.Qty <= 0 || !_eligibleLots.Contains(lot.LotNo ?? "")) return;
+        _locationDrawerOpen = false;
+        _defectLot = lot;
+    }
+
+    private void CloseDefect()
+    {
+        _defectLot = null;
+        _locationDrawerOpen = !string.IsNullOrWhiteSpace(_highlightedLocation);
+    }
+
+    private async Task DefectCompleted(LocationMapStock lot)
+    {
+        _eligibleLots.Remove(lot.LotNo!);
+        _defectLot = null;
+        _editing = false;
+        if (OnRefresh.HasDelegate) await OnRefresh.InvokeAsync();
+        _locationDrawerOpen = ActiveLocations.Any(x => Same(x.LocationNo, _highlightedLocation));
+    }
+
     protected override void OnParametersSet()
     {
         if (ActiveLocations.Count == 0 && Areas.Count == 0 || (_warehouse is not null && !Areas.Any(x => Same(x.WarehouseCode, _warehouse)) && !ActiveLocations.Any(x => Same(x.WarehouseCode, _warehouse))))
@@ -306,6 +366,7 @@
     private async Task Refresh()
     {
         if (OnRefresh.HasDelegate) await OnRefresh.InvokeAsync();
+        await LoadDefectAccess();
         CloseLocationDetail();
     }
 

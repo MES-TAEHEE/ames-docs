@@ -53,10 +53,12 @@ public sealed class InventoryDefectTests
         Assert.Contains("This LOT was rejected as defective",PdaFinishedGoodsSql.PutAway);
         Assert.Contains("SourceType IN('FG_DEFECT','INV_DEFECT') AND QtyAfter=0",PdaFinishedGoodsSql.PutAway);
         var lookup=Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
+        var defect=Read("src/06_Web/AMES.Web/Components/Shared/InventoryDefectDialog.razor");
         Assert.DoesNotContain("RadzenNumeric",lookup);
-        Assert.Contains("MarkInventoryDefective",lookup);
+        Assert.DoesNotContain("RadzenNumeric",defect);
+        Assert.Contains("MarkInventoryDefective",defect);
         Assert.Contains("_eligibleLots.Remove",lookup);
-        Assert.Contains("ValidateDefectQuantity(lot.Qty,lot.Qty",lookup);
+        Assert.Contains("ValidateDefectQuantity(lot.Qty,lot.Qty",defect);
         Assert.DoesNotContain("_defectQty",lookup);
         var rowAction=lookup.Split('\n').Single(line=>line.Contains("Click=\"@(()=>OpenDefect(row))\""));
         Assert.DoesNotContain("Text=",rowAction);Assert.Contains("Icon=\"report_problem\"",rowAction);
@@ -112,7 +114,7 @@ public sealed class InventoryDefectTests
         Assert.Contains("MD.UpdateLocation(",location);Assert.Contains("Click=\"@(() => OpenBarcode(r))\"",location);
         Assert.DoesNotContain("OpenLineLocations",location);
         var lookup=Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
-        Assert.DoesNotContain("Col.Status",lookup);Assert.Contains("RecheckApproveAsync",lookup);
+        Assert.DoesNotContain("Col.Status",lookup);Assert.Contains("RecheckApproveAsync",Read("src/06_Web/AMES.Web/Components/Shared/InventoryDefectDialog.razor"));
         Assert.DoesNotContain("Reject LOT",lookup);
         Assert.Contains("WH.Inventory.DefectAction",lookup);
         Assert.Contains("@if(_eligibleLots.Contains(row.LotNo",lookup);
@@ -184,6 +186,37 @@ public sealed class InventoryDefectTests
         Assert.Contains("<span class=\"location-defect-qty\">@UomFmt.QtyUnit(row.DefectQty, row.Unit)</span>",page);
         var css=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor.css");
         Assert.Contains(".location-defect-qty { color: var(--ames-tx-red-400); }",css);
+    }
+
+    [Fact]
+    public void Location_map_and_inventory_reuse_the_same_whole_lot_defect_dialog_and_permission()
+    {
+        var map=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor");
+        var lookup=Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
+        var dialog=Read("src/06_Web/AMES.Web/Components/Shared/InventoryDefectDialog.razor");
+        foreach(var page in new[]{map,lookup})
+        {
+            Assert.Contains("<InventoryDefectDialog",page);
+            Assert.Contains("OnCompleted=\"DefectCompleted\"",page);
+            Assert.Contains("Permissions.CanApprove(FinishedGoodsRepository.DefectPermissionHref)",page);
+            Assert.DoesNotContain("MarkInventoryDefective(",page);
+            Assert.Contains("_eligibleLots.Remove(lot.LotNo!)",page);
+        }
+        Assert.Contains("row.Qty > 0 && _eligibleLots.Contains",map);
+        Assert.Contains("Icon=\"task_alt\"",map);
+        Assert.Contains("OpenDefect(row)",map);
+        var completed=map[map.IndexOf("private async Task DefectCompleted",StringComparison.Ordinal)..map.IndexOf("protected override void OnParametersSet",StringComparison.Ordinal)];
+        Assert.Contains("await OnRefresh.InvokeAsync()",completed);
+        Assert.Contains("_locationDrawerOpen = ActiveLocations.Any",completed);
+        Assert.DoesNotContain("CloseLocationDetail()",completed);
+        Assert.Contains("RecheckApproveAsync(Auth, FinishedGoodsRepository.DefectPermissionHref)",dialog);
+        Assert.Contains("ValidateDefectReason(_reason)",dialog);
+        Assert.Contains("MaxLength=\"500\"",dialog);
+        Assert.Contains("}) != true) return;",dialog);
+        Assert.True(dialog.IndexOf("RecheckApproveAsync",StringComparison.Ordinal)<dialog.IndexOf("MarkInventoryDefective",StringComparison.Ordinal));
+        Assert.True(dialog.IndexOf("Dialog.Confirm",StringComparison.Ordinal)<dialog.IndexOf("MarkInventoryDefective",StringComparison.Ordinal));
+        Assert.Contains("if (_saving || _committed) return",dialog);
+        Assert.True(dialog.IndexOf("_committed = true",StringComparison.Ordinal)<dialog.IndexOf("await OnCompleted.InvokeAsync",StringComparison.Ordinal));
     }
 
     [SkippableFact]
