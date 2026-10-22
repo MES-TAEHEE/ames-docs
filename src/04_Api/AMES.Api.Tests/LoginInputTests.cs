@@ -21,8 +21,13 @@ public class LoginInputTests
     public void Context_must_fit_session_columns()
     {
         Assert.True(LoginInput.ValidContext("PDA","01","DAY"));
-        Assert.False(LoginInput.ValidContext("PDA","","DAY"));
+        Assert.True(LoginInput.ValidContext("PDA",null,null));
+        Assert.True(LoginInput.ValidContext("PDA","",""));
+        Assert.False(LoginInput.ValidContext("PDA"," ","DAY"));
+        Assert.False(LoginInput.ValidContext("PDA",new string('L',21),null));
         Assert.False(LoginInput.ValidContext("PDA","01","12345678901"));
+        Assert.False(LoginInput.ValidContext("PDA",null,"A\n"));
+        Assert.False(LoginInput.ValidContext("",null,null));
         Assert.False(PdaScenarioUsers.IsTestAccount("PTEST"));
         Assert.False(PdaScenarioUsers.IsAny("PTEST")); // must not enable the scenario UI
     }

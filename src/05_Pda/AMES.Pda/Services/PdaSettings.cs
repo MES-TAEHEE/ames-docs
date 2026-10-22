@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace AMES.Pda.Services;
 
-public sealed record PdaSettings(string ApiBaseUrl, string TerminalId, string LineId, string ShiftCode)
+public sealed record PdaSettings(string ApiBaseUrl, string TerminalId)
 {
     public static PdaSettings Load()
     {
@@ -12,9 +12,7 @@ public sealed record PdaSettings(string ApiBaseUrl, string TerminalId, string Li
             ?? throw new InvalidOperationException("PDA settings could not be loaded.");
 
         if (!Uri.TryCreate(settings.ApiBaseUrl, UriKind.Absolute, out _)
-            || string.IsNullOrWhiteSpace(settings.TerminalId)
-            || string.IsNullOrWhiteSpace(settings.LineId)
-            || string.IsNullOrWhiteSpace(settings.ShiftCode))
+            || string.IsNullOrWhiteSpace(settings.TerminalId))
             throw new InvalidOperationException("PDA settings are incomplete.");
 
         return settings;
