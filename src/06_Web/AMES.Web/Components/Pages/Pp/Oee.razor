@@ -270,10 +270,10 @@
                         <Template Context="s">@($"{s.Availability:F1}%")</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="140px" Width="140px" Property="Performance" Title="@L["PP.Oee.Snap.Col.Perf"]" TextAlign="TextAlign.Right">
-                        <Template Context="s">@(s.TotalProducedQty > 0 ? $"{s.Performance:F1}%" : NoProd)</Template>
+                        <Template Context="s">@if (s.TotalProducedQty > 0) { @($"{s.Performance:F1}%") } else { @NoProd }</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="100px" Width="100px" Property="Quality" Title="@L["PP.Oee.Snap.Col.Qual"]" TextAlign="TextAlign.Right">
-                        <Template Context="s">@(s.TotalProducedQty > 0 ? $"{s.Quality:F1}%" : NoProd)</Template>
+                        <Template Context="s">@if (s.TotalProducedQty > 0) { @($"{s.Quality:F1}%") } else { @NoProd }</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="90px" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="s"><span class="pp-oee-pill @GradeKey(s.Oee)">@($"{s.Oee:F1}%")</span></Template>
