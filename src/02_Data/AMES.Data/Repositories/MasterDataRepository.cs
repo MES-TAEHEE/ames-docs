@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using AMES.Data.Connection;
 using AMES.Data.Services;
 using Microsoft.Data.SqlClient;
@@ -2573,17 +2573,20 @@ public sealed class MasterDataRepository
         string lineId, string? lineName, string? lineNameEn,
         string? plantCode, string? defaultWcId,
         int? dailyCap, string? shiftPattern,
-        bool rfidEnabled, string? status, string createdBy)
+        bool rfidEnabled, string? status, string createdBy, string? lotPrefix = null)
     {
+        lotPrefix = NormalizeLinePrefix(lotPrefix);
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
+            IF @Prefix IS NOT NULL AND EXISTS(SELECT 1 FROM dbo.MD_Line WHERE LotPrefix=@Prefix)
+                THROW 52078,'Line Prefix is already assigned to another line.',1;
             INSERT INTO dbo.MD_Line
               (LineID,LineName,LineNameEn,PlantCode,WCID,
-               DailyCap,ShiftPattern,RfidEnabledFlag,Status,
+               DailyCap,ShiftPattern,RfidEnabledFlag,Status,LotPrefix,
                CreatedBy,CreatedTS)
             VALUES
               (@ID,@Name,@NameEn,@Plant,@WC,
-               @Cap,@Shift,@Rfid,@St,
+               @Cap,@Shift,@Rfid,@St,@Prefix,
                @By,SYSDATETIME());
             """, conn);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
@@ -2596,6 +2599,7 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Rfid",  SqlDbType.Bit).Value          = rfidEnabled;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status      ?? DBNull.Value;
         cmd.Parameters.Add("@By",    SqlDbType.VarChar,  20).Value = createdBy;
+        cmd.Parameters.Add("@Prefix",SqlDbType.VarChar,   2).Value = (object?)lotPrefix ?? DBNull.Value;
         cmd.ExecuteNonQuery();
     }
 
@@ -2603,10 +2607,14 @@ public sealed class MasterDataRepository
         string lineId, string? lineName, string? lineNameEn,
         string? plantCode, string? defaultWcId,
         int? dailyCap, string? shiftPattern,
-        bool rfidEnabled, string? status, string modifiedBy)
+        bool rfidEnabled, string? status, string modifiedBy, string? lotPrefix = null)
     {
+        lotPrefix = NormalizeLinePrefix(lotPrefix);
         using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction();
         using var cmd = new SqlCommand("""
+            IF @Prefix IS NOT NULL AND EXISTS(SELECT 1 FROM dbo.MD_Line WHERE LotPrefix=@Prefix AND LineID<>@ID)
+                THROW 52078,'Line Prefix is already assigned to another line.',1;
             UPDATE dbo.MD_Line SET
               LineName=@Name, LineNameEn=@NameEn,
               PlantCode=@Plant, WCID=@WC,
@@ -2620,7 +2628,8 @@ public sealed class MasterDataRepository
                 SELECT CodeID FROM dbo.MD_CodeItem WHERE GroupCode='WH_CODE' AND CodeValue='EOS') AND NULLIF(@NameEn,'') IS NOT NULL;
             UPDATE dbo.MD_Location SET LocationName=@NameEn,ModifiedBy=@By,ModifiedTS=SYSDATETIME()
             WHERE LineID=@ID AND NULLIF(LTRIM(RTRIM(@NameEn)),'') IS NOT NULL AND COALESCE(LocationName,'')<>@NameEn;
-            """, conn);
+            UPDATE dbo.MD_Line SET LotPrefix=COALESCE(@Prefix,LotPrefix) WHERE LineID=@ID;
+            """, conn, tx);
         cmd.Parameters.Add("@ID",    SqlDbType.VarChar,  20).Value = lineId;
         cmd.Parameters.Add("@Name",  SqlDbType.NVarChar, 50).Value = (object?)lineName    ?? DBNull.Value;
         cmd.Parameters.Add("@NameEn",SqlDbType.NVarChar, 50).Value = (object?)lineNameEn  ?? DBNull.Value;
@@ -2631,7 +2640,18 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@Rfid",  SqlDbType.Bit).Value          = rfidEnabled;
         cmd.Parameters.Add("@St",    SqlDbType.VarChar,  10).Value = (object?)status      ?? DBNull.Value;
         cmd.Parameters.Add("@By",    SqlDbType.VarChar, 20).Value = modifiedBy;
+        cmd.Parameters.Add("@Prefix",SqlDbType.VarChar,  2).Value = (object?)lotPrefix ?? DBNull.Value;
         cmd.ExecuteNonQuery();
+        tx.Commit();
+    }
+
+    private static string? NormalizeLinePrefix(string? prefix)
+    {
+        if (prefix is null) return null;
+        prefix = prefix.Trim().ToUpperInvariant();
+        if (prefix.Length != 2 || prefix.Any(c => !char.IsAsciiLetterOrDigit(c)))
+            throw new ArgumentException("Line Prefix must contain exactly 2 letters or digits.", nameof(prefix));
+        return prefix;
     }
 
     // 사용처 = 마스터(스테이션·설비·책임자·시간 패턴·APS 라인 설정·금형 라인·오븐·RFID·사출 조건·작업장 기본 라인)

@@ -1,4 +1,4 @@
-@page "/md/rp/line"
+﻿@page "/md/rp/line"
 @rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
@@ -89,6 +89,9 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LotPrefix" Title="Line Prefix" TextAlign="TextAlign.Center" Width="110px">
+                <Template Context="r"><span class="code">@(r.LotPrefix ?? "—")</span></Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
                 <Template Context="r">
                     @{ var sLabel = _lineStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status; }
@@ -109,6 +112,11 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["MD.Line.Lbl.LineId"]" class="ames-rz-modal-label" Component="CreateTextBoxLineID" />
                 <RadzenTextBox Name="CreateTextBoxLineID" @bind-Value="_f.LineID" Placeholder="INJ-L01" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="Line Prefix *" class="ames-rz-modal-label" Component="CreateLinePrefix" />
+                <RadzenTextBox Name="CreateLinePrefix" @bind-Value="_f.LotPrefix" MaxLength="2" Placeholder="I1" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
@@ -170,6 +178,12 @@
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Line.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LineID</span></div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-bottom:6px;">
+                <RadzenLabel Text="Line Prefix *" class="ames-rz-modal-label" Component="EditLinePrefix" />
+                <RadzenTextBox Name="EditLinePrefix" @bind-Value="_f.LotPrefix" MaxLength="2" Placeholder="I1" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+            <div class="dim" style="font-size:.85em;margin-bottom:8px;">Used for new LOT numbers. Existing barcodes and Location IDs stay unchanged.</div>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text="@L["MD.Line.Lbl.LineName"]" class="ames-rz-modal-label" Component="EditTextBoxLineName" />
@@ -353,6 +367,7 @@
             DailyCap        = r.DailyCap,
             ShiftPattern    = r.ShiftPattern    ?? "",
             RfidEnabledFlag = r.RfidEnabledFlag,
+            LotPrefix       = r.LotPrefix?.Trim() ?? "",
             Status          = r.Status          ?? "ACTIVE",
         };
         _modal = "edit";
@@ -369,6 +384,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.LineID))   { _modalErr = L["MD.Line.Err.IDRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.LineName)) { _modalErr = L["MD.Line.Err.NameRequired"]; return; }
+        if (!ValidateLinePrefix()) return;
         if (MD.LineExists(_f.LineID.Trim())) { _modalErr = string.Format(L["MD.Line.Err.IDExists"].Value, _f.LineID.Trim()); return; }
         if (string.IsNullOrWhiteSpace(_f.WCID)) { _modalErr = $"{L["MD.Line.Lbl.Wcid"]}: {L["Opt.Select"]}"; return; }
         _busy = true;
@@ -377,7 +393,7 @@
             MD.InsertLine(_f.LineID.Trim(), _f.LineName, NE(_f.LineNameEn),
                 NE(_f.PlantCode), NE(_f.WCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
-                _f.RfidEnabledFlag, _f.Status, _actor);
+                _f.RfidEnabledFlag, _f.Status, _actor, lotPrefix: _f.LotPrefix);
             Audit.Created("MD-001", "MD_Line", _f.LineID.Trim(), _f);
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Created"].Value, _f.LineName), false);
@@ -392,6 +408,7 @@
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.LineName)) { _modalErr = L["MD.Line.Err.NameRequired"]; return; }
+        if (!ValidateLinePrefix()) return;
         if (string.IsNullOrWhiteSpace(_f.WCID)) { _modalErr = $"{L["MD.Line.Lbl.Wcid"]}: {L["Opt.Select"]}"; return; }
         _busy = true;
         try
@@ -399,7 +416,7 @@
             MD.UpdateLine(_sel.LineID, _f.LineName, NE(_f.LineNameEn),
                 NE(_f.PlantCode), NE(_f.WCID),
                 _f.DailyCap, NE(_f.ShiftPattern),
-                _f.RfidEnabledFlag, _f.Status, _actor);
+                _f.RfidEnabledFlag, _f.Status, _actor, lotPrefix: _f.LotPrefix);
             Audit.Updated("MD-001", "MD_Line", _sel.LineID, _sel, _f);
             var name = _f.LineName;
             CloseModal(); await ReloadRestorePage();
@@ -450,6 +467,14 @@
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
     }
 
+    bool ValidateLinePrefix()
+    {
+        _f.LotPrefix = (_f.LotPrefix ?? "").Trim().ToUpperInvariant();
+        if (_f.LotPrefix.Length == 2 && _f.LotPrefix.All(char.IsAsciiLetterOrDigit)) return true;
+        _modalErr = "Line Prefix must contain exactly 2 letters or digits.";
+        return false;
+    }
+
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
     class FormModel
@@ -462,6 +487,7 @@
         public int?   DailyCap        { get; set; }
         public string ShiftPattern    { get; set; } = "";
         public bool   RfidEnabledFlag { get; set; } = false;
+        public string LotPrefix       { get; set; } = "";
         public string Status          { get; set; } = "ACTIVE";
     }
 }
