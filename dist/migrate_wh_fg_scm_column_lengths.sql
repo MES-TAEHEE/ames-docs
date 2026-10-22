@@ -8,7 +8,7 @@ SET ANSI_PADDING ON;
 SET ANSI_WARNINGS ON;
 BEGIN TRY
 BEGIN TRANSACTION;
-CREATE TABLE #Targets(TableName sysname,ColumnName sysname,Width int, PRIMARY KEY(TableName,ColumnName));
+CREATE TABLE #Targets(TableName sysname COLLATE DATABASE_DEFAULT,ColumnName sysname COLLATE DATABASE_DEFAULT,Width int, PRIMARY KEY(TableName,ColumnName)); -- tempdb collation may differ from the database (Docker replica)
 INSERT #Targets VALUES
 ('WH_Inventory','PartNo',20),
 ('WH_Inventory','LocationNo',20),

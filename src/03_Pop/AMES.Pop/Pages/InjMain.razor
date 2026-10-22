@@ -420,6 +420,9 @@
             // 확정분은 금일 수치에 올라가므로 과거 날짜를 보고 있었다면 금일로 돌린다.
             if (ok) { _selItemNo = itemNo; _viewDate = null; Refresh(); BackflushNotice.Show(Toasts, backflush, lotCode); }
             SetBanner(ok, detail);
+            // 이미 확정된 라벨을 또 찍은 것은 실적 사건이 아니다 — 이력에 NG 로 쌓이면
+            // 실제 불량·차단과 섞여 보이므로 경고만 띄우고 이력에는 남기지 않는다.
+            if (outcome == InjConfirmOutcome.AlreadyConfirmed) { Toasts.Warn(detail); return; }
             _scanHistory.Insert(0, new ScanRecord(lotCode, DbClock.Now, ok, detail));
             if (_scanHistory.Count > 50) _scanHistory.RemoveAt(_scanHistory.Count - 1);
         }
