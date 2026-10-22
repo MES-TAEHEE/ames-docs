@@ -5,31 +5,53 @@
 @inject UomFormat UomFmt
 @inject WarehouseRepository Warehouse
 @inject AuditLogger Audit
+@inject DialogService Dialog
 
-<div class="location-explorer">
-    @if (!string.IsNullOrEmpty(_actionError)) { <RadzenAlert AlertStyle="Radzen.AlertStyle.Danger">@_actionError</RadzenAlert> }
-    <div class="location-explorer-topbar">
-        <nav class="location-explorer-breadcrumb" aria-label="Location hierarchy">
-            <RadzenButton Text="@L["Col.Warehouse"]" class="@($"ames-rz-btn {BreadcrumbClass(MapStage.Warehouse)}")" Click="ShowWarehouses" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" />
-            <span>/</span>
-            <RadzenButton Text="@(_warehouse ?? L["Col.Area"].Value)" class="@($"ames-rz-btn {BreadcrumbClass(MapStage.Area)}")" Disabled="@string.IsNullOrWhiteSpace(_warehouse)" Click="ShowAreas" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" />
-            <span>/</span>
-            <RadzenButton Text="@(_area ?? L["Col.Area"].Value)" Disabled="@string.IsNullOrWhiteSpace(_area)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <span>/</span>
-            <RadzenButton Text="@FloorLabel" Disabled="@string.IsNullOrWhiteSpace(_floor)" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+@if (!string.IsNullOrEmpty(_actionError)) { <RadzenAlert AlertStyle="Radzen.AlertStyle.Danger" Variant="Variant.Flat">@_actionError</RadzenAlert> }
+<div class="ames-card location-explorer">
+    <div class="ames-card-h master-list-toolbar location-navigation-toolbar">
+        <nav class="location-navigation-path" aria-label="Location hierarchy">
+            @if (_stage == MapStage.Warehouse)
+            {
+                <span aria-current="page">@L["Col.Warehouse"]</span>
+            }
+            else
+            {
+                <RadzenButton Text="@L["Col.Warehouse"]" Icon="warehouse" Click="ShowWarehouses" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenIcon Icon="chevron_right" />
+                @if (_stage == MapStage.Area)
+                {
+                    <span aria-current="page">@_warehouse</span>
+                }
+                else
+                {
+                    <RadzenButton Text="@_warehouse" Click="ShowAreas" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    <RadzenIcon Icon="chevron_right" />
+                    @if (_selectingFloor || IsOpenStorage)
+                    {
+                        <span aria-current="page">@_area</span>
+                    }
+                    else
+                    {
+                        <RadzenButton Text="@_area" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                        <RadzenIcon Icon="chevron_right" />
+                        <span aria-current="page">@FloorLabel</span>
+                    }
+                }
+            }
         </nav>
 
-        <div class="location-explorer-actions">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap" class="location-navigation-actions">
             @if (_stage != MapStage.Warehouse)
             {
                 <RadzenButton Text="@L["Btn.Back"]" Icon="arrow_back" Click="Back" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             }
             @if (CanEdit && CanAddHierarchy)
             {
-                <RadzenButton Text="@(_editing ? "Done" : "Edit")" Icon="edit" aria-pressed="@_editing" Click="ToggleEdit" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@(_editing ? "Done" : "Edit")" Icon="@(_editing ? "check" : "edit")" aria-pressed="@_editing" Click="ToggleEdit" ButtonStyle="@(_editing ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
             }
             <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Refresh" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-        </div>
+        </RadzenStack>
     </div>
 
     <div class="location-explorer-workspace selection-only">
@@ -58,7 +80,11 @@
                                 </RadzenButton>
                             @if (_editing && CanEdit && CanAddHierarchy)
                             {
-                                <RadzenButton Icon="close" Click="@(() => DeleteCard(row.Key))" aria-label="@($"Delete {SelectionKind} {row.Name}")" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="location-stage-remove ames-rz-btn" />
+                                @if ((_stage is MapStage.Warehouse or MapStage.Area) && !_selectingFloor)
+                                {
+                                    <RadzenButton Icon="edit" Click="@(() => OpenHierarchyName(row))" title="@($"Edit {SelectionKind.ToLowerInvariant()} name")" aria-label="@($"Edit {SelectionKind.ToLowerInvariant()} name: {row.Name}")" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="location-stage-rename ames-rz-btn" />
+                                }
+                                <RadzenButton Icon="close" Click="@(() => DeleteCard(row.Key))" Disabled="@_saving" aria-label="@($"Delete {SelectionKind} {row.Name}")" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="location-stage-remove ames-rz-btn" />
                             }
                             </div>
                         }
@@ -68,19 +94,46 @@
             else if (_stage == MapStage.Map)
             {
                 <div class="location-map-view location-panel-enter">
-                    <div class="location-map-heading">
-                        <div>
-                            <RadzenButton Text="@L["WH.LocMap.ChangeFloor"]" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-                            @if (CanEdit && _warehouse!="LINE") { <RadzenButton Text="Edit Grid" Click='() => OpenDialog("Grid")' ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /> }
-                            <strong>@MapScope · @MapLocations.Count @L["WH.LocMap.Locations"]</strong>
-                        </div>
+                    <div class="ames-card-h master-list-toolbar location-grid-toolbar">
+                        <span class="location-grid-title">@MapScope · @MapLocations.Count @L["WH.LocMap.Locations"]</span>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                            @if (!IsOpenStorage)
+                            {
+                                <RadzenButton Text="@L["WH.LocMap.ChangeFloor"]" Icon="layers" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                                @if (CanEdit && _warehouse!="LINE" && LocationMapNaming.FloorNumber(_floor) > 0) { <RadzenButton Text="Edit Grid" Icon="grid_on" Click='() => OpenDialog("Grid")' ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /> }
+                            }
+                        </RadzenStack>
+                    </div>
+                    <div class="location-map-statusbar">
                         <div class="location-map-legend">
                             <span><i class="empty"></i>@L["WH.LocMap.Legend.Empty"]</span>
                             <span><i class="stocked"></i>@L["WH.LocMap.Legend.Stocked"]</span>
                             <span><i class="capacity-full"></i>Full</span>
                         </div>
                     </div>
-                    @RenderMap()
+                    @if (IsOpenStorage || GridLocations.Count == 0)
+                    {
+                        <div class="location-open-storage">
+                            <div class="location-storage-heading">@(IsOpenStorage ? "Open Storage" : "Locations without grid coordinates")</div>
+                            @RenderStorageCards(UngridLocations)
+                            @if (IsOpenStorage && GridLocations.Count > 0)
+                            {
+                                <div class="location-storage-heading">Existing grid locations · @GridLocations.Count</div>
+                                <p class="location-storage-note">Existing stock stays at its current location. No inventory has been moved.</p>
+                                <RadzenDataGrid TItem="LocationMapCell" Data="GridLocations" RowClick="@(args => { if (args.Data is not null) SelectLocation(args.Data); })" AllowPaging="true" PageSize="25" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid">
+                                    <Columns>
+                                        <RadzenDataGridColumn TItem="LocationMapCell" Property="LocationNo" Title="@L["Col.LocationId"]" />
+                                        <RadzenDataGridColumn TItem="LocationMapCell" Property="LocationName" Title="@L["Col.Name"]" />
+                                        <RadzenDataGridColumn TItem="LocationMapCell" Property="Qty" Title="@L["Col.Qty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.Qty(row.Qty, null)</Template></RadzenDataGridColumn>
+                                    </Columns>
+                                </RadzenDataGrid>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        @RenderMap()
+                    }
                 </div>
             }
         </section>
@@ -135,14 +188,27 @@
     {
         <div class="ames-modal-bg" @onclick="CloseDialog">
             <div class="ames-modal ames-modal-wide" role="dialog" aria-modal="true" @onclick:stopPropagation="true">
-                <div class="ames-modal-h">@(_dialog == "Grid" ? $"Edit Grid · {_area} / {FloorLabel}" : $"Add {_dialog}")</div>
-                @if (_dialog is "Warehouse" or "Area")
+                <div class="ames-modal-h">@(_dialog == "WarehouseName" ? $"Edit Warehouse Name · {_code}" : _dialog == "AreaName" ? $"Edit Area Name · {_code}" : _dialog == "Grid" ? $"Edit Grid · {_area} / {FloorLabel}" : $"Add {_dialog}")</div>
+                @if (_dialog is "AreaName" or "WarehouseName")
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                        <RadzenLabel Text="Name" Component="EditHierarchyName" class="ames-rz-modal-label" />
+                        <RadzenTextBox Name="EditHierarchyName" @bind-Value="_name" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    </RadzenStack>
+                }
+                else if (_dialog is "Warehouse" or "Area")
                 {
                     <div>Existing @(_dialog == "Warehouse" ? "warehouses" : $"areas in {_warehouse}"): @string.Join(", ", _dialog == "Warehouse" ? Areas.Select(x => x.WarehouseName).Distinct() : Areas.Where(x => Same(x.WarehouseCode, _warehouse) && !string.IsNullOrEmpty(x.AreaCode)).Select(x => x.AreaName))</div>
                     <RadzenRow Gap="8px" Style="margin-top:8px;">
                         <RadzenColumn Size="4"><RadzenLabel Text="Two-letter code" /><RadzenTextBox @bind-Value="_code" MaxLength="2" class="ames-rz-input" Style="width:100%;" /></RadzenColumn>
                         <RadzenColumn Size="8"><RadzenLabel Text="Name" /><RadzenTextBox @bind-Value="_name" MaxLength="60" class="ames-rz-input" Style="width:100%;" /></RadzenColumn>
                     </RadzenRow>
+                    @if (_dialog == "Area")
+                    {
+                        <RadzenLabel Text="Storage mode" Component="LocationStorageMode" />
+                        <RadzenDropDown Name="LocationStorageMode" @bind-Value="_storageMode" Data="StorageModes" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <p class="location-storage-note">Grid starts with a 1 × 1 grid on floor 1F. Open Storage creates a shared location without coordinates. Storage mode cannot be changed after creation.</p>
+                    }
                 }
                 else if (_dialog == "Grid")
                 {
@@ -153,8 +219,8 @@
                 else { <p>Add the next floor to @_area.</p> }
                 @if (!string.IsNullOrEmpty(_dialogError)) { <RadzenAlert AlertStyle="Radzen.AlertStyle.Danger">@_dialogError</RadzenAlert> }
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                    <RadzenButton Text="@(_dialog == "Grid" ? "Save Grid" : "Add")" Click="SaveDialog" Disabled="@(_saving || _dialog == "Grid" && _gridStockAtRisk > 0)" ButtonStyle="ButtonStyle.Primary" />
-                    <RadzenButton Text="Cancel" Click="CloseDialog" ButtonStyle="ButtonStyle.Base" />
+                    <RadzenButton Text="@(_dialog is "AreaName" or "WarehouseName" ? "Save" : _dialog == "Grid" ? "Save Grid" : "Add")" Click="SaveDialog" Disabled="@(_saving || _dialog == "Grid" && _gridStockAtRisk > 0)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    <RadzenButton Text="Cancel" Click="CloseDialog" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                 </RadzenStack>
             </div>
         </div>
@@ -180,12 +246,19 @@
     private LocationMapCell? _barcodeLocation;
     private string? _dialog, _actionError;
     private string _code = "", _name = "", _dialogError = "";
+    private string _originalName = "";
     private int _aisles = 1, _bays = 1;
+    private string _storageMode = "GRID";
+    private static readonly object[] StorageModes = [new { Value = "GRID", Text = "Grid" }, new { Value = "OPEN", Text = "Open Storage" }];
+    private LocationMapArea? SelectedArea => Areas.FirstOrDefault(x => Same(x.WarehouseCode, _warehouse) && Same(x.AreaCode, _area));
+    private bool IsOpenStorage => SelectedArea?.StorageMode == "OPEN";
 
     private List<LocationMapCell> ActiveLocations => Locations.Where(x => !string.IsNullOrWhiteSpace(x.LocationNo)).ToList();
     private List<LocationMapCell> MapLocations => ActiveLocations
-        .Where(x => Same(x.WarehouseCode, _warehouse) && Same(x.AreaCode, _area) && Same(x.Floor, _floor))
+        .Where(x => Same(x.WarehouseCode, _warehouse) && Same(x.AreaCode, _area) && (IsOpenStorage || Same(x.Floor, _floor)))
         .ToList();
+    private List<LocationMapCell> GridLocations => MapLocations.Where(x => x.HasGridCoordinates).ToList();
+    private List<LocationMapCell> UngridLocations => MapLocations.Where(x => !x.HasGridCoordinates).ToList();
 
     private List<LocationMapStock> LocationDrawerRows => string.IsNullOrWhiteSpace(_highlightedLocation)
         ? []
@@ -207,7 +280,7 @@
 
     private string StageLabel => _stage == MapStage.Warehouse ? L["Col.Warehouse"].Value : L["Col.Area"].Value;
     private string FloorLabel => string.IsNullOrWhiteSpace(_floor) ? L["Col.Floor"].Value : FloorName(_floor);
-    private string MapScope => string.Join(" / ", new[] { _warehouse, _area, FloorLabel }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    private string MapScope => string.Join(" / ", new[] { _warehouse, _area, IsOpenStorage ? null : FloorLabel }.Where(x => !string.IsNullOrWhiteSpace(x)));
     private List<StageCard> SelectionRows => _selectingFloor ? FloorCards : StageCards;
     private string SelectionLabel => _selectingFloor ? L["Col.Floor"].Value : StageLabel;
     private string SelectionKind => _selectingFloor ? "Floor" : _stage == MapStage.Warehouse ? "Warehouse" : "Area";
@@ -223,7 +296,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_stage == MapStage.Map && !_selectingFloor)
+        if (_stage == MapStage.Map && !_selectingFloor && !IsOpenStorage && GridLocations.Count > 0)
         {
             try { await JS.InvokeVoidAsync("locationMapScroll.init", MapScrollId); }
             catch { }
@@ -238,9 +311,18 @@
 
     private void ToggleEdit() { _editing = !_editing; _actionError = null; }
 
+    private void OpenHierarchyName(StageCard row)
+    {
+        if (!_editing || !CanEdit || !CanAddHierarchy || _stage is not (MapStage.Warehouse or MapStage.Area) || _selectingFloor) return;
+        _code = row.Key;
+        _originalName = _name = row.Name;
+        _dialogError = "";
+        _dialog = _stage == MapStage.Warehouse ? "WarehouseName" : "AreaName";
+    }
+
     private async Task DeleteCard(string key)
     {
-        if (!_editing || !CanEdit || !CanAddHierarchy) return;
+        if (!_editing || !CanEdit || !CanAddHierarchy || _saving) return;
         _actionError = null;
         var warehouse = _stage == MapStage.Warehouse ? key : _warehouse;
         var area = _stage == MapStage.Area ? key : _area;
@@ -248,6 +330,7 @@
         if (warehouse is null || _stage == MapStage.Map && (area is null || floor is null)) return;
         var label = floor is not null ? $"floor {warehouse} / {area} / {floor}"
             : area is not null ? $"area {warehouse} / {area}" : $"warehouse {warehouse}";
+        _saving = true;
         try
         {
             var impact = Warehouse.GetLocationMapDeleteImpact(warehouse, area, floor);
@@ -256,7 +339,10 @@
                 _actionError = $"Cannot delete {label}: {impact.StockRows:N0} inventory records remain. Move the inventory first.";
                 return;
             }
+            if (await Dialog.Confirm($"Are you sure you want to delete {label} and its locations?",
+                "Confirm Deletion", new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" }) != true) return;
             Warehouse.DeleteLocationMapScope(warehouse, area, floor);
+            _editing = false;
             Audit.Deleted("WH-003", "MD_Location", label, impact);
             if (floor is not null) { _floor = null; ShowFloors(); }
             else if (area is null) ShowWarehouses();
@@ -264,15 +350,19 @@
             await Refresh();
         }
         catch (Exception ex) { _actionError = ex.Message; }
+        finally { _saving = false; }
     }
 
     private void OpenDialog(string kind)
     {
+        if (!CanEdit || !CanAddHierarchy) return;
+        if (kind is not ("Warehouse" or "Area" or "Floor" or "Grid")) return;
         _dialogError = _code = _name = "";
         if ((kind is "Area" or "Floor" or "Grid") && string.IsNullOrWhiteSpace(_warehouse))
         { _dialogError = "Select a Warehouse first."; return; }
         if ((kind is "Floor" or "Grid") && string.IsNullOrWhiteSpace(_area))
         { _dialogError = "Select an Area first."; return; }
+        if (kind == "Area") _storageMode = "GRID";
         if (kind == "Grid")
         {
             _aisles = Math.Max(1, MapLocations.Select(x => LocationMapNaming.YOrder(x.Column)).DefaultIfEmpty(0).Max());
@@ -285,13 +375,28 @@
 
     private async Task SaveDialog()
     {
-        if (!CanEdit || _dialog is null) return;
+        if (!CanEdit || !CanAddHierarchy || _dialog is null || _saving) return;
+        if (_dialog == "AreaName" && (!_editing || _stage != MapStage.Area)) return;
+        if (_dialog == "WarehouseName" && (!_editing || _stage != MapStage.Warehouse)) return;
         _dialogError = "";
         _saving = true;
         try
         {
+            if (_dialog is "WarehouseName" or "AreaName" or "Grid")
+            {
+                var target = _dialog == "WarehouseName" ? $"warehouse {_code}"
+                    : _dialog == "AreaName" ? $"area {_warehouse} / {_code}" : $"grid {MapScope}";
+                if (await Dialog.Confirm($"Are you sure you want to save changes to {target}?",
+                    "Confirm Changes", new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" }) != true) return;
+            }
             switch (_dialog)
             {
+                case "WarehouseName":
+                    Warehouse.RenameLocationMapWarehouse(_code, _name);
+                    break;
+                case "AreaName":
+                    Warehouse.RenameLocationMapArea(_warehouse!, _code, _name);
+                    break;
                 case "Warehouse":
                 case "Area":
                     var code = _code.Trim().ToUpperInvariant();
@@ -306,11 +411,11 @@
                     }
                     else
                     {
-                        Warehouse.SaveLocationMapAreaPrefix(_warehouse!, code, code, name);
+                        Warehouse.CreateLocationMapArea(_warehouse!, code, name, _storageMode);
                         _area = code;
-                        _floor = null;
+                        _floor = _storageMode == "GRID" ? "F1" : null;
                         _stage = MapStage.Map;
-                        _selectingFloor = true;
+                        _selectingFloor = false;
                     }
                     break;
                 case "Floor":
@@ -321,8 +426,12 @@
                     Warehouse.SetLocationMapGrid(_warehouse!, _area!, _floor!, _aisles, _bays);
                     break;
             }
-            Audit.Log("WH-003", _dialog == "Grid" ? "UPDATE" : "CREATE", "MD_Location",
-                $"{_warehouse}/{_area}/{_floor}", null, new { Kind=_dialog, Code=_code, Name=_name, Aisles=_aisles, Bays=_bays });
+            _editing = false;
+            if (_dialog is "AreaName" or "WarehouseName")
+                Audit.Updated("WH-003", "MD_CodeItem", _dialog == "WarehouseName" ? _code : $"{_warehouse}/{_code}", new { Name = _originalName }, new { Name = _name.Trim() });
+            else
+                Audit.Log("WH-003", _dialog == "Grid" ? "UPDATE" : "CREATE", _dialog == "Area" ? "MD_CodeItem" : "MD_Location",
+                    $"{_warehouse}/{_area}/{_floor}", null, new { Kind=_dialog, Code=_code, Name=_name, Aisles=_aisles, Bays=_bays, StorageMode=_storageMode });
             _dialog = null;
             await Refresh();
         }
@@ -332,7 +441,8 @@
 
     private void SelectStageRow(StageCard row)
     {
-        if (_selectingFloor) SelectFloor(row.Key);
+        if (_editing && CanEdit && CanAddHierarchy && (_stage is MapStage.Warehouse or MapStage.Area) && !_selectingFloor) OpenHierarchyName(row);
+        else if (_selectingFloor) SelectFloor(row.Key);
         else SelectCard(row.Key);
     }
 
@@ -346,11 +456,11 @@
         else
         {
             _area = key;
-            _floor = FloorCards.FirstOrDefault(x => x.Key.StartsWith('F') && int.TryParse(x.Key[1..], out _))?.Key ?? FloorCards.FirstOrDefault()?.Key;
+            _floor = IsOpenStorage ? null : FloorCards.FirstOrDefault(x => x.Key.StartsWith('F') && int.TryParse(x.Key[1..], out _))?.Key ?? FloorCards.FirstOrDefault()?.Key;
             _stage = MapStage.Map;
         }
 
-        _selectingFloor = _stage == MapStage.Map && _floor is null;
+        _selectingFloor = _stage == MapStage.Map && !IsOpenStorage && _floor is null;
         ClearSelection();
     }
 
@@ -389,6 +499,7 @@
     private void ShowFloors()
     {
         if (string.IsNullOrWhiteSpace(_area)) { ShowAreas(); return; }
+        if (IsOpenStorage) return;
         _selectingFloor = true;
         _highlightedLocation = null;
         _locationDrawerOpen = false;
@@ -422,8 +533,8 @@
 
     private RenderFragment RenderMap() => __builder =>
     {
-        var columns = MapLocations.Select(x => Axis(x.Column)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(LocationMapNaming.YOrder).ThenBy(x => x).ToList();
-        var rows = MapLocations.Select(x => Axis(x.Row)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(SortKey).ThenBy(x => x).ToList();
+        var columns = GridLocations.Select(x => Axis(x.Column)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(LocationMapNaming.YOrder).ThenBy(x => x).ToList();
+        var rows = GridLocations.Select(x => Axis(x.Row)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(SortKey).ThenBy(x => x).ToList();
 
         if (MapLocations.Count == 0)
         {
@@ -441,7 +552,7 @@
                     <div class="location-axis row">@row</div>
                     @foreach (var column in columns)
                     {
-                        var cell = MapLocations.FirstOrDefault(x => Same(Axis(x.Column), column) && Same(Axis(x.Row), row));
+                        var cell = GridLocations.FirstOrDefault(x => Same(Axis(x.Column), column) && Same(Axis(x.Row), row));
                         if (cell is null) { <div class="location-map-cell missing"></div> }
                         else
                         {
@@ -453,11 +564,36 @@
                     }
                 }
                 </div>
+                @if (UngridLocations.Count > 0)
+                {
+                    <div class="location-storage-heading">Locations without grid coordinates</div>
+                    @RenderStorageCards(UngridLocations)
+                }
             </div>
             <button type="button" hidden class="location-map-scroll-arrow left" data-scroll-dir="left" @onclick='() => ScrollMap("left")' aria-label="Scroll map left"><RadzenIcon Icon="arrow_back" /></button>
             <button type="button" hidden class="location-map-scroll-arrow right" data-scroll-dir="right" @onclick='() => ScrollMap("right")' aria-label="Scroll map right"><RadzenIcon Icon="arrow_forward" /></button>
             <button type="button" hidden class="location-map-scroll-arrow up" data-scroll-dir="up" @onclick='() => ScrollMap("up")' aria-label="Scroll map up"><RadzenIcon Icon="arrow_upward" /></button>
             <button type="button" hidden class="location-map-scroll-arrow down" data-scroll-dir="down" @onclick='() => ScrollMap("down")' aria-label="Scroll map down"><RadzenIcon Icon="arrow_downward" /></button>
+        </div>
+    };
+
+    private RenderFragment RenderStorageCards(IReadOnlyList<LocationMapCell> locations) => __builder =>
+    {
+        @if (locations.Count == 0) { <div class="location-empty">@L["WH.LocMap.NoLocations"]</div> }
+        <div class="location-hierarchy-cards location-storage-cards">
+            @foreach (var cell in locations)
+            {
+                <div @key="cell.LocationNo" class="location-hierarchy-tile">
+                    <RadzenButton Click="@(() => SelectLocation(cell))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="@($"location-stage-card {(cell.IsFull ? "capacity-full" : "")}")" aria-label="@cell.LocationNo">
+                        <div class="location-hierarchy-content">
+                            <span>@cell.LocationNo</span>
+                            <strong>@(cell.LocationName ?? cell.LocationNo)</strong>
+                            <small>@L["Col.LoadCapacity"]: @(cell.Capacity is > 0 ? cell.Capacity.Value.ToString("N0") : "-")</small>
+                            <b>@UomFmt.Qty(cell.Qty, null) <em>@L["WH.LocMap.Qty"]</em></b>
+                        </div>
+                    </RadzenButton>
+                </div>
+            }
         </div>
     };
 
@@ -471,7 +607,6 @@
 
     private string MapScrollId => $"{SearchId}-scroll";
     private static string MapStyle(int columns) => $"--location-columns:{Math.Max(1, columns)};--location-cell-width:92px;--location-cell-height:62px;";
-    private string BreadcrumbClass(MapStage stage) => _stage == stage ? "active" : "";
     private List<StageCard> Cards(IEnumerable<LocationMapCell> source, Func<LocationMapCell, string> key, Func<LocationMapCell, string?> name) => source
         .GroupBy(key, StringComparer.OrdinalIgnoreCase)
         .Select(group => new StageCard(group.Key, name(group.First()) ?? group.Key, group.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count(), group.Sum(x => x.Qty)))

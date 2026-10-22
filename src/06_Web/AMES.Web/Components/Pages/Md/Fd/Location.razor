@@ -1,4 +1,4 @@
-﻿@page "/md/fd/location"
+@page "/md/fd/location"
 @rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
@@ -57,10 +57,6 @@
             <RadzenDropDown Name="DropDownLevelFilter" @bind-Value="_fLevel" Data="@LevelFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
-            @if (_canEdit)
-            {
-                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
-            }
         </RadzenStack>
     </div>
 
@@ -126,67 +122,6 @@
     <LocationBarcodeDialog LocationCode="@_barcodeLocation.LocationID" OnClose="CloseBarcode" />
 }
 
-@* ── Create Modal — 상위 로케이션을 비우면 상위, 고르면 그 아래 하위로 등록 ── *@
-@if (_modal == "create")
-{
-    <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["MD.Location.Title"] — @L["Modal.Create"]</div>
-
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text="@L["MD.Location.Col.Parent"]" class="ames-rz-modal-label" Component="CreateDropDownParent" />
-                <RadzenDropDown Name="CreateDropDownParent" TValue="string" @bind-Value="_f.ParentLocationID" Data="@ParentOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["MD.Location.Ph.NoParent"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-            </RadzenStack>
-            <div class="dim" style="font-size:.85em;margin:2px 0 8px;">
-                @(string.IsNullOrEmpty(_f.ParentLocationID) ? L["MD.Location.Hint.NewTop"].Value : string.Format(L["MD.Location.Hint.NewChild"].Value, _f.ParentLocationID))
-            </div>
-
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
-                <RadzenLabel Text="@L["MD.Location.Lbl.LocationID"]" class="ames-rz-modal-label" Component="CreateTextBoxLocationID" />
-                <RadzenTextBox Name="CreateTextBoxLocationID" @bind-Value="_f.LocationID" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
-            </RadzenStack>
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
-                <RadzenLabel Text="@L["MD.Location.Lbl.LocationName"]" class="ames-rz-modal-label" Component="CreateTextBoxLocationName" />
-                <RadzenTextBox Name="CreateTextBoxLocationName" @bind-Value="_f.LocationName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
-            </RadzenStack>
-            @if (string.IsNullOrEmpty(_f.ParentLocationID))
-            {
-            <RadzenRow Gap="8px" Style="margin-top:6px;">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["MD.Location.Col.WhCode"]" Component="CreateTextBoxWhCode" />
-                    <RadzenTextBox Name="CreateTextBoxWhCode" @bind-Value="_f.WhCode" MaxLength="20" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" AutoCompleteType="AutoCompleteType.Off" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="@L["Col.Area"]" Component="CreateDropDownArea" />
-                    <RadzenDropDown Name="CreateDropDownArea" @bind-Value="_f.AreaCode" Data="@CodeOptions(_areaCodes)" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
-                </RadzenColumn>
-            </RadzenRow>
-            }
-            else
-            {
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:8px;">
-                    <RadzenLabel Text="@L["MD.Location.Lbl.AssignedPart"]" class="ames-rz-modal-label" Component="CreateDropDownAssignedPart" />
-                    <RadzenDropDown Name="CreateDropDownAssignedPart" TValue="string" @bind-Value="_f.PartNo" Data="_parts" TextProperty="ItemNo" ValueProperty="ItemNo" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-                </RadzenStack>
-
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:8px;">
-                    <RadzenLabel Text="@L["MD.Location.Lbl.Capacity"]" class="ames-rz-modal-label" Component="CreateNumericCapacity" />
-                    <RadzenNumeric Name="CreateNumericCapacity" TValue="decimal?" @bind-Value="_f.Capacity" Min="0" Step="1" Format="N0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-                </RadzenStack>
-            }
-
-            @if (!string.IsNullOrEmpty(_modalErr))
-            {
-                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
-            }
-
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Create"])" Click="@SaveCreate" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            </RadzenStack>
-        </div>
-    </div>
-}
 
 @* ── Edit Modal ───────────────────────────────────────────────────── *@
 @if (_modal == "edit" && _sel is not null)
@@ -389,40 +324,6 @@
         _modal = "edit";
     }
 
-    void OpenCreate()
-    {
-        if (!_canEdit) return;
-        _sel = null; _modalErr = "";
-        _f = new() { WhCode = "EOS", AreaCode = "" };   // 상위 로케이션 콤보를 비운 채 = 상위 로케이션 등록
-        _modal = "create";
-    }
-
-    async Task SaveCreate()
-    {
-        if (!_canEdit || _busy) return;
-        _modalErr = "";
-        var id = (_f.LocationID ?? "").Trim().ToUpperInvariant();
-        var wh = (_f.WhCode ?? "").Trim().ToUpperInvariant();
-        var parent = NE(_f.ParentLocationID);
-        if (id.Length == 0) { _modalErr = L["MD.Location.Err.IDRequired"]; return; }
-        if (parent is null && wh.Length == 0) { _modalErr = L["MD.Location.Err.WhRequired"]; return; }
-        if (parent is null && string.IsNullOrEmpty(_f.AreaCode)) { _modalErr = L["MD.Location.Err.AreaRequired"]; return; }
-        if (_f.Capacity is { } cap && cap != decimal.Truncate(cap)) { _modalErr = "Load Capacity must be a whole number."; return; }
-        _busy = true;
-        try
-        {
-            if (MD.LocationExists(id)) { _modalErr = string.Format(L["MD.Location.Err.IDExists"].Value, id); return; }
-            _f.LocationID = id; _f.WhCode = wh;
-            if (parent is null) MD.InsertPrimaryLocation(id, NE(_f.LocationName), wh, _f.AreaCode, null, _actor);
-            else MD.InsertChildLocation(id, NE(_f.LocationName), parent, _f.Capacity, _actor, NE(_f.PartNo));
-            Audit.Created("MD-018", "MD_Location", id, _f);
-            CloseModal(); await ReloadRestorePage();
-            ShowMsg(string.Format(L["MD.Location.Ok.Created"].Value, id), false);
-        }
-        catch (Microsoft.Data.SqlClient.SqlException ex) { _modalErr = SqlErr(ex, id); }
-        catch (Exception ex) { _modalErr = ex.Message; }
-        finally { _busy = false; }
-    }
 
     string SqlErr(Microsoft.Data.SqlClient.SqlException ex, string id) => ex.Number switch
     {
@@ -447,6 +348,7 @@
         try
         {
             if (_f.Capacity is not null && _f.Capacity != decimal.Truncate(_f.Capacity.Value)) throw new InvalidOperationException("Load Capacity must be a whole number.");
+            var saveConfirmed = false;
             if (_f.Capacity != _sel.Capacity)
             {
                 var currentQty = Warehouse.GetLocationStockQty(_sel.LocationID);
@@ -456,8 +358,11 @@
                         $"Current stock at {_sel.LocationID} is {currentQty:N0}, above the new Load Capacity of {_f.Capacity:N0}. Save this lower capacity anyway?",
                         "Load Capacity Warning", new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" });
                     if (confirmed != true) return;
+                    saveConfirmed = true;
                 }
             }
+            if (!saveConfirmed && await Dialog.Confirm($"Are you sure you want to save changes to location {_sel.LocationID}?",
+                "Confirm Changes", new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" }) != true) return;
             // 지정 품번은 바꿨을 때만 보낸다 — 그대로 다시 보내면 품번 재지정 검사(51050)가 명칭만 고치는 저장도 막는다
             MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), _sel.WhCode, _sel.AreaCode, _sel.ZoneCode,
                 _sel.Aisle, _sel.Bay, _sel.Slot,

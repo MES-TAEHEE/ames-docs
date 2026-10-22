@@ -104,8 +104,12 @@ public sealed class InventoryDefectTests
     public void Location_creation_and_fake_inventory_status_are_not_shown()
     {
         var location=Read("src/06_Web/AMES.Web/Components/Pages/Md/Fd/Location.razor");
-        // 10-22 MD-018 은 상위 로케이션을 비우면 상위(재고 없음), 고르면 그 아래 하위 로케이션으로 등록한다(사용자 결정) — 위치 칸 격자 생성(MD.InsertLocation)은 여전히 WH 로케이션 지도 몫
-        Assert.DoesNotContain("MD.InsertLocation(",location);Assert.Contains("MD.InsertPrimaryLocation(",location);Assert.Contains("MD.InsertChildLocation(",location);
+        // Location Master is lookup/edit only; creation remains in Location Map.
+        Assert.DoesNotContain("OpenCreate",location);Assert.DoesNotContain("SaveCreate",location);
+        Assert.DoesNotContain("MD.InsertLocation(",location);Assert.DoesNotContain("MD.InsertPrimaryLocation(",location);Assert.DoesNotContain("MD.InsertChildLocation(",location);
+        Assert.DoesNotContain("_modal == \"create\"",location);
+        Assert.Contains("void OpenEdit(",location);Assert.Contains("async Task SaveEdit()",location);
+        Assert.Contains("MD.UpdateLocation(",location);Assert.Contains("Click=\"@(() => OpenBarcode(r))\"",location);
         Assert.DoesNotContain("OpenLineLocations",location);
         var lookup=Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
         Assert.DoesNotContain("Col.Status",lookup);Assert.Contains("RecheckApproveAsync",lookup);

@@ -1,10 +1,50 @@
+.location-explorer {
+    padding: 0;
+    margin-bottom: 0;
+    border-color: var(--ames-bd-white-a08);
+    background: var(--ames-sf-0d1a2e);
+}
+.location-navigation-toolbar,
+.location-grid-toolbar {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0;
+    padding: 12px 16px;
+}
+.location-navigation-path {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-width: 0;
+}
+.location-navigation-path > span,
+.location-grid-title { overflow-wrap: anywhere; white-space: normal; }
+.location-navigation-path ::deep .rzi { flex-shrink: 0; }
+.location-navigation-path > span { color: var(--ames-tx-blue-300); }
+.location-navigation-toolbar ::deep .location-navigation-actions { margin-left: auto; }
+.location-map-pane { border: 0; }
+.location-map-view { grid-template-rows: auto auto minmax(0, 1fr); }
+.location-map-statusbar { display: flex; justify-content: flex-end; padding: 8px 16px; }
+.location-open-storage { min-height: 0; overflow: auto; padding: 16px; }
+.location-storage-heading { color: var(--ames-tx-blue-300); font-weight: 600; margin-bottom: 8px; }
+.location-storage-note { color: var(--ames-tx-slate-400); font-size: .85rem; line-height: 1.5; }
+.location-storage-cards { overflow: visible; padding: 0; margin-bottom: 16px; }
+.location-storage-cards ::deep .capacity-full { border-color: var(--ames-tx-orange-400); }
+.location-hierarchy-tile ::deep .location-stage-rename { position: absolute; top: 8px; right: 48px; }
 .location-hierarchy-panel {
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 0;
     margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
 }
+.location-hierarchy-panel > .master-list-toolbar { margin-bottom: 0; padding: 12px 16px; }
 .location-hierarchy-cards {
     display: flex;
     flex-wrap: wrap;
