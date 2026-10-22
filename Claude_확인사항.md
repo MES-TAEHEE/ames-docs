@@ -387,7 +387,7 @@ ebuild_local_named_db.ps1`, `USE AMES_DEV` 8줄만 작업 복사본에서 바꿈
 
 ### 3-2. 보류 (4)
 - **B7 MNT-004 금형 정비 등록**(`MoldRepository.cs:53·81` StartChange·CompleteChange, 호출처 없음): 정비 유형·작업자·샷 리셋·정비일을 남길 곳이 없습니다. 금형 교체를 기록하던 메서드도 옛 POP 화면을 지우면서 끊겼습니다 — 그런데 `MoldRepository.cs:8`·`MntRepository.cs:419` 주석은 여전히 "POP 금형 교체가 기록" 한다고 씁니다.
-- **B8 PP-ODM·PP-OEE 라인 상태 기록 — 10-22 해결**: `PP_LineStateLog` 는 에이전트 작업 `[AMES] Line State Fill`(1분, `dbo.SP_PP_LineStateLog_Fill`)이 비가동 로그·POP 실적/라벨·라인 시간 패턴에서 분마다 분류해 채운다(InjAgent·`PP_EquipSignal` 불사용 — 사용자 결정). 남은 것: 개발서버 PC 에서 sa 로 `dist\setup_job_pp_linestatelog_fill.sql`·`setup_job_pp_lineoee_fill.sql` 실행(작업 등록), 임계값 `PP_LINE_RUN_GAP_*` 현장 조정.
+- **B8 PP-ODM·PP-OEE 라인 상태 기록 — 10-22 해결**: `PP_LineStateLog` 는 에이전트 작업 `[AMES] Line State Fill`(1분, `dbo.SP_PP_LineStateLog_Fill`)이 비가동 로그·POP 실적/라벨·라인 시간 패턴에서 분마다 분류해 채운다(InjAgent·`PP_EquipSignal` 불사용 — 사용자 결정). 매분 작업은 최근 2시간만 보고 과거 시각 등록은 매일 06:00 `[AMES] Line State Recalc`(`dist\setup_job_pp_linestatelog_recalc.sql`)이 이틀치 재분류 + OEE 재집계로 반영합니다. 남은 것: 개발서버 PC 에서 sa 로 재계산 작업 등록(10-22 매분·OEE 작업은 등록됨), 임계값 `PP_LINE_RUN_GAP_*` 현장 조정, `PP_LineStateLog` 보존 기간 정리 작업(1년 약 840만 행).
 - **개발 완료 시 정리**: 운영 admin 시드 차단, appsettings 비밀번호·AllowedHosts·접속문자열 환경변수(Web).
 - **품목 추가 불출율·MRP 여유율 반영 방식**(10-20 — 고객 요구 10-14 "BOM 은 정량, 원단 불출 +10%·MRP 품목별 여유율"): `MD_Item.IssueAddPct`·`MrpAllowPct`(%, NULL = 0)는 MD-003(화면·엑셀)에서 저장·표시만 하고 **작업지시 불출·BOM 자동 차감·MRP(PP-005) 계산은 아직 읽지 않습니다**. 정할 것: ① 자동 차감(backflush)을 정량으로 할지 불출율을 포함할지 ② MRP 소요에 불출율도 더할지(여유율만 쓸지) ③ 원단 등 품목 분류별 기본값을 둘지 품목마다만 둘지 ④ BOM 불량률(`ScrapPct`, 지금 전부 0)과의 관계. 결정 뒤 구현은 MRP·백플러시 담당(심재현)과 함께합니다. 같은 날 넣은 조달형태 `MD_Item.ProcureType`(내작·매입·유상사급·무상사급)도 저장·표시만 하고 MRP·구매·SAP 에서 읽지 않습니다.
 

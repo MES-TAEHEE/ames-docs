@@ -12,7 +12,8 @@
 --               → 그 밖은 'IDLE'
 --    RunFlag    = State = 'RUN',  WoID = 그 시각의 WO 슬롯(PP_LineSchedule, 취소 제외) → 없으면 창 안 마지막 실적의 WO
 --  대상 = 활성 MD_Line(작업장 공정 RWK 제외 — 재작업은 생산 라인이 아니다) × [@From, @To) 의 분. @LineID 를 주면 마스터에 없어도 그 라인만(시험·백필).
---  기본 창 = 현재 분(진행 중인 분 제외) 앞 24시간 — PP-DTL 이 과거 시각으로 넣은 비가동도 그 안이면 따라간다. 더 오래된 수정은 @From 으로 백필.
+--  기본 창 = 현재 분(진행 중인 분 제외) 앞 24시간(수동 실행용). 에이전트는 매분 최근 2시간(setup_job_pp_linestatelog_fill.sql) +
+--  매일 06:00 이틀치 재분류·OEE 재집계(setup_job_pp_linestatelog_recalc.sql — 사람이 과거 시각으로 넣은 비가동 반영). 더 오래된 수정은 @From 으로 백필.
 --  같은 (라인, 분) 행은 값이 바뀐 것만 덮어쓴다(ClassifiedAt 갱신). MinuteTS 는 분으로 내린 값이다.
 --  실행마다 SYS_InterfaceMonitor 의 STATEFILL 행(SYS-Interfaces)에 OK·건수 / ERROR·메시지를 남긴다.
 --

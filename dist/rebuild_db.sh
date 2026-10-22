@@ -230,13 +230,15 @@ for f in "${FILES[@]}"; do
   run_file "$f"
 done
 
-# 4) SQL Server 에이전트 작업 3개 — "[AMES] Factory Calendar Fill"(매월 1일, 공장 달력 3개월 채우기) ·
-#    "[AMES] Line State Fill"(1분마다 PP_LineStateLog 분 단위 상태 분류) · "[AMES] Line OEE Fill"(5분마다 PP-OEE 라인 OEE 스냅샷).
+# 4) SQL Server 에이전트 작업 4개 — "[AMES] Factory Calendar Fill"(매월 1일, 공장 달력 3개월 채우기) ·
+#    "[AMES] Line State Fill"(1분마다 최근 2시간 PP_LineStateLog 분 단위 상태 분류) · "[AMES] Line State Recalc"(매일 06:00 이틀치 재분류 + OEE 재집계) ·
+#    "[AMES] Line OEE Fill"(5분마다 PP-OEE 라인 OEE 스냅샷).
 #    msdb 는 DB 를 지워도 남으므로 매번 다시 등록한다(재실행 안전).
 #    컨테이너에서 작업이 실제로 돌려면 MSSQL_AGENT_ENABLED=true 로 만든 컨테이너여야 한다. 등록 실패는 재구축을 막지 않는다.
-echo "[4/4] 에이전트 작업 등록 (setup_job_factory_calendar_fill.sql · setup_job_pp_linestatelog_fill.sql · setup_job_pp_lineoee_fill.sql)..."
+echo "[4/4] 에이전트 작업 등록 (setup_job_factory_calendar_fill.sql · setup_job_pp_linestatelog_fill.sql · setup_job_pp_linestatelog_recalc.sql · setup_job_pp_lineoee_fill.sql)..."
 run_file setup_job_factory_calendar_fill.sql || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_factory_calendar_fill.sql 을 다시 실행하세요"
 run_file setup_job_pp_linestatelog_fill.sql  || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_pp_linestatelog_fill.sql 을 다시 실행하세요"
+run_file setup_job_pp_linestatelog_recalc.sql || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_pp_linestatelog_recalc.sql 을 다시 실행하세요"
 run_file setup_job_pp_lineoee_fill.sql       || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_pp_lineoee_fill.sql 을 다시 실행하세요"
 
 echo ""

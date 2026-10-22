@@ -2,13 +2,16 @@
    setup_job_pp_linestatelog_fill.sql  (2026-10-22)
 
    SQL Server 에이전트 작업 "[AMES] Line State Fill"
-     1분마다(아래 @IntervalMin) <대상 DB>.dbo.SP_PP_LineStateLog_Fill 실행
-     → 활성 라인 × 최근 24시간의 분마다 라인 상태(RUN/DOWN/IDLE·계획 가동/정지·WO)를 비가동 로그·POP 실적/라벨·라인 시간 패턴에서
+     1분마다(아래 @IntervalMin) <대상 DB>.dbo.SP_PP_LineStateLog_Fill 을 최근 @WindowHours 시간(기본 2) 창으로 실행
+     → 활성 라인 × 그 창의 분마다 라인 상태(RUN/DOWN/IDLE·계획 가동/정지·WO)를 비가동 로그·POP 실적/라벨·라인 시간 패턴에서
        분류해 PP_LineStateLog 에 넣거나 값이 바뀐 분만 덮어쓴다(dist/migrate_pp_linestatelog_fill.sql 참조)
      PP-ODM 비가동 모니터와 PP-OEE(5분 작업 "[AMES] Line OEE Fill")가 이 표를 읽는다
      실패해도 재시도하지 않는다 — 다음 1분 실행이 재시도다. 결과는 SYS_InterfaceMonitor 의 STATEFILL 행(SYS-Interfaces)과 작업 기록에 남는다
+     사람이 과거 시각으로 넣는 비가동(PP-DTL·MNT-002 발생 시각)은 이 창 밖일 수 있다 — 그건 매일 06:00 작업
+     "[AMES] Line State Recalc"(dist/setup_job_pp_linestatelog_recalc.sql)이 이틀치를 다시 분류한다(10-22 사용자 결정:
+     매분 24시간 재계산은 낭비라 2시간 창 + 하루 한 번 재계산)
 
-   · 간격을 바꾸려면 아래 @IntervalMin 만 고치고 다시 실행한다(1~59분) — PP-OEE 작업(5분)보다 짧게 둔다
+   · 간격을 바꾸려면 아래 @IntervalMin(1~59분 — PP-OEE 작업 5분보다 짧게), 창을 바꾸려면 @WindowHours(1~24)만 고치고 다시 실행한다
    · 대상 DB 는 실행할 때 선택한 DB 다(DB_NAME()). master·msdb 등 시스템 DB 면 중단한다
        SSMS:   sa 로 접속 → 쿼리 창의 데이터베이스를 AMES_DEV 로 두고 ① dist\migrate_pp_linestatelog_fill.sql ② 이 파일 순으로 실행(F5)
        sqlcmd: sqlcmd -S <서버> -E -C -f 65001 -b -d AMES_DEV -i dist\setup_job_pp_linestatelog_fill.sql
@@ -30,13 +33,16 @@
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
-DECLARE @IntervalMin int     = 1;                      -- 실행 간격(분) — 여기만 고친다
+DECLARE @IntervalMin int     = 1;                      -- 실행 간격(분)
+DECLARE @WindowHours int     = 2;                      -- 매분 다시 분류하는 창(시간) — 과거 수정은 06:00 재계산 작업이 맡는다
 DECLARE @Db          sysname = DB_NAME();
 DECLARE @JobName     sysname = N'[AMES] Line State Fill';
 DECLARE @Owner       sysname = SUSER_SNAME(0x01);
 
 IF @IntervalMin IS NULL OR @IntervalMin < 1 OR @IntervalMin > 59
     THROW 50009, N'@IntervalMin must be between 1 and 59.', 1;
+IF @WindowHours IS NULL OR @WindowHours < 1 OR @WindowHours > 24
+    THROW 50008, N'@WindowHours must be between 1 and 24.', 1;
 IF @Db IN (N'master', N'msdb', N'model', N'tempdb')
     THROW 50010, N'Run this script with -d <AMES database> (e.g. -d AMES_DEV): the job step runs in the database this script is executed in.', 1;
 IF OBJECT_ID(N'dbo.SP_PP_LineStateLog_Fill', N'P') IS NULL
@@ -48,6 +54,7 @@ USE msdb;
 
 DECLARE @Enabled tinyint = ISNULL((SELECT TOP (1) enabled FROM msdb.dbo.sysjobs WHERE name = @JobName), 1);
 DECLARE @ScheduleName sysname = CONCAT(N'Every ', @IntervalMin, N' min');
+DECLARE @Command nvarchar(max) = CONCAT(N'DECLARE @From datetime2(0) = DATEADD(HOUR, -', @WindowHours, N', SYSDATETIME());', NCHAR(13), NCHAR(10), N'EXEC dbo.SP_PP_LineStateLog_Fill @From = @From;');
 DECLARE @rc int;
 
 BEGIN TRY
@@ -60,7 +67,7 @@ BEGIN TRY
          @job_name         = @JobName,
          @enabled          = @Enabled,
          @owner_login_name = @Owner,
-         @description      = N'Classifies line state per minute (PP_LineStateLog) for the last 24 hours from downtime logs, POP results/labels and line time patterns (dbo.SP_PP_LineStateLog_Fill). Rows whose values did not change are left alone.';
+         @description      = N'Classifies line state per minute (PP_LineStateLog) for the last few hours from downtime logs, POP results/labels and line time patterns (dbo.SP_PP_LineStateLog_Fill). Rows whose values did not change are left alone. Retroactive edits are picked up by [AMES] Line State Recalc at 06:00.';
     IF @rc <> 0 THROW 50013, N'sp_add_job failed.', 1;
 
     EXEC @rc = msdb.dbo.sp_add_jobstep
@@ -68,7 +75,7 @@ BEGIN TRY
          @step_name         = N'Fill line state',
          @subsystem         = N'TSQL',
          @database_name     = @Db,
-         @command           = N'EXEC dbo.SP_PP_LineStateLog_Fill;',
+         @command           = @Command,
          @retry_attempts    = 0,        -- 다음 실행이 재시도다
          @retry_interval    = 0,
          @on_success_action = 1,
