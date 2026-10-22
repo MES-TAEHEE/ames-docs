@@ -5064,6 +5064,12 @@
   <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
     <value>No state log in this window</value>
   </data>
+  <data name="PP.Oee.NoProduction" xml:space="preserve">
+    <value>No production — not measured</value>
+  </data>
+  <data name="PP.Oee.AOnly" xml:space="preserve">
+    <value>availability only</value>
+  </data>
   <data name="PP.Oee.Btn.FillNow" xml:space="preserve">
     <value>▶ Fill now</value>
   </data>

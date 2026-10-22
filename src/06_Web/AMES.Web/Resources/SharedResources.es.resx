@@ -5037,6 +5037,12 @@
   <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
     <value>Sin registro de estado en este intervalo</value>
   </data>
+  <data name="PP.Oee.NoProduction" xml:space="preserve">
+    <value>Sin producción — no medido</value>
+  </data>
+  <data name="PP.Oee.AOnly" xml:space="preserve">
+    <value>solo disponibilidad</value>
+  </data>
   <data name="PP.Oee.Btn.FillNow" xml:space="preserve">
     <value>▶ Calcular ahora</value>
   </data>

@@ -5064,6 +5064,12 @@
   <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
     <value>해당 구간에 상태 로그가 없습니다</value>
   </data>
+  <data name="PP.Oee.NoProduction" xml:space="preserve">
+    <value>실적 없음 — 측정 안 됨</value>
+  </data>
+  <data name="PP.Oee.AOnly" xml:space="preserve">
+    <value>가동률만 반영</value>
+  </data>
   <data name="PP.Oee.Btn.FillNow" xml:space="preserve">
     <value>▶ 지금 집계</value>
   </data>
