@@ -1,4 +1,4 @@
-﻿@page "/md/rp/line"
+@page "/md/rp/line"
 @rendermode InteractiveServer
 
 @using Microsoft.AspNetCore.Authorization
@@ -232,8 +232,6 @@
                 <RadzenCheckBox TValue="bool" @bind-Value="_f.RfidEnabledFlag" Name="EditChkRfid" />
                 <RadzenLabel Text="@L["MD.Line.Lbl.RfidEnabled"]" Component="EditChkRfid" style="cursor:pointer;" />
             </RadzenStack>
-
-            <LineLocationEditor @key="_sel.LineID" LineId="@_sel.LineID" />
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
             @if (_confirmDelete)

@@ -22,6 +22,9 @@ public sealed class LocationStorageTests
     [Fact]
     public void Location_editor_saves_line_minimum_with_existing_edit_permission_and_confirmation()
     {
+        var line = Read("src/06_Web/AMES.Web/Components/Pages/Md/Rp/Line.razor");
+        Assert.DoesNotContain("<LineLocationEditor", line);
+        Assert.DoesNotContain("LineLocationMinimum", line);
         var page = Read("src/06_Web/AMES.Web/Components/Pages/Md/Fd/Location.razor");
         Assert.Contains("!string.IsNullOrWhiteSpace(_sel.LineId)", page);
         Assert.Contains("Name=\"EditMinimumQty\" TValue=\"decimal\" @bind-Value=\"_f.MinimumQty\"", page);
