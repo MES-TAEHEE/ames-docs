@@ -25,7 +25,7 @@
         <div class="ames-kpi-l">@L["PP.Oee.Kpi.Overall"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.Oee:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
-            <div class="ames-kpi-s">@string.Format(L["PP.Oee.Kpi.WorldClass"].Value, WORLD_CLASS)@(ov is null ? "" : $" · {GradeText(ov.Oee)}")</div>
+            <div class="ames-kpi-s">@string.Format(L["PP.Oee.Kpi.WorldClass"].Value, WORLD_CLASS)@(ov is null ? "" : $" · {GradeText(ov.Oee)}")@(ov is { HasProduction: false } ? $" · {L["PP.Oee.AOnly"]}" : "")</div>
         </div>
     </div>
     <div class="ames-kpi pp-oee-kpi-a">
@@ -38,15 +38,15 @@
     <div class="ames-kpi pp-oee-kpi-p">
         <div class="ames-kpi-l">@L["PP.Oee.Kpi.Performance"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.P:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
-            <div class="ames-kpi-s">@(ov is null ? "" : $"{UomFmt.Qty(ov.Produced, null)} ea")</div>
+            <div class="ames-kpi-v pp-oee-mono">@(ov is null || !ov.HasProduction ? "—" : $"{ov.P:F1}")<span style="font-size:14px;margin-left:2px;">@(ov is { HasProduction: true } ? "%" : "")</span></div>
+            <div class="ames-kpi-s">@(ov is null ? "" : ov.HasProduction ? $"{UomFmt.Qty(ov.Produced, null)} ea" : L["PP.Oee.NoProduction"].Value)</div>
         </div>
     </div>
     <div class="ames-kpi pp-oee-kpi-q">
         <div class="ames-kpi-l">@L["PP.Oee.Kpi.Quality"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v pp-oee-mono">@(ov is null ? "—" : $"{ov.Q:F1}")<span style="font-size:14px;margin-left:2px;">%</span></div>
-            <div class="ames-kpi-s">@(ov is null ? "" : $"{UomFmt.Qty(ov.Good, null)} / {UomFmt.Qty(ov.Produced, null)} ea")</div>
+            <div class="ames-kpi-v pp-oee-mono">@(ov is null || !ov.HasProduction ? "—" : $"{ov.Q:F1}")<span style="font-size:14px;margin-left:2px;">@(ov is { HasProduction: true } ? "%" : "")</span></div>
+            <div class="ames-kpi-s">@(ov is null ? "" : ov.HasProduction ? $"{UomFmt.Qty(ov.Good, null)} / {UomFmt.Qty(ov.Produced, null)} ea" : L["PP.Oee.NoProduction"].Value)</div>
         </div>
     </div>
     <div class="ames-kpi bad">
@@ -76,9 +76,16 @@
             <RadzenNumeric TValue="decimal" Name="NumericTarget" @bind-Value="_fTarget" Min="0" Max="100" InputSize="InputSize.Small" class="ames-rz-input" Style="width:90px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["PP.Oee.Btn.FillNow"]" Icon="autorenew" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@FillNow" Disabled="@_filling" class="ames-rz-btn" />
+            }
         </RadzenStack>
     </div>
-    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["PP.Oee.ByLine.Hint"]</div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;display:flex;gap:12px;flex-wrap:wrap;">
+        <span>@L["PP.Oee.ByLine.Hint"]</span>
+        <span style="@(FillError ? "color:var(--ames-tx-red-400);" : "")">@FillText</span>
+    </div>
     <RadzenDataGrid TItem="LineAgg" Data="@_rows" AllowPaging="false" AllowSorting="true"
                     RowClick="@(e => { if (e.Data is { } d) Select(d.LineId); })" RowRender="@LineRowRender"
                     EmptyText="@L["PP.Oee.ByLine.NoData"]" Class="ames-rz-grid pp-oee-lines">
@@ -93,10 +100,10 @@
                 <Template Context="r">@(r.HasData ? Bar(r.A, "a") : Dash)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="P" Title="@L["PP.Oee.Kpi.Performance"]" Width="17%">
-                <Template Context="r">@(r.HasData ? Bar(r.P, "p") : Dash)</Template>
+                <Template Context="r">@(r.HasData ? r.HasProduction ? Bar(r.P, "p") : NoProd : Dash)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" Property="Q" Title="@L["PP.Oee.Kpi.Quality"]" Width="17%">
-                <Template Context="r">@(r.HasData ? Bar(r.Q, "q") : Dash)</Template>
+                <Template Context="r">@(r.HasData ? r.HasProduction ? Bar(r.Q, "q") : NoProd : Dash)</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" MinWidth="90px" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
                 <Template Context="r">
@@ -105,7 +112,7 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" MinWidth="180px" Title="@L["PP.Oee.Col.Grade"]" Width="180px" TextAlign="TextAlign.Center" Sortable="false">
                 <Template Context="r">
-                    @if (r.HasData) { <b style="font-size:calc(11px + var(--ames-fs-bump));">@GradeText(r.Oee)</b> } else { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Oee.ByLine.NoData"]</span> }
+                    @if (r.HasData) { <b style="font-size:calc(11px + var(--ames-fs-bump));">@GradeText(r.Oee)</b>@if (!r.HasProduction) { <span class="dim" style="font-size:calc(10px + var(--ames-fs-bump));margin-left:4px;" title="@L["PP.Oee.NoProduction"]">(@L["PP.Oee.AOnly"])</span> } } else { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Oee.ByLine.NoData"]</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="LineAgg" MinWidth="140px" Property="TotalLoss" Title="@L["PP.Oee.Col.Loss"]" Width="140px" TextAlign="TextAlign.Right">
@@ -165,17 +172,17 @@
         {
             <div class="pp-oee-donut-wrap @GradeKey(fo.Oee)">
                 @((MarkupString)BuildDonutSvg(fo.Oee))
-                <div style="font-size:calc(11px + var(--ames-fs-bump));font-weight:800;">@L["PP.Oee.Col.Grade"]: @GradeText(fo.Oee)</div>
+                <div style="font-size:calc(11px + var(--ames-fs-bump));font-weight:800;">@L["PP.Oee.Col.Grade"]: @GradeText(fo.Oee)@(fo.HasProduction ? "" : $" · {L["PP.Oee.AOnly"]}")</div>
             </div>
             <div class="pp-oee-comp">
-                @foreach (var (lbl, val, key) in new[] {
-                    (L["PP.Oee.Kpi.Availability"].Value, fo.A, "a"),
-                    (L["PP.Oee.Kpi.Performance"].Value,  fo.P, "p"),
-                    (L["PP.Oee.Kpi.Quality"].Value,      fo.Q, "q") })
+                @foreach (var (lbl, val, key, measured) in new[] {
+                    (L["PP.Oee.Kpi.Availability"].Value, fo.A, "a", true),
+                    (L["PP.Oee.Kpi.Performance"].Value,  fo.P, "p", fo.HasProduction),
+                    (L["PP.Oee.Kpi.Quality"].Value,      fo.Q, "q", fo.HasProduction) })
                 {
                     <div class="pp-oee-comp-row">
-                        <div class="pp-oee-comp-h"><span>@lbl</span><b>@($"{val:F1}%")</b></div>
-                        <div class="pp-oee-track pp-oee-comp-track"><i class="pp-oee-fill-@key" style="width:@(Math.Min(100m, val).ToString("F1"))%;"></i></div>
+                        <div class="pp-oee-comp-h"><span>@lbl @if (!measured) { <span class="dim">@L["PP.Oee.NoProduction"]</span> }</span><b>@(measured ? $"{val:F1}%" : "—")</b></div>
+                        <div class="pp-oee-track pp-oee-comp-track"><i class="pp-oee-fill-@key" style="width:@((measured ? Math.Min(100m, val) : 0m).ToString("F1"))%;"></i></div>
                     </div>
                 }
             </div>
@@ -261,10 +268,10 @@
                         <Template Context="s">@($"{s.Availability:F1}%")</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="140px" Width="140px" Property="Performance" Title="@L["PP.Oee.Snap.Col.Perf"]" TextAlign="TextAlign.Right">
-                        <Template Context="s">@($"{s.Performance:F1}%")</Template>
+                        <Template Context="s">@(s.TotalProducedQty > 0 ? $"{s.Performance:F1}%" : NoProd)</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="100px" Width="100px" Property="Quality" Title="@L["PP.Oee.Snap.Col.Qual"]" TextAlign="TextAlign.Right">
-                        <Template Context="s">@($"{s.Quality:F1}%")</Template>
+                        <Template Context="s">@(s.TotalProducedQty > 0 ? $"{s.Quality:F1}%" : NoProd)</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="90px" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="s"><span class="pp-oee-pill @GradeKey(s.Oee)">@($"{s.Oee:F1}%")</span></Template>
@@ -302,7 +309,7 @@
         }
         else if (_tab == "calc")
         {
-            <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-bottom:8px;">@L["PP.Oee.Calc.Title"] · @L["PP.Oee.Calc.Note"]</div>
+            <div class="dim" style="font-size:calc(11px + var(--ames-fs-bump));margin-bottom:8px;">@L["PP.Oee.Calc.Title"] · @L["PP.Oee.Calc.Note"] · @L["PP.Oee.Calc.AutoNote"]</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
                 <input type="date" class="ames-input" style="width:148px;padding:3px 7px;"
                        value="@_calcDate.ToString("yyyy-MM-dd")"
@@ -329,7 +336,7 @@
                         @foreach (var (lbl, val, key, note) in new[] {
                             (L["PP.Oee.Kpi.Availability"].Value, r.Availability, "a", $"{r.OperatingMin} / {r.LoadingMin} min"),
                             (L["PP.Oee.Kpi.Performance"].Value,  r.Performance,  "p", r.PerformanceAssumed ? L["PP.Oee.Calc.Assumed"].Value : ""),
-                            (L["PP.Oee.Kpi.Quality"].Value,      r.Quality,      "q", $"{UomFmt.Qty(r.GoodQty, null)} / {UomFmt.Qty(r.TotalProducedQty, null)} ea") })
+                            (L["PP.Oee.Kpi.Quality"].Value,      r.Quality,      "q", r.TotalProducedQty > 0 ? $"{UomFmt.Qty(r.GoodQty, null)} / {UomFmt.Qty(r.TotalProducedQty, null)} ea" : L["PP.Oee.NoProduction"].Value) })
                         {
                             <div class="pp-oee-comp-row">
                                 <div class="pp-oee-comp-h"><span>@lbl <span class="dim">@note</span></span><b>@($"{val:F1}%")</b></div>
@@ -387,6 +394,10 @@
     string?  _calcShift;
     OeeSnapshotDto? _result;
 
+    // 자동 집계(에이전트 작업 "[AMES] Line OEE Fill" · 「지금 집계」) 마지막 기록 — SYS_InterfaceMonitor OEEFILL
+    OeeRepository.FillMonitor? _fill;
+    bool _filling;
+
     bool   _canEdit;
     string _actor = "web";
     string _err = "", _msg = "";
@@ -417,6 +428,8 @@
         public int     Setup { get; set; }
         public int     OtherStops { get; set; }
         public int     TotalLoss => Planned + Unplanned + PerfLoss + QualLoss;
+        // 실적이 0 이면 P·Q 는 측정값이 아니라 기본값(100%)이다 — 화면은 "—" 로 보이고 OEE 는 가동률만 반영된 값으로 표시
+        public bool    HasProduction => Produced > 0;
     }
 
     void LineRowRender(RowRenderEventArgs<LineAgg> args)
@@ -427,6 +440,7 @@
     }
 
     static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
+    MarkupString NoProd => new($"<span class=\"dim\" title=\"{System.Net.WebUtility.HtmlEncode(L["PP.Oee.NoProduction"].Value)}\">—</span>");
 
     // ── Init ─────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
@@ -439,6 +453,7 @@
         try { _lineRefs   = Repo.ListLineRefs(); }               catch { }
         try { _lineOrder  = MD.LineProcessOrder(); }             catch { }
         try { _shiftItems = MD.ListCodeItems("WORK_SHIFT"); }    catch { }
+        try { _fill       = Repo.GetFillMonitor(); }             catch { }
 
         // 기본 기간 = 스냅샷이 있는 마지막 7일 (데이터가 오래됐어도 빈 화면이 되지 않도록)
         try
@@ -588,6 +603,36 @@
             ApplyFilter();
         }
         catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Save"].Value, ex.Message); }
+    }
+
+    // ── 자동 집계 ────────────────────────────────────────────────────────
+    string FillText => _fill?.LastRunTs is { } ts
+        ? string.Format(L["PP.Oee.Auto.Last"].Value, ts.ToString(DateFmt.DateTime), _fill.LastCount ?? 0)
+          + (FillError ? " · " + string.Format(L["PP.Oee.Auto.Error"].Value, _fill.LastError) : "")
+        : FillError ? string.Format(L["PP.Oee.Auto.Error"].Value, _fill!.LastError)
+        : L["PP.Oee.Auto.None"].Value;
+    bool FillError => _fill?.Status == "ERROR";
+
+    // 에이전트가 돌리는 것과 같은 프로시저를 그 자리에서 — 어제·오늘(DaysBack 1). DB 호출은 회로 밖에서(처리 중 재클릭 방지 규칙)
+    async Task FillNow()
+    {
+        if (!_canEdit || _filling) return;
+        _filling = true; _err = "";
+        try
+        {
+            var actor = _actor;
+            var r = await Task.Run(() => Repo.RunFill(null, 1, actor));
+            Audit.Log("PP-OEE", "FILL", "PP_LineOEE", null, null, r);
+            ShowMsg(string.Format(L["PP.Oee.Ok.Fill"].Value, r.Inserted, r.Updated, r.Unchanged));
+            if (_fTo < DbClock.Today) _fTo = DbClock.Today;   // 집계된 오늘 행이 보이게
+            ApplyFilter();
+        }
+        catch (Exception ex) { _err = string.Format(L["PP.Oee.Err.Fill"].Value, ex.Message); }
+        finally
+        {
+            _filling = false;
+            try { _fill = Repo.GetFillMonitor(); } catch { }
+        }
     }
 
     async Task DeleteSnap(int id)

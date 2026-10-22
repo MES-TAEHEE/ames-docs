@@ -5037,6 +5037,33 @@
   <data name="PP.Oee.Calc.NoLog" xml:space="preserve">
     <value>Sin registro de estado en este intervalo</value>
   </data>
+  <data name="PP.Oee.NoProduction" xml:space="preserve">
+    <value>Sin producción — no medido</value>
+  </data>
+  <data name="PP.Oee.AOnly" xml:space="preserve">
+    <value>solo disponibilidad</value>
+  </data>
+  <data name="PP.Oee.Btn.FillNow" xml:space="preserve">
+    <value>▶ Calcular ahora</value>
+  </data>
+  <data name="PP.Oee.Auto.Last" xml:space="preserve">
+    <value>Cálculo automático último {0} · {1} filas</value>
+  </data>
+  <data name="PP.Oee.Auto.None" xml:space="preserve">
+    <value>Sin cálculo automático registrado — revise el trabajo del agente [AMES] Line OEE Fill</value>
+  </data>
+  <data name="PP.Oee.Auto.Error" xml:space="preserve">
+    <value>Error del cálculo automático: {0}</value>
+  </data>
+  <data name="PP.Oee.Ok.Fill" xml:space="preserve">
+    <value>Cálculo completado — {0} nuevas · {1} actualizadas · {2} sin cambio</value>
+  </data>
+  <data name="PP.Oee.Err.Fill" xml:space="preserve">
+    <value>Error al calcular: {0}</value>
+  </data>
+  <data name="PP.Oee.Calc.AutoNote" xml:space="preserve">
+    <value>Las instantáneas por turno de ayer y hoy se recalculan periódicamente por el trabajo del agente, que sobrescribe el valor guardado con la misma clave</value>
+  </data>
   <data name="PP.Oee.Log.Timeline" xml:space="preserve">
     <value>Línea de tiempo por minuto</value>
   </data>
