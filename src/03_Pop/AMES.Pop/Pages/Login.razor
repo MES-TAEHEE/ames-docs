@@ -388,6 +388,8 @@
     void Press(string d)
     {
         if (_pin.Length >= 4) return;
+        if (_pinSetup is null && _pickedNo is null)
+        { SetStatus(T("SelectEmployeeFirst"), "fail"); return; }
         _pin.Append(d);
         if (_pin.Length < 4) return;
         if (_pinSetup is not null) SubmitPinSetup(); else Submit();
@@ -398,12 +400,12 @@
     {
         if (_selLine is null || _selStation is null)
         { SetStatus(T("SelectLineAndStationFirst"), "fail"); return; }
+        if (_pickedNo is null) { SetStatus(T("SelectEmployeeFirst"), "fail"); return; }
         if (_pin.Length < 4) { SetStatus(T("PinMustBe4Digits"), "fail"); return; }
 
-        var attemptedId = _pickedNo ?? "E001";
-        var pin         = _pin.ToString();
+        var pin = _pin.ToString();
         _pin.Clear();
-        Authenticate(attemptedId, pin, AMES.Contracts.Enums.AuthMethod.Pin);
+        Authenticate(_pickedNo, pin, AMES.Contracts.Enums.AuthMethod.Pin);
     }
 
     // 세션 교대는 공통코드 WORK_SHIFT 창으로 로그인 시각(서버)에 정한다.

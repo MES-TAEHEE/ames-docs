@@ -123,7 +123,7 @@
   <data name="OneRowPerCycle" xml:space="preserve"><value>One row per cycle</value></data>
   <data name="Online" xml:space="preserve"><value>ONLINE</value></data>
   <data name="Operator" xml:space="preserve"><value>Operator</value></data>
-  <data name="OrEnterPin" xml:space="preserve"><value>OR · ENTER PIN</value></data>
+  <data name="OrEnterPin" xml:space="preserve"><value>ENTER PIN</value></data>
   <data name="PartNo" xml:space="preserve"><value>PART NO</value></data>
   <data name="PinMustBe4Digits" xml:space="preserve"><value>PIN must be 4 digits</value></data>
   <data name="Plan" xml:space="preserve"><value>PLAN</value></data>
@@ -198,6 +198,7 @@
   <data name="NoLinesRegistered" xml:space="preserve"><value>No lines registered — contact an administrator</value></data>
   <data name="SelectLine" xml:space="preserve"><value>SELECT LINE</value></data>
   <data name="SelectStation" xml:space="preserve"><value>SELECT STATION</value></data>
+  <data name="SelectEmployeeFirst" xml:space="preserve"><value>Scan your badge QR or select an employee</value></data>
   <data name="SelectLineAndStationFirst" xml:space="preserve"><value>Select a line and station first</value></data>
   <data name="NoStationsRegistered" xml:space="preserve"><value>No stations registered for this line — contact an administrator</value></data>
   <data name="MasterLoadFailed" xml:space="preserve"><value>Master data load failed: {0}</value></data>
