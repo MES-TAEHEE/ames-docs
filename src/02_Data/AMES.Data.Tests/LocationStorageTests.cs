@@ -10,7 +10,7 @@ public sealed class LocationStorageTests
     [InlineData(-1)]
     [InlineData(1.5)]
     [InlineData(100000000000)]
-    public void Invalid_line_minimum_is_rejected_before_opening_a_database(double value)
+    public void Invalid_location_minimum_is_rejected_before_opening_a_database(double value)
     {
         var repository = new MasterDataRepository(new AmesConnectionFactory("invalid connection string"));
         var error = Assert.Throws<ArgumentException>(() => repository.UpdateLocation(
@@ -20,10 +20,19 @@ public sealed class LocationStorageTests
     }
 
     [Fact]
-    public void Location_editor_saves_line_minimum_with_existing_edit_permission_and_confirmation()
+    public void Location_editor_saves_detail_minimum_beside_name_and_capacity_with_existing_permission_and_confirmation()
     {
+        var line = Read("src/06_Web/AMES.Web/Components/Pages/Md/Rp/Line.razor");
+        Assert.DoesNotContain("<LineLocationEditor", line);
+        Assert.DoesNotContain("LineLocationMinimum", line);
         var page = Read("src/06_Web/AMES.Web/Components/Pages/Md/Fd/Location.razor");
-        Assert.Contains("!string.IsNullOrWhiteSpace(_sel.LineId)", page);
+        Assert.DoesNotContain("!string.IsNullOrWhiteSpace(_sel.LineId)", page);
+        Assert.True(page.IndexOf("Name=\"EditTextBoxLocationName\"", StringComparison.Ordinal)
+            < page.IndexOf("Name=\"EditCapacity\"", StringComparison.Ordinal));
+        Assert.True(page.IndexOf("Name=\"EditCapacity\"", StringComparison.Ordinal)
+            < page.IndexOf("Name=\"EditMinimumQty\"", StringComparison.Ordinal));
+        Assert.True(page.IndexOf("Name=\"EditMinimumQty\"", StringComparison.Ordinal)
+            < page.IndexOf("Name=\"EditDropDownParent\"", StringComparison.Ordinal));
         Assert.Contains("Name=\"EditMinimumQty\" TValue=\"decimal\" @bind-Value=\"_f.MinimumQty\"", page);
         Assert.Contains("MinimumQty = r.MinimumQty ?? 0", page);
         Assert.Contains("PermSvc.RecheckEditAsync(AuthPrvd, \"md/fd/location\")", page);
@@ -32,7 +41,8 @@ public sealed class LocationStorageTests
         var update = repo[repo.IndexOf("public void UpdateLocation(", StringComparison.Ordinal)..repo.IndexOf("private static void AddLocationPart", StringComparison.Ordinal)];
         Assert.Contains("decimal? minimumQty = null", update);
         Assert.Contains("MinimumQty=COALESCE(@Min,MinimumQty)", update);
-        Assert.Contains("LocationLevel=2 AND NULLIF(LTRIM(RTRIM(LineID)),'') IS NOT NULL", update);
+        Assert.Contains("WHERE LocationID=@I AND LocationLevel=2)", update);
+        Assert.DoesNotContain("LTRIM(RTRIM(LineID))", update);
         Assert.Contains("minimumParameter.Precision = 18; minimumParameter.Scale = 3", update);
         Assert.Contains("AddLocationPart(cmd,assignedPartNo)", update);
         Assert.DoesNotContain("WH_Inventory SET", update);

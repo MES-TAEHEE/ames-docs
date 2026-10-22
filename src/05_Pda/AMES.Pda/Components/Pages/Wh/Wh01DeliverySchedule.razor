@@ -4,7 +4,7 @@
 @inject PdaUomFormat Uom
 @inject NavigationManager Nav
 
-<div class="pda-shell wh wh08-shell">
+<div class="pda-shell wh wh08-shell supplier-deliveries-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Text="&lt;" Click='@(() => Nav.NavigateTo("/wh"))' />
         <span class="pda-tbar-brand">SUPPLIER DELIVERIES</span>
@@ -22,42 +22,60 @@
         </RadzenCard>
         <div class="pda-status dim">ON THE WAY / PARTIALLY RECEIVED · @_rows.Count delivery notes</div>
         @if (_error.Length > 0) { <div class="pda-status error" role="alert">@_error</div> }
-        @foreach (var document in _rows)
-        {
-            <RadzenCard class="supplier-delivery-card">
-                <button class="supplier-delivery-head" @onclick="() => Toggle(document)">
-                    <strong>@document.Number</strong><span>@document.VendorName · @document.VendorId</span>
-                    <span>@document.DeliveryDate.ToString("yyyy-MM-dd") · @(document.Status == "PartiallyReceived" ? "PARTIALLY RECEIVED" : "ON THE WAY")</span>
-                    <span>@document.ReceivedItems / @document.UnitItems UNIT ITEMS RECEIVED</span>
-                </button>
-                @if (_selected == document.Number)
-                {
-                    @foreach (var line in document.Lines)
+        <div class="supplier-delivery-list">
+            @foreach (var document in _rows)
+            {
+                <RadzenButton class="supplier-delivery-row" Text="@document.Number" Click="() => OpenDetail(document)" />
+            }
+        </div>
+        @if (!_busy && _rows.Count == 0 && _error.Length == 0) { <div class="pda-status dim">No shipped delivery notes remain in this date range.</div> }
+    </div>
+    @if (_selected is {} selected)
+    {
+        <div class="wh-modal-backdrop" @onclick="CloseDetail">
+            <RadzenCard class="wh-modal-card wh08-detail-dialog supplier-delivery-dialog" role="dialog" aria-modal="true" aria-labelledby="supplier-delivery-title" tabindex="0" @onkeydown="OnDetailKey" @onclick:stopPropagation="true">
+                <div class="supplier-delivery-dialog-head">
+                    <div class="wh-modal-title" id="supplier-delivery-title">@selected.Number</div>
+                    <RadzenButton Icon="close" Click="CloseDetail" class="supplier-delivery-close" aria-label="Close delivery details" />
+                </div>
+                <div class="wh08-detail-rows">
+                    <dl class="wh08-value-rows">
+                        <div><dt>Supplier</dt><dd>@selected.VendorName · @selected.VendorId</dd></div>
+                        <div><dt>Delivery date</dt><dd>@selected.DeliveryDate.ToString("yyyy-MM-dd")</dd></div>
+                        <div><dt>Ship date</dt><dd>@(selected.ShipDate?.ToString("yyyy-MM-dd") ?? "—")</dd></div>
+                        <div><dt>Status</dt><dd>@(selected.Status == "PartiallyReceived" ? "PARTIALLY RECEIVED" : "ON THE WAY")</dd></div>
+                        <div><dt>Received</dt><dd>@selected.ReceivedItems / @selected.UnitItems UNIT ITEMS</dd></div>
+                    </dl>
+                    @foreach (var line in selected.Lines)
                     {
-                        <div class="supplier-delivery-line">
-                            <strong>@line.PartNo</strong><span>@line.PartName</span><small>@line.OrderNumber</small>
-                            <span>RECEIVED @Qty(line.Received) / @Qty(line.Quantity) @Uom.Symbol(line.Unit)</span>
+                        <section class="supplier-delivery-line">
+                            <div class="supplier-delivery-part"><strong>@line.PartNo</strong><span>@line.PartName</span><small>PO · @line.OrderNumber</small></div>
+                            <div class="supplier-delivery-quantity">RECEIVED @Qty(line.Received) / @Qty(line.Quantity) @Uom.Symbol(line.Unit)</div>
                             @foreach (var item in line.Items)
                             {
                                 <div class="supplier-delivery-item @(item.Received ? "received" : "")">
-                                    <strong>@(item.Received ? "✓" : "○") @item.Barcode</strong>
+                                    <strong>@item.Barcode</strong>
                                     <span>@(item.ShippingUnitNo ?? "UNASSIGNED UNIT") · @Qty(item.Quantity) @Uom.Symbol(line.Unit)</span>
+                                    <span class="supplier-delivery-receipt">@(item.Received ? "✓ RECEIVED" : "NOT RECEIVED")</span>
                                 </div>
                             }
-                        </div>
+                        </section>
                     }
-                    <RadzenButton class="wh08-date-apply" Text="OPEN INBOUND" Click="() => OpenInbound(document.Number)" />
-                }
+                </div>
+                <div class="wh-modal-actions">
+                    <RadzenButton class="wh-modal-btn secondary" Text="CLOSE" Click="CloseDetail" />
+                    <RadzenButton class="wh-modal-btn primary" Text="OPEN INBOUND" Click="() => OpenInbound(selected.Number)" />
+                </div>
             </RadzenCard>
-        }
-        @if (!_busy && _rows.Count == 0 && _error.Length == 0) { <div class="pda-status dim">No shipped delivery notes remain in this date range.</div> }
-    </div>
+        </div>
+    }
 </div>
 
 @code {
     List<SupplierDeliveryProgressDto> _rows = [];
     DateTime? _from, _to;
-    string _search = "", _error = "", _selected = "";
+    string _search = "", _error = "";
+    SupplierDeliveryProgressDto? _selected;
     bool _busy;
     protected override async Task OnInitializedAsync()
     {
@@ -69,12 +87,14 @@
         if (_busy) return;
         if (_from is null || _to is null || _from > _to || (_to.Value-_from.Value).TotalDays > 366)
         { _error = "Select a valid delivery date range (up to 366 days)."; return; }
-        _busy = true; _error = "";
+        _busy = true; _error = ""; _selected = null;
         try { _rows = await Api.SupplierDeliveriesAsync(_from.Value,_to.Value,_search); }
         catch (Exception ex) { _error = ex.Message; }
         finally { _busy = false; }
     }
-    void Toggle(SupplierDeliveryProgressDto document) => _selected = _selected == document.Number ? "" : document.Number;
+    void OpenDetail(SupplierDeliveryProgressDto document) => _selected = document;
+    void CloseDetail() => _selected = null;
+    void OnDetailKey(KeyboardEventArgs e) { if (e.Key == "Escape") CloseDetail(); }
     void OpenInbound(string number) => Nav.NavigateTo("/wh/02?delivery=" + Uri.EscapeDataString(number));
     static string Qty(decimal value) => AMES.Contracts.Formatting.UomQty.Format(value, null);
 }

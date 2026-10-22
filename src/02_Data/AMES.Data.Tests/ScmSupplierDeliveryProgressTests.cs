@@ -139,6 +139,27 @@ public sealed class ScmSupplierDeliveryProgressTests
     }
 
     [Fact]
+    public void Pda_lists_only_note_titles_and_opens_the_selected_note_in_a_scrollable_dialog()
+    {
+        var page=Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh01DeliverySchedule.razor");
+        var list=page[page.IndexOf("<div class=\"supplier-delivery-list\">",StringComparison.Ordinal)..page.IndexOf("@if (!_busy",StringComparison.Ordinal)];
+        Assert.Contains("Text=\"@document.Number\"",list);
+        Assert.Contains("Click=\"() => OpenDetail(document)\"",list);
+        Assert.DoesNotContain("Vendor",list);
+        Assert.DoesNotContain(".Lines",list);
+        Assert.Contains("@if (_selected is {} selected)",page);
+        Assert.Contains("role=\"dialog\" aria-modal=\"true\"",page);
+        Assert.Contains("@foreach (var line in selected.Lines)",page);
+        Assert.Contains("@foreach (var item in line.Items)",page);
+        Assert.Contains("void OpenDetail(SupplierDeliveryProgressDto document) => _selected = document",page);
+        Assert.Contains("void CloseDetail() => _selected = null",page);
+        Assert.Contains("@onclick:stopPropagation=\"true\"",page);
+        Assert.Contains("wh08-detail-rows",page);
+        Assert.Contains("OpenInbound(selected.Number)",page);
+        Assert.DoesNotContain("Toggle(",page);
+    }
+
+    [Fact]
     public void Schedule_opens_document_viewer_but_does_not_receive_on_click()
     {
         var schedule=Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh01DeliverySchedule.razor");

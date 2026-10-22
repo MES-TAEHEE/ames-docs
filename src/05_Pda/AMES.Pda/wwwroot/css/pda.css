@@ -13191,14 +13191,32 @@ body .pda-shell.wh-adjust-box-label .label-master-body > small {
   line-height: 1.35;
 }
 
-/* Supplier delivery schedule follows the existing WH card and date controls. */
+/* Supplier deliveries reuse the compact WH list and scrollable detail dialog. */
 .supplier-deliveries { overflow-y:auto; }
-.supplier-delivery-card { margin-bottom:12px; border:1px solid var(--border, #344861); border-radius:0; }
-.supplier-delivery-head { display:grid; gap:6px; width:100%; padding:8px 0; border:0; background:transparent; color:inherit; text-align:left; }
-.supplier-delivery-head span { font-size:12px; }
-.supplier-delivery-line { display:grid; gap:5px; padding:12px 0; border-top:1px solid var(--border, #344861); }
-.supplier-delivery-item { display:grid; gap:4px; padding:8px; border:1px solid var(--border, #344861); overflow-wrap:anywhere; font-size:12px; }
-.supplier-delivery-item.received { border-left:4px solid var(--success, #38a676); }
+.supplier-delivery-list { display:grid; gap:8px; }
+.pda-shell.wh.supplier-deliveries-shell .supplier-delivery-row.rz-button {
+    width:100%; min-height:52px; height:auto; padding:14px !important;
+    border:1px solid #43607e; background:#172737; color:#f1f5f9; text-align:left;
+}
+.supplier-delivery-row :is(.rz-button-box, .rz-button-text) {
+    width:100%; justify-content:flex-start; white-space:normal; overflow-wrap:anywhere; font-size:15px;
+}
+.supplier-delivery-dialog-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-shrink:0; }
+.supplier-delivery-dialog-head .wh-modal-title { min-width:0; overflow-wrap:anywhere; }
+.pda-shell.wh.supplier-deliveries-shell .supplier-delivery-close.rz-button {
+    flex:0 0 36px; width:36px; height:36px; min-height:36px; padding:0 !important;
+    border:1px solid #43607e; background:#172737; color:#f1f5f9;
+}
+.supplier-delivery-dialog .wh08-detail-rows { flex:1; }
+.supplier-delivery-dialog .wh-modal-actions { grid-template-columns:1fr 1fr; gap:8px; padding-top:12px; }
+.supplier-delivery-line { display:grid; gap:8px; padding:12px 0; border-bottom:1px solid #344861; }
+.supplier-delivery-part { display:grid; gap:4px; overflow-wrap:anywhere; }
+.supplier-delivery-part strong { color:#f1f5f9; font-size:15px; }
+.supplier-delivery-part :is(span,small) { color:#b7c6d9; font-size:12px; }
+.supplier-delivery-quantity { color:#b9d7ff; font-size:12px; font-weight:700; }
+.supplier-delivery-item { display:grid; gap:4px; padding:10px; border:1px solid #344861; background:#101d2c; color:#dce7f5; overflow-wrap:anywhere; font-size:12px; }
+.supplier-delivery-item.received { border-left:4px solid #6ee7b7; background:#102b28; }
+.supplier-delivery-item.received .supplier-delivery-receipt { color:#6ee7b7; font-weight:700; }
 
 body .pda-shell.wh.wh03-shell .wh03-reprint-btn.rz-button {
   display: block;
