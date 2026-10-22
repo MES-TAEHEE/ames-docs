@@ -4,8 +4,8 @@
 
 > **재검토 원칙**(10-16 사용자 확인): 이 문서의 지적·제안 자체가 구현 원칙이나 수정 지시는 아닙니다. 현재 호출 경로·합의된 업무 방향과 대조해 실제 결함인지 먼저 확인합니다. 지적이 틀렸거나 방향이 바뀌었다면 코드·DB를 억지로 바꾸지 않고, 이 문서에 해당하지 않는 이유·근거·현재 방향을 정정합니다. 운영 결함, 배포·검증 대기, 정책 결정, 선택적 정리를 구분하며 과거 DB 점검값을 현재 값으로 단정하지 않습니다.
 
-- **작성**: 2026-10-14, Claude Code(이승욱 세션). 그 뒤 원격 병합·작업 때마다 해결된 항목을 지우고 남은 것만 둡니다(지난 판은 커밋 이력). **10-22 재정리**: 기준 소스를 `566893cd` 로 올리고 10-17(ba968b99) 이후 바뀐 파일을 가리키는 줄 번호를 다시 맞췄습니다(AppConfig·LineStock·스키마 파일·PP→POP 초기화 스크립트·MasterDataRepository — 나머지 참조 파일은 그 뒤 바뀌지 않음). 해결된 항목(안영훈 2-5 3 — 두 DB·스키마의 `FG_CustomerReturn.PartName` 위치 차이)을 지우고, 이승욱 10-21~22 작업(SAPFlag·로케이션 2단계)에 맞춰 안영훈 2-1 8·공통 SAP 항목·검증 기준선을 고쳤습니다. 다른 담당자 항목의 판정·문장은 바꾸지 않았습니다. **10-22 2차 재정리**: 기준 소스를 `2de82e9c` 로 올렸습니다. 김현진 POP 인라인 SQL → `dbo.SP_POP_*` 145개 전환(c10a16ee)과 심재현 팔레트 적재(dabed559·41f99dca)로 바뀐 POP 저장소·화면(Inj/ImgLotRepository·WorkOrderRepository·AndonRepository·QcRepository·PntRepository·ReworkRepository·AuthRepository·BackflushRepository·LotDefectWriter·MoldRepository·InjMain·ImgMain·ImgJudgePopup)의 줄 번호를 다시 맞췄고, SQL 이 프로시저로 옮겨 간 곳은 C# 메서드 범위와 `dist/migrate_pop_stored_procedures.sql` 의 줄을 함께 적었습니다. 지적 내용은 모두 그대로 남아 있음을 새 코드로 확인했습니다. 안영훈 2-1 의 번호 중복(8 두 개)을 9 로 고치고 공통 「SQL 위치」·검증 기준선을 고쳤습니다. **10-22 흐름 전수 점검**(사용자 요청 — 웹 마스터 → 계획 → POP 사출·감싸기·도장 → PDA 자재·완제품 입출고를 5구간으로 나눠 소스 읽기·로컬 복제 DB 조회만, 소스 변경 없음): 새로 찾은 것을 심재현 문제점 39~51·안영훈 2-4 1~11(2-1 8 세부 포함)·이승욱 3-4 1~2 로 더했습니다. 기존 항목과 겹치는 것은 넣지 않고 관련 항목 번호만 적었습니다. 로컬 DB 에 아직 팔레트 적재 데이터가 없어 팔레트 관련 판단은 코드 기준입니다.
-- **기준 소스**: `dev` 10-22(`2de82e9c` — 김현진 POP 저장 프로시저 전환, 안영훈 SCM 납품 진행·포탈 납품서·PDA 납품 일정, 심재현 POP 팔레트 적재 포함).
+- **작성**: 2026-10-14, Claude Code(이승욱 세션). 그 뒤 원격 병합·작업 때마다 해결된 항목을 지우고 남은 것만 둡니다(지난 판은 커밋 이력). **10-22 재정리**: 기준 소스를 `566893cd` 로 올리고 10-17(ba968b99) 이후 바뀐 파일을 가리키는 줄 번호를 다시 맞췄습니다(AppConfig·LineStock·스키마 파일·PP→POP 초기화 스크립트·MasterDataRepository — 나머지 참조 파일은 그 뒤 바뀌지 않음). 해결된 항목(안영훈 2-5 3 — 두 DB·스키마의 `FG_CustomerReturn.PartName` 위치 차이)을 지우고, 이승욱 10-21~22 작업(SAPFlag·로케이션 2단계)에 맞춰 안영훈 2-1 8·공통 SAP 항목·검증 기준선을 고쳤습니다. 다른 담당자 항목의 판정·문장은 바꾸지 않았습니다. **10-22 2차 재정리**: 기준 소스를 `2de82e9c` 로 올렸습니다. 김현진 POP 인라인 SQL → `dbo.SP_POP_*` 145개 전환(c10a16ee)과 심재현 팔레트 적재(dabed559·41f99dca)로 바뀐 POP 저장소·화면(Inj/ImgLotRepository·WorkOrderRepository·AndonRepository·QcRepository·PntRepository·ReworkRepository·AuthRepository·BackflushRepository·LotDefectWriter·MoldRepository·InjMain·ImgMain·ImgJudgePopup)의 줄 번호를 다시 맞췄고, SQL 이 프로시저로 옮겨 간 곳은 C# 메서드 범위와 `dist/migrate_pop_stored_procedures.sql` 의 줄을 함께 적었습니다. 지적 내용은 모두 그대로 남아 있음을 새 코드로 확인했습니다. 안영훈 2-1 의 번호 중복(8 두 개)을 9 로 고치고 공통 「SQL 위치」·검증 기준선을 고쳤습니다. **10-22 흐름 전수 점검**(사용자 요청 — 웹 마스터 → 계획 → POP 사출·감싸기·도장 → PDA 자재·완제품 입출고를 5구간으로 나눠 소스 읽기·로컬 복제 DB 조회만, 소스 변경 없음): 새로 찾은 것을 심재현 문제점 39~51·안영훈 2-4 1~11(2-1 8 세부 포함)·이승욱 3-4 1~2 로 더했습니다. 기존 항목과 겹치는 것은 넣지 않고 관련 항목 번호만 적었습니다. 로컬 DB 에 아직 팔레트 적재 데이터가 없어 팔레트 관련 판단은 코드 기준입니다. **10-22 3차 정리(심재현)**: 구 PNT 9화면·`PntRepository`·구 `SP_POP_PNT_*` 17개가 PNT-MAIN(a627dc76)으로 삭제돼 대상이 없어진 항목을 지웠습니다 — 미해결 17(PNT 단위 EA·불량코드 버림: PNT-MAIN 은 1 LOT = 1 EA, 불량 팝업이 불량코드를 `PntLotRepository.RegisterDefect` 로 저장), 보류 B15(PNT-09 교대 하드코딩), 문제점 9(지그·LOT 상태 전이)·10(하차 확정이 누적 불량 덮어씀)·38(라벨 부착 사번)·49(B 교대 자정 뒤 지그 잠김)·50 의 BOUND·OVEN 줄. 남은 PNT 지적은 보류 B3(새 `SP_POP_PNT_GetDailyItemSummary` 도 자정 기준)·문제점 10(PLAN 과 INPUT/FINAL 하루 기준)에 PNT 줄을 더해 두었습니다. 뒤 번호를 당겼고(미해결 18~23 → 17~22, 문제점 11~37 → 9~35, 39~48 → 36~45, 50 → 46) 교차 참조(요약표·안영훈 2-1·2-4 머리글·이승욱 3-4·CLAUDE.md 의 미해결 22 → 21)를 맞췄으며, PNT-MAIN 커밋으로 바뀐 파일(`migrate_pop_stored_procedures.sql`·`AMES_Schema.sql`·Backflush·Rework·PalletStock·LotDefectRules·ImgJudgePopup)의 줄 번호를 다시 맞췄습니다. 지적 내용은 바꾸지 않았습니다.
+- **기준 소스**: `dev` 10-22(`7cd85fa4` — 심재현 PNT-MAIN 전환(a627dc76)·PP-OEE/라인 상태 자동 집계·안영훈 WH 로케이션 계층·MD 라인 접두어까지 포함). 심재현 절의 줄 번호는 이 커밋 기준이고, 다른 절은 10-22 2차 재정리 때의 `2de82e9c` 기준 그대로입니다(그 사이 안영훈·이승욱 참조 파일의 변경은 대조하지 않았습니다).
 - **점검 방법**
   - 5영역(POP·InjAgent·QC·PNT / PP·APS·MRP / Api·WH·FG·SCM·Portal / SYS·MD·MNT·RPT / DB 스크립트·스키마·공통 규칙)을 소스로 다시 확인했습니다.
   - 테이블 175개의 읽기·쓰기 사용처를 전수 조사했습니다. 테스트 코드는 빼고, 실제로 호출되는 DB 프로시저는 포함했습니다.
@@ -28,7 +28,7 @@
 
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
-| 심재현 | 23                   | 8   | 7묶음 | 51  | [상] 팔레트 LOT 불량·폐기 시 재고 행 남음(문제점 39) · [상] 사출→도장 경로가 POP 과 끊김(40) · [상] WO 번호 인덱스 없음 → POP 확정 지연 · [상] APS WO 생성 전체 실패 · [상] POP·InjAgent 배포 설정이 로컬 DB · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 32) · 안돈 보전 호출 작업지시(요청 22) |
+| 심재현 | 22                   | 8   | 7묶음 | 46  | [상] 팔레트 LOT 불량·폐기 시 재고 행 남음(문제점 36) · [상] WO 번호 인덱스 없음 → POP 확정 지연(문제점 1) · [상] APS WO 생성 전체 실패(문제점 2) · [상] POP·InjAgent 배포 설정이 로컬 DB(미해결 1) · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 30) · 안돈 보전 호출 작업지시(요청 21) |
 | 안영훈 | 9(배포·검증·승인 대기·요청) | 4 | 3 | 11 | **[상] FG 라벨 LotNo 해석·POP 적재분 입고 대기 미표시·수리품 입고 불가·백플러시 위치·납품 박스 취소(2-4 1~5)** · 직접 SQL·LOT 원입고량 취소·빈 팔렛 회수·출하 화면의 서버 배포 및 실제 쓰기 검증 대기 · **상위 로케이션을 재고 위치에서 막기·지도 제외(2-1 8 — 개발 DB 에 임시 상위 3건 적용됨)** · PDA FG 입고 팔레트 단위 위치 배정(2-1 9 — POP 이 10-21 부터 팔레트로 적재) · 비결함·선택적 정리 3건은 2-5 참조 |
 | 이승욱 | 0                    | 4   | 4   | 2   | [상] MD 라인 LotPrefix 입력 불가(3-4 1) · BOM 단위 ≠ 품목 단위 13줄(3-4 2) · 품목 불출율·MRP 여유율 반영 방식 결정(보류 4)                                                                       |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
@@ -37,7 +37,7 @@
 
 ## 1. 심재현 — POP(QC 포함)·InjAgent·Devices + Web PP-001~006·PP-APS
 
-### 1-1. 미해결 (23)
+### 1-1. 미해결 (22)
 
 1. **[상] POP·InjAgent 배포 설정이 로컬 DB 를 가리킴**
    - 위치: Pop `appsettings.Production.json:3`, `Common/AppConfig.cs:51-52·87-91` / InjAgent `appsettings.json:3`, `Core/AgentConfig.cs:56-57`, LOT 생성 실패 재시도 없음 `Core/MachinePoller.cs:144-154`
@@ -80,7 +80,7 @@
    - 내용: 수리한 양품이 취소 WO 로 들어갑니다. 마지막 단계면 Cancelled 가 Closed 로 바뀌고 완료 수량도 바뀝니다.
    - 제안: 취소 WO 면 열린 WO 를 다시 찾고, 없으면 WO 없이 확정합니다.
 9. **[중] QC 홀드 해제 조건 없음·QC 번호 중복**
-   - 위치: `QcRepository.cs:151-178`(ReleaseHold → `migrate_pop_stored_procedures.sql:1156`), 번호 `migrate_pop_stored_procedures.sql:1083·1124`(CreateInspection·CreateNcr)
+   - 위치: `QcRepository.cs:151-178`(ReleaseHold → `migrate_pop_stored_procedures.sql:1173`), 번호 `migrate_pop_stored_procedures.sql:1100·1141`(CreateInspection·CreateNcr)
    - 내용: 이미 해제된 홀드도 다시 해제됩니다. 검사·NCR 번호가 분 단위(yyMMddHHmm)라 같은 분에 두 건이면 번호가 겹치고, 유니크 제약도 없습니다.
    - 제안: 상태 조건을 추가합니다. 번호는 범위 잠금으로 채번합니다(MNT `ClaimNumber` 방식).
 10. **[중] inj_flag 마이그레이션이 컬럼을 데이터째 지움**
@@ -99,7 +99,7 @@
     - 내용: 바로가기의 작업 폴더에 따라 파일 위치가 달라집니다.
     - 제안: 실행 파일 폴더 기준으로 바꿉니다.
 14. **[하] 라벨 선점 순서·출력 후 카운트 실패 시 중복**
-    - 위치: `InjLotRepository.cs:359-376`(ClaimForPrint → `migrate_pop_stored_procedures.sql:1505`), `InjMain.razor:497-508`, `ImgMain.razor:383-390·525`
+    - 위치: `InjLotRepository.cs:359-376`(ClaimForPrint → `migrate_pop_stored_procedures.sql:1516`), `InjMain.razor:497-508`, `ImgMain.razor:383-390·525`
     - 내용: 선점 UPDATE 에 순서가 없습니다. 출력은 됐는데 카운트 갱신이 실패하면 "실패" 로 안내해, 작업자가 다시 출력합니다.
 15. **[하] 로그아웃 뒤 확인창이 남음**
     - 위치: `Services/ConfirmService.cs:15-30`, `Services/AppState.cs:46-57`
@@ -110,39 +110,36 @@
       - 원인코드 매개변수가 `VarChar 15`(공통코드 값은 20자까지 — 지금 최대 8자라 잠재 결함)입니다.
       - 종료 때 CLOSED 를 RESOLVED 로 덮습니다.
       - 알림 수신자·채널이 고정값입니다(오세영 PUSH 와 연계).
-17. **[하] PNT 단위 EA 고정·불량코드 버림**
-    - 위치: Pnt01·02·03·06·07·08·09 화면과 도움말, `PntRepository.cs:298-307`(RegisterDefect → `migrate_pop_stored_procedures.sql:980-981`)
-18. **[하] 마이그레이션 FK 6개·그룹 이름 옛 접두어**
+17. **[하] 마이그레이션 FK 6개·그룹 이름 옛 접두어**
     - 위치: `migrate_aps.sql:74·75·100·157·185`, `migrate_aps_plan_line_shift.sql:21`, `migrate_demand_plan.sql:69·92-96`
     - 내용: FK 를 두지 않는 원칙과 달리 FK 6개를 새로 만듭니다. DPSYNC 공통코드 그룹 이름에 폐지된 `ScheduledWorker · ` 접두어가 있습니다.
-19. **[하] 테스트 코드에 접속 비밀번호·외부 IP**
+18. **[하] 테스트 코드에 접속 비밀번호·외부 IP**
     - 위치: `AmesDevDb.cs:15` 외 `AMES.Data.Tests` 7파일(총 8파일, 192.168.0.132 를 쓰는 6파일은 Connect Timeout=10, `MoldPlanningTests:20`, `PlanScheduleTests:21` 은 98.95.142.192 이고 Connect Timeout 도 없음)
     - 제안: 모두 `AMES_TEST_CONN` 하나로 바꿉니다.
-20. **[하] POP PLAN 기준 결정**
-    - 위치: `migrate_pop_stored_procedures.sql:1702-1710`(SP_POP_INJ_GetDailyItemSummary)·`2071-2079`(SP_POP_IMG_GetDailyItemSummary)
+19. **[하] POP PLAN 기준 결정**
+    - 위치: `migrate_pop_stored_procedures.sql:1713-1721`(SP_POP_INJ_GetDailyItemSummary)·`2082-2090`(SP_POP_IMG_GetDailyItemSummary)·`985-993`(SP_POP_PNT_GetDailyItemSummary)
     - 내용: PP-LSB 「발행」이 폐지돼(10-14), 「적용」만 해도 현장 PLAN 에 바로 반영됩니다. 어떤 기준으로 할지 POP 담당이 정합니다.
-21. **[하] POP IMG 코어 스캔 검사를 InjFlag 기준으로**
+20. **[하] POP IMG 코어 스캔 검사를 InjFlag 기준으로**
     - 위치: `ImgLotRepository.cs:128`(CreateFromCore → `CoreItemResolver.Read`)
     - 내용: 웹 WO 발행은 10-14 부터 PP-APS 와 같은 InjFlag 기준(`CoreItemResolver.ReadByInjFlag`)으로 코어를 정하는데, IMG 코어 스캔의 `CoreMismatch` 검사는 아직 품명 CORE 규칙입니다. 개발 DB 완제품 77개는 두 규칙의 결과가 같지만, 레일만 있는 품번처럼 둘이 갈리면 WO 의 사출 단계 품번과 IMG 검사가 다른 코어를 봅니다.
     - 제안: `ReadByInjFlag` 로 바꿉니다(POP 담당 작업 예정).
-22. **[중] [요청] 안돈 보전 호출에 CM 작업지시 발행·안돈 종료 때 함께 닫기**(10-16 사용자 결정 — 이승욱 요청)
+21. **[중] [요청] 안돈 보전 호출에 CM 작업지시 발행·안돈 종료 때 함께 닫기**(10-16 사용자 결정 — 이승욱 요청)
     - 위치: `AndonRepository.cs:223-236`(보전 호출 → `SP_POP_ANDON_CallDepts_InsMNT_FailureRegister` `migrate_pop_stored_procedures.sql:574-604` — `MNT_FailureRegister` 만 생성, `WorkOrderID` NULL) · `AndonRepository.cs:269-281`(안돈 종료 → `SP_POP_ANDON_Resolve` `migrate_pop_stored_procedures.sql:698-700` — 고장만 RESOLVED)
     - 내용: 안돈 고장에는 작업지시가 없어 MNT-007 배정·착수·점검·PDA 부품 출고를 쓸 수 없습니다(개발 DB 작업지시 없는 열린 고장 10-17 기준 3건). 웹은 10-16 부터 MNT-002 상세의 「작업지시 발행」(`MntRepository.IssueFailureWorkOrder` — CM, 출처 ANDON, SourceRefID 고장번호)으로 수동 연결합니다. 그런데 그렇게 연결한 고장이 안돈 종료로 RESOLVED 가 되면 작업지시는 열린 채 남아 MNT-007 에서 따로 완료·종료해야 합니다.
     - 요청: ① 보전 호출 때 같은 트랜잭션에서 CM 작업지시를 발행해 `WorkOrderID` 를 채웁니다(웹과 같은 규칙 — `MntRepository.IssueFailureWorkOrder` 를 그대로 쓰거나 같은 값: WoType CM·SourceType ANDON·SourceRefID 고장번호·우선순위는 심각도·상태 ISSUED, 번호는 `MWO-yyMM-nnn` 범위 잠금 채번). ② 안돈 종료 때 연결된 작업지시가 끝나지 않았으면 같이 완료합니다(결과 OK — CM 작업지시는 점검 항목이 없어 완료 차단 규칙 `MwoChecklistRules` 에 걸리지 않습니다).
-23. **[하] [요청] 금형 샷 누적 기록 — 사이클 PM 자동화의 전제**(10-16 이승욱 요청)
+22. **[하] [요청] 금형 샷 누적 기록 — 사이클 PM 자동화의 전제**(10-16 이승욱 요청)
     - 위치: InjAgent(샷은 `PR_ShotCount` 에만 기록), `MNT_MoldShotCount`(0행 — 이승욱 테이블 4)
     - 내용: 사이클(CYCLE) 주기 PM 은 지금 완료할 때 사람이 다음 예정일을 넣습니다(10-16 사용자 결정 — 샷 누적 연동 전까지, `PmRules`). 샷이 쌓이지 않아 금형 소진율·정비 한계 알림도 비어 있습니다.
     - 요청: InjAgent 가 샷을 기록할 때 `MNT_MoldShotCount` 도 올립니다. 그 뒤 이승욱이 사이클 PM 의 다음 회차를 샷 기준으로 자동 발행하도록 바꿉니다.
 
-### 1-2. 보류 (9)
+### 1-2. 보류 (8)
 - **PNT 확정의 코어 재고 처리 vs PP-APS 가용재고**(10-22 검토에서 발견): PNT 확정은 BOM 사출품 자식을 PNT 라인 위치의 자리표시 `BF-P{n}-{코어}` 음수로 뺀다(사용자 결정 10-22). APS 가용재고는 `WH_Inventory.Qty > 0` 만 더해 음수 자리표시를 보지 않으므로, 도장으로 소비된 코어의 팔레트 행이 창고 라인 보충 전까지 APS 코어 재고에 그대로 잡힌다(IMG 는 `ConsumeCore` 가 코어 재고 행을 지움). **10-22 사용자 결정: 지금은 라인 재고 차감 그대로 둔다.** 후속으로 사출품을 라인 재고로 옮기는 처리(팔레트의 코어 LOT 행 → 그 라인 위치의 품번 수량 행으로 전환)를 만들면 그 수량이 자리표시 음수를 메우고 팔레트 행이 사라져 APS 과대 계상도 함께 풀린다. 그때까지 APS 코어 재고는 도장 소비분만큼 과대하다(IMG 는 영향 없음).
 - **POP 팔레트 적재(10-21) 의 범위 밖**: ① 재작업 스테이션의 수리 양품은 팔레트 스캔이 없어 `WH_Inventory` 에 넣지 않는다(INJ·IMG 확정만 싣는다) — 재작업에도 팔레트 스캔을 둘지. ② 현재 팔레트는 화면 메모리뿐이라 재로그인·재시작하면 다시 스캔한다 — 마지막으로 실은 팔레트를 DB(그 라인의 마지막 `PROD_CONFIRM` 거래)에서 되살릴지. ③ 팔레트 바코드는 `EOS-PLT-` 접두어로만 LOT 과 가르므로 다른 양식의 외부 팔레트는 받지 않는다. ④ LH/RH 쌍 팔레트의 `MD_Item.PalletQty` 는 "그 품번이 쌍 팔레트에 실리는 개수" 기준이다(10-21 결정 — 품번별로 센다) — 값이 있는 NEAFUC 쌍(D0111-PI010·D0121-PI010 32/32)이 "LH 32 + RH 32 = 64개" 인지 "16쌍" 인지 현장 적재 기준을 확인해 맞춰야 한다(값을 바꾸면 APS 계획 올림 단위도 같이 바뀐다).
 - **APS 금형 교체(MC) 한계**: "직전 금형"을 그 라인·그 날 처리 순서상 마지막 금형으로 보므로, 하루 안에 금형이 여러 번 바뀌면 그 사이 되돌림 MC 를 만들지 않습니다(같은 라인·같은 날 금형 그룹당 MC 최대 1개). 교체 자리가 없을 때 억지로 둔 MC 는 휴게·점유 구간과 겹칠 수 있습니다. 조정은 PP-LSB 에서 합니다.
 - **B2 IMG 라벨 교대 글자가 항상 C**(`Common/LabelPrinter.cs:27-32`): DAY/NIGHT 만 A/B 로 바꾸는데, 실제 교대 코드는 A/B/C 라 항상 C 가 찍힙니다. 교대 코드를 그대로 쓸지 답을 기다립니다.
 - **B11 InjAgent 시각을 DB 서버 기준으로**: POP 은 10-16(eb5ace39) 로그인 때 `DbClock` 을 DB 시각에 맞추도록 바뀌었습니다(호스트 시계는 유휴·로그·토스트에만 남음). InjAgent 는 아직 `DbClock.Configure` 를 하지 않아, 자동 LOT 채번(`InjLotRepository.cs:66`, `MachinePoller.cs:144` 에서 호출)의 LotNo 날짜 글자가 PC 시계 기준입니다.
-- **B15 PNT-09 교대 하드코딩**(`PntRepository.cs:310-327` GetShiftBuckets → `migrate_pop_stored_procedures.sql:994·1002`): 8–15시/16–23시로 박혀 있어 공통코드 교대 시각과 다릅니다.
 - **B3 POP 의 "오늘" 이 자정 기준**
-  - 위치: `InjLotRepository.cs:120`, `migrate_pop_stored_procedures.sql:1721`(INJ 좌측)·`2090`(IMG 좌측)·`1225·1227·1242·1266`(QC-07)·`752·773·1000`(PNT)
+  - 위치: `InjLotRepository.cs:120`, `migrate_pop_stored_procedures.sql:1732`(INJ 좌측)·`2101`(IMG 좌측)·`1004`(PNT 좌측 — 10-22 `SP_POP_PNT_GetDailyItemSummary`, 구 PNT 프로시저와 같은 자정 기준)·`1243·1245·1277`(QC-07)
   - 내용: 웹 보고서는 07시 전기일인데, INJ/IMG 좌측 수치·QC-07·PNT·금형 일 사용량은 자정 기준입니다. 10-16 부터 POP 의 "오늘" 은 DB 날짜(B11)이지만 경계는 여전히 자정입니다.
   - 쓰지 않는 POP 차트 `HourlyBarChart`·`HourlyOutputDto` 도 정리 대상입니다.
 - **B23 유휴 로그아웃 뒤 라벨 자동 발행 누락**
@@ -155,8 +152,8 @@
 
 | 테이블(행) | 용도 | 읽는 곳 | 상태 |
 |---|---|---|---|
-| `QC_InspectionStd`(3) | 검사 기준서(버전·AQL·항목) | POP QC-08(`QcRepository.cs:267-291` → `migrate_pop_stored_procedures.sql:1280`), 웹 MD 고객 삭제 사용처 | 등록·개정·승인 화면이 없음. QC-01~03 검사도 이 기준을 쓰지 않음 |
-| `QC_CAPA`(2)·`QC_CAPA_Action`(5) | 시정·예방 조치 | POP QC-06·QC-07(`QcRepository.cs:181-218·238-246` → `migrate_pop_stored_procedures.sql:1180-1210·1253`) | 등록·진행 기능 없음 |
+| `QC_InspectionStd`(3) | 검사 기준서(버전·AQL·항목) | POP QC-08(`QcRepository.cs:267-291` → `migrate_pop_stored_procedures.sql:1291`), 웹 MD 고객 삭제 사용처 | 등록·개정·승인 화면이 없음. QC-01~03 검사도 이 기준을 쓰지 않음 |
+| `QC_CAPA`(2)·`QC_CAPA_Action`(5) | 시정·예방 조치 | POP QC-06·QC-07(`QcRepository.cs:181-218·238-246` → `migrate_pop_stored_procedures.sql:1197-1227·1264`) | 등록·진행 기능 없음 |
 
 읽기·쓰기 모두 없는 테이블입니다. 소스에는 주석으로만 이름이 남아 있습니다.
 - **PNT_ 22개**: DailyPlan(2행), DailyReport, JigBindingLog, JigLoad(1행), JigUnload, LabelPrintJob, LabelScanLog, LineEvent(12행), LotLabel, OvenDeviationLog, OvenLog(1행), OvenSpikeLog, OvenTempSample(120행), PartLossLog, QcQueue, SeqAllocator, ShiftReport, ShiftReportAudit, ShiftReportLineItem, StationStatsCache, TagFailureLog, VirtualLot(7행). 구 도장 모듈(가상 LOT·지그·오븐)의 테이블 — **10-22 PNT-MAIN 전환으로 읽는 코드·프로시저가 없다**(PNT 실적은 `tbl_Lot`/`PR_PntLot`, QC-07 도 실적 테이블로 센다). 행은 시연 데이터뿐. DROP 여부 결정 대기.
@@ -168,7 +165,7 @@
 - 읽기만 있는 테이블: 등록 화면·수집기를 만들지, 화면을 「시연용」으로 표시하거나 숨길지
 - 아무도 안 쓰는 테이블: DROP 할지(두 리포지토리 삭제 포함). FK 가 없어 지워도 다른 테이블에는 영향이 없습니다.
 
-### 1-4. 문제점 (50)
+### 1-4. 문제점 (46)
 1. **[상] `PP_WorkOrder.WoNumber` 인덱스가 없어 POP 확정이 막힘**
    - 위치: `PpRepository.cs:939-948`(NextWoSeq), `WorkOrderRepository.cs:379-389`(BumpStepCompleted → `migrate_pop_stored_procedures.sql:282-283`). 개발·로컬 DB 둘 다 PK 하나뿐(10-17), WoNumber 중복 0건이라 유니크로 만들 수 있음. `NextWoSeq` 주석은 "WoNumber 유니크 인덱스가 최종 방어선" 이라고 쓰지만 그 인덱스가 없음
    - 내용: WO 번호를 매길 때 잠금이 테이블 전체에 걸립니다. APS WO 미리보기(읽기 권한 사용자도 가능)나 PP-003 이 도는 동안 POP 스캔 확정이 기다리다, 30초를 넘으면 실패합니다. `dist/migrate_wonumber_unique.sql` 은 있지만 스키마·재구축 목록에 없고 어느 DB 에도 적용되지 않았습니다.
@@ -198,152 +195,138 @@
    - 위치: `InjLotRepository.cs:577-625`(상태 검사 601-603)
    - 내용: 완제품은 양품인데 그 코어는 폐기되는 모순이 생깁니다.
    - 제안: 자식 IMG LOT 이 있으면 거부합니다.
-9. **[중] PNT 상태 전이 검사 없음**
-   - 위치: `PntRepository.cs:133-168·240-265·268-276`
-   - 내용: 지그 사용 여부·LOT 상태를 보지 않아, 두 터미널이 같은 지그를 쓰고 하차 확정이 이미 라벨 붙은 LOT 을 되돌립니다.
-10. **[중] PNT 하차 확정이 누적 불량을 지움**
-    - 위치: `PntRepository.cs:240-265`(ConfirmUnload → `migrate_pop_stored_procedures.sql:926-928`)(PNT-08 누적은 `PntRepository.cs:298-307` → `migrate_pop_stored_procedures.sql:980-981`)
-    - 내용: 하차 확정이 불량 수량을 덮어써 PNT-08 에서 쌓은 불량이 사라집니다. 확정 뒤에도 PNT-08 이 불량을 더해 양품+불량이 투입을 넘습니다.
-11. **[중] 실적 테이블에 LotID 인덱스 없음**
+9. **[중] 실적 테이블에 LotID 인덱스 없음**
     - 위치: `LotDefectWriter.cs:25`(→ `SP_POP_LOT_ReverseConfirmedResult_GetProductionResult`)(`InjLotRepository.cs:607`·`ImgLotRepository.cs:311` 에서 호출)
     - 내용: 확정 LOT 의 불량 등록이 LOT 잠금을 쥔 채 실적 전체를 훑습니다. 운영 기간에 비례해 느려집니다.
-12. **[중] POP PLAN 과 INPUT/FINAL 의 하루 기준이 다름**
-    - 위치: `migrate_pop_stored_procedures.sql:1708 vs 1721`(IMG 2077 vs 2090)
+10. **[중] POP PLAN 과 INPUT/FINAL 의 하루 기준이 다름**
+    - 위치: `migrate_pop_stored_procedures.sql:1719 vs 1732`(IMG 2088 vs 2101, PNT 991 vs 1004)
     - 내용: PLAN 은 07시 근무일, INPUT/FINAL 은 자정 기준이라 00~07시에는 수치가 어긋납니다.
-13. **[하] 불량 역분개가 마감된 WO 를 다시 엶**
+11. **[하] 불량 역분개가 마감된 WO 를 다시 엶**
     - 위치: `WorkOrderRepository.cs:379-389`(BumpStepCompleted → `migrate_pop_stored_procedures.sql:273-328`, 재개방 292-293·315-316), `WorkOrderRepository.cs:264-276`(OpenStepOrder)
     - 내용: 다음 코어 스캔이 Released WO 대신 마감 WO 로 들어갑니다. CLAUDE.md 는 단계를 되돌리는 것을 의도된 동작으로 적고 있어, 다음 스캔이 그 WO 로 가는 것까지 결함으로 볼지는 결정이 필요합니다.
-14. **[하] APS BOM 규칙 WO 의 다른 자식은 POP 에서 "WO 없음"**
-    - 위치: `migrate_pop_stored_procedures.sql:1702-1703`(INJ PLAN), `WorkOrderRepository.cs:272-276`
+12. **[하] APS BOM 규칙 WO 의 다른 자식은 POP 에서 "WO 없음"**
+    - 위치: `migrate_pop_stored_procedures.sql:1713-1714`(INJ PLAN), `WorkOrderRepository.cs:272-276`
     - 내용: 단계 품번이 첫 자식 하나라, 레일 등은 PLAN 0·WO 없음으로 보이고 WO 없이 확정됩니다. 보고서의 계획 품번도 첫 자식으로 몰립니다.
     - 제안: 슬롯 품번 칸 추가를 검토합니다.
-15. **[하] 확정은 됐는데 "확정 실패" 로 표시**
-    - 위치: `InjMain.razor:447-451`(catch 476-483), `ImgJudgePopup.razor:122-128`(catch 142)
+13. **[하] 확정은 됐는데 "확정 실패" 로 표시**
+    - 위치: `InjMain.razor:447-451`(catch 476-483), `ImgJudgePopup.razor:120-137`(catch 150)
     - 내용: 커밋 뒤의 WO 조회가 같은 try 안이라, 순간 끊김이면 실패로 보입니다. IMG 는 팝업이 남아 다시 OK 를 누르면 AlreadyConfirmed 가 됩니다.
-16. **[하] QC 검사 품번이 상수**
+14. **[하] QC 검사 품번이 상수**
     - 위치: `Qc01Incoming:147`, `Qc02InProcess:138`, `Qc03Final:138`, `Qc04Ncr:108`(기본값), `QcRepository.cs:93-104`(CreateInspection — LOT·WO·라인 인자 없음)
     - 내용: 모든 검사가 "DR-TRM-LH-A1" 로 저장되고 LOT·WO·라인이 없습니다.
-17. **[하] POP 로그인이 웹 계정 잠금을 무력화**
+15. **[하] POP 로그인이 웹 계정 잠금을 무력화**
     - 위치: `PopAuthService.cs:89` → `AuthRepository.cs:229-238`(RecordSuccessfulLogin → `migrate_pop_stored_procedures.sql:71`)
     - 내용: POP 로그인 성공(배지 포함)이 웹 비밀번호·PP-CAL PIN 실패 횟수를 0 으로 되돌립니다.
-18. **[하] PP-001 주간 탭이 조회 오류를 숨김**
+16. **[하] PP-001 주간 탭이 조회 오류를 숨김**
     - 위치: `Forecast.razor:484`(주간)`·371`(이력)`·394`(일별 이력)`·361`(고객) — 일별 조회(`:380`)만 오류를 안내
-19. **[하] PP-002 일괄 확정이 건마다 따로 저장**
+17. **[하] PP-002 일괄 확정이 건마다 따로 저장**
     - 위치: `SupplyPlanImport.razor:344-361`(355)
     - 내용: 중간에 실패하면 앞 건만 확정되고, 몇 건이 반영됐는지 안내가 없습니다.
-20. **[하] PP-002~006 승인·생성 동작에 감사 로그 없음**
+18. **[하] PP-002~006 승인·생성 동작에 감사 로그 없음**
     - 내용: 수주 확정, WO 생성·릴리스·취소, PR 생성·전송·승인이 SYS-007 에 남지 않습니다. PP-002 「자동 확정」 스위치를 켤 때 일괄 확정되는 수주도 마찬가지입니다(스위치 켜고 끄기만 기록됨).
-21. **[하] 단위 EA 고정·WO CSV 품번 누락·MRP 상태 색**
+19. **[하] 단위 EA 고정·WO CSV 품번 누락·MRP 상태 색**
     - 위치: `WorkOrder.razor:162·368`, `PlanConfirmBatchDialog.razor:31`, `Mrp.razor:195·376`(PR 상태 색이 옛 상태값 Pending/Rejected 기준)
-22. **[하] 행위자 매개변수 형식이 컬럼과 다름**
+20. **[하] 행위자 매개변수 형식이 컬럼과 다름**
     - 위치: `PpRepository.Aps.cs:1012·1039·1057`, `ApsRepository.cs:1041·1214`, `WorkOrderRepository.cs:535`, `QcRepository.cs:67`(FinalizeInspection `@A` → ApproverID·ModifiedBy)(10-15 사람 컬럼 사번 전환 때 주간 구매계획·WO 릴리스·INJ/IMG 확정 매개변수는 고침)
     - 내용: varchar(20) 컬럼에 NVarChar 로 넘깁니다(기능 오류는 아님). `PpRepository.CreateShortagePrs` 는 `@By` 를 `VarChar, 20` 으로 선언하고 값은 `Trunc(by, 50)` 으로 자릅니다(`:1230` — 행위자가 20자 이하라 지금은 영향 없음).
-23. **[하] APS WO 를 취소해도 계획 연결이 남음**
+21. **[하] APS WO 를 취소해도 계획 연결이 남음**
     - 위치: `WorkOrderRepository.cs:594-624`, 대상 선정 `PpRepository.Aps.cs:194`
     - 내용: 취소한 계획 행이 계속 '기발행' 으로 남아 다시 만들 수 없습니다.
-24. **[하] IMG 라벨과 실적의 WO 가 다를 수 있음**
-    - 위치: `ImgLotRepository.cs:111-120`(코어 스캔 WO)`·186-199`(라벨 수주처)`·212`(LOT WoID NULL — `migrate_pop_stored_procedures.sql:1876`)`·388-396`(판정 때 다시 해석)
-25. **[하] QC 최종 판정 덮어쓰기**
-    - 위치: `QcRepository.cs:60-69`(FinalizeInspection → `migrate_pop_stored_procedures.sql:1062-1065` UPDATE — `Verdict IS NULL` 가드 없음)
-26. **[하] POP 창을 닫아도 세션이 열린 채 남음**
+22. **[하] IMG 라벨과 실적의 WO 가 다를 수 있음**
+    - 위치: `ImgLotRepository.cs:111-120`(코어 스캔 WO)`·186-199`(라벨 수주처)`·212`(LOT WoID NULL — `migrate_pop_stored_procedures.sql:1887`)`·388-396`(판정 때 다시 해석)
+23. **[하] QC 최종 판정 덮어쓰기**
+    - 위치: `QcRepository.cs:60-69`(FinalizeInspection → `migrate_pop_stored_procedures.sql:1079-1082` UPDATE — `Verdict IS NULL` 가드 없음)
+24. **[하] POP 창을 닫아도 세션이 열린 채 남음**
     - 위치: `Forms/PopBlazorForm.cs:63`(세션 닫기는 `AppRoot.razor:144` 로그아웃 경로뿐)
-27. **[하] InjAgent 정지가 2초를 넘으면 상태 경합**
+25. **[하] InjAgent 정지가 2초를 넘으면 상태 경합**
     - 위치: `Core/PollerRunner.cs:48-75`(69-70)
-28. **[하] QC-07 이 실적 없는 라인의 LOT 불량을 빠뜨림**
-    - 위치: `QcRepository.cs:221-236`(GetModuleDefectRates → `migrate_pop_stored_procedures.sql:1211-1246`)
-29. **[하] 금형 시드가 일부 참조만 정리**
+26. **[하] QC-07 이 실적 없는 라인의 LOT 불량을 빠뜨림**
+    - 위치: `QcRepository.cs:221-236`(GetModuleDefectRates → `migrate_pop_stored_procedures.sql:1228-1257`)
+27. **[하] 금형 시드가 일부 참조만 정리**
     - 위치: `dist/seed_md_mold_master.sql:22-24·137-146`
     - 내용: 다시 돌리면 MNT_MoldShotCount·PR_InjLot·PP_WorkOrder 에 옛 금형을 가리키는 행이 남습니다. 머리말은 `MNT_MoldShotCount` 를 "이력" 이라 남기지만 실제로는 현재 상태(CurrentShots·MountedEquipID) 테이블이고, `PP_WorkOrder.MoldID` 는 언급이 없습니다.
-30. **[하] 안돈 고장번호가 한 달 999건을 넘으면 반복**
+28. **[하] 안돈 고장번호가 한 달 999건을 넘으면 반복**
     - 위치: `migrate_pop_stored_procedures.sql:585-588`(SP_POP_ANDON_CallDepts_InsMNT_FailureRegister)
     - 내용: RIGHT 3자리로 읽어 1000번째는 `-000` 이 되고, 그 뒤 MAX 가 계속 999 라 `-000` 이 되풀이되며 웹 번호와 겹칠 수 있습니다.
     - 제안: 웹 `ClaimNumber` 와 같은 방식으로 맞춥니다.
-31. **[중] 안돈 발동이 같은 라인의 열린 비가동을 보지 않고 새 행을 엶**
+29. **[중] 안돈 발동이 같은 라인의 열린 비가동을 보지 않고 새 행을 엶**
     - 위치: `migrate_pop_stored_procedures.sql:441-443`(SP_POP_ANDON_Raise 의 PP_LineDowntimeLog INSERT)
     - 내용: 같은 라인에 이미 열린 비가동(PP-DTL 웹 등록, 10-16 부터 웹 고장의 「라인 정지」)이 있어도 안돈이 또 하나를 열어, 두 행이 겹친 시간만큼 OEE·비가동 분석이 두 번 셉니다. 웹 쪽(PP-DTL 등록, MNT-002 라인 정지)은 겹침을 막거나 열린 행에 연결합니다.
     - 제안: 열린 행이 있으면 그 행의 `AndonID` 를 채워 연결하거나(종료는 안돈 종료 시각과 그 행 소유자 중 늦은 쪽), 최소한 안돈 행 시작 시각에 기존 열린 행을 닫습니다 — POP 코드 변경이라 이승욱과 방식을 맞춥니다.
-32. **[중] BOM 자동 차감(백플러시)이 직접 자식만 봐서 서브조립 아래 자재가 빠지지 않음**(10-16 a6bbd59c)
-    - 위치: `BackflushRepository.cs:99-110`(ReadBomRows → `migrate_pop_stored_procedures.sql:2434` — `ParentItemNo = @Item` 1단계), `BackflushRules.cs:25-40`
+30. **[중] BOM 자동 차감(백플러시)이 직접 자식만 봐서 서브조립 아래 자재가 빠지지 않음**(10-16 a6bbd59c)
+    - 위치: `BackflushRepository.cs:100-111`(ReadBomRows → `migrate_pop_stored_procedures.sql:2460` — `ParentItemNo = @Item` 1단계), `BackflushRules.cs:31-49`
     - 내용: 완제품 → 서브조립(SUB, InjFlag 0) → 자재 구조에서 서브조립은 LOT 확정 단계가 없어, 그 아래 MATERIAL 은 어느 확정에서도 차감되지 않습니다(개발 DB 완제품 36개·자재 간선 88개). CLAUDE.md 는 "SUB 자식 = 코어" 로 전제하지만 InjFlag 0 인 SUB 는 코어가 아닙니다.
     - 제안: InjFlag 0 인 SUB 는 QtyPer 를 곱하며 내려가고 InjFlag 1 인 코어에서 멈춥니다(`CoreItemResolver.ReadByInjFlag`·APS BOM 다단계와 같은 규칙).
-33. **[하] 확정된 적 없이 폐기된 LOT 의 자재가 차감되지 않음**(10-16 백플러시)
-    - 위치: `ReworkRepository.cs:194-195`(Rework 만 차감)`·212-235`(Scrap 차감 없음), `LotDefectRules.cs:57`(WasNeverConfirmed)
+31. **[하] 확정된 적 없이 폐기된 LOT 의 자재가 차감되지 않음**(10-16 백플러시)
+    - 위치: `ReworkRepository.cs:194-196`(Rework 만 차감)`·213-236`(Scrap 차감 없음), `LotDefectRules.cs:57`(WasNeverConfirmed)
     - 내용: 로봇 NG 샷처럼 RAW/NG_BLOCKED → DEFECT → SCRAPPED 로 끝난 LOT 은 레진을 실제로 썼는데 차감 기록이 없어 라인 재고가 폐기율만큼 부풉니다. CLAUDE.md 는 "되돌리지 않는다" 만 적고 이 경우는 정하지 않았습니다.
     - 제안: 폐기 때 차감할지 사용자 결정을 받습니다.
-34. **[하] 백플러시 멱등 인덱스 정의가 스키마 파일과 두 DB 에서 다름**
-    - 위치: `dist/AMES_Schema.sql:9284-9288`(`IX_WH_InventoryTransaction_Source` — SourceType·SourceID 두 열)·`:11492-11493`(같은 이름의 넓은 정의 — 건너뜀), `migrate_wh_inventory_backflush_placeholder.sql:32-34`(두 열)
+32. **[하] 백플러시 멱등 인덱스 정의가 스키마 파일과 두 DB 에서 다름**
+    - 위치: `dist/AMES_Schema.sql:9344-9348`(`IX_WH_InventoryTransaction_Source` — SourceType·SourceID 두 열)·`:12031-12032`(같은 이름의 넓은 정의 — 건너뜀), `migrate_wh_inventory_backflush_placeholder.sql:32-34`(두 열)
     - 내용: 개발·로컬 DB 는 SourceType·SourceID·TransactionType + 포함 열 5개입니다. 스키마로 새로 만든 DB 는 구조 서명이 개발 DB 와 어긋납니다.
     - 제안: 마이그레이션이 넓은 정의로 만들게 바꾸고 스키마 파일을 다시 뜹니다.
-35. **[하] CLAUDE.md 백플러시 문단의 MRP 설명이 코드와 다름**
+33. **[하] CLAUDE.md 백플러시 문단의 MRP 설명이 코드와 다름**
     - 위치: CLAUDE.md "MRP 가용재고 … 음수 자리표시까지 더한 순수량"(백플러시 문단), 실제 `PpRepository.cs:1014-1020`
     - 내용: MRP 재고는 `Qty>0 AND AreaCode='MAT_AREA'` 라 라인 위치(I1·W1 등)와 음수 자리표시가 빠집니다. 라인이 불출보다 더 쓴 양은 MRP 에 보이지 않습니다(WH-AUTO 라인 보충 `WarehouseRepository.LineStock.cs:147` 은 음수를 포함해 맞음).
     - 제안: 문구를 코드에 맞추고, MRP 반영이 필요한지 정합니다.
-36. **[하] Pop 개발 설정에 개인 장치값이 커밋됨**(10-16 e528cbca)
+34. **[하] Pop 개발 설정에 개인 장치값이 커밋됨**(10-16 e528cbca)
     - 위치: `src/03_Pop/AMES.Pop/appsettings.Development.json:9-19`(Printer `Mode: Tcp`·`192.168.10.20:9100`, Scanner `COM5`)
     - 내용: 어느 PC 에서든 `dotnet run` 하면 실제 네트워크 프린터로 ZPL 을 보내고 COM5 를 엽니다. CLAUDE.md 의 "포트 리포지토리 기본은 빈 값" 과도 어긋납니다(비밀번호는 기본 파일에 이미 있던 값이라 새 노출은 아님).
     - 제안: 저장소에는 File 모드·빈 포트를 두고 장치값은 커밋하지 않는 로컬 파일이나 환경변수로 줍니다.
-37. **[하] PP→POP 시험 초기화 스크립트가 다른 데이터와 어긋나게 지움**(개발 전용, 10-16 943cdf24)
+35. **[하] PP→POP 시험 초기화 스크립트가 다른 데이터와 어긋나게 지움**(개발 전용, 10-16 943cdf24)
     - 위치: `tools/test_pp_pop/test_pp_pop_reset_dev.sql:374`
     - 내용: 10-17 기준 끊긴 `DowntimeID` 는 0건이라 실제 피해는 아직 없습니다. `PP_LineDowntimeLog` 를 전부 지워 고장(라인 정지)의 `DowntimeID` 가 없는 행을 가리키고, LOT 은 지우면서 BACKFLUSH 거래·`BF-` 자리표시 재고는 남기며, 공용 개발서버의 다른 개발자 PP 데이터도 통째로 지웁니다.
       안돈 고장(`MNT_FailureRegister` Source='ANDON')·조치 이력은 지우면서 `MNT_WorkOrder` 는 다루지 않아, 10-16 부터 MNT-002 「작업지시 발행」으로 만든 작업지시가 지워진 고장번호(`SourceRefID`)를 가리킨 채 남습니다(`:376-379`).
     - 제안: 비가동은 안돈 행만 지우거나 고장의 `DowntimeID` 도 비우고, 그 고장의 작업지시도 같이 지우며, 백플러시 거래·자리표시를 같이 되돌리고, 실행 전 서버 확인 가드를 둡니다.
-38. **[하] PNT 라벨 부착이 넘겨받은 사번을 쓰지 않음**(10-17 재대조)
-    - 위치: `PntRepository.cs:268-276`(ApplyLabel → `migrate_pop_stored_procedures.sql:951`), 호출 `Pnt07LabelApply.razor:151`
-    - 내용: `employeeNo` 를 받지만 `ModifiedBy` 에는 `userId` 만 넣고, 그 값이 null 이면 NULL 로 저장합니다. 상태도 보지 않습니다(문제점 9). 지금은 화면이 세션 사번을 넘겨 드러나지 않습니다.
-39. **[상] 팔레트에 실린 LOT 을 불량 등록·폐기해도 재고 행이 남음**(10-22 흐름 점검)
-    - 위치: 불량 등록 `InjLotRepository.cs:577-625`·`ImgLotRepository.cs:282-328`(`migrate_pop_stored_procedures.sql:1659-1671`·`1957-1971`), 폐기 `ReworkRepository.cs:212-235`(`migrate_pop_stored_procedures.sql:2290`) — 어느 경로도 `WH_Inventory` 를 고치지 않음. 출고 `PdaFinishedGoodsSql.cs:303-342` 는 LOT 상태를 보지 않음
+36. **[상] 팔레트에 실린 LOT 을 불량 등록·폐기해도 재고 행이 남음**(10-22 흐름 점검)
+    - 위치: 불량 등록 `InjLotRepository.cs:577-625`·`ImgLotRepository.cs:282-328`(`migrate_pop_stored_procedures.sql:1670-1682`·`1968-1982`), 폐기 `ReworkRepository.cs:213-236`(`migrate_pop_stored_procedures.sql:2309`) — 어느 경로도 `WH_Inventory` 를 고치지 않음. 출고 `PdaFinishedGoodsSql.cs:303-342` 는 LOT 상태를 보지 않음
     - 내용: 10-21 부터 확정한 LOT 은 팔레트 아래 `WH_Inventory` 행(Qty 1)이 됩니다. 그 LOT 을 불량·폐기해도 행이 Qty 1 로 남아 ① FG 위치를 배정한 뒤면 팔레트 출고 때 불량품이 같이 출하되고 ② 배정 전이면 위치 없는 그 행 때문에 팔레트 출고·배차가 52006 으로 영구히 막히며(PDA 조정·웹 불량 처리는 위치 있는 행만 다룸) ③ 팔레트 적재 수(Full 판정)·APS 가용재고(`ApsRepository.cs:789-794`)가 그만큼 부풉니다. 확정됐던 LOT 을 수리하면 기록은 원래 팔레트에 남습니다.
     - 제안: 불량 등록·폐기와 같은 트랜잭션에서 그 LOT 의 재고 행을 0 으로 내리고 OUT 거래(예 `POP_DEFECT`)를 남깁니다(`ConsumeCore` 방식). 위치가 있는 행이면 경고합니다. 수리 양품을 다시 싣는 것은 보류 「팔레트 적재 범위 밖」 ①과 함께 정합니다 — PDA 쪽은 안영훈과 협의.
-40. **[중] 감싸기가 코어만 소모해 두 번째 사출품(레일 등) 재고가 줄지 않음**(10-22 흐름 점검)
-    - 위치: `ImgLotRepository.cs:134-136`(코어 하나만 연결·`ConsumeCore`), `PalletStockRepository.cs:86-102`, `BackflushRules.cs:30`(MATERIAL 만)
+37. **[중] 감싸기가 코어만 소모해 두 번째 사출품(레일 등) 재고가 줄지 않음**(10-22 흐름 점검)
+    - 위치: `ImgLotRepository.cs:134-136`(코어 하나만 연결·`ConsumeCore`), `PalletStockRepository.cs:87-103`, `BackflushRules.cs:38`(MATERIAL 만)
     - 내용: 완제품 77개 중 31개가 사출품 2개(코어 + 레일)입니다(로컬 DB 다단계 BOM). 레일도 INJ 확정 때 팔레트 재고가 되지만 IMG 는 코어만 0 으로 내리고 백플러시는 SUB 자식을 빼므로 레일은 쌓이기만 합니다 → APS 가 레일 재고가 충분하다고 보고 레일 사출을 줄입니다.
-    - 제안: IMG LOT 생성(또는 판정 OK) 때 코어가 아닌 InjFlag 1 자식을 QtyPer 만큼 FIFO 로 소모합니다(위치 규칙은 문제점 39·안영훈 2-4 4 와 함께).
-41. **[중] 헤더가 Closed 인 WO 의 열린 사출 단계로 실적이 들어감**(10-22 흐름 점검)
+    - 제안: IMG LOT 생성(또는 판정 OK) 때 코어가 아닌 InjFlag 1 자식을 QtyPer 만큼 FIFO 로 소모합니다(위치 규칙은 문제점 36·안영훈 2-4 4 와 함께).
+38. **[중] 헤더가 Closed 인 WO 의 열린 사출 단계로 실적이 들어감**(10-22 흐름 점검)
     - 위치: `WorkOrderRepository.cs:258-269`(OpenStepWhere·OpenStepOrder), `migrate_pop_stored_procedures.sql:214-237`·`1561-1577`, `BumpStepCompleted` `migrate_pop_stored_procedures.sql:313-322`
-    - 내용: 한 코어를 여러 색상 완제품 WO(A·B)가 쓰면, 사출 스캔은 In Progress 인 WO-A 로 몰리고 감싸기는 WO-B 의 IMG 단계를 끝내 WO-B 헤더가 Closed 가 됩니다(INJ 단계는 Released 로 남음). 열린 WO 조건은 Cancelled 만 빼므로 WO-A 가 차면 다음 스캔이 마감된 WO-B 로 가고, 그 단계가 In Progress 가 돼 계속 먼저 받습니다. 문제점 13(불량 역분개 재개방)과 원인이 다릅니다.
+    - 내용: 한 코어를 여러 색상 완제품 WO(A·B)가 쓰면, 사출 스캔은 In Progress 인 WO-A 로 몰리고 감싸기는 WO-B 의 IMG 단계를 끝내 WO-B 헤더가 Closed 가 됩니다(INJ 단계는 Released 로 남음). 열린 WO 조건은 Cancelled 만 빼므로 WO-A 가 차면 다음 스캔이 마감된 WO-B 로 가고, 그 단계가 In Progress 가 돼 계속 먼저 받습니다. 문제점 11(불량 역분개 재개방)과 원인이 다릅니다.
     - 제안: 열린 WO 조건에서 헤더 Closed 를 빼거나, 헤더가 Closed 될 때 남은 단계도 닫습니다.
-42. **[중] In Progress WO 의 취소·강제 마감이 없고 끝난 WO 의 남은 슬롯이 정리되지 않음**(10-22 흐름 점검)
+39. **[중] In Progress WO 의 취소·강제 마감이 없고 끝난 WO 의 남은 슬롯이 정리되지 않음**(10-22 흐름 점검)
     - 위치: `WorkOrderRepository.cs:594-624`(취소는 Draft·Planned·Released 만, 단계 행 잠금 없음), `WorkOrder.razor:120-131`, `LineScheduleRepository.cs:353-357`(능력이 WO 상태와 무관하게 슬롯을 셈)
     - 내용: 실적이 일부 오른 WO 를 멈출 방법이 없어 남은 슬롯이 POP PLAN·PP-003/APS 능력·기발행 수량에 계속 잡힙니다. 계획보다 일찍 Closed 된 WO 의 미래 슬롯도 남습니다. 취소가 단계 행을 잠그지 않아, POP 확정이 단계를 찾은 직후 취소가 커밋되면 실적이 취소 WO 에 붙습니다(라우팅 C 는 마지막 단계라 Cancelled → Closed). 미해결 8(재작업이 취소 WO 에 귀속)과 같은 계열.
     - 제안: 「강제 마감」 전이를 두고 마감·취소 때 오늘 이후 슬롯을 정리하며 단계 행도 잠급니다.
-43. **[중] `PP_WorkOrder.MoldID` 를 어떤 계획 경로도 채우지 않는데 POP 이 이 값을 씀**(10-22 흐름 점검)
+40. **[중] `PP_WorkOrder.MoldID` 를 어떤 계획 경로도 채우지 않는데 POP 이 이 값을 씀**(10-22 흐름 점검)
     - 위치: WO INSERT `PpRepository.cs:887-905`·`PpRepository.Aps.cs:101-104`(금형은 슬롯 `PP_LineSchedule.MoldID` 에만), 사용처 `InjMain.razor:316-327·541-542`, `InjLotRepository.cs:164-180`
     - 내용: 로컬 DB WO 13건이 모두 MoldID NULL — INJ-MAIN 금형 샷 칩이 늘 「—」, 수동 라벨 LOT 의 금형·캐비티가 NULL, 확정 실적의 금형이 비고 캐비티 기준 사이클이 0.
     - 제안: POP 이 그 라인 오늘 슬롯의 금형(없으면 설비 장착 금형)을 씁니다.
-44. **[중] PP-003 이 LH/RH 를 동시에 찍는 금형을 따로 계산해 사출 시간이 두 배**(10-22 흐름 점검)
+41. **[중] PP-003 이 LH/RH 를 동시에 찍는 금형을 따로 계산해 사출 시간이 두 배**(10-22 흐름 점검)
     - 위치: `Scheduling/DeadlinePacker.cs:218-222`(분/EA = BOP 사이클), `PpRepository.cs:722-830`(형제 금형 처리 없음) ↔ APS `PpRepository.Aps.cs:339-354`
     - 내용: 2캐비티 금형의 LH·RH 수주 각 100개를 PP-003 으로 만들면 100분 + 100분 슬롯이 생깁니다(실제 100분) → Late·Shortfall 과다.
     - 제안: PP-003 도 같은 금형·색상 형제를 0분 행으로 묶습니다(APS 규칙과 같게).
-45. **[중] 팔레트에 「닫힘」이 없고 적입수량이 거의 비어 있어 계속 실림**(10-22 흐름 점검) — 보류 「팔레트 적재 범위 밖」 ②·④ 관련
+42. **[중] 팔레트에 「닫힘」이 없고 적입수량이 거의 비어 있어 계속 실림**(10-22 흐름 점검) — 보류 「팔레트 적재 범위 밖」 ②·④ 관련
     - 위치: `PalletStockRepository.cs:55-80`(`ReadState` `:107-131`), `PalletLoadRules.cs:65`(PalletQty NULL = 제한 없음)
     - 내용: 이미 FG 위치를 받았거나 출하 배차에 실린 팔레트에도 POP 이 계속 실어, 새로 생긴 위치 없는 행 때문에 그 팔레트 출고가 52006·배차 완료가 「contents changed」 로 막힙니다. 로컬 DB 사출품 56개 중 53개·완제품 77개 중 30개가 `PalletQty` 가 없어 「가득 참」·「새 팔레트를 스캔하세요」가 나오지 않습니다(APS 포장 단위도 1).
     - 제안: 자식 행에 위치가 있거나 배차에 실린 팔레트는 적재 거부. 적입수량 등록은 MD-003 데이터 작업.
-46. **[중] PP-003·APS·MRP 의 재고 기준이 서로 다름**(10-22 흐름 점검)
+43. **[중] PP-003·APS·MRP 의 재고 기준이 서로 다름**(10-22 흐름 점검)
     - 위치: PP-003 `PpRepository.cs:585-589`·`895-899`(FG 구역 위치만) ↔ APS `ApsRepository.cs:789-794`(위치 무관), MRP `PpRepository.cs:1012-1018`(`MD_Location` INNER JOIN — 위치 NULL 제외)
-    - 내용: POP 이 실었지만 아직 입고하지 않은 완제품을 PP-003 순수요는 재고로 보지 않고 APS 는 봐서 두 화면의 WO 수량이 다릅니다(PP-003 쪽 중복 WO). 입고만 하고 적재 전(위치 NULL)인 자재(로컬 15행·501)는 재고에도 발주중에도 없어 MRP 가 가짜 부족·중복 PR 을 냅니다. 문제점 35(MRP 가 라인 위치 제외)와 별개.
+    - 내용: POP 이 실었지만 아직 입고하지 않은 완제품을 PP-003 순수요는 재고로 보지 않고 APS 는 봐서 두 화면의 WO 수량이 다릅니다(PP-003 쪽 중복 WO). 입고만 하고 적재 전(위치 NULL)인 자재(로컬 15행·501)는 재고에도 발주중에도 없어 MRP 가 가짜 부족·중복 PR 을 냅니다. 문제점 33(MRP 가 라인 위치 제외)와 별개.
     - 제안: 위치 미배정 재고를 재고로 볼지 정하고 세 계산을 맞춥니다.
-47. **[중] 사출 확정마다 그 설비의 LOT 이력 전체를 훑어 사이클을 구함**(10-22 흐름 점검)
-    - 위치: `SP_POP_INJ_ConfirmByLotCode_GetLot2`(`migrate_pop_stored_procedures.sql:1580-1590`), 호출 `InjLotRepository.cs:466-474`
-    - 내용: `MAX(CreatedTS) WHERE EquipID·CavityPos·CreatedTS < @ThisTs` — 로컬 실행계획에서 설비로 seek 한 뒤 그 설비 LOT 마다 `tbl_Lot` PK 조회. LOT·팔레트·단계 잠금을 쥔 채 돌아, 1년이면 설비당 약 150만 건(추정)을 매 스캔마다 읽어 확정이 느려지다 30초 제한에 걸릴 수 있습니다. 문제점 11(실적 LotID 인덱스)과 별개.
+44. **[중] 사출 확정마다 그 설비의 LOT 이력 전체를 훑어 사이클을 구함**(10-22 흐름 점검)
+    - 위치: `SP_POP_INJ_ConfirmByLotCode_GetLot2`(`migrate_pop_stored_procedures.sql:1591-1601`), 호출 `InjLotRepository.cs:466-474`
+    - 내용: `MAX(CreatedTS) WHERE EquipID·CavityPos·CreatedTS < @ThisTs` — 로컬 실행계획에서 설비로 seek 한 뒤 그 설비 LOT 마다 `tbl_Lot` PK 조회. LOT·팔레트·단계 잠금을 쥔 채 돌아, 1년이면 설비당 약 150만 건(추정)을 매 스캔마다 읽어 확정이 느려지다 30초 제한에 걸릴 수 있습니다. 문제점 9(실적 LotID 인덱스)과 별개.
     - 제안: `pe.LotID < @ThisLot ORDER BY pe.LotID DESC` TOP 1 로 읽습니다.
-48. **[중] 감싸기에서 잘못 발행한 LOT 을 취소할 수 없어 코어가 영구 소모됨**(10-22 흐름 점검)
-    - 위치: `ImgLotRepository.cs:85-147`, `ImgMain.razor:303·493`, `SP_POP_IMG_FindCoreUser`(`migrate_pop_stored_procedures.sql:1800-1808` — DEFECT·SCRAPPED 자식도 사용으로 셈)
+45. **[중] 감싸기에서 잘못 발행한 LOT 을 취소할 수 없어 코어가 영구 소모됨**(10-22 흐름 점검)
+    - 위치: `ImgLotRepository.cs:85-147`, `ImgMain.razor:303·493`, `SP_POP_IMG_FindCoreUser`(`migrate_pop_stored_procedures.sql:1811-1819` — DEFECT·SCRAPPED 자식도 사용으로 셈)
     - 내용: 좌측 기본 선택이 다른 색이면 그 색으로 라벨이 나가고 코어 재고는 0 이 됩니다. 남는 길은 NG 등록 → 폐기뿐이라 멀쩡한 코어·제품이 불량·폐기로 집계됩니다.
     - 제안: 판정 전(RAW) IMG LOT 의 발행 취소(LOT VOID·코어 연결 해제·`IMG_CORE` 역거래)를 둡니다.
-49. **[중] 도장 B 교대가 자정을 넘기면 실린 LOT 이 목록에서 사라지고 지그가 영구히 잠김**(10-22 흐름 점검) — 보류 B3 의 결과
-    - 위치: `migrate_pop_stored_procedures.sql:773`(하차·라벨·불량 목록이 `PlanDate = 오늘`), `:809`(지그 가용 판정은 날짜 무관)
-    - 내용: 16:30–01:30 교대에 LOADED 인 LOT 은 자정 뒤 PNT-06 에서 하차할 수 없고, 그 지그는 LOADED 로 남아 PNT-03 에서 다시 쓸 수 없습니다(DB 직접 수정 전까지).
-    - 제안: 목록을 열린 LOT(미완료) 기준으로, 날짜는 전기일로.
-50. **[하] 흐름 점검 묶음**(10-22 흐름 점검)
+46. **[하] 흐름 점검 묶음**(10-22 흐름 점검)
     - LOT 순번이 라인·일 9999 에서 막힘(`LotNoGenerator.cs:57-58` — 2캐비티 약 17초 이하 사이클이면 도달, 에이전트는 재시도 없음 — 미해결 1·7 과 겹침).
-    - 불량 등록 뒤에도 `tbl_Lot.Status` 가 CONFIRMED(`migrate_pop_stored_procedures.sql:1659-1671` 은 QualityFlag 만) — QC 추적성이 CONFIRMED 로 표시.
-    - `ConsumeCore` OUT 거래에 위치가 남지 않음(`PalletStockRepository.cs:86-102`).
+    - 불량 등록 뒤에도 `tbl_Lot.Status` 가 CONFIRMED(`migrate_pop_stored_procedures.sql:1670-1682` 은 QualityFlag 만) — QC 추적성이 CONFIRMED 로 표시.
+    - `ConsumeCore` OUT 거래에 위치가 남지 않음(`PalletStockRepository.cs:87-103`).
     - 팔레트 적재가 수주처·고객 전용 팔레트(`MD_Pallet.CustomerID`)·내부용을 보지 않음 — 수주처가 다른 LOT 이 섞이면 팔레트 출고가 52018 로 거부. 정책 결정 필요.
     - 이미 출하된 LOT 도 POP 불량 등록이 됨(실적 −1·재작업 대기열).
-    - 도장 상태값 BOUND·OVEN 을 앱이 쓰지 않아 PNT-01 Bound·PNT-04/05 오븐 수가 늘 0(`migrate_pop_stored_procedures.sql:748·897` — JigsInside 는 라인 조건도 없음).
     - 잠재: APS BOM 규칙 WO 의 INJ 단계 라인은 품번순 첫 자식(레일), 단계 품번은 코어라 라인이 갈리면 코어 사출이 WO 를 못 찾음(`PpRepository.Aps.cs:155·318-325`), 완제품 단계 라인이 비면 생성 전체 롤백. 단계 마감 기준이 모든 단계에서 헤더 OrderQty 라 QtyPer ≠ 1 자식이 생기면 일찍 Closed(`migrate_pop_stored_procedures.sql:292-293`).
     - WO 취소가 지난 날짜 슬롯까지 지우고(일정 준수 보고서에서 사라짐) 단계는 Released 로 남김(`WorkOrderRepository.cs:604-606`).
-    - 열린 WO 규칙이 C# 상수(쓰는 곳은 테스트용 `ListForLine` 뿐)와 SP 7곳(`migrate_pop_stored_procedures.sql:214·1561·1765·1819·1983`·일별 요약 2곳)에 복사돼 하나만 고치면 화면의 활성 WO 와 실적이 붙는 WO 가 어긋남.
+    - 열린 WO 규칙이 C# 상수(쓰는 곳은 테스트용 `ListForLine` 뿐)와 SP 7곳(`migrate_pop_stored_procedures.sql:214·1572·1776·1830·1994`·일별 요약 2곳)에 복사돼 하나만 고치면 화면의 활성 WO 와 실적이 붙는 WO 가 어긋남.
     - 마스터 미비를 조용히 넘김(로컬 실측): 사출품 19개에 INJ 스테이션 BOP 없음, `83314-P8000`·`P8010` 은 BOP 라인(INJ-01)과 금형 라인(INJ-02)이 다르고 금형 후보 조회(`MasterDataRepository.cs:2194-2217`)가 라인 미배정 금형도 돌려줘 UPH 없는 라인에 배치될 수 있음, PP-004 수동 릴리스는 금형·BOP 를 확인하지 않음.
     - 추정: 라우팅 B 에서 도장품 BOM 에 SUB 가 없으면 INJ 단계 품번이 도장 완제품(ASSY)이 돼 도장 전 부품이 완제품으로 FG 입고·출하될 수 있음(`WorkOrderRepository.cs:69-78`) — 10-22 PNT-MAIN 으로 B 경로(사출 → 도장 라벨 발행·판정·확정)는 이어졌으므로 도장품 BOM 에는 사출품(InjFlag 1) 자식을 반드시 둘 것(없으면 코어 해석이 완제품 자신을 돌려준다).
 
@@ -362,7 +345,7 @@
      ③ `migrate_scm_portal_screens.sql`(1239bc10)이 포탈 화면을 PORTAL-001~004(`delivery-entry`)로 다시 매기려 하는데, 스키마 파일 화면 시드(= 개발 DB)는 PORTAL-001~006(`due-orders`·`delivery-notes`·`receipts` 포함)이고 웹 라우트도 그대로라 THROW 50004 — 이번에는 건너뛰었습니다. 개발 DB 를 그 번호로 바꿀지, 마이그레이션을 지금 화면에 맞출지 정해야 합니다.
      ④ `migrate_inj_agent.sql` 이 `PR_InjLot`·`MD_InjCondItem`·`PR_InjCondLog`·`PR_RobotInspection` 을 **DROP 후 옛 정의로 다시 만들어** 스키마 파일의 최종 구조를 덮습니다(`CreatedBy` varchar(50)·`ModifiedBy` nvarchar(450) — 개발 DB 는 varchar(20)). 재구축 목록에서 빼거나 테이블이 있으면 건너뛰게 해야 합니다. 이번에는 끝난 뒤 `ALTER COLUMN` 으로 맞췄습니다.
      ⑤ `migrate_mnt_failure_downtime.sql`(이승욱)이 컬럼 없는 DB 에서 Msg 207 — 동적 SQL 로 고쳤습니다.
-     그 밖에 심재현 문제점 34(백플러시 멱등 인덱스가 스키마 파일은 두 열)도 그대로라 끝난 뒤 넓은 정의로 맞췄습니다. 결과 `AMES` 는 로컬 `AMES_DEV` 와 컬럼 2,437·인덱스 263·기본값·CHECK·외래키가 같고, 프로시저는 현행 8개뿐(개발 DB 의 은퇴 PDA 프로시저 34개 없음), 컬럼 설명 17개는 스키마 파일 쪽 문구(FG·WH). 백업 `publish/AMES_20261022.bak`(SQL Server 2025 — 2019 개발서버에는 복원 불가).
+     그 밖에 심재현 문제점 32(백플러시 멱등 인덱스가 스키마 파일은 두 열)도 그대로라 끝난 뒤 넓은 정의로 맞췄습니다. 결과 `AMES` 는 로컬 `AMES_DEV` 와 컬럼 2,437·인덱스 263·기본값·CHECK·외래키가 같고, 프로시저는 현행 8개뿐(개발 DB 의 은퇴 PDA 프로시저 34개 없음), 컬럼 설명 17개는 스키마 파일 쪽 문구(FG·WH). 백업 `publish/AMES_20261022.bak`(SQL Server 2025 — 2019 개발서버에는 복원 불가).
 2. **동시 출고·보충 Worker 부하 검증 대기**
    - 출고의 Serializable을 ReadCommitted로 낮추고 LOT 비교의 UPPER를 제거했습니다. 재고 행 변경 잠금과 피킹 지시 잠금은 유지합니다.
    - 동일 품목 여러 줄의 수요 분배 SQL은 읽기 전용 회귀 검사로 확인했습니다. 실제 PDA 여러 대와 보충 Worker를 겹쳐 실행하는 검증은 아직 하지 않았습니다.
@@ -423,7 +406,7 @@
 
 ### 2-4. 유효한 문제점 (11)
 
-코드 수정 완료 항목은 제거했습니다. 서버 배포·실제 쓰기 검증 대기는 2-1에서 관리합니다. 아래는 10-22 흐름 전수 점검(이승욱 세션, 읽기 전용)에서 찾은 것입니다 — 10-21 POP 팔레트 적재로 POP 확정분이 `WH_Inventory` 에 바로 들어오면서 PDA·FG 쪽과 맞지 않게 된 곳이 많습니다(심재현 문제점 39·45 과 함께 봐 주세요).
+코드 수정 완료 항목은 제거했습니다. 서버 배포·실제 쓰기 검증 대기는 2-1에서 관리합니다. 아래는 10-22 흐름 전수 점검(이승욱 세션, 읽기 전용)에서 찾은 것입니다 — 10-21 POP 팔레트 적재로 POP 확정분이 `WH_Inventory` 에 바로 들어오면서 PDA·FG 쪽과 맞지 않게 된 곳이 많습니다(심재현 문제점 36·42 과 함께 봐 주세요).
 
 1. **[상] Api 가 IMG 완제품 라벨(DataMatrix)에서 LotNo 첫 글자를 빼고 읽음**
    - 위치: `src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs:1012`(`gsLot[12..]`), 정본 `AMES.Devices/ImgScanParser.cs`(T + 날짜 6 + part4M 4 = 11자 뒤가 LotNo 9자), 출고·반품 바코드 `FgOutboundBarcode.cs:9-21`·`FgEndpoints.cs:713~`
@@ -514,7 +497,7 @@
    - 제안: InjAgent 가 샷을 기록할 때 이 카운터도 올립니다(심재현 연계).
 
 ### 3-4. 문제점 (2)
-10-16 MNT 흐름 점검의 6건은 같은 날 사용자 결정대로 처리했습니다(CLAUDE.md MNT 규칙 ⑦·⑩·⑪). 안돈 보전 호출의 작업지시 자동 발행은 심재현 미해결 22 로 옮겼습니다. 아래는 10-22 흐름 전수 점검에서 찾은 것입니다.
+10-16 MNT 흐름 점검의 6건은 같은 날 사용자 결정대로 처리했습니다(CLAUDE.md MNT 규칙 ⑦·⑩·⑪). 안돈 보전 호출의 작업지시 자동 발행은 심재현 미해결 21 로 옮겼습니다. 아래는 10-22 흐름 전수 점검에서 찾은 것입니다.
 
 1. **[상] `MD_Line.LotPrefix` 를 웹에서 넣을 수 없고 WO 릴리스도 확인하지 않음**
    - 위치: `MasterDataRepository.cs:2572-2600`(InsertLine)·`:2602-2630`(UpdateLine — 둘 다 LotPrefix 없음, 목록만 읽음), `Services/LotNoGenerator.cs:52-53`, 릴리스 검증 `WorkOrderRepository.cs:504-521`(ValidateStepChoices)
@@ -563,9 +546,9 @@
 
 지난 기준선은 커밋 이력으로 봅니다. 여기에는 지금 기준만 둡니다.
 
-- **테스트(10-22 23시, `2de82e9c` Release 빌드, Data 는 로컬 DB = 개발 DB 복제본)**: Pop 183, Api 214(건너뜀 1), InjAgent 54 통과. Data 1,489건 중 1,467 통과·11 실패·11 건너뜀 — 실패는 심재현 보류 「라우팅 B·시드 변경」 10건(PlanSchedule 5·WorkOrderRepository 4·InjLot 금형 1)과 같은 보류에 적은 데이터 가정 1건(`MoldPlanningTests.LineLastMoldBefore_…`)입니다. 팔레트 적재 `PalletLoadDbTests` 를 포함한 나머지는 통과했고 시험 행(품번 `ZPLT-*`·팔레트 `EOS-PLT-9999-*` 등)은 남지 않았습니다. Web·Api·Pop·InjAgent 빌드 오류 0. InjAgent `PollerRunnerTests.Stop_timeout_keeps_running_flag_until_loop_exits` 는 타이밍에 기대어 가끔 1건 실패합니다(다시 돌리면 통과 — 심재현 문제점 27 과 같은 정지 경합).
+- **테스트(10-22 23시, `2de82e9c` Release 빌드, Data 는 로컬 DB = 개발 DB 복제본)**: Pop 183, Api 214(건너뜀 1), InjAgent 54 통과. Data 1,489건 중 1,467 통과·11 실패·11 건너뜀 — 실패는 심재현 보류 「라우팅 B·시드 변경」 10건(PlanSchedule 5·WorkOrderRepository 4·InjLot 금형 1)과 같은 보류에 적은 데이터 가정 1건(`MoldPlanningTests.LineLastMoldBefore_…`)입니다. 팔레트 적재 `PalletLoadDbTests` 를 포함한 나머지는 통과했고 시험 행(품번 `ZPLT-*`·팔레트 `EOS-PLT-9999-*` 등)은 남지 않았습니다. Web·Api·Pop·InjAgent 빌드 오류 0. InjAgent `PollerRunnerTests.Stop_timeout_keeps_running_flag_until_loop_exits` 는 타이밍에 기대어 가끔 1건 실패합니다(다시 돌리면 통과 — 심재현 문제점 25 와 같은 정지 경합).
 - **두 DB 구조·데이터(10-22 저녁)**: 로컬 DB 를 개발 DB 기준으로 통째로 다시 맞췄습니다(sqlpackage 구조+데이터 복제 → 이름 교체, IDENTITY 다음 번호·다이어그램 객체 보정 — 이전 로컬 DB 는 `AMES_DEV_BAK_20261022`, 백업 `AMES_DEV_local_20261022_before_sync.bak`). 178 테이블의 컬럼(순서·형식·NULL·콜레이션·IDENTITY·기본값), 인덱스, CHECK, 외래키, 프로시저·뷰·함수 정의가 **같고**(도구 `AppData\Local\AMES-claude-tools\schema_compare.ps1` IDENTICAL — `SP_POP_*` 145개 포함, 개발 DB 정의 = `migrate_pop_stored_procedures.sql`), 데이터는 181 테이블 중 180 이 행 수·체크섬까지 같습니다(`SYS_InterfaceMonitor` 만 — 로컬 IIS Api Worker 가 개발 DB 행을 계속 갱신). 원격의 마이그레이션 변경 2건(`migrate_by_columns_employee_no`·`migrate_wh_fg_scm_column_lengths` 의 임시 테이블 콜레이션)은 이미 적용된 DB 에는 영향이 없어 다시 돌리지 않았습니다.
-- **스키마 파일 ↔ 개발 DB(10-22, `tools/schema_from_db` 로 새로 떠서 객체 비교)**: 스키마 파일에 없는 것 — 테이블 4개 `FG_Delivery`·`FG_DeliveryLoad`·`FG_ShippingOrder`·`FG_ShippingOrderLine`(기본값·인덱스 포함, 재구축은 `migrate_line_locations_shipping_orders.sql` 이 만듦), 프로시저 `SP_POP_*` 145개(재구축은 `migrate_pop_stored_procedures.sql`), 옛 PDA 프로시저 27개(`FG_PDA_*` 5·`SP_PDA_*` 3·`WH_PDA_*` 19 — 안영훈이 파일에서 일부러 뺐고 개발 DB 에서는 지우지 않음). 정의가 다른 것 — `IX_WH_InventoryTransaction_Source`(심재현 문제점 34)·`UX_PR_PopSession_BearerHash` 중복 정의(안영훈 2-1 1 ②). 컬럼·기본값·CHECK 는 같습니다. 스키마 파일을 개발 DB 로 다시 뜰지는 위 재구축 문제(2-1 1)와 함께 정합니다.
+- **스키마 파일 ↔ 개발 DB(10-22, `tools/schema_from_db` 로 새로 떠서 객체 비교)**: 스키마 파일에 없는 것 — 테이블 4개 `FG_Delivery`·`FG_DeliveryLoad`·`FG_ShippingOrder`·`FG_ShippingOrderLine`(기본값·인덱스 포함, 재구축은 `migrate_line_locations_shipping_orders.sql` 이 만듦), 프로시저 `SP_POP_*` 145개(재구축은 `migrate_pop_stored_procedures.sql`), 옛 PDA 프로시저 27개(`FG_PDA_*` 5·`SP_PDA_*` 3·`WH_PDA_*` 19 — 안영훈이 파일에서 일부러 뺐고 개발 DB 에서는 지우지 않음). 정의가 다른 것 — `IX_WH_InventoryTransaction_Source`(심재현 문제점 32)·`UX_PR_PopSession_BearerHash` 중복 정의(안영훈 2-1 1 ②). 컬럼·기본값·CHECK 는 같습니다. 스키마 파일을 개발 DB 로 다시 뜰지는 위 재구축 문제(2-1 1)와 함께 정합니다.
 - **게시**: 로컬 IIS Web·Api = 개발 DB. 개발서버용 `publish/AMES.Web_20261022-223909.zip`·`AMES.Api_20261022-224140.zip`(`2de82e9c` — 566893cd MD-018 수정·SCM 납품 진행·Api 납품 일정 포함) — **개발서버 Web 을 바꾸기 전까지 서버의 구 Web 은 MD-003·004·009·010·018 과 `ListItems` 를 쓰는 화면이 `Invalid column name 'SAPTransFlag'`** 입니다(구 Api 는 영향 없음). POP(팔레트 적재·저장 프로시저 호출)은 터미널에 따로 배포합니다 — 신 POP 은 `SP_POP_*` 가 있는 DB 에서만 돌고(개발·로컬 DB 적용됨), 배포하면 현장에서 팔레트를 먼저 스캔해야 확정됩니다. 헤드리스로 SCM-001~005·MD-003·MD-018·WH 재고·로케이션 지도·PP-APS 10개 화면을 열어 Blazor 오류·오류 알림·가로 넘침이 없음을 확인했습니다(admin 로그인 기록 원복).
 - **헤드리스 확인 방식**: 로컬 IIS·개발 DB 로 화면을 열 때 admin 로그인 기록(LastLoginTS·ModifiedTS·ModifiedBy·FailedLoginCount)과 `SYS_AuditLog` 최대 LogID 를 먼저 읽고 끝나면 되돌립니다. 검증 도구는 `AppData\Local\AMES-claude-tools\`.
 - **NuGet(10-15)**: 취약 패키지 0(`dotnet list package --vulnerable --include-transitive`), 모든 패키지가 최신 안정 버전입니다(SqlClient 7.1.1, EF Core 10.0.13, Radzen 12.1.2, Test.Sdk 18.11.0, xunit 러너 4.0.1 등). 취약성 때문에 `System.Security.Cryptography.Pkcs` 를 AMES.Data 에서 10.0.13 으로 고정했으니 SqlClient 를 올릴 때 다시 확인합니다.
