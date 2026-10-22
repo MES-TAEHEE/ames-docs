@@ -10169,6 +10169,18 @@
   <data name="PP.Aps.Wo.Reject.NoUph" xml:space="preserve">
     <value>Sin UPH de molde-línea</value>
   </data>
+  <data name="PP.Aps.Wo.Reject.NoCore" xml:space="preserve">
+    <value>Sin núcleo identificable para el producto terminado {0} (ninguna o varias piezas de inyección en la BOM)</value>
+  </data>
+  <data name="PP.Aps.Wo.Reject.NoParent" xml:space="preserve">
+    <value>Ningún producto terminado usa esta pieza de inyección en la BOM guardada</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.Blocked" xml:space="preserve">
+    <value>{0} línea(s) del plan tienen problemas de datos maestros; no se crearán OT.</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.BlockedHint" xml:space="preserve">
+    <value>Corrija el maestro de piezas de molde (MD-007), el UPH molde-línea o las piezas de inyección de la BOM (InjFlag) y actualice la vista previa, o quite esas líneas en Objetivos.</value>
+  </data>
   <data name="PP.Aps.Wo.Err.NoneSelected" xml:space="preserve">
     <value>No hay líneas seleccionadas</value>
   </data>

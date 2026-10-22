@@ -1,5 +1,6 @@
 @namespace AMES.Pop.Pages.InjPopups
 @using AMES.Contracts.Enums
+@using AMES.Data.Repositories
 @using AMES.Data.Services
 @using AMES.Pop.Common
 @inject AMES.Pop.Services.ScannerService Scanner
@@ -154,15 +155,18 @@
         _busy = true;
         try
         {
+            var unload = PalletStockRepository.PalletUnloadResult.None;
             var (outcome, _, itemNo) = ProcessCode switch
             {
-                "PNT" => PopServices.PntLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo),
-                "IMG" => PopServices.ImgLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo),
-                _     => PopServices.InjLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo),
+                "PNT" => PopServices.PntLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo, out unload),
+                "IMG" => PopServices.ImgLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo, out unload),
+                _     => PopServices.InjLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo, out unload),
             };
+            // 이미 PDA 로 입고된(위치 있는) 재고 행을 뺐으면 창고에 알려야 한다 — 팔레트 위 행을 뺀 것은 정상 경로라 조용하다
+            var located = unload.WasLocated ? $" · {T("DfStockRemovedLocated", unload.LocationNo!)}" : "";
             var (ok, detail) = outcome switch
             {
-                DefectRegisterOutcome.Registered      => (true,  $"{T("DfRegistered")}: {_lot.LotCode} ({itemNo}) · {_selected.DefectCode}"),
+                DefectRegisterOutcome.Registered      => (true,  $"{T("DfRegistered")}: {_lot.LotCode} ({itemNo}) · {_selected.DefectCode}{located}"),
                 DefectRegisterOutcome.NotFound        => (false, $"{T("LotNotFound")}: {_lot.LotCode}"),
                 DefectRegisterOutcome.WrongLine       => (false, $"{T("LotBelongsToAnotherLine")}: {_lot.LotCode}"),
                 DefectRegisterOutcome.AlreadyInRework => (false, $"{T("DfAlreadyInRework")}: {_lot.LotCode}"),

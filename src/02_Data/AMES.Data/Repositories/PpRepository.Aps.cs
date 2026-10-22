@@ -30,12 +30,13 @@ public sealed partial class PpRepository
         public decimal OverQty  => Placements.Sum(p => p.OverQty);
     }
 
-    /// <summary>거부된 계획 행. Reason = RejectNoMold | RejectNoUph.</summary>
-    public sealed record ApsRejectedLine(int PlanLineId, string ItemNo, DateOnly PlanDate, string Reason);
+    /// <summary>거부된 계획 행. Reason = RejectNoMold | RejectNoUph | RejectNoParent | RejectNoCore. Detail = NoCore 면 코어를 못 정한 부모 완제품 품번.</summary>
+    public sealed record ApsRejectedLine(int PlanLineId, string ItemNo, DateOnly PlanDate, string Reason, string? Detail = null);
 
     /// <param name="EditOutcomes">미리보기 보드에서 옮긴 슬롯 편집(ApsSlotEdit)의 적용 결과 — 편집을 넘기지 않았으면 빈 목록.</param>
+    /// <param name="Blocked">거부 행이 있어 WO 를 만들지 않는다(10-22 사용자 결정 — 금형·UPH·코어가 빠진 채 일부만 내려가지 않게). 실제 실행은 Orders 가 비고 아무것도 쓰지 않았으며, dryRun 은 Orders 로 "만들어질 WO" 를 보이되 실제 실행이 막힌다는 뜻.</param>
     public sealed record ApsWoResult(List<ApsWoOrder> Orders, List<ApsRejectedLine> Rejected, int SkippedExisting, int BomRuleExcluded, bool DryRun,
-                                     IReadOnlyList<ApsSlotEditOutcome>? EditOutcomes = null)
+                                     IReadOnlyList<ApsSlotEditOutcome>? EditOutcomes = null, bool Blocked = false)
     {
         public IReadOnlyList<ApsSlotEditOutcome> Edits => EditOutcomes ?? Array.Empty<ApsSlotEditOutcome>();
         public int EditsApplied => Edits.Count(e => e.Applied);
@@ -282,6 +283,23 @@ public sealed partial class PpRepository
                 rowLegs[r.PlanLineId] = legs;
             }
 
+            // 부모 템플릿·코어 판정(10-22): 코어를 못 정하는 완제품(InjFlag 사출품이 없거나 여럿인데 품명 CORE 로 하나를 못 고름)은 ReleaseCore 가 예외로 막으므로,
+            // WO 를 만들기 전에 그 부모와 그 부모에 싣던 자식 행을 NoCore 로 거부한다(PP-003 과 같은 사유) — 전에는 예외가 트랜잭션 전체를 롤백해 정상 행의 WO 도 0건이었다
+            foreach (var plan in plans.Values.ToList())
+            {
+                if (routing.GetValueOrDefault(plan.ItemNo) is not { } rt)
+                    throw new InvalidOperationException($"{plan.ItemNo}: RoutingType missing.");
+                plan.Template = WorkOrderRepository.ReadPreview(conn, tx, plan.ItemNo, rt);
+                if (!plan.Template.Any(t => t.NoCore)) continue;
+                foreach (var leg in plan.Legs.ToList())
+                {
+                    if (!rowLegs.Remove(leg.Row.PlanLineId, out var legs)) continue;   // 다른 NoCore 부모에서 이미 거부한 행
+                    rejected.Add(new ApsRejectedLine(leg.Row.PlanLineId, leg.Row.ItemNo, leg.Row.PlanDate, RejectNoCore, plan.ItemNo));
+                    foreach (var l in legs) l.Parent.Legs.Remove(l);   // 그 자식 행의 다른 부모 몫도 만들지 않는다 — 거부가 있으면 어차피 생성하지 않는다
+                }
+            }
+            foreach (var p in plans.Values.Where(p => p.Legs.Count == 0).ToList()) plans.Remove((p.ItemNo.ToUpperInvariant(), p.PlanDate));
+
             // 부모 수량·라우팅·마감(스펙 2026-10-05 §2) — 0 이 된 부모는 버리고, 그 부모만 쓰던 자식 행은 덮인 것으로.
             // BOM 규칙(부모와 다른 자식이 하나라도 있으면)은 비율 분배로 생긴 자투리를 완제품 포장 단위로 올린다(ApsRepository 의 완제품 PackRule 과 같은 PalletQty ?? RoundTo);
             // 같은 품번 규칙만이면 엔진이 이미 자식 포장 단위로 올린 값이라 종전대로 내림만
@@ -292,9 +310,7 @@ public sealed partial class PpRepository
                 plan.Qty = !bomRule || raw <= 0 ? Math.Floor(raw)
                          : RoundUpToPack(raw, packOf.GetValueOrDefault(plan.ItemNo) is int bq && bq > 0 ? bq : settings.RoundTo);
                 if (plan.Qty <= 0) { plans.Remove((plan.ItemNo.ToUpperInvariant(), plan.PlanDate)); continue; }
-                if (routing.GetValueOrDefault(plan.ItemNo) is not { } rt)
-                    throw new InvalidOperationException($"{plan.ItemNo}: RoutingType missing.");
-                plan.Template = WorkOrderRepository.ReadPreview(conn, tx, plan.ItemNo, rt);
+                var rt = routing[plan.ItemNo];
                 var injStep = plan.Template.FirstOrDefault(t => MoldResolver.NeedsMold(t.ProcessCode))
                               ?? throw new InvalidOperationException($"{plan.ItemNo}: routing {rt} has no {MoldResolver.MoldProcessCode} step.");
                 plan.InjStepSeq = injStep.StepSeq;
@@ -309,6 +325,14 @@ public sealed partial class PpRepository
             foreach (var (rowId, legs) in rowLegs)
                 if (legs.All(l => !plans.ContainsKey((l.Parent.ItemNo.ToUpperInvariant(), l.Parent.PlanDate)))) { skipped++; covered.Add(rowId); }
             var liveLegs = plans.Values.SelectMany(p => p.Legs).ToList();
+
+            // 거부(NoMold·NoUph·NoParent·NoCore)가 하나라도 있으면 WO 를 하나도 만들지 않는다(10-22 사용자 결정 — 전에는 그 행만 빼고 나머지를 만들었다).
+            // 마스터를 고쳐 다시 미리보기하거나 「대상 선택」에서 그 행을 빼야 한다. dryRun 은 계속 돌아 화면이 만들어질 WO 와 거부 행을 함께 보인다
+            if (rejected.Count > 0 && !dryRun)
+            {
+                tx.Rollback();
+                return new ApsWoResult(new(), rejected, skipped, 0, DryRun: false, Blocked: true);
+            }
 
             // 2단계: WO INSERT + Release — 부모·날짜 순. MC 의 RefID 로 대표 첫 WO 가 필요해 슬롯보다 먼저 전부 만든다
             var seq = NextWoSeq(conn, tx, prefix);
@@ -618,14 +642,14 @@ public sealed partial class PpRepository
             }
 
             // Released = 대상이 될 수 있는 행(수량>0·WoID NULL)이 남지 않았고 WO 가 연결된 행이 하나라도 있을 때.
-            // 거부(NoMold/NoUph/NoParent)·미선택 행은 남긴다 — 금형 등록 후 같은 실행으로 재실행할 수 있게.
+            // 미선택 행은 남긴다 — 같은 실행으로 재실행할 수 있게(거부 행이 있으면 여기까지 오지 않는다 — dryRun 제외).
             bool remaining = allInj.Any(r => r.PlanDay + r.PlanNight > 0 && r.WoId is null
                                              && !createdIds.Contains(r.PlanLineId) && !covered.Contains(r.PlanLineId));
             bool anyLinked = createdIds.Count > 0 || allInj.Any(r => r.WoId is not null);
             if (!remaining && anyLinked) MarkRunReleased(conn, tx, runId, actor);
 
             if (dryRun) tx.Rollback(); else tx.Commit();
-            return new ApsWoResult(orders, rejected, skipped, 0, dryRun, editOutcomes);
+            return new ApsWoResult(orders, rejected, skipped, 0, dryRun, editOutcomes, Blocked: rejected.Count > 0);
         }
         catch { tx.Rollback(); throw; }
     }

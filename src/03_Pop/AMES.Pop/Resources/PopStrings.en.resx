@@ -232,6 +232,7 @@
   <data name="DfRegistered" xml:space="preserve"><value>Defect registered</value></data>
   <data name="DfAlreadyInRework" xml:space="preserve"><value>LOT already awaiting rework</value></data>
   <data name="DfScrapped" xml:space="preserve"><value>Scrapped LOT</value></data>
+  <data name="DfStockRemovedLocated" xml:space="preserve"><value>Removed from stocked inventory (location {0}) — notify the warehouse</value></data>
   <data name="DfPriorConfirmed" xml:space="preserve"><value>Confirmed LOT — 1 EA reversed</value></data>
   <data name="DfTodayRegistered" xml:space="preserve"><value>Registered this session</value></data>
   <data name="LotInRework" xml:space="preserve"><value>LOT awaiting rework</value></data>
@@ -256,6 +257,7 @@
   <data name="RwkConfirmScrapBody" xml:space="preserve"><value>Scrap {0}. This cannot be undone.</value></data>
   <data name="RwkDoneRework" xml:space="preserve"><value>Reworked and confirmed good</value></data>
   <data name="RwkDoneScrap" xml:space="preserve"><value>Scrapped</value></data>
+  <data name="RwkStockRemovedLocated" xml:space="preserve"><value>Removed from stocked inventory (location {0}) — notify the warehouse</value></data>
   <data name="RwkAlreadyDecided" xml:space="preserve"><value>LOT already decided</value></data>
   <data name="RwkNotFound" xml:space="preserve"><value>Rework row not found</value></data>
   <data name="RwkTodayDecided" xml:space="preserve"><value>Decided today</value></data>
