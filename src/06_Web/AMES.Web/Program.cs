@@ -245,7 +245,6 @@ builder.Services.AddSingleton(sp => new EquipmentRepository(factory));
 builder.Services.AddSingleton(sp => new MasterDataRepository(factory));
 builder.Services.AddSingleton(sp => new ProductionRepository(factory));
 builder.Services.AddSingleton(sp => new DefectRepository(factory));
-builder.Services.AddSingleton(sp => new PntRepository(factory));
 builder.Services.AddSingleton(sp => new QcRepository(factory));
 builder.Services.AddSingleton(sp => new PpRepository(factory));
 builder.Services.AddSingleton(sp => new ScmRepository(factory));

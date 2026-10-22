@@ -3009,7 +3009,8 @@ public sealed class MasterDataRepository
         INSERT @r SELECT 'FAILURE', ISNULL(FailureNumber, CAST(FailureID AS varchar(20)))  FROM dbo.MNT_FailureRegister WHERE EquipID = @K;
         INSERT @r SELECT DISTINCT 'MOLD', MoldID FROM dbo.MNT_MoldShotCount WHERE MountedEquipID = @K;
         INSERT @r SELECT 'LOT', ISNULL(l.LotCode, CAST(p.LotID AS varchar(20))) FROM dbo.PR_InjLot p LEFT JOIN dbo.tbl_Lot l ON l.LotID = p.LotID WHERE p.EquipID = @K
-            UNION ALL SELECT 'LOT', ISNULL(l.LotCode, CAST(p.LotID AS varchar(20))) FROM dbo.PR_ImgLot p LEFT JOIN dbo.tbl_Lot l ON l.LotID = p.LotID WHERE p.EquipID = @K;
+            UNION ALL SELECT 'LOT', ISNULL(l.LotCode, CAST(p.LotID AS varchar(20))) FROM dbo.PR_ImgLot p LEFT JOIN dbo.tbl_Lot l ON l.LotID = p.LotID WHERE p.EquipID = @K
+            UNION ALL SELECT 'LOT', ISNULL(l.LotCode, CAST(p.LotID AS varchar(20))) FROM dbo.PR_PntLot p LEFT JOIN dbo.tbl_Lot l ON l.LotID = p.LotID WHERE p.EquipID = @K;
         """;
 
     public List<UsageRef> EquipmentUsages(string equipId) => UsagesOf(EquipmentUsageSql, equipId);

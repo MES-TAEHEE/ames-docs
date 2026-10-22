@@ -302,4 +302,6 @@
   <data name="PalletUnavailable" xml:space="preserve"><value>사용할 수 없는 팔레트 (사용 안 함·출고됨)</value></data>
   <data name="PalletMixed" xml:space="preserve"><value>다른 품번이 실린 팔레트</value></data>
   <data name="PalletFull" xml:space="preserve"><value>팔레트 가득 참 — 새 팔레트를 스캔하세요</value></data>
+  <data name="PntScanLabel" xml:space="preserve"><value>완제품 라벨 · 팔레트 스캔</value></data>
+  <data name="HelpPntMainSub" xml:space="preserve"><value>도장 후 라벨 발행 버튼으로 완제품 라벨을 뽑고 OK/NG 로 판정한다 — 코어 스캔·작업지시 접수 없음</value></data>
 </root>

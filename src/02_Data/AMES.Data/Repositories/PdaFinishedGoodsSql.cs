@@ -11,12 +11,13 @@ public static class PdaFinishedGoodsSql
             DECLARE @Search nvarchar(130)=N'%'+NULLIF(LTRIM(RTRIM(@SearchText)),N'')+N'%';
             SELECT W.LotNo,W.PartNo AS ItemNo,
                 COALESCE(NULLIF(W.PartName,N''),I.ItemName COLLATE DATABASE_DEFAULT) AS ItemName,L.LotID,
-                IMG.CustomerCode,COALESCE(W.Qty,0) AS Qty,COALESCE(NULLIF(I.DefaultUOM,''),'EA') AS Unit,
+                COALESCE(IMG.CustomerCode,PNT.CustomerCode) AS CustomerCode,COALESCE(W.Qty,0) AS Qty,COALESCE(NULLIF(I.DefaultUOM,''),'EA') AS Unit,
                 W.LocationNo AS Location,'AVAILABLE' AS Status,W.ReceivedAt AS StockTS
             FROM dbo.WH_Inventory W
             LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=W.PartNo
             LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=W.LotNo
             LEFT JOIN dbo.PR_ImgLot IMG ON IMG.LotID=L.LotID
+            LEFT JOIN dbo.PR_PntLot PNT ON PNT.LotID=L.LotID
             LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
             WHERE W.Qty>0
               AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
@@ -243,9 +244,12 @@ public static class PdaFinishedGoodsSql
             FROM UnitTree T OUTER APPLY
             (
                 SELECT MIN(M.CustomerID) CustomerID
-                FROM dbo.tbl_Lot L JOIN dbo.PR_ImgLot P ON P.LotID=L.LotID
+                FROM dbo.tbl_Lot L
+                LEFT JOIN dbo.PR_ImgLot I ON I.LotID=L.LotID
+                LEFT JOIN dbo.PR_PntLot N ON N.LotID=L.LotID
+                CROSS APPLY (SELECT COALESCE(I.CustomerCode,N.CustomerCode) AS CustomerCode) P
                 JOIN dbo.MD_Customer M ON M.CustomerID COLLATE DATABASE_DEFAULT=P.CustomerCode COLLATE DATABASE_DEFAULT OR M.CustomerCode COLLATE DATABASE_DEFAULT=P.CustomerCode COLLATE DATABASE_DEFAULT
-                WHERE L.LotCode COLLATE DATABASE_DEFAULT=T.LotNo COLLATE DATABASE_DEFAULT HAVING COUNT(DISTINCT M.CustomerID)=1
+                WHERE L.LotCode COLLATE DATABASE_DEFAULT=T.LotNo COLLATE DATABASE_DEFAULT AND P.CustomerCode IS NOT NULL HAVING COUNT(DISTINCT M.CustomerID)=1
             ) C
             WHERE T.Qty>0 AND T.PartNo IS NOT NULL
               AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory X WHERE X.ParentLotNo=T.LotNo AND X.Qty>0)
@@ -305,9 +309,12 @@ public static class PdaFinishedGoodsSql
                 FROM @Scope T OUTER APPLY
                 (
                     SELECT MIN(M.CustomerID) CustomerID
-                    FROM dbo.tbl_Lot L JOIN dbo.PR_ImgLot P ON P.LotID=L.LotID
+                    FROM dbo.tbl_Lot L
+                    LEFT JOIN dbo.PR_ImgLot I ON I.LotID=L.LotID
+                    LEFT JOIN dbo.PR_PntLot N ON N.LotID=L.LotID
+                    CROSS APPLY (SELECT COALESCE(I.CustomerCode,N.CustomerCode) AS CustomerCode) P
                     JOIN dbo.MD_Customer M ON M.CustomerID COLLATE DATABASE_DEFAULT=P.CustomerCode COLLATE DATABASE_DEFAULT OR M.CustomerCode COLLATE DATABASE_DEFAULT=P.CustomerCode COLLATE DATABASE_DEFAULT
-                    WHERE L.LotCode COLLATE DATABASE_DEFAULT=T.LotNo COLLATE DATABASE_DEFAULT HAVING COUNT(DISTINCT M.CustomerID)=1
+                    WHERE L.LotCode COLLATE DATABASE_DEFAULT=T.LotNo COLLATE DATABASE_DEFAULT AND P.CustomerCode IS NOT NULL HAVING COUNT(DISTINCT M.CustomerID)=1
                 ) C
                 WHERE T.Qty>0 AND NOT EXISTS(SELECT 1 FROM @Scope X WHERE X.ParentLotNo=T.LotNo AND X.Qty>0)
                   AND (T.PartNo IS NOT NULL OR UPPER(ISNULL(T.UnitType,'')) NOT IN('PALLET','CASE'));

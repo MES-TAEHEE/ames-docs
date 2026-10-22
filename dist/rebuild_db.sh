@@ -71,6 +71,7 @@ FILES=(
   migrate_wo_step_line.sql            # WO 공정 단계: PP_WorkOrderRouting CompletedQty·TerminalLock·인덱스 + 백필 (migrate_routing_step 이후)
   migrate_wo_step_item.sql            # WO 단계 생산 품번: PP_WorkOrderRouting.ItemNo (INJ 단계 = BOM 코어) + (LineID, ItemNo) 인덱스 (migrate_wo_step_line 이후)
   seed_inj_img_master_dev.sql         #   → 개발용 INJ(코어)/IMG(완제품) 스테이션 BOP (품목 시드 이후, 운영 금지)
+  seed_pnt_dev.sql                    #   → 개발용 PNT 데모 완제품 2개(라우팅 B)·BOM·ST-PNT-01 BOP (품목 시드 이후, 운영 금지)
   seed_md_mold_master.sql             # 금형 마스터 정본 — MD_Item 사출 성형 SUB(코어·레일) 기준 MD_Mold·MoldItem·MoldLine 전체 재적재 (품목 시드·migrate_mold_master·migrate_mold_change_plan 이후)
   seed_pp_customer_order_dev.sql      #   → 개발용 가상 수주 231건(ASSY 77 × 3회차, Confirmed) — seed_md_customer_seoyon 이 먼저여야 함
   migrate_wo_prod_deadline.sql        # WO 생산 마감일 컬럼 + PP_PROD_BUFFER_WORKDAYS 설정 (순서 무관)
@@ -98,6 +99,7 @@ FILES=(
   migrate_andon_workflow.sql          # 안돈 워크플로: MD_LineSupervisor·PR_AndonDeptCall·PR_AndonCall.SupervisorName·공통코드 (순서 무관)
   migrate_lot_defect_rework.sql       # LOT 불량·재작업: PR_DefectDetail 컬럼·필터 유니크 인덱스·RWK 마스터 (순서 무관, -I 필수)
   migrate_img_core_lot.sql            # IMG 완제품↔사출 Core 1:1 필터 유니크 인덱스 UX_tbl_Lot_ImgParent (순서 무관, -I 필수)
+  migrate_pnt_lot.sql                 # PNT 원천 LOT PR_PntLot + 구 SP_POP_PNT_* 17개 DROP (10-22, 순서 무관)
   seed_defect_first_article.sql       # INJ·IMG 초품 불량코드 INJ-D07·IMG-D07 (재실행 안전, 기본 원인은 있을 때만 연결)
   migrate_md_equipment_type_tonnage.sql # 설비 유형 공통코드 EQUIP_TYPE(INJ·WRAP·PNT) + 값 변환 + MD_Equipment.Tonnage (순서 무관)
   migrate_aps.sql                     # APS: MD_Item.BoxQty·MD_MoldItem.PartCavityCount 폐지·삭제 + MD_ApsLineStage·PP_ApsRun/PlanLine/RunWo + 공통코드 APS_SETTING/APS_COVER_TIER (migrate_mold_master 이후, -I 필수)

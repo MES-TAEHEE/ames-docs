@@ -302,4 +302,6 @@
   <data name="PalletUnavailable" xml:space="preserve"><value>Pallet unavailable (inactive or shipped)</value></data>
   <data name="PalletMixed" xml:space="preserve"><value>Pallet holds another part</value></data>
   <data name="PalletFull" xml:space="preserve"><value>Pallet full — scan a new pallet</value></data>
+  <data name="PntScanLabel" xml:space="preserve"><value>SCAN FINISHED LABEL · PALLET</value></data>
+  <data name="HelpPntMainSub" xml:space="preserve"><value>After painting, press LABEL PRINT for the finished label, then judge OK / NG — no core scan, no work-order acceptance</value></data>
 </root>

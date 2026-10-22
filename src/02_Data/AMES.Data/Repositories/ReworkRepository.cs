@@ -192,7 +192,8 @@ public sealed class ReworkRepository
             // 확정된 적 없는 LOT(등록 전 상태 RAW·NG_BLOCKED)만 — 전에 CONFIRMED 였던 LOT 은 그때 자재가 들어갔다(배포 전 확정이라
             // 차감 기록이 없어도 다시 빼지 않는다). 자재는 LOT 의 원래 라인(lineId)에서 썼다 — 재작업 라인이 아니다
             if (LotDefectRules.WasNeverConfirmed(priorStatus))
-                backflush = BackflushRepository.Apply(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo, lineId, operatorId, employeeNo);
+                backflush = BackflushRepository.Apply(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo, lineId, operatorId, employeeNo,
+                                                      BackflushRules.IncludesInjection(processCode));
             CloseRow(conn, tx, defectId, LotDefectRules.DispositionReworked, causeCode, note, operatorId, employeeNo);
 
             tx.Commit();

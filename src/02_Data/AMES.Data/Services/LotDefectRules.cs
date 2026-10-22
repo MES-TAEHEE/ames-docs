@@ -6,10 +6,10 @@ namespace AMES.Data.Services;
 public enum LotConfirmBlock { None, AlreadyConfirmed, NgBlocked, InRework, Scrapped }
 
 /// <summary>
-/// PR_InjLot / PR_ImgLot.ConfirmStatus 상태 기계의 정본.
+/// PR_InjLot / PR_ImgLot / PR_PntLot.ConfirmStatus 상태 기계의 정본.
 ///   RAW ─스캔→ CONFIRMED ─불량→ DEFECT ─수리→ CONFIRMED / ─폐기→ SCRAPPED
 ///   INJ: RAW ─로봇NG→ NG_BLOCKED ─불량→ DEFECT
-/// INJ·IMG 리포지토리와 ReworkRepository 가 같은 규칙을 쓴다. 단위 테스트: LotDefectRulesTests.
+/// INJ·IMG·PNT 리포지토리와 ReworkRepository 가 같은 규칙을 쓴다. 단위 테스트: LotDefectRulesTests.
 /// </summary>
 public static class LotDefectRules
 {
