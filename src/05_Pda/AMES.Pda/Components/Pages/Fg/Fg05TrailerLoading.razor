@@ -12,6 +12,34 @@
             <label>@(_delivery is null?"SHIPMENT ORDER / DCR BARCODE":"PALLET BARCODE")</label>
             <RadzenTextBox Value="@_barcode" @oninput="@(e=>_barcode=e.Value?.ToString()??"")" @onkeydown="OnKey" Disabled="_busy" Placeholder="Scan Barcode" class="pda-input pda-scan-input" />
         </div></RadzenCard>
+        @if(_delivery is null)
+        {
+            <RadzenCard class="wh02-panel shipment-orders-panel">
+                <div class="shipment-orders-head">
+                    <strong>SHIPMENT ORDERS · @_orders.Count</strong>
+                    <RadzenButton Icon="refresh" Text="REFRESH" Click="ReloadOrders" Disabled="@(_busy||_loadingOrders)" Size="ButtonSize.Small" class="wh02-clear-btn" />
+                </div>
+                @if(_ordersError.Length>0)
+                {
+                    <div class="shipment-orders-empty error" role="alert">@_ordersError</div>
+                }
+                else if(!_loadingOrders && _orders.Count==0)
+                {
+                    <div class="shipment-orders-empty">No open shipment orders.</div>
+                }
+                @foreach(var order in _orders)
+                {
+                    <RadzenButton Click="@(()=>SelectOrder(order))" Disabled="@(_busy||!CanOpenOrder(order))" class="shipment-order-row">
+                        <ChildContent>
+                            <span class="shipment-order-main"><strong>@order.OrderNo</strong><span>@order.Status</span></span>
+                            <span class="shipment-order-meta">@order.CustomerId · @order.ShipDate.ToString("MM/dd/yyyy")</span>
+                            <span class="shipment-order-parts">@string.Join(" · ",order.Lines.Select(x=>x.PartNo).Distinct())</span>
+                            <span class="shipment-order-dcr">@(CanOpenOrder(order)?order.DeliveryNo:"DCR not assigned — assign on the web before loading.")</span>
+                        </ChildContent>
+                    </RadzenButton>
+                }
+            </RadzenCard>
+        }
         @if(_delivery is {} delivery)
         {
             <section class="load-summary"><strong>@delivery.DeliveryNo</strong><div>@delivery.CustomerId · @delivery.ShipDate.ToString("MM/dd/yyyy")</div><div>TRAILER: @(delivery.TrailerNo??"—") · @delivery.Status</div>
@@ -47,8 +75,26 @@
 </div>
 @code {
     ShippingDeliveryDto? _delivery;string _barcode="",_title="",_message="";bool _busy,_modal,_confirm;
+    List<ShippingOrderDto> _orders=[];
+    string _ordersError="";
+    bool _loadingOrders;
     DotNetObjectReference<Fg05TrailerLoading>? _scanner;
     bool Ready=>_delivery is {Status:not "Shipped"} d&&d.Parts.Count>0&&d.Parts.All(x=>x.RequiredQty==x.LoadedQty);
+    protected override Task OnInitializedAsync()=>ReloadOrders();
+    static bool CanOpenOrder(ShippingOrderDto order)=>order.DeliveryId is not null&&!string.IsNullOrWhiteSpace(order.DeliveryNo)&&order.Status is "Open" or "Loading";
+    async Task ReloadOrders()
+    {
+        if(_busy||_loadingOrders)return;
+        _loadingOrders=true;_ordersError="";
+        try{_orders=await Api.OpenShippingOrdersAsync();}
+        catch(Exception ex){_orders=[];_ordersError=ex.Message;}
+        finally{_loadingOrders=false;}
+    }
+    async Task SelectOrder(ShippingOrderDto order)
+    {
+        if(_busy||_modal||_delivery is not null||!CanOpenOrder(order))return;
+        _barcode=order.OrderNo;await Scan();
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if(!firstRender)return;PdaBarcodeHub.Scanned+=NativeScan;_scanner=DotNetObjectReference.Create(this);
@@ -68,7 +114,7 @@
         }
         catch(Exception ex){Show("Loading Failed",ex.Message);}finally{_busy=false;await Focus();}
     }
-    void Clear(){_delivery=null;_barcode="";}
+    async Task Clear(){_delivery=null;_barcode="";await ReloadOrders();await Focus();}
     async Task RemovePallet(string root)
     {
         if(_busy||_delivery is null)return;_busy=true;
