@@ -7,7 +7,7 @@ public sealed class SessionExpiryHandler(AuthState auth, SessionValidator valida
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var token = request.Headers.Authorization?.Parameter;
-        var isLogin = request.RequestUri?.AbsolutePath is "/api/auth/login" or "/api/auth/barcode-login";
+        var isLogin = request.RequestUri?.AbsolutePath is "/api/auth/login" or "/api/auth/barcode-login" or "/api/auth/employees";
         if (!isLogin && auth.SessionCheckRequired)
         {
             await validator.CheckAsync();
