@@ -430,6 +430,19 @@ AS
 BEGIN
     SET XACT_ABORT ON;
     BEGIN TRAN;
+    -- 같은 라인의 두 터미널이 동시에 눌러도 한 건만 — 라인 단위로 줄을 세운 뒤 열린 안돈을 확인한다(확인과 INSERT 사이 틈 제거).
+    -- 이미 열린 안돈이 있으면 새로 만들지 않고 그 번호를 돌려준다(Created = 0). 열림 정의는 GetOpenForLine 과 같다.
+    DECLARE @lock INT, @res NVARCHAR(100) = N'ANDON:' + @L;
+    EXEC @lock = sp_getapplock @Resource = @res, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000;
+    IF @lock < 0 THROW 52090, N'andon raise lock timeout', 1;
+    DECLARE @open INT = (SELECT TOP 1 AndonID FROM dbo.PR_AndonCall
+                         WHERE LineID = @L AND Status IN ('OPEN', 'SUP_ACKED', 'DEPT_CALLED') ORDER BY AndonID DESC);
+    IF @open IS NOT NULL
+    BEGIN
+        COMMIT;
+        SELECT @open AS AndonID, CAST(0 AS BIT) AS Created;
+        RETURN;
+    END;
     DECLARE @now DATETIME2 = SYSDATETIME();
     DECLARE @ids TABLE (AndonID INT);
     INSERT INTO dbo.PR_AndonCall
@@ -442,7 +455,7 @@ BEGIN
         (LineID, StartTS, ReasonCode, Comment, LoggedBy, AndonID, CreatedBy, CreatedTS)
     VALUES (@L, @now, 'ANDON', N'Andon #' + CAST(@id AS NVARCHAR(10)), @By, @id, @By, @now);
     COMMIT;
-    SELECT @id;
+    SELECT @id AS AndonID, CAST(1 AS BIT) AS Created;
 END;
 GO
 

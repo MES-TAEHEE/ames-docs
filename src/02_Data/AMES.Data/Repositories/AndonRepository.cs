@@ -30,11 +30,22 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 20).Value = ruleId;
         cmd.Parameters.Add("@S",  SqlDbType.VarChar, 10).Value = (object?)severity ?? DBNull.Value;
         cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
-        var id = (int)cmd.ExecuteScalar()!;
+        int id; bool created;
+        using (var rdr = cmd.ExecuteReader())
+        {
+            rdr.Read();
+            id = rdr.GetInt32(0);
+            // 열 하나만 돌려주던 이전 프로시저와도 맞물린다 — 그때는 항상 새로 만든 것
+            created = rdr.FieldCount < 2 || rdr.GetBoolean(1);
+        }
 
+        // 다른 터미널이 먼저 발동한 안돈이면 알림 기록도 이미 있다.
         // Push stubs — recipients hard-coded for now; replaced when SYS_NotificationRule wires up.
-        RecordPush(id, "SUPERVISOR", "PDA",   employeeNo);
-        RecordPush(id, "LINE-LEAD",  "EMAIL", employeeNo);
+        if (created)
+        {
+            RecordPush(id, "SUPERVISOR", "PDA",   employeeNo);
+            RecordPush(id, "LINE-LEAD",  "EMAIL", employeeNo);
+        }
         return id;
     }
 
