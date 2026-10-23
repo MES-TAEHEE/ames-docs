@@ -461,13 +461,13 @@
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndStart"]" class="ames-rz-modal-label" />
-                    <input class="ames-input" type="time" @bind="_cf.QuietStart" style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndStart"]" class="ames-rz-modal-label" Component="CreateChDndStart" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="CreateChDndStart" TValue="DateTime?" @bind-Value="_cf.QuietStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndEnd"]" class="ames-rz-modal-label" />
-                    <input class="ames-input" type="time" @bind="_cf.QuietEnd" style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndEnd"]" class="ames-rz-modal-label" Component="CreateChDndEnd" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="CreateChDndEnd" TValue="DateTime?" @bind-Value="_cf.QuietEndDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
@@ -508,13 +508,13 @@
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndStart"]" class="ames-rz-modal-label" />
-                    <input class="ames-input" type="time" @bind="_cf.QuietStart" style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndStart"]" class="ames-rz-modal-label" Component="EditChDndStart" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="EditChDndStart" TValue="DateTime?" @bind-Value="_cf.QuietStartDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
-                    <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndEnd"]" class="ames-rz-modal-label" />
-                    <input class="ames-input" type="time" @bind="_cf.QuietEnd" style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndEnd"]" class="ames-rz-modal-label" Component="EditChDndEnd" />
+                    <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="EditChDndEnd" TValue="DateTime?" @bind-Value="_cf.QuietEndDt" TimeOnly="true" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="HH:mm" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
@@ -1071,5 +1071,17 @@
         public bool      IsEnabled  { get; set; } = true;
         public TimeOnly? QuietStart { get; set; }
         public TimeOnly? QuietEnd   { get; set; }
+
+        // Radzen DatePicker(TimeOnly) 바인딩용 어댑터 — 날짜 부분은 쓰지 않고, 지우면(AllowClear) 방해 금지 시간도 비운다
+        public DateTime? QuietStartDt
+        {
+            get => QuietStart.HasValue ? DbClock.Today.Add(QuietStart.Value.ToTimeSpan()) : null;
+            set => QuietStart = value.HasValue ? TimeOnly.FromDateTime(value.Value) : null;
+        }
+        public DateTime? QuietEndDt
+        {
+            get => QuietEnd.HasValue ? DbClock.Today.Add(QuietEnd.Value.ToTimeSpan()) : null;
+            set => QuietEnd = value.HasValue ? TimeOnly.FromDateTime(value.Value) : null;
+        }
     }
 }
