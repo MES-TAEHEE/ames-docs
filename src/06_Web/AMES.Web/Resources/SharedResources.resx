@@ -11731,4 +11731,7 @@
   <data name="PP.Aps.Wo.Reject.NoLotPrefix" xml:space="preserve">
     <value>사출 라인에 LOT PREFIX 가 없음(MD-001 에서 등록)</value>
   </data>
+  <data name="SYS.Notifications.Hint.PushAddress" xml:space="preserve">
+    <value>The PUSH address is the device token the notification app registers at sign-in. It cannot be added or changed here — only receive on/off and do-not-disturb hours can be edited.</value>
+  </data>
 </root>

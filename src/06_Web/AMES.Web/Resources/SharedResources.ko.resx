@@ -11731,4 +11731,7 @@
   <data name="PP.Aps.Wo.Reject.NoLotPrefix" xml:space="preserve">
     <value>사출 라인에 LOT PREFIX 가 없음(MD-001 에서 등록)</value>
   </data>
+  <data name="SYS.Notifications.Hint.PushAddress" xml:space="preserve">
+    <value>PUSH 주소는 알림 앱이 로그인할 때 등록하는 기기 토큰입니다. 여기서 등록·변경할 수 없고 수신 여부·방해금지 시각만 고칩니다.</value>
+  </data>
 </root>

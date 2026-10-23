@@ -86,7 +86,7 @@ public sealed class SysRepository
         int AuditLast24h, int NotifLast24h, int NotifFailedLast24h, int ConfigKeys,
         int Screens, int Permissions, long DbRowsApprox);
 
-    public sealed record UserSelectRow(string Id, string? UserName, string? Email, string? PhoneNumber, bool IsApproved = true);
+    public sealed record UserSelectRow(string Id, string? UserName, string? Email, string? PhoneNumber, bool IsApproved = true, string? EmployeeNo = null);
 
     // ── SYS-01 User Management ──────────────────────────────────────────
     public List<UserRow> ListUsers(int topN = 200)
@@ -184,14 +184,15 @@ public sealed class SysRepository
     {
         const string sql = """
             SELECT u.Id, u.UserName, u.Email, u.PhoneNumber,
-                   CAST(CASE WHEN p.UserID IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS IsApproved
+                   CAST(CASE WHEN p.UserID IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS IsApproved,
+                   NULLIF(p.EmployeeNo, '') AS EmployeeNo
             FROM   dbo.AspNetUsers u
             LEFT JOIN dbo.SYS_UserProfile p ON p.UserID = u.Id
             ORDER  BY UserName;
             """;
         return Query(sql, r => new UserSelectRow(
             (string)r["Id"], r["UserName"] as string,
-            r["Email"] as string, r["PhoneNumber"] as string, (bool)r["IsApproved"]));
+            r["Email"] as string, r["PhoneNumber"] as string, (bool)r["IsApproved"], r["EmployeeNo"] as string));
     }
 
     // ── SYS-02 RBAC ─────────────────────────────────────────────────────
@@ -1009,11 +1010,13 @@ public sealed class SysRepository
     {
         const string sql = """
             SELECT  c.NotificationChannelID, c.UserID,
-                    ISNULL(u.UserName, c.UserID) AS UserName,
+                    COALESCE(p.EmployeeName, w.EmployeeName, u.UserName, c.UserID) AS UserName,
                     c.Channel, c.Address,
                     ISNULL(c.IsEnabled, 1) AS IsEnabled,
                     c.QuietHoursStart, c.QuietHoursEnd, c.VerifiedAt
             FROM    dbo.SYS_NotificationChannel c
+            LEFT JOIN dbo.SYS_UserProfile p ON p.EmployeeNo = c.UserID
+            LEFT JOIN dbo.MD_Worker w ON w.EmployeeNo = c.UserID AND p.UserID IS NULL
             LEFT JOIN dbo.AspNetUsers u ON u.Id = c.UserID
             ORDER   BY UserName, c.Channel;
             """;
@@ -1029,9 +1032,15 @@ public sealed class SysRepository
             r["VerifiedAt"]      as DateTime?));
     }
 
+    /// <summary>
+    /// 웹(SYS-008)에서 채널 행 등록 — PUSH 는 받지 않는다: PUSH 주소는 FCM 기기 토큰이라 알림 앱이 로그인할 때
+    /// NotificationRepository.RegisterDevice 로만 만든다(10-24 사용자 결정).
+    /// </summary>
     public void InsertNotificationChannel(string? userId, string channel, string? address,
         bool isEnabled, TimeSpan? quietStart, TimeSpan? quietEnd, string createdBy)
     {
+        if (IsPushChannel(channel))
+            throw new InvalidOperationException("PUSH devices are registered by the notification app, not on this screen.");
         const string sql = """
             INSERT INTO dbo.SYS_NotificationChannel
                 (UserID, Channel, Address, IsEnabled, QuietHoursStart, QuietHoursEnd,
@@ -1050,15 +1059,19 @@ public sealed class SysRepository
             ("@CreatedBy", "SYS_NotificationChannel.CreatedBy", createdBy));
     }
 
+    /// <summary>
+    /// 웹(SYS-008)에서 채널 행 수정 — PUSH 행(앱이 등록한 기기)은 수신자·채널·주소를 그대로 두고 수신 여부·방해 금지 시각만 바꾸며,
+    /// 다른 채널 행을 PUSH 로 바꾸지 못한다(메일 주소가 FCM 토큰 자리에 들어가는 것을 막는다, 10-24).
+    /// </summary>
     public void UpdateNotificationChannel(int id, string? userId, string channel,
         string? address, bool isEnabled, TimeSpan? quietStart, TimeSpan? quietEnd,
         string modifiedBy)
     {
         const string sql = """
             UPDATE dbo.SYS_NotificationChannel
-            SET    UserID          = @UserID,
-                   Channel         = @Channel,
-                   Address         = @Address,
+            SET    UserID          = CASE WHEN Channel = @Push OR @Channel = @Push THEN UserID  ELSE @UserID  END,
+                   Channel         = CASE WHEN Channel = @Push OR @Channel = @Push THEN Channel ELSE @Channel END,
+                   Address         = CASE WHEN Channel = @Push OR @Channel = @Push THEN Address ELSE @Address END,
                    IsEnabled       = @IsEnabled,
                    QuietHoursStart = @QuietStart,
                    QuietHoursEnd   = @QuietEnd,
@@ -1074,8 +1087,12 @@ public sealed class SysRepository
             ("@IsEnabled", "SYS_NotificationChannel.IsEnabled", isEnabled),
             ("@QuietStart", "SYS_NotificationChannel.QuietHoursStart", (object?)quietStart ?? DBNull.Value),
             ("@QuietEnd", "SYS_NotificationChannel.QuietHoursEnd", (object?)quietEnd   ?? DBNull.Value),
-            ("@ModifiedBy", "SYS_NotificationChannel.ModifiedBy", modifiedBy));
+            ("@ModifiedBy", "SYS_NotificationChannel.ModifiedBy", modifiedBy),
+            ("@Push", "SYS_NotificationChannel.Channel", Services.Notify.NotifyRules.Channel));
     }
+
+    public static bool IsPushChannel(string? channel)
+        => string.Equals(channel?.Trim(), Services.Notify.NotifyRules.Channel, StringComparison.OrdinalIgnoreCase);
 
     public void DeleteNotificationChannel(int id)
     {

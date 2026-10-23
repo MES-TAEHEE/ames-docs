@@ -11731,4 +11731,7 @@
   <data name="PP.Aps.Wo.Reject.NoLotPrefix" xml:space="preserve">
     <value>La línea de inyección no tiene LOT PREFIX (regístrelo en MD-001)</value>
   </data>
+  <data name="SYS.Notifications.Hint.PushAddress" xml:space="preserve">
+    <value>La dirección PUSH es el token del dispositivo que la app de notificaciones registra al iniciar sesión. No se puede agregar ni cambiar aquí; solo se editan la recepción y las horas de no molestar.</value>
+  </data>
 </root>

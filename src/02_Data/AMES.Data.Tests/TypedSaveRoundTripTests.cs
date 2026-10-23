@@ -200,9 +200,9 @@ public class TypedSaveRoundTripTests
         sys.InsertNotificationChannel(uid, Max("SYS_NotificationChannel.Channel"), Max("SYS_NotificationChannel.Address"), true, new TimeSpan(22, 0, 0), new TimeSpan(6, 0, 0), by);
         var chId = Scalar("SELECT NotificationChannelID FROM dbo.SYS_NotificationChannel WHERE UserID = @U", ("@U", uid));
         Same("SYS_NotificationChannel", "NotificationChannelID", chId, ("Address", Max("SYS_NotificationChannel.Address")), ("QuietHoursStart", new TimeSpan(22, 0, 0)));
-        sys.UpdateNotificationChannel(chId, uid, "PUSH", Max("SYS_NotificationChannel.Address", 'Y'), false, null, null, by);
+        sys.UpdateNotificationChannel(chId, uid, "SMS", Max("SYS_NotificationChannel.Address", 'Y'), false, null, null, by);
         Same("SYS_NotificationChannel", "NotificationChannelID", chId, ("Address", Max("SYS_NotificationChannel.Address", 'Y')), ("QuietHoursStart", null));
-        TooLong(() => sys.UpdateNotificationChannel(chId, uid, "PUSH", Over("SYS_NotificationChannel.Address"), false, null, null, by));
+        TooLong(() => sys.UpdateNotificationChannel(chId, uid, "SMS", Over("SYS_NotificationChannel.Address"), false, null, null, by));
         sys.DeleteNotificationChannel(chId);
         Assert.Equal(0, Scalar("SELECT COUNT(*) FROM dbo.SYS_NotificationChannel WHERE NotificationChannelID = @I", ("@I", chId)));
 

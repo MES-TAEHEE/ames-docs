@@ -15,6 +15,7 @@
 @inject RoleManager<IdentityRole> RoleMgr
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject AMES.Web.Services.ActorNames Actors
 
 <PageTitle>SYS-008 @L["SYS.Notifications.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-008" TitleKey="SYS.Notifications.Title" />
@@ -152,7 +153,7 @@
                         <Template Context="c"><span class="dim">@GridRowNo.Of(_chGrid, c)</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="300px">
-                        <Template Context="c"><span class="dim" style="font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;display:block;">@(c.UserName ?? c.UserId ?? "—")</span></Template>
+                        <Template Context="c"><span class="dim" style="font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;display:block;">@(c.UserId is null ? "—" : Actors.Display(c.UserId))</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="Channel" Title="@L["Col.Channel"]" TextAlign="TextAlign.Center" Width="110px">
                         <Template Context="c">@ChannelPill(c.Channel)</Template>
@@ -208,7 +209,7 @@
                         <Template Context="h"><span class="code">@(h.EventTypeCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="RecipientUserId" Title="@L["Col.Recipient"]" Width="300px">
-                        <Template Context="h"><span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));max-width:140px;overflow:hidden;text-overflow:ellipsis;display:block;">@(h.RecipientUserId ?? "—")</span></Template>
+                        <Template Context="h"><span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));max-width:140px;overflow:hidden;text-overflow:ellipsis;display:block;">@(h.RecipientUserId is null ? "—" : Actors.Display(h.RecipientUserId))</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Channel" Title="@L["Col.Channel"]" TextAlign="TextAlign.Center" Width="110px">
                         <Template Context="h">@ChannelPill(h.Channel)</Template>
@@ -457,8 +458,12 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Address"]" class="ames-rz-modal-label" Component="CreateChTextBoxAddress" />
-                    <RadzenTextBox Name="CreateChTextBoxAddress" @bind-Value="_cf.Address" MaxLength="255" Placeholder="@L["SYS.Notifications.Ph.Address"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="CreateChTextBoxAddress" @bind-Value="_cf.Address" MaxLength="255" Placeholder="@L["SYS.Notifications.Ph.Address"]" Disabled="@CfIsPush" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
+                @if (CfIsPush)
+                {
+                    <div class="dim" style="font-size:.85em;margin-top:-8px;">@L["SYS.Notifications.Hint.PushAddress"]</div>
+                }
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndStart"]" class="ames-rz-modal-label" Component="CreateChDndStart" />
@@ -482,7 +487,7 @@
             }
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-                <RadzenButton Text="@(_chBusy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveChCreate" Disabled="@_chBusy" class="ames-rz-btn" />
+                <RadzenButton Text="@(_chBusy ? L["Msg.Saving"] : L["Btn.Create"])" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@SaveChCreate" Disabled="@(_chBusy || CfIsPush)" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@CloseChModal" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -494,18 +499,22 @@
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
         <div class="ames-modal" @onmousedown:stopPropagation @onclick:stopPropagation>
-            <div class="ames-modal-h">@L["SYS.Notifications.Modal.EditChannel"] — <span class="dim" style="font-weight:400;font-size:.9em;">@(_chSel.Channel) · @(_chSel.UserName ?? _chSel.UserId)</span></div>
+            <div class="ames-modal-h">@L["SYS.Notifications.Modal.EditChannel"] — <span class="dim" style="font-weight:400;font-size:.9em;">@(_chSel.Channel) · @(_chSel.UserId is null ? "—" : Actors.Display(_chSel.UserId))</span></div>
 
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Channel"]" class="ames-rz-modal-label" Component="EditChDropDownChannel" />
-                    <RadzenDropDown AllowFiltering="true" Name="EditChDropDownChannel" @bind-Value="_cf.Channel" Data="@ChannelCodeOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown Name="EditChDropDownChannel" @bind-Value="_cf.Channel" Data="@AllChannelOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.Address"]" class="ames-rz-modal-label" Component="EditChTextBoxAddress" />
-                    <RadzenTextBox Name="EditChTextBoxAddress" @bind-Value="_cf.Address" MaxLength="255" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditChTextBoxAddress" @bind-Value="_cf.Address" MaxLength="255" Disabled="@CfIsPush" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenStack>
+                @if (CfIsPush)
+                {
+                    <div class="dim" style="font-size:.85em;margin-top:-8px;">@L["SYS.Notifications.Hint.PushAddress"]</div>
+                }
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Notifications.Lbl.DndStart"]" class="ames-rz-modal-label" Component="EditChDndStart" />
@@ -813,10 +822,13 @@
 
     void CloseChModal() { _chModal = ""; _chSel = null; _chModalErr = ""; _chConfirmDelete = false; }
 
+    // PUSH 주소는 FCM 기기 토큰 — 알림 앱이 로그인할 때 등록하고 웹은 고치지 않는다(10-24, 저장소도 거부·보존)
+    bool CfIsPush => SysRepository.IsPushChannel(_cf.Channel);
+
     void AutoFillAddress()
     {
         if (string.IsNullOrEmpty(_cf.UserId)) return;
-        var u = _userList.FirstOrDefault(x => x.Id == _cf.UserId);
+        var u = _userList.FirstOrDefault(x => x.EmployeeNo == _cf.UserId);
         if (u is null) return;
         _cf.Address = _cf.Channel switch
         {
@@ -831,6 +843,7 @@
         if (!_canEdit) return;
         _chModalErr = "";
         if (string.IsNullOrWhiteSpace(_cf.Channel)) { _chModalErr = L["SYS.Notifications.Err.ChannelRequired"]; return; }
+        if (CfIsPush) { _chModalErr = L["SYS.Notifications.Hint.PushAddress"]; return; }
         _chBusy = true;
         try
         {
@@ -928,9 +941,10 @@
             .Select(s => new DropDownItem { Value = s.CodeValue ?? "", Text = $"[{s.CodeValue}] {MasterDataRepository.LocalName(s)}" });
 
     // 프로필이 없는(SYS-001 에 등록되지 않은) 계정은 수신자로 고르지 못하게 뺀다
+    // 채널 행의 수신자는 사번이다(10-24 발송기와 같은 키) — 사번 없는 계정은 고를 수 없다
     private IEnumerable<DropDownItem> UserOptions =>
-        _userList.Where(u => u.IsApproved || u.Id == _cf.UserId).Select(u => new DropDownItem {
-            Value = u.Id,
+        _userList.Where(u => !string.IsNullOrEmpty(u.EmployeeNo) && (u.IsApproved || u.EmployeeNo == _cf.UserId)).Select(u => new DropDownItem {
+            Value = u.EmployeeNo!,
             Text  = (u.UserName ?? u.Id) + (!string.IsNullOrEmpty(u.Email) ? $" ({u.Email})" : "")
         });
 
