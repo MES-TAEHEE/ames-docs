@@ -107,6 +107,7 @@ public sealed class WarehouseReviewRegressionTests
         Assert.Contains("LEFT JOIN dbo.MD_Location L ON L.LocationID=S.LocationNo",source);
         Assert.Contains("C.ParentLotNo=S.LotNo",source);
         var report=Read("src/02_Data/AMES.Data/Repositories/RptRepository.cs");
+        Assert.Contains("CASE WHEN L.LocationType='FG' OR M.ItemType='ASSY' THEN 'FG' ELSE 'WH' END",report);
         Assert.Contains("OR NULLIF(LTRIM(RTRIM(w.LocationNo)),'') IS NULL",report);
         Assert.Contains("C.ParentLotNo=w.LotNo",report);
     }
