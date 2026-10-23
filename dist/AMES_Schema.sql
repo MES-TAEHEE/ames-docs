@@ -1,6 +1,6 @@
 ﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-24 from the development DB (192.168.0.132) with SMO.
--- 179 tables / 2449 columns, 158 procedures, 0 views, 0 functions, 1 sequences.
--- Excludes TEST_* tables and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
+-- 178 tables / 2428 columns, 158 procedures, 0 views, 0 functions, 1 sequences.
+-- Excludes TEST_* tables, retired WH_ReleaseSchedule and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
 -- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).
 -- Schema only from the live database; sample seeds below are retained from the repository.
 -- Recreates the included objects: existing data in these tables will be deleted.
