@@ -348,15 +348,18 @@ public sealed class RptRepository
                     x.Qty, x.Reserved, i.UnitCost, i.SafetyStock, i.MaxStock, x.Lots,
                     i.ItemCategory, i.DefaultUOM
             FROM (
-                SELECT CASE WHEN L.AreaCode='FG_AREA' THEN 'FG' ELSE 'WH' END AS Source,
+                SELECT CASE WHEN L.LocationType='FG' OR M.ItemType='ASSY' THEN 'FG' ELSE 'WH' END AS Source,
                        w.PartNo AS ItemNo,w.LocationNo AS Location,MAX(w.PartName) AS PartName,
                        ISNULL(SUM(w.Qty),0) AS Qty,CAST(0 AS decimal(18,3)) AS Reserved,
                        CAST(NULL AS decimal(18,3)) AS UnitCost,COUNT(*) AS Lots
                 FROM dbo.WH_Inventory w
-                JOIN dbo.MD_Location L
+                LEFT JOIN dbo.MD_Location L
                   ON L.LocationID COLLATE DATABASE_DEFAULT = w.LocationNo COLLATE DATABASE_DEFAULT
-                WHERE w.Qty<>0 AND L.AreaCode IN ('MAT_AREA','FG_AREA')
-                GROUP BY CASE WHEN L.AreaCode='FG_AREA' THEN 'FG' ELSE 'WH' END,w.PartNo,w.LocationNo
+                LEFT JOIN dbo.MD_Item M ON M.ItemNo COLLATE DATABASE_DEFAULT=w.PartNo COLLATE DATABASE_DEFAULT
+                WHERE w.Qty<>0
+                  AND (L.AreaCode IN ('MAT_AREA','FG_AREA') OR NULLIF(LTRIM(RTRIM(w.LocationNo)),'') IS NULL)
+                  AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=w.LotNo)
+                GROUP BY CASE WHEN L.LocationType='FG' OR M.ItemType='ASSY' THEN 'FG' ELSE 'WH' END,w.PartNo,w.LocationNo
             ) x
             LEFT JOIN dbo.MD_Item i
               ON i.ItemNo COLLATE DATABASE_DEFAULT = x.ItemNo COLLATE DATABASE_DEFAULT

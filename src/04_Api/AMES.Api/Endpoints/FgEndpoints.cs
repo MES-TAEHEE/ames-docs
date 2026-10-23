@@ -197,7 +197,7 @@ public static partial class FgEndpoints
                     SELECT SUM(COALESCE(R.GoodQty, 0)) AS GoodQty, MAX(R.EntryAt) AS EntryAt
                     FROM dbo.PR_ProductionResult R
                     WHERE R.LotID = L.LotID
-                      AND UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, ''))
+                      AND (UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, '')) OR R.ProcessCode='RWK')
                       AND ISNULL(R.DefectFlag, 0) = 0
                 ) PR
                 WHERE UPPER(ISNULL(L.Status, '')) = 'CONFIRMED'
@@ -209,7 +209,7 @@ public static partial class FgEndpoints
                     SELECT 1
                     FROM dbo.WH_Inventory S
                     WHERE S.LotNo = L.LotCode
-                      AND S.Qty > 0
+                      AND S.Qty > 0 AND NULLIF(LTRIM(RTRIM(S.LocationNo)),'') IS NOT NULL
                 )
                 ORDER BY COALESCE(IMG.ConfirmedAt, PNT.ConfirmedAt, PR.EntryAt, L.ProducedAt, L.CreatedTS), L.LotID;
                 """;
@@ -796,7 +796,7 @@ public static partial class FgEndpoints
                 SELECT SUM(COALESCE(R.GoodQty, 0)) AS GoodQty, MAX(R.EntryAt) AS EntryAt
                 FROM dbo.PR_ProductionResult R
                 WHERE R.LotID = L.LotID
-                  AND UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, ''))
+                  AND (UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, '')) OR R.ProcessCode='RWK')
                   AND ISNULL(R.DefectFlag, 0) = 0
             ) PR
             OUTER APPLY

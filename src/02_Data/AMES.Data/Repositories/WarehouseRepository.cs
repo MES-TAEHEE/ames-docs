@@ -1715,10 +1715,11 @@ public sealed partial class WarehouseRepository
                 L.Slot AS RACK_Z,
                 COALESCE(SUM(S.Qty), 0) AS QTY
             FROM dbo.WH_Inventory S
-            INNER JOIN dbo.MD_Location L ON L.LocationID=S.LocationNo
+            LEFT JOIN dbo.MD_Location L ON L.LocationID=S.LocationNo
             LEFT JOIN dbo.MD_Item I ON I.ItemNo=S.PartNo
             LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.CodeValue=L.AreaCode
             WHERE S.Qty<>0
+              AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=S.LotNo)
               AND COALESCE(L.ActiveFlag, 1) = 1
               AND (@WhCode IS NULL OR L.WhCode = @WhCode)
               AND (@AreaCode IS NULL OR L.AreaCode = @AreaCode)

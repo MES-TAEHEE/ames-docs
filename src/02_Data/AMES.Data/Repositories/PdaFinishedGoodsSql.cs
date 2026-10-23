@@ -171,7 +171,7 @@ public static class PdaFinishedGoodsSql
                 FROM dbo.tbl_Lot L WITH(UPDLOCK,HOLDLOCK)
                 JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
                 CROSS APPLY(SELECT SUM(P.GoodQty) Qty FROM dbo.PR_ProductionResult P
-                    WHERE P.LotID=L.LotID AND P.ProcessCode=L.ProcessCode AND ISNULL(P.DefectFlag,0)=0) R
+                    WHERE P.LotID=L.LotID AND (P.ProcessCode=L.ProcessCode OR P.ProcessCode='RWK') AND ISNULL(P.DefectFlag,0)=0) R
                 WHERE L.LotCode COLLATE DATABASE_DEFAULT=@Barcode COLLATE DATABASE_DEFAULT
                   AND UPPER(ISNULL(L.Status,'')) IN('CONFIRMED','STOCKED')
                   AND I.ItemType='ASSY' AND ISNULL(I.ActiveFlag,1)=1 AND R.Qty>0;
