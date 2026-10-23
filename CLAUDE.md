@@ -81,8 +81,8 @@ dotnet run --project src\06_Web\AMES.Web\AMES.Web.csproj
 dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 ```
 
-**DB 전제조건**: ① `dist/create_database.sql`로 `AMES_DEV`를 **`COLLATE Korean_Wansung_CI_AS`**로 생성 → ② `dist/AMES_Schema.sql`(174개 테이블 — 10-14 개발 DB 에서 SMO 로 다시 뜬 최종 구조, 10-16 `MD_MoldColor` 만 손으로 뺐다) 적용 → ③ `dist/migrate_*.sql` 후 실행(스키마가 이미 최종 상태라 대부분 건너뛴다). DB를 Korean 콜레이션으로 먼저 만들어야 한다.
-**스키마 파일 재생성**(10-08): `tools/schema_from_db`(`dotnet run -- "<개발 DB 연결문자열>" dist/AMES_Schema.sql <출력>`)가 개발 DB 의 테이블·키·인덱스·기본값·CHECK·외래키·컬럼 설명·프로시저를 SMO 로 뜨고(`TEST_*`·SSMS 다이어그램 객체 제외), 기존 파일의 저장소 시드(`-- Repository sample seeds` 부터 — 옛 파일이면 `-- Persistent box labels.` 직전까지)를 뒤에 붙이며 `SYS_Screen` 시드는 개발 DB 현재 값으로 다시 뜬다. DROP 목록은 개발 DB 에 있는 테이블만이다(10-14 — 옛 WH 테이블 9개·트리거 DROP 을 생성기에서 뺐다). 예전 파일 꼬리에 이어 붙어 있던 마이그레이션 블록(SCM 박스·케이스, FG 출하·재고 통합 등)은 개발 DB 에 이미 반영돼 버렸다. 확인은 빈 DB 에 새 파일을 돌린 뒤 개발 DB 와 테이블·컬럼(순서 등수·형식·NULL·기본값·콜레이션)·키·인덱스·외래키·CHECK·프로시저 정의를 비교해 차이 0 이어야 한다. **재구축 주의**: `rebuild_db.sh` 는 `set -e` + `sqlcmd -b` 라 **첫 실패에서 멈춘다**. 옛 WH/FG 업그레이드 마이그레이션(`migrate_wh_core_tables.sql`·`migrate_fg_inventory_consolidation.sql`)은 스키마 파일의 최종 구조를 덮지 않게 목록에서 뺐다. 지금 막히는 지점과 할 일은 `Claude_확인사항.md` 안영훈 미해결 2 가 정본이다(실제 재구축으로는 10-08 이후 확인하지 않음).
+**DB 전제조건**: ① `dist/create_database.sql`로 `AMES_DEV`를 **`COLLATE Korean_Wansung_CI_AS`**로 생성 → ② `dist/AMES_Schema.sql`(179개 테이블·프로시저 158개(POP `SP_POP_*` 포함, 옛 PDA 프로시저 `WH_PDA_`·`FG_PDA_`·`SP_PDA_` 제외)·시퀀스 1개 — 10-24 개발 DB 에서 SMO 로 다시 뜬 최종 구조, 빈 DB 에 돌리면 옛 PDA 프로시저 27개 말고는 개발 DB 와 테이블·컬럼 순서·인덱스·CHECK·외래키·프로시저·시퀀스·컬럼 설명이 같다) 적용 → ③ `dist/migrate_*.sql` 후 실행(스키마가 이미 최종 상태라 대부분 건너뛴다). DB를 Korean 콜레이션으로 먼저 만들어야 한다.
+**스키마 파일 재생성**(10-08): `tools/schema_from_db`(`dotnet run -- "<개발 DB 연결문자열>" dist/AMES_Schema.sql <출력>`)가 개발 DB 의 테이블·키·인덱스·기본값·CHECK·외래키·컬럼 설명·프로시저를 SMO 로 뜨고(`TEST_*`·SSMS 다이어그램 객체 제외), 기존 파일의 저장소 시드(`-- Repository sample seeds` 부터 — 옛 파일이면 `-- Persistent box labels.` 직전까지)를 뒤에 붙이며 `SYS_Screen` 시드는 개발 DB 현재 값으로 다시 뜬다. DROP 목록은 개발 DB 에 있는 테이블만이다(10-14 — 옛 WH 테이블 9개·트리거 DROP 을 생성기에서 뺐다). 시퀀스도 뜬다(10-24 — `SCM_CaseNumberSequence`). 예전 파일 꼬리에 이어 붙어 있던 마이그레이션 블록(SCM 박스·케이스, FG 출하·재고 통합 등)은 개발 DB 에 이미 반영돼 버렸다. 확인은 빈 DB 에 새 파일을 돌린 뒤 개발 DB 와 테이블·컬럼(순서 등수·형식·NULL·기본값·콜레이션)·키·인덱스·외래키·CHECK·프로시저 정의를 비교해 차이 0 이어야 한다. **재구축 주의**: `rebuild_db.sh` 는 `set -e` + `sqlcmd -b` 라 **첫 실패에서 멈춘다**. 옛 WH/FG 업그레이드 마이그레이션(`migrate_wh_core_tables.sql`·`migrate_fg_inventory_consolidation.sql`)은 스키마 파일의 최종 구조를 덮지 않게 목록에서 뺐다. 지금 막히는 지점과 할 일은 `Claude_확인사항.md` 안영훈 미해결 2 가 정본이다(실제 재구축으로는 10-08 이후 확인하지 않음).
 
 **솔루션 전체 빌드는 6~16분 걸린다**(MAUI: Pda, Tablet). **두 개를 동시에 돌리면 `NETSDK1047`·`MSB3061` 가짜 실패**가 나므로 순차 실행할 것.
 
@@ -345,7 +345,7 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 
 ## DB 스키마 영역
 
-스키마 파일 174개 테이블(TEST_*·SSMS `sysdiagrams` 제외), 기능 접두사로 구분:
+스키마 파일 179개 테이블(TEST_*·SSMS `sysdiagrams` 제외), 기능 접두사로 구분:
 
 | 접두사 | 영역 |
 |--------|------|

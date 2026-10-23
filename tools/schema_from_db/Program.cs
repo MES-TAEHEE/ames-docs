@@ -37,6 +37,8 @@ var procs = db.StoredProcedures.Cast<StoredProcedure>().Where(p => !p.IsSystemOb
 var views = db.Views.Cast<View>().Where(v => !v.IsSystemObject && v.Schema == "dbo").OrderBy(v => v.Name, StringComparer.OrdinalIgnoreCase).ToList();
 var funcs = db.UserDefinedFunctions.Cast<UserDefinedFunction>().Where(f => !f.IsSystemObject && f.Schema == "dbo" && !DiagramObject(f.Name))
                 .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).ToList();
+// 시퀀스도 뜬다(10-24 — SCM_CaseNumberSequence 가 파일에 없어 새 DB 는 마이그레이션이 만들 때까지 SCM 케이스 채번이 실패했다)
+var seqs = db.Sequences.Cast<Sequence>().Where(q => q.Schema == "dbo").OrderBy(q => q.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
 var sb = new StringBuilder();
 void L(string s = "") => sb.Append(s).Append("\r\n");
@@ -54,7 +56,7 @@ void Batch(StringCollection sc, bool omitLegacyDefaultNames = false)
 
 var today = DateTime.Now.ToString("yyyy-MM-dd");
 L($"-- A-MES consolidated schema: AMES_DEV, captured {today} from the development DB (192.168.0.132) with SMO.");
-L($"-- {tables.Count} tables / {tables.Sum(t => t.Columns.Count)} columns, {procs.Count} procedures, {views.Count} views, {funcs.Count} functions.");
+L($"-- {tables.Count} tables / {tables.Sum(t => t.Columns.Count)} columns, {procs.Count} procedures, {views.Count} views, {funcs.Count} functions, {seqs.Count} sequences.");
 L("-- Excludes TEST_* tables and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).");
 L("-- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).");
 L("-- Schema only from the live database; sample seeds below are retained from the repository.");
@@ -81,6 +83,7 @@ foreach (var p in procs) L($"DROP PROCEDURE IF EXISTS [dbo].[{p.Name}];");
 foreach (var v in views) L($"DROP VIEW IF EXISTS [dbo].[{v.Name}];");
 foreach (var f in funcs) L($"DROP FUNCTION IF EXISTS [dbo].[{f.Name}];");
 foreach (var t in tables) L($"DROP TABLE IF EXISTS [dbo].[{t.Name}];");
+foreach (var q in seqs) L($"DROP SEQUENCE IF EXISTS [dbo].[{q.Name}];");
 L("GO");
 
 var tableOpt = new ScriptingOptions
@@ -104,6 +107,8 @@ foreach (var t in tables)
         Batch(fk.Script(fkOpt));
 
 var modOpt = new ScriptingOptions { SchemaQualify = true, IncludeHeaders = false, ExtendedProperties = true, TargetServerVersion = SqlServerVersion.Version160 };
+L("-- ════ Sequences ════");
+foreach (var q in seqs) Batch(q.Script(modOpt));
 L("-- ════ Functions ════");
 foreach (var f in funcs) Batch(f.Script(modOpt));
 L("-- ════ Views ════");
@@ -147,4 +152,4 @@ L("SET QUOTED_IDENTIFIER ON;");
 L("GO");
 sb.Append(seeds);
 File.WriteAllText(outPath, sb.ToString(), new UTF8Encoding(true));
-Console.WriteLine($"tables={tables.Count} procs={procs.Count} views={views.Count} funcs={funcs.Count} lines={sb.ToString().Split('\n').Length}");
+Console.WriteLine($"tables={tables.Count} seqs={seqs.Count} procs={procs.Count} views={views.Count} funcs={funcs.Count} lines={sb.ToString().Split('\n').Length}");
