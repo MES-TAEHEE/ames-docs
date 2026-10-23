@@ -93,7 +93,7 @@ public sealed partial class WarehouseRepository
         var lines=Query($"""
             SELECT P.ItemNo,I.ItemName,COALESCE(NULLIF(P.PickSlipNo,''),CONCAT('RS-',P.PickSlipID)) Slip,
                 COALESCE(P.ReqLocation,'') Destination,COALESCE(P.DemandQty,0)-COALESCE(P.PickedQty,0) Remaining,
-                CASE WHEN P.CreatedBy='WH-AUTO' THEN 'EA' ELSE 'BOX' END Unit,
+                CASE WHEN P.CreatedBy='WH-AUTO' THEN COALESCE(NULLIF(I.DefaultUOM,''),'EA') ELSE 'BOX' END Unit,
                 (SELECT STRING_AGG(A.LocationNo,', ') FROM(SELECT DISTINCT W.LocationNo FROM dbo.WH_Inventory W
                     WHERE W.PartNo=P.ItemNo AND {WarehouseBoxPredicate}) A) Locations
             FROM dbo.WH_PickSlip P LEFT JOIN dbo.MD_Item I ON I.ItemNo=P.ItemNo
@@ -190,7 +190,7 @@ public sealed partial class WarehouseRepository
     public ReplenishmentResult GenerateLinePickingOrders()
     {
         using var conn = _factory.OpenConnection();
-        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        using var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted);
         // SQL transaction lock also serializes workers running on different API hosts.
         using (var gate = new SqlCommand("""
             DECLARE @Result int;

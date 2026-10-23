@@ -49,6 +49,23 @@ public sealed class WarehouseReviewRegressionTests
     }
 
     [Fact]
+    public void Backflush_reads_detail_and_legacy_line_locations_and_logs_the_actual_source()
+    {
+        var sql=BackflushRepository.ReadLineLotsSql;
+        Assert.Contains("W.LocationNo=@Loc OR EXISTS",sql);
+        Assert.Contains("L.LineID=@Line AND L.LocationLevel=2",sql);
+        Assert.Contains("C.ParentLotNo=W.LotNo",sql);
+        Assert.Contains("ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo",sql);
+        var source=Read("src/02_Data/AMES.Data/Repositories/BackflushRepository.cs");
+        Assert.Contains("locations[n.LotNo]",source);
+        Assert.Contains("locations[t.LotNo]",source);
+        var fifo=new[]{new BackflushLot("OLD",2,"I1"),new BackflushLot("DETAIL",3,"I101A1F1")};
+        var allocated=BackflushRules.Allocate(4,fifo,0);
+        Assert.Equal(new[]{new BackflushTake("OLD",2),new BackflushTake("DETAIL",2)},allocated.Takes);
+        Assert.Equal(0,allocated.Shortage);
+    }
+
+    [Fact]
     public void Generic_supplier_receipt_cannot_credit_production_lots_ambiguous_vendors_or_over_receipts()
     {
         var sql=PdaWarehouseSql.InboundReceive;

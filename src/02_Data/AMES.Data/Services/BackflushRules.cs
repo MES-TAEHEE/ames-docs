@@ -3,7 +3,7 @@ namespace AMES.Data.Services;
 /// <param name="InjFlag">MD_Item.InjFlag — 사출품 자식. PNT 확정만 이 자식을 뺀다(includeInjection).</param>
 public sealed record BackflushBomRow(string CompItemNo, string? ItemType, decimal QtyPer, decimal ScrapPct, string? Uom, bool Active, bool InjFlag = false);
 public sealed record BackflushRequirement(string PartNo, decimal Qty, string? Uom);
-public sealed record BackflushLot(string LotNo, decimal Qty);
+public sealed record BackflushLot(string LotNo, decimal Qty, string? LocationNo = null);
 /// <summary>양수 LOT 에서 자리표시 LOT 으로 옮기는 양(자리표시 음수 메우기).</summary>
 public sealed record BackflushNet(string LotNo, decimal Qty);
 /// <summary>양수 LOT 에서 빼는 양.</summary>
