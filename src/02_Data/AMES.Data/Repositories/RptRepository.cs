@@ -340,7 +340,7 @@ public sealed class RptRepository
         string? Location, decimal Qty, decimal Reserved, decimal? UnitCost, decimal? SafetyStock, decimal? MaxStock, int Lots,
         string? ItemCategory = null, string? Uom = null);
 
-    /// <summary>통합 재고를 품목×위치로 집계. AreaCode로 WH/FG를 구분한다.</summary>
+    /// <summary>통합 말단 재고를 품목×위치로 집계. 위치 유형 FG 또는 품목 ASSY를 완제품으로 구분한다.</summary>
     public List<InventorySkuRow> ListInventorySku()
     {
         const string sql = """
@@ -350,12 +350,14 @@ public sealed class RptRepository
             FROM (
                 SELECT CASE WHEN L.LocationType='FG' OR M.ItemType='ASSY' THEN 'FG' ELSE 'WH' END AS Source,
                        w.PartNo AS ItemNo,w.LocationNo AS Location,MAX(w.PartName) AS PartName,
-                       ISNULL(SUM(w.Qty),0) AS Qty,CAST(0 AS decimal(18,3)) AS Reserved,
+                       ISNULL(SUM(w.Qty),0) AS Qty,
+                       SUM(CASE WHEN H.LotNo IS NOT NULL THEN w.Qty ELSE 0 END) AS Reserved,
                        CAST(NULL AS decimal(18,3)) AS UnitCost,COUNT(*) AS Lots
                 FROM dbo.WH_Inventory w
                 LEFT JOIN dbo.MD_Location L
                   ON L.LocationID COLLATE DATABASE_DEFAULT = w.LocationNo COLLATE DATABASE_DEFAULT
                 LEFT JOIN dbo.MD_Item M ON M.ItemNo COLLATE DATABASE_DEFAULT=w.PartNo COLLATE DATABASE_DEFAULT
+                LEFT JOIN (SELECT DISTINCT LotNo FROM dbo.FG_CustomerReturn WHERE Status IN('Open','Inspecting')) H ON H.LotNo=w.LotNo
                 WHERE w.Qty<>0
                   AND (L.AreaCode IN ('MAT_AREA','FG_AREA') OR NULLIF(LTRIM(RTRIM(w.LocationNo)),'') IS NULL)
                   AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=w.LotNo)
@@ -393,11 +395,12 @@ public sealed class RptRepository
                    W.PartNo AS ItemNo, W.LocationNo AS Location,
                    COUNT(*)                                     AS LotCount,
                    ISNULL(SUM(W.Qty), 0)                        AS Qty,
-                   0                                            AS HoldLots,
-                   CAST(0 AS decimal(18,3))                     AS HoldQty
+                   SUM(CASE WHEN H.LotNo IS NOT NULL THEN 1 ELSE 0 END) AS HoldLots,
+                   SUM(CASE WHEN H.LotNo IS NOT NULL THEN W.Qty ELSE 0 END) AS HoldQty
             FROM   dbo.WH_Inventory W
             JOIN dbo.MD_Location L
               ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
+            LEFT JOIN (SELECT DISTINCT LotNo FROM dbo.FG_CustomerReturn WHERE Status IN('Open','Inspecting')) H ON H.LotNo=W.LotNo
             WHERE W.Qty>0 AND UPPER(L.AreaCode)='FG_AREA'
             GROUP BY W.PartNo, W.LocationNo
             ORDER BY Qty DESC;

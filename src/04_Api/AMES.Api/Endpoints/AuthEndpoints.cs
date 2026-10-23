@@ -21,6 +21,23 @@ public static class AuthEndpoints
     {
         var g = app.MapGroup("/api/auth").WithTags("Auth");
 
+        g.MapGet("/employees", (HttpContext ctx, AuthRepository repository) =>
+        {
+            ctx.Response.Headers.CacheControl = "no-store";
+            try
+            {
+                var employees = repository.ListLoginEmployees()
+                    .Where(e => LoginInput.Valid(e.EmployeeNo,20)
+                        && (app.Environment.IsDevelopment() || !PdaScenarioUsers.IsTestAccount(e.EmployeeNo)));
+                return Results.Ok(employees.ToList());
+            }
+            catch (Microsoft.Data.SqlClient.SqlException)
+            {
+                return Results.Json(new { message = "Employee list is unavailable. Enter your ID or scan your badge." },
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        }).RequireRateLimiting("login");
+
         g.MapPost("/login", (LoginDto body) =>
         {
             if (!LoginInput.Valid(body.EmployeeNo, 20) || !LoginInput.ValidContext(body.TerminalId, body.LineId, body.ShiftCode))

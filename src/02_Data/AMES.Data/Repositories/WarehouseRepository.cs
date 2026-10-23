@@ -175,7 +175,7 @@ public sealed partial class WarehouseRepository
         string WarehouseName,
         string AreaCode,
         string AreaName,
-        decimal DefectQty = 0);
+        decimal DefectQty = 0, decimal InspectionQty = 0);
 
     public record LocationAreaLayoutRow(
         string AreaCode,
@@ -332,6 +332,8 @@ public sealed partial class WarehouseRepository
                 I.LotNo AS LOT_NO,
                 I.Qty AS QTY,
                 I.DefectQty AS DEFECT_QTY,
+                CASE WHEN EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=I.LotNo AND R.Status IN('Open','Inspecting'))
+                    THEN I.Qty ELSE 0 END AS INSPECTION_QTY,
                 COALESCE(NULLIF(M.DefaultUOM, ''), 'EA') AS UOM,
                 COALESCE(NULLIF(L.WhCode, ''), 'EOS') AS WH_CODE,
                 COALESCE(NULLIF(W.CodeName, ''), NULLIF(L.WhCode, ''), 'EOS') AS WH_NAME,
@@ -360,7 +362,7 @@ public sealed partial class WarehouseRepository
                 GetString(r, "WH_NAME") ?? "EOS",
                 GetString(r, "AREA_CODE") ?? "",
                 GetString(r, "AREA_NAME") ?? "",
-                GetDecimal(r, "DEFECT_QTY")),
+                GetDecimal(r, "DEFECT_QTY"),GetDecimal(r, "INSPECTION_QTY")),
             ("@FinishedGoods", null, finishedGoods), ("@IncludeFinishedGoods", null, includeFinishedGoods),
             ("@IncludeDefects", null, includeDefects));
     }

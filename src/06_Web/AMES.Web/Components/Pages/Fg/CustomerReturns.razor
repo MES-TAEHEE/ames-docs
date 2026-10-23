@@ -4,6 +4,9 @@
 @inject AMES.Data.Repositories.FinishedGoodsRepository Fg
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Auth
+@inject DialogService Dialog
 @using Radzen
 
 <PageTitle>FG-01 @L["FG.Returns.Title"] · AMES</PageTitle>
@@ -51,7 +54,7 @@
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="LotNo" Title="Lot No" Width="170px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="Qty" Title="@L["Col.Qty"].Value" Width="90px" TextAlign="TextAlign.Right"><Template Context="r">@UomFmt.Qty(r.Qty, null)</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReturnReason" Title="@L["Col.Reason"].Value" Width="160px"><Template Context="r">@(r.ReturnReason ?? "-")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="Status" Title="@L["Col.Status"].Value" Width="115px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @StatusClass(r.Status)">@(r.Status ?? "OPEN")</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="Status" Title="@L["Col.Status"].Value" Width="150px" TextAlign="TextAlign.Center"><Template Context="r"><span class="pill @StatusClass(r.Status)">@StatusLabel(r.Status)</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Property="ReceivedBy" Title="@L["FG.Returns.Col.ReceivedBy"].Value" Width="135px" />
             <RadzenDataGridColumn TItem="AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow" Title="@L["Col.Detail"].Value" Width="80px" Sortable="false" TextAlign="TextAlign.Center"><Template Context="r"><RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenDetail(r))" title="@L["FG.Returns.ViewDetails"].Value" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
         </Columns>
@@ -64,7 +67,7 @@
         <div class="ames-modal fg-return-modal" @onclick:stopPropagation>
             <div class="ames-modal-h">@L["FG.Returns.Detail"] - @_detail.ReturnId</div>
             <div class="fg-return-detail-grid">
-                <div><span>@L["Col.Status"]</span><strong><span class="pill @StatusClass(_detail.Status)">@(_detail.Status ?? "OPEN")</span></strong></div>
+                <div><span>@L["Col.Status"]</span><strong><span class="pill @StatusClass(_detail.Status)">@StatusLabel(_detail.Status)</span></strong></div>
                 <div><span>@L["Col.Customer"]</span><strong>@(_detail.CustomerId ?? "-")</strong></div>
                 <div><span>@L["FG.Returns.Col.Received"]</span><strong>@(_detail.ReceivedAt?.ToString(DateFmt.DateTime) ?? "-")</strong></div>
                 <div><span>Shipment ID / Barcode</span><strong>@_detail.ShipmentId / @_detail.OutboundBarcode</strong></div>
@@ -74,9 +77,30 @@
                 <div><span>@L["Col.Quantity"]</span><strong>@UomFmt.Qty(_detail.Qty, null)</strong></div>
                 <div><span>@L["FG.Returns.Lbl.ReturnReason"]</span><strong>@(_detail.ReturnReason ?? "-")</strong></div>
                 <div><span>@L["FG.Returns.Col.ReceivedBy"]</span><strong>@(_detail.ReceivedBy ?? "-")</strong></div>
+                <div><span>Inspected at</span><strong>@(_detail.ClosedAt?.ToString(DateFmt.DateTime) ?? "-")</strong></div>
+                <div><span>Inspected by</span><strong>@(_detail.ClosedBy ?? "-")</strong></div>
             </div>
             @if(!string.IsNullOrWhiteSpace(_detail.Note)){<div><span>Note</span><p>@_detail.Note</p></div>}
-            <div class="ames-modal-footer"><span style="flex:1;"></span><RadzenButton Text="@L["Btn.Close"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseDetail" class="ames-rz-btn" /></div>
+            @if(!string.IsNullOrWhiteSpace(_detail.InspectionNote)){<div><span>Inspection note</span><p>@_detail.InspectionNote</p></div>}
+            @if (FinishedGoodsRepository.IsReturnAwaitingInspection(_detail.Status))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">Awaiting inspection. This quantity cannot be used, assigned a location or shipped.</RadzenAlert>
+                @if (_canInspect)
+                {
+                    <RadzenLabel Text="Inspection note (required for defective returns)" Component="ReturnInspectionNote" />
+                    <RadzenTextArea Name="ReturnInspectionNote" @bind-Value="_inspectionNote" MaxLength="500" Rows="3" Disabled="_inspecting" class="ames-rz-input" Style="width:100%" />
+                }
+                else { <p class="dim">Inventory Defect approval permission is required to inspect this return.</p> }
+            }
+            @if (!string.IsNullOrWhiteSpace(_inspectionError)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_inspectionError</RadzenAlert> }
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                @if (_canInspect && FinishedGoodsRepository.IsReturnAwaitingInspection(_detail.Status))
+                {
+                    <RadzenButton Text="Accept to Stock" Icon="check_circle" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@(() => Inspect(true))" Disabled="_inspecting" class="ames-rz-btn" />
+                    <RadzenButton Text="Mark Defective" Icon="report_problem" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@(() => Inspect(false))" Disabled="_inspecting" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["Btn.Close"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseDetail" Disabled="_inspecting" class="ames-rz-btn" />
+            </RadzenStack>
         </div>
     </div>
 }
@@ -88,10 +112,17 @@
     AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow? _detail;
     string _search = "", _message = "";
     string? _status;
+    bool _canInspect, _inspecting;
+    string _inspectionNote = "", _inspectionError = "";
     DateTime? _from = DbClock.Today.AddMonths(-1), _to = DbClock.Today.AddMonths(1);
     string[] StatusOptions = ["Open", "Inspecting", "Closed", "Rejected", "Received"];
 
-    protected override async Task OnInitializedAsync() => await Reload();
+    protected override async Task OnInitializedAsync()
+    {
+        await Permissions.EnsureAsync(Auth);
+        _canInspect = Permissions.CanApprove(FinishedGoodsRepository.DefectPermissionHref);
+        await Reload();
+    }
     async Task Reload()
     {
         if (_from.HasValue && _to.HasValue && _from.Value.Date > _to.Value.Date) { _message = L["Err.DateRange"]; return; }
@@ -100,7 +131,40 @@
     }
     async Task ClearFilters() { _search = ""; _status = null; _from = DbClock.Today.AddMonths(-1); _to = DbClock.Today.AddMonths(1); await Reload(); }
     int CountStatus(string status) => _rows.Count(x => string.Equals(x.Status, status, StringComparison.OrdinalIgnoreCase));
-    void OpenDetail(AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow row) => _detail = row;
-    void CloseDetail() => _detail = null;
+    void OpenDetail(AMES.Data.Repositories.FinishedGoodsRepository.ReturnRow row)
+    { if (_inspecting) return; _detail = row; _inspectionNote = ""; _inspectionError = ""; }
+    void CloseDetail() { if (!_inspecting) _detail = null; }
+    async Task Inspect(bool accepted)
+    {
+        if (_inspecting || _detail is null) return;
+        _inspecting = true;
+        _inspectionError = "";
+        var committed = false;
+        try
+        {
+            if (!await Permissions.RecheckApproveAsync(Auth, FinishedGoodsRepository.DefectPermissionHref))
+                throw new InvalidOperationException("You do not have the Inventory Defect approval permission.");
+            var row = _detail;
+            var note = FinishedGoodsRepository.ValidateReturnInspectionNote(accepted, _inspectionNote);
+            if (await Dialog.Confirm(accepted ? "Accept this entire returned LOT to stock?" : "Mark this entire returned LOT defective?",
+                "Return Inspection", new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" }) != true) return;
+            var user = (await Auth.GetAuthenticationStateAsync()).User;
+            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+            await Task.Run(() => Fg.InspectCustomerReturn(row.ReturnId, accepted, note, userId, ActorCode.Of(user)));
+            committed = true;
+            _detail = null;
+            await Reload();
+            await Dialog.Alert(accepted ? "Inspection passed. Use Set Location before outbound." : "The returned LOT was marked defective. Physical disposal is not recorded by this action.", "Return Inspection");
+        }
+        catch (Exception ex)
+        {
+            if (committed) { _detail = null; _message = "Inspection was saved. Refresh the list before continuing."; }
+            else _inspectionError = ex.Message;
+        }
+        finally { _inspecting = false; }
+    }
+    static string StatusLabel(string? status) => FinishedGoodsRepository.IsReturnAwaitingInspection(status) ? "Awaiting Inspection"
+        : string.Equals(status,"Closed",StringComparison.OrdinalIgnoreCase) ? "Accepted"
+        : string.Equals(status,"Rejected",StringComparison.OrdinalIgnoreCase) ? "Defective" : status ?? "-";
     static string StatusClass(string? status) => status?.ToUpperInvariant() switch { "CLOSED" or "RECEIVED" => "ok", "OPEN" or "INSPECTING" => "warn", "REJECTED" => "bad", _ => "mute" };
 }

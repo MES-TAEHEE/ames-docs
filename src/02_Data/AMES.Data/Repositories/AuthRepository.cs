@@ -103,6 +103,32 @@ public sealed class AuthRepository
         return list;
     }
 
+    /// <summary>POP와 같은 웹 계정 우선순위로 로그인 선택용 사번·이름만 조회한다.</summary>
+    public List<LoginEmployeeDto> ListLoginEmployees()
+    {
+        const string sql = """
+            SELECT p.EmployeeNo COLLATE DATABASE_DEFAULT AS EmployeeNo,
+                   p.EmployeeName COLLATE DATABASE_DEFAULT AS EmployeeName
+            FROM dbo.SYS_UserProfile p JOIN dbo.AspNetUsers u ON u.Id=p.UserID
+            WHERE COALESCE(p.AccountStatus,'Active') IN ('Active','')
+              AND NULLIF(LTRIM(RTRIM(p.EmployeeNo)),'') IS NOT NULL
+            UNION
+            SELECT w.EmployeeNo COLLATE DATABASE_DEFAULT, w.EmployeeName COLLATE DATABASE_DEFAULT
+            FROM dbo.MD_Worker w
+            WHERE w.ActiveFlag=1 AND NULLIF(LTRIM(RTRIM(w.EmployeeNo)),'') IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM dbo.SYS_UserProfile p JOIN dbo.AspNetUsers u ON u.Id=p.UserID
+                  WHERE p.EmployeeNo COLLATE DATABASE_DEFAULT=w.EmployeeNo COLLATE DATABASE_DEFAULT)
+            ORDER BY EmployeeNo;
+            """;
+        using var conn = _connFactory.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        using var reader = cmd.ExecuteReader();
+        var list = new List<LoginEmployeeDto>();
+        while (reader.Read()) list.Add(new(reader.GetString(0), reader.GetString(1)));
+        return list;
+    }
+
     /// <summary>
     /// 시스템 관리자 역할(ROLE-SYSADMIN)을 가진 사용자 ID — POP 오프라인 로그인 캐시가 세션의 IsAdmin 을 미리 정해 두는 데 쓴다.
     /// </summary>

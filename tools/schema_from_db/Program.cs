@@ -23,7 +23,9 @@ var server = new Server(new ServerConnection(conn));
 var db = server.Databases[new SqlConnectionStringBuilder(cs).InitialCatalog];
 
 static bool Excluded(string name) =>
-    name.StartsWith("TEST_", StringComparison.OrdinalIgnoreCase) || name.Equals("sysdiagrams", StringComparison.OrdinalIgnoreCase);
+    name.StartsWith("TEST_", StringComparison.OrdinalIgnoreCase)
+    || name.Equals("WH_ReleaseSchedule", StringComparison.OrdinalIgnoreCase)
+    || name.Equals("sysdiagrams", StringComparison.OrdinalIgnoreCase);
 static bool DiagramObject(string name) =>
     name.Equals("fn_diagramobjects", StringComparison.OrdinalIgnoreCase) || name.Contains("diagram", StringComparison.OrdinalIgnoreCase) && name.StartsWith("sp_", StringComparison.OrdinalIgnoreCase);
 static bool RetiredPdaProcedure(string name) =>
@@ -57,7 +59,7 @@ void Batch(StringCollection sc, bool omitLegacyDefaultNames = false)
 var today = DateTime.Now.ToString("yyyy-MM-dd");
 L($"-- A-MES consolidated schema: AMES_DEV, captured {today} from the development DB (192.168.0.132) with SMO.");
 L($"-- {tables.Count} tables / {tables.Sum(t => t.Columns.Count)} columns, {procs.Count} procedures, {views.Count} views, {funcs.Count} functions, {seqs.Count} sequences.");
-L("-- Excludes TEST_* tables and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).");
+L("-- Excludes TEST_* tables, retired WH_ReleaseSchedule and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).");
 L("-- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).");
 L("-- Schema only from the live database; sample seeds below are retained from the repository.");
 L("-- Recreates the included objects: existing data in these tables will be deleted.");

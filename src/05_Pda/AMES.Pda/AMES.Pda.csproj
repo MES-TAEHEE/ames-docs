@@ -46,6 +46,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
+        <ProjectReference Include="..\..\01_Shared\AMES.Devices\AMES.Devices.csproj" />
     </ItemGroup>
 
 </Project>

@@ -57,6 +57,7 @@ public sealed partial class WarehouseRepository
                 FROM ReleaseLines R
                 INNER JOIN dbo.WH_Inventory W ON W.PartNo COLLATE DATABASE_DEFAULT = R.ItemNo COLLATE DATABASE_DEFAULT
                 WHERE W.Qty > 0
+                  AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn CR WHERE CR.LotNo=W.LotNo AND CR.Status IN('Open','Inspecting'))
                   AND (R.CreatedBy <> 'WH-AUTO' OR ({WarehouseRepository.WarehouseBoxPredicate}))
             )
             SELECT
@@ -108,6 +109,7 @@ public sealed partial class WarehouseRepository
     // W is the inventory alias; shared by FIFO suggestions, scan validation and completion.
     public const string WarehouseBoxPredicate = """
         W.UnitType='BOX' AND W.Qty>0
+        AND NOT EXISTS (SELECT 1 FROM dbo.FG_CustomerReturn CR WHERE CR.LotNo=W.LotNo AND CR.Status IN('Open','Inspecting'))
         AND COALESCE(W.LocationNo,'') NOT LIKE 'FG%'
         AND NOT EXISTS (SELECT 1 FROM dbo.MD_Line ML
                         WHERE NULLIF(ML.LotPrefix,'') COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT)
@@ -148,6 +150,7 @@ public sealed partial class WarehouseRepository
             FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID
             OUTER APPLY(SELECT SUM(W.Qty) Qty FROM dbo.WH_Inventory W
                 WHERE W.LocationNo=L.LocationID AND W.PartNo=L.PartNo
+                  AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn CR WHERE CR.LotNo=W.LotNo AND CR.Status IN('Open','Inspecting'))
                   AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)) S
             WHERE L.LocationLevel=2 AND COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE'
               AND NULLIF(L.PartNo,'') IS NOT NULL AND L.MinimumQty>0

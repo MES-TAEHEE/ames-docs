@@ -786,13 +786,14 @@ public sealed class ApsRepository
         return list;
     }
 
-    /// <summary>완제품 현재 재고(품번별) = 통합재고 WH_Inventory 의 PartNo 별 SUM(Qty), Qty > 0 — 위치(LocationNo)는 보지 않는다(사용자 결정 09-30). FG_Inventory 는 통합재고로 흡수돼 없다.</summary>
+    /// <summary>완제품 가용 재고(품번별) = 통합재고의 양수 수량에서 반품 검사 대기를 제외. 위치는 보지 않는다(사용자 결정 09-30).</summary>
     static Dictionary<string, decimal> ReadFgStock(SqlConnection conn, SqlTransaction tx)
     {
         using var cmd = new SqlCommand("""
             SELECT f.PartNo AS ItemNo, SUM(f.Qty) AS Qty
             FROM   dbo.WH_Inventory f
             WHERE  f.PartNo IS NOT NULL AND f.Qty > 0
+              AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=f.LotNo AND R.Status IN('Open','Inspecting'))
             GROUP  BY f.PartNo;
             """, conn, tx);
         using var rdr = cmd.ExecuteReader();
@@ -977,7 +978,7 @@ public sealed class ApsRepository
         return map;
     }
 
-    /// <summary>BOM 자식 사출품의 현재 재고 = 통합재고 WH_Inventory 의 PartNo 별 SUM(Qty), Qty > 0, 위치 무관(완제품과 같은 규칙).</summary>
+    /// <summary>BOM 자식 사출품의 가용 재고 = 통합재고 양수 수량, 반품 검사 대기 제외·위치 무관.</summary>
     static Dictionary<string, decimal> ReadWhStock(SqlConnection conn, SqlTransaction tx, IReadOnlyList<string> items)
     {
         var map = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
@@ -985,6 +986,7 @@ public sealed class ApsRepository
             SELECT x.PartNo AS ItemNo, SUM(x.Qty) AS Qty
             FROM   dbo.WH_Inventory x
             WHERE  x.PartNo IN ({inList}) AND x.Qty > 0
+              AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=x.LotNo AND R.Status IN('Open','Inspecting'))
             GROUP  BY x.PartNo;
             """, _ => { }))
         {

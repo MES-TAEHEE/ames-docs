@@ -1,4 +1,5 @@
 @page "/login"
+@using AMES.Devices
 @implements IAsyncDisposable
 @inject AuthState Auth
 @inject AuthApi Api
@@ -7,13 +8,57 @@
 
 <div class="pda-login">
     <div class="pda-login-brand">A-MES</div>
-    <div class="pda-login-sub">BARCODE LOGIN / PDA</div>
+    <div class="pda-login-sub">SIGN IN / PDA</div>
 
     <div class="pda-login-center">
         <div class="pda-login-panel">
+            <div class="pda-fld">
+                <label for="employee-id">EMPLOYEE ID</label>
+                <div class="pda-login-employee">
+                    <RadzenAutoComplete @ref="_employeeInput" Name="employee-id" @bind-Value="EmployeeNo"
+                                        Data="@_employees" TextProperty="@nameof(LoginEmployeeDto.EmployeeNo)"
+                                        MinLength="0" OpenOnFocus="true" FilterDelay="0" MaxLength="20"
+                                        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                        Placeholder="Enter or select ID" Disabled="@_submitting" class="pda-login-id"
+                                        InputAttributes="@EmployeeInputAttributes" PopupStyle="max-height:240px">
+                        <Template Context="item">
+                            @(((LoginEmployeeDto)item).EmployeeNo) · @(((LoginEmployeeDto)item).EmployeeName)
+                        </Template>
+                    </RadzenAutoComplete>
+                    <RadzenButton Icon="expand_more" Click="OpenEmployeeList" Disabled="@_submitting"
+                                  class="pda-login-picker" aria-label="Select employee" />
+                </div>
+                @if (_employeeListError is not null)
+                {
+                    <div class="pda-login-list-note">
+                        <span>@_employeeListError</span>
+                        <RadzenButton Text="Retry" Click="LoadEmployeesAsync" Disabled="@_loadingEmployees" Size="ButtonSize.Small" />
+                    </div>
+                }
+            </div>
+            <div class="pda-fld">
+                <label id="login-pin-label">PIN</label>
+                <div class="pda-pin-dots" role="status" aria-live="polite" aria-label="@($"{_pin.Length} of 4 PIN digits entered")">
+                    @for (var i = 0; i < 4; i++)
+                    {
+                        <span class="pda-pin-dot @(i < _pin.Length ? "on" : "")" aria-hidden="true"></span>
+                    }
+                </div>
+                <div class="pda-keypad pda-login-keypad" role="group" aria-labelledby="login-pin-label">
+                    @foreach (var digit in new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" })
+                    {
+                        <RadzenButton Text="@digit" class="pda-key" Click="@(() => PressPinDigit(digit))" Disabled="@_submitting" />
+                    }
+                    <RadzenButton Text="CLEAR" class="pda-key del" Click="ClearPin" Disabled="@_submitting" />
+                    <RadzenButton Text="0" class="pda-key" Click='@(() => PressPinDigit("0"))' Disabled="@_submitting" />
+                    <RadzenButton Icon="backspace" class="pda-key del" Click="DeletePinDigit" Disabled="@_submitting" aria-label="Delete last PIN digit" />
+                </div>
+            </div>
+            <RadzenButton Text="SIGN IN" Click="AuthenticatePinAsync" class="pda-login-submit"
+                          Disabled="@(_submitting || string.IsNullOrWhiteSpace(_employeeNo) || _pin.Length != 4)" />
             <div class="pda-login-scan-state">
                 <RadzenIcon Icon="barcode_scanner" />
-                <strong>@(_submitting ? "SIGNING IN..." : "SCAN EMPLOYEE BARCODE")</strong>
+                <strong>@(_submitting ? "SIGNING IN..." : "OR SCAN BADGE TO SIGN IN")</strong>
             </div>
         </div>
 
@@ -25,7 +70,27 @@
     private string _status = " ";
     private string _cls = "dim";
     private bool _submitting;
+    private string _employeeNo = "";
+    private string _pin = "";
+    private List<LoginEmployeeDto> _employees = [];
+    private RadzenAutoComplete? _employeeInput;
+    private bool _loadingEmployees, _disposed;
+    private string? _employeeListError;
+    private static readonly IReadOnlyDictionary<string, object> EmployeeInputAttributes = new Dictionary<string, object>
+    {
+        ["id"] = "employee-id", ["autocomplete"] = "off", ["autocapitalize"] = "none", ["spellcheck"] = "false"
+    };
     private DotNetObjectReference<Login>? _scannerRef;
+
+    private string EmployeeNo
+    {
+        get => _employeeNo;
+        set
+        {
+            if (_employeeNo != value) _pin = "";
+            _employeeNo = value ?? "";
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -34,6 +99,66 @@
         _scannerRef = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("pdaScan.register", _scannerRef,
             new { minLength = 5, developerMode = MauiProgram.IsDeveloperMode });
+        await LoadEmployeesAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        if (_loadingEmployees || _disposed) return;
+        _loadingEmployees = true;
+        _employeeListError = null;
+        try { _employees = await Api.EmployeesAsync(); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        { _employeeListError = "Server API update required for employee list. Enter ID or scan badge."; }
+        catch { _employeeListError = "Cannot load employees. Check connection, or enter ID / scan badge."; }
+        finally
+        {
+            _loadingEmployees = false;
+            if (!_disposed) StateHasChanged();
+        }
+    }
+
+    private async Task OpenEmployeeList()
+    {
+        if (_employeeInput is not null) await _employeeInput.FocusAsync();
+    }
+
+    private void PressPinDigit(string digit)
+    {
+        if (_submitting || _pin.Length >= 4) return;
+        if (string.IsNullOrWhiteSpace(_employeeNo))
+        {
+            Set("Enter or select employee ID first.", "fail");
+            return;
+        }
+        _pin += digit;
+    }
+
+    private void ClearPin() { if (!_submitting) _pin = ""; }
+    private void DeletePinDigit() { if (!_submitting && _pin.Length > 0) _pin = _pin[..^1]; }
+
+    private async Task AuthenticatePinAsync()
+    {
+        if (_submitting) return;
+        if (string.IsNullOrWhiteSpace(_employeeNo) || _pin.Length != 4 || !_pin.All(char.IsAsciiDigit))
+        {
+            Set("Enter employee ID and a 4-digit PIN.", "fail");
+            return;
+        }
+        _submitting = true;
+        Set("Signing in...", "dim");
+        try
+        {
+            var result = await Api.LoginAsync(_employeeNo.Trim(), _pin);
+            TrySignIn(result, "Check Employee ID and PIN.");
+        }
+        catch { Set("Authentication service is unavailable.", "fail"); }
+        finally
+        {
+            _pin = "";
+            _submitting = false;
+            if (!_disposed) StateHasChanged();
+        }
     }
 
     [JSInvokable]
@@ -42,6 +167,19 @@
         if (_submitting) return;
         var barcode = NormalizeScan(scanText);
         if (barcode.Length == 0) return;
+        var badge = BadgeScanParser.Parse(barcode);
+        if (badge.WorkerNo.Length == 0 || badge.WorkerNo.Length > 20)
+        {
+            Set("Scan a valid employee badge.", "fail");
+            return;
+        }
+        EmployeeNo = badge.WorkerNo;
+        _pin = "";
+        if (!badge.IsEosFormat)
+        {
+            Set("Employee ID entered. Enter your PIN to sign in.", "dim");
+            return;
+        }
         await AuthenticateBarcodeAsync(barcode);
     }
 
@@ -101,6 +239,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
         PdaBarcodeHub.Scanned -= OnNativeBarcodeScanned;
         try { await JS.InvokeVoidAsync("pdaScan.unregister"); } catch { }
         _scannerRef?.Dispose();

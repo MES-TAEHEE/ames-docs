@@ -11,7 +11,8 @@ public sealed partial class FinishedGoodsRepository
 
     public record ReturnRow(int ReturnId, string CustomerId, string? CustomerName,
         int ShipmentId, string? OutboundBarcode, string PartNo, string PartName, string? LotNo,
-        decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt, string? ReceivedBy, string? Note);
+        decimal Qty, string? ReturnReason, string? Status, DateTime? ReceivedAt, string? ReceivedBy, string? Note,
+        DateTime? ClosedAt = null, string? ClosedBy = null, string? InspectionNote = null);
     public record ShipmentRow(int ShipmentId, DateTime ShippedAt, string LotNo, string UnitType,
         string CustomerId, string? CustomerName, int ItemCount, decimal Qty, string? ShippedBy, string? PalletNo,string? PartNo,string? PartName) { public bool HasChildren => UnitType is "PALLET" or "CASE" || ItemCount > 1; }
     public record ShipmentItemRow(long TransactionId, string LotNo, string? PartNo, string? PartName,
@@ -23,10 +24,15 @@ public sealed partial class FinishedGoodsRepository
     {
         const string sql = """
             SELECT R.ReturnID,R.CustomerID,C.CustomerName,R.ShipmentID,S.LotNo AS OutboundBarcode,
-                R.PartNo,R.PartName,R.LotNo,R.ReturnQty AS Qty,R.ReturnReason,R.Status,R.ReceivedAt,R.ReceivedBy,R.Note
+                R.PartNo,R.PartName,R.LotNo,R.ReturnQty AS Qty,R.ReturnReason,R.Status,R.ReceivedAt,R.ReceivedBy,R.Note,R.ClosedAt,R.ClosedBy,
+                Inspection.Note AS InspectionNote
             FROM dbo.FG_CustomerReturn R
             JOIN dbo.FG_Shipment S ON S.ShipmentID=R.ShipmentID
             JOIN dbo.MD_Customer C ON C.CustomerID=R.CustomerID
+            OUTER APPLY(SELECT TOP(1) A.Note FROM dbo.SYS_AuditLog A
+                WHERE A.TargetEntity='FG_CustomerReturn' AND A.TargetID=CONVERT(varchar(20),R.ReturnID)
+                    AND A.ModuleCode='FG' AND A.ScreenCode='FG-01' AND A.Result='OK'
+                ORDER BY A.EventTS DESC,A.LogID DESC) Inspection
             WHERE (@Status IS NULL OR UPPER(R.Status)=UPPER(@Status))
               AND (@From IS NULL OR R.ReceivedAt>=@From)
               AND (@To IS NULL OR R.ReceivedAt<DATEADD(day,1,@To))
@@ -38,7 +44,7 @@ public sealed partial class FinishedGoodsRepository
         return Query(sql,r=>new ReturnRow(GetInt(r,"ReturnID"),GetString(r,"CustomerID") ?? "",
             GetString(r,"CustomerName"),GetInt(r,"ShipmentID"),GetString(r,"OutboundBarcode"),
             GetString(r,"PartNo") ?? "",GetString(r,"PartName") ?? "",GetString(r,"LotNo"),GetDecimal(r,"Qty"),
-            GetString(r,"ReturnReason"),GetString(r,"Status"),GetDate(r,"ReceivedAt"),GetString(r,"ReceivedBy"),GetString(r,"Note")),
+            GetString(r,"ReturnReason"),GetString(r,"Status"),GetDate(r,"ReceivedAt"),GetString(r,"ReceivedBy"),GetString(r,"Note"),GetDate(r,"ClosedAt"),GetString(r,"ClosedBy"),GetString(r,"InspectionNote")),
             ("@Search",null,Like(search)),("@Status","FG_CustomerReturn.Status",NullIfBlank(status)),
             ("@From",null,from?.Date),("@To",null,to?.Date));
     }

@@ -19,10 +19,10 @@ public sealed class UnifiedInventoryIntegrationTests
             INSERT dbo.MD_Item (ItemNo,ItemName,ItemType,DefaultUOM,ActiveFlag,CreatedBy)
             VALUES (@Item,N'Unified inventory test','MATERIAL','EA',1,'ITEST');
             INSERT dbo.MD_Location
-                (LocationID,LocationName,WhCode,AreaCode,ZoneCode,ActiveFlag,CreatedBy,CreatedTS)
-            VALUES (@Mat,N'Material','EOS','MAT_AREA','A',1,'ITEST',SYSDATETIME()),
-                   (@Fg,N'Finished goods','EOS','FG_AREA','A',1,'ITEST',SYSDATETIME()),
-                   (@Mnt,N'Maintenance','EOS','MNT_AREA','A',1,'ITEST',SYSDATETIME());
+                (LocationID,LocationName,WhCode,AreaCode,LocationType,ActiveFlag,CreatedBy,CreatedTS)
+            VALUES (@Mat,N'Material','EOS','MAT_AREA','RACK',1,'ITEST',SYSDATETIME()),
+                   (@Fg,N'Finished goods','EOS','FG_AREA','FG',1,'ITEST',SYSDATETIME()),
+                   (@Mnt,N'Maintenance','EOS','MNT_AREA','RACK',1,'ITEST',SYSDATETIME());
             INSERT dbo.WH_Inventory
                 (LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
             VALUES ('ITEST-INV-LOT-MAT','PART',@Item,N'Unified inventory test',@Mat,3,SYSDATETIME(),SYSDATETIME(),SYSDATETIME()),
@@ -39,8 +39,10 @@ public sealed class UnifiedInventoryIntegrationTests
             """, ("@Item", Item), ("@Mat", MatLocation), ("@Fg", FgLocation), ("@Mnt", MntLocation));
 
     [SkippableFact]
-    public void Reports_split_unified_inventory_by_area()
+    public void Reports_split_unified_inventory_by_location_type()
     {
+        Skip.If(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AMES_TEST_CONN")),
+            "Set AMES_TEST_CONN to a test DB; this test creates and removes inventory fixtures.");
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         Seed(f!);
         try
@@ -61,6 +63,8 @@ public sealed class UnifiedInventoryIntegrationTests
     [SkippableFact]
     public void Master_data_delete_is_blocked_while_inventory_exists()
     {
+        Skip.If(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AMES_TEST_CONN")),
+            "Set AMES_TEST_CONN to a test DB; this test creates and removes inventory fixtures.");
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         Seed(f!);
         try

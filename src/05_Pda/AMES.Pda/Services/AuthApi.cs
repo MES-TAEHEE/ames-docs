@@ -6,6 +6,14 @@ namespace AMES.Pda.Services;
 
 public sealed class AuthApi(HttpClient http, AuthState auth, PdaSettings settings) : PdaApi(http, auth)
 {
+    public async Task<List<LoginEmployeeDto>> EmployeesAsync()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        using var response = await _http.GetAsync("/api/auth/employees", timeout.Token);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<LoginEmployeeDto>>(cancellationToken: timeout.Token) ?? [];
+    }
+
     /// <summary>
     /// Login + session fetch in one call. The API hands back an opaque
     /// bearer token; we stamp it locally and immediately call /me so the

@@ -7,6 +7,21 @@ namespace AMES.Data.Tests;
 
 public class PdaDirectSqlTests
 {
+    [Fact]
+    public void Live_retirement_is_explicit_preview_first_and_preserves_resets_and_stock()
+    {
+        var sql=Read("dist/retire_pda_business_procedures.sql");
+        var targets=Regex.Matches(sql,@"\(N'(?<name>(?:WH|FG|SP)_PDA_[^']+)',N'[0-9A-F]{64}'\)");
+        Assert.Equal(27,targets.Count);
+        Assert.All(targets.Cast<Match>(),m=>Assert.DoesNotContain("TEST_RESET",m.Groups["name"].Value));
+        Assert.Contains("DECLARE @Apply bit=0;",sql);
+        Assert.Contains("IF @Apply=0",sql);
+        Assert.Contains("HASHBYTES('SHA2_256'",sql);
+        Assert.Contains("sys.sql_expression_dependencies",sql);
+        Assert.Contains("ROLLBACK TRANSACTION",sql);
+        Assert.DoesNotMatch(@"(?i)\b(DROP|TRUNCATE)\s+TABLE\b|\bDELETE\s+(FROM\s+)?dbo\.",sql);
+    }
+
     public static IEnumerable<object[]> Operations() => new[]
         { typeof(PdaWarehouseSql), typeof(PdaFinishedGoodsSql), typeof(PdaSparePartsSql) }
         .SelectMany(type => type.GetFields(BindingFlags.Public | BindingFlags.Static)

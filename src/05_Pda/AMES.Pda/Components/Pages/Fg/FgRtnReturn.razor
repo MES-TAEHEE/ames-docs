@@ -219,7 +219,7 @@
 
             var lot = Text(_product.LotNo);
             Clear();
-            ShowModal("Return Received", $"Return ID: {result.ReturnId}\n{lot} was registered successfully.", "success");
+            ShowModal("Awaiting Inspection", $"Return ID: {result.ReturnId}\n{lot} was received for inspection.\nThis stock cannot be used or shipped until inspection is approved in Customer Returns.", "success");
         }
         finally { _isBusy = false; }
     }

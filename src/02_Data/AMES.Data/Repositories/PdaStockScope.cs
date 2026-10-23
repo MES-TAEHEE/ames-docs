@@ -14,7 +14,8 @@ public static class PdaStockScope
 
     public static string Inventory(string sql, string? kind)
     {
-        var predicate = "AND " + Predicate(kind) + " AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory Child WHERE Child.ParentLotNo=W.LotNo)";
+        var predicate = "AND " + Predicate(kind) + " AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory Child WHERE Child.ParentLotNo=W.LotNo)"
+            + " AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=W.LotNo AND R.Status IN('Open','Inspecting'))";
         return sql
             .Replace("AND NOT (UPPER(COALESCE(L.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')", predicate)
             .Replace("AND NOT (UPPER(COALESCE(L.AreaCode,'')) = 'FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')", predicate)

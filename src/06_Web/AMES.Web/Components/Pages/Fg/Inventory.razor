@@ -31,8 +31,8 @@ else
         {
             var stock = InventoryRepo.ListUnifiedInventory(finishedGoods: true, includeDefects: true)
                 .Select(x => new LocationMapStock(
-                    x.LocationNo, x.PartNo, x.PartName, x.LotNo, x.Qty, x.Unit,
-                    x.WarehouseCode, x.WarehouseName, x.AreaCode, x.AreaName, x.DefectQty))
+                    x.LocationNo, x.PartNo, x.PartName, x.LotNo, x.Qty-x.InspectionQty, x.Unit,
+                    x.WarehouseCode, x.WarehouseName, x.AreaCode, x.AreaName, x.DefectQty, InspectionQty:x.InspectionQty))
                 .ToList();
             _inventory = InventorySearchRows.FromMaster(MD.ListItems(itemType: "ASSY"), stock);
             _itemVendors = SCM.ListItemVendors();
