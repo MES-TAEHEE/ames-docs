@@ -31,6 +31,8 @@ DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_PPT_TEST_RESET];
 DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_RETURN_RECEIVE];
 DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_RETURN_SCAN];
 DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_TRANSACTION_LIST];
+DROP PROCEDURE IF EXISTS [dbo].[SP_MNT_OEELog_Fill];
+DROP PROCEDURE IF EXISTS [dbo].[SP_MNT_OEELog_Fill_Monitor];
 DROP PROCEDURE IF EXISTS [dbo].[SP_PDA_SIMPLE_TEST_RESET];
 DROP PROCEDURE IF EXISTS [dbo].[SP_PDA_SP_SERIAL_CREATE];
 DROP PROCEDURE IF EXISTS [dbo].[SP_PDA_SP_STOCK_CANCEL];
@@ -3208,6 +3210,14 @@ CREATE TABLE [dbo].[MNT_OEELog](
 	[OEELogID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [UX_MNT_OEELog_Equip_Date_Shift] ON [dbo].[MNT_OEELog]
+(
+	[EquipID] ASC,
+	[AggDate] ASC,
+	[ShiftCode] ASC,
+	[AggLevel] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[MNT_OEELog] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -9775,6 +9785,173 @@ BEGIN
     SET NOCOUNT ON;
     THROW 51700,'Legacy FG scenario seeding is retired. Use actual barcode operations.',1;
 END;
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE   PROCEDURE dbo.SP_MNT_OEELog_Fill
+    @Date     date        = NULL,        -- 기준일(기본 = DB 오늘)
+    @DaysBack int         = 2,           -- 기준일 앞으로 더 옮길 일수(0~31) — 06:00 재집계가 이틀치를 다시 쓰므로 기본 2
+    @EquipID  varchar(20) = NULL,        -- 한 설비만
+    @Actor    varchar(20) = 'SQL-AGENT', -- MNT_OEELog.CreatedBy/ModifiedBy
+    @DryRun   bit         = 0            -- 1 = 옮길 값만 보이고 저장하지 않는다
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    IF @DaysBack IS NULL OR @DaysBack < 0 OR @DaysBack > 31
+        THROW 50032, N'@DaysBack must be between 0 and 31.', 1;
+    IF @Date IS NULL SET @Date = CAST(SYSDATETIME() AS date);
+    SET @Actor = ISNULL(NULLIF(LTRIM(RTRIM(@Actor)), ''), 'SQL-AGENT');
+
+    DECLARE @From date = DATEADD(DAY, -@DaysBack, @Date);
+    DECLARE @Computed int = 0, @Inserted int = 0, @Updated int = 0, @SkippedLines int = 0;
+
+    -- ① 라인 → 설비(활성 설비가 정확히 1대인 라인만)
+    DECLARE @Map TABLE (LineID varchar(20) PRIMARY KEY, EquipID varchar(20) NOT NULL);
+    INSERT @Map (LineID, EquipID)
+    SELECT LineID, MIN(EquipID)
+    FROM   dbo.MD_Equipment
+    WHERE  ISNULL(ActiveFlag, 1) = 1 AND NULLIF(LTRIM(RTRIM(LineID)), '') IS NOT NULL
+    GROUP  BY LineID
+    HAVING COUNT(*) = 1;
+
+    SELECT @SkippedLines = COUNT(*)
+    FROM  (SELECT LineID FROM dbo.MD_Equipment
+           WHERE ISNULL(ActiveFlag, 1) = 1 AND NULLIF(LTRIM(RTRIM(LineID)), '') IS NOT NULL
+           GROUP BY LineID HAVING COUNT(*) > 1) x;
+
+    -- ② 옮길 값
+    DECLARE @R TABLE (EquipID varchar(20) NOT NULL, AggDate date NOT NULL, ShiftCode varchar(10) NOT NULL,
+                      LineID varchar(20) NOT NULL, OEERecordNumber varchar(40) NOT NULL,
+                      PlannedTimeMin int NOT NULL, DowntimeMin int NOT NULL,
+                      Availability decimal(5,2) NULL, Performance decimal(5,2) NULL, Quality decimal(5,2) NULL, OEE decimal(5,2) NULL,
+                      GoodQty decimal(12,3) NULL, TotalQty decimal(12,3) NULL, LossBreakdownJSON nvarchar(400) NOT NULL,
+                      PRIMARY KEY (EquipID, AggDate, ShiftCode));
+    INSERT @R (EquipID, AggDate, ShiftCode, LineID, OEERecordNumber, PlannedTimeMin, DowntimeMin,
+               Availability, Performance, Quality, OEE, GoodQty, TotalQty, LossBreakdownJSON)
+    SELECT m.EquipID, o.PeriodDate, o.ShiftCode, o.LineID,
+           LEFT(CONCAT('OEE-', CONVERT(varchar(6), o.PeriodDate, 12), '-', m.EquipID, '-', o.ShiftCode), 40),
+           ISNULL(o.LoadingMin, 0),
+           ISNULL(o.PlannedDownMin, 0) + ISNULL(o.UnplannedDownMin, 0),
+           CAST(o.Availability * 100 AS decimal(5,2)), CAST(o.Performance * 100 AS decimal(5,2)),
+           CAST(o.Quality * 100 AS decimal(5,2)),      CAST(o.OEE * 100 AS decimal(5,2)),
+           CAST(o.GoodQty AS decimal(12,3)), CAST(o.TotalProducedQty AS decimal(12,3)),
+           CONCAT(N'{"plannedDownMin":', ISNULL(o.PlannedDownMin, 0), N',"unplannedDownMin":', ISNULL(o.UnplannedDownMin, 0),
+                  N',"operatingMin":', ISNULL(o.OperatingMin, 0), N',"source":"PP_LineOEE"}')
+    FROM   dbo.PP_LineOEE o
+    JOIN   @Map m ON m.LineID = o.LineID
+    WHERE  o.PeriodDate >= @From AND o.PeriodDate <= @Date
+      AND  NULLIF(LTRIM(RTRIM(o.ShiftCode)), '') IS NOT NULL
+      AND  (@EquipID IS NULL OR m.EquipID = @EquipID);
+    SET @Computed = @@ROWCOUNT;
+
+    IF @DryRun = 1
+    BEGIN
+        SELECT r.*,
+               CASE WHEN g.OEELogID IS NULL THEN 'INSERT'
+                    WHEN NOT EXISTS (SELECT g.LineID, g.OEERecordNumber, g.PlannedTimeMin, g.DowntimeMin, g.Availability, g.Performance,
+                                            g.Quality, g.OEE, g.GoodQty, g.TotalQty, CAST(g.LossBreakdownJSON AS nvarchar(400))
+                                     INTERSECT
+                                     SELECT r.LineID, r.OEERecordNumber, r.PlannedTimeMin, r.DowntimeMin, r.Availability, r.Performance,
+                                            r.Quality, r.OEE, r.GoodQty, r.TotalQty, r.LossBreakdownJSON) THEN 'UPDATE'
+                    ELSE 'UNCHANGED' END AS Action
+        FROM   @R r
+        LEFT JOIN dbo.MNT_OEELog g ON g.AggLevel = 'SHIFT' AND g.EquipID = r.EquipID AND g.AggDate = r.AggDate AND g.ShiftCode = r.ShiftCode
+        ORDER  BY r.AggDate, r.EquipID, r.ShiftCode;
+
+        SELECT @Date AS BaseDate, @DaysBack AS DaysBack, @Computed AS Computed,
+               0 AS Inserted, 0 AS Updated, @Computed AS Unchanged, @SkippedLines AS SkippedLines, @DryRun AS DryRun;
+        RETURN;
+    END
+
+    -- ③ 저장 — 같은 키 행은 값이 바뀐 것만 덮어쓰고 없으면 만든다. 에이전트 실행이 겹쳐도 한 번에 하나만
+    BEGIN TRY
+        BEGIN TRAN;
+        EXEC sp_getapplock @Resource = 'SP_MNT_OEELog_Fill', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 60000;
+
+        UPDATE g
+        SET    LineID = r.LineID, OEERecordNumber = r.OEERecordNumber,
+               PlannedTimeMin = r.PlannedTimeMin, DowntimeMin = r.DowntimeMin,
+               Availability = r.Availability, Performance = r.Performance, Quality = r.Quality, OEE = r.OEE,
+               GoodQty = r.GoodQty, TotalQty = r.TotalQty, LossBreakdownJSON = r.LossBreakdownJSON,
+               ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+        FROM   dbo.MNT_OEELog g WITH (UPDLOCK, HOLDLOCK)
+        JOIN   @R r ON g.AggLevel = 'SHIFT' AND g.EquipID = r.EquipID AND g.AggDate = r.AggDate AND g.ShiftCode = r.ShiftCode
+        WHERE  NOT EXISTS (SELECT g.LineID, g.OEERecordNumber, g.PlannedTimeMin, g.DowntimeMin, g.Availability, g.Performance,
+                                  g.Quality, g.OEE, g.GoodQty, g.TotalQty, CAST(g.LossBreakdownJSON AS nvarchar(400))
+                           INTERSECT
+                           SELECT r.LineID, r.OEERecordNumber, r.PlannedTimeMin, r.DowntimeMin, r.Availability, r.Performance,
+                                  r.Quality, r.OEE, r.GoodQty, r.TotalQty, r.LossBreakdownJSON);
+        SET @Updated = @@ROWCOUNT;
+
+        INSERT dbo.MNT_OEELog (OEERecordNumber, EquipID, LineID, AggLevel, AggDate, ShiftCode,
+                               PlannedTimeMin, DowntimeMin, Availability, Performance, Quality, OEE,
+                               GoodQty, TotalQty, LossBreakdownJSON, CreatedBy, CreatedTS)
+        SELECT r.OEERecordNumber, r.EquipID, r.LineID, 'SHIFT', r.AggDate, r.ShiftCode,
+               r.PlannedTimeMin, r.DowntimeMin, r.Availability, r.Performance, r.Quality, r.OEE,
+               r.GoodQty, r.TotalQty, r.LossBreakdownJSON, @Actor, SYSDATETIME()
+        FROM   @R r
+        WHERE  NOT EXISTS (SELECT 1 FROM dbo.MNT_OEELog g WITH (UPDLOCK, HOLDLOCK)
+                           WHERE g.AggLevel = 'SHIFT' AND g.EquipID = r.EquipID AND g.AggDate = r.AggDate AND g.ShiftCode = r.ShiftCode);
+        SET @Inserted = @@ROWCOUNT;
+
+        COMMIT;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK;
+        DECLARE @ErrMsg nvarchar(1000) = ERROR_MESSAGE();
+        EXEC dbo.SP_MNT_OEELog_Fill_Monitor @Ok = 0, @Count = 0, @Actor = @Actor, @Error = @ErrMsg;
+        THROW;
+    END CATCH;
+
+    DECLARE @Written int = @Inserted + @Updated;
+    EXEC dbo.SP_MNT_OEELog_Fill_Monitor @Ok = 1, @Count = @Written, @Actor = @Actor, @Error = NULL;
+
+    PRINT CONCAT('SP_MNT_OEELog_Fill ', CONVERT(varchar(10), @From, 120), '~', CONVERT(varchar(10), @Date, 120),
+                 ': computed ', @Computed, ', inserted ', @Inserted, ', updated ', @Updated,
+                 ', unchanged ', @Computed - @Inserted - @Updated, ', skipped lines ', @SkippedLines);
+    SELECT @Date AS BaseDate, @DaysBack AS DaysBack, @Computed AS Computed,
+           @Inserted AS Inserted, @Updated AS Updated, @Computed - @Inserted - @Updated AS Unchanged,
+           @SkippedLines AS SkippedLines, @DryRun AS DryRun;
+END
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE   PROCEDURE dbo.SP_MNT_OEELog_Fill_Monitor
+    @Ok    bit,
+    @Count int,
+    @Actor varchar(20),
+    @Error nvarchar(1000)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Code varchar(20) = 'MNTOEEFILL', @Name nvarchar(60) = N'MNT Equipment OEE Fill', @Ep varchar(255) = 'dbo.SP_MNT_OEELog_Fill';
+    UPDATE dbo.SYS_InterfaceMonitor
+    SET    InterfaceName   = @Name,
+           Endpoint        = @Ep,
+           ConnStatus      = CASE WHEN @Ok = 1 THEN 'OK' ELSE 'ERROR' END,
+           LastSyncTS      = CASE WHEN @Ok = 1 THEN SYSDATETIME() ELSE LastSyncTS END,
+           LastRecordCount = CASE WHEN @Ok = 1 THEN @Count ELSE LastRecordCount END,
+           LastErrorMsg    = CASE WHEN @Ok = 1 THEN NULL ELSE @Error END,
+           RetryCount      = CASE WHEN @Ok = 1 THEN 0 ELSE ISNULL(RetryCount, 0) + 1 END,
+           ModifiedBy      = @Actor, ModifiedTS = SYSDATETIME()
+    WHERE  InterfaceCode = @Code;
+    IF @@ROWCOUNT = 0
+        INSERT INTO dbo.SYS_InterfaceMonitor
+               (InterfaceCode, InterfaceName, Direction, Endpoint, Protocol, ConnStatus,
+                LastSyncTS, MaxGapMinutes, LastRecordCount, RetryCount, LastErrorMsg, IsEnabled, CreatedBy)
+        VALUES (@Code, @Name, 'INBOUND', @Ep, 'TSQL',
+                CASE WHEN @Ok = 1 THEN 'OK' ELSE 'ERROR' END,
+                CASE WHEN @Ok = 1 THEN SYSDATETIME() ELSE NULL END,
+                10, CASE WHEN @Ok = 1 THEN @Count ELSE NULL END,
+                CASE WHEN @Ok = 1 THEN 0 ELSE 1 END,
+                CASE WHEN @Ok = 1 THEN NULL ELSE @Error END, 1, @Actor);
+END
 GO
 SET ANSI_NULLS ON
 GO

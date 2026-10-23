@@ -11710,6 +11710,24 @@
   <data name="MD.Line.Hint.NoLotPrefix" xml:space="preserve">
     <value>LOT 을 발행하지 않는 공정(재작업 등)의 라인은 LOT PREFIX 를 두지 않습니다.</value>
   </data>
+  <data name="MD.Line.Hint.LotPrefix" xml:space="preserve">
+    <value>새 LOT 번호와 라인 재고 위치에 쓰입니다. LOT 을 발행하거나 라인 재고가 생기면 바꿀 수 없습니다.</value>
+  </data>
+  <data name="MD.Line.Hint.LotPrefixLocked" xml:space="preserve">
+    <value>이미 LOT·채번·라인 재고에 쓰인 LOT PREFIX 라 바꿀 수 없습니다. 다른 접두어가 필요하면 라인을 새로 등록하세요.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixRequired" xml:space="preserve">
+    <value>사출·감싸기·도장 라인은 LOT PREFIX 가 필요합니다.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixFormat" xml:space="preserve">
+    <value>LOT PREFIX 는 영문·숫자 2글자여야 합니다.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixDuplicate" xml:space="preserve">
+    <value>다른 라인이 이미 쓰고 있는 LOT PREFIX 입니다.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixLocked" xml:space="preserve">
+    <value>이미 LOT·채번·라인 재고에 쓰인 LOT PREFIX 는 바꿀 수 없습니다.</value>
+  </data>
   <data name="PP.Aps.Wo.Reject.NoLotPrefix" xml:space="preserve">
     <value>사출 라인에 LOT PREFIX 가 없음(MD-001 에서 등록)</value>
   </data>

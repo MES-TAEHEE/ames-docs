@@ -77,4 +77,54 @@ public class LotPrefixRuleTests
         }
         finally { Cleanup(f!); }
     }
+
+    const string LockLine  = "ITEST-LPR-LOCK";
+    const string StockLot  = "ITEST-LPR-STK";
+    const string SeqHeader = "ZZZZ9";
+
+    static void LockCleanup(Connection.AmesConnectionFactory f)
+    {
+        Exec(f, "DELETE dbo.WH_Inventory WHERE LotNo = @L", ("@L", StockLot));
+        Exec(f, "DELETE dbo.SYS_LotSeq WHERE Header = @H", ("@H", SeqHeader));
+        Exec(f, "DELETE dbo.MD_Line WHERE LineID = @L", ("@L", LockLine));
+    }
+
+    // 10-23 — 이미 쓰인 접두어(LOT 번호·채번 헤더·라인 재고 위치)는 바꾸지 않는다(52080). 같은 값 저장·다른 칸 수정·작업장 변경은 통과
+    [SkippableFact]
+    public void Used_prefix_cannot_be_changed()
+    {
+        Skip.If(Environment.GetEnvironmentVariable("AMES_TEST_CONN") is null, WriteSkip);
+        var f = TryFactory(); Skip.If(f is null, WriteSkip);
+        Skip.If(Scalar(f!, "SELECT 1 FROM dbo.MD_Line WHERE LotPrefix IN ('Z8', 'Z9')") is not null, "Z8/Z9 already assigned");
+        var md = new MasterDataRepository(f!);
+        void Save(string prefix, string wc = "WC-INJ", string name = "itest lock")
+            => md.UpdateLine(LockLine, name, null, null, wc, null, null, false, "ACTIVE", Actor, prefix);
+        string? Prefix() => Scalar(f!, "SELECT LotPrefix FROM dbo.MD_Line WHERE LineID = @L", ("@L", LockLine)) as string;
+        try
+        {
+            LockCleanup(f!);
+            md.InsertLine(LockLine, "itest lock", null, null, "WC-INJ", null, null, false, "ACTIVE", Actor, "Z8");
+            Assert.False(md.LotPrefixInUse(LockLine));
+            Save("Z9");                                   // 쓰이지 않은 접두어는 바꿀 수 있다
+            Assert.Equal("Z9", Prefix());
+
+            // 채번 헤더에 쓰이면 잠긴다
+            Exec(f!, "INSERT dbo.SYS_LotSeq (Header, LastSeq, ModifiedTS) VALUES (@H, 1, SYSDATETIME())", ("@H", SeqHeader));
+            Assert.True(md.LotPrefixInUse(LockLine));
+            Assert.Equal(52080, Assert.Throws<SqlException>(() => Save("Z8")).Number);
+            Save("Z9", name: "itest lock 2");             // 같은 값·다른 칸 수정은 통과
+            Save("Z9", wc: "WC-RWK");                     // 비 LOT 공정으로 바꾸면 접두어는 보내지 않아 그대로 남는다
+            Assert.Equal("Z9", Prefix());
+            Save("Z9");
+
+            // 라인 재고 위치(BF- 자리표시 포함)에 쓰여도 잠긴다
+            Exec(f!, "DELETE dbo.SYS_LotSeq WHERE Header = @H", ("@H", SeqHeader));
+            Assert.False(md.LotPrefixInUse(LockLine));
+            Exec(f!, "INSERT dbo.WH_Inventory (LotNo, LocationNo, ReceivedAt) VALUES (@L, 'Z9', SYSDATETIME())", ("@L", StockLot));
+            Assert.True(md.LotPrefixInUse(LockLine));
+            Assert.Equal(52080, Assert.Throws<SqlException>(() => Save("Z8")).Number);
+            Assert.Equal("Z9", Prefix());
+        }
+        finally { LockCleanup(f!); }
+    }
 }

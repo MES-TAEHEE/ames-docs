@@ -143,6 +143,7 @@ FILES=(
   migrate_wonumber_unique.sql        # PP_WorkOrder.WoNumber 유니크 인덱스 — WO 채번 범위 잠금을 접두어 범위로 좁힘(POP 확정 대기 방지), 스키마에 이미 있으면 건너뜀(10-22)
   migrate_pp_lineoee_fill.sql        # PP-OEE 자동 집계 프로시저 SP_PP_LineOEE_Fill(+Monitor) + 상태 로그·실적 인덱스 (에이전트 작업은 setup_job_pp_lineoee_fill.sql, 10-22)
   migrate_pp_linestatelog_fill.sql   # 라인 상태 분 단위 분류 프로시저 SP_PP_LineStateLog_Fill(+Monitor) + UX_PP_LineStateLog_Line_Minute + SYS_Config PP_LINE_RUN_GAP_* (작업은 setup_job_pp_linestatelog_fill.sql, 10-22)
+  migrate_mnt_oeelog_fill.sql        # 설비 OEE 자동 채움 프로시저 SP_MNT_OEELog_Fill(+Monitor) — PP_LineOEE → MNT_OEELog(설비 1대 라인), UX_MNT_OEELog_Equip_Date_Shift, 시연 행 삭제 (작업은 setup_job_mnt_oeelog_fill.sql, 10-23)
   migrate_md_paint_fabric_lotno.sql  # MD_PaintFabric.LotNo varchar(24) → nvarchar(50) — 스키마에 이미 있으면 건너뜀(10-15)
   migrate_sys_auditlog_actiontype.sql # SYS_AuditLog.ActionType varchar(15) → varchar(20) — 스키마에 이미 있으면 건너뜀(10-15)
   migrate_by_columns_employee_no.sql # 사람 컬럼(...By) 33개 varchar(20)·값을 사번으로(SYS_AuditActorMap 에 원문 보존) — 스키마에 이미 있으면 건너뜀(10-15)
@@ -233,16 +234,17 @@ for f in "${FILES[@]}"; do
   run_file "$f"
 done
 
-# 4) SQL Server 에이전트 작업 4개 — "[AMES] Factory Calendar Fill"(매월 1일, 공장 달력 3개월 채우기) ·
+# 4) SQL Server 에이전트 작업 5개 — "[AMES] Factory Calendar Fill"(매월 1일, 공장 달력 3개월 채우기) ·
 #    "[AMES] Line State Fill"(1분마다 최근 2시간 PP_LineStateLog 분 단위 상태 분류) · "[AMES] Line State Recalc"(매일 06:00 이틀치 재분류 + OEE 재집계) ·
-#    "[AMES] Line OEE Fill"(5분마다 PP-OEE 라인 OEE 스냅샷).
+#    "[AMES] Line OEE Fill"(5분마다 PP-OEE 라인 OEE 스냅샷) · "[AMES] MNT OEE Fill"(5분마다 라인 OEE → 설비 OEE MNT_OEELog).
 #    msdb 는 DB 를 지워도 남으므로 매번 다시 등록한다(재실행 안전).
 #    컨테이너에서 작업이 실제로 돌려면 MSSQL_AGENT_ENABLED=true 로 만든 컨테이너여야 한다. 등록 실패는 재구축을 막지 않는다.
-echo "[4/4] 에이전트 작업 등록 (setup_job_factory_calendar_fill.sql · setup_job_pp_linestatelog_fill.sql · setup_job_pp_linestatelog_recalc.sql · setup_job_pp_lineoee_fill.sql)..."
+echo "[4/4] 에이전트 작업 등록 (setup_job_factory_calendar_fill.sql · setup_job_pp_linestatelog_fill.sql · setup_job_pp_linestatelog_recalc.sql · setup_job_pp_lineoee_fill.sql · setup_job_mnt_oeelog_fill.sql)..."
 run_file setup_job_factory_calendar_fill.sql || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_factory_calendar_fill.sql 을 다시 실행하세요"
 run_file setup_job_pp_linestatelog_fill.sql  || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_pp_linestatelog_fill.sql 을 다시 실행하세요"
 run_file setup_job_pp_linestatelog_recalc.sql || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_pp_linestatelog_recalc.sql 을 다시 실행하세요"
 run_file setup_job_pp_lineoee_fill.sql       || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_pp_lineoee_fill.sql 을 다시 실행하세요"
+run_file setup_job_mnt_oeelog_fill.sql      || echo "    ⚠️ 작업 등록 실패 — 컨테이너 에이전트 설정을 확인하고 setup_job_mnt_oeelog_fill.sql 을 다시 실행하세요"
 
 echo ""
 echo "✅ $DB rebuild 완료. 검증:"

@@ -156,7 +156,7 @@
                     <RadzenDropDown @bind-Value="_f.Status" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
-            <div class="dim" style="font-size:.85em;margin-top:4px;">@(PrefixRequired ? "Used for new LOT numbers. Existing barcodes and Location IDs stay unchanged." : L["MD.Line.Hint.NoLotPrefix"].Value)</div>
+            <div class="dim" style="font-size:.85em;margin-top:4px;">@PrefixHint</div>
 
 
             @if (!string.IsNullOrEmpty(_modalErr))
@@ -214,14 +214,14 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@(PrefixRequired ? "LOT PREFIX *" : "LOT PREFIX")" Component="EditLinePrefix" />
-                    <RadzenTextBox Name="EditLinePrefix" @bind-Value="_f.LotPrefix" MaxLength="2" Disabled="@(!PrefixRequired)" Placeholder="I1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenTextBox Name="EditLinePrefix" @bind-Value="_f.LotPrefix" MaxLength="2" Disabled="@(!PrefixRequired || _prefixLocked)" Placeholder="I1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;text-transform:uppercase;" AutoCompleteType="AutoCompleteType.Off" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Status"]" />
                     <RadzenDropDown @bind-Value="_f.Status" Data="@LineStatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
-            <div class="dim" style="font-size:.85em;margin-top:4px;">@(PrefixRequired ? "Used for new LOT numbers. Existing barcodes and Location IDs stay unchanged." : L["MD.Line.Hint.NoLotPrefix"].Value)</div>
+            <div class="dim" style="font-size:.85em;margin-top:4px;">@PrefixHint</div>
 
 
             @* 삭제 버튼 클릭 후 인라인 확인 *@
@@ -270,7 +270,7 @@
     string  _fSearch = "";
     string? _fStatus;
     string _modal = "";
-    bool _busy, _confirmDelete, _bgMouseDownOnSelf;
+    bool _busy, _confirmDelete, _bgMouseDownOnSelf, _prefixLocked;
     string _deleteBlocked = "";
     string _msg = "", _modalErr = "";
     bool _isErr;
@@ -350,12 +350,13 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; _modal = "create"; }
+    void OpenCreate() { _f = new(); _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; _prefixLocked = false; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.LineRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = ""; _confirmDelete = false; _deleteBlocked = "";
+        _prefixLocked = MD.LotPrefixInUse(r.LineID);
         _f = new()
         {
             LineID          = r.LineID,
@@ -397,6 +398,7 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Created"].Value, _f.LineName), false);
         }
+        catch (Microsoft.Data.SqlClient.SqlException ex) when (PrefixErrKey(ex.Number) is { } key) { _modalErr = L[key]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -421,6 +423,7 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Line.Ok.Updated"].Value, name), false);
         }
+        catch (Microsoft.Data.SqlClient.SqlException ex) when (PrefixErrKey(ex.Number) is { } key) { _modalErr = L[key]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -475,11 +478,21 @@
         _f.LotPrefix = (_f.LotPrefix ?? "").Trim().ToUpperInvariant();
         if (_f.LotPrefix.Length == 2 && _f.LotPrefix.All(char.IsAsciiLetterOrDigit)) return true;
         // 비우거나 2글자 — 1글자는 받지 않는다. 비우면 LOT 공정 라인 필수 규칙으로 거부(LotPrefixRules)
-        _modalErr = _f.LotPrefix.Length == 0
-            ? "LOT PREFIX is required for injection, wrapping and painting lines."
-            : "LOT PREFIX must contain exactly 2 letters or digits.";
+        _modalErr = _f.LotPrefix.Length == 0 ? L["MD.Line.Err.LotPrefixRequired"] : L["MD.Line.Err.LotPrefixFormat"];
         return false;
     }
+
+    // 이미 LOT·채번·라인 재고에 쓰인 접두어는 수정 창에서 바꾸지 않는다(10-23, 저장소 52080)
+    string PrefixHint => !PrefixRequired ? L["MD.Line.Hint.NoLotPrefix"]
+        : _modal == "edit" && _prefixLocked ? L["MD.Line.Hint.LotPrefixLocked"] : L["MD.Line.Hint.LotPrefix"];
+
+    static string? PrefixErrKey(int number) => number switch
+    {
+        52078 => "MD.Line.Err.LotPrefixDuplicate",
+        52079 => "MD.Line.Err.LotPrefixRequired",
+        52080 => "MD.Line.Err.LotPrefixLocked",
+        _     => null,
+    };
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 

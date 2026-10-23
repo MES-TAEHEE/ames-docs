@@ -2582,6 +2582,26 @@ public sealed class MasterDataRepository
             THROW 52079, 'LOT PREFIX is required for injection, wrapping and painting lines.', 1;
         """;
 
+    // 접두어 @Old 가 이미 쓰였는가 — LOT 번호(4~5번째 글자)·채번 헤더·라인 재고 위치(BF- 자리표시 포함). 쓰인 접두어는 바꾸지 않는다(52080, 10-23)
+    // 바꾸면 기존 LOT·라인 재고와 연결이 끊긴다. 라인 로케이션·WH_AREA 코드는 라인 등록 때 생기므로 기준에 넣지 않는다(사용자 결정)
+    const string LotPrefixUsedSql = """
+        (EXISTS (SELECT 1 FROM dbo.tbl_Lot WHERE LineID = @ID AND SUBSTRING(LotCode, 4, 2) = @Old)
+         OR EXISTS (SELECT 1 FROM dbo.SYS_LotSeq WHERE SUBSTRING(Header, 4, 2) = @Old)
+         OR EXISTS (SELECT 1 FROM dbo.WH_Inventory WHERE LocationNo = @Old))
+        """;
+
+    /// <summary>그 라인의 지금 접두어가 이미 쓰였으면 true — MD-001 수정 창이 입력칸을 잠근다(저장은 UpdateLine 이 52080 으로 다시 막는다).</summary>
+    public bool LotPrefixInUse(string lineId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand($"""
+            DECLARE @Old varchar(2) = (SELECT NULLIF(RTRIM(LotPrefix), '') FROM dbo.MD_Line WHERE LineID = @ID);
+            SELECT CASE WHEN @Old IS NOT NULL AND {LotPrefixUsedSql} THEN 1 ELSE 0 END;
+            """, conn);
+        cmd.Parameters.Add("@ID", SqlDbType.VarChar, 20).Value = lineId;
+        return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
+    }
+
     public void InsertLine(
         string lineId, string? lineName, string? lineNameEn,
         string? plantCode, string? defaultWcId,
@@ -2627,9 +2647,12 @@ public sealed class MasterDataRepository
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction();
         using var cmd = new SqlCommand($"""
+            DECLARE @Old varchar(2) = (SELECT NULLIF(RTRIM(LotPrefix), '') FROM dbo.MD_Line WITH (UPDLOCK, HOLDLOCK) WHERE LineID = @ID);
             {LotPrefixGuardSql}
             IF @Prefix IS NOT NULL AND EXISTS(SELECT 1 FROM dbo.MD_Line WHERE LotPrefix=@Prefix AND LineID<>@ID)
                 THROW 52078,'LOT PREFIX is already assigned to another line.',1;
+            IF @Prefix IS NOT NULL AND @Old IS NOT NULL AND @Prefix <> @Old AND {LotPrefixUsedSql}
+                THROW 52080,'LOT PREFIX is already used by LOTs or line stock and cannot be changed.',1;
             UPDATE dbo.MD_Line SET
               LineName=@Name, LineNameEn=@NameEn,
               PlantCode=@Plant, WCID=@WC,

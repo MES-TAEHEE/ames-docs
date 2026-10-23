@@ -11710,6 +11710,24 @@
   <data name="MD.Line.Hint.NoLotPrefix" xml:space="preserve">
     <value>Lines of processes that do not issue LOTs (such as rework) have no LOT PREFIX.</value>
   </data>
+  <data name="MD.Line.Hint.LotPrefix" xml:space="preserve">
+    <value>Used for new LOT numbers and the line stock location. It cannot be changed once LOTs are issued or line stock exists.</value>
+  </data>
+  <data name="MD.Line.Hint.LotPrefixLocked" xml:space="preserve">
+    <value>This LOT PREFIX is already used by LOTs, numbering or line stock and cannot be changed. Register a new line if a different prefix is needed.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixRequired" xml:space="preserve">
+    <value>LOT PREFIX is required for injection, wrapping and painting lines.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixFormat" xml:space="preserve">
+    <value>LOT PREFIX must contain exactly 2 letters or digits.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixDuplicate" xml:space="preserve">
+    <value>This LOT PREFIX is already assigned to another line.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixLocked" xml:space="preserve">
+    <value>A LOT PREFIX already used by LOTs, numbering or line stock cannot be changed.</value>
+  </data>
   <data name="PP.Aps.Wo.Reject.NoLotPrefix" xml:space="preserve">
     <value>The injection line has no LOT PREFIX (set it in MD-001)</value>
   </data>

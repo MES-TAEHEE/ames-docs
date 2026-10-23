@@ -11710,6 +11710,24 @@
   <data name="MD.Line.Hint.NoLotPrefix" xml:space="preserve">
     <value>Las líneas de procesos que no emiten LOT (como retrabajo) no tienen LOT PREFIX.</value>
   </data>
+  <data name="MD.Line.Hint.LotPrefix" xml:space="preserve">
+    <value>Se usa en los números de LOT nuevos y en la ubicación de inventario de la línea. No se puede cambiar una vez emitidos LOT o con inventario en la línea.</value>
+  </data>
+  <data name="MD.Line.Hint.LotPrefixLocked" xml:space="preserve">
+    <value>Este LOT PREFIX ya se usa en LOT, numeración o inventario de la línea y no se puede cambiar. Si necesita otro prefijo, registre una línea nueva.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixRequired" xml:space="preserve">
+    <value>Las líneas de inyección, envoltura y pintura requieren LOT PREFIX.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixFormat" xml:space="preserve">
+    <value>El LOT PREFIX debe tener exactamente 2 letras o dígitos.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixDuplicate" xml:space="preserve">
+    <value>Este LOT PREFIX ya está asignado a otra línea.</value>
+  </data>
+  <data name="MD.Line.Err.LotPrefixLocked" xml:space="preserve">
+    <value>No se puede cambiar un LOT PREFIX que ya se usa en LOT, numeración o inventario de la línea.</value>
+  </data>
   <data name="PP.Aps.Wo.Reject.NoLotPrefix" xml:space="preserve">
     <value>La línea de inyección no tiene LOT PREFIX (regístrelo en MD-001)</value>
   </data>
