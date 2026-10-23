@@ -1,8 +1,10 @@
 @namespace AMES.Pop.Pages.InjPopups
 @using AMES.Contracts.Enums
+@using AMES.Data.Connection
 @using AMES.Data.Repositories
 @using AMES.Data.Services
 @using AMES.Pop.Common
+@using AMES.Pop.Services
 @inject AMES.Pop.Services.ScannerService Scanner
 @implements IDisposable
 
@@ -65,6 +67,8 @@
     private bool IsPnt => ProcessCode == "PNT";
     [Parameter] public EventCallback  OnClose     { get; set; }
     [Parameter] public EventCallback  OnChanged   { get; set; }
+    /// <summary>화면에서 고른 품번 — 오프라인에서 사본에 없는 LOT 을 받아들일 때 잠정 품번으로 쓴다(복구 뒤 서버가 실제 품번으로 판정).</summary>
+    [Parameter] public string?        SelectedItemNo { get; set; }
 
     private static string T(string key, params object?[] args) => PopLang.T(key, args);
 
@@ -86,9 +90,44 @@
     protected override void OnInitialized()
     {
         if (Session is null) return;
-        try { _codes = PopServices.Defects.ListForProcess(ProcessCode); }
+        try
+        {
+            _codes = LoadCodes();
+            if (_codes.Count == 0 && PopDb.IsOffline) SetBanner(false, T("OfflineNotAvailable"));
+        }
         catch (Exception ex) { SetBanner(false, ex.Message); }
         Scanner.OnScan += OnSerialScan;
+    }
+
+    // 불량코드 — DB 가 끊겼으면 로컬 사본의 목록을 쓴다(사본이 이 공정 것일 때만).
+    private List<DefectCodeDto> LoadCodes()
+    {
+        if (!PopDb.IsOffline)
+        {
+            try { return PopServices.Defects.ListForProcess(ProcessCode); }
+            catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { }
+        }
+        return OfflineWork.State?.Process == ProcessCode ? OfflineWork.DefectCodes() : new();
+    }
+
+    private static InjLotDto? LookupInj(string lotCode)
+    {
+        if (!PopDb.IsOffline)
+        {
+            try { return PopServices.InjLots.GetByLotCode(lotCode); }
+            catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { }
+        }
+        return OfflineWork.FindLot(lotCode)?.ToInj();
+    }
+
+    private ImgLotDto? LookupFinished(string lotCode)
+    {
+        if (!PopDb.IsOffline)
+        {
+            try { return IsPnt ? PopServices.PntLots.GetByLotCode(lotCode) : PopServices.ImgLots.GetByLotCode(lotCode); }
+            catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { }
+        }
+        return OfflineWork.FindLot(lotCode)?.ToImg();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -123,13 +162,18 @@
             LotInfo? info = null;
             if (FinishedProcess)
             {
-                var fin = IsPnt ? PopServices.PntLots.GetByLotCode(lotCode) : PopServices.ImgLots.GetByLotCode(lotCode);
+                var fin = LookupFinished(lotCode);
                 if (fin is { } im)
                     info = new LotInfo(im.LotCode, im.ItemNo, im.ItemName, im.LineId, im.ConfirmStatus, im.CreatedTS, null);
             }
-            else if (PopServices.InjLots.GetByLotCode(lotCode) is { } ij)
+            else if (LookupInj(lotCode) is { } ij)
             {
                 info = new LotInfo(ij.LotCode, ij.ItemNo, ij.ItemName, ij.LineId, ij.ConfirmStatus, ij.CreatedTS, ij.InspectionSummary);
+            }
+            if (info is null && PopDb.IsOffline && OfflineWork.LooksLikeLotCode(lotCode) && !string.IsNullOrEmpty(SelectedItemNo))
+            {
+                // 오프라인 사본에 없는 LOT — 라벨은 실제로 있으니 받아들인다. 맞는지는 복구 뒤 서버가 판정한다.
+                info = new LotInfo(lotCode, SelectedItemNo, null, Session.LineId, LotDefectRules.Raw, DbClock.Now, T("OfflineUnverified"));
             }
 
             if (info is null) { _lot = null; SetBanner(false, $"{T("LotNotFound")}: {lotCode}"); return; }
@@ -156,17 +200,13 @@
         try
         {
             var unload = PalletStockRepository.PalletUnloadResult.None;
-            var (outcome, _, itemNo) = ProcessCode switch
-            {
-                "PNT" => PopServices.PntLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo, out unload),
-                "IMG" => PopServices.ImgLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo, out unload),
-                _     => PopServices.InjLots.RegisterDefect(_lot.LotCode, Session.LineId, _selected.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo, out unload),
-            };
+            var unverified = false;
+            var (outcome, _, itemNo) = RegisterRouted(out unload, out unverified);
             // 이미 PDA 로 입고된(위치 있는) 재고 행을 뺐으면 창고에 알려야 한다 — 팔레트 위 행을 뺀 것은 정상 경로라 조용하다
             var located = unload.WasLocated ? $" · {T("DfStockRemovedLocated", unload.LocationNo!)}" : "";
             var (ok, detail) = outcome switch
             {
-                DefectRegisterOutcome.Registered      => (true,  $"{T("DfRegistered")}: {_lot.LotCode} ({itemNo}) · {_selected.DefectCode}{located}"),
+                DefectRegisterOutcome.Registered      => (true,  $"{T("DfRegistered")}: {_lot.LotCode} ({itemNo}) · {_selected.DefectCode}{located}{(unverified ? $" · {T("OfflineUnverified")}" : "")}"),
                 DefectRegisterOutcome.NotFound        => (false, $"{T("LotNotFound")}: {_lot.LotCode}"),
                 DefectRegisterOutcome.WrongLine       => (false, $"{T("LotBelongsToAnotherLine")}: {_lot.LotCode}"),
                 DefectRegisterOutcome.AlreadyInRework => (false, $"{T("DfAlreadyInRework")}: {_lot.LotCode}"),
@@ -183,6 +223,33 @@
         }
         catch (Exception ex) { SetBanner(false, ex.Message); }
         finally { _busy = false; _focusScan = true; }
+    }
+
+    // 불량 등록 — 공정별 저장소가 판정하되 DB 가 끊겼으면(이미 알려졌거나 이번 호출이 연결 오류) 로컬 사본이 받아 큐에 올린다.
+    private (DefectRegisterOutcome Outcome, int DefectId, string ItemNo) RegisterRouted(
+        out PalletStockRepository.PalletUnloadResult unload, out bool unverified)
+    {
+        unload = PalletStockRepository.PalletUnloadResult.None;
+        unverified = false;
+        var s = Session!;
+        if (!PopDb.IsOffline)
+        {
+            try
+            {
+                var code = _selected!.DefectCode;
+                return ProcessCode switch
+                {
+                    "PNT" => PopServices.PntLots.RegisterDefect(_lot!.LotCode, s.LineId, code, s.OperatorId, s.SessionId, s.EmployeeNo, out unload),
+                    "IMG" => PopServices.ImgLots.RegisterDefect(_lot!.LotCode, s.LineId, code, s.OperatorId, s.SessionId, s.EmployeeNo, out unload),
+                    _     => PopServices.InjLots.RegisterDefect(_lot!.LotCode, s.LineId, code, s.OperatorId, s.SessionId, s.EmployeeNo, out unload),
+                };
+            }
+            catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { unload = PalletStockRepository.PalletUnloadResult.None; }
+        }
+        var r = OfflineWork.RegisterDefect(_lot!.LotCode, s.LineId, s.TerminalId, s.OperatorId, s.EmployeeNo, s.SessionId,
+                                           _selected!.DefectCode, SelectedItemNo);
+        unverified = r.Unverified;
+        return (r.Outcome, 0, r.ItemNo);
     }
 
     private void SetBanner(bool ok, string detail) { _bannerClass = ok ? "ok" : "bad"; _bannerDetail = detail; }

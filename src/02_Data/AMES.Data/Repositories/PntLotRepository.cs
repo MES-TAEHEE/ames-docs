@@ -66,7 +66,90 @@ public sealed class PntLotRepository
     /// RAW LOT 1건 INSERT. 라벨 V 토큰(수주처 코드)은 발행 시점 이 라인·품번의 열린 WO → PP_CustomerOrder → MD_Customer 로
     /// 정해 LOT 에 박아 둔다 — 재출력 때 WO 가 바뀌어도 라벨이 달라지지 않는다.
     /// </summary>
-    static ImgLotDto InsertRawLot(SqlConnection conn, SqlTransaction tx, string lineId, string itemNo, string employeeNo)
+    /// <summary>오프라인에서 이미 번호를 받아 라벨까지 뽑은 LOT 의 삽입 값 — 번호·생성 시각·출력 횟수·라벨에 찍은 수주처 코드.</summary>
+    sealed record OfflineCreate(string LotCode, DateTime At, int Printed, string? CustomerCode);
+
+    /// <summary>오프라인 발행 버튼으로 이미 라벨을 뽑은 LOT 을 복구 뒤 넣는다. 같은 번호가 이미 있으면(재전송) null.</summary>
+    public ImgLotDto? CreateRawLotWithCode(string lineId, string itemNo, string employeeNo,
+                                           string lotCode, DateTime at, int printedCount, string? customerCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using (var exists = new SqlCommand("SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = @Code;", conn, tx))
+            {
+                exists.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
+                if (exists.ExecuteScalar() is not null) { tx.Rollback(); return null; }
+            }
+            var lot = InsertRawLot(conn, tx, lineId, itemNo, employeeNo, new OfflineCreate(lotCode, at, printedCount, customerCode));
+            tx.Commit();
+            return lot;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    // ── 오프라인 사본용 ────────────────────────────────────────────────
+
+    /// <summary>오프라인 라벨에 찍는 값 — 품번 정보·수주처 코드(이 라인·품번의 열린 WO 기준)·설비. 라벨 발행 때 서버가 하는 조회와 같다.</summary>
+    public sealed record LabelContext(string? ItemName, string? Pgn, string? Alc, string? MountPos, string? CustomerCode, string? EquipId);
+
+    public LabelContext GetLabelContext(string lineId, string itemNo)
+    {
+        using var conn = _factory.OpenConnection();
+        string? itemName = null, pgn = null, alc = null, mountPos = null;
+        using (var cmd = new SqlCommand("dbo.SP_POP_PNT_InsertRawLot_GetItem", conn) { CommandType = CommandType.StoredProcedure })
+        {
+            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+            using var rdr = cmd.ExecuteReader();
+            if (rdr.Read())
+            {
+                itemName = rdr["ItemName"] as string; pgn = rdr["PGN"] as string;
+                alc = rdr["ALC"] as string; mountPos = rdr["MountPos"] as string;
+            }
+        }
+        string? customer;
+        using (var cmd = new SqlCommand("dbo.SP_POP_PNT_InsertRawLot_GetWorkOrderRouting", conn) { CommandType = CommandType.StoredProcedure })
+        {
+            cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
+            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+            customer = cmd.ExecuteScalar() as string;
+        }
+        string? equip;
+        using (var cmd = new SqlCommand("dbo.SP_POP_PNT_InsertRawLot_GetEquipment", conn) { CommandType = CommandType.StoredProcedure })
+        {
+            cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+            equip = cmd.ExecuteScalar() as string;
+        }
+        return new LabelContext(itemName, pgn, alc, mountPos, customer, equip);
+    }
+
+    /// <summary>이 라인의 PNT LOT 중 <paramref name="since"/> 이후에 생성됐거나 아직 판정 전(RAW)인 것 — 오프라인 스캔이 알아보는 명부.</summary>
+    public List<ImgLotDto> ListForOffline(string lineId, DateTime since)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("""
+            SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, mi.PGN, mi.ALC, mi.MountPos, l.LineID,
+                   e.EquipID, e.CustomerCode, e.ConfirmStatus, e.ConfirmedAt,
+                   CAST(NULL AS INT) AS FabricRollLotID, CAST(NULL AS DECIMAL(8,3)) AS FabricConsumedM, CAST(NULL AS INT) AS BondSetupID,
+                   e.PrintedCount, l.CreatedTS, CAST(NULL AS VARCHAR(40)) AS CoreLotCode
+            FROM   dbo.tbl_Lot l
+            JOIN   dbo.PR_PntLot e ON e.LotID = l.LotID
+            LEFT   JOIN dbo.MD_Item mi ON mi.ItemNo = l.ItemNo
+            WHERE  l.LineID = @Line AND l.ProcessCode = 'PNT'
+              AND (l.CreatedTS >= @Since OR e.ConfirmStatus = 'RAW')
+            ORDER  BY l.LotID DESC;
+            """, conn) { CommandTimeout = 120 };
+        cmd.Parameters.Add("@Line",  SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@Since", SqlDbType.DateTime2   ).Value = since;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<ImgLotDto>();
+        while (rdr.Read()) list.Add(MapToDto(rdr));
+        return list;
+    }
+
+    static ImgLotDto InsertRawLot(SqlConnection conn, SqlTransaction tx, string lineId, string itemNo, string employeeNo,
+                                  OfflineCreate? offline = null)
     {
         string? itemName, pgn, alc, mountPos;
         using (var cmd = new SqlCommand("dbo.SP_POP_PNT_InsertRawLot_GetItem", conn, tx) { CommandType = CommandType.StoredProcedure })
@@ -90,6 +173,8 @@ public sealed class PntLotRepository
             cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
             customerCode = cmd.ExecuteScalar() as string;
         }
+        // 오프라인에서 이미 찍은 라벨의 V 토큰이 정본이다 — 복구 시점의 WO 로 다시 정하면 라벨과 LOT 이 어긋난다
+        if (offline is not null) customerCode = offline.CustomerCode;
 
         string? equipId;
         using (var cmd = new SqlCommand("dbo.SP_POP_PNT_InsertRawLot_GetEquipment", conn, tx) { CommandType = CommandType.StoredProcedure })
@@ -98,7 +183,7 @@ public sealed class PntLotRepository
             equipId = cmd.ExecuteScalar() as string;
         }
 
-        var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
+        var lotCode = offline?.LotCode ?? LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
 
         int lotId; DateTime createdTs;
         using (var cmd = new SqlCommand("dbo.SP_POP_PNT_InsertRawLot_InsLot", conn, tx) { CommandType = CommandType.StoredProcedure })
@@ -123,12 +208,27 @@ public sealed class PntLotRepository
             cmd.ExecuteNonQuery();
         }
 
+        // 프로시저는 생성 시각을 서버 시각으로 찍는다 — LOT 생성일이 현황·실적 집계의 기준이라 오프라인 LOT 은 발생 시각으로 되돌린다.
+        var printed = 0;
+        if (offline is not null)
+        {
+            using var fix = new SqlCommand("""
+                UPDATE dbo.tbl_Lot SET CreatedTS = @At, ProducedAt = @At WHERE LotID = @Lot;
+                UPDATE dbo.PR_PntLot SET CreatedTS = @At, PrintedCount = @Pc WHERE LotID = @Lot;
+                """, conn, tx);
+            fix.Parameters.Add("@At",  SqlDbType.DateTime2).Value = offline.At;
+            fix.Parameters.Add("@Pc",  SqlDbType.Int      ).Value = offline.Printed;
+            fix.Parameters.Add("@Lot", SqlDbType.Int      ).Value = lotId;
+            fix.ExecuteNonQuery();
+            createdTs = offline.At; printed = offline.Printed;
+        }
+
         return new ImgLotDto
         {
             LotId = lotId, LotCode = lotCode, ItemNo = itemNo, ItemName = itemName,
             Pgn = pgn, Alc = alc, MountPos = mountPos, CustomerCode = customerCode,
             LineId = lineId, EquipId = equipId, ConfirmStatus = LotDefectRules.Raw,
-            PrintedCount = 0, CreatedTS = createdTs, CoreLotCode = null,
+            PrintedCount = printed, CreatedTS = createdTs, CoreLotCode = null,
         };
     }
 
@@ -178,6 +278,14 @@ public sealed class PntLotRepository
         string lotCode, string lineId, string defectCode,
         string operatorId, int? sessionId, string employeeNo,
         out PalletStockRepository.PalletUnloadResult unload)
+        => RegisterDefect(lotCode, lineId, defectCode, operatorId, sessionId, employeeNo, null, out unload);
+
+    /// <param name="occurredAt">오프라인에서 등록한 불량을 복구 뒤 반영할 때 그 발생 시각 — 역분개 실적·불량 상세의 시각이 이 시각이 된다.</param>
+    public (DefectRegisterOutcome Outcome, int DefectId, string ItemNo) RegisterDefect(
+        string lotCode, string lineId, string defectCode,
+        string operatorId, int? sessionId, string employeeNo,
+        DateTime? occurredAt,
+        out PalletStockRepository.PalletUnloadResult unload)
     {
         unload = PalletStockRepository.PalletUnloadResult.None;
         using var conn = _factory.OpenConnection();
@@ -204,11 +312,11 @@ public sealed class PntLotRepository
 
             int? origResultId = null, reversalId = null, woId = null;
             if (LotDefectRules.ReversesResult(status))
-                (origResultId, reversalId, woId) = LotDefectWriter.ReverseConfirmedResult(conn, tx, lotId, lineId, operatorId, sessionId, employeeNo);
+                (origResultId, reversalId, woId) = LotDefectWriter.ReverseConfirmedResult(conn, tx, lotId, lineId, operatorId, sessionId, employeeNo, occurredAt);
             woId ??= LotDefectWriter.ResolveOpenWo(conn, tx, lineId, itemNo)?.WoId;
 
             var defectId = LotDefectWriter.InsertDefectDetail(conn, tx, lotId, woId, origResultId, ProcessCode, defectCode,
-                                                              status, reversalId, null, operatorId, employeeNo);
+                                                              status, reversalId, null, operatorId, employeeNo, occurredAt);
 
             using (var cmd = new SqlCommand("dbo.SP_POP_PNT_RegisterDefect_UpdPntLot", conn, tx) { CommandType = CommandType.StoredProcedure })
             {
@@ -245,6 +353,12 @@ public sealed class PntLotRepository
     public (ImgConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
         string lotCode, string lineId,
         string operatorId, int? sessionId, string employeeNo, string? palletNo, out BackflushResult backflush)
+        => ConfirmByLotCode(lotCode, lineId, operatorId, sessionId, employeeNo, palletNo, null, out backflush);
+
+    /// <param name="occurredAt">오프라인에서 일어난 판정 OK 를 복구 뒤 반영할 때 그 발생 시각 — 실적의 EntryAt·전기일·교대가 이 시각 기준이 된다. 비우면 서버 시각.</param>
+    public (ImgConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
+        string lotCode, string lineId,
+        string operatorId, int? sessionId, string employeeNo, string? palletNo, DateTime? occurredAt, out BackflushResult backflush)
     {
         backflush = BackflushResult.None;
         using var conn = _factory.OpenConnection();
@@ -300,7 +414,7 @@ public sealed class PntLotRepository
             }
 
             // 전기일·교대는 설정 DAY_CUTOFF_TIME·공통코드 WORK_SHIFT로 확정 시점 서버 시각에 판정
-            var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
+            var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx, occurredAt);
             int resultId;
             using (var cmd = new SqlCommand("dbo.SP_POP_PNT_ConfirmByLotCode_InsProductionResult", conn, tx) { CommandType = CommandType.StoredProcedure })
             {

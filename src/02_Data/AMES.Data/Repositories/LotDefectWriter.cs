@@ -19,7 +19,7 @@ internal static class LotDefectWriter
     /// </summary>
     internal static (int? OrigResultId, int? ReversalResultId, int? WoId) ReverseConfirmedResult(
         SqlConnection conn, SqlTransaction tx, int lotId, string lotLineId,
-        string operatorId, int? sessionId, string employeeNo)
+        string operatorId, int? sessionId, string employeeNo, DateTime? at = null)
     {
         int origId; int? woId; string lineId, processCode; string? moldId;
         using (var cmd = new SqlCommand("dbo.SP_POP_LOT_ReverseConfirmedResult_GetProductionResult", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
@@ -34,7 +34,7 @@ internal static class LotDefectWriter
             moldId      = rdr["MoldID"] as string;
         }
 
-        var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
+        var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx, at);
         int reversalId;
         // DefectFlag = 0: 불량 자체는 PR_DefectDetail 이 센다. 여기에 1 을 주면 상세 Qty 와 겹쳐 보고서가 이중 계상한다.
         // 역분개 행은 GoodQty < 0 과 EntryNo 의 'R' 접두로 식별한다.
@@ -69,7 +69,7 @@ internal static class LotDefectWriter
         SqlConnection conn, SqlTransaction tx,
         int lotId, int? woId, int? resultId, string processCode, string defectCode,
         string priorStatus, int? reversalResultId, string? reasonNote,
-        string operatorId, string employeeNo)
+        string operatorId, string employeeNo, DateTime? at = null)
     {
         using var cmd = new SqlCommand("dbo.SP_POP_LOT_InsertDefectDetail", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@R",     SqlDbType.Int          ).Value = (object?)resultId ?? DBNull.Value;
@@ -82,7 +82,17 @@ internal static class LotDefectWriter
         cmd.Parameters.Add("@Rev",   SqlDbType.Int          ).Value = (object?)reversalResultId ?? DBNull.Value;
         cmd.Parameters.Add("@Op",    SqlDbType.VarChar,   20).Value = operatorId;
         cmd.Parameters.Add("@By",    SqlDbType.VarChar,   20).Value = employeeNo;
-        return (int)cmd.ExecuteScalar()!;
+        var defectId = (int)cmd.ExecuteScalar()!;
+
+        // 프로시저는 DetectedAt 을 서버 시각으로 찍는다 — 오프라인에서 등록한 불량은 발생 시각으로 되돌려 일자별 불량 집계가 맞게 한다.
+        if (at is { } occurred)
+        {
+            using var fix = new SqlCommand("UPDATE dbo.PR_DefectDetail SET DetectedAt = @At WHERE DefectID = @Id;", conn, tx);
+            fix.Parameters.Add("@At", SqlDbType.DateTime2).Value = occurred;
+            fix.Parameters.Add("@Id", SqlDbType.Int).Value = defectId;
+            fix.ExecuteNonQuery();
+        }
+        return defectId;
     }
 
     /// <summary>이 라인에서 품번의 열린 WO 단계 (ConfirmByLotCode 와 같은 규칙, 단계 행 잠금). 없으면 null.</summary>

@@ -119,7 +119,11 @@ public static class ProdCalendar
     /// 서버 시각(SYSDATETIME) 기준으로 설정·공통코드를 읽어 판정. 호출자의 트랜잭션 안에서 실행된다.
     /// 터미널 시계가 아니라 서버 시계를 쓰는 이유: EntryAt 도 SYSDATETIME() 이라 같은 시각을 봐야 한다.
     /// </summary>
-    public static (DateTime Now, DateTime ProdDate, string? ShiftCode) ResolveNow(SqlConnection conn, SqlTransaction? tx)
+    /// <param name="at">
+    /// 오프라인에서 일어난 작업을 복구 뒤에 반영할 때 그 발생 시각 — 주면 서버 시각 대신 이 시각으로 전기일·교대를 판정한다
+    /// (설정·공통코드는 반영 시점 값). 비우면 종전대로 서버 시각.
+    /// </param>
+    public static (DateTime Now, DateTime ProdDate, string? ShiftCode) ResolveNow(SqlConnection conn, SqlTransaction? tx, DateTime? at = null)
     {
         string? cutoffAttr = null;
         var shifts = new List<(string Code, string? Window)>();
@@ -128,6 +132,7 @@ public static class ProdCalendar
         cmd.Parameters.Add("@CutoffKey", System.Data.SqlDbType.VarChar, 60).Value = CutoffConfigKey;
         using var rdr = cmd.ExecuteReader();
         var now = rdr.Read() ? rdr.GetDateTime(0) : DbClock.Now;
+        if (at is { } occurred) now = occurred;
         if (rdr.NextResult() && rdr.Read()) cutoffAttr = rdr["ConfigValue"] as string;
         if (rdr.NextResult())
             while (rdr.Read())

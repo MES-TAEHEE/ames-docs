@@ -104,6 +104,21 @@ public sealed class AuthRepository
     }
 
     /// <summary>
+    /// 시스템 관리자 역할(ROLE-SYSADMIN)을 가진 사용자 ID — POP 오프라인 로그인 캐시가 세션의 IsAdmin 을 미리 정해 두는 데 쓴다.
+    /// </summary>
+    public HashSet<string> ListAdminUserIds()
+    {
+        const string sql = "SELECT UserId FROM dbo.AspNetUserRoles WHERE RoleId = @RoleId;";
+        using var conn = _connFactory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@RoleId", SqlDbType.NVarChar, 450).Value = AMES.Data.Services.SystemRoles.AdminId;
+        using var rdr = cmd.ExecuteReader();
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        while (rdr.Read()) set.Add(rdr.GetString(0));
+        return set;
+    }
+
+    /// <summary>
     /// Bumps SYS_UserProfile.FailedLoginCount by 1.
     /// When the count reaches 5 the AccountStatus is set to 'LOCKED' automatically.
     /// Returns true if the account is now LOCKED (either just locked or was already LOCKED).

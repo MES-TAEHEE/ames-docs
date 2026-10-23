@@ -20,7 +20,8 @@
 }
 
 @code {
-    protected override void OnInitialized() => Confirmer.OnAsk += Refresh;
-    public void Dispose() => Confirmer.OnAsk -= Refresh;
-    private void Refresh(ConfirmRequest _) => InvokeAsync(StateHasChanged);
+    protected override void OnInitialized() { Confirmer.OnAsk += Refresh; Confirmer.OnClosed += Refresh; }
+    public void Dispose() { Confirmer.OnAsk -= Refresh; Confirmer.OnClosed -= Refresh; }
+    private void Refresh(ConfirmRequest _) => Refresh();
+    private void Refresh() => InvokeAsync(StateHasChanged);
 }

@@ -61,6 +61,7 @@ body {
 }
 .pop-tbar-r .stat-on { color: var(--ok); font-weight: 700; }
 .pop-tbar-r .stat-off { color: #777; }
+.pop-tbar-r .stat-bad { color: #f87171; font-weight: 700; }
 
 .pop-bd {
     flex: 1; min-height: 0;

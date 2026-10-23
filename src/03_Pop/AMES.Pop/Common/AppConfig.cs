@@ -43,6 +43,36 @@ public sealed class AppConfig
     /// <summary>개발용 — true 면 전체 화면(테두리 없음·최대화) 대신 크기 조절 가능한 일반 창으로 연다.</summary>
     public bool DevWindowed { get; }
 
+    /// <summary>
+    /// DB 연결 대기(초). 0 이하·없음이면 접속문자열의 Connect Timeout 을 그대로 쓴다. DB 가 응답하지 않을 때
+    /// 오프라인으로 판정되기까지 걸리는 시간이 이 값이다. 원격 서버 + Encrypt=True 는 TLS 핸드셰이크가 5초를 넘길 수 있어
+    /// 너무 낮추면 정상 DB 도 끊긴 것으로 본다 — 같은 PC·사내망 DB 에서만 낮출 것.
+    /// </summary>
+    public int DbConnectTimeoutSeconds { get; }
+
+    /// <summary>오프라인 대비 데이터 보관 범위 — 로그아웃 시점 기준 과거 N일.</summary>
+    public int OfflinePastDays { get; }
+
+    /// <summary>오프라인 대비 데이터 보관 범위 — 로그아웃 시점 기준 미래 N일(계획·작업지시).</summary>
+    public int OfflineFutureDays { get; }
+
+    /// <summary>오프라인 로그인용 직원 사본의 유효 기간(일). 지나면 오프라인 로그인을 받지 않는다.</summary>
+    public int OfflineCacheMaxAgeDays { get; }
+    /// <summary>오프라인 사본·큐 파일 폴더. 비어 있으면 %LocalAppData%\AMES\Pop.</summary>
+    public string OfflineDir { get; }
+
+    /// <summary>로그인해 있는 동안 작업 사본을 새로 받는 주기(분). 로그아웃 때는 이 주기와 무관하게 받는다.</summary>
+    public int OfflineRefreshMinutes { get; }
+
+    /// <summary>오프라인에서 새 LOT 번호로 쓰려고 라인·날짜마다 미리 확보해 두는 순번 수. 안 쓴 번호는 결번이 된다.</summary>
+    public int OfflineLotBlockSize { get; }
+
+    /// <summary>내일 날짜의 번호 구간은 이 시각(시) 이후에만 확보한다 — 자정을 넘기는 정전만 대비하고, 평소엔 결번을 만들지 않는다.</summary>
+    public int OfflineTomorrowBlockFromHour { get; }
+
+    /// <summary>복구 뒤 서버가 "없는 LOT"이라고 한 건을 충돌로 보기 전에 다시 시도하는 시간(분) — 다른 PC 의 에이전트가 아직 못 올린 LOT 일 수 있다.</summary>
+    public int OfflineNotFoundRetryMinutes { get; }
+
     private static readonly Lazy<AppConfig> _instance = new(Load);
     public static AppConfig Current => _instance.Value;
 
@@ -53,6 +83,16 @@ public sealed class AppConfig
         DefaultShift = root["PopTerminal:DefaultShift"] ?? "A";   // 공통코드 WORK_SHIFT 기준
 
         DevWindowed  = bool.TryParse(root["PopTerminal:DevWindowed"], out var dw) && dw;
+
+        DbConnectTimeoutSeconds = int.TryParse(root["PopTerminal:Db:ConnectTimeoutSeconds"], out var cts) && cts > 0 ? cts : 0;
+        OfflinePastDays        = int.TryParse(root["PopTerminal:Offline:PastDays"],        out var opd) && opd >= 0 ? opd : 7;
+        OfflineFutureDays      = int.TryParse(root["PopTerminal:Offline:FutureDays"],      out var ofd) && ofd >= 0 ? ofd : 7;
+        OfflineCacheMaxAgeDays = int.TryParse(root["PopTerminal:Offline:CacheMaxAgeDays"], out var oma) && oma > 0 ? oma : 7;
+        OfflineDir             = root["PopTerminal:Offline:Dir"] ?? "";
+        OfflineRefreshMinutes  = int.TryParse(root["PopTerminal:Offline:RefreshMinutes"],  out var orm) && orm > 0 ? orm : 10;
+        OfflineLotBlockSize    = int.TryParse(root["PopTerminal:Offline:LotBlockSize"],    out var olb) && olb > 0 ? olb : 20;
+        OfflineTomorrowBlockFromHour = int.TryParse(root["PopTerminal:Offline:TomorrowBlockFromHour"], out var otb) && otb is >= 0 and <= 24 ? otb : 22;
+        OfflineNotFoundRetryMinutes  = int.TryParse(root["PopTerminal:Offline:NotFoundRetryMinutes"],  out var onr) && onr >= 0 ? onr : 30;
 
         Language     = (root["PopTerminal:Language"] ?? "ko").ToLowerInvariant() == "en" ? "en" : "ko";
 

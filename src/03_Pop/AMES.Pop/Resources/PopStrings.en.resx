@@ -122,6 +122,16 @@
   <data name="OkWithinRatedLife" xml:space="preserve"><value>● OK · within rated life</value></data>
   <data name="OneRowPerCycle" xml:space="preserve"><value>One row per cycle</value></data>
   <data name="Online" xml:space="preserve"><value>ONLINE</value></data>
+  <data name="Offline" xml:space="preserve"><value>OFFLINE</value></data>
+  <data name="DbOffline" xml:space="preserve"><value>DB connection lost — waiting for recovery</value></data>
+  <data name="DbOfflineLoginBlocked" xml:space="preserve"><value>Cannot sign in: the database is unreachable. Try again after it recovers.</value></data>
+  <data name="DbOfflineLocal" xml:space="preserve"><value>DB offline — working from the local copy (copy {0} · {1} pending)</value></data>
+  <data name="OfflineUnverified" xml:space="preserve"><value>unverified</value></data>
+  <data name="OfflineNotAvailable" xml:space="preserve"><value>Not available while the DB is offline.</value></data>
+  <data name="OfflineNoData" xml:space="preserve"><value>No offline copy yet — sign out once while the DB is connected to download it.</value></data>
+  <data name="OfflineLotNumbersExhausted" xml:space="preserve"><value>Offline LOT numbers are used up — issue the label after the DB recovers.</value></data>
+  <data name="OfflineConflicts" xml:space="preserve"><value>⚠ Offline work conflicts: {0}</value></data>
+  <data name="OfflineConflictsClear" xml:space="preserve"><value>Reviewed — clear list</value></data>
   <data name="Operator" xml:space="preserve"><value>Operator</value></data>
   <data name="OrEnterPin" xml:space="preserve"><value>ENTER PIN</value></data>
   <data name="PartNo" xml:space="preserve"><value>PART NO</value></data>

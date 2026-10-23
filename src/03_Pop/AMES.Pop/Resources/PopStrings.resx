@@ -122,6 +122,16 @@
   <data name="OkWithinRatedLife" xml:space="preserve"><value>● 정상 · 정격 수명 이내</value></data>
   <data name="OneRowPerCycle" xml:space="preserve"><value>1 사이클당 1 행 입력</value></data>
   <data name="Online" xml:space="preserve"><value>온라인</value></data>
+  <data name="Offline" xml:space="preserve"><value>오프라인</value></data>
+  <data name="DbOffline" xml:space="preserve"><value>DB 연결 끊김 — 복구를 기다리는 중</value></data>
+  <data name="DbOfflineLoginBlocked" xml:space="preserve"><value>DB 에 연결할 수 없어 로그인할 수 없습니다. 복구 후 다시 시도하세요.</value></data>
+  <data name="DbOfflineLocal" xml:space="preserve"><value>DB 오프라인 — 로컬 사본으로 작업 중 (사본 {0} · 반영 대기 {1}건)</value></data>
+  <data name="OfflineUnverified" xml:space="preserve"><value>검증 대기</value></data>
+  <data name="OfflineNotAvailable" xml:space="preserve"><value>DB 오프라인에서는 사용할 수 없습니다.</value></data>
+  <data name="OfflineNoData" xml:space="preserve"><value>오프라인 사본이 없습니다 — DB 가 연결된 상태에서 한 번 로그아웃해 사본을 받아 두세요.</value></data>
+  <data name="OfflineLotNumbersExhausted" xml:space="preserve"><value>오프라인 LOT 번호를 모두 썼습니다 — DB 복구 후 라벨을 발행하세요.</value></data>
+  <data name="OfflineConflicts" xml:space="preserve"><value>⚠ 오프라인 작업 충돌 {0}건</value></data>
+  <data name="OfflineConflictsClear" xml:space="preserve"><value>확인했으니 지우기</value></data>
   <data name="Operator" xml:space="preserve"><value>작업자</value></data>
   <data name="OrEnterPin" xml:space="preserve"><value>또는 핀 번호 입력</value></data>
   <data name="PartNo" xml:space="preserve"><value>품번</value></data>

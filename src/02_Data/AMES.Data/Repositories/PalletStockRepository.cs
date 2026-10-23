@@ -62,6 +62,60 @@ public sealed class PalletStockRepository
         return new PalletStatus(no, state, itemNo, qty, outcome);
     }
 
+    /// <summary>오프라인 사본용 팔레트 한 줄 — 사용 중이고 출고되지 않은 팔레트와 품번별 실린 수.</summary>
+    public sealed record OfflinePalletRow(string PalletNo, bool Active, bool Shipped, Dictionary<string, int> Loaded);
+
+    /// <summary>오프라인 사본용 품번 규칙 — 적입수량과 함께 실릴 수 있는 형제 품번(자기 자신 포함).</summary>
+    public sealed record OfflineItemRule(int? PalletQty, string[] Siblings);
+
+    /// <summary>
+    /// 오프라인 사본용: 사용 중(ActiveFlag 1)이고 출고되지 않은(ShippedFlag 0) 팔레트 전부와 품번별 실린 수.
+    /// 오프라인에서 새로 발행된 팔레트는 여기에 없다 — 화면은 모르는 팔레트를 받아들이고 복구 뒤 서버가 검증한다.
+    /// </summary>
+    public List<OfflinePalletRow> ListForOffline()
+    {
+        using var conn = _factory.OpenConnection();
+        var rows = new Dictionary<string, OfflinePalletRow>(StringComparer.OrdinalIgnoreCase);
+        using (var cmd = new SqlCommand("""
+            SELECT p.PalletNo, p.ActiveFlag, p.ShippedFlag
+            FROM   dbo.MD_Pallet p
+            WHERE  p.ActiveFlag = 1 AND p.ShippedFlag = 0;
+            """, conn) { CommandTimeout = 120 })
+        {
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var no = (string)r["PalletNo"];
+                rows[no] = new OfflinePalletRow(no, (bool)r["ActiveFlag"], (bool)r["ShippedFlag"],
+                                                new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase));
+            }
+        }
+        using (var cmd = new SqlCommand("""
+            SELECT c.ParentLotNo, ISNULL(c.PartNo, '') AS PartNo, COUNT(*) AS Loaded
+            FROM   dbo.WH_Inventory c
+            WHERE  c.ParentLotNo IS NOT NULL AND c.Qty > 0
+              AND  c.ParentLotNo IN (SELECT PalletNo FROM dbo.MD_Pallet WHERE ActiveFlag = 1 AND ShippedFlag = 0)
+            GROUP  BY c.ParentLotNo, c.PartNo;
+            """, conn) { CommandTimeout = 120 })
+        {
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                if (rows.TryGetValue((string)r["ParentLotNo"], out var row))
+                    row.Loaded[(string)r["PartNo"]] = Convert.ToInt32(r["Loaded"]);
+        }
+        return rows.Values.ToList();
+    }
+
+    /// <summary>오프라인 사본용: 품번마다 적입수량·형제 품번을 읽는다(<see cref="Load"/> 판정에 쓰는 것과 같은 값).</summary>
+    public Dictionary<string, OfflineItemRule> ReadItemRules(IEnumerable<string> itemNos)
+    {
+        var map = new Dictionary<string, OfflineItemRule>(StringComparer.OrdinalIgnoreCase);
+        using var conn = _factory.OpenConnection();
+        foreach (var item in itemNos.Where(i => !string.IsNullOrEmpty(i)).Distinct(StringComparer.OrdinalIgnoreCase))
+            map[item] = new OfflineItemRule(ReadPalletQty(conn, null, item), ReadSiblings(conn, null, item).ToArray());
+        return map;
+    }
+
     /// <summary>
     /// 확정 트랜잭션 안에서: 팔레트를 잠그고 판정 → Ok 면 머리 행(없을 때)·제품 행·IN 거래를 쓴다.
     /// Ok 가 아니면 아무것도 쓰지 않는다 — 호출자가 트랜잭션을 되돌려 확정도 취소한다.

@@ -56,6 +56,21 @@ public class AppState
         OnChange?.Invoke();
     }
 
+    /// <summary>
+    /// 오프라인 임시 세션(음수 ID)을 복구 때 만든 실제 세션으로 바꿔 끼운다. 로그인 상태 변경이 아니라서
+    /// <see cref="OnChange"/> 를 부르지 않는다 — 라벨 발행기 같은 구독자가 재로그인으로 오해해 초기화하면 안 된다.
+    /// </summary>
+    public void ReplaceSession(int oldSessionId, PopSessionDto real)
+    {
+        var swapped = false;
+        if (Session is { } s && s.SessionId == oldSessionId) { Session = real; swapped = true; }
+        if (PendingSession is { } p && p.SessionId == oldSessionId) { PendingSession = real; swapped = true; }
+        if (swapped) SessionReplaced?.Invoke();
+    }
+
+    /// <summary>화면에 새 Session 을 다시 내려보내라는 신호.</summary>
+    public event Action? SessionReplaced;
+
     public void BeginPinSetup(PopSessionDto session)
     {
         PendingSession = session ?? throw new ArgumentNullException(nameof(session));

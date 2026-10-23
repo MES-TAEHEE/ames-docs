@@ -15,6 +15,7 @@ namespace AMES.Pop.Common;
 internal static class PopServices
 {
     public static AmesConnectionFactory  ConnectionFactory { get; private set; } = null!;
+    public static string                 ConnectionString  { get; private set; } = "";
     public static AuthRepository         Auth              { get; private set; } = null!;
     public static WorkerRepository       Workers           { get; private set; } = null!;
     public static PopSessionRepository   Sessions          { get; private set; } = null!;
@@ -33,9 +34,22 @@ internal static class PopServices
     public static ReworkRepository      Rework            { get; private set; } = null!;
     public static PalletStockRepository Pallets           { get; private set; } = null!;
 
-    public static void Initialize()
+    /// <summary>설정 PopTerminal:Db:ConnectTimeoutSeconds 가 있으면 접속문자열의 Connect Timeout 을 덮어쓴다.</summary>
+    internal static string ConnectionStringWithTimeout(string connectionString, int timeoutSeconds)
     {
-        ConnectionFactory = new AmesConnectionFactory(AppConfig.Current.ConnectionString);
+        if (timeoutSeconds <= 0) return connectionString;
+        var b = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString) { ConnectTimeout = timeoutSeconds };
+        return b.ConnectionString;
+    }
+
+    public static void Initialize()
+        => Initialize(ConnectionStringWithTimeout(AppConfig.Current.ConnectionString, AppConfig.Current.DbConnectTimeoutSeconds));
+
+    /// <summary>접속문자열을 직접 주는 초기화 — 설정 파일이 없는 테스트가 쓴다.</summary>
+    internal static void Initialize(string connectionString)
+    {
+        ConnectionString  = connectionString;
+        ConnectionFactory = new AmesConnectionFactory(connectionString);
         // "오늘"·시각 표시는 DB 서버 시각 기준 — 실제 동기화는 로그인 화면이 한다(DB 가 죽어 있으면 Offset 0 으로 종전 동작)
         DbClock.Configure(ConnectionFactory);
         Auth              = new AuthRepository      (ConnectionFactory);

@@ -1513,16 +1513,21 @@ AS
 BEGIN
     DECLARE @claimed TABLE (LotID INT);
 
-    UPDATE TOP (@Top) e
-    SET    e.PrintClaimTS = SYSDATETIME(), e.PrintClaimStation = @Station
-    OUTPUT INSERTED.LotID INTO @claimed
-    FROM   dbo.PR_InjLot e
-    JOIN   dbo.tbl_Lot   l ON l.LotID = e.LotID
-    WHERE  l.LineID       = @Line
-      AND  e.LotID        > @After
-      AND  e.PrintedCount = 0
-      AND  (e.PrintClaimTS IS NULL
-            OR e.PrintClaimTS < DATEADD(second, -@Stale, SYSDATETIME()));
+    -- 오래된 LOT 부터 — TOP 만으로는 어느 5개를 잡을지 정해지지 않아 라벨이 뒤섞여 나온다.
+    ;WITH pick AS (
+        SELECT TOP (@Top) e.LotID, e.PrintClaimTS, e.PrintClaimStation
+        FROM   dbo.PR_InjLot e
+        JOIN   dbo.tbl_Lot   l ON l.LotID = e.LotID
+        WHERE  l.LineID       = @Line
+          AND  e.LotID        > @After
+          AND  e.PrintedCount = 0
+          AND  (e.PrintClaimTS IS NULL
+                OR e.PrintClaimTS < DATEADD(second, -@Stale, SYSDATETIME()))
+        ORDER BY e.LotID
+    )
+    UPDATE pick
+    SET    PrintClaimTS = SYSDATETIME(), PrintClaimStation = @Station
+    OUTPUT INSERTED.LotID INTO @claimed;
     SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, l.LineID,
            e.EquipID, e.MoldCode, e.ColorCode, e.MoldID, e.CavityNo, e.CavityPos,
            e.PressType, e.ConfirmStatus, e.MachineShotCount, e.PrintedCount, l.CreatedTS,

@@ -217,7 +217,8 @@ public sealed class WorkOrderRepository
                    w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
                    w.MoldID, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
                    ISNULL(w.Priority,5) AS Priority, w.RoutingType,
-                   r.RoutingLineID, r.StepSeq, r.ProcessCode
+                   r.RoutingLineID, r.StepSeq, r.ProcessCode,
+                   COALESCE(r.ItemNo, w.ItemNo) AS StepItemNo
             FROM   dbo.PP_WorkOrderRouting r
             JOIN   dbo.PP_WorkOrder w ON w.WoID   = r.WoID
             JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo

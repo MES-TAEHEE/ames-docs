@@ -1,5 +1,7 @@
 @namespace AMES.Pop.Pages.InjPopups
 @using AMES.Contracts.Enums
+@using AMES.Data.Connection
+@using AMES.Data.Repositories
 @using AMES.Pop.Common
 @using AMES.Pop.Services
 @inject ScannerService Scanner
@@ -87,9 +89,65 @@
 
     protected override void OnInitialized()
     {
-        try { _codes = PopServices.Defects.ListForProcess(ProcessCode); }
+        try { _codes = LoadCodes(); }
         catch (Exception ex) { _error = ex.Message; }
         Scanner.OnScan += OnSerialScan;
+    }
+
+    // 불량코드 — DB 가 끊겼으면 로컬 사본의 목록을 쓴다(사본이 이 공정 것일 때만).
+    private List<DefectCodeDto> LoadCodes()
+    {
+        if (!PopDb.IsOffline)
+        {
+            try { return PopServices.Defects.ListForProcess(ProcessCode); }
+            catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { }
+        }
+        return OfflineWork.State?.Process == ProcessCode ? OfflineWork.DefectCodes() : new();
+    }
+
+    // 판정 OK — 서버가 판정하되 DB 가 끊겼으면(이미 알려졌거나 이번 호출이 연결 오류) 로컬 사본이 받아 큐에 올린다.
+    private (ImgConfirmOutcome Outcome, string ItemNo, int WoId, BackflushResult Backflush, bool Unverified) ConfirmRouted()
+    {
+        var s = Session!;
+        if (!PopDb.IsOffline)
+        {
+            try
+            {
+                var (o, _, item, wo) = IsPnt
+                    ? PopServices.PntLots.ConfirmByLotCode(Lot.LotCode, s.LineId, s.OperatorId, s.SessionId, s.EmployeeNo, PalletNo, out var bf)
+                    : PopServices.ImgLots.ConfirmByLotCode(Lot.LotCode, s.LineId, s.OperatorId, s.SessionId, s.EmployeeNo, PalletNo, out bf);
+                return (o, item, wo, bf, false);
+            }
+            catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { /* 아래 로컬 경로로 */ }
+        }
+        var r = OfflineWork.Confirm(Lot.LotCode, s.LineId, s.TerminalId, s.OperatorId, s.EmployeeNo, s.SessionId, PalletNo!, Lot.ItemNo);
+        return (OfflineWork.ToImg(r.Outcome), r.ItemNo, r.WoId, BackflushResult.None, r.Unverified);
+    }
+
+    // 판정 NG — 같은 방식.
+    private (DefectRegisterOutcome Outcome, string ItemNo, bool Unverified) NgRouted(string defectCode)
+    {
+        var s = Session!;
+        if (!PopDb.IsOffline)
+        {
+            try
+            {
+                var (o, _, item) = IsPnt
+                    ? PopServices.PntLots.RegisterDefect(Lot.LotCode, s.LineId, defectCode, s.OperatorId, s.SessionId, s.EmployeeNo)
+                    : PopServices.ImgLots.RegisterDefect(Lot.LotCode, s.LineId, defectCode, s.OperatorId, s.SessionId, s.EmployeeNo);
+                return (o, item, false);
+            }
+            catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { /* 아래 로컬 경로로 */ }
+        }
+        var r = OfflineWork.RegisterDefect(Lot.LotCode, s.LineId, s.TerminalId, s.OperatorId, s.EmployeeNo, s.SessionId, defectCode, Lot.ItemNo);
+        return (r.Outcome, r.ItemNo, r.Unverified);
+    }
+
+    private static T OnlineOr<T>(Func<T> online, Func<T> offline)
+    {
+        if (PopDb.IsOffline) return offline();
+        try { return online(); }
+        catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { return offline(); }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -126,14 +184,12 @@
         await Task.Yield();   // 버튼 비활성을 먼저 그린다 — DB 호출이 동기라 이게 없으면 연타 방지가 화면에 안 보인다
         try
         {
-            var (outcome, _, itemNo, woId) = IsPnt
-                ? PopServices.PntLots.ConfirmByLotCode(Lot.LotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo, PalletNo, out var backflush)
-                : PopServices.ImgLots.ConfirmByLotCode(Lot.LotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo, PalletNo, out backflush);
+            var (outcome, itemNo, woId, backflush, unverified) = ConfirmRouted();
             if (outcome == ImgConfirmOutcome.Confirmed)
             {
                 BackflushNotice.Show(Toasts, backflush, Lot.LotCode);
-                var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
-                await OnDone.InvokeAsync((true, $"{T("Confirmed")}: {Lot.LotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}", itemNo));
+                var woNumber = woId > 0 ? OnlineOr(() => PopServices.WorkOrders.GetById(woId)?.WoNumber, () => OfflineWork.WoNumber(woId)) : null;
+                await OnDone.InvokeAsync((true, $"{T("Confirmed")}: {Lot.LotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}{(unverified ? $" · {T("OfflineUnverified")}" : "")}", itemNo));
                 return;
             }
             _error = outcome switch
@@ -158,12 +214,10 @@
         await Task.Yield();
         try
         {
-            var (outcome, _, itemNo) = IsPnt
-                ? PopServices.PntLots.RegisterDefect(Lot.LotCode, Session.LineId, code.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo)
-                : PopServices.ImgLots.RegisterDefect(Lot.LotCode, Session.LineId, code.DefectCode, Session.OperatorId, Session.SessionId, Session.EmployeeNo);
+            var (outcome, itemNo, unverified) = NgRouted(code.DefectCode);
             if (outcome == DefectRegisterOutcome.Registered)
             {
-                await OnDone.InvokeAsync((false, $"{T("DfRegistered")}: {Lot.LotCode} ({itemNo}) · {code.DefectCode}", itemNo));
+                await OnDone.InvokeAsync((false, $"{T("DfRegistered")}: {Lot.LotCode} ({itemNo}) · {code.DefectCode}{(unverified ? $" · {T("OfflineUnverified")}" : "")}", itemNo));
                 return;
             }
             _error = outcome switch

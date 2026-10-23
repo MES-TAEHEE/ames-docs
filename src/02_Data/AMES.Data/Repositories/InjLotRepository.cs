@@ -250,6 +250,187 @@ public sealed class InjLotRepository
         catch { tx.Rollback(); throw; }
     }
 
+    /// <summary>수동 LOT 을 만들 때 쓰는 품번·금형·설비 정보 — 오프라인 사본이 미리 받아 두고, 그 자리에서 LOT·라벨을 만든다.</summary>
+    public sealed record ManualLotContext(string? ItemName, string? MoldCode, string? ColorCode, int? CavityNo, string? CavityPos, string? EquipId);
+
+    public ManualLotContext GetManualContext(string lineId, string itemNo, string? moldId)
+    {
+        using var conn = _factory.OpenConnection();
+        string? moldCode = null, colorCode = null, cavityPos = null;
+        int? cavityNo = null;
+        if (!string.IsNullOrEmpty(moldId))
+        {
+            using var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_GetMoldItem", conn) { CommandType = System.Data.CommandType.StoredProcedure };
+            cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = moldId;
+            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+            using var rdr = cmd.ExecuteReader();
+            if (rdr.Read())
+            {
+                moldCode  = rdr["MoldCodeClean"] as string;
+                colorCode = rdr["Color"]         as string;
+                cavityNo  = rdr["CavitySeq"]     as int?;
+                cavityPos = rdr["CavityPos"]     as string;
+            }
+        }
+        string? itemName;
+        using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_GetItem", conn) { CommandType = System.Data.CommandType.StoredProcedure })
+        {
+            cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+            itemName = cmd.ExecuteScalar() as string;
+        }
+        string? equipId;
+        using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_GetEquipment", conn) { CommandType = System.Data.CommandType.StoredProcedure })
+        {
+            cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+            equipId = cmd.ExecuteScalar() as string;
+        }
+        return new ManualLotContext(itemName, moldCode, colorCode, cavityNo, cavityPos, equipId);
+    }
+
+    /// <summary>
+    /// 오프라인 터미널이 쓸 LotNo 구간을 미리 확보한다(<see cref="LotNoGenerator.Reserve"/>) — 한 트랜잭션, 날짜·라인별.
+    /// 확보한 번호는 SYS_LotSeq 에서 이미 빠져 있어 InjAgent·다른 터미널의 채번과 겹치지 않는다.
+    /// </summary>
+    public LotNoGenerator.LotNoBlock ReserveLotNos(string lineId, DateTime date, int count)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            var block = LotNoGenerator.Reserve(conn, tx, lineId, date, count);
+            tx.Commit();
+            return block;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>
+    /// 오프라인에서 이미 번호를 받아 라벨까지 뽑은 수동 LOT 을 복구 뒤 DB 에 넣는다 — 번호·생성 시각은 그때 것 그대로.
+    /// 이미 같은 LotCode 가 있으면(재전송) 건너뛴다. 라벨을 오프라인에서 뽑았으므로 PrintedCount 를 그 횟수로 넣어
+    /// 라벨 디스패처가 복구 뒤 같은 LOT 을 또 뽑지 않게 한다. 반환 = 새로 만든 LOT.
+    /// </summary>
+    public List<InjLotDto> CreateManualRawLotsWithCodes(
+        string lineId, string itemNo, string? moldId, string employeeNo,
+        IReadOnlyList<(string LotCode, DateTime At, int PrintedCount)> lots)
+    {
+        var created = new List<InjLotDto>();
+        if (lots.Count == 0) return created;
+
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            string? moldCode = null, colorCode = null, cavityPos = null;
+            int?    cavityNo = null;
+            if (!string.IsNullOrEmpty(moldId))
+            {
+                using var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_GetMoldItem", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
+                cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = moldId;
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                using var rdr = cmd.ExecuteReader();
+                if (rdr.Read())
+                {
+                    moldCode  = rdr["MoldCodeClean"] as string;
+                    colorCode = rdr["Color"]         as string;
+                    cavityNo  = rdr["CavitySeq"]     as int?;
+                    cavityPos = rdr["CavityPos"]     as string;
+                }
+            }
+
+            string? itemName;
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_GetItem", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
+            {
+                cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                itemName = cmd.ExecuteScalar() as string;
+            }
+
+            string? equipId;
+            using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_GetEquipment", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
+            {
+                cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+                equipId = cmd.ExecuteScalar() as string;
+            }
+
+            foreach (var (lotCode, at, printed) in lots)
+            {
+                using (var exists = new SqlCommand("SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = @Code;", conn, tx))
+                {
+                    exists.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
+                    if (exists.ExecuteScalar() is not null) continue;
+                }
+
+                int lotId;
+                using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_InsLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
+                {
+                    cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
+                    cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = itemNo;
+                    cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
+                    cmd.Parameters.Add("@By",      SqlDbType.VarChar, 20).Value = employeeNo;
+                    using var rdr = cmd.ExecuteReader();
+                    rdr.Read();
+                    lotId = (int)rdr["LotID"];
+                }
+                using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_InsInjLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
+                {
+                    cmd.Parameters.Add("@LotID",  SqlDbType.Int           ).Value = lotId;
+                    cmd.Parameters.Add("@Equip",  SqlDbType.VarChar, 20   ).Value = (object?)equipId   ?? DBNull.Value;
+                    cmd.Parameters.Add("@Mold",   SqlDbType.VarChar, 20   ).Value = (object?)moldCode  ?? DBNull.Value;
+                    cmd.Parameters.Add("@Color",  SqlDbType.VarChar, 10   ).Value = (object?)colorCode ?? DBNull.Value;
+                    cmd.Parameters.Add("@MoldID", SqlDbType.VarChar, 20   ).Value = (object?)moldId    ?? DBNull.Value;
+                    cmd.Parameters.Add("@CavNo",  SqlDbType.Int           ).Value = (object?)cavityNo  ?? DBNull.Value;
+                    cmd.Parameters.Add("@CavPos", SqlDbType.VarChar, 4    ).Value = (object?)cavityPos ?? DBNull.Value;
+                    cmd.Parameters.Add("@By",     SqlDbType.VarChar,    20).Value = employeeNo;
+                    cmd.ExecuteNonQuery();
+                }
+
+                // 프로시저는 생성 시각을 서버 시각으로 찍는다 — LOT 생성일이 현황·실적 집계의 기준이라 발생 시각으로 되돌린다.
+                using (var cmd = new SqlCommand("""
+                    UPDATE dbo.tbl_Lot SET CreatedTS = @At, ProducedAt = @At WHERE LotID = @Lot;
+                    UPDATE dbo.PR_InjLot SET CreatedTS = @At, PrintedCount = @Pc WHERE LotID = @Lot;
+                    """, conn, tx))
+                {
+                    cmd.Parameters.Add("@At",  SqlDbType.DateTime2).Value = at;
+                    cmd.Parameters.Add("@Pc",  SqlDbType.Int      ).Value = printed;
+                    cmd.Parameters.Add("@Lot", SqlDbType.Int      ).Value = lotId;
+                    cmd.ExecuteNonQuery();
+                }
+
+                created.Add(new InjLotDto
+                {
+                    LotId = lotId, LotCode = lotCode, ItemNo = itemNo, ItemName = itemName, LineId = lineId,
+                    EquipId = equipId, MoldCode = moldCode, ColorCode = colorCode, MoldId = moldId,
+                    CavityNo = cavityNo, CavityPos = cavityPos, ConfirmStatus = "RAW", PrintedCount = printed, CreatedTS = at,
+                });
+            }
+
+            tx.Commit();
+            return created;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>
+    /// 오프라인 사본용 — 이 라인의 LOT 중 <paramref name="since"/> 이후에 생성됐거나 아직 확정 대기(RAW·NG_BLOCKED)인 것.
+    /// 확정 대기 LOT 은 날짜와 무관하게 전부 담는다 — 오래된 라벨을 오프라인에서 스캔해도 알아볼 수 있어야 한다.
+    /// </summary>
+    public List<InjLotDto> ListForOffline(string lineId, DateTime since)
+    {
+        var sql = SelectLotView + """
+
+            WHERE  l.LineID = @Line
+              AND (l.CreatedTS >= @Since OR e.ConfirmStatus IN ('RAW','NG_BLOCKED'))
+            ORDER  BY l.LotID DESC;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn) { CommandTimeout = 120 };
+        cmd.Parameters.Add("@Line",  SqlDbType.VarChar, 20).Value = lineId;
+        cmd.Parameters.Add("@Since", SqlDbType.DateTime2   ).Value = since;
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<InjLotDto>();
+        while (rdr.Read()) list.Add(MapToDto(rdr));
+        return list;
+    }
+
     // 호출부가 WHERE 를 이어 붙인다 — 이 상수에 WHERE 를 넣으면 4곳이 동시에 깨진다.
     const string SelectLotView = """
         SELECT l.LotID, l.LotCode, l.ItemNo, mi.ItemName, l.LineID,
@@ -414,6 +595,15 @@ public sealed class InjLotRepository
     public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
         string lotCode, string lineId,
         string operatorId, int? sessionId, string employeeNo, string? palletNo, out BackflushResult backflush)
+        => ConfirmByLotCode(lotCode, lineId, operatorId, sessionId, employeeNo, palletNo, null, out backflush);
+
+    /// <param name="occurredAt">
+    /// 오프라인에서 일어난 확정을 복구 뒤에 반영할 때 그 발생 시각 — 실적의 EntryAt·전기일·교대가 이 시각 기준이 된다.
+    /// 비우면 종전대로 서버 시각.
+    /// </param>
+    public (InjConfirmOutcome Outcome, int ResultId, string ItemNo, int WoId) ConfirmByLotCode(
+        string lotCode, string lineId,
+        string operatorId, int? sessionId, string employeeNo, string? palletNo, DateTime? occurredAt, out BackflushResult backflush)
     {
         backflush = BackflushResult.None;
         using var conn = _factory.OpenConnection();
@@ -474,7 +664,7 @@ public sealed class InjLotRepository
             }
 
             // 전기일·교대는 설정 DAY_CUTOFF_TIME·공통코드 WORK_SHIFT로 확정 시점 서버 시각에 판정
-            var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
+            var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx, occurredAt);
             int resultId;
             using (var cmd = new SqlCommand("dbo.SP_POP_INJ_ConfirmByLotCode_InsProductionResult", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
@@ -584,6 +774,14 @@ public sealed class InjLotRepository
         string lotCode, string lineId, string defectCode,
         string operatorId, int? sessionId, string employeeNo,
         out PalletStockRepository.PalletUnloadResult unload)
+        => RegisterDefect(lotCode, lineId, defectCode, operatorId, sessionId, employeeNo, null, out unload);
+
+    /// <param name="occurredAt">오프라인에서 등록한 불량을 복구 뒤에 반영할 때 그 발생 시각 — 역분개 실적·불량 상세의 시각이 이 시각이 된다.</param>
+    public (DefectRegisterOutcome Outcome, int DefectId, string ItemNo) RegisterDefect(
+        string lotCode, string lineId, string defectCode,
+        string operatorId, int? sessionId, string employeeNo,
+        DateTime? occurredAt,
+        out PalletStockRepository.PalletUnloadResult unload)
     {
         unload = PalletStockRepository.PalletUnloadResult.None;
         using var conn = _factory.OpenConnection();
@@ -612,12 +810,12 @@ public sealed class InjLotRepository
 
             int? origResultId = null, reversalId = null, woId = null;
             if (LotDefectRules.ReversesResult(status))
-                (origResultId, reversalId, woId) = LotDefectWriter.ReverseConfirmedResult(conn, tx, lotId, lineId, operatorId, sessionId, employeeNo);
+                (origResultId, reversalId, woId) = LotDefectWriter.ReverseConfirmedResult(conn, tx, lotId, lineId, operatorId, sessionId, employeeNo, occurredAt);
             woId ??= LotDefectWriter.ResolveOpenWo(conn, tx, lineId, itemNo)?.WoId;
 
             var note = status == LotDefectRules.NgBlocked ? $"ROBOT NG: {inspection ?? "NG"}" : null;
             var defectId = LotDefectWriter.InsertDefectDetail(conn, tx, lotId, woId, origResultId, "INJ", defectCode,
-                                                              status, reversalId, note, operatorId, employeeNo);
+                                                              status, reversalId, note, operatorId, employeeNo, occurredAt);
 
             using (var cmd = new SqlCommand("dbo.SP_POP_INJ_RegisterDefect_UpdInjLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
