@@ -359,7 +359,7 @@ public static partial class FgEndpoints
                 if (tx.Connection is not null) tx.Rollback();
                 return Results.BadRequest(new PutAwayResult(false, ex.Message, null, null, null));
             }
-            catch (SqlException ex) when (ex.Number is >= 52510 and <= 52518)
+            catch (SqlException ex) when (ex.Number is >= 52510 and <= 52518 or 52614)
             {
                 if (tx.Connection is not null) tx.Rollback();
                 return Results.BadRequest(new PutAwayResult(false, ex.Message, null, null, null));
@@ -458,7 +458,7 @@ public static partial class FgEndpoints
                     $"{unitType} loaded. {itemCount} inventory LOT(s) are ready for outbound.",
                     new OutboundUnitRow(outboundBarcode, unitType, locationNo, totalQty, itemCount, items, customerId, customerName)));
             }
-            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020)
+            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020 or 52614)
             {
                 return Results.BadRequest(new OutboundUnitResult(false,
                     ex.Number is 52000 or 52001 ? ExplainOutboundFailure(factory, normalized, ex.Message) : ex.Message, null));
@@ -508,7 +508,7 @@ public static partial class FgEndpoints
                 return Results.Ok(new OutboundUnitResult(true,
                     $"Shipment #{shipmentId}: {unitType}, {processed} inventory LOT(s), {totalQty:N0} EA processed.", null, processed, shipmentId));
             }
-            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020)
+            catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020 or 52614)
             {
                 return Results.BadRequest(new OutboundUnitResult(false,
                     ex.Number is 52000 or 52001 ? ExplainOutboundFailure(factory, normalized, ex.Message) : ex.Message, null));
@@ -604,7 +604,7 @@ public static partial class FgEndpoints
                 if (!rdr.Read())
                     return Results.Json(new ReturnResult(false, "Customer return service returned no confirmation.", null, null), statusCode: 503);
                 var id = GetInt(rdr, "ReturnID");
-                return Results.Ok(new ReturnResult(true, "Customer return received.", id, ReadReturnScanRow(rdr)));
+                return Results.Ok(new ReturnResult(true, "Customer return received. Inspection is required before stock can be used or shipped.", id, ReadReturnScanRow(rdr)));
             }
             catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020)
             {
@@ -780,6 +780,8 @@ public static partial class FgEndpoints
                 S.LotNo AS ExistingLotNo,
                 S.LocationNo AS ExistingLocation,
                 S.Status AS ExistingStatus,
+                CASE WHEN EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=L.LotCode COLLATE DATABASE_DEFAULT
+                    AND R.Status IN('Open','Inspecting')) THEN 1 ELSE 0 END AS InspectionPending,
                 CASE WHEN (SELECT TOP(1) T.SourceType FROM dbo.WH_InventoryTransaction T
                     WHERE T.LotNo COLLATE DATABASE_DEFAULT=L.LotCode COLLATE DATABASE_DEFAULT AND T.QtyChange<>0
                     ORDER BY T.TransactionTime DESC,T.TransactionID DESC)='FG_OUTBOUND'
@@ -820,13 +822,16 @@ public static partial class FgEndpoints
 
         var existingLotNo = GetString(rdr, "ExistingLotNo");
         var existingLocation = GetString(rdr, "ExistingLocation");
-        var isProductionCompleted = GetBool(rdr, "IsProductionCompleted");
+        var inspectionPending = GetBool(rdr, "InspectionPending");
+        var isProductionCompleted = GetBool(rdr, "IsProductionCompleted") && !inspectionPending;
         var lotNo = GetString(rdr, "LotCode") ?? barcode;
         const string barcodeType = BarcodeLot;
         const string storageMethod = BarcodeLocation;
         var nextScanType = NextScanTypeForStorage(storageMethod);
         var nextScanLabel = NextScanLabel(nextScanType);
-        var message = !isProductionCompleted
+        var message = inspectionPending
+            ? "This customer return is awaiting inspection. Approve it in Customer Returns before setting a location."
+            : !isProductionCompleted
             ? "POP production completion is required before FG Put-Away."
             : GetDecimal(rdr, "Qty") <= 0
                 ? GetBool(rdr, "AlreadyShipped")

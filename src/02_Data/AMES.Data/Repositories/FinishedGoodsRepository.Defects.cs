@@ -14,6 +14,7 @@ public sealed partial class FinishedGoodsRepository
         using var cmd=new SqlCommand("""
             SELECT W.LotNo FROM dbo.WH_Inventory W
             WHERE W.Qty>0 AND NULLIF(LTRIM(RTRIM(W.PartNo)),'') IS NOT NULL
+                AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=W.LotNo AND R.Status IN('Open','Inspecting'))
                 AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo);
             """,conn);
         using var r=cmd.ExecuteReader();var result=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -58,6 +59,8 @@ public sealed partial class FinishedGoodsRepository
                     AND COALESCE(UP.AccountStatus,'ACTIVE')='ACTIVE')
                 THROW 52600,'You do not have the Inventory Defect permission.',1;
             DECLARE @Qty decimal(18,3),@After decimal(18,3),@Now datetime2=SYSDATETIME(),@Unit varchar(10)='EA',@Digits int;
+            IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Lot AND Status IN('Open','Inspecting'))
+                THROW 52614,'Inspect this customer return in Customer Returns before recording a disposition.',1;
             SELECT @Qty=W.Qty FROM dbo.WH_Inventory W WITH(UPDLOCK,HOLDLOCK)
                 WHERE W.LotNo=@Lot AND W.PartNo=@Part AND W.Qty>0 AND ISNULL(W.LocationNo,'')=ISNULL(@Location,'');
             IF @Qty IS NULL OR @Qty<>@Expected THROW 52602,'LOT quantity or location changed. Refresh inventory and select the LOT again.',1;

@@ -48,6 +48,7 @@
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="100px" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="100px"><Template Context="r"><span class="code dim">@UomFmt.Sym(r.Unit)</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="Qty" Title="@L["WH.Inventory.AvailableQty"].Value" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.Qty, r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"].Value" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.DefectQty, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="InspectionQty" Title="Inspection Qty" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.InspectionQty, r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="LocationCount" Title="@L["Col.Locations"].Value" TextAlign="TextAlign.Right" Width="130px" />
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="90px" Property="LotCount" Title="@L["Col.Lots"].Value" TextAlign="TextAlign.Right" Width="90px" />
             </Columns>
@@ -81,6 +82,7 @@
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="LotNo" Title="@L["Col.LotNo"]"><Template Context="row">@Text(row.LotNo)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["WH.Inventory.AvailableQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.Qty,row.Unit)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.DefectQty,row.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="InspectionQty" Title="Inspection Qty" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.InspectionQty,row.Unit)</Template></RadzenDataGridColumn>
                             @if(AllowLotDefect)
                             {
                                 <RadzenDataGridColumn TItem="LocationMapStock" Width="88px" Sortable="false" TextAlign="TextAlign.Center">
@@ -139,7 +141,7 @@
         await InventoryChanged.InvokeAsync();
     }
 
-    private sealed record SummaryRow(string PartNo, string PartName, string Unit, string ItemType, string ItemCategory, string VendorIds, string VendorNames, decimal Qty, decimal DefectQty, int LocationCount, int LotCount);
+    private sealed record SummaryRow(string PartNo, string PartName, string Unit, string ItemType, string ItemCategory, string VendorIds, string VendorNames, decimal Qty, decimal DefectQty, decimal InspectionQty, int LocationCount, int LotCount);
     private sealed record FilterOption(string Code, string Name);
 
     private string _query = "";
@@ -189,6 +191,7 @@
             string.Join(", ", VendorsFor(group.Key.PartNo).Select(x => x.VendorName).Distinct(StringComparer.OrdinalIgnoreCase)),
             group.Sum(x => x.Qty),
             group.Sum(x => x.DefectQty),
+            group.Sum(x => x.InspectionQty),
             group.Select(x => x.LocationNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
             group.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()))
         .OrderBy(x => x.PartNo)
@@ -268,9 +271,9 @@
         if (await Dialog.Confirm(L["WH.Inventory.ExportConfirm", rows.Count], L["WH.Inventory.Export"],
             new ConfirmOptions { OkButtonText = L["Btn.Confirm"], CancelButtonText = L["Btn.Cancel"] }) != true) return;
         var headers = new[] { L["Col.VendorId"].Value, L["Col.VendorName"].Value, L["Col.ItemNo"].Value, L["Col.ItemName"].Value,
-            L["Col.Type"].Value, L["Col.Category"].Value, L["Col.Unit"].Value, L["WH.Inventory.AvailableQty"].Value, L["WH.Inventory.DefectQty"].Value };
+            L["Col.Type"].Value, L["Col.Category"].Value, L["Col.Unit"].Value, L["WH.Inventory.AvailableQty"].Value, L["WH.Inventory.DefectQty"].Value, "Inspection Qty" };
         var data = rows.Select(row => (IReadOnlyList<object?>)new object?[] { row.VendorIds, row.VendorNames, row.PartNo, row.PartName,
-            CodeName("ITEM_TYPE", row.ItemType), CodeName("ITEM_CATEGORY", row.ItemCategory), UomFmt.Sym(row.Unit), row.Qty, row.DefectQty });
+            CodeName("ITEM_TYPE", row.ItemType), CodeName("ITEM_CATEGORY", row.ItemCategory), UomFmt.Sym(row.Unit), row.Qty, row.DefectQty, row.InspectionQty });
         var bytes = XlsxWriter.Build(L["WH.Inventory.Title"], headers, data, 24);
         await JS.InvokeVoidAsync("amesDownload", $"Inventory_{AMES.Data.Services.DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

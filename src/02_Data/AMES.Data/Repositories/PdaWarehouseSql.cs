@@ -882,6 +882,8 @@ public static class PdaWarehouseSql
                 (COALESCE(ActiveFlag,1)=0 OR UPPER(COALESCE(LocationType,'')) IN('BLOCKED','HOLD','QUARANTINE','INACTIVE')))
                 THROW 51423,'Location is blocked for put-away.',1;
             SELECT @BeforeLocation=LocationNo,@PartNo=PartNo,@Qty=Qty FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Qty>0;
+            IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Status IN('Open','Inspecting'))
+                THROW 52614,'This customer return is awaiting inspection. Approve it in Customer Returns before setting a location.',1;
             IF @PartNo IS NULL THROW 51408, 'This barcode has not been received yet.', 1;
             IF @BeforeLocation=@Location THROW 51426,'LOT is already in this location.',1;
             IF EXISTS(SELECT 1 FROM dbo.MD_Location L WITH(UPDLOCK,HOLDLOCK)

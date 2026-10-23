@@ -517,8 +517,7 @@ public static class WhEndpoints
                 var isValidationError =
                     ex is SqlException sqlEx
                     && sqlEx.Errors.Count > 0
-                    && sqlEx.Errors[0].Number >= 51400
-                    && sqlEx.Errors[0].Number < 51500;
+                    && (sqlEx.Errors[0].Number is >= 51400 and < 51500 or 52614);
 
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "MOVE_LOCATION", "WH002", "LOCATION", body.LocationId, "FAIL", WarehouseErrorMessage(ex),
@@ -2242,6 +2241,7 @@ public static class WhEndpoints
         using var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted);
         try
         {
+            foreach (var item in normalized) FinishedGoodsRepository.EnsureReturnInspected(conn, tx, item.LotNo);
             var lines = new Dictionary<string, (int ScheduleId, decimal Demand, decimal Picked, bool IsEa)>(StringComparer.OrdinalIgnoreCase);
             var destinations = new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
             using (var lineCmd = new SqlCommand("""
@@ -2793,6 +2793,7 @@ public static class WhEndpoints
                     return new InboundReceiveResult(false, "Stock quantity or location changed. Select the line or scan the LOT again.", null);
             }
 
+            FinishedGoodsRepository.EnsureReturnInspected(conn, tx, body.Barcode.Trim());
             using var cmd = new SqlCommand(PdaWarehouseSql.AdjustSave, conn, tx)
             {
                 CommandType = CommandType.Text,

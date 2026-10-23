@@ -12,7 +12,8 @@ public static class PdaFinishedGoodsSql
             SELECT W.LotNo,W.PartNo AS ItemNo,
                 COALESCE(NULLIF(W.PartName,N''),I.ItemName COLLATE DATABASE_DEFAULT) AS ItemName,L.LotID,
                 COALESCE(IMG.CustomerCode,PNT.CustomerCode) AS CustomerCode,COALESCE(W.Qty,0) AS Qty,COALESCE(NULLIF(I.DefaultUOM,''),'EA') AS Unit,
-                W.LocationNo AS Location,'AVAILABLE' AS Status,W.ReceivedAt AS StockTS
+                W.LocationNo AS Location,CASE WHEN EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R
+                    WHERE R.LotNo=W.LotNo AND R.Status IN('Open','Inspecting')) THEN 'INSPECTING' ELSE 'AVAILABLE' END AS Status,W.ReceivedAt AS StockTS
             FROM dbo.WH_Inventory W
             LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=W.PartNo
             LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=W.LotNo
@@ -74,6 +75,8 @@ public static class PdaFinishedGoodsSql
             SET NOCOUNT ON;
             DECLARE @Scan nvarchar(80)=LTRIM(RTRIM(ISNULL(@ScanText,N'')));
             IF @Scan=N'' THROW 51600,'Finished goods Lot No is required.',1;
+            IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WHERE LotNo=@Scan AND Status IN('Open','Inspecting'))
+                THROW 52614,'This customer return is awaiting inspection. Quantity adjustment is not allowed.',1;
             IF LEN(@Scan)<3 OR @Scan COLLATE Latin1_General_100_BIN2 LIKE N'%[^A-Za-z0-9-]%'
                 THROW 51604,'The barcode format is invalid.',1;
             IF NOT EXISTS
@@ -122,6 +125,8 @@ public static class PdaFinishedGoodsSql
                 THROW 51619,'Unsupported inventory adjustment reason.',1;
 
             BEGIN TRANSACTION;
+            IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Scan AND Status IN('Open','Inspecting'))
+                THROW 52614,'This customer return is awaiting inspection. Quantity adjustment is not allowed.',1;
             SELECT @ItemNo=W.PartNo,@Location=W.LocationNo,@Before=W.Qty,@LotID=L.LotID
             FROM dbo.WH_Inventory W WITH(UPDLOCK,ROWLOCK)
             LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=W.LotNo
@@ -183,6 +188,8 @@ public static class PdaFinishedGoodsSql
                     THROW 52514,'This LOT was rejected as defective. Put-away is not allowed.',1;
                 SELECT @StoredQty=Qty,@StoredLocation=LocationNo,@StoredPart=PartNo
                 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode;
+                IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Status IN('Open','Inspecting'))
+                    THROW 52614,'This customer return is awaiting inspection. Approve it in Customer Returns before setting a location.',1;
                 IF @StoredQty IS NOT NULL AND @StoredQty<=0
                 BEGIN
                     IF (SELECT TOP(1) SourceType FROM dbo.WH_InventoryTransaction
@@ -259,6 +266,8 @@ public static class PdaFinishedGoodsSql
               AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory X WHERE X.ParentLotNo=T.LotNo AND X.Qty>0)
             OPTION(MAXRECURSION 100);
             IF NOT EXISTS(SELECT 1 FROM @Items) THROW 52001,'No available part inventory remains in this unit.',1;
+            IF EXISTS(SELECT 1 FROM @Items I JOIN dbo.FG_CustomerReturn R ON R.LotNo=I.LotNo WHERE R.Status IN('Open','Inspecting'))
+                THROW 52614,'This unit contains a customer return awaiting inspection. Outbound and trailer loading are not allowed.',1;
             IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.MD_Location L ON L.LocationID=I.LocationNo
                 WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR L.LocationLevel<>2
                     OR COALESCE(L.ActiveFlag,1)=0 OR UPPER(ISNULL(L.LocationType,''))<>'FG')
@@ -327,6 +336,8 @@ public static class PdaFinishedGoodsSql
                 WHERE T.Qty>0 AND NOT EXISTS(SELECT 1 FROM @Scope X WHERE X.ParentLotNo=T.LotNo AND X.Qty>0)
                   AND (T.PartNo IS NOT NULL OR UPPER(ISNULL(T.UnitType,'')) NOT IN('PALLET','CASE'));
                 IF NOT EXISTS(SELECT 1 FROM @Items) THROW 52001,'No available part inventory remains in this unit.',1;
+                IF EXISTS(SELECT 1 FROM @Items I JOIN dbo.FG_CustomerReturn R WITH(UPDLOCK,HOLDLOCK) ON R.LotNo=I.LotNo WHERE R.Status IN('Open','Inspecting'))
+                    THROW 52614,'This unit contains a customer return awaiting inspection. Outbound and trailer loading are not allowed.',1;
                 IF EXISTS(SELECT 1 FROM @Items WHERE NULLIF(LTRIM(RTRIM(PartNo)),'') IS NULL)
                     THROW 52004,'Outbound inventory has no linked part number.',1;
                 IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.MD_Location L WITH(HOLDLOCK) ON L.LocationID=I.LocationNo
@@ -412,6 +423,9 @@ public static class PdaFinishedGoodsSql
                 CustomerID varchar(20),CustomerName nvarchar(200),PartNo varchar(20),PartName nvarchar(200),ShippedAt datetime2,Qty decimal(18,3));
             BEGIN TRY
                 BEGIN TRANSACTION;
+                DECLARE @ReturnGate int;
+                EXEC @ReturnGate=sys.sp_getapplock @Resource='FG_SHIPPING_ORDERS',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
+                IF @ReturnGate<0 THROW 52020,'Shipping is busy. Retry shortly.',1;
                 BEGIN
             SET NOCOUNT ON;
             DECLARE @ReturnScanB varchar(80)=LTRIM(RTRIM(ISNULL(@Barcode,'')));
@@ -449,7 +463,7 @@ public static class PdaFinishedGoodsSql
                     ORDER BY TransactionTime DESC,TransactionID DESC)<>@ShipmentID
                     THROW 52004,'The latest shipment changed. Scan the returned LOT again.',1;
                 INSERT dbo.FG_CustomerReturn(CustomerID,ShipmentID,LotNo,LotID,PartNo,PartName,ReturnQty,ReturnReason,Note,Status,ReceivedAt,ReceivedBy,CreatedBy,CreatedTS)
-                SELECT CustomerID,ShipmentID,LotNo,LotID,PartNo,PartName,Qty,@Reason,@CleanNote,'Open',@Now,@OperatorID,@OperatorID,@Now FROM @P;
+                SELECT CustomerID,ShipmentID,LotNo,LotID,PartNo,PartName,Qty,@Reason,@CleanNote,'Inspecting',@Now,@OperatorID,@OperatorID,@Now FROM @P;
                 SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
                 MERGE dbo.WH_Inventory WITH(HOLDLOCK) AS T USING(SELECT LotNo,PartNo,PartName,Qty FROM @P) S ON S.LotNo=T.LotNo
                 WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,ParentLotNo=NULL,PalletNo=NULL,UpdatedAt=@Now
@@ -458,6 +472,8 @@ public static class PdaFinishedGoodsSql
                 INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,
                     ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
                 SELECT @Now,'IN',PartNo,LotNo,0,Qty,Qty,'RETURN','FG_RETURN',@ReturnID,@OperatorID,@CleanNote,@OperatorID,@Now FROM @P;
+                UPDATE L SET RemainingQty=0,CurrentLocationID=NULL,InventoryStatus='INSPECTING',ModifiedTS=@Now,ModifiedBy=@OperatorID
+                FROM dbo.tbl_Lot L JOIN @P P ON P.LotID=L.LotID;
                 COMMIT TRANSACTION;
                 SELECT @ReturnID ReturnID,* FROM @P;
             END TRY
