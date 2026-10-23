@@ -684,6 +684,9 @@ public static class PdaWarehouseSql
 
                 IF @PortalDeliveryLineID IS NULL
                     THROW 51421, 'Portal box is not linked to a shipped delivery note.', 1;
+                IF EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK)
+                    WHERE PoID=@PortalPoID AND Status IN('Cancelled','Canceled','Closed'))
+                    THROW 51421,'The linked purchase order is closed or cancelled. Receipt was not saved.',1;
 
                 DECLARE @PortalExistingQty decimal(18,3);
                 SELECT @PortalExistingQty=Qty
@@ -751,8 +754,8 @@ public static class PdaWarehouseSql
                 UPDATE dbo.WH_PurchaseOrder
                    SET ReceivedQty = COALESCE(ReceivedQty, 0) + @PortalQty,
                        Status = CASE
-                           WHEN COALESCE(ReceivedQty, 0) + @PortalQty >= COALESCE(OrderQty, 0) THEN 'Complete'
-                           ELSE 'Open'
+                           WHEN COALESCE(ReceivedQty, 0) + @PortalQty >= COALESCE(OrderQty, 0) THEN 'Received'
+                           ELSE 'Partial'
                        END,
                        ModifiedBy = LEFT(@User, 20),
                        ModifiedTS = SYSDATETIME()
@@ -809,6 +812,11 @@ public static class PdaWarehouseSql
             FROM dbo.tbl_Lot L LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
             WHERE L.LotCode COLLATE DATABASE_DEFAULT=@Barcode ORDER BY L.LotID DESC;
             IF @LotID IS NULL THROW 51414,'Barcode was not found in inbound source tables.',1;
+            IF NOT EXISTS(SELECT 1 FROM dbo.MD_Item WHERE ItemNo=@PartNo AND COALESCE(ActiveFlag,1)=1)
+                THROW 51414,'The LOT part is not registered as an active item.',1;
+            IF EXISTS(SELECT 1 FROM dbo.tbl_Lot L JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
+                WHERE L.LotID=@LotID AND (L.WoID IS NOT NULL OR I.ItemType='ASSY' OR L.ProcessCode IN('INJ','IMG','PNT','RWK','QC')))
+                THROW 51414,'Production LOTs cannot be received as supplier material. Use the production/FG workflow.',1;
             IF @Qty<=0 THROW 51415,'LOT quantity must be greater than zero.',1;
             IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode)
                 THROW 51416,'This barcode has already been received. Check its transaction history.',1;
@@ -824,10 +832,15 @@ public static class PdaWarehouseSql
                     (SELECT COALESCE(SUM(W.Qty),0) FROM dbo.WH_Inventory W WITH(UPDLOCK,HOLDLOCK)
                      WHERE W.LocationNo=L.LocationID COLLATE DATABASE_DEFAULT)+@Qty>L.Capacity)
                 THROW 51419,'Location capacity would be exceeded.',1;
+            IF (SELECT COUNT(DISTINCT COALESCE(VendorID,'')) FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK)
+                WHERE ItemNo=@PartNo AND OrderQty>COALESCE(ReceivedQty,0) AND Status NOT IN('Cancelled','Canceled','Closed'))>1
+                THROW 51420,'This part has open orders for different suppliers. Scan the supplier delivery unit item barcode instead.',1;
             SELECT TOP(1) @PoID=PoID,@Invoice=PoNumber FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK)
                 WHERE ItemNo=@PartNo AND OrderQty>COALESCE(ReceivedQty,0)
-                  AND Status NOT IN('Cancelled','Canceled')
+                  AND Status NOT IN('Cancelled','Canceled','Closed')
                 ORDER BY DueDate,PoID;
+            IF EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WHERE PoID=@PoID AND COALESCE(ReceivedQty,0)+@Qty>OrderQty)
+                THROW 51420,'LOT quantity exceeds the remaining purchase-order quantity. Scan the supplier delivery unit item barcode instead.',1;
             INSERT dbo.WH_Inventory(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,InvoiceNo,ReceivedAt,CreatedAt,UpdatedAt)
                 VALUES(@Barcode,'PART',@PartNo,@PartName,@Location,@Qty,@Invoice,SYSDATETIME(),SYSDATETIME(),SYSDATETIME());
             INSERT dbo.WH_InventoryTransaction(TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
@@ -835,7 +848,7 @@ public static class PdaWarehouseSql
             VALUES('IN',@PartNo,@Location,@Barcode,0,@Qty,@Qty,'INBOUND_RECEIVE','LOT',@PoID,@User,@Invoice,LEFT(@User,20),SYSDATETIME());
             IF @PoID IS NOT NULL
                 UPDATE dbo.WH_PurchaseOrder SET ReceivedQty=COALESCE(ReceivedQty,0)+@Qty,
-                    Status=CASE WHEN COALESCE(ReceivedQty,0)+@Qty>=OrderQty THEN 'Complete' ELSE 'Open' END,
+                    Status=CASE WHEN COALESCE(ReceivedQty,0)+@Qty>=OrderQty THEN 'Received' ELSE 'Partial' END,
                     ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE PoID=@PoID;
             UPDATE dbo.tbl_Lot SET CurrentLocationID=@Location,RemainingQty=@Qty,ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME()
                 WHERE LotID=@LotID;
@@ -862,6 +875,8 @@ public static class PdaWarehouseSql
             BEGIN TRANSACTION;
             IF @Location IS NULL OR NOT EXISTS(SELECT 1 FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK) WHERE LocationID=@Location AND COALESCE(ActiveFlag,1)=1)
                 THROW 51406, 'Location barcode was not found.', 1;
+            IF EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Location AND LocationLevel=1)
+                THROW 51423,'Primary locations cannot hold stock. Scan a detail location.',1;
             IF UPPER(LTRIM(RTRIM(@ReceiveMode))) NOT IN('LOCAL','CKD') THROW 51420,'Receive mode must be LOCAL or CKD.',1;
             IF EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Location AND
                 (COALESCE(ActiveFlag,1)=0 OR UPPER(COALESCE(LocationType,'')) IN('BLOCKED','HOLD','QUARANTINE','INACTIVE')))
@@ -874,8 +889,6 @@ public static class PdaWarehouseSql
                     (SELECT COALESCE(SUM(W.Qty),0) FROM dbo.WH_Inventory W WITH(UPDLOCK,HOLDLOCK)
                      WHERE W.LocationNo=L.LocationID COLLATE DATABASE_DEFAULT)+@Qty>L.Capacity)
                 THROW 51428,'Location capacity would be exceeded.',1;
-            IF EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Location AND LocationLevel=1)
-                THROW 51423,'Primary locations cannot hold stock. Scan a detail location.',1;
             SELECT TOP(1) @LotID=LotID FROM dbo.tbl_Lot WHERE LotCode COLLATE DATABASE_DEFAULT=@Barcode ORDER BY LotID DESC;
             UPDATE dbo.WH_Inventory SET LocationNo=@Location,UpdatedAt=SYSDATETIME() WHERE LotNo=@Barcode;
             IF @LotID IS NOT NULL UPDATE dbo.tbl_Lot SET CurrentLocationID=@Location,InventoryStatus='STORED',ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME() WHERE LotID=@LotID;
@@ -1099,6 +1112,9 @@ public static class PdaWarehouseSql
 
             IF @Scan = N''
                 THROW 51510, 'Barcode is required.', 1;
+            IF EXISTS(SELECT 1 FROM dbo.WH_Inventory W JOIN dbo.MD_Location L ON L.LocationID=W.LocationNo
+                WHERE W.LotNo=@Scan AND L.LocationLevel=1)
+                THROW 51516,'Primary locations cannot hold stock. Move this LOT to a detail location first.',1;
             IF EXISTS
                (SELECT 1
                 FROM dbo.WH_Inventory W
@@ -1137,9 +1153,6 @@ public static class PdaWarehouseSql
             ORDER BY CASE WHEN W.Qty > 0 THEN 0 ELSE 1 END, W.ReceivedAt DESC, W.LotNo;
 
             IF @LotNo IS NULL
-            IF EXISTS(SELECT 1 FROM dbo.WH_Inventory W JOIN dbo.MD_Location L ON L.LocationID=W.LocationNo
-                WHERE W.LotNo=@Scan AND L.LocationLevel=1)
-                THROW 51516,'Primary locations cannot hold stock. Move this LOT to a detail location first.',1;
                 THROW 51516, 'The specified barcode could not be found in Warehouse inventory.', 1;
 
             SET @AfterQty = @BeforeQty + @DeltaQty;

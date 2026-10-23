@@ -49,6 +49,17 @@ public sealed class WarehouseReviewRegressionTests
     }
 
     [Fact]
+    public void Generic_supplier_receipt_cannot_credit_production_lots_ambiguous_vendors_or_over_receipts()
+    {
+        var sql=PdaWarehouseSql.InboundReceive;
+        foreach(var guard in new[]{"L.WoID IS NOT NULL","I.ItemType='ASSY'","COUNT(DISTINCT COALESCE(VendorID,''))",
+            "COALESCE(ReceivedQty,0)+@Qty>OrderQty","The linked purchase order is closed or cancelled"})
+            Assert.Contains(guard,sql);
+        Assert.DoesNotContain("THEN 'Complete'",sql);
+        Assert.Contains("ELSE 'Partial'",sql);
+    }
+
+    [Fact]
     public void Unlocated_stock_remains_visible_without_counting_container_totals_twice()
     {
         var source=Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.cs");
