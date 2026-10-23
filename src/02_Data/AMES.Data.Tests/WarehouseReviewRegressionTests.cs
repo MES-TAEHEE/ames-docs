@@ -111,6 +111,52 @@ public sealed class WarehouseReviewRegressionTests
         Assert.Contains("C.ParentLotNo=w.LotNo",report);
     }
 
+    [Fact]
+    public void Rebuild_does_not_reuse_generated_defaults_duplicate_indexes_or_destructive_injection_bootstrap()
+    {
+        var schema=Read("dist/AMES_Schema.sql");
+        Assert.DoesNotMatch(@"CONSTRAINT \[DF__[^\]]+__[0-9A-Fa-f]{8}\]",schema);
+        Assert.Single(Regex.Matches(schema,@"CREATE UNIQUE NONCLUSTERED INDEX \[UX_PR_PopSession_BearerHash\]").Cast<Match>());
+        Assert.DoesNotMatch(@"(?m)^\s+migrate_inj_agent\.sql\s",Read("dist/rebuild_db.sh"));
+        Assert.Contains("omitLegacyDefaultNames: true",Read("tools/schema_from_db/Program.cs"));
+        Assert.Contains("!RetiredPdaProcedure(p.Name)",Read("tools/schema_from_db/Program.cs"));
+        var screens=Read("dist/migrate_scm_portal_screens.sql");
+        foreach(var route in new[]{"portal/due-orders","portal/delivery-notes","portal/receipts","portal/packing-quantities","scm/delivery-progress","scm/portal-users"})
+            Assert.Contains(route,screens);
+        Assert.DoesNotContain("'portal/delivery-entry'",screens);
+        Assert.Contains("'SCM-005' AS ScreenCode",Read("dist/migrate_scm_portal_user_login.sql"));
+    }
+
+    public static IEnumerable<object[]> CompileBatches()
+    {
+        yield return [PdaWarehouseSql.InboundReceive,"DECLARE @ReceiveMode nvarchar(10),@LotBarcode nvarchar(50),@LocationId varchar(50),@UserId nvarchar(40),@SimulateFailure bit;"];
+        yield return [PdaWarehouseSql.InboundMove,"DECLARE @ReceiveMode nvarchar(10),@LotBarcode nvarchar(50),@LocationId varchar(50),@UserId nvarchar(40);"];
+        yield return [PdaWarehouseSql.InboundCancel,"DECLARE @ReceiveMode nvarchar(10),@LotBarcode nvarchar(50),@UserId nvarchar(40),@CancelNote nvarchar(500);"];
+        yield return [PdaFinishedGoodsSql.PutAway,"DECLARE @Barcode nvarchar(50),@Location varchar(50),@OperatorID varchar(20);"];
+        yield return [PdaFinishedGoodsSql.OutboundComplete,"DECLARE @Barcode nvarchar(50),@CustomerID varchar(20),@OperatorID varchar(20),@ShippingDeliveryID int;"];
+        yield return [BackflushRepository.ReadLineLotsSql,"DECLARE @Part varchar(20),@Ph nvarchar(50),@Loc varchar(50),@Line varchar(20);"];
+        var pp=Read("src/02_Data/AMES.Data/Repositories/PpRepository.cs");
+        pp=pp[pp.IndexOf("public (int Inserted, int Updated) UpsertCustomerOrders",StringComparison.Ordinal)..];
+        yield return [Regex.Match(pp,"const string updSql = \"\"\"(?<sql>[\\s\\S]*?)\"\"\";").Groups["sql"].Value,
+            "DECLARE @Item varchar(20),@OrderQty decimal(14,3),@ShippedQty decimal(14,3),@OrderDate date,@ReqDate date,@Actor varchar(20),@So varchar(20),@Line int,@Cust varchar(20);"];
+        var fg=Read("src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs");
+        fg=fg[fg.IndexOf("g.MapGet(\"/putaway/waiting\"",StringComparison.Ordinal)..];
+        yield return [Regex.Match(fg,"const string sql = \"\"\"(?<sql>[\\s\\S]*?)\"\"\";").Groups["sql"].Value,""];
+    }
+
+    [SkippableTheory]
+    [MemberData(nameof(CompileBatches))]
+    public void Changed_batches_compile_without_executing_stock_mutations(string sql,string declarations)
+    {
+        var connection=Environment.GetEnvironmentVariable("AMES_REVIEW_READ_DB");
+        Skip.If(string.IsNullOrEmpty(connection),"Set AMES_REVIEW_READ_DB for compile-only SQL verification.");
+        using var conn=new SqlConnection(connection);
+        conn.Open();
+        Assert.False(string.IsNullOrWhiteSpace(sql));
+        using var cmd=new SqlCommand("SET NOEXEC ON;\n"+declarations+"\n"+sql+"\nSET NOEXEC OFF;",conn);
+        cmd.ExecuteNonQuery();
+    }
+
     private static string Read(string path,[System.Runtime.CompilerServices.CallerFilePath] string file="")
         =>File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!,"../../..",path)));
 }

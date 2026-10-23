@@ -64,7 +64,7 @@ FILES=(
   seed_md_customer_seoyon.sql         # 고객 마스터 = Seoyon 세 플랜트(SAV·GEO·AUB), 데모 OEM 삭제
   seed_md_routing_step.sql            # 라우팅 템플릿(A/B) 시드 (테이블은 AMES_Schema.sql)
   seed_md_item_bom_master_list.sql    # 품목·BOM 정본 (docs/260828 BOM Master List.xlsx → tools/gen_md_item_bom_seed.py 생성) — MD_Item/MD_Bom 전체 재적재, FG_* 시드(PDA_SEED) 이전이어야 한다
-  migrate_inj_agent.sql               # 사출: PR_InjLot·사출조건 테이블 + 사출조건 시드 (금형 시드는 seed_md_mold_master)
+  # migrate_inj_agent.sql is a legacy destructive bootstrap. Its four tables/indexes are already in AMES_Schema.sql.
   migrate_mold_master.sql             # 금형: 자식 3종 → MD_Mold FK (시드 없음)
   migrate_mold_change_plan.sql        # 금형 교체 시간: MD_Mold.MoldChangeMin + PP_LineSchedule.MoldID (순서 무관)
   migrate_routing_step.sql            # 라우팅: MD_RoutingStep 생성 + A/B 시퀀스 시드 (seed_admin_permissions 이후 — Admin 권한 필요)

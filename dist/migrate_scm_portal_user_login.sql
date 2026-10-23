@@ -67,20 +67,20 @@ WHERE  s.ModuleCode = 'WEB' AND s.ProcessCode = 'PORTAL';
 PRINT CONCAT(N'SYS_RolePermission 포탈 화면 행 삭제: ', @@ROWCOUNT, N' 건');
 GO
 
--- SCM-004 외부 사용자 관리
+-- SCM-005 외부 사용자 관리 (SCM-004 is Purchase Items).
 MERGE dbo.SYS_Screen AS t
-USING (SELECT 'SCM-004' AS ScreenCode) s ON t.ScreenCode = s.ScreenCode
+USING (SELECT 'SCM-005' AS ScreenCode) s ON t.ScreenCode = s.ScreenCode
 WHEN NOT MATCHED THEN
     INSERT (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, SortOrder, IsVisible, CreatedBy, CreatedTS)
-    VALUES ('SCM-004', 'WEB', 'SCM', NULL, N'외부 사용자 관리', N'Portal Users', 'scm/portal-users', 'SCM-004', 4, 1, 'migrate', SYSDATETIME());
-PRINT CONCAT(N'SYS_Screen SCM-004: ', @@ROWCOUNT, N' 건');
+    VALUES ('SCM-005', 'WEB', 'SCM', NULL, N'외부 사용자 관리', N'Portal Users', 'scm/portal-users', 'SCM-005', 5, 1, 'migrate', SYSDATETIME());
+PRINT CONCAT(N'SYS_Screen SCM-005: ', @@ROWCOUNT, N' 건');
 
 -- Admin = 시스템 역할 고정 ID ROLE-SYSADMIN(이름은 바뀔 수 있다 — dist/migrate_system_roles.sql)
-IF NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission WHERE RoleID = N'ROLE-SYSADMIN' AND ScreenCode = 'SCM-004')
+IF NOT EXISTS (SELECT 1 FROM dbo.SYS_RolePermission WHERE RoleID = N'ROLE-SYSADMIN' AND ScreenCode = 'SCM-005')
     INSERT INTO dbo.SYS_RolePermission (RoleID, RoleName, ModuleCode, ProcessCode, ScreenCode, PermissionLevel, IsSystemRole, EffectiveTS, CreatedBy, CreatedTS)
-    SELECT Id, Name, 'WEB', 'SCM', 'SCM-004', 'REA', 1, SYSDATETIME(), 'migrate', SYSDATETIME()
+    SELECT Id, Name, 'WEB', 'SCM', 'SCM-005', 'REA', 1, SYSDATETIME(), 'migrate', SYSDATETIME()
     FROM   dbo.AspNetRoles WHERE Id = N'ROLE-SYSADMIN';
-PRINT CONCAT(N'SYS_RolePermission Admin/SCM-004: ', @@ROWCOUNT, N' 건');
+PRINT CONCAT(N'SYS_RolePermission Admin/SCM-005: ', @@ROWCOUNT, N' 건');
 GO
 
 SELECT c.column_id, c.name, TYPE_NAME(c.user_type_id) AS type_name, c.max_length, c.is_nullable

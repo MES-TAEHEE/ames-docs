@@ -2,6 +2,7 @@
 // 사용: dotnet run -- <연결문자열> <기존 AMES_Schema.sql> <출력 파일>
 using System.Collections.Specialized;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
@@ -25,10 +26,13 @@ static bool Excluded(string name) =>
     name.StartsWith("TEST_", StringComparison.OrdinalIgnoreCase) || name.Equals("sysdiagrams", StringComparison.OrdinalIgnoreCase);
 static bool DiagramObject(string name) =>
     name.Equals("fn_diagramobjects", StringComparison.OrdinalIgnoreCase) || name.Contains("diagram", StringComparison.OrdinalIgnoreCase) && name.StartsWith("sp_", StringComparison.OrdinalIgnoreCase);
+static bool RetiredPdaProcedure(string name) =>
+    Regex.IsMatch(name,@"^(WH_PDA_|FG_PDA_|SP_PDA_)",RegexOptions.IgnoreCase)
+    && !name.Contains("TEST_RESET",StringComparison.OrdinalIgnoreCase);
 
 var tables = db.Tables.Cast<Table>().Where(t => !t.IsSystemObject && t.Schema == "dbo" && !Excluded(t.Name))
                 .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList();
-var procs = db.StoredProcedures.Cast<StoredProcedure>().Where(p => !p.IsSystemObject && p.Schema == "dbo" && !DiagramObject(p.Name))
+var procs = db.StoredProcedures.Cast<StoredProcedure>().Where(p => !p.IsSystemObject && p.Schema == "dbo" && !DiagramObject(p.Name) && !RetiredPdaProcedure(p.Name))
                 .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
 var views = db.Views.Cast<View>().Where(v => !v.IsSystemObject && v.Schema == "dbo").OrderBy(v => v.Name, StringComparer.OrdinalIgnoreCase).ToList();
 var funcs = db.UserDefinedFunctions.Cast<UserDefinedFunction>().Where(f => !f.IsSystemObject && f.Schema == "dbo" && !DiagramObject(f.Name))
@@ -36,7 +40,17 @@ var funcs = db.UserDefinedFunctions.Cast<UserDefinedFunction>().Where(f => !f.Is
 
 var sb = new StringBuilder();
 void L(string s = "") => sb.Append(s).Append("\r\n");
-void Batch(StringCollection sc) { foreach (string? s in sc) { L(s!.TrimEnd()); L("GO"); } }
+void Batch(StringCollection sc, bool omitLegacyDefaultNames = false)
+{
+    foreach (string? s in sc)
+    {
+        var script=s!.TrimEnd();
+        // Captured DF__ names can collide with SQL Server's newly generated defaults in a fresh DB.
+        if(omitLegacyDefaultNames)
+            script=Regex.Replace(script,@"\bCONSTRAINT\s+\[DF__[^\]]+__[0-9A-Fa-f]{8}\]\s+(?=DEFAULT\b)","",RegexOptions.IgnoreCase);
+        L(script); L("GO");
+    }
+}
 
 var today = DateTime.Now.ToString("yyyy-MM-dd");
 L($"-- A-MES consolidated schema: AMES_DEV, captured {today} from the development DB (192.168.0.132) with SMO.");
@@ -80,7 +94,7 @@ var tableOpt = new ScriptingOptions
 foreach (var t in tables)
 {
     L($"-- Table: dbo.{t.Name}");
-    Batch(t.Script(tableOpt));
+    Batch(t.Script(tableOpt), omitLegacyDefaultNames: true);
 }
 
 L("-- ════ Foreign keys (as in the development DB) ════");
