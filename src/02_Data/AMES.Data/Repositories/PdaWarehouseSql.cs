@@ -928,7 +928,7 @@ public static class PdaWarehouseSql
                     @PortalQty decimal(18,3),
                     @PortalReceiptQty decimal(18,3),
                     @PortalPoID int,
-                    @PortalNoteNo nvarchar(30);
+                    @PortalNoteNo nvarchar(30),@PortalReceiptID bigint,@PortalHistoryQty decimal(18,3);
 
                 BEGIN TRANSACTION;
 
@@ -956,6 +956,30 @@ public static class PdaWarehouseSql
                 FROM dbo.SCM_DeliveryLine
                 WHERE DeliveryLineID = @PortalDeliveryLineID;
 
+                SELECT TOP(1) @PortalReceiptID=TransactionID,@PortalHistoryQty=QtyChange
+                FROM dbo.WH_InventoryTransaction WITH(UPDLOCK,HOLDLOCK)
+                WHERE LotNo=@Barcode AND SourceType='SCM_DeliveryLine' AND SourceID=@PortalDeliveryLineID
+                  AND TransactionType='IN' AND ReasonCode='INBOUND_RECEIVE'
+                ORDER BY TransactionID DESC;
+                IF @PortalReceiptID IS NULL OR @PortalHistoryQty IS NULL OR @PortalHistoryQty<>@PortalReceiptQty
+                    THROW 51434,'The original box receipt could not be verified. Cancellation was not saved.',1;
+                IF EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction WITH(UPDLOCK,HOLDLOCK)
+                    WHERE LotNo=@Barcode AND TransactionID>@PortalReceiptID
+                      AND (ReasonCode IN('INBOUND_CANCEL','RELEASE_PICK') OR SourceType IN('BACKFLUSH','BACKFLUSH_NET')
+                           OR (QtyChange<>0 AND COALESCE(TransactionType,'')<>'ADJ')))
+                   OR EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@PortalLocation AND LineID IS NOT NULL)
+                   OR EXISTS(SELECT 1 FROM dbo.MD_Line WHERE LEN(LotPrefix)=2 AND LotPrefix=@PortalLocation)
+                    THROW 51434,'This box was released, consumed or moved to a production line. Reverse those operations before cancelling its receipt.',1;
+                SELECT @PortalHistoryQty=@PortalReceiptQty+COALESCE(SUM(QtyChange),0)
+                FROM dbo.WH_InventoryTransaction WHERE LotNo=@Barcode AND TransactionID>@PortalReceiptID AND TransactionType='ADJ';
+                IF @PortalHistoryQty<>@PortalQty
+                    THROW 51435,'Box stock does not match its receipt and adjustment history. Cancellation was not saved.',1;
+                IF NOT EXISTS(SELECT 1 FROM dbo.SCM_DeliveryLine WITH(UPDLOCK,HOLDLOCK)
+                    WHERE DeliveryLineID=@PortalDeliveryLineID AND ReceivedQty>=@PortalReceiptQty)
+                   OR (@PortalPoID IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.WH_PurchaseOrder WITH(UPDLOCK,HOLDLOCK)
+                       WHERE PoID=@PortalPoID AND ReceivedQty>=@PortalReceiptQty))
+                    THROW 51435,'The delivery or PO receipt balance is inconsistent. Cancellation was not saved.',1;
+
                 DELETE FROM dbo.WH_Inventory
                 WHERE LotNo = @Barcode
                   AND DeliveryNoteNo = @PortalNoteNo;
@@ -963,6 +987,7 @@ public static class PdaWarehouseSql
                 UPDATE PO
                    SET ReceivedQty = X.NewReceivedQty,
                        Status = CASE
+                           WHEN PO.Status IN('Cancelled','Canceled') THEN PO.Status
                            WHEN X.NewReceivedQty <= 0 THEN 'Open'
                            WHEN X.NewReceivedQty >= COALESCE(PO.OrderQty, 0) THEN 'Received'
                            ELSE 'Partial'

@@ -9,6 +9,20 @@ namespace AMES.Data.Tests;
 public sealed class WarehouseReviewRegressionTests
 {
     [Fact]
+    public void Portal_cancellation_rejects_line_moves_consumption_and_unaccounted_quantity_before_deleting_stock()
+    {
+        var sql=PdaWarehouseSql.InboundCancel;
+        var portal=sql[..sql.IndexOf("GOTO PdaInboundResult;",StringComparison.Ordinal)];
+        foreach(var guard in new[]{"TransactionID>@PortalReceiptID","SourceType IN('BACKFLUSH','BACKFLUSH_NET')",
+            "QtyChange<>0 AND COALESCE(TransactionType,'')<>'ADJ'","LocationID=@PortalLocation AND LineID IS NOT NULL",
+            "LEN(LotPrefix)=2","IF @PortalHistoryQty<>@PortalQty","ReceivedQty>=@PortalReceiptQty"})
+            Assert.Contains(guard,portal);
+        Assert.True(portal.IndexOf("IF @PortalHistoryQty<>@PortalQty",StringComparison.Ordinal)
+            < portal.IndexOf("DELETE FROM dbo.WH_Inventory",StringComparison.Ordinal));
+        Assert.Contains("TransactionType='ADJ'",portal); // Preserve adjustment -> cancel -> re-receive workflow.
+    }
+
+    [Fact]
     public void Primary_locations_cannot_receive_move_or_gain_stock_or_become_picking_sources()
     {
         foreach(var sql in new[]{PdaWarehouseSql.InboundReceive,PdaWarehouseSql.InboundMove,PdaWarehouseSql.AdjustSave,PdaFinishedGoodsSql.AdjustSave})
