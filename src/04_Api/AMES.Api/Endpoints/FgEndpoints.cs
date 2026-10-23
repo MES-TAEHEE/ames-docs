@@ -66,7 +66,7 @@ public static partial class FgEndpoints
     private const string BarcodePallet = "PALLET";
     private const string BarcodeRack = "RACK";
     private const string BarcodeUnknown = "UNKNOWN";
-    private sealed record ParsedFgBarcode(string Raw, string Value, string Kind);
+    internal sealed record ParsedFgBarcode(string Raw, string Value, string Kind);
 
     // ── Routes ───────────────────────────────────────────────────────────
     public static void MapFg(this WebApplication app, AmesConnectionFactory factory)
@@ -718,10 +718,12 @@ public static partial class FgEndpoints
         }
     }
 
-    private static bool TryNormalizeReturnBarcode(
+    internal static bool TryNormalizeReturnBarcode(
         string? barcode, out string normalized, out string error)
     {
         var value = (barcode ?? "").Replace("\u0002", "").Replace("\u0003", "").Trim();
+        if (value.Contains("[)>", StringComparison.Ordinal))
+            value = AMES.Devices.ImgScanParser.ExtractLotCode(value) ?? "";
         normalized = "";
         error = "";
         if (string.IsNullOrWhiteSpace(value))
@@ -984,7 +986,7 @@ public static partial class FgEndpoints
             GetString(rdr, "AreaCode"));
     }
 
-    private static ParsedFgBarcode ParseFgBarcode(string? barcode)
+    internal static ParsedFgBarcode ParseFgBarcode(string? barcode)
     {
         var raw = (barcode ?? "")
             .Replace("\u0002", "")
@@ -1014,12 +1016,11 @@ public static partial class FgEndpoints
                 return new ParsedFgBarcode(raw, value, kind);
         }
 
-        if (raw.Contains('\u001d'))
+        if (raw.Contains("[)>", StringComparison.Ordinal))
         {
-            var gsLot = raw.Split('\u001d', StringSplitOptions.RemoveEmptyEntries)
-                .FirstOrDefault(x => x.StartsWith("T", StringComparison.OrdinalIgnoreCase));
-            if (!string.IsNullOrWhiteSpace(gsLot) && gsLot.Length > 12)
-                return new ParsedFgBarcode(raw, gsLot[12..].Trim(), BarcodeLot);
+            var labelLot = AMES.Devices.ImgScanParser.ExtractLotCode(raw);
+            if (!string.IsNullOrWhiteSpace(labelLot))
+                return new ParsedFgBarcode(raw, labelLot, BarcodeLot);
         }
 
         if (raw.StartsWith("WO-", StringComparison.OrdinalIgnoreCase))
