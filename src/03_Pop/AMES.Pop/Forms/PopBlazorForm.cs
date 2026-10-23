@@ -18,6 +18,7 @@ public class PopBlazorForm : PopForm
 {
     private readonly BlazorWebView _webView;
     private System.Threading.Timer? _labelTimer;
+    private System.Threading.Timer? _offlineTimer;
     private SerialScannerReader?    _scanner;
 
     public PopBlazorForm()
@@ -58,6 +59,7 @@ public class PopBlazorForm : PopForm
 
         WireLabelDispatcher(provider);
         WireScanner(provider);
+        WireOfflineSync(provider);
 
         BlazorHost.ActionRequested += OnAction;
         FormClosing += (_, _) => BlazorHost.ActionRequested -= OnAction;
@@ -80,6 +82,8 @@ public class PopBlazorForm : PopForm
         // 백그라운드 타이머 콜백에서 예외가 새어 나가면 프로세스가 죽는다.
         _labelTimer = new System.Threading.Timer(_ =>
         {
+            // DB 가 끊긴 것으로 알려진 동안은 쉰다 — 매초 접속을 시도하며 로그만 쌓이고, 오프라인에서 뽑은 라벨은 화면이 직접 뽑는다.
+            if (PopDb.IsOffline) return;
             try { dispatcher.Tick(); }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[LabelDispatcher] tick failed: {ex}"); }
         }, null, Timeout.Infinite, Timeout.Infinite);
@@ -116,6 +120,20 @@ public class PopBlazorForm : PopForm
         _scanner.Start();
     }
 
+    // 오프라인 로그인 사본 갱신·저널 재생은 화면 수명과 무관하다 — 로그인 화면에서도, 어느 작업 화면에서도 돈다.
+    // 첫 틱을 바로 돌려, 처음 켠 터미널이 사본을 곧바로 받는다.
+    private void WireOfflineSync(IServiceProvider provider)
+    {
+        var state  = provider.GetRequiredService<AppState>();
+        var toasts = provider.GetRequiredService<ToastService>();
+        OfflineWork.Notice += (text, isError) => { if (isError) toasts.Warn(text); else toasts.Ok(text); };
+        _offlineTimer = new System.Threading.Timer(_ =>
+        {
+            try { OfflineAuth.Tick(state); }
+            catch (Exception ex) { PopLog.Append("offline", "OfflineAuth", $"tick failed: {ex.Message}"); }
+        }, null, 2000, 5000);
+    }
+
     private static void LogDispatch(string msg) => PopLog.Append("dispatch", "LabelDispatcher", msg);
     private static void LogScanner(string msg)  => PopLog.Append("scanner",  "Scanner",         msg);
 
@@ -126,6 +144,7 @@ public class PopBlazorForm : PopForm
         if (disposing)
         {
             _labelTimer?.Dispose();
+            _offlineTimer?.Dispose();
             _scanner?.Dispose();
         }
         base.Dispose(disposing);

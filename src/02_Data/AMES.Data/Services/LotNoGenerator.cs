@@ -41,6 +41,16 @@ public static class LotNoGenerator
     /// </summary>
     public static string NextLotNo(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date)
     {
+        var prefix = ResolvePrefix(conn, tx, lineId);
+        var header = BuildHeader(date, prefix);
+        var seq = NextSeq(conn, tx, header);
+        if (seq > 9999)
+            throw new InvalidOperationException($"LotNo 순번 초과(9999): header={header}");
+        return header + seq.ToString("D4");
+    }
+
+    static string ResolvePrefix(SqlConnection conn, SqlTransaction tx, string lineId)
+    {
         string? prefix;
         using (var cmd = new SqlCommand(
             "dbo.SP_POP_LOT_NextLotNo", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
@@ -51,12 +61,63 @@ public static class LotNoGenerator
         if (string.IsNullOrEmpty(prefix))
             throw new InvalidOperationException(
                 $"MD_Line.LotPrefix 미등록: {lineId} — 라인 마스터에 2자 코드를 등록해야 채번할 수 있다.");
+        return prefix;
+    }
 
-        var header = BuildHeader(date, prefix);
-        var seq = NextSeq(conn, tx, header);
-        if (seq > 9999)
-            throw new InvalidOperationException($"LotNo 순번 초과(9999): header={header}");
-        return header + seq.ToString("D4");
+    /// <summary>
+    /// 예약한 LotNo 구간 — <see cref="Header"/>(년월일+라인코드 5자) 뒤에 FirstSeq..FirstSeq+Count-1 을 4자리로 붙인다.
+    /// 오프라인 터미널이 DB 없이 쓸 번호를 미리 확보한 것이라, 이 구간은 SYS_LotSeq 에서 이미 빠져 다른 누구에게도 발급되지 않는다.
+    /// </summary>
+    public sealed record LotNoBlock(string Header, int FirstSeq, int Count)
+    {
+        public IEnumerable<string> Codes
+        {
+            get { for (var i = 0; i < Count; i++) yield return Header + (FirstSeq + i).ToString("D4"); }
+        }
+    }
+
+    /// <summary>
+    /// 그 날·그 라인의 LotNo 순번 <paramref name="count"/> 개를 한 문장으로 확보한다(SYS_LotSeq.LastSeq += count).
+    /// 9999 를 넘는 만큼은 확보하지 않으므로 Count 가 요청보다 작거나 0 일 수 있다. 안 쓴 번호는 결번으로 남는다.
+    /// </summary>
+    public static LotNoBlock Reserve(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date, int count)
+    {
+        if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count));
+        var header = BuildHeader(date, ResolvePrefix(conn, tx, lineId));
+
+        (int Before, int After)? Bump()
+        {
+            using var cmd = new SqlCommand("""
+                UPDATE dbo.SYS_LotSeq
+                SET    LastSeq = CASE WHEN LastSeq + @N > 9999 THEN 9999 ELSE LastSeq + @N END, ModifiedTS = SYSDATETIME()
+                OUTPUT deleted.LastSeq, inserted.LastSeq
+                WHERE  Header = @H;
+                """, conn, tx);
+            cmd.Parameters.Add("@H", SqlDbType.Char, 5).Value = header;
+            cmd.Parameters.Add("@N", SqlDbType.Int).Value = count;
+            using var r = cmd.ExecuteReader();
+            return r.Read() ? (Convert.ToInt32(r[0]), Convert.ToInt32(r[1])) : null;
+        }
+
+        var hit = Bump();
+        if (hit is null)
+        {
+            // 그날 그 라인의 첫 채번 — INSERT 경쟁에서 지면 PK 충돌 → UPDATE 재시도 1회(NextSeq 와 같은 규칙).
+            try
+            {
+                var first = Math.Min(count, 9999);
+                using var ins = new SqlCommand("INSERT INTO dbo.SYS_LotSeq (Header, LastSeq) VALUES (@H, @L);", conn, tx);
+                ins.Parameters.Add("@H", SqlDbType.Char, 5).Value = header;
+                ins.Parameters.Add("@L", SqlDbType.Int).Value = first;
+                ins.ExecuteNonQuery();
+                return new LotNoBlock(header, 1, first);
+            }
+            catch (SqlException ex) when (ex.Number is 2627 or 2601)
+            {
+                hit = Bump() ?? throw new InvalidOperationException($"SYS_LotSeq 예약 실패: {header}");
+            }
+        }
+        return new LotNoBlock(header, hit.Value.Before + 1, hit.Value.After - hit.Value.Before);
     }
 
     static int NextSeq(SqlConnection conn, SqlTransaction tx, string header)

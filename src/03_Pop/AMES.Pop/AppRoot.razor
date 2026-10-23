@@ -1,4 +1,5 @@
 @inject AppState State
+@inject ConfirmService Confirmer
 @inject NavigationManager Nav
 @inject IdleWatcher Idle
 @inject ScannerService Scanner
@@ -53,6 +54,8 @@
     {
         State.OnChange       += OnStateChanged;
         State.SigningOut     += OnSigningOut;
+        State.SigningOut     += OnSigningOutCloseConfirm;
+        State.SessionReplaced += OnSessionReplaced;
         Nav.LocationChanged  += OnLocationChanged;
         Scanner.OnScan       += OnScan;
 
@@ -141,15 +144,34 @@
     // 화면마다 흩어진 로그아웃 버튼이 전부 State.SignOut() 을 거치므로, 세션 행 닫기는 여기 한 곳뿐이다.
     // UI 스레드에서 DB 를 타면 최악 Connect Timeout 만큼 화면이 언다 — 던지고 잊는다.
     // 실패해도 로그인 복귀를 막지 않는다: 남은 행은 ExpiresAt 으로 정리된다.
+    // 오프라인 임시 세션(음수 ID)이거나 DB 에 닿지 못하면 저널에 올려 두고 복구 때 닫는다(OfflineAuth.Replay).
+    // 정상 로그아웃이면 이어서 오프라인 로그인용 직원 사본을 백그라운드로 새로 받는다.
+    // 유휴 만료·다른 경로 로그아웃 때 떠 있던 확인창(로그아웃 확인 등)이 로그인 화면 위에 남지 않게 한다.
+    private void OnSigningOutCloseConfirm(PopSessionDto session, string reason) => Confirmer.Cancel();
+
     private static void OnSigningOut(PopSessionDto session, string reason) => Task.Run(() =>
     {
+        if (session.SessionId < 0 || PopDb.IsOffline)
+        {
+            OfflineAuth.JournalSessionClose(session.SessionId, reason, session.EmployeeNo);
+            return;
+        }
         try { PopServices.Sessions.CloseSession(session.SessionId, reason, session.OperatorId); }
         catch (Exception ex)
         {
             PopLog.Append("session", "PopSession",
                 $"close session {session.SessionId} ({reason}) failed: {ex.Message}");
+            if (AMES.Data.Connection.DbHealth.IsConnectionFailure(ex))
+                OfflineAuth.JournalSessionClose(session.SessionId, reason, session.EmployeeNo);
+            return;
         }
+        OfflineAuth.RefreshInBackground(force: true);
+        // 로그아웃 때 이 라인의 작업 사본(앞뒤 N일)도 새로 받아 둔다 — 다음 교대가 오프라인이어도 이어서 일할 수 있게
+        if (OfflineAuth.ProcessOf(session.LineId) is { } process && process is "INJ" or "IMG" or "PNT")
+            OfflineWork.PrefetchInBackground(session.LineId, session.TerminalId, process, force: true);
     });
+
+    private void OnSessionReplaced() => InvokeAsync(StateHasChanged);
 
     private void Expire()
     {
@@ -162,6 +184,8 @@
     {
         State.OnChange      -= OnStateChanged;
         State.SigningOut    -= OnSigningOut;
+        State.SigningOut    -= OnSigningOutCloseConfirm;
+        State.SessionReplaced -= OnSessionReplaced;
         Nav.LocationChanged -= OnLocationChanged;
         Scanner.OnScan      -= OnScan;
         _idleTimer?.Dispose();

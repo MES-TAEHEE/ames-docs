@@ -1,5 +1,6 @@
 @page "/injmain"
 @using AMES.Contracts.Enums
+@using AMES.Data.Connection
 @using AMES.Data.Repositories
 @using AMES.Data.Services
 @using AMES.Pop.Pages.InjPopups
@@ -27,7 +28,12 @@
             {
                 <button class="injm-andon-chip" @onclick="@(() => Open(Popup.Andon))">🚨 @T("AndonActive") · #@oa.AndonId · @AndonElapsed(oa)</button>
             }
-            <span class="@_eqClass">● @PopLang.EqStatus(_eqStatus)</span>
+            @if (OfflineWork.Conflicts.Count > 0)
+            {
+                <button class="injm-andon-chip" @onclick="ShowConflicts">@T("OfflineConflicts", OfflineWork.Conflicts.Count)</button>
+            }
+            <span class="@(PopDb.IsOffline ? "stat-bad" : "stat-on")">● @T(PopDb.IsOffline ? "Offline" : "Online")</span>
+            <span class="@(PopDb.IsOffline ? "stat-off" : _eqClass)">● @PopLang.EqStatus(PopDb.IsOffline ? "OFFLINE" : _eqStatus)</span>
             @if (Scanner.IsEnabled)
             {
                 <span class="@(_scannerOn ? "stat-on" : "stat-off")">🔌 @T("Scanner")</span>
@@ -198,7 +204,7 @@
 @switch (_popup)
 {
     case Popup.Defect:
-        <DefectPopup Session="Session" OnClose="ClosePopup" OnChanged="Refresh" />
+        <DefectPopup Session="Session" SelectedItemNo="@_selItemNo" OnClose="ClosePopup" OnChanged="RefreshNowAsync" />
         break;
     case Popup.WoList when Session is not null && _selItemNo is not null:
         <WorkOrderListPopup LineId="@Session.LineId" ItemNo="@_selItemNo" ItemName="@SelItem?.ItemName"
@@ -270,9 +276,12 @@
         _scannerOn = Scanner.IsConnected;
         Scanner.OnScan            += OnSerialScan;
         Scanner.ConnectionChanged += OnScannerConnection;
-        _clockTimer   = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); }),
-                                                   null, 1000, 1000);
-        _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }),
+        _clockTimer   = new System.Threading.Timer(_ =>
+                                                   {
+                                                       PopDb.ProbeIfOffline();
+                                                       InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); });
+                                                   }, null, 1000, 1000);
+        _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(RefreshTickAsync),
                                                    null, 5000, 5000);
     }
 
@@ -287,65 +296,189 @@
 
     private void ToggleLang() => PopLang.Lang = PopLang.IsKo ? "en" : "ko";
 
+    private sealed record RefreshSnapshot(
+        List<InjItemDailyDto> Items, string? SelItemNo, WorkOrderDto? ActiveWo,
+        int TodayGood, int TodayDef, string DefectPct, string DefClass,
+        MoldDto? Mold, string MoldText, string MoldClass,
+        List<InjLotDto> RawLots, int RawCount, int NgCount,
+        string EqStatus, string EqClass, AndonCallDto? OpenAndon,
+        List<InjItemDailyDto>? TodayItems = null);
+
+    private bool _refreshing, _disposed;
+    private int _refreshGen;     // Apply 마다 올린다 — 조회 중에 더 새로운 반영이 있었으면 늦게 온 스냅샷을 버린다
+
+    // DB 가 끊겼으면(이미 알려졌거나 이번 호출이 연결 오류) 로컬 사본으로 화면을 채운다 — 사본이 없으면 안내만.
     private void Refresh()
     {
         if (Session is null) return;
+        if (PopDb.IsOffline) { ApplyOffline(); return; }
         try
         {
-            var today = PopServices.InjLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, DbClock.Today);
-            _items = IsToday ? today
-                   : PopServices.InjLots.GetDailyItemSummary(Session.LineId, Session.TerminalId, ViewDate);
+            var snap = Load(Session.LineId, Session.TerminalId, _selItemNo, ViewDate, IsToday);
+            Apply(snap);
+            Absorb(snap);
+        }
+        catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { ApplyOffline(); }
+        catch (Exception ex) { ReportRefreshError(ex); }
+    }
 
-            // 선택이 없거나 목록에서 사라졌으면 열린 WO 가 있는 첫 품번, 없으면 첫 행.
-            if (SelItem is null)
-                _selItemNo = (_items.FirstOrDefault(x => x.HasOpenWo) ?? _items.FirstOrDefault())?.ItemNo;
+    // 온라인으로 받은 확정 대기 LOT·오늘 현황을 오프라인 사본에 덧붙인다 — 정전 직전에 만들어진 LOT 도 오프라인에서 알아보게 한다.
+    private void Absorb(RefreshSnapshot s)
+    {
+        if (Session is null) return;
+        OfflineWork.Absorb(Session.LineId, Session.TerminalId, s.RawLots.Select(OfflineLot.From), s.TodayItems);
+    }
 
-            // 접수가 없으므로 활성 WO 는 품번에서 매번 해석한다 — ConfirmByLotCode 와 같은 규칙.
-            _activeWo = _selItemNo is null ? null
-                      : PopServices.WorkOrders.FindOpenForItem(Session.LineId, _selItemNo);
+    // 연결 오류면 호출자가 로컬 사본 경로로 넘어간다 — 처음 실패한 한 번만 연결 대기를 겪고 이후는 PopDb.IsOffline 으로 바로 간다.
+    private static T OnlineOr<T>(Func<T> online, Func<T> offline)
+    {
+        if (PopDb.IsOffline) return offline();
+        try { return online(); }
+        catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { return offline(); }
+    }
 
-            // 칩은 좌측 날짜와 무관하게 금일 수치다 — 금일 양품/불량 라벨을 달고 있다.
-            var todayRow = today.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
-            _todayGood = todayRow?.FinalQty ?? 0;
-            _todayDef  = todayRow?.NgQty    ?? 0;
-            var pct = (_todayGood + _todayDef) == 0 ? 0 : _todayDef * 100.0 / (_todayGood + _todayDef);
-            _defectPct = $"{pct:0.0}%";
-            _defClass  = pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok";
+    // 5초 타이머 전용 — 이전 조회가 끝나기 전의 틱은 건너뛴다.
+    private async Task RefreshTickAsync()
+    {
+        if (_refreshing || _disposed) return;
+        _refreshing = true;
+        try { await RefreshAsync(fromTick: true); }
+        finally { _refreshing = false; }
+    }
 
-            _moldText = "—"; _moldClass = "ok"; _mold = null;
-            if (_activeWo is not null)
-            {
-                if (!string.IsNullOrEmpty(_activeWo.MoldId))
-                {
-                    _mold = PopServices.Molds.GetById(_activeWo.MoldId);
-                    if (_mold is not null)
-                    {
-                        _moldText  = $"{_mold.CurrentShots:N0}/{_mold.RatedShots:N0}";
-                        _moldClass = _mold.Severity is "warn" ? "warn" : _mold.Severity is "alert" or "hard" ? "bad" : "ok";
-                    }
-                }
-            }
+    // 사용자 동작(품번 선택·날짜 변경·팝업 닫기)용 — 화면 스레드를 붙잡지 않는다.
+    private Task RefreshNowAsync() => RefreshAsync(fromTick: false);
 
-            _rawLots = PopServices.InjLots.GetUnconfirmed(Session.LineId);
-            var (_, raw, ng) = PopServices.InjLots.GetTodayStats(Session.LineId);
-            _rawCount = raw;
-            _ngCount  = ng;
-
-            var eq = PopServices.Equipment.GetPrimaryForLine(Session.LineId);
-            _eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
-            _eqClass  = _eqStatus is "RUN" or "IDLE" ? "stat-on" : "stat-off";
-
-            _openAndon = PopServices.Andon.GetOpenForLine(Session.LineId);
-            _refreshError = null;
+    // DB 가 응답하지 않으면 접속 대기(최대 30초) 동안 화면 스레드를 붙잡지 않도록 조회만 스레드 풀에서 돌린다.
+    // 이미 끊긴 것으로 알려진 동안(DbHealth)은 조회하지 않고 복구 확인(PopDb.ProbeIfOffline)을 기다린다.
+    private async Task RefreshAsync(bool fromTick)
+    {
+        if (Session is null || _disposed) return;
+        if (PopDb.IsOffline) { ApplyOffline(); StateHasChanged(); return; }
+        var (lineId, terminalId, sel, viewDate, isToday, gen) =
+            (Session.LineId, Session.TerminalId, _selItemNo, ViewDate, IsToday, _refreshGen);
+        try
+        {
+            var snap = await Task.Run(() => Load(lineId, terminalId, sel, viewDate, isToday));
+            // 틱의 늦은 결과만 버린다 — 사용자 동작의 결과는 그 시점의 최신 의도다.
+            if (_disposed || (fromTick && gen != _refreshGen)) return;
+            Apply(snap);
+            Absorb(snap);
+        }
+        catch (Exception ex) when (DbHealth.IsConnectionFailure(ex))
+        {
+            if (_disposed) return;
+            ApplyOffline();
         }
         catch (Exception ex)
         {
-            // 스캔 결과 배너는 건드리지 않는다 — 5초마다 덮어쓰면 방금 스캔한 결과가 사라진다.
-            // 직전 목록은 그대로 두고 좌측 헤더 아래 스트립으로만 알린다.
-            _refreshError   = ex.Message;
-            _refreshErrorAt = DbClock.Now;
-            System.Diagnostics.Debug.WriteLine($"[InjMain refresh] {ex.Message}");
+            if (_disposed) return;
+            ReportRefreshError(ex);
         }
+        StateHasChanged();
+    }
+
+    private void MarkOffline(string? message = null)
+    {
+        var msg = message ?? T("DbOffline");
+        if (_refreshError == msg) return;
+        _refreshError   = msg;
+        _refreshErrorAt = DbClock.Now;
+    }
+
+    // 로컬 사본으로 화면 한 번 — 온라인 Load 와 같은 모양의 스냅샷으로 바꿔 같은 Apply 를 쓴다.
+    private void ApplyOffline()
+    {
+        if (Session is null) return;
+        var scr = OfflineWork.BuildScreen(Session.LineId, Session.TerminalId, _selItemNo, ViewDate);
+        if (scr is null) { MarkOffline(T("OfflineNoData")); return; }
+
+        var pct = (scr.TodayGood + scr.TodayDef) == 0 ? 0 : scr.TodayDef * 100.0 / (scr.TodayGood + scr.TodayDef);
+        string moldText = "—", moldClass = "ok";
+        if (scr.Mold is { } m)
+        {
+            moldText  = $"{m.CurrentShots:N0}/{m.RatedShots:N0}";
+            moldClass = m.Severity is "warn" ? "warn" : m.Severity is "alert" or "hard" ? "bad" : "ok";
+        }
+        Apply(new RefreshSnapshot(
+            scr.Items, scr.SelItemNo, scr.ActiveWo,
+            scr.TodayGood, scr.TodayDef, $"{pct:0.0}%", pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok",
+            scr.Mold, moldText, moldClass, scr.RawLots.Select(l => l.ToInj()).ToList(), scr.RawCount, scr.NgCount,
+            "OFFLINE", "stat-off", null));
+
+        var taken = OfflineWork.State?.TakenAtUtc.ToLocalTime().ToString("MM-dd HH:mm") ?? "—";
+        _refreshError   = T("DbOfflineLocal", taken, OfflineWork.PendingCount);
+        _refreshErrorAt = DbClock.Now;
+    }
+
+    // 필드를 건드리지 않는다 — 스레드 풀에서 불려도 안전해야 한다.
+    private static RefreshSnapshot Load(string lineId, string terminalId, string? selItemNo, DateTime viewDate, bool isToday)
+    {
+        var today = PopServices.InjLots.GetDailyItemSummary(lineId, terminalId, DbClock.Today);
+        var items = isToday ? today
+                  : PopServices.InjLots.GetDailyItemSummary(lineId, terminalId, viewDate);
+
+        // 선택이 없거나 목록에서 사라졌으면 열린 WO 가 있는 첫 품번, 없으면 첫 행.
+        if (!items.Any(x => string.Equals(x.ItemNo, selItemNo, StringComparison.OrdinalIgnoreCase)))
+            selItemNo = (items.FirstOrDefault(x => x.HasOpenWo) ?? items.FirstOrDefault())?.ItemNo;
+
+        // 접수가 없으므로 활성 WO 는 품번에서 매번 해석한다 — ConfirmByLotCode 와 같은 규칙.
+        var activeWo = selItemNo is null ? null
+                     : PopServices.WorkOrders.FindOpenForItem(lineId, selItemNo);
+
+        // 칩은 좌측 날짜와 무관하게 금일 수치다 — 금일 양품/불량 라벨을 달고 있다.
+        var todayRow = today.FirstOrDefault(x => string.Equals(x.ItemNo, selItemNo, StringComparison.OrdinalIgnoreCase));
+        int todayGood = todayRow?.FinalQty ?? 0;
+        int todayDef  = todayRow?.NgQty    ?? 0;
+        var pct = (todayGood + todayDef) == 0 ? 0 : todayDef * 100.0 / (todayGood + todayDef);
+
+        string moldText = "—", moldClass = "ok";
+        MoldDto? mold = null;
+        if (activeWo is not null && !string.IsNullOrEmpty(activeWo.MoldId))
+        {
+            mold = PopServices.Molds.GetById(activeWo.MoldId);
+            if (mold is not null)
+            {
+                moldText  = $"{mold.CurrentShots:N0}/{mold.RatedShots:N0}";
+                moldClass = mold.Severity is "warn" ? "warn" : mold.Severity is "alert" or "hard" ? "bad" : "ok";
+            }
+        }
+
+        var rawLots = PopServices.InjLots.GetUnconfirmed(lineId);
+        var (_, raw, ng) = PopServices.InjLots.GetTodayStats(lineId);
+
+        var eq = PopServices.Equipment.GetPrimaryForLine(lineId);
+        var eqStatus = (eq?.Status ?? "OFFLINE").ToUpperInvariant();
+
+        return new RefreshSnapshot(
+            items, selItemNo, activeWo,
+            todayGood, todayDef, $"{pct:0.0}%", pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok",
+            mold, moldText, moldClass,
+            rawLots, raw, ng,
+            eqStatus, eqStatus is "RUN" or "IDLE" ? "stat-on" : "stat-off",
+            PopServices.Andon.GetOpenForLine(lineId),
+            today);
+    }
+
+    private void Apply(RefreshSnapshot s)
+    {
+        _refreshGen++;
+        _items = s.Items; _selItemNo = s.SelItemNo; _activeWo = s.ActiveWo;
+        _todayGood = s.TodayGood; _todayDef = s.TodayDef; _defectPct = s.DefectPct; _defClass = s.DefClass;
+        _mold = s.Mold; _moldText = s.MoldText; _moldClass = s.MoldClass;
+        _rawLots = s.RawLots; _rawCount = s.RawCount; _ngCount = s.NgCount;
+        _eqStatus = s.EqStatus; _eqClass = s.EqClass;
+        _openAndon = s.OpenAndon;
+        _refreshError = null;
+    }
+
+    private void ReportRefreshError(Exception ex)
+    {
+        // 스캔 결과 배너는 건드리지 않는다 — 5초마다 덮어쓰면 방금 스캔한 결과가 사라진다.
+        // 직전 목록은 그대로 두고 좌측 헤더 아래 스트립으로만 알린다.
+        _refreshError   = ex.Message;
+        _refreshErrorAt = DbClock.Now;
+        System.Diagnostics.Debug.WriteLine($"[InjMain refresh] {ex.Message}");
     }
 
     private void OnDateChange(ChangeEventArgs e)
@@ -355,14 +488,14 @@
     private void SetDate(DateTime d)
     {
         _viewDate = d.Date >= DbClock.Today ? null : d.Date;
-        Refresh();
+        _ = RefreshNowAsync();
         _focusScan = true;
     }
 
     private void SelectItem(InjItemDailyDto it)
     {
         _selItemNo = it.ItemNo;
-        Refresh();
+        _ = RefreshNowAsync();
         _focusScan = true;
     }
 
@@ -370,6 +503,7 @@
     private void OpenWoList(InjItemDailyDto it)
     {
         if (!string.Equals(_selItemNo, it.ItemNo, StringComparison.OrdinalIgnoreCase)) SelectItem(it);
+        if (PopDb.IsOffline) { Toasts.Warn(T("OfflineNotAvailable")); return; }   // WO 목록 팝업은 DB 를 직접 읽는다
         _andonAutoRaise = false;
         _popup = Popup.WoList;
     }
@@ -411,11 +545,13 @@
     {
         try
         {
-            var st = PopServices.Pallets.Inspect(code, _selItemNo);
+            var st = OnlineOr(() => PopServices.Pallets.Inspect(code, _selItemNo), () => OfflineWork.Inspect(code, _selItemNo));
             var ok = PalletChip.Accepts(st.Outcome);
             if (ok) _pallet = st;
             var key = PalletChip.NoticeKey(st.Outcome);
-            SetBanner(key is null, key is null ? $"{T("PalletSet")}: {st.PalletNo} ({st.CapacityText})" : $"{T(key)}: {st.PalletNo}");
+            // 오프라인에서 사본에 없는 팔레트는 받아들인다 — 맞는지는 복구 뒤 서버가 확정 때 판정한다
+            var unverified = ok && PopDb.IsOffline && !OfflineWork.IsKnownPallet(code) ? $" · {T("OfflineUnverified")}" : "";
+            SetBanner(key is null, key is null ? $"{T("PalletSet")}: {st.PalletNo} ({st.CapacityText}){unverified}" : $"{T(key)}: {st.PalletNo}");
         }
         catch (Exception ex)
         {
@@ -428,7 +564,28 @@
     private void RefreshPallet(string? itemNo)
     {
         if (_pallet is null) return;
-        try { _pallet = PopServices.Pallets.Inspect(_pallet.PalletNo, itemNo ?? _selItemNo); } catch { }
+        var no = _pallet.PalletNo;
+        try { _pallet = OnlineOr(() => PopServices.Pallets.Inspect(no, itemNo ?? _selItemNo), () => OfflineWork.Inspect(no, itemNo ?? _selItemNo)); } catch { }
+    }
+
+    // 온라인이면 서버가, DB 가 끊겼으면(이미 알려졌거나 이번 호출이 연결 오류) 로컬 사본이 판정한다.
+    // 로컬 판정은 사본에 없는 LOT·팔레트를 받아들여 큐에 올리고, 복구 뒤 서버가 거부하면 충돌 목록에 남는다.
+    private (InjConfirmOutcome Outcome, string ItemNo, int WoId, BackflushResult Backflush, bool Unverified) ConfirmCore(string lotCode)
+    {
+        var s = Session!;
+        var pallet = _pallet!.PalletNo;
+        if (!PopDb.IsOffline)
+        {
+            try
+            {
+                var (o, _, item, wo) = PopServices.InjLots.ConfirmByLotCode(
+                    lotCode, s.LineId, s.OperatorId, s.SessionId, s.EmployeeNo, pallet, out var bf);
+                return (o, item, wo, bf, false);
+            }
+            catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { /* 아래 로컬 경로로 */ }
+        }
+        var r = OfflineWork.Confirm(lotCode, s.LineId, s.TerminalId, s.OperatorId, s.EmployeeNo, s.SessionId, pallet, _selItemNo);
+        return (r.Outcome, r.ItemNo, r.WoId, BackflushResult.None, r.Unverified);
     }
 
     private void ConfirmScan(string lotCode)
@@ -444,14 +601,13 @@
         try
         {
             // 대상 WO 는 LOT 품번으로 리포지토리가 정한다 (동일 품번 여러 WO 면 빠른순). 팔레트에 못 실으면 확정도 되지 않는다.
-            var (outcome, _, itemNo, woId) = PopServices.InjLots.ConfirmByLotCode(
-                lotCode, Session.LineId, Session.OperatorId, Session.SessionId, Session.EmployeeNo, _pallet.PalletNo, out var backflush);
+            var (outcome, itemNo, woId, backflush, unverified) = ConfirmCore(lotCode);
             // GetById, not FindOpenForItem — 이 스캔이 마지막 수량이면 단계가 이미 Closed 로 바뀌어
             // FindOpenForItem 은 이 WO 를 못 찾는다. GetById 는 상태 무관하게 PK 로 조회한다.
-            var woNumber = woId > 0 ? PopServices.WorkOrders.GetById(woId)?.WoNumber : null;
+            var woNumber = woId > 0 ? OnlineOr(() => PopServices.WorkOrders.GetById(woId)?.WoNumber, () => OfflineWork.WoNumber(woId)) : null;
             var (ok, detail) = outcome switch
             {
-                InjConfirmOutcome.Confirmed        => (true,  $"{T("Confirmed")}: {lotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}"),
+                InjConfirmOutcome.Confirmed        => (true,  $"{T("Confirmed")}: {lotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}{(unverified ? $" · {T("OfflineUnverified")}" : "")}"),
                 InjConfirmOutcome.NotFound         => (false, $"{T("LotNotFound")}: {lotCode}"),
                 InjConfirmOutcome.AlreadyConfirmed => (false, $"{T("AlreadyConfirmed")}: {lotCode}"),
                 InjConfirmOutcome.NgBlocked        => (false, $"{T("BlockedByInspectionNgHandleInDefectPopup")}: {lotCode}"),
@@ -501,8 +657,17 @@
             // 라벨만 태우게 된다. Resume() 은 IsStopped 를 벗어나는 유일한 길이다.
             Dispatcher.Resume();
 
-            var printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId, Session?.EmployeeNo);
-            Toasts.Ok($"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {printed})");
+            // 발행 횟수는 서버가 센다 — DB 가 끊겼거나 오프라인에서 만든 LOT(음수 ID)이면 서버에 아직 없으니 로컬에만 올린다.
+            int? printed = null;
+            if (!PopDb.IsOffline && lot.LotId > 0)
+            {
+                try { printed = PopServices.InjLots.IncrementPrintedCount(lot.LotId, Session?.EmployeeNo); }
+                catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { }
+                // 라벨은 이미 나왔다 — 카운트 실패를 재출력 실패로 안내하면 작업자가 다시 뽑는다. 기록만 남긴다.
+                catch (Exception ex) { PopLog.Append("dispatch", "Label", $"printed but count not incremented ({lot.LotCode}): {ex.Message}"); }
+            }
+            if (printed is null) OfflineWork.MarkPrinted(lot.LotCode);
+            Toasts.Ok(printed is int n ? $"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {n})" : $"{T("LabelReprinted")}: {lot.LotCode}");
             Refresh();
         }
         catch (Exception ex) { Toasts.Bad($"{T("ReprintFailed")}: {ex.Message}"); }
@@ -515,6 +680,8 @@
     // 팝업 안에서 한 번 더 버튼을 누르게 하지 않는다.
     private async Task OpenAndon()
     {
+        // 안돈은 DB 에 기록·호출하는 흐름이라 오프라인에서는 쓸 수 없다 — 설비 쪽 경광등은 PLC 가 직접 제어한다
+        if (PopDb.IsOffline) { Toasts.Warn(T("OfflineNotAvailable")); return; }
         if (_openAndon is null)
         {
             if (!await Confirmer.AskAsync(T("AndonConfirmTitle"), T("AndonConfirmBody"),
@@ -524,7 +691,17 @@
         else _andonAutoRaise = false;
         _popup = Popup.Andon;
     }
-    private void ClosePopup() { _popup = Popup.None; _focusScan = true; Refresh(); }
+    private void ClosePopup() { _popup = Popup.None; _focusScan = true; _ = RefreshNowAsync(); }
+
+    // 오프라인에서 한 작업을 복구 뒤 서버가 거부한 건(이미 확정된 LOT, 없는 LOT, 팔레트 만재 등) — 관리자가 확인해야 한다.
+    private async Task ShowConflicts()
+    {
+        var list = OfflineWork.Conflicts;
+        if (list.Count == 0) return;
+        var body = string.Join("\n", list.Select(c => $"{c.At:MM-dd HH:mm}  {c.Kind}  {c.LotCode} — {c.Reason}"));
+        if (await Confirmer.AskAsync(T("OfflineConflicts", list.Count), body, T("OfflineConflictsClear"), T("Close")))
+            OfflineWork.ClearConflicts();
+    }
 
     // ── 수동 라벨 생성: 누를 때마다 원천 LOT(RAW) 1개. PLC 누락 보정용이며 실적이 아니다 —
     // 미확정 LOT 목록에 쌓이고 스캔해야 확정된다. 라벨은 LabelDispatcher 가 뽑는다 —
@@ -538,13 +715,44 @@
         try
         {
             // 품번은 좌측 선택(스테이션 BOP = 코어). 열린 WO 가 있으면 그 단계 품번·금형을 따르고, 없어도 발행은 막지 않는다 — WO 없는 생산 허용.
-            var lot = PopServices.InjLots.CreateManualRawLots(
-                Session.LineId, _activeWo?.StepItemNo ?? _selItemNo, _activeWo?.MoldId, 1, Session.EmployeeNo)[0];
-            Toasts.Ok(T("ManualLotCreated", lot.LotCode));
-            Refresh();
+            var itemNo = _activeWo?.StepItemNo ?? _selItemNo;
+            var moldId = _activeWo?.MoldId;
+            if (!PopDb.IsOffline)
+            {
+                try
+                {
+                    var lot = PopServices.InjLots.CreateManualRawLots(Session.LineId, itemNo, moldId, 1, Session.EmployeeNo)[0];
+                    Toasts.Ok(T("ManualLotCreated", lot.LotCode));
+                    Refresh();
+                    return;
+                }
+                catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { /* 아래 오프라인 경로로 */ }
+            }
+            CreateManualLabelOffline(itemNo, moldId);
         }
         catch (Exception ex) { Toasts.Bad($"{T("EntryFailed")}: {ex.Message}"); }
         finally { _creatingLabel = false; _focusScan = true; }
+    }
+
+    // 오프라인 수동 라벨 — 미리 확보한 번호로 LOT 을 만들고 라벨은 여기서 직접 뽑는다(라벨 디스패처는 DB 가 필요해 쉰다).
+    // 뽑은 횟수를 LOT 과 함께 올려 두므로 복구 뒤 디스패처가 같은 LOT 을 또 뽑지 않는다.
+    private void CreateManualLabelOffline(string itemNo, string? moldId)
+    {
+        var s = Session!;
+        InjLotDto lot;
+        try { lot = OfflineWork.CreateManualLot(s.LineId, s.TerminalId, s.OperatorId, s.EmployeeNo, s.SessionId, itemNo, moldId, 0).ToInj(); }
+        catch (OfflineLotNumbersExhaustedException) { Toasts.Bad(T("OfflineLotNumbersExhausted")); return; }
+        catch (InvalidOperationException) { Toasts.Bad(T("OfflineNoData")); return; }
+
+        try
+        {
+            LabelPrinter.Print(lot, s.LineId);
+            OfflineWork.MarkPrinted(lot.LotCode);
+            Dispatcher.Resume();
+        }
+        catch (Exception ex) { Toasts.Bad($"{T("ReprintFailed")}: {ex.Message}"); }
+        Toasts.Ok(T("ManualLotCreated", lot.LotCode));
+        Refresh();
     }
 
     private async Task Logout()
@@ -559,6 +767,7 @@
 
     public void Dispose()
     {
+        _disposed = true;
         Scanner.OnScan            -= OnSerialScan;
         Scanner.ConnectionChanged -= OnScannerConnection;
         _clockTimer?.Dispose();

@@ -1,0 +1,53 @@
+using AMES.Data.Repositories;
+using Xunit;
+
+namespace AMES.Data.Tests;
+
+/// <summary>같은 라인에 동시에 안돈을 눌러도 열린 안돈은 한 건 — AMES_DEV 가 닿을 때만 돈다. 시험 라인 ID 로만 쓰고 끝에 지운다.</summary>
+public class AndonRaiseConcurrencyDbTests
+{
+    const string Line = "ITEST-ANDON";
+
+    [SkippableFact]
+    public void Concurrent_raises_on_one_line_create_a_single_andon()
+    {
+        var f = AmesDevDb.TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Clean(f!);
+        try
+        {
+            var repo = new AndonRepository(f!);
+            var ids = new int[8];
+            Parallel.For(0, ids.Length, new ParallelOptions { MaxDegreeOfParallelism = ids.Length },
+                i => ids[i] = repo.Raise(Line, null, "MANUAL", "ITEST", null, "ITEST"));
+
+            Assert.Single(ids.Distinct());
+            Assert.Equal(1, (int)AmesDevDb.Scalar(f!, "SELECT COUNT(*) FROM dbo.PR_AndonCall WHERE LineID = @L", ("@L", Line))!);
+            Assert.Equal(1, (int)AmesDevDb.Scalar(f!, "SELECT COUNT(*) FROM dbo.PP_LineDowntimeLog WHERE LineID = @L", ("@L", Line))!);
+            Assert.Equal(2, (int)AmesDevDb.Scalar(f!, "SELECT COUNT(*) FROM dbo.PR_AndonPush WHERE AndonID = @A", ("@A", ids[0]))!);   // 알림 기록도 한 번만
+        }
+        finally { Clean(f!); }
+    }
+
+    [SkippableFact]
+    public void A_resolved_andon_does_not_block_the_next_one()
+    {
+        var f = AmesDevDb.TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Clean(f!);
+        try
+        {
+            var repo = new AndonRepository(f!);
+            var first = repo.Raise(Line, null, "MANUAL", "ITEST", null, "ITEST");
+            AmesDevDb.Exec(f!, "UPDATE dbo.PR_AndonCall SET Status = 'RESOLVED' WHERE AndonID = @A", ("@A", first));
+            var second = repo.Raise(Line, null, "MANUAL", "ITEST", null, "ITEST");
+            Assert.NotEqual(first, second);
+        }
+        finally { Clean(f!); }
+    }
+
+    static void Clean(AMES.Data.Connection.AmesConnectionFactory f)
+        => AmesDevDb.Exec(f, """
+            DELETE dbo.PR_AndonPush WHERE AndonID IN (SELECT AndonID FROM dbo.PR_AndonCall WHERE LineID = @L);
+            DELETE dbo.PP_LineDowntimeLog WHERE LineID = @L;
+            DELETE dbo.PR_AndonCall WHERE LineID = @L;
+            """, ("@L", Line));
+}

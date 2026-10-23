@@ -19,7 +19,7 @@
             <span class="pop-tbar-id">@(_selLine?.ProcessCode ?? "—") · @(_selStation?.StationCode ?? "—") · @(_selLine?.LineID ?? "—")</span>
         </div>
         <div class="pop-tbar-r">
-            <span class="stat-on">● @T("Online")</span>
+            <span class="@(PopDb.IsOffline ? "stat-bad" : "stat-on")">● @T(PopDb.IsOffline ? "Offline" : "Online")</span>
             @if (Scanner.IsEnabled)
             {
                 <span class="@(_scannerOn ? "stat-on" : "stat-off")">🔌 @T("Scanner")</span>
@@ -230,18 +230,63 @@
     // 프로세스 수명 동안 직전 선택 프리필 (재시작하면 빈 상태 — 스펙 결정사항)
     static string? s_lastLineId, s_lastStationCode;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _profiles = LoadPickerProfiles();
         // 로그인 화면이 뜰 때 DB 시각을 한 번 맞춘다 — 화면을 막지 않게 백그라운드, 실패해도 Offset 0 으로 둔다
         _ = Task.Run(() => DbClock.EnsureSynced(TimeSpan.FromMinutes(10)));
-        _clock = new System.Threading.Timer(_ => InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); }), null, 1000, 1000);
-        LoadLines();
+        _clock = new System.Threading.Timer(_ =>
+                                            {
+                                                PopDb.Ping();
+                                                InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); });
+                                            }, null, 1000, 1000);
 
         _scannerOn = Scanner.IsConnected;
         Scanner.OnScan            += OnBadgeScan;
         Scanner.ConnectionChanged += OnScannerConnection;
         State.OnChange            += OnAppStateChanged;
+
+        await LoadMastersAsync();
+    }
+
+    // 사원·라인 목록은 DB 가 응답하지 않으면 접속 대기(최대 30초) 동안 화면이 못 뜨므로 스레드 풀에서 읽는다.
+    // DB 가 끊겼으면(이미 알려졌거나 이번 조회가 연결 오류) 오프라인 사본으로 채운다 — 사본이 없으면 오류를 보이고
+    // 「다시 시도」 버튼(RetryLoad)에 맡긴다.
+    async Task LoadMastersAsync()
+    {
+        if (!PopDb.IsOffline)
+        {
+            try
+            {
+                _loadErr = null;
+                _profiles = await Task.Run(LoadPickerProfiles);
+                var lines = await Task.Run(() => PopServices.Master.ListPopLineOptions());
+                OfflineAuth.StoreLines(lines);
+                ApplyLines(lines);
+                OfflineAuth.RefreshInBackground();
+                return;
+            }
+            catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsConnectionFailure(ex))
+            {
+                // 연결 오류 — 아래에서 사본으로 연다
+            }
+            catch (Exception ex) { _loadErr = ex.Message; _lines = new(); return; }
+        }
+        LoadFromOfflineCache();
+    }
+
+    void LoadFromOfflineCache()
+    {
+        if (!OfflineAuth.HasUsableCache) { _loadErr = T("DbOffline"); _lines = new(); return; }
+        var cache = OfflineAuth.Cache!;
+        _loadErr  = null;
+        _profiles = cache.Employees
+            .Select(e => new EmployeeProfileDto
+            {
+                UserId = e.UserId, UserName = e.EmployeeNo, EmployeeNo = e.EmployeeNo, EmployeeName = e.EmployeeName,
+                PasswordHash = string.Empty, AccountStatus = e.AccountStatus, IsWorker = e.IsWorker,
+            })
+            .OrderBy(p => p.EmployeeNo, StringComparer.OrdinalIgnoreCase).ToList();
+        ApplyLines(cache.Lines);
     }
 
     // 유휴 만료가 AppRoot 에서 PIN 설정 세션을 걷어가면 오버레이도 같이 닫아야 한다.
@@ -279,15 +324,25 @@
         _pickedName = scan.WorkerName;
         _pin.Clear();
 
+        _ = BadgeLoginAsync(scan);
+    });
+
+    async Task BadgeLoginAsync(AMES.Devices.BadgeScan scan)
+    {
         // 우리가 발행한 EOS 배지는 모르는 사번이면 그 자리에서 MD_Worker 에 만든다.
         // 로그인 화면 스캔에서만 — PopAuthService 를 공유하는 PDA/API 는 종전대로
         // 등록된 사람만 받는다. 20자는 정책이 아니라 MD_Worker.EmployeeNo 컬럼 길이다.
-        if (scan.IsEosFormat && scan.WorkerNo.Length <= 20)
-            PopServices.Workers.EnsureRegistered(scan.WorkerNo, scan.WorkerName);
-
-        Authenticate(scan.WorkerNo, null, AMES.Contracts.Enums.AuthMethod.Badge);
+        // 오프라인이면 만들 수 없다 — 직원 사본에 있는 사번만 들어온다.
+        if (!PopDb.IsOffline && scan.IsEosFormat && scan.WorkerNo.Length <= 20)
+        {
+            try { await Task.Run(() => PopServices.Workers.EnsureRegistered(scan.WorkerNo, scan.WorkerName)); }
+            catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsConnectionFailure(ex)) { /* 오프라인 로그인으로 이어진다 */ }
+            // 등록 실패(컬럼 길이·권한 등)가 로그인 자체를 깨뜨리면 안 된다 — 이미 등록된 사번이면 그대로 들어간다. 기록만 남긴다.
+            catch (Exception ex) { PopLog.Append("scan", "BADGE", $"{scan.WorkerNo}: auto-register failed: {ex.Message}"); }
+        }
+        await AuthenticateAsync(scan.WorkerNo, null, AMES.Contracts.Enums.AuthMethod.Badge);
         StateHasChanged();
-    });
+    }
 
     void OnScannerConnection(bool on) =>
         InvokeAsync(() => { _scannerOn = on; StateHasChanged(); });
@@ -311,45 +366,73 @@
         return all;
     }
 
-    void LoadLines()
+    // 화면 스레드에서만 부른다 — 필드를 바꾼다. 직전 선택 프리필이 있으면 스테이션 조회(DB)를 한 번 한다.
+    void ApplyLines(List<MasterDataRepository.PopLineOptionRow> lines)
     {
-        try
+        _loadErr = null;
+        _lines = lines;
+        if (_selLine is null && s_lastLineId is not null
+            && _lines.FirstOrDefault(l => l.LineID == s_lastLineId) is { } prev)
         {
-            _loadErr = null;
-            _lines = PopServices.Master.ListPopLineOptions();
-            if (_selLine is null && s_lastLineId is not null
-                && _lines.FirstOrDefault(l => l.LineID == s_lastLineId) is { } prev)
+            _selLine = prev;
+            // 직전 선택 프리필은 사본으로만 — DB 조회는 하지 않는다(화면 스레드).
+            _stations = OfflineStations(prev.LineID);
+            if (_stations.Count == 0) _ = LoadStationsAsync();
+            _selStation = _stations.FirstOrDefault(s => s.StationCode == s_lastStationCode) ?? _selStation;
+            PrefetchSelection();
+        }
+    }
+
+    // 라인·스테이션은 거의 안 바뀌므로 사본이 있으면 그걸 바로 쓰고, DB 는 백그라운드에서 읽어 사본만 갱신한다.
+    // 사본이 없을 때만 스레드 풀에서 읽는다 — 화면 스레드에서 DB 를 부르면 끊긴 DB 앞에서 접속 대기만큼 멈춘다.
+    async Task LoadStationsAsync()
+    {
+        if (_selLine is null) { _stations = new(); return; }
+        var lineId = _selLine.LineID;
+        var cached = OfflineStations(lineId);
+        if (cached.Count > 0)
+        {
+            _stations = cached;
+            if (!PopDb.IsOffline)
+                _ = Task.Run(() =>
+                {
+                    try { OfflineAuth.StoreStations(lineId, PopServices.Master.ListActiveStations(lineId)); }
+                    catch { /* 다음 기회에 */ }
+                });
+        }
+        else if (PopDb.IsOffline) _stations = new();
+        else
+        {
+            try
             {
-                _selLine = prev;
-                LoadStations();
-                _selStation = _stations.FirstOrDefault(s => s.StationCode == s_lastStationCode) ?? _selStation;
+                _loadErr = null;
+                var list = await Task.Run(() => PopServices.Master.ListActiveStations(lineId));
+                if (_selLine?.LineID != lineId) return;
+                _stations = list;
+                OfflineAuth.StoreStations(lineId, list);
             }
+            catch (Exception ex) { _loadErr = ex.Message; _stations = new(); }
         }
-        catch (Exception ex) { _loadErr = ex.Message; _lines = new(); }
+        // 선택지가 하나뿐이면 굳이 고르게 하지 않는다.
+        if (_selStation is null && _stations.Count == 1) _selStation = _stations[0];
+        PrefetchSelection();
+        await InvokeAsync(StateHasChanged);
     }
 
-    void LoadStations()
-    {
-        try
-        {
-            _loadErr = null;
-            _stations = _selLine is null ? new() : PopServices.Master.ListActiveStations(_selLine.LineID);
-            // 선택지가 하나뿐이면 굳이 고르게 하지 않는다.
-            if (_selStation is null && _stations.Count == 1) _selStation = _stations[0];
-        }
-        catch (Exception ex) { _loadErr = ex.Message; _stations = new(); }
-    }
+    static List<MasterDataRepository.StationRow> OfflineStations(string lineId)
+        => OfflineAuth.Cache is { } c && c.Stations.TryGetValue(lineId, out var list) ? list : new();
 
-    void RetryLoad()
+    async Task RetryLoad()
     {
-        LoadLines();
+        await LoadMastersAsync();
+        if (_loadErr is not null) return;   // 못 읽었으면 목록이 비어 있다 — 기존 선택을 지우지 않는다
         // 재조회 결과에 맞춰 기존 선택을 재검증 — 사라진 라인/스테이션은 해제.
         if (_selLine is not null)
         {
             _selLine = _lines.FirstOrDefault(l => l.LineID == _selLine.LineID);
             if (_selLine is not null)
             {
-                LoadStations();
+                await LoadStationsAsync();
                 if (_selStation is not null)
                     _selStation = _stations.FirstOrDefault(s => s.StationCode == _selStation.StationCode);
             }
@@ -357,16 +440,24 @@
         }
     }
 
-    void PickLine(MasterDataRepository.PopLineOptionRow l)
+    async Task PickLine(MasterDataRepository.PopLineOptionRow l)
     {
         _selLine = l; _selStation = null; _showLinePicker = false;
-        LoadStations();
+        await LoadStationsAsync();
         _showStationPicker = _selStation is null;   // 단일 스테이션이 자동 선택되면 픽커 생략
     }
 
     void PickStation(MasterDataRepository.StationRow s)
     {
         _selStation = s; _showStationPicker = false;
+        PrefetchSelection();
+    }
+
+    // 로그인 전에도 고른 라인·스테이션의 작업 사본을 받아 둔다 — 오프라인 로그인 뒤 작업 목록이 비지 않게.
+    void PrefetchSelection()
+    {
+        if (_selLine is null || _selStation is null || PopDb.IsOffline) return;
+        OfflineWork.PrefetchInBackground(_selLine.LineID, _selStation.StationCode, _selLine.ProcessCode);
     }
 
     static string LineLabel(MasterDataRepository.PopLineOptionRow l)
@@ -405,43 +496,63 @@
 
         var pin = _pin.ToString();
         _pin.Clear();
-        Authenticate(_pickedNo, pin, AMES.Contracts.Enums.AuthMethod.Pin);
+        _ = AuthenticateAsync(_pickedNo, pin, AMES.Contracts.Enums.AuthMethod.Pin);
     }
 
     // 세션 교대는 공통코드 WORK_SHIFT 창으로 로그인 시각(서버)에 정한다.
     // 창에 안 걸리거나 조회가 실패하면 appsettings DefaultShift 로 떨어진다 — 로그인 자체를 막지 않기 위해서다.
     static string ResolveShiftCode()
     {
+        if (PopDb.IsOffline) return AppConfig.Current.DefaultShift;   // 접속 대기 없이 바로
         try { return PopServices.Master.CurrentShiftCode() ?? AppConfig.Current.DefaultShift; }
         catch { return AppConfig.Current.DefaultShift; }
     }
 
     // PIN 키패드와 배지 스캔이 공유한다. 성공하면 화면 전환까지 여기서 끝낸다.
-    void Authenticate(string attemptedId, string? pin, AMES.Contracts.Enums.AuthMethod method)
+    // 인증은 스레드 풀에서 돌려 DB 접속 대기가 화면을 얼리지 않게 한다. DB 가 끊겼거나(이미 알려졌거나 이번 호출이
+    // 연결 오류) 하면 직원 사본으로 오프라인 로그인한다 — 임시 세션(음수 ID)은 복구 때 서버에 합쳐진다.
+    async Task AuthenticateAsync(string attemptedId, string? pin, AMES.Contracts.Enums.AuthMethod method)
     {
-        if (_selLine is null || _selStation is null) return;
+        if (_selLine is null || _selStation is null || _loggingIn) return;
+        var (line, station) = (_selLine, _selStation);
 
         _loggingIn = true;
+        StateHasChanged();
         try
         {
-            var outcome = PopServices.PopAuth.Login(new AMES.Contracts.Auth.LoginRequest
+            // 끊긴 DB 앞에서 교대 조회·인증이 각자 접속 대기를 하지 않게, 먼저 짧게 확인한다.
+            if (!PopDb.IsOffline) await Task.Run(PopDb.Verify);
+
+            var req = new AMES.Contracts.Auth.LoginRequest
             {
                 AttemptedId = attemptedId,
                 Pin         = pin,
                 Method      = method,
-                TerminalId  = _selStation.StationCode,
-                LineId      = _selLine.LineID,
-                ShiftCode   = ResolveShiftCode(),
-            });
+                TerminalId  = station.StationCode,
+                LineId      = line.LineID,
+                ShiftCode   = await Task.Run(ResolveShiftCode),
+            };
+
+            AMES.Contracts.Auth.LoginOutcome outcome;
+            if (PopDb.IsOffline)
+                outcome = await Task.Run(() => OfflineAuth.Login(req));
+            else
+            {
+                try { outcome = await Task.Run(() => PopServices.PopAuth.Login(req)); }
+                catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsConnectionFailure(ex))
+                {
+                    outcome = await Task.Run(() => OfflineAuth.Login(req));
+                }
+            }
 
             if (outcome.IsSuccess && outcome.Session is not null)
             {
-                s_lastLineId      = _selLine.LineID;
-                s_lastStationCode = _selStation.StationCode;
+                s_lastLineId      = line.LineID;
+                s_lastStationCode = station.StationCode;
 
                 // 배지 전용 워커는 PIN 을 정해야 통과한다. 스캐너가 죽으면
-                // 그 사람은 들어올 방법이 없어지기 때문이다.
-                if (outcome.Session.IsWorker && !outcome.Session.HasPin)
+                // 그 사람은 들어올 방법이 없어지기 때문이다. 오프라인 임시 세션(음수 ID)은 PIN 을 저장할 수 없어 건너뛴다.
+                if (outcome.Session.IsWorker && !outcome.Session.HasPin && outcome.Session.SessionId > 0)
                 {
                     _pinSetup      = outcome.Session;
                     State.BeginPinSetup(outcome.Session);   // 이 구간도 유휴 만료 대상
@@ -461,19 +572,21 @@
             _loggingIn = false;
             SetStatus($"× {outcome.Result} — {outcome.FailReason}", "fail");
         }
-        catch
+        catch (Exception ex)
         {
-            _loggingIn = false;   // DB 장애 등 — 플래그가 켜진 채 굳으면 재시도가 막힌다
-            throw;
+            _loggingIn = false;   // 플래그가 켜진 채 굳으면 재시도가 막힌다
+            SetStatus($"× {ex.Message}", "fail");
         }
+        finally { StateHasChanged(); }
     }
 
     // 모듈의 권위는 선택 라인의 WC ProcessCode — appsettings 아님.
     void EnterShopFloor(PopSessionDto session)
     {
         if (_selLine is null) return;
-        // 로그인마다 DB 시각 보정을 확인(Web TopBar 와 같은 규칙) — 10분 안에 맞춘 값이 있으면 DB 를 가지 않는다
-        DbClock.EnsureSynced(TimeSpan.FromMinutes(10));
+        // 로그인마다 DB 시각 보정을 확인(Web TopBar 와 같은 규칙) — 10분 안에 맞춘 값이 있으면 DB 를 가지 않는다.
+        // 오프라인이면 건너뛴다(접속 대기로 화면 전환이 멈추지 않게).
+        if (!PopDb.IsOffline) DbClock.EnsureSynced(TimeSpan.FromMinutes(10));
         State.SignIn(session, _selLine.ProcessCode);
         // _loggingIn 은 켠 채로 둔다 — 화면을 떠나는 중에 들어온 스캔을 막는다.
         _loggingIn = true;
