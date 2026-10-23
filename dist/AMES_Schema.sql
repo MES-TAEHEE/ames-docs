@@ -9783,48 +9783,6 @@ ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  DEFAULT ('system') FOR [CreatedBy]
 GO
 ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
--- Table: dbo.WH_ReleaseSchedule
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[WH_ReleaseSchedule](
-	[ReleaseScheduleID] [int] IDENTITY(1,1) NOT NULL,
-	[WoID] [int] NULL,
-	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[DemandQty] [decimal](14, 3) NULL,
-	[PickedQty] [decimal](14, 3) NULL,
-	[RequiredAt] [datetime2](7) NULL,
-	[Priority] [tinyint] NULL,
-	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[PickSlipNo] [nvarchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReqLocation] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReqSeqNo] [int] NULL,
-	[ReqUserId] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[PrintDate] [datetime2](7) NULL,
-	[CloseDate] [datetime2](7) NULL,
-	[CloseUserId] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_WH_ReleaseSchedule] PRIMARY KEY CLUSTERED 
-(
-	[ReleaseScheduleID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-SET ANSI_PADDING ON
-GO
-CREATE NONCLUSTERED INDEX [IX_WH_ReleaseSchedule_PickSlipNo] ON [dbo].[WH_ReleaseSchedule]
-(
-	[PickSlipNo] ASC,
-	[ReqSeqNo] ASC,
-	[ReleaseScheduleID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[WH_ReleaseSchedule] ADD  CONSTRAINT [DF_WH_ReleaseSchedule_CreatedTS]  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
 -- ════ Foreign keys (as in the development DB) ════
 ALTER TABLE [dbo].[FG_CustomerReturn]  WITH CHECK ADD  CONSTRAINT [FK_FG_CustomerReturn_Lot] FOREIGN KEY([LotID])
 REFERENCES [dbo].[tbl_Lot] ([LotID])

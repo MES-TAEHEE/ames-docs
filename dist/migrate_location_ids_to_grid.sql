@@ -48,7 +48,9 @@ BEGIN TRY
     UPDATE t SET StorageLoc=m.NewID FROM dbo.MD_Mold t JOIN #LocationRename m ON t.StorageLoc COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
     UPDATE t SET StorageLoc=m.NewID FROM dbo.MNT_MoldShotCount t JOIN #LocationRename m ON t.StorageLoc COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
     UPDATE t SET ReqLocation=m.NewID FROM dbo.WH_PickSlip t JOIN #LocationRename m ON t.ReqLocation COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
-    UPDATE t SET ReqLocation=m.NewID FROM dbo.WH_ReleaseSchedule t JOIN #LocationRename m ON t.ReqLocation COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
+    -- Compatibility only: current installations use WH_PickSlip; the retired table may be absent.
+    IF OBJECT_ID(N'dbo.WH_ReleaseSchedule',N'U') IS NOT NULL
+        EXEC(N'UPDATE t SET ReqLocation=m.NewID FROM dbo.WH_ReleaseSchedule t JOIN #LocationRename m ON t.ReqLocation COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;');
     UPDATE t SET DeliveryDestination=m.NewID FROM dbo.WH_PurchaseOrder t JOIN #LocationRename m ON t.DeliveryDestination COLLATE DATABASE_DEFAULT=m.OldID COLLATE DATABASE_DEFAULT;
     UPDATE l SET LocationID=m.NewID, LocationName=m.NewID, ModifiedBy='loc-map', ModifiedTS=SYSDATETIME()
     FROM dbo.MD_Location l JOIN #LocationRename m ON l.LocationID=m.OldID;
