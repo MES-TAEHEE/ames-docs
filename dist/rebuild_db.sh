@@ -131,6 +131,7 @@ FILES=(
   migrate_pda_bearer_session.sql      # PDA bearer hash + session snapshot (recycle-safe)
   migrate_user_status_mail_cleanup.sql  # 계정 메일 기능 폐지 — UNVERIFIED·PENDING → ACTIVE, 이메일 인증 정리, USER_STATUS 코드 삭제
   migrate_notification_push.sql      # 알림 채널 PUSH 전환 — EMAIL·SMS 는 남긴 채 사용 안 함, 규칙에 PUSH 추가(10-08)
+  migrate_notification_push_sender.sql # PUSH 발송기(Api NOTIFY) 설정 공통코드 SW_NOTIFY·조회 인덱스·수신자 키 사번 — 스키마에 인덱스가 있으면 건너뜀(10-24)
   migrate_aspnetuserroles_pk.sql     # AspNetUserRoles 복합 PK(UserId, RoleId)+IX_RoleId — 스키마로 만든 DB 는 이미 있어 건너뜀(10-08)
   migrate_aspnetusertokens_pk.sql    # AspNetUserTokens 기본키에 UserId 포함(UserId, LoginProvider, Name) — 2FA 두 번째 사용자부터 키 중복 실패 수정, 스키마로 만든 DB 는 건너뜀(10-08)
   migrate_role_permission_orphan_cleanup.sql # 화면이 없는 SYS_RolePermission 행 정리 — SYS-003 화면 삭제가 권한 행을 남기던 것(10-09)

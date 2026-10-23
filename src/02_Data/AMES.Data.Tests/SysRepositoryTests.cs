@@ -58,6 +58,10 @@ public class SysRepositoryTests
             Assert.Equal("https://x/z", row.Endpoint);
             Assert.Equal(60, row.MaxGapMinutes);
             Assert.Equal(1, sys.ListInterfaces().Count(r => r.InterfaceCode == Code));
+
+            // 내보내기 연동(PUSH 발송기)은 방향을 밝힌다 — 기존 행도 그 값으로 바뀐다
+            sys.UpsertInterfaceMonitor(Code, "ITEST", "https://x/z", 60, ok: true, recordCount: 0, error: null, actor: Actor, direction: "OUTBOUND");
+            Assert.Equal("OUTBOUND", sys.ListInterfaces().Single(r => r.InterfaceCode == Code).Direction);
         }
         finally { Cleanup(f!); }
     }

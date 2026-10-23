@@ -1,6 +1,7 @@
 using AMES.Api.Auth;
 using AMES.Api.Endpoints;
 using AMES.Api.Workers.DemandPlanSync;
+using AMES.Api.Workers.Notify;
 using AMES.Api.Workers.PoSync;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
@@ -51,6 +52,12 @@ builder.Services.AddSingleton<IDemandPlanSource>(sp => new HttpDemandPlanSource(
     sp.GetRequiredService<IConfiguration>()));
 builder.Services.AddSingleton<DemandPlanSyncWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DemandPlanSyncWorker>());
+
+// PUSH notify — 고장·안돈·QC 홀드·PM 지연·재고 부족을 규칙 수신자의 앱(FCM)으로 보낸다(10-24)
+builder.Services.AddHttpClient(FcmSender.ClientName);
+builder.Services.AddSingleton<IPushSender, FcmSender>();
+builder.Services.AddSingleton<NotifyWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<NotifyWorker>());
 
 // ── Auth token registry ─────────────────────────────────────────────────
 var tokens = new TokenStore(() => DbClock.ReadNow(factory), persistence: new SqlTokenPersistence(factory));
@@ -141,6 +148,7 @@ app.MapPp(factory);
 app.MapMnt(factory);
 app.MapRpt(factory);
 app.MapSys(factory);
+app.MapNotifications(factory);
 
 app.Lifetime.ApplicationStarted.Register(() =>
     _ = Task.Run(() => app.Logger.LogInformation("AMES.Api started — DB: {Db}", factory.Describe())));
