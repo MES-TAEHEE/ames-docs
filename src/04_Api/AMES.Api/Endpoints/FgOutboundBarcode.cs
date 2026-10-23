@@ -6,6 +6,12 @@ internal static class FgOutboundBarcode
     {
         value = (barcode ?? "").Replace("\u0002", "").Replace("\u0003", "").Trim();
         error = "";
+        if(value.Contains("[)>",StringComparison.Ordinal))
+        {
+            var lot=AMES.Devices.ImgScanParser.ExtractLotCode(value);
+            if(string.IsNullOrWhiteSpace(lot)) {error="The product label does not contain a valid LOT barcode.";return false;}
+            value=lot;
+        }
         var separator = value.IndexOf(':');
         if (separator >= 0)
         {

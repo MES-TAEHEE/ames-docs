@@ -152,7 +152,7 @@
         .Select(group => new FgPartSummary(group.Key.ItemNo, group.Key.ItemName, _selectedLocation.Location, group.Sum(row => row.Qty), group.Key.Unit))
         .OrderBy(row => row.PartNo, StringComparer.OrdinalIgnoreCase).ToList();
 
-    protected override async Task OnInitializedAsync() => await LoadInventory();
+    protected override void OnInitialized() => Nav.NavigateTo("/wh/03?stock=FG", replace: true);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

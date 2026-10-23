@@ -10,7 +10,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="@($"pda-shell wh wh08-shell {(IsSpareParts ? "sp-screen" : "")} {(IsFinishedGoods ? "fg-history-shell" : "")}")">
+<div class="@($"pda-shell wh wh08-shell {(IsSpareParts ? "sp-screen" : "")}")">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <div class="wh08-tbar-title">
@@ -30,6 +30,10 @@
     </div>
 
     <div class="pda-bd wh08-body">
+        @if (!IsSpareParts)
+        {
+            <PdaStockFilter Value="@_stockKind" ValueChanged="SetStockKind" Disabled="_loading" />
+        }
         <RadzenCard class="wh08-date-filter" @onfocusin="BeginFilterEdit" @onpointerdown="BeginFilterEdit">
             <PdaFilterPanel Title="TRANSACTION DATE" ActiveCount="@((string.IsNullOrWhiteSpace(_worker) ? 0 : 1) + (string.IsNullOrWhiteSpace(_reason) ? 0 : 1))" Open="_filtersOpen" OpenChanged="SetFiltersOpen">
                 <div class="pda-fld">
@@ -66,17 +70,6 @@
         </RadzenCard>
 
         <div class="wh08-kpi-strip">
-            @if (IsFinishedGoods)
-            {
-                @foreach (var type in FgHistoryTypes)
-                {
-                    <button type="button" class="@($"wh08-kpi {FgTypeClass(type)} {TypeClass(type)}")" @onclick="@(() => SetType(type))">
-                        <span>@FgTransactionDisplay.Label(type)</span><strong>@ConditionRows.Count(row => type == "" || IsDirection(row, type))</strong><small>records</small>
-                    </button>
-                }
-            }
-            else
-            {
             <button type="button" class="@($"wh08-kpi all {TypeClass("")}")" @onclick='@(() => SetType(""))'>
                 <span>ALL</span>
                 <strong>@ConditionRows.Count().ToString("N0")</strong>
@@ -102,7 +95,6 @@
                     <strong>@AdjCount.ToString("N0")</strong>
                     <small>records</small>
                 </button>
-            }
             }
         </div>
 
@@ -297,13 +289,18 @@
 </div>
 
 @code {
-    private bool IsFinishedGoods => Nav?.Uri?.Contains("/fg/history", StringComparison.OrdinalIgnoreCase) == true;
+    private string _stockKind = "ALL";
+    private bool IsFinishedGoods => !IsSpareParts && _stockKind == "FG";
     private bool IsSpareParts => Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath.StartsWith("/sp/", StringComparison.OrdinalIgnoreCase);
-    private string ModuleHome => IsFinishedGoods ? "/fg" : IsSpareParts ? "/sp" : "/wh";
-    private string ModuleKey => IsFinishedGoods ? "FG" : IsSpareParts ? "SP" : "WH";
+    private string ModuleHome => IsSpareParts ? "/sp" : "/wh";
+    private async Task SetStockKind(string value)
+    {
+        if (_loading || value == _stockKind) return;
+        _stockKind = value; _rows = []; _detailRow = null; _type = "";
+        await Load();
+    }
+    private string ModuleKey => Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath;
     private string? AreaScope => IsSpareParts ? PdaApi.SparePartsAreaCode : null;
-    private static readonly string[] FgHistoryTypes = ["", "IN", "PICK", "OUT", "RETURN", "ADJ"];
-    private static string FgTypeClass(string type) => type switch { "IN" or "RETURN" => "in", "PICK" or "OUT" => "out", "ADJ" => "adj", _ => "all" };
     private DateTime _databaseToday;
 
     private DateTime? _dateFrom;
@@ -349,6 +346,7 @@
     private string? _lastHistoryMode;
     protected override async Task OnParametersSetAsync()
     {
+        if (_lastHistoryMode is null && Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath == "/fg/history") _stockKind = "FG";
         if (_lastHistoryMode == ModuleKey) return;
         _lastHistoryMode = ModuleKey;
         _search = _worker = _reason = _type = "";
@@ -460,7 +458,7 @@
                 return;
             }
 
-            _rows = await Api.WhWarehouseTransactionsAsync(_search, DateFrom, DateTo, IsFinishedGoods, AreaScope);
+            _rows = await Api.WhWarehouseTransactionsAsync(_search, DateFrom, DateTo, IsFinishedGoods, AreaScope, _stockKind);
             _detailRow = null;
             _msg = string.IsNullOrWhiteSpace(_search)
                 ? "No transactions found for the selected conditions."

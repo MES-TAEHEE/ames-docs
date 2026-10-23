@@ -52,7 +52,8 @@ PDA 로그인은 작업자가 Employee No와 4자리 PIN을 입력해 PDA 세션
 
 PDA 코드 호출:
 
-- `PdaApi.LoginAsync(employeeNo, pin, terminalId, lineId, shiftCode)`
+- `AuthApi.LoginAsync(employeeNo, pin)` 또는 `AuthApi.LoginByBarcodeAsync(barcode)`
+- `pda-settings.json`의 `terminalId`만 로그인에 함께 전송한다. PDA의 고정 `lineId`·`shiftCode` 설정/전송은 제거했다.
 
 API 코드:
 

@@ -10,8 +10,8 @@ namespace AMES.Api.Endpoints;
 
 public static class AuthEndpoints
 {
-    public sealed record LoginDto(string EmployeeNo, string Pin, string TerminalId, string LineId, string ShiftCode);
-    public sealed record BarcodeLoginDto(string Barcode, string TerminalId, string LineId, string ShiftCode);
+    public sealed record LoginDto(string EmployeeNo, string Pin, string TerminalId, string? LineId = null, string? ShiftCode = null);
+    public sealed record BarcodeLoginDto(string Barcode, string TerminalId, string? LineId = null, string? ShiftCode = null);
 
     public sealed record LoginResultDto(
         string Token, AuthResult Result, string? Reason,
@@ -24,7 +24,7 @@ public static class AuthEndpoints
         g.MapPost("/login", (LoginDto body) =>
         {
             if (!LoginInput.Valid(body.EmployeeNo, 20) || !LoginInput.ValidContext(body.TerminalId, body.LineId, body.ShiftCode))
-                return Results.BadRequest(new { message = "Employee, terminal and line must be within 20 bytes; shift within 10 bytes." });
+                return Results.BadRequest(new { message = "Employee and terminal are required (up to 20 bytes). Optional line is up to 20 bytes; shift is up to 10 bytes." });
             if (!app.Environment.IsDevelopment() && PdaScenarioUsers.IsTestAccount(body.EmployeeNo))
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
             var outcome = auth.Login(new LoginRequest
@@ -33,8 +33,8 @@ public static class AuthEndpoints
                 Pin         = body.Pin,
                 Method      = AuthMethod.Pin,
                 TerminalId  = body.TerminalId,
-                LineId      = body.LineId,
-                ShiftCode   = body.ShiftCode,
+                LineId      = body.LineId ?? "",
+                ShiftCode   = body.ShiftCode ?? "",
             });
 
             return LoginResult(outcome, tokens, sessions);
@@ -45,7 +45,7 @@ public static class AuthEndpoints
             var badge = BadgeScanParser.Parse(body.Barcode);
             if (!badge.IsEosFormat || !LoginInput.Valid(badge.WorkerNo, 20)
                 || !LoginInput.ValidContext(body.TerminalId, body.LineId, body.ShiftCode))
-                return Results.BadRequest(new { message = "Scan a valid EOS employee badge and select a terminal, line and shift." });
+                return Results.BadRequest(new { message = "Scan a valid EOS employee badge and provide a terminal (up to 20 bytes). Optional line is up to 20 bytes; shift is up to 10 bytes." });
             if (!app.Environment.IsDevelopment() && PdaScenarioUsers.IsTestAccount(badge.WorkerNo))
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
             var outcome = auth.Login(new LoginRequest
@@ -54,8 +54,8 @@ public static class AuthEndpoints
                 Pin         = null,
                 Method      = AuthMethod.Badge,
                 TerminalId  = body.TerminalId,
-                LineId      = body.LineId,
-                ShiftCode   = body.ShiftCode,
+                LineId      = body.LineId ?? "",
+                ShiftCode   = body.ShiftCode ?? "",
             });
 
             return LoginResult(outcome, tokens, sessions);

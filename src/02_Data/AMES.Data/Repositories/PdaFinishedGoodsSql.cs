@@ -20,7 +20,8 @@ public static class PdaFinishedGoodsSql
             LEFT JOIN dbo.PR_PntLot PNT ON PNT.LotID=L.LotID
             LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
             WHERE W.Qty>0
-              AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+              AND I.ItemType='ASSY'
+              AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
               AND (@Search IS NULL OR W.LotNo LIKE @Search OR W.PartNo LIKE @Search
                 OR W.PartName LIKE @Search OR I.ItemName LIKE @Search OR W.LocationNo LIKE @Search)
             ORDER BY W.ReceivedAt DESC,W.LotNo DESC;
@@ -80,7 +81,7 @@ public static class PdaFinishedGoodsSql
                 SELECT 1 FROM dbo.WH_Inventory W
                 LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
                 WHERE UPPER(W.LotNo)=UPPER(@Scan)
-                  AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+                  AND EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY')
             ) THROW 51601,'The specified finished goods Lot No could not be found.',1;
 
             SELECT N'FG' AS RECEIVE_TYPE,N'N' AS YN,W.LotNo AS LOTNO,W.LotNo AS BARCODE,
@@ -112,6 +113,9 @@ public static class PdaFinishedGoodsSql
                     @User nvarchar(40)=COALESCE(NULLIF(LTRIM(RTRIM(@UserId)),N''),N'PDA'),
                     @ItemNo varchar(50),@Location varchar(50),@Before decimal(18,3),@After decimal(18,3),@LotID int;
             IF @Scan=N'' THROW 51610,'Finished goods Lot No is required.',1;
+            IF EXISTS(SELECT 1 FROM dbo.WH_Inventory W JOIN dbo.MD_Location L ON L.LocationID=W.LocationNo
+                WHERE W.LotNo=@Scan AND L.LocationLevel=1)
+                THROW 51614,'Primary locations cannot hold stock. Move this LOT to a detail location first.',1;
             IF COALESCE(@DeltaQty,0)=0 THROW 51611,'Adjustment quantity must be different from zero.',1;
             IF @Reason=N'' THROW 51612,'Reason code is required.',1;
             IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='INV_ADJUST_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
@@ -123,7 +127,7 @@ public static class PdaFinishedGoodsSql
             LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=W.LotNo
             LEFT JOIN dbo.MD_Location ML ON ML.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo
             WHERE UPPER(W.LotNo)=UPPER(@Scan)
-              AND (UPPER(COALESCE(ML.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%');
+              AND EXISTS(SELECT 1 FROM dbo.MD_Item SI WHERE SI.ItemNo=W.PartNo AND SI.ItemType='ASSY');
             IF @ItemNo IS NULL THROW 51614,'The specified finished goods Lot No could not be found.',1;
             SET @After=@Before+@DeltaQty;
             IF @After<0 THROW 51617,'After Qty cannot be below zero.',1;
@@ -170,7 +174,7 @@ public static class PdaFinishedGoodsSql
                 FROM dbo.tbl_Lot L WITH(UPDLOCK,HOLDLOCK)
                 JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
                 CROSS APPLY(SELECT SUM(P.GoodQty) Qty FROM dbo.PR_ProductionResult P
-                    WHERE P.LotID=L.LotID AND P.ProcessCode=L.ProcessCode AND ISNULL(P.DefectFlag,0)=0) R
+                    WHERE P.LotID=L.LotID AND (P.ProcessCode=L.ProcessCode OR P.ProcessCode='RWK') AND ISNULL(P.DefectFlag,0)=0) R
                 WHERE L.LotCode COLLATE DATABASE_DEFAULT=@Barcode COLLATE DATABASE_DEFAULT
                   AND UPPER(ISNULL(L.Status,'')) IN('CONFIRMED','STOCKED')
                   AND I.ItemType='ASSY' AND ISNULL(I.ActiveFlag,1)=1 AND R.Qty>0;
@@ -192,7 +196,7 @@ public static class PdaFinishedGoodsSql
                     THROW 52516,'The inventory part does not match the production LOT.',1;
                 SET @Qty=COALESCE(@StoredQty,@ProductionQty);
                 SELECT @Capacity=Capacity FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK)
-                    WHERE LocationID=@Location AND LocationType='FG';
+                    WHERE LocationID=@Location AND LocationType='FG' AND LocationLevel=2 AND COALESCE(ActiveFlag,1)=1;
                 IF @@ROWCOUNT=0 THROW 52517,'Scan a registered FG location barcode.',1;
                 SELECT @Current=COALESCE(SUM(Qty),0) FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LocationNo=@Location;
                 IF @Capacity>0 AND @Current+@Qty>@Capacity THROW 52518,'The FG location has insufficient load capacity.',1;
@@ -256,7 +260,8 @@ public static class PdaFinishedGoodsSql
             OPTION(MAXRECURSION 100);
             IF NOT EXISTS(SELECT 1 FROM @Items) THROW 52001,'No available part inventory remains in this unit.',1;
             IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.MD_Location L ON L.LocationID=I.LocationNo
-                WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR UPPER(ISNULL(L.LocationType,''))<>'FG')
+                WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR L.LocationLevel<>2
+                    OR COALESCE(L.ActiveFlag,1)=0 OR UPPER(ISNULL(L.LocationType,''))<>'FG')
                 THROW 52006,'All outbound inventory must be put away in a registered FG location.',1;
             IF (SELECT COUNT(DISTINCT CustomerID) FROM @Items)>1
                 THROW 52018,'This unit contains products for different customers. Separate them before outbound.',1;
@@ -285,6 +290,9 @@ public static class PdaFinishedGoodsSql
                 DECLARE @ShippingGate int;
                 EXEC @ShippingGate=sys.sp_getapplock @Resource='FG_SHIPPING_ORDERS',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
                 IF @ShippingGate<0 THROW 52020,'Shipping is busy. Retry shortly.',1;
+                -- POP locks the physical pallet before inventory; use that order here too.
+                DECLARE @PalletLock varchar(50);
+                SELECT @PalletLock=PalletNo FROM dbo.MD_Pallet WITH(UPDLOCK,HOLDLOCK) WHERE PalletNo=@Barcode;
                 IF NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode)
                     THROW 52000,'No inventory record exists for this barcode.',1;
                 SELECT @UnitType=UnitType,@PalletNo=COALESCE(NULLIF(LTRIM(RTRIM(PalletNo)),''),CASE WHEN UnitType='PALLET' THEN LotNo END) FROM dbo.WH_Inventory WHERE LotNo=@Barcode;
@@ -322,7 +330,8 @@ public static class PdaFinishedGoodsSql
                 IF EXISTS(SELECT 1 FROM @Items WHERE NULLIF(LTRIM(RTRIM(PartNo)),'') IS NULL)
                     THROW 52004,'Outbound inventory has no linked part number.',1;
                 IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.MD_Location L WITH(HOLDLOCK) ON L.LocationID=I.LocationNo
-                    WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR UPPER(ISNULL(L.LocationType,''))<>'FG')
+                    WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR L.LocationLevel<>2
+                        OR COALESCE(L.ActiveFlag,1)=0 OR UPPER(ISNULL(L.LocationType,''))<>'FG')
                     THROW 52006,'All outbound inventory must be put away in a registered FG location.',1;
                 IF (SELECT COUNT(DISTINCT CustomerID) FROM @Items)>1
                     THROW 52018,'This unit contains products for different customers. Separate them before outbound.',1;
@@ -337,7 +346,7 @@ public static class PdaFinishedGoodsSql
                 INSERT dbo.FG_Shipment(LotNo,UnitType,PalletNo,CustomerID,ShippedAt,ShippedBy)
                     VALUES(@Barcode,@UnitType,@PalletNo,@CustomerID,@Now,@OperatorID);
                 SET @ShipmentID=CONVERT(int,SCOPE_IDENTITY());
-                IF @PalletNo IS NOT NULL
+                IF @UnitType='PALLET' AND @PalletNo IS NOT NULL
                     UPDATE dbo.MD_Pallet SET ShippedFlag=1,ShippedAt=@Now,ShippedCustomerID=@CustomerID,ReturnedAt=NULL,
                         ModifiedBy=LEFT(@OperatorID,20),ModifiedTS=@Now
                     WHERE PalletNo=@PalletNo;
@@ -443,7 +452,7 @@ public static class PdaFinishedGoodsSql
                 SELECT CustomerID,ShipmentID,LotNo,LotID,PartNo,PartName,Qty,@Reason,@CleanNote,'Open',@Now,@OperatorID,@OperatorID,@Now FROM @P;
                 SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
                 MERGE dbo.WH_Inventory WITH(HOLDLOCK) AS T USING(SELECT LotNo,PartNo,PartName,Qty FROM @P) S ON S.LotNo=T.LotNo
-                WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,ParentLotNo=NULL,UpdatedAt=@Now
+                WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,ParentLotNo=NULL,PalletNo=NULL,UpdatedAt=@Now
                 WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
                     VALUES(S.LotNo,'PART',S.PartNo,S.PartName,NULL,S.Qty,@Now,@Now,@Now);
                 INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,

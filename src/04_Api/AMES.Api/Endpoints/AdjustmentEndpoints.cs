@@ -46,7 +46,7 @@ internal static class AdjustmentEndpoints
         group.MapGet("/adjust/location", (string barcode) =>
         {
             using var conn = factory.OpenConnection();
-            using var location = new SqlCommand("SELECT LocationID FROM dbo.MD_Location WHERE LocationID = @Barcode AND COALESCE(ActiveFlag, 1) = 1", conn);
+            using var location = new SqlCommand("SELECT LocationID FROM dbo.MD_Location WHERE LocationID = @Barcode AND LocationLevel=2 AND COALESCE(ActiveFlag, 1) = 1", conn);
             location.Parameters.Add("@Barcode", SqlDbType.NVarChar, 80).Value = barcode.Trim();
             var locationId = (!finishedGoods ? WarehouseRepository.ResolveLineLocation(conn, barcode) : null)
                 ?? location.ExecuteScalar() as string;
@@ -60,7 +60,8 @@ internal static class AdjustmentEndpoints
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
                 LEFT JOIN dbo.MD_Location L ON L.LocationID = W.LocationNo
                 WHERE W.LocationNo = @Location AND W.Qty >= 0
-                  AND (UPPER(COALESCE(L.AreaCode,'')) = 'FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+                  AND I.ItemType='ASSY'
+                  AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
                 ORDER BY W.PartNo, W.LotNo;
                 """ : """
                 SELECT W.LotNo AS Barcode,
@@ -70,7 +71,7 @@ internal static class AdjustmentEndpoints
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT = W.PartNo COLLATE DATABASE_DEFAULT
                 LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
                 WHERE W.LocationNo = @Location AND W.Qty >= 0
-                  AND UPPER(COALESCE(L.AreaCode,'')) <> 'FG_AREA'
+                  AND COALESCE(I.ItemType,'')<>'ASSY'
                   AND NULLIF(W.PartNo,'') IS NOT NULL
                   AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
                 ORDER BY W.PartNo, W.LotNo;

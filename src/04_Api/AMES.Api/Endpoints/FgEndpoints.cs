@@ -8,7 +8,7 @@ using Microsoft.Data.SqlClient;
 
 namespace AMES.Api.Endpoints;
 
-public static class FgEndpoints
+public static partial class FgEndpoints
 {
 
     // ── DTOs ─────────────────────────────────────────────────────────────
@@ -41,12 +41,12 @@ public static class FgEndpoints
         DateTime? MfgDate, DateTime? ExpiryDate, DateTime? ReadyAt,
         bool IsProductionCompleted, bool AlreadyStocked, string? ExistingLotNo, string? ExistingLocation,
         string? ExistingStatus, string BarcodeType, string StorageMethod, string NextScanType,
-        string NextScanLabel, string? PackSpecId, string Message);
+        string NextScanLabel, string? PackSpecId, string Message, List<PutAwayScanRow>? Items = null);
     public sealed record PutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
         decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
         string ScanType, string ScannedBarcode, string? AreaCode = null);
-    public sealed record PutAwayConfirmReq(string Barcode, string LocationId);
+    public sealed record PutAwayConfirmReq(string Barcode, string LocationId, Dictionary<string,decimal>? ExpectedItems = null);
     public sealed record PutAwayResult(bool Success, string Message, string? InventoryLotNo, PutAwayScanRow? Row,
         PutAwayLocationRow? Location);
     public sealed record OutboundUnitItemRow(string LotNo, string UnitType, string PartNo, string? PartName,
@@ -66,7 +66,7 @@ public static class FgEndpoints
     private const string BarcodePallet = "PALLET";
     private const string BarcodeRack = "RACK";
     private const string BarcodeUnknown = "UNKNOWN";
-    private sealed record ParsedFgBarcode(string Raw, string Value, string Kind);
+    internal sealed record ParsedFgBarcode(string Raw, string Value, string Kind);
 
     // ── Routes ───────────────────────────────────────────────────────────
     public static void MapFg(this WebApplication app, AmesConnectionFactory factory)
@@ -197,7 +197,7 @@ public static class FgEndpoints
                     SELECT SUM(COALESCE(R.GoodQty, 0)) AS GoodQty, MAX(R.EntryAt) AS EntryAt
                     FROM dbo.PR_ProductionResult R
                     WHERE R.LotID = L.LotID
-                      AND UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, ''))
+                      AND (UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, '')) OR R.ProcessCode='RWK')
                       AND ISNULL(R.DefectFlag, 0) = 0
                 ) PR
                 WHERE UPPER(ISNULL(L.Status, '')) = 'CONFIRMED'
@@ -209,7 +209,7 @@ public static class FgEndpoints
                     SELECT 1
                     FROM dbo.WH_Inventory S
                     WHERE S.LotNo = L.LotCode
-                      AND S.Qty > 0
+                      AND S.Qty > 0 AND NULLIF(LTRIM(RTRIM(S.LocationNo)),'') IS NOT NULL
                 )
                 ORDER BY COALESCE(IMG.ConfirmedAt, PNT.ConfirmedAt, PR.EntryAt, L.ProducedAt, L.CreatedTS), L.LotID;
                 """;
@@ -228,7 +228,7 @@ public static class FgEndpoints
                 return Results.BadRequest(new PutAwayResult(false, "Scan FG LOT first.", null, null, null));
 
             var parsed = ParseFgBarcode(barcode);
-            if (parsed.Kind == BarcodeWo || IsStorageBarcode(parsed.Kind))
+            if (parsed.Kind == BarcodeWo)
             {
                 var message = $"Scan FG LOT first. You scanned {BarcodeKindLabel(parsed.Kind)}.";
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
@@ -238,7 +238,9 @@ public static class FgEndpoints
             }
 
             using var conn = factory.OpenConnection();
-            var row = FindPutAwayScanRow(conn, null, parsed.Value);
+            PutAwayScanRow? row;
+            try { row = FindPutAwayScanRow(conn, null, parsed.Value); }
+            catch (InvalidOperationException ex) { return Results.BadRequest(new PutAwayResult(false,ex.Message,null,null,null)); }
             if (row is null)
             {
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
@@ -283,7 +285,7 @@ public static class FgEndpoints
             try
             {
                 var parsedLot = ParseFgBarcode(body.Barcode);
-                if (parsedLot.Kind == BarcodeWo || IsStorageBarcode(parsedLot.Kind))
+                if (parsedLot.Kind == BarcodeWo)
                 {
                     tx.Rollback();
                     return Results.BadRequest(new PutAwayResult(false, "Scan FG LOT first.", null, null, null));
@@ -338,7 +340,7 @@ public static class FgEndpoints
                     return Results.BadRequest(new PutAwayResult(false, message, null, row, location));
                 }
 
-                var stockId = SavePutAwayStock(conn, tx, row.LotNo, location.LocationId, s.EmployeeNo);
+                var stockId = SavePutAwayUnit(conn, tx, row, location.LocationId, s.EmployeeNo, body.ExpectedItems);
 
                 var updated = row with
                 {
@@ -351,6 +353,11 @@ public static class FgEndpoints
                 var response = Results.Ok(new PutAwayResult(true, "FG Put-Away confirmed.", stockId, updated, location));
                 tx.Commit();
                 return response;
+            }
+            catch (InvalidOperationException ex)
+            {
+                if (tx.Connection is not null) tx.Rollback();
+                return Results.BadRequest(new PutAwayResult(false, ex.Message, null, null, null));
             }
             catch (SqlException ex) when (ex.Number is >= 52510 and <= 52518)
             {
@@ -711,10 +718,12 @@ public static class FgEndpoints
         }
     }
 
-    private static bool TryNormalizeReturnBarcode(
+    internal static bool TryNormalizeReturnBarcode(
         string? barcode, out string normalized, out string error)
     {
         var value = (barcode ?? "").Replace("\u0002", "").Replace("\u0003", "").Trim();
+        if (value.Contains("[)>", StringComparison.Ordinal))
+            value = AMES.Devices.ImgScanParser.ExtractLotCode(value) ?? "";
         normalized = "";
         error = "";
         if (string.IsNullOrWhiteSpace(value))
@@ -750,7 +759,7 @@ public static class FgEndpoints
         return true;
     }
 
-    private static PutAwayScanRow? FindPutAwayScanRow(SqlConnection conn, SqlTransaction? tx, string barcode)
+    private static PutAwayScanRow? FindPutAwayLotRow(SqlConnection conn, SqlTransaction? tx, string barcode)
     {
         using var cmd = new SqlCommand("""
             SELECT TOP (1)
@@ -787,7 +796,7 @@ public static class FgEndpoints
                 SELECT SUM(COALESCE(R.GoodQty, 0)) AS GoodQty, MAX(R.EntryAt) AS EntryAt
                 FROM dbo.PR_ProductionResult R
                 WHERE R.LotID = L.LotID
-                  AND UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, ''))
+                  AND (UPPER(ISNULL(R.ProcessCode, '')) = UPPER(ISNULL(L.ProcessCode, '')) OR R.ProcessCode='RWK')
                   AND ISNULL(R.DefectFlag, 0) = 0
             ) PR
             OUTER APPLY
@@ -889,6 +898,7 @@ public static class FgEndpoints
                    CAST(ISNULL(S.CurrentQty, 0) AS DECIMAL(14,3)) AS CurrentQty,
                    CAST(CASE WHEN L.Capacity > 0 THEN L.Capacity - ISNULL(S.CurrentQty, 0) ELSE 0 END AS DECIMAL(14,3)) AS AvailableQty,
                    S.CurrentCustomerCode,
+                   L.LocationLevel,
                    CASE WHEN UPPER(ISNULL(L.LocationType, '')) = 'FG' THEN 1 ELSE 0 END AS IsFgLocation
             FROM dbo.MD_Location L
             LEFT JOIN StockByLocation S
@@ -902,6 +912,8 @@ public static class FgEndpoints
         if (!rdr.Read()) return null;
 
         var row = ReadPutAwayLocation(rdr, customerCode, qty, expected, parsed.Raw);
+        if (Convert.ToInt32(rdr["LocationLevel"]) != 2)
+            return row with { IsValid = false, Message = "Primary locations cannot hold stock. Scan a detail location.", ScanType = expected, ScannedBarcode = parsed.Raw };
         if (!GetBool(rdr, "IsFgLocation"))
             return row with { IsValid = false, Message = "Scan an FG warehouse location.", ScanType = expected, ScannedBarcode = parsed.Raw };
         if (string.Equals(row.CurrentCustomerCode, "MIXED", StringComparison.OrdinalIgnoreCase))
@@ -977,7 +989,7 @@ public static class FgEndpoints
             GetString(rdr, "AreaCode"));
     }
 
-    private static ParsedFgBarcode ParseFgBarcode(string? barcode)
+    internal static ParsedFgBarcode ParseFgBarcode(string? barcode)
     {
         var raw = (barcode ?? "")
             .Replace("\u0002", "")
@@ -1007,12 +1019,11 @@ public static class FgEndpoints
                 return new ParsedFgBarcode(raw, value, kind);
         }
 
-        if (raw.Contains('\u001d'))
+        if (raw.Contains("[)>", StringComparison.Ordinal))
         {
-            var gsLot = raw.Split('\u001d', StringSplitOptions.RemoveEmptyEntries)
-                .FirstOrDefault(x => x.StartsWith("T", StringComparison.OrdinalIgnoreCase));
-            if (!string.IsNullOrWhiteSpace(gsLot) && gsLot.Length > 12)
-                return new ParsedFgBarcode(raw, gsLot[12..].Trim(), BarcodeLot);
+            var labelLot = AMES.Devices.ImgScanParser.ExtractLotCode(raw);
+            if (!string.IsNullOrWhiteSpace(labelLot))
+                return new ParsedFgBarcode(raw, labelLot, BarcodeLot);
         }
 
         if (raw.StartsWith("WO-", StringComparison.OrdinalIgnoreCase))

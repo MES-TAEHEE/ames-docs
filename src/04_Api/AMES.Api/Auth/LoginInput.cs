@@ -19,5 +19,7 @@ public static class LoginInput
     }
 
     public static bool ValidContext(string? terminal, string? line, string? shift)
-        => Valid(terminal, 20) && Valid(line, 20) && Valid(shift, 10);
+        => Valid(terminal, 20)
+           && (string.IsNullOrEmpty(line) || Valid(line, 20))
+           && (string.IsNullOrEmpty(shift) || Valid(shift, 10));
 }

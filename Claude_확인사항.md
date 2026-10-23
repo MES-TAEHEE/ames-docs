@@ -5,7 +5,7 @@
 > **재검토 원칙**(10-16 사용자 확인): 이 문서의 지적·제안 자체가 구현 원칙이나 수정 지시는 아닙니다. 현재 호출 경로·합의된 업무 방향과 대조해 실제 결함인지 먼저 확인합니다. 지적이 틀렸거나 방향이 바뀌었다면 코드·DB를 억지로 바꾸지 않고, 이 문서에 해당하지 않는 이유·근거·현재 방향을 정정합니다. 운영 결함, 배포·검증 대기, 정책 결정, 선택적 정리를 구분하며 과거 DB 점검값을 현재 값으로 단정하지 않습니다.
 
 - **작성**: 2026-10-14, Claude Code(이승욱 세션). 그 뒤 원격 병합·작업 때마다 해결된 항목을 지우고 남은 것만 둡니다(지난 판은 커밋 이력). **10-22 재정리**: 기준 소스를 `566893cd` 로 올리고 10-17(ba968b99) 이후 바뀐 파일을 가리키는 줄 번호를 다시 맞췄습니다(AppConfig·LineStock·스키마 파일·PP→POP 초기화 스크립트·MasterDataRepository — 나머지 참조 파일은 그 뒤 바뀌지 않음). 해결된 항목(안영훈 2-5 3 — 두 DB·스키마의 `FG_CustomerReturn.PartName` 위치 차이)을 지우고, 이승욱 10-21~22 작업(SAPFlag·로케이션 2단계)에 맞춰 안영훈 2-1 8·공통 SAP 항목·검증 기준선을 고쳤습니다. 다른 담당자 항목의 판정·문장은 바꾸지 않았습니다. **10-22 2차 재정리**: 기준 소스를 `2de82e9c` 로 올렸습니다. 김현진 POP 인라인 SQL → `dbo.SP_POP_*` 145개 전환(c10a16ee)과 심재현 팔레트 적재(dabed559·41f99dca)로 바뀐 POP 저장소·화면(Inj/ImgLotRepository·WorkOrderRepository·AndonRepository·QcRepository·PntRepository·ReworkRepository·AuthRepository·BackflushRepository·LotDefectWriter·MoldRepository·InjMain·ImgMain·ImgJudgePopup)의 줄 번호를 다시 맞췄고, SQL 이 프로시저로 옮겨 간 곳은 C# 메서드 범위와 `dist/migrate_pop_stored_procedures.sql` 의 줄을 함께 적었습니다. 지적 내용은 모두 그대로 남아 있음을 새 코드로 확인했습니다. 안영훈 2-1 의 번호 중복(8 두 개)을 9 로 고치고 공통 「SQL 위치」·검증 기준선을 고쳤습니다. **10-22 흐름 전수 점검**(사용자 요청 — 웹 마스터 → 계획 → POP 사출·감싸기·도장 → PDA 자재·완제품 입출고를 5구간으로 나눠 소스 읽기·로컬 복제 DB 조회만, 소스 변경 없음): 새로 찾은 것을 심재현 문제점 39~51·안영훈 2-4 1~11(2-1 8 세부 포함)·이승욱 3-4 1~2 로 더했습니다. 기존 항목과 겹치는 것은 넣지 않고 관련 항목 번호만 적었습니다. 로컬 DB 에 아직 팔레트 적재 데이터가 없어 팔레트 관련 판단은 코드 기준입니다. **10-22 3차·4차(심재현)**: 심재현 절의 줄 번호를 `7cd85fa4` 기준으로 다시 맞췄습니다(PNT-MAIN 전환으로 바뀐 저장 프로시저·스키마·Backflush·Rework·PalletStock·ImgJudgePopup). 해결·소멸한 항목은 지우고 뒤 번호를 당겼으며, 무엇을 지웠는지는 커밋 이력에만 둡니다.
-- **기준 소스**: `dev` 10-23(이 문서를 고친 커밋 — 심재현 PNT-MAIN·APS 거부 규칙·WO 번호 유니크·팔레트 불량 재고 제거, 김현진 POP PIN 키패드 수정, 이승욱 BOM 단위·LOT PREFIX 규칙까지 포함). 심재현·이승욱 절의 줄 번호는 이 커밋 기준이고, 안영훈 절은 10-22 2차 재정리 때의 `2de82e9c` 기준 그대로입니다(그 사이 안영훈 참조 파일의 변경은 대조하지 않았습니다).
+- **기준 소스**: `dev` 10-23(이 문서를 고친 커밋 — 심재현 PNT-MAIN·APS 거부 규칙·WO 번호 유니크·팔레트 불량 재고 제거, 김현진 POP PIN 키패드 수정, 이승욱 BOM 단위·LOT PREFIX 규칙까지 포함). 심재현·이승욱 절의 줄 번호는 이 커밋 기준이고, 안영훈 절은 10-23 `young`에서 현재 호출 경로와 사용자 정책을 재검토해 수정·정정했습니다. 해당 절은 고정된 옛 줄 번호 대신 클래스/메서드와 검증 상태를 기준으로 봅니다.
 - **점검 방법**
   - 5영역(POP·InjAgent·QC·PNT / PP·APS·MRP / Api·WH·FG·SCM·Portal / SYS·MD·MNT·RPT / DB 스크립트·스키마·공통 규칙)을 소스로 다시 확인했습니다.
   - 테이블 175개의 읽기·쓰기 사용처를 전수 조사했습니다. 테스트 코드는 빼고, 실제로 호출되는 DB 프로시저는 포함했습니다.
@@ -29,7 +29,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 심재현 | 21                   | 8   | 7묶음 | 43  | [상] POP·InjAgent 배포 설정이 로컬 DB(미해결 1) · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 28) · 안돈 보전 호출 작업지시(요청 20) |
-| 안영훈 | 9(배포·검증·승인 대기·요청) | 4 | 3 | 11 | **[상] FG 라벨 LotNo 해석·POP 적재분 입고 대기 미표시·수리품 입고 불가·백플러시 위치·납품 박스 취소(2-4 1~5)** · 직접 SQL·LOT 원입고량 취소·빈 팔렛 회수·출하 화면의 서버 배포 및 실제 쓰기 검증 대기 · **상위 로케이션을 재고 위치에서 막기·지도 제외(2-1 8 — 개발 DB 에 임시 상위 3건 적용됨)** · PDA FG 입고 팔레트 단위 위치 배정(2-1 9 — POP 이 10-21 부터 팔레트로 적재) · 비결함·선택적 정리 3건은 2-5 참조 |
+| 안영훈 | 10(배포·검증·요청) | 7 | 3 | 1 | FG 라벨·미배정/수리 재고·백플러시·입고 취소·팔렛/출하 수량 보호 수정의 배포 및 실제 쓰기/동시성 검증(2-1 10) · 상위 위치 차단/기존 Area 부모 선택(2-1 8) · 생성기 패키지 보안 경고(2-4 1) · 정책/비결함 정정은 2-2·2-5 |
 | 이승욱 | 1(적용·검증 대기)        | 3   | 3   | 2   | 라인 상태 기록 운영 마무리 — 06:00 재분류 작업 등록·임계값·보존 정리(3-1 1) · 쓰인 LOT PREFIX 변경 허용 — 안영훈과 결정(3-4 1) · 나사·레진 품목 단위가 정본과 다름 — 되돌릴지 결정 대기(3-4 2) · 품목 불출율·MRP 여유율 반영 방식 결정(보류 3) |
 | 오세영 | 5                    | 2   | —   | —   | 발송기가 없어 SYS-008 발송 이력이 시연 데이터                                                                                               |
 
@@ -318,18 +318,13 @@
 
 ## 2. 안영훈 — PDA·Api + Web WH·FG·SCM·Portal + 재구축 스크립트
 
-### 2-1. 적용·검증 대기·요청 (9)
-1. **재구축 스크립트 — 전체 재구축 검증 대기**
-   - Portal 번호 변경은 임시 코드 경유로 충돌을 피하고 현재 001~004 화면에 맞췄습니다.
-   - 선택적 개발 시드는 PDA_SEED → seed_portal_dev 순서이며, 기본 실행에서 제외합니다. 테스트 시드 실행에는 AMES_DEVELOPMENT_SEEDS=1과 세션 opt-in이 필요합니다.
-   - SQL 구문 검사는 통과했습니다. 사용자 지시에 따라 DB 삭제·재생성·전체 재구축은 실행하지 않았습니다.
-   - **10-22 이승욱 — 로컬 인스턴스에 새 DB `AMES` 를 `rebuild_db.sh` 목록 그대로(개발 시드 opt-in 포함) 처음부터 만들어 본 결과**(도구 `AppData\Local\AMES-claude-tools\rebuild_local_named_db.ps1`, `USE AMES_DEV` 8줄만 작업 복사본에서 바꿈, 로컬 `AMES_DEV` 는 그대로). 아래 4가지 때문에 그대로는 끝까지 가지 않았고, 작업 복사본만 보정해 111개 적용을 마쳤습니다(원본 dist 는 그대로 — ⑤만 수정).
-     ① `AMES_Schema.sql` 이 개발 DB 의 **시스템 이름 기본값 제약**(`DF__표__열__8자리 hex`, 37개)을 이름째 만들어, 새 DB 에서 앞 테이블의 이름 없는 기본값이 같은 이름을 받으면 Msg 2714(이번엔 `DF__PR_Defect__Creat__60FC61CA` — `PR_DefectAutoLink` 와 `PR_DefectDetail`). 생성기(`tools/schema_from_db`)가 시스템 이름(`is_system_named`) 제약은 이름 없이 쓰도록 바꾸는 것이 근본 해결입니다.
-     ② `AMES_Schema.sql` 이 `UX_PR_PopSession_BearerHash` 를 두 번 만듦(SMO 정의 7102행 + 1239bc10 이 더한 7111행) — Msg 1913.
-     ③ `migrate_scm_portal_screens.sql`(1239bc10)이 포탈 화면을 PORTAL-001~004(`delivery-entry`)로 다시 매기려 하는데, 스키마 파일 화면 시드(= 개발 DB)는 PORTAL-001~006(`due-orders`·`delivery-notes`·`receipts` 포함)이고 웹 라우트도 그대로라 THROW 50004 — 이번에는 건너뛰었습니다. 개발 DB 를 그 번호로 바꿀지, 마이그레이션을 지금 화면에 맞출지 정해야 합니다.
-     ④ `migrate_inj_agent.sql` 이 `PR_InjLot`·`MD_InjCondItem`·`PR_InjCondLog`·`PR_RobotInspection` 을 **DROP 후 옛 정의로 다시 만들어** 스키마 파일의 최종 구조를 덮습니다(`CreatedBy` varchar(50)·`ModifiedBy` nvarchar(450) — 개발 DB 는 varchar(20)). 재구축 목록에서 빼거나 테이블이 있으면 건너뛰게 해야 합니다. 이번에는 끝난 뒤 `ALTER COLUMN` 으로 맞췄습니다.
-     ⑤ `migrate_mnt_failure_downtime.sql`(이승욱)이 컬럼 없는 DB 에서 Msg 207 — 동적 SQL 로 고쳤습니다.
-     그 밖에 심재현 문제점 30(백플러시 멱등 인덱스가 스키마 파일은 두 열)도 그대로라 끝난 뒤 넓은 정의로 맞췄습니다. 결과 `AMES` 는 로컬 `AMES_DEV` 와 컬럼 2,437·인덱스 263·기본값·CHECK·외래키가 같고, 프로시저는 현행 8개뿐(개발 DB 의 은퇴 PDA 프로시저 34개 없음), 컬럼 설명 17개는 스키마 파일 쪽 문구(FG·WH). 백업 `publish/AMES_20261022.bak`(SQL Server 2025 — 2019 개발서버에는 복원 불가).
+### 2-1. 적용·검증 대기·요청 (10)
+1. **재구축 스크립트 — 파일 수정 완료, 전체 재구축 검증 대기**
+   - 10-23: `AMES_Schema.sql`의 자동 생성 `DF__...__8자리hex` 기본값 이름 37개를 익명 DEFAULT로 바꾸고, `UX_PR_PopSession_BearerHash` 중복 생성을 제거했습니다. `tools/schema_from_db`도 같은 기본값 이름과 은퇴한 WH/FG/SP PDA 업무 프로시저를 재출력하지 않도록 수정했습니다(개발 TEST_RESET은 유지).
+   - 화면 마이그레이션은 현재 라우트에 맞췄습니다. Portal의 `due-orders`·숨겨진 `delivery-notes`/`receipts` 별칭과 기존 PORTAL-001~006 식별자를 보존하고, SCM-003 Delivery Progress·004 Purchase Items·005 Portal Users로 등록합니다. 화면 표시용 Packing Quantities 코드는 기존처럼 PORTAL-004입니다. 기존 ScreenID·역할 권한을 임시 번호로 이동하는 보호는 유지했습니다.
+   - 최신 스키마의 사출 4개 테이블·인덱스를 DROP 후 옛 구조로 덮던 `migrate_inj_agent.sql`을 **재구축 실행 목록에서 제외**했습니다. 정본 `AMES_Schema.sql`에 해당 정의가 모두 있습니다. 구형 파일 자체를 운영 DB에 실행하지 않습니다.
+   - 개발 시드는 기본 제외이며 기존 opt-in을 유지합니다. `migrate_mnt_failure_downtime.sql`의 컬럼 부재 오류 수정은 기존 이승욱 변경을 유지합니다.
+   - 생성기 빌드·정적 회귀 검사는 확인하되, 사용자 지시대로 DB 삭제·재생성·시드·전체 재구축은 실행하지 않습니다. 백플러시 멱등 인덱스 등 다른 담당자 검증 항목은 해당 절을 따릅니다. 생성기의 기존 전이 의존성 보안 경고는 2-4에 별도로 남깁니다.
 2. **동시 출고·보충 Worker 부하 검증 대기**
    - 출고의 Serializable을 ReadCommitted로 낮추고 LOT 비교의 UPPER를 제거했습니다. 재고 행 변경 잠금과 피킹 지시 잠금은 유지합니다.
    - 동일 품목 여러 줄의 수요 분배 SQL은 읽기 전용 회귀 검사로 확인했습니다. 실제 PDA 여러 대와 보충 Worker를 겹쳐 실행하는 검증은 아직 하지 않았습니다.
@@ -362,24 +357,31 @@
    - 사용자 결정: 제품 반품과 빈 팔렛 회수는 별개입니다. PDA `FG → Empty Pallet Return`에서 물리 팔렛 바코드를 스캔·확인하고, `MD_Pallet.ShippedFlag=0`·DB 시각 `ReturnedAt`을 기록합니다. 부품 재고·고객 반품은 변경하지 않습니다.
    - 미출하·비활성·중복 회수, 스캔 이후 출하 시각 변경, 팔렛에 연결된 양수 재고가 남은 경우는 차단합니다. 따로 반품돼 연결이 해제된 부품의 과거 PalletNo만으로는 빈 팔렛 회수를 막지 않습니다. 회수 상태와 SYS 감사 기록은 같은 트랜잭션으로 저장하며 다음 출하 때 ReturnedAt은 비웁니다.
    - 기존 MD_Pallet 컬럼을 사용합니다. 신규 테이블·DB 재구축·실제 회수 처리는 실행하지 않았습니다. API(Contracts/Data 포함) → PDA 배포 후 실물 빈 팔렛과 중복·내용물 잔존 사례를 확인해야 합니다.
-8. **[요청] 로케이션 2단계(상위·하위) — WH·PDA 반영**(10-22 이승욱, 사용자 결정 — 사용자가 따로 협의)
-   - `MD_Location.LocationLevel`(1 = 상위 로케이션 — SAP 저장위치 또는 MES 등록, **재고 없음** · 2 = 하위 — 재고 위치, 기본값)·`ParentLocationID`(하위의 상위, NULL = 미지정) — `dist/migrate_md_location_parent.sql`, **10-22 두 DB 적용**. 임시 상위 `dist/seed_md_location_temp_primary.sql`(라인 로케이션 → `TMP-LINE`, 나머지는 구역별 `TMP-FG_AREA`·`TMP-MAT_AREA`)도 사용자 지시로 10-22 두 DB 에 적용했습니다(개발 DB 하위 140건 전부 상위 지정). 상위 재고는 나중에 하위 재고를 합산해 처리합니다(사용자).
-   - 요청 ① **상위 로케이션(`LocationLevel = 1`)은 재고 위치가 될 수 없게** — PDA·Web 입고·적재·이동·조정·라인 보충·반품이 상위 로케이션 바코드를 받으면 거부. 지금은 막혀 있지 않습니다(MD-018 은 재고가 있는 로케이션을 상위로 지정하는 것만 막음 — 52075).
-     - 10-22 흐름 점검 세부: 입고 `PdaWarehouseSql.cs:628-643`·적재/이동 `:862-867`·조정 `AdjustmentEndpoints.cs:49` 모두 존재·활성·막힘 유형만 보고 `LocationLevel`·구역은 보지 않습니다. `TMP-MAT_AREA` 는 구역 `MAT_AREA`·용량 NULL 이라 무제한으로 받고 MRP 재고(`PpRepository.cs:1019-1025`)에도 잡히며, `TMP-LINE` 은 `LineID`·유형이 비어 `WarehouseBoxPredicate`(`LineStock.cs:109-118`)를 통과해 창고 BOX 로 피킹 대상이 됩니다. 자재를 라인 하위 로케이션(`I101A1F1`)·FG 로케이션에 바로 입고·이동해도 막히지 않아 2-4 4(백플러시가 못 쓰는 재고)가 피킹 없이도 생깁니다. 공통 검사 SQL 하나로 입고·적재·이동·조정에서 `LocationLevel = 1` 거부, 자재는 MAT_AREA 하위만 받기를 제안합니다.
-   - 요청 ② WH 로케이션 지도(`Components/Shared/LocationMapDatabase.cs` 가 `ListLocations` 전체를 칸으로 그림)·WH 로케이션 목록 Api 에서 상위 행 제외 — 지금 개발 DB 의 지도에 위치 칸 없는 `-` 셀 3개(`TMP-*`)가 보입니다. `TMP-LINE` 의 구역 코드 `LINE` 은 공통코드 `WH_AREA` 에 없는 값입니다.
-   - 요청 ③ WH 화면이 하위 로케이션을 만들 때 상위를 고를 수 있게(지금은 상위 미지정으로 생기고 MD-018 수정 창에서 지정하거나 임시 상위 시드를 다시 돌리면 구역별로 들어감). 저장소 `UpdateLocation(…, setParent, parentLocationId)`·`InsertPrimaryLocation`·`InsertChildLocation`·상수 `MasterDataRepository.LocationLevelPrimary/Detail` 를 쓰면 됩니다.
-   - 알림: MD-018 「등록」은 상위 콤보를 비우면 상위, 고르면 그 아래 하위(창고·구역은 상위를 따르고 통로·열·층이 비어 지도에서 `-` 칸)를 만듭니다. 그래서 `InventoryDefectTests.Location_creation_and_fake_inventory_status_are_not_shown`(10-19)의 `OpenCreate` 부재 검사를 「`MD.InsertLocation(`(격자 생성) 부재 + 두 등록 메서드 존재」로 바꿨습니다.
-   - 알림: 10-22 두 DB 스키마 동일화 때 개발 DB 에 `migrate_audit_columns_last.sql` 을 적용해 `FG_CustomerReturn`(PartName)·`FG_Delivery` 의 감사 컬럼을 맨 뒤로 옮겼고(로컬도 `FG_Delivery`), 로컬 DB 에만 남아 있던 은퇴 PDA 프로시저 4개(`FG_PDA_OUTBOUND_COMPLETE`·`RETURN_RECEIVE`·`RETURN_SCAN`·`TRANSACTION_LIST`)를 지웠습니다. 스키마 파일 `MD_Location` 에 `LineID`·`PartNo`·`MinimumQty`·`IX_MD_Location_Line` 을 넣었습니다(라인 로케이션 마이그레이션은 컬럼이 있으면 건너뜀).
+8. **로케이션 2단계 — 재고 위치 차단 코드 반영, 서버 검증 대기**
+   - 상위 `LocationLevel=1`은 집계/분류용이고 하위 `LocationLevel=2`만 재고 위치입니다. WH 입고·위치 이동·수량 조정과 FG 적재/조정, 라인 목적지 판정, 자동 피킹 원재고에서 상위를 차단했습니다. 입고·이동은 같은 트랜잭션에서 위치 행을 잠가 검사합니다. 반품은 기존대로 위치 미배정이며 상위 위치를 받는 입력 자체가 없습니다.
+   - **정정:** Web 지도는 이미 `LocationMapDatabase.Load`에서 하위만 표시하고 있었습니다. PDA 위치 목록·스캔 조회에도 하위 조건을 넣었습니다. 기존 DB의 상위/재고 데이터를 바꾸거나 임시 시드를 다시 돌리지는 않았습니다.
+   - **부분 구현 정정:** 신규 Area는 상위와 첫 하위를 함께 만들고, 격자 추가도 `{prefix}AREA` 상위를 연결하는 코드가 이미 있습니다. 기존 Area의 임시 상위처럼 이름이 다른 경우 자동 연결이 안 될 수 있고, 지도에서 상위를 직접 고르는 UI는 없습니다. MD-018의 기존 Parent 선택으로 지정할 수 있으며, 다수 상위 중 기본 선택 규칙/지도 선택 UI는 별도 확인이 필요합니다. 새 Create 화면을 임의로 추가하지 않았습니다.
+9. **PDA FG 팔렛 단위 위치 배정 — 기존 구현 확인, API/PDA 배포·실물 검증 대기**
+   - `FgEndpoints`와 Fg01은 팔렛 바코드의 하위 LOT을 조회하고, 미배정 ASSY 전부를 하나의 위치로 원자적으로 배정합니다. 확정 시 내용물·수량 재검사, 용량 검사, LOT별 MOVE 기록, ASSY 아닌 내용물 차단을 유지합니다.
+   - 「현재 LOT 하나씩만 가능」은 이전 판 기준 지적이므로 정정했습니다. 서버의 최신 팔렛 경로 배포와 실물 저장 검증은 별도이며, 출고·위치·수량 검사도 그대로 유지합니다.
+10. **10-23 실제 결함 수정 — 배포·쓰기/동시성 검증 대기**
+   - IMG 라벨은 공통 `ImgScanParser`로 LOT 9자를 동일하게 해석합니다(입고·출고·반품, 제어문자 보존/제거 모두). 잘못된 라벨은 거부합니다.
+   - FG 대기는 양수 재고라도 위치 미배정이면 포함합니다. 생산 공정 양품과 `RWK` 수리 양품을 함께 합산하며 ASSY 제한은 유지합니다. Web 위치별 재고·RPT 조회도 미배정 재고를 누락하지 않고 컨테이너 합계를 중복하지 않게 했습니다. PDA 통합 재고는 이미 미배정 ASSY를 볼 수 있어 새 기능을 중복 추가하지 않았습니다.
+   - 백플러시는 `MD_Location.LineID`의 하위 위치와 기존 LotPrefix 위치를 FIFO로 읽고 실제 차감 위치를 거래에 기록합니다. 기존 POP 프로시저는 변경하지 않고 조회만 애플리케이션 SQL로 대체했습니다. 부족분 자리표시의 기존 LotPrefix 규칙은 유지합니다. WH-AUTO는 단위를 품목 UOM으로 표시하고 조회 격리는 ReadCommitted로 낮추되 작업 잠금은 유지합니다.
+   - 납품 박스 취소는 원입고·현재 재고·수량 조정·PO/DL 누적량을 검증하고 출고/백플러시/라인 이동을 거부합니다. 일반 창고 수량 조정 후 취소는 기존 합의대로 허용합니다. 입고 PO 상태를 Partial/Received로 맞추고 취소/종료 PO 입고를 차단합니다.
+   - 일반 LOT 자재 입고는 생산 LOT·미등록/비활성 품목을 거부합니다. 같은 파트의 미입고 PO에 공급사가 여럿이거나 선택한 PO 잔량을 넘으면 자동 연결 대신 공급사 Unit Item 바코드를 요구합니다. 공급사별 실제 납품 연결이 있는 경우는 기존 Portal 박스 경로를 사용합니다.
+   - 낱개 LOT 출고는 실물 팔렛을 Shipped로 바꾸지 않습니다. 제품 반품은 ParentLotNo와 PalletNo를 모두 비우고 빈 팔렛 회수와 분리합니다. DCR/개별 팔렛 출고는 POP처럼 MD_Pallet을 재고보다 먼저 잠급니다.
+   - 로컬 DCR 출하가 있는 수주는 PO Sync/엑셀 재수집이 현재 ShippedQty를 낮추지 못하도록 보호합니다. 출하 확정과 같은 작업 잠금을 먼저 잡습니다. 외부 수량과 로컬 출하의 전면 정산/수동 하향 보정 정책은 2-2에 남깁니다.
+   - 검증: API 테스트 228건, 관련 Data 테스트 82건(192.168.0.132/AMES_DEV의 SQL NOEXEC 컴파일 8건 포함) 통과, Web/API·스키마 생성기 빌드 통과입니다. 실제 입고·취소·출고·반품·생산 확정, 다중 PDA/Worker 부하 검증은 실행하지 않았습니다. Web/API와 POP의 AMES.Data(백플러시 실행 경로) 배포가 필요하며 DB 재구축·재고 삭제·서버 배포·퍼블리시 교체는 이번에 하지 않았습니다.
 
-9. **[요청] PDA FG 입고 — 팔레트 단위 위치 배정**(10-21 심재현)
-   - 내용: POP INJ/IMG 가 10-21 부터 OK 제품을 스캔한 팔레트에 실어 `WH_Inventory` 에 넣습니다(제품 행 `ParentLotNo` = `PalletNo` = 팔레트 번호, `LocationNo` NULL = 미배정, 머리 행 UnitType `PALLET`). 지금 PDA FG 입고(Fg01, `PdaFinishedGoodsSql` 입고)는 LOT 바코드 하나씩 위치를 배정하므로 팔레트 24개면 24번 찍어야 하고, PDA 출고는 위치가 빈 행이 하나라도 있으면 52006 으로 막힙니다.
-   - 요청: 팔레트 바코드(`EOS-PLT-…`) 하나를 찍으면 그 팔레트의 자식 행(Qty > 0, 위치 NULL) 전부에 같은 FG 위치를 배정(MOVE 거래 행마다)하는 경로를 Fg01 에 더해 주세요. 적재 규칙·테스트는 `AMES.Data.Services.PalletLoadRules`·`PalletLoadDbTests` 를 보면 됩니다.
-
-### 2-2. 보류 (4)
-- **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다.
+### 2-2. 보류 (7)
+- **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다. 로컬 출하가 있는 수주의 ShippedQty 하향 덮어쓰기는 막았지만, SRM 수량과 로컬 출하의 전면 정산·수동 하향 보정 승인 절차는 별도 결정입니다.
 - **배지 단독 로그인 정책**: 사용자 요청대로 EOS 양식 QR은 PIN 없이 로그인합니다. 임의 사번 문자열 로그인은 차단했고 로그인 횟수 제한·브라우저 CORS 기본 차단을 추가했지만, EOS QR 자체는 서명된 인증 수단이 아닙니다. 관리자 배지 복제 방지를 위한 서명/PIN 도입은 정책 결정 대기입니다.
 - **PO 자동 수집 실패**: 고객 테스트 서버 환경 문제로 09-17부터 실패합니다. 일별 구매계획 수집(`DPSYNC-SEMS`)도 URL이 자리표시자로 보고되어 외부 서버 복구·접속 정보 확인이 필요합니다.
 - **개발 완료 시 정리**: appsettings 비밀번호 평문을 접속문자열 환경변수로 옮깁니다. CORS가 필요한 브라우저 클라이언트는 `Cors:AllowedOrigins`에 명시적으로 등록합니다(네이티브 PDA에는 CORS가 필요 없습니다).
+- **고객 반품 판정 정책**: 현재는 제품을 위치 미배정 재고로 받고 Set Location으로 재배정하며, 빈 팔렛 회수와는 별개입니다. 「반드시 검사 후 재입고/폐기 판정」은 아직 합의되지 않은 새 업무 단계이므로 강제하지 않았습니다. Return Open 이후 상태·APS 가용 수량·검사/폐기 정책을 정한 뒤 함께 구현해야 합니다.
+- **FG FIFO·고객 혼적 정책**: 현재는 스캔한 가용 재고·FG 위치·출하 고객을 검증하지만 FIFO 순서와 위치 단위 단일 고객은 강제하지 않습니다. 위치 고객 조회의 NULL을 실제 혼적 검사가 된 것으로 보지 않습니다. 사용자 요청은 ASSY 여부/위치/용량 확인이므로, 고객 전용 위치나 FIFO 강제를 임의로 추가하지 않습니다.
+- **라인 실사·소수/음수 재고 정책**: 기존 PDA는 정수 수량 조정이며 BF 부족분은 별도 음수 자리표시입니다. 소수 단위 자재 실사와 BF 부족분 정산을 지원할지는 실제 재고/생산 소요를 구분해 결정해야 합니다. 음수 BF 행을 일반 스캔 재고로 노출하거나 생산 소요를 지우는 수정을 임의로 하지 않았습니다.
 
 ### 2-3. 테이블 (10-14 전수 조사)
 | 테이블 | 상태 | 내용 |
@@ -388,68 +390,29 @@
 | `WH_ReleaseSchedule` | 미사용 | DROP 후보입니다. 이번에는 다른 WH 테이블과 식별자·행위자 길이만 맞췄고 테이블은 보존했습니다. |
 | `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
 
-### 2-4. 유효한 문제점 (11)
+### 2-4. 유효한 문제점 (1)
 
-코드 수정 완료 항목은 제거했습니다. 서버 배포·실제 쓰기 검증 대기는 2-1에서 관리합니다. 아래는 10-22 흐름 전수 점검(이승욱 세션, 읽기 전용)에서 찾은 것입니다 — 10-21 POP 팔레트 적재로 POP 확정분이 `WH_Inventory` 에 바로 들어오면서 PDA·FG 쪽과 맞지 않게 된 곳이 많습니다(심재현 문제점 39 과 함께 봐 주세요).
+기존 10-22 점검의 코드 결함은 수정해 2-1 10의 배포·검증 대기로 옮겼고, 업무 정책과 맞지 않거나 미결정인 지적은 2-2·2-5로 정정했습니다. 코드 수정만으로 운영 반영/동시성 검증까지 끝났다고 보지 않습니다.
 
-1. **[상] Api 가 IMG 완제품 라벨(DataMatrix)에서 LotNo 첫 글자를 빼고 읽음**
-   - 위치: `src/04_Api/AMES.Api/Endpoints/FgEndpoints.cs:1012`(`gsLot[12..]`), 정본 `AMES.Devices/ImgScanParser.cs`(T + 날짜 6 + part4M 4 = 11자 뒤가 LotNo 9자), 출고·반품 바코드 `FgOutboundBarcode.cs:9-21`·`FgEndpoints.cs:713~`
-   - 내용: 제어문자가 보존되는 스캔은 8자짜리가 돼 Fg01 입고가 항상 「FG LOT was not found」, 제어문자가 사라지는 키보드 입력은 문자열 전체로 조회해 역시 못 찾습니다. 출고·반품도 라벨 안의 `C:`·제어문자·50자 제한으로 IMG 라벨을 거부합니다.
-   - 제안: Api 도 `ImgScanParser.ExtractLotCode` 하나를 씁니다.
-2. **[상] POP 이 실은 제품이 PDA 입고 대기 목록·재고 화면에 보이지 않음** — 2-1 9(팔레트 단위 위치 배정)와 다른 문제
-   - 위치: `FgEndpoints.cs:207-213`(대기 목록 조건 「재고 행이 없을 것」), `WarehouseRepository.cs:1697`(로케이션 INNER JOIN), `RptRepository.cs:355-358`(RPT-005), `PdaFinishedGoodsSql.cs:21-22`(PDA 재고는 FG 구역만)
-   - 내용: POP 이 확정 즉시 위치 NULL 행을 만들므로 Fg01 「QC Complete」 대기 목록이 비고, WH 재고·RPT-005·PDA 재고도 위치 NULL 행을 빼서 입고할 제품을 찾을 화면이 없습니다.
-   - 제안: 대기 목록 조건을 「위치 배정된 재고 행이 없을 것」으로, 위치 미배정 재고 보기를 더합니다.
-3. **[상] 재작업으로 수리한 양품은 FG 입고가 영구히 불가(52513)**
-   - 위치: `PdaFinishedGoodsSql.cs:171-176`, `FgEndpoints.cs:199·787`(양품 합계를 `P.ProcessCode = L.ProcessCode` 만), 수리 실적 `dist/migrate_pop_stored_procedures.sql:2225-2244`(ProcessCode `RWK`)
-   - 내용: IMG 로 확정됐던 LOT 은 +1 −1 = 0, 확정된 적 없던 LOT 은 NULL 이라 수리 양품이 입고 대기에도 안 나오고 스캔하면 거부됩니다 — 출하할 길이 없습니다. 심재현 보류 「팔레트 적재 범위 밖」 ①(수리 양품 미적재)과 함께 정합니다.
-   - 제안: 합계에 `RWK` 를 포함하거나 `PR_ImgLot.ConfirmStatus = 'CONFIRMED'` 로 판정합니다.
-4. **[상] 라인 하위 로케이션으로 보충한 자재를 백플러시가 쓰지 못함** — 심재현과 협의(백플러시는 POP)
-   - 위치: 백플러시 `BackflushRepository.cs:47·57`·`SP_POP_BACKFLUSH_ReadLineLots`(`dist/migrate_pop_stored_procedures.sql:2445-2455` — `LocationNo = LotPrefix` 만), 라인 로케이션 ID `WarehouseRepository.LineLocations.cs:26-30`(`I101A1F1` 형식), 보충 목적지 `WarehouseRepository.LineStock.cs:162-168·228-232`, 출고 `WhEndpoints.cs:2286-2289·2381`
-   - 내용: 라인 로케이션에 품번·최소량을 지정하면 WH-AUTO 가 `I101A1F1` 로 보충하지만 확정 때 백플러시는 `I1` 만 봐서, `BF-I1-…` 자리표시는 계속 음수로 쌓이고 `I1` 로 또 보충 요청이 나가며 `I101A1F1` 재고는 남습니다(이중 공급·라인 재고 과대). 로컬 DB 라인 로케이션 16행은 아직 품번·최소량이 비어 발동 전입니다.
-   - 제안: 백플러시가 그 라인의 `MD_Location.LineID` 위치들까지 FIFO 로 읽거나, 보충 목적지를 `LotPrefix` 하나로 통일합니다.
-5. **[상] 납품 박스 입고 취소가 라인 이동·일부 소비 뒤에도 허용됨**
-   - 위치: `src/02_Data/AMES.Data/Repositories/PdaWarehouseSql.cs:937-948`(`Qty > 0`·납품서 번호만 확인), `:957`(행 삭제), `:973`(박스 원수량으로 차감), `:735`(행이 없으면 다시 INSERT)
-   - 내용: 100 입고 → WH-AUTO 로 `I1` 이동(`DeliveryNoteNo` 유지) → 백플러시 60 소비 → PDA 입고 취소 시 40 행 삭제·발주/납품 입고량 −100·납품 Shipped 복귀 → 같은 박스 재입고로 100 이 새로 생겨 소비한 60 이 되살아나고 MRP 발주중도 +100. 일반 LOT 취소 분기(`:1015-1023`)의 「출고·소비 이력이면 차단」이 이 분기에는 없습니다(2-1 6 은 일반 LOT 분기만).
-   - 제안: 위치가 입고 때와 같고 입고 뒤 수량을 바꾼 거래가 없을 때만 취소합니다.
-6. **[중] 사출만(라우팅 C) 제품은 FG 입고가 안 됨**
-   - 위치: `PdaFinishedGoodsSql.cs:175`, `FgEndpoints.cs:203·768`(`ItemType='ASSY'` 만)
-   - 내용: INJ 확정은 팔레트 적재까지 되지만 PDA 입고는 ASSY 만 받습니다(로컬 C 품번 `TEST-0002` 는 MATERIAL). ASSY 로 둬도 고객은 `PR_ImgLot` 에서만 읽어 출고마다 수동 선택, INJ 라벨은 고객 표준 라벨이 아닙니다.
-   - 제안: 「출하 가능 품번」을 ItemType 대신 라우팅 마지막 공정의 품번으로 정합니다.
-7. **[중] 낱개 LOT 출고가 팔레트 전체를 출고됨으로 표시**
-   - 위치: `PdaFinishedGoodsSql.cs:286·333-336`, 반품 `:439`
-   - 내용: 자식 LOT 하나를 Fg04 로 출고해도 그 행의 팔레트 번호로 `MD_Pallet.ShippedFlag = 1`. 남은 LOT 이 있는 팔레트·재사용 중인 팔레트가 Shipped 가 돼 POP 적재가 거부되고 빈 팔렛 회수(52021)도 안 됩니다. 반품은 부모 연결만 끊고 팔레트 번호를 남깁니다.
-   - 제안: 바코드가 팔레트 머리 행일 때만 팔레트 상태를 바꾸고, 반품 때 팔레트 번호도 비웁니다.
-8. **[중] 출하가 올린 수주 `ShippedQty` 를 PO 자동 수집이 덮어씀** — 2-2 「PO 자동 수집 정합성」에 없는 부분
-   - 위치: `FinishedGoodsRepository.ShippingOrders.cs:229`(출하 배차만 증가), `PpRepository.cs:477`(PO Sync·엑셀 업로드가 SRM `DELI_QTY` 로 덮어씀)
-   - 내용: 100 중 40 출하 → SRM 반영 전 다음 PO Sync 가 0 으로 되돌려 출하 오더 잔량 100(과출하)·APS/PP-003 수요 과대. Fg04 개별 출고·반품은 출하수량을 바꾸지 않습니다.
-   - 제안: 로컬 출하분을 따로 두거나 동기화가 로컬 출하보다 작게 덮어쓰지 않게 합니다.
-9. **[중] 고객 반품 후속 처리가 없음**
-   - 위치: `PdaFinishedGoodsSql.cs:433-444`(소스 전체에 `FG_CustomerReturn` 상태를 바꾸는 UPDATE 없음)
-   - 내용: 반품은 Open 으로 남은 채 위치 없는 재고 행이 되고, 그 수량이 APS 완제품 재고에 잡히며, 입고가 `STOCKED` LOT 을 허용해 검사 없이 재입고·재출하할 수 있습니다.
-   - 제안: 반품 판정(재입고·폐기) 전에는 입고를 막고 재고 계산에서 뺍니다.
-10. **[중] WH-AUTO 보충의 Serializable 전체 조회가 POP 확정(백플러시)과 교착할 수 있음**(추정 — 2-1 2 부하 검증과 겹침)
-    - 위치: `WarehouseRepository.LineStock.cs:208·219`(applock 으로 이미 직렬화했는데 `ReadLineStock` 을 Serializable 로), `BackflushRepository.cs:36-37`
-    - 내용: Worker 가 `WH_Inventory` 범위 S 잠금을 쥔 동안 백플러시가 라인 LOT 을 갱신하면 U→X 변환 교착이 날 수 있고, 1205 로 희생되면 스캔 확정 자체가 실패합니다.
-    - 제안: 조회는 ReadCommitted 로 두고 applock 만 유지합니다.
-11. **[하] 흐름 점검 묶음**
-    - 선입선출이 강제되지 않음(`Fg04FifoPicking.razor`·출고·배차에서 입고일 순서 미확인, `IX_WH_Inventory_FIFO` 사용처 없음).
-    - 입고 위치 고객 혼적 검사가 현재 고객 코드를 늘 NULL 로 계산해 실제로는 돌지 않음(`FgEndpoints.cs:879`).
-    - POP 적재(`MD_Pallet` → `WH_Inventory`)와 PDA 출고(`WH_Inventory` → `MD_Pallet`, `PdaFinishedGoodsSql.cs:284-297·333-336`)가 반대 순서로 잠가 같은 팔레트 동시 처리 때 교착 가능(추정) — 출고에서 팔레트 행을 먼저 잠그면 해소.
-    - 일반 LOT(`tbl_Lot`) 자재 입고(`PdaWarehouseSql.cs:806-841`)가 ProcessCode(INJ·IMG 생산 LOT 포함)·입고 유형을 보지 않고, 발주를 품번만으로 매칭해 다른 공급사 발주 입고량을 올리며, 행 유형 `PART` 라 WH-AUTO 보충(`WarehouseBoxPredicate`)에서 영구히 빠짐.
-    - 발주 상태 어휘가 경로마다 다름(`PdaWarehouseSql.cs:754·838·1046` vs `:975-977` — Partial 미사용·Cancelled 보호 없음).
-    - PDA 수량 조정이 정수만 받고(`PdaWarehouseSql.cs:1119`, `AdjustmentEndpoints.cs:62·72`) `BF-` 음수 행을 보여 주지 않아 백플러시로 소수가 된 라인 재고를 실사로 맞출 수 없음.
-    - WH-AUTO 보충 요청이 G·FT 자재도 단위 「EA」 로 표시(`LineStock.cs:96`), 라인 최소량에 품목 안전재고를 라인마다 그대로 써(`:159`) 한 번 들어온 품번은 계속 보충 요청.
-    - 수동 피킹 슬립 출고(`WarehouseRepository.cs:1466-1530`, `WhEndpoints.cs:2379-2381`)는 라인 이동 없이 재고를 OUT 으로 지움 — 지금 호출처 없음, 다시 쓰면 백플러시와 이중 차감.
+1. **[중] 스키마 추출 도구의 전이 패키지 취약성 경고**(10-23 빌드에서 확인)
+   - `tools/schema_from_db`의 기존 SMO 의존성이 `System.Security.Cryptography.Pkcs 9.0.4`를 가져오며 NuGet 감사에서 NU1902·NU1903을 경고합니다. 배포 API에 새로 추가한 패키지는 아니며 도구는 실행하지 않았습니다. 패키지 보안 업데이트와 실제 스키마 추출 호환 검증이 필요합니다.
 
-### 2-5. 재검토 정정 — 운영 결함 아님·선택적 정리 (3)
+### 2-5. 재검토 정정 — 운영 결함 아님·선택적 정리 (7)
 1. **`SCM_ItemVendor.PackingUnitCode`가 남아 있음 — 미사용 컬럼 정리이지 기능 결함은 아님**
    - 현재 SCM 품목·공급업체 연결은 `ScmRepository.ItemVendorRow`와 `ListItemVendors`/`LinkItemVendors`를 사용하며 이 컬럼을 읽거나 저장하지 않습니다. 런타임 소스 참조도 없습니다. 컬럼이 남아 있다는 사실만으로 조회·발주·입고가 잘못되지 않으므로 반드시 삭제해야 할 문제로 분류하지 않습니다. 별도 정리 승인 전에는 보존합니다.
-2. **기존 BOX·PLT·SH 기록 — 신규 사용 금지와 과거 데이터 보존을 혼동한 지적 정정**
-   - `migrate_retire_packaging_uom.sql`은 기존 수량·단위를 환산하지 않는다고 명시하고 포장 UOM을 비활성화합니다. `MasterDataRepository.IsQuantityUnit`과 `ScmPreview.LoadEditorMaterials`는 신규 발주 품목에서 이 단위들을 제외하며 저장 시 품목 단위도 확인합니다. 따라서 "과거 값이 남았으니 일괄 EA 변환해야 한다"는 결론은 현재 구현 방향과 맞지 않습니다.
-   - 생성기의 SH→EA는 새로 생성할 시드 규칙이며 기존 데이터 환산 승인이 아닙니다. 특히 BOX의 내용물 환산 컬럼은 삭제돼 과거 BOX 수량을 EA로 추정 변환하면 의미가 달라질 수 있습니다. 실제 해당 품목을 다시 발주해야 할 때 품목·BOM·발주의 기준 수량을 개별 확인합니다. 과거 점검의 품목·발주 건수는 현재 DB 값으로 재확인하지 않았습니다.
+2. **BOX·PLT·PALLET 제외와 SH 유지 — 과거 단위의 일괄 EA 변환은 하지 않음**
+   - 현재 `migrate_retire_packaging_uom.sql`과 `MasterDataRepository.IsQuantityUnit`은 BOX·PLT·PALLET만 신규 수량 단위에서 제외합니다. **SH는 사용자 지시로 다시 활성화한 수량 단위**이므로 「SH도 사용 금지」는 틀린 지적입니다.
+   - 기존 주문·재고 단위를 일괄 EA로 바꾸지 않습니다. 삭제된 Box Contents 정보로 과거 BOX 수량을 추정 환산할 수도 없습니다. 품목·BOM·발주의 기준 단위는 실제 업무 자료로 확인해야 하며, 과거 점검의 DB 행 수를 현재 값으로 단정하지 않습니다.
 3. **일별 출하의 옛 운송사·회차 요약 — 현재 실출하 모델에는 해당 없음**
    - 현재 `FG_Shipment`와 보고서 데이터에는 운송사·회차가 없습니다. 예전 출하지시 기준의 요약을 되살리려고 임의 값을 만들거나 컬럼을 추가하지 않습니다. 실제 값이 있는 고객별 출하 건수·단위별 수량을 표시하며 서로 다른 UOM 수량은 합산하지 않습니다.
+4. **FG는 ASSY만 — 사출/반제품까지 받도록 확대하지 않음**
+   - 사용자가 합의한 Assy Ready/Set Location은 CONFIRMED인 ASSY 제품만 대상으로 하며 팔렛 안에 다른 유형이 섞이면 거부합니다. INJ MATERIAL이 FG에 안 들어온다는 사실만으로 결함이 아닙니다. 라우팅 마지막 공정만으로 FG 대상을 확대하라는 기존 제안은 적용하지 않았습니다.
+5. **라인 보충 기준은 위치·파트별 MinimumQty — 품목 SafetyStock이 아님**
+   - 현재 `WarehouseRepository.LineStockSql`은 활성 라인 상세 위치의 지정 PartNo·MinimumQty만 수요로 만들고, 해당 위치/파트 재고와 비교합니다. 「품목 SafetyStock을 라인마다 적용한다」는 이전 판 지적은 현재 코드와 달라 정정했습니다. 단위 표시 오류만 실제 수정했습니다.
+6. **일반 PART 재고와 BOX 피킹은 다른 단위**
+   - 일반 LOT은 PART로, 공급사 Unit Item은 BOX 재고로 받는 기존 구분을 유지합니다. 사용자가 피킹은 한 박스씩 처리하도록 정했으므로 PART를 임의로 BOX라고 바꾸거나 하나의 LOT을 한 박스로 환산하지 않았습니다. 생산 LOT 오입고·여러 공급사 PO 자동 추정·PO 잔량 초과는 실제 결함으로 보고 2-1 10에서 별도로 방어했습니다.
+7. **미사용 수동 피킹 슬립 출고 — 현행 라인 보충 경로와 구분**
+   - 현재 PDA는 WH-AUTO 지시를 통해 창고 재고를 라인으로 이동합니다. 구형 수동 슬립의 OUT 전용 분기는 현재 화면 호출이 없으므로 라인 이동 결함으로 일반화하지 않습니다. 다시 사용할 때는 업무별 출고/라인 이동 규칙을 먼저 정해야 하며, 이번에 임의로 재활성화하지 않았습니다.
 ---
 
 ## 3. 이승욱 — Web SYS·MD·MNT·RPT·PP-CAL/LSB/OEE/DTL/ODM·계정·공통

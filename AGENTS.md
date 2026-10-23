@@ -7,3 +7,9 @@
 - Match reference sizes, spacing, paging, date formats, theme tokens, and dialog behavior. Default action buttons to `ButtonSize.Small`, form controls to `InputSize.Small`, and use `DateFmt` for dates.
 - Keep nested detail grids content-sized with a bounded scroll area; do not stretch their rows through parent fixed-grid rules. Physical print layouts and spatial maps can retain document/spatial markup, while their interactive controls use Radzen.
 - Make UI-only requests without changing stock, database schema or business rules. Preserve existing functional requirements and validation.
+
+# Publish output rules
+
+- Create user-requested Web/API replacement packages at `publish/AMES.Web` and `publish/AMES.Api`. Keep these exact directory names.
+- Do not use `.tmp` as the delivery location or create ZIP files unless the user explicitly requests it.
+- Preserve existing server `appsettings*.json` and `web.config` when preparing replacement files. Do not deploy, restart IIS, or change the DB unless requested.

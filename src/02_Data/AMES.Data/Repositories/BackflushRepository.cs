@@ -14,7 +14,7 @@ public sealed record BackflushResult(IReadOnlyList<BackflushShortage> Shortages,
 }
 
 /// <summary>
-/// LOT 이 처음 CONFIRMED 가 될 때 유효 BOM 의 MATERIAL 자식을 그 라인(MD_Line.LotPrefix 위치)의 라인 재고에서 뺀다.
+/// LOT 이 처음 CONFIRMED 가 될 때 유효 BOM 자식을 그 라인의 상세 위치와 기존 LotPrefix 위치 재고에서 뺀다.
 /// 확정 트랜잭션 안에서 세이브포인트로 돌아 실패해도 확정을 막지 않는다(생산라인 우선, 사용자 결정 2026-10-15).
 /// 멱등 판정은 WH_InventoryTransaction(SourceType BACKFLUSH, SourceID = tbl_Lot.LotID) — 새 컬럼 없음.
 /// </summary>
@@ -55,21 +55,22 @@ public static class BackflushRepository
         foreach (var req in requirements)
         {
             var ph    = BackflushRules.PlaceholderLotNo(prefix, req.PartNo);
-            var fifo  = ReadLineLots(conn, tx, prefix, req.PartNo, ph);
+            var fifo  = ReadLineLots(conn, tx, lineId, prefix, req.PartNo, ph);
+            var locations=fifo.ToDictionary(x=>x.LotNo,x=>x.LocationNo??prefix,StringComparer.OrdinalIgnoreCase);
             var phQty = ReadLotQty(conn, tx, ph);
             var alloc = BackflushRules.Allocate(req.Qty, fifo, phQty ?? 0m);
 
             foreach (var n in alloc.Nets)
             {
                 var (before, after) = AdjustLot(conn, tx, n.LotNo, -n.Qty);
-                WriteTxn(conn, tx, "ADJ", NetSourceType, lotId, n.LotNo, req.PartNo, prefix, before, -n.Qty, after, $"net {ph} ← {lotCode}", operatorId, employeeNo);
+                WriteTxn(conn, tx, "ADJ", NetSourceType, lotId, n.LotNo, req.PartNo, locations[n.LotNo], before, -n.Qty, after, $"net {ph} ← {lotCode}", operatorId, employeeNo);
                 var (pb, pa) = EnsurePlaceholder(conn, tx, ph, req.PartNo, prefix, ref phQty, +n.Qty);
                 WriteTxn(conn, tx, "ADJ", NetSourceType, lotId, ph, req.PartNo, prefix, pb, +n.Qty, pa, $"net ← {n.LotNo}", operatorId, employeeNo);
             }
             foreach (var t in alloc.Takes)
             {
                 var (before, after) = AdjustLot(conn, tx, t.LotNo, -t.Qty);
-                WriteTxn(conn, tx, "OUT", SourceType, lotId, t.LotNo, req.PartNo, prefix, before, -t.Qty, after, note, operatorId, employeeNo);
+                WriteTxn(conn, tx, "OUT", SourceType, lotId, t.LotNo, req.PartNo, locations[t.LotNo], before, -t.Qty, after, note, operatorId, employeeNo);
             }
             if (alloc.PlaceholderTake > 0m)
             {
@@ -110,16 +111,27 @@ public static class BackflushRepository
         return list;
     }
 
-    /// <summary>라인 위치의 양수 창고 LOT, WH-07 과 같은 FIFO 순. 컨테이너 자식·자리표시는 뺀다.</summary>
-    static List<BackflushLot> ReadLineLots(SqlConnection conn, SqlTransaction tx, string prefix, string partNo, string placeholder)
+    /// <summary>라인 상세/기존 위치의 양수 LOT을 FIFO로 읽는다. 컨테이너 합계·자리표시는 뺀다.</summary>
+    internal const string ReadLineLotsSql = """
+        SELECT W.LotNo,W.Qty,W.LocationNo
+        FROM dbo.WH_Inventory W WITH(UPDLOCK,ROWLOCK)
+        WHERE W.PartNo=@Part AND W.Qty>0 AND W.LotNo<>@Ph
+          AND (W.LocationNo=@Loc OR EXISTS(SELECT 1 FROM dbo.MD_Location L
+              WHERE L.LocationID=W.LocationNo AND L.LineID=@Line AND L.LocationLevel=2))
+          AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
+        ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo;
+        """;
+
+    static List<BackflushLot> ReadLineLots(SqlConnection conn, SqlTransaction tx, string lineId, string prefix, string partNo, string placeholder)
     {
-        using var cmd = new SqlCommand("dbo.SP_POP_BACKFLUSH_ReadLineLots", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
+        using var cmd = new SqlCommand(ReadLineLotsSql, conn, tx);
+        ColumnParams.AddFilter(cmd, "@Line", "MD_Line.LineID", lineId);
         ColumnParams.AddFilter(cmd, "@Loc",  "WH_Inventory.LocationNo", prefix);
         ColumnParams.AddFilter(cmd, "@Part", "WH_Inventory.PartNo",     partNo);
         ColumnParams.AddFilter(cmd, "@Ph",   "WH_Inventory.LotNo",      placeholder);
         using var rdr = cmd.ExecuteReader();
         var list = new List<BackflushLot>();
-        while (rdr.Read()) list.Add(new BackflushLot((string)rdr["LotNo"], (decimal)rdr["Qty"]));
+        while (rdr.Read()) list.Add(new BackflushLot((string)rdr["LotNo"], (decimal)rdr["Qty"],rdr["LocationNo"] as string));
         return list;
     }
 

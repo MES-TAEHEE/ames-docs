@@ -9,10 +9,10 @@
 <div class="pda-shell wh wh02-shell wh-putaway-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/wh"))' Text="&lt;" />
-        <span class="pda-tbar-brand">PUT-AWAY</span>
+        <span class="pda-tbar-brand">SET LOCATION</span>
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="PUT-AWAY" Steps="PptSteps" Busy="IsBusy"
+            <PptScenarioPanel Title="SET LOCATION" Steps="PptSteps" Busy="IsBusy"
                               OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData"
                               OpenChanged="@((bool open) => _pptOpen = open)" />
         }
@@ -33,7 +33,7 @@
             <section class="wh-putaway-selection">
                 <div class="wh-putaway-document-head">
                     <div>
-                        <span>@(_selectionType == "DELIVERY_NOTE" ? "DELIVERY NOTE" : _selectionType == "CASE" ? "CASE PUT-AWAY" : "BOX PUT-AWAY")</span>
+                        <span>@(_selectionType == "DELIVERY_NOTE" ? "DELIVERY NOTE" : _selectionType == "CASE" ? "SHIPPING UNIT" : "UNIT ITEM")</span>
                         <strong>@Text(_barcode)</strong>
                     </div>
                     <div class="wh-putaway-document-summary">
@@ -427,7 +427,7 @@
         if (_boxes.Count == 0 || IsBusy || string.IsNullOrWhiteSpace(_locationNo)) return;
         if (_selectedBarcodes.Count == 0)
         {
-            ShowAlert("Put-Away Check", "Scan at least one box barcode.");
+            ShowAlert("Set Location Check", "Scan at least one box barcode.");
             return;
         }
 
@@ -471,7 +471,7 @@
                 : _selectedBarcodes.Count == 0
                     ? "Scan at least one box barcode."
                     : "Scan a valid location first.";
-            ShowAlert("Put-Away Check", message);
+            ShowAlert("Set Location Check", message);
             return;
         }
 
@@ -485,14 +485,14 @@
             var result = await Api.WhConfirmPutAwayAsync(new PdaApi.PutAwayConfirmReq(selected, _location.LocationId, _isRelocating));
             if (!result.Success)
             {
-                ShowAlert("Put-Away Failed", result.Message);
+                ShowAlert("Set Location Failed", result.Message);
                 return;
             }
 
             var completedCount = selected.Count;
             var wasRelocating = _isRelocating;
             Reset();
-            ShowAlert(wasRelocating ? "Relocation Complete" : "Put-Away Complete",
+            ShowAlert(wasRelocating ? "Relocation Complete" : "Location Saved",
                 $"{completedCount} box(es) were {(wasRelocating ? "relocated" : "assigned")} successfully.", "success");
         }
         finally { _isConfirming = false; }

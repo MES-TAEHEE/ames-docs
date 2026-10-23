@@ -508,7 +508,7 @@ SET ANSI_PADDING ON
 GO
 
 GO
-ALTER TABLE [dbo].[FG_CustomerReturn] ADD  CONSTRAINT [DF__FG_Custom__Creat__56B3DD81]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[FG_CustomerReturn] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 
 GO
@@ -737,7 +737,7 @@ CREATE TABLE [dbo].[MD_Bop](
 GO
 ALTER TABLE [dbo].[MD_Bop] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_Bop] ADD  CONSTRAINT [DF__MD_Bop__CreatedT__6501FCD8]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_Bop] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · BOPID · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Bop', @level2type=N'COLUMN',@level2name=N'BOPID'
 GO
@@ -968,7 +968,7 @@ CREATE TABLE [dbo].[MD_DefectCause](
 GO
 ALTER TABLE [dbo].[MD_DefectCause] ADD  CONSTRAINT [DF_MD_DefectCause_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_DefectCause] ADD  CONSTRAINT [DF__MD_Defect__Creat__6ABAD62E]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_DefectCause] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량원인 코드.  · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCause', @level2type=N'COLUMN',@level2name=N'CauseCode'
 GO
@@ -1025,7 +1025,7 @@ CREATE TABLE [dbo].[MD_DefectCode](
 GO
 ALTER TABLE [dbo].[MD_DefectCode] ADD  CONSTRAINT [DF_MD_DefectCode_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_DefectCode] ADD  CONSTRAINT [DF__MD_Defect__Creat__6CA31EA0]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_DefectCode] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 코드.  · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_DefectCode', @level2type=N'COLUMN',@level2name=N'DefectCode'
 GO
@@ -1156,7 +1156,7 @@ CREATE TABLE [dbo].[MD_InjCondItem](
 GO
 ALTER TABLE [dbo].[MD_InjCondItem] ADD  DEFAULT ((1)) FOR [Enabled]
 GO
-ALTER TABLE [dbo].[MD_InjCondItem] ADD  CONSTRAINT [DF__MD_InjCon__Creat__7167D3BD]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_InjCondItem] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.MD_InspectionStandard
 SET ANSI_NULLS ON
@@ -1190,7 +1190,7 @@ CREATE TABLE [dbo].[MD_InspectionStandard](
 GO
 ALTER TABLE [dbo].[MD_InspectionStandard] ADD  CONSTRAINT [DF_MD_InspectionStandard_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_InspectionStandard] ADD  CONSTRAINT [DF__MD_Inspec__Creat__725BF7F6]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_InspectionStandard] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Insp Std ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_InspectionStandard', @level2type=N'COLUMN',@level2name=N'InspStdID'
 GO
@@ -1284,7 +1284,7 @@ ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
 ALTER TABLE [dbo].[MD_Item] ADD  CONSTRAINT [DF_MD_Item_SAPFlag]  DEFAULT ((0)) FOR [SAPFlag]
 GO
-ALTER TABLE [dbo].[MD_Item] ADD  CONSTRAINT [DF__MD_Item_n__Creat__1B48FEF0]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_Item] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'품목 코드 (유형 접두어 + 시퀀스, 예: FIN-000123).  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Item', @level2type=N'COLUMN',@level2name=N'ItemNo'
 GO
@@ -1430,7 +1430,7 @@ CREATE TABLE [dbo].[MD_LabelTemplate](
 GO
 ALTER TABLE [dbo].[MD_LabelTemplate] ADD  CONSTRAINT [DF_MD_LabelTemplate_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_LabelTemplate] ADD  CONSTRAINT [DF__MD_LabelT__Creat__7814D14C]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_LabelTemplate] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라벨 템플릿 관리 ID.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LabelTemplate', @level2type=N'COLUMN',@level2name=N'LabelTemplateID'
 GO
@@ -1495,7 +1495,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_MD_Line_LotPrefix] ON [dbo].[MD_Line]
 WHERE ([LotPrefix] IS NOT NULL)
 WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_Line] ADD  CONSTRAINT [DF__MD_Line__Created__4F87BD05]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_Line] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인 코드 (LINE-{type}-{n}).  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Line', @level2type=N'COLUMN',@level2name=N'LineID'
 GO
@@ -1578,7 +1578,7 @@ ALTER TABLE [dbo].[MD_LineTimePattern] ADD  CONSTRAINT [DF_MD_LineTimePattern_Op
 GO
 ALTER TABLE [dbo].[MD_LineTimePattern] ADD  CONSTRAINT [DF_MD_LineTimePattern_SegmentFlag]  DEFAULT (replicate('0',(1440))) FOR [SegmentFlag]
 GO
-ALTER TABLE [dbo].[MD_LineTimePattern] ADD  CONSTRAINT [DF__MD_LineTi__Creat__7AF13DF7]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_LineTimePattern] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'소속 패턴 → MD_LineTimePattern(PatternID).  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_LineTimePattern', @level2type=N'COLUMN',@level2name=N'PatternID'
 GO
@@ -1723,7 +1723,7 @@ ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF_MD_Location_LocationLevel]  
 GO
 ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF_MD_Location_SAPFlag]  DEFAULT ((0)) FOR [SAPFlag]
 GO
-ALTER TABLE [dbo].[MD_Location] ADD  CONSTRAINT [DF__MD_Locati__Creat__7FB5F314]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_Location] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 ALTER TABLE [dbo].[MD_Location]  WITH CHECK ADD  CONSTRAINT [CK_MD_Location_LocationLevel] CHECK  (([LocationLevel]=(2) OR [LocationLevel]=(1)))
 GO
@@ -1812,7 +1812,7 @@ ALTER TABLE [dbo].[MD_Mold] ADD  CONSTRAINT [DF_MD_Mold_CumulativeShots]  DEFAUL
 GO
 ALTER TABLE [dbo].[MD_Mold] ADD  CONSTRAINT [DF_MD_Mold_AssyInjResultFlag]  DEFAULT ((0)) FOR [AssyInjResultFlag]
 GO
-ALTER TABLE [dbo].[MD_Mold] ADD  CONSTRAINT [DF__MD_Mold__Created__00AA174D]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_Mold] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'금형 코드.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Mold', @level2type=N'COLUMN',@level2name=N'MoldID'
 GO
@@ -1890,7 +1890,7 @@ ALTER TABLE [dbo].[MD_MoldItem] ADD  DEFAULT ((1)) FOR [CavityCount]
 GO
 ALTER TABLE [dbo].[MD_MoldItem] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_MoldItem] ADD  CONSTRAINT [DF__MD_MoldIt__Creat__0662F0A3]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_MoldItem] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.MD_MoldLine
 SET ANSI_NULLS ON
@@ -1913,7 +1913,7 @@ CREATE TABLE [dbo].[MD_MoldLine](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MD_MoldLine] ADD  CONSTRAINT [DF__MD_MoldLi__Creat__084B3915]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_MoldLine] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.MD_Oven
 SET ANSI_NULLS ON
@@ -2001,7 +2001,7 @@ CREATE TABLE [dbo].[MD_PackagingSpec](
 GO
 ALTER TABLE [dbo].[MD_PackagingSpec] ADD  CONSTRAINT [DF_MD_PackagingSpec_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_PackagingSpec] ADD  CONSTRAINT [DF__MD_Packag__Creat__0A338187]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_PackagingSpec] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'포장사양 관리 ID.  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_PackagingSpec', @level2type=N'COLUMN',@level2name=N'PackSpecID'
 GO
@@ -2351,7 +2351,7 @@ CREATE TABLE [dbo].[MD_ReasonCode](
 GO
 ALTER TABLE [dbo].[MD_ReasonCode] ADD  CONSTRAINT [DF_MD_ReasonCode_ActiveFlag]  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_ReasonCode] ADD  CONSTRAINT [DF__MD_Reason__Creat__11D4A34F]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_ReasonCode] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 코드.  · varchar(16)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_ReasonCode', @level2type=N'COLUMN',@level2name=N'ReasonCode'
 GO
@@ -2861,7 +2861,7 @@ CREATE TABLE [dbo].[MD_WorkCenter](
 GO
 ALTER TABLE [dbo].[MD_WorkCenter] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[MD_WorkCenter] ADD  CONSTRAINT [DF__MD_WorkCe__Creat__220B0B18]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MD_WorkCenter] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'작업장 코드 (WC-{공정}-{nn}).  · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_WorkCenter', @level2type=N'COLUMN',@level2name=N'WCID'
 GO
@@ -3011,7 +3011,7 @@ CREATE NONCLUSTERED INDEX [IX_MNT_FailureAction_WorkOrderID] ON [dbo].[MNT_Failu
 )
 INCLUDE([FailureID]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[MNT_FailureAction] ADD  CONSTRAINT [DF__MNT_Failu__Creat__23F3538A]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[MNT_FailureAction] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Failure Action ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureAction', @level2type=N'COLUMN',@level2name=N'FailureActionID'
 GO
@@ -4864,7 +4864,7 @@ ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT ((0)) FOR [WarningCount]
 GO
 ALTER TABLE [dbo].[PP_ApsRun] ADD  CONSTRAINT [DF_PP_ApsRun_IncludeDailyPlan]  DEFAULT ((0)) FOR [IncludeDailyPlan]
 GO
-ALTER TABLE [dbo].[PP_ApsRun] ADD  CONSTRAINT [DF__PP_ApsRun__Creat__27AED5D5]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PP_ApsRun] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'APS 실행(PP-APS 저장) — 선택 라인·기준일·일수와 Settings/PlanBundle/PlanResult JSON 스냅샷. Status Saved | Released' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_ApsRun'
 GO
@@ -5128,7 +5128,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_Forecast_Cust_Item_Week] ON [dbo].[PP_Fo
 WHERE ([WeekStartDate] IS NOT NULL)
 WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PP_Forecast] ADD  CONSTRAINT [DF__PP_Foreca__Creat__4924D839]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PP_Forecast] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 수요 예측 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_Forecast', @level2type=N'COLUMN',@level2name=N'ForecastID'
 GO
@@ -5376,7 +5376,7 @@ CREATE TABLE [dbo].[PP_LineSchedule](
 GO
 ALTER TABLE [dbo].[PP_LineSchedule] ADD  CONSTRAINT [DF_PP_LineSchedule_EntryType]  DEFAULT ('WO') FOR [EntryType]
 GO
-ALTER TABLE [dbo].[PP_LineSchedule] ADD  CONSTRAINT [DF__PP_LineSc__Creat__4CF5691D]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PP_LineSchedule] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.PP_LineStateLog
 SET ANSI_NULLS ON
@@ -5675,7 +5675,7 @@ CREATE TABLE [dbo].[PP_PurchaseRequest](
 GO
 ALTER TABLE [dbo].[PP_PurchaseRequest] ADD  CONSTRAINT [DF_PP_PurchaseRequest_RetryCount]  DEFAULT ((0)) FOR [RetryCount]
 GO
-ALTER TABLE [dbo].[PP_PurchaseRequest] ADD  CONSTRAINT [DF__PP_Purcha__Creat__53A266AC]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PP_PurchaseRequest] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Pr ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_PurchaseRequest', @level2type=N'COLUMN',@level2name=N'PrID'
 GO
@@ -5850,7 +5850,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_WorkOrder_WoNumber] ON [dbo].[PP_WorkOrd
 	[WoNumber] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PP_WorkOrder] ADD  CONSTRAINT [DF__PP_WorkOr__Creat__567ED357]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PP_WorkOrder] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 작업지시 ID (생산 계획) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrder', @level2type=N'COLUMN',@level2name=N'WoID'
 GO
@@ -5965,7 +5965,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_PP_WorkOrderRouting_Wo_Step] ON [dbo].[PP_W
 GO
 ALTER TABLE [dbo].[PP_WorkOrderRouting] ADD  CONSTRAINT [DF_PP_WorkOrderRouting_CompletedQty]  DEFAULT ((0)) FOR [CompletedQty]
 GO
-ALTER TABLE [dbo].[PP_WorkOrderRouting] ADD  CONSTRAINT [DF__PP_WorkOr__Creat__5772F790]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PP_WorkOrderRouting] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Routing Line ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_WorkOrderRouting', @level2type=N'COLUMN',@level2name=N'RoutingLineID'
 GO
@@ -6035,7 +6035,7 @@ CREATE NONCLUSTERED INDEX [IX_PR_AndonCall_Line_Status] ON [dbo].[PR_AndonCall]
 )
 INCLUDE([TriggeredAt]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PR_AndonCall] ADD  CONSTRAINT [DF__PR_AndonC__Creat__58671BC9]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PR_AndonCall] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 안돈 콜 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonCall', @level2type=N'COLUMN',@level2name=N'AndonID'
 GO
@@ -6513,7 +6513,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_PR_DefectDetail_OpenLot] ON [dbo].[PR_Defec
 WHERE ([Disposition] IS NULL AND [LotID] IS NOT NULL)
 WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PR_DefectDetail] ADD  CONSTRAINT [DF__PR_Defect__Creat__60FC61CA]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PR_DefectDetail] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 불량 상세 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'DefectID'
 GO
@@ -6932,7 +6932,7 @@ ALTER TABLE [dbo].[PR_InjLot] ADD  DEFAULT ('RAW') FOR [ConfirmStatus]
 GO
 ALTER TABLE [dbo].[PR_InjLot] ADD  DEFAULT ((0)) FOR [PrintedCount]
 GO
-ALTER TABLE [dbo].[PR_InjLot] ADD  CONSTRAINT [DF__PR_InjLot__Creat__6A85CC04]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PR_InjLot] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.PR_MoldChange
 SET ANSI_NULLS ON
@@ -7164,9 +7164,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_PR_PopSession_BearerHash] ON [dbo].[PR_PopS
 WHERE ([BearerHash] IS NOT NULL)
 WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[PR_PopSession] ADD  CONSTRAINT [DF__PR_PopSes__Creat__6F4A8121]  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-CREATE UNIQUE NONCLUSTERED INDEX [UX_PR_PopSession_BearerHash] ON [dbo].[PR_PopSession]([BearerHash]) WHERE [BearerHash] IS NOT NULL
+ALTER TABLE [dbo].[PR_PopSession] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · POP 세션 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PopSession', @level2type=N'COLUMN',@level2name=N'SessionID'
 GO
@@ -7251,7 +7249,7 @@ INCLUDE([WoID],[GoodQty]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, S
 GO
 ALTER TABLE [dbo].[PR_ProductionResult] ADD  DEFAULT (sysdatetime()) FOR [EntryAt]
 GO
-ALTER TABLE [dbo].[PR_ProductionResult] ADD  CONSTRAINT [DF__PR_Produc__Creat__7132C993]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[PR_ProductionResult] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 생산 실적 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ProductionResult', @level2type=N'COLUMN',@level2name=N'ResultID'
 GO
@@ -8251,7 +8249,7 @@ UNIQUE NONCLUSTERED
 GO
 ALTER TABLE [dbo].[SCM_Delivery] ADD  DEFAULT ('Registered') FOR [Status]
 GO
-ALTER TABLE [dbo].[SCM_Delivery] ADD  CONSTRAINT [DF__SCM_Deliv__Creat__1A89E4E1]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[SCM_Delivery] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 ALTER TABLE [dbo].[SCM_Delivery]  WITH CHECK ADD  CONSTRAINT [CK_SCM_Delivery_Status] CHECK  (([Status]='Cancelled' OR [Status]='Received' OR [Status]='Shipped' OR [Status]='Registered'))
 GO
@@ -8314,7 +8312,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_SCM_DeliveryBox_Number] ON [dbo].[SCM_Deliv
 GO
 ALTER TABLE [dbo].[SCM_DeliveryBox] ADD  DEFAULT ((1)) FOR [ActiveFlag]
 GO
-ALTER TABLE [dbo].[SCM_DeliveryBox] ADD  CONSTRAINT [DF__SCM_Deliv__Creat__3AF6B473]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[SCM_DeliveryBox] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 ALTER TABLE [dbo].[SCM_DeliveryBox]  WITH CHECK ADD CHECK  (([BoxSeq]>(0)))
 GO
@@ -8983,7 +8981,7 @@ CREATE TABLE [dbo].[SYS_RolePermission](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[SYS_RolePermission] ADD  CONSTRAINT [DF__SYS_RoleP__Creat__25E688F4]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[SYS_RolePermission] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Role Permission ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_RolePermission', @level2type=N'COLUMN',@level2name=N'RolePermissionID'
 GO
@@ -9076,7 +9074,7 @@ CREATE TABLE [dbo].[SYS_UserProfile](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[SYS_UserProfile] ADD  CONSTRAINT [DF__SYS_UserP__Creat__1387E197]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[SYS_UserProfile] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · User Profile ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_UserProfile', @level2type=N'COLUMN',@level2name=N'UserProfileID'
 GO
@@ -9172,7 +9170,7 @@ WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNOR
 GO
 ALTER TABLE [dbo].[tbl_Lot] ADD  CONSTRAINT [DF_tbl_Lot_InventoryStatus]  DEFAULT ('CREATED') FOR [InventoryStatus]
 GO
-ALTER TABLE [dbo].[tbl_Lot] ADD  CONSTRAINT [DF__tbl_Lot__Created__147C05D0]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[tbl_Lot] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Lot ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'tbl_Lot', @level2type=N'COLUMN',@level2name=N'LotID'
 GO
@@ -9406,7 +9404,7 @@ CREATE NONCLUSTERED INDEX [IX_WH_PickSlip_PickSlipNo] ON [dbo].[WH_PickSlip]
 	[PickSlipID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[WH_PickSlip] ADD  CONSTRAINT [DF__WH_Releas__Creat__1E05700A]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[WH_PickSlip] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Release Schedule ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'WH_PickSlip', @level2type=N'COLUMN',@level2name=N'PickSlipID'
 GO
@@ -9467,9 +9465,9 @@ CREATE TABLE [dbo].[WH_PurchaseOrder](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  CONSTRAINT [DF__WH_Purcha__Creat__1A34DF26]  DEFAULT ('system') FOR [CreatedBy]
+ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  DEFAULT ('system') FOR [CreatedBy]
 GO
-ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  CONSTRAINT [DF__WH_Purcha__Creat__1B29035F]  DEFAULT (sysdatetime()) FOR [CreatedTS]
+ALTER TABLE [dbo].[WH_PurchaseOrder] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
 -- Table: dbo.WH_ReleaseSchedule
 SET ANSI_NULLS ON

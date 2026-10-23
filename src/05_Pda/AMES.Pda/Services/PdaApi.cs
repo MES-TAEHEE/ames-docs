@@ -29,8 +29,8 @@ public abstract class PdaApi
     }
 
     // ── Auth ─────────────────────────────────────────────────────────────
-    public sealed record LoginReq(string EmployeeNo, string Pin, string TerminalId, string LineId, string ShiftCode);
-    public sealed record BarcodeLoginReq(string Barcode, string TerminalId, string LineId, string ShiftCode);
+    public sealed record LoginReq(string EmployeeNo, string Pin, string TerminalId);
+    public sealed record BarcodeLoginReq(string Barcode, string TerminalId);
     public sealed record LoginRes(string Token, int Result, string? Reason,
                                    string? EmployeeNo, string? EmployeeName,
                                    string? LineId, string? ShiftCode, DateTime? ExpiresAt);
@@ -213,12 +213,12 @@ public abstract class PdaApi
         DateTime? MfgDate, DateTime? ExpiryDate, DateTime? ReadyAt,
         bool IsProductionCompleted, bool AlreadyStocked, string? ExistingLotNo, string? ExistingLocation,
         string? ExistingStatus, string BarcodeType, string StorageMethod, string NextScanType,
-        string NextScanLabel, string? PackSpecId, string Message);
+        string NextScanLabel, string? PackSpecId, string Message, List<FgPutAwayScanRow>? Items = null);
     public sealed record FgPutAwayLocationRow(string LocationId, string? LocationName, string? ZoneCode,
         string? Aisle, string? Bay, string? Slot, decimal Capacity, decimal CurrentQty,
         decimal AvailableQty, string? CurrentCustomerCode, bool IsValid, string Message,
         string ScanType, string ScannedBarcode, string? AreaCode = null);
-    public sealed record FgPutAwayConfirmReq(string Barcode, string LocationId);
+    public sealed record FgPutAwayConfirmReq(string Barcode, string LocationId, Dictionary<string,decimal>? ExpectedItems = null);
     public sealed record FgPutAwayResult(bool Success, string Message, string? InventoryLotNo, FgPutAwayScanRow? Row,
         FgPutAwayLocationRow? Location);
     public sealed record FgOutboundUnitItemRow(string LotNo, string UnitType, string PartNo, string? PartName,

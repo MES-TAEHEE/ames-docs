@@ -1,6 +1,4 @@
 {
   "apiBaseUrl": "http://desktop-poedibs.tail526f68.ts.net:5210",
-  "terminalId": "PDA-DEV-01",
-  "lineId": "LINE-INJ-01",
-  "shiftCode": "A"
+  "terminalId": "PDA-DEV-01"
 }

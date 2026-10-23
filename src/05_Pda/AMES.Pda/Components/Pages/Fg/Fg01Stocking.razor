@@ -9,10 +9,10 @@
 <div class="pda-shell wh wh02-shell fg02-shell">
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo("/fg"))' Text="&lt;" />
-        <span class="pda-tbar-brand">PUT-AWAY</span>
+        <span class="pda-tbar-brand">SET LOCATION</span>
         @if (IsPptTestMode)
         {
-            <PptScenarioPanel Title="PUT-AWAY" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@IsBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
+            <PptScenarioPanel Title="SET LOCATION" Steps="ActiveScenarioSteps" ModeLabel="@ScenarioModeLabel" Busy="@IsBusy" OnStart="StartPptStep" OnValue="RunPptValue" OnReset="ResetPptData" OpenChanged="@((bool open) => _pptOpen = open)" />
         }
     </div>
 
@@ -24,7 +24,7 @@
                                Value="@_barcode"
                                @oninput="OnBarcodeInput"
                                @onkeydown="OnBarcodeKey"
-                               Placeholder="Scan Barcode" />
+                               Placeholder="Scan ASSY LOT or Pallet" />
             </div>
             @if (ShowDeveloperScanButtons)
             {
@@ -49,6 +49,18 @@
 
         @if (ReadyForLocation)
         {
+            @if (_scan?.Items is { Count: > 0 } items)
+            {
+                <RadzenCard class="wh02-lot-card fg-pallet-contents">
+                    <strong>PALLET CONTENTS · @items.Count LOTS</strong>
+                    <div class="fg-pallet-contents-list">
+                        @foreach (var item in items)
+                        {
+                            <div><strong>@item.LotNo</strong><span>@item.ItemNo · @item.ItemName</span><b>@Qty(item.Qty,item.Unit)</b></div>
+                        }
+                    </div>
+                </RadzenCard>
+            }
             <RadzenCard class="@($"wh02-panel wh02-location-panel fg01-panel fg01-location-panel {ScanPanelClass} {(_highlightLocationScan ? "location-attention" : "")}")">
                 <div class="pda-fld">
                     <label>LOCATION BARCODE SCAN</label>
@@ -313,7 +325,7 @@
 
             if (!result.Success)
             {
-                ShowAlert(_scan.AlreadyStocked ? "Already Stocked" : "Put-Away Blocked", result.Message, _scan.AlreadyStocked ? "warn" : "danger");
+                ShowAlert(_scan.AlreadyStocked ? "Already Stocked" : "Set Location Blocked", result.Message, _scan.AlreadyStocked ? "warn" : "danger");
                 return;
             }
             _msg = "Scan Location Barcode.";
@@ -382,32 +394,32 @@
         {
             _msg = validation;
             _cls = "fail";
-            ShowAlert("Put-Away Check", validation, "warn");
+            ShowAlert("Set Location Check", validation, "warn");
             return;
         }
 
         if (_scan is null || _selectedLocation is null) return;
 
         _isConfirming = true;
-        _msg = "Confirming Put-Away...";
+        _msg = "Saving location...";
         _cls = "dim";
 
         try
         {
             var result = await Api.FgConfirmPutAwayAsync(new PdaApi.FgPutAwayConfirmReq(
-                _scan.LotNo, _selectedLocation.LocationId));
+                _scan.LotNo, _selectedLocation.LocationId, _scan.Items?.ToDictionary(x => x.LotNo, x => x.Qty)));
 
             if (!result.Success)
             {
                 _msg = result.Message;
                 _cls = "fail";
-                ShowAlert("Put-Away Failed", result.Message, "danger");
+                ShowAlert("Set Location Failed", result.Message, "danger");
                 return;
             }
 
-            _msg = "FG Put-Away complete.";
+            _msg = "Location saved.";
             _cls = "ok";
-            ShowAlert("Put-Away Complete", "FG stock is now Available.", "success", resetAfterClose: true);
+            ShowAlert("Location Saved", "FG stock is now Available.", "success", resetAfterClose: true);
         }
         finally
         {
@@ -420,7 +432,7 @@
         if (_scan is null)
             return "Scan FG LOT first.";
         if (!_scan.IsProductionCompleted)
-            return "POP production completion is required before FG Put-Away.";
+            return "POP production completion is required before setting a location.";
         if (_scan.AlreadyStocked)
             return "This FG LOT is already stocked.";
         if (_selectedLocation is null)
@@ -464,7 +476,7 @@
     private IEnumerable<(string Label, string Value)> LotFields()
     {
         if (_scan is null) yield break;
-        yield return ("LOT NO", Text(_scan.LotNo));
+        yield return (_scan.Items is null ? "LOT NO" : "PALLET NO", Text(_scan.LotNo));
         yield return ("PART NO", Text(_scan.ItemNo));
         yield return ("PART NM", Text(_scan.ItemName));
         yield return ("QTY", Qty(_scan.Qty, _scan.Unit));

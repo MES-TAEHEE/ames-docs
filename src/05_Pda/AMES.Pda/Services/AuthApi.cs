@@ -16,12 +16,12 @@ public sealed class AuthApi(HttpClient http, AuthState auth, PdaSettings setting
     /// </summary>
     public Task<(string Token, PopSessionDto Session, string? Reason)?> LoginAsync(string employeeNo, string pin)
         => LoginCoreAsync("/api/auth/login",
-            new LoginReq(employeeNo, pin, settings.TerminalId, settings.LineId, settings.ShiftCode),
+            new LoginReq(employeeNo, pin, settings.TerminalId),
             "Check Employee No and PIN.");
 
     public Task<(string Token, PopSessionDto Session, string? Reason)?> LoginByBarcodeAsync(string barcode)
         => LoginCoreAsync("/api/auth/barcode-login",
-            new BarcodeLoginReq(barcode, settings.TerminalId, settings.LineId, settings.ShiftCode),
+            new BarcodeLoginReq(barcode, settings.TerminalId),
             "Scan or enter a valid employee barcode.");
 
     private async Task<(string Token, PopSessionDto Session, string? Reason)?> LoginCoreAsync<T>(
