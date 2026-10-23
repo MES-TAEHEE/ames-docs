@@ -66,6 +66,16 @@ public sealed class WarehouseReviewRegressionTests
     }
 
     [Fact]
+    public void Child_outbound_does_not_ship_the_physical_pallet_and_product_return_detaches_it()
+    {
+        Assert.Contains("IF @UnitType='PALLET' AND @PalletNo IS NOT NULL",PdaFinishedGoodsSql.OutboundComplete);
+        Assert.Contains("ParentLotNo=NULL,PalletNo=NULL",PdaFinishedGoodsSql.ReturnReceive);
+        var sql=PdaFinishedGoodsSql.OutboundComplete;
+        Assert.True(sql.IndexOf("FROM dbo.MD_Pallet WITH(UPDLOCK,HOLDLOCK)",StringComparison.Ordinal)
+            < sql.IndexOf("FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK)",StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Generic_supplier_receipt_cannot_credit_production_lots_ambiguous_vendors_or_over_receipts()
     {
         var sql=PdaWarehouseSql.InboundReceive;

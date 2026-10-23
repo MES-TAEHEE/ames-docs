@@ -290,6 +290,9 @@ public static class PdaFinishedGoodsSql
                 DECLARE @ShippingGate int;
                 EXEC @ShippingGate=sys.sp_getapplock @Resource='FG_SHIPPING_ORDERS',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000;
                 IF @ShippingGate<0 THROW 52020,'Shipping is busy. Retry shortly.',1;
+                -- POP locks the physical pallet before inventory; use that order here too.
+                DECLARE @PalletLock varchar(50);
+                SELECT @PalletLock=PalletNo FROM dbo.MD_Pallet WITH(UPDLOCK,HOLDLOCK) WHERE PalletNo=@Barcode;
                 IF NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode)
                     THROW 52000,'No inventory record exists for this barcode.',1;
                 SELECT @UnitType=UnitType,@PalletNo=COALESCE(NULLIF(LTRIM(RTRIM(PalletNo)),''),CASE WHEN UnitType='PALLET' THEN LotNo END) FROM dbo.WH_Inventory WHERE LotNo=@Barcode;
@@ -343,7 +346,7 @@ public static class PdaFinishedGoodsSql
                 INSERT dbo.FG_Shipment(LotNo,UnitType,PalletNo,CustomerID,ShippedAt,ShippedBy)
                     VALUES(@Barcode,@UnitType,@PalletNo,@CustomerID,@Now,@OperatorID);
                 SET @ShipmentID=CONVERT(int,SCOPE_IDENTITY());
-                IF @PalletNo IS NOT NULL
+                IF @UnitType='PALLET' AND @PalletNo IS NOT NULL
                     UPDATE dbo.MD_Pallet SET ShippedFlag=1,ShippedAt=@Now,ShippedCustomerID=@CustomerID,ReturnedAt=NULL,
                         ModifiedBy=LEFT(@OperatorID,20),ModifiedTS=@Now
                     WHERE PalletNo=@PalletNo;
@@ -449,7 +452,7 @@ public static class PdaFinishedGoodsSql
                 SELECT CustomerID,ShipmentID,LotNo,LotID,PartNo,PartName,Qty,@Reason,@CleanNote,'Open',@Now,@OperatorID,@OperatorID,@Now FROM @P;
                 SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
                 MERGE dbo.WH_Inventory WITH(HOLDLOCK) AS T USING(SELECT LotNo,PartNo,PartName,Qty FROM @P) S ON S.LotNo=T.LotNo
-                WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,ParentLotNo=NULL,UpdatedAt=@Now
+                WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,ParentLotNo=NULL,PalletNo=NULL,UpdatedAt=@Now
                 WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
                     VALUES(S.LotNo,'PART',S.PartNo,S.PartName,NULL,S.Qty,@Now,@Now,@Now);
                 INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,

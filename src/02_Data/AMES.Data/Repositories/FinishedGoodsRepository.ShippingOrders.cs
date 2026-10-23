@@ -139,6 +139,11 @@ public sealed partial class FinishedGoodsRepository
     private static LoadUnit ReadLoadUnit(SqlConnection conn,SqlTransaction tx,string barcode)
     {
         if(string.IsNullOrWhiteSpace(barcode) || barcode.Length>50)throw new ArgumentException("Scan a pallet LOT barcode within 50 characters.");
+        using(var pallet=new SqlCommand("DECLARE @P varchar(50); SELECT @P=PalletNo FROM dbo.MD_Pallet WITH(UPDLOCK,HOLDLOCK) WHERE PalletNo=@Barcode;",conn,tx))
+        {
+            Add(pallet,"@Barcode",SqlDbType.VarChar,50,barcode);
+            pallet.ExecuteNonQuery();
+        }
         using var cmd=new SqlCommand(PdaFinishedGoodsSql.OutboundScan,conn,tx);Add(cmd,"@Barcode",SqlDbType.NVarChar,50,barcode);
         using var r=cmd.ExecuteReader();if(!r.Read())throw new InvalidOperationException("Pallet not found.");
         var type=GetString(r,"UnitType")!;var customer=GetString(r,"KnownCustomerID");var rows=new List<DeliveryLoadDto>();
