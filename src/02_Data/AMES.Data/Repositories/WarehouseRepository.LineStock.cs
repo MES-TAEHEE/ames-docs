@@ -114,7 +114,7 @@ public sealed partial class WarehouseRepository
         AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
         AND NOT EXISTS (SELECT 1 FROM dbo.MD_Location L
                         WHERE L.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT
-                          AND (L.AreaCode IN ('FG','FG_AREA','MNT_AREA','SP_AREA') OR L.LineID IS NOT NULL OR L.LocationType IN('FG','LINE')))
+                          AND (L.LocationLevel=1 OR L.AreaCode IN ('FG','FG_AREA','MNT_AREA','SP_AREA') OR L.LineID IS NOT NULL OR L.LocationType IN('FG','LINE')))
         """;
 
     public sealed record LineStockRow(string LineCode, string PartNo, string PartName,
@@ -135,7 +135,7 @@ public sealed partial class WarehouseRepository
 
     public static string? ResolveLineLocation(SqlConnection conn, string? value)
     {
-        using var cmd = new SqlCommand(ActiveLineLocationsSql + " AND LotPrefix=@Location UNION ALL SELECT L.LocationID FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID WHERE L.LocationID=@Location AND COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE';", conn);
+        using var cmd = new SqlCommand(ActiveLineLocationsSql + " AND LotPrefix=@Location UNION ALL SELECT L.LocationID FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID WHERE L.LocationID=@Location AND L.LocationLevel=2 AND COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE';", conn);
         cmd.Parameters.Add("@Location", SqlDbType.VarChar, 80).Value = (object?)value?.Trim() ?? DBNull.Value;
         return (cmd.ExecuteScalar() as string)?.Trim();
     }

@@ -898,6 +898,7 @@ public static partial class FgEndpoints
                    CAST(ISNULL(S.CurrentQty, 0) AS DECIMAL(14,3)) AS CurrentQty,
                    CAST(CASE WHEN L.Capacity > 0 THEN L.Capacity - ISNULL(S.CurrentQty, 0) ELSE 0 END AS DECIMAL(14,3)) AS AvailableQty,
                    S.CurrentCustomerCode,
+                   L.LocationLevel,
                    CASE WHEN UPPER(ISNULL(L.LocationType, '')) = 'FG' THEN 1 ELSE 0 END AS IsFgLocation
             FROM dbo.MD_Location L
             LEFT JOIN StockByLocation S
@@ -911,6 +912,8 @@ public static partial class FgEndpoints
         if (!rdr.Read()) return null;
 
         var row = ReadPutAwayLocation(rdr, customerCode, qty, expected, parsed.Raw);
+        if (Convert.ToInt32(rdr["LocationLevel"]) != 2)
+            return row with { IsValid = false, Message = "Primary locations cannot hold stock. Scan a detail location.", ScanType = expected, ScannedBarcode = parsed.Raw };
         if (!GetBool(rdr, "IsFgLocation"))
             return row with { IsValid = false, Message = "Scan an FG warehouse location.", ScanType = expected, ScannedBarcode = parsed.Raw };
         if (string.Equals(row.CurrentCustomerCode, "MIXED", StringComparison.OrdinalIgnoreCase))

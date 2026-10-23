@@ -113,6 +113,9 @@ public static class PdaFinishedGoodsSql
                     @User nvarchar(40)=COALESCE(NULLIF(LTRIM(RTRIM(@UserId)),N''),N'PDA'),
                     @ItemNo varchar(50),@Location varchar(50),@Before decimal(18,3),@After decimal(18,3),@LotID int;
             IF @Scan=N'' THROW 51610,'Finished goods Lot No is required.',1;
+            IF EXISTS(SELECT 1 FROM dbo.WH_Inventory W JOIN dbo.MD_Location L ON L.LocationID=W.LocationNo
+                WHERE W.LotNo=@Scan AND L.LocationLevel=1)
+                THROW 51614,'Primary locations cannot hold stock. Move this LOT to a detail location first.',1;
             IF COALESCE(@DeltaQty,0)=0 THROW 51611,'Adjustment quantity must be different from zero.',1;
             IF @Reason=N'' THROW 51612,'Reason code is required.',1;
             IF NOT EXISTS(SELECT 1 FROM dbo.MD_CodeItem WHERE GroupCode='INV_ADJUST_REASON' AND CodeValue=@Reason AND ISNULL(UseFlag,1)=1)
@@ -193,7 +196,7 @@ public static class PdaFinishedGoodsSql
                     THROW 52516,'The inventory part does not match the production LOT.',1;
                 SET @Qty=COALESCE(@StoredQty,@ProductionQty);
                 SELECT @Capacity=Capacity FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK)
-                    WHERE LocationID=@Location AND LocationType='FG';
+                    WHERE LocationID=@Location AND LocationType='FG' AND LocationLevel=2 AND COALESCE(ActiveFlag,1)=1;
                 IF @@ROWCOUNT=0 THROW 52517,'Scan a registered FG location barcode.',1;
                 SELECT @Current=COALESCE(SUM(Qty),0) FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LocationNo=@Location;
                 IF @Capacity>0 AND @Current+@Qty>@Capacity THROW 52518,'The FG location has insufficient load capacity.',1;
@@ -257,7 +260,8 @@ public static class PdaFinishedGoodsSql
             OPTION(MAXRECURSION 100);
             IF NOT EXISTS(SELECT 1 FROM @Items) THROW 52001,'No available part inventory remains in this unit.',1;
             IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.MD_Location L ON L.LocationID=I.LocationNo
-                WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR UPPER(ISNULL(L.LocationType,''))<>'FG')
+                WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR L.LocationLevel<>2
+                    OR COALESCE(L.ActiveFlag,1)=0 OR UPPER(ISNULL(L.LocationType,''))<>'FG')
                 THROW 52006,'All outbound inventory must be put away in a registered FG location.',1;
             IF (SELECT COUNT(DISTINCT CustomerID) FROM @Items)>1
                 THROW 52018,'This unit contains products for different customers. Separate them before outbound.',1;
@@ -323,7 +327,8 @@ public static class PdaFinishedGoodsSql
                 IF EXISTS(SELECT 1 FROM @Items WHERE NULLIF(LTRIM(RTRIM(PartNo)),'') IS NULL)
                     THROW 52004,'Outbound inventory has no linked part number.',1;
                 IF EXISTS(SELECT 1 FROM @Items I LEFT JOIN dbo.MD_Location L WITH(HOLDLOCK) ON L.LocationID=I.LocationNo
-                    WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR UPPER(ISNULL(L.LocationType,''))<>'FG')
+                    WHERE NULLIF(LTRIM(RTRIM(I.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR L.LocationLevel<>2
+                        OR COALESCE(L.ActiveFlag,1)=0 OR UPPER(ISNULL(L.LocationType,''))<>'FG')
                     THROW 52006,'All outbound inventory must be put away in a registered FG location.',1;
                 IF (SELECT COUNT(DISTINCT CustomerID) FROM @Items)>1
                     THROW 52018,'This unit contains products for different customers. Separate them before outbound.',1;

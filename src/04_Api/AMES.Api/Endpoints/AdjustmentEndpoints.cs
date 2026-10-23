@@ -46,7 +46,7 @@ internal static class AdjustmentEndpoints
         group.MapGet("/adjust/location", (string barcode) =>
         {
             using var conn = factory.OpenConnection();
-            using var location = new SqlCommand("SELECT LocationID FROM dbo.MD_Location WHERE LocationID = @Barcode AND COALESCE(ActiveFlag, 1) = 1", conn);
+            using var location = new SqlCommand("SELECT LocationID FROM dbo.MD_Location WHERE LocationID = @Barcode AND LocationLevel=2 AND COALESCE(ActiveFlag, 1) = 1", conn);
             location.Parameters.Add("@Barcode", SqlDbType.NVarChar, 80).Value = barcode.Trim();
             var locationId = (!finishedGoods ? WarehouseRepository.ResolveLineLocation(conn, barcode) : null)
                 ?? location.ExecuteScalar() as string;

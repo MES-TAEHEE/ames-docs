@@ -870,7 +870,7 @@ public static class WhEndpoints
                   AND (am.ParentCodeID IS NULL OR am.ParentCodeID=wm.CodeID)
                 LEFT JOIN dbo.WH_Inventory i ON i.LocationNo=l.LocationID AND i.Qty>0
                 LEFT JOIN dbo.MD_Item mi ON mi.ItemNo=i.PartNo
-                WHERE ISNULL(l.ActiveFlag,1) = 1
+                WHERE ISNULL(l.ActiveFlag,1) = 1 AND l.LocationLevel=2
                 GROUP BY l.LocationID, l.LocationName, l.ZoneCode, l.WhCode, l.AreaCode, l.PlantCode,
                          wm.CodeName, am.CodeName,
                          l.Aisle, l.Bay, l.Slot, l.LocationType, l.Capacity
@@ -2291,7 +2291,7 @@ public static class WhEndpoints
                         CONVERT(bit,CASE WHEN EXISTS
                             (SELECT 1 FROM dbo.MD_Line ML WHERE LEN(ML.LotPrefix)=2
                              AND (ML.LotPrefix COLLATE DATABASE_DEFAULT=RS.ReqLocation COLLATE DATABASE_DEFAULT
-                               OR ML.LineID=(SELECT L.LineID FROM dbo.MD_Location L WHERE L.LocationID=RS.ReqLocation AND L.PartNo=RS.ItemNo AND COALESCE(L.ActiveFlag,1)=1))
+                               OR ML.LineID=(SELECT L.LineID FROM dbo.MD_Location L WHERE L.LocationID=RS.ReqLocation AND L.PartNo=RS.ItemNo AND L.LocationLevel=2 AND COALESCE(L.ActiveFlag,1)=1))
                              AND UPPER(COALESCE(ML.Status,'ACTIVE')) NOT IN ('INACTIVE','CLOSED'))
                             THEN 1 ELSE 0 END) AS ValidLineDestination,
                         CONVERT(bit,CASE WHEN {WarehouseRepository.WarehouseBoxPredicate} THEN 1 ELSE 0 END) AS EligibleBox
@@ -2969,7 +2969,7 @@ public static class WhEndpoints
             LEFT JOIN dbo.MD_CodeItem A ON A.GroupCode='WH_AREA' AND A.CodeValue=L.AreaCode
               AND (A.ParentCodeID IS NULL OR A.ParentCodeID=W.CodeID)
             LEFT JOIN dbo.WH_Inventory I ON I.LocationNo=L.LocationID AND I.Qty>0
-            WHERE COALESCE(L.ActiveFlag, 1) = 1
+            WHERE COALESCE(L.ActiveFlag, 1) = 1 AND L.LocationLevel=2
               AND UPPER(L.LocationID) = UPPER(@LocationID)
             GROUP BY L.LocationID, L.LocationName, L.WhCode, W.CodeName, L.AreaCode, A.CodeName,
                 L.ZoneCode, L.Aisle, L.Bay, L.Slot, L.PlantCode, L.LocationType, L.Capacity

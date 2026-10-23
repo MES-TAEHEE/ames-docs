@@ -9,6 +9,21 @@ namespace AMES.Data.Tests;
 public sealed class WarehouseReviewRegressionTests
 {
     [Fact]
+    public void Primary_locations_cannot_receive_move_or_gain_stock_or_become_picking_sources()
+    {
+        foreach(var sql in new[]{PdaWarehouseSql.InboundReceive,PdaWarehouseSql.InboundMove,PdaWarehouseSql.AdjustSave,PdaFinishedGoodsSql.AdjustSave})
+        {
+            Assert.Contains("LocationLevel=1",sql);
+            Assert.Contains("Primary locations cannot hold stock",sql);
+        }
+        Assert.Contains("LocationType='FG' AND LocationLevel=2",PdaFinishedGoodsSql.PutAway);
+        Assert.Contains("L.LocationLevel=1",WarehouseRepository.WarehouseBoxPredicate);
+        var api=Read("src/04_Api/AMES.Api/Endpoints/WhEndpoints.cs");
+        Assert.Contains("ISNULL(l.ActiveFlag,1) = 1 AND l.LocationLevel=2",api);
+        Assert.Contains("COALESCE(L.ActiveFlag, 1) = 1 AND L.LocationLevel=2",api);
+    }
+
+    [Fact]
     public void Putaway_includes_repaired_goods_but_still_requires_assy_and_preserves_existing_quantity()
     {
         Assert.Contains("OR P.ProcessCode='RWK'",PdaFinishedGoodsSql.PutAway);
