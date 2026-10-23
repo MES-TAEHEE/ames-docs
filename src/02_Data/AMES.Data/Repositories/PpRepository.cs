@@ -473,12 +473,19 @@ public sealed partial class PpRepository
         string customerId, IReadOnlyList<CustomerOrderImportRow> rows, string actor)
     {
         const string updSql = """
-            UPDATE dbo.PP_CustomerOrder
-            SET    ItemNo = @Item, OrderQty = @OrderQty, ShippedQty = @ShippedQty,
+            UPDATE S
+            SET    ItemNo = @Item, OrderQty = @OrderQty,
+                   ShippedQty = CASE WHEN @ShippedQty < COALESCE(S.ShippedQty,0)
+                       AND EXISTS (SELECT 1 FROM dbo.FG_ShippingOrderLine L
+                                   JOIN dbo.FG_ShippingOrder O ON O.OrderID=L.OrderID
+                                   JOIN dbo.FG_Delivery D ON D.DeliveryID=O.DeliveryID
+                                   WHERE L.SoID=S.SoID AND D.Status='Shipped')
+                       THEN S.ShippedQty ELSE @ShippedQty END,
                    OrderDate = @OrderDate, RequestedDeliveryDate = @ReqDate,
                    SapSyncedAt = SYSDATETIME(),
                    ModifiedTS = SYSDATETIME(), ModifiedBy = @Actor
             OUTPUT inserted.SoID
+            FROM dbo.PP_CustomerOrder S
             WHERE  SoNumber = @So AND ISNULL(SoLineNo,-1) = ISNULL(@Line,-1) AND CustomerID = @Cust;
             """;
         const string insSql = """
@@ -493,6 +500,9 @@ public sealed partial class PpRepository
         using var tx   = conn.BeginTransaction();
         try
         {
+            // Use the same lock order as shipment confirmation before touching SO rows.
+            // Imported totals may lag local shipments; lowering them needs explicit reconciliation.
+            FinishedGoodsRepository.Gate(conn, tx);
             // PP-002 자동 확정 — 같은 트랜잭션에서 읽어 신규 행만 Confirmed 로 넣는다(기존 행 갱신은 상태 유지).
             // 세 유입 경로(엑셀 업로드·API 가져오기·PO Sync 워커)가 모두 이 메서드를 타므로 호출자는 플래그를 몰라도 된다.
             var autoConfirm = ReadSoAutoConfirm(conn, tx);

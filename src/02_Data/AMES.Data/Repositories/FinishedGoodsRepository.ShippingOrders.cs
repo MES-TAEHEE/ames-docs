@@ -243,7 +243,7 @@ public sealed partial class FinishedGoodsRepository
     }
 
     private static void CheckActor(string actor) {if(string.IsNullOrWhiteSpace(actor)||actor.Length>20)throw new ArgumentException("A signed-in operator ID within 20 characters is required.");}
-    private static void Gate(SqlConnection conn,SqlTransaction tx)
+    internal static void Gate(SqlConnection conn,SqlTransaction tx)
     {
         using var cmd=new SqlCommand("SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON; SET ANSI_PADDING ON; SET ANSI_WARNINGS ON; SET ARITHABORT ON; SET CONCAT_NULL_YIELDS_NULL ON; SET NUMERIC_ROUNDABORT OFF; DECLARE @R int; EXEC @R=sys.sp_getapplock @Resource='FG_SHIPPING_ORDERS',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000; IF @R<0 THROW 52020,'Shipping is busy. Retry shortly.',1;",conn,tx);cmd.ExecuteNonQuery();
     }

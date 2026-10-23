@@ -76,6 +76,19 @@ public sealed class WarehouseReviewRegressionTests
     }
 
     [Fact]
+    public void Import_and_shipment_share_the_gate_and_import_cannot_reduce_locally_shipped_totals()
+    {
+        var source=Read("src/02_Data/AMES.Data/Repositories/PpRepository.cs");
+        source=source[source.IndexOf("public (int Inserted, int Updated) UpsertCustomerOrders",StringComparison.Ordinal)..];
+        source=source[..source.IndexOf("// ── PP-003",StringComparison.Ordinal)];
+        Assert.Contains("@ShippedQty < COALESCE(S.ShippedQty,0)",source);
+        Assert.Contains("WHERE L.SoID=S.SoID AND D.Status='Shipped'",source);
+        Assert.Contains("THEN S.ShippedQty ELSE @ShippedQty END",source);
+        Assert.True(source.IndexOf("FinishedGoodsRepository.Gate(conn, tx)",StringComparison.Ordinal)
+            < source.IndexOf("ReadSoAutoConfirm(conn, tx)",StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Generic_supplier_receipt_cannot_credit_production_lots_ambiguous_vendors_or_over_receipts()
     {
         var sql=PdaWarehouseSql.InboundReceive;
