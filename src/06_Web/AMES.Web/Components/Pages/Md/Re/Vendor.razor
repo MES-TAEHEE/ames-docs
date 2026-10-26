@@ -67,13 +67,13 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" TextAlign="TextAlign.Center" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorID" Title="@L["Col.VendorId"]" TextAlign="TextAlign.Center" Width="150px" MinWidth="150px">
                 <Template Context="r"><span class="code">@r.VendorID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorName" Title="@L["Col.VendorName"]">
                 <Template Context="r">@(r.VendorName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r">
                     @{
                         var typeName = _vendorTypes.FirstOrDefault(v => v.CodeValue == r.VendorType) is { } lf ? MasterDataRepository.LocalName(lf) : r.VendorType;
@@ -81,30 +81,30 @@
                     <span class="pill">@(typeName ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorCategory" Title="@L["Col.Category"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="VendorCategory" Title="@L["Col.Category"]" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="dim">@(r.VendorCategory ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ContactPerson" Title="@L["Col.Contact"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ContactPerson" Title="@L["Col.Contact"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r">@(r.ContactPerson ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="EdiFlag" Title="@L["Col.EDI"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="EdiFlag" Title="@L["Col.EDI"]" TextAlign="TextAlign.Center" Width="70px" MinWidth="70px">
                 <Template Context="r">
                     @if (r.EdiFlag) { <span class="pill ok">EDI</span> }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="OtdTargetRate" Title="@L["Col.OtdPct"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="OtdTargetRate" Title="@L["Col.OtdPct"]" TextAlign="TextAlign.Right" Width="90px" MinWidth="90px">
                 <Template Context="r">@(r.OtdTargetRate?.ToString("F1") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="PaymentTerms" Title="@L["Col.PayTerm"]" TextAlign="TextAlign.Center" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="PaymentTerms" Title="@L["Col.PayTerm"]" TextAlign="TextAlign.Center" Width="140px" MinWidth="140px">
                 <Template Context="r"><span class="dim">@(r.PaymentTerms ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="SAPFlag" Title="@L["Col.Sap"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="SAPFlag" Title="@L["Col.Sap"]" TextAlign="TextAlign.Center" Width="70px" MinWidth="70px">
                 <Template Context="r">
                     @if (r.SAPFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.VendorRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }

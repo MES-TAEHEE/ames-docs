@@ -57,7 +57,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineID" Title="@L["Col.LineId"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="code">@r.LineID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineName" Title="@L["Col.LineName"]">
@@ -66,19 +66,19 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LineNameEn" Title="@L["Col.LineNameEn"]">
                 <Template Context="r"><span class="dim">@(r.LineNameEn ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="PlantCode" Title="@L["Col.Plant"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="PlantCode" Title="@L["Col.Plant"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r">
                     @{ var plantName = _plantCodes.FirstOrDefault(p => p.CodeValue == r.PlantCode) is { } pf ? MasterDataRepository.LocalName(pf) : r.PlantCode; }
                     <span class="dim">@(plantName ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="WCID" Title="@L["Col.WCID"]" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="WCID" Title="@L["Col.WCID"]" Width="80px" MinWidth="80px">
                 <Template Context="r"><span class="dim" style="font-size:12px;">@(r.WCID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="DailyCap" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="DailyCap" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="120px" MinWidth="120px">
                 <Template Context="r">@(r.DailyCap?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="ShiftPattern" Title="@L["Col.Pattern"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="ShiftPattern" Title="@L["Col.Pattern"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r">
                     @if (r.ShiftPattern != null)
                     {
@@ -89,10 +89,10 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LotPrefix" Title="LOT PREFIX" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="LotPrefix" Title="LOT PREFIX" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r"><span class="code">@(r.LotPrefix ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.LineRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r">
                     @{ var sLabel = _lineStatus.FirstOrDefault(s => s.CodeValue == r.Status) is { } lf ? MasterDataRepository.LocalName(lf) : r.Status; }
                     <span class="pill @(r.Status == "ACTIVE" ? "ok" : "bad")">@(sLabel ?? "—")</span>

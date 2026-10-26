@@ -90,16 +90,16 @@
                     <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                         <Template Context="r"><span class="dim">@GridRowNo.Of(_ruleGrid, r)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventTypeCode" Title="@L["Col.EventCode"]" Width="170px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventTypeCode" Title="@L["Col.EventCode"]" Width="170px" MinWidth="170px">
                         <Template Context="r"><span class="code">@(r.EventTypeCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventName" Title="@L["Col.EventName"]" Width="250px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="EventName" Title="@L["Col.EventName"]" MinWidth="250px">
                         <Template Context="r">@(r.EventName ?? "—")</Template>
                     </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="100px">
+                        <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                         <Template Context="r"><span class="pill info">@(r.ModuleCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="140px">
+                        <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="140px" MinWidth="140px">
                         <Template Context="r">
                             @if (r.ProcessCode != null)
                             {
@@ -110,16 +110,16 @@
                             else { <span class="dim">—</span> }
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="TriggerCondition" Title="@L["Col.TriggerCond"]" Width="200px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="TriggerCondition" Title="@L["Col.TriggerCond"]" Width="200px" MinWidth="200px">
                         <Template Context="r"><span class="dim" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;display:block;">@(r.TriggerCondition ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="IsEnabled" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Property="IsEnabled" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                         <Template Context="r">
                             @if (r.IsEnabled) { <span class="pill ok">@NotifStatusName("ACTIVE")</span> }
                             else { <span class="pill warn">@NotifStatusName("INACTIVE")</span> }
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Title="@L["Col.Channel"]" Sortable="false">
+                    <RadzenDataGridColumn Width="90px" MinWidth="90px" TItem="SysRepository.NotifRuleRow" Title="@L["Col.Channel"]" Sortable="false">
                         <Template Context="r">@ChannelChips(ParseJsonList(r.ChannelsJson))</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifRuleRow" Title="@L["Col.RoleName"]" Sortable="false">
@@ -152,27 +152,27 @@
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                         <Template Context="c"><span class="dim">@GridRowNo.Of(_chGrid, c)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" Width="300px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="UserName" Title="@L["Col.User"]" MinWidth="300px">
                         <Template Context="c"><span class="dim" style="font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;display:block;">@(c.UserId is null ? "—" : Actors.Display(c.UserId))</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="Channel" Title="@L["Col.Channel"]" TextAlign="TextAlign.Center" Width="110px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="Channel" Title="@L["Col.Channel"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                         <Template Context="c">@ChannelPill(c.Channel)</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="Address" Title="@L["Col.Address"]">
                         <Template Context="c">@(c.Address ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="IsEnabled" Title="@L["Col.Subscribe"]" TextAlign="TextAlign.Center" Width="130px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="IsEnabled" Title="@L["Col.Subscribe"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                         <Template Context="c">
                             @if (c.IsEnabled) { <span class="pill ok">ON</span> } else { <span class="pill bad">OFF</span> }
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="QuietHoursStart" Title="@L["Col.DndStart"]" TextAlign="TextAlign.Center" Width="170px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="QuietHoursStart" Title="@L["Col.DndStart"]" TextAlign="TextAlign.Center" Width="170px" MinWidth="170px">
                         <Template Context="c"><span class="dim">@(c.QuietHoursStart?.ToString(@"hh\:mm") ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="QuietHoursEnd" Title="@L["Col.DndEnd"]" TextAlign="TextAlign.Center" Width="160px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="QuietHoursEnd" Title="@L["Col.DndEnd"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                         <Template Context="c"><span class="dim">@(c.QuietHoursEnd?.ToString(@"hh\:mm") ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="VerifiedAt" Title="@L["Col.AuthTs"]" TextAlign="TextAlign.Center" Width="210px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifChannelRow" Property="VerifiedAt" Title="@L["Col.AuthTs"]" TextAlign="TextAlign.Center" Width="210px" MinWidth="210px">
                         <Template Context="c"><span class="dim">@(c.VerifiedAt?.ToString(DateFmt.DateTime) ?? L["SYS.Notifications.Lbl.Unverified"].Value)</span></Template>
                     </RadzenDataGridColumn>
                 </Columns>
@@ -202,25 +202,25 @@
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                         <Template Context="h"><span class="dim">@GridRowNo.Of(_histGrid, h)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" TextAlign="TextAlign.Center" Width="160px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="SentAt" Title="@L["Col.SentAt"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                         <Template Context="h"><span class="dim">@(h.SentAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="EventTypeCode" Title="@L["Col.EventName"]" Width="170px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="EventTypeCode" Title="@L["Col.EventName"]" MinWidth="170px">
                         <Template Context="h"><span class="code">@(h.EventTypeCode ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="RecipientUserId" Title="@L["Col.Recipient"]" Width="300px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="RecipientUserId" Title="@L["Col.Recipient"]" Width="300px" MinWidth="300px">
                         <Template Context="h"><span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));max-width:140px;overflow:hidden;text-overflow:ellipsis;display:block;">@(h.RecipientUserId is null ? "—" : Actors.Display(h.RecipientUserId))</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Channel" Title="@L["Col.Channel"]" TextAlign="TextAlign.Center" Width="110px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Channel" Title="@L["Col.Channel"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                         <Template Context="h">@ChannelPill(h.Channel)</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Subject" Title="@L["Col.Name"]" Width="300px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Subject" Title="@L["Col.Name"]" MinWidth="300px">
                         <Template Context="h">@(h.Subject ?? "—")</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                         <Template Context="h">@DeliveryStatusPill(h.Status)</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="RetryCount" Title="@L["Col.EventCount"]" TextAlign="TextAlign.Center" Width="110px">
+                    <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="RetryCount" Title="@L["Col.EventCount"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                         <Template Context="h">@(h.RetryCount?.ToString() ?? "—")</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.NotifHistoryRow" Property="ErrorMsg" Title="@L["Col.Error"]">

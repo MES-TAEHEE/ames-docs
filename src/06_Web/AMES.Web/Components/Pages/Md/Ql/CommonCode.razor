@@ -66,18 +66,18 @@
             <RadzenDataGrid @ref="_grpGrid" TItem="MasterDataRepository.CodeGroupRow" Data="_groups" AllowPaging="true" EmptyText="@L["Grid.Empty"].Value" PageSize="GrpPageSize" PagerHorizontalAlign="HorizontalAlign.Center"
                             ShowPagingSummary="false" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" Page="OnGrpPage" RowRender="GrpRowRender" RowSelect="OnGroupRowSelect" Class="ames-rz-grid ames-grid-fill">
                 <Columns>
-                    <RadzenDataGridColumn Property="GroupCode" Title='@L["Col.GroupCode"]' Width="160px">
+                    <RadzenDataGridColumn Property="GroupCode" Title='@L["Col.GroupCode"]' Width="170px" MinWidth="170px">
                         <Template Context="g"><span class="code">@g.GroupCode</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn Property="GroupName" Title='@L["Col.GroupName"]'>
                         <Template Context="g">@MasterDataRepository.LocalName(g.GroupName, g.GroupNameEn)</Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="70px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="80px" MinWidth="80px" TextAlign="TextAlign.Center">
                         <Template Context="g">
                             <span class="pill @(g.UseFlag ? "ok" : "bad")">@(g.UseFlag ? "Y" : "N")</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn Width="52px" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn Width="52px" MinWidth="52px" TextAlign="TextAlign.Center">
                         <Template Context="g">
                             <div @onclick:stopPropagation>
                                 <RadzenButton ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" Text="▶" Click="() => SelectGroup(g)" title='@L["MD.CommonCode.Title.ViewItems"]' class="ames-rz-btn" />
@@ -118,10 +118,10 @@
                 <RadzenDataGrid TItem="MasterDataRepository.CodeItemRow" Data="_items" AllowPaging="false" EmptyText="@L["Grid.Empty"].Value"
                                 RowRender="ItemRowRender" RowSelect="OpenItemEdit" Class="ames-rz-grid">
                     <Columns>
-                        <RadzenDataGridColumn Property="SortOrder" Title='@L["Col.Seq"]' Width="60px" TextAlign="TextAlign.Right">
+                        <RadzenDataGridColumn Property="SortOrder" Title='@L["Col.Seq"]' Width="60px" MinWidth="60px" TextAlign="TextAlign.Right">
                             <Template Context="i">@i.SortOrder</Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn Property="CodeValue" Title='@L["Col.CodeValue"]' Width="140px">
+                        <RadzenDataGridColumn Property="CodeValue" Title='@L["Col.CodeValue"]' Width="140px" MinWidth="140px">
                             <Template Context="i"><span class="code">@i.CodeValue</span></Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn Property="CodeName" Title='@L["MD.CommonCode.Lbl.CodeName"]' />
@@ -135,7 +135,7 @@
                         <RadzenDataGridColumn Property="Attribute2" Title='@L["Col.Attr2"]' Width="220px" MinWidth="220px">
                             <Template Context="i"><div class="dim" style="max-width:204px;overflow:hidden;text-overflow:ellipsis;" title="@i.Attribute2">@i.Attribute2</div></Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="70px" TextAlign="TextAlign.Center">
+                        <RadzenDataGridColumn Property="UseFlag" Title='@L["Col.Active"]' Width="70px" MinWidth="70px" TextAlign="TextAlign.Center">
                             <Template Context="i">
                                 <span class="pill @(i.UseFlag ? "ok" : "bad")">@(i.UseFlag ? "Y" : "N")</span>
                             </Template>

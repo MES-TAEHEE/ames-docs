@@ -33,7 +33,7 @@
                     PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' EmptyText='@L["RPT.DailyShipment.Empty"]'
                     PageSizeChanged="s=>_pageRows=s" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShipmentId" Title='@L["Shipment.Id"]' Width="110px"><FooterTemplate><strong>@L["RPT.DailyShipment.Total"]</strong></FooterTemplate></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="ShipmentId" Title='@L["Shipment.Id"]' Width="110px" MinWidth="110px"><FooterTemplate><strong>@L["RPT.DailyShipment.Total"]</strong></FooterTemplate></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="OutboundBarcode" Title='@L["Col.LotNo"]' />
             <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="CustomerId" Title='@L["Col.Customer"]'><Template Context="r">@r.CustomerId<div class="dim">@CustomerName(r.CustomerId)</div></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="RptRepository.ShipmentDetailRow" Property="PartNo" Title='@L["Col.PartNo"]'><Template Context="r">@r.PartNo<div class="dim">@MasterDataRepository.LocalName(r.PartName,r.PartNameEn)</div></Template></RadzenDataGridColumn>

@@ -72,13 +72,13 @@
             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="r"><span class="dim">@GridRowNo.Of(_pgGrid, r)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="code">@r.ScreenCode</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ModuleCode" Title="@L["Col.Module"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r"><span class="pill info">@r.ModuleCode</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="150px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="150px" MinWidth="150px">
                 <Template Context="r">
                     @if (r.ProcessCode != null)
                     {
@@ -89,7 +89,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SubProcessCode" Title="@L["Col.SubProcess"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SubProcessCode" Title="@L["Col.SubProcess"]" TextAlign="TextAlign.Center" Width="80px" MinWidth="80px">
                 <Template Context="r">
                     @if (r.SubProcessCode is not null)
                     { <span class="pill" style="background:rgba(134,239,172,.12);color:var(--ames-tx-green-300);">@r.SubProcessCode</span> }
@@ -97,18 +97,18 @@
                     { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenName" Title="@L["SYS.Screen.Col.NameKo"]" Width="250px" />
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenNameEn" Title="@L["SYS.Screen.Col.NameEn"]" Width="250px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenName" Title="@L["SYS.Screen.Col.NameKo"]" MinWidth="250px" />
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenNameEn" Title="@L["SYS.Screen.Col.NameEn"]" MinWidth="250px">
                 <Template Context="r"><span class="dim" style="font-size:12px;">@(r.ScreenNameEn ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="HRef" Title="@L["SYS.Screen.Col.Path"]">
+            <RadzenDataGridColumn Width="200px" MinWidth="200px" TItem="SysRepository.ScreenRow" Property="HRef" Title="@L["SYS.Screen.Col.Path"]">
                 <Template Context="r"><span class="dim" style="font-size:12px;font-family:var(--ames-font-mono);">@(r.HRef ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="LidLabel" Title="@L["SYS.Screen.Col.LidLabel"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                 <Template Context="r"><span class="dim code" style="font-size:12px;">@(r.LidLabel ?? "—")</span></Template>
             </RadzenDataGridColumn>
             @* 화면 기본 권한 — 그 화면에 있는 기능(읽기는 항상). SYS-004 는 없는 기능의 칸을 끈다 *@
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="PermissionCriteria" Title="@L["SYS.Screen.Col.PermLevel"]" TextAlign="TextAlign.Center" Width="170px" Sortable="false">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="PermissionCriteria" Title="@L["SYS.Screen.Col.PermLevel"]" TextAlign="TextAlign.Center" Width="200px" MinWidth="200px" Sortable="false">
                 <Template Context="r">
                     <span style="white-space:nowrap;" title="@r.PermissionCriteria">
                         @foreach (var slot in PermissionSlots.Slots)
@@ -121,16 +121,16 @@
                     </span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SortOrder" Title="@L["SYS.Screen.Col.SortOrder"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="SortOrder" Title="@L["SYS.Screen.Col.SortOrder"]" TextAlign="TextAlign.Center" Width="90px" MinWidth="90px">
                 <Template Context="r"><span class="dim">@(r.SortOrder?.ToString() ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="IsVisible" Title="@L["SYS.Screen.Col.Visible"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="IsVisible" Title="@L["SYS.Screen.Col.Visible"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @if (r.IsVisible) { <span class="pill ok">@L["SYS.Screen.Filter.Visible"]</span> }
                     else { <span class="pill bad">@L["SYS.Screen.Filter.Hidden"]</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="RoleCount" Title="@L["SYS.Screen.Col.Roles"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="RoleCount" Title="@L["SYS.Screen.Col.Roles"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @if (r.RoleCount > 0) { <span class="pill warn">@r.RoleCount @L["SYS.Screen.Col.Roles"]</span> }
                     else { <span class="dim">@L["Filter.All"]</span> }

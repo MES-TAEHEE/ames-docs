@@ -80,10 +80,10 @@
     <RadzenDataGrid TItem="MasterDataRepository.RoutingStepRow" Data="_steps" AllowPaging="false"
                     RowRender="RowRender" RowSelect="OnRowSelect" EmptyText="@L["MD.Routing.NoSteps"]" Class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="90px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="90px" MinWidth="90px" TextAlign="TextAlign.Center">
                     <Template Context="s"><span class="pill @Ui.RoutingClass(s.RoutingType)">@s.RoutingType</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="70px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="70px" MinWidth="70px" TextAlign="TextAlign.Center">
                     <Template Context="s"><span class="code">@s.StepSeq</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="ProcessCode" Title="@L["Col.Process"]">
@@ -96,12 +96,12 @@
                         }
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="QcRequiredFlag" Title="QC" Width="80px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="QcRequiredFlag" Title="QC" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center">
                     <Template Context="s">
                         <span class="pill @(s.QcRequiredFlag ? "ok" : "dim")">@(s.QcRequiredFlag ? "Y" : "N")</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="ActiveFlag" Title="@L["Lbl.Active"]" Width="80px" TextAlign="TextAlign.Center">
+                <RadzenDataGridColumn TItem="MasterDataRepository.RoutingStepRow" Property="ActiveFlag" Title="@L["Lbl.Active"]" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center">
                     <Template Context="s">
                         <span class="pill @(s.ActiveFlag ? "ok" : "dim")">@(s.ActiveFlag ? "Y" : "N")</span>
                     </Template>

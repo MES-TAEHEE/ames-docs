@@ -79,7 +79,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="PalletUse" Title="@L["MD.Pallet.Col.Use"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="r"><span class="pill @(r.PalletUse == MasterDataRepository.PalletExternal ? "info" : "")">@UseName(r.PalletUse)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="CustomerName" Title="@L["MD.Pallet.Col.Customer"]" Width="200px" MinWidth="200px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Property="CustomerName" Title="@L["MD.Pallet.Col.Customer"]" Width="280px" MinWidth="280px">
                 <Template Context="r">
                     @if (r.PalletUse != MasterDataRepository.PalletExternal) { <span class="dim">—</span> }
                     else if (r.CustomerID is null) { <span class="pill ok">@L["MD.Pallet.Lbl.Shared"]</span> }

@@ -69,7 +69,7 @@
                                 </div>
                             </Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="StepCount" Title="@L["Col.StepCount"]" Width="70px" MinWidth="70px" TextAlign="TextAlign.Center">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="StepCount" Title="@L["Col.StepCount"]" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center">
                             <Template Context="item"><span class="pill info">@item.StepCount</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
@@ -158,13 +158,13 @@
                                     }
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="80px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="RoutingType" Title="@L["Col.Routing"]" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center">
                                 <Template Context="step"><span class="pill @Ui.RoutingClass(step.RoutingType)">@(Joined(step, s => s.RoutingType) ?? step.RoutingType ?? "—")</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="60px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center">
                                 <Template Context="step"><span class="code">@(Joined(step, s => s.StepSeq?.ToString()) ?? step.StepSeq?.ToString())</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StationCode" Title="@L["Col.Station"]" Width="250px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StationCode" Title="@L["Col.Station"]" Width="250px" MinWidth="250px">
                                 <Template Context="step">
                                     @{
                                         // 상하위 품목 묶음(단계 여러 개)은 작업 위치 코드만 이어 보이고, 단일 단계는 코드 + 명칭
@@ -182,13 +182,13 @@
                                     }
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StdCycleTime" Title="@L["Col.CycleSetup"]" Width="180px" TextAlign="TextAlign.Right">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StdCycleTime" Title="@L["Col.CycleSetup"]" Width="180px" MinWidth="180px" TextAlign="TextAlign.Right">
                                 <Template Context="step">
                                     <span>@(Joined(step, s => s.StdCycleTime?.ToString("N1") ?? "—", distinct: false) ?? step.StdCycleTime?.ToString("N1") ?? "—")</span>
                                     <span class="dim"> / @(Joined(step, s => s.StdSetupTime?.ToString("N1") ?? "—", distinct: false) ?? step.StdSetupTime?.ToString("N1") ?? "—")</span>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="QcRequiredFlag" Title="QC" Width="60px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="QcRequiredFlag" Title="QC" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center">
                                 <Template Context="step">
                                     @if (GroupOf(step).Any(s => s.QcRequiredFlag))
                                     {
@@ -203,7 +203,7 @@
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepDescription" Title="@L["Col.Description"]">
                                 <Template Context="step"><span class="dim">@(Joined(step, s => s.StepDescription, separator: " / ") ?? step.StepDescription)</span></Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="ActiveFlag" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                            <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="ActiveFlag" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                                 <Template Context="step">
                                     @if (GroupOf(step).All(s => s.ActiveFlag)) { <span class="pill ok">@L["Lbl.Active"]</span> }
                                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }

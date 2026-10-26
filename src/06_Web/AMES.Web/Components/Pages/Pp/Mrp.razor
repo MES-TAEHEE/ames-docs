@@ -90,7 +90,7 @@ else
                            @onchange="e => ToggleRow(r.ItemNo, (bool)(e.Value ?? false))" />
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="260px" Property="ItemNo" Title="@L["PP.Mrp.Col.Material"].Value" Frozen="true" Width="260px">
+            <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="400px" Property="ItemNo" Title="@L["PP.Mrp.Col.Material"].Value" Frozen="true" Width="400px">
                 <Template Context="r">
                     <span class="code">@r.ItemNo</span>
                     @if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }

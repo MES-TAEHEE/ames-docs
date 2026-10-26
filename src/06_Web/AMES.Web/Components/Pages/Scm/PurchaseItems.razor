@@ -40,7 +40,7 @@
                 <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                     <Template Context="row"><span class="dim">@GridRowNo.Of(_grid, row)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="170px" Property="ItemNo" Title="@L["Scm.Text.ItemCode"]" Width="170px">
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="180px" Property="ItemNo" Title="@L["Scm.Text.ItemCode"]" Width="180px">
                     <Template Context="row"><span class="code">@row.ItemNo</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="200px" Property="ItemName" Title="@L["Scm.Text.ItemName"]" />
@@ -50,7 +50,7 @@
                 <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="100px" Property="DefaultUOM" Title="@L["Scm.Text.Unit"]" TextAlign="TextAlign.Center" Width="100px">
                     <Template Context="row"><span class="dim">@(UomFmt.Sym(row.DefaultUOM) ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" MinWidth="200px" Title="@L["Scm.Text.LinkedVendors"]" Sortable="false">
+                <RadzenDataGridColumn TItem="MasterDataRepository.ItemRow" Width="430px" MinWidth="430px" Title="@L["Scm.Text.LinkedVendors"]" Sortable="false">
                     <Template Context="row">
                         @foreach (var v in Links(row.ItemNo)) { <span class="code" style="margin-right:4px;">@v.VendorID</span><span class="dim" style="font-size:.8em;margin-right:10px;">@v.VendorName</span> }
                         @if (!Links(row.ItemNo).Any()) { <span class="dim">—</span> }

@@ -158,7 +158,7 @@
                                         AllowClear="true" AllowFiltering="true" Disabled="@_busy" Placeholder="@L["PP.Aps.Settings.Pattern.Default"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="StageEdit" MinWidth="170px" Title="@L["PP.Aps.Settings.Col.Note"]" Width="170px">
+                <RadzenDataGridColumn TItem="StageEdit" MinWidth="170px" Title="@L["PP.Aps.Settings.Col.Note"]">
                     <Template Context="s"><span class="dim">@(s.Note ?? "—")</span></Template>
                     <EditTemplate Context="s"><RadzenTextBox @bind-Value="s.Note" MaxLength="200" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></EditTemplate>
                 </RadzenDataGridColumn>

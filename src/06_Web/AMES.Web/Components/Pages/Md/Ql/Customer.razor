@@ -67,17 +67,17 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerID" Title="@L["Col.CustomerId"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerID" Title="@L["Col.CustomerId"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="r"><span class="code">@r.CustomerID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerCode" Title="@L["Col.Code"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerCode" Title="@L["Col.Code"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r"><span class="dim">@(r.CustomerCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerName" Title="@L["Col.CustomerName"]" />
             <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerNameEn" Title="@L["Col.CustomerNameEn"]">
                 <Template Context="r"><span class="dim">@(r.CustomerNameEn ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerType" Title="@L["Col.Type"]" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="CustomerType" Title="@L["Col.Type"]" Width="100px" MinWidth="100px">
                 <Template Context="r">
                     @if (r.CustomerType != null)
                     {
@@ -86,30 +86,30 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="Country" Title="@L["Col.Country"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="Country" Title="@L["Col.Country"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @{ var nf = r.Country != null ? _nationItems.FirstOrDefault(c => c.CodeValue == r.Country) : null; }
                     <span class="dim">@(nf != null ? MasterDataRepository.LocalName(nf) : r.Country ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="ContactPerson" Title="@L["Col.Contact"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="ContactPerson" Title="@L["Col.Contact"]" Width="120px" MinWidth="120px">
                 <Template Context="r">@(r.ContactPerson ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="ContactPhone" Title="@L["Col.Phone"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="ContactPhone" Title="@L["Col.Phone"]" Width="130px" MinWidth="130px">
                 <Template Context="r"><span class="dim">@(r.ContactPhone ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="EDIFlag" Title="@L["Col.EDI"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="EDIFlag" Title="@L["Col.EDI"]" TextAlign="TextAlign.Center" Width="70px" MinWidth="70px">
                 <Template Context="r">
                     @if (r.EDIFlag) { <span class="pill ok">EDI</span> }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="SAPFlag" Title="@L["Col.Sap"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="SAPFlag" Title="@L["Col.Sap"]" TextAlign="TextAlign.Center" Width="70px" MinWidth="70px">
                 <Template Context="r">
                     @if (r.SAPFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.CustomerRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @{
                         var scls   = r.Status switch { "ACTIVE" => "ok", "HOLD" => "orange", "DORMANT" => "mute", "CLOSED" => "mute", _ => "mute" };

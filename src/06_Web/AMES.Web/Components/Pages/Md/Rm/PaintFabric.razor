@@ -69,32 +69,32 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatLotID" Title="@L["Col.LotId"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatLotID" Title="@L["Col.LotId"]" TextAlign="TextAlign.Center" Width="180px" MinWidth="180px">
                 <Template Context="r"><span class="code">@r.MatLotID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatCode" Title="@L["Col.MaterialCode"]" TextAlign="TextAlign.Center" Width="180px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatCode" Title="@L["Col.MaterialCode"]" TextAlign="TextAlign.Center" Width="180px" MinWidth="180px">
                 <Template Context="r"><span class="code dim">@(r.MatCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatName" Title="@L["Col.Name"]" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="MatType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="pill">@(_matTypes.FirstOrDefault(m => m.CodeValue == r.MatType) is { } tLf ? MasterDataRepository.LocalName(tLf) : r.MatType ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="LotNo" Title="@L["Col.LotNo"]" Width="200px" MinWidth="200px">
                 <Template Context="r"><span class="dim" title="@r.LotNo">@(r.LotNo ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="SupplierID" Title="@L["Col.Supplier"]" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="SupplierID" Title="@L["Col.Supplier"]" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="dim">@(r.SupplierID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px" MinWidth="80px">
                 <Template Context="r"><span class="dim">@(UomFmt.Sym(r.UOM) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="QtyOnHand" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="QtyOnHand" Title="@L["Col.OnHand"]" TextAlign="TextAlign.Right" Width="140px" MinWidth="140px">
                 <Template Context="r">@UomFmt.Qty(r.QtyOnHand, r.UOM)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="ReceiptDate" Title="@L["Col.ReceivedDate"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="ReceiptDate" Title="@L["Col.ReceivedDate"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r"><span class="dim">@(r.ReceiptDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="ExpDate" Title="@L["Col.ExpiryDate"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="ExpDate" Title="@L["Col.ExpiryDate"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="r">
                     @{ var expCss = r.ExpDate.HasValue ? (r.ExpDate.Value < _today ? "bad" : r.ExpDate.Value <= _today.AddDays(30) ? "warn" : "") : ""; }
                     @if (r.ExpDate.HasValue)
@@ -102,10 +102,10 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="StorageReq" Title="@L["Col.StorageCond"]" Width="210px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="StorageReq" Title="@L["Col.StorageCond"]" Width="210px" MinWidth="210px">
                 <Template Context="r"><span class="dim">@(r.StorageReq ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.PaintFabricRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r">
                     @{ var stCss = r.Status switch { "AVAIL" => "ok", "EXPIRED" => "bad", "CONS" => "orange", _ => "mute" };
                        var stLabel = _matStatuses.FirstOrDefault(s => s.CodeValue == r.Status) is { } stLf ? MasterDataRepository.LocalName(stLf) : r.Status; }

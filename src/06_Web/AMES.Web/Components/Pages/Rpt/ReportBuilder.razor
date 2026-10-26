@@ -87,7 +87,7 @@
                 @foreach (var m in _runMeasures)
                 {
                     var key = m;
-                    <RadzenDataGridColumn TItem="RptRepository.AdhocRow" Title="@($"{MLabel(key)} ({MUnit(key)})")" TextAlign="TextAlign.Right" Width="150px" Sortable="false">
+                    <RadzenDataGridColumn TItem="RptRepository.AdhocRow" Title="@($"{MLabel(key)} ({MUnit(key)})")" TextAlign="TextAlign.Right" Width="150px" MinWidth="150px" Sortable="false">
                         <Template Context="r"><span class="code">@Fmt(r.M.TryGetValue(key, out var v) ? v : 0m, key)</span></Template>
                         <FooterTemplate><b class="code">@Fmt(Agg(key), key)</b></FooterTemplate>
                     </RadzenDataGridColumn>

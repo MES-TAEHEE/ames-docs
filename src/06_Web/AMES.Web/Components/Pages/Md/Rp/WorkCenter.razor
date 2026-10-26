@@ -67,16 +67,16 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCID" Title="@L["Col.WCID"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCID" Title="@L["Col.WCID"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r"><span class="code">@r.WCID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="WCName" Title="@L["Col.WcName"]">
                 <Template Context="r">@(r.WCName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DefaultLineID" Title="@L["Col.DefaultLine"]" TextAlign="TextAlign.Center" Width="170px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DefaultLineID" Title="@L["Col.DefaultLine"]" TextAlign="TextAlign.Center" Width="170px" MinWidth="170px">
                 <Template Context="r"><span class="dim">@(r.DefaultLineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px" MinWidth="160px">
                 <Template Context="r">
                     @if (r.ProcessCode != null)
                     {
@@ -87,19 +87,19 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DailyCapacity" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="200px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="DailyCapacity" Title="@L["Col.Capacity"]" TextAlign="TextAlign.Right" Width="200px" MinWidth="200px">
                 <Template Context="r">@(r.DailyCapacity?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="StdManpower" Title="@L["Col.StdHeadcount"]" TextAlign="TextAlign.Right" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="StdManpower" Title="@L["Col.StdHeadcount"]" TextAlign="TextAlign.Right" Width="150px" MinWidth="150px">
                 <Template Context="r">@(r.StdManpower?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="CostCenterCode" Title="@L["Col.CostCenter"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="CostCenterCode" Title="@L["Col.CostCenter"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                 <Template Context="r"><span class="dim">@(r.CostCenterCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LocationDesc" Title="@L["Col.Loc"]" Width="250px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="LocationDesc" Title="@L["Col.Loc"]" Width="250px" MinWidth="250px">
                 <Template Context="r"><span class="dim">@(r.LocationDesc ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.WorkCenterRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }

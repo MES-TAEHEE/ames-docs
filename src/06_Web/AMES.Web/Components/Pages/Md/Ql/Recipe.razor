@@ -67,13 +67,13 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="RecipeID" Title="@L["Col.RecipeId"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="RecipeID" Title="@L["Col.RecipeId"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r"><span class="code">@r.RecipeID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="RecipeName" Title="@L["Col.RecipeName"]">
                 <Template Context="r">@(r.RecipeName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="RecipeType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="RecipeType" Title="@L["Col.Type"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r">
                     @if (r.RecipeType != null)
                     {
@@ -82,19 +82,19 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="ItemNo" Title="@L["Col.ItemNo"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="r"><span class="code" title="@ItemName(r.ItemNo)">@(r.ItemNo ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="CycleTime" Title="@L["Col.CycleTime"]" TextAlign="TextAlign.Right" Width="170px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="CycleTime" Title="@L["Col.CycleTime"]" TextAlign="TextAlign.Right" Width="170px" MinWidth="170px">
                 <Template Context="r">@(r.CycleTime?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="Version" Title="@L["Col.Version"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="Version" Title="@L["Col.Version"]" TextAlign="TextAlign.Right" Width="100px" MinWidth="100px">
                 <Template Context="r"><span class="dim">@(r.Version ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="EffectiveDate" Title="@L["Col.EffectiveDate"]" TextAlign="TextAlign.Center" Width="170px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="EffectiveDate" Title="@L["Col.EffectiveDate"]" TextAlign="TextAlign.Center" Width="170px" MinWidth="170px">
                 <Template Context="r"><span class="dim">@(r.EffectiveDate?.ToString(DateFmt.DateShort) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RecipeRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @{
                         var stCss   = r.Status?.ToUpperInvariant() switch { "ACTIVE" => "ok", "DRAFT" => "warn", "OBS" or "OBSOLETE" => "mute", _ => "mute" };

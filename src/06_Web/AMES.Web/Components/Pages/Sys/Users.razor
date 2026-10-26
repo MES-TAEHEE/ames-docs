@@ -75,17 +75,17 @@
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="UserName" Title="@L["SYS.Users.Col.UserName"]">
                 <Template Context="u"><span class="code">@(u.UserName ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
+            <RadzenDataGridColumn Width="150px" MinWidth="150px" TItem="SysRepository.UserRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
                 <Template Context="u"><span class="dim">@(u.Email ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]" TextAlign="TextAlign.Center" Width="140px">
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]" TextAlign="TextAlign.Center" Width="140px" MinWidth="140px">
                 <Template Context="u"><span class="dim">@(u.EmployeeNo ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" TextAlign="TextAlign.Center" Width="140px" />
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.Dept"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" TextAlign="TextAlign.Center" MinWidth="140px" />
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.Dept"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="u"><span class="dim">@DeptName(u.Department)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="u">
                     @{
                         var stEff = EffectiveStatus(u);
@@ -103,11 +103,11 @@
                     <span class="pill @stCls">@stLbl</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]" TextAlign="TextAlign.Center" Width="230px" MinWidth="230px">
                 <Template Context="u"><span class="dim">@(u.RolesCsv ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" Width="170px" />
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="150px">
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" Width="170px" MinWidth="170px" />
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="150px" MinWidth="150px">
                 <Template Context="u"><span class="dim">@(u.LastLoginTs?.ToString(DateFmt.DateTime) ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>

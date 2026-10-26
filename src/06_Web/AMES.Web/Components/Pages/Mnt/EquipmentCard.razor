@@ -81,42 +81,42 @@
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="EquipId" Title="@L["Col.EquipId"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="r"><span class="code">@r.EquipId</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="EquipName" Title="@L["Col.EquipName"]">
                 <Template Context="r">@(r.EquipName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="EquipType" Title="@L["Col.EquipType"]" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="EquipType" Title="@L["Col.EquipType"]" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="pill">@EquipTypeLabel(r.EquipType)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="dim">@(r.LineId ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="MakerModel" Title="@L["Col.MakerModel"]" Width="150px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="MakerModel" Title="@L["Col.MakerModel"]" Width="170px" MinWidth="170px">
                 <Template Context="r"><span class="dim">@(r.MakerModel ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r"><span class="pill @StatusCls(r.Status)" title="@StatusReason(r)">@StatusLabel(r.Status)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="TodayOee" Title="@L["Col.OEE"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="TodayOee" Title="@L["Col.OEE"]" TextAlign="TextAlign.Right" Width="90px" MinWidth="90px">
                 <Template Context="r">@(r.TodayOee?.ToString("0.0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="RuntimeHours" Title="@L["Col.Runtime"]" TextAlign="TextAlign.Right" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="RuntimeHours" Title="@L["Col.Runtime"]" TextAlign="TextAlign.Right" Width="170px" MinWidth="170px">
                 <Template Context="r">@(r.RuntimeHours?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="CycleCount" Title="@L["Col.Cycles"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="CycleCount" Title="@L["Col.Cycles"]" TextAlign="TextAlign.Right" Width="100px" MinWidth="100px">
                 <Template Context="r">@(r.CycleCount?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="NextPmDate" Title="@L["Col.NextPm"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="NextPmDate" Title="@L["Col.NextPm"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="@(IsPmOverdue(r.NextPmDate) ? "" : "dim")" style="@(IsPmOverdue(r.NextPmDate) ? "color:var(--ames-tx-red-400);" : "")">@(r.NextPmDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="OpenWoNumber" Title="@L["Col.OpenWo"]" TextAlign="TextAlign.Center" Width="170px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="OpenWoNumber" Title="@L["Col.OpenWo"]" TextAlign="TextAlign.Center" Width="170px" MinWidth="170px">
                 <Template Context="r">
                     @if (r.OpenWoNumber is { } wo) { <span class="pill orange" title="@string.Format(L["MNT.EquipmentCard.Hint.OpenWoCount"].Value, r.OpenWoCount)">@OpenWoText(r)</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="PlcConnTs" Title="@L["Col.PlcConn"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="MntRepository.EquipCardRow" Property="PlcConnTs" Title="@L["Col.PlcConn"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                 <Template Context="r"><span class="dim">@(r.PlcConnTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
         </Columns>
