@@ -703,8 +703,48 @@ button, input { font: inherit; letter-spacing: 0; }
 .floor-panel-enter { animation: floor-panel-in .24s ease-out; }
 .map-panel-enter { animation: map-panel-in .24s ease-out; }
 
-/* Shared light/dark theme. Light mode is the default. */
-.tablet-root {
+.tablet-login-field .rz-dropdown,
+.tablet-map-screen .rz-dropdown,
+.tablet-map-screen .rz-textbox { border-radius: 0; border-color: var(--border-strong); background: var(--surface); color: var(--text); }
+.tablet-login-field .rz-dropdown { min-height: 48px; }
+.tablet-login-field .rz-dropdown-label { color: var(--text); font-size: 18px; }
+.tablet-root .tablet-employee-picker.rz-dropdown,
+.tablet-root .tablet-employee-picker .rz-dropdown-label { color: var(--text) !important; background: var(--surface-soft) !important; border-color: var(--border-strong); }
+.tablet-root .tablet-employee-picker .rz-placeholder { color: var(--muted) !important; }
+.tablet-root .tablet-keypad .rz-button { background: var(--surface-soft) !important; color: var(--text) !important; border: 1px solid var(--border-strong); box-shadow: none; }
+.tablet-root .tablet-keypad .rz-button.delete { background: var(--danger-soft) !important; color: var(--danger) !important; }
+.tablet-root .tablet-login-submit.rz-button { width: 100%; height: 48px; border-radius: 0; background: var(--success-soft) !important; color: var(--success) !important; border: 1px solid var(--success); }
+.tablet-login-list-note { color: var(--danger); font-size: 13px; }
+.tablet-root .tablet-employee-trigger.rz-button { width: 100%; height: 48px; padding: 0 14px; border: 1px solid var(--border-strong); border-radius: 0; background: var(--surface-soft) !important; color: var(--text) !important; box-shadow: none; text-transform: none; }
+.tablet-employee-trigger .rz-button-box { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 100%; gap: 12px; }
+.tablet-root .tablet-employee-trigger .tablet-employee-value { display: flex; align-items: center; height: 100%; margin: 0; padding: 0; color: var(--text) !important; font-size: 18px; line-height: 1; letter-spacing: normal; text-align: left; }
+.tablet-root .tablet-employee-trigger .tablet-employee-value.placeholder { color: var(--muted) !important; }
+.tablet-employee-trigger .rzi { align-self: center; color: var(--muted); }
+.tablet-employee-dialog.rz-dialog { max-width: 92vw; max-height: 80dvh; border: 1px solid var(--border-strong); border-radius: 0; background: var(--surface); color: var(--text); }
+.tablet-employee-dialog .rz-dialog-titlebar { background: var(--surface); border-bottom: 1px solid var(--border); }
+.tablet-employee-dialog .rz-dialog-title, .tablet-employee-dialog .rz-dialog-titlebar-icon { color: var(--text); }
+.tablet-employee-dialog-content.rz-dialog-content { flex: 1; min-height: 0; padding: 0; overflow: hidden; background: var(--surface); color: var(--text); }
+.tablet-employee-dialog-body { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.tablet-employee-search { padding: 16px; }
+.tablet-employee-search .rz-textbox { height: 44px; border: 1px solid var(--border-strong); border-radius: 0; background: var(--surface-soft) !important; color: var(--text) !important; }
+.tablet-employee-grid { flex: 1; min-height: 0; overflow: hidden; }
+.tablet-employee-grid .rz-data-row { cursor: pointer; }
+.tablet-employee-grid .rz-data-row td { height: 52px; font-size: 16px; }
+.tablet-employee-grid .rz-data-row:hover td { background: var(--accent-soft) !important; }
+.tablet-employee-dialog table, .tablet-employee-dialog tbody tr, .tablet-employee-dialog tbody td { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border); }
+.tablet-employee-dialog td span { color: var(--text) !important; }
+.tablet-employee-dialog thead th, .tablet-employee-dialog thead th span { background: var(--surface-soft) !important; color: var(--accent) !important; border-color: var(--border); }
+.tablet-employee-dialog tbody tr:hover td { background: var(--accent-soft) !important; }
+.tablet-employee-selected { color: var(--success); }
+.tablet-employee-dialog-footer { display: flex; justify-content: flex-end; padding: 12px 16px; border-top: 1px solid var(--border); }
+.tablet-employee-dialog-footer .rz-button { border-radius: 0; background: var(--surface-soft) !important; color: var(--text) !important; }
+.rz-dropdown-panel, .rz-dropdown-panel .rz-dropdown-filter-container,
+.rz-dropdown-panel .rz-dropdown-filter { background: var(--surface) !important; color: var(--text) !important; border-color: var(--border); }
+.rz-dropdown-panel .rz-dropdown-item { color: var(--text) !important; }
+.rz-dropdown-panel .rz-dropdown-item:hover, .rz-dropdown-panel .rz-state-highlight { background: var(--accent-soft) !important; color: var(--accent) !important; }
+
+/* Radzen popups render under body, outside tablet-root. Share the same theme tokens there. */
+body:has(.tablet-root), .tablet-root {
     --page-bg: #f3f4f6;
     --surface: #ffffff;
     --surface-soft: #eef1f4;
@@ -727,7 +767,7 @@ button, input { font: inherit; letter-spacing: 0; }
     background: var(--page-bg);
 }
 
-.tablet-root.theme-dark {
+body:has(.tablet-root.theme-dark), .tablet-root.theme-dark {
     --page-bg: #171a1d;
     --surface: #202428;
     --surface-soft: #292e33;

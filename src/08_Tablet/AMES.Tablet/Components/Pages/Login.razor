@@ -1,17 +1,27 @@
 @page "/"
 @page "/login"
+@using AMES.Contracts.Dto
 @inject TabletAuthService Api
 @inject NavigationManager Nav
+@inject DialogService Dialog
 
 <div class="tablet-login">
     <div class="tablet-login-panel">
         <div class="tablet-login-brand">A-MES</div>
         <div class="tablet-login-sub">SHIFT LOGIN / TABLET</div>
 
-        <label class="tablet-login-field">
-            <span>EMPLOYEE NO</span>
-            <input value="@_employeeNo" @oninput="SetEmployeeNo" disabled="@_submitting" autocomplete="username" />
-        </label>
+        <div class="tablet-login-field">
+            <RadzenLabel Text="EMPLOYEE ID" Component="tablet-employee" />
+            <RadzenButton id="tablet-employee" Click="OpenEmployeePicker" Disabled="@(_submitting || _loadingEmployees)"
+                          class="tablet-employee-trigger" aria-haspopup="dialog" aria-label="Select employee ID">
+                <span class="tablet-employee-value @(string.IsNullOrWhiteSpace(_employeeNo) ? "placeholder" : "")">@(string.IsNullOrWhiteSpace(_employeeNo) ? "Select employee ID" : _employeeNo)</span>
+                <RadzenIcon Icon="expand_more" />
+            </RadzenButton>
+            @if (_employeeError is not null)
+            {
+                <div class="tablet-login-list-note">@_employeeError <RadzenButton Text="Retry" Icon="refresh" Size="ButtonSize.Small" Click="LoadEmployees" Disabled="_loadingEmployees" /></div>
+            }
+        </div>
 
         <div class="tablet-pin-dots" aria-label="@($"{_pin.Length} of 4 PIN digits entered")">
             @for (var i = 0; i < 4; i++)
@@ -24,33 +34,69 @@
             @foreach (var digit in new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" })
             {
                 var key = digit;
-                <button type="button" disabled="@_submitting" @onclick="@(() => PressAsync(key))">@key</button>
+                <RadzenButton Text="@key" Disabled="@_submitting" Click="@(() => PressDigit(key))" />
             }
-            <button type="button" class="delete" disabled="@_submitting" @onclick="Back">DEL</button>
-            <button type="button" disabled="@_submitting" @onclick='@(() => PressAsync("0"))'>0</button>
-            <button type="button" class="confirm" disabled="@_submitting" @onclick="SubmitAsync">OK</button>
+            <RadzenButton Text="CLEAR" class="delete" Disabled="@_submitting" Click="ClearPin" />
+            <RadzenButton Text="0" Disabled="@_submitting" Click='@(() => PressDigit("0"))' />
+            <RadzenButton Icon="backspace" class="delete" Disabled="@_submitting" Click="Back" aria-label="Delete last PIN digit" />
         </div>
+
+        <RadzenButton Text="SIGN IN" class="tablet-login-submit" Click="SubmitAsync"
+                      Disabled="@(_submitting || string.IsNullOrWhiteSpace(_employeeNo) || _pin.Length != 4)" />
 
         <div class="tablet-login-status @(_failed ? "failed" : "")">@_status</div>
     </div>
 </div>
 
 @code {
-    private string _employeeNo = "admin";
+    private string _employeeNo = "";
+    private List<LoginEmployeeDto> _employees = [];
+    private string? _employeeError;
+    private bool _loadingEmployees;
     private string _pin = "";
     private string _status = " ";
     private bool _failed;
     private bool _submitting;
 
-    private void SetEmployeeNo(ChangeEventArgs args) => _employeeNo = args.Value?.ToString() ?? "";
+    private string EmployeeNo
+    {
+        get => _employeeNo;
+        set { if (_employeeNo != value) { _pin = ""; SetStatus(" "); } _employeeNo = value ?? ""; }
+    }
 
-    private async Task PressAsync(string digit)
+    protected override Task OnInitializedAsync() => LoadEmployees();
+
+    private async Task OpenEmployeePicker()
+    {
+        var selected = await Dialog.OpenAsync<EmployeePickerDialog>("Select Employee",
+            new Dictionary<string, object?> { ["Employees"] = _employees, ["SelectedId"] = _employeeNo },
+            new DialogOptions { Width = "min(760px,92vw)", Height = "min(680px,80dvh)",
+                CssClass = "tablet-employee-dialog", ContentCssClass = "tablet-employee-dialog-content",
+                AutoFocusFirstElement = false, CloseDialogOnOverlayClick = true, CloseDialogOnEsc = true });
+        if (selected is string id) EmployeeNo = id;
+    }
+
+    private async Task LoadEmployees()
+    {
+        if (_loadingEmployees) return;
+        _loadingEmployees = true;
+        _employeeError = null;
+        try { _employees = await Api.EmployeesAsync(); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        { _employeeError = "Employee list requires a server API update."; }
+        catch { _employeeError = "Cannot load employees. Check Tailscale and retry."; }
+        finally { _loadingEmployees = false; }
+    }
+
+    private void PressDigit(string digit)
     {
         if (_submitting || _pin.Length >= 4 || digit.Length != 1 || !char.IsDigit(digit[0])) return;
+        if (string.IsNullOrWhiteSpace(_employeeNo)) { SetStatus("Select employee ID first.", true); return; }
         _pin += digit;
         SetStatus(" ");
-        if (_pin.Length == 4) await SubmitAsync();
     }
+
+    private void ClearPin() { if (!_submitting) _pin = ""; }
 
     private void Back()
     {
@@ -62,7 +108,8 @@
     private async Task SubmitAsync()
     {
         var employeeNo = _employeeNo.Trim();
-        if (employeeNo.Length == 0) { SetStatus("Employee No is required.", true); return; }
+        if (_submitting) return;
+        if (employeeNo.Length == 0) { SetStatus("Select employee ID first.", true); return; }
         if (_pin.Length != 4) { SetStatus("PIN must be 4 digits.", true); return; }
 
         _submitting = true;
