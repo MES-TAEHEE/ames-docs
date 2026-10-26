@@ -115,7 +115,7 @@
                     @if (r.HasData) { <span class="pp-oee-pill @GradeKey(r.Oee)">@($"{r.Oee:F1}%")</span> } else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" MinWidth="180px" Title="@L["PP.Oee.Col.Grade"]" Width="180px" TextAlign="TextAlign.Center" Sortable="false">
+            <RadzenDataGridColumn TItem="LineAgg" MinWidth="210px" Title="@L["PP.Oee.Col.Grade"]" Width="210px" TextAlign="TextAlign.Center" Sortable="false">
                 <Template Context="r">
                     @if (r.HasData) { <b style="font-size:calc(11px + var(--ames-fs-bump));">@GradeText(r.Oee)</b>@if (!r.HasProduction) { <span class="dim" style="font-size:calc(10px + var(--ames-fs-bump));margin-left:4px;" title="@L["PP.Oee.NoProduction"]">(@L["PP.Oee.AOnly"])</span> } } else { <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));">@L["PP.Oee.ByLine.NoData"]</span> }
                 </Template>

@@ -67,34 +67,34 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="OvenID" Title="@L["Col.OvenId"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="OvenID" Title="@L["Col.OvenId"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r"><span class="code">@r.OvenID</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="OvenName" Title="@L["Col.Name"]">
                 <Template Context="r">@(r.OvenName ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="LineID" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r"><span class="dim">@(r.LineID ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ZoneCount" Title="@L["Col.ZoneCount"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ZoneCount" Title="@L["Col.ZoneCount"]" TextAlign="TextAlign.Right" Width="100px" MinWidth="100px">
                 <Template Context="r">@(r.ZoneCount?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="TargetTemp" Title="@L["Col.TargetTemp"]" TextAlign="TextAlign.Right" Width="170px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="TargetTemp" Title="@L["Col.TargetTemp"]" TextAlign="TextAlign.Right" Width="170px" MinWidth="170px">
                 <Template Context="r">@(r.TargetTemp?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Tolerance" Title="@L["Col.TempTolerance"]" TextAlign="TextAlign.Right" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Tolerance" Title="@L["Col.TempTolerance"]" TextAlign="TextAlign.Right" Width="160px" MinWidth="160px">
                 <Template Context="r">@(r.Tolerance.HasValue ? $"±{r.Tolerance}" : "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="DwellSec" Title="@L["Col.DwellTime"]" TextAlign="TextAlign.Right" Width="230px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="DwellSec" Title="@L["Col.DwellTime"]" TextAlign="TextAlign.Right" Width="230px" MinWidth="230px">
                 <Template Context="r">@(r.DwellSec?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ConveyorSpeed" Title="@L["Col.ConveyorSpeed"]" TextAlign="TextAlign.Right" Width="180px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="ConveyorSpeed" Title="@L["Col.ConveyorSpeed"]" TextAlign="TextAlign.Right" Width="180px" MinWidth="180px">
                 <Template Context="r">@(r.ConveyorSpeed?.ToString("F2") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="MaxLoadKg" Title="@L["Col.MaxLoad"]" TextAlign="TextAlign.Right" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="MaxLoadKg" Title="@L["Col.MaxLoad"]" TextAlign="TextAlign.Right" Width="150px" MinWidth="150px">
                 <Template Context="r">@(r.MaxLoadKg?.ToString("F1") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.OvenRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r">
                     @{
                         var scls   = r.Status switch { "RUN" => "ok", "IDLE" => "mute", _ => "mute" };

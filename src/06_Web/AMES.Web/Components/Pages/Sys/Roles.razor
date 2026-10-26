@@ -69,7 +69,7 @@
                     }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="SysRepository.RoleRow" Property="UserCount" Title="@L["Col.UserCount"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @if (r.UserCount > 0)
                     {
@@ -183,22 +183,22 @@
 
             <RadzenDataGrid TItem="SysRepository.RoleMemberRow" Data="@_members" AllowPaging="false" AllowSorting="true" EmptyText="@L["SYS.Roles.Members.Empty"]" Class="ames-rz-grid" Style="max-height:60vh;">
                 <Columns>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["Col.RowNo"]" Width="60px" TextAlign="TextAlign.Center" Sortable="false">
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false">
                         <Template Context="m"><span class="dim">@(_members.IndexOf(m) + 1)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]" Width="110px">
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]" Width="110px" MinWidth="110px">
                         <Template Context="m"><span class="code">@(m.EmployeeNo ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" Width="130px">
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="EmployeeName" Title="@L["SYS.Users.Col.EmployeeName"]" MinWidth="130px">
                         <Template Context="m">@(m.EmployeeName ?? "—")</Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="Email" Title="@L["SYS.Users.Col.Email"]">
                         <Template Context="m"><span class="dim">@(m.Email ?? m.UserName ?? "—")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["SYS.Users.Col.Dept"]" TextAlign="TextAlign.Center" Width="110px">
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["SYS.Users.Col.Dept"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                         <Template Context="m"><span class="dim">@DeptName(m.Department)</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                         <Template Context="m">
                             @{
                                 var st = MemberStatus(m);
@@ -207,7 +207,7 @@
                             <span class="pill @cls">@StatusName(st)</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="LastLoginTs" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="160px">
+                    <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="LastLoginTs" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                         <Template Context="m"><span class="dim">@(m.LastLoginTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
                     </RadzenDataGridColumn>
                 </Columns>

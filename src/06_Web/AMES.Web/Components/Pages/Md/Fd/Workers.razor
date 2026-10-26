@@ -71,32 +71,32 @@
             <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="EmployeeNo" Title="@L["MD.Workers.Col.WorkerNo"]" TextAlign="TextAlign.Center" Width="140px">
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="EmployeeNo" Title="@L["MD.Workers.Col.WorkerNo"]" TextAlign="TextAlign.Center" Width="140px" MinWidth="140px">
                 <Template Context="w"><span class="code">@w.EmployeeNo</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="EmployeeName" Title="@L["MD.Workers.Col.WorkerName"]" />
-            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="HasPin" Title="@L["MD.Workers.Col.Pin"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="HasPin" Title="@L["MD.Workers.Col.Pin"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="w">
                     @if (w.HasPin) { <span class="pill ok">@L["MD.Workers.Pin.Set"]</span> }
                     else { <span class="pill warn">@L["MD.Workers.Pin.None"]</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="w">
                     @if (w.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="CreatedBy" Title="@L["MD.Workers.Col.CreatedBy"]" TextAlign="TextAlign.Center" Width="150px">
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="CreatedBy" Title="@L["MD.Workers.Col.CreatedBy"]" TextAlign="TextAlign.Center" Width="150px" MinWidth="150px">
                 <Template Context="w">
                     @if (IsBadgeCreated(w)) { <span class="pill info">@L["MD.Workers.Src.Badge"]</span> }
                     else { <span class="dim">@Actors.Display(w.CreatedBy)</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="CreatedTs" Title="@L["MD.Workers.Col.CreatedTs"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="CreatedTs" Title="@L["MD.Workers.Col.CreatedTs"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                 <Template Context="w"><span class="dim">@(w.CreatedTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="ModifiedTs" Title="@L["MD.Workers.Col.ModifiedTs"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="WorkerRepository.WorkerRow" Property="ModifiedTs" Title="@L["MD.Workers.Col.ModifiedTs"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                 <Template Context="w"><span class="dim">@(w.ModifiedTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
         </Columns>

@@ -36,7 +36,7 @@
             <ShipmentOrderLines Lines="order.Lines" />
         </Template>
         <Columns>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="" Width="45px" Sortable="false"><Template Context="r"><RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.OrderId)" Change="@(v=>Select(r.OrderId,v))" Disabled="@(r.DeliveryId is not null || r.Status!="Open" || !_canEdit)" /></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="" Width="45px" MinWidth="45px" Sortable="false"><Template Context="r"><RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.OrderId)" Change="@(v=>Select(r.OrderId,v))" Disabled="@(r.DeliveryId is not null || r.Status!="Open" || !_canEdit)" /></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="@L["FG.ShipOrders.Col.OrderNo"]" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="CustomerId" Title="@L["Col.Customer"]" />
             <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
@@ -48,7 +48,7 @@
                 @if(r.DeliveryNo is not null){<RadzenButton Text="@r.DeliveryNo" Click="@(()=>PrintDelivery(r.DeliveryNo))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />}
                 else{<span>@L["FG.ShipOrders.Lbl.NotAssigned"]</span>}
             </Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["Btn.Print"]" Width="100px"><Template Context="r"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintOrder(r))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["Btn.Print"]" Width="110px" MinWidth="110px"><Template Context="r"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintOrder(r))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </section>

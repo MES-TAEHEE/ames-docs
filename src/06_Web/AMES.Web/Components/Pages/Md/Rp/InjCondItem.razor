@@ -61,7 +61,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="LineID" Title="@L["Col.Line"]" Width="200px" MinWidth="200px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="LineID" Title="@L["Col.Line"]" Width="220px" MinWidth="220px">
                 <Template Context="r"><span class="code">@r.LineID</span> <span class="dim">@LineName(r.LineID)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="ItemCode" Title="@L["MD.InjCond.Col.ItemCode"]" Width="130px" MinWidth="130px">
@@ -73,13 +73,13 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="SetAddress" Title="@L["MD.InjCond.Col.SetAddress"]" TextAlign="TextAlign.Right" Width="130px" MinWidth="130px">
                 <Template Context="r">@(r.SetAddress?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="ActualAddress" Title="@L["MD.InjCond.Col.ActualAddress"]" TextAlign="TextAlign.Right" Width="130px" MinWidth="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="ActualAddress" Title="@L["MD.InjCond.Col.ActualAddress"]" TextAlign="TextAlign.Right" Width="140px" MinWidth="140px">
                 <Template Context="r">@(r.ActualAddress?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="DataType" Title="@L["MD.InjCond.Col.DataType"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="DataType" Title="@L["MD.InjCond.Col.DataType"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="pill">@r.DataType</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="Enabled" Title="@L["MD.InjCond.Col.Enabled"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InjCondItemRow" Property="Enabled" Title="@L["MD.InjCond.Col.Enabled"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @if (r.Enabled) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }

@@ -83,43 +83,43 @@
             <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MoldId" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MoldId" Title="@L["Col.MoldId"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="code">@r.MoldId</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MoldName" Title="@L["Col.MoldName"]">
                 <Template Context="r"><span style="white-space:nowrap;">@(r.MoldName ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="CavityCount" Title="@L["Col.Cavities"]" TextAlign="TextAlign.Right" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="CavityCount" Title="@L["Col.Cavities"]" TextAlign="TextAlign.Right" Width="110px" MinWidth="110px">
                 <Template Context="r">@(r.CavityCount?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="100px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="Tonnage" Title="@L["Col.Tonnage"]" TextAlign="TextAlign.Right" Width="100px" MinWidth="100px">
                 <Template Context="r">@(r.Tonnage?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="CurrentShots" Title="@L["Col.ShotsCurrent"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="CurrentShots" Title="@L["Col.ShotsCurrent"]" TextAlign="TextAlign.Right" Width="140px" MinWidth="140px">
                 <Template Context="r">@(r.CurrentShots?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="RatedShots" Title="@L["MNT.Mold.Col.RatedShots"]" TextAlign="TextAlign.Right" Width="130px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="RatedShots" Title="@L["MNT.Mold.Col.RatedShots"]" TextAlign="TextAlign.Right" Width="150px" MinWidth="150px">
                 <Template Context="r">@(r.RatedShots?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["Col.ShotsLifetime"]" TextAlign="TextAlign.Right" Width="110px" Sortable="false">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["Col.ShotsLifetime"]" TextAlign="TextAlign.Right" Width="110px" MinWidth="110px" Sortable="false">
                 <Template Context="r">@(Lifetime(r)?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["Col.UsagePct"]" Width="170px" Sortable="false">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["Col.UsagePct"]" Width="170px" MinWidth="170px" Sortable="false">
                 <Template Context="r">@(Usage(r) is { } u ? Bar(u) : Dash)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["MNT.Mold.Col.Grade"]" TextAlign="TextAlign.Center" Width="100px" Sortable="false">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Title="@L["MNT.Mold.Col.Grade"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px" Sortable="false">
                 <Template Context="r"><span class="pill @GradeCls(Grade(r))">@GradeLabel(Grade(r))</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r"><span class="pill @StatusCls(r.Status)">@StatusLabel(r.Status)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MountedEquipId" Title="@L["Col.MountedOn"]" Width="200px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="MountedEquipId" Title="@L["Col.MountedOn"]" Width="200px" MinWidth="200px">
                 <Template Context="r">@NamedCode(r.MountedEquipId, EquipNameOf(r.MountedEquipId))</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="StorageLoc" Title="@L["Col.StorageLoc"]" TextAlign="TextAlign.Center" Width="190px" MinWidth="190px">
                 <Template Context="r"><span class="dim">@(r.StorageLoc ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="LastMaintDate" Title="@L["Col.LastMaint"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldRow" Property="LastMaintDate" Title="@L["Col.LastMaint"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="r"><span class="dim">@(r.LastMaintDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -143,40 +143,40 @@
     <RadzenDataGrid @ref="_chgGrid" Page="OnChgPage" TItem="MntRepository.MoldChangeRow" Data="@_changes" AllowPaging="true" PageSize="5" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_chgPageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["MNT.Mold.ChangeEmpty"]" PageSizeChanged="@(s => _chgPageRows = s)" Style="@($"--ames-page-rows:{_chgPageRows}")" Class="ames-rz-grid ames-grid-fixed ames-grid-rest">
         <Columns>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="MoldChangeId" Title="@L["Col.ChangeNo"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="MoldChangeId" Title="@L["Col.ChangeNo"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="c"><span class="code">@c.MoldChangeId</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="StartedAt" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="StartedAt" Title="@L["Col.Start"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                 <Template Context="c"><span class="dim">@(c.StartedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="CompletedAt" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="CompletedAt" Title="@L["Col.End"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                 <Template Context="c"><span class="dim">@(c.CompletedAt?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="DowntimeMin" Title="@L["Col.DurationMin"]" TextAlign="TextAlign.Right" Width="90px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="DowntimeMin" Title="@L["Col.DurationMin"]" TextAlign="TextAlign.Right" Width="130px" MinWidth="130px">
                 <Template Context="c">@(c.DowntimeMin?.ToString("N0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="EquipId" Title="@L["Col.Equip"]" Width="150px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="EquipId" Title="@L["Col.Equip"]" Width="250px" MinWidth="250px">
                 <Template Context="c">@NamedCode(c.EquipId, c.EquipName)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="LineId" Title="@L["Col.Line"]" Width="130px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="LineId" Title="@L["Col.Line"]" Width="200px" MinWidth="200px">
                 <Template Context="c">@NamedCode(c.LineId, c.LineName)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="OldMoldId" Title="@L["Col.OldMold"]" Width="170px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="OldMoldId" Title="@L["Col.OldMold"]" Width="170px" MinWidth="170px">
                 <Template Context="c">@NamedCode(c.OldMoldId, c.OldMoldName)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="OldMoldFinalShots" Title="@L["Col.OldFinalShots"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="OldMoldFinalShots" Title="@L["Col.OldFinalShots"]" TextAlign="TextAlign.Right" Width="160px" MinWidth="160px">
                 <Template Context="c"><span class="dim">@(c.OldMoldFinalShots?.ToString("N0") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="NewMoldId" Title="@L["Col.NewMold"]" Width="170px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="NewMoldId" Title="@L["Col.NewMold"]" Width="170px" MinWidth="170px">
                 <Template Context="c">@NamedCode(c.NewMoldId, c.NewMoldName)</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="NewMoldStartShots" Title="@L["Col.NewStartShots"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="NewMoldStartShots" Title="@L["Col.NewStartShots"]" TextAlign="TextAlign.Right" Width="150px" MinWidth="150px">
                 <Template Context="c"><span class="dim">@(c.NewMoldStartShots?.ToString("N0") ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="Reason" Title="@L["Col.Reason"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="Reason" Title="@L["Col.Reason"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="c">@if (string.IsNullOrEmpty(c.Reason)) { <span class="dim">—</span> } else { <span class="pill mute">@c.Reason</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="WoNumber" Title="@L["Col.WoNo"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="WoNumber" Title="@L["Col.WoNo"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="c"><span class="code dim">@(c.WoNumber ?? (c.MntWoId is { } wo ? $"#{wo}" : "—"))</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MntRepository.MoldChangeRow" Property="ChangedBy" Title="@L["Col.ChangedBy"]">

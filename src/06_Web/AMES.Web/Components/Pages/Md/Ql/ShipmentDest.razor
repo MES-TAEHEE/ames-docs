@@ -65,14 +65,14 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="ShipDestID" Title="@L["Col.ShipDestId"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                 <Template Context="r"><span class="code">@r.ShipDestID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="CustomerName" Title="@L["Col.Customer"]" TextAlign="TextAlign.Center" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="CustomerName" Title="@L["Col.Customer"]" TextAlign="TextAlign.Center" MinWidth="150px">
                 <Template Context="r">@(r.CustomerName ?? r.CustomerID ?? "—")</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DestName" Title="@L["Col.ShipDestName"]" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DestType" Title="@L["Col.Type"]" Width="200px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DestType" Title="@L["Col.Type"]" Width="200px" MinWidth="200px">
                 <Template Context="r">
                     @if (r.DestType != null)
                     {
@@ -81,22 +81,22 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Country" Title="@L["Col.Country"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Country" Title="@L["Col.Country"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @{ var nf = r.Country != null ? _nationItems.FirstOrDefault(c => c.CodeValue == r.Country) : null; }
                     <span class="dim">@(nf != null ? MasterDataRepository.LocalName(nf) : r.Country ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DeliveryDock" Title="@L["Col.Dock"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DeliveryDock" Title="@L["Col.Dock"]" Width="150px" MinWidth="150px">
                 <Template Context="r"><span class="dim">@(r.DeliveryDock ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="210px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="LeadTimeDays" Title="@L["Col.LeadDays"]" TextAlign="TextAlign.Right" Width="210px" MinWidth="210px">
                 <Template Context="r">@(r.LeadTimeDays?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DefaultCarrier" Title="@L["Col.Carrier"]" Width="200px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="DefaultCarrier" Title="@L["Col.Carrier"]" Width="200px" MinWidth="200px">
                 <Template Context="r"><span class="dim">@(r.DefaultCarrier ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.ShipmentDestRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @{
                         var scls   = r.Status switch { "ACTIVE" => "ok", "HOLD" => "orange", "CLOSED" => "mute", _ => "mute" };

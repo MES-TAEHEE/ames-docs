@@ -65,7 +65,7 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="RALCode" Title="@L["Col.RalCode"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="RALCode" Title="@L["Col.RalCode"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="code">@r.RALCode</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ColorName" Title="@L["Col.ColorName"]">
@@ -74,7 +74,7 @@
                     <span style="@(hex1 != null ? $"background:{hex1};color:{fg1};font-weight:500;padding:2px 6px;border-radius:4px;" : "")">@(r.ColorName ?? "—")</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="HexValue" Title="@L["Col.Hex"]" Width="130px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="HexValue" Title="@L["Col.Hex"]" Width="130px" MinWidth="130px">
                 <Template Context="r">
                     @{ var hex2 = ValidHex(r.HexValue); var fg2 = hex2 != null ? TextColorFor(hex2) : null; }
                     @if (hex2 != null)
@@ -89,22 +89,22 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="CurrentPowderLot" Title="@L["Col.CurrentLot"]" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="CurrentPowderLot" Title="@L["Col.CurrentLot"]" Width="150px" MinWidth="150px">
                 <Template Context="r"><span class="dim">@(r.CurrentPowderLot ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="CureTemp" Title="@L["Col.CureTemp"]" TextAlign="TextAlign.Right" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="CureTemp" Title="@L["Col.CureTemp"]" TextAlign="TextAlign.Right" Width="160px" MinWidth="160px">
                 <Template Context="r">@(r.CureTemp?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="CureDuration" Title="@L["Col.CureTime"]" TextAlign="TextAlign.Right" Width="170px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="CureDuration" Title="@L["Col.CureTime"]" TextAlign="TextAlign.Right" Width="170px" MinWidth="170px">
                 <Template Context="r">@(r.CureDuration?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ElectroV" Title="@L["Col.Voltage"]" TextAlign="TextAlign.Right" Width="120px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ElectroV" Title="@L["Col.Voltage"]" TextAlign="TextAlign.Right" Width="120px" MinWidth="120px">
                 <Template Context="r">@(r.ElectroV?.ToString() ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ParticleUm" Title="@L["Col.ParticleSize"]" TextAlign="TextAlign.Right" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ParticleUm" Title="@L["Col.ParticleSize"]" TextAlign="TextAlign.Right" Width="150px" MinWidth="150px">
                 <Template Context="r">@(r.ParticleUm?.ToString("0.0") ?? "—")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.RalColorRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r">
                     @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
                     else { <span class="pill bad">@L["Lbl.Inactive"]</span> }

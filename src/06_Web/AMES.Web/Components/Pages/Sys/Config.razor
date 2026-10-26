@@ -81,7 +81,7 @@
                 <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="CodeName" Title="@L["SYS.Config.Col.Desc"]">
                     <Template Context="c"><span class="dim" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(c.CodeName ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Title="@L["SYS.Config.Col.Value"]" Width="200px">
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Title="@L["SYS.Config.Col.Value"]" Width="200px" MinWidth="200px">
                     <Template Context="c">
                         @{ var ed = _edits[c.ConfigId]; }
                         @if (_canEdit)
@@ -131,13 +131,13 @@
                         }
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="Unit" Title="@L["SYS.Config.Col.Unit"]" TextAlign="TextAlign.Center" Width="90px">
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="Unit" Title="@L["SYS.Config.Col.Unit"]" TextAlign="TextAlign.Center" Width="90px" MinWidth="90px">
                     <Template Context="c"><span class="dim">@(c.Unit ?? "")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="ConfigType" Title="@L["SYS.Config.Col.Type"]" TextAlign="TextAlign.Center" Width="110px">
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Property="ConfigType" Title="@L["SYS.Config.Col.Type"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
                     <Template Context="c"><span class="dim">@(c.ConfigType ?? "—")</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Left" Width="150px">
+                <RadzenDataGridColumn TItem="SysRepository.ConfigRow" Title="@L["Col.Status"]" TextAlign="TextAlign.Left" Width="150px" MinWidth="150px">
                     <Template Context="c">
                         @{ var ed = _edits[c.ConfigId]; }
                         @if (!ActivationKeys.Contains(c.ConfigKey ?? ""))

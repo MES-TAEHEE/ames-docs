@@ -92,7 +92,7 @@
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="120px" Property="LineId" Title="@L["Col.Line"]" Width="120px">
                 <Template Context="r"><span class="code">@(r.LineId ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="160px" Title="@L["Col.Name"]" Sortable="false">
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" Width="160px" MinWidth="160px" Title="@L["Col.Name"]" Sortable="false">
                 <Template Context="r"><span style="white-space:nowrap;">@LineName(r.LineId)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="160px" Property="StartTs" Title="@L["Col.Start"]" Width="160px">

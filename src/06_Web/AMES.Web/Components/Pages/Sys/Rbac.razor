@@ -129,7 +129,7 @@
                         <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                             <Template Context="s"><span class="dim">@GridRowNo.Of(_screenGrid, s)</span></Template>
                         </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="100px">
+                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Property="ScreenCode" Title="@L["SYS.Screen.Col.Code"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                             <Template Context="s"><span class="code" style="white-space:nowrap;">@s.ScreenCode</span></Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn TItem="SysRepository.ScreenRow" Title="@L["SYS.Rbac.Col.Screen"]">
@@ -138,7 +138,7 @@
                         @foreach (var pl in _permLevelItems)
                         {
                             var plCap = pl;
-                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" TextAlign="TextAlign.Center" Width="80px" Sortable="false">
+                            <RadzenDataGridColumn TItem="SysRepository.ScreenRow" TextAlign="TextAlign.Center" Width="80px" MinWidth="80px" Sortable="false">
                                 <HeaderTemplate>
                                     <span style="cursor:pointer;user-select:none;" @onclick="() => ToggleColumn(plCap)" @onclick:stopPropagation="true">
                                         @MasterDataRepository.LocalName(plCap)

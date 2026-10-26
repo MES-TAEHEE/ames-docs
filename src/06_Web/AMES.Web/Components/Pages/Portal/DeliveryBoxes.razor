@@ -24,7 +24,7 @@
             <Columns>
                 <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Title='@L["Portal.Text.Delivery"]'><Template Context="d"><button class="box-document" @onclick="()=>Select(d)">@d.Number</button><div class="dim">@d.Vendor · @d.Date.ToString(DateFmt.Date)</div></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="110px" MinWidth="110px" TextAlign="TextAlign.Center" Title='@L["Col.Status"]'><Template Context="d">@Status(d.Status)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="80px" MinWidth="80px" Property="Boxes" Title='@L["Portal.Boxes.Col.Labels"]' TextAlign="TextAlign.Right" />
+                <RadzenDataGridColumn TItem="ScmRepository.BoxDelivery" Width="100px" MinWidth="100px" Property="Boxes" Title='@L["Portal.Boxes.Col.Labels"]' TextAlign="TextAlign.Right" />
             </Columns>
         </RadzenDataGrid>
     </div>
@@ -46,7 +46,7 @@
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Item" Title='@L["Portal.Text.ItemCode"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" MinWidth="200px" Property="Name" Title='@L["Scm.Text.Description"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Number" Title='@L["Portal.Boxes.Col.Barcode"]' />
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="100px" MinWidth="100px" TextAlign="TextAlign.Center" Property="Sequence" Title='@L["Portal.Text.Sequence"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="110px" MinWidth="110px" TextAlign="TextAlign.Center" Property="Sequence" Title='@L["Portal.Text.Sequence"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="120px" MinWidth="120px" Title='@L["Col.Quantity"]' TextAlign="TextAlign.Right"><Template Context="b">@QtyFormat.Text(b.Quantity,b.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center" Property="Unit" Title='@L["Scm.Text.Unit"]'><Template Context="unitRow">@UomFmt.Sym(unitRow.Unit)</Template></RadzenDataGridColumn>
             </Columns>

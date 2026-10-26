@@ -6,10 +6,10 @@
     <RadzenDataGrid TItem="ShippingOrderLineDto" Data="Lines" AllowPaging="false" AllowSorting="true"
                     Density="Density.Compact" EmptyText='@L["Grid.Empty"]' class="ames-rz-grid">
         <Columns>
-            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" Width="140px" />
-            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="@L["Col.ItemNo"]" Width="160px" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" Width="140px" MinWidth="140px" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="@L["Col.ItemNo"]" Width="160px" MinWidth="160px" />
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartName" Title="@L["Col.ItemName"]" />
-            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["FG.Ship.Col.PalletCalc"]" Width="310px" Sortable="false">
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["FG.Ship.Col.PalletCalc"]" Width="310px" MinWidth="310px" Sortable="false">
                 <Template Context="line">
                     <span>@UomFmt.QtyUnit(line.Qty,line.Unit)</span>
                     @if (!line.ToteFlag && line.PalletQty is > 0)

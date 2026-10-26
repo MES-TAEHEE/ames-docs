@@ -38,10 +38,10 @@
                 <div class="shipment-items" role="region" aria-label='@L["Shipment.DetailsFmt",shipment.ShipmentId]' tabindex="0">
                     <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentItemRow" Data="children" AllowPaging="false" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid shipment-items-grid" EmptyText='@L["Grid.Empty"]'>
                         <Columns>
-                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LotNo" Title='@L["Col.LotNo"]' />
-                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="PartNo" Title='@L["Col.PartNo"]' />
+                            <RadzenDataGridColumn Width="190px" MinWidth="190px" TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LotNo" Title='@L["Col.LotNo"]' />
+                            <RadzenDataGridColumn Width="270px" MinWidth="270px" TItem="FinishedGoodsRepository.ShipmentItemRow" Property="PartNo" Title='@L["Col.PartNo"]' />
                             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="PartName" Title='@L["Col.PartName"]' />
-                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="Qty" Title='@L["Col.Quantity"]' TextAlign="TextAlign.Right"><Template Context="item">@UomFmt.QtyUnit(item.Qty,item.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn Width="100px" MinWidth="100px" TItem="FinishedGoodsRepository.ShipmentItemRow" Property="Qty" Title='@L["Col.Quantity"]' TextAlign="TextAlign.Right"><Template Context="item">@UomFmt.QtyUnit(item.Qty,item.Unit)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LocationNo" Title='@L["Shipment.FromLocation"]' />
                         </Columns>
                     </RadzenDataGrid>

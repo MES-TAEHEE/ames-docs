@@ -51,15 +51,15 @@
             </div>
         </Template>
         <Columns>
-            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Property="DeliveryNo" Title="@L["FG.ShipPlan.Col.DcrNo"]" />
-            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Property="CustomerId" Title="@L["Col.Customer"]" />
-            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Property="ShipDate" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
-            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="@L["FG.ShipPlan.Col.Orders"]"><Template Context="delivery">@delivery.Orders.Count</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="@L["FG.ShipPlan.Col.PartsQty"]"><Template Context="delivery">
+            <RadzenDataGridColumn Width="160px" MinWidth="160px" TItem="ShipmentPlanRows.Delivery" Property="DeliveryNo" Title="@L["FG.ShipPlan.Col.DcrNo"]" />
+            <RadzenDataGridColumn Width="100px" MinWidth="100px" TItem="ShipmentPlanRows.Delivery" Property="CustomerId" Title="@L["Col.Customer"]" />
+            <RadzenDataGridColumn Width="140px" MinWidth="140px" TItem="ShipmentPlanRows.Delivery" Property="ShipDate" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
+            <RadzenDataGridColumn Width="90px" MinWidth="90px" TItem="ShipmentPlanRows.Delivery" Title="@L["FG.ShipPlan.Col.Orders"]"><Template Context="delivery">@delivery.Orders.Count</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn MinWidth="190px" TItem="ShipmentPlanRows.Delivery" Title="@L["FG.ShipPlan.Col.PartsQty"]"><Template Context="delivery">
                 @delivery.Lines.Select(x=>x.PartNo).Distinct().Count() @L["FG.Ship.Lbl.Parts"] · @DeliveryQuantity(delivery)
             </Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Property="Status" Title="@L["Col.Status"]" />
-            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="@L["Btn.Print"]" Width="100px"><Template Context="delivery"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintDelivery(delivery))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn Width="80px" MinWidth="80px" TItem="ShipmentPlanRows.Delivery" Property="Status" Title="@L["Col.Status"]" />
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="@L["Btn.Print"]" Width="110px" MinWidth="110px"><Template Context="delivery"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintDelivery(delivery))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </section>

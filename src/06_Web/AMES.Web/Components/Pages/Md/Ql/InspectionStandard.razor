@@ -70,10 +70,10 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="InspStdID" Title="@L["Col.StandardId"]" TextAlign="TextAlign.Center" Width="150px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="InspStdID" Title="@L["Col.StandardId"]" TextAlign="TextAlign.Center" Width="150px" MinWidth="150px">
                 <Template Context="r"><span class="code">@r.InspStdID</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="ItemID" Title="@L["Col.Item"]" TextAlign="TextAlign.Center">
+            <RadzenDataGridColumn Width="130px" MinWidth="130px" TItem="MasterDataRepository.InspectionStandardRow" Property="ItemID" Title="@L["Col.Item"]" TextAlign="TextAlign.Center">
                 <Template Context="r">
                     @{ var it = r.ItemID != null ? _items.FirstOrDefault(x => x.ItemNo == r.ItemID) : null; }
                     @if (r.ItemID != null)
@@ -83,7 +83,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="ProcessCode" Title="@L["Col.Process"]" Width="160px" MinWidth="160px">
                 <Template Context="r">
                     @if (r.ProcessCode != null)
                     {
@@ -94,7 +94,7 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="InspType" Title="@L["Col.InspType"]" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="InspType" Title="@L["Col.InspType"]" Width="110px" MinWidth="110px">
                 <Template Context="r">
                     @if (r.InspType != null)
                     {
@@ -103,35 +103,35 @@
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="CharName" Title="@L["Col.CharName"]" Width="160px" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SpecNominal" Title="@L["Col.Nominal"]" TextAlign="TextAlign.Right" Width="110px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="CharName" Title="@L["Col.CharName"]" MinWidth="160px" />
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SpecNominal" Title="@L["Col.Nominal"]" TextAlign="TextAlign.Right" Width="110px" MinWidth="110px">
                 <Template Context="r"><span>@UomFmt.Qty(r.SpecNominal, r.UOM)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SpecLSL" Title="@L["Col.LSL"]" TextAlign="TextAlign.Right" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SpecLSL" Title="@L["Col.LSL"]" TextAlign="TextAlign.Right" Width="70px" MinWidth="70px">
                 <Template Context="r"><span class="dim">@UomFmt.Qty(r.SpecLSL, r.UOM)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SpecUSL" Title="@L["Col.USL"]" TextAlign="TextAlign.Right" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SpecUSL" Title="@L["Col.USL"]" TextAlign="TextAlign.Right" Width="70px" MinWidth="70px">
                 <Template Context="r"><span class="dim">@UomFmt.Qty(r.SpecUSL, r.UOM)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="UOM" Title="@L["Col.Uom"]" TextAlign="TextAlign.Center" Width="80px" MinWidth="80px">
                 <Template Context="r"><span class="code dim">@(UomFmt.Sym(r.UOM) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SamplingPlan" Title="@L["Col.SamplingPlan"]" Width="170px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="SamplingPlan" Title="@L["Col.SamplingPlan"]" Width="170px" MinWidth="170px">
                 <Template Context="r"><span class="dim">@(r.SamplingPlan ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="InspMethod" Title="@L["Col.InspMethod"]" Width="140px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="InspMethod" Title="@L["Col.InspMethod"]" Width="140px" MinWidth="140px">
                 <Template Context="r"><span class="dim">@(r.InspMethod ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="IsCTQ" Title="@L["Col.CTQ"]" TextAlign="TextAlign.Center" Width="70px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="IsCTQ" Title="@L["Col.CTQ"]" TextAlign="TextAlign.Center" Width="70px" MinWidth="70px">
                 <Template Context="r">
                     @if (r.IsCTQ) { <span class="pill warn">CTQ</span> }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="EffectiveDate" Title="@L["Col.EffectiveDate"]" TextAlign="TextAlign.Center" Width="170px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="EffectiveDate" Title="@L["Col.EffectiveDate"]" TextAlign="TextAlign.Center" Width="170px" MinWidth="170px">
                 <Template Context="r"><span class="dim">@(r.EffectiveDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px">
+            <RadzenDataGridColumn TItem="MasterDataRepository.InspectionStandardRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r">
                     @{
                         var afCode  = r.ActiveFlag ? "ACTIVE" : "INACTIVE";

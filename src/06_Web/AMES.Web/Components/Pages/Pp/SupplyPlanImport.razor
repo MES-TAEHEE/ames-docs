@@ -151,8 +151,8 @@ else
                     <span class="pill @(r.Status == "Confirmed" ? "ok" : "warn")">@r.Status</span>
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="240px" Title="@L["PP.SupplyPlanImport.Col.Wo"].Value"
-                                  Filterable="false" Sortable="false" Width="240px">
+            <RadzenDataGridColumn TItem="PpRepository.SoRow" MinWidth="250px" Title="@L["PP.SupplyPlanImport.Col.Wo"].Value"
+                                  Filterable="false" Sortable="false" Width="250px">
                 <Template Context="r">
                     @if (!string.IsNullOrEmpty(r.WoNumber))
                     {

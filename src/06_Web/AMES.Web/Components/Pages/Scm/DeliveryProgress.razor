@@ -44,16 +44,16 @@
         ShowPagingSummary="true" PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]' PagerHorizontalAlign="HorizontalAlign.Center" RowClick="e=>_selected=e.Data" RowRender="RenderNoteRow"
         Class="ames-rz-grid ames-grid-fixed" Style="@($"--ames-page-rows:{_pageSize}")" EmptyText='@L["Scm.Text.NoResults"]'>
         <Columns>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Col.RowNo"]' Width="60px" Sortable="false"><Template Context="d">@GridRowNo.Of(_grid,d)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="Number" Title='@L["Scm.Text.DeliveryNote"]' MinWidth="190px" />
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Col.RowNo"]' Width="60px" MinWidth="60px" Sortable="false"><Template Context="d">@GridRowNo.Of(_grid,d)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="Number" Title='@L["Scm.Text.DeliveryNote"]' Width="190px" MinWidth="190px" />
             <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="VendorName" Title='@L["Col.Supplier"]' MinWidth="170px"><Template Context="d">@d.VendorName<div class="dim">@d.VendorId</div></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="ShipDate" Title='@L["SCM.DeliveryProgress.ShipDate"]' Width="150px"><Template Context="d">@(d.ShipDate?.ToString(DateFmt.Date)??"—")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="DeliveryDate" Title='@L["Scm.Text.DeliveryDate"]' Width="150px"><Template Context="d">@d.DeliveryDate.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Col.Quantity"]' MinWidth="130px"><Template Context="d">@Totals(d,l=>l.Quantity)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Scm.Text.Received"]' MinWidth="130px"><Template Context="d">@Totals(d,l=>l.Received)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Scm.Text.Remaining"]' MinWidth="130px"><Template Context="d">@Totals(d,l=>l.Remaining)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Portal.Boxes.Title"]' Width="120px"><Template Context="d">@d.ReceivedItems / @d.UnitItems</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="Status" Title='@L["Col.Status"]' Width="160px"><Template Context="d"><span class="pill receipt-status @(d.Complete?"ok":d.Status=="PartiallyReceived"?"warn":"info")">@if(d.Complete){<RadzenIcon Icon="check_circle" />}@Status(d.Status)</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="ShipDate" Title='@L["SCM.DeliveryProgress.ShipDate"]' Width="150px" MinWidth="150px"><Template Context="d">@(d.ShipDate?.ToString(DateFmt.Date)??"—")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="DeliveryDate" Title='@L["Scm.Text.DeliveryDate"]' Width="150px" MinWidth="150px"><Template Context="d">@d.DeliveryDate.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Col.Quantity"]' Width="160px" MinWidth="160px"><Template Context="d">@Totals(d,l=>l.Quantity)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Scm.Text.Received"]' Width="140px" MinWidth="140px"><Template Context="d">@Totals(d,l=>l.Received)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Scm.Text.Remaining"]' Width="160px" MinWidth="160px"><Template Context="d">@Totals(d,l=>l.Remaining)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Title='@L["Portal.Boxes.Title"]' Width="120px" MinWidth="120px"><Template Context="d">@d.ReceivedItems / @d.UnitItems</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SupplierDeliveryProgressDto" Property="Status" Title='@L["Col.Status"]' Width="170px" MinWidth="170px"><Template Context="d"><span class="pill receipt-status @(d.Complete?"ok":d.Status=="PartiallyReceived"?"warn":"info")">@if(d.Complete){<RadzenIcon Icon="check_circle" />}@Status(d.Status)</span></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </div>
@@ -65,12 +65,12 @@
             <div class="ames-modal-body scm-delivery-progress" style="max-height:65vh;overflow:auto">
                 <RadzenDataGrid TItem="UnitItemRow" Data="@UnitItems(selected)" Class="ames-rz-grid" AllowPaging="false" AllowSorting="true" RowRender="RenderItemRow" EmptyText='@L["Scm.Text.NoResults"]'>
                     <Columns>
-                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Barcode" Title='@L["SCM.Preview.Print.BoxBarcode"]' MinWidth="230px" />
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Barcode" Title='@L["SCM.Preview.Print.BoxBarcode"]' Width="230px" MinWidth="230px" />
                         <RadzenDataGridColumn TItem="UnitItemRow" Property="Line.PartNo" Title='@L["SCM.Preview.Col.PartNoName"]' MinWidth="200px"><Template Context="row">@row.Line.PartNo<div class="dim">@row.Line.PartName</div></Template></RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Quantity" Title='@L["Col.Quantity"]' MinWidth="120px" TextAlign="TextAlign.Right"><Template Context="row">@Uom.QtyUnit(row.Item.Quantity,row.Line.Unit)</Template></RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Received" Title='@L["Col.Status"]' MinWidth="160px"><Template Context="row"><span class="pill receipt-status @(row.Item.Received?"ok":"warn")"><RadzenIcon Icon="@(row.Item.Received?"check_circle":"schedule")" />@(row.Item.Received?L["Scm.Text.Received"]:L["SCM.DeliveryProgress.NotReceived"])</span></Template></RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Line.OrderNumber" Title='@L["SCM.Preview.Col.PoNo"]' MinWidth="170px" />
-                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.ShippingUnitNo" Title='@L["SCM.Preview.Col.CaseNo"]' MinWidth="190px" />
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Quantity" Title='@L["Col.Quantity"]' Width="120px" MinWidth="120px" TextAlign="TextAlign.Right"><Template Context="row">@Uom.QtyUnit(row.Item.Quantity,row.Line.Unit)</Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.Received" Title='@L["Col.Status"]' Width="160px" MinWidth="160px"><Template Context="row"><span class="pill receipt-status @(row.Item.Received?"ok":"warn")"><RadzenIcon Icon="@(row.Item.Received?"check_circle":"schedule")" />@(row.Item.Received?L["Scm.Text.Received"]:L["SCM.DeliveryProgress.NotReceived"])</span></Template></RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Line.OrderNumber" Title='@L["SCM.Preview.Col.PoNo"]' Width="170px" MinWidth="170px" />
+                        <RadzenDataGridColumn TItem="UnitItemRow" Property="Item.ShippingUnitNo" Title='@L["SCM.Preview.Col.CaseNo"]' Width="190px" MinWidth="190px" />
                     </Columns>
                 </RadzenDataGrid>
             </div>

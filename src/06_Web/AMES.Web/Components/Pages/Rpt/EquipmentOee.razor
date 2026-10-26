@@ -147,26 +147,26 @@
                 <Template Context="r"><span class="code">@r.LineId</span><span class="dim" style="font-size:.85em;margin-left:6px;">@r.LineName</span></Template>
                 <FooterTemplate><b>@L["RPT.EquipmentOee.PlantAvg"]</b></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="A" Title="@L["RPT.EquipmentOee.Kpi.Availability"]" Width="160px">
+            <RadzenDataGridColumn TItem="LineAgg" Property="A" Title="@L["RPT.EquipmentOee.Kpi.Availability"]" Width="160px" MinWidth="160px">
                 <Template Context="r">@Bar(r.A, "a")</Template>
                 <FooterTemplate><b class="code">@Pct(_cur.A)</b></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="P" Title="@L["RPT.EquipmentOee.Kpi.Performance"]" Width="150px">
+            <RadzenDataGridColumn TItem="LineAgg" Property="P" Title="@L["RPT.EquipmentOee.Kpi.Performance"]" Width="150px" MinWidth="150px">
                 <Template Context="r">@Bar(r.P, "p")</Template>
                 <FooterTemplate><b class="code">@Pct(_cur.P)</b></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="Q" Title="@L["RPT.EquipmentOee.Kpi.Quality"]" Width="150px">
+            <RadzenDataGridColumn TItem="LineAgg" Property="Q" Title="@L["RPT.EquipmentOee.Kpi.Quality"]" Width="150px" MinWidth="150px">
                 <Template Context="r">@Bar(r.Q, "q")</Template>
                 <FooterTemplate><b class="code">@Pct(_cur.Q)</b></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="Oee" Title="@L["Col.OEE"]" TextAlign="TextAlign.Center" Width="90px">
+            <RadzenDataGridColumn TItem="LineAgg" Property="Oee" Title="@L["Col.OEE"]" TextAlign="TextAlign.Center" Width="90px" MinWidth="90px">
                 <Template Context="r"><span class="pill @GradeCls(r.Oee)">@Pct(r.Oee)</span></Template>
                 <FooterTemplate><span class="pill @GradeCls(_cur.Oee)">@Pct(_cur.Oee)</span></FooterTemplate>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="Delta" Title="@L["RPT.EquipmentOee.Col.VsPrev"]" TextAlign="TextAlign.Center" Width="150px">
+            <RadzenDataGridColumn TItem="LineAgg" Property="Delta" Title="@L["RPT.EquipmentOee.Col.VsPrev"]" TextAlign="TextAlign.Center" Width="150px" MinWidth="150px">
                 <Template Context="r">@if (r.Delta is { } d) { <span class="rpt-eo-delta @(d >= 0 ? "up" : "dn")">@DeltaText(d)</span> } else { <span class="dim">—</span> }</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="LineAgg" Property="Oee" Title="@L["RPT.EquipmentOee.Col.Grade"]" TextAlign="TextAlign.Center" Width="130px" Sortable="false">
+            <RadzenDataGridColumn TItem="LineAgg" Property="Oee" Title="@L["RPT.EquipmentOee.Col.Grade"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px" Sortable="false">
                 <Template Context="r"><b style="color:@GradeColor(r.Oee);">@GradeLabel(r.Oee)</b></Template>
             </RadzenDataGridColumn>
         </Columns>

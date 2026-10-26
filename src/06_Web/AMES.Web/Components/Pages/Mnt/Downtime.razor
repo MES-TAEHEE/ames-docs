@@ -146,27 +146,27 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MntRepository.DowntimeRow" Data="@_rows" AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MNT.Downtime.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="StartTs" Title="@L["MNT.Downtime.Col.DateTime"]" TextAlign="TextAlign.Center" Width="160px">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="StartTs" Title="@L["MNT.Downtime.Col.DateTime"]" TextAlign="TextAlign.Center" Width="160px" MinWidth="160px">
                 <Template Context="r"><span class="code">@(r.StartTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Title="@L["Col.Name"]" Width="170px" Sortable="false">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Title="@L["Col.Name"]" Width="170px" MinWidth="170px" Sortable="false">
                 <Template Context="r"><b style="white-space:nowrap;">@(LineName(r) is { Length: > 0 } nm ? nm : "—")</b></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="LineId" Title="@L["Col.Line"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r"><span class="code dim">@(r.LineId ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="ReasonCode" Title="@L["Col.Reason"]" TextAlign="TextAlign.Center" Width="120px">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="ReasonCode" Title="@L["Col.Reason"]" TextAlign="TextAlign.Center" Width="120px" MinWidth="120px">
                 <Template Context="r">
                     @if (r.ReasonCode is null) { <span class="dim">—</span> } else { <span class="pill @ReasonCls(r.ReasonCode)">@r.ReasonCode</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="CauseCode" Title="@L["Col.Cause"]" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="CauseCode" Title="@L["Col.Cause"]" Width="110px" MinWidth="110px">
                 <Template Context="r"><span class="dim">@(r.CauseCode ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="DurationMin" Title="@L["Col.MinDown"]" TextAlign="TextAlign.Right" Width="110px">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="DurationMin" Title="@L["Col.MinDown"]" TextAlign="TextAlign.Right" Width="110px" MinWidth="110px">
                 <Template Context="r"><b class="code" style="@(r.DurationMin > 60 ? "color:var(--ames-tx-red-400);" : "")">@(r.DurationMin?.ToString("N0") ?? "—")</b></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="EndTs" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px">
+            <RadzenDataGridColumn TItem="MntRepository.DowntimeRow" Property="EndTs" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="130px" MinWidth="130px">
                 <Template Context="r">
                     @if (r.EndTs is null) { <span class="pill bad">@L["MNT.Downtime.Status.Open"]</span> } else { <span class="pill ok">@L["MNT.Downtime.Status.Closed"]</span> }
                 </Template>

@@ -99,12 +99,12 @@
                                 </div>
                             </Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="SAPFlag" Title="@L["Col.Sap"]" TextAlign="TextAlign.Center" Width="70px">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="SAPFlag" Title="@L["Col.Sap"]" TextAlign="TextAlign.Center" Width="70px" MinWidth="70px">
                             <Template Context="v">
                                 @if (v.SAPFlag) { <RadzenIcon Icon="check_circle" Style="color:var(--ames-tx-green-400);vertical-align:middle;" /> }
                             </Template>
                         </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px">
+                        <RadzenDataGridColumn TItem="MasterDataRepository.BomVersionRow" Property="Status" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                             <Template Context="v"><span class="pill @StatusCss(v.Status)">@StatusName(v.Status)</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
