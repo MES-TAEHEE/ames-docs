@@ -184,6 +184,7 @@ public sealed class PntLotRepository
         }
 
         var lotCode = offline?.LotCode ?? LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
+        if (offline is not null) LotNoGenerator.EnsureAtLeast(conn, tx, lotCode);
 
         int lotId; DateTime createdTs;
         using (var cmd = new SqlCommand("dbo.SP_POP_PNT_InsertRawLot_InsLot", conn, tx) { CommandType = CommandType.StoredProcedure })

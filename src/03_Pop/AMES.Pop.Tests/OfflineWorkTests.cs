@@ -235,29 +235,26 @@ public sealed class OfflineWorkTests : IDisposable
         var s = State();
         var now = DbClock_Now();
         var head = $"{LotNoGenerator.EncodeYear(now.Year)}{LotNoGenerator.EncodeMonth(now.Month)}{LotNoGenerator.EncodeDay(now.Day)}I1";
-        s.LotBlocks.Add(new OfflineLotBlock { Header = head, Day = now.Date, Next = 21, End = 22 });
+        s.LotPrefix = (head)[3..5]; s.LotCursor[head] = 9998;
         OfflineStore.Save("work-state.bin", s);
         OfflineWork.ResetForTests();
 
         var a = OfflineWork.CreateManualLot(Line, Station, "E001", "E001", -1, Item, null, 0);
-        var b = OfflineWork.CreateManualLot(Line, Station, "E001", "E001", -1, Item, null, 0);
-        Assert.Equal(head + "0021", a.LotCode);
-        Assert.Equal(head + "0022", b.LotCode);
-        Assert.NotEqual(a.LotId, b.LotId);
+        Assert.Equal(head + "9999", a.LotCode);
         Assert.Throws<OfflineLotNumbersExhaustedException>(() =>
             OfflineWork.CreateManualLot(Line, Station, "E001", "E001", -1, Item, null, 0));
 
         var row = OfflineWork.Summary(DateTime.Today).Single();
-        Assert.Equal(6, row.InputQty);     // 4 + 2
-        Assert.Equal(5, row.PendingQty);   // 3 + 2
-        Assert.Equal(2, OfflineWork.BuildScreen(Line, Station, Item, DateTime.Today)!.RawLots.Count(l => l.LotCode.StartsWith(head)));
+        Assert.Equal(5, row.InputQty);     // 4 + 1 (번호는 9999 한 개만 남아 있었다)
+        Assert.Equal(4, row.PendingQty);   // 3 + 1
+        Assert.Equal(1, OfflineWork.BuildScreen(Line, Station, Item, DateTime.Today)!.RawLots.Count(l => l.LotCode.StartsWith(head)));
     }
 
     [Fact]
-    public void Manual_lot_without_a_number_block_for_today_is_refused()
+    public void Manual_lot_without_a_line_prefix_is_refused()
     {
-        State();
-        Assert.Throws<OfflineLotNumbersExhaustedException>(() =>
+        State();   // 사본에 라인 접두어가 없다 — 번호를 이어 줄 근거가 없으니 거부한다
+        Assert.Throws<InvalidOperationException>(() =>
             OfflineWork.CreateManualLot(Line, Station, "E001", "E001", -1, Item, null, 0));
     }
 
@@ -267,7 +264,7 @@ public sealed class OfflineWorkTests : IDisposable
         var s = State();
         var now = DbClock_Now();
         var head = $"{LotNoGenerator.EncodeYear(now.Year)}{LotNoGenerator.EncodeMonth(now.Month)}{LotNoGenerator.EncodeDay(now.Day)}I1";
-        s.LotBlocks.Add(new OfflineLotBlock { Header = head, Day = now.Date, Next = 1, End = 5 });
+        s.LotPrefix = (head)[3..5]; s.LotCursor[head] = 1 - 1;
         OfflineStore.Save("work-state.bin", s);
         OfflineWork.ResetForTests();
 

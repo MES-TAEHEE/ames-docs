@@ -43,6 +43,15 @@ internal static class Program
             new FEnetClient(m.FenetIp, m.FenetPort),
             store, MainForm.EnqueueLog)).ToList();
 
+        // 창이 뜬 뒤 한 번만 — 어느 DB 에 붙었는지 에이전트 로그 창에 남긴다(WinForms 라 콘솔은 보이지 않는다)
+        EventHandler? onIdle = null;
+        onIdle = (_, _) =>
+        {
+            Application.Idle -= onIdle;
+            _ = Task.Run(() => MainForm.EnqueueLog($"DB: {factory.Describe()}"));
+        };
+        Application.Idle += onIdle;
+
         Application.Run(new MainForm(pollers, cfg.PollingMs));
     }
 }

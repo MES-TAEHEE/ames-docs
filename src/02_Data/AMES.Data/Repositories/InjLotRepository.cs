@@ -291,6 +291,13 @@ public sealed class InjLotRepository
     /// 오프라인 터미널이 쓸 LotNo 구간을 미리 확보한다(<see cref="LotNoGenerator.Reserve"/>) — 한 트랜잭션, 날짜·라인별.
     /// 확보한 번호는 SYS_LotSeq 에서 이미 빠져 있어 InjAgent·다른 터미널의 채번과 겹치지 않는다.
     /// </summary>
+    /// <summary>오프라인 사본용 — 그 날·그 라인의 LotNo 헤더와 DB 의 마지막 순번(읽기만).</summary>
+    public (string Prefix, string Header, int LastSeq) ReadLotNoCursor(string lineId, DateTime date)
+    {
+        using var conn = _factory.OpenConnection();
+        return LotNoGenerator.ReadCursor(conn, lineId, date);
+    }
+
     public LotNoGenerator.LotNoBlock ReserveLotNos(string lineId, DateTime date, int count)
     {
         using var conn = _factory.OpenConnection();
@@ -358,6 +365,7 @@ public sealed class InjLotRepository
                     exists.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
                     if (exists.ExecuteScalar() is not null) continue;
                 }
+                LotNoGenerator.EnsureAtLeast(conn, tx, lotCode);
 
                 int lotId;
                 using (var cmd = new SqlCommand("dbo.SP_POP_INJ_CreateManualRawLots_InsLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
@@ -502,6 +510,17 @@ public sealed class InjLotRepository
     public int IncrementPrintedCount(int lotId, string? employeeNo)
     {
         const string sql = "dbo.SP_POP_INJ_IncrementPrintedCount";
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar,   20).Value = (object?)employeeNo ?? DBNull.Value;
+        return cmd.ExecuteScalar() as int? ?? 0;
+    }
+
+    /// <summary>출력이 실패했을 때 선행 카운트를 되돌린다. 0 이하로 내려가지 않는다(프로시저 가드).</summary>
+    public int DecrementPrintedCount(int lotId, string? employeeNo)
+    {
+        const string sql = "dbo.SP_POP_INJ_DecrementPrintedCount";
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;

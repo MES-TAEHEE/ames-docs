@@ -108,6 +108,7 @@ public sealed class ImgLotRepository
         try
         {
             if (LotExists(conn, tx, lotCode)) { tx.Rollback(); return null; }
+            LotNoGenerator.EnsureAtLeast(conn, tx, lotCode);
             var lot = InsertRawLot(conn, tx, lineId, itemNo, null, null, employeeNo, null, new OfflineCreate(lotCode, at, printedCount, customerCode));
             tx.Commit();
             return lot;
@@ -252,6 +253,7 @@ public sealed class ImgLotRepository
         }
 
         var lotCode = offline?.LotCode ?? LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
+        if (offline is not null) LotNoGenerator.EnsureAtLeast(conn, tx, lotCode);
 
         int lotId; DateTime createdTs;
         using (var cmd = new SqlCommand("dbo.SP_POP_IMG_InsertRawLot_InsLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })

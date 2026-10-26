@@ -58,7 +58,7 @@ public sealed class OfflineFinishedTests : IDisposable
             CoreMap = new() { new OfflineCoreMap { WoId = 9, FinishedItem = Fin, CoreItem = CoreA, CustomerCode = "CUS-WO" } },
             BomCores = new() { [FinG] = new OfflineBomCore { Outcome = "Core", CoreItemNo = CoreD }, [Fin] = new OfflineBomCore { Outcome = "Core", CoreItemNo = CoreA } },
         };
-        if (block > 0) s.LotBlocks.Add(new OfflineLotBlock { Header = Head(), Day = DbClock.Now.Date, Next = 1, End = block });
+        if (block > 0) { s.LotPrefix = Head()[3..5]; s.LotCursor[Head()] = block; }   // 마지막으로 쓴 순번 — 다음은 그 뒤 번호
         OfflineStore.Save("work-state.bin", s);
         OfflineWork.ResetForTests();
         return s;
@@ -81,7 +81,7 @@ public sealed class OfflineFinishedTests : IDisposable
         Assert.Equal(ImgCoreOutcome.Created, r.Outcome);
         Assert.Equal(Fin, r.ItemNo);
         Assert.False(r.Unverified);
-        Assert.Equal(Head() + "0001", r.Lot!.LotCode);
+        Assert.Equal(Head() + "0006", r.Lot!.LotCode);   // 라인의 마지막 순번 5 다음
         Assert.Equal("A91I10001", r.Lot.CoreLotCode);
         Assert.Equal("CUS-WO", r.Lot.CustomerCode);   // WO 의 수주처 — 라벨 V 토큰
         Assert.Equal("PGN1", r.Lot.Pgn);
@@ -105,11 +105,41 @@ public sealed class OfflineFinishedTests : IDisposable
     }
 
     [Fact]
-    public void Numbers_come_from_the_reserved_block_in_order_and_run_out()
+    public void Numbers_continue_after_the_last_number_and_stop_at_9999()
     {
-        Img(block: 1);
-        Assert.Equal(ImgCoreOutcome.Created, Core("A91I10001").Outcome);
+        Img(block: 9998);
+        var first = Core("A91I10001");
+        Assert.Equal(ImgCoreOutcome.Created, first.Outcome);
+        Assert.EndsWith("9999", first.Lot!.LotCode);
         Assert.Throws<OfflineLotNumbersExhaustedException>(() => Core("A91I10002", FinG));
+    }
+
+    [Fact]
+    public void Offline_label_numbers_continue_from_the_line_cursor_in_order()
+    {
+        Img(block: 7);
+        var a = OfflineWork.CreateFinishedRaw(ImgLine, Station, "op", "E1", 1, Fin);
+        var b = OfflineWork.CreateFinishedRaw(ImgLine, Station, "op", "E1", 1, Fin);
+        Assert.Equal(Head() + "0008", a.LotCode);
+        Assert.Equal(Head() + "0009", b.LotCode);
+    }
+
+    [Fact]
+    public void A_printed_lot_code_raises_the_cursor_so_offline_numbers_follow_it()
+    {
+        Img(block: 3);
+        OfflineWork.NoteLotCode(Head() + "0042");          // 온라인에서 0042 가 출력됐다
+        var next = OfflineWork.CreateFinishedRaw(ImgLine, Station, "op", "E1", 1, Fin);
+        Assert.Equal(Head() + "0043", next.LotCode);
+    }
+
+    [Fact]
+    public void A_lower_printed_code_never_moves_the_cursor_back()
+    {
+        Img(block: 9);
+        OfflineWork.NoteLotCode(Head() + "0003");
+        var next = OfflineWork.CreateFinishedRaw(ImgLine, Station, "op", "E1", 1, Fin);
+        Assert.Equal(Head() + "0010", next.LotCode);
     }
 
     [Fact]
@@ -265,19 +295,4 @@ public sealed class OfflineFinishedTests : IDisposable
     }
 
     // ── 결번 최소화 ─────────────────────────────────────────────────────
-
-    [Theory]
-    [InlineData(10, 22, 1)]    // 낮에는 오늘 분만
-    [InlineData(21, 22, 1)]
-    [InlineData(22, 22, 2)]    // 22시부터 내일 분도 — 자정을 넘기는 정전 대비
-    [InlineData(23, 22, 2)]
-    [InlineData(23, 24, 1)]    // 24 면 내일 분은 확보하지 않는다
-    public void Tomorrows_numbers_are_reserved_only_late_in_the_day(int hour, int fromHour, int expectedDays)
-    {
-        var now = new DateTime(2026, 10, 23, hour, 30, 0);
-        var days = OfflineWork.BlockDays(now, fromHour);
-        Assert.Equal(expectedDays, days.Count);
-        Assert.Equal(now.Date, days[0]);
-        if (expectedDays == 2) Assert.Equal(now.Date.AddDays(1), days[1]);
-    }
 }

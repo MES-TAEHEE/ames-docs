@@ -120,6 +120,57 @@ public static class LotNoGenerator
         return new LotNoBlock(header, hit.Value.Before + 1, hit.Value.After - hit.Value.Before);
     }
 
+    /// <summary>
+    /// 오프라인 사본용 — 그 날·그 라인의 LotNo 헤더(라인코드 포함)와 DB 에 기록된 마지막 순번(없으면 0).
+    /// 읽기만 한다: 번호를 올리지 않는다.
+    /// </summary>
+    public static (string Prefix, string Header, int LastSeq) ReadCursor(SqlConnection conn, string lineId, DateTime date)
+    {
+        string? prefix;
+        using (var cmd = new SqlCommand("SELECT LotPrefix FROM dbo.MD_Line WHERE LineID = @L;", conn))
+        {
+            cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+            prefix = (cmd.ExecuteScalar() as string)?.Trim();
+        }
+        if (string.IsNullOrEmpty(prefix))
+            throw new InvalidOperationException($"MD_Line.LotPrefix 미등록: {lineId}");
+        var header = BuildHeader(date, prefix);
+        using var last = new SqlCommand("SELECT LastSeq FROM dbo.SYS_LotSeq WHERE Header = @H;", conn);
+        last.Parameters.Add("@H", SqlDbType.Char, 5).Value = header;
+        var seq = last.ExecuteScalar() as int?;
+        return (prefix, header, seq ?? 0);
+    }
+
+    /// <summary>
+    /// 복구 뒤 오프라인 LOT 을 DB 에 넣을 때 호출한다 — 그 번호의 순번만큼 SYS_LotSeq 를 끌어올린다.
+    /// 이렇게 해야 복구 뒤 DB 채번(INJ 등)이 이미 쓴 번호를 다시 내지 않는다. 같은 트랜잭션.
+    /// </summary>
+    public static void EnsureAtLeast(SqlConnection conn, SqlTransaction tx, string lotCode)
+    {
+        if (lotCode.Length != 9 || !int.TryParse(lotCode.AsSpan(5), out var seq))
+            throw new ArgumentException($"LotNo 형식이 아니다: {lotCode}", nameof(lotCode));
+        var header = lotCode[..5];
+        using var cmd = new SqlCommand("""
+            IF EXISTS (SELECT 1 FROM dbo.SYS_LotSeq WHERE Header = @H)
+                UPDATE dbo.SYS_LotSeq SET LastSeq = CASE WHEN LastSeq < @S THEN @S ELSE LastSeq END, ModifiedTS = SYSDATETIME() WHERE Header = @H;
+            ELSE
+                INSERT INTO dbo.SYS_LotSeq (Header, LastSeq) VALUES (@H, @S);
+            """, conn, tx);
+        cmd.Parameters.Add("@H", SqlDbType.Char, 5).Value = header;
+        cmd.Parameters.Add("@S", SqlDbType.Int).Value = seq;
+        try { cmd.ExecuteNonQuery(); }
+        catch (SqlException ex) when (ex.Number is 2627 or 2601)
+        {
+            // 같은 순간 다른 채번이 헤더를 만들었다 — 한 번 더 올림만 한다.
+            using var upd = new SqlCommand(
+                "UPDATE dbo.SYS_LotSeq SET LastSeq = CASE WHEN LastSeq < @S THEN @S ELSE LastSeq END, ModifiedTS = SYSDATETIME() WHERE Header = @H;",
+                conn, tx);
+            upd.Parameters.Add("@H", SqlDbType.Char, 5).Value = header;
+            upd.Parameters.Add("@S", SqlDbType.Int).Value = seq;
+            upd.ExecuteNonQuery();
+        }
+    }
+
     static int NextSeq(SqlConnection conn, SqlTransaction tx, string header)
     {
         const string updateSql = "dbo.SP_POP_LOT_NextSeq_UpdLotSeq";

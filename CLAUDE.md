@@ -486,7 +486,7 @@ DB 가 끊겨도 INJ·IMG·PNT 는 로그인·스캔 확정·불량 등록·수�
 - **연결 상태**: `Common/PopDb` 가 3초마다 대기 3초짜리 전용 연결로 `SELECT 1` 을 실행해 `DbHealth` 를 갱신한다(복구 확인 겸용). 로그인은 먼저 `PopDb.Verify` 로 확인해 끊겼으면 접속 대기 없이 오프라인 경로로 간다. 업무 연결의 `Connect Timeout` 은 설정 `PopTerminal:Db:ConnectTimeoutSeconds`(0 = 접속문자열 그대로). 프로세스 첫 연결 실패는 설정과 무관하게 24~26초 걸린다.
 - **저장**: `%LocalAppData%\AMES\Pop`(설정 `PopTerminal:Offline:Dir` 로 변경) 의 DPAPI(현재 사용자) 암호화 파일 — `auth-cache.bin`(직원·PIN 해시·라인·스테이션) · `auth-journal.bin`(오프라인 로그인 기록) · `work-state.bin`(작업 사본) · `work-ops.bin`(미반영 작업 + 충돌 목록). 코드 `Services/OfflineStore·OfflineAuth·OfflineWork`.
 - **받기**: 직원·라인 사본은 로그인 화면·로그아웃·12시간마다, 작업 사본은 라인·스테이션 선택·로그인 중 `RefreshMinutes`·로그아웃 때(앞 `PastDays`~뒤 `FutureDays` 일 현황, LOT, 열린 WO, 불량코드, 팔레트, LOT 번호 구간). 미반영 큐가 있으면 사본을 덮지 않는다. 사본은 `CacheMaxAgeDays` 가 지나면 쓰지 않는다. 설정은 `PopTerminal:Offline:*`(`PastDays`·`FutureDays`·`CacheMaxAgeDays`·`RefreshMinutes`·`LotBlockSize`·`TomorrowBlockFromHour`·`NotFoundRetryMinutes`).
-- **오프라인 LOT 번호**: 온라인일 때 `LotNoGenerator.Reserve` 로 라인·날짜별 구간(`LotBlockSize`, 기본 20)을 `SYS_LotSeq` 에서 미리 빼 둔다 — InjAgent·다른 터미널·Web 과 겹치지 않고, 안 쓴 번호는 결번이 된다. 내일 구간은 `TomorrowBlockFromHour` 이후에만 확보한다.
+- **오프라인 LOT 번호**(10-26 변경 — 구간을 떼지 않는다): POP 이 이 PC 에서 마지막으로 쓴 번호(출력 때 `OfflineWork.NoteLotCode` 로 기록, 디스크에 즉시 저장)와 DB 마지막 순번(`LotNoGenerator.ReadCursor`, 사본 갱신 때) 중 큰 쪽 다음 번호를 헤더(년월일+라인)마다 이어서 받는다. 9999 를 넘으면 `OfflineLotNumbersExhaustedException`. 복구 때 replay 가 `LotNoGenerator.EnsureAtLeast` 로 `SYS_LotSeq` 를 오프라인 최대 순번까지 끌어올린다(INJ·IMG·PNT). 결번·출력 순서 역전을 막기 위해 `LotBlockSize`·`TomorrowBlockFromHour` 는 쓰지 않는다. 테스트·시나리오: `tools/test_lot_flow/시나리오.md`, 생산계획 테스트 도구 `src/07_Etc/AMES.TestHarness`(로컬 DB 전용).
 - **복구**(5초 틱, `OfflineAuth.Tick` → `OfflineWork.Tick`): 인증 기록을 먼저 올려 임시 세션(음수 ID)을 실제 세션으로 바꾼 뒤, 작업 큐를 시간순으로 같은 저장소 메서드(`occurredAt` 인자)에 반영해 전기일·교대·불량일이 오프라인에서 일한 시각이 된다. 「LOT 없음」·코어 미확정은 `NotFoundRetryMinutes` 동안 재시도, 이미 확정·재작업은 무해, 서버가 거부하면 충돌 목록(상단 「⚠ 오프라인 작업 충돌 N건」). 왼쪽 표는 사본 현황 + 큐의 효과이며 온라인과 같이 LOT 생성일 기준이다.
 - **범위 밖**: 안돈·WO 목록 팝업·재작업·QC 화면, InjAgent(DB 가 끊기면 샷 LOT 을 못 만든다), 자동 라벨 발행(LOT 은 InjAgent 가 DB 에 만든다 — 오프라인에서는 수동 발행만). 남은 일은 `Claude_확인사항.md` 심재현 미해결 18. 정본 테스트 `AMES.Pop.Tests/Offline*`·`AMES.Data.Tests/Offline*`(DB 테스트는 `AMES_TEST_CONN` 또는 개발 DB 가 닿을 때).
 
@@ -555,7 +555,8 @@ INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스�
 - **INJ 라인의 자동 라벨 발행은 그 라인에 INJ 모듈로 로그인된 Pop 터미널이 있는 동안만 동작한다.**
   라인은 로그인 화면에서 선택되며(appsettings 고정 아님), 클레임이 세션 `LineId` 로 걸러진다.
   같은 라인에 여러 터미널이 로그인해도 클레임이 원자적이라 중복 발행은 없다.
-- **Pop 재시작·재로그인은 워터마크를 리셋한다.** 그 이전의 미출력 LOT 은 자동 발행 대상에서 빠지고 재출력 버튼으로만 복구된다. 교대 인수인계 시 유의.
+- **Pop 로그아웃·재로그인은 라인 워터마크를 이어 쓴다**(10-26, `LabelWatermarkStore`): 로그아웃 때 저장한 최대 LotID 를 다음 로그인이 잇는다. 로그아웃 동안 생긴 LOT 은 재로그인 뒤 발행된다. 로그아웃 직전에 미출력이었던 LOT 은 워터마크 아래라 재출력 버튼으로 복구한다. 교대 인수인계 시 유의.
+- **자동 발행은 카운트 선행이다**(10-26, `LabelDispatcher`): 출력 전에 `SP_POP_INJ_IncrementPrintedCount` 로 카운트를 올리고, 출력이 실패하면 `SP_POP_INJ_DecrementPrintedCount` 로 되돌린 뒤 선점을 반납한다. 카운트를 못 올리면 출력하지 않는다. 이 PC 가 출력한 LOT 은 발행 원장(`LabelPrintLedger`, `label-ledger.bin`, 30일)에 남아 다시 뽑지 않는다. 출력 기록은 `print-YYYYMMDD.log` 에 출력 모드와 함께 남아 모드와 무관하게 확인할 수 있다.
 
 장애 추적은 `{PopTerminal:Printer:OutputDir}/dispatch-YYYYMMDD.log` — 무인 루프라 토스트로 알릴 수 없는 실패가 여기에만 남는다. `OutputDir` 를 비우면(기본) 실행 파일 옆 `labels` 폴더를 쓰며(작업 폴더와 무관), 상대 경로는 실행 파일 폴더 기준, 절대 경로·`%VAR%` 가능, 폴더는 자동 생성된다(`AppConfig.ResolveOutputDir`, 테스트 `AppConfigOutputDirTests`).
 

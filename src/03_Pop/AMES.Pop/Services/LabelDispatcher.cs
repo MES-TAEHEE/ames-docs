@@ -6,30 +6,28 @@ namespace AMES.Pop.Services;
 /// 사출 라벨 자동 발행 루프. 타이머는 갖지 않는다 — 호출자가 Tick() 을 주기적으로
 /// 부르고, 테스트는 시간을 기다리지 않고 직접 부른다.
 ///
-/// 워터마크는 Start() 후 첫 성공 틱에서 한 번만 잡고 전진시키지 않는다. 전진시키면
-/// 출력 실패로 반납한 LOT 이 영구 제외되어 재시도가 불가능해진다.
+/// 순서는 **카운트 선행**이다: 출력 전에 PrintedCount 를 올리고, 출력이 실패하면 되돌린 뒤 반납한다.
+/// 카운트가 1 이상이면 클레임 쿼리(PrintedCount = 0)가 다시 잡지 않으므로, 출력 뒤 카운트 실패가
+/// 만들던 "끊김 뒤 같은 LOT 재출력"이 생기지 않는다. 카운트가 안 올라가면 라벨도 나가지 않는다.
 ///
-/// 클레임 쿼리의 LotID > watermark 는 **하드 컷오프**다 — 워터마크 이하 LOT 은
-/// PrintedCount 가 0 이어도 자동 발행 대상이 아니다. 재시도 판정(PrintedCount = 0
-/// AND PrintClaimTS IS NULL)은 워터마크 **위쪽** LOT 에만 적용된다.
+/// 이 PC 의 발행 원장(<see cref="ILabelLedger"/>)에 있는 LOT 은 다시 뽑지 않고 카운트만 맞춘다.
 ///
-/// 따라서 워터마크 획득이 DB 장애로 여러 틱 지연되면, 그 사이 생성된 LOT 은
-/// 결국 잡힌 워터마크 아래로 들어가 자동 발행에서 빠진다. 의도된 트레이드오프다:
-/// 세션 이전 미출력분과 같은 취급(수동 재출력)이고, 대안이었던 "획득 실패 시 세션
-/// 포기"는 일시적 DB 장애 한 번에 교대 내내 라벨이 안 나오는 훨씬 나쁜 실패였다.
-/// 해당 LOT 들은 미확정 목록에 🖨 버튼과 함께 그대로 남는다.
+/// 워터마크는 Start() 에서 잡고 로그아웃 때 저장한다(<see cref="Stop"/>). 클레임 쿼리의 LotID > watermark 는
+/// 하드 컷오프다 — 워터마크 이하 LOT 은 자동 발행 대상이 아니다(수동 재출력으로 복구).
 /// </summary>
 internal sealed class LabelDispatcher
 {
-    // 카운트 확정은 놓치면 중복 라벨이 되므로 짧게 재시도한다. 총 지연이 틱 주기를
-    // 넘지 않도록 작게 유지 — 재진입 게이트가 겹치는 틱을 버리기 때문이다.
-    private const int IncrementAttempts     = 3;
-    private const int IncrementRetryDelayMs = 100;
+    // 카운트 확정·되돌리기는 짧게 재시도한다. 총 지연이 틱 주기를 넘지 않도록 작게 유지 —
+    // 재진입 게이트가 겹치는 틱을 버리기 때문이다.
+    private const int CountAttempts         = 3;
+    private const int CountRetryDelayMs     = 100;
 
     private readonly IInjLotClaimStore _source;
     private readonly ILabelSink        _sink;
     private readonly int               _maxFailures;
     private readonly Action<string>    _log;
+    private readonly ILabelWatermarkStore? _watermarks;
+    private readonly ILabelLedger?         _ledger;
 
     private string? _lineId;
     private string  _stationId = string.Empty;
@@ -49,12 +47,16 @@ internal sealed class LabelDispatcher
     public event Action? OnStopped;
 
     public LabelDispatcher(IInjLotClaimStore source, ILabelSink sink,
-                           int maxFailures, Action<string> log)
+                           int maxFailures, Action<string> log,
+                           ILabelWatermarkStore? watermarks = null,
+                           ILabelLedger? ledger = null)
     {
         _source      = source;
         _sink        = sink;
         _maxFailures = maxFailures;
         _log         = log;
+        _watermarks  = watermarks;
+        _ledger      = ledger;
     }
 
     /// <param name="employeeNo">로그인 사번 — 발행 횟수 갱신의 ModifiedBy.</param>
@@ -64,16 +66,33 @@ internal sealed class LabelDispatcher
         _stationId           = stationId;
         _employeeNo          = employeeNo;
         _consecutiveFailures = 0;
-        _watermark           = 0;
         IsStopped            = false;
-        Volatile.Write(ref _needsWatermark, 1);
+
+        // 저장된 워터마크가 있으면 그대로 잇는다 — 로그아웃 동안 생긴 LOT 부터 발행한다(B23).
+        var saved = _watermarks?.Load(lineId);
+        _watermark = saved ?? 0;
+        Volatile.Write(ref _needsWatermark, saved is null ? 1 : 0);
 
         // 진행 중인 틱이 실패 경로를 끝내며 IsStopped 를 세우면 새 세션이 멈춘 채 시작된다.
         // 다음 틱이 이 요청을 소비해 되돌린다(Resume 과 같은 메커니즘).
         Interlocked.Exchange(ref _resumeRequested, 1);
     }
 
-    public void Stop() => _lineId = null;
+    /// <summary>
+    /// 로그아웃. 현재 최대 LotID 를 라인 워터마크로 남긴다 — 다음 로그인 때 이 뒤에 생긴 LOT 이 발행 대상이다.
+    /// 저장에 실패하면 다음 로그인은 기존처럼 로그인 시점 최대값으로 잡는다(과거분 폭주 방지를 택한 fallback).
+    /// 로그아웃 직전에 미출력이었던 LOT 은 이 워터마크 아래라 자동 발행에서 빠지고 미확정 목록의 재출력으로 복구한다.
+    /// </summary>
+    public void Stop()
+    {
+        var line = _lineId;
+        _lineId = null;
+        if (line is null || _watermarks is null) return;
+        // UI 스레드에서 도는 로그아웃이다 — DB 가 끊긴 것으로 알려져 있으면 접속 대기로 화면을 붙잡지 않는다.
+        if (AMES.Data.Connection.DbHealth.IsDown) { _log("watermark not saved at logout: DB down"); return; }
+        try { _watermarks.Save(line, _source.GetMaxLotId(line)); }
+        catch (Exception ex) { _log($"watermark not saved at logout: {ex.Message}"); }
+    }
 
     /// <summary>
     /// 작업자가 프린터를 고쳤다는 신호 (수동 재출력 성공) — 자동 발행 재개 요청.
@@ -133,18 +152,42 @@ internal sealed class LabelDispatcher
                 return;
             }
 
-            foreach (var lot in batch)
+            for (var i = 0; i < batch.Count; i++)
             {
+                var lot = batch[i];
+
+                // 이 PC 가 이미 뽑은 LOT — 라벨은 다시 뽑지 않고 카운트만 맞춘다.
+                if (_ledger?.Contains(lot.LotCode) == true)
+                {
+                    if (TryCount(lot, employeeNo, "sync"))
+                    {
+                        _log($"already printed on this PC, count synced ({lot.LotCode})");
+                        continue;
+                    }
+                    ReleaseFrom(batch, i, stationId);
+                    return;
+                }
+
+                // 카운트 선행 — 올리지 못하면 출력하지 않는다. DB 장애는 프린터 실패로 세지 않는다.
+                if (!TryCount(lot, employeeNo, "before print"))
+                {
+                    ReleaseFrom(batch, i, stationId);
+                    _log($"count failed before print — label not printed, retry next tick ({lot.LotCode})");
+                    return;
+                }
+
                 try { _sink.Print(lot); }
                 catch (Exception ex)
                 {
-                    // 반납을 먼저 — _log 가 던지면 반납이 유실되고 배치 나머지가 중단된다.
-                    try { _source.ReleasePrintClaim(lot.LotId, stationId); }
-                    catch (Exception rel) { _log($"claim release failed ({lot.LotCode}): {rel.Message}"); }
+                    // 출력이 안 됐으니 카운트를 되돌린다 — 되돌리지 못하면 이 LOT 은 수동 재출력으로 복구한다.
+                    if (!TryDecrement(lot, employeeNo))
+                        _log($"print failed and count not reverted ({lot.LotCode}) — 수동 재출력이 필요하다");
+                    ReleaseOne(lot, stationId);
                     _log($"label print failed ({lot.LotCode}): {ex.Message}");
 
                     if (++_consecutiveFailures >= _maxFailures)
                     {
+                        ReleaseFrom(batch, i + 1, stationId);
                         IsStopped = true;
                         _log($"auto dispatch stopped after {_consecutiveFailures} consecutive failures");
                         OnStopped?.Invoke();
@@ -153,39 +196,60 @@ internal sealed class LabelDispatcher
                     continue;
                 }
 
-                // 라벨은 이미 나왔다 — 반납하면 다음 틱에 두 장째가 나오므로 반납하지 않는다.
-                // DB 장애를 프린터 실패로 세지도 않는다.
-                //
-                // 주의: 여기서 실패하면 PrintedCount 가 0 으로 남고 클레임은 유지되므로,
-                // staleSeconds 후 재선점되어 **같은 라벨이 한 장 더 나간다.** 재시도가 아니라
-                // 중복이다. 짧은 재시도로 그 창을 좁힌다 — DB 가 계속 죽어 있으면 결국
-                // 중복이 발생하고, 그건 라벨을 아예 잃는 것보다 낫다는 판단이다.
-                TryIncrementPrintedCount(lot, employeeNo);
+                _ledger?.Record(lot.LotCode);
                 _consecutiveFailures = 0;
             }
         }
         finally { Interlocked.Exchange(ref _running, 0); }
     }
 
-    /// <summary>
-    /// 출력 성공 후 카운트 확정. 실패하면 그 LOT 은 staleSeconds 후 재선점되어
-    /// 중복 라벨이 되므로, 놓치는 비용이 큰 만큼 짧게 재시도한다.
-    /// </summary>
-    private void TryIncrementPrintedCount(InjLotDto lot, string employeeNo)
+    /// <summary>카운트 +1 — 재시도 후에도 실패하면 false.</summary>
+    private bool TryCount(InjLotDto lot, string employeeNo, string when)
     {
-        for (var attempt = 1; attempt <= IncrementAttempts; attempt++)
+        for (var attempt = 1; attempt <= CountAttempts; attempt++)
         {
-            try { _source.IncrementPrintedCount(lot.LotId, employeeNo); return; }
+            try { _source.IncrementPrintedCount(lot.LotId, employeeNo); return true; }
             catch (Exception ex)
             {
-                if (attempt == IncrementAttempts)
+                if (attempt == CountAttempts)
                 {
-                    _log($"printed but count not incremented after {attempt} attempts " +
-                         $"({lot.LotCode}): {ex.Message} — 이 LOT 은 스테일 회수로 한 장 더 나갈 수 있다");
-                    return;
+                    _log($"count increment failed {when} after {attempt} attempts ({lot.LotCode}): {ex.Message}");
+                    return false;
                 }
-                Thread.Sleep(IncrementRetryDelayMs);
+                Thread.Sleep(CountRetryDelayMs);
             }
         }
+        return false;
+    }
+
+    /// <summary>카운트 -1 (출력 실패 되돌리기) — 재시도 후에도 실패하면 false.</summary>
+    private bool TryDecrement(InjLotDto lot, string employeeNo)
+    {
+        for (var attempt = 1; attempt <= CountAttempts; attempt++)
+        {
+            try { _source.DecrementPrintedCount(lot.LotId, employeeNo); return true; }
+            catch (Exception ex)
+            {
+                if (attempt == CountAttempts)
+                {
+                    _log($"count decrement failed after {attempt} attempts ({lot.LotCode}): {ex.Message}");
+                    return false;
+                }
+                Thread.Sleep(CountRetryDelayMs);
+            }
+        }
+        return false;
+    }
+
+    private void ReleaseOne(InjLotDto lot, string stationId)
+    {
+        // 반납을 먼저 — 로그가 던져도 반납은 끝나 있어야 한다.
+        try { _source.ReleasePrintClaim(lot.LotId, stationId); }
+        catch (Exception rel) { _log($"claim release failed ({lot.LotCode}): {rel.Message}"); }
+    }
+
+    private void ReleaseFrom(List<InjLotDto> batch, int from, string stationId)
+    {
+        for (var j = from; j < batch.Count; j++) ReleaseOne(batch[j], stationId);
     }
 }

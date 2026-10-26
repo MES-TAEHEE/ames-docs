@@ -18,6 +18,9 @@ internal sealed class RepoInjLotClaimStore : IInjLotClaimStore
 
     public void IncrementPrintedCount(int lotId, string employeeNo)
         => PopServices.InjLots.IncrementPrintedCount(lotId, employeeNo);
+
+    public void DecrementPrintedCount(int lotId, string employeeNo)
+        => PopServices.InjLots.DecrementPrintedCount(lotId, employeeNo);
 }
 
 /// <summary>ILabelSink → 기존 LabelPrinter 위임 (ZPL 조립·출력 공용 경로).</summary>

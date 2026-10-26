@@ -35,7 +35,7 @@ public class PopBlazorForm : PopForm
         services.AddSingleton<ConfirmService>();
         services.AddSingleton<LabelDispatcher>(_ => new LabelDispatcher(
             new RepoInjLotClaimStore(), new ZplLabelSink(),
-            AppConfig.Current.PrinterMaxFailures, LogDispatch));
+            AppConfig.Current.PrinterMaxFailures, LogDispatch, new LabelWatermarkStore(), new LabelPrintLedger()));
         services.AddSingleton<ScannerService>(_ => new ScannerService(LogScanner));
         services.AddSingleton<IdleWatcher>(_ => new IdleWatcher(
             TimeSpan.FromMinutes(AppConfig.Current.IdleLogoutMinutes),

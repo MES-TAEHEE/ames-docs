@@ -127,7 +127,7 @@
                         <div class="entry-bar"><div class="entry-bar-fill" style="width:@_pct%;"></div></div>
                     </div>
 
-                    <button class="imgm-print" disabled="@(_selItemNo is null || _printing)" @onclick="PrintLabel">
+                    <button class="imgm-print" disabled="@(_selItemNo is null)" @onclick="PrintLabel">
                         🏷 @T("LabelPrint") · @(_selItemNo ?? "—")
                     </button>
 
@@ -253,7 +253,6 @@
     }
     private string?  _refreshError;
     private DateTime _refreshErrorAt;
-    private bool _printing;
 
     private string _bannerClass = "idle", _bannerDetail = "";
     private string BannerTitle => _bannerClass switch
@@ -487,16 +486,21 @@
     }
 
     // ── 예외 발행: Core 없이 LOT 1개 생성 + 즉시 출력 → 판정 팝업. 품번은 좌측 선택이며 WO 가 없어도 된다. ──
-    private void PrintLabel()
+    private async Task PrintLabel()
     {
-        if (Session is null || _selItemNo is null || _printing) return;
-        _printing = true;
+        if (Session is null || _selItemNo is null) return;
         try
         {
             ImgLotDto? lot = null;
             if (!PopDb.IsOffline)
             {
-                try { lot = PopServices.ImgLots.CreateRawLot(Session.LineId, _selItemNo, Session.EmployeeNo); }
+                try
+                {
+                    var lineId     = Session.LineId;
+                    var itemNo     = _selItemNo;
+                    var employeeNo = Session.EmployeeNo;
+                    lot = await Task.Run(() => PopServices.ImgLots.CreateRawLot(lineId, itemNo, employeeNo));
+                }
                 catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { /* 아래 오프라인 경로로 */ }
             }
             // 오프라인 — 미리 확보한 번호로 LOT 을 만들고 라벨은 여기서 직접 뽑는다. 번호가 다 떨어지면 막는다.
@@ -504,7 +508,7 @@
             if (lot is not null) PrintAndJudge(lot);
         }
         catch (Exception ex) { Toasts.Bad($"{T("EntryFailed")}: {ex.Message}"); }
-        finally { _printing = false; _focusScan = true; }
+        finally { _focusScan = true; }
     }
 
     private ImgLotDto? CreateRawOffline(string itemNo)
@@ -704,11 +708,12 @@
         _bannerDetail = detail;
     }
 
-    private void Reprint(ImgLotDto lot)
+    private async Task Reprint(ImgLotDto lot)
     {
         try
         {
-            LabelPrinter.Print(lot, Session?.ShiftCode ?? "");
+            var shift = Session?.ShiftCode ?? "";
+            await Task.Run(() => LabelPrinter.Print(lot, shift));
             var printed = CountPrinted(lot);
             Toasts.Ok(printed is int n ? $"{T("LabelReprinted")}: {lot.LotCode} ({T("Total2")} {n})" : $"{T("LabelReprinted")}: {lot.LotCode}");
             Refresh();

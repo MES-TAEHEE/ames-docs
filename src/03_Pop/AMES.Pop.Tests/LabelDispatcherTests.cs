@@ -44,7 +44,21 @@ public class LabelDispatcherTests
             if (_issued.TryGetValue(lotId, out var lot)) NextClaim.Add(lot);
         }
 
-        public void IncrementPrintedCount(int lotId, string employeeNo) => Incremented.Add(lotId);
+        public bool FailIncrement = false;
+        public bool FailDecrement = false;
+        public List<int> Decremented = new();
+
+        public void IncrementPrintedCount(int lotId, string employeeNo)
+        {
+            if (FailIncrement) throw new InvalidOperationException("db down");
+            Incremented.Add(lotId);
+        }
+
+        public void DecrementPrintedCount(int lotId, string employeeNo)
+        {
+            if (FailDecrement) throw new InvalidOperationException("db down");
+            Decremented.Add(lotId);
+        }
     }
 
     sealed class FakeSink : ILabelSink
@@ -56,6 +70,59 @@ public class LabelDispatcherTests
             if (FailFor.Contains(lot.LotId)) throw new IOException("printer offline");
             Printed.Add(lot.LotId);
         }
+    }
+
+    sealed class FakeLedger : ILabelLedger
+    {
+        public readonly HashSet<string> Known = new();
+        public readonly List<string> Recorded = new();
+        public bool Contains(string lotCode) => Known.Contains(lotCode);
+        public void Record(string lotCode) { Recorded.Add(lotCode); Known.Add(lotCode); }
+    }
+
+    sealed class FakeWatermarks : ILabelWatermarkStore
+    {
+        public readonly Dictionary<string, int> Saved = new();
+        public int? Load(string lineId) => Saved.TryGetValue(lineId, out var w) ? w : null;
+        public void Save(string lineId, int watermark) => Saved[lineId] = watermark;
+    }
+
+    // B23 — 로그아웃 동안 생긴 LOT 은 다음 로그인 뒤 자동 발행돼야 한다(로그인마다 최대값으로 잡으면 영구 누락).
+    [Fact]
+    public void Lots_created_while_logged_out_are_printed_after_the_next_login()
+    {
+        var s = new FakeSource { MaxLotId = 100 };
+        var k = new FakeSink();
+        var w = new FakeWatermarks();
+        var d = new LabelDispatcher(s, k, maxFailures: 3, _ => { }, w);
+
+        d.Start("LINE-INJ-01", "ST-1", "E001");
+        d.Tick();                                   // 첫 로그인 — 워터마크 100
+        d.Stop();                                   // 로그아웃 — 현재 최대값 저장
+        Assert.Equal(100, w.Saved["LINE-INJ-01"]);
+
+        s.MaxLotId = 102;                           // 로그아웃 중 에이전트가 LOT 두 개를 만들었다
+        s.NextClaim.Add(Lot(101));
+        s.NextClaim.Add(Lot(102));
+
+        d.Start("LINE-INJ-01", "ST-1", "E001");     // 재로그인 — 저장된 100 을 잇는다(102 로 잡으면 둘 다 빠진다)
+        d.Tick();
+
+        Assert.Equal(100, s.LastAfterLotId);
+        Assert.Equal(new[] { 101, 102 }, k.Printed);
+    }
+
+    [Fact]
+    public void Logout_without_db_keeps_the_previous_watermark_and_does_not_throw()
+    {
+        var s = new FakeSource { FailMaxLotId = true };
+        var w = new FakeWatermarks { Saved = { ["LINE-INJ-01"] = 50 } };
+        var d = new LabelDispatcher(s, new FakeSink(), maxFailures: 3, _ => { }, w);
+
+        d.Start("LINE-INJ-01", "ST-1", "E001");
+        d.Stop();
+
+        Assert.Equal(50, w.Saved["LINE-INJ-01"]);
     }
 
     static InjLotDto Lot(int id, string status = "RAW") => new()
@@ -134,17 +201,71 @@ public class LabelDispatcherTests
     }
 
     [Fact]
-    public void Failed_print_releases_claim_and_does_not_increment()
+    public void Failed_print_reverts_count_and_releases_claim()
     {
+        // 카운트 선행 — 101 은 올렸다가 출력 실패로 되돌리고 반납한다. 102 는 계속 진행.
         var (d, s, k) = Build();
         k.FailFor.Add(101);
         s.NextClaim.Add(Lot(101));
         s.NextClaim.Add(Lot(102));
         d.Tick();
 
-        Assert.Equal(new[] { 102 }, k.Printed);        // 102 는 계속 진행
-        Assert.Equal(new[] { 102 }, s.Incremented);
-        Assert.Equal(new[] { 101 }, s.Released);       // 101 만 반납
+        Assert.Equal(new[] { 102 }, k.Printed);
+        Assert.Equal(new[] { 101, 102 }, s.Incremented);
+        Assert.Equal(new[] { 101 }, s.Decremented);
+        Assert.Equal(new[] { 101 }, s.Released);
+    }
+
+    [Fact]
+    public void Count_failure_before_print_prints_nothing_and_next_tick_prints_once()
+    {
+        // 카운트를 못 올리면 라벨도 나가지 않는다 — DB 복구 뒤 한 번만 나온다.
+        var (d, s, k) = Build();
+        s.FailIncrement = true;
+        s.NextClaim.Add(Lot(101));
+        s.NextClaim.Add(Lot(102));
+        d.Tick();
+
+        Assert.Empty(k.Printed);
+        Assert.Equal(new[] { 101, 102 }, s.Released);
+
+        s.FailIncrement = false;
+        d.Tick();
+
+        Assert.Equal(new[] { 101, 102 }, k.Printed);
+        Assert.Equal(new[] { 101, 102 }, s.Incremented);
+        Assert.Empty(s.Decremented);
+    }
+
+    [Fact]
+    public void Ledger_hit_syncs_count_without_printing()
+    {
+        // 이 PC 가 이미 뽑은 LOT — 라벨은 다시 뽑지 않고 카운트만 맞춘다.
+        var ledger = new FakeLedger { Known = { "L101" } };
+        var s = new FakeSource();
+        var k = new FakeSink();
+        var d = new LabelDispatcher(s, k, maxFailures: 3, _ => { }, ledger: ledger);
+        d.Start("LINE-INJ-01", "ST-1", "E001");
+        s.NextClaim.Add(Lot(101));
+        d.Tick();
+
+        Assert.Empty(k.Printed);
+        Assert.Equal(new[] { 101 }, s.Incremented);
+        Assert.Empty(ledger.Recorded);
+    }
+
+    [Fact]
+    public void Successful_print_is_recorded_in_the_ledger()
+    {
+        var ledger = new FakeLedger();
+        var s = new FakeSource();
+        var k = new FakeSink();
+        var d = new LabelDispatcher(s, k, maxFailures: 3, _ => { }, ledger: ledger);
+        d.Start("LINE-INJ-01", "ST-1", "E001");
+        s.NextClaim.Add(Lot(101));
+        d.Tick();
+
+        Assert.Equal(new[] { "L101" }, ledger.Recorded);
     }
 
     [Fact]
@@ -183,14 +304,14 @@ public class LabelDispatcherTests
         s.NextClaim.Add(Lot(101));
         s.NextClaim.Add(Lot(102));
 
-        d.Tick();                                      // 101 실패 → 반납, 102 성공
+        d.Tick();                                      // 101 실패 → 되돌리고 반납, 102 성공
         Assert.Equal(new[] { 102 }, k.Printed);
         Assert.Equal(new[] { 101 }, s.Released);
 
         k.FailFor.Clear();                             // 프린터 복구
         d.Tick();                                      // 101 이 다시 잡혀 성공
         Assert.Equal(new[] { 102, 101 }, k.Printed);
-        Assert.Equal(new[] { 102, 101 }, s.Incremented);
+        Assert.Equal(new[] { 101, 102, 101 }, s.Incremented);
         Assert.Equal(100, s.LastAfterLotId);           // 워터마크는 그대로
     }
 
@@ -311,7 +432,8 @@ public class LabelDispatcherTests
         d.Tick();
 
         Assert.Equal(1, raised);
-        Assert.Equal(new[] { 101 }, s.Released);   // 102 는 손대지 않았다
+        Assert.Equal(new[] { 101 }, s.Incremented);   // 102 는 카운트도 하지 않았다
+        Assert.Equal(new[] { 101, 102 }, s.Released); // 나머지는 반납해 다음 세션이 다시 잡을 수 있게
     }
 
     [Fact]

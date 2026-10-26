@@ -112,16 +112,6 @@ internal sealed class OfflineBomCore
     public string? CoreItemNo { get; set; }
 }
 
-/// <summary>미리 확보한 LotNo 구간 한 덩이 — Next..End(포함) 가 아직 안 쓴 번호다.</summary>
-internal sealed class OfflineLotBlock
-{
-    public string Header { get; set; } = "";
-    public DateTime Day { get; set; }
-    public int Next { get; set; }
-    public int End { get; set; }
-    public int Remaining => Math.Max(0, End - Next + 1);
-}
-
 /// <summary>로그인 중 주기적으로(그리고 로그아웃 때) 받아 두는 작업 사본 — 한 라인·스테이션 분.</summary>
 internal sealed class OfflineWorkState
 {
@@ -150,7 +140,11 @@ internal sealed class OfflineWorkState
     public List<string> UsedCores { get; set; } = new();
     public List<OfflineCoreMap> CoreMap { get; set; } = new();
     public Dictionary<string, OfflineBomCore> BomCores { get; set; } = new();
-    public List<OfflineLotBlock> LotBlocks { get; set; } = new();
+    /// <summary>라인 LotNo 접두어(MD_Line.LotPrefix 2자) — 오프라인 번호 헤더를 만든다.</summary>
+    public string LotPrefix { get; set; } = "";
+    /// <summary>헤더(년월일+라인, 5자)별 마지막으로 쓴 순번 — DB 에 기록된 값과 이 PC 가 출력한 값 중 큰 쪽.
+    /// 오프라인 임의 출력은 여기서 이어서 받는다(번호를 미리 떼어 두지 않는다).</summary>
+    public Dictionary<string, int> LotCursor { get; set; } = new();
     /// <summary>사본에 없어서 검증 없이 받아들인 팔레트 — 복구 뒤 서버가 판정한다.</summary>
     public List<string> UnverifiedPallets { get; set; } = new();
     /// <summary>오프라인에서 이 팔레트에 실은 LOT → 팔레트 (불량 등록 때 다시 내리려고).</summary>
@@ -234,8 +228,6 @@ internal static class OfflineWork
     private static int PastDays        => Setting(c => c.OfflinePastDays, 7);
     private static int FutureDays      => Setting(c => c.OfflineFutureDays, 7);
     private static int RefreshMinutes  => Setting(c => c.OfflineRefreshMinutes, 10);
-    private static int LotBlockSize    => Setting(c => c.OfflineLotBlockSize, 20);
-    private static int TomorrowFromHour => Setting(c => c.OfflineTomorrowBlockFromHour, 22);
     private static int NotFoundRetryMinutes => Setting(c => c.OfflineNotFoundRetryMinutes, 30);
 
     // ── 저장소 ──────────────────────────────────────────────────────────
@@ -357,16 +349,16 @@ internal static class OfflineWork
         if (process == "INJ") PrefetchInj(next, lineId, items);
         else PrefetchFinished(next, process, lineId, items, today);
 
-        // 새 번호 구간은 서버에서 확보하므로 락 밖에서 — 확보 결과만 락 안에서 합친다.
-        var blocks = ReserveBlocks(lineId);
+        // 번호는 떼어 두지 않고 DB 의 마지막 순번만 읽는다(읽기 실패면 이전 값을 그대로 쓴다).
+        var cursor = ReadCursor(lineId, today);
 
         lock (Gate)
         {
             if (Ops.Ops.Count > 0) return;   // 받는 사이 오프라인 작업이 생겼다 — 덮지 않는다
-            var keep = (_state is { } old && string.Equals(old.LineId, lineId, StringComparison.OrdinalIgnoreCase))
-                ? old.LotBlocks.Where(b => b.Remaining > 0 && b.Day >= today).ToList()
-                : new List<OfflineLotBlock>();
-            next.LotBlocks = keep.Concat(blocks).ToList();
+            var old = _state is { } o && string.Equals(o.LineId, lineId, StringComparison.OrdinalIgnoreCase) ? o : null;
+            next.LotPrefix = cursor?.Prefix ?? old?.LotPrefix ?? "";
+            next.LotCursor = old?.LotCursor.ToDictionary(kv => kv.Key, kv => kv.Value) ?? new Dictionary<string, int>();
+            if (cursor is { } c) RaiseCursor(next.LotCursor, c.Header, c.LastSeq);
             _state = next; _stateLoaded = true;
             SaveState(next);
         }
@@ -433,33 +425,41 @@ internal static class OfflineWork
 
     // 오늘 날짜는 남은 번호가 반이 안 되면 새 구간을 확보한다. 내일 날짜는 설정한 시각 이후에만 — 자정을 넘기는 정전만 대비하고
     // 평소에는 안 쓰고 버려질 번호(결번)를 만들지 않는다.
-    private static List<OfflineLotBlock> ReserveBlocks(string lineId)
+    /// <summary>오늘 헤더의 DB 마지막 순번 — 못 읽으면 null(이전 사본의 값을 유지한다).</summary>
+    private static (string Prefix, string Header, int LastSeq)? ReadCursor(string lineId, DateTime today)
     {
-        var size = LotBlockSize;
-        var days = BlockDays(DbClock.Now, TomorrowFromHour);
-
-        var fresh = new List<OfflineLotBlock>();
-        List<OfflineLotBlock> existing;
-        lock (Gate) existing = (_state is { } s && string.Equals(s.LineId, lineId, StringComparison.OrdinalIgnoreCase))
-            ? s.LotBlocks.ToList() : new();
-
-        foreach (var day in days)
-        {
-            var remaining = existing.Where(b => b.Day.Date == day.Date).Sum(b => b.Remaining);
-            if (remaining >= Math.Max(1, size / 2)) continue;
-            var blk = PopServices.InjLots.ReserveLotNos(lineId, day, size);
-            if (blk.Count > 0)
-                fresh.Add(new OfflineLotBlock { Header = blk.Header, Day = day.Date, Next = blk.FirstSeq, End = blk.FirstSeq + blk.Count - 1 });
-        }
-        return fresh;
+        try { return PopServices.InjLots.ReadLotNoCursor(lineId, today); }
+        catch (Exception ex) { PopLog.Append("offline", "OfflineWork", $"lot cursor read failed: {ex.Message}"); return null; }
     }
 
-    /// <summary>번호 구간을 확보할 날짜 — 항상 오늘, 내일은 설정한 시각(시) 이후에만. 24 면 내일은 확보하지 않는다.</summary>
-    internal static IReadOnlyList<DateTime> BlockDays(DateTime now, int tomorrowFromHour)
+    /// <summary>헤더의 순번을 값 이상으로 올린다(낮추지 않는다).</summary>
+    private static void RaiseCursor(Dictionary<string, int> cursor, string header, int seq)
     {
-        var days = new List<DateTime> { now.Date };
-        if (now.Hour >= tomorrowFromHour) days.Add(now.Date.AddDays(1));
-        return days;
+        cursor[header] = cursor.TryGetValue(header, out var cur) ? Math.Max(cur, seq) : seq;
+    }
+
+    /// <summary>LOT 코드(9자)에서 헤더·순번을 읽는다. 형식이 아니면 null.</summary>
+    internal static (string Header, int Seq)? ParseLotCode(string lotCode)
+    {
+        if (lotCode.Length != 9 || !int.TryParse(lotCode.AsSpan(5), out var seq)) return null;
+        return (lotCode[..5], seq);
+    }
+
+    /// <summary>
+    /// 이 PC 가 쓴 LOT 번호를 기록한다(온라인 출력·사본 갱신 때) — 다음 오프라인 번호가 이 뒤에서 이어지게 한다.
+    /// 사본이 없으면 아무것도 하지 않는다(다음 로그인 때 DB 값으로 채운다).
+    /// </summary>
+    public static void NoteLotCode(string lotCode)
+    {
+        var parsed = ParseLotCode(lotCode);
+        if (parsed is null) return;
+        lock (Gate)
+        {
+            var s = _stateLoaded ? _state : State;
+            if (s is null) return;
+            RaiseCursor(s.LotCursor, parsed.Value.Header, parsed.Value.Seq);
+            SaveState(s);   // 출력 직후 디스크에 — 1분 뒤 쓰기를 기다리면 재시작 때 마지막 번호를 잃는다
+        }
     }
 
     private static string DayKey(DateTime d) => d.ToString("yyyy-MM-dd");
@@ -484,6 +484,7 @@ internal static class OfflineWork
             var known = s.Lots.ToDictionary(l => l.LotCode, StringComparer.OrdinalIgnoreCase);
             foreach (var lot in lots)
             {
+                if (ParseLotCode(lot.LotCode) is { } pc) RaiseCursor(s.LotCursor, pc.Header, pc.Seq);
                 if (known.TryGetValue(lot.LotCode, out var cur))
                 {
                     cur.ConfirmStatus = lot.ConfirmStatus; cur.PrintedCount = lot.PrintedCount;
@@ -826,15 +827,16 @@ internal static class OfflineWork
         }
     }
 
-    // 미리 확보한 번호 구간에서 오늘 날짜 번호를 하나 받는다 — 다 떨어졌으면 예외.
+    // 이 라인·오늘 헤더의 마지막 번호 다음 번호를 받는다 — 떼어 둔 구간 없이 이어서 쓴다. 9999 를 넘으면 예외.
     private static string TakeLotNo(OfflineWorkState s, string lineId, DateTime now)
     {
-        var head3 = $"{LotNoGenerator.EncodeYear(now.Year)}{LotNoGenerator.EncodeMonth(now.Month)}{LotNoGenerator.EncodeDay(now.Day)}";
-        var block = s.LotBlocks.FirstOrDefault(b => b.Remaining > 0 && b.Header.StartsWith(head3, StringComparison.Ordinal))
-                    ?? throw new OfflineLotNumbersExhaustedException(lineId);
-        var lotCode = block.Header + block.Next.ToString("D4");
-        block.Next++;
-        return lotCode;
+        if (string.IsNullOrEmpty(s.LotPrefix)) throw new InvalidOperationException("LotPrefix missing");
+        var header = LotNoGenerator.BuildHeader(now, s.LotPrefix);
+        var last = s.LotCursor.TryGetValue(header, out var cur) ? cur : 0;
+        var seq = last + 1;
+        if (seq > 9999) throw new OfflineLotNumbersExhaustedException(lineId);
+        s.LotCursor[header] = seq;
+        return header + seq.ToString("D4");
     }
 
     /// <summary>

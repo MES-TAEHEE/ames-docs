@@ -85,6 +85,23 @@ public class InjLotRepositoryTests
     }
 
     [SkippableFact]
+    public void DecrementPrintedCount_reverts_the_increment_and_never_goes_below_zero()
+    {
+        // 출력 실패 시 선행 카운트 되돌리기 — 0 아래로는 내려가지 않는다(OUTPUT 이 없으면 0 으로 읽힌다).
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f);
+        var (lotId, lotCode) = repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), 12348);
+        try
+        {
+            Assert.Equal(1, repo.IncrementPrintedCount(lotId, "E-ITEST"));
+            Assert.Equal(0, repo.DecrementPrintedCount(lotId, "E-ITEST"));
+            Assert.Equal(0, repo.DecrementPrintedCount(lotId, "E-ITEST"));
+            Assert.Equal(0, repo.GetByLotCode(lotCode)!.PrintedCount);
+        }
+        finally { Cleanup(f, lotId); }
+    }
+
+    [SkippableFact]
     public void MarkNgBlocked_then_confirm_is_rejected()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");

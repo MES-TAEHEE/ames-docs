@@ -10,9 +10,23 @@ namespace AMES.Pop.Common;
 internal static class LabelPrinter
 {
     public static void Print(InjLotDto lot, string? fallbackLineId = null)
-        => Print(new ZplLabel(
+    {
+        Print(new ZplLabel(
             lot.LotCode, lot.ItemNo, lot.ItemName, lot.ColorCode, lot.CavityPos,
             lot.PressType, lot.LineId ?? fallbackLineId ?? "", lot.CreatedTS), lot.LotCode);
+        RecordOutput(lot.LotCode);
+    }
+
+    /// <summary>
+    /// 출력이 실제로 끝난 LOT 을 출력 모드와 함께 print 로그에 남긴다 — 모드(File·Tcp·Spooler)와 무관하게
+    /// 확인할 수 있는 기준이다. 로그 실패가 출력을 실패로 만들어서는 안 된다.
+    /// </summary>
+    private static void RecordOutput(string lotCode)
+    {
+        AMES.Pop.Common.PopLog.Append("print", "LabelPrinted", $"{lotCode} mode={AppConfig.Current.PrinterMode}");
+        // 마지막 LOT 번호를 기록한다 — 다음 오프라인 임의 출력이 이 번호 뒤에서 이어진다.
+        AMES.Pop.Services.OfflineWork.NoteLotCode(lotCode);
+    }
 
     /// <summary>
     /// IMG 완제품 라벨 — 고객 표준 DataMatrix 양식(ImgLabelBuilder). 발행일은 지금 시각이다:

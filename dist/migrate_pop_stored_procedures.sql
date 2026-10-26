@@ -1506,6 +1506,21 @@ BEGIN
 END;
 GO
 
+-- ===== InjLot.DecrementPrintedCount (INJ) — 출력 실패 시 선행 카운트 되돌리기 (10-26) =====
+-- 카운트는 출력 전에 올린다. 출력이 실패하면 여기서 되돌려 클레임이 다시 잡을 수 있게 한다.
+-- PrintedCount 0 이하로는 내려가지 않는다.
+CREATE OR ALTER PROCEDURE dbo.SP_POP_INJ_DecrementPrintedCount
+    @By VARCHAR(20),
+    @L INT
+AS
+BEGIN
+    UPDATE dbo.PR_InjLot
+    SET    PrintedCount = PrintedCount - 1, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+    OUTPUT INSERTED.PrintedCount
+    WHERE  LotID = @L AND PrintedCount > 0;
+END;
+GO
+
 -- ===== InjLot.GetMaxLotId (INJ) =====
 CREATE OR ALTER PROCEDURE dbo.SP_POP_INJ_GetMaxLotId
     @Line VARCHAR(20)

@@ -122,7 +122,7 @@ public sealed class OfflineReplayDbTests : IDisposable
 
         // 사본의 번호 구간 — 오프라인에서 새 라벨이 이 번호를 쓴다 (먼 미래 날짜라 평소 채번과 섞이지 않는다)
         var s = OfflineWork.State!;
-        s.LotBlocks.Add(new OfflineLotBlock { Header = block.Header, Day = FarDay, Next = block.FirstSeq + 1, End = block.FirstSeq + 2 });
+        s.LotPrefix = (block.Header)[3..5]; s.LotCursor[block.Header] = block.FirstSeq + 1 - 1;
         OfflineStore.Save("work-state.bin", s);
         OfflineWork.ResetForTests();
 
