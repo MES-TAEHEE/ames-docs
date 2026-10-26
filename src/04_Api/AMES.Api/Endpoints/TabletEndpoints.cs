@@ -1,6 +1,8 @@
 using AMES.Api.Auth;
 using AMES.Data.Connection;
 using Microsoft.Data.SqlClient;
+using AMES.Contracts.Dto;
+using AMES.Data.Repositories;
 
 namespace AMES.Api.Endpoints;
 
@@ -25,6 +27,37 @@ public static class TabletEndpoints
     public static void MapTablet(this WebApplication app, AmesConnectionFactory factory)
     {
         var group = app.MapGroup("/api/tablet").WithTags("Tablet");
+
+        group.MapGet("/location-map", (HttpContext context, ILoggerFactory logs) =>
+        {
+            if (context.GetSession() is null) return Results.Unauthorized();
+            try
+            {
+                var master = new MasterDataRepository(factory);
+                var warehouse = new WarehouseRepository(factory);
+                var locations = master.ListLocations().Where(x => x.ActiveFlag && x.LocationLevel == MasterDataRepository.LocationLevelDetail
+                    && x.AreaCode != "SPARE_PARTS_AREA")
+                    .Select(x => new TabletMapLocationDto(x.LocationID, x.LocationName, x.WhCode, x.AreaCode, x.Aisle, x.Bay, x.Slot, x.Capacity)).ToList();
+                var areas = warehouse.ListWarehouseAreas().Where(x => x.AreaCode != "SPARE_PARTS_AREA" && !string.IsNullOrWhiteSpace(x.WhCode))
+                    .Select(x => new TabletMapAreaDto(x.WhCode!, x.WhName ?? x.WhCode!, x.AreaCode, x.AreaName ?? x.AreaCode, x.StorageMode)).ToList();
+                foreach (var wh in warehouse.ListWarehouses())
+                    if (!areas.Any(x => x.WarehouseCode == wh.WhCode))
+                        areas.Add(new(wh.WhCode, wh.WhName ?? wh.WhCode, "", "", "GRID"));
+                foreach (var location in locations)
+                    if (!areas.Any(x => x.WarehouseCode == location.WarehouseCode && x.AreaCode == location.AreaCode))
+                        areas.Add(new(location.WarehouseCode, location.WarehouseCode, location.AreaCode, location.AreaCode, "GRID"));
+                var ids = locations.Select(x => x.LocationNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var inventory = warehouse.ListUnifiedInventory(false, includeFinishedGoods: true, includeDefects: true)
+                    .Where(x => ids.Contains(x.LocationNo))
+                    .Select(x => new TabletMapStockDto(x.LocationNo, x.LotNo, x.PartNo, x.PartName, x.Qty, x.Unit, x.DefectQty)).ToList();
+                return Results.Ok(new TabletLocationMapDto(areas, locations, inventory));
+            }
+            catch (SqlException ex)
+            {
+                logs.CreateLogger("TabletLocationMap").LogError(ex, "Tablet location map query failed");
+                return Results.Json(new { message = "Location map is unavailable. Please retry." }, statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        }).WithName("GetTabletLocationMap").WithSummary("Read warehouse, area, grid/open storage and inventory for the tablet");
 
         group.MapGet("/inventory", async (HttpContext context) =>
         {

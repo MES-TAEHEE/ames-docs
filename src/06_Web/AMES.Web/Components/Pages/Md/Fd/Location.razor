@@ -298,7 +298,7 @@
             args.Attributes["class"] = existing + " ames-row-link";
         else
             args.Attributes["class"] = "ames-row-link";
-        if (IsPrimary(args.Data)) args.Attributes["class"] += " loc-primary-row";
+        if (args.Data is { } row && IsPrimary(row)) args.Attributes["class"] += " loc-primary-row";
     }
 
     void OnRowClick(DataGridRowMouseEventArgs<MasterDataRepository.LocationRow> args)

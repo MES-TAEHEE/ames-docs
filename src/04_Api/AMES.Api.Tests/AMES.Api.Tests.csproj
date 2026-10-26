@@ -18,6 +18,10 @@
     <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\08_Tablet\AMES.Tablet\Services\TabletInventoryApi.cs" Link="Tablet\TabletInventoryApi.cs" />
+    <Compile Include="..\..\08_Tablet\AMES.Tablet\Services\TabletMapCoordinates.cs" Link="Tablet\TabletMapCoordinates.cs" />
+    <Compile Include="..\..\08_Tablet\AMES.Tablet\Services\TabletAuthService.cs" Link="Tablet\TabletAuthService.cs" />
+    <Compile Include="..\..\08_Tablet\AMES.Tablet\Services\TabletAuthState.cs" Link="Tablet\TabletAuthState.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\AuthState.cs" Link="Pda\AuthState.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionExpiryHandler.cs" Link="Pda\SessionExpiryHandler.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionValidator.cs" Link="Pda\SessionValidator.cs" />

@@ -1,26 +1,92 @@
 @page "/areas"
+@using AMES.Contracts.Dto
 @inject TabletAuthState Auth
 @inject NavigationManager Nav
+@inject TabletInventoryApi Inventory
 
-<div class="area-screen">
+<div class="area-screen tablet-map-screen">
     <header class="area-header">
-        <div>
-            <span>A-MES TABLET</span>
-            <h1>Select Area</h1>
-        </div>
+        <div><span>A-MES TABLET</span><h1>Location Map</h1></div>
     </header>
-    <main class="area-list" style="--area-grid-size:1;--area-card-size:340px">
-        <button type="button" class="area-card" @onclick="OpenArea">
-            <strong>Material Area</strong>
-        </button>
-    </main>
+    <nav class="tablet-map-toolbar" aria-label="Location hierarchy">
+        @if (string.IsNullOrWhiteSpace(Warehouse)) { <strong>Warehouse</strong> }
+        else
+        {
+            <RadzenButton Text="Warehouse" Icon="warehouse" Click="ShowWarehouses" Size="ButtonSize.Small" />
+            <RadzenIcon Icon="chevron_right" /><strong>@WarehouseName</strong>
+        }
+        <div class="tablet-map-actions">
+            @if (!string.IsNullOrWhiteSpace(Warehouse)) { <RadzenButton Text="Back" Icon="arrow_back" Click="ShowWarehouses" Size="ButtonSize.Small" /> }
+            <RadzenButton Text="Refresh" Icon="refresh" Click="Load" Disabled="_loading" Size="ButtonSize.Small" />
+        </div>
+    </nav>
+    @if (_loading) { <div class="screen-state">Loading locations...</div> }
+    else
+    {
+        <div class="tablet-map-selection">
+            <div class="tablet-map-section-title">@(string.IsNullOrWhiteSpace(Warehouse) ? "Warehouse" : "Area") · @Cards.Count items</div>
+            @if (_message is not null) { <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@_message</RadzenAlert> }
+            <div class="tablet-hierarchy-cards">
+                @foreach (var card in Cards)
+                {
+                    <RadzenButton class="tablet-location-card" Click="@(() => Open(card))" Size="ButtonSize.Small">
+                        <div class="tablet-location-content">
+                            <span>@(string.IsNullOrWhiteSpace(Warehouse) ? "WAREHOUSE" : "AREA") · @card.Code</span>
+                            <strong>@card.Name</strong><small>@card.Count locations</small>
+                            <b>@Qty(card.Qty) <em>QTY</em></b>
+                        </div>
+                    </RadzenButton>
+                }
+            </div>
+            @if (Cards.Count == 0) { <div class="empty-result">No locations are registered.</div> }
+        </div>
+    }
 </div>
 
 @code {
-    protected override void OnInitialized()
+    [SupplyParameterFromQuery] public string? Warehouse { get; set; }
+    private sealed record Card(string Code, string Name, int Count, decimal Qty);
+    private TabletInventoryApi.InventorySnapshot _snapshot = new([], null);
+    private bool _loading;
+    private string? _message;
+    private List<TabletMapAreaDto> AreaOptions => _snapshot.Areas?.ToList() ?? _snapshot.Rows
+        .GroupBy(x => (Warehouse: x.WarehouseCode ?? "", Area: x.AreaCode ?? ""))
+        .Select(g => new TabletMapAreaDto(g.Key.Warehouse, g.First().WarehouseName ?? g.Key.Warehouse,
+            g.Key.Area, g.First().AreaName ?? g.Key.Area, "")).ToList();
+    private string WarehouseName => AreaOptions.FirstOrDefault(x => Same(x.WarehouseCode, Warehouse))?.WarehouseName ?? Warehouse ?? "";
+    private List<Card> Cards => string.IsNullOrWhiteSpace(Warehouse)
+        ? AreaOptions.GroupBy(x => x.WarehouseCode, StringComparer.OrdinalIgnoreCase).Select(g => MakeCard(g.Key, g.First().WarehouseName, null)).OrderBy(x => x.Code).ToList()
+        : AreaOptions.Where(x => Same(x.WarehouseCode, Warehouse) && !string.IsNullOrWhiteSpace(x.AreaCode))
+            .Select(x => MakeCard(x.AreaCode, x.AreaName, x.AreaCode)).OrderBy(x => x.Code).ToList();
+
+    private Card MakeCard(string code, string name, string? area)
     {
-        if (Auth.Session is null) Nav.NavigateTo("/login", replace: true);
+        var rows = _snapshot.Rows.Where(x => Same(x.WarehouseCode, area is null ? code : Warehouse) && (area is null || Same(x.AreaCode, area)));
+        return new(code, name, rows.Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count(), rows.Sum(x => x.Qty));
     }
 
-    private void OpenArea() => Nav.NavigateTo("/map");
+    protected override async Task OnInitializedAsync()
+    {
+        if (Auth.Session is null) { Nav.NavigateTo("/login", replace: true); return; }
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            _snapshot = await Inventory.LoadAsync();
+            if (_snapshot.SessionExpired) { Auth.SignOut(); Nav.NavigateTo("/login", replace: true); return; }
+            _message = _snapshot.Message;
+        }
+        finally { _loading = false; }
+    }
+
+    private void ShowWarehouses() => Nav.NavigateTo("/areas");
+    private void Open(Card card) => Nav.NavigateTo(string.IsNullOrWhiteSpace(Warehouse)
+        ? $"/areas?warehouse={Uri.EscapeDataString(card.Code)}"
+        : $"/map?warehouse={Uri.EscapeDataString(Warehouse)}&area={Uri.EscapeDataString(card.Code)}");
+    private static bool Same(string? left, string? right) => string.Equals(left ?? "", right ?? "", StringComparison.OrdinalIgnoreCase);
+    private static string Qty(decimal value) => AMES.Contracts.Formatting.UomQty.Format(value, null);
 }
