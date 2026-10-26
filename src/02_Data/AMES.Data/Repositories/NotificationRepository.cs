@@ -1,5 +1,6 @@
 using System.Data;
 using AMES.Data.Connection;
+using AMES.Data.Services;
 using AMES.Data.Services.Notify;
 using Microsoft.Data.SqlClient;
 
@@ -16,6 +17,20 @@ public sealed class NotificationRepository(AmesConnectionFactory f)
         string? EventTypeCode, string? SourceRefType, string? SourceRefId, int RetryCount);
     public sealed record InboxRow(long Id, string? EventTypeCode, string? EventName, string? Subject, string? Body,
         string? SourceRefType, string? SourceRefId, string? Status, DateTime? CreatedTs, DateTime? SentAt, DateTime? ReadAt);
+    /// <summary>앱 상세 — 알림 행 + 원천의 지금 상태(원천이 지워졌거나 모르는 종류면 Source null).</summary>
+    public sealed record InboxDetail(long Id, string? EventTypeCode, string? EventName, string? Subject, string? Body,
+        string? SourceRefType, string? SourceRefId, string? Status, DateTime? CreatedTs, DateTime? SentAt, DateTime? ReadAt,
+        NotifySource? Source);
+    /// <summary>
+    /// 알림 원천의 지금 상태. 공통 칸은 원천마다 있는 것만 채우고, 종류별 항목은 Fields(키는 영어 camelCase 고정 — 앱이 이름을 번역한다).
+    /// Status 는 원천 테이블의 상태 코드 그대로(PM 은 예정일로 계산한 OK·DUE·OVERDUE·CANCELLED, 예비품은 LOW·OK·INACTIVE).
+    /// </summary>
+    public sealed record NotifySource(string RefType, string RefId, string? Status, DateTime? OccurredAt, DateTime? ClosedAt,
+        string? LineId, string? LineName, string? EquipId, string? EquipName, string? ItemNo, string? ItemName, string? Severity,
+        IReadOnlyList<SourceField> Fields);
+    public sealed record SourceField(string Key, string? Value);
+    /// <summary>방해 금지 시간(그 사번의 PUSH 기기 중 가장 최근에 바뀐 행 기준)과 사용 중인 기기 수.</summary>
+    public sealed record QuietHours(TimeSpan? Start, TimeSpan? End, int Devices);
 
     // 이벤트 → 규칙(PUSH 채널·사용) → 수신 역할의 사번 → 사용 중인 PUSH 기기 → 이력 PENDING/QUIET.
     // 같은 (이벤트, 원천, 수신자, 기기) 이력이 있으면 다시 만들지 않는다. 여러 Api(개발서버·로컬 IIS)가 같은 DB 를 쓰므로 applock 으로 한 번에 하나.
@@ -230,6 +245,7 @@ public sealed class NotificationRepository(AmesConnectionFactory f)
 
     /// <summary>
     /// 기기 등록 — 같은 토큰이 다른 사번에 붙어 있으면 지우고(공용 기기는 마지막에 로그인한 사람이 받는다) 이 사번 행을 켜거나 만든다.
+    /// 새 행은 그 사번의 다른 기기에 둔 방해 금지 시간을 이어받는다(방해 금지는 사람 단위 설정).
     /// </summary>
     public void RegisterDevice(string employeeNo, string token, string actor)
     {
@@ -241,8 +257,12 @@ public sealed class NotificationRepository(AmesConnectionFactory f)
             SET    IsEnabled = 1, VerifiedAt = SYSDATETIME(), ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
             WHERE  Channel = @Ch AND Address = @Token AND UserID = @Emp;
             IF @@ROWCOUNT = 0
-                INSERT dbo.SYS_NotificationChannel (UserID, Channel, Address, IsEnabled, VerifiedAt, CreatedBy, CreatedTS)
-                VALUES (@Emp, @Ch, @Token, 1, SYSDATETIME(), @Actor, SYSDATETIME());
+                INSERT dbo.SYS_NotificationChannel (UserID, Channel, Address, IsEnabled, QuietHoursStart, QuietHoursEnd, VerifiedAt, CreatedBy, CreatedTS)
+                SELECT @Emp, @Ch, @Token, 1, q.QuietHoursStart, q.QuietHoursEnd, SYSDATETIME(), @Actor, SYSDATETIME()
+                FROM   (SELECT 1 AS one) d
+                OUTER APPLY (SELECT TOP (1) c.QuietHoursStart, c.QuietHoursEnd FROM dbo.SYS_NotificationChannel c
+                             WHERE c.UserID = @Emp AND c.Channel = @Ch
+                             ORDER BY ISNULL(c.ModifiedTS, c.CreatedTS) DESC, c.NotificationChannelID DESC) q;
             COMMIT;
             """;
         using var conn = f.OpenConnection();
@@ -357,6 +377,180 @@ public sealed class NotificationRepository(AmesConnectionFactory f)
         cmd.Parameters.Add("@Ch", SqlDbType.VarChar, 10).Value = NotifyRules.Channel;
         return Convert.ToInt32(cmd.ExecuteScalar());
     }
+
+    // ── 방해 금지 시간(앱) ───────────────────────────────────────────────────
+    // 칸은 기기 행(SYS_NotificationChannel)마다 있지만 사람 단위 설정으로 다룬다 — 쓰면 그 사번의 PUSH 행 전부, 읽으면 가장 최근에 바뀐 행.
+
+    public QuietHours GetQuietHours(string employeeNo)
+    {
+        const string sql = """
+            SELECT TOP (1) c.QuietHoursStart, c.QuietHoursEnd,
+                   (SELECT COUNT(*) FROM dbo.SYS_NotificationChannel x
+                    WHERE x.UserID = @Emp AND x.Channel = @Ch AND ISNULL(x.IsEnabled, 0) = 1) AS Devices
+            FROM   dbo.SYS_NotificationChannel c
+            WHERE  c.UserID = @Emp AND c.Channel = @Ch
+            ORDER  BY ISNULL(c.ModifiedTS, c.CreatedTS) DESC, c.NotificationChannelID DESC;
+            """;
+        using var conn = f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Emp", SqlDbType.NVarChar, 450).Value = employeeNo;
+        cmd.Parameters.Add("@Ch", SqlDbType.VarChar, 10).Value = NotifyRules.Channel;
+        using var rdr = cmd.ExecuteReader();
+        return rdr.Read()
+            ? new(rdr["QuietHoursStart"] as TimeSpan?, rdr["QuietHoursEnd"] as TimeSpan?, (int)rdr["Devices"])
+            : new(null, null, 0);
+    }
+
+    /// <summary>그 사번의 PUSH 기기 행 전부에 방해 금지 시간을 쓴다(둘 다 null = 해제). 바꾼 기기 수 — 0 이면 등록된 기기가 없다.</summary>
+    public int SetQuietHours(string employeeNo, TimeSpan? start, TimeSpan? end, string actor)
+    {
+        const string sql = """
+            UPDATE dbo.SYS_NotificationChannel
+            SET    QuietHoursStart = @Start, QuietHoursEnd = @End, ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+            WHERE  UserID = @Emp AND Channel = @Ch;
+            SELECT @@ROWCOUNT;
+            """;
+        using var conn = f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Emp", SqlDbType.NVarChar, 450).Value = employeeNo;
+        cmd.Parameters.Add("@Ch", SqlDbType.VarChar, 10).Value = NotifyRules.Channel;
+        cmd.Parameters.Add("@Start", SqlDbType.Time).Value = (object?)start ?? DBNull.Value;
+        cmd.Parameters.Add("@End", SqlDbType.Time).Value = (object?)end ?? DBNull.Value;
+        cmd.Parameters.Add("@Actor", SqlDbType.VarChar, 20).Value = actor;
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    // ── 알림 상세의 원천 정보(앱) ─────────────────────────────────────────────
+
+    /// <summary>상세 — <see cref="GetInboxItem"/> 에 원천의 지금 상태를 붙인다. 그 사번의 행이 아니면 null.</summary>
+    public InboxDetail? GetInboxDetail(string employeeNo, long id)
+    {
+        if (GetInboxItem(employeeNo, id) is not { } r) return null;
+        return new(r.Id, r.EventTypeCode, r.EventName, r.Subject, r.Body, r.SourceRefType, r.SourceRefId, r.Status,
+            r.CreatedTs, r.SentAt, r.ReadAt, ReadSource(r.SourceRefType, r.SourceRefId));
+    }
+
+    // 사람 코드(사번 — 옛 행은 사용자 ID) → "이름 (사번)", 모르면 코드 그대로
+    static string Person(string code) => $$"""
+        CASE WHEN NULLIF({{code}}, '') IS NULL THEN NULL ELSE COALESCE(
+            (SELECT TOP (1) CONCAT(COALESCE(npp.EmployeeName, npp.EmployeeNo), N' (', npp.EmployeeNo, N')') FROM dbo.SYS_UserProfile npp
+             WHERE NULLIF(npp.EmployeeNo, '') IS NOT NULL AND (npp.EmployeeNo = {{code}} OR npp.UserID = {{code}})),
+            (SELECT TOP (1) CONCAT(npw.EmployeeName, N' (', npw.EmployeeNo, N')') FROM dbo.MD_Worker npw WHERE npw.EmployeeNo = {{code}}),
+            {{code}}) END
+        """;
+
+    // 원천 종류별 조회 — 공통 칸(Status·OccurredAt·ClosedAt·LineID·LineName·EquipID·EquipName·ItemNo·ItemName·Severity) + f_ 로 시작하는 종류별 항목.
+    // PM 은 상태를 PmRules 로 계산하려고 x_ 칸(저장 상태·예정일·DB 날짜·선행일 설정)을 더 읽는다.
+    static readonly Dictionary<string, string> SourceSql = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["FAILURE"] = $$"""
+            SELECT f.Status, f.ReportedAt AS OccurredAt, f.ResolvedAt AS ClosedAt, e.LineID, l.LineName, f.EquipID, e.EquipName,
+                   CAST(NULL AS varchar(20)) AS ItemNo, CAST(NULL AS nvarchar(100)) AS ItemName, f.Severity,
+                   f.FailureType AS f_failureType, f.Symptom AS f_symptom, f.Source AS f_source,
+                   {{Person("f.ReportedBy")}} AS f_reportedBy,
+                   w.WoNumber AS f_workOrder, w.Status AS f_workOrderStatus, {{Person("w.AssignedTechID")}} AS f_technician,
+                   w.StartedAt AS f_workStartedAt
+            FROM   dbo.MNT_FailureRegister f
+            LEFT JOIN dbo.MD_Equipment e ON e.EquipID = f.EquipID
+            LEFT JOIN dbo.MD_Line l      ON l.LineID = e.LineID
+            LEFT JOIN dbo.MNT_WorkOrder w ON w.WorkOrderID = f.WorkOrderID
+            WHERE  f.FailureNumber = @Ref;
+            """,
+        ["ANDON"] = """
+            SELECT a.Status, a.TriggeredAt AS OccurredAt, a.ResumedAt AS ClosedAt, a.LineID, l.LineName, a.EquipID, e.EquipName,
+                   CAST(NULL AS varchar(20)) AS ItemNo, CAST(NULL AS nvarchar(100)) AS ItemName, a.Severity,
+                   a.ReasonCode AS f_cause, a.SupervisorName AS f_supervisor, a.AckedAt AS f_supervisorAckedAt,
+                   (SELECT STRING_AGG(CONCAT(d.DeptCode, ':', CASE WHEN d.AckedAt IS NOT NULL THEN 'ACKED'
+                                                                   WHEN d.ArrivedAt IS NOT NULL THEN 'ARRIVED' ELSE 'CALLED' END), ',')
+                           WITHIN GROUP (ORDER BY d.DeptCallID)
+                    FROM dbo.PR_AndonDeptCall d WHERE d.AndonID = a.AndonID) AS f_departments,
+                   a.CorrectiveAction AS f_correctiveAction
+            FROM   dbo.PR_AndonCall a
+            LEFT JOIN dbo.MD_Line l      ON l.LineID = a.LineID
+            LEFT JOIN dbo.MD_Equipment e ON e.EquipID = a.EquipID
+            WHERE  a.AndonID = TRY_CAST(@Ref AS int);
+            """,
+        ["QC_HOLD"] = $$"""
+            SELECT TOP (1) h.Status, h.HeldAt AS OccurredAt,
+                   CASE WHEN ISNULL(h.Status, '') <> 'Held' THEN h.ModifiedTS END AS ClosedAt,
+                   t.LineID, l.LineName, CAST(NULL AS varchar(20)) AS EquipID, CAST(NULL AS nvarchar(100)) AS EquipName,
+                   h.ItemNo, i.ItemName, h.Severity,
+                   h.HeldQty AS f_heldQty, h.AffectedType AS f_affectedType, t.LotCode AS f_lot, h.PhysicalLocation AS f_location,
+                   {{Person("h.HeldBy")}} AS f_heldBy
+            FROM   dbo.QC_Hold h
+            LEFT JOIN dbo.tbl_Lot t  ON t.LotID = h.LotID
+            LEFT JOIN dbo.MD_Line l  ON l.LineID = t.LineID
+            LEFT JOIN dbo.MD_Item i  ON i.ItemNo = h.ItemNo
+            WHERE  h.HoldNumber = @Ref OR (NULLIF(h.HoldNumber, '') IS NULL AND CAST(h.HoldID AS varchar(40)) = @Ref)
+            ORDER  BY h.HoldID DESC;
+            """,
+        ["PM"] = """
+            SELECT TOP (1) p.Status, CAST(p.NextDueDate AS datetime2) AS OccurredAt, CAST(NULL AS datetime2) AS ClosedAt,
+                   e.LineID, l.LineName, p.EquipID, e.EquipName,
+                   CAST(NULL AS varchar(20)) AS ItemNo, CAST(NULL AS nvarchar(100)) AS ItemName, CAST(NULL AS varchar(10)) AS Severity,
+                   p.PMClass AS f_pmClass, p.PMType AS f_pmType, p.NextDueDate AS f_nextDueDate, p.LastPMDate AS f_lastPmDate,
+                   w.WoNumber AS f_workOrder, w.Status AS f_workOrderStatus,
+                   p.Status AS x_stored, p.NextDueDate AS x_next, CAST(SYSDATETIME() AS date) AS x_today,
+                   (SELECT TOP (1) ConfigValue FROM dbo.SYS_Config WHERE ConfigKey = @LeadKey) AS x_lead
+            FROM   dbo.MNT_PMSchedule p
+            LEFT JOIN dbo.MD_Equipment e  ON e.EquipID = p.EquipID
+            LEFT JOIN dbo.MD_Line l       ON l.LineID = e.LineID
+            LEFT JOIN dbo.MNT_WorkOrder w ON w.WorkOrderID = p.ActiveWoID
+            WHERE  p.PMPlanNumber = @Ref
+            ORDER  BY p.PMScheduleID DESC;
+            """,
+        ["SPARE_PART"] = """
+            SELECT CASE WHEN ISNULL(s.ActiveFlag, 1) = 0 THEN 'INACTIVE'
+                        WHEN s.ReorderPoint > 0 AND s.OnHandQty <= s.ReorderPoint THEN 'LOW' ELSE 'OK' END AS Status,
+                   CAST(NULL AS datetime2) AS OccurredAt, CAST(NULL AS datetime2) AS ClosedAt,
+                   CAST(NULL AS varchar(20)) AS LineID, CAST(NULL AS nvarchar(100)) AS LineName,
+                   CAST(NULL AS varchar(20)) AS EquipID, CAST(NULL AS nvarchar(100)) AS EquipName,
+                   s.PartNo AS ItemNo, s.PartName AS ItemName, CAST(NULL AS varchar(10)) AS Severity,
+                   s.SparePartNo AS f_sparePartNo, s.OnHandQty AS f_onHand, s.ReorderPoint AS f_reorderPoint,
+                   s.SafetyStock AS f_safetyStock, s.UOM AS f_uom,
+                   CONCAT_WS(' ', s.ZoneCode, s.Slot, s.ExtraLocation) AS f_location
+            FROM   dbo.MD_SparePart s
+            WHERE  s.SparePartNo = @Ref;
+            """,
+    };
+
+    /// <summary>원천 종류·번호(상태형 이벤트의 @날짜 접미사는 뗀다)로 지금 상태를 읽는다. 모르는 종류·지워진 원천은 null.</summary>
+    public NotifySource? ReadSource(string? refType, string? refId)
+    {
+        if (string.IsNullOrWhiteSpace(refType) || string.IsNullOrWhiteSpace(refId)
+            || !SourceSql.TryGetValue(refType.Trim(), out var sql)) return null;
+        var baseRef = NotifyRules.BaseRef(refId.Trim());
+        using var conn = f.OpenConnection();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.Add("@Ref", SqlDbType.VarChar, 40).Value = baseRef;
+        cmd.Parameters.Add("@LeadKey", SqlDbType.VarChar, 60).Value = PmRules.LeadDaysKey;
+        using var rdr = cmd.ExecuteReader();
+        if (!rdr.Read()) return null;
+
+        string? S(string col) => rdr[col] as string;
+        DateTime? D(string col) => rdr[col] as DateTime?;
+        var status = S("Status");
+        var fields = new List<SourceField>();
+        for (var i = 0; i < rdr.FieldCount; i++)
+        {
+            var name = rdr.GetName(i);
+            if (name.StartsWith("f_", StringComparison.Ordinal)) fields.Add(new(name[2..], FieldText(rdr.GetValue(i), rdr.GetDataTypeName(i))));
+        }
+        if (string.Equals(refType.Trim(), "PM", StringComparison.OrdinalIgnoreCase))
+            status = PmRules.DisplayStatus(rdr["x_stored"] as string, rdr["x_next"] as DateTime?, (DateTime)rdr["x_today"],
+                PmRules.ParseLeadDays(rdr["x_lead"] as string));
+        return new(refType.Trim(), baseRef, status, D("OccurredAt"), D("ClosedAt"), S("LineID"), S("LineName"),
+            S("EquipID"), S("EquipName"), S("ItemNo"), S("ItemName"), S("Severity"), fields);
+    }
+
+    // 앱이 그대로 보이거나 파싱할 수 있게 문화권 없는 글자로 — 날짜 yyyy-MM-dd, 일시 yyyy-MM-dd HH:mm:ss(DB 서버 시각)
+    static string? FieldText(object v, string sqlType) => v switch
+    {
+        DBNull => null,
+        DateTime d => sqlType.Equals("date", StringComparison.OrdinalIgnoreCase) ? d.ToString("yyyy-MM-dd") : d.ToString("yyyy-MM-dd HH:mm:ss"),
+        decimal m => m.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture),
+        _ => Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture),
+    };
 
     static List<InboxRow> ReadInbox(SqlCommand cmd)
     {

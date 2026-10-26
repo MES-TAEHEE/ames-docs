@@ -15,6 +15,8 @@ namespace AMES.Api.Endpoints;
 public static class NotificationEndpoints
 {
     public sealed record DeviceReq(string? Token);
+    public sealed record QuietHoursReq(string? Start, string? End);
+    public sealed record QuietHoursRes(string? Start, string? End, int Devices);
 
     public static void MapNotifications(this WebApplication app, AmesConnectionFactory factory)
     {
@@ -51,8 +53,26 @@ public static class NotificationEndpoints
         g.MapGet("/{id:long}", (HttpContext ctx, long id) =>
         {
             if (Guard(ctx, out var s) is { } denied) return denied;
-            return repo.GetInboxItem(s.EmployeeNo, id) is { } row ? Results.Ok(row) : Results.NotFound();
-        }).WithSummary("Notification detail (historyId from the push data)");
+            return repo.GetInboxDetail(s.EmployeeNo, id) is { } row ? Results.Ok(row) : Results.NotFound();
+        }).WithSummary("Notification detail (historyId from the push data) with the current state of its source (failure, andon, QC hold, PM, spare part)");
+
+        // 방해 금지 시간 — 사람 단위(그 사번의 PUSH 기기 전부). 이 시간에 생긴 알림은 보내지 않고 목록에만 남는다(QUIET).
+        g.MapGet("/quiet-hours", (HttpContext ctx) =>
+        {
+            if (Guard(ctx, out var s) is { } denied) return denied;
+            var q = repo.GetQuietHours(s.EmployeeNo);
+            return Results.Ok(new QuietHoursRes(NotifyRules.FormatClock(q.Start), NotifyRules.FormatClock(q.End), q.Devices));
+        }).WithSummary("My do-not-disturb hours (HH:mm, server local time; null = off) and number of active devices");
+
+        g.MapPut("/quiet-hours", (HttpContext ctx, QuietHoursReq body) =>
+        {
+            if (Guard(ctx, out var s) is { } denied) return denied;
+            if (!NotifyRules.TryParseQuietHours(body.Start, body.End, out var start, out var end, out var error))
+                return Results.BadRequest(new { message = error });
+            return repo.SetQuietHours(s.EmployeeNo, start, end, Actor(s)) > 0
+                ? Results.NoContent()
+                : Results.NotFound(new { message = "Register this device first (POST /api/notifications/devices)." });
+        }).WithSummary("Set do-not-disturb hours for all my devices — start/end HH:mm (start > end crosses midnight); both empty turns them off");
 
         g.MapPost("/{id:long}/read", (HttpContext ctx, long id) =>
         {

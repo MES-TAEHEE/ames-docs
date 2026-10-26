@@ -79,4 +79,34 @@ public class NotifyRulesTests
     [Fact]
     public void Operator_role_selects_field_workers()
         => Assert.Equal("ROLE-OPERATOR", NotifyRules.WorkerRoleId);
+
+    // 앱 방해 금지 설정 입력 — 둘 다 비우면 해제, 한쪽만·형식 오류·같은 시각은 거부
+    [Theory]
+    [InlineData("22:00", "06:00", true, "22:00", "06:00")]
+    [InlineData("7:30", "9:05", true, "07:30", "09:05")]
+    [InlineData(" 23:59 ", "00:00", true, "23:59", "00:00")]
+    [InlineData(null, null, true, null, null)]
+    [InlineData("", " ", true, null, null)]
+    [InlineData("22:00", null, false, null, null)]
+    [InlineData("24:00", "06:00", false, null, null)]
+    [InlineData("22:60", "06:00", false, null, null)]
+    [InlineData("10pm", "06:00", false, null, null)]
+    [InlineData("08:00", "08:00", false, null, null)]
+    public void Quiet_hours_input_is_both_or_neither_hh_mm(string? start, string? end, bool ok, string? s, string? e)
+    {
+        Assert.Equal(ok, NotifyRules.TryParseQuietHours(start, end, out var ps, out var pe, out var error));
+        Assert.Equal(s, NotifyRules.FormatClock(ps));
+        Assert.Equal(e, NotifyRules.FormatClock(pe));
+        Assert.Equal(ok, error is null);
+    }
+
+    // 상태형 이벤트 원천 번호의 @날짜 접미사만 뗀다
+    [Theory]
+    [InlineData("PM-2610-001@20261024", "PM-2610-001")]
+    [InlineData("EOS-SP-A1-260001@20261024", "EOS-SP-A1-260001")]
+    [InlineData("FAIL-2610-001", "FAIL-2610-001")]
+    [InlineData("A@B", "A@B")]
+    [InlineData("X@2026102", "X@2026102")]
+    public void Base_ref_strips_only_the_daily_suffix(string refId, string expected)
+        => Assert.Equal(expected, NotifyRules.BaseRef(refId));
 }

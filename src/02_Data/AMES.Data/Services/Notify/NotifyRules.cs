@@ -48,6 +48,36 @@ public static class NotifyRules
         return s < e ? now >= s && now < e : now >= s || now < e;
     }
 
+    /// <summary>
+    /// 앱이 보내는 방해 금지 시간 — 둘 다 비우면 해제(null, null), 둘 다 HH:mm(H:mm 도 받음, 00:00~23:59)이고 서로 달라야 한다.
+    /// 시작 &gt; 끝이면 자정을 넘는 구간이다. 틀리면 false 와 영어 사유(앱에 그대로 보인다).
+    /// </summary>
+    public static bool TryParseQuietHours(string? start, string? end, out TimeSpan? s, out TimeSpan? e, out string? error)
+    {
+        s = e = null; error = null;
+        bool noStart = string.IsNullOrWhiteSpace(start), noEnd = string.IsNullOrWhiteSpace(end);
+        if (noStart && noEnd) return true;
+        if (noStart || noEnd) { error = "Give both start and end, or neither to turn quiet hours off."; return false; }
+        if (!TryParseClock(start!, out var a) || !TryParseClock(end!, out var b)) { error = "Times must be HH:mm (00:00-23:59)."; return false; }
+        if (a == b) { error = "Start and end must differ."; return false; }
+        s = a; e = b;
+        return true;
+    }
+
+    static bool TryParseClock(string text, out TimeSpan t) =>
+        TimeSpan.TryParseExact(text.Trim(), [@"hh\:mm", @"h\:mm"], System.Globalization.CultureInfo.InvariantCulture, out t)
+        && t >= TimeSpan.Zero && t < TimeSpan.FromDays(1);
+
+    /// <summary>앱에 돌려주는 시각 — "HH:mm", 없으면 null.</summary>
+    public static string? FormatClock(TimeSpan? t) => t is { } v ? v.ToString(@"hh\:mm") : null;
+
+    /// <summary>상태형 이벤트 원천 번호(「번호@yyyyMMdd」)에서 원래 번호 — 접미사가 없으면 그대로.</summary>
+    public static string BaseRef(string refId)
+    {
+        var i = refId.LastIndexOf('@');
+        return i > 0 && refId.Length - i == 9 && refId[(i + 1)..].All(char.IsDigit) ? refId[..i] : refId;
+    }
+
     /// <summary>날마다 한 번 보내는 상태형 이벤트(PM 지연·재고 부족)의 원천 번호 — 「번호@yyyyMMdd」, 40자에서 자른다.</summary>
     public static string DailyRef(string id, DateTime day)
     {
