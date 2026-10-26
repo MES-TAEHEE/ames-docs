@@ -28,7 +28,7 @@
 
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
-| 김현진 | 16                   | 10  | 7묶음 | 42  | [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 28) · 안돈 보전 호출 작업지시(요청 14) |
+| 김현진 | 15                   | 10  | 7묶음 | 42  | [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 28) · 안돈 보전 호출 작업지시(요청 13) |
 | 안영훈 | 8(배포·검증) | 8 | 5 | 1 | 서버 아이디 목록 API 반영 · WH/FG 실제 쓰기·동시성 검증 · 기존 Area 부모 선택 · 생성기 패키지 보안 경고 · 정책/비결함 정정은 2-2·2-5 |
 | 이승욱 | 0                    | 3   | 2   | 0   | 보류만 — 금형 정비 등록(B7)·개발 완료 시 정리·개발 DB 이름 `AMES` 전환 |
 | 오세영 | 3(앱 개발 참고)          | 1   | —   | —   | 알림 앱 개발 — 서버 발송기·앱 Api 준비됨(4-1 1 참고사항), Firebase 서비스 계정 키 전달                                                                                               |
@@ -37,7 +37,7 @@
 
 ## 1. 김현진 — POP(QC 포함)·InjAgent·Devices + Web PP-001~006·PP-APS (10-26 심재현에게서 인계)
 
-### 1-1. 미해결 (16)
+### 1-1. 미해결 (15)
 
 1. **[중] 스캔 확정 뒤에 온 로봇 NG 판정이 버려짐**
    - 위치: `InjLotRepository.cs:551-568`(MarkNgBlocked), 호출 `MachinePoller.cs:206-210`
@@ -47,11 +47,7 @@
    - 위치: `ApsRepository.cs:324-326·409-414·733·738`, `PpRepository.Aps.cs:1008·1035`(ReadScheduledQty — 헤더 품번 `w.ItemNo`)
    - 내용: BOM 규칙 WO 의 사출 슬롯을 부모 품번으로 읽고, 이미 자식 단위인 수량에 QtyPer 를 한 번 더 곱합니다. 잠긴 칸·부하가 부풀고, WO 생성 때 기존 슬롯 차감도 자식 슬롯을 놓칩니다(문제점 5 와 같은 원인).
    - 제안: 슬롯 품번을 단계 품번 기준으로 읽고 재곱을 없앱니다.
-3. **[중] 수동 라벨이 두 번 생성됨**
-   - 위치: `InjMain.razor:532-548·493`, `ImgMain.razor:365-376·521`
-   - 내용: 처리 중 표시가 동기 처리라 화면에 반영되기 전에 두 번째 터치가 쌓여, LOT 2개·라벨 2장이 나옵니다. 재출력 버튼에는 가드가 없습니다.
-   - 제안: 비동기 처리로 바꾸고 처리 중 버튼을 끕니다. 재출력에도 같은 가드를 둡니다.
-4. **[중] InjAgent 수집 오류 묶음**
+3. **[중] InjAgent 수집 오류 묶음**
    - 위치: `MachinePoller.cs:76-77·117-157·160-175·202-221`, `Plc/FEnetClient.cs:140-149`
    - 내용
      - 카운터 리셋이나 금형 변경만으로 LOT 이 생깁니다.
@@ -60,54 +56,54 @@
      - 검사 이력이 재시도 때 중복됩니다.
      - FEnet 응답을 한 번만 받아 잘린 응답을 그대로 씁니다.
    - 제안: 샷 증가분만큼 LOT 을 만들고, 쓰기 실패는 재시도하며, 응답 길이만큼 반복해서 받습니다.
-5. **[중] 재작업이 취소된 WO 에 실적을 귀속**
+4. **[중] 재작업이 취소된 WO 에 실적을 귀속**
    - 위치: `ReworkRepository.cs:160`, `WorkOrderRepository.cs:402-412`(BumpStepCompleted → `migrate_pop_stored_procedures.sql:304-307·313-322`)
    - 내용: 수리한 양품이 취소 WO 로 들어갑니다. 마지막 단계면 Cancelled 가 Closed 로 바뀌고 완료 수량도 바뀝니다.
    - 제안: 취소 WO 면 열린 WO 를 다시 찾고, 없으면 WO 없이 확정합니다.
-6. **[중] QC 홀드 해제 조건 없음·QC 번호 중복**
+5. **[중] QC 홀드 해제 조건 없음·QC 번호 중복**
    - 위치: `QcRepository.cs:151-178`(ReleaseHold → `migrate_pop_stored_procedures.sql:1173`), 번호 `migrate_pop_stored_procedures.sql:1100·1141`(CreateInspection·CreateNcr)
    - 내용: 이미 해제된 홀드도 다시 해제됩니다. 검사·NCR 번호가 분 단위(yyMMddHHmm)라 같은 분에 두 건이면 번호가 겹치고, 유니크 제약도 없습니다.
    - 제안: 상태 조건을 추가합니다. 번호는 범위 잠금으로 채번합니다(MNT `ClaimNumber` 방식).
-7. **[중] inj_flag 마이그레이션이 컬럼을 데이터째 지움**
+6. **[중] inj_flag 마이그레이션이 컬럼을 데이터째 지움**
     - 위치: `dist/migrate_md_item_inj_flag.sql:63-112`
     - 내용: 재생성 목록(63-96행)에 `ScanRequired`·`SAPFlag`(10-16 `SAPTransFlag`, 10-21 개명)·`IssueAddPct`·`MrpAllowPct`·`ProcureType`(10-20) 가 없고 감사 컬럼 순서도 지금 DB(맨 뒤)와 다르며 기본값 제약(`DF_MD_Item_ScanRequired`)·인덱스도 되살리지 않으며, 컬럼 구성 대조 가드가 없습니다. 18-24행 가드 덕분에 `InjFlag` 가 이미 `ItemCategory` 바로 뒤에 있는 DB(개발·로컬)는 재실행해도 건너뛰지만, `InjFlag` 가 없거나 자리가 다른 DB 에 적용하면 뒤 컬럼이 데이터째 사라집니다.
     - 제안: 재생성 목록을 현재 `MD_Item` 구성으로 보강하고 컬럼 대조 가드를 둡니다. 이미 적용된 DB 가 대부분이면 "컬럼이 있으면 건너뜀" 만 남기는 것도 방법입니다.
-8. **[하] 라벨 출력 뒤 카운트 갱신이 끝내 실패하면 중복 라벨 한 장**(10-23 부분 처리)
+7. **[하] 라벨 출력 뒤 카운트 갱신이 끝내 실패하면 중복 라벨 한 장**(10-23 부분 처리)
     - 위치: `LabelDispatcher.cs:156-190`(TryIncrementPrintedCount), `InjLotRepository.cs:540-557`(ClaimForPrint)
     - 내용: 선점 순서(`LotID` 오름차순)와 수동 재출력·IMG/PNT 발행의 "카운트 실패 = 출력 실패" 오안내는 고쳤습니다(선점 SQL 은 `dist/migrate_pop_stored_procedures.sql` 에 반영했고 10-23 개발 DB 에 적용 — 다른 DB 는 같은 파일의 `SP_POP_INJ_ClaimForPrint` 를 `CREATE OR ALTER` 로 적용). 남은 것: 출력은 됐는데 카운트 갱신이 재시도 끝에도 실패하면 선점이 60초 뒤 풀려 같은 라벨이 한 장 더 나옵니다.
     - 제안: 근본적으로는 출력 전에 카운트를 먼저 올리고 실패하면 되돌리는 방식입니다.
-9. **[하] 안돈 기록 오류 묶음**
+8. **[하] 안돈 기록 오류 묶음**
     - 위치: `AndonPopup.razor:246-250`, `AndonRepository.cs:228·36-37`, 종료 `migrate_pop_stored_procedures.sql:698-700`(SP_POP_ANDON_Resolve)
     - 내용
       - 기존 안돈을 복원만 해도 설비 STOP 기록이 중복됩니다.
       - 원인코드 매개변수가 `VarChar 15`(공통코드 값은 20자까지 — 지금 최대 8자라 잠재 결함)입니다.
       - 종료 때 CLOSED 를 RESOLVED 로 덮습니다.
       - 알림 수신자·채널이 고정값입니다(오세영 PUSH 와 연계).
-10. **[하] 마이그레이션 FK 6개·그룹 이름 옛 접두어**
+9. **[하] 마이그레이션 FK 6개·그룹 이름 옛 접두어**
     - 위치: `migrate_aps.sql:74·75·100·157·185`, `migrate_aps_plan_line_shift.sql:21`, `migrate_demand_plan.sql:69·92-98`
     - 내용: FK 를 두지 않는 원칙과 달리 FK 6개를 새로 만듭니다. DPSYNC 공통코드 그룹 이름에 폐지된 `ScheduledWorker · ` 접두어가 있습니다.
-11. **[하] 테스트 코드에 접속 비밀번호·외부 IP**
+10. **[하] 테스트 코드에 접속 비밀번호·외부 IP**
     - 위치: `AmesDevDb.cs:15` 외 `AMES.Data.Tests` 7파일(총 8파일, 192.168.0.132 를 쓰는 6파일은 Connect Timeout=10, `MoldPlanningTests:20`, `PlanScheduleTests:21` 은 98.95.142.192 이고 Connect Timeout 도 없음)
     - 제안: 모두 `AMES_TEST_CONN` 하나로 바꿉니다.
     - 범위 추가(10-26 확인): `AMES_TEST_CONN` 은 `AMES.Data.Tests` 뿐 아니라 `AMES.Pop.Tests/OfflineReplayDbTests.cs`·`OfflineReplayFinishedDbTests.cs`(10-23 오프라인 테스트, 기본값 `192.168.0.132`)에도 쓰입니다. 같은 방식으로 바꿉니다.
-12. **[하] POP PLAN 기준 결정**
+11. **[하] POP PLAN 기준 결정**
     - 위치: `migrate_pop_stored_procedures.sql:1713-1721`(SP_POP_INJ_GetDailyItemSummary)·`2082-2090`(SP_POP_IMG_GetDailyItemSummary)·`985-993`(SP_POP_PNT_GetDailyItemSummary)
     - 내용: PP-LSB 「발행」이 폐지돼(10-14), 「적용」만 해도 현장 PLAN 에 바로 반영됩니다. 어떤 기준으로 할지 POP 담당이 정합니다.
-13. **[하] POP IMG 코어 스캔 검사를 InjFlag 기준으로**
+12. **[하] POP IMG 코어 스캔 검사를 InjFlag 기준으로**
     - 위치: `ImgLotRepository.cs:128`(CreateFromCore → `CoreItemResolver.Read`)
     - 내용: 웹 WO 발행은 10-14 부터 PP-APS 와 같은 InjFlag 기준(`CoreItemResolver.ReadByInjFlag`)으로 코어를 정하는데, IMG 코어 스캔의 `CoreMismatch` 검사는 아직 품명 CORE 규칙입니다. 개발 DB 완제품 77개는 두 규칙의 결과가 같지만, 레일만 있는 품번처럼 둘이 갈리면 WO 의 사출 단계 품번과 IMG 검사가 다른 코어를 봅니다.
     - 제안: `ReadByInjFlag` 로 바꿉니다(POP 담당 작업 예정).
-14. **[중] [요청] 안돈 보전 호출에 CM 작업지시 발행·안돈 종료 때 함께 닫기**(10-16 사용자 결정 — 이승욱 요청)
+13. **[중] [요청] 안돈 보전 호출에 CM 작업지시 발행·안돈 종료 때 함께 닫기**(10-16 사용자 결정 — 이승욱 요청)
     - 위치: `AndonRepository.cs:223-236`(보전 호출 → `SP_POP_ANDON_CallDepts_InsMNT_FailureRegister` `migrate_pop_stored_procedures.sql:574-602` — `MNT_FailureRegister` 만 생성, `WorkOrderID` NULL) · `AndonRepository.cs:269-281`(안돈 종료 → `SP_POP_ANDON_Resolve` `migrate_pop_stored_procedures.sql:698-700` — 고장만 RESOLVED)
     - 내용: 안돈 고장에는 작업지시가 없어 MNT-007 배정·착수·점검·PDA 부품 출고를 쓸 수 없습니다(개발 DB 작업지시 없는 열린 고장 3건은 OPERATOR·PLC·QC 시연 고장이고, 안돈(ANDON) 출처 고장은 10-23 기준 0건). 웹은 10-16 부터 MNT-002 상세의 「작업지시 발행」(`MntRepository.IssueFailureWorkOrder` — CM, 출처 ANDON, SourceRefID 고장번호)으로 수동 연결합니다. 그런데 그렇게 연결한 고장이 안돈 종료로 RESOLVED 가 되면 작업지시는 열린 채 남아 MNT-007 에서 따로 완료·종료해야 합니다.
     - 요청: ① 보전 호출 때 같은 트랜잭션에서 CM 작업지시를 발행해 `WorkOrderID` 를 채웁니다(웹과 같은 규칙 — `MntRepository.IssueFailureWorkOrder` 를 그대로 쓰거나 같은 값: WoType CM·SourceType ANDON·SourceRefID 고장번호·우선순위는 심각도·상태 ISSUED, 번호는 `MWO-yyMM-nnn` 범위 잠금 채번). ② 안돈 종료 때 연결된 작업지시가 끝나지 않았으면 같이 완료합니다(결과 OK — CM 작업지시는 점검 항목이 없어 완료 차단 규칙 `MwoChecklistRules` 에 걸리지 않습니다).
-15. **[하] [요청] 금형 샷 누적 기록 — 사이클 PM 자동화의 전제**(10-16 이승욱 요청)
+14. **[하] [요청] 금형 샷 누적 기록 — 사이클 PM 자동화의 전제**(10-16 이승욱 요청)
     - 위치: InjAgent(샷은 `PR_ShotCount` 에만 기록), `MNT_MoldShotCount`(0행 — 이승욱 테이블 3)
     - 내용: 사이클(CYCLE) 주기 PM 은 지금 완료할 때 사람이 다음 예정일을 넣습니다(10-16 사용자 결정 — 샷 누적 연동 전까지, `PmRules`). 샷이 쌓이지 않아 금형 소진율·정비 한계 알림도 비어 있습니다.
     - 요청: InjAgent 가 샷을 기록할 때 `MNT_MoldShotCount` 도 올립니다. 그 뒤 이승욱이 사이클 PM 의 다음 회차를 샷 기준으로 자동 발행하도록 바꿉니다.
 
-16. **[중] [요청] POP 오프라인 범위 밖 — InjAgent·안돈·재작업·QC·WO 목록**(10-23 오프라인 작업)
-    - 내용: POP INJ/IMG/PNT 의 로그인·스캔 확정·불량·수동 라벨은 DB 가 끊겨도 로컬 사본으로 동작하고 복구 때 반영됩니다(CLAUDE.md 「POP 오프라인 동작」). 아직 안 되는 것: ① InjAgent 는 DB 가 끊기면 샷 LOT 을 만들지 못합니다(재시도 없음 — 미해결 4) ② 안돈·WO 목록 팝업·재작업·QC 화면은 오프라인 대응이 없습니다 ③ 복구 때 서버가 거부한 작업의 처리 정책은 충돌 목록 표시까지만 정했습니다(사용자 보류).
+15. **[중] [요청] POP 오프라인 범위 밖 — InjAgent·안돈·재작업·QC·WO 목록**(10-23 오프라인 작업)
+    - 내용: POP INJ/IMG/PNT 의 로그인·스캔 확정·불량·수동 라벨은 DB 가 끊겨도 로컬 사본으로 동작하고 복구 때 반영됩니다(CLAUDE.md 「POP 오프라인 동작」). 아직 안 되는 것: ① InjAgent 는 DB 가 끊기면 샷 LOT 을 만들지 못합니다(재시도 없음 — 미해결 3) ② 안돈·WO 목록 팝업·재작업·QC 화면은 오프라인 대응이 없습니다 ③ 복구 때 서버가 거부한 작업의 처리 정책은 충돌 목록 표시까지만 정했습니다(사용자 보류).
     - 제안: InjAgent 오프라인 대응부터 범위를 정합니다.
 
 
@@ -116,7 +112,7 @@
 - **POP 팔레트 적재(10-21) 의 범위 밖**: ① 재작업 스테이션의 수리 양품은 팔레트 스캔이 없어 `WH_Inventory` 에 넣지 않는다(INJ·IMG·PNT 확정만 싣는다) — 재작업에도 팔레트 스캔을 둘지. ② 현재 팔레트는 화면 메모리뿐이라 재로그인·재시작하면 다시 스캔한다 — 마지막으로 실은 팔레트를 DB(그 라인의 마지막 `PROD_CONFIRM` 거래)에서 되살릴지. ③ 팔레트 바코드는 `EOS-PLT-` 접두어로만 LOT 과 가르므로 다른 양식의 외부 팔레트는 받지 않는다. ④ LH/RH 쌍 팔레트의 `MD_Item.PalletQty` 는 "그 품번이 쌍 팔레트에 실리는 개수" 기준이다(10-21 결정 — 품번별로 센다) — 값이 있는 NEAFUC 쌍(D0111-PI010·D0121-PI010 32/32)이 "LH 32 + RH 32 = 64개" 인지 "16쌍" 인지 현장 적재 기준을 확인해 맞춰야 한다(값을 바꾸면 APS 계획 올림 단위도 같이 바뀐다).
 - **APS 금형 교체(MC) 한계**: "직전 금형"을 그 라인·그 날 처리 순서상 마지막 금형으로 보므로, 하루 안에 금형이 여러 번 바뀌면 그 사이 되돌림 MC 를 만들지 않습니다(같은 라인·같은 날 금형 그룹당 MC 최대 1개). 교체 자리가 없을 때 억지로 둔 MC 는 휴게·점유 구간과 겹칠 수 있습니다. 조정은 PP-LSB 에서 합니다.
 - **B2 IMG 라벨 교대 글자가 항상 C**(`Common/LabelPrinter.cs:27-32`): DAY/NIGHT 만 A/B 로 바꾸는데, 실제 교대 코드는 A/B/C 라 항상 C 가 찍힙니다. 교대 코드를 그대로 쓸지 답을 기다립니다.
-- **오프라인 LOT 번호 이어쓰기 한계**(10-26 변경): 번호 구간을 떼지 않고 이 PC 의 마지막 번호 다음부터 이어 받는다. 남은 한계는 ① DB 장애 중 INJ 샷은 LOT 이 생기지 않는다(16번 요청과 같이 본다) ② 라인당 POP 터미널은 한 대라는 가정이다(두 대가 같은 라인에서 출력하면 번호가 겹칠 수 있다).
+- **오프라인 LOT 번호 이어쓰기 한계**(10-26 변경): 번호 구간을 떼지 않고 이 PC 의 마지막 번호 다음부터 이어 받는다. 남은 한계는 ① DB 장애 중 INJ 샷은 LOT 이 생기지 않는다(15번 요청과 같이 본다) ② 라인당 POP 터미널은 한 대라는 가정이다(두 대가 같은 라인에서 출력하면 번호가 겹칠 수 있다).
 - **B11 InjAgent 시각을 DB 서버 기준으로**: POP 은 10-16(eb5ace39) 로그인 때 `DbClock` 을 DB 시각에 맞추도록 바뀌었습니다(호스트 시계는 유휴·로그·토스트에만 남음). InjAgent 는 아직 `DbClock.Configure` 를 하지 않아, 자동 LOT 채번(`InjLotRepository.cs:66`, `MachinePoller.cs:144` 에서 호출)의 LotNo 날짜 글자가 PC 시계 기준입니다.
 - **B3 POP 의 "오늘" 이 자정 기준**
   - 위치: `InjLotRepository.cs:120`, `migrate_pop_stored_procedures.sql:1732`(INJ 좌측)·`2101`(IMG 좌측)·`1004`(PNT 좌측 — 10-22 `SP_POP_PNT_GetDailyItemSummary`, 구 PNT 프로시저와 같은 자정 기준)·`1243·1245·1277`(QC-07)
@@ -257,7 +253,7 @@
     - 제안: 열린 WO 조건에서 헤더 Closed 를 빼거나, 헤더가 Closed 될 때 남은 단계도 닫습니다.
 35. **[중] In Progress WO 의 취소·강제 마감이 없고 끝난 WO 의 남은 슬롯이 정리되지 않음**(10-22 흐름 점검)
     - 위치: `WorkOrderRepository.cs:619-649`(취소는 Draft·Planned·Released 만, 단계 행 잠금 없음), `WorkOrder.razor:120-131`, `LineScheduleRepository.cs:352-355`(능력이 WO 상태와 무관하게 슬롯을 셈)
-    - 내용: 실적이 일부 오른 WO 를 멈출 방법이 없어 남은 슬롯이 POP PLAN·PP-003/APS 능력·기발행 수량에 계속 잡힙니다. 계획보다 일찍 Closed 된 WO 의 미래 슬롯도 남습니다. 취소가 단계 행을 잠그지 않아, POP 확정이 단계를 찾은 직후 취소가 커밋되면 실적이 취소 WO 에 붙습니다(라우팅 C 는 마지막 단계라 Cancelled → Closed). 미해결 5(재작업이 취소 WO 에 귀속)과 같은 계열.
+    - 내용: 실적이 일부 오른 WO 를 멈출 방법이 없어 남은 슬롯이 POP PLAN·PP-003/APS 능력·기발행 수량에 계속 잡힙니다. 계획보다 일찍 Closed 된 WO 의 미래 슬롯도 남습니다. 취소가 단계 행을 잠그지 않아, POP 확정이 단계를 찾은 직후 취소가 커밋되면 실적이 취소 WO 에 붙습니다(라우팅 C 는 마지막 단계라 Cancelled → Closed). 미해결 4(재작업이 취소 WO 에 귀속)과 같은 계열.
     - 제안: 「강제 마감」 전이를 두고 마감·취소 때 오늘 이후 슬롯을 정리하며 단계 행도 잠급니다.
 36. **[중] `PP_WorkOrder.MoldID` 를 어떤 계획 경로도 채우지 않는데 POP 이 이 값을 씀**(10-22 흐름 점검)
     - 위치: WO INSERT `PpRepository.cs:904-926`·`PpRepository.Aps.cs:101-104`(금형은 슬롯 `PP_LineSchedule.MoldID` 에만), 사용처 `InjMain.razor:316-327·541-542`, `InjLotRepository.cs:164-180`
@@ -284,7 +280,7 @@
     - 내용: 좌측 기본 선택이 다른 색이면 그 색으로 라벨이 나가고 코어 재고는 0 이 됩니다. 남는 길은 NG 등록 → 폐기뿐이라 멀쩡한 코어·제품이 불량·폐기로 집계됩니다.
     - 제안: 판정 전(RAW) IMG LOT 의 발행 취소(LOT VOID·코어 연결 해제·`IMG_CORE` 역거래)를 둡니다.
 42. **[하] 흐름 점검 묶음**(10-22 흐름 점검)
-    - LOT 순번이 라인·일 9999 에서 막힘(`LotNoGenerator.cs:57-58` — 2캐비티 약 17초 이하 사이클이면 도달, 에이전트는 재시도 없음 — 미해결 4 과 겹침).
+    - LOT 순번이 라인·일 9999 에서 막힘(`LotNoGenerator.cs:57-58` — 2캐비티 약 17초 이하 사이클이면 도달, 에이전트는 재시도 없음 — 미해결 3 과 겹침).
     - 불량 등록 뒤에도 `tbl_Lot.Status` 가 CONFIRMED(`migrate_pop_stored_procedures.sql:1670-1682` 은 QualityFlag 만) — QC 추적성이 CONFIRMED 로 표시.
     - `ConsumeCore` OUT 거래에 위치가 남지 않음(`PalletStockRepository.cs:101-117`).
     - 팔레트 적재가 수주처·고객 전용 팔레트(`MD_Pallet.CustomerID`)·내부용을 보지 않음 — 수주처가 다른 LOT 이 섞이면 팔레트 출고가 52018 로 거부. 정책 결정 필요.
@@ -439,7 +435,7 @@
 - 앱 개발 일정·착수 시점 미정
 
 ### 4-3. 연계
-- POP 안돈의 알림 기록 고정값(`SUPERVISOR/PDA`·`LINE-LEAD/EMAIL`)을 정리하는 일은 김현진 미해결 9 입니다(안돈 PUSH 자체는 발송기가 `PR_AndonCall` 을 보고 보냅니다).
+- POP 안돈의 알림 기록 고정값(`SUPERVISOR/PDA`·`LINE-LEAD/EMAIL`)을 정리하는 일은 김현진 미해결 8 입니다(안돈 PUSH 자체는 발송기가 `PR_AndonCall` 을 보고 보냅니다).
 - 발송기·앱 Api 는 AMES.Api 안에 있습니다(안영훈 2-1 알림).
 
 ---
