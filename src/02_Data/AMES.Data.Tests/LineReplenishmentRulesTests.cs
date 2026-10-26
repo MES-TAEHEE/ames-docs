@@ -39,7 +39,7 @@ public sealed class LineReplenishmentRulesTests
         Assert.Contains("W.PartNo<>S.PartNo", demand);
         foreach (var legacy in new[] { "LotPrefix", "I.SafetyStock", "MinStock", "UNION ALL" })
             Assert.DoesNotContain(legacy, demand);
-        Assert.Contains("Property=\"MinimumQty\" Title=\"MINIMUM (EA)\"", Read("src/06_Web/AMES.Web/Components/Pages/Wh/PickingOrders.razor"));
+        Assert.Contains("Property=\"MinimumQty\" Title=\"@L[\"WH.Picking.Col.MinimumEa\"].Value\"", Read("src/06_Web/AMES.Web/Components/Pages/Wh/PickingOrders.razor"));
     }
 
     private static string Read(string path, [System.Runtime.CompilerServices.CallerFilePath] string current = "")

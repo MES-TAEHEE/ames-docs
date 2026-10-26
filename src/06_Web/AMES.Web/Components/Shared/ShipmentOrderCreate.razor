@@ -8,42 +8,42 @@
 @inject IStringLocalizer<SharedResources> L
 
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">SO lines</div><div class="ames-kpi-v">@_rows.Count</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">Selected</div><div class="ames-kpi-v">@_quantities.Count(x=>x.Value>0)</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">Ship qty</div><div class="ames-kpi-v">@UomFmt.Qty(_quantities.Values.Sum(),null)</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">Estimated pallets</div><div class="ames-kpi-v">@EstimatedPallets.ToString("N0")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.OrderCreate.Kpi.SoLines"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.OrderCreate.Kpi.Selected"]</div><div class="ames-kpi-v">@_quantities.Count(x=>x.Value>0)</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.Ship.Col.ShipQty"]</div><div class="ames-kpi-v">@UomFmt.Qty(_quantities.Values.Sum(),null)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["FG.Ship.Lbl.EstPallets"]</div><div class="ames-kpi-v">@EstimatedPallets.ToString("N0")</div></div>
 </div>
 <section class="ames-card shipment-order-create">
 <div class="ames-card-h master-list-toolbar">
-    <span>▼ CREATE SHIPMENT ORDER · @_rows.Count @L["Lbl.Items"]</span>
+    <span>▼ @L["FG.ShipOrders.Title.Create"] · @_rows.Count @L["Lbl.Items"]</span>
     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-        <RadzenLabel Text="Requested date" Component="ShipmentRequestedFrom" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipmentRequestedFrom" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+        <RadzenLabel Text="@L["Col.Requested"]" Component="ShipmentRequestedFrom" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipmentRequestedFrom" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
         <span>–</span><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
-        <RadzenButton Text="Search" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-        <RadzenLabel Text="Ship date" Component="OrderShipDate" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="OrderShipDate" TValue="DateTime?" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+        <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+        <RadzenLabel Text="@L["Col.ShipDate"]" Component="OrderShipDate" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="OrderShipDate" TValue="DateTime?" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
     </RadzenStack>
 </div>
 @if(!string.IsNullOrEmpty(_error)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert>}
 <RadzenDataGrid TItem="PpRepository.SoRow" Data="_rows" AllowPaging="true" PageSize="25" AllowSorting="true" PageSizeOptions="_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed shipment-order-quantity-grid">
     <Columns>
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="SHIP QTY" Width="140px" Sortable="false"><Template Context="r"><RadzenNumeric TValue="decimal" Value="@_quantities.GetValueOrDefault(r.SoId)" Change="@(v=>_quantities[r.SoId]=v)" Min="0" Max="@Remaining(r)" Step="1" Format="N0" Immediate="true" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;text-align:left" /></Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="ORDER / SHIPPED / REMAINING" Width="240px" Sortable="false"><Template Context="r"><div class="order-balance"><span>@UomFmt.Qty(r.OrderQty,null)</span><span>/</span><span>@UomFmt.Qty(r.ShippedQty,null)</span><span>/</span><strong title="Available after quantities already assigned to open shipment orders">@UomFmt.Qty(Remaining(r),null)</strong></div></Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="PALLETS (QTY / PALLET)" Width="200px" Sortable="false"><Template Context="r">
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.Ship.Col.ShipQty"]" Width="140px" Sortable="false"><Template Context="r"><RadzenNumeric TValue="decimal" Value="@_quantities.GetValueOrDefault(r.SoId)" Change="@(v=>_quantities[r.SoId]=v)" Min="0" Max="@Remaining(r)" Step="1" Format="N0" Immediate="true" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;text-align:left" /></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Balance"]" Width="240px" Sortable="false"><Template Context="r"><div class="order-balance"><span>@UomFmt.Qty(r.OrderQty,null)</span><span>/</span><span>@UomFmt.Qty(r.ShippedQty,null)</span><span>/</span><strong title="@L["FG.OrderCreate.Hint.Remaining"]">@UomFmt.Qty(Remaining(r),null)</strong></div></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Pallets"]" Width="200px" Sortable="false"><Template Context="r">
             @if(_packing.TryGetValue(r.ItemNo,out var item) && !item.ToteFlag && item.PalletQty is > 0)
             {
-                <span class="order-pallet-count">@FinishedGoodsRepository.EstimateShippingPallets(_quantities.GetValueOrDefault(r.SoId),item.PalletQty)!.Value.ToString("N0") PLT</span><span class="dim"> (@item.PalletQty.Value.ToString("N0") / pallet)</span>
+                <span class="order-pallet-count">@FinishedGoodsRepository.EstimateShippingPallets(_quantities.GetValueOrDefault(r.SoId),item.PalletQty)!.Value.ToString("N0") PLT</span><span class="dim"> (@(L["FG.OrderCreate.Lbl.PerPalletFmt", item.PalletQty.Value.ToString("N0")]))</span>
             }
-            else {<span class="dim">@(item?.ToteFlag==true ? "TOTE · manual estimate" : "Pallet qty not set")</span>}
+            else {<span class="dim">@(item?.ToteFlag==true ? L["FG.Ship.Lbl.ToteManual"] : L["FG.Ship.Lbl.NoPalletQty"])</span>}
         </Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoNumber" Title="SO" Width="130px" />
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="CustomerId" Title="CUSTOMER" Width="110px" />
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="PART"><Template Context="r">@r.ItemNo <span class="dim">@r.ItemName</span></Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="REQUESTED" FormatString="@DateFmt.Fmt(DateFmt.Date)" Width="120px" />
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="CustomerId" Title="@L["Col.Customer"]" Width="110px" />
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.ItemNo"]"><Template Context="r">@r.ItemNo <span class="dim">@r.ItemName</span></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" Width="120px" />
     </Columns>
 </RadzenDataGrid>
 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="ames-modal-footer">
-    @if(UnestimatedParts>0){<span class="dim">@UnestimatedParts without a pallet estimate</span>}
-    <RadzenButton Text="Create Shipment Order" Icon="save" Click="Create" Disabled="@(_busy || !_quantities.Any(x=>x.Value>0))" Size="ButtonSize.Small" class="ames-rz-btn" />
+    @if(UnestimatedParts>0){<span class="dim">@L["FG.OrderCreate.Hint.UnestimatedFmt",UnestimatedParts]</span>}
+    <RadzenButton Text="@L["FG.ShipOrders.Title.Create"]" Icon="save" Click="Create" Disabled="@(_busy || !_quantities.Any(x=>x.Value>0))" Size="ButtonSize.Small" class="ames-rz-btn" />
     <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" Click="@(()=>Closed.InvokeAsync())" Disabled="_busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
 </RadzenStack>
 </section>
@@ -65,7 +65,7 @@
     protected override Task OnInitializedAsync()=>Load();
     async Task Load()
     {
-        if(_from is null||_to is null||_from>_to){_error="Select a valid date range.";return;}
+        if(_from is null||_to is null||_from>_to){_error=L["FG.Ship.Err.DateRange"].Value;return;}
         try
         {
             var reserved=await Task.Run(()=>Fg.ListShippingOrders(onlyOpen:true));
@@ -80,8 +80,8 @@
     async Task Create()
     {
         await PermSvc.EnsureAsync(AuthPrvd);if(!PermSvc.CanEdit("fg/shipping-orders")||_busy)return;
-        if(_shipDate is null){_error="Select a ship date.";return;}
-        if(_rows.Any(r=>_quantities.GetValueOrDefault(r.SoId)>Remaining(r) || _quantities.GetValueOrDefault(r.SoId)<0 || _quantities.GetValueOrDefault(r.SoId)!=decimal.Truncate(_quantities.GetValueOrDefault(r.SoId)))){_error="Enter whole shipment quantities within the remaining SO balance.";return;}
+        if(_shipDate is null){_error=L["FG.OrderCreate.Err.ShipDate"].Value;return;}
+        if(_rows.Any(r=>_quantities.GetValueOrDefault(r.SoId)>Remaining(r) || _quantities.GetValueOrDefault(r.SoId)<0 || _quantities.GetValueOrDefault(r.SoId)!=decimal.Truncate(_quantities.GetValueOrDefault(r.SoId)))){_error=L["FG.OrderCreate.Err.Qty"].Value;return;}
         _busy=true;_error="";await BusyChanged.InvokeAsync(true);
         try
         {

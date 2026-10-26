@@ -10,57 +10,57 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>WH-002 Picking Orders · AMES</PageTitle>
-<AmesPageHeader Code="WH-002" Title="Picking Orders" />
+<PageTitle>WH-002 @L["WH.Picking.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="WH-002" TitleKey="WH.Picking.Title" />
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">Picking orders</div><div class="ames-kpi-v">@_orders.Count</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">Line locations</div><div class="ames-kpi-v">@_stock.Select(x=>x.LineCode).Distinct().Count()</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">Below minimum</div><div class="ames-kpi-v">@_stock.Count(x=>x.RequiredQty>0)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Picking.Title"]</div><div class="ames-kpi-v">@_orders.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Picking.Kpi.LineLocations"]</div><div class="ames-kpi-v">@_stock.Select(x=>x.LineCode).Distinct().Count()</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["WH.Picking.Kpi.BelowMin"]</div><div class="ames-kpi-v">@_stock.Count(x=>x.RequiredQty>0)</div></div>
 </div>
 @if (_error.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert> }
 <AmesTabs>
-    <AmesTab Title="Picking Orders">
+    <AmesTab Title="@L["WH.Picking.Title"].Value">
     <section class="ames-card wh-pick-list">
         <div class="ames-card-h master-list-toolbar">
-            <span>PICKING ORDERS</span>
+            <span>@L["WH.Picking.Title"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-                <RadzenTextBox @bind-Value="_search" Placeholder="Search" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
-                <RadzenButton Text="Search" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.Picking.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
+                <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
         <RadzenDataGrid TItem="PickingSlipHeaderRow" Data="_orders" RowSelect="SelectOrder"
             AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_orderPageRows=s)" Style="@($"--ames-page-rows:{_orderPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
             <Columns>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="PICKING ORDER" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqLocation" Title="LINE" Width="100px" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqDate" Title="DATE" Width="115px" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="LineCount" Title="MATERIALS" Width="100px" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqBoxQty" Title="REQUEST QTY" Width="130px">
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="@L["WH.Picking.Col.OrderNo"].Value" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqLocation" Title="@L["Col.Line"].Value" Width="100px" MinWidth="100px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqDate" Title="@L["Col.Date"].Value" Width="115px" MinWidth="115px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="LineCount" Title="@L["WH.Picking.Col.Materials"].Value" Width="110px" MinWidth="110px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqBoxQty" Title="@L["WH.Picking.Col.ReqQty"].Value" Width="150px" MinWidth="150px">
                     <Template Context="row">@UomFmt.QtyUnit(row.ReqBoxQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickedQty" Title="PICKED QTY" Width="125px">
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickedQty" Title="@L["WH.Picking.Col.PickedQty"].Value" Width="140px" MinWidth="140px">
                     <Template Context="row">@UomFmt.QtyUnit(row.PickedQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="Status" Title="STATUS" Width="100px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="Status" Title="@L["Col.Status"].Value" Width="100px" MinWidth="100px" />
             </Columns>
         </RadzenDataGrid>
     </section>
     </AmesTab>
-    <AmesTab Title="Line Stock">
+    <AmesTab Title="@L["WH.Picking.Tab.LineStock"].Value">
         <section class="ames-card wh-pick-list">
             <div class="ames-card-h master-list-toolbar">
-                <span>LINE STOCK · SAFETY STOCK</span>
-                <RadzenButton Text="Refresh" Icon="refresh" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <span>@L["WH.Picking.Lbl.LineStockSafety"]</span>
+                <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </div>
             <RadzenDataGrid TItem="LineStockRow" Data="_stock" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_stockPageRows=s)" Style="@($"--ames-page-rows:{_stockPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
                 <Columns>
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="LineCode" Title="LINE" Width="80px" />
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="PartNo" Title="PART NO" Width="170px" />
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="PartName" Title="PART NAME" />
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="Qty" Title="LINE QTY (EA)" Width="125px"><Template Context="r">@UomFmt.Qty(r.Qty, "EA")</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="MinimumQty" Title="MINIMUM (EA)" Width="120px"><Template Context="r">@UomFmt.Qty(r.MinimumQty, "EA")</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="RequiredQty" Title="REQUIRED (EA)" Width="130px"><Template Context="r">@UomFmt.Qty(r.RequiredQty, "EA")</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="State" Title="STATUS" Width="210px" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="LineCode" Title="@L["Col.Line"].Value" Width="80px" MinWidth="80px" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="PartNo" Title="@L["Col.ItemNo"].Value" Width="170px" MinWidth="170px" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="PartName" Title="@L["Col.ItemName"].Value" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="Qty" Title="@L["WH.Picking.Col.LineQtyEa"].Value" Width="125px" MinWidth="125px"><Template Context="r">@UomFmt.Qty(r.Qty, "EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="MinimumQty" Title="@L["WH.Picking.Col.MinimumEa"].Value" Width="120px" MinWidth="120px"><Template Context="r">@UomFmt.Qty(r.MinimumQty, "EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="RequiredQty" Title="@L["WH.Picking.Col.RequiredEa"].Value" Width="130px" MinWidth="130px"><Template Context="r">@UomFmt.Qty(r.RequiredQty, "EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="State" Title="@L["Col.Status"].Value" Width="210px" MinWidth="210px" />
                 </Columns>
             </RadzenDataGrid>
         </section>
@@ -72,35 +72,35 @@
     <div class="ames-modal-bg" @onclick="@(()=>_selected=null)"><div class="ames-modal ames-modal-fullwide" @onclick:stopPropagation>
     <section class="ames-card slip-detail-card">
         <div class="ames-modal-h master-list-toolbar">
-            <span>@_selected.PickSlipNo · LINE @_selected.ReqLocation</span>
+            <span>@_selected.PickSlipNo · @L["Col.Line"] @_selected.ReqLocation</span>
         </div>
         <RadzenDataGrid TItem="PickingSlipLineRow" Data="_details" AllowPaging="false" class="ames-rz-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="SeqNo" Title="NO" Width="60px" />
-                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PartNo" Title="PART NO" Width="190px" />
-                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PartName" Title="PART NAME" />
-                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="ReqBoxQty" Title="REQUEST QTY" Width="130px">
+                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="SeqNo" Title="@L["Col.No"].Value" Width="60px" MinWidth="60px" />
+                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PartNo" Title="@L["Col.ItemNo"].Value" Width="190px" MinWidth="190px" />
+                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PartName" Title="@L["Col.ItemName"].Value" />
+                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="ReqBoxQty" Title="@L["WH.Picking.Col.ReqQty"].Value" Width="130px" MinWidth="130px">
                     <Template Context="row">@UomFmt.QtyUnit(row.ReqBoxQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PickedBoxQty" Title="PICKED QTY" Width="125px">
+                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PickedBoxQty" Title="@L["WH.Picking.Col.PickedQty"].Value" Width="125px" MinWidth="125px">
                     <Template Context="row">@UomFmt.QtyUnit(row.PickedBoxQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipLineRow" Title="PICK FROM" Width="240px">
+                <RadzenDataGridColumn TItem="PickingSlipLineRow" Title="@L["WH.Picking.Col.PickFrom"].Value" Width="240px" MinWidth="240px">
                     <Template Context="row"><span class="pick-source">@SourceText(row)</span></Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="LineCode" Title="DESTINATION" Width="130px" />
+                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="LineCode" Title="@L["Col.Destination"].Value" Width="130px" MinWidth="130px" />
             </Columns>
         </RadzenDataGrid>
     </section>
-    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="Print Barcode" Icon="print" Click="Print" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="Close" Icon="close" Click="@(()=>_selected=null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["WH.Picking.Btn.PrintBarcode"].Value" Icon="print" Click="Print" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Close"].Value" Icon="close" Click="@(()=>_selected=null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
     </div></div>
     <div class="wh-slip-print-area">
         <div class="wh-slip-paper">
-            <div class="wh-slip-title">WAREHOUSE PICKING ORDER</div>
+            <div class="wh-slip-title">@L["WH.Picking.Slip.WarehouseTitle"]</div>
             <div class="wh-slip-head">
                 <div class="wh-slip-meta">
-                    <div>REQUEST DATE: @_selected.ReqDate</div>
-                    <div>DESTINATION LINE: @_selected.ReqLocation</div>
+                    <div>@L["WH.Picking.Lbl.RequestDate"]: @_selected.ReqDate</div>
+                    <div>@L["WH.Picking.Slip.DestLine"]: @_selected.ReqLocation</div>
                 </div>
                 <div class="wh-slip-barcode-box">
                     <Code128Barcode Value="@_selected.PickSlipNo" Height="60" CssClass="wh-slip-barcode" />
@@ -117,7 +117,7 @@
                     <col class="slip-col-location" />
                     <col class="slip-col-destination" />
                 </colgroup>
-                <thead><tr><th>NO</th><th>PART NO</th><th>PART NAME</th><th>QTY</th><th>LOT NO</th><th>PICK LOCATION</th><th>DESTINATION</th></tr></thead>
+                <thead><tr><th>@L["Col.No"]</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ItemName"]</th><th>@L["Col.Qty"]</th><th>@L["Col.LotNo"]</th><th>@L["WH.Picking.Slip.PickLocation"]</th><th>@L["Col.Destination"]</th></tr></thead>
                 <tbody>@foreach (var row in _printRows)
                 {
                     <tr><td>@row.No</td><td>@row.PartNo</td><td>@row.PartName</td><td class="num">@row.Qty.ToString("N0") EA</td><td>@row.LotNo</td><td>@row.Location</td><td>@row.Destination</td></tr>
@@ -154,7 +154,7 @@
         _sources = [];
         _printRows = [];
         try { _stock = WH.ListLineStock(); _orders = WH.ListPickingSlipHeaders(_search); }
-        catch { _stock = []; _orders = []; _error = "Unable to load line stock or picking orders. Check the database connection."; }
+        catch { _stock = []; _orders = []; _error = L["WH.Picking.Err.Load"].Value; }
     }
     void SelectOrder(PickingSlipHeaderRow row)
     {
@@ -167,7 +167,7 @@
             _printRows = BuildPrintRows();
             _selected = row;
         }
-        catch { _details = []; _sources = []; _error = "Unable to load picking order details."; }
+        catch { _details = []; _sources = []; _error = L["WH.Picking.Err.LoadDetail"].Value; }
     }
     List<PrintRow> BuildPrintRows()
     {
@@ -176,23 +176,23 @@
         {
             var lots = _sources.Where(x => string.Equals(x.PartNo, detail.PartNo, StringComparison.OrdinalIgnoreCase)).ToList();
             if (lots.Count == 0)
-                result.Add(new(result.Count + 1, detail.PartNo, detail.PartName, 0, "-", "Stock shortage", detail.LineCode));
+                result.Add(new(result.Count + 1, detail.PartNo, detail.PartName, 0, "-", L["WH.Picking.Msg.StockShortage"].Value, detail.LineCode));
             else
                 foreach (var lot in lots)
                     result.Add(new(result.Count + 1, detail.PartNo, detail.PartName,
-                        lot.Qty, lot.LotNo, lot.LocationNo ?? "Location not assigned", detail.LineCode));
+                        lot.Qty, lot.LotNo, lot.LocationNo ?? L["WH.Picking.Msg.NoLocation"].Value, detail.LineCode));
         }
         return result;
     }
     string SourceText(PickingSlipLineRow row)
     {
         var remaining = Math.Max(0, row.ReqBoxQty - row.PickedBoxQty);
-        if (remaining == 0) return "Picked";
+        if (remaining == 0) return L["WH.Picking.Msg.Picked"].Value;
         var boxes = _sources.Where(x => string.Equals(x.PartNo, row.PartNo, StringComparison.OrdinalIgnoreCase)).ToList();
-        var locations = boxes.GroupBy(x => string.IsNullOrWhiteSpace(x.LocationNo) ? "Location not assigned" : x.LocationNo.Trim(), StringComparer.OrdinalIgnoreCase)
+        var locations = boxes.GroupBy(x => string.IsNullOrWhiteSpace(x.LocationNo) ? L["WH.Picking.Msg.NoLocation"].Value : x.LocationNo.Trim(), StringComparer.OrdinalIgnoreCase)
             .Select(g => row.QuantityUnit == "EA" ? $"{g.Key} · {UomFmt.QtyUnit(g.Sum(x => x.Qty), "EA")}" : $"{g.Key} · {g.Count():N0} {UomFmt.Sym("BOX")}").ToList();
         var available = row.QuantityUnit == "EA" ? boxes.Sum(x => x.Qty) : boxes.Count;
-        if (available < remaining) locations.Add($"Stock shortage · {UomFmt.QtyUnit(remaining - available, row.QuantityUnit)}");
+        if (available < remaining) locations.Add($"{L["WH.Picking.Msg.StockShortage"]} · {UomFmt.QtyUnit(remaining - available, row.QuantityUnit)}");
         return string.Join("\n", locations);
     }
     async Task Print()

@@ -21,9 +21,9 @@
                 <RadzenLabel Text="@L["Col.Warehouse"].Value" Component="InventoryWarehouse" />
                 <RadzenDropDown Name="InventoryWarehouse" Value="@_warehouse" Change="ChangeWarehouse" Data="@WarehouseOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllWarehouses"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:180px;" />
                 <RadzenLabel Text="@L["Col.Area"].Value" Component="InventoryArea" />
-                <RadzenDropDown Name="InventoryArea" Value="@_area" Change="ChangeArea" Data="@AreaOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllAreas"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
+                <RadzenDropDown Name="InventoryArea" Value="@_area" Change="ChangeArea" Data="@AreaOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["WH.Inventory.Ph.AllAreas"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" />
                 <RadzenLabel Text="@L["Col.Vendor"]" Component="InventoryVendor" />
-                <RadzenDropDown Name="InventoryVendor" @bind-Value="_vendor" Data="@VendorOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:210px;" />
+                <RadzenDropDown Name="InventoryVendor" @bind-Value="_vendor" Data="@VendorOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:330px;" />
                 <RadzenLabel Text="@L["Col.Type"]" Component="InventoryType" />
                 <RadzenDropDown Name="InventoryType" Value="_itemType" Change="ChangeItemType" Data="@TypeOptions" TextProperty="Name" ValueProperty="Code" AllowClear="true" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
                 <RadzenLabel Text="@L["Col.Category"]" Component="InventoryCategory" />
@@ -48,7 +48,7 @@
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="100px" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="100px"><Template Context="r"><span class="code dim">@UomFmt.Sym(r.Unit)</span></Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="Qty" Title="@L["WH.Inventory.AvailableQty"].Value" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.Qty, r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"].Value" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.DefectQty, r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" Property="InspectionQty" Title="Inspection Qty" TextAlign="TextAlign.Right" Width="130px"><Template Context="r">@UomFmt.Qty(r.InspectionQty, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" Property="InspectionQty" Title="@L["WH.Inventory.Col.InspectionQty"].Value" TextAlign="TextAlign.Right" Width="130px" MinWidth="130px"><Template Context="r">@UomFmt.Qty(r.InspectionQty, r.Unit)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="LocationCount" Title="@L["Col.Locations"].Value" TextAlign="TextAlign.Right" Width="130px" />
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="90px" Property="LotCount" Title="@L["Col.Lots"].Value" TextAlign="TextAlign.Right" Width="90px" />
             </Columns>
@@ -59,14 +59,14 @@
     @if (_drawerOpen && SelectedSummary is not null)
     {
         <div class="inventory-detail-backdrop" @onclick="CloseDetail">
-            <aside class="inventory-detail-drawer" role="dialog" aria-modal="true" aria-label="Inventory detail" @onclick:stopPropagation="true">
+            <aside class="inventory-detail-drawer" role="dialog" aria-modal="true" aria-label="@L["WH.Inventory.Detail"]" @onclick:stopPropagation="true">
                 <header class="inventory-drawer-header">
                     <div>
                         <span>@L["WH.Inventory.Detail"]</span>
                         <strong>@SelectedSummary.PartNo</strong>
                         <small>@SelectedSummary.PartName</small>
                     </div>
-                    <RadzenButton Icon="close" Click="CloseDetail" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" aria-label="Close inventory detail" />
+                    <RadzenButton Icon="close" Click="CloseDetail" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" aria-label="@L["Btn.Close"]" />
                 </header>
 
                 <div class="inventory-drawer-summary inventory-detail-summary">
@@ -82,10 +82,10 @@
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="LotNo" Title="@L["Col.LotNo"]"><Template Context="row">@Text(row.LotNo)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["WH.Inventory.AvailableQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.Qty,row.Unit)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.DefectQty,row.Unit)</Template></RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="LocationMapStock" Property="InspectionQty" Title="Inspection Qty" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.InspectionQty,row.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="InspectionQty" Title="@L["WH.Inventory.Col.InspectionQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.InspectionQty,row.Unit)</Template></RadzenDataGridColumn>
                             @if(AllowLotDefect)
                             {
-                                <RadzenDataGridColumn TItem="LocationMapStock" Width="88px" Sortable="false" TextAlign="TextAlign.Center">
+                                <RadzenDataGridColumn TItem="LocationMapStock" Width="88px" MinWidth="88px" Sortable="false" TextAlign="TextAlign.Center">
                                 <HeaderTemplate><RadzenIcon Icon="report_problem" title="@L["WH.Inventory.DefectAction"]" aria-label="@L["WH.Inventory.DefectAction"]" /></HeaderTemplate>
                                 <Template Context="row">
                                     @if(row.DefectQty > 0)
@@ -271,7 +271,7 @@
         if (await Dialog.Confirm(L["WH.Inventory.ExportConfirm", rows.Count], L["WH.Inventory.Export"],
             new ConfirmOptions { OkButtonText = L["Btn.Confirm"], CancelButtonText = L["Btn.Cancel"] }) != true) return;
         var headers = new[] { L["Col.VendorId"].Value, L["Col.VendorName"].Value, L["Col.ItemNo"].Value, L["Col.ItemName"].Value,
-            L["Col.Type"].Value, L["Col.Category"].Value, L["Col.Unit"].Value, L["WH.Inventory.AvailableQty"].Value, L["WH.Inventory.DefectQty"].Value, "Inspection Qty" };
+            L["Col.Type"].Value, L["Col.Category"].Value, L["Col.Unit"].Value, L["WH.Inventory.AvailableQty"].Value, L["WH.Inventory.DefectQty"].Value, L["WH.Inventory.Col.InspectionQty"].Value };
         var data = rows.Select(row => (IReadOnlyList<object?>)new object?[] { row.VendorIds, row.VendorNames, row.PartNo, row.PartName,
             CodeName("ITEM_TYPE", row.ItemType), CodeName("ITEM_CATEGORY", row.ItemCategory), UomFmt.Sym(row.Unit), row.Qty, row.DefectQty, row.InspectionQty });
         var bytes = XlsxWriter.Build(L["WH.Inventory.Title"], headers, data, 24);

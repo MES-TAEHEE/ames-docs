@@ -2,17 +2,18 @@
 @inject AmesConnectionFactory Factory
 @inject DialogService Dialog
 @inject UomFormat UomFmt
+@inject IStringLocalizer<SharedResources> L
 
-<header class="pda-test-topbar"><RadzenButton Icon="arrow_back" Click="@(()=>OnBack.InvokeAsync())" Disabled="_busy" aria-label="Back to Warehouse menu" title="Back" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /><strong>INBOUND</strong></header>
+<header class="pda-test-topbar"><RadzenButton Icon="arrow_back" Click="@(()=>OnBack.InvokeAsync())" Disabled="_busy" aria-label="@L["WH.PdaTest.Lbl.BackToMenu"]" title="@L["Btn.Back"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /><strong>@L["WH.PdaTest.Lbl.Inbound"]</strong></header>
 <div class="pda-test-body">
     <div class="pda-test-modes">
         <RadzenButton Text="LOCAL" class='@(_mode=="LOCAL"?"on":"")' Click='@(()=>SetMode("LOCAL"))' Disabled="_busy" />
         <RadzenButton Text="CKD" class='@(_mode=="CKD"?"on":"")' Click='@(()=>SetMode("CKD"))' Disabled="_busy" />
     </div>
     <RadzenCard class="pda-test-panel pda-test-scan">
-        <RadzenLabel Text="SCAN BARCODE" Component="WebInboundBarcode" />
-        <RadzenTextBox Name="WebInboundBarcode" @bind-Value="_barcode" Immediate="true" @onkeydown="Key" Placeholder="Scan Delivery Note, Case, Box or LOT barcode" MaxLength="50" Disabled="_busy" />
-        <RadzenButton Icon="qr_code_scanner" Text="Scan" Click="Scan" Disabled="_busy" Size="ButtonSize.Small" />
+        <RadzenLabel Text="@L["WH.PdaTest.Lbl.ScanBarcode"].Value" Component="WebInboundBarcode" />
+        <RadzenTextBox Name="WebInboundBarcode" @bind-Value="_barcode" Immediate="true" @onkeydown="Key" Placeholder="@L["WH.PdaTest.Ph.InboundBarcode"].Value" MaxLength="50" Disabled="_busy" />
+        <RadzenButton Icon="qr_code_scanner" Text="@L["WH.PdaTest.Btn.Scan"].Value" Click="Scan" Disabled="_busy" Size="ButtonSize.Small" />
     </RadzenCard>
     @if(_scan is {} scan)
     {
@@ -20,28 +21,28 @@
         {
             var row=scan.Rows.Single();
             <RadzenCard class="pda-test-panel pda-test-lot">
-                <div class="pda-test-card-head"><div><small>BOX BARCODE</small><strong>@row.Barcode</strong></div><span class='@(row.Received?"pda-test-badge":"pda-test-badge ready")'>@(row.Received?"RECEIVED":"READY")</span></div>
+                <div class="pda-test-card-head"><div><small>@L["WH.PdaTest.Lbl.BoxBarcode"]</small><strong>@row.Barcode</strong></div><span class='@(row.Received?"pda-test-badge":"pda-test-badge ready")'>@(row.Received?L["WH.PdaTest.Lbl.Received"]:L["WH.PdaTest.Lbl.Ready"])</span></div>
                 <div class="pda-test-part"><strong>@row.PartNo</strong><span>@row.PartName</span></div>
                 <div class="pda-test-facts">
-                    <div><small>PO NO</small><strong>@Field("PONO")</strong></div><div><small>PO SEQ</small><strong>@Field("PONO_SEQ")</strong></div>
-                    <div><small>QTY</small><strong>@UomFmt.QtyUnit(row.Qty,row.Unit)</strong></div><div><small>VENDOR</small><strong>@Field("VENDNM")</strong></div>
-                    @if(row.Received){<div><small>CURRENT LOC</small><strong>@Field("RECEIVED_LOCATION")</strong></div>}
+                    <div><small>@L["WH.PdaTest.Lbl.PoNo"]</small><strong>@Field("PONO")</strong></div><div><small>@L["WH.PdaTest.Lbl.PoSeq"]</small><strong>@Field("PONO_SEQ")</strong></div>
+                    <div><small>@L["Col.Qty"]</small><strong>@UomFmt.QtyUnit(row.Qty,row.Unit)</strong></div><div><small>@L["Col.Vendor"]</small><strong>@Field("VENDNM")</strong></div>
+                    @if(row.Received){<div><small>@L["WH.PdaTest.Lbl.CurrentLoc"]</small><strong>@Field("RECEIVED_LOCATION")</strong></div>}
                 </div>
-                <div class="pda-test-section-title">@_mode DETAIL</div>
-                <div class="pda-test-facts">@foreach(var field in _mode=="CKD"?CkdFields:LocalFields){<div><small>@field.Label</small><strong>@Field(field.Key)</strong></div>}</div>
+                <div class="pda-test-section-title">@_mode @L["Col.Detail"]</div>
+                <div class="pda-test-facts">@foreach(var field in _mode=="CKD"?CkdFields:LocalFields){<div><small>@L[field.Label]</small><strong>@Field(field.Key)</strong></div>}</div>
             </RadzenCard>
         }
         else
         {
             <RadzenCard class="pda-test-panel">
-                <div class="pda-test-card-head"><div><small>@(scan.Kind=="PALLET"?"CASE / PALLET":"DELIVERY NOTE · VIEW ONLY")</small><strong>@scan.Barcode</strong></div><span class="pda-test-badge">@scan.Rows.Count(ReadyRow) / @scan.Rows.Count</span></div>
+                <div class="pda-test-card-head"><div><small>@(scan.Kind=="PALLET"?L["WH.PdaTest.Lbl.CasePallet"]:L["WH.PdaTest.Lbl.DeliveryNoteViewOnly"])</small><strong>@scan.Barcode</strong></div><span class="pda-test-badge">@scan.Rows.Count(ReadyRow) / @scan.Rows.Count</span></div>
                 @foreach(var part in scan.Rows.GroupBy(r=>r.PartNo))
                 {
                     <div class="pda-test-part"><strong>@part.Key</strong><span>@part.First().PartName</span></div>
                     @foreach(var row in part)
                     {
                         <div class='@($"pda-test-box {(ReadyRow(row)?"selected":"")}")'>
-                            <div><strong>@row.Barcode</strong><small>@(row.Received?"RECEIVED":_scanned.Contains(row.Barcode)?"SCANNED":scan.Kind=="DELIVERY_NOTE"?"NOT RECEIVED":row.ScanRequired?"SCAN REQUIRED":"BULK RECEIVE")</small></div>
+                            <div><strong>@row.Barcode</strong><small>@(row.Received?L["WH.PdaTest.Lbl.Received"]:_scanned.Contains(row.Barcode)?L["WH.PdaTest.Lbl.Scanned"]:scan.Kind=="DELIVERY_NOTE"?L["WH.PdaTest.Lbl.NotReceived"]:row.ScanRequired?L["WH.PdaTest.Lbl.ScanRequired"]:L["WH.PdaTest.Lbl.BulkReceive"])</small></div>
                             <strong>@UomFmt.QtyUnit(row.Qty,row.Unit)</strong>
                         </div>
                     }
@@ -52,11 +53,11 @@
     @if(_message.Length>0){<div class="pda-test-status">@_message</div>}
 </div>
 <footer class="pda-test-actions">
-    <RadzenButton Text="CLEAR" Click="Clear" Disabled="_busy" ButtonStyle="ButtonStyle.Base" />
+    <RadzenButton Text="@L["Btn.Reset"].Value" Click="Clear" Disabled="_busy" ButtonStyle="ButtonStyle.Base" />
     @if(_scan is {Kind:"LOT"} s && s.Rows.All(r=>r.Received))
-    {<RadzenButton Text="CANCEL INCOMING" Click="CancelIncoming" Disabled="@(_busy||!CanWrite)" ButtonStyle="ButtonStyle.Danger" />}
+    {<RadzenButton Text="@L["WH.PdaTest.Btn.CancelIncoming"].Value" Click="CancelIncoming" Disabled="@(_busy||!CanWrite)" ButtonStyle="ButtonStyle.Danger" />}
     else if(_scan?.Kind!="DELIVERY_NOTE")
-    {<RadzenButton Text="RECEIVE" Click="Receive" Disabled="@(_busy||!CanWrite||!Ready)" />}
+    {<RadzenButton Text="@L["WH.PdaTest.Btn.Receive"].Value" Click="Receive" Disabled="@(_busy||!CanWrite||!Ready)" />}
 </footer>
 
 @code {
@@ -69,8 +70,8 @@
     WarehouseInboundTestRepository.ScanResult? _scan;
     readonly HashSet<string> _scanned=new(StringComparer.OrdinalIgnoreCase);
     WarehouseInboundTestRepository Repo=>new(Factory);
-    static readonly (string Label,string Key)[] LocalFields=[("DELIVERY NOTE","NOTENO"),("PROD DATE","PROD_DATE"),("DELIVERY DATE","DELI_DATE"),("ARRIVAL DATE","ARRIV_DATE")];
-    static readonly (string Label,string Key)[] CkdFields=[("CASE BARCODE","CASE_BARCODE"),("CASE NO","CASE_NO"),("INVOICE","INVOICE_NO"),("CONTAINER","CONTAINER_NO"),("SHIP DATE","SHIP_DATE"),("PACK DATE","PACK_DATE")];
+    static readonly (string Label,string Key)[] LocalFields=[("WH.PdaTest.Lbl.DeliveryNote","NOTENO"),("WH.PdaTest.Lbl.ProdDate","PROD_DATE"),("WH.PdaTest.Lbl.DeliveryDate","DELI_DATE"),("WH.PdaTest.Lbl.ArrivalDate","ARRIV_DATE")];
+    static readonly (string Label,string Key)[] CkdFields=[("WH.PdaTest.Lbl.CaseBarcode","CASE_BARCODE"),("WH.PdaTest.Lbl.CaseNo","CASE_NO"),("WH.PdaTest.Lbl.Invoice","INVOICE_NO"),("WH.PdaTest.Lbl.Container","CONTAINER_NO"),("Col.ShipDate","SHIP_DATE"),("WH.PdaTest.Lbl.PackDate","PACK_DATE")];
     string Field(string key)=>_scan?.Fields?.GetValueOrDefault(key)??"-";
     bool ReadyRow(WarehouseInboundTestRepository.Row row)=>row.Received||_scan?.Kind=="PALLET"&&(!row.ScanRequired||_scanned.Contains(row.Barcode));
     bool Ready=>_scan is {} s&&s.Kind!="DELIVERY_NOTE"&&s.Rows.Any(r=>!r.Received)&&(s.Kind=="LOT"||s.Rows.All(ReadyRow));
@@ -85,16 +86,16 @@
         {
             if(_scan is {Kind:"PALLET"} pallet)
             {
-                if(!await Task.Run(()=>Repo.CanRead(UserId)))throw new UnauthorizedAccessException("WH PDA Test read permission is required.");
+                if(!await Task.Run(()=>Repo.CanRead(UserId)))throw new UnauthorizedAccessException(L["WH.PdaTest.Err.NoReadPermission"].Value);
                 var box=pallet.Rows.FirstOrDefault(r=>string.Equals(r.Barcode,_barcode.Trim(),StringComparison.OrdinalIgnoreCase))
-                    ??throw new InvalidOperationException("This box is not in the selected case. Clear to scan another document.");
-                if(box.Received)throw new InvalidOperationException("This box is already received.");
-                if(!_scanned.Add(box.Barcode))throw new InvalidOperationException("This box was already scanned.");
+                    ??throw new InvalidOperationException(L["WH.PdaTest.Err.BoxNotInCase"].Value);
+                if(box.Received)throw new InvalidOperationException(L["WH.PdaTest.Err.BoxReceived"].Value);
+                if(!_scanned.Add(box.Barcode))throw new InvalidOperationException(L["WH.PdaTest.Err.BoxScanned"].Value);
             }
             else{var code=_barcode.Trim();_scan=await Task.Run(()=>Repo.Scan(UserId,_mode,code));_scanned.Clear();}
-            _barcode="";_message=_scan?.Kind=="DELIVERY_NOTE"?"Delivery Note is for status only. Scan a case, box or LOT to receive it.":Ready?"Ready to receive.":"Scan required boxes first.";
+            _barcode="";_message=_scan?.Kind=="DELIVERY_NOTE"?L["WH.PdaTest.Msg.DeliveryNoteViewOnly"].Value:Ready?L["WH.PdaTest.Msg.ReadyToReceive"].Value:L["WH.PdaTest.Msg.ScanRequiredFirst"].Value;
         }
-        catch(Exception ex){await Dialog.Alert(ex.Message,"Inbound Scan Failed");}
+        catch(Exception ex){await Dialog.Alert(ex.Message,L["WH.PdaTest.Title.InboundScanFailed"].Value);}
         finally{_busy=false;}
     }
     async Task Receive()
@@ -102,11 +103,11 @@
         if(_busy||!CanWrite||!Ready||_scan is not {} scan)return;_busy=true;
         try
         {
-            if(await Dialog.Confirm($"Receive {scan.Barcode} into real warehouse inventory?","Confirm Receipt")!=true)return;
+            if(await Dialog.Confirm(L["WH.PdaTest.Msg.ConfirmReceive",scan.Barcode].Value,L["WH.PdaTest.Title.ConfirmReceipt"].Value)!=true)return;
             var scanned=_scanned.ToArray();await Task.Run(()=>Repo.Receive(UserId,Actor,_mode,scan,scanned));
-            Reset();await Dialog.Alert("Incoming completed.","Received");
+            Reset();await Dialog.Alert(L["WH.PdaTest.Ok.Received"].Value,L["WH.PdaTest.Lbl.Received"].Value);
         }
-        catch(Exception ex){await Dialog.Alert(ex.Message,"Receive Failed");}
+        catch(Exception ex){await Dialog.Alert(ex.Message,L["WH.PdaTest.Title.ReceiveFailed"].Value);}
         finally{_busy=false;}
     }
     async Task CancelIncoming()
@@ -114,10 +115,10 @@
         if(_busy||!CanWrite||_scan is not {Kind:"LOT"} scan)return;_busy=true;
         try
         {
-            if(await Dialog.Confirm($"Cancel incoming for {scan.Barcode}? Real inventory and PO received quantities will be updated.","Cancel Incoming")!=true)return;
-            await Task.Run(()=>Repo.CancelIncoming(UserId,Actor,_mode,scan.Barcode));Reset();await Dialog.Alert("Incoming cancelled.","Cancelled");
+            if(await Dialog.Confirm(L["WH.PdaTest.Msg.ConfirmCancelIncoming",scan.Barcode].Value,L["WH.PdaTest.Btn.CancelIncoming"].Value)!=true)return;
+            await Task.Run(()=>Repo.CancelIncoming(UserId,Actor,_mode,scan.Barcode));Reset();await Dialog.Alert(L["WH.PdaTest.Ok.Cancelled"].Value,L["WH.PdaTest.Title.Cancelled"].Value);
         }
-        catch(Exception ex){await Dialog.Alert(ex.Message,"Cancel Incoming Failed");}
+        catch(Exception ex){await Dialog.Alert(ex.Message,L["WH.PdaTest.Title.CancelFailed"].Value);}
         finally{_busy=false;}
     }
 }

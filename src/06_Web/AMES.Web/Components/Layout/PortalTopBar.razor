@@ -36,8 +36,8 @@
     <div class="ames-topbar-spacer"></div>
 
     <button class="ames-theme-toggle" @onclick="ToggleTheme"
-            title="@(_theme == "light" ? "다크 테마" : "라이트 테마")"
-            aria-label="Toggle theme">@(_theme == "light" ? "🌙" : "☀")</button>
+            title="@(_theme == "light" ? L["TopBar.Theme.Dark"] : L["TopBar.Theme.Light"])"
+            aria-label="@L["TopBar.Theme.Toggle"]">@(_theme == "light" ? "🌙" : "☀")</button>
     @if (Lang.SwitcherVisible)
     {
         <CultureSwitcher />

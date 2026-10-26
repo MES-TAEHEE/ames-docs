@@ -35,8 +35,8 @@
     <div class="ames-topbar-spacer"></div>
 
     <button class="ames-theme-toggle" @onclick="ToggleTheme"
-            title="@(_theme == "light" ? "다크 테마" : "라이트 테마")"
-            aria-label="Toggle theme">@(_theme == "light" ? "🌙" : "☀")</button>
+            title="@(_theme == "light" ? L["TopBar.Theme.Dark"] : L["TopBar.Theme.Light"])"
+            aria-label="@L["TopBar.Theme.Toggle"]">@(_theme == "light" ? "🌙" : "☀")</button>
 
     @* LANGUAGE_DEFAULT 비활성 시 언어 선택 숨김(앱은 en-US 강제) *@
     @if (Lang.SwitcherVisible)
@@ -58,7 +58,7 @@
                 <form action="Account/Logout" method="post" style="display:inline;">
                     <AntiforgeryToken />
                     <input type="hidden" name="ReturnUrl" value="@_url" />
-                    <button type="submit" class="ames-user-out" title="Sign out">⏻</button>
+                    <button type="submit" class="ames-user-out" title="@L["TopBar.SignOut"]">⏻</button>
                 </form>
             </div>
         </Authorized>

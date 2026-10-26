@@ -139,6 +139,7 @@ FILES=(
   migrate_wh_inventory_backflush_placeholder.sql # BOM 자동 차감 자리표시 LOT(BF-*) 만 음수 재고 허용 — CK_WH_Inventory_Qty 완화(10-15)
   migrate_lsb_publish_removal.sql    # PP-LSB 발행 폐지 — PUBLISHED→DRAFT·PublishedAt/By 컬럼·발행 기록 테이블 삭제, SCHEDULE_STATUS 정리, PP-LSB 승인 기능 X(10-14)
   migrate_mnt_number_index.sql       # MNT 채번 범위 잠금용 일반 인덱스(고장·보전 WO·PM 계획 번호) — 스키마에 이미 있으면 건너뜀(10-13)
+  migrate_sys_number_seq.sql         # MNT 문서 번호 채번 카운터 SYS_NumberSeq + SP_SYS_NumberSeq_Next + POP 안돈 고장 등록 프로시저(10-26) — 신 Web·migrate_pop_stored_procedures 보다 먼저
   migrate_mnt_failure_action_wo.sql  #고장 조치 이력의 작업지시(MNT_FailureAction.WorkOrderID) — 부분 완료한 원래 작업지시에서도 고장이 보이게(10-14)
   migrate_pp_lineoee_unique.sql      # PP-OEE 스냅샷 (LineID, PeriodDate, ShiftCode) 유니크 인덱스 — 스키마에 이미 있으면 건너뜀(10-14)
   migrate_wonumber_unique.sql        # PP_WorkOrder.WoNumber 유니크 인덱스 — WO 채번 범위 잠금을 접두어 범위로 좁힘(POP 확정 대기 방지), 스키마에 이미 있으면 건너뜀(10-22)

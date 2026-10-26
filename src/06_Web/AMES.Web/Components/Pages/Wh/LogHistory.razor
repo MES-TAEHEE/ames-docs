@@ -27,9 +27,9 @@
             <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.LogHistory.Ph.Search"].Value"
                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" AutoComplete="false"
                            @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
-            <RadzenDropDown @bind-Value="_operationType" Data="@_operationOptions" TextProperty="Text" ValueProperty="Value"
+            <RadzenDropDown @bind-Value="_operationType" Data="@OperationOptions" TextProperty="Text" ValueProperty="Value"
                             AllowClear="true" Placeholder="@L["WH.LogHistory.Ph.ActivityType"].Value"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
+                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value"
                               InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value"
@@ -50,13 +50,13 @@
                     PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventTime" Title="@L["Col.Time"].Value" Width="170px">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventTime" Title="@L["Col.Time"].Value" Width="170px" MinWidth="170px">
                 <Template Context="r">@(r.EventTime?.ToString(DateFmt.DateTimeSec) ?? "-")</Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Type"].Value" Width="155px">
-                <Template Context="r"><span class="pill @EventClass(r)">@DisplayEvent(r)</span></Template>
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Type"].Value" Width="155px" MinWidth="155px">
+                <Template Context="r"><span class="pill @EventClass(r)">@L[DisplayEvent(r)]</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="LotNo" Title="@L["WH.LogHistory.Col.LotPart"].Value" Width="245px">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="LotNo" Title="@L["WH.LogHistory.Col.LotPart"].Value" Width="245px" MinWidth="245px">
                 <Template Context="r">
                     <div class="code">@(r.LotNo ?? "-")</div>
                     <div class="dim">@(r.PartNo ?? "-")</div>
@@ -71,7 +71,7 @@
                     }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EmployeeNo" Title="@L["Col.Worker"].Value" Width="145px">
+            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EmployeeNo" Title="@L["Col.Worker"].Value" Width="145px" MinWidth="145px">
                 <Template Context="r">
                     <div class="code">@(r.EmployeeNo ?? r.WorkerId ?? "-")</div>
                     @if (!string.IsNullOrWhiteSpace(r.EmployeeName))
@@ -88,14 +88,14 @@
     List<AMES.Data.Repositories.WarehouseRepository.OperationLogRow> _rows = new();
     readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
     int _pageRows = 25;
-    readonly List<DropDownItem> _operationOptions = new()
-    {
-        new() { Text = "Inbound", Value = "INBOUND" },
-        new() { Text = "Outbound", Value = "OUTBOUND" },
-        new() { Text = "Location Change", Value = "RELOCATION" },
-        new() { Text = "Status Change", Value = "STATUS" },
-        new() { Text = "Inventory Adjustment", Value = "ADJUSTMENT" },
-    };
+    List<DropDownItem> OperationOptions =>
+    [
+        new() { Text = L["WH.LogHistory.Lbl.Inbound"].Value, Value = "INBOUND" },
+        new() { Text = L["WH.LogHistory.Lbl.Outbound"].Value, Value = "OUTBOUND" },
+        new() { Text = L["WH.LogHistory.Lbl.Relocation"].Value, Value = "RELOCATION" },
+        new() { Text = L["WH.LogHistory.Lbl.StatusChange"].Value, Value = "STATUS" },
+        new() { Text = L["WH.LogHistory.Lbl.Adjustment"].Value, Value = "ADJUSTMENT" },
+    ];
 
     string _search = "";
     string? _operationType;
@@ -136,9 +136,9 @@
 
     int CountEvent(string type) => _rows.Count(row => type switch
     {
-        "INBOUND" => DisplayEvent(row) is "Inbound" or "Received" or "Stored" or "Return Received",
-        "OUTBOUND" => DisplayEvent(row) is "Outbound" or "Released",
-        "ADJUSTMENT" => DisplayEvent(row) == "Inventory Adjustment",
+        "INBOUND" => DisplayEvent(row) is "WH.LogHistory.Lbl.Inbound" or "WH.LogHistory.Lbl.Received" or "WH.LogHistory.Lbl.Stored" or "WH.LogHistory.Lbl.ReturnReceived",
+        "OUTBOUND" => DisplayEvent(row) is "WH.LogHistory.Lbl.Outbound" or "WH.LogHistory.Lbl.Released",
+        "ADJUSTMENT" => DisplayEvent(row) == "WH.LogHistory.Lbl.Adjustment",
         _ => false,
     });
 
@@ -166,11 +166,11 @@
 
         return row.EventType.ToUpperInvariant() switch
         {
-            "RECEIVE" => "Inbound",
-            "CANCEL_RECEIPT" => "Cancel Inbound",
-            "RELEASE_PICK" => "Outbound",
-            "ADJUST_SAVE" => "Inventory Adjustment",
-            "MOVE_LOCATION" => "Location Change",
+            "RECEIVE" => "WH.LogHistory.Lbl.Inbound",
+            "CANCEL_RECEIPT" => "WH.LogHistory.Lbl.CancelInbound",
+            "RELEASE_PICK" => "WH.LogHistory.Lbl.Outbound",
+            "ADJUST_SAVE" => "WH.LogHistory.Lbl.Adjustment",
+            "MOVE_LOCATION" => "WH.LogHistory.Lbl.Relocation",
             _ => row.EventType,
         };
     }
@@ -184,16 +184,16 @@
 
     static string StatusLabel(string status) => status switch
     {
-        "CREATED" => "Created",
-        "RECEIVED" => "Received",
-        "STORED" => "Stored",
-        "RELEASED" => "Released",
-        "RECEIPT_CANCELLED" => "Inbound Cancelled",
-        "RELEASE_CANCELLED" => "Release Cancelled",
-        "RETURN_RECEIVED" => "Return Received",
-        "DEFECTIVE" => "Defective",
-        "DISPOSED" => "Disposed",
-        _ => string.IsNullOrWhiteSpace(status) ? "Status Changed" : status.Replace('_', ' '),
+        "CREATED" => "WH.LogHistory.Lbl.Created",
+        "RECEIVED" => "WH.LogHistory.Lbl.Received",
+        "STORED" => "WH.LogHistory.Lbl.Stored",
+        "RELEASED" => "WH.LogHistory.Lbl.Released",
+        "RECEIPT_CANCELLED" => "WH.LogHistory.Lbl.InboundCancelled",
+        "RELEASE_CANCELLED" => "WH.LogHistory.Lbl.ReleaseCancelled",
+        "RETURN_RECEIVED" => "WH.LogHistory.Lbl.ReturnReceived",
+        "DEFECTIVE" => "WH.LogHistory.Lbl.Defective",
+        "DISPOSED" => "WH.LogHistory.Lbl.Disposed",
+        _ => string.IsNullOrWhiteSpace(status) ? "WH.LogHistory.Lbl.StatusChanged" : status.Replace('_', ' '),
     };
 
     static string RefText(AMES.Data.Repositories.WarehouseRepository.OperationLogRow row)

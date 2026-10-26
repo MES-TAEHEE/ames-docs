@@ -1,15 +1,16 @@
 @inject DialogService Dialog
 @inject UomFormat UomFmt
+@inject IStringLocalizer<SharedResources> L
 
 <div class="trailer-preview @(Embedded ? "embedded" : "")" data-feature="fg-shipment-plan">
     <div class="preview-summary">
-        <div class="preview-heading"><strong>@(Plan.Trailers.Any(x => x.Pallets.Count > 0) ? Plan.Trailers.Count(x => x.Pallets.Count > 0).ToString() : "—") trailers estimated</strong>
+        <div class="preview-heading"><strong>@(L["FG.Trailer.Lbl.EstimatedFmt", Plan.Trailers.Any(x => x.Pallets.Count > 0) ? Plan.Trailers.Count(x => x.Pallets.Count > 0).ToString() : "—"])</strong>
             <span>@ShipFrom.ToString(DateFmt.Date) – @ShipTo.ToString(DateFmt.Date)</span>
-            @if (Plan.IsPartial) { <span class="partial-badge" title="Some quantities are not determined and are excluded. Open Details & TOTE.">Partial</span> }
+            @if (Plan.IsPartial) { <span class="partial-badge" title="@L["FG.Trailer.Hint.Partial"]">@L["FG.Trailer.Lbl.Partial"]</span> }
         </div>
         <div class="preview-buttons">
-            <RadzenButton Text="Details & TOTE" Icon="info" aria-expanded="@_showDetails" aria-controls="packing-details" Click="() => _showDetails = !_showDetails" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            @if (!Embedded) { <RadzenButton Text="Close" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="() => Dialog.Close()" /> }
+            <RadzenButton Text="@L["FG.Trailer.Btn.Details"]" Icon="info" aria-expanded="@_showDetails" aria-controls="packing-details" Click="() => _showDetails = !_showDetails" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            @if (!Embedded) { <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="() => Dialog.Close()" /> }
         </div>
     </div>
     @if (!string.IsNullOrEmpty(_error))
@@ -19,35 +20,35 @@
     @if (_showDetails)
     {
         <div id="packing-details" class="packing-details">
-            <div class="estimate-totals"><span>Auto <b>@Plan.AutoPallets</b> pallets</span><span>TOTE manual <b>@Plan.ManualPallets</b> pallets</span>
-                <span class="@(Plan.IsPartial ? "unestimated" : "")">Not determined <b>@Plan.Unestimated.Select(x => x.Source.ItemNo).Distinct().Count()</b> parts / @QuantityTotal(Plan.Unestimated)
-                    <RadzenButton Icon="info" title="@PendingHelp" aria-label="How to determine packing quantities" Click="ShowPendingHelp" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></span></div>
-            <p class="preview-help">18 pallets / trailer · Uses saved DCR contents and ship dates. Different DCRs are estimated separately.</p>
-            <p class="preview-help">Drag a pallet to another trailer, or select it and use Move here. Display only; changes are not saved.</p>
+            <div class="estimate-totals"><span>@L["FG.Trailer.Lbl.Auto"] <b>@Plan.AutoPallets</b> @L["FG.Trailer.Lbl.Pallets"]</span><span>@L["FG.Trailer.Lbl.ToteManual"] <b>@Plan.ManualPallets</b> @L["FG.Trailer.Lbl.Pallets"]</span>
+                <span class="@(Plan.IsPartial ? "unestimated" : "")">@L["FG.Trailer.Lbl.NotDetermined"] <b>@Plan.Unestimated.Select(x => x.Source.ItemNo).Distinct().Count()</b> @L["FG.Ship.Lbl.Parts"] / @QuantityTotal(Plan.Unestimated)
+                    <RadzenButton Icon="info" title="@PendingHelp" aria-label="@L["FG.Trailer.Title.PendingHelp"]" Click="ShowPendingHelp" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></span></div>
+            <p class="preview-help">@L["FG.Trailer.Hint.CapacityFmt", TrailerLoadDraft.Capacity]</p>
+            <p class="preview-help">@L["FG.Trailer.Hint.Move"]</p>
     @if (Plan.IsPartial)
     {
-        <div class="partial-warning" role="status">Partial estimate — items with quantities not yet determined are NOT included in trailer totals.</div>
+        <div class="partial-warning" role="status">@L["FG.Trailer.Msg.Partial"]</div>
     }
     @if (Plan.ToteGroups.Count > 0)
     {
         <section class="estimate-section">
-            <h3>TOTE · MANUAL PALLETS</h3>
-            <p>Enter pallets for each DCR/customer/date group. Quantity or filter changes reset estimates; editing counts rebuilds placement.</p>
+            <h3>@L["FG.Trailer.Lbl.ToteSection"]</h3>
+            <p>@L["FG.Trailer.Hint.Tote"]</p>
             <div class="estimate-table-wrap">
             <RadzenDataGrid TItem="TrailerLoadDraft.ToteGroup" Data="Plan.ToteGroups" AllowPaging="false" AllowSorting="true" class="ames-rz-grid">
                 <Template Context="group"><RadzenDataGrid TItem="TrailerLoadDraft.Line" Data="group.Lines" AllowPaging="false" Density="Density.Compact" class="ames-rz-grid"><Columns>
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemNo" Title="PART NO" />
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemName" Title="PART NAME" />
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="QTY"><Template Context="line">@UomFmt.QtyUnit(line.Quantity,line.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemNo" Title="@L["Col.ItemNo"]" />
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemName" Title="@L["Col.ItemName"]" />
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="@L["Col.Qty"]"><Template Context="line">@UomFmt.QtyUnit(line.Quantity,line.Unit)</Template></RadzenDataGridColumn>
                 </Columns></RadzenDataGrid></Template>
                 <Columns>
                     <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="DeliveryNo" Title="DCR" />
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="Customer" Title="CUSTOMER" />
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="Date" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="PARTS"><Template Context="group">@group.Lines.Select(x=>x.Source.ItemNo).Distinct().Count()</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="TOTAL QTY"><Template Context="group">@QuantityTotal(group.Lines)</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="ESTIMATED PALLETS"><Template Context="group">
-                        <RadzenNumeric TValue="int?" Value="group.PalletCount" Change="@(v=>ChangeTote(group,v?.ToString(System.Globalization.CultureInfo.InvariantCulture)))" Min="1" Max="2000" Step="1" Immediate="true" Placeholder="Not determined" InputSize="InputSize.Small" class="ames-rz-input" />
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="Customer" Title="@L["Col.Customer"]" />
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Property="Date" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="@L["FG.Trailer.Col.Parts"]"><Template Context="group">@group.Lines.Select(x=>x.Source.ItemNo).Distinct().Count()</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="@L["Col.TotalQty"]"><Template Context="group">@QuantityTotal(group.Lines)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TrailerLoadDraft.ToteGroup" Title="@L["FG.Ship.Lbl.EstPallets"]"><Template Context="group">
+                        <RadzenNumeric TValue="int?" Value="group.PalletCount" Change="@(v=>ChangeTote(group,v?.ToString(System.Globalization.CultureInfo.InvariantCulture)))" Min="1" Max="2000" Step="1" Immediate="true" Placeholder="@L["FG.Trailer.Lbl.NotDetermined"]" InputSize="InputSize.Small" class="ames-rz-input" />
                         @if(group.Error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@group.Error</RadzenAlert>}
                     </Template></RadzenDataGridColumn>
                 </Columns>
@@ -58,13 +59,13 @@
     @if (Plan.IsPartial)
     {
         <RadzenPanel AllowCollapse="true" Collapsed="true" class="estimate-section">
-            <HeaderTemplate>NOT DETERMINED · @Plan.Unestimated.Count lines</HeaderTemplate>
+            <HeaderTemplate>@L["FG.Trailer.Lbl.NotDeterminedLinesFmt", Plan.Unestimated.Count]</HeaderTemplate>
             <ChildContent><div class="estimate-table-wrap excluded-list"><RadzenDataGrid TItem="TrailerLoadDraft.Line" Data="Plan.Unestimated" AllowPaging="false" AllowSorting="true" class="ames-rz-grid"><Columns>
-                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.CustomerId" Title="CUSTOMER" />
-                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="ShipDate" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
-                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemNo" Title="PART NO" />
-                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="SHIP QTY"><Template Context="line">@UomFmt.QtyUnit(line.Quantity,line.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="REASON"><Template Context="line">@(line.IsTote?"TOTE estimate not entered":"Pallet Qty not registered")</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.CustomerId" Title="@L["Col.Customer"]" />
+                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="ShipDate" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
+                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Property="Source.ItemNo" Title="@L["Col.ItemNo"]" />
+                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="@L["FG.Ship.Col.ShipQty"]"><Template Context="line">@UomFmt.QtyUnit(line.Quantity,line.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="TrailerLoadDraft.Line" Title="@L["Col.Reason"]"><Template Context="line">@(line.IsTote?L["FG.Trailer.Msg.ToteNotEntered"]:L["FG.Ship.Lbl.NoPalletQty"])</Template></RadzenDataGridColumn>
             </Columns></RadzenDataGrid></div></ChildContent>
         </RadzenPanel>
     }
@@ -72,26 +73,26 @@
     }
     @if (Plan.Trailers.Count == 0)
     {
-        <p class="partial-warning">No trailer estimate yet. Open Details &amp; TOTE to check quantities.</p>
+        <p class="partial-warning">@L["FG.Trailer.Empty"]</p>
     }
     <div class="trailer-board">
         @foreach (var day in Plan.Trailers.GroupBy(x => x.Date).OrderBy(x => x.Key))
         {
             <section class="trailer-day">
-            <h3>@day.Key.ToString(DateFmt.Date) <span>@day.Count(x => x.Pallets.Count > 0) trailers</span></h3>
+            <h3>@day.Key.ToString(DateFmt.Date) <span>@(L["FG.Trailer.Lbl.TrailersFmt", day.Count(x => x.Pallets.Count > 0)])</span></h3>
             <div class="trailer-day-grid">
             @foreach (var trailer in day)
             {
             <section @key="trailer.Number" class="trailer-card @(_selected.HasValue ? "drop-ready" : "")"
                      @ondragover:preventDefault @ondrop="() => Move(trailer.Number)">
-                <header><div><strong>TRAILER @trailer.Number.ToString("00")</strong>
+                <header><div><strong>@L["FG.Trailer.Lbl.Trailer"] @trailer.Number.ToString("00")</strong>
                     <span>@trailer.DeliveryNo</span>
                     <span>@trailer.Customer</span></div>
                     <b>@trailer.Pallets.Count / 18</b></header>
                 <div class="trailer-meter"><i style="width:@(trailer.Pallets.Count * 100 / 18)%"></i></div>
                 <div class="trailer-actions">
-                    <RadzenButton Text="Trailer" Icon="add" Click="() => Plan.AddTrailer(trailer)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-                    <RadzenButton Text="Move here" Disabled="@(!_selected.HasValue)" Click="() => Move(trailer.Number)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    <RadzenButton Text="@L["FG.Trailer.Lbl.Trailer"]" Icon="add" Click="() => Plan.AddTrailer(trailer)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    <RadzenButton Text="@L["FG.Trailer.Btn.MoveHere"]" Disabled="@(!_selected.HasValue)" Click="() => Move(trailer.Number)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                 </div>
                 <div class="pallet-slots">
                     @foreach (var pallet in trailer.Pallets)
@@ -103,14 +104,14 @@
                                 aria-pressed="@(_selected == pallet.Id)">
                             @if (pallet.Tote is { } tote)
                             {
-                                <span class="pallet-caption">TOTE PALLET @pallet.Sequence.ToString("00") / @tote.PalletCount · ESTIMATED</span>
-                                <strong>Mixed TOTE group</strong>
-                                <span>@tote.Lines.Select(x => x.Source.ItemNo).Distinct().Count() parts · @QuantityTotal(tote.Lines) across the group</span>
-                                <small>Per-pallet contents not assigned</small>
+                                <span class="pallet-caption">@(L["FG.Trailer.Lbl.TotePalletFmt", pallet.Sequence.ToString("00"), tote.PalletCount?.ToString() ?? ""])</span>
+                                <strong>@L["FG.Trailer.Lbl.MixedTote"]</strong>
+                                <span>@(L["FG.Trailer.Lbl.ToteContentsFmt", tote.Lines.Select(x => x.Source.ItemNo).Distinct().Count(), QuantityTotal(tote.Lines)])</span>
+                                <small>@L["FG.Trailer.Lbl.NoPerPallet"]</small>
                             }
                             else if (pallet.Line is { } line)
                             {
-                                <span class="pallet-caption">PALLET @pallet.Sequence.ToString("00") · @UomFmt.QtyUnit(pallet.Quantity, line.Unit)</span>
+                                <span class="pallet-caption">@(L["FG.Trailer.Lbl.PalletFmt", pallet.Sequence.ToString("00"), UomFmt.QtyUnit(pallet.Quantity, line.Unit)])</span>
                                 <strong>@line.Source.ItemNo</strong>
                                 <span>@line.Source.ItemName</span>
                                 <small>@line.Source.SoNumber / @line.Source.SoLineNo</small>
@@ -119,7 +120,7 @@
                     }
                     @for (var i = trailer.Pallets.Count; i < TrailerLoadDraft.Capacity; i++)
                     {
-                        <div class="empty-slot">Empty</div>
+                        <div class="empty-slot">@L["FG.Trailer.Lbl.Empty"]</div>
                     }
                 </div>
             </section>
@@ -139,8 +140,8 @@
     int? _selected;
     string _error = "";
     string QuantityTotal(IEnumerable<TrailerLoadDraft.Line> lines) => string.Join(" · ",lines.GroupBy(x=>x.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(x=>x.Quantity),g.Key)));
-    const string PendingHelp = "Packing quantities have not been determined yet. For standard parts, set Pallet Qty in Product Item Master and refresh Shipment Plan. For TOTE parts, enter the group's Estimated pallets above. Once set, these pallets are included in the estimated pallet and trailer totals.";
-    Task ShowPendingHelp() => Dialog.Alert(PendingHelp, "Packing quantity information");
+    string PendingHelp => L["FG.Trailer.Hint.Pending"].Value;
+    Task ShowPendingHelp() => Dialog.Alert(PendingHelp, L["FG.Trailer.Title.PendingHelp"].Value);
     void Select(int id) { _selected = id; _error = ""; }
     void EndDrag() => _selected = null;
     void ChangeTote(TrailerLoadDraft.ToteGroup group, string? text)
