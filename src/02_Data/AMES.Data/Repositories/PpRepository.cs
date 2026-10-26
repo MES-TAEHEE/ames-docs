@@ -1654,7 +1654,13 @@ public sealed partial class PpRepository
             ("@D", null, daysBack));
     }
 
-    /// <summary>PP-DTL 필터 조회 — 라인·기간·상태·사유코드 조합.</summary>
+    // 재작업(작업장 공정 RWK) 라인은 생산 라인이 아니라 PP-DTL·PP-ODM 비가동 조회에서 뺀다(라인 상태 분류 작업과 같은 기준)
+    static string NotReworkLine(string lineCol) => $"""
+        NOT EXISTS (SELECT 1 FROM dbo.MD_Line rl JOIN dbo.MD_WorkCenter rw ON rw.WCID = rl.WCID
+                    WHERE rl.LineID = {lineCol} AND rw.ProcessCode = 'RWK')
+        """;
+
+    /// <summary>PP-DTL 필터 조회 — 라인·기간·상태·사유코드 조합(재작업 라인 제외).</summary>
     public List<DowntimeRow> ListDowntimeFiltered(
         string?  lineId       = null,
         DateTime? from        = null,
@@ -1669,7 +1675,7 @@ public sealed partial class PpRepository
                    d.ReasonCode, d.CauseCode, d.Comment, d.WoID, d.AndonID, d.FailureID, f.FailureNumber
             FROM   dbo.PP_LineDowntimeLog d
             LEFT JOIN dbo.MNT_FailureRegister f ON f.FailureID = d.FailureID
-            WHERE  1=1
+            WHERE  {NotReworkLine("d.LineID")}
             {(lineId     != null ? "AND d.LineID     = @LineId "      : "")}
             {(from       != null ? "AND d.StartTS   >= @From "        : "")}
             {(to         != null ? "AND d.StartTS   <  @To "          : "")}
@@ -1840,16 +1846,16 @@ public sealed partial class PpRepository
     public DateTime? LatestDowntimeStart()
     {
         using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand("SELECT MAX(StartTS) FROM dbo.PP_LineDowntimeLog;", conn);
+        using var cmd  = new SqlCommand($"SELECT MAX(d.StartTS) FROM dbo.PP_LineDowntimeLog d WHERE {NotReworkLine("d.LineID")};", conn);
         return cmd.ExecuteScalar() is DateTime d ? d : null;
     }
 
-    /// <summary>PP-DTL/ODM 라인 목록 (PP_LineDowntimeLog 기준).</summary>
+    /// <summary>PP-DTL/ODM 라인 목록 (PP_LineDowntimeLog 기준, 재작업 라인 제외).</summary>
     public List<string> ListDowntimeLines()
     {
-        const string sql = """
-            SELECT DISTINCT LineID FROM dbo.PP_LineDowntimeLog
-            WHERE LineID IS NOT NULL ORDER BY LineID;
+        var sql = $"""
+            SELECT DISTINCT d.LineID FROM dbo.PP_LineDowntimeLog d
+            WHERE d.LineID IS NOT NULL AND {NotReworkLine("d.LineID")} ORDER BY d.LineID;
             """;
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn);

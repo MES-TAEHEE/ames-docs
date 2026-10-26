@@ -275,7 +275,8 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("pp/downtime");
 
-        try { _lineList  = MD.ListLines(); }            catch { }
+        // 재작업 라인은 생산 라인이 아니라 비가동을 기록·조회하지 않는다
+        try { var rwk = MD.ReworkLineIds(); _lineList = MD.ListLines().Where(l => !rwk.Contains(l.LineID)).ToList(); } catch { }
         try { _reasons   = Pp.ListDowntimeReasons(); }  catch { }
         LoadCauses();
 

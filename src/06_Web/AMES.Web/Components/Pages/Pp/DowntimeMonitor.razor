@@ -226,11 +226,12 @@
 
     // ── 상태 ──────────────────────────────────────────────────────────
     Dictionary<string, LineVm> _vms = new(StringComparer.OrdinalIgnoreCase);
-    // 카드 순서: 공정 순(사출 → 감싸기 → 도장 → 재작업, 공통코드 PROCESS SortOrder) → 라인 ID. 공정을 모르는 라인은 맨 뒤
+    // 카드 순서: 공정 순(사출 → 감싸기 → 도장, 공통코드 PROCESS SortOrder) → 라인 ID. 공정을 모르는 라인은 맨 뒤 — 재작업 라인은 카드·콤보에서 뺀다
     Dictionary<string, int> _lineOrder = new(StringComparer.OrdinalIgnoreCase);
     Dictionary<string, string> _lineNames = new(StringComparer.OrdinalIgnoreCase);
     List<MasterDataRepository.LineRow> _lineList = [];
     List<string> _dataLines = [];
+    HashSet<string> _reworkLines = new(StringComparer.OrdinalIgnoreCase);
 
     bool      _live = true;
     DateTime? _fAsOf;
@@ -267,7 +268,8 @@
         await PermSvc.EnsureAsync(AuthPrvd);
         _canOpenDtl = PermSvc.IsVisible("pp/downtime");
 
-        try { _lineList = MD.ListLines();
+        try { _reworkLines = MD.ReworkLineIds(); } catch { }
+        try { _lineList = MD.ListLines().Where(l => !_reworkLines.Contains(l.LineID)).ToList();
               foreach (var l in _lineList.Where(l => !string.Equals(l.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase)))
                   _lineNames[l.LineID] = MasterDataRepository.LocalName(l.LineName, l.LineNameEn); } catch { }
         try { _dataLines = Pp.ListDowntimeLines(); }   catch { }
@@ -326,7 +328,7 @@
 
         // 라인 = 마스터 활성 라인 ∪ 로그에 등장한 라인 ∪ 비가동 이력 라인
         var ids = new HashSet<string>(_lineNames.Keys, StringComparer.OrdinalIgnoreCase);
-        foreach (var r in latest) if (r.LineId is not null) ids.Add(r.LineId);
+        foreach (var r in latest) if (r.LineId is not null && !_reworkLines.Contains(r.LineId)) ids.Add(r.LineId);
         foreach (var l in _dataLines) ids.Add(l);
 
         var vms = new Dictionary<string, LineVm>(StringComparer.OrdinalIgnoreCase);

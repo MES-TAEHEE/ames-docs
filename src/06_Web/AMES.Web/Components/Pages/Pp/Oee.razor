@@ -89,9 +89,11 @@
         <span>@L["PP.Oee.ByLine.Hint"]</span>
         <span style="@(FillError ? "color:var(--ames-tx-red-400);" : "")">@FillText</span>
     </div>
-    <RadzenDataGrid TItem="LineAgg" Data="@_rows" AllowPaging="false" AllowSorting="true"
+    <RadzenDataGrid TItem="LineAgg" Data="@_rows" AllowPaging="true" PageSize="5" PagerHorizontalAlign="HorizontalAlign.Center"
+                    ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" Style="--ames-page-rows:5"
+                    AllowSorting="true"
                     RowClick="@(e => { if (e.Data is { } d) Select(d.LineId); })" RowRender="@LineRowRender"
-                    EmptyText="@L["PP.Oee.ByLine.NoData"]" Class="ames-rz-grid pp-oee-lines">
+                    EmptyText="@L["PP.Oee.ByLine.NoData"]" Class="ames-rz-grid ames-grid-fixed ames-grid-top pp-oee-lines">
         <Columns>
             <RadzenDataGridColumn TItem="LineAgg" MinWidth="130px" Property="LineId" Title="@L["Col.Line"]" Width="130px">
                 <Template Context="r"><span class="code">@r.LineId</span></Template>

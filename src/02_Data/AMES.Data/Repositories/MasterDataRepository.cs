@@ -2509,6 +2509,22 @@ public sealed class MasterDataRepository
         return list;
     }
 
+    /// <summary>재작업(작업장 공정 RWK) 라인 ID — 생산 라인이 아니라 비가동·가동 현황(PP-DTL·PP-ODM)에서 뺀다.</summary>
+    public HashSet<string> ReworkLineIds()
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT l.LineID
+            FROM   dbo.MD_Line l
+            JOIN   dbo.MD_WorkCenter w ON w.WCID = l.WCID
+            WHERE  w.ProcessCode = 'RWK';
+            """, conn);
+        using var r = cmd.ExecuteReader();
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        while (r.Read()) set.Add((string)r["LineID"]);
+        return set;
+    }
+
     /// <summary>
     /// 라인별 공정 정렬 순서 — 라인 작업장(WC)의 ProcessCode 를 공통코드 PROCESS 의 SortOrder 로 바꾼 값
     /// (사출 → 감싸기 → 도장 → 재작업). 공정을 모르는 라인은 사전에 없다 — 호출자가 맨 뒤로 보낸다.
