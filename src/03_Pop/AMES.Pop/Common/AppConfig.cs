@@ -18,6 +18,7 @@ public sealed class AppConfig
     public string PrinterMode      { get; }
     public string PrinterHost      { get; }
     public int    PrinterPort      { get; }
+    /// <summary>라벨(.zpl)과 POP 로그(*.log)를 함께 쓰는 폴더 — 기본값은 실행 파일 옆 labels 폴더.</summary>
     public string PrinterOutputDir { get; }
     /// <summary>Spooler 모드 전용 — Windows 에 등록된 프린터 이름.</summary>
     public string PrinterName      { get; }
@@ -73,6 +74,17 @@ public sealed class AppConfig
     /// <summary>복구 뒤 서버가 "없는 LOT"이라고 한 건을 충돌로 보기 전에 다시 시도하는 시간(분) — 다른 PC 의 에이전트가 아직 못 올린 LOT 일 수 있다.</summary>
     public int OfflineNotFoundRetryMinutes { get; }
 
+    /// <summary>
+    /// 출력 폴더 결정. 비어 있거나 없으면 실행 파일 폴더의 labels — 작업 폴더(바로가기의 시작 위치)에 따라 달라지지 않도록.
+    /// 상대 경로는 실행 파일 폴더 기준, 절대 경로·%VAR% 는 그대로 쓴다.
+    /// </summary>
+    public static string ResolveOutputDir(string? configured, string baseDir)
+    {
+        var value = Environment.ExpandEnvironmentVariables((configured ?? "").Trim());
+        if (value.Length == 0) value = "labels";
+        return Path.IsPathRooted(value) ? value : Path.Combine(baseDir, value);
+    }
+
     private static readonly Lazy<AppConfig> _instance = new(Load);
     public static AppConfig Current => _instance.Value;
 
@@ -99,7 +111,7 @@ public sealed class AppConfig
         PrinterMode      = root["PopTerminal:Printer:Mode"]      ?? "File";
         PrinterHost      = root["PopTerminal:Printer:Host"]      ?? "127.0.0.1";
         PrinterPort      = int.TryParse(root["PopTerminal:Printer:Port"], out var pp) ? pp : 9100;
-        PrinterOutputDir = root["PopTerminal:Printer:OutputDir"] ?? "labels";
+        PrinterOutputDir = ResolveOutputDir(root["PopTerminal:Printer:OutputDir"], AppContext.BaseDirectory);
         PrinterName      = root["PopTerminal:Printer:Name"]      ?? "";
         PrinterPollMs      = int.TryParse(root["PopTerminal:Printer:PollMs"], out var pms) ? pms : 1000;
         PrinterMaxFailures = int.TryParse(root["PopTerminal:Printer:MaxFailures"], out var pmf) ? pmf : 3;

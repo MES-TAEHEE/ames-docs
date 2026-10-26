@@ -557,7 +557,7 @@ INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스�
   같은 라인에 여러 터미널이 로그인해도 클레임이 원자적이라 중복 발행은 없다.
 - **Pop 재시작·재로그인은 워터마크를 리셋한다.** 그 이전의 미출력 LOT 은 자동 발행 대상에서 빠지고 재출력 버튼으로만 복구된다. 교대 인수인계 시 유의.
 
-장애 추적은 `{PopTerminal:Printer:OutputDir}/dispatch-YYYYMMDD.log` — 무인 루프라 토스트로 알릴 수 없는 실패가 여기에만 남는다.
+장애 추적은 `{PopTerminal:Printer:OutputDir}/dispatch-YYYYMMDD.log` — 무인 루프라 토스트로 알릴 수 없는 실패가 여기에만 남는다. `OutputDir` 를 비우면(기본) 실행 파일 옆 `labels` 폴더를 쓰며(작업 폴더와 무관), 상대 경로는 실행 파일 폴더 기준, 절대 경로·`%VAR%` 가능, 폴더는 자동 생성된다(`AppConfig.ResolveOutputDir`, 테스트 `AppConfigOutputDirTests`).
 
 ---
 
