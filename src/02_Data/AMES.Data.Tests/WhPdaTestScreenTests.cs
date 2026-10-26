@@ -36,11 +36,11 @@ public sealed class WhPdaTestScreenTests
         Assert.Contains("WarehouseInboundTester",page);Assert.Contains("WarehousePutAwayTester",page);
         Assert.Contains("UserId=\"@_userId\"",page);Assert.Contains("Actor=\"@_actor\"",page);
         var inbound=Read("src/06_Web/AMES.Web/Components/Shared/WarehouseInboundTester.razor");
-        Assert.Contains("CANCEL INCOMING",inbound);Assert.Contains("SCAN REQUIRED",inbound);Assert.Contains("BULK RECEIVE",inbound);
+        Assert.Contains("WH.PdaTest.Btn.CancelIncoming",inbound);Assert.Contains("WH.PdaTest.Lbl.ScanRequired",inbound);Assert.Contains("WH.PdaTest.Lbl.BulkReceive",inbound);
         Assert.Contains("_scanned.Add(box.Barcode)",inbound);Assert.Contains("!CanWrite",inbound);
         var storage=Read("src/06_Web/AMES.Web/Components/Shared/WarehousePutAwayTester.razor");
-        Assert.Contains("ALREADY PUT AWAY",storage);Assert.Contains("AT @row.LocationNo",storage);
-        Assert.Contains("LOCATION BARCODE SCAN",storage);Assert.Contains("VIEW ONLY",storage);
+        Assert.Contains("WH.PdaTest.Lbl.AlreadyPutAway",storage);Assert.Contains("L[\"WH.PdaTest.Lbl.AtLocation\", row.LocationNo",storage);
+        Assert.Contains("WH.PdaTest.Lbl.LocationScan",storage);Assert.Contains("WH.PdaTest.Msg.PutAwayViewOnly",storage);
         Assert.DoesNotContain("@onclick",storage);Assert.Contains("_selected=selection.Selected.ToHashSet",storage);
         var css=Read("src/06_Web/AMES.Web/Components/Pages/Wh/InboundTest.razor.css");
         Assert.Contains("width:430px",css);Assert.Contains("overflow-y:auto",css);

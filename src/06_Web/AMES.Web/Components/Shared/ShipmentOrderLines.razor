@@ -7,9 +7,9 @@
                     Density="Density.Compact" EmptyText='@L["Grid.Empty"]' class="ames-rz-grid">
         <Columns>
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" Width="140px" />
-            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="PART NO" Width="160px" />
-            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartName" Title="PART NAME" />
-            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="SHIP QTY ÷ QTY / PALLET = PALLETS" Width="310px" Sortable="false">
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="@L["Col.ItemNo"]" Width="160px" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartName" Title="@L["Col.ItemName"]" />
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["FG.Ship.Col.PalletCalc"]" Width="310px" Sortable="false">
                 <Template Context="line">
                     <span>@UomFmt.QtyUnit(line.Qty,line.Unit)</span>
                     @if (!line.ToteFlag && line.PalletQty is > 0)
@@ -17,7 +17,7 @@
                         <span> ÷ @UomFmt.Qty(line.PalletQty.Value,line.Unit) = </span>
                         <strong>@FinishedGoodsRepository.EstimateShippingPallets(line.Qty,line.PalletQty)!.Value.ToString("N0") PLT</strong>
                     }
-                    else { <span class="dim"> · @(line.ToteFlag ? "TOTE · manual estimate" : "Pallet qty not set")</span> }
+                    else { <span class="dim"> · @(line.ToteFlag ? L["FG.Ship.Lbl.ToteManual"] : L["FG.Ship.Lbl.NoPalletQty"])</span> }
                 </Template>
             </RadzenDataGridColumn>
         </Columns>

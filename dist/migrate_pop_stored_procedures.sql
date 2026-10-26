@@ -595,10 +595,10 @@ AS
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbo.MNT_FailureRegister WHERE Source = 'ANDON' AND AndonRefID = @Ref)
     BEGIN
-        DECLARE @ym  VARCHAR(4) = FORMAT(SYSDATETIME(), 'yyMM');
-        DECLARE @seq INT = ISNULL((SELECT MAX(TRY_CAST(RIGHT(FailureNumber, 3) AS INT))
-                                   FROM dbo.MNT_FailureRegister WITH (UPDLOCK, HOLDLOCK)
-                                   WHERE FailureNumber LIKE 'FAIL-' + @ym + '-%'), 0) + 1;
+        -- 고장번호 채번 = SYS_NumberSeq 카운터(웹 MntRepository.ClaimNumber 와 공용, dist/migrate_sys_number_seq.sql) — 범위 잠금 교착 방지(10-26)
+        DECLARE @ym  CHAR(4) = FORMAT(SYSDATETIME(), 'yyMM');
+        DECLARE @seq INT;
+        EXEC dbo.SP_SYS_NumberSeq_Next @SeqCode = 'FAIL', @Ym = @ym, @No = @seq OUTPUT;
         INSERT INTO dbo.MNT_FailureRegister
             (FailureNumber, EquipID, FailureType, Symptom, Severity, Source, AndonRefID, DowntimeID,
              Status, ReportedBy, ReportedAt, CreatedBy, CreatedTS)

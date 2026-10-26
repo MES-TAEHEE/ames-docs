@@ -9,24 +9,24 @@
 @inject UomFormat UomFmt
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>Shipment Orders</PageTitle>
-<AmesPageHeader Code="FG-02" Title="Shipment Orders" />
+<PageTitle>FG-02 @L["FG.ShipOrders.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="FG-02" TitleKey="FG.ShipOrders.Title" />
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">Orders</div><div class="ames-kpi-v">@_orders.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">Open</div><div class="ames-kpi-v">@_orders.Count(x=>x.Status=="Open")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">DCR assigned</div><div class="ames-kpi-v">@_orders.Count(x=>x.DeliveryId is not null)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Orders"]</div><div class="ames-kpi-v">@_orders.Count</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Open"]</div><div class="ames-kpi-v">@_orders.Count(x=>x.Status=="Open")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.DcrAssigned"]</div><div class="ames-kpi-v">@_orders.Count(x=>x.DeliveryId is not null)</div></div>
 </div>
 <section class="ames-card shipping-orders-page">
     <div class="ames-card-h master-list-toolbar">
-        <span>▼ SHIPMENT ORDERS · @_orders.Count</span>
+        <span>▼ @L["FG.ShipOrders.List"] · @_orders.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <span>–</span><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
-            <RadzenButton Text="Refresh" Icon="refresh" Click="Reload" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Reload" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             @if(_canEdit)
             {
                 <RadzenButton Text="@L["Btn.Create"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="Create DCR / Trailer" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="@(()=>_deliveryModal=true)" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="@(()=>_deliveryModal=true)" Size="ButtonSize.Small" class="ames-rz-btn" />
             }
         </RadzenStack>
     </div>
@@ -37,32 +37,32 @@
         </Template>
         <Columns>
             <RadzenDataGridColumn TItem="ShippingOrderDto" Title="" Width="45px" Sortable="false"><Template Context="r"><RadzenCheckBox TValue="bool" Value="@_selected.Contains(r.OrderId)" Change="@(v=>Select(r.OrderId,v))" Disabled="@(r.DeliveryId is not null || r.Status!="Open" || !_canEdit)" /></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="ORDER NO" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="CustomerId" Title="CUSTOMER" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="SHIP DATE" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="PART / QTY"><Template Context="r">
-                @r.Lines.Select(x=>x.PartNo).Distinct().Count() <span class="dim">parts · @string.Join(" · ",r.Lines.GroupBy(x=>x.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(x=>x.Qty),g.Key)))</span>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="OrderNo" Title="@L["FG.ShipOrders.Col.OrderNo"]" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="CustomerId" Title="@L["Col.Customer"]" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="ShipDate" Title="@L["Col.ShipDate"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["FG.ShipOrders.Col.PartQty"]"><Template Context="r">
+                @r.Lines.Select(x=>x.PartNo).Distinct().Count() <span class="dim">@L["FG.Ship.Lbl.Parts"] · @string.Join(" · ",r.Lines.GroupBy(x=>x.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(x=>x.Qty),g.Key)))</span>
             </Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="Status" Title="STATUS" />
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="DeliveryNo" Title="DCR / TRAILER"><Template Context="r">
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="Status" Title="@L["Col.Status"]" />
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Property="DeliveryNo" Title="@L["FG.ShipOrders.Col.Dcr"]"><Template Context="r">
                 @if(r.DeliveryNo is not null){<RadzenButton Text="@r.DeliveryNo" Click="@(()=>PrintDelivery(r.DeliveryNo))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />}
-                else{<span>Not assigned</span>}
+                else{<span>@L["FG.ShipOrders.Lbl.NotAssigned"]</span>}
             </Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="PRINT" Width="100px"><Template Context="r"><RadzenButton Text="Print" Icon="print" Click="@(()=>PrintOrder(r))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["Btn.Print"]" Width="100px"><Template Context="r"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintOrder(r))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </section>
 @if(_creating && _canEdit)
 {
-    <div class="ames-modal-bg" data-no-busy @onclick="CloseCreate"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="Create shipment order" @onclick:stopPropagation>
-        <div class="ames-modal-h">SHIPMENT ORDER — @L["Modal.Create"]</div>
+    <div class="ames-modal-bg" data-no-busy @onclick="CloseCreate"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="@L["FG.ShipOrders.Title.Create"]" @onclick:stopPropagation>
+        <div class="ames-modal-h">@L["FG.ShipOrders.Title.Create"]</div>
         <ShipmentOrderCreate Saved="Created" Closed="CloseCreate" BusyChanged="@(busy=>_createBusy=busy)" />
     </div></div>
 }
 @if(_createdNumbers.Count>0)
 {
-    <div class="ames-modal-bg" data-no-busy @onclick="CloseCreated"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="Shipment orders created" @onclick:stopPropagation>
-        <div class="ames-modal-h">SHIPMENT ORDERS CREATED · @_createdNumbers.Count</div>
+    <div class="ames-modal-bg" data-no-busy @onclick="CloseCreated"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="@L["FG.ShipOrders.Title.Created"]" @onclick:stopPropagation>
+        <div class="ames-modal-h">@L["FG.ShipOrders.Title.Created"] · @_createdNumbers.Count</div>
         <div class="created-order-list">
             <p>@string.Join(", ",_createdNumbers) · @_createdShipDate.ToString(DateFmt.Date)</p>
             @if(!string.IsNullOrEmpty(_createdError)){<RadzenAlert AlertStyle="AlertStyle.Warning">@_createdError</RadzenAlert>}
@@ -75,18 +75,18 @@
             }
         </div>
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-            <span class="dim">Select these orders and create a DCR to include them in Shipment Plan.</span>
-            <RadzenButton Text="Close" Icon="close" Click="CloseCreated" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <span class="dim">@L["FG.ShipOrders.Hint.CreateDcr"]</span>
+            <RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="CloseCreated" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div></div>
 }
 @if(_deliveryModal)
 {
     <div class="ames-modal-bg" @onclick="@(()=>_deliveryModal=false)"><div class="ames-modal" @onclick:stopPropagation>
-        <div class="ames-modal-h">CREATE DCR / TRAILER</div>
-        <p>@_selected.Count shipment order(s) · same customer and ship date required</p>
+        <div class="ames-modal-h">@L["FG.ShipOrders.Btn.CreateDcr"]</div>
+        <p>@L["FG.ShipOrders.Hint.DcrSelectedFmt",_selected.Count]</p>
         @if(!string.IsNullOrEmpty(_deliveryError)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_deliveryError</RadzenAlert>}
-        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="Create" Icon="save" Click="CreateDelivery" Disabled="_busy" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="Close" Icon="close" Click="@(()=>_deliveryModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["Btn.Create"]" Icon="save" Click="CreateDelivery" Disabled="_busy" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(()=>_deliveryModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
     </div></div>
 }
 @if(_printOrders.Count>0)
@@ -112,7 +112,7 @@
     }
     void OpenCreate(){if(_canEdit)_creating=true;}
     void CloseCreate(){if(!_createBusy)_creating=false;}
-    async Task Reload(){if(!_allowed)return;if(_from>_to){_message="Select a valid date range.";return;}try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();}catch(Exception ex){_message=ex.Message;}}
+    async Task Reload(){if(!_allowed)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();}catch(Exception ex){_message=ex.Message;}}
     void Select(int id,bool value){if(value)_selected.Add(id);else _selected.Remove(id);}
     async Task Created(ShipmentOrderCreate.CreatedOrders result)
     {
@@ -122,9 +122,9 @@
         {
             var saved=await Task.Run(()=>Fg.ListShippingOrders(result.ShipDate,result.ShipDate));
             _createdOrders=saved.Where(o=>result.Numbers.Contains(o.OrderNo)).ToList();
-            if(_createdOrders.Count!=result.Numbers.Count)_createdError="Orders were saved, but some details could not be loaded. Refresh Shipment Orders to view them. Do not create them again.";
+            if(_createdOrders.Count!=result.Numbers.Count)_createdError=L["FG.ShipOrders.Err.CreatedPartial"].Value;
         }
-        catch{_createdError="Orders were saved. Details could not be loaded; refresh Shipment Orders to view them. Do not create them again.";}
+        catch{_createdError=L["FG.ShipOrders.Err.CreatedNoDetail"].Value;}
         await Reload();
     }
     void CloseCreated(){_createdNumbers=[];_createdOrders=[];_createdError="";}
@@ -135,7 +135,7 @@
         {
             var ids=_selected.ToList();var shipDate=_orders.First(o=>ids.Contains(o.OrderId)).ShipDate;
             var no=await Task.Run(()=>Fg.CreateShippingDelivery(ids,null,_actor));
-            _deliveryModal=false;_message=$"Created {no}";
+            _deliveryModal=false;_message=L["FG.ShipOrders.Ok.DcrCreatedFmt",no].Value;
             if(_canPlan)
             {
                 var date=shipDate.ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture);

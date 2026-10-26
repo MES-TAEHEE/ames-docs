@@ -605,9 +605,10 @@ public sealed class MntRepository
     }
 
     // ── 번호 채번 — 고장(FAIL-yyMM-nnn)·PM 계획(PM-yyMM-nnn)·보전 WO(MWO-yyMM-nnn) ──
-    // 저장 트랜잭션 안에서 그 달 범위를 UPDLOCK·HOLDLOCK 으로 잡고 정한다(10-13) — 전에는 화면이 저장 전에 따로 MAX+1 을 읽어
-    // 두 사람이 동시에 저장하면 같은 번호가 들어갔다. POP 안돈의 고장번호(AndonRepository)도 같은 범위 잠금을 쓴다.
-    // 범위 잠금이 그 달 번호만 잡도록 세 컬럼에 인덱스가 있다(dist/migrate_mnt_number_index.sql).
+    // 자동 채번은 저장 트랜잭션 안에서 카운터 행(SYS_NumberSeq, 번호 종류당 1행)을 잠그고 받는다(10-26, dbo.SP_SYS_NumberSeq_Next —
+    // 다음 번호 = max(그 달 카운터, 그 달 실제 최대 번호) + 1). 전에는 그 달 번호 범위를 UPDLOCK·HOLDLOCK 으로 잡고 MAX+1 을 셌는데,
+    // 동시에 몰리면 범위 잠금끼리 엇갈려 교착(1205)이 났다. POP 안돈의 고장번호도 같은 프로시저를 쓴다.
+    // 직접 입력한 번호는 그 번호 한 키만 잠가 중복을 본다(이 인덱스: dist/migrate_mnt_number_index.sql).
 
     /// <summary>직접 입력한 번호가 이미 있을 때. 화면은 Number 로 안내 문구를 만든다.</summary>
     public sealed class DuplicateNumberException(string number) : InvalidOperationException($"{number} already exists.")
@@ -621,19 +622,20 @@ public sealed class MntRepository
     private static readonly NumberSpec PmPlanNo  = new("MNT_PMSchedule",      "PMPlanNumber",  "PMScheduleID", 30, "PM");
     private static readonly NumberSpec MwoNo     = new("MNT_WorkOrder",       "WoNumber",      "WorkOrderID",  28, "MWO");
 
-    /// <summary>비어 있으면 그 달 최대 순번 + 1 로 채번하고, 입력값이면 같은 번호가 다른 행에 없는지 본다(둘 다 범위 잠금).</summary>
+    /// <summary>비어 있으면 카운터로 그 달 다음 순번을 받고, 입력값이면 같은 번호가 다른 행에 없는지 본다(그 키만 잠금).</summary>
     private static string ClaimNumber(SqlConnection conn, SqlTransaction tx, NumberSpec spec, string? requested, int? excludeId)
     {
         var no = requested?.Trim() ?? "";
         if (no.Length == 0)
         {
-            var prefix = $"{spec.Prefix}-{DbClock.Today:yyMM}-";
-            using var cmd = new SqlCommand($"""
-                SELECT ISNULL(MAX(TRY_CAST(SUBSTRING({spec.Column}, LEN(@P) + 1, 10) AS int)), 0)
-                FROM   dbo.{spec.Table} WITH (UPDLOCK, HOLDLOCK) WHERE {spec.Column} LIKE @P + '%'
-                """, conn, tx);
-            cmd.Parameters.Add("@P", SqlDbType.VarChar, spec.Length).Value = prefix;
-            return $"{prefix}{Convert.ToInt32(cmd.ExecuteScalar()) + 1:D3}";
+            var ym = DbClock.Today.ToString("yyMM");
+            using var cmd = new SqlCommand("dbo.SP_SYS_NumberSeq_Next", conn, tx) { CommandType = CommandType.StoredProcedure };
+            cmd.Parameters.Add("@SeqCode", SqlDbType.VarChar, 10).Value = spec.Prefix;
+            cmd.Parameters.Add("@Ym", SqlDbType.Char, 4).Value = ym;
+            var outNo = cmd.Parameters.Add("@No", SqlDbType.Int);
+            outNo.Direction = ParameterDirection.Output;
+            cmd.ExecuteNonQuery();
+            return $"{spec.Prefix}-{ym}-{Convert.ToInt32(outNo.Value):D3}";
         }
         using (var cmd = new SqlCommand($"""
             SELECT 1 FROM dbo.{spec.Table} WITH (UPDLOCK, HOLDLOCK)

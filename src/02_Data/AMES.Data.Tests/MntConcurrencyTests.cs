@@ -104,6 +104,61 @@ public class MntConcurrencyTests
         finally { Cleanup(f!); }
     }
 
+    // 10-26 — 채번이 카운터 행(SYS_NumberSeq)으로 바뀐 뒤: 많이 몰려도 교착 없이 모두 다른 번호
+    // (전에는 그 달 번호 범위를 UPDLOCK·HOLDLOCK 으로 읽어, 전체 테스트를 함께 돌릴 때 8건 중 5건이 1205 로 실패했다)
+    [SkippableFact]
+    public void Heavy_concurrent_registrations_do_not_deadlock()
+    {
+        var f = WriteFactory(); Skip.If(f is null, WriteSkip);
+        var mnt = new MntRepository(f!);
+        try
+        {
+            var results = new System.Collections.Concurrent.ConcurrentBag<(string Fail, string Wo)>();
+            Parallel.For(0, 24, new ParallelOptions { MaxDegreeOfParallelism = 12 }, _ =>
+            {
+                var (_, failNo, woNo, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 동시 등록(부하)", "MINOR", "WEB", DateTime.Now, null, Actor);
+                results.Add((failNo, woNo));
+            });
+            Assert.Equal(24, results.Select(r => r.Fail).Distinct().Count());
+            Assert.Equal(24, results.Select(r => r.Wo).Distinct().Count());
+        }
+        finally { Cleanup(f!); }
+    }
+
+    // 직접 입력한 큰 번호 뒤로 자동 번호가 이어지고, 카운터가 지난달 값이어도 이번 달 실제 최대 번호 다음부터 받는다
+    [SkippableFact]
+    public void Auto_number_follows_manual_numbers_and_month_rollover()
+    {
+        var f = WriteFactory(); Skip.If(f is null, WriteSkip);
+        var mnt = new MntRepository(f!);
+        var saved = ((string?)Scalar(f!, "SELECT PeriodKey FROM dbo.SYS_NumberSeq WHERE SeqCode = 'FAIL'"),
+                     Convert.ToInt32(Scalar(f!, "SELECT LastNo FROM dbo.SYS_NumberSeq WHERE SeqCode = 'FAIL'")));
+        var ym = AMES.Data.Services.DbClock.Today.ToString("yyMM");
+        int Seq(string no) => int.Parse(no[(no.LastIndexOf('-') + 1)..]);
+        int MonthMax() => Convert.ToInt32(Scalar(f!, "SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(FailureNumber, 11, 10) AS int)), 0) FROM dbo.MNT_FailureRegister WHERE FailureNumber LIKE @P", ("@P", $"FAIL-{ym}-%")));
+        try
+        {
+            // 카운터는 지운 번호를 다시 쓰지 않으므로(결번 허용) 직접 입력 번호를 카운터·실제 최대 번호 둘 다보다 크게 잡는다
+            var counter = saved.Item1 == ym ? saved.Item2 : 0;
+            var manual = Math.Max(MonthMax(), counter) + 40;
+            mnt.InsertFailure($"FAIL-{ym}-{manual:D3}", Equip, "ELEC", "ITEST 직접 입력 번호", "MINOR", "WEB", DateTime.Now, null, Actor);
+            var (_, next, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 자동 번호", "MINOR", "WEB", DateTime.Now, null, Actor);
+            Assert.Equal(manual + 1, Seq(next));
+
+            // 카운터가 다른 달(지난달)에 큰 값으로 남아 있어도 이번 달은 실제 최대 번호 다음
+            Exec(f!, "UPDATE dbo.SYS_NumberSeq SET PeriodKey = '0001', LastNo = 900 WHERE SeqCode = 'FAIL'");
+            var expected = MonthMax() + 1;
+            var (_, rolled, _, _) = mnt.InsertFailure(null, Equip, "ELEC", "ITEST 달 바뀜", "MINOR", "WEB", DateTime.Now, null, Actor);
+            Assert.Equal(expected, Seq(rolled));
+            Assert.Equal(ym, (string?)Scalar(f!, "SELECT PeriodKey FROM dbo.SYS_NumberSeq WHERE SeqCode = 'FAIL'"));
+        }
+        finally
+        {
+            Cleanup(f!);
+            Exec(f!, "UPDATE dbo.SYS_NumberSeq SET PeriodKey = @P, LastNo = @N WHERE SeqCode = 'FAIL'", ("@P", saved.Item1!), ("@N", saved.Item2));
+        }
+    }
+
     [SkippableFact]
     public void Deleting_a_failure_removes_actions_and_rejects_closed_or_andon_failures()
     {

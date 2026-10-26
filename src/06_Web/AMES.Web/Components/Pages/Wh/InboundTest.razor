@@ -6,28 +6,29 @@
 @inject AmesConnectionFactory Factory
 @inject AuthenticationStateProvider Auth
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResources> L
 
-<PageTitle>WH PDA Test · AMES</PageTitle>
-<AmesPageHeader Code="WH-PDA-TEST" Title="WH PDA Test" />
+<PageTitle>@L["WH.PdaTest.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="WH-PDA-TEST" TitleKey="WH.PdaTest.Title" />
 @if(_error.Length>0){<RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert>}
 @if(_allowed)
 {
     <section class="ames-card pda-test-workspace" data-no-busy>
         <div class="ames-card-h master-list-toolbar">
-            <span class="dim">Uses real inventory · No automatic test data</span>
+            <span class="dim">@L["WH.PdaTest.Hint.RealInventory"]</span>
         </div>
         <div class="pda-test-preview">
             <div class="pda-device">
                 @if(_screen.Length==0)
                 {
-                    <header class="pda-test-topbar"><RadzenIcon Icon="warehouse" /><strong>WAREHOUSE</strong></header>
+                    <header class="pda-test-topbar"><RadzenIcon Icon="warehouse" /><strong>@L["Col.Warehouse"]</strong></header>
                     <div class="pda-test-body">
                         <div class="pda-test-menu">
                             <RadzenButton class="ames-rz-btn pda-test-menu-tile inbound" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='@(()=>_screen="Inbound")'>
-                                <RadzenIcon Icon="qr_code_scanner" /><span>Inbound</span>
+                                <RadzenIcon Icon="qr_code_scanner" /><span>@L["WH.PdaTest.Lbl.Inbound"]</span>
                             </RadzenButton>
                             <RadzenButton class="ames-rz-btn pda-test-menu-tile putaway" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='@(()=>_screen="PutAway")'>
-                                <RadzenIcon Icon="move_to_inbox" /><span>Put-away</span>
+                                <RadzenIcon Icon="move_to_inbox" /><span>@L["WH.PdaTest.Lbl.PutAway"]</span>
                             </RadzenButton>
                         </div>
                     </div>

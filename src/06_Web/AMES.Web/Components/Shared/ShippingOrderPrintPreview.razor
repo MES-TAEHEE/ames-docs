@@ -6,19 +6,19 @@
 @if(Orders.Count>0)
 {
     <div class="ames-modal-bg shipping-a4-modal-bg" data-no-busy @onclick="Close">
-        <div class="ames-modal ames-modal-fullwide shipping-a4-modal" role="dialog" aria-modal="true" aria-label="A4 print preview" @onclick:stopPropagation>
-            <div class="ames-modal-h shipping-a4-toolbar">PRINT PREVIEW · A4 (210 × 297 mm)</div>
+        <div class="ames-modal ames-modal-fullwide shipping-a4-modal" role="dialog" aria-modal="true" aria-label="@L["FG.OrderPrint.Title"]" @onclick:stopPropagation>
+            <div class="ames-modal-h shipping-a4-toolbar">@L["FG.OrderPrint.Title"] · A4 (210 × 297 mm)</div>
             <div class="ames-modal-body fg-document-preview shipping-a4-preview">
                 <div class="fg-print-area">
                     <article class="fg-dcr-paper shipping-a4-paper">
-                        <h1>@(Delivery is null?"SHIPMENT ORDER":"DCR DELIVERY")</h1>
+                        <h1>@(Delivery is null?L["FG.OrderPrint.Lbl.Order"]:L["FG.OrderPrint.Lbl.Dcr"])</h1>
                         <Code128Barcode Value="@(Delivery?.DeliveryNo??Orders[0].OrderNo)" Height="65" />
                         <h2>@(Delivery?.DeliveryNo??Orders[0].OrderNo)</h2>
-                        <p>Customer: @(Delivery?.CustomerId??Orders[0].CustomerId) · Ship date: @((Delivery?.ShipDate??Orders[0].ShipDate).ToString(DateFmt.Date))</p>
-                        @if(!string.IsNullOrWhiteSpace(Delivery?.TrailerNo)){<p>Trailer: @Delivery.TrailerNo</p>}
+                        <p>@L["Col.Customer"]: @(Delivery?.CustomerId??Orders[0].CustomerId) · @L["Col.ShipDate"]: @((Delivery?.ShipDate??Orders[0].ShipDate).ToString(DateFmt.Date))</p>
+                        @if(!string.IsNullOrWhiteSpace(Delivery?.TrailerNo)){<p>@L["FG.Trailer.Lbl.Trailer"]: @Delivery.TrailerNo</p>}
                         <table>
                             <colgroup><col style="width:20%" /><col style="width:17%" /><col style="width:20%" /><col style="width:30%" /><col style="width:13%" /></colgroup>
-                            <thead><tr><th>ORDER</th><th>SO</th><th>PART NO</th><th>DESCRIPTION</th><th class="quantity">REQUIRED QTY</th></tr></thead>
+                            <thead><tr><th>@L["FG.OrderPrint.Col.Order"]</th><th>SO</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ItemName"]</th><th class="quantity">@L["FG.OrderPrint.Col.RequiredQty"]</th></tr></thead>
                             <tbody>
                                 @foreach(var order in Orders)
                                 {

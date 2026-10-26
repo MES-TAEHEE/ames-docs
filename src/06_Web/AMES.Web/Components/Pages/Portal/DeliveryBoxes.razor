@@ -42,8 +42,8 @@
         @if(_document is not null && _boxes.Count==0){<p class="dim">@(_document.Status=="Cancelled"?L["Portal.Text.ThisDeliveryIsCancelledLabelsCannotBePrinted"]:L["Portal.Text.NoSavedBoxesBoxesAreNotAutomaticallyGeneratedFor"])</p>}
         <RadzenDataGrid TItem="ScmRepository.DeliveryBox" Data="@_boxes" Class="ames-rz-grid" AllowPaging="true" PageSize="20" EmptyText='@L["Portal.Text.SelectADelivery"]'>
             <Columns>
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="110px" MinWidth="110px" TextAlign="TextAlign.Center" Title='@L["Scm.Text.SelectLabel"]'><Template Context="b"><input type="checkbox" aria-label='@L["Portal.Accessibility.SelectBox", b.Number]' checked="@_selected.Contains(b.Id)" @onchange="e=>Toggle(b.Id,e.Value is true)" /></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="160px" MinWidth="160px" TextAlign="TextAlign.Center" Property="Item" Title='@L["Portal.Text.ItemCode"]' />
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="120px" MinWidth="120px" TextAlign="TextAlign.Center" Title='@L["Scm.Text.SelectLabel"]'><Template Context="b"><input type="checkbox" aria-label='@L["Portal.Accessibility.SelectBox", b.Number]' checked="@_selected.Contains(b.Id)" @onchange="e=>Toggle(b.Id,e.Value is true)" /></Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Item" Title='@L["Portal.Text.ItemCode"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" MinWidth="200px" Property="Name" Title='@L["Scm.Text.Description"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="170px" MinWidth="170px" TextAlign="TextAlign.Center" Property="Number" Title='@L["Portal.Boxes.Col.Barcode"]' />
                 <RadzenDataGridColumn TItem="ScmRepository.DeliveryBox" Width="100px" MinWidth="100px" TextAlign="TextAlign.Center" Property="Sequence" Title='@L["Portal.Text.Sequence"]' />

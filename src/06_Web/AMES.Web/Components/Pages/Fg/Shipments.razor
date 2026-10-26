@@ -21,7 +21,7 @@
     <div class="ames-card-h master-list-toolbar">
         <span>▼ @L["FG.Shipments.Title"] · @_rows.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder='@L["Shipment.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
+            <RadzenTextBox @bind-Value="_search" Placeholder='@L["FG.Shipments.Ph.SearchLot"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <span>–</span>
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
@@ -49,16 +49,16 @@
             }
         </Template>
         <Columns>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipmentId" Title='@L["Shipment.Id"]' Width="110px" />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedAt" Title='@L["FG.Shipments.Col.ShippedAt"]' Width="180px"><Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTime)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShipmentId" Title='@L["Shipment.Id"]' Width="110px" MinWidth="110px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedAt" Title='@L["FG.Shipments.Col.ShippedAt"]' Width="180px" MinWidth="180px"><Template Context="r">@r.ShippedAt.ToString(DateFmt.DateTime)</Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="LotNo" Title='@L["Col.LotNo"]' />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="PalletNo" Title='@L["Shipment.PalletNo"]' />
+            <RadzenDataGridColumn Width="110px" MinWidth="110px" TItem="FinishedGoodsRepository.ShipmentRow" Property="PalletNo" Title='@L["Shipment.PalletNo"]' />
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="PartNo" Title='@L["Col.PartNo"]'><Template Context="r">@r.PartNo<div class="dim">@r.PartName</div></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="UnitType" Title='@L["Shipment.UnitType"]' Width="100px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="UnitType" Title='@L["Shipment.UnitType"]' Width="130px" MinWidth="130px" />
             <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="CustomerId" Title='@L["Col.Customer"]'><Template Context="r">@r.CustomerId<div class="dim">@r.CustomerName</div></Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ItemCount" Title='@L["Shipment.Lots"]' Width="80px" />
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Qty" Title='@L["Col.Quantity"]' Width="100px"><Template Context="r">@UomFmt.Qty(r.Qty,null)</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedBy" Title='@L["Shipment.ShippedBy"]' Width="130px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ItemCount" Title='@L["Shipment.Lots"]' Width="80px" MinWidth="80px" />
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="Qty" Title='@L["Col.Quantity"]' Width="100px" MinWidth="100px"><Template Context="r">@UomFmt.Qty(r.Qty,null)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentRow" Property="ShippedBy" Title='@L["Shipment.ShippedBy"]' Width="130px" MinWidth="130px" />
         </Columns>
     </RadzenDataGrid>
 </section>

@@ -11,7 +11,7 @@
                     @{
                         var barcode = BuildCode128(LocationCode);
                     }
-                    <svg class="location-label-barcode" viewBox="0 0 @barcode.Width 76" preserveAspectRatio="none" role="img" aria-label="Location barcode @LocationCode">
+                    <svg class="location-label-barcode" viewBox="0 0 @barcode.Width 76" preserveAspectRatio="none" role="img" aria-label="@($"{L["WH.LocBarcode.Title"]} {LocationCode}")">
                         @foreach (var bar in barcode.Bars)
                         {
                             <rect x="@bar.X" y="0" width="@bar.Width" height="76"></rect>

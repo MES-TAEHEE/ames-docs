@@ -193,8 +193,8 @@ public sealed class AndonRepository
     {
         const string headSql = "dbo.SP_POP_ANDON_CallDepts_UpdAndonCall";
         const string downSql = "dbo.SP_POP_ANDON_CallDepts_UpdLineDowntimeLog";
-        // 고장번호는 기존 데이터 형식 FAIL-yyMM-NNN 을 따른다. 월별 순번은 같은 트랜잭션 안에서
-        // 범위 잠금으로 세므로 두 터미널이 동시에 만들어도 번호가 겹치지 않는다.
+        // 고장번호는 기존 데이터 형식 FAIL-yyMM-NNN 을 따른다. 월별 순번은 같은 트랜잭션 안에서 카운터 행
+        // (SYS_NumberSeq, 웹 고장 등록과 공용)을 잠그고 받으므로 두 터미널이 동시에 만들어도 번호가 겹치지 않는다.
         const string failSql = "dbo.SP_POP_ANDON_CallDepts_InsMNT_FailureRegister";
         const string deptSql = "dbo.SP_POP_ANDON_CallDepts_InsAndonDeptCall";
         using var conn = _factory.OpenConnection();

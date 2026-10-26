@@ -1,5 +1,5 @@
-﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-24 from the development DB (192.168.0.132) with SMO.
--- 178 tables / 2428 columns, 158 procedures, 0 views, 0 functions, 1 sequences.
+﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-26 from the development DB (192.168.0.132) with SMO.
+-- 179 tables / 2434 columns, 159 procedures, 0 views, 0 functions, 1 sequences.
 -- Excludes TEST_* tables, retired WH_ReleaseSchedule and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
 -- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).
 -- Schema only from the live database; sample seeds below are retained from the repository.
@@ -16,7 +16,7 @@ GO
 DECLARE @DropFk nvarchar(max) = N'';
 SELECT @DropFk += N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(fk.parent_object_id)) + N'.' + QUOTENAME(OBJECT_NAME(fk.parent_object_id)) + N' DROP CONSTRAINT ' + QUOTENAME(fk.name) + N';'
 FROM sys.foreign_keys fk
-WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) = N'dbo' AND (OBJECT_NAME(fk.parent_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_Delivery,FG_DeliveryLoad,FG_Shipment,FG_ShippingOrder,FG_ShippingOrderLine,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_Pallet,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PntLot,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule', N',')) OR OBJECT_NAME(fk.referenced_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_Delivery,FG_DeliveryLoad,FG_Shipment,FG_ShippingOrder,FG_ShippingOrderLine,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_Pallet,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PntLot,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder,WH_ReleaseSchedule', N',')));
+WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) = N'dbo' AND (OBJECT_NAME(fk.parent_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_Delivery,FG_DeliveryLoad,FG_Shipment,FG_ShippingOrder,FG_ShippingOrderLine,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_Pallet,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PntLot,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_NumberSeq,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder', N',')) OR OBJECT_NAME(fk.referenced_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_Delivery,FG_DeliveryLoad,FG_Shipment,FG_ShippingOrder,FG_ShippingOrderLine,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_Pallet,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PntLot,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_NumberSeq,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder', N',')));
 EXEC sys.sp_executesql @DropFk;
 GO
 DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_HISTORY_TEST_RESET];
@@ -174,6 +174,7 @@ DROP PROCEDURE IF EXISTS [dbo].[SP_PP_LineOEE_Fill_Monitor];
 DROP PROCEDURE IF EXISTS [dbo].[SP_PP_LineStateLog_Fill];
 DROP PROCEDURE IF EXISTS [dbo].[SP_PP_LineStateLog_Fill_Monitor];
 DROP PROCEDURE IF EXISTS [dbo].[SP_SYS_FactoryCalendar_Fill];
+DROP PROCEDURE IF EXISTS [dbo].[SP_SYS_NumberSeq_Next];
 DROP PROCEDURE IF EXISTS [dbo].[WH_PDA_INBOUND_SIMPLE_TEST_RESET];
 DROP PROCEDURE IF EXISTS [dbo].[WH_PDA_PPT_TEST_RESET];
 DROP PROCEDURE IF EXISTS [dbo].[WH_SET_LOT_STATUS];
@@ -346,6 +347,7 @@ DROP TABLE IF EXISTS [dbo].[SYS_LotSeq];
 DROP TABLE IF EXISTS [dbo].[SYS_NotificationChannel];
 DROP TABLE IF EXISTS [dbo].[SYS_NotificationHistory];
 DROP TABLE IF EXISTS [dbo].[SYS_NotificationRule];
+DROP TABLE IF EXISTS [dbo].[SYS_NumberSeq];
 DROP TABLE IF EXISTS [dbo].[SYS_PublicHoliday];
 DROP TABLE IF EXISTS [dbo].[SYS_RolePermission];
 DROP TABLE IF EXISTS [dbo].[SYS_Screen];
@@ -355,7 +357,6 @@ DROP TABLE IF EXISTS [dbo].[WH_Inventory];
 DROP TABLE IF EXISTS [dbo].[WH_InventoryTransaction];
 DROP TABLE IF EXISTS [dbo].[WH_PickSlip];
 DROP TABLE IF EXISTS [dbo].[WH_PurchaseOrder];
-DROP TABLE IF EXISTS [dbo].[WH_ReleaseSchedule];
 DROP SEQUENCE IF EXISTS [dbo].[SCM_CaseNumberSequence];
 GO
 -- Table: dbo.AspNetRoleClaims
@@ -9218,6 +9219,26 @@ ALTER TABLE [dbo].[SYS_NotificationRule] ADD  DEFAULT ('system') FOR [CreatedBy]
 GO
 ALTER TABLE [dbo].[SYS_NotificationRule] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
+-- Table: dbo.SYS_NumberSeq
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SYS_NumberSeq](
+	[SeqCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[PeriodKey] [char](4) COLLATE Korean_Wansung_CI_AS NOT NULL,
+	[LastNo] [int] NOT NULL,
+	[ModifiedTS] [datetime2](7) NOT NULL,
+ CONSTRAINT [PK_SYS_NumberSeq] PRIMARY KEY CLUSTERED 
+(
+	[SeqCode] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[SYS_NumberSeq] ADD  CONSTRAINT [DF_SYS_NumberSeq_ModifiedTS]  DEFAULT (sysdatetime()) FOR [ModifiedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'MNT 문서 번호 채번 카운터 — 번호 종류(FAIL·MWO·PM)당 1행, 그 달(PeriodKey yyMM)의 마지막 순번' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'SYS_NumberSeq'
+GO
 -- Table: dbo.SYS_PublicHoliday
 SET ANSI_NULLS ON
 GO
@@ -10331,6 +10352,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- POP 안돈 보전 호출의 고장 등록 — 고장번호를 같은 카운터로 받는다(migrate_pop_stored_procedures.sql 의 같은 프로시저와 동일 본문)
 CREATE   PROCEDURE dbo.SP_POP_ANDON_CallDepts_InsMNT_FailureRegister
     @Ref VARCHAR(24),
     @C VARCHAR(30),
@@ -10342,10 +10364,10 @@ AS
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbo.MNT_FailureRegister WHERE Source = 'ANDON' AND AndonRefID = @Ref)
     BEGIN
-        DECLARE @ym  VARCHAR(4) = FORMAT(SYSDATETIME(), 'yyMM');
-        DECLARE @seq INT = ISNULL((SELECT MAX(TRY_CAST(RIGHT(FailureNumber, 3) AS INT))
-                                   FROM dbo.MNT_FailureRegister WITH (UPDLOCK, HOLDLOCK)
-                                   WHERE FailureNumber LIKE 'FAIL-' + @ym + '-%'), 0) + 1;
+        -- 고장번호 채번 = SYS_NumberSeq 카운터(웹 MntRepository.ClaimNumber 와 공용, dist/migrate_sys_number_seq.sql) — 범위 잠금 교착 방지(10-26)
+        DECLARE @ym  CHAR(4) = FORMAT(SYSDATETIME(), 'yyMM');
+        DECLARE @seq INT;
+        EXEC dbo.SP_SYS_NumberSeq_Next @SeqCode = 'FAIL', @Ym = @ym, @No = @seq OUTPUT;
         INSERT INTO dbo.MNT_FailureRegister
             (FailureNumber, EquipID, FailureType, Symptom, Severity, Source, AndonRefID, DowntimeID,
              Status, ReportedBy, ReportedAt, CreatedBy, CreatedTS)
@@ -14119,6 +14141,47 @@ END
 GO
 SET ANSI_NULLS ON
 GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE   PROCEDURE dbo.SP_SYS_NumberSeq_Next
+    @SeqCode VARCHAR(10),
+    @Ym      CHAR(4),
+    @No      INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @period CHAR(4), @last INT;
+    -- 이 행 하나를 트랜잭션 끝까지 잠가 같은 번호 종류의 채번을 줄 세운다(범위 잠금 없음)
+    UPDATE dbo.SYS_NumberSeq WITH (ROWLOCK)
+    SET    @period = PeriodKey, @last = LastNo, ModifiedTS = SYSDATETIME()
+    WHERE  SeqCode = @SeqCode;
+    IF @@ROWCOUNT = 0
+    BEGIN
+        DECLARE @msg NVARCHAR(200) = N'SYS_NumberSeq row missing: ' + @SeqCode;
+        THROW 52100, @msg, 1;
+    END;
+
+    DECLARE @prefix VARCHAR(20) = @SeqCode + '-' + @Ym + '-';
+    DECLARE @max INT =
+        CASE @SeqCode
+            WHEN 'FAIL' THEN (SELECT MAX(TRY_CAST(SUBSTRING(FailureNumber, LEN(@prefix) + 1, 10) AS INT))
+                              FROM dbo.MNT_FailureRegister WHERE FailureNumber LIKE @prefix + '%')
+            WHEN 'MWO'  THEN (SELECT MAX(TRY_CAST(SUBSTRING(WoNumber, LEN(@prefix) + 1, 10) AS INT))
+                              FROM dbo.MNT_WorkOrder WHERE WoNumber LIKE @prefix + '%')
+            WHEN 'PM'   THEN (SELECT MAX(TRY_CAST(SUBSTRING(PMPlanNumber, LEN(@prefix) + 1, 10) AS INT))
+                              FROM dbo.MNT_PMSchedule WHERE PMPlanNumber LIKE @prefix + '%')
+        END;
+
+    SET @No = CASE WHEN @period = @Ym THEN @last ELSE 0 END;
+    IF ISNULL(@max, 0) > @No SET @No = @max;
+    SET @No = @No + 1;
+
+    UPDATE dbo.SYS_NumberSeq SET PeriodKey = @Ym, LastNo = @No WHERE SeqCode = @SeqCode;
+END;
+GO
+SET ANSI_NULLS ON
+GO
 SET QUOTED_IDENTIFIER OFF
 GO
 CREATE   PROCEDURE dbo.WH_PDA_INBOUND_SIMPLE_TEST_RESET
@@ -15562,7 +15625,7 @@ INSERT INTO dbo.MD_InjCondItem (LineID, ItemCode, ItemName, SetAddress, ActualAd
 GO
 PRINT '✓ Seed data inserted: 4 Molds, 2 InjCondItem (사출 자동수집)';
 GO
--- Seed: SYS_Screen — regenerated 2026-10-24 from the development DB (all modules)
+-- Seed: SYS_Screen — regenerated 2026-10-26 from the development DB (all modules)
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-01', 'WEB', 'FG', NULL, N'고객사 리턴', N'Customer Returns', 'fg/customer-returns', 'FG-01', '_XX', 1, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-05', 'WEB', 'FG', NULL, N'출하 오더', N'Shipment Orders', 'fg/shipping-orders', 'FG-02', '__X', 2, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-02', 'WEB', 'FG', NULL, N'출하 계획', N'Shipment Plan', 'fg/shipment-plan', 'FG-03', '_XX', 3, 1, 'seed');

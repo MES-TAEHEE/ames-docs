@@ -120,7 +120,7 @@ public sealed class LocationStorageTests
         Assert.DoesNotContain("Storage Settings", source);
         Assert.DoesNotContain("SaveLocationMapStorage", source);
         Assert.Contains("@if (_dialog == \"Area\")", source);
-        Assert.Contains("Storage mode cannot be changed after creation.", source);
+        Assert.Contains("L[\"WH.LocMap.Hint.StorageMode\"]", source); // 값: "… Storage mode cannot be changed after creation."
         Assert.Contains("Warehouse.CreateLocationMapArea(_warehouse!, code, name, _storageMode)", source);
     }
 
@@ -183,7 +183,7 @@ public sealed class LocationStorageTests
         var page = Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor");
         Assert.Contains("Warehouse.RenameLocationMapWarehouse(_code, _name)", page);
         Assert.Contains("_dialog == \"WarehouseName\" && (!_editing || _stage != MapStage.Warehouse)", page);
-        Assert.Contains("Edit Warehouse Name", page);
+        Assert.Contains("\"WarehouseName\" => $\"{L[\"WH.LocMap.Lbl.EditNameFmt\", L[\"Col.Warehouse\"].Value]}", page);
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public sealed class LocationStorageTests
     {
         var page = Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor");
         var delete = page[page.IndexOf("private async Task DeleteCard", StringComparison.Ordinal)..page.IndexOf("private void OpenDialog", StringComparison.Ordinal)];
-        Assert.Contains("Are you sure you want to delete", delete);
+        Assert.Contains("L[\"WH.LocMap.Msg.ConfirmDelete\"", delete);
         Assert.Contains("}) != true) return;", delete);
         Assert.True(delete.IndexOf("impact.StockRows > 0", StringComparison.Ordinal) < delete.IndexOf("Dialog.Confirm", StringComparison.Ordinal));
         Assert.True(delete.IndexOf("Dialog.Confirm", StringComparison.Ordinal) < delete.IndexOf("Warehouse.DeleteLocationMapScope", StringComparison.Ordinal));

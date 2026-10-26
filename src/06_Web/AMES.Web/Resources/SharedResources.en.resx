@@ -8541,9 +8541,6 @@
   <data name="FG.Returns.Ph.Search" xml:space="preserve">
     <value>Return No/RMA/Customer/Item</value>
   </data>
-  <data name="FG.Shipments.Ph.Search" xml:space="preserve">
-    <value>Ship Order/Customer/Vehicle/DN</value>
-  </data>
   <data name="WH.LogHistory.Ph.Search" xml:space="preserve">
     <value>Event/LOT/Part No/Operator/Note</value>
   </data>
@@ -11733,5 +11730,776 @@
   </data>
   <data name="SYS.Notifications.Hint.PushAddress" xml:space="preserve">
     <value>The PUSH address is the device token the notification app registers at sign-in. It cannot be added or changed here — only receive on/off and do-not-disturb hours can be edited.</value>
+  </data>
+  <data name="Portal.Note.Sender" xml:space="preserve">
+    <value>Sender</value>
+  </data>
+  <data name="Portal.Note.Recipient" xml:space="preserve">
+    <value>Recipient</value>
+  </data>
+  <data name="Portal.Note.Items" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="TopBar.Theme.Dark" xml:space="preserve">
+    <value>Dark theme</value>
+  </data>
+  <data name="TopBar.Theme.Light" xml:space="preserve">
+    <value>Light theme</value>
+  </data>
+  <data name="TopBar.Theme.Toggle" xml:space="preserve">
+    <value>Toggle theme</value>
+  </data>
+  <data name="FG.ShipOrders.Title" xml:space="preserve">
+    <value>Shipment Orders</value>
+  </data>
+  <data name="FG.ShipOrders.List" xml:space="preserve">
+    <value>Shipment Order List</value>
+  </data>
+  <data name="FG.ShipOrders.Kpi.Orders" xml:space="preserve">
+    <value>Orders</value>
+  </data>
+  <data name="FG.ShipOrders.Kpi.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="FG.ShipOrders.Kpi.DcrAssigned" xml:space="preserve">
+    <value>DCR Assigned</value>
+  </data>
+  <data name="FG.ShipOrders.Btn.CreateDcr" xml:space="preserve">
+    <value>Create DCR / Trailer</value>
+  </data>
+  <data name="FG.ShipOrders.Col.OrderNo" xml:space="preserve">
+    <value>Order No</value>
+  </data>
+  <data name="FG.ShipOrders.Col.PartQty" xml:space="preserve">
+    <value>Part / Qty</value>
+  </data>
+  <data name="FG.ShipOrders.Col.Dcr" xml:space="preserve">
+    <value>DCR / Trailer</value>
+  </data>
+  <data name="FG.ShipOrders.Lbl.NotAssigned" xml:space="preserve">
+    <value>Not assigned</value>
+  </data>
+  <data name="FG.ShipOrders.Title.Create" xml:space="preserve">
+    <value>Create Shipment Order</value>
+  </data>
+  <data name="FG.ShipOrders.Title.Created" xml:space="preserve">
+    <value>Shipment Orders Created</value>
+  </data>
+  <data name="FG.ShipOrders.Hint.CreateDcr" xml:space="preserve">
+    <value>Select these orders and create a DCR to include them in Shipment Plan.</value>
+  </data>
+  <data name="FG.ShipOrders.Hint.DcrSelectedFmt" xml:space="preserve">
+    <value>{0} shipment order(s) · same customer and ship date required</value>
+  </data>
+  <data name="FG.ShipOrders.Err.CreatedPartial" xml:space="preserve">
+    <value>Orders were saved, but some details could not be loaded. Refresh Shipment Orders to view them. Do not create them again.</value>
+  </data>
+  <data name="FG.ShipOrders.Err.CreatedNoDetail" xml:space="preserve">
+    <value>Orders were saved. Details could not be loaded; refresh Shipment Orders to view them. Do not create them again.</value>
+  </data>
+  <data name="FG.ShipOrders.Ok.DcrCreatedFmt" xml:space="preserve">
+    <value>Created {0}</value>
+  </data>
+  <data name="FG.ShipPlan.Title" xml:space="preserve">
+    <value>Shipment Plan</value>
+  </data>
+  <data name="FG.ShipPlan.List" xml:space="preserve">
+    <value>DCR Shipment Plan</value>
+  </data>
+  <data name="FG.ShipPlan.Kpi.Dcrs" xml:space="preserve">
+    <value>DCRs</value>
+  </data>
+  <data name="FG.ShipPlan.Kpi.EstTrailers" xml:space="preserve">
+    <value>Estimated Trailers</value>
+  </data>
+  <data name="FG.ShipPlan.Ph.Customer" xml:space="preserve">
+    <value>All customers</value>
+  </data>
+  <data name="FG.ShipPlan.Ph.Search" xml:space="preserve">
+    <value>DCR/Order/SO/Part</value>
+  </data>
+  <data name="FG.ShipPlan.Btn.TrailerPreview" xml:space="preserve">
+    <value>Trailer Preview</value>
+  </data>
+  <data name="FG.ShipPlan.Empty" xml:space="preserve">
+    <value>No DCRs in this date range. Select shipment orders and create a DCR first.</value>
+  </data>
+  <data name="FG.ShipPlan.Col.DcrNo" xml:space="preserve">
+    <value>DCR No</value>
+  </data>
+  <data name="FG.ShipPlan.Col.Orders" xml:space="preserve">
+    <value>Orders</value>
+  </data>
+  <data name="FG.ShipPlan.Col.PartsQty" xml:space="preserve">
+    <value>Parts / Ship Qty</value>
+  </data>
+  <data name="FG.ShipPlan.Err.DateRange" xml:space="preserve">
+    <value>Select a valid ship-date range.</value>
+  </data>
+  <data name="FG.ShipPlan.Err.Load" xml:space="preserve">
+    <value>Unable to load saved DCRs. Check the connection and click Refresh.</value>
+  </data>
+  <data name="FG.ShipPlan.Err.PrintLoad" xml:space="preserve">
+    <value>Unable to load the selected DCR for printing. Refresh and retry.</value>
+  </data>
+  <data name="FG.Shipments.Ph.SearchLot" xml:space="preserve">
+    <value>LOT/Part No/Customer/Location/Worker</value>
+  </data>
+  <data name="FG.Ship.Lbl.Parts" xml:space="preserve">
+    <value>parts</value>
+  </data>
+  <data name="FG.Ship.Lbl.EstPallets" xml:space="preserve">
+    <value>Estimated Pallets</value>
+  </data>
+  <data name="FG.Ship.Lbl.ToteManual" xml:space="preserve">
+    <value>TOTE · manual estimate</value>
+  </data>
+  <data name="FG.Ship.Lbl.NoPalletQty" xml:space="preserve">
+    <value>Pallet qty not set</value>
+  </data>
+  <data name="FG.Ship.Col.ShipQty" xml:space="preserve">
+    <value>Ship Qty</value>
+  </data>
+  <data name="FG.Ship.Col.PalletCalc" xml:space="preserve">
+    <value>Ship Qty ÷ Qty / Pallet = Pallets</value>
+  </data>
+  <data name="FG.Ship.Err.DateRange" xml:space="preserve">
+    <value>Select a valid date range.</value>
+  </data>
+  <data name="FG.Trailer.Title" xml:space="preserve">
+    <value>Trailer Load Preview</value>
+  </data>
+  <data name="FG.Trailer.Title.PendingHelp" xml:space="preserve">
+    <value>Packing quantity information</value>
+  </data>
+  <data name="FG.Trailer.Lbl.EstimatedFmt" xml:space="preserve">
+    <value>{0} trailers estimated</value>
+  </data>
+  <data name="FG.Trailer.Lbl.Partial" xml:space="preserve">
+    <value>Partial</value>
+  </data>
+  <data name="FG.Trailer.Hint.Partial" xml:space="preserve">
+    <value>Some quantities are not determined and are excluded. Open Details &amp; TOTE.</value>
+  </data>
+  <data name="FG.Trailer.Btn.Details" xml:space="preserve">
+    <value>Details &amp; TOTE</value>
+  </data>
+  <data name="FG.Trailer.Lbl.Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="FG.Trailer.Lbl.Pallets" xml:space="preserve">
+    <value>pallets</value>
+  </data>
+  <data name="FG.Trailer.Lbl.ToteManual" xml:space="preserve">
+    <value>TOTE manual</value>
+  </data>
+  <data name="FG.Trailer.Lbl.NotDetermined" xml:space="preserve">
+    <value>Not determined</value>
+  </data>
+  <data name="FG.Trailer.Hint.CapacityFmt" xml:space="preserve">
+    <value>{0} pallets / trailer · Uses saved DCR contents and ship dates. Different DCRs are estimated separately.</value>
+  </data>
+  <data name="FG.Trailer.Hint.Move" xml:space="preserve">
+    <value>Drag a pallet to another trailer, or select it and use Move here. Display only; changes are not saved.</value>
+  </data>
+  <data name="FG.Trailer.Msg.Partial" xml:space="preserve">
+    <value>Partial estimate — items with quantities not yet determined are NOT included in trailer totals.</value>
+  </data>
+  <data name="FG.Trailer.Lbl.ToteSection" xml:space="preserve">
+    <value>TOTE · Manual Pallets</value>
+  </data>
+  <data name="FG.Trailer.Hint.Tote" xml:space="preserve">
+    <value>Enter pallets for each DCR/customer/date group. Quantity or filter changes reset estimates; editing counts rebuilds placement.</value>
+  </data>
+  <data name="FG.Trailer.Col.Parts" xml:space="preserve">
+    <value>Parts</value>
+  </data>
+  <data name="FG.Trailer.Lbl.NotDeterminedLinesFmt" xml:space="preserve">
+    <value>Not determined · {0} lines</value>
+  </data>
+  <data name="FG.Trailer.Msg.ToteNotEntered" xml:space="preserve">
+    <value>TOTE estimate not entered</value>
+  </data>
+  <data name="FG.Trailer.Empty" xml:space="preserve">
+    <value>No trailer estimate yet. Open Details &amp; TOTE to check quantities.</value>
+  </data>
+  <data name="FG.Trailer.Lbl.TrailersFmt" xml:space="preserve">
+    <value>{0} trailers</value>
+  </data>
+  <data name="FG.Trailer.Lbl.Trailer" xml:space="preserve">
+    <value>Trailer</value>
+  </data>
+  <data name="FG.Trailer.Btn.MoveHere" xml:space="preserve">
+    <value>Move here</value>
+  </data>
+  <data name="FG.Trailer.Lbl.TotePalletFmt" xml:space="preserve">
+    <value>TOTE pallet {0} / {1} · estimated</value>
+  </data>
+  <data name="FG.Trailer.Lbl.MixedTote" xml:space="preserve">
+    <value>Mixed TOTE group</value>
+  </data>
+  <data name="FG.Trailer.Lbl.ToteContentsFmt" xml:space="preserve">
+    <value>{0} parts · {1} across the group</value>
+  </data>
+  <data name="FG.Trailer.Lbl.NoPerPallet" xml:space="preserve">
+    <value>Per-pallet contents not assigned</value>
+  </data>
+  <data name="FG.Trailer.Lbl.PalletFmt" xml:space="preserve">
+    <value>Pallet {0} · {1}</value>
+  </data>
+  <data name="FG.Trailer.Lbl.Empty" xml:space="preserve">
+    <value>Empty</value>
+  </data>
+  <data name="FG.Trailer.Hint.Pending" xml:space="preserve">
+    <value>Packing quantities have not been determined yet. For standard parts, set Pallet Qty in Product Item Master and refresh Shipment Plan. For TOTE parts, enter the group's Estimated pallets above. Once set, these pallets are included in the estimated pallet and trailer totals.</value>
+  </data>
+  <data name="FG.OrderCreate.Kpi.SoLines" xml:space="preserve">
+    <value>SO Lines</value>
+  </data>
+  <data name="FG.OrderCreate.Kpi.Selected" xml:space="preserve">
+    <value>Selected</value>
+  </data>
+  <data name="FG.OrderCreate.Col.Balance" xml:space="preserve">
+    <value>Order / Shipped / Remaining</value>
+  </data>
+  <data name="FG.OrderCreate.Hint.Remaining" xml:space="preserve">
+    <value>Available after quantities already assigned to open shipment orders</value>
+  </data>
+  <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
+    <value>Pallets (Qty / Pallet)</value>
+  </data>
+  <data name="FG.OrderCreate.Lbl.PerPalletFmt" xml:space="preserve">
+    <value>{0} / pallet</value>
+  </data>
+  <data name="FG.OrderCreate.Hint.UnestimatedFmt" xml:space="preserve">
+    <value>{0} without a pallet estimate</value>
+  </data>
+  <data name="FG.OrderCreate.Err.ShipDate" xml:space="preserve">
+    <value>Select a ship date.</value>
+  </data>
+  <data name="FG.OrderCreate.Err.Qty" xml:space="preserve">
+    <value>Enter whole shipment quantities within the remaining SO balance.</value>
+  </data>
+  <data name="FG.OrderPrint.Title" xml:space="preserve">
+    <value>Print Preview</value>
+  </data>
+  <data name="FG.OrderPrint.Lbl.Order" xml:space="preserve">
+    <value>SHIPMENT ORDER</value>
+  </data>
+  <data name="FG.OrderPrint.Lbl.Dcr" xml:space="preserve">
+    <value>DCR DELIVERY</value>
+  </data>
+  <data name="FG.OrderPrint.Col.Order" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="FG.OrderPrint.Col.RequiredQty" xml:space="preserve">
+    <value>Required Qty</value>
+  </data>
+  <data name="FG.Returns.Col.ShipLotNo" xml:space="preserve">
+    <value>Shipment LOT No</value>
+  </data>
+  <data name="FG.Returns.Lbl.ShipmentBarcode" xml:space="preserve">
+    <value>Shipment ID / Barcode</value>
+  </data>
+  <data name="FG.Returns.Lbl.InspectedAt" xml:space="preserve">
+    <value>Inspected At</value>
+  </data>
+  <data name="FG.Returns.Lbl.InspectedBy" xml:space="preserve">
+    <value>Inspected By</value>
+  </data>
+  <data name="FG.Returns.Lbl.InspectionNote" xml:space="preserve">
+    <value>Inspection Note</value>
+  </data>
+  <data name="FG.Returns.Lbl.InspectionNoteReq" xml:space="preserve">
+    <value>Inspection note (required for defective returns)</value>
+  </data>
+  <data name="FG.Returns.Msg.Awaiting" xml:space="preserve">
+    <value>Awaiting inspection. This quantity cannot be used, assigned a location or shipped.</value>
+  </data>
+  <data name="FG.Returns.Hint.NoPermission" xml:space="preserve">
+    <value>Inventory Defect approval permission is required to inspect this return.</value>
+  </data>
+  <data name="FG.Returns.Btn.Accept" xml:space="preserve">
+    <value>Accept to Stock</value>
+  </data>
+  <data name="FG.Returns.Btn.Defective" xml:space="preserve">
+    <value>Mark Defective</value>
+  </data>
+  <data name="FG.Returns.Err.NoPermission" xml:space="preserve">
+    <value>You do not have the Inventory Defect approval permission.</value>
+  </data>
+  <data name="FG.Returns.Msg.ConfirmAccept" xml:space="preserve">
+    <value>Accept this entire returned LOT to stock?</value>
+  </data>
+  <data name="FG.Returns.Msg.ConfirmDefective" xml:space="preserve">
+    <value>Mark this entire returned LOT defective?</value>
+  </data>
+  <data name="FG.Returns.Title.Inspection" xml:space="preserve">
+    <value>Return Inspection</value>
+  </data>
+  <data name="FG.Returns.Ok.Accepted" xml:space="preserve">
+    <value>Inspection passed. Use Set Location before outbound.</value>
+  </data>
+  <data name="FG.Returns.Ok.Defective" xml:space="preserve">
+    <value>The returned LOT was marked defective. Physical disposal is not recorded by this action.</value>
+  </data>
+  <data name="FG.Returns.Err.SavedRefresh" xml:space="preserve">
+    <value>Inspection was saved. Refresh the list before continuing.</value>
+  </data>
+  <data name="FG.Returns.Status.Awaiting" xml:space="preserve">
+    <value>Awaiting Inspection</value>
+  </data>
+  <data name="FG.Returns.Status.Accepted" xml:space="preserve">
+    <value>Accepted</value>
+  </data>
+  <data name="FG.Returns.Status.Defective" xml:space="preserve">
+    <value>Defective</value>
+  </data>
+  <data name="WH.Picking.Kpi.LineLocations" xml:space="preserve">
+    <value>Line Locations</value>
+  </data>
+  <data name="WH.Picking.Kpi.BelowMin" xml:space="preserve">
+    <value>Below Minimum</value>
+  </data>
+  <data name="WH.Picking.Col.OrderNo" xml:space="preserve">
+    <value>Picking Order</value>
+  </data>
+  <data name="WH.Picking.Col.Materials" xml:space="preserve">
+    <value>Materials</value>
+  </data>
+  <data name="WH.Picking.Col.ReqQty" xml:space="preserve">
+    <value>Request Qty</value>
+  </data>
+  <data name="WH.Picking.Col.PickedQty" xml:space="preserve">
+    <value>Picked Qty</value>
+  </data>
+  <data name="WH.Picking.Tab.LineStock" xml:space="preserve">
+    <value>Line Stock</value>
+  </data>
+  <data name="WH.Picking.Lbl.LineStockSafety" xml:space="preserve">
+    <value>Line Stock · Safety Stock</value>
+  </data>
+  <data name="WH.Picking.Col.LineQtyEa" xml:space="preserve">
+    <value>Line Qty (EA)</value>
+  </data>
+  <data name="WH.Picking.Col.MinimumEa" xml:space="preserve">
+    <value>Minimum (EA)</value>
+  </data>
+  <data name="WH.Picking.Col.RequiredEa" xml:space="preserve">
+    <value>Required (EA)</value>
+  </data>
+  <data name="WH.Picking.Col.PickFrom" xml:space="preserve">
+    <value>Pick From</value>
+  </data>
+  <data name="WH.Picking.Btn.PrintBarcode" xml:space="preserve">
+    <value>Print Barcode</value>
+  </data>
+  <data name="WH.Picking.Slip.WarehouseTitle" xml:space="preserve">
+    <value>Warehouse Picking Order</value>
+  </data>
+  <data name="WH.Picking.Slip.DestLine" xml:space="preserve">
+    <value>Destination Line</value>
+  </data>
+  <data name="WH.Picking.Slip.PickLocation" xml:space="preserve">
+    <value>Pick Location</value>
+  </data>
+  <data name="WH.Picking.Err.Load" xml:space="preserve">
+    <value>Unable to load line stock or picking orders. Check the database connection.</value>
+  </data>
+  <data name="WH.Picking.Err.LoadDetail" xml:space="preserve">
+    <value>Unable to load picking order details.</value>
+  </data>
+  <data name="WH.Picking.Msg.StockShortage" xml:space="preserve">
+    <value>Stock shortage</value>
+  </data>
+  <data name="WH.Picking.Msg.NoLocation" xml:space="preserve">
+    <value>Location not assigned</value>
+  </data>
+  <data name="WH.Picking.Msg.Picked" xml:space="preserve">
+    <value>Picked</value>
+  </data>
+  <data name="WH.PdaTest.Title" xml:space="preserve">
+    <value>WH PDA Test</value>
+  </data>
+  <data name="WH.PdaTest.Hint.RealInventory" xml:space="preserve">
+    <value>Uses real inventory · No automatic test data</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.Inbound" xml:space="preserve">
+    <value>Inbound</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.PutAway" xml:space="preserve">
+    <value>Put-away</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.BackToMenu" xml:space="preserve">
+    <value>Back to Warehouse menu</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.ScanBarcode" xml:space="preserve">
+    <value>Scan Barcode</value>
+  </data>
+  <data name="WH.PdaTest.Ph.InboundBarcode" xml:space="preserve">
+    <value>Scan Delivery Note, Case, Box or LOT barcode</value>
+  </data>
+  <data name="WH.PdaTest.Ph.PutAwayBarcode" xml:space="preserve">
+    <value>Scan Delivery Note, Case, or Box barcode</value>
+  </data>
+  <data name="WH.PdaTest.Ph.LocationBarcode" xml:space="preserve">
+    <value>Scan location barcode</value>
+  </data>
+  <data name="WH.PdaTest.Btn.Scan" xml:space="preserve">
+    <value>Scan</value>
+  </data>
+  <data name="WH.PdaTest.Btn.Receive" xml:space="preserve">
+    <value>Receive</value>
+  </data>
+  <data name="WH.PdaTest.Btn.CancelIncoming" xml:space="preserve">
+    <value>Cancel Incoming</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.BoxBarcode" xml:space="preserve">
+    <value>Box Barcode</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.PoNo" xml:space="preserve">
+    <value>PO No</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.PoSeq" xml:space="preserve">
+    <value>PO Seq</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.CurrentLoc" xml:space="preserve">
+    <value>Current Loc</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.DeliveryNote" xml:space="preserve">
+    <value>Delivery Note</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.ProdDate" xml:space="preserve">
+    <value>Prod Date</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.DeliveryDate" xml:space="preserve">
+    <value>Delivery Date</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.ArrivalDate" xml:space="preserve">
+    <value>Arrival Date</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.CaseBarcode" xml:space="preserve">
+    <value>Case Barcode</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.CaseNo" xml:space="preserve">
+    <value>Case No</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.Invoice" xml:space="preserve">
+    <value>Invoice</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.Container" xml:space="preserve">
+    <value>Container</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.PackDate" xml:space="preserve">
+    <value>Pack Date</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.CasePallet" xml:space="preserve">
+    <value>Case / Pallet</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.DeliveryNoteViewOnly" xml:space="preserve">
+    <value>Delivery Note · View Only</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.Scanned" xml:space="preserve">
+    <value>Scanned</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.NotReceived" xml:space="preserve">
+    <value>Not Received</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.ScanRequired" xml:space="preserve">
+    <value>Scan Required</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.BulkReceive" xml:space="preserve">
+    <value>Bulk Receive</value>
+  </data>
+  <data name="WH.PdaTest.Err.NoReadPermission" xml:space="preserve">
+    <value>WH PDA Test read permission is required.</value>
+  </data>
+  <data name="WH.PdaTest.Err.BoxNotInCase" xml:space="preserve">
+    <value>This box is not in the selected case. Clear to scan another document.</value>
+  </data>
+  <data name="WH.PdaTest.Err.BoxReceived" xml:space="preserve">
+    <value>This box is already received.</value>
+  </data>
+  <data name="WH.PdaTest.Err.BoxScanned" xml:space="preserve">
+    <value>This box was already scanned.</value>
+  </data>
+  <data name="WH.PdaTest.Msg.DeliveryNoteViewOnly" xml:space="preserve">
+    <value>Delivery Note is for status only. Scan a case, box or LOT to receive it.</value>
+  </data>
+  <data name="WH.PdaTest.Msg.ReadyToReceive" xml:space="preserve">
+    <value>Ready to receive.</value>
+  </data>
+  <data name="WH.PdaTest.Msg.ScanRequiredFirst" xml:space="preserve">
+    <value>Scan required boxes first.</value>
+  </data>
+  <data name="WH.PdaTest.Title.InboundScanFailed" xml:space="preserve">
+    <value>Inbound Scan Failed</value>
+  </data>
+  <data name="WH.PdaTest.Msg.ConfirmReceive" xml:space="preserve">
+    <value>Receive {0} into real warehouse inventory?</value>
+  </data>
+  <data name="WH.PdaTest.Title.ConfirmReceipt" xml:space="preserve">
+    <value>Confirm Receipt</value>
+  </data>
+  <data name="WH.PdaTest.Ok.Received" xml:space="preserve">
+    <value>Incoming completed.</value>
+  </data>
+  <data name="WH.PdaTest.Title.ReceiveFailed" xml:space="preserve">
+    <value>Receive Failed</value>
+  </data>
+  <data name="WH.PdaTest.Msg.ConfirmCancelIncoming" xml:space="preserve">
+    <value>Cancel incoming for {0}? Real inventory and PO received quantities will be updated.</value>
+  </data>
+  <data name="WH.PdaTest.Ok.Cancelled" xml:space="preserve">
+    <value>Incoming cancelled.</value>
+  </data>
+  <data name="WH.PdaTest.Title.Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="WH.PdaTest.Title.CancelFailed" xml:space="preserve">
+    <value>Cancel Incoming Failed</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.CasePutAway" xml:space="preserve">
+    <value>Case Put-away</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.BoxPutAway" xml:space="preserve">
+    <value>Box Put-away</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.Stored" xml:space="preserve">
+    <value>Stored</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.AlreadyPutAway" xml:space="preserve">
+    <value>Already Put Away</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.AtLocation" xml:space="preserve">
+    <value>At {0}</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.LocationScan" xml:space="preserve">
+    <value>Location Barcode Scan</value>
+  </data>
+  <data name="WH.PdaTest.Lbl.LocationNo" xml:space="preserve">
+    <value>Location No</value>
+  </data>
+  <data name="WH.PdaTest.Err.BoxNotInScannedCase" xml:space="preserve">
+    <value>This box does not belong to the scanned case. Clear to scan another document.</value>
+  </data>
+  <data name="WH.PdaTest.Err.BoxAlreadyAt" xml:space="preserve">
+    <value>Box {0} is already at {1}.</value>
+  </data>
+  <data name="WH.PdaTest.Msg.ConfirmRelocate" xml:space="preserve">
+    <value>This box is already put away at {0}. Relocate it?</value>
+  </data>
+  <data name="WH.PdaTest.Msg.PutAwayViewOnly" xml:space="preserve">
+    <value>VIEW ONLY · Scan a case or box to put away.</value>
+  </data>
+  <data name="WH.PdaTest.Msg.NoPendingBoxes" xml:space="preserve">
+    <value>No pending boxes.</value>
+  </data>
+  <data name="WH.PdaTest.Msg.BoxesSelected" xml:space="preserve">
+    <value>{0} box(es) selected. Scan a location.</value>
+  </data>
+  <data name="WH.PdaTest.Title.PutAwayScanFailed" xml:space="preserve">
+    <value>Put-Away Scan Failed</value>
+  </data>
+  <data name="WH.PdaTest.Err.CapacityExceeded" xml:space="preserve">
+    <value>Location {0} capacity would be exceeded.</value>
+  </data>
+  <data name="WH.PdaTest.Msg.BoxesReady" xml:space="preserve">
+    <value>{0} box(es) ready. Tap Confirm.</value>
+  </data>
+  <data name="WH.PdaTest.Title.LocationScanFailed" xml:space="preserve">
+    <value>Location Scan Failed</value>
+  </data>
+  <data name="WH.PdaTest.Msg.ConfirmRelocateBoxes" xml:space="preserve">
+    <value>Relocate {0} box(es) at {1}? This updates real inventory.</value>
+  </data>
+  <data name="WH.PdaTest.Msg.ConfirmPutAwayBoxes" xml:space="preserve">
+    <value>Put away {0} box(es) at {1}? This updates real inventory.</value>
+  </data>
+  <data name="WH.PdaTest.Title.ConfirmPutAway" xml:space="preserve">
+    <value>Confirm Put-Away</value>
+  </data>
+  <data name="WH.PdaTest.Ok.LocationUpdated" xml:space="preserve">
+    <value>Location updated successfully.</value>
+  </data>
+  <data name="WH.PdaTest.Title.PutAwayComplete" xml:space="preserve">
+    <value>Put-Away Complete</value>
+  </data>
+  <data name="WH.PdaTest.Title.PutAwayFailed" xml:space="preserve">
+    <value>Put-Away Failed</value>
+  </data>
+  <data name="WH.Inventory.Col.InspectionQty" xml:space="preserve">
+    <value>Inspection Qty</value>
+  </data>
+  <data name="WH.LocMap.Lbl.Hierarchy" xml:space="preserve">
+    <value>Location hierarchy</value>
+  </data>
+  <data name="WH.LocMap.Btn.Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="WH.LocMap.Btn.AddFmt" xml:space="preserve">
+    <value>Add {0}</value>
+  </data>
+  <data name="WH.LocMap.Lbl.EditNameFmt" xml:space="preserve">
+    <value>Edit {0} name</value>
+  </data>
+  <data name="WH.LocMap.Lbl.DeleteFmt" xml:space="preserve">
+    <value>Delete {0} {1}</value>
+  </data>
+  <data name="WH.LocMap.Btn.EditGrid" xml:space="preserve">
+    <value>Edit Grid</value>
+  </data>
+  <data name="WH.LocMap.Btn.SaveGrid" xml:space="preserve">
+    <value>Save Grid</value>
+  </data>
+  <data name="WH.LocMap.Legend.Full" xml:space="preserve">
+    <value>Full</value>
+  </data>
+  <data name="WH.LocMap.Lbl.OpenStorage" xml:space="preserve">
+    <value>Open Storage</value>
+  </data>
+  <data name="WH.LocMap.Lbl.Grid" xml:space="preserve">
+    <value>Grid</value>
+  </data>
+  <data name="WH.LocMap.Lbl.NoGridLocations" xml:space="preserve">
+    <value>Locations without grid coordinates</value>
+  </data>
+  <data name="WH.LocMap.Lbl.ExistingGrid" xml:space="preserve">
+    <value>Existing grid locations</value>
+  </data>
+  <data name="WH.LocMap.Hint.StockStays" xml:space="preserve">
+    <value>Existing stock stays at its current location. No inventory has been moved.</value>
+  </data>
+  <data name="WH.LocMap.Lbl.ExistingWarehouses" xml:space="preserve">
+    <value>Existing warehouses</value>
+  </data>
+  <data name="WH.LocMap.Lbl.ExistingAreasFmt" xml:space="preserve">
+    <value>Existing areas in {0}</value>
+  </data>
+  <data name="WH.LocMap.Lbl.TwoLetterCode" xml:space="preserve">
+    <value>Two-letter code</value>
+  </data>
+  <data name="WH.LocMap.Lbl.StorageMode" xml:space="preserve">
+    <value>Storage mode</value>
+  </data>
+  <data name="WH.LocMap.Hint.StorageMode" xml:space="preserve">
+    <value>Grid starts with a 1 × 1 grid on floor 1F. Open Storage creates a shared location without coordinates. Storage mode cannot be changed after creation.</value>
+  </data>
+  <data name="WH.LocMap.Hint.Grid" xml:space="preserve">
+    <value>Set aisles × bays for this floor. Only locations containing stock block a reduction; history-only locations are hidden.</value>
+  </data>
+  <data name="WH.LocMap.Lbl.Aisles" xml:space="preserve">
+    <value>Aisles (A1, B1, …)</value>
+  </data>
+  <data name="WH.LocMap.Lbl.Bays" xml:space="preserve">
+    <value>Bays (01, 02, …)</value>
+  </data>
+  <data name="WH.LocMap.Err.GridReduce" xml:space="preserve">
+    <value>Cannot reduce this grid: {0} locations outside the new size contain stock.</value>
+  </data>
+  <data name="WH.LocMap.Hint.AddFloor" xml:space="preserve">
+    <value>Add the next floor to {0}.</value>
+  </data>
+  <data name="WH.LocMap.Err.DeleteHasStock" xml:space="preserve">
+    <value>Cannot delete {0}: {1} inventory records remain. Move the inventory first.</value>
+  </data>
+  <data name="WH.LocMap.Msg.ConfirmDelete" xml:space="preserve">
+    <value>Are you sure you want to delete {0} and its locations?</value>
+  </data>
+  <data name="WH.LocMap.Title.ConfirmDelete" xml:space="preserve">
+    <value>Confirm Deletion</value>
+  </data>
+  <data name="WH.LocMap.Err.SelectWarehouse" xml:space="preserve">
+    <value>Select a Warehouse first.</value>
+  </data>
+  <data name="WH.LocMap.Err.SelectArea" xml:space="preserve">
+    <value>Select an Area first.</value>
+  </data>
+  <data name="WH.LocMap.Msg.ConfirmSave" xml:space="preserve">
+    <value>Are you sure you want to save changes to {0}?</value>
+  </data>
+  <data name="WH.LocMap.Title.ConfirmSave" xml:space="preserve">
+    <value>Confirm Changes</value>
+  </data>
+  <data name="WH.LocMap.Err.TwoLetterCode" xml:space="preserve">
+    <value>Use a unique two-letter code (A–Z).</value>
+  </data>
+  <data name="WH.LocMap.Err.WarehouseExists" xml:space="preserve">
+    <value>Warehouse code already exists.</value>
+  </data>
+  <data name="WH.LocMap.Lbl.ScrollLeft" xml:space="preserve">
+    <value>Scroll map left</value>
+  </data>
+  <data name="WH.LocMap.Lbl.ScrollRight" xml:space="preserve">
+    <value>Scroll map right</value>
+  </data>
+  <data name="WH.LocMap.Lbl.ScrollUp" xml:space="preserve">
+    <value>Scroll map up</value>
+  </data>
+  <data name="WH.LocMap.Lbl.ScrollDown" xml:space="preserve">
+    <value>Scroll map down</value>
+  </data>
+  <data name="WH.LocMap.Lbl.DefaultFloor" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Inbound" xml:space="preserve">
+    <value>Inbound</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.CancelInbound" xml:space="preserve">
+    <value>Cancel Inbound</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Outbound" xml:space="preserve">
+    <value>Outbound</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Adjustment" xml:space="preserve">
+    <value>Inventory Adjustment</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Relocation" xml:space="preserve">
+    <value>Location Change</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.StatusChange" xml:space="preserve">
+    <value>Status Change</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Created" xml:space="preserve">
+    <value>Created</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Stored" xml:space="preserve">
+    <value>Stored</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Released" xml:space="preserve">
+    <value>Released</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.InboundCancelled" xml:space="preserve">
+    <value>Inbound Cancelled</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.ReleaseCancelled" xml:space="preserve">
+    <value>Release Cancelled</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.ReturnReceived" xml:space="preserve">
+    <value>Return Received</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Defective" xml:space="preserve">
+    <value>Defective</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Disposed" xml:space="preserve">
+    <value>Disposed</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.StatusChanged" xml:space="preserve">
+    <value>Status Changed</value>
+  </data>
+  <data name="TopBar.SignOut" xml:space="preserve">
+    <value>Sign out</value>
   </data>
 </root>
