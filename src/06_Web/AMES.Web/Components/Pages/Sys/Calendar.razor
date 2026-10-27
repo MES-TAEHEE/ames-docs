@@ -176,7 +176,8 @@
                     if (isToday) cellCls += " ames-cal-cell--today";
                     if (hasData) cellCls += " ames-cal-cell--data";
                     if (sample?.DayType == "HOLIDAY")                        cellCls += " ames-cal-cell--holiday";
-                    else if (sample?.DayType == "WEEKEND" || isSat || isSun) cellCls += " ames-cal-cell--weekend";
+                    // 저장된 날은 구분(DayType)만 본다 — 토·일 특근(WORKDAY)을 주말색으로 칠하지 않는다. 행이 없는 날만 요일로
+                    else if (sample is not null ? sample.DayType == "WEEKEND" : (isSat || isSun)) cellCls += " ames-cal-cell--weekend";
 
                     <div class="@cellCls" style="cursor:pointer;"
                          @onclick="() => OpenEdit(capDate, capShifts)">
@@ -609,7 +610,7 @@
     // ── Generate ──────────────────────────────────────────────────────────
     void Generate()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-005", "CREATE", "SYS_FactoryCalendar"); return; }
         _modalErr = "";
         if (_genFrom > _genTo) { _modalErr = L["SYS.Calendar.Err.DateRange"].Value; return; }
         var active = _genShifts.Where(s => s.Active).ToList();
@@ -668,7 +669,7 @@
     // ── Save Edit ─────────────────────────────────────────────────────────
     void SaveEdit()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-005", "UPDATE", "SYS_FactoryCalendar"); return; }
         if (!_selDate.HasValue) return;
         _modalErr = "";
         if (_editDayType == "HOLIDAY" && _editHolidayName.Trim().Length > SysRepository.HolidayNameMax)
@@ -704,7 +705,7 @@
     // ── Save Delete ───────────────────────────────────────────────────────
     void SaveDelete()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-005", "DELETE", "SYS_FactoryCalendar"); return; }
         if (!_selDate.HasValue) return;
         _busy = true;
         try

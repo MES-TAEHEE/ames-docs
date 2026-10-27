@@ -21,33 +21,48 @@
 <PageTitle>SYS-010 @L["SYS.Health.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-010" TitleKey="SYS.Health.Title" />
 
+@* 갱신 기준 — 마지막으로 성공한 시각(DB)·주기. 읽지 못한 범위는 지난 값을 정상처럼 두지 않고 — 로 비우고 배너로 알린다 *@
+<div class="dim" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:-4px 0 8px;font-size:calc(12px + var(--ames-fs-bump));">
+    <span>@string.Format(L["SYS.Health.AsOf"].Value, _kAt?.ToString(DateFmt.DateTimeSec) ?? "—", _srvAt?.ToString(DateFmt.DateTimeSec) ?? "—")</span>
+    <span>@string.Format(L["SYS.Health.Refresh"].Value, _refreshSec)</span>
+    <span>@L["SYS.Health.Hint.SameRules"]</span>
+</div>
+@if (_kFailed || _srvFailed)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" AllowClose="false">
+        @string.Format(L["SYS.Health.Err.Partial"].Value,
+            string.Join(", ", new[] { _srvFailed ? L["SYS.Health.Scope.Server"].Value : null, _kFailed ? L["SYS.Health.Scope.Business"].Value : null }.Where(x => x is not null)),
+            (_kFailed ? _kAt : _srvAt)?.ToString(DateFmt.DateTimeSec) ?? "—")
+    </RadzenAlert>
+}
+
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi @SvcClass()">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.ServicesUp"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@(_srv is null ? "—" : $"{_srv.Services.Count(s => s.Status == "OK")}/{_srv.Services.Count}")</div>
+            <div class="ames-kpi-v">@(_srv is null || _srvFailed ? "—" : $"{_srv.Services.Count(s => s.Status == "OK")}/{_srv.Services.Count}")</div>
             <div class="ames-kpi-s">@L["SYS.Health.Kpi.ServicesUpSub"]</div>
         </div>
     </div>
     <div class="ames-kpi @PctClass(_srv?.CpuPct)">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Cpu"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@(_srv is null || _srv.CpuPct < 0 ? L["SYS.Health.Na"].Value : $"{_srv.CpuPct}%")</div>
+            <div class="ames-kpi-v">@(_srv is null || _srvFailed ? "—" : _srv.CpuPct < 0 ? L["SYS.Health.Na"].Value : $"{_srv.CpuPct}%")</div>
             <div class="ames-kpi-s">@string.Format(L["SYS.Health.Kpi.CpuSub"].Value, _srv?.Cores ?? Environment.ProcessorCount)</div>
         </div>
     </div>
     <div class="ames-kpi @PctClass(_srv?.MemPct)">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Mem"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@(_srv is null || _srv.MemPct < 0 ? L["SYS.Health.Na"].Value : $"{_srv.MemPct}%")</div>
+            <div class="ames-kpi-v">@(_srv is null || _srvFailed ? "—" : _srv.MemPct < 0 ? L["SYS.Health.Na"].Value : $"{_srv.MemPct}%")</div>
             <div class="ames-kpi-s">@(_srv is null ? "" : string.Format(L["SYS.Health.Kpi.MemSub"].Value, _srv.MemUsedGb, _srv.MemTotalGb))</div>
         </div>
     </div>
     <div class="ames-kpi @PctClass(_srv?.DiskPct)">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Disk"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@(_srv is null ? "—" : $"{_srv.DiskPct}%")</div>
+            <div class="ames-kpi-v">@(_srv is null || _srvFailed ? "—" : $"{_srv.DiskPct}%")</div>
             <div class="ames-kpi-s">@(_srv is null ? "" : string.Format(L["SYS.Health.Kpi.DiskSub"].Value, _srv.DiskUsedGb, _srv.DiskTotalGb))</div>
         </div>
     </div>
@@ -130,28 +145,28 @@
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Users"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_k.Users</div>
+            <div class="ames-kpi-v">@K(_k.Users)</div>
             <div class="ames-kpi-s">@L["SYS.Health.Kpi.UsersSub"]</div>
         </div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Roles"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_k.Roles</div>
+            <div class="ames-kpi-v">@K(_k.Roles)</div>
             <div class="ames-kpi-s">@L["SYS.Health.Kpi.RolesSub"]</div>
         </div>
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.IfOk"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_k.InterfacesOk</div>
+            <div class="ames-kpi-v">@K(_k.InterfacesOk)</div>
             <div class="ames-kpi-s">@L["SYS.Health.Kpi.IfOkSub"]</div>
         </div>
     </div>
-    <div class="ames-kpi @(_k.InterfacesDown == 0 ? "ok" : "bad")">
+    <div class="ames-kpi @(_kFailed ? "" : _k.InterfacesDown == 0 ? "ok" : "bad")">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.IfDown"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_k.InterfacesDown</div>
+            <div class="ames-kpi-v">@K(_k.InterfacesDown)</div>
             <div class="ames-kpi-s">@L["SYS.Health.Kpi.IfDownSub"]</div>
         </div>
     </div>
@@ -162,28 +177,28 @@
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Audit"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_k.AuditLast24h</div>
+            <div class="ames-kpi-v">@K(_k.AuditLast24h)</div>
             <div class="ames-kpi-s">@L["SYS.Health.Kpi.AuditSub"]</div>
         </div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Notif"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_k.NotifLast24h</div>
+            <div class="ames-kpi-v">@K(_k.NotifLast24h)</div>
             <div class="ames-kpi-s">@L["SYS.Health.Kpi.NotifSub"]</div>
         </div>
     </div>
-    <div class="ames-kpi @(_k.NotifFailedLast24h == 0 ? "ok" : "bad")">
+    <div class="ames-kpi @(_kFailed ? "" : _k.NotifFailedLast24h == 0 ? "ok" : "bad")">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.NotifFail"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_k.NotifFailedLast24h</div>
+            <div class="ames-kpi-v">@K(_k.NotifFailedLast24h)</div>
             <div class="ames-kpi-s">@L["SYS.Health.Kpi.NotifFailSub"]</div>
         </div>
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Health.Kpi.Config"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_k.ConfigKeys</div>
+            <div class="ames-kpi-v">@K(_k.ConfigKeys)</div>
             <div class="ames-kpi-s">@L["SYS.Health.Kpi.ConfigSub"]</div>
         </div>
     </div>
@@ -193,7 +208,7 @@
     <div class="ames-card-h">▼ @L["SYS.Health.Db.Title"]</div>
     <div style="display:flex;align-items:baseline;gap:14px;padding:6px 0 16px">
         <div style="font-family:var(--ames-font-display);font-size:56px;color:var(--ames-tx-white);letter-spacing:2px;">
-            @_k.DbRowsApprox.ToString("N0")
+            @(_kFailed ? "—" : _k.DbRowsApprox.ToString("N0"))
         </div>
         <div style="color:var(--ames-tx-white-a55);font-size:13px;font-family:var(--ames-font-mono);">
             @L["SYS.Health.Db.Desc"]
@@ -223,13 +238,25 @@
     PeriodicTimer? _timer;
     CancellationTokenSource? _cts;
     bool _disposed;   // Dispose 이후 await 재개 시 disposed 객체 접근 방지
+    bool _kFailed, _srvFailed;        // 이번 갱신에서 읽지 못한 범위(업무 지표·서버 자원)
+    DateTime? _kAt, _srvAt;           // 범위마다 마지막으로 성공한 시각
+    int _refreshSec = 5;
 
     protected override async Task OnInitializedAsync()
     {
         try { await PermSvc.EnsureAsync(AuthPrvd); } catch { }
-        try { _k = Sys.GetHealth(); } catch { }
+        LoadBusiness();
+    }
+
+    // 업무 지표 — 실패하면 지난 값을 정상처럼 두지 않고 — 로 비운다(마지막 성공 시각은 그대로 보인다)
+    void LoadBusiness()
+    {
+        try { _k = Sys.GetHealth(); _kAt = _k.AsOf ?? DbClock.Now; _kFailed = false; }
+        catch { _kFailed = true; }
         try { _events = Sys.ListAudit(8); } catch { }
     }
+
+    string K(int v) => _kFailed ? "—" : v.ToString();
 
     // NavMenu 와 동일하게 권한(PermissionService.IsVisible)에 따라 타일 활성/비활성
     RenderFragment Tile(string href, string icon, string title, string sub) => __builder =>
@@ -263,8 +290,9 @@
         await RefreshServerAsync();
         if (_disposed) return;           // await 중 화면 이탈 시 중단
         StateHasChanged();
-        int refreshSec = Sys.GetConfigInt("DASH_REFRESH_SEC", 5);   // SYS_Config 기준(폴백 5초)
-        _timer = new PeriodicTimer(TimeSpan.FromSeconds(refreshSec));
+        try { _refreshSec = Sys.GetConfigInt("DASH_REFRESH_SEC", 5); } catch { _refreshSec = 5; }   // SYS_Config 기준(폴백 5초)
+        StateHasChanged();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(_refreshSec));
         _ = RunTimerAsync(token);
     }
 
@@ -291,9 +319,9 @@
 
     async Task RefreshServerAsync()
     {
-        try { _srv = await SrvMntSvc.GetSnapshotAsync(); } catch { }
-        try { _k = Sys.GetHealth(); } catch { }
-        try { _events = Sys.ListAudit(8); } catch { }
+        try { _srv = await SrvMntSvc.GetSnapshotAsync(); _srvAt = DbClock.Now; _srvFailed = false; }
+        catch { _srvFailed = true; }
+        LoadBusiness();
     }
 
     string SvcClass()

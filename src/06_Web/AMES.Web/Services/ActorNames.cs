@@ -37,6 +37,18 @@ public sealed class ActorNames
     public string? Name(string? code)
         => string.IsNullOrWhiteSpace(code) ? null : (_cache.Get()?.Names ?? Empty).TryGetValue(code.Trim(), out var n) ? n : null;
 
+    /// <summary>
+    /// 이름에 검색어가 든 행위자 코드(사번·사용자명·별칭 등 사전 키) — SYS-007 처럼 코드로 저장된 행을 사람 이름으로 찾을 때 쓴다. 검색어가 비면 빈 목록.
+    /// </summary>
+    public IReadOnlyList<string> CodesMatching(string? term, int max = 500)
+    {
+        if (string.IsNullOrWhiteSpace(term)) return [];
+        var t = term.Trim();
+        return (_cache.Get()?.Names ?? Empty)
+            .Where(kv => kv.Value.Contains(t, StringComparison.OrdinalIgnoreCase))
+            .Select(kv => kv.Key).Distinct(StringComparer.OrdinalIgnoreCase).Take(max).ToList();
+    }
+
     /// <summary>"이름 (코드)" — 이름을 모르면 코드 그대로, 코드가 비면 빈 문자열.</summary>
     public string Display(string? code)
     {

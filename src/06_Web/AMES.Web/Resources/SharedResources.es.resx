@@ -12502,4 +12502,88 @@
   <data name="TopBar.SignOut" xml:space="preserve">
     <value>Cerrar sesión</value>
   </data>
+  <data name="SYS.Screen.Err.SortOrderRange" xml:space="preserve">
+    <value>El orden debe ser un número entero entre {0} y {1}.</value>
+  </data>
+  <data name="SYS.Screen.Err.CodeExists" xml:space="preserve">
+    <value>El código de pantalla '{0}' ya está registrado.</value>
+  </data>
+  <data name="SYS.Screen.Err.CodeHasPerms" xml:space="preserve">
+    <value>El código '{0}' aún tiene permisos de rol y no se puede usar.</value>
+  </data>
+  <data name="SYS.Screen.Err.ProtectedChange" xml:space="preserve">
+    <value>No se puede cambiar el código ni la ruta de SYS-003/SYS-004.</value>
+  </data>
+  <data name="SYS.Screen.Err.HRefExists" xml:space="preserve">
+    <value>La ruta '{0}' ya la usa otra pantalla.</value>
+  </data>
+  <data name="SYS.Screen.Err.ProtectedDelete" xml:space="preserve">
+    <value>SYS-003/SYS-004 no se pueden eliminar.</value>
+  </data>
+  <data name="SYS.Screen.Err.NotFound" xml:space="preserve">
+    <value>No se encontró la pantalla. Otro usuario pudo haberla eliminado.</value>
+  </data>
+  <data name="SYS.Rbac.Kpi.GrantedHint" xml:space="preserve">
+    <value>Celdas otorgadas / celdas con función (leer, editar y aprobar cuentan una cada una; se excluyen las funciones que la pantalla no tiene)</value>
+  </data>
+  <data name="SYS.Rbac.Hint.OwnRole" xml:space="preserve">
+    <value>No puede cambiar los permisos de un rol al que pertenece. Pídalo a otro administrador (System Administrator está exento).</value>
+  </data>
+  <data name="SYS.Rbac.Hint.ColumnToggle" xml:space="preserve">
+    <value>Seleccionar todo — si hay alguno o todos marcados, al pulsar se desmarcan; si no hay ninguno, se marcan todos</value>
+  </data>
+  <data name="SYS.Config.Bool.On" xml:space="preserve">
+    <value>Activado</value>
+  </data>
+  <data name="SYS.Config.Bool.Off" xml:space="preserve">
+    <value>Desactivado</value>
+  </data>
+  <data name="SYS.Config.Hint.Range" xml:space="preserve">
+    <value>Rango permitido {0} a {1}, hasta {2} decimales</value>
+  </data>
+  <data name="SYS.Config.Err.Range" xml:space="preserve">
+    <value>El valor de '{0}' no es válido — {1}. No se guardó nada.</value>
+  </data>
+  <data name="SYS.Config.Err.Bool" xml:space="preserve">
+    <value>'{0}' solo acepta activado/desactivado. No se guardó nada.</value>
+  </data>
+  <data name="SYS.Config.Err.SaveFailed" xml:space="preserve">
+    <value>No se pudo guardar (no cambió nada). Revise los valores y guarde de nuevo — {0}</value>
+  </data>
+  <data name="SYS.Interfaces.AsOf" xml:space="preserve">
+    <value>Referencia {0}</value>
+  </data>
+  <data name="SYS.Interfaces.Hint.Threshold" xml:space="preserve">
+    <value>Un enlace sano pasa a Aviso tras superar su intervalo permitido desde el último éxito, y a Caído tras {0}× ese intervalo</value>
+  </data>
+  <data name="SYS.Interfaces.Err.Load" xml:space="preserve">
+    <value>No se pudo leer el estado de las interfaces. Último éxito {0}</value>
+  </data>
+  <data name="SYS.Interfaces.Btn.Retry" xml:space="preserve">
+    <value>Reintentar</value>
+  </data>
+  <data name="SYS.Interfaces.Hint.Overdue" xml:space="preserve">
+    <value>Último éxito hace {0} min — supera el intervalo de {1} min (registrado: {2})</value>
+  </data>
+  <data name="SYS.Health.AsOf" xml:space="preserve">
+    <value>Indicadores de negocio a {0} · recursos del servidor a {1}</value>
+  </data>
+  <data name="SYS.Health.Refresh" xml:space="preserve">
+    <value>Actualización automática cada {0} s</value>
+  </data>
+  <data name="SYS.Health.Hint.SameRules" xml:space="preserve">
+    <value>Los conteos de interfaces y notificaciones usan las mismas reglas que SYS-006/SYS-008 (últimas 24 horas)</value>
+  </data>
+  <data name="SYS.Health.Err.Partial" xml:space="preserve">
+    <value>No se pudo leer {0} — no se muestran valores antiguos. Último éxito {1}</value>
+  </data>
+  <data name="SYS.Health.Scope.Server" xml:space="preserve">
+    <value>recursos del servidor</value>
+  </data>
+  <data name="SYS.Health.Scope.Business" xml:space="preserve">
+    <value>indicadores de negocio</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.Tip" xml:space="preserve">
+    <value>Últimas 24 horas de todo el historial (a {0}) — enviados por hora de envío, fallidos por último intento (estado fallido/error)</value>
+  </data>
 </root>

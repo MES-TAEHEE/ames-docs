@@ -46,14 +46,14 @@
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Sent"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_sent</div>
+            <div class="ames-kpi-v" title="@KpiTip">@(_kpiFailed ? "—" : _sent.ToString())</div>
             <div class="ames-kpi-s">@L["SYS.Notifications.Kpi.SentToday"]</div>
         </div>
     </div>
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@L["SYS.Notifications.Kpi.Failed"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_failed</div>
+            <div class="ames-kpi-v" title="@KpiTip">@(_kpiFailed ? "—" : _failed.ToString())</div>
             <div class="ames-kpi-s">@L["SYS.Notifications.Kpi.FailedToday"]</div>
         </div>
     </div>
@@ -592,6 +592,8 @@
     string _fHistSearch = "";
     string? _fHistChannel, _fHistStatus;
     int _sent, _failed;
+    DateTime? _kpiAt;   // KPI 기준 시각(DB)
+    bool _kpiFailed;
 
     // ── 채널 설정 ──────────────────────────────────────────────────────
     List<SysRepository.UserSelectRow>   _userList = new();
@@ -643,15 +645,17 @@
         }
     }
 
+    string KpiTip => string.Format(L["SYS.Notifications.Kpi.Tip"].Value, _kpiAt?.ToString(DateFmt.DateTimeSec) ?? "—");
+
     void Reload()
     {
         try { _rules    = Sys.ListNotificationRules(); }    catch { }
         try { _hist     = Sys.ListNotificationHistory(); }  catch { }
         try { _channels = Sys.ListNotificationChannels(); } catch { }
 
-        var recent = _hist.Where(h => h.SentAt.HasValue && (DbClock.Now - h.SentAt.Value).TotalHours <= 24).ToList();
-        _sent   = recent.Count(h => h.Status == "SENT");
-        _failed = recent.Count(h => h.Status == "FAILED");
+        // 최근 24시간 발송·실패는 이력 전체에서 DB 로 센다(목록은 최근 100건뿐) — SYS-010 과 같은 기준(SysRepository.CountNotifications24h)
+        try { var k = Sys.CountNotifications24h(); _sent = k.Sent; _failed = k.Failed; _kpiAt = k.AsOf; _kpiFailed = false; }
+        catch { _kpiFailed = true; }
 
         ApplyRuleFilter();
         ApplyHistFilter();
@@ -732,7 +736,7 @@
 
     async Task SaveRuleCreate()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-008", "CREATE", "SYS_NotificationRule"); return; }
         _ruleModalErr = "";
         if (string.IsNullOrWhiteSpace(_rf.EventTypeCode))
         { _ruleModalErr = L["SYS.Notifications.Err.EventCodeRequired"]; return; }
@@ -752,7 +756,7 @@
 
     async Task SaveRuleEdit()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-008", "UPDATE", "SYS_NotificationRule"); return; }
         if (_ruleSel is null) return;
         _ruleModalErr = "";
         if (string.IsNullOrWhiteSpace(_rf.EventTypeCode))
@@ -774,7 +778,7 @@
 
     async Task SaveRuleDelete()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-008", "DELETE", "SYS_NotificationRule"); return; }
         if (_ruleSel is null) return;
         _ruleBusy = true;
         try { Sys.DeleteNotificationRule(_ruleSel.NotificationRuleId); Audit.Deleted("SYS-008", "SYS_NotificationRule", _ruleSel.NotificationRuleId, _ruleSel); CloseRuleModal(); await ReloadRestore(); }
@@ -840,7 +844,7 @@
 
     async Task SaveChCreate()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-008", "CREATE", "SYS_NotificationChannel"); return; }
         _chModalErr = "";
         if (string.IsNullOrWhiteSpace(_cf.Channel)) { _chModalErr = L["SYS.Notifications.Err.ChannelRequired"]; return; }
         if (CfIsPush) { _chModalErr = L["SYS.Notifications.Hint.PushAddress"]; return; }
@@ -861,7 +865,7 @@
 
     async Task SaveChEdit()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-008", "UPDATE", "SYS_NotificationChannel"); return; }
         if (_chSel is null) return;
         _chBusy = true;
         try
@@ -881,7 +885,7 @@
 
     async Task SaveChDelete()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-008", "DELETE", "SYS_NotificationChannel"); return; }
         if (_chSel is null) return;
         _chBusy = true;
         try { Sys.DeleteNotificationChannel(_chSel.NotificationChannelId); Audit.Deleted("SYS-008", "SYS_NotificationChannel", _chSel.NotificationChannelId, _chSel); CloseChModal(); await ReloadRestore(); }

@@ -37,7 +37,7 @@
     </div>
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Rbac.Kpi.Granted"]</div>
-        <div class="ames-kpi-v">@(_selRole is null ? "—" : $"{GrantedCount()} / {TotalCells()}")</div>
+        <div class="ames-kpi-v" title="@L["SYS.Rbac.Kpi.GrantedHint"]">@(_selRole is null ? "—" : $"{GrantedCount()} / {TotalCells()}")</div>
     </div>
 </div>
 
@@ -108,10 +108,14 @@
 
                         @if (_canEdit)
                         {
-                            <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveAll" Disabled="@(!_dirty || _busy || _loadFailed)" Icon="save" ButtonStyle="@(_dirty && !_loadFailed ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveAll" Disabled="@(!_dirty || _busy || _loadFailed || _ownRole)" Icon="save" ButtonStyle="@(_dirty && !_loadFailed ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
                         }
                     </RadzenStack>
                 </div>
+                @if (_ownRole)
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" AllowClose="false" Style="margin:8px 12px 0;">@L["SYS.Rbac.Hint.OwnRole"]</RadzenAlert>
+                }
                 @if (_loadFailed)
                 {
                     <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false" Style="margin:8px 12px 0;">
@@ -140,8 +144,10 @@
                             var plCap = pl;
                             <RadzenDataGridColumn TItem="SysRepository.ScreenRow" TextAlign="TextAlign.Center" Width="80px" MinWidth="80px" Sortable="false">
                                 <HeaderTemplate>
-                                    <span style="cursor:pointer;user-select:none;" @onclick="() => ToggleColumn(plCap)" @onclick:stopPropagation="true">
-                                        @MasterDataRepository.LocalName(plCap)
+                                    @* 일괄 선택 — 일부만 켜졌으면 혼합 표시, 혼합·전체에서 누르면 전부 해제, 전부 꺼졌을 때만 전부 선택 *@
+                                    <span style="display:inline-flex;align-items:center;gap:4px;user-select:none;" title="@L["SYS.Rbac.Hint.ColumnToggle"]" @onclick:stopPropagation="true">
+                                        <RadzenCheckBox TValue="bool?" Value="@ColumnState(plCap)" Change="@(_ => ToggleColumn(plCap))" Disabled="@(!_canEdit || _loadFailed || _ownRole)" />
+                                        <span>@MasterDataRepository.LocalName(plCap)</span>
                                     </span>
                                 </HeaderTemplate>
                                 <Template Context="s">
@@ -151,7 +157,7 @@
                                     }
                                     else if (HasSlot(s.ScreenCode, plCap))
                                     {
-                                        <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit || _loadFailed)" />
+                                        <RadzenCheckBox TValue="bool" Value="@IsChecked(s.ScreenCode, plCap)" Change="@(v => ToggleCell(s, plCap, v))" Disabled="@(!_canEdit || _loadFailed || _ownRole)" />
                                     }
                                     else
                                     {
@@ -196,6 +202,10 @@
     bool _isErr;
     bool _canEdit;
     string _actorEmail = "system";
+    string? _myUserId;
+    List<string> _myRoleIds = new();
+    // 고른 역할이 자기 역할인가(관리자 제외) — 권한 상승 방지로 체크박스·저장을 끈다(RoleSelfEditRules)
+    bool _ownRole => _selRole is not null && RoleSelfEditRules.Blocks(_myRoleIds, _selRole.RoleId);
 
     IEnumerable<SysRepository.ScreenRow> ScreensFiltered =>
         _screens
@@ -210,6 +220,8 @@
         _actorEmail = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/rbac");
+        _myUserId = auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        try { if (!string.IsNullOrEmpty(_myUserId)) _myRoleIds = Sys.ListUserRoles(_myUserId).Select(r => r.Id).ToList(); } catch { }
         try { _permLevelItems = MD.ListCodeItems("PERMISSION_LEVEL").Where(p => p.UseFlag).ToList(); } catch { }
         try { _moduleItems    = MD.ListCodeItems("MODULE"); } catch { }
         try { _processItems   = MD.ListCodeItems("PROCESS"); } catch { }
@@ -354,7 +366,7 @@
     void ToggleCell(SysRepository.ScreenRow s,
         MasterDataRepository.CodeItemRow pl, bool isChecked)
     {
-        if (!_canEdit || _loadFailed || _selRole is null) return;
+        if (!_canEdit || _loadFailed || _selRole is null || _ownRole) return;
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
         if (letter.Length != 1 || !PermissionSlots.Has(s.PermissionCriteria, letter[0])) return;
         _grants.TryGetValue(s.ScreenCode, out var cur);
@@ -363,18 +375,35 @@
         _dirty = true;
     }
 
+    // 열 머리글 상태 — 조회 범위에서 그 기능이 있고 잠기지 않은 칸 기준: 모두 켜짐 true · 모두 꺼짐 false · 섞임 null(혼합 표시)
+    bool? ColumnState(MasterDataRepository.CodeItemRow pl)
+    {
+        var cells = ColumnCells(pl);
+        if (cells.Count == 0) return false;
+        var ch  = (pl.CodeValue ?? "").Trim().ToUpperInvariant()[0];
+        var on  = cells.Count(s => _grants.TryGetValue(s.ScreenCode, out var m) && m.Contains(ch));
+        return on == 0 ? false : on == cells.Count ? true : null;
+    }
+
+    List<SysRepository.ScreenRow> ColumnCells(MasterDataRepository.CodeItemRow pl)
+    {
+        var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
+        if (letter.Length != 1) return new();
+        return ScreensFiltered.Where(s => PermissionSlots.Has(s.PermissionCriteria, letter[0]) && !IsLocked(s, pl)).ToList();
+    }
+
     void ToggleColumn(MasterDataRepository.CodeItemRow pl)
     {
-        if (!_canEdit || _loadFailed || _selRole is null) return;
+        if (!_canEdit || _loadFailed || _selRole is null || _ownRole) return;
         var letter = (pl.CodeValue ?? "").Trim().ToUpperInvariant();
         if (letter.Length != 1) return;
         var ch       = letter[0];
-        var filtered = ScreensFiltered.Where(s => PermissionSlots.Has(s.PermissionCriteria, ch)).ToList();
-        var allSet   = filtered.All(s => _grants.TryGetValue(s.ScreenCode, out var m) && m.Contains(ch));
-        foreach (var s in filtered)
+        // 하나라도 켜져 있으면(혼합·전체) 전부 해제, 전부 꺼졌을 때만 전부 선택 — 조회 범위 안의 칸만 바꾼다
+        var turnOn   = ColumnState(pl) == false;
+        foreach (var s in ColumnCells(pl))
         {
             _grants.TryGetValue(s.ScreenCode, out var cur);
-            _grants[s.ScreenCode] = PermissionSlots.Toggle(cur, ch, !allSet);
+            _grants[s.ScreenCode] = PermissionSlots.Toggle(cur, ch, turnOn);
         }
         EnforceLocked();
         _dirty = true;
@@ -382,7 +411,7 @@
 
     void ToggleModule(string moduleCode)
     {
-        if (!_canEdit || _loadFailed || _selRole is null) return;
+        if (!_canEdit || _loadFailed || _selRole is null || _ownRole) return;
         var filtered  = ScreensFiltered.ToList();
         var fullLevel = new string(_permLevelItems
             .Select(pl => (pl.CodeValue ?? "").Trim().ToUpperInvariant())
@@ -402,8 +431,9 @@
 
     void SaveAll()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-004", "UPDATE", "SYS_RolePermission", _selRole?.RoleName); return; }
         if (_selRole is null) return;
+        if (_ownRole) { Audit.Denied("SYS-004", "UPDATE", "SYS_RolePermission", _selRole.RoleName, "OwnRole"); ShowMsg(L["SYS.Rbac.Hint.OwnRole"].Value, true); return; }
         // 조회가 실패한 화면은 기준을 믿을 수 없다 — 다시 불러오기 전에는 저장하지 않는다
         if (_loadFailed) { ShowMsg(L["SYS.Rbac.Err.LoadFailed"].Value, true); return; }
         var role = _selRole;
@@ -420,7 +450,7 @@
             var saved = Sys.SaveRolePermissions(role.RoleId, role.RoleName,
                 changed.Select(s => new SysRepository.RolePermissionItem(
                     s.ModuleCode, s.ScreenCode, _grants.TryGetValue(s.ScreenCode, out var level) ? PermissionSlots.Compose(s.PermissionCriteria, level) : null)),
-                _actorEmail);
+                _actorEmail, _myUserId);
             Audit.Updated("SYS-004", "SYS_RolePermission", role.RoleName,
                 changed.ToDictionary(s => s.ScreenCode, s => _rows.FirstOrDefault(r => OfRole(r, role) && string.Equals(r.ScreenCode, s.ScreenCode, StringComparison.OrdinalIgnoreCase))?.PermissionLevel),
                 changed.ToDictionary(s => s.ScreenCode, s => saved.GetValueOrDefault(s.ScreenCode)));
@@ -431,17 +461,37 @@
             ScreenCatalog.Notify();
             ShowMsg(L["Msg.Saved"].Value, false);
         }
-        catch (Exception ex) { ShowMsg(ex.Message, true); }
+        catch (RoleSelfEditException)
+        {
+            Audit.Denied("SYS-004", "UPDATE", "SYS_RolePermission", role.RoleName, "OwnRole");
+            ShowMsg(L["SYS.Rbac.Hint.OwnRole"].Value, true);
+        }
+        catch (Exception ex)
+        {
+            Audit.Failed("SYS-004", "UPDATE", "SYS_RolePermission", role.RoleName, null, ex.Message);
+            ShowMsg(ex.Message, true);
+        }
         finally { _busy = false; }
     }
+
+    // 「부여 / 전체」는 칸 단위 — 분자 = 부여된 칸(R·E·A 글자), 분모 = 화면마다 기능이 있는 칸(화면 기본 권한의 X 자리는 세지 않는다)
+    List<char> Slots => _permLevelItems
+        .Select(p => (p.CodeValue ?? "").Trim().ToUpperInvariant())
+        .Where(v => v.Length == 1).Select(v => v[0]).Distinct().ToList();
 
     int GrantedCount()
     {
         if (_selRole is null) return 0;
-        return _screens.Count(s => _grants.TryGetValue(s.ScreenCode, out var lvl) && lvl.Contains('R'));
+        var slots = Slots;
+        return _screens.Sum(s => _grants.TryGetValue(s.ScreenCode, out var lvl)
+            ? slots.Count(c => lvl.Contains(c) && PermissionSlots.Has(s.PermissionCriteria, c)) : 0);
     }
 
-    int TotalCells() => _screens.Count * _permLevelItems.Count;
+    int TotalCells()
+    {
+        var slots = Slots;
+        return _screens.Sum(s => slots.Count(c => PermissionSlots.Has(s.PermissionCriteria, c)));
+    }
 
     // 권한 행은 RoleID 로 역할에 묶인다(이름은 바뀔 수 있다) — RoleID 가 빈 옛 행만 이름으로
     static bool OfRole(SysRepository.RolePermRow x, SysRepository.RoleRow r) =>

@@ -84,7 +84,11 @@ public sealed class SysRepository
 
     public sealed record HealthKpi(int Users, int Roles, int InterfacesOk, int InterfacesDown,
         int AuditLast24h, int NotifLast24h, int NotifFailedLast24h, int ConfigKeys,
-        int Screens, int Permissions, long DbRowsApprox);
+        int Screens, int Permissions, long DbRowsApprox)
+    {
+        /// <summary>집계 기준 시각(DB) — 화면이 「기준 시각」으로 보인다.</summary>
+        public DateTime? AsOf { get; init; }
+    }
 
     public sealed record UserSelectRow(string Id, string? UserName, string? Email, string? PhoneNumber, bool IsApproved = true, string? EmployeeNo = null);
 
@@ -559,10 +563,11 @@ public sealed class SysRepository
             FROM    dbo.SYS_InterfaceMonitor
             ORDER   BY InterfaceCode;
             """;
+        // 주소는 비밀값을 가린 채로만 내보낸다(MonitorRules.MaskEndpoint) — 화면·Api 응답 모두 이 목록을 쓴다
         return Query(sql, r => new InterfaceRow(
             (int)r["InterfaceMonitorID"], r["InterfaceCode"] as string,
             r["InterfaceName"] as string, r["Direction"] as string,
-            r["Endpoint"] as string, r["Protocol"] as string,
+            MonitorRules.MaskEndpoint(r["Endpoint"] as string), r["Protocol"] as string,
             r["ConnStatus"] as string, r["LastSyncTS"] as DateTime?,
             r["MaxGapMinutes"] as int?, r["LastRecordCount"] as int?,
             r["RetryCount"] as int?, r["LastErrorMsg"] as string,
@@ -625,14 +630,16 @@ public sealed class SysRepository
         string actorUserId, string? ipAddress = null,
         string result = "OK", string? note = null)
     {
+        // 공정 코드는 화면 레지스트리(SYS_Screen.ProcessCode)에서 채운다 — SYS-007 공정 필터가 웹 감사 행도 거르게(화면 코드가 아닌 ACCOUNT 등은 NULL)
         using var conn = _f.OpenConnection();
         using var cmd  = new SqlCommand("""
             INSERT INTO dbo.SYS_AuditLog
-                   (EventTS, ActorUserID, ModuleCode, ScreenCode, ActionType,
+                   (EventTS, ActorUserID, ModuleCode, ScreenCode, ProcessCode, ActionType,
                     TargetEntity, TargetID, BeforeValueJSON, AfterValueJSON,
                     IPAddress, Result, Note, CreatedBy, CreatedTS)
-            VALUES (SYSDATETIME(), @Actor, @Mod, @Scr, @Act,
-                    @Ent, @TID, @Before, @After,
+            VALUES (SYSDATETIME(), @Actor, @Mod, @Scr,
+                    (SELECT TOP (1) s.ProcessCode FROM dbo.SYS_Screen s WHERE s.ScreenCode = @Scr ORDER BY s.ScreenID),
+                    @Act, @Ent, @TID, @Before, @After,
                     @IP, @Res, @Note, @Actor, SYSDATETIME())
             """, conn);
         ColumnParams.Add(cmd, "@Actor", "SYS_AuditLog.CreatedBy", actorUserId);
@@ -670,7 +677,9 @@ public sealed class SysRepository
     }
 
     /// <summary>SYS-007 조회 조건. 기간은 날짜 단위(From 00:00 ~ To 다음 날 00:00 미만), 나머지는 비우면 조건 없음.</summary>
-    public sealed record AuditFilter(DateTime From, DateTime To, string? Search, string? ModuleCode, string? ProcessCode, string? Result);
+    /// <param name="ActorCodes">검색어와 이름이 맞는 행위자 코드(화면이 이름 사전으로 푼 값) — 검색어 조건에 OR 로 더한다.</param>
+    public sealed record AuditFilter(DateTime From, DateTime To, string? Search, string? ModuleCode, string? ProcessCode, string? Result,
+        IReadOnlyCollection<string>? ActorCodes = null);
 
     /// <summary>
     /// SYS-007 감사 로그 조회 — 조건을 DB 에서 걸고 건수 제한 없이 돌려준다(10-07 — 전에는 최근 200행 안에서만 화면이 걸렀다).
@@ -688,7 +697,8 @@ public sealed class SysRepository
               AND  (@Result  IS NULL OR Result      = @Result)
               AND  (@SN IS NULL
                     OR ActorUserID  LIKE @SN OR Note     LIKE @SN
-                    OR TargetEntity LIKE @SV OR TargetID LIKE @SV)
+                    OR TargetEntity LIKE @SV OR TargetID LIKE @SV
+                    OR (@Actors IS NOT NULL AND ActorUserID IN (SELECT value FROM STRING_SPLIT(@Actors, NCHAR(31)))))
             ORDER  BY LogID DESC;
             """;
         static object Opt(string? s) => string.IsNullOrWhiteSpace(s) ? DBNull.Value : s.Trim();
@@ -705,6 +715,9 @@ public sealed class SysRepository
         // 행위자·비고는 nvarchar, 대상 엔티티·ID 는 varchar 컬럼 — 같은 검색어를 컬럼 형에 맞춰 두 번 넘긴다
         cmd.Parameters.Add("@SN", SqlDbType.NVarChar, 600).Value = (object?)like ?? DBNull.Value;
         cmd.Parameters.Add("@SV", SqlDbType.VarChar,  600).Value = (object?)like ?? DBNull.Value;
+        // 이름으로 찾은 사번 목록 — 구분자는 코드에 나올 수 없는 제어 문자(U+001F)
+        var actors = f.ActorCodes is { Count: > 0 } ? string.Join('\u001f', f.ActorCodes) : null;
+        cmd.Parameters.Add("@Actors", SqlDbType.NVarChar, -1).Value = (object?)actors ?? DBNull.Value;
         using var r = cmd.ExecuteReader();
         var list = new List<AuditRow>();
         while (r.Read())
@@ -860,14 +873,19 @@ public sealed class SysRepository
         string? subProcessCode, string screenName, string? screenNameEn, string? href, string? lidLabel,
         int? sortOrder, bool isVisible, string createdBy, string? permissionCriteria = null)
     {
-        // SYS-003·SYS-004 주소를 다른 화면이 같이 쓰면 권한 판정이 어느 화면을 볼지 흔들린다(ProtectedScreens)
-        var sql = $$"""
-            IF TRIM('/' FROM ISNULL(@HRef, '')) IN ({{ProtectedScreens.SqlList}})
-               AND EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE TRIM('/' FROM ISNULL(HRef, '')) = TRIM('/' FROM @HRef))
-                THROW 51825, 'Another screen already uses this protected path.', 1;
+        // 두 화면이 같은 주소를 쓰면 권한 판정·메뉴가 어느 화면을 볼지 흔들린다 — 보호 화면(SYS-003·004)뿐 아니라 모든 주소(51825)
+        const string sql = """
+            SET XACT_ABORT ON;
+            BEGIN TRANSACTION;
+            IF EXISTS (SELECT 1 FROM dbo.SYS_Screen WITH (UPDLOCK, HOLDLOCK) WHERE ScreenCode = @Code)
+                THROW 51822, 'Screen code is already in use.', 1;
+            IF TRIM('/' FROM ISNULL(@HRef, '')) <> ''
+               AND EXISTS (SELECT 1 FROM dbo.SYS_Screen WITH (UPDLOCK, HOLDLOCK) WHERE TRIM('/' FROM ISNULL(HRef, '')) = TRIM('/' FROM @HRef))
+                THROW 51825, 'Another screen already uses this path.', 1;
             INSERT INTO dbo.SYS_Screen
                    (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy)
-            VALUES (@Code, @Module, @Process, @SubProc, @Name, @NameEn, @HRef, @Lid, @Perm, @Sort, @Visible, @CreatedBy)
+            VALUES (@Code, @Module, @Process, @SubProc, @Name, @NameEn, @HRef, @Lid, @Perm, @Sort, @Visible, @CreatedBy);
+            COMMIT TRANSACTION;
             """;
         Exec(sql,
             ("@Perm", "SYS_Screen.PermissionCriteria", ProtectedScreens.ApplyTemplate(href, permissionCriteria)),
@@ -902,9 +920,9 @@ public sealed class SysRepository
             IF TRIM('/' FROM ISNULL(@OldHRef, '')) IN ({{ProtectedScreens.SqlList}})
                AND (@OldCode <> @Code OR TRIM('/' FROM ISNULL(@HRef, '')) <> TRIM('/' FROM @OldHRef))
                 THROW 51824, 'The code and path of SYS-003/SYS-004 cannot change.', 1;
-            IF TRIM('/' FROM ISNULL(@HRef, '')) IN ({{ProtectedScreens.SqlList}})
-               AND EXISTS (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenID <> @Id AND TRIM('/' FROM ISNULL(HRef, '')) = TRIM('/' FROM @HRef))
-                THROW 51825, 'Another screen already uses this protected path.', 1;
+            IF TRIM('/' FROM ISNULL(@HRef, '')) <> ''
+               AND EXISTS (SELECT 1 FROM dbo.SYS_Screen WITH (UPDLOCK, HOLDLOCK) WHERE ScreenID <> @Id AND TRIM('/' FROM ISNULL(HRef, '')) = TRIM('/' FROM @HRef))
+                THROW 51825, 'Another screen already uses this path.', 1;
             IF @OldCode <> @Code AND EXISTS
                 (SELECT 1 FROM dbo.SYS_Screen WHERE ScreenCode = @Code AND ScreenID <> @Id)
                 THROW 51822, 'Screen code is already in use.', 1;
@@ -1135,6 +1153,39 @@ public sealed class SysRepository
         cmd.ExecuteNonQuery();
     }
 
+    public sealed record ConfigChange(int ConfigId, string? Value, bool IsActive);
+
+    /// <summary>
+    /// SYS-009 일괄 저장 — 바뀐 행을 한 트랜잭션으로 쓴다(10-28). 하나라도 실패하면(없어진 행 포함) 전부 되돌리고 예외를 던진다 — 일부만 반영된 채 남지 않는다.
+    /// </summary>
+    public void SetConfigs(IReadOnlyCollection<ConfigChange> changes, string modifiedBy)
+    {
+        if (changes.Count == 0) return;
+        const string sql = """
+            UPDATE dbo.SYS_Config
+            SET    ConfigValue = @Value,
+                   IsActive    = @IsActive,
+                   ModifiedBy  = @ModifiedBy,
+                   ModifiedTS  = SYSDATETIME()
+            WHERE  ConfigID = @Id
+            """;
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        using var cmd  = new SqlCommand(sql, conn, tx);
+        var pId     = cmd.Parameters.Add("@Id",         SqlDbType.Int);
+        var pValue  = cmd.Parameters.Add("@Value",      SqlDbType.NVarChar, 500);
+        var pActive = cmd.Parameters.Add("@IsActive",   SqlDbType.Bit);
+        cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar, 20).Value = modifiedBy;
+        foreach (var c in changes)
+        {
+            pId.Value     = c.ConfigId;
+            pValue.Value  = (object?)c.Value ?? DBNull.Value;
+            pActive.Value = c.IsActive;
+            if (cmd.ExecuteNonQuery() != 1) throw new InvalidOperationException($"Config {c.ConfigId} was not found.");
+        }
+        tx.Commit();
+    }
+
     // 단일 설정키의 값·활성여부 (컬처 결정/언어 스위처 판정용). 없으면 null.
     public (string? Value, bool IsActive)? GetConfigFlag(string key)
     {
@@ -1161,7 +1212,10 @@ public sealed class SysRepository
     /// 값은 넘어온 부여 글자를 **DB 의 현재 화면 기본 권한(SYS_Screen.PermissionCriteria)** 으로 다시 3자리로 맞춰 쓴다(10-10) —
     /// 화면을 연 사이 SYS-003 에서 기능을 끈 화면에 옛 부여가 저장되지 않게. 저장한 값(화면 코드 → 3자리)을 돌려준다(감사 기록용).
     /// </summary>
-    public Dictionary<string, string> SaveRolePermissions(string roleId, string roleName, IEnumerable<RolePermissionItem> items, string modifiedBy)
+    /// <remarks>editorUserId(저장하는 사람의 AspNetUsers.Id)를 주면 그 사람이 이 역할에 속하고 System Administrator 가 아닐 때
+    /// 아무것도 쓰지 않고 <see cref="RoleSelfEditException"/> 을 던진다(<see cref="RoleSelfEditRules"/>, 10-28) — 같은 트랜잭션에서 역할 배정을 읽는다.</remarks>
+    public Dictionary<string, string> SaveRolePermissions(string roleId, string roleName, IEnumerable<RolePermissionItem> items, string modifiedBy,
+        string? editorUserId = null)
     {
         const string sql = """
             IF @Level IS NULL
@@ -1184,6 +1238,17 @@ public sealed class SysRepository
 
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
+        if (!string.IsNullOrWhiteSpace(editorUserId))
+        {
+            var editorRoles = new List<string>();
+            using (var q = new SqlCommand("SELECT RoleId FROM dbo.AspNetUserRoles WITH (HOLDLOCK) WHERE UserId = @U;", conn, tx))
+            {
+                ColumnParams.AddFilter(q, "@U", "AspNetUserRoles.UserId", editorUserId);
+                using var rd = q.ExecuteReader();
+                while (rd.Read()) editorRoles.Add(rd.GetString(0));
+            }
+            if (RoleSelfEditRules.Blocks(editorRoles, roleId)) throw new RoleSelfEditException(roleId);
+        }
         // 기본 권한을 읽은 뒤 저장이 끝날 때까지 SYS-003 이 바꾸지 못하게 공유 잠금을 쥔다
         var criteria = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var hrefs    = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
@@ -1231,19 +1296,44 @@ public sealed class SysRepository
         }
     }
 
+    // ── SYS-008·SYS-010 알림 KPI ─────────────────────────────────────────
+    public sealed record NotificationKpi(int Sent, int Failed, DateTime AsOf);
+
+    /// <summary>
+    /// 최근 24시간(DB 시각) 발송·실패 건수 — 이력 전체에서 센다(목록 TOP 과 무관). 발송 = SENT 이고 발송 시각(SentAt)이 24시간 안,
+    /// 실패 = 실패 상태(MonitorRules.NotificationFailed)이고 마지막 시도 시각(ModifiedTS, 없으면 CreatedTS)이 24시간 안 — 실패 처리는 SentAt 을 쓰지 않는다.
+    /// SYS-008 과 SYS-010 이 같은 값을 보인다. AsOf = 기준 시각(DB).
+    /// </summary>
+    public NotificationKpi CountNotifications24h()
+    {
+        var sql = $"""
+            DECLARE @now datetime2 = SYSDATETIME(), @from datetime2 = DATEADD(HOUR, -24, SYSDATETIME());
+            SELECT (SELECT COUNT(*) FROM dbo.SYS_NotificationHistory
+                     WHERE Status = '{MonitorRules.NotificationSent}' AND SentAt >= @from AND SentAt <= @now) AS Sent,
+                   (SELECT COUNT(*) FROM dbo.SYS_NotificationHistory
+                     WHERE Status IN ({MonitorRules.SqlList(MonitorRules.NotificationFailed)})
+                       AND ISNULL(ModifiedTS, CreatedTS) >= @from AND ISNULL(ModifiedTS, CreatedTS) <= @now) AS Failed,
+                   @now AS AsOf;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        using var rdr  = cmd.ExecuteReader();
+        rdr.Read();
+        return new NotificationKpi((int)rdr["Sent"], (int)rdr["Failed"], (DateTime)rdr["AsOf"]);
+    }
+
     // ── SYS-010 System Health ───────────────────────────────────────────
+    /// <remarks>인터페이스 정상·다운과 알림 발송·실패는 SYS-006·SYS-008 과 같은 기준(MonitorRules — 시간 초과 경고·다운 포함, CountNotifications24h)으로 센다.</remarks>
     public HealthKpi GetHealth()
     {
+        var ifs   = ListInterfaces();
+        var eff   = ifs.Select(i => MonitorRules.EffectiveInterfaceStatus(i.ConnStatus, i.LastSyncTs, i.MinutesSinceSync, i.MaxGapMinutes, i.IsEnabled)).ToList();
+        var notif = CountNotifications24h();
         const string sql = """
             SELECT
               (SELECT COUNT(*) FROM dbo.AspNetUsers)                                          AS Users,
               (SELECT COUNT(*) FROM dbo.AspNetRoles)                                          AS Roles,
-              (SELECT COUNT(*) FROM dbo.SYS_InterfaceMonitor WHERE ConnStatus IN ('OK','UP'))  AS IfOk,
-              (SELECT COUNT(*) FROM dbo.SYS_InterfaceMonitor WHERE ConnStatus NOT IN ('OK','UP') OR ConnStatus IS NULL) AS IfDown,
               (SELECT COUNT(*) FROM dbo.SYS_AuditLog          WHERE EventTS >= DATEADD(HOUR,-24,SYSDATETIME())) AS AuditDay,
-              (SELECT COUNT(*) FROM dbo.SYS_NotificationHistory WHERE SentAt >= DATEADD(HOUR,-24,SYSDATETIME())) AS NotifDay,
-              (SELECT COUNT(*) FROM dbo.SYS_NotificationHistory WHERE SentAt >= DATEADD(HOUR,-24,SYSDATETIME())
-                                                                  AND Status IN ('FAILED','ERROR')) AS NotifFail,
               (SELECT COUNT(*) FROM dbo.SYS_Config WHERE ISNULL(IsActive,1)=1)                 AS Cfg,
               (SELECT COUNT(*) FROM dbo.SYS_Screen WHERE ISNULL(IsVisible,1)=1)                AS Screens,
               (SELECT COUNT(*) FROM dbo.SYS_RolePermission)                                    AS Perms,
@@ -1257,14 +1347,14 @@ public sealed class SysRepository
         using var cmd  = new SqlCommand(sql, conn);
         using var rdr  = cmd.ExecuteReader();
         if (!rdr.Read())
-            return new HealthKpi(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L);
+            return new HealthKpi(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0L) { AsOf = notif.AsOf };
         return new HealthKpi(
             (int)rdr["Users"], (int)rdr["Roles"],
-            (int)rdr["IfOk"], (int)rdr["IfDown"],
-            (int)rdr["AuditDay"], (int)rdr["NotifDay"],
-            (int)rdr["NotifFail"], (int)rdr["Cfg"],
+            eff.Count(MonitorRules.IsOk), eff.Count(MonitorRules.IsDown),
+            (int)rdr["AuditDay"], notif.Sent,
+            notif.Failed, (int)rdr["Cfg"],
             (int)rdr["Screens"], (int)rdr["Perms"],
-            rdr["RowsApprox"] as long? ?? 0L);
+            rdr["RowsApprox"] as long? ?? 0L) { AsOf = notif.AsOf };
     }
 
     // ── SYS-01 User Profile Write ───────────────────────────────────────

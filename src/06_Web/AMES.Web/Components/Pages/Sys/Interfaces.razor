@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using Radzen
 
 @attribute [Authorize]
@@ -19,28 +20,28 @@
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.All"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_allRows.Count</div>
+            <div class="ames-kpi-v">@Kpi(_allRows.Count)</div>
             <div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.AllSub"]</div>
         </div>
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Ok"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_ok</div>
+            <div class="ames-kpi-v">@Kpi(_ok)</div>
             <div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.OkSub"]</div>
         </div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Warn"]</div>
             <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_warn</div>
+            <div class="ames-kpi-v">@Kpi(_warn)</div>
             <div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.WarnSub"]</div>
         </div>
     </div>
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@L["SYS.Interfaces.Kpi.Down"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_down</div>
+            <div class="ames-kpi-v">@Kpi(_down)</div>
             <div class="ames-kpi-s">@L["SYS.Interfaces.Kpi.DownSub"]</div>
         </div>
     </div>
@@ -60,9 +61,20 @@
         </RadzenStack>
     </div>
 
+    @* 기준 시각 — 마지막으로 읽은 DB 시각, 경고·다운 판정 기준(MonitorRules) *@
+    <div class="dim" style="padding:4px 12px 8px;font-size:calc(12px + var(--ames-fs-bump));">
+        @(_asOf is null ? "" : string.Format(L["SYS.Interfaces.AsOf"].Value, _asOf.Value.ToString(DateFmt.DateTimeSec)))
+        · @string.Format(L["SYS.Interfaces.Hint.Threshold"].Value, MonitorRules.DownGapFactor)
+    </div>
     @if (_err is not null)
     {
-        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_err</RadzenAlert>
+        @* 조회 실패 — 지난 값을 최신처럼 보이지 않게 목록·KPI 를 비우고 마지막 성공 시각과 다시 시도를 보인다 *@
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" AllowClose="false">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Wrap="FlexWrap.Wrap">
+                <span>@string.Format(L["SYS.Interfaces.Err.Load"].Value, _asOf?.ToString(DateFmt.DateTimeSec) ?? "—") — @_err</span>
+                <RadzenButton Text="@L["SYS.Interfaces.Btn.Retry"]" Icon="refresh" Click="@(args => Reload())" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </RadzenAlert>
     }
     else
     {
@@ -87,7 +99,10 @@
                     <Template Context="i"><span class="dim">@(i.Protocol ?? "—")</span></Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="ConnStatus" Title="@L["Col.Status"]" TextAlign="TextAlign.Center" Width="110px" MinWidth="110px">
-                    <Template Context="i"><span class="pill @StClass(i.ConnStatus)">@StatusName(i.ConnStatus)</span></Template>
+                    <Template Context="i">
+                        @{ var st = Eff(i); }
+                        <span class="pill @StClass(st)" title="@StatusTip(i, st)">@StatusName(st)</span>
+                    </Template>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SysRepository.InterfaceRow" Property="LastSyncTs" Title="@L["SYS.Interfaces.Col.LastSync"]" TextAlign="TextAlign.Center" Width="200px" MinWidth="200px">
                     <Template Context="i"><span class="dim">@(i.LastSyncTs?.ToString(DateFmt.DateTime) ?? "—")</span></Template>
@@ -120,6 +135,7 @@
     int _ok, _warn, _down;
     string _fSearch = "", _fStatus = "", _fDir = "";
     string? _err;
+    DateTime? _asOf;   // 마지막으로 성공한 조회의 기준 시각(DB)
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
@@ -143,19 +159,34 @@
     void Reload()
     {
         _err = null;
-        try { _allRows = Sys.ListInterfaces(); }
+        try
+        {
+            _allRows = Sys.ListInterfaces();
+            _asOf    = DbClock.Now;
+        }
         catch (Exception ex) { _err = ex.Message; _allRows = new(); }
-        _ok   = _allRows.Count(r => r.ConnStatus is "OK" or "UP");
-        _warn = _allRows.Count(r => r.ConnStatus is "WARN" or "DEGRADED");
-        _down = _allRows.Count(r => r.ConnStatus is "DOWN" or "ERROR" or "FAULT");
+        // 상태는 기록값이 아니라 판정값 — 정상으로 기록됐어도 허용 간격을 넘기면 경고·다운(MonitorRules, SYS-010 과 같은 기준)
+        _ok   = _allRows.Count(r => MonitorRules.IsOk(Eff(r)));
+        _warn = _allRows.Count(r => MonitorRules.IsWarn(Eff(r)));
+        _down = _allRows.Count(r => MonitorRules.IsDown(Eff(r)));
         ApplyFilter();
     }
+
+    static string? Eff(SysRepository.InterfaceRow r)
+        => MonitorRules.EffectiveInterfaceStatus(r.ConnStatus, r.LastSyncTs, r.MinutesSinceSync, r.MaxGapMinutes, r.IsEnabled);
+
+    // 조회 실패 중에는 KPI 를 0 이 아니라 — 로(값을 모름)
+    string Kpi(int n) => _err is null ? n.ToString() : "—";
+
+    string? StatusTip(SysRepository.InterfaceRow r, string? eff)
+        => string.Equals(eff, r.ConnStatus, StringComparison.OrdinalIgnoreCase) ? null
+         : string.Format(L["SYS.Interfaces.Hint.Overdue"].Value, r.MinutesSinceSync, r.MaxGapMinutes, StatusName(r.ConnStatus));
 
     void ApplyFilter() => _rows = _allRows.Where(r =>
         (string.IsNullOrEmpty(_fSearch) ||
             (r.InterfaceCode ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase) ||
             (r.InterfaceName ?? "").Contains(_fSearch, StringComparison.OrdinalIgnoreCase)) &&
-        (string.IsNullOrEmpty(_fStatus) || r.ConnStatus == _fStatus) &&
+        (string.IsNullOrEmpty(_fStatus) || string.Equals(Eff(r), _fStatus, StringComparison.OrdinalIgnoreCase)) &&
         (string.IsNullOrEmpty(_fDir)    || r.Direction  == _fDir)
     ).ToList();
 
@@ -173,11 +204,6 @@
         return item is null ? code : MasterDataRepository.LocalName(item);
     }
 
-    static string StClass(string? s) => s switch
-    {
-        "OK" or "UP"                  => "ok",
-        "WARN" or "DEGRADED"          => "warn",
-        "DOWN" or "ERROR" or "FAULT"  => "bad",
-        _                             => "info"
-    };
+    static string StClass(string? s) =>
+        MonitorRules.IsOk(s) ? "ok" : MonitorRules.IsWarn(s) ? "warn" : MonitorRules.IsDown(s) ? "bad" : "info";
 }
