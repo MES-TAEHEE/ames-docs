@@ -1,5 +1,5 @@
-﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-26 from the development DB (192.168.0.132) with SMO.
--- 179 tables / 2434 columns, 159 procedures, 0 views, 0 functions, 1 sequences.
+﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-27 from the development DB (192.168.0.132) with SMO.
+-- 179 tables / 2434 columns, 160 procedures, 0 views, 3 functions, 1 sequences.
 -- Excludes TEST_* tables, retired WH_ReleaseSchedule and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
 -- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).
 -- Schema only from the live database; sample seeds below are retained from the repository.
@@ -94,6 +94,7 @@ DROP PROCEDURE IF EXISTS [dbo].[SP_POP_INJ_CreateManualRawLots_GetItem];
 DROP PROCEDURE IF EXISTS [dbo].[SP_POP_INJ_CreateManualRawLots_GetMoldItem];
 DROP PROCEDURE IF EXISTS [dbo].[SP_POP_INJ_CreateManualRawLots_InsInjLot];
 DROP PROCEDURE IF EXISTS [dbo].[SP_POP_INJ_CreateManualRawLots_InsLot];
+DROP PROCEDURE IF EXISTS [dbo].[SP_POP_INJ_DecrementPrintedCount];
 DROP PROCEDURE IF EXISTS [dbo].[SP_POP_INJ_GetByLotCode];
 DROP PROCEDURE IF EXISTS [dbo].[SP_POP_INJ_GetDailyItemSummary];
 DROP PROCEDURE IF EXISTS [dbo].[SP_POP_INJ_GetMaxLotId];
@@ -178,6 +179,9 @@ DROP PROCEDURE IF EXISTS [dbo].[SP_SYS_NumberSeq_Next];
 DROP PROCEDURE IF EXISTS [dbo].[WH_PDA_INBOUND_SIMPLE_TEST_RESET];
 DROP PROCEDURE IF EXISTS [dbo].[WH_PDA_PPT_TEST_RESET];
 DROP PROCEDURE IF EXISTS [dbo].[WH_SET_LOT_STATUS];
+DROP FUNCTION IF EXISTS [dbo].[FN_POP_DayCutoffMin];
+DROP FUNCTION IF EXISTS [dbo].[FN_POP_DayStart];
+DROP FUNCTION IF EXISTS [dbo].[FN_POP_ProdToday];
 DROP TABLE IF EXISTS [dbo].[AspNetRoleClaims];
 DROP TABLE IF EXISTS [dbo].[AspNetRoles];
 DROP TABLE IF EXISTS [dbo].[AspNetUserClaims];
@@ -7176,6 +7180,15 @@ CREATE NONCLUSTERED INDEX [IX_PR_InjLot_Equip] ON [dbo].[PR_InjLot]
 )
 INCLUDE([CavityPos],[MachineShotCount]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
+SET ANSI_PADDING ON
+GO
+CREATE NONCLUSTERED INDEX [IX_PR_InjLot_Equip_Pos_Lot] ON [dbo].[PR_InjLot]
+(
+	[EquipID] ASC,
+	[CavityPos] ASC,
+	[LotID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
 CREATE NONCLUSTERED INDEX [IX_PR_InjLot_PrintClaim] ON [dbo].[PR_InjLot]
 (
 	[PrintedCount] ASC,
@@ -7500,6 +7513,12 @@ CREATE NONCLUSTERED INDEX [IX_PR_ProductionResult_Line_EntryAt] ON [dbo].[PR_Pro
 	[EntryAt] ASC
 )
 INCLUDE([WoID],[GoodQty]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [IX_PR_ProductionResult_LotID] ON [dbo].[PR_ProductionResult]
+(
+	[LotID] ASC
+)
+INCLUDE([GoodQty]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
 SET ANSI_PADDING ON
 GO
@@ -8121,6 +8140,13 @@ CREATE TABLE [dbo].[QC_Inspection](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
+SET ANSI_PADDING ON
+GO
+CREATE NONCLUSTERED INDEX [IX_QC_Inspection_InspectionNo] ON [dbo].[QC_Inspection]
+(
+	[InspectionNo] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
 ALTER TABLE [dbo].[QC_Inspection] ADD  DEFAULT (sysdatetime()) FOR [InsStartTS]
 GO
 ALTER TABLE [dbo].[QC_Inspection] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
@@ -8350,6 +8376,13 @@ CREATE TABLE [dbo].[QC_NCR](
 	[NcrID] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+CREATE NONCLUSTERED INDEX [IX_QC_NCR_NcrNumber] ON [dbo].[QC_NCR]
+(
+	[NcrNumber] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 GO
 ALTER TABLE [dbo].[QC_NCR] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
@@ -9947,6 +9980,54 @@ CREATE SEQUENCE [dbo].[SCM_CaseNumberSequence]
  CACHE
 GO
 -- ════ Functions ════
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- ===== POP 하루 경계 (10-27) =====
+-- POP 현황의 하루 = 전기일(SYS_Config.DAY_CUTOFF_TIME 'HH:mm', 이 시각 전은 전날 — 웹 보고서·실적 ProdDate 와 같다).
+-- 설정이 없거나 읽을 수 없으면 0(자정 — 종전 동작). C# 쪽은 AMES.Data.Services.PopDay 가 같은 값을 쓴다.
+CREATE   FUNCTION dbo.FN_POP_DayCutoffMin()
+RETURNS INT
+AS
+BEGIN
+    DECLARE @v VARCHAR(20) = (SELECT TOP 1 LTRIM(RTRIM(ConfigValue)) FROM dbo.SYS_Config
+                              WHERE ConfigKey = 'DAY_CUTOFF_TIME' ORDER BY ConfigID);
+    DECLARE @h INT, @m INT;
+    IF @v LIKE '[0-9][0-9]:[0-9][0-9]'   SELECT @h = CAST(LEFT(@v,2) AS INT), @m = CAST(RIGHT(@v,2) AS INT);
+    ELSE IF @v LIKE '[0-9]:[0-9][0-9]'   SELECT @h = CAST(LEFT(@v,1) AS INT), @m = CAST(RIGHT(@v,2) AS INT);
+    ELSE IF @v LIKE '[0-9][0-9][0-9][0-9]' SELECT @h = CAST(LEFT(@v,2) AS INT), @m = CAST(RIGHT(@v,2) AS INT);
+    IF @h IS NULL OR @h > 23 OR @m > 59 RETURN 0;
+    RETURN @h * 60 + @m;
+END;
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- 전기일 @d 의 시작 시각(= @d + 경계 시각). 끝은 하루 뒤.
+CREATE   FUNCTION dbo.FN_POP_DayStart(@d DATE)
+RETURNS DATETIME2
+AS
+BEGIN
+    RETURN DATEADD(MINUTE, dbo.FN_POP_DayCutoffMin(), CAST(@d AS DATETIME2));
+END;
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- 지금(DB 시각)의 전기일
+CREATE   FUNCTION dbo.FN_POP_ProdToday()
+RETURNS DATE
+AS
+BEGIN
+    RETURN CAST(DATEADD(MINUTE, -dbo.FN_POP_DayCutoffMin(), SYSDATETIME()) AS DATE);
+END;
+GO
 -- ════ Views ════
 -- ════ Stored procedures ════
 SET ANSI_NULLS ON
@@ -10352,7 +10433,6 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
--- POP 안돈 보전 호출의 고장 등록 — 고장번호를 같은 카운터로 받는다(migrate_pop_stored_procedures.sql 의 같은 프로시저와 동일 본문)
 CREATE   PROCEDURE dbo.SP_POP_ANDON_CallDepts_InsMNT_FailureRegister
     @Ref VARCHAR(24),
     @C VARCHAR(30),
@@ -10515,6 +10595,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
+-- ===== Andon.Raise (ANDON) =====
 CREATE   PROCEDURE dbo.SP_POP_ANDON_Raise
     @L VARCHAR(20),
     @E VARCHAR(20),
@@ -11112,7 +11194,7 @@ BEGIN
     JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
     WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
       AND          r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
     ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
@@ -11210,7 +11292,7 @@ BEGIN
                    WHERE  c.WoID = w.WoID AND c.ProcessCode = @CoreProc
                      AND  COALESCE(c.ItemNo, w.ItemNo) = @Core)
       AND          r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
     ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
@@ -11290,7 +11372,7 @@ BEGIN
         FROM   dbo.tbl_Lot   l
         JOIN   dbo.PR_ImgLot e ON e.LotID = l.LotID
         WHERE  l.LineID = @Line
-          AND  l.CreatedTS >= @Today AND l.CreatedTS < DATEADD(day, 1, @Today)
+          AND  l.CreatedTS >= dbo.FN_POP_DayStart(@Today) AND l.CreatedTS < dbo.FN_POP_DayStart(DATEADD(day, 1, @Today))
         GROUP  BY l.ItemNo
     ),
     itemkeys AS (
@@ -11312,7 +11394,7 @@ BEGIN
                 JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
                 WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = k.ItemNo
                   AND  r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled') THEN 1 ELSE 0 END AS HasOpenWo
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')) THEN 1 ELSE 0 END AS HasOpenWo
     FROM   itemkeys k
     LEFT JOIN dbo.MD_Item i ON i.ItemNo = k.ItemNo
     LEFT JOIN bop    b ON b.ItemNo = k.ItemNo
@@ -11341,8 +11423,8 @@ BEGIN
     LEFT   JOIN dbo.MD_Item mi ON mi.ItemNo = l.ItemNo
     LEFT   JOIN dbo.tbl_Lot pl ON pl.LotID = l.ParentLotID
     WHERE  l.LineID = @Line
-      AND  l.CreatedTS >= CAST(SYSDATETIME() AS date)
-      AND  l.CreatedTS <  DATEADD(day, 1, CAST(SYSDATETIME() AS date))
+      AND  l.CreatedTS >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday())
+      AND  l.CreatedTS <  dbo.FN_POP_DayStart(DATEADD(day, 1, dbo.FN_POP_ProdToday()))
     ORDER  BY l.CreatedTS DESC, l.LotID DESC
     OFFSET 0 ROWS FETCH NEXT @Top ROWS ONLY;
 END;
@@ -11424,7 +11506,7 @@ BEGIN
     LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
     WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
       AND          r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
     ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
@@ -11522,6 +11604,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
+-- ===== InjLot.ClaimForPrint (INJ) =====
 CREATE   PROCEDURE dbo.SP_POP_INJ_ClaimForPrint
     @Top INT,
     @Station VARCHAR(20),
@@ -11592,13 +11676,23 @@ GO
 CREATE   PROCEDURE dbo.SP_POP_INJ_ConfirmByLotCode_GetLot2
     @ThisTs DATETIME2,
     @Equip VARCHAR(20),
-    @Pos VARCHAR(4)
+    @Pos VARCHAR(4),
+    @ThisLot INT = NULL
 AS
 BEGIN
-    SELECT ISNULL(DATEDIFF(SECOND, MAX(pl.CreatedTS), @ThisTs), 0)
-    FROM   dbo.tbl_Lot pl
-    JOIN   dbo.PR_InjLot pe ON pe.LotID = pl.LotID
-    WHERE  pe.EquipID = @Equip AND pe.CavityPos = @Pos AND pl.CreatedTS < @ThisTs;
+    -- @ThisLot 없는 구 Pop 호출은 종전 계산. 오프라인 재생 LOT 은 LotID 와 CreatedTS 순서가 어긋날 수 있어 CreatedTS 조건을 남긴다
+    IF @ThisLot IS NULL
+        SELECT ISNULL(DATEDIFF(SECOND, MAX(pl.CreatedTS), @ThisTs), 0)
+        FROM   dbo.tbl_Lot pl
+        JOIN   dbo.PR_InjLot pe ON pe.LotID = pl.LotID
+        WHERE  pe.EquipID = @Equip AND pe.CavityPos = @Pos AND pl.CreatedTS < @ThisTs;
+    ELSE
+        SELECT ISNULL((SELECT TOP 1 DATEDIFF(SECOND, pl.CreatedTS, @ThisTs)
+                       FROM   dbo.PR_InjLot pe
+                       JOIN   dbo.tbl_Lot pl ON pl.LotID = pe.LotID
+                       WHERE  pe.EquipID = @Equip AND pe.CavityPos = @Pos
+                         AND  pe.LotID < @ThisLot AND pl.CreatedTS < @ThisTs
+                       ORDER  BY pe.LotID DESC), 0);
 END;
 GO
 SET ANSI_NULLS ON
@@ -11616,7 +11710,7 @@ BEGIN
     JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
     WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
       AND          r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
     ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
@@ -11771,6 +11865,25 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- ===== InjLot.DecrementPrintedCount (INJ) — 출력 실패 시 선행 카운트 되돌리기 (10-26) =====
+-- 카운트는 출력 전에 올린다. 출력이 실패하면 여기서 되돌려 클레임이 다시 잡을 수 있게 한다.
+-- PrintedCount 0 이하로는 내려가지 않는다.
+CREATE   PROCEDURE dbo.SP_POP_INJ_DecrementPrintedCount
+    @By VARCHAR(20),
+    @L INT
+AS
+BEGIN
+    UPDATE dbo.PR_InjLot
+    SET    PrintedCount = PrintedCount - 1, ModifiedBy = @By, ModifiedTS = SYSDATETIME()
+    OUTPUT INSERTED.PrintedCount
+    WHERE  LotID = @L AND PrintedCount > 0;
+END;
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
 -- ===== InjLot.GetByLotCode (INJ) =====
 CREATE   PROCEDURE dbo.SP_POP_INJ_GetByLotCode
     @Code VARCHAR(40)
@@ -11831,7 +11944,7 @@ BEGIN
         FROM   dbo.tbl_Lot   l
         JOIN   dbo.PR_InjLot e ON e.LotID = l.LotID
         WHERE  l.LineID = @Line
-          AND  l.CreatedTS >= @Today AND l.CreatedTS < DATEADD(day, 1, @Today)
+          AND  l.CreatedTS >= dbo.FN_POP_DayStart(@Today) AND l.CreatedTS < dbo.FN_POP_DayStart(DATEADD(day, 1, @Today))
         GROUP  BY l.ItemNo
     ),
     itemkeys AS (
@@ -11853,7 +11966,7 @@ BEGIN
                 JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
                 WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = k.ItemNo
                   AND  r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled') THEN 1 ELSE 0 END AS HasOpenWo
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')) THEN 1 ELSE 0 END AS HasOpenWo
     FROM   itemkeys k
     LEFT JOIN dbo.MD_Item i ON i.ItemNo = k.ItemNo
     LEFT JOIN bop    b ON b.ItemNo = k.ItemNo
@@ -11888,8 +12001,8 @@ BEGIN
     SELECT
       (SELECT COUNT(*) FROM dbo.tbl_Lot l JOIN dbo.PR_InjLot e ON e.LotID = l.LotID
        WHERE l.LineID = @Line AND e.CavityNo = 1
-         AND l.CreatedTS >= CAST(SYSDATETIME() AS date)
-         AND l.CreatedTS <  DATEADD(day, 1, CAST(SYSDATETIME() AS date))) AS TodayShots,
+         AND l.CreatedTS >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday())
+         AND l.CreatedTS <  dbo.FN_POP_DayStart(DATEADD(day, 1, dbo.FN_POP_ProdToday()))) AS TodayShots,
       (SELECT COUNT(*) FROM dbo.tbl_Lot l JOIN dbo.PR_InjLot e ON e.LotID = l.LotID
        WHERE l.LineID = @Line AND e.ConfirmStatus = 'RAW') AS RawCount,
       (SELECT COUNT(*) FROM dbo.tbl_Lot l JOIN dbo.PR_InjLot e ON e.LotID = l.LotID
@@ -12087,7 +12200,7 @@ BEGIN
     JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
     WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
       AND          r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
     ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
@@ -12244,7 +12357,7 @@ BEGIN
     JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
     WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
       AND          r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
     ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
@@ -12361,7 +12474,7 @@ BEGIN
         FROM   dbo.tbl_Lot   l
         JOIN   dbo.PR_PntLot e ON e.LotID = l.LotID
         WHERE  l.LineID = @Line
-          AND  l.CreatedTS >= @Today AND l.CreatedTS < DATEADD(day, 1, @Today)
+          AND  l.CreatedTS >= dbo.FN_POP_DayStart(@Today) AND l.CreatedTS < dbo.FN_POP_DayStart(DATEADD(day, 1, @Today))
         GROUP  BY l.ItemNo
     ),
     itemkeys AS (
@@ -12383,7 +12496,7 @@ BEGIN
                 JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
                 WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = k.ItemNo
                   AND  r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled') THEN 1 ELSE 0 END AS HasOpenWo
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')) THEN 1 ELSE 0 END AS HasOpenWo
     FROM   itemkeys k
     LEFT JOIN dbo.MD_Item i ON i.ItemNo = k.ItemNo
     LEFT JOIN bop    b ON b.ItemNo = k.ItemNo
@@ -12411,8 +12524,8 @@ BEGIN
     JOIN   dbo.PR_PntLot e ON e.LotID = l.LotID
     LEFT   JOIN dbo.MD_Item mi ON mi.ItemNo = l.ItemNo
     WHERE  l.LineID = @Line
-      AND  l.CreatedTS >= CAST(SYSDATETIME() AS date)
-      AND  l.CreatedTS <  DATEADD(day, 1, CAST(SYSDATETIME() AS date))
+      AND  l.CreatedTS >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday())
+      AND  l.CreatedTS <  dbo.FN_POP_DayStart(DATEADD(day, 1, dbo.FN_POP_ProdToday()))
     ORDER  BY l.CreatedTS DESC, l.LotID DESC
     OFFSET 0 ROWS FETCH NEXT @Top ROWS ONLY;
 END;
@@ -12480,7 +12593,7 @@ BEGIN
     LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
     WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
       AND          r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
     ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
@@ -12574,14 +12687,22 @@ CREATE   PROCEDURE dbo.SP_POP_QC_CreateInspection
     @By VARCHAR(20)
 AS
 BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    -- 번호는 분 단위라 같은 분의 두 번째부터 -2, -3 … 을 붙인다(10-27). 그 분 번호를 잠가 동시 등록도 겹치지 않는다
+    DECLARE @base VARCHAR(20) = CONCAT(LEFT(@T,3), '-', FORMAT(SYSDATETIME(), 'yyMMddHHmm'));
+    BEGIN TRAN;
+    DECLARE @n INT = (SELECT COUNT(*) FROM dbo.QC_Inspection WITH (UPDLOCK, HOLDLOCK)
+                      WHERE InspectionNo = @base OR InspectionNo LIKE @base + '-%');
     INSERT INTO dbo.QC_Inspection
         (InspectionNo, InspectionType, ItemNo, Mode, SampleSize, BatchQty,
          CumulativeGood, DefectQtyTotal, Verdict, CriticalFlag,
          InspectorID, InsStartTS, CreatedBy, CreatedTS)
     OUTPUT INSERTED.InspectionID
-    VALUES (CONCAT(LEFT(@T,3),'-',FORMAT(SYSDATETIME(),'yyMMddHHmm')),
+    VALUES (CASE WHEN @n = 0 THEN @base ELSE CONCAT(@base, '-', @n + 1) END,
             @T, @I, 'Normal', @S, @S*6, 0, 0,
             'IN_PROGRESS', 0, @Op, SYSDATETIME(), @By, SYSDATETIME());
+    COMMIT;
 END;
 GO
 SET ANSI_NULLS ON
@@ -12601,13 +12722,21 @@ CREATE   PROCEDURE dbo.SP_POP_QC_CreateNcr
     @By VARCHAR(20)
 AS
 BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    -- 검사 번호와 같은 규칙 — 같은 분 두 번째부터 -2, -3 …(10-27)
+    DECLARE @base VARCHAR(20) = CONCAT('NCR-', FORMAT(SYSDATETIME(), 'yyMMddHHmm'));
+    BEGIN TRAN;
+    DECLARE @n INT = (SELECT COUNT(*) FROM dbo.QC_NCR WITH (UPDLOCK, HOLDLOCK)
+                      WHERE NcrNumber = @base OR NcrNumber LIKE @base + '-%');
     INSERT INTO dbo.QC_NCR
         (NcrNumber, SourceType, SourceID, Severity, ItemNo, AffectedQty,
          Disposition, Status, ReportedBy, ReportedAt, CreatedBy, CreatedTS)
     OUTPUT INSERTED.NcrID
-    VALUES (CONCAT('NCR-', FORMAT(SYSDATETIME(),'yyMMddHHmm')),
+    VALUES (CASE WHEN @n = 0 THEN @base ELSE CONCAT(@base, '-', @n + 1) END,
             @ST, @SI, @SV, @I, @Q, @D, 'Open', @Op, SYSDATETIME(),
             @By, SYSDATETIME());
+    COMMIT;
 END;
 GO
 SET ANSI_NULLS ON
@@ -12622,10 +12751,13 @@ CREATE   PROCEDURE dbo.SP_POP_QC_FinalizeInspection
     @I INT
 AS
 BEGIN
+    SET NOCOUNT ON;
+    -- 진행 중 검사만 판정한다 — 이미 판정된 검사를 덮어쓰지 않게(10-27). 0 이면 화면이 안내한다
     UPDATE dbo.QC_Inspection
     SET    Verdict = @V, InsEndTS = SYSDATETIME(), ApproverID = @A,
            ModifiedBy = @A, ModifiedTS = SYSDATETIME()
-    WHERE  InspectionID = @I;
+    WHERE  InspectionID = @I AND Verdict = 'IN_PROGRESS';
+    SELECT @@ROWCOUNT AS Updated;
 END;
 GO
 SET ANSI_NULLS ON
@@ -12670,7 +12802,7 @@ BEGIN
            d.DefectCode, m.DefectName, SUM(ISNULL(d.Qty,1)) AS Count
     FROM   dbo.PR_DefectDetail d
     LEFT JOIN dbo.MD_DefectCode m ON m.DefectCode = d.DefectCode
-    WHERE  CAST(d.DetectedAt AS DATE) = CAST(GETDATE() AS DATE)
+    WHERE  d.DetectedAt >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday()) AND d.DetectedAt < dbo.FN_POP_DayStart(DATEADD(day,1,dbo.FN_POP_ProdToday()))
     GROUP BY d.DefectCode, m.DefectName
     ORDER BY SUM(ISNULL(d.Qty,1)) DESC;
 END;
@@ -12696,9 +12828,9 @@ BEGIN
                       LEFT JOIN dbo.PR_ProductionResult r2 ON r2.ResultID = d.ResultID
                       LEFT JOIN dbo.tbl_Lot             tl ON tl.LotID    = d.LotID
                       WHERE COALESCE(r2.LineID, tl.LineID) = r.LineID
-                        AND CAST(d.DetectedAt AS DATE)=CAST(GETDATE() AS DATE)), 0) AS DefectQty
+                        AND d.DetectedAt >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday()) AND d.DetectedAt < dbo.FN_POP_DayStart(DATEADD(day,1,dbo.FN_POP_ProdToday()))), 0) AS DefectQty
       FROM   dbo.PR_ProductionResult r
-      WHERE  CAST(r.EntryAt AS DATE) = CAST(GETDATE() AS DATE)
+      WHERE  r.EntryAt >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday()) AND r.EntryAt < dbo.FN_POP_DayStart(DATEADD(day,1,dbo.FN_POP_ProdToday()))
       GROUP BY r.LineID
     )
     SELECT Module,
@@ -12888,11 +13020,14 @@ CREATE   PROCEDURE dbo.SP_POP_QC_ReleaseHold_UpdHold
     @H INT
 AS
 BEGIN
+    SET NOCOUNT ON;
+    -- 보류 중(Held)인 것만 해제한다 — 이미 해제·거부된 홀드를 다시 처리하지 않게(10-27). 0 이면 해제 이력도 남기지 않는다
     UPDATE dbo.QC_Hold
     SET    Status = CASE WHEN @A IN ('USE-AS-IS','REWORK') THEN 'Released' ELSE 'Rejected' END,
            ModifiedBy = @By,
            ModifiedTS = SYSDATETIME()
-    WHERE  HoldID = @H;
+    WHERE  HoldID = @H AND Status = 'Held';
+    SELECT @@ROWCOUNT AS Updated;
 END;
 GO
 SET ANSI_NULLS ON
@@ -13006,7 +13141,7 @@ GO
 CREATE   PROCEDURE dbo.SP_POP_RWK_GetTodayStats
 AS
 BEGIN
-    DECLARE @Today date = CAST(SYSDATETIME() AS date);
+    DECLARE @Today datetime2 = dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday());   -- 전기일 시작(10-27)
     SELECT
       (SELECT COUNT(*) FROM dbo.PR_DefectDetail WHERE Disposition IS NULL AND LotID IS NOT NULL) AS Pending,
       (SELECT COUNT(*) FROM dbo.PR_DefectDetail WHERE Disposition = 'REWORKED'
@@ -13057,8 +13192,8 @@ BEGIN
     LEFT   JOIN dbo.MD_DefectCode c ON c.DefectCode = d.DefectCode
     LEFT   JOIN dbo.PP_WorkOrder  w ON w.WoID = d.WoID
     WHERE  d.Disposition IN ('REWORKED','SCRAPPED')
-      AND  d.DispositionAt >= CAST(SYSDATETIME() AS date)
-      AND  d.DispositionAt <  DATEADD(day, 1, CAST(SYSDATETIME() AS date))
+      AND  d.DispositionAt >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday())
+      AND  d.DispositionAt <  dbo.FN_POP_DayStart(DATEADD(day, 1, dbo.FN_POP_ProdToday()))
     ORDER  BY d.DispositionAt DESC, d.DefectID DESC
     OFFSET 0 ROWS FETCH NEXT @Top ROWS ONLY;
 END;
@@ -13366,13 +13501,15 @@ CREATE   PROCEDURE dbo.SP_POP_WO_BumpStepCompleted
     @Actor VARCHAR(20)
 AS
 BEGIN
-    DECLARE @WoID int, @Seq int, @OrderQty decimal(14,3), @New decimal(14,3), @LastSeq int;
+    DECLARE @WoID int, @Seq int, @OrderQty decimal(14,3), @New decimal(14,3), @LastSeq int, @HdrStatus varchar(20);
 
-    SELECT @WoID = r.WoID, @Seq = r.StepSeq, @OrderQty = ISNULL(w.OrderQty, 0)
+    SELECT @WoID = r.WoID, @Seq = r.StepSeq, @OrderQty = ISNULL(w.OrderQty, 0), @HdrStatus = w.Status
     FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
     JOIN   dbo.PP_WorkOrder        w WITH (UPDLOCK, ROWLOCK) ON w.WoID = r.WoID
     WHERE  r.RoutingLineID = @RL;
     IF @WoID IS NULL THROW 50001, 'Routing step not found.', 1;
+    -- 단계를 찾은 뒤 WO 가 취소됐으면 실적을 붙이지 않는다(10-27) — 확정 트랜잭션이 되돌아가고 다시 스캔하면 열린 WO 로 간다
+    IF @Qty > 0 AND @HdrStatus = 'Cancelled' THROW 50002, 'Work order was cancelled — scan again.', 1;
 
     -- 접수(AcceptWo)가 없는 INJ 에서는 첫 실적이 착수다. Released 만 올린다.
     -- 양수는 Closed 를 되돌리지 않지만, 음수(불량 역분개)는 OrderQty 밑으로 떨어지면 단계 Closed 를 다시 연다.
@@ -13436,7 +13573,7 @@ BEGIN
     JOIN   dbo.MD_Item      i ON i.ItemNo = w.ItemNo
     WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
       AND          r.Status IN ('Released','In Progress')
-                  AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+                  AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
     ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
@@ -13455,9 +13592,13 @@ CREATE   PROCEDURE dbo.SP_POP_WO_FindStepId
     @LineID VARCHAR(20)
 AS
 BEGIN
-    SELECT TOP 1 RoutingLineID FROM dbo.PP_WorkOrderRouting
-    WHERE  WoID = @WoID AND LineID = @LineID
-    ORDER  BY StepSeq;
+    -- 취소된 WO 의 단계는 돌려주지 않는다 — 재작업 양품이 취소 WO 에 귀속되지 않게(10-27). 호출자는 열린 WO 를 다시 찾거나 WO 없이 확정한다
+    SELECT TOP 1 r.RoutingLineID
+    FROM   dbo.PP_WorkOrderRouting r
+    JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
+    WHERE  r.WoID = @WoID AND r.LineID = @LineID
+      AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+    ORDER  BY r.StepSeq;
 END;
 GO
 SET ANSI_NULLS ON
@@ -15625,7 +15766,7 @@ INSERT INTO dbo.MD_InjCondItem (LineID, ItemCode, ItemName, SetAddress, ActualAd
 GO
 PRINT '✓ Seed data inserted: 4 Molds, 2 InjCondItem (사출 자동수집)';
 GO
--- Seed: SYS_Screen — regenerated 2026-10-26 from the development DB (all modules)
+-- Seed: SYS_Screen — regenerated 2026-10-27 from the development DB (all modules)
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-01', 'WEB', 'FG', NULL, N'고객사 리턴', N'Customer Returns', 'fg/customer-returns', 'FG-01', '_XX', 1, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-05', 'WEB', 'FG', NULL, N'출하 오더', N'Shipment Orders', 'fg/shipping-orders', 'FG-02', '__X', 2, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-02', 'WEB', 'FG', NULL, N'출하 계획', N'Shipment Plan', 'fg/shipment-plan', 'FG-03', '_XX', 3, 1, 'seed');
