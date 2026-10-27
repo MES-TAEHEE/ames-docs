@@ -38,11 +38,17 @@ public sealed class PdaLoginTests
     }
 
     [Fact]
-    public void Login_keeps_badge_sign_in_and_adds_editable_employee_picker_with_pin()
+    public void Login_keeps_badge_sign_in_and_uses_a_keyboard_free_employee_dialog_with_pin()
     {
         var code=Read("05_Pda/AMES.Pda/Components/Pages/Login.razor");
-        Assert.Contains("RadzenAutoComplete",code);
-        Assert.Contains("OpenOnFocus=\"true\"",code);
+        Assert.DoesNotContain("RadzenAutoComplete",code);
+        Assert.DoesNotContain("<input",code, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("FocusAsync();",code.Replace("_employeeDialog.FocusAsync();", ""));
+        Assert.Contains("aria-haspopup=\"dialog\"",code);
+        Assert.Contains("role=\"dialog\"",code);
+        Assert.Contains("SelectEmployee(employee)",code);
+        Assert.Contains("EmployeeNo = employee.EmployeeNo",code);
+        Assert.Contains("_employeeDialog.FocusAsync()",code);
         Assert.Contains("pda-login-keypad",code);
         Assert.Contains("pda-pin-dot",code);
         Assert.Contains("_pin.Length >= 4",code);
@@ -56,6 +62,15 @@ public sealed class PdaLoginTests
         Assert.Contains("if (!badge.IsEosFormat)",code);
         Assert.Contains("_pin = \"\"",code);
         Assert.DoesNotContain("pda-scan-input",code); // manual ID/PIN must not be captured as scanner input
+    }
+
+    [Fact]
+    public void Login_keypad_is_slightly_larger_without_changing_other_screen_keypads()
+    {
+        var css=Read("05_Pda/AMES.Pda/wwwroot/css/pda.css");
+        Assert.Contains(".pda-login .pda-login-keypad { gap: 8px",css);
+        Assert.Contains("height: 50px; min-height: 50px",css);
+        Assert.Contains(".pda-login .pda-login-keypad .pda-key { height: 42px; min-height: 42px; }",css);
     }
 
     [Fact]

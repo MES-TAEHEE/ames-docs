@@ -46,7 +46,7 @@ body { font-family: 'Inter', sans-serif; background: #0c1320; color: #e8eef7; fo
 /* ── Login ─────────────────────────────────────────────────── */
 .pda-login {
     height: 100%;
-    padding: 18px 22px 24px;
+    padding: 18px 20px 24px;
     display: flex; flex-direction: column; gap: 14px;
     background: linear-gradient(180deg, #0a1628, #0c1320);
     overflow-y: auto;
@@ -62,7 +62,7 @@ body { font-family: 'Inter', sans-serif; background: #0c1320; color: #e8eef7; fo
     color: rgba(147,197,253,.5); text-align: center;
 }
 .pda-login-panel {
-    padding: 18px;
+    padding: 16px;
     border: 1px solid rgba(147,197,253,.35);
     background: rgba(5,10,19,.55);
     display: grid;
@@ -89,45 +89,52 @@ body { font-family: 'Inter', sans-serif; background: #0c1320; color: #e8eef7; fo
     letter-spacing: 1px;
 }
 .pda-login-submit:disabled { border-color: #334155; background: #1e293b; color: #64748b; }
-.pda-login-employee { display: flex; min-width: 0; }
-.pda-login .pda-login-id { flex: 1; min-width: 0; width: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.pda-login .pda-login-id input {
+.pda-login .pda-login-employee-trigger {
     width: 100%; min-height: 48px; border: 1px solid #344e70; border-radius: 0;
-    background: #071225; color: #e8eef7; padding: 12px;
+    background: #071225 !important; color: #e8eef7 !important; padding: 12px;
     font-family: 'JetBrains Mono', monospace; font-size: 16px;
 }
-.pda-login .pda-login-picker { width: 48px; min-width: 48px; border-radius: 0; background: #1e3a5f; color: #e8eef7; }
-.pda-login .pda-login-id input:focus { border-color: #60a5fa; outline: 1px solid #60a5fa; }
-.pda-login .pda-login-submit { margin-top: 0; min-height: 48px; }
-.pda-login .pda-login-keypad { gap: 6px; margin: 0; }
-.pda-login .pda-login-keypad .pda-key {
-    height: 46px; min-height: 46px; padding: 0; border: 1px solid #344e70; border-radius: 0;
-    background: #152840; color: #e8eef7; font-family: 'JetBrains Mono', monospace; font-size: 22px;
+.pda-login-employee-trigger .rz-button-box { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+.pda-login-employee-trigger .placeholder { color: #94a3b8; }
+.pda-login .pda-login-employee-trigger:focus-visible { outline: 2px solid #60a5fa; }
+.pda-login .pda-login-employee-backdrop { background: rgba(2,6,23,.8); }
+.pda-login .pda-login-employee-dialog {
+    top: 50%; bottom: auto; left: 50%; right: auto; transform: translate(-50%, -50%);
+    width: min(92vw, 360px); max-height: 80dvh; overflow: hidden;
+    border: 1px solid #344e70; border-radius: 0; background: #0f1d33; color: #e8eef7;
 }
-.pda-login .pda-login-keypad .pda-key.del { background: #30202b; color: #fca5a5; font-size: 12px; }
-.pda-login .pda-login-keypad .pda-key:active { background: #284766; }
+.pda-login-employee-dialog .wh08-sheet-head { align-items: center; }
+.pda-login-employee-dialog .wh08-sheet-head strong { color: #bfdbfe; margin: 0; }
+.pda-login-employee-dialog .wh08-sheet-close { border-radius: 0; border-color: #344e70; background: #152840 !important; color: #e8eef7 !important; }
+.pda-login-employee-options { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.pda-login .pda-login-employee-option { flex-shrink: 0; min-height: 56px; width: 100%; padding: 10px 12px; border: 1px solid #344e70; border-radius: 0; background: #071225 !important; color: #e8eef7 !important; text-align: left; white-space: normal; text-transform: none; letter-spacing: normal; }
+.pda-login-employee-option .rz-button-box { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; overflow-wrap: anywhere; }
+.pda-login-employee-option strong { font-size: 15px; }
+.pda-login-employee-option span { font-size: 13px; }
+.pda-login .pda-login-employee-option.selected { border-color: #60a5fa; background: #223c5f !important; }
+.pda-login .pda-login-submit { margin-top: 0; min-height: 48px; }
+.pda-login .pda-login-keypad { gap: 8px; margin: 0; }
+.pda-login .pda-login-keypad .pda-key {
+    height: 50px; min-height: 50px; padding: 0; border: 1px solid #344e70; border-radius: 0;
+    background: #152840 !important; color: #e8eef7 !important; font-family: 'JetBrains Mono', monospace; font-size: 23px;
+}
+.pda-login .pda-login-keypad .pda-key.del { background: #30202b !important; color: #fca5a5 !important; font-size: 12px; }
+.pda-login .pda-login-keypad .pda-key:active { background: #284766 !important; }
 .pda-login .pda-login-keypad .pda-key:disabled { opacity: .45; }
 .pda-login-list-note { display: flex; align-items: center; gap: 8px; color: #bfdbfe; font-size: 11px; }
 @media (max-height: 700px) {
-    .pda-login { padding: 10px 16px; gap: 6px; }
+    .pda-login { padding: 10px 14px; gap: 6px; }
     .pda-login-brand { font-size: 26px; line-height: 1; }
     .pda-login-sub { font-size: 10px; line-height: 1.2; }
     .pda-login-center { gap: 8px; }
-    .pda-login-panel { padding: 12px; gap: 8px; }
-    .pda-login .pda-login-id input,
-    .pda-login .pda-login-picker { min-height: 40px; height: 40px; font-size: 14px; }
-    .pda-login .pda-login-keypad .pda-key { height: 38px; min-height: 38px; }
+    .pda-login-panel { padding: 10px; gap: 8px; }
+    .pda-login .pda-login-employee-trigger { min-height: 40px; height: 40px; font-size: 14px; }
+    .pda-login .pda-login-keypad .pda-key { height: 42px; min-height: 42px; }
     .pda-login .pda-pin-dots { margin: 4px 0; }
     .pda-login .pda-login-submit { min-height: 40px; padding: 8px; }
     .pda-login .pda-status { font-size: 11px; min-height: 14px; margin: 0; }
     .pda-login .pda-login-scan-state { font-size: 9px; letter-spacing: 0; }
 }
-/* Autocomplete popups are mounted outside the login panel. */
-html body .rz-autocomplete-panel,
-html body .rz-autocomplete-items { background: #0f1d33; color: #e8eef7; border-color: #344e70; }
-html body .rz-autocomplete-items li { min-height: 44px; padding: 12px; color: #e8eef7; white-space: normal; overflow-wrap: anywhere; }
-html body .rz-autocomplete-items li:hover,
-html body .rz-autocomplete-items li.rz-state-highlight { background: #223c5f; color: #fff; }
 .pda-login-scan-state {
     display: flex;
     align-items: center;
