@@ -13,21 +13,13 @@
     <div class="pda-login-center">
         <div class="pda-login-panel">
             <div class="pda-fld">
-                <label for="employee-id">EMPLOYEE ID</label>
-                <div class="pda-login-employee">
-                    <RadzenAutoComplete @ref="_employeeInput" Name="employee-id" @bind-Value="EmployeeNo"
-                                        Data="@_employees" TextProperty="@nameof(LoginEmployeeDto.EmployeeNo)"
-                                        MinLength="0" OpenOnFocus="true" FilterDelay="0" MaxLength="20"
-                                        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                                        Placeholder="Enter or select ID" Disabled="@_submitting" class="pda-login-id"
-                                        InputAttributes="@EmployeeInputAttributes" PopupStyle="max-height:240px">
-                        <Template Context="item">
-                            @(((LoginEmployeeDto)item).EmployeeNo) · @(((LoginEmployeeDto)item).EmployeeName)
-                        </Template>
-                    </RadzenAutoComplete>
-                    <RadzenButton Icon="expand_more" Click="OpenEmployeeList" Disabled="@_submitting"
-                                  class="pda-login-picker" aria-label="Select employee" />
-                </div>
+                <RadzenLabel Text="EMPLOYEE ID" Component="employee-id" />
+                <RadzenButton id="employee-id" Click="OpenEmployeeList" Disabled="@_submitting"
+                              class="pda-login-employee-trigger" aria-label="Select employee ID"
+                              aria-haspopup="dialog" aria-expanded="@_employeeListOpen">
+                    <span class="@(string.IsNullOrWhiteSpace(_employeeNo) ? "placeholder" : "")">@(string.IsNullOrWhiteSpace(_employeeNo) ? "Select employee ID" : _employeeNo)</span>
+                    <RadzenIcon Icon="expand_more" />
+                </RadzenButton>
                 @if (_employeeListError is not null)
                 {
                     <div class="pda-login-list-note">
@@ -64,6 +56,38 @@
 
         <div class="pda-status @_cls">@_status</div>
     </div>
+
+    @if (_employeeListOpen)
+    {
+        <div class="wh08-filter-backdrop pda-login-employee-backdrop" @onclick="CloseEmployeeList">
+            <section class="wh08-filter-sheet pda-login-employee-dialog" role="dialog" aria-modal="true"
+                     aria-label="Select employee" tabindex="-1" @ref="_employeeDialog"
+                     @onclick:stopPropagation="true" @onkeydown="OnEmployeeListKey">
+                <div class="wh08-sheet-head">
+                    <strong>SELECT EMPLOYEE</strong>
+                    <RadzenButton Icon="close" Click="CloseEmployeeList" class="wh08-sheet-close"
+                                  aria-label="Close employee list" />
+                </div>
+                <div class="pda-login-employee-options">
+                    @foreach (var employee in _employees)
+                    {
+                        <RadzenButton class="@($"pda-login-employee-option {(employee.EmployeeNo == _employeeNo ? "selected" : "")}")"
+                                      Click="@(() => SelectEmployee(employee))" aria-pressed="@(employee.EmployeeNo == _employeeNo)">
+                            <strong>@employee.EmployeeNo</strong>
+                            <span>@employee.EmployeeName</span>
+                        </RadzenButton>
+                    }
+                    @if (_loadingEmployees) { <div class="pda-status dim">Loading employees...</div> }
+                    else if (_employeeListError is not null)
+                    {
+                        <div class="pda-login-list-note">@_employeeListError</div>
+                        <RadzenButton Text="Retry" Click="LoadEmployeesAsync" Size="ButtonSize.Small" />
+                    }
+                    else if (_employees.Count == 0) { <div class="pda-status dim">No employees available.</div> }
+                </div>
+            </section>
+        </div>
+    }
 </div>
 
 @code {
@@ -73,13 +97,10 @@
     private string _employeeNo = "";
     private string _pin = "";
     private List<LoginEmployeeDto> _employees = [];
-    private RadzenAutoComplete? _employeeInput;
+    private bool _employeeListOpen, _focusEmployeeList;
+    private ElementReference _employeeDialog;
     private bool _loadingEmployees, _disposed;
     private string? _employeeListError;
-    private static readonly IReadOnlyDictionary<string, object> EmployeeInputAttributes = new Dictionary<string, object>
-    {
-        ["id"] = "employee-id", ["autocomplete"] = "off", ["autocapitalize"] = "none", ["spellcheck"] = "false"
-    };
     private DotNetObjectReference<Login>? _scannerRef;
 
     private string EmployeeNo
@@ -94,12 +115,19 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
-        PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
-        _scannerRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("pdaScan.register", _scannerRef,
-            new { minLength = 5, developerMode = MauiProgram.IsDeveloperMode });
-        await LoadEmployeesAsync();
+        if (firstRender)
+        {
+            PdaBarcodeHub.Scanned += OnNativeBarcodeScanned;
+            _scannerRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("pdaScan.register", _scannerRef,
+                new { minLength = 5, developerMode = MauiProgram.IsDeveloperMode });
+            await LoadEmployeesAsync();
+        }
+        if (_focusEmployeeList && _employeeListOpen)
+        {
+            _focusEmployeeList = false;
+            await _employeeDialog.FocusAsync();
+        }
     }
 
     private async Task LoadEmployeesAsync()
@@ -109,8 +137,8 @@
         _employeeListError = null;
         try { _employees = await Api.EmployeesAsync(); }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        { _employeeListError = "Server API update required for employee list. Enter ID or scan badge."; }
-        catch { _employeeListError = "Cannot load employees. Check connection, or enter ID / scan badge."; }
+        { _employeeListError = "Server API update required for employee list. Scan badge or retry."; }
+        catch { _employeeListError = "Cannot load employees. Check connection, scan badge or retry."; }
         finally
         {
             _loadingEmployees = false;
@@ -118,9 +146,19 @@
         }
     }
 
-    private async Task OpenEmployeeList()
+    private void OpenEmployeeList()
     {
-        if (_employeeInput is not null) await _employeeInput.FocusAsync();
+        _employeeListOpen = true;
+        _focusEmployeeList = true;
+    }
+
+    private void CloseEmployeeList() { _employeeListOpen = false; _focusEmployeeList = false; }
+    private void OnEmployeeListKey(KeyboardEventArgs e) { if (e.Key == "Escape") CloseEmployeeList(); }
+    private void SelectEmployee(LoginEmployeeDto employee)
+    {
+        EmployeeNo = employee.EmployeeNo;
+        CloseEmployeeList();
+        Set(" ", "dim");
     }
 
     private void PressPinDigit(string digit)
@@ -128,7 +166,7 @@
         if (_submitting || _pin.Length >= 4) return;
         if (string.IsNullOrWhiteSpace(_employeeNo))
         {
-            Set("Enter or select employee ID first.", "fail");
+            Set("Select employee ID first.", "fail");
             return;
         }
         _pin += digit;
@@ -165,6 +203,7 @@
     public async Task OnHardwareScanAsync(string scanText)
     {
         if (_submitting) return;
+        CloseEmployeeList();
         var barcode = NormalizeScan(scanText);
         if (barcode.Length == 0) return;
         var badge = BadgeScanParser.Parse(barcode);

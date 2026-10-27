@@ -10,6 +10,13 @@ public sealed class SessionValidator(HttpClient http, AuthState auth)
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
 
+    public Task CheckOnActivationAsync()
+    {
+        // Activation can follow a brief interruption without a Stopped event.
+        auth.RequireSessionCheck();
+        return CheckAsync();
+    }
+
     public async Task CheckAsync()
     {
         await _gate.WaitAsync();

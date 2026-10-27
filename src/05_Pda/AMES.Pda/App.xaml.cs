@@ -17,7 +17,7 @@ public partial class App : Application
 		var window = new Window(new MainPage()) { Title = "AMES.Pda" };
 		window.Stopped += (_, _) => _auth.RequireSessionCheck();
 		window.Resumed += async (_, _) => await _sessions.CheckAsync();
-		window.Activated += async (_, _) => await _sessions.CheckAsync();
+		window.Activated += async (_, _) => await _sessions.CheckOnActivationAsync();
 		return window;
 	}
 }

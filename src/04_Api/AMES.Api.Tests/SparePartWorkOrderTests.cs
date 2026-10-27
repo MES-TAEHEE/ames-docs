@@ -82,4 +82,26 @@ public sealed class SparePartWorkOrderTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => respond(request);
     }
+
+    [Theory]
+    [InlineData("private async Task ReleaseConfirmed()", "private async Task CancelRelease()", "Serial {lot.SerialNo} was released.", "Release Complete")]
+    [InlineData("private async Task CancelRelease()", "private (string Label", "Release for {serial} was cancelled and returned to stock.", "Release Cancelled")]
+    public void SuccessfulMovesReplaceThePersistentScanMessage(string start, string end, string message, string title)
+    {
+        var source = ReadReleaseSource();
+        var methodStart = source.IndexOf(start, StringComparison.Ordinal);
+        var methodEnd = source.IndexOf(end, methodStart, StringComparison.Ordinal);
+        var method = source[methodStart..methodEnd];
+        var updatedRow = method.IndexOf("_lot = result.Row;", StringComparison.Ordinal);
+        var updatedMessage = method.IndexOf("_message = $\"" + message, StringComparison.Ordinal);
+        var modal = method.IndexOf($"ShowModal(\"{title}\", _message, \"success\")", StringComparison.Ordinal);
+
+        Assert.True(updatedRow >= 0 && updatedMessage > updatedRow && modal > updatedMessage);
+        Assert.Contains("_messageClass = \"ok\";", method[updatedMessage..modal]);
+        Assert.True(method.IndexOf("if (!result.Success)", StringComparison.Ordinal) < updatedRow);
+    }
+
+    private static string ReadReleaseSource([System.Runtime.CompilerServices.CallerFilePath] string file = "")
+        => File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!,
+            "../../05_Pda/AMES.Pda/Components/Pages/Sp/SpRelease.razor")));
 }
