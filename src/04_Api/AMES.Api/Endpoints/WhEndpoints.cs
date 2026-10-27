@@ -2789,7 +2789,7 @@ public static class WhEndpoints
                 check.Parameters.Add("@Lot", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
                 using var current = check.ExecuteReader();
                 if (!current.Read() || current.GetDecimal(0) != body.ExpectedQty.Value
-                    || (body.ExpectedLocation is not null && !string.Equals(current[1] as string, body.ExpectedLocation, StringComparison.OrdinalIgnoreCase)))
+                    || (body.ExpectedLocation is not null && !string.Equals(current[1] as string ?? "", body.ExpectedLocation, StringComparison.OrdinalIgnoreCase)))
                     return new InboundReceiveResult(false, "Stock quantity or location changed. Select the line or scan the LOT again.", null);
             }
 
