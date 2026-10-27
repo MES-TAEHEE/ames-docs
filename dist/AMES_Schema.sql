@@ -1,5 +1,5 @@
 ﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-27 from the development DB (192.168.0.132) with SMO.
--- 179 tables / 2434 columns, 160 procedures, 0 views, 3 functions, 1 sequences.
+-- 179 tables / 2435 columns, 160 procedures, 0 views, 3 functions, 1 sequences.
 -- Excludes TEST_* tables, retired WH_ReleaseSchedule and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
 -- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).
 -- Schema only from the live database; sample seeds below are retained from the repository.
@@ -5631,6 +5631,7 @@ CREATE TABLE [dbo].[PP_LineSchedule](
 	[RefID] [int] NULL,
 	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[MoldID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
+	[ItemNo] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
 	[CreatedTS] [datetime2](7) NULL,
 	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
@@ -5644,6 +5645,8 @@ GO
 ALTER TABLE [dbo].[PP_LineSchedule] ADD  CONSTRAINT [DF_PP_LineSchedule_EntryType]  DEFAULT ('WO') FOR [EntryType]
 GO
 ALTER TABLE [dbo].[PP_LineSchedule] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'슬롯이 만드는 품번 · varchar(20) — NULL 이면 그 라인 단계 품번 → WO 품번 (APS BOM 규칙 사출 슬롯은 자식 품번)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PP_LineSchedule', @level2type=N'COLUMN',@level2name=N'ItemNo'
 GO
 -- Table: dbo.PP_LineStateLog
 SET ANSI_NULLS ON
@@ -10629,9 +10632,12 @@ BEGIN
     OUTPUT INSERTED.AndonID INTO @ids
     VALUES (@L, @E, @T, @R, @S, @now, 'OPEN', @By, @now);
     DECLARE @id INT = (SELECT TOP 1 AndonID FROM @ids);
-    INSERT INTO dbo.PP_LineDowntimeLog
-        (LineID, StartTS, ReasonCode, Comment, LoggedBy, AndonID, CreatedBy, CreatedTS)
-    VALUES (@L, @now, 'ANDON', N'Andon #' + CAST(@id AS NVARCHAR(10)), @By, @id, @By, @now);
+    -- 같은 라인에 이미 열린 비가동(PP-DTL 등록·MNT-002 라인 정지·다른 기록)이 있으면 새로 열지 않는다 — 겹친 시간을 OEE·비가동 분석이
+    -- 두 번 세지 않게(10-27, 웹 쪽 규칙과 같음). 그 행은 주인이 닫고, 안돈 종료는 AndonID 행이 없으니 아무것도 닫지 않는다
+    IF NOT EXISTS (SELECT 1 FROM dbo.PP_LineDowntimeLog WITH (UPDLOCK, HOLDLOCK) WHERE LineID = @L AND EndTS IS NULL)
+        INSERT INTO dbo.PP_LineDowntimeLog
+            (LineID, StartTS, ReasonCode, Comment, LoggedBy, AndonID, CreatedBy, CreatedTS)
+        VALUES (@L, @now, 'ANDON', N'Andon #' + CAST(@id AS NVARCHAR(10)), @By, @id, @By, @now);
     COMMIT;
     SELECT @id AS AndonID, CAST(1 AS BIT) AS Created;
 END;
@@ -11354,14 +11360,14 @@ BEGIN
         WHERE  b.StationCode = @Station AND ISNULL(b.ActiveFlag,1) = 1
     ),
     sched AS (
-        SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
+        SELECT COALESCE(s.ItemNo, st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
         FROM   dbo.PP_LineSchedule s
         JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
         OUTER  APPLY (SELECT TOP 1 r.ItemNo FROM dbo.PP_WorkOrderRouting r
                       WHERE  r.WoID = s.WoID AND r.LineID = s.LineID ORDER BY r.StepSeq) st
         WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
           AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-        GROUP  BY COALESCE(st.ItemNo, w.ItemNo)
+        GROUP  BY COALESCE(s.ItemNo, st.ItemNo, w.ItemNo)
     ),
     lots AS (
         SELECT l.ItemNo,
@@ -11926,14 +11932,14 @@ BEGIN
         WHERE  b.StationCode = @Station AND ISNULL(b.ActiveFlag,1) = 1
     ),
     sched AS (
-        SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
+        SELECT COALESCE(s.ItemNo, st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
         FROM   dbo.PP_LineSchedule s
         JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
         OUTER  APPLY (SELECT TOP 1 r.ItemNo FROM dbo.PP_WorkOrderRouting r
                       WHERE  r.WoID = s.WoID AND r.LineID = s.LineID ORDER BY r.StepSeq) st
         WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
           AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-        GROUP  BY COALESCE(st.ItemNo, w.ItemNo)
+        GROUP  BY COALESCE(s.ItemNo, st.ItemNo, w.ItemNo)
     ),
     lots AS (
         SELECT l.ItemNo,
@@ -12456,14 +12462,14 @@ BEGIN
         WHERE  b.StationCode = @Station AND ISNULL(b.ActiveFlag,1) = 1
     ),
     sched AS (
-        SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
+        SELECT COALESCE(s.ItemNo, st.ItemNo, w.ItemNo) AS ItemNo, SUM(ISNULL(s.PlannedQty,0)) AS PlanQty
         FROM   dbo.PP_LineSchedule s
         JOIN   dbo.PP_WorkOrder    w ON w.WoID = s.WoID
         OUTER  APPLY (SELECT TOP 1 r.ItemNo FROM dbo.PP_WorkOrderRouting r
                       WHERE  r.WoID = s.WoID AND r.LineID = s.LineID ORDER BY r.StepSeq) st
         WHERE  s.LineID = @Line AND s.ScheduleDate = @Today AND s.EntryType = 'WO'
           AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
-        GROUP  BY COALESCE(st.ItemNo, w.ItemNo)
+        GROUP  BY COALESCE(s.ItemNo, st.ItemNo, w.ItemNo)
     ),
     lots AS (
         SELECT l.ItemNo,
@@ -13564,7 +13570,15 @@ AS
 BEGIN
     SELECT TOP 1 w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
            w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
-           w.MoldID, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
+           COALESCE(w.MoldID,
+                   (SELECT TOP 1 ls.MoldID FROM dbo.PP_LineSchedule ls
+                    WHERE ls.WoID = w.WoID AND ls.LineID = r.LineID AND ls.MoldID IS NOT NULL
+                      AND EXISTS (SELECT 1 FROM dbo.MD_MoldItem mi WHERE mi.MoldID = ls.MoldID AND mi.ItemNo = COALESCE(r.ItemNo, w.ItemNo) AND ISNULL(mi.ActiveFlag,1) = 1)
+                    ORDER BY ABS(DATEDIFF(day, CAST(SYSDATETIME() AS date), ls.ScheduleDate)), ls.ScheduleDate),
+                   (SELECT TOP 1 es.MountedMoldID FROM dbo.MNT_EquipmentStatus es
+                    WHERE es.LineID = r.LineID AND es.MountedMoldID IS NOT NULL
+                      AND EXISTS (SELECT 1 FROM dbo.MD_MoldItem mi WHERE mi.MoldID = es.MountedMoldID AND mi.ItemNo = COALESCE(r.ItemNo, w.ItemNo) AND ISNULL(mi.ActiveFlag,1) = 1)
+                    ORDER BY ISNULL(es.ModifiedTS, es.CreatedTS) DESC, es.EquipStatusID DESC)) AS MoldID, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
            ISNULL(w.Priority,5) AS Priority, w.RoutingType,
            r.RoutingLineID, r.StepSeq, r.ProcessCode,
            COALESCE(r.ItemNo, w.ItemNo) AS StepItemNo
@@ -13634,7 +13648,15 @@ AS
 BEGIN
     SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
            w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
-           w.MoldID, w.RecipeID, w.DueDate, w.ProdDeadline, r.Status, r.TerminalLock,
+           COALESCE(w.MoldID,
+                   (SELECT TOP 1 ls.MoldID FROM dbo.PP_LineSchedule ls
+                    WHERE ls.WoID = w.WoID AND ls.LineID = r.LineID AND ls.MoldID IS NOT NULL
+                      AND EXISTS (SELECT 1 FROM dbo.MD_MoldItem mi WHERE mi.MoldID = ls.MoldID AND mi.ItemNo = COALESCE(r.ItemNo, w.ItemNo) AND ISNULL(mi.ActiveFlag,1) = 1)
+                    ORDER BY ABS(DATEDIFF(day, CAST(SYSDATETIME() AS date), ls.ScheduleDate)), ls.ScheduleDate),
+                   (SELECT TOP 1 es.MountedMoldID FROM dbo.MNT_EquipmentStatus es
+                    WHERE es.LineID = r.LineID AND es.MountedMoldID IS NOT NULL
+                      AND EXISTS (SELECT 1 FROM dbo.MD_MoldItem mi WHERE mi.MoldID = es.MountedMoldID AND mi.ItemNo = COALESCE(r.ItemNo, w.ItemNo) AND ISNULL(mi.ActiveFlag,1) = 1)
+                    ORDER BY ISNULL(es.ModifiedTS, es.CreatedTS) DESC, es.EquipStatusID DESC)) AS MoldID, w.RecipeID, w.DueDate, w.ProdDeadline, r.Status, r.TerminalLock,
            ISNULL(w.Priority,5) AS Priority, w.RoutingType,
            r.RoutingLineID, r.StepSeq, r.ProcessCode,
            COALESCE(r.ItemNo, w.ItemNo) AS StepItemNo,
