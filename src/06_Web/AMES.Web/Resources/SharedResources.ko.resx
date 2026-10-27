@@ -12523,6 +12523,90 @@
   <data name="TopBar.SignOut" xml:space="preserve">
     <value>로그아웃</value>
   </data>
+  <data name="SYS.Screen.Err.SortOrderRange" xml:space="preserve">
+    <value>정렬순서는 {0}~{1} 사이 정수로 입력하세요.</value>
+  </data>
+  <data name="SYS.Screen.Err.CodeExists" xml:space="preserve">
+    <value>화면 코드 '{0}' 은(는) 이미 등록돼 있습니다.</value>
+  </data>
+  <data name="SYS.Screen.Err.CodeHasPerms" xml:space="preserve">
+    <value>화면 코드 '{0}' 에 남아 있는 역할 권한이 있어 이 코드로 바꿀 수 없습니다.</value>
+  </data>
+  <data name="SYS.Screen.Err.ProtectedChange" xml:space="preserve">
+    <value>SYS-003·SYS-004 의 코드와 경로는 바꿀 수 없습니다.</value>
+  </data>
+  <data name="SYS.Screen.Err.HRefExists" xml:space="preserve">
+    <value>경로 '{0}' 은(는) 다른 화면이 이미 쓰고 있습니다.</value>
+  </data>
+  <data name="SYS.Screen.Err.ProtectedDelete" xml:space="preserve">
+    <value>SYS-003·SYS-004 는 삭제할 수 없습니다.</value>
+  </data>
+  <data name="SYS.Screen.Err.NotFound" xml:space="preserve">
+    <value>화면을 찾을 수 없습니다. 다른 사용자가 삭제했을 수 있습니다.</value>
+  </data>
+  <data name="SYS.Rbac.Kpi.GrantedHint" xml:space="preserve">
+    <value>부여된 칸 수 / 기능이 있는 칸 수 (읽기·수정·승인 각 1칸, 화면에 없는 기능은 제외)</value>
+  </data>
+  <data name="SYS.Rbac.Hint.OwnRole" xml:space="preserve">
+    <value>내가 속한 역할의 권한은 바꿀 수 없습니다. 다른 관리자에게 요청하세요(System Administrator 는 예외).</value>
+  </data>
+  <data name="SYS.Rbac.Hint.ColumnToggle" xml:space="preserve">
+    <value>일괄 선택 — 일부·전부 선택 상태에서 누르면 모두 해제, 모두 해제 상태에서 누르면 모두 선택</value>
+  </data>
+  <data name="SYS.Config.Bool.On" xml:space="preserve">
+    <value>사용</value>
+  </data>
+  <data name="SYS.Config.Bool.Off" xml:space="preserve">
+    <value>사용 안 함</value>
+  </data>
+  <data name="SYS.Config.Hint.Range" xml:space="preserve">
+    <value>허용 범위 {0}~{1}, 소수 {2}자리까지</value>
+  </data>
+  <data name="SYS.Config.Err.Range" xml:space="preserve">
+    <value>'{0}' 값이 올바르지 않습니다 — {1}. 아무것도 저장하지 않았습니다.</value>
+  </data>
+  <data name="SYS.Config.Err.Bool" xml:space="preserve">
+    <value>'{0}' 은(는) 사용/사용 안 함만 저장할 수 있습니다. 아무것도 저장하지 않았습니다.</value>
+  </data>
+  <data name="SYS.Config.Err.SaveFailed" xml:space="preserve">
+    <value>저장하지 못했습니다(아무것도 바뀌지 않았습니다). 값을 확인하고 다시 저장하세요 — {0}</value>
+  </data>
+  <data name="SYS.Interfaces.AsOf" xml:space="preserve">
+    <value>기준 시각 {0}</value>
+  </data>
+  <data name="SYS.Interfaces.Hint.Threshold" xml:space="preserve">
+    <value>정상 연동도 마지막 성공 뒤 허용 간격을 넘기면 경고, {0}배를 넘기면 다운</value>
+  </data>
+  <data name="SYS.Interfaces.Err.Load" xml:space="preserve">
+    <value>인터페이스 상태를 읽지 못했습니다. 마지막 성공 {0}</value>
+  </data>
+  <data name="SYS.Interfaces.Btn.Retry" xml:space="preserve">
+    <value>다시 시도</value>
+  </data>
+  <data name="SYS.Interfaces.Hint.Overdue" xml:space="preserve">
+    <value>마지막 성공 {0}분 전 — 허용 간격 {1}분 초과 (기록 상태: {2})</value>
+  </data>
+  <data name="SYS.Health.AsOf" xml:space="preserve">
+    <value>업무 지표 기준 {0} · 서버 자원 기준 {1}</value>
+  </data>
+  <data name="SYS.Health.Refresh" xml:space="preserve">
+    <value>{0}초마다 자동 갱신</value>
+  </data>
+  <data name="SYS.Health.Hint.SameRules" xml:space="preserve">
+    <value>인터페이스·알림 수는 SYS-006·SYS-008 과 같은 기준(최근 24시간)</value>
+  </data>
+  <data name="SYS.Health.Err.Partial" xml:space="preserve">
+    <value>{0}을(를) 읽지 못했습니다 — 지난 값은 표시하지 않습니다. 마지막 성공 {1}</value>
+  </data>
+  <data name="SYS.Health.Scope.Server" xml:space="preserve">
+    <value>서버 자원</value>
+  </data>
+  <data name="SYS.Health.Scope.Business" xml:space="preserve">
+    <value>업무 지표</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.Tip" xml:space="preserve">
+    <value>최근 24시간(기준 {0}) 전체 이력 기준 — 발송 = 발송 시각, 실패 = 마지막 시도 시각(실패·오류 상태)</value>
+  </data>
   <data name="PP.SupplyPlanImport.Err.PartialConfirm" xml:space="preserve">
     <value>{0}건 확정, {1}건 실패 — 실패한 건은 다시 선택해 확정하세요. ({2})</value>
   </data>

@@ -399,7 +399,8 @@
         }
     }
 
-    void Reload() { _allRows = Sys.ListUsers(); ApplyFilter(); }
+    // KPI 가 목록 전체로 세므로 건수 제한 없이 읽는다(기본 200건이면 200명을 넘는 순간 KPI 가 틀린다).
+    void Reload() { _allRows = Sys.ListUsers(int.MaxValue); ApplyFilter(); }
 
     void ApplyFilter()
     {
@@ -505,7 +506,7 @@
 
     async Task SaveCreate()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-001", "CREATE", "AspNetUsers"); return; }
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.Email))        { _modalErr = L["SYS.Users.Err.EmailRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.Password))     { _modalErr = L["SYS.Users.Err.PasswordRequired"]; return; }

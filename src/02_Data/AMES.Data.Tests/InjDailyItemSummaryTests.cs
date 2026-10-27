@@ -115,7 +115,7 @@ public class InjDailyItemSummaryTests
             AddPlan(f, wo, Line, 0, 50);
             AddLot(f, ItemC, Line, "RAW");
 
-            var rows = new InjLotRepository(f).GetDailyItemSummary(Line, Station, DateTime.Today);
+            var rows = new InjLotRepository(f).GetDailyItemSummary(Line, Station, ProdToday(f));
             var c = rows.Single(x => x.ItemNo == ItemC);
             var d = rows.Single(x => x.ItemNo == ItemD);
 
@@ -146,7 +146,7 @@ public class InjDailyItemSummaryTests
             AddPlan(f, woA, "LINE-INJ-02", 0, 999);               // 다른 라인 → 제외
             AddPlan(f, woA, Line, 0, 999, entryType: "PM");       // PM 밴드(WoID NULL) → PLAN 집계 제외
 
-            var row = new InjLotRepository(f).GetDailyItemSummary(Line, Station, DateTime.Today).Single(x => x.ItemNo == ItemA);
+            var row = new InjLotRepository(f).GetDailyItemSummary(Line, Station, ProdToday(f)).Single(x => x.ItemNo == ItemA);
 
             Assert.Equal(100m, row.PlanQty);
             Assert.Equal(10,   row.InputQty);     // 오늘 이 라인 LOT 전부
@@ -171,7 +171,7 @@ public class InjDailyItemSummaryTests
             AddLot(f, ItemB, Line, "RAW");
             AddLot(f, ItemB, Line, "RAW");
 
-            var rows = new InjLotRepository(f).GetDailyItemSummary(Line, Station, DateTime.Today)
+            var rows = new InjLotRepository(f).GetDailyItemSummary(Line, Station, ProdToday(f))
                        .Where(x => x.ItemNo.StartsWith("ITEST-DLY-")).ToList();
 
             var c = rows.Single(x => x.ItemNo == ItemC);
@@ -190,5 +190,13 @@ public class InjDailyItemSummaryTests
                          rows.Where(x => x.InBop).Select(x => x.ItemNo));             // BOP 품번은 ItemNo 순
         }
         finally { Cleanup(f); }
+    }
+
+    // POP 일별 현황의 하루 = 07시 전기일(dbo.FN_POP_ProdToday, 10-27) — 달력 날짜로 조회하면 00~07시에 방금 만든 LOT 이 전날로 간다
+    static DateTime ProdToday(AMES.Data.Connection.AmesConnectionFactory f)
+    {
+        using var conn = f.OpenConnection();
+        using var cmd = new Microsoft.Data.SqlClient.SqlCommand("SELECT dbo.FN_POP_ProdToday();", conn);
+        return (DateTime)cmd.ExecuteScalar()!;
     }
 }

@@ -199,7 +199,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.SortOrder"]" class="ames-rz-modal-label" Component="CreateTextBoxSortOrder" />
-                    <RadzenTextBox Name="CreateTextBoxSortOrder" @bind-Value="_f.SortOrderStr" Placeholder="@L["SYS.Screen.Ph.SortOrder"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenNumeric TValue="int?" Name="CreateTextBoxSortOrder" @bind-Value="_f.SortOrder" Min="SortOrderMin" Max="SortOrderMax" Step="1" ShowUpDown="false" Placeholder="@L["SYS.Screen.Ph.SortOrder"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
@@ -280,7 +280,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Screen.Col.SortOrder"]" class="ames-rz-modal-label" Component="EditTextBoxSortOrder" />
-                    <RadzenTextBox Name="EditTextBoxSortOrder" @bind-Value="_f.SortOrderStr" Placeholder="@L["SYS.Screen.Ph.SortOrder"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                    <RadzenNumeric TValue="int?" Name="EditTextBoxSortOrder" @bind-Value="_f.SortOrder" Min="SortOrderMin" Max="SortOrderMax" Step="1" ShowUpDown="false" Placeholder="@L["SYS.Screen.Ph.SortOrder"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
@@ -433,7 +433,7 @@
             LidLabel       = r.LidLabel       ?? "",
             HasEdit        = PermissionSlots.Has(r.PermissionCriteria, 'E'),
             HasApprove     = PermissionSlots.Has(r.PermissionCriteria, 'A'),
-            SortOrderStr   = r.SortOrder?.ToString() ?? "",
+            SortOrder      = r.SortOrder,
             IsVisible      = r.IsVisible,
         };
         _modal = "edit";
@@ -446,11 +446,12 @@
 
     async Task SaveCreate()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-003", "CREATE", "SYS_Screen", _f.ScreenCode); return; }
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ScreenCode)) { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value;   return; }
         if (string.IsNullOrWhiteSpace(_f.ModuleCode)) { _modalErr = L["SYS.Screen.Err.ModuleRequired"].Value; return; }
         if (string.IsNullOrWhiteSpace(_f.ScreenName)) { _modalErr = L["SYS.Screen.Err.NameRequired"].Value;   return; }
+        if (!SortOrderOk(_f.SortOrder)) { _modalErr = SortOrderErr; return; }
         _busy = true;
         try
         {
@@ -464,18 +465,19 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Created"].Value, _f.ScreenCode), false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; }
+        catch (Exception ex) { _modalErr = SaveErr(ex, _f.ScreenCode.Trim(), _f.HRef); Audit.Failed("SYS-003", "CREATE", "SYS_Screen", _f.ScreenCode.Trim(), _f, ex.Message); }
         finally { _busy = false; }
     }
 
     async Task SaveEdit()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-003", "UPDATE", "SYS_Screen", _sel?.ScreenCode); return; }
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.ScreenCode)) { _modalErr = L["SYS.Screen.Err.CodeRequired"].Value;   return; }
         if (string.IsNullOrWhiteSpace(_f.ModuleCode)) { _modalErr = L["SYS.Screen.Err.ModuleRequired"].Value; return; }
         if (string.IsNullOrWhiteSpace(_f.ScreenName)) { _modalErr = L["SYS.Screen.Err.NameRequired"].Value;   return; }
+        if (!SortOrderOk(_f.SortOrder)) { _modalErr = SortOrderErr; return; }
         _busy = true;
         try
         {
@@ -494,13 +496,13 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Updated"].Value, _f.ScreenCode), false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; }
+        catch (Exception ex) { _modalErr = SaveErr(ex, _f.ScreenCode.Trim(), _f.HRef); Audit.Failed("SYS-003", "UPDATE", "SYS_Screen", _sel.ScreenCode, _f, ex.Message); }
         finally { _busy = false; }
     }
 
     async Task SaveDelete()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-003", "DELETE", "SYS_Screen", _sel?.ScreenCode); return; }
         if (_sel is null || _protected) return;
         _busy = true;
         try
@@ -513,7 +515,7 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["SYS.Screen.Ok.Deleted"].Value, code), false);
         }
-        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        catch (Exception ex) { _modalErr = SaveErr(ex, _sel.ScreenCode, _sel.HRef ?? ""); _confirmDelete = false; Audit.Failed("SYS-003", "DELETE", "SYS_Screen", _sel.ScreenCode, null, ex.Message); }
         finally { _busy = false; }
     }
 
@@ -524,6 +526,23 @@
     }
 
     static string? Nz(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    // 정렬순서는 1 이상 정수(메뉴 순서) — 비우면 정렬 뒤쪽(999)으로 간다
+    const int SortOrderMin = 1, SortOrderMax = 9999;
+    static bool SortOrderOk(int? v) => v is null or (>= SortOrderMin and <= SortOrderMax);
+    string SortOrderErr => string.Format(L["SYS.Screen.Err.SortOrderRange"].Value, SortOrderMin, SortOrderMax);
+
+    // 저장소가 THROW 한 번호(SysRepository.InsertScreen/UpdateScreen/DeleteScreen)·키 중복을 화면 문구로 — DB 원문을 그대로 보이지 않는다
+    string SaveErr(Exception ex, string code, string href) => ex is Microsoft.Data.SqlClient.SqlException sx ? sx.Number switch
+    {
+        51822 or 2627 or 2601 => string.Format(L["SYS.Screen.Err.CodeExists"].Value, code),
+        51823 => string.Format(L["SYS.Screen.Err.CodeHasPerms"].Value, code),
+        51824 => L["SYS.Screen.Err.ProtectedChange"].Value,
+        51825 => string.Format(L["SYS.Screen.Err.HRefExists"].Value, href.Trim()),
+        51826 => L["SYS.Screen.Err.ProtectedDelete"].Value,
+        51821 => L["SYS.Screen.Err.NotFound"].Value,
+        _ => ex.Message,
+    } : ex.Message;
 
     class FormModel
     {
@@ -539,8 +558,7 @@
         public bool   HasEdit        { get; set; } = true;
         public bool   HasApprove     { get; set; } = true;
         public string PermissionCriteria => PermissionSlots.TemplateOf(HasEdit, HasApprove);
-        public string SortOrderStr   { get; set; } = "";
         public bool   IsVisible      { get; set; } = true;
-        public int?   SortOrder      => int.TryParse(SortOrderStr, out var n) ? n : null;
+        public int?   SortOrder      { get; set; }
     }
 }

@@ -313,10 +313,18 @@ public class PntLotRepositoryTests
             repo.ConfirmByLotCode(a.LotCode, PntLine, "E-PTEST", null, "E-PTEST");
             repo.RegisterDefect(b.LotCode, PntLine, "PNT-D01", "E-PTEST", null, "E-PTEST");
 
-            var row = repo.GetDailyItemSummary(PntLine, "ST-PNT-01", DbClock.Today).Single(x => x.ItemNo == Fg);
+            var row = repo.GetDailyItemSummary(PntLine, "ST-PNT-01", ProdToday(f!)).Single(x => x.ItemNo == Fg);
 
             Assert.Equal((3, 1, 1, 1, false), (row.InputQty, row.FinalQty, row.NgQty, row.PendingQty, row.InBop));
         }
         finally { Cleanup(f!); }
+    }
+
+    // POP 일별 현황의 하루 = 07시 전기일(dbo.FN_POP_ProdToday, 10-27) — 달력 날짜로 조회하면 00~07시에 방금 만든 LOT 이 전날로 간다
+    static DateTime ProdToday(AMES.Data.Connection.AmesConnectionFactory f)
+    {
+        using var conn = f.OpenConnection();
+        using var cmd = new Microsoft.Data.SqlClient.SqlCommand("SELECT dbo.FN_POP_ProdToday();", conn);
+        return (DateTime)cmd.ExecuteScalar()!;
     }
 }

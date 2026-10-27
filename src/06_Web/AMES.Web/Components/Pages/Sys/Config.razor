@@ -103,15 +103,22 @@
                             }
                             else if (c.ConfigType == "INT")
                             {
-                                <RadzenNumeric TValue="int" Value="@ParseInt(ed.Value)" Change="@(v => { ed.Value = v.ToString(); _dirty = true; })" Disabled="@Locked(c, ed)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
+                                var rg = ConfigValueRules.RangeOf(c.ConfigKey, c.ConfigType)!;
+                                <RadzenNumeric TValue="int" Value="@ParseInt(ed.Value)" Change="@(v => { ed.Value = v.ToString(System.Globalization.CultureInfo.InvariantCulture); _dirty = true; })"
+                                               Min="@rg.Min" Max="@rg.Max" Step="1" title="@RangeText(rg)" Disabled="@Locked(c, ed)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
                             }
                             else if (c.ConfigType == "DECIMAL")
                             {
-                                <RadzenNumeric TValue="decimal" Value="@ParseDecimal(ed.Value)" Change="@(v => { ed.Value = FmtDecimal(v); _dirty = true; })" Disabled="@Locked(c, ed)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
+                                var rg = ConfigValueRules.RangeOf(c.ConfigKey, c.ConfigType)!;
+                                <RadzenNumeric TValue="decimal" Value="@ParseDecimal(ed.Value)" Change="@(v => { ed.Value = FmtDecimal(v); _dirty = true; })"
+                                               Min="@rg.Min" Max="@rg.Max" Step="@StepOf(rg)" Format="@FormatOf(rg)" title="@RangeText(rg)" Disabled="@Locked(c, ed)" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;min-width:120px;" />
                             }
                             else if (c.ConfigType == "bool")
                             {
-                                <span class="dim code" style="font-size:12px;">true / false</span>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <RadzenSwitch Value="@ConfigValueRules.BoolValue(ed.Value)" Change="@(v => { ed.Value = v ? "true" : "false"; _dirty = true; })" Disabled="@Locked(c, ed)" />
+                                    <span class="dim">@(ConfigValueRules.BoolValue(ed.Value) ? L["SYS.Config.Bool.On"] : L["SYS.Config.Bool.Off"])</span>
+                                </div>
                             }
                             else if (IsSecret(c))
                             {
@@ -127,7 +134,14 @@
                         }
                         else
                         {
-                            <span class="code" style="color:var(--ames-tx-white);">@(IsSecret(c) ? (string.IsNullOrEmpty(c.ConfigValue) ? "—" : "••••••") : c.ConfigValue ?? "—")</span>
+                            @if (c.ConfigType == "bool")
+                            {
+                                <span class="@(ConfigValueRules.BoolValue(c.ConfigValue) ? "pill ok" : "pill mute")">@(ConfigValueRules.BoolValue(c.ConfigValue) ? L["SYS.Config.Bool.On"] : L["SYS.Config.Bool.Off"])</span>
+                            }
+                            else
+                            {
+                                <span class="code" style="color:var(--ames-tx-white);">@(IsSecret(c) ? (string.IsNullOrEmpty(c.ConfigValue) ? "—" : "••••••") : c.ConfigValue ?? "—")</span>
+                            }
                         }
                     </Template>
                 </RadzenDataGridColumn>
@@ -173,10 +187,9 @@
 @code {
     List<SysRepository.ConfigRow> _rows = new();
     Dictionary<int, ConfigEdit> _edits = new();
-    // ConfigKey → 값 콤보로 쓸 공통코드 그룹 매핑
+    // ConfigKey → 값 콤보로 쓸 공통코드 그룹 매핑 (PLANT_TIMEZONE 은 읽는 코드가 없어 화면에서 뺐다 — ConfigValueRules.HiddenKeys)
     static readonly Dictionary<string, string> ComboKeyGroups = new()
     {
-        ["PLANT_TIMEZONE"]   = "TIME_ZONE",
         ["LANGUAGE_DEFAULT"] = "LANGUAGE",
     };
     Dictionary<string, List<MasterDataRepository.CodeItemRow>> _comboItems = new();
@@ -214,6 +227,13 @@
         : decimal.TryParse(s, out v) ? v : 0m;
     static string FmtDecimal(decimal v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
+    // 숫자 입력칸의 범위·소수 자리(ConfigValueRules — 저장 전 검사와 같은 표)
+    static string StepOf(ConfigValueRules.Range r) => r.Decimals <= 0 ? "1" : "0." + new string('0', r.Decimals - 1) + "1";
+    static string FormatOf(ConfigValueRules.Range r) => r.Decimals <= 0 ? "0" : "0." + new string('#', r.Decimals);
+    string RangeText(ConfigValueRules.Range r) => string.Format(L["SYS.Config.Hint.Range"].Value,
+        r.Min.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        r.Max >= int.MaxValue ? "∞" : r.Max.ToString(System.Globalization.CultureInfo.InvariantCulture), r.Decimals);
+
     // 시각(TIME) 유형 'HH:mm' ↔ 선택기 값 어댑터 (날짜 부분은 쓰지 않는다)
     static DateTime? TimeValue(string? s) => ProdCalendar.TryParseCutoff(s, out var t) ? DbClock.Today.Add(t) : null;
     static string? TimeText(DateTime? v) => v?.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
@@ -237,7 +257,7 @@
 
     void Reload()
     {
-        try { _rows = Sys.ListConfig(); } catch { _rows = new(); }
+        try { _rows = Sys.ListConfig().Where(r => !ConfigValueRules.HiddenKeys.Contains(r.ConfigKey ?? "")).ToList(); } catch { _rows = new(); }
         _edits = _rows.ToDictionary(r => r.ConfigId, r => new ConfigEdit { Value = r.ConfigValue, IsActive = r.IsActive });
         _cat  = _rows.Select(r => r.Category).Distinct().Count();
         _sec  = _rows.Count(r => r.Category == "Security");
@@ -258,9 +278,10 @@
 
     void SaveAll()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-009", "UPDATE", "SYS_Config", string.Join(",", ChangedKeys())); return; }
         if (_busy) return;
         _busy = true; _msg = ""; _isErr = false;
+        List<SysRepository.ConfigChange> changes = new();
         try
         {
             // 시각(TIME) 값은 HH:mm 만 저장 — 하나라도 틀리면 아무것도 저장하지 않는다
@@ -273,23 +294,39 @@
                 return;
             }
 
-            // LANGUAGE_DEFAULT 활성여부가 바뀌면 저장 후 전체 리로드로 컬처/언어선택 즉시 반영
-            bool langActiveChanged = _rows.Any(r => r.ConfigKey == "LANGUAGE_DEFAULT"
-                && _edits.TryGetValue(r.ConfigId, out var e) && e.IsActive != r.IsActive);
-
+            // 숫자 범위·소수 자리, bool 형식 — 하나라도 틀리면 아무것도 저장하지 않는다(ConfigValueRules)
             foreach (var r in _rows)
             {
-                if (!_edits.TryGetValue(r.ConfigId, out var ed)) continue;
-                // 바뀐 행만 저장 — 그대로인 행까지 쓰면 수정자·수정일시가 전부 이번 저장자로 덮인다
-                if (ed.Value != r.ConfigValue || ed.IsActive != r.IsActive)
+                if (!_edits.TryGetValue(r.ConfigId, out var e) || (e.Value == r.ConfigValue && e.IsActive == r.IsActive)) continue;
+                var problem = ConfigValueRules.Validate(r.ConfigKey, r.ConfigType, e.Value, out var norm);
+                if (problem != ConfigValueRules.Problem.None)
                 {
-                    Sys.SetConfig(r.ConfigId, ed.Value, ed.IsActive, _actor);
-                    // 비밀값 설정은 값이 바뀌었다는 사실만 남긴다
-                    bool secret = IsSecret(r);
-                    Audit.Updated("SYS-009", "SYS_Config", r.ConfigKey,
-                        new { ConfigValue = secret ? "***" : r.ConfigValue, r.IsActive },
-                        new { ConfigValue = secret ? "***" : ed.Value, ed.IsActive });
+                    _isErr = true;
+                    var rg  = ConfigValueRules.RangeOf(r.ConfigKey, r.ConfigType);
+                    _msg = problem == ConfigValueRules.Problem.NotBool
+                        ? string.Format(L["SYS.Config.Err.Bool"].Value, r.ConfigKey)
+                        : string.Format(L["SYS.Config.Err.Range"].Value, r.ConfigKey, rg is null ? "" : RangeText(rg));
+                    return;
                 }
+                e.Value = norm;
+            }
+
+            // LANGUAGE_DEFAULT 의 값이나 활성여부가 바뀌면 저장 후 전체 리로드로 컬처/언어선택 즉시 반영
+            bool langChanged = _rows.Any(r => r.ConfigKey == "LANGUAGE_DEFAULT"
+                && _edits.TryGetValue(r.ConfigId, out var e) && (e.IsActive != r.IsActive || e.Value != r.ConfigValue));
+
+            // 바뀐 행만 저장 — 그대로인 행까지 쓰면 수정자·수정일시가 전부 이번 저장자로 덮인다. 한 트랜잭션이라 실패하면 아무것도 바뀌지 않는다
+            var changedRows = _rows.Where(r => _edits.TryGetValue(r.ConfigId, out var ed) && (ed.Value != r.ConfigValue || ed.IsActive != r.IsActive)).ToList();
+            changes = changedRows.Select(r => new SysRepository.ConfigChange(r.ConfigId, _edits[r.ConfigId].Value, _edits[r.ConfigId].IsActive)).ToList();
+            Sys.SetConfigs(changes, _actor);
+            foreach (var r in changedRows)
+            {
+                var ed = _edits[r.ConfigId];
+                // 비밀값 설정은 값이 바뀌었다는 사실만 남긴다
+                bool secret = IsSecret(r);
+                Audit.Updated("SYS-009", "SYS_Config", r.ConfigKey,
+                    new { ConfigValue = secret ? "***" : r.ConfigValue, r.IsActive },
+                    new { ConfigValue = secret ? "***" : ed.Value, ed.IsActive });
             }
             Lang.Invalidate();          // 언어 캐시 무효화 → 다음 요청부터 DB 재확인
             // 세션 타임아웃: 캐시 + 쿠키옵션 캐시 무효화 → 재시작 없이 다음 요청부터 새 값 적용
@@ -300,16 +337,22 @@
             _msg = L["Msg.Saved"].Value;
             ScheduleMsgClear();         // 타 화면처럼 일정시간 후 메시지 자동 제거
 
-            if (langActiveChanged)      // 컬처/스위처 즉시 반영을 위해 강제 새로고침
+            if (langChanged)            // 컬처/스위처 즉시 반영을 위해 강제 새로고침
                 Nav.NavigateTo(Nav.Uri, forceLoad: true);
         }
         catch (Exception ex)
         {
+            // 화면의 편집값은 그대로 둔다 — 고쳐서 다시 저장할 수 있다
             _isErr = true;
-            _msg   = ex.Message;
+            _msg   = string.Format(L["SYS.Config.Err.SaveFailed"].Value, ex.Message);
+            Audit.Failed("SYS-009", "UPDATE", "SYS_Config", string.Join(",", changes.Select(c => _rows.FirstOrDefault(r => r.ConfigId == c.ConfigId)?.ConfigKey)), null, ex.Message);
         }
         finally { _busy = false; }
     }
+
+    IEnumerable<string?> ChangedKeys() => _rows
+        .Where(r => _edits.TryGetValue(r.ConfigId, out var e) && (e.Value != r.ConfigValue || e.IsActive != r.IsActive))
+        .Select(r => r.ConfigKey);
 
     // 저장 성공 메시지 3.5초 후 자동 제거(최신 메시지만 유효하도록 토큰 사용)
     void ScheduleMsgClear()

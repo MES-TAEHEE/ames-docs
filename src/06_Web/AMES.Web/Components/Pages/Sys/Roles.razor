@@ -181,10 +181,10 @@
                 <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_membersErr</RadzenAlert>
             }
 
-            <RadzenDataGrid TItem="SysRepository.RoleMemberRow" Data="@_members" AllowPaging="false" AllowSorting="true" EmptyText="@L["SYS.Roles.Members.Empty"]" Class="ames-rz-grid" Style="max-height:60vh;">
+            <RadzenDataGrid @ref="_membersGrid" TItem="SysRepository.RoleMemberRow" Data="@_members" AllowPaging="false" AllowSorting="true" EmptyText="@L["SYS.Roles.Members.Empty"]" Class="ames-rz-grid" Style="max-height:60vh;">
                 <Columns>
                     <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false">
-                        <Template Context="m"><span class="dim">@(_members.IndexOf(m) + 1)</span></Template>
+                        <Template Context="m"><span class="dim">@GridRowNo.Of(_membersGrid, m)</span></Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="SysRepository.RoleMemberRow" Property="EmployeeNo" Title="@L["SYS.Users.Col.EmployeeNo"]" Width="110px" MinWidth="110px">
                         <Template Context="m"><span class="code">@(m.EmployeeNo ?? "—")</span></Template>
@@ -244,6 +244,7 @@
     }
 
     RadzenDataGrid<SysRepository.RoleRow>? _pgGrid;
+    RadzenDataGrid<SysRepository.RoleMemberRow>? _membersGrid;
     int _pgIndex;
     void OnPgPage(PagerEventArgs args) => _pgIndex = args.PageIndex;
 
@@ -300,7 +301,7 @@
 
     async Task SaveCreate()
     {
-        if (!_canEdit) return;
+        if (!_canEdit) { Audit.Denied("SYS-002", "CREATE", "AspNetRoles"); return; }
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_roleName)) { _modalErr = L["SYS.Roles.Err.NameRequired"]; return; }
 

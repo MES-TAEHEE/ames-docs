@@ -44,7 +44,7 @@ public sealed class WebSignIn(
         if (user is null)
         {
             users.PasswordHasher.VerifyHashedPassword(new ApplicationUser(), DummyHash, password ?? "");
-            return Error("Auth.Err.Invalid");
+            return LoginFail(ctx, email, "UnknownAccount", "Auth.Err.Invalid");
         }
 
         var (accountStatus, _) = authRepo.GetProfileStatus(user.Id);
@@ -61,12 +61,12 @@ public sealed class WebSignIn(
             // ACTIVE 계정만 센다 — IncrementFailedCount 는 5회째에 상태를 LOCKED 로 덮으므로 비활성·정지 계정에 세면 상태가 바뀐다
             else if (active && authRepo.IncrementFailedCount(user.Id))
                 LogAccount(ctx, "LOCK", user.Email ?? email, "FailedLogin5");
-            return Error("Auth.Err.Invalid");
+            return LoginFail(ctx, user.Email ?? email, "InvalidPassword", "Auth.Err.Invalid");
         }
-        if (locked && device is null) return Error("Auth.Err.Locked");
+        if (locked && device is null) return LoginFail(ctx, user.Email ?? email, "Locked", "Auth.Err.Locked");
         // 계정은 SYS-001 에서 관리자만 만든다 — 상태가 ACTIVE 일 때만 로그인(비활성·정지·프로필 없음은 거부, 10-07 메일 인증 단계 폐지).
         // LOCKED 는 신뢰 기기에서만 통과한다(계정 잠금은 그대로 남아 새 기기는 계속 막힌다)
-        if (!active && !locked) return Error("Auth.Err.Inactive");
+        if (!active && !locked) return LoginFail(ctx, user.Email ?? email, "Inactive:" + (accountStatus ?? "NoProfile"), "Auth.Err.Inactive");
 
         var result = await signIn.PasswordSignInAsync(user, password!, rememberMe, lockoutOnFailure: false);
         // 2단계 인증은 쓰지 않는다(10-09 사용자 결정, 화면 삭제) — DB 에 TwoFactorEnabled 가 남은 계정도 비밀번호 확인으로 로그인을 마친다
@@ -94,11 +94,18 @@ public sealed class WebSignIn(
 
     // 잠금은 남이 일부러 일으킬 수 있다(관리자 해제 전까지 새 기기는 못 쓴다) — 누가 어디서 잠갔는지 추적하도록 시각·IP 를 감사 로그에 남긴다.
     // 잠긴 계정의 신뢰 기기 로그인(LOGIN_TRUSTED)·기기 신뢰 해제(DEVICE_UNTRUST)도 같은 형식으로 남긴다
-    void LogAccount(HttpContext ctx, string action, string key, string reason, string table = "AspNetUsers")
+    void LogAccount(HttpContext ctx, string action, string key, string reason, string table = "AspNetUsers", string result = "OK")
     {
         var ip = ctx.Connection.RemoteIpAddress?.ToString();
         logger.LogWarning("Account security event {Action}: {Account} from {Ip} ({Reason})", action, key, ip, reason);
-        try { audit.Log("ACCOUNT", action, table, key, null, new { Account = key, Ip = ip, Reason = reason }, actor: ActorCode.Normalize(key)); } catch { }
+        try { audit.Log("ACCOUNT", action, table, key, null, new { Account = key, Ip = ip, Reason = reason }, actor: ActorCode.Normalize(key), result: result); } catch { }
+    }
+
+    // 로그인 실패는 결과 FAIL 로 남긴다(SYS-007 결과 필터) — 화면에는 계정 유무를 드러내지 않는 같은 문구만 보인다
+    Result LoginFail(HttpContext ctx, string key, string reason, string errorKey)
+    {
+        LogAccount(ctx, "LOGIN_FAIL", key, reason, result: "FAIL");
+        return Error(errorKey);
     }
 
     /// <summary>
@@ -142,7 +149,7 @@ public sealed class WebSignIn(
 
     Result PortalFail(ScmRepository.PortalUserRow user, string reason, string errorKey)
     {
-        try { audit.Log("PORTAL", "LOGIN_FAIL", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, reason }, actor: ActorCode.Portal(user.UserID)); } catch { }
+        try { audit.Log("PORTAL", "LOGIN_FAIL", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, reason }, actor: ActorCode.Portal(user.UserID), result: "FAIL"); } catch { }
         return Error(errorKey);
     }
 

@@ -242,7 +242,8 @@
         if (_fTo < _fFrom) (_fFrom, _fTo) = (_fTo, _fFrom);
         try
         {
-            _rows = Sys.SearchAudit(new SysRepository.AuditFilter(_fFrom, _fTo, _fSearch, _fModule, _fProcess, _fResult));
+            // 검색어는 사번·대상·비고 외에 사람 이름으로도 찾는다(행위자는 사번으로 저장된다 — ActorNames 사전으로 이름 → 사번)
+            _rows = Sys.SearchAudit(new SysRepository.AuditFilter(_fFrom, _fTo, _fSearch, _fModule, _fProcess, _fResult, Actors.CodesMatching(_fSearch)));
             _day  = Sys.CountAuditLast24h();
         }
         catch { _rows = new(); }

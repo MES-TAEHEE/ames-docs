@@ -12523,6 +12523,90 @@
   <data name="TopBar.SignOut" xml:space="preserve">
     <value>Sign out</value>
   </data>
+  <data name="SYS.Screen.Err.SortOrderRange" xml:space="preserve">
+    <value>Sort order must be a whole number from {0} to {1}.</value>
+  </data>
+  <data name="SYS.Screen.Err.CodeExists" xml:space="preserve">
+    <value>Screen code '{0}' is already registered.</value>
+  </data>
+  <data name="SYS.Screen.Err.CodeHasPerms" xml:space="preserve">
+    <value>Screen code '{0}' still has role permissions, so it cannot be used.</value>
+  </data>
+  <data name="SYS.Screen.Err.ProtectedChange" xml:space="preserve">
+    <value>The code and path of SYS-003/SYS-004 cannot change.</value>
+  </data>
+  <data name="SYS.Screen.Err.HRefExists" xml:space="preserve">
+    <value>Path '{0}' is already used by another screen.</value>
+  </data>
+  <data name="SYS.Screen.Err.ProtectedDelete" xml:space="preserve">
+    <value>SYS-003/SYS-004 cannot be deleted.</value>
+  </data>
+  <data name="SYS.Screen.Err.NotFound" xml:space="preserve">
+    <value>The screen was not found. Another user may have deleted it.</value>
+  </data>
+  <data name="SYS.Rbac.Kpi.GrantedHint" xml:space="preserve">
+    <value>Granted cells / cells with a feature (read, edit and approve count one each; features the screen lacks are excluded)</value>
+  </data>
+  <data name="SYS.Rbac.Hint.OwnRole" xml:space="preserve">
+    <value>You cannot change permissions of a role you belong to. Ask another administrator (System Administrator is exempt).</value>
+  </data>
+  <data name="SYS.Rbac.Hint.ColumnToggle" xml:space="preserve">
+    <value>Select all — clicking when some or all are selected clears them; clicking when none are selected selects all</value>
+  </data>
+  <data name="SYS.Config.Bool.On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="SYS.Config.Bool.Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="SYS.Config.Hint.Range" xml:space="preserve">
+    <value>Allowed range {0} to {1}, up to {2} decimal places</value>
+  </data>
+  <data name="SYS.Config.Err.Range" xml:space="preserve">
+    <value>The value of '{0}' is invalid — {1}. Nothing was saved.</value>
+  </data>
+  <data name="SYS.Config.Err.Bool" xml:space="preserve">
+    <value>'{0}' accepts only on/off. Nothing was saved.</value>
+  </data>
+  <data name="SYS.Config.Err.SaveFailed" xml:space="preserve">
+    <value>Save failed (nothing was changed). Check the values and save again — {0}</value>
+  </data>
+  <data name="SYS.Interfaces.AsOf" xml:space="preserve">
+    <value>As of {0}</value>
+  </data>
+  <data name="SYS.Interfaces.Hint.Threshold" xml:space="preserve">
+    <value>A healthy link turns Warning after its allowed gap since the last success, and Down after {0}× the gap</value>
+  </data>
+  <data name="SYS.Interfaces.Err.Load" xml:space="preserve">
+    <value>Could not read interface status. Last success {0}</value>
+  </data>
+  <data name="SYS.Interfaces.Btn.Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="SYS.Interfaces.Hint.Overdue" xml:space="preserve">
+    <value>Last success {0} min ago — over the {1}-min allowed gap (recorded: {2})</value>
+  </data>
+  <data name="SYS.Health.AsOf" xml:space="preserve">
+    <value>Business metrics as of {0} · server resources as of {1}</value>
+  </data>
+  <data name="SYS.Health.Refresh" xml:space="preserve">
+    <value>Auto refresh every {0} s</value>
+  </data>
+  <data name="SYS.Health.Hint.SameRules" xml:space="preserve">
+    <value>Interface and notification counts use the same rules as SYS-006/SYS-008 (last 24 hours)</value>
+  </data>
+  <data name="SYS.Health.Err.Partial" xml:space="preserve">
+    <value>Could not read {0} — stale values are not shown. Last success {1}</value>
+  </data>
+  <data name="SYS.Health.Scope.Server" xml:space="preserve">
+    <value>server resources</value>
+  </data>
+  <data name="SYS.Health.Scope.Business" xml:space="preserve">
+    <value>business metrics</value>
+  </data>
+  <data name="SYS.Notifications.Kpi.Tip" xml:space="preserve">
+    <value>Last 24 hours of the whole history (as of {0}) — sent by send time, failed by last attempt time (failed/error status)</value>
+  </data>
   <data name="PP.SupplyPlanImport.Err.PartialConfirm" xml:space="preserve">
     <value>{0} confirmed, {1} failed — select the failed ones again to confirm. ({2})</value>
   </data>

@@ -36,9 +36,27 @@ public sealed class AuditLogger
     public void Deleted(string screenCode, string entity, object? id, object? before)
         => Log(screenCode, "DELETE", entity, id, before, null);
 
-    /// <summary>CREATE·UPDATE·DELETE 밖의 동작(APPROVE·COPY·PIN_RESET·UNLOCK 등). action 은 15자 이내.</summary>
+    /// <summary>
+    /// 권한이 없어 거부한 변경 시도 — 동작 DENIED·결과 FAIL(공통코드 AUDIT_STATUS)로 남긴다. 버튼을 감춘 화면에 요청이 들어온 경우라
+    /// 화면 조작이 아니라 우회 시도일 수 있어 추적용으로 남긴다. attempted = 시도한 동작(CREATE·UPDATE·DELETE 등).
+    /// </summary>
+    public void Denied(string screenCode, string attempted, string entity, object? id = null, string reason = "NoPermission")
+    {
+        var actor = ActorCode.Normalize(CurrentActor());
+        Log(screenCode, "DENIED", entity, id, null, new { Attempted = attempted, Reason = reason },
+            note: $"DENIED {attempted} {entity} '{Convert.ToString(id, System.Globalization.CultureInfo.InvariantCulture)}' by '{actor}' ({reason})",
+            result: "FAIL");
+    }
+
+    /// <summary>저장이 실패한 변경 — 시도한 동작 그대로·결과 FAIL·사유(예외 메시지)로 남긴다. after = 저장하려던 값.</summary>
+    public void Failed(string screenCode, string action, string entity, object? id, object? after, string error)
+        => Log(screenCode, action, entity, id, null, after,
+               note: $"{action} {entity} '{Convert.ToString(id, System.Globalization.CultureInfo.InvariantCulture)}' failed: {error}",
+               result: "FAIL");
+
+    /// <summary>CREATE·UPDATE·DELETE 밖의 동작(APPROVE·COPY·PIN_RESET·UNLOCK 등). action 은 20자 이내. result 는 AUDIT_STATUS(OK·FAIL).</summary>
     public void Log(string screenCode, string action, string entity, object? id,
-                    object? before, object? after, string? note = null, string? actor = null)
+                    object? before, object? after, string? note = null, string? actor = null, string result = "OK")
     {
         try
         {
@@ -50,7 +68,7 @@ public sealed class AuditLogger
             var module = screenCode.Contains('-') ? screenCode.Split('-')[0] : "SYS";
             note ??= $"{action} {entity} '{target}' by '{actor}'";
             _sys.InsertAuditLog(Cut(module, 10), Cut(screenCode, 20), Cut(action, 20)!, Cut(entity, 40), target,
-                ToJson(before), ToJson(after), actor, CurrentIp(), note: Cut(note, 500));
+                ToJson(before), ToJson(after), actor, CurrentIp(), result: result, note: Cut(note, 500));
         }
         catch (Exception ex)
         {
