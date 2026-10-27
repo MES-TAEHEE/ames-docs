@@ -121,6 +121,8 @@ internal sealed class OfflineWorkState
     public string StationCode { get; set; } = "";
     public int PastDays { get; set; }
     public int FutureDays { get; set; }
+    /// <summary>받을 때의 전기일 경계(분) — DB 없이 재시작해도 같은 하루 기준을 쓰게 남긴다. null = 그때 못 읽음.</summary>
+    public int? DayCutoffMin { get; set; }
     /// <summary>LOT 명부 — 최근 며칠 + 확정 대기 전부. 오프라인 스캔이 이걸로 LOT 을 알아본다.</summary>
     public List<OfflineLot> Lots { get; set; } = new();
     /// <summary>날짜(yyyy-MM-dd)별 품번 현황 — 과거·미래 보관 범위 전체. 로컬 작업의 효과는 읽을 때 얹는다.</summary>
@@ -250,7 +252,11 @@ internal static class OfflineWork
         {
             lock (Gate)
             {
-                if (!_stateLoaded) { _state = OfflineStore.Load<OfflineWorkState>(StateFile); _stateLoaded = true; }
+                if (!_stateLoaded)
+                {
+                    _state = OfflineStore.Load<OfflineWorkState>(StateFile); _stateLoaded = true;
+                    if (!PopDay.IsLoaded && _state?.DayCutoffMin is int cut) PopDay.Set(TimeSpan.FromMinutes(cut));
+                }
                 return _state;
             }
         }
@@ -322,6 +328,7 @@ internal static class OfflineWork
         var next = new OfflineWorkState
         {
             Process = process, TakenAtUtc = DateTime.UtcNow, LineId = lineId, StationCode = stationCode, PastDays = past, FutureDays = future,
+            DayCutoffMin = PopDay.IsLoaded ? (int)PopDay.Cutoff.TotalMinutes : null,
         };
 
         Func<DateTime, List<InjItemDailyDto>> summary = process switch
@@ -330,9 +337,10 @@ internal static class OfflineWork
             "PNT" => d => PopServices.PntLots.GetDailyItemSummary(lineId, stationCode, d),
             _     => d => PopServices.InjLots.GetDailyItemSummary(lineId, stationCode, d),
         };
+        var prodToday = PopDay.Today;   // 현황은 전기일 기준, today(달력 날짜)는 LotNo 헤더·번호 구간용
         for (var d = -past; d <= future; d++)
         {
-            var day = today.AddDays(d);
+            var day = prodToday.AddDays(d);
             next.Summaries[DayKey(day)] = summary(day);
         }
 
@@ -490,7 +498,7 @@ internal static class OfflineWork
                 }
                 else { s.Lots.Insert(0, lot); known[lot.LotCode] = lot; }
             }
-            if (todaySummary is not null) s.Summaries[DayKey(DbClock.Today)] = todaySummary;
+            if (todaySummary is not null) s.Summaries[DayKey(PopDay.Today)] = todaySummary;
             _dirty = true;
         }
     }
@@ -604,7 +612,7 @@ internal static class OfflineWork
         if (!HasData(lineId, stationCode)) return null;
         var s = State!;
         var items = Summary(viewDate);
-        var today = Summary(DbClock.Today);
+        var today = Summary(PopDay.Today);
 
         if (!items.Any(x => string.Equals(x.ItemNo, selItemNo, StringComparison.OrdinalIgnoreCase)))
             selItemNo = (items.FirstOrDefault(x => x.HasOpenWo) ?? items.FirstOrDefault())?.ItemNo;
@@ -619,7 +627,7 @@ internal static class OfflineWork
         {
             var open = s.Lots.Where(l => l.ConfirmStatus is LotDefectRules.Raw or LotDefectRules.NgBlocked).ToList();
             raw = open.OrderByDescending(l => l.CreatedTS).Take(30).ToList();
-            todayLots = s.Lots.Where(l => l.CreatedTS.Date == DbClock.Today).OrderByDescending(l => l.CreatedTS).Take(200).ToList();
+            todayLots = s.Lots.Where(l => PopDay.Of(l.CreatedTS) == PopDay.Today).OrderByDescending(l => l.CreatedTS).Take(200).ToList();
             if (s.Process == "INJ")
             {
                 rawCount = open.Count(l => l.ConfirmStatus == LotDefectRules.Raw);
@@ -718,7 +726,7 @@ internal static class OfflineWork
 
             var lot = s.Lots.FirstOrDefault(l => string.Equals(l.LotCode, lotCode, StringComparison.OrdinalIgnoreCase));
             string itemNo, prior = "";
-            DateTime lotDate = DbClock.Today;
+            DateTime lotDate = PopDay.Today;
             if (lot is not null)
             {
                 if (!string.Equals(lot.LineId, lineId, StringComparison.OrdinalIgnoreCase))
@@ -730,7 +738,7 @@ internal static class OfflineWork
                     case LotConfirmBlock.InRework:         return (InjConfirmOutcome.InRework,         lot.ItemNo, 0, false);
                     case LotConfirmBlock.Scrapped:         return (InjConfirmOutcome.Scrapped,         lot.ItemNo, 0, false);
                 }
-                itemNo = lot.ItemNo; prior = lot.ConfirmStatus; lotDate = lot.CreatedTS.Date;
+                itemNo = lot.ItemNo; prior = lot.ConfirmStatus; lotDate = PopDay.Of(lot.CreatedTS);
             }
             else
             {
@@ -790,14 +798,14 @@ internal static class OfflineWork
 
             var lot = s.Lots.FirstOrDefault(l => string.Equals(l.LotCode, lotCode, StringComparison.OrdinalIgnoreCase));
             string itemNo, prior = "";
-            DateTime lotDate = DbClock.Today;
+            DateTime lotDate = PopDay.Today;
             if (lot is not null)
             {
                 if (!string.Equals(lot.LineId, lineId, StringComparison.OrdinalIgnoreCase))
                     return (DefectRegisterOutcome.WrongLine, lot.ItemNo, false);
                 var check = LotDefectRules.CheckRegister(lot.ConfirmStatus);
                 if (check != DefectRegisterOutcome.Registered) return (check, lot.ItemNo, false);
-                itemNo = lot.ItemNo; prior = lot.ConfirmStatus; lotDate = lot.CreatedTS.Date;
+                itemNo = lot.ItemNo; prior = lot.ConfirmStatus; lotDate = PopDay.Of(lot.CreatedTS);
             }
             else
             {
@@ -869,7 +877,7 @@ internal static class OfflineWork
             {
                 Process = s.Process, Kind = "ManualLot", At = now, LineId = lineId, StationCode = stationCode, OperatorId = operatorId,
                 EmployeeNo = employeeNo, SessionId = sessionId, LotCode = lotCode, ItemNo = itemNo, MoldId = moldId,
-                LotDate = now.Date, PrintedCount = printed,
+                LotDate = PopDay.Of(now), PrintedCount = printed,
             });
             SaveOps(); SaveState(s);
             return lot;
@@ -895,7 +903,7 @@ internal static class OfflineWork
             {
                 Process = s.Process, Kind = "CreateRaw", At = now, LineId = lineId, StationCode = stationCode, OperatorId = operatorId,
                 EmployeeNo = employeeNo, SessionId = sessionId, LotCode = lotCode, ItemNo = itemNo, CustomerCode = lot.CustomerCode,
-                LotDate = now.Date,
+                LotDate = PopDay.Of(now),
             });
             SaveOps(); SaveState(s);
             return lot;
@@ -970,7 +978,7 @@ internal static class OfflineWork
             {
                 Process = s.Process, Kind = "CreateFromCore", At = now, LineId = lineId, StationCode = stationCode, OperatorId = operatorId,
                 EmployeeNo = employeeNo, SessionId = sessionId, LotCode = lotCode, ItemNo = finishedItem, CoreLotCode = coreLotCode,
-                FinishedItem = selectedFinishedItem, CustomerCode = lot.CustomerCode, LotDate = now.Date,
+                FinishedItem = selectedFinishedItem, CustomerCode = lot.CustomerCode, LotDate = PopDay.Of(now),
             });
             SaveOps(); SaveState(s);
             return (ImgCoreOutcome.Created, lot, null, finishedItem, unverified);

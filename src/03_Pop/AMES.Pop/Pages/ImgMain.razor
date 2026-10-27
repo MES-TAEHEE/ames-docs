@@ -55,7 +55,7 @@
                     <span>▼ @T("PartNo")</span>
                     @* 타이핑 금지 — 누르면 달력만 뜬다. 키 입력을 막아 HID 스캔이 날짜 칸으로 새지도 않는다. *@
                     <input type="date" class="imgm-date-input" value="@ViewDate.ToString("yyyy-MM-dd")"
-                           max="@DbClock.Today.ToString("yyyy-MM-dd")" @onchange="OnDateChange"
+                           max="@PopDay.Today.ToString("yyyy-MM-dd")" @onchange="OnDateChange"
                            onclick="try { this.showPicker(); } catch (e) { }"
                            onkeydown="return false" onpaste="return false" ondrop="return false" />
                 </div>
@@ -233,8 +233,8 @@
 
     // null = 금일 추종 — 자정을 넘기면 좌측 패널도 다음 날로 넘어간다.
     private DateTime? _viewDate;
-    private DateTime ViewDate => _viewDate ?? DbClock.Today;
-    private bool IsToday => ViewDate >= DbClock.Today;
+    private DateTime ViewDate => _viewDate ?? PopDay.Today;
+    private bool IsToday => ViewDate >= PopDay.Today;
     private string? _selItemNo;
     private InjItemDailyDto? SelItem =>
         _items.FirstOrDefault(x => string.Equals(x.ItemNo, _selItemNo, StringComparison.OrdinalIgnoreCase));
@@ -408,7 +408,7 @@
     // 필드를 건드리지 않는다 — 스레드 풀에서 불려도 안전해야 한다.
     private static RefreshSnapshot Load(string lineId, string terminalId, string? selItemNo, DateTime viewDate, bool isToday)
     {
-        var today = PopServices.ImgLots.GetDailyItemSummary(lineId, terminalId, DbClock.Today);
+        var today = PopServices.ImgLots.GetDailyItemSummary(lineId, terminalId, PopDay.Today);
         var items = isToday ? today
                   : PopServices.ImgLots.GetDailyItemSummary(lineId, terminalId, viewDate);
 
@@ -464,7 +464,7 @@
     }
     private void SetDate(DateTime d)
     {
-        _viewDate = d.Date >= DbClock.Today ? null : d.Date;
+        _viewDate = d.Date >= PopDay.Today ? null : d.Date;
         _ = RefreshNowAsync();
         _focusScan = true;
     }

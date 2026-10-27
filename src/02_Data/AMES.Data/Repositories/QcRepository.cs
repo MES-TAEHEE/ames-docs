@@ -56,8 +56,8 @@ public sealed class QcRepository
         return list;
     }
 
-    /// <summary>Finalize an inspection — sets Verdict + InsEndTS.</summary>
-    public void FinalizeInspection(int inspectionId, string verdict, string approverId, string employeeNo)
+    /// <summary>Finalize an in-progress inspection — sets Verdict + InsEndTS. False when it was already finalized.</summary>
+    public bool FinalizeInspection(int inspectionId, string verdict, string approverId, string employeeNo)
     {
         const string sql = "dbo.SP_POP_QC_FinalizeInspection";
         using var conn = _factory.OpenConnection();
@@ -65,7 +65,7 @@ public sealed class QcRepository
         cmd.Parameters.Add("@I", SqlDbType.Int).Value           = inspectionId;
         cmd.Parameters.Add("@V", SqlDbType.VarChar, 15).Value   = verdict;
         cmd.Parameters.Add("@A", SqlDbType.NVarChar,  20).Value = approverId;
-        cmd.ExecuteNonQuery();
+        return Convert.ToInt32(cmd.ExecuteScalar() ?? 0) > 0;
     }
 
     /// <summary>Append one measurement row to an in-progress inspection.</summary>
@@ -148,7 +148,8 @@ public sealed class QcRepository
         return list;
     }
 
-    public void ReleaseHold(int holdId, string action, string reason, string releasedBy, string employeeNo)
+    /// <summary>Release a held hold. False when it is no longer Held (already released/rejected) — nothing is written.</summary>
+    public bool ReleaseHold(int holdId, string action, string reason, string releasedBy, string employeeNo)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -159,7 +160,7 @@ public sealed class QcRepository
                 upd.Parameters.Add("@H",  SqlDbType.Int            ).Value = holdId;
                 upd.Parameters.Add("@A",  SqlDbType.VarChar, 15    ).Value = action;
                 upd.Parameters.Add("@By", SqlDbType.VarChar,     20).Value = releasedBy;
-                upd.ExecuteNonQuery();
+                if (Convert.ToInt32(upd.ExecuteScalar() ?? 0) == 0) { tx.Rollback(); return false; }
             }
 
             using (var ins = new SqlCommand("dbo.SP_POP_QC_ReleaseHold_InsHoldRelease", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
@@ -173,6 +174,7 @@ public sealed class QcRepository
             }
 
             tx.Commit();
+            return true;
         }
         catch { tx.Rollback(); throw; }
     }

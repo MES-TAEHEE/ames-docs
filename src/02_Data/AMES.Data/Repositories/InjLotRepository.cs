@@ -703,6 +703,7 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@ThisTs", SqlDbType.DateTime2   ).Value = createdTs;
                 cmd.Parameters.Add("@Equip",  SqlDbType.VarChar, 20 ).Value = (object?)equipId ?? DBNull.Value;
                 cmd.Parameters.Add("@Pos",    SqlDbType.VarChar, 4  ).Value = (object?)cavityPos ?? DBNull.Value;
+                cmd.Parameters.Add("@ThisLot", SqlDbType.Int        ).Value = lotId;
                 cycleSec = Convert.ToInt32(cmd.ExecuteScalar() ?? 0);
                 if (cycleSec is < 0 or > 86400) cycleSec = 0;
             }
@@ -793,9 +794,17 @@ public sealed class InjLotRepository
     }
 
     /// <summary>로봇 NG 수신 → 스캔 차단 (RAW 인 경우에만).</summary>
-    public void MarkNgBlocked(int lotId)
+    public void MarkNgBlocked(int lotId) => MarkNgBlocked(lotId, null);
+
+    /// <summary>
+    /// 로봇 NG 수신. RAW 면 스캔 차단(NG_BLOCKED). 작업자가 이미 스캔 확정한 뒤에 온 NG 는
+    /// <paramref name="lateNgDefectCode"/> 가 있으면 그 코드로 불량 등록(실적 역분개·재작업 대기열),
+    /// 없으면 아무것도 바꾸지 않고 <see cref="NgMarkOutcome.LateAfterConfirm"/> 로 알린다.
+    /// </summary>
+    public NgMarkResult MarkNgBlocked(int lotId, string? lateNgDefectCode)
     {
         const string sql = """
+            SET XACT_ABORT ON;
             BEGIN TRAN;
             UPDATE dbo.PR_InjLot
             SET    ConfirmStatus = 'NG_BLOCKED', ModifiedBy = 'AGENT', ModifiedTS = SYSDATETIME()
@@ -804,13 +813,39 @@ public sealed class InjLotRepository
               UPDATE dbo.tbl_Lot
               SET    QualityFlag = 'NG', ModifiedBy = 'AGENT', ModifiedTS = SYSDATETIME()
               WHERE  LotID = @Lot;
+            SELECT e.ConfirmStatus, l.LotCode, l.LineID
+            FROM   dbo.PR_InjLot e JOIN dbo.tbl_Lot l ON l.LotID = e.LotID
+            WHERE  e.LotID = @Lot;
             COMMIT;
             """;
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Lot", SqlDbType.Int).Value = lotId;
-        cmd.ExecuteNonQuery();
+        string? status, lotCode, lineId;
+        using (var conn = _factory.OpenConnection())
+        using (var cmd  = new SqlCommand(sql, conn))
+        {
+            cmd.Parameters.Add("@Lot", SqlDbType.Int).Value = lotId;
+            using var rdr = cmd.ExecuteReader();
+            if (!rdr.Read()) return new NgMarkResult(NgMarkOutcome.Ignored, null, null);
+            status  = rdr["ConfirmStatus"] as string;
+            lotCode = rdr["LotCode"] as string;
+            lineId  = rdr["LineID"] as string;
+        }
+
+        if (status == LotDefectRules.NgBlocked) return new NgMarkResult(NgMarkOutcome.Blocked, lotCode, null);
+        if (status != LotDefectRules.Confirmed || lotCode is null || lineId is null)
+            return new NgMarkResult(NgMarkOutcome.Ignored, lotCode, null);
+        if (string.IsNullOrWhiteSpace(lateNgDefectCode))
+            return new NgMarkResult(NgMarkOutcome.LateAfterConfirm, lotCode, null);
+
+        // 확정과 등록 사이에 작업자가 먼저 불량 등록했으면 RegisterDefect 가 InRework 로 돌려주므로 중복되지 않는다
+        var (outcome, _, _) = RegisterDefect(lotCode, lineId, lateNgDefectCode.Trim(), AgentActor, null, AgentActor);
+        return new NgMarkResult(outcome == DefectRegisterOutcome.Registered ? NgMarkOutcome.LateRegistered : NgMarkOutcome.LateAfterConfirm,
+                                lotCode, outcome);
     }
+
+    const string AgentActor = "AGENT";
+
+    public enum NgMarkOutcome { Blocked, LateAfterConfirm, LateRegistered, Ignored }
+    public sealed record NgMarkResult(NgMarkOutcome Outcome, string? LotCode, DefectRegisterOutcome? Register);
 
     /// <summary>
     /// 라인 불량 팝업의 LOT 스캔 등록 — 한 트랜잭션으로:

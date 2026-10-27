@@ -270,6 +270,55 @@ public class InjLotRepositoryTests
         }
     }
 
+    [SkippableFact]
+    public void Late_robot_ng_after_confirm_warns_without_code_and_registers_defect_with_code()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        const string item = "ITEST-LATENG-INJ";
+        var repo = new InjLotRepository(f!);
+        int lotId = 0;
+        try
+        {
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @I)
+                    INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ActiveFlag, CreatedBy) VALUES (@I, N'CORE-ITEST late ng', 'SUB', 1, 'ITEST');
+                """, conn))
+            { cmd.Parameters.AddWithValue("@I", item); cmd.ExecuteNonQuery(); }
+
+            var lot = repo.CreateManualRawLots("LINE-INJ-01", item, null, 1, "E-ITEST")[0];
+            lotId = lot.LotId;
+            Assert.Equal(InjConfirmOutcome.Confirmed, repo.ConfirmByLotCode(lot.LotCode, "LINE-INJ-01", "itest-op", null, "E-ITEST").Outcome);
+
+            var warn = repo.MarkNgBlocked(lotId, null);
+            Assert.Equal(InjLotRepository.NgMarkOutcome.LateAfterConfirm, warn.Outcome);
+            Assert.Equal("CONFIRMED", repo.GetByLotCode(lot.LotCode)!.ConfirmStatus);
+
+            var reg = repo.MarkNgBlocked(lotId, "INJ-D02");
+            Assert.Equal(InjLotRepository.NgMarkOutcome.LateRegistered, reg.Outcome);
+            Assert.Equal("DEFECT", repo.GetByLotCode(lot.LotCode)!.ConfirmStatus);
+
+            // 이미 DEFECT 면 다시 등록하지 않는다
+            Assert.Equal(InjLotRepository.NgMarkOutcome.Ignored, repo.MarkNgBlocked(lotId, "INJ-D02").Outcome);
+        }
+        finally
+        {
+            if (f is not null)
+            {
+                using var conn = f.OpenConnection();
+                using var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                    DELETE FROM dbo.PR_DefectDetail     WHERE LotID = @L;
+                    DELETE FROM dbo.PR_ProductionResult WHERE LotID = @L;
+                    DELETE FROM dbo.PR_InjLot WHERE LotID = @L;
+                    DELETE FROM dbo.tbl_Lot   WHERE LotID = @L;
+                    DELETE FROM dbo.MD_Item   WHERE ItemNo = @I AND CreatedBy = 'ITEST';
+                    """, conn);
+                cmd.Parameters.AddWithValue("@L", lotId); cmd.Parameters.AddWithValue("@I", item);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
     /// <summary>
     /// WO 품번(완제품) ≠ LOT 품번(코어). INJ 단계 행의 ItemNo 가 코어면 코어 LOT 스캔이 그 WO 로 확정된다.
     /// INJ 는 마지막 라인 단계가 아니라 헤더 CompletedQty 는 그대로다.

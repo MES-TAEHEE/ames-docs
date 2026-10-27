@@ -629,8 +629,10 @@ public class WorkOrderRepositoryTests
     }
 
     [SkippableFact]
-    public void ListForLine_keeps_open_earlier_step_after_header_closes()
+    public void ListForLine_hides_earlier_step_once_header_closes()
     {
+        // 10-27: 헤더가 끝난 WO 의 열린 앞 단계는 더 실적을 받지 않는다 — 한 코어를 여러 완제품 WO 가 쓰면
+        // 감싸기가 먼저 끝낸 WO 의 사출 단계로 다음 스캔이 몰렸다(확인사항 문제점 34).
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         SeedItems(f);
         try
@@ -639,13 +641,54 @@ public class WorkOrderRepositoryTests
             var woId = CreateDraft(f, ItemRoutingA, qty: 5);
             repo.ReleaseWo(woId, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest");
 
-            // 마지막 라인 단계(IMG)를 채우면 헤더가 먼저 Closed 된다. INJ 단계는 아직 열려 있어야 한다.
             Bump(f, repo.ListSteps(woId)[1].RoutingLineId, 5);
             Assert.Equal(("Closed", 5m, true), Header(f, woId));
 
-            var onInj = repo.ListForLine("LINE-INJ-01").Single(w => w.WoId == woId);
-            Assert.Equal("Released", onInj.Status);
+            Assert.DoesNotContain(repo.ListForLine("LINE-INJ-01"), w => w.WoId == woId);
             Assert.DoesNotContain(repo.ListForLine("LINE-IMG-01"), w => w.WoId == woId);
+        }
+        finally { CleanupItems(f); }
+    }
+
+    [SkippableFact]
+    public void Cancel_is_refused_once_a_step_has_production_and_force_close_ends_it()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        SeedItems(f);
+        try
+        {
+            var repo = new WorkOrderRepository(f);
+            var woId = CreateDraft(f, ItemRoutingA, qty: 5);
+            repo.ReleaseWo(woId, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest");
+            Bump(f, repo.ListSteps(woId)[0].RoutingLineId, 2);   // 사출 2 EA — 진행 중
+
+            Assert.Equal(0, repo.CancelWo(woId, "itest"));
+            Assert.Equal(WorkOrderRepository.ForceCloseResult.Closed, repo.ForceCloseWo(woId, "itest"));
+            Assert.Equal("Closed", Header(f, woId).Status);
+            Assert.All(repo.ListSteps(woId), s => Assert.Equal("Closed", s.Status));
+            Assert.DoesNotContain(repo.ListForLine("LINE-INJ-01"), w => w.WoId == woId);
+            Assert.Equal(WorkOrderRepository.ForceCloseResult.NotAllowed, repo.ForceCloseWo(woId, "itest"));
+        }
+        finally { CleanupItems(f); }
+    }
+
+    [SkippableFact]
+    public void Bump_on_a_cancelled_wo_is_refused()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        SeedItems(f);
+        try
+        {
+            var repo = new WorkOrderRepository(f);
+            var woId = CreateDraft(f, ItemRoutingA, qty: 5);
+            repo.ReleaseWo(woId, StepsA("LINE-INJ-01", "LINE-IMG-01"), "itest");
+            var step = repo.ListSteps(woId)[0].RoutingLineId;
+            Assert.Equal(1, repo.CancelWo(woId, "itest"));
+
+            Assert.ThrowsAny<Microsoft.Data.SqlClient.SqlException>(() => Bump(f, step, 1));
+            using var conn = f.OpenConnection();
+            using var tx = conn.BeginTransaction();
+            Assert.Null(WorkOrderRepository.FindStepId(conn, tx, woId, "LINE-INJ-01"));
         }
         finally { CleanupItems(f); }
     }

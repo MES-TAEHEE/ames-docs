@@ -17,6 +17,8 @@ public sealed class AgentConfig
 {
     public string              ConnectionString { get; }
     public int                 PollingMs        { get; }
+    /// <summary>스캔 확정 뒤에 온 로봇 NG 를 자동 불량 등록할 불량코드. 비우면 경고 로그만 남긴다.</summary>
+    public string?             LateNgDefectCode { get; }
     public List<MachineConfig> Machines         { get; }
 
     private static readonly Lazy<AgentConfig> _instance = new(Load);
@@ -27,6 +29,7 @@ public sealed class AgentConfig
         ConnectionString = root.GetConnectionString("AMES")
             ?? throw new InvalidOperationException("ConnectionStrings:AMES is missing in appsettings.json");
         PollingMs = int.TryParse(root["Agent:PollingMs"], out var ms) ? ms : 100;
+        LateNgDefectCode = string.IsNullOrWhiteSpace(root["Agent:LateNgDefectCode"]) ? null : root["Agent:LateNgDefectCode"]!.Trim();
 
         Machines = new List<MachineConfig>();
         foreach (var m in root.GetSection("Agent:Machines").GetChildren())

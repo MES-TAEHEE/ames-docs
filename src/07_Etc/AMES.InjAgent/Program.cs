@@ -48,7 +48,8 @@ internal static class Program
         {
             // DB 가 끊기면 샷을 디스크 큐에 쌓고, 복구되면 Sync 가 DB 에 다시 넣는다(POP 과 번호 구간은 따로 받는다)
             store = new QueuingInjAgentStore(
-                new DbInjAgentStore(new InjLotRepository(factory), new InjCondRepository(factory)),
+                new DbInjAgentStore(new InjLotRepository(factory), new InjCondRepository(factory),
+                                    cfg.LateNgDefectCode, MainForm.EnqueueLog),
                 new OfflineStateFile(OfflineStateFile.DefaultPath),
                 DbHealth.IsConnectionFailure,
                 MainForm.EnqueueLog);

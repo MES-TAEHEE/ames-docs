@@ -592,11 +592,10 @@ public sealed partial class PpRepository
             LEFT JOIN dbo.MD_Item i ON i.ItemNo = s.ItemNo
             OUTER APPLY (SELECT SUM(ISNULL(w.OrderQty,0)) AS Qty FROM dbo.PP_WorkOrder w
                          WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled') iss
+            -- 완제품 재고 = 통합재고 양수 수량, 위치 무관(PP-APS ReadFgStock 과 같은 기준 — 10-27, POP 이 실었지만 아직 입고 안 한 팔레트 포함)
             OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.WH_Inventory f
-                         JOIN dbo.MD_Location fl
-                           ON fl.LocationID COLLATE DATABASE_DEFAULT = f.LocationNo COLLATE DATABASE_DEFAULT
                          WHERE f.PartNo COLLATE DATABASE_DEFAULT = s.ItemNo COLLATE DATABASE_DEFAULT
-                           AND f.Qty>0 AND UPPER(fl.AreaCode)='FG_AREA'
+                           AND f.Qty>0
                            AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=f.LotNo AND R.Status IN('Open','Inspecting'))) fg
             OUTER APPLY (SELECT TOP 1 r.LineID FROM dbo.PP_WorkOrderRouting r
                          JOIN dbo.PP_WorkOrder w2 ON w2.WoID = r.WoID
@@ -911,10 +910,8 @@ public sealed partial class PpRepository
         FROM   dbo.PP_CustomerOrder s
         JOIN   dbo.MD_Item i ON i.ItemNo = s.ItemNo
         OUTER APPLY (SELECT SUM(f.Qty) AS OnHand FROM dbo.WH_Inventory f
-                     JOIN dbo.MD_Location fl
-                       ON fl.LocationID COLLATE DATABASE_DEFAULT = f.LocationNo COLLATE DATABASE_DEFAULT
                      WHERE f.PartNo COLLATE DATABASE_DEFAULT = s.ItemNo COLLATE DATABASE_DEFAULT
-                       AND f.Qty>0 AND UPPER(fl.AreaCode)='FG_AREA'
+                       AND f.Qty>0
                        AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=f.LotNo AND R.Status IN('Open','Inspecting'))) fg
         OUTER APPLY (SELECT SUM(ISNULL(w.OrderQty,0)) AS Qty FROM dbo.PP_WorkOrder w
                      WHERE w.SoID = s.SoID AND w.Status <> 'Cancelled') iss
@@ -1029,14 +1026,14 @@ public sealed partial class PpRepository
                 r.GetDecimal(r.GetOrdinal("QtyPer")), r.GetDecimal(r.GetOrdinal("ScrapPct"))),
             ("@Today", null, today));
 
+        // 재고 = 통합재고 양수 수량, 위치 무관(PP-APS·PP-003 과 같은 기준 — 10-27: 입고만 하고 적치 전·라인으로 불출된 자재도 재고).
+        // 백플러시 음수 자리표시(BF-)는 양수 조건에 걸려 빠진다
         var supply = Query("""
             SELECT i.ItemNo, i.LeadTimeDays,
                    (SELECT ISNULL(SUM(ISNULL(x.Qty,0)),0)
                     FROM dbo.WH_Inventory x
-                    JOIN dbo.MD_Location ml
-                      ON ml.LocationID COLLATE DATABASE_DEFAULT = x.LocationNo COLLATE DATABASE_DEFAULT
                     WHERE x.PartNo COLLATE DATABASE_DEFAULT = i.ItemNo COLLATE DATABASE_DEFAULT
-                      AND x.Qty>0 AND UPPER(ml.AreaCode)='MAT_AREA'
+                      AND x.Qty>0
                       AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=x.LotNo AND R.Status IN('Open','Inspecting'))) AS Stock,
                    (SELECT ISNULL(SUM(ISNULL(p.OrderQty,0) - ISNULL(p.ReceivedQty,0)),0)
                     FROM dbo.WH_PurchaseOrder p

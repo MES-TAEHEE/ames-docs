@@ -2502,6 +2502,24 @@
   <data name="PP.WorkOrder.Ok.Cancelled" xml:space="preserve">
     <value>{0} cancelado — materiales reservados liberados.</value>
   </data>
+  <data name="PP.WorkOrder.Btn.ForceClose" xml:space="preserve">
+    <value>Cierre forzado</value>
+  </data>
+  <data name="PP.WorkOrder.ForceClose.Title" xml:space="preserve">
+    <value>Cierre forzado de OT</value>
+  </data>
+  <data name="PP.WorkOrder.ForceClose.Confirm" xml:space="preserve">
+    <value>¿Cerrar {0} · {1} en {2} / {3}? La cantidad restante no se producirá y se eliminan los turnos planificados desde mañana (los de hoy se mantienen).</value>
+  </data>
+  <data name="PP.WorkOrder.Ok.ForceClosed" xml:space="preserve">
+    <value>{0} cerrada — se eliminaron los turnos desde mañana.</value>
+  </data>
+  <data name="PP.WorkOrder.Err.ForceCloseRejected" xml:space="preserve">
+    <value>{0} no está en proceso y no se cerró — revise la lista de nuevo.</value>
+  </data>
+  <data name="PP.WorkOrder.Err.CancelRejected" xml:space="preserve">
+    <value>{0} no se canceló — ya tiene producción o cambió su estado. Use Cierre forzado si está en proceso.</value>
+  </data>
   <data name="PP.WorkOrder.Ok.ManualCreated" xml:space="preserve">
     <value>OT Manual {0} creada (Borrador).</value>
   </data>

@@ -279,9 +279,11 @@ public sealed class WorkOrderRepository
     /// 파라미터 @Line, @Item. 별칭 r = PP_WorkOrderRouting, w = PP_WorkOrder.
     /// </summary>
     /// <summary>"열린 단계" 조건. 별칭 r = PP_WorkOrderRouting, w = PP_WorkOrder. ListForLine·FindOpenForItem·ConfirmByLotCode 공용.</summary>
-    internal const string OpenStepWhere = """
+    /// 헤더가 끝난 WO(완료·입고·마감·취소 — <see cref="WoStatusRules"/>)는 단계가 열려 있어도 받지 않는다(10-27 — 한 코어를
+    /// 여러 완제품 WO 가 쓰면 감싸기가 먼저 끝낸 WO 의 사출 단계로 실적이 몰렸다). SP 사본도 같은 문자열이다.
+    internal const string OpenStepWhere = $"""
         r.Status IN ('Released','In Progress')
-              AND  ISNULL(w.Status,'Draft') <> 'Cancelled'
+              AND  ISNULL(w.Status,'Draft') NOT IN ({WoStatusRules.FinishedSqlList})
         """;
 
     /// <summary>열린 단계 우선순위: In Progress → Priority → DueDate → WoID. 끝에 세부 정렬을 덧붙일 수 있다.</summary>
@@ -613,25 +615,30 @@ public sealed class WorkOrderRepository
     }
 
     /// <summary>
-    /// WO 를 Cancelled 로 전환 (Draft/Planned/Released 만). 변경 행수 반환.
-    /// 취소된 WO 의 PP_LineSchedule 슬롯도 같이 지운다 — 남겨두면 그 (라인, 일자) 자리를
-    /// 계속 차지해 새 WO 배치가 밀리고, POP 당일 판의 PLAN 에도 계속 더해진다.
+    /// WO 를 Cancelled 로 전환 (Draft/Planned/Released 이고 어느 단계도 실적이 없을 때만). 변경 행수 반환.
+    /// 헤더·단계 행을 UPDLOCK 으로 잡고 확인한다 — POP 확정(BumpStepCompleted 가 같은 행을 잡는다)과 겹치면
+    /// 한쪽이 기다렸다가 다시 판정하므로, 실적이 붙은 WO 가 취소되지 않는다.
+    /// 오늘(DB 날짜)부터의 PP_LineSchedule 슬롯도 같이 지운다 — 남겨두면 그 (라인, 일자) 자리를
+    /// 계속 차지해 새 WO 배치가 밀리고, POP 당일 판의 PLAN 에도 계속 더해진다. 지난 날짜 슬롯은 일정 준수 보고서용으로 남긴다.
     /// </summary>
     public int CancelWo(int woId, string actor)
     {
         const string sql = """
-            UPDATE dbo.PP_WorkOrder
-               SET Status     = 'Cancelled',
-                   ModifiedTS = SYSDATETIME(),
-                   ModifiedBy = @Actor
-             WHERE WoID   = @WoID
-               AND Status IN ('Draft','Planned','Released');
-
-            DECLARE @n int = @@ROWCOUNT;
-            IF @n > 0
+            DECLARE @st varchar(20) = (SELECT Status FROM dbo.PP_WorkOrder WITH (UPDLOCK, ROWLOCK) WHERE WoID = @WoID);
+            DECLARE @started int = (SELECT COUNT(*) FROM dbo.PP_WorkOrderRouting WITH (UPDLOCK, ROWLOCK)
+                                    WHERE WoID = @WoID AND (ISNULL(CompletedQty,0) <> 0 OR Status IN ('In Progress','Closed')));
+            DECLARE @n int = 0;
+            IF @st IN ('Draft','Planned','Released') AND @started = 0
             BEGIN
-                DELETE FROM dbo.PP_LineSchedule WHERE WoID = @WoID;
-                DELETE FROM dbo.PP_LineSchedule WHERE EntryType = 'MC' AND RefType = 'WO' AND RefID = @WoID;
+                UPDATE dbo.PP_WorkOrder
+                   SET Status     = 'Cancelled',
+                       ModifiedTS = SYSDATETIME(),
+                       ModifiedBy = @Actor
+                 WHERE WoID = @WoID;
+                SET @n = @@ROWCOUNT;
+                DELETE FROM dbo.PP_LineSchedule WHERE WoID = @WoID AND ScheduleDate >= CAST(SYSDATETIME() AS date);
+                DELETE FROM dbo.PP_LineSchedule WHERE EntryType = 'MC' AND RefType = 'WO' AND RefID = @WoID
+                                                  AND ScheduleDate >= CAST(SYSDATETIME() AS date);
             END
 
             SELECT @n;
@@ -646,6 +653,50 @@ public sealed class WorkOrderRepository
             var n = Convert.ToInt32(cmd.ExecuteScalar());
             tx.Commit();
             return n;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
+    public enum ForceCloseResult { Closed, NotFound, NotAllowed }
+
+    /// <summary>
+    /// 진행 중(Released·In Progress) WO 강제 마감 — 남은 수량을 더 만들지 않기로 할 때(10-27).
+    /// 헤더·끝나지 않은 단계를 Closed 로 바꾸고(ActualEnd = 지금, 완료 수량은 그대로), 내일(DB 날짜)부터의 슬롯을 지운다.
+    /// 오늘 슬롯은 이미 일부 만들었을 수 있어 남긴다. 헤더·단계 행을 잡고 하므로 POP 확정과 겹쳐도 한쪽씩 처리된다.
+    /// 마감된 WO 는 POP 열린 WO 조건(헤더 Closed 제외)에 걸려 더 실적을 받지 않는다. 불량 역분개는 종전대로 단계를 다시 연다.
+    /// </summary>
+    public ForceCloseResult ForceCloseWo(int woId, string actor)
+    {
+        const string sql = """
+            DECLARE @st varchar(20) = (SELECT Status FROM dbo.PP_WorkOrder WITH (UPDLOCK, ROWLOCK) WHERE WoID = @WoID);
+            IF @st IS NULL BEGIN SELECT 0; RETURN; END
+            IF @st NOT IN ('Released','In Progress') BEGIN SELECT 1; RETURN; END
+
+            UPDATE dbo.PP_WorkOrderRouting WITH (UPDLOCK, ROWLOCK)
+               SET Status = 'Closed', ActualEnd = ISNULL(ActualEnd, SYSDATETIME()),
+                   ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+             WHERE WoID = @WoID AND ISNULL(Status,'') <> 'Closed';
+
+            UPDATE dbo.PP_WorkOrder
+               SET Status = 'Closed', ActualEnd = ISNULL(ActualEnd, SYSDATETIME()),
+                   ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+             WHERE WoID = @WoID;
+
+            DELETE FROM dbo.PP_LineSchedule WHERE WoID = @WoID AND ScheduleDate > CAST(SYSDATETIME() AS date);
+            DELETE FROM dbo.PP_LineSchedule WHERE EntryType = 'MC' AND RefType = 'WO' AND RefID = @WoID
+                                              AND ScheduleDate > CAST(SYSDATETIME() AS date);
+            SELECT 2;
+            """;
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            using var cmd = new SqlCommand(sql, conn, tx);
+            cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value          = woId;
+            cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
+            var r = Convert.ToInt32(cmd.ExecuteScalar());
+            tx.Commit();
+            return r switch { 2 => ForceCloseResult.Closed, 1 => ForceCloseResult.NotAllowed, _ => ForceCloseResult.NotFound };
         }
         catch { tx.Rollback(); throw; }
     }

@@ -142,4 +142,15 @@ public static class ProdCalendar
         var (prodDate, shift) = Resolve(now, cutoffAttr, shifts);
         return (now, prodDate, shift);
     }
+
+    /// <summary>전기일 경계 시각 — 설정이 없거나 읽을 수 없으면 자정.</summary>
+    public static TimeSpan ReadCutoff(SqlConnection conn, SqlTransaction? tx)
+    {
+        using var cmd = new SqlCommand("dbo.SP_POP_CALENDAR_ResolveNow", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@CutoffKey", System.Data.SqlDbType.VarChar, 60).Value = CutoffConfigKey;
+        using var rdr = cmd.ExecuteReader();
+        string? attr = null;
+        if (rdr.NextResult() && rdr.Read()) attr = rdr["ConfigValue"] as string;
+        return TryParseCutoff(attr, out var c) ? c : TimeSpan.Zero;
+    }
 }

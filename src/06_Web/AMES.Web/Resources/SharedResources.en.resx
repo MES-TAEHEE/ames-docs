@@ -2505,6 +2505,24 @@
   <data name="PP.WorkOrder.Ok.Cancelled" xml:space="preserve">
     <value>{0} cancelled — reserved materials released.</value>
   </data>
+  <data name="PP.WorkOrder.Btn.ForceClose" xml:space="preserve">
+    <value>Force Close</value>
+  </data>
+  <data name="PP.WorkOrder.ForceClose.Title" xml:space="preserve">
+    <value>Force Close Work Order</value>
+  </data>
+  <data name="PP.WorkOrder.ForceClose.Confirm" xml:space="preserve">
+    <value>Close {0} · {1} at {2} / {3}? The remaining quantity will not be produced and plan slots from tomorrow are removed (today's slots stay).</value>
+  </data>
+  <data name="PP.WorkOrder.Ok.ForceClosed" xml:space="preserve">
+    <value>{0} force-closed — slots from tomorrow removed.</value>
+  </data>
+  <data name="PP.WorkOrder.Err.ForceCloseRejected" xml:space="preserve">
+    <value>{0} is not in progress, so it was not closed — check the list again.</value>
+  </data>
+  <data name="PP.WorkOrder.Err.CancelRejected" xml:space="preserve">
+    <value>{0} was not cancelled — it already has production or its status changed. Use Force Close if it is in progress.</value>
+  </data>
   <data name="PP.WorkOrder.Ok.ManualCreated" xml:space="preserve">
     <value>Manual WO {0} created (Draft).</value>
   </data>

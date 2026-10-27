@@ -134,7 +134,7 @@ public static class CoreItemResolver
     /// <summary>
     /// 유효 BOM(APPROVED·기간 내, 부모당 EffFrom 최신 버전 1개 — PpRepository.RunMrp 와 같은 선택)에서
     /// 자식이 SUB 인 간선 전부를 읽어 Resolve 에 넘긴다. 표가 작아(수백 행) 품번별로 자르지 않는다.
-    /// 품명 규칙 — POP IMG 코어 스캔 검사가 쓴다(웹 WO 발행은 <see cref="ReadByInjFlag"/>).
+    /// 품명 규칙 — 웹 WO 발행·POP IMG 코어 스캔 검사는 10-27 부터 <see cref="ReadByInjFlag"/> 를 쓴다(이 메서드는 비교 테스트용).
     /// </summary>
     public static Result Read(SqlConnection conn, SqlTransaction? tx, string itemNo)
     {

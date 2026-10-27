@@ -233,7 +233,7 @@
     protected override async Task OnInitializedAsync()
     {
         // 로그인 화면이 뜰 때 DB 시각을 한 번 맞춘다 — 화면을 막지 않게 백그라운드, 실패해도 Offset 0 으로 둔다
-        _ = Task.Run(() => DbClock.EnsureSynced(TimeSpan.FromMinutes(10)));
+        _ = Task.Run(() => { DbClock.EnsureSynced(TimeSpan.FromMinutes(10)); PopDay.TryLoad(PopServices.ConnectionFactory); });
         _clock = new System.Threading.Timer(_ =>
                                             {
                                                 PopDb.Ping();
@@ -586,7 +586,7 @@
         if (_selLine is null) return;
         // 로그인마다 DB 시각 보정을 확인(Web TopBar 와 같은 규칙) — 10분 안에 맞춘 값이 있으면 DB 를 가지 않는다.
         // 오프라인이면 건너뛴다(접속 대기로 화면 전환이 멈추지 않게).
-        if (!PopDb.IsOffline) DbClock.EnsureSynced(TimeSpan.FromMinutes(10));
+        if (!PopDb.IsOffline) { DbClock.EnsureSynced(TimeSpan.FromMinutes(10)); PopDay.TryLoad(PopServices.ConnectionFactory); }
         State.SignIn(session, _selLine.ProcessCode);
         // _loggingIn 은 켠 채로 둔다 — 화면을 떠나는 중에 들어온 스캔을 막는다.
         _loggingIn = true;

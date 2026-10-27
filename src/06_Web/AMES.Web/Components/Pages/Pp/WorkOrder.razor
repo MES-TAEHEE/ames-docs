@@ -130,6 +130,11 @@ else
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" />
                     }
+                    else if (_canApprove && w.Status == "In Progress")
+                    {
+                        <RadzenButton Text="@L["PP.WorkOrder.Btn.ForceClose"].Value" Icon="stop_circle" ButtonStyle="ButtonStyle.Warning"
+                                      Size="ButtonSize.ExtraSmall" Click="@(() => ForceClose(w))" />
+                    }
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -322,8 +327,36 @@ else
         try
         {
             var n = Wos.CancelWo(w.WoId, await Actor());
-            Audit.Log("PP-004", "CANCEL", "PP_WorkOrder", w.WoNumber, new { w.Status }, new { Status = "Cancelled" });
-            if (n > 0) ShowMsg(string.Format(L["PP.WorkOrder.Ok.Cancelled"].Value, w.WoNumber), false);
+            if (n > 0)
+            {
+                Audit.Log("PP-004", "CANCEL", "PP_WorkOrder", w.WoNumber, new { w.Status }, new { Status = "Cancelled" });
+                ShowMsg(string.Format(L["PP.WorkOrder.Ok.Cancelled"].Value, w.WoNumber), false);
+            }
+            else ShowMsg(string.Format(L["PP.WorkOrder.Err.CancelRejected"].Value, w.WoNumber), true);
+            Reload();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+    }
+
+    async Task ForceClose(WorkOrderDto w)
+    {
+        if (!_canApprove) return;   // 강제 마감도 승인 권한(A) — 버튼과 같은 기준
+
+        var ok = await Dialog.Confirm(
+            string.Format(L["PP.WorkOrder.ForceClose.Confirm"].Value, w.WoNumber, w.ItemNo,
+                          w.CompletedQty.ToString("#,0"), w.OrderQty.ToString("#,0")),
+            L["PP.WorkOrder.ForceClose.Title"].Value,
+            new ConfirmOptions { OkButtonText = L["PP.WorkOrder.Btn.ForceClose"].Value, CancelButtonText = L["Btn.Cancel"].Value });
+        if (ok != true) return;
+        try
+        {
+            var r = Wos.ForceCloseWo(w.WoId, await Actor());
+            if (r == WorkOrderRepository.ForceCloseResult.Closed)
+            {
+                Audit.Log("PP-004", "FORCE_CLOSE", "PP_WorkOrder", w.WoNumber, new { w.Status, w.CompletedQty }, new { Status = "Closed", w.CompletedQty });
+                ShowMsg(string.Format(L["PP.WorkOrder.Ok.ForceClosed"].Value, w.WoNumber), false);
+            }
+            else ShowMsg(string.Format(L["PP.WorkOrder.Err.ForceCloseRejected"].Value, w.WoNumber), true);
             Reload();
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
