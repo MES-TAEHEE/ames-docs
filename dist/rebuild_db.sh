@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 # AMES_DEV rebuild (Docker on Linux/Ubuntu)
-#   AMES_DEV 를 드롭 후 재생성: 스키마(전체 구조) → 시드 12개 순서대로 적용.
+#   AMES_DEV 를 드롭 후 재생성: 아래 FILES 순서대로 스키마·기본 마스터·마이그레이션 적용.
+#   개발 시드(seed_*_dev.sql·pda/PDA_SEED.sql)는 기본 제외.
+#   AMES_DEVELOPMENT_SEEDS=1 인 경우에만 기존 목록 순서대로 개발 시드까지 적용.
 #   컨테이너 내부 sqlcmd 를 docker exec 로 호출 → 리눅스 sqlcmd 가 UTF-8 을
 #   그대로 읽어 한글이 깨지지 않음 (Windows 의 -f 65001 불필요).
 #
-#   Windows(PowerShell) 대응본은 dist/rebuild_db.ps1.
+#   Windows에서는 Docker를 사용할 수 있는 Bash 환경이 필요합니다. PowerShell 대응본은 없습니다.
 #
 # 사용법:
 #   ./dist/rebuild_db.sh            # 확인 프롬프트 후 재구축
-#   ./dist/rebuild_db.sh --force    # 무확인 재구축
+#   ./dist/rebuild_db.sh --force    # 무확인 재구축 (개발 시드는 여전히 제외)
 #   CONTAINER=ames-mssql SA_PASSWORD='AmesDev!2026Sa' ./dist/rebuild_db.sh --force
 #
 # ⚠️ 현재 AMES_DEV 의 모든 데이터가 삭제됩니다.
@@ -38,6 +40,14 @@ if [[ ! -f "$DIST_DIR/AMES_Schema.sql" ]]; then
   echo "       DIST_DIR=/home/ubuntu/projects/ames-docs/dist $0 $*" >&2
   exit 1
 fi
+
+# Keep every development seed behind the same explicit opt-in, including future *_dev seeds.
+is_development_seed() {
+  case "$1" in
+    seed_*_dev.sql|pda/PDA_SEED.sql) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 # 2022 이미지는 mssql-tools18. 구 이미지 fallback 자동 탐지.
 SQLCMD="/opt/mssql-tools18/bin/sqlcmd"
@@ -191,13 +201,13 @@ fi
 
 # 컨테이너 시작 + SQL Server 준비 대기
 docker start "$CONTAINER" >/dev/null 2>&1 || true
-echo "[0/3] SQL Server 준비 대기..."
+echo "[0/4] SQL Server 준비 대기..."
 until docker exec "$CONTAINER" "$SQLCMD" "${sql_base[@]}" -Q "SELECT 1" >/dev/null 2>&1; do
   echo "    waiting..."; sleep 2
 done
 
 # 1) DB 드롭 후 재생성 + ames_app 로그인/유저 보장
-echo "[1/3] $DB 드롭 + 재생성..."
+echo "[1/4] $DB 드롭 + 재생성..."
 run_master "
 IF DB_ID('$DB') IS NOT NULL
 BEGIN
@@ -216,14 +226,14 @@ ALTER ROLE db_owner ADD MEMBER [$APP_LOGIN];"
 # 2) dist/ 를 컨테이너로 복사 (pda 하위폴더 포함)
 #    docker cp 는 파일을 root 소유로 넣으므로, 삭제는 컨테이너 root(-u 0)로 해야
 #    기본 사용자(mssql)의 "Permission denied" 를 피한다.
-echo "[2/3] dist/*.sql 복사..."
+echo "[2/4] dist/*.sql 복사..."
 docker exec -u 0 "$CONTAINER" rm -rf /tmp/dist
 docker cp "$DIST_DIR/." "$CONTAINER:/tmp/dist/"
 
 # 3) 스키마 → 시드 순서대로 적용
-echo "[3/3] 스키마 + 시드 적용..."
+echo "[3/4] 스키마 + 기본 마스터 + 마이그레이션 적용..."
 for f in "${FILES[@]}"; do
-  if [[ "$f" == "pda/PDA_SEED.sql" || "$f" == "seed_portal_dev.sql" ]]; then
+  if is_development_seed "$f"; then
     if [[ "${AMES_DEVELOPMENT_SEEDS:-0}" != "1" ]]; then
       echo "  -> $f skipped (development seed opt-in required)"
       continue

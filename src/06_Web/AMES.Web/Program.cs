@@ -301,6 +301,8 @@ AMES.Contracts.Dto.WorkOrderDto.Today = () => DbClock.Today;   // PP-004·PP-CAL
 // 시드는 모두 idempotent 하므로 실패해도 다음 재기동에서 다시 시도된다.
 async Task RunSeedAsync(string name, Func<IServiceScope, Task> seed)
 {
+    if (!app.Configuration.GetValue("StartupSeeds:Enabled", true)) return;
+
     try
     {
         using var scope = app.Services.CreateScope();

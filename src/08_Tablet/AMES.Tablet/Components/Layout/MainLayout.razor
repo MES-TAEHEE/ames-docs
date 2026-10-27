@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject TabletAuthState Auth
 @inject NavigationManager Nav
+@inject TabletAuthService Api
 
 <RadzenComponents />
 <main class="tablet-root @(_darkMode ? "theme-dark" : "theme-light")">
@@ -23,12 +24,13 @@
 </main>
 
 @code {
-    private bool _darkMode;
+    private bool _darkMode = true;
     private void ToggleTheme() => _darkMode = !_darkMode;
 
     private void SignOut()
     {
         Auth.SignOut();
         Nav.NavigateTo("/login", replace: true);
+        _ = Api.LogoutAsync();
     }
 }

@@ -1,0 +1,36 @@
+@using AMES.Contracts.Dto
+@inject DialogService Dialog
+
+<div class="tablet-employee-dialog-body">
+    <div class="tablet-employee-search">
+        <RadzenTextBox @bind-Value="_search" Immediate="true" Placeholder="Search employee ID or name"
+                       aria-label="Search employee ID or name" AutoCompleteType="AutoCompleteType.Off"
+                       InputSize="InputSize.Small" Style="width:100%" />
+    </div>
+    <RadzenDataGrid TItem="LoginEmployeeDto" Data="FilteredEmployees" AllowPaging="false" AllowSorting="false"
+                    AllowRowSelectOnRowClick="true" RowSelect="SelectEmployee" Density="Density.Compact"
+                    EmptyText="No employees found." Class="tablet-employee-grid tablet-map-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="LoginEmployeeDto" Property="EmployeeNo" Title="Employee ID" Width="180px" />
+            <RadzenDataGridColumn TItem="LoginEmployeeDto" Property="EmployeeName" Title="Name" />
+            <RadzenDataGridColumn TItem="LoginEmployeeDto" Width="64px" TextAlign="TextAlign.Center">
+                <Template Context="employee">
+                    @if (employee.EmployeeNo == SelectedId) { <RadzenIcon Icon="check_circle" class="tablet-employee-selected" /> }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+    <div class="tablet-employee-dialog-footer">
+        <RadzenButton Text="Close" Icon="close" Click="@(() => Dialog.Close())" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Base" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<LoginEmployeeDto> Employees { get; set; } = [];
+    [Parameter] public string SelectedId { get; set; } = "";
+    private string _search = "";
+    private IEnumerable<LoginEmployeeDto> FilteredEmployees => Employees.Where(x =>
+        string.IsNullOrWhiteSpace(_search) || x.EmployeeNo.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
+        || x.EmployeeName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase));
+    private void SelectEmployee(LoginEmployeeDto employee) => Dialog.Close(employee.EmployeeNo);
+}

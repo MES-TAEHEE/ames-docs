@@ -7,8 +7,8 @@
 <div class="inventory-screen">
     <header class="inventory-header">
         <div>
-            <span class="eyebrow">@($"{_selectedFloor}F") FORKLIFT TABLET</span>
-            <h1>@($"{_selectedFloor}F") Material Inventory Map</h1>
+            <span class="eyebrow">@Warehouse / @Area · FORKLIFT TABLET</span>
+            <h1>@_areaName · @FloorLabel(_selectedFloor) Inventory Map</h1>
         </div>
     </header>
 
@@ -24,12 +24,12 @@
                 {
                     <div class="floor-selector-pane floor-panel-enter" aria-label="Select warehouse floor">
                         <div class="floor-card-list">
-                            @foreach (var floor in Enumerable.Range(1, 4))
+                            @foreach (var floor in Floors)
                             {
                                 <button type="button"
                                         class="floor-card @(floor == _selectedFloor ? "selected" : "")"
                                         @onclick="@(() => SelectFloor(floor))">
-                                    <strong class="floor-number">@floor<span>F</span></strong>
+                                    <strong class="floor-number">@FloorLabel(floor)</strong>
                                     <span class="floor-card-stock">@StockedLocationCount(floor)<small>STOCKED</small></span>
                                 </button>
                             }
@@ -41,11 +41,13 @@
                     <div class="map-pane-content map-panel-enter">
                         <div class="pane-heading">
                             <div class="map-heading-actions">
-                                <button type="button" class="floor-switch-button" @onclick="ShowFloorSelector">CHANGE FLOOR</button>
+                                <button type="button" class="floor-switch-button" @onclick="ShowAreas">AREAS</button>
+                                <button type="button" class="floor-switch-button" @onclick="ShowFloorSelector" disabled="@(_openStorage || Floors.Count <= 1)">CHANGE FLOOR</button>
+                                <RadzenButton Icon="refresh" Click="Load" Size="ButtonSize.Small" class="reset-button" title="Refresh inventory" />
                                 <div class="zoom-controls" aria-label="Map zoom controls">
                                     <button type="button" @onclick="ZoomOut" disabled="@(_zoomLevel == 0)" aria-label="Zoom out">−</button>
                                     <span>@VisibleColumnCount × @VisibleRowCount</span>
-                                    <button type="button" @onclick="ZoomIn" disabled="@(_zoomLevel == MaxZoomLevel)" aria-label="Zoom in">+</button>
+                                    <button type="button" @onclick="ZoomIn" disabled="@(_zoomLevel == MaxZoomLevel || VisibleColumnCount == 1 && VisibleRowCount == 1)" aria-label="Zoom in">+</button>
                                 </div>
                             </div>
                             <div class="rack-legend">
@@ -56,36 +58,55 @@
                         </div>
 
                         <div class="rack-scroll">
-                            <div class="floor-map" style="@MapStyle" role="grid" aria-label="@($"{_selectedFloor} floor material area, 13 rows by 20 locations")">
+                            @if (_rackSlots.Count > 0)
+                            {
+                            <div class="floor-map" style="@MapStyle" role="grid" aria-label="@($"{FloorLabel(_selectedFloor)} inventory locations")">
                                 <div class="map-columns" aria-hidden="true">
-                                    <span class="map-corner">@($"{_selectedFloor}F")</span>
-                                    @foreach (var column in Enumerable.Range(1, FloorColumnCount))
+                                    <span class="map-corner">@FloorLabel(_selectedFloor)</span>
+                                    @foreach (var column in MapColumns)
                                     {
-                                        <span>@column.ToString("00")</span>
+                                        <span>@column</span>
                                     }
                                 </div>
                                 @foreach (var row in MapRows)
                                 {
                                     <div class="map-row" role="row">
                                         <strong class="map-row-label">@row.Code</strong>
-                                        @foreach (var slot in row.Slots)
+                                        @foreach (var column in MapColumns)
                                         {
-                                            <button id="@RackElementId(slot)"
-                                                    type="button"
-                                                    class="@RackClass(slot)"
-                                                    title="@slot.LocationNo"
-                                                    @onclick="@(() => SelectRack(slot))"
-                                                    aria-label="@($"{_selectedFloor} floor row {slot.RowCode}, location {slot.Column:00}, {slot.TotalQty:N0} units")">
-                                                <span>@slot.RowCode@slot.Column.ToString("00")</span>
-                                                @if (slot.TotalQty > 0)
-                                                {
-                                                    <small>@slot.TotalQty.ToString("N0")</small>
-                                                }
-                                            </button>
+                                            var slot = row.Slots.FirstOrDefault(x => Same(x.Column, column));
+                                            if (slot is null) { <span class="rack-slot missing" aria-hidden="true"></span> }
+                                            else
+                                            {
+                                                <button id="@RackElementId(slot.LocationNo)" type="button"
+                                                        class="@RackClass(slot)" title="@slot.LocationNo"
+                                                        @onclick="@(() => SelectLocation(slot.LocationNo))"
+                                                        aria-label="@slot.LocationNo">
+                                                    <span>@column@row.Code</span>
+                                                    @if (slot.TotalQty > 0) { <small>@Quantity(slot.TotalQty)</small> }
+                                                </button>
+                                            }
                                         }
                                     </div>
                                 }
                             </div>
+                            }
+                            @if (StorageLocations.Count > 0)
+                            {
+                                <div class="tablet-hierarchy-cards">
+                                    @foreach (var location in StorageLocations)
+                                    {
+                                        <RadzenButton id="@RackElementId(location.LocationNo)" class="tablet-location-card" Click="@(() => SelectLocation(location.LocationNo))">
+                                            <div class="tablet-location-content">
+                                                <span>@location.LocationNo</span>
+                                                <strong>@(location.LocationName ?? location.LocationNo)</strong>
+                                                <small>Load Capacity: @Capacity(location.Capacity)</small>
+                                                <b>@Quantity(LocationQty(location.LocationNo)) <em>QTY</em></b>
+                                            </div>
+                                        </RadzenButton>
+                                    }
+                                </div>
+                            }
                         </div>
                     </div>
                 }
@@ -134,7 +155,7 @@
                         <div class="detail-title">
                             <div>
                                 <span class="eyebrow">SELECTED INVENTORY</span>
-                                <h2>@Text(_selected.PartNo) <span class="part-floor">@(FloorOf(_selected))F</span></h2>
+                                <h2>@Text(_selected.PartNo) <span class="part-floor">@FloorLabel(FloorOf(_selected))</span></h2>
                                 <p>@Text(_selected.PartName)</p>
                             </div>
                             <RadzenBadge class="qty-badge" Text="@Qty(_selected)" />
@@ -144,6 +165,7 @@
                             <div><dt>Lot No</dt><dd>@Text(_selected.LotNo)</dd></div>
                             <div><dt>Part No</dt><dd>@Text(_selected.PartNo)</dd></div>
                             <div><dt>Rack</dt><dd>@RackAddress(_selected)</dd></div>
+                            <div><dt>Load Capacity</dt><dd>@Capacity(_selected.Capacity)</dd></div>
                             <div class="wide"><dt>Part Name</dt><dd>@Text(_selected.PartName)</dd></div>
                         </dl>
                     </section>
@@ -174,7 +196,7 @@
                                         <tr class="@ResultClass(row)" @onclick="@(() => SelectResult(row))">
                                             <td>@row.LocationNo</td>
                                             <td>@Text(row.LotNo)</td>
-                                            <td>@Text(row.PartNo)<span class="part-floor">@(FloorOf(row))F</span></td>
+                                            <td>@Text(row.PartNo)<span class="part-floor">@FloorLabel(FloorOf(row))</span></td>
                                             <td title="@row.PartName">@Text(row.PartName)</td>
                                             <td>@Qty(row)</td>
                                         </tr>
@@ -190,96 +212,82 @@
 </div>
 
 @code {
-    private sealed record RackSlot(string LocationNo, string RowCode, int Column, decimal TotalQty);
+    [SupplyParameterFromQuery] public string? Warehouse { get; set; }
+    [SupplyParameterFromQuery] public string? Area { get; set; }
+    private sealed record RackSlot(string LocationNo, string RowCode, string Column, decimal TotalQty, decimal? Capacity);
     private sealed record FloorRow(string Code, IReadOnlyList<RackSlot> Slots);
-
-    private const int FloorColumnCount = 20;
+    private sealed record PartSuggestion(string PartNo, string? PartName, string Floors);
     private const int MaxZoomLevel = 5;
-    private static readonly string[] FloorRowCodes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"];
-
-    private List<TabletInventoryApi.InventoryRow> _rows = [];
-    private List<TabletInventoryApi.InventoryRow> _results = [];
+    private List<TabletInventoryApi.InventoryRow> _rows = [], _results = [];
+    private List<RackSlot> _rackSlots = [];
     private HashSet<string> _matchedLocations = new(StringComparer.OrdinalIgnoreCase);
     private TabletInventoryApi.InventoryRow? _selected;
-    private string _query = "";
-    private sealed record PartSuggestion(string PartNo, string? PartName, string Floors);
-    private bool _showPartSuggestions;
-    private int _activePartSuggestion = -1;
-    private List<PartSuggestion> PartSuggestions => string.IsNullOrWhiteSpace(_query) ? [] : AllStockRows()
-        .GroupBy(row => row.PartNo, StringComparer.OrdinalIgnoreCase)
-        .Where(group => Contains(group.Key, _query.Trim()) || group.Any(row => Contains(row.PartName, _query.Trim())))
-        .Take(12)
-        .Select(group => new PartSuggestion(group.Key!, group.First().PartName,
-            string.Join(", ", group.Select(FloorOf).Distinct().Order().Select(floor => $"{floor}F"))))
-        .ToList();
-    private string? _notice;
-    private bool _loading = true;
-    private bool _usingDemo;
-    private bool _selectingFloor;
-    private int _selectedFloor = 4;
-    private int _zoomLevel;
-    private List<RackSlot> _rackSlots = [];
+    private string _query = "", _selectedFloor = "-", _areaName = "";
+    private string? _notice, _loadMessage, _loadedScope;
+    private bool _loading = true, _selectingFloor, _showPartSuggestions, _openStorage;
+    private int _zoomLevel, _activePartSuggestion = -1;
 
-    private IEnumerable<FloorRow> MapRows => FloorRowCodes.Select(code => new FloorRow(
-        code,
-        _rackSlots.Where(slot => slot.RowCode == code).OrderBy(slot => slot.Column).ToList()));
-
-    private int VisibleColumnCount => FloorColumnCount - (_zoomLevel * 2);
-    private int VisibleRowCount => FloorRowCodes.Length - _zoomLevel;
+    private List<string> Floors => _rows.Select(FloorOf).Distinct().OrderBy(TabletMapCoordinates.AxisOrder).ThenBy(x => x).ToList();
+    private string[] MapColumns => _rackSlots.Select(x => x.Column).Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(TabletMapCoordinates.AxisOrder).ThenBy(x => x).ToArray();
+    private string[] FloorRowCodes => _rackSlots.Select(x => x.RowCode).Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(TabletMapCoordinates.AxisOrder).ThenBy(x => x).ToArray();
+    private IEnumerable<FloorRow> MapRows => FloorRowCodes.Select(code => new FloorRow(code, _rackSlots.Where(x => Same(x.RowCode, code)).ToList()));
+    private int VisibleColumnCount => Math.Max(1, MapColumns.Length - _zoomLevel * 2);
+    private int VisibleRowCount => Math.Max(1, FloorRowCodes.Length - _zoomLevel);
     private string MapStyle => FormattableString.Invariant(
-        $"--map-width:{100d * FloorColumnCount / VisibleColumnCount:0.###}%;--map-height:{100d * FloorRowCodes.Length / VisibleRowCount:0.###}%;");
+        $"--map-columns:{Math.Max(1, MapColumns.Length)};--map-rows:{Math.Max(1, FloorRowCodes.Length)};--map-width:{100d * Math.Max(1, MapColumns.Length) / VisibleColumnCount:0.###}%;--map-height:{100d * Math.Max(1, FloorRowCodes.Length) / VisibleRowCount:0.###}%;");
+    private List<TabletInventoryApi.InventoryRow> StorageLocations => _rows.Where(x => OnFloor(x) && (_openStorage || !TabletMapCoordinates.HasGrid(x)))
+        .GroupBy(x => x.LocationNo, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToList();
+    private List<PartSuggestion> PartSuggestions => string.IsNullOrWhiteSpace(_query) ? [] : AllStockRows()
+        .GroupBy(x => x.PartNo, StringComparer.OrdinalIgnoreCase)
+        .Where(g => Contains(g.Key, _query.Trim()) || g.Any(x => Contains(x.PartName, _query.Trim())))
+        .Take(12).Select(g => new PartSuggestion(g.Key!, g.First().PartName,
+            string.Join(", ", g.Select(FloorOf).Distinct().OrderBy(TabletMapCoordinates.AxisOrder).Select(FloorLabel)))).ToList();
 
-    protected override Task OnInitializedAsync()
+    protected override Task OnParametersSetAsync()
     {
-        if (Auth.Session is null)
-        {
-            Nav.NavigateTo("/login", replace: true);
-            return Task.CompletedTask;
-        }
-
+        if (Auth.Session is null) { Nav.NavigateTo("/login", replace: true); return Task.CompletedTask; }
+        if (string.IsNullOrWhiteSpace(Warehouse) || string.IsNullOrWhiteSpace(Area)) { Nav.NavigateTo("/areas", replace: true); return Task.CompletedTask; }
+        var scope = $"{Warehouse}\n{Area}";
+        if (_loadedScope == scope) return Task.CompletedTask;
+        _loadedScope = scope;
+        _selectedFloor = "-";
+        _zoomLevel = 0;
+        _query = "";
         return Load();
     }
 
     private async Task Load()
     {
-        System.Diagnostics.Debug.Assert(FloorColumnCount - (MaxZoomLevel * 2) == 10 && FloorRowCodes.Length - MaxZoomLevel == 8);
         _loading = true;
         try
         {
             var snapshot = await Inventory.LoadAsync();
-            _rows = snapshot.Rows.ToList();
-            _rackSlots = BuildRackSlots(_rows, _selectedFloor);
-            _usingDemo = snapshot.IsDemo;
-            _notice = snapshot.Message;
+            if (snapshot.SessionExpired) { Auth.SignOut(); Nav.NavigateTo("/login", replace: true); return; }
+            _rows = snapshot.Rows.Where(x => Same(x.WarehouseCode, Warehouse) && Same(x.AreaCode, Area)).ToList();
+            var area = snapshot.Areas?.FirstOrDefault(x => Same(x.WarehouseCode, Warehouse) && Same(x.AreaCode, Area));
+            _areaName = area?.AreaName ?? _rows.FirstOrDefault()?.AreaName ?? Area ?? "";
+            _openStorage = area?.StorageMode == "OPEN";
+            if (!Floors.Contains(_selectedFloor)) _selectedFloor = Floors.FirstOrDefault() ?? "-";
+            _loadMessage = _notice = snapshot.Message;
+            BuildRackSlots();
             ShowAllStock();
         }
-        finally
-        {
-            _loading = false;
-        }
+        finally { _loading = false; }
     }
 
     private async Task Search()
     {
         ClosePartSuggestions();
         var query = _query.Trim();
-        if (query.Length == 0)
-        {
-            Reset();
-            return;
-        }
-
-        _results = AllStockRows()
-            .Where(row => Contains(row.PartNo, query)
-                       || Contains(row.PartName, query)
-                       || Contains(row.LotNo, query)
-                       || Contains(row.LocationNo, query))
-            .ToList();
+        if (query.Length == 0) { Reset(); return; }
+        _results = AllStockRows().Where(x => Contains(x.PartNo, query) || Contains(x.PartName, query)
+            || Contains(x.LotNo, query) || Contains(x.LocationNo, query)).ToList();
         _selected = _results.FirstOrDefault();
-        _notice = _results.Count == 0
-            ? $"No inventory matches '{query}'."
+        _matchedLocations = _results.Select(x => x.LocationNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _notice = _results.Count == 0 ? $"No inventory matches '{query}'."
             : $"{_results.Count} inventory rows found across {_results.Select(FloorOf).Distinct().Count()} floor(s).";
-
         if (_selected is not null)
         {
             ShowResultFloor(_selected);
@@ -292,7 +300,7 @@
     {
         ClosePartSuggestions();
         _query = "";
-        _notice = _usingDemo ? "Demo data is active." : null;
+        _notice = _loadMessage;
         ShowAllStock();
     }
 
@@ -303,18 +311,19 @@
         _selected = _results.FirstOrDefault();
     }
 
-    private void SelectRack(RackSlot slot)
+    private void SelectLocation(string locationNo)
     {
-        _results = StockRows().Where(x => MapCellKey(x) == MapCellKey(slot)).ToList();
-        _matchedLocations = new HashSet<string>([MapCellKey(slot)], StringComparer.OrdinalIgnoreCase);
+        _results = StockRows().Where(x => Same(x.LocationNo, locationNo)).ToList();
+        _matchedLocations = new([locationNo], StringComparer.OrdinalIgnoreCase);
         _selected = _results.FirstOrDefault();
-        _notice = _results.Count == 0 ? $"{slot.LocationNo} is empty." : $"{_results.Count} inventory rows at {slot.LocationNo}.";
+        _notice = _results.Count == 0 ? $"{locationNo} is empty." : $"{_results.Count} inventory rows at {locationNo}.";
     }
 
     private async Task SelectResult(TabletInventoryApi.InventoryRow row)
     {
         _selected = row;
         ShowResultFloor(row);
+        _matchedLocations = new([row.LocationNo], StringComparer.OrdinalIgnoreCase);
         await Task.Yield();
         await ScrollTo(row.LocationNo);
     }
@@ -323,9 +332,7 @@
     {
         _selectedFloor = FloorOf(row);
         _selectingFloor = false;
-        _rackSlots = BuildRackSlots(_rows, _selectedFloor);
-        _matchedLocations = new HashSet<string>([MapCellKey(row)!], StringComparer.OrdinalIgnoreCase);
-        System.Diagnostics.Debug.Assert(_matchedLocations.Count == 1);
+        BuildRackSlots();
     }
 
     private async Task HandleSearchKey(KeyboardEventArgs args)
@@ -335,7 +342,8 @@
         else if (args.Key is "ArrowDown" or "ArrowUp" && suggestions.Count > 0)
         {
             _showPartSuggestions = true;
-            _activePartSuggestion = (_activePartSuggestion + (args.Key == "ArrowDown" ? 1 : -1) + suggestions.Count) % suggestions.Count;
+            _activePartSuggestion = _activePartSuggestion < 0 ? (args.Key == "ArrowDown" ? 0 : suggestions.Count - 1)
+                : (_activePartSuggestion + (args.Key == "ArrowDown" ? 1 : -1) + suggestions.Count) % suggestions.Count;
         }
         else if (args.Key == "Enter")
         {
@@ -345,151 +353,49 @@
         }
     }
 
-    private void OnPartSearchInput(ChangeEventArgs e)
-    {
-        _query = Convert.ToString(e.Value) ?? "";
-        _activePartSuggestion = -1;
-        _showPartSuggestions = true;
-    }
-
+    private void OnPartSearchInput(ChangeEventArgs e) { _query = Convert.ToString(e.Value) ?? ""; _activePartSuggestion = -1; _showPartSuggestions = true; }
     private void OpenPartSuggestions() => _showPartSuggestions = true;
     private void ClosePartSuggestions() { _showPartSuggestions = false; _activePartSuggestion = -1; }
     private Task SelectPartSuggestion(PartSuggestion part) { _query = part.PartNo; return Search(); }
-
-    private Task ScrollTo(string locationNo)
-    {
-        var row = _rows.FirstOrDefault(x => x.LocationNo.Equals(locationNo, StringComparison.OrdinalIgnoreCase));
-        return row is not null && TryMapPosition(row, out var rowCode, out var column)
-            ? JS.InvokeVoidAsync("tabletRack.scrollTo", RackElementId(rowCode, column)).AsTask()
-            : Task.CompletedTask;
-    }
-
+    private Task ScrollTo(string locationNo) => JS.InvokeVoidAsync("tabletRack.scrollTo", RackElementId(locationNo)).AsTask();
     private void ShowFloorSelector() => _selectingFloor = true;
-
+    private void ShowAreas() => Nav.NavigateTo($"/areas?warehouse={Uri.EscapeDataString(Warehouse ?? "")}");
     private void ZoomIn() => _zoomLevel = Math.Min(MaxZoomLevel, _zoomLevel + 1);
     private void ZoomOut() => _zoomLevel = Math.Max(0, _zoomLevel - 1);
 
-    private void SelectFloor(int floor)
+    private void SelectFloor(string floor)
     {
-        if (floor is < 1 or > 4) return;
+        if (!Floors.Contains(floor)) return;
         ClosePartSuggestions();
         _selectedFloor = floor;
         _selectingFloor = false;
-        _rackSlots = BuildRackSlots(_rows, floor);
+        _notice = _loadMessage;
         _query = "";
-        _notice = _usingDemo ? $"{floor}F demo data is active." : null;
+        BuildRackSlots();
         ShowAllStock();
     }
 
-    private List<TabletInventoryApi.InventoryRow> AllStockRows()
-        => _rows.Where(x => !string.IsNullOrWhiteSpace(x.PartNo)
-                         && x.Qty > 0
-                         && TryMapPosition(x, out _, out _))
-            .OrderBy(x => x.PartNo)
-            .ThenBy(x => x.LocationNo)
-            .ThenBy(x => x.LotNo)
-            .ToList();
-
-    private List<TabletInventoryApi.InventoryRow> StockRows()
-        => AllStockRows().Where(x => FloorOf(x) == _selectedFloor).ToList();
-
-    private string RackClass(RackSlot slot)
-    {
-        var classes = new List<string> { "rack-slot", slot.TotalQty > 0 ? "stocked" : "empty" };
-        if (_matchedLocations.Contains(MapCellKey(slot))) classes.Add("matched");
-        if (_selected is not null && MapCellKey(_selected) == MapCellKey(slot)) classes.Add("selected");
-        return string.Join(' ', classes);
-    }
-
-    private string ResultClass(TabletInventoryApi.InventoryRow row)
-        => ReferenceEquals(row, _selected) ? "selected" : "";
-
-    private static string RackElementId(RackSlot slot) => RackElementId(slot.RowCode, slot.Column);
-    private static string RackElementId(string rowCode, int column) => $"rack-{rowCode}-{column:00}";
-
-    private static string RackPosition(TabletInventoryApi.InventoryRow row)
-        => string.Join('-', new[] { row.RackX, row.RackY, row.RackZ }.Where(x => !string.IsNullOrWhiteSpace(x)));
-
-    private static string RackAddress(TabletInventoryApi.InventoryRow row)
-        => string.Join(" / ", new[] { row.WarehouseCode, row.AreaCode, row.ZoneCode, RackPosition(row) }
-            .Where(x => !string.IsNullOrWhiteSpace(x)));
-
-    private static List<RackSlot> BuildRackSlots(IEnumerable<TabletInventoryApi.InventoryRow> rows, int floor)
-    {
-        var mapped = rows
-            .Where(row => FloorOf(row) == floor && TryMapPosition(row, out _, out _))
-            .GroupBy(row => MapCellKey(row)!, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(
-                group => group.Key,
-                group => new
-                {
-                    LocationNo = group.First().LocationNo,
-                    Qty = group.Where(x => !string.IsNullOrWhiteSpace(x.PartNo)).Sum(x => x.Qty)
-                },
-                StringComparer.OrdinalIgnoreCase);
-
-        var slots = new List<RackSlot>(FloorRowCodes.Length * FloorColumnCount);
-        foreach (var rowCode in FloorRowCodes)
-        {
-            for (var column = 1; column <= FloorColumnCount; column++)
-            {
-                var key = MapCellKey(rowCode, column);
-                slots.Add(mapped.TryGetValue(key, out var cell)
-                    ? new RackSlot(cell.LocationNo, rowCode, column, cell.Qty)
-                    : new RackSlot($"{floor}F-{rowCode}-{column:00}", rowCode, column, 0));
-            }
-        }
-
-        System.Diagnostics.Debug.Assert(slots.Count == 260);
-        return slots;
-    }
-
-    private int StockedLocationCount(int floor)
-        => _rows.Where(row => FloorOf(row) == floor && !string.IsNullOrWhiteSpace(row.PartNo) && row.Qty > 0)
-            .Select(MapCellKey)
-            .Where(key => key is not null)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Count();
-
-    private static int FloorOf(TabletInventoryApi.InventoryRow row)
-    {
-        var values = new[] { row.LocationNo, row.LocationName, row.WarehouseCode, row.AreaCode, row.ZoneCode, row.LineCode };
-        foreach (var floor in Enumerable.Range(1, 4))
-        {
-            if (values.Any(value => value?.Contains($"{floor}F", StringComparison.OrdinalIgnoreCase) == true
-                                  || value?.Contains($"{floor}층", StringComparison.OrdinalIgnoreCase) == true))
-                return floor;
-        }
-
-        return 4;
-    }
-
-    private static bool TryMapPosition(TabletInventoryApi.InventoryRow row, out string rowCode, out int column)
-    {
-        var rackX = row.RackX?.Trim().ToUpperInvariant() ?? "";
-        var rackY = row.RackY?.Trim().ToUpperInvariant() ?? "";
-        rowCode = rackX;
-        column = 0;
-        if (FloorRowCodes.Contains(rackX, StringComparer.OrdinalIgnoreCase)
-            && int.TryParse(rackY, out column)
-            && column is >= 1 and <= FloorColumnCount)
-            return true;
-
-        rowCode = rackY;
-        return FloorRowCodes.Contains(rackY, StringComparer.OrdinalIgnoreCase)
-            && int.TryParse(rackX, out column)
-            && column is >= 1 and <= FloorColumnCount;
-    }
-
-    private static string? MapCellKey(TabletInventoryApi.InventoryRow row)
-        => TryMapPosition(row, out var rowCode, out var column) ? MapCellKey(rowCode, column) : null;
-
-    private static string MapCellKey(RackSlot slot) => MapCellKey(slot.RowCode, slot.Column);
-    private static string MapCellKey(string rowCode, int column) => $"{rowCode}-{column:00}";
-
-    private static bool Contains(string? value, string query)
-        => value?.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
-
+    private void BuildRackSlots() => _rackSlots = _rows.Where(x => !_openStorage && OnFloor(x) && TabletMapCoordinates.HasGrid(x))
+        .GroupBy(x => x.LocationNo, StringComparer.OrdinalIgnoreCase).Select(g => new RackSlot(g.Key,
+            TabletMapCoordinates.Row(g.First()), TabletMapCoordinates.Column(g.First()),
+            g.Sum(x => x.Qty), g.First().Capacity)).ToList();
+    private bool OnFloor(TabletInventoryApi.InventoryRow row) => _openStorage || FloorOf(row) == _selectedFloor;
+    private List<TabletInventoryApi.InventoryRow> AllStockRows() => _rows.Where(x => !string.IsNullOrWhiteSpace(x.PartNo) && x.Qty > 0)
+        .OrderBy(x => x.PartNo).ThenBy(x => x.LocationNo).ThenBy(x => x.LotNo).ToList();
+    private List<TabletInventoryApi.InventoryRow> StockRows() => AllStockRows().Where(OnFloor).ToList();
+    private int StockedLocationCount(string floor) => _rows.Where(x => FloorOf(x) == floor && x.Qty > 0 && !string.IsNullOrWhiteSpace(x.PartNo))
+        .Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    private decimal LocationQty(string id) => _rows.Where(x => Same(x.LocationNo, id)).Sum(x => x.Qty);
+    private string RackClass(RackSlot slot) => $"rack-slot {(slot.TotalQty > 0 ? "stocked" : "empty")} {(TabletMapCoordinates.IsFull(slot.TotalQty, slot.Capacity) ? "capacity-full" : "")} {(_matchedLocations.Contains(slot.LocationNo) ? "matched" : "")} {(_selected is not null && Same(_selected.LocationNo, slot.LocationNo) ? "selected" : "")}";
+    private string ResultClass(TabletInventoryApi.InventoryRow row) => ReferenceEquals(row, _selected) ? "selected" : "";
+    private static string RackElementId(string locationNo) => $"rack-{locationNo}";
+    private static string RackAddress(TabletInventoryApi.InventoryRow row) => string.Join(" / ", new[] { row.WarehouseCode, row.AreaCode, row.RackX, row.RackY, row.RackZ }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    private static string FloorOf(TabletInventoryApi.InventoryRow row) => TabletMapCoordinates.Floor(row);
+    private static string FloorLabel(string floor) => TabletMapCoordinates.FloorLabel(floor);
+    private static bool Contains(string? value, string query) => value?.Contains(query, StringComparison.OrdinalIgnoreCase) == true;
+    private static bool Same(string? left, string? right) => string.Equals(left ?? "", right ?? "", StringComparison.OrdinalIgnoreCase);
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
-    private static string Qty(TabletInventoryApi.InventoryRow row) => $"{row.Qty:N0} {row.Unit}";
+    private static string Quantity(decimal value) => AMES.Contracts.Formatting.UomQty.Format(value, null);
+    private static string Capacity(decimal? value) => value is > 0 ? Quantity(value.Value) : "-";
+    private static string Qty(TabletInventoryApi.InventoryRow row) => AMES.Contracts.Formatting.UomPrecisionMap.Empty.QtyUnit(row.Qty, row.Unit);
 }

@@ -16,7 +16,7 @@ public static class MauiProgram
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddRadzenComponents();
         builder.Services.AddSingleton<TabletAuthState>();
-        builder.Services.AddSingleton(new HttpClient { BaseAddress = new Uri(ApiBaseUrl) });
+        builder.Services.AddSingleton(new HttpClient { BaseAddress = new Uri(ApiBaseUrl), Timeout = TimeSpan.FromSeconds(30) });
         builder.Services.AddSingleton<TabletAuthService>();
         builder.Services.AddSingleton<TabletInventoryApi>();
 
@@ -28,10 +28,5 @@ public static class MauiProgram
         return builder.Build();
     }
 
-    private static string ApiBaseUrl =>
-#if ANDROID
-        "http://192.168.0.132:5210";
-#else
-        "http://localhost:5210";
-#endif
+    private const string ApiBaseUrl = "http://desktop-poedibs.tail526f68.ts.net:5210";
 }

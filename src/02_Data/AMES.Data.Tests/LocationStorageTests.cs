@@ -6,6 +6,45 @@ namespace AMES.Data.Tests;
 
 public sealed class LocationStorageTests
 {
+    [Fact]
+    public void Area_scoped_details_do_not_require_a_separate_parent_location()
+    {
+        var migration = Read("dist/migrate_md_location_parent.sql");
+        Assert.Contains("NULL = 상위 미지정", migration);
+        var master = Read("src/02_Data/AMES.Data/Repositories/MasterDataRepository.cs");
+        Assert.Contains("bool setParent = false, string? parentLocationId = null", master);
+        Assert.Contains("IF @SetParent=1 AND @Parent IS NOT NULL BEGIN", master);
+        Assert.Contains("ParentLocationID=CASE WHEN @SetParent=1 THEN @Parent ELSE ParentLocationID END", master);
+
+        var map = Read("src/06_Web/AMES.Web/Components/Shared/LocationMapDatabase.cs");
+        Assert.Contains("x.LocationLevel == MasterDataRepository.LocationLevelDetail", map);
+        Assert.DoesNotContain("ParentLocationID", map);
+        var lines = Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.LineStock.cs");
+        Assert.Contains("L.LocationLevel=2", lines);
+        Assert.DoesNotContain("ParentLocationID", lines);
+
+        var lineSave = Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.LineLocations.cs");
+        Assert.Contains("@Name,'EOS',@Prefix,@Y,@X,@F,'LINE'", lineSave);
+        Assert.Contains("@Name,@Name,@WarehouseID,@Prefix", lineSave);
+        Assert.DoesNotContain("ParentLocationID", lineSave);
+        Assert.DoesNotContain("LineLocationParentRules", master);
+        Assert.DoesNotContain("MapLineParent", Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor"));
+    }
+
+    [Fact]
+    public void Legacy_line_location_editor_is_not_exposed_by_current_screens()
+    {
+        var line = Read("src/06_Web/AMES.Web/Components/Pages/Md/Rp/Line.razor");
+        var location = Read("src/06_Web/AMES.Web/Components/Pages/Md/Fd/Location.razor");
+        var map = Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor");
+        foreach (var page in new[] { line, location, map })
+        {
+            Assert.DoesNotContain("<LineLocationEditor", page);
+            Assert.DoesNotContain("OpenAsync<LineLocationEditor>", page);
+            Assert.DoesNotContain("SaveLineLocation(", page);
+        }
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(1.5)]
