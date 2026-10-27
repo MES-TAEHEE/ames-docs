@@ -80,7 +80,7 @@ public sealed class FEnetClient : IRobotLink, IDisposable
         {
             if (_sock?.Connected != true) { _blockValid = false; return false; }
             var frame = FEnetFrames.BuildRead(FEnetFrames.ContinuousDevice(BaseWord), WordCount * 2);
-            var rsp = ExchangeLocked(frame);
+            var rsp = ExchangeLocked(frame, readResponse: true);
             if (rsp is null || !FEnetFrames.TryParseReadResponse(rsp, out var data, out _)
                 || data.Length < WordCount * 2)
             {
@@ -137,15 +137,30 @@ public sealed class FEnetClient : IRobotLink, IDisposable
         }
     }
 
-    byte[]? ExchangeLocked(byte[] frame)
+    byte[]? ExchangeLocked(byte[] frame, bool readResponse = false)
     {
         try
         {
             _sock!.Send(frame);
-            var buffer = new byte[1024];
-            int n = _sock.Receive(buffer);
-            if (n <= 0) return null;
-            return buffer[..n];
+            if (!readResponse)
+            {
+                var buffer = new byte[1024];
+                int n = _sock.Receive(buffer);
+                if (n <= 0) return null;
+                return buffer[..n];
+            }
+
+            // 읽기 응답은 TCP 에서 여러 번에 나뉘어 올 수 있다 — 데이터 길이만큼 다 모일 때까지 받는다.
+            // 다 안 모이면 그대로 돌려주고, 해석 단계가 길이 불일치로 거부한다(잘린 값은 쓰지 않는다).
+            var acc = new byte[4096];
+            int total = 0;
+            while (!FEnetFrames.IsReadResponseComplete(acc.AsSpan(0, total).ToArray()) && total < acc.Length)
+            {
+                int k = _sock.Receive(acc, total, acc.Length - total, SocketFlags.None);
+                if (k <= 0) break;
+                total += k;
+            }
+            return total == 0 ? null : acc[..total];
         }
         catch
         {

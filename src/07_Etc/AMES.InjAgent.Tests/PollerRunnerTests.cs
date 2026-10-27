@@ -41,6 +41,18 @@ public class PollerRunnerTests
         public void Disconnect() { }
     }
 
+    sealed class CountingSlowMachine : IInjectionMachine
+    {
+        public int DisconnectCount;
+        public bool Connected => true;
+        public bool EnsureConnected() { Thread.Sleep(3000); return true; }
+        public long ReadShotCount() => 0;
+        public string ReadMoldCode() => string.Empty;
+        public long ReadLong(int address) => 0;
+        public float ReadFloat(int address) => 0f;
+        public void Disconnect() => DisconnectCount++;
+    }
+
     sealed class NopStore : IInjAgentStore
     {
         public List<MoldItemDto> GetMoldItems(string m, string c) => new();
@@ -48,6 +60,7 @@ public class PollerRunnerTests
         public void SaveInspection(int a, string b, string c, string d, string e, string f, string g, bool h) { }
         public void MarkNgBlocked(int lotId) { }
         public List<InjCondItemDto> GetCondItems(string lineId) => new();
+        public int CountInspections(int lotId, string cavityPos) => 0;
         public void InsertCondLog(string l, string i, long s, decimal? a, decimal? b) { }
     }
 
@@ -89,6 +102,28 @@ public class PollerRunnerTests
         Assert.True(runner.IsRunning);
         runner.Dispose();
         Assert.False(runner.IsRunning);
+    }
+
+    [Fact]
+    public void Stop_timeout_does_not_disconnect_while_a_poll_is_in_flight()
+    {
+        var cfg = new MachineConfig { EquipId = "EQ", LineId = "LN", ModbusIp = "x", FenetIp = "y" };
+        var machine = new CountingSlowMachine();
+        var poller = new MachinePoller(cfg, machine, new NopRobot(), new NopStore(), _ => { });
+        var runner = new PollerRunner(poller, pollingMs: 10, _ => { });
+
+        runner.Start();
+        Thread.Sleep(100);                          // PollOnce 가 느린 호출 안에 있다
+        runner.Stop();                              // 2초 안에 끝나지 않는다
+        Assert.Equal(0, machine.DisconnectCount);   // 도는 중에는 소켓을 끊지 않는다
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (runner.IsRunning && sw.ElapsedMilliseconds < 6000) Thread.Sleep(100);
+        Thread.Sleep(100);                          // 뒤처리(ContinueWith) 시간
+        Assert.False(runner.IsRunning);
+        Assert.True(machine.DisconnectCount >= 1);  // 끝난 뒤에 끊는다
+
+        runner.Dispose();
     }
 
     [Fact]

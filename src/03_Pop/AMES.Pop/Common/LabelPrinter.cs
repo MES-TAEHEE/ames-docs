@@ -24,8 +24,6 @@ internal static class LabelPrinter
     private static void RecordOutput(string lotCode)
     {
         AMES.Pop.Common.PopLog.Append("print", "LabelPrinted", $"{lotCode} mode={AppConfig.Current.PrinterMode}");
-        // 마지막 LOT 번호를 기록한다 — 다음 오프라인 임의 출력이 이 번호 뒤에서 이어진다.
-        AMES.Pop.Services.OfflineWork.NoteLotCode(lotCode);
     }
 
     /// <summary>

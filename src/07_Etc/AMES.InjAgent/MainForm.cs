@@ -48,10 +48,12 @@ public sealed class MainForm : Form
         _grid.Columns.Add("LotLh",      "1st LOT (LH)");
         _grid.Columns.Add("LotRh",      "2nd LOT (RH)");
         _grid.Columns.Add("Inspection", "Last Inspection");
+        _grid.Columns.Add("Missing",    "Missing LOT");
+        _grid.Columns.Add("RobotErr",   "Robot Write Fail");
         // 자동 시작 안 함 — 각 호기는 정지 상태(START 버튼)로 시작.
         foreach (var p in pollers)
         {
-            int r = _grid.Rows.Add(p.Status.EquipId, "START", "Stopped", "Stopped", "-", "-", "-", "-", "-");
+            int r = _grid.Rows.Add(p.Status.EquipId, "START", "Stopped", "Stopped", "-", "-", "-", "-", "-", "0", "0");
             PaintCtrl(_grid.Rows[r].Cells["Ctrl"], running: false);
         }
 
@@ -124,6 +126,10 @@ public sealed class MainForm : Form
                 row.Cells["LotLh"].Value      = s.LotLh ?? "-";
                 row.Cells["LotRh"].Value      = s.LotRh ?? "-";
                 row.Cells["Inspection"].Value = s.LastInspection;
+                row.Cells["Missing"].Value    = s.MissingLots;
+                row.Cells["Missing"].Style.ForeColor = s.MissingLots > 0 ? Color.Red : Color.Empty;
+                row.Cells["RobotErr"].Value    = s.RobotWriteFailures;
+                row.Cells["RobotErr"].Style.ForeColor = s.RobotWriteFailures > 0 ? Color.Red : Color.Empty;
                 PaintCtrl(row.Cells["Ctrl"], runner.IsRunning);
             }
 

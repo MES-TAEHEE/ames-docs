@@ -58,12 +58,35 @@ public sealed class InjLotRepository
     /// </summary>
     public (int LotId, string LotCode) CreateRawLot(
         string lineId, string equipId, MoldItemDto map, long machineShotCount)
+        => CreateRawLotCore(lineId, equipId, map, machineShotCount, lotCode: null, occurredAt: null);
+
+    /// <summary>
+    /// 오프라인 에이전트가 쌓아 둔 샷 LOT 을 복구 뒤 넣는다 — 번호는 오프라인에서 받은 것 그대로,
+    /// 생성 시각은 샷이 찍힌 시각. 같은 LotCode 가 이미 있으면 호출하지 않는다(호출자가 <see cref="FindLotId"/> 로 확인).
+    /// </summary>
+    public (int LotId, string LotCode) CreateRawLotAt(
+        string lineId, string equipId, MoldItemDto map, long machineShotCount, string lotCode, DateTime occurredAt)
+        => CreateRawLotCore(lineId, equipId, map, machineShotCount, lotCode, occurredAt);
+
+    /// <summary>LotCode 로 tbl_Lot 행을 찾는다(없으면 null) — 복구 재실행에서 이미 넣은 LOT 을 다시 넣지 않게 한다.</summary>
+    public int? FindLotId(string lotCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT LotID FROM dbo.tbl_Lot WHERE LotCode = @Code;", conn);
+        cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
+        return cmd.ExecuteScalar() as int?;
+    }
+
+    (int LotId, string LotCode) CreateRawLotCore(
+        string lineId, string equipId, MoldItemDto map, long machineShotCount, string? lotCode, DateTime? occurredAt)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
-            var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
+            if (lotCode is null) lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
+            else LotNoGenerator.EnsureAtLeast(conn, tx, lotCode);
+            var at = (object?)occurredAt ?? DBNull.Value;
             int lotId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.tbl_Lot
@@ -72,12 +95,13 @@ public sealed class InjLotRepository
                 OUTPUT INSERTED.LotID
                 VALUES
                     (@LotCode, @ItemNo, NULL, @LineID, 'INJ', 1, 1,
-                     SYSDATETIME(), 'RAW', 'PENDING', 'AGENT', SYSDATETIME());
+                     ISNULL(@At, SYSDATETIME()), 'RAW', 'PENDING', 'AGENT', ISNULL(@At, SYSDATETIME()));
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
                 cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = map.ItemNo;
                 cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
+                cmd.Parameters.Add("@At",      SqlDbType.DateTime2    ).Value = at;
                 lotId = (int)cmd.ExecuteScalar()!;
             }
 
@@ -87,7 +111,7 @@ public sealed class InjLotRepository
                      PressType, MachineShotCount, ConfirmStatus, CreatedBy, CreatedTS)
                 VALUES
                     (@LotID, @Equip, @Mold, @Color, @MoldID, @CavNo, @CavPos,
-                     'M', @Shot, 'RAW', 'AGENT', SYSDATETIME());
+                     'M', @Shot, 'RAW', 'AGENT', ISNULL(@At, SYSDATETIME()));
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@LotID",  SqlDbType.Int        ).Value = lotId;
@@ -98,6 +122,7 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@CavNo",  SqlDbType.Int        ).Value = map.CavityNo;
                 cmd.Parameters.Add("@CavPos", SqlDbType.VarChar, 4 ).Value = map.CavityPos;
                 cmd.Parameters.Add("@Shot",   SqlDbType.BigInt     ).Value = machineShotCount;
+                cmd.Parameters.Add("@At",     SqlDbType.DateTime2  ).Value = at;
                 cmd.ExecuteNonQuery();
             }
 
@@ -754,6 +779,17 @@ public sealed class InjLotRepository
         cmd.Parameters.Add("@P4",    SqlDbType.VarChar, 4).Value = weight;
         cmd.Parameters.Add("@Ng",    SqlDbType.Bit       ).Value = overallNg;
         cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>LOT·캐비티의 검사 이력 행 수.</summary>
+    public int CountInspections(int lotId, string cavityPos)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(
+            "SELECT COUNT(*) FROM dbo.PR_RobotInspection WHERE LotID = @Lot AND CavityPos = @Pos;", conn);
+        cmd.Parameters.Add("@Lot", SqlDbType.Int).Value = lotId;
+        cmd.Parameters.Add("@Pos", SqlDbType.VarChar, 4).Value = cavityPos;
+        return (int)cmd.ExecuteScalar()!;
     }
 
     /// <summary>로봇 NG 수신 → 스캔 차단 (RAW 인 경우에만).</summary>

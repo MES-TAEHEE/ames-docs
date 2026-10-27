@@ -12,7 +12,7 @@ public static class FEnetFrames
 {
     public enum DataType : byte { Bit = 0x00, Byte = 0x01, Word = 0x02, Continue = 0x14 }
 
-    const int HeaderSize = 20;
+    public const int HeaderSize = 20;
 
     /// <summary>기종 판별 요청 (LGIS-GLOFA, cmd 0xb0). 원본 SelectCPU 와 동일한 26바이트.</summary>
     public static byte[] BuildSelectCpu()
@@ -93,6 +93,19 @@ public static class FEnetFrames
         int sum = 0;
         for (int i = start; i < endExclusive; i++) sum = (sum + b[i]) & 0xFF;
         return (byte)sum;
+    }
+
+    /// <summary>
+    /// 읽기 응답이 한 프레임으로 다 왔는지. 데이터 길이 필드(헤더 뒤 10~11바이트)만큼 받았으면 완성이다.
+    /// 오류 응답(0xFF 표시)은 더 기다릴 것이 없으므로 완성으로 본다 — 해석은 TryParseReadResponse 가 한다.
+    /// </summary>
+    public static bool IsReadResponseComplete(byte[] rsp)
+    {
+        const int instrSize = 12;
+        if (rsp.Length < HeaderSize + instrSize) return false;
+        if (rsp[HeaderSize + 6] == 0xFF && rsp[HeaderSize + 7] == 0xFF) return true;
+        int dataLen = rsp[HeaderSize + 10] | rsp[HeaderSize + 11] << 8;
+        return rsp.Length >= HeaderSize + instrSize + dataLen;
     }
 
     public static bool TryParseReadResponse(byte[] rsp, out byte[] data, out string error)

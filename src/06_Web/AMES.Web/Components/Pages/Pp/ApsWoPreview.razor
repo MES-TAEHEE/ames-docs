@@ -59,7 +59,7 @@
             @if (_result is null && !_released)
             {
                 <RadzenButton Text="@L["PP.Aps.Wo.Btn.Targets"].Value" Icon="@(_showTargets ? "expand_less" : "checklist")" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="@(() => _showTargets = !_showTargets)" Disabled="@_busy" />
-                <RadzenButton Text="@L["PP.Aps.Wo.Btn.Refresh"].Value" Icon="visibility" ButtonStyle="@(PreviewStale ? ButtonStyle.Warning : ButtonStyle.Secondary)" Size="ButtonSize.Small" class="ames-rz-btn" Click="RunPreview" Disabled="@(_busy || _selected.Count == 0)" />
+                <RadzenButton Text="@L["PP.Aps.Wo.Btn.Refresh"].Value" Icon="visibility" ButtonStyle="@(PreviewStale ? ButtonStyle.Warning : ButtonStyle.Secondary)" Size="ButtonSize.Small" class="ames-rz-btn" Click="RunPreview" Disabled="@(_busy || _selected.Count == 0 || (!_canEdit && !_canApprove))" />
                 @if (_edits.Count > 0)
                 {
                     <span class="pill warn">@string.Format(L["PP.Aps.Wo.Edit.Count"].Value, _edits.Count)</span>
@@ -444,7 +444,7 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
     // OnAfterRender 는 회로에서만 불리므로 한 번만 돌고 페이지 전환은 즉시 된다
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_loadFailed && !_released && _rows.Count > 0 && _preview is null && !_busy)
+        if (firstRender && (_canEdit || _canApprove) && !_loadFailed && !_released && _rows.Count > 0 && _preview is null && !_busy)
         {
             _busy = true; StateHasChanged();
             await RunPreview(force: true);
@@ -473,6 +473,8 @@ else if (!_busy && _result is null && _preview is null && _configProblems.Count 
     async Task RunPreview() => await RunPreview(force: false);
     async Task RunPreview(bool force)
     {
+        // dryRun 도 INSERT 후 롤백하는 쓰기 트랜잭션이라, 읽기 전용 사용자에게는 돌리지 않는다.
+        if (!_canEdit && !_canApprove) { ShowMsg(L["PP.Aps.Wo.Err.NoRight"], true); return; }
         if (_busy && !force) return;
         if (_selected.Count == 0) { ShowMsg(L["PP.Aps.Wo.Err.NoneSelected"], true); return; }
         var ids = SelectedIds(); var key = SelectionKey;

@@ -373,7 +373,13 @@ else
     }
 
     // PP-006 과 같은 상태 색
-    static string PrStCls(string? s) => s switch { "Approved" => "ok", "Pending" => "warn", "Rejected" => "bad", _ => "mute" };
+    static string PrStCls(string? s) => AMES.Data.Services.PrStatusRules.Normalize(s) switch
+    {
+        AMES.Data.Services.PrStatusRules.Approved => "ok",
+        AMES.Data.Services.PrStatusRules.Failed   => "bad",
+        AMES.Data.Services.PrStatusRules.Draft or AMES.Data.Services.PrStatusRules.Sent => "warn",
+        _ => "mute",
+    };
 
     // 모달의 PR 수량 — 기본 부족량, 사용자가 조절(부족량 미만은 잔여 부족, 초과 허용, 0 이하 불가)
     readonly Dictionary<string, decimal> _prQty = new(StringComparer.OrdinalIgnoreCase);

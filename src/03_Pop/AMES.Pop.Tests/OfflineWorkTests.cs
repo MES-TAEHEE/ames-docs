@@ -235,7 +235,7 @@ public sealed class OfflineWorkTests : IDisposable
         var s = State();
         var now = DbClock_Now();
         var head = $"{LotNoGenerator.EncodeYear(now.Year)}{LotNoGenerator.EncodeMonth(now.Month)}{LotNoGenerator.EncodeDay(now.Day)}I1";
-        s.LotPrefix = (head)[3..5]; s.LotCursor[head] = 9998;
+        s.LotPrefix = (head)[3..5]; s.LotBlocks.Add(new OfflineLotBlock(now.Date, head, 9999, 9999));
         OfflineStore.Save("work-state.bin", s);
         OfflineWork.ResetForTests();
 
@@ -264,7 +264,7 @@ public sealed class OfflineWorkTests : IDisposable
         var s = State();
         var now = DbClock_Now();
         var head = $"{LotNoGenerator.EncodeYear(now.Year)}{LotNoGenerator.EncodeMonth(now.Month)}{LotNoGenerator.EncodeDay(now.Day)}I1";
-        s.LotPrefix = (head)[3..5]; s.LotCursor[head] = 1 - 1;
+        s.LotPrefix = (head)[3..5]; s.LotBlocks.Add(new OfflineLotBlock(now.Date, head, 1, 200));
         OfflineStore.Save("work-state.bin", s);
         OfflineWork.ResetForTests();
 

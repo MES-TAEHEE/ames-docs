@@ -40,4 +40,23 @@ public interface IInjAgentStore
     void MarkNgBlocked(int lotId);
     List<InjCondItemDto> GetCondItems(string lineId);
     void InsertCondLog(string lineId, string itemCode, long shotSeq, decimal? setValue, decimal? actualValue);
+
+    /// <summary>LOT·캐비티의 검사 이력 행 수 — 저장 예외 뒤 재시도에서 이미 커밋됐는지 확인한다.</summary>
+    int CountInspections(int lotId, string cavityPos);
+}
+
+/// <summary>
+/// 큐 재생·번호 구간 확보에만 쓰는 DB 시야. 폴러는 <see cref="IInjAgentStore"/> 만 본다.
+/// </summary>
+public interface IInjAgentReplayStore : IInjAgentStore
+{
+    /// <summary>오프라인에서 받은 번호·샷 시각으로 LOT 을 넣는다(복구 재생).</summary>
+    (int LotId, string LotCode) CreateRawLotAt(string lineId, string equipId, MoldItemDto map, long machineShotCount,
+                                               string lotCode, DateTime occurredAt);
+
+    /// <summary>LotCode 의 LotID(없으면 null) — 복구 재생에서 이미 들어간 LOT 을 확인한다.</summary>
+    int? FindLotId(string lotCode);
+
+    /// <summary>그 날·그 라인의 LotNo 구간을 확보한다(SYS_LotSeq 에서 빠져 다른 채번과 겹치지 않는다).</summary>
+    AMES.Data.Services.LotNoGenerator.LotNoBlock ReserveLotNos(string lineId, DateTime date, int count);
 }

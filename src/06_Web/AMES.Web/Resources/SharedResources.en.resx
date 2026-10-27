@@ -12502,4 +12502,10 @@
   <data name="TopBar.SignOut" xml:space="preserve">
     <value>Sign out</value>
   </data>
+  <data name="PP.SupplyPlanImport.Err.PartialConfirm" xml:space="preserve">
+    <value>{0} confirmed, {1} failed — select the failed ones again to confirm. ({2})</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.NoRight" xml:space="preserve">
+    <value>Only users with edit or approve permission can view the preview.</value>
+  </data>
 </root>

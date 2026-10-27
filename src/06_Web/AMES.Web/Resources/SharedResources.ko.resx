@@ -12502,4 +12502,10 @@
   <data name="TopBar.SignOut" xml:space="preserve">
     <value>로그아웃</value>
   </data>
+  <data name="PP.SupplyPlanImport.Err.PartialConfirm" xml:space="preserve">
+    <value>{0}건 확정, {1}건 실패 — 실패한 건은 다시 선택해 확정하세요. ({2})</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.NoRight" xml:space="preserve">
+    <value>미리보기는 수정 또는 승인 권한이 있는 사용자만 볼 수 있습니다.</value>
+  </data>
 </root>

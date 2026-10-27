@@ -324,6 +324,7 @@ else
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
             var n = Pp.ConfirmCustomerOrder(soId, actor);
+            Audit.Log("PP-002", "CONFIRM", "PP_CustomerOrder", soId, null, new { Confirmed = n });
             if (n > 0) ShowMsg(L["PP.SupplyPlanImport.Ok.Confirmed"].Value, false);
             Search();
         }
@@ -352,10 +353,24 @@ else
         {
             var auth  = await AuthPrvd.GetAuthenticationStateAsync();
             var actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
-            var n = ids.Sum(id => Pp.ConfirmCustomerOrder(id, actor));
+            // 건마다 따로 확정한다 — 중간에 실패해도 앞 건은 확정된 그대로 두고, 몇 건이 반영됐는지 알린다.
+            int done = 0;
+            var failed = new List<string>();
+            foreach (var id in ids)
+            {
+                try
+                {
+                    done += Pp.ConfirmCustomerOrder(id, actor);
+                    Audit.Log("PP-002", "CONFIRM", "PP_CustomerOrder", id, null, new { Confirmed = 1 });
+                }
+                catch (Exception ex) { failed.Add($"{id}: {ex.Message}"); }
+            }
             _selected.Clear();
-            ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.ConfirmedN"].Value, n), false);
             Search();
+            if (failed.Count == 0)
+                ShowMsg(string.Format(L["PP.SupplyPlanImport.Ok.ConfirmedN"].Value, done), false);
+            else
+                ShowMsg(string.Format(L["PP.SupplyPlanImport.Err.PartialConfirm"].Value, done, failed.Count, failed[0]), true);
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
     }

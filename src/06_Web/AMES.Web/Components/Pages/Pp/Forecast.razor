@@ -358,7 +358,8 @@
         if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
 
-        try { _customers = MD.ListCustomers(); } catch { }
+        try { _customers = MD.ListCustomers(); }
+        catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
         Search();
         SearchHistory();
         SearchDaily();
@@ -368,7 +369,7 @@
     void SearchHistory()
     {
         try   { _batches = Pp.ListWeeklyImportBatches(_hCustomer ?? "", _hFrom, _hTo); }
-        catch { _batches = new(); }
+        catch (Exception ex) { _batches = new(); ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
         SearchDailyHistory();
     }
 
@@ -391,7 +392,11 @@
     void ApplyDailyPartNo() => _dView = string.IsNullOrWhiteSpace(_dPartNo) ? _dItems
         : _dItems.Where(i => i.ItemNo.Contains(_dPartNo, StringComparison.OrdinalIgnoreCase) || i.Name.Contains(_dPartNo, StringComparison.OrdinalIgnoreCase)).ToList();
 
-    void SearchDailyHistory() { try { _dBatches = Pp.ListDemandPlanBatches(_hCustomer ?? "", _hFrom, _hTo); } catch { _dBatches = new(); } }
+    void SearchDailyHistory()
+    {
+        try { _dBatches = Pp.ListDemandPlanBatches(_hCustomer ?? "", _hFrom, _hTo); }
+        catch (Exception ex) { _dBatches = new(); ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
+    }
 
     async Task OpenDailyUpload()
     {
@@ -481,7 +486,7 @@
         _weekLabels = new();
         List<PpRepository.WeeklyCell> cells;
         try   { cells = Pp.ListWeeklyForecast(_fCustomer ?? "", _fFrom, _fTo); }
-        catch { cells = new(); }
+        catch (Exception ex) { cells = new(); ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
 
         _showCustomerCol = string.IsNullOrEmpty(_fCustomer);
         _weeks = cells.Select(c => c.WeekStartDate).Distinct().Order().ToList();
