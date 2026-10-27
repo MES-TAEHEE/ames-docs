@@ -25,6 +25,78 @@ public class PdaForegroundSessionTests
     }
 
     [Fact]
+    public async Task ActivationChecksExpiryWithoutAStoppedEvent()
+    {
+        var auth = SignedIn();
+        Assert.False(auth.SessionCheckRequired);
+        using var client = Client((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized)));
+
+        await new SessionValidator(client, auth).CheckOnActivationAsync();
+
+        Assert.Null(auth.Session);
+        Assert.True(auth.TakeExpiryNotice());
+        Assert.False(auth.TakeExpiryNotice());
+    }
+
+    [Fact]
+    public async Task LaterActivationRechecksAPreviouslyValidSession()
+    {
+        var auth = SignedIn();
+        var calls = 0;
+        using var client = Client((_, _) => Task.FromResult(++calls == 1
+            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(Session()) }
+            : new HttpResponseMessage(HttpStatusCode.Unauthorized)));
+        var validator = new SessionValidator(client, auth);
+
+        await validator.CheckOnActivationAsync();
+        Assert.NotNull(auth.Session);
+        Assert.False(auth.SessionCheckRequired);
+        await validator.CheckOnActivationAsync();
+
+        Assert.Equal(2, calls);
+        Assert.Null(auth.Session);
+        Assert.True(auth.TakeExpiryNotice());
+    }
+
+    [Fact]
+    public async Task ActivationWhileOfflinePreservesSessionForRetry()
+    {
+        var auth = SignedIn();
+        using var client = Client((_, _) => throw new HttpRequestException("Offline"));
+
+        await new SessionValidator(client, auth).CheckOnActivationAsync();
+
+        Assert.NotNull(auth.Session);
+        Assert.True(auth.SessionCheckRequired);
+        Assert.NotNull(auth.SessionCheckError);
+        Assert.False(auth.TakeExpiryNotice());
+    }
+
+    [Fact]
+    public async Task ActivationBeforeLoginDoesNotCallServer()
+    {
+        var auth = new AuthState();
+        var calls = 0;
+        using var client = Client((_, _) =>
+        {
+            calls++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        });
+
+        await new SessionValidator(client, auth).CheckOnActivationAsync();
+
+        Assert.Equal(0, calls);
+        Assert.False(auth.TakeExpiryNotice());
+    }
+
+    [Fact]
+    public void WindowActivationAlwaysRequestsSessionValidation()
+    {
+        var app = ReadPdaSource("App.xaml.cs");
+        Assert.Contains("window.Activated += async (_, _) => await _sessions.CheckOnActivationAsync();", app);
+    }
+
+    [Fact]
     public async Task ConcurrentResumeChecksValidateOnceAndUnblockValidSession()
     {
         var auth = SignedIn();
