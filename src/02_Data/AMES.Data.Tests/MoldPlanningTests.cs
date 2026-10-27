@@ -441,6 +441,56 @@ public class MoldPlanningTests
     }
 
     [SkippableFact]
+    public void Sibling_item_on_the_same_mold_rides_on_the_earlier_slot_instead_of_taking_time_again()
+    {
+        // 같은 금형·색상(B·CBK)으로 한 샷에 함께 찍히는 형제 품번 — 두 번째 수주는 0분 슬롯으로 얹고 시간을 다시 잡지 않는다(10-27)
+        const string Sib = "ITEST-MC-RTB";
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f);
+        void CleanSib() => Exec(f!, """
+            DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE w.ItemNo = @S;
+            DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.RefID AND s.RefType = 'WO' WHERE w.ItemNo = @S;
+            DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.ItemNo = @S;
+            DELETE FROM dbo.PP_WorkOrder WHERE ItemNo = @S;
+            DELETE FROM dbo.PP_CustomerOrder WHERE ItemNo = @S;
+            DELETE FROM dbo.MD_Bop WHERE ItemNo = @S;
+            DELETE FROM dbo.MD_MoldItem WHERE ItemNo = @S;
+            DELETE FROM dbo.MD_Item WHERE ItemNo = @S;
+            """, ("@S", Sib));
+        try
+        {
+            CleanSib();
+            Exec(f!, """
+                INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, ActiveFlag, CreatedBy) VALUES (@S, N'ITEST mold sibling', 'A', 1, 'ITEST');
+                INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, StdCycleTime, ActiveFlag, CreatedBy)
+                VALUES ('ITEST-MC-BOPS-10', @S, 'A', 10, 'ST-INJ-01', 6, 1, 'ITEST'), ('ITEST-MC-BOPS-20', @S, 'A', 20, 'ST-IMG-01', 12, 1, 'ITEST');
+                INSERT INTO dbo.MD_MoldItem (MoldID, ItemNo, Color, CavitySeq, CavityPos, CavityCount, MoldCategory, ActiveFlag, CreatedBy)
+                VALUES (@B, @S, 'CBK', 2, 'RH', 1, 'INJECTION', 1, 'ITEST');
+                """, ("@S", Sib), ("@B", MoldB));
+            var so1 = SeedSo(f!, "ITEST-MC-SO-S1", qty: 50, dueOffset: 9);
+            var so2 = (int)Scalar(f!, """
+                INSERT INTO dbo.PP_CustomerOrder (SoNumber, SoLineNo, ItemNo, OrderQty, RequestedDeliveryDate, Status, CreatedBy)
+                OUTPUT INSERTED.SoID VALUES ('ITEST-MC-SO-S2', 1, @S, 50, @Due, 'Confirmed', 'ITEST');
+                """, ("@S", Sib), ("@Due", D0.AddDays(10)))!;
+
+            var res = Run(f!, Plan(so1), Plan(so2));
+            Assert.Empty(res.Rejected);
+            Assert.Equal(2, res.Orders.Count);
+            int wo1 = WoIdOf(f!, res.Orders[0].WoNumber), wo2 = WoIdOf(f!, res.Orders[1].WoNumber);
+
+            var first = Assert.Single(Rows(f!, LineInj, D0), r => r.Type == "WO" && r.WoId == wo1);
+            Assert.DoesNotContain(Rows(f!, LineInj, D0), r => r.Type == "WO" && r.WoId == wo2);          // 시간을 점유한 슬롯 없음
+            Assert.Equal((first.Start, 50m, Sib), ((int)Convert.ToInt32(Scalar(f!,
+                "SELECT StartMin FROM dbo.PP_LineSchedule WHERE WoID = @W AND LineID = @L AND EndMin = StartMin;", ("@W", wo2), ("@L", LineInj))),
+                Convert.ToDecimal(Scalar(f!, "SELECT SUM(PlannedQty) FROM dbo.PP_LineSchedule WHERE WoID = @W AND LineID = @L;", ("@W", wo2), ("@L", LineInj))),
+                (string)Scalar(f!, "SELECT TOP 1 ItemNo FROM dbo.PP_LineSchedule WHERE WoID = @W AND LineID = @L;", ("@W", wo2), ("@L", LineInj))!));
+            Assert.True(Convert.ToDecimal(Scalar(f!, "SELECT ISNULL(SUM(PlannedQty), 0) FROM dbo.PP_LineSchedule WHERE WoID = @W AND LineID = @L;",
+                ("@W", wo2), ("@L", LineImg))) == 50m);                                                    // 감싸기 단계는 그대로 배치
+        }
+        finally { CleanSib(); Cleanup(f!); }
+    }
+
+    [SkippableFact]
     public void CancelWo_removes_its_change_block()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");

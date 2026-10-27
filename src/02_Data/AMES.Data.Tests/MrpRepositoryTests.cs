@@ -180,6 +180,23 @@ public class MrpRepositoryTests
     }
 
     [SkippableFact]
+    public void CreateShortagePrs_refuses_a_run_that_is_no_longer_the_latest()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Seed(f!);
+        try
+        {
+            var repo = new PpRepository(f!);
+            var oldRun = repo.RunMrp(Actor);
+            var newRun = repo.RunMrp(Actor);
+            // 옛 결과 화면에서 PR 을 만들면 새 실행의 발주중에 없어 같은 부족분 PR 이 또 생긴다 — 거부(10-27)
+            Assert.Throws<PpRepository.MrpRunStaleException>(() => repo.CreateShortagePrs(oldRun, new[] { Rm }, Actor));
+            Assert.Single(repo.CreateShortagePrs(newRun, new[] { Rm }, Actor));
+        }
+        finally { Cleanup(f!); }
+    }
+
+    [SkippableFact]
     public void CreateShortagePrs_rejects_non_positive_quantity()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");

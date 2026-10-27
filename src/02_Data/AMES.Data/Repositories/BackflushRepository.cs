@@ -24,7 +24,8 @@ public static class BackflushRepository
     public const string NetSourceType = "BACKFLUSH_NET";
     const string Savepoint = "backflush";
 
-    /// <param name="includeInjection">true(PNT)면 MATERIAL 자식에 더해 사출품(InjFlag 1) 자식도 뺀다 — <see cref="BackflushRules.IncludesInjection"/>.</param>
+    /// <param name="includeInjection">true(PNT·IMG)면 MATERIAL 자식에 더해 사출품(InjFlag 1) 자식도 뺀다 — <see cref="BackflushRules.IncludesInjection"/>.
+    /// LOT 이 코어 LOT 에 이어져 있으면(tbl_Lot.ParentLotID — IMG 코어 스캔) 그 코어 품번은 빼지 않는다(ConsumeCore 가 이미 지웠다).</param>
     public static BackflushResult Apply(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
                                         string lineId, string operatorId, string employeeNo, bool includeInjection = false)
     {
@@ -40,6 +41,15 @@ public static class BackflushRepository
         }
     }
 
+    static string? ReadParentLotItem(SqlConnection conn, SqlTransaction tx, int lotId)
+    {
+        using var cmd = new SqlCommand("""
+            SELECT p.ItemNo FROM dbo.tbl_Lot l JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID WHERE l.LotID = @Lot;
+            """, conn, tx);
+        cmd.Parameters.Add("@Lot", System.Data.SqlDbType.Int).Value = lotId;
+        return cmd.ExecuteScalar() as string;
+    }
+
     static BackflushResult ApplyCore(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
                                      string lineId, string operatorId, string employeeNo, bool includeInjection)
     {
@@ -49,7 +59,8 @@ public static class BackflushRepository
         if (prefix is null)
             return new BackflushResult(Array.Empty<BackflushShortage>(), $"line {lineId} has no LotPrefix — no line stock location", false);
 
-        var requirements = BackflushRules.Requirements(ReadBomRows(conn, tx, itemNo), includeInjection);
+        var except = includeInjection ? ReadParentLotItem(conn, tx, lotId) is { } core ? new[] { core } : null : null;
+        var requirements = BackflushRules.Requirements(ReadBomRows(conn, tx, itemNo), includeInjection, except);
         var shortages = new List<BackflushShortage>();
         var note = $"{lotCode} {itemNo}";
         foreach (var req in requirements)

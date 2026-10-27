@@ -170,6 +170,52 @@ public class ImgLotRepositoryTests
     }
 
     [SkippableFact]
+    public void Void_raw_lot_restores_the_core_stock_and_frees_the_core_for_another_scan()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Cleanup(f!); SeedItems(f!);
+        var core = NewCoreCode();
+        void Exec(string sql)
+        {
+            using var conn = f!.OpenConnection();
+            using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@L", core); cmd.Parameters.AddWithValue("@I", Core);
+            cmd.ExecuteNonQuery();
+        }
+        object? Q(string sql)
+        {
+            using var conn = f!.OpenConnection();
+            using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@L", core);
+            return cmd.ExecuteScalar();
+        }
+        try
+        {
+            InsertCore(f!, core, "CONFIRMED");
+            Exec("INSERT dbo.WH_Inventory (LotNo, UnitType, PartNo, Qty, ReceivedAt, CreatedAt, UpdatedAt) VALUES (@L, 'PART', @I, 1, SYSDATETIME(), SYSDATETIME(), SYSDATETIME());");
+            var repo = new ImgLotRepository(f!);
+
+            var wrong = repo.CreateFromCore(core, ImgLine, "E-ITEST", Fg).Lot!;            // 잘못 고른 완제품으로 발행
+            Assert.Equal(0, (int)Q("SELECT COUNT(*) FROM dbo.WH_Inventory WHERE LotNo = @L;")!);
+
+            Assert.Equal(ImgLotRepository.VoidOutcome.Voided, repo.VoidRawLot(wrong.LotCode, ImgLine, "E-ITEST", "E-ITEST"));
+            Assert.Null(repo.GetByLotCode(wrong.LotCode));
+            Assert.Equal(1m, Convert.ToDecimal(Q("SELECT Qty FROM dbo.WH_Inventory WHERE LotNo = @L;")));       // 코어 재고가 돌아온다
+            Assert.Equal(1, (int)Q("SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE LotNo = @L AND SourceType = 'IMG_VOID';")!);
+
+            var again = repo.CreateFromCore(core, ImgLine, "E-ITEST", Fg);                    // 같은 코어를 다시 쓸 수 있다
+            Assert.Equal(ImgCoreOutcome.Created, again.Outcome);
+            Assert.Equal(ImgConfirmOutcome.Confirmed, repo.ConfirmByLotCode(again.Lot!.LotCode, ImgLine, "E-ITEST", null, "E-ITEST").Outcome);
+            Assert.Equal(ImgLotRepository.VoidOutcome.NotRaw, repo.VoidRawLot(again.Lot!.LotCode, ImgLine, "E-ITEST", "E-ITEST"));
+        }
+        finally
+        {
+            Exec("DELETE dbo.WH_InventoryTransaction WHERE LotNo = @L; DELETE dbo.WH_Inventory WHERE LotNo = @L;");
+            Cleanup(f!);
+        }
+    }
+
+    [SkippableFact]
     public void CreateFromCore_confirmed_core_creates_finished_lot_linked_to_core()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");

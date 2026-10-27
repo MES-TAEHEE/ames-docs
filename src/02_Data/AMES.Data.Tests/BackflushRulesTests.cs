@@ -107,14 +107,16 @@ public class BackflushRulesTests
         };
         Assert.Equal(new[] { "RESIN" }, BackflushRules.Requirements(rows).Select(r => r.PartNo));
         Assert.Equal(new[] { "CORE-LH", "RESIN" }, BackflushRules.Requirements(rows, includeInjection: true).Select(r => r.PartNo));
+        // IMG: 스캔한 코어는 ConsumeCore 가 지웠으니 빼지 않는다
+        Assert.Equal(new[] { "RESIN" }, BackflushRules.Requirements(rows, includeInjection: true, exceptItems: new[] { "core-lh" }).Select(r => r.PartNo));
     }
 
     [Fact]
-    public void IncludesInjection_is_true_only_for_pnt()
+    public void IncludesInjection_is_true_for_pnt_and_img_only()
     {
         Assert.True(BackflushRules.IncludesInjection("PNT"));
         Assert.True(BackflushRules.IncludesInjection("pnt"));
-        Assert.False(BackflushRules.IncludesInjection("IMG"));
+        Assert.True(BackflushRules.IncludesInjection("IMG"));
         Assert.False(BackflushRules.IncludesInjection("INJ"));
         Assert.False(BackflushRules.IncludesInjection(null));
     }

@@ -7449,6 +7449,9 @@
   <data name="PP.Mrp.Ok.Bulk" xml:space="preserve">
     <value>Created PRs for {0} shortage materials. Awaiting SAP B1 transmission in PP-006.</value>
   </data>
+  <data name="PP.Mrp.Err.StaleRun" xml:space="preserve">
+    <value>MRP was run again after this screen was opened — the latest result has been loaded. Please select again.</value>
+  </data>
   <data name="PP.Mrp.Ok.Reset" xml:space="preserve">
     <value>Filters reset.</value>
   </data>

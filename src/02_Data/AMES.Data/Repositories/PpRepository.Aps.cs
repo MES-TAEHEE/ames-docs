@@ -186,6 +186,7 @@ public sealed partial class PpRepository
         using var tx   = conn.BeginTransaction();
         try
         {
+            LockWoCreation(conn, tx);
             var status = ReadApsRunStatus(conn, tx, runId)
                          ?? throw new InvalidOperationException($"APS run #{runId} not found.");
             if (string.Equals(status, ApsRepository.StatusReleased, StringComparison.OrdinalIgnoreCase))
@@ -508,7 +509,7 @@ public sealed partial class PpRepository
                                 }
                                 foreach (var (slot, q, over) in spread)
                                 {
-                                    LineScheduleRepository.AppendWoSlot(conn, tx, line, date, cap.PatternId, woId, slot.StartMin, slot.EndMin, q, moldId, actor);
+                                    LineScheduleRepository.AppendWoSlot(conn, tx, line, date, cap.PatternId, woId, slot.StartMin, slot.EndMin, q, moldId, actor, m.Row.ItemNo);
                                     placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, slot.StartMin, slot.EndMin, q, false, moldId, over, m.Row.ItemNo));
                                     placedQty += q;
                                 }
@@ -522,7 +523,7 @@ public sealed partial class PpRepository
                                 if (part[k] <= 0) continue;
                                 decimal cov = Math.Min(part[k], covByItem[m.Row.ItemNo][k]); covByItem[m.Row.ItemNo][k] -= cov;
                                 int start = alloc[k].Slots.Count > 0 ? alloc[k].Slots[0].StartMin : AnchorOf(k);
-                                LineScheduleRepository.AppendWoSlot(conn, tx, line, date, cap.PatternId, woId, start, start, part[k], null, actor);
+                                LineScheduleRepository.AppendWoSlot(conn, tx, line, date, cap.PatternId, woId, start, start, part[k], null, actor, m.Row.ItemNo);
                                 placements.Add(new DeadlinePacker.Placement(plan.InjStepSeq, line, date, start, start, part[k], false, null, part[k] - cov, m.Row.ItemNo));
                                 placedQty += part[k];
                             }
@@ -1000,12 +1001,14 @@ public sealed partial class PpRepository
     static decimal[] ReadScheduledQty(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date, string itemNo,
                                       IReadOnlyList<ShiftBands.ShiftBand> full, int dayStart)
     {
-        using var cmd = new SqlCommand("""
+        // 슬롯 품번 = 슬롯 ItemNo → 그 라인 단계 품번 → WO 품번(ApsRepository.ReadRegisteredSlots 와 같은 규칙, 10-27)
+        using var cmd = new SqlCommand($"""
             SELECT ISNULL(s.StartMin, 0) AS StartMin, ISNULL(s.PlannedQty, 0) AS Qty
             FROM   dbo.PP_LineSchedule s
             JOIN   dbo.PP_WorkOrder w ON w.WoID = s.WoID
+            {LineScheduleRepository.SlotItemApply}
             WHERE  s.LineID = @L AND s.ScheduleDate = @D AND s.EntryType = 'WO'
-              AND  w.ItemNo = @I AND ISNULL(w.Status, '') <> 'Cancelled'
+              AND  {LineScheduleRepository.SlotItemExpr} = @I AND ISNULL(w.Status, '') <> 'Cancelled'
               AND  ISNULL(s.PlannedQty, 0) > 0;
             """, conn, tx);
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
@@ -1027,12 +1030,13 @@ public sealed partial class PpRepository
     /// <summary>(라인, 날짜, 품번)의 기존 WO 슬롯 수량 합(취소 제외) — 완제품 계획 잔량 = ASM Supply − 이 값(4단계). 같은 트랜잭션이 이미 쓴 슬롯도 보인다.</summary>
     static decimal ReadScheduledTotal(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date, string itemNo)
     {
-        using var cmd = new SqlCommand("""
+        using var cmd = new SqlCommand($"""
             SELECT ISNULL(SUM(ISNULL(s.PlannedQty, 0)), 0)
             FROM   dbo.PP_LineSchedule s
             JOIN   dbo.PP_WorkOrder w ON w.WoID = s.WoID
+            {LineScheduleRepository.SlotItemApply}
             WHERE  s.LineID = @L AND s.ScheduleDate = @D AND s.EntryType = 'WO'
-              AND  w.ItemNo = @I AND ISNULL(w.Status, '') <> 'Cancelled';
+              AND  {LineScheduleRepository.SlotItemExpr} = @I AND ISNULL(w.Status, '') <> 'Cancelled';
             """, conn, tx);
         cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
         cmd.Parameters.Add("@D", SqlDbType.Date).Value        = date.Date;

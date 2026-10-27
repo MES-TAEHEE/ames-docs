@@ -15,7 +15,8 @@ public sealed class AndonRepository
     public AndonRepository(AmesConnectionFactory f) => _factory = f;
 
     /// <summary>
-    /// 안돈 발동 + 라인 다운타임 시작(PP_LineDowntimeLog, EndTS 는 Resolve 가 닫는다).
+    /// 안돈 발동 + 라인 다운타임 시작(PP_LineDowntimeLog, EndTS 는 Resolve 가 닫는다). 같은 라인에 이미 열린 비가동이 있으면
+    /// 다운타임 행은 새로 열지 않는다(10-27 — 겹친 시간을 두 번 세지 않게, 그 행은 주인이 닫는다).
     /// severity 는 슈퍼바이저가 나중에 고르므로 보통 null 로 둔다.
     /// </summary>
     public int Raise(string lineId, string? equipId, string triggerSource,

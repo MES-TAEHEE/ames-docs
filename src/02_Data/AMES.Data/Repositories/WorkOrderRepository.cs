@@ -215,7 +215,7 @@ public sealed class WorkOrderRepository
         const string sql = $"""
             SELECT w.WoID, w.WoNumber, w.ItemNo, i.ItemName,
                    w.OrderQty, w.OpenQty, r.CompletedQty, r.LineID,
-                   w.MoldID, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
+                   {WoMoldSql}, w.RecipeID, w.DueDate, r.Status, r.TerminalLock,
                    ISNULL(w.Priority,5) AS Priority, w.RoutingType,
                    r.RoutingLineID, r.StepSeq, r.ProcessCode,
                    COALESCE(r.ItemNo, w.ItemNo) AS StepItemNo
@@ -281,6 +281,20 @@ public sealed class WorkOrderRepository
     /// <summary>"열린 단계" 조건. 별칭 r = PP_WorkOrderRouting, w = PP_WorkOrder. ListForLine·FindOpenForItem·ConfirmByLotCode 공용.</summary>
     /// 헤더가 끝난 WO(완료·입고·마감·취소 — <see cref="WoStatusRules"/>)는 단계가 열려 있어도 받지 않는다(10-27 — 한 코어를
     /// 여러 완제품 WO 가 쓰면 감싸기가 먼저 끝낸 WO 의 사출 단계로 실적이 몰렸다). SP 사본도 같은 문자열이다.
+    /// <summary>WO 금형 — PP_WorkOrder.MoldID 는 계획 경로가 채우지 않아(금형은 슬롯에만) 비어 있으면 그 라인 WO 슬롯의 금형(오늘에 가까운 날) →
+    /// 라인 설비에 장착된 금형 순으로 채운다. 둘 다 그 단계 품번을 찍는 활성 금형일 때만(10-27). 별칭 w·r. SP 사본: migrate_pop_stored_procedures.sql 의 FindOpenForItem·ListForItemOnLine.</summary>
+    internal const string WoMoldSql = """
+                   COALESCE(w.MoldID,
+                   (SELECT TOP 1 ls.MoldID FROM dbo.PP_LineSchedule ls
+                    WHERE ls.WoID = w.WoID AND ls.LineID = r.LineID AND ls.MoldID IS NOT NULL
+                      AND EXISTS (SELECT 1 FROM dbo.MD_MoldItem mi WHERE mi.MoldID = ls.MoldID AND mi.ItemNo = COALESCE(r.ItemNo, w.ItemNo) AND ISNULL(mi.ActiveFlag,1) = 1)
+                    ORDER BY ABS(DATEDIFF(day, CAST(SYSDATETIME() AS date), ls.ScheduleDate)), ls.ScheduleDate),
+                   (SELECT TOP 1 es.MountedMoldID FROM dbo.MNT_EquipmentStatus es
+                    WHERE es.LineID = r.LineID AND es.MountedMoldID IS NOT NULL
+                      AND EXISTS (SELECT 1 FROM dbo.MD_MoldItem mi WHERE mi.MoldID = es.MountedMoldID AND mi.ItemNo = COALESCE(r.ItemNo, w.ItemNo) AND ISNULL(mi.ActiveFlag,1) = 1)
+                    ORDER BY ISNULL(es.ModifiedTS, es.CreatedTS) DESC, es.EquipStatusID DESC)) AS MoldID
+        """;
+
     internal const string OpenStepWhere = $"""
         r.Status IN ('Released','In Progress')
               AND  ISNULL(w.Status,'Draft') NOT IN ({WoStatusRules.FinishedSqlList})

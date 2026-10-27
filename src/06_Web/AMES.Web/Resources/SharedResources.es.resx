@@ -7422,6 +7422,9 @@
   <data name="PP.Mrp.Ok.Bulk" xml:space="preserve">
     <value>PRs creados para {0} materiales faltantes. Pendiente de envío a SAP B1 en PP-006.</value>
   </data>
+  <data name="PP.Mrp.Err.StaleRun" xml:space="preserve">
+    <value>El MRP se ejecutó de nuevo después de abrir esta pantalla — se cargó el resultado más reciente. Seleccione de nuevo.</value>
+  </data>
   <data name="PP.Mrp.Ok.Reset" xml:space="preserve">
     <value>Filtros restablecidos.</value>
   </data>

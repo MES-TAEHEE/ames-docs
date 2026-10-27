@@ -80,7 +80,7 @@ public sealed class LineScheduleRepository
         int ScheduleId, string? PatternId, int? WoId, string? WoNumber, string? ItemName,
         int StartMin, int EndMin, decimal PlannedQty, string? Status,
         string? EntryType, string? Title, string? RefType, int? RefId,
-        string? MoldId = null);
+        string? MoldId = null, string? ItemNo = null);
 
     public sealed record ScheduleAuditRow(string Kind, string Time, string? WoNumber, decimal Qty, string? MoldId, string? Title, string? Ref);
     public sealed record ScheduleAuditView(string? PatternId, IReadOnlyList<ScheduleAuditRow> Rows);
@@ -133,7 +133,7 @@ public sealed class LineScheduleRepository
                    ISNULL(s.EndMin,0)     AS EndMin,
                    ISNULL(s.PlannedQty,0) AS PlannedQty,
                    s.Status,
-                   s.EntryType, s.Title, s.RefType, s.RefID, s.MoldID
+                   s.EntryType, s.Title, s.RefType, s.RefID, s.MoldID, s.ItemNo
             FROM   dbo.PP_LineSchedule s {(forUpdate ? "WITH (UPDLOCK)" : "")}
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = s.WoID
             LEFT JOIN dbo.MD_Item      i ON i.ItemNo = w.ItemNo
@@ -160,7 +160,8 @@ public sealed class LineScheduleRepository
                 rdr["Title"]       as string,
                 rdr["RefType"]     as string,
                 rdr["RefID"]       as int?,
-                rdr["MoldID"]      as string));
+                rdr["MoldID"]      as string,
+                rdr["ItemNo"]      as string));
         return list;
     }
 
@@ -189,8 +190,18 @@ public sealed class LineScheduleRepository
             // 보드가 0분 행을 싣지 않아 slots 로 돌아오지 않는다. POP 은 분과 무관하게 PlannedQty 를 계획으로 읽으므로 지우기 전에 읽어 두고 되살린다
             var preserved = current
                 .Where(r => r.EntryType == "WO" && r.WoId.HasValue && r.EndMin <= r.StartMin && r.PlannedQty > 0)
-                .Select(r => (WoId: r.WoId!.Value, StartMin: (int?)r.StartMin, Qty: r.PlannedQty))
+                .Select(r => (WoId: r.WoId!.Value, StartMin: (int?)r.StartMin, Qty: r.PlannedQty, r.ItemNo))
                 .ToList();
+            // 보드는 슬롯 품번(ItemNo — APS BOM 규칙 사출 슬롯의 자식 품번)을 모르므로 지우기 전 값을 이어 준다: 같은 WO·금형 → 같은 WO 에 품번이 하나뿐이면 그 품번
+            var timed = current.Where(r => r.EntryType == "WO" && r.WoId.HasValue && r.EndMin > r.StartMin && r.ItemNo is not null).ToList();
+            string? ItemFor(int woId, string? moldId)
+            {
+                var byMold = timed.Where(r => r.WoId == woId && string.Equals(r.MoldId, moldId, StringComparison.OrdinalIgnoreCase))
+                                  .Select(r => r.ItemNo!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                if (byMold.Count == 1) return byMold[0];
+                var byWo = timed.Where(r => r.WoId == woId).Select(r => r.ItemNo!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                return byWo.Count == 1 ? byWo[0] : null;
+            }
 
             DeleteRows(conn, tx, lineId, date, current.Select(r => r.ScheduleId));
 
@@ -207,9 +218,9 @@ public sealed class LineScheduleRepository
             else
             {
                 foreach (var s in rows)
-                    InsertRow(conn, tx, lineId, date, patternId, "WO", s.WoId, s.StartMin, s.EndMin, s.Qty, null, null, null, "DRAFT", actor, s.MoldId);
+                    InsertRow(conn, tx, lineId, date, patternId, "WO", s.WoId, s.StartMin, s.EndMin, s.Qty, null, null, null, "DRAFT", actor, s.MoldId, ItemFor(s.WoId, s.MoldId));
                 foreach (var p in keep)
-                    InsertRow(conn, tx, lineId, date, patternId, "WO", p.WoId, p.StartMin, p.StartMin, p.Qty, null, null, null, "DRAFT", actor);
+                    InsertRow(conn, tx, lineId, date, patternId, "WO", p.WoId, p.StartMin, p.StartMin, p.Qty, null, null, null, "DRAFT", actor, null, p.ItemNo);
                 foreach (var p in pms)
                     InsertRow(conn, tx, lineId, date, patternId, "PM", null, p.StartMin, p.EndMin, 0m, p.Title, p.RefType, p.RefId, "DRAFT", actor);
                 foreach (var m in mcs)
@@ -223,14 +234,14 @@ public sealed class LineScheduleRepository
 
     static void InsertRow(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date,
         string? patternId, string entryType, int? woId, int? startMin, int? endMin, decimal qty,
-        string? title, string? refType, int? refId, string status, string actor, string? moldId = null)
+        string? title, string? refType, int? refId, string status, string actor, string? moldId = null, string? itemNo = null)
     {
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.PP_LineSchedule
                    (LineID, ScheduleDate, WoID, StartMin, EndMin, PlannedQty, PatternID,
-                    EntryType, Title, RefType, RefID, Status, MoldID, CreatedBy, CreatedTS)
+                    EntryType, Title, RefType, RefID, Status, MoldID, ItemNo, CreatedBy, CreatedTS)
             VALUES (@LineId, @Date, @WoId, @Start, @End, @Qty, @Pattern,
-                    @EntryType, @Title, @RefType, @RefID, @Status, @MoldId, @By, SYSDATETIME());
+                    @EntryType, @Title, @RefType, @RefID, @Status, @MoldId, @ItemNo, @By, SYSDATETIME());
             """, conn, tx);
         cmd.Parameters.Add("@LineId",    SqlDbType.VarChar, 20).Value  = lineId;
         cmd.Parameters.Add("@Date",      SqlDbType.Date).Value         = date.Date;
@@ -245,6 +256,7 @@ public sealed class LineScheduleRepository
         cmd.Parameters.Add("@RefID",     SqlDbType.Int).Value          = (object?)refId ?? DBNull.Value;
         cmd.Parameters.Add("@Status",    SqlDbType.VarChar, 20).Value  = status;
         cmd.Parameters.Add("@MoldId",    SqlDbType.VarChar, 20).Value  = (object?)moldId ?? DBNull.Value;
+        cmd.Parameters.Add("@ItemNo",    SqlDbType.VarChar, 20).Value  = (object?)itemNo ?? DBNull.Value;
         cmd.Parameters.Add("@By",        SqlDbType.VarChar, 20).Value  = actor;
         cmd.ExecuteNonQuery();
     }
@@ -451,10 +463,14 @@ public sealed class LineScheduleRepository
         }
     }
 
-    /// <summary>호출자 트랜잭션 안에서 WO 슬롯 1행 추가(DRAFT). 그 날의 다른 행은 건드리지 않는다.</summary>
+    /// <summary>호출자 트랜잭션 안에서 WO 슬롯 1행 추가(DRAFT). 그 날의 다른 행은 건드리지 않는다. itemNo = 슬롯이 만드는 품번(NULL 이면 단계 품번 → WO 품번).</summary>
     internal static void AppendWoSlot(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date,
-        string? patternId, int woId, int startMin, int endMin, decimal qty, string? moldId, string actor)
-        => InsertRow(conn, tx, lineId, date, patternId, "WO", woId, startMin, endMin, qty, null, null, null, "DRAFT", actor, moldId);
+        string? patternId, int woId, int startMin, int endMin, decimal qty, string? moldId, string actor, string? itemNo = null)
+        => InsertRow(conn, tx, lineId, date, patternId, "WO", woId, startMin, endMin, qty, null, null, null, "DRAFT", actor, moldId, itemNo);
+
+    /// <summary>슬롯 품번 해석 — 별칭 s = PP_LineSchedule, w = PP_WorkOrder. FROM 절 뒤에 <see cref="SlotItemApply"/> 를 붙이고 <see cref="SlotItemExpr"/> 로 읽는다.</summary>
+    internal const string SlotItemApply = "OUTER APPLY (SELECT TOP 1 r0.ItemNo FROM dbo.PP_WorkOrderRouting r0 WHERE r0.WoID = s.WoID AND r0.LineID = s.LineID ORDER BY r0.StepSeq) sti";
+    internal const string SlotItemExpr  = "COALESCE(s.ItemNo, sti.ItemNo, w.ItemNo)";
 
     /// <summary>금형 교체 블록 1행(EntryType MC, WoID 없음, RefType WO/RefID = 뒤따르는 WO). WO 취소 시 같이 지워진다.</summary>
     internal static void AppendMoldChangeSlot(SqlConnection conn, SqlTransaction tx, string lineId, DateTime date,

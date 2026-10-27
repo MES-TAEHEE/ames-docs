@@ -1096,6 +1096,11 @@ public class ApsWoCreateTests
             Assert.Equal(new[] { K, K2 }, p1.Placements.Where(x => x.LineId == LineInj).Select(x => x.ItemNo).Distinct().OrderBy(x => x).ToArray());
             Assert.Equal(new[] { K }, p2.Placements.Where(x => x.LineId == LineInj).Select(x => x.ItemNo).Distinct().ToArray());
             Assert.All(p1.Placements.Where(x => x.LineId == LineImg), x => Assert.Null(x.ItemNo));
+            // 사출 슬롯 행에 자식 품번이 남는다 — APS 등록 계획·POP PLAN 이 부모 품번 × QtyPer 로 다시 곱하지 않게(10-27)
+            Assert.Equal(200m, Convert.ToDecimal(Scalar(f, "SELECT SUM(PlannedQty) FROM dbo.PP_LineSchedule WHERE WoID = @W AND LineID = @L AND ItemNo = @I;",
+                                                          ("@W", p1.WoId), ("@L", LineInj), ("@I", K2))));
+            Assert.Equal(0, (int)Scalar(f, "SELECT COUNT(*) FROM dbo.PP_LineSchedule WHERE WoID IN (@A, @B) AND LineID = @L AND EntryType = 'WO' AND ItemNo IS NULL;",
+                                        ("@A", p1.WoId), ("@B", p2.WoId), ("@L", LineInj))!);
 
             Assert.Equal(p1.WoId, (int)Scalar(f, "SELECT WoID FROM dbo.PP_ApsPlanLine WHERE PlanLineID = @P;", ("@P", plK))!);   // 품번순 첫 부모
             Assert.Equal(p1.WoId, (int)Scalar(f, "SELECT WoID FROM dbo.PP_ApsPlanLine WHERE PlanLineID = @P;", ("@P", plK2))!);

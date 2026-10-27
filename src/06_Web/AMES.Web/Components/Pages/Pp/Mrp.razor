@@ -408,6 +408,13 @@ else
             Reload();
             ShowMsg(string.Format(L["PP.Mrp.Ok.Bulk"].Value, created.Count), false);
         }
+        catch (PpRepository.MrpRunStaleException)
+        {
+            CloseModal();
+            _selected.Clear();
+            Reload();
+            ShowMsg(L["PP.Mrp.Err.StaleRun"].Value, true);
+        }
         catch (Exception ex) { ShowMsg(string.Format(L["Err.LoadFailed"].Value, ex.Message), true); }
     }
 

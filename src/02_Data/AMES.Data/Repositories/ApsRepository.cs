@@ -729,13 +729,16 @@ public sealed class ApsRepository
     /// <summary>등록 계획(스펙 §4.5): 기준일~마지막 날의 WO 슬롯(취소 WO 제외, 수량 &gt; 0). 0분 형제 슬롯도 수량은 센다.</summary>
     static List<SlotRow> ReadRegisteredSlots(SqlConnection conn, SqlTransaction tx, DateOnly from, DateOnly to)
     {
-        using var cmd = new SqlCommand("""
-            SELECT s.LineID, s.ScheduleDate, w.ItemNo, ISNULL(s.StartMin, 0) AS StartMin, ISNULL(s.PlannedQty, 0) AS PlannedQty, w.WoID, w.WoNumber
+        // 슬롯 품번 = 슬롯 ItemNo(APS BOM 규칙 사출 슬롯의 자식 품번) → 그 라인 단계 품번(PP-003 사출 단계 = 코어) → WO 품번(10-27).
+        // 전에는 WO 헤더 품번만 읽어 자식 단위 슬롯 수량에 ParentSlotsFor 가 QtyPer 를 다시 곱했다
+        using var cmd = new SqlCommand($"""
+            SELECT s.LineID, s.ScheduleDate, {LineScheduleRepository.SlotItemExpr} AS ItemNo, ISNULL(s.StartMin, 0) AS StartMin, ISNULL(s.PlannedQty, 0) AS PlannedQty, w.WoID, w.WoNumber
             FROM   dbo.PP_LineSchedule s
             JOIN   dbo.PP_WorkOrder w ON w.WoID = s.WoID
+            {LineScheduleRepository.SlotItemApply}
             WHERE  s.EntryType = 'WO' AND ISNULL(w.Status, '') <> 'Cancelled'
               AND  s.ScheduleDate BETWEEN @From AND @To
-              AND  s.LineID IS NOT NULL AND w.ItemNo IS NOT NULL
+              AND  s.LineID IS NOT NULL AND {LineScheduleRepository.SlotItemExpr} IS NOT NULL
               AND  ISNULL(s.PlannedQty, 0) > 0;
             """, conn, tx);
         cmd.Parameters.Add("@From", SqlDbType.Date).Value = Dt(from);
@@ -897,18 +900,24 @@ public sealed class ApsRepository
         }
     }
 
-    /// <summary>(품번, 공정, 라인, 전기일) 별 SUM(GoodQty) — 역분개 −1 행 포함 순생산. 전기일 = 직전 근무일·기준일 두 날만.</summary>
+    /// <summary>(품번, 공정, 라인, 전기일) 별 SUM(GoodQty) — 역분개 −1 행 포함 순생산. 전기일 = 직전 근무일·기준일 두 날만.
+    /// 품번 = 실적 LOT 품번 → WO 단계 품번 → WO 품번(생산 보고서와 같은 규칙, 10-27) — 전에는 WO 품번으로만 묶어 WO 없이 만든 생산·BOM 자식 사출 실적이 빠졌다.</summary>
     static Dictionary<(string Item, string Proc, string? Line, DateOnly Date), decimal> ReadProduced(
         SqlConnection conn, SqlTransaction tx, IReadOnlyList<string> items, DateOnly prev, DateOnly baseDate)
     {
         var map = new Dictionary<(string, string, string?, DateOnly), decimal>();
         foreach (var cmd in ChunkedIn(conn, tx, items, inList => $"""
-            SELECT w.ItemNo, r.ProcessCode, r.LineID, r.ProdDate, ISNULL(SUM(ISNULL(r.GoodQty, 0)), 0) AS Qty
-            FROM   dbo.PR_ProductionResult r
-            JOIN   dbo.PP_WorkOrder w ON w.WoID = r.WoID
-            WHERE  r.ProdDate IN (@D0, @D1) AND r.ProcessCode IS NOT NULL
-              AND  w.ItemNo IN ({inList})
-            GROUP  BY w.ItemNo, r.ProcessCode, r.LineID, r.ProdDate;
+            SELECT it.ItemNo, x.ProcessCode, x.LineID, x.ProdDate, ISNULL(SUM(x.Qty), 0) AS Qty
+            FROM  (SELECT r.ProcessCode, r.LineID, r.ProdDate, ISNULL(r.GoodQty, 0) AS Qty, r.WoID, r.LotID
+                   FROM   dbo.PR_ProductionResult r
+                   WHERE  r.ProdDate IN (@D0, @D1) AND r.ProcessCode IS NOT NULL) x
+            LEFT JOIN dbo.tbl_Lot      l ON l.LotID = x.LotID
+            LEFT JOIN dbo.PP_WorkOrder w ON w.WoID  = x.WoID
+            OUTER APPLY (SELECT TOP 1 rt.ItemNo FROM dbo.PP_WorkOrderRouting rt
+                         WHERE rt.WoID = x.WoID AND rt.LineID = x.LineID AND rt.ItemNo IS NOT NULL ORDER BY rt.StepSeq) st
+            CROSS APPLY (SELECT COALESCE(l.ItemNo, st.ItemNo, w.ItemNo) AS ItemNo) it
+            WHERE  it.ItemNo IN ({inList})
+            GROUP  BY it.ItemNo, x.ProcessCode, x.LineID, x.ProdDate;
             """, c =>
             {
                 c.Parameters.Add("@D0", SqlDbType.Date).Value = Dt(baseDate);

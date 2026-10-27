@@ -745,6 +745,7 @@ public sealed partial class PpRepository
         using var tx = conn.BeginTransaction();
         try
         {
+            LockWoCreation(conn, tx);
             var now   = ReadNow(conn, tx);
             var today = now.Date;
             int nowMin = now.Hour * 60 + now.Minute;
@@ -768,6 +769,7 @@ public sealed partial class PpRepository
 
             var seq = NextWoSeq(conn, tx, prefix);
             using var ins = BuildInsertWoForOrder(conn, tx, actor, useNetReq);
+            var siblingSlots = new List<SiblingSlot>();   // 이 일괄 생성에서 앞 수주가 시간을 받은 사출 슬롯 — 같은 금형·색상 형제 품번이 얹는다
             foreach (var plan in ordered)
             {
                 if (so.GetValueOrDefault(plan.SoId) is not { } key) continue;
@@ -815,20 +817,78 @@ public sealed partial class PpRepository
                     })
                     .ToList();
 
-                var packed = DeadlinePacker.Pack(demands, today, nowMin, deadline, key.Due, cal, days);
+                // 같은 금형·색상으로 한 샷에 함께 찍히는 형제 품번(LH/RH)이 앞 수주에서 이미 시간을 받았으면 그 슬롯에 0분 슬롯으로 얹는다 —
+                // 전에는 수주마다 사출 시간을 따로 잡아 2캐비티 금형이 실제의 두 배 시간을 썼다(10-27, APS 형제 규칙과 같음). 전량이 덮일 때만 얹는다
+                var riders = new List<DeadlinePacker.Placement>();
+                var first  = demands.FirstOrDefault();
+                var firstT = first is null ? null : template.FirstOrDefault(t => t.StepSeq == first.StepSeq);
+                var firstM = first is null ? null : molds.GetValueOrDefault(first.StepSeq);
+                if (first is not null && firstT is not null && firstM is not null && MoldResolver.NeedsMold(firstT.ProcessCode)
+                    && TryRideSiblings(siblingSlots, first.LineId, firstM.MoldId, firstM.Color, firstT.ItemNo, qty, today, first.StepSeq) is { } ride)
+                {
+                    foreach (var r in ride)
+                        LineScheduleRepository.AppendWoSlot(conn, tx, r.LineId, r.Date, days.Get(r.LineId, r.Date).PatternId,
+                                                            woId, r.StartMin, r.StartMin, r.Qty, null, actor, r.ItemNo);
+                    riders.AddRange(ride);
+                    demands = demands.Skip(1).ToList();
+                }
+                var startDay = riders.Count > 0 && riders[0].Date > today ? riders[0].Date : today;
+                var startMin = riders.Count == 0 ? nowMin : startDay > today ? riders[0].StartMin : Math.Max(nowMin, riders[0].StartMin);
+
+                var packed = demands.Count == 0
+                    ? new DeadlinePacker.Result(Array.Empty<DeadlinePacker.Placement>(), Array.Empty<DeadlinePacker.StepShortfall>(), Array.Empty<DeadlinePacker.MoldChange>())
+                    : DeadlinePacker.Pack(demands, startDay, startMin, deadline, key.Due, cal, days);
                 foreach (var m in packed.MoldChanges)
                     LineScheduleRepository.AppendMoldChangeSlot(conn, tx, m.LineId, m.Date, days.Get(m.LineId, m.Date).PatternId,
                                                                 woId, m.FromMoldId, m.ToMoldId, m.StartMin, m.EndMin, actor);
                 foreach (var p in packed.Placements)
                     LineScheduleRepository.AppendWoSlot(conn, tx, p.LineId, p.Date, days.Get(p.LineId, p.Date).PatternId,
                                                         woId, p.StartMin, p.EndMin, p.Qty, p.MoldId, actor);
+                if (riders.Count == 0 && first is not null && firstT is not null && firstM is not null && MoldResolver.NeedsMold(firstT.ProcessCode))
+                    siblingSlots.AddRange(packed.Placements
+                        .Where(p => p.StepSeq == first.StepSeq && p.EndMin > p.StartMin)
+                        .Select(p => new SiblingSlot(p.LineId, p.Date, p.StartMin, p.Qty, firstM.MoldId, firstM.Color, firstT.ItemNo)));
 
-                orders.Add(new OrderOutcome(wo, plan.SoId, deadline, key.Due, packed.Placements, packed.Shortfalls, packed.MoldChanges));
+                orders.Add(new OrderOutcome(wo, plan.SoId, deadline, key.Due, riders.Concat(packed.Placements).ToList(), packed.Shortfalls, packed.MoldChanges));
             }
             tx.Commit();
             return new(orders, rejected);
         }
         catch { tx.Rollback(); throw; }
+    }
+
+    /// <summary>PP-003 일괄 생성 안에서 시간을 받은 사출 슬롯 — Used = 형제 품번별로 이미 얹은 수량.</summary>
+    sealed record SiblingSlot(string LineId, DateTime Date, int StartMin, decimal Qty, string MoldId, string? Color, string ItemNo)
+    {
+        public Dictionary<string, decimal> Used { get; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// 같은 라인·금형·색상의 다른 품번 슬롯(오늘 이후)이 남은 몫으로 qty 를 전부 덮으면 날짜·시각 순으로 나눠 얹을 0분 슬롯 목록, 아니면 null.
+    /// 한 샷에 형제 품번이 같이 나오므로 덮는 양 = 그 슬롯 수량(2캐비티 LH/RH 는 캐비티가 같다).
+    /// </summary>
+    static List<DeadlinePacker.Placement>? TryRideSiblings(List<SiblingSlot> slots, string lineId, string moldId, string? color,
+                                                           string itemNo, decimal qty, DateTime today, int stepSeq)
+    {
+        var cands = slots.Where(x => string.Equals(x.LineId, lineId, StringComparison.OrdinalIgnoreCase)
+                                  && string.Equals(x.MoldId, moldId, StringComparison.OrdinalIgnoreCase)
+                                  && string.Equals(x.Color ?? "", color ?? "", StringComparison.OrdinalIgnoreCase)
+                                  && !string.Equals(x.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)
+                                  && x.Date >= today.Date)
+                         .OrderBy(x => x.Date).ThenBy(x => x.StartMin).ToList();
+        if (qty <= 0 || cands.Sum(x => x.Qty - x.Used.GetValueOrDefault(itemNo)) < qty) return null;
+        var list = new List<DeadlinePacker.Placement>();
+        decimal rest = qty;
+        foreach (var c in cands)
+        {
+            if (rest <= 0) break;
+            var take = Math.Min(rest, c.Qty - c.Used.GetValueOrDefault(itemNo));
+            if (take <= 0) continue;
+            c.Used[itemNo] = c.Used.GetValueOrDefault(itemNo) + take;
+            list.Add(new DeadlinePacker.Placement(stepSeq, c.LineId, c.Date, c.StartMin, c.StartMin, take, false, null, 0, itemNo));
+            rest -= take;
+        }
+        return list;
     }
 
     internal static DateTime ReadNow(SqlConnection conn, SqlTransaction? tx)
@@ -949,11 +1009,28 @@ public sealed partial class PpRepository
     }
 
     /// <summary>
+    /// WO 생성(PP-003 일괄 생성·PP-APS WO 생성) 직렬화 — 트랜잭션 시작 직후 잡는다(10-27). 두 경로는 수주 잔량(기발행 WO)과
+    /// 기존 슬롯 수량을 잠금 없이 읽은 뒤에야 채번 잠금을 잡아, 동시에 돌면 같은 수주를 초과 배정했다. 미리보기(dryRun)도 같은 잠금을 기다린다.
+    /// 앞 실행이 30초 안에 끝나지 않으면 예외.
+    /// </summary>
+    internal static void LockWoCreation(SqlConnection conn, SqlTransaction tx)
+    {
+        using var cmd = new SqlCommand("""
+            DECLARE @rc int;
+            EXEC @rc = sp_getapplock @Resource = 'AMES-PP-WO-CREATE', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 30000;
+            IF @rc < 0 THROW 52110, 'Another work order creation is running. Try again shortly.', 1;
+            """, conn, tx);
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>
     /// 접두사 내 마지막 채번 번호. UPDLOCK/HOLDLOCK으로 트랜잭션 종료까지 범위를 잠가
     /// 동시 생성 시 중복 채번을 방지한다 (WoNumber 유니크 인덱스가 최종 방어선).
     /// </summary>
     internal static int NextWoSeq(SqlConnection conn, SqlTransaction tx, string prefix)
     {
+        // (방어선) 수주 잔량·기존 슬롯을 읽기 전에 LockWoCreation 을 잡는 것이 주된 직렬화다
+
         using var cmd = new SqlCommand("""
             SELECT ISNULL(MAX(TRY_CAST(SUBSTRING(WoNumber, LEN(@P) + 1, 10) AS INT)), 0)
             FROM   dbo.PP_WorkOrder WITH (UPDLOCK, HOLDLOCK)
@@ -1001,6 +1078,10 @@ public sealed partial class PpRepository
 
     /// <summary>PR 생성 요청. Qty 가 null 이면 결과 행의 부족량을 그대로 쓴다.</summary>
     public sealed record MrpPrRequest(string ItemNo, decimal? Qty = null);
+
+    /// <summary>PR 을 만들려는 MRP 실행이 최신 완료 실행이 아니다 — 화면을 다시 불러와야 한다.</summary>
+    public sealed class MrpRunStaleException(int runId)
+        : InvalidOperationException($"MRP run {runId} is not the latest completed run.");
 
     /// <summary>열린 WO 상태 — Completed/Closed/Stocked/Cancelled 는 자재 수요가 없다.</summary>
     const string MrpOpenWoWhere = $"ISNULL(w.Status,'Draft') NOT IN ({WoStatusRules.FinishedSqlList}) AND w.ItemNo IS NOT NULL";
@@ -1193,6 +1274,8 @@ public sealed partial class PpRepository
     /// 요청 행마다 PP_PurchaseRequest(Draft, 수량 = 요청 수량(기본 부족량), 필요일 = 발주 기한 → 최단 WO 납기 → 오늘, WoID = 최단 납기 WO) 를 만들고
     /// 결과 행에 연결한다(요청 수량만큼 부족 → 발주중 이관, 부족량보다 적으면 잔여 부족이 남는다). 이미 PR 이 있거나
     /// 부족이 아닌 품번은 건너뛴다. 수량이 0 이하면 전체 거부. 한 트랜잭션.
+    /// 최신 완료 실행이 아니면 <see cref="MrpRunStaleException"/> — 화면을 연 사이 MRP 를 다시 돌렸으면 옛 결과로 PR 을 만들지 않는다(10-27:
+    /// 옛 실행으로 만든 PR 은 새 실행의 발주중에 없어 같은 부족분 PR 이 또 생겼다). 실행 뒤에 만들어진 열린 PR 이 있는 품번도 건너뛴다.
     /// </summary>
     public List<MrpPrCreated> CreateShortagePrs(int runId, IReadOnlyCollection<MrpPrRequest> requests, string by)
     {
@@ -1203,6 +1286,20 @@ public sealed partial class PpRepository
 
         using var conn = _f.OpenConnection();
         using var tx   = conn.BeginTransaction();
+        DateTime runAt;
+        using (var chk = new SqlCommand("""
+            SELECT l.RunAt,
+                   (SELECT MAX(x.MrpRunID) FROM dbo.PP_MRPLog x WITH (UPDLOCK, HOLDLOCK) WHERE x.Status = 'Completed') AS Latest
+            FROM   dbo.PP_MRPLog l
+            WHERE  l.MrpRunID = @R;
+            """, conn, tx))
+        {
+            chk.Parameters.Add("@R", SqlDbType.Int).Value = runId;
+            using var rdr = chk.ExecuteReader();
+            if (!rdr.Read() || rdr["Latest"] is not int latest || latest != runId)
+            { rdr.Close(); tx.Rollback(); throw new MrpRunStaleException(runId); }
+            runAt = (DateTime)rdr["RunAt"];
+        }
         // WO-yyyyMMdd-NNN 과 같은 일별 채번 — 연 단위 3자리는 부족 자재마다 PR 이 나와 금방 소진된다
         var prefix = $"PR-{DbClock.Today:yyyyMMdd}-";
         var seq = NextPrSeq(conn, tx, prefix);
@@ -1220,10 +1317,14 @@ public sealed partial class PpRepository
                         JOIN dbo.PP_WorkOrder w ON w.WoID = rw.WoID
                         WHERE rw.MrpRunID = r.MrpRunID AND rw.ItemNo = r.ItemNo) AS WoDue
                 FROM   dbo.PP_MRPResult r WITH (UPDLOCK, HOLDLOCK)
-                WHERE  r.MrpRunID = @R AND r.ItemNo = @I AND r.PrID IS NULL AND r.ShortageQty > 0;
+                WHERE  r.MrpRunID = @R AND r.ItemNo = @I AND r.PrID IS NULL AND r.ShortageQty > 0
+                  AND  NOT EXISTS (SELECT 1 FROM dbo.PP_PurchaseRequest p
+                                   WHERE p.ItemNo = r.ItemNo AND p.SapPoNumber IS NULL AND p.Status IN ('Draft','Sent','Approved')
+                                     AND p.CreatedTS > @RunAt);
                 """, conn, tx);
             sel.Parameters.Add("@R", SqlDbType.Int).Value = runId;
             sel.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = itemNo;
+            sel.Parameters.Add("@RunAt", SqlDbType.DateTime2).Value = runAt;
             decimal shortage; DateTime? orderDue, woDue; int? woId;
             using (var rdr = sel.ExecuteReader())
             {

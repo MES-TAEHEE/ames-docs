@@ -14,21 +14,26 @@ public sealed record BackflushAllocation(IReadOnlyList<BackflushNet> Nets, IRead
 /// <summary>
 /// BOM 자동 차감 규칙(순수). 소요 = 유효 BOM 의 활성 MATERIAL 자식 × (1 + 스크랩%) × 1 EA,
 /// 배분 = 라인 재고 FIFO → 모자라면 자리표시 LOT(음수 허용). 사용자 결정 2026-10-15.
-/// PNT 는 사출품 자식(InjFlag 1)도 뺀다 — 코어 스캔이 없어 IMG 의 ConsumeCore 를 대신한다(2026-10-22 사용자 결정, <see cref="IncludesInjection"/>).
+/// PNT·IMG 는 사출품 자식(InjFlag 1)도 뺀다(<see cref="IncludesInjection"/>) — PNT 는 코어 스캔이 없어 IMG 의 ConsumeCore 를 대신하고(2026-10-22),
+/// IMG 는 스캔한 코어 품번만 빼고(ConsumeCore 가 이미 지움) 레일 등 나머지 사출품을 뺀다(2026-10-27 — 전에는 레일 재고가 쌓이기만 했다).
 /// </summary>
 public static class BackflushRules
 {
     public const string MaterialType = "MATERIAL";
 
     public const string InjectionConsumingProcess = "PNT";
+    public const string CoreScanningProcess       = "IMG";
 
     public static string PlaceholderLotNo(string linePrefix, string partNo) => $"BF-{linePrefix}-{partNo}";
 
-    /// <summary>그 공정의 확정·재작업 수리가 BOM 사출품 자식까지 빼는지 — PNT 만.</summary>
+    /// <summary>그 공정의 확정·재작업 수리가 BOM 사출품 자식까지 빼는지 — PNT·IMG(IMG 는 스캔한 코어 품번 제외 — <c>exceptItems</c>).</summary>
     public static bool IncludesInjection(string? processCode)
-        => string.Equals(processCode, InjectionConsumingProcess, StringComparison.OrdinalIgnoreCase);
+        => string.Equals(processCode, InjectionConsumingProcess, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(processCode, CoreScanningProcess, StringComparison.OrdinalIgnoreCase);
 
-    public static IReadOnlyList<BackflushRequirement> Requirements(IEnumerable<BackflushBomRow> rows, bool includeInjection = false)
+    /// <param name="exceptItems">이미 다른 경로로 소모된 자식 품번(IMG 가 스캔한 코어) — 빼지 않는다.</param>
+    public static IReadOnlyList<BackflushRequirement> Requirements(IEnumerable<BackflushBomRow> rows, bool includeInjection = false,
+                                                                   IReadOnlyCollection<string>? exceptItems = null)
     {
         var sum   = new Dictionary<string, (decimal Qty, string? Uom)>(StringComparer.OrdinalIgnoreCase);
         var order = new List<string>();
@@ -37,6 +42,7 @@ public static class BackflushRules
             if (!r.Active || r.QtyPer <= 0m) continue;
             var material  = string.Equals(r.ItemType, MaterialType, StringComparison.OrdinalIgnoreCase);
             if (!material && !(includeInjection && r.InjFlag)) continue;
+            if (exceptItems is not null && exceptItems.Contains(r.CompItemNo, StringComparer.OrdinalIgnoreCase)) continue;
             var qty = r.QtyPer * (1m + r.ScrapPct / 100m);
             if (sum.TryGetValue(r.CompItemNo, out var cur)) sum[r.CompItemNo] = (cur.Qty + qty, cur.Uom ?? r.Uom);
             else { sum[r.CompItemNo] = (qty, r.Uom); order.Add(r.CompItemNo); }

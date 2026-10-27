@@ -16,6 +16,7 @@ public sealed class PalletStockRepository
 {
     public const string ConfirmSourceType = "PROD_CONFIRM";
     public const string CoreUseSourceType = "IMG_CORE";
+    public const string CoreVoidSourceType = "IMG_VOID";
     /// <summary>라인 불량 팝업 등록이 팔레트에서 뺀 LOT 의 OUT 거래 SourceType(SourceID = 그 LotID).</summary>
     public const string DefectSourceType  = "POP_DEFECT";
     /// <summary>재작업 스테이션 폐기가 팔레트에서 뺀 LOT 의 OUT 거래 SourceType — 불량 등록이 이미 뺐으면 아무것도 쓰지 않는 안전망.</summary>
@@ -155,19 +156,64 @@ public sealed class PalletStockRepository
     internal static void ConsumeCore(SqlConnection conn, SqlTransaction tx, int finishedLotId, string coreLotCode, string coreItemNo,
                                      string operatorId)
     {
-        decimal before;
+        decimal before; string? locationNo;
         using (var cmd = new SqlCommand("""
             DELETE dbo.WH_Inventory
-            OUTPUT DELETED.Qty
+            OUTPUT DELETED.Qty, DELETED.LocationNo
             WHERE  LotNo = @L;
             """, conn, tx))
         {
             ColumnParams.AddFilter(cmd, "@L", "WH_Inventory.LotNo", coreLotCode);
-            if (cmd.ExecuteScalar() is not decimal q || q <= 0m) return;
-            before = q;
+            using var r = cmd.ExecuteReader();
+            if (!r.Read() || r["Qty"] is not decimal q || q <= 0m) return;
+            before = q; locationNo = r["LocationNo"] as string;
         }
         WriteTxn(conn, tx, "OUT", CoreUseSourceType, finishedLotId, coreLotCode, coreItemNo, before, -before, 0m,
-                 $"{coreLotCode} {coreItemNo} → IMG", operatorId, operatorId);
+                 $"{coreLotCode} {coreItemNo} → IMG", operatorId, operatorId, locationNo);
+    }
+
+    /// <summary>
+    /// IMG 발행 취소 트랜잭션 안에서: <see cref="ConsumeCore"/> 가 지운 코어 재고를 낱개 행(팔레트 없음, 위치 = 소모 때 위치 — 대개 NULL)으로 되살리고
+    /// IN 거래(<see cref="CoreVoidSourceType"/>)를 남긴다(10-27). 코어는 이미 팔레트에서 빼 감싸기 공정에 있으므로 팔레트로 되돌리지 않는다 —
+    /// 다시 스캔하면 다른 완제품으로 쓸 수 있다. 소모 거래가 없거나(옛 코어) 재고 행이 이미 있으면 아무것도 하지 않는다.
+    /// </summary>
+    internal static void RestoreCore(SqlConnection conn, SqlTransaction tx, int finishedLotId, string finishedLotCode,
+                                     string coreLotCode, string coreItemNo, string operatorId, string employeeNo)
+    {
+        decimal qty; string? locationNo;
+        using (var cmd = new SqlCommand("""
+            SELECT TOP 1 -t.QtyChange AS Qty, t.LocationNo
+            FROM   dbo.WH_InventoryTransaction t
+            WHERE  t.SourceType = @S AND t.SourceID = @Src AND t.LotNo = @L AND t.TransactionType = 'OUT'
+            ORDER  BY t.TransactionID DESC;
+            """, conn, tx))
+        {
+            ColumnParams.AddFilter(cmd, "@S",   "WH_InventoryTransaction.SourceType", CoreUseSourceType);
+            ColumnParams.AddFilter(cmd, "@Src", "WH_InventoryTransaction.SourceID",   finishedLotId);
+            ColumnParams.AddFilter(cmd, "@L",   "WH_InventoryTransaction.LotNo",      coreLotCode);
+            using var r = cmd.ExecuteReader();
+            if (!r.Read() || r["Qty"] is not decimal q || q <= 0m) return;
+            qty = q; locationNo = r["LocationNo"] as string;
+        }
+        using (var cmd = new SqlCommand("""
+            IF NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory WITH (UPDLOCK, HOLDLOCK) WHERE LotNo = @L)
+            BEGIN
+                INSERT dbo.WH_Inventory (LotNo, UnitType, ParentLotNo, PartNo, PartName, PalletNo, LocationNo, Qty, ReceivedAt, CreatedAt, UpdatedAt)
+                SELECT @L, 'PART', NULL, @I, (SELECT TOP 1 ItemName FROM dbo.MD_Item WHERE ItemNo = @I), NULL, @Loc, @Q,
+                       SYSDATETIME(), SYSDATETIME(), SYSDATETIME();
+                SELECT 1;
+            END
+            ELSE SELECT 0;
+            """, conn, tx))
+        {
+            ColumnParams.Add(cmd, "@L",   "WH_Inventory.LotNo",      coreLotCode);
+            ColumnParams.Add(cmd, "@I",   "WH_Inventory.PartNo",     coreItemNo);
+            ColumnParams.Add(cmd, "@Loc", "WH_Inventory.LocationNo", (object?)locationNo ?? DBNull.Value);
+            ColumnParams.Add(cmd, "@Q",   "WH_Inventory.Qty",        qty);
+            if (Convert.ToInt32(cmd.ExecuteScalar()) == 0) return;
+        }
+        WriteTxn(conn, tx, "IN", CoreVoidSourceType, finishedLotId, coreLotCode, coreItemNo, 0m, qty, qty,
+                 $"{coreLotCode} {coreItemNo} ← VOID {finishedLotCode}", operatorId, employeeNo, locationNo);
     }
 
     /// <summary>

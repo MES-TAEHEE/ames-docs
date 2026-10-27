@@ -122,7 +122,7 @@ public sealed class RptRepository
             LEFT JOIN dbo.PP_WorkOrder w ON w.WoID   = s.WoID
             OUTER APPLY (SELECT TOP 1 rt.ItemNo FROM dbo.PP_WorkOrderRouting rt
                          WHERE rt.WoID = s.WoID AND rt.LineID = s.LineID AND rt.ItemNo IS NOT NULL ORDER BY rt.StepSeq) st
-            CROSS APPLY (SELECT COALESCE(st.ItemNo, w.ItemNo) AS ItemNo) it
+            CROSS APPLY (SELECT COALESCE(s.ItemNo, st.ItemNo, w.ItemNo) AS ItemNo) it
             LEFT JOIN dbo.MD_Item      i ON i.ItemNo = it.ItemNo
             WHERE   s.ScheduleDate = @D
               AND   ISNULL(s.Status, '') <> 'CANCELLED'

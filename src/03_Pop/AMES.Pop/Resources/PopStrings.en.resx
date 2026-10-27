@@ -83,6 +83,12 @@
   <data name="Input" xml:space="preserve"><value>INPUT</value></data>
   <data name="LabelAutoDispatchStopped" xml:space="preserve"><value>Auto label dispatch stopped after printer errors. Press Reprint to resume.</value></data>
   <data name="LabelReprinted" xml:space="preserve"><value>Label reprinted</value></data>
+  <data name="VoidLot" xml:space="preserve"><value>Void</value></data>
+  <data name="VoidLotTitle" xml:space="preserve"><value>Void LOT</value></data>
+  <data name="VoidLotBody" xml:space="preserve"><value>Void label {0}? The core goes back to stock and can be scanned again; this LOT number is not reused. Discard the printed label.</value></data>
+  <data name="LotVoided" xml:space="preserve"><value>LOT voided</value></data>
+  <data name="VoidNotRaw" xml:space="preserve"><value>A judged LOT cannot be voided</value></data>
+  <data name="VoidFailed" xml:space="preserve"><value>Void failed</value></data>
   <data name="LastMaintenance" xml:space="preserve"><value>Last Maintenance</value></data>
   <data name="Limit5" xml:space="preserve"><value>limit 5%</value></data>
   <data name="Line" xml:space="preserve"><value>LINE</value></data>

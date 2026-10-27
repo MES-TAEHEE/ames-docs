@@ -44,6 +44,26 @@ public class AndonRaiseConcurrencyDbTests
         finally { Clean(f!); }
     }
 
+    [SkippableFact]
+    public void Raise_does_not_open_a_second_downtime_when_the_line_is_already_down()
+    {
+        var f = AmesDevDb.TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Clean(f!);
+        try
+        {
+            // 웹 PP-DTL·MNT-002 라인 정지가 연 비가동 — 안돈이 겹쳐 열면 그 시간을 두 번 센다(10-27)
+            AmesDevDb.Exec(f!, """
+                INSERT INTO dbo.PP_LineDowntimeLog (LineID, StartTS, ReasonCode, Comment, LoggedBy, CreatedBy, CreatedTS)
+                VALUES (@L, DATEADD(minute, -10, SYSDATETIME()), 'MACHINE', N'ITEST open', 'ITEST', 'ITEST', SYSDATETIME());
+                """, ("@L", Line));
+            var id = new AndonRepository(f!).Raise(Line, null, "MANUAL", "ITEST", null, "ITEST");
+            Assert.True(id > 0);
+            Assert.Equal(1, (int)AmesDevDb.Scalar(f!, "SELECT COUNT(*) FROM dbo.PP_LineDowntimeLog WHERE LineID = @L", ("@L", Line))!);
+            Assert.Equal(0, (int)AmesDevDb.Scalar(f!, "SELECT COUNT(*) FROM dbo.PP_LineDowntimeLog WHERE AndonID = @A", ("@A", id))!);
+        }
+        finally { Clean(f!); }
+    }
+
     static void Clean(AMES.Data.Connection.AmesConnectionFactory f)
         => AmesDevDb.Exec(f, """
             DELETE dbo.PR_AndonPush WHERE AndonID IN (SELECT AndonID FROM dbo.PR_AndonCall WHERE LineID = @L);

@@ -116,6 +116,57 @@ public sealed class ImgLotRepository
         catch { tx.Rollback(); throw; }
     }
 
+    public enum VoidOutcome { Voided, NotFound, WrongLine, NotRaw }
+
+    /// <summary>
+    /// 판정 전(RAW) IMG LOT 발행 취소 — 좌측에서 다른 색을 고른 채 코어를 찍는 등 잘못 발행한 라벨을 되돌린다(10-27).
+    /// 한 트랜잭션: LOT 잠금·상태 확인 → 코어 재고 되살리기(<see cref="PalletStockRepository.RestoreCore"/>) → PR_ImgLot·tbl_Lot 행 삭제
+    /// (실적·불량·팔레트·차감은 RAW 에 없다). 코어 연결이 풀려 같은 코어를 다시 스캔할 수 있고, LotNo 는 결번이 된다. 출력된 라벨은 버린다.
+    /// </summary>
+    public VoidOutcome VoidRawLot(string lotCode, string lineId, string operatorId, string employeeNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            int lotId; string? lotLine, status, coreCode, coreItem;
+            using (var cmd = new SqlCommand("""
+                SELECT l.LotID, l.LineID, e.ConfirmStatus, p.LotCode AS CoreCode, p.ItemNo AS CoreItem
+                FROM   dbo.tbl_Lot l WITH (UPDLOCK, ROWLOCK)
+                JOIN   dbo.PR_ImgLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
+                LEFT JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID
+                WHERE  l.LotCode = @Code AND l.ProcessCode = 'IMG';
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
+                using var rdr = cmd.ExecuteReader();
+                if (!rdr.Read()) { rdr.Close(); tx.Rollback(); return VoidOutcome.NotFound; }
+                lotId    = (int)rdr["LotID"];
+                lotLine  = rdr["LineID"] as string;
+                status   = rdr["ConfirmStatus"] as string;
+                coreCode = rdr["CoreCode"] as string;
+                coreItem = rdr["CoreItem"] as string;
+            }
+            if (!string.Equals(lotLine, lineId, StringComparison.OrdinalIgnoreCase)) { tx.Rollback(); return VoidOutcome.WrongLine; }
+            if (!string.Equals(status, LotDefectRules.Raw, StringComparison.OrdinalIgnoreCase)) { tx.Rollback(); return VoidOutcome.NotRaw; }
+
+            if (coreCode is not null && coreItem is not null)
+                PalletStockRepository.RestoreCore(conn, tx, lotId, lotCode, coreCode, coreItem, operatorId, employeeNo);
+
+            using (var cmd = new SqlCommand("""
+                DELETE dbo.PR_ImgLot WHERE LotID = @Lot;
+                DELETE dbo.tbl_Lot   WHERE LotID = @Lot;
+                """, conn, tx))
+            {
+                cmd.Parameters.Add("@Lot", SqlDbType.Int).Value = lotId;
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+            return VoidOutcome.Voided;
+        }
+        catch { tx.Rollback(); throw; }
+    }
+
     static bool LotExists(SqlConnection conn, SqlTransaction tx, string lotCode)
     {
         using var cmd = new SqlCommand("SELECT 1 FROM dbo.tbl_Lot WHERE LotCode = @Code;", conn, tx);
@@ -644,8 +695,9 @@ public sealed class ImgLotRepository
                 cmd.ExecuteNonQuery();
             }
 
-            // BOM 자동 차감(완제품 BOM 의 MATERIAL 자식) — 실패해도 확정은 커밋된다(세이브포인트)
-            backflush = BackflushRepository.Apply(conn, tx, lotId, lotCode, itemNo, lineId, operatorId, employeeNo);
+            // BOM 자동 차감(완제품 BOM 의 MATERIAL·사출품 자식, 스캔한 코어 품번 제외) — 실패해도 확정은 커밋된다(세이브포인트)
+            backflush = BackflushRepository.Apply(conn, tx, lotId, lotCode, itemNo, lineId, operatorId, employeeNo,
+                                                  BackflushRules.IncludesInjection(BackflushRules.CoreScanningProcess));
 
             if (stepId is int step) WorkOrderRepository.BumpStepCompleted(conn, tx, step, 1m, operatorId);
 

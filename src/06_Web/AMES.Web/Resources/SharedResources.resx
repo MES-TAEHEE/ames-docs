@@ -7449,6 +7449,9 @@
   <data name="PP.Mrp.Ok.Bulk" xml:space="preserve">
     <value>부족 자재 {0}건의 PR 을 생성했습니다. PP-006 에서 SAP B1 전송 대기.</value>
   </data>
+  <data name="PP.Mrp.Err.StaleRun" xml:space="preserve">
+    <value>화면을 연 뒤 MRP 가 다시 실행돼 결과가 바뀌었습니다 — 최신 결과를 불러왔으니 다시 선택해 주세요.</value>
+  </data>
   <data name="PP.Mrp.Ok.Reset" xml:space="preserve">
     <value>필터를 초기화했습니다.</value>
   </data>

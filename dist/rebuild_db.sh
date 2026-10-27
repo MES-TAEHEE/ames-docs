@@ -188,6 +188,7 @@ FILES=(
   migrate_fg_lot_defect_permission.sql # Separate Warehouse inventory defect permission
   migrate_wh_pda_test_permission.sql # Hidden Web receipt test in the existing Permission Matrix
   migrate_drop_md_mold_color.sql     # MD_MoldColor 삭제 — 금형 제품 색상은 MD_MoldItem.Color 직접 입력(10-16)
+  migrate_pp_lineschedule_item.sql   # PP_LineSchedule.ItemNo — 슬롯이 만드는 품번(10-27), 감사 컬럼 정렬 앞
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
   migrate_pop_stored_procedures.sql  # AMES.Pop 인라인 SQL -> dbo.SP_POP_* 저장 프로시저 145개(10-21) — 신 Pop/Web/Api 보다 먼저
   migrate_pop_confirm_perf_index.sql # POP 확정 경로 인덱스 — 실적 LotID·사출 LOT 설비×캐비티×LotID(10-27), 순서 무관
