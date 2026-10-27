@@ -12603,6 +12603,7 @@
   </data>
   <data name="SYS.Notifications.Kpi.Tip" xml:space="preserve">
     <value>Últimas 24 horas de todo el historial (a {0}) — enviados por hora de envío, fallidos por último intento (estado fallido/error)</value>
+  </data>
   <data name="PP.SupplyPlanImport.Err.PartialConfirm" xml:space="preserve">
     <value>{0} confirmados, {1} fallidos — vuelva a seleccionar los fallidos para confirmarlos. ({2})</value>
   </data>

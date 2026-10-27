@@ -12603,6 +12603,7 @@
   </data>
   <data name="SYS.Notifications.Kpi.Tip" xml:space="preserve">
     <value>최근 24시간(기준 {0}) 전체 이력 기준 — 발송 = 발송 시각, 실패 = 마지막 시도 시각(실패·오류 상태)</value>
+  </data>
   <data name="PP.SupplyPlanImport.Err.PartialConfirm" xml:space="preserve">
     <value>{0}건 확정, {1}건 실패 — 실패한 건은 다시 선택해 확정하세요. ({2})</value>
   </data>
