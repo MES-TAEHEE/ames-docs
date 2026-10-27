@@ -236,8 +236,10 @@
                 return;
             }
             _lot = result.Row;
-            ShowModal("Release Complete", $"Serial {lot.SerialNo} was released."
-                + (string.IsNullOrWhiteSpace(_workOrderNo) ? "" : $" Work order: {_workOrderNo}."), "success");
+            _message = $"Serial {lot.SerialNo} was released."
+                + (string.IsNullOrWhiteSpace(_workOrderNo) ? "" : $" Work order: {_workOrderNo}.");
+            _messageClass = "ok";
+            ShowModal("Release Complete", _message, "success");
         }
         catch (Exception ex) { ShowModal("Release Failed", ex.Message, "fail"); }
         finally { _busy = false; }
@@ -252,7 +254,9 @@
             var result = await Api.CancelMoveAsync(serial, "OUT", "PDA spare parts release cancellation");
             if (!result.Success) { ShowModal("Cancellation Failed", result.Message, "fail"); return; }
             _lot = result.Row;
-            ShowModal("Release Cancelled", $"Release for {serial} was cancelled and returned to stock.", "success");
+            _message = $"Release for {serial} was cancelled and returned to stock.";
+            _messageClass = "ok";
+            ShowModal("Release Cancelled", _message, "success");
         }
         catch (Exception ex) { ShowModal("Cancellation Failed", ex.Message, "fail"); }
         finally { _busy = false; }
