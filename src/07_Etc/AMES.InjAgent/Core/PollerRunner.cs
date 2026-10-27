@@ -12,6 +12,7 @@ public sealed class PollerRunner : IDisposable
     private readonly Action<string> _log;
     private CancellationTokenSource? _cts;
     private Task? _loop;
+    private readonly object _gate = new();
 
     public PollerRunner(MachinePoller poller, int pollingMs, Action<string> log)
     {
@@ -25,52 +26,76 @@ public sealed class PollerRunner : IDisposable
 
     public void Start()
     {
-        if (IsRunning) return;
-        _poller.ResetForRestart();                 // fresh baseline — 정지 중 카운터 변화가 유령 샷이 되지 않게
-        var cts = new CancellationTokenSource();
-        _cts = cts;
-        _loop = Task.Run(async () =>
+        lock (_gate)
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(_pollingMs));
-            try
+            if (IsRunning) return;
+            _poller.ResetForRestart();                 // fresh baseline — 정지 중 카운터 변화가 유령 샷이 되지 않게
+            var cts = new CancellationTokenSource();
+            _cts = cts;
+            _loop = Task.Run(async () =>
             {
-                while (await timer.WaitForNextTickAsync(cts.Token).ConfigureAwait(false))
+                using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(_pollingMs));
+                try
                 {
-                    try { _poller.PollOnce(); }
-                    catch (Exception ex) { _log($"[{_poller.Status.EquipId}] Polling error: {ex.Message}"); }
+                    while (await timer.WaitForNextTickAsync(cts.Token).ConfigureAwait(false))
+                    {
+                        try { _poller.PollOnce(); }
+                        catch (Exception ex) { _log($"[{_poller.Status.EquipId}] Polling error: {ex.Message}"); }
+                    }
                 }
-            }
-            catch (OperationCanceledException) { /* 정상 종료 */ }
-        });
+                catch (OperationCanceledException) { /* 정상 종료 */ }
+            });
+        }
         _log($"[{_poller.Status.EquipId}] Polling started");
     }
 
     public void Stop()
     {
-        if (_cts is null) return;
-        var cts = _cts;
-        var loop = _loop;
-        _cts = null;
+        CancellationTokenSource cts;
+        Task? loop;
+        lock (_gate)
+        {
+            if (_cts is null) return;
+            cts = _cts;
+            loop = _loop;
+            _cts = null;
+        }
         cts.Cancel();
         bool finished = true;
         try { finished = loop?.Wait(2000) ?? true; }
         catch (AggregateException) { finished = true; }
+
         if (finished)
         {
-            _loop = null;
+            lock (_gate)
+            {
+                if (ReferenceEquals(_loop, loop)) _loop = null;
+            }
             cts.Dispose();
+            ReleaseSockets();
+            _log($"[{_poller.Status.EquipId}] Polling stopped — sockets released");
+            return;
         }
-        else
+
+        // 소켓 I/O 에 막힌 PollOnce 가 아직 끝나지 않았다. 도는 중에는 상태·소켓을 건드리지 않고,
+        // 루프가 끝난 뒤에 정리한다(_loop 를 유지해 IsRunning=true 로 재시작을 막는다).
+        loop!.ContinueWith(_ =>
         {
-            // 소켓 I/O 에 막힌 in-flight PollOnce 가 아직 안 끝났다 — _loop 를 유지해
-            // IsRunning=true 로 재-Start 를 막고, 루프가 취소 플래그로 종료되면 그때 CTS 정리.
-            loop!.ContinueWith(_ => cts.Dispose(), TaskScheduler.Default);
-        }
+            lock (_gate)
+            {
+                cts.Dispose();
+                if (!ReferenceEquals(_loop, loop)) return;   // 그사이 다시 시작했다 — 새 세션을 건드리지 않는다
+                _loop = null;
+                ReleaseSockets();
+            }
+        }, TaskScheduler.Default);
+        _log($"[{_poller.Status.EquipId}] Stop requested — waiting for in-flight poll to finish (START available after it ends)");
+    }
+
+    void ReleaseSockets()
+    {
         _poller.ResetForRestart();
         _poller.DisconnectClients();
-        _log(finished
-            ? $"[{_poller.Status.EquipId}] Polling stopped — sockets released"
-            : $"[{_poller.Status.EquipId}] Stop requested — waiting for in-flight poll to finish (START available after it ends)");
     }
 
     public void Dispose()

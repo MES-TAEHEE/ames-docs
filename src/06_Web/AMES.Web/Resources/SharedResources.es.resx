@@ -2502,6 +2502,24 @@
   <data name="PP.WorkOrder.Ok.Cancelled" xml:space="preserve">
     <value>{0} cancelado — materiales reservados liberados.</value>
   </data>
+  <data name="PP.WorkOrder.Btn.ForceClose" xml:space="preserve">
+    <value>Cierre forzado</value>
+  </data>
+  <data name="PP.WorkOrder.ForceClose.Title" xml:space="preserve">
+    <value>Cierre forzado de OT</value>
+  </data>
+  <data name="PP.WorkOrder.ForceClose.Confirm" xml:space="preserve">
+    <value>¿Cerrar {0} · {1} en {2} / {3}? La cantidad restante no se producirá y se eliminan los turnos planificados desde mañana (los de hoy se mantienen).</value>
+  </data>
+  <data name="PP.WorkOrder.Ok.ForceClosed" xml:space="preserve">
+    <value>{0} cerrada — se eliminaron los turnos desde mañana.</value>
+  </data>
+  <data name="PP.WorkOrder.Err.ForceCloseRejected" xml:space="preserve">
+    <value>{0} no está en proceso y no se cerró — revise la lista de nuevo.</value>
+  </data>
+  <data name="PP.WorkOrder.Err.CancelRejected" xml:space="preserve">
+    <value>{0} no se canceló — ya tiene producción o cambió su estado. Use Cierre forzado si está en proceso.</value>
+  </data>
   <data name="PP.WorkOrder.Ok.ManualCreated" xml:space="preserve">
     <value>OT Manual {0} creada (Borrador).</value>
   </data>
@@ -12585,5 +12603,10 @@
   </data>
   <data name="SYS.Notifications.Kpi.Tip" xml:space="preserve">
     <value>Últimas 24 horas de todo el historial (a {0}) — enviados por hora de envío, fallidos por último intento (estado fallido/error)</value>
+  <data name="PP.SupplyPlanImport.Err.PartialConfirm" xml:space="preserve">
+    <value>{0} confirmados, {1} fallidos — vuelva a seleccionar los fallidos para confirmarlos. ({2})</value>
+  </data>
+  <data name="PP.Aps.Wo.Err.NoRight" xml:space="preserve">
+    <value>Solo los usuarios con permiso de edición o aprobación pueden ver la vista previa.</value>
   </data>
 </root>

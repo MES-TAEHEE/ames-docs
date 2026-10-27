@@ -9,6 +9,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
 @using AMES.Contracts.Dto
 
 <PageTitle>PP-004 @L["PP.WorkOrder.Title"] · AMES</PageTitle>
@@ -128,6 +129,11 @@ else
                     {
                         <RadzenButton Text="@L["PP.WorkOrder.Btn.Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Danger"
                                       Size="ButtonSize.ExtraSmall" Click="@(() => Cancel(w))" />
+                    }
+                    else if (_canApprove && w.Status == "In Progress")
+                    {
+                        <RadzenButton Text="@L["PP.WorkOrder.Btn.ForceClose"].Value" Icon="stop_circle" ButtonStyle="ButtonStyle.Warning"
+                                      Size="ButtonSize.ExtraSmall" Click="@(() => ForceClose(w))" />
                     }
                 </Template>
             </RadzenDataGridColumn>
@@ -287,7 +293,7 @@ else
 
     async Task Release(WorkOrderDto w)
     {
-        if (!_canEdit) return;   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
+        if (!_canApprove) return;   // 릴리스는 승인 권한(A) — 버튼과 같은 기준   // 버튼을 숨겨도 핸들러에서 한 번 더 막는다
 
         var result = await Dialog.OpenAsync<WoReleaseLineDialog>(
             $"{L["PP.WorkOrder.Btn.Release"].Value} · {w.WoNumber}",
@@ -302,6 +308,7 @@ else
         try
         {
             var n = Wos.ReleaseWo(w.WoId, r.Steps, await Actor());
+            Audit.Log("PP-004", "RELEASE", "PP_WorkOrder", w.WoNumber, null, null);
             if (n > 0) ShowMsg(string.Format(L["PP.WorkOrder.Ok.Released"].Value, w.WoNumber), false);
             Reload();
         }
@@ -310,7 +317,7 @@ else
 
     async Task Cancel(WorkOrderDto w)
     {
-        if (!_canEdit) return;
+        if (!_canApprove) return;   // 취소도 승인 권한(A) — 버튼과 같은 기준
 
         var ok = await Dialog.Confirm(
             string.Format(L["PP.WorkOrder.Cancel.Confirm"].Value, w.WoNumber, w.ItemNo, w.OrderQty.ToString("#,0")),
@@ -320,7 +327,36 @@ else
         try
         {
             var n = Wos.CancelWo(w.WoId, await Actor());
-            if (n > 0) ShowMsg(string.Format(L["PP.WorkOrder.Ok.Cancelled"].Value, w.WoNumber), false);
+            if (n > 0)
+            {
+                Audit.Log("PP-004", "CANCEL", "PP_WorkOrder", w.WoNumber, new { w.Status }, new { Status = "Cancelled" });
+                ShowMsg(string.Format(L["PP.WorkOrder.Ok.Cancelled"].Value, w.WoNumber), false);
+            }
+            else ShowMsg(string.Format(L["PP.WorkOrder.Err.CancelRejected"].Value, w.WoNumber), true);
+            Reload();
+        }
+        catch (Exception ex) { ShowMsg(ex.Message, true); }
+    }
+
+    async Task ForceClose(WorkOrderDto w)
+    {
+        if (!_canApprove) return;   // 강제 마감도 승인 권한(A) — 버튼과 같은 기준
+
+        var ok = await Dialog.Confirm(
+            string.Format(L["PP.WorkOrder.ForceClose.Confirm"].Value, w.WoNumber, w.ItemNo,
+                          w.CompletedQty.ToString("#,0"), w.OrderQty.ToString("#,0")),
+            L["PP.WorkOrder.ForceClose.Title"].Value,
+            new ConfirmOptions { OkButtonText = L["PP.WorkOrder.Btn.ForceClose"].Value, CancelButtonText = L["Btn.Cancel"].Value });
+        if (ok != true) return;
+        try
+        {
+            var r = Wos.ForceCloseWo(w.WoId, await Actor());
+            if (r == WorkOrderRepository.ForceCloseResult.Closed)
+            {
+                Audit.Log("PP-004", "FORCE_CLOSE", "PP_WorkOrder", w.WoNumber, new { w.Status, w.CompletedQty }, new { Status = "Closed", w.CompletedQty });
+                ShowMsg(string.Format(L["PP.WorkOrder.Ok.ForceClosed"].Value, w.WoNumber), false);
+            }
+            else ShowMsg(string.Format(L["PP.WorkOrder.Err.ForceCloseRejected"].Value, w.WoNumber), true);
             Reload();
         }
         catch (Exception ex) { ShowMsg(ex.Message, true); }
@@ -358,14 +394,14 @@ else
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine(string.Join(",", new[] {
-            L["Col.WoNo"].Value, L["Col.Item"].Value, L["Col.Line"].Value, L["Col.Routing"].Value,
+            L["Col.WoNo"].Value, L["Col.PartNo"].Value, L["Col.Item"].Value, L["Col.Line"].Value, L["Col.Routing"].Value,
             L["Col.Order"].Value, L["Col.Done"].Value, L["Col.Progress"].Value,
             L["PP.PlanConfirm.Col.Due"].Value, L["Col.Status"].Value, "SAP SO" }.Select(Csv)));
 
         foreach (var w in _view)
         {
             sb.AppendLine(string.Join(",", new[] {
-                w.WoNumber, w.ItemName, w.RouteLines ?? "", w.RoutingType ?? "INJ",
+                w.WoNumber, w.ItemNo, w.ItemName, w.RouteLines ?? "", w.RoutingType ?? "INJ",
                 w.OrderQty.ToString("0.###"), w.CompletedQty.ToString("0.###"), ((int)w.ProgressPct) + "%",
                 w.DueDate?.ToString("yyyy-MM-dd") ?? "", w.Status, w.SoNumber ?? "" }.Select(Csv)));
         }

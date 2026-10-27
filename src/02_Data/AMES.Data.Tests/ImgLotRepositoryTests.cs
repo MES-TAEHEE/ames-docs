@@ -36,7 +36,7 @@ public class ImgLotRepositoryTests
         using var conn = f.OpenConnection();
         using var cmd = new SqlCommand("""
             IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @C)
-                INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ActiveFlag, CreatedBy) VALUES (@C, N'CORE-ITEST img core', 'SUB', 1, 'ITEST');
+                INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, InjFlag, ActiveFlag, CreatedBy) VALUES (@C, N'CORE-ITEST img core', 'SUB', 1, 1, 'ITEST');
             IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @F)
                 INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, RoutingType, PGN, ALC, MountPos, ActiveFlag, CreatedBy)
                 VALUES (@F, N'ITEST img fg', 'ASSY', 'A', 'QTST', 'T001', 'FL', 1, 'ITEST');
@@ -44,7 +44,7 @@ public class ImgLotRepositoryTests
                 INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, RoutingType, PGN, ALC, MountPos, ActiveFlag, CreatedBy)
                 VALUES (@B, N'ITEST img fg B', 'ASSY', 'A', 'QTST', 'T002', 'FL', 1, 'ITEST');
             IF NOT EXISTS (SELECT 1 FROM dbo.MD_Item WHERE ItemNo = @C2)
-                INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, ActiveFlag, CreatedBy) VALUES (@C2, N'CORE-ITEST img core B', 'SUB', 1, 'ITEST');
+                INSERT INTO dbo.MD_Item (ItemNo, ItemName, ItemType, InjFlag, ActiveFlag, CreatedBy) VALUES (@C2, N'CORE-ITEST img core B', 'SUB', 1, 1, 'ITEST');
             """, conn);
         cmd.Parameters.AddWithValue("@C", Core); cmd.Parameters.AddWithValue("@F", Fg); cmd.Parameters.AddWithValue("@B", FgB);
         cmd.Parameters.AddWithValue("@C2", CoreB);

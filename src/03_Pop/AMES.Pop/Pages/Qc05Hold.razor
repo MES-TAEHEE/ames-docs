@@ -128,10 +128,10 @@
         if (string.IsNullOrWhiteSpace(_reason)) { SetStatus("Reason required.", "fail"); return; }
         try
         {
-            PopServices.Qc.ReleaseHold(_sel, _action, _reason,
+            var done = PopServices.Qc.ReleaseHold(_sel, _action, _reason,
                                         Session?.OperatorId ?? "system",
                                         Session?.EmployeeNo ?? "Q000");
-            SetStatus($"✓ Hold #{_sel} → {_action}", "ok");
+            SetStatus(done ? $"✓ Hold #{_sel} → {_action}" : $"× Hold #{_sel} is no longer Held — nothing changed", done ? "ok" : "fail");
             _sel = 0; _reason = "";
             Refresh();
         }

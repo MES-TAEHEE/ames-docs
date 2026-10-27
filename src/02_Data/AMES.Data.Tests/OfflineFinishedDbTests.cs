@@ -178,7 +178,7 @@ public class OfflineFinishedDbTests
             var names = new List<string>();
             using (var cmd = new SqlCommand("SELECT TOP 80 ItemNo FROM dbo.MD_Item WHERE ISNULL(ActiveFlag,1) = 1 ORDER BY ItemNo", conn))
             using (var r = cmd.ExecuteReader()) while (r.Read()) names.Add((string)r[0]);
-            finished = names.FirstOrDefault(n => CoreItemResolver.Read(conn, null, n).Outcome != CoreItemResolver.Outcome.Core);
+            finished = names.FirstOrDefault(n => CoreItemResolver.ReadByInjFlag(conn, null, n).Outcome != CoreItemResolver.Outcome.Core);
         }
         Skip.If(finished is null, "no suitable finished item in this DB");
 

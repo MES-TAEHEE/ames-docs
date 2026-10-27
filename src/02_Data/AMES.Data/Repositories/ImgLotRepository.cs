@@ -168,7 +168,7 @@ public sealed class ImgLotRepository
                 if (string.IsNullOrEmpty(finishedItemNo) || !ItemExists(conn, tx, finishedItemNo))
                 { tx.Rollback(); return (ImgCoreOutcome.NoFinishedItem, null, null, itemNo); }
                 // BOM 이 코어를 정할 수 있는 품번이면 스캔한 코어와 맞아야 한다. 못 정하는 품번(Self·Missing·Ambiguous)은 선택을 믿는다.
-                var bom = CoreItemResolver.Read(conn, tx, finishedItemNo);
+                var bom = CoreItemResolver.ReadByInjFlag(conn, tx, finishedItemNo);
                 if (bom.Outcome == CoreItemResolver.Outcome.Core && !string.Equals(bom.CoreItemNo, itemNo, StringComparison.OrdinalIgnoreCase))
                 { tx.Rollback(); return (ImgCoreOutcome.CoreMismatch, null, null, itemNo); }
                 finishedItem = finishedItemNo;
@@ -442,7 +442,7 @@ public sealed class ImgLotRepository
         using var conn = _factory.OpenConnection();
         foreach (var item in finishedItems.Where(i => !string.IsNullOrEmpty(i)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            var r = CoreItemResolver.Read(conn, null, item);
+            var r = CoreItemResolver.ReadByInjFlag(conn, null, item);
             map[item] = new BomCoreRow(r.Outcome.ToString(), r.CoreItemNo);
         }
         return map;

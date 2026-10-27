@@ -149,10 +149,11 @@
         if (_sel == 0) return;
         try
         {
-            PopServices.Qc.FinalizeInspection(_sel, verdict,
+            var done = PopServices.Qc.FinalizeInspection(_sel, verdict,
                                                Session?.OperatorId ?? "system",
                                                Session?.EmployeeNo ?? "Q000");
-            SetStatus($"✓ #{_sel} → {verdict}", verdict == "PASS" ? "ok" : "fail");
+            if (done) SetStatus($"✓ #{_sel} → {verdict}", verdict == "PASS" ? "ok" : "fail");
+            else SetStatus($"× #{_sel} already finalized — verdict not changed", "fail");
             Refresh();
         }
         catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }

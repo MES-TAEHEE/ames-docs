@@ -116,8 +116,8 @@
             (var oN, var aH, var oC) = PopServices.Qc.GetDashboardCounts();
             _openNcr = oN; _activeHold = aH; _openCapa = oC;
             var insp = PopServices.Qc.ListInspections("", 100);
-            _passToday = insp.Count(i => i.Verdict == "PASS" && i.InsStartTs.Date == DbClock.Today);
-            _failToday = insp.Count(i => i.Verdict == "FAIL" && i.InsStartTs.Date == DbClock.Today);
+            _passToday = insp.Count(i => i.Verdict == "PASS" && PopDay.Of(i.InsStartTs) == PopDay.Today);
+            _failToday = insp.Count(i => i.Verdict == "FAIL" && PopDay.Of(i.InsStartTs) == PopDay.Today);
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc07] {ex.Message}"); }
     }

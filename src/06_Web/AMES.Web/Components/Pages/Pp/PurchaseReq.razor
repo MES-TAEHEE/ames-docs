@@ -17,6 +17,7 @@
 @inject AuthenticationStateProvider AuthPrvd
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
+@inject AMES.Web.Services.AuditLogger Audit
 
 <PageTitle>PP-006 @L["PP.PurchaseReq.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="PP-006" TitleKey="PP.PurchaseReq.Title" />
@@ -343,6 +344,9 @@ else
     }
 
     // 전송·승인·실패·거래처 지정이 모두 이 한 곳을 지난다 — 버튼을 숨겨도 여기서 한 번 더 막는다
+    void AuditPr(string action, int prId, object? after)
+        => Audit.Log("PP-006", action, "PP_PurchaseRequest", prId, null, after);
+
     void Run(Action action, Func<string> okMsg)
     {
         if (!_canEdit) return;
@@ -357,7 +361,8 @@ else
     {
         if (_sel is null) return;
         var pr = PrNo(_sel);
-        Run(() => Pp.SendPrs(new[] { _sel.PrId }, _actDocNum, _actor), () => string.Format(L["PP.PurchaseReq.Ok.Sent"].Value, 1) + $" · {pr}");
+        Run(() => { Pp.SendPrs(new[] { _sel.PrId }, _actDocNum, _actor); AuditPr("SEND", _sel.PrId, new { DocNum = _actDocNum }); },
+            () => string.Format(L["PP.PurchaseReq.Ok.Sent"].Value, 1) + $" · {pr}");
     }
 
     void FailOne()
@@ -365,7 +370,8 @@ else
         if (_sel is null) return;
         if (string.IsNullOrWhiteSpace(_actReason)) { ShowMsg(L["PP.PurchaseReq.Err.Reason"], true); return; }
         var pr = PrNo(_sel); var n = _sel.RetryCount + 1;
-        Run(() => Pp.FailPr(_sel.PrId, _actReason!, _actor), () => string.Format(L["PP.PurchaseReq.Ok.Failed"].Value, pr, n));
+        Run(() => { Pp.FailPr(_sel.PrId, _actReason!, _actor); AuditPr("FAIL", _sel.PrId, new { Reason = _actReason }); },
+            () => string.Format(L["PP.PurchaseReq.Ok.Failed"].Value, pr, n));
     }
 
     void ApproveOne()
@@ -373,7 +379,8 @@ else
         if (_sel is null || !_canApprove) return;
         if (string.IsNullOrWhiteSpace(_actPo)) { ShowMsg(L["PP.PurchaseReq.Err.PoNo"], true); return; }
         var pr = PrNo(_sel); var po = _actPo!.Trim();
-        Run(() => Pp.ApprovePr(_sel.PrId, po, _actor), () => string.Format(L["PP.PurchaseReq.Ok.Approved"].Value, pr, po));
+        Run(() => { Pp.ApprovePr(_sel.PrId, po, _actor); AuditPr("APPROVE", _sel.PrId, new { PoNumber = po }); },
+            () => string.Format(L["PP.PurchaseReq.Ok.Approved"].Value, pr, po));
     }
 
     void SaveVendor()
@@ -396,7 +403,11 @@ else
         var ids = SelectedRows.Select(r => r.PrId).ToList();
         CloseModal();
         var n = 0;
-        Run(() => n = Pp.SendPrs(ids, null, _actor).Count, () => string.Format(L["PP.PurchaseReq.Ok.Sent"].Value, n));
+        Run(() =>
+        {
+            n = Pp.SendPrs(ids, null, _actor).Count;
+            foreach (var id in ids) AuditPr("SEND", id, null);
+        }, () => string.Format(L["PP.PurchaseReq.Ok.Sent"].Value, n));
         _selected.Clear();
     }
 

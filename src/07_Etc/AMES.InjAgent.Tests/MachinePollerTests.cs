@@ -31,8 +31,20 @@ public class MachinePollerTests
         public bool EnsureConnected() => true;
         public bool RefreshBlock() => true;
         public int  ReadBit(int word, int bit) => Bits.TryGetValue((word, bit), out var v) ? v : 0;
-        public bool WriteBit(int point, bool on) { BitWrites.Add((point, on)); return true; }
-        public bool WriteString(int addr, string value) { StringWrites.Add((addr, value)); return true; }
+        public Func<int, bool>? FailBit;      // true 를 돌려주면 그 비트 쓰기는 실패한다
+        public Func<int, bool>? FailString;   // true 를 돌려주면 그 주소의 문자열 쓰기는 실패한다
+        public bool WriteBit(int point, bool on)
+        {
+            if (FailBit?.Invoke(point) == true) return false;
+            BitWrites.Add((point, on));
+            return true;
+        }
+        public bool WriteString(int addr, string value)
+        {
+            if (FailString?.Invoke(addr) == true) return false;
+            StringWrites.Add((addr, value));
+            return true;
+        }
         public void Disconnect() { }
 
         public void SetJudgement(int word, int item, string result)
@@ -68,13 +80,21 @@ public class MachinePollerTests
             int id = _nextLotId++;
             return (id, $"LOT-{id}-{map.CavityPos}");
         }
+        public bool ThrowAfterSave;     // 커밋은 됐는데 응답만 예외
+        public bool FailMarkNg;
         public void SaveInspection(int lotId, string equipId, string cavityPos,
             string p1, string p2, string p3, string p4, bool overallNg)
         {
             if (FailSaveInspection) throw new InvalidOperationException("db down");
             Inspections.Add((lotId, overallNg));
+            if (ThrowAfterSave) throw new InvalidOperationException("commit done, reply lost");
         }
-        public void MarkNgBlocked(int lotId) => NgBlocked.Add(lotId);
+        public void MarkNgBlocked(int lotId)
+        {
+            if (FailMarkNg) throw new InvalidOperationException("ng mark db error");
+            NgBlocked.Add(lotId);
+        }
+        public int CountInspections(int lotId, string cavityPos) => Inspections.Count(i => i.LotId == lotId);
         public List<InjCondItemDto> GetCondItems(string lineId) => CondItems;
         public void InsertCondLog(string lineId, string itemCode, long shotSeq, decimal? s, decimal? a)
             => CondLogs.Add((itemCode, shotSeq, s, a));
@@ -126,19 +146,62 @@ public class MachinePollerTests
     }
 
     [Fact]
-    public void Mold_code_change_alone_triggers_shot()
+    public void Shot_count_jump_creates_lot_for_every_skipped_shot()
     {
         var (poller, m, _, s) = Build();
         m.ShotCount = 55;
-        m.MoldRaw = "LQ2DTMDCBK";
         poller.PollOnce();               // baseline
 
-        m.MoldRaw = "LQ2DTRUCBK";
-        // 매핑 추가
-        s.Map.Add(new MoldItemDto { MoldCode = "LQ2DTRU", ColorCode = "CBK", CavityNo = 1, CavityPos = "LH", ItemNo = "I3", MoldId = "MOLD-2" });
+        m.ShotCount = 58;                // 56·57·58 세 샷이 한 폴링 사이에 지나감
         poller.PollOnce();
-        Assert.Single(s.Created);
-        Assert.Equal("LQ2DTRU", s.Created[0].Map.MoldCode);
+
+        Assert.Equal(6, s.Created.Count);                                         // 3샷 × 2캐비티
+        Assert.Equal(new long[] { 56, 56, 57, 57, 58, 58 }, s.Created.Select(c => c.Shot).ToArray());
+    }
+
+    [Fact]
+    public void Mold_code_change_alone_creates_no_lot()
+    {
+        var (poller, m, r, s) = Build();
+        m.ShotCount = 55;
+        poller.PollOnce();              // baseline
+        m.MoldRaw = "LQ2DTMDCBK2";      // 샷은 그대로, 금형 코드만 바뀜
+        poller.PollOnce();
+
+        Assert.Empty(s.Created);        // LOT 은 만들지 않는다
+    }
+
+    [Fact]
+    public void Mold_code_change_keeps_the_in_progress_lot_and_its_judgment()
+    {
+        var (poller, m, r, s) = Build();
+        m.ShotCount = 55; poller.PollOnce();
+        m.ShotCount = 56; poller.PollOnce();      // LOT 생성, 검사 armed
+        m.MoldRaw = "LQ2DTMDCBK2";                // 금형 코드만 바뀜 — 진행 중 LOT 은 그대로
+        poller.PollOnce();
+
+        for (int item = 0; item < 4; item++) r.SetJudgement(5007, item, "OK");
+        poller.PollOnce();                        // 진행 중 LOT 의 판정은 버려지지 않는다
+        Assert.Single(s.Inspections);
+
+        // 로봇에 다시 보내는 금형 코드도 그 LOT 의 것(옛 금형)이어야 한다
+        Assert.All(r.StringWrites.Where(w => w.Addr == 5700), w => Assert.Equal("LQ2DTMDCBK", w.Value));
+    }
+
+    [Fact]
+    public void Counter_reset_creates_no_lot_and_counts_from_the_new_baseline()
+    {
+        var (poller, m, _, s) = Build();
+        m.ShotCount = 55; poller.PollOnce();
+        m.ShotCount = 56; poller.PollOnce();    // 정상 샷 → LOT 2개(LH·RH)
+        Assert.Equal(2, s.Created.Count);
+
+        m.ShotCount = 3; poller.PollOnce();     // 리셋 → LOT 추가 없음
+        Assert.Equal(2, s.Created.Count);
+
+        m.ShotCount = 4; poller.PollOnce();     // 새 기준선 3 에서 +1 → LOT 2개 추가
+        Assert.Equal(4, s.Created.Count);
+        Assert.All(s.Created.Skip(2), c => Assert.Equal(4, c.Shot));
     }
 
     [Fact]
@@ -250,6 +313,103 @@ public class MachinePollerTests
         var press = s.CondLogs.Single(c => c.Item == "PRESS");
         Assert.Equal(850m, press.Set);
         Assert.Equal(847m, press.Act);
+    }
+
+    [Fact]
+    public void Failed_lot_creation_is_retried_and_succeeds()
+    {
+        var (poller, m, _, s) = Build();
+        m.ShotCount = 1; poller.PollOnce();
+        int tries = 0;
+        s.FailCreateFor = map => map.CavityPos == "LH" && tries++ < 1;   // 첫 시도만 실패
+        m.ShotCount = 2; poller.PollOnce();
+
+        Assert.Contains(s.Created, c => c.Map.CavityPos == "LH");
+        Assert.Equal(0, poller.Status.MissingLots);
+    }
+
+    [Fact]
+    public void Lot_still_failing_after_retries_is_reported_as_missing()
+    {
+        var (poller, m, _, s) = Build();
+        m.ShotCount = 1; poller.PollOnce();
+        int tries = 0;
+        s.FailCreateFor = map => { if (map.CavityPos == "LH") tries++; return map.CavityPos == "LH"; };
+        m.ShotCount = 2; poller.PollOnce();
+
+        Assert.Equal(3, tries);                                   // 3번 시도 후 포기
+        Assert.Equal(1, poller.Status.MissingLots);               // 화면에 LOT 없음으로 표시
+        Assert.Contains(s.Created, c => c.Map.CavityPos == "RH"); // RH 는 영향 없음
+    }
+
+    [Fact]
+    public void Failed_robot_lot_write_keeps_ack_bit_off_until_all_values_are_sent()
+    {
+        var (poller, m, r, _) = Build();
+        m.ShotCount = 1; poller.PollOnce();
+        int tries = 0;
+        r.FailString = addr => addr == 5100 && tries++ < 1;      // 1st LOT 쓰기가 한 번 실패
+        m.ShotCount = 2; poller.PollOnce();
+
+        Assert.DoesNotContain(r.BitWrites, w => w.Point == 32);  // 값이 빠진 채 켜지 않는다
+        poller.PollOnce();                                       // 다음 주기에 다시 보낸다
+        Assert.Contains(r.StringWrites, w => w.Addr == 5100);
+        Assert.Contains(r.BitWrites, w => w.Point == 32 && w.On);
+        Assert.Equal(0, poller.Status.RobotWriteFailures);
+    }
+
+    [Fact]
+    public void Failed_inspection_ack_is_retried_without_saving_again()
+    {
+        var (poller, m, r, s) = Build();
+        m.ShotCount = 1; poller.PollOnce();
+        m.ShotCount = 2; poller.PollOnce();                      // LOT 생성, 검사 armed
+        int tries = 0;
+        r.FailBit = point => point == 33 && tries++ < 1;         // 첫 응답 쓰기만 실패
+        for (int item = 0; item < 4; item++) r.SetJudgement(5007, item, "OK");
+        poller.PollOnce();                                       // 저장은 되고 응답은 실패
+
+        Assert.Single(s.Inspections);
+        Assert.DoesNotContain(r.BitWrites, w => w.Point == 33);
+        Assert.Equal(1, poller.Status.RobotWriteFailures);
+
+        poller.PollOnce();                                       // 저장 없이 응답만 다시 쓴다
+        Assert.Single(s.Inspections);
+        Assert.Contains(r.BitWrites, w => w.Point == 33 && w.On);
+        Assert.Equal(0, poller.Status.RobotWriteFailures);
+    }
+
+    [Fact]
+    public void Ng_mark_failure_after_save_does_not_save_the_inspection_again()
+    {
+        var (poller, m, r, s) = Build();
+        m.ShotCount = 1; poller.PollOnce();
+        m.ShotCount = 2; poller.PollOnce();
+        s.FailMarkNg = true;
+        for (int item = 0; item < 4; item++) r.SetJudgement(5007, item, "NG");
+        poller.PollOnce();                       // 저장 OK, NG 차단 실패
+        s.FailMarkNg = false;
+        poller.PollOnce();                       // 차단만 다시 한다
+
+        Assert.Single(s.Inspections);
+        Assert.Single(s.NgBlocked);
+        Assert.Contains(r.BitWrites, w => w.Point == 33 && w.On);
+    }
+
+    [Fact]
+    public void Save_that_committed_but_threw_is_not_saved_twice()
+    {
+        var (poller, m, r, s) = Build();
+        m.ShotCount = 1; poller.PollOnce();
+        m.ShotCount = 2; poller.PollOnce();
+        s.ThrowAfterSave = true;
+        for (int item = 0; item < 4; item++) r.SetJudgement(5007, item, "OK");
+        poller.PollOnce();                       // 저장은 커밋됐는데 예외
+        s.ThrowAfterSave = false;
+        poller.PollOnce();                       // 이미 들어간 것으로 보고 다시 저장하지 않는다
+
+        Assert.Single(s.Inspections);
+        Assert.Contains(r.BitWrites, w => w.Point == 33 && w.On);
     }
 
     [Fact]

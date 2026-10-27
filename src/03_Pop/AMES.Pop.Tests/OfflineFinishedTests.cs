@@ -58,7 +58,8 @@ public sealed class OfflineFinishedTests : IDisposable
             CoreMap = new() { new OfflineCoreMap { WoId = 9, FinishedItem = Fin, CoreItem = CoreA, CustomerCode = "CUS-WO" } },
             BomCores = new() { [FinG] = new OfflineBomCore { Outcome = "Core", CoreItemNo = CoreD }, [Fin] = new OfflineBomCore { Outcome = "Core", CoreItemNo = CoreA } },
         };
-        if (block > 0) { s.LotPrefix = Head()[3..5]; s.LotCursor[Head()] = block; }   // 마지막으로 쓴 순번 — 다음은 그 뒤 번호
+        s.LotPrefix = Head()[3..5];
+        s.LotBlocks.Add(new OfflineLotBlock(DateTime.Today, Head(), block + 1, 9999));   // 온라인에서 받아 둔 구간 — 다음은 block+1
         OfflineStore.Save("work-state.bin", s);
         OfflineWork.ResetForTests();
         return s;
@@ -125,21 +126,11 @@ public sealed class OfflineFinishedTests : IDisposable
     }
 
     [Fact]
-    public void A_printed_lot_code_raises_the_cursor_so_offline_numbers_follow_it()
+    public void Online_printing_does_not_move_the_reserved_block()
     {
         Img(block: 3);
-        OfflineWork.NoteLotCode(Head() + "0042");          // 온라인에서 0042 가 출력됐다
         var next = OfflineWork.CreateFinishedRaw(ImgLine, Station, "op", "E1", 1, Fin);
-        Assert.Equal(Head() + "0043", next.LotCode);
-    }
-
-    [Fact]
-    public void A_lower_printed_code_never_moves_the_cursor_back()
-    {
-        Img(block: 9);
-        OfflineWork.NoteLotCode(Head() + "0003");
-        var next = OfflineWork.CreateFinishedRaw(ImgLine, Station, "op", "E1", 1, Fin);
-        Assert.Equal(Head() + "0010", next.LotCode);
+        Assert.Equal(Head() + "0004", next.LotCode);   // 구간은 온라인 출력과 무관하게 받은 그대로 이어진다
     }
 
     [Fact]

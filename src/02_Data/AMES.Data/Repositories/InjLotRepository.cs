@@ -58,12 +58,35 @@ public sealed class InjLotRepository
     /// </summary>
     public (int LotId, string LotCode) CreateRawLot(
         string lineId, string equipId, MoldItemDto map, long machineShotCount)
+        => CreateRawLotCore(lineId, equipId, map, machineShotCount, lotCode: null, occurredAt: null);
+
+    /// <summary>
+    /// 오프라인 에이전트가 쌓아 둔 샷 LOT 을 복구 뒤 넣는다 — 번호는 오프라인에서 받은 것 그대로,
+    /// 생성 시각은 샷이 찍힌 시각. 같은 LotCode 가 이미 있으면 호출하지 않는다(호출자가 <see cref="FindLotId"/> 로 확인).
+    /// </summary>
+    public (int LotId, string LotCode) CreateRawLotAt(
+        string lineId, string equipId, MoldItemDto map, long machineShotCount, string lotCode, DateTime occurredAt)
+        => CreateRawLotCore(lineId, equipId, map, machineShotCount, lotCode, occurredAt);
+
+    /// <summary>LotCode 로 tbl_Lot 행을 찾는다(없으면 null) — 복구 재실행에서 이미 넣은 LOT 을 다시 넣지 않게 한다.</summary>
+    public int? FindLotId(string lotCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("SELECT LotID FROM dbo.tbl_Lot WHERE LotCode = @Code;", conn);
+        cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
+        return cmd.ExecuteScalar() as int?;
+    }
+
+    (int LotId, string LotCode) CreateRawLotCore(
+        string lineId, string equipId, MoldItemDto map, long machineShotCount, string? lotCode, DateTime? occurredAt)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
-            var lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
+            if (lotCode is null) lotCode = LotNoGenerator.NextLotNo(conn, tx, lineId, DbClock.Now);
+            else LotNoGenerator.EnsureAtLeast(conn, tx, lotCode);
+            var at = (object?)occurredAt ?? DBNull.Value;
             int lotId;
             using (var cmd = new SqlCommand("""
                 INSERT INTO dbo.tbl_Lot
@@ -72,12 +95,13 @@ public sealed class InjLotRepository
                 OUTPUT INSERTED.LotID
                 VALUES
                     (@LotCode, @ItemNo, NULL, @LineID, 'INJ', 1, 1,
-                     SYSDATETIME(), 'RAW', 'PENDING', 'AGENT', SYSDATETIME());
+                     ISNULL(@At, SYSDATETIME()), 'RAW', 'PENDING', 'AGENT', ISNULL(@At, SYSDATETIME()));
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@LotCode", SqlDbType.VarChar, 40).Value = lotCode;
                 cmd.Parameters.Add("@ItemNo",  SqlDbType.VarChar, 20).Value = map.ItemNo;
                 cmd.Parameters.Add("@LineID",  SqlDbType.VarChar, 20).Value = lineId;
+                cmd.Parameters.Add("@At",      SqlDbType.DateTime2    ).Value = at;
                 lotId = (int)cmd.ExecuteScalar()!;
             }
 
@@ -87,7 +111,7 @@ public sealed class InjLotRepository
                      PressType, MachineShotCount, ConfirmStatus, CreatedBy, CreatedTS)
                 VALUES
                     (@LotID, @Equip, @Mold, @Color, @MoldID, @CavNo, @CavPos,
-                     'M', @Shot, 'RAW', 'AGENT', SYSDATETIME());
+                     'M', @Shot, 'RAW', 'AGENT', ISNULL(@At, SYSDATETIME()));
                 """, conn, tx))
             {
                 cmd.Parameters.Add("@LotID",  SqlDbType.Int        ).Value = lotId;
@@ -98,6 +122,7 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@CavNo",  SqlDbType.Int        ).Value = map.CavityNo;
                 cmd.Parameters.Add("@CavPos", SqlDbType.VarChar, 4 ).Value = map.CavityPos;
                 cmd.Parameters.Add("@Shot",   SqlDbType.BigInt     ).Value = machineShotCount;
+                cmd.Parameters.Add("@At",     SqlDbType.DateTime2  ).Value = at;
                 cmd.ExecuteNonQuery();
             }
 
@@ -678,6 +703,7 @@ public sealed class InjLotRepository
                 cmd.Parameters.Add("@ThisTs", SqlDbType.DateTime2   ).Value = createdTs;
                 cmd.Parameters.Add("@Equip",  SqlDbType.VarChar, 20 ).Value = (object?)equipId ?? DBNull.Value;
                 cmd.Parameters.Add("@Pos",    SqlDbType.VarChar, 4  ).Value = (object?)cavityPos ?? DBNull.Value;
+                cmd.Parameters.Add("@ThisLot", SqlDbType.Int        ).Value = lotId;
                 cycleSec = Convert.ToInt32(cmd.ExecuteScalar() ?? 0);
                 if (cycleSec is < 0 or > 86400) cycleSec = 0;
             }
@@ -756,10 +782,29 @@ public sealed class InjLotRepository
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>LOT·캐비티의 검사 이력 행 수.</summary>
+    public int CountInspections(int lotId, string cavityPos)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand(
+            "SELECT COUNT(*) FROM dbo.PR_RobotInspection WHERE LotID = @Lot AND CavityPos = @Pos;", conn);
+        cmd.Parameters.Add("@Lot", SqlDbType.Int).Value = lotId;
+        cmd.Parameters.Add("@Pos", SqlDbType.VarChar, 4).Value = cavityPos;
+        return (int)cmd.ExecuteScalar()!;
+    }
+
     /// <summary>로봇 NG 수신 → 스캔 차단 (RAW 인 경우에만).</summary>
-    public void MarkNgBlocked(int lotId)
+    public void MarkNgBlocked(int lotId) => MarkNgBlocked(lotId, null);
+
+    /// <summary>
+    /// 로봇 NG 수신. RAW 면 스캔 차단(NG_BLOCKED). 작업자가 이미 스캔 확정한 뒤에 온 NG 는
+    /// <paramref name="lateNgDefectCode"/> 가 있으면 그 코드로 불량 등록(실적 역분개·재작업 대기열),
+    /// 없으면 아무것도 바꾸지 않고 <see cref="NgMarkOutcome.LateAfterConfirm"/> 로 알린다.
+    /// </summary>
+    public NgMarkResult MarkNgBlocked(int lotId, string? lateNgDefectCode)
     {
         const string sql = """
+            SET XACT_ABORT ON;
             BEGIN TRAN;
             UPDATE dbo.PR_InjLot
             SET    ConfirmStatus = 'NG_BLOCKED', ModifiedBy = 'AGENT', ModifiedTS = SYSDATETIME()
@@ -768,13 +813,39 @@ public sealed class InjLotRepository
               UPDATE dbo.tbl_Lot
               SET    QualityFlag = 'NG', ModifiedBy = 'AGENT', ModifiedTS = SYSDATETIME()
               WHERE  LotID = @Lot;
+            SELECT e.ConfirmStatus, l.LotCode, l.LineID
+            FROM   dbo.PR_InjLot e JOIN dbo.tbl_Lot l ON l.LotID = e.LotID
+            WHERE  e.LotID = @Lot;
             COMMIT;
             """;
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
-        cmd.Parameters.Add("@Lot", SqlDbType.Int).Value = lotId;
-        cmd.ExecuteNonQuery();
+        string? status, lotCode, lineId;
+        using (var conn = _factory.OpenConnection())
+        using (var cmd  = new SqlCommand(sql, conn))
+        {
+            cmd.Parameters.Add("@Lot", SqlDbType.Int).Value = lotId;
+            using var rdr = cmd.ExecuteReader();
+            if (!rdr.Read()) return new NgMarkResult(NgMarkOutcome.Ignored, null, null);
+            status  = rdr["ConfirmStatus"] as string;
+            lotCode = rdr["LotCode"] as string;
+            lineId  = rdr["LineID"] as string;
+        }
+
+        if (status == LotDefectRules.NgBlocked) return new NgMarkResult(NgMarkOutcome.Blocked, lotCode, null);
+        if (status != LotDefectRules.Confirmed || lotCode is null || lineId is null)
+            return new NgMarkResult(NgMarkOutcome.Ignored, lotCode, null);
+        if (string.IsNullOrWhiteSpace(lateNgDefectCode))
+            return new NgMarkResult(NgMarkOutcome.LateAfterConfirm, lotCode, null);
+
+        // 확정과 등록 사이에 작업자가 먼저 불량 등록했으면 RegisterDefect 가 InRework 로 돌려주므로 중복되지 않는다
+        var (outcome, _, _) = RegisterDefect(lotCode, lineId, lateNgDefectCode.Trim(), AgentActor, null, AgentActor);
+        return new NgMarkResult(outcome == DefectRegisterOutcome.Registered ? NgMarkOutcome.LateRegistered : NgMarkOutcome.LateAfterConfirm,
+                                lotCode, outcome);
     }
+
+    const string AgentActor = "AGENT";
+
+    public enum NgMarkOutcome { Blocked, LateAfterConfirm, LateRegistered, Ignored }
+    public sealed record NgMarkResult(NgMarkOutcome Outcome, string? LotCode, DefectRegisterOutcome? Register);
 
     /// <summary>
     /// 라인 불량 팝업의 LOT 스캔 등록 — 한 트랜잭션으로:
