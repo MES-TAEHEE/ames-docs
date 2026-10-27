@@ -374,7 +374,7 @@
         {
             foreach (var r in _tierDeleted)
             {
-                MD.DeleteCodeItem(r.CodeID);
+                MD.DeleteCodeItem(r.CodeID, ownerEditor: true);
                 Audit.Deleted("PP-APS", "MD_CodeItem", r.CodeID, new { r.GroupCode, r.CodeValue, r.Attribute1 });
             }
             // SortOrder = 하한 오름차순 순위(마이그레이션 §5 와 같은 관례: 0→1, 20→2, 100→3) — 해석은 CodeValue 로 하므로 표시 순서용

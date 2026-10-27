@@ -12613,4 +12613,76 @@
   <data name="PP.Aps.Wo.Err.NoRight" xml:space="preserve">
     <value>Solo los usuarios con permiso de edición o aprobación pueden ver la vista previa.</value>
   </data>
+  <data name="MD.Usage.Kind.DEFECT" xml:space="preserve">
+    <value>Registros de defectos</value>
+  </data>
+  <data name="MD.Usage.Kind.DEFECTCODE" xml:space="preserve">
+    <value>Códigos de defecto</value>
+  </data>
+  <data name="MD.Usage.Kind.PNT" xml:space="preserve">
+    <value>Tablas de registros de pintura antiguos</value>
+  </data>
+  <data name="MD.Usage.Kind.RFIDTAG" xml:space="preserve">
+    <value>Etiquetas RFID</value>
+  </data>
+  <data name="MD.Usage.Kind.ITEM" xml:space="preserve">
+    <value>Artículos</value>
+  </data>
+  <data name="MD.Usage.Kind.UOM" xml:space="preserve">
+    <value>Unidades (como unidad base)</value>
+  </data>
+  <data name="MD.Usage.Kind.PACKSPEC" xml:space="preserve">
+    <value>Especificaciones de embalaje</value>
+  </data>
+  <data name="MD.Usage.Kind.DOWNTIME" xml:space="preserve">
+    <value>Registros de parada</value>
+  </data>
+  <data name="MD.Usage.Kind.BONDSETUP" xml:space="preserve">
+    <value>Configuraciones de unión</value>
+  </data>
+  <data name="MD.CommonCode.Hint.ItemUsedByCode" xml:space="preserve">
+    <value>El programa lee este grupo, por lo que sus elementos no se pueden eliminar. Desactive el elemento en su lugar.</value>
+  </data>
+  <data name="MD.CommonCode.ConfirmItemDeleteWarn" xml:space="preserve">
+    <value>¿Eliminar {0} ({1})? Los registros que guardaron este código mostrarán el código en lugar del nombre.</value>
+  </data>
+  <data name="MD.Rule.LslAboveUsl" xml:space="preserve">
+    <value>El límite inferior (LSL) no puede ser mayor que el superior (USL).</value>
+  </data>
+  <data name="MD.Rule.NominalOutsideSpec" xml:space="preserve">
+    <value>El valor nominal debe estar entre los límites inferior y superior.</value>
+  </data>
+  <data name="MD.Rule.HeatRatingRange" xml:space="preserve">
+    <value>Ingrese una clasificación térmica entre 0 y 300 °C.</value>
+  </data>
+  <data name="MD.Rule.CureTempRange" xml:space="preserve">
+    <value>Ingrese una temperatura de curado entre 1 y 300 °C.</value>
+  </data>
+  <data name="MD.Rule.CureDurationRange" xml:space="preserve">
+    <value>Ingrese un tiempo de curado entre 1 y 600 minutos.</value>
+  </data>
+  <data name="MD.Rule.ElectroVRange" xml:space="preserve">
+    <value>Ingrese un voltaje de electrodeposición entre 1 y 500 V.</value>
+  </data>
+  <data name="MD.Rule.PackQtyMin" xml:space="preserve">
+    <value>Las cantidades por paquete interior, paquetes por caja y cajas por palé deben ser al menos 1.</value>
+  </data>
+  <data name="MD.Rule.PackWeightPositive" xml:space="preserve">
+    <value>Los pesos deben ser mayores que 0.</value>
+  </data>
+  <data name="MD.Rule.NetAboveGross" xml:space="preserve">
+    <value>El peso neto no puede ser mayor que el peso bruto.</value>
+  </data>
+  <data name="MD.Rule.PeriodReversed" xml:space="preserve">
+    <value>La fecha de inicio no puede ser posterior a la fecha de fin.</value>
+  </data>
+  <data name="MD.Rule.GroupCodeChars" xml:space="preserve">
+    <value>El código de grupo solo puede contener letras, dígitos y guiones bajos (_).</value>
+  </data>
+  <data name="MD.Rule.CustomerRequired" xml:space="preserve">
+    <value>Seleccione un cliente.</value>
+  </data>
+  <data name="MD.Routing.Err.ProcessRequired" xml:space="preserve">
+    <value>Seleccione un proceso.</value>
+  </data>
 </root>

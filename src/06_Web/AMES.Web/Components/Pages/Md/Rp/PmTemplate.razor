@@ -281,6 +281,13 @@
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
+            else if (!string.IsNullOrEmpty(_deleteBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_deleteBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _deleteBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -380,6 +387,7 @@
     string? _fEquipType, _fActive;
     string? _expandedId;
     string _modal = "";
+    string _deleteBlocked = "";
     bool _busy, _confirmDelete, _bgMouseDownOnSelf;
     int  _deleteStepCount;
     string _msg = "", _modalErr = "";
@@ -514,7 +522,7 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _deleteBlocked = ""; _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
@@ -560,18 +568,23 @@
         finally { _busy = false; }
     }
 
-    // 템플릿은 자기 점검 단계 말고는 참조하는 곳이 없다 — 단계 수를 확인 문구에 보이고 함께 지운다
+    // 열린 PM 일정·보전 작업지시가 쓰면 사용처만 보이고, 아니면 단계 수를 확인 문구에 보이고 함께 지운다
     void AskDelete()
     {
         if (!_canEdit || _sel is null) return;
-        _modalErr = "";
+        _modalErr = ""; _deleteBlocked = "";
         try
         {
+            var usages = MD.PmTemplateUsages(_sel.PMTemplateID);
+            if (usages.Count > 0) { _deleteBlocked = InUseText(_sel.PMTemplateID, usages); return; }
             _deleteStepCount = MD.PmTemplateStepCount(_sel.PMTemplateID);
             _confirmDelete = true;
         }
         catch (Exception ex) { _modalErr = ex.Message; }
     }
+
+    string InUseText(string key, List<MasterDataRepository.UsageRef> usages)
+        => string.Format(L["MD.Usage.Err.InUse"].Value, key, AMES.Web.Services.UsageText.Format(L, usages));
 
     async Task SaveDelete()
     {
@@ -581,7 +594,8 @@
         try
         {
             var id = _sel.PMTemplateID;
-            MD.DeletePmTemplate(_sel.PMTemplateID);
+            var usages = MD.DeletePmTemplate(_sel.PMTemplateID);
+            if (usages.Count > 0) { _deleteBlocked = InUseText(_sel.PMTemplateID, usages); _confirmDelete = false; return; }
             Audit.Deleted("MD-027", "MD_PmTemplate", _sel.PMTemplateID, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{id} {L["Msg.Deleted"]}", false);

@@ -159,17 +159,17 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@($"{L["Col.DefectCode"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxDefectCode" />
-                <RadzenTextBox Name="CreateTextBoxDefectCode" @bind-Value="_f.DefectCode" Placeholder="DC-INJ-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxDefectCode" @bind-Value="_f.DefectCode" MaxLength="16" Placeholder="DC-INJ-001" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@($"{L["Col.DefectName"]} *")' class="ames-rz-modal-label" Component="CreateTextBoxDefectName" />
-                <RadzenTextBox Name="CreateTextBoxDefectName" @bind-Value="_f.DefectName" Placeholder="@L["MD.DefectCode.Ph.DefectName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxDefectName" @bind-Value="_f.DefectName" MaxLength="60" Placeholder="@L["MD.DefectCode.Ph.DefectName"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.DefectNameEn"]" class="ames-rz-modal-label" Component="CreateTextBoxDefectNameEn" />
-                <RadzenTextBox Name="CreateTextBoxDefectNameEn" @bind-Value="_f.DefectNameEn" Placeholder="Gate Mark" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="CreateTextBoxDefectNameEn" @bind-Value="_f.DefectNameEn" MaxLength="60" Placeholder="Gate Mark" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -235,12 +235,12 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
                 <RadzenLabel Text='@($"{L["Col.DefectName"]} *")' class="ames-rz-modal-label" Component="EditTextBoxDefectName" />
-                <RadzenTextBox Name="EditTextBoxDefectName" @bind-Value="_f.DefectName" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxDefectName" @bind-Value="_f.DefectName" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.DefectNameEn"]" class="ames-rz-modal-label" Component="EditTextBoxDefectNameEn" />
-                <RadzenTextBox Name="EditTextBoxDefectNameEn" @bind-Value="_f.DefectNameEn" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenTextBox Name="EditTextBoxDefectNameEn" @bind-Value="_f.DefectNameEn" MaxLength="60" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
             </RadzenStack>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -293,6 +293,13 @@
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
+            else if (!string.IsNullOrEmpty(_deleteBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_deleteBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _deleteBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -301,7 +308,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click="@AskDelete" Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -324,6 +331,7 @@
 
     string _fSearch = "";
     string? _fCategory, _fProcess, _fActive;
+    string _deleteBlocked = "";
     string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
     bool _canEdit;
@@ -424,7 +432,7 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _deleteBlocked = ""; _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
@@ -473,6 +481,23 @@
         finally { _busy = false; }
     }
 
+    // 확인을 묻기 전에 사용처를 본다 — 사용 중이면 확인 대신 사용처 안내만 보인다(삭제할 때 저장소가 같은 규칙으로 다시 검사)
+    void AskDelete()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = ""; _deleteBlocked = "";
+        try
+        {
+            var usages = MD.DefectCodeUsages(_sel.DefectCode);
+            if (usages.Count > 0) _deleteBlocked = InUseText(_sel.DefectCode, usages);
+            else _confirmDelete = true;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    string InUseText(string key, List<MasterDataRepository.UsageRef> usages)
+        => string.Format(L["MD.Usage.Err.InUse"].Value, key, AMES.Web.Services.UsageText.Format(L, usages));
+
     async Task SaveDelete()
     {
         if (!_canEdit) return;
@@ -481,7 +506,8 @@
         try
         {
             var name = _sel.DefectName ?? _sel.DefectCode;
-            MD.DeleteDefectCode(_sel.DefectCode);
+            var usages = MD.DeleteDefectCode(_sel.DefectCode);
+            if (usages.Count > 0) { _deleteBlocked = InUseText(_sel.DefectCode, usages); _confirmDelete = false; return; }
             Audit.Deleted("MD-012", "MD_DefectCode", _sel.DefectCode, _sel);
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Deleted"]}", false);

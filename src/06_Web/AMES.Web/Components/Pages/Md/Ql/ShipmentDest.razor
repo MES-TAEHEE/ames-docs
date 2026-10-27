@@ -391,6 +391,7 @@
         if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.DestName)) { _modalErr = L["Err.DestNameRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.CustomerID)) { _modalErr = L["MD.Rule.CustomerRequired"]; return; }
         _busy = true;
         try
         {
@@ -412,6 +413,7 @@
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.DestName)) { _modalErr = L["Err.DestNameRequired"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.CustomerID)) { _modalErr = L["MD.Rule.CustomerRequired"]; return; }
         _busy = true;
         try
         {

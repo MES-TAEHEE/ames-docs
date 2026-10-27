@@ -238,6 +238,13 @@
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
             }
+            else if (!string.IsNullOrEmpty(_deleteBlocked))
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@_deleteBlocked</span>
+                    <RadzenButton Text="@L["Btn.Close"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _deleteBlocked = ""' class="ames-rz-btn" />
+                </RadzenStack>
+            }
 
             @if (!string.IsNullOrEmpty(_modalErr))
             {
@@ -246,7 +253,7 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Delete"]" Click="@AskDelete" Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -265,6 +272,7 @@
 
     string  _fSearch = "";
     string? _fCat, _fActive;
+    string _deleteBlocked = "";
     string _modal = "", _modalErr = "", _msg = "";
     bool _busy, _bgMouseDownOnSelf, _isErr, _confirmDelete;
     bool _canEdit;
@@ -375,7 +383,7 @@
         _modal = "edit";
     }
 
-    void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
+    void CloseModal() { _deleteBlocked = ""; _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
@@ -423,6 +431,23 @@
         finally { _busy = false; }
     }
 
+    // 확인을 묻기 전에 사용처를 본다 — 사용 중이면 확인 대신 사용처 안내만 보인다(삭제할 때 저장소가 같은 규칙으로 다시 검사)
+    void AskDelete()
+    {
+        if (!_canEdit || _sel is null) return;
+        _modalErr = ""; _deleteBlocked = "";
+        try
+        {
+            var usages = MD.UomUsages(_sel.UOMCode);
+            if (usages.Count > 0) _deleteBlocked = InUseText(_sel.UOMCode, usages);
+            else _confirmDelete = true;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
+
+    string InUseText(string key, List<MasterDataRepository.UsageRef> usages)
+        => string.Format(L["MD.Usage.Err.InUse"].Value, key, AMES.Web.Services.UsageText.Format(L, usages));
+
     async Task SaveDelete()
     {
         if (!_canEdit) return;
@@ -431,7 +456,8 @@
         try
         {
             var code = _sel.UOMCode;
-            MD.DeleteUom(_sel.UOMCode);
+            var usages = MD.DeleteUom(_sel.UOMCode);
+            if (usages.Count > 0) { _deleteBlocked = InUseText(_sel.UOMCode, usages); _confirmDelete = false; return; }
             Audit.Deleted("MD-019", "MD_Uom", _sel.UOMCode, _sel);
             UomFmt.Invalidate();
             CloseModal(); await ReloadRestorePage();

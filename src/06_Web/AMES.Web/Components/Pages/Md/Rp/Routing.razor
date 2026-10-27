@@ -273,7 +273,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.RoutingType)) { _modalErr = L["Err.RoutingTypeRequired"]; return; }
         if (_f.StepSeq <= 0)                           { _modalErr = L["Err.StepSeqMin1"]; return; }
-        if (string.IsNullOrWhiteSpace(_f.ProcessCode)) { _modalErr = L["Opt.Select"]; return; }
+        if (string.IsNullOrWhiteSpace(_f.ProcessCode)) { _modalErr = L["MD.Routing.Err.ProcessRequired"]; return; }
         _busy = true;
         try
         {

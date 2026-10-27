@@ -396,10 +396,15 @@
                 <RadzenLabel Text='@L["MD.CommonCode.Lbl.UseFlag"]' Component="ItemEditChkUse" style="cursor:pointer;" />
             </RadzenStack>
 
+            @if (CodeGroupsUsedByCode.IsUsedByCode(_selGroup?.GroupCode))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" AllowClose="false">@L["MD.CommonCode.Hint.ItemUsedByCode"]</RadzenAlert>
+            }
+
             @if (_itemConfirmDelete)
             {
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
-                    <span>@string.Format(L["MD.CommonCode.ConfirmItemDelete"].Value, _fItem.CodeId, _fItem.CodeName)</span>
+                    <span>@string.Format(L["MD.CommonCode.ConfirmItemDeleteWarn"].Value, _fItem.CodeId, _fItem.CodeName)</span>
                     <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _itemConfirmDelete = false' class="ames-rz-btn" />
                     <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveItemDelete" Disabled="@_busy" class="ames-rz-btn" />
                 </RadzenStack>
@@ -412,7 +417,10 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveItemEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _itemConfirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (!CodeGroupsUsedByCode.IsUsedByCode(_selGroup?.GroupCode))
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _itemConfirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
@@ -556,6 +564,7 @@
         if (!_canEdit) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_fGroup.GroupCode)) { _modalErr = L["Err.GroupCodeRequired"]; return; }
+        if (MdValueRules.GroupCode(_fGroup.GroupCode) is { } codeRule) { _modalErr = L[$"MD.Rule.{codeRule}"]; return; }
         if (string.IsNullOrWhiteSpace(_fGroup.GroupName)) { _modalErr = L["Err.GroupNameRequired"]; return; }
         _busy = true;
         try
@@ -695,7 +704,7 @@
 
     void SaveItemDelete()
     {
-        if (!_canEdit) return;
+        if (!_canEdit || CodeGroupsUsedByCode.IsUsedByCode(_selGroup?.GroupCode)) return;
         _busy = true;
         try
         {

@@ -12613,4 +12613,76 @@
   <data name="PP.Aps.Wo.Err.NoRight" xml:space="preserve">
     <value>Only users with edit or approve permission can view the preview.</value>
   </data>
+  <data name="MD.Usage.Kind.DEFECT" xml:space="preserve">
+    <value>Defect records</value>
+  </data>
+  <data name="MD.Usage.Kind.DEFECTCODE" xml:space="preserve">
+    <value>Defect codes</value>
+  </data>
+  <data name="MD.Usage.Kind.PNT" xml:space="preserve">
+    <value>Legacy painting record tables</value>
+  </data>
+  <data name="MD.Usage.Kind.RFIDTAG" xml:space="preserve">
+    <value>RFID tags</value>
+  </data>
+  <data name="MD.Usage.Kind.ITEM" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="MD.Usage.Kind.UOM" xml:space="preserve">
+    <value>Units (as base unit)</value>
+  </data>
+  <data name="MD.Usage.Kind.PACKSPEC" xml:space="preserve">
+    <value>Packaging specs</value>
+  </data>
+  <data name="MD.Usage.Kind.DOWNTIME" xml:space="preserve">
+    <value>Downtime records</value>
+  </data>
+  <data name="MD.Usage.Kind.BONDSETUP" xml:space="preserve">
+    <value>Bonding setups</value>
+  </data>
+  <data name="MD.CommonCode.Hint.ItemUsedByCode" xml:space="preserve">
+    <value>The program reads this group, so its items cannot be deleted. Turn the item off instead.</value>
+  </data>
+  <data name="MD.CommonCode.ConfirmItemDeleteWarn" xml:space="preserve">
+    <value>Delete {0} ({1})? Records that stored this code will show the code instead of its name.</value>
+  </data>
+  <data name="MD.Rule.LslAboveUsl" xml:space="preserve">
+    <value>The lower spec limit (LSL) cannot be greater than the upper limit (USL).</value>
+  </data>
+  <data name="MD.Rule.NominalOutsideSpec" xml:space="preserve">
+    <value>The nominal value must be between the lower and upper spec limits.</value>
+  </data>
+  <data name="MD.Rule.HeatRatingRange" xml:space="preserve">
+    <value>Enter a heat rating between 0 and 300 °C.</value>
+  </data>
+  <data name="MD.Rule.CureTempRange" xml:space="preserve">
+    <value>Enter a cure temperature between 1 and 300 °C.</value>
+  </data>
+  <data name="MD.Rule.CureDurationRange" xml:space="preserve">
+    <value>Enter a cure time between 1 and 600 minutes.</value>
+  </data>
+  <data name="MD.Rule.ElectroVRange" xml:space="preserve">
+    <value>Enter an electrodeposition voltage between 1 and 500 V.</value>
+  </data>
+  <data name="MD.Rule.PackQtyMin" xml:space="preserve">
+    <value>Quantities per inner pack, inner packs per box and boxes per pallet must be at least 1.</value>
+  </data>
+  <data name="MD.Rule.PackWeightPositive" xml:space="preserve">
+    <value>Weights must be greater than 0.</value>
+  </data>
+  <data name="MD.Rule.NetAboveGross" xml:space="preserve">
+    <value>Net weight cannot be greater than gross weight.</value>
+  </data>
+  <data name="MD.Rule.PeriodReversed" xml:space="preserve">
+    <value>The start date cannot be later than the end date.</value>
+  </data>
+  <data name="MD.Rule.GroupCodeChars" xml:space="preserve">
+    <value>The group code may contain only letters, digits and underscores (_).</value>
+  </data>
+  <data name="MD.Rule.CustomerRequired" xml:space="preserve">
+    <value>Select a customer.</value>
+  </data>
+  <data name="MD.Routing.Err.ProcessRequired" xml:space="preserve">
+    <value>Select a process.</value>
+  </data>
 </root>

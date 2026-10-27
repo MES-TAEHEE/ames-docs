@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -149,26 +150,26 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.InnerQty"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" Placeholder="10" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" Min="1" Placeholder="10" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.InnerPerOuter"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" Placeholder="5" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" Min="1" Placeholder="5" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.OuterPerPallet"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" Placeholder="20" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" Min="1" Placeholder="20" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
                     <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001" Placeholder="0.500" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Min="0m" Step="0.001" Placeholder="0.500" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001" Placeholder="0.600" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Min="0m" Step="0.001" Placeholder="0.600" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.LabelTemplate"]" />
@@ -229,26 +230,26 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.InnerQty"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.QtyPerInner" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.InnerPerOuter"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.InnerPerOuter" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.OuterPerPallet"]" />
-                    <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="int?" @bind-Value="_f.OuterPerPallet" Min="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="4">
                     <RadzenLabel Text='@($"{L["Col.NetWeight"]} (kg)")' />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Step="0.001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.NetWeightKg" Min="0m" Step="0.001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text='@($"{L["Col.GrossWeight"]} (kg)")' />
-                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Step="0.001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_f.GrossWeightKg" Min="0m" Step="0.001" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text="@L["Col.LabelTemplate"]" />
@@ -417,6 +418,7 @@
         if (string.IsNullOrWhiteSpace(_f.PackSpecID)) { _modalErr = L["Err.SpecIdRequired"]; return; }
         var id = _f.PackSpecID.Trim();
         if (MD.PackagingSpecExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
+        if (MdValueRules.Packaging(_f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet, _f.NetWeightKg, _f.GrossWeightKg) is { } rule) { _modalErr = L[$"MD.Rule.{rule}"]; return; }
         _busy = true;
         try
         {
@@ -436,6 +438,7 @@
     {
         if (!_canEdit) return;
         if (_sel is null) return;
+        if (MdValueRules.Packaging(_f.QtyPerInner, _f.InnerPerOuter, _f.OuterPerPallet, _f.NetWeightKg, _f.GrossWeightKg) is { } rule) { _modalErr = L[$"MD.Rule.{rule}"]; return; }
         _busy = true;
         try
         {

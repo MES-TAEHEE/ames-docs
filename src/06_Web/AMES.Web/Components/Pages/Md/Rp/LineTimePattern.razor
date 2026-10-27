@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -737,9 +738,10 @@
             // 하루 24시간을 빈틈·겹침 없이 덮어야 저장한다(교대 구간이 어긋나면 여기서 걸린다 — 저장 메서드도 같은 규칙으로 거부)
             var issues = AMES.Data.Services.LineTimeLayout.CoverageIssues(payload.Select(p => (p.Start, p.End)));
             if (issues.Count > 0) { _editorMsg = CoverageText("MD.LineTimePattern.Err.Coverage", issues); return; }
+            var before = SegmentAuditView(MD.ListLineTimeSegments(_editId));
             MD.SaveLineTimeSegments(_editId, payload, _actor);
-            Audit.Log("MD-028", "UPDATE", "MD_LineTimeSegment", _editId, null, new { Segments = payload.Count });
             ReloadSegments();          // 저장된 실제 SegmentID/SeqNo 재로딩
+            Audit.Updated("MD-028", "MD_LineTimeSegment", _editId, before, SegmentAuditView(_segments));
             RealignToShifts();         // 하루 분 → 교대 창(확장 분) 좌표로 되돌림, 새 저장본이 미저장 판정 기준
             _editorMsg = ""; _realigned = false;
             ShowMsg(L["Msg.Saved"].Value, false);
@@ -747,6 +749,16 @@
         catch (Exception ex) { _editorMsg = ex.Message; }
         finally { _busy = false; await InvokeAsync(StateHasChanged); }
     }
+
+    // 감사 전/후 — 구간마다 "07:30-12:00 OPERATING 사유 (교대)" 한 줄, 하루 분 순
+    static List<string> SegmentAuditView(IEnumerable<MasterDataRepository.LineTimeSegmentRow> rows)
+        => rows.OrderBy(r => r.StartMin).Select(r =>
+            $"{Hm(r.StartMin)}-{Hm(r.EndMin)} {r.SegmentState}"
+            + (string.IsNullOrEmpty(r.ReasonCode) ? "" : " " + r.ReasonCode)
+            + (string.IsNullOrEmpty(r.ShiftCode) ? "" : $" ({r.ShiftCode})")
+            + (string.IsNullOrEmpty(r.Description) ? "" : " " + r.Description)).ToList();
+
+    static string Hm(int? min) => min is { } m ? $"{m / 60:00}:{m % 60:00}" : "--:--";
 
     // 새 세그먼트(메모리 임시) 생성
     MasterDataRepository.LineTimeSegmentRow NewSeg(int s, int e, string state, string? reason, string? shift)
@@ -974,6 +986,7 @@
         if (string.IsNullOrWhiteSpace(_f.PatternID)) { _modalErr = L["Err.PatternIdRequired"]; return; }
         var id = _f.PatternID.Trim();
         if (MD.LineTimePatternExists(id)) { _modalErr = string.Format(L["Err.AlreadyExistsFmt"], id); return; }
+        if (MdValueRules.Period(_f.EffectiveFrom, _f.EffectiveTo) is { } rule) { _modalErr = L[$"MD.Rule.{rule}"]; return; }
         _busy = true;
         try
         {
@@ -994,6 +1007,7 @@
         if (!_canEdit) return;
         if (_sel is null) return;
         _modalErr = "";
+        if (MdValueRules.Period(_f.EffectiveFrom, _f.EffectiveTo) is { } rule) { _modalErr = L[$"MD.Rule.{rule}"]; return; }
         _busy = true;
         try
         {

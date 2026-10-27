@@ -26,7 +26,7 @@
     </div>
     <div class="ames-kpi ok">
         <div class="ames-kpi-l">@L["Lbl.Active"]</div>
-        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "Active")</div>
+        <div class="ames-kpi-v">@_allRows.Count(r => r.Status == "AVAIL")</div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["MD.PaintFabric.Kpi.ExpiringSoon"]</div>
@@ -388,7 +388,7 @@
         if (args.Data is not null) OpenEdit(args.Data);
     }
 
-    void OpenCreate() { _f = new() { Status = "Active" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
+    void OpenCreate() { _f = new() { Status = "AVAIL" }; _modalErr = ""; _confirmDelete = false; _modal = "create"; }
 
     void OpenEdit(MasterDataRepository.PaintFabricRow r)
     {
@@ -407,7 +407,7 @@
             ReceiptDate = r.ReceiptDate,
             ExpDate     = r.ExpDate,
             StorageReq  = r.StorageReq  ?? "",
-            Status      = r.Status      ?? "Active",
+            Status      = r.Status      ?? "AVAIL",
         };
         _modal = "edit";
     }
@@ -499,6 +499,6 @@
         public DateOnly? ReceiptDate { get; set; }
         public DateOnly? ExpDate     { get; set; }
         public string    StorageReq  { get; set; } = "";
-        public string    Status      { get; set; } = "Active";
+        public string    Status      { get; set; } = "AVAIL";
     }
 }

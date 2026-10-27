@@ -79,7 +79,9 @@ public sealed class MasterDataRepository
 
     public void InsertCodeGroup(string groupCode, string? groupName, string? groupNameEn,
         string? description, bool useFlag, string createdBy)
-        => Exec("""
+    {
+        MdValueRules.Throw(MdValueRules.GroupCode(groupCode));
+        Exec("""
             INSERT INTO dbo.MD_CodeGroup
                    (GroupCode,GroupName,GroupNameEn,Description,UseFlag,CreatedBy,CreatedTS)
             VALUES (@Code,@Name,@NameEn,@Desc,@UseFlag,@By,SYSDATETIME())
@@ -90,6 +92,7 @@ public sealed class MasterDataRepository
             ("@Desc", "MD_CodeGroup.Description", description),
             ("@UseFlag", "MD_CodeGroup.UseFlag", useFlag),
             ("@By", "MD_CodeGroup.CreatedBy", createdBy));
+    }
 
     public void UpdateCodeGroup(string groupCode, string? groupName, string? groupNameEn,
         string? description, bool useFlag, string modifiedBy)
@@ -283,8 +286,17 @@ public sealed class MasterDataRepository
         return cmd.ExecuteScalar() as string;
     }
 
-    public void DeleteCodeItem(string codeId)
-        => Exec("DELETE dbo.MD_CodeItem WHERE CodeID=@I", ("@I", "MD_CodeItem.CodeID", codeId));
+    /// <summary>
+    /// 코드값은 여러 테이블에 FK 없이 저장돼 사용처를 다 찾을 수 없다 — 프로그램이 이름으로 읽는 그룹(CodeGroupsUsedByCode)의 항목은
+    /// 지우지 않고 사용 안 함으로만 끄게 하고(10-28 사용자 결정), 그 밖의 그룹 항목은 화면이 경고를 보인 뒤 지운다.
+    /// 그 그룹을 전용으로 편집하는 화면(PP-APS 설정의 커버 구간)은 <paramref name="ownerEditor"/> 로 이 제한을 건너뛴다.
+    /// </summary>
+    public void DeleteCodeItem(string codeId, bool ownerEditor = false)
+    {
+        if (!ownerEditor && CodeGroupsUsedByCode.IsUsedByCode(GroupOf(codeId)))
+            throw new InvalidOperationException($"Code item {codeId} belongs to a group the program reads; turn it off instead of deleting it.");
+        Exec("DELETE dbo.MD_CodeItem WHERE CodeID=@I", ("@I", "MD_CodeItem.CodeID", codeId));
+    }
 
     // ── MD-02 Item ───────────────────────────────────────────────────────
     public List<ItemRow> ListItems(string? search = null, string? itemType = null)
@@ -1603,6 +1615,7 @@ public sealed class MasterDataRepository
         string? address, string? country, string? deliveryDock, int? leadTimeDays,
         string? defaultCarrier, string? deliveryWindow, string? status, string createdBy)
     {
+        if (string.IsNullOrWhiteSpace(customerId)) throw new MdValueRuleException("CustomerRequired");
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_ShipmentDest
@@ -1634,6 +1647,7 @@ public sealed class MasterDataRepository
         string? address, string? country, string? deliveryDock, int? leadTimeDays,
         string? defaultCarrier, string? deliveryWindow, string? status, string modifiedBy)
     {
+        if (string.IsNullOrWhiteSpace(customerId)) throw new MdValueRuleException("CustomerRequired");
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_ShipmentDest SET
@@ -2787,24 +2801,21 @@ public sealed class MasterDataRepository
         string? disposition, string? causeCode, bool paretoFlag,
         bool activeFlag, string createdBy)
     {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "INSERT INTO dbo.MD_DefectCode" +
+        Exec("INSERT INTO dbo.MD_DefectCode" +
             "(DefectCode,DefectName,DefectNameEn,ProcessCode,DefectCategory," +
             "SeverityLevel,DispositionDefault,DefaultCauseCode,ParetoFlag,ActiveFlag,CreatedBy)" +
-            " VALUES(@C,@N,@NE,@PC,@CAT,@SEV,@DIS,@CC,@PF,@AF,@CB);", conn);
-        cmd.Parameters.Add("@C",   SqlDbType.VarChar,  16).Value = code;
-        cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 60).Value = (object?)name   ?? DBNull.Value;
-        cmd.Parameters.Add("@NE",  SqlDbType.NVarChar, 60).Value = (object?)nameEn ?? DBNull.Value;
-        cmd.Parameters.Add("@PC",  SqlDbType.VarChar,  10).Value = (object?)processCode  ?? DBNull.Value;
-        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  14).Value = (object?)category     ?? DBNull.Value;
-        cmd.Parameters.Add("@SEV", SqlDbType.VarChar,   8).Value = (object?)severity     ?? DBNull.Value;
-        cmd.Parameters.Add("@DIS", SqlDbType.VarChar,  10).Value = (object?)disposition  ?? DBNull.Value;
-        cmd.Parameters.Add("@CC",  SqlDbType.VarChar,  16).Value = (object?)causeCode    ?? DBNull.Value;
-        cmd.Parameters.Add("@PF",  SqlDbType.Bit).Value          = paretoFlag;
-        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,  20).Value = createdBy;
-        cmd.ExecuteNonQuery();
+            " VALUES(@C,@N,@NE,@PC,@CAT,@SEV,@DIS,@CC,@PF,@AF,@CB);",
+            ("@C",   "MD_DefectCode.DefectCode",         code),
+            ("@N",   "MD_DefectCode.DefectName",         name),
+            ("@NE",  "MD_DefectCode.DefectNameEn",       nameEn),
+            ("@PC",  "MD_DefectCode.ProcessCode",        processCode),
+            ("@CAT", "MD_DefectCode.DefectCategory",     category),
+            ("@SEV", "MD_DefectCode.SeverityLevel",      severity),
+            ("@DIS", "MD_DefectCode.DispositionDefault", disposition),
+            ("@CC",  "MD_DefectCode.DefaultCauseCode",   causeCode),
+            ("@PF",  "MD_DefectCode.ParetoFlag",         paretoFlag),
+            ("@AF",  "MD_DefectCode.ActiveFlag",         activeFlag),
+            ("@CB",  "MD_DefectCode.CreatedBy",          createdBy));
     }
 
     public void UpdateDefectCode(
@@ -2813,35 +2824,35 @@ public sealed class MasterDataRepository
         string? disposition, string? causeCode, bool paretoFlag,
         bool activeFlag, string modifiedBy)
     {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "UPDATE dbo.MD_DefectCode SET " +
+        Exec("UPDATE dbo.MD_DefectCode SET " +
             "DefectName=@N,DefectNameEn=@NE,ProcessCode=@PC,DefectCategory=@CAT," +
             "SeverityLevel=@SEV,DispositionDefault=@DIS,DefaultCauseCode=@CC," +
             "ParetoFlag=@PF,ActiveFlag=@AF,ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
-            "WHERE DefectCode=@C;", conn);
-        cmd.Parameters.Add("@C",   SqlDbType.VarChar,  16).Value = code;
-        cmd.Parameters.Add("@N",   SqlDbType.NVarChar, 60).Value = (object?)name   ?? DBNull.Value;
-        cmd.Parameters.Add("@NE",  SqlDbType.NVarChar, 60).Value = (object?)nameEn ?? DBNull.Value;
-        cmd.Parameters.Add("@PC",  SqlDbType.VarChar,  10).Value = (object?)processCode  ?? DBNull.Value;
-        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,  14).Value = (object?)category     ?? DBNull.Value;
-        cmd.Parameters.Add("@SEV", SqlDbType.VarChar,   8).Value = (object?)severity     ?? DBNull.Value;
-        cmd.Parameters.Add("@DIS", SqlDbType.VarChar,  10).Value = (object?)disposition  ?? DBNull.Value;
-        cmd.Parameters.Add("@CC",  SqlDbType.VarChar,  16).Value = (object?)causeCode    ?? DBNull.Value;
-        cmd.Parameters.Add("@PF",  SqlDbType.Bit).Value          = paretoFlag;
-        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value          = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
-        cmd.ExecuteNonQuery();
+            "WHERE DefectCode=@C;",
+            ("@C",   "MD_DefectCode.DefectCode",         code),
+            ("@N",   "MD_DefectCode.DefectName",         name),
+            ("@NE",  "MD_DefectCode.DefectNameEn",       nameEn),
+            ("@PC",  "MD_DefectCode.ProcessCode",        processCode),
+            ("@CAT", "MD_DefectCode.DefectCategory",     category),
+            ("@SEV", "MD_DefectCode.SeverityLevel",      severity),
+            ("@DIS", "MD_DefectCode.DispositionDefault", disposition),
+            ("@CC",  "MD_DefectCode.DefaultCauseCode",   causeCode),
+            ("@PF",  "MD_DefectCode.ParetoFlag",         paretoFlag),
+            ("@AF",  "MD_DefectCode.ActiveFlag",         activeFlag),
+            ("@MB",  "MD_DefectCode.ModifiedBy",         modifiedBy));
     }
 
-    public void DeleteDefectCode(string code)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_DefectCode WHERE DefectCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 16).Value = code;
-        cmd.ExecuteNonQuery();
-    }
+    const string DefectCodeUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_DefectCode WITH (UPDLOCK, HOLDLOCK) WHERE DefectCode = @K) RETURN;
+        INSERT @r SELECT 'DEFECT', ISNULL(l.LotCode, CAST(d.DefectID AS varchar(20)))
+            FROM dbo.PR_DefectDetail d LEFT JOIN dbo.tbl_Lot l ON l.LotID = d.LotID WHERE d.DefectCode = @K;
+        """;
+
+    public List<UsageRef> DefectCodeUsages(string code) => UsagesOf(DefectCodeUsageSql, code, 16);
+
+    /// <summary>불량 기록(PR_DefectDetail)이 쓰는 불량코드는 지우지 않고 그 목록을 돌려준다.</summary>
+    public List<UsageRef> DeleteDefectCode(string code)
+        => DeleteIfUnused(DefectCodeUsageSql, "DELETE dbo.MD_DefectCode WHERE DefectCode = @K;", code, keyLength: 16);
 
     // ── MD_DefectCause ───────────────────────────────────────────────
     public record DefectCauseRow(
@@ -2896,25 +2907,22 @@ public sealed class MasterDataRepository
         bool rootCauseFlag, string? correctiveGuide, string? responsibleDept,
         int? sortOrder, bool activeFlag, string createdBy)
     {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "INSERT INTO dbo.MD_DefectCause" +
+        Exec("INSERT INTO dbo.MD_DefectCause" +
             "(CauseCode,CauseName,CauseNameEn,CauseCategory,ParentCauseCode,ProcessCode," +
             "RootCauseFlag,CorrectiveGuide,ResponsibleDept,SortOrder,ActiveFlag,CreatedBy)" +
-            " VALUES(@C,@N,@NE,@CAT,@PC2,@PC,@RF,@CG,@RD,@SO,@AF,@CB);", conn);
-        cmd.Parameters.Add("@C",   SqlDbType.VarChar,   16).Value = code;
-        cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name            ?? DBNull.Value;
-        cmd.Parameters.Add("@NE",  SqlDbType.NVarChar,  60).Value = (object?)nameEn          ?? DBNull.Value;
-        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    9).Value = (object?)category        ?? DBNull.Value;
-        cmd.Parameters.Add("@PC2", SqlDbType.VarChar,   16).Value = (object?)parentCode      ?? DBNull.Value;
-        cmd.Parameters.Add("@PC",  SqlDbType.VarChar,   10).Value = (object?)processCode     ?? DBNull.Value;
-        cmd.Parameters.Add("@RF",  SqlDbType.Bit).Value           = rootCauseFlag;
-        cmd.Parameters.Add("@CG",  SqlDbType.NVarChar, 200).Value = (object?)correctiveGuide ?? DBNull.Value;
-        cmd.Parameters.Add("@RD",  SqlDbType.NVarChar,  30).Value = (object?)responsibleDept ?? DBNull.Value;
-        cmd.Parameters.Add("@SO",  SqlDbType.Int).Value           = (object?)sortOrder       ?? DBNull.Value;
-        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",  SqlDbType.VarChar,   20).Value = createdBy;
-        cmd.ExecuteNonQuery();
+            " VALUES(@C,@N,@NE,@CAT,@PC2,@PC,@RF,@CG,@RD,@SO,@AF,@CB);",
+            ("@C",   "MD_DefectCause.CauseCode",       code),
+            ("@N",   "MD_DefectCause.CauseName",       name),
+            ("@NE",  "MD_DefectCause.CauseNameEn",     nameEn),
+            ("@CAT", "MD_DefectCause.CauseCategory",   category),
+            ("@PC2", "MD_DefectCause.ParentCauseCode", parentCode),
+            ("@PC",  "MD_DefectCause.ProcessCode",     processCode),
+            ("@RF",  "MD_DefectCause.RootCauseFlag",   rootCauseFlag),
+            ("@CG",  "MD_DefectCause.CorrectiveGuide", correctiveGuide),
+            ("@RD",  "MD_DefectCause.ResponsibleDept", responsibleDept),
+            ("@SO",  "MD_DefectCause.SortOrder",       sortOrder),
+            ("@AF",  "MD_DefectCause.ActiveFlag",      activeFlag),
+            ("@CB",  "MD_DefectCause.CreatedBy",       createdBy));
     }
 
     public void UpdateDefectCause(
@@ -2923,36 +2931,37 @@ public sealed class MasterDataRepository
         bool rootCauseFlag, string? correctiveGuide, string? responsibleDept,
         int? sortOrder, bool activeFlag, string modifiedBy)
     {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "UPDATE dbo.MD_DefectCause SET " +
+        Exec("UPDATE dbo.MD_DefectCause SET " +
             "CauseName=@N,CauseNameEn=@NE,CauseCategory=@CAT,ParentCauseCode=@PC2,ProcessCode=@PC," +
             "RootCauseFlag=@RF,CorrectiveGuide=@CG,ResponsibleDept=@RD," +
             "SortOrder=@SO,ActiveFlag=@AF,ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
-            "WHERE CauseCode=@C;", conn);
-        cmd.Parameters.Add("@C",   SqlDbType.VarChar,   16).Value = code;
-        cmd.Parameters.Add("@N",   SqlDbType.NVarChar,  60).Value = (object?)name            ?? DBNull.Value;
-        cmd.Parameters.Add("@NE",  SqlDbType.NVarChar,  60).Value = (object?)nameEn          ?? DBNull.Value;
-        cmd.Parameters.Add("@CAT", SqlDbType.VarChar,    9).Value = (object?)category        ?? DBNull.Value;
-        cmd.Parameters.Add("@PC2", SqlDbType.VarChar,   16).Value = (object?)parentCode      ?? DBNull.Value;
-        cmd.Parameters.Add("@PC",  SqlDbType.VarChar,   10).Value = (object?)processCode     ?? DBNull.Value;
-        cmd.Parameters.Add("@RF",  SqlDbType.Bit).Value           = rootCauseFlag;
-        cmd.Parameters.Add("@CG",  SqlDbType.NVarChar, 200).Value = (object?)correctiveGuide ?? DBNull.Value;
-        cmd.Parameters.Add("@RD",  SqlDbType.NVarChar,  30).Value = (object?)responsibleDept ?? DBNull.Value;
-        cmd.Parameters.Add("@SO",  SqlDbType.Int).Value           = (object?)sortOrder       ?? DBNull.Value;
-        cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
-        cmd.ExecuteNonQuery();
+            "WHERE CauseCode=@C;",
+            ("@C",   "MD_DefectCause.CauseCode",       code),
+            ("@N",   "MD_DefectCause.CauseName",       name),
+            ("@NE",  "MD_DefectCause.CauseNameEn",     nameEn),
+            ("@CAT", "MD_DefectCause.CauseCategory",   category),
+            ("@PC2", "MD_DefectCause.ParentCauseCode", parentCode),
+            ("@PC",  "MD_DefectCause.ProcessCode",     processCode),
+            ("@RF",  "MD_DefectCause.RootCauseFlag",   rootCauseFlag),
+            ("@CG",  "MD_DefectCause.CorrectiveGuide", correctiveGuide),
+            ("@RD",  "MD_DefectCause.ResponsibleDept", responsibleDept),
+            ("@SO",  "MD_DefectCause.SortOrder",       sortOrder),
+            ("@AF",  "MD_DefectCause.ActiveFlag",      activeFlag),
+            ("@MB",  "MD_DefectCause.ModifiedBy",      modifiedBy));
     }
 
-    public void DeleteDefectCause(string code)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_DefectCause WHERE CauseCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 16).Value = code;
-        cmd.ExecuteNonQuery();
-    }
+    const string DefectCauseUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_DefectCause WITH (UPDLOCK, HOLDLOCK) WHERE CauseCode = @K) RETURN;
+        INSERT @r SELECT 'DEFECTCODE', DefectCode FROM dbo.MD_DefectCode WHERE DefaultCauseCode = @K;
+        INSERT @r SELECT 'DEFECT', ISNULL(l.LotCode, CAST(d.DefectID AS varchar(20)))
+            FROM dbo.PR_DefectDetail d LEFT JOIN dbo.tbl_Lot l ON l.LotID = d.LotID WHERE d.CauseCode = @K;
+        """;
+
+    public List<UsageRef> DefectCauseUsages(string code) => UsagesOf(DefectCauseUsageSql, code, 16);
+
+    /// <summary>불량코드의 기본 원인이거나 불량 기록(재작업 판정)이 쓰는 원인은 지우지 않고 그 목록을 돌려준다.</summary>
+    public List<UsageRef> DeleteDefectCause(string code)
+        => DeleteIfUnused(DefectCauseUsageSql, "DELETE dbo.MD_DefectCause WHERE CauseCode = @K;", code, keyLength: 16);
 
     // ── MD_Equipment ─────────────────────────────────────────────────
     // EquipType = 공통코드 EQUIP_TYPE(INJ 사출·WRAP 감싸기·PNT 도장). Tonnage(MD_Mold.Tonnage 와 같은 int)는 사출 설비만 가진다.
@@ -3192,14 +3201,21 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteOven(string ovenId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_Oven WHERE OvenID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = ovenId;
-        cmd.ExecuteNonQuery();
-    }
+    // 옛 도장(PNT) 기록 테이블은 10-22 화면 삭제 뒤 읽는 코드가 없지만 데이터가 남아 사용처로 본다(10-28 사용자 결정).
+    // 테이블을 지우는 날 이 검사가 깨지지 않게 테이블이 있을 때만 보고, 사용처 예시는 행이 남은 테이블 이름이다.
+    const string OvenUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Oven WITH (UPDLOCK, HOLDLOCK) WHERE OvenID = @K) RETURN;
+        IF OBJECT_ID('dbo.PNT_DailyPlan')        IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_DailyPlan'        FROM dbo.PNT_DailyPlan        WHERE OvenID = @K;
+        IF OBJECT_ID('dbo.PNT_OvenLog')          IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_OvenLog'          FROM dbo.PNT_OvenLog          WHERE OvenID = @K;
+        IF OBJECT_ID('dbo.PNT_OvenDeviationLog') IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_OvenDeviationLog' FROM dbo.PNT_OvenDeviationLog WHERE OvenID = @K;
+        IF OBJECT_ID('dbo.PNT_OvenSpikeLog')     IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_OvenSpikeLog'     FROM dbo.PNT_OvenSpikeLog     WHERE OvenID = @K;
+        IF OBJECT_ID('dbo.PNT_OvenTempSample')   IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_OvenTempSample'   FROM dbo.PNT_OvenTempSample   WHERE OvenID = @K;
+        """;
+
+    public List<UsageRef> OvenUsages(string ovenId) => UsagesOf(OvenUsageSql, ovenId);
+
+    public List<UsageRef> DeleteOven(string ovenId)
+        => DeleteIfUnused(OvenUsageSql, "DELETE dbo.MD_Oven WHERE OvenID = @K;", ovenId);
 
     // ── MD_Jig ───────────────────────────────────────────────────────
     public record JigRow(
@@ -3300,14 +3316,22 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteJig(string jigId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "DELETE FROM dbo.MD_Jig WHERE JigID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = jigId;
-        cmd.ExecuteNonQuery();
-    }
+    const string JigUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Jig WITH (UPDLOCK, HOLDLOCK) WHERE JigID = @K) RETURN;
+        INSERT @r SELECT 'RFIDTAG', TagID FROM dbo.MD_RfidTag WHERE JigID = @K;
+        IF OBJECT_ID('dbo.PNT_JigBindingLog') IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_JigBindingLog' FROM dbo.PNT_JigBindingLog WHERE JigID = @K;
+        IF OBJECT_ID('dbo.PNT_JigLoad')       IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_JigLoad'       FROM dbo.PNT_JigLoad       WHERE JigID = @K;
+        IF OBJECT_ID('dbo.PNT_JigUnload')     IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_JigUnload'     FROM dbo.PNT_JigUnload     WHERE JigID = @K;
+        IF OBJECT_ID('dbo.PNT_LineEvent')     IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_LineEvent'     FROM dbo.PNT_LineEvent     WHERE JigID = @K;
+        IF OBJECT_ID('dbo.PNT_OvenLog')       IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_OvenLog'       FROM dbo.PNT_OvenLog       WHERE JigID = @K;
+        IF OBJECT_ID('dbo.PNT_VirtualLot')    IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_VirtualLot'    FROM dbo.PNT_VirtualLot    WHERE JigID = @K;
+        """;
+
+    public List<UsageRef> JigUsages(string jigId) => UsagesOf(JigUsageSql, jigId);
+
+    /// <summary>RFID 태그가 붙어 있거나 옛 도장 기록에 남은 지그는 지우지 않고 그 목록을 돌려준다.</summary>
+    public List<UsageRef> DeleteJig(string jigId)
+        => DeleteIfUnused(JigUsageSql, "DELETE dbo.MD_Jig WHERE JigID = @K;", jigId);
 
     // ── MD_InspectionStandard ────────────────────────────────────────
     public record InspectionStandardRow(
@@ -3360,38 +3384,36 @@ public sealed class MasterDataRepository
         return cmd.ExecuteScalar() is not null;
     }
 
+    static void ValidateInspectionSpec(decimal? nominal, decimal? lsl, decimal? usl)
+        => MdValueRules.Throw(MdValueRules.InspectionSpec(nominal, lsl, usl));
+
     public void InsertInspectionStandard(
         string id, string? itemId, string? processCode, string? inspType,
         string? charName, decimal? specNominal, decimal? specLsl, decimal? specUsl,
         string? uom, string? samplingPlan, string? inspMethod, bool isCTQ,
         DateOnly? effectiveDate, bool activeFlag, string createdBy)
     {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "INSERT INTO dbo.MD_InspectionStandard" +
+        ValidateInspectionSpec(specNominal, specLsl, specUsl);
+        Exec("INSERT INTO dbo.MD_InspectionStandard" +
             "(InspStdID,ItemID,ProcessCode,InspType,CharName," +
             "SpecNominal,SpecLSL,SpecUSL,UOM,SamplingPlan,InspMethod," +
             "IsCTQ,EffectiveDate,ActiveFlag,CreatedBy)" +
-            " VALUES(@I,@ITEM,@PC,@IT,@CN,@SN,@LSL,@USL,@UOM,@SP,@IM,@CTQ,@ED,@AF,@CB);", conn);
-        cmd.Parameters.Add("@I",    SqlDbType.VarChar,   20).Value = id;
-        cmd.Parameters.Add("@ITEM", SqlDbType.VarChar,   20).Value = (object?)itemId       ?? DBNull.Value;
-        cmd.Parameters.Add("@PC",   SqlDbType.VarChar,   10).Value = (object?)processCode  ?? DBNull.Value;
-        cmd.Parameters.Add("@IT",   SqlDbType.VarChar,   10).Value = (object?)inspType     ?? DBNull.Value;
-        cmd.Parameters.Add("@CN",   SqlDbType.NVarChar,  60).Value = (object?)charName     ?? DBNull.Value;
-        cmd.Parameters.Add("@SN",   SqlDbType.Decimal).Value       = (object?)specNominal  ?? DBNull.Value;
-        cmd.Parameters["@SN"].Precision = 12; cmd.Parameters["@SN"].Scale = 4;
-        cmd.Parameters.Add("@LSL",  SqlDbType.Decimal).Value       = (object?)specLsl      ?? DBNull.Value;
-        cmd.Parameters["@LSL"].Precision = 12; cmd.Parameters["@LSL"].Scale = 4;
-        cmd.Parameters.Add("@USL",  SqlDbType.Decimal).Value       = (object?)specUsl      ?? DBNull.Value;
-        cmd.Parameters["@USL"].Precision = 12; cmd.Parameters["@USL"].Scale = 4;
-        cmd.Parameters.Add("@UOM",  SqlDbType.VarChar,   10).Value = (object?)uom          ?? DBNull.Value;
-        cmd.Parameters.Add("@SP",   SqlDbType.VarChar,   20).Value = (object?)samplingPlan ?? DBNull.Value;
-        cmd.Parameters.Add("@IM",   SqlDbType.NVarChar,  40).Value = (object?)inspMethod   ?? DBNull.Value;
-        cmd.Parameters.Add("@CTQ",  SqlDbType.Bit).Value           = isCTQ;
-        cmd.Parameters.Add("@ED",   SqlDbType.Date).Value          = effectiveDate.HasValue ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
-        cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@CB",   SqlDbType.VarChar,   20).Value = createdBy;
-        cmd.ExecuteNonQuery();
+            " VALUES(@I,@ITEM,@PC,@IT,@CN,@SN,@LSL,@USL,@UOM,@SP,@IM,@CTQ,@ED,@AF,@CB);",
+            ("@I",    "MD_InspectionStandard.InspStdID",     id),
+            ("@ITEM", "MD_InspectionStandard.ItemID",        itemId),
+            ("@PC",   "MD_InspectionStandard.ProcessCode",   processCode),
+            ("@IT",   "MD_InspectionStandard.InspType",      inspType),
+            ("@CN",   "MD_InspectionStandard.CharName",      charName),
+            ("@SN",   "MD_InspectionStandard.SpecNominal",   specNominal),
+            ("@LSL",  "MD_InspectionStandard.SpecLSL",       specLsl),
+            ("@USL",  "MD_InspectionStandard.SpecUSL",       specUsl),
+            ("@UOM",  "MD_InspectionStandard.UOM",           uom),
+            ("@SP",   "MD_InspectionStandard.SamplingPlan",  samplingPlan),
+            ("@IM",   "MD_InspectionStandard.InspMethod",    inspMethod),
+            ("@CTQ",  "MD_InspectionStandard.IsCTQ",         isCTQ),
+            ("@ED",   "MD_InspectionStandard.EffectiveDate", effectiveDate),
+            ("@AF",   "MD_InspectionStandard.ActiveFlag",    activeFlag),
+            ("@CB",   "MD_InspectionStandard.CreatedBy",     createdBy));
     }
 
     public void UpdateInspectionStandard(
@@ -3400,34 +3422,29 @@ public sealed class MasterDataRepository
         string? uom, string? samplingPlan, string? inspMethod, bool isCTQ,
         DateOnly? effectiveDate, bool activeFlag, string modifiedBy)
     {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand(
-            "UPDATE dbo.MD_InspectionStandard SET " +
+        ValidateInspectionSpec(specNominal, specLsl, specUsl);
+        Exec("UPDATE dbo.MD_InspectionStandard SET " +
             "ItemID=@ITEM,ProcessCode=@PC,InspType=@IT,CharName=@CN," +
             "SpecNominal=@SN,SpecLSL=@LSL,SpecUSL=@USL,UOM=@UOM," +
             "SamplingPlan=@SP,InspMethod=@IM,IsCTQ=@CTQ," +
             "EffectiveDate=@ED,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB " +
-            "WHERE InspStdID=@I;", conn);
-        cmd.Parameters.Add("@I",    SqlDbType.VarChar,   20).Value = id;
-        cmd.Parameters.Add("@ITEM", SqlDbType.VarChar,   20).Value = (object?)itemId       ?? DBNull.Value;
-        cmd.Parameters.Add("@PC",   SqlDbType.VarChar,   10).Value = (object?)processCode  ?? DBNull.Value;
-        cmd.Parameters.Add("@IT",   SqlDbType.VarChar,   10).Value = (object?)inspType     ?? DBNull.Value;
-        cmd.Parameters.Add("@CN",   SqlDbType.NVarChar,  60).Value = (object?)charName     ?? DBNull.Value;
-        cmd.Parameters.Add("@SN",   SqlDbType.Decimal).Value       = (object?)specNominal  ?? DBNull.Value;
-        cmd.Parameters["@SN"].Precision = 12; cmd.Parameters["@SN"].Scale = 4;
-        cmd.Parameters.Add("@LSL",  SqlDbType.Decimal).Value       = (object?)specLsl      ?? DBNull.Value;
-        cmd.Parameters["@LSL"].Precision = 12; cmd.Parameters["@LSL"].Scale = 4;
-        cmd.Parameters.Add("@USL",  SqlDbType.Decimal).Value       = (object?)specUsl      ?? DBNull.Value;
-        cmd.Parameters["@USL"].Precision = 12; cmd.Parameters["@USL"].Scale = 4;
-        cmd.Parameters.Add("@UOM",  SqlDbType.VarChar,   10).Value = (object?)uom          ?? DBNull.Value;
-        cmd.Parameters.Add("@SP",   SqlDbType.VarChar,   20).Value = (object?)samplingPlan ?? DBNull.Value;
-        cmd.Parameters.Add("@IM",   SqlDbType.NVarChar,  40).Value = (object?)inspMethod   ?? DBNull.Value;
-        cmd.Parameters.Add("@CTQ",  SqlDbType.Bit).Value           = isCTQ;
-        cmd.Parameters.Add("@ED",   SqlDbType.Date).Value          = effectiveDate.HasValue ? (object)effectiveDate.Value.ToDateTime(TimeOnly.MinValue) : DBNull.Value;
-        cmd.Parameters.Add("@AF",   SqlDbType.Bit).Value           = activeFlag;
-        cmd.Parameters.Add("@MB",   SqlDbType.VarChar,   20).Value = modifiedBy;
-        cmd.ExecuteNonQuery();
+            "WHERE InspStdID=@I;",
+            ("@I",    "MD_InspectionStandard.InspStdID",     id),
+            ("@ITEM", "MD_InspectionStandard.ItemID",        itemId),
+            ("@PC",   "MD_InspectionStandard.ProcessCode",   processCode),
+            ("@IT",   "MD_InspectionStandard.InspType",      inspType),
+            ("@CN",   "MD_InspectionStandard.CharName",      charName),
+            ("@SN",   "MD_InspectionStandard.SpecNominal",   specNominal),
+            ("@LSL",  "MD_InspectionStandard.SpecLSL",       specLsl),
+            ("@USL",  "MD_InspectionStandard.SpecUSL",       specUsl),
+            ("@UOM",  "MD_InspectionStandard.UOM",           uom),
+            ("@SP",   "MD_InspectionStandard.SamplingPlan",  samplingPlan),
+            ("@IM",   "MD_InspectionStandard.InspMethod",    inspMethod),
+            ("@CTQ",  "MD_InspectionStandard.IsCTQ",         isCTQ),
+            ("@ED",   "MD_InspectionStandard.EffectiveDate", effectiveDate),
+            ("@AF",   "MD_InspectionStandard.ActiveFlag",    activeFlag),
+            ("@MB",   "MD_InspectionStandard.ModifiedBy",    modifiedBy));
     }
 
     public void DeleteInspectionStandard(string id)
@@ -4297,13 +4314,21 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteUom(string uomCode)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_Uom WHERE UOMCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 10).Value = uomCode;
-        cmd.ExecuteNonQuery();
-    }
+    const string UomUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Uom WITH (UPDLOCK, HOLDLOCK) WHERE UOMCode = @K) RETURN;
+        INSERT @r SELECT 'ITEM',   ItemNo      FROM dbo.MD_Item               WHERE DefaultUOM = @K;
+        INSERT @r SELECT 'BOM',    ISNULL(VersionID, BOMID) + ' ' + ISNULL(CompItemNo, '') FROM dbo.MD_Bom WHERE UOM = @K;
+        INSERT @r SELECT 'QCSTD',  InspStdID   FROM dbo.MD_InspectionStandard WHERE UOM = @K;
+        INSERT @r SELECT 'FABRIC', MatLotID    FROM dbo.MD_PaintFabric        WHERE UOM = @K;
+        INSERT @r SELECT 'SPARE',  SparePartNo FROM dbo.MD_SparePart          WHERE UOM = @K;
+        INSERT @r SELECT 'UOM',    UOMCode     FROM dbo.MD_Uom                WHERE BaseUOM = @K AND UOMCode <> @K;
+        """;
+
+    public List<UsageRef> UomUsages(string uomCode) => UsagesOf(UomUsageSql, uomCode, 10);
+
+    /// <summary>품목·BOM·검사기준·원단 LOT·예비품의 단위이거나 다른 단위의 기준 단위인 단위는 지우지 않고 그 목록을 돌려준다.</summary>
+    public List<UsageRef> DeleteUom(string uomCode)
+        => DeleteIfUnused(UomUsageSql, "DELETE dbo.MD_Uom WHERE UOMCode = @K;", uomCode, keyLength: 10);
 
     // ── MD_RfidTag CRUD ──────────────────────────────────────────────
     public bool RfidTagExists(string tagId)
@@ -4319,6 +4344,7 @@ public sealed class MasterDataRepository
         DateOnly? installDate, int? cycleCount, DateOnly? replaceSchedule,
         string? status, string createdBy)
     {
+        MdValueRules.Throw(MdValueRules.RfidHeatRating(heatRating));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_RfidTag(TagID,EPC,JigID,TagRole,HeatRating,MountPos," +
@@ -4343,6 +4369,7 @@ public sealed class MasterDataRepository
         DateOnly? installDate, int? cycleCount, DateOnly? replaceSchedule,
         string? status, string modifiedBy)
     {
+        MdValueRules.Throw(MdValueRules.RfidHeatRating(heatRating));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_RfidTag SET EPC=@EP,JigID=@JI,TagRole=@TR,HeatRating=@HR," +
@@ -4362,13 +4389,16 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteRfidTag(string tagId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_RfidTag WHERE TagID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 24).Value = tagId;
-        cmd.ExecuteNonQuery();
-    }
+    const string RfidTagUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_RfidTag WITH (UPDLOCK, HOLDLOCK) WHERE TagID = @K) RETURN;
+        IF OBJECT_ID('dbo.PNT_LineEvent')     IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_LineEvent'     FROM dbo.PNT_LineEvent     WHERE TagID = @K;
+        IF OBJECT_ID('dbo.PNT_TagFailureLog') IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_TagFailureLog' FROM dbo.PNT_TagFailureLog WHERE TagID = @K;
+        """;
+
+    public List<UsageRef> RfidTagUsages(string tagId) => UsagesOf(RfidTagUsageSql, tagId, 24);
+
+    public List<UsageRef> DeleteRfidTag(string tagId)
+        => DeleteIfUnused(RfidTagUsageSql, "DELETE dbo.MD_RfidTag WHERE TagID = @K;", tagId, keyLength: 24);
 
     // ── MD_RalColor CRUD ─────────────────────────────────────────────
     public bool RalColorExists(string ralCode)
@@ -4383,6 +4413,7 @@ public sealed class MasterDataRepository
         string? currentPowderLot, int? cureTemp, int? cureDuration,
         int? electroV, decimal? particleUm, bool activeFlag, string createdBy)
     {
+        MdValueRules.Throw(MdValueRules.RalCure(cureTemp, cureDuration, electroV));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_RalColor(RALCode,ColorName,HexValue,CurrentPowderLot," +
@@ -4406,6 +4437,7 @@ public sealed class MasterDataRepository
         string? currentPowderLot, int? cureTemp, int? cureDuration,
         int? electroV, decimal? particleUm, bool activeFlag, string modifiedBy)
     {
+        MdValueRules.Throw(MdValueRules.RalCure(cureTemp, cureDuration, electroV));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_RalColor SET ColorName=@CN,HexValue=@HV,CurrentPowderLot=@PL," +
@@ -4425,13 +4457,17 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteRalColor(string ralCode)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_RalColor WHERE RALCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 12).Value = ralCode;
-        cmd.ExecuteNonQuery();
-    }
+    const string RalColorUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_RalColor WITH (UPDLOCK, HOLDLOCK) WHERE RALCode = @K) RETURN;
+        IF OBJECT_ID('dbo.PNT_DailyPlan')           IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_DailyPlan'           FROM dbo.PNT_DailyPlan           WHERE RalColor = @K;
+        IF OBJECT_ID('dbo.PNT_ShiftReportLineItem') IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_ShiftReportLineItem' FROM dbo.PNT_ShiftReportLineItem WHERE RalColor = @K;
+        IF OBJECT_ID('dbo.PNT_VirtualLot')          IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_VirtualLot'          FROM dbo.PNT_VirtualLot          WHERE RalColor = @K;
+        """;
+
+    public List<UsageRef> RalColorUsages(string ralCode) => UsagesOf(RalColorUsageSql, ralCode, 12);
+
+    public List<UsageRef> DeleteRalColor(string ralCode)
+        => DeleteIfUnused(RalColorUsageSql, "DELETE dbo.MD_RalColor WHERE RALCode = @K;", ralCode, keyLength: 12);
 
     // ── MD_RfidReader CRUD ───────────────────────────────────────────
     public bool RfidReaderExists(string readerId)
@@ -4491,13 +4527,16 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteRfidReader(string readerId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_RfidReader WHERE ReaderID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = readerId;
-        cmd.ExecuteNonQuery();
-    }
+    const string RfidReaderUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_RfidReader WITH (UPDLOCK, HOLDLOCK) WHERE ReaderID = @K) RETURN;
+        IF OBJECT_ID('dbo.PNT_LineEvent')     IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_LineEvent'     FROM dbo.PNT_LineEvent     WHERE ReaderID = @K;
+        IF OBJECT_ID('dbo.PNT_TagFailureLog') IS NOT NULL INSERT @r SELECT TOP 1 'PNT', 'PNT_TagFailureLog' FROM dbo.PNT_TagFailureLog WHERE ReaderID = @K;
+        """;
+
+    public List<UsageRef> RfidReaderUsages(string readerId) => UsagesOf(RfidReaderUsageSql, readerId);
+
+    public List<UsageRef> DeleteRfidReader(string readerId)
+        => DeleteIfUnused(RfidReaderUsageSql, "DELETE dbo.MD_RfidReader WHERE ReaderID = @K;", readerId);
 
     // ── MD_PackagingSpec CRUD ────────────────────────────────────────
     public bool PackagingSpecExists(string packSpecId)
@@ -4513,6 +4552,7 @@ public sealed class MasterDataRepository
         decimal? netWeightKg, decimal? grossWeightKg, string? dimLxWxH,
         bool returnableFlag, string? labelTemplateId, bool activeFlag, string createdBy)
     {
+        MdValueRules.Throw(MdValueRules.Packaging(qtyPerInner, innerPerOuter, outerPerPallet, netWeightKg, grossWeightKg));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_PackagingSpec(PackSpecID,ItemID,PackType," +
@@ -4542,6 +4582,7 @@ public sealed class MasterDataRepository
         decimal? netWeightKg, decimal? grossWeightKg, string? dimLxWxH,
         bool returnableFlag, string? labelTemplateId, bool activeFlag, string modifiedBy)
     {
+        MdValueRules.Throw(MdValueRules.Packaging(qtyPerInner, innerPerOuter, outerPerPallet, netWeightKg, grossWeightKg));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_PackagingSpec SET ItemID=@II,PackType=@PT," +
@@ -4629,13 +4670,15 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteLabelTemplate(string id)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_LabelTemplate WHERE LabelTemplateID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = id;
-        cmd.ExecuteNonQuery();
-    }
+    const string LabelTemplateUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_LabelTemplate WITH (UPDLOCK, HOLDLOCK) WHERE LabelTemplateID = @K) RETURN;
+        INSERT @r SELECT 'PACKSPEC', PackSpecID FROM dbo.MD_PackagingSpec WHERE LabelTemplateID = @K;
+        """;
+
+    public List<UsageRef> LabelTemplateUsages(string id) => UsagesOf(LabelTemplateUsageSql, id);
+
+    public List<UsageRef> DeleteLabelTemplate(string id)
+        => DeleteIfUnused(LabelTemplateUsageSql, "DELETE dbo.MD_LabelTemplate WHERE LabelTemplateID = @K;", id);
 
     // ── MD_ReasonCode CRUD ───────────────────────────────────────────
     public bool ReasonCodeExists(string code)
@@ -4691,13 +4734,18 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteReasonCode(string code)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_ReasonCode WHERE ReasonCode=@C;", conn);
-        cmd.Parameters.Add("@C", SqlDbType.VarChar, 16).Value = code;
-        cmd.ExecuteNonQuery();
-    }
+    // 사유 코드를 읽는 곳 — MD-028 시간 패턴 구간 사유, PP-DTL 비가동 원인(CauseCode)
+    const string ReasonCodeUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_ReasonCode WITH (UPDLOCK, HOLDLOCK) WHERE ReasonCode = @K) RETURN;
+        INSERT @r SELECT DISTINCT 'PATTERN', PatternID FROM dbo.MD_LineTimeSegment WHERE ReasonCode = @K;
+        INSERT @r SELECT 'DOWNTIME', ISNULL(LineID, '-') + ' ' + CONVERT(varchar(16), StartTS, 120)
+            FROM dbo.PP_LineDowntimeLog WHERE CauseCode = @K;
+        """;
+
+    public List<UsageRef> ReasonCodeUsages(string code) => UsagesOf(ReasonCodeUsageSql, code, 16);
+
+    public List<UsageRef> DeleteReasonCode(string code)
+        => DeleteIfUnused(ReasonCodeUsageSql, "DELETE dbo.MD_ReasonCode WHERE ReasonCode = @K;", code, keyLength: 16);
 
     // ── MD_SparePart CRUD ────────────────────────────────────────────
     public bool SparePartExists(string partNo)
@@ -4943,19 +4991,23 @@ public sealed class MasterDataRepository
     }
 
     /// <summary>템플릿을 참조하는 곳은 자기 점검 단계뿐이라 단계와 함께 한 트랜잭션으로 지운다(FK 가 없어 단계가 고아로 남던 것).</summary>
-    public void DeletePmTemplate(string id)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            SET XACT_ABORT ON;
-            BEGIN TRAN;
-            DELETE dbo.MD_PmTemplateStep WHERE PMTemplateID = @I;
-            DELETE dbo.MD_PmTemplate     WHERE PMTemplateID = @I;
-            COMMIT;
-            """, conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = id;
-        cmd.ExecuteNonQuery();
-    }
+    // 사용처 = 취소되지 않은 PM 일정·끝나지 않은 보전 작업지시. 끝난 작업지시는 점검 항목을 발행 때 복사해 두어 템플릿이 없어도 된다
+    const string PmTemplateUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_PmTemplate WITH (UPDLOCK, HOLDLOCK) WHERE PMTemplateID = @K) RETURN;
+        INSERT @r SELECT 'PM',  ISNULL(PMPlanNumber, CAST(PMScheduleID AS varchar(20))) FROM dbo.MNT_PMSchedule
+            WHERE ChecklistID = @K AND ISNULL(Status, '') <> 'CANCELLED';
+        INSERT @r SELECT 'MWO', ISNULL(WoNumber, CAST(WorkOrderID AS varchar(20))) FROM dbo.MNT_WorkOrder
+            WHERE ChecklistID = @K AND Status NOT IN ('COMPLETED', 'CLOSED');
+        """;
+
+    public List<UsageRef> PmTemplateUsages(string id) => UsagesOf(PmTemplateUsageSql, id);
+
+    /// <summary>쓰이지 않으면 점검 단계와 함께 지우고 빈 목록, 쓰이면 지우지 않고 그 목록을 돌려준다.</summary>
+    public List<UsageRef> DeletePmTemplate(string id)
+        => DeleteIfUnused(PmTemplateUsageSql, """
+            DELETE dbo.MD_PmTemplateStep WHERE PMTemplateID = @K;
+            DELETE dbo.MD_PmTemplate     WHERE PMTemplateID = @K;
+            """, id);
 
     // ── MD_PmTemplateStep CRUD ───────────────────────────────────────
     // 필요 예비품이 마스터에 없으면 0행 — 호출자가 거부 메시지를 낸다(FK 없음, 정합성은 저장소 책임)
@@ -5028,6 +5080,7 @@ public sealed class MasterDataRepository
         int? totalOperatingMin, int? totalPlannedDownMin,
         string? timeZone, string? status, string createdBy)
     {
+        MdValueRules.Throw(MdValueRules.Period(effectiveFrom, effectiveTo));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "INSERT INTO dbo.MD_LineTimePattern(PatternID,LineID,PatternName," +
@@ -5055,6 +5108,7 @@ public sealed class MasterDataRepository
         int? totalOperatingMin, int? totalPlannedDownMin,
         string? timeZone, string? status, string modifiedBy)
     {
+        MdValueRules.Throw(MdValueRules.Period(effectiveFrom, effectiveTo));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand(
             "UPDATE dbo.MD_LineTimePattern SET LineID=@LI,PatternName=@PN," +
@@ -5309,13 +5363,16 @@ public sealed class MasterDataRepository
         cmd.ExecuteNonQuery();
     }
 
-    public void DeleteRecipe(string recipeId)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("DELETE FROM dbo.MD_Recipe WHERE RecipeID=@I;", conn);
-        cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = recipeId;
-        cmd.ExecuteNonQuery();
-    }
+    const string RecipeUsageSql = """
+        IF NOT EXISTS (SELECT 1 FROM dbo.MD_Recipe WITH (UPDLOCK, HOLDLOCK) WHERE RecipeID = @K) RETURN;
+        INSERT @r SELECT 'WO',        WoNumber FROM dbo.PP_WorkOrder WHERE RecipeID = @K;
+        INSERT @r SELECT 'BONDSETUP', CAST(BondSetupID AS varchar(20)) FROM dbo.PR_BondSetup WHERE RecipeID = @K;
+        """;
+
+    public List<UsageRef> RecipeUsages(string recipeId) => UsagesOf(RecipeUsageSql, recipeId);
+
+    public List<UsageRef> DeleteRecipe(string recipeId)
+        => DeleteIfUnused(RecipeUsageSql, "DELETE dbo.MD_Recipe WHERE RecipeID = @K;", recipeId);
 
     // ╔══════════════════════════════════════════════════════════════════╗
     // ║  MD_Pallet (MD-034)                                              ║
