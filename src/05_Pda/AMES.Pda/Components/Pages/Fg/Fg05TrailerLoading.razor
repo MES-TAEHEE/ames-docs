@@ -9,32 +9,36 @@
     <div class="pda-tbar"><button class="pda-tbar-back" @onclick='@(()=>Nav.NavigateTo("/fg"))'>&lt;</button><span class="pda-tbar-brand">TRAILER LOADING</span></div>
     <div class="pda-bd wh02-body">
         <RadzenCard class="wh02-panel hardware-scan-panel"><div class="pda-fld">
-            <label>@(_delivery is null?"SHIPMENT ORDER / DCR BARCODE":"PALLET BARCODE")</label>
+            <label>@(_delivery is null?"DCR BARCODE":_removing?"REMOVE PALLET BARCODE":"PALLET BARCODE")</label>
             <RadzenTextBox Value="@_barcode" @oninput="@(e=>_barcode=e.Value?.ToString()??"")" @onkeydown="OnKey" Disabled="_busy" Placeholder="Scan Barcode" class="pda-input pda-scan-input" />
+            @if(_delivery is {Status:"Open" or "Loading",Loads.Count:>0})
+            {
+                <RadzenButton Text="@(_removing?"CANCEL REMOVE":"REMOVE PALLET")" Click="ToggleRemove" Disabled="_busy" Size="ButtonSize.Small" class="wh02-clear-btn" />
+            }
         </div></RadzenCard>
         @if(_delivery is null)
         {
             <RadzenCard class="wh02-panel shipment-orders-panel">
                 <div class="shipment-orders-head">
-                    <strong>SHIPMENT ORDERS · @_orders.Count</strong>
-                    <RadzenButton Icon="refresh" Text="REFRESH" Click="ReloadOrders" Disabled="@(_busy||_loadingOrders)" Size="ButtonSize.Small" class="wh02-clear-btn" />
+                    <strong>DCR LIST · @_deliveries.Count</strong>
+                    <RadzenButton Icon="refresh" Text="REFRESH" Click="ReloadDeliveries" Disabled="@(_busy||_loadingDeliveries)" Size="ButtonSize.Small" class="wh02-clear-btn" />
                 </div>
-                @if(_ordersError.Length>0)
+                @if(_deliveriesError.Length>0)
                 {
-                    <div class="shipment-orders-empty error" role="alert">@_ordersError</div>
+                    <div class="shipment-orders-empty error" role="alert">@_deliveriesError</div>
                 }
-                else if(!_loadingOrders && _orders.Count==0)
+                else if(!_loadingDeliveries && _deliveries.Count==0)
                 {
-                    <div class="shipment-orders-empty">No open shipment orders.</div>
+                    <div class="shipment-orders-empty">No open DCRs. Create a DCR on the web before loading.</div>
                 }
-                @foreach(var order in _orders)
+                @foreach(var dcr in _deliveries)
                 {
-                    <RadzenButton Click="@(()=>SelectOrder(order))" Disabled="@(_busy||!CanOpenOrder(order))" class="shipment-order-row">
+                    <RadzenButton @key="dcr.DeliveryId" Click="@(()=>SelectDelivery(dcr))" Disabled="@(_busy||!CanOpenDelivery(dcr))" class="shipment-order-row">
                         <ChildContent>
-                            <span class="shipment-order-main"><strong>@order.OrderNo</strong><span>@order.Status</span></span>
-                            <span class="shipment-order-meta">@order.CustomerId · @order.ShipDate.ToString("MM/dd/yyyy")</span>
-                            <span class="shipment-order-parts">@string.Join(" · ",order.Lines.Select(x=>x.PartNo).Distinct())</span>
-                            <span class="shipment-order-dcr">@(CanOpenOrder(order)?order.DeliveryNo:"DCR not assigned — assign on the web before loading.")</span>
+                            <span class="shipment-order-main"><strong>@dcr.DeliveryNo</strong><span>@dcr.Status</span></span>
+                            <span class="shipment-order-meta">@dcr.CustomerId · @dcr.ShipDate.ToString("MM/dd/yyyy")</span>
+                            <span class="shipment-order-parts">@dcr.OrderCount order(s) · @dcr.PartCount part(s)</span>
+                            @if(!string.IsNullOrWhiteSpace(dcr.TrailerNo)){<span class="shipment-order-dcr">TRAILER: @dcr.TrailerNo</span>}
                         </ChildContent>
                     </RadzenButton>
                 }
@@ -43,6 +47,7 @@
         @if(_delivery is {} delivery)
         {
             <section class="load-summary"><strong>@delivery.DeliveryNo</strong><div>@delivery.CustomerId · @delivery.ShipDate.ToString("MM/dd/yyyy")</div><div>TRAILER: @(delivery.TrailerNo??"—") · @delivery.Status</div>
+                <div>LOADED PALLETS: @delivery.Loads.Select(x=>x.RootLotNo).Distinct().Count()</div>
                 @foreach(var order in delivery.OrderNos){<div class="load-order">@order</div>}
             </section>
             <section class="load-parts">
@@ -52,15 +57,8 @@
                     <article class="@(part.LoadedQty==part.RequiredQty?"complete":"")"><div><strong>@part.PartNo</strong><strong>@part.LoadedQty.ToString("N0") / @part.RequiredQty.ToString("N0")</strong></div><small>@part.PartName</small></article>
                 }
             </section>
-            <section class="load-parts"><header>LOADED PALLETS · @delivery.Loads.Select(x=>x.RootLotNo).Distinct().Count()</header>
-                @foreach(var root in delivery.Loads.GroupBy(x=>x.RootLotNo))
-                {
-                    <details><summary>@root.Key</summary>@foreach(var item in root){<div>@item.LotNo · @item.PartNo · @item.Qty.ToString("N0")</div>}
-                        @if(delivery.Status!="Shipped"){<RadzenButton Text="Remove from trailer" Click="@(()=>RemovePallet(root.Key))" Disabled="_busy" class="wh02-clear-btn" />}
-                    </details>
-                }
-            </section>
         }
+        @if(_scanMessage.Length>0){<div class="pda-status ok">@_scanMessage</div>}
         <div class="wh02-action-bar has-reset">
             <RadzenButton Text="CLEAR" Click="Clear" Disabled="_busy" class="wh02-clear-btn" />
             <RadzenButton Text="CONFIRM SHIPMENT" Click="AskComplete" Disabled="@(_busy||!Ready)" class="pda-btn-pri wh02-receive-btn" />
@@ -75,25 +73,27 @@
 </div>
 @code {
     ShippingDeliveryDto? _delivery;string _barcode="",_title="",_message="";bool _busy,_modal,_confirm;
-    List<ShippingOrderDto> _orders=[];
-    string _ordersError="";
-    bool _loadingOrders;
+    List<ShippingDeliveryListDto> _deliveries=[];
+    string _deliveriesError="";
+    bool _loadingDeliveries;
+    bool _removing;
+    string _scanMessage="";
     DotNetObjectReference<Fg05TrailerLoading>? _scanner;
-    bool Ready=>_delivery is {Status:not "Shipped"} d&&d.Parts.Count>0&&d.Parts.All(x=>x.RequiredQty==x.LoadedQty);
-    protected override Task OnInitializedAsync()=>ReloadOrders();
-    static bool CanOpenOrder(ShippingOrderDto order)=>order.DeliveryId is not null&&!string.IsNullOrWhiteSpace(order.DeliveryNo)&&order.Status is "Open" or "Loading";
-    async Task ReloadOrders()
+    bool Ready=>!_removing&&_delivery is {Status:"Open" or "Loading"} d&&d.Parts.Count>0&&d.Parts.All(x=>x.RequiredQty==x.LoadedQty);
+    protected override Task OnInitializedAsync()=>ReloadDeliveries();
+    static bool CanOpenDelivery(ShippingDeliveryListDto delivery)=>!string.IsNullOrWhiteSpace(delivery.DeliveryNo)&&delivery.Status is "Open" or "Loading";
+    async Task ReloadDeliveries()
     {
-        if(_busy||_loadingOrders)return;
-        _loadingOrders=true;_ordersError="";
-        try{_orders=await Api.OpenShippingOrdersAsync();}
-        catch(Exception ex){_orders=[];_ordersError=ex.Message;}
-        finally{_loadingOrders=false;}
+        if(_busy||_loadingDeliveries)return;
+        _loadingDeliveries=true;_deliveriesError="";
+        try{_deliveries=await Api.OpenShippingDeliveriesAsync();}
+        catch(Exception ex){_deliveries=[];_deliveriesError=ex.Message;}
+        finally{_loadingDeliveries=false;}
     }
-    async Task SelectOrder(ShippingOrderDto order)
+    async Task SelectDelivery(ShippingDeliveryListDto delivery)
     {
-        if(_busy||_modal||_delivery is not null||!CanOpenOrder(order))return;
-        _barcode=order.OrderNo;await Scan();
+        if(_busy||_modal||_delivery is not null||!CanOpenDelivery(delivery))return;
+        _barcode=delivery.DeliveryNo;await Scan();
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -109,24 +109,63 @@
         try
         {
             var value=_barcode.Replace("\u0002","").Replace("\u0003","").Trim();
-            var result=_delivery is null?await Api.ShippingDeliveryAsync(value):await Api.LoadShippingDeliveryAsync(_delivery.DeliveryNo,value);
-            if(!result.Success||result.Delivery is null)Show("Loading Failed",result.Message);else{_delivery=result.Delivery;_barcode="";}
+            _scanMessage="";
+            if(_delivery is null&&!value.StartsWith("DCR-",StringComparison.OrdinalIgnoreCase))
+            {
+                Show("DCR Required","Scan or select a DCR first, then scan the pallet barcode.");return;
+            }
+            var opening=_delivery is null;
+            if(!opening&&_delivery!.Status is not ("Open" or "Loading"))
+            {
+                Show("DCR Closed","This DCR cannot be changed. Select an open DCR.");return;
+            }
+            if(!opening)
+            {
+                var loaded=_delivery!.Loads.Any(x=>string.Equals(x.RootLotNo,value,StringComparison.OrdinalIgnoreCase));
+                if(_removing&&!loaded){Show("Pallet Not Loaded","This pallet is not loaded on the selected DCR.");return;}
+                if(!_removing&&loaded){Show("Already Loaded","This pallet is already loaded. No quantity was added.");return;}
+            }
+            var result=opening?await Api.ShippingDeliveryAsync(value):_removing
+                ?await Api.UnloadShippingDeliveryAsync(_delivery!.DeliveryNo,value)
+                :await Api.LoadShippingDeliveryAsync(_delivery!.DeliveryNo,value);
+            if(!result.Success||result.Delivery is null)Show("Loading Failed",result.Message);
+            else
+            {
+                _scanMessage=opening?"DCR opened. Scan a pallet barcode.":_removing?$"Removed pallet: {value}":$"Loaded pallet: {value}";
+                _delivery=result.Delivery;_barcode="";_removing=false;
+            }
         }
         catch(Exception ex){Show("Loading Failed",ex.Message);}finally{_busy=false;await Focus();}
     }
-    async Task Clear(){_delivery=null;_barcode="";await ReloadOrders();await Focus();}
-    async Task RemovePallet(string root)
+    void ResetDelivery(){_delivery=null;_barcode="";_removing=false;_scanMessage="";_confirm=false;}
+    async Task Clear(){ResetDelivery();await ReloadDeliveries();await Focus();}
+    async Task ToggleRemove()
     {
-        if(_busy||_delivery is null)return;_busy=true;
-        try{var result=await Api.UnloadShippingDeliveryAsync(_delivery.DeliveryNo,root);if(result.Success)_delivery=result.Delivery;else Show("Remove Failed",result.Message);}
-        catch(Exception ex){Show("Remove Failed",ex.Message);}finally{_busy=false;}
+        if(_busy||_delivery is null)return;
+        _removing=!_removing;_barcode="";
+        _scanMessage=_removing?"Scan a loaded pallet to remove it from this DCR.":"Scan a pallet barcode.";
+        await Focus();
     }
     void AskComplete(){if(!Ready)return;_confirm=true;Show("Confirm Shipment","Ship all loaded pallets? Inventory will be deducted and the customer SO shipped quantity will be updated.");}
     async Task Complete()
     {
         if(_busy||!Ready||_delivery is null)return;_busy=true;
-        try{var result=await Api.CompleteShippingDeliveryAsync(_delivery.DeliveryNo);_confirm=false;if(result.Success){_delivery=result.Delivery;Show("Shipment Complete",result.Delivery?.DeliveryNo??result.Message);}else Show("Shipment Failed",result.Message);}
+        var completed=false;
+        var deliveryNo=_delivery.DeliveryNo;
+        try
+        {
+            var result=await Api.CompleteShippingDeliveryAsync(deliveryNo);_confirm=false;
+            if(result.Success)
+            {
+                ResetDelivery();
+                _deliveries.RemoveAll(d=>d.DeliveryNo==deliveryNo);
+                completed=true;
+                Show("Shipment Complete",deliveryNo);
+            }
+            else Show("Shipment Failed",result.Message);
+        }
         catch(Exception ex){_confirm=false;Show("Shipment Failed",ex.Message);}finally{_busy=false;}
+        if(completed)await ReloadDeliveries();
     }
     void Show(string title,string message){_title=title;_message=message;_modal=true;}
     void CloseModal(){_modal=false;_confirm=false;_=Focus();}
