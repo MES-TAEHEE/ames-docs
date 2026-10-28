@@ -6,7 +6,8 @@
        이름은 기존 사출 약어 Inj(PR_InjLot·MD_InjCondItem·MD_Mold.AssyInjResultFlag)와 bit 접미사 Flag(ToteFlag·ActiveFlag)를 따랐다.
 
    · 기존 행은 0 — 자동으로 채우지 않는다(MD-003 에서 지정).
-   · 컬럼 순서 때문에 테이블을 재생성한다(migrate_md_item_pallet_qty.sql 과 같은 방식). 가드: 컬럼이 없거나 ItemCategory 바로 뒤가 아니면 재생성.
+   · 컬럼 순서 때문에 테이블을 재생성한다(migrate_md_item_pallet_qty.sql 과 같은 방식). 가드(10-28): 컬럼이 있으면 자리와 관계없이 건너뛰고,
+     재생성 목록에 없는 컬럼이 있는 DB 는 재생성하지 않고 ALTER ADD 로 맨 뒤에 붙인다(데이터 손실 방지).
    · MD_Item 을 참조하는 FK 와 컬럼 설명(MS_Description)은 DB 에서 읽어 두었다가 재생성 뒤 그대로 되살린다.
    · 재실행 안전. 적용: sqlcmd -f 65001 -I -b
    · MD-003(/md/fd/items) 신 Web 은 이 컬럼을 읽으므로 이 마이그레이션 없이 올리면 품목 목록이 예외(Invalid column name 'InjFlag').
@@ -15,11 +16,25 @@
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
+-- 10-28: 컬럼이 이미 있으면 자리가 달라도 건드리지 않는다. 전에는 자리만 다른 DB 도 아래 고정 목록으로 재생성해
+--        그 뒤에 생긴 컬럼(ScanRequired·IssueAddPct·MrpAllowPct·ProcureType·SAPFlag …)이 데이터째 사라질 수 있었다.
 IF COL_LENGTH('dbo.MD_Item', 'InjFlag') IS NOT NULL
-   AND (SELECT column_id FROM sys.columns WHERE object_id = OBJECT_ID('dbo.MD_Item') AND name = 'InjFlag')
-     = (SELECT column_id FROM sys.columns WHERE object_id = OBJECT_ID('dbo.MD_Item') AND name = 'ItemCategory') + 1
 BEGIN
-    PRINT N'· MD_Item.InjFlag 이미 ItemCategory 뒤에 있음';
+    PRINT N'· MD_Item.InjFlag 이미 있음 — 건너뜀';
+    RETURN;
+END
+
+-- 아래 재생성 목록에 없는 컬럼이 있으면(이 마이그레이션 뒤에 만든 컬럼이 있는 DB) 재생성하지 않고 맨 뒤에 붙인다 —
+-- 컬럼 순서는 코드가 이름으로 읽어 동작에 영향이 없고, 재생성하면 그 컬럼이 데이터째 사라진다.
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.MD_Item')
+           AND name NOT IN ('ItemNo','ItemName','ItemNameEN','ItemType','ItemCategory','DefaultUOM','RoutingType',
+                            'MinStock','MaxStock','SafetyStock','UnitCost','CustItemNoSAV','CustItemNoGEO','DrawingNo',
+                            'PalletQty','MaxPalletQty','ToteFlag','ActiveFlag','CreatedBy','CreatedTS','ModifiedBy','ModifiedTS',
+                            'CarType','PGN','ALC','MountPos','SparePartNo','ApplicableEquipment','MakerName','LeadTimeDays'))
+BEGIN
+    ALTER TABLE dbo.MD_Item ADD InjFlag bit NOT NULL CONSTRAINT DF_MD_Item_InjFlag DEFAULT ((0));
+    EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'사출품 여부 — 품목 유형 SUB 만 1 · bit', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_Item', @level2type = N'COLUMN', @level2name = N'InjFlag';
+    PRINT N'✓ MD_Item.InjFlag 추가(맨 뒤) — 재생성 목록에 없는 컬럼이 있어 재생성하지 않음. 감사 컬럼 정렬은 migrate_audit_columns_last.sql';
     RETURN;
 END
 

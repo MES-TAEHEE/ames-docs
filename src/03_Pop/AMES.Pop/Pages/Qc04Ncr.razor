@@ -72,7 +72,7 @@
                         <option>INSPECTION</option><option>POP-DEFECT</option><option>CUSTOMER</option><option>AUDIT</option>
                     </select>
                 </div>
-                <div class="qc-fld"><label>ITEM</label><input class="qc-input" @bind="_item" placeholder="DR-TRM-LH-A1" /></div>
+                <div class="qc-fld"><label>ITEM</label><input class="qc-input" @bind="_item" placeholder="ITEM" /></div>
                 <div class="qc-fld"><label>QTY</label><input class="qc-input" type="number" @bind="_qty" /></div>
                 <div class="qc-fld">
                     <label>DISPOSITION</label>
@@ -105,7 +105,7 @@
 
     private List<QcNcrDto> _ncrs = new();
     private int     _closed7;
-    private string  _sev = "Major", _src = "INSPECTION", _item = "DR-TRM-LH-A1", _disp = "HOLD";
+    private string  _sev = "Major", _src = "INSPECTION", _item = "", _disp = "HOLD";
     private int     _qty = 24;
     private string  _status = "", _statusCls = "dim";
     private DateTime _now = DbClock.Now;

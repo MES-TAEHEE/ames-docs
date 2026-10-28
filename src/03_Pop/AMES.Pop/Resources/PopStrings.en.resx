@@ -248,6 +248,8 @@
   <data name="DfRegistered" xml:space="preserve"><value>Defect registered</value></data>
   <data name="DfAlreadyInRework" xml:space="preserve"><value>LOT already awaiting rework</value></data>
   <data name="DfScrapped" xml:space="preserve"><value>Scrapped LOT</value></data>
+  <data name="DfUsedAsCore" xml:space="preserve"><value>Already used as a core in wrapping — register the defect on its finished LOT</value></data>
+  <data name="DfShipped" xml:space="preserve"><value>Already shipped LOT — handle it through customer return inspection</value></data>
   <data name="DfStockRemovedLocated" xml:space="preserve"><value>Removed from stocked inventory (location {0}) — notify the warehouse</value></data>
   <data name="DfPriorConfirmed" xml:space="preserve"><value>Confirmed LOT — 1 EA reversed</value></data>
   <data name="DfTodayRegistered" xml:space="preserve"><value>Registered this session</value></data>

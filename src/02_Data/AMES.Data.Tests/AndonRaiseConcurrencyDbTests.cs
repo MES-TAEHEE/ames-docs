@@ -1,4 +1,5 @@
 using AMES.Data.Repositories;
+using AMES.Contracts.Dto;
 using Xunit;
 
 namespace AMES.Data.Tests;
@@ -63,8 +64,51 @@ public class AndonRaiseConcurrencyDbTests
         finally { Clean(f!); }
     }
 
+    [SkippableFact]
+    public void Maintenance_call_issues_a_cm_work_order_and_resolve_completes_it()
+    {
+        var f = AmesDevDb.TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Clean(f!);
+        try
+        {
+            var repo = new AndonRepository(f!);
+            var id = repo.Raise(Line, null, "MANUAL", "ITEST", null, "ITEST");
+            AmesDevDb.Exec(f!, "UPDATE dbo.PR_AndonCall SET Status = 'SUP_ACKED' WHERE AndonID = @A", ("@A", id));   // 부서 호출은 슈퍼바이저 확인 뒤
+            repo.CallDepts(id, "MACHINE", "CRITICAL", new[] { AndonDeptCodes.Maint }, "ITEST", "ITEST");
+
+            // 고장 1행 + 보전 작업지시(CM·출처 ANDON·고장번호·HIGH·ISSUED)가 연결된다(10-28)
+            var wo = AmesDevDb.Scalar(f!, """
+                SELECT CONCAT(w.WoType, '|', w.SourceType, '|', IIF(w.SourceRefID = fr.FailureNumber, 'ref', 'x'), '|', w.Priority, '|', w.Status)
+                FROM   dbo.MNT_FailureRegister fr JOIN dbo.MNT_WorkOrder w ON w.WorkOrderID = fr.WorkOrderID
+                WHERE  fr.Source = 'ANDON' AND fr.AndonRefID = @R;
+                """, ("@R", id.ToString()));
+            Assert.Equal("CM|ANDON|ref|HIGH|ISSUED", wo);
+
+            // 같은 안돈의 보전 재호출은 고장·작업지시를 더 만들지 않는다
+            AmesDevDb.Exec(f!, "UPDATE dbo.PR_AndonCall SET Status = 'SUP_ACKED' WHERE AndonID = @A", ("@A", id));
+            repo.CallDepts(id, "MACHINE", "CRITICAL", new[] { AndonDeptCodes.Maint }, "ITEST", "ITEST");
+            Assert.Equal(1, (int)AmesDevDb.Scalar(f!, "SELECT COUNT(*) FROM dbo.MNT_WorkOrder WHERE SourceType = 'ANDON' AND SourceRefID IN (SELECT FailureNumber FROM dbo.MNT_FailureRegister WHERE AndonRefID = @R)", ("@R", id.ToString()))!);
+
+            repo.Resolve(id, null, null, "ITEST");
+            var done = AmesDevDb.Scalar(f!, """
+                SELECT CONCAT(fr.Status, '|', w.Status, '|', IIF(w.CompletedAt IS NULL, 'no', 'at'), '|', JSON_VALUE(w.ChecklistResultsJSON, '$.Result'))
+                FROM   dbo.MNT_FailureRegister fr JOIN dbo.MNT_WorkOrder w ON w.WorkOrderID = fr.WorkOrderID
+                WHERE  fr.Source = 'ANDON' AND fr.AndonRefID = @R;
+                """, ("@R", id.ToString()));
+            Assert.Equal("RESOLVED|COMPLETED|at|OK", done);
+        }
+        finally { Clean(f!); }
+    }
+
     static void Clean(AMES.Data.Connection.AmesConnectionFactory f)
         => AmesDevDb.Exec(f, """
+            DELETE w FROM dbo.MNT_WorkOrder w JOIN dbo.MNT_FailureRegister fr ON fr.WorkOrderID = w.WorkOrderID
+              JOIN dbo.PR_AndonCall a ON fr.Source = 'ANDON' AND fr.AndonRefID = CAST(a.AndonID AS varchar(24)) WHERE a.LineID = @L;
+            DELETE fa FROM dbo.MNT_FailureAction fa JOIN dbo.MNT_FailureRegister fr ON fr.FailureID = fa.FailureID
+              JOIN dbo.PR_AndonCall a ON fr.Source = 'ANDON' AND fr.AndonRefID = CAST(a.AndonID AS varchar(24)) WHERE a.LineID = @L;
+            DELETE fr FROM dbo.MNT_FailureRegister fr
+              JOIN dbo.PR_AndonCall a ON fr.Source = 'ANDON' AND fr.AndonRefID = CAST(a.AndonID AS varchar(24)) WHERE a.LineID = @L;
+            DELETE dbo.PR_AndonDeptCall WHERE AndonID IN (SELECT AndonID FROM dbo.PR_AndonCall WHERE LineID = @L);
             DELETE dbo.PR_AndonPush WHERE AndonID IN (SELECT AndonID FROM dbo.PR_AndonCall WHERE LineID = @L);
             DELETE dbo.PP_LineDowntimeLog WHERE LineID = @L;
             DELETE dbo.PR_AndonCall WHERE LineID = @L;

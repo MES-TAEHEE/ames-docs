@@ -674,6 +674,26 @@ BEGIN
         LEFT   JOIN dbo.MD_CodeItem ci ON ci.GroupCode = 'ANDON_CAUSE' AND ci.CodeValue = @C
         OUTER  APPLY (SELECT TOP 1 DowntimeID FROM dbo.PP_LineDowntimeLog WHERE AndonID = a.AndonID ORDER BY DowntimeID DESC) d
         WHERE  a.AndonID = @ID;
+        DECLARE @failId INT = SCOPE_IDENTITY();
+
+        -- 보전 작업지시(CM)를 같이 발행한다(10-28 — 웹 MntRepository.IssueFailureWorkOrder 와 같은 값: 출처 ANDON·SourceRefID 고장번호·
+        -- 우선순위는 심각도·담당자 없음 = ISSUED). 그래야 MNT-007 배정·착수·PDA 부품 출고를 쓸 수 있다. 채번 잠금 순서 FAIL → MWO(웹과 같음).
+        IF @failId IS NOT NULL
+        BEGIN
+            DECLARE @mwo INT;
+            EXEC dbo.SP_SYS_NumberSeq_Next @SeqCode = 'MWO', @Ym = @ym, @No = @mwo OUTPUT;
+            INSERT INTO dbo.MNT_WorkOrder
+                (WoNumber, WoType, EquipID, Priority, SourceType, SourceRefID, AssignedTechID,
+                 ActionDesc, Status, IssuedAt, CreatedBy, CreatedTS)
+            SELECT 'MWO-' + @ym + '-' + RIGHT('000' + CAST(@mwo AS VARCHAR(4)), 3), 'CM', f.EquipID,
+                   CASE UPPER(ISNULL(f.Severity, '')) WHEN 'CRITICAL' THEN 'HIGH' WHEN 'MAJOR' THEN 'MED' ELSE 'LOW' END,
+                   'ANDON', f.FailureNumber, NULL,
+                   ISNULL(f.FailureType, 'CM') + N' — ' + f.FailureNumber + N': ' + LEFT(LTRIM(RTRIM(ISNULL(f.Symptom, N''))), 200),
+                   'ISSUED', SYSDATETIME(), @Op, SYSDATETIME()
+            FROM   dbo.MNT_FailureRegister f
+            WHERE  f.FailureID = @failId;
+            UPDATE dbo.MNT_FailureRegister SET WorkOrderID = SCOPE_IDENTITY() WHERE FailureID = @failId;
+        END
     END
 END;
 GO
@@ -771,6 +791,17 @@ BEGIN
         SET    EndTS = @now, DurationMin = DATEDIFF(MINUTE, StartTS, @now),
                CauseCode = COALESCE(CauseCode, @C), ModifiedBy = @Op, ModifiedTS = @now
         WHERE  AndonID = @ID AND EndTS IS NULL;
+        -- 안돈이 끝나면 그 고장의 보전 작업지시도 끝낸다(10-28 — 결과 OK, 점검 항목이 없는 CM 이라 완료 차단 규칙과 무관).
+        -- 이미 완료·종료된 작업지시는 그대로 둔다. 고장보다 먼저(웹 잠금 순서 WO → 고장).
+        UPDATE w
+        SET    Status = 'COMPLETED', CompletedAt = @now, StartedAt = ISNULL(w.StartedAt, @now),
+               ChecklistResultsJSON = (SELECT 'OK' AS Result, N'Andon #' + @Ref + N' resolved' AS Action, CAST(NULL AS nvarchar(1)) AS RootCause,
+                                              @Op AS [By], @now AS [At] FOR JSON PATH, WITHOUT_ARRAY_WRAPPER, INCLUDE_NULL_VALUES),
+               ModifiedBy = @Op, ModifiedTS = @now
+        FROM   dbo.MNT_WorkOrder w
+        JOIN   dbo.MNT_FailureRegister f ON f.WorkOrderID = w.WorkOrderID
+        WHERE  f.Source = 'ANDON' AND f.AndonRefID = @Ref AND f.Status NOT IN ('RESOLVED', 'CLOSED')
+          AND  ISNULL(w.Status, '') NOT IN ('COMPLETED', 'CLOSED');
         -- MNT-007 「종료」로 이미 닫힌 고장(CLOSED — 수리 없이 닫음, 해결 시각 없음)은 해결로 덮지 않는다
         UPDATE dbo.MNT_FailureRegister
         SET    Status = 'RESOLVED', ResolvedAt = @now, ModifiedBy = @Op, ModifiedTS = @now
@@ -938,7 +969,14 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_RegisterDefect_GetLot
     @Code VARCHAR(40)
 AS
 BEGIN
-    SELECT l.LotID, l.ItemNo, l.LineID, e.ConfirmStatus
+    SELECT l.LotID, l.ItemNo, l.LineID, e.ConfirmStatus,
+           CAST(NULL AS varchar(40)) AS UsedByLotCode,
+           -- 출하된 LOT(그 LOT 또는 실렸던 팔레트의 출하 기록이 있고 양수 재고 행이 없음) — 라인 불량으로 받지 않는다(10-28)
+           CAST(CASE WHEN NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory iq WHERE iq.LotNo = l.LotCode AND iq.Qty > 0)
+                      AND (EXISTS (SELECT 1 FROM dbo.FG_Shipment s WHERE s.LotNo = l.LotCode)
+                           OR EXISTS (SELECT 1 FROM dbo.WH_Inventory ip JOIN dbo.FG_Shipment s ON s.LotNo = ip.PalletNo OR s.PalletNo = ip.PalletNo
+                                      WHERE ip.LotNo = l.LotCode AND ip.PalletNo IS NOT NULL))
+                     THEN 1 ELSE 0 END AS bit) AS ShippedFlag
     FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
     JOIN   dbo.PR_PntLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
     WHERE  l.LotCode = @Code;
@@ -953,8 +991,9 @@ BEGIN
     UPDATE dbo.PR_PntLot
     SET    ConfirmStatus = 'DEFECT', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
     WHERE  LotID = @Lot;
+    -- LOT 마스터 상태도 DEFECT — 확정(CONFIRMED)·폐기(SCRAP)·수리 양품(CONFIRMED)과 맞춘다. 전에는 CONFIRMED 로 남아 추적성에 양품으로 보였다(10-28)
     UPDATE dbo.tbl_Lot
-    SET    QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    Status = 'DEFECT', QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
     WHERE  LotID = @Lot;
 END;
 GO
@@ -964,7 +1003,7 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ConfirmByLotCode_GetLot
     @Code VARCHAR(40)
 AS
 BEGIN
-    SELECT l.LotID, l.ItemNo, l.LineID, l.CreatedTS, e.ConfirmStatus
+    SELECT l.LotID, l.ItemNo, l.LineID, l.CreatedTS, e.ConfirmStatus, e.CustomerCode
     FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
     JOIN   dbo.PR_PntLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
     WHERE  l.LotCode = @Code;
@@ -973,16 +1012,21 @@ GO
 
 CREATE OR ALTER PROCEDURE dbo.SP_POP_PNT_ConfirmByLotCode_GetWorkOrderRouting
     @Line VARCHAR(20),
-    @Item VARCHAR(20)
+    @Item VARCHAR(20),
+    @Cust VARCHAR(20) = NULL
 AS
 BEGIN
+    -- 라벨에 찍힌 수주처(발행 때 박아 둔 CustomerCode)와 같은 수주의 WO 를 먼저 — 라벨과 실적의 WO 가 갈리지 않게(10-28)
     SELECT TOP 1 r.WoID, r.RoutingLineID
     FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
     JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
+    LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+    LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
     WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
       AND          r.Status IN ('Released','In Progress')
                   AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
-    ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
+    ORDER  BY         CASE WHEN @Cust IS NOT NULL AND c.CustomerCode = @Cust THEN 0 ELSE 1 END,
+                      CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
                       w.WoID
@@ -1164,12 +1208,31 @@ END;
 GO
 
 -- ===== Qc.CreateInspection (QC) =====
+-- ===== Qc.ResolveInspectionTarget (QC) =====
+-- 검사 대상 = 스캔한 LOT(품번·WO·라인을 LOT 에서) → 없으면 품번(MD_Item). 둘 다 아니면 빈 결과(10-28 — 전에는 품번이 상수였다).
+CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_ResolveInspectionTarget
+    @Code VARCHAR(40)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP 1 l.LotID, l.ItemNo, l.WoID, l.LineID
+    FROM   dbo.tbl_Lot l WHERE l.LotCode = @Code
+    UNION ALL
+    SELECT TOP 1 CAST(NULL AS int), i.ItemNo, CAST(NULL AS int), CAST(NULL AS varchar(20))
+    FROM   dbo.MD_Item i
+    WHERE  i.ItemNo = @Code AND NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot l2 WHERE l2.LotCode = @Code);
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_CreateInspection
     @T VARCHAR(15),
     @I VARCHAR(20),
     @S INT,
     @Op NVARCHAR(450),
-    @By VARCHAR(20)
+    @By VARCHAR(20),
+    @Lot INT = NULL,
+    @Wo INT = NULL,
+    @Line VARCHAR(20) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1180,12 +1243,12 @@ BEGIN
     DECLARE @n INT = (SELECT COUNT(*) FROM dbo.QC_Inspection WITH (UPDLOCK, HOLDLOCK)
                       WHERE InspectionNo = @base OR InspectionNo LIKE @base + '-%');
     INSERT INTO dbo.QC_Inspection
-        (InspectionNo, InspectionType, ItemNo, Mode, SampleSize, BatchQty,
+        (InspectionNo, InspectionType, LotID, WoID, LineID, ItemNo, Mode, SampleSize, BatchQty,
          CumulativeGood, DefectQtyTotal, Verdict, CriticalFlag,
          InspectorID, InsStartTS, CreatedBy, CreatedTS)
     OUTPUT INSERTED.InspectionID
     VALUES (CASE WHEN @n = 0 THEN @base ELSE CONCAT(@base, '-', @n + 1) END,
-            @T, @I, 'Normal', @S, @S*6, 0, 0,
+            @T, @Lot, @Wo, @Line, @I, 'Normal', @S, @S*6, 0, 0,
             'IN_PROGRESS', 0, @Op, SYSDATETIME(), @By, SYSDATETIME());
     COMMIT;
 END;
@@ -1797,7 +1860,15 @@ BEGIN
                CASE WHEN ri.WeldLine  = 'NG' THEN N', 웰드라인 NG' ELSE N'' END +
                CASE WHEN ri.Gas       = 'NG' THEN N', 가스 NG'     ELSE N'' END +
                CASE WHEN ri.Weight    = 'NG' THEN N', 중량 NG'     ELSE N'' END,
-             1, 1, N'')) END AS InspectionSummary
+             1, 1, N'')) END AS InspectionSummary,
+           -- IMG 가 이 코어로 만든 완제품 LOT — 있으면 코어만 불량 처리하지 않는다(10-28)
+           (SELECT TOP 1 c.LotCode FROM dbo.tbl_Lot c WHERE c.ParentLotID = l.LotID ORDER BY c.LotID) AS UsedByLotCode,
+           -- 출하된 LOT(그 LOT 또는 실렸던 팔레트의 출하 기록이 있고 양수 재고 행이 없음) — 라인 불량으로 받지 않는다(10-28)
+           CAST(CASE WHEN NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory iq WHERE iq.LotNo = l.LotCode AND iq.Qty > 0)
+                      AND (EXISTS (SELECT 1 FROM dbo.FG_Shipment s WHERE s.LotNo = l.LotCode)
+                           OR EXISTS (SELECT 1 FROM dbo.WH_Inventory ip JOIN dbo.FG_Shipment s ON s.LotNo = ip.PalletNo OR s.PalletNo = ip.PalletNo
+                                      WHERE ip.LotNo = l.LotCode AND ip.PalletNo IS NOT NULL))
+                     THEN 1 ELSE 0 END AS bit) AS ShippedFlag
     FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
     JOIN   dbo.PR_InjLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
     OUTER  APPLY (SELECT TOP 1 * FROM dbo.PR_RobotInspection r
@@ -1814,8 +1885,9 @@ BEGIN
     UPDATE dbo.PR_InjLot
     SET    ConfirmStatus = 'DEFECT', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
     WHERE  LotID = @Lot;
+    -- LOT 마스터 상태도 DEFECT — 확정(CONFIRMED)·폐기(SCRAP)·수리 양품(CONFIRMED)과 맞춘다. 전에는 CONFIRMED 로 남아 추적성에 양품으로 보였다(10-28)
     UPDATE dbo.tbl_Lot
-    SET    QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    Status = 'DEFECT', QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
     WHERE  LotID = @Lot;
 END;
 GO
@@ -2097,7 +2169,14 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_IMG_RegisterDefect_GetLot
     @Code VARCHAR(40)
 AS
 BEGIN
-    SELECT l.LotID, l.ItemNo, l.LineID, e.ConfirmStatus
+    SELECT l.LotID, l.ItemNo, l.LineID, e.ConfirmStatus,
+           CAST(NULL AS varchar(40)) AS UsedByLotCode,
+           -- 출하된 LOT(그 LOT 또는 실렸던 팔레트의 출하 기록이 있고 양수 재고 행이 없음) — 라인 불량으로 받지 않는다(10-28)
+           CAST(CASE WHEN NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory iq WHERE iq.LotNo = l.LotCode AND iq.Qty > 0)
+                      AND (EXISTS (SELECT 1 FROM dbo.FG_Shipment s WHERE s.LotNo = l.LotCode)
+                           OR EXISTS (SELECT 1 FROM dbo.WH_Inventory ip JOIN dbo.FG_Shipment s ON s.LotNo = ip.PalletNo OR s.PalletNo = ip.PalletNo
+                                      WHERE ip.LotNo = l.LotCode AND ip.PalletNo IS NOT NULL))
+                     THEN 1 ELSE 0 END AS bit) AS ShippedFlag
     FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
     JOIN   dbo.PR_ImgLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
     WHERE  l.LotCode = @Code;
@@ -2112,8 +2191,9 @@ BEGIN
     UPDATE dbo.PR_ImgLot
     SET    ConfirmStatus = 'DEFECT', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
     WHERE  LotID = @Lot;
+    -- LOT 마스터 상태도 DEFECT — 확정(CONFIRMED)·폐기(SCRAP)·수리 양품(CONFIRMED)과 맞춘다. 전에는 CONFIRMED 로 남아 추적성에 양품으로 보였다(10-28)
     UPDATE dbo.tbl_Lot
-    SET    QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    Status = 'DEFECT', QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
     WHERE  LotID = @Lot;
 END;
 GO
@@ -2123,7 +2203,7 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_IMG_ConfirmByLotCode_GetLot
     @Code VARCHAR(40)
 AS
 BEGIN
-    SELECT l.LotID, l.ItemNo, l.LineID, l.CreatedTS, e.ConfirmStatus
+    SELECT l.LotID, l.ItemNo, l.LineID, l.CreatedTS, e.ConfirmStatus, e.CustomerCode
     FROM   dbo.tbl_Lot   l WITH (UPDLOCK, ROWLOCK)
     JOIN   dbo.PR_ImgLot e WITH (UPDLOCK, ROWLOCK) ON e.LotID = l.LotID
     WHERE  l.LotCode = @Code;
@@ -2132,16 +2212,21 @@ GO
 
 CREATE OR ALTER PROCEDURE dbo.SP_POP_IMG_ConfirmByLotCode_GetWorkOrderRouting
     @Line VARCHAR(20),
-    @Item VARCHAR(20)
+    @Item VARCHAR(20),
+    @Cust VARCHAR(20) = NULL
 AS
 BEGIN
+    -- 라벨에 찍힌 수주처(발행 때 박아 둔 CustomerCode)와 같은 수주의 WO 를 먼저 — 라벨과 실적의 WO 가 갈리지 않게(10-28)
     SELECT TOP 1 r.WoID, r.RoutingLineID
     FROM   dbo.PP_WorkOrderRouting r WITH (UPDLOCK, ROWLOCK)
     JOIN   dbo.PP_WorkOrder        w ON w.WoID = r.WoID
+    LEFT JOIN dbo.PP_CustomerOrder so ON so.SoID = w.SoID
+    LEFT JOIN dbo.MD_Customer      c  ON c.CustomerID = so.CustomerID
     WHERE  r.LineID = @Line AND COALESCE(r.ItemNo, w.ItemNo) = @Item
       AND          r.Status IN ('Released','In Progress')
                   AND  ISNULL(w.Status,'Draft') NOT IN ('Completed','Stocked','Closed','Cancelled')
-    ORDER  BY         CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
+    ORDER  BY         CASE WHEN @Cust IS NOT NULL AND c.CustomerCode = @Cust THEN 0 ELSE 1 END,
+                      CASE WHEN r.Status = 'In Progress' THEN 0 ELSE 1 END,
                       ISNULL(w.Priority,5),
                       ISNULL(w.DueDate,'9999-12-31'),
                       w.WoID

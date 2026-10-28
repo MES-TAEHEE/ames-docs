@@ -878,7 +878,7 @@ public sealed class InjLotRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            int lotId; string itemNo, status; string? inspection;
+            int lotId; string itemNo, status; string? inspection, usedBy; bool shipped;
             using (var cmd = new SqlCommand("dbo.SP_POP_INJ_RegisterDefect_GetLot", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
@@ -888,6 +888,7 @@ public sealed class InjLotRepository
                 itemNo     = rdr["ItemNo"] as string ?? string.Empty;
                 status     = (string)rdr["ConfirmStatus"];
                 inspection = rdr["InspectionSummary"] as string;
+                (usedBy, shipped) = LotDefectWriter.ReadUsage(rdr);
                 var lotLine = rdr["LineID"] as string;
                 if (!string.Equals(lotLine, lineId, StringComparison.OrdinalIgnoreCase))
                 { rdr.Close(); tx.Rollback(); return (DefectRegisterOutcome.WrongLine, 0, itemNo); }
@@ -895,7 +896,7 @@ public sealed class InjLotRepository
 
             // 상태 검사가 PR_DefectDetail 보다 먼저다 — DEFECT 면 여기서 tbl_Lot 잠금을 놓고 나가므로
             // ReworkRepository(PR_DefectDetail → tbl_Lot 순)와 잠금 순서가 엇갈려도 교착이 없다. 순서를 바꾸면 순환이 생긴다.
-            var check = LotDefectRules.CheckRegister(status);
+            var check = LotDefectRules.CheckRegister(status, usedBy, shipped);
             if (check != DefectRegisterOutcome.Registered) { tx.Rollback(); return (check, 0, itemNo); }
 
             int? origResultId = null, reversalId = null, woId = null;

@@ -11,6 +11,22 @@ namespace AMES.Data.Repositories;
 internal static class LotDefectWriter
 {
     /// <summary>
+    /// 불량 등록 GetLot 프로시저의 사용 이력 열(UsedByLotCode·ShippedFlag, 10-28). 그 전 프로시저에는 열이 없어 (null, false) —
+    /// 신 바이너리가 프로시저 적용 전에 올라가도 불량 등록은 종전대로 된다.
+    /// </summary>
+    internal static (string? UsedByLotCode, bool Shipped) ReadUsage(SqlDataReader rdr)
+    {
+        string? usedBy = null; var shipped = false;
+        for (var i = 0; i < rdr.FieldCount; i++)
+        {
+            var name = rdr.GetName(i);
+            if (name == "UsedByLotCode") usedBy = rdr.IsDBNull(i) ? null : rdr.GetString(i);
+            else if (name == "ShippedFlag") shipped = !rdr.IsDBNull(i) && Convert.ToBoolean(rdr.GetValue(i));
+        }
+        return (usedBy, shipped);
+    }
+
+    /// <summary>
     /// 확정 후 LOT 의 실적을 되돌린다: 원래 확정 실적을 찾아 GoodQty −1 역분개 행을 넣고 LOT 라인의 단계를 −1.
     /// <paramref name="lotLineId"/> 는 tbl_Lot.LineID — 재작업 후 다시 불량이면 최신 +1 실적이 LINE-RWK-01
     /// (라우팅 단계 없음) 이라 그 행의 LineID 로는 단계를 못 찾는다. 역분개 행 자체는 실적 행의 라인으로 남긴다.

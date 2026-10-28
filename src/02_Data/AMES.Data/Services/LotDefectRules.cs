@@ -33,6 +33,17 @@ public static class LotDefectRules
         _ => throw new InvalidOperationException($"Unknown lot status '{status}'."),
     };
 
+    /// <summary>
+    /// 상태 검사 뒤의 사용 이력 검사 — IMG 코어로 쓰인 사출 LOT(<paramref name="usedByLotCode"/>)·출하된 LOT 은 라인 불량으로 등록하지 않는다(10-28).
+    /// </summary>
+    public static DefectRegisterOutcome CheckRegister(string status, string? usedByLotCode, bool shipped)
+    {
+        var byStatus = CheckRegister(status);
+        if (byStatus != DefectRegisterOutcome.Registered) return byStatus;
+        if (!string.IsNullOrEmpty(usedByLotCode)) return DefectRegisterOutcome.UsedAsCore;
+        return shipped ? DefectRegisterOutcome.Shipped : DefectRegisterOutcome.Registered;
+    }
+
     public static LotConfirmBlock ConfirmBlock(string status) => status switch
     {
         Raw                           => LotConfirmBlock.None,

@@ -20,8 +20,10 @@
 --  · MD_MoldLine  : 차종 → INJ 라인(NE1A 01 · LQ2 02 · LX3A 03 · ME1A 04 ·
 --                   MV1A 05 · NQ5A/NX5A 06, seed_inj_img_master_dev 와 같은 규칙), UPH = 60 × 캐비티, PrepTime = MoldChangeMin.
 --  · 적재 전에 MD_MoldLine·MD_MoldItem·MD_Mold 를 전부 비운다. 사라지는 금형을 가리키는
---    PP_LineSchedule WO 슬롯의 MoldID 는 NULL, 금형교체(MC) 행은 삭제, MNT_EquipmentStatus.MountedMoldID 는 NULL.
---    PR_InjLot·PR_ShotCount·MNT_MoldShotCount·PR_MoldChange 의 구 MoldID 는 이력이라 건드리지 않는다(FK 없음).
+--    PP_LineSchedule WO 슬롯의 MoldID 는 NULL, 금형교체(MC) 행은 삭제, MNT_EquipmentStatus.MountedMoldID 는 NULL,
+--    끝나지 않은 PP_WorkOrder 의 MoldID 는 NULL(POP 금형 해석이 없는 금형을 집지 않게), MNT_MoldShotCount 행은 삭제
+--    (이력이 아니라 금형별 현재 상태 — CurrentShots·MountedEquipID, 10-28).
+--    PR_InjLot·PR_ShotCount·PR_MoldChange 와 끝난 WO 의 구 MoldID 는 이력이라 건드리지 않는다(FK 없음).
 --  · 대상 품번이 MD_Item 에 없으면 THROW — seed_md_item_bom_master_list 가 바뀌면 여기도 맞춘다.
 --  · 재실행 안전(같은 결과로 다시 적재). 운영 DB 는 MD-007 에서 실측값으로 고친 뒤 이 스크립트를 다시 돌리지 말 것.
 --  적용: sqlcmd -f 65001 -I -b -i dist/seed_md_mold_master.sql   (seed_md_item_bom_master_list · migrate_mold_master · migrate_mold_change_plan 뒤)
@@ -144,6 +146,13 @@ PRINT CONCAT(N'§3 PP_LineSchedule MC 행 삭제: ', @@ROWCOUNT);
 UPDATE dbo.MNT_EquipmentStatus SET MountedMoldID = NULL
 WHERE  MountedMoldID IS NOT NULL AND NOT EXISTS (SELECT 1 FROM #mold m WHERE m.MoldID = MNT_EquipmentStatus.MountedMoldID);
 PRINT CONCAT(N'§3 MNT_EquipmentStatus.MountedMoldID NULL: ', @@ROWCOUNT);
+UPDATE dbo.PP_WorkOrder SET MoldID = NULL
+WHERE  MoldID IS NOT NULL AND ISNULL(Status, 'Draft') NOT IN ('Completed', 'Stocked', 'Closed', 'Cancelled')
+  AND  NOT EXISTS (SELECT 1 FROM #mold m WHERE m.MoldID = PP_WorkOrder.MoldID);
+PRINT CONCAT(N'§3 PP_WorkOrder(끝나지 않은 WO) MoldID NULL: ', @@ROWCOUNT);
+DELETE FROM dbo.MNT_MoldShotCount
+WHERE  NOT EXISTS (SELECT 1 FROM #mold m WHERE m.MoldID = MNT_MoldShotCount.MoldID);
+PRINT CONCAT(N'§3 MNT_MoldShotCount(없어지는 금형의 현재 상태) 삭제: ', @@ROWCOUNT);
 
 -- 4) 전부 비우고 재적재
 DELETE FROM dbo.MD_MoldLine;

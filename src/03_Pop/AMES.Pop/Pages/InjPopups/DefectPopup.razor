@@ -211,6 +211,8 @@
                 DefectRegisterOutcome.WrongLine       => (false, $"{T("LotBelongsToAnotherLine")}: {_lot.LotCode}"),
                 DefectRegisterOutcome.AlreadyInRework => (false, $"{T("DfAlreadyInRework")}: {_lot.LotCode}"),
                 DefectRegisterOutcome.Scrapped        => (false, $"{T("DfScrapped")}: {_lot.LotCode}"),
+                DefectRegisterOutcome.UsedAsCore      => (false, $"{T("DfUsedAsCore")}: {_lot.LotCode}"),
+                DefectRegisterOutcome.Shipped         => (false, $"{T("DfShipped")}: {_lot.LotCode}"),
                 _                                     => (false, $"{T("Fail")}: {_lot.LotCode}"),
             };
             if (ok)

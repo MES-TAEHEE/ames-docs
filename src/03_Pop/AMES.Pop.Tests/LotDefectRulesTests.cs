@@ -16,6 +16,14 @@ public class LotDefectRulesTests
     public void CheckRegister_maps_lot_status(string status, DefectRegisterOutcome expected)
         => Assert.Equal(expected, LotDefectRules.CheckRegister(status));
 
+    [Theory]
+    [InlineData("CONFIRMED", "W1A0001", false, DefectRegisterOutcome.UsedAsCore)]
+    [InlineData("CONFIRMED", null,      true,  DefectRegisterOutcome.Shipped)]
+    [InlineData("CONFIRMED", null,      false, DefectRegisterOutcome.Registered)]
+    [InlineData("DEFECT",    "W1A0001", true,  DefectRegisterOutcome.AlreadyInRework)]   // 상태 판정이 먼저
+    public void CheckRegister_rejects_lots_used_as_core_or_shipped(string status, string? usedBy, bool shipped, DefectRegisterOutcome expected)
+        => Assert.Equal(expected, LotDefectRules.CheckRegister(status, usedBy, shipped));
+
     [Fact]
     public void CheckRegister_rejects_unknown_status()
         => Assert.Throws<InvalidOperationException>(() => LotDefectRules.CheckRegister("BOGUS"));

@@ -90,16 +90,33 @@ public sealed class QcRepository
     }
 
     /// <summary>Create a new in-progress inspection (used by QC-01/02/03).</summary>
-    public int CreateInspection(string type, string itemNo, int sampleSize, string inspectorId, string employeeNo)
+    /// <summary>검사 대상 — 스캔한 LOT(품번·WO·라인) 또는 품번. 둘 다 아니면 null.</summary>
+    public sealed record InspectionTarget(int? LotId, string ItemNo, int? WoId, string? LineId);
+
+    public InspectionTarget? ResolveInspectionTarget(string code)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("dbo.SP_POP_QC_ResolveInspectionTarget", conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = code.Trim();
+        using var r = cmd.ExecuteReader();
+        if (!r.Read()) return null;
+        return new InspectionTarget(r["LotID"] as int?, (string)r["ItemNo"], r["WoID"] as int?, r["LineID"] as string);
+    }
+
+    /// <param name="lineId">LOT 이 없으면 검사한 터미널의 라인을 넘긴다.</param>
+    public int CreateInspection(string type, InspectionTarget target, string? lineId, int sampleSize, string inspectorId, string employeeNo)
     {
         const string sql = "dbo.SP_POP_QC_CreateInspection";
         using var conn = _factory.OpenConnection();
         using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@T",  SqlDbType.VarChar, 15).Value  = type;
-        cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value  = itemNo;
+        cmd.Parameters.Add("@I",  SqlDbType.VarChar, 20).Value  = target.ItemNo;
         cmd.Parameters.Add("@S",  SqlDbType.Int).Value          = sampleSize;
         cmd.Parameters.Add("@Op", SqlDbType.NVarChar, 450).Value= inspectorId;
         cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value  = employeeNo;
+        cmd.Parameters.Add("@Lot",  SqlDbType.Int).Value         = (object?)target.LotId ?? DBNull.Value;
+        cmd.Parameters.Add("@Wo",   SqlDbType.Int).Value         = (object?)target.WoId ?? DBNull.Value;
+        cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = (object?)(target.LineId ?? lineId) ?? DBNull.Value;
         return (int)cmd.ExecuteScalar()!;
     }
 

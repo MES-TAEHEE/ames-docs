@@ -14,7 +14,8 @@
 --                  으로 채운다(seed_aps_dev.sql ③ 규칙) ③ 선택 라인에 활성 슈퍼바이저가 없으면 슈퍼바이저가 있는 첫 라인의 것을
 --                  복사한다(없으면 안돈이 OPEN 에서 못 벗어난다). 모두 트랜잭션 안이라 FAIL·ROLLBACK 이면 되돌아간다.
 --   §3 초기화    : PP 계획 데이터 전부(예측·일별계획·공급계획·수주·WO·단계·WO/MC 슬롯·APS 실행·MRP·구매요청) +
---                  생산 데이터(INJ/IMG/FINAL LOT·사출/감싸기 LOT·실적·불량·접수·안돈·비가동·안돈 고장·빈 LotSeq).
+--                  생산 데이터(INJ/IMG/FINAL LOT·사출/감싸기 LOT·실적·불량·접수·안돈·안돈 비가동·안돈 고장과 그 작업지시·빈 LotSeq) +
+--                  그 LOT 들이 만든 재고 변화(자동 차감 되돌림·0 이 된 BF- 자리표시·팔레트 제품 행·LOT 거래).
 --                  남기는 것: PM 슬롯, 창고·FG·QC·PNT·MNT 데이터, POP 세션/인증 로그, 금형 샷·교체 이력.
 --   §4 생성      : 실행일(DB 날짜) 기준 — 주간 예측(PP_Forecast, SRM_WEEKLY, 이번 주 월요일부터 8주) +
 --                  확정 수주(PP_CustomerOrder Confirmed, 품번마다 3건, 납기 = 오늘 뒤 1·2·3 번째 근무일 — 실행일부터 2~3일 안에
@@ -25,8 +26,10 @@
 --   PP-LSB 보드 확인(적용) → POP INJ 라인 로그인 → 수동 라벨 생성·스캔 확정·불량·안돈 → POP IMG 라인 Core 스캔 → 판정.
 --
 --  실행:
---    sqlcmd -S <서버> -d AMES_DEV -U ames_app -P <pw> -C -f 65001 -I -b -v Mode=ROLLBACK -i tools\test_pp_pop\test_pp_pop_reset_dev.sql
+--    sqlcmd -S <서버> -d AMES_DEV -U ames_app -P <pw> -C -f 65001 -I -b -v Mode=ROLLBACK -v TargetServer=<@@SERVERNAME> -i tools\test_pp_pop\test_pp_pop_reset_dev.sql
 --    → 점검·건수 확인 후 -v Mode=COMMIT
+--    TargetServer 는 대상 서버의 @@SERVERNAME(개발서버 DESKTOP-POEDIBS) — 다르면 아무것도 하지 않는다(10-28, 엉뚱한 서버 보호).
+--    공용 개발 DB 의 PP·생산 데이터를 지우므로 다른 개발자에게 먼저 알린다.
 -- ════════════════════════════════════════════════════════════════════════
 :setvar Mold1 ""
 :setvar Mold2 ""
@@ -36,6 +39,8 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 SET QUOTED_IDENTIFIER ON;
 IF '$(Mode)' NOT IN ('ROLLBACK', 'COMMIT') THROW 50200, N'Mode must be ROLLBACK or COMMIT (sqlcmd -v Mode=...)', 1;
+IF '$(TargetServer)' <> @@SERVERNAME OR DB_NAME() <> 'AMES_DEV'
+    THROW 50201, N'TargetServer must equal @@SERVERNAME and the database must be AMES_DEV (sqlcmd -v TargetServer=...) - nothing was changed', 1;
 PRINT CONCAT(N'Target: ', @@SERVERNAME, N' / ', DB_NAME(), N' / Mode=$(Mode) / DB time ', CONVERT(varchar(19), SYSDATETIME(), 120));
 
 DECLARE @Actor varchar(20) = 'TEST-PPPOP';
@@ -352,9 +357,24 @@ DECLARE @n int;
 
 -- 3-a) 생산 LOT: INJ/IMG/FINAL 공정 LOT + WO 에 묶인 LOT + 사출/감싸기 LOT 행이 있는 LOT (창고 LOT WH/LOCAL/CKD/RELEASE 는 제외)
 IF OBJECT_ID('tempdb..#lot') IS NOT NULL DROP TABLE #lot;
-SELECT l.LotID INTO #lot FROM dbo.tbl_Lot l
+SELECT l.LotID, l.LotCode INTO #lot FROM dbo.tbl_Lot l
 WHERE  l.ProcessCode IN ('INJ','IMG','FINAL') OR l.WoID IS NOT NULL
    OR  EXISTS (SELECT 1 FROM dbo.PR_InjLot x WHERE x.LotID = l.LotID) OR EXISTS (SELECT 1 FROM dbo.PR_ImgLot x WHERE x.LotID = l.LotID);
+-- 그 LOT 들이 만든 재고 변화 되돌리기(10-28) — 자동 차감(BACKFLUSH·BACKFLUSH_NET)은 수량을 되돌리고 0 이 된 BF- 자리표시를 지우며,
+-- 팔레트 적재·불량 내림·코어 소모·발행 취소 거래와 제품 재고 행도 같이 지운다(LOT 은 지우는데 재고·거래가 남지 않게).
+UPDATE i SET i.Qty = i.Qty - t.Delta
+FROM   dbo.WH_Inventory i
+JOIN  (SELECT x.LotNo, x.LocationNo, SUM(x.QtyChange) AS Delta
+       FROM   dbo.WH_InventoryTransaction x
+       WHERE  x.SourceType IN ('BACKFLUSH','BACKFLUSH_NET') AND x.SourceID IN (SELECT LotID FROM #lot)
+       GROUP  BY x.LotNo, x.LocationNo) t
+  ON  t.LotNo = i.LotNo AND ISNULL(t.LocationNo, '') = ISNULL(i.LocationNo, '');
+                                                                                    SET @n = @@ROWCOUNT; PRINT CONCAT(N'  WH_Inventory backflush reverted: ', @n);
+DELETE FROM dbo.WH_Inventory WHERE LotNo LIKE 'BF-%' AND Qty = 0;                  SET @n = @@ROWCOUNT; PRINT CONCAT(N'  WH_Inventory BF- placeholders (0) removed: ', @n);
+DELETE FROM dbo.WH_Inventory WHERE LotNo IN (SELECT LotCode FROM #lot);            SET @n = @@ROWCOUNT; PRINT CONCAT(N'  WH_Inventory production lot rows: ', @n);
+DELETE FROM dbo.WH_InventoryTransaction
+WHERE  SourceType IN ('BACKFLUSH','BACKFLUSH_NET','PROD_CONFIRM','IMG_CORE','IMG_VOID','POP_DEFECT','POP_SCRAP')
+  AND  SourceID IN (SELECT LotID FROM #lot);                                       SET @n = @@ROWCOUNT; PRINT CONCAT(N'  WH_InventoryTransaction (lot-driven): ', @n);
 DELETE FROM dbo.PR_RobotInspection WHERE LotID IN (SELECT LotID FROM #lot);       SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PR_RobotInspection: ', @n);
 DELETE FROM dbo.PR_DefectDetail;                                                    SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PR_DefectDetail: ', @n);
 DELETE FROM dbo.PR_ProductionResult;                                                SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PR_ProductionResult: ', @n);
@@ -371,10 +391,18 @@ DELETE FROM dbo.SYS_LotSeq WHERE NOT EXISTS (SELECT 1 FROM dbo.tbl_Lot l WHERE l
 DELETE FROM dbo.PR_AndonPush;                                                       SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PR_AndonPush: ', @n);
 DELETE FROM dbo.PR_AndonDeptCall;                                                   SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PR_AndonDeptCall: ', @n);
 DELETE FROM dbo.PR_AndonCall;                                                       SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PR_AndonCall: ', @n);
-DELETE FROM dbo.PP_LineDowntimeLog;                                                 SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PP_LineDowntimeLog: ', @n);
+-- 비가동은 안돈이 연 행만 지운다(10-28) — PP-DTL·MNT-002 라인 정지 행은 다른 개발자·보전 데이터라 남긴다. 지운 행을 가리키는 고장 연결은 비운다.
+IF OBJECT_ID('tempdb..#dt') IS NOT NULL DROP TABLE #dt;
+SELECT DowntimeID INTO #dt FROM dbo.PP_LineDowntimeLog WHERE AndonID IS NOT NULL;
+UPDATE dbo.MNT_FailureRegister SET DowntimeID = NULL WHERE DowntimeID IN (SELECT DowntimeID FROM #dt);
+DELETE FROM dbo.PP_LineDowntimeLog WHERE DowntimeID IN (SELECT DowntimeID FROM #dt); SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PP_LineDowntimeLog(ANDON): ', @n);
 IF OBJECT_ID('tempdb..#fail') IS NOT NULL DROP TABLE #fail;
-SELECT FailureID INTO #fail FROM dbo.MNT_FailureRegister WHERE Source = 'ANDON';
+SELECT FailureID, WorkOrderID INTO #fail FROM dbo.MNT_FailureRegister WHERE Source = 'ANDON';
 UPDATE dbo.MNT_EquipmentStatus SET LastFailureID = NULL WHERE LastFailureID IN (SELECT FailureID FROM #fail);
+-- 안돈 보전 호출이 만든 작업지시(10-28 부터 자동 발행, 그 전에는 MNT-002 「작업지시 발행」)도 같이 — 지운 고장번호를 가리킨 채 남지 않게
+DELETE FROM dbo.MNT_WorkOrderTask WHERE WorkOrderID IN (SELECT WorkOrderID FROM #fail WHERE WorkOrderID IS NOT NULL);
+DELETE FROM dbo.MNT_WorkOrder WHERE WorkOrderID IN (SELECT WorkOrderID FROM #fail WHERE WorkOrderID IS NOT NULL);
+                                                                                    SET @n = @@ROWCOUNT; PRINT CONCAT(N'  MNT_WorkOrder(ANDON failures): ', @n);
 DELETE FROM dbo.MNT_FailureAction WHERE FailureID IN (SELECT FailureID FROM #fail);  SET @n = @@ROWCOUNT; PRINT CONCAT(N'  MNT_FailureAction(ANDON): ', @n);
 DELETE FROM dbo.MNT_FailureRegister WHERE FailureID IN (SELECT FailureID FROM #fail); SET @n = @@ROWCOUNT; PRINT CONCAT(N'  MNT_FailureRegister(ANDON): ', @n);
 

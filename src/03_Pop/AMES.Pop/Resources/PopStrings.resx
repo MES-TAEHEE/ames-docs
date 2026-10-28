@@ -248,6 +248,8 @@
   <data name="DfRegistered" xml:space="preserve"><value>불량 등록됨</value></data>
   <data name="DfAlreadyInRework" xml:space="preserve"><value>이미 재작업 대기 중인 LOT</value></data>
   <data name="DfScrapped" xml:space="preserve"><value>폐기된 LOT</value></data>
+  <data name="DfUsedAsCore" xml:space="preserve"><value>감싸기에서 코어로 이미 쓴 LOT — 그 완제품 LOT 을 불량 처리하세요</value></data>
+  <data name="DfShipped" xml:space="preserve"><value>이미 출하된 LOT — 고객 반품 검사로 처리하세요</value></data>
   <data name="DfStockRemovedLocated" xml:space="preserve"><value>입고된 재고(위치 {0})에서 뺐습니다 — 창고에 알리세요</value></data>
   <data name="DfPriorConfirmed" xml:space="preserve"><value>확정 후 LOT — 실적 1 EA 역분개</value></data>
   <data name="DfTodayRegistered" xml:space="preserve"><value>이번 세션 등록</value></data>

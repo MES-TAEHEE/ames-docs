@@ -80,6 +80,7 @@
 
         <div class="pop-card">
             <div class="qc-actions">
+                <input class="qc-input" style="flex:0 0 220px;" @bind="_code" placeholder="LOT / ITEM" />
                 <button class="qc-btn sec" style="flex:0 0 200px;" @onclick="StartNew">+ NEW FINAL</button>
                 <button class="qc-btn ok"  disabled="@(_sel == 0)" @onclick="@(() => Finalize("PASS"))">✓ APPROVE · SHIP</button>
                 <button class="qc-btn"     disabled="@(_sel == 0)" @onclick="@(() => Finalize("FAIL"))">✗ REJECT → HOLD</button>
@@ -108,6 +109,7 @@
     private List<QcInspectionDto>     _list  = new();
     private List<QcInspectionItemDto> _items = new();
     private int    _sel;
+    private string _code = "";
     private string _status = "", _statusCls = "dim";
     private DateTime _now = DbClock.Now;
     private System.Threading.Timer? _timer;
@@ -135,10 +137,17 @@
     {
         try
         {
-            var id = PopServices.Qc.CreateInspection("Final", "DR-TRM-LH-A1", 32,
+            // 검사 대상 = 스캔한 LOT(완제품 DataMatrix 포함) 또는 품번 — LOT·WO·라인을 같이 남긴다(10-28, 전에는 품번이 상수)
+            var raw = _code.Trim();
+            if (raw.Length == 0) { SetStatus("× Scan a LOT or enter an item number", "fail"); return; }
+            var code   = AMES.Devices.ImgScanParser.ExtractLotCode(raw) ?? raw;
+            var target = PopServices.Qc.ResolveInspectionTarget(code);
+            if (target is null) { SetStatus($"× LOT / item not found: {code}", "fail"); return; }
+            var id = PopServices.Qc.CreateInspection("Final", target, Session?.LineId, 32,
                                                       Session?.OperatorId ?? "system",
                                                       Session?.EmployeeNo ?? "Q000");
-            SetStatus($"✓ Final #{id} opened", "ok");
+            _code = "";
+            SetStatus($"✓ Final #{id} opened · {target.ItemNo}", "ok");
             Refresh();
         }
         catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }

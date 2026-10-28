@@ -293,7 +293,7 @@ public sealed class PntLotRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            int lotId; string itemNo, status;
+            int lotId; string itemNo, status; string? usedBy; bool shipped;
             using (var cmd = new SqlCommand("dbo.SP_POP_PNT_RegisterDefect_GetLot", conn, tx) { CommandType = CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
@@ -302,13 +302,14 @@ public sealed class PntLotRepository
                 lotId  = (int)rdr["LotID"];
                 itemNo = rdr["ItemNo"] as string ?? string.Empty;
                 status = (string)rdr["ConfirmStatus"];
+                (usedBy, shipped) = LotDefectWriter.ReadUsage(rdr);
                 var lotLine = rdr["LineID"] as string;
                 if (!string.Equals(lotLine, lineId, StringComparison.OrdinalIgnoreCase))
                 { rdr.Close(); tx.Rollback(); return (DefectRegisterOutcome.WrongLine, 0, itemNo); }
             }
 
             // 상태 검사가 PR_DefectDetail 보다 먼저다 — ReworkRepository(PR_DefectDetail → tbl_Lot 순)와 잠금 순서가 엇갈려도 교착이 없다.
-            var check = LotDefectRules.CheckRegister(status);
+            var check = LotDefectRules.CheckRegister(status, usedBy, shipped);
             if (check != DefectRegisterOutcome.Registered) { tx.Rollback(); return (check, 0, itemNo); }
 
             int? origResultId = null, reversalId = null, woId = null;
@@ -366,7 +367,7 @@ public sealed class PntLotRepository
         using var tx   = conn.BeginTransaction();
         try
         {
-            int lotId; string itemNo, status; DateTime createdTs;
+            int lotId; string itemNo, status; DateTime createdTs; string? labelCust = null;
             using (var cmd = new SqlCommand("dbo.SP_POP_PNT_ConfirmByLotCode_GetLot", conn, tx) { CommandType = CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@Code", SqlDbType.VarChar, 40).Value = lotCode;
@@ -376,6 +377,8 @@ public sealed class PntLotRepository
                 itemNo    = rdr["ItemNo"] as string ?? string.Empty;
                 status    = (string)rdr["ConfirmStatus"];
                 createdTs = (DateTime)rdr["CreatedTS"];
+                for (var i = 0; i < rdr.FieldCount; i++)   // 10-28 전 프로시저에는 없는 열
+                    if (rdr.GetName(i) == "CustomerCode" && !rdr.IsDBNull(i)) labelCust = rdr.GetString(i);
                 var lotLine = rdr["LineID"] as string;
                 if (!string.Equals(lotLine, lineId, StringComparison.OrdinalIgnoreCase))
                 { rdr.Close(); tx.Rollback(); return (ImgConfirmOutcome.WrongLine, 0, itemNo, 0); }
@@ -401,6 +404,7 @@ public sealed class PntLotRepository
             {
                 cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = lineId;
                 cmd.Parameters.Add("@Item", SqlDbType.VarChar, 20).Value = itemNo;
+                if (labelCust is not null) cmd.Parameters.Add("@Cust", SqlDbType.VarChar, 20).Value = labelCust;   // 구 프로시저(열 없음)면 넘기지 않는다
                 using var rdr = cmd.ExecuteReader();
                 if (rdr.Read()) { woId = (int)rdr["WoID"]; stepId = (int)rdr["RoutingLineID"]; }
             }

@@ -1,4 +1,4 @@
-﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-27 from the development DB (192.168.0.132) with SMO.
+﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-28 from the development DB (192.168.0.132) with SMO.
 -- 179 tables / 2435 columns, 160 procedures, 0 views, 3 functions, 1 sequences.
 -- Excludes TEST_* tables, retired WH_ReleaseSchedule and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
 -- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).
@@ -3303,7 +3303,7 @@ CREATE TABLE [dbo].[MNT_FailureRegister](
 	[FailureID] [int] IDENTITY(1,1) NOT NULL,
 	[FailureNumber] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
 	[EquipID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[FailureType] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
+	[FailureType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
 	[Symptom] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
 	[Severity] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
 	[PhotoURLs] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
@@ -3340,7 +3340,7 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'고장 번호 
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설비 ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'EquipID'
 GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Failure Type · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'FailureType'
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Failure Type · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'FailureType'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'증상 / 현상 · nvarchar(500)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MNT_FailureRegister', @level2type=N'COLUMN',@level2name=N'Symptom'
 GO
@@ -9846,16 +9846,6 @@ REFERENCES [dbo].[tbl_Lot] ([LotID])
 GO
 ALTER TABLE [dbo].[FG_CustomerReturn] CHECK CONSTRAINT [FK_FG_CustomerReturn_Lot]
 GO
-ALTER TABLE [dbo].[MD_ApsLineStage]  WITH CHECK ADD  CONSTRAINT [FK_MD_ApsLineStage_Line] FOREIGN KEY([LineID])
-REFERENCES [dbo].[MD_Line] ([LineID])
-GO
-ALTER TABLE [dbo].[MD_ApsLineStage] CHECK CONSTRAINT [FK_MD_ApsLineStage_Line]
-GO
-ALTER TABLE [dbo].[MD_ApsLineStage]  WITH CHECK ADD  CONSTRAINT [FK_MD_ApsLineStage_Pattern] FOREIGN KEY([PatternID])
-REFERENCES [dbo].[MD_LineTimePattern] ([PatternID])
-GO
-ALTER TABLE [dbo].[MD_ApsLineStage] CHECK CONSTRAINT [FK_MD_ApsLineStage_Pattern]
-GO
 ALTER TABLE [dbo].[MD_MoldItem]  WITH CHECK ADD  CONSTRAINT [FK_MD_MoldItem_Mold] FOREIGN KEY([MoldID])
 REFERENCES [dbo].[MD_Mold] ([MoldID])
 GO
@@ -9865,29 +9855,6 @@ ALTER TABLE [dbo].[MD_MoldLine]  WITH CHECK ADD  CONSTRAINT [FK_MD_MoldLine_Mold
 REFERENCES [dbo].[MD_Mold] ([MoldID])
 GO
 ALTER TABLE [dbo].[MD_MoldLine] CHECK CONSTRAINT [FK_MD_MoldLine_Mold]
-GO
-ALTER TABLE [dbo].[PP_ApsPlanLine]  WITH CHECK ADD  CONSTRAINT [FK_PP_ApsPlanLine_Run] FOREIGN KEY([RunID])
-REFERENCES [dbo].[PP_ApsRun] ([RunID])
-ON DELETE CASCADE
-GO
-ALTER TABLE [dbo].[PP_ApsPlanLine] CHECK CONSTRAINT [FK_PP_ApsPlanLine_Run]
-GO
-ALTER TABLE [dbo].[PP_ApsPlanLineShift]  WITH CHECK ADD  CONSTRAINT [FK_PP_ApsPlanLineShift_Line] FOREIGN KEY([PlanLineID])
-REFERENCES [dbo].[PP_ApsPlanLine] ([PlanLineID])
-ON DELETE CASCADE
-GO
-ALTER TABLE [dbo].[PP_ApsPlanLineShift] CHECK CONSTRAINT [FK_PP_ApsPlanLineShift_Line]
-GO
-ALTER TABLE [dbo].[PP_ApsRunWo]  WITH CHECK ADD  CONSTRAINT [FK_PP_ApsRunWo_Run] FOREIGN KEY([RunID])
-REFERENCES [dbo].[PP_ApsRun] ([RunID])
-ON DELETE CASCADE
-GO
-ALTER TABLE [dbo].[PP_ApsRunWo] CHECK CONSTRAINT [FK_PP_ApsRunWo_Run]
-GO
-ALTER TABLE [dbo].[PP_DemandPlan]  WITH CHECK ADD  CONSTRAINT [FK_PP_DemandPlan_Batch] FOREIGN KEY([Batch])
-REFERENCES [dbo].[PP_DemandPlanBatch] ([Batch])
-GO
-ALTER TABLE [dbo].[PP_DemandPlan] CHECK CONSTRAINT [FK_PP_DemandPlan_Batch]
 GO
 ALTER TABLE [dbo].[PR_AndonDeptCall]  WITH CHECK ADD  CONSTRAINT [FK_PR_AndonDeptCall_Andon] FOREIGN KEY([AndonID])
 REFERENCES [dbo].[PR_AndonCall] ([AndonID])
@@ -10727,9 +10694,10 @@ BEGIN
         SET    EndTS = @now, DurationMin = DATEDIFF(MINUTE, StartTS, @now),
                CauseCode = COALESCE(CauseCode, @C), ModifiedBy = @Op, ModifiedTS = @now
         WHERE  AndonID = @ID AND EndTS IS NULL;
+        -- MNT-007 「종료」로 이미 닫힌 고장(CLOSED — 수리 없이 닫음, 해결 시각 없음)은 해결로 덮지 않는다
         UPDATE dbo.MNT_FailureRegister
         SET    Status = 'RESOLVED', ResolvedAt = @now, ModifiedBy = @Op, ModifiedTS = @now
-        WHERE  Source = 'ANDON' AND AndonRefID = @Ref AND Status <> 'RESOLVED';
+        WHERE  Source = 'ANDON' AND AndonRefID = @Ref AND Status NOT IN ('RESOLVED', 'CLOSED');
     END
     COMMIT;
 END;
@@ -10804,11 +10772,13 @@ GO
 -- ===== Auth.RecordSuccessfulLogin (AUTH) =====
 CREATE   PROCEDURE dbo.SP_POP_AUTH_RecordSuccessfulLogin
     @ModifiedBy VARCHAR(20),
-    @UserID NVARCHAR(450)
+    @UserID NVARCHAR(450),
+    -- POP·PDA 로그인은 0 — 배지·PIN 성공이 웹 비밀번호·PP-CAL PIN 실패 횟수를 지우면 잠금이 무력화된다
+    @ResetFailures BIT = 1
 AS
 BEGIN
     UPDATE dbo.SYS_UserProfile
-    SET    FailedLoginCount = 0,
+    SET    FailedLoginCount = CASE WHEN @ResetFailures = 1 THEN 0 ELSE FailedLoginCount END,
            LastLoginTS      = SYSDATETIME(),
            -- 행위자 컬럼은 varchar(20)(09-23 migrate_audit_actor_varchar20) — GUID 대신 본인 사번, 없으면 앞 20자
            ModifiedBy       = COALESCE(@ModifiedBy, NULLIF(LTRIM(RTRIM(EmployeeNo)), ''), LEFT(@UserID, 20)),
@@ -12753,7 +12723,7 @@ GO
 -- ===== Qc.FinalizeInspection (QC) =====
 CREATE   PROCEDURE dbo.SP_POP_QC_FinalizeInspection
     @V VARCHAR(15),
-    @A NVARCHAR(20),
+    @A VARCHAR(20),
     @I INT
 AS
 BEGIN
@@ -12822,22 +12792,32 @@ GO
 CREATE   PROCEDURE dbo.SP_POP_QC_GetModuleDefectRates
 AS
 BEGIN
-    ;WITH prod AS (
-      SELECT r.LineID,
-             CASE WHEN r.LineID LIKE 'LINE-INJ-%' THEN 'INJ'
-                  WHEN r.LineID LIKE 'LINE-IMG-%' THEN 'IMG'
-                  WHEN r.LineID LIKE 'LINE-PNT-%' THEN 'PNT'
-                  ELSE 'OTHER' END AS Module,
-             ISNULL(SUM(r.GoodQty),0) AS GoodQty,
-             -- 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없다 — LOT 의 라인으로 귀속시킨다
-             ISNULL((SELECT SUM(d.Qty) FROM dbo.PR_DefectDetail d
-                      LEFT JOIN dbo.PR_ProductionResult r2 ON r2.ResultID = d.ResultID
-                      LEFT JOIN dbo.tbl_Lot             tl ON tl.LotID    = d.LotID
-                      WHERE COALESCE(r2.LineID, tl.LineID) = r.LineID
-                        AND d.DetectedAt >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday()) AND d.DetectedAt < dbo.FN_POP_DayStart(DATEADD(day,1,dbo.FN_POP_ProdToday()))), 0) AS DefectQty
+    DECLARE @From datetime2 = dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday());
+    DECLARE @To   datetime2 = dbo.FN_POP_DayStart(DATEADD(day,1,dbo.FN_POP_ProdToday()));
+    -- 양품과 불량을 라인별로 따로 모아 합친다 — 실적이 없는 라인(전부 RAW·로봇 NG 불량)의 불량도 빠지지 않게.
+    -- 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없다 — LOT 의 라인으로 귀속시킨다.
+    ;WITH good AS (
+      SELECT r.LineID, SUM(r.GoodQty) AS GoodQty
       FROM   dbo.PR_ProductionResult r
-      WHERE  r.EntryAt >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday()) AND r.EntryAt < dbo.FN_POP_DayStart(DATEADD(day,1,dbo.FN_POP_ProdToday()))
+      WHERE  r.EntryAt >= @From AND r.EntryAt < @To
       GROUP BY r.LineID
+    ), defect AS (
+      SELECT COALESCE(r2.LineID, tl.LineID) AS LineID, SUM(d.Qty) AS DefectQty
+      FROM   dbo.PR_DefectDetail d
+      LEFT JOIN dbo.PR_ProductionResult r2 ON r2.ResultID = d.ResultID
+      LEFT JOIN dbo.tbl_Lot             tl ON tl.LotID    = d.LotID
+      WHERE  d.DetectedAt >= @From AND d.DetectedAt < @To
+      GROUP BY COALESCE(r2.LineID, tl.LineID)
+    ), prod AS (
+      SELECT CASE WHEN x.LineID LIKE 'LINE-INJ-%' THEN 'INJ'
+                  WHEN x.LineID LIKE 'LINE-IMG-%' THEN 'IMG'
+                  WHEN x.LineID LIKE 'LINE-PNT-%' THEN 'PNT'
+                  ELSE 'OTHER' END AS Module,
+             ISNULL(g.GoodQty,0)   AS GoodQty,
+             ISNULL(df.DefectQty,0) AS DefectQty
+      FROM   (SELECT LineID FROM good UNION SELECT LineID FROM defect) x
+      LEFT JOIN good   g  ON g.LineID  = x.LineID
+      LEFT JOIN defect df ON df.LineID = x.LineID
     )
     SELECT Module,
            SUM(GoodQty)   AS GoodQty,
@@ -15788,7 +15768,7 @@ INSERT INTO dbo.MD_InjCondItem (LineID, ItemCode, ItemName, SetAddress, ActualAd
 GO
 PRINT '✓ Seed data inserted: 4 Molds, 2 InjCondItem (사출 자동수집)';
 GO
--- Seed: SYS_Screen — regenerated 2026-10-27 from the development DB (all modules)
+-- Seed: SYS_Screen — regenerated 2026-10-28 from the development DB (all modules)
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-01', 'WEB', 'FG', NULL, N'고객사 리턴', N'Customer Returns', 'fg/customer-returns', 'FG-01', '_XX', 1, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-05', 'WEB', 'FG', NULL, N'출하 오더', N'Shipment Orders', 'fg/shipping-orders', 'FG-02', '__X', 2, 1, 'seed');
 INSERT INTO dbo.SYS_Screen (ScreenCode, ModuleCode, ProcessCode, SubProcessCode, ScreenName, ScreenNameEn, HRef, LidLabel, PermissionCriteria, SortOrder, IsVisible, CreatedBy) VALUES ('FG-02', 'WEB', 'FG', NULL, N'출하 계획', N'Shipment Plan', 'fg/shipment-plan', 'FG-03', '_XX', 3, 1, 'seed');

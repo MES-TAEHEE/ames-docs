@@ -246,6 +246,50 @@ public class ImgLotRepositoryTests
     }
 
     [SkippableFact]
+    public void Confirm_attaches_to_the_wo_of_the_customer_printed_on_the_label()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Cleanup(f!); SeedItems(f!);
+        try
+        {
+            var woSav = InsertImgWo(f!, priority: 1, soCustomerId: "CUS-SAV");
+            var woGeo = InsertImgWo(f!, priority: 5, soCustomerId: "CUS-GEO");
+            var core = NewCoreCode(); InsertCore(f!, core, "CONFIRMED");
+            var repo = new ImgLotRepository(f!);
+            var lot = repo.CreateFromCore(core, ImgLine, "E-ITEST").Lot!;
+            Assert.Equal("SAV", lot.CustomerCode);                   // 라벨 = 발행 때 고른 WO 의 수주처
+
+            // 발행 뒤 다른 수주처 WO 가 앞 순위가 돼도 실적은 라벨의 수주처 WO 로 간다(10-28)
+            AmesDevDb.Exec(f!, "UPDATE dbo.PP_WorkOrder SET Priority = 0 WHERE WoID = @W", ("@W", woGeo));
+            var ok = repo.ConfirmByLotCode(lot.LotCode, ImgLine, "E-ITEST", null, "E-ITEST");
+
+            Assert.Equal(ImgConfirmOutcome.Confirmed, ok.Outcome);
+            Assert.Equal(woSav, ok.WoId);
+        }
+        finally { Cleanup(f!); }
+    }
+
+    [SkippableFact]
+    public void Core_used_by_a_finished_lot_cannot_be_registered_as_an_inj_defect()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        Cleanup(f!); SeedItems(f!);
+        try
+        {
+            InsertImgWo(f!);
+            var core = NewCoreCode(); InsertCore(f!, core, "CONFIRMED");
+            Assert.Equal(ImgCoreOutcome.Created, new ImgLotRepository(f!).CreateFromCore(core, ImgLine, "E-ITEST").Outcome);
+
+            var (outcome, defectId, _) = new InjLotRepository(f!).RegisterDefect(core, InjLine, "INJ-D01", "itest-op", null, "E-ITEST");
+
+            Assert.Equal(DefectRegisterOutcome.UsedAsCore, outcome);   // 완제품은 양품인데 코어만 폐기되는 모순 방지(10-28)
+            Assert.Equal(0, defectId);
+            Assert.Equal("CONFIRMED", AmesDevDb.Scalar(f!, "SELECT e.ConfirmStatus FROM dbo.PR_InjLot e JOIN dbo.tbl_Lot l ON l.LotID = e.LotID WHERE l.LotCode = @C", ("@C", core)));
+        }
+        finally { Cleanup(f!); }
+    }
+
+    [SkippableFact]
     public void CreateFromCore_picks_wo_by_open_step_order()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");

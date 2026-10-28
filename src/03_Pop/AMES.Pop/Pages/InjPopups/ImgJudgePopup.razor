@@ -229,6 +229,7 @@
                 DefectRegisterOutcome.WrongLine       => $"{T("LotBelongsToAnotherLine")}: {Lot.LotCode}",
                 DefectRegisterOutcome.AlreadyInRework => $"{T("DfAlreadyInRework")}: {Lot.LotCode}",
                 DefectRegisterOutcome.Scrapped        => $"{T("DfScrapped")}: {Lot.LotCode}",
+                DefectRegisterOutcome.Shipped         => $"{T("DfShipped")}: {Lot.LotCode}",
                 _                                     => $"{T("Fail")}: {Lot.LotCode}",
             };
         }
