@@ -1,4 +1,7 @@
 .wh08-page-state { font-size:12px;color:#a8bdd6;text-align:center; }
+.wh08-kpi.move { border-top-color:#a78bfa; }
+.pda-shell.wh.wh08-shell ::deep .wh08-row-card.move { border-left:5px solid #a78bfa !important;background:#211b35 !important; }
+.pda-shell.wh.wh08-shell ::deep .wh08-status.move { border-color:rgba(167,139,250,.5) !important;background:rgba(167,139,250,.14) !important;color:#c4b5fd !important; }
 .wh08-next { min-height:24px;text-align:center;color:#a8bdd6;font-size:13px; }
 .wh08-dcr-content { flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px; }
 .wh08-dcr-heading { display:flex;flex-direction:column;gap:4px; }
