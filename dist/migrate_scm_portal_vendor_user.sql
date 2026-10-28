@@ -6,7 +6,7 @@ IF OBJECT_ID('dbo.SCM_PortalVendorUser','U') IS NULL
 BEGIN
     CREATE TABLE dbo.SCM_PortalVendorUser (
         UserID nvarchar(450) NOT NULL,
-        VendorID varchar(20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+        VendorID varchar(20) COLLATE DATABASE_DEFAULT NOT NULL,
         ActiveFlag bit NOT NULL DEFAULT(1),
         CreatedBy varchar(20) NOT NULL,
         CreatedTS datetime2 NOT NULL DEFAULT(SYSDATETIME()),

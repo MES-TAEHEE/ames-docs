@@ -20,7 +20,7 @@ IF EXISTS (SELECT 1 FROM sys.columns
            WHERE object_id = OBJECT_ID('dbo.SYS_AuditLog') AND name = 'ActionType'
              AND (TYPE_NAME(user_type_id) <> 'varchar' OR max_length <> 20))
 BEGIN
-    ALTER TABLE dbo.SYS_AuditLog ALTER COLUMN ActionType varchar(20) COLLATE Korean_Wansung_CI_AS NULL;
+    ALTER TABLE dbo.SYS_AuditLog ALTER COLUMN ActionType varchar(20) COLLATE DATABASE_DEFAULT NULL;
 END
 
 GO

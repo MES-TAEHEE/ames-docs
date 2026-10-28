@@ -25,8 +25,8 @@ BEGIN
     DELETE FROM d WHERE rn > 1;
     PRINT CONCAT(N'· 중복 행 삭제: ', @@ROWCOUNT, N'건');
 
-    ALTER TABLE dbo.AspNetUserRoles ALTER COLUMN UserId nvarchar(450) COLLATE Korean_Wansung_CI_AS NOT NULL;
-    ALTER TABLE dbo.AspNetUserRoles ALTER COLUMN RoleId nvarchar(450) COLLATE Korean_Wansung_CI_AS NOT NULL;
+    ALTER TABLE dbo.AspNetUserRoles ALTER COLUMN UserId nvarchar(450) COLLATE DATABASE_DEFAULT NOT NULL;
+    ALTER TABLE dbo.AspNetUserRoles ALTER COLUMN RoleId nvarchar(450) COLLATE DATABASE_DEFAULT NOT NULL;
 
     -- 같은 배치의 NOT NULL 변경이 컴파일 시점에는 보이지 않아(Msg 8111) 동적 SQL 로 실행 시점에 만든다
     EXEC (N'ALTER TABLE dbo.AspNetUserRoles ADD CONSTRAINT PK_AspNetUserRoles PRIMARY KEY CLUSTERED (UserId, RoleId);');

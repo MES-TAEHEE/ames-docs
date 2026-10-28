@@ -51,7 +51,11 @@ void Batch(StringCollection sc, bool omitLegacyDefaultNames = false)
         var script=s!.TrimEnd();
         // Captured DF__ names can collide with SQL Server's newly generated defaults in a fresh DB.
         if(omitLegacyDefaultNames)
+        {
             script=Regex.Replace(script,@"\bCONSTRAINT\s+\[DF__[^\]]+__[0-9A-Fa-f]{8}\]\s+(?=DEFAULT\b)","",RegexOptions.IgnoreCase);
+            // 10-29 콜레이션 통일 — 원본 DB 기본 콜레이션 컬럼은 대상 DB 기본 콜레이션을 따르게 한다
+            script=Regex.Replace(script,@"\bCOLLATE\s+"+Regex.Escape(db.Collation)+@"\b","COLLATE DATABASE_DEFAULT",RegexOptions.IgnoreCase);
+        }
         L(script); L("GO");
     }
 }

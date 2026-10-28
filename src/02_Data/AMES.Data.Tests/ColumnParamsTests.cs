@@ -9,6 +9,7 @@ namespace AMES.Data.Tests;
 public class ColumnParamsTests
 {
     static ColumnParams.ColumnInfo Col(string type, int? len = null, byte? prec = null, int? scale = null) => new("T", "C", type, len, prec, scale);
+    static ColumnParams.ColumnInfo Korean(string type, int? len = null) => new("T", "C", type, len, null, null, 949);
     static SqlParameter Add(ColumnParams.ColumnInfo c, object? v) => ColumnParams.Add(new SqlCommand(), "@P", c, v);
     static DbValueException Fails(ColumnParams.ColumnInfo c, object? v) => Assert.Throws<DbValueException>(() => Add(c, v));
 
@@ -18,8 +19,8 @@ public class ColumnParamsTests
         var p = Add(Col("varchar", 20), new string('X', 20));
         Assert.Equal(SqlDbType.VarChar, p.SqlDbType);
         Assert.Equal(20, p.Size);
-        Add(Col("varchar", 20), new string('가', 10));                       // 한글 10자 = 20바이트
-        var e = Fails(Col("varchar", 20), new string('가', 11));             // 22바이트
+        Add(Korean("varchar", 20), new string('가', 10));                    // Korean_Wansung 컬럼: 한글 10자 = 20바이트
+        var e = Fails(Korean("varchar", 20), new string('가', 11));          // 22바이트
         Assert.Equal(DbValueProblem.TooLong, e.Problem);
         Assert.True(e.BytesUnit);
         Assert.Equal(22, e.Actual);
@@ -32,6 +33,17 @@ public class ColumnParamsTests
         var e = Fails(Col("varchar", 20), "A😀");
         Assert.Equal(DbValueProblem.Unencodable, e.Problem);
         Assert.Equal("😀", e.BadChar);
+    }
+
+    [Fact]
+    public void Latin1_varchar_rejects_korean_and_counts_one_byte_per_latin_letter()
+    {
+        var e = Fails(Col("varchar", 20), "ABC가");                          // SQL_Latin1(CP1252) varchar 에 한글은 '?' 가 된다
+        Assert.Equal(DbValueProblem.Unencodable, e.Problem);
+        Assert.Equal("가", e.BadChar);
+        Add(Col("varchar", 4), "Café");                                      // é 는 CP1252 1바이트
+        Assert.Equal(DbValueProblem.TooLong, Fails(Col("varchar", 4), "Cafés").Problem);
+        Add(Col("nvarchar", 10), "한글 이름");                               // 한글은 nvarchar 에 둔다
     }
 
     [Fact]
@@ -95,8 +107,10 @@ public class ColumnParamsTests
         var p = Filter(Col("varchar", 20), "LINE-INJ-01");
         Assert.Equal(SqlDbType.VarChar, p.SqlDbType);
         Assert.Equal(20, p.Size);
-        var longer = Filter(Col("varchar", 20), new string('가', 15));     // 30바이트 — 잘리지 않고 그대로 "없음"
+        var longer = Filter(Korean("varchar", 20), new string('가', 15));  // CP949 30바이트 — 잘리지 않고 그대로 "없음"
         Assert.Equal(30, longer.Size);
+        var latin = Filter(Col("varchar", 20), "가");                       // Latin1 varchar 에 없는 문자 — '?' 로 바뀌지 않게 nvarchar
+        Assert.Equal(SqlDbType.NVarChar, latin.SqlDbType);
         Assert.Equal(new string('가', 15), longer.Value);
         Assert.Equal(SqlDbType.NVarChar, Filter(Col("nvarchar", 60), "가").SqlDbType);
         Assert.Equal(80, Filter(Col("nvarchar", 60), new string('가', 80)).Size);

@@ -43,19 +43,19 @@ decimal Scalar(string sql)
 try
 {
     Exec("""
-        CREATE TABLE MD_Item(ItemNo varchar(20) COLLATE Korean_Wansung_CI_AS PRIMARY KEY,ItemName nvarchar(200) COLLATE Korean_Wansung_CI_AS,
+        CREATE TABLE MD_Item(ItemNo varchar(20) COLLATE DATABASE_DEFAULT PRIMARY KEY,ItemName nvarchar(200) COLLATE DATABASE_DEFAULT,
             SafetyStock decimal(14,4),DefaultUOM varchar(10),ActiveFlag bit);
-        CREATE TABLE MD_PackagingSpec(ItemID varchar(20) COLLATE Korean_Wansung_CI_AS,QtyPerInner int,ActiveFlag bit);
-        CREATE TABLE MD_Location(LocationID varchar(50) COLLATE Korean_Wansung_CI_AS,AreaCode varchar(20),LocationName nvarchar(100),ZoneCode varchar(20));
-        CREATE TABLE MD_Line(LineID varchar(20) COLLATE Korean_Wansung_CI_AS,LineName nvarchar(100) COLLATE Korean_Wansung_CI_AS,
-            LotPrefix char(2) COLLATE Korean_Wansung_CI_AS,Status varchar(20));
+        CREATE TABLE MD_PackagingSpec(ItemID varchar(20) COLLATE DATABASE_DEFAULT,QtyPerInner int,ActiveFlag bit);
+        CREATE TABLE MD_Location(LocationID varchar(50) COLLATE DATABASE_DEFAULT,AreaCode varchar(20),LocationName nvarchar(100),ZoneCode varchar(20));
+        CREATE TABLE MD_Line(LineID varchar(20) COLLATE DATABASE_DEFAULT,LineName nvarchar(100) COLLATE DATABASE_DEFAULT,
+            LotPrefix char(2) COLLATE DATABASE_DEFAULT,Status varchar(20));
         CREATE UNIQUE INDEX UX_MD_Line_LotPrefix ON MD_Line(LotPrefix) WHERE LotPrefix IS NOT NULL;
         CREATE TABLE MD_CodeItem(GroupCode varchar(30),CodeValue varchar(30),UseFlag bit);
         CREATE TABLE WH_Inventory(LotNo nvarchar(50) PRIMARY KEY,UnitType varchar(10),ParentLotNo nvarchar(50),PartNo varchar(50),PartName nvarchar(200),
             LocationNo varchar(50),Qty decimal(18,3),ReceivedAt datetime2 DEFAULT SYSDATETIME(),CreatedAt datetime2 DEFAULT SYSDATETIME(),UpdatedAt datetime2,
             PalletNo nvarchar(50),InvoiceNo nvarchar(50),DeliveryNoteNo nvarchar(30));
-        CREATE TABLE WH_PickSlip(PickSlipID int IDENTITY PRIMARY KEY,PickSlipNo nvarchar(40) COLLATE Korean_Wansung_CI_AS,
-            ReqLocation nvarchar(40) COLLATE Korean_Wansung_CI_AS,ReqSeqNo int,ReqUserId nvarchar(80),ItemNo varchar(20) COLLATE Korean_Wansung_CI_AS,
+        CREATE TABLE WH_PickSlip(PickSlipID int IDENTITY PRIMARY KEY,PickSlipNo nvarchar(40) COLLATE DATABASE_DEFAULT,
+            ReqLocation nvarchar(40) COLLATE DATABASE_DEFAULT,ReqSeqNo int,ReqUserId nvarchar(80),ItemNo varchar(20) COLLATE DATABASE_DEFAULT,
             DemandQty decimal(14,3),PickedQty decimal(14,3),RequiredAt datetime2,Priority tinyint,Status varchar(20),CreatedBy varchar(20),CreatedTS datetime2,
             ModifiedBy varchar(20),ModifiedTS datetime2,CloseDate datetime2,CloseUserId nvarchar(80),PrintDate datetime2);
         CREATE TABLE WH_InventoryTransaction(TransactionID int IDENTITY PRIMARY KEY,TransactionTime datetime2,TransactionType varchar(10),PartNo varchar(50),

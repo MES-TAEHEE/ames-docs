@@ -17,7 +17,7 @@ IF EXISTS (SELECT 1 FROM sys.columns
            WHERE object_id = OBJECT_ID('dbo.MD_PaintFabric') AND name = 'LotNo'
              AND (TYPE_NAME(user_type_id) <> 'nvarchar' OR max_length <> 100))
 BEGIN
-    ALTER TABLE dbo.MD_PaintFabric ALTER COLUMN LotNo nvarchar(50) COLLATE Korean_Wansung_CI_AS NULL;
+    ALTER TABLE dbo.MD_PaintFabric ALTER COLUMN LotNo nvarchar(50) COLLATE DATABASE_DEFAULT NULL;
 END
 
 IF OBJECT_ID('dbo.MD_PaintFabric') IS NOT NULL

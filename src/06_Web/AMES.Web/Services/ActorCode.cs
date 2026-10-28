@@ -24,7 +24,7 @@ public static class ActorCode
         return Normalize(user?.Identity?.Name, fallback);
     }
 
-    /// <summary>임의 문자열(이메일·사번·GUID)을 행위자 코드로: 이메일은 @ 앞부분, 그 뒤 20바이트(Korean_Wansung 기준 한글 2바이트) 안으로 자른다.</summary>
+    /// <summary>임의 문자열(이메일·사번·GUID)을 행위자 코드로: 이메일은 @ 앞부분, 그 뒤 20바이트(CP949 기준 한글 2바이트) 안으로 자른다.</summary>
     public static string Normalize(string? value, string fallback = "system")
     {
         var s = (value ?? "").Trim();
@@ -38,7 +38,8 @@ public static class ActorCode
     public static string Portal(string email)
         => "P" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant())))[..16];
 
-    // DB 콜레이션 Korean_Wansung(CP949) 기준 바이트 수. 코드페이지 제공자가 없으면 UTF-8 로 세어 더 보수적으로 자른다.
+    // CP949 기준 바이트 수 — 10-29 DB 를 SQL_Latin1(CP1252, 글자당 1바이트)로 통일한 뒤에도 더 보수적인 쪽이라 그대로 둔다.
+    // 코드페이지 제공자가 없으면 UTF-8 로 세어 더 보수적으로 자른다.
     static readonly Encoding Enc = LoadEncoding();
     static Encoding LoadEncoding()
     {

@@ -9,25 +9,25 @@ namespace AMES.Data.Connection;
 /// 매개변수 형식·길이를 그 값이 들어가는 DB 컬럼에서 정한다(10-12 — 공용 헬퍼의 AddWithValue 대체).
 /// 컬럼 정보(INFORMATION_SCHEMA.COLUMNS)는 서버·DB 마다 처음 쓸 때 한 번 읽어 캐시한다.
 /// 저장 전에 값을 검사해 컬럼에 맞지 않으면 <see cref="DbValueException"/> — 형식을 명시하면 SqlClient 가 긴 값을 예외 없이
-/// 잘라 보내므로 검사가 없으면 잘린 채 저장된다. varchar·char 는 CP949 바이트(한글 2바이트)로 세고 CP949 에 없는 문자도 거부한다
-/// (그대로 보내면 '?' 로 저장된다). decimal 은 컬럼 소수 자리로 반올림(서버 변환과 같은 결과)하고 정수부가 넘치면 거부한다.
+/// 잘라 보내므로 검사가 없으면 잘린 채 저장된다. varchar·char 는 그 컬럼 콜레이션의 코드 페이지 바이트로 세고(SQL_Latin1 = CP1252,
+/// Korean_Wansung = CP949 — 한글 2바이트) 그 코드 페이지에 없는 문자도 거부한다(그대로 보내면 '?' 로 저장된다 — 10-29 모든 DB 를
+/// SQL_Latin1_General_CP1_CI_AS 로 통일하면서 CP949 고정에서 바꿨다. Latin1 의 varchar 에는 한글이 들어가지 않는다). decimal 은 컬럼 소수 자리로 반올림(서버 변환과 같은 결과)하고 정수부가 넘치면 거부한다.
 /// </summary>
 public static class ColumnParams
 {
-    public sealed record ColumnInfo(string Table, string Column, string DataType, int? MaxLength, byte? Precision, int? Scale);
+    /// <param name="CodePage">varchar·char 값의 코드 페이지(컬럼 콜레이션) — 모르면 통일 콜레이션의 1252.</param>
+    public sealed record ColumnInfo(string Table, string Column, string DataType, int? MaxLength, byte? Precision, int? Scale, int CodePage = LatinCodePage);
+
+    public const int LatinCodePage = 1252;
 
     static readonly ConcurrentDictionary<string, IReadOnlyDictionary<string, ColumnInfo>> Cache = new(StringComparer.OrdinalIgnoreCase);
 
-    static Encoding? _cp949;
-    static Encoding Cp949
+    static readonly ConcurrentDictionary<int, Encoding> Encodings = new();
+    static Encoding EncodingOf(ColumnInfo info) => Encodings.GetOrAdd(info.CodePage, cp =>
     {
-        get
-        {
-            if (_cp949 is not null) return _cp949;
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            return _cp949 = Encoding.GetEncoding(949, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-        }
-    }
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        return Encoding.GetEncoding(cp <= 0 ? 65001 : cp, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+    });
 
     /// <summary>
     /// "테이블.컬럼"(dbo 스키마) 또는 "프로시저.@매개변수"(dbo)의 정보. 없으면 예외 — 매개변수에 적은 컬럼 이름이 틀렸다는 뜻이다.
@@ -46,12 +46,15 @@ public static class ColumnParams
     {
         var map = new Dictionary<string, ColumnInfo>(StringComparer.OrdinalIgnoreCase);
         using var cmd = new SqlCommand("""
+            DECLARE @DbCodePage int = CONVERT(int, COLLATIONPROPERTY(CONVERT(sysname, DATABASEPROPERTYEX(DB_NAME(), 'Collation')), 'CodePage'));
             SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION,
-                   COALESCE(NUMERIC_SCALE, DATETIME_PRECISION) AS Scale
+                   COALESCE(NUMERIC_SCALE, DATETIME_PRECISION) AS Scale,
+                   COALESCE(CONVERT(int, COLLATIONPROPERTY(COLLATION_NAME, 'CodePage')), @DbCodePage) AS CodePage
             FROM   INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo'
             UNION ALL
             SELECT SPECIFIC_NAME, PARAMETER_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION,
-                   COALESCE(NUMERIC_SCALE, DATETIME_PRECISION)
+                   COALESCE(NUMERIC_SCALE, DATETIME_PRECISION),
+                   COALESCE(CONVERT(int, COLLATIONPROPERTY(COLLATION_NAME, 'CodePage')), @DbCodePage)
             FROM   INFORMATION_SCHEMA.PARAMETERS WHERE SPECIFIC_SCHEMA = 'dbo' AND PARAMETER_NAME <> ''
             """, conn, tx);
         using var r = cmd.ExecuteReader();
@@ -59,7 +62,7 @@ public static class ColumnParams
         {
             var info = new ColumnInfo(r.GetString(0), r.GetString(1), r.GetString(2),
                 r.IsDBNull(3) ? null : r.GetInt32(3), r.IsDBNull(4) ? null : r.GetByte(4),
-                r.IsDBNull(5) ? null : Convert.ToInt32(r.GetValue(5)));
+                r.IsDBNull(5) ? null : Convert.ToInt32(r.GetValue(5)), r.IsDBNull(6) ? LatinCodePage : r.GetInt32(6));
             map[$"{info.Table}.{info.Column}"] = info;
         }
         return map;
@@ -117,7 +120,7 @@ public static class ColumnParams
 
     /// <summary>
     /// 조회 조건용(10-13) — 형식은 비교하는 컬럼에서 정하되 값을 검사하지도 자르지도 않는다. 길이는 컬럼과 값 중 긴 쪽이라
-    /// 너무 긴 값은 잘려서 다른 행과 맞지 않고 그대로 "없음"이 되며, CP949 에 없는 문자가 든 값은 nvarchar 로 보내 '?' 로
+    /// 너무 긴 값은 잘려서 다른 행과 맞지 않고 그대로 "없음"이 되며, 컬럼 코드 페이지에 없는 문자가 든 값은 nvarchar 로 보내 '?' 로
     /// 바뀌지 않게 한다. 컬럼을 모르거나(<paramref name="tableColumn"/> null·DB 에 없음) 값의 형식이 컬럼과 다르면 값의 형식을 쓴다
     /// (문자열 nvarchar · DateTime datetime2 — AddWithValue 의 datetime 처럼 밀리초를 반올림하지 않는다).
     /// </summary>
@@ -133,8 +136,8 @@ public static class ColumnParams
             case "varchar" or "char" or "nvarchar" or "nchar" when v is null or string:
             {
                 var s = (string?)v;
-                var unicode = type.StartsWith('n') || (s is not null && !Encodable(s));
-                var len = s is null ? 0 : unicode ? s.Length : Cp949.GetByteCount(s);
+                var unicode = type.StartsWith('n') || (s is not null && !Encodable(info!, s));
+                var len = s is null ? 0 : unicode ? s.Length : EncodingOf(info!).GetByteCount(s);
                 var max = unicode ? 4000 : 8000;
                 var size = info!.MaxLength is > 0 and var n && type.StartsWith('n') == unicode ? Math.Max(n, len) : Math.Max(len, 1);
                 var p = cmd.Parameters.Add(name, unicode ? SqlDbType.NVarChar : SqlDbType.VarChar, info.MaxLength == -1 || size > max ? -1 : size);
@@ -183,16 +186,16 @@ public static class ColumnParams
         _ => true,
     };
 
-    static bool Encodable(string s)
+    static bool Encodable(ColumnInfo info, string s)
     {
-        try { Cp949.GetByteCount(s); return true; }
+        try { EncodingOf(info).GetByteCount(s); return true; }
         catch (EncoderFallbackException) { return false; }
     }
 
     static void CheckBytes(ColumnInfo info, string s)
     {
         int bytes;
-        try { bytes = Cp949.GetByteCount(s); }
+        try { bytes = EncodingOf(info).GetByteCount(s); }
         catch (EncoderFallbackException ex)
         {
             throw new DbValueException(info, DbValueProblem.Unencodable, null, null, ex.CharUnknown != default ? ex.CharUnknown.ToString() : ex.CharUnknownHigh.ToString() + ex.CharUnknownLow);
@@ -227,7 +230,7 @@ public static class ColumnParams
 public enum DbValueProblem { TooLong, Unencodable, OutOfRange }
 
 /// <summary>
-/// 값이 저장될 컬럼에 맞지 않는다(너무 김·CP949 에 없는 문자·범위 밖). 화면은 <see cref="Exception.Message"/> 를 그대로 보이므로
+/// 값이 저장될 컬럼에 맞지 않는다(너무 김·컬럼 코드 페이지에 없는 문자·범위 밖). 화면은 <see cref="Exception.Message"/> 를 그대로 보이므로
 /// 문구는 <see cref="Formatter"/>(Web 이 기동 때 다국어로 지정)로 만든다 — 지정이 없으면 영어.
 /// </summary>
 public sealed class DbValueException : ArgumentException

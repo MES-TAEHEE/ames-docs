@@ -15,7 +15,7 @@ IF OBJECT_ID('dbo.PP_ApsPlanLineShift', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.PP_ApsPlanLineShift (
         PlanLineID int           NOT NULL,
-        ShiftCode  varchar(10)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        ShiftCode  varchar(10)   COLLATE DATABASE_DEFAULT NOT NULL,
         Qty        decimal(14,3) NOT NULL DEFAULT ((0)),
         CONSTRAINT PK_PP_ApsPlanLineShift PRIMARY KEY CLUSTERED (PlanLineID, ShiftCode)
     );

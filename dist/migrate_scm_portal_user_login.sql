@@ -37,17 +37,17 @@ GO
 IF OBJECT_ID('dbo.SCM_PortalVendorUser', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.SCM_PortalVendorUser (
-        UserID           nvarchar(256) COLLATE Korean_Wansung_CI_AS NOT NULL,
-        VendorID         varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-        UserName         nvarchar(50)  COLLATE Korean_Wansung_CI_AS NULL,
-        PasswordHash     nvarchar(200) COLLATE Korean_Wansung_CI_AS NOT NULL,
+        UserID           nvarchar(256) COLLATE DATABASE_DEFAULT NOT NULL,
+        VendorID         varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
+        UserName         nvarchar(50)  COLLATE DATABASE_DEFAULT NULL,
+        PasswordHash     nvarchar(200) COLLATE DATABASE_DEFAULT NOT NULL,
         FailedLoginCount int           NOT NULL CONSTRAINT DF_SCM_PortalVendorUser_Failed DEFAULT (0),
         LockedFlag       bit           NOT NULL CONSTRAINT DF_SCM_PortalVendorUser_Locked DEFAULT (0),
         LastLoginTS      datetime2(7)  NULL,
         ActiveFlag       bit           NOT NULL CONSTRAINT DF_SCM_PortalVendorUser_Active DEFAULT (1),
-        CreatedBy        varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        CreatedBy        varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         CreatedTS        datetime2(7)  NOT NULL CONSTRAINT DF_SCM_PortalVendorUser_Created DEFAULT (SYSDATETIME()),
-        ModifiedBy       varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
+        ModifiedBy       varchar(20)   COLLATE DATABASE_DEFAULT NULL,
         ModifiedTS       datetime2(7)  NULL,
         CONSTRAINT PK_SCM_PortalVendorUser PRIMARY KEY CLUSTERED (UserID),
         CONSTRAINT FK_SCM_PortalVendorUser_Vendor FOREIGN KEY (VendorID) REFERENCES dbo.MD_Vendor (VendorID)

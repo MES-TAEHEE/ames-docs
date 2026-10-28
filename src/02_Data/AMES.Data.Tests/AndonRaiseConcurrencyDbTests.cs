@@ -109,7 +109,8 @@ public class AndonRaiseConcurrencyDbTests
             DELETE fr FROM dbo.MNT_FailureRegister fr
               JOIN dbo.PR_AndonCall a ON fr.Source = 'ANDON' AND fr.AndonRefID = CAST(a.AndonID AS varchar(24)) WHERE a.LineID = @L;
             DELETE dbo.PR_AndonDeptCall WHERE AndonID IN (SELECT AndonID FROM dbo.PR_AndonCall WHERE LineID = @L);
-            DELETE dbo.PR_AndonPush WHERE AndonID IN (SELECT AndonID FROM dbo.PR_AndonCall WHERE LineID = @L);
+            IF OBJECT_ID('dbo.PR_AndonPush') IS NOT NULL   -- 10-29 스키마 파일에서 뺀 미사용 테이블 — 새로 만든 DB 에는 없다
+                EXEC (N'DELETE dbo.PR_AndonPush WHERE AndonID IN (SELECT AndonID FROM dbo.PR_AndonCall WHERE LineID = ''' + @L + N''')');
             DELETE dbo.PP_LineDowntimeLog WHERE LineID = @L;
             DELETE dbo.PR_AndonCall WHERE LineID = @L;
             """, ("@L", Line));

@@ -44,7 +44,7 @@ public sealed class RebuildSeedPolicyTests
         Assert.Contains("AMES_Schema.sql", script);
         Assert.Contains("seed_md_item_bom_master_list.sql", script);
         Assert.Contains("seed_md_mold_master.sql", script);
-        Assert.Contains("COLLATE Korean_Wansung_CI_AS", script);
+        Assert.Contains("COLLATE SQL_Latin1_General_CP1_CI_AS", script);
         Assert.Contains("run_file setup_job_mnt_oeelog_fill.sql", script);
     }
 

@@ -33,7 +33,7 @@ INSERT #Targets VALUES
 ('SCM_DeliveryCase','PoNumber',20),
 ('SCM_DeliveryBox','UnitCode',10);
 DELETE T FROM #Targets T JOIN sys.columns C ON C.object_id=OBJECT_ID(N'dbo.'+T.TableName) AND C.name=T.ColumnName
-WHERE TYPE_NAME(C.user_type_id)='varchar' AND C.max_length=T.Width AND C.collation_name='Korean_Wansung_CI_AS';
+WHERE TYPE_NAME(C.user_type_id)='varchar' AND C.max_length=T.Width AND C.collation_name=CONVERT(sysname,DATABASEPROPERTYEX(DB_NAME(),'Collation'));
 DECLARE @Table sysname,@Column sysname,@Width int,@Sql nvarchar(max),@Null nvarchar(10);
 DECLARE targets CURSOR LOCAL FAST_FORWARD FOR
 SELECT T.TableName,T.ColumnName,T.Width,CASE WHEN C.is_nullable=1 THEN N' NULL' ELSE N' NOT NULL' END
@@ -86,7 +86,7 @@ CLOSE indexes; DEALLOCATE indexes;
 OPEN targets; FETCH NEXT FROM targets INTO @Table,@Column,@Width,@Null;
 WHILE @@FETCH_STATUS=0
 BEGIN
-    SET @Sql=N'ALTER TABLE dbo.'+QUOTENAME(@Table)+N' ALTER COLUMN '+QUOTENAME(@Column)+N' varchar('+CONVERT(varchar(10),@Width)+N') COLLATE Korean_Wansung_CI_AS'+@Null+N';';
+    SET @Sql=N'ALTER TABLE dbo.'+QUOTENAME(@Table)+N' ALTER COLUMN '+QUOTENAME(@Column)+N' varchar('+CONVERT(varchar(10),@Width)+N') COLLATE DATABASE_DEFAULT'+@Null+N';';
     EXEC sys.sp_executesql @Sql;
     FETCH NEXT FROM targets INTO @Table,@Column,@Width,@Null;
 END;

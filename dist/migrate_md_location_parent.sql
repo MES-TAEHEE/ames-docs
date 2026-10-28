@@ -28,7 +28,7 @@ IF COL_LENGTH(N'dbo.MD_Location', N'SAPTransFlag') IS NOT NULL
 GO
 
 IF COL_LENGTH(N'dbo.MD_Location', N'ParentLocationID') IS NULL
-    ALTER TABLE dbo.MD_Location ADD ParentLocationID varchar(20) COLLATE Korean_Wansung_CI_AS NULL;
+    ALTER TABLE dbo.MD_Location ADD ParentLocationID varchar(20) COLLATE DATABASE_DEFAULT NULL;
 IF COL_LENGTH(N'dbo.MD_Location', N'LocationLevel') IS NULL
     ALTER TABLE dbo.MD_Location ADD LocationLevel tinyint NOT NULL CONSTRAINT DF_MD_Location_LocationLevel DEFAULT (2) WITH VALUES;
 GO

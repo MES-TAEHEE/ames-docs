@@ -54,7 +54,7 @@ BEGIN TRY
         THROW 51000, 'Unsupported column type; nothing changed.', 1;
 
     -- 대상 컬럼의 서로 다른 값
-    CREATE TABLE #Values (Val nvarchar(450) COLLATE Korean_Wansung_CI_AS NOT NULL PRIMARY KEY, EmpNo varchar(20) COLLATE Korean_Wansung_CI_AS NULL, Kind varchar(20) NULL);
+    CREATE TABLE #Values (Val nvarchar(450) COLLATE DATABASE_DEFAULT NOT NULL PRIMARY KEY, EmpNo varchar(20) COLLATE DATABASE_DEFAULT NULL, Kind varchar(20) NULL);
     DECLARE @i int = (SELECT MIN(ID) FROM #Targets), @t nvarchar(300), @c nvarchar(300), @sql nvarchar(max);
     WHILE @i IS NOT NULL
     BEGIN
@@ -124,7 +124,7 @@ BEGIN TRY
                      INSERT #Results VALUES (@tn, @cn, @@ROWCOUNT);
                      IF EXISTS (SELECT 1 FROM ' + @t + N' WHERE DATALENGTH(CONVERT(varchar(max), ' + @c + N')) > 20)
                          THROW 51000, ''Conversion would truncate data; nothing changed.'', 1;
-                     ALTER TABLE ' + @t + N' ALTER COLUMN ' + @c + N' varchar(20) COLLATE Korean_Wansung_CI_AS '
+                     ALTER TABLE ' + @t + N' ALTER COLUMN ' + @c + N' varchar(20) COLLATE DATABASE_DEFAULT '
                      + CASE WHEN COLUMNPROPERTY(OBJECT_ID(@t), @cn, 'AllowsNull') = 1 THEN N'NULL' ELSE N'NOT NULL' END + N';';
         EXEC sys.sp_executesql @sql, N'@tn sysname, @cn sysname', @tn, @cn;
 

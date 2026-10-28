@@ -39,7 +39,7 @@ BEGIN
         PRINT N'· 기존 기본키 ' + @pk + N' 삭제';
     END;
 
-    ALTER TABLE dbo.AspNetUserTokens ALTER COLUMN UserId nvarchar(450) COLLATE Korean_Wansung_CI_AS NOT NULL;
+    ALTER TABLE dbo.AspNetUserTokens ALTER COLUMN UserId nvarchar(450) COLLATE DATABASE_DEFAULT NOT NULL;
 
     -- 같은 배치의 NOT NULL 변경이 컴파일 시점에는 보이지 않아(Msg 8111) 동적 SQL 로 실행 시점에 만든다
     EXEC (N'ALTER TABLE dbo.AspNetUserTokens ADD CONSTRAINT PK_AspNetUserTokens PRIMARY KEY CLUSTERED (UserId, LoginProvider, Name);');

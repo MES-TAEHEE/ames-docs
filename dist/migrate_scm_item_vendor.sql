@@ -5,8 +5,8 @@ BEGIN TRANSACTION;
 IF OBJECT_ID(N'dbo.SCM_ItemVendor', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.SCM_ItemVendor (
-        ItemNo varchar(20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-        VendorID varchar(20) COLLATE Korean_Wansung_CI_AS NOT NULL,
+        ItemNo varchar(20) COLLATE DATABASE_DEFAULT NOT NULL,
+        VendorID varchar(20) COLLATE DATABASE_DEFAULT NOT NULL,
         ActiveFlag bit NOT NULL CONSTRAINT DF_SCM_ItemVendor_Active DEFAULT (1),
         CreatedBy varchar(20) NOT NULL,
         CreatedTS datetime2(7) NOT NULL CONSTRAINT DF_SCM_ItemVendor_Created DEFAULT (SYSDATETIME()),

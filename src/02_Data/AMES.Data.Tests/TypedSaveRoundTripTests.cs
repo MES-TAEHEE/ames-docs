@@ -81,11 +81,18 @@ public class TypedSaveRoundTripTests
             10, 20, false, true, by, true);
         Same("MD_Item", "ItemNo", item, ("ItemName", Max("MD_Item.ItemName")), ("DrawingNo", Max("MD_Item.DrawingNo")), ("PGN", Max("MD_Item.PGN")),
             ("MinStock", Math.Round(1.23456789m, minScale, MidpointRounding.AwayFromZero)), ("InjFlag", true), ("ScanRequired", true), ("PalletQty", 10));
+        // varchar 바이트 검사는 컬럼 콜레이션 코드 페이지 기준(10-29) — Korean_Wansung 은 한글 2바이트, SQL_Latin1 은 é 1바이트·한글 거부
+        var korean = Info("MD_Item.DrawingNo").CodePage == 949;
+        var drawing = korean ? new string('가', Len("MD_Item.DrawingNo") / 2) : new string('é', Len("MD_Item.DrawingNo"));
+        var drawingOver = korean ? new string('가', Len("MD_Item.DrawingNo") / 2 + 1) : new string('é', Len("MD_Item.DrawingNo") + 1);
         md.UpdateItem(item, Max("MD_Item.ItemName", uni: '나'), "SUB", null, false, null, null, null, null, null, null, null, null, null,
-            new string('가', Len("MD_Item.DrawingNo") / 2), null, null, true, false, by);
-        Same("MD_Item", "ItemNo", item, ("ItemName", Max("MD_Item.ItemName", uni: '나')), ("DrawingNo", new string('가', Len("MD_Item.DrawingNo") / 2)), ("ToteFlag", true));
+            drawing, null, null, true, false, by);
+        Same("MD_Item", "ItemNo", item, ("ItemName", Max("MD_Item.ItemName", uni: '나')), ("DrawingNo", drawing), ("ToteFlag", true));
         Assert.True(Assert.Throws<DbValueException>(() => md.UpdateItem(item, "x", "SUB", null, false, null, null, null, null, null, null, null, null, null,
-            new string('가', Len("MD_Item.DrawingNo") / 2 + 1), null, null, false, true, by)).BytesUnit);   // 한글은 2바이트
+            drawingOver, null, null, false, true, by)).BytesUnit);
+        if (!korean)
+            Assert.Equal(DbValueProblem.Unencodable, Assert.Throws<DbValueException>(() => md.UpdateItem(item, "x", "SUB", null, false, null, null, null, null, null, null, null, null, null,
+                "가", null, null, false, true, by)).Problem);
         Assert.Equal(DbValueProblem.Unencodable, Assert.Throws<DbValueException>(() => md.UpdateItem(item, "x", "SUB", null, false, null, null, null, null, null, null, null, null, null,
             "A😀", null, null, false, true, by)).Problem);
 

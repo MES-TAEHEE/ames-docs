@@ -45,7 +45,7 @@ GO
 
 -- 2) 컬럼
 IF COL_LENGTH(N'dbo.MD_Item', N'ProcureType') IS NULL
-    ALTER TABLE dbo.MD_Item ADD ProcureType varchar(10) COLLATE Korean_Wansung_CI_AS NULL;
+    ALTER TABLE dbo.MD_Item ADD ProcureType varchar(10) COLLATE DATABASE_DEFAULT NULL;
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.extended_properties
                WHERE class = 1 AND name = N'MS_Description' AND major_id = OBJECT_ID(N'dbo.MD_Item')

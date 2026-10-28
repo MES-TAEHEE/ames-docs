@@ -47,8 +47,10 @@ public sealed class NotificationRepository(AmesConnectionFactory f)
             RETURN;
         END
 
-        CREATE TABLE #ev (EventTypeCode varchar(20) NOT NULL, RefType varchar(20) NOT NULL, RefID varchar(40) NOT NULL,
-                          Subject nvarchar(200) NULL, Body nvarchar(1000) NULL);
+        -- 임시 테이블 문자열 열은 DB 콜레이션으로(tempdb 콜레이션이 DB 와 다른 서버에서 조인 충돌 — 10-29)
+        CREATE TABLE #ev (EventTypeCode varchar(20) COLLATE DATABASE_DEFAULT NOT NULL, RefType varchar(20) COLLATE DATABASE_DEFAULT NOT NULL,
+                          RefID varchar(40) COLLATE DATABASE_DEFAULT NOT NULL, Subject nvarchar(200) COLLATE DATABASE_DEFAULT NULL,
+                          Body nvarchar(1000) COLLATE DATABASE_DEFAULT NULL);
 
         INSERT #ev
         SELECT 'FAILURE_OPEN', 'FAILURE', f.FailureNumber,
@@ -92,7 +94,7 @@ public sealed class NotificationRepository(AmesConnectionFactory f)
         DECLARE @events int = (SELECT COUNT(*) FROM #ev);
 
         -- 규칙 × 수신 역할(PUSH 채널이 있는 사용 중 규칙만)
-        CREATE TABLE #rr (RuleID int NOT NULL, EventTypeCode varchar(20) NOT NULL, RoleID nvarchar(450) NOT NULL);
+        CREATE TABLE #rr (RuleID int NOT NULL, EventTypeCode varchar(20) COLLATE DATABASE_DEFAULT NOT NULL, RoleID nvarchar(450) COLLATE DATABASE_DEFAULT NOT NULL);
         INSERT #rr
         SELECT r.NotificationRuleID, r.EventTypeCode, CAST(j.value AS nvarchar(450))
         FROM   dbo.SYS_NotificationRule r
@@ -101,7 +103,7 @@ public sealed class NotificationRepository(AmesConnectionFactory f)
           AND  EXISTS (SELECT 1 FROM OPENJSON(r.ChannelsJSON) c WHERE CAST(c.value AS varchar(10)) = @Ch);
 
         -- 수신자(사번): 역할을 가진 활성 웹 사용자 + Operator 규칙이면 PIN 이 있는 활성 작업자(같은 사번의 웹 계정이 있으면 웹 계정 쪽)
-        CREATE TABLE #rcp (RuleID int NOT NULL, EventTypeCode varchar(20) NOT NULL, EmpNo varchar(20) NOT NULL);
+        CREATE TABLE #rcp (RuleID int NOT NULL, EventTypeCode varchar(20) COLLATE DATABASE_DEFAULT NOT NULL, EmpNo varchar(20) COLLATE DATABASE_DEFAULT NOT NULL);
         INSERT #rcp
         SELECT DISTINCT rr.RuleID, rr.EventTypeCode, p.EmployeeNo
         FROM   #rr rr

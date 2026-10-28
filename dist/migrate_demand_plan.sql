@@ -21,11 +21,11 @@ GO
 IF OBJECT_ID('dbo.PP_DemandPlanBatch', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.PP_DemandPlanBatch (
-        Batch          varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-        CustomerID     varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-        Source         varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,   -- UPLOAD | SRM
-        SourceKey      varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
-        FileName       nvarchar(200) COLLATE Korean_Wansung_CI_AS NULL,
+        Batch          varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
+        CustomerID     varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
+        Source         varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,   -- UPLOAD | SRM
+        SourceKey      varchar(20)   COLLATE DATABASE_DEFAULT NULL,
+        FileName       nvarchar(200) COLLATE DATABASE_DEFAULT NULL,
         DateFrom       date          NOT NULL,
         DateTo         date          NOT NULL,
         ItemCount      int           NOT NULL DEFAULT ((0)),
@@ -33,8 +33,8 @@ BEGIN
         UnmatchedItems int           NOT NULL DEFAULT ((0)),
         PackMismatch   int           NOT NULL DEFAULT ((0)),
         ImportedAt     datetime2(7)  NOT NULL DEFAULT (sysdatetime()),
-        ImportedBy     varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-        CreatedBy      varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        ImportedBy     varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
+        CreatedBy      varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         CreatedTS      datetime2(7)  NOT NULL DEFAULT (sysdatetime()),
         CONSTRAINT PK_PP_DemandPlanBatch PRIMARY KEY CLUSTERED (Batch)
     );
@@ -51,19 +51,19 @@ IF OBJECT_ID('dbo.PP_DemandPlan', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.PP_DemandPlan (
         PlanID       int           IDENTITY(1,1) NOT NULL,
-        CustomerID   varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-        ItemNo       varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        CustomerID   varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
+        ItemNo       varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         PlanDate     date          NOT NULL,
         ScheduledQty decimal(14,3) NOT NULL,
         PoQty        decimal(14,3) NULL,
         PackQty      decimal(14,3) NULL,
-        PartName     nvarchar(100) COLLATE Korean_Wansung_CI_AS NULL,
-        Unit         varchar(10)   COLLATE Korean_Wansung_CI_AS NULL,
-        Batch        varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-        Source       varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-        CreatedBy    varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        PartName     nvarchar(100) COLLATE DATABASE_DEFAULT NULL,
+        Unit         varchar(10)   COLLATE DATABASE_DEFAULT NULL,
+        Batch        varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
+        Source       varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
+        CreatedBy    varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         CreatedTS    datetime2(7)  NOT NULL DEFAULT (sysdatetime()),
-        ModifiedBy   varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
+        ModifiedBy   varchar(20)   COLLATE DATABASE_DEFAULT NULL,
         ModifiedTS   datetime2(7)  NULL,
         CONSTRAINT PK_PP_DemandPlan PRIMARY KEY CLUSTERED (PlanID)
     );

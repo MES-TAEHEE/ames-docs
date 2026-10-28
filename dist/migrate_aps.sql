@@ -61,14 +61,14 @@ GO
 IF OBJECT_ID('dbo.MD_ApsLineStage', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.MD_ApsLineStage (
-        LineID      varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        LineID      varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         OffsetDays  int           NOT NULL DEFAULT ((1)),
         UseStock    bit           NOT NULL DEFAULT ((1)),
-        Note        nvarchar(200) COLLATE Korean_Wansung_CI_AS NULL,
-        PatternID   varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
-        CreatedBy   varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        Note        nvarchar(200) COLLATE DATABASE_DEFAULT NULL,
+        PatternID   varchar(20)   COLLATE DATABASE_DEFAULT NULL,
+        CreatedBy   varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         CreatedTS   datetime2(7)  NOT NULL DEFAULT (sysdatetime()),
-        ModifiedBy  varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
+        ModifiedBy  varchar(20)   COLLATE DATABASE_DEFAULT NULL,
         ModifiedTS  datetime2(7)  NULL,
         -- FK 는 두지 않는다(10-08 원칙) — 라인·패턴 삭제는 MasterDataRepository 사용처 검사가 막는다
         CONSTRAINT PK_MD_ApsLineStage PRIMARY KEY CLUSTERED (LineID)
@@ -88,7 +88,7 @@ GO
 --      ALTER ADD 는 끝에 붙는다 — 이 테이블은 재생성하지 않는다(행이 적고 PP-APS 설정 다이얼로그만 읽는다, 순서는 조회 SQL 이 컬럼명으로 집는다).
 IF COL_LENGTH('dbo.MD_ApsLineStage', 'PatternID') IS NULL
 BEGIN
-    ALTER TABLE dbo.MD_ApsLineStage ADD PatternID varchar(20) COLLATE Korean_Wansung_CI_AS NULL;
+    ALTER TABLE dbo.MD_ApsLineStage ADD PatternID varchar(20) COLLATE DATABASE_DEFAULT NULL;
     PRINT N'✓ MD_ApsLineStage.PatternID 추가';
 END
 ELSE
@@ -105,19 +105,19 @@ IF OBJECT_ID('dbo.PP_ApsRun', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.PP_ApsRun (
         RunID        int           IDENTITY(1,1) NOT NULL,
-        LineID       varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        LineID       varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         BaseDate     date          NOT NULL,
         Days         int           NOT NULL,
-        CustomerID   varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
+        CustomerID   varchar(20)   COLLATE DATABASE_DEFAULT NULL,
         IncludeOpen  bit           NOT NULL DEFAULT ((0)),
-        Status       varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-        SettingsJson nvarchar(max) COLLATE Korean_Wansung_CI_AS NOT NULL,
-        BundleJson   nvarchar(max) COLLATE Korean_Wansung_CI_AS NOT NULL,
-        ResultJson   nvarchar(max) COLLATE Korean_Wansung_CI_AS NOT NULL,
+        Status       varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
+        SettingsJson nvarchar(max) COLLATE DATABASE_DEFAULT NOT NULL,
+        BundleJson   nvarchar(max) COLLATE DATABASE_DEFAULT NOT NULL,
+        ResultJson   nvarchar(max) COLLATE DATABASE_DEFAULT NOT NULL,
         WarningCount int           NOT NULL DEFAULT ((0)),
-        CreatedBy    varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        CreatedBy    varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         CreatedTS    datetime2(7)  NOT NULL DEFAULT (sysdatetime()),
-        ModifiedBy   varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
+        ModifiedBy   varchar(20)   COLLATE DATABASE_DEFAULT NULL,
         ModifiedTS   datetime2(7)  NULL,
         CONSTRAINT PK_PP_ApsRun PRIMARY KEY CLUSTERED (RunID)
     );
@@ -133,9 +133,9 @@ BEGIN
     CREATE TABLE dbo.PP_ApsPlanLine (
         PlanLineID  int           IDENTITY(1,1) NOT NULL,
         RunID       int           NOT NULL,
-        Kind        char(3)       COLLATE Korean_Wansung_CI_AS NOT NULL,
-        ItemNo      varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
-        LineID      varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        Kind        char(3)       COLLATE DATABASE_DEFAULT NOT NULL,
+        ItemNo      varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
+        LineID      varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         PlanDate    date          NOT NULL,
         Demand      decimal(14,3) NOT NULL DEFAULT ((0)),
         Supply      decimal(14,3) NOT NULL DEFAULT ((0)),
@@ -144,7 +144,7 @@ BEGIN
         PlanNight   decimal(14,3) NOT NULL DEFAULT ((0)),
         Stock       decimal(14,3) NOT NULL DEFAULT ((0)),
         Locked      bit           NOT NULL DEFAULT ((0)),
-        Status      varchar(10)   COLLATE Korean_Wansung_CI_AS NOT NULL DEFAULT ('ok'),
+        Status      varchar(10)   COLLATE DATABASE_DEFAULT NOT NULL DEFAULT ('ok'),
         WoID        int           NULL,
         SameItem    bit           NOT NULL DEFAULT ((0)),
         CONSTRAINT PK_PP_ApsPlanLine PRIMARY KEY CLUSTERED (PlanLineID)
@@ -172,7 +172,7 @@ BEGIN
         WoID       int           NOT NULL,
         SoID       int           NULL,
         Qty        decimal(14,3) NOT NULL,
-        CreatedBy  varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
+        CreatedBy  varchar(20)   COLLATE DATABASE_DEFAULT NOT NULL,
         CreatedTS  datetime2(7)  NOT NULL DEFAULT (sysdatetime()),
         CONSTRAINT PK_PP_ApsRunWo PRIMARY KEY CLUSTERED (RunWoID)
     );
