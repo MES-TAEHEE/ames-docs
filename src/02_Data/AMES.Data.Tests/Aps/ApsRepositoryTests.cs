@@ -302,6 +302,7 @@ public class ApsRepositoryTests
             DELETE FROM dbo.PP_DemandPlan      WHERE Batch LIKE 'ITEST-APS-%';
             DELETE FROM dbo.PP_DemandPlanBatch WHERE Batch LIKE 'ITEST-APS-%';
             DELETE FROM dbo.PP_ApsRunWo    WHERE RunID IN (SELECT RunID FROM dbo.PP_ApsRun WHERE CreatedBy = @By);
+            DELETE s FROM dbo.PP_ApsPlanLineShift s JOIN dbo.PP_ApsPlanLine l ON l.PlanLineID = s.PlanLineID JOIN dbo.PP_ApsRun r ON r.RunID = l.RunID WHERE r.CreatedBy = @By;
             DELETE FROM dbo.PP_ApsPlanLine WHERE RunID IN (SELECT RunID FROM dbo.PP_ApsRun WHERE CreatedBy = @By);
             DELETE FROM dbo.PP_ApsRun      WHERE CreatedBy = @By;
             DELETE FROM dbo.MD_ApsLineStage WHERE LineID = @LN;

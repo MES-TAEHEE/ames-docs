@@ -11,7 +11,7 @@ using Xunit;
 namespace AMES.Pop.Tests;
 
 /// <summary>
-/// 오프라인에서 쌓은 작업이 복구 뒤 DB 에 제대로 반영되는지 — 큐 → 저장소 → 행. AMES_TEST_CONN(기본 개발 DB)이 닿을 때만 돈다.
+/// 오프라인에서 쌓은 작업이 복구 뒤 DB 에 제대로 반영되는지 — 큐 → 저장소 → 행. AMES_TEST_CONN 이 닿을 때만 돈다.
 /// 먼 미래 날짜(2036-01-05) 번호만 써서 실제 데이터와 섞이지 않고 끝에 지운다.
 /// </summary>
 [Collection("OfflineAuth")]
@@ -25,7 +25,7 @@ public sealed class OfflineReplayDbTests : IDisposable
 
     private static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.0.132,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;";
+        ?? "";   // 접속 정보는 소스에 두지 않는다 — 없으면 DB 테스트는 건너뛴다
 
     public OfflineReplayDbTests()
     {

@@ -362,7 +362,7 @@ internal static class OfflineAuth
                 break;
 
             case "LoginOk":
-                PopServices.Auth.RecordSuccessfulLogin(e.UserId!, e.EmployeeNo);
+                PopServices.Auth.RecordSuccessfulLogin(e.UserId!, e.EmployeeNo, resetFailures: false);
                 break;
 
             case "SessionOpen":

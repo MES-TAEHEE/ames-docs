@@ -118,6 +118,7 @@ FILES=(
   migrate_po_sync.sql                 # SW_POSYNC* code groups
   migrate_po_sync_service_key.sql     # Web→API manual import key; created once per DB
   migrate_aps_plan_line_shift.sql     # APS 계획 행 교대별 수량 PP_ApsPlanLineShift (migrate_aps 이후)
+  migrate_pp_aps_no_foreign_keys.sql  # APS·일별 구매계획 FK 6개 삭제·SW_ 그룹 이름 옛 접두어 정리(10-28, 위 두 줄 이후)
   seed_aps_dev.sql                    #   → 개발용 APS 시드: PalletQty·LINE-INJ-01 2교대 패턴·MD_ApsLineStage·확정 수주·BOP 보강 (migrate_aps 이후)
   seed_demand_plan_dev.sql            #   → 개발용 일별계획 수집 소스 SEMS(URL 자리표시자)
   migrate_portal.sql                  # 외부 포탈: PROCESS/PORTAL 코드 · 구 출하 계획 화면 정리
@@ -190,6 +191,7 @@ FILES=(
   migrate_drop_md_mold_color.sql     # MD_MoldColor 삭제 — 금형 제품 색상은 MD_MoldItem.Color 직접 입력(10-16)
   migrate_rfid_reader_status_maint.sql # RFID_READER_STATUS 에 MAINT(점검중) — MD-022 점검중 KPI(10-28), 순서 무관
   migrate_pp_lineschedule_item.sql   # PP_LineSchedule.ItemNo — 슬롯이 만드는 품번(10-27), 감사 컬럼 정렬 앞
+  migrate_mnt_failure_type_widen.sql # MNT_FailureRegister.FailureType varchar(20) — 안돈 원인 코드(10-28)
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)
   migrate_pop_stored_procedures.sql  # AMES.Pop 인라인 SQL -> dbo.SP_POP_* 저장 프로시저 145개(10-21) — 신 Pop/Web/Api 보다 먼저
   migrate_pop_confirm_perf_index.sql # POP 확정 경로 인덱스 — 실적 LotID·사출 LOT 설비×캐비티×LotID(10-27), 순서 무관

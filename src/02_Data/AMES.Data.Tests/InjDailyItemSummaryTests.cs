@@ -98,7 +98,7 @@ public class InjDailyItemSummaryTests
     static void AddPlan(AmesConnectionFactory f, int woId, string lineId, int dayOffset, decimal qty, string entryType = "WO")
         => Exec(f, """
             INSERT INTO dbo.PP_LineSchedule (LineID, ScheduleDate, WoID, PlannedQty, EntryType, Title, Status, CreatedBy)
-            VALUES (@L, DATEADD(day, @D, CAST(GETDATE() AS date)), @W, @Q, @E, @T, 'DRAFT', 'ITEST');
+            VALUES (@L, DATEADD(day, @D, dbo.FN_POP_ProdToday()), @W, @Q, @E, @T, 'DRAFT', 'ITEST');   -- 계획일 = 전기일(07시 전에도 오늘 판)
             """, ("@L", lineId), ("@D", dayOffset), ("@Q", qty), ("@E", entryType),
                  ("@W", entryType == "PM" ? (object)DBNull.Value : woId),
                  ("@T", entryType == "PM" ? (object)"ITEST PM" : DBNull.Value));

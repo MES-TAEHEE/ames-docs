@@ -108,6 +108,7 @@ public class ApsWoCreateTests
             DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.RefID AND s.RefType = 'WO' WHERE w.ItemNo IN (@A, @B, @C, @P1, @P2);
             DELETE FROM dbo.PP_LineSchedule WHERE CreatedBy = @By AND ScheduleDate BETWEEN @Pin AND @D4;
             DELETE x FROM dbo.PP_ApsRunWo    x JOIN dbo.PP_ApsRun r ON r.RunID = x.RunID WHERE r.CreatedBy = @By;
+            DELETE s FROM dbo.PP_ApsPlanLineShift s JOIN dbo.PP_ApsPlanLine l ON l.PlanLineID = s.PlanLineID JOIN dbo.PP_ApsRun r ON r.RunID = l.RunID WHERE r.CreatedBy = @By;
             DELETE l FROM dbo.PP_ApsPlanLine l JOIN dbo.PP_ApsRun r ON r.RunID = l.RunID WHERE r.CreatedBy = @By;
             DELETE FROM dbo.PP_ApsRun WHERE CreatedBy = @By;
             DELETE r FROM dbo.PP_WorkOrderRouting r JOIN dbo.PP_WorkOrder w ON w.WoID = r.WoID WHERE w.ItemNo IN (@A, @B, @C, @P1, @P2);
@@ -583,6 +584,34 @@ public class ApsWoCreateTests
             Assert.Equal(1, (int)Scalar(f, "SELECT COUNT(*) FROM dbo.PP_ApsRunWo WHERE RunID = @R AND SoID IS NULL AND Qty = 30;", ("@R", run))!);
             Assert.Equal(res.Orders[0].WoId, (int)Scalar(f, "SELECT WoID FROM dbo.PP_ApsPlanLine WHERE PlanLineID = @P;", ("@P", pl))!);
             Assert.Equal(ApsRepository.StatusReleased, RunStatus(f, run));
+        }
+        finally { Cleanup(f); }
+    }
+
+    [SkippableFact]
+    public void Cancelling_an_aps_wo_unlinks_its_plan_line_and_reopens_the_run()
+    {
+        var f = Ready();
+        Seed(f);
+        try
+        {
+            SeedSo(f, "ITEST-APS-SO-1", ItemA, 100, dueOffset: 9);
+            SeedSo(f, "ITEST-APS-SO-2", ItemA, 50,  dueOffset: 10);
+            int run = SeedRun(f);
+            int pl  = SeedInj(f, run, ItemA, D0, day: 120, night: 60);
+            var res = Run(f, run, new[] { pl });
+            Assert.Equal(ApsRepository.StatusReleased, RunStatus(f, run));
+
+            // 재고 보충 조각(30)만 취소 — 같은 계획 행의 다른 조각 슬롯(100 + 50)은 남는다
+            Assert.Equal(1, new WorkOrderRepository(f).CancelWo(res.Orders[2].WoId, Actor));
+
+            Assert.Equal(DBNull.Value, Scalar(f, "SELECT WoID FROM dbo.PP_ApsPlanLine WHERE PlanLineID = @P;", ("@P", pl)));
+            Assert.Equal(ApsRepository.StatusSaved, RunStatus(f, run));
+
+            // 같은 실행으로 다시 만들면 남은 슬롯을 빼고 취소한 몫만 나온다
+            var again = Run(f, run, new[] { pl });
+            Assert.Empty(again.Rejected);
+            Assert.Equal(new (int?, decimal)[] { (null, 30m) }, again.Orders.Select(o => (o.SoId, o.Qty)).ToArray());
         }
         finally { Cleanup(f); }
     }

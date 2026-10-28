@@ -31,35 +31,11 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 20).Value = ruleId;
         cmd.Parameters.Add("@S",  SqlDbType.VarChar, 10).Value = (object?)severity ?? DBNull.Value;
         cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
-        int id; bool created;
-        using (var rdr = cmd.ExecuteReader())
-        {
-            rdr.Read();
-            id = rdr.GetInt32(0);
-            // 열 하나만 돌려주던 이전 프로시저와도 맞물린다 — 그때는 항상 새로 만든 것
-            created = rdr.FieldCount < 2 || rdr.GetBoolean(1);
-        }
-
-        // 다른 터미널이 먼저 발동한 안돈이면 알림 기록도 이미 있다.
-        // Push stubs — recipients hard-coded for now; replaced when SYS_NotificationRule wires up.
-        if (created)
-        {
-            RecordPush(id, "SUPERVISOR", "PDA",   employeeNo);
-            RecordPush(id, "LINE-LEAD",  "EMAIL", employeeNo);
-        }
-        return id;
-    }
-
-    public void RecordPush(int andonId, string recipient, string channel, string employeeNo)
-    {
-        const string sql = "dbo.SP_POP_ANDON_RecordPush";
-        using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
-        cmd.Parameters.Add("@A",  SqlDbType.Int        ).Value = andonId;
-        cmd.Parameters.Add("@R",  SqlDbType.VarChar,100).Value = recipient;
-        cmd.Parameters.Add("@C",  SqlDbType.VarChar, 20).Value = channel;
-        cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
-        cmd.ExecuteNonQuery();
+        // 알림은 AMES.Api NOTIFY 발송기가 PR_AndonCall 을 보고 규칙(SYS_NotificationRule)대로 보낸다(10-24).
+        // 전에는 여기서 수신자·채널을 고정값으로 PR_AndonPush 에 적었지만 그 행을 읽는 곳이 없었다(10-28 삭제).
+        using var rdr = cmd.ExecuteReader();
+        rdr.Read();
+        return rdr.GetInt32(0);
     }
 
     /// <summary>라인의 진행중(RESOLVED 아님) 안돈 최신 1건 + 부서 행. 없으면 null.</summary>
@@ -237,7 +213,7 @@ public sealed class AndonRepository
                 using var cmd = new SqlCommand(failSql, conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
                 cmd.Parameters.Add("@ID",  SqlDbType.Int          ).Value = andonId;
                 cmd.Parameters.Add("@Ref", SqlDbType.VarChar,   24).Value = andonId.ToString();
-                cmd.Parameters.Add("@C",   SqlDbType.VarChar,   15).Value = causeCode;
+                cmd.Parameters.Add("@C",   SqlDbType.VarChar,   20).Value = causeCode;
                 cmd.Parameters.Add("@S",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@By",  SqlDbType.VarChar,   20).Value = calledBy;
                 cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorNo;

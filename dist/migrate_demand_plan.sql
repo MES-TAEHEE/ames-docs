@@ -65,8 +65,7 @@ BEGIN
         CreatedTS    datetime2(7)  NOT NULL DEFAULT (sysdatetime()),
         ModifiedBy   varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
         ModifiedTS   datetime2(7)  NULL,
-        CONSTRAINT PK_PP_DemandPlan PRIMARY KEY CLUSTERED (PlanID),
-        CONSTRAINT FK_PP_DemandPlan_Batch FOREIGN KEY (Batch) REFERENCES dbo.PP_DemandPlanBatch (Batch)
+        CONSTRAINT PK_PP_DemandPlan PRIMARY KEY CLUSTERED (PlanID)
     );
     CREATE UNIQUE INDEX UX_PP_DemandPlan_Cust_Item_Date ON dbo.PP_DemandPlan (CustomerID, ItemNo, PlanDate);
     CREATE INDEX IX_PP_DemandPlan_Date ON dbo.PP_DemandPlan (PlanDate) INCLUDE (CustomerID, ItemNo, ScheduledQty);
@@ -89,13 +88,13 @@ GO
 -- §4 공통코드 ─────────────────────────────────────────────────────────
 MERGE dbo.MD_CodeGroup AS tgt
 USING (VALUES
-    ('SW_DPSYNC',        N'ScheduledWorker · 일별계획 자동수집 설정',   N'ScheduledWorker · Demand Plan Sync Settings',
+    ('SW_DPSYNC',        N'일별계획 자동수집 설정',   N'Demand Plan Sync Settings',
      N'INTERVAL: Attribute1=수집 주기(분, 0=전체 중지). 선택 TICK_SEC·STARTUP_DELAY_SEC·TIMEOUT_SEC(초). 날짜 창은 서버 응답(dates)이 정한다'),
-    ('SW_DPSYNC_SOURCE', N'ScheduledWorker · 일별계획 자동수집 고객사', N'ScheduledWorker · Demand Plan Sync Sources',
+    ('SW_DPSYNC_SOURCE', N'일별계획 자동수집 고객사', N'Demand Plan Sync Sources',
      N'CodeValue=소스 키(13자 이하). Attribute1=귀속 MD_Customer.CustomerID. Description="CORCD=;BIZCD=;VENDCD=;PURC_ORG=" 필수'),
-    ('SW_DPSYNC_URL',    N'ScheduledWorker · 일별계획 자동수집 URL',    N'ScheduledWorker · Demand Plan Sync Endpoints',
+    ('SW_DPSYNC_URL',    N'일별계획 자동수집 URL',    N'Demand Plan Sync Endpoints',
      N'CodeValue=소스 키. Description=엔드포인트 절대 URL'),
-    ('SW_DPSYNC_AUTH',   N'ScheduledWorker · 일별계획 자동수집 인증',   N'ScheduledWorker · Demand Plan Sync Auth',
+    ('SW_DPSYNC_AUTH',   N'일별계획 자동수집 인증',   N'Demand Plan Sync Auth',
      N'CodeValue=소스 키. Attribute1=Query:{매개변수이름} | Bearer | Basic | Header:{헤더이름}. Description=키 | 토큰 | user:pw | 헤더값. 수동 실행 서비스 키는 SW_POSYNC_AUTH/AMES_SERVICE_KEY 를 같이 쓴다')
 ) AS src(GroupCode, GroupName, GroupNameEn, Description)
 ON tgt.GroupCode = src.GroupCode

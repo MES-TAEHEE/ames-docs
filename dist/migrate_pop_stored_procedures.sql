@@ -100,11 +100,13 @@ GO
 -- ===== Auth.RecordSuccessfulLogin (AUTH) =====
 CREATE OR ALTER PROCEDURE dbo.SP_POP_AUTH_RecordSuccessfulLogin
     @ModifiedBy VARCHAR(20),
-    @UserID NVARCHAR(450)
+    @UserID NVARCHAR(450),
+    -- POP·PDA 로그인은 0 — 배지·PIN 성공이 웹 비밀번호·PP-CAL PIN 실패 횟수를 지우면 잠금이 무력화된다
+    @ResetFailures BIT = 1
 AS
 BEGIN
     UPDATE dbo.SYS_UserProfile
-    SET    FailedLoginCount = 0,
+    SET    FailedLoginCount = CASE WHEN @ResetFailures = 1 THEN 0 ELSE FailedLoginCount END,
            LastLoginTS      = SYSDATETIME(),
            -- 행위자 컬럼은 varchar(20)(09-23 migrate_audit_actor_varchar20) — GUID 대신 본인 사번, 없으면 앞 20자
            ModifiedBy       = COALESCE(@ModifiedBy, NULLIF(LTRIM(RTRIM(EmployeeNo)), ''), LEFT(@UserID, 20)),
@@ -769,9 +771,10 @@ BEGIN
         SET    EndTS = @now, DurationMin = DATEDIFF(MINUTE, StartTS, @now),
                CauseCode = COALESCE(CauseCode, @C), ModifiedBy = @Op, ModifiedTS = @now
         WHERE  AndonID = @ID AND EndTS IS NULL;
+        -- MNT-007 「종료」로 이미 닫힌 고장(CLOSED — 수리 없이 닫음, 해결 시각 없음)은 해결로 덮지 않는다
         UPDATE dbo.MNT_FailureRegister
         SET    Status = 'RESOLVED', ResolvedAt = @now, ModifiedBy = @Op, ModifiedTS = @now
-        WHERE  Source = 'ANDON' AND AndonRefID = @Ref AND Status <> 'RESOLVED';
+        WHERE  Source = 'ANDON' AND AndonRefID = @Ref AND Status NOT IN ('RESOLVED', 'CLOSED');
     END
     COMMIT;
 END;
@@ -1146,7 +1149,7 @@ GO
 -- ===== Qc.FinalizeInspection (QC) =====
 CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_FinalizeInspection
     @V VARCHAR(15),
-    @A NVARCHAR(20),
+    @A VARCHAR(20),
     @I INT
 AS
 BEGIN
@@ -1324,22 +1327,32 @@ GO
 CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_GetModuleDefectRates
 AS
 BEGIN
-    ;WITH prod AS (
-      SELECT r.LineID,
-             CASE WHEN r.LineID LIKE 'LINE-INJ-%' THEN 'INJ'
-                  WHEN r.LineID LIKE 'LINE-IMG-%' THEN 'IMG'
-                  WHEN r.LineID LIKE 'LINE-PNT-%' THEN 'PNT'
-                  ELSE 'OTHER' END AS Module,
-             ISNULL(SUM(r.GoodQty),0) AS GoodQty,
-             -- 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없다 — LOT 의 라인으로 귀속시킨다
-             ISNULL((SELECT SUM(d.Qty) FROM dbo.PR_DefectDetail d
-                      LEFT JOIN dbo.PR_ProductionResult r2 ON r2.ResultID = d.ResultID
-                      LEFT JOIN dbo.tbl_Lot             tl ON tl.LotID    = d.LotID
-                      WHERE COALESCE(r2.LineID, tl.LineID) = r.LineID
-                        AND d.DetectedAt >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday()) AND d.DetectedAt < dbo.FN_POP_DayStart(DATEADD(day,1,dbo.FN_POP_ProdToday()))), 0) AS DefectQty
+    DECLARE @From datetime2 = dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday());
+    DECLARE @To   datetime2 = dbo.FN_POP_DayStart(DATEADD(day,1,dbo.FN_POP_ProdToday()));
+    -- 양품과 불량을 라인별로 따로 모아 합친다 — 실적이 없는 라인(전부 RAW·로봇 NG 불량)의 불량도 빠지지 않게.
+    -- 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없다 — LOT 의 라인으로 귀속시킨다.
+    ;WITH good AS (
+      SELECT r.LineID, SUM(r.GoodQty) AS GoodQty
       FROM   dbo.PR_ProductionResult r
-      WHERE  r.EntryAt >= dbo.FN_POP_DayStart(dbo.FN_POP_ProdToday()) AND r.EntryAt < dbo.FN_POP_DayStart(DATEADD(day,1,dbo.FN_POP_ProdToday()))
+      WHERE  r.EntryAt >= @From AND r.EntryAt < @To
       GROUP BY r.LineID
+    ), defect AS (
+      SELECT COALESCE(r2.LineID, tl.LineID) AS LineID, SUM(d.Qty) AS DefectQty
+      FROM   dbo.PR_DefectDetail d
+      LEFT JOIN dbo.PR_ProductionResult r2 ON r2.ResultID = d.ResultID
+      LEFT JOIN dbo.tbl_Lot             tl ON tl.LotID    = d.LotID
+      WHERE  d.DetectedAt >= @From AND d.DetectedAt < @To
+      GROUP BY COALESCE(r2.LineID, tl.LineID)
+    ), prod AS (
+      SELECT CASE WHEN x.LineID LIKE 'LINE-INJ-%' THEN 'INJ'
+                  WHEN x.LineID LIKE 'LINE-IMG-%' THEN 'IMG'
+                  WHEN x.LineID LIKE 'LINE-PNT-%' THEN 'PNT'
+                  ELSE 'OTHER' END AS Module,
+             ISNULL(g.GoodQty,0)   AS GoodQty,
+             ISNULL(df.DefectQty,0) AS DefectQty
+      FROM   (SELECT LineID FROM good UNION SELECT LineID FROM defect) x
+      LEFT JOIN good   g  ON g.LineID  = x.LineID
+      LEFT JOIN defect df ON df.LineID = x.LineID
     )
     SELECT Module,
            SUM(GoodQty)   AS GoodQty,

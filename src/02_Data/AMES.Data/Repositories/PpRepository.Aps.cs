@@ -1053,7 +1053,7 @@ public sealed partial class PpRepository
         var qty = ins.Parameters.Add("@Qty", SqlDbType.Decimal); qty.Precision = 14; qty.Scale = 3;
         ins.Parameters.Add("@Due",      SqlDbType.Date);
         ins.Parameters.Add("@Deadline", SqlDbType.Date);
-        ins.Parameters.Add("@Actor",    SqlDbType.NVarChar, 20).Value = actor;
+        ins.Parameters.Add("@Actor",    SqlDbType.VarChar,  20).Value = actor;
         return ins;
     }
 
@@ -1080,7 +1080,7 @@ public sealed partial class PpRepository
         cmd.Parameters.Add("@W",  SqlDbType.Int).Value = woId;
         cmd.Parameters.Add("@S",  SqlDbType.Int).Value = (object?)soId ?? DBNull.Value;
         var q = cmd.Parameters.Add("@Q", SqlDbType.Decimal); q.Precision = 14; q.Scale = 3; q.Value = qty;
-        cmd.Parameters.Add("@By", SqlDbType.NVarChar, 20).Value = actor;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar,  20).Value = actor;
         cmd.ExecuteNonQuery();
     }
 
@@ -1098,7 +1098,7 @@ public sealed partial class PpRepository
             UPDATE dbo.PP_ApsRun SET Status = @S, ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE RunID = @R;
             """, conn, tx);
         cmd.Parameters.Add("@S",  SqlDbType.VarChar, 20).Value  = ApsRepository.StatusReleased;
-        cmd.Parameters.Add("@By", SqlDbType.NVarChar, 20).Value = actor;
+        cmd.Parameters.Add("@By", SqlDbType.VarChar,  20).Value = actor;
         cmd.Parameters.Add("@R",  SqlDbType.Int).Value          = runId;
         cmd.ExecuteNonQuery();
     }

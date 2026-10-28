@@ -14,7 +14,7 @@ public class ImgLotRepositoryTests
 {
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.0.132,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
+        ?? "";   // 접속 정보는 소스에 두지 않는다 — 없으면 DB 테스트는 건너뛴다
 
     const string Core    = "ITEST-CORE-A";
     const string Fg      = "ITEST-FG-A";

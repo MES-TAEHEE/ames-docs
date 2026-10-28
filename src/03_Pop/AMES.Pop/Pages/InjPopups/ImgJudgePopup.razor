@@ -188,7 +188,10 @@
             if (outcome == ImgConfirmOutcome.Confirmed)
             {
                 BackflushNotice.Show(Toasts, backflush, Lot.LotCode);
-                var woNumber = woId > 0 ? OnlineOr(() => PopServices.WorkOrders.GetById(woId)?.WoNumber, () => OfflineWork.WoNumber(woId)) : null;
+                // 확정은 이미 커밋됐다 — 표시용 조회가 끊겨도 팝업을 실패로 남기면 다시 OK 를 눌러 AlreadyConfirmed 가 된다.
+                string? woNumber = null;
+                try { woNumber = woId > 0 ? OnlineOr(() => PopServices.WorkOrders.GetById(woId)?.WoNumber, () => OfflineWork.WoNumber(woId)) : null; }
+                catch (Exception ex) { PopLog.Append("scan", "CONFIRM", $"{Lot.LotCode}: WO lookup after commit failed: {ex.Message}"); }
                 await OnDone.InvokeAsync((true, $"{T("Confirmed")}: {Lot.LotCode} ({itemNo}){(woNumber is null ? "" : $" → {woNumber}")}{(unverified ? $" · {T("OfflineUnverified")}" : "")}", itemNo));
                 return;
             }

@@ -154,7 +154,7 @@ public class AndonWorkflowTests
     public void Raise_creates_open_andon()
     {
         var (w, s, _, _) = Build();
-        w.Raise();
+        Assert.True(w.Raise());
         Assert.Equal(AndonUiState.Open, w.State);
         Assert.Equal("OPEN", s.Status);
         Assert.Equal(s.AndonId, w.Call!.AndonId);
@@ -165,7 +165,7 @@ public class AndonWorkflowTests
     {
         var (w, s, _, _) = Build();
         s.AndonId = 77; s.Status = "OPEN";
-        w.Raise();
+        Assert.False(w.Raise());   // 복원만 — 설비 STOP 을 다시 남기지 않는다
         Assert.Equal(77, w.Call!.AndonId);
         Assert.Equal(1, s.NextId);
     }

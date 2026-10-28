@@ -18,7 +18,7 @@ public class PlanScheduleTests
 {
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=98.95.142.192,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;";
+        ?? "";   // 접속 정보는 소스에 두지 않는다 — 없으면 DB 테스트는 건너뛴다
 
     const string Item     = "ITEST-PS-RTA";
     const string Pattern  = "ITEST-PS-PAT";
@@ -76,11 +76,20 @@ public class PlanScheduleTests
     static void Seed(AmesConnectionFactory f)
     {
         Cleanup(f);
+        // 마감일 기대값은 버퍼 3 근무일 기준이다 — DB 설정(개발 DB 는 6)과 무관하게 고정하고 Cleanup 이 되돌린다
+        _savedBuffer = Scalar(f, "SELECT ConfigValue FROM dbo.SYS_Config WHERE ConfigKey = @K;", ("@K", PpRepository.BufferWorkdaysKey)) as string;
+        _bufferSaved = true;
+        Exec(f, """
+            UPDATE dbo.SYS_Config SET ConfigValue = N'3' WHERE ConfigKey = @K;
+            IF @@ROWCOUNT = 0
+                INSERT dbo.SYS_Config (ConfigKey, ConfigType, Category, ConfigValue, IsActive, CreatedBy)
+                VALUES (@K, 'NUMBER', 'PP', N'3', 1, 'ITEST');
+            """, ("@K", PpRepository.BufferWorkdaysKey));
         Exec(f, """
             INSERT INTO dbo.MD_RoutingStep
                 (RoutingType, StepSeq, ProcessCode, QcRequiredFlag, ActiveFlag, CreatedBy)
-            VALUES (@RT, 1, 'INJECTION', 0, 1, 'ITEST'),
-                   (@RT, 2, 'WRAPPING',  0, 1, 'ITEST');
+            VALUES (@RT, 1, 'INJ', 0, 1, 'ITEST'),
+                   (@RT, 2, 'IMG', 0, 1, 'ITEST');
             INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, ActiveFlag, CreatedBy)
             VALUES (@I, N'ITEST plan schedule', @RT, 1, 'ITEST');
             INSERT INTO dbo.MD_Mold (MoldID, MoldName, Status, MoldChangeMin, CreatedBy)
@@ -105,8 +114,19 @@ public class PlanScheduleTests
                 """, ("@P", Pattern), ("@LI", LineInj), ("@LM", LineImg), ("@D", d));
     }
 
+    static string? _savedBuffer;
+    static bool _bufferSaved;
+
     static void Cleanup(AmesConnectionFactory f)
     {
+        if (_bufferSaved)
+        {
+            if (_savedBuffer is null)
+                Exec(f, "DELETE dbo.SYS_Config WHERE ConfigKey = @K AND CreatedBy = 'ITEST';", ("@K", PpRepository.BufferWorkdaysKey));
+            else
+                Exec(f, "UPDATE dbo.SYS_Config SET ConfigValue = @V WHERE ConfigKey = @K;", ("@K", PpRepository.BufferWorkdaysKey), ("@V", _savedBuffer));
+            _bufferSaved = false;
+        }
         Exec(f, """
             DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.WoID WHERE w.ItemNo = @I;
             DELETE s FROM dbo.PP_LineSchedule s JOIN dbo.PP_WorkOrder w ON w.WoID = s.RefID AND s.RefType = 'WO' WHERE w.ItemNo = @I;

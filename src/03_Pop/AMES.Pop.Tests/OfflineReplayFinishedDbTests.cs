@@ -9,7 +9,7 @@ using Xunit;
 
 namespace AMES.Pop.Tests;
 
-/// <summary>IMG·PNT 오프라인 큐가 복구 뒤 DB 에 반영되는지. AMES_TEST_CONN(기본 개발 DB)이 닿을 때만 돈다. 먼 미래(2036-01-05) 번호만 쓰고 끝에 지운다.</summary>
+/// <summary>IMG·PNT 오프라인 큐가 복구 뒤 DB 에 반영되는지. AMES_TEST_CONN 이 닿을 때만 돈다. 먼 미래(2036-01-05) 번호만 쓰고 끝에 지운다.</summary>
 [Collection("OfflineAuth")]
 public sealed class OfflineReplayFinishedDbTests : IDisposable
 {
@@ -21,7 +21,7 @@ public sealed class OfflineReplayFinishedDbTests : IDisposable
 
     private static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.0.132,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=5;";
+        ?? "";   // 접속 정보는 소스에 두지 않는다 — 없으면 DB 테스트는 건너뛴다
 
     public OfflineReplayFinishedDbTests()
     {

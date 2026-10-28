@@ -572,7 +572,7 @@ public sealed class WorkOrderRepository
                 t.LineRequired ? (object)choice[t.StepSeq]! : DBNull.Value;
             ins.Parameters.Add("@StepItem", SqlDbType.VarChar, 20).Value   =
                 string.Equals(t.ItemNo, woItem, StringComparison.OrdinalIgnoreCase) ? DBNull.Value : t.ItemNo;
-            ins.Parameters.Add("@Actor",    SqlDbType.NVarChar,  20).Value = actor;
+            ins.Parameters.Add("@Actor",    SqlDbType.VarChar,   20).Value = actor;
             ins.ExecuteNonQuery();
         }
         return 1;
@@ -634,6 +634,7 @@ public sealed class WorkOrderRepository
     /// 한쪽이 기다렸다가 다시 판정하므로, 실적이 붙은 WO 가 취소되지 않는다.
     /// 오늘(DB 날짜)부터의 PP_LineSchedule 슬롯도 같이 지운다 — 남겨두면 그 (라인, 일자) 자리를
     /// 계속 차지해 새 WO 배치가 밀리고, POP 당일 판의 PLAN 에도 계속 더해진다. 지난 날짜 슬롯은 일정 준수 보고서용으로 남긴다.
+    /// APS 가 만든 WO 면 그 계획 행의 WoID 를 비우고 Released 실행을 Saved 로 되돌린다(같은 실행에서 다시 「WO 생성」).
     /// </summary>
     public int CancelWo(int woId, string actor)
     {
@@ -653,6 +654,17 @@ public sealed class WorkOrderRepository
                 DELETE FROM dbo.PP_LineSchedule WHERE WoID = @WoID AND ScheduleDate >= CAST(SYSDATETIME() AS date);
                 DELETE FROM dbo.PP_LineSchedule WHERE EntryType = 'MC' AND RefType = 'WO' AND RefID = @WoID
                                                   AND ScheduleDate >= CAST(SYSDATETIME() AS date);
+                -- APS 가 만든 WO 면 계획 행 연결을 풀어 같은 실행에서 다시 만들 수 있게 한다. 같은 계획 행의
+                -- 다른 조각(WO)이 남긴 슬롯은 WO 생성이 기존 슬롯으로 빼므로 이중 발행은 없다.
+                DECLARE @runs TABLE (RunID int);
+                UPDATE pl SET WoID = NULL
+                OUTPUT inserted.RunID INTO @runs (RunID)
+                FROM dbo.PP_ApsPlanLine pl
+                WHERE pl.WoID = @WoID
+                   OR (pl.WoID IS NOT NULL AND EXISTS (SELECT 1 FROM dbo.PP_ApsRunWo x WHERE x.PlanLineID = pl.PlanLineID AND x.WoID = @WoID));
+                UPDATE r SET Status = 'Saved', ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+                FROM dbo.PP_ApsRun r
+                WHERE r.Status = 'Released' AND r.RunID IN (SELECT DISTINCT RunID FROM @runs);
             END
 
             SELECT @n;

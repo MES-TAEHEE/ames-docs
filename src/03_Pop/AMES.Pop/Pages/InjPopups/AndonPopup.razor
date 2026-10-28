@@ -245,8 +245,8 @@
     // 확인창은 메인 화면이 띄운다. Ready 화면의 버튼은 자동 발동이 DB 예외로 실패했을 때의 재시도용.
     private void Raise()
     {
-        _wf.Raise();
-        LogEquip("STOP", "ANDON");
+        // 다른 터미널이 먼저 발동한 안돈을 복원만 했으면 STOP 은 그쪽이 이미 남겼다
+        if (_wf.Raise()) LogEquip("STOP", "ANDON");
     }
 
     private void RaiseRetry()

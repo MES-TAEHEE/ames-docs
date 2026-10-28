@@ -29,10 +29,21 @@ ELSE
 GO
 
 -- 멱등 판정(SourceType BACKFLUSH + SourceID = LotID)이 확정마다 돈다 — 인덱스가 없으면 LOT 잠금을 쥔 채 거래 표 전체를 훑는다.
+-- 정의는 FG 출하(migrate_fg_shipment_actual.sql)·스키마 파일과 같은 넓은 정의 하나로 둔다. 예전 이 스크립트가 만든
+-- 두 열 정의(포함 열 없음)가 남아 있으면 같은 이름으로 넓힌다 — 어느 스크립트가 먼저 돌아도 결과가 같다.
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_WH_InventoryTransaction_Source' AND object_id = OBJECT_ID(N'dbo.WH_InventoryTransaction'))
 BEGIN
-    CREATE NONCLUSTERED INDEX IX_WH_InventoryTransaction_Source ON dbo.WH_InventoryTransaction (SourceType, SourceID);
+    CREATE NONCLUSTERED INDEX IX_WH_InventoryTransaction_Source ON dbo.WH_InventoryTransaction (SourceType, SourceID, TransactionType)
+        INCLUDE (LotNo, PartNo, QtyChange, LocationNo, TransactionTime);
     PRINT 'IX_WH_InventoryTransaction_Source created.';
+END
+ELSE IF NOT EXISTS (SELECT 1 FROM sys.index_columns ic JOIN sys.indexes i ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+                    WHERE i.name = N'IX_WH_InventoryTransaction_Source' AND i.object_id = OBJECT_ID(N'dbo.WH_InventoryTransaction')
+                      AND ic.is_included_column = 1)
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_WH_InventoryTransaction_Source ON dbo.WH_InventoryTransaction (SourceType, SourceID, TransactionType)
+        INCLUDE (LotNo, PartNo, QtyChange, LocationNo, TransactionTime) WITH (DROP_EXISTING = ON);
+    PRINT 'IX_WH_InventoryTransaction_Source widened to the shared definition.';
 END
 ELSE
     PRINT 'IX_WH_InventoryTransaction_Source already exists — skipped.';

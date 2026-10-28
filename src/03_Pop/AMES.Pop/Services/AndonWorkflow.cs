@@ -84,13 +84,19 @@ internal sealed class AndonWorkflow
         Changed?.Invoke();
     }
 
-    public void Raise()
+    /// <returns>이 호출이 새 안돈을 만들었으면 true — 복원만 했으면 설비 STOP 을 다시 남기지 않는다.</returns>
+    public bool Raise()
     {
-        if (State != AndonUiState.Ready) return;
+        if (State != AndonUiState.Ready) return false;
         // 같은 라인 다른 터미널이 먼저 발동했으면 그걸 복원한다 — 안돈 두 건이 되면 안 된다.
+        var created = false;
         if (_store.GetOpenForLine(_lineId) is null)
+        {
             _store.Raise(_lineId, _equipId, _operatorNo);
+            created = true;
+        }
         Load();
+        return created;
     }
 
     public void OnBadgeScan(string raw)

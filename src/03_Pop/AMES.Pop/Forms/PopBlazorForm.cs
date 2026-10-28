@@ -63,6 +63,39 @@ public class PopBlazorForm : PopForm
 
         BlazorHost.ActionRequested += OnAction;
         FormClosing += (_, _) => BlazorHost.ActionRequested -= OnAction;
+        FormClosing += (_, _) => CloseSessionOnExit(provider);
+    }
+
+    // 창을 닫는 것도 로그아웃이다 — 그대로 두면 PR_PopSession 행이 만료 시각까지 열린 채 남는다.
+    // AppRoot 의 로그아웃 처리는 던지고 잊는 작업이라 프로세스가 먼저 끝나므로 여기서 기다려 끝낸다(최대 3초,
+    // 못 끝내면 저널에 올려 다음 실행의 복구가 닫는다). 라벨 워터마크도 로그아웃과 같이 남긴다.
+    private void CloseSessionOnExit(IServiceProvider provider)
+    {
+        var state = provider.GetRequiredService<AppState>();
+        var s = state.Session ?? state.PendingSession;
+        if (s is null) return;
+        _labelTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        const string reason = "APP_CLOSE";
+        if (s.SessionId < 0 || PopDb.IsOffline)
+        {
+            OfflineAuth.JournalSessionClose(s.SessionId, reason, s.EmployeeNo);
+            return;
+        }
+        var work = Task.Run(() =>
+        {
+            try { provider.GetRequiredService<LabelDispatcher>().Stop(); } catch { }
+            PopServices.Sessions.CloseSession(s.SessionId, reason, s.OperatorId);
+        });
+        try
+        {
+            if (!work.Wait(TimeSpan.FromSeconds(3)))
+                OfflineAuth.JournalSessionClose(s.SessionId, reason, s.EmployeeNo);
+        }
+        catch (AggregateException ex)
+        {
+            PopLog.Append("session", "PopSession", $"close session {s.SessionId} ({reason}) failed: {ex.InnerException?.Message}");
+            OfflineAuth.JournalSessionClose(s.SessionId, reason, s.EmployeeNo);
+        }
     }
 
     // 라벨 발행은 화면 수명과 무관해야 한다 — 로그인 동안 계속, 어느 화면이든.

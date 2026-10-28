@@ -17,8 +17,7 @@ BEGIN
         PlanLineID int           NOT NULL,
         ShiftCode  varchar(10)   COLLATE Korean_Wansung_CI_AS NOT NULL,
         Qty        decimal(14,3) NOT NULL DEFAULT ((0)),
-        CONSTRAINT PK_PP_ApsPlanLineShift PRIMARY KEY CLUSTERED (PlanLineID, ShiftCode),
-        CONSTRAINT FK_PP_ApsPlanLineShift_Line FOREIGN KEY (PlanLineID) REFERENCES dbo.PP_ApsPlanLine (PlanLineID) ON DELETE CASCADE
+        CONSTRAINT PK_PP_ApsPlanLineShift PRIMARY KEY CLUSTERED (PlanLineID, ShiftCode)
     );
     EXEC sys.sp_addextendedproperty @name = N'MS_Description',
          @value = N'APS 사출 계획 행의 교대별 수량(WORK_SHIFT 코드). PP_ApsPlanLine.PlanDay/PlanNight 는 이 행의 파생값(첫 교대 / 나머지 합). 정본은 PP_ApsRun 의 JSON(PlanShifts).',

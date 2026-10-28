@@ -70,9 +70,8 @@ BEGIN
         CreatedTS   datetime2(7)  NOT NULL DEFAULT (sysdatetime()),
         ModifiedBy  varchar(20)   COLLATE Korean_Wansung_CI_AS NULL,
         ModifiedTS  datetime2(7)  NULL,
-        CONSTRAINT PK_MD_ApsLineStage PRIMARY KEY CLUSTERED (LineID),
-        CONSTRAINT FK_MD_ApsLineStage_Line    FOREIGN KEY (LineID)    REFERENCES dbo.MD_Line (LineID),
-        CONSTRAINT FK_MD_ApsLineStage_Pattern FOREIGN KEY (PatternID) REFERENCES dbo.MD_LineTimePattern (PatternID)
+        -- FK 는 두지 않는다(10-08 원칙) — 라인·패턴 삭제는 MasterDataRepository 사용처 검사가 막는다
+        CONSTRAINT PK_MD_ApsLineStage PRIMARY KEY CLUSTERED (LineID)
     );
     EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'APS 라인별 단계 예외 — 사출 라인 행: 선행일(OffsetDays)·재고 사용(UseStock)·가동 시간 패턴(PatternID). 행이 없으면 APS_SETTING.INJ_OFFSET_DAYS(사출)/0(완제품)·DEFAULT_PATTERN. PP-APS 설정 다이얼로그가 관리', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_ApsLineStage';
     EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'대상 라인 → MD_Line(LineID) · varchar(20)', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_ApsLineStage', @level2type = N'COLUMN', @level2name = N'LineID';
@@ -95,11 +94,6 @@ END
 ELSE
     PRINT N'· MD_ApsLineStage.PatternID 이미 존재';
 GO
-IF OBJECT_ID('dbo.FK_MD_ApsLineStage_Pattern', 'F') IS NULL
-BEGIN
-    ALTER TABLE dbo.MD_ApsLineStage WITH CHECK ADD CONSTRAINT FK_MD_ApsLineStage_Pattern FOREIGN KEY (PatternID) REFERENCES dbo.MD_LineTimePattern (PatternID);
-    PRINT N'✓ FK_MD_ApsLineStage_Pattern 추가';
-END
 IF NOT EXISTS (SELECT 1 FROM sys.extended_properties WHERE major_id = OBJECT_ID('dbo.MD_ApsLineStage') AND minor_id = COLUMNPROPERTY(OBJECT_ID('dbo.MD_ApsLineStage'), 'PatternID', 'ColumnId') AND name = 'MS_Description')
     EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'APS 가 이 라인의 능력(주간/야간)을 읽을 가동 시간 패턴 → MD_LineTimePattern(PatternID). NULL = APS_SETTING.DEFAULT_PATTERN. PP_LineSchedule 저장 패턴·자동 해석보다 우선(2026-10-06) · varchar(20)', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'MD_ApsLineStage', @level2type = N'COLUMN', @level2name = N'PatternID';
 GO
@@ -153,8 +147,7 @@ BEGIN
         Status      varchar(10)   COLLATE Korean_Wansung_CI_AS NOT NULL DEFAULT ('ok'),
         WoID        int           NULL,
         SameItem    bit           NOT NULL DEFAULT ((0)),
-        CONSTRAINT PK_PP_ApsPlanLine PRIMARY KEY CLUSTERED (PlanLineID),
-        CONSTRAINT FK_PP_ApsPlanLine_Run FOREIGN KEY (RunID) REFERENCES dbo.PP_ApsRun (RunID) ON DELETE CASCADE
+        CONSTRAINT PK_PP_ApsPlanLine PRIMARY KEY CLUSTERED (PlanLineID)
     );
     CREATE UNIQUE NONCLUSTERED INDEX UX_PP_ApsPlanLine ON dbo.PP_ApsPlanLine (RunID, Kind, ItemNo, PlanDate);
     EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'APS 계획 행(정규화 사본) — Kind ASM(완제품: Demand·Supply) | INJ(사출: Requirement·PlanDay·PlanNight). 정본은 PP_ApsRun 의 JSON. WoID = 첫 연결 WO(전체는 PP_ApsRunWo). SameItem = 같은 품번 규칙(§4.2 ①) 사출 행 1 / BOM 규칙 행 0 — 「WO 생성」 대상 판정', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'PP_ApsPlanLine';
@@ -181,11 +174,10 @@ BEGIN
         Qty        decimal(14,3) NOT NULL,
         CreatedBy  varchar(20)   COLLATE Korean_Wansung_CI_AS NOT NULL,
         CreatedTS  datetime2(7)  NOT NULL DEFAULT (sysdatetime()),
-        CONSTRAINT PK_PP_ApsRunWo PRIMARY KEY CLUSTERED (RunWoID),
-        CONSTRAINT FK_PP_ApsRunWo_Run FOREIGN KEY (RunID) REFERENCES dbo.PP_ApsRun (RunID) ON DELETE CASCADE
+        CONSTRAINT PK_PP_ApsRunWo PRIMARY KEY CLUSTERED (RunWoID)
     );
     CREATE NONCLUSTERED INDEX IX_PP_ApsRunWo_Wo ON dbo.PP_ApsRunWo (WoID);
-    EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'APS 계획 행 → 생성 WO 연결(수주 FIFO 조각마다 1행). WoID·PlanLineID 는 PP_ 관례대로 FK 없음(RunID 두 경로 CASCADE 금지)', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'PP_ApsRunWo';
+    EXEC sys.sp_addextendedproperty @name = N'MS_Description', @value = N'APS 계획 행 → 생성 WO 연결(수주 FIFO 조각마다 1행). FK 없음(10-08 원칙)', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'PP_ApsRunWo';
     PRINT N'✓ PP_ApsRunWo 생성';
 END
 ELSE

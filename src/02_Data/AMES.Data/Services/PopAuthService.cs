@@ -81,12 +81,12 @@ public sealed class PopAuthService
             }
         }
 
-        // 4) All checks passed — create session + log + reset failure counter.
+        // 4) All checks passed — create session + log. 실패 횟수는 지우지 않는다(웹 잠금 무력화 방지).
         var session = _sessions.CreateSession(profile, req.TerminalId, req.LineId,
                                               req.ShiftCode, req.Method);
         _sessions.WriteAuthLog(req.TerminalId, req.AttemptedId, req.Method,
                                AuthResult.Ok, null);
-        if (!profile.IsWorker) _auth.RecordSuccessfulLogin(profile.UserId, profile.EmployeeNo);
+        if (!profile.IsWorker) _auth.RecordSuccessfulLogin(profile.UserId, profile.EmployeeNo, resetFailures: false);
 
         return LoginOutcome.Success(session);
     }

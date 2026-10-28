@@ -264,10 +264,11 @@ public sealed class AuthRepository
     }
 
     /// <summary>
-    /// Clears the failure counter and stamps LastLoginTS after a successful login.
+    /// Stamps LastLoginTS after a successful login and, for web logins, clears the failure counter.
     /// </summary>
     /// <param name="modifiedBy">POP 은 로그인한 사번을 넘긴다. 생략하면 프로필 사번, 없으면 userId 앞 20자.</param>
-    public void RecordSuccessfulLogin(string userId, string? modifiedBy = null)
+    /// <param name="resetFailures">POP·PDA 는 false — 배지·PIN 성공이 웹 비밀번호 실패 횟수를 지우면 잠금이 무력화된다.</param>
+    public void RecordSuccessfulLogin(string userId, string? modifiedBy = null, bool resetFailures = true)
     {
         const string sql = "dbo.SP_POP_AUTH_RecordSuccessfulLogin";
 
@@ -275,6 +276,7 @@ public sealed class AuthRepository
         using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@UserID", SqlDbType.NVarChar, 450).Value = userId;
         cmd.Parameters.Add("@ModifiedBy", SqlDbType.VarChar,   20).Value = (object?)modifiedBy ?? DBNull.Value;
+        cmd.Parameters.Add("@ResetFailures", SqlDbType.Bit).Value = resetFailures;
         cmd.ExecuteNonQuery();
     }
 }

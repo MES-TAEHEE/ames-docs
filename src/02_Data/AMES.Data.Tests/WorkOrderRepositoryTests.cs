@@ -13,7 +13,7 @@ public class WorkOrderRepositoryTests
 {
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.0.132,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
+        ?? "";   // 접속 정보는 소스에 두지 않는다 — 없으면 DB 테스트는 건너뛴다
 
     const string ItemNoRouting = "ITEST-WO-NORT";
     const string ItemRoutingA  = "ITEST-WO-RTA";
@@ -168,19 +168,28 @@ public class WorkOrderRepositoryTests
         finally { CleanupItems(f); }
     }
 
-    /// <summary>품목 3개(라우팅 NULL / A / B) + A 품목 BOP(ST-INJ-01, ST-IMG-01). B 품목은 BOP 없음.</summary>
+    /// <summary>
+    /// 품목 3개(라우팅 NULL / A / 시험 라우팅 Y) + A 품목 BOP(ST-INJ-01, ST-IMG-01). Y 품목은 BOP 없음.
+    /// 시험 라우팅 Y = INJ → PNT → QC → FG — 실제 B 는 10-22 부터 INJ → PNT 두 단계라, 라인 없는 공정(QC·FG)을
+    /// 선택 단계로 다루는 규칙은 테스트가 만든 라우팅으로 본다.
+    /// </summary>
+    const string RoutingOpt = "Y";
+
     static void SeedItems(AmesConnectionFactory f)
     {
         CleanupItems(f);
         Exec(f, """
+            INSERT INTO dbo.MD_RoutingStep (RoutingType, StepSeq, ProcessCode, QcRequiredFlag, ActiveFlag, CreatedBy)
+            VALUES (@Z, 1, 'INJ', 0, 1, 'ITEST'), (@Z, 2, 'PNT', 0, 1, 'ITEST'),
+                   (@Z, 3, 'QC',  0, 1, 'ITEST'), (@Z, 4, 'FG',  0, 1, 'ITEST');
             INSERT INTO dbo.MD_Item (ItemNo, ItemName, RoutingType, ActiveFlag, CreatedBy)
             VALUES (@A, N'ITEST no routing', NULL, 1, 'ITEST'),
                    (@B, N'ITEST routing A',  'A',  1, 'ITEST'),
-                   (@C, N'ITEST routing B',  'B',  1, 'ITEST');
+                   (@C, N'ITEST routing Y',  @Z,   1, 'ITEST');
             INSERT INTO dbo.MD_Bop (BOPID, ItemNo, RoutingType, StepSeq, StationCode, ActiveFlag, CreatedBy)
             VALUES ('ITEST-BOP-A-10', @B, 'A', 10, 'ST-INJ-01', 1, 'ITEST'),
                    ('ITEST-BOP-A-20', @B, 'A', 20, 'ST-IMG-01', 1, 'ITEST');
-            """, ("@A", ItemNoRouting), ("@B", ItemRoutingA), ("@C", ItemRoutingB));
+            """, ("@A", ItemNoRouting), ("@B", ItemRoutingA), ("@C", ItemRoutingB), ("@Z", RoutingOpt));
     }
 
     static void CleanupItems(AmesConnectionFactory f)
@@ -194,7 +203,8 @@ public class WorkOrderRepositoryTests
             DELETE FROM dbo.PP_CustomerOrder WHERE ItemNo IN (@A, @B, @C);
             DELETE FROM dbo.MD_Bop           WHERE ItemNo IN (@A, @B, @C);
             DELETE FROM dbo.MD_Item          WHERE ItemNo IN (@A, @B, @C);
-            """, ("@A", ItemNoRouting), ("@B", ItemRoutingA), ("@C", ItemRoutingB));
+            DELETE FROM dbo.MD_RoutingStep   WHERE RoutingType = @Z AND CreatedBy = 'ITEST';
+            """, ("@A", ItemNoRouting), ("@B", ItemRoutingA), ("@C", ItemRoutingB), ("@Z", RoutingOpt));
     }
 
     static int CreateDraft(AmesConnectionFactory f, string itemNo, decimal qty = 10)
@@ -310,10 +320,10 @@ public class WorkOrderRepositoryTests
             var steps = new WorkOrderRepository(f).PreviewRouting(woId);
 
             Assert.Equal(4, steps.Count);
-            Assert.All(steps, s => Assert.Null(s.BopLineId));          // B 품목은 BOP 없음
+            Assert.All(steps, s => Assert.Null(s.BopLineId));          // Y 품목은 BOP 없음
             Assert.True (steps.Single(s => s.ProcessCode == "INJ").LineRequired);
             Assert.True (steps.Single(s => s.ProcessCode == "PNT").LineRequired);
-            Assert.False(steps.Single(s => s.ProcessCode == "QC").LineRequired);   // LINE-QC-01 INACTIVE
+            Assert.False(steps.Single(s => s.ProcessCode == "QC").LineRequired);   // 활성 QC 라인 없음
             Assert.Empty(steps.Single(s => s.ProcessCode == "QC").Candidates);
             Assert.False(steps.Single(s => s.ProcessCode == "FG").LineRequired);   // FG 라인 없음
         }
@@ -551,7 +561,7 @@ public class WorkOrderRepositoryTests
     }
 
     [SkippableFact]
-    public void BumpStepCompleted_treats_last_line_step_as_last_for_routing_b()
+    public void BumpStepCompleted_treats_last_line_step_as_last_when_later_steps_have_no_line()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
         SeedItems(f);

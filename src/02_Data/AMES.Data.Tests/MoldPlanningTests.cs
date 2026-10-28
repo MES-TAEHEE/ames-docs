@@ -17,7 +17,7 @@ public class MoldPlanningTests
 {
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=98.95.142.192,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;";
+        ?? "";   // 접속 정보는 소스에 두지 않는다 — 없으면 DB 테스트는 건너뛴다
 
     const string Item    = "ITEST-MC-RTA";
     const string Pattern = "ITEST-MC-PAT";
@@ -281,12 +281,14 @@ public class MoldPlanningTests
         Seed(f);
         try
         {
+            // 슬롯이 하나도 없는 시험 라인 — 개발 데이터의 LINE-INJ-01 에는 지난 금형 슬롯이 있어 장착 금형까지 내려가지 않는다
+            const string bareLine = "ITEST-MC-LINE";
             Exec(f, """
                 INSERT INTO dbo.MNT_EquipmentStatus (EquipID, LineID, Status, MountedMoldID, CreatedBy, CreatedTS, ModifiedTS)
                 VALUES (NULL, @L, 'RUN', @B, 'ITEST', SYSDATETIME(), SYSDATETIME());
-                """, ("@L", LineInj), ("@B", MoldB));
+                """, ("@L", bareLine), ("@B", MoldB));
 
-            var got = new LineScheduleRepository(f).GetLineLastMoldBefore(LineInj, D0);
+            var got = new LineScheduleRepository(f).GetLineLastMoldBefore(bareLine, D0);
 
             Assert.Equal((DateTime.MinValue, MoldB), got);
         }

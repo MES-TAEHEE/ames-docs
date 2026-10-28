@@ -64,7 +64,7 @@ public sealed class QcRepository
         using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@I", SqlDbType.Int).Value           = inspectionId;
         cmd.Parameters.Add("@V", SqlDbType.VarChar, 15).Value   = verdict;
-        cmd.Parameters.Add("@A", SqlDbType.NVarChar,  20).Value = approverId;
+        cmd.Parameters.Add("@A", SqlDbType.VarChar,   20).Value = approverId;
         return Convert.ToInt32(cmd.ExecuteScalar() ?? 0) > 0;
     }
 

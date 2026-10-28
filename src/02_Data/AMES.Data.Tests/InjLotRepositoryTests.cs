@@ -12,10 +12,10 @@ namespace AMES.Data.Tests;
 /// </summary>
 public class InjLotRepositoryTests
 {
-    // 개발 DB 는 원격(appsettings.Development.json 과 같은 서버). 다른 서버로 돌릴 땐 AMES_TEST_CONN 으로 덮어쓴다.
+    // DB 는 AMES_TEST_CONN 으로만 지정한다(없으면 건너뜀).
     static readonly string Conn =
         Environment.GetEnvironmentVariable("AMES_TEST_CONN")
-        ?? "Server=192.168.0.132,1433;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=10;";
+        ?? "";   // 접속 정보는 소스에 두지 않는다 — 없으면 DB 테스트는 건너뛴다
 
     static AmesConnectionFactory? TryFactory()
     {
@@ -47,11 +47,28 @@ public class InjLotRepositoryTests
     public void GetMoldItems_returns_seeded_two_cavity_map()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
-        var repo = new InjLotRepository(f);
-        var map = repo.GetMoldItems("LQ2DTMD", "CBK");
-        Assert.Equal(2, map.Count);
-        Assert.Equal("LH", map[0].CavityPos);
-        Assert.Equal("RH", map[1].CavityPos);
+        // 금형은 시험이 만든다 — 개발 DB 의 금형 시드(LQ2DTMD 등)는 마스터 재시드 때 바뀐다
+        void Clean() => AmesDevDb.Exec(f, """
+            DELETE FROM dbo.MD_MoldItem WHERE MoldID = 'ITEST-GMI';
+            DELETE FROM dbo.MD_Mold     WHERE MoldID = 'ITEST-GMI';
+            """);
+        Clean();
+        try
+        {
+            AmesDevDb.Exec(f, """
+                INSERT INTO dbo.MD_Mold (MoldID, MoldName, Status, CavityCount, CreatedBy)
+                VALUES ('ITEST-GMI', N'ITEST mold items', 'AVAILABLE', 2, 'ITEST');   -- MoldCodeClean = ITESTGMI(계산 열)
+                INSERT INTO dbo.MD_MoldItem (MoldID, ItemNo, Color, CavitySeq, CavityPos, CavityCount, MoldCategory, ActiveFlag, CreatedBy)
+                VALUES ('ITEST-GMI', 'ITEST-GMI-RH', 'CBK', 2, 'RH', 2, 'INJECTION', 1, 'ITEST'),
+                       ('ITEST-GMI', 'ITEST-GMI-LH', 'CBK', 1, 'LH', 2, 'INJECTION', 1, 'ITEST'),
+                       ('ITEST-GMI', 'ITEST-GMI-XX', 'NNB', 1, 'LH', 2, 'INJECTION', 1, 'ITEST');
+                """);
+            var map = new InjLotRepository(f).GetMoldItems("ITESTGMI", "CBK");
+            Assert.Equal(2, map.Count);
+            Assert.Equal(("LH", "ITEST-GMI-LH"), (map[0].CavityPos, map[0].ItemNo));
+            Assert.Equal(("RH", "ITEST-GMI-RH"), (map[1].CavityPos, map[1].ItemNo));
+        }
+        finally { Clean(); }
     }
 
     [SkippableFact]

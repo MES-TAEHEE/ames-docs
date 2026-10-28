@@ -1347,7 +1347,7 @@ public sealed partial class PpRepository
             var q = ins.Parameters.Add("@Qty", SqlDbType.Decimal); q.Precision = 14; q.Scale = 3; q.Value = qty;
             ins.Parameters.Add("@Due", SqlDbType.Date).Value = (orderDue ?? woDue ?? DbClock.Today).Date;
             ins.Parameters.Add("@Wo",  SqlDbType.Int).Value = (object?)woId ?? DBNull.Value;
-            ins.Parameters.Add("@By",  SqlDbType.VarChar, 20).Value = Trunc(by, 50);
+            ins.Parameters.Add("@By",  SqlDbType.VarChar, 20).Value = Trunc(by, 20);
             var prId = (int)ins.ExecuteScalar();
 
             using var upd = new SqlCommand("""
@@ -1529,7 +1529,7 @@ public sealed partial class PpRepository
         cmd.Parameters.Add("@P",   SqlDbType.Int).Value = prId;
         cmd.Parameters.Add("@Msg", SqlDbType.NVarChar, -1).Value = (object?)message ?? DBNull.Value;
         cmd.Parameters.Add("@R",   SqlDbType.VarChar, 20).Value = result;
-        cmd.Parameters.Add("@By",  SqlDbType.VarChar, 20).Value = Trunc(by, 50);
+        cmd.Parameters.Add("@By",  SqlDbType.VarChar, 20).Value = Trunc(by, 20);
         cmd.ExecuteNonQuery();
     }
 

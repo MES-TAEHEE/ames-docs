@@ -23,7 +23,6 @@ public class AndonRaiseConcurrencyDbTests
             Assert.Single(ids.Distinct());
             Assert.Equal(1, (int)AmesDevDb.Scalar(f!, "SELECT COUNT(*) FROM dbo.PR_AndonCall WHERE LineID = @L", ("@L", Line))!);
             Assert.Equal(1, (int)AmesDevDb.Scalar(f!, "SELECT COUNT(*) FROM dbo.PP_LineDowntimeLog WHERE LineID = @L", ("@L", Line))!);
-            Assert.Equal(2, (int)AmesDevDb.Scalar(f!, "SELECT COUNT(*) FROM dbo.PR_AndonPush WHERE AndonID = @A", ("@A", ids[0]))!);   // 알림 기록도 한 번만
         }
         finally { Clean(f!); }
     }

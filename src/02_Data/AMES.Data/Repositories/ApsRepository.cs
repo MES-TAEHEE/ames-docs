@@ -1049,7 +1049,7 @@ public sealed class ApsRepository
                 ins.Parameters.Add("@B",      SqlDbType.NVarChar, -1).Value = save.BundleJson;
                 ins.Parameters.Add("@R",      SqlDbType.NVarChar, -1).Value = save.ResultJson;
                 ins.Parameters.Add("@Warn",   SqlDbType.Int).Value          = save.WarningCount;
-                ins.Parameters.Add("@By",     SqlDbType.NVarChar, 20).Value = actor;
+                ins.Parameters.Add("@By",     SqlDbType.VarChar,  20).Value = actor;
                 ins.Parameters.Add("@Daily",  SqlDbType.Bit).Value          = save.Query.IncludeDailyPlan;
                 runId = (int)ins.ExecuteScalar()!;
             }
@@ -1222,7 +1222,7 @@ public sealed class ApsRepository
         cmd.Parameters.Add("@Use",  SqlDbType.Bit).Value           = useStock;
         cmd.Parameters.Add("@Note", SqlDbType.NVarChar, 200).Value = (object?)note ?? DBNull.Value;
         cmd.Parameters.Add("@Pat",  SqlDbType.VarChar, 20).Value   = (object?)(string.IsNullOrWhiteSpace(patternId) ? null : patternId.Trim()) ?? DBNull.Value;
-        cmd.Parameters.Add("@By",   SqlDbType.NVarChar, 20).Value  = actor;
+        cmd.Parameters.Add("@By",   SqlDbType.VarChar,  20).Value  = actor;
         cmd.ExecuteNonQuery();
     }
 
