@@ -258,6 +258,87 @@ public class InjLotRepositoryTests
         }
     }
 
+    /// <summary>
+    /// 마감 WO 의 LOT 을 불량 등록하면 역분개·불량 기록이 그 WO 에 남고(추적), 단계가 다시 열려 다음 스캔이 그 WO 의 모자란 수량을 채운다 —
+    /// Released WO 로 넘어가는 것은 그 WO 가 다시 마감된 뒤다(10-28 사용자 결정, 문제점 9 정리).
+    /// </summary>
+    [SkippableFact]
+    public void Defect_on_a_closed_wo_stays_traceable_and_the_next_scan_refills_that_wo()
+    {
+        var f = TryFactory();
+        Skip.If(f is null, "AMES_DEV unreachable");
+        var repo = new InjLotRepository(f!);
+        int woA = 0, woB = 0;
+        var lots = new List<int>();
+        try
+        {
+            using (var conn = f!.OpenConnection())
+            using (var cmd = new Microsoft.Data.SqlClient.SqlCommand("""
+                INSERT INTO dbo.PP_WorkOrder (WoNumber, ItemNo, OrderQty, CompletedQty, Status, Priority, CreatedBy, CreatedTS)
+                VALUES ('WO-ITEST-REFILL-A', '83335-P8000RBQ', 1, 0, 'In Progress', 1, 'ITEST', SYSDATETIME()),
+                       ('WO-ITEST-REFILL-B', '83335-P8000RBQ', 10, 0, 'Released', 2, 'ITEST', SYSDATETIME());
+                SELECT (SELECT WoID FROM dbo.PP_WorkOrder WHERE WoNumber = 'WO-ITEST-REFILL-A'),
+                       (SELECT WoID FROM dbo.PP_WorkOrder WHERE WoNumber = 'WO-ITEST-REFILL-B');
+                """, conn))
+            using (var rdr = cmd.ExecuteReader())
+            {
+                Assert.True(rdr.Read());
+                woA = rdr.GetInt32(0); woB = rdr.GetInt32(1);
+            }
+            AmesDevDb.Exec(f, """
+                INSERT INTO dbo.PP_WorkOrderRouting (WoID, StepSeq, ProcessCode, LineID, Status, CompletedQty, CreatedBy)
+                VALUES (@A, 1, 'INJ', 'LINE-INJ-01', 'In Progress', 0, 'ITEST'),
+                       (@B, 1, 'INJ', 'LINE-INJ-01', 'Released', 0, 'ITEST');
+                """, ("@A", woA), ("@B", woB));
+
+            string Raw(int shot) { var (id, code) = repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", Lh(), shot); lots.Add(id); return code; }
+            int? Confirm(string code)
+            {
+                var (o, _, _, wo) = repo.ConfirmByLotCode(code, "LINE-INJ-01", "itest-op", null, "E-ITEST");
+                Assert.Equal(InjConfirmOutcome.Confirmed, o);
+                return wo;
+            }
+            string StepStatus(int wo) => (string)AmesDevDb.Scalar(f, "SELECT Status FROM dbo.PP_WorkOrderRouting WHERE WoID = @W", ("@W", wo))!;
+
+            var first = Raw(99101);
+            Assert.Equal(woA, Confirm(first));
+            Assert.Equal("Closed", StepStatus(woA));
+
+            var (reg, _, _) = repo.RegisterDefect(first, "LINE-INJ-01", "INJ-D01", "itest-op", null, "E-ITEST");
+            Assert.Equal(DefectRegisterOutcome.Registered, reg);
+            Assert.Equal("In Progress", StepStatus(woA));
+            Assert.Equal("In Progress", (string)AmesDevDb.Scalar(f, "SELECT Status FROM dbo.PP_WorkOrder WHERE WoID = @W", ("@W", woA))!);
+            // 불량 → 원래 실적·역분개 실적·WO 가 모두 이어진다
+            Assert.Equal(1, (int)AmesDevDb.Scalar(f, """
+                SELECT COUNT(*) FROM dbo.PR_DefectDetail d
+                JOIN dbo.PR_ProductionResult o   ON o.ResultID = d.ResultID         AND o.WoID = d.WoID AND o.GoodQty = 1
+                JOIN dbo.PR_ProductionResult rev ON rev.ResultID = d.ReversalResultID AND rev.WoID = d.WoID AND rev.GoodQty = -1
+                WHERE d.LotID = @L AND d.WoID = @W AND d.DefectCode = 'INJ-D01'
+                """, ("@L", lots[0]), ("@W", woA))!);
+
+            Assert.Equal(woA, Confirm(Raw(99102)));   // 모자란 1개는 다시 열린 WO 로
+            Assert.Equal("Closed", StepStatus(woA));
+            Assert.Equal(woB, Confirm(Raw(99103)));   // 다시 마감된 뒤에야 다음 WO
+        }
+        finally
+        {
+            if (f is not null)
+                foreach (var l in lots)
+                    AmesDevDb.Exec(f, """
+                        DELETE FROM dbo.PR_DefectDetail WHERE LotID = @L;
+                        DELETE FROM dbo.PR_ProductionResult WHERE LotID = @L;
+                        DELETE FROM dbo.PR_RobotInspection WHERE LotID = @L;
+                        DELETE FROM dbo.PR_InjLot WHERE LotID = @L;
+                        DELETE FROM dbo.tbl_Lot WHERE LotID = @L;
+                        """, ("@L", l));
+            if (f is not null)
+                AmesDevDb.Exec(f, """
+                    DELETE FROM dbo.PP_WorkOrderRouting WHERE WoID IN (@A, @B);
+                    DELETE FROM dbo.PP_WorkOrder WHERE WoID IN (@A, @B);
+                    """, ("@A", woA), ("@B", woB));
+        }
+    }
+
     /// <summary>열린 WO 가 없어도 생산은 막히지 않는다(2026-10-01 사용자 결정) — 실적·LOT 은 WoID NULL 로 남고 단계 반영만 없다.</summary>
     [SkippableFact]
     public void Confirm_without_open_wo_records_result_with_no_wo()
