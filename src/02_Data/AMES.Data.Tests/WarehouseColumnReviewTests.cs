@@ -112,9 +112,9 @@ public class WarehouseColumnReviewTests
         sql=sql.Replace("dbo.WH_PickSlip","@Requests").Replace("dbo.WH_InventoryTransaction","@Transactions");
         using var connection=new SqlConnection(cs);connection.Open();
         using var command=new SqlCommand(@"
-            DECLARE @Requests TABLE(PickSlipID int,ItemNo varchar(20),PickSlipNo nvarchar(40),Status varchar(20),DemandQty decimal(18,3),CreatedBy varchar(20));
+            DECLARE @Requests TABLE(PickSlipID int,ItemNo varchar(20),PickSlipNo nvarchar(40),Status varchar(20),DemandQty decimal(18,3),CreatedBy varchar(20),ReqLocation varchar(50));
             DECLARE @Transactions TABLE(SourceID int,LotNo nvarchar(50),QtyChange decimal(18,3),TransactionType varchar(10),SourceType varchar(30));
-            INSERT @Requests VALUES(1,'PART-A','PK01','Open',20,'WH-AUTO'),(2,'PART-A','PK01','Open',30,'WH-AUTO'),(3,'PART-A','PK01','Cancelled',100,'WH-AUTO');
+            INSERT @Requests VALUES(1,'PART-A','PK01','Open',20,'WH-AUTO','LI01A1F1'),(2,'PART-A','PK01','Open',30,'WH-AUTO','LI01A1F1'),(3,'PART-A','PK01','Cancelled',100,'WH-AUTO','LI01A1F1');
             INSERT @Transactions VALUES(1,'BOX-1',-@Picked,'OUT','PICK_SLIP');
             "+sql,connection);
         command.Parameters.Add("@Picked",SqlDbType.Int).Value=picked;

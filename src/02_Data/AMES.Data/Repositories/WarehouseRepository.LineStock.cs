@@ -6,7 +6,8 @@ namespace AMES.Data.Repositories;
 
 public sealed partial class WarehouseRepository
 {
-    public sealed record PickingSlipFifoLotRow(string PickSlipNo, string PartNo, string LotNo, string? LocationNo, decimal Qty);
+    public sealed record PickingSlipFifoLotRow(string PickSlipNo, string PartNo, string LotNo, string? LocationNo, decimal Qty,
+        DateTime? ProductionDate = null);
 
     public List<PickingSlipFifoLotRow> ListPickingSlipFifoLots(string pickSlipNo)
     {
@@ -31,6 +32,11 @@ public sealed partial class WarehouseRepository
                 WHERE UPPER(COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID))) = UPPER(@PickSlipNo)
                   AND UPPER(COALESCE(RS.Status, N'OPEN')) NOT IN (N'CLOSED', N'RELEASED', N'CANCELED', N'CANCELLED')
             ),
+            ReleaseDemand AS
+            (
+                SELECT MIN(PickSlipID) AS PickSlipID,PickSlipNo,ItemNo,CreatedBy,SUM(RemainingQty) AS RemainingQty
+                FROM ReleaseLines GROUP BY PickSlipNo,ItemNo,CreatedBy
+            ),
             RankedLots AS
             (
                 SELECT
@@ -43,6 +49,7 @@ public sealed partial class WarehouseRepository
                     W.LocationNo,
                     W.Qty,
                     W.ReceivedAt,
+                    COALESCE(CONVERT(date, L.ProducedAt), B.ProductionDate) AS ProductionDate,
                     ROW_NUMBER() OVER
                     (
                         PARTITION BY R.PickSlipID
@@ -54,8 +61,13 @@ public sealed partial class WarehouseRepository
                         ORDER BY W.ReceivedAt, W.CreatedAt, W.LotNo
                         ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
                     ), 0) AS QtyBefore
-                FROM ReleaseLines R
+                FROM ReleaseDemand R
                 INNER JOIN dbo.WH_Inventory W ON W.PartNo COLLATE DATABASE_DEFAULT = R.ItemNo COLLATE DATABASE_DEFAULT
+                LEFT JOIN dbo.tbl_Lot L ON L.LotCode COLLATE DATABASE_DEFAULT=W.LotNo COLLATE DATABASE_DEFAULT
+                OUTER APPLY(SELECT TOP(1) DL.ProductionDate FROM dbo.SCM_DeliveryBox DB
+                    JOIN dbo.SCM_DeliveryLine DL ON DL.DeliveryLineID=DB.DeliveryLineID
+                    WHERE DB.BoxNumber COLLATE DATABASE_DEFAULT=W.LotNo COLLATE DATABASE_DEFAULT
+                    ORDER BY DB.BoxID DESC) B
                 WHERE W.Qty > 0
                   AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn CR WHERE CR.LotNo=W.LotNo AND CR.Status IN('Open','Inspecting'))
                   AND (R.CreatedBy <> 'WH-AUTO' OR ({WarehouseRepository.WarehouseBoxPredicate}))
@@ -66,7 +78,7 @@ public sealed partial class WarehouseRepository
                 LotNo AS LOTNO,
                 LocationNo AS LOCATION_NO,
                 Qty AS QTY,
-                CAST(NULL AS nvarchar(20)) AS PROD_DATE
+                ProductionDate AS PROD_DATE
             FROM RankedLots
             WHERE (CreatedBy='WH-AUTO' AND QtyBefore < RemainingQty)
                OR (COALESCE(CreatedBy,'')<>'WH-AUTO' AND FifoSeq <= RemainingQty)
@@ -83,7 +95,7 @@ public sealed partial class WarehouseRepository
                 GetString(rdr, "PARTNO") ?? "",
                 GetString(rdr, "LOTNO") ?? "",
                 GetString(rdr, "LOCATION_NO"),
-                GetDecimal(rdr, "QTY")));
+                GetDecimal(rdr, "QTY"), GetDateTime(rdr, "PROD_DATE")));
         }
         return rows;
     }
@@ -120,7 +132,7 @@ public sealed partial class WarehouseRepository
         """;
 
     public sealed record LineStockRow(string LineCode, string PartNo, string PartName,
-        decimal Qty, decimal MinimumQty, bool HasOpenOrder, bool WrongPart=false)
+        decimal Qty, decimal MinimumQty, bool HasOpenOrder, bool WrongPart=false, string? LineId=null)
     {
         public decimal Shortage => Math.Max(0, MinimumQty - Qty);
         public decimal RequiredQty => decimal.Ceiling(Shortage);
@@ -146,7 +158,7 @@ public sealed partial class WarehouseRepository
     private const string LineStockSql = """
         WITH Demand AS
         (
-            SELECT L.LocationID AS LocationNo,L.PartNo,COALESCE(S.Qty,0) AS Qty,COALESCE(L.MinimumQty,0) AS MinimumQty
+            SELECT L.LocationID AS LocationNo,M.LineID,L.PartNo,COALESCE(S.Qty,0) AS Qty,COALESCE(L.MinimumQty,0) AS MinimumQty
             FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID
             OUTER APPLY(SELECT SUM(W.Qty) Qty FROM dbo.WH_Inventory W
                 WHERE W.LocationNo=L.LocationID AND W.PartNo=L.PartNo
@@ -164,7 +176,8 @@ public sealed partial class WarehouseRepository
                   AND UPPER(COALESCE(O.Status,'OPEN')) NOT IN ('CLOSED','CANCELED','CANCELLED','RELEASED'))
                THEN 1 ELSE 0 END),
                CONVERT(bit,CASE WHEN EXISTS(SELECT 1 FROM dbo.MD_Location L JOIN dbo.WH_Inventory W ON W.LocationNo=L.LocationID
-                    WHERE L.LocationID=S.LocationNo AND L.LineID IS NOT NULL AND W.Qty>0 AND W.PartNo<>S.PartNo) THEN 1 ELSE 0 END)
+                    WHERE L.LocationID=S.LocationNo AND L.LineID IS NOT NULL AND W.Qty>0 AND W.PartNo<>S.PartNo) THEN 1 ELSE 0 END),
+               S.LineID
         FROM Demand S
         JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=S.PartNo COLLATE DATABASE_DEFAULT
         WHERE COALESCE(I.ActiveFlag,1)=1
@@ -184,11 +197,14 @@ public sealed partial class WarehouseRepository
         var rows = new List<LineStockRow>();
         while (reader.Read())
             rows.Add(new(reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? reader.GetString(1) : reader.GetString(2),
-                reader.GetDecimal(3), reader.GetDecimal(4), reader.GetBoolean(5),reader.GetBoolean(6)));
+                reader.GetDecimal(3), reader.GetDecimal(4), reader.GetBoolean(5),reader.GetBoolean(6),reader.GetString(7)));
         return rows;
     }
 
     public sealed record ReplenishmentResult(int Orders, int Lines, int InvalidRequests);
+
+    internal static IEnumerable<IGrouping<string, LineStockRow>> PendingLineOrders(IEnumerable<LineStockRow> stock)
+        => stock.Where(x => x.State == "Pending").GroupBy(x => x.LineId ?? x.LineCode, StringComparer.OrdinalIgnoreCase);
 
     public ReplenishmentResult GenerateLinePickingOrders()
     {
@@ -207,7 +223,7 @@ public sealed partial class WarehouseRepository
         var stock = ReadLineStock(conn, tx);
         var orders = 0;
         var count = 0;
-        foreach (var line in stock.Where(x => x.State == "Pending").GroupBy(x => x.LineCode))
+        foreach (var line in PendingLineOrders(stock))
         {
             var slip = GeneratePickSlipNo(conn, tx, line.Key);
             var seq = 0;
@@ -220,7 +236,7 @@ public sealed partial class WarehouseRepository
                     VALUES (@Slip,@Line,@Seq,@Actor,@Part,@Qty,0,SYSDATETIME(),1,'Open',@Actor,SYSDATETIME());
                     """, conn, tx);
                 cmd.Parameters.Add("@Slip", SqlDbType.NVarChar, 40).Value = slip;
-                cmd.Parameters.Add("@Line", SqlDbType.NVarChar, 40).Value = line.Key;
+                cmd.Parameters.Add("@Line", SqlDbType.NVarChar, 40).Value = item.LineCode;
                 cmd.Parameters.Add("@Seq", SqlDbType.Int).Value = ++seq;
                 cmd.Parameters.Add("@Actor", SqlDbType.VarChar, 20).Value = ReplenishmentActor;
                 cmd.Parameters.Add("@Part", SqlDbType.VarChar, 20).Value = item.PartNo;

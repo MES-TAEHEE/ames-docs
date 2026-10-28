@@ -1260,8 +1260,8 @@ public sealed partial class WarehouseRepository
                    OR G.PICK_SLIPNO LIKE @Search
                    OR R.REQ_LOCATION LIKE @Search
                    OR G.REQ_USERID LIKE @Search
-                   OR L.ItemNo LIKE @Search
-                   OR L.ItemName LIKE @Search)
+                   OR EXISTS(SELECT 1 FROM Lines Match WHERE Match.PICK_SLIPNO=G.PICK_SLIPNO
+                             AND (Match.ItemNo LIKE @Search OR Match.ItemName LIKE @Search OR Match.REQ_LOCATION LIKE @Search)))
             ORDER BY G.REQ_DATE DESC, G.PICK_SLIPNO DESC;
             """, r => new PickingSlipHeaderRow(
                 GetString(r, "PICK_SLIPNO") ?? "",

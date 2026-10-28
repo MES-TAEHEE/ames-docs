@@ -1293,7 +1293,8 @@ public static class WhEndpoints
 
     private static List<ReleaseFifoLotRow> QueryReleaseFifoLots(AmesConnectionFactory factory, string pickSlipNo)
         => new WarehouseRepository(factory).ListPickingSlipFifoLots(pickSlipNo)
-            .Select(x => new ReleaseFifoLotRow(x.PickSlipNo, x.PartNo, x.LotNo, x.LocationNo, x.Qty, null)).ToList();
+            .Select(x => new ReleaseFifoLotRow(x.PickSlipNo, x.PartNo, x.LotNo, x.LocationNo, x.Qty,
+                x.ProductionDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))).ToList();
 
     internal static PutAwaySelectionResult? BuildPutAwaySelection(string barcode, List<PutAwayRow> matches)
     {
@@ -2226,6 +2227,9 @@ public static class WhEndpoints
         string? LocationId, decimal Qty, DateTime? ReceivedDate, DateTime? CreatedDate,
         string? LineDestination = null);
 
+    internal static (string PartNo, string Destination) ReleaseDestinationKey(string partNo, string? destination)
+        => (partNo.Trim().ToUpperInvariant(), destination?.Trim().ToUpperInvariant() ?? "");
+
     private static ReleaseCompleteResult ExecuteReleaseBatch(
         AmesConnectionFactory factory,
         string pickSlipNo,
@@ -2250,8 +2254,7 @@ public static class WhEndpoints
         try
         {
             foreach (var item in normalized) FinishedGoodsRepository.EnsureReturnInspected(conn, tx, item.LotNo);
-            var lines = new Dictionary<string, (int ScheduleId, decimal Demand, decimal Picked, bool IsEa)>(StringComparer.OrdinalIgnoreCase);
-            var destinations = new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+            var lines = new Dictionary<(string PartNo, string Destination), (int ScheduleId, decimal Demand, decimal Picked, bool IsEa)>();
             using (var lineCmd = new SqlCommand("""
                 SELECT PickSlipID, ItemNo, COALESCE(DemandQty,0) AS DemandQty, COALESCE(PickedQty,0) AS PickedQty,
                        CONVERT(bit,CASE WHEN CreatedBy='WH-AUTO' THEN 1 ELSE 0 END) AS IsEa,COALESCE(ReqLocation,'') AS Destination
@@ -2269,17 +2272,16 @@ public static class WhEndpoints
                     var picked = rdr.GetDecimal(rdr.GetOrdinal("PickedQty"));
                     var ea = rdr.GetBoolean(rdr.GetOrdinal("IsEa"));
                     var destination = rdr.GetString(rdr.GetOrdinal("Destination"));
-                    if (lines.TryGetValue(item, out var previous))
+                    var key = ReleaseDestinationKey(item, ea ? destination : null);
+                    if (lines.Any(x => x.Key.PartNo == key.PartNo && x.Value.IsEa != ea))
+                        return new(false, "The same part has mixed EA and BOX requests. Correct the picking order first.");
+                    if (lines.TryGetValue(key, out var previous))
                     {
-                        if (previous.IsEa != ea) return new(false, "The same part has mixed EA and BOX requests. Correct the picking order first.");
-                        if (!string.Equals(destinations[item],destination,StringComparison.OrdinalIgnoreCase))
-                            return new(false,"The same part has different line destinations. Use separate picking orders for each line.");
-                        lines[item] = (previous.ScheduleId, previous.Demand + demand, previous.Picked + picked, ea);
+                        lines[key] = (previous.ScheduleId, previous.Demand + demand, previous.Picked + picked, ea);
                     }
                     else
                     {
-                        lines[item] = (rdr.GetInt32(rdr.GetOrdinal("PickSlipID")), demand, picked, ea);
-                        destinations[item]=destination;
+                        lines[key] = (rdr.GetInt32(rdr.GetOrdinal("PickSlipID")), demand, picked, ea);
                     }
                 }
             }
@@ -2308,16 +2310,20 @@ public static class WhEndpoints
                             ON RS.ItemNo COLLATE DATABASE_DEFAULT = W.PartNo COLLATE DATABASE_DEFAULT
                            AND (RS.PickSlipNo=@Slip OR NULLIF(RS.PickSlipNo,N'') IS NULL AND CONCAT(N'RS-',RS.PickSlipID)=@Slip)
                            AND COALESCE(RS.Status,'Open') NOT IN ('Released','Closed','Cancelled','Canceled')
-                           AND COALESCE(RS.PickedQty,0)<COALESCE(RS.DemandQty,0)
+                           AND COALESCE(RS.PickedQty,0)+COALESCE((SELECT CASE WHEN RS.CreatedBy='WH-AUTO' THEN SUM(A.Qty) ELSE COUNT(*) END
+                               FROM OPENJSON(@BatchAllocations) WITH(PickSlipID int '$.PickSlipId',Qty decimal(18,3) '$.Qty') A
+                               WHERE A.PickSlipID=RS.PickSlipID),0)<COALESCE(RS.DemandQty,0)
                     WHERE W.LotNo=@LotNo
                     ORDER BY RS.PickSlipID;
                     """, conn, tx);
                 ColumnParams.AddFilter(lotCmd, "@Slip", "WH_PickSlip.PickSlipNo", slip);
                 ColumnParams.AddFilter(lotCmd, "@LotNo", "WH_Inventory.LotNo", input.LotNo);
+                lotCmd.Parameters.Add("@BatchAllocations", SqlDbType.NVarChar, -1).Value =
+                    System.Text.Json.JsonSerializer.Serialize(lots.Select(x => new { x.PickSlipId, x.Qty }));
                 using var rdr = lotCmd.ExecuteReader();
                 if (!rdr.Read())
                 {
-                    return new ReleaseCompleteResult(false, $"LOT {input.LotNo} is not part of this Pick Slip.");
+                    return new ReleaseCompleteResult(false, $"LOT {input.LotNo} is not part of this Pick Slip or its remaining request is already covered.");
                 }
                 var lot = new ReleaseBatchLot(
                     rdr.GetInt32(rdr.GetOrdinal("PickSlipID")),
@@ -2344,23 +2350,23 @@ public static class WhEndpoints
             var excessMessages = new List<string>();
             foreach (var line in lines)
             {
-                var selected = lots.Where(x => string.Equals(x.ItemNo, line.Key, StringComparison.OrdinalIgnoreCase)).ToList();
+                var selected = lots.Where(x => ReleaseDestinationKey(x.ItemNo, x.LineDestination) == line.Key).ToList();
                 var remaining = line.Value.Demand - line.Value.Picked;
                 if (line.Value.IsEa)
                 {
                     var quantity = selected.Sum(x => x.Qty);
                     if (remaining <= 0)
-                        return new ReleaseCompleteResult(false, $"{line.Key}: requested EA is already covered.");
+                        return new ReleaseCompleteResult(false, $"{line.Key.PartNo}: requested EA is already covered.");
                     if (quantity > remaining)
                     {
                         var finalBox = selected.OrderBy(x => x.ReceivedDate).ThenBy(x => x.CreatedDate).ThenBy(x => x.LotNo).Last();
                         if (quantity - finalBox.Qty >= remaining)
-                            return new ReleaseCompleteResult(false, $"{line.Key}: requested EA is already covered. Remove extra boxes.");
-                        excessMessages.Add($"{line.Key}: {quantity:N0} EA picked, {quantity - remaining:N0} EA above the remaining request (full final box).");
+                            return new ReleaseCompleteResult(false, $"{line.Key.PartNo}: requested EA is already covered. Remove extra boxes.");
+                        excessMessages.Add($"{line.Key.PartNo} / {line.Key.Destination}: {quantity:N0} EA picked, {quantity - remaining:N0} EA above the remaining request (full final box).");
                     }
                 }
                 else if (remaining <= 0 || selected.Count > remaining)
-                    return new ReleaseCompleteResult(false, $"{line.Key}: requested boxes are already covered. Remove extra boxes.");
+                    return new ReleaseCompleteResult(false, $"{line.Key.PartNo}: requested boxes are already covered. Remove extra boxes.");
             }
 
             var selectedLotNos = lots.Select(x => x.LotNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -2430,17 +2436,17 @@ public static class WhEndpoints
             using (var finish = new SqlCommand("""
                 ;WITH PickCounts AS
                 (
-                    SELECT R.ItemNo, COUNT(DISTINCT T.LotNo) AS BoxQty, SUM(-T.QtyChange) AS EaQty
+                    SELECT R.ItemNo,COALESCE(R.ReqLocation,'') AS Destination, COUNT(DISTINCT T.LotNo) AS BoxQty, SUM(-T.QtyChange) AS EaQty
                     FROM dbo.WH_InventoryTransaction T JOIN dbo.WH_PickSlip R ON R.PickSlipID=T.SourceID
                     WHERE T.TransactionType='OUT' AND T.SourceType='PICK_SLIP'
                       AND (R.PickSlipNo=@Slip OR NULLIF(R.PickSlipNo,N'') IS NULL AND CONCAT(N'RS-',R.PickSlipID)=@Slip)
                       AND COALESCE(R.Status,'Open') NOT IN ('Cancelled','Canceled')
-                    GROUP BY R.ItemNo
+                    GROUP BY R.ItemNo,COALESCE(R.ReqLocation,'')
                 ), DemandRanges AS
                 (
                     SELECT R.PickSlipID,
-                        COALESCE(SUM(COALESCE(R.DemandQty,0)) OVER (PARTITION BY R.ItemNo ORDER BY R.PickSlipID ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) AS BeforeDemand,
-                        ROW_NUMBER() OVER (PARTITION BY R.ItemNo ORDER BY R.PickSlipID DESC) AS LastLine
+                        COALESCE(SUM(COALESCE(R.DemandQty,0)) OVER (PARTITION BY R.ItemNo,COALESCE(R.ReqLocation,'') ORDER BY R.PickSlipID ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) AS BeforeDemand,
+                        ROW_NUMBER() OVER (PARTITION BY R.ItemNo,COALESCE(R.ReqLocation,'') ORDER BY R.PickSlipID DESC) AS LastLine
                     FROM dbo.WH_PickSlip R
                     WHERE (R.PickSlipNo=@Slip OR NULLIF(R.PickSlipNo,N'') IS NULL AND CONCAT(N'RS-',R.PickSlipID)=@Slip)
                       AND COALESCE(R.Status,'Open') NOT IN ('Cancelled','Canceled')
@@ -2453,7 +2459,7 @@ public static class WhEndpoints
                        ModifiedBy=@User, ModifiedTS=SYSDATETIME()
                 FROM dbo.WH_PickSlip RS
                 JOIN DemandRanges D ON D.PickSlipID=RS.PickSlipID
-                LEFT JOIN PickCounts P ON P.ItemNo=RS.ItemNo
+                LEFT JOIN PickCounts P ON P.ItemNo=RS.ItemNo AND P.Destination=COALESCE(RS.ReqLocation,'')
                 CROSS APPLY (SELECT COALESCE(CASE WHEN RS.CreatedBy='WH-AUTO' THEN P.EaQty ELSE P.BoxQty END,0)-D.BeforeDemand AS Allocated) A
                 CROSS APPLY (SELECT CASE WHEN A.Allocated<0 THEN 0
                     WHEN D.LastLine<>1 AND A.Allocated>COALESCE(RS.DemandQty,0) THEN COALESCE(RS.DemandQty,0)
@@ -2471,7 +2477,7 @@ public static class WhEndpoints
 
             tx.Commit();
             var completed = lines.All(line => line.Value.Picked + lots
-                .Where(lot => string.Equals(lot.ItemNo, line.Key, StringComparison.OrdinalIgnoreCase))
+                .Where(lot => ReleaseDestinationKey(lot.ItemNo, lot.LineDestination) == line.Key)
                 .Sum(lot => line.Value.IsEa ? lot.Qty : 1) >= line.Value.Demand);
             var released = lots.Count == 1 ? "BOX released." : $"{lots.Count} BOXES released.";
             var message = completed ? $"{released} Picking order completed." : $"{released} Picking order remains Partial.";
