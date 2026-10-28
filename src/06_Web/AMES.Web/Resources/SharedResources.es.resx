@@ -5542,7 +5542,7 @@
     <value>Análisis OEE</value>
   </data>
   <data name="MNT.Dashboard.Tile.OeeSub" xml:space="preserve">
-    <value>prom. {0}</value>
+    <value>prom. {0} · {1}</value>
   </data>
   <data name="MNT.Dashboard.Tile.Downtime" xml:space="preserve">
     <value>Paradas</value>
@@ -5554,7 +5554,7 @@
     <value>Moldes</value>
   </data>
   <data name="MNT.Dashboard.Tile.MoldSub" xml:space="preserve">
-    <value>contadores · umbrales</value>
+    <value>advertencia {0} · crítico {1}</value>
   </data>
   <data name="MNT.Dashboard.Filter.Title" xml:space="preserve">
     <value>Filtro</value>
@@ -6116,6 +6116,9 @@
   </data>
   <data name="RPT.Inventory.Kpi.ValueNone" xml:space="preserve">
     <value>sin costo unitario</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.ValuePartial" xml:space="preserve">
+    <value>excl. {0} artículos sin costo</value>
   </data>
   <data name="RPT.Inventory.Kpi.Low" xml:space="preserve">
     <value>Bajo Stock de Seguridad</value>

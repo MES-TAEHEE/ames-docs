@@ -5542,7 +5542,7 @@
     <value>OEE 분석</value>
   </data>
   <data name="MNT.Dashboard.Tile.OeeSub" xml:space="preserve">
-    <value>평균 {0}</value>
+    <value>평균 {0} · {1} 집계</value>
   </data>
   <data name="MNT.Dashboard.Tile.Downtime" xml:space="preserve">
     <value>비가동 이력</value>
@@ -5554,7 +5554,7 @@
     <value>금형 관리</value>
   </data>
   <data name="MNT.Dashboard.Tile.MoldSub" xml:space="preserve">
-    <value>쇼트 카운터 · 정비 기준</value>
+    <value>경고 {0} · 위험 {1}</value>
   </data>
   <data name="MNT.Dashboard.Filter.Title" xml:space="preserve">
     <value>조회 조건</value>
@@ -6116,6 +6116,9 @@
   </data>
   <data name="RPT.Inventory.Kpi.ValueNone" xml:space="preserve">
     <value>원가 미등록</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.ValuePartial" xml:space="preserve">
+    <value>원가 미등록 {0}품목 제외</value>
   </data>
   <data name="RPT.Inventory.Kpi.Low" xml:space="preserve">
     <value>안전재고 미달</value>

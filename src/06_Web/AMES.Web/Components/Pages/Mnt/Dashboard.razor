@@ -272,9 +272,9 @@
     @Tile("mnt/pm-schedule",    "📅", L["MNT.Dashboard.Tile.Pm"].Value,        string.Format(L["MNT.Dashboard.Tile.PmSub"].Value, _k.PmDueEquip))
     @Tile("mnt/maint-pm-schedule", "🧰", L["MNT.Dashboard.Tile.MaintPm"].Value, string.Format(L["MNT.Dashboard.Tile.PmSub"].Value, _k.PmDueMaint))
     @Tile("mnt/spare-parts",    "📦", L["MNT.Dashboard.Tile.Spare"].Value,     string.Format(L["MNT.Dashboard.Tile.SpareSub"].Value, _k.LowStockParts))
-    @Tile("mnt/oee-analysis",   "📊", L["MNT.Dashboard.Tile.Oee"].Value,       string.Format(L["MNT.Dashboard.Tile.OeeSub"].Value, _k.OeeDate is null ? "—" : $"{_k.AvgOeeToday:0.0}%"))
+    @Tile("mnt/oee-analysis",   "📊", L["MNT.Dashboard.Tile.Oee"].Value,       _k.OeeDate is { } od ? string.Format(L["MNT.Dashboard.Tile.OeeSub"].Value, $"{_k.AvgOeeToday:0.0}%", od.ToString(DateFmt.Date)) : $"— · {L["MNT.Dashboard.Kpi.OeeNone"].Value}", TileColor(OeeClass()))
     @Tile("mnt/downtime",       "⏱️", L["MNT.Dashboard.Tile.Downtime"].Value,  string.Format(L["MNT.Dashboard.Tile.DowntimeSub"].Value, _k.DowntimeMin24h))
-    @Tile("mnt/mold",           "🧊", L["MNT.Dashboard.Tile.Mold"].Value,      L["MNT.Dashboard.Tile.MoldSub"].Value)
+    @Tile("mnt/mold",           "🧊", L["MNT.Dashboard.Tile.Mold"].Value,      string.Format(L["MNT.Dashboard.Tile.MoldSub"].Value, _moldWarn, _moldCrit), TileColor(_moldCrit > 0 ? "bad" : _moldWarn > 0 ? "warn" : ""))
 </div>
 
 @code {
@@ -298,6 +298,7 @@
 
     PeriodicTimer? _timer;
     CancellationTokenSource? _cts;
+    int _moldWarn, _moldCrit;
     bool _disposed;
 
     public sealed record CauseRow(string Code, int Min);
@@ -335,6 +336,14 @@
         try { _alertActs = Mnt.ListFailureActions(_alerts.Select(f => f.FailureId)).ToLookup(a => a.FailureId); }
         catch { _alertActs = Array.Empty<MntRepository.FailureActionRow>().ToLookup(a => a.FailureId); }
         try { _pms     = Mnt.ListPmDueRange(_fTo, _fTo.AddDays(7)).Take(6).ToList(); } catch { _pms = new(); }
+        try
+        {
+            // 금형 관리(MNT-004) KPI 와 같은 판정 — 소진율 ≥ 70 경고, ≥ 90 위험(MoldUsageRules)
+            var grades = Mnt.ListMolds().Select(m => MoldUsageRules.Grade(MoldUsageRules.Usage(m.CurrentShots, m.RatedShots), m.ThresholdLevel)).ToList();
+            _moldWarn = grades.Count(g => g == MoldUsageRules.Warning);
+            _moldCrit = grades.Count(g => g == MoldUsageRules.Critical);
+        }
+        catch { _moldWarn = _moldCrit = 0; }
         try
         {
             _causes = Mnt.ListDowntimeRange(_fFrom, _fTo)
@@ -482,14 +491,20 @@
     string OeeClass() => _k.OeeDate is null ? "" : _k.AvgOeeToday >= 85 ? "ok" : _k.AvgOeeToday >= 65 ? "warn" : "bad";
 
     // NavMenu 와 동일하게 권한(PermissionService.IsVisible)에 따라 타일 활성/비활성 — Sys/Health 와 같은 규칙
-    RenderFragment Tile(string href, string icon, string title, string sub) => __builder =>
+    // 타일 부제 색 — 평균 OEE 카드(OeeClass)와 같은 구간(85 이상 정상·65 이상 주의·그 밖 위험)
+    static string? TileColor(string cls) => cls switch
+    {
+        "ok" => "color:var(--ames-tx-emerald-400);", "warn" => "color:var(--ames-tx-amber-400);", "bad" => "color:var(--ames-tx-red-400);", _ => null
+    };
+
+    RenderFragment Tile(string href, string icon, string title, string sub, string? subStyle = null) => __builder =>
     {
         if (PermSvc.IsVisible(href))
         {
             <a class="ames-tile mnt" href="@("/" + href)">
                 <div class="ames-tile-top">
                     <div class="ames-tile-ic">@icon</div>
-                    <div class="ames-tile-sub">@sub</div>
+                    <div class="ames-tile-sub" style="@subStyle">@sub</div>
                 </div>
                 <div class="ames-tile-h">@title</div>
             </a>
@@ -499,7 +514,7 @@
             <div class="ames-tile mnt" style="opacity:.4;pointer-events:none;filter:grayscale(1);" aria-disabled="true">
                 <div class="ames-tile-top">
                     <div class="ames-tile-ic">@icon</div>
-                    <div class="ames-tile-sub">@sub</div>
+                    <div class="ames-tile-sub" style="@subStyle">@sub</div>
                 </div>
                 <div class="ames-tile-h">@title</div>
             </div>

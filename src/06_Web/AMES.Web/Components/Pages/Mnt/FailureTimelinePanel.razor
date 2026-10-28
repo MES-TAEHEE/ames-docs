@@ -63,7 +63,7 @@
             {
                 <span>@Failure.DowntimeLineId</span>
                 <span>@ds.ToString(DateFmt.DateTime) ~ @(Failure.DowntimeEnd?.ToString(DateFmt.DateTime) ?? L["MNT.Failure.Tl.LineStopOpen"].Value)</span>
-                <span class="dim">@MinText((int)Math.Max(0, ((Failure.DowntimeEnd ?? DbClock.Now) - ds).TotalMinutes))</span>
+                <span class="dim">@MinText(FailureDowntimeRules.StopMinutes(ds, Failure.DowntimeEnd, DbClock.Now))</span>
                 @if (!Failure.DowntimeOwned)
                 {
                     <span class="dim">@L["MNT.Failure.Tl.LineStopShared"]</span>

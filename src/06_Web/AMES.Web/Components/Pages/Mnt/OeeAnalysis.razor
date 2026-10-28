@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using Radzen
 
 @attribute [Authorize]
@@ -265,7 +266,12 @@
         _trendVisible = _trendRows.Where(PassesFilter).ToList();
 
         var visibleEquips = _rows.Select(r => r.EquipId ?? "").Distinct().ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var fails = _failures.Where(f => f.EquipId is { } e && visibleEquips.Contains(e)).ToList();
+        // 교대 필터는 고장 신고 시각의 교대(실적과 같은 판정 — ProdCalendar.ShiftOf, WORK_SHIFT 창)로도 건다
+        var shifts = _shiftItems.Where(c => c.UseFlag && c.CodeValue is { Length: > 0 })
+                                .Select(c => (c.CodeValue!, c.Attribute1)).ToList();
+        var fails = _failures.Where(f => f.EquipId is { } e && visibleEquips.Contains(e)
+                                      && (string.IsNullOrEmpty(_fShift)
+                                          || f.ReportedAt is { } at && ProdCalendar.ShiftOf(at, shifts) == _fShift)).ToList();
 
         _avg = Weighted(_rows);
         var opHours = _rows.Sum(r => (r.PlannedTimeMin ?? 0) - (r.DowntimeMin ?? 0)) / 60m;
@@ -276,7 +282,7 @@
         var stops = fails.Where(f => f.DowntimeId is not null && f.DowntimeStart is not null)
                          .GroupBy(f => f.DowntimeId!.Value).Select(g => g.First()).ToList();
         _kpiStopCount = stops.Count;
-        _kpiStopMin = stops.Sum(f => Math.Max(0, (int)((f.DowntimeEnd ?? DbClock.Now) - f.DowntimeStart!.Value).TotalMinutes));
+        _kpiStopMin = stops.Sum(f => FailureDowntimeRules.StopMinutes(f.DowntimeStart!.Value, f.DowntimeEnd, DbClock.Now));
 
         _equipAgg = _rows.GroupBy(r => r.EquipId ?? "")
             .Select(g =>

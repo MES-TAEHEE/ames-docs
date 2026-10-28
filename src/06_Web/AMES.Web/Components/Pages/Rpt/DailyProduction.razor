@@ -238,7 +238,6 @@
         // 기본 일자: 오늘(전기일 — 경계 시각 전이면 전날). 오늘 실적이 없으면 마지막 실적일
         try
         {
-            _cutoffHour = Rpt.ReadDayCutoff().Hours;
             _fDate = Rpt.ProdToday();
             var (_, mx) = Rpt.ProductionDateExtent();
             if (mx is { } m && m.Date < _fDate) _fDate = m.Date;
@@ -250,6 +249,7 @@
 
     void Reload()
     {
+        try { _cutoffHour = Rpt.ReadDayCutoff().Hours; } catch { }   // SYS-009 에서 경계 시각을 바꾸면 다음 조회부터 차트 시작 시각도 바뀐다
         try { _raw  = Rpt.ListProductionByHour(_fDate, _fLine); }
         catch (Exception ex) { _raw = new(); ShowMsg(ex.Message, true); }
         try { _plan = Rpt.ListPlanByDate(_fDate, _fLine); }

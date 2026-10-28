@@ -292,7 +292,7 @@
         var data = new List<IReadOnlyList<object?>>();
         foreach (var h in _heat)
         {
-            var row = new List<object?> { h.Label };
+            var row = new List<object?> { CustomerText(h.CustomerId) };   // 엑셀은 품목 표와 같은 [ID] 고객명(10-28)
             row.AddRange(_months.Select(m => (object?)(h.ByMonth.TryGetValue(m, out var v) && v is { } x ? Math.Round(x, 1) : null)));
             row.Add(h.Avg is { } a ? Math.Round(a, 1) : null);
             data.Add(row);

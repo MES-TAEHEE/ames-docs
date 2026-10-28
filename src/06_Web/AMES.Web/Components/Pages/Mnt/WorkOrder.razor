@@ -627,7 +627,7 @@
     int PlannedCount    => _allRows.Count(r => r.Planned);
     int ProgCount       => _allRows.Count(r => IsProg(r.Status));
     int DoneCount       => _allRows.Count(r => IsDone(r.Status));
-    int UnassignedCount => _allRows.Count(r => !IsDone(r.Status) && !r.Planned && string.IsNullOrEmpty(r.AssignedTechId));
+    int UnassignedCount => _allRows.Count(r => IsOpen(r.Status) && !r.Planned && string.IsNullOrEmpty(r.AssignedTechId));
 
     protected override async Task OnInitializedAsync()
     {

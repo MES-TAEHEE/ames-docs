@@ -71,7 +71,7 @@
             @foreach (var m in _runMeasures)
             {
                 <div class="rpt-rb-sum">
-                    <b>@Fmt(Agg(m), m)</b>
+                    <b>@(Agg(m) is { } a ? Fmt(a, m) : "—")</b>
                     <span>@string.Format(L[IsRate(m) ? "RPT.ReportBuilder.Sum.AvgFmt" : "RPT.ReportBuilder.Sum.TotalFmt"].Value, MLabel(m), MUnit(m))</span>
                 </div>
             }
@@ -88,8 +88,8 @@
                 {
                     var key = m;
                     <RadzenDataGridColumn TItem="RptRepository.AdhocRow" Title="@($"{MLabel(key)} ({MUnit(key)})")" TextAlign="TextAlign.Right" Width="150px" MinWidth="150px" Sortable="false">
-                        <Template Context="r"><span class="code">@Fmt(r.M.TryGetValue(key, out var v) ? v : 0m, key)</span></Template>
-                        <FooterTemplate><b class="code">@Fmt(Agg(key), key)</b></FooterTemplate>
+                        <Template Context="r"><span class="code">@(r.M.TryGetValue(key, out var v) ? Fmt(v, key) : "—")</span></Template>
+                        <FooterTemplate><b class="code">@(Agg(key) is { } a ? Fmt(a, key) : "—")</b></FooterTemplate>
                     </RadzenDataGridColumn>
                 }
             </Columns>
@@ -239,18 +239,19 @@
     string Fmt(decimal v, string m) => IsRate(m) ? $"{v:0.0}%" : IsQty(m) ? UomFmt.Qty(v, null) : v.ToString("N0");
     static bool IsQty(string m) => m is "Production" or "GoodQty" or "DefectQty" or "OrderedQty" or "AllocatedQty";
 
-    // 합계: 비율 지표(OEE·A·P·Q)는 계획시간 가중 평균, 그 외는 합
-    decimal Agg(string m)
+    // 합계: 비율 지표(OEE·A·P·Q)는 계획시간 가중 평균, 그 외는 합 — 값이 있는 행만, 하나도 없으면 null(「—」)
+    decimal? Agg(string m)
     {
-        if (_rows.Count == 0) return 0m;
-        if (!IsRate(m)) return _rows.Sum(r => r.M.TryGetValue(m, out var v) ? v : 0m);
+        var vals = _rows.Where(r => r.M.ContainsKey(m)).ToList();
+        if (vals.Count == 0) return null;
+        if (!IsRate(m)) return vals.Sum(r => r.M[m]);
         decimal num = 0, den = 0;
-        foreach (var r in _rows)
+        foreach (var r in vals)
         {
             var w = r.M.TryGetValue("PlannedMin", out var p) && p > 0 ? p : 1m;
-            num += (r.M.TryGetValue(m, out var v) ? v : 0m) * w; den += w;
+            num += r.M[m] * w; den += w;
         }
-        return den > 0 ? num / den : 0m;
+        return den > 0 ? num / den : null;
     }
 
     // 결과 표를 .xlsx 로 내려받는다 — 화면 컬럼 순서 그대로 + 합계 행. 화면에 그려진 차트 3개는 둘째 시트에 그림으로 같이 넣는다.
@@ -262,11 +263,11 @@
         var data = _rows.Select(r =>
         {
             var row = new List<object?> { r.Key, LabelOf(r) };
-            row.AddRange(_runMeasures.Select(m => (object?)(r.M.TryGetValue(m, out var v) ? (IsRate(m) ? Math.Round(v, 1) : v) : 0m)));
+            row.AddRange(_runMeasures.Select(m => (object?)(r.M.TryGetValue(m, out var v) ? (IsRate(m) ? Math.Round(v, 1) : v) : null)));
             return (IReadOnlyList<object?>)row;
         }).ToList();
         var tot = new List<object?> { L["RPT.ReportBuilder.Total"].Value, null };
-        tot.AddRange(_runMeasures.Select(m => (object?)(IsRate(m) ? Math.Round(Agg(m), 1) : Agg(m))));
+        tot.AddRange(_runMeasures.Select(m => (object?)(Agg(m) is { } a ? (IsRate(m) ? Math.Round(a, 1) : a) : null)));
         data.Add(tot);
         // 차트는 브라우저에서 그린 PNG 를 받는다 — 캡처가 실패해도 표 내보내기는 계속한다
         var charts = new List<AMES.Web.Services.XlsxWriter.ChartImage>();

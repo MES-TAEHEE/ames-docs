@@ -29,7 +29,7 @@
         <div class="ames-kpi-l">@L["RPT.Inventory.Kpi.Value"]</div>
         <div class="ames-kpi-row">
             <div class="ames-kpi-v">@(HasCost ? TotalValue.ToString("N0") : "—")</div>
-            <div class="ames-kpi-s">@(HasCost ? L["RPT.Inventory.Kpi.ValueSub"].Value : L["RPT.Inventory.Kpi.ValueNone"].Value)</div>
+            <div class="ames-kpi-s">@(!HasCost ? L["RPT.Inventory.Kpi.ValueNone"].Value : NoCostCount > 0 ? string.Format(L["RPT.Inventory.Kpi.ValuePartial"].Value, NoCostCount) : L["RPT.Inventory.Kpi.ValueSub"].Value)</div>
         </div>
     </div>
     <div class="ames-kpi @(LowCount > 0 ? "bad" : "ok")">
@@ -83,7 +83,7 @@
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;">
             <span>▼ @L["RPT.Inventory.ByCat.Title"]</span>
-            <span class="mnt-db-hint">@(HasCost ? L["RPT.Inventory.ByCat.Value"].Value : L["RPT.Inventory.ByCat.Qty"].Value)</span>
+            <span class="mnt-db-hint">@(!HasCost ? L["RPT.Inventory.ByCat.Qty"].Value : NoCostCount > 0 ? L["RPT.Inventory.ByCat.Value"].Value + " · " + string.Format(L["RPT.Inventory.Kpi.ValuePartial"].Value, NoCostCount) : L["RPT.Inventory.ByCat.Value"].Value)</span>
         </div>
         @if (_byCat.Count == 0)
         {
@@ -206,6 +206,8 @@
     // ── KPI ────────────────────────────────────────────────────────────
     bool     HasCost     => _rows.Any(r => r.UnitCost is { });
     decimal  TotalValue  => _rows.Sum(r => r.Value ?? 0m);
+    // 원가가 일부만 있으면 금액은 원가 등록분 합계 — 수량이 있는데 원가가 없는 품목 수를 함께 보여 확정 금액처럼 보이지 않게 한다(10-28)
+    int      NoCostCount => _rows.Count(r => r.UnitCost is null && r.Qty != 0);
     int      LowCount    => _rows.Count(r => r.State is "low" or "out");
     int      OverCount   => _rows.Count(r => r.State == "over");
     decimal? AvgTurnover => _rows.Where(r => r.Turnover is { }).Select(r => r.Turnover!.Value).DefaultIfEmpty().Average() is var a && _rows.Any(r => r.Turnover is { }) ? a : null;

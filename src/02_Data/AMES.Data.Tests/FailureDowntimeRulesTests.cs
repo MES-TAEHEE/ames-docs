@@ -52,6 +52,22 @@ public class FailureDowntimeRulesTests
         Assert.Equal(Start.AddMinutes(9), EndAt(Start, Start.AddMinutes(9), Now));
     }
 
+    // 10-28 MNT 결과서 E2E-TC-013 — MNT-003 고장 정지 분 = MNT-006 DurationMin(DATEDIFF(minute) — 넘은 분 경계 수)
+    [Theory]
+    [InlineData("10:00:59", "10:01:00", 1)]
+    [InlineData("10:00:00", "10:00:59", 0)]
+    [InlineData("10:00:30", "10:45:10", 45)]
+    [InlineData("10:00:30", "09:59:00", 0)]
+    public void Stop_minutes_count_minute_boundaries_like_datediff(string start, string end, int expected)
+    {
+        var d = new DateTime(2026, 10, 28);
+        Assert.Equal(expected, StopMinutes(d + TimeSpan.Parse(start), d + TimeSpan.Parse(end), Now));
+    }
+
+    [Fact]
+    public void Open_stop_counts_up_to_now()
+        => Assert.Equal(30, StopMinutes(Start.AddSeconds(20), null, Now.AddSeconds(5)));
+
     [Theory]
     [InlineData(null, null, false)]
     [InlineData(3,    null, true)]

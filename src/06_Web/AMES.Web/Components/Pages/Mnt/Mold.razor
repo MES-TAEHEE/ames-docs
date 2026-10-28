@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using Radzen
 @using AMES.Web.Services
 
@@ -289,7 +290,7 @@
     string  _modal = "", _msg = "";
     bool    _bgMouseDownOnSelf, _isErr;
 
-    static readonly string[] GradeCodes = { "OK", "WARNING", "CRITICAL" };
+    static readonly string[] GradeCodes = MoldUsageRules.Grades;
     static readonly int[]    TopNs      = { 50, 100, 200, 500 };
     static readonly MarkupString Dash = new("<span class=\"dim\">—</span>");
 
@@ -449,7 +450,7 @@
         var data = _rows.Select(r => (IReadOnlyList<object?>)new object?[]
         {
             r.MoldId, r.MoldName, r.CavityCount, r.Tonnage,
-            r.CurrentShots, r.RatedShots, Lifetime(r), Usage(r) is { } u ? Math.Round(u, 1) : null,
+            r.CurrentShots, r.RatedShots, Lifetime(r), Usage(r) is { } u ? MoldUsageRules.Shown(u) : null,
             GradeLabel(Grade(r)), StatusLabel(r.Status), NamedText(r.MountedEquipId, EquipNameOf(r.MountedEquipId)), r.StorageLoc,
             r.LastMaintDate?.ToString(DateFmt.Date), r.RefurbishCount,
         });
@@ -470,19 +471,14 @@
     // ── 소진율 계산 ────────────────────────────────────────────────────
     // 소진율 = 현재 Shot / 정격 Shot(RatedShots). 이전 화면은 누적 Shot(LifetimeShots) 을 분모로 써서
     // 재정비를 거친 금형이 0.1% 로 보이는 오류가 있었다. 누적 Shot 은 별도 컬럼으로만 보여준다.
-    static decimal? Usage(MntRepository.MoldRow r) =>
-        r.RatedShots is > 0 && r.CurrentShots is { } cur ? Math.Max(0m, 100m * cur / r.RatedShots.Value) : null;
+    static decimal? Usage(MntRepository.MoldRow r) => MoldUsageRules.Usage(r.CurrentShots, r.RatedShots);
 
     static long? Lifetime(MntRepository.MoldRow r) => r.LifetimeShots ?? r.CumulativeShots;
 
     // 등급: 소진율로 판정 (≥90 CRITICAL / ≥70 WARNING / OK) — 막대 색과 항상 일치.
     // 정격 Shot 이 없어 소진율을 못 구할 때만 MNT_MoldShotCount.ThresholdLevel(저장값)을 쓴다.
     // 시드 데이터엔 88% 인데 OK 로 저장된 행이 있어 저장값을 우선하면 화면이 어긋난다.
-    static string? Grade(MntRepository.MoldRow r)
-    {
-        if (Usage(r) is { } u) return u >= 90m ? "CRITICAL" : u >= 70m ? "WARNING" : "OK";
-        return r.ThresholdLevel is { Length: > 0 } t && GradeCodes.Contains(t) ? t : null;
-    }
+    static string? Grade(MntRepository.MoldRow r) => MoldUsageRules.Grade(Usage(r), r.ThresholdLevel);
 
     string GradeLabel(string? g) => g is null ? "—" : GradeCodes.Contains(g) ? L[$"MNT.Mold.Grade.{g}"] : g;
     static string GradeCls(string? g) => g switch { "CRITICAL" => "bad", "WARNING" => "warn", "OK" => "ok", _ => "mute" };
@@ -494,7 +490,7 @@
         var w = Math.Min(100m, Math.Max(0m, v)).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
         return new MarkupString(
             $"<div class=\"mnt-mold-bar\"><div class=\"mnt-mold-track\"><i class=\"mnt-mold-fill-{FillCls(v)}\" style=\"width:{w}%\"></i></div>" +
-            $"<span class=\"mnt-mold-bar-val\">{v:F1}%</span></div>");
+            $"<span class=\"mnt-mold-bar-val\">{MoldUsageRules.Shown(v):F2}%</span></div>");
     }
 
     static bool IsMounted(MntRepository.MoldRow r) => r.Status == "MOUNTED" || !string.IsNullOrEmpty(r.MountedEquipId);

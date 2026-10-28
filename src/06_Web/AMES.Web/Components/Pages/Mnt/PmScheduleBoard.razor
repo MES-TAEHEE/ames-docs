@@ -571,12 +571,12 @@
 
         var list = new List<PmEvent>();
 
-        // 완료 칩 = 실행 이력(완료 시각의 날짜). 일정이 지워진 이력은 스냅샷(설비·유형)으로 표시한다.
+        // 완료 칩 = 실행 이력(완료 시각의 날짜, 건너뜀은 그 회차 예정일 — PmRules.ExecutionChipDate). 일정이 지워진 이력은 스냅샷(설비·유형)으로 표시한다.
         foreach (var x in _execs.Where(x => x.CompletedAt is { } && (string.IsNullOrEmpty(_fEquip) || x.EquipId == _fEquip)))
         {
             var pm = x.PmScheduleId is { } sid ? _all.FirstOrDefault(p => p.PmScheduleId == sid) : null;
             var label = $"{ShortEquip(x.EquipId)} {(x.PmType is null ? "" : PmTypeName(x.PmType))}".Trim();
-            list.Add(new PmEvent(pm, x.CompletedAt!.Value.Date, ExecCls(x.Result), label, x));
+            list.Add(new PmEvent(pm, PmRules.ExecutionChipDate(x.Result, x.DueDate, x.CompletedAt!.Value), ExecCls(x.Result), label, x));
         }
 
         foreach (var p in rows)

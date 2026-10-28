@@ -136,8 +136,8 @@
                 var x = _byProc[i];
                 <div class="mnt-dt-row" style="grid-template-columns:110px 1fr 90px;">
                     <span class="lbl">@ProcessLabel(x.Code)</span>
-                    <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(Math.Max(2, (int)Math.Round(100.0 * x.Qty / _byProc[0].Qty)))%;background:@ProcColor(i);"></div></div>
-                    <span class="mnt-dt-val"><b>@string.Format(L["RPT.DefectPareto.Cases"].Value, UomFmt.Qty(x.Qty, null))</b></span>
+                    <div class="mnt-dt-track"><div class="mnt-dt-fill" style="width:@(Math.Max(2, (int)Math.Round(100.0 * x.Events / _byProc[0].Events)))%;background:@ProcColor(i);"></div></div>
+                    <span class="mnt-dt-val"><b>@string.Format(L["RPT.DefectPareto.Cases"].Value, x.Events.ToString("N0"))</b></span>
                 </div>
             }
         }
@@ -146,7 +146,7 @@
     <div class="ames-card">
         <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="white-space:nowrap;">
-                ▼ @L["RPT.DefectPareto.Detail.Title"] — <span style="color:var(--ames-tx-red-400);">@string.Format(L["RPT.DefectPareto.Cases"].Value, UomFmt.Qty(_rows.Sum(r => r.Qty), null))</span>
+                ▼ @L["RPT.DefectPareto.Detail.Title"] — <span style="color:var(--ames-tx-red-400);">@string.Format(L["RPT.DefectPareto.Cases"].Value, _rows.Sum(r => r.Events).ToString("N0"))</span>
                 @if (_selCode is not null) { <span> · </span><span class="pill bad">@_selCode</span> }
             </span>
             @if (_selCode is not null)
@@ -191,7 +191,7 @@
     List<RptRepository.DefectAggRow>          _raw        = new();
     List<ParetoItem>                          _pareto     = new();
     List<ParetoItem>                          _rows       = new();
-    List<(string Code, int Qty)>              _byProc     = new();
+    List<(string Code, int Events)>           _byProc     = new();
     List<MasterDataRepository.LineRow>        _lineList   = new();
     List<MasterDataRepository.DefectCodeRow>  _defectList = new();
     List<MasterDataRepository.CodeItemRow>    _procItems  = new();
@@ -268,8 +268,9 @@
                                         Qty = x.Qty, Events = x.Events, Pct = pct, Cum = Math.Min(100m, cum), Vital = vital };
             }).ToList();
 
+        // 공정별 분포는 불량 사건 수(건) — 수량은 파레토·상세 표의 수량 열(10-28)
         _byProc = rows.GroupBy(r => r.ProcessCode ?? "—")
-            .Select(g => (g.Key, g.Sum(r => r.Qty))).OrderByDescending(x => x.Item2).ToList();
+            .Select(g => (g.Key, g.Sum(r => r.Events))).OrderByDescending(x => x.Item2).ToList();
 
         if (_selCode is not null && !_pareto.Any(p => p.Code == _selCode)) _selCode = null;
         ApplySelection();

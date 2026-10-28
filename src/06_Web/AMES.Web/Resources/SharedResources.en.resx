@@ -5569,7 +5569,7 @@
     <value>OEE Analysis</value>
   </data>
   <data name="MNT.Dashboard.Tile.OeeSub" xml:space="preserve">
-    <value>avg {0}</value>
+    <value>avg {0} · {1}</value>
   </data>
   <data name="MNT.Dashboard.Tile.Downtime" xml:space="preserve">
     <value>Downtime</value>
@@ -5581,7 +5581,7 @@
     <value>Mold</value>
   </data>
   <data name="MNT.Dashboard.Tile.MoldSub" xml:space="preserve">
-    <value>shot counters · refurbish thresholds</value>
+    <value>warning {0} · critical {1}</value>
   </data>
   <data name="MNT.Dashboard.Filter.Title" xml:space="preserve">
     <value>Filter</value>
@@ -6143,6 +6143,9 @@
   </data>
   <data name="RPT.Inventory.Kpi.ValueNone" xml:space="preserve">
     <value>no unit cost</value>
+  </data>
+  <data name="RPT.Inventory.Kpi.ValuePartial" xml:space="preserve">
+    <value>excl. {0} items w/o cost</value>
   </data>
   <data name="RPT.Inventory.Kpi.Low" xml:space="preserve">
     <value>Below Safety Stock</value>

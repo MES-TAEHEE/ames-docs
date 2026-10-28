@@ -53,6 +53,21 @@ public static class PmRules
 
     public static bool NeedsManualNextDue(string? cycleBasis, int? cycleValue) => AutoNextDue(cycleBasis, cycleValue, DateTime.Today) is null;
 
+    /// <summary>
+    /// 달력에서 실행 이력 칩을 놓는 날 — 완료는 완료일, 작업지시 종료로 건너뛴 회차(Result CLOSED)는 그 회차의 예정일
+    /// (예정일 스냅샷이 없는 옛 이력만 종료일).
+    /// </summary>
+    public static DateTime ExecutionChipDate(string? result, DateTime? dueDate, DateTime completedAt) =>
+        result == MwoStatusCodes.Closed && dueDate is { } d ? d.Date : completedAt.Date;
+
+    /// <summary>
+    /// SQL 조건 — <see cref="ExecutionChipDate"/> 의 날짜가 [@F, @T) 안인 실행 이력(MNT_PMExecution 별칭 e).
+    /// </summary>
+    public const string ExecutionChipDateInRangeSql = """
+        ((e.Result = 'CLOSED' AND e.DueDate IS NOT NULL AND e.DueDate >= @F AND e.DueDate < @T)
+          OR (NOT (e.Result = 'CLOSED' AND e.DueDate IS NOT NULL) AND e.CompletedAt >= @F AND e.CompletedAt < @T))
+        """;
+
     /// <summary>사람이 넣은 다음 예정일은 완료일 뒤여야 한다.</summary>
     public static bool ValidManualNextDue(DateTime? nextDue, DateTime completedAt) => nextDue is { } d && d.Date > completedAt.Date;
 

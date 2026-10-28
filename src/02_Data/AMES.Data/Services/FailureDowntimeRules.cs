@@ -36,6 +36,16 @@ public static class FailureDowntimeRules
         return rows.Count > 0 ? new(Plan.Skip, null, Issue.Overlap) : new(Plan.Create, null, Issue.None);
     }
 
+    /// <summary>
+    /// 비가동 분 — PP_LineDowntimeLog.DurationMin(DATEDIFF(minute, StartTS, EndTS) = 사이에 넘은 분 경계 수)과 같은 규칙.
+    /// 진행 중이면 지금까지. MNT-003 고장 정지 분이 MNT-006 비가동 분과 1분씩 어긋나지 않게 한다.
+    /// </summary>
+    public static int StopMinutes(DateTime start, DateTime? end, DateTime now)
+    {
+        static long Minute(DateTime t) => t.Ticks / TimeSpan.TicksPerMinute;
+        return (int)Math.Max(0, Minute(end ?? now) - Minute(start));
+    }
+
     /// <summary>비가동을 닫는 시각 — 시작 전으로 거슬러 가지 않고 지금보다 뒤로 가지 않는다(PP-DTL 미래 시각 금지와 같은 기준).</summary>
     public static DateTime EndAt(DateTime start, DateTime at, DateTime now)
     {

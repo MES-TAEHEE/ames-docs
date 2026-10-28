@@ -196,6 +196,7 @@ public sealed class RptRepository
     /// <summary>
     /// 기간(전기일) 내 불량 상세를 불량코드×공정×라인으로 집계. 라인은 실적(PR_ProductionResult) 조인이되,
     /// 미확정(RAW)·로봇 NG LOT 의 불량은 ResultID 가 없으므로 LOT 의 라인으로 대신 귀속시킨다.
+    /// 날짜도 실적에 붙은 불량은 그 실적의 저장 전기일(RPT-001·불량률 분모와 같은 하루), 실적 없는 불량만 발생 시각 − 경계 시각(10-28).
     /// </summary>
     public List<DefectAggRow> ListDefectAgg(DateTime from, DateTime to, string? lineId = null)
     {
@@ -205,7 +206,7 @@ public sealed class RptRepository
             FROM    dbo.PR_DefectDetail d
             LEFT JOIN dbo.PR_ProductionResult r ON r.ResultID = d.ResultID
             LEFT JOIN dbo.tbl_Lot             tl ON tl.LotID  = d.LotID
-            WHERE   d.DetectedAt >= @F AND d.DetectedAt < @T
+            WHERE   COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE), CAST(DATEADD(MINUTE, -@Cut, d.DetectedAt) AS DATE)) BETWEEN @F AND @T
               AND  (@L IS NULL OR COALESCE(r.LineID, tl.LineID) = @L)
             GROUP BY d.DefectCode, d.ProcessCode, COALESCE(r.LineID, tl.LineID);
             """;
@@ -213,7 +214,8 @@ public sealed class RptRepository
         return Query(sql, r => new DefectAggRow(
             r["DefectCode"] as string, r["ProcessCode"] as string, r["LineID"] as string,
             (int)r["Qty"], (int)r["Events"]),
-            ("@F", "PR_DefectDetail.DetectedAt", from.Date + cut), ("@T", "PR_DefectDetail.DetectedAt", to.Date.AddDays(1) + cut), ("@L", "tbl_Lot.LineID", (object?)lineId ?? DBNull.Value));
+            ("@F", null, from.Date), ("@T", null, to.Date), ("@L", "tbl_Lot.LineID", (object?)lineId ?? DBNull.Value),
+            ("@Cut", null, (int)cut.TotalMinutes));
     }
 
     /// <summary>기간(전기일) 내 생산 실적 합계(양품 + 불량) — 불량률 분모(검사 수량).</summary>
@@ -340,14 +342,12 @@ public sealed class RptRepository
         string? Location, decimal Qty, decimal Reserved, decimal? UnitCost, decimal? SafetyStock, decimal? MaxStock, int Lots,
         string? ItemCategory = null, string? Uom = null);
 
-    /// <summary>통합 말단 재고를 품목×위치로 집계. 위치 유형 FG 또는 품목 ASSY를 완제품으로 구분한다.</summary>
+    /// <summary>통합 말단 재고를 품목×위치로 집계. 위치 유형 FG 또는 품목 ASSY를 완제품으로 구분한다.
+    /// 재고 행이 하나도 없는 활성 품목 중 안전재고·최대재고가 설정된 것은 수량 0 행(위치 없음)으로 더해 「없음」·안전재고 미달에 잡히게 한다(10-28).</summary>
     public List<InventorySkuRow> ListInventorySku()
     {
         const string sql = """
-            SELECT  x.Source, x.ItemNo, COALESCE(NULLIF(i.ItemName, ''), x.PartName) AS ItemName, i.ItemNameEN, i.ItemType, x.Location,
-                    x.Qty, x.Reserved, i.UnitCost, i.SafetyStock, i.MaxStock, x.Lots,
-                    i.ItemCategory, i.DefaultUOM
-            FROM (
+            WITH stock AS (
                 SELECT CASE WHEN L.LocationType='FG' OR M.ItemType='ASSY' THEN 'FG' ELSE 'WH' END AS Source,
                        w.PartNo AS ItemNo,w.LocationNo AS Location,MAX(w.PartName) AS PartName,
                        ISNULL(SUM(w.Qty),0) AS Qty,
@@ -362,6 +362,17 @@ public sealed class RptRepository
                   AND (L.AreaCode IN ('MAT_AREA','FG_AREA') OR NULLIF(LTRIM(RTRIM(w.LocationNo)),'') IS NULL)
                   AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=w.LotNo)
                 GROUP BY CASE WHEN L.LocationType='FG' OR M.ItemType='ASSY' THEN 'FG' ELSE 'WH' END,w.PartNo,w.LocationNo
+            )
+            SELECT  x.Source, x.ItemNo, COALESCE(NULLIF(i.ItemName, ''), x.PartName) AS ItemName, i.ItemNameEN, i.ItemType, x.Location,
+                    x.Qty, x.Reserved, i.UnitCost, i.SafetyStock, i.MaxStock, x.Lots,
+                    i.ItemCategory, i.DefaultUOM
+            FROM (
+                SELECT Source, ItemNo, Location, PartName, Qty, Reserved, Lots FROM stock
+                UNION ALL
+                SELECT CASE WHEN m.ItemType='ASSY' THEN 'FG' ELSE 'WH' END, m.ItemNo, NULL, NULL, 0, 0, 0
+                FROM dbo.MD_Item m
+                WHERE ISNULL(m.ActiveFlag, 1) = 1 AND (m.SafetyStock > 0 OR m.MaxStock > 0)
+                  AND NOT EXISTS (SELECT 1 FROM stock s WHERE s.ItemNo COLLATE DATABASE_DEFAULT = m.ItemNo COLLATE DATABASE_DEFAULT)
             ) x
             LEFT JOIN dbo.MD_Item i
               ON i.ItemNo COLLATE DATABASE_DEFAULT = x.ItemNo COLLATE DATABASE_DEFAULT
@@ -443,6 +454,33 @@ public sealed class RptRepository
         int Orders, int LateOrders, int Shipped, int? ShippedOnTime, int Claims,
         decimal Issued, decimal OnHand);
 
+    /// <summary>
+    /// toMonth 이하에서 월간 KPI 를 평가할 값이 있는 가장 최근 달 — 실적·불량(전기일)·설비 OEE·납기 수주·출하 중 하나라도 있는 달.
+    /// RPT-007 이 이번 달에 평가할 지표가 없을 때 옮겨 갈 달이다(조회 창 6개월 밖도 찾는다, 10-28).
+    /// </summary>
+    public DateTime? LastMetricMonth(DateTime toMonth)
+    {
+        const string sql = """
+            SELECT MAX(x.D) AS D FROM (
+                SELECT MAX(COALESCE(ProdDate, CAST(EntryAt AS DATE))) AS D FROM dbo.PR_ProductionResult
+                WHERE COALESCE(ProdDate, CAST(EntryAt AS DATE)) < @E
+                UNION ALL
+                SELECT MAX(COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE), CAST(DATEADD(MINUTE, -@Cut, d.DetectedAt) AS DATE)))
+                FROM dbo.PR_DefectDetail d LEFT JOIN dbo.PR_ProductionResult r ON r.ResultID = d.ResultID
+                WHERE COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE), CAST(DATEADD(MINUTE, -@Cut, d.DetectedAt) AS DATE)) < @E
+                UNION ALL
+                SELECT MAX(AggDate) FROM dbo.MNT_OEELog WHERE OEE IS NOT NULL AND AggDate < @E
+                UNION ALL
+                SELECT MAX(RequestedDeliveryDate) FROM dbo.PP_CustomerOrder WHERE RequestedDeliveryDate < @E
+                UNION ALL
+                SELECT MAX(CAST(ShippedAt AS DATE)) FROM dbo.FG_Shipment WHERE ShippedAt < @E
+            ) x;
+            """;
+        var end = new DateTime(toMonth.Year, toMonth.Month, 1).AddMonths(1);
+        var rows = Query(sql, r => r["D"] as DateTime?, ("@E", null, end), ("@Cut", null, (int)ReadDayCutoff().TotalMinutes));
+        return rows.Count > 0 && rows[0] is { } d ? new DateTime(d.Year, d.Month, 1) : null;
+    }
+
     /// <summary>from~to 사이 모든 달(비어 있는 달 포함)의 원천 지표. 각 지표의 정의는 화면 주석 참조.</summary>
     public List<MonthlyMetricRow> ListMonthlyMetrics(DateTime fromMonth, DateTime toMonth)
     {
@@ -459,8 +497,9 @@ public sealed class RptRepository
                 GROUP BY DATEFROMPARTS(YEAR(x.PD), MONTH(x.PD), 1)),
             def AS (
                 SELECT DATEFROMPARTS(YEAR(x.PD), MONTH(x.PD), 1) AS M, SUM(ISNULL(x.Qty,0)) AS Def
-                FROM (SELECT CAST(DATEADD(MINUTE, -@Cut, DetectedAt) AS DATE) AS PD, Qty FROM dbo.PR_DefectDetail
-                      WHERE DetectedAt >= DATEADD(MINUTE, @Cut, @F) AND DetectedAt < DATEADD(MINUTE, @Cut, DATEADD(MONTH, 1, @T))) x
+                FROM (SELECT COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE), CAST(DATEADD(MINUTE, -@Cut, d.DetectedAt) AS DATE)) AS PD, d.Qty
+                      FROM dbo.PR_DefectDetail d LEFT JOIN dbo.PR_ProductionResult r ON r.ResultID = d.ResultID) x
+                WHERE x.PD >= @F AND x.PD < DATEADD(MONTH, 1, @T)
                 GROUP BY DATEFROMPARTS(YEAR(x.PD), MONTH(x.PD), 1)),
             pln AS (
                 SELECT DATEFROMPARTS(YEAR(ScheduleDate), MONTH(ScheduleDate), 1) AS M, SUM(ISNULL(PlannedQty,0)) AS PlanQty
@@ -744,6 +783,7 @@ public sealed class RptRepository
 
     // ── RPT-009 Report Catalog (static metadata) ─────────────────────────
     // ── RPT-010 Report Builder (화이트리스트 기반 ad-hoc 집계) ─────────────────
+    /// <summary>집계 행. M 에는 값이 있는 측정값만 든다 — SQL 이 NULL 을 준 측정값(예: 출하 원본의 주문 수량)은 키가 없고 화면은 「—」(10-28).</summary>
     public sealed record AdhocRow(string Key, string? Label, Dictionary<string, decimal> M, string? LabelEn = null);
 
     /// <summary>데이터 소스·그룹 차원·기간으로 집계. SQL 조각은 모두 코드 안의 화이트리스트에서만 고르므로 사용자 입력이 SQL 에 섞이지 않는다.</summary>
@@ -819,7 +859,7 @@ public sealed class RptRepository
                     "Process"    => "ISNULL(d.ProcessCode,'—')",
                     "DefectCode" => "ISNULL(d.DefectCode,'—')",
                     "Line"       => "ISNULL(COALESCE(r.LineID, tl.LineID),'—')",
-                    _            => "CONVERT(varchar(10), CAST(DATEADD(minute, -@Cut, d.DetectedAt) AS DATE), 120)",
+                    _            => "CONVERT(varchar(10), COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE), CAST(DATEADD(MINUTE, -@Cut, d.DetectedAt) AS DATE)), 120)",
                 };
                 if (dim == "DefectCode") { labelExpr = "MAX(c.DefectName)"; labelEnExpr = "MAX(c.DefectNameEn)"; }
                 body = $"""
@@ -829,7 +869,7 @@ public sealed class RptRepository
                     LEFT JOIN dbo.PR_ProductionResult r ON r.ResultID = d.ResultID
                     LEFT JOIN dbo.tbl_Lot tl ON tl.LotID = d.LotID
                     LEFT JOIN dbo.MD_DefectCode c ON c.DefectCode = d.DefectCode
-                    WHERE d.DetectedAt >= @F AND d.DetectedAt < @T
+                    WHERE COALESCE(r.ProdDate, CAST(r.EntryAt AS DATE), CAST(DATEADD(MINUTE, -@Cut, d.DetectedAt) AS DATE)) BETWEEN @F AND @T
                     GROUP BY {keyExpr}
                     """;
                 break;
@@ -898,7 +938,7 @@ public sealed class RptRepository
         {
             "PROD"   => [("@F", "PR_ProductionResult.ProdDate", from.Date), ("@T", "PR_ProductionResult.ProdDate", to.Date),
                          ("@Cut", null, (int)cut.TotalMinutes)],
-            "DEFECT" => [("@F", "PR_DefectDetail.DetectedAt", from.Date + cut), ("@T", "PR_DefectDetail.DetectedAt", to.Date.AddDays(1) + cut),
+            "DEFECT" => [("@F", null, from.Date), ("@T", null, to.Date),
                          ("@Cut", null, (int)cut.TotalMinutes)],
             _        => [("@F", "PR_ProductionResult.EntryAt", from.Date), ("@T", "PR_ProductionResult.EntryAt", to.Date.AddDays(1))],
         };
@@ -906,7 +946,7 @@ public sealed class RptRepository
         return Query(body + " ORDER BY K;", r =>
         {
             var m = new Dictionary<string, decimal>();
-            foreach (var name in measures) m[name] = r[name] is DBNull ? 0m : Convert.ToDecimal(r[name]);
+            foreach (var name in measures) if (r[name] is not DBNull) m[name] = Convert.ToDecimal(r[name]);
             return new AdhocRow(r["K"] as string ?? "—", r["Lbl"] as string, m, r["LblEn"] as string);
         }, [.. range, .. pars.Select(x => (x.Name, (string?)null, (object?)x.Value))]);
     }

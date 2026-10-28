@@ -150,7 +150,9 @@
 
     // 이번 달 = 오늘(전기일)이 속한 달 — 1일 경계 시각 전에는 전달
     DateTime _thisMonth = FirstOfMonth(DbClock.Today);
-    IEnumerable<DropDownItem> MonthOptions => Enumerable.Range(0, 12).Select(i => _thisMonth.AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString(DateFmt.Month) });
+    // 최근 12개월 — 자동으로 옮겨 간 달이 그보다 이전이면 그 달까지 넓힌다
+    IEnumerable<DropDownItem> MonthOptions => Enumerable.Range(0, Math.Max(12, (_thisMonth.Year - _month.Year) * 12 + _thisMonth.Month - _month.Month + 1))
+        .Select(i => _thisMonth.AddMonths(-i)).Select(d => new DropDownItem { Value = d.ToString("yyyy-MM"), Text = d.ToString(DateFmt.Month) });
     IEnumerable<DropDownItem> CatOptions   => Cats.Select(c => new DropDownItem { Value = c, Text = CatLabel(c) });
 
     // ── 점수 ───────────────────────────────────────────────────────────
@@ -175,8 +177,10 @@
         // 이번 달에 평가 가능한 지표가 없으면 데이터가 있는 가장 최근 달로
         if (Rated == 0)
         {
-            var last = _metrics.LastOrDefault(m => m.GoodQty + m.DefectQty > 0 || m.Oee is { } || m.Orders > 0 || m.Shipped > 0);
-            if (last is { } && last.Month != _month) { _month = last.Month; _fMonth = _month.ToString("yyyy-MM"); Reload(); }
+            // 조회 창(6개월) 안에 없으면 DB 에서 그 이전 달까지 찾는다(10-28)
+            DateTime? last = _metrics.LastOrDefault(m => m.GoodQty + m.DefectQty > 0 || m.Oee is { } || m.Orders > 0 || m.Shipped > 0)?.Month;
+            if (last is null) { try { last = Rpt.LastMetricMonth(_month); } catch { } }
+            if (last is { } lm && lm != _month) { _month = lm; _fMonth = _month.ToString("yyyy-MM"); Reload(); }
         }
     }
 

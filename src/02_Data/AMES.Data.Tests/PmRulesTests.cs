@@ -99,4 +99,15 @@ public class PmRulesTests
     [InlineData(MwoResultCodes.Ok,       1, false, false)]
     public void Failed_items_get_a_follow_up_work_order(string result, int failed, bool hasFailures, bool expected)
         => Assert.Equal(expected, MwoChecklistRules.IssuesFollowUp(result, failed, hasFailures));
+
+    // 10-28 MNT 결과서 MNT010-TC-032 — 건너뜀 칩은 그 회차 예정일 D 에, 완료 칩은 완료일에
+    [Fact]
+    public void Skipped_chip_sits_on_the_due_date_and_completed_chip_on_the_completion_date()
+    {
+        var due = new DateTime(2026, 10, 20);
+        var closedAt = new DateTime(2026, 10, 23, 14, 5, 0);
+        Assert.Equal(due, PmRules.ExecutionChipDate(MwoStatusCodes.Closed, due, closedAt));
+        Assert.Equal(closedAt.Date, PmRules.ExecutionChipDate(MwoStatusCodes.Closed, null, closedAt));
+        Assert.Equal(closedAt.Date, PmRules.ExecutionChipDate("OK", due, closedAt));
+    }
 }

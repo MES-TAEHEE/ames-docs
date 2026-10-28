@@ -128,15 +128,18 @@ public sealed class MntRepository
     {
         // 상태·다음 PM·열린 작업지시는 고장·작업지시·PM 일정에서 계산한다(EquipStatusRules — SQL 의 고장 조건과 같은 규칙).
         // 열린 작업지시에서 「예정」 PM 작업지시(PmRules — 예정일이 N일보다 많이 남은 착수 전 PM)는 뺀다.
+        // 당일 OEE = 자동 채움 설비 OEE(MNT_OEELog)의 오늘 전기일 행 평균 — MNT_EquipmentStatus.TodayOEE 는 아무도 갱신하지 않는다.
         const string sql = $"""
             SELECT  e.EquipID, e.EquipName, e.LineID, e.EquipType, e.MakerModel, e.InstallDate,
                     COALESCE(es.Status, e.Status) AS ManualStatus,
-                    es.TodayOEE, es.RuntimeHours, es.CycleCount,
+                    td.TodayOEE, es.RuntimeHours, es.CycleCount,
                     np.NextDue, es.MountedMoldID, es.PLCConnTS, es.EquipStatusID,
                     sf.FailureNumber AS StopFailureNumber, pw.WoNumber AS PmWoNumber,
                     ow.WorkOrderID AS OpenWoID, ow.WoNumber AS OpenWoNumber, ISNULL(oc.Cnt, 0) AS OpenWoCount
             FROM    dbo.MD_Equipment e
             LEFT JOIN dbo.MNT_EquipmentStatus es ON es.EquipID = e.EquipID
+            OUTER APPLY (SELECT CAST(AVG(o.OEE) AS decimal(5,2)) AS TodayOEE FROM dbo.MNT_OEELog o
+                         WHERE  o.EquipID = e.EquipID AND o.AggDate = dbo.FN_POP_ProdToday()) td
             OUTER APPLY (SELECT TOP 1 f.FailureNumber FROM dbo.MNT_FailureRegister f
                          WHERE  f.EquipID = e.EquipID AND {EquipStatusRules.StopFailureSql}
                          ORDER  BY f.ReportedAt, f.FailureID) sf
@@ -585,7 +588,7 @@ public sealed class MntRepository
     {
         const string sql = $"""
             {PmExecSelect}
-            WHERE   e.CompletedAt >= @F AND e.CompletedAt < @T
+            WHERE   {PmRules.ExecutionChipDateInRangeSql}
               AND   (@C IS NULL OR e.PMClass = @C)
             ORDER BY e.CompletedAt, e.EquipID;
             """;
