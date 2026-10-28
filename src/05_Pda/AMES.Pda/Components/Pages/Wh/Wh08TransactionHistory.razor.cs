@@ -149,7 +149,7 @@ public partial class Wh08TransactionHistory
         if (value.Action is "IN" or "OUT" or "ADJ" or "ALL")
         {
             await PrepareDetailedHistory();
-            SetType(value.Action == "ALL" ? "" : value.Action);
+            await SetType(value.Action == "ALL" ? "" : value.Action);
             return;
         }
         if (value.Action == "REFRESH")
@@ -227,7 +227,7 @@ public partial class Wh08TransactionHistory
         if (!IsPptTestMode || _loading) return;
         await EnsurePptData();
         await PreparePptRows();
-        if (command is "IN" or "OUT" or "PICK" or "RETURN" or "ADJ" or "ALL") { SetType(command == "ALL" ? "" : command); return; }
+        if (command is "IN" or "OUT" or "PICK" or "RETURN" or "ADJ" or "ALL") { await SetType(command == "ALL" ? "" : command); return; }
         if (command == "YESTERDAY") { _dateFrom = _databaseToday.AddDays(-1); _dateTo = _dateFrom; }
         if (command == "PART") _search = IsFinishedGoods ? "PPT-FG-HIST" : "PPT-WH-HIST-01";
         if (IsFinishedGoods && command == "STOCK") _search = "FG-PPT-STK-970001";

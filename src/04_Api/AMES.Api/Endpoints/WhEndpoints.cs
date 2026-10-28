@@ -146,6 +146,7 @@ public static class WhEndpoints
         var maintenance = new MntRepository(factory);
         var g = app.MapGroup("/api/wh").WithTags("Warehouse");
         g.MapSupplierDeliveries(factory);
+        g.MapTransactionFeed(factory);
         g.MapAdjustmentLocation(factory, finishedGoods: false);
 
         // WH-001 Schedule - inbound tab

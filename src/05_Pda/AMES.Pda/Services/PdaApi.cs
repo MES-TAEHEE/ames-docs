@@ -106,7 +106,7 @@ public abstract class PdaApi
         string Direction, string? WorkerId, string? ReasonCode, string? ReasonNote,
         string? Supervisor, decimal? BeforeQty, decimal? DeltaQty, decimal? AfterQty,
         string? BeforeStatus, string? AfterStatus, string? BeforeLocation, string? AfterLocation,
-        string? Source, string? Note, string? Unit = null);
+        string? Source, string? Note, string? Unit = null, int? DeliveryId = null, int PartCount = 1);
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
         int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate,
         string? CarCode = null, string? Unit = null, decimal? MinDays = null, decimal? MinQty = null,
