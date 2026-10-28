@@ -678,7 +678,7 @@
         _outgoingType = value?.ToString() ?? "";
         _highlightOutgoingType = false;
         if (_directLot is not null)
-            _directQty = _outgoingType == "DEFECT" ? Math.Min(1, _directLot.Qty) : _directLot.Qty;
+            _directQty = _directLot.Qty;
     }
 
     private async Task LoadSlip()
