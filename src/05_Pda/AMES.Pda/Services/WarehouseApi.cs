@@ -269,7 +269,8 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         {
             Authorize();
             var url = $"/api/wh/inbound/scan?mode={Uri.EscapeDataString(mode.Trim())}&barcode={Uri.EscapeDataString(barcode.Trim())}";
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url);
+            if (resp.StatusCode == HttpStatusCode.NoContent) return null;
             if (!resp.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse scan service is unavailable."));
 

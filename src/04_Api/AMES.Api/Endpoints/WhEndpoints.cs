@@ -225,6 +225,13 @@ public static class WhEndpoints
                     lotNo: row?.LotNo ?? barcode, partNo: row?.PartNo, locationId: row?.ReceivedLocation, qty: row?.Qty));
                 return Results.Ok(row);
             }
+            catch (SqlException ex) when (ex.Number == 51402)
+            {
+                WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
+                    s, "SCAN_BOX", "WH002", "BOX", barcode, "FAIL", WarehouseErrorMessage(ex), lotNo: barcode));
+                // Older PDAs also deserialize JSON null into their not-found branch.
+                return Results.Content("null", "application/json", statusCode: StatusCodes.Status200OK);
+            }
             catch (Exception ex)
             {
                 var isValidationError =
@@ -673,7 +680,8 @@ public static class WhEndpoints
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "SCAN_LOCATION", "WH002", "LOCATION", locationId, "FAIL", WarehouseErrorMessage(ex),
                     locationId: locationId));
-                return Results.Problem("Warehouse database is unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
+                return Results.Problem(ex is SqlException { Number: 51423 } ? WarehouseErrorMessage(ex) : "Warehouse database is unavailable.",
+                    statusCode: ex is SqlException { Number: 51423 } ? StatusCodes.Status400BadRequest : StatusCodes.Status503ServiceUnavailable);
             }
         });
 
@@ -2983,6 +2991,10 @@ public static class WhEndpoints
             return null;
 
         using var dboCmd = new SqlCommand("""
+            IF EXISTS (SELECT 1 FROM dbo.MD_Location
+                       WHERE LocationID=@LocationID AND COALESCE(ActiveFlag,1)=1 AND LocationLevel=1)
+                THROW 51423, 'Primary locations cannot hold stock. Scan a detail location.', 1;
+
             SELECT TOP (1)
                 L.LocationID,
                 L.LocationName,
