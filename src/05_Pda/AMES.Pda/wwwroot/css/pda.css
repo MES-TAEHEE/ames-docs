@@ -10139,7 +10139,7 @@ body:has(.pda-shell.wh),
     border-radius: 0 !important;
     background: #111c2e !important;
     color: rgba(255, 255, 255, .62) !important;
-    font-size: 11px !important;
+    font-size: 15px !important;
     font-weight: 900 !important;
     line-height: 1 !important;
 }
@@ -10178,7 +10178,7 @@ body:has(.pda-shell.wh),
 .pda-shell.wh.inventory-browser-shell .inventory-table-head {
     padding: 0 12px 6px !important;
     color: rgba(255, 255, 255, .58) !important;
-    font-size: 9px !important;
+    font-size: 14px !important;
     font-weight: 900 !important;
 }
 
@@ -10215,14 +10215,19 @@ body:has(.pda-shell.wh),
 
 .pda-shell.wh.inventory-browser-shell .inventory-table-row > strong,
 .pda-shell.wh.inventory-browser-shell .inventory-part-cell strong {
+    display: -webkit-box !important;
     min-width: 0 !important;
     overflow: hidden !important;
     color: #ffffff !important;
     font-family: 'JetBrains Mono', monospace !important;
-    font-size: 11px !important;
+    font-size: 18px !important;
     font-weight: 900 !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+    line-height: 1.1 !important;
+    overflow-wrap: anywhere !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
 .pda-shell.wh.inventory-browser-shell .inventory-part-cell {
@@ -10244,7 +10249,8 @@ body:has(.pda-shell.wh),
 .pda-shell.wh.inventory-browser-shell .inventory-part-cell small {
     overflow: hidden !important;
     color: rgba(255, 255, 255, .66) !important;
-    font-size: 9px !important;
+    font-size: 15px !important;
+    line-height: 1.05 !important;
     font-weight: 700 !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
@@ -10278,7 +10284,7 @@ body:has(.pda-shell.wh),
 .pda-shell.wh.inventory-browser-shell .inventory-detail-head em {
     overflow: hidden !important;
     color: rgba(255, 255, 255, .58) !important;
-    font-size: 9px !important;
+    font-size: 14px !important;
     font-style: normal !important;
     font-weight: 800 !important;
     text-overflow: ellipsis !important;
@@ -10290,7 +10296,8 @@ body:has(.pda-shell.wh),
     overflow-wrap: anywhere !important;
     white-space: normal !important;
     color: #ffffff !important;
-    font-size: 11px !important;
+    font-size: 18px !important;
+    line-height: 1.1 !important;
     font-weight: 900 !important;
 }
 
