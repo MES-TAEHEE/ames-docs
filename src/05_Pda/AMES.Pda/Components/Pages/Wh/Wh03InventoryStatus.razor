@@ -1036,7 +1036,7 @@
 
     private List<WarehouseBrowsePart> BrowsePartRows => _rows
         .Where(row => row.OnHandQty > 0 && (IsSpareParts || !string.IsNullOrWhiteSpace(row.LocationId)))
-        .GroupBy(row => new { PartNo = row.ItemNo, PartName = row.ItemName, Location = row.LocationId.Trim(), Unit = Unit(row.Unit) })
+        .GroupBy(row => new { PartNo = row.ItemNo, PartName = row.ItemName, Location = string.IsNullOrWhiteSpace(row.LocationId) ? "-" : row.LocationId.Trim(), Unit = Unit(row.Unit) })
         .Select(group => new WarehouseBrowsePart(group.Key.PartNo, group.Key.PartName, group.Sum(row => row.OnHandQty),
             group.Key.Unit, group.Key.Location, group.Max(row => row.LastReceivedDate)))
         .OrderByDescending(row => row.LastReceivedDate)
@@ -1769,8 +1769,7 @@
 
         try
         {
-            if (_inventoryLocations.Count == 0)
-                _inventoryLocations = await Api.WhLocationsAsync(AreaScope, _stockKind);
+            _inventoryLocations = await Api.WhLocationsAsync(AreaScope, _stockKind);
 
             var lookup = await Api.WhInventoryScanAsync(scanText, AreaScope);
             var location = _inventoryLocations.FirstOrDefault(row =>
@@ -1781,7 +1780,11 @@
                 var locationNo = string.IsNullOrWhiteSpace(lookup?.SearchText) ? scanText : lookup.SearchText.Trim();
                 location = _inventoryLocations.FirstOrDefault(row =>
                     string.Equals(row.LocationId, locationNo, StringComparison.OrdinalIgnoreCase));
-                location ??= await Api.WhScanLocationAsync(locationNo, AreaScope);
+                if (location is null)
+                {
+                    var emptyLocation = await Api.WhScanLocationAsync(locationNo, AreaScope);
+                    location = emptyLocation is null ? null : emptyLocation with { TotalQty = 0, LineCount = 0 };
+                }
             }
 
             if (location is not null)
@@ -1802,11 +1805,7 @@
 
             foreach (var row in inventoryRows)
             {
-                var itemLocations = await Api.WhInventoryLocationsAsync(row.ItemNo, areaCode: AreaScope, stockKind: _stockKind);
-                foreach (var itemLocation in itemLocations.Where(itemLocation => itemLocation.Qty > 0))
-                    locationIds.Add(itemLocation.LocationId);
-
-                if (itemLocations.Count == 0 && row.OnHandQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
+                if (row.OnHandQty > 0 && !string.IsNullOrWhiteSpace(row.LocationId))
                     locationIds.Add(row.LocationId);
             }
 
@@ -1868,7 +1867,7 @@
             }
 
             _selectedInventoryLocation = location;
-            _locationItems = await Api.WhLocationMapItemsAsync(location.LocationId, DateFrom, DateTo, areaCode: AreaScope, stockKind: _stockKind);
+            _locationItems = await Api.WhLocationMapItemsAsync(location.LocationId, areaCode: AreaScope, stockKind: _stockKind);
             _locationMsg = _locationItems.Count == 0
                 ? "No inventory exists in this location."
                 : "";
@@ -1920,7 +1919,7 @@
             _browsePartLots = lots
                 .Where(row => row.RemainingQty > 0
                     && string.Equals(row.ItemNo, part.PartNo, StringComparison.OrdinalIgnoreCase)
-                    && (!IsSpareParts || string.Equals(row.LocationId ?? "", part.Location, StringComparison.OrdinalIgnoreCase)))
+                    && string.Equals(string.IsNullOrWhiteSpace(row.LocationId) ? "-" : row.LocationId.Trim(), part.Location, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(row => row.LocationId, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(row => row.LotNo, StringComparer.OrdinalIgnoreCase)
                 .ToList();

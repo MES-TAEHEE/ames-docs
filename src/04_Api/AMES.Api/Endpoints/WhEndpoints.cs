@@ -831,31 +831,8 @@ public static class WhEndpoints
             if (!PdaStockScope.IsValid(stockKind)) return Results.BadRequest("Invalid stock type.");
 
             using var conn = factory.OpenConnection();
-            using var cmd = new SqlCommand($"""
-                SELECT
-                    W.LotNo AS LOTNO,
-                    W.PartNo AS PARTNO,
-                    COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS PARTNM,
-                    SUM(COALESCE(W.Qty, 0)) AS QTY,
-                    I.DefaultUOM AS UNIT,
-                    N'AVAILABLE' AS INV_STATUS,
-                    CONVERT(nvarchar(10), MAX(W.ReceivedAt), 23) AS WORK_DATE,
-                    CONVERT(nvarchar(8), MAX(W.ReceivedAt), 108) AS WORK_TIME
-                FROM dbo.WH_Inventory W
-                LEFT JOIN dbo.MD_Item I ON I.ItemNo = W.PartNo
-                WHERE UPPER(W.LocationNo) = UPPER(@LocationID)
-                  AND {PdaStockScope.Predicate(stockKind)}
-                  AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory Child WHERE Child.ParentLotNo=W.LotNo)
-                  AND COALESCE(W.Qty, 0) > 0
-                  AND (@DateFrom IS NULL OR CONVERT(date, W.ReceivedAt) >= @DateFrom)
-                  AND (@DateTo IS NULL OR CONVERT(date, W.ReceivedAt) <= @DateTo)
-                GROUP BY
-                    W.LotNo,W.PartNo,W.PartName,I.ItemName,I.DefaultUOM
-                ORDER BY W.PartNo, LOTNO;
-                """, conn);
+            using var cmd = new SqlCommand(PdaStockScope.Inventory(PdaWarehouseSql.InventoryLocationItems, stockKind), conn);
             cmd.Parameters.Add("@LocationID", SqlDbType.NVarChar, 40).Value = locationId.Trim();
-            cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value = dateFrom?.Date ?? (object)DBNull.Value;
-            cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value = dateTo?.Date ?? (object)DBNull.Value;
 
             using var rdr = cmd.ExecuteReader();
             var rows = new List<LocationMapItemRow>();
