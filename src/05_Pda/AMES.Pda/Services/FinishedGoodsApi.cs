@@ -6,6 +6,9 @@ namespace AMES.Pda.Services;
 
 public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(http, auth)
 {
+    public Task<List<AMES.Contracts.Dto.AssyReadyPalletDto>> AssyReadyPalletsAsync()
+        =>GetRequiredAsync<List<AMES.Contracts.Dto.AssyReadyPalletDto>>("/api/fg/putaway/ready-pallets",
+            "Assy Ready could not be loaded. Please retry.");
     public Task<AMES.Contracts.Dto.PalletReturnDto> ScanEmptyPalletReturnAsync(string barcode)
         => GetRequiredAsync<AMES.Contracts.Dto.PalletReturnDto>($"/api/fg/pallet-return/scan?barcode={Uri.EscapeDataString(barcode)}", "Pallet return service is unavailable.");
 

@@ -23,7 +23,7 @@
             @if (!_loadError && !_isLoading)
             {
             <div class="wh01-summary">
-                <RadzenCard class="wh01-stat"><span>Total</span><strong>@_rows.Count</strong></RadzenCard>
+                <RadzenCard class="wh01-stat"><span>Groups</span><strong>@_rows.Count</strong></RadzenCard>
                 <RadzenCard class="wh01-stat waiting-age waiting-age-1"><span>Over 1 Day</span><strong>@OverDaysCount(1)</strong></RadzenCard>
                 <RadzenCard class="wh01-stat waiting-age waiting-age-5"><span>Over 5 Days</span><strong>@OverDaysCount(5)</strong></RadzenCard>
                 <RadzenCard class="wh01-stat waiting-age waiting-age-10"><span>Over 10 Days</span><strong>@OverDaysCount(10)</strong></RadzenCard>
@@ -44,16 +44,20 @@
             <div class="wh01-list">
                 @foreach (var row in _rows)
                 {
-                    <RadzenCard class="wh01-release-card" @key="row.LotId">
+                    <RadzenCard class="wh01-release-card" @key="ReadyBarcode(row)">
                         <div class="wh01-card-top wh01-card-top-compact">
-                            <div class="wh01-po-no">@row.LotNo</div>
-                            <RadzenBadge class="@($"wh01-status waiting-age {AgeClass(row)}")" Text="@AgeText(row)" title="Since production completion" />
+                            <div class="wh01-po-no">@ReadyBarcode(row)</div>
+                            <RadzenBadge class="@($"wh01-status waiting-age {AgeClass(row)}")" Text="@AgeText(row)" title="Since warehouse registration" />
                         </div>
-                        <div class="wh01-release-facts">
-                            <div><span>Part No</span><strong>@row.ItemNo</strong></div>
-                            <div><span>Qty</span><strong>@row.Qty.ToString("#,0.###") @Uom.Symbol(row.Unit)</strong></div>
-                        </div>
-                        <div class="wh01-desc">@(row.ItemName ?? "-")</div>
+                        <div class="wh01-desc">@row.LotCount ASSY LOTS · LOCATION NOT SET</div>
+                        @foreach(var part in row.Parts)
+                        {
+                            <div class="wh01-release-facts">
+                                <div><span>Part No</span><strong>@part.PartNo</strong></div>
+                                <div><span>Qty</span><strong>@part.Qty.ToString("#,0.###") @Uom.Symbol(part.Unit)</strong></div>
+                            </div>
+                            <div class="wh01-desc">@(part.PartName??"-")</div>
+                        }
                     </RadzenCard>
                 }
             </div>
@@ -63,14 +67,15 @@
 </div>
 
 @code {
-    private List<PdaApi.FgPutAwayWaitingRow> _rows = new();
+    private List<AssyReadyPalletDto> _rows = new();
     private bool _isLoading;
     private bool _loadError;
     private string _message = "Loading...";
     private DateTime _asOf;
-    private bool IsOverDays(PdaApi.FgPutAwayWaitingRow row, int days) => row.ReadyAt < _asOf.AddDays(-days);
+    private static string ReadyBarcode(AssyReadyPalletDto row) => row.PalletNo ?? row.Lots![0].LotNo;
+    private bool IsOverDays(AssyReadyPalletDto row, int days) => row.ReadyAt < _asOf.AddDays(-days);
     private int OverDaysCount(int days) => _rows.Count(row => IsOverDays(row, days));
-    private string AgeClass(PdaApi.FgPutAwayWaitingRow row) =>
+    private string AgeClass(AssyReadyPalletDto row) =>
         IsOverDays(row, 10) ? "waiting-age-10" :
         IsOverDays(row, 5) ? "waiting-age-5" :
         IsOverDays(row, 1) ? "waiting-age-1" : "";
@@ -85,13 +90,18 @@
         _message = "Loading...";
         try
         {
-            _rows = (await Api.FgPutAwayWaitingAsync())
+            var groups = await Api.AssyReadyPalletsAsync();
+            if(groups.Any(row=>row.PalletNo is null && row.Lots is null))
+                throw new InvalidOperationException("ASSY LOT details could not be loaded.");
+            _rows = groups
+                .SelectMany(row=>row.PalletNo is not null ? new[] { row } : (row.Lots??[]).Select(lot=>
+                    new AssyReadyPalletDto(null,lot.ReadyAt,1,
+                        [new AssyReadyPartDto(lot.PartNo,lot.PartName,lot.Qty,lot.Unit,1)],[lot])))
                 .OrderBy(x => x.ReadyAt ?? DateTime.MaxValue)
-                .ThenBy(x => x.ProducedAt ?? DateTime.MaxValue)
-                .ThenBy(x => x.LotId)
+                .ThenBy(x => x.PalletNo)
                 .ToList();
             _asOf = await Api.DatabaseTimeAsync();
-            _message = _rows.Count == 0 ? "No finished goods are waiting for put-away." : "";
+            _message = _rows.Count == 0 ? "No registered ASSY LOTs are waiting for location assignment." : "";
         }
         catch (Exception ex)
         {
@@ -102,7 +112,7 @@
         finally { _isLoading = false; }
     }
 
-    private string AgeText(PdaApi.FgPutAwayWaitingRow row)
+    private string AgeText(AssyReadyPalletDto row)
     {
         if (row.ReadyAt is null) return "-";
         var days = Math.Max(0, (int)(_asOf - row.ReadyAt.Value).TotalDays);
