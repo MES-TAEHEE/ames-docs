@@ -728,7 +728,7 @@
         .GroupBy(d=>NoteNumber(d.Number),StringComparer.OrdinalIgnoreCase)
         .Select(g=>new PortalNoteRow(g.Key,g.GroupBy(d=>d.Number,StringComparer.OrdinalIgnoreCase).Select(x=>x.First().Copy()).ToList()))
         .Where(g=>(_includeClosed || NoteStatus(g)!="Received") && (_includeCancelled || NoteStatus(g)!="Cancelled"))
-        .Where(g=>string.IsNullOrEmpty(_status)||g.Deliveries.Any(d=>d.Status==_status))
+        .Where(g=>string.IsNullOrEmpty(_status)||NoteStatus(g)==_status)
         .Where(g=>g.Deliveries.Any(d=>(!_from.HasValue||d.Date>=_from)&&(!_to.HasValue||d.Date<=_to)))
         .Where(g=>string.IsNullOrWhiteSpace(_search)||g.Number.Contains(_search,StringComparison.OrdinalIgnoreCase)
             ||Store.Deliveries.Any(d=>g.Numbers.Contains(d.Number)&&(d.Number+" "+d.OrderNumber+" "+d.Item).Contains(_search,StringComparison.OrdinalIgnoreCase)))
@@ -745,15 +745,8 @@
         if(lines.All(d=>d.Received<=0))return "NotReceived";
         return lines.All(d=>d.Received>=d.Quantity) ? "Received" : "Partial";
     }
-    string NoteStatus(PortalNoteRow note)
-    {
-        var active=note.Deliveries.Where(d=>d.Status!="Cancelled").ToList();
-        if(active.Count==0) return "Cancelled";
-        if(active.All(d=>d.Status=="Received")) return "Received";
-        if(active.Any(d=>d.Status=="Received")) return "PartiallyReceived";
-        if(active.Any(d=>d.Status=="Shipped")) return "Shipped";
-        return "Registered";
-    }
+    string NoteStatus(PortalNoteRow note) => ScmRepository.DeliveryNoteStatus(Store.Deliveries
+        .Where(d=>note.Numbers.Contains(d.Number)).Select(d=>(d.Status,d.Received)));
     List<ScmRepository.PortalDiscrepancy> NoteMismatches(PortalNoteRow note) => _portalMismatches.Where(r=>note.Numbers.Contains(r.Delivery)).OrderBy(r=>r.OccurredAt).ToList();
     static void RowLinkNote(RowRenderEventArgs<PortalNoteRow> args)=>args.Attributes["style"]="cursor:pointer";
     void SelectNote(PortalNoteRow note) { _selectedNote=note; _showMismatch=false; _cancelNoteError=""; }
@@ -956,6 +949,7 @@
     }
     bool ValidateMaterial(ScmPreviewStore.Order order)
     {
+        if (string.IsNullOrWhiteSpace(order.Vendor)) { _error = L["Scm.Text.SelectAVendorFirst"]; return false; }
         if (!LoadMaterials(order.Vendor)) return false;
         if (!LoadVendors()) return false;
         if (!_vendors.Any(v => v.VendorID == order.Vendor && v.ActiveFlag))

@@ -85,7 +85,7 @@
                 var boxes=_draft.Where(b=>b.Row.Order==order.Number).ToList();
                 <tr class="case-po-row @(expanded?"case-po-open":"")" @onclick="()=>ToggleOrder(order.Number)">
                     <td><button type="button" class="case-expand" aria-label='@L["Portal.Create.ExpandFmt", order.Number]' aria-expanded="@expanded" disabled="@_busy">@(expanded?"▾":"▸")</button></td>
-                    <td><strong class="case-po-code">@order.Number</strong></td><td>@order.Ordered.ToString(DateFmt.Date)</td><td>@order.VendorName</td><td>@order.Destination</td><td>@order.Due.ToString(DateFmt.Date)</td><td><span class="case-confirmed">@L["Scm.Text.Confirmed.538025"]</span></td>
+                    <td><strong class="case-po-code">@order.Number</strong></td><td>@order.Ordered.ToString(DateFmt.Date)</td><td>@order.VendorName</td><td>@order.Destination</td><td>@order.Due.ToString(DateFmt.Date)</td><td><span class="case-confirmed">@L["Scm.Text.Confirmed"]</span></td>
                 </tr>
                 @if(expanded)
                 {

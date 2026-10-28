@@ -81,7 +81,7 @@ dotnet run --project src\06_Web\AMES.Web\AMES.Web.csproj
 dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 ```
 
-**DB 전제조건**: ① `dist/create_database.sql`로 `AMES_DEV`를 **`COLLATE Korean_Wansung_CI_AS`**로 생성 → ② `dist/AMES_Schema.sql`(179개 테이블·프로시저 159개(POP `SP_POP_*` 포함, 옛 PDA 프로시저 `WH_PDA_`·`FG_PDA_`·`SP_PDA_` 제외 — 개발·로컬 DB 에서도 10-23·10-24 지움)·시퀀스 1개 — 10-26 개발 DB 에서 SMO 로 다시 뜬 최종 구조, 삭제 승인 대기인 `WH_ReleaseSchedule` 은 생성기가 뺀다(10-23 안영훈, `dist/retire_wh_release_schedule.sql`). 빈 DB 에 돌리면 그 테이블 말고는 개발 DB 와 테이블·컬럼 순서·인덱스·CHECK·외래키·프로시저·시퀀스·컬럼 설명이 같다) 적용 → ③ `dist/migrate_*.sql` 후 실행(스키마가 이미 최종 상태라 대부분 건너뛴다). DB를 Korean 콜레이션으로 먼저 만들어야 한다.
+**DB 전제조건**: ① `dist/create_database.sql`로 `AMES_DEV`를 **`COLLATE Korean_Wansung_CI_AS`**로 생성 → ② `dist/AMES_Schema.sql`(159개 테이블 — 10-29 읽기·쓰기 코드가 모두 없는 20개(옛 `PNT_*` 10·`PR_*` 8·`QC_Disposition`·`QC_NCR_Action`, 목록은 파일 머리말)를 뺐다, 개발 DB 에는 남아 있어 `tools/schema_from_db` 로 다시 뜨면 다시 들어간다·프로시저 159개(POP `SP_POP_*` 포함, 옛 PDA 프로시저 `WH_PDA_`·`FG_PDA_`·`SP_PDA_` 제외 — 개발·로컬 DB 에서도 10-23·10-24 지움)·시퀀스 1개 — 10-26 개발 DB 에서 SMO 로 다시 뜬 최종 구조, 삭제 승인 대기인 `WH_ReleaseSchedule` 은 생성기가 뺀다(10-23 안영훈, `dist/retire_wh_release_schedule.sql`). 빈 DB 에 돌리면 그 테이블 말고는 개발 DB 와 테이블·컬럼 순서·인덱스·CHECK·외래키·프로시저·시퀀스·컬럼 설명이 같다) 적용 → ③ `dist/migrate_*.sql` 후 실행(스키마가 이미 최종 상태라 대부분 건너뛴다). DB를 Korean 콜레이션으로 먼저 만들어야 한다.
 **스키마 파일 재생성**(10-08): `tools/schema_from_db`(`dotnet run -- "<개발 DB 연결문자열>" dist/AMES_Schema.sql <출력>`)가 개발 DB 의 테이블·키·인덱스·기본값·CHECK·외래키·컬럼 설명·프로시저를 SMO 로 뜨고(`TEST_*`·SSMS 다이어그램 객체 제외), 기존 파일의 저장소 시드(`-- Repository sample seeds` 부터 — 옛 파일이면 `-- Persistent box labels.` 직전까지)를 뒤에 붙이며 `SYS_Screen` 시드는 개발 DB 현재 값으로 다시 뜬다. DROP 목록은 개발 DB 에 있는 테이블만이다(10-14 — 옛 WH 테이블 9개·트리거 DROP 을 생성기에서 뺐다). 시퀀스도 뜬다(10-24 — `SCM_CaseNumberSequence`). 예전 파일 꼬리에 이어 붙어 있던 마이그레이션 블록(SCM 박스·케이스, FG 출하·재고 통합 등)은 개발 DB 에 이미 반영돼 버렸다. 확인은 빈 DB 에 새 파일을 돌린 뒤 개발 DB 와 테이블·컬럼(순서 등수·형식·NULL·기본값·콜레이션)·키·인덱스·외래키·CHECK·프로시저 정의를 비교해 차이 0 이어야 한다. **재구축 주의**: `rebuild_db.sh` 는 `set -e` + `sqlcmd -b` 라 **첫 실패에서 멈춘다**. 옛 WH/FG 업그레이드 마이그레이션(`migrate_wh_core_tables.sql`·`migrate_fg_inventory_consolidation.sql`)은 스키마 파일의 최종 구조를 덮지 않게 목록에서 뺐다. 지금 막히는 지점과 할 일은 `Claude_확인사항.md` 안영훈 미해결 2 가 정본이다(실제 재구축으로는 10-08 이후 확인하지 않음).
 
 **DB 통합 테스트는 환경변수 `AMES_TEST_CONN` 으로만 DB 를 정한다**(10-28 — 소스에 접속 정보를 두지 않는다, 없으면 DB 테스트는 건너뛴다. Data·Pop 테스트 공통, 쓰기 테스트는 로컬 DB 권장).
@@ -350,7 +350,7 @@ appsettings 의 `PopTerminal:ModuleCode`/`LineId`/`StationId` 는 제거됐다 �
 
 ## DB 스키마 영역
 
-스키마 파일 179개 테이블(TEST_*·SSMS `sysdiagrams`·삭제 승인 대기 `WH_ReleaseSchedule` 제외), 기능 접두사로 구분:
+스키마 파일 159개 테이블(TEST_*·SSMS `sysdiagrams`·삭제 승인 대기 `WH_ReleaseSchedule`·10-29 미사용 20개 제외), 기능 접두사로 구분:
 
 | 접두사 | 영역 |
 |--------|------|
@@ -621,7 +621,7 @@ INJ-MAIN 은 HID(키보드 웨지) 외에 시리얼 스캔도 받는다. 호스�
 - **오류·400**: `/portal` 아래에서 난 예외는 `UseWhen` 분기의 예외 처리기가 맨몸 `/portal/error`(내부 메뉴 없음)로 보내고, 외부 로그인 폼의 위조 방지 토큰 만료 400 은 `/Account` 와 같이 GET 으로 되돌린다. 외부 셸·로그인은 청록 액센트(`.portal-auth`·`.portal-shell`)로 내부 사이트와 인상을 분리한다. 좌측 메뉴(`PortalNavMenu`)는 10-06 부터 내부 `NavMenu` 와 같은 구성(주/보조 언어 두 줄 표기·즐겨찾기 ☆(저장 키 `ames.portal.nav.*`)·접힘 기억)이고 색은 청록 그대로다. 섹션 머리글은 `Portal.Sub`(외부 포탈 / PARTNER PORTAL)만 보인다. PORTAL-001 의 수주 확인 열은 상태 열처럼 배지다(확인 완료 `ok`·확인 대기 `warn`, 해당 없음 —).
 - **외부 노출**: appsettings `Portal:ExternalHosts`(기본 `[]`)에 외부 호스트명을 적으면 그 호스트로 들어온 요청은 `/portal/*`·`/_blazor`·`/_framework`·정적 파일·`/keep-alive` 만 허용하고 나머지는 403(`/` 는 `/portal/login` 으로). IIS URL Rewrite 없이 소스로 관리한다. HTTPS 바인딩·외부 DNS 는 별도.
 - **DB**: `dist/migrate_portal.sql`(`PROCESS/PORTAL` 코드, 구 출하 계획 화면 정리) → SCM 마이그레이션들(`migrate_scm_portal_screens.sql` 등, `rebuild_db.sh` 순서) → **`dist/migrate_scm_portal_user_login.sql`** → `dist/migrate_portal_legacy_cleanup.sql`(구 역할·계정·포탈 RBAC 정리)(09-25, `SCM_PortalVendorUser` 를 로그인 구조로 — 구 구조(AspNetUsers FK)에 행이 있으면 중단, 포탈 RBAC 행 삭제, SCM-004 화면·Admin REA, 재실행 안전) → `dist/seed_portal_dev.sql`(개발 전용 `adminext@ames.local` → V1007, 비밀번호는 admin 과 동일 — 해시 복사). 구 `migrate_scm_portal_vendor_user.sql` 은 새 구조면 PK 를 건드리지 않게 가드했다. **이 마이그레이션 없이 신 Web 을 올리면 포탈 로그인·SCM-004 가 예외**이고, 마이그레이션만 먼저 적용하면 구 Web 의 포탈 화면은 RBAC 행이 없어져 막힌다 — Web 과 함께 반영한다.
-- 포탈 화면은 SCM 발주 화면과 같은 공용 컴포넌트 `Components/Shared/ScmPreview.razor`(`IsPortal=true`)다: PORTAL-001 발주 조회·수주 확인 · 002 납기별 · 003 납품서 등록 · 004 납품서 조회·수정 · 005 입고·검수. 납품서·검수는 아직 회로 메모리의 미리보기(`ScmPreviewStore`)라 DB 에 저장되지 않는다. 외부 로그인 후 첫 화면은 포탈 홈 `/portal`(`PortalAuth.HomePath`). 09-25 SCM·포탈 화면 디자인을 표준 화면과 맞췄다 — 카드 헤더 필터(Radzen)·No. 열·25행 고정 페이저·행 클릭 상세 모달(정보 타일)·발주 작성 모달, 섹션 클래스 `ames-sec-scm`·`ames-sec-portal`.
+- 포탈 화면은 SCM 발주 화면과 같은 공용 컴포넌트 `Components/Shared/ScmPreview.razor`(`IsPortal=true`)다: PORTAL-001 발주 조회·수주 확인 · 002 납기별 · 003 납품서 등록 · 004 납품서 조회·수정 · 005 입고·검수. 납품서·검수는 아직 회로 메모리의 미리보기(`ScmPreviewStore`)라 DB 에 저장되지 않는다. 외부 로그인 후 첫 화면은 포탈 홈 `/portal`(`PortalAuth.HomePath`). 09-25 SCM·포탈 화면 디자인을 표준 화면과 맞췄다 — 카드 헤더 필터(Radzen)·No. 열·25행 고정 페이저·행 클릭 상세 모달(정보 타일)·발주 작성 모달, 섹션 클래스 `ames-sec-scm`·`ames-sec-portal`. **포탈 납품서 상태는 입고 수량으로 판정한다**(10-29 SCM 결과서 FAIL 조치 — `SCM_Delivery.Status` 는 전량 입고 때만 `Received` 가 되고 부분 입고는 `Shipped` 로 남는다): `ScmRepository.DeliveryNoteStatus`(취소 제외 납품이 모두 Received = 입고 완료, 입고 수량이 있으면 부분 입고), 상태 열·KPI·상태 필터가 같은 값이다. 구매발주 작성은 업체가 비면 「협력업체를 먼저 선택하세요.」에서 멈추고, Shipping Unit 추가의 발주 선택 표 상태는 PTL003 과 같은 「확인 완료」. 정본 테스트 `ScmFailFixes1029Tests`.
 
 ## 데모 화면참조 문서 — `AMES_Office_Web_화면참조.md` (참고용)
 

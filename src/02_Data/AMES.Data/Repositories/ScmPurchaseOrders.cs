@@ -22,6 +22,17 @@ public sealed partial class ScmRepository
         return "Published";
     }
 
+    // SCM_Delivery.Status stays Shipped until the whole delivery is received, so a partial receipt is read from the quantities.
+    public static string DeliveryNoteStatus(IEnumerable<(string Status, decimal Received)> deliveries)
+    {
+        var active = deliveries.Where(x => x.Status != "Cancelled").ToList();
+        if (active.Count == 0) return "Cancelled";
+        if (active.All(x => x.Status == "Received")) return "Received";
+        if (active.Any(x => x.Status == "Received" || x.Received > 0)) return "PartiallyReceived";
+        if (active.Any(x => x.Status == "Shipped")) return "Shipped";
+        return "Registered";
+    }
+
     public static string ProgressOrderStatus(string status, bool confirmed,
         IEnumerable<(decimal Ordered, decimal Shipped, decimal Received, decimal Registered)> lines)
     {

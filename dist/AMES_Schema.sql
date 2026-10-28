@@ -1,6 +1,6 @@
 ﻿-- A-MES consolidated schema: AMES_DEV, captured 2026-10-28 from the development DB (192.168.0.132) with SMO.
--- 179 tables / 2435 columns, 163 procedures, 0 views, 3 functions, 1 sequences.
--- Excludes TEST_* tables, retired WH_ReleaseSchedule and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
+-- 159 tables / 2203 columns, 163 procedures, 0 views, 3 functions, 1 sequences.
+-- Excludes TEST_* tables, retired WH_ReleaseSchedule, 20 tables nobody reads or writes (10-29: PNT_DailyReport, PNT_LabelPrintJob, PNT_LabelScanLog, PNT_LotLabel, PNT_PartLossLog, PNT_QcQueue, PNT_SeqAllocator, PNT_ShiftReport, PNT_ShiftReportAudit, PNT_StationStatsCache, PR_AndonPush, PR_BondSetupAudit, PR_CycleAnomalyLog, PR_DashTileCache, PR_DefectAutoLink, PR_DefectRateCache, PR_PlcInterlock, PR_ShiftHandover, QC_Disposition, QC_NCR_Action) and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).
 -- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).
 -- Schema only from the live database; sample seeds below are retained from the repository.
 -- Recreates the included objects: existing data in these tables will be deleted.
@@ -16,7 +16,7 @@ GO
 DECLARE @DropFk nvarchar(max) = N'';
 SELECT @DropFk += N'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(fk.parent_object_id)) + N'.' + QUOTENAME(OBJECT_NAME(fk.parent_object_id)) + N' DROP CONSTRAINT ' + QUOTENAME(fk.name) + N';'
 FROM sys.foreign_keys fk
-WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) = N'dbo' AND (OBJECT_NAME(fk.parent_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_Delivery,FG_DeliveryLoad,FG_Shipment,FG_ShippingOrder,FG_ShippingOrderLine,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_Pallet,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PntLot,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_NumberSeq,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder', N',')) OR OBJECT_NAME(fk.referenced_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_Delivery,FG_DeliveryLoad,FG_Shipment,FG_ShippingOrder,FG_ShippingOrderLine,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_Pallet,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_DailyReport,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LabelPrintJob,PNT_LabelScanLog,PNT_LineEvent,PNT_LotLabel,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_PartLossLog,PNT_QcQueue,PNT_SeqAllocator,PNT_ShiftReport,PNT_ShiftReportAudit,PNT_ShiftReportLineItem,PNT_StationStatsCache,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_AndonPush,PR_BondCycleLog,PR_BondSetup,PR_BondSetupAudit,PR_CycleAnomalyLog,PR_DashTileCache,PR_DefectAutoLink,PR_DefectDetail,PR_DefectRateCache,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PlcInterlock,PR_PntLot,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShiftHandover,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Disposition,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,QC_NCR_Action,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_NumberSeq,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder', N',')));
+WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) = N'dbo' AND (OBJECT_NAME(fk.parent_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_Delivery,FG_DeliveryLoad,FG_Shipment,FG_ShippingOrder,FG_ShippingOrderLine,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_Pallet,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LineEvent,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_ShiftReportLineItem,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_BondCycleLog,PR_BondSetup,PR_DefectDetail,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PntLot,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_NumberSeq,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder', N',')) OR OBJECT_NAME(fk.referenced_object_id) IN (SELECT value FROM STRING_SPLIT(N'AspNetRoleClaims,AspNetRoles,AspNetUserClaims,AspNetUserLogins,AspNetUserRoles,AspNetUsers,AspNetUserTokens,FG_CustomerReturn,FG_Delivery,FG_DeliveryLoad,FG_Shipment,FG_ShippingOrder,FG_ShippingOrderLine,MD_ApsLineStage,MD_Bom,MD_BomVersion,MD_Bop,MD_CodeGroup,MD_CodeItem,MD_Customer,MD_DefectCause,MD_DefectCode,MD_Equipment,MD_InjCondItem,MD_InspectionStandard,MD_Item,MD_Jig,MD_LabelTemplate,MD_Line,MD_LineSupervisor,MD_LineTimePattern,MD_LineTimeSegment,MD_Location,MD_Mold,MD_MoldItem,MD_MoldLine,MD_Oven,MD_PackagingSpec,MD_PaintFabric,MD_Pallet,MD_PmTemplate,MD_PmTemplateStep,MD_RalColor,MD_ReasonCode,MD_Recipe,MD_RfidReader,MD_RfidTag,MD_RoutingStep,MD_ShipmentDest,MD_SparePart,MD_Station,MD_Uom,MD_Vendor,MD_WorkCenter,MD_Worker,MNT_EquipmentStatus,MNT_FailureAction,MNT_FailureRegister,MNT_MoldShotCount,MNT_OEELog,MNT_PMExecution,MNT_PMSchedule,MNT_SparePartItem,MNT_SparePartsTxn,MNT_WorkOrder,MNT_WorkOrderTask,PNT_DailyPlan,PNT_JigBindingLog,PNT_JigLoad,PNT_JigUnload,PNT_LineEvent,PNT_OvenDeviationLog,PNT_OvenLog,PNT_OvenSpikeLog,PNT_OvenTempSample,PNT_ShiftReportLineItem,PNT_TagFailureLog,PNT_VirtualLot,PP_ApsPlanLine,PP_ApsPlanLineShift,PP_ApsRun,PP_ApsRunWo,PP_CustomerOrder,PP_DemandPlan,PP_DemandPlanBatch,PP_EquipSignal,PP_Forecast,PP_ForecastHistory,PP_LineDowntimeLog,PP_LineOEE,PP_LineSchedule,PP_LineStateLog,PP_MaterialReservation,PP_MRPLog,PP_MRPResult,PP_MRPResultWo,PP_PRSendLog,PP_PurchaseRequest,PP_SupplyPlan,PP_SupplyPlanDetail,PP_WorkOrder,PP_WorkOrderRouting,PR_AndonCall,PR_AndonDeptCall,PR_BondCycleLog,PR_BondSetup,PR_DefectDetail,PR_EquipStatusLog,PR_FabricDeductionLog,PR_FabricIssue,PR_FabricIssueAttempt,PR_ImgLot,PR_InjCondLog,PR_InjLot,PR_MoldChange,PR_PntLot,PR_PopAuthLog,PR_PopSession,PR_ProductionResult,PR_RobotInspection,PR_ShotCount,PR_WoAcceptance,QC_CAPA,QC_CAPA_Action,QC_Hold,QC_HoldRelease,QC_Inspection,QC_InspectionItem,QC_InspectionStd,QC_NCR,SCM_BoxNumberSequence,SCM_Delivery,SCM_DeliveryBox,SCM_DeliveryCase,SCM_DeliveryLine,SCM_DeliveryNote,SCM_DeliveryNoteDelivery,SCM_ItemVendor,SCM_PortalVendorUser,SCM_PurchaseOrderSequence,SYS_AuditActorMap,SYS_AuditLog,SYS_Config,SYS_FactoryCalendar,SYS_InterfaceMonitor,SYS_LotSeq,SYS_NotificationChannel,SYS_NotificationHistory,SYS_NotificationRule,SYS_NumberSeq,SYS_PublicHoliday,SYS_RolePermission,SYS_Screen,SYS_UserProfile,tbl_Lot,WH_Inventory,WH_InventoryTransaction,WH_PickSlip,WH_PurchaseOrder', N',')));
 EXEC sys.sp_executesql @DropFk;
 GO
 DROP PROCEDURE IF EXISTS [dbo].[FG_PDA_HISTORY_TEST_RESET];
@@ -252,25 +252,15 @@ DROP TABLE IF EXISTS [dbo].[MNT_SparePartsTxn];
 DROP TABLE IF EXISTS [dbo].[MNT_WorkOrder];
 DROP TABLE IF EXISTS [dbo].[MNT_WorkOrderTask];
 DROP TABLE IF EXISTS [dbo].[PNT_DailyPlan];
-DROP TABLE IF EXISTS [dbo].[PNT_DailyReport];
 DROP TABLE IF EXISTS [dbo].[PNT_JigBindingLog];
 DROP TABLE IF EXISTS [dbo].[PNT_JigLoad];
 DROP TABLE IF EXISTS [dbo].[PNT_JigUnload];
-DROP TABLE IF EXISTS [dbo].[PNT_LabelPrintJob];
-DROP TABLE IF EXISTS [dbo].[PNT_LabelScanLog];
 DROP TABLE IF EXISTS [dbo].[PNT_LineEvent];
-DROP TABLE IF EXISTS [dbo].[PNT_LotLabel];
 DROP TABLE IF EXISTS [dbo].[PNT_OvenDeviationLog];
 DROP TABLE IF EXISTS [dbo].[PNT_OvenLog];
 DROP TABLE IF EXISTS [dbo].[PNT_OvenSpikeLog];
 DROP TABLE IF EXISTS [dbo].[PNT_OvenTempSample];
-DROP TABLE IF EXISTS [dbo].[PNT_PartLossLog];
-DROP TABLE IF EXISTS [dbo].[PNT_QcQueue];
-DROP TABLE IF EXISTS [dbo].[PNT_SeqAllocator];
-DROP TABLE IF EXISTS [dbo].[PNT_ShiftReport];
-DROP TABLE IF EXISTS [dbo].[PNT_ShiftReportAudit];
 DROP TABLE IF EXISTS [dbo].[PNT_ShiftReportLineItem];
-DROP TABLE IF EXISTS [dbo].[PNT_StationStatsCache];
 DROP TABLE IF EXISTS [dbo].[PNT_TagFailureLog];
 DROP TABLE IF EXISTS [dbo].[PNT_VirtualLot];
 DROP TABLE IF EXISTS [dbo].[PP_ApsPlanLine];
@@ -299,15 +289,9 @@ DROP TABLE IF EXISTS [dbo].[PP_WorkOrder];
 DROP TABLE IF EXISTS [dbo].[PP_WorkOrderRouting];
 DROP TABLE IF EXISTS [dbo].[PR_AndonCall];
 DROP TABLE IF EXISTS [dbo].[PR_AndonDeptCall];
-DROP TABLE IF EXISTS [dbo].[PR_AndonPush];
 DROP TABLE IF EXISTS [dbo].[PR_BondCycleLog];
 DROP TABLE IF EXISTS [dbo].[PR_BondSetup];
-DROP TABLE IF EXISTS [dbo].[PR_BondSetupAudit];
-DROP TABLE IF EXISTS [dbo].[PR_CycleAnomalyLog];
-DROP TABLE IF EXISTS [dbo].[PR_DashTileCache];
-DROP TABLE IF EXISTS [dbo].[PR_DefectAutoLink];
 DROP TABLE IF EXISTS [dbo].[PR_DefectDetail];
-DROP TABLE IF EXISTS [dbo].[PR_DefectRateCache];
 DROP TABLE IF EXISTS [dbo].[PR_EquipStatusLog];
 DROP TABLE IF EXISTS [dbo].[PR_FabricDeductionLog];
 DROP TABLE IF EXISTS [dbo].[PR_FabricIssue];
@@ -316,25 +300,21 @@ DROP TABLE IF EXISTS [dbo].[PR_ImgLot];
 DROP TABLE IF EXISTS [dbo].[PR_InjCondLog];
 DROP TABLE IF EXISTS [dbo].[PR_InjLot];
 DROP TABLE IF EXISTS [dbo].[PR_MoldChange];
-DROP TABLE IF EXISTS [dbo].[PR_PlcInterlock];
 DROP TABLE IF EXISTS [dbo].[PR_PntLot];
 DROP TABLE IF EXISTS [dbo].[PR_PopAuthLog];
 DROP TABLE IF EXISTS [dbo].[PR_PopSession];
 DROP TABLE IF EXISTS [dbo].[PR_ProductionResult];
 DROP TABLE IF EXISTS [dbo].[PR_RobotInspection];
-DROP TABLE IF EXISTS [dbo].[PR_ShiftHandover];
 DROP TABLE IF EXISTS [dbo].[PR_ShotCount];
 DROP TABLE IF EXISTS [dbo].[PR_WoAcceptance];
 DROP TABLE IF EXISTS [dbo].[QC_CAPA];
 DROP TABLE IF EXISTS [dbo].[QC_CAPA_Action];
-DROP TABLE IF EXISTS [dbo].[QC_Disposition];
 DROP TABLE IF EXISTS [dbo].[QC_Hold];
 DROP TABLE IF EXISTS [dbo].[QC_HoldRelease];
 DROP TABLE IF EXISTS [dbo].[QC_Inspection];
 DROP TABLE IF EXISTS [dbo].[QC_InspectionItem];
 DROP TABLE IF EXISTS [dbo].[QC_InspectionStd];
 DROP TABLE IF EXISTS [dbo].[QC_NCR];
-DROP TABLE IF EXISTS [dbo].[QC_NCR_Action];
 DROP TABLE IF EXISTS [dbo].[SCM_BoxNumberSequence];
 DROP TABLE IF EXISTS [dbo].[SCM_Delivery];
 DROP TABLE IF EXISTS [dbo].[SCM_DeliveryBox];
@@ -3924,56 +3904,6 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'일일 계획 (PNT-01)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyPlan'
 GO
--- Table: dbo.PNT_DailyReport
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_DailyReport](
-	[DailyID] [int] IDENTITY(1,1) NOT NULL,
-	[ReportDate] [date] NULL,
-	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[TotalConfirmed] [int] NULL,
-	[TotalDefect] [int] NULL,
-	[DailyYieldPct] [decimal](5, 2) NULL,
-	[TwoShiftRollupJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
-	[GeneratedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_DailyReport] PRIMARY KEY CLUSTERED 
-(
-	[DailyID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_DailyReport] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Daily ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'DailyID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Report Date · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'ReportDate'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인 ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'LineID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Total Confirmed · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'TotalConfirmed'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Total Defect · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'TotalDefect'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Daily Yield Pct · decimal(5,2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'DailyYieldPct'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Two Shift Rollup Json · nvarchar' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'TwoShiftRollupJson'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Generated At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'GeneratedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'일일 합산 보고서' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_DailyReport'
-GO
 -- Table: dbo.PNT_JigBindingLog
 SET ANSI_NULLS ON
 GO
@@ -4127,103 +4057,6 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'지그 언로딩 (PNT-06)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_JigUnload'
 GO
--- Table: dbo.PNT_LabelPrintJob
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_LabelPrintJob](
-	[JobID] [int] IDENTITY(1,1) NOT NULL,
-	[LotID] [int] NULL,
-	[PrinterID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[Zpl] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
-	[SubmittedAt] [datetime2](7) NULL,
-	[CompletedAt] [datetime2](7) NULL,
-	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[FailReason] [varchar](200) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_LabelPrintJob] PRIMARY KEY CLUSTERED 
-(
-	[JobID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_LabelPrintJob] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Job ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'JobID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lot ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'LotID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Printer ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'PrinterID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Zpl · nvarchar' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'Zpl'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Submitted At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'SubmittedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'완료 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'CompletedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'도장 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'Status'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Fail Reason · varchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'FailReason'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라벨 프린트 잡' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelPrintJob'
-GO
--- Table: dbo.PNT_LabelScanLog
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_LabelScanLog](
-	[ScanID] [bigint] IDENTITY(1,1) NOT NULL,
-	[LotID] [int] NULL,
-	[LabelID] [int] NULL,
-	[ScannedSeq] [int] NULL,
-	[Position] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[ScannedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ScannedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_LabelScanLog] PRIMARY KEY CLUSTERED 
-(
-	[ScanID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_LabelScanLog] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Scan ID · bigint' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ScanID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lot ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'LotID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Label ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'LabelID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Scanned Seq · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ScannedSeq'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Position · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'Position'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Scanned By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ScannedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Scanned At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ScannedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라벨 스캔 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LabelScanLog'
-GO
 -- Table: dbo.PNT_LineEvent
 SET ANSI_NULLS ON
 GO
@@ -4284,59 +4117,6 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LineEvent', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ RFID 통과 (R1/R2/R3, 5년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LineEvent'
-GO
--- Table: dbo.PNT_LotLabel
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_LotLabel](
-	[LabelID] [int] IDENTITY(1,1) NOT NULL,
-	[LotID] [int] NULL,
-	[SeqNo] [int] NULL,
-	[TotalQty] [int] NULL,
-	[PrintedAt] [datetime2](7) NULL,
-	[PrintedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[AppliedAt] [datetime2](7) NULL,
-	[AppliedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_LotLabel] PRIMARY KEY CLUSTERED 
-(
-	[LabelID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_LotLabel] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Label ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'LabelID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lot ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'LotID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Seq No · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'SeqNo'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Total Qty · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'TotalQty'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Printed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'PrintedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Printed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'PrintedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Applied At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'AppliedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Applied By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'AppliedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'도장 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'Status'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'LOT 라벨 (PNT-07)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_LotLabel'
 GO
 -- Table: dbo.PNT_OvenDeviationLog
 SET ANSI_NULLS ON
@@ -4532,267 +4312,6 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'오븐 5초 샘플 (5년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_OvenTempSample'
 GO
--- Table: dbo.PNT_PartLossLog
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_PartLossLog](
-	[LossID] [int] IDENTITY(1,1) NOT NULL,
-	[LotID] [int] NULL,
-	[LossQty] [int] NULL,
-	[ReasonCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReasonNote] [nvarchar](300) COLLATE Korean_Wansung_CI_AS NULL,
-	[LoggedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[LoggedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_PartLossLog] PRIMARY KEY CLUSTERED 
-(
-	[LossID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_PartLossLog] ADD  DEFAULT (sysdatetime()) FOR [LoggedAt]
-GO
-ALTER TABLE [dbo].[PNT_PartLossLog] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Loss ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'LossID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lot ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'LotID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Loss Qty · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'LossQty'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 코드 · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'ReasonCode'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Reason Note · nvarchar(300)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'ReasonNote'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'LoggedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Logged At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'LoggedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'부품 손실 로그' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_PartLossLog'
-GO
--- Table: dbo.PNT_QcQueue
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_QcQueue](
-	[QueueID] [int] IDENTITY(1,1) NOT NULL,
-	[LotID] [int] NULL,
-	[EnqueuedAt] [datetime2](7) NULL,
-	[EnhancedFlag] [bit] NULL,
-	[SlaDueAt] [datetime2](7) NULL,
-	[Status] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_QcQueue] PRIMARY KEY CLUSTERED 
-(
-	[QueueID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_QcQueue] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Queue ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'QueueID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lot ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'LotID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Enqueued At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'EnqueuedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Enhanced Flag · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'EnhancedFlag'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sla Due At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'SlaDueAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'도장 상태 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'Status'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'QC 인계 대기열' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_QcQueue'
-GO
--- Table: dbo.PNT_SeqAllocator
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_SeqAllocator](
-	[PlanDate] [date] NOT NULL,
-	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[NextSeq] [int] NULL,
-	[UpdatedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_SeqAllocator] PRIMARY KEY CLUSTERED 
-(
-	[PlanDate] ASC,
-	[LineID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_SeqAllocator] ADD  DEFAULT (sysdatetime()) FOR [UpdatedAt]
-GO
-ALTER TABLE [dbo].[PNT_SeqAllocator] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Plan Date · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'PlanDate'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 라인 ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'LineID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Next Seq · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'NextSeq'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Updated At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'UpdatedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'LotID 채번 락' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_SeqAllocator'
-GO
--- Table: dbo.PNT_ShiftReport
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_ShiftReport](
-	[ReportID] [int] IDENTITY(1,1) NOT NULL,
-	[ShiftDate] [date] NULL,
-	[ShiftType] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[LoadedQty] [int] NULL,
-	[ConfirmedQty] [int] NULL,
-	[DefectQty] [int] NULL,
-	[OvenDeviations] [int] NULL,
-	[Fallbacks] [int] NULL,
-	[SpareTagsUsed] [int] NULL,
-	[JigSwaps] [int] NULL,
-	[YieldPct] [decimal](5, 2) NULL,
-	[CompiledAt] [datetime2](7) NULL,
-	[SignedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[SignedAt] [datetime2](7) NULL,
-	[PdfUrl] [varchar](300) COLLATE Korean_Wansung_CI_AS NULL,
-	[Version] [tinyint] NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_ShiftReport] PRIMARY KEY CLUSTERED 
-(
-	[ReportID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_ShiftReport] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Report ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'ReportID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Shift Date · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'ShiftDate'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Shift Type · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'ShiftType'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인 ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'LineID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'투입 수량 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'LoadedQty'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'확정 수량 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'ConfirmedQty'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 수량 · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'DefectQty'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Oven Deviations · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'OvenDeviations'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Fallbacks · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'Fallbacks'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Spare Tags Used · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'SpareTagsUsed'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Jig Swaps · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'JigSwaps'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Yield Pct · decimal(5,2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'YieldPct'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Compiled At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'CompiledAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'SignedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'SignedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Pdf Url · varchar(300)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'PdfUrl'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Version · tinyint' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'Version'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 보고서 헤더' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReport'
-GO
--- Table: dbo.PNT_ShiftReportAudit
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_ShiftReportAudit](
-	[AuditID] [int] IDENTITY(1,1) NOT NULL,
-	[ReportID] [int] NULL,
-	[ChangedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ChangedAt] [datetime2](7) NULL,
-	[FieldName] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[OldValue] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
-	[NewValue] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
-	[Reason] [nvarchar](300) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_ShiftReportAudit] PRIMARY KEY CLUSTERED 
-(
-	[AuditID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_ShiftReportAudit] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Audit ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'AuditID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Report ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ReportID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ChangedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ChangedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Field Name · varchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'FieldName'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Old Value · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'OldValue'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'New Value · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'NewValue'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 · nvarchar(300)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'Reason'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 수정 감사 (7년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportAudit'
-GO
 -- Table: dbo.PNT_ShiftReportLineItem
 SET ANSI_NULLS ON
 GO
@@ -4848,49 +4367,6 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportLineItem', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 WO 명세' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_ShiftReportLineItem'
-GO
--- Table: dbo.PNT_StationStatsCache
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PNT_StationStatsCache](
-	[StationCode] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[ActiveCount] [int] NULL,
-	[AvgDwellSec] [int] NULL,
-	[BottleneckFlag] [bit] NULL,
-	[UpdatedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PNT_StationStatsCache] PRIMARY KEY CLUSTERED 
-(
-	[StationCode] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PNT_StationStatsCache] ADD  DEFAULT (sysdatetime()) FOR [UpdatedAt]
-GO
-ALTER TABLE [dbo].[PNT_StationStatsCache] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Station ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'StationCode'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Active Count · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'ActiveCount'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Avg Dwell Sec · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'AvgDwellSec'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Bottleneck Flag · bit' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'BottleneckFlag'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Updated At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'UpdatedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인보드 캐시' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PNT_StationStatsCache'
 GO
 -- Table: dbo.PNT_TagFailureLog
 SET ANSI_NULLS ON
@@ -6380,53 +5856,6 @@ ALTER TABLE [dbo].[PR_AndonDeptCall] ADD  DEFAULT (sysdatetime()) FOR [CalledAt]
 GO
 ALTER TABLE [dbo].[PR_AndonDeptCall] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
--- Table: dbo.PR_AndonPush
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PR_AndonPush](
-	[PushID] [bigint] IDENTITY(1,1) NOT NULL,
-	[AndonID] [int] NULL,
-	[Recipient] [varchar](100) COLLATE Korean_Wansung_CI_AS NULL,
-	[Channel] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[SentAt] [datetime2](7) NULL,
-	[DeliveredAt] [datetime2](7) NULL,
-	[Result] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PR_AndonPush] PRIMARY KEY CLUSTERED 
-(
-	[PushID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PR_AndonPush] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Push ID · bigint' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'PushID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'안돈 콜 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'AndonID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Recipient · varchar(100)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'Recipient'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'채널 · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'Channel'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Sent At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'SentAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Delivered At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'DeliveredAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'결과 (OK/FAIL 등) · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'Result'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'안돈 송신 로그' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_AndonPush'
-GO
 -- Table: dbo.PR_BondCycleLog
 SET ANSI_NULLS ON
 GO
@@ -6539,194 +5968,6 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'IMG 본드 설정' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetup'
 GO
--- Table: dbo.PR_BondSetupAudit
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PR_BondSetupAudit](
-	[AuditID] [bigint] IDENTITY(1,1) NOT NULL,
-	[BondSetupID] [int] NULL,
-	[FieldName] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[OldValue] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
-	[NewValue] [nvarchar](100) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReasonCode] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[ChangedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ChangedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PR_BondSetupAudit] PRIMARY KEY CLUSTERED 
-(
-	[AuditID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PR_BondSetupAudit] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Audit ID · bigint' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'AuditID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'본드 설정 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'BondSetupID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Field Name · varchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'FieldName'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Old Value · nvarchar(100)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'OldValue'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'New Value · nvarchar(100)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'NewValue'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 코드 · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ReasonCode'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ChangedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Changed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ChangedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'본드 변경 감사 (7년)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_BondSetupAudit'
-GO
--- Table: dbo.PR_CycleAnomalyLog
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PR_CycleAnomalyLog](
-	[AnomalyID] [int] IDENTITY(1,1) NOT NULL,
-	[ResultID] [int] NULL,
-	[ExpectedCt] [int] NULL,
-	[ActualCt] [int] NULL,
-	[DeviationPct] [decimal](6, 2) NULL,
-	[DetectedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PR_CycleAnomalyLog] PRIMARY KEY CLUSTERED 
-(
-	[AnomalyID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PR_CycleAnomalyLog] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Anomaly ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'AnomalyID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생산 실적 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'ResultID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Expected Ct · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'ExpectedCt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Actual Ct · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'ActualCt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Deviation Pct · decimal(6,2)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'DeviationPct'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Detected At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'DetectedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'CT 이탈 로그' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_CycleAnomalyLog'
-GO
--- Table: dbo.PR_DashTileCache
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PR_DashTileCache](
-	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[TileID] [varchar](30) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[Value] [nvarchar](200) COLLATE Korean_Wansung_CI_AS NULL,
-	[UpdatedAt] [datetime2](7) NULL,
-	[TtlSec] [int] NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PR_DashTileCache] PRIMARY KEY CLUSTERED 
-(
-	[LineID] ASC,
-	[TileID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PR_DashTileCache] ADD  DEFAULT (sysdatetime()) FOR [UpdatedAt]
-GO
-ALTER TABLE [dbo].[PR_DashTileCache] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 라인 ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'LineID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Tile ID · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'TileID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Value · nvarchar(200)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'Value'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Updated At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'UpdatedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ttl Sec · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'TtlSec'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'POP 대시 캐시' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DashTileCache'
-GO
--- Table: dbo.PR_DefectAutoLink
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PR_DefectAutoLink](
-	[LinkID] [int] IDENTITY(1,1) NOT NULL,
-	[DefectID] [int] NULL,
-	[LinkType] [varchar](30) COLLATE Korean_Wansung_CI_AS NULL,
-	[RefDocType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[RefDocID] [int] NULL,
-	[ConfidenceScore] [decimal](4, 3) NULL,
-	[LinkedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PR_DefectAutoLink] PRIMARY KEY CLUSTERED 
-(
-	[LinkID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PR_DefectAutoLink] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Link ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'LinkID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 상세 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'DefectID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Link Type · varchar(30)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'LinkType'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ref Doc Type · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'RefDocType'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Ref Doc ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'RefDocID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Confidence Score · decimal(4,3)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'ConfidenceScore'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Linked At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'LinkedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 자동 원인' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectAutoLink'
-GO
 -- Table: dbo.PR_DefectDetail
 SET ANSI_NULLS ON
 GO
@@ -6823,49 +6064,6 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량 상세' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectDetail'
-GO
--- Table: dbo.PR_DefectRateCache
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PR_DefectRateCache](
-	[WoID] [int] NOT NULL,
-	[TotalGood] [int] NULL,
-	[TotalDefect] [int] NULL,
-	[RatePct] [decimal](6, 3) NULL,
-	[UpdatedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PR_DefectRateCache] PRIMARY KEY CLUSTERED 
-(
-	[WoID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PR_DefectRateCache] ADD  DEFAULT (sysdatetime()) FOR [UpdatedAt]
-GO
-ALTER TABLE [dbo].[PR_DefectRateCache] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · 작업지시 ID (생산 실적) · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'WoID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Total Good · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'TotalGood'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Total Defect · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'TotalDefect'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Rate Pct · decimal(6,3)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'RatePct'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Updated At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'UpdatedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'불량률 캐시' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_DefectRateCache'
 GO
 -- Table: dbo.PR_EquipStatusLog
 SET ANSI_NULLS ON
@@ -7281,50 +6479,6 @@ EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정�
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'금형 교체 (INJ-06)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_MoldChange'
 GO
--- Table: dbo.PR_PlcInterlock
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PR_PlcInterlock](
-	[InterlockID] [int] IDENTITY(1,1) NOT NULL,
-	[EquipID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[LockedAt] [datetime2](7) NULL,
-	[UnlockedAt] [datetime2](7) NULL,
-	[LockReason] [varchar](40) COLLATE Korean_Wansung_CI_AS NULL,
-	[AndonID] [int] NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PR_PlcInterlock] PRIMARY KEY CLUSTERED 
-(
-	[InterlockID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PR_PlcInterlock] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Interlock ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'InterlockID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'설비 ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'EquipID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Locked At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'LockedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Unlocked At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'UnlockedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Lock Reason · varchar(40)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'LockReason'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'안돈 콜 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'AndonID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PLC 인터록' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_PlcInterlock'
-GO
 -- Table: dbo.PR_PntLot
 SET ANSI_NULLS ON
 GO
@@ -7616,62 +6770,6 @@ ALTER TABLE [dbo].[PR_RobotInspection] ADD  DEFAULT (sysdatetime()) FOR [Receive
 GO
 ALTER TABLE [dbo].[PR_RobotInspection] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
 GO
--- Table: dbo.PR_ShiftHandover
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[PR_ShiftHandover](
-	[HandoverID] [int] IDENTITY(1,1) NOT NULL,
-	[HandoverDate] [date] NULL,
-	[ShiftCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[LineID] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ProcessCode] [varchar](10) COLLATE Korean_Wansung_CI_AS NULL,
-	[SummaryJson] [nvarchar](max) COLLATE Korean_Wansung_CI_AS NULL,
-	[PdfUrl] [varchar](300) COLLATE Korean_Wansung_CI_AS NULL,
-	[SignedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ReceivedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[SignedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_PR_ShiftHandover] PRIMARY KEY CLUSTERED 
-(
-	[HandoverID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[PR_ShiftHandover] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Handover ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'HandoverID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Handover Date · date' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'HandoverDate'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 코드 (A/B/C) · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'ShiftCode'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'라인 ID · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'LineID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Process Code · varchar(10)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'ProcessCode'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Summary Json · nvarchar' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'SummaryJson'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Pdf Url · varchar(300)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'PdfUrl'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'SignedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Received By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'ReceivedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Signed At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'SignedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'교대 인수인계' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'PR_ShiftHandover'
-GO
 -- Table: dbo.PR_ShotCount
 SET ANSI_NULLS ON
 GO
@@ -7916,65 +7014,6 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA_Action', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'CAPA 단계 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_CAPA_Action'
-GO
--- Table: dbo.QC_Disposition
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[QC_Disposition](
-	[DispositionID] [int] IDENTITY(1,1) NOT NULL,
-	[NcrID] [int] NULL,
-	[HoldID] [int] NULL,
-	[DispositionAction] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[DispositionQty] [decimal](12, 3) NULL,
-	[Reason] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[CustomerApprovalURL] [varchar](255) COLLATE Korean_Wansung_CI_AS NULL,
-	[DownstreamRefType] [varchar](15) COLLATE Korean_Wansung_CI_AS NULL,
-	[DownstreamRefID] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
-	[ApprovedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ApprovedAt] [datetime2](7) NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_QC_Disposition] PRIMARY KEY CLUSTERED 
-(
-	[DispositionID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[QC_Disposition] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Disposition ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'DispositionID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'NCR(부적합) ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'NcrID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'QC 보류 ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'HoldID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Disposition Action · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'DispositionAction'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Disposition Qty · decimal(12,3)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'DispositionQty'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'사유 · nvarchar(500)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'Reason'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Customer Approval URL · varchar(255)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'CustomerApprovalURL'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Downstream Ref Type · varchar(15)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'DownstreamRefType'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Downstream Ref ID · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'DownstreamRefID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved By · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'ApprovedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Approved At · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'ApprovedAt'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'처분 결정' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_Disposition'
 GO
 -- Table: dbo.QC_Hold
 SET ANSI_NULLS ON
@@ -8441,53 +7480,6 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'★ 부적합 보고서' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR'
-GO
--- Table: dbo.QC_NCR_Action
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-CREATE TABLE [dbo].[QC_NCR_Action](
-	[ActionID] [int] IDENTITY(1,1) NOT NULL,
-	[NcrID] [int] NULL,
-	[ActionType] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ActionRefID] [varchar](24) COLLATE Korean_Wansung_CI_AS NULL,
-	[ActionNote] [nvarchar](500) COLLATE Korean_Wansung_CI_AS NULL,
-	[ActionTS] [datetime2](7) NULL,
-	[ActionBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[CreatedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NOT NULL,
-	[CreatedTS] [datetime2](7) NULL,
-	[ModifiedBy] [varchar](20) COLLATE Korean_Wansung_CI_AS NULL,
-	[ModifiedTS] [datetime2](7) NULL,
- CONSTRAINT [PK_QC_NCR_Action] PRIMARY KEY CLUSTERED 
-(
-	[ActionID] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-ALTER TABLE [dbo].[QC_NCR_Action] ADD  DEFAULT (sysdatetime()) FOR [CreatedTS]
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'PK · Action ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'NCR(부적합) ID · int' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'NcrID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action Type · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionType'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action Ref ID · varchar(24)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionRefID'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action Note · nvarchar(500)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionNote'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action TS · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'Action By · varchar(20)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ActionBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성자 (User ID 또는 seed 마커) · varchar(50)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'CreatedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'생성 시각 · datetime2' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'CreatedTS'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
-GO
-EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'NCR 처리 이력' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'QC_NCR_Action'
 GO
 -- Table: dbo.SCM_BoxNumberSequence
 SET ANSI_NULLS ON
