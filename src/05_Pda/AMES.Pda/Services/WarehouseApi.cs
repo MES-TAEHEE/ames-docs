@@ -6,6 +6,25 @@ namespace AMES.Pda.Services;
 public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi spareParts,
     FinishedGoodsApi fgApi) : PdaApi(http, auth)
 {
+    public Task<AMES.Contracts.Dto.PdaTransactionPageDto> TransactionPageAsync(string? search,DateTime? from,DateTime? to,
+        string? worker=null,string? reason=null,string? direction=null,DateTime? beforeAt=null,long? beforeId=null,
+        int? deliveryId=null,string? partNo=null)
+    {
+        var query=new List<string>{"pageSize=100"};
+        void Add(string key,string? value){if(!string.IsNullOrWhiteSpace(value))query.Add(key+"="+Uri.EscapeDataString(value));}
+        Add("search",search);Add("from",from?.ToString("yyyy-MM-dd"));Add("to",to?.ToString("yyyy-MM-dd"));
+        Add("worker",worker);Add("reason",reason);Add("direction",direction);
+        Add("beforeAt",beforeAt?.ToString("O",System.Globalization.CultureInfo.InvariantCulture));
+        Add("beforeId",beforeId?.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Add("deliveryId",deliveryId?.ToString(System.Globalization.CultureInfo.InvariantCulture));Add("partNo",partNo);
+        return GetRequiredAsync<AMES.Contracts.Dto.PdaTransactionPageDto>("/api/wh/transaction-feed?"+string.Join("&",query),
+            "Transaction history could not be loaded. Please retry.");
+    }
+
+    public Task<List<AMES.Contracts.Dto.PdaTransactionPartDto>> TransactionPartsAsync(int deliveryId)
+        =>GetRequiredAsync<List<AMES.Contracts.Dto.PdaTransactionPartDto>>($"/api/wh/transaction-feed/dcr/{deliveryId}/parts",
+            "DCR part history could not be loaded. Please retry.");
+
     public Task<List<AMES.Contracts.Dto.SupplierDeliveryProgressDto>> SupplierDeliveriesAsync(DateTime from, DateTime to, string? search = null)
         => GetRequiredAsync<List<AMES.Contracts.Dto.SupplierDeliveryProgressDto>>(
             $"/api/wh/inbound/deliveries?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}&search={Uri.EscapeDataString(search ?? "")}",
@@ -267,7 +286,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
     }
 
 
-    public async Task<AdjustmentLocation?> ScanAdjustmentLocationAsync(string barcode, bool finishedGoods, string? areaCode = null)
+    public async Task<AdjustmentLocation?> ScanAdjustmentLocationAsync(string barcode, bool finishedGoods, string? areaCode = null, bool includeFinishedGoods = false)
     {
         if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
             return await spareParts.ScanAdjustmentLocationAsync(barcode);
@@ -276,7 +295,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
 
         Authorize();
         using var response = await _http.GetAsync(
-            $"/api/wh/adjust/location?barcode={Uri.EscapeDataString(barcode.Trim())}");
+            $"/api/wh/adjust/location?barcode={Uri.EscapeDataString(barcode.Trim())}&includeFinishedGoods={includeFinishedGoods.ToString().ToLowerInvariant()}");
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadServiceErrorAsync(response, "Adjustment location service is unavailable."));
         // An unknown location returns an empty 200 response; the caller then tries a stock barcode.
@@ -289,7 +308,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         return row;
     }
 
-    public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText, string? areaCode = null)
+    public async Task<InboundScanRow?> WhScanAdjustAsync(string scanText, string? areaCode = null, bool autoDetect = false)
     {
         if (string.Equals(areaCode, SparePartsAreaCode, StringComparison.OrdinalIgnoreCase))
             return await spareParts.ScanAdjustAsync(scanText);
@@ -297,7 +316,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         try
         {
             Authorize();
-            var url = $"/api/wh/adjust/scan?scanText={Uri.EscapeDataString(scanText.Trim())}";
+            var url = $"/api/wh/adjust/scan?scanText={Uri.EscapeDataString(scanText.Trim())}&autoDetect={autoDetect.ToString().ToLowerInvariant()}";
             var resp = await _http.GetAsync(url);
             if (!resp.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse adjust scan service is unavailable."));

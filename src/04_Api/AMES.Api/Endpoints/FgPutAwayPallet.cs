@@ -5,7 +5,27 @@ namespace AMES.Api.Endpoints;
 
 public static partial class FgEndpoints
 {
-    private static PutAwayScanRow? FindPutAwayScanRow(SqlConnection conn, SqlTransaction? tx, string barcode)
+    internal static bool IsFinishedGoodsPutAway(SqlConnection conn, string barcode)
+    {
+        using var cmd = new SqlCommand("""
+            ;WITH Contents AS (
+                SELECT LotNo,ParentLotNo,PartNo FROM dbo.WH_Inventory WHERE LotNo=@Barcode
+                UNION ALL
+                SELECT C.LotNo,C.ParentLotNo,C.PartNo FROM dbo.WH_Inventory C
+                JOIN Contents P ON C.ParentLotNo=P.LotNo
+            )
+            SELECT CASE WHEN EXISTS(
+                SELECT 1 FROM Contents C JOIN dbo.MD_Item I ON I.ItemNo=C.PartNo WHERE I.ItemType='ASSY'
+            ) OR EXISTS(
+                SELECT 1 FROM dbo.tbl_Lot L JOIN dbo.MD_Item I ON I.ItemNo=L.ItemNo
+                WHERE L.LotCode COLLATE DATABASE_DEFAULT=@Barcode AND I.ItemType='ASSY'
+            ) THEN 1 ELSE 0 END OPTION(MAXRECURSION 100);
+            """, conn);
+        cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = barcode;
+        return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
+    }
+
+    internal static PutAwayScanRow? FindPutAwayScanRow(SqlConnection conn, SqlTransaction? tx, string barcode)
     {
         using var check = new SqlCommand("SELECT UnitType FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode", conn, tx);
         check.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = barcode;

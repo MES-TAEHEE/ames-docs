@@ -37,6 +37,30 @@ public sealed partial class FinishedGoodsRepository
         return rows;
     }
 
+    public List<ShippingDeliveryListDto> ListOpenShippingDeliveries()
+    {
+        using var conn=_factory.OpenConnection();
+        using var cmd=new SqlCommand("""
+            SELECT D.DeliveryID,D.DeliveryNo,D.CustomerID,D.ShipDate,D.TrailerNo,D.Status,
+                (SELECT COUNT(*) FROM dbo.FG_ShippingOrder O WHERE O.DeliveryID=D.DeliveryID) AS OrderCount,
+                (SELECT COUNT(DISTINCT L.PartNo) FROM dbo.FG_ShippingOrder O
+                    JOIN dbo.FG_ShippingOrderLine L ON L.OrderID=O.OrderID
+                    WHERE O.DeliveryID=D.DeliveryID) AS PartCount
+            FROM dbo.FG_Delivery D
+            WHERE D.Status IN('Open','Loading')
+                AND EXISTS(SELECT 1 FROM dbo.FG_ShippingOrder O
+                    JOIN dbo.FG_ShippingOrderLine L ON L.OrderID=O.OrderID WHERE O.DeliveryID=D.DeliveryID)
+            ORDER BY D.ShipDate,D.DeliveryID;
+            """,conn);
+        using var r=cmd.ExecuteReader();
+        var rows=new List<ShippingDeliveryListDto>();
+        while(r.Read())
+            rows.Add(new(GetInt(r,"DeliveryID"),GetString(r,"DeliveryNo")!,GetString(r,"CustomerID")!,
+                r.GetDateTime(r.GetOrdinal("ShipDate")),GetString(r,"TrailerNo"),GetString(r,"Status")!,
+                GetInt(r,"OrderCount"),GetInt(r,"PartCount")));
+        return rows;
+    }
+
     public List<string> CreateShippingOrders(DateTime shipDate,IReadOnlyList<ShippingOrderInput> input,string actor)
     {
         CheckActor(actor);

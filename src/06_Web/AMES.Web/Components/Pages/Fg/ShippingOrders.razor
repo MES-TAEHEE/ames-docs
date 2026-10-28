@@ -12,26 +12,30 @@
 <PageTitle>FG-02 @L["FG.ShipOrders.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="FG-02" TitleKey="FG.ShipOrders.Title" />
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Orders"]</div><div class="ames-kpi-v">@_orders.Count</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Open"]</div><div class="ames-kpi-v">@_orders.Count(x=>x.Status=="Open")</div></div>
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.DcrAssigned"]</div><div class="ames-kpi-v">@_orders.Count(x=>x.DeliveryId is not null)</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Orders"]</div><div class="ames-kpi-v">@VisibleOrders.Count()</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Open"]</div><div class="ames-kpi-v">@VisibleOrders.Count(x=>x.Status=="Open")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.DcrAssigned"]</div><div class="ames-kpi-v">@VisibleOrders.Count(x=>x.DeliveryId is not null)</div></div>
 </div>
 <section class="ames-card shipping-orders-page">
     <div class="ames-card-h master-list-toolbar">
-        <span>▼ @L["FG.ShipOrders.List"] · @_orders.Count</span>
+        <span>▼ @L["FG.ShipOrders.List"] · @VisibleOrders.Count()</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <span>–</span><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem">
+                <RadzenCheckBox TValue="bool" Value="@_includeShipped" Change="@(value=>SetIncludeShipped(value))" Name="includeShipped" />
+                <RadzenLabel Component="includeShipped" Text="@L["FG.ShipOrders.IncludeShipped"]" />
+            </RadzenStack>
             <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Reload" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             @if(_canEdit)
             {
-                <RadzenButton Text="@L["Btn.Create"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="@(()=>_deliveryModal=true)" Size="ButtonSize.Small" class="ames-rz-btn" />
             }
         </RadzenStack>
     </div>
     @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
-    <RadzenDataGrid TItem="ShippingOrderDto" Data="_orders" AllowPaging="true" PageSize="25" AllowSorting="true" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed">
+    <RadzenDataGrid @ref="_grid" TItem="ShippingOrderDto" Data="@VisibleOrders" AllowPaging="true" PageSize="25" AllowSorting="true" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed">
         <Template Context="order">
             <ShipmentOrderLines Lines="order.Lines" />
         </Template>
@@ -86,7 +90,7 @@
         <div class="ames-modal-h">@L["FG.ShipOrders.Btn.CreateDcr"]</div>
         <p>@L["FG.ShipOrders.Hint.DcrSelectedFmt",_selected.Count]</p>
         @if(!string.IsNullOrEmpty(_deliveryError)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_deliveryError</RadzenAlert>}
-        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["Btn.Create"]" Icon="save" Click="CreateDelivery" Disabled="_busy" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(()=>_deliveryModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="save" Click="CreateDelivery" Disabled="_busy" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(()=>_deliveryModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
     </div></div>
 }
 @if(_printOrders.Count>0)
@@ -94,6 +98,10 @@
     <ShippingOrderPrintPreview Orders="_printOrders" Delivery="_printDelivery" Closed="ClosePrint" />
 }
 @code {
+    bool _includeShipped=true;
+    RadzenDataGrid<ShippingOrderDto>? _grid;
+    IEnumerable<ShippingOrderDto> VisibleOrders => _orders.Where(order=>_includeShipped || !string.Equals(order.Status,"Shipped",StringComparison.OrdinalIgnoreCase));
+    async Task SetIncludeShipped(bool value){_includeShipped=value;_selected.Clear();if(_grid is not null)await _grid.FirstPage(true);}
     List<ShippingOrderDto> _orders=[],_printOrders=[];HashSet<int> _selected=[];
     List<ShippingOrderDto> _createdOrders=[];
     List<string> _createdNumbers=[];

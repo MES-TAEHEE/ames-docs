@@ -17,7 +17,7 @@ public sealed partial class FinishedGoodsRepository
         string CustomerId, string? CustomerName, int ItemCount, decimal Qty, string? ShippedBy, string? PalletNo,string? PartNo,string? PartName) { public bool HasChildren => UnitType is "PALLET" or "CASE" || ItemCount > 1; }
     public record ShipmentItemRow(long TransactionId, string LotNo, string? PartNo, string? PartName,
         string? LocationNo, decimal Qty, string? Unit);
-    public record HistoryRow(DateTime EventAt, string EventType, string? ReferenceNo, string? ItemOrOrder,
+    public record HistoryRow(string RowKey, DateTime EventAt, string EventType, string? ReferenceNo, string? ItemOrOrder,
         decimal Qty, string? Location, string? WorkerId, string? Status, string? Details);
 
     public List<ReturnRow> ListReturns(string? search = null, string? status = null, DateTime? from = null, DateTime? to = null)
@@ -97,10 +97,11 @@ public sealed partial class FinishedGoodsRepository
     public List<HistoryRow> ListHistory(string? search = null, string? eventType = null, DateTime? from = null, DateTime? to = null)
     {
         const string sql = """
-            SELECT TOP(1000) H.EventAt,H.EventType,H.ReferenceNo,H.ItemOrOrder,H.Qty,H.Location,H.WorkerID,H.Status,H.Details
+            SELECT TOP(1000) H.RowKey,H.EventAt,H.EventType,H.ReferenceNo,H.ItemOrOrder,H.Qty,H.Location,H.WorkerID,H.Status,H.Details
             FROM
             (
-                SELECT T.TransactionTime EventAt,CAST('PUT AWAY' AS varchar(20)) EventType,
+                SELECT CONCAT('TX:',CONVERT(varchar(20),T.TransactionID)) COLLATE DATABASE_DEFAULT RowKey,
+                    T.TransactionTime EventAt,CAST('PUT AWAY' AS varchar(20)) EventType,
                     CONVERT(nvarchar(80),T.TransactionID) COLLATE DATABASE_DEFAULT ReferenceNo,
                     T.PartNo COLLATE DATABASE_DEFAULT ItemOrOrder,
                     CASE WHEN T.TransactionType='MOVE' THEN T.QtyAfter ELSE T.QtyChange END Qty,
@@ -110,13 +111,15 @@ public sealed partial class FinishedGoodsRepository
                 FROM dbo.WH_InventoryTransaction T
                 WHERE T.SourceType='FG_PUTAWAY' AND T.TransactionType IN('IN','MOVE')
                 UNION ALL
-                SELECT S.ShippedAt,'SHIPPED',CONVERT(nvarchar(80),S.ShipmentID) COLLATE DATABASE_DEFAULT,
+                SELECT CONCAT('TX:',CONVERT(varchar(20),T.TransactionID)) COLLATE DATABASE_DEFAULT,
+                    S.ShippedAt,'SHIPPED',CONVERT(nvarchar(80),S.ShipmentID) COLLATE DATABASE_DEFAULT,
                     T.PartNo COLLATE DATABASE_DEFAULT,-T.QtyChange,T.LocationNo COLLATE DATABASE_DEFAULT,
                     S.ShippedBy COLLATE DATABASE_DEFAULT,'SHIPPED',CONVERT(nvarchar(300),S.LotNo) COLLATE DATABASE_DEFAULT
                 FROM dbo.FG_Shipment S JOIN dbo.WH_InventoryTransaction T
                     ON T.SourceType='FG_OUTBOUND' AND T.SourceID=S.ShipmentID AND T.TransactionType='OUT'
                 UNION ALL
-                SELECT COALESCE(R.ReceivedAt,R.CreatedTS),'RETURN',CONVERT(nvarchar(80),R.ReturnID) COLLATE DATABASE_DEFAULT,
+                SELECT CONCAT('RETURN:',CONVERT(varchar(20),R.ReturnID)) COLLATE DATABASE_DEFAULT,
+                    COALESCE(R.ReceivedAt,R.CreatedTS),'RETURN',CONVERT(nvarchar(80),R.ReturnID) COLLATE DATABASE_DEFAULT,
                     R.PartNo COLLATE DATABASE_DEFAULT,R.ReturnQty,NULL,
                     COALESCE(R.ReceivedBy,R.CreatedBy) COLLATE DATABASE_DEFAULT,R.Status COLLATE DATABASE_DEFAULT,
                     CONVERT(nvarchar(300),R.ReturnReason) COLLATE DATABASE_DEFAULT FROM dbo.FG_CustomerReturn R
@@ -125,9 +128,9 @@ public sealed partial class FinishedGoodsRepository
               AND (@From IS NULL OR H.EventAt>=@From) AND (@To IS NULL OR H.EventAt<DATEADD(day,1,@To))
               AND (@Search IS NULL OR H.ReferenceNo LIKE @Search OR H.ItemOrOrder LIKE @Search
                 OR H.Location LIKE @Search OR H.WorkerID LIKE @Search OR H.Details LIKE @Search)
-            ORDER BY H.EventAt DESC,H.ReferenceNo DESC;
+            ORDER BY H.EventAt DESC,H.ReferenceNo DESC,H.RowKey DESC;
             """;
-        return Query(sql,r=>new HistoryRow(GetDate(r,"EventAt") ?? DateTime.MinValue,GetString(r,"EventType") ?? "",
+        return Query(sql,r=>new HistoryRow(GetString(r,"RowKey") ?? "",GetDate(r,"EventAt") ?? DateTime.MinValue,GetString(r,"EventType") ?? "",
             GetString(r,"ReferenceNo"),GetString(r,"ItemOrOrder"),GetDecimal(r,"Qty"),GetString(r,"Location"),
             GetString(r,"WorkerID"),GetString(r,"Status"),GetString(r,"Details")),
             ("@Search",null,Like(search)),("@EventType",null,NullIfBlank(eventType)?.ToUpperInvariant()),

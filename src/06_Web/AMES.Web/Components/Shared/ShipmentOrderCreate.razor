@@ -43,7 +43,7 @@
 </RadzenDataGrid>
 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="ames-modal-footer">
     @if(UnestimatedParts>0){<span class="dim">@L["FG.OrderCreate.Hint.UnestimatedFmt",UnestimatedParts]</span>}
-    <RadzenButton Text="@L["FG.ShipOrders.Title.Create"]" Icon="save" Click="Create" Disabled="@(_busy || !_quantities.Any(x=>x.Value>0))" Size="ButtonSize.Small" class="ames-rz-btn" />
+    <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="save" Click="Create" Disabled="@(_busy || !_quantities.Any(x=>x.Value>0))" Size="ButtonSize.Small" class="ames-rz-btn" />
     <RadzenButton Text="@L["Btn.Cancel"]" Icon="close" Click="@(()=>Closed.InvokeAsync())" Disabled="_busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
 </RadzenStack>
 </section>

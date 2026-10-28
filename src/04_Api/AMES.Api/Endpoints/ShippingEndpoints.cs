@@ -21,6 +21,16 @@ public static class ShippingEndpoints
                 return Results.Json(new { Message="Shipment order service is unavailable. Check the API connection and retry." },statusCode:503);
             }
         });
+        group.MapGet("/deliveries",(HttpContext ctx)=>
+        {
+            if(ctx.GetSession() is null)return Results.Unauthorized();
+            try{return Results.Ok(new FinishedGoodsRepository(factory).ListOpenShippingDeliveries());}
+            catch(Exception ex)
+            {
+                app.Logger.LogError(ex,"FG open DCR list load failed");
+                return Results.Json(new { Message="DCR list service is unavailable. Check the API connection and retry." },statusCode:503);
+            }
+        });
         group.MapGet("/delivery",(HttpContext ctx,string barcode)=>
         {
             if(ctx.GetSession() is null)return Results.Unauthorized();

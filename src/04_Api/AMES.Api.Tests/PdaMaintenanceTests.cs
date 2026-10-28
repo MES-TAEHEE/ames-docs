@@ -91,13 +91,16 @@ public class PdaMaintenanceTests
     }
 
     [Fact]
-    public void Maintenance_and_history_share_date_heading_filter_dialog_and_dark_dropdowns()
+    public void Maintenance_keeps_filter_dialog_while_transactions_show_dates_without_filter()
     {
         var maintenance=ReadPda("Components/Pages/Maintenance.razor");
         var history=ReadPda("Components/Pages/Wh/Wh08TransactionHistory.razor");
         Assert.Contains("<PdaFilterPanel Title=\"DUE DATE\"",maintenance);
-        Assert.Contains("<PdaFilterPanel Title=\"TRANSACTION DATE\"",history);
-        foreach(var page in new[]{maintenance,history})
+        Assert.Contains("TRANSACTION DATE",history);
+        Assert.DoesNotContain("<PdaFilterPanel",history);
+        Assert.DoesNotContain("WORKER ID",history);
+        Assert.DoesNotContain("ADJ REASON",history);
+        foreach(var page in new[]{maintenance})
         {
             Assert.DoesNotContain("<details",page);
             Assert.DoesNotContain("<select",page);
@@ -112,7 +115,7 @@ public class PdaMaintenanceTests
         Assert.Contains("e.Key == \"Escape\"",panel);
         Assert.Contains("await panel.FocusAsync()",panel);
         Assert.Contains("await toggle.FocusAsync()",panel);
-        Assert.Contains("if (_filtersOpen || _detailRow",history);
+        Assert.Contains("if (_detailRow is not null || _dcrRow",history);
         var css=ReadPda("wwwroot/css/pda.css");
         Assert.Contains("justify-content: space-between",css);
         Assert.Contains(".pda-filter-select.rz-dropdown",css);

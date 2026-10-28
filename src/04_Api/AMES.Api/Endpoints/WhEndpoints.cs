@@ -1,6 +1,7 @@
 using AMES.Api.Auth;
 using AMES.Api.Logging;
 using AMES.Contracts.Dto;
+using AMES.Contracts.Formatting;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using System.Data;
@@ -71,7 +72,8 @@ public static class WhEndpoints
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
         DateTime? ReceivedAt, string? LocationNo, string? ParentLotNo = null);
     public sealed record PutAwaySelectionResult(string SelectionType, string? DeliveryNoteNo,
-        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false);
+        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false,
+        FgEndpoints.PutAwayScanRow? FinishedGoods = null);
     public sealed record PutAwayConfirmReq(List<string>? Barcodes, string LocationId, bool Relocate = false);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, bool SimulateFailure = false, decimal? ExpectedQty = null, string? ExpectedLocation = null);
@@ -145,6 +147,7 @@ public static class WhEndpoints
         var maintenance = new MntRepository(factory);
         var g = app.MapGroup("/api/wh").WithTags("Warehouse");
         g.MapSupplierDeliveries(factory);
+        g.MapTransactionFeed(factory);
         g.MapAdjustmentLocation(factory, finishedGoods: false);
 
         // WH-001 Schedule - inbound tab
@@ -294,6 +297,27 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             var scanText = barcode?.Trim() ?? "";
+            var parsed = FgEndpoints.ParseFgBarcode(scanText);
+            if (parsed.Kind == "WORK_ORDER")
+                return Results.BadRequest(new InboundReceiveResult(false, "Scan a LOT, Shipping Unit or Unit Item, not a work order.", null));
+            var fgBarcode = parsed.Value;
+            using (var conn = factory.OpenConnection())
+            {
+                if (FgEndpoints.IsFinishedGoodsPutAway(conn, fgBarcode))
+                {
+                    try
+                    {
+                        var fg = FgEndpoints.FindPutAwayScanRow(conn, null, fgBarcode);
+                        return fg is null
+                            ? Results.NotFound(new InboundReceiveResult(false, "A finished-goods production LOT was not found.", null))
+                            : Results.Ok(new PutAwaySelectionResult("FG", null, [], [], FinishedGoods: fg));
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return Results.BadRequest(new InboundReceiveResult(false, ex.Message, null));
+                    }
+                }
+            }
             var matches = QueryPutAwayRows(factory, scanText, onlyUnassigned: false);
             var selection = BuildPutAwaySelection(scanText, matches);
             return selection is null
@@ -542,13 +566,13 @@ public static class WhEndpoints
         });
 
 
-        g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
+        g.MapGet("/adjust/scan", (HttpContext ctx, string scanText, bool? autoDetect) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
             try
             {
-                var row = ExecuteAdjustScan(factory, scanText);
+                var row = ExecuteAdjustScan(factory, scanText, autoDetect == true);
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "SCAN_STOCK", "WH005", "LOT", scanText, "SUCCESS", "Adjustment stock scanned",
                     lotNo: row?.LotNo, partNo: row?.PartNo, locationId: row?.ReceivedLocation, qty: row?.Qty));
@@ -559,8 +583,7 @@ public static class WhEndpoints
                 var isValidationError =
                     ex is SqlException sqlEx
                     && sqlEx.Errors.Count > 0
-                    && sqlEx.Errors[0].Number >= 51500
-                    && sqlEx.Errors[0].Number < 51600;
+                    && (sqlEx.Errors[0].Number is >= 51500 and < 51700 or 52614);
 
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "SCAN_STOCK", "WH005", "LOT", scanText, "FAIL", WarehouseErrorMessage(ex),
@@ -2649,10 +2672,20 @@ public static class WhEndpoints
         return rdr.Read() ? ReadInboundScanRow(rdr) : null;
     }
 
-    private static InboundScanRow? ExecuteAdjustScan(AmesConnectionFactory factory, string scanText)
+    private static InboundScanRow? ExecuteAdjustScan(AmesConnectionFactory factory, string scanText, bool autoDetect = false)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand(PdaWarehouseSql.AdjustScan, conn)
+        var finishedGoods = false;
+        if (autoDetect)
+        {
+            using var detect = new SqlCommand("""
+                SELECT CASE WHEN EXISTS(SELECT 1 FROM dbo.WH_Inventory W
+                    JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo WHERE W.LotNo=@Lot AND I.ItemType='ASSY') THEN 1 ELSE 0 END;
+                """,conn);
+            detect.Parameters.Add("@Lot",SqlDbType.NVarChar,100).Value=scanText.Trim();
+            finishedGoods=Convert.ToInt32(detect.ExecuteScalar())==1;
+        }
+        using var cmd = new SqlCommand(finishedGoods ? PdaFinishedGoodsSql.AdjustScan : PdaWarehouseSql.AdjustScan, conn)
         {
             CommandType = CommandType.Text,
             CommandTimeout = 15
@@ -2777,6 +2810,8 @@ public static class WhEndpoints
     private static InboundReceiveResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId,
         bool simulateFailure = false)
     {
+        if (!StockCountQuantity.HasStoragePrecision(body.DeltaQty))
+            return new InboundReceiveResult(false, "Adjustment quantity supports up to 3 decimal places.", null);
         try
         {
             using var conn = factory.OpenConnection();

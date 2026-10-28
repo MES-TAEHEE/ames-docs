@@ -885,6 +885,10 @@ public static class PdaWarehouseSql
             IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Status IN('Open','Inspecting'))
                 THROW 52614,'This customer return is awaiting inspection. Approve it in Customer Returns before setting a location.',1;
             IF @PartNo IS NULL THROW 51408, 'This barcode has not been received yet.', 1;
+            IF EXISTS(SELECT 1 FROM dbo.MD_Item WHERE ItemNo=@PartNo AND ItemType='ASSY')
+                THROW 51429,'Finished goods require the ASSY validation flow. Scan the LOT or pallet again in Set Location.',1;
+            IF EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Location AND UPPER(LocationType)='FG')
+                THROW 51429,'Only ASSY finished goods can be assigned an FG location.',1;
             IF @BeforeLocation=@Location THROW 51426,'LOT is already in this location.',1;
             IF EXISTS(SELECT 1 FROM dbo.MD_Location L WITH(UPDLOCK,HOLDLOCK)
                 WHERE L.LocationID=@Location AND L.Capacity>0 AND
@@ -1161,8 +1165,12 @@ public static class PdaWarehouseSql
 
             IF @AfterQty < 0
                 THROW 51517, 'After Qty cannot be below zero.', 1;
-            IF @AfterQty <> FLOOR(@AfterQty) OR @AfterQty > 999999999
-                THROW 51521, 'New quantity must be a whole number from 0 to 999999999.', 1;
+            IF @AfterQty > 999999999
+                THROW 51521, 'New quantity cannot exceed 999999999.', 1;
+            IF @AfterQty <> FLOOR(@AfterQty) AND NOT EXISTS
+                (SELECT 1 FROM dbo.MD_Item WHERE ItemNo=@ItemNo
+                    AND NULLIF(LTRIM(RTRIM(DefaultUOM)), '') IS NOT NULL AND UPPER(LTRIM(RTRIM(DefaultUOM)))<>'EA')
+                THROW 51521, 'EA stock requires a whole-number quantity.', 1;
 
             UPDATE dbo.WH_Inventory
                SET Qty = @AfterQty,

@@ -11789,7 +11789,7 @@
     <value>DCR 배정</value>
   </data>
   <data name="FG.ShipOrders.Btn.CreateDcr" xml:space="preserve">
-    <value>DCR / 트레일러 생성</value>
+    <value>Create DCR</value>
   </data>
   <data name="FG.ShipOrders.Col.OrderNo" xml:space="preserve">
     <value>출하 오더 번호</value>
@@ -12687,5 +12687,14 @@
   </data>
   <data name="MD.Routing.Err.ProcessRequired" xml:space="preserve">
     <value>공정을 선택하세요.</value>
+  </data>
+  <data name="FG.ShipOrders.Btn.CreateOrder" xml:space="preserve">
+    <value>Create Order</value>
+  </data>
+  <data name="FG.ShipOrders.IncludeShipped" xml:space="preserve">
+    <value>출하 완료 포함</value>
+  </data>
+  <data name="FG.Shipments.Col.PalletCount" xml:space="preserve">
+    <value>팔렛 수</value>
   </data>
 </root>

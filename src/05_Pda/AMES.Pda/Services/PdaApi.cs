@@ -106,7 +106,7 @@ public abstract class PdaApi
         string Direction, string? WorkerId, string? ReasonCode, string? ReasonNote,
         string? Supervisor, decimal? BeforeQty, decimal? DeltaQty, decimal? AfterQty,
         string? BeforeStatus, string? AfterStatus, string? BeforeLocation, string? AfterLocation,
-        string? Source, string? Note, string? Unit = null);
+        string? Source, string? Note, string? Unit = null, int? DeliveryId = null, int PartCount = 1);
     public sealed record InventoryRow(int InventoryId, string ItemNo, string? ItemName, string LocationId,
         int? LotId, decimal OnHandQty, decimal ReservedQty, DateTime? ExpiryDate,
         string? CarCode = null, string? Unit = null, decimal? MinDays = null, decimal? MinQty = null,
@@ -180,7 +180,8 @@ public abstract class PdaApi
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
         DateTime? ReceivedAt, string? LocationNo);
     public sealed record PutAwaySelectionResult(string SelectionType, string? DeliveryNoteNo,
-        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false);
+        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false,
+        FgPutAwayScanRow? FinishedGoods = null);
     public sealed record PutAwayConfirmReq(List<string> Barcodes, string LocationId, bool Relocate = false);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, bool SimulateFailure = false, decimal? ExpectedQty = null, string? ExpectedLocation = null);

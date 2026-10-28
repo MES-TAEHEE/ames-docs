@@ -1,0 +1,10 @@
+.wh08-page-state { font-size:12px;color:#a8bdd6;text-align:center; }
+.wh08-next { min-height:24px;text-align:center;color:#a8bdd6;font-size:13px; }
+.wh08-dcr-content { flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px; }
+.wh08-dcr-heading { display:flex;flex-direction:column;gap:4px; }
+.wh08-dcr-heading span { color:#a8bdd6;font-size:13px; }
+::deep .wh08-dcr-part.rz-button { width:100%;min-height:76px;height:auto;white-space:normal;background:#15253b;color:#e8eef7;border:1px solid #38516e;text-align:left; }
+::deep .wh08-dcr-part .rz-button-box { width:100%;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px; }
+::deep .wh08-dcr-part .rz-button-text { width:100%;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px; }
+::deep .wh08-dcr-part div { display:flex;flex-direction:column;flex-basis:100%;gap:4px; }
+::deep .wh08-dcr-part span { font-size:13px; }

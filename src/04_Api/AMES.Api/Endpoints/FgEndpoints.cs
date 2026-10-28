@@ -75,6 +75,7 @@ public static partial class FgEndpoints
         var g = app.MapGroup("/api/fg").WithTags("Finished Goods");
         g.MapAdjustmentLocation(factory, finishedGoods: true);
         g.MapPalletReturns(factory);
+        g.MapAssyReady(factory);
 
         if (PdaTestDatabaseGuard.AllowsReset(app, factory)) g.MapPost("/test/ppt-reset/{screen}", (HttpContext ctx, string screen) =>
         {

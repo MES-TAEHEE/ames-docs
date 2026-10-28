@@ -6,6 +6,43 @@ namespace AMES.Api.Tests;
 
 public sealed class FgPutAwayPalletTests
 {
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public void Unified_scan_keeps_FG_validation_state_and_pallet_contents(bool completed, bool stocked)
+    {
+        var item = new FgEndpoints.PutAwayScanRow(1, "LOT-1", null, "PART-1", "Part", null, 1, "EA",
+            null, null, null, completed, stocked, "LOT-1", stocked ? "FA01A1F1" : null,
+            null, "LOT", "LOCATION", "LOCATION", "Location", null, "Validation result");
+        var pallet = item with { LotId = null, LotNo = "PALLET-1", BarcodeType = "PALLET", Items = [item] };
+        var response = new WhEndpoints.PutAwaySelectionResult("FG", null, [], [], FinishedGoods: pallet);
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var decoded = JsonSerializer.Deserialize<AMES.Pda.Services.PdaApi.PutAwaySelectionResult>(
+            JsonSerializer.Serialize(response, options), options)!;
+
+        Assert.Equal("FG", decoded.SelectionType);
+        Assert.Empty(decoded.SelectedBarcodes);
+        Assert.Equal(completed, decoded.FinishedGoods!.IsProductionCompleted);
+        Assert.Equal(stocked, decoded.FinishedGoods.AlreadyStocked);
+        Assert.Equal("PALLET-1", decoded.FinishedGoods.LotNo);
+        Assert.Equal("LOT-1", Assert.Single(decoded.FinishedGoods.Items!).LotNo);
+        Assert.Equal(1m, decoded.FinishedGoods.Items![0].Qty);
+    }
+
+    [Fact]
+    public void Unified_scan_keeps_general_warehouse_responses_compatible()
+    {
+        var response = WhEndpoints.BuildPutAwaySelection("BOX-1",
+            [new("LOCAL", "BOX-1", "BOX-1", "MAT-1", "Material", 10, "EA", "DLN-1", null, null)]);
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var decoded = JsonSerializer.Deserialize<AMES.Pda.Services.PdaApi.PutAwaySelectionResult>(
+            JsonSerializer.Serialize(response, options), options)!;
+        Assert.Null(decoded.FinishedGoods);
+        Assert.Equal("BOX-1", Assert.Single(decoded.SelectedBarcodes));
+        Assert.Equal(10m, Assert.Single(decoded.Boxes).Qty);
+    }
+
     [Fact]
     public void Pallet_accepts_only_assy_parts()
     {
