@@ -8,6 +8,17 @@ namespace AMES.Data.Tests;
 
 public sealed class CustomerReturnInspectionTests
 {
+    [Fact]
+    public void General_location_write_cannot_bypass_finished_goods_validation()
+    {
+        var sql = PdaWarehouseSql.InboundMove;
+        Assert.Contains("ItemNo=@PartNo AND ItemType='ASSY'", sql);
+        Assert.Contains("UPPER(LocationType)='FG'", sql);
+        Assert.Contains("Finished goods require the ASSY validation flow", sql);
+        Assert.True(sql.IndexOf("Finished goods require", StringComparison.Ordinal)
+            < sql.IndexOf("UPDATE dbo.WH_Inventory", StringComparison.Ordinal));
+    }
+
     static string InspectionSql => (string)typeof(FinishedGoodsRepository)
         .GetField("ReturnInspectionSql", BindingFlags.Static | BindingFlags.NonPublic)!.GetRawConstantValue()!;
 

@@ -71,7 +71,8 @@ public static class WhEndpoints
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
         DateTime? ReceivedAt, string? LocationNo, string? ParentLotNo = null);
     public sealed record PutAwaySelectionResult(string SelectionType, string? DeliveryNoteNo,
-        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false);
+        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false,
+        FgEndpoints.PutAwayScanRow? FinishedGoods = null);
     public sealed record PutAwayConfirmReq(List<string>? Barcodes, string LocationId, bool Relocate = false);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, bool SimulateFailure = false, decimal? ExpectedQty = null, string? ExpectedLocation = null);
@@ -294,6 +295,27 @@ public static class WhEndpoints
         {
             if (ctx.GetSession() is null) return Results.Unauthorized();
             var scanText = barcode?.Trim() ?? "";
+            var parsed = FgEndpoints.ParseFgBarcode(scanText);
+            if (parsed.Kind == "WORK_ORDER")
+                return Results.BadRequest(new InboundReceiveResult(false, "Scan a LOT, Shipping Unit or Unit Item, not a work order.", null));
+            var fgBarcode = parsed.Value;
+            using (var conn = factory.OpenConnection())
+            {
+                if (FgEndpoints.IsFinishedGoodsPutAway(conn, fgBarcode))
+                {
+                    try
+                    {
+                        var fg = FgEndpoints.FindPutAwayScanRow(conn, null, fgBarcode);
+                        return fg is null
+                            ? Results.NotFound(new InboundReceiveResult(false, "A finished-goods production LOT was not found.", null))
+                            : Results.Ok(new PutAwaySelectionResult("FG", null, [], [], FinishedGoods: fg));
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return Results.BadRequest(new InboundReceiveResult(false, ex.Message, null));
+                    }
+                }
+            }
             var matches = QueryPutAwayRows(factory, scanText, onlyUnassigned: false);
             var selection = BuildPutAwaySelection(scanText, matches);
             return selection is null

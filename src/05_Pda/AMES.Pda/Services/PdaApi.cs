@@ -180,7 +180,8 @@ public abstract class PdaApi
         string? PartName, decimal Qty, string? Unit, string? DeliveryNoteNo,
         DateTime? ReceivedAt, string? LocationNo);
     public sealed record PutAwaySelectionResult(string SelectionType, string? DeliveryNoteNo,
-        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false);
+        List<PutAwayRow> Boxes, List<string> SelectedBarcodes, bool RequiresRelocation = false,
+        FgPutAwayScanRow? FinishedGoods = null);
     public sealed record PutAwayConfirmReq(List<string> Barcodes, string LocationId, bool Relocate = false);
     public sealed record AdjustSaveReq(string? Mode, string Barcode, decimal DeltaQty, string ReasonCode,
         string? ReasonNote, bool SimulateFailure = false, decimal? ExpectedQty = null, string? ExpectedLocation = null);
