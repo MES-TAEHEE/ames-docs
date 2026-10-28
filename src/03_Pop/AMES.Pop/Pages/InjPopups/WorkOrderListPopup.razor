@@ -53,7 +53,7 @@
                     <td>@w.Priority</td>
                 </tr>
             }
-            @if (_rows.Count == 0 && _error is null)
+            @if (_rows.Count == 0 && (_error is null || PopDb.IsOffline))
             {
                 <tr><td colspan="10" class="pmod-empty">@T("WoListEmpty")</td></tr>
             }
@@ -81,8 +81,20 @@
 
     protected override void OnInitialized()
     {
+        if (PopDb.IsOffline) { LoadOffline(); return; }
         try { _rows = PopServices.WorkOrders.ListForItemOnLine(LineId, ItemNo); }
+        catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsConnectionFailure(ex)) { LoadOffline(); }
         catch (Exception ex) { _error = ex.Message; }
+    }
+
+    // DB 가 끊기면(10-28) 작업 사본의 열린 WO 로 — 마감된 WO 는 사본에 없고, 수량은 사본을 받은 시점 값이다.
+    private void LoadOffline()
+    {
+        _rows = OfflineWork.State?.OpenWos
+                    .Where(w => string.Equals(w.StepItemNo ?? w.ItemNo, ItemNo, StringComparison.OrdinalIgnoreCase))
+                    .ToList() ?? new();
+        var taken = OfflineWork.State?.TakenAtUtc.ToLocalTime().ToString("MM-dd HH:mm") ?? "—";
+        _error = T("WoListOffline", taken);
     }
 
     private static decimal Remain(WorkOrderDto w) => Math.Max(0, w.OrderQty - w.CompletedQty);

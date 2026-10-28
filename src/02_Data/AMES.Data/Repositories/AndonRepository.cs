@@ -20,7 +20,7 @@ public sealed class AndonRepository
     /// severity 는 슈퍼바이저가 나중에 고르므로 보통 null 로 둔다.
     /// </summary>
     public int Raise(string lineId, string? equipId, string triggerSource,
-                     string ruleId, string? severity, string employeeNo)
+                     string ruleId, string? severity, string employeeNo, DateTime? at = null)
     {
         const string sql = "dbo.SP_POP_ANDON_Raise";
         using var conn = _factory.OpenConnection();
@@ -31,6 +31,7 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@R",  SqlDbType.VarChar, 20).Value = ruleId;
         cmd.Parameters.Add("@S",  SqlDbType.VarChar, 10).Value = (object?)severity ?? DBNull.Value;
         cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = employeeNo;
+        AddAt(cmd, at);
         // 알림은 AMES.Api NOTIFY 발송기가 PR_AndonCall 을 보고 규칙(SYS_NotificationRule)대로 보낸다(10-24).
         // 전에는 여기서 수신자·채널을 고정값으로 PR_AndonPush 에 적었지만 그 행을 읽는 곳이 없었다(10-28 삭제).
         using var rdr = cmd.ExecuteReader();
@@ -149,7 +150,7 @@ public sealed class AndonRepository
 
     // operatorNo = 이 POP 에 로그인한 사번. 감사 컬럼(CreatedBy·ModifiedBy)은 이 값이고,
     // 배지를 찍은 사람은 전용 컬럼(AckedBy·CalledBy·ArrivedNo·TechnicianID·ReportedBy)에 남는다.
-    public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name, string operatorNo)
+    public void AcknowledgeBySupervisor(int andonId, string workerNo, string? name, string operatorNo, DateTime? at = null)
     {
         const string sql = "dbo.SP_POP_ANDON_AcknowledgeBySupervisor";
         using var conn = _factory.OpenConnection();
@@ -158,6 +159,7 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@W",  SqlDbType.VarChar,   20).Value = workerNo;
         cmd.Parameters.Add("@N",  SqlDbType.NVarChar,  50).Value = (object?)name ?? DBNull.Value;
         cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value = operatorNo;
+        AddAt(cmd, at);
         cmd.ExecuteNonQuery();
     }
 
@@ -166,7 +168,8 @@ public sealed class AndonRepository
     /// 원인·심각도 확정 + 부서 행 삽입 + 다운타임 원인 기록. 보전(MAINT)이 처음 호출되면
     /// MNT_FailureRegister 도 같은 트랜잭션에서 만든다(안돈 1건당 1행, Source='ANDON').
     /// </summary>
-    public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy, string operatorNo)
+    public void CallDepts(int andonId, string causeCode, string severity, IEnumerable<string> deptCodes, string calledBy, string operatorNo,
+                          DateTime? at = null)
     {
         const string headSql = "dbo.SP_POP_ANDON_CallDepts_UpdAndonCall";
         const string downSql = "dbo.SP_POP_ANDON_CallDepts_UpdLineDowntimeLog";
@@ -185,6 +188,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@S",  SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value = operatorNo;
                 // 0행이면 다른 터미널이 이미 닫았거나(RESOLVED) 아직 SUP_ACKED 가 아닌 것 — 부서 행을 넣지 않고 롤백
+                AddAt(cmd, at);
                 if (cmd.ExecuteNonQuery() == 0)
                 {
                     tx.Rollback();
@@ -196,6 +200,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@ID", SqlDbType.Int          ).Value = andonId;
                 cmd.Parameters.Add("@C",  SqlDbType.VarChar,   30).Value = causeCode;
                 cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value = operatorNo;
+                AddAt(cmd, at);
                 cmd.ExecuteNonQuery();
             }
             var codes = deptCodes.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -206,6 +211,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@D",  SqlDbType.VarChar, 20).Value = d;
                 cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value = calledBy;
                 cmd.Parameters.Add("@Op", SqlDbType.VarChar, 20).Value = operatorNo;
+                AddAt(cmd, at);
                 cmd.ExecuteNonQuery();
             }
             if (codes.Contains(AndonDeptCodes.Maint, StringComparer.OrdinalIgnoreCase))
@@ -217,6 +223,7 @@ public sealed class AndonRepository
                 cmd.Parameters.Add("@S",   SqlDbType.VarChar,   10).Value = severity;
                 cmd.Parameters.Add("@By",  SqlDbType.VarChar,   20).Value = calledBy;
                 cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorNo;
+                AddAt(cmd, at);
                 cmd.ExecuteNonQuery();
             }
             tx.Commit();
@@ -225,7 +232,7 @@ public sealed class AndonRepository
     }
 
     /// <summary>도착 기록. 보전 행이면 고장 등록을 IN_PROGRESS 로 올리고 조치 이력(ARRIVED)을 남긴다.</summary>
-    public void RecordArrival(int deptCallId, string workerNo, string? name, string operatorNo)
+    public void RecordArrival(int deptCallId, string workerNo, string? name, string operatorNo, DateTime? at = null)
     {
         const string sql = "dbo.SP_POP_ANDON_RecordArrival";
         using var conn = _factory.OpenConnection();
@@ -235,11 +242,12 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@N",     SqlDbType.NVarChar, 50).Value = (object?)name ?? DBNull.Value;
         cmd.Parameters.Add("@Op",    SqlDbType.VarChar,  20).Value = operatorNo;
         cmd.Parameters.Add("@Maint", SqlDbType.VarChar,  20).Value = AndonDeptCodes.Maint;
+        AddAt(cmd, at);
         cmd.ExecuteNonQuery();
     }
 
     /// <summary>ACK 기록. 보전 행이면 조치 이력(ACK)을 남긴다. 고장 종료는 안돈 Resolve 가 한다.</summary>
-    public void AckDept(int deptCallId, string operatorNo)
+    public void AckDept(int deptCallId, string operatorNo, DateTime? at = null)
     {
         const string sql = "dbo.SP_POP_ANDON_AckDept";
         using var conn = _factory.OpenConnection();
@@ -247,6 +255,7 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@ID",    SqlDbType.Int        ).Value = deptCallId;
         cmd.Parameters.Add("@Op",    SqlDbType.VarChar, 20).Value = operatorNo;
         cmd.Parameters.Add("@Maint", SqlDbType.VarChar, 20).Value = AndonDeptCodes.Maint;
+        AddAt(cmd, at);
         cmd.ExecuteNonQuery();
     }
 
@@ -254,7 +263,7 @@ public sealed class AndonRepository
     /// 종료. 다운타임을 닫고 안돈이 만든 고장 등록을 RESOLVED 로 올린다.
     /// causeCode·severity 는 자체 해결(부서 호출 없음)일 때만 넘어온다.
     /// </summary>
-    public void Resolve(int andonId, string? causeCode, string? severity, string operatorNo)
+    public void Resolve(int andonId, string? causeCode, string? severity, string operatorNo, DateTime? at = null)
     {
         const string sql = "dbo.SP_POP_ANDON_Resolve";
         using var conn = _factory.OpenConnection();
@@ -264,6 +273,35 @@ public sealed class AndonRepository
         cmd.Parameters.Add("@C",   SqlDbType.VarChar, 20).Value = (object?)causeCode ?? DBNull.Value;
         cmd.Parameters.Add("@S",   SqlDbType.VarChar, 10).Value = (object?)severity ?? DBNull.Value;
         cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorNo;
+        AddAt(cmd, at);
         cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>라인의 활성 슈퍼바이저 사번 — POP 오프라인 사본이 배지를 확인한다.</summary>
+    public List<string> ListLineSupervisors(string lineId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("dbo.SP_POP_ANDON_ListLineSupervisors", conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+        using var r = cmd.ExecuteReader();
+        var list = new List<string>();
+        while (r.Read()) list.Add(r.GetString(0));
+        return list;
+    }
+
+    /// <summary>안돈의 그 부서 호출 행 — 오프라인에서 호출한 부서를 복구 때 찾는다. 없으면 null.</summary>
+    public int? FindDeptCall(int andonId, string deptCode)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("dbo.SP_POP_ANDON_FindDeptCall", conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@ID", SqlDbType.Int        ).Value = andonId;
+        cmd.Parameters.Add("@D",  SqlDbType.VarChar, 20).Value = deptCode;
+        return cmd.ExecuteScalar() as int?;
+    }
+
+    // 오프라인 복구 때만 넘긴다 — 없으면 매개변수를 붙이지 않아 @At 이 없는 구 프로시저에서도 그대로 돈다.
+    static void AddAt(SqlCommand cmd, DateTime? at)
+    {
+        if (at is { } v) cmd.Parameters.Add("@At", SqlDbType.DateTime2).Value = v;
     }
 }

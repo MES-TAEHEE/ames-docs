@@ -176,6 +176,12 @@ internal sealed class WorkOp
     public DateTime LotDate { get; set; }           // 현황 효과를 얹을 LOT 생성일
     public string PriorStatus { get; set; } = "";   // 작업 전 LOT 상태 — 사본에 없던 LOT 이면 빈 값
     public int PrintedCount { get; set; }
+    /// <summary>안돈·재작업·QC(10-28) — 대상 행 ID. 오프라인에서 만든 행이면 임시(음수) ID 이고 반영 때 실제 ID 로 바꾼다.</summary>
+    public int Ref { get; set; }
+    /// <summary>안돈·재작업·QC 작업의 나머지 값(이름 → 값).</summary>
+    public Dictionary<string, string?> Args { get; set; } = new();
+
+    public string? Arg(string key) => Args.TryGetValue(key, out var v) ? v : null;
 }
 
 internal sealed class WorkConflict
@@ -190,6 +196,10 @@ internal sealed class WorkOpsFile
 {
     public List<WorkOp> Ops { get; set; } = new();
     public List<WorkConflict> Conflicts { get; set; } = new();
+    /// <summary>오프라인에서 만든 안돈·부서 호출·검사 등의 임시(음수) ID — 마지막으로 준 값.</summary>
+    public int LastTempId { get; set; }
+    /// <summary>임시 ID → 반영 때 만든 실제 ID.</summary>
+    public Dictionary<int, int> TempIds { get; set; } = new();
 }
 
 /// <summary>오프라인 MAIN 화면이 한 번 그리는 데 필요한 것 — 온라인 조회 결과와 같은 내용이다.</summary>
@@ -283,6 +293,26 @@ internal static class OfflineWork
 
     public static void ClearConflicts() { lock (Gate) { Ops.Conflicts.Clear(); SaveOps(); } }
 
+    // ── 안돈·재작업·QC 큐 (10-28) — 같은 큐·같은 반영 순서·같은 충돌 목록을 쓴다 ──
+
+    /// <summary>오프라인 작업 한 건을 큐 끝에 올린다.</summary>
+    public static void Enqueue(WorkOp op) { lock (Gate) { Ops.Ops.Add(op); SaveOps(); } }
+
+    /// <summary>아직 반영 못 한 작업 중 조건에 맞는 것(발생 순).</summary>
+    public static List<WorkOp> PendingOps(Func<WorkOp, bool> filter) { lock (Gate) return Ops.Ops.Where(filter).ToList(); }
+
+    /// <summary>오프라인에서 만드는 행의 임시 ID — 음수라 실제 ID 와 겹치지 않는다.</summary>
+    public static int NextTempId() { lock (Gate) { var id = --Ops.LastTempId; SaveOps(); return id; } }
+
+    /// <summary>임시 ID 면 반영 때 만든 실제 ID(아직이면 null), 실제 ID 면 그대로.</summary>
+    public static int? ResolveId(int id)
+    {
+        if (id >= 0) return id;
+        lock (Gate) return Ops.TempIds.TryGetValue(id, out var real) ? real : null;
+    }
+
+    public static void MapTempId(int tempId, int realId) { lock (Gate) { Ops.TempIds[tempId] = realId; SaveOps(); } }
+
     /// <summary>이 라인·스테이션 사본이 있고 유효 기간 안인가.</summary>
     public static bool HasData(string lineId, string stationCode)
         => State is { } s
@@ -353,6 +383,7 @@ internal static class OfflineWork
         next.OpenWos = PopServices.WorkOrders.ListForLine(lineId);
         next.DefectCodes = PopServices.Defects.ListForProcess(process);
         next.Pallets = PopServices.Pallets.ListForOffline();
+        OfflineAndon.Warm(lineId);
 
         var items = next.Summaries.Values.SelectMany(l => l).Select(i => i.ItemNo)
             .Concat(next.Lots.Select(l => l.ItemNo))
@@ -1012,8 +1043,13 @@ internal static class OfflineWork
         if (PopDb.IsOffline) return;
         FlushIfDirty();
         if (PendingCount > 0) { Replay(); return; }
-        if (app.Session is { } s && OfflineAuth.ProcessOf(s.LineId) is { } process)
-            PrefetchInBackground(s.LineId, s.TerminalId, process);
+        if (app.Session is not { } s || OfflineAuth.ProcessOf(s.LineId) is not { } process) return;
+        switch (process)
+        {
+            case "INJ" or "IMG" or "PNT": PrefetchInBackground(s.LineId, s.TerminalId, process); break;
+            case OfflineRework.Process:   OfflineReads.WarmInBackground(process, OfflineRework.Warm); break;
+            case OfflineQc.Process:       OfflineReads.WarmInBackground(process, OfflineQc.Warm); break;
+        }
     }
 
     public static void Replay()
@@ -1080,6 +1116,12 @@ internal static class OfflineWork
     // 충돌이면 사유, 정상(또는 이미 반영돼 있어 무해)이면 null.
     private static string? Apply(WorkOp op, int? session)
     {
+        switch (op.Process)
+        {
+            case OfflineAndon.Process:  return OfflineAndon.Apply(op);
+            case OfflineRework.Process: return OfflineRework.Apply(op, session);
+            case OfflineQc.Process:     return OfflineQc.Apply(op);
+        }
         switch (op.Process, op.Kind)
         {
             // ── INJ ──

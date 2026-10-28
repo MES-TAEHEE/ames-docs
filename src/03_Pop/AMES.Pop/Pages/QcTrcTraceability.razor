@@ -15,7 +15,7 @@
             <span class="pop-tbar-id">QC-TRC · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
-            <span class="stat-on">● LIVE</span>
+            <span class="@(PopDb.IsOffline ? "stat-bad" : "stat-on")">● @(PopDb.IsOffline ? $"OFFLINE · {OfflineWork.PendingCount} queued" : "LIVE")</span>
             <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.QcTrcHelp))" />
@@ -102,9 +102,9 @@
         if (string.IsNullOrWhiteSpace(_input)) { SetStatus("Enter a lot code or ID.", "fail"); return; }
         try
         {
-            int? lotId = int.TryParse(_input, out var n) ? n : PopServices.Qc.FindLotIdByCode(_input.Trim());
+            int? lotId = int.TryParse(_input, out var n) ? n : OfflineQc.FindLotIdByCode(_input.Trim());
             if (lotId is null) { SetStatus($"× No lot matches '{_input}'.", "fail"); _nodes = new(); return; }
-            _nodes = PopServices.Qc.TraceLot(lotId.Value);
+            _nodes = OfflineQc.TraceLot(lotId.Value);
             SetStatus($"✓ {_nodes.Count} nodes for LotID {lotId}", "ok");
         }
         catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }

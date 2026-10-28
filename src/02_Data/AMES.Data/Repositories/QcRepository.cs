@@ -57,7 +57,7 @@ public sealed class QcRepository
     }
 
     /// <summary>Finalize an in-progress inspection — sets Verdict + InsEndTS. False when it was already finalized.</summary>
-    public bool FinalizeInspection(int inspectionId, string verdict, string approverId, string employeeNo)
+    public bool FinalizeInspection(int inspectionId, string verdict, string approverId, string employeeNo, DateTime? at = null)
     {
         const string sql = "dbo.SP_POP_QC_FinalizeInspection";
         using var conn = _factory.OpenConnection();
@@ -65,6 +65,7 @@ public sealed class QcRepository
         cmd.Parameters.Add("@I", SqlDbType.Int).Value           = inspectionId;
         cmd.Parameters.Add("@V", SqlDbType.VarChar, 15).Value   = verdict;
         cmd.Parameters.Add("@A", SqlDbType.VarChar,   20).Value = approverId;
+        AddAt(cmd, at);
         return Convert.ToInt32(cmd.ExecuteScalar() ?? 0) > 0;
     }
 
@@ -104,7 +105,8 @@ public sealed class QcRepository
     }
 
     /// <param name="lineId">LOT 이 없으면 검사한 터미널의 라인을 넘긴다.</param>
-    public int CreateInspection(string type, InspectionTarget target, string? lineId, int sampleSize, string inspectorId, string employeeNo)
+    public int CreateInspection(string type, InspectionTarget target, string? lineId, int sampleSize, string inspectorId, string employeeNo,
+                                DateTime? at = null)
     {
         const string sql = "dbo.SP_POP_QC_CreateInspection";
         using var conn = _factory.OpenConnection();
@@ -117,6 +119,7 @@ public sealed class QcRepository
         cmd.Parameters.Add("@Lot",  SqlDbType.Int).Value         = (object?)target.LotId ?? DBNull.Value;
         cmd.Parameters.Add("@Wo",   SqlDbType.Int).Value         = (object?)target.WoId ?? DBNull.Value;
         cmd.Parameters.Add("@Line", SqlDbType.VarChar, 20).Value = (object?)(target.LineId ?? lineId) ?? DBNull.Value;
+        AddAt(cmd, at);
         return (int)cmd.ExecuteScalar()!;
     }
 
@@ -135,7 +138,7 @@ public sealed class QcRepository
     }
 
     public int CreateNcr(string severity, string sourceType, string? sourceId, string itemNo,
-                         decimal affectedQty, string disposition, string operatorId, string employeeNo)
+                         decimal affectedQty, string disposition, string operatorId, string employeeNo, DateTime? at = null)
     {
         const string sql = "dbo.SP_POP_QC_CreateNcr";
         using var conn = _factory.OpenConnection();
@@ -148,6 +151,7 @@ public sealed class QcRepository
         cmd.Parameters.Add("@D",  SqlDbType.VarChar, 15).Value  = disposition;
         cmd.Parameters.Add("@Op", SqlDbType.VarChar,   20).Value= operatorId;
         cmd.Parameters.Add("@By", SqlDbType.VarChar, 20).Value  = employeeNo;
+        AddAt(cmd, at);
         return (int)cmd.ExecuteScalar()!;
     }
 
@@ -166,7 +170,7 @@ public sealed class QcRepository
     }
 
     /// <summary>Release a held hold. False when it is no longer Held (already released/rejected) — nothing is written.</summary>
-    public bool ReleaseHold(int holdId, string action, string reason, string releasedBy, string employeeNo)
+    public bool ReleaseHold(int holdId, string action, string reason, string releasedBy, string employeeNo, DateTime? at = null)
     {
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
@@ -177,6 +181,7 @@ public sealed class QcRepository
                 upd.Parameters.Add("@H",  SqlDbType.Int            ).Value = holdId;
                 upd.Parameters.Add("@A",  SqlDbType.VarChar, 15    ).Value = action;
                 upd.Parameters.Add("@By", SqlDbType.VarChar,     20).Value = releasedBy;
+                AddAt(upd, at);
                 if (Convert.ToInt32(upd.ExecuteScalar() ?? 0) == 0) { tx.Rollback(); return false; }
             }
 
@@ -187,6 +192,7 @@ public sealed class QcRepository
                 ins.Parameters.Add("@R",  SqlDbType.NVarChar, 500).Value = reason;
                 ins.Parameters.Add("@By", SqlDbType.VarChar,    20).Value = releasedBy;
                 ins.Parameters.Add("@Emp",SqlDbType.VarChar, 20).Value   = employeeNo;
+                AddAt(ins, at);
                 ins.ExecuteNonQuery();
             }
 
@@ -422,4 +428,10 @@ public sealed class QcRepository
         ActionsTotal     = (int)r["ActionsTotal"],
         ActionsCompleted = (int)r["ActionsCompleted"],
     };
+
+    // 오프라인 POP 복구 때만 넘긴다 — 없으면 붙이지 않아 @At 이 없는 구 프로시저에서도 돈다.
+    private static void AddAt(SqlCommand cmd, DateTime? at)
+    {
+        if (at is { } v) cmd.Parameters.Add("@At", SqlDbType.DateTime2).Value = v;
+    }
 }

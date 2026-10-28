@@ -159,6 +159,29 @@ public sealed class InjLotRepository
                     cmd.Parameters.Add("@Mold", SqlDbType.VarChar, 20).Value = map.MoldId;
                     cmd.ExecuteNonQuery();
                 }
+                // MNT 금형 샷 카운터(10-28 사용자 결정 — 사이클 PM·소진율의 전제). 금형당 1행, 처음엔 MD_Mold 값으로 시작한다.
+                // PLC 연동 때 다시 볼 것: 샷 = 1캐비티 LOT 생성 기준(캐비티 1 매핑 누락·로봇 검사 지연이면 빠짐),
+                // PLC 샷카운터(MachineShotCount) 차분으로 셀지, 오프라인 복구분 반영 시각, 교체·정비 리셋 — Claude_확인사항.md 김현진 보류.
+                using (var cmd = new SqlCommand("""
+                    MERGE dbo.MNT_MoldShotCount WITH (HOLDLOCK) AS t
+                    USING (SELECT @Mold AS MoldID) s ON t.MoldID = s.MoldID
+                    WHEN MATCHED THEN UPDATE SET
+                         CurrentShots   = ISNULL(t.CurrentShots, 0) + 1,
+                         LifetimeShots  = ISNULL(t.LifetimeShots, 0) + 1,
+                         MountedEquipID = @Equip,
+                         ModifiedBy = 'AGENT', ModifiedTS = SYSDATETIME()
+                    WHEN NOT MATCHED THEN INSERT
+                         (MoldID, CurrentShots, LifetimeShots, MountedEquipID, CreatedBy, CreatedTS)
+                         VALUES (@Mold,
+                                 ISNULL((SELECT CurrentShots FROM dbo.MD_Mold WHERE MoldID = @Mold), 1),
+                                 (SELECT CAST(IIF(CumulativeShots > 2147483647, 2147483647, CumulativeShots) AS int) FROM dbo.MD_Mold WHERE MoldID = @Mold),
+                                 @Equip, 'AGENT', SYSDATETIME());
+                    """, conn, tx))
+                {
+                    cmd.Parameters.Add("@Mold",  SqlDbType.VarChar, 20).Value = map.MoldId;
+                    cmd.Parameters.Add("@Equip", SqlDbType.VarChar, 20).Value = equipId;
+                    cmd.ExecuteNonQuery();
+                }
             }
 
             tx.Commit();

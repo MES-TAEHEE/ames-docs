@@ -404,7 +404,7 @@
             scr.Items, scr.SelItemNo, scr.ActiveWo,
             scr.TodayGood, scr.TodayDef, $"{pct:0.0}%", pct >= 5 ? "bad" : pct >= 4 ? "warn" : "ok",
             scr.Mold, moldText, moldClass, scr.RawLots.Select(l => l.ToInj()).ToList(), scr.RawCount, scr.NgCount,
-            "OFFLINE", "stat-off", null));
+            "OFFLINE", "stat-off", OfflineAndon.Local(Session.LineId)));
 
         var taken = OfflineWork.State?.TakenAtUtc.ToLocalTime().ToString("MM-dd HH:mm") ?? "—";
         _refreshError   = T("DbOfflineLocal", taken, OfflineWork.PendingCount);
@@ -456,7 +456,7 @@
             mold, moldText, moldClass,
             rawLots, raw, ng,
             eqStatus, eqStatus is "RUN" or "IDLE" ? "stat-on" : "stat-off",
-            PopServices.Andon.GetOpenForLine(lineId),
+            OfflineAndon.GetOpenForLine(lineId),
             today);
     }
 
@@ -503,7 +503,6 @@
     private void OpenWoList(InjItemDailyDto it)
     {
         if (!string.Equals(_selItemNo, it.ItemNo, StringComparison.OrdinalIgnoreCase)) SelectItem(it);
-        if (PopDb.IsOffline) { Toasts.Warn(T("OfflineNotAvailable")); return; }   // WO 목록 팝업은 DB 를 직접 읽는다
         _andonAutoRaise = false;
         _popup = Popup.WoList;
     }
@@ -684,8 +683,6 @@
     // 팝업 안에서 한 번 더 버튼을 누르게 하지 않는다.
     private async Task OpenAndon()
     {
-        // 안돈은 DB 에 기록·호출하는 흐름이라 오프라인에서는 쓸 수 없다 — 설비 쪽 경광등은 PLC 가 직접 제어한다
-        if (PopDb.IsOffline) { Toasts.Warn(T("OfflineNotAvailable")); return; }
         if (_openAndon is null)
         {
             if (!await Confirmer.AskAsync(T("AndonConfirmTitle"), T("AndonConfirmBody"),

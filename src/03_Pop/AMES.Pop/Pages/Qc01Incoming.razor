@@ -15,7 +15,7 @@
             <span class="pop-tbar-id">QC-001 · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
-            <span class="stat-on">● LIVE</span>
+            <span class="@(PopDb.IsOffline ? "stat-bad" : "stat-on")">● @(PopDb.IsOffline ? $"OFFLINE · {OfflineWork.PendingCount} queued" : "LIVE")</span>
             <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Qc01Help))" />
@@ -132,14 +132,14 @@
 
     private void Refresh()
     {
-        try { _list = PopServices.Qc.ListInspections("Incoming", 30); }
+        try { _list = OfflineQc.ListInspections("Incoming", 30); }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc01] {ex.Message}"); }
     }
 
     private void Select(QcInspectionDto i)
     {
         _sel = i.InspectionId;
-        _items = PopServices.Qc.ListInspectionItems(i.InspectionId);
+        _items = OfflineQc.ListInspectionItems(i.InspectionId);
     }
 
     private void StartNew()
@@ -150,13 +150,11 @@
             var raw = _code.Trim();
             if (raw.Length == 0) { SetStatus("× Scan a LOT or enter an item number", "fail"); return; }
             var code   = AMES.Devices.ImgScanParser.ExtractLotCode(raw) ?? raw;
-            var target = PopServices.Qc.ResolveInspectionTarget(code);
-            if (target is null) { SetStatus($"× LOT / item not found: {code}", "fail"); return; }
-            var id = PopServices.Qc.CreateInspection("Incoming", target, Session?.LineId, 32,
-                                                      Session?.OperatorId ?? "system",
-                                                      Session?.EmployeeNo ?? "Q000");
+            // DB 가 끊겼으면 스캔 값 그대로 큐에 올리고 복구 때 서버가 대상을 확인한다(10-28)
+            var r = OfflineQc.StartInspection("Incoming", code, 32, Session);
+            if (r is null) { SetStatus($"× LOT / item not found: {code}", "fail"); return; }
             _code = "";
-            SetStatus($"✓ Inspection #{id} opened (32 samples) · {target.ItemNo}", "ok");
+            SetStatus(r.Queued ? $"✓ Inspection {r.ItemNo} queued offline — synced when the DB is back" : $"✓ Inspection #{r.Id} opened (32 samples) · {r.ItemNo}", "ok");
             Refresh();
         }
         catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
@@ -167,9 +165,7 @@
         if (_sel == 0) return;
         try
         {
-            var done = PopServices.Qc.FinalizeInspection(_sel, verdict,
-                                               Session?.OperatorId ?? "system",
-                                               Session?.EmployeeNo ?? "Q000");
+            var done = OfflineQc.FinalizeInspection(_sel, verdict, Session);
             if (done) SetStatus($"✓ Inspection #{_sel} → {verdict}", verdict == "PASS" ? "ok" : "fail");
             else SetStatus($"× #{_sel} already finalized — verdict not changed", "fail");
             Refresh();

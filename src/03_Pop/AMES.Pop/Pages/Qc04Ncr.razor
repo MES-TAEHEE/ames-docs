@@ -14,7 +14,7 @@
             <span class="pop-tbar-id">QC-004 · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
-            <span class="stat-on">● LIVE</span>
+            <span class="@(PopDb.IsOffline ? "stat-bad" : "stat-on")">● @(PopDb.IsOffline ? $"OFFLINE · {OfflineWork.PendingCount} queued" : "LIVE")</span>
             <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Qc04Help))" />
@@ -122,8 +122,8 @@
     {
         try
         {
-            _ncrs = PopServices.Qc.ListNcrs("Open,Investigating", 60);
-            var closed = PopServices.Qc.ListNcrs("Closed", 60);
+            _ncrs = OfflineQc.ListNcrs("Open,Investigating", 60);
+            var closed = OfflineQc.ListNcrs("Closed", 60);
             _closed7 = closed.Count(n => (n.ReportedAt ?? DateTime.MinValue) >= DbClock.Now.AddDays(-7));
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc04] {ex.Message}"); }
@@ -135,10 +135,8 @@
         if (_qty < 1)                          { SetStatus("Qty must be ≥ 1.", "fail"); return; }
         try
         {
-            var id = PopServices.Qc.CreateNcr(_sev, _src, null, _item, _qty, _disp,
-                                                Session?.OperatorId ?? "system",
-                                                Session?.EmployeeNo ?? "Q000");
-            SetStatus($"✓ NCR #{id} created", "ok");
+            var id = OfflineQc.CreateNcr(_sev, _src, _item, _qty, _disp, Session);
+            SetStatus(id < 0 ? $"✓ NCR queued offline — synced when the DB is back" : $"✓ NCR #{id} created", "ok");
             Refresh();
         }
         catch (Exception ex) { SetStatus("× " + ex.Message, "fail"); }
