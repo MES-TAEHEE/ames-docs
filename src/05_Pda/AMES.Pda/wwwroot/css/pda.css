@@ -7610,6 +7610,7 @@ body:has(.pda-shell.wh),
 }
 
 .pda-shell.wh.wh-home-shell .wh-home-tile.inbound { border-top-color: #86efac !important; }
+.pda-shell.wh.wh-home-shell .wh-home-tile.schedule { border-top-color: #93c5fd !important; }
 .pda-shell.wh.wh-home-shell .wh-home-tile.release { border-top-color: #fca5a5 !important; }
 .pda-shell.wh.wh-home-shell .wh-home-tile.inventory { border-top-color: #fbbf24 !important; }
 .pda-shell.wh.wh-home-shell .wh-home-tile.adjust { border-top-color: #5eead4 !important; }
