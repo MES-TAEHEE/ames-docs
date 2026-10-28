@@ -136,7 +136,7 @@
 
     int CountEvent(string type) => _rows.Count(row => type switch
     {
-        "INBOUND" => DisplayEvent(row) is "WH.LogHistory.Lbl.Inbound" or "WH.LogHistory.Lbl.Received" or "WH.LogHistory.Lbl.Stored" or "WH.LogHistory.Lbl.ReturnReceived",
+        "INBOUND" => DisplayEvent(row) is "WH.LogHistory.Lbl.Inbound" or "WH.LogHistory.Lbl.Received" or "WH.LogHistory.Lbl.Stored" or "WH.LogHistory.Lbl.ReturnReceived" or "WH.LogHistory.Lbl.CancelInbound" or "WH.LogHistory.Lbl.InboundCancelled",
         "OUTBOUND" => DisplayEvent(row) is "WH.LogHistory.Lbl.Outbound" or "WH.LogHistory.Lbl.Released",
         "ADJUSTMENT" => DisplayEvent(row) == "WH.LogHistory.Lbl.Adjustment",
         _ => false,
@@ -145,6 +145,7 @@
     static string EventClass(AMES.Data.Repositories.WarehouseRepository.OperationLogRow row)
     {
         var upper = row.EventType.ToUpperInvariant();
+        if (upper == "CANCEL_RECEIPT") return "bad";
         if (upper == "STATUS_CHANGE")
         {
             var status = ChangedStatus(row.Message);

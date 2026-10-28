@@ -1795,26 +1795,26 @@ public sealed partial class WarehouseRepository
                 T.QtyChange AS Qty
             FROM dbo.WH_InventoryTransaction T
             CROSS APPLY (SELECT
-                CASE UPPER(T.TransactionType)
+                CASE WHEN T.ReasonCode='INBOUND_CANCEL' THEN 'CANCEL_RECEIPT' ELSE CASE UPPER(T.TransactionType)
                     WHEN 'IN' THEN 'RECEIVE'
                     WHEN 'OUT' THEN 'RELEASE_PICK'
                     WHEN 'ADJ' THEN 'ADJUST_SAVE'
                     WHEN 'MOVE' THEN 'MOVE_LOCATION'
                     WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
                     ELSE UPPER(T.TransactionType)
-                END AS EventType,
-                CASE UPPER(T.TransactionType)
+                END END AS EventType,
+                CASE WHEN T.ReasonCode='INBOUND_CANCEL' THEN 'INBOUND' ELSE CASE UPPER(T.TransactionType)
                     WHEN 'IN' THEN 'INBOUND'
                     WHEN 'OUT' THEN 'OUTBOUND'
                     WHEN 'ADJ' THEN 'ADJUSTMENT'
                     WHEN 'MOVE' THEN 'RELOCATION'
                     WHEN 'CANCEL' THEN 'INBOUND'
-                END AS OperationType,
-                CASE UPPER(T.TransactionType)
+                END END AS OperationType,
+                CASE WHEN T.ReasonCode='INBOUND_CANCEL' THEN 'WH002' ELSE CASE UPPER(T.TransactionType)
                     WHEN 'OUT' THEN 'WH003'
                     WHEN 'ADJ' THEN 'WH005'
                     ELSE 'WH002'
-                END AS ScreenCode) X
+                END END AS ScreenCode) X
             WHERE (@OperationType IS NULL OR X.OperationType = @OperationType)
               AND (@DateFrom IS NULL OR T.TransactionTime >= @DateFrom)
               AND (@DateTo IS NULL OR T.TransactionTime < DATEADD(day, 1, @DateTo))
