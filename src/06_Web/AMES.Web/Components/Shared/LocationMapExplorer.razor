@@ -30,15 +30,27 @@
                 {
                     <RadzenButton Text="@_warehouse" Click="ShowAreas" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                     <RadzenIcon Icon="chevron_right" />
-                    @if (_selectingFloor || IsOpenStorage)
+                    @if (_stage == MapStage.Line)
                     {
-                        <span aria-current="page">@_area</span>
+                        <span aria-current="page">@L["WH.LocMap.LineArea"]</span>
                     }
                     else
                     {
-                        <RadzenButton Text="@_area" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-                        <RadzenIcon Icon="chevron_right" />
-                        <span aria-current="page">@FloorLabel</span>
+                        @if (SelectedArea?.IsLineArea == true)
+                        {
+                            <RadzenButton Text="@L["WH.LocMap.LineArea"]" Click="ShowLineAreas" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            <RadzenIcon Icon="chevron_right" />
+                        }
+                        @if (_selectingFloor || IsOpenStorage)
+                        {
+                            <span aria-current="page">@_area</span>
+                        }
+                        else
+                        {
+                            <RadzenButton Text="@_area" Click="ShowFloors" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                            <RadzenIcon Icon="chevron_right" />
+                            <span aria-current="page">@FloorLabel</span>
+                        }
                     }
                 }
             }
@@ -64,7 +76,7 @@
                 <div class="ames-card location-hierarchy-panel location-panel-enter">
                     <div class="ames-card-h master-list-toolbar">
                         <span>@SelectionLabel · @SelectionRows.Count @L["Lbl.Items"]</span>
-                        @if (_editing && CanEdit && CanAddHierarchy)
+                        @if (_editing && CanEdit && CanAddHierarchy && _stage != MapStage.Line)
                         {
                             <RadzenButton Text="@L["WH.LocMap.Btn.AddFmt", KindLabel(SelectionKind)].Value" Icon="add" Click="@(() => OpenDialog(SelectionKind))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                         }
@@ -81,9 +93,9 @@
                                         <b>@UomFmt.Qty(row.Qty, null) <em>@L["WH.LocMap.Qty"]</em></b>
                                     </div>
                                 </RadzenButton>
-                            @if (_editing && CanEdit && CanAddHierarchy)
+                            @if (_editing && CanEdit && CanAddHierarchy && !row.IsLineGroup)
                             {
-                                @if ((_stage is MapStage.Warehouse or MapStage.Area) && !_selectingFloor)
+                                @if ((_stage is MapStage.Warehouse or MapStage.Area or MapStage.Line) && !_selectingFloor)
                                 {
                                     <RadzenButton Icon="edit" Click="@(() => OpenHierarchyName(row))" title="@L["WH.LocMap.Lbl.EditNameFmt", KindLabel(SelectionKind)]" aria-label="@($"{L["WH.LocMap.Lbl.EditNameFmt", KindLabel(SelectionKind)]}: {row.Name}")" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="location-stage-rename ames-rz-btn" />
                                 }
@@ -259,8 +271,9 @@
     [Parameter] public bool CanAddHierarchy { get; set; } = true;
     [Parameter] public string SearchId { get; set; } = "location-map-search";
 
-    private enum MapStage { Warehouse, Area, Map }
-    private sealed record StageCard(string Key, string Name, int LocationCount, decimal Qty);
+    private enum MapStage { Warehouse, Area, Line, Map }
+    private const string LineGroupKey = "@LINE_AREAS";
+    private sealed record StageCard(string Key, string Name, int LocationCount, decimal Qty, bool IsLineGroup = false);
 
     private MapStage _stage;
     private string? _warehouse, _area, _floor, _highlightedLocation;
@@ -289,23 +302,39 @@
         ? []
         : Inventory.Where(x => Same(x.LocationNo, _highlightedLocation)).OrderBy(x => x.PartNo).ThenBy(x => x.LotNo).ToList();
 
-    private List<StageCard> StageCards => _stage switch
+    private List<StageCard> AreaCards => Areas.Count == 0
+        ? Cards(ActiveLocations.Where(x => Same(x.WarehouseCode, _warehouse)), x => x.AreaCode, x => x.AreaName)
+        : Areas.Where(x => Same(x.WarehouseCode, _warehouse) && !string.IsNullOrEmpty(x.AreaCode))
+            .Select(x => StageAreaCard(x.AreaCode, x.AreaName, x.AreaCode)).ToList();
+    private bool IsLineArea(string key) => Areas.Any(x => Same(x.WarehouseCode, _warehouse) && Same(x.AreaCode, key) && x.IsLineArea);
+    private List<StageCard> StageCards
     {
-        MapStage.Warehouse => Areas.Count == 0 ? Cards(ActiveLocations, x => x.WarehouseCode, x => x.WarehouseName)
-            : Areas.GroupBy(x => x.WarehouseCode).Select(g => StageAreaCard(g.Key, g.First().WarehouseName, null)).ToList(),
-        MapStage.Area => Areas.Count == 0 ? Cards(ActiveLocations.Where(x => Same(x.WarehouseCode, _warehouse)), x => x.AreaCode, x => x.AreaName)
-            : Areas.Where(x => Same(x.WarehouseCode, _warehouse) && !string.IsNullOrEmpty(x.AreaCode)).Select(x => StageAreaCard(x.AreaCode, x.AreaName, x.AreaCode)).ToList(),
-        _ => []
-    };
+        get
+        {
+            if (_stage == MapStage.Warehouse)
+                return Areas.Count == 0 ? Cards(ActiveLocations, x => x.WarehouseCode, x => x.WarehouseName)
+                    : Areas.GroupBy(x => x.WarehouseCode).Select(g => StageAreaCard(g.Key, g.First().WarehouseName, null)).ToList();
+            if (_stage is not (MapStage.Area or MapStage.Line)) return [];
+            var cards = AreaCards;
+            if (_stage == MapStage.Line) return cards.Where(x => IsLineArea(x.Key)).ToList();
+            var visible = cards.Where(x => !IsLineArea(x.Key)).ToList();
+            var lines = cards.Where(x => IsLineArea(x.Key)).ToList();
+            if (lines.Count > 0)
+                visible.Add(new StageCard(LineGroupKey, L["WH.LocMap.LineArea"].Value,
+                    lines.Sum(x => x.LocationCount), lines.Sum(x => x.Qty), IsLineGroup: true));
+            return visible;
+        }
+    }
 
     private List<StageCard> FloorCards => Cards(
         ActiveLocations.Where(x => Same(x.WarehouseCode, _warehouse) && Same(x.AreaCode, _area)),
         x => x.Floor,
         x => FloorName(x.Floor));
 
-    private string StageLabel => _stage == MapStage.Warehouse ? L["Col.Warehouse"].Value : L["Col.Area"].Value;
+    private string StageLabel => _stage == MapStage.Warehouse ? L["Col.Warehouse"].Value
+        : _stage == MapStage.Line ? L["Col.Line"].Value : L["Col.Area"].Value;
     private string FloorLabel => string.IsNullOrWhiteSpace(_floor) ? L["Col.Floor"].Value : FloorName(_floor);
-    private string MapScope => string.Join(" / ", new[] { _warehouse, _area, IsOpenStorage ? null : FloorLabel }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    private string MapScope => string.Join(" / ", new[] { _warehouse, SelectedArea?.IsLineArea == true ? L["WH.LocMap.LineArea"].Value : null, _area, IsOpenStorage ? null : FloorLabel }.Where(x => !string.IsNullOrWhiteSpace(x)));
     private List<StageCard> SelectionRows => _selectingFloor ? FloorCards : StageCards;
     private string SelectionLabel => _selectingFloor ? L["Col.Floor"].Value : StageLabel;
     private string SelectionKind => _selectingFloor ? "Floor" : _stage == MapStage.Warehouse ? "Warehouse" : "Area";
@@ -366,6 +395,7 @@
     {
         if (ActiveLocations.Count == 0 && Areas.Count == 0 || (_warehouse is not null && !Areas.Any(x => Same(x.WarehouseCode, _warehouse)) && !ActiveLocations.Any(x => Same(x.WarehouseCode, _warehouse))))
             ShowWarehouses();
+        else if (_stage == MapStage.Line && !AreaCards.Any(x => IsLineArea(x.Key))) ShowAreas();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -388,7 +418,7 @@
 
     private void OpenHierarchyName(StageCard row)
     {
-        if (!_editing || !CanEdit || !CanAddHierarchy || _stage is not (MapStage.Warehouse or MapStage.Area) || _selectingFloor) return;
+        if (!_editing || !CanEdit || !CanAddHierarchy || row.IsLineGroup || _stage is not (MapStage.Warehouse or MapStage.Area or MapStage.Line) || _selectingFloor) return;
         _code = row.Key;
         _originalName = _name = row.Name;
         _dialogError = "";
@@ -398,9 +428,10 @@
     private async Task DeleteCard(string key)
     {
         if (!_editing || !CanEdit || !CanAddHierarchy || _saving) return;
+        if (_stage == MapStage.Area && key == LineGroupKey) return;
         _actionError = null;
         var warehouse = _stage == MapStage.Warehouse ? key : _warehouse;
-        var area = _stage == MapStage.Area ? key : _area;
+        var area = _stage is MapStage.Area or MapStage.Line ? key : _area;
         var floor = _stage == MapStage.Map && _selectingFloor ? key : null;
         if (warehouse is null || _stage == MapStage.Map && (area is null || floor is null)) return;
         var label = floor is not null ? $"floor {warehouse} / {area} / {floor}"
@@ -423,6 +454,7 @@
             Audit.Deleted("WH-003", "MD_Location", label, impact);
             if (floor is not null) { _floor = null; ShowFloors(); }
             else if (area is null) ShowWarehouses();
+            else if (_stage == MapStage.Line) ShowLineAreas();
             else ShowAreas();
             await Refresh();
         }
@@ -434,6 +466,7 @@
     {
         if (!CanEdit || !CanAddHierarchy) return;
         if (kind is not ("Warehouse" or "Area" or "Floor" or "Grid")) return;
+        if (kind == "Area" && _stage == MapStage.Line) return;
         _dialogError = _code = _name = "";
         if ((kind is "Area" or "Floor" or "Grid") && string.IsNullOrWhiteSpace(_warehouse))
         { _dialogError = L["WH.LocMap.Err.SelectWarehouse"].Value; return; }
@@ -453,7 +486,7 @@
     private async Task SaveDialog()
     {
         if (!CanEdit || !CanAddHierarchy || _dialog is null || _saving) return;
-        if (_dialog == "AreaName" && (!_editing || _stage != MapStage.Area)) return;
+        if (_dialog == "AreaName" && (!_editing || _stage is not (MapStage.Area or MapStage.Line))) return;
         if (_dialog == "WarehouseName" && (!_editing || _stage != MapStage.Warehouse)) return;
         _dialogError = "";
         _saving = true;
@@ -518,7 +551,8 @@
 
     private void SelectStageRow(StageCard row)
     {
-        if (_editing && CanEdit && CanAddHierarchy && (_stage is MapStage.Warehouse or MapStage.Area) && !_selectingFloor) OpenHierarchyName(row);
+        if (row.IsLineGroup) { ShowLineAreas(); return; }
+        if (_editing && CanEdit && CanAddHierarchy && (_stage is MapStage.Warehouse or MapStage.Area or MapStage.Line) && !_selectingFloor) OpenHierarchyName(row);
         else if (_selectingFloor) SelectFloor(row.Key);
         else SelectCard(row.Key);
     }
@@ -552,7 +586,8 @@
     private void Back()
     {
         if (_stage == MapStage.Map && _selectingFloor) _selectingFloor = false;
-        else if (_stage == MapStage.Map) ShowAreas();
+        else if (_stage == MapStage.Map && SelectedArea?.IsLineArea == true) ShowLineAreas();
+        else if (_stage is MapStage.Map or MapStage.Line) ShowAreas();
         else ShowWarehouses();
     }
 
@@ -580,6 +615,15 @@
         _selectingFloor = true;
         _highlightedLocation = null;
         _locationDrawerOpen = false;
+    }
+
+    private void ShowLineAreas()
+    {
+        if (string.IsNullOrWhiteSpace(_warehouse)) { ShowWarehouses(); return; }
+        _stage = MapStage.Line;
+        _area = _floor = _highlightedLocation = null;
+        _selectingFloor = false;
+        ClearSelection();
     }
 
     private void ClearSelection()
