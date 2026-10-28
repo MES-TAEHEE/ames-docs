@@ -11789,7 +11789,7 @@
     <value>Con DCR</value>
   </data>
   <data name="FG.ShipOrders.Btn.CreateDcr" xml:space="preserve">
-    <value>Crear DCR / remolque</value>
+    <value>Create DCR</value>
   </data>
   <data name="FG.ShipOrders.Col.OrderNo" xml:space="preserve">
     <value>N.º de orden</value>
@@ -12687,5 +12687,11 @@
   </data>
   <data name="MD.Routing.Err.ProcessRequired" xml:space="preserve">
     <value>Seleccione un proceso.</value>
+  </data>
+  <data name="FG.ShipOrders.Btn.CreateOrder" xml:space="preserve">
+    <value>Create Order</value>
+  </data>
+  <data name="FG.ShipOrders.IncludeShipped" xml:space="preserve">
+    <value>Incluir enviados</value>
   </data>
 </root>
