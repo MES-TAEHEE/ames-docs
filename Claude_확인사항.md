@@ -125,11 +125,11 @@
 |---|---|---|
 | `PP_SupplyPlan`·`PP_SupplyPlanDetail` | 읽기만 | 구 공급 계획 API가 읽습니다. 외부 사용 여부 확인 전에는 엔드포인트·테이블을 삭제하지 않습니다. |
 | `WH_ReleaseSchedule` | 구형·삭제 승인 대기 | 10-23 개발 DB에서 0건, 현재 코드는 `WH_PickSlip` 사용, 이 테이블의 SQL 모듈·FK 참조 없음 확인. 신규 스키마·추출 대상에서 제외하고 구형 데모 시더는 DB 접근 전 중단하도록 폐기했습니다. `retire_wh_release_schedule.sql`은 기본 조회만 하며, 승인 후 빈 테이블·참조 유무를 재검사해 이 테이블만 삭제할 수 있습니다. 실제 DB에서는 아직 삭제하지 않았습니다. |
-| `TEST_SRM_PurchaseOrderResponse` | 독립 SRM 테스트 API 조회용 | 10-23 개발 DB 426건. `test-api/SrmMockApi/Program.cs`의 발주 조회·health가 읽고 `Initialize-TestDatabase.ps1`이 최초 적재합니다. AMES 업무 앱의 직접 SQL 참조는 없습니다. |
-| `TEST_SRM_Shipment`·`TEST_SRM_ShipmentItem` | 독립 SRM 테스트 API 저장용 | 10-23 개발 DB 각각 2건·4건. `test-api/SrmMockApi/SqlShipmentStore.cs`가 출하 요청·품목과 재전송 판정용 JSON을 저장·조회하고 `Verify-Shipments.ps1`이 테스트합니다. 업무 출하/입고 테이블이 아니며 삭제하지 않았습니다. |
+| `TEST_SRM_PurchaseOrderResponse` | 모의 API 소스 별도 보관·제거 | 10-23 개발 DB 426건. 10-28 독립 모의 API와 초기 적재·검증 스크립트를 별도 보관하고 저장소에서 제거했습니다. 실제 DB 테이블·데이터는 변경하지 않았습니다. |
+| `TEST_SRM_Shipment`·`TEST_SRM_ShipmentItem` | 모의 API 소스 별도 보관·제거 | 10-23 개발 DB 각각 2건·4건. 10-28 모의 출하 저장·조회 API와 관련 스크립트를 별도 보관하고 저장소에서 제거했습니다. 업무 출하/입고 API는 유지하며 실제 DB 테이블·데이터는 변경하지 않았습니다. |
 | `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
 
-`TEST_SRM` 사용 경로(10-23 확인 기록): 당시 개발 DB의 `SW_POSYNC_URL/SEMS`는 `http://192.168.1.68:5220/Service/WEBSRV_INQUERY_PO.ashx`로 설정돼 있어 PO 수집이 모의 API를 간접 호출하는 구성이었습니다. 이 PC에서는 해당 서버의 health 요청이 시간 초과됐으므로 현재 서비스 실행 여부·그 프로세스가 접속한 DB는 미확인입니다. 저장소 `Start-TestApi.ps1`은 `192.168.1.100/AMES_DEV`를 지정하므로, 개발 DB(132)에 복제된 이 3개 테이블을 실제 원격 서비스가 읽는다고 단정하지 않습니다. 코드상 사용처가 분명해 임의 삭제하지 않습니다.
+`TEST_SRM` 모의 API 보관 위치: `C:\Users\Young\Documents\AMES-Archives\TEST_SRM-20261028` (`RESTORE.md`, `test-api` 소스 15개, 원본과 SHA-256 일치 확인). 소스·샘플·테이블 생성 스크립트 보관본이며 실제 DB 데이터 백업은 아닙니다. 테이블 정리 대상은 기존 개발 DB `192.168.0.132/AMES_DEV`이고 이번에는 DB 삭제를 실행하지 않았습니다. AMES PO 수집 Worker와 연결 설정, 원격에서 실행 중일 수 있는 모의 서비스는 변경하지 않았습니다. 10-23 당시 `SW_POSYNC_URL/SEMS`가 모의 서버 `192.168.1.68:5220`을 가리켰으므로, 서비스·테이블을 종료/삭제하기 전에 현재 연결 설정과 실제 사용 여부를 확인해야 합니다.
 
 10-23 정리 실행 당시 개발 DB의 구형 PDA 업무 프로시저 삭제를 확인했습니다. 원본 복구 파일은 `publish/DB_Backup/PDA_BusinessProcedures_20261023_before_cleanup.sql`, 기본 조회용 정리 스크립트는 `dist/retire_pda_business_procedures.sql`입니다. 삭제 대상 27개가 0개 남았고, 재고·거래·출하·반품·팔렛 행 수는 전후 동일합니다. DB 모듈의 외부 참조는 없었으나 SQL Agent 작업은 조회 권한이 없어 확인하지 못했습니다. 로컬 복제 DB는 변경하지 않았습니다. `AMES_ERD_data.js`·`AMES_DB_Schema.html`은 통합 전 구 설계 문서로, 현재 테이블 판정 근거로 쓰지 않습니다.
 
