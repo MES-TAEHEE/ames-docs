@@ -87,6 +87,37 @@ public class InjLotRepositoryTests
     }
 
     [SkippableFact]
+    public void Cavity_one_shot_accumulates_the_mnt_mold_shot_counter_once_per_shot()
+    {
+        var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");
+        var ids = new List<int>();
+        void Clean() => AmesDevDb.Exec(f!, """
+            DELETE FROM dbo.MNT_MoldShotCount WHERE MoldID = 'ITEST-MSC';
+            DELETE FROM dbo.PR_ShotCount      WHERE MoldID = 'ITEST-MSC';
+            DELETE FROM dbo.MD_Mold           WHERE MoldID = 'ITEST-MSC';
+            """);
+        Clean();
+        try
+        {
+            AmesDevDb.Exec(f, """
+                INSERT INTO dbo.MD_Mold (MoldID, MoldName, Status, CavityCount, CurrentShots, CumulativeShots, CreatedBy)
+                VALUES ('ITEST-MSC', N'ITEST shot counter', 'AVAILABLE', 2, 40, 1000, 'ITEST');
+                """);
+            var repo = new InjLotRepository(f);
+            var lh = new MoldItemDto { MoldCode = "ITESTMSC", ColorCode = "CBK", CavityNo = 1, CavityPos = "LH", ItemNo = "83335-P8000RBQ", MoldId = "ITEST-MSC" };
+            var rh = new MoldItemDto { MoldCode = "ITESTMSC", ColorCode = "CBK", CavityNo = 2, CavityPos = "RH", ItemNo = "83335-P8000RBQ", MoldId = "ITEST-MSC" };
+            ids.Add(repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", lh, 1).LotId);   // 첫 샷: MD_Mold 값(41·1001)으로 시작
+            ids.Add(repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", rh, 1).LotId);   // 같은 샷의 2캐비티 — 세지 않음
+            ids.Add(repo.CreateRawLot("LINE-INJ-01", "INJ-01-01-1800", lh, 2).LotId);
+            Assert.Equal("42|1002|INJ-01-01-1800|1", (string?)AmesDevDb.Scalar(f!, """
+                SELECT CONCAT(MAX(CurrentShots), '|', MAX(LifetimeShots), '|', MAX(MountedEquipID), '|', COUNT(*))
+                FROM dbo.MNT_MoldShotCount WHERE MoldID = 'ITEST-MSC'
+                """));
+        }
+        finally { foreach (var id in ids) Cleanup(f!, id); Clean(); }
+    }
+
+    [SkippableFact]
     public void IncrementPrintedCount_accumulates_and_shows_in_view()
     {
         var f = TryFactory(); Skip.If(f is null, "AMES_DEV unreachable");

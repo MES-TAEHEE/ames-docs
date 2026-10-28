@@ -199,7 +199,9 @@
     {
         if (Session is null) return;
         var equipId = TryGetEquipId();
-        _wf = new AndonWorkflow(new RepoAndonStore(), new RepoBadgeResolver(), Session.LineId, equipId, Session.EmployeeNo);
+        // DB 가 끊겨도 안돈을 쓴다(10-28) — 끊기면 로컬 상태·큐로 가고 복구 때 발생 시각으로 반영된다
+        _wf = new AndonWorkflow(new OfflineAwareAndonStore(new RepoAndonStore(), Session.LineId), new RepoBadgeResolver(),
+                                Session.LineId, equipId, Session.EmployeeNo);
         _wf.Changed  += () => InvokeAsync(StateHasChanged);
         _wf.Rejected += r  => InvokeAsync(() => Toasts.Warn(RejectText(r)));
         _wf.Resolved += id => InvokeAsync(() => OnResolved(id));
@@ -289,6 +291,7 @@
 
     private string? TryGetEquipId()
     {
+        if (PopDb.IsOffline) return null;   // 접속 대기로 팝업을 붙잡지 않는다 — 설비 상태 기록은 온라인일 때만
         try { return PopServices.Equipment.GetPrimaryForLine(Session!.LineId)?.EquipId; }
         catch { return null; }
     }

@@ -21,6 +21,11 @@
             <span class="pop-tbar-id">REWORK · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
+            @if (OfflineWork.Conflicts.Count > 0)
+            {
+                <button class="injm-andon-chip" @onclick="ShowConflicts">@T("OfflineConflicts", OfflineWork.Conflicts.Count)</button>
+            }
+            <span class="@(PopDb.IsOffline ? "stat-bad" : "stat-on")">● @T(PopDb.IsOffline ? "Offline" : "Online")</span>
             @if (Scanner.IsEnabled)
             {
                 <span class="@(_scannerOn ? "stat-on" : "stat-off")">🔌 @T("Scanner")</span>
@@ -259,15 +264,19 @@
     {
         try
         {
-            _pending = PopServices.Rework.ListPending();
-            _decided = PopServices.Rework.ListTodayDecided();
-            _stats   = PopServices.Rework.GetTodayStats();
+            _pending = OfflineRework.ListPending();
+            _decided = OfflineRework.ListTodayDecided();
+            _stats   = OfflineRework.GetTodayStats();
             if (_sel is { } s && _pending.All(p => p.DefectId != s.DefectId))
             {
                 ClearSelection();
                 SetBanner(false, $"{T("RwkAlreadyDecided")}: {s.LotCode}");
             }
-            _refreshError = null;
+            // DB 가 끊기면(10-28) 사본으로 판정을 계속한다 — 판정은 큐에 올라가 복구 때 반영된다
+            _refreshError = PopDb.IsOffline
+                ? T("DbOfflineLocal", OfflineRework.TakenAt?.ToString("MM-dd HH:mm") ?? "—", OfflineWork.PendingCount)
+                : null;
+            if (_refreshError is not null) _refreshErrorAt = DbClock.Now;
         }
         catch (Exception ex)
         {
@@ -287,7 +296,7 @@
         _note = string.Empty;
         try
         {
-            _causes = PopServices.Defects.ListCausesForProcess(row.ProcessCode);
+            _causes = OfflineRework.Causes(row.ProcessCode);
             SetBanner(true, $"{row.LotCode} ({row.ItemNo})");
         }
         catch (Exception ex) { _causes = new(); SetBanner(false, ex.Message); }
@@ -308,7 +317,7 @@
         if (row.CauseCode is null) return;
         try
         {
-            var c = PopServices.Defects.ListCausesForProcess(row.ProcessCode).FirstOrDefault(x => x.CauseCode == row.CauseCode);
+            var c = OfflineRework.Causes(row.ProcessCode).FirstOrDefault(x => x.CauseCode == row.CauseCode);
             if (c is not null) _detailCauseName = PopLang.IsKo ? c.CauseName : c.CauseNameEn ?? c.CauseName;
         }
         catch { /* 이름은 장식이다 — 조회 실패해도 코드만 보여 주면 된다 */ }
@@ -335,7 +344,7 @@
         {
             var lotCode = AMES.Devices.ImgScanParser.ExtractLotCode(raw);
             if (string.IsNullOrEmpty(lotCode)) { SetBanner(false, $"{T("LotNotFound")}: {raw}"); return; }
-            var row = PopServices.Rework.FindPendingByLotCode(lotCode);
+            var row = OfflineRework.FindPendingByLotCode(lotCode);
             if (row is null) { SetBanner(false, $"{T("RwkNotPending")}: {lotCode}"); return; }
             Select(row);
         }
@@ -351,8 +360,7 @@
                                       T("RwkReworkBtn"), T("Cancel"))) return;
         var bf = BackflushResult.None;
         Decide(sel.LotCode,
-               () => PopServices.Rework.Rework(sel.DefectId, cause, note, session.LineId,
-                                               session.OperatorId, session.SessionId, session.EmployeeNo, out bf),
+               () => OfflineRework.Rework(sel, cause, note, session, out bf),
                T("RwkDoneRework"));
         BackflushNotice.Show(Toasts, bf, sel.LotCode);
     }
@@ -365,7 +373,7 @@
                                       T("RwkScrapBtn"), T("Cancel"), destructive: true)) return;
         var unload = PalletStockRepository.PalletUnloadResult.None;
         Decide(sel.LotCode,
-               () => PopServices.Rework.Scrap(sel.DefectId, cause, note, session.OperatorId, session.EmployeeNo, out unload),
+               () => OfflineRework.Scrap(sel, cause, note, session, out unload),
                T("RwkDoneScrap"));
         // 불량 등록이 재고를 빼기 전에 등록된 LOT 의 안전망 — 입고된(위치 있는) 행을 뺐으면 창고에 알린다
         if (unload.WasLocated) Toasts.Warn($"{T("RwkStockRemovedLocated", unload.LocationNo!)}: {sel.LotCode}");
@@ -378,7 +386,7 @@
         {
             var (ok, detail) = act() switch
             {
-                ReworkOutcome.Done           => (true,  $"{doneText}: {lotCode}"),
+                ReworkOutcome.Done           => (true,  $"{doneText}: {lotCode}" + (PopDb.IsOffline ? $" · {T("OfflineQueued")}" : "")),
                 ReworkOutcome.AlreadyDecided => (false, $"{T("RwkAlreadyDecided")}: {lotCode}"),
                 ReworkOutcome.NotFound       => (false, $"{T("RwkNotFound")}: {lotCode}"),
                 _                            => (false, $"{T("Fail")}: {lotCode}"),
@@ -388,6 +396,16 @@
         }
         catch (Exception ex) { SetBanner(false, ex.Message); }
         finally { _busy = false; _focusScan = true; }
+    }
+
+    // 오프라인 판정을 복구 뒤 서버가 거부한 건(다른 터미널이 먼저 판정 등) — 관리자가 확인한다.
+    private async Task ShowConflicts()
+    {
+        var list = OfflineWork.Conflicts;
+        if (list.Count == 0) return;
+        var body = string.Join("\n", list.Select(c => $"{c.At:MM-dd HH:mm}  {c.Kind}  {c.LotCode} — {c.Reason}"));
+        if (await Confirmer.AskAsync(T("OfflineConflicts", list.Count), body, T("OfflineConflictsClear"), T("Close")))
+            OfflineWork.ClearConflicts();
     }
 
     private void SetBanner(bool ok, string detail) { _bannerClass = ok ? "ok" : "bad"; _bannerDetail = detail; }

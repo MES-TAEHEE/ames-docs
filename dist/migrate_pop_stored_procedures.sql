@@ -485,9 +485,12 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_Raise
     @T VARCHAR(20),
     @R VARCHAR(20),
     @S VARCHAR(10),
-    @By VARCHAR(20)
+    @By VARCHAR(20),
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     SET XACT_ABORT ON;
     BEGIN TRAN;
     -- 같은 라인의 두 터미널이 동시에 눌러도 한 건만 — 라인 단위로 줄을 세운 뒤 열린 안돈을 확인한다(확인과 INSERT 사이 틈 제거).
@@ -503,7 +506,7 @@ BEGIN
         SELECT @open AS AndonID, CAST(0 AS BIT) AS Created;
         RETURN;
     END;
-    DECLARE @now DATETIME2 = SYSDATETIME();
+    DECLARE @now DATETIME2 = @evtTs;
     DECLARE @ids TABLE (AndonID INT);
     INSERT INTO dbo.PR_AndonCall
         (LineID, EquipID, TriggerSource, RuleID, Severity, TriggeredAt,
@@ -573,6 +576,28 @@ BEGIN
 END;
 GO
 
+-- ===== Andon.ListLineSupervisors (ANDON) — 오프라인 사본(슈퍼바이저 배지 확인), 10-28 =====
+CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_ListLineSupervisors
+    @L VARCHAR(20)
+AS
+BEGIN
+    SELECT EmployeeNo FROM dbo.MD_LineSupervisor
+    WHERE  LineID = @L AND ActiveFlag = 1;
+END;
+GO
+
+-- ===== Andon.FindDeptCall (ANDON) — 오프라인에서 호출한 부서 행을 복구 때 찾는다, 10-28 =====
+CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_FindDeptCall
+    @ID INT,
+    @D VARCHAR(20)
+AS
+BEGIN
+    SELECT TOP 1 DeptCallID FROM dbo.PR_AndonDeptCall
+    WHERE  AndonID = @ID AND DeptCode = @D
+    ORDER  BY DeptCallID;
+END;
+GO
+
 -- ===== Andon.ListCauses (ANDON) =====
 CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_ListCauses
 AS
@@ -611,12 +636,15 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_AcknowledgeBySupervisor
     @W VARCHAR(20),
     @N NVARCHAR(50),
     @Op VARCHAR(20),
-    @ID INT
+    @ID INT,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     UPDATE dbo.PR_AndonCall
-    SET    AckedBy = @W, AckedAt = SYSDATETIME(), SupervisorName = @N,
-           Status = 'SUP_ACKED', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    AckedBy = @W, AckedAt = @evtTs, SupervisorName = @N,
+           Status = 'SUP_ACKED', ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  AndonID = @ID AND Status = 'OPEN';
 END;
 GO
@@ -626,11 +654,14 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_CallDepts_UpdAndonCall
     @C VARCHAR(30),
     @S VARCHAR(10),
     @Op VARCHAR(20),
-    @ID INT
+    @ID INT,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     UPDATE dbo.PR_AndonCall
-    SET    ReasonCode = @C, Severity = @S, Status = 'DEPT_CALLED', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    ReasonCode = @C, Severity = @S, Status = 'DEPT_CALLED', ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  AndonID = @ID AND Status IN ('SUP_ACKED', 'DEPT_CALLED');
 END;
 GO
@@ -638,11 +669,14 @@ GO
 CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_CallDepts_UpdLineDowntimeLog
     @C VARCHAR(30),
     @Op VARCHAR(20),
-    @ID INT
+    @ID INT,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     UPDATE dbo.PP_LineDowntimeLog
-    SET    CauseCode = @C, ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    CauseCode = @C, ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  AndonID = @ID AND EndTS IS NULL;
 END;
 GO
@@ -653,13 +687,16 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_CallDepts_InsMNT_FailureRegister
     @S VARCHAR(10),
     @By VARCHAR(20),
     @Op VARCHAR(20),
-    @ID INT
+    @ID INT,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     IF NOT EXISTS (SELECT 1 FROM dbo.MNT_FailureRegister WHERE Source = 'ANDON' AND AndonRefID = @Ref)
     BEGIN
         -- 고장번호 채번 = SYS_NumberSeq 카운터(웹 MntRepository.ClaimNumber 와 공용, dist/migrate_sys_number_seq.sql) — 범위 잠금 교착 방지(10-26)
-        DECLARE @ym  CHAR(4) = FORMAT(SYSDATETIME(), 'yyMM');
+        DECLARE @ym  CHAR(4) = FORMAT(@evtTs, 'yyMM');
         DECLARE @seq INT;
         EXEC dbo.SP_SYS_NumberSeq_Next @SeqCode = 'FAIL', @Ym = @ym, @No = @seq OUTPUT;
         INSERT INTO dbo.MNT_FailureRegister
@@ -669,7 +706,7 @@ BEGIN
                a.EquipID, @C,
                N'Andon #' + @Ref + N' · ' + COALESCE(ci.CodeName, @C),
                @S, 'ANDON', @Ref, d.DowntimeID,
-               'OPEN', @By, SYSDATETIME(), @Op, SYSDATETIME()
+               'OPEN', @By, @evtTs, @Op, @evtTs
         FROM   dbo.PR_AndonCall a
         LEFT   JOIN dbo.MD_CodeItem ci ON ci.GroupCode = 'ANDON_CAUSE' AND ci.CodeValue = @C
         OUTER  APPLY (SELECT TOP 1 DowntimeID FROM dbo.PP_LineDowntimeLog WHERE AndonID = a.AndonID ORDER BY DowntimeID DESC) d
@@ -689,7 +726,7 @@ BEGIN
                    CASE UPPER(ISNULL(f.Severity, '')) WHEN 'CRITICAL' THEN 'HIGH' WHEN 'MAJOR' THEN 'MED' ELSE 'LOW' END,
                    'ANDON', f.FailureNumber, NULL,
                    ISNULL(f.FailureType, 'CM') + N' — ' + f.FailureNumber + N': ' + LEFT(LTRIM(RTRIM(ISNULL(f.Symptom, N''))), 200),
-                   'ISSUED', SYSDATETIME(), @Op, SYSDATETIME()
+                   'ISSUED', @evtTs, @Op, @evtTs
             FROM   dbo.MNT_FailureRegister f
             WHERE  f.FailureID = @failId;
             UPDATE dbo.MNT_FailureRegister SET WorkOrderID = SCOPE_IDENTITY() WHERE FailureID = @failId;
@@ -702,11 +739,14 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_CallDepts_InsAndonDeptCall
     @ID INT,
     @D VARCHAR(20),
     @By VARCHAR(20),
-    @Op VARCHAR(20)
+    @Op VARCHAR(20),
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     INSERT INTO dbo.PR_AndonDeptCall (AndonID, DeptCode, CalledAt, CalledBy, CreatedBy, CreatedTS)
-    SELECT @ID, @D, SYSDATETIME(), @By, @Op, SYSDATETIME()
+    SELECT @ID, @D, @evtTs, @By, @Op, @evtTs
     WHERE  NOT EXISTS (SELECT 1 FROM dbo.PR_AndonDeptCall WHERE AndonID = @ID AND DeptCode = @D);
 END;
 GO
@@ -717,23 +757,26 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_RecordArrival
     @N NVARCHAR(50),
     @Op VARCHAR(20),
     @ID INT,
-    @Maint VARCHAR(20)
+    @Maint VARCHAR(20),
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     SET XACT_ABORT ON;
     BEGIN TRAN;
     UPDATE dbo.PR_AndonDeptCall
-    SET    ArrivedAt = SYSDATETIME(), ArrivedNo = @W, ArrivedName = @N,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    ArrivedAt = @evtTs, ArrivedNo = @W, ArrivedName = @N,
+           ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  DeptCallID = @ID AND ArrivedAt IS NULL;
     IF @@ROWCOUNT > 0
     BEGIN
-        UPDATE f SET Status = 'IN_PROGRESS', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+        UPDATE f SET Status = 'IN_PROGRESS', ModifiedBy = @Op, ModifiedTS = @evtTs
         FROM   dbo.MNT_FailureRegister f
         JOIN   dbo.PR_AndonDeptCall d ON d.AndonID = TRY_CAST(f.AndonRefID AS INT)
         WHERE  d.DeptCallID = @ID AND d.DeptCode = @Maint AND f.Source = 'ANDON' AND f.Status = 'OPEN';
         INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
-        SELECT f.FailureID, 'ARRIVED', N'Andon responder arrived: ' + @W + COALESCE(N' ' + @N, N''), @W, SYSDATETIME(), @Op, SYSDATETIME()
+        SELECT f.FailureID, 'ARRIVED', N'Andon responder arrived: ' + @W + COALESCE(N' ' + @N, N''), @W, @evtTs, @Op, @evtTs
         FROM   dbo.MNT_FailureRegister f
         JOIN   dbo.PR_AndonDeptCall d ON d.AndonID = TRY_CAST(f.AndonRefID AS INT)
         WHERE  d.DeptCallID = @ID AND d.DeptCode = @Maint AND f.Source = 'ANDON';
@@ -746,17 +789,20 @@ GO
 CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_AckDept
     @Op VARCHAR(20),
     @ID INT,
-    @Maint VARCHAR(20)
+    @Maint VARCHAR(20),
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     SET XACT_ABORT ON;
     BEGIN TRAN;
     UPDATE dbo.PR_AndonDeptCall
-    SET    AckedAt = SYSDATETIME(), ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    AckedAt = @evtTs, ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  DeptCallID = @ID AND ArrivedAt IS NOT NULL AND AckedAt IS NULL;
     IF @@ROWCOUNT > 0
         INSERT INTO dbo.MNT_FailureAction (FailureID, ActionType, Description, TechnicianID, ActionAt, CreatedBy, CreatedTS)
-        SELECT f.FailureID, 'ACK', N'Andon responder acknowledged', d.ArrivedNo, SYSDATETIME(), @Op, SYSDATETIME()
+        SELECT f.FailureID, 'ACK', N'Andon responder acknowledged', d.ArrivedNo, @evtTs, @Op, @evtTs
         FROM   dbo.MNT_FailureRegister f
         JOIN   dbo.PR_AndonDeptCall d ON d.AndonID = TRY_CAST(f.AndonRefID AS INT)
         WHERE  d.DeptCallID = @ID AND d.DeptCode = @Maint AND f.Source = 'ANDON';
@@ -770,12 +816,15 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_ANDON_Resolve
     @S VARCHAR(10),
     @Op VARCHAR(20),
     @ID INT,
-    @Ref VARCHAR(24)
+    @Ref VARCHAR(24),
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     SET XACT_ABORT ON;
     BEGIN TRAN;
-    DECLARE @now DATETIME2 = SYSDATETIME();
+    DECLARE @now DATETIME2 = @evtTs;
     UPDATE dbo.PR_AndonCall
     SET    ResumedAt   = @now,
            DowntimeSec = DATEDIFF(SECOND, TriggeredAt, @now),
@@ -1194,14 +1243,17 @@ GO
 CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_FinalizeInspection
     @V VARCHAR(15),
     @A VARCHAR(20),
-    @I INT
+    @I INT,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     SET NOCOUNT ON;
     -- 진행 중 검사만 판정한다 — 이미 판정된 검사를 덮어쓰지 않게(10-27). 0 이면 화면이 안내한다
     UPDATE dbo.QC_Inspection
-    SET    Verdict = @V, InsEndTS = SYSDATETIME(), ApproverID = @A,
-           ModifiedBy = @A, ModifiedTS = SYSDATETIME()
+    SET    Verdict = @V, InsEndTS = @evtTs, ApproverID = @A,
+           ModifiedBy = @A, ModifiedTS = @evtTs
     WHERE  InspectionID = @I AND Verdict = 'IN_PROGRESS';
     SELECT @@ROWCOUNT AS Updated;
 END;
@@ -1232,13 +1284,16 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_CreateInspection
     @By VARCHAR(20),
     @Lot INT = NULL,
     @Wo INT = NULL,
-    @Line VARCHAR(20) = NULL
+    @Line VARCHAR(20) = NULL,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
     -- 번호는 분 단위라 같은 분의 두 번째부터 -2, -3 … 을 붙인다(10-27). 그 분 번호를 잠가 동시 등록도 겹치지 않는다
-    DECLARE @base VARCHAR(20) = CONCAT(LEFT(@T,3), '-', FORMAT(SYSDATETIME(), 'yyMMddHHmm'));
+    DECLARE @base VARCHAR(20) = CONCAT(LEFT(@T,3), '-', FORMAT(@evtTs, 'yyMMddHHmm'));
     BEGIN TRAN;
     DECLARE @n INT = (SELECT COUNT(*) FROM dbo.QC_Inspection WITH (UPDLOCK, HOLDLOCK)
                       WHERE InspectionNo = @base OR InspectionNo LIKE @base + '-%');
@@ -1249,7 +1304,7 @@ BEGIN
     OUTPUT INSERTED.InspectionID
     VALUES (CASE WHEN @n = 0 THEN @base ELSE CONCAT(@base, '-', @n + 1) END,
             @T, @Lot, @Wo, @Line, @I, 'Normal', @S, @S*6, 0, 0,
-            'IN_PROGRESS', 0, @Op, SYSDATETIME(), @By, SYSDATETIME());
+            'IN_PROGRESS', 0, @Op, @evtTs, @By, @evtTs);
     COMMIT;
 END;
 GO
@@ -1282,13 +1337,16 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_CreateNcr
     @Q DECIMAL(18,4),
     @D VARCHAR(15),
     @Op VARCHAR(20),
-    @By VARCHAR(20)
+    @By VARCHAR(20),
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
     -- 검사 번호와 같은 규칙 — 같은 분 두 번째부터 -2, -3 …(10-27)
-    DECLARE @base VARCHAR(20) = CONCAT('NCR-', FORMAT(SYSDATETIME(), 'yyMMddHHmm'));
+    DECLARE @base VARCHAR(20) = CONCAT('NCR-', FORMAT(@evtTs, 'yyMMddHHmm'));
     BEGIN TRAN;
     DECLARE @n INT = (SELECT COUNT(*) FROM dbo.QC_NCR WITH (UPDLOCK, HOLDLOCK)
                       WHERE NcrNumber = @base OR NcrNumber LIKE @base + '-%');
@@ -1297,8 +1355,8 @@ BEGIN
          Disposition, Status, ReportedBy, ReportedAt, CreatedBy, CreatedTS)
     OUTPUT INSERTED.NcrID
     VALUES (CASE WHEN @n = 0 THEN @base ELSE CONCAT(@base, '-', @n + 1) END,
-            @ST, @SI, @SV, @I, @Q, @D, 'Open', @Op, SYSDATETIME(),
-            @By, SYSDATETIME());
+            @ST, @SI, @SV, @I, @Q, @D, 'Open', @Op, @evtTs,
+            @By, @evtTs);
     COMMIT;
 END;
 GO
@@ -1326,15 +1384,18 @@ GO
 CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_ReleaseHold_UpdHold
     @A VARCHAR(15),
     @By VARCHAR(20),
-    @H INT
+    @H INT,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     SET NOCOUNT ON;
     -- 보류 중(Held)인 것만 해제한다 — 이미 해제·거부된 홀드를 다시 처리하지 않게(10-27). 0 이면 해제 이력도 남기지 않는다
     UPDATE dbo.QC_Hold
     SET    Status = CASE WHEN @A IN ('USE-AS-IS','REWORK') THEN 'Released' ELSE 'Rejected' END,
            ModifiedBy = @By,
-           ModifiedTS = SYSDATETIME()
+           ModifiedTS = @evtTs
     WHERE  HoldID = @H AND Status = 'Held';
     SELECT @@ROWCOUNT AS Updated;
 END;
@@ -1345,13 +1406,16 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_ReleaseHold_InsHoldRelease
     @A VARCHAR(15),
     @R NVARCHAR(500),
     @By VARCHAR(20),
-    @Emp VARCHAR(20)
+    @Emp VARCHAR(20),
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     INSERT INTO dbo.QC_HoldRelease
         (HoldID, EventType, ReleaseAction, ReleaseReason,
          ReleasedBy, ReleasedAt, Note, CreatedBy, CreatedTS)
-    VALUES (@H, 'Release', @A, @R, @By, SYSDATETIME(), @R, @Emp, SYSDATETIME());
+    VALUES (@H, 'Release', @A, @R, @By, @evtTs, @R, @Emp, @evtTs);
 END;
 GO
 
@@ -2445,13 +2509,16 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_RWK_CloseRow
     @Note NVARCHAR(500),
     @By VARCHAR(20),
     @Op VARCHAR(20),
-    @D INT
+    @D INT,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     UPDATE dbo.PR_DefectDetail
     SET    Disposition = @Disp, CauseCode = @Cause, CorrectiveAction = @Note,
-           DispositionBy = @By, DispositionAt = SYSDATETIME(),
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+           DispositionBy = @By, DispositionAt = @evtTs,
+           ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  DefectID = @D;
 END;
 GO
@@ -2484,38 +2551,41 @@ CREATE OR ALTER PROCEDURE dbo.SP_POP_RWK_Rework_UpdLotConfirm
     @Op NVARCHAR(450),
     @Sess INT,
     @Lot INT,
-    @WoID INT
+    @WoID INT,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     IF @ProcessCode = 'INJ'
     BEGIN
     UPDATE dbo.PR_InjLot
-    SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = SYSDATETIME(),
+    SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = @evtTs,
            ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+           ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  LotID = @Lot;
     END
     ELSE IF @ProcessCode = 'IMG'
     BEGIN
     UPDATE dbo.PR_ImgLot
-    SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = SYSDATETIME(),
+    SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = @evtTs,
            ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+           ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  LotID = @Lot;
     END
     ELSE IF @ProcessCode = 'PNT'
     BEGIN
     UPDATE dbo.PR_PntLot
-    SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = SYSDATETIME(),
+    SET    ConfirmStatus = 'CONFIRMED', ConfirmedAt = @evtTs,
            ConfirmedBy = @Op, ConfirmedSessionID = @Sess,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+           ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  LotID = @Lot;
     END
     ELSE
         THROW 51000, N'No lot table for process', 1;
     UPDATE dbo.tbl_Lot
     SET    Status = 'CONFIRMED', QualityFlag = 'OK', WoID = @WoID,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+           ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  LotID = @Lot;
 END;
 GO
@@ -2533,34 +2603,37 @@ GO
 CREATE OR ALTER PROCEDURE dbo.SP_POP_RWK_Scrap
     @ProcessCode VARCHAR(10),
     @Op VARCHAR(20),
-    @Lot INT
+    @Lot INT,
+    @At DATETIME2 = NULL
 AS
 BEGIN
+    -- 오프라인 POP 이 복구 때 일어난 시각을 넘긴다(10-28) — 없으면 서버 시각
+    DECLARE @evtTs DATETIME2 = ISNULL(@At, SYSDATETIME());
     IF @ProcessCode = 'INJ'
     BEGIN
     UPDATE dbo.PR_InjLot
-    SET    ConfirmStatus = 'SCRAPPED', ConfirmedAt = SYSDATETIME(), ConfirmedBy = @Op,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    ConfirmStatus = 'SCRAPPED', ConfirmedAt = @evtTs, ConfirmedBy = @Op,
+           ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  LotID = @Lot;
     END
     ELSE IF @ProcessCode = 'IMG'
     BEGIN
     UPDATE dbo.PR_ImgLot
-    SET    ConfirmStatus = 'SCRAPPED', ConfirmedAt = SYSDATETIME(), ConfirmedBy = @Op,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    ConfirmStatus = 'SCRAPPED', ConfirmedAt = @evtTs, ConfirmedBy = @Op,
+           ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  LotID = @Lot;
     END
     ELSE IF @ProcessCode = 'PNT'
     BEGIN
     UPDATE dbo.PR_PntLot
-    SET    ConfirmStatus = 'SCRAPPED', ConfirmedAt = SYSDATETIME(), ConfirmedBy = @Op,
-           ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    ConfirmStatus = 'SCRAPPED', ConfirmedAt = @evtTs, ConfirmedBy = @Op,
+           ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  LotID = @Lot;
     END
     ELSE
         THROW 51000, N'No lot table for process', 1;
     UPDATE dbo.tbl_Lot
-    SET    Status = 'SCRAP', QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = SYSDATETIME()
+    SET    Status = 'SCRAP', QualityFlag = 'NG', ModifiedBy = @Op, ModifiedTS = @evtTs
     WHERE  LotID = @Lot;
 END;
 GO

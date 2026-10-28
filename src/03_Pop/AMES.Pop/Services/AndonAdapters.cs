@@ -36,6 +36,7 @@ internal sealed class RepoBadgeResolver : IBadgeResolver
 {
     public string? ResolveName(string workerNo)
     {
+        if (PopDb.IsOffline) return FromOfflineCache(workerNo);
         try
         {
             return PopServices.Auth.FindByEmployeeNo(workerNo)?.EmployeeName
@@ -43,8 +44,11 @@ internal sealed class RepoBadgeResolver : IBadgeResolver
         }
         catch (Microsoft.Data.SqlClient.SqlException)
         {
-            // 이름은 표시용이다. 조회가 죽었다고 도착 기록까지 막지 않는다.
-            return null;
+            // 이름은 표시용이다. 조회가 죽었다고 도착 기록까지 막지 않는다 — 오프라인 로그인 사본에서 찾는다.
+            return FromOfflineCache(workerNo);
         }
     }
+
+    private static string? FromOfflineCache(string workerNo)
+        => OfflineAuth.Cache?.Employees.FirstOrDefault(e => string.Equals(e.EmployeeNo, workerNo, StringComparison.OrdinalIgnoreCase))?.EmployeeName;
 }

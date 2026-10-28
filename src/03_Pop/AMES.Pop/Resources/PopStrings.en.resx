@@ -133,6 +133,8 @@
   <data name="DbOfflineLoginBlocked" xml:space="preserve"><value>Cannot sign in: the database is unreachable. Try again after it recovers.</value></data>
   <data name="DbOfflineLocal" xml:space="preserve"><value>DB offline — working from the local copy (copy {0} · {1} pending)</value></data>
   <data name="OfflineUnverified" xml:space="preserve"><value>unverified</value></data>
+  <data name="WoListOffline" xml:space="preserve"><value>DB offline — open WOs from the local copy ({0}).</value></data>
+  <data name="OfflineQueued" xml:space="preserve"><value>offline — synced when the DB is back</value></data>
   <data name="OfflineNotAvailable" xml:space="preserve"><value>Not available while the DB is offline.</value></data>
   <data name="OfflineNoData" xml:space="preserve"><value>No offline copy yet — sign out once while the DB is connected to download it.</value></data>
   <data name="OfflineLotNumbersExhausted" xml:space="preserve"><value>Offline LOT numbers are used up — issue the label after the DB recovers.</value></data>

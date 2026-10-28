@@ -14,7 +14,7 @@
             <span class="pop-tbar-id">QC-005 · @Session?.TerminalId · @Session?.LineId</span>
         </div>
         <div class="pop-tbar-r">
-            <span class="stat-on">● LIVE</span>
+            <span class="@(PopDb.IsOffline ? "stat-bad" : "stat-on")">● @(PopDb.IsOffline ? $"OFFLINE · {OfflineWork.PendingCount} queued" : "LIVE")</span>
             <span>@Session?.EmployeeName · @Session?.ShiftCode</span>
             <span>@_now.ToString("yyyy-MM-dd HH:mm:ss")</span>
             <HelpButton ContentType="@(typeof(AMES.Pop.Pages.Help.Qc05Help))" />
@@ -118,7 +118,7 @@
 
     private void Refresh()
     {
-        try { _holds = PopServices.Qc.ListHolds("Held,Released,Rejected", 40); }
+        try { _holds = OfflineQc.ListHolds("Held,Released,Rejected", 40); }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Qc05] {ex.Message}"); }
     }
 
@@ -128,9 +128,7 @@
         if (string.IsNullOrWhiteSpace(_reason)) { SetStatus("Reason required.", "fail"); return; }
         try
         {
-            var done = PopServices.Qc.ReleaseHold(_sel, _action, _reason,
-                                        Session?.OperatorId ?? "system",
-                                        Session?.EmployeeNo ?? "Q000");
+            var done = OfflineQc.ReleaseHold(_sel, _action, _reason, Session);
             SetStatus(done ? $"✓ Hold #{_sel} → {_action}" : $"× Hold #{_sel} is no longer Held — nothing changed", done ? "ok" : "fail");
             _sel = 0; _reason = "";
             Refresh();

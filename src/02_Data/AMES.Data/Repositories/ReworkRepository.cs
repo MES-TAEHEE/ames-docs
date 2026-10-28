@@ -121,7 +121,7 @@ public sealed class ReworkRepository
     }
 
     private static void CloseRow(SqlConnection conn, SqlTransaction tx, int defectId, string disposition,
-                                 string causeCode, string? note, string operatorId, string employeeNo)
+                                 string causeCode, string? note, string operatorId, string employeeNo, DateTime? at)
     {
         using var cmd = new SqlCommand("dbo.SP_POP_RWK_CloseRow", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@D",     SqlDbType.Int          ).Value = defectId;
@@ -130,7 +130,14 @@ public sealed class ReworkRepository
         cmd.Parameters.Add("@Note",  SqlDbType.NVarChar, 500).Value = string.IsNullOrWhiteSpace(note) ? DBNull.Value : note.Trim();
         cmd.Parameters.Add("@By",    SqlDbType.VarChar,  20 ).Value = employeeNo;
         cmd.Parameters.Add("@Op",    SqlDbType.VarChar,   20).Value = operatorId;
+        AddAt(cmd, at);
         cmd.ExecuteNonQuery();
+    }
+
+    // 오프라인 POP 복구 때만 넘긴다 — 없으면 붙이지 않아 @At 이 없는 구 프로시저에서도 돈다.
+    private static void AddAt(SqlCommand cmd, DateTime? at)
+    {
+        if (at is { } v) cmd.Parameters.Add("@At", SqlDbType.DateTime2).Value = v;
     }
 
     /// <summary>
@@ -145,7 +152,7 @@ public sealed class ReworkRepository
     /// <param name="backflush">확정된 적 없는 LOT(RAW → DEFECT → 수리)만 실제로 빠진다 — 이미 확정됐던 LOT 은 Apply 가 멱등으로 건너뛴다.</param>
     public ReworkOutcome Rework(int defectId, string causeCode, string? note,
                                 string reworkLineId, string operatorId, int? sessionId, string employeeNo,
-                                out BackflushResult backflush)
+                                out BackflushResult backflush, DateTime? occurredAt = null)
     {
         backflush = BackflushResult.None;
         using var conn = _factory.OpenConnection();
@@ -160,7 +167,7 @@ public sealed class ReworkRepository
             if (rowWoId is int w && WorkOrderRepository.FindStepId(conn, tx, w, lineId) is int s) { woId = w; stepId = s; }
             else if (LotDefectWriter.ResolveOpenWo(conn, tx, lineId, itemNo) is { } open) { woId = open.WoId; stepId = open.StepId; }
 
-            var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx);
+            var (now, prodDate, shiftCode) = ProdCalendar.ResolveNow(conn, tx, occurredAt);
             using (var cmd = new SqlCommand("dbo.SP_POP_RWK_Rework_InsProductionResult", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
                 var entryNo = $"E{now:yyMMddHHmmssfff}-{reworkLineId}";
@@ -185,6 +192,7 @@ public sealed class ReworkRepository
                 cmd.Parameters.Add("@WoID", SqlDbType.Int          ).Value = (object?)woId ?? DBNull.Value;
                 cmd.Parameters.Add("@Op",   SqlDbType.VarChar,   20).Value = operatorId;
                 cmd.Parameters.Add("@Sess", SqlDbType.Int          ).Value = (object?)sessionId ?? DBNull.Value;
+                AddAt(cmd, occurredAt);
                 cmd.ExecuteNonQuery();
             }
 
@@ -194,7 +202,7 @@ public sealed class ReworkRepository
             if (LotDefectRules.WasNeverConfirmed(priorStatus))
                 backflush = BackflushRepository.Apply(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo, lineId, operatorId, employeeNo,
                                                       BackflushRules.IncludesInjection(processCode));
-            CloseRow(conn, tx, defectId, LotDefectRules.DispositionReworked, causeCode, note, operatorId, employeeNo);
+            CloseRow(conn, tx, defectId, LotDefectRules.DispositionReworked, causeCode, note, operatorId, employeeNo, occurredAt);
 
             tx.Commit();
             return ReworkOutcome.Done;
@@ -218,7 +226,7 @@ public sealed class ReworkRepository
     /// 안전망이라 보통은 <see cref="PalletStockRepository.PalletUnloadResult.None"/> 이다. 위치가 있던 행이면 화면이 경고한다.
     /// </param>
     public ReworkOutcome Scrap(int defectId, string causeCode, string? note, string operatorId, string employeeNo,
-                               out PalletStockRepository.PalletUnloadResult unload)
+                               out PalletStockRepository.PalletUnloadResult unload, DateTime? occurredAt = null)
     {
         unload = PalletStockRepository.PalletUnloadResult.None;
         using var conn = _factory.OpenConnection();
@@ -234,10 +242,11 @@ public sealed class ReworkRepository
                 cmd.Parameters.Add("@ProcessCode", SqlDbType.VarChar, 10).Value = processCode;
                 cmd.Parameters.Add("@Lot", SqlDbType.Int          ).Value = lotId;
                 cmd.Parameters.Add("@Op",  SqlDbType.VarChar,   20).Value = operatorId;
+                AddAt(cmd, occurredAt);
                 cmd.ExecuteNonQuery();
             }
 
-            CloseRow(conn, tx, defectId, LotDefectRules.DispositionScrapped, causeCode, note, operatorId, employeeNo);
+            CloseRow(conn, tx, defectId, LotDefectRules.DispositionScrapped, causeCode, note, operatorId, employeeNo, occurredAt);
             unload = PalletStockRepository.Unload(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo,
                                                   PalletStockRepository.ScrapSourceType, $"SCRAP {causeCode}", operatorId, employeeNo);
             tx.Commit();
