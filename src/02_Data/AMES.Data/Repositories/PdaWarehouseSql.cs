@@ -1165,8 +1165,12 @@ public static class PdaWarehouseSql
 
             IF @AfterQty < 0
                 THROW 51517, 'After Qty cannot be below zero.', 1;
-            IF @AfterQty <> FLOOR(@AfterQty) OR @AfterQty > 999999999
-                THROW 51521, 'New quantity must be a whole number from 0 to 999999999.', 1;
+            IF @AfterQty > 999999999
+                THROW 51521, 'New quantity cannot exceed 999999999.', 1;
+            IF @AfterQty <> FLOOR(@AfterQty) AND NOT EXISTS
+                (SELECT 1 FROM dbo.MD_Item WHERE ItemNo=@ItemNo
+                    AND NULLIF(LTRIM(RTRIM(DefaultUOM)), '') IS NOT NULL AND UPPER(LTRIM(RTRIM(DefaultUOM)))<>'EA')
+                THROW 51521, 'EA stock requires a whole-number quantity.', 1;
 
             UPDATE dbo.WH_Inventory
                SET Qty = @AfterQty,

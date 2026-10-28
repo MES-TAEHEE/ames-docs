@@ -1,6 +1,7 @@
 using AMES.Api.Auth;
 using AMES.Api.Logging;
 using AMES.Contracts.Dto;
+using AMES.Contracts.Formatting;
 using AMES.Data.Connection;
 using AMES.Data.Repositories;
 using System.Data;
@@ -2800,6 +2801,8 @@ public static class WhEndpoints
     private static InboundReceiveResult ExecuteAdjustSave(AmesConnectionFactory factory, AdjustSaveReq body, string userId,
         bool simulateFailure = false)
     {
+        if (!StockCountQuantity.HasStoragePrecision(body.DeltaQty))
+            return new InboundReceiveResult(false, "Adjustment quantity supports up to 3 decimal places.", null);
         try
         {
             using var conn = factory.OpenConnection();

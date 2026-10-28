@@ -1,5 +1,6 @@
 @page "/wh/03"
 @inject PdaUomFormat Uom
+@using AMES.Contracts.Formatting
 @page "/sp/03"
 @page "/fg/adjust"
 @inject WarehouseApi Api
@@ -387,7 +388,7 @@
                             </div>
                             @if (_adjustQuantityInvalid)
                             {
-                                <span class="pda-status fail">Enter a whole number from 0 to 999999999.</span>
+                                <span class="pda-status fail">@AdjustQuantityValidationMessage</span>
                             }
                         </div>
                         <div class="pda-fld wh03-form-wide">
@@ -631,6 +632,10 @@
                     </button>
                     <button type="button" class="pda-key" @onclick='@(() => PressQuantityDigit("0"))'>0</button>
                     <button type="button" class="pda-key ok" disabled="@(_quantityPadDraft.Length == 0)" @onclick="ConfirmQuantityPad">OK</button>
+                    @if (AllowAdjustFraction)
+                    {
+                        <button type="button" class="pda-key" aria-label="Decimal point" disabled="@_quantityPadDraft.Contains('.')" @onclick='@(() => PressQuantityDigit("."))'>.</button>
+                    }
                 </div>
                 <div class="wh-modal-actions">
                     <RadzenButton class="wh-modal-btn secondary" Click="@CloseQuantityPad" Text="CANCEL" />
@@ -983,7 +988,7 @@
         !InventoryAlreadyReceived ? IsSpareParts ? "This spare part is not available for adjustment." : "This LOT is not available for adjustment." :
         AdjustReasons.Count == 0 ? "Reason codes are unavailable. Reopen this screen to load them." :
         !AdjustReasons.Any(x => string.Equals(x.CodeValue, _invAdjustReason, StringComparison.OrdinalIgnoreCase)) ? "Select a reason code before saving." :
-        _adjustQuantityInvalid || IsAdjustQtyBelowStock || InventoryAfterQty != decimal.Truncate(InventoryAfterQty) || InventoryAfterQty > 999999999 ? "Enter a whole number from 0 to 999999999." :
+        _adjustQuantityInvalid || !StockCountQuantity.IsValid(InventoryAfterQty, AdjustCountUnit) ? AdjustQuantityValidationMessage :
         _invAdjustDelta == 0 ? "Change the quantity before saving." : null;
     private bool DisableInventoryAdjust => InventoryAdjustBlockedReason is not null;
     private bool DisableInventoryMove => !InventoryAlreadyReceived || InventoryBusy || _invTargetLocation is null || InventoryTargetSameAsCurrent;
@@ -992,8 +997,12 @@
     private bool DisableAdjustQtyPlus => DisableAdjustQtyControls || InventoryAfterQty >= 999999999m;
     private decimal InventoryBeforeQty => _invScan?.Qty ?? 0;
     private decimal InventoryAfterQty => InventoryBeforeQty + _invAdjustDelta;
+    private string? AdjustCountUnit => IsSpareParts || IsFinishedGoodsAdjust ? "EA" : _invScan?.Unit;
+    private bool AllowAdjustFraction => StockCountQuantity.AllowsFraction(AdjustCountUnit);
+    private string AdjustQuantityValidationMessage => AllowAdjustFraction
+        ? "Enter a quantity from 0 to 999999999 with up to 3 decimal places."
+        : "Enter a whole number from 0 to 999999999.";
     private string AdjustQuantityLabel => $"{InventoryAfterQty:#,##0.###} {Uom.Symbol(_invScan?.Unit)} ({_invAdjustDelta:+#,##0.###;-#,##0.###;0})";
-    private bool IsAdjustQtyBelowStock => _invAdjustDelta < -InventoryBeforeQty;
     private string InventoryBarcodePlaceholder => IsSpareParts
         ? IsAdjustTab ? "Scan location or EOS SP No" : "Scan EOS SP No"
         : IsAdjustTab
@@ -1537,7 +1546,7 @@
         if (DisableAdjustQtyControls)
             return;
 
-        var next = decimal.Truncate(InventoryAfterQty) + delta - InventoryBeforeQty;
+        var next = InventoryAfterQty + delta - InventoryBeforeQty;
         if (next < -InventoryBeforeQty)
             next = -InventoryBeforeQty;
         next = Math.Min(next, 999999999m - InventoryBeforeQty);
@@ -1552,9 +1561,7 @@
     {
         if (DisableAdjustQtyControls) return;
         _adjustQuantityInput = Convert.ToString(e.Value) ?? "";
-        _adjustQuantityInvalid = !decimal.TryParse(_adjustQuantityInput,
-            System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var quantity)
-            || quantity < 0 || quantity > 999999999m;
+        _adjustQuantityInvalid = !StockCountQuantity.TryParse(_adjustQuantityInput, AdjustCountUnit, out var quantity);
         if (!_adjustQuantityInvalid) _invAdjustDelta = quantity - InventoryBeforeQty;
         _adjustedLabelLotNo = null;
     }
@@ -1562,7 +1569,7 @@
     private void OpenQuantityPad()
     {
         if (DisableAdjustQtyControls) return;
-        _quantityPadDraft = decimal.Truncate(InventoryAfterQty).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _quantityPadDraft = Math.Max(0,InventoryAfterQty).ToString("0.###",System.Globalization.CultureInfo.InvariantCulture);
         _quantityPadOpen = true;
     }
 
@@ -1573,9 +1580,18 @@
 
     private void PressQuantityDigit(string digit)
     {
-        if (!_quantityPadOpen || digit.Length != 1 || digit[0] is < '0' or > '9') return;
+        if (!_quantityPadOpen || digit.Length != 1) return;
+        if (digit == ".")
+        {
+            if (AllowAdjustFraction && !_quantityPadDraft.Contains('.'))
+                _quantityPadDraft = (_quantityPadDraft.Length == 0 ? "0" : _quantityPadDraft) + ".";
+            return;
+        }
+        if (digit[0] is < '0' or > '9') return;
+        var point = _quantityPadDraft.IndexOf('.');
+        if (point >= 0 ? _quantityPadDraft.Length - point > 3 : _quantityPadDraft.Length >= 9) return;
         if (_quantityPadDraft == "0") _quantityPadDraft = "";
-        if (_quantityPadDraft.Length < 9) _quantityPadDraft += digit;
+        _quantityPadDraft += digit;
     }
 
     private void DeleteQuantityDigit()
@@ -1587,6 +1603,7 @@
     {
         if (_quantityPadDraft.Length == 0) return;
         OnAdjustmentQuantityInput(new ChangeEventArgs { Value = _quantityPadDraft });
+        if (_adjustQuantityInvalid) return;
         CloseQuantityPad();
     }
 
@@ -2458,15 +2475,15 @@
 
     private static string Unit(string? value) => string.IsNullOrWhiteSpace(value) ? "EA" : value;
 
-    private string Qty(decimal value, string? unit) => $"{value:N0} {Uom.Symbol(unit)}";
+    private string Qty(decimal value, string? unit) => $"{Math.Max(0,value):#,##0.###} {Uom.Symbol(unit)}";
 
     private string Qty(decimal? value, string? unit)
-        => value.HasValue ? $"{value.Value:N0} {Uom.Symbol(unit)}" : "-";
+        => value.HasValue ? Qty(value.Value,unit) : "-";
 
     private string SignedQty(decimal value, string? unit)
     {
         var prefix = value > 0 ? "+" : "";
-        return $"{prefix}{value:N0} {Uom.Symbol(unit)}";
+        return $"{prefix}{value:#,##0.###} {Uom.Symbol(unit)}";
     }
 
     private static string DateText(DateTime? value)
