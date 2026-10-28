@@ -56,7 +56,19 @@ public sealed partial class FinishedGoodsRepository
         Add(cmd, "@Actor", SqlDbType.VarChar, 20, actor);
         var after = before with { ReturnedAt = (DateTime)cmd.ExecuteScalar()! };
 
-        // Recovery is an asset event, not a product receipt. Audit and state change commit together.
+        // Empty-pallet recovery has no product quantity or storage location.
+        using var movement = new SqlCommand("""
+            INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LocationNo,LotNo,
+                QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
+            VALUES(@ReturnedAt,'IN',NULL,NULL,@Pallet,0,0,0,'PALLET_RETURN','PALLET_RETURN',@Actor,
+                N'Empty pallet returned; location unassigned; product inventory unchanged.',@Actor,@ReturnedAt);
+            """, conn, tx);
+        Add(movement, "@Pallet", SqlDbType.NVarChar, 50, barcode);
+        Add(movement, "@Actor", SqlDbType.VarChar, 20, actor);
+        movement.Parameters.Add("@ReturnedAt", SqlDbType.DateTime2).Value = after.ReturnedAt!.Value;
+        movement.ExecuteNonQuery();
+
+        // State, transaction history, and audit commit together.
         using var audit = new SqlCommand("""
             INSERT dbo.SYS_AuditLog(EventTS,ActorUserID,ModuleCode,ActionType,TargetEntity,TargetID,
                 BeforeValueJSON,AfterValueJSON,Result,Note,CreatedBy,CreatedTS)

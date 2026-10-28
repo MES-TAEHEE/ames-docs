@@ -282,9 +282,15 @@ public static class PdaWarehouseSql
         BEGIN
             SET NOCOUNT ON;
             DECLARE @Q nvarchar(80)=NULLIF(LTRIM(RTRIM(@SearchText)),N'');
+            DECLARE @Location nvarchar(80)=(SELECT TOP(1) LocationID FROM dbo.MD_Location
+                WHERE LocationID=@Q AND COALESCE(ActiveFlag,1)=1);
+            DECLARE @IsLot bit=CASE WHEN @Location IS NULL AND
+                (EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LotNo=@Q)
+                 OR EXISTS(SELECT 1 FROM dbo.tbl_Lot WHERE LotCode=@Q)) THEN 1 ELSE 0 END;
             ;WITH S AS
             (
-                SELECT W.PartNo,MAX(COALESCE(NULLIF(W.PartName,N''),I.ItemName COLLATE DATABASE_DEFAULT)) PartName,
+                SELECT W.PartNo,NULLIF(LTRIM(RTRIM(W.LocationNo)),N'') LocationNo,MIN(W.LotNo) LotNo,
+                    MAX(COALESCE(NULLIF(W.PartName,N''),I.ItemName COLLATE DATABASE_DEFAULT)) PartName,
                     SUM(W.Qty) SumQty,MAX(W.ReceivedAt) LastReceivedDate,
                     COUNT(DISTINCT W.LotNo) LotCount,COUNT(DISTINCT W.LocationNo) LocationCount,
                     MAX(I.CarType) CarType,MAX(COALESCE(I.DefaultUOM,'EA')) Unit,
@@ -299,13 +305,15 @@ public static class PdaWarehouseSql
                   AND (@AreaCode IS NULL OR L.AreaCode=@AreaCode)
                   AND (@StockDateFrom IS NULL OR CONVERT(date,W.ReceivedAt)>=@StockDateFrom)
                   AND (@StockDateTo IS NULL OR CONVERT(date,W.ReceivedAt)<=@StockDateTo)
+                  AND (@Location IS NULL OR W.LocationNo=@Location)
+                  AND (@IsLot=0 OR W.LotNo=@Q)
                   AND (@Q IS NULL OR W.PartNo LIKE N'%'+@Q+N'%' OR W.PartName LIKE N'%'+@Q+N'%'
                        OR W.LotNo LIKE N'%'+@Q+N'%' OR W.LocationNo LIKE N'%'+@Q+N'%'
                        OR I.ItemName LIKE N'%'+@Q+N'%')
-                GROUP BY W.PartNo
+                GROUP BY W.PartNo,NULLIF(LTRIM(RTRIM(W.LocationNo)),N'')
             )
-            SELECT ROW_NUMBER() OVER(ORDER BY S.PartNo) INVENTORY_ID,S.PartNo PARTNO,S.PartName PARTNM,
-                P.LotNo LOTNO,COALESCE(P.LocationNo,N'-') PRIMARY_LOCATION,S.SumQty SUM_QTY,
+            SELECT ROW_NUMBER() OVER(ORDER BY S.PartNo,S.LocationNo) INVENTORY_ID,S.PartNo PARTNO,S.PartName PARTNM,
+                S.LotNo LOTNO,COALESCE(S.LocationNo,N'-') PRIMARY_LOCATION,S.SumQty SUM_QTY,
                 CAST(0 AS decimal(18,3)) RESERVED_QTY,S.LastReceivedDate LAST_RECEIVED_DATE,
                 S.CarType VINCD,S.Unit UNIT,CAST(NULL AS decimal(18,3)) MIN_INV_DAY,S.MinQty MIN_INV_QTY,
                 CAST(NULL AS decimal(18,3)) MAX_INV_DAY,S.MaxQty MAX_INV_QTY,S.LotCount LOT_COUNT,
@@ -315,14 +323,7 @@ public static class PdaWarehouseSql
                 CASE WHEN S.MinQty>0 AND S.SumQty<S.MinQty THEN N'Below Min'
                      WHEN S.MaxQty>0 AND S.SumQty>S.MaxQty THEN N'Over Max' ELSE N'Normal' END STATUSNM
             FROM S
-            OUTER APPLY(SELECT TOP(1) W.LotNo,W.LocationNo FROM dbo.WH_Inventory W
-              LEFT JOIN dbo.MD_Location PL
-                ON PL.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
-              WHERE W.PartNo COLLATE DATABASE_DEFAULT = S.PartNo COLLATE DATABASE_DEFAULT
-                AND W.Qty>0
-                AND NOT (UPPER(COALESCE(PL.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
-              ORDER BY W.ReceivedAt,W.LotNo) P
-            ORDER BY S.PartNo;
+            ORDER BY S.PartNo,S.LocationNo;
         END;
         """;
 
@@ -360,6 +361,18 @@ public static class PdaWarehouseSql
 
             IF EXISTS
             (
+                SELECT 1 FROM dbo.WH_Inventory W WHERE UPPER(W.LotNo)=UPPER(@Scan)
+            )
+            BEGIN
+                SELECT TOP(1) N'LOT' AS SEARCH_KIND,CAST(W.LotNo AS nvarchar(80)) AS SEARCH_TEXT,
+                    COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS DISPLAY_TEXT
+                FROM dbo.WH_Inventory W LEFT JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo
+                WHERE UPPER(W.LotNo)=UPPER(@Scan);
+                RETURN;
+            END;
+
+            IF EXISTS
+            (
                 SELECT 1
                 FROM dbo.tbl_Lot L
                 WHERE UPPER(L.LotCode) = UPPER(@Scan)
@@ -367,8 +380,8 @@ public static class PdaWarehouseSql
             )
             BEGIN
                 SELECT TOP (1)
-                    N'PART' AS SEARCH_KIND,
-                    CAST(L.ItemNo AS nvarchar(80)) AS SEARCH_TEXT,
+                    CASE WHEN UPPER(L.LotCode)=UPPER(@Scan) THEN N'LOT' ELSE N'PART' END AS SEARCH_KIND,
+                    CAST(CASE WHEN UPPER(L.LotCode)=UPPER(@Scan) THEN L.LotCode ELSE L.ItemNo END AS nvarchar(80)) AS SEARCH_TEXT,
                     I.ItemName AS DISPLAY_TEXT
                 FROM dbo.tbl_Lot L
                 LEFT JOIN dbo.MD_Item I
@@ -427,6 +440,20 @@ public static class PdaWarehouseSql
               L.AreaCode,AC.CodeName,L.ZoneCode,L.Aisle,L.Bay,L.Slot
             ORDER BY COALESCE(L.LocationID COLLATE DATABASE_DEFAULT,W.LocationNo,N'-');
         END;
+        """;
+
+    public const string InventoryLocationItems = """
+        SELECT W.LotNo AS LOTNO,W.PartNo AS PARTNO,
+            COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS PARTNM,SUM(W.Qty) AS QTY,
+            I.DefaultUOM AS UNIT,N'AVAILABLE' AS INV_STATUS,
+            CONVERT(nvarchar(10),MAX(W.ReceivedAt),23) AS WORK_DATE,
+            CONVERT(nvarchar(8),MAX(W.ReceivedAt),108) AS WORK_TIME
+        FROM dbo.WH_Inventory W LEFT JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo
+        LEFT JOIN dbo.MD_Location L ON L.LocationID=W.LocationNo
+        WHERE W.LocationNo=@LocationID AND W.Qty>0
+          AND NOT (UPPER(COALESCE(L.AreaCode,''))='FG_AREA' OR UPPER(W.LocationNo) LIKE 'FG%')
+        GROUP BY W.LotNo,W.PartNo,W.PartName,I.ItemName,I.DefaultUOM
+        ORDER BY W.PartNo,LOTNO;
         """;
 
     public const string Transactions = """

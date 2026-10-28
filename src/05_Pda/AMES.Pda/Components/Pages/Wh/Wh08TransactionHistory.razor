@@ -73,7 +73,7 @@
             </button>
             @if (!IsSpareParts)
             {
-                <button type="button" class="@($"wh08-kpi {TypeClass("MOVE")}")" @onclick='@(() => SetType("MOVE"))'>
+                <button type="button" class="@($"wh08-kpi move {TypeClass("MOVE")}")" @onclick='@(() => SetType("MOVE"))'>
                     <span>LOCATION</span><strong>@MoveCount.ToString("N0")</strong><small>changes</small>
                 </button>
                 <button type="button" class="@($"wh08-kpi adj {TypeClass("ADJ")}")" @onclick='@(() => SetType("ADJ"))'>
@@ -670,7 +670,7 @@
             "PICK" => "outbound",
             "RETURN" => "inbound",
             "ADJ" => "adjust",
-            "MOVE" => "inbound",
+            "MOVE" => "move",
             _ => "other"
         };
 
@@ -681,7 +681,7 @@
         if (value is "put-away" or "return") return "in";
         if (value == "release") return "out";
         if (value.Contains("adjust")) return "adjust";
-        if (value.Contains("location change")) return "in";
+        if (value.Contains("location change")) return "move";
         if (value.Contains("cancel")) return "cancel";
         if (value.Contains("out")) return "out";
         if (value.Contains("loss")) return "loss";

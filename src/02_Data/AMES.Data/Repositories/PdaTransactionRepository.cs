@@ -98,8 +98,16 @@ public sealed class PdaTransactionRepository(AmesConnectionFactory factory)
           AND (@Worker IS NULL OR E.WorkerID LIKE N'%'+@Worker+N'%')
           AND (@Reason IS NULL OR E.ReasonCode=@Reason)
           AND (@Search IS NULL OR E.Barcode LIKE @Search OR E.PartNo LIKE @Search OR E.LocationNo LIKE @Search
-               OR (E.DeliveryID IS NOT NULL AND EXISTS(SELECT 1 FROM Raw R WHERE R.DeliveryID=E.DeliveryID
-                    AND (R.Barcode LIKE @Search OR R.PartNo LIKE @Search OR R.LocationNo LIKE @Search))))
+               OR EXISTS(SELECT 1 FROM dbo.WH_Inventory W WHERE W.LotNo=E.Barcode
+                    AND (W.PalletNo LIKE @Search OR W.ParentLotNo LIKE @Search))
+               OR EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction T JOIN dbo.FG_Shipment S ON S.ShipmentID=T.SourceID
+                    WHERE T.TransactionID=E.ID AND T.SourceType='FG_OUTBOUND' AND S.PalletNo LIKE @Search)
+               OR (@DeliveryID IS NULL AND E.DeliveryID IS NOT NULL AND EXISTS(SELECT 1 FROM Raw R WHERE R.DeliveryID=E.DeliveryID
+                    AND (R.Barcode LIKE @Search OR R.PartNo LIKE @Search OR R.LocationNo LIKE @Search
+                         OR EXISTS(SELECT 1 FROM dbo.WH_Inventory W WHERE W.LotNo=R.Barcode
+                              AND (W.PalletNo LIKE @Search OR W.ParentLotNo LIKE @Search))
+                         OR EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction T JOIN dbo.FG_Shipment S ON S.ShipmentID=T.SourceID
+                              WHERE T.TransactionID=R.ID AND T.SourceType='FG_OUTBOUND' AND S.PalletNo LIKE @Search)))))
           AND (@BeforeAt IS NULL OR E.OccurredAt<@BeforeAt OR (E.OccurredAt=@BeforeAt AND E.ID<@BeforeID))
         ORDER BY E.OccurredAt DESC,E.ID DESC;
         """;
