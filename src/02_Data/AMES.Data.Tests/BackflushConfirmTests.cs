@@ -133,4 +133,40 @@ public class BackflushConfirmTests
         }
         finally { Cleanup(f!, lotId); }
     }
+    [SkippableFact]
+    public void Scrap_of_a_never_confirmed_lot_backflushes_and_is_countable_as_scrap_resin()
+    {
+        var f = WriteFactory(); Skip.If(f is null, WriteSkip);
+        SkipUnlessIsolated(f!);
+        var defectCode = AmesDevDb.Scalar(f!, "SELECT TOP 1 DefectCode FROM dbo.MD_DefectCode ORDER BY DefectCode") as string;
+        var cause      = AmesDevDb.Scalar(f!, "SELECT TOP 1 CauseCode FROM dbo.MD_DefectCause ORDER BY CauseCode") as string;
+        Skip.If(defectCode is null || cause is null, "replica has no defect code / cause");
+        var inj = new InjLotRepository(f!);
+        var rwk = new ReworkRepository(f!);
+        var (lotId, lotCode) = inj.CreateRawLot(Line, "INJ-01-01-1800", CoreMap(), 990018);
+        var (lot2, code2)    = inj.CreateRawLot(Line, "INJ-01-01-1800", CoreMap(), 990019);
+        try
+        {
+            SeedLineStock(f!);
+            // 확정된 적 없는 LOT(로봇 NG 샷처럼) — 폐기 때 레진을 뺀다
+            var reg = inj.RegisterDefect(lotCode, Line, defectCode!, "E-BFT", null, "E-BFT");
+            Assert.Equal(ReworkOutcome.Done, rwk.Scrap(reg.DefectId, cause!, null, "E-BFT", "E-BFT", out _, out var bf));
+            Assert.Null(bf.Error); Assert.False(bf.Skipped);
+            Assert.Equal(992m, (decimal)AmesDevDb.Scalar(f!, "SELECT Qty FROM dbo.WH_Inventory WHERE LotNo=@T", ("@T", TestLot))!);
+            Assert.EndsWith($"SCRAP {cause}", (string)AmesDevDb.Scalar(f!, "SELECT TOP 1 Note FROM dbo.WH_InventoryTransaction WHERE SourceType='BACKFLUSH' AND SourceID=@L", ("@L", lotId))!);
+
+            // 확정 → 불량 → 폐기: 확정 때 이미 뺐으니 다시 빼지 않는다
+            Assert.Equal(InjConfirmOutcome.Confirmed, inj.ConfirmByLotCode(code2, Line, "E-BFT", null, "E-BFT").Outcome);
+            var reg2 = inj.RegisterDefect(code2, Line, defectCode!, "E-BFT", null, "E-BFT");
+            Assert.Equal(ReworkOutcome.Done, rwk.Scrap(reg2.DefectId, cause!, null, "E-BFT", "E-BFT", out _, out var bf2));
+            Assert.True(bf2.Skipped);
+
+            // 폐기로 쓴 레진 = 폐기된 LOT 의 차감 거래 — 두 경로(폐기 때·확정 때) 모두 잡힌다
+            Assert.Equal(2016m, (decimal)AmesDevDb.Scalar(f!, """
+                SELECT -SUM(t.QtyChange) FROM dbo.WH_InventoryTransaction t JOIN dbo.tbl_Lot l ON l.LotID = t.SourceID
+                WHERE  t.SourceType = 'BACKFLUSH' AND l.Status = 'SCRAP' AND t.PartNo = @R AND l.LotID IN (@A, @B)
+                """, ("@R", Resin), ("@A", lotId), ("@B", lot2))!);
+        }
+        finally { Cleanup(f!, lotId); Cleanup(f!, lot2); }
+    }
 }

@@ -227,15 +227,26 @@ public sealed class ReworkRepository
     /// </param>
     public ReworkOutcome Scrap(int defectId, string causeCode, string? note, string operatorId, string employeeNo,
                                out PalletStockRepository.PalletUnloadResult unload, DateTime? occurredAt = null)
+        => Scrap(defectId, causeCode, note, operatorId, employeeNo, out unload, out _, occurredAt);
+
+    /// <param name="backflush">
+    /// 확정된 적 없는 LOT(RAW·NG_BLOCKED → DEFECT → 폐기 — 로봇 NG 샷 등)은 자재를 실제로 썼으므로 폐기 때 차감한다(10-28 사용자 결정).
+    /// 이미 확정됐던 LOT 은 그때 빠졌다(멱등으로 건너뜀). 거래 메모 끝에 <c>SCRAP {원인}</c> — 폐기로 쓴 자재는 차감 거래(SourceID = LotID)를
+    /// 폐기된 LOT(<c>tbl_Lot.Status = 'SCRAP'</c>)과 이어 따로 셀 수 있다.
+    /// </param>
+    public ReworkOutcome Scrap(int defectId, string causeCode, string? note, string operatorId, string employeeNo,
+                               out PalletStockRepository.PalletUnloadResult unload, out BackflushResult backflush,
+                               DateTime? occurredAt = null)
     {
         unload = PalletStockRepository.PalletUnloadResult.None;
+        backflush = BackflushResult.None;
         using var conn = _factory.OpenConnection();
         using var tx   = conn.BeginTransaction();
         try
         {
             var row = LockOpenRow(conn, tx, defectId, out var outcome);
             if (row is null) { tx.Rollback(); return outcome; }
-            var (lotId, _, processCode, itemNo, _, _) = row.Value;
+            var (lotId, _, processCode, itemNo, lineId, priorStatus) = row.Value;
 
             using (var cmd = new SqlCommand("dbo.SP_POP_RWK_Scrap", conn, tx) { CommandType = System.Data.CommandType.StoredProcedure })
             {
@@ -247,6 +258,10 @@ public sealed class ReworkRepository
             }
 
             CloseRow(conn, tx, defectId, LotDefectRules.DispositionScrapped, causeCode, note, operatorId, employeeNo, occurredAt);
+            // 자재는 LOT 의 원래 라인(lineId)에서 썼다 — 재작업 라인이 아니다(수리 양품과 같은 규칙)
+            if (LotDefectRules.WasNeverConfirmed(priorStatus))
+                backflush = BackflushRepository.Apply(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo, lineId, operatorId, employeeNo,
+                                                      BackflushRules.IncludesInjection(processCode), $"SCRAP {causeCode}");
             unload = PalletStockRepository.Unload(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo,
                                                   PalletStockRepository.ScrapSourceType, $"SCRAP {causeCode}", operatorId, employeeNo);
             tx.Commit();

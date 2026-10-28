@@ -372,9 +372,11 @@
         if (!await Confirmer.AskAsync(T("RwkConfirmScrapTitle"), T("RwkConfirmScrapBody", sel.LotCode),
                                       T("RwkScrapBtn"), T("Cancel"), destructive: true)) return;
         var unload = PalletStockRepository.PalletUnloadResult.None;
+        var bf = BackflushResult.None;
         Decide(sel.LotCode,
-               () => OfflineRework.Scrap(sel, cause, note, session, out unload),
+               () => OfflineRework.Scrap(sel, cause, note, session, out unload, out bf),
                T("RwkDoneScrap"));
+        BackflushNotice.Show(Toasts, bf, sel.LotCode);   // 확정된 적 없는 LOT 은 폐기 때 자재를 뺀다(10-28)
         // 불량 등록이 재고를 빼기 전에 등록된 LOT 의 안전망 — 입고된(위치 있는) 행을 뺐으면 창고에 알린다
         if (unload.WasLocated) Toasts.Warn($"{T("RwkStockRemovedLocated", unload.LocationNo!)}: {sel.LotCode}");
     }

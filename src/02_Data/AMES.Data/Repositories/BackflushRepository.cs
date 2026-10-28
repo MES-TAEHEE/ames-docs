@@ -26,11 +26,13 @@ public static class BackflushRepository
 
     /// <param name="includeInjection">true(PNT·IMG)면 MATERIAL 자식에 더해 사출품(InjFlag 1) 자식도 뺀다 — <see cref="BackflushRules.IncludesInjection"/>.
     /// LOT 이 코어 LOT 에 이어져 있으면(tbl_Lot.ParentLotID — IMG 코어 스캔) 그 코어 품번은 빼지 않는다(ConsumeCore 가 이미 지웠다).</param>
+    /// <param name="noteSuffix">거래 메모 뒤에 붙인다 — 폐기 차감은 <c>SCRAP {원인}</c>(10-28).</param>
     public static BackflushResult Apply(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
-                                        string lineId, string operatorId, string employeeNo, bool includeInjection = false)
+                                        string lineId, string operatorId, string employeeNo, bool includeInjection = false,
+                                        string? noteSuffix = null)
     {
         tx.Save(Savepoint);
-        try { return ApplyCore(conn, tx, lotId, lotCode, itemNo, lineId, operatorId, employeeNo, includeInjection); }
+        try { return ApplyCore(conn, tx, lotId, lotCode, itemNo, lineId, operatorId, employeeNo, includeInjection, noteSuffix); }
         catch (Exception ex)
         {
             // 교착 희생(1205)·심각도 20 이상이면 서버가 트랜잭션 전체를 이미 되돌려 세이브포인트 롤백이 또 던진다 —
@@ -51,7 +53,7 @@ public static class BackflushRepository
     }
 
     static BackflushResult ApplyCore(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode, string itemNo,
-                                     string lineId, string operatorId, string employeeNo, bool includeInjection)
+                                     string lineId, string operatorId, string employeeNo, bool includeInjection, string? noteSuffix)
     {
         if (AlreadyApplied(conn, tx, lotId)) return BackflushResult.None;
 
@@ -62,7 +64,7 @@ public static class BackflushRepository
         var except = includeInjection ? ReadParentLotItem(conn, tx, lotId) is { } core ? new[] { core } : null : null;
         var requirements = BackflushRules.Requirements(ReadBomRows(conn, tx, itemNo), includeInjection, except);
         var shortages = new List<BackflushShortage>();
-        var note = $"{lotCode} {itemNo}";
+        var note = noteSuffix is null ? $"{lotCode} {itemNo}" : $"{lotCode} {itemNo} {noteSuffix}";
         foreach (var req in requirements)
         {
             var ph    = BackflushRules.PlaceholderLotNo(prefix, req.PartNo);

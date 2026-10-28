@@ -154,8 +154,8 @@ public sealed class OfflineModulesTests : IDisposable
         var row = OfflineRework.FindPendingByLotCode("i1aaa0001");
         Assert.NotNull(row);
         Assert.Equal(ReworkOutcome.Done, OfflineRework.Rework(row!, "C01", "fixed", Rwk(), out _));
-        Assert.Equal(ReworkOutcome.AlreadyDecided, OfflineRework.Scrap(row!, "C01", null, Rwk(), out _));
-        Assert.Equal(ReworkOutcome.Done, OfflineRework.Scrap(OfflineRework.ListPending().Single(), "C02", null, Rwk(), out _));
+        Assert.Equal(ReworkOutcome.AlreadyDecided, OfflineRework.Scrap(row!, "C01", null, Rwk(), out _, out _));
+        Assert.Equal(ReworkOutcome.Done, OfflineRework.Scrap(OfflineRework.ListPending().Single(), "C02", null, Rwk(), out _, out _));
 
         Assert.Empty(OfflineRework.ListPending());
         Assert.Null(OfflineRework.FindPendingByLotCode("I1AAA0001"));

@@ -96,12 +96,13 @@ internal static class OfflineRework
     }
 
     public static ReworkOutcome Scrap(ReworkItemDto row, string cause, string? note, PopSessionDto s,
-                                      out PalletStockRepository.PalletUnloadResult unload)
+                                      out PalletStockRepository.PalletUnloadResult unload, out BackflushResult backflush)
     {
         unload = PalletStockRepository.PalletUnloadResult.None;
+        backflush = BackflushResult.None;
         if (!PopDb.IsOffline)
         {
-            try { return PopServices.Rework.Scrap(row.DefectId, cause, note, s.OperatorId, s.EmployeeNo, out unload); }
+            try { return PopServices.Rework.Scrap(row.DefectId, cause, note, s.OperatorId, s.EmployeeNo, out unload, out backflush); }
             catch (Exception ex) when (DbHealth.IsConnectionFailure(ex)) { /* 큐로 */ }
         }
         return Queue(KindScrap, row, cause, note, s);
@@ -147,7 +148,7 @@ internal static class OfflineRework
         var cause = op.Arg("Cause") ?? "";
         var outcome = op.Kind == KindRework
             ? PopServices.Rework.Rework(op.Ref, cause, op.Arg("Note"), op.LineId, op.OperatorId, session, op.EmployeeNo, out _, op.At)
-            : PopServices.Rework.Scrap(op.Ref, cause, op.Arg("Note"), op.OperatorId, op.EmployeeNo, out _, op.At);
+            : PopServices.Rework.Scrap(op.Ref, cause, op.Arg("Note"), op.OperatorId, op.EmployeeNo, out _, out _, op.At);
         return outcome == ReworkOutcome.Done ? null : outcome.ToString();
     }
 }
