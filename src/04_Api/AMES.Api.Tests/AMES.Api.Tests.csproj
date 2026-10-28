@@ -26,6 +26,7 @@
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionExpiryHandler.cs" Link="Pda\SessionExpiryHandler.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionValidator.cs" Link="Pda\SessionValidator.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\PdaApi.cs" Link="Pda\PdaApi.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\WarehouseApi.cs" Link="Pda\WarehouseApi.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\FinishedGoodsApi.cs" Link="Pda\FinishedGoodsApi.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SparePartsApi.cs" Link="Pda\SparePartsApi.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SparePartValidation.cs" Link="Pda\SparePartValidation.cs" />

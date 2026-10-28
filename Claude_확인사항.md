@@ -29,7 +29,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 김현진 | 0                   | 12  | 7묶음 | 4   | [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 28) · 팔레트 닫힘(문제점 38) · 생산/PLC/생산 요약 알림 기준(1-2) |
-| 안영훈 | 1(검증) | 4정책/환경 | 5묶음 | 17(WH 결과서) | WH 단위테스트 결과서 FAIL 17건 소스 수정(2-4) · 재구축은 별도 승인 대기 |
+| 안영훈 | 1(검증) | 4정책/환경 | 5묶음 | 0 | 재구축은 별도 승인 대기 |
 | 이승욱 | 0                    | 5   | 1   | 1   | [하] 알림 발송기가 tempdb 콜레이션이 다른 서버에서 실패(3-4 1) · 보류 — 사이클 PM 샷 기준 자동 발행·금형 정비 등록(B7)·개발 완료 시 정리·개발 DB 이름 `AMES` 전환 |
 | 오세영 | 3(앱 개발 참고)          | 1   | —   | —   | 알림 앱 개발 — 서버 발송기·앱 Api 준비됨(4-1 1 참고사항), Firebase 서비스 계정 키 전달                                                                                               |
 
@@ -129,24 +129,6 @@
 `TEST_SRM` 모의 API 보관 위치: `C:\Users\Young\Documents\AMES-Archives\TEST_SRM-20261028` (`RESTORE.md`, `test-api` 소스 15개, 원본과 SHA-256 일치 확인). 소스·샘플·테이블 생성 스크립트 보관본이며 실제 DB 데이터 백업은 아닙니다. 테이블 정리 대상은 기존 개발 DB `192.168.0.132/AMES_DEV`이고 이번에는 DB 삭제를 실행하지 않았습니다. AMES PO 수집 Worker와 연결 설정, 원격에서 실행 중일 수 있는 모의 서비스는 변경하지 않았습니다. 10-23 당시 `SW_POSYNC_URL/SEMS`가 모의 서버 `192.168.1.68:5220`을 가리켰으므로, 서비스·테이블을 종료/삭제하기 전에 현재 연결 설정과 실제 사용 여부를 확인해야 합니다.
 
 10-23 정리 실행 당시 개발 DB의 구형 PDA 업무 프로시저 삭제를 확인했습니다. 원본 복구 파일은 `publish/DB_Backup/PDA_BusinessProcedures_20261023_before_cleanup.sql`, 기본 조회용 정리 스크립트는 `dist/retire_pda_business_procedures.sql`입니다. 삭제 대상 27개가 0개 남았고, 재고·거래·출하·반품·팔렛 행 수는 전후 동일합니다. DB 모듈의 외부 참조는 없었으나 SQL Agent 작업은 조회 권한이 없어 확인하지 못했습니다. 로컬 복제 DB는 변경하지 않았습니다. `AMES_ERD_data.js`·`AMES_DB_Schema.html`은 통합 전 구 설계 문서로, 현재 테이블 판정 근거로 쓰지 않습니다.
-
-### 2-4. WH 단위테스트 결과서 FAIL — 소스 수정 (17)
-
-10-29 이승욱: WH 시나리오 V1.1(248건)을 10-29 소스(`2aa9c1a8`)로 다시 판정한 결과서에서 남은 FAIL 입니다. 사용자가 17건 모두 **소스 수정(안영훈 담당)** 으로 정했습니다(TC 보정 22건은 시나리오 4차 수정으로 PASS). 결과서 결함 목록 DEF-WH-001·004·006·007·008·010~013·015·017~021·023·024, 원인·근거 줄은 결과서 「테스트 시나리오」 탭의 판정 근거 열에 있습니다.
-
-1. **PDA Inbound — 미등록 바코드 안내**(WH002-TC-008): `/inbound/scan` 이 미등록 바코드를 51402 → 400 으로 돌려 화면이 「Barcode Scan Failed」를 띄우고 「Barcode Not Found」 분기(`Wh02PdaInbound.razor` 761-767)는 닿지 않습니다. 제안: `/inbound/document` 처럼 51402 를 잡아 null(또는 204)로 돌려줍니다(실패 작업 로그는 유지).
-2. **PDA Release — FIFO 생산일 표시**(WH003-TC-023): `WarehouseRepository.LineStock.cs` 의 `PROD_DATE` 가 `CAST(NULL …)` 이고 API 도 null 이라 생산일 칸이 항상 「-」입니다. 제안: `tbl_Lot.ProducedAt` → SCM 납품 라인 생산일 순으로 읽어 넘깁니다.
-3. **PDA Release — Defect 기본 수량**(WH003-TC-044, 사용자 결정): Defect 를 고르면 수량이 1 로 시작합니다(`Wh07PdaRelease.razor` 681). 제안: 유형과 관계없이 LOT 전체 수량에서 시작해 − 로 줄입니다.
-4. **PDA Inventory — 검색 중 REFRESH**(WH004-TC-040): 검색어가 있으면 Location 목록을 다시 읽지 않아(`Wh03InventoryStatus.razor` 1772-1773) 수량이 갱신되지 않습니다.
-5. **PDA Inventory — Location 상세가 목록과 다른 조건**(WH004-TC-046·053): 상세(`WhEndpoints` `location/{id}`)는 입고일 조건을 걸고 검사 대기 반품을 빼지 않아 목록 수량과 어긋납니다. 제안: 같은 조건(날짜 없음, `PdaStockScope.Inventory`)으로 맞춥니다.
-6. **PDA Inventory — LOT 검색이 품번의 모든 위치를 표시**(WH004-TC-049): `InventoryLookup` 이 LOT 을 PART 로 해석합니다. 제안: LOT 일치 시 `SEARCH_KIND='LOT'` 으로 그 LOT 재고 위치만 매칭합니다.
-7. **PDA Inventory — BY PART 가 품번당 위치 1개**(WH004-TC-050·054): 재고 SQL 이 품번으로만 묶고 대표 위치 하나만 돌려줍니다(`PdaWarehouseSql.cs` 279-326). 제안: 품번×위치 행으로 바꾸고 위치 검색이면 그 위치 행만.
-8. **PDA Transactions — 위치 변경 색**(WH006-TC-081): MOVE 가 입고 색(`inbound`·`in`)이고 LOCATION 카드에 색이 없습니다. 제안: 위치 변경 전용 `move` 색.
-9. **PDA Transactions — 팔레트 바코드 검색**(WH006-TC-091, 10-29 재판정 신규): 새 거래 피드 `PdaTransactionRepository` `PageSql` 의 검색이 팔레트 번호(`WH_Inventory.PalletNo`/`ParentLotNo`, `FG_Shipment.PalletNo`)를 보지 않습니다. 제안: 검색 조건에 팔레트 EXISTS 를 더합니다.
-10. **PDA Set Location — 상위(1차) Location 적재 차단 안내**(WH007-TC-012, 10-29 재판정 신규): `/location/scan` 이 `LocationLevel=2` 만 찾아 상위 로케이션은 「Location not found」가 되고 51423 안내에 닿지 않습니다. 제안: 1차면 400 「Primary locations cannot hold stock. Scan a detail location.」(2-1 의 로케이션 2단계 WH·PDA 반영과 함께 보면 됩니다).
-11. **Web Log History — 입고 취소 분류**(WH104-TC-002·005·008): 입고 취소가 ADJ/OUT 거래로 저장돼 출고·조정으로 분류되고 색도 구분되지 않습니다(`WarehouseRepository.cs` 1797-1812, `LogHistory.razor` 155·158). 제안: `ReasonCode='INBOUND_CANCEL'` 을 `CANCEL_RECEIPT`·입고로 먼저 분기하고 KPI·필터·색을 맞춥니다.
-12. **Web Picking Orders — 검색이 첫 자재만**(WH105-TC-006): 지시 첫 행(`FIRST_ID`)의 품번만 검색합니다. 제안: 지시의 모든 자재·위치에 EXISTS 로 겁니다.
-13. **Web Picking Orders — 라인 보충 지시 묶음**(WH105-TC-010): 10-22 뒤 `LineCode` 가 상세 로케이션이라 `GroupBy(LineCode)` 가 같은 라인의 위치마다 지시를 따로 만듭니다(`WarehouseRepository.LineStock.cs` 210). 제안: `MD_Location.LineID` 로 묶고 행의 요청 위치는 상세 로케이션으로.
 
 ---
 
