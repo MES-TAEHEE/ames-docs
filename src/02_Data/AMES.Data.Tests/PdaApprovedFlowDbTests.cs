@@ -125,10 +125,20 @@ public sealed class PdaApprovedFlowDbTests
             Assert.False((bool)Value(conn, null, "SELECT ShippedFlag FROM dbo.MD_Pallet WHERE PalletNo=@Pallet", ("@Pallet", pallet))!);
             Assert.Throws<InvalidOperationException>(() => repo.ScanEmptyPalletReturn(pallet));
             Assert.Equal(1, Convert.ToInt32(Value(conn, null, "SELECT COUNT(*) FROM dbo.SYS_AuditLog WHERE TargetEntity='MD_Pallet' AND TargetID=@Pallet AND CreatedBy=@Actor", ("@Pallet", pallet), ("@Actor", actor))));
+            Assert.Equal(1, Convert.ToInt32(Value(conn, null, """
+                SELECT COUNT(*) FROM dbo.WH_InventoryTransaction
+                WHERE LotNo=@Pallet AND SourceType='PALLET_RETURN' AND ReasonCode='PALLET_RETURN'
+                    AND TransactionType='IN' AND PartNo IS NULL AND LocationNo IS NULL
+                    AND QtyBefore=0 AND QtyChange=0 AND QtyAfter=0 AND OperatorID=@Actor;
+                """, ("@Pallet", pallet), ("@Actor", actor))));
+            Assert.Throws<InvalidOperationException>(() => repo.ReceiveEmptyPalletReturn(request, actor));
+            Assert.Single(new PdaTransactionRepository(factory).ReadPage(pallet, scan.ShippedAt.Date, scan.ShippedAt.Date.AddDays(1)).Items,
+                row => row.ReasonCode == "PALLET_RETURN" && row.Barcode == pallet && row.LocationNo is null && row.DeltaQty == 0);
         }
         finally
         {
             Run(conn, null, """
+                DELETE dbo.WH_InventoryTransaction WHERE LotNo=@Pallet AND SourceType='PALLET_RETURN' AND CreatedBy=@Actor;
                 DELETE dbo.WH_Inventory WHERE LotNo=@Lot AND ParentLotNo=@Pallet;
                 DELETE dbo.WH_Inventory WHERE LotNo=@Pallet AND PalletNo=@Pallet AND Qty=0;
                 DELETE dbo.SYS_AuditLog WHERE TargetEntity='MD_Pallet' AND TargetID=@Pallet AND CreatedBy=@Actor;

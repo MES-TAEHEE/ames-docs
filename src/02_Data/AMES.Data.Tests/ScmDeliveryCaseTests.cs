@@ -588,7 +588,7 @@ public sealed class ScmDeliveryCaseTests
             Assert.Equal(30,Count("SELECT ReceivedQty FROM WH_PurchaseOrder WHERE PoID=90"));
             Assert.Equal(29,Count("SELECT Qty FROM WH_Inventory WHERE LotNo='NORMAL-LOT'"));
 
-            // Empty pallet recovery changes the asset only, and repeated/stale scans are rejected.
+            // Empty pallet recovery records an asset event, without changing product inventory.
             Sql("""
                 CREATE TABLE MD_Customer(CustomerID varchar(20) PRIMARY KEY,CustomerName nvarchar(100));
                 CREATE TABLE MD_Pallet(PalletNo varchar(50) PRIMARY KEY,ShippedCustomerID varchar(20),ShippedAt datetime2,
@@ -611,12 +611,30 @@ public sealed class ScmDeliveryCaseTests
             Sql("UPDATE WH_Inventory SET ParentLotNo=NULL,PalletNo='PALLET-RETURN' WHERE LotNo='ATTACHED';");
             var inventoryBefore=Count("SELECT SUM(Qty) FROM WH_Inventory");
             var transactionsBefore=Count("SELECT COUNT(*) FROM WH_InventoryTransaction");
+            Sql("""
+                CREATE TRIGGER FailPalletReturnAudit ON SYS_AuditLog AFTER INSERT AS
+                THROW 52022,'Simulated audit failure.',1;
+                """);
+            Assert.Throws<SqlException>(()=>fg.ReceiveEmptyPalletReturn(new(pallet.PalletNo,pallet.ShippedAt),"tester"));
+            Assert.Equal(1,Count("SELECT ShippedFlag FROM MD_Pallet WHERE PalletNo='PALLET-RETURN'"));
+            Assert.Equal(transactionsBefore,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
+            Assert.Equal(0,Count("SELECT COUNT(*) FROM SYS_AuditLog WHERE TargetEntity='MD_Pallet'"));
+            Sql("DROP TRIGGER FailPalletReturnAudit;");
             Assert.NotNull(fg.ReceiveEmptyPalletReturn(new(pallet.PalletNo,pallet.ShippedAt),"tester").ReturnedAt);
             Assert.Equal(0,Count("SELECT ShippedFlag FROM MD_Pallet WHERE PalletNo='PALLET-RETURN'"));
             Assert.Equal(inventoryBefore,Count("SELECT SUM(Qty) FROM WH_Inventory"));
-            Assert.Equal(transactionsBefore,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
+            Assert.Equal(transactionsBefore+1,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
+            Assert.Equal(1,Count("""
+                SELECT COUNT(*) FROM WH_InventoryTransaction T JOIN MD_Pallet P ON P.PalletNo=T.LotNo
+                WHERE T.LotNo='PALLET-RETURN' AND T.TransactionType='IN'
+                    AND T.SourceType='PALLET_RETURN' AND T.ReasonCode='PALLET_RETURN'
+                    AND T.PartNo IS NULL AND T.LocationNo IS NULL
+                    AND T.QtyBefore=0 AND T.QtyChange=0 AND T.QtyAfter=0
+                    AND T.OperatorID='tester' AND T.CreatedBy='tester' AND T.TransactionTime=P.ReturnedAt;
+                """));
             Assert.Equal(1,Count("SELECT COUNT(*) FROM SYS_AuditLog WHERE TargetEntity='MD_Pallet'"));
             Assert.Throws<InvalidOperationException>(()=>fg.ReceiveEmptyPalletReturn(new(pallet.PalletNo,pallet.ShippedAt),"tester"));
+            Assert.Equal(transactionsBefore+1,Count("SELECT COUNT(*) FROM WH_InventoryTransaction"));
             Sql("UPDATE SCM_PortalVendorUser SET LockedFlag=1 WHERE UserID='case-user';");
             Assert.Empty(repo.ListPortalDeliveryDiscrepancies("case-user"));
         }

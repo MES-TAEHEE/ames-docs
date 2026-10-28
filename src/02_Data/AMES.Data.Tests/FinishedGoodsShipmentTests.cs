@@ -15,7 +15,7 @@ public sealed class FinishedGoodsShipmentTests
         => Assert.Throws<ArgumentException>(() => FinishedGoodsRepository.ValidatePalletReturnBarcode(barcode));
 
     [Fact]
-    public void Empty_pallet_return_preserves_inventory_and_audits_in_the_same_transaction()
+    public void Empty_pallet_return_records_an_unlocated_asset_event_without_changing_product_inventory()
     {
         Assert.Equal("P-001", FinishedGoodsRepository.ValidatePalletReturnBarcode(" P-001 "));
         var source = Read("src/02_Data/AMES.Data/Repositories/FinishedGoodsRepository.PalletReturns.cs");
@@ -26,8 +26,12 @@ public sealed class FinishedGoodsShipmentTests
         Assert.Contains("ParentLotNo=P.LotNo", source);
         Assert.Contains("ShippedFlag=0,ReturnedAt=SYSDATETIME()", source);
         Assert.Contains("INSERT dbo.SYS_AuditLog", source);
+        Assert.Contains("INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LocationNo,LotNo,", source);
+        Assert.Contains("VALUES(@ReturnedAt,'IN',NULL,NULL,@Pallet,0,0,0,'PALLET_RETURN','PALLET_RETURN',@Actor,", source);
+        Assert.Contains("movement.Parameters.Add(\"@ReturnedAt\", SqlDbType.DateTime2).Value = after.ReturnedAt!.Value", source);
+        Assert.True(source.IndexOf("movement.ExecuteNonQuery()", StringComparison.Ordinal) < source.IndexOf("audit.ExecuteNonQuery()", StringComparison.Ordinal));
         Assert.True(source.IndexOf("audit.ExecuteNonQuery()", StringComparison.Ordinal) < source.IndexOf("tx.Commit()", StringComparison.Ordinal));
-        Assert.DoesNotMatch(@"(?i)(?:INSERT|UPDATE|DELETE|MERGE)\s+(?:INTO\s+|FROM\s+)?dbo\.(?:WH_Inventory|WH_InventoryTransaction|FG_CustomerReturn)\b", source);
+        Assert.DoesNotMatch(@"(?i)(?:INSERT|UPDATE|DELETE|MERGE)\s+(?:INTO\s+|FROM\s+)?dbo\.(?:WH_Inventory|FG_CustomerReturn)\b", source);
         Assert.DoesNotContain("MD_Pallet", PdaFinishedGoodsSql.ReturnReceive);
         Assert.Contains("ShippedCustomerID=@CustomerID,ReturnedAt=NULL", PdaFinishedGoodsSql.OutboundComplete);
         var api = Read("src/04_Api/AMES.Api/Endpoints/PalletReturnEndpoints.cs");
