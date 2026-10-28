@@ -44,7 +44,7 @@ public sealed class FinishedGoodsShipmentTests
             Assert.Contains(token, report);
         Assert.DoesNotContain("<select", report);
         var shipments = Read("src/06_Web/AMES.Web/Components/Pages/Fg/Shipments.razor");
-        Assert.Contains("Shipment.FromLocation", shipments);
+        Assert.Contains("Shipment.PalletNo", shipments);
         Assert.Contains("Shipment.DetailsFmt", shipments);
         var keys = Regex.Matches(report + shipments, "L\\[\"([^\"]+)\"").Select(x => x.Groups[1].Value).Distinct().ToArray();
         foreach (var language in new[] { "", ".en", ".ko", ".es" })

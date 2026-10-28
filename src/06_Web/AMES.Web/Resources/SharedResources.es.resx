@@ -12694,4 +12694,7 @@
   <data name="FG.ShipOrders.IncludeShipped" xml:space="preserve">
     <value>Incluir enviados</value>
   </data>
+  <data name="FG.Shipments.Col.PalletCount" xml:space="preserve">
+    <value>Palés</value>
+  </data>
 </root>
