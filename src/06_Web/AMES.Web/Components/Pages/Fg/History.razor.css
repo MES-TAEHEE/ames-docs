@@ -1,0 +1,15 @@
+.history-items {max-height:320px;overflow:auto;}
+.history-lots-modal {width:min(900px,95vw);max-height:90vh;overflow:auto;}
+.history-detail-cell {display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;}
+.history-detail-preview {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.history-detail-cell ::deep .rz-button {flex-shrink:0;}
+.history-detail-modal {width:min(680px,95vw);max-height:90vh;overflow:auto;}
+.history-detail-fields {display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;}
+.history-detail-fields dt {color:var(--ames-tx-slate-400);}
+.history-detail-fields dd {margin:0;overflow-wrap:anywhere;}
+.history-detail-text {white-space:pre-wrap;overflow-wrap:anywhere;}
+.history-page ::deep .rz-expanded-row-content {padding:0 !important;background:transparent !important;}
+.history-page ::deep .rz-expanded-row-content > td {height:auto !important;padding:0 !important;background:transparent !important;}
+.history-page ::deep .history-items-grid {flex:0 0 auto !important;}
+.history-page ::deep .history-items-grid .rz-data-grid-data {height:auto !important;min-height:0;container-type:normal !important;}
+.history-page ::deep .history-items-grid .rz-data-grid-data tbody > tr > td {height:auto !important;padding:7px 10px !important;}

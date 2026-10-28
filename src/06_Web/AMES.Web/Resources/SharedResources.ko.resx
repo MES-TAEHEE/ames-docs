@@ -12697,4 +12697,7 @@
   <data name="FG.Shipments.Col.PalletCount" xml:space="preserve">
     <value>팔렛 수</value>
   </data>
+  <data name="WH.LocMap.LineArea" xml:space="preserve">
+    <value>라인 구역</value>
+  </data>
 </root>

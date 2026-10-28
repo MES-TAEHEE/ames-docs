@@ -18,7 +18,11 @@ public sealed partial class FinishedGoodsRepository
     public record ShipmentItemRow(long TransactionId, string LotNo, string? PartNo, string? PartName,
         string? LocationNo, decimal Qty, string? Unit);
     public record HistoryRow(string RowKey, DateTime EventAt, string EventType, string? ReferenceNo, string? ItemOrOrder,
-        decimal Qty, string? Location, string? WorkerId, string? Status, string? Details);
+        decimal Qty, string? Location, string? WorkerId, string? Status, string? Details,
+        int? DeliveryId = null, int? ShipmentId = null, int PalletCount = 0, int ItemCount = 0)
+    {
+        public bool HasShipmentDetails => EventType == "SHIPPED" && ShipmentId.HasValue;
+    }
 
     public List<ReturnRow> ListReturns(string? search = null, string? status = null, DateTime? from = null, DateTime? to = null)
     {
@@ -96,6 +100,7 @@ public sealed partial class FinishedGoodsRepository
 
     public List<HistoryRow> ListHistory(string? search = null, string? eventType = null, DateTime? from = null, DateTime? to = null)
     {
+        var type = NullIfBlank(eventType)?.ToUpperInvariant();
         const string sql = """
             SELECT TOP(1000) H.RowKey,H.EventAt,H.EventType,H.ReferenceNo,H.ItemOrOrder,H.Qty,H.Location,H.WorkerID,H.Status,H.Details
             FROM
@@ -111,13 +116,6 @@ public sealed partial class FinishedGoodsRepository
                 FROM dbo.WH_InventoryTransaction T
                 WHERE T.SourceType='FG_PUTAWAY' AND T.TransactionType IN('IN','MOVE')
                 UNION ALL
-                SELECT CONCAT('TX:',CONVERT(varchar(20),T.TransactionID)) COLLATE DATABASE_DEFAULT,
-                    S.ShippedAt,'SHIPPED',CONVERT(nvarchar(80),S.ShipmentID) COLLATE DATABASE_DEFAULT,
-                    T.PartNo COLLATE DATABASE_DEFAULT,-T.QtyChange,T.LocationNo COLLATE DATABASE_DEFAULT,
-                    S.ShippedBy COLLATE DATABASE_DEFAULT,'SHIPPED',CONVERT(nvarchar(300),S.LotNo) COLLATE DATABASE_DEFAULT
-                FROM dbo.FG_Shipment S JOIN dbo.WH_InventoryTransaction T
-                    ON T.SourceType='FG_OUTBOUND' AND T.SourceID=S.ShipmentID AND T.TransactionType='OUT'
-                UNION ALL
                 SELECT CONCAT('RETURN:',CONVERT(varchar(20),R.ReturnID)) COLLATE DATABASE_DEFAULT,
                     COALESCE(R.ReceivedAt,R.CreatedTS),'RETURN',CONVERT(nvarchar(80),R.ReturnID) COLLATE DATABASE_DEFAULT,
                     R.PartNo COLLATE DATABASE_DEFAULT,R.ReturnQty,NULL,
@@ -130,11 +128,19 @@ public sealed partial class FinishedGoodsRepository
                 OR H.Location LIKE @Search OR H.WorkerID LIKE @Search OR H.Details LIKE @Search)
             ORDER BY H.EventAt DESC,H.ReferenceNo DESC,H.RowKey DESC;
             """;
-        return Query(sql,r=>new HistoryRow(GetString(r,"RowKey") ?? "",GetDate(r,"EventAt") ?? DateTime.MinValue,GetString(r,"EventType") ?? "",
+        var rows = type == "SHIPPED" ? new List<HistoryRow>() : Query(sql,r=>new HistoryRow(GetString(r,"RowKey") ?? "",GetDate(r,"EventAt") ?? DateTime.MinValue,GetString(r,"EventType") ?? "",
             GetString(r,"ReferenceNo"),GetString(r,"ItemOrOrder"),GetDecimal(r,"Qty"),GetString(r,"Location"),
             GetString(r,"WorkerID"),GetString(r,"Status"),GetString(r,"Details")),
-            ("@Search",null,Like(search)),("@EventType",null,NullIfBlank(eventType)?.ToUpperInvariant()),
+            ("@Search",null,Like(search)),("@EventType",null,type),
             ("@From",null,from?.Date),("@To",null,to?.Date));
+        if (type is null or "SHIPPED")
+            rows.AddRange(ListShipmentHistory(search,from,to,1000).Select(shipment => new HistoryRow(
+                shipment.Key,shipment.ShippedAt,"SHIPPED",shipment.ReferenceNo,null,shipment.Qty,null,
+                shipment.ShippedBy,"SHIPPED",null,shipment.DeliveryId,shipment.ShipmentId,
+                shipment.PalletCount,shipment.ItemCount)));
+        return rows.OrderByDescending(row=>row.EventAt)
+            .ThenByDescending(row=>row.ReferenceNo,StringComparer.Ordinal)
+            .ThenByDescending(row=>row.RowKey,StringComparer.Ordinal).Take(1000).ToList();
     }
 
     private List<T> Query<T>(string sql, Func<SqlDataReader,T> map, params (string Name,string? Column,object? Value)[] parameters)

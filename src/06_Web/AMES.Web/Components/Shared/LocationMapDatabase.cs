@@ -20,6 +20,12 @@ public static class LocationMapDatabase
         foreach (var location in locations)
             if (!areas.Any(a => a.WarehouseCode == location.WhCode && a.AreaCode == location.AreaCode))
                 areas.Add(new LocationMapArea(location.WhCode, warehouses.GetValueOrDefault(location.WhCode, location.WhCode), location.AreaCode, location.AreaCode, null));
+        areas = areas.Select(area => area with
+        {
+            IsLineArea = locations.Any(location => !string.IsNullOrWhiteSpace(location.LineId)
+                && string.Equals(location.WhCode, area.WarehouseCode, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(location.AreaCode, area.AreaCode, StringComparison.OrdinalIgnoreCase))
+        }).ToList();
 
         var inventoryRows = finishedGoods ? warehouse.ListUnifiedInventory(true, includeDefects: true)
             : warehouse.ListUnifiedInventory(false, includeDefects: true).Concat(warehouse.ListUnifiedInventory(true, includeDefects: true));
