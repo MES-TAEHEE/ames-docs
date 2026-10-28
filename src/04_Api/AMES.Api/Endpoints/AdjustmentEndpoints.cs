@@ -43,7 +43,7 @@ internal static class AdjustmentEndpoints
                 return Results.Ok(lines);
             }).WithSummary("List registered MD_Line.LotPrefix locations with inventory for quantity adjustment");
 
-        group.MapGet("/adjust/location", (string barcode) =>
+        group.MapGet("/adjust/location", (string barcode, bool? includeFinishedGoods) =>
         {
             using var conn = factory.OpenConnection();
             using var location = new SqlCommand("SELECT LocationID FROM dbo.MD_Location WHERE LocationID = @Barcode AND LocationLevel=2 AND COALESCE(ActiveFlag, 1) = 1", conn);
@@ -71,12 +71,13 @@ internal static class AdjustmentEndpoints
                 LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT = W.PartNo COLLATE DATABASE_DEFAULT
                 LEFT JOIN dbo.MD_Location L ON L.LocationID COLLATE DATABASE_DEFAULT = W.LocationNo COLLATE DATABASE_DEFAULT
                 WHERE W.LocationNo = @Location AND W.Qty >= 0
-                  AND COALESCE(I.ItemType,'')<>'ASSY'
+                  AND (@IncludeFinishedGoods=1 OR COALESCE(I.ItemType,'')<>'ASSY')
                   AND NULLIF(W.PartNo,'') IS NOT NULL
                   AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
                 ORDER BY W.PartNo, W.LotNo;
                 """, conn);
             cmd.Parameters.Add("@Location", SqlDbType.NVarChar, 80).Value = locationId;
+            cmd.Parameters.Add("@IncludeFinishedGoods", SqlDbType.Bit).Value = includeFinishedGoods == true;
             using var reader = cmd.ExecuteReader();
             var items = new List<Stock>();
             while (reader.Read())

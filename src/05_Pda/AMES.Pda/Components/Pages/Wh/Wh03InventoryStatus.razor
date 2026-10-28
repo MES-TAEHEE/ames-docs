@@ -37,7 +37,7 @@
     </div>
 
     <div class="pda-bd wh03-body">
-        @if (!IsSpareParts)
+        @if (!IsSpareParts && !IsAdjustTab)
         {
             <PdaStockFilter Value="@_stockKind" ValueChanged="SetStockKind" IncludeAll="@(!IsAdjustTab)" Disabled="@(InventoryBusy || _isLoading)" />
         }
@@ -942,7 +942,8 @@
     private bool ShouldSimulateAdjustApiFailure => IsTestMode
         && CurrentAdjustTestScenario.No == 20
         && _simulateAdjustApiFailure;
-    private bool IsFinishedGoodsAdjust => !IsSpareParts && _stockKind == "FG";
+    private bool _detectedFinishedGoods;
+    private bool IsFinishedGoodsAdjust => !IsSpareParts && (IsAdjustTab ? _detectedFinishedGoods : _stockKind == "FG");
     private async Task SetStockKind(string value)
     {
         if (InventoryBusy || _isLoading || value == _stockKind) return;
@@ -1404,7 +1405,7 @@
         if (uri.AbsolutePath == "/fg/adjust")
         {
             _workTab = "Adjust";
-            _invMode = "FG";
+            _stockKind = "ALL";
             return;
         }
 
@@ -1412,7 +1413,7 @@
         if (query.Contains("tab=adjust", StringComparison.OrdinalIgnoreCase))
         {
             _workTab = "Adjust";
-            if (_stockKind == "ALL") _stockKind = "GENERAL";
+            _stockKind = "ALL";
             return;
         }
 
@@ -1935,6 +1936,7 @@
 
     private void ClearInventoryWork()
     {
+        _detectedFinishedGoods = false;
         _adjustLine = null;
         _adjustLocation = null;
         _invBarcode = "";
@@ -1964,6 +1966,7 @@
         if (IsAdjustTab && Auth.Session?.IsAdmin != true) return;
 
         _isInventoryScanning = true;
+        _detectedFinishedGoods = false;
         _adjustLocation = null;
         _invMsg = IsSpareParts ? "Scanning EOS SP No..." : "Scanning Lot No...";
         _invCls = "dim";
@@ -1978,7 +1981,7 @@
         {
             if (IsAdjustTab)
             {
-                _adjustLocation = await Api.ScanAdjustmentLocationAsync(_invBarcode, IsFinishedGoodsAdjust, AreaScope);
+                _adjustLocation = await Api.ScanAdjustmentLocationAsync(_invBarcode, false, AreaScope, includeFinishedGoods:!IsSpareParts);
                 if (_adjustLocation is not null)
                 {
                     if (IsLineAdjust && !_adjustLines.Contains(_adjustLocation.LocationId))
@@ -2050,9 +2053,7 @@
             return row;
         }
 
-        var adjustRow = IsFinishedGoodsAdjust
-            ? await FgApi.FgScanAdjustAsync(barcode)
-            : await Api.WhScanAdjustAsync(barcode, AreaScope);
+        var adjustRow = await Api.WhScanAdjustAsync(barcode, AreaScope, autoDetect:!IsSpareParts);
         ApplyDetectedMode(adjustRow);
         return adjustRow;
     }
@@ -2061,6 +2062,9 @@
     {
         if (row is null || string.IsNullOrWhiteSpace(row.ReceiveType))
             return;
+
+        if (IsAdjustTab && !IsSpareParts)
+            _detectedFinishedGoods = string.Equals(row.ReceiveType,"FG",StringComparison.OrdinalIgnoreCase);
 
         _invMode = IsSpareParts
             ? "SP"

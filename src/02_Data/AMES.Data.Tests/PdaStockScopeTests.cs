@@ -42,13 +42,18 @@ public sealed class PdaStockScopeTests
     {
         var fg=Read("src/05_Pda/AMES.Pda/Components/Pages/Fg/FgHome.razor");
         Assert.Contains(">ASSY Ready</div>",fg);
-        Assert.Contains(">Set Location</div>",fg);
+        Assert.DoesNotContain(">Set Location</div>",fg);
         foreach(var label in new[]{">Inventory</div>",">Adjust</div>",">TRANSACTIONS</div>"}) Assert.DoesNotContain(label,fg);
         Assert.Contains(">Set Location</div>",Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/WhHome.razor"));
         var inventory=Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh03InventoryStatus.razor");
         var history=Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh08TransactionHistory.razor");
         Assert.Contains("<PdaStockFilter Value=\"@_stockKind\"",inventory);
-        Assert.Contains("<PdaStockFilter Value=\"@_stockKind\"",history);
+        Assert.Contains("@if (!IsSpareParts && !IsAdjustTab)",inventory);
+        Assert.Contains("autoDetect:!IsSpareParts",inventory);
+        Assert.Contains("_detectedFinishedGoods = string.Equals(row.ReceiveType,\"FG\"",inventory);
+        Assert.DoesNotContain("_stockKind = \"GENERAL\"",inventory);
+        Assert.DoesNotContain("<PdaStockFilter",history);
+        Assert.Contains("Api.TransactionPageAsync",history);
         Assert.Contains("if (IsAdjustTab && Auth.Session?.IsAdmin != true)",inventory);
         Assert.Contains("ClearInventoryWork();",inventory);
         Assert.Contains("FG (ASSY)",Read("src/05_Pda/AMES.Pda/Components/PdaStockFilter.razor"));

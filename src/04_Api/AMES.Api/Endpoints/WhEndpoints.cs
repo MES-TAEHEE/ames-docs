@@ -566,13 +566,13 @@ public static class WhEndpoints
         });
 
 
-        g.MapGet("/adjust/scan", (HttpContext ctx, string scanText) =>
+        g.MapGet("/adjust/scan", (HttpContext ctx, string scanText, bool? autoDetect) =>
         {
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
             try
             {
-                var row = ExecuteAdjustScan(factory, scanText);
+                var row = ExecuteAdjustScan(factory, scanText, autoDetect == true);
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "SCAN_STOCK", "WH005", "LOT", scanText, "SUCCESS", "Adjustment stock scanned",
                     lotNo: row?.LotNo, partNo: row?.PartNo, locationId: row?.ReceivedLocation, qty: row?.Qty));
@@ -583,8 +583,7 @@ public static class WhEndpoints
                 var isValidationError =
                     ex is SqlException sqlEx
                     && sqlEx.Errors.Count > 0
-                    && sqlEx.Errors[0].Number >= 51500
-                    && sqlEx.Errors[0].Number < 51600;
+                    && (sqlEx.Errors[0].Number is >= 51500 and < 51700 or 52614);
 
                 WarehouseOperationLogger.TryWrite(factory, ctx, WarehouseOperationLogger.FromSession(
                     s, "SCAN_STOCK", "WH005", "LOT", scanText, "FAIL", WarehouseErrorMessage(ex),
@@ -2673,10 +2672,20 @@ public static class WhEndpoints
         return rdr.Read() ? ReadInboundScanRow(rdr) : null;
     }
 
-    private static InboundScanRow? ExecuteAdjustScan(AmesConnectionFactory factory, string scanText)
+    private static InboundScanRow? ExecuteAdjustScan(AmesConnectionFactory factory, string scanText, bool autoDetect = false)
     {
         using var conn = factory.OpenConnection();
-        using var cmd = new SqlCommand(PdaWarehouseSql.AdjustScan, conn)
+        var finishedGoods = false;
+        if (autoDetect)
+        {
+            using var detect = new SqlCommand("""
+                SELECT CASE WHEN EXISTS(SELECT 1 FROM dbo.WH_Inventory W
+                    JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo WHERE W.LotNo=@Lot AND I.ItemType='ASSY') THEN 1 ELSE 0 END;
+                """,conn);
+            detect.Parameters.Add("@Lot",SqlDbType.NVarChar,100).Value=scanText.Trim();
+            finishedGoods=Convert.ToInt32(detect.ExecuteScalar())==1;
+        }
+        using var cmd = new SqlCommand(finishedGoods ? PdaFinishedGoodsSql.AdjustScan : PdaWarehouseSql.AdjustScan, conn)
         {
             CommandType = CommandType.Text,
             CommandTimeout = 15
