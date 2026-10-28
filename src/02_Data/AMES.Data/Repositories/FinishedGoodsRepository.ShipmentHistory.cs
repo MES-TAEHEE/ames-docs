@@ -9,8 +9,9 @@ public sealed partial class FinishedGoodsRepository
         public string Key => DeliveryId is {} id ? $"DCR:{id}" : $"SHIP:{ShipmentId}";
     }
 
-    public List<ShipmentHistoryRow> ListShipmentHistory(string? search = null, DateTime? from = null, DateTime? to = null)
+    public List<ShipmentHistoryRow> ListShipmentHistory(string? search = null, DateTime? from = null, DateTime? to = null, int limit = 500)
     {
+        if (limit is < 1 or > 1000) throw new ArgumentOutOfRangeException(nameof(limit));
         const string sql = """
             WITH ShipmentSource AS
             (
@@ -32,7 +33,7 @@ public sealed partial class FinishedGoodsRepository
                     WHERE SourceType='FG_OUTBOUND' AND SourceID=S.ShipmentID AND TransactionType='OUT') T
                 GROUP BY S.DeliveryID,S.DeliveryNo,CASE WHEN S.DeliveryID IS NULL THEN S.ShipmentID END
             )
-            SELECT TOP(500) H.*,C.CustomerName FROM History H
+            SELECT TOP(@Limit) H.*,C.CustomerName FROM History H
             LEFT JOIN dbo.MD_Customer C ON C.CustomerID=H.CustomerID
             WHERE (@From IS NULL OR H.ShippedAt>=@From)
               AND (@To IS NULL OR H.ShippedAt<DATEADD(day,1,@To))
@@ -51,7 +52,7 @@ public sealed partial class FinishedGoodsRepository
             GetInt(r,"ShipmentID"),GetString(r,"ReferenceNo") ?? "",GetDate(r,"ShippedAt") ?? DateTime.MinValue,
             GetString(r,"CustomerID") ?? "",GetString(r,"CustomerName"),GetString(r,"TrailerNo"),
             GetInt(r,"PalletCount"),GetInt(r,"ItemCount"),GetDecimal(r,"Qty"),GetString(r,"ShippedBy")),
-            ("@Search",null,Like(search)),("@From",null,from?.Date),("@To",null,to?.Date));
+            ("@Search",null,Like(search)),("@From",null,from?.Date),("@To",null,to?.Date),("@Limit",null,limit));
     }
 
     public record ShipmentPalletPartRow(string? PalletNo,string? PartNo,string? PartName,decimal Qty,string? Unit);

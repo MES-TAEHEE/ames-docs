@@ -12697,4 +12697,7 @@
   <data name="FG.Shipments.Col.PalletCount" xml:space="preserve">
     <value>Pallets</value>
   </data>
+  <data name="WH.LocMap.LineArea" xml:space="preserve">
+    <value>Line Area</value>
+  </data>
 </root>
