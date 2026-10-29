@@ -91,9 +91,6 @@ public sealed class WarehouseFailFixes1029Tests
         Assert.Contains("T.ReasonCode='INBOUND_CANCEL' THEN 'CANCEL_RECEIPT'", repo);
         Assert.Contains("T.ReasonCode='INBOUND_CANCEL' THEN 'INBOUND'", repo);
         Assert.Contains("T.ReasonCode='INBOUND_CANCEL' THEN 'WH002'", repo);
-        var history = Read("src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor");
-        Assert.Contains("if (upper == \"CANCEL_RECEIPT\") return \"bad\";", history);
-        Assert.Contains("or \"WH.LogHistory.Lbl.CancelInbound\"", history);
     }
 
     [Fact]

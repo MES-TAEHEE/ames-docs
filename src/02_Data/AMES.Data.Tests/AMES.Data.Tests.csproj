@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\01_Shared\AMES.Contracts\AMES.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\..\06_Web\AMES.Web\Components\Pages\Wh\LogHistory.razor.cs" Link="Web\LogHistory.razor.cs" />
     <None Update="TestData\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
