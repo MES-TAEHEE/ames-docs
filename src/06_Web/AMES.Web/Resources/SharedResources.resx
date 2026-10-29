@@ -12706,4 +12706,15 @@
   <data name="WH.LocMap.LineArea" xml:space="preserve">
     <value>라인 구역</value>
   </data>
+  <data name="FG.DueRisk.Title" xml:space="preserve"><value>Delivery Risk</value></data>
+  <data name="FG.DueRisk.None" xml:space="preserve"><value>—</value></data>
+  <data name="FG.DueRisk.Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="FG.DueRisk.DueSoon" xml:space="preserve"><value>Due Soon</value></data>
+  <data name="FG.DueRisk.Overdue" xml:space="preserve"><value>Overdue</value></data>
+  <data name="FG.DueRisk.Unknown" xml:space="preserve"><value>Check Data</value></data>
+  <data name="FG.DueRisk.Ordered" xml:space="preserve"><value>Order</value></data>
+  <data name="FG.DueRisk.Shipped" xml:space="preserve"><value>Shipped</value></data>
+  <data name="FG.DueRisk.Remaining" xml:space="preserve"><value>Remaining</value></data>
+  <data name="FG.DueRisk.Basis" xml:space="preserve"><value>All open SOs, including those without shipment orders. As of {0}; due soon: today through {1} (next factory workday). Only confirmed shipments reduce the balance.</value></data>
+  <data name="FG.DueRisk.LoadFailed" xml:space="preserve"><value>Delivery risk could not be loaded. Refresh to retry.</value></data>
 </root>

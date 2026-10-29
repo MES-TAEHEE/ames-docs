@@ -12706,4 +12706,15 @@
   <data name="WH.LocMap.LineArea" xml:space="preserve">
     <value>라인 구역</value>
   </data>
+  <data name="FG.DueRisk.Title" xml:space="preserve"><value>납기 위험</value></data>
+  <data name="FG.DueRisk.None" xml:space="preserve"><value>—</value></data>
+  <data name="FG.DueRisk.Normal" xml:space="preserve"><value>정상</value></data>
+  <data name="FG.DueRisk.DueSoon" xml:space="preserve"><value>출하 임박</value></data>
+  <data name="FG.DueRisk.Overdue" xml:space="preserve"><value>납기 초과</value></data>
+  <data name="FG.DueRisk.Unknown" xml:space="preserve"><value>판정 불가</value></data>
+  <data name="FG.DueRisk.Ordered" xml:space="preserve"><value>주문 수량</value></data>
+  <data name="FG.DueRisk.Shipped" xml:space="preserve"><value>출하 수량</value></data>
+  <data name="FG.DueRisk.Remaining" xml:space="preserve"><value>미출하 잔량</value></data>
+  <data name="FG.DueRisk.Basis" xml:space="preserve"><value>출하 오더 미생성 수주를 포함한 전체 미출하 수주입니다. 기준일 {0}, 출하 임박: 오늘~{1}(다음 공장 근무일). 출하 확정 수량만 잔량에서 차감합니다.</value></data>
+  <data name="FG.DueRisk.LoadFailed" xml:space="preserve"><value>납기 위험을 불러오지 못했습니다. 새로고침해 주세요.</value></data>
 </root>

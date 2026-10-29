@@ -39,6 +39,7 @@
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="CustomerId" Title="@L["Col.Customer"]" Width="110px" MinWidth="110px" />
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.ItemNo"]"><Template Context="r">@r.ItemNo <span class="dim">@r.ItemName</span></Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" Width="120px" MinWidth="120px" />
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.DueRisk.Title"]" Width="140px" MinWidth="140px" Sortable="false"><Template Context="r"><ShippingDueRiskBadge Risk="@(DueRisks?.Rows.FirstOrDefault(x=>x.SoId==r.SoId)?.Risk??ShippingDueRiskLevel.Unknown)" /></Template></RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="ames-modal-footer">
@@ -52,6 +53,7 @@
     [Parameter]public EventCallback<CreatedOrders> Saved{get;set;}
     [Parameter]public EventCallback Closed{get;set;}
     [Parameter]public EventCallback<bool> BusyChanged{get;set;}
+    [Parameter]public ShippingDueRiskSnapshot? DueRisks{get;set;}
     List<PpRepository.SoRow> _rows=[];Dictionary<int,decimal> _quantities=[],_reserved=[];
     Dictionary<string,MasterDataRepository.ItemRow> _packing=[];
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;

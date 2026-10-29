@@ -15,6 +15,8 @@
     <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Orders"]</div><div class="ames-kpi-v">@VisibleOrders.Count()</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Open"]</div><div class="ames-kpi-v">@VisibleOrders.Count(ShipmentPlanRows.IsUnshipped)</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.DcrAssigned"]</div><div class="ames-kpi-v">@VisibleOrders.Count(x=>x.DeliveryId is not null)</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["FG.DueRisk.Overdue"]</div><div class="ames-kpi-v">@RiskCount(ShippingDueRiskLevel.Overdue)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["FG.DueRisk.DueSoon"]</div><div class="ames-kpi-v">@RiskCount(ShippingDueRiskLevel.DueSoon)</div></div>
 </div>
 <section class="ames-card shipping-orders-page">
     <div class="ames-card-h master-list-toolbar">
@@ -27,6 +29,7 @@
                 <RadzenLabel Component="includeShipped" Text="@L["FG.ShipOrders.IncludeShipped"]" />
             </RadzenStack>
             <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Reload" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["FG.DueRisk.Title"]" Icon="schedule" Click="OpenRisks" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             @if(_canEdit)
             {
                 <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -60,7 +63,7 @@
 {
     <div class="ames-modal-bg" data-no-busy @onclick="CloseCreate"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="@L["FG.ShipOrders.Title.Create"]" @onclick:stopPropagation>
         <div class="ames-modal-h">@L["FG.ShipOrders.Title.Create"]</div>
-        <ShipmentOrderCreate Saved="Created" Closed="CloseCreate" BusyChanged="@(busy=>_createBusy=busy)" />
+        <ShipmentOrderCreate Saved="Created" Closed="CloseCreate" BusyChanged="@(busy=>_createBusy=busy)" DueRisks="_dueRisks" />
     </div></div>
 }
 @if(_createdNumbers.Count>0)
@@ -97,7 +100,31 @@
 {
     <ShippingOrderPrintPreview Orders="_printOrders" Delivery="_printDelivery" Closed="ClosePrint" />
 }
+@if(_riskModal)
+{
+    <div class="ames-modal-bg" data-no-busy @onclick="@(()=>_riskModal=false)"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="@L["FG.DueRisk.Title"]" @onclick:stopPropagation>
+        <div class="ames-modal-h">@L["FG.DueRisk.Title"]</div>
+        @if(_riskError.Length>0){<RadzenAlert AlertStyle="AlertStyle.Danger">@_riskError</RadzenAlert>}
+        @if(_dueRisks is not null){<ShippingDueRiskList Snapshot="_dueRisks" />}
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="LoadRisks" Disabled="_riskBusy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(()=>_riskModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
+    </div></div>
+}
 @code {
+    ShippingDueRiskSnapshot? _dueRisks;
+    bool _riskModal,_riskBusy;
+    string _riskError="";
+    string RiskCount(ShippingDueRiskLevel risk)=>_dueRisks is null?"—":_dueRisks.Rows.Count(x=>x.Risk==risk).ToString("N0");
+    async Task OpenRisks(){if(!_allowed)return;_riskModal=true;await LoadRisks();}
+    async Task LoadRisks()
+    {
+        if(!_allowed||_riskBusy)return;_riskBusy=true;
+        try{_dueRisks=await Task.Run(Fg.ListShippingDueRisks);_riskError="";}
+        catch{_dueRisks=null;_riskError=L["FG.DueRisk.LoadFailed"].Value;}
+        finally{_riskBusy=false;}
+    }
     bool _includeShipped=true;
     RadzenDataGrid<ShippingOrderDto>? _grid;
     IEnumerable<ShippingOrderDto> VisibleOrders => _orders.Where(order=>_includeShipped || !string.Equals(order.Status,"Shipped",StringComparison.OrdinalIgnoreCase));
@@ -120,7 +147,7 @@
     }
     void OpenCreate(){if(_canEdit)_creating=true;}
     void CloseCreate(){if(!_createBusy)_creating=false;}
-    async Task Reload(){if(!_allowed)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();}catch(Exception ex){_message=ex.Message;}}
+    async Task Reload(){if(!_allowed)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();await LoadRisks();}catch(Exception ex){_message=ex.Message;}}
     void Select(int id,bool value){if(value)_selected.Add(id);else _selected.Remove(id);}
     async Task Created(ShipmentOrderCreate.CreatedOrders result)
     {
