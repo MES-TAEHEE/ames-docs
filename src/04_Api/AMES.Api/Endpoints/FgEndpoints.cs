@@ -422,8 +422,8 @@ public static partial class FgEndpoints
             try
             {
                 using var conn = factory.OpenConnection();
-                if (FindOutboundLocationError(conn, null, normalized) is { } locationError)
-                    return Results.BadRequest(new OutboundUnitResult(false, locationError, null));
+                if (FindOutboundStockError(conn, null, normalized) is { } stockError)
+                    return Results.BadRequest(new OutboundUnitResult(false, stockError, null));
                 using var cmd = new SqlCommand(PdaFinishedGoodsSql.OutboundScan, conn)
                 {
                     CommandType = CommandType.Text,
@@ -483,8 +483,8 @@ public static partial class FgEndpoints
             {
                 using var conn = factory.OpenConnection();
                 using var tx = conn.BeginTransaction();
-                if (FindOutboundLocationError(conn, tx, normalized) is { } locationError)
-                    return Results.BadRequest(new OutboundUnitResult(false, locationError, null));
+                if (FindOutboundStockError(conn, tx, normalized) is { } stockError)
+                    return Results.BadRequest(new OutboundUnitResult(false, stockError, null));
                 using var cmd = new SqlCommand(PdaFinishedGoodsSql.OutboundComplete, conn)
                 {
                     Transaction = tx,
@@ -645,28 +645,13 @@ public static partial class FgEndpoints
         GetString(rdr, "PartName"),
         GetDate(rdr, "ShippedAt") ?? DateTime.MinValue,
         GetDecimal(rdr, "Qty"));
-    private static string? FindOutboundLocationError(SqlConnection conn, SqlTransaction? tx, string barcode)
+    private static string? FindOutboundStockError(SqlConnection conn, SqlTransaction? tx, string barcode)
     {
-        using var cmd = new SqlCommand("""
-            ;WITH UnitTree AS
-            (
-                SELECT LotNo,ParentLotNo,UnitType,PartNo,LocationNo,Qty FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode
-                UNION ALL
-                SELECT C.LotNo,C.ParentLotNo,C.UnitType,C.PartNo,C.LocationNo,C.Qty
-                FROM dbo.WH_Inventory C WITH(UPDLOCK,HOLDLOCK) JOIN UnitTree P ON C.ParentLotNo=P.LotNo
-            )
-            SELECT TOP(1) T.LotNo,T.UnitType,T.PartNo,T.LocationNo,L.LocationID AS MasterLocation,L.LocationType
-            FROM UnitTree T LEFT JOIN dbo.MD_Location L WITH(HOLDLOCK) ON L.LocationID=T.LocationNo
-            WHERE T.Qty>0 AND (T.PartNo IS NOT NULL OR UPPER(ISNULL(T.UnitType,'')) NOT IN('PALLET','CASE'))
-              AND NOT EXISTS(SELECT 1 FROM UnitTree C WHERE C.ParentLotNo=T.LotNo AND C.Qty>0)
-              AND (NULLIF(LTRIM(RTRIM(T.PartNo)),'') IS NULL OR NULLIF(LTRIM(RTRIM(T.UnitType)),'') IS NULL
-                   OR NULLIF(LTRIM(RTRIM(T.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR UPPER(ISNULL(L.LocationType,''))<>'FG')
-            ORDER BY T.LotNo
-            OPTION(MAXRECURSION 100);
-            """, conn, tx) { CommandTimeout = 15 };
+        using var cmd = new SqlCommand(PdaFinishedGoodsSql.OutboundPrecheck, conn, tx) { CommandTimeout = 15 };
         cmd.Parameters.Add("@Barcode", SqlDbType.NVarChar, 50).Value = barcode;
         using var reader = cmd.ExecuteReader();
         if (!reader.Read()) return null;
+        if (GetBool(reader, "InspectionPending")) return FgOutboundBarcode.InspectionPendingMessage;
         var lot = GetString(reader, "LotNo") ?? barcode;
         var unit = GetString(reader, "UnitType");
         var missingPart = string.IsNullOrWhiteSpace(GetString(reader, "PartNo"));
@@ -783,6 +768,10 @@ public static partial class FgEndpoints
                 S.Status AS ExistingStatus,
                 CASE WHEN EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn R WHERE R.LotNo=L.LotCode COLLATE DATABASE_DEFAULT
                     AND R.Status IN('Open','Inspecting')) THEN 1 ELSE 0 END AS InspectionPending,
+                CASE WHEN EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction T
+                    WHERE T.LotNo COLLATE DATABASE_DEFAULT=L.LotCode COLLATE DATABASE_DEFAULT
+                      AND T.SourceType IN('FG_DEFECT','INV_DEFECT') AND T.QtyAfter=0)
+                    THEN 1 ELSE 0 END AS RejectedAsDefective,
                 CASE WHEN (SELECT TOP(1) T.SourceType FROM dbo.WH_InventoryTransaction T
                     WHERE T.LotNo COLLATE DATABASE_DEFAULT=L.LotCode COLLATE DATABASE_DEFAULT AND T.QtyChange<>0
                     ORDER BY T.TransactionTime DESC,T.TransactionID DESC)='FG_OUTBOUND'
@@ -824,23 +813,15 @@ public static partial class FgEndpoints
         var existingLotNo = GetString(rdr, "ExistingLotNo");
         var existingLocation = GetString(rdr, "ExistingLocation");
         var inspectionPending = GetBool(rdr, "InspectionPending");
-        var isProductionCompleted = GetBool(rdr, "IsProductionCompleted") && !inspectionPending;
+        var rejectedAsDefective = GetBool(rdr, "RejectedAsDefective");
+        var isProductionCompleted = GetBool(rdr, "IsProductionCompleted") && !inspectionPending && !rejectedAsDefective;
         var lotNo = GetString(rdr, "LotCode") ?? barcode;
         const string barcodeType = BarcodeLot;
         const string storageMethod = BarcodeLocation;
         var nextScanType = NextScanTypeForStorage(storageMethod);
         var nextScanLabel = NextScanLabel(nextScanType);
-        var message = inspectionPending
-            ? "This customer return is awaiting inspection. Approve it in Customer Returns before setting a location."
-            : !isProductionCompleted
-            ? "POP production completion is required before FG Put-Away."
-            : GetDecimal(rdr, "Qty") <= 0
-                ? GetBool(rdr, "AlreadyShipped")
-                    ? "This product has already been shipped. Put-away is not allowed."
-                    : "This LOT has no available quantity for put-away."
-                : !string.IsNullOrWhiteSpace(existingLocation)
-                    ? $"This FG LOT is already stocked at {existingLocation}."
-                    : $"FG LOT matched. Scan {BarcodeKindLabel(nextScanType)}.";
+        var message = PutAwayScanMessage(inspectionPending, rejectedAsDefective, isProductionCompleted,
+            GetDecimal(rdr, "Qty"), GetBool(rdr, "AlreadyShipped"), existingLocation, BarcodeKindLabel(nextScanType));
 
         return new PutAwayScanRow(
             GetInt(rdr, "LotID"),
@@ -866,6 +847,22 @@ public static partial class FgEndpoints
             null,
             message);
     }
+
+    internal static string PutAwayScanMessage(bool inspectionPending, bool rejectedAsDefective,
+        bool isProductionCompleted, decimal qty, bool alreadyShipped, string? existingLocation, string nextScanLabel) =>
+        inspectionPending
+            ? "This customer return is awaiting inspection. Approve it in Customer Returns before setting a location."
+            : rejectedAsDefective
+                ? "This LOT was rejected as defective. Put-away is not allowed."
+                : !isProductionCompleted
+                    ? "POP production completion is required before FG Put-Away."
+                    : qty <= 0
+                        ? alreadyShipped
+                            ? "This product has already been shipped. Put-away is not allowed."
+                            : "This LOT has no available quantity for put-away."
+                        : !string.IsNullOrWhiteSpace(existingLocation)
+                            ? $"This FG LOT is already stocked at {existingLocation}."
+                            : $"FG LOT matched. Scan {nextScanLabel}.";
 
     private static PutAwayLocationRow? ValidatePutAwayLocation(SqlConnection conn, SqlTransaction? tx, string locationId, string itemNo, string? customerCode, decimal qty, string? expectedScanType)
     {
