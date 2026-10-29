@@ -13,7 +13,7 @@
 <AmesPageHeader Code="FG-02" TitleKey="FG.ShipOrders.Title" />
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Orders"]</div><div class="ames-kpi-v">@VisibleOrders.Count()</div></div>
-    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Open"]</div><div class="ames-kpi-v">@VisibleOrders.Count(x=>x.Status=="Open")</div></div>
+    <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Open"]</div><div class="ames-kpi-v">@VisibleOrders.Count(ShipmentPlanRows.IsUnshipped)</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.DcrAssigned"]</div><div class="ames-kpi-v">@VisibleOrders.Count(x=>x.DeliveryId is not null)</div></div>
 </div>
 <section class="ames-card shipping-orders-page">

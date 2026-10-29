@@ -33,5 +33,6 @@
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\MaintenanceApi.cs" Link="Pda\MaintenanceApi.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\MaintenanceChecks.cs" Link="Pda\MaintenanceChecks.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\FgTransactionDisplay.cs" Link="Pda\FgTransactionDisplay.cs" />
+    <Compile Include="..\..\06_Web\AMES.Web\Services\ShipmentPlanRows.cs" Link="Web\ShipmentPlanRows.cs" />
   </ItemGroup>
 </Project>
