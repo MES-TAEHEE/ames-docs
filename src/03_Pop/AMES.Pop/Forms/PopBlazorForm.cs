@@ -157,6 +157,8 @@ public class PopBlazorForm : PopForm
     // 첫 틱을 바로 돌려, 처음 켠 터미널이 사본을 곧바로 받는다.
     private void WireOfflineSync(IServiceProvider provider)
     {
+        // 연결 상태 검사 — 지난번 끊김이면 바로 오프라인으로 시작하고, 화면과 무관하게 검사 주기마다 확인한다
+        PopDb.Start();
         var state  = provider.GetRequiredService<AppState>();
         var toasts = provider.GetRequiredService<ToastService>();
         OfflineWork.Notice += (text, isError) => { if (isError) toasts.Warn(text); else toasts.Ok(text); };

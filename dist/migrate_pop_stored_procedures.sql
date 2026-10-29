@@ -438,6 +438,28 @@ BEGIN
 END;
 GO
 
+-- ===== Mold.GetLineMoldId (MOLD) =====
+-- 라인 사출기에 걸린 금형 — 사출 샷 현황판(Web Display/InjShotQuery)과 같은 규칙: 설비 최신 상태의 장착 금형 → 없으면 최근 사출 LOT 금형.
+-- 라인에 사출기가 여럿이면 현황판 첫 타일과 같은 EquipID 순 첫 설비(10-29 E2E-TC-013).
+CREATE OR ALTER PROCEDURE dbo.SP_POP_MOLD_GetLineMoldId
+    @L VARCHAR(20)
+AS
+BEGIN
+    SELECT TOP 1 COALESCE(st.MountedMoldID, lastLot.MoldID) AS MoldID
+    FROM   dbo.MD_Equipment e
+    OUTER APPLY (SELECT TOP 1 s.MountedMoldID
+                 FROM   dbo.MNT_EquipmentStatus s
+                 WHERE  s.EquipID = e.EquipID
+                 ORDER  BY s.ModifiedTS DESC, s.EquipStatusID DESC) st
+    OUTER APPLY (SELECT TOP 1 p.MoldID
+                 FROM   dbo.PR_InjLot p
+                 WHERE  p.EquipID = e.EquipID AND p.MoldID IS NOT NULL
+                 ORDER  BY p.LotID DESC) lastLot
+    WHERE  e.LineID = @L AND ISNULL(e.ActiveFlag, 1) = 1 AND e.EquipType LIKE 'INJ%'
+    ORDER  BY e.EquipID;
+END;
+GO
+
 -- ===== Equipment.GetPrimaryForLine (EQUIP) =====
 CREATE OR ALTER PROCEDURE dbo.SP_POP_EQUIP_GetPrimaryForLine
     @L VARCHAR(20)

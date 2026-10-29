@@ -129,6 +129,8 @@ internal sealed class OfflineWorkState
     public Dictionary<string, List<InjItemDailyDto>> Summaries { get; set; } = new();
     public List<WorkOrderDto> OpenWos { get; set; } = new();
     public Dictionary<string, MoldDto> Molds { get; set; } = new();
+    /// <summary>라인 사출기에 걸린 금형(장착 → 최근 사출 LOT) — 금형 칩이 작업지시 금형보다 먼저 쓴다(샷 현황판과 같은 규칙).</summary>
+    public string? LineMoldId { get; set; }
     public List<DefectCodeDto> DefectCodes { get; set; } = new();
     public List<PalletStockRepository.OfflinePalletRow> Pallets { get; set; } = new();
     public Dictionary<string, PalletStockRepository.OfflineItemRule> ItemRules { get; set; } = new();
@@ -246,7 +248,7 @@ internal static class OfflineWork
     }
     private static int PastDays        => Setting(c => c.OfflinePastDays, 7);
     private static int FutureDays      => Setting(c => c.OfflineFutureDays, 7);
-    private static int RefreshMinutes  => Setting(c => c.OfflineRefreshMinutes, 10);
+    private static int RefreshMinutes  => Setting(c => c.OfflineRefreshMinutes, 30);
     private static int NotFoundRetryMinutes => Setting(c => c.OfflineNotFoundRetryMinutes, 30);
 
     // ── 저장소 ──────────────────────────────────────────────────────────
@@ -414,7 +416,9 @@ internal static class OfflineWork
 
     private static void PrefetchInj(OfflineWorkState next, string lineId, List<string> items)
     {
-        foreach (var moldId in next.OpenWos.Select(w => w.MoldId).Where(m => !string.IsNullOrEmpty(m)).Distinct(StringComparer.OrdinalIgnoreCase))
+        next.LineMoldId = PopServices.Molds.GetLineMoldId(lineId);
+        foreach (var moldId in next.OpenWos.Select(w => w.MoldId).Append(next.LineMoldId)
+                     .Where(m => !string.IsNullOrEmpty(m)).Distinct(StringComparer.OrdinalIgnoreCase))
             if (PopServices.Molds.GetById(moldId!) is { } m) next.Molds[moldId!] = m;
 
         // 수동 라벨용 품번·금형·설비 정보 — 열린 WO 가 있으면 그 금형, 없으면 금형 없이(NULL)
@@ -650,7 +654,7 @@ internal static class OfflineWork
 
         var wo = FindOpenWo(s, selItemNo);
         MoldDto? mold = null;
-        if (wo?.MoldId is { Length: > 0 } mid) s.Molds.TryGetValue(mid, out mold);
+        if ((s.LineMoldId ?? wo?.MoldId) is { Length: > 0 } mid) s.Molds.TryGetValue(mid, out mold);
 
         var todayRow = today.FirstOrDefault(x => string.Equals(x.ItemNo, selItemNo, StringComparison.OrdinalIgnoreCase));
         List<OfflineLot> raw, todayLots; int rawCount, ngCount;

@@ -218,6 +218,7 @@
   <data name="SelectStation" xml:space="preserve"><value>SELECT STATION</value></data>
   <data name="SelectEmployeeFirst" xml:space="preserve"><value>Scan your badge QR or select an employee</value></data>
   <data name="SelectLineAndStationFirst" xml:space="preserve"><value>Select a line and station first</value></data>
+  <data name="StationNotActive" xml:space="preserve"><value>Station {0} is no longer active — select a station again</value></data>
   <data name="NoStationsRegistered" xml:space="preserve"><value>No stations registered for this line — contact an administrator</value></data>
   <data name="MasterLoadFailed" xml:space="preserve"><value>Master data load failed: {0}</value></data>
   <data name="Retry" xml:space="preserve"><value>RETRY</value></data>

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
 
 namespace AMES.Pop.Common;
 
@@ -51,6 +52,12 @@ public sealed class AppConfig
     /// </summary>
     public int DbConnectTimeoutSeconds { get; }
 
+    /// <summary>연결 상태 검사 주기(초) — 화면과 무관하게 이 주기로 DB 에 짧게 붙어 보고 정상·비정상을 기록한다(10-29).</summary>
+    public int DbProbeIntervalSeconds => PositiveInt("PopTerminal:Db:ProbeIntervalSeconds", 3);
+
+    /// <summary>연결 상태 검사 한 번의 대기(초) — 이 안에 응답이 없으면 끊긴 것으로 보고 저장된 정보를 쓴다. 너무 낮추면 원격 DB 의 첫 연결(약 0.3초)도 끊김으로 볼 수 있다.</summary>
+    public int DbProbeTimeoutSeconds => PositiveInt("PopTerminal:Db:ProbeTimeoutSeconds", 3);
+
     /// <summary>오프라인 대비 데이터 보관 범위 — 로그아웃 시점 기준 과거 N일.</summary>
     public int OfflinePastDays { get; }
 
@@ -62,8 +69,8 @@ public sealed class AppConfig
     /// <summary>오프라인 사본·큐 파일 폴더. 비어 있으면 %LocalAppData%\AMES\Pop.</summary>
     public string OfflineDir { get; }
 
-    /// <summary>로그인해 있는 동안 작업 사본을 새로 받는 주기(분). 로그아웃 때는 이 주기와 무관하게 받는다.</summary>
-    public int OfflineRefreshMinutes { get; }
+    /// <summary>저장 정보 동기화 주기(분, 기본 30) — 직원·라인·스테이션 사본은 항상, 작업 사본은 로그인해 있는 동안 이 주기로 새로 받는다. 로그아웃 때는 주기와 무관하게 받는다.</summary>
+    public int OfflineRefreshMinutes => PositiveInt("PopTerminal:Offline:RefreshMinutes", 30);
 
     /// <summary>오프라인에서 새 LOT 번호로 쓰려고 라인·날짜마다 미리 확보해 두는 순번 수. 안 쓴 번호는 결번이 된다.</summary>
     public int OfflineLotBlockSize { get; }
@@ -88,8 +95,16 @@ public sealed class AppConfig
     private static readonly Lazy<AppConfig> _instance = new(Load);
     public static AppConfig Current => _instance.Value;
 
+    // 검사 주기·대기·동기화 주기는 POP 을 다시 켜지 않아도 바뀌게 매번 설정에서 읽는다(10-29) — 나머지 값은 시작 때 한 번.
+    private readonly IConfigurationRoot _root;
+    private int PositiveInt(string key, int fallback) => int.TryParse(_root[key], out var n) && n > 0 ? n : fallback;
+
+    /// <summary>설정 원본을 직접 주는 생성 — 설정 파일이 없는 테스트가 쓴다.</summary>
+    internal static AppConfig FromRoot(IConfigurationRoot root) => new(root);
+
     private AppConfig(IConfigurationRoot root)
     {
+        _root = root;
         ConnectionString = root.GetConnectionString("AMES")
             ?? throw new InvalidOperationException("ConnectionStrings:AMES is missing in appsettings.json");
         DefaultShift = root["PopTerminal:DefaultShift"] ?? "A";   // 공통코드 WORK_SHIFT 기준
@@ -101,7 +116,6 @@ public sealed class AppConfig
         OfflineFutureDays      = int.TryParse(root["PopTerminal:Offline:FutureDays"],      out var ofd) && ofd >= 0 ? ofd : 7;
         OfflineCacheMaxAgeDays = int.TryParse(root["PopTerminal:Offline:CacheMaxAgeDays"], out var oma) && oma > 0 ? oma : 7;
         OfflineDir             = root["PopTerminal:Offline:Dir"] ?? "";
-        OfflineRefreshMinutes  = int.TryParse(root["PopTerminal:Offline:RefreshMinutes"],  out var orm) && orm > 0 ? orm : 10;
         OfflineLotBlockSize    = int.TryParse(root["PopTerminal:Offline:LotBlockSize"],    out var olb) && olb > 0 ? olb : 20;
         OfflineTomorrowBlockFromHour = int.TryParse(root["PopTerminal:Offline:TomorrowBlockFromHour"], out var otb) && otb is >= 0 and <= 24 ? otb : 22;
         OfflineNotFoundRetryMinutes  = int.TryParse(root["PopTerminal:Offline:NotFoundRetryMinutes"],  out var onr) && onr >= 0 ? onr : 30;
@@ -124,6 +138,8 @@ public sealed class AppConfig
         IdleWarnSeconds   = int.TryParse(root["PopTerminal:IdleWarnSeconds"],   out var iws) ? iws : 60;
     }
 
+    private static volatile bool _initialLoadDone;
+
     private static AppConfig Load()
     {
         var basePath = Path.GetDirectoryName(AppContext.BaseDirectory)!;
@@ -136,11 +152,19 @@ public sealed class AppConfig
             ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
             ?? "Production";
 
+        // 파일이 바뀌면 다시 읽는다(실시간으로 읽는 값만 영향). 저장 도중·오타로 다시 읽기가 실패해도 POP 을 멈추지 않게 무시한다 —
+        // 그동안 실시간 값은 기본값으로 돌고, 파일을 고치면 다음 저장 때 다시 읽힌다. 시작 때 읽기 실패는 그대로 오류다.
+        static void Json(JsonConfigurationSource s, string path, bool optional)
+        {
+            s.Path = path; s.Optional = optional; s.ReloadOnChange = true;
+            s.OnLoadException = c => c.Ignore = _initialLoadDone;
+        }
         var root = new ConfigurationBuilder()
             .SetBasePath(basePath)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-            .AddJsonFile($"appsettings.{env}.json", optional: true, reloadOnChange: false)
+            .AddJsonFile(s => Json(s, "appsettings.json", optional: false))
+            .AddJsonFile(s => Json(s, $"appsettings.{env}.json", optional: true))
             .Build();
+        _initialLoadDone = true;
         return new AppConfig(root);
     }
 }

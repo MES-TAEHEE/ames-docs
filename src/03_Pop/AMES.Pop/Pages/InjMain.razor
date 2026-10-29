@@ -223,7 +223,6 @@
     private enum Popup { None, Defect, Andon, WoList }
     private Popup _popup = Popup.None;
 
-    private sealed record ScanRecord(string LotCode, DateTime At, bool Ok, string Message);
 
     private List<InjItemDailyDto> _items = new();
 
@@ -237,7 +236,25 @@
     private WorkOrderDto? _activeWo;
     private MoldDto?      _mold;
     private List<InjLotDto>       _rawLots = new();
-    private readonly List<ScanRecord> _scanHistory = new();
+    // 오늘 스캔 이력 — 터미널 파일(ScanHistoryStore)에 라인·전기일별로 남아 다시 열거나 다시 로그인해도 이어지고, 하루가 바뀌면 비워진다(10-29 INJ-MAIN-TC-019)
+    private List<AMES.Pop.Services.ScanHistoryEntry> _scanHistory = new();
+    private DateTime _historyDay;
+
+    private void AddHistory(string lotCode, bool ok, string message)
+    {
+        if (Session is null) return;
+        _historyDay  = PopDay.Today;
+        _scanHistory = AMES.Pop.Services.ScanHistoryStore.Add(Session.LineId,
+            new AMES.Pop.Services.ScanHistoryEntry { LotCode = lotCode, At = DbClock.Now, Ok = ok, Message = message });
+    }
+
+    // 전기일이 바뀌면(07시) 오늘 이력으로 다시 읽는다 — 전일 건이 남지 않게
+    private void FollowHistoryDay()
+    {
+        if (Session is null || _historyDay == PopDay.Today) return;
+        _historyDay  = PopDay.Today;
+        _scanHistory = AMES.Pop.Services.ScanHistoryStore.Load(Session.LineId);
+    }
 
     private int _todayGood, _todayDef, _rawCount, _ngCount;
     private string _defectPct = "0.0%", _defClass = "ok";
@@ -272,6 +289,7 @@
     protected override void OnInitialized()
     {
         if (Session is null) return;
+        FollowHistoryDay();
         Refresh();
         _scannerOn = Scanner.IsConnected;
         Scanner.OnScan            += OnSerialScan;
@@ -279,7 +297,7 @@
         _clockTimer   = new System.Threading.Timer(_ =>
                                                    {
                                                        PopDb.ProbeIfOffline();
-                                                       InvokeAsync(() => { _now = DbClock.Now; StateHasChanged(); });
+                                                       InvokeAsync(() => { _now = DbClock.Now; FollowHistoryDay(); StateHasChanged(); });
                                                    }, null, 1000, 1000);
         _refreshTimer = new System.Threading.Timer(_ => InvokeAsync(RefreshTickAsync),
                                                    null, 5000, 5000);
@@ -432,11 +450,14 @@
         int todayDef  = todayRow?.NgQty    ?? 0;
         var pct = (todayGood + todayDef) == 0 ? 0 : todayDef * 100.0 / (todayGood + todayDef);
 
+        // 금형 칩은 사출 샷 현황판과 같은 규칙 — 사출기 장착 금형 → 최근 사출 LOT 금형, 둘 다 없을 때만 작업지시 금형(10-29 E2E-TC-013).
+        // 전에는 작업지시 금형만 봐서 작업지시가 없거나 장착 금형과 다르면 두 화면이 어긋났다.
         string moldText = "—", moldClass = "ok";
         MoldDto? mold = null;
-        if (activeWo is not null && !string.IsNullOrEmpty(activeWo.MoldId))
+        var moldId = PopServices.Molds.GetLineMoldId(lineId) ?? activeWo?.MoldId;
+        if (!string.IsNullOrEmpty(moldId))
         {
-            mold = PopServices.Molds.GetById(activeWo.MoldId);
+            mold = PopServices.Molds.GetById(moldId);
             if (mold is not null)
             {
                 moldText  = $"{mold.CurrentShots:N0}/{mold.RatedShots:N0}";
@@ -593,7 +614,7 @@
         if (_pallet is null)
         {
             SetBanner(false, $"{T("PalletScanFirst")}: {lotCode}");
-            _scanHistory.Insert(0, new ScanRecord(lotCode, DbClock.Now, false, T("PalletScanFirst")));
+            AddHistory(lotCode, false, T("PalletScanFirst"));
             _focusScan = true;
             return;
         }
@@ -628,16 +649,14 @@
             // 이미 확정된 라벨을 또 찍은 것은 실적 사건이 아니다 — 이력에 NG 로 쌓이면
             // 실제 불량·차단과 섞여 보이므로 경고만 띄우고 이력에는 남기지 않는다.
             if (outcome == InjConfirmOutcome.AlreadyConfirmed) { Toasts.Warn(detail); return; }
-            _scanHistory.Insert(0, new ScanRecord(lotCode, DbClock.Now, ok, detail));
-            if (_scanHistory.Count > 50) _scanHistory.RemoveAt(_scanHistory.Count - 1);
+            AddHistory(lotCode, ok, detail);
         }
         catch (Exception ex)
         {
             // 작업자 화면에는 LOT 번호와 NG 만 — 예외 본문(SQL 오류 등)은 파일 로그로(10-21 사용자 요청)
             PopLog.Append("scan", "CONFIRM", $"{lotCode}: {ex}");
             SetBanner(false, $"{T("ConfirmFailed")}: {lotCode}");
-            _scanHistory.Insert(0, new ScanRecord(lotCode, DbClock.Now, false, ex.Message));
-            if (_scanHistory.Count > 50) _scanHistory.RemoveAt(_scanHistory.Count - 1);
+            AddHistory(lotCode, false, ex.Message);
         }
         finally { _focusScan = true; }
     }

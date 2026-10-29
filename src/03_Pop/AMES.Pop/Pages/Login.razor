@@ -253,6 +253,8 @@
     // 「다시 시도」 버튼(RetryLoad)에 맡긴다.
     async Task LoadMastersAsync()
     {
+        // 업무 연결로 바로 읽으면 DB 가 끊겼을 때 첫 연결 대기(수십 초)만큼 화면이 빈다 — 짧은 검사로 먼저 확인한다
+        if (!PopDb.IsOffline) await Task.Run(PopDb.Verify);
         if (!PopDb.IsOffline)
         {
             try
@@ -366,7 +368,7 @@
         return all;
     }
 
-    // 화면 스레드에서만 부른다 — 필드를 바꾼다. 직전 선택 프리필이 있으면 스테이션 조회(DB)를 한 번 한다.
+    // 화면 스레드에서만 부른다 — 필드를 바꾼다. 직전 선택 프리필이 있으면 그 라인의 스테이션을 읽어 확인한 뒤 채운다.
     void ApplyLines(List<MasterDataRepository.PopLineOptionRow> lines)
     {
         _loadErr = null;
@@ -375,44 +377,40 @@
             && _lines.FirstOrDefault(l => l.LineID == s_lastLineId) is { } prev)
         {
             _selLine = prev;
-            // 직전 선택 프리필은 사본으로만 — DB 조회는 하지 않는다(화면 스레드).
-            _stations = OfflineStations(prev.LineID);
-            if (_stations.Count == 0) _ = LoadStationsAsync();
-            _selStation = _stations.FirstOrDefault(s => s.StationCode == s_lastStationCode) ?? _selStation;
-            PrefetchSelection();
+            _ = LoadStationsAsync(prefill: s_lastStationCode);
         }
     }
 
-    // 라인·스테이션은 거의 안 바뀌므로 사본이 있으면 그걸 바로 쓰고, DB 는 백그라운드에서 읽어 사본만 갱신한다.
-    // 사본이 없을 때만 스레드 풀에서 읽는다 — 화면 스레드에서 DB 를 부르면 끊긴 DB 앞에서 접속 대기만큼 멈춘다.
-    async Task LoadStationsAsync()
+    // 스테이션도 직원·라인과 같은 원칙 — DB 가 정상이면 DB, 끊겼으면(이미 알려졌거나 이번 조회가 연결 오류) 저장된 사본(10-29 LOGIN-TC-029).
+    // 전에는 사본이 있으면 온라인에서도 사본을 써서 사용 중지한 스테이션이 프리필·선택 목록에 남았다.
+    // 짧은 대기 연결(PopDb.QuickMaster)로 읽으므로 DB 가 막 끊겼어도 몇 초 안에 사본으로 넘어간다.
+    static async Task<(List<MasterDataRepository.StationRow> List, string? Error)> ReadStationsAsync(string lineId)
     {
-        if (_selLine is null) { _stations = new(); return; }
-        var lineId = _selLine.LineID;
-        var cached = OfflineStations(lineId);
-        if (cached.Count > 0)
-        {
-            _stations = cached;
-            if (!PopDb.IsOffline)
-                _ = Task.Run(() =>
-                {
-                    try { OfflineAuth.StoreStations(lineId, PopServices.Master.ListActiveStations(lineId)); }
-                    catch { /* 다음 기회에 */ }
-                });
-        }
-        else if (PopDb.IsOffline) _stations = new();
-        else
+        if (!PopDb.IsOffline)
         {
             try
             {
-                _loadErr = null;
-                var list = await Task.Run(() => PopServices.Master.ListActiveStations(lineId));
-                if (_selLine?.LineID != lineId) return;
-                _stations = list;
+                var list = await Task.Run(() => PopDb.QuickMaster.ListActiveStations(lineId));
                 OfflineAuth.StoreStations(lineId, list);
+                return (list, null);
             }
-            catch (Exception ex) { _loadErr = ex.Message; _stations = new(); }
+            catch (Exception ex) when (AMES.Data.Connection.DbHealth.IsConnectionFailure(ex)) { /* 아래 사본으로 */ }
+            catch (Exception ex) { return (new(), ex.Message); }
         }
+        return (OfflineStations(lineId), null);
+    }
+
+    async Task LoadStationsAsync(string? prefill = null)
+    {
+        if (_selLine is null) { _stations = new(); return; }
+        var lineId = _selLine.LineID;
+        var (list, err) = await ReadStationsAsync(lineId);
+        if (_selLine?.LineID != lineId) return;
+        _stations = list;
+        _loadErr  = err;
+        // 고른 스테이션이 지금 목록에 없으면(사용 중지·삭제) 놓는다 — 그 값으로 로그인되지 않게
+        if (_selStation is not null) _selStation = _stations.FirstOrDefault(s => s.StationCode == _selStation.StationCode);
+        _selStation ??= prefill is null ? null : _stations.FirstOrDefault(s => s.StationCode == prefill);
         // 선택지가 하나뿐이면 굳이 고르게 하지 않는다.
         if (_selStation is null && _stations.Count == 1) _selStation = _stations[0];
         PrefetchSelection();
@@ -522,6 +520,20 @@
         {
             // 끊긴 DB 앞에서 교대 조회·인증이 각자 접속 대기를 하지 않게, 먼저 짧게 확인한다.
             if (!PopDb.IsOffline) await Task.Run(PopDb.Verify);
+
+            // 화면을 오래 열어 둔 사이 스테이션을 사용 중지했을 수 있다 — 온라인이면 들어가기 직전에 한 번 더 확인한다(몇 ms).
+            if (!PopDb.IsOffline)
+            {
+                var (fresh, err) = await ReadStationsAsync(line.LineID);
+                if (err is null && !PopDb.IsOffline && !fresh.Any(s => s.StationCode == station.StationCode))
+                {
+                    _stations   = fresh;
+                    _selStation = null;
+                    _loggingIn  = false;
+                    SetStatus(T("StationNotActive", station.StationCode), "fail");
+                    return;
+                }
+            }
 
             var req = new AMES.Contracts.Auth.LoginRequest
             {

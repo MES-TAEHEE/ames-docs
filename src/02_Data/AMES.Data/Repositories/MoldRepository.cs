@@ -22,6 +22,18 @@ public sealed class MoldRepository
         return MapRow(rdr);
     }
 
+    /// <summary>
+    /// 라인 사출기에 걸린 금형 ID — 사출 샷 현황판과 같은 규칙(장착 금형 → 최근 사출 LOT 금형). 둘 다 없거나 사출기가 없으면 null.
+    /// INJ-MAIN 금형 칩이 현황판과 같은 금형을 보이게 쓴다(10-29 E2E-TC-013).
+    /// </summary>
+    public string? GetLineMoldId(string lineId)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("dbo.SP_POP_MOLD_GetLineMoldId", conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        cmd.Parameters.Add("@L", SqlDbType.VarChar, 20).Value = lineId;
+        return cmd.ExecuteScalar() as string;
+    }
+
     /// <summary>Picker list for INJ-06 replacement mold (Available + not Retired).</summary>
     public List<MoldDto> ListAvailable()
     {

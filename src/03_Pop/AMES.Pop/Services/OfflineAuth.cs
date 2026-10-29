@@ -72,7 +72,15 @@ internal static class OfflineAuth
         try { return TimeSpan.FromDays(AppConfig.Current.OfflineCacheMaxAgeDays); }
         catch { return TimeSpan.FromDays(7); }
     }
-    private static readonly TimeSpan RefreshAfter = TimeSpan.FromHours(12);
+    // 동기화 주기 — 설정 PopTerminal:Offline:RefreshMinutes(작업 사본과 같은 값, 기본 30분). 설정을 못 읽는 환경(테스트)은 30분.
+    private static TimeSpan RefreshAfter
+    {
+        get
+        {
+            try { return TimeSpan.FromMinutes(AppConfig.Current.OfflineRefreshMinutes); }
+            catch { return TimeSpan.FromMinutes(30); }
+        }
+    }
     private static readonly TimeSpan RefreshRetry = TimeSpan.FromMinutes(1);
     private const int MaxFails = 5;   // AuthRepository.IncrementFailedCount 의 잠금 기준과 같다
 
