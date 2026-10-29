@@ -919,12 +919,6 @@ public static partial class FgEndpoints
             return row with { IsValid = false, Message = "Primary locations cannot hold stock. Scan a detail location.", ScanType = expected, ScannedBarcode = parsed.Raw };
         if (!GetBool(rdr, "IsFgLocation"))
             return row with { IsValid = false, Message = "Scan an FG warehouse location.", ScanType = expected, ScannedBarcode = parsed.Raw };
-        if (string.Equals(row.CurrentCustomerCode, "MIXED", StringComparison.OrdinalIgnoreCase))
-            return row with { IsValid = false, Message = "Location already contains mixed customer stock.", ScanType = expected, ScannedBarcode = parsed.Raw };
-        if (!string.IsNullOrWhiteSpace(row.CurrentCustomerCode) &&
-            !string.IsNullOrWhiteSpace(customerCode) &&
-            !string.Equals(row.CurrentCustomerCode, customerCode, StringComparison.OrdinalIgnoreCase))
-            return row with { IsValid = false, Message = $"Customer mix is blocked. Current customer is {row.CurrentCustomerCode}.", ScanType = expected, ScannedBarcode = parsed.Raw };
         if (row.Capacity > 0 && row.AvailableQty < qty)
             return row with { IsValid = false, Message = $"Location capacity is short by {qty - row.AvailableQty:0.###}.", ScanType = expected, ScannedBarcode = parsed.Raw };
 
