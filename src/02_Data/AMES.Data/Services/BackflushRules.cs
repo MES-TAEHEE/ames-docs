@@ -8,6 +8,10 @@ public sealed record BackflushLot(string LotNo, decimal Qty, string? LocationNo 
 public sealed record BackflushNet(string LotNo, decimal Qty);
 /// <summary>양수 LOT 에서 빼는 양.</summary>
 public sealed record BackflushTake(string LotNo, decimal Qty);
+/// <summary>자리표시에서 빼고 아직 덜 메워진 LOT — Owed = 자리표시 차감 − 이미 메워진 양.</summary>
+public sealed record BackflushOwner(int LotId, string LotCode, decimal Owed);
+/// <summary>메우기 한 조각과 그 조각의 주인 LOT.</summary>
+public sealed record BackflushNetOwned(string LotNo, decimal Qty, BackflushOwner Owner);
 public sealed record BackflushAllocation(IReadOnlyList<BackflushNet> Nets, IReadOnlyList<BackflushTake> Takes,
                                          decimal PlaceholderTake, decimal Shortage);
 
@@ -83,6 +87,43 @@ public static class BackflushRules
         // 양수 자리표시(누군가 조정한 값)는 마지막 원천으로 쓰고, 그 뒤 남는 양만 부족이다
         var shortage = Math.Max(0m, need - Math.Max(0m, placeholder));
         return new(nets, takes, need, shortage);
+    }
+
+    /// <summary>
+    /// 자리표시 메우기를 원래 부족을 만든 완제품 LOT 에 돌린다(10-28 사용자 결정 — 메운 실물 LOT 이 그 완제품의 자재 LOT 으로 남게).
+    /// owners = 자리표시에서 빼고 아직 덜 메워진 LOT(오래된 순). 합이 지금 자리표시 음수보다 크면(이 규칙 전에 메운 몫이
+    /// 메운 LOT 쪽에 기록된 옛 데이터) 그 차이를 FIFO 대로 오래된 LOT 부터 지운다. 주인을 못 찾은 나머지는 fallback(지금 확정 LOT).
+    /// </summary>
+    public static IReadOnlyList<BackflushNetOwned> AssignNetOwners(IReadOnlyList<BackflushNet> nets, IReadOnlyList<BackflushOwner> owners,
+                                                                   decimal placeholderQty, BackflushOwner fallback)
+    {
+        var deficit = Math.Max(0m, -placeholderQty);
+        var excess  = Math.Max(0m, owners.Sum(o => Math.Max(0m, o.Owed)) - deficit);
+        var queue   = new List<(BackflushOwner Owner, decimal Owed)>();
+        foreach (var o in owners)
+        {
+            var owed = Math.Max(0m, o.Owed);
+            var cut  = Math.Min(owed, excess);
+            excess -= cut;
+            if (owed - cut > 0m) queue.Add((o, owed - cut));
+        }
+
+        var result = new List<BackflushNetOwned>();
+        var qi = 0;
+        foreach (var n in nets)
+        {
+            var left = n.Qty;
+            while (left > 0m && qi < queue.Count)
+            {
+                var (owner, owed) = queue[qi];
+                var piece = Math.Min(left, owed);
+                result.Add(new(n.LotNo, piece, owner));
+                left -= piece;
+                if (owed - piece <= 0m) qi++; else queue[qi] = (owner, owed - piece);
+            }
+            if (left > 0m) result.Add(new(n.LotNo, left, fallback));
+        }
+        return result;
     }
 
     static decimal Round3(decimal v) => Math.Round(v, 3, MidpointRounding.AwayFromZero);

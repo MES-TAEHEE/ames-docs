@@ -67,6 +67,31 @@ public class BackflushRulesTests
         Assert.Equal(0m, a.Shortage);
     }
 
+    static readonly BackflushOwner Now = new(99, "NOW", 0m);
+
+    [Fact]
+    public void Netting_goes_to_the_oldest_shortage_owners_first_and_splits_across_them()
+    {
+        var nets   = new[] { new BackflushNet("L1", 4m), new BackflushNet("L2", 2m) };
+        var owners = new[] { new BackflushOwner(1, "A", 3m), new BackflushOwner(2, "B", 3m) };
+        var r = BackflushRules.AssignNetOwners(nets, owners, placeholderQty: -6m, Now);
+        Assert.Equal(new[] { ("L1", 3m, "A"), ("L1", 1m, "B"), ("L2", 2m, "B") },
+                     r.Select(x => (x.LotNo, x.Qty, x.Owner.LotCode)));
+    }
+
+    [Fact]
+    public void Netting_skips_owers_already_covered_by_old_style_nets_and_falls_back_to_the_current_lot()
+    {
+        // 옛 데이터: A·B 가 5씩 뺐는데 그 전 메우기(메운 LOT 쪽 기록)로 자리표시가 −4 만 남았다 → FIFO 상 A 는 다 메워졌고 B 가 4 남음
+        var owners = new[] { new BackflushOwner(1, "A", 5m), new BackflushOwner(2, "B", 5m) };
+        var r = BackflushRules.AssignNetOwners(new[] { new BackflushNet("L1", 4m) }, owners, placeholderQty: -4m, Now);
+        Assert.Equal(("L1", 4m, "B"), (r.Single().LotNo, r.Single().Qty, r.Single().Owner.LotCode));
+
+        // 주인을 모르는 음수(직접 조정 등)는 지금 확정 LOT 으로
+        var orphan = BackflushRules.AssignNetOwners(new[] { new BackflushNet("L1", 2m) }, Array.Empty<BackflushOwner>(), -2m, Now);
+        Assert.Equal("NOW", orphan.Single().Owner.LotCode);
+    }
+
     [Fact]
     public void Allocate_with_no_lots_goes_entirely_to_placeholder()
     {

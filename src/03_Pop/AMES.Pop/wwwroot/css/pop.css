@@ -990,6 +990,9 @@ body {
 .qc-tnode.item      { border-left-color: #a78bfa; }
 .qc-tnode.ncr       { border-left-color: #dc2626; }
 .qc-tnode.hold      { border-left-color: #f97316; }
+.qc-tnode.core, .qc-tnode.used-in { border-left-color: #22d3ee; }
+.qc-tnode.material, .qc-tnode.matlot { border-left-color: #34d399; }
+.qc-tnode.mat-short { border-left-color: #facc15; border-left-style: dashed; }
 .qc-tnode .kind { font-family: 'JetBrains Mono', monospace; color: #fca5a5; font-weight: 800;
                   text-transform: uppercase; letter-spacing: 1.5px; }
 .qc-tnode .ref  { font-family: 'JetBrains Mono', monospace; color: #fff; font-weight: 700; }
