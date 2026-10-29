@@ -214,6 +214,8 @@ API 서버(`AMES.Api`)와 HTTP 통신. Bearer Token 인증.
 `Wh01InboundSchedule` / `Wh02PdaInbound` / `Wh03InventoryStatus` / `Wh04LocationMap`
 `Wh05InventoryAdjust` / `Wh06ReleaseSchedule` / `Wh07PdaRelease` / `Wh08TransactionHistory`
 
+**WH007-TC-012 대표 Location 차단 기준**: `LocationLevel=1`은 Location 스캔 즉시 HTTP 400·「Location Scan Failed」와 `Primary locations cannot hold stock. Scan a detail location.`으로 거부한다. CONFIRM은 불가하고 Box는 미적재 상태를 유지한다. 저장 경로에서도 같은 제한을 다시 검증한다.
+
 #### FG (완성품 출하) — 10화면
 `Fg01Stocking` / `Fg02Inventory` / `Fg03ShipmentOrder` / `Fg04FifoPicking` / `Fg05Loading`
 `Fg06DeliveryNote` / `Fg07DayEndClose` / `Fg08ShipmentHistory` / `Fg09Dashboard` / `FgRtnReturn`

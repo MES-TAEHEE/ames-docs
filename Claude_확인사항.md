@@ -29,7 +29,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 김현진 | 0                   | 12  | 7묶음 | 7   | PP 결과서 FAIL 3묶음(1-5) · [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 28) · 팔레트 닫힘(문제점 38) · 생산/PLC/생산 요약 알림 기준(1-2) |
-| 안영훈 | 1(검증) | 4정책/환경 | 5묶음 | 35  | 결과서 FAIL — WH 3건(2-4)·FG 32건(2-5) 시나리오 보정/소스 수정 결정 · 재구축은 별도 승인 대기 |
+| 안영훈 | 1(검증) | 4정책/환경 | 5묶음 | 32  | FG 결과서 32건(2-5) 시나리오 보정/소스 수정 결정 · 재구축은 별도 승인 대기 |
 | 이승욱 | 0                    | 5   | 1   | 0   | 보류 — 사이클 PM 샷 기준 자동 발행·금형 정비 등록(B7)·개발 완료 시 정리·개발 DB 이름 `AMES` 전환 |
 | 오세영 | 3(앱 개발 참고)          | 1   | —   | —   | 알림 앱 개발 — 서버 발송기·앱 Api 준비됨(4-1 1 참고사항), Firebase 서비스 계정 키 전달                                                                                               |
 
@@ -149,26 +149,6 @@
 `TEST_SRM` 모의 API 보관 위치: `C:\Users\Young\Documents\AMES-Archives\TEST_SRM-20261028` (`RESTORE.md`, `test-api` 소스 15개, 원본과 SHA-256 일치 확인). 소스·샘플·테이블 생성 스크립트 보관본이며 실제 DB 데이터 백업은 아닙니다. 테이블 정리 대상은 기존 개발 DB `192.168.0.132/AMES_DEV`이고 이번에는 DB 삭제를 실행하지 않았습니다. AMES PO 수집 Worker와 연결 설정, 원격에서 실행 중일 수 있는 모의 서비스는 변경하지 않았습니다. 10-23 당시 `SW_POSYNC_URL/SEMS`가 모의 서버 `192.168.1.68:5220`을 가리켰으므로, 서비스·테이블을 종료/삭제하기 전에 현재 연결 설정과 실제 사용 여부를 확인해야 합니다.
 
 10-23 정리 실행 당시 개발 DB의 구형 PDA 업무 프로시저 삭제를 확인했습니다. 원본 복구 파일은 `publish/DB_Backup/PDA_BusinessProcedures_20261023_before_cleanup.sql`, 기본 조회용 정리 스크립트는 `dist/retire_pda_business_procedures.sql`입니다. 삭제 대상 27개가 0개 남았고, 재고·거래·출하·반품·팔렛 행 수는 전후 동일합니다. DB 모듈의 외부 참조는 없었으나 SQL Agent 작업은 조회 권한이 없어 확인하지 못했습니다. 로컬 복제 DB는 변경하지 않았습니다. `AMES_ERD_data.js`·`AMES_DB_Schema.html`은 통합 전 구 설계 문서로, 현재 테이블 판정 근거로 쓰지 않습니다.
-
-### 2-4. WH 단위테스트 결과서 — 수정 뒤에도 남은 FAIL (3)
-
-10-29 이승욱: 안영훈 수정(`cfb2d3d5` — 7afad943·5f467da1·0e6e958c·1a383133·f2ba5863·12b5dd43)으로 결과서 FAIL 17건을 다시 판정해 14건은 PASS, 아래 3건은 아직 기대 결과와 다릅니다(결과서 248건 중 PASS 245·FAIL 3, 결함 목록 「조치 미흡 — 재확인 필요」). 각 건은 시나리오 기대 결과를 지금 동작에 맞출지(TC 보정) 소스를 고칠지 정해야 합니다 — 결정은 사용자, 처리는 안영훈.
-
-1. **[중] WH007-TC-012 대표(Primary) Location 적재 차단 — 막는 단계·팝업 제목이 기대와 다름**(DEF-WH-024, 커밋 7afad943)
-   - 기대 결과: Box 스캔 → 대표 Location(`MD_Location.LocationLevel = 1`) 스캔 → CONFIRM 을 누르면 적재가 저장되지 않고 **「Set Location Failed」** 팝업에 `Primary locations cannot hold stock. Scan a detail location.` 이 보이며 Box 는 미적재로 남는다.
-   - 현재 동작: Location 을 스캔하는 순간 `/api/wh/location/scan` 이 51423 → HTTP 400 으로 막아 **「Location Scan Failed」** 팝업에 같은 문구가 보이고 CONFIRM 단계로 가지 않는다. 적재는 저장되지 않고 Box 는 미적재로 남는다(막는 동작과 문구는 맞음).
-   - 위치: `WhEndpoints.cs:2977-2979`(`QueryDboLocation` 의 `THROW 51423`)·`683-684`(51423 → 400), `WhPutAway.razor:486,508`(Location 스캔 → `ShowAlert("Location Scan Failed", …)`). 저장 단계의 51423 문구는 `PdaWarehouseSql.cs` 적재 프로시저에 그대로 남아 있지만 스캔에서 먼저 막혀 닿지 않는다.
-   - 선택지: (가) TC 보정 — 기대 결과를 「Location 스캔 단계에서 'Location Scan Failed' 팝업으로 막힌다」로 바꾼다(이승욱 추천 — 더 일찍 막는 쪽이 작업자에게 낫다). (나) 소스 — 스캔 단계는 통과시키고 CONFIRM 때 「Set Location Failed」 로 막는다.
-2. **[중] WH104-TC-002 Log History 입고 KPI 가 입고 취소를 센다**(DEF-WH-017, 커밋 12b5dd43)
-   - 기대 결과: 데이터 「입고 2, 입고 취소 1, 출고 1, 조정 1, 불량 처리 1, 위치 변경 1」에서 **입고 KPI 2(입고 취소 제외)**, 출고 1, 조정 2(불량 처리 포함), 위치 변경은 이벤트 전체에만 포함.
-   - 현재 동작: 입고 취소(`ReasonCode = 'INBOUND_CANCEL'`)는 출고·조정에서 빠지고 `CANCEL_RECEIPT`·활동 유형 `INBOUND` 로 분류되지만(맞음), 입고 KPI(`CountEvent("INBOUND")`)가 `WH.LogHistory.Lbl.CancelInbound`·`InboundCancelled` 도 세어 **입고 KPI 3** 이 된다.
-   - 위치: `src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor:139`(INBOUND KPI 조건), `WarehouseRepository.cs:1798-1817`(분류).
-   - 선택지: (가) 소스 — 입고 KPI 조건에서 두 입고 취소 라벨을 빼고 입고 취소는 이벤트 전체에만 센다(기대 결과 그대로, 이승욱 추천 — 활동 유형 필터 「입고」에 입고 취소가 들어가는 것(TC-005)과는 별개로 KPI 는 실제 입고 건수). (나) TC 보정 — 「입고 KPI 3(입고 취소 포함)」으로 바꾼다(안영훈이 일부러 넣었다면).
-3. **[하] WH104-TC-008 Log History 유형 배지 색이 다섯 가지로 갈리지 않음**(DEF-WH-019, 커밋 12b5dd43)
-   - 기대 결과: 유형 배지(입고·입고 취소·출고·재고 조정·위치 변경)가 **색상으로 구분**된다.
-   - 현재 동작: `EventClass` 가 입고 취소 `bad`(빨강)·재고 조정 `bad`(빨강)·입고 `ok`(녹색)·위치 변경 `ok`(녹색)·출고 `warn` — 입고 취소와 재고 조정, 입고와 위치 변경이 같은 색이다.
-   - 위치: `LogHistory.razor:145-160`(`EventClass`: `CANCEL_RECEIPT` → bad, `Contains("ADJUST")` → bad, `Contains("RECEIVE")`·`Contains("LOCATION")` → ok).
-   - 선택지: (가) 소스 — 위치 변경을 `info`(파랑), 입고 취소를 `ghost` 또는 별도 색으로 바꿔 다섯 유형을 서로 다른 색으로(배지 클래스는 Web 공통 `pill` — 라이트 테마 토큰 규칙에 맞춰, 이승욱 추천). (나) TC 보정 — 「입고 취소는 빨강 배지로 구분」 수준으로 기대 결과를 낮춘다.
 
 ### 2-5. FG 단위테스트 결과서 FAIL (32)
 
