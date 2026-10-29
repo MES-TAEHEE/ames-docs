@@ -61,9 +61,10 @@ void Batch(StringCollection sc, bool omitLegacyDefaultNames = false)
 }
 
 var today = DateTime.Now.ToString("yyyy-MM-dd");
-L($"-- A-MES consolidated schema: AMES_DEV, captured {today} from the development DB (192.168.0.132) with SMO.");
+var source = new SqlConnectionStringBuilder(cs).DataSource;
+L($"-- A-MES consolidated schema: {db.Name}, captured {today} from the development DB ({source}) with SMO.");
 L($"-- {tables.Count} tables / {tables.Sum(t => t.Columns.Count)} columns, {procs.Count} procedures, {views.Count} views, {funcs.Count} functions, {seqs.Count} sequences.");
-L("-- Excludes TEST_* tables, retired WH_ReleaseSchedule and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).");
+L("-- Excludes TEST_* tables, retired WH_ReleaseSchedule, 20 tables nobody reads or writes (10-29: PNT_DailyReport, PNT_LabelPrintJob, PNT_LabelScanLog, PNT_LotLabel, PNT_PartLossLog, PNT_QcQueue, PNT_SeqAllocator, PNT_ShiftReport, PNT_ShiftReportAudit, PNT_StationStatsCache, PR_AndonPush, PR_BondSetupAudit, PR_CycleAnomalyLog, PR_DashTileCache, PR_DefectAutoLink, PR_DefectRateCache, PR_PlcInterlock, PR_ShiftHandover, QC_Disposition, QC_NCR_Action) and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).");
 L("-- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).");
 L("-- Schema only from the live database; sample seeds below are retained from the repository.");
 L("-- Recreates the included objects: existing data in these tables will be deleted.");
@@ -114,7 +115,25 @@ foreach (var t in tables)
 
 var modOpt = new ScriptingOptions { SchemaQualify = true, IncludeHeaders = false, ExtendedProperties = true, TargetServerVersion = SqlServerVersion.Version160 };
 L("-- ════ Sequences ════");
-foreach (var q in seqs) Batch(q.Script(modOpt));
+// 빈 DB 는 처음 번호부터 채번해야 한다 — SMO 는 지금 번호를 뜨고, DB 를 옮겨 만들면 정의값(start_value)에도 그때 번호가 박힌다(10-29 AMES 24).
+// 기존 파일에 있는 시퀀스는 그 시작값을 잇고, 처음 생기는 시퀀스만 DB 정의값을 쓴다
+var seqStart = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+using (var c = new SqlConnection(cs))
+{
+    c.Open();
+    using var cmd = new SqlCommand("SELECT name, CONVERT(varchar(40), start_value) FROM sys.sequences WHERE schema_id = SCHEMA_ID('dbo')", c);
+    using var r = cmd.ExecuteReader();
+    while (r.Read()) seqStart[r.GetString(0)] = r.GetString(1);
+}
+foreach (Match m in Regex.Matches(oldText[..seedAt], @"CREATE SEQUENCE \[dbo\]\.\[(\w+)\][^;]*?\bSTART WITH\s+(-?\d+)"))
+    seqStart[m.Groups[1].Value] = m.Groups[2].Value;
+foreach (var q in seqs)
+{
+    var sc = q.Script(modOpt);
+    for (int i = 0; i < sc.Count; i++)
+        sc[i] = Regex.Replace(sc[i]!, @"\bSTART WITH\s+-?\d+", "START WITH " + seqStart[q.Name]);
+    Batch(sc);
+}
 L("-- ════ Functions ════");
 foreach (var f in funcs) Batch(f.Script(modOpt));
 L("-- ════ Views ════");
