@@ -1,0 +1,10 @@
+@using AMES.Contracts.Dto
+@inject IStringLocalizer<SharedResources> L
+<span class="pill @Css">@L[$"FG.DueRisk.{Risk}"]</span>
+@code {
+    [Parameter] public ShippingDueRiskLevel Risk { get; set; } = ShippingDueRiskLevel.Unknown;
+    string Css => Risk switch {
+        ShippingDueRiskLevel.Overdue => "bad", ShippingDueRiskLevel.DueSoon => "warn",
+        ShippingDueRiskLevel.Normal => "ok", _ => "ghost"
+    };
+}

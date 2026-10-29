@@ -1,0 +1,15 @@
+@using AMES.Contracts.Dto
+<div class="fifo-warning-list">
+    <p>Older available stock for the same customer and part:</p>
+    @foreach (var item in Items)
+    {
+        <div><strong>@item.PartNo</strong><br />
+            @if(item.PalletNo is not null){<span>PALLET: @item.PalletNo<br /></span>}
+            LOT: @item.LotNo<br />LOCATION: @item.LocationNo<br />
+            RECEIVED: @item.ReceivedAt.ToString("MM/dd/yyyy HH:mm")
+        </div>
+    }
+</div>
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<FifoWarningDto> Items { get; set; } = [];
+}

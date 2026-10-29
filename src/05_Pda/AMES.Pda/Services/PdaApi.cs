@@ -227,8 +227,8 @@ public abstract class PdaApi
     public sealed record FgOutboundUnitRow(string OutboundBarcode, string UnitType, string? LocationNo,
         decimal TotalQty, int ItemCount, List<FgOutboundUnitItemRow> Items, string? CustomerId = null, string? CustomerName = null);
     public sealed record FgOutboundUnitResult(bool Success, string Message, FgOutboundUnitRow? Unit,
-        int ProcessedCount = 0, int? ShipmentId = null);
-    public sealed record FgOutboundUnitReq(string Barcode, string? CustomerId = null);
+        int ProcessedCount = 0, int? ShipmentId = null, List<AMES.Contracts.Dto.FifoWarningDto>? FifoWarnings = null);
+    public sealed record FgOutboundUnitReq(string Barcode, string? CustomerId = null, bool AllowNonFifo = false);
     public sealed record FgOutboundCustomerRow(string CustomerId, string CustomerName);
     public sealed record FgReturnReq(string Barcode, string ReturnReason, string? Note);
 

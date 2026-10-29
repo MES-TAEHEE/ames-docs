@@ -63,6 +63,10 @@
                 </div>
             </section>
 
+            @if (_fifoWarnings.Count > 0)
+            {
+                <RadzenCard class="wh02-panel"><strong>FIFO WARNING</strong><FifoWarningList Items="_fifoWarnings" /></RadzenCard>
+            }
             <section class="fg04-items">
                 <header>OUTBOUND ITEMS <span>@_unit.Items.Count</span></header>
                 @foreach (var item in _unit.Items)
@@ -94,7 +98,11 @@
                 <div class="wh-modal-mark">@(_modalKind == "success" ? "OK" : "!")</div>
                 <div class="wh-modal-title">@_modalTitle</div>
                 <div class="wh-modal-message">@_modalMessage</div>
-                <div class="wh-modal-actions"><RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="OK" /></div>
+                @if (_confirmFifo){<FifoWarningList Items="_fifoWarnings" />}
+                <div class="wh-modal-actions">
+                    @if (_confirmFifo){<RadzenButton class="wh-modal-btn primary" Click="ConfirmNonFifo" Text="CONTINUE" />}
+                    <RadzenButton class="wh-modal-btn primary" Click="CloseModal" Text="@(_confirmFifo ? "CANCEL" : "OK")" />
+                </div>
             </RadzenCard>
         </div>
     }
@@ -108,6 +116,8 @@
     private string? _customerId, _customerError;
     private List<PdaApi.FgOutboundCustomerRow> _customers = [];
     private bool _isBusy, _modalOpen;
+    private bool _confirmFifo;
+    private List<AMES.Contracts.Dto.FifoWarningDto> _fifoWarnings = [];
     private string _modalTitle = "", _modalMessage = "", _modalKind = "info";
     private DotNetObjectReference<Fg04FifoPicking>? _scannerRef;
 
@@ -166,6 +176,7 @@
                 return;
             }
             _unit = result.Unit;
+            _fifoWarnings = result.FifoWarnings ?? [];
             _customerId = result.Unit.CustomerId;
             _barcode = result.Unit.OutboundBarcode;
         }
@@ -176,7 +187,14 @@
         }
     }
 
-    private async Task CompleteOutbound()
+    private Task CompleteOutbound() => SubmitOutbound(false);
+    private async Task ConfirmNonFifo()
+    {
+        CloseModal();
+        await SubmitOutbound(true);
+    }
+
+    private async Task SubmitOutbound(bool allowNonFifo)
     {
         if (_isBusy || _modalOpen) return;
         if (_unit is null)
@@ -195,7 +213,14 @@
                 ShowModal("Customer Required", "Select the outbound customer before confirming shipment.", "warn");
                 return;
             }
-            var result = await Api.FgOutboundAsync(new PdaApi.FgOutboundUnitReq(barcode, _customerId));
+            var result = await Api.FgOutboundAsync(new PdaApi.FgOutboundUnitReq(barcode, _customerId, allowNonFifo));
+            if (result.FifoWarnings is { Count: > 0 } warnings)
+            {
+                _fifoWarnings = warnings;
+                _confirmFifo = true;
+                ShowModal("FIFO Warning", "Continue with the currently scanned stock instead?", "warn");
+                return;
+            }
             if (!result.Success)
             {
                 ShowModal("Outbound Failed", result.Message, "danger");
@@ -216,6 +241,8 @@
         _unit = null;
         _barcode = "";
         _customerId = null;
+        _fifoWarnings = [];
+        _confirmFifo = false;
     }
 
     private void ShowModal(string title, string message, string kind)
@@ -229,6 +256,7 @@
     private void CloseModal()
     {
         _modalOpen = false;
+        _confirmFifo = false;
         _ = FocusAsync();
     }
 

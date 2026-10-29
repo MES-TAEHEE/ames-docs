@@ -1,0 +1,20 @@
+@using AMES.Contracts.Dto
+@inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
+<p class="dim">@L["FG.DueRisk.Basis",Snapshot.AsOf.ToString(DateFmt.Date),Snapshot.NextWorkday.ToString(DateFmt.Date)]</p>
+<RadzenDataGrid TItem="ShippingDueRiskDto" Data="Snapshot.Rows" AllowPaging="true" PageSize="25" AllowSorting="true" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" class="ames-rz-grid">
+    <Columns>
+        <RadzenDataGridColumn TItem="ShippingDueRiskDto" Property="Risk" Title="@L["FG.DueRisk.Title"]" Width="140px"><Template Context="r"><ShippingDueRiskBadge Risk="r.Risk" /></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ShippingDueRiskDto" Property="SoNumber" Title="SO" />
+        <RadzenDataGridColumn TItem="ShippingDueRiskDto" Property="CustomerId" Title="@L["Col.Customer"]" />
+        <RadzenDataGridColumn TItem="ShippingDueRiskDto" Property="PartNo" Title="@L["Col.ItemNo"]"><Template Context="r">@r.PartNo <span class="dim">@r.PartName</span></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ShippingDueRiskDto" Property="DueDate" Title="@L["Col.Requested"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" />
+        <RadzenDataGridColumn TItem="ShippingDueRiskDto" Property="OrderQty" Title="@L["FG.DueRisk.Ordered"]"><Template Context="r">@Qty(r.OrderQty)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ShippingDueRiskDto" Property="ShippedQty" Title="@L["FG.DueRisk.Shipped"]"><Template Context="r">@Qty(r.ShippedQty)</Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ShippingDueRiskDto" Property="RemainingQty" Title="@L["FG.DueRisk.Remaining"]"><Template Context="r">@Qty(r.RemainingQty)</Template></RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+@code {
+    [Parameter, EditorRequired] public ShippingDueRiskSnapshot Snapshot { get; set; } = null!;
+    string Qty(decimal? value) => value is null ? "—" : UomFmt.Qty(value.Value,null);
+}

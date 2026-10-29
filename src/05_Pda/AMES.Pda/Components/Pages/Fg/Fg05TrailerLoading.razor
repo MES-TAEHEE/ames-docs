@@ -67,7 +67,9 @@
     @if(_modal)
     {
         <div class="wh-modal-backdrop"><RadzenCard class="wh-modal-card info"><div class="wh-modal-mark">!</div><div class="wh-modal-title">@_title</div><div class="wh-modal-message">@_message</div>
-            <div class="wh-modal-actions">@if(_confirm){<RadzenButton Text="CONFIRM" Click="Complete" Disabled="_busy" class="wh-modal-btn primary" />}<RadzenButton Text="@(_confirm?"CANCEL":"OK")" Click="CloseModal" Disabled="_busy" class="wh-modal-btn primary" /></div>
+            @if(_fifoAction is not null){<FifoWarningList Items="_fifoWarnings" />}
+            <div class="wh-modal-actions">@if(_fifoAction is not null){<RadzenButton Text="CONTINUE" Click="ContinueNonFifo" Disabled="_busy" class="wh-modal-btn primary" />}
+                else if(_confirm){<RadzenButton Text="CONFIRM" Click="ConfirmShipment" Disabled="_busy" class="wh-modal-btn primary" />}<RadzenButton Text="@(_confirm||_fifoAction is not null?"CANCEL":"OK")" Click="CloseModal" Disabled="_busy" class="wh-modal-btn primary" /></div>
         </RadzenCard></div>
     }
 </div>
@@ -78,6 +80,9 @@
     bool _loadingDeliveries;
     bool _removing;
     string _scanMessage="";
+    string? _fifoAction;
+    string _fifoBarcode="";
+    List<FifoWarningDto> _fifoWarnings=[];
     DotNetObjectReference<Fg05TrailerLoading>? _scanner;
     bool Ready=>!_removing&&_delivery is {Status:"Open" or "Loading"} d&&d.Parts.Count>0&&d.Parts.All(x=>x.RequiredQty==x.LoadedQty);
     protected override Task OnInitializedAsync()=>ReloadDeliveries();
@@ -103,7 +108,7 @@
     void NativeScan(string barcode)=>_=InvokeAsync(()=>OnHardwareScanAsync(barcode));
     [JSInvokable]public async Task OnHardwareScanAsync(string barcode){if(_busy||_modal)return;_barcode=barcode.Trim();await Scan();await InvokeAsync(StateHasChanged);}
     async Task OnKey(KeyboardEventArgs e){if(e.Key=="Enter")await Scan();}
-    async Task Scan()
+    async Task Scan(bool allowNonFifo=false)
     {
         if(_busy||_modal||string.IsNullOrWhiteSpace(_barcode))return;_busy=true;
         try
@@ -127,7 +132,12 @@
             }
             var result=opening?await Api.ShippingDeliveryAsync(value):_removing
                 ?await Api.UnloadShippingDeliveryAsync(_delivery!.DeliveryNo,value)
-                :await Api.LoadShippingDeliveryAsync(_delivery!.DeliveryNo,value);
+                :await Api.LoadShippingDeliveryAsync(_delivery!.DeliveryNo,value,allowNonFifo);
+            if(result.FifoWarnings is {Count:>0} warnings)
+            {
+                _fifoAction="load";_fifoBarcode=value;_fifoWarnings=warnings;
+                Show("FIFO Warning","Continue loading the scanned pallet instead?");return;
+            }
             if(!result.Success||result.Delivery is null)Show("Loading Failed",result.Message);
             else
             {
@@ -147,14 +157,26 @@
         await Focus();
     }
     void AskComplete(){if(!Ready)return;_confirm=true;Show("Confirm Shipment","Ship all loaded pallets? Inventory will be deducted and the customer SO shipped quantity will be updated.");}
-    async Task Complete()
+    Task ConfirmShipment()=>Complete(false);
+    async Task ContinueNonFifo()
+    {
+        var action=_fifoAction;var barcode=_fifoBarcode;CloseModal();
+        if(action=="load"){_barcode=barcode;await Scan(true);}
+        else if(action=="complete")await Complete(true);
+    }
+    async Task Complete(bool allowNonFifo)
     {
         if(_busy||!Ready||_delivery is null)return;_busy=true;
         var completed=false;
         var deliveryNo=_delivery.DeliveryNo;
         try
         {
-            var result=await Api.CompleteShippingDeliveryAsync(deliveryNo);_confirm=false;
+            var result=await Api.CompleteShippingDeliveryAsync(deliveryNo,allowNonFifo);_confirm=false;
+            if(result.FifoWarnings is {Count:>0} warnings)
+            {
+                _fifoAction="complete";_fifoWarnings=warnings;
+                Show("FIFO Warning","Continue shipping the loaded pallets instead?");return;
+            }
             if(result.Success)
             {
                 ResetDelivery();
@@ -168,7 +190,7 @@
         if(completed)await ReloadDeliveries();
     }
     void Show(string title,string message){_title=title;_message=message;_modal=true;}
-    void CloseModal(){_modal=false;_confirm=false;_=Focus();}
+    void CloseModal(){_modal=false;_confirm=false;_fifoAction=null;_fifoWarnings=[];_=Focus();}
     async Task Focus(){if(!_modal)try{await JS.InvokeVoidAsync("pdaScan.focus",".loading-shell .pda-scan-input");}catch{}}
     public async ValueTask DisposeAsync(){PdaBarcodeHub.Scanned-=NativeScan;try{await JS.InvokeVoidAsync("pdaScan.unregister");}catch{} _scanner?.Dispose();}
 }
