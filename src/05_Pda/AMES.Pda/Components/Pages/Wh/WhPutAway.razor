@@ -56,7 +56,11 @@
                             </div>
                             <div class="wh-putaway-box-meta">
                                 <strong>@QtyText(box.Qty, box.Unit)</strong>
-                                <span>@DateText(box.ReceivedAt)</span>
+                                @if (_fgScan is not null)
+                                {
+                                    <span>READY DATE</span>
+                                }
+                                <span>@DateText(box.ReceivedAt, _fgScan is not null)</span>
                             </div>
                         </div>
                     }
@@ -641,7 +645,6 @@
         ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     private string QtyText(decimal qty, string? unit) => $"{qty:N0} {Uom.Symbol(unit)}";
-    private static string DateText(DateTime? value) => value?.ToString("MM-dd HH:mm") ?? "-";
 
     public async ValueTask DisposeAsync()
     {
