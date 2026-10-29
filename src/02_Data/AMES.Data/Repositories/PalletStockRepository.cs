@@ -15,6 +15,7 @@ namespace AMES.Data.Repositories;
 public sealed class PalletStockRepository
 {
     public const string ConfirmSourceType = "PROD_CONFIRM";
+    public const string ReworkSourceType = "PROD_REWORK";
     public const string CoreUseSourceType = "IMG_CORE";
     public const string CoreVoidSourceType = "IMG_VOID";
     /// <summary>라인 불량 팝업 등록이 팔레트에서 뺀 LOT 의 OUT 거래 SourceType(SourceID = 그 LotID).</summary>
@@ -146,6 +147,41 @@ public sealed class PalletStockRepository
         WriteTxn(conn, tx, "IN", ConfirmSourceType, lotId, lotCode, itemNo, 0m, 1m, 1m,
                  $"{lotCode} {itemNo} → {no}", operatorId, employeeNo);
         return PalletLoadOutcome.Ok;
+    }
+
+    internal const string RestoreReworkedAssySql = """
+        SET QUOTED_IDENTIFIER ON;
+        SET ANSI_NULLS ON;
+        SET NOCOUNT ON;
+        IF NOT EXISTS(SELECT 1 FROM dbo.MD_Item WHERE ItemNo=@I AND ItemType='ASSY' AND ISNULL(ActiveFlag,1)=1)
+        BEGIN SELECT 0; RETURN; END;
+        DECLARE @Before decimal(18,3),@Part varchar(20),@Unit varchar(10);
+        SELECT @Before=Qty,@Part=PartNo,@Unit=UnitType
+        FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@L;
+        IF @Before IS NOT NULL AND (ISNULL(@Part,'')<>@I OR ISNULL(@Unit,'')<>'PART' OR @Before<0 OR @Before>1)
+            THROW 52730,'Reworked ASSY inventory does not match this LOT. Review its stock before completing rework.',1;
+        IF @Before>0 BEGIN SELECT 0; RETURN; END;
+        IF @Before IS NULL
+            INSERT dbo.WH_Inventory(LotNo,UnitType,PartNo,PartName,Qty,ReceivedAt,CreatedAt,UpdatedAt)
+            SELECT @L,'PART',@I,ItemName,1,SYSDATETIME(),SYSDATETIME(),SYSDATETIME()
+            FROM dbo.MD_Item WHERE ItemNo=@I;
+        ELSE
+            UPDATE dbo.WH_Inventory
+            SET ParentLotNo=NULL,PalletNo=NULL,LocationNo=NULL,Qty=1,
+                ReceivedAt=SYSDATETIME(),UpdatedAt=SYSDATETIME()
+            WHERE LotNo=@L;
+        SELECT 1;
+        """;
+
+    internal static void RestoreReworkedAssy(SqlConnection conn, SqlTransaction tx, int lotId, string lotCode,
+        string itemNo, string operatorId, string employeeNo)
+    {
+        using var cmd = new SqlCommand(RestoreReworkedAssySql, conn, tx);
+        ColumnParams.Add(cmd, "@L", "WH_Inventory.LotNo", lotCode);
+        ColumnParams.Add(cmd, "@I", "WH_Inventory.PartNo", itemNo);
+        if (Convert.ToInt32(cmd.ExecuteScalar()) == 0) return;
+        WriteTxn(conn, tx, "IN", ReworkSourceType, lotId, lotCode, itemNo, 0m, 1m, 1m,
+            $"{lotCode} {itemNo} REWORKED", operatorId, employeeNo);
     }
 
     /// <summary>

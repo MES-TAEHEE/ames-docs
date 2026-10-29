@@ -202,6 +202,7 @@ public sealed class ReworkRepository
             if (LotDefectRules.WasNeverConfirmed(priorStatus))
                 backflush = BackflushRepository.Apply(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo, lineId, operatorId, employeeNo,
                                                       BackflushRules.IncludesInjection(processCode));
+            PalletStockRepository.RestoreReworkedAssy(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo, operatorId, employeeNo);
             CloseRow(conn, tx, defectId, LotDefectRules.DispositionReworked, causeCode, note, operatorId, employeeNo, occurredAt);
 
             tx.Commit();
