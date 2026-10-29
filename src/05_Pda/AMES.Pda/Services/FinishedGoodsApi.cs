@@ -26,12 +26,12 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         =>GetRequiredAsync<List<AMES.Contracts.Dto.ShippingDeliveryListDto>>("/api/fg/shipping/deliveries","DCR list service is unavailable.");
     public Task<AMES.Contracts.Dto.ShippingActionResult> ShippingDeliveryAsync(string barcode)
         =>GetRequiredAsync<AMES.Contracts.Dto.ShippingActionResult>($"/api/fg/shipping/delivery?barcode={Uri.EscapeDataString(barcode)}","Shipping service is unavailable.");
-    public Task<AMES.Contracts.Dto.ShippingActionResult> LoadShippingDeliveryAsync(string delivery,string pallet)
-        =>ShippingPost("load",new AMES.Contracts.Dto.DeliveryLoadRequest(delivery,pallet));
+    public Task<AMES.Contracts.Dto.ShippingActionResult> LoadShippingDeliveryAsync(string delivery,string pallet,bool allowNonFifo=false)
+        =>ShippingPost("load",new AMES.Contracts.Dto.DeliveryLoadRequest(delivery,pallet,allowNonFifo));
     public Task<AMES.Contracts.Dto.ShippingActionResult> UnloadShippingDeliveryAsync(string delivery,string pallet)
         =>ShippingPost("unload",new AMES.Contracts.Dto.DeliveryLoadRequest(delivery,pallet));
-    public Task<AMES.Contracts.Dto.ShippingActionResult> CompleteShippingDeliveryAsync(string delivery)
-        =>ShippingPost("complete",new AMES.Contracts.Dto.DeliveryCompleteRequest(delivery));
+    public Task<AMES.Contracts.Dto.ShippingActionResult> CompleteShippingDeliveryAsync(string delivery,bool allowNonFifo=false)
+        =>ShippingPost("complete",new AMES.Contracts.Dto.DeliveryCompleteRequest(delivery,allowNonFifo));
     private async Task<AMES.Contracts.Dto.ShippingActionResult> ShippingPost<T>(string path,T body)
     {
         Authorize();using var response=await _http.PostAsJsonAsync("/api/fg/shipping/"+path,body);

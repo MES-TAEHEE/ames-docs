@@ -231,6 +231,30 @@ public static class PdaFinishedGoodsSql
         END;
         """;
 
+    public const string OutboundPrecheck = """
+        ;WITH UnitTree AS
+        (
+            SELECT LotNo,ParentLotNo,UnitType,PartNo,LocationNo,Qty FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode
+            UNION ALL
+            SELECT C.LotNo,C.ParentLotNo,C.UnitType,C.PartNo,C.LocationNo,C.Qty
+            FROM dbo.WH_Inventory C WITH(UPDLOCK,HOLDLOCK) JOIN UnitTree P ON C.ParentLotNo=P.LotNo
+        )
+        SELECT TOP(1) T.LotNo,T.UnitType,T.PartNo,T.LocationNo,L.LocationID AS MasterLocation,L.LocationType,R.InspectionPending
+        FROM UnitTree T LEFT JOIN dbo.MD_Location L WITH(HOLDLOCK) ON L.LocationID=T.LocationNo
+        CROSS APPLY
+        (
+            SELECT CONVERT(bit,CASE WHEN EXISTS(
+                SELECT 1 FROM dbo.FG_CustomerReturn R WITH(UPDLOCK,HOLDLOCK)
+                WHERE R.LotNo=T.LotNo AND R.Status IN('Open','Inspecting')) THEN 1 ELSE 0 END) AS InspectionPending
+        ) R
+        WHERE T.Qty>0 AND (T.PartNo IS NOT NULL OR UPPER(ISNULL(T.UnitType,'')) NOT IN('PALLET','CASE'))
+          AND NOT EXISTS(SELECT 1 FROM UnitTree C WHERE C.ParentLotNo=T.LotNo AND C.Qty>0)
+          AND (R.InspectionPending=1 OR NULLIF(LTRIM(RTRIM(T.PartNo)),'') IS NULL OR NULLIF(LTRIM(RTRIM(T.UnitType)),'') IS NULL
+               OR NULLIF(LTRIM(RTRIM(T.LocationNo)),'') IS NULL OR L.LocationID IS NULL OR UPPER(ISNULL(L.LocationType,''))<>'FG')
+        ORDER BY R.InspectionPending DESC,T.LotNo
+        OPTION(MAXRECURSION 100);
+        """;
+
     public const string OutboundScan = """
         SET QUOTED_IDENTIFIER ON;
         SET ANSI_NULLS ON;
@@ -466,7 +490,7 @@ public static class PdaFinishedGoodsSql
                 SELECT CustomerID,ShipmentID,LotNo,LotID,PartNo,PartName,Qty,@Reason,@CleanNote,'Inspecting',@Now,@OperatorID,@OperatorID,@Now FROM @P;
                 SET @ReturnID=CONVERT(int,SCOPE_IDENTITY());
                 MERGE dbo.WH_Inventory WITH(HOLDLOCK) AS T USING(SELECT LotNo,PartNo,PartName,Qty FROM @P) S ON S.LotNo=T.LotNo
-                WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,ParentLotNo=NULL,PalletNo=NULL,UpdatedAt=@Now
+                WHEN MATCHED THEN UPDATE SET PartNo=S.PartNo,PartName=S.PartName,Qty=S.Qty,LocationNo=NULL,ParentLotNo=NULL,PalletNo=NULL,ReceivedAt=@Now,UpdatedAt=@Now
                 WHEN NOT MATCHED THEN INSERT(LotNo,UnitType,PartNo,PartName,LocationNo,Qty,ReceivedAt,CreatedAt,UpdatedAt)
                     VALUES(S.LotNo,'PART',S.PartNo,S.PartName,NULL,S.Qty,@Now,@Now,@Now);
                 INSERT dbo.WH_InventoryTransaction(TransactionTime,TransactionType,PartNo,LotNo,QtyBefore,QtyChange,QtyAfter,

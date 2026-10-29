@@ -155,6 +155,48 @@ public class BackflushRepositoryTests
         finally { tx.Rollback(); }
     }
 
+    /// <summary>
+    /// 정본(10-28 사용자 결정): 재고가 모자라 자리표시에서 뺀 LOT 은, 뒤에 다른 LOT 확정이 실물 LOT 으로 메울 때
+    /// 그 메우기 기록의 주인이 된다 — 자재 LOT 사용 기록(VW_MaterialLotUsage)에서 원래 LOT 이 실물 LOT 을 쓴 것으로 보인다.
+    /// </summary>
+    [SkippableFact]
+    public void Netting_a_shortage_is_recorded_against_the_lot_that_caused_it()
+    {
+        var f = WriteFactory(); Skip.If(f is null, WriteSkip);
+        const int first = -990021, second = -990022;
+        using var c = f!.OpenConnection(); using var tx = c.BeginTransaction();
+        try
+        {
+            EnsurePlaceholderCheck(c, tx);
+            SeedBom(c, tx, qtyPer: 100m);
+            var ph = BackflushRules.PlaceholderLotNo(Prefix, Resin);
+
+            Assert.Single(BackflushRepository.Apply(c, tx, first, "BFFIRST", Parent, Line, "E-BFT", "E-BFT").Shortages);
+            Assert.Equal(-100m, LotQty(c, tx, ph));
+
+            SeedLineLot(c, tx, "BF-T-L1", 500m, "2026-10-01");
+            Assert.Empty(BackflushRepository.Apply(c, tx, second, "BFSECOND", Parent, Line, "E-BFT", "E-BFT").Shortages);
+            Assert.Equal(0m,   LotQty(c, tx, ph));
+            Assert.Equal(300m, LotQty(c, tx, "BF-T-L1"));
+
+            int Nets(int lot) => Scalar<int>(c, tx, $"SELECT COUNT(*) FROM dbo.WH_InventoryTransaction WHERE SourceType='BACKFLUSH_NET' AND SourceID={lot}");
+            Assert.Equal(2, Nets(first));
+            Assert.Equal(0, Nets(second));
+            Assert.Contains("(by BFSECOND)", Scalar<string>(c, tx,
+                $"SELECT TOP 1 Note FROM dbo.WH_InventoryTransaction WHERE SourceType='BACKFLUSH_NET' AND SourceID={first} AND LotNo=N'BF-T-L1'"));
+
+            string Usage(int lot) => Scalar<string>(c, tx, $"""
+                SELECT ISNULL(STRING_AGG(CONCAT(MaterialLotNo, '=', CAST(CAST(Q AS DECIMAL(18,3)) AS FLOAT)), ',')
+                              WITHIN GROUP (ORDER BY MaterialLotNo), '')
+                FROM (SELECT MaterialLotNo, SUM(Qty) AS Q FROM dbo.VW_MaterialLotUsage WHERE FinishedLotID = {lot}
+                      GROUP BY MaterialLotNo HAVING SUM(Qty) <> 0) x
+                """);
+            Assert.Equal("BF-T-L1=100", Usage(first));    // 자리표시 몫은 0 으로 사라지고 실물 LOT 이 남는다
+            Assert.Equal("BF-T-L1=100", Usage(second));
+        }
+        finally { tx.Rollback(); }
+    }
+
     [SkippableFact]
     public void Apply_without_material_children_writes_nothing()
     {

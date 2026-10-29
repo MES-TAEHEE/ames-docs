@@ -324,10 +324,23 @@ public sealed class QcRepository
     /// </summary>
     public List<QcTraceNodeDto> TraceLot(int lotId)
     {
-        const string sql = "dbo.SP_POP_QC_TraceLot";
         using var conn = _factory.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        using var cmd  = new SqlCommand("dbo.SP_POP_QC_TraceLot", conn) { CommandType = System.Data.CommandType.StoredProcedure };
         cmd.Parameters.Add("@L", SqlDbType.Int).Value = lotId;
+        return ReadTraceNodes(cmd);
+    }
+
+    /// <summary>자재 LOT(WH_Inventory.LotNo) → 그 LOT 을 쓴 완제품 LOT. 첫 행은 자재 LOT 자신(Kind MATLOT), 기록이 없으면 빈 목록.</summary>
+    public List<QcTraceNodeDto> TraceMaterialLot(string materialLotNo)
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd  = new SqlCommand("dbo.SP_POP_QC_TraceMaterialLot", conn) { CommandType = System.Data.CommandType.StoredProcedure };
+        ColumnParams.AddFilter(cmd, "@M", "WH_InventoryTransaction.LotNo", materialLotNo);
+        return ReadTraceNodes(cmd);
+    }
+
+    private static List<QcTraceNodeDto> ReadTraceNodes(SqlCommand cmd)
+    {
         using var rdr = cmd.ExecuteReader();
         var list = new List<QcTraceNodeDto>();
         while (rdr.Read())

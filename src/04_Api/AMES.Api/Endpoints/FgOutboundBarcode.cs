@@ -2,6 +2,9 @@ namespace AMES.Api.Endpoints;
 
 internal static class FgOutboundBarcode
 {
+    public const string InspectionPendingMessage =
+        "This unit contains a customer return awaiting inspection. Outbound and trailer loading are not allowed.";
+
     public static bool TryNormalize(string? barcode, out string value, out string error)
     {
         value = (barcode ?? "").Replace("\u0002", "").Replace("\u0003", "").Trim();

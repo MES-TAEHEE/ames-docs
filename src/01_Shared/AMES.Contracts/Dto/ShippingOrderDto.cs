@@ -7,6 +7,7 @@ public sealed record DeliveryRequirementDto(string PartNo,string? PartName,decim
 public sealed record DeliveryLoadDto(string RootLotNo,string LotNo,string PartNo,decimal Qty);
 public sealed record ShippingDeliveryDto(int DeliveryId,string DeliveryNo,string CustomerId,DateTime ShipDate,string? TrailerNo,string Status,List<string> OrderNos,List<DeliveryRequirementDto> Parts,List<DeliveryLoadDto> Loads);
 public sealed record ShippingDeliveryListDto(int DeliveryId,string DeliveryNo,string CustomerId,DateTime ShipDate,string? TrailerNo,string Status,int OrderCount,int PartCount);
-public sealed record DeliveryLoadRequest(string DeliveryBarcode,string PalletBarcode);
-public sealed record DeliveryCompleteRequest(string DeliveryBarcode);
-public sealed record ShippingActionResult(bool Success,string Message,ShippingDeliveryDto? Delivery=null);
+public sealed record FifoWarningDto(string PartNo,string LotNo,string? PalletNo,string LocationNo,DateTime ReceivedAt);
+public sealed record DeliveryLoadRequest(string DeliveryBarcode,string PalletBarcode,bool AllowNonFifo=false);
+public sealed record DeliveryCompleteRequest(string DeliveryBarcode,bool AllowNonFifo=false);
+public sealed record ShippingActionResult(bool Success,string Message,ShippingDeliveryDto? Delivery=null,List<FifoWarningDto>? FifoWarnings=null);

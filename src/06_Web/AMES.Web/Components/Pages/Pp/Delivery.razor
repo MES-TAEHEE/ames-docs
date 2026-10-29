@@ -131,8 +131,8 @@
             <RadzenDataGridColumn TItem="PpRepository.OtdRow" MinWidth="130px" Property="ProgressPct" Title="@L["PP.Delivery.Col.Progress"]" Width="130px">
                 <Template Context="r">
                     <div class="pp-oee-apq">
-                        <div class="pp-oee-track" style="height:8px;"><i class="@(r.IsLate ? "otd-fill-bad" : "otd-fill-ok")" style="width:@(r.ProgressPct.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;"></i></div>
-                        <span class="pp-oee-apq-val">@r.ProgressPct.ToString("0")%</span>
+                        <div class="pp-oee-track" style="height:8px;"><i class="@(r.IsLate ? "otd-fill-bad" : "otd-fill-ok")" style="width:@(Math.Min(100m, r.ProgressPct ?? 0m).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%;"></i></div>
+                        <span class="pp-oee-apq-val">@(r.ProgressPct is decimal p ? p.ToString("0") + "%" : "—")</span>
                     </div>
                 </Template>
             </RadzenDataGridColumn>

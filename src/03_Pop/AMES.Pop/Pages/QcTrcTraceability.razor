@@ -102,8 +102,16 @@
         if (string.IsNullOrWhiteSpace(_input)) { SetStatus("Enter a lot code or ID.", "fail"); return; }
         try
         {
-            int? lotId = int.TryParse(_input, out var n) ? n : OfflineQc.FindLotIdByCode(_input.Trim());
-            if (lotId is null) { SetStatus($"× No lot matches '{_input}'.", "fail"); _nodes = new(); return; }
+            var code = _input.Trim();
+            int? lotId = int.TryParse(code, out var n) ? n : OfflineQc.FindLotIdByCode(code);
+            if (lotId is null)
+            {
+                // 생산 LOT 이 아니면 자재 LOT(창고 LotNo)으로 — 그 자재를 쓴 완제품 LOT 들
+                _nodes = OfflineQc.TraceMaterialLot(code);
+                if (_nodes.Count == 0) SetStatus($"× No lot matches '{_input}'.", "fail");
+                else SetStatus($"✓ Material lot {code} · used in {_nodes.Count(x => x.Kind == "LOT")} lots", "ok");
+                return;
+            }
             _nodes = OfflineQc.TraceLot(lotId.Value);
             SetStatus($"✓ {_nodes.Count} nodes for LotID {lotId}", "ok");
         }

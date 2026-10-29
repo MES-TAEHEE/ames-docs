@@ -45,7 +45,8 @@ public sealed class AssyReadyQueryTests
                     ('ASSY-DEFECT','PART','P-READY','M-ASSY',NULL,1),
                     ('ASSY-INSPECT','PART','P-READY','M-ASSY',NULL,1),
                     ('RAW-CHILD','PART','P-READY','M-RAW',NULL,1),
-                    ('UNPALLETIZED','PART',NULL,'M-ASSY',NULL,2)
+                    ('UNPALLETIZED','PART',NULL,'M-ASSY',NULL,2),
+                    ('REWORKED','PART',NULL,'M-ASSY',NULL,1)
                 ) V(LotNo,UnitType,ParentLotNo,PartNo,LocationNo,Qty)
             ), FixtureItem AS (
                 SELECT * FROM (VALUES ('M-ASSY','Assembly','EA','ASSY',1),('M-RAW','Material','G','RAW',1))
@@ -62,6 +63,8 @@ public sealed class AssyReadyQueryTests
             ), FixtureTransaction AS (
                 SELECT 'ASSY-DEFECT' LotNo,'INV_DEFECT' SourceType,CAST(-1 AS decimal(18,3)) QtyChange,
                     CAST('2026-10-28' AS datetime2) TransactionTime,1 TransactionID
+                UNION ALL SELECT 'REWORKED','POP_DEFECT',-1,CAST('2026-10-28' AS datetime2),2
+                UNION ALL SELECT 'REWORKED','PROD_REWORK',1,CAST('2026-10-29' AS datetime2),3
             )
             """;
         var sql=AssyReadyRepository.Sql
@@ -78,10 +81,11 @@ public sealed class AssyReadyQueryTests
         using var reader=cmd.ExecuteReader();
         var rows=new List<(string? Pallet,decimal Qty,string LotNo)>();
         while(reader.Read())rows.Add((reader.IsDBNull(0)?null:reader.GetString(0),reader.GetDecimal(3),reader.GetString(6)));
-        Assert.Equal(3,rows.Count);
+        Assert.Equal(4,rows.Count);
         Assert.Equal(2m,rows.Where(r=>r.Pallet=="P-READY").Sum(r=>r.Qty));
-        Assert.Equal("UNPALLETIZED",Assert.Single(rows,r=>r.Pallet is null).LotNo);
+        Assert.Null(Assert.Single(rows,r=>r.LotNo=="UNPALLETIZED").Pallet);
+        Assert.Equal(1m,Assert.Single(rows,r=>r.LotNo=="REWORKED").Qty);
         Assert.DoesNotContain(rows,r=>r.LotNo=="PRODUCTION");
-        Assert.Equal(new[]{"ASSY-BLANK","ASSY-READY","UNPALLETIZED"},rows.Select(r=>r.LotNo).OrderBy(x=>x).ToArray());
+        Assert.Equal(new[]{"ASSY-BLANK","ASSY-READY","REWORKED","UNPALLETIZED"},rows.Select(r=>r.LotNo).OrderBy(x=>x).ToArray());
     }
 }

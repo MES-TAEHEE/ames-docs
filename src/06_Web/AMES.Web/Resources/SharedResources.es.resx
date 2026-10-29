@@ -5244,11 +5244,26 @@
   <data name="PP.PlanConfirm.Dlg.Warn.NoCore" xml:space="preserve">
     <value>{0} pedido(s) excluidos: núcleo sin identificar — la BOM no tiene (o tiene varios) subcomponentes con nombre CORE…; corríjalo en MD-004 y vuelva a ejecutar</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoLotPrefix" xml:space="preserve">
+    <value>Sin LOT PREFIX — no se puede producir</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoLotPrefix" xml:space="preserve">
+    <value>{0} pedido(s) excluidos: ninguna línea del proceso que emite LOT tiene LOT PREFIX — regístrelo en MD-001 y vuelva a ejecutar</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
     <value>Cambio {0} min</value>
   </data>
   <data name="PP.PlanConfirm.Ok.Rejected" xml:space="preserve">
-    <value>{0} excluidos (sin molde)</value>
+    <value>{0} excluidos — {1}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoMold" xml:space="preserve">
+    <value>sin molde {0}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoCore" xml:space="preserve">
+    <value>núcleo sin identificar {0}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoLotPrefix" xml:space="preserve">
+    <value>sin LOT PREFIX {0}</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
     <value>Hay etapas sin línea.</value>
@@ -12706,4 +12721,15 @@
   <data name="WH.LocMap.LineArea" xml:space="preserve">
     <value>Área de líneas</value>
   </data>
+  <data name="FG.DueRisk.Title" xml:space="preserve"><value>Riesgo de entrega</value></data>
+  <data name="FG.DueRisk.None" xml:space="preserve"><value>—</value></data>
+  <data name="FG.DueRisk.Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="FG.DueRisk.DueSoon" xml:space="preserve"><value>Próxima entrega</value></data>
+  <data name="FG.DueRisk.Overdue" xml:space="preserve"><value>Vencido</value></data>
+  <data name="FG.DueRisk.Unknown" xml:space="preserve"><value>Revisar datos</value></data>
+  <data name="FG.DueRisk.Ordered" xml:space="preserve"><value>Pedido</value></data>
+  <data name="FG.DueRisk.Shipped" xml:space="preserve"><value>Enviado</value></data>
+  <data name="FG.DueRisk.Remaining" xml:space="preserve"><value>Pendiente</value></data>
+  <data name="FG.DueRisk.Basis" xml:space="preserve"><value>Todos los pedidos abiertos, incluso sin orden de envío. Al {0}; próxima entrega: hoy hasta {1} (siguiente día laborable). Solo los envíos confirmados reducen el saldo.</value></data>
+  <data name="FG.DueRisk.LoadFailed" xml:space="preserve"><value>No se pudo cargar el riesgo de entrega. Actualice para reintentar.</value></data>
 </root>

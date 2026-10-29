@@ -1531,6 +1531,56 @@ BEGIN
 END;
 GO
 
+-- ===== 자재 LOT 사용 기록 (10-28) =====
+-- 완제품 LOT 이 쓴 자재 LOT 의 단일 기준. 지금은 자동 차감 장부(WH_InventoryTransaction BACKFLUSH·BACKFLUSH_NET,
+-- SourceID = 완제품 tbl_Lot.LotID)에서 만든다 — FIFO 장부상 LOT 이고 실제 투입 스캔이 아니다.
+-- 자재 투입 스캔을 만들면 이 뷰만 그 기록으로 바꾸거나 UNION 하면 된다(QC-TRC 프로시저는 이 뷰만 읽는다).
+-- Qty 는 사용량(+). 자리표시(BF-) 행은 차감 − 메우기라 합이 아직 실물 LOT 을 모르는 양(Basis UNRESOLVED)이다.
+-- 메우기 행은 부족을 만든 원래 LOT 으로 기록된다(BackflushRepository, 10-28 — 그 전 행은 메운 LOT 쪽에 남아 있다).
+CREATE OR ALTER VIEW dbo.VW_MaterialLotUsage
+AS
+SELECT t.SourceID      AS FinishedLotID,
+       t.PartNo,
+       t.LotNo         AS MaterialLotNo,
+       -t.QtyChange    AS Qty,
+       t.LocationNo,
+       t.TransactionTime AS UsedAt,
+       CAST(CASE WHEN t.LotNo LIKE 'BF-%' THEN 'UNRESOLVED' ELSE 'LEDGER' END AS VARCHAR(10)) AS Basis,
+       t.TransactionID
+FROM   dbo.WH_InventoryTransaction t
+WHERE  t.SourceID IS NOT NULL
+  AND ((t.SourceType = 'BACKFLUSH' AND t.TransactionType = 'OUT') OR t.SourceType = 'BACKFLUSH_NET');
+GO
+
+-- ===== Qc.TraceMaterialLot (QC, 10-28) =====
+-- 자재 LOT(WH_Inventory.LotNo) → 그 LOT 을 쓴 완제품 LOT. tbl_Lot 에 없는 코드일 때 QC-TRC 가 부른다.
+CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_TraceMaterialLot
+    @M NVARCHAR(50)
+AS
+BEGIN
+    SELECT r.Kind, r.RefID, r.Title, r.Subtitle, r.OccurredAt
+    FROM  (SELECT TOP 1 'MATLOT' AS Kind, t.LotNo AS RefID, t.PartNo AS Title,
+                  CONCAT(ISNULL(i.ItemName, ''), ' · ', ISNULL(w.LocationNo, '—'), ' · ',
+                         CAST(CAST(ISNULL(w.Qty, 0) AS DECIMAL(18,3)) AS FLOAT)) AS Subtitle,
+                  w.ReceivedAt AS OccurredAt
+           FROM   dbo.WH_InventoryTransaction t
+           LEFT JOIN dbo.WH_Inventory w ON w.LotNo = t.LotNo
+           LEFT JOIN dbo.MD_Item i ON i.ItemNo = t.PartNo
+           WHERE  t.LotNo = @M
+           ORDER  BY t.TransactionID) r
+
+    UNION ALL
+    SELECT 'LOT', CAST(l.LotID AS VARCHAR(24)), l.LotCode,
+           CONCAT(l.ItemNo, ' · ', CAST(CAST(SUM(u.Qty) AS DECIMAL(18,3)) AS FLOAT), ' ', MAX(u.PartNo), ' · ', ISNULL(l.Status,'')),
+           MAX(u.UsedAt)
+    FROM   dbo.VW_MaterialLotUsage u
+    JOIN   dbo.tbl_Lot l ON l.LotID = u.FinishedLotID
+    WHERE  u.MaterialLotNo = @M
+    GROUP  BY l.LotID, l.LotCode, l.ItemNo, l.Status
+    HAVING SUM(u.Qty) > 0;
+END;
+GO
+
 -- ===== Qc.TraceLot (QC) =====
 CREATE OR ALTER PROCEDURE dbo.SP_POP_QC_TraceLot
     @L INT
@@ -1568,6 +1618,29 @@ BEGIN
     FROM   dbo.tbl_Lot l
     JOIN   dbo.tbl_Lot s ON s.WoID = l.WoID AND s.LotID <> l.LotID
     WHERE  l.LotID = @L
+
+    UNION ALL
+    -- Core LOT this lot was built on (IMG 코어 스캔 — tbl_Lot.ParentLotID) and lots built on this one
+    SELECT 'CORE', CAST(p.LotID AS VARCHAR(24)), p.LotCode,
+           CONCAT(p.ItemNo, ' · ', ISNULL(p.Status,'')), p.ProducedAt
+    FROM   dbo.tbl_Lot l JOIN dbo.tbl_Lot p ON p.LotID = l.ParentLotID
+    WHERE  l.LotID = @L
+
+    UNION ALL
+    SELECT 'USED-IN', CAST(c.LotID AS VARCHAR(24)), c.LotCode,
+           CONCAT(c.ItemNo, ' · ', ISNULL(c.Status,'')), c.ProducedAt
+    FROM   dbo.tbl_Lot c WHERE c.ParentLotID = @L
+
+    UNION ALL
+    -- Material LOTs consumed (VW_MaterialLotUsage — 자재 LOT 추적의 단일 기준). 자리표시(BF-)에 남은 양은 자재 LOT 미확정
+    SELECT CASE WHEN u.Basis = 'UNRESOLVED' THEN 'MAT-SHORT' ELSE 'MATERIAL' END,
+           u.MaterialLotNo, u.PartNo,
+           CONCAT(CAST(CAST(SUM(u.Qty) AS DECIMAL(18,3)) AS FLOAT), ' · ', MAX(u.LocationNo), ' · ', u.Basis),
+           MAX(u.UsedAt)
+    FROM   dbo.VW_MaterialLotUsage u
+    WHERE  u.FinishedLotID = @L
+    GROUP  BY u.MaterialLotNo, u.PartNo, u.Basis
+    HAVING SUM(u.Qty) > 0
 
     UNION ALL
     -- NCRs touching this lot

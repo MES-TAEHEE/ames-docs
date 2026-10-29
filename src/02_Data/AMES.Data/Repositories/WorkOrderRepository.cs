@@ -35,6 +35,13 @@ public sealed class WorkOrderRepository
     {
         public bool LacksPrefix(string? lineId)
             => lineId is not null && NoPrefixLines is not null && NoPrefixLines.Contains(lineId, StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>그 공정의 활성 라인이 전부 LOT PREFIX 없음이라 지정할 라인이 없다 — PP-003 이 그 수주를 NoLotPrefix 로 뺀다(10-29).</summary>
+        public bool OnlyNoPrefixLines => LineRequired && Candidates.Count == 0 && NoPrefixLines is { Count: > 0 };
+
+        /// <summary>이 단계를 lineId 로 생산할 수 없는 이유가 LOT PREFIX 다 — 접두어 없는 라인 지정, 또는 지정할 라인이 접두어 없는 라인뿐.</summary>
+        public bool BlockedByPrefix(string? lineId)
+            => LacksPrefix(lineId) || (string.IsNullOrEmpty(lineId) && OnlyNoPrefixLines);
     }
 
     /// <summary>LOT 을 발행하는 공정 단계에 LOT PREFIX 없는 라인을 지정했다(10-23, LotPrefixRules).</summary>

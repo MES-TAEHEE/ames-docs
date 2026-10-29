@@ -5244,11 +5244,26 @@
   <data name="PP.PlanConfirm.Dlg.Warn.NoCore" xml:space="preserve">
     <value>코어 품번을 정할 수 없어 제외된 수주 {0}건 — BOM 하위에 품명이 CORE 로 시작하는 SUB 품목이 없거나 둘 이상. MD-004 BOM 을 고친 뒤 다시 실행</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoLotPrefix" xml:space="preserve">
+    <value>LOT PREFIX 미등록 — 생산 불가</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoLotPrefix" xml:space="preserve">
+    <value>LOT 을 발행하는 공정의 라인이 모두 LOT PREFIX 미등록이라 제외된 수주 {0}건 — MD-001 에서 그 라인의 LOT PREFIX 를 등록한 뒤 다시 실행</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
     <value>교체 {0}분</value>
   </data>
   <data name="PP.PlanConfirm.Ok.Rejected" xml:space="preserve">
-    <value>금형 미등록으로 제외 {0}건</value>
+    <value>생성 제외 {0}건 — {1}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoMold" xml:space="preserve">
+    <value>금형 미등록 {0}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoCore" xml:space="preserve">
+    <value>코어 불명 {0}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoLotPrefix" xml:space="preserve">
+    <value>LOT PREFIX 미등록 {0}</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
     <value>라인이 지정되지 않은 단계가 있습니다.</value>
@@ -12706,4 +12721,15 @@
   <data name="WH.LocMap.LineArea" xml:space="preserve">
     <value>라인 구역</value>
   </data>
+  <data name="FG.DueRisk.Title" xml:space="preserve"><value>납기 위험</value></data>
+  <data name="FG.DueRisk.None" xml:space="preserve"><value>—</value></data>
+  <data name="FG.DueRisk.Normal" xml:space="preserve"><value>정상</value></data>
+  <data name="FG.DueRisk.DueSoon" xml:space="preserve"><value>출하 임박</value></data>
+  <data name="FG.DueRisk.Overdue" xml:space="preserve"><value>납기 초과</value></data>
+  <data name="FG.DueRisk.Unknown" xml:space="preserve"><value>판정 불가</value></data>
+  <data name="FG.DueRisk.Ordered" xml:space="preserve"><value>주문 수량</value></data>
+  <data name="FG.DueRisk.Shipped" xml:space="preserve"><value>출하 수량</value></data>
+  <data name="FG.DueRisk.Remaining" xml:space="preserve"><value>미출하 잔량</value></data>
+  <data name="FG.DueRisk.Basis" xml:space="preserve"><value>출하 오더 미생성 수주를 포함한 전체 미출하 수주입니다. 기준일 {0}, 출하 임박: 오늘~{1}(다음 공장 근무일). 출하 확정 수량만 잔량에서 차감합니다.</value></data>
+  <data name="FG.DueRisk.LoadFailed" xml:space="preserve"><value>납기 위험을 불러오지 못했습니다. 새로고침해 주세요.</value></data>
 </root>

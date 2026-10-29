@@ -213,6 +213,9 @@ internal static class OfflineQc
     public static List<QcTraceNodeDto> TraceLot(int lotId)
         => OfflineReads.Get($"qc.trace.{lotId}", () => PopServices.Qc.TraceLot(lotId), new List<QcTraceNodeDto>());
 
+    public static List<QcTraceNodeDto> TraceMaterialLot(string materialLotNo)
+        => OfflineReads.Get($"qc.mattrace.{materialLotNo.ToUpperInvariant()}", () => PopServices.Qc.TraceMaterialLot(materialLotNo), new List<QcTraceNodeDto>());
+
     // ── 복구 때 반영 ────────────────────────────────────────────────────
 
     public static string? Apply(WorkOp op)

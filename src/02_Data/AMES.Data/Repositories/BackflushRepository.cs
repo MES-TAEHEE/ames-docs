@@ -73,12 +73,17 @@ public static class BackflushRepository
             var phQty = ReadLotQty(conn, tx, ph);
             var alloc = BackflushRules.Allocate(req.Qty, fifo, phQty ?? 0m);
 
-            foreach (var n in alloc.Nets)
+            // 메우기 행의 SourceID 는 부족을 만든 원래 LOT — 메운 실물 LOT 이 그 LOT 의 자재 LOT 으로 잡힌다(VW_MaterialLotUsage)
+            var owned = alloc.Nets.Count == 0 ? Array.Empty<BackflushNetOwned>()
+                      : BackflushRules.AssignNetOwners(alloc.Nets, ReadPlaceholderOwners(conn, tx, ph), phQty ?? 0m,
+                                                       new BackflushOwner(lotId, lotCode, 0m));
+            foreach (var n in owned)
             {
+                var by = n.Owner.LotId == lotId ? "" : $" (by {lotCode})";
                 var (before, after) = AdjustLot(conn, tx, n.LotNo, -n.Qty);
-                WriteTxn(conn, tx, "ADJ", NetSourceType, lotId, n.LotNo, req.PartNo, locations[n.LotNo], before, -n.Qty, after, $"net {ph} ← {lotCode}", operatorId, employeeNo);
+                WriteTxn(conn, tx, "ADJ", NetSourceType, n.Owner.LotId, n.LotNo, req.PartNo, locations[n.LotNo], before, -n.Qty, after, $"net {ph} ← {n.Owner.LotCode}{by}", operatorId, employeeNo);
                 var (pb, pa) = EnsurePlaceholder(conn, tx, ph, req.PartNo, prefix, ref phQty, +n.Qty);
-                WriteTxn(conn, tx, "ADJ", NetSourceType, lotId, ph, req.PartNo, prefix, pb, +n.Qty, pa, $"net ← {n.LotNo}", operatorId, employeeNo);
+                WriteTxn(conn, tx, "ADJ", NetSourceType, n.Owner.LotId, ph, req.PartNo, prefix, pb, +n.Qty, pa, $"net ← {n.LotNo}{by}", operatorId, employeeNo);
             }
             foreach (var t in alloc.Takes)
             {
@@ -145,6 +150,32 @@ public static class BackflushRepository
         using var rdr = cmd.ExecuteReader();
         var list = new List<BackflushLot>();
         while (rdr.Read()) list.Add(new BackflushLot((string)rdr["LotNo"], (decimal)rdr["Qty"],rdr["LocationNo"] as string));
+        return list;
+    }
+
+    /// <summary>
+    /// 자리표시에서 뺀 LOT 별 덜 메워진 양(오래된 순). 차감 OUT 은 −, 메우기의 자리표시 + 행은 + 라 −합이 남은 양이다.
+    /// 자리표시 행은 ReadLotQty 가 이미 잠가 두어 같은 자리표시의 거래가 이 사이에 늘지 않는다.
+    /// </summary>
+    internal const string ReadPlaceholderOwnersSql = """
+        SELECT t.SourceID AS LotID, ISNULL(l.LotCode, CAST(t.SourceID AS varchar(24))) AS LotCode,
+               -SUM(t.QtyChange) AS Owed, MIN(t.TransactionID) AS FirstTxn
+        FROM   dbo.WH_InventoryTransaction t
+        LEFT JOIN dbo.tbl_Lot l ON l.LotID = t.SourceID
+        WHERE  t.LotNo = @Ph AND t.SourceID IS NOT NULL
+          AND ((t.SourceType = 'BACKFLUSH' AND t.TransactionType = 'OUT') OR t.SourceType = 'BACKFLUSH_NET')
+        GROUP  BY t.SourceID, l.LotCode
+        HAVING -SUM(t.QtyChange) > 0
+        ORDER  BY MIN(t.TransactionID);
+        """;
+
+    static List<BackflushOwner> ReadPlaceholderOwners(SqlConnection conn, SqlTransaction tx, string placeholder)
+    {
+        using var cmd = new SqlCommand(ReadPlaceholderOwnersSql, conn, tx);
+        ColumnParams.AddFilter(cmd, "@Ph", "WH_InventoryTransaction.LotNo", placeholder);
+        using var rdr = cmd.ExecuteReader();
+        var list = new List<BackflushOwner>();
+        while (rdr.Read()) list.Add(new BackflushOwner(Convert.ToInt32(rdr["LotID"]), (string)rdr["LotCode"], Convert.ToDecimal(rdr["Owed"])));
         return list;
     }
 

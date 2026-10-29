@@ -175,7 +175,7 @@ public sealed partial class FinishedGoodsRepository
         return new(type,customer,rows);
     }
 
-    public ShippingDeliveryDto LoadShippingDelivery(string deliveryBarcode,string palletBarcode,string actor)
+    public ShippingDeliveryDto LoadShippingDelivery(string deliveryBarcode,string palletBarcode,string actor,bool allowNonFifo=false)
     {
         CheckActor(actor);if(string.IsNullOrWhiteSpace(palletBarcode))throw new ArgumentException("Scan a pallet barcode.");palletBarcode=palletBarcode.Trim();
         using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
@@ -186,6 +186,8 @@ public sealed partial class FinishedGoodsRepository
         if(unit.Customer is not null && unit.Customer!=delivery.CustomerId)throw new InvalidOperationException("The pallet customer does not match this delivery.");
         var error=ValidateDeliveryLoad(delivery.Parts,unit.Items);
         if(error is not null)throw new InvalidOperationException(error);
+        if(!allowNonFifo && FinishedGoodsFifo.Check(conn,tx,palletBarcode,delivery.CustomerId) is {Count:>0} warnings)
+            throw new FifoConfirmationRequiredException(warnings);
         foreach(var item in unit.Items)
         {
             using var cmd=new SqlCommand("""
@@ -227,13 +229,18 @@ public sealed partial class FinishedGoodsRepository
         var result=ReadDelivery(conn,tx,delivery.DeliveryNo);tx.Commit();return result;
     }
 
-    public ShippingDeliveryDto CompleteShippingDelivery(string barcode,string actor)
+    public ShippingDeliveryDto CompleteShippingDelivery(string barcode,string actor,bool allowNonFifo=false)
     {
         CheckActor(actor);
         using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
         var delivery=ReadDelivery(conn,tx,barcode);
         if(delivery.Status=="Shipped") {tx.Commit();return delivery;}
         if(delivery.Parts.Count==0 || delivery.Parts.Any(x=>x.RequiredQty!=x.LoadedQty))throw new InvalidOperationException("Load the exact required quantity for every part before confirming shipment.");
+        if(!allowNonFifo)
+        {
+            var warnings=FinishedGoodsFifo.Check(conn,tx,"",delivery.CustomerId,delivery.DeliveryId);
+            if(warnings.Count>0)throw new FifoConfirmationRequiredException(warnings);
+        }
         foreach(var root in delivery.Loads.GroupBy(x=>x.RootLotNo))
         {
             var current=ReadLoadUnit(conn,tx,root.Key);
