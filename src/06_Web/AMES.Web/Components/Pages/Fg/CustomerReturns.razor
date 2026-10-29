@@ -80,8 +80,8 @@
                 <div><span>@L["FG.Returns.Lbl.InspectedAt"]</span><strong>@(_detail.ClosedAt?.ToString(DateFmt.DateTime) ?? "-")</strong></div>
                 <div><span>@L["FG.Returns.Lbl.InspectedBy"]</span><strong>@(_detail.ClosedBy ?? "-")</strong></div>
             </div>
-            @if(!string.IsNullOrWhiteSpace(_detail.Note)){<div><span>@L["Col.Note"]</span><p>@_detail.Note</p></div>}
-            @if(!string.IsNullOrWhiteSpace(_detail.InspectionNote)){<div><span>@L["FG.Returns.Lbl.InspectionNote"]</span><p>@_detail.InspectionNote</p></div>}
+            @if(!string.IsNullOrWhiteSpace(_detail.Note)){<div><span>@L["Col.Note"]</span><p class="fg-return-note">@_detail.Note</p></div>}
+            @if(!string.IsNullOrWhiteSpace(_detail.InspectionNote)){<div><span>@L["FG.Returns.Lbl.InspectionNote"]</span><p class="fg-return-note">@_detail.InspectionNote</p></div>}
             @if (FinishedGoodsRepository.IsReturnAwaitingInspection(_detail.Status))
             {
                 <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@L["FG.Returns.Msg.Awaiting"]</RadzenAlert>

@@ -4717,6 +4717,7 @@ html[data-theme="light"] .wh-location-directory-card:hover { background: rgba(37
 .fg-return-detail-grid > div { display: flex; min-width: 0; flex-direction: column; gap: 5px; padding: 10px 12px; border: 1px solid rgba(148,163,184,.18); border-radius: 7px; background: rgba(15,23,42,.34); }
 .fg-return-detail-grid span { color: var(--ames-tx-blue-300); font-size: .68rem; font-weight: 800; text-transform: uppercase; }
 .fg-return-detail-grid strong { overflow-wrap: anywhere; color: var(--ames-tx-slate-50); font-size: .82rem; }
+.fg-return-note { white-space: pre-wrap; overflow-wrap: anywhere; }
 .fg-return-json { margin-top: 12px; }
 .fg-return-json > span { color: var(--ames-tx-blue-300); font-size: .68rem; font-weight: 800; }
 .fg-return-json pre { max-height: 180px; margin: 6px 0 0; overflow: auto; padding: 11px; color: var(--ames-tx-slate-300); font-size: .72rem; white-space: pre-wrap; border: 1px solid rgba(148,163,184,.18); border-radius: 7px; background: var(--ames-sf-07101f); }
