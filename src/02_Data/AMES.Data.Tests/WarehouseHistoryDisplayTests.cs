@@ -42,6 +42,32 @@ public sealed class WarehouseHistoryDisplayTests
         => Assert.Equal(1, HistoryPage.CountEvents([Row("STATUS_CHANGE", "CREATED -> " + status)], "INBOUND"));
 
     [Fact]
+    public void Five_activity_types_use_distinct_shared_theme_aware_badges()
+    {
+        var styles = new[] { "RECEIVE", "CANCEL_RECEIPT", "RELEASE_PICK", "ADJUST_SAVE", "MOVE_LOCATION" }
+            .Select(type => HistoryPage.EventClass(Row(type))).ToArray();
+        Assert.Equal(new[] { "ok", "bad", "warn", "orange", "info" }, styles);
+        Assert.Equal(5, styles.Distinct().Count());
+
+        var css = Read("src/06_Web/AMES.Web/wwwroot/app.css");
+        foreach (var style in styles)
+        {
+            var rule = System.Text.RegularExpressions.Regex.Match(css, @"\.pill\." + style + @"\s*\{[^}]+\}").Value;
+            Assert.NotEmpty(rule);
+            Assert.Contains("color: var(--ames-tx-", rule);
+        }
+    }
+
+    [Theory]
+    [InlineData("receive", "ok")]
+    [InlineData("cancel_receipt", "bad")]
+    [InlineData("release_pick", "warn")]
+    [InlineData("adjust_save", "orange")]
+    [InlineData("move_location", "info")]
+    public void Badge_mapping_is_case_insensitive(string type, string expected)
+        => Assert.Equal(expected, HistoryPage.EventClass(Row(type)));
+
+    [Fact]
     public void Page_uses_the_tested_counter_and_badge_mapping()
     {
         var page = Read("src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor");

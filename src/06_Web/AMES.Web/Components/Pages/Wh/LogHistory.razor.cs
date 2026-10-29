@@ -27,8 +27,8 @@ public partial class LogHistory
         }
         if (upper.Contains("RECEIVE")) return "ok";
         if (upper.Contains("RELEASE")) return "warn";
-        if (upper.Contains("ADJUST")) return "bad";
-        if (upper.Contains("LOCATION")) return "ok";
+        if (upper.Contains("ADJUST")) return "orange";
+        if (upper.Contains("LOCATION")) return "info";
         return "ghost";
     }
 
