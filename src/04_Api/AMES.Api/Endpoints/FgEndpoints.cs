@@ -54,8 +54,8 @@ public static partial class FgEndpoints
     public sealed record OutboundUnitRow(string OutboundBarcode, string UnitType, string? LocationNo,
         decimal TotalQty, int ItemCount, List<OutboundUnitItemRow> Items, string? CustomerId = null, string? CustomerName = null);
     public sealed record OutboundUnitResult(bool Success, string Message, OutboundUnitRow? Unit,
-        int ProcessedCount = 0, int? ShipmentId = null);
-    public sealed record OutboundUnitReq(string Barcode, string? CustomerId = null);
+        int ProcessedCount = 0, int? ShipmentId = null, List<FifoWarningDto>? FifoWarnings = null);
+    public sealed record OutboundUnitReq(string Barcode, string? CustomerId = null, bool AllowNonFifo = false);
     public sealed record OutboundCustomerRow(string CustomerId, string CustomerName);
     public sealed record ReturnReq(string Barcode, string ReturnReason, string? Note);
 
@@ -455,9 +455,11 @@ public static partial class FgEndpoints
                             GetString(rdr, "LocationNo")));
                     }
                 }
+                rdr.Close();
+                var warnings = FinishedGoodsFifo.Check(conn, null, normalized, customerId);
                 return Results.Ok(new OutboundUnitResult(true,
                     $"{unitType} loaded. {itemCount} inventory LOT(s) are ready for outbound.",
-                    new OutboundUnitRow(outboundBarcode, unitType, locationNo, totalQty, itemCount, items, customerId, customerName)));
+                    new OutboundUnitRow(outboundBarcode, unitType, locationNo, totalQty, itemCount, items, customerId, customerName), FifoWarnings: warnings));
             }
             catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020 or 52614)
             {
@@ -485,6 +487,7 @@ public static partial class FgEndpoints
                 using var tx = conn.BeginTransaction();
                 if (FindOutboundStockError(conn, tx, normalized) is { } stockError)
                     return Results.BadRequest(new OutboundUnitResult(false, stockError, null));
+                FinishedGoodsFifo.RequireConfirmation(conn, tx, normalized, body.CustomerId, body.AllowNonFifo);
                 using var cmd = new SqlCommand(PdaFinishedGoodsSql.OutboundComplete, conn)
                 {
                     Transaction = tx,
@@ -508,6 +511,10 @@ public static partial class FgEndpoints
                 tx.Commit();
                 return Results.Ok(new OutboundUnitResult(true,
                     $"Shipment #{shipmentId}: {unitType}, {processed} inventory LOT(s), {totalQty:N0} EA processed.", null, processed, shipmentId));
+            }
+            catch (FifoConfirmationRequiredException ex)
+            {
+                return Results.Ok(new OutboundUnitResult(false, ex.Message, null, FifoWarnings: ex.Warnings));
             }
             catch (SqlException ex) when (ex.Number is >= 52000 and <= 52020 or 52614)
             {

@@ -39,7 +39,7 @@ public static class ShippingEndpoints
         group.MapPost("/load",(HttpContext ctx,DeliveryLoadRequest body)=>
         {
             if(ctx.GetSession() is not {} session)return Results.Unauthorized();
-            return Run(app,()=>new FinishedGoodsRepository(factory).LoadShippingDelivery(body.DeliveryBarcode,body.PalletBarcode,session.OperatorId));
+            return Run(app,()=>new FinishedGoodsRepository(factory).LoadShippingDelivery(body.DeliveryBarcode,body.PalletBarcode,session.OperatorId,body.AllowNonFifo));
         });
         group.MapPost("/unload",(HttpContext ctx,DeliveryLoadRequest body)=>
         {
@@ -49,12 +49,14 @@ public static class ShippingEndpoints
         group.MapPost("/complete",(HttpContext ctx,DeliveryCompleteRequest body)=>
         {
             if(ctx.GetSession() is not {} session)return Results.Unauthorized();
-            return Run(app,()=>new FinishedGoodsRepository(factory).CompleteShippingDelivery(body.DeliveryBarcode,session.OperatorId));
+            return Run(app,()=>new FinishedGoodsRepository(factory).CompleteShippingDelivery(body.DeliveryBarcode,session.OperatorId,body.AllowNonFifo));
         });
     }
     private static IResult Run(WebApplication app,Func<ShippingDeliveryDto> action)
     {
         try{return Results.Ok(new ShippingActionResult(true,"Saved.",action()));}
+        catch(FifoConfirmationRequiredException ex)
+        {return Results.Ok(new ShippingActionResult(false,ex.Message,FifoWarnings:ex.Warnings));}
         catch(Exception ex) when(ex is ArgumentException or InvalidOperationException || ex is SqlException sql && sql.Number is >=51000 and <=52999)
         {return Results.BadRequest(new ShippingActionResult(false,ex.Message));}
         catch(Exception ex)

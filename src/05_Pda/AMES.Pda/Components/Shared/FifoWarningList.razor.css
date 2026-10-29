@@ -1,0 +1,3 @@
+.fifo-warning-list { max-height: 32vh; overflow-y: auto; text-align: left; overflow-wrap: anywhere; }
+.fifo-warning-list p { margin: 0 0 10px; }
+.fifo-warning-list > div { border-top: 1px solid currentColor; padding: 8px 0; }
