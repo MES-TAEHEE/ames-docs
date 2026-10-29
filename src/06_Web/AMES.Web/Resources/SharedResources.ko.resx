@@ -1672,7 +1672,7 @@
     <value>PP-004 →</value>
   </data>
   <data name="PP.Calendar.Modal.Reschedule" xml:space="preserve">
-    <value>납기 변경 — 라인장 PIN</value>
+    <value>납기 변경 — 본인 PIN 확인</value>
   </data>
   <data name="PP.Calendar.Lbl.WoNo" xml:space="preserve">
     <value>WO:</value>
@@ -1712,6 +1712,12 @@
   </data>
   <data name="PP.Calendar.Legend.Draft" xml:space="preserve">
     <value>Draft/INJ</value>
+  </data>
+  <data name="PP.Calendar.Filter.AllLines" xml:space="preserve">
+    <value>전체 라인</value>
+  </data>
+  <data name="PP.Calendar.Legend.Done" xml:space="preserve">
+    <value>완료·종료</value>
   </data>
   <data name="PP.Calendar.DdTxt.None" xml:space="preserve">
     <value>납기 없음</value>

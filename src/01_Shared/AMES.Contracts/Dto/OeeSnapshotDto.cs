@@ -29,6 +29,8 @@ public class OeeSnapshotDto
 
     public DateTime? CreatedTs { get; set; }
     public string?   CreatedBy { get; set; }
+    /// <summary>마지막 저장 시각 — 자동 집계가 값을 갱신하면 ModifiedTS, 아니면 CreatedTS</summary>
+    public DateTime? SavedTs   { get; set; }
 
     /// <summary>계산 시 BOP 표준 사이클이 없어 P 를 100% 로 간주한 결과</summary>
     public bool PerformanceAssumed { get; set; }

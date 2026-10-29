@@ -29,14 +29,14 @@
     <div class="ames-kpi bad">
         <div class="ames-kpi-l">@L["PP.Calendar.Kpi.D3"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d >= 0 && d <= 3)</div>
+            <div class="ames-kpi-v">@_all.Count(w => !WoStatusRules.IsFinished(w.Status) && w.DaysToDue is { } d && d >= 0 && d <= 3)</div>
             <div class="ames-kpi-s">@L["PP.Calendar.Kpi.D3Sub"]</div>
         </div>
     </div>
     <div class="ames-kpi warn">
         <div class="ames-kpi-l">@L["PP.Calendar.Kpi.Late"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v">@_all.Count(w => w.DaysToDue is { } d && d < 0)</div>
+            <div class="ames-kpi-v">@_all.Count(w => !WoStatusRules.IsFinished(w.Status) && w.DaysToDue is { } d && d < 0)</div>
             <div class="ames-kpi-s">@L["PP.Calendar.Kpi.LateSub"]</div>
         </div>
     </div>
@@ -259,7 +259,7 @@
                     <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));"> (@d.ItemNo)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Line"]</div>
-                <div class="code">@d.LineId</div>
+                <div class="code">@(d.RouteLines ?? "—")</div>
                 <div class="ames-detail-label">@L["Col.Routing"]</div>
                 <div>
                     @if (d.RoutingType == "A")
@@ -349,6 +349,8 @@
     Dictionary<DateTime, List<WorkOrderDto>> _byDue = [];
     string  _fRouting = "";
     string  _fStatus  = "";
+    string  _fLine    = "";
+    List<MasterDataRepository.LineRow> _lines = new();
     string? _err;
     List<MasterDataRepository.CodeItemRow> _routingItems = new();
 
@@ -383,6 +385,24 @@
         }
     }
 
+    // 라인 정본은 WO 공정 단계 행이라 단계 라인 목록(RouteLines)으로 거른다
+    List<DropDownItem> LineOptions
+    {
+        get
+        {
+            var list = new List<DropDownItem> { new() { Value = "", Text = L["PP.Calendar.Filter.AllLines"].Value } };
+            list.AddRange(_lines.Select(l => new DropDownItem
+            {
+                Value = l.LineID,
+                Text  = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]"
+            }));
+            return list;
+        }
+    }
+
+    static bool OnLine(WorkOrderDto w, string lineId) =>
+        (w.RouteLines ?? "").Split(" → ").Any(x => x == lineId);
+
     // RoutingType 코드 → 공통코드 명칭(없으면 코드)
     string RoutingLabel(string code) =>
         _routingItems.FirstOrDefault(r => r.CodeValue == code) is { } ci ? MasterDataRepository.LocalName(ci) : code;
@@ -411,6 +431,7 @@
     RenderFragment FilterBar() =>
     @<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <RadzenButton Text="@L["PP.Calendar.Btn.Today"]" Icon="done" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@GoToday" class="ames-rz-btn" />
+        <RadzenDropDown TValue="string" @bind-Value="_fLine" @bind-Value:after="RebuildByDue" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px;" />
         <RadzenDropDown TValue="string" @bind-Value="_fRouting" @bind-Value:after="RebuildByDue" Data="@RoutingOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
         <RadzenDropDown TValue="string" @bind-Value="_fStatus" @bind-Value:after="RebuildByDue" Data="@StatusFilterOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px;" />
         <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
@@ -432,6 +453,7 @@
         _canEdit = PermSvc.CanEdit(Href);
 
         try { _routingItems = MD.ListCodeItems("ROUTING"); } catch { }
+        try { var rwk = MD.ReworkLineIds(); _lines = MD.ListLines().Where(l => !rwk.Contains(l.LineID)).ToList(); } catch { }
         Reload();
     }
 
@@ -450,6 +472,7 @@
             .Where(w => string.IsNullOrEmpty(_fRouting) ||
                         (_fRouting == "INJ" ? w.RoutingType is null : w.RoutingType == _fRouting))
             .Where(w => string.IsNullOrEmpty(_fStatus) || w.Status == _fStatus)
+            .Where(w => string.IsNullOrEmpty(_fLine) || OnLine(w, _fLine))
             .GroupBy(w => w.DueDate!.Value.Date)
             .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Priority).ThenBy(x => x.WoId).ToList());
     }
@@ -544,6 +567,8 @@
 
     static string GetWoCls(WorkOrderDto w)
     {
+        // 끝난 WO 는 납기가 지나도 연체가 아니다
+        if (WoStatusRules.IsFinished(w.Status)) return "wo-done";
         var days = w.DaysToDue;
         if (days is { } d)
         {
@@ -590,7 +615,8 @@
             (L["PP.Calendar.Legend.RoutingA"].Value, "wo-rta"),
             (L["PP.Calendar.Legend.RoutingB"].Value, "wo-rtb"),
             (StatusText("Released"),                "wo-rel"),
-            (L["PP.Calendar.Legend.Draft"].Value,    "wo-draft")
+            (L["PP.Calendar.Legend.Draft"].Value,    "wo-draft"),
+            (L["PP.Calendar.Legend.Done"].Value,     "wo-done")
         };
         foreach (var (lbl, cls) in items)
         {

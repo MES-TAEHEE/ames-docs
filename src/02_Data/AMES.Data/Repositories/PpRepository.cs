@@ -101,7 +101,8 @@ public sealed partial class PpRepository
 
     public sealed record DowntimeRow(int DowntimeId, string? LineId, DateTime? StartTs, DateTime? EndTs,
         int DurationMin, string? ReasonCode, string? CauseCode, string? Comment, int? WoId, int? AndonId = null,
-        int? FailureId = null, string? FailureNumber = null)   // 보전 고장의 「라인 정지」가 연 행(10-16)
+        int? FailureId = null, string? FailureNumber = null,   // 보전 고장의 「라인 정지」가 연 행(10-16)
+        string? WoNumber = null)
     {
         public bool IsPop    => AMES.Data.Services.DowntimeEntryRules.IsPopRow(AndonId);
         public bool IsMaint  => FailureId is not null;
@@ -1770,9 +1771,10 @@ public sealed partial class PpRepository
         var sql = $"""
             SELECT TOP (@Limit) d.DowntimeID, d.LineID, d.StartTS, d.EndTS,
                    ISNULL(d.DurationMin,0) AS DurationMin,
-                   d.ReasonCode, d.CauseCode, d.Comment, d.WoID, d.AndonID, d.FailureID, f.FailureNumber
+                   d.ReasonCode, d.CauseCode, d.Comment, d.WoID, d.AndonID, d.FailureID, f.FailureNumber, wo.WoNumber
             FROM   dbo.PP_LineDowntimeLog d
             LEFT JOIN dbo.MNT_FailureRegister f ON f.FailureID = d.FailureID
+            LEFT JOIN dbo.PP_WorkOrder wo ON wo.WoID = d.WoID
             WHERE  {NotReworkLine("d.LineID")}
             {(lineId     != null ? "AND d.LineID     = @LineId "      : "")}
             {(from       != null ? "AND d.StartTS   >= @From "        : "")}
@@ -1798,7 +1800,8 @@ public sealed partial class PpRepository
                 (int)rdr["DurationMin"], rdr["ReasonCode"] as string,
                 rdr["CauseCode"] as string, rdr["Comment"] as string,
                 rdr["WoID"] as int?, rdr["AndonID"] as int?,
-                rdr["FailureID"] as int?, rdr["FailureNumber"] as string));
+                rdr["FailureID"] as int?, rdr["FailureNumber"] as string,
+                rdr["WoNumber"] as string));
         return list;
     }
 
@@ -1930,7 +1933,10 @@ public sealed partial class PpRepository
         cmd.Parameters.Add("@By",      SqlDbType.VarChar,   20).Value  = string.IsNullOrWhiteSpace(actor) ? "web" : actor;
     }
 
-    /// <summary>PP-DTL 사유 필터 옵션 — 공통코드 그룹이 없어 실데이터의 DISTINCT 값을 쓴다.</summary>
+    /// <summary>비가동 사유(PP_LineDowntimeLog.ReasonCode) 공통코드 그룹 — 웹 등록·수정 콤보(10-29, migrate_pp_downtime_reason_code.sql).</summary>
+    public const string DowntimeReasonGroup = "DOWNTIME_REASON";
+
+    /// <summary>PP-DTL 사유 필터 보조 — 이력에 쓰인 사유(공통코드에서 빠진 옛 값도 조회되게).</summary>
     public List<string> ListDowntimeReasons()
     {
         const string sql = """

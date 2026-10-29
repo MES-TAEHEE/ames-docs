@@ -73,7 +73,7 @@ public sealed class OeeRepository
                    ISNULL(Performance,0)      AS Performance,
                    ISNULL(Quality,0)          AS Quality,
                    ISNULL(OEE,0)              AS OEE,
-                   CreatedTS, CreatedBy
+                   CreatedTS, CreatedBy, ISNULL(ModifiedTS, CreatedTS) AS SavedTS
             FROM   dbo.PP_LineOEE
             WHERE  PeriodDate BETWEEN @From AND @To
               AND  (@Shift IS NULL OR ShiftCode = @Shift)
@@ -105,6 +105,7 @@ public sealed class OeeRepository
         Oee              = Pct((decimal)r["OEE"]),
         CreatedTs        = r["CreatedTS"] as DateTime?,
         CreatedBy        = r["CreatedBy"] as string,
+        SavedTs          = r["SavedTS"] as DateTime?,
     };
 
     static decimal Pct(decimal fraction) => Math.Round(fraction * 100m, 2);
@@ -132,7 +133,7 @@ public sealed class OeeRepository
                    ISNULL(Performance,0)      AS Performance,
                    ISNULL(Quality,0)          AS Quality,
                    ISNULL(OEE,0)              AS OEE,
-                   CreatedTS, CreatedBy
+                   CreatedTS, CreatedBy, ISNULL(ModifiedTS, CreatedTS) AS SavedTS
             FROM   dbo.PP_LineOEE WITH (UPDLOCK, HOLDLOCK)
             WHERE  LineID=@Line AND PeriodDate=@Date
               AND  ((ShiftCode IS NULL AND @Shift IS NULL) OR ShiftCode=@Shift)

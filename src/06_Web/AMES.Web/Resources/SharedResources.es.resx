@@ -1672,7 +1672,7 @@
     <value>PP-004 →</value>
   </data>
   <data name="PP.Calendar.Modal.Reschedule" xml:space="preserve">
-    <value>Reprogramar — PIN de Supervisor</value>
+    <value>Reprogramar — Confirme su PIN</value>
   </data>
   <data name="PP.Calendar.Lbl.WoNo" xml:space="preserve">
     <value>OT:</value>
@@ -1712,6 +1712,12 @@
   </data>
   <data name="PP.Calendar.Legend.Draft" xml:space="preserve">
     <value>Borrador/INJ</value>
+  </data>
+  <data name="PP.Calendar.Filter.AllLines" xml:space="preserve">
+    <value>Todas las líneas</value>
+  </data>
+  <data name="PP.Calendar.Legend.Done" xml:space="preserve">
+    <value>Finalizado</value>
   </data>
   <data name="PP.Calendar.DdTxt.None" xml:space="preserve">
     <value>Sin fecha de vencimiento</value>

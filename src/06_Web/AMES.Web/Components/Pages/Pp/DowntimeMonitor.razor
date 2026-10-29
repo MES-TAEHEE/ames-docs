@@ -69,7 +69,8 @@
         <strong>@L["PP.DowntimeMonitor.Alert.Title"]</strong>
         @foreach (var v in alertVms)
         {
-            <a class="odm-alert-chip" href="#line-@v.LineId">@v.LineId · @(v.StateDurationMin)@L["Lbl.Min"]</a>
+            @* 해시 링크는 base href="/" 기준으로 루트로 가므로 같은 화면의 카드로 스크롤만 한다 *@
+            <button type="button" class="odm-alert-chip" onclick="document.getElementById('line-@v.LineId')?.scrollIntoView({behavior:'smooth',block:'center'})">@v.LineId · @(v.StateDurationMin)@L["Lbl.Min"]</button>
         }
     </div>
 }

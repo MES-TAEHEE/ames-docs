@@ -39,7 +39,7 @@
     <div class="ames-kpi">
         <div class="ames-kpi-l">@L["PP.Downtime.Kpi.TopReason"]</div>
         <div class="ames-kpi-row">
-            <div class="ames-kpi-v" style="font-size:20px;">@(TopReason.Code ?? "—")</div>
+            <div class="ames-kpi-v" style="font-size:20px;">@(TopReason.Code is { } tc ? ReasonText(tc) : "—")</div>
             <div class="ames-kpi-s">@(TopReason.Code is null ? "" : $"{TopReason.Min:N0} {L["Lbl.Min"]}")</div>
         </div>
     </div>
@@ -106,14 +106,14 @@
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="130px" Property="ReasonCode" Title="@L["Col.Reason"]" Width="130px" TextAlign="TextAlign.Center">
                 <Template Context="r">
-                    @if (r.ReasonCode is null) { <span class="dim">—</span> } else { <span class="pill @ReasonCls(r.ReasonCode)">@r.ReasonCode</span> }
+                    @if (r.ReasonCode is null) { <span class="dim">—</span> } else { <span class="pill @ReasonCls(r.ReasonCode)" title="@r.ReasonCode">@ReasonText(r.ReasonCode)</span> }
                 </Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="130px" Property="CauseCode" Title="@L["Col.Cause"]" Width="130px">
                 <Template Context="r"><span class="dim" style="white-space:nowrap;" title="@r.CauseCode">@(r.CauseCode is null ? "—" : CauseText(r.CauseCode))</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="90px" Property="WoId" Title="@L["Col.WO"]" Width="90px" TextAlign="TextAlign.Center">
-                <Template Context="r"><span class="code">@(r.WoId?.ToString() ?? "—")</span></Template>
+            <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="90px" Property="WoNumber" Title="@L["Col.WO"]" Width="140px" TextAlign="TextAlign.Center">
+                <Template Context="r"><span class="code">@(r.WoNumber ?? "—")</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.DowntimeRow" MinWidth="100px" Property="EndTs" Title="@L["Col.Status"]" Width="100px" TextAlign="TextAlign.Center">
                 <Template Context="r">
@@ -203,7 +203,8 @@
     // ── 데이터 ───────────────────────────────────────────────────────────
     List<PpRepository.DowntimeRow>      _rows      = [];
     List<MasterDataRepository.LineRow>  _lineList  = [];
-    List<string>                        _reasons   = [];
+    List<string>                        _reasons   = [];   // 이력에 쓰인 사유(공통코드에서 빠진 옛 값도 조회되도록)
+    List<MasterDataRepository.CodeItemRow> _reasonItems = []; // 공통코드 DOWNTIME_REASON
     List<MasterDataRepository.ReasonCodeRow> _causes = [];   // MD-025 사유 중 비가동(DOWNTIME)
     Dictionary<string, string>          _causeNames = new(StringComparer.OrdinalIgnoreCase);
 
@@ -224,12 +225,18 @@
         new DropDownItem { Value = "open",   Text = L["PP.Downtime.Status.Open"].Value },
         new DropDownItem { Value = "closed", Text = L["PP.Downtime.Status.Closed"].Value },
     };
-    IEnumerable<DropDownItem> ReasonFilterOptions => _reasons.Select(r => new DropDownItem { Value = r, Text = r });
-    // ANDON 은 POP 안돈이 여는 행의 사유라 웹 등록·수정에서는 고르지 않는다
+    IEnumerable<DropDownItem> ReasonFilterOptions =>
+        _reasonItems.Select(i => i.CodeValue ?? "").Where(c => c.Length > 0)
+            .Concat(_reasons.Where(r => _reasonItems.All(i => i.CodeValue != r)).OrderBy(r => r))
+            .Select(r => new DropDownItem { Value = r, Text = ReasonText(r) });
+    // ANDON 은 POP 안돈이 여는 행의 사유라 웹 등록·수정에서는 고르지 않는다.
+    // 저장된 값이 공통코드에 없거나 사용 안 함이면(옛 데이터) 그 값도 남겨 수정 모달이 값을 잃지 않게 한다
     IEnumerable<DropDownItem> ReasonEditOptions =>
-        _reasons.Where(r => r != AndonReason)
-            .Union(string.IsNullOrEmpty(_editReason) ? Enumerable.Empty<string>() : new[] { _editReason! }).OrderBy(x => x)
-            .Select(r => new DropDownItem { Value = r, Text = r });
+        _reasonItems.Where(i => i.UseFlag && i.CodeValue is { Length: > 0 } && i.CodeValue != AndonReason).Select(i => i.CodeValue!)
+            .Concat(_editReason is { Length: > 0 } cur && !_reasonItems.Any(i => i.UseFlag && i.CodeValue == cur) ? new[] { cur } : [])
+            .Select(r => new DropDownItem { Value = r, Text = ReasonText(r) });
+    string ReasonText(string code) =>
+        _reasonItems.FirstOrDefault(i => i.CodeValue == code) is { } ci && MasterDataRepository.LocalName(ci) is { Length: > 0 } nm ? nm : code;
     IEnumerable<DropDownItem> LineEditOptions =>
         _lineList.Where(l => l.Status is null or "ACTIVE" || l.LineID == _editLine)
             .Select(l => new DropDownItem { Value = l.LineID, Text = MasterDataRepository.LocalName(l.LineName, l.LineNameEn) is { Length: > 0 } nm ? $"[{l.LineID}] {nm}" : $"[{l.LineID}]" })
@@ -278,6 +285,7 @@
         // 재작업 라인은 생산 라인이 아니라 비가동을 기록·조회하지 않는다
         try { var rwk = MD.ReworkLineIds(); _lineList = MD.ListLines().Where(l => !rwk.Contains(l.LineID)).ToList(); } catch { }
         try { _reasons   = Pp.ListDowntimeReasons(); }  catch { }
+        try { _reasonItems = MD.ListCodeItems(PpRepository.DowntimeReasonGroup); } catch { }
         LoadCauses();
 
         // 기본 기간 = 이력이 있는 마지막 7일 (데이터가 오래됐어도 빈 화면이 되지 않도록)

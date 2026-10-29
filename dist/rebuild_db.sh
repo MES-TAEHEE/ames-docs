@@ -191,6 +191,7 @@ FILES=(
   migrate_wh_pda_test_permission.sql # Hidden Web receipt test in the existing Permission Matrix
   migrate_drop_md_mold_color.sql     # MD_MoldColor 삭제 — 금형 제품 색상은 MD_MoldItem.Color 직접 입력(10-16)
   migrate_rfid_reader_status_maint.sql # RFID_READER_STATUS 에 MAINT(점검중) — MD-022 점검중 KPI(10-28), 순서 무관
+  migrate_pp_downtime_reason_code.sql # 공통코드 DOWNTIME_REASON — PP-DTL 비가동 사유 콤보(10-29), 순서 무관
   migrate_pp_lineschedule_item.sql   # PP_LineSchedule.ItemNo — 슬롯이 만드는 품번(10-27), 감사 컬럼 정렬 앞
   migrate_mnt_failure_type_widen.sql # MNT_FailureRegister.FailureType varchar(20) — 안돈 원인 코드(10-28)
   migrate_audit_columns_last.sql     # 감사 컬럼을 맨 뒤 CreatedBy→CreatedTS→ModifiedBy→ModifiedTS 순으로 — 앞 마이그레이션이 뒤에 붙인 컬럼까지 정리하려고 항상 맨 끝(10-08)

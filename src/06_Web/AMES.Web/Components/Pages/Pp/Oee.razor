@@ -280,8 +280,8 @@
                     <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="90px" Property="Oee" Title="OEE" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="s"><span class="pp-oee-pill @GradeKey(s.Oee)">@($"{s.Oee:F1}%")</span></Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="160px" Property="CreatedTs" Title="@L["PP.Oee.Snap.Col.SavedAt"]" Width="160px">
-                        <Template Context="s"><span class="dim">@(s.CreatedTs?.ToString(DateFmt.DateTime) ?? "")</span></Template>
+                    <RadzenDataGridColumn TItem="OeeSnapshotDto" MinWidth="160px" Property="SavedTs" Title="@L["PP.Oee.Snap.Col.SavedAt"]" Width="160px">
+                        <Template Context="s"><span class="dim">@(s.SavedTs?.ToString(DateFmt.DateTime) ?? "")</span></Template>
                     </RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
