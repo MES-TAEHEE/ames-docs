@@ -91,9 +91,11 @@ public sealed class WarehouseFailFixes1029Tests
         Assert.Contains("T.ReasonCode='INBOUND_CANCEL' THEN 'CANCEL_RECEIPT'", repo);
         Assert.Contains("T.ReasonCode='INBOUND_CANCEL' THEN 'INBOUND'", repo);
         Assert.Contains("T.ReasonCode='INBOUND_CANCEL' THEN 'WH002'", repo);
-        var history = Read("src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor");
-        Assert.Contains("if (upper == \"CANCEL_RECEIPT\") return \"bad\";", history);
-        Assert.Contains("or \"WH.LogHistory.Lbl.CancelInbound\"", history);
+        var putAway = Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/WhPutAway.razor");
+        var scan = putAway.Split("private async Task ScanLocation()")[1].Split("private async Task Confirm()")[0];
+        Assert.Contains("ShowAlert(\"Location Scan Failed\", ex.Message)", scan);
+        Assert.Contains("_location = null;", scan);
+        Assert.Contains("Primary locations cannot hold stock. Scan a detail location.", PdaWarehouseSql.InboundMove);
     }
 
     [Fact]
