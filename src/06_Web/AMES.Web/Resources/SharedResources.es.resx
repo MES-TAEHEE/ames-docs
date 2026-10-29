@@ -5244,11 +5244,26 @@
   <data name="PP.PlanConfirm.Dlg.Warn.NoCore" xml:space="preserve">
     <value>{0} pedido(s) excluidos: núcleo sin identificar — la BOM no tiene (o tiene varios) subcomponentes con nombre CORE…; corríjalo en MD-004 y vuelva a ejecutar</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoLotPrefix" xml:space="preserve">
+    <value>Sin LOT PREFIX — no se puede producir</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoLotPrefix" xml:space="preserve">
+    <value>{0} pedido(s) excluidos: ninguna línea del proceso que emite LOT tiene LOT PREFIX — regístrelo en MD-001 y vuelva a ejecutar</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
     <value>Cambio {0} min</value>
   </data>
   <data name="PP.PlanConfirm.Ok.Rejected" xml:space="preserve">
-    <value>{0} excluidos (sin molde)</value>
+    <value>{0} excluidos — {1}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoMold" xml:space="preserve">
+    <value>sin molde {0}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoCore" xml:space="preserve">
+    <value>núcleo sin identificar {0}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoLotPrefix" xml:space="preserve">
+    <value>sin LOT PREFIX {0}</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
     <value>Hay etapas sin línea.</value>

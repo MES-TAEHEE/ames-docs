@@ -168,7 +168,7 @@ else
                 }
             </div>
 
-            @* 상태별 액션 — 전부 E 권한 필요 *@
+            @* 상태별 액션 — 전송·실패 기록은 E, PO 승인은 A *@
             @if (_canEdit && PrStatusRules.CanSend(_sel.Status))
             {
                 <div class="pr-act">
@@ -347,9 +347,9 @@ else
     void AuditPr(string action, int prId, object? after)
         => Audit.Log("PP-006", action, "PP_PurchaseRequest", prId, null, after);
 
+    // 권한은 부르는 쪽이 본다 — PO 승인은 승인 권한(A)만, 전송·실패 기록·거래처는 수정 권한(E)만(10-29 PP006-TC-017·028)
     void Run(Action action, Func<string> okMsg)
     {
-        if (!_canEdit) return;
         if (_busy) return;
         _busy = true;
         try { action(); RefreshAfterAction(); ShowMsg(okMsg(), false); }
@@ -359,7 +359,7 @@ else
 
     void SendOne()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_canEdit) return;
         var pr = PrNo(_sel);
         Run(() => { Pp.SendPrs(new[] { _sel.PrId }, _actDocNum, _actor); AuditPr("SEND", _sel.PrId, new { DocNum = _actDocNum }); },
             () => string.Format(L["PP.PurchaseReq.Ok.Sent"].Value, 1) + $" · {pr}");
@@ -367,7 +367,7 @@ else
 
     void FailOne()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_canEdit) return;
         if (string.IsNullOrWhiteSpace(_actReason)) { ShowMsg(L["PP.PurchaseReq.Err.Reason"], true); return; }
         var pr = PrNo(_sel); var n = _sel.RetryCount + 1;
         Run(() => { Pp.FailPr(_sel.PrId, _actReason!, _actor); AuditPr("FAIL", _sel.PrId, new { Reason = _actReason }); },
@@ -385,7 +385,7 @@ else
 
     void SaveVendor()
     {
-        if (_sel is null) return;
+        if (_sel is null || !_canEdit) return;
         Run(() => Pp.UpdatePrVendor(_sel.PrId, _actVendor, _actor), () => L["PP.PurchaseReq.Ok.Vendor"].Value);
     }
 

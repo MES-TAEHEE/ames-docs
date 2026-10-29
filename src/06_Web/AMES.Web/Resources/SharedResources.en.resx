@@ -5271,11 +5271,26 @@
   <data name="PP.PlanConfirm.Dlg.Warn.NoCore" xml:space="preserve">
     <value>{0} order(s) excluded: core item unresolved — the BOM has no or more than one SUB item named CORE…; fix it in MD-004 and rerun</value>
   </data>
+  <data name="PP.PlanConfirm.Dlg.Err.NoLotPrefix" xml:space="preserve">
+    <value>No LOT PREFIX — cannot produce</value>
+  </data>
+  <data name="PP.PlanConfirm.Dlg.Warn.NoLotPrefix" xml:space="preserve">
+    <value>{0} order(s) excluded: every line of a LOT-issuing process has no LOT PREFIX — register it in MD-001 and rerun</value>
+  </data>
   <data name="PP.PlanConfirm.Dlg.MoldChange" xml:space="preserve">
     <value>Changeover {0} min</value>
   </data>
   <data name="PP.PlanConfirm.Ok.Rejected" xml:space="preserve">
-    <value>{0} excluded (no mold)</value>
+    <value>{0} excluded — {1}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoMold" xml:space="preserve">
+    <value>no mold {0}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoCore" xml:space="preserve">
+    <value>core unresolved {0}</value>
+  </data>
+  <data name="PP.PlanConfirm.Ok.Rejected.NoLotPrefix" xml:space="preserve">
+    <value>no LOT PREFIX {0}</value>
   </data>
   <data name="PP.PlanConfirm.Dlg.Err.LineMissing" xml:space="preserve">
     <value>Some steps have no line.</value>

@@ -137,7 +137,8 @@ public sealed partial class PpRepository
         public bool    IsShipped   => ShippedQty >= OrderQty;
         public bool    IsLate      => !IsShipped && DaysLate > 0;
         public bool    IsOpen      => !IsShipped && DaysLate <= 0;
-        public decimal ProgressPct => OrderQty > 0 ? Math.Min(100m, ShippedQty / OrderQty * 100m) : 0m;
+        /// <summary>출하 ÷ 수주 × 100 — 상한 없음(초과 출하는 100 을 넘는다, 10-29 PPOTD-TC-015). 수주량 0 이면 null(비율 없음).</summary>
+        public decimal? ProgressPct => OrderQty > 0 ? ShippedQty / OrderQty * 100m : null;
     }
 
     // ── PP-001 Forecast ──────────────────────────────────────────────────
@@ -785,7 +786,7 @@ public sealed partial class PpRepository
                     rejected.Add(new RejectedOrder(plan.SoId, key.SoNumber, key.ItemNo, RejectNoCore));
                     continue;
                 }
-                if (template.Any(t => t.LacksPrefix(plan.Steps.FirstOrDefault(s => s.StepSeq == t.StepSeq)?.LineId)))
+                if (template.Any(t => t.BlockedByPrefix(plan.Steps.FirstOrDefault(s => s.StepSeq == t.StepSeq)?.LineId)))
                 {
                     rejected.Add(new RejectedOrder(plan.SoId, key.SoNumber, key.ItemNo, RejectNoLotPrefix));
                     continue;

@@ -64,7 +64,7 @@
                         <tr>
                             <td><span class="code">@r.Line.SoNumber</span><div>@r.Line.ItemNo</div></td>
                             @QtyCell(r, 1)
-                            <td colspan="6"><span class="pill bad">@L[r.NoCore ? "PP.PlanConfirm.Dlg.Err.NoCore" : "PP.PlanConfirm.Dlg.Err.NoMold"]</span></td>
+                            <td colspan="6"><span class="pill bad">@L[r.NoCore ? "PP.PlanConfirm.Dlg.Err.NoCore" : r.NoLotPrefix ? "PP.PlanConfirm.Dlg.Err.NoLotPrefix" : "PP.PlanConfirm.Dlg.Err.NoMold"]</span></td>
                         </tr>
                         continue;
                     }
@@ -142,6 +142,10 @@
     {
         <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.NoCore"].Value, NoCoreCount)</div>
     }
+    @if (NoLotPrefixCount > 0)
+    {
+        <div class="ames-alert bad">@string.Format(L["PP.PlanConfirm.Dlg.Warn.NoLotPrefix"].Value, NoLotPrefixCount)</div>
+    }
 
     <span class="dim" style="font-size:.8em;line-height:1.5;">@string.Format(L["PP.PlanConfirm.Dlg.Hint"].Value, _bufferDays)</span>
 
@@ -175,11 +179,13 @@
         public DeadlinePacker.Result? Preview  { get; set; }
         public bool                   NoMold   { get; set; }   // INJ 단계 코어 품번에 금형 매핑 없음 — 생성 대상에서 제외
         public bool                   NoCore   { get; set; }   // BOM 에서 코어를 못 정함(서버 RejectNoCore 와 같은 판정) — 제외
-        public bool Excluded => NoMold || NoCore;
+        public bool                   NoLotPrefix { get; set; }   // LOT 공정 단계의 라인이 전부 LOT PREFIX 없음(서버 RejectNoLotPrefix 와 같은 판정) — 제외
+        public bool Excluded => NoMold || NoCore || NoLotPrefix;
     }
     int RejectCount  => _rows.Count(r => r.Excluded);
     int NoCoreCount  => _rows.Count(r => r.NoCore);
     int NoMoldCount  => _rows.Count(r => r.NoMold);
+    int NoLotPrefixCount => _rows.Count(r => !r.NoCore && r.NoLotPrefix);
 
     bool     _busy;
     const string QtyNet = "net", QtyOrder = "order", QtyManual = "manual";
@@ -278,7 +284,8 @@
             var steps = template.Where(t => t.LineRequired)
                 .Select(t => new StepVm { Step = t, LineId = t.BopLineId ?? t.Candidates.FirstOrDefault()?.LineId })
                 .ToList();
-            _rows.Add(new RowVm { Line = l, Steps = steps, NoCore = template.Any(t => t.NoCore) });
+            _rows.Add(new RowVm { Line = l, Steps = steps, NoCore = template.Any(t => t.NoCore),
+                                NoLotPrefix = template.Any(t => t.OnlyNoPrefixLines) });
         }
         Recompute();
     }
@@ -306,7 +313,7 @@
         {
             r.Deadline = r.Line.DueDate is DateTime d ? _cal.SubtractWorkdays(d, _bufferDays) : null;
             r.NoMold   = false;
-            if (r.NoCore) { r.Preview = null; continue; }
+            if (r.NoCore || r.NoLotPrefix) { r.Preview = null; continue; }
             var qty = Qty(r.Line);
             if (_qtyMode != QtyManual) _lastAutoQty[r.Line.SoId] = qty;
             if (qty <= 0 || r.Steps.Count == 0 || r.Steps.Any(s => string.IsNullOrEmpty(s.LineId))) { r.Preview = null; continue; }
@@ -366,10 +373,19 @@
                             _qtyMode == QtyManual ? Qty(r.Line) : null))
                         .ToList();
             var res = Pp.CreateScheduledWorkOrders(plans, actor, _qtyMode == QtyNet, _startDate.Date);
-            Dialog.Close(new Result(res.Created, res.Late, res.Short, res.RejectedCount));
+            // 창에서 뺀 수주는 서버로 가지 않으므로 서버 거부와 합쳐 사유별로 센다
+            int Count(string reason, Func<RowVm, bool> excluded)
+                => _rows.Count(excluded) + res.Rejected.Count(x => x.Reason == reason);
+            Dialog.Close(new Result(res.Created, res.Late, res.Short,
+                Count(PpRepository.RejectNoMold,      r => r.NoMold),
+                Count(PpRepository.RejectNoCore,      r => r.NoCore),
+                Count(PpRepository.RejectNoLotPrefix, r => !r.NoCore && r.NoLotPrefix)));
         }
         catch (Exception ex) { _err = ex.Message; _busy = false; }
     }
 
-    public record Result(int Created, int Late, int Short, int Rejected);
+    public record Result(int Created, int Late, int Short, int NoMold, int NoCore, int NoLotPrefix)
+    {
+        public int Rejected => NoMold + NoCore + NoLotPrefix;
+    }
 }
