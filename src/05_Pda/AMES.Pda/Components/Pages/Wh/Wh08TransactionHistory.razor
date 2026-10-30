@@ -261,7 +261,7 @@
             <RadzenCard class="wh-modal-card wh08-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="wh08-detail-title" @onclick:stopPropagation="true">
                 <h2 id="wh08-detail-title" class="wh-modal-title">@(IsMove(detail) ? "Location Change" : IsAdjust(detail) ? "Adjustment Detail" : "Transaction Detail")</h2>
                 <dl class="wh08-value-rows wh08-detail-rows">
-                    <div><dt>@(IsSpareParts ? "EOS SP No" : "Lot No")</dt><dd>@Text(detail.LotNo)</dd></div>
+                    <div><dt>@(IsSpareParts ? "Barcode" : "Lot No")</dt><dd>@Text(detail.LotNo)</dd></div>
                     <div><dt>Part No</dt><dd>@Text(detail.PartNo)</dd></div>
                     @if (IsMove(detail))
                     {
@@ -590,7 +590,7 @@
         _actionError = false;
         try
         {
-            var result = await SpApi.CancelMoveAsync(row.LotNo, row.Direction, "Cancelled from Transactions.");
+            var result = await SpApi.CancelMoveAsync(row.LotNo, row.Direction, "Cancelled from Transactions.", row.RowNo);
             if (!result.Success) throw new InvalidOperationException(result.Message);
             _detailRow = null;
             _cancelPending = false;

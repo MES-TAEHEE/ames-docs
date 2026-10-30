@@ -118,10 +118,10 @@ public sealed class SparePartsApi(HttpClient http, AuthState auth) : PdaApi(http
             $"/api/wh/sp/labels/{Uri.EscapeDataString(eosSpNo.Trim())}",
             "Spare part label list is unavailable.");
 
-    public async Task<SparePartMoveResult> CancelMoveAsync(string serialNo, string moveType, string? note = null)
+    public async Task<SparePartMoveResult> CancelMoveAsync(string serialNo, string moveType, string? note = null, long? transactionId = null)
     {
         Authorize();
-        using var response = await _http.PostAsJsonAsync("/api/wh/sp/cancel", new SparePartCancelReq(serialNo, moveType, note));
+        using var response = await _http.PostAsJsonAsync("/api/wh/sp/cancel", new SparePartCancelReq(serialNo, moveType, note, transactionId));
         return await ReadSparePartMoveResultAsync(response, "Spare part cancellation failed.");
     }
 
@@ -152,7 +152,7 @@ public sealed class SparePartsApi(HttpClient http, AuthState auth) : PdaApi(http
         {
             Authorize();
             var url = $"/api/wh/location/scan?locationId={Uri.EscapeDataString(locationId.Trim())}";
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url);
             if (resp.StatusCode == HttpStatusCode.Unauthorized)
                 throw new InvalidOperationException("Session expired. Sign in again.");
 

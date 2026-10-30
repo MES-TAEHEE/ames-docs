@@ -56,6 +56,41 @@ public class SparePartReceiptDbTests
             "SELECT COUNT(*) FROM dbo.MD_SparePart WHERE SparePartNo=@Part", ("@Part", part))));
     }
 
+    [SkippableFact]
+    public void Old_transaction_cannot_cancel_a_new_release_and_a_correct_cancel_still_works()
+    {
+        var factory = AmesDevDb.TryFactory();
+        Skip.If(factory is null, "AMES_TEST_CONN unavailable");
+        using var conn = factory!.OpenConnection();
+        using var tx = conn.BeginTransaction();
+        var part = "UTSP" + Guid.NewGuid().ToString("N")[..12];
+        try
+        {
+            var serial = CreateSerial(conn, tx, part, 0);
+            Move(conn, tx, serial, "IN"); Move(conn, tx, serial, "OUT");
+            int Latest()
+            {
+                using var cmd = new SqlCommand("SELECT MAX(SparePartsTxnID) FROM dbo.MNT_SparePartsTxn WHERE SparePartNo=@Part AND MoveType='OUT'", conn, tx);
+                cmd.Parameters.AddWithValue("@Part", part); return Convert.ToInt32(cmd.ExecuteScalar());
+            }
+            void Cancel(int id, SqlTransaction? transaction)
+            {
+                using var cmd = new SqlCommand(PdaSparePartsSql.Cancel, conn, transaction);
+                cmd.Parameters.AddWithValue("@SerialNo", serial); cmd.Parameters.AddWithValue("@MoveType", "OUT");
+                cmd.Parameters.AddWithValue("@UserId", "receipt-test"); cmd.Parameters.AddWithValue("@Note", "Isolated stale cancellation regression");
+                cmd.Parameters.AddWithValue("@TransactionId", id); cmd.ExecuteNonQuery();
+            }
+            var first = Latest(); Cancel(first, tx);
+            Move(conn, tx, serial, "OUT"); Assert.NotEqual(first, Latest());
+            // The invalid request must roll back the entire isolated fixture transaction.
+            Assert.Equal(51830, Assert.Throws<SqlException>(() => Cancel(first, tx)).Number);
+            Assert.Null(tx.Connection);
+            using var absent = new SqlCommand("SELECT COUNT(*) FROM dbo.MD_SparePart WHERE SparePartNo=@Part", conn);
+            absent.Parameters.AddWithValue("@Part", part); Assert.Equal(0, Convert.ToInt32(absent.ExecuteScalar()));
+        }
+        finally { if (tx.Connection is not null) tx.Rollback(); }
+    }
+
     private static string CreateSerial(SqlConnection conn, SqlTransaction tx, string part, int balance)
     {
         using (var seed = new SqlCommand("""

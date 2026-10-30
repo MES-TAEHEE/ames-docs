@@ -121,7 +121,7 @@ public static class WhEndpoints
         string? LocationId = null, string? Note = null, string? WorkOrderNo = null);
     public sealed record SparePartSerialRow(string SerialNo, string StatusCode, DateTime CreatedAt);
     public sealed record SparePartLabelCreateReq(string EosSpNo, int Count);
-    public sealed record SparePartCancelReq(string SerialNo, string MoveType, string? Note = null);
+    public sealed record SparePartCancelReq(string SerialNo, string MoveType, string? Note = null, long? TransactionId = null);
     public sealed record SparePartMoveResult(bool Success, string Message, SparePartRow? Row = null);
     public sealed record SparePartAdjustmentStock(string Barcode, string LotNo, string PartNo,
         string? PartName, decimal Qty, string? Unit);
@@ -2093,10 +2093,12 @@ public static class WhEndpoints
         if (string.IsNullOrWhiteSpace(body.SerialNo)) return new(false, "Scan a Serial No first.");
         var move = body.MoveType?.Trim().ToUpperInvariant() ?? "";
         if (move is not ("IN" or "OUT")) return new(false, "Cancellation type must be IN or OUT.");
+        if (body.TransactionId is <= 0 or > int.MaxValue) return new(false, "Transaction ID is invalid.");
         try
         {
             using var conn = factory.OpenConnection();
             using var cmd = new SqlCommand(PdaSparePartsSql.Cancel, conn) { CommandType = CommandType.Text };
+            cmd.Parameters.Add("@TransactionId", SqlDbType.BigInt).Value = (object?)body.TransactionId ?? DBNull.Value;
             cmd.Parameters.Add("@SerialNo", SqlDbType.VarChar, 24).Value = body.SerialNo.Trim();
             cmd.Parameters.Add("@MoveType", SqlDbType.VarChar, 10).Value = move;
             ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
