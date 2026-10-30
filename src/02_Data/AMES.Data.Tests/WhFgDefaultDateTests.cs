@@ -43,7 +43,8 @@ public sealed class WhFgDefaultDateTests
     {
         var deliveries=Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh01DeliverySchedule.razor");
         Assert.Contains("var today = (await Api.DatabaseTimeAsync()).Date",deliveries);
-        Assert.Contains("_from = today.AddMonths(-1); _to = today.AddMonths(1)",deliveries);
+        Assert.Contains("_from ??= today.AddMonths(-1)",deliveries);
+        Assert.Contains("_to ??= today.AddMonths(1)",deliveries);
         var history=Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh08TransactionHistory.razor");
         Assert.Contains("_dateFrom ??= IsSpareParts ? _databaseToday.AddDays(-30) : _databaseToday.AddMonths(-1)",history);
         Assert.Contains("_dateTo ??= IsSpareParts ? _databaseToday : _databaseToday.AddMonths(1)",history);
