@@ -150,7 +150,7 @@
     [JSInvokable]
     public async Task OnHardwareScanAsync(string scanText)
     {
-        if (_pptOpen) return;
+        if (_isBusy || _modalOpen || _pptOpen) return;
         _barcode = NormalizeScan(scanText);
         if (!string.IsNullOrWhiteSpace(_barcode)) await LookupProduct();
         await InvokeAsync(StateHasChanged);
