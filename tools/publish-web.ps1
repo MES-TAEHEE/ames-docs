@@ -35,7 +35,7 @@ param(
     [ValidateSet('Server', 'Local')]
     [string]$DbTarget = 'Server',
 
-    [string]$LocalDbConn = 'Server=localhost\MSSQLSERVER01;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;',
+    [string]$LocalDbConn = 'Server=localhost\MSSQLSERVER01;Database=AMES;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;',
 
     [switch]$Zip
 )

@@ -31,7 +31,7 @@
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__AMES": "Server=localhost\\MSSQLSERVER01;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;"
+        "ConnectionStrings__AMES": "Server=localhost\\MSSQLSERVER01;Database=AMES;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5044"

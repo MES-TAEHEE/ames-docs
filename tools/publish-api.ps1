@@ -40,7 +40,7 @@ param(
     [ValidateSet('Server', 'Local')]
     [string]$DbTarget = 'Server',
 
-    [string]$LocalDbConn = 'Server=localhost\MSSQLSERVER01;Database=AMES_DEV;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;',
+    [string]$LocalDbConn = 'Server=localhost\MSSQLSERVER01;Database=AMES;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;',
 
     # 패키지(개발서버 복사용)의 web.config 에 Swagger__Enabled=true 를 넣는다(10-15) — 운영 서버용 패키지는 -DevServerSwagger:$false.
     # 로컬 IIS 반영(-Target Local)에서는 항상 뺀다.
