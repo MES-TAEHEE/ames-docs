@@ -64,11 +64,20 @@ public sealed class PdaTrailerLoadingListTests
     public void Shipment_success_resets_the_DCR_and_refreshes_after_releasing_the_busy_flag()
     {
         var page=Read("src/05_Pda/AMES.Pda/Components/Pages/Fg/Fg05TrailerLoading.razor");
-        var complete=page[page.IndexOf("async Task Complete()",StringComparison.Ordinal)..page.IndexOf("void Show(",StringComparison.Ordinal)];
+        var completeStart=page.IndexOf("async Task Complete(",StringComparison.Ordinal);
+        Assert.True(completeStart>=0,"Shipment completion handler must exist.");
+        var completeEnd=page.IndexOf("void Show(",completeStart,StringComparison.Ordinal);
+        Assert.True(completeEnd>completeStart,"Shipment completion handler boundary must exist.");
+        var complete=page[completeStart..completeEnd];
+        Assert.Contains("Task ConfirmShipment()=>Complete(false)",page);
+        Assert.Contains("else if(action==\"complete\")await Complete(true)",page);
+        Assert.Contains("Api.CompleteShippingDeliveryAsync(deliveryNo,allowNonFifo)",complete);
         Assert.Contains("if(result.Success)",complete);
         Assert.Contains("ResetDelivery();",complete);
         Assert.Contains("_deliveries.RemoveAll(d=>d.DeliveryNo==deliveryNo)",complete);
         Assert.DoesNotContain("_delivery=result.Delivery",complete);
+        Assert.Contains("finally{_busy=false;}",complete);
+        Assert.Contains("if(completed)await ReloadDeliveries()",complete);
         Assert.True(complete.IndexOf("finally{_busy=false;}",StringComparison.Ordinal)<complete.IndexOf("if(completed)await ReloadDeliveries()",StringComparison.Ordinal));
         Assert.Contains("else Show(\"Shipment Failed\",result.Message)",complete);
         Assert.Contains("void ResetDelivery(){_delivery=null;_barcode=\"\";_removing=false;_scanMessage=\"\";_confirm=false;}",page);

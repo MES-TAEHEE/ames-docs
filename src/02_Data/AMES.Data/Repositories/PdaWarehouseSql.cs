@@ -443,6 +443,8 @@ public static class PdaWarehouseSql
         """;
 
     public const string InventoryLocationItems = """
+        SET QUOTED_IDENTIFIER ON;
+        SET ANSI_NULLS ON;
         SELECT W.LotNo AS LOTNO,W.PartNo AS PARTNO,
             COALESCE(NULLIF(W.PartName,N''),I.ItemName) AS PARTNM,SUM(W.Qty) AS QTY,
             I.DefaultUOM AS UNIT,N'AVAILABLE' AS INV_STATUS,
