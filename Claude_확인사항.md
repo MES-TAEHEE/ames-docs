@@ -29,7 +29,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 김현진 | 0                   | 13  | 7묶음 | 4   | [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 28) · 팔레트 닫힘(문제점 38) · 생산/PLC/생산 요약 알림 기준(1-2) |
-| 안영훈 | 1(검증) | 2정책/환경 | 5묶음 | 0   | 재구축은 별도 승인 대기 |
+| 안영훈 | 1(검증) | 2정책/환경 | 5묶음 | 1   | 재구축은 별도 승인 대기 · Data 테스트 실패 1(문제점 2-4, 테스트 문자열 문제) |
 | 이승욱 | 0                    | 5   | 1   | 0   | 보류 — 사이클 PM 샷 기준 자동 발행·금형 정비 등록(B7)·개발 완료 시 정리·개발 DB 이름 `AMES` 전환 |
 | 오세영 | 3(앱 개발 참고)          | 1   | —   | —   | 알림 앱 개발 — 서버 발송기·앱 Api 준비됨(4-1 1 참고사항), Firebase 서비스 계정 키 전달                                                                                               |
 
@@ -138,6 +138,13 @@
 
 10-23 정리 실행 당시 개발 DB의 구형 PDA 업무 프로시저 삭제를 확인했습니다. 원본 복구 파일은 `publish/DB_Backup/PDA_BusinessProcedures_20261023_before_cleanup.sql`, 기본 조회용 정리 스크립트는 `dist/retire_pda_business_procedures.sql`입니다. 삭제 대상 27개가 0개 남았고, 재고·거래·출하·반품·팔렛 행 수는 전후 동일합니다. DB 모듈의 외부 참조는 없었으나 SQL Agent 작업은 조회 권한이 없어 확인하지 못했습니다. 로컬 복제 DB는 변경하지 않았습니다. `AMES_ERD_data.js`·`AMES_DB_Schema.html`은 통합 전 구 설계 문서로, 현재 테이블 판정 근거로 쓰지 않습니다.
 
+
+### 2-4. 문제점 (1)
+
+1. **[하] Data 테스트 `WhFgDefaultDateTests.Pda_wh_and_fg_dates_use_database_time_without_overriding_spare_parts_or_explicit_filters` 실패 — 테스트가 찾는 화면 소스 문자열이 바뀜**(10-30 확인, 로컬 DB `AMES` 로 실행)
+   - 위치: 테스트 `src/02_Data/AMES.Data.Tests/WhFgDefaultDateTests.cs:46`, 화면 `src/05_Pda/AMES.Pda/Components/Pages/Wh/Wh01DeliverySchedule.razor:88-92`
+   - 내용: 10-30 e0ff2301 에서 WH01 입고 예정의 날짜 기본값이 `_from ??= today.AddMonths(-1);` · `_to ??= today.AddMonths(1);`(두 줄, 이미 고른 날짜는 유지)로 바뀌어, 테스트가 찾는 한 줄 문자열 `_from = today.AddMonths(-1); _to = today.AddMonths(1)` 이 없어졌습니다. 기본값(DB 오늘 전후 1개월)은 그대로라 화면 동작 문제가 아니라 테스트가 옛 소스 문자열에 묶인 것입니다.
+   - 제안: 테스트의 검사 문자열을 `_from ??= today.AddMonths(-1)`·`_to ??= today.AddMonths(1)` 두 개로 나눠 바꿉니다(WH08 검사와 같은 방식).
 
 ---
 
