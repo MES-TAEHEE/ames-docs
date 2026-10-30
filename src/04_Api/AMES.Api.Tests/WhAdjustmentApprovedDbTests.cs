@@ -46,7 +46,7 @@ public sealed class WhAdjustmentApprovedDbTests
                 ExpectedQty: expectedQty, ExpectedLocation: expected);
             var save = typeof(WhEndpoints).GetMethod("ExecuteAdjustSave", BindingFlags.NonPublic | BindingFlags.Static)!;
             var result = (WhEndpoints.InboundReceiveResult)save.Invoke(null, [factory, request, key, false])!;
-            Assert.Equal(succeeds, result.Success);
+            Assert.True(succeeds == result.Success, result.Message);
             if (!succeeds) Assert.Contains("Stock quantity or location changed", result.Message);
             using var check = new SqlCommand("""
                 SELECT Qty,LocationNo FROM dbo.WH_Inventory WHERE LotNo=@Lot;

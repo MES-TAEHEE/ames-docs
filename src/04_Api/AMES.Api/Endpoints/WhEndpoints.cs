@@ -2706,7 +2706,7 @@ public static class WhEndpoints
             };
             cmd.Parameters.Add("@ReceiveMode", SqlDbType.NVarChar, 10).Value = body.Mode.Trim();
             cmd.Parameters.Add("@LotBarcode", SqlDbType.NVarChar, 50).Value = body.Barcode.Trim();
-            cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 50).Value = body.LocationId.Trim();
+            cmd.Parameters.Add("@LocationId", SqlDbType.NVarChar, 50).Value = body.LocationId?.Trim() ?? "";
             ColumnParams.Add(cmd, "@UserId", "WH_InventoryTransaction.CreatedBy", userId);
             if (string.Equals(sql, PdaWarehouseSql.InboundReceive, StringComparison.OrdinalIgnoreCase))
                 cmd.Parameters.Add("@SimulateFailure", SqlDbType.Bit).Value = simulateFailure;
