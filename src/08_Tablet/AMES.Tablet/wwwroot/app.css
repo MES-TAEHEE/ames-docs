@@ -792,7 +792,8 @@ button, input { font: inherit; letter-spacing: 0; }
 .tablet-map-grid .rz-grid-table thead th { background: var(--surface-soft); }
 .tablet-map-grid .rz-column-title { color: var(--accent); }
 .tablet-map-grid .rz-cell-data { color: var(--text); }
-.tablet-map-grid .tablet-defect-qty { color: var(--danger); font-weight: 700; }
+.tablet-root .tablet-defect-qty,
+.tablet-root .detail-grid dd.tablet-defect-qty { color: var(--danger); font-weight: 700; }
 .tablet-map-grid .rz-paginator, .tablet-map-grid .rz-paginator-element { background: var(--surface-soft); color: var(--text); }
 
 /* Radzen popups render under body, outside tablet-root. Share the same theme tokens there. */

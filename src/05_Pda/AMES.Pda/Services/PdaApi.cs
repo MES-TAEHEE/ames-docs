@@ -13,6 +13,7 @@ public abstract class PdaApi
 {
     public async Task<DateTime> DatabaseTimeAsync()
     {
+        Authorize();
         var value = await _http.GetFromJsonAsync<DateTime>("/api/time");
         if (value == default) throw new InvalidOperationException("Database time is unavailable.");
         return DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
@@ -169,7 +170,7 @@ public abstract class PdaApi
         string? LocationId = null, string? Note = null, string? WorkOrderNo = null);
     public sealed record SparePartSerialRow(string SerialNo, string StatusCode, DateTime CreatedAt);
     public sealed record SparePartLabelCreateReq(string EosSpNo, int Count);
-    public sealed record SparePartCancelReq(string SerialNo, string MoveType, string? Note = null);
+    public sealed record SparePartCancelReq(string SerialNo, string MoveType, string? Note = null, long? TransactionId = null);
     public sealed record SparePartMoveResult(bool Success, string Message, SparePartRow? Row = null);
     public sealed record TransactionRow(long TxnId, DateTime TxnTime, string TxnType, string? ItemNo,
         string? LocationId, decimal QtyBefore, decimal Delta, decimal QtyAfter, string? ReasonCode);

@@ -567,7 +567,7 @@
 
         await InvokeAsync(async () =>
         {
-            if (_pptOpen) return;
+            if (_isBusy || _modalOpen || _testPanelOpen || _pptOpen) return;
             await ProcessBarcodeAsync(value);
             StateHasChanged();
         });
@@ -638,6 +638,7 @@
 
     private async Task ProcessBarcodeAsync(string barcode)
     {
+        if (_isBusy || _modalOpen) return;
         _barcode = "";
         if (LooksLikePickSlip(barcode))
         {

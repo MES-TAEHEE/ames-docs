@@ -166,6 +166,7 @@
                             <div><dt>Part No</dt><dd>@Text(_selected.PartNo)</dd></div>
                             <div><dt>Rack</dt><dd>@RackAddress(_selected)</dd></div>
                             <div><dt>Load Capacity</dt><dd>@Capacity(_selected.Capacity)</dd></div>
+                            <div><dt>Defect Qty</dt><dd class="tablet-defect-qty">@AMES.Contracts.Formatting.UomPrecisionMap.Empty.QtyUnit(_selected.DefectQty, _selected.Unit)</dd></div>
                             <div class="wide"><dt>Part Name</dt><dd>@Text(_selected.PartName)</dd></div>
                         </dl>
                     </section>
@@ -214,7 +215,7 @@
 @code {
     [SupplyParameterFromQuery] public string? Warehouse { get; set; }
     [SupplyParameterFromQuery] public string? Area { get; set; }
-    private sealed record RackSlot(string LocationNo, string RowCode, string Column, decimal TotalQty, decimal? Capacity);
+    private sealed record RackSlot(string LocationNo, string RowCode, string Column, decimal TotalQty, decimal? Capacity, bool HasStock);
     private sealed record FloorRow(string Code, IReadOnlyList<RackSlot> Slots);
     private sealed record PartSuggestion(string PartNo, string? PartName, string Floors);
     private const int MaxZoomLevel = 5;
@@ -378,15 +379,15 @@
     private void BuildRackSlots() => _rackSlots = _rows.Where(x => !_openStorage && OnFloor(x) && TabletMapCoordinates.HasGrid(x))
         .GroupBy(x => x.LocationNo, StringComparer.OrdinalIgnoreCase).Select(g => new RackSlot(g.Key,
             TabletMapCoordinates.Row(g.First()), TabletMapCoordinates.Column(g.First()),
-            g.Sum(x => x.Qty), g.First().Capacity)).ToList();
+            g.Sum(x => x.Qty), g.First().Capacity, g.Any(TabletMapCoordinates.HasStock))).ToList();
     private bool OnFloor(TabletInventoryApi.InventoryRow row) => _openStorage || FloorOf(row) == _selectedFloor;
-    private List<TabletInventoryApi.InventoryRow> AllStockRows() => _rows.Where(x => !string.IsNullOrWhiteSpace(x.PartNo) && x.Qty > 0)
+    private List<TabletInventoryApi.InventoryRow> AllStockRows() => _rows.Where(TabletMapCoordinates.HasStock)
         .OrderBy(x => x.PartNo).ThenBy(x => x.LocationNo).ThenBy(x => x.LotNo).ToList();
     private List<TabletInventoryApi.InventoryRow> StockRows() => AllStockRows().Where(OnFloor).ToList();
-    private int StockedLocationCount(string floor) => _rows.Where(x => FloorOf(x) == floor && x.Qty > 0 && !string.IsNullOrWhiteSpace(x.PartNo))
+    private int StockedLocationCount(string floor) => _rows.Where(x => FloorOf(x) == floor && TabletMapCoordinates.HasStock(x))
         .Select(x => x.LocationNo).Distinct(StringComparer.OrdinalIgnoreCase).Count();
     private decimal LocationQty(string id) => _rows.Where(x => Same(x.LocationNo, id)).Sum(x => x.Qty);
-    private string RackClass(RackSlot slot) => $"rack-slot {(slot.TotalQty > 0 ? "stocked" : "empty")} {(TabletMapCoordinates.IsFull(slot.TotalQty, slot.Capacity) ? "capacity-full" : "")} {(_matchedLocations.Contains(slot.LocationNo) ? "matched" : "")} {(_selected is not null && Same(_selected.LocationNo, slot.LocationNo) ? "selected" : "")}";
+    private string RackClass(RackSlot slot) => $"rack-slot {(slot.HasStock ? "stocked" : "empty")} {(TabletMapCoordinates.IsFull(slot.TotalQty, slot.Capacity) ? "capacity-full" : "")} {(_matchedLocations.Contains(slot.LocationNo) ? "matched" : "")} {(_selected is not null && Same(_selected.LocationNo, slot.LocationNo) ? "selected" : "")}";
     private string ResultClass(TabletInventoryApi.InventoryRow row) => ReferenceEquals(row, _selected) ? "selected" : "";
     private static string RackElementId(string locationNo) => $"rack-{locationNo}";
     private static string RackAddress(TabletInventoryApi.InventoryRow row) => string.Join(" / ", new[] { row.WarehouseCode, row.AreaCode, row.RackX, row.RackY, row.RackZ }.Where(x => !string.IsNullOrWhiteSpace(x)));

@@ -529,6 +529,7 @@
 
         await InvokeAsync(async () =>
         {
+            if (IsBusy || _modalOpen || _testPanelOpen) return;
             _barcode = value;
             await Scan();
 

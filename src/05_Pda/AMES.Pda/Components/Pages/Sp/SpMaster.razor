@@ -230,14 +230,13 @@
         }
 
         _fromTransactions = true;
-        var row = await Api.SpItemAsync(serial);
-        if (row is null)
+        try
         {
-            _message = "The selected serial label could not be found.";
-            _error = true;
-            return;
+            var row = await Api.SpItemAsync(serial)
+                ?? throw new InvalidOperationException("The selected serial label could not be found.");
+            await Select(row, serial);
         }
-        await Select(row, serial);
+        catch (Exception ex) { _message = ex.Message; _error = true; }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -272,8 +271,11 @@
         _busy = true; _printMessage = ""; _message = ""; _printError = false;
         try
         {
-            _selected = await Api.SpItemAsync(row.EosSpNo) ?? throw new InvalidOperationException("This spare part is no longer active.");
-            _serials = await Api.LabelsAsync(row.EosSpNo);
+            var selected = await Api.SpItemAsync(row.EosSpNo) ?? throw new InvalidOperationException("This spare part is no longer active.");
+            var serials = await Api.LabelsAsync(row.EosSpNo);
+            _selected = selected;
+            _serials = serials;
+            _reloadLabelsBeforePrint = false;
             _pendingSerials = [];
             _selectedSerials.Clear();
             if (!string.IsNullOrWhiteSpace(selectedSerial)
@@ -281,7 +283,7 @@
                 _selectedSerials.Add(selectedSerial);
             _createMode = false;
         }
-        catch (Exception ex) { _message = ex.Message; _error = true; }
+        catch (Exception ex) { _selected = null; _message = ex.Message; _error = true; }
         finally { _busy = false; }
         if (_selected is not null)
             _printMessage = string.IsNullOrWhiteSpace(_bluetooth)
@@ -361,6 +363,7 @@
         _manualPrinter = false;
         _printers = [];
     }
+    private bool _reloadLabelsBeforePrint;
     private async Task Print()
     {
         if (!CanPrint) return;
@@ -369,6 +372,12 @@
         {
             var current = await Api.SpItemAsync(_selected!.EosSpNo)
                 ?? throw new InvalidOperationException("This spare part is no longer active.");
+            if (_reloadLabelsBeforePrint)
+            {
+                _serials = await Api.LabelsAsync(current.EosSpNo);
+                _pendingSerials = SparePartLabel.NextSerials(current.EosSpNo, _serials.Select(x => x.SerialNo), _pendingSerials.Count).ToList();
+                _reloadLabelsBeforePrint = false;
+            }
             if (current.PartNo != _selected.PartNo || current.PartName != _selected.PartName
                 || current.Vendor != _selected.Vendor || current.StorageLocation != _selected.StorageLocation
                 || current.ExtraLocation != _selected.ExtraLocation)
@@ -392,13 +401,18 @@
             if (pendingSelected.Count > 0)
             {
                 var remainingPending = _pendingSerials.Count - pendingSelected.Count;
+                // A lost response must not allocate the same request again on Print retry.
+                _reloadLabelsBeforePrint = true;
+                _pendingSerials.RemoveAll(pendingSelected.Contains);
+                foreach (var serial in pendingSelected) _selectedSerials.Remove(serial);
                 var created = await Api.CreateLabelsAsync(current.EosSpNo, pendingSelected.Count);
                 foreach (var label in created)
                     if (!string.IsNullOrWhiteSpace(label.SerialNo)) serials.Add(label.SerialNo);
-                _serials = await Api.LabelsAsync(current.EosSpNo);
                 _selectedSerials.Clear();
                 foreach (var serial in serials) _selectedSerials.Add(serial);
+                _serials = await Api.LabelsAsync(current.EosSpNo);
                 _pendingSerials = SparePartLabel.NextSerials(current.EosSpNo, _serials.Select(x => x.SerialNo), remainingPending).ToList();
+                _reloadLabelsBeforePrint = false;
             }
             if (serials.Count == 0) throw new InvalidOperationException("Select or create at least one serial label.");
             var zpl = string.Concat(serials.Select(serial => SparePartLabel.BuildSerialized(
@@ -407,7 +421,9 @@
             await _printer.SendAsync(_bluetooth, zpl);
             _printMessage = $"{serials.Count} label(s) sent to printer. Check the printed labels.";
         }
-        catch (Exception ex) { _printMessage = $"Print failed: {ex.Message} Check the printer before retrying."; _printError = true; }
+        catch (Exception ex) { _printMessage = $"Print failed: {ex.Message} " + (_reloadLabelsBeforePrint
+            ? "Close and reopen the label list to check saved serials before creating more labels."
+            : "Check the printer before retrying."); _printError = true; }
         finally { _busy = false; }
     }
     private void Close()

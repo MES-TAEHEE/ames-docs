@@ -14,6 +14,8 @@ public static class TabletMapCoordinates
     public static string Column(TabletInventoryApi.InventoryRow row) => Axis(row.RackX);
     public static string Row(TabletInventoryApi.InventoryRow row) => Axis(row.RackY);
     public static bool HasGrid(TabletInventoryApi.InventoryRow row) => Column(row) != "-" && Row(row) != "-";
+    public static bool HasStock(TabletInventoryApi.InventoryRow row) =>
+        !string.IsNullOrWhiteSpace(row.PartNo) && (row.Qty > 0 || row.DefectQty > 0);
     public static bool IsFull(decimal qty, decimal? capacity) => capacity is > 0 && qty >= capacity.Value;
     private static string Axis(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
 

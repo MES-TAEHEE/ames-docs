@@ -174,6 +174,8 @@ public static class PdaSparePartsSql
             WHERE I.SerialNo=@Serial AND T.MoveType=@Move
               AND NOT EXISTS(SELECT 1 FROM dbo.MNT_SparePartsTxn R WHERE R.ReversalOfTxnID=T.SparePartsTxnID)
             ORDER BY T.SparePartsTxnID DESC;
+            IF @TransactionId IS NOT NULL AND (@ExpectedTxn IS NULL OR @ExpectedTxn<>@TransactionId)
+                THROW 51830, 'This transaction is no longer cancellable. Refresh the list and select the latest transaction.', 1;
             IF @RefType='MWO'
             BEGIN
                 SET @CancelNote=LEFT(CONCAT(N'MWO ',@WorkOrder,N' · ',@Note),500);

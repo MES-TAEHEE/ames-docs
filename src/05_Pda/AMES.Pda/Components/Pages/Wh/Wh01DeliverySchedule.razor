@@ -77,19 +77,24 @@
     string _search = "", _error = "";
     SupplierDeliveryProgressDto? _selected;
     bool _busy;
-    protected override async Task OnInitializedAsync()
-    {
-        try { var today = (await Api.DatabaseTimeAsync()).Date; _from = today.AddMonths(-1); _to = today.AddMonths(1); await Load(); }
-        catch (Exception ex) { _error = ex.Message; }
-    }
+    protected override Task OnInitializedAsync() => Load();
     async Task Load()
     {
         if (_busy) return;
-        if (_from is null || _to is null || _from > _to || (_to.Value-_from.Value).TotalDays > 366)
-        { _error = "Select a valid delivery date range (up to 366 days)."; return; }
         _busy = true; _error = ""; _selected = null;
-        try { _rows = await Api.SupplierDeliveriesAsync(_from.Value,_to.Value,_search); }
-        catch (Exception ex) { _error = ex.Message; }
+        try
+        {
+            if (_from is null || _to is null)
+            {
+                var today = (await Api.DatabaseTimeAsync()).Date;
+                _from ??= today.AddMonths(-1);
+                _to ??= today.AddMonths(1);
+            }
+            if (_from > _to || (_to.Value - _from.Value).TotalDays > 366)
+            { _rows = []; _error = "Select a valid delivery date range (up to 366 days)."; return; }
+            _rows = await Api.SupplierDeliveriesAsync(_from.Value,_to.Value,_search);
+        }
+        catch (Exception ex) { _rows = []; _error = ex.Message; }
         finally { _busy = false; }
     }
     void OpenDetail(SupplierDeliveryProgressDto document) => _selected = document;

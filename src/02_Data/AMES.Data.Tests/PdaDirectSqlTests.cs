@@ -58,6 +58,15 @@ public class PdaDirectSqlTests
     }
 
     [Fact]
+    public void Adjustment_seeks_the_case_insensitive_LOT_key_instead_of_locking_unrelated_stock_ranges()
+    {
+        Assert.DoesNotContain("UPPER(W.LotNo)", PdaWarehouseSql.AdjustSave);
+        Assert.Contains("WHERE W.LotNo = @Scan", PdaWarehouseSql.AdjustSave);
+        Assert.Contains("WHERE W.LotNo = @ResultScan", PdaWarehouseSql.AdjustSave);
+        Assert.Contains("WITH (UPDLOCK, HOLDLOCK)", PdaWarehouseSql.AdjustSave);
+    }
+
+    [Fact]
     public void Cancel_sets_required_options_before_writes_without_calling_legacy_procedure()
     {
         var sql = PdaWarehouseSql.InboundCancel.TrimStart();

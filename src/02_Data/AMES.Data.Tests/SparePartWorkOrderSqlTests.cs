@@ -44,4 +44,15 @@ public sealed class SparePartWorkOrderSqlTests
         Assert.Contains("R.ReversalOfTxnID=T.SparePartsTxnID", sql);
         Assert.Contains("'SUCCESS',@CancelNote", sql);
     }
+
+    [Fact]
+    public void Cancel_rejects_a_selected_old_transaction_before_locking_a_different_work_order_or_writing_stock()
+    {
+        var sql = PdaSparePartsSql.Cancel;
+        var selected = sql.IndexOf("IF @TransactionId IS NOT NULL AND (@ExpectedTxn IS NULL OR @ExpectedTxn<>@TransactionId)", StringComparison.Ordinal);
+        Assert.True(selected > sql.IndexOf("ORDER BY T.SparePartsTxnID DESC;", StringComparison.Ordinal));
+        Assert.True(selected < sql.IndexOf("IF @RefType='MWO'", StringComparison.Ordinal));
+        Assert.True(selected < sql.IndexOf("UPDATE dbo.MD_SparePart", StringComparison.Ordinal));
+        Assert.Contains("This transaction is no longer cancellable.", sql);
+    }
 }

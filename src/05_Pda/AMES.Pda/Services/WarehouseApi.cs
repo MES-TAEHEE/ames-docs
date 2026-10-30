@@ -154,7 +154,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         {
             Authorize();
             var url = $"/api/wh/location/scan?locationId={Uri.EscapeDataString(locationId.Trim())}";
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url);
             if (resp.StatusCode == HttpStatusCode.Unauthorized)
                 throw new InvalidOperationException("Session expired. Sign in again.");
 
@@ -180,12 +180,15 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         try
         {
             var url = $"/api/wh/release/schedule/{Uri.EscapeDataString(pickSlipNo.Trim())}/status";
-            var resp = await _http.GetAsync(url);
-            return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<ReleaseSlipStatusRow>() : null;
+            using var resp = await _http.GetAsync(url);
+            if (resp.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.NoContent) return null;
+            if (!resp.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Pick Slip lookup failed. Check the API connection."));
+            return await resp.Content.ReadFromJsonAsync<ReleaseSlipStatusRow>();
         }
-        catch
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
         {
-            return null;
+            throw new InvalidOperationException("Pick Slip lookup failed. Check the API connection and retry.", ex);
         }
     }
     public Task<List<OpenPickingOrderRow>> WhOpenPickingOrdersAsync()
@@ -204,8 +207,10 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         try
         {
             var url = $"/api/wh/release/lot?pickSlipNo={Uri.EscapeDataString(pickSlipNo)}&lotNo={Uri.EscapeDataString(lotNo)}";
-            var resp = await _http.GetAsync(url);
-            if (!resp.IsSuccessStatusCode) return null;
+            using var resp = await _http.GetAsync(url);
+            if (resp.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.NoContent) return null;
+            if (!resp.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Picking LOT lookup failed. Check the API connection."));
             var row = await resp.Content.ReadFromJsonAsync<ReleaseLotRow>();
             if (row is not null && !string.IsNullOrWhiteSpace(areaCode))
                 await WhScanLocationAsync(row.LocationNo ?? "", areaCode);
@@ -215,9 +220,9 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         {
             throw;
         }
-        catch
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
         {
-            return null;
+            throw new InvalidOperationException("Picking LOT lookup failed. Check the API connection and retry.", ex);
         }
     }
     public async Task<List<LotStatusRow>> WhLotStatusesAsync(string? q = null, string? areaCode = null)
@@ -239,7 +244,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
     public async Task<DirectOutgoingLotRow?> WhDirectOutgoingLotAsync(string lotNo, string? areaCode = null)
     {
         Authorize();
-        var resp = await _http.GetAsync($"/api/wh/release/outgoing/lot?lotNo={Uri.EscapeDataString(lotNo.Trim())}");
+        using var resp = await _http.GetAsync($"/api/wh/release/outgoing/lot?lotNo={Uri.EscapeDataString(lotNo.Trim())}");
         if (!resp.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse outgoing service is unavailable."));
         var row = await resp.Content.ReadFromJsonAsync<DirectOutgoingLotRow>();
@@ -255,7 +260,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
     {
         Authorize();
         var url = $"/api/wh/inbound/document?mode={Uri.EscapeDataString(mode.Trim())}&barcode={Uri.EscapeDataString(barcode.Trim())}";
-        var resp = await _http.GetAsync(url);
+        using var resp = await _http.GetAsync(url);
         if (!resp.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse document service is unavailable."));
 
@@ -318,7 +323,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         {
             Authorize();
             var url = $"/api/wh/adjust/scan?scanText={Uri.EscapeDataString(scanText.Trim())}&autoDetect={autoDetect.ToString().ToLowerInvariant()}";
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url);
             if (!resp.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadServiceErrorAsync(resp, "Warehouse adjust scan service is unavailable."));
 
@@ -369,7 +374,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         try
         {
             Authorize();
-            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/receive-lot", body);
+            using var resp = await _http.PostAsJsonAsync("/api/wh/inbound/receive-lot", body);
             return await ReadInboundReceiveResultAsync(resp);
         }
         catch
@@ -397,7 +402,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         try
         {
             Authorize();
-            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/move-location", body);
+            using var resp = await _http.PostAsJsonAsync("/api/wh/inbound/move-location", body);
             return await ReadInboundReceiveResultAsync(resp);
         }
         catch
@@ -416,7 +421,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         try
         {
             Authorize();
-            var resp = await _http.PostAsJsonAsync("/api/wh/putaway/confirm", body);
+            using var resp = await _http.PostAsJsonAsync("/api/wh/putaway/confirm", body);
             return await ReadInboundReceiveResultAsync(resp);
         }
         catch
@@ -430,7 +435,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         try
         {
             Authorize();
-            var resp = await _http.PostAsJsonAsync("/api/wh/inbound/cancel", body);
+            using var resp = await _http.PostAsJsonAsync("/api/wh/inbound/cancel", body);
             return await ReadInboundReceiveResultAsync(resp);
         }
         catch
@@ -444,7 +449,7 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         try
         {
             Authorize();
-            var resp = await _http.PostAsJsonAsync("/api/wh/adjust/save", body);
+            using var resp = await _http.PostAsJsonAsync("/api/wh/adjust/save", body);
             return await ReadInboundReceiveResultAsync(resp);
         }
         catch

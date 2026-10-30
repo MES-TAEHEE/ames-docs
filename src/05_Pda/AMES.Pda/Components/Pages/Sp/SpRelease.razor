@@ -221,6 +221,7 @@
 
     private async Task ReleaseConfirmed()
     {
+        if (_busy) return;
         if (_lot is not { IsReleaseEligible: true } lot)
         {
             ShowModal("Not Ready", "Scan an available Serial No first.", "warn");
@@ -247,6 +248,7 @@
 
     private async Task CancelRelease()
     {
+        if (_busy || _modalOpen) return;
         if (!CanCancelRelease || _lot?.SerialNo is not { } serial) return;
         _busy = true;
         try
@@ -305,7 +307,13 @@
     private void ShowModal(string title, string message, string kind) { _modalTitle = title; _modalMessage = message; _modalKind = kind; _modalOpen = true; }
     private void CloseModal() { _modalOpen = false; _safetyReleasePending = false; _ = FocusScannerAsync(); }
     private void CancelSafetyRelease() => CloseModal();
-    private async Task ConfirmSafetyRelease() { _modalOpen = false; _safetyReleasePending = false; await ReleaseConfirmed(); }
+    private async Task ConfirmSafetyRelease()
+    {
+        if (_busy || !_safetyReleasePending) return;
+        _modalOpen = false;
+        _safetyReleasePending = false;
+        await ReleaseConfirmed();
+    }
     private async Task FocusScannerAsync() { try { await JS.InvokeVoidAsync("pdaScan.focus", ".sp-screen .pda-scan-input"); } catch { } }
     private static string NormalizeScan(string? value) => string.IsNullOrWhiteSpace(value) ? "" : value.Replace("\u0002", "").Replace("\u0003", "").Trim();
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();

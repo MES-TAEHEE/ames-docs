@@ -151,6 +151,7 @@
                 ("Part No", _lot.PartNo), ("Maker", _lot.Maker), ("Vendor", _lot.Vendor),
                 ("Unit", Uom.Symbol(_lot.Unit)), ("Storage Location", _lot.StorageLocation));
             _message = CanCancelInbound ? "This serial is already received. You can cancel inbound."
+                : _lot.ItemStatus == "RELEASED" ? "This serial was released. Cancel the release before receiving it again."
                 : CanReceive ? "Spare part loaded. Ready to receive at the master storage location."
                 : "A valid storage location is required. Update the spare part master and scan again.";
             _messageClass = CanReceive || CanCancelInbound ? "ok" : "fail";
@@ -174,7 +175,9 @@
             var result = await Api.SpReceiveAsync(new(_lot!.SerialNo!, 1, _lot.StorageLocation, "PDA spare parts inbound"));
             if (!result.Success) { ShowModal("Inbound Failed", result.Message, "fail"); return; }
             _lot = result.Row ?? await Api.SpItemAsync(_lot.SerialNo!);
-            ShowModal("Inbound Complete", $"1 EA of {_lotNo} was received at {_locationNo}.", "success");
+            _message = $"1 EA of {_lotNo} was received at {_lot?.StorageLocation ?? _locationNo}.";
+            _messageClass = "ok";
+            ShowModal("Inbound Complete", _message, "success");
         }
         catch (Exception ex) { ShowModal("Inbound Failed", ex.Message, "fail"); }
         finally { _busy = false; }
@@ -182,6 +185,7 @@
 
     private async Task CancelInbound()
     {
+        if (_busy || _modalOpen) return;
         if (!CanCancelInbound || _lot?.SerialNo is not { } serial) return;
         _busy = true;
         try
@@ -189,7 +193,9 @@
             var result = await Api.CancelMoveAsync(serial, "IN", "PDA spare parts inbound cancellation");
             if (!result.Success) { ShowModal("Cancellation Failed", result.Message, "fail"); return; }
             _lot = result.Row;
-            ShowModal("Inbound Cancelled", $"Inbound for {serial} was cancelled. This serial can be received again.", "success");
+            _message = $"Inbound for {serial} was cancelled. This serial can be received again.";
+            _messageClass = "ok";
+            ShowModal("Inbound Cancelled", _message, "success");
         }
         catch (Exception ex) { ShowModal("Cancellation Failed", ex.Message, "fail"); }
         finally { _busy = false; }

@@ -121,6 +121,21 @@ public class TabletCompatibilityTests
         Assert.False(TabletMapCoordinates.HasGrid(defect));
         Assert.Contains(snapshot.Rows, x => x.LocationNo == "EMPTY-1" && x.LotNo is null);
         Assert.Equal("Bulk Storage", Assert.Single(snapshot.Areas!).AreaName);
+        Assert.True(TabletMapCoordinates.HasStock(defect));
+        Assert.False(TabletMapCoordinates.HasStock(snapshot.Rows.Single(x => x.LocationNo == "EMPTY-1")));
+    }
+
+    [Theory]
+    [InlineData(0, 3, true)]
+    [InlineData(2, 0, true)]
+    [InlineData(0, 0, false)]
+    public void Tablet_map_does_not_hide_defect_only_stock(int qty, int defect, bool expected)
+    {
+        Assert.Equal(expected, TabletMapCoordinates.HasStock(Row("A1", "01", "1") with { Qty = qty, DefectQty = defect }));
+        var home = ReadTablet("Components/Pages/Home.razor");
+        Assert.Contains("_rows.Where(TabletMapCoordinates.HasStock)", home);
+        Assert.Contains("g.Any(TabletMapCoordinates.HasStock)", home);
+        Assert.Contains("<dt>Defect Qty</dt>", home);
     }
 
     [Fact]
