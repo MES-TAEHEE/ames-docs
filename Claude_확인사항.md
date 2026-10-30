@@ -29,7 +29,7 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 김현진 | 0                   | 13  | 7묶음 | 4   | [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 28) · 팔레트 닫힘(문제점 38) · 생산/PLC/생산 요약 알림 기준(1-2) |
-| 안영훈 | 1(검증) | 2정책/환경 | 5묶음 | 1   | 재구축은 별도 승인 대기 · Trailer Loading 테스트 실패 1(문제점 2-4) |
+| 안영훈 | 1(검증) | 2정책/환경 | 5묶음 | 0   | 재구축은 별도 승인 대기 |
 | 이승욱 | 0                    | 5   | 1   | 0   | 보류 — 사이클 PM 샷 기준 자동 발행·금형 정비 등록(B7)·개발 완료 시 정리·개발 DB 이름 `AMES` 전환 |
 | 오세영 | 3(앱 개발 참고)          | 1   | —   | —   | 알림 앱 개발 — 서버 발송기·앱 Api 준비됨(4-1 1 참고사항), Firebase 서비스 계정 키 전달                                                                                               |
 
@@ -138,13 +138,6 @@
 
 10-23 정리 실행 당시 개발 DB의 구형 PDA 업무 프로시저 삭제를 확인했습니다. 원본 복구 파일은 `publish/DB_Backup/PDA_BusinessProcedures_20261023_before_cleanup.sql`, 기본 조회용 정리 스크립트는 `dist/retire_pda_business_procedures.sql`입니다. 삭제 대상 27개가 0개 남았고, 재고·거래·출하·반품·팔렛 행 수는 전후 동일합니다. DB 모듈의 외부 참조는 없었으나 SQL Agent 작업은 조회 권한이 없어 확인하지 못했습니다. 로컬 복제 DB는 변경하지 않았습니다. `AMES_ERD_data.js`·`AMES_DB_Schema.html`은 통합 전 구 설계 문서로, 현재 테이블 판정 근거로 쓰지 않습니다.
 
-
-### 2-4. 문제점 (1)
-
-1. **[하] Data 테스트 `PdaTrailerLoadingListTests.Shipment_success_resets_the_DCR_and_refreshes_after_releasing_the_busy_flag` 실패 — 테스트가 찾는 화면 소스 문자열이 바뀜**(10-30 확인)
-   - 위치: 테스트 `PdaTrailerLoadingListTests.cs:67`, 화면 `src/05_Pda/AMES.Pda/Components/Pages/Fg/Fg05TrailerLoading.razor:167`
-   - 내용: 테스트는 `"async Task Complete()"` 부터 잘라 보는데, 10-29 33667d48(FIFO 경고)에서 메서드가 `async Task Complete(bool allowNonFifo)` 로 바뀌어 `IndexOf` 가 -1 이 되고 범위 자르기에서 예외가 납니다. 화면 동작 문제가 아니라 테스트가 옛 소스 문자열에 묶인 것입니다.
-   - 제안: 테스트의 시작 문자열을 `"async Task Complete("` 로 바꾸고 나머지 검사(`ResetDelivery();`·`finally{_busy=false;}` 뒤 `ReloadDeliveries()`)가 지금 소스와 맞는지 다시 확인합니다.
 
 ---
 
