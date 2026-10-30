@@ -13,6 +13,7 @@ public abstract class PdaApi
 {
     public async Task<DateTime> DatabaseTimeAsync()
     {
+        Authorize();
         var value = await _http.GetFromJsonAsync<DateTime>("/api/time");
         if (value == default) throw new InvalidOperationException("Database time is unavailable.");
         return DateTime.SpecifyKind(value, DateTimeKind.Unspecified);

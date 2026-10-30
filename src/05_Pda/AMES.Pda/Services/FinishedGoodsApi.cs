@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -171,7 +172,7 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
     public Task<FgPutAwayResult> FgPutAwayScanAsync(string barcode)
         => GetFgPutAwayResultAsync($"/api/fg/putaway/scan?barcode={Uri.EscapeDataString(barcode)}");
     public Task<FgPutAwayLocationRow?> FgValidatePutAwayLocationAsync(string locationId, string itemNo, string? customerCode, decimal qty, string? expectedScanType)
-        => GetFgPutAwayLocationAsync($"/api/fg/putaway/location?locationId={Uri.EscapeDataString(locationId)}&itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty}&expectedScanType={Uri.EscapeDataString(expectedScanType ?? "")}");
+        => GetFgPutAwayLocationAsync($"/api/fg/putaway/location?locationId={Uri.EscapeDataString(locationId)}&itemNo={Uri.EscapeDataString(itemNo)}&customerCode={Uri.EscapeDataString(customerCode ?? "")}&qty={qty.ToString(CultureInfo.InvariantCulture)}&expectedScanType={Uri.EscapeDataString(expectedScanType ?? "")}");
     public Task<FgPutAwayResult> FgConfirmPutAwayAsync(FgPutAwayConfirmReq body)
         => PostFgPutAwayResultAsync("/api/fg/putaway/confirm", body);
     public Task<FgOutboundUnitResult> FgOutboundScanAsync(string barcode)
@@ -189,7 +190,7 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         Authorize();
         try
         {
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url);
             return await ReadFgReturnResultAsync(resp);
         }
         catch (Exception ex)
@@ -236,7 +237,7 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
 
     private static async Task<FgOutboundUnitResult> ReadOutboundUnitResultAsync(HttpResponseMessage response)
     {
-        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        if (!response.IsSuccessStatusCode)
             return new FgOutboundUnitResult(false, await ReadServiceErrorAsync(response, "Outbound request was rejected."), null);
         try
         {
@@ -259,32 +260,32 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         Authorize();
         try
         {
-            var resp = await _http.PostAsJsonAsync(url, body);
+            using var resp = await _http.PostAsJsonAsync(url, body);
             return await ReadFgReturnResultAsync(resp);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
         {
-            return new FgReturnResult(false, ex.Message, null, null);
+            return new FgReturnResult(false, "Customer return response was lost. Check transaction history before retrying; the stock may already have been processed.", null, null);
         }
     }
 
     private static async Task<FgReturnResult> ReadFgReturnResultAsync(HttpResponseMessage resp)
     {
+        if (!resp.IsSuccessStatusCode)
+            return new FgReturnResult(false, await ReadServiceErrorAsync(resp,
+                $"Customer return service failed. HTTP {(int)resp.StatusCode}."), null, null);
         try
         {
             var result = await resp.Content.ReadFromJsonAsync<FgReturnResult>();
-            if (result is not null) return result;
+            if (result is not null && !string.IsNullOrWhiteSpace(result.Message)) return result;
         }
         catch
         {
             // Fall through to a readable HTTP message.
         }
 
-        if (resp.StatusCode == HttpStatusCode.Unauthorized)
-            return new FgReturnResult(false, "Session expired. Sign in again.", null, null);
-
-        return new FgReturnResult(resp.IsSuccessStatusCode,
-            resp.IsSuccessStatusCode ? "Customer return received." : $"Customer return service failed. HTTP {(int)resp.StatusCode}.",
+        return new FgReturnResult(false,
+            "Customer return API returned an invalid or empty response. Check transaction history before retrying; the stock may already have been processed.",
             null, null);
     }
 
@@ -293,7 +294,7 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         Authorize();
         try
         {
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url);
             var result = await ReadFgPutAwayResultAsync(resp);
             return result ?? new FgPutAwayResult(false, "FG Put-Away service returned an empty response.", null, null, null);
         }
@@ -308,7 +309,7 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         Authorize();
         try
         {
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
                 return await resp.Content.ReadFromJsonAsync<FgPutAwayLocationRow>();
 
@@ -329,22 +330,25 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
         Authorize();
         try
         {
-            var resp = await _http.PostAsJsonAsync(url, body);
+            using var resp = await _http.PostAsJsonAsync(url, body);
             var result = await ReadFgPutAwayResultAsync(resp);
             return result ?? new FgPutAwayResult(false, "FG Put-Away service returned an empty response.", null, null, null);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
         {
-            return new FgPutAwayResult(false, ex.Message, null, null, null);
+            return new FgPutAwayResult(false, "Set Location response was lost. Check transaction history before retrying; the stock may already have been processed.", null, null, null);
         }
     }
 
     private static async Task<FgPutAwayResult?> ReadFgPutAwayResultAsync(HttpResponseMessage resp)
     {
+        if (!resp.IsSuccessStatusCode)
+            return new FgPutAwayResult(false, await ReadServiceErrorAsync(resp,
+                $"Set Location service failed. HTTP {(int)resp.StatusCode}."), null, null, null);
         try
         {
             var result = await resp.Content.ReadFromJsonAsync<FgPutAwayResult>();
-            if (result is not null)
+            if (result is not null && !string.IsNullOrWhiteSpace(result.Message))
                 return result;
         }
         catch
@@ -352,13 +356,8 @@ public sealed class FinishedGoodsApi(HttpClient http, AuthState auth) : PdaApi(h
             // Fall through to a readable HTTP message.
         }
 
-        if (resp.StatusCode == HttpStatusCode.Unauthorized)
-            return new FgPutAwayResult(false, "Session expired. Sign in again.", null, null, null);
-
-        var message = resp.IsSuccessStatusCode
-            ? "FG Put-Away completed."
-            : $"FG Put-Away service failed. HTTP {(int)resp.StatusCode}.";
-        return new FgPutAwayResult(resp.IsSuccessStatusCode, message, null, null, null);
+        return new FgPutAwayResult(false,
+            "Set Location API returned an invalid or empty response. Check transaction history before retrying; the stock may already have been processed.", null, null, null);
     }
 
 }
