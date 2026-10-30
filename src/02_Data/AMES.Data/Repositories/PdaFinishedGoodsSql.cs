@@ -232,6 +232,8 @@ public static class PdaFinishedGoodsSql
         """;
 
     public const string OutboundPrecheck = """
+        SET QUOTED_IDENTIFIER ON;
+        SET ANSI_NULLS ON;
         ;WITH UnitTree AS
         (
             SELECT LotNo,ParentLotNo,UnitType,PartNo,LocationNo,Qty FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode

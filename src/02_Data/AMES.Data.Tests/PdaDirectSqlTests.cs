@@ -36,7 +36,7 @@ public class PdaDirectSqlTests
         Assert.DoesNotMatch(@"(?i)\b(?:CREATE|ALTER|DROP|TRUNCATE)\s+(?:TABLE|PROC(?:EDURE)?)\b", sql);
         Assert.DoesNotMatch(@"(?i)\bEXEC(?:UTE)?\s+(?:dbo\.)?(?:WH_|FG_|SP_PDA_)\w+", sql);
         Assert.DoesNotMatch(@"(?i)\b(?:FROM|JOIN|UPDATE|INTO|MERGE|DELETE)\s+(?:dbo\.)?(?:WH_OLD_Inventory|WH_Receiving|WH_InboundPackage|WH_ReleasePicking|FG_Inventory|FG_Putaway|FG_ShipmentOrder)\b", sql);
-        Assert.Contains("SET QUOTED_IDENTIFIER ON;", sql);
+        Assert.Matches(@"\ASET QUOTED_IDENTIFIER ON;\s+SET ANSI_NULLS ON;", sql.TrimStart());
     }
 
     [Fact]
