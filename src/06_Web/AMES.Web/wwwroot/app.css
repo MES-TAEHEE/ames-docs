@@ -5581,6 +5581,7 @@ html:lang(ko) { --ames-fs-bump: 1px; --ames-fs-hint: 12px; }
 html:lang(ko) body *:not(.ames-brand, .ames-brand *) { letter-spacing: normal !important; }
 
 /* ── MNT Spare Parts 100 × 50 mm serialized label ───────────────── */
+.spare-label-modal-bg { z-index: 1100; }
 .spare-label-modal { width: min(760px, calc(100vw - 32px)); }
 .spare-label-preview { overflow: auto; padding: 18px; background: var(--ames-sf-090f1d); }
 .spare-label-print-area { width: 100mm; margin: 0 auto; }

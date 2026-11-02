@@ -13,6 +13,9 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject AuditLogger Audit
 
 <PageTitle>MNT-008 @L["MNT.SpareParts.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MNT-008" TitleKey="MNT.SpareParts.Title" />
@@ -335,11 +338,20 @@
             </RadzenStack>
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Print"]" Click="OpenPartLabels" Icon="print" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Disabled="@string.IsNullOrWhiteSpace(_sel.SparePartNo)" />
                 <RadzenButton Text="@L["MNT.SpareParts.Btn.ShowTxn"]" Click="@ShowTxnForSelected" Icon="history" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Close"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
+}
+
+@if (_labelPartNo is not null)
+{
+    <SparePartLabelDialog SerialNo="@_labelSerial" SparePartNo="@_labelPartNo"
+                          Labels="@_partLabels" SerialNoChanged="@(value => _labelSerial=value)"
+                          CanCreate="@(_canCreateLabels && !_labelCreateBlocked)" Busy="@_labelBusy" Error="@_labelError"
+                          OnCreate="CreatePartLabel" OnClose="ClosePartLabels" />
 }
 
 @code {
@@ -359,6 +371,10 @@
     List<MasterDataRepository.VendorRow>   _vendors    = new();   // 공급업체 명칭 표시용
     MntRepository.SparePartRow? _sel;
     MntRepository.SparePartsTxnRow? _printTxn;
+    List<MntRepository.SparePartLabelRow> _partLabels = new();
+    string? _labelPartNo;
+    string _labelSerial = "", _labelError = "", _actor = "";
+    bool _labelBusy, _labelCreateBlocked, _canCreateLabels;
     byte[]? _selImage;   // 상세 모달 미리보기 — 행을 열 때만 MD_SparePart.SparePartImage 를 읽는다
 
     string  _fPart = "", _fTxnPart = "";
@@ -390,8 +406,12 @@
 
     int LowCount => _allParts.Count(IsLow);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = ActorCode.Of(auth.User, "system");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canCreateLabels = PermSvc.CanEdit("md/re/spare-part");
         try { _catItems   = MD.ListCodeItems("SPAREPARTS_CATEGORY"); } catch { }
         try { _equipItems = MD.ListCodeItems("SPAREPARTS_EQUIP"); } catch { }
         try { _zoneItems  = MD.ListCodeItems("MNT_ZONE"); } catch { }
@@ -497,6 +517,68 @@
 
     void OpenLabel(MntRepository.SparePartsTxnRow txn) => _printTxn = txn;
     void CloseLabel() => _printTxn = null;
+
+    async Task OpenPartLabels()
+    {
+        if (_sel?.SparePartNo is not { Length: > 0 } partNo || _labelBusy) return;
+        _labelPartNo = partNo;
+        _labelSerial = _labelError = "";
+        _partLabels = new();
+        _labelCreateBlocked = false;
+        _labelBusy = true;
+        try
+        {
+            _partLabels = await Task.Run(() => Mnt.ListSparePartLabels(partNo));
+            _labelSerial = _partLabels.FirstOrDefault()?.SerialNo ?? "";
+        }
+        catch (Exception ex) { _labelError = ex.Message; _labelCreateBlocked = true; }
+        finally { _labelBusy = false; }
+    }
+
+    async Task CreatePartLabel()
+    {
+        if (_labelBusy || _labelCreateBlocked || _labelPartNo is not { } partNo) return;
+        _labelBusy = true;
+        _labelError = "";
+        string? created = null;
+        try
+        {
+            _canCreateLabels = await PermSvc.RecheckEditAsync(AuthPrvd, "md/re/spare-part");
+            if (!_canCreateLabels)
+            {
+                Audit.Denied("MNT-008", "CREATE", "MNT_SparePartItem", partNo);
+                _labelError = L["MNT.SpareParts.LabelDialog.CreatePermission"];
+                return;
+            }
+            // A failed response may follow a committed allocation. Reopen the list before another attempt.
+            _labelCreateBlocked = true;
+            created = await Task.Run(() => Mnt.CreateSparePartLabel(partNo, _actor));
+            Audit.Created("MNT-008", "MNT_SparePartItem", created, new { SparePartNo=partNo, SerialNo=created });
+            _partLabels = await Task.Run(() => Mnt.ListSparePartLabels(partNo));
+            if (!_partLabels.Any(label => label.SerialNo == created))
+                throw new InvalidOperationException("The created serial is not in the refreshed label list.");
+            _labelSerial = created;
+            _labelCreateBlocked = false;
+            ReloadTxn();
+        }
+        catch (Exception ex)
+        {
+            _labelError = created is null
+                ? L["MNT.SpareParts.LabelDialog.CreateUncertain"].Value
+                : string.Format(L["MNT.SpareParts.LabelDialog.CreatedReloadFailed"].Value, created);
+            if (created is null) Audit.Failed("MNT-008", "CREATE", "MNT_SparePartItem", partNo, null, ex.Message);
+            else Audit.Log("MNT-008", "LOAD_FAILED", "MNT_SparePartItem", created, null, null, note: ex.Message, result: "FAIL");
+        }
+        finally { _labelBusy = false; }
+    }
+
+    void ClosePartLabels()
+    {
+        if (_labelBusy) return;
+        _labelPartNo = null;
+        _partLabels = new();
+        _labelSerial = _labelError = "";
+    }
 
     void CloseModal() { _modal = ""; _sel = null; _selImage = null; }
 
