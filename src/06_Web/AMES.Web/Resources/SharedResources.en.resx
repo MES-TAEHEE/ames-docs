@@ -7924,10 +7924,10 @@
     <value>Location / Dock</value>
   </data>
   <data name="WH.LogHistory.Title" xml:space="preserve">
-    <value>Inventory History</value>
+    <value>History</value>
   </data>
   <data name="WH.LogHistory.List" xml:space="preserve">
-    <value>Inventory Activity</value>
+    <value>History</value>
   </data>
   <data name="WH.LogHistory.Empty" xml:space="preserve">
     <value>No inventory activity found.</value>
@@ -8587,7 +8587,7 @@
     <value>Return No/RMA/Customer/Item</value>
   </data>
   <data name="WH.LogHistory.Ph.Search" xml:space="preserve">
-    <value>Event/LOT/Part No/Operator/Note</value>
+    <value>DCR / LOT / part / customer / worker…</value>
   </data>
   <data name="WH.Inventory.Ph.Search" xml:space="preserve">
     <value>Location/Part No/Name/LOT</value>
@@ -12732,4 +12732,13 @@
   <data name="FG.DueRisk.Remaining" xml:space="preserve"><value>Remaining</value></data>
   <data name="FG.DueRisk.Basis" xml:space="preserve"><value>All open SOs, including those without shipment orders. As of {0}; due soon: today through {1} (next factory workday). Only confirmed shipments reduce the balance.</value></data>
   <data name="FG.DueRisk.LoadFailed" xml:space="preserve"><value>Delivery risk could not be loaded. Refresh to retry.</value></data>
+  <data name="WH.LogHistory.Lbl.CustomerReturn" xml:space="preserve">
+    <value>Customer Return</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.PalletReturn" xml:space="preserve">
+    <value>Empty Pallet Return</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Shipped" xml:space="preserve">
+    <value>Shipped</value>
+  </data>
 </root>

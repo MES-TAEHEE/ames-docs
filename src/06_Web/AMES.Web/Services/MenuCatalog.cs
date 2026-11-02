@@ -59,15 +59,14 @@ public sealed class MenuCatalog
         // -- WH --
         new("wh", "wh/inventory",       "WH-006", "재고 조회",   "Inventory Search"),
         new("wh", "wh/location-map",    "WH-003", "로케이션 맵", "Location Map"),
-        new("wh", "wh/log-history",     "WH-004", "재고 이력",   "Inventory History"),
-        new("wh", "wh/picking-orders",  "WH-002", "피킹 오더",   "Picking Orders"),
+        new("wh", "wh/picking-orders",  "WH-03", "피킹 오더",   "Picking Orders"),
+        new("wh", "wh/log-history",     "WH-04", "이력",       "History"),
 
         // -- FG --
         new("fg", "fg/customer-returns", "FG-01", "고객사 리턴", "Customer Returns"),
         new("fg", "fg/shipping-orders",  "FG-02", "출하 오더",   "Shipment Orders"),
         new("fg", "fg/shipment-plan",    "FG-03", "출하 계획",   "Shipment Plan"),
         new("fg", "fg/shipments",        "FG-04", "출하 목록",   "Shipments"),
-        new("fg", "fg/history",          "FG-05", "작업 이력",   "History"),
 
         // ── PP ──
         new("pp", "pp/forecast",         "PP-001", "수요 예측",        "Forecast"),
@@ -162,6 +161,7 @@ public sealed class MenuCatalog
         "portal/delivery-notes",
         "portal/receipts",
         "wh/locations",
+        "fg/history",
     };
 
     public static bool IsHidden(string href) => HiddenItems.Contains(href.TrimStart('/'));
@@ -170,6 +170,7 @@ public sealed class MenuCatalog
     {
         var path = href.Trim('/');
         return path.Equals("wh/inventory-setting", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("fg/history", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/location-map", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/locations", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/inventory", StringComparison.OrdinalIgnoreCase)
@@ -286,7 +287,7 @@ public sealed class MenuCatalog
         // WH
         ["wh/location-map"] = "Mapa de Ubicaciones",
         ["wh/picking-orders"] = "Órdenes de Picking",
-        ["wh/log-history"] = "Historial de Inventario",
+        ["wh/log-history"] = "Historial",
         ["fg/customer-returns"] = "Devoluciones de Clientes",
         ["fg/shipment-plan"] = "Plan de Envíos",
         ["fg/shipments"] = "Embarques",

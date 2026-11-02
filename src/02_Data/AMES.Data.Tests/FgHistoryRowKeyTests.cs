@@ -14,7 +14,7 @@ public sealed class FgHistoryRowKeyTests
         var second=first with { RowKey="TX:2" };
         Assert.NotEqual(first,second);
         Assert.NotEqual(first.RowKey,second.RowKey);
-        var page=File.ReadAllText(Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Fg/History.razor"));
+        var page=File.ReadAllText(Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor"));
         Assert.Contains("KeyProperty=\"RowKey\"",page);
     }
 
@@ -43,34 +43,40 @@ public sealed class FgHistoryRowKeyTests
     [Fact]
     public void History_reuses_shipment_drilldowns_and_keeps_queries_lazy_and_modal_results_current()
     {
-        var page=File.ReadAllText(Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Fg/History.razor"));
-        Assert.Contains("RowExpand=\"LoadChildren\"",page);
-        Assert.Contains("ShowExpandColumn=\"false\"",page);
+        var page=File.ReadAllText(Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor"));
+        Assert.DoesNotContain("RowExpand=",page);
+        Assert.DoesNotContain("ExpandRow(",page);
         Assert.Contains("row.HasShipmentDetails",page);
-        Assert.Contains("IsExpanded(row) ? \"expand_more\" : \"chevron_right\"",page);
-        Assert.Contains("_children.ContainsKey(row.RowKey)",page);
+        Assert.DoesNotContain("chevron_right",page);
+        Assert.Contains("Click=\"@(()=>OpenDetail(row))\"",page);
+        Assert.Contains("_detailRow=row;_detailParts=[];_partsError=\"\";_partsLoading=row.HasShipmentDetails",page);
         Assert.Contains("ListShipmentHistoryParts(row.DeliveryId,row.ShipmentId!.Value)",page);
-        Assert.Contains("OpenLots(history,item)",page);
+        Assert.Contains("OpenLots(detail,item)",page);
         Assert.Contains("ListShipmentHistoryLots(history.DeliveryId,history.ShipmentId!.Value,part.PalletNo,part.PartNo)",page);
         Assert.Contains("KeyProperty=\"TransactionId\"",page);
         Assert.Contains("request==_lotRequest",page);
         Assert.Contains("request==_reloadRequest",page);
+        Assert.Contains("request==_detailRequest",page);
+        Assert.Contains("void CloseDetail(){++_detailRequest;CloseLots();",page);
         Assert.Contains("void CloseLots(){++_lotRequest",page);
     }
 
     [Fact]
     public void History_details_use_a_bounded_preview_and_a_wrapping_closeable_modal()
     {
-        var path=Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Fg/History.razor");
+        var path=Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor");
         var page=File.ReadAllText(path);
         var css=File.ReadAllText(path+".css");
         Assert.Contains("Title=\"@L[\"Col.Details\"].Value\" Width=\"240px\" MinWidth=\"240px\"",page);
-        Assert.Contains("class=\"history-detail-preview\">@DetailSummary(row)",page);
-        Assert.Contains("Click=\"@(()=>_detailRow=row)\"",page);
+        Assert.Contains("Text=\"@DetailSummary(row)\"",page);
+        Assert.DoesNotContain("Text='@L[\"Col.Details\"].Value'",page);
+        Assert.Contains("Click=\"@(()=>OpenDetail(row))\"",page);
         Assert.Contains("aria-labelledby=\"history-detail-title\"",page);
         Assert.Contains("class=\"history-detail-text\">@DetailSummary(detail)",page);
         Assert.Contains("Click=\"CloseDetail\"",page);
-        Assert.Contains("CloseLots();CloseDetail();_children.Clear()",page);
+        Assert.Contains("_loading=true;CloseDetail();",page);
+        Assert.Contains("shipment-history-modal",page);
+        Assert.Contains("Data=\"_detailParts\" IsLoading=\"_partsLoading\"",page);
         Assert.Contains("text-overflow:ellipsis",css);
         Assert.Contains("white-space:pre-wrap;overflow-wrap:anywhere",css);
     }

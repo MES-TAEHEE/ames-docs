@@ -78,14 +78,23 @@ public sealed class InventoryDefectTests
         Assert.Contains("ReceiveDeliveryCase(barcode,mode,actor,scannedBoxes)",source);
         Assert.Contains("Delivery notes are view-only",source);Assert.Contains("ScmRepository.LinkReceivedCase",source);
         Assert.DoesNotContain("TEST_RESET",source);Assert.DoesNotContain("SEED",source);
-        var state=Read("src/06_Web/AMES.Web/Services/WarehouseInboundTestState.cs");
-        Assert.Contains("if(allowed && ++_clicks>=3)",state);Assert.DoesNotContain("static",state);
         var page=Read("src/06_Web/AMES.Web/Components/Pages/Wh/InboundTest.razor");
         Assert.Contains("_allowed=await Task.Run(()=>Repo.CanRead(_userId))",page);
         Assert.Contains("Repo.CanReceive(_userId)",page);
         Assert.Contains("CanWrite=\"_canReceive\"",page);
         Assert.Contains("!CanWrite",Read("src/06_Web/AMES.Web/Components/Shared/WarehouseInboundTester.razor"));
         Assert.DoesNotContain("TestState.Visible",page);
+    }
+
+    [Fact]
+    public void Picking_navigation_does_not_reveal_a_hidden_PDA_test_menu()
+    {
+        var nav=Read("src/06_Web/AMES.Web/Components/Layout/NavMenu.razor");
+        Assert.Contains("<NavLink class=\"ames-nav-link\" href=\"@it.Href\">",nav);
+        Assert.DoesNotContain("PickingMenuClicked",nav);
+        Assert.DoesNotContain("InboundTest",nav);
+        Assert.DoesNotContain("wh/picking-orders/inbound-test",nav);
+        Assert.DoesNotContain("WarehouseInboundTestState",Read("src/06_Web/AMES.Web/Program.cs"));
     }
 
     [Fact]

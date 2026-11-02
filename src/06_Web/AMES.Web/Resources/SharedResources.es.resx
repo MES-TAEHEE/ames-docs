@@ -7924,10 +7924,10 @@
     <value>Ubicación / Muelle</value>
   </data>
   <data name="WH.LogHistory.Title" xml:space="preserve">
-    <value>Historial de inventario</value>
+    <value>Historial</value>
   </data>
   <data name="WH.LogHistory.List" xml:space="preserve">
-    <value>Actividad de inventario</value>
+    <value>Historial</value>
   </data>
   <data name="WH.LogHistory.Empty" xml:space="preserve">
     <value>No se encontró actividad de inventario.</value>
@@ -8587,7 +8587,7 @@
     <value>Devolución/RMA/Cliente/Artículo</value>
   </data>
   <data name="WH.LogHistory.Ph.Search" xml:space="preserve">
-    <value>Evento/Lote/Pieza/Operador/Nota</value>
+    <value>DCR / lote / pieza / cliente / operario…</value>
   </data>
   <data name="WH.Inventory.Ph.Search" xml:space="preserve">
     <value>Ubicación/Pieza/Nombre/Lote</value>
@@ -12732,4 +12732,13 @@
   <data name="FG.DueRisk.Remaining" xml:space="preserve"><value>Pendiente</value></data>
   <data name="FG.DueRisk.Basis" xml:space="preserve"><value>Todos los pedidos abiertos, incluso sin orden de envío. Al {0}; próxima entrega: hoy hasta {1} (siguiente día laborable). Solo los envíos confirmados reducen el saldo.</value></data>
   <data name="FG.DueRisk.LoadFailed" xml:space="preserve"><value>No se pudo cargar el riesgo de entrega. Actualice para reintentar.</value></data>
+  <data name="WH.LogHistory.Lbl.CustomerReturn" xml:space="preserve">
+    <value>Devolución del cliente</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.PalletReturn" xml:space="preserve">
+    <value>Devolución de palé vacío</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Shipped" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
 </root>
