@@ -10,8 +10,8 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
-<PageTitle>WH-002 @L["WH.Picking.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="WH-002" TitleKey="WH.Picking.Title" />
+<PageTitle>WH-003 @L["WH.Picking.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="WH-003" TitleKey="WH.Picking.Title" />
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Picking.Title"]</div><div class="ames-kpi-v">@_orders.Count</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Picking.Kpi.LineLocations"]</div><div class="ames-kpi-v">@_stock.Select(x=>x.LineCode).Distinct().Count()</div></div>

@@ -211,6 +211,22 @@ public sealed class WarehouseHistoryDisplayTests
         Assert.Contains("Width=\"400px\" MinWidth=\"260px\"",page);
     }
 
+    [Fact]
+    public void Warehouse_menu_shows_picking_third_and_history_fourth_without_rewriting_permission_codes()
+    {
+        var catalog=Read("src/06_Web/AMES.Web/Services/MenuCatalog.cs");
+        Assert.Contains(".OrderBy(s => s.SortOrder ?? 999)",catalog);
+        Assert.Contains("s.LidLabel ?? s.ScreenCode",catalog);
+        var sql=Read("dist/migrate_wh_fg_history_screens.sql");
+        Assert.Contains("N'Picking Orders','WH-03',3,1",sql);
+        Assert.Contains("N'History','WH-04',4,1",sql);
+        Assert.Contains("TRIM('/' FROM HRef) IN('fg/history'",sql);
+        Assert.DoesNotContain("SYS_RolePermission",sql);
+        Assert.DoesNotContain("SET ScreenCode",sql);
+        Assert.DoesNotContain("DELETE",sql);
+        Assert.Contains("migrate_wh_fg_history_screens.sql",Read("dist/rebuild_db.sh"));
+    }
+
     static WarehouseRepository.OperationLogRow Row(string type, string? message = null)
         => new(1, null, type, null, null, null, null, null, null, null, null, null,
             "SUCCESS", message, null, null, null, null, null, null, null);
