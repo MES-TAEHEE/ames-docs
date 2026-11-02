@@ -8379,6 +8379,24 @@
   <data name="MNT.SpareParts.Move.OutCancel" xml:space="preserve">
     <value>Release Cancelled</value>
   </data>
+  <data name="MNT.SpareParts.LabelDialog.CreateOne" xml:space="preserve">
+    <value>Create New Serial</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.CreateHint" xml:space="preserve">
+    <value>Creates one new serial. Stock quantity is not changed.</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.CreatePermission" xml:space="preserve">
+    <value>Spare Part Master edit permission is required to create a new serial.</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.CreateUncertain" xml:space="preserve">
+    <value>The creation result could not be confirmed. Close and reopen this window to check saved serials before continuing.</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.CreatedReloadFailed" xml:space="preserve">
+    <value>Serial {0} was created, but the list could not be refreshed. Reopen this window and select that serial.</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.NoLabels" xml:space="preserve">
+    <value>No serials are registered. Create a new serial before printing.</value>
+  </data>
   <data name="MNT.SpareParts.LabelDialog.Title" xml:space="preserve">
     <value>Spare Parts Label</value>
   </data>

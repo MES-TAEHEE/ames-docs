@@ -10,7 +10,7 @@ namespace AMES.Data.Repositories;
 /// Maintenance (MNT) module queries — used by the Office Web.
 /// One method per MNT-XXX screen, plus aggregates for MNT-009 dashboard.
 /// </summary>
-public sealed class MntRepository
+public sealed partial class MntRepository
 {
     private readonly AmesConnectionFactory _f;
     public MntRepository(AmesConnectionFactory f) => _f = f;

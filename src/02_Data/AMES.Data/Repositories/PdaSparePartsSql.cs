@@ -16,7 +16,10 @@ public static class PdaSparePartsSql
         ORDER BY w.IssuedAt DESC,w.WorkOrderID DESC;
         """;
 
-    public const string SerialCreate = """
+    public const string SerialCreate = "DECLARE @LabelRefType varchar(20)='PDA_LABEL';\n" + SerialCreateBody;
+    public const string WebSerialCreate = "DECLARE @LabelRefType varchar(20)='WEB_LABEL';\n" + SerialCreateBody;
+
+    private const string SerialCreateBody = """
         SET QUOTED_IDENTIFIER ON;
         SET ANSI_NULLS ON;
         BEGIN
@@ -49,7 +52,7 @@ public static class PdaSparePartsSql
                 SET @ItemId=SCOPE_IDENTITY();
                 INSERT dbo.MNT_SparePartsTxn
                     (SparePartNo,SparePartItemID,MoveType,Qty,BalanceBefore,BalanceAfter,RefType,RefID,Note,TxnAt,ActorID,CreatedBy,CreatedTS)
-                VALUES(@SpNo,@ItemId,'LABEL',0,@Balance,@Balance,'PDA_LABEL',@Serial,N'Label serial created',SYSDATETIME(),@User,LEFT(@User,20),SYSDATETIME());
+                VALUES(@SpNo,@ItemId,'LABEL',0,@Balance,@Balance,@LabelRefType,@Serial,N'Label serial created',SYSDATETIME(),@User,LEFT(@User,20),SYSDATETIME());
                 INSERT @Created VALUES(@Serial);
                 SET @i+=1;
             END;

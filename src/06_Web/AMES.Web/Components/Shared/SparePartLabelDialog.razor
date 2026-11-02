@@ -5,36 +5,67 @@
     <div class="ames-modal spare-label-modal" @onclick:stopPropagation>
         <div class="ames-modal-h">@L["MNT.SpareParts.LabelDialog.Title"]</div>
 
+        @if (Labels is not null)
+        {
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                <RadzenLabel Text="@L["Col.SerialNo"]" Component="SpareLabelSerial" />
+                <RadzenDropDown TValue="string" Name="SpareLabelSerial" Value="@SerialNo" Change="SelectSerial"
+                                Data="@Labels" TextProperty="SerialNo" ValueProperty="SerialNo" AllowFiltering="true"
+                                Disabled="@Busy" InputSize="InputSize.Small" class="ames-rz-input" Style="min-width:240px;flex:1;" />
+                @if (CanCreate)
+                {
+                    <RadzenButton Text="@L["MNT.SpareParts.LabelDialog.CreateOne"]" Icon="add" Click="OnCreate"
+                                  Disabled="@Busy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
+            </RadzenStack>
+            <div class="dim">@L["MNT.SpareParts.LabelDialog.CreateHint"]</div>
+            @if (!CanCreate && string.IsNullOrWhiteSpace(Error))
+            {
+                <div class="dim">@L["MNT.SpareParts.LabelDialog.CreatePermission"]</div>
+            }
+        }
+        @if (!string.IsNullOrWhiteSpace(Error))
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" AllowClose="false">@Error</RadzenAlert>
+        }
+
+        @if (CurrentLabel is { } label)
+        {
         <div class="spare-label-preview">
             <div id="spare-part-label-print" class="spare-label-print-area">
                 <div class="spare-label-paper">
                     <div class="spare-label-top">
                         <div class="spare-label-qr">
-                            <RadzenQRCode Value="@SerialNo" Size="100%" Foreground="#000000" Background="#ffffff" Ecc="RadzenQREcc.Low" />
+                            <RadzenQRCode Value="@label.SerialNo" Size="100%" Foreground="#000000" Background="#ffffff" Ecc="RadzenQREcc.Low" />
                         </div>
                         <div class="spare-label-info">
-                            <div>@Display(PartName)</div>
-                            <div>@Display(VendorName)</div>
+                            <div>@Display(label.PartName)</div>
+                            <div>@Display(label.VendorName)</div>
                             <div class="spare-label-location">
-                                <span>@Display(LocationId)</span>
-                                @if (!string.IsNullOrWhiteSpace(ExtraLocation))
+                                <span>@Display(label.LocationId)</span>
+                                @if (!string.IsNullOrWhiteSpace(label.ExtraLocation))
                                 {
-                                    <span>(@ExtraLocation)</span>
+                                    <span>(@label.ExtraLocation)</span>
                                 }
                             </div>
                         </div>
                     </div>
                     <div class="spare-label-bottom">
-                        <div>@SparePartNo</div>
-                        <div>@SerialNo</div>
+                        <div>@label.SparePartNo</div>
+                        <div>@label.SerialNo</div>
                     </div>
                 </div>
             </div>
         </div>
+        }
+        else if (!Busy)
+        {
+            <div class="ames-empty">@L["MNT.SpareParts.LabelDialog.NoLabels"]</div>
+        }
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-            <RadzenButton Text="@L["Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" class="ames-rz-btn" />
-            <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="PrintAsync" Disabled="@(Busy || CurrentLabel is null)" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Close"]" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="CloseAsync" Disabled="@Busy" class="ames-rz-btn" />
         </RadzenStack>
     </div>
 </div>
@@ -46,9 +77,20 @@
     [Parameter] public string? VendorName { get; set; }
     [Parameter] public string? LocationId { get; set; }
     [Parameter] public string? ExtraLocation { get; set; }
+    [Parameter] public IReadOnlyList<MntRepository.SparePartLabelRow>? Labels { get; set; }
+    [Parameter] public EventCallback<string> SerialNoChanged { get; set; }
+    [Parameter] public bool CanCreate { get; set; }
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    private Task PrintAsync() => JS.InvokeVoidAsync("window.print").AsTask();
-    private Task CloseAsync() => OnClose.InvokeAsync();
+    private MntRepository.SparePartLabelRow? CurrentLabel => Labels is not null
+        ? Labels.FirstOrDefault(row => row.SerialNo == SerialNo)
+        : string.IsNullOrWhiteSpace(SerialNo) ? null : new(SerialNo, SparePartNo, PartName, VendorName, LocationId, ExtraLocation);
+
+    private Task SelectSerial(object value) => SerialNoChanged.InvokeAsync(value as string ?? "");
+    private Task PrintAsync() => Busy || CurrentLabel is null ? Task.CompletedTask : JS.InvokeVoidAsync("window.print").AsTask();
+    private Task CloseAsync() => Busy ? Task.CompletedTask : OnClose.InvokeAsync();
     private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
 }

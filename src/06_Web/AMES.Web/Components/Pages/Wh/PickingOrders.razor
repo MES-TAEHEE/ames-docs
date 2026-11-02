@@ -7,7 +7,6 @@
 @inject PermissionService Permissions
 @inject AuthenticationStateProvider Auth
 @inject NavigationManager Nav
-@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 <PageTitle>WH-003 @L["WH.Picking.Title"] · AMES</PageTitle>
@@ -92,39 +91,8 @@
             </Columns>
         </RadzenDataGrid>
     </section>
-    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["WH.Picking.Btn.PrintBarcode"].Value" Icon="print" Click="Print" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Close"].Value" Icon="close" Click="@(()=>_selected=null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["Btn.Close"].Value" Icon="close" Click="@(()=>_selected=null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
     </div></div>
-    <div class="wh-slip-print-area">
-        <div class="wh-slip-paper">
-            <div class="wh-slip-title">@L["WH.Picking.Slip.WarehouseTitle"]</div>
-            <div class="wh-slip-head">
-                <div class="wh-slip-meta">
-                    <div>@L["WH.Picking.Lbl.RequestDate"]: @_selected.ReqDate</div>
-                    <div>@L["WH.Picking.Slip.DestLine"]: @_selected.ReqLocation</div>
-                </div>
-                <div class="wh-slip-barcode-box">
-                    <Code128Barcode Value="@_selected.PickSlipNo" Height="60" CssClass="wh-slip-barcode" />
-                    <div>@_selected.PickSlipNo</div>
-                </div>
-            </div>
-            <table class="wh-slip-table">
-                <colgroup>
-                    <col class="slip-col-no" />
-                    <col class="slip-col-part" />
-                    <col class="slip-col-name" />
-                    <col class="slip-col-qty" />
-                    <col class="slip-col-lot" />
-                    <col class="slip-col-location" />
-                    <col class="slip-col-destination" />
-                </colgroup>
-                <thead><tr><th>@L["Col.No"]</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ItemName"]</th><th>@L["Col.Qty"]</th><th>@L["Col.LotNo"]</th><th>@L["WH.Picking.Slip.PickLocation"]</th><th>@L["Col.Destination"]</th></tr></thead>
-                <tbody>@foreach (var row in _printRows)
-                {
-                    <tr><td>@row.No</td><td>@row.PartNo</td><td>@row.PartName</td><td class="num">@row.Qty.ToString("N0") EA</td><td>@row.LotNo</td><td>@row.Location</td><td>@row.Destination</td></tr>
-                }</tbody>
-            </table>
-        </div>
-    </div>
 }
 
 @code {
@@ -132,7 +100,6 @@
     List<PickingSlipHeaderRow> _orders = [];
     List<PickingSlipLineRow> _details = [];
     List<PickingSlipFifoLotRow> _sources = [];
-    List<PrintRow> _printRows = [];
     PickingSlipHeaderRow? _selected;
     string _search = "", _error = "";
     bool _allowed;
@@ -152,7 +119,6 @@
         _selected = null;
         _details = [];
         _sources = [];
-        _printRows = [];
         try { _stock = WH.ListLineStock(); _orders = WH.ListPickingSlipHeaders(_search); }
         catch { _stock = []; _orders = []; _error = L["WH.Picking.Err.Load"].Value; }
     }
@@ -164,25 +130,9 @@
         {
             _details = WH.ListPickingSlipLines(row.PickSlipNo);
             _sources = WH.ListPickingSlipFifoLots(row.PickSlipNo);
-            _printRows = BuildPrintRows();
             _selected = row;
         }
         catch { _details = []; _sources = []; _error = L["WH.Picking.Err.LoadDetail"].Value; }
-    }
-    List<PrintRow> BuildPrintRows()
-    {
-        var result = new List<PrintRow>();
-        foreach (var detail in _details)
-        {
-            var lots = _sources.Where(x => string.Equals(x.PartNo, detail.PartNo, StringComparison.OrdinalIgnoreCase)).ToList();
-            if (lots.Count == 0)
-                result.Add(new(result.Count + 1, detail.PartNo, detail.PartName, 0, "-", L["WH.Picking.Msg.StockShortage"].Value, detail.LineCode));
-            else
-                foreach (var lot in lots)
-                    result.Add(new(result.Count + 1, detail.PartNo, detail.PartName,
-                        lot.Qty, lot.LotNo, lot.LocationNo ?? L["WH.Picking.Msg.NoLocation"].Value, detail.LineCode));
-        }
-        return result;
     }
     string SourceText(PickingSlipLineRow row)
     {
@@ -195,13 +145,4 @@
         if (available < remaining) locations.Add($"{L["WH.Picking.Msg.StockShortage"]} · {UomFmt.QtyUnit(remaining - available, row.QuantityUnit)}");
         return string.Join("\n", locations);
     }
-    async Task Print()
-    {
-        if (_selected is null) return;
-        SelectOrder(_selected);
-        if (_selected is null) return;
-        await InvokeAsync(StateHasChanged);
-        await JS.InvokeVoidAsync("window.print");
-    }
-    sealed record PrintRow(int No, string? PartNo, string? PartName, decimal Qty, string LotNo, string Location, string? Destination);
 }

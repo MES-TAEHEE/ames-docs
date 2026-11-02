@@ -8379,6 +8379,24 @@
   <data name="MNT.SpareParts.Move.OutCancel" xml:space="preserve">
     <value>Salida cancelada</value>
   </data>
+  <data name="MNT.SpareParts.LabelDialog.CreateOne" xml:space="preserve">
+    <value>Crear nuevo número de serie</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.CreateHint" xml:space="preserve">
+    <value>Crea un número de serie nuevo. No cambia la cantidad en inventario.</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.CreatePermission" xml:space="preserve">
+    <value>Se requiere permiso de edición del maestro de repuestos para crear un número de serie.</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.CreateUncertain" xml:space="preserve">
+    <value>No se pudo confirmar la creación. Cierre y abra esta ventana para revisar los números de serie guardados antes de continuar.</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.CreatedReloadFailed" xml:space="preserve">
+    <value>Se creó el número de serie {0}, pero no se pudo actualizar la lista. Abra de nuevo esta ventana y seleccione ese número.</value>
+  </data>
+  <data name="MNT.SpareParts.LabelDialog.NoLabels" xml:space="preserve">
+    <value>No hay números de serie registrados. Cree uno antes de imprimir.</value>
+  </data>
   <data name="MNT.SpareParts.LabelDialog.Title" xml:space="preserve">
     <value>Etiqueta de repuesto</value>
   </data>
