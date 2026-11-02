@@ -16,7 +16,12 @@ else
         <div class="pda-tbar">
             <span class="pda-tbar-brand">A-MES PDA</span>
             <span class="pda-tbar-emp">@Auth.Session.EmployeeNo</span>
-            <button class="pda-tbar-out" @onclick="Logout">⏻</button>
+            <button type="button" class="pda-tbar-out" @onclick="Logout" aria-label="Sign out" title="Sign out">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+                    <path d="M18.36 6.64a9 9 0 1 1-12.72 0" />
+                    <line x1="12" y1="2" x2="12" y2="12" />
+                </svg>
+            </button>
         </div>
 
         <div class="pda-bd">
