@@ -206,7 +206,19 @@ public sealed partial class WarehouseRepository
         string? LotNo,
         string? PartNo,
         string? LocationId,
-        decimal? Qty);
+        decimal? Qty,
+        string? HistoryKey = null,
+        string? ReferenceNo = null,
+        int? DeliveryId = null,
+        int? ShipmentId = null,
+        int PalletCount = 0,
+        int ItemCount = 0,
+        string? Customer = null,
+        string? Unit = null)
+    {
+        public string RowKey => HistoryKey ?? $"TX:{OperationLogId}";
+        public bool HasShipmentDetails => EventType == "SHIPPED" && ShipmentId.HasValue;
+    }
 
     public record InventorySettingRow(
         string ItemNo,
@@ -1760,119 +1772,6 @@ public sealed partial class WarehouseRepository
             ("@Search", "MD_Item.ItemName", like));
     }
 
-    public List<OperationLogRow> ListOperationLogs(
-        string? search = null,
-        string? eventType = null,
-        DateTime? from = null,
-        DateTime? to = null)
-    {
-        using var conn = _factory.OpenConnection();
-        using var cmd = new SqlCommand("""
-            SELECT TOP (500)
-                T.TransactionID AS OperationLogID,
-                T.TransactionTime AS EventTime,
-                X.EventType,
-                X.ScreenCode,
-                T.OperatorID AS EmployeeNo,
-                CAST(NULL AS nvarchar(120)) AS EmployeeName,
-                T.OperatorID AS WorkerID,
-                CAST(NULL AS nvarchar(80)) AS TerminalID,
-                CAST(NULL AS nvarchar(40)) AS LineID,
-                CAST(NULL AS nvarchar(20)) AS ShiftCode,
-                'LOT' AS ScanType,
-                T.LotNo AS ScanValue,
-                'SUCCESS' AS Result,
-                CASE WHEN T.TransactionType = 'MOVE' THEN CONCAT('Location Change to ', T.LocationNo)
-                     ELSE CONCAT(COALESCE(NULLIF(T.Note, ''), COALESCE(T.ReasonCode, T.TransactionType)),
-                                 ' (', COALESCE(T.QtyBefore, 0), ' -> ', COALESCE(T.QtyAfter, 0), ')')
-                END AS Message,
-                CAST(NULL AS nvarchar(64)) AS ClientIP,
-                T.SourceType,
-                T.SourceID,
-                T.LotNo,
-                T.PartNo,
-                T.LocationNo AS LocationID,
-                T.QtyChange AS Qty
-            FROM dbo.WH_InventoryTransaction T
-            CROSS APPLY (SELECT
-                CASE WHEN T.ReasonCode='INBOUND_CANCEL' THEN 'CANCEL_RECEIPT' ELSE CASE UPPER(T.TransactionType)
-                    WHEN 'IN' THEN 'RECEIVE'
-                    WHEN 'OUT' THEN 'RELEASE_PICK'
-                    WHEN 'ADJ' THEN 'ADJUST_SAVE'
-                    WHEN 'MOVE' THEN 'MOVE_LOCATION'
-                    WHEN 'CANCEL' THEN 'CANCEL_RECEIPT'
-                    ELSE UPPER(T.TransactionType)
-                END END AS EventType,
-                CASE WHEN T.ReasonCode='INBOUND_CANCEL' THEN 'INBOUND' ELSE CASE UPPER(T.TransactionType)
-                    WHEN 'IN' THEN 'INBOUND'
-                    WHEN 'OUT' THEN 'OUTBOUND'
-                    WHEN 'ADJ' THEN 'ADJUSTMENT'
-                    WHEN 'MOVE' THEN 'RELOCATION'
-                    WHEN 'CANCEL' THEN 'INBOUND'
-                END END AS OperationType,
-                CASE WHEN T.ReasonCode='INBOUND_CANCEL' THEN 'WH002' ELSE CASE UPPER(T.TransactionType)
-                    WHEN 'OUT' THEN 'WH003'
-                    WHEN 'ADJ' THEN 'WH005'
-                    ELSE 'WH002'
-                END END AS ScreenCode) X
-            WHERE (@OperationType IS NULL OR X.OperationType = @OperationType)
-              AND (@DateFrom IS NULL OR T.TransactionTime >= @DateFrom)
-              AND (@DateTo IS NULL OR T.TransactionTime < DATEADD(day, 1, @DateTo))
-              AND (@Like IS NULL
-                   OR X.EventType LIKE @Like
-                   OR X.ScreenCode LIKE @Like
-                   OR T.OperatorID LIKE @Like
-                   OR T.LotNo LIKE @Like
-                   OR T.Note LIKE @Like
-                   OR T.ReasonCode LIKE @Like
-                   OR T.PartNo LIKE @Like
-                   OR T.LocationNo LIKE @Like
-                   OR CONVERT(nvarchar(80), T.SourceID) LIKE @Like)
-            ORDER BY T.TransactionTime DESC, T.TransactionID DESC;
-            """, conn)
-        {
-            CommandTimeout = 15
-        };
-        var searchText = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
-        cmd.Parameters.Add("@Like", SqlDbType.NVarChar, 130).Value =
-            searchText is null ? DBNull.Value : $"%{searchText}%";
-        cmd.Parameters.Add("@OperationType", SqlDbType.VarChar, 40).Value =
-            string.IsNullOrWhiteSpace(eventType) ? DBNull.Value : eventType.Trim().ToUpperInvariant();
-        cmd.Parameters.Add("@DateFrom", SqlDbType.Date).Value =
-            from.HasValue ? (object)from.Value.Date : DBNull.Value;
-        cmd.Parameters.Add("@DateTo", SqlDbType.Date).Value =
-            to.HasValue ? (object)to.Value.Date : DBNull.Value;
-
-        using var rdr = cmd.ExecuteReader();
-        var list = new List<OperationLogRow>();
-        while (rdr.Read())
-        {
-            list.Add(new OperationLogRow(
-                GetLong(rdr, "OperationLogID"),
-                GetDateTime(rdr, "EventTime"),
-                GetString(rdr, "EventType") ?? "",
-                GetString(rdr, "ScreenCode"),
-                GetString(rdr, "EmployeeNo"),
-                GetString(rdr, "EmployeeName"),
-                GetString(rdr, "WorkerID"),
-                GetString(rdr, "TerminalID"),
-                GetString(rdr, "LineID"),
-                GetString(rdr, "ShiftCode"),
-                GetString(rdr, "ScanType"),
-                GetString(rdr, "ScanValue"),
-                GetString(rdr, "Result") ?? "INFO",
-                GetString(rdr, "Message"),
-                GetString(rdr, "ClientIP"),
-                GetString(rdr, "SourceType"),
-                GetNullableInt(rdr, "SourceID"),
-                GetString(rdr, "LotNo"),
-                GetString(rdr, "PartNo"),
-                GetString(rdr, "LocationID"),
-                GetNullableDecimal(rdr, "Qty")));
-        }
-
-        return list;
-    }
 
     public bool TryWriteWebOperationLog(
         string eventType,

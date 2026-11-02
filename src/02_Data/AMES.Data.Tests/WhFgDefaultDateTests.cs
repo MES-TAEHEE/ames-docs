@@ -10,7 +10,6 @@ public sealed class WhFgDefaultDateTests
     [InlineData("Pages/Fg/ShipmentPlan.razor")]
     [InlineData("Pages/Fg/Shipments.razor")]
     [InlineData("Pages/Fg/CustomerReturns.razor")]
-    [InlineData("Pages/Fg/History.razor")]
     [InlineData("Shared/ShipmentOrderCreate.razor")]
     public void Web_date_filters_use_calendar_months_on_both_sides_of_database_today(string component)
     {
@@ -26,7 +25,7 @@ public sealed class WhFgDefaultDateTests
     [Fact]
     public void Web_resets_restore_the_range_and_plan_links_keep_explicit_dates()
     {
-        foreach(var component in new[]{"Wh/LogHistory", "Fg/Shipments", "Fg/CustomerReturns", "Fg/History"})
+        foreach(var component in new[]{"Wh/LogHistory", "Fg/Shipments", "Fg/CustomerReturns"})
         {
             var source=Read("src/06_Web/AMES.Web/Components/Pages/"+component+".razor");
             Assert.Equal(2,source.Split("DbClock.Today.AddMonths(-1)").Length-1);

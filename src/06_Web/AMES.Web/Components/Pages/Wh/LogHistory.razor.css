@@ -1,0 +1,14 @@
+.history-items {max-height:320px;overflow:auto;}
+.history-lots-modal {width:min(900px,95vw);max-height:90vh;overflow:auto;}
+.history-part-name {display:block;max-width:50ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+::deep .history-detail-preview {display:block;width:100%;min-width:0;max-width:100%;padding:0;text-align:left;justify-content:flex-start;color:inherit;overflow:hidden;}
+::deep .history-detail-preview .rz-button-text {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.history-detail-modal {width:min(680px,95vw);max-height:90vh;overflow:auto;}
+.shipment-history-modal {width:min(1100px,95vw);}
+.history-detail-fields {display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;}
+.history-detail-fields dt {color:var(--ames-tx-slate-400);}
+.history-detail-fields dd {margin:0;overflow-wrap:anywhere;}
+.history-detail-text {white-space:pre-wrap;overflow-wrap:anywhere;}
+.shipment-history-modal ::deep .history-items-grid {flex:0 0 auto !important;}
+.shipment-history-modal ::deep .history-items-grid .rz-data-grid-data {height:auto !important;min-height:0;container-type:normal !important;}
+.shipment-history-modal ::deep .history-items-grid .rz-data-grid-data tbody > tr > td {height:auto !important;padding:7px 10px !important;}

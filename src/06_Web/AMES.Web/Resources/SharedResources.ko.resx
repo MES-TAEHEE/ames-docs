@@ -7924,10 +7924,10 @@
     <value>위치 / 도크</value>
   </data>
   <data name="WH.LogHistory.Title" xml:space="preserve">
-    <value>재고 이력</value>
+    <value>이력</value>
   </data>
   <data name="WH.LogHistory.List" xml:space="preserve">
-    <value>재고 활동</value>
+    <value>이력</value>
   </data>
   <data name="WH.LogHistory.Empty" xml:space="preserve">
     <value>재고 활동 이력이 없습니다.</value>
@@ -8587,7 +8587,7 @@
     <value>반품번호/RMA/고객사/품목</value>
   </data>
   <data name="WH.LogHistory.Ph.Search" xml:space="preserve">
-    <value>이벤트/LOT/품번/작업자/비고</value>
+    <value>DCR / LOT / 품번 / 고객사 / 작업자…</value>
   </data>
   <data name="WH.Inventory.Ph.Search" xml:space="preserve">
     <value>위치/품번/품명/LOT</value>
@@ -12732,4 +12732,13 @@
   <data name="FG.DueRisk.Remaining" xml:space="preserve"><value>미출하 잔량</value></data>
   <data name="FG.DueRisk.Basis" xml:space="preserve"><value>출하 오더 미생성 수주를 포함한 전체 미출하 수주입니다. 기준일 {0}, 출하 임박: 오늘~{1}(다음 공장 근무일). 출하 확정 수량만 잔량에서 차감합니다.</value></data>
   <data name="FG.DueRisk.LoadFailed" xml:space="preserve"><value>납기 위험을 불러오지 못했습니다. 새로고침해 주세요.</value></data>
+  <data name="WH.LogHistory.Lbl.CustomerReturn" xml:space="preserve">
+    <value>고객 반품</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.PalletReturn" xml:space="preserve">
+    <value>빈 팔렛 회수</value>
+  </data>
+  <data name="WH.LogHistory.Lbl.Shipped" xml:space="preserve">
+    <value>출하</value>
+  </data>
 </root>

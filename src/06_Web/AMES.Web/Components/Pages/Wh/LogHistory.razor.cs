@@ -4,12 +4,15 @@ namespace AMES.Web.Components.Pages.Wh;
 
 public partial class LogHistory
 {
+    internal static string PartNamePreview(string? name)
+        => name is { Length: > 50 } ? name[..50] + "…" : name ?? "—";
+
     internal static int CountEvents(IEnumerable<WarehouseRepository.OperationLogRow> rows, string type)
         => rows.Count(row => type switch
         {
             // Cancellation stays in the inbound activity filter, but is not a receipt.
             "INBOUND" => DisplayEvent(row) is "WH.LogHistory.Lbl.Inbound" or "WH.LogHistory.Lbl.Received" or "WH.LogHistory.Lbl.Stored" or "WH.LogHistory.Lbl.ReturnReceived",
-            "OUTBOUND" => DisplayEvent(row) is "WH.LogHistory.Lbl.Outbound" or "WH.LogHistory.Lbl.Released",
+            "OUTBOUND" => DisplayEvent(row) is "WH.LogHistory.Lbl.Outbound" or "WH.LogHistory.Lbl.Released" or "WH.LogHistory.Lbl.Shipped",
             "ADJUSTMENT" => DisplayEvent(row) == "WH.LogHistory.Lbl.Adjustment",
             _ => false,
         });
@@ -17,6 +20,9 @@ public partial class LogHistory
     internal static string EventClass(WarehouseRepository.OperationLogRow row)
     {
         var upper = row.EventType.ToUpperInvariant();
+        if (upper == "SHIPPED") return "warn";
+        if (upper == "CUSTOMER_RETURN") return "bad";
+        if (upper == "PALLET_RETURN") return "info";
         if (upper == "CANCEL_RECEIPT") return "bad";
         if (upper == "STATUS_CHANGE")
         {
@@ -42,6 +48,9 @@ public partial class LogHistory
             "RECEIVE" => "WH.LogHistory.Lbl.Inbound",
             "CANCEL_RECEIPT" => "WH.LogHistory.Lbl.CancelInbound",
             "RELEASE_PICK" => "WH.LogHistory.Lbl.Outbound",
+            "SHIPPED" => "WH.LogHistory.Lbl.Shipped",
+            "CUSTOMER_RETURN" => "WH.LogHistory.Lbl.CustomerReturn",
+            "PALLET_RETURN" => "WH.LogHistory.Lbl.PalletReturn",
             "ADJUST_SAVE" => "WH.LogHistory.Lbl.Adjustment",
             "MOVE_LOCATION" => "WH.LogHistory.Lbl.Relocation",
             _ => row.EventType,

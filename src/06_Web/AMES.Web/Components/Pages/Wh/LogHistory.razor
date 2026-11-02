@@ -1,8 +1,12 @@
 @page "/wh/log-history"
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
-@inject AMES.Data.Repositories.WarehouseRepository Wh
+@inject AMES.Data.Repositories.FinishedGoodsRepository Fg
+@inject WarehouseRepository Wh
 @inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
+@inject ILogger<LogHistory> Logger
+@using AMES.Data.Repositories
 @using Radzen
 
 <PageTitle>WH-004 @L["WH.LogHistory.Title"] · AMES</PageTitle>
@@ -13,134 +17,181 @@
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Inbound"]</div><div class="ames-kpi-v">@CountEvent("INBOUND")</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Outbound"]</div><div class="ames-kpi-v">@CountEvent("OUTBOUND")</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Adjustments"]</div><div class="ames-kpi-v">@CountEvent("ADJUSTMENT")</div></div>
+    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["WH.LogHistory.Lbl.CustomerReturn"]</div><div class="ames-kpi-v">@_rows.Count(r=>r.EventType=="CUSTOMER_RETURN")</div></div>
+    <div class="ames-kpi info"><div class="ames-kpi-l">@L["WH.LogHistory.Lbl.PalletReturn"]</div><div class="ames-kpi-v">@_rows.Count(r=>r.EventType=="PALLET_RETURN")</div></div>
 </div>
-
-@if (!string.IsNullOrWhiteSpace(_msg))
-{
-    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_msg</RadzenAlert>
-}
-
-<div class="ames-card">
-    <div class="ames-card-h master-list-toolbar">
-        <span>▼ @L["WH.LogHistory.List"] · @_rows.Count @L["Lbl.Items"]</span>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-            <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.LogHistory.Ph.Search"].Value"
-                           InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" AutoComplete="false"
-                           @onkeydown='e => { if (e.Key == "Enter") Reload(); }' />
-            <RadzenDropDown @bind-Value="_operationType" Data="@OperationOptions" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" Placeholder="@L["WH.LogHistory.Ph.ActivityType"].Value"
-                            InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value"
-                              InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value"
-                              InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
-            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
-            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ClearFilters" class="ames-rz-btn" />
-        </RadzenStack>
-    </div>
-
-    <RadzenDataGrid TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow"
-                    Data="@_rows"
-                    AllowPaging="true" PageSize="25"
-                    PagerHorizontalAlign="HorizontalAlign.Center"
-                    PageSizeOptions="@_pageSizeOptions"
-                    ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
-                    AllowSorting="true"
-                    EmptyText="@L["WH.LogHistory.Empty"].Value"
-                    PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")"
-                    Class="ames-rz-grid ames-grid-fixed">
+@if (!string.IsNullOrWhiteSpace(_message)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert> }
+<div class="ames-card history-page" data-no-busy>
+    <div class="ames-card-h master-list-toolbar"><span>▼ @L["WH.LogHistory.List"] · @_rows.Count @L["Lbl.Items"]</span><RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap"><RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.LogHistory.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e => { if (e.Key == "Enter") await Reload(); }' /><RadzenDropDown @bind-Value="_eventType" Data="@OperationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Col.Event"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" /></RadzenStack></div>
+    <RadzenDataGrid TItem="WarehouseRepository.OperationLogRow" Data="@_rows" KeyProperty="RowKey" IsLoading="_loading" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["WH.LogHistory.Empty"].Value" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventTime" Title="@L["Col.Time"].Value" Width="170px" MinWidth="170px">
-                <Template Context="r">@(r.EventTime?.ToString(DateFmt.DateTimeSec) ?? "-")</Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Type"].Value" Width="155px" MinWidth="155px">
-                <Template Context="r"><span class="pill @EventClass(r)">@L[DisplayEvent(r)]</span></Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="LotNo" Title="@L["WH.LogHistory.Col.LotPart"].Value" Width="245px" MinWidth="245px">
-                <Template Context="r">
-                    <div class="code">@(r.LotNo ?? "-")</div>
-                    <div class="dim">@(r.PartNo ?? "-")</div>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="EventTime" Title="@L["Col.DateTime"].Value" Width="160px" MinWidth="160px"><Template Context="r">@(r.EventTime?.ToString(DateFmt.DateTimeSec) ?? "—")</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Event"].Value" Width="125px" MinWidth="125px"><Template Context="r"><span class="pill @EventClass(r)">@L[DisplayEvent(r)]</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="ReferenceNo" Title="@L["Col.Reference"].Value" Width="220px" MinWidth="220px">
+                <Template Context="row">
+                    @if (row.HasShipmentDetails)
+                    {
+                        <RadzenButton Text="@row.ReferenceNo" Click="@(()=>OpenDetail(row))" ButtonStyle="ButtonStyle.Base" Variant="Variant.Text" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    }
+                    else { <span class="code">@(row.ReferenceNo??"—")</span> }
                 </Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="Message" Title="@L["Col.Details"].Value">
-                <Template Context="r">
-                    <div>@(r.Message ?? "-")</div>
-                    @if (!string.IsNullOrWhiteSpace(RefText(r)))
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="PartNo" Title="@L["WH.LogHistory.Col.LotPart"].Value" Width="170px" MinWidth="170px"><Template Context="row"><div class="code">@(row.PartNo??"—")</div><div class="dim">@(row.LotNo??"")</div></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="Qty" Title="@L["Col.Qty"].Value" Width="85px" MinWidth="85px" TextAlign="TextAlign.Right"><Template Context="r">@(r.Qty is null or 0 ? "—" : UomFmt.QtyUnit(r.Qty.Value,r.Unit))</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="LocationId" Title="@L["Col.Location"].Value" Width="160px" MinWidth="160px" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="Customer" Title='@L["Col.Customer"]' Width="180px" MinWidth="180px" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="WorkerId" Title="@L["Col.Worker"].Value" Width="150px" MinWidth="150px" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="Result" Title="@L["Col.Result"].Value" Width="110px" MinWidth="110px" />
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="Message" Title="@L["Col.Details"].Value" Width="240px" MinWidth="240px">
+                <Template Context="row">
+                    @if (!string.IsNullOrWhiteSpace(DetailSummary(row)))
                     {
-                        <div class="dim">@RefText(r)</div>
+                        <RadzenButton Text="@DetailSummary(row)" Click="@(()=>OpenDetail(row))" title="@DetailSummary(row)" ButtonStyle="ButtonStyle.Base" Variant="Variant.Text" Size="ButtonSize.Small" class="ames-rz-btn history-detail-preview" />
                     }
-                </Template>
-            </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="AMES.Data.Repositories.WarehouseRepository.OperationLogRow" Property="EmployeeNo" Title="@L["Col.Worker"].Value" Width="145px" MinWidth="145px">
-                <Template Context="r">
-                    <div class="code">@(r.EmployeeNo ?? r.WorkerId ?? "-")</div>
-                    @if (!string.IsNullOrWhiteSpace(r.EmployeeName))
-                    {
-                        <div class="dim">@r.EmployeeName</div>
-                    }
+                    else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </div>
-
+@if (_detailRow is {} detail)
+{
+    <div class="ames-modal-bg" @onclick="CloseDetail" data-no-busy>
+        <div class="ames-modal history-detail-modal @(detail.HasShipmentDetails ? "shipment-history-modal" : "")" role="dialog" aria-modal="true" aria-labelledby="history-detail-title" tabindex="-1" @onclick:stopPropagation="true" @onkeydown="@(e=>{if(e.Key=="Escape")CloseDetail();})">
+            <div class="ames-modal-h" id="history-detail-title">@L["Col.Details"] · @detail.ReferenceNo</div>
+            <dl class="history-detail-fields">
+                <dt>@L["Col.DateTime"]</dt><dd>@(detail.EventTime?.ToString(DateFmt.DateTimeSec) ?? "—")</dd>
+                <dt>@L["Col.Event"]</dt><dd>@L[DisplayEvent(detail)]</dd>
+                <dt>@L["Col.PartNo"]</dt><dd>@(detail.PartNo??"—")</dd>
+                <dt>@L["Col.LotNo"]</dt><dd>@(detail.LotNo??"—")</dd>
+                <dt>@L["Col.Customer"]</dt><dd>@(detail.Customer??"—")</dd>
+                <dt>@L["Col.Location"]</dt><dd>@(detail.LocationId??"—")</dd>
+                <dt>@L["Col.Worker"]</dt><dd>@(detail.WorkerId??"—")</dd>
+                <dt>@L["Col.Result"]</dt><dd>@(detail.Result??"—")</dd>
+            </dl>
+            <div class="history-detail-text">@DetailSummary(detail)</div>
+            @if (detail.HasShipmentDetails && !string.IsNullOrWhiteSpace(detail.Message))
+            {
+                <div class="history-detail-text">@detail.Message</div>
+            }
+            @if (detail.HasShipmentDetails)
+            {
+                @if (!string.IsNullOrWhiteSpace(_partsError)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_partsError</RadzenAlert> }
+                <div class="history-items" role="region" aria-label='@L["Shipment.DetailsFmt",detail.ReferenceNo??""]' tabindex="0" @onclick:stopPropagation="true">
+                    <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentPalletPartRow" Data="_detailParts" IsLoading="_partsLoading" AllowPaging="false" AllowSorting="true" Density="Density.Compact" Class="ames-rz-grid history-items-grid" EmptyText='@L["Grid.Empty"]'>
+                        <Columns>
+                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPalletPartRow" Property="PalletNo" Title='@L["Shipment.PalletNo"]' Width="220px" MinWidth="220px"><Template Context="item">@(item.PalletNo??"—")</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPalletPartRow" Property="PartNo" Title='@L["Col.PartNo"]' Width="220px" MinWidth="220px">
+                                <Template Context="item"><RadzenButton Text='@(item.PartNo??"—")' Click="@(()=>OpenLots(detail,item))" ButtonStyle="ButtonStyle.Base" Variant="Variant.Text" Size="ButtonSize.Small" class="ames-rz-btn" /></Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPalletPartRow" Property="PartName" Title='@L["Col.PartName"]' Width="400px" MinWidth="260px">
+                                <Template Context="item"><span class="history-part-name" title="@item.PartName">@PartNamePreview(item.PartName)</span></Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentPalletPartRow" Property="Qty" Title='@L["Col.Quantity"]' Width="120px" MinWidth="120px" TextAlign="TextAlign.Right"><Template Context="item">@UomFmt.QtyUnit(item.Qty,item.Unit)</Template></RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </div>
+            }
+            <div class="ames-modal-footer"><RadzenButton Text="@L["Btn.Close"].Value" Icon="close" Click="CloseDetail" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
+        </div>
+    </div>
+}
+@if (_lotPart is {} part)
+{
+    <div class="ames-modal-bg" @onclick="CloseLots" data-no-busy>
+        <div class="ames-modal history-lots-modal" role="dialog" aria-modal="true" aria-labelledby="history-lots-title" @onclick:stopPropagation="true" @onkeydown="@(e=>{if(e.Key=="Escape")CloseLots();})">
+            <div class="ames-modal-h" id="history-lots-title">@L["Shipment.DetailsFmt",_lotReference]</div>
+            <div>@(part.PalletNo??"—") · @part.PartNo · @part.PartName</div>
+            @if (!string.IsNullOrWhiteSpace(_lotError)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_lotError</RadzenAlert> }
+            <RadzenDataGrid TItem="FinishedGoodsRepository.ShipmentItemRow" Data="_lots" KeyProperty="TransactionId" IsLoading="_lotsLoading" AllowPaging="true" PageSize="25" AllowSorting="true"
+                            PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
+                            Class="ames-rz-grid" Style="max-height:50vh;" EmptyText='@L["Grid.Empty"]'>
+                <Columns>
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LotNo" Title='@L["Col.LotNo"]' />
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="LocationNo" Title='@L["Shipment.FromLocation"]' />
+                    <RadzenDataGridColumn TItem="FinishedGoodsRepository.ShipmentItemRow" Property="Qty" Title='@L["Col.Quantity"]' TextAlign="TextAlign.Right"><Template Context="lot">@UomFmt.QtyUnit(lot.Qty,lot.Unit)</Template></RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+            <div class="ames-modal-footer"><RadzenButton Text="@L["Btn.Close"].Value" Icon="close" Click="CloseLots" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></div>
+        </div>
+    </div>
+}
 @code {
-    List<AMES.Data.Repositories.WarehouseRepository.OperationLogRow> _rows = new();
-    readonly IEnumerable<int> _pageSizeOptions = new[] { 25, 50, 100 };
-    int _pageRows = 25;
-    List<DropDownItem> OperationOptions =>
-    [
-        new() { Text = L["WH.LogHistory.Lbl.Inbound"].Value, Value = "INBOUND" },
-        new() { Text = L["WH.LogHistory.Lbl.Outbound"].Value, Value = "OUTBOUND" },
-        new() { Text = L["WH.LogHistory.Lbl.Relocation"].Value, Value = "RELOCATION" },
-        new() { Text = L["WH.LogHistory.Lbl.StatusChange"].Value, Value = "STATUS" },
-        new() { Text = L["WH.LogHistory.Lbl.Adjustment"].Value, Value = "ADJUSTMENT" },
-    ];
-
-    string _search = "";
-    string? _operationType;
-    DateTime? _from = DbClock.Today.AddMonths(-1);
-    DateTime? _to = DbClock.Today.AddMonths(1);
-    string _msg = "";
-
-    public class DropDownItem
+    List<WarehouseRepository.OperationLogRow> _rows = [];
+    readonly IEnumerable<int> _pageSizeOptions = [25,50,100];
+    List<FinishedGoodsRepository.ShipmentPalletPartRow> _detailParts = [];
+    WarehouseRepository.OperationLogRow? _detailRow;
+    FinishedGoodsRepository.ShipmentPalletPartRow? _lotPart;
+    List<FinishedGoodsRepository.ShipmentItemRow> _lots = [];
+    int _pageRows = 25,_reloadRequest,_lotRequest,_detailRequest;
+    bool _loading,_lotsLoading,_partsLoading;
+    string _search = "",_message = "",_lotReference = "",_lotError = "",_partsError = "";
+    string? _eventType;
+    DateTime? _from = DbClock.Today.AddMonths(-1),_to = DbClock.Today.AddMonths(1);
+    IEnumerable<object> OperationOptions => new[]
     {
-        public string Text { get; set; } = "";
-        public string Value { get; set; } = "";
-    }
-
-    protected override void OnInitialized() => Reload();
-
-    void Reload()
+        new { Text=L["WH.LogHistory.Lbl.Inbound"].Value, Value="INBOUND" },
+        new { Text=L["WH.LogHistory.Lbl.Outbound"].Value, Value="OUTBOUND" },
+        new { Text=L["WH.LogHistory.Lbl.Relocation"].Value, Value="RELOCATION" },
+        new { Text=L["WH.LogHistory.Lbl.Adjustment"].Value, Value="ADJUSTMENT" },
+        new { Text=L["WH.LogHistory.Lbl.CustomerReturn"].Value, Value="RETURN" },
+        new { Text=L["WH.LogHistory.Lbl.PalletReturn"].Value, Value="PALLET_RETURN" }
+    };
+    protected override Task OnInitializedAsync() => Reload();
+    async Task Reload()
     {
+        if (_from > _to) { _message = L["Err.DateRange"]; return; }
+        var request=++_reloadRequest;
+        var search=_search;var type=_eventType;var from=_from;var to=_to;
+        _loading=true;CloseDetail();
         try
         {
-            _rows = Wh.ListOperationLogs(_search, _operationType, _from?.Date, _to?.Date);
-            _msg = "";
+            var rows=await Task.Run(()=>Wh.ListOperationLogs(search,type,from,to));
+            if(request==_reloadRequest){_rows=rows;_message="";}
         }
-        catch (Exception ex)
+        catch(Exception ex)
         {
-            _rows = new();
-            _msg = ex.Message;
+            Logger.LogError(ex,"Warehouse history load failed");
+            if(request==_reloadRequest){_rows=[];_message=L["Shipment.LoadError"];}
         }
+        finally {if(request==_reloadRequest)_loading=false;}
     }
-
-    void ClearFilters()
+    async Task Clear() { _search="";_eventType=null;_from=DbClock.Today.AddMonths(-1);_to=DbClock.Today.AddMonths(1);await Reload(); }
+    async Task OpenDetail(WarehouseRepository.OperationLogRow row)
     {
-        _search = "";
-        _operationType = null;
-        _from = DbClock.Today.AddMonths(-1);
-        _to = DbClock.Today.AddMonths(1);
-        Reload();
+        CloseLots();
+        var request=++_detailRequest;
+        _detailRow=row;_detailParts=[];_partsError="";_partsLoading=row.HasShipmentDetails;
+        if(!row.HasShipmentDetails)return;
+        try
+        {
+            var parts=await Task.Run(()=>Fg.ListShipmentHistoryParts(row.DeliveryId,row.ShipmentId!.Value));
+            if(request==_detailRequest)_detailParts=parts;
+        }
+        catch(Exception ex)
+        {
+            Logger.LogError(ex,"Warehouse history pallet and part details load failed");
+            if(request==_detailRequest)_partsError=L["Shipment.DetailsError"];
+        }
+        finally {if(request==_detailRequest)_partsLoading=false;}
     }
-
+    async Task OpenLots(WarehouseRepository.OperationLogRow history,FinishedGoodsRepository.ShipmentPalletPartRow part)
+    {
+        if(!history.HasShipmentDetails)return;
+        var request=++_lotRequest;
+        _lotPart=part;_lotReference=history.ReferenceNo??"";_lots=[];_lotError="";_lotsLoading=true;
+        try
+        {
+            var lots=await Task.Run(()=>Fg.ListShipmentHistoryLots(history.DeliveryId,history.ShipmentId!.Value,part.PalletNo,part.PartNo));
+            if(request==_lotRequest)_lots=lots;
+        }
+        catch(Exception ex){Logger.LogError(ex,"Warehouse history LOT details load failed");if(request==_lotRequest)_lotError=L["Shipment.DetailsError"];}
+        finally {if(request==_lotRequest)_lotsLoading=false;}
+    }
+    void CloseLots(){++_lotRequest;_lotPart=null;_lots=[];_lotsLoading=false;}
+    void CloseDetail(){++_detailRequest;CloseLots();_detailRow=null;_detailParts=[];_partsLoading=false;_partsError="";}
+    string? DetailSummary(WarehouseRepository.OperationLogRow row)=>row.HasShipmentDetails
+        ? $"{row.PalletCount} {L["FG.Shipments.Col.PalletCount"]} · {row.ItemCount} {L["Shipment.Lots"]}"
+        : row.Message;
     int CountEvent(string type) => CountEvents(_rows, type);
-
-    static string RefText(AMES.Data.Repositories.WarehouseRepository.OperationLogRow row)
-    {
-        if (string.IsNullOrWhiteSpace(row.SourceType) && row.SourceId is null)
-            return "";
-
-        return $"{row.SourceType ?? "-"} {row.SourceId?.ToString() ?? "-"}";
-    }
 }
