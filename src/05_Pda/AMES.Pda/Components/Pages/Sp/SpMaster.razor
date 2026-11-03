@@ -13,7 +13,7 @@
     </div>
     <div class="pda-bd master-body @(_selected is not null ? "hidden" : "")">
         <div class="search-row">
-            <input class="pda-input" aria-label="Search spare parts" placeholder="Search / Scan Spare Part No"
+            <input class="pda-input pda-barcode-input" aria-label="Search spare parts" placeholder="Scan Barcode"
                    @bind="_search" @bind:event="oninput" @onkeydown="SearchKey" disabled="@_busy" />
             <button class="action" @onclick="Reload" disabled="@_busy">Search</button>
         </div>

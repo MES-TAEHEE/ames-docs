@@ -24,9 +24,9 @@
         <RadzenCard class="wh02-panel wh02-scan-panel hardware-scan-panel">
             <div class="pda-fld">
                 <label>SCAN BARCODE</label>
-                <RadzenTextBox class="pda-input wh02-barcode-input wh-putaway-item-input pda-scan-input"
+                <RadzenTextBox class="pda-input wh02-barcode-input wh-putaway-item-input pda-scan-input pda-barcode-input"
                                Value="@_barcode" @oninput="OnBarcodeInput" @onkeydown="OnBarcodeKey"
-                               Placeholder="Scan Shipping Unit, Unit Item, LOT or Delivery Note" Disabled="@IsBusy" />
+                               Placeholder="Scan Barcode" Disabled="@IsBusy" />
             </div>
         </RadzenCard>
 
@@ -92,9 +92,9 @@
             <RadzenCard class="wh02-panel wh02-location-panel hardware-scan-panel location-attention">
                 <div class="pda-fld">
                     <label>LOCATION BARCODE SCAN</label>
-                    <RadzenTextBox class="pda-input wh02-location-input wh-putaway-location-input pda-scan-input"
+                    <RadzenTextBox class="pda-input wh02-location-input wh-putaway-location-input pda-scan-input pda-barcode-input"
                                    Value="@_locationNo" @oninput="OnLocationInput" @onkeydown="OnLocationKey"
-                                   Placeholder="Scan location barcode" Disabled="@IsBusy" />
+                                   Placeholder="Scan Barcode" Disabled="@IsBusy" />
                 </div>
             </RadzenCard>
             }

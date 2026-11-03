@@ -10,7 +10,7 @@
     <div class="pda-bd wh02-body">
         <RadzenCard class="wh02-panel hardware-scan-panel"><div class="pda-fld">
             <label>@(_delivery is null?"DCR BARCODE":_removing?"REMOVE PALLET BARCODE":"PALLET BARCODE")</label>
-            <RadzenTextBox Value="@_barcode" @oninput="@(e=>_barcode=e.Value?.ToString()??"")" @onkeydown="OnKey" Disabled="_busy" Placeholder="Scan Barcode" class="pda-input pda-scan-input" />
+            <RadzenTextBox Value="@_barcode" @oninput="@(e=>_barcode=e.Value?.ToString()??"")" @onkeydown="OnKey" Disabled="_busy" Placeholder="Scan Barcode" class="pda-input pda-scan-input pda-barcode-input" />
             @if(_delivery is {Status:"Open" or "Loading",Loads.Count:>0})
             {
                 <RadzenButton Text="@(_removing?"CANCEL REMOVE":"REMOVE PALLET")" Click="ToggleRemove" Disabled="_busy" Size="ButtonSize.Small" class="wh02-clear-btn" />

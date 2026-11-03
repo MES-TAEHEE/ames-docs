@@ -67,9 +67,9 @@
             <RadzenCard class="@($"wh03-search-card wh03-scan-card wh03-location-search {ScanPanelClass}")">
                 <div class="pda-fld">
                     <label>INVENTORY SCAN</label>
-                    <RadzenTextBox class="pda-input wh03-search-input wh03-location-query pda-scan-input"
+                    <RadzenTextBox class="pda-input wh03-search-input wh03-location-query pda-scan-input pda-barcode-input"
                                    Value="@_query" @oninput="OnQueryInput" @onkeydown="OnQueryKey"
-                                   Placeholder="Scan Lot, Part, or Location No" />
+                                   Placeholder="Scan Barcode" />
                 </div>
                 @if (ShowDeveloperScanButtons)
                 {

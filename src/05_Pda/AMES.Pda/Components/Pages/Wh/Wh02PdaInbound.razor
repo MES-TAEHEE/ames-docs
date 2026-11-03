@@ -26,11 +26,11 @@
         <RadzenCard class="@($"wh02-panel wh02-scan-panel {ScanPanelClass}")">
             <div class="pda-fld">
                 <label>SCAN BARCODE</label>
-                <RadzenTextBox class="pda-input wh02-barcode-input pda-scan-input"
+                <RadzenTextBox class="pda-input wh02-barcode-input pda-scan-input pda-barcode-input"
                                Value="@_barcode"
                                @oninput="OnBarcodeInput"
                                @onkeydown="OnKey"
-                               Placeholder="@BarcodePlaceholder" />
+                               Placeholder="Scan Barcode" />
             </div>
         </RadzenCard>
 
@@ -465,7 +465,6 @@
     private static bool ShowDeveloperScanButtons => MauiProgram.IsDeveloperMode;
     private const string ScanPanelClass = "hardware-scan-panel";
     private bool IsBusy => _isScanning || _isLocationScanning || _isReceiving || _isMoving || _isCanceling;
-    private const string BarcodePlaceholder = "Scan Barcode";
     private bool IsPortalCase => _document?.IsPortalCase == true;
     private bool IsCaseDocument => IsPortalCase || !string.IsNullOrWhiteSpace(_document?.CaseNo);
     private bool IsScheduledDelivery => _document is not null && !IsCaseDocument

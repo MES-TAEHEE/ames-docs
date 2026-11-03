@@ -19,11 +19,11 @@
         <RadzenCard class="@($"wh02-panel fg01-panel fg01-scan-panel {ScanPanelClass}")">
             <div class="pda-fld">
                 <label>RETURNED PRODUCT BARCODE</label>
-                <RadzenTextBox class="pda-input wh02-barcode-input fg-return-scan-input pda-scan-input"
+                <RadzenTextBox class="pda-input wh02-barcode-input fg-return-scan-input pda-scan-input pda-barcode-input"
                                Value="@_barcode"
                                @oninput="OnBarcodeInput"
                                @onkeydown="OnBarcodeKey"
-                               Placeholder="Scan returned product barcode" />
+                               Placeholder="Scan Barcode" />
             </div>
             @if (ShowDeveloperScanButtons)
             {
