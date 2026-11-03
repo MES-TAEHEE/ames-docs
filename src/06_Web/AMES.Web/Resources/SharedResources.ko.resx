@@ -12759,4 +12759,11 @@
   <data name="WH.LogHistory.Lbl.Shipped" xml:space="preserve">
     <value>출하</value>
   </data>
+  <data name="WH.Inventory.CurrentQty" xml:space="preserve"><value>현재 재고</value></data>
+  <data name="WH.Inventory.StoredQty" xml:space="preserve"><value>적재 수량</value></data>
+  <data name="WH.Inventory.UnassignedQty" xml:space="preserve"><value>미배정 수량</value></data>
+  <data name="WH.Inventory.RequiredQty" xml:space="preserve"><value>생산 자재 필요수량</value></data>
+  <data name="WH.Inventory.RequiredQtyHint" xml:space="preserve"><value>미완료 작업지시 잔량 × 현재 유효 승인 BOM(스크랩률 포함). 전체 위치 기준이며 재고 차감 후 부족량이 아닙니다. 작업지시 미생성 APS 초안은 제외합니다.</value></data>
+  <data name="WH.Inventory.RequirementsMissingBom" xml:space="preserve"><value>유효 BOM이 없는 미완료 작업지시 {0}건은 자재 필요수량에서 제외했습니다.</value></data>
+  <data name="WH.Inventory.RequirementsFailed" xml:space="preserve"><value>자재 필요수량을 불러오지 못했습니다. —는 0이 아닌 미조회 상태입니다. 페이지를 새로고침해 주세요.</value></data>
 </root>

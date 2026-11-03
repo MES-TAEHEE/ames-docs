@@ -12759,4 +12759,11 @@
   <data name="WH.LogHistory.Lbl.Shipped" xml:space="preserve">
     <value>Enviado</value>
   </data>
+  <data name="WH.Inventory.CurrentQty" xml:space="preserve"><value>Existencias actuales</value></data>
+  <data name="WH.Inventory.StoredQty" xml:space="preserve"><value>Cantidad ubicada</value></data>
+  <data name="WH.Inventory.UnassignedQty" xml:space="preserve"><value>Cantidad sin ubicación</value></data>
+  <data name="WH.Inventory.RequiredQty" xml:space="preserve"><value>Material para producción</value></data>
+  <data name="WH.Inventory.RequiredQtyHint" xml:space="preserve"><value>Saldo de órdenes abiertas × BOM aprobada vigente, incluida la merma. Todas las ubicaciones; no es faltante neto. Se excluyen los borradores APS sin orden de trabajo.</value></data>
+  <data name="WH.Inventory.RequirementsMissingBom" xml:space="preserve"><value>Se excluyeron {0} órdenes abiertas sin BOM vigente del cálculo de materiales.</value></data>
+  <data name="WH.Inventory.RequirementsFailed" xml:space="preserve"><value>No se pudieron cargar los materiales requeridos. — significa no disponible, no cero. Actualice la página.</value></data>
 </root>

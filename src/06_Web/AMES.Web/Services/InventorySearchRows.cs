@@ -5,6 +5,9 @@ namespace AMES.Web.Services;
 
 public static class InventorySearchRows
 {
+    public static decimal UnassignedQty(IEnumerable<LocationMapStock> inventory)
+        => inventory.Where(row => string.IsNullOrWhiteSpace(row.LocationNo)).Sum(row => row.Qty);
+
     public static List<LocationMapStock> FromMaster(IEnumerable<MasterDataRepository.ItemRow> items, IEnumerable<LocationMapStock> inventory)
     {
         var stock = inventory.ToLookup(x => x.PartNo, StringComparer.OrdinalIgnoreCase);

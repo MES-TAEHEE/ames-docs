@@ -17,6 +17,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\06_Web\AMES.Web\Components\Pages\Wh\LogHistory.razor.cs" Link="Web\LogHistory.razor.cs" />
+    <Compile Include="..\..\06_Web\AMES.Web\Components\Shared\LocationMapData.cs" Link="Web\LocationMapData.cs" />
+    <Compile Include="..\..\06_Web\AMES.Web\Services\InventorySearchRows.cs" Link="Web\InventorySearchRows.cs" />
     <None Update="TestData\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
