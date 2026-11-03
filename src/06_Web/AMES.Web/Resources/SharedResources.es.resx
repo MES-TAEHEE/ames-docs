@@ -12766,4 +12766,7 @@
   <data name="WH.Inventory.RequiredQtyHint" xml:space="preserve"><value>Saldo de órdenes abiertas × BOM aprobada vigente, incluida la merma. Todas las ubicaciones; no es faltante neto. Se excluyen los borradores APS sin orden de trabajo.</value></data>
   <data name="WH.Inventory.RequirementsMissingBom" xml:space="preserve"><value>Se excluyeron {0} órdenes abiertas sin BOM vigente del cálculo de materiales.</value></data>
   <data name="WH.Inventory.RequirementsFailed" xml:space="preserve"><value>No se pudieron cargar los materiales requeridos. — significa no disponible, no cero. Actualice la página.</value></data>
+  <data name="WH.Picking.Col.MinimumQty" xml:space="preserve"><value>Cantidad mínima</value></data>
+  <data name="WH.Picking.Col.CurrentQty" xml:space="preserve"><value>Cantidad actual</value></data>
+  <data name="WH.Picking.Col.RequiredQty" xml:space="preserve"><value>Cantidad necesaria</value></data>
 </root>
