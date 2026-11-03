@@ -153,8 +153,9 @@ builder.Services.AddAuthorization(options =>
 });
 
 // ── Identity tables live in AMES_DEV alongside the operational data ────
-var connectionString = builder.Configuration.GetConnectionString("AMES")
-    ?? throw new InvalidOperationException("Connection string 'AMES' missing in appsettings.json.");
+var connectionString = builder.Configuration.GetConnectionString("AMES");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("Set ConnectionStrings__AMES in the Web process or IIS application-pool environment before starting.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();

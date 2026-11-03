@@ -15,8 +15,8 @@
             <div class="pda-fld">
                 <label>PALLET BARCODE</label>
                 <RadzenTextBox Value="@_barcode" @oninput="@(e => _barcode = e.Value?.ToString() ?? "")"
-                               @onkeydown="OnKey" Disabled="_busy" Placeholder="Scan physical pallet label"
-                               class="pda-input pda-scan-input" />
+                               @onkeydown="OnKey" Disabled="_busy" Placeholder="Scan Barcode"
+                               class="pda-input pda-scan-input pda-barcode-input" />
             </div>
         </RadzenCard>
         @if (_pallet is { } pallet)

@@ -13133,14 +13133,6 @@ body .pda-shell.wh.wh07-shell .wh07-scan-panel .pda-fld label {
   line-height: 1 !important;
 }
 
-body .pda-shell.wh.wh07-shell .wh07-scan-panel .wh07-barcode-input.rz-textbox {
-  height: 34px !important;
-  min-height: 34px !important;
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
-  font-size: 12px !important;
-}
-
 body .pda-shell.wh.wh07-shell .wh07-pick-from {
   display: flex;
   align-items: baseline;
@@ -13289,4 +13281,31 @@ body .pda-shell.wh.wh03-shell .wh03-reprint-btn.rz-button {
   margin-top: 12px;
   border-color: #4b84f8;
   background: #2458c5;
+}
+
+/* Shared barcode presentation follows Outbound; it does not enable scan-only input handling. */
+.pda-shell input.pda-barcode-input,
+.pda-shell.wh:is(.wh02-shell, .wh03-shell, .wh04-shell, .wh07-shell, .wh08-shell) input.pda-barcode-input.rz-textbox {
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    line-height: normal !important;
+    letter-spacing: 0 !important;
+    text-align: left !important;
+    text-transform: none !important;
+}
+
+.pda-shell input.pda-barcode-input::placeholder,
+.pda-shell.wh:is(.wh02-shell, .wh03-shell, .wh04-shell, .wh07-shell, .wh08-shell) input.pda-barcode-input.rz-textbox::placeholder {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    letter-spacing: inherit !important;
+    text-align: left !important;
+    text-transform: none !important;
+    color: rgba(255, 255, 255, .38) !important;
+    opacity: 1 !important;
 }

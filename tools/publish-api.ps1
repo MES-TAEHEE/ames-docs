@@ -40,7 +40,7 @@ param(
     [ValidateSet('Server', 'Local')]
     [string]$DbTarget = 'Server',
 
-    [string]$LocalDbConn = 'Server=localhost\MSSQLSERVER01;Database=AMES;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;',
+    [string]$LocalDbConn = $env:ConnectionStrings__AMES,
 
     # 패키지(개발서버 복사용)의 web.config 에 Swagger__Enabled=true 를 넣는다(10-15) — 운영 서버용 패키지는 -DevServerSwagger:$false.
     # 로컬 IIS 반영(-Target Local)에서는 항상 뺀다.
@@ -50,6 +50,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ($Target -eq 'Local' -and $DbTarget -eq 'Local' -and [string]::IsNullOrWhiteSpace($LocalDbConn)) {
+    throw 'Set ConnectionStrings__AMES before using -Target Local -DbTarget Local.'
+}
 
 $Repo    = Split-Path -Parent $PSScriptRoot
 $Project = Join-Path $Repo 'src\04_Api\AMES.Api\AMES.Api.csproj'
@@ -81,15 +85,7 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet publish 실패 (exit $LASTEXITCODE)" }
 $count = (Get-ChildItem $PkgDir -Recurse -File).Count
 Write-Host "  파일 $count 개" -ForegroundColor Green
 
-function Get-ActiveConn([string]$path) {
-    if (-not (Test-Path $path)) { return $null }
-    $m = Get-Content $path -Raw | Select-String -Pattern '(?m)^\s*"AMES"\s*:\s*"([^"]+)"' -AllMatches
-    if ($m.Matches.Count -gt 0) { return $m.Matches[0].Groups[1].Value }
-    return $null
-}
-$conn = Get-ActiveConn (Join-Path $PkgDir 'appsettings.Production.json')
-if (-not $conn) { $conn = Get-ActiveConn (Join-Path $PkgDir 'appsettings.json') }
-if ($conn) { Write-Host "  적용될 접속 문자열: $conn" -ForegroundColor Yellow }
+Write-Host '  DB: 배포 대상 프로세스/앱풀의 ConnectionStrings__AMES를 사용합니다. 패키지에는 비밀번호가 없습니다.' -ForegroundColor Yellow
 
 $SwaggerNode = '<environmentVariable name="Swagger__Enabled" value="true" />'
 if ($DevServerSwagger) {
@@ -185,7 +181,7 @@ if ($Target -eq 'Local') {
         $node = '<environmentVariable name="ConnectionStrings__AMES" value="{0}" />' -f [Security.SecurityElement]::Escape($LocalDbConn)
         $raw = (Get-Content $wcPath -Raw).Replace('</environmentVariables>', "  $node`r`n        </environmentVariables>")
         Set-Content -Path $wcPath -Value $raw -Encoding utf8
-        Write-Host "  $LocalDbConn" -ForegroundColor Yellow
+        Write-Host '  ConnectionStrings__AMES 오버라이드 적용 (값은 출력하지 않음)' -ForegroundColor Yellow
     }
 
     Write-Step "앱 재기동"
@@ -202,5 +198,6 @@ if ($Target -eq 'Local') {
 
 Write-Step "완료"
 if ($Target -eq 'Package') {
+    Write-Host '  먼저 서버 앱풀에 ConnectionStrings__AMES를 설정하세요. 설정이 없으면 앱이 기동되지 않습니다.' -ForegroundColor Yellow
     Write-Host "  개발서버 반영: 앱풀 중지(또는 app_offline.htm) -> $PkgDir\* 덮어쓰기 -> 재시작" -ForegroundColor DarkGray
 }

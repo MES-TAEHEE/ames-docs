@@ -82,7 +82,7 @@
                     <RadzenCard class="@($"wh03-search-card wh03-scan-card {ScanPanelClass}")">
                         <div class="pda-fld">
                             <label>INVENTORY SCAN</label>
-                            <RadzenTextBox class="pda-input wh03-search-input pda-scan-input" Value="@_q" @oninput="OnScanInput" @onkeydown="OnKey" Placeholder="@(IsSpareParts ? "Scan EOS SP No, Part, or Location" : "Scan Lot, Part, or Location No")" />
+                            <RadzenTextBox class="pda-input wh03-search-input pda-scan-input pda-barcode-input" Value="@_q" @oninput="OnScanInput" @onkeydown="OnKey" Placeholder="Scan Barcode" />
                         </div>
                         @if (ShowDeveloperScanButtons)
                         {
@@ -155,11 +155,11 @@
                     <RadzenCard class="@($"wh03-search-card wh03-scan-card wh03-location-search {ScanPanelClass}")">
                     <div class="pda-fld">
                         <label>INVENTORY SCAN</label>
-                        <RadzenTextBox class="pda-input wh03-search-input wh03-location-query pda-scan-input"
+                        <RadzenTextBox class="pda-input wh03-search-input wh03-location-query pda-scan-input pda-barcode-input"
                                        Value="@_locationQuery"
                                        @oninput="OnLocationQueryInput"
                                        @onkeydown="OnLocationQueryKey"
-                                       Placeholder="@(IsSpareParts ? "Scan EOS SP No, Part, or Location" : "Scan Lot, Part, or Location No")" />
+                                       Placeholder="Scan Barcode" />
                     </div>
                     @if (ShowDeveloperScanButtons)
                     {
@@ -199,11 +199,11 @@
                 <RadzenCard class="@($"wh03-search-card wh03-scan-card {ScanPanelClass}")">
                     <div class="pda-fld">
                         <label>@(IsSpareParts ? "EOS SP NO / PART SCAN" : "LOT / PART SCAN")</label>
-                        <RadzenTextBox class="pda-input wh03-search-input pda-scan-input"
+                        <RadzenTextBox class="pda-input wh03-search-input pda-scan-input pda-barcode-input"
                                        Value="@_q"
                                        @oninput="OnScanInput"
                                        @onkeydown="OnKey"
-                                       Placeholder="@(IsSpareParts ? "Scan EOS SP No or Part No" : "Scan LOT or Part No")" />
+                                       Placeholder="Scan Barcode" />
                     </div>
                     @if (ShowDeveloperScanButtons)
                     {
@@ -281,11 +281,11 @@
                 <div class="@($"wh03-work-scan {ScanPanelClass}")">
                     <div class="pda-fld">
                         <label>@(IsSpareParts ? IsAdjustTab ? "LOCATION / EOS SP NO" : "EOS SP NO" : IsAdjustTab ? "LOCATION / LOT SCAN" : "LOT NO SCAN")</label>
-                        <RadzenTextBox class="pda-input wh03-work-input pda-scan-input"
+                        <RadzenTextBox class="pda-input wh03-work-input pda-scan-input pda-barcode-input"
                                        Value="@_invBarcode"
                                        @oninput="OnInventoryBarcodeInput"
                                        @onkeydown="OnInventoryLotKey"
-                                       Placeholder="@InventoryBarcodePlaceholder" />
+                                       Placeholder="Scan Barcode" />
                     </div>
                     @if (ShowDeveloperScanButtons)
                     {
@@ -438,11 +438,11 @@
                     <div class="@($"wh03-work-scan wh03-location-scan {ScanPanelClass}")">
                         <div class="pda-fld">
                             <label>NEW LOCATION NO SCAN</label>
-                            <RadzenTextBox class="pda-input wh03-work-input pda-scan-input"
+                            <RadzenTextBox class="pda-input wh03-work-input pda-scan-input pda-barcode-input"
                                            Value="@_invLocationNo"
                                            @oninput="OnInventoryLocationInput"
                                            @onkeydown="OnInventoryLocationKey"
-                                           Placeholder="Scan new location no"
+                                           Placeholder="Scan Barcode"
                                            Disabled="@(!InventoryAlreadyReceived || InventoryBusy)" />
                         </div>
                         @if (ShowDeveloperScanButtons)
@@ -1004,11 +1004,6 @@
         ? "Enter a quantity from 0 to 999999999 with up to 3 decimal places."
         : "Enter a whole number from 0 to 999999999.";
     private string AdjustQuantityLabel => $"{InventoryAfterQty:#,##0.###} {Uom.Symbol(_invScan?.Unit)} ({_invAdjustDelta:+#,##0.###;-#,##0.###;0})";
-    private string InventoryBarcodePlaceholder => IsSpareParts
-        ? IsAdjustTab ? "Scan location or EOS SP No" : "Scan EOS SP No"
-        : IsAdjustTab
-        ? "Scan location or lot barcode"
-        : _invMode == "CKD" ? "Scan CKD lot no" : "Scan local lot no";
     private string InventoryLotCardClass => InventoryAlreadyReceived ? "ready" : "blocked";
     private string InventoryStatusClass => InventoryAlreadyReceived ? "normal" : "below";
     private string InventoryStatusLabel => _invScan is null

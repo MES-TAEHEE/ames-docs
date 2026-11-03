@@ -38,11 +38,11 @@
                 <div class="@($"wh04-scan-panel {ScanPanelClass}")">
                     <div class="wh04-scan-field">
                         <label>LOCATION NO SCAN</label>
-                        <RadzenTextBox class="wh04-scan-input pda-scan-input"
+                        <RadzenTextBox class="wh04-scan-input pda-scan-input pda-barcode-input"
                                        Value="@_locationScan"
                                        @oninput="OnLocationScanInput"
                                        @onkeydown="OnLocationScanKey"
-                                       Placeholder="Scan or enter location no" />
+                                       Placeholder="Scan Barcode" />
                     </div>
                     @if (ShowDeveloperScanButtons)
                     {

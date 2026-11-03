@@ -26,7 +26,7 @@
         <RadzenCard class="wh07-panel wh07-scan-panel">
             <div class="pda-fld">
                 <label>BARCODE SCAN</label>
-                <RadzenTextBox class="pda-input wh07-input wh07-barcode-input pda-scan-input"
+                <RadzenTextBox class="pda-input wh07-input wh07-barcode-input pda-scan-input pda-barcode-input"
                                Value="@_barcode"
                                @oninput="OnBarcodeInput"
                                @onkeydown="OnBarcodeKey"
@@ -193,11 +193,11 @@
         <RadzenCard class="wh07-panel wh07-slip-panel">
             <div class="pda-fld">
                 <label>PICK SLIP NO</label>
-                <RadzenTextBox class="pda-input wh07-input pda-scan-input"
+                <RadzenTextBox class="pda-input wh07-input pda-scan-input pda-barcode-input"
                                Value="@_pickSlipNo"
                                @oninput="OnPickSlipInput"
                                @onkeydown="OnPickSlipKey"
-                               Placeholder="Scan Pick Slip No" />
+                               Placeholder="Scan Barcode" />
             </div>
         </RadzenCard>
 
@@ -206,11 +206,11 @@
             <RadzenCard class="wh07-panel wh07-slip-panel dev-scan-panel">
                 <div class="pda-fld">
                     <label>LOT NO</label>
-                    <RadzenTextBox class="pda-input wh07-input wh07-lot-input"
+                    <RadzenTextBox class="pda-input wh07-input wh07-lot-input pda-barcode-input"
                                    Value="@_lotNo"
                                    @oninput="OnLotInput"
                                    @onkeydown="OnLotKey"
-                                   Placeholder="Type LOT No and press Enter" />
+                                   Placeholder="Scan Barcode" />
                 </div>
                 <RadzenButton Text="PICK LOT" Icon="barcode_reader" ButtonStyle="ButtonStyle.Primary"
                               Click="@PickTypedLotAsync" Disabled="@_isBusy" />

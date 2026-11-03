@@ -88,13 +88,13 @@
             <div class="pda-fld">
                 <label>Search</label>
                 @* Manual entry stays outside the scan-only selector; native scans use OnHardwareScanAsync. *@
-                <RadzenTextBox class="pda-input wh08-search-input wh08-barcode-input"
+                <RadzenTextBox class="pda-input wh08-search-input wh08-barcode-input pda-barcode-input"
                                Value="@_search"
                                @oninput="OnSearchInput"
                                @onkeydown="OnKey"
                                @onfocus="@(() => _editingBarcode = true)"
                                @onblur="@(() => _editingBarcode = false)"
-                               Placeholder="Type or scan barcode" />
+                               Placeholder="Scan Barcode" />
             </div>
             <div class="wh08-search-actions">
                 <RadzenButton class="wh08-clear" Click="@ClearSearch" Disabled="@_loading" Text="CLEAR" />

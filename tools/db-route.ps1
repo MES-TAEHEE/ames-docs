@@ -8,6 +8,7 @@
   접속문자열의 서버만 Tailscale 주소로 바꾼 값을 앱풀 환경변수로 넣는다. 둘 다 안 닿으면 아무것도 바꾸지 않는다.
   바뀐 앱풀만 재활용한다. 파일(appsettings·web.config)은 건드리지 않으므로 게시(publish-web/api.ps1)와 무관하다
   — 앱풀 환경변수는 applicationHost.config 에 있어 다시 게시해도 남는다.
+  접속문자열을 환경변수로만 설정한 Web/API는 자동 전환 대상이 아니며, -Uninstall도 해당 값을 유지한다.
 
   -Install   : 작업 스케줄러 「AMES DB Route」 등록(SYSTEM — 네트워크 변경·시작·5분마다) 후 한 번 실행
   -Uninstall : 작업 삭제 + 환경변수 제거(배포본 설정으로 복귀)
@@ -117,7 +118,14 @@ function Invoke-Route {
 
 if ($Uninstall) {
     if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) { Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false; Log "작업 「$TaskName」 삭제" }
-    foreach ($pool in $Pools) { if (Set-PoolVar $pool $null) { Log "$pool : 환경변수 제거 — 배포본 설정으로 복귀" } }
+    foreach ($pool in $Pools) {
+        $dir = Get-PoolDir $pool
+        if (-not $dir -or [string]::IsNullOrWhiteSpace((Get-DeployedConnString $dir))) {
+            Log "$pool : 배포본 접속문자열 없음 — ConnectionStrings__AMES 유지"
+            continue
+        }
+        if (Set-PoolVar $pool $null) { Log "$pool : 환경변수 제거 — 배포본 설정으로 복귀" }
+    }
     return
 }
 

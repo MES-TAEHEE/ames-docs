@@ -13,7 +13,7 @@
     </div>
     <div class="pda-bd label-master-body">
         <div class="label-search-row">
-            <input class="pda-input" aria-label="Search warehouse lots" placeholder="Search / Scan LOT No"
+            <input class="pda-input pda-barcode-input" aria-label="Search warehouse lots" placeholder="Scan Barcode"
                    @bind="_search" @bind:event="oninput" @onkeydown="SearchKey" disabled="@_busy" />
             <button class="label-action" @onclick="Reload" disabled="@_busy">SEARCH</button>
         </div>
