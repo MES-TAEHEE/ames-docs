@@ -909,7 +909,7 @@ public static partial class FgEndpoints
                    CAST(CASE WHEN L.Capacity > 0 THEN L.Capacity - ISNULL(S.CurrentQty, 0) ELSE 0 END AS DECIMAL(14,3)) AS AvailableQty,
                    S.CurrentCustomerCode,
                    L.LocationLevel,
-                   CASE WHEN UPPER(ISNULL(L.LocationType, '')) = 'FG' THEN 1 ELSE 0 END AS IsFgLocation
+                   L.LocationType, L.LineID
             FROM dbo.MD_Location L
             LEFT JOIN StockByLocation S
                 ON S.LocationNo = L.LocationID
@@ -924,13 +924,17 @@ public static partial class FgEndpoints
         var row = ReadPutAwayLocation(rdr, customerCode, qty, expected, parsed.Raw);
         if (Convert.ToInt32(rdr["LocationLevel"]) != 2)
             return row with { IsValid = false, Message = "Primary locations cannot hold stock. Scan a detail location.", ScanType = expected, ScannedBarcode = parsed.Raw };
-        if (!GetBool(rdr, "IsFgLocation"))
-            return row with { IsValid = false, Message = "Scan an FG warehouse location.", ScanType = expected, ScannedBarcode = parsed.Raw };
+        if (!IsFgPutAwayLocation(GetString(rdr, "LocationType"), GetString(rdr, "LineID")))
+            return row with { IsValid = false, Message = "ASSY finished goods require an FG location. Warehouse and production-line locations are not allowed.", ScanType = expected, ScannedBarcode = parsed.Raw };
         if (row.Capacity > 0 && row.AvailableQty < qty)
             return row with { IsValid = false, Message = $"Location capacity is short by {qty - row.AvailableQty:0.###}.", ScanType = expected, ScannedBarcode = parsed.Raw };
 
         return row with { IsValid = true, Message = $"{BarcodeKindLabel(expected)} ready for FG Put-Away.", ScanType = expected, ScannedBarcode = parsed.Raw };
     }
+
+    internal static bool IsFgPutAwayLocation(string? locationType, string? lineId) =>
+        string.Equals(locationType?.Trim(), "FG", StringComparison.OrdinalIgnoreCase)
+        && string.IsNullOrWhiteSpace(lineId);
 
     private static string SavePutAwayStock(SqlConnection conn, SqlTransaction tx, string lotNo, string location, string operatorId)
     {
