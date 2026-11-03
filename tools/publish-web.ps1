@@ -28,19 +28,23 @@ param(
     # 로컬 IIS 배포 폴더 (IIS 사이트 물리 경로와 반드시 같아야 한다)
     [string]$LiveDir = 'C:\inetpub\wwwroot\Source\AMES.Web',
 
-    # Server = appsettings 그대로(개발서버 DB) / Local = 비상용 로컬 DB 로 덮어쓰기.
+    # Server = IIS 앱풀의 환경변수 사용 / Local = 명시적으로 전달한 비상용 접속문자열 사용.
     # -Target Local 일 때만 의미가 있다. appsettings 파일은 건드리지 않고
     # web.config 의 환경변수로 덮어쓰므로 소스가 오염되지 않는다.
     # 이름을 Db 로 줄이면 안 된다 — 공통 매개변수 -Debug 의 별칭 'db' 와 충돌한다.
     [ValidateSet('Server', 'Local')]
     [string]$DbTarget = 'Server',
 
-    [string]$LocalDbConn = 'Server=localhost\MSSQLSERVER01;Database=AMES;User Id=ames_app;Password=!Dev2026;TrustServerCertificate=True;Encrypt=True;Connect Timeout=30;',
+    [string]$LocalDbConn = $env:ConnectionStrings__AMES,
 
     [switch]$Zip
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ($Target -eq 'Local' -and $DbTarget -eq 'Local' -and [string]::IsNullOrWhiteSpace($LocalDbConn)) {
+    throw 'Set ConnectionStrings__AMES before using -Target Local -DbTarget Local.'
+}
 
 $Repo    = Split-Path -Parent $PSScriptRoot
 $Project = Join-Path $Repo 'src\06_Web\AMES.Web\AMES.Web.csproj'
@@ -75,21 +79,7 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet publish 실패 (exit $LASTEXITCODE)" }
 $fileCount = (Get-ChildItem $PkgDir -Recurse -File | Measure-Object).Count
 Write-Host "  파일 $fileCount 개" -ForegroundColor Green
 
-# 배포 사고 1순위 — 접속 문자열을 눈으로 확인하고 넘어간다.
-# 이 파일들은 // 주석이 섞인 JSONC 라 ConvertFrom-Json 이 못 읽는다. 주석 줄을 걸러내고 찾는다.
-function Get-ActiveConn([string]$path) {
-    if (-not (Test-Path $path)) { return $null }
-    foreach ($line in Get-Content $path) {
-        if ($line -match '^\s*//') { continue }
-        if ($line -match '"AMES"\s*:\s*"([^"]+)"') { return $Matches[1] }
-    }
-    return $null
-}
-
-# IIS 는 ASPNETCORE_ENVIRONMENT=Production 이므로 Production 이 base 를 덮어쓴다
-$conn = Get-ActiveConn (Join-Path $PkgDir 'appsettings.Production.json')
-if (-not $conn) { $conn = Get-ActiveConn (Join-Path $PkgDir 'appsettings.json') }
-Write-Host "  적용될 접속 문자열: $conn" -ForegroundColor Yellow
+Write-Host '  DB: 배포 대상 프로세스/앱풀의 ConnectionStrings__AMES를 사용합니다. 패키지에는 비밀번호가 없습니다.' -ForegroundColor Yellow
 
 $api = Get-Content (Join-Path $PkgDir 'appsettings.json') -Raw | Select-String '"ApiBaseUrl"\s*:\s*"([^"]+)"'
 if ($api) { Write-Host "  ApiBaseUrl        : $($api.Matches.Groups[1].Value)" -ForegroundColor Yellow }
@@ -148,7 +138,7 @@ if ($Target -eq 'Local') {
         $node = '<environmentVariable name="ConnectionStrings__AMES" value="{0}" />' -f [Security.SecurityElement]::Escape($LocalDbConn)
         $raw = (Get-Content $wcPath -Raw).Replace('</environmentVariables>', "  $node`r`n        </environmentVariables>")
         Set-Content -Path $wcPath -Value $raw -Encoding utf8
-        Write-Host "  $LocalDbConn" -ForegroundColor Yellow
+        Write-Host '  ConnectionStrings__AMES 오버라이드 적용 (값은 출력하지 않음)' -ForegroundColor Yellow
     }
 
     Write-Step "앱 재기동"
@@ -175,6 +165,7 @@ if ($Target -eq 'Package') {
     3. app_offline.htm 제거 / 앱풀 시작
 
   서버 사전 조건
+    - 앱풀 환경변수 ConnectionStrings__AMES 설정 필수 (미설정 시 앱이 기동되지 않음)
     - ASP.NET Core Hosting Bundle 설치  (IIS 연결 모듈 ANCM 용 — .NET 런타임은 패키지에 들어 있다)
     - 기동 실패 자동 복구: tools\iis-watchdog.ps1 -Install  (관리자, 서버마다 1회)
     - 앱풀: 관리 코드 없음(No Managed Code), Load User Profile = True

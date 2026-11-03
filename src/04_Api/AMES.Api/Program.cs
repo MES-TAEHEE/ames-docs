@@ -15,8 +15,9 @@ using Microsoft.AspNetCore.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Connection + repositories ───────────────────────────────────────────
-var cs = builder.Configuration.GetConnectionString("AMES")
-         ?? throw new InvalidOperationException("ConnectionStrings:AMES missing in appsettings.json");
+var cs = builder.Configuration.GetConnectionString("AMES");
+if (string.IsNullOrWhiteSpace(cs))
+    throw new InvalidOperationException("Set ConnectionStrings__AMES in the API process or IIS application-pool environment before starting.");
 var factory = new AmesConnectionFactory(cs);
 builder.Services.AddSingleton(factory);
 builder.Services.AddSingleton(new AuthRepository(factory));
