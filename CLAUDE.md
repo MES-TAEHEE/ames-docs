@@ -7,7 +7,7 @@
 공장 터미널(POP), 핸디 스캐너(PDA), 사무실 포탈(Web), REST API로 구성된 다중 클라이언트 시스템.
 
 - **회사**: Seyon (한국 자동차 부품사)
-- **운영 DB(10-29 사용자 지정)**: `172.29.3.21\MES` / `AMES`(SQL Server 2025 Standard, 서버·DB 콜레이션 `SQL_Latin1_General_CP1_CI_AS`) — **소스의 모든 앱 연결문자열(Pop·Api·Web·InjAgent appsettings)이 여기를 가리킨다**(로컬 `AMES` 를 그대로 옮겨 만듦, `ames_app` 은 같은 SID·비밀번호, SQL Server 에이전트 작업 5개 등록). 아래 개발서버·비상용 로컬 설명은 그 전 기준이다. 비상용 로컬 전환(`launchSettings` 「로컬 DB 비상」·`publish-*.ps1 -DbTarget Local`)과 데모 시드 도구(`tools/seed_*`)는 운영 DB 를 가리키지 않게 그대로 둔다.
+- **운영 DB(10-29 사용자 지정)**: `172.29.3.21\MES` / `AMES`(SQL Server 2025 Standard, 서버·DB 콜레이션 `SQL_Latin1_General_CP1_CI_AS`) — **POP·InjAgent의 appsettings는 여기를 가리키며, Web·API는 `ConnectionStrings__AMES` 환경변수로 연결한다**(로컬 `AMES` 를 그대로 옮겨 만듦, `ames_app` 은 같은 SID·비밀번호, SQL Server 에이전트 작업 5개 등록). 아래 개발서버·비상용 로컬 설명은 그 전 기준이다. 비상용 로컬 전환(`launchSettings` 「로컬 DB 비상」·`publish-*.ps1 -DbTarget Local`)과 데모 시드 도구(`tools/seed_*`)는 운영 DB 를 가리키지 않게 그대로 둔다.
 - **콜레이션은 모든 DB 에서 `SQL_Latin1_General_CP1_CI_AS` 로 통일한다**(10-29 사용자 결정 — 전에는 `Korean_Wansung_CI_AS`). varchar·char 는 CP1252 라 **한글은 nvarchar 컬럼에만** 들어간다(varchar 에 넣으면 `?`). `dist/create_database.sql`·`rebuild_db.sh` 는 Latin1 로 DB 를 만들고, 스키마 파일·마이그레이션의 컬럼은 `COLLATE DATABASE_DEFAULT`(DB 기본 콜레이션을 따름 — `tools/schema_from_db` 도 원본 DB 기본 콜레이션을 이렇게 바꿔 뜬다), 새 SQL 의 한글 상수는 `N'…'`. 저장 검사 `ColumnParams` 는 컬럼 콜레이션의 코드 페이지(Latin1 = 1252, Korean = 949)로 바이트·문자를 검사한다(정본 `ColumnParamsTests`). 개발서버 `AMES_DEV`·로컬 `AMES_DEV` 는 아직 Korean 이다.
 - **DB(개발)**: `AMES_DEV` @ SQL Server 2019(개발서버 15.0.2000.5 RTM — 비상용 로컬은 2025), mixed-mode auth, user `ames_app` — 콜레이션 `Korean_Wansung_CI_AS`(10-29 통일 전)
   - 기본(개발서버): `192.168.0.132` — 소스의 모든 활성 접속문자열이 여기를 가리킨다 (`192.168.2.137` → 09-03 `192.168.1.137` → 09-04 `192.168.1.100` → 10-06 `192.168.1.102` → 10-07 `192.168.0.132`(서브넷도 바뀜, MAC 은 10-06 과 같음 — ping 은 응답하지 않으니 ARP MAC·`@@SERVERNAME` 으로 확인), `dist/*.sql` 머리말의 적용 예시는 구 IP 그대로). 개발서버 `DESKTOP-POEDIBS` 는 Wi-Fi·DHCP 라 **IP 가 떠다닌다** — 09-04 에는 DHCP 를 잃고 `169.254.x` 로 떨어져 로그인이 500 났다. 공유기 DHCP 예약이 근본 대책 — MAC 은 09-04 `64-cb-a3-f6-ed-53`, 10-06 `.102` 는 `34-13-e8-c7-36-8e`(다른 어댑터로 붙은 것으로 보인다 — 예약은 실제 쓰는 어댑터 MAC 으로)
@@ -93,6 +93,14 @@ dotnet run --project src\07_Etc\AMES.InjAgent\AMES.InjAgent.csproj
 ---
 
 ## AMES.Web 배포
+
+### Web/API 접속문자열·CORS
+
+- Web/API의 `appsettings*.json`에는 DB 비밀번호를 넣지 않는다. 실행 프로세스 또는 각 IIS 앱풀에 `ConnectionStrings__AMES`로 전체 접속문자열을 설정한다. 비어 있으면 DB 접근 전에 설정 오류로 중단한다. POP·InjAgent 설정은 별개다.
+- 서버 배포 전 Web 앱풀과 API 앱풀 **각각** 환경변수를 설정해야 한다. 기존 `appsettings.Production.json`에 남은 접속문자열도 제거한다. 앱풀 환경변수는 IIS 설정에 보관되어 재게시해도 유지된다. 이 변경만으로 서버 설정이나 비밀번호가 자동 변경되지는 않는다.
+- 개발 시 현재 PowerShell 프로세스의 `ConnectionStrings__AMES`를 설정하고 실행한다. `launchSettings.json`에는 비밀번호를 넣지 않는다. `publish-*.ps1 -Target Local -DbTarget Local`도 이 환경변수 또는 명시적인 `-LocalDbConn`을 사용하며 접속문자열을 출력하지 않는다. 비밀번호가 든 명령을 셸 기록에 남기지 않는다.
+- API CORS는 기본 빈 허용 목록이다. 네이티브 PDA·Tablet 및 서버 간 호출에는 CORS 설정이 필요 없다. 브라우저에서 API를 다른 출처로 직접 호출할 때만 API 앱풀에 `Cors__AllowedOrigins__0=https://실제-웹-호스트`처럼 **scheme + host + port**를 등록한다. 경로·마지막 `/`·와일드카드는 넣지 않는다. 추가 출처는 `__1`, `__2`로 지정한다. 같은 출처 Web의 Blazor Server→API 호출에는 추가하지 않는다.
+- `tools/db-route.ps1`의 구형 자동 전환은 접속문자열이 설정 파일에 있는 경우만 지원한다. 환경변수 전용 구성은 값을 유지하며 자동으로 삭제·전환하지 않는다.
 
 로컬 IIS(`w3wp`)로 구동된다. `dotnet run`/IIS Express 아님.
 
