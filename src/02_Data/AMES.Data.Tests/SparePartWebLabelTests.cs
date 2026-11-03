@@ -11,9 +11,12 @@ public sealed class SparePartWebLabelTests
     {
         var pda = PdaSparePartsSql.SerialCreate;
         var web = PdaSparePartsSql.WebSerialCreate;
-        Assert.StartsWith("DECLARE @LabelRefType varchar(20)='PDA_LABEL';", pda);
-        Assert.StartsWith("DECLARE @LabelRefType varchar(20)='WEB_LABEL';", web);
-        Assert.Equal(pda[(pda.IndexOf('\n') + 1)..], web[(web.IndexOf('\n') + 1)..]);
+        const string options = "SET QUOTED_IDENTIFIER ON;\nSET ANSI_NULLS ON;\n";
+        Assert.StartsWith(options + "DECLARE @LabelRefType varchar(20)='PDA_LABEL';", pda);
+        Assert.StartsWith(options + "DECLARE @LabelRefType varchar(20)='WEB_LABEL';", web);
+        Assert.Equal(pda.Replace("'PDA_LABEL'", "'WEB_LABEL'"), web);
+        Assert.Equal(1, web.Split("SET QUOTED_IDENTIFIER ON;").Length - 1);
+        Assert.Equal(1, web.Split("SET ANSI_NULLS ON;").Length - 1);
         Assert.Contains("WITH (UPDLOCK,HOLDLOCK)", web);
         Assert.Contains("'LABEL',0,@Balance,@Balance,@LabelRefType", web);
         Assert.Contains("'CREATED'", web);

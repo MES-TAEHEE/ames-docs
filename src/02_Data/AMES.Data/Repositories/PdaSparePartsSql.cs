@@ -16,12 +16,11 @@ public static class PdaSparePartsSql
         ORDER BY w.IssuedAt DESC,w.WorkOrderID DESC;
         """;
 
-    public const string SerialCreate = "DECLARE @LabelRefType varchar(20)='PDA_LABEL';\n" + SerialCreateBody;
-    public const string WebSerialCreate = "DECLARE @LabelRefType varchar(20)='WEB_LABEL';\n" + SerialCreateBody;
+    private const string SerialCreateOptions = "SET QUOTED_IDENTIFIER ON;\nSET ANSI_NULLS ON;\n";
+    public const string SerialCreate = SerialCreateOptions + "DECLARE @LabelRefType varchar(20)='PDA_LABEL';\n" + SerialCreateBody;
+    public const string WebSerialCreate = SerialCreateOptions + "DECLARE @LabelRefType varchar(20)='WEB_LABEL';\n" + SerialCreateBody;
 
     private const string SerialCreateBody = """
-        SET QUOTED_IDENTIFIER ON;
-        SET ANSI_NULLS ON;
         BEGIN
             SET NOCOUNT ON;
             SET XACT_ABORT ON;
