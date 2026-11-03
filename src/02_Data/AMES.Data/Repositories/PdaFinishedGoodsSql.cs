@@ -203,8 +203,9 @@ public static class PdaFinishedGoodsSql
                     THROW 52516,'The inventory part does not match the production LOT.',1;
                 SET @Qty=COALESCE(@StoredQty,@ProductionQty);
                 SELECT @Capacity=Capacity FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK)
-                    WHERE LocationID=@Location AND LocationType='FG' AND LocationLevel=2 AND COALESCE(ActiveFlag,1)=1;
-                IF @@ROWCOUNT=0 THROW 52517,'Scan a registered FG location barcode.',1;
+                    WHERE LocationID=@Location AND LocationType='FG' AND LocationLevel=2 AND COALESCE(ActiveFlag,1)=1
+                      AND NULLIF(LTRIM(RTRIM(LineID)),'') IS NULL;
+                IF @@ROWCOUNT=0 THROW 52517,'ASSY finished goods require an FG location. Warehouse and production-line locations are not allowed.',1;
                 SELECT @Current=COALESCE(SUM(Qty),0) FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LocationNo=@Location;
                 IF @Capacity>0 AND @Current+@Qty>@Capacity THROW 52518,'The FG location has insufficient load capacity.',1;
                 IF @StoredQty IS NULL

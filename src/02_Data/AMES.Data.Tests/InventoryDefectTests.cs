@@ -179,7 +179,8 @@ public sealed class InventoryDefectTests
         Assert.Contains("x.Sum(y => y.DefectQty)",map);
         Assert.Contains("Icon=\"task_alt\"",lookup);
         Assert.Contains("else if(row.DefectQty <= 0)",lookup);
-        Assert.Contains("row.Qty, row.DefectQty",lookup);
+        Assert.Contains("row.Qty, row.StoredQty, row.UnassignedQty",lookup);
+        Assert.Contains(".Append(row.DefectQty)",lookup);
         Assert.Contains("Property=\"DefectQty\"",Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor"));
     }
 

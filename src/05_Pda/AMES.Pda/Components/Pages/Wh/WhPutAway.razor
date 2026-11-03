@@ -491,7 +491,7 @@
             if (location is null)
                 throw new InvalidOperationException("Location was not found.");
             if (string.Equals(location.LocationType, "FG", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only ASSY finished goods can be assigned an FG location.");
+                throw new InvalidOperationException("Only ASSY finished goods can be assigned an FG location. Scan a warehouse or production-line location for SUB or MATERIAL stock.");
             if (location.LocationType is { } type
                 && (type.Equals("BLOCKED", StringComparison.OrdinalIgnoreCase)
                     || type.Equals("HOLD", StringComparison.OrdinalIgnoreCase)

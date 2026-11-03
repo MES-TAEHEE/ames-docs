@@ -132,11 +132,15 @@ public sealed partial class WarehouseRepository
         """;
 
     public sealed record LineStockRow(string LineCode, string PartNo, string PartName,
-        decimal Qty, decimal MinimumQty, bool HasOpenOrder, bool WrongPart=false, string? LineId=null)
+        decimal Qty, decimal MinimumQty, bool HasOpenOrder, bool WrongPart=false, string? LineId=null,
+        string Unit="EA", string? LineName=null, bool IsActive=true)
     {
         public decimal Shortage => Math.Max(0, MinimumQty - Qty);
         public decimal RequiredQty => decimal.Ceiling(Shortage);
-        public string State => WrongPart ? "Different part at location" : Shortage == 0 ? "Sufficient" : HasOpenOrder ? "Requested"
+        public decimal? DisplayQty => string.IsNullOrWhiteSpace(PartNo) ? null : Qty;
+        public decimal? DisplayRequiredQty => string.IsNullOrWhiteSpace(PartNo) ? null : Shortage;
+        public string State => !IsActive ? "Inactive" : string.IsNullOrWhiteSpace(PartNo) ? "Assign a part"
+            : WrongPart ? "Different part at location" : Shortage == 0 ? "Sufficient" : HasOpenOrder ? "Requested"
             : PartNo.Length > 20 ? "Part number exceeds Pick Slip limit"
             : RequiredQty > 99999999999m ? "Request quantity exceeds Pick Slip limit" : "Pending";
     }
@@ -158,14 +162,17 @@ public sealed partial class WarehouseRepository
     private const string LineStockSql = """
         WITH Demand AS
         (
-            SELECT L.LocationID AS LocationNo,M.LineID,L.PartNo,COALESCE(S.Qty,0) AS Qty,COALESCE(L.MinimumQty,0) AS MinimumQty
+            SELECT L.LocationID AS LocationNo,M.LineID,L.PartNo,COALESCE(S.Qty,0) AS Qty,COALESCE(L.MinimumQty,0) AS MinimumQty,
+                COALESCE(NULLIF(M.LineNameEn,''),M.LineID) AS LineName,
+                CONVERT(bit,CASE WHEN COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE' THEN 1 ELSE 0 END) AS IsActive
             FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID
             OUTER APPLY(SELECT SUM(W.Qty) Qty FROM dbo.WH_Inventory W
                 WHERE W.LocationNo=L.LocationID AND W.PartNo=L.PartNo
                   AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn CR WHERE CR.LotNo=W.LotNo AND CR.Status IN('Open','Inspecting'))
                   AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)) S
-            WHERE L.LocationLevel=2 AND COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE'
-              AND NULLIF(L.PartNo,'') IS NOT NULL AND L.MinimumQty>0
+            WHERE L.LocationLevel=2
+              AND (@Overview=1 OR (COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE'
+                AND NULLIF(L.PartNo,'') IS NOT NULL AND L.MinimumQty>0))
         )
         SELECT S.LocationNo,S.PartNo,I.ItemName,S.Qty,S.MinimumQty,
                CONVERT(bit,CASE WHEN EXISTS
@@ -177,27 +184,33 @@ public sealed partial class WarehouseRepository
                THEN 1 ELSE 0 END),
                CONVERT(bit,CASE WHEN EXISTS(SELECT 1 FROM dbo.MD_Location L JOIN dbo.WH_Inventory W ON W.LocationNo=L.LocationID
                     WHERE L.LocationID=S.LocationNo AND L.LineID IS NOT NULL AND W.Qty>0 AND W.PartNo<>S.PartNo) THEN 1 ELSE 0 END),
-               S.LineID
+               S.LineID,COALESCE(NULLIF(I.DefaultUOM,''),'') AS Unit,S.LineName,
+               CONVERT(bit,CASE WHEN S.IsActive=1 AND COALESCE(I.ActiveFlag,1)=1 THEN 1 ELSE 0 END) AS IsActive
         FROM Demand S
-        JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=S.PartNo COLLATE DATABASE_DEFAULT
-        WHERE COALESCE(I.ActiveFlag,1)=1
+        LEFT JOIN dbo.MD_Item I ON I.ItemNo COLLATE DATABASE_DEFAULT=S.PartNo COLLATE DATABASE_DEFAULT
+        WHERE @Overview=1 OR (I.ItemNo IS NOT NULL AND COALESCE(I.ActiveFlag,1)=1)
         ORDER BY S.LocationNo,S.PartNo;
         """;
 
     public List<LineStockRow> ListLineStock()
     {
         using var conn = _factory.OpenConnection();
-        return ReadLineStock(conn, null);
+        return ReadLineStock(conn, null, overview:true)
+            .OrderByDescending(row => row.DisplayRequiredQty)
+            .ThenBy(row => row.LineId, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(row => row.LineCode, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    private static List<LineStockRow> ReadLineStock(SqlConnection conn, SqlTransaction? tx)
+    private static List<LineStockRow> ReadLineStock(SqlConnection conn, SqlTransaction? tx, bool overview=false)
     {
         using var cmd = new SqlCommand(LineStockSql, conn, tx);
+        cmd.Parameters.Add("@Overview", SqlDbType.Bit).Value = overview;
         using var reader = cmd.ExecuteReader();
         var rows = new List<LineStockRow>();
         while (reader.Read())
-            rows.Add(new(reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? reader.GetString(1) : reader.GetString(2),
-                reader.GetDecimal(3), reader.GetDecimal(4), reader.GetBoolean(5),reader.GetBoolean(6),reader.GetString(7)));
+            rows.Add(new(reader.GetString(0), GetString(reader,"PartNo") ?? "", GetString(reader,"ItemName") ?? GetString(reader,"PartNo") ?? "",
+                reader.GetDecimal(3), reader.GetDecimal(4), reader.GetBoolean(5),reader.GetBoolean(6),reader.GetString(7),
+                GetString(reader,"Unit") ?? "", GetString(reader,"LineName"), GetBool(reader,"IsActive")));
         return rows;
     }
 

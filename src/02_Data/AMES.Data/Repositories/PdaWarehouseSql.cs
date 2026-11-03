@@ -673,6 +673,8 @@ public static class PdaWarehouseSql
                   )
             )
                 THROW 51418, 'Location is blocked for inbound.', 1;
+            IF EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Location AND UPPER(LocationType)='FG')
+                THROW 51429,'Only ASSY finished goods can be assigned an FG location. Scan a warehouse or production-line location for SUB or MATERIAL stock.',1;
 
             IF EXISTS
                (
@@ -915,9 +917,14 @@ public static class PdaWarehouseSql
                 THROW 52614,'This customer return is awaiting inspection. Approve it in Customer Returns before setting a location.',1;
             IF @PartNo IS NULL THROW 51408, 'This barcode has not been received yet.', 1;
             IF EXISTS(SELECT 1 FROM dbo.MD_Item WHERE ItemNo=@PartNo AND ItemType='ASSY')
+            BEGIN
+                IF NOT EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Location AND LocationType='FG'
+                    AND NULLIF(LTRIM(RTRIM(LineID)),'') IS NULL)
+                    THROW 51429,'ASSY finished goods require an FG location. Warehouse and production-line locations are not allowed.',1;
                 THROW 51429,'Finished goods require the ASSY validation flow. Scan the LOT or pallet again in Set Location.',1;
+            END;
             IF EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Location AND UPPER(LocationType)='FG')
-                THROW 51429,'Only ASSY finished goods can be assigned an FG location.',1;
+                THROW 51429,'Only ASSY finished goods can be assigned an FG location. Scan a warehouse or production-line location for SUB or MATERIAL stock.',1;
             IF @BeforeLocation=@Location THROW 51426,'LOT is already in this location.',1;
             IF EXISTS(SELECT 1 FROM dbo.MD_Location L WITH(UPDLOCK,HOLDLOCK)
                 WHERE L.LocationID=@Location AND L.Capacity>0 AND

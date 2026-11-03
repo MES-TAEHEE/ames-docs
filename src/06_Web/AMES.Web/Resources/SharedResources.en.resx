@@ -12759,4 +12759,14 @@
   <data name="WH.LogHistory.Lbl.Shipped" xml:space="preserve">
     <value>Shipped</value>
   </data>
+  <data name="WH.Inventory.CurrentQty" xml:space="preserve"><value>Current Stock</value></data>
+  <data name="WH.Inventory.StoredQty" xml:space="preserve"><value>Stored Qty</value></data>
+  <data name="WH.Inventory.UnassignedQty" xml:space="preserve"><value>Unassigned Qty</value></data>
+  <data name="WH.Inventory.RequiredQty" xml:space="preserve"><value>Production Material Qty</value></data>
+  <data name="WH.Inventory.RequiredQtyHint" xml:space="preserve"><value>Remaining open work orders × effective approved BOM, including scrap allowance. All locations; not net shortage. Unreleased APS drafts are excluded.</value></data>
+  <data name="WH.Inventory.RequirementsMissingBom" xml:space="preserve"><value>{0} open work orders have no effective BOM and are excluded from material requirements.</value></data>
+  <data name="WH.Inventory.RequirementsFailed" xml:space="preserve"><value>Material requirements could not be loaded. — means unavailable, not zero. Reload the page to retry.</value></data>
+  <data name="WH.Picking.Col.MinimumQty" xml:space="preserve"><value>Minimum Qty</value></data>
+  <data name="WH.Picking.Col.CurrentQty" xml:space="preserve"><value>Current Qty</value></data>
+  <data name="WH.Picking.Col.RequiredQty" xml:space="preserve"><value>Required Qty</value></data>
 </root>

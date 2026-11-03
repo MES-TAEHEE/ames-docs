@@ -46,11 +46,14 @@
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="160px" Property="VendorNames" Title="@L["Col.Vendor"]" />
                 <RadzenDataGridColumn TItem="SummaryRow" Width="110px" MinWidth="110px" Property="ItemCategory" Title="@L["Col.Category"]"><Template Context="r">@CodeName("ITEM_CATEGORY", r.ItemCategory)</Template></RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="100px" Property="Unit" Title="@L["Col.Unit"].Value" TextAlign="TextAlign.Center" Width="100px"><Template Context="r"><span class="code dim">@UomFmt.Sym(r.Unit)</span></Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="170px" Property="Qty" Title="@L["WH.Inventory.AvailableQty"].Value" TextAlign="TextAlign.Right" Width="170px"><Template Context="r">@UomFmt.Qty(r.Qty, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="140px" Property="Qty" Title="@L["WH.Inventory.CurrentQty"].Value" TextAlign="TextAlign.Right" Width="140px"><Template Context="r">@UomFmt.Qty(r.Qty, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="140px" Property="StoredQty" Title="@L["WH.Inventory.StoredQty"].Value" TextAlign="TextAlign.Right" Width="140px"><Template Context="r">@UomFmt.Qty(r.StoredQty, r.Unit)</Template></RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="140px" Property="UnassignedQty" Title="@L["WH.Inventory.UnassignedQty"].Value" TextAlign="TextAlign.Right" Width="140px"><Template Context="r">@UomFmt.Qty(r.UnassignedQty, r.Unit)</Template></RadzenDataGridColumn>
+                @if (ShowProductionRequirements)
+                {
+                    <RadzenDataGridColumn TItem="SummaryRow" MinWidth="180px" Property="RequiredQty" Title="@L["WH.Inventory.RequiredQty"].Value" TextAlign="TextAlign.Right" Width="180px"><Template Context="r"><span title="@L["WH.Inventory.RequiredQtyHint"]">@(r.RequiredQty is {} required ? UomFmt.Qty(required, r.Unit) : "—")</span></Template></RadzenDataGridColumn>
+                }
                 <RadzenDataGridColumn TItem="SummaryRow" MinWidth="180px" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"].Value" TextAlign="TextAlign.Right" Width="180px"><Template Context="r">@UomFmt.Qty(r.DefectQty, r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" Property="InspectionQty" Title="@L["WH.Inventory.Col.InspectionQty"].Value" TextAlign="TextAlign.Right" Width="170px" MinWidth="170px"><Template Context="r">@UomFmt.Qty(r.InspectionQty, r.Unit)</Template></RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="130px" Property="LocationCount" Title="@L["Col.Locations"].Value" TextAlign="TextAlign.Right" Width="130px" />
-                <RadzenDataGridColumn TItem="SummaryRow" MinWidth="90px" Property="LotCount" Title="@L["Col.Lots"].Value" TextAlign="TextAlign.Right" Width="90px" />
             </Columns>
         </RadzenDataGrid>
     </section>
@@ -80,9 +83,8 @@
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="LocationNo" Title="@L["Col.Location"]" />
                             <RadzenDataGridColumn TItem="LocationMapStock" Title="@L["Col.Floor"]"><Template Context="row">@Floor(row.LocationNo)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="LotNo" Title="@L["Col.LotNo"]"><Template Context="row">@Text(row.LotNo)</Template></RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["WH.Inventory.AvailableQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.Qty,row.Unit)</Template></RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="LocationMapStock" Property="Qty" Title="@L["WH.Inventory.CurrentQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.Qty,row.Unit)</Template></RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="LocationMapStock" Property="DefectQty" Title="@L["WH.Inventory.DefectQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.DefectQty,row.Unit)</Template></RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="LocationMapStock" Property="InspectionQty" Title="@L["WH.Inventory.Col.InspectionQty"]" TextAlign="TextAlign.Right"><Template Context="row">@UomFmt.QtyUnit(row.InspectionQty,row.Unit)</Template></RadzenDataGridColumn>
                             @if(AllowLotDefect)
                             {
                                 <RadzenDataGridColumn TItem="LocationMapStock" Width="88px" MinWidth="88px" Sortable="false" TextAlign="TextAlign.Center">
@@ -92,7 +94,7 @@
                                     {
                                         <RadzenIcon Icon="task_alt" title="@L["WH.Inventory.DefectRecorded"]" aria-label="@L["WH.Inventory.DefectRecorded"]" Style="color:var(--ames-tx-green-300);vertical-align:middle;" />
                                     }
-                                    @if(_eligibleLots.Contains(row.LotNo??"") && row.Qty > 0 && _canReject)
+                                    @if(_eligibleLots.Contains(row.LotNo??"") && row.Qty > row.InspectionQty && _canReject)
                                     {
                                         <RadzenButton Icon="report_problem" title="@L["WH.Inventory.DefectAction"]" aria-label="@L["WH.Inventory.DefectAction"]" Click="@(()=>OpenDefect(row))" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                                     }
@@ -113,6 +115,8 @@
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<LocationMapStock> Inventory { get; set; } = [];
+    [Parameter] public IReadOnlyDictionary<string, decimal>? ProductionRequirements { get; set; }
+    [Parameter] public bool ShowProductionRequirements { get; set; }
     [Parameter] public IReadOnlyList<ScmRepository.ItemVendorRow> ItemVendors { get; set; } = [];
     [Parameter] public IReadOnlyList<MasterDataRepository.CodeItemRow> ItemCodes { get; set; } = [];
     [Parameter] public string SearchId { get; set; } = "inventory-search";
@@ -133,7 +137,7 @@
         }
     }
     void OpenDefect(LocationMapStock lot)
-    { if(!_canReject||!_eligibleLots.Contains(lot.LotNo??"")||lot.Qty<=0)return;_drawerOpen=false;_defectLot=lot; }
+    { if(!_canReject||!_eligibleLots.Contains(lot.LotNo??"")||lot.Qty<=lot.InspectionQty)return;_drawerOpen=false;_defectLot=lot; }
     void CloseDefect()=>_defectLot=null;
     async Task DefectCompleted(LocationMapStock lot)
     {
@@ -141,7 +145,10 @@
         await InventoryChanged.InvokeAsync();
     }
 
-    private sealed record SummaryRow(string PartNo, string PartName, string Unit, string ItemType, string ItemCategory, string VendorIds, string VendorNames, decimal Qty, decimal DefectQty, decimal InspectionQty, int LocationCount, int LotCount);
+    private sealed record SummaryRow(string PartNo, string PartName, string Unit, string ItemType, string ItemCategory, string VendorIds, string VendorNames, decimal Qty, decimal DefectQty, decimal UnassignedQty, decimal? RequiredQty)
+    {
+        public decimal StoredQty => Qty - UnassignedQty;
+    }
     private sealed record FilterOption(string Code, string Name);
 
     private string _query = "";
@@ -191,9 +198,8 @@
             string.Join(", ", VendorsFor(group.Key.PartNo).Select(x => x.VendorName).Distinct(StringComparer.OrdinalIgnoreCase)),
             group.Sum(x => x.Qty),
             group.Sum(x => x.DefectQty),
-            group.Sum(x => x.InspectionQty),
-            group.Select(x => x.LocationNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
-            group.Select(x => x.LotNo).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count()))
+            InventorySearchRows.UnassignedQty(group),
+            ProductionRequirements is null ? null : ProductionRequirements.GetValueOrDefault(group.Key.PartNo)))
         .OrderBy(x => x.PartNo)
         .ToList();
 
@@ -271,9 +277,13 @@
         if (await Dialog.Confirm(L["WH.Inventory.ExportConfirm", rows.Count], L["WH.Inventory.Export"],
             new ConfirmOptions { OkButtonText = L["Btn.Confirm"], CancelButtonText = L["Btn.Cancel"] }) != true) return;
         var headers = new[] { L["Col.VendorId"].Value, L["Col.VendorName"].Value, L["Col.ItemNo"].Value, L["Col.ItemName"].Value,
-            L["Col.Type"].Value, L["Col.Category"].Value, L["Col.Unit"].Value, L["WH.Inventory.AvailableQty"].Value, L["WH.Inventory.DefectQty"].Value, L["WH.Inventory.Col.InspectionQty"].Value };
+            L["Col.Type"].Value, L["Col.Category"].Value, L["Col.Unit"].Value, L["WH.Inventory.CurrentQty"].Value,
+            L["WH.Inventory.StoredQty"].Value, L["WH.Inventory.UnassignedQty"].Value };
+        if (ShowProductionRequirements) headers = headers.Append(L["WH.Inventory.RequiredQty"].Value).ToArray();
+        headers = headers.Append(L["WH.Inventory.DefectQty"].Value).ToArray();
         var data = rows.Select(row => (IReadOnlyList<object?>)new object?[] { row.VendorIds, row.VendorNames, row.PartNo, row.PartName,
-            CodeName("ITEM_TYPE", row.ItemType), CodeName("ITEM_CATEGORY", row.ItemCategory), UomFmt.Sym(row.Unit), row.Qty, row.DefectQty, row.InspectionQty });
+            CodeName("ITEM_TYPE", row.ItemType), CodeName("ITEM_CATEGORY", row.ItemCategory), UomFmt.Sym(row.Unit), row.Qty, row.StoredQty, row.UnassignedQty }
+            .Concat(ShowProductionRequirements ? new object?[] { row.RequiredQty } : []).Append(row.DefectQty).ToArray());
         var bytes = XlsxWriter.Build(L["WH.Inventory.Title"], headers, data, 24);
         await JS.InvokeVoidAsync("amesDownload", $"Inventory_{AMES.Data.Services.DbClock.Now:yyyyMMdd_HHmmss}.xlsx", Convert.ToBase64String(bytes),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

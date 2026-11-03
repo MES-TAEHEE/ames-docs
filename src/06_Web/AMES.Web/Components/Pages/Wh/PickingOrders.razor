@@ -14,7 +14,7 @@
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Picking.Title"]</div><div class="ames-kpi-v">@_orders.Count</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Picking.Kpi.LineLocations"]</div><div class="ames-kpi-v">@_stock.Select(x=>x.LineCode).Distinct().Count()</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["WH.Picking.Kpi.BelowMin"]</div><div class="ames-kpi-v">@_stock.Count(x=>x.RequiredQty>0)</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["WH.Picking.Kpi.BelowMin"]</div><div class="ames-kpi-v">@_stock.Count(x=>x.DisplayRequiredQty>0)</div></div>
 </div>
 @if (_error.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert> }
 <AmesTabs>
@@ -53,12 +53,14 @@
             </div>
             <RadzenDataGrid TItem="LineStockRow" Data="_stock" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_stockPageRows=s)" Style="@($"--ames-page-rows:{_stockPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
                 <Columns>
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="LineCode" Title="@L["Col.Line"].Value" Width="80px" MinWidth="80px" />
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="PartNo" Title="@L["Col.ItemNo"].Value" Width="170px" MinWidth="170px" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="LineName" Title="@L["Col.Line"].Value" Width="180px" MinWidth="180px" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="LineCode" Title="@L["Col.Location"].Value" Width="170px" MinWidth="170px" />
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="PartNo" Title="@L["Col.ItemNo"].Value" Width="170px" MinWidth="170px"><Template Context="r">@(string.IsNullOrWhiteSpace(r.PartNo) ? "—" : r.PartNo)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="LineStockRow" Property="PartName" Title="@L["Col.ItemName"].Value" />
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="Qty" Title="@L["WH.Picking.Col.LineQtyEa"].Value" Width="125px" MinWidth="125px"><Template Context="r">@UomFmt.Qty(r.Qty, "EA")</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="MinimumQty" Title="@L["WH.Picking.Col.MinimumEa"].Value" Width="120px" MinWidth="120px"><Template Context="r">@UomFmt.Qty(r.MinimumQty, "EA")</Template></RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="LineStockRow" Property="RequiredQty" Title="@L["WH.Picking.Col.RequiredEa"].Value" Width="130px" MinWidth="130px"><Template Context="r">@UomFmt.Qty(r.RequiredQty, "EA")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="Unit" Title="@L["Col.Unit"].Value" Width="90px" MinWidth="90px"><Template Context="r">@(UomFmt.Sym(r.Unit) is { Length: > 0 } unit ? unit : "—")</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="MinimumQty" Title="@L["WH.Picking.Col.MinimumQty"].Value" TextAlign="TextAlign.Right" Width="130px" MinWidth="130px"><Template Context="r">@UomFmt.Qty(r.MinimumQty, r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="DisplayQty" Title="@L["WH.Picking.Col.CurrentQty"].Value" TextAlign="TextAlign.Right" Width="130px" MinWidth="130px"><Template Context="r">@UomFmt.Qty(r.DisplayQty, r.Unit)</Template></RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="LineStockRow" Property="DisplayRequiredQty" Title="@L["WH.Picking.Col.RequiredQty"].Value" SortOrder="SortOrder.Descending" TextAlign="TextAlign.Right" Width="130px" MinWidth="130px"><Template Context="r">@UomFmt.Qty(r.DisplayRequiredQty, r.Unit)</Template></RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="LineStockRow" Property="State" Title="@L["Col.Status"].Value" Width="210px" MinWidth="210px" />
                 </Columns>
             </RadzenDataGrid>

@@ -52,6 +52,8 @@ public sealed class FgPutAwayPalletTests
     [Theory]
     [InlineData("PART-B", "INJ")]
     [InlineData("PART-B", "RAW")]
+    [InlineData("PART-B", "SUB")]
+    [InlineData("PART-B", "MATERIAL")]
     [InlineData("PART-B", null)]
     [InlineData(null, "ASSY")]
     public void One_non_assy_or_unknown_part_blocks_the_entire_pallet(string? partNo, string? itemType)
