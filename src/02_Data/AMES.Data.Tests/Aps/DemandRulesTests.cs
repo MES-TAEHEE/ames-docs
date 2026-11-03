@@ -218,4 +218,46 @@ public class DemandRulesTests
         Assert.Equal(old.Demand["ITEM-A"], neu.Demand["ITEM-A"]);
         Assert.Empty(neu.PlanDemand!);
     }
+
+    static DemandRules.Result RunPreferOrders(DemandRules.PlanRow[] plans, params DemandRules.OrderRow[] orders)
+        => DemandRules.Build(orders, plans, Base, Dates, Cal, false, null, Known, preferOrders: true);
+
+    [Fact]
+    public void Prefer_orders_drops_plan_on_the_same_item_and_day_so_the_same_demand_is_not_counted_twice()
+    {
+        // 같은 내용: 수주 120 이 10-06 에 잡히고 일별 계획도 10-06 에 120 — 한 번만 센다
+        var r = RunPreferOrders(new[] { P("ITEM-A", "2026-10-06", 120) },
+                                O("ITEM-A", "2026-10-06", 120));
+
+        Assert.Equal(new double[] { 0, 120, 0, 0, 0 }, r.Demand["ITEM-A"]);
+        Assert.Equal(new double[] { 0, 0, 0, 0, 0 }, r.PlanDemand!.GetValueOrDefault("ITEM-A") ?? new double[5]);
+        Assert.Contains(r.Warnings, w => w.Contains("중복") && w.Contains("ITEM-A"));
+    }
+
+    [Fact]
+    public void Prefer_orders_still_adds_plan_on_days_without_any_order_line()
+    {
+        var r = RunPreferOrders(new[] { P("ITEM-A", "2026-10-06", 120), P("ITEM-A", "2026-10-08", 40) },
+                                O("ITEM-A", "2026-10-06", 120));
+
+        Assert.Equal(new double[] { 0, 120, 0, 40, 0 }, r.Demand["ITEM-A"]);
+        Assert.Equal(new double[] { 0, 0, 0, 40, 0 }, r.PlanDemand!["ITEM-A"]);
+    }
+
+    [Fact]
+    public void Prefer_orders_treats_fully_shipped_line_as_covering_its_day()
+    {
+        // 납품 완료 라인(잔량 0)도 그 날의 수요를 이미 대표하므로 계획을 또 더하지 않는다
+        var r = RunPreferOrders(new[] { P("ITEM-A", "2026-10-07", 50) },
+                                O("ITEM-A", "2026-10-07", 50, shipped: 50));
+
+        Assert.False(r.Demand.ContainsKey("ITEM-A") && r.Demand["ITEM-A"].Sum() > 0);
+    }
+
+    [Fact]
+    public void Without_prefer_orders_plan_is_added_as_before_golden_path_unchanged()
+    {
+        var r = RunPlans(new[] { P("ITEM-A", "2026-10-06", 120) }, orders: new[] { O("ITEM-A", "2026-10-06", 120) });
+        Assert.Equal(new double[] { 0, 240, 0, 0, 0 }, r.Demand["ITEM-A"]);
+    }
 }

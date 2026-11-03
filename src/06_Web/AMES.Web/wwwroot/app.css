@@ -944,6 +944,27 @@ html[data-theme="light"] .ames-user-av--none  { --av-bg: rgba(100,116,139,.10); 
 
 /* ── 공통 탭 모듈 (AmesTabs/AmesTab) ───────────────────────── */
 .ames-tabstrip { display: flex; gap: 4px; }
+.ames-tabstrip-end { flex: 1 1 0; min-width: 0; display: flex; justify-content: flex-end; align-items: center; padding-left: 12px; }
+/* 작업 결과 알림: 이전 알림과 같은 진한 색(성공 초록 · 실패 빨강), 최대 2줄까지 탭 줄 안에 보인다 */
+.ames-tab-msg {
+    max-width: 100%; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; line-height: 1.45;
+    color: #fff; box-shadow: 0 6px 16px -8px rgba(0,0,0,.6); white-space: normal; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.ames-tab-msg.ok  { background: #15803d; }
+.ames-tab-msg.bad { background: #b91c1c; }
+
+/* 업로드 비교 상자 */
+.upd-box { margin: 8px 0; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.12); }
+.upd-box.upd-changed { background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.45); }
+.upd-box.upd-same { background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.40); }
+.upd-title { font-weight: 700; margin-bottom: 6px; }
+.upd-scroll { max-height: 260px; overflow: auto; }
+.upd-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.upd-table th, .upd-table td { padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,.08); text-align: left; white-space: nowrap; }
+.upd-table tr.upd-changed td:first-child { color: #f59e0b; font-weight: 700; }
+.upd-table tr.upd-added td:first-child { color: #22c55e; font-weight: 700; }
+.upd-table tr.upd-removed td:first-child { color: #ef4444; font-weight: 700; }
 .ames-tab {
     padding: 8px 18px;
     font-family: var(--ames-font-mono);

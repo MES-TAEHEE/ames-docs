@@ -239,7 +239,7 @@ else
         _canEdit = PermSvc.CanEdit(Href);
         _canApprove = PermSvc.CanApprove(Href);
 
-        try { _customers = MD.ListCustomers(); } catch { }
+        try { _customers = MD.ListCustomers().Where(c => AMES.Data.Services.Srm.PlantCustomers.Contains(c.CustomerID)).ToList(); } catch { }
         try { _autoConfirm = Pp.GetSoAutoConfirm(); } catch { }
         Search();
     }

@@ -8,6 +8,8 @@ namespace AMES.Data.Aps;
 /// ① 상태 Confirmed(+IncludeOpen 이면 Open), 고객 필터  ② 잔량 = OrderQty − ShippedQty ≤ 0 은 경고 없이 제외, 납기 NULL 은 제외 + 경고
 /// ③ 납기 &lt; 기준일 → 첫날 / 휴무일 납기 → 직전 근무일(그 날이 기준일 이전이면 첫날) / Dates 마지막 날 뒤 → 무시
 /// ④ knownItems(활성 MD_Item) 밖 품번 → 제외 + 경고
+/// ⑤ (수주 우선, AMES 경로) 같은 품번·같은 날짜에 수주 라인이 잡혀 있으면 그 날의 일별 계획은 더하지 않는다 —
+///    수주(PO)와 일별 계획은 같은 수요를 두 번 적은 것이므로 두 번 세면 WO 가 과다 생성된다.
 /// </summary>
 public static class DemandRules
 {
@@ -27,9 +29,12 @@ public static class DemandRules
                                bool includeOpen, string? customerId, IReadOnlySet<string> knownItems)
         => Build(orders, Array.Empty<PlanRow>(), baseDate, dates, cal, includeOpen, customerId, knownItems);
 
-    /// <summary>스펙 2026-09-29 §7 — 일별 계획: 고객 필터 동일, 0 이하 무시, 휴무일 → 직전 근무일, 기준일 전(지난 계획)은 버림, 미등록 품번 경고 1건/품번.</summary>
+    /// <summary>
+    /// 스펙 2026-09-29 §7 — 일별 계획: 고객 필터 동일, 0 이하 무시, 휴무일 → 직전 근무일, 기준일 전(지난 계획)은 버림, 미등록 품번 경고 1건/품번.
+    /// preferOrders = true 면 ⑤ 수주 우선 규칙을 쓴다(AMES 경로). false 면 종전처럼 수주와 계획을 더한다(골든 경로).
+    /// </summary>
     public static Result Build(IReadOnlyList<OrderRow> orders, IReadOnlyList<PlanRow> plans, DateOnly baseDate, IReadOnlyList<string> dates, IApsCalendar cal,
-                               bool includeOpen, string? customerId, IReadOnlySet<string> knownItems)
+                               bool includeOpen, string? customerId, IReadOnlySet<string> knownItems, bool preferOrders = false)
     {
         var demand   = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
         var warnings = new List<string>();
@@ -39,26 +44,29 @@ public static class DemandRules
         for (int i = 0; i < dates.Count; i++) index[dates[i]] = i;
         var last = ApsCalendar.Parse(dates[^1]);
 
+        // 수주 라인이 잡힌 (품번, 칸) — 일별 계획 중복 판정에 쓴다. 잔량 0 인 라인도 포함(이미 납품된 수요와 같은 날의 계획을 또 세지 않게).
+        var covered = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var o in orders)
         {
             if (!IsWanted(o.Status, includeOpen)) continue;
             if (customerId is not null && !string.Equals(o.CustomerId, customerId, StringComparison.OrdinalIgnoreCase)) continue;
 
             var remain = o.OrderQty - o.ShippedQty;
-            if (remain <= 0) continue;
 
-            if (o.RequestedDeliveryDate is not DateOnly due)
+            if (o.RequestedDeliveryDate is not DateOnly due0)
             {
-                warnings.Add($"수주 {Label(o)} 품번 {o.ItemNo}: 납기가 없어 잔량 {N(remain)}개를 수요에서 제외했습니다.");
+                if (remain > 0) warnings.Add($"수주 {Label(o)} 품번 {o.ItemNo}: 납기가 없어 잔량 {N(remain)}개를 수요에서 제외했습니다.");
                 continue;
             }
             if (!knownItems.Contains(o.ItemNo))
             {
-                warnings.Add($"품번 {o.ItemNo} 은 MD_Item 에 없어 수주 {Label(o)} 잔량 {N(remain)}개를 제외했습니다.");
+                if (remain > 0) warnings.Add($"품번 {o.ItemNo} 은 MD_Item 에 없어 수주 {Label(o)} 잔량 {N(remain)}개를 제외했습니다.");
                 continue;
             }
 
             int slot;
+            var due = due0;
             if (due < baseDate) slot = 0;
             else
             {
@@ -68,12 +76,16 @@ public static class DemandRules
                 else if (!index.TryGetValue(ApsCalendar.Iso(due), out slot)) continue;
             }
 
+            covered.Add(CoverKey(o.ItemNo, slot));
+            if (remain <= 0) continue;
+
             if (!demand.TryGetValue(o.ItemNo, out var arr)) demand[o.ItemNo] = arr = new double[dates.Count];
             arr[slot] += (double)remain;
         }
 
         var planDemand = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
         var unknownPlan = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        var duplicated = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
         foreach (var p in plans)
         {
             if (customerId is not null && !string.Equals(p.CustomerId, customerId, StringComparison.OrdinalIgnoreCase)) continue;
@@ -89,6 +101,12 @@ public static class DemandRules
             else if (d > last) continue;
             else if (!index.TryGetValue(ApsCalendar.Iso(d), out slot)) continue;
 
+            if (preferOrders && covered.Contains(CoverKey(p.ItemNo, slot)))
+            {
+                duplicated[p.ItemNo] = duplicated.GetValueOrDefault(p.ItemNo) + p.ScheduledQty;
+                continue;
+            }
+
             if (!demand.TryGetValue(p.ItemNo, out var arr)) demand[p.ItemNo] = arr = new double[dates.Count];
             if (!planDemand.TryGetValue(p.ItemNo, out var pl)) planDemand[p.ItemNo] = pl = new double[dates.Count];
             arr[slot] += (double)p.ScheduledQty;
@@ -96,9 +114,13 @@ public static class DemandRules
         }
         foreach (var (item, qty) in unknownPlan.OrderBy(kv => kv.Key, StringComparer.Ordinal))
             warnings.Add($"품번 {item} 은 MD_Item 에 없어 일별 계획 {N(qty)}개를 제외했습니다.");
+        foreach (var (item, qty) in duplicated.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+            warnings.Add($"품번 {item}: 같은 날짜에 수주가 있어 일별 계획 {N(qty)}개는 중복으로 빼고 수주만 셌습니다.");
 
         return new Result(demand, warnings, planDemand);
     }
+
+    static string CoverKey(string item, int slot) => $"{item.ToUpperInvariant()}|{slot}";
 
     static bool IsWanted(string? status, bool includeOpen) =>
         string.Equals(status, StatusConfirmed, StringComparison.OrdinalIgnoreCase)

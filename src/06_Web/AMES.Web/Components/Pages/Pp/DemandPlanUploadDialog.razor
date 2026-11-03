@@ -5,12 +5,13 @@
 @inject IStringLocalizer<SharedResources> L
 @using AMES.Data.Repositories
 @using AMES.Data.Services.DemandPlan
+@using AMES.Data.Services.Upload
 @using AMES.Web.Services
 
 <div style="display:flex;flex-direction:column;gap:6px;min-width:480px;">
     <label>① @L["Col.Customer"]</label>
     <RadzenDropDown AllowFiltering="true" Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
-                    @bind-Value="_customer" Disabled="_busy" AllowClear="true" Placeholder="—" Style="width:100%" />
+                    @bind-Value="_customer" Change="@(_ => RefreshDiff())" Disabled="_busy" AllowClear="true" Placeholder="—" Style="width:100%" />
     <label>② @L["PP.Forecast.Upload.File"]</label>
     <InputFile OnChange="OnFile" accept=".xls,.xlsx" disabled="@_busy" />
     <span class="dim" style="font-size:.8em;">@L["PP.DemandPlan.Upload.Hint"]</span>
@@ -32,11 +33,12 @@
             }
         }
     </div>
+    <UploadDiffView Diff="_diff" />
     @if (!string.IsNullOrEmpty(_err)) { <div class="ames-alert bad">@_err</div> }
     <div class="ames-modal-footer">
         <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy" Click="@(() => Dialog.Close(null))" />
         <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.Forecast.Btn.RunUpload"].Value)"
-                      Disabled="@(_busy || _plan is null || string.IsNullOrEmpty(_customer))" Click="DoUpload" />
+                      Disabled="@(_busy || _plan is null || string.IsNullOrEmpty(_customer) || _diff is null || !_diff.HasChanges)" Click="DoUpload" />
     </div>
 </div>
 
@@ -44,6 +46,7 @@
     [Parameter] public List<MasterDataRepository.CustomerRow> Customers { get; set; } = new();
     const long MaxBytes = 10 * 1024 * 1024;
     string _customer = "", _err = "", _fileName = "";
+    UploadDiff? _diff;
     bool _busy;
     DailyPlan? _plan;
     int _cells;
@@ -66,10 +69,29 @@
             _mismatch = plan.Items.Where(i => i.PackQty > 0 && pallet.TryGetValue(i.PartNo, out var b) && b > 0 && b != i.PackQty)
                                   .Select(i => $"{i.PartNo} ({i.PackQty:0.###} ≠ {pallet[i.PartNo]:0.###})").ToList();
             _plan = plan;
+            RefreshDiff();
         }
         catch (IOException)        { _err = L["PP.Forecast.Err.TooLarge"]; }
         catch (FormatException fx) { _err = $"{L["PP.Forecast.Err.Parse"]} — {fx.Message}"; }
         catch (Exception ex)       { _err = ex.Message; }
+    }
+
+    /// <summary>기존 일별 구매계획(같은 고객·기간)과 파일을 비교한다. 같으면 저장할 것이 없다(중복 업로드).</summary>
+    void RefreshDiff()
+    {
+        _diff = null;
+        if (string.IsNullOrEmpty(_customer) || _plan is null) return;
+        var existing = Pp.ReadPlanSnapshot(_customer, _plan.From, _plan.To);
+        var sched = new Dictionary<string, (decimal S, decimal P)>(StringComparer.Ordinal);
+        foreach (var it in _plan.Items)
+            for (int k = 0; k < _plan.Days; k++)
+            {
+                if (it.Scheduled[k] == 0 && it.Po[k] == 0) continue;
+                var key = UploadDiffRules.DateKey(it.PartNo, _plan.From.AddDays(k));
+                sched[key] = sched.TryGetValue(key, out var v) ? (v.S + it.Scheduled[k], v.P + it.Po[k]) : (it.Scheduled[k], it.Po[k]);
+            }
+        var newMap = sched.ToDictionary(kv => kv.Key, kv => UploadDiffRules.PlanValue(kv.Value.S, kv.Value.P), StringComparer.Ordinal);
+        _diff = UploadDiffRules.Compare(existing, newMap);
     }
 
     async Task DoUpload()

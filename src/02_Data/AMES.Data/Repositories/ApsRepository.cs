@@ -126,7 +126,7 @@ public sealed class ApsRepository
             var items  = ReadItems(conn, tx);
             var plans  = q.IncludeDailyPlan ? ReadDemandPlan(conn, tx, q.BaseDate, orderTo) : (IReadOnlyList<DemandRules.PlanRow>)Array.Empty<DemandRules.PlanRow>();
             var demand = DemandRules.Build(ReadOrders(conn, tx, orderTo), plans, q.BaseDate, dates, cal, q.IncludeOpen, customerId,
-                                           new HashSet<string>(items.Keys, StringComparer.OrdinalIgnoreCase));
+                                           new HashSet<string>(items.Keys, StringComparer.OrdinalIgnoreCase), preferOrders: true);
             warnings.AddRange(demand.Warnings);
             var slots   = ReadRegisteredSlots(conn, tx, q.BaseDate, lastDate);
             var fgStock = ReadFgStock(conn, tx);
@@ -713,16 +713,25 @@ public sealed class ApsRepository
     static List<DemandRules.PlanRow> ReadDemandPlan(SqlConnection conn, SqlTransaction tx, DateOnly from, DateOnly to)
     {
         using var cmd = new SqlCommand("""
-            SELECT CustomerID, ItemNo, PlanDate, ScheduledQty
-            FROM   dbo.PP_DemandPlan
-            WHERE  PlanDate BETWEEN @From AND @To AND ScheduledQty > 0;
+            WITH dpo AS (
+                SELECT CustomerID, ItemNo, PlanDate, OrderQty AS Q
+                FROM   dbo.PP_DailyPo
+                WHERE  PlanDate BETWEEN @From AND @To AND OrderQty > 0),
+            pl AS (
+                SELECT CustomerID, ItemNo, PlanDate, ScheduledQty AS Q
+                FROM   dbo.PP_DemandPlan
+                WHERE  PlanDate BETWEEN @From AND @To AND ScheduledQty > 0)
+            SELECT CustomerID, ItemNo, PlanDate, Q FROM dpo
+            UNION ALL
+            SELECT pl.CustomerID, pl.ItemNo, pl.PlanDate, pl.Q FROM pl
+            WHERE NOT EXISTS (SELECT 1 FROM dpo d WHERE d.CustomerID = pl.CustomerID AND d.ItemNo = pl.ItemNo AND d.PlanDate = pl.PlanDate);
             """, conn, tx);
         cmd.Parameters.Add("@From", SqlDbType.Date).Value = Dt(from);
         cmd.Parameters.Add("@To",   SqlDbType.Date).Value = Dt(to);
         using var rdr = cmd.ExecuteReader();
         var list = new List<DemandRules.PlanRow>();
         while (rdr.Read())
-            list.Add(new(rdr["CustomerID"] as string, (string)rdr["ItemNo"], DateOnly.FromDateTime((DateTime)rdr["PlanDate"]), Convert.ToDecimal(rdr["ScheduledQty"])));
+            list.Add(new(rdr["CustomerID"] as string, (string)rdr["ItemNo"], DateOnly.FromDateTime((DateTime)rdr["PlanDate"]), Convert.ToDecimal(rdr["Q"])));
         return list;
     }
 

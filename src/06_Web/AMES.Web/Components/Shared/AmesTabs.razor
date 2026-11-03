@@ -7,6 +7,10 @@
             @tab.Title
         </button>
     }
+    @if (TrailingContent is not null)
+    {
+        <div class="ames-tabstrip-end">@TrailingContent</div>
+    }
 </div>
 <div class="ames-tabpanel @PanelClass">
     <CascadingValue Value="this" IsFixed="true">
@@ -16,6 +20,9 @@
 
 @code {
     [Parameter] public RenderFragment ChildContent { get; set; } = default!;
+
+    /// <summary>탭 줄 오른쪽 끝에 붙이는 내용(예: 작업 결과 알림). 없으면 탭 줄은 기존과 같다.</summary>
+    [Parameter] public RenderFragment? TrailingContent { get; set; }
 
     /// <summary>패널에 추가할 CSS 클래스(선택).</summary>
     [Parameter] public string? PanelClass { get; set; }

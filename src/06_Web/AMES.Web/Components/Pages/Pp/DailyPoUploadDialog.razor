@@ -1,0 +1,144 @@
+@inject AMES.Data.Repositories.PpRepository Pp
+@inject AuthenticationStateProvider AuthPrvd
+@inject AMES.Web.Services.AuditLogger Audit
+@inject DialogService Dialog
+@inject IStringLocalizer<SharedResources> L
+@using AMES.Data.Repositories
+@using AMES.Data.Services
+@using AMES.Data.Services.DemandPlan
+@using AMES.Data.Services.Srm
+@using AMES.Web.Services
+@using AMES.Data.Services.Upload
+
+<div style="display:flex;flex-direction:column;gap:6px;min-width:480px;">
+    <label>① @L["Col.Customer"]</label>
+    <RadzenDropDown AllowFiltering="true" Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+                    @bind-Value="_customer" Change="@(_ => { RefreshVendorCheck(); RefreshDiff(); })" Disabled="_busy" AllowClear="true" Placeholder="—" Style="width:100%" />
+    <label>② @L["PP.DailyPo.Upload.File"]</label>
+    <InputFile OnChange="OnFile" accept=".xls,.xlsx" disabled="@_busy" />
+    <span class="dim" style="font-size:.8em;">@L["PP.DailyPo.Upload.Hint"]</span>
+
+    <label>③ @L["PP.Forecast.Upload.ParseResult"]</label>
+    <div style="border:1px solid var(--ames-bd-white-a12);border-radius:6px;padding:12px;font-size:.9em;min-height:56px;">
+        @if (_plan is null)
+        {
+            <span class="dim">@L["PP.Forecast.Upload.NoFile"]</span>
+        }
+        else
+        {
+            <div>✔ @string.Format(L["PP.DailyPo.Preview.Summary"].Value, _itemCount, _plan.From.ToString(DateFmt.Date), _plan.To.ToString(DateFmt.Date), _plan.Days, _cells)</div>
+            @if (!string.IsNullOrEmpty(_vendorMsg))
+            {
+                <div style="margin-top:6px;color:@(_verdict == SrmVendorCheck.Verdict.Mismatch ? "var(--ames-tx-red-400)" : "var(--ames-tx-amber-400)");">@_vendorMsg</div>
+            }
+            @if (_unmatched.Count > 0)
+            {
+                <div style="color:var(--ames-tx-amber-400);margin-top:6px;">⚠ @string.Format(L["PP.DemandPlan.Preview.Unmatched"].Value, _unmatched.Count)<br />
+                    <span class="dim" style="font-size:.85em;">@string.Join(", ", _unmatched.Take(5))@(_unmatched.Count > 5 ? " …" : "")</span></div>
+            }
+        }
+    </div>
+    <UploadDiffView Diff="_diff" />
+    @if (!string.IsNullOrEmpty(_err)) { <div class="ames-alert bad">@_err</div> }
+    <div class="ames-modal-footer">
+        <RadzenButton Text="@L["Btn.Cancel"]" ButtonStyle="ButtonStyle.Light" Disabled="_busy" Click="@(() => Dialog.Close(null))" />
+        <RadzenButton Text="@(_busy ? L["Lbl.Loading"].Value : L["PP.Forecast.Btn.RunUpload"].Value)"
+                      Disabled="@(_busy || _plan is null || string.IsNullOrEmpty(_customer) || _verdict == SrmVendorCheck.Verdict.Mismatch || _diff is null || !_diff.HasChanges)" Click="DoUpload" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<MasterDataRepository.CustomerRow> Customers { get; set; } = new();
+
+    const long MaxBytes = 10 * 1024 * 1024;
+    string _customer = "", _err = "", _fileName = "", _vendorMsg = "";
+    bool _busy;
+    DailyPoPlan? _plan;
+    int _itemCount, _cells;
+    List<string> _unmatched = new();
+    SrmVendorCheck.Verdict _verdict = SrmVendorCheck.Verdict.NotConfigured;
+    string? _fileVendor;
+    UploadDiff? _diff;
+
+    async Task OnFile(InputFileChangeEventArgs e)
+    {
+        _err = ""; _plan = null; _unmatched = new(); _vendorMsg = ""; _fileVendor = null;
+        try
+        {
+            using var ms = new MemoryStream();
+            await using (var s = e.File.OpenReadStream(MaxBytes)) await s.CopyToAsync(ms);
+            ms.Position = 0;
+            var plan = DailyPoGrid.Parse(SrmFileReader.ReadGrid(ms), DateOnly.FromDateTime(DbClock.Today));
+            _fileName = e.File.Name;
+            _itemCount = plan.Items.Select(i => i.PartNo).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+            _cells = plan.Items.Sum(i => i.Order.Count(q => q != 0) + i.Delivered.Count(q => q != 0));
+            var found = Pp.ListExistingItemNos(plan.Items.Select(i => i.PartNo));
+            _unmatched = plan.Items.Where(i => !found.Contains(i.PartNo)).Select(i => i.PartNo).Distinct().ToList();
+            _fileVendor = plan.VendorCode;
+            _plan = plan;
+            RefreshVendorCheck();
+            RefreshDiff();
+        }
+        catch (IOException)        { _err = L["PP.Forecast.Err.TooLarge"]; }
+        catch (FormatException fx) { _err = $"{L["PP.Forecast.Err.Parse"]} — {fx.Message}"; }
+        catch (Exception ex)       { _err = ex.Message; }
+    }
+
+    /// <summary>파일 업체 코드 ↔ 고객 SRM 설정의 VENDCD. 설정이 없으면 대조하지 않고 알린다.</summary>
+    void RefreshVendorCheck()
+    {
+        _vendorMsg = "";
+        _verdict = SrmVendorCheck.Verdict.NotConfigured;
+        if (string.IsNullOrEmpty(_customer) || _plan is null) return;
+        var configured = SrmVendorCheck.ConfiguredVendors(Pp.ListCustomerSrmDescriptions(_customer));
+        _verdict = SrmVendorCheck.Judge(_fileVendor, configured);
+        _vendorMsg = _verdict switch
+        {
+            SrmVendorCheck.Verdict.Match => string.Format(L["PP.Upload.Vendor.Match"].Value, _fileVendor),
+            SrmVendorCheck.Verdict.Mismatch => string.Format(L["PP.Upload.Vendor.Mismatch"].Value, _fileVendor, string.Join(", ", configured)),
+            _ => L["PP.Upload.Vendor.NotConfigured"].Value,
+        };
+    }
+
+    /// <summary>기존 일별 발주(같은 고객·기간)와 파일을 비교한다. 같으면 저장할 것이 없다(중복 업로드).</summary>
+    void RefreshDiff()
+    {
+        _diff = null;
+        if (string.IsNullOrEmpty(_customer) || _plan is null) return;
+        var existing = Pp.ReadDailyPoSnapshot(_customer, _plan.From, _plan.To);
+        var incoming = new Dictionary<string, (decimal Ord, decimal Del)>(StringComparer.Ordinal);
+        foreach (var it in _plan.Items)
+            for (int k = 0; k < _plan.Days; k++)
+            {
+                if (it.Order[k] == 0 && it.Delivered[k] == 0) continue;
+                var key = UploadDiffRules.DateKey(it.PartNo, _plan.From.AddDays(k));
+                incoming[key] = incoming.TryGetValue(key, out var v) ? (v.Ord + it.Order[k], v.Del + it.Delivered[k]) : (it.Order[k], it.Delivered[k]);
+            }
+        var newMap = incoming.ToDictionary(kv => kv.Key, kv => UploadDiffRules.DailyPoValue(kv.Value.Ord, kv.Value.Del), StringComparer.Ordinal);
+        _diff = UploadDiffRules.Compare(existing, newMap);
+    }
+
+    async Task DoUpload()
+    {
+        if (_plan is null || string.IsNullOrEmpty(_customer)) return;
+        if (_verdict == SrmVendorCheck.Verdict.Mismatch) { _err = _vendorMsg; return; }
+        _busy = true;
+        try
+        {
+            var auth = await AuthPrvd.GetAuthenticationStateAsync();
+            var actor = ActorCode.Of(auth.User, "system");
+            var batch = "DPO" + DbClock.Now.ToString("yyyyMMddHHmmssfff");
+            var cells = new List<PpRepository.DailyPoCell>();
+            foreach (var it in _plan.Items)
+                for (int k = 0; k < _plan.Days; k++)
+                    cells.Add(new PpRepository.DailyPoCell(it.PartNo, it.PartName, it.Unit, it.PackQty, _plan.From.AddDays(k), it.Order[k], it.Delivered[k]));
+
+            var r = Pp.ReplaceDailyPo(_customer, batch, _fileName, _plan.From, _plan.To, cells, actor);
+            Audit.Log("PP-001", "IMPORT_DAILYPO", "PP_DailyPo", batch, null, new { r.ItemCount, r.RowCount, From = r.From.ToString("yyyy-MM-dd"), To = r.To.ToString("yyyy-MM-dd"), _fileName, Vendor = _fileVendor });
+            Dialog.Close(new Result(r.ItemCount, r.RowCount, _customer, r.From.ToDateTime(TimeOnly.MinValue), r.To.ToDateTime(TimeOnly.MinValue)));
+        }
+        catch (Exception ex) { _err = ex.Message; _busy = false; }
+    }
+
+    public record Result(int ItemCount, int RowCount, string CustomerId, DateTime From, DateTime To);
+}

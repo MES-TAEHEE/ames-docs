@@ -10448,6 +10448,9 @@
   <data name="PP.DemandPlan.Btn.Upload" xml:space="preserve">
     <value>엑셀 업로드(일별)</value>
   </data>
+  <data name="PP.DemandPlan.Btn.Sample" xml:space="preserve">
+    <value>샘플 다운로드(일별)</value>
+  </data>
   <data name="PP.DemandPlan.Btn.Api" xml:space="preserve">
     <value>API 가져오기</value>
   </data>
@@ -12769,4 +12772,163 @@
   <data name="WH.Picking.Col.MinimumQty" xml:space="preserve"><value>최소 수량</value></data>
   <data name="WH.Picking.Col.CurrentQty" xml:space="preserve"><value>현재 수량</value></data>
   <data name="WH.Picking.Col.RequiredQty" xml:space="preserve"><value>필요 수량</value></data>
+  <data name="PP.Sample.Btn.Weekly" xml:space="preserve">
+    <value>샘플 다운로드(주간)</value>
+  </data>
+  <data name="PP.Sample.Btn.DailyPo" xml:space="preserve">
+    <value>샘플 다운로드(일별 발주)</value>
+  </data>
+  <data name="PP.Sample.Btn.PurchaseOrder" xml:space="preserve">
+    <value>샘플 다운로드(구매오더)</value>
+  </data>
+  <data name="PP.Forecast.Tab.Recon" xml:space="preserve">
+    <value>일별 발주·대조</value>
+  </data>
+  <data name="PP.Recon.Kpi.Issues" xml:space="preserve">
+    <value>차이</value>
+  </data>
+  <data name="PP.Recon.Empty" xml:space="preserve">
+    <value>대조할 차이가 없습니다. 고객·기간을 고르고 조회하세요.</value>
+  </data>
+  <data name="PP.Recon.Col.Kind" xml:space="preserve">
+    <value>차이 종류</value>
+  </data>
+  <data name="PP.Recon.Col.Date" xml:space="preserve">
+    <value>날짜 / 주</value>
+  </data>
+  <data name="PP.Recon.Col.Left" xml:space="preserve">
+    <value>비교값 A</value>
+  </data>
+  <data name="PP.Recon.Col.Right" xml:space="preserve">
+    <value>비교값 B</value>
+  </data>
+  <data name="PP.Recon.Err.NoCustomer" xml:space="preserve">
+    <value>고객을 선택하세요.</value>
+  </data>
+  <data name="PP.Recon.Kind.PoDaily" xml:space="preserve">
+    <value>수주 발주량 ≠ 일별 발주(MM31007)</value>
+  </data>
+  <data name="PP.Recon.Kind.DailyPoMissing" xml:space="preserve">
+    <value>수주는 있는데 일별 발주 없음</value>
+  </data>
+  <data name="PP.Recon.Kind.PoMissing" xml:space="preserve">
+    <value>일별 발주는 있는데 수주 없음</value>
+  </data>
+  <data name="PP.Recon.Kind.DailyVsPlan" xml:space="preserve">
+    <value>일별 발주 ≠ 구매계획 P/O(MM30011)</value>
+  </data>
+  <data name="PP.Recon.Kind.WeekDiff" xml:space="preserve">
+    <value>주간 예측 ≠ 같은 주 일별 계획 합계</value>
+  </data>
+  <data name="PP.DailyPo.Btn.Upload" xml:space="preserve">
+    <value>엑셀 업로드(일별 발주)</value>
+  </data>
+  <data name="PP.DailyPo.Upload.Title" xml:space="preserve">
+    <value>일별 발주 업로드 (SRM MM31007)</value>
+  </data>
+  <data name="PP.DailyPo.Upload.File" xml:space="preserve">
+    <value>엑셀 파일 (MM31007)</value>
+  </data>
+  <data name="PP.DailyPo.Upload.Hint" xml:space="preserve">
+    <value>SRM MM31007 발주정보 조회(납기일자별) .xls/.xlsx. 날짜 머리글은 MM-dd, 날짜마다 발주량·납품량 두 열. 같은 고객·기간은 통째로 바뀝니다.</value>
+  </data>
+  <data name="PP.DailyPo.Preview.Summary" xml:space="preserve">
+    <value>품번 {0}개 · {1} ~ {2} ({3}일) · 발주·납품 칸 {4}개</value>
+  </data>
+  <data name="PP.DailyPo.Ok.Imported" xml:space="preserve">
+    <value>일별 발주 저장: 품번 {0}개 · {1}행</value>
+  </data>
+  <data name="PP.Upload.Vendor.Match" xml:space="preserve">
+    <value>협력사 코드 {0} — 고객 SRM 설정과 일치</value>
+  </data>
+  <data name="PP.Upload.Vendor.Mismatch" xml:space="preserve">
+    <value>협력사 코드 {0} 가 고객 SRM 설정({1})과 다릅니다. 다른 고객의 파일이거나 설정이 잘못되었습니다. 업로드할 수 없습니다.</value>
+  </data>
+  <data name="PP.Upload.Vendor.NotConfigured" xml:space="preserve">
+    <value>고객의 SRM 협력사 설정(VENDCD)이 없어 업체 코드를 대조하지 않았습니다.</value>
+  </data>
+  <data name="PP.Po.Cancel.Option" xml:space="preserve">
+    <value>파일에 없는 수주 {0}건을 취소 처리 (이 고객·납기 범위, 출하 없는 라인)</value>
+  </data>
+  <data name="PP.Forecast.Derived" xml:space="preserve">
+    <value>일별 구매계획을 주 단위로 합산(파생)</value>
+  </data>
+  <data name="PP.Hist.Empty" xml:space="preserve">
+    <value>업로드 이력이 없습니다.</value>
+  </data>
+  <data name="PP.Hist.Kind.PO" xml:space="preserve">
+    <value>구매오더(MM31006)</value>
+  </data>
+  <data name="PP.Hist.Kind.DailyPo" xml:space="preserve">
+    <value>일별 발주(MM31007)</value>
+  </data>
+  <data name="PP.Hist.Kind.DailyPlan" xml:space="preserve">
+    <value>일별 구매계획(MM30011)</value>
+  </data>
+  <data name="PP.Hist.Kind.Weekly" xml:space="preserve">
+    <value>주간(이전)</value>
+  </data>
+  <data name="PP.Hist.Col.Kind" xml:space="preserve">
+    <value>종류</value>
+  </data>
+  <data name="PP.Hist.Col.Batch" xml:space="preserve">
+    <value>배치</value>
+  </data>
+  <data name="PP.Hist.Col.File" xml:space="preserve">
+    <value>파일</value>
+  </data>
+  <data name="PP.Hist.Col.Rows" xml:space="preserve">
+    <value>행</value>
+  </data>
+  <data name="PP.Hist.Col.Items" xml:space="preserve">
+    <value>품번</value>
+  </data>
+  <data name="PP.Hist.Col.Note" xml:space="preserve">
+    <value>비고</value>
+  </data>
+  <data name="PP.Hist.Col.By" xml:space="preserve">
+    <value>업로드자</value>
+  </data>
+  <data name="PP.Forecast.Effective.Note" xml:space="preserve">
+    <value>적용 순서: 수주 &gt; 일별 발주 &gt; 일별 계획 (같은 품번·날짜는 한 번만 셉니다)</value>
+  </data>
+  <data name="Upload.Diff.None" xml:space="preserve">
+    <value>변경된 사항이 없습니다. 기존 데이터와 같아서 저장하지 않아도 됩니다.</value>
+  </data>
+  <data name="Upload.Diff.Summary" xml:space="preserve">
+    <value>추가 {0} · 변경 {1} · 파일에 없음 {2} · 동일 {3}</value>
+  </data>
+  <data name="Upload.Diff.Col.Kind" xml:space="preserve">
+    <value>구분</value>
+  </data>
+  <data name="Upload.Diff.Col.Key" xml:space="preserve">
+    <value>품번·날짜 / 수주</value>
+  </data>
+  <data name="Upload.Diff.Col.Old" xml:space="preserve">
+    <value>이전 값</value>
+  </data>
+  <data name="Upload.Diff.Col.New" xml:space="preserve">
+    <value>새 값</value>
+  </data>
+  <data name="Upload.Diff.More" xml:space="preserve">
+    <value>외 {0}건 더 있음</value>
+  </data>
+  <data name="Upload.Diff.Kind.Added" xml:space="preserve">
+    <value>추가</value>
+  </data>
+  <data name="Upload.Diff.Kind.Changed" xml:space="preserve">
+    <value>변경</value>
+  </data>
+  <data name="Upload.Diff.Kind.Removed" xml:space="preserve">
+    <value>파일에 없음</value>
+  </data>
+  <data name="PP.Recon.Col.Po" xml:space="preserve">
+    <value>수주 발주량</value>
+  </data>
+  <data name="PP.Recon.Col.DailyPo" xml:space="preserve">
+    <value>일별 발주</value>
+  </data>
+  <data name="PP.Recon.Col.PlanPo" xml:space="preserve">
+    <value>구매계획 P/O</value>
+  </data>
 </root>

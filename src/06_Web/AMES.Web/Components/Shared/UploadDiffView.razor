@@ -1,0 +1,55 @@
+@using AMES.Data.Services.Upload
+@inject IStringLocalizer<SharedResources> L
+
+@if (Diff is not null)
+{
+    <div class="upd-box @(Diff.HasChanges ? "upd-changed" : "upd-same")">
+        @if (!Diff.HasChanges)
+        {
+            <div class="upd-title">✔ @L["Upload.Diff.None"]</div>
+        }
+        else
+        {
+            <div class="upd-title">@string.Format(L["Upload.Diff.Summary"].Value, Diff.Added, Diff.Changed, Diff.Removed, Diff.Unchanged)</div>
+            <div class="upd-scroll">
+                <table class="upd-table">
+                    <thead>
+                        <tr>
+                            <th>@L["Upload.Diff.Col.Kind"]</th>
+                            <th>@L["Upload.Diff.Col.Key"]</th>
+                            <th>@L["Upload.Diff.Col.Old"]</th>
+                            <th>@L["Upload.Diff.Col.New"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in Diff.Lines.Take(MaxLines))
+                        {
+                            <tr class="upd-@l.Kind.ToLowerInvariant()">
+                                <td>@KindLabel(l.Kind)</td>
+                                <td>@l.Key</td>
+                                <td>@(l.Old ?? "—")</td>
+                                <td>@(l.New ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (Diff.Lines.Count > MaxLines)
+            {
+                <div class="dim" style="font-size:.85em;">@string.Format(L["Upload.Diff.More"].Value, Diff.Lines.Count - MaxLines)</div>
+            }
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public UploadDiff? Diff { get; set; }
+    [Parameter] public int MaxLines { get; set; } = 40;
+
+    string KindLabel(string kind) => kind switch
+    {
+        UploadDiffRules.Added => L["Upload.Diff.Kind.Added"].Value,
+        UploadDiffRules.Changed => L["Upload.Diff.Kind.Changed"].Value,
+        _ => L["Upload.Diff.Kind.Removed"].Value,
+    };
+}

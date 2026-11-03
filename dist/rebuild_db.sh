@@ -97,6 +97,8 @@ FILES=(
   migrate_pr_result_prod_shift.sql    # PR_ProductionResult.ProdDate·ShiftCode + 백필 (순서 무관)
   migrate_day_cutoff_config.sql       # 전기일 기준 시각 공통코드 DAY_CUTOFF → SYS_Config.DAY_CUTOFF_TIME 이관 (재실행 안전)
   migrate_pp_so_auto_confirm.sql      # PP-002 수주 자동 확정 플래그 SYS_Config.PP_SO_AUTO_CONFIRM (기본 false, 순서 무관)
+  migrate_pp_daily_po.sql              # PP-001 일별 발주 PP_DailyPo (SRM MM31007) — 대조 탭(10-29·11-03, 순서 무관)
+  migrate_pp_import_batch.sql          # PP-001 구매오더 업로드 이력 PP_ImportBatch (11-03, 순서 무관)
   migrate_bom_status_code.sql         # BOM 버전 상태 공통코드 BOM_STATUS + 기간 지난 승인 버전 EXPIRED (재실행 안전)
   migrate_md_codeitem_widen.sql       # PO source URLs and service-key metadata need current widths
   migrate_md_codeitem_attribute2.sql  # MD_CodeItem.Attribute2 nvarchar(200) (Attribute1 다음, 재생성 — widen 다음, 스키마에 이미 있으면 건너뜀)

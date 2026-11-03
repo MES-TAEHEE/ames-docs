@@ -10448,6 +10448,9 @@
   <data name="PP.DemandPlan.Btn.Upload" xml:space="preserve">
     <value>Cargar Excel (diario)</value>
   </data>
+  <data name="PP.DemandPlan.Btn.Sample" xml:space="preserve">
+    <value>Descargar muestra (diario)</value>
+  </data>
   <data name="PP.DemandPlan.Btn.Api" xml:space="preserve">
     <value>Obtener por API</value>
   </data>
@@ -12769,4 +12772,163 @@
   <data name="WH.Picking.Col.MinimumQty" xml:space="preserve"><value>Cantidad mínima</value></data>
   <data name="WH.Picking.Col.CurrentQty" xml:space="preserve"><value>Cantidad actual</value></data>
   <data name="WH.Picking.Col.RequiredQty" xml:space="preserve"><value>Cantidad necesaria</value></data>
+  <data name="PP.Sample.Btn.Weekly" xml:space="preserve">
+    <value>Descargar muestra (semanal)</value>
+  </data>
+  <data name="PP.Sample.Btn.DailyPo" xml:space="preserve">
+    <value>Descargar muestra (pedidos diarios)</value>
+  </data>
+  <data name="PP.Sample.Btn.PurchaseOrder" xml:space="preserve">
+    <value>Descargar muestra (orden de compra)</value>
+  </data>
+  <data name="PP.Forecast.Tab.Recon" xml:space="preserve">
+    <value>Pedidos diarios y conciliación</value>
+  </data>
+  <data name="PP.Recon.Kpi.Issues" xml:space="preserve">
+    <value>Diferencias</value>
+  </data>
+  <data name="PP.Recon.Empty" xml:space="preserve">
+    <value>Sin diferencias. Elija cliente y período y busque.</value>
+  </data>
+  <data name="PP.Recon.Col.Kind" xml:space="preserve">
+    <value>Tipo de diferencia</value>
+  </data>
+  <data name="PP.Recon.Col.Date" xml:space="preserve">
+    <value>Fecha / semana</value>
+  </data>
+  <data name="PP.Recon.Col.Left" xml:space="preserve">
+    <value>Valor A</value>
+  </data>
+  <data name="PP.Recon.Col.Right" xml:space="preserve">
+    <value>Valor B</value>
+  </data>
+  <data name="PP.Recon.Err.NoCustomer" xml:space="preserve">
+    <value>Seleccione un cliente.</value>
+  </data>
+  <data name="PP.Recon.Kind.PoDaily" xml:space="preserve">
+    <value>Cant. OC ≠ pedido diario (MM31007)</value>
+  </data>
+  <data name="PP.Recon.Kind.DailyPoMissing" xml:space="preserve">
+    <value>OC sin pedido diario</value>
+  </data>
+  <data name="PP.Recon.Kind.PoMissing" xml:space="preserve">
+    <value>Pedido diario sin OC</value>
+  </data>
+  <data name="PP.Recon.Kind.DailyVsPlan" xml:space="preserve">
+    <value>Pedido diario ≠ P/O del plan (MM30011)</value>
+  </data>
+  <data name="PP.Recon.Kind.WeekDiff" xml:space="preserve">
+    <value>Previsión semanal ≠ suma del plan diario de esa semana</value>
+  </data>
+  <data name="PP.DailyPo.Btn.Upload" xml:space="preserve">
+    <value>Cargar Excel (pedidos diarios)</value>
+  </data>
+  <data name="PP.DailyPo.Upload.Title" xml:space="preserve">
+    <value>Carga de pedidos diarios (SRM MM31007)</value>
+  </data>
+  <data name="PP.DailyPo.Upload.File" xml:space="preserve">
+    <value>Archivo Excel (MM31007)</value>
+  </data>
+  <data name="PP.DailyPo.Upload.Hint" xml:space="preserve">
+    <value>SRM MM31007 (por fecha de entrega) .xls/.xlsx. Encabezados MM-dd, columnas de pedido y entrega por fecha. Se reemplaza el mismo cliente y período.</value>
+  </data>
+  <data name="PP.DailyPo.Preview.Summary" xml:space="preserve">
+    <value>{0} artículos · {1} ~ {2} ({3} días) · {4} celdas de pedido/entrega</value>
+  </data>
+  <data name="PP.DailyPo.Ok.Imported" xml:space="preserve">
+    <value>Pedidos diarios guardados: {0} artículos · {1} filas</value>
+  </data>
+  <data name="PP.Upload.Vendor.Match" xml:space="preserve">
+    <value>Código de proveedor {0} — coincide con la configuración SRM del cliente</value>
+  </data>
+  <data name="PP.Upload.Vendor.Mismatch" xml:space="preserve">
+    <value>El código de proveedor {0} no coincide con la configuración SRM del cliente ({1}). Carga bloqueada.</value>
+  </data>
+  <data name="PP.Upload.Vendor.NotConfigured" xml:space="preserve">
+    <value>No hay configuración SRM (VENDCD) para este cliente; no se verificó el código de proveedor.</value>
+  </data>
+  <data name="PP.Po.Cancel.Option" xml:space="preserve">
+    <value>Cancelar {0} pedidos que no están en el archivo (este cliente, rango de entrega, sin envíos)</value>
+  </data>
+  <data name="PP.Forecast.Derived" xml:space="preserve">
+    <value>Totales semanales derivados del plan diario</value>
+  </data>
+  <data name="PP.Hist.Empty" xml:space="preserve">
+    <value>No hay historial de cargas.</value>
+  </data>
+  <data name="PP.Hist.Kind.PO" xml:space="preserve">
+    <value>Órdenes de compra (MM31006)</value>
+  </data>
+  <data name="PP.Hist.Kind.DailyPo" xml:space="preserve">
+    <value>Pedidos diarios (MM31007)</value>
+  </data>
+  <data name="PP.Hist.Kind.DailyPlan" xml:space="preserve">
+    <value>Plan diario (MM30011)</value>
+  </data>
+  <data name="PP.Hist.Kind.Weekly" xml:space="preserve">
+    <value>Semanal (anterior)</value>
+  </data>
+  <data name="PP.Hist.Col.Kind" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="PP.Hist.Col.Batch" xml:space="preserve">
+    <value>Lote</value>
+  </data>
+  <data name="PP.Hist.Col.File" xml:space="preserve">
+    <value>Archivo</value>
+  </data>
+  <data name="PP.Hist.Col.Rows" xml:space="preserve">
+    <value>Filas</value>
+  </data>
+  <data name="PP.Hist.Col.Items" xml:space="preserve">
+    <value>Artículos</value>
+  </data>
+  <data name="PP.Hist.Col.Note" xml:space="preserve">
+    <value>Nota</value>
+  </data>
+  <data name="PP.Hist.Col.By" xml:space="preserve">
+    <value>Subido por</value>
+  </data>
+  <data name="PP.Forecast.Effective.Note" xml:space="preserve">
+    <value>Prioridad: OC &gt; pedido diario &gt; plan diario (cada artículo-día se cuenta una vez)</value>
+  </data>
+  <data name="Upload.Diff.None" xml:space="preserve">
+    <value>Sin cambios. Los datos son idénticos a los guardados; no hay nada que guardar.</value>
+  </data>
+  <data name="Upload.Diff.Summary" xml:space="preserve">
+    <value>Añadidos {0} · Cambiados {1} · No está en el archivo {2} · Iguales {3}</value>
+  </data>
+  <data name="Upload.Diff.Col.Kind" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="Upload.Diff.Col.Key" xml:space="preserve">
+    <value>Artículo·fecha / pedido</value>
+  </data>
+  <data name="Upload.Diff.Col.Old" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="Upload.Diff.Col.New" xml:space="preserve">
+    <value>Nuevo</value>
+  </data>
+  <data name="Upload.Diff.More" xml:space="preserve">
+    <value>{0} más</value>
+  </data>
+  <data name="Upload.Diff.Kind.Added" xml:space="preserve">
+    <value>Añadido</value>
+  </data>
+  <data name="Upload.Diff.Kind.Changed" xml:space="preserve">
+    <value>Cambiado</value>
+  </data>
+  <data name="Upload.Diff.Kind.Removed" xml:space="preserve">
+    <value>No está en el archivo</value>
+  </data>
+  <data name="PP.Recon.Col.Po" xml:space="preserve">
+    <value>Cant. OC (PO)</value>
+  </data>
+  <data name="PP.Recon.Col.DailyPo" xml:space="preserve">
+    <value>Pedido diario</value>
+  </data>
+  <data name="PP.Recon.Col.PlanPo" xml:space="preserve">
+    <value>P/O del plan</value>
+  </data>
 </root>

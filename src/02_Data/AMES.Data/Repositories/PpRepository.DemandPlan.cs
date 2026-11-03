@@ -194,4 +194,14 @@ public sealed partial class PpRepository
         while (rdr.Read()) map[(string)rdr["ItemNo"]] = Convert.ToDecimal(rdr["PalletQty"]);
         return map;
     }
+
+    /// <summary>예측 현황 = 적용 수량(수주 > 일별 발주 > 일별 계획)을 주(월요일 시작)로 합산. 주간 업로드(PP_Forecast)는 쓰지 않는다.</summary>
+    public List<WeeklyCell> ListWeeklyFromDailyPlan(string? customerId, DateOnly from, DateOnly to)
+    {
+        return ListEffectiveDaily(customerId, from, to)
+            .GroupBy(c => (c.CustomerId, c.ItemNo, Week: c.PlanDate.AddDays(-(((int)c.PlanDate.DayOfWeek + 6) % 7))))
+            .Select(g => new WeeklyCell(g.Key.CustomerId, g.Key.ItemNo, g.First().ItemName, g.First().PartName, g.First().Unit,
+                null, g.Key.Week.ToDateTime(TimeOnly.MinValue), null, g.Sum(c => c.Qty), g.First().ItemExists))
+            .ToList();
+    }
 }
