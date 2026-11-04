@@ -10,7 +10,6 @@
     <div class="pda-tbar">
         <RadzenButton class="pda-tbar-back" Click='@(() => Nav.NavigateTo(ModuleHome))' Text="&lt;" />
         <span class="pda-tbar-brand">INBOUND</span>
-        <RadzenButton class="wh08-refresh" Text="DELIVERIES" Click='@(() => Nav.NavigateTo("/wh/01"))' />
         @if (IsTestMode)
         {
             <button class="wh02-test-nav" @onclick="OpenTestPanel">SCENARIO</button>
@@ -470,7 +469,7 @@
     private bool IsScheduledDelivery => _document is not null && !IsCaseDocument
         && !string.IsNullOrWhiteSpace(ScheduledDelivery)
         && string.Equals(_document.DocumentBarcode, ScheduledDelivery, StringComparison.OrdinalIgnoreCase);
-    private string DocumentTitle => IsCaseDocument ? "CASE" : "DELIVERY NOTE";
+    private string DocumentTitle => IsCaseDocument ? "SHIPPING UNIT" : "DELIVERY NOTE";
     private bool LocationEntryDisabled => true;
     private bool DisableScan => IsBusy || string.IsNullOrWhiteSpace(_barcode);
     private bool DisableLocationScan => LocationEntryDisabled || string.IsNullOrWhiteSpace(_loc);
@@ -743,7 +742,7 @@
                     _documentLines = [];
                     _documentBoxes = [];
                     _barcode = "";
-                    _msg = "This document or case has already been fully received.";
+                    _msg = "This document or shipping unit has already been fully received.";
                     _cls = "fail";
                     ShowAlert("Already Received", _msg, "warn");
                     return;
@@ -752,7 +751,9 @@
                 ApplyDocumentResult(documentResult);
                 _barcode = documentResult.Document.DocumentBarcode;
                 _msg = IsCaseDocument
-                    ? "Review all boxes below. Scan boxes marked SCAN REQUIRED, then tap Receive."
+                    ? DocumentReadyToReceive
+                        ? "All remaining unit items are ready. Tap Receive to receive this shipping unit."
+                        : "Scan unit items marked SCAN REQUIRED, then tap Receive."
                     : "Delivery Note status only. Scan a box barcode to receive it individually.";
                 _cls = "dim";
                 return;
@@ -1273,7 +1274,7 @@
                 var missing = _documentBoxes.Where(b => !IsBoxReady(b)).Select(b => b.BoxBarcode).ToList();
                 if (missing.Count > 0)
                     return $"Scan required boxes first ({missing.Count} remaining):\n{string.Join("\n", missing.Take(5))}";
-                return _documentBoxes.Count == 0 ? "This case has already been fully received." : null;
+                return _documentBoxes.Count == 0 ? "This shipping unit has already been fully received." : null;
             }
             if (_pendingDocumentBoxes.Count == 0)
                 return "Scan the boxes in this document first.";

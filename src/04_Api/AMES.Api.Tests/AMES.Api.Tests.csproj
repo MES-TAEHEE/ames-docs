@@ -23,6 +23,8 @@
     <Compile Include="..\..\08_Tablet\AMES.Tablet\Services\TabletAuthService.cs" Link="Tablet\TabletAuthService.cs" />
     <Compile Include="..\..\08_Tablet\AMES.Tablet\Services\TabletAuthState.cs" Link="Tablet\TabletAuthState.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\AuthState.cs" Link="Pda\AuthState.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\PdaDeviceIdentity.cs" Link="Pda\PdaDeviceIdentity.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\PdaScannerIntegration.cs" Link="Pda\PdaScannerIntegration.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionExpiryHandler.cs" Link="Pda\SessionExpiryHandler.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\SessionValidator.cs" Link="Pda\SessionValidator.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\PdaApi.cs" Link="Pda\PdaApi.cs" />

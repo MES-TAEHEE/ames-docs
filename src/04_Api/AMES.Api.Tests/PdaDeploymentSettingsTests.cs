@@ -18,12 +18,12 @@ public class PdaDeploymentSettingsTests
     }
 
     [Fact]
-    public void Packaged_settings_do_not_assign_a_production_line_or_shift()
+    public void Packaged_settings_do_not_assign_a_shared_terminal_production_line_or_shift()
     {
         using var json=JsonDocument.Parse(File.ReadAllText(SettingsPath()));
         Assert.False(json.RootElement.TryGetProperty("lineId",out _));
         Assert.False(json.RootElement.TryGetProperty("shiftCode",out _));
-        Assert.False(string.IsNullOrWhiteSpace(json.RootElement.GetProperty("terminalId").GetString()));
+        Assert.False(json.RootElement.TryGetProperty("terminalId",out _));
     }
 
     [Fact]

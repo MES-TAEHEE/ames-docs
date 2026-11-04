@@ -2583,11 +2583,12 @@ public static class WhEndpoints
     // ── Helpers ─────────────────────────────────────────────────────────
     private static InboundDocumentResult ExecuteInboundDocument(AmesConnectionFactory factory, string mode, string barcode)
     {
-        if (barcode.Trim().StartsWith("CASE-", StringComparison.OrdinalIgnoreCase)
+        if ((barcode.Trim().StartsWith("SHU-", StringComparison.OrdinalIgnoreCase)
+             || barcode.Trim().StartsWith("CASE-", StringComparison.OrdinalIgnoreCase))
             && new ScmRepository(factory).GetDeliveryCase(barcode.Trim()) is { } package)
         {
             if (!package.ReadyToReceive)
-                throw new InvalidOperationException("This case has not been shipped or its Delivery Note has not been issued.");
+                throw new InvalidOperationException("This shipping unit has not been shipped or its Delivery Note has not been issued.");
             var received = package.Boxes.Count(b => b.Received);
             var caseDocument = new InboundDocumentRow(mode, 0, package.Number, package.Number,
                 package.Vendor, package.VendorName, package.Number,
