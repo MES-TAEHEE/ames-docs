@@ -53,7 +53,10 @@ PDA 로그인은 작업자가 Employee No와 4자리 PIN을 입력해 PDA 세션
 PDA 코드 호출:
 
 - `AuthApi.LoginAsync(employeeNo, pin)` 또는 `AuthApi.LoginByBarcodeAsync(barcode)`
-- `pda-settings.json`의 `terminalId`만 로그인에 함께 전송한다. PDA의 고정 `lineId`·`shiftCode` 설정/전송은 제거했다.
+- 로그인에는 기기별로 자동 생성한 `TerminalId`를 전송한다. `pda-settings.json`에는 API 주소만 있으며 고정 단말·라인·교대 값은 넣지 않는다.
+- Android는 앱 서명·사용자·기기별 `ANDROID_ID`를 해시해 `PDA-` + 16자리 코드로 사용한다(총 20자). 정상적인 앱 업데이트에서는 유지되며, 공장 초기화·사용자/서명 변경 시 달라질 수 있다. 식별값이 없거나 유효하지 않으면 백업 제외 저장소에 설치별 ID를 만들어 유지한다. 기존 세션의 단말 값은 바꾸지 않고 다음 로그인부터 적용한다.
+- Honeywell은 기존 권한 보호 Intent 수신을 사용한다. 다른 제조사는 공통 Keyboard Wedge/Keystroke 출력으로 받으며, 일반 메모·수량 입력은 스캔으로 가로채지 않는다. 제조사 미상의 공개 브로드캐스트는 받지 않는다.
+- Zebra: DataWedge에서 앱 `com.seyon.ames.pda`에 연결한 프로필의 Barcode input·Keystroke output을 켜고 Intent output은 끈다. Datalogic: Scanner & Decoder → Wedge의 Keyboard wedge를 켜고 Intent wedge는 끈다. 둘 다 Enter 접미사를 권장하며 제조사 서비스/모델별 실물 확인이 필요하다. [Zebra 설정](https://techdocs.zebra.com/datawedge/latest/guide/output/keystroke/) · [Datalogic 설정](https://datalogic.github.io/wedge/keyboard/) · [Android 식별값 범위](https://developer.android.com/reference/android/provider/Settings.Secure#ANDROID_ID)
 
 API 코드:
 

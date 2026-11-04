@@ -176,10 +176,18 @@ window.pdaScan = (() => {
         const key = event.key || "";
 
         if (key === "Enter" || key === "Tab") {
-            if (buffer.length >= opt.minLength) {
+            // Some wedges commit the whole text through the IME, then send Enter/Tab.
+            const text = normalize(buffer || (isCaptureInput(target) || isScanInput(target) ? target.value : ""));
+            if (text.length >= opt.minLength) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
-                emitScan();
+                clearBuffer();
+                if (inputTimer) {
+                    clearTimeout(inputTimer);
+                    inputTimer = null;
+                }
+                if (target && (isCaptureInput(target) || isScanInput(target))) target.value = "";
+                emitText(text);
             } else {
                 clearBuffer();
             }

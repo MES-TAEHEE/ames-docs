@@ -4,6 +4,7 @@ using Android.Content.PM;
 using Android.OS;
 using Android.Util;
 using Android.Views;
+using AMES.Pda.Services;
 
 namespace AMES.Pda;
 
@@ -28,6 +29,8 @@ public class MainActivity : MauiAppCompatActivity
     ];
 
     private BroadcastReceiver? _barcodeReceiver;
+    private static bool UsesHoneywellScanner
+        => PdaScannerIntegration.UsesHoneywellIntents(Build.Manufacturer, Build.Brand);
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
@@ -39,13 +42,21 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnResume()
     {
         base.OnResume();
-        RegisterBarcodeBroadcastReceiver();
-        ClaimHoneywellScanner();
+        if (UsesHoneywellScanner)
+        {
+            RegisterBarcodeBroadcastReceiver();
+            ClaimHoneywellScanner();
+        }
+        else
+        {
+            Log.Debug(LogTag, "Using manufacturer-neutral keyboard-wedge input.");
+        }
     }
 
     protected override void OnPause()
     {
-        ReleaseHoneywellScanner();
+        if (UsesHoneywellScanner)
+            ReleaseHoneywellScanner();
         base.OnPause();
     }
 
