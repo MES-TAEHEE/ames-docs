@@ -68,7 +68,7 @@ public sealed class WarehouseInventoryQuantityTests
     }
 
     [Fact]
-    public void Web_columns_and_export_use_current_stored_unassigned_and_live_requirements()
+    public void Inventory_search_omits_production_requirements_and_retains_stock_and_export_columns()
     {
         var lookup = Read("src/06_Web/AMES.Web/Components/Shared/InventoryLookup.razor");
         foreach (var column in new[] { "Qty", "StoredQty", "UnassignedQty", "RequiredQty", "DefectQty" })
@@ -85,10 +85,12 @@ public sealed class WarehouseInventoryQuantityTests
         Assert.Contains("new object?[] { row.RequiredQty }", lookup);
         var page = Read("src/06_Web/AMES.Web/Components/Pages/Wh/Inventory.razor");
         Assert.DoesNotContain("x.Qty-x.InspectionQty", page);
-        Assert.Contains("GetRemainingMaterialRequirements()", page);
-        Assert.Contains("ShowProductionRequirements=\"true\"", page);
-        Assert.Contains("result.SkippedNoBom.Count", page);
-        Assert.Contains("WH.Inventory.RequirementsFailed", page);
+        Assert.DoesNotContain("GetRemainingMaterialRequirements", page);
+        Assert.DoesNotContain("ProductionRequirements", page);
+        Assert.DoesNotContain("LoadRequirements", page);
+        Assert.DoesNotContain("_requirementsWarning", page);
+        Assert.Contains("if (ShowProductionRequirements)", lookup);
+        Assert.Contains("public bool ShowProductionRequirements { get; set; }", lookup);
     }
 
     [Theory]

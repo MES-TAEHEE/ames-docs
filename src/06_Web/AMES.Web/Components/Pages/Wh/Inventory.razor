@@ -15,18 +15,12 @@
 }
 else
 {
-    @if (!string.IsNullOrWhiteSpace(_requirementsWarning))
-    {
-        <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat">@_requirementsWarning</RadzenAlert>
-    }
-    <InventoryLookup Inventory="_inventory" ProductionRequirements="_productionRequirements" ShowProductionRequirements="true" ItemVendors="_itemVendors" ItemCodes="_itemCodes" SearchId="wh-inventory-search" AllowLotDefect="true" InventoryChanged="ReloadInventory" />
+    <InventoryLookup Inventory="_inventory" ItemVendors="_itemVendors" ItemCodes="_itemCodes" SearchId="wh-inventory-search" AllowLotDefect="true" InventoryChanged="ReloadInventory" />
 }
 
 @code {
     private List<LocationMapStock> _inventory = [];
     private string? _error;
-    private string? _requirementsWarning;
-    private IReadOnlyDictionary<string, decimal>? _productionRequirements;
     private List<ScmRepository.ItemVendorRow> _itemVendors = [];
     private List<MasterDataRepository.CodeItemRow> _itemCodes = [];
 
@@ -45,7 +39,6 @@ else
             _inventory = InventorySearchRows.FromMaster(MD.ListItems(), stock);
             _itemVendors = SCM.ListItemVendors();
             _itemCodes = MD.ListCodeItems("ITEM_TYPE").Concat(MD.ListCodeItems("ITEM_CATEGORY")).ToList();
-            LoadRequirements();
         }
         catch (Exception ex)
         {
@@ -53,20 +46,4 @@ else
         }
     }
 
-    private void LoadRequirements()
-    {
-        _productionRequirements = null;
-        _requirementsWarning = null;
-        try
-        {
-            var result = InventoryRepo.GetRemainingMaterialRequirements();
-            _productionRequirements = result.Materials.ToDictionary(x => x.ItemNo, x => x.Required, StringComparer.OrdinalIgnoreCase);
-            if (result.SkippedNoBom.Count > 0)
-                _requirementsWarning = L["WH.Inventory.RequirementsMissingBom", result.SkippedNoBom.Count];
-        }
-        catch
-        {
-            _requirementsWarning = L["WH.Inventory.RequirementsFailed"];
-        }
-    }
 }
