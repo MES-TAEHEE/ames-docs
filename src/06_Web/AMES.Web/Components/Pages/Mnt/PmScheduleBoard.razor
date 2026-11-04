@@ -11,6 +11,7 @@
 @inject MasterDataRepository MD
 @inject ActorNames Actors
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @inject IStringLocalizer<SharedResources> L
 
 @* ── PM 달력 본체 — MNT-005 설비 PM(EQUIP) · MNT-010 보전 PM(MAINT) 이 공유. 테이블은 MNT_PMSchedule 하나이고 PmClass 로만 나뉜다 ── *@
@@ -392,7 +393,8 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Checklist"]" class="ames-rz-modal-label" Component="PmDropDownChecklist" />
                     @* 점검 템플릿 = 고른 설비와 설비 유형(EQUIP_TYPE)이 같은 활성 템플릿만 — 설비를 고르기 전에는 비활성 *@
-                    <RadzenDropDown AllowFiltering="true" Name="PmDropDownChecklist" @bind-Value="_f.ChecklistId" Data="@TemplateOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@(string.IsNullOrEmpty(_f.EquipId) ? L["MNT.PmSchedule.Ph.ChecklistEquipFirst"] : L["Opt.None"])" Disabled="@string.IsNullOrEmpty(_f.EquipId)" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" Name="PmDropDownChecklist" @bind-Value="_f.ChecklistId" Data="@TemplateOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@(string.IsNullOrEmpty(_f.EquipId) ? L["MNT.PmSchedule.Ph.ChecklistEquipFirst"] : L["Opt.None"])" Disabled="@string.IsNullOrEmpty(_f.EquipId)" Open="@RefreshChecklistTemplates" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;min-width:0;width:100%;" />
+                    <RadzenButton Text="@L["MD.PmTemplate.Title"]" Icon="open_in_new" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@OpenTemplateManagement" Disabled="@(_busy || !PermSvc.IsVisible("md/rp/pm-template"))" class="ames-rz-btn" Style="flex-shrink:0;white-space:nowrap;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -458,6 +460,7 @@
     Dictionary<DateTime, string>            _holidays  = new();
     List<MasterDataRepository.EquipmentRow>  _equipList = new();
     List<MasterDataRepository.PmTemplateRow> _templates = new();
+    bool _refreshChecklistTemplates;
     List<SysRepository.UserRow>              _users     = new();
     List<MasterDataRepository.CodeItemRow>  _pmTypes    = new();   // 공통코드 PM_TYPE
     List<MasterDataRepository.CodeItemRow>  _pmClasses  = new();   // 공통코드 PM_CLASS
@@ -498,6 +501,24 @@
     IEnumerable<DropDownItem> TemplateOptions => _templates
         .Where(t => t.ActiveFlag && MntRepository.TemplateMatchesEquipment(t.EquipType, SelectedEquipType))
         .Select(t => new DropDownItem { Value = t.PMTemplateID, Text = $"[{t.PMTemplateID}] {t.TemplateName}" });
+
+    async Task OpenTemplateManagement()
+    {
+        if (!PermSvc.IsVisible("md/rp/pm-template")) return;
+        _refreshChecklistTemplates = true;
+        await JS.InvokeVoidAsync("open", Nav.ToAbsoluteUri("md/rp/pm-template").ToString(), "_blank", "noopener,noreferrer");
+    }
+
+    async Task RefreshChecklistTemplates()
+    {
+        if (!_refreshChecklistTemplates) return;
+        try
+        {
+            _templates = await Task.Run(MD.ListPmTemplates);
+            _refreshChecklistTemplates = false;
+        }
+        catch (Exception ex) { _modalErr = ex.Message; }
+    }
 
     // 설비를 바꾸면 유형이 다른 템플릿은 비운다
     void OnPmEquipChanged(string? value)
