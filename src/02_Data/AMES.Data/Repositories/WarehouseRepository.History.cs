@@ -57,7 +57,8 @@ public sealed partial class WarehouseRepository
                 WHEN T.TransactionType='MOVE' OR (T.SourceType='FG_PUTAWAY' AND T.TransactionType='IN') THEN 'MOVE_LOCATION'
                 WHEN T.SourceType='FG_RETURN' AND T.TransactionType='IN' THEN 'CUSTOMER_RETURN'
                 WHEN T.TransactionType='IN' THEN 'RECEIVE'
-                WHEN T.TransactionType='OUT' THEN 'RELEASE_PICK'
+                WHEN T.TransactionType='OUT' AND (T.SourceType IN('PICK_SLIP','DIRECT_OUTGOING') OR T.ReasonCode='RELEASE_PICK') THEN 'RELEASE_PICK'
+                WHEN T.TransactionType='OUT' THEN 'OUTBOUND'
                 WHEN T.TransactionType='ADJ' THEN 'ADJUST_SAVE'
                 ELSE UPPER(T.TransactionType) END EventType,
                 CASE
@@ -66,6 +67,7 @@ public sealed partial class WarehouseRepository
                 WHEN T.TransactionType='MOVE' OR (T.SourceType='FG_PUTAWAY' AND T.TransactionType='IN') THEN 'RELOCATION'
                 WHEN T.SourceType='FG_RETURN' AND T.TransactionType='IN' THEN 'RETURN'
                 WHEN T.TransactionType='IN' THEN 'INBOUND'
+                WHEN T.TransactionType='OUT' AND (T.SourceType IN('PICK_SLIP','DIRECT_OUTGOING') OR T.ReasonCode='RELEASE_PICK') THEN 'RELEASE'
                 WHEN T.TransactionType='OUT' THEN 'OUTBOUND'
                 WHEN T.TransactionType='ADJ' THEN 'ADJUSTMENT' END OperationType) X
             WHERE NOT (COALESCE(T.SourceType,'')='FG_OUTBOUND' AND T.TransactionType='OUT'
@@ -84,6 +86,18 @@ public sealed partial class WarehouseRepository
             FROM dbo.FG_CustomerReturn R
             LEFT JOIN dbo.MD_Customer C ON C.CustomerID=R.CustomerID
             LEFT JOIN dbo.MD_Item M ON M.ItemNo=R.PartNo
+            UNION ALL
+            SELECT CONVERT(bigint,P.PickSlipID),CONCAT('REQUEST:',P.PickSlipID) COLLATE DATABASE_DEFAULT,
+                P.CreatedTS,'PICKING_REQUEST','PICKING_REQUEST',
+                COALESCE(NULLIF(P.PickSlipNo,N''),CONCAT(N'RS-',P.PickSlipID)) COLLATE DATABASE_DEFAULT,NULL,
+                P.ItemNo COLLATE DATABASE_DEFAULT,P.ReqLocation COLLATE DATABASE_DEFAULT,P.DemandQty,
+                COALESCE(NULLIF(P.ReqUserId,N''),P.CreatedBy) COLLATE DATABASE_DEFAULT,'SUCCESS',
+                CONCAT(N'Picking Request ',COALESCE(NULLIF(P.PickSlipNo,N''),CONCAT(N'RS-',P.PickSlipID)),
+                    N' · ',P.ItemNo,N' · ',P.DemandQty,N' ',M.DefaultUOM,N' · ',P.ReqLocation) COLLATE DATABASE_DEFAULT,
+                'PICKING_REQUEST',P.PickSlipID,NULL,M.DefaultUOM COLLATE DATABASE_DEFAULT,M.ItemName COLLATE DATABASE_DEFAULT
+            FROM dbo.WH_PickSlip P
+            LEFT JOIN dbo.MD_Item M ON M.ItemNo=P.ItemNo
+            WHERE P.CreatedBy='WH-REQUEST'
         )
         SELECT TOP(1000) * FROM Entries H
         WHERE (@OperationType IS NULL OR H.OperationType=@OperationType)

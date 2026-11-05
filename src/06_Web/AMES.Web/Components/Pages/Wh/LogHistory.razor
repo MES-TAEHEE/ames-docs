@@ -15,6 +15,8 @@
 <div class="ames-kpis">
     <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Events"]</div><div class="ames-kpi-v">@_rows.Count</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Inbound"]</div><div class="ames-kpi-v">@CountEvent("INBOUND")</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.LogHistory.Lbl.PickingRequest"]</div><div class="ames-kpi-v">@CountEvent("PICKING_REQUEST")</div></div>
+    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["WH.LogHistory.Lbl.Release"]</div><div class="ames-kpi-v">@CountEvent("RELEASE")</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Outbound"]</div><div class="ames-kpi-v">@CountEvent("OUTBOUND")</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.LogHistory.Kpi.Adjustments"]</div><div class="ames-kpi-v">@CountEvent("ADJUSTMENT")</div></div>
     <div class="ames-kpi bad"><div class="ames-kpi-l">@L["WH.LogHistory.Lbl.CustomerReturn"]</div><div class="ames-kpi-v">@_rows.Count(r=>r.EventType=="CUSTOMER_RETURN")</div></div>
@@ -22,14 +24,24 @@
 </div>
 @if (!string.IsNullOrWhiteSpace(_message)) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_message</RadzenAlert> }
 <div class="ames-card history-page" data-no-busy>
-    <div class="ames-card-h master-list-toolbar"><span>▼ @L["WH.LogHistory.List"] · @_rows.Count @L["Lbl.Items"]</span><RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap"><RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.LogHistory.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e => { if (e.Key == "Enter") await Reload(); }' /><RadzenDropDown @bind-Value="_eventType" Data="@OperationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Col.Event"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" /><RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" /></RadzenStack></div>
+    <div class="ames-card-h master-list-toolbar">
+        <span>▼ @L["WH.LogHistory.List"] · @_rows.Count @L["Lbl.Items"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.LogHistory.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px;" @onkeydown='async e => { if (e.Key == "Enter") await Reload(); }' />
+            <RadzenDropDown @bind-Value="_eventType" Data="@OperationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Col.Event"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:190px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_from" DateFormat="@DateFmt.Date" Placeholder="@L["Col.From"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_to" DateFormat="@DateFmt.Date" Placeholder="@L["Col.To"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Reload" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Reset"].Value" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="Clear" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
     <RadzenDataGrid TItem="WarehouseRepository.OperationLogRow" Data="@_rows" KeyProperty="RowKey" IsLoading="_loading" AllowPaging="true" PageSize="25" PageSizeOptions="@_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" EmptyText="@L["WH.LogHistory.Empty"].Value" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
             <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="EventTime" Title="@L["Col.DateTime"].Value" Width="160px" MinWidth="160px"><Template Context="r">@(r.EventTime?.ToString(DateFmt.DateTimeSec) ?? "—")</Template></RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Event"].Value" Width="125px" MinWidth="125px"><Template Context="r"><span class="pill @EventClass(r)">@L[DisplayEvent(r)]</span></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="EventType" Title="@L["Col.Event"].Value" Width="160px" MinWidth="160px"><Template Context="r"><span class="pill @EventClass(r)">@L[DisplayEvent(r)]</span></Template></RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WarehouseRepository.OperationLogRow" Property="ReferenceNo" Title="@L["Col.Reference"].Value" Width="220px" MinWidth="220px">
                 <Template Context="row">
-                    @if (row.HasShipmentDetails)
+                    @if (row.HasShipmentDetails || row.EventType == "PICKING_REQUEST")
                     {
                         <RadzenButton Text="@row.ReferenceNo" Click="@(()=>OpenDetail(row))" ButtonStyle="ButtonStyle.Base" Variant="Variant.Text" Size="ButtonSize.Small" class="ames-rz-btn" />
                     }
@@ -66,6 +78,7 @@
                 <dt>@L["Col.LotNo"]</dt><dd>@(detail.LotNo??"—")</dd>
                 <dt>@L["Col.Customer"]</dt><dd>@(detail.Customer??"—")</dd>
                 <dt>@L["Col.Location"]</dt><dd>@(detail.LocationId??"—")</dd>
+                <dt>@L["Col.Qty"]</dt><dd>@(detail.Qty is null ? "—" : UomFmt.QtyUnit(detail.Qty.Value,detail.Unit))</dd>
                 <dt>@L["Col.Worker"]</dt><dd>@(detail.WorkerId??"—")</dd>
                 <dt>@L["Col.Result"]</dt><dd>@(detail.Result??"—")</dd>
             </dl>
@@ -131,6 +144,8 @@
     IEnumerable<object> OperationOptions => new[]
     {
         new { Text=L["WH.LogHistory.Lbl.Inbound"].Value, Value="INBOUND" },
+        new { Text=L["WH.LogHistory.Lbl.PickingRequest"].Value, Value="PICKING_REQUEST" },
+        new { Text=L["WH.LogHistory.Lbl.Release"].Value, Value="RELEASE" },
         new { Text=L["WH.LogHistory.Lbl.Outbound"].Value, Value="OUTBOUND" },
         new { Text=L["WH.LogHistory.Lbl.Relocation"].Value, Value="RELOCATION" },
         new { Text=L["WH.LogHistory.Lbl.Adjustment"].Value, Value="ADJUSTMENT" },

@@ -17,7 +17,8 @@ public sealed class WarehouseHistoryDisplayTests
 
         Assert.Equal(7, rows.Length);
         Assert.Equal(2, HistoryPage.CountEvents(rows, "INBOUND"));
-        Assert.Equal(1, HistoryPage.CountEvents(rows, "OUTBOUND"));
+        Assert.Equal(0, HistoryPage.CountEvents(rows, "OUTBOUND"));
+        Assert.Equal(1, HistoryPage.CountEvents(rows, "RELEASE"));
         Assert.Equal(2, HistoryPage.CountEvents(rows, "ADJUSTMENT"));
         Assert.Equal(0, HistoryPage.CountEvents([Row("MOVE_LOCATION")], "INBOUND"));
     }
@@ -73,6 +74,45 @@ public sealed class WarehouseHistoryDisplayTests
         var page = Read("src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor");
         Assert.Contains("int CountEvent(string type) => CountEvents(_rows, type);", page);
         Assert.Contains("class=\"pill @EventClass(r)\"", page);
+    }
+
+    [Fact]
+    public void Picking_requests_releases_and_customer_shipments_are_distinct_events_and_counts()
+    {
+        WarehouseRepository.OperationLogRow[] rows =
+        [Row("PICKING_REQUEST"),Row("RELEASE_PICK"),Row("OUTBOUND"),Row("SHIPPED")];
+        Assert.Equal("WH.LogHistory.Lbl.PickingRequest",HistoryPage.DisplayEvent(rows[0]));
+        Assert.Equal("WH.LogHistory.Lbl.Release",HistoryPage.DisplayEvent(rows[1]));
+        Assert.Equal("WH.LogHistory.Lbl.Outbound",HistoryPage.DisplayEvent(rows[2]));
+        Assert.Equal(1,HistoryPage.CountEvents(rows,"PICKING_REQUEST"));
+        Assert.Equal(1,HistoryPage.CountEvents(rows,"RELEASE"));
+        Assert.Equal(2,HistoryPage.CountEvents(rows,"OUTBOUND"));
+        Assert.Equal(0,HistoryPage.CountEvents([Row("STATUS_CHANGE","STORED -> RELEASED")],"OUTBOUND"));
+        Assert.Equal(1,HistoryPage.CountEvents([Row("STATUS_CHANGE","STORED -> RELEASED")],"RELEASE"));
+        var page=Read("src/06_Web/AMES.Web/Components/Pages/Wh/LogHistory.razor");
+        foreach(var type in new[]{"PICKING_REQUEST","RELEASE"})
+        {
+            Assert.Contains($"Value=\"{type}\"",page);
+            Assert.Contains($"@CountEvent(\"{type}\")",page);
+        }
+        var sql=WarehouseRepository.OperationHistorySql;
+        Assert.Contains("FROM dbo.WH_PickSlip P",sql);
+        Assert.Contains("WHERE P.CreatedBy='WH-REQUEST'",sql);
+        Assert.Contains("CONCAT('REQUEST:',P.PickSlipID)",sql);
+        Assert.Contains("T.SourceType IN('PICK_SLIP','DIRECT_OUTGOING')",sql);
+        Assert.Contains("THEN 'RELEASE'",sql);
+        Assert.DoesNotContain("P.CloseDate",sql);
+    }
+
+    [Fact]
+    public void Request_and_release_labels_are_present_once_in_every_supported_language()
+    {
+        foreach(var suffix in new[]{"",".en",".ko",".es"})
+        {
+            var resources=System.Xml.Linq.XDocument.Parse(Read($"src/06_Web/AMES.Web/Resources/SharedResources{suffix}.resx"));
+            foreach(var key in new[]{"WH.LogHistory.Lbl.PickingRequest","WH.LogHistory.Lbl.Release"})
+                Assert.False(string.IsNullOrWhiteSpace(Assert.Single(resources.Root!.Elements("data"),e=>(string?)e.Attribute("name")==key).Element("value")?.Value));
+        }
     }
 
     [Theory]
@@ -139,6 +179,17 @@ public sealed class WarehouseHistoryDisplayTests
         Assert.All(repo.ListOperationLogs(eventType:"RETURN"),r=>Assert.Equal("CUSTOMER_RETURN",r.EventType));
         Assert.All(repo.ListOperationLogs(eventType:"PALLET_RETURN"),r=>Assert.Equal("PALLET_RETURN",r.EventType));
         Assert.All(repo.ListOperationLogs(eventType:"RELOCATION"),r=>Assert.Equal("MOVE_LOCATION",r.EventType));
+        Assert.All(repo.ListOperationLogs(eventType:"RELEASE"),r=>Assert.Equal("RELEASE_PICK",r.EventType));
+        Assert.All(repo.ListOperationLogs(eventType:"PICKING_REQUEST"),r=>
+        {
+            Assert.Equal("PICKING_REQUEST",r.EventType);
+            Assert.StartsWith("REQUEST:",r.RowKey);
+            Assert.Null(r.LotNo);
+            Assert.NotNull(r.ReferenceNo);
+            Assert.NotNull(r.PartNo);
+            Assert.NotNull(r.LocationId);
+        });
+        Assert.DoesNotContain(repo.ListOperationLogs(eventType:"OUTBOUND"),r=>r.EventType=="RELEASE_PICK");
         var fg=new FinishedGoodsRepository(factory);
         foreach(var shipment in fg.ListShipmentHistory(limit:1000))
         {
@@ -163,10 +214,13 @@ public sealed class WarehouseHistoryDisplayTests
                     CAST(V.SourceType AS varchar(30)) SourceType,V.SourceID,V.LotNo,'PART' PartNo,
                     CAST(NULL AS varchar(50)) LocationNo,CONVERT(decimal(18,3),V.QtyChange) QtyChange,
                     CONVERT(decimal(18,3),0) QtyBefore,CONVERT(decimal(18,3),V.QtyChange) QtyAfter,
-                    'USER' OperatorID,CAST(NULL AS nvarchar(300)) Note,CAST(NULL AS varchar(50)) ReasonCode
+                    'USER' OperatorID,CAST(NULL AS nvarchar(300)) Note,
+                    CAST(CASE WHEN V.TransactionID=9 THEN 'RELEASE_PICK' END AS varchar(50)) ReasonCode
                 FROM (VALUES(1,'IN',NULL,NULL,'LOT-A',1),(2,'OUT',NULL,NULL,'LOT-B',-1),
                     (3,'IN','FG_PUTAWAY',NULL,'LOT-C',1),(4,'IN','PALLET_RETURN',NULL,'PALLET-1',0),
-                    (5,'IN','FG_RETURN',1,'LOT-R',1),(6,'OUT','FG_OUTBOUND',1,'LOT-S',-1))
+                    (5,'IN','FG_RETURN',1,'LOT-R',1),(6,'OUT','FG_OUTBOUND',1,'LOT-S',-1),
+                    (7,'OUT','PICK_SLIP',101,'LOT-PICK',-2),(8,'OUT','DIRECT_OUTGOING',NULL,'LOT-DIRECT',-3),
+                    (9,'OUT',NULL,NULL,'LOT-LEGACY-PICK',-1))
                     V(TransactionID,TransactionType,SourceType,SourceID,LotNo,QtyChange)
             ), TestItems AS (SELECT 'PART' ItemNo,'Part' ItemName,'EA' DefaultUOM),
             TestShipments AS (SELECT 1 ShipmentID),
@@ -175,10 +229,18 @@ public sealed class WarehouseHistoryDisplayTests
                 SELECT 1 ReturnID,CONVERT(datetime2,'2026-11-02') ReceivedAt,CONVERT(datetime2,'2026-11-02') CreatedTS,
                     'LOT-R' LotNo,'PART' PartNo,CONVERT(decimal(18,3),1) ReturnQty,'USER' ReceivedBy,'USER' CreatedBy,
                     'Inspecting' Status,'RETURN' ReturnReason,CAST(NULL AS nvarchar(300)) Note,'CUSTOMER' CustomerID,'Part' PartName
-            ), TestCustomers AS (SELECT 'CUSTOMER' CustomerID,'Customer' CustomerName), Entries AS
+            ), TestCustomers AS (SELECT 'CUSTOMER' CustomerID,'Customer' CustomerName),
+            TestPickSlips AS
+            (
+                SELECT V.PickSlipID,V.PickSlipNo,CONVERT(datetime2,'2026-11-02') CreatedTS,'PART' ItemNo,
+                    'LINE-LOCATION' ReqLocation,CONVERT(decimal(18,3),12.75) DemandQty,'REQUESTER' ReqUserId,
+                    V.CreatedBy,'Cancelled' Status
+                FROM (VALUES(101,'PK-REQUEST','WH-REQUEST'),(102,'PK-AUTO','WH-AUTO')) V(PickSlipID,PickSlipNo,CreatedBy)
+            ), Entries AS
             """;
         var sql=WarehouseRepository.OperationHistorySql.Replace("WITH Entries AS",fixture)
             .Replace("dbo.WH_InventoryTransaction","TestTransactions").Replace("dbo.FG_CustomerReturn","TestReturns")
+            .Replace("dbo.WH_PickSlip","TestPickSlips")
             .Replace("dbo.FG_Shipment","TestShipments").Replace("dbo.MD_Item","TestItems").Replace("dbo.MD_Customer","TestCustomers");
         using var conn=new AMES.Data.Connection.AmesConnectionFactory(connection!).OpenConnection();
         using var cmd=new Microsoft.Data.SqlClient.SqlCommand(sql,conn);
@@ -189,14 +251,54 @@ public sealed class WarehouseHistoryDisplayTests
         using var reader=cmd.ExecuteReader();
         var rows=new Dictionary<string,(string Event,decimal Qty,bool NoLocation)>();
         while(reader.Read())rows.Add((string)reader["RowKey"],((string)reader["EventType"],(decimal)reader["Qty"],reader["LocationID"] is DBNull));
-        Assert.Equal(5,rows.Count);
+        Assert.Equal(9,rows.Count);
         Assert.Equal("RECEIVE",rows["TX:1"].Event);
-        Assert.Equal("RELEASE_PICK",rows["TX:2"].Event);
+        Assert.Equal("OUTBOUND",rows["TX:2"].Event);
         Assert.Equal("MOVE_LOCATION",rows["TX:3"].Event);
         Assert.Equal(("PALLET_RETURN",0m,true),rows["TX:4"]);
         Assert.Equal("CUSTOMER_RETURN",rows["RETURN:1"].Event);
         Assert.False(rows.ContainsKey("TX:5"));
         Assert.False(rows.ContainsKey("TX:6"));
+        Assert.Equal("RELEASE_PICK",rows["TX:7"].Event);
+        Assert.Equal("RELEASE_PICK",rows["TX:8"].Event);
+        Assert.Equal("RELEASE_PICK",rows["TX:9"].Event);
+        Assert.Equal(("PICKING_REQUEST",12.75m,false),rows["REQUEST:101"]);
+        Assert.False(rows.ContainsKey("REQUEST:102"));
+
+        reader.Close();
+        cmd.Parameters["@OperationType"].Value="PICKING_REQUEST";
+        using(var requests=cmd.ExecuteReader())
+        {
+            Assert.True(requests.Read());
+            Assert.Equal("PK-REQUEST",requests["ReferenceNo"]);
+            Assert.Equal("REQUESTER",requests["WorkerID"]);
+            Assert.True(requests["LotNo"] is DBNull);
+            Assert.False(requests.Read());
+        }
+        cmd.Parameters["@OperationType"].Value="RELEASE";
+        using(var releases=cmd.ExecuteReader())
+        {
+            var count=0;
+            while(releases.Read()){Assert.Equal("RELEASE_PICK",releases["EventType"]);count++;}
+            Assert.Equal(3,count);
+        }
+        cmd.Parameters["@OperationType"].Value="OUTBOUND";
+        using(var outbound=cmd.ExecuteReader())
+        {
+            Assert.True(outbound.Read());
+            Assert.Equal("OUTBOUND",outbound["EventType"]);
+            Assert.False(outbound.Read());
+        }
+        cmd.Parameters["@OperationType"].Value=DBNull.Value;
+        cmd.Parameters["@Like"].Value="%PK-REQUEST%";
+        using(var searched=cmd.ExecuteReader())
+        {
+            Assert.True(searched.Read());
+            Assert.Equal("REQUEST:101",searched["RowKey"]);
+            Assert.False(searched.Read());
+        }
+        cmd.Parameters["@DateFrom"].Value=new DateTime(2026,11,3);
+        using(var dated=cmd.ExecuteReader())Assert.False(dated.Read());
     }
 
     [Fact]
