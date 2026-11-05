@@ -5750,3 +5750,12 @@ html[data-theme="light"] .portal-shell .ames-brand-logo, html[data-theme="light"
     body:has(.shipping-print) .ames-modal { position: static; transform: none; width: auto !important; height: auto; max-height: none; overflow: visible; border: none; box-shadow: none; padding: 0; }
     body:has(.shipping-print) .ames-modal-footer { display: none !important; }
 }
+
+/* 검색창 지우기(X) — js/modal-keys.js 가 값이 있는 팝업 밖 입력칸에 data-ames-x 를 붙인다 */
+input[data-ames-x] {
+    padding-right: 24px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 4l8 8M12 4l-8 8' stroke='%238a94a6' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 6px center !important;
+    background-size: 12px 12px !important;
+}
