@@ -10,6 +10,17 @@ namespace AMES.Api.Tests;
 public class PdaDeploymentSettingsTests
 {
     [Fact]
+    public void Only_an_explicit_debug_test_build_can_replace_the_packaged_server_settings()
+    {
+        var project=System.Xml.Linq.XDocument.Load(Path.Combine(Path.GetDirectoryName(SettingsPath())!,"../../AMES.Pda.csproj"));
+        var overrides=project.Descendants("MauiAsset").Where(e=>e.Attribute("Condition")?.Value.Contains("PdaTestSettingsFile")==true).ToList();
+        Assert.Equal(2,overrides.Count);
+        Assert.All(overrides,e=>Assert.Contains("'$(Configuration)' == 'Debug'",e.Attribute("Condition")!.Value));
+        Assert.Contains(overrides,e=>e.Attribute("Remove")?.Value==@"Resources\Raw\pda-settings.json");
+        Assert.Contains(overrides,e=>e.Attribute("Include")?.Value=="$(PdaTestSettingsFile)"&&e.Attribute("LogicalName")?.Value=="pda-settings.json");
+    }
+
+    [Fact]
     public void Packaged_defaults_target_the_shared_server_not_the_developer_pc()
     {
         using var json = JsonDocument.Parse(File.ReadAllText(SettingsPath()));
