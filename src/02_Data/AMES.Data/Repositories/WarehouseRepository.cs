@@ -117,16 +117,6 @@ public sealed partial class WarehouseRepository
         string Status,
         string QuantityUnit = "BOX");
 
-    public record PickingSlipCandidateRow(
-        DateTime ReqDate,
-        string LineCode,
-        string? LineName,
-        string PartNo,
-        string? PartName,
-        string? Unit,
-        decimal UnitPackQty,
-        decimal ReqQty,
-        decimal ReqBoxQty);
 
     public record CreatePickingSlipLine(string PartNo, string LineCode, decimal ReqBoxQty);
 
@@ -1377,100 +1367,6 @@ public sealed partial class WarehouseRepository
             ("@PickSlipNo", "WH_PickSlip.PickSlipID", pickSlipNo.Trim()));
     }
 
-    public List<PickingSlipCandidateRow> ListPickingSlipCandidates(DateTime reqDate, string? lineCode = null, string? partNo = null)
-    {
-        var like = Like(partNo);
-        return Query("""
-            ;WITH ReservationDemand AS
-            (
-                SELECT
-                    CONVERT(date, R.RequiredAt) AS REQ_DATE,
-                    COALESCE(NULLIF(RL.LineID, N''), N'-') AS LINECD,
-                    COALESCE(L.LineName, NULLIF(RL.LineID, N''), N'-') AS LINENM,
-                    R.ItemNo AS PARTNO,
-                    COALESCE(I.ItemName, R.ItemNo) AS PARTNM,
-                    I.DefaultUOM AS UNIT,
-                    COALESCE(NULLIF(MAX(COALESCE(P.QtyPerInner, 0)), 0), 1) AS UNIT_PACK_QTY,
-                    SUM(COALESCE(R.RequiredQty, 0)) AS REQ_QTY
-                FROM dbo.PP_MaterialReservation R
-                INNER JOIN dbo.PP_WorkOrder W
-                        ON W.WoID = R.WoID
-                OUTER APPLY (SELECT TOP 1 r.LineID FROM dbo.PP_WorkOrderRouting r
-                             WHERE r.WoID = W.WoID AND r.LineID IS NOT NULL
-                             ORDER BY r.StepSeq) RL
-                LEFT JOIN dbo.MD_Line L
-                       ON L.LineID = RL.LineID
-                LEFT JOIN dbo.MD_Item I
-                       ON I.ItemNo = R.ItemNo
-                LEFT JOIN dbo.MD_PackagingSpec P
-                       ON P.ItemID = R.ItemNo
-                      AND COALESCE(P.ActiveFlag, 1) = 1
-                WHERE CONVERT(date, R.RequiredAt) = @ReqDate
-                  AND UPPER(COALESCE(R.Status, N'OPEN')) NOT IN (N'CANCELED', N'CLOSED')
-                  AND (@LineCode IS NULL OR RL.LineID = @LineCode)
-                  AND (@PartNo IS NULL
-                       OR R.ItemNo LIKE @PartNo
-                       OR I.ItemName LIKE @PartNo)
-                GROUP BY CONVERT(date, R.RequiredAt), RL.LineID, L.LineName, R.ItemNo, I.ItemName, I.DefaultUOM
-            ),
-            ScheduledDemand AS
-            (
-                SELECT
-                    CONVERT(date, RS.RequiredAt) AS REQ_DATE,
-                    COALESCE(NULLIF(RS.ReqLocation, N''), N'-') AS LINECD,
-                    COALESCE(ML.LineName, NULLIF(RS.ReqLocation, N''), N'-') AS LINENM,
-                    RS.ItemNo AS PARTNO,
-                    COALESCE(I.ItemName, RS.ItemNo) AS PARTNM,
-                    I.DefaultUOM AS UNIT,
-                    CAST(1 AS decimal(14, 3)) AS UNIT_PACK_QTY,
-                    SUM(COALESCE(RS.DemandQty, 0)) AS REQ_QTY
-                FROM dbo.WH_PickSlip RS
-                LEFT JOIN dbo.MD_Line ML
-                       ON ML.LineID = RS.ReqLocation
-                LEFT JOIN dbo.MD_Item I
-                       ON I.ItemNo = RS.ItemNo
-                WHERE CONVERT(date, RS.RequiredAt) = @ReqDate
-                  AND UPPER(COALESCE(RS.Status, N'OPEN')) NOT IN (N'CANCELED', N'CLOSED')
-                GROUP BY CONVERT(date, RS.RequiredAt), RS.ReqLocation, ML.LineName, RS.ItemNo, I.ItemName, I.DefaultUOM
-            ),
-            Demand AS
-            (
-                SELECT * FROM ReservationDemand
-                UNION ALL
-                SELECT * FROM ScheduledDemand
-                WHERE NOT EXISTS (SELECT 1 FROM ReservationDemand)
-            )
-            SELECT TOP (500)
-                REQ_DATE,
-                LINECD,
-                LINENM,
-                PARTNO,
-                PARTNM,
-                UNIT,
-                UNIT_PACK_QTY,
-                REQ_QTY,
-                CEILING(REQ_QTY / NULLIF(UNIT_PACK_QTY, 0)) AS REQ_BOX_QTY
-            FROM Demand
-            WHERE REQ_QTY > 0
-              AND (@LineCode IS NULL OR LINECD = @LineCode)
-              AND (@PartNo IS NULL
-                   OR PARTNO LIKE @PartNo
-                   OR PARTNM LIKE @PartNo)
-            ORDER BY LINECD, PARTNO;
-            """, r => new PickingSlipCandidateRow(
-                GetDateTime(r, "REQ_DATE") ?? reqDate.Date,
-                GetString(r, "LINECD") ?? "-",
-                GetString(r, "LINENM"),
-                GetString(r, "PARTNO") ?? "",
-                GetString(r, "PARTNM"),
-                GetString(r, "UNIT"),
-                GetDecimal(r, "UNIT_PACK_QTY"),
-                GetDecimal(r, "REQ_QTY"),
-                GetDecimal(r, "REQ_BOX_QTY")),
-            ("@ReqDate", "WH_PickSlip.RequiredAt", reqDate.Date),
-            ("@LineCode", null, NullIfBlank(lineCode)),
-            ("@PartNo", "MD_Item.ItemName", like));
-    }
 
     public List<PickingSlipLineOption> ListPickingSlipLineOptions()
     {
