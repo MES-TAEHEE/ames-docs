@@ -13179,8 +13179,12 @@ body .pda-shell.wh-adjust-box-label .label-printer-row {
   letter-spacing: .08em;
 }
 
-body .pda-shell.wh-adjust-box-label :is(.label-action, .label-printer-choice) {
-  display: block;
+body .pda-shell.wh-adjust-box-label :is(.label-action, .label-printer-choice),
+body .pda-shell.wh.wh03-shell .wh03-reprint-btn.rz-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 52px;
   padding: 10px 14px;
@@ -13203,6 +13207,15 @@ body .pda-shell.wh-adjust-box-label .label-printer-row .label-action {
 body .pda-shell.wh-adjust-box-label .label-printer-choice {
   margin-bottom: 8px;
   text-align: left;
+  align-items: flex-start;
+}
+
+body .pda-shell.wh-adjust-box-label .label-printer-row > label {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  margin: 0;
+  line-height: 1;
 }
 
 body .pda-shell.wh-adjust-box-label .label-printer-choice.selected {
@@ -13212,6 +13225,9 @@ body .pda-shell.wh-adjust-box-label .label-printer-choice.selected {
 
 body .pda-shell.wh-adjust-box-label .label-printer-choice :is(strong, small) {
   display: block;
+  margin-top: 0;
+  margin-bottom: 0;
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
@@ -13222,7 +13238,8 @@ body .pda-shell.wh-adjust-box-label .label-printer-choice small {
   font-weight: 500;
 }
 
-body .pda-shell.wh-adjust-box-label > .pda-bd > .label-action {
+body .pda-shell.wh-adjust-box-label > .pda-bd > .label-action,
+body .pda-shell.wh.wh03-shell .wh03-reprint-btn.rz-button {
   margin: 14px 0 10px;
   border-color: #4b84f8;
   background: #2458c5;
@@ -13274,14 +13291,6 @@ body .pda-shell.wh-adjust-box-label .label-master-body > small {
 .supplier-delivery-item { display:grid; gap:4px; padding:10px; border:1px solid #344861; background:#101d2c; color:#dce7f5; overflow-wrap:anywhere; font-size:12px; }
 .supplier-delivery-item.received { border-left:4px solid #6ee7b7; background:#102b28; }
 .supplier-delivery-item.received .supplier-delivery-receipt { color:#6ee7b7; font-weight:700; }
-
-body .pda-shell.wh.wh03-shell .wh03-reprint-btn.rz-button {
-  display: block;
-  width: 100%;
-  margin-top: 12px;
-  border-color: #4b84f8;
-  background: #2458c5;
-}
 
 /* Shared barcode presentation follows Outbound; it does not enable scan-only input handling. */
 .pda-shell input.pda-barcode-input,

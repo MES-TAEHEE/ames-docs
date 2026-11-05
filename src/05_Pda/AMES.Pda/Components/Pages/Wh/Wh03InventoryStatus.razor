@@ -397,16 +397,16 @@
                         </div>
                     </div>
 
-                    <div class="wh03-action-row">
+                    <div class="@($"wh03-action-row {(_adjustedLabelLotNo is not null && !IsSpareParts ? "has-reprint" : "")}")">
                         <RadzenButton class="wh03-date-clear" Click="@ClearInventoryWork" Disabled="@InventoryBusy" Text="CLEAR" />
                         <RadzenButton class="@($"wh03-date-apply wh03-post-btn save {(DisableInventoryAdjust ? "blocked" : "ready")}")"
                                       Click="@PostInventoryAdjust" aria-disabled="@(DisableInventoryAdjust ? "true" : "false")" Text="SAVE" />
-                    </div>
                     @if (_adjustedLabelLotNo is not null && !IsSpareParts)
                     {
-                        <RadzenButton class="wh03-date-apply wh03-post-btn wh03-reprint-btn" Click="@ConfirmAdjustedLabelReprint"
+                        <RadzenButton class="label-action wh03-reprint-btn" Click="@ConfirmAdjustedLabelReprint"
                                       Disabled="@InventoryBusy" Text="REPRINT" />
                     }
+                    </div>
                 </RadzenCard>
             }
 
@@ -652,13 +652,18 @@
                 <div class="wh-modal-title">@_modalTitle</div>
                 <div class="wh-modal-message">@_modalMessage</div>
                 <div class="wh-modal-actions">
-                    @if (string.IsNullOrWhiteSpace(_modalNavigateTo))
+                    @if (_modalConfirmAction is not null)
+                    {
+                        <RadzenButton class="wh-modal-btn secondary" Click="@DismissModal" Text="NO" />
+                        <RadzenButton class="wh-modal-btn primary" Click="@ConfirmModalAction" Text="YES" />
+                    }
+                    else if (string.IsNullOrWhiteSpace(_modalNavigateTo))
                     {
                         <RadzenButton class="wh-modal-btn primary" Click="@DismissModal" Text="OK" />
                     }
                     else
                     {
-                        <RadzenButton class="wh-modal-btn secondary" Click="@DismissModal" Text="CANCEL" />
+                        <RadzenButton class="wh-modal-btn secondary" Click="@DismissModal" Text="@_modalCancelText" />
                         <RadzenButton class="wh-modal-btn primary" Click="@NavigateFromModal" Text="@_modalActionText" />
                     }
                 </div>
@@ -905,6 +910,8 @@
     private string _modalKind = "info";
     private string _modalNavigateTo = "";
     private string _modalActionText = "";
+    private string _modalCancelText = "CANCEL";
+    private Func<Task>? _modalConfirmAction;
     private List<PdaApi.InventoryRow> _rows = new();
     private List<PdaApi.InventoryLocationRow> _locationRows = new();
     private List<PdaApi.LocationRow> _inventoryLocations = new();
@@ -2121,15 +2128,25 @@
         }
     }
 
-    private async Task PostInventoryAdjust()
+    private void PostInventoryAdjust()
     {
+        if(InventoryBusy || _modalOpen)return;
+        if(InventoryAdjustBlockedReason is {} blockedReason){ShowAlert("Cannot Save",blockedReason,"warn");return;}
+        var request=new PdaApi.AdjustSaveReq(_invMode,_invScan!.Barcode,_invAdjustDelta,_invAdjustReason,_invAdjustNote,
+            SimulateFailure:ShouldSimulateAdjustApiFailure,ExpectedQty:IsSpareParts?null:InventoryBeforeQty,
+            ExpectedLocation:IsSpareParts?null:_invScan.ReceivedLocation??"");
+        ShowAlert("Confirm Quantity",$"Is this quantity correct?\nLOT: {_invScan.LotNo}\nBefore: {InventoryBeforeQty:#,##0.###} {Uom.Symbol(_invScan.Unit)}\nNew quantity: {InventoryAfterQty:#,##0.###} {Uom.Symbol(_invScan.Unit)}","warn");
+        _modalConfirmAction=()=>SaveInventoryAdjust(request);
+    }
+
+    private async Task SaveInventoryAdjust(PdaApi.AdjustSaveReq request)
+    {
+        if(InventoryBusy)return;
         if (InventoryAdjustBlockedReason is { } blockedReason)
         {
             ShowAlert("Cannot Save", blockedReason, "warn");
             return;
         }
-
-        var deltaQty = _invAdjustDelta;
 
         _isInventoryAdjusting = true;
         _invMsg = "Posting adjustment...";
@@ -2137,15 +2154,6 @@
 
         try
         {
-            var request = new PdaApi.AdjustSaveReq(
-                _invMode,
-                _invScan!.Barcode,
-                deltaQty,
-                _invAdjustReason,
-                _invAdjustNote,
-                SimulateFailure: ShouldSimulateAdjustApiFailure,
-                ExpectedQty: IsSpareParts ? null : InventoryBeforeQty,
-                ExpectedLocation: IsSpareParts ? null : _invScan.ReceivedLocation ?? "");
             var result = IsFinishedGoodsAdjust
                 ? await FgApi.FgSaveAdjustQtyAsync(request)
                 : IsSpareParts
@@ -2200,7 +2208,7 @@
         var target = _adjustedBoxLabel
             ? $"/wh/adjust-box-label?lot={Uri.EscapeDataString(_adjustedLabelLotNo)}"
             : $"/wh/label-print?source={source}&lot={Uri.EscapeDataString(_adjustedLabelLotNo)}";
-        ShowNavigationAlert("Confirm Quantity", $"Is this quantity correct? {InventoryAfterQty:0.###} {Uom.Symbol(_invScan?.Unit)}", target, "REPRINT");
+        ShowNavigationAlert("Reprint Label", "Adjustment saved. Would you like to reprint the label?", target, "YES", "NO");
     }
 
     private void ShowAlert(string title, string message, string kind = "info")
@@ -2210,6 +2218,7 @@
         _modalKind = kind;
         _modalNavigateTo = "";
         _modalActionText = "";
+        _modalConfirmAction = null;
         _modalOpen = true;
     }
 
@@ -2239,13 +2248,15 @@
         return false;
     }
 
-    private void ShowNavigationAlert(string title, string message, string target, string actionText)
+    private void ShowNavigationAlert(string title, string message, string target, string actionText, string cancelText = "CANCEL")
     {
         _modalTitle = title;
         _modalMessage = message;
         _modalKind = "warn";
         _modalNavigateTo = target;
         _modalActionText = actionText;
+        _modalCancelText = cancelText;
+        _modalConfirmAction = null;
         _modalOpen = true;
     }
 
@@ -2254,6 +2265,14 @@
         _modalOpen = false;
         _modalNavigateTo = "";
         _modalActionText = "";
+        _modalConfirmAction = null;
+    }
+
+    private async Task ConfirmModalAction()
+    {
+        var action=_modalConfirmAction;
+        DismissModal();
+        if(action is not null)await action();
     }
 
     private void NavigateFromModal()
