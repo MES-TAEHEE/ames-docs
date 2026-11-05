@@ -1190,18 +1190,63 @@ public sealed class MasterDataRepository
                 r["ModifiedTS"]     is DateTime mts ? mts : null), p2);
     }
 
+    /// <summary>같은 품목의 다른 단계가 이미 이 STEP 번호를 쓴다(11-05 — 한 품목 안에서 STEP 은 하나뿐).</summary>
+    public sealed class BopStepDuplicateException(int stepSeq)
+        : InvalidOperationException($"STEP {stepSeq} is already used by another step of this item.")
+    {
+        public int StepSeq { get; } = stepSeq;
+    }
+
+    // 같은 품목·같은 STEP 의 다른 행이 있으면 52090 — 품목 행 범위를 잡고 확인해 동시 저장도 하나만 통과
+    const string BopSeqGuardSql = """
+            IF EXISTS (SELECT 1 FROM dbo.MD_Bop WITH (UPDLOCK, HOLDLOCK)
+                       WHERE ItemNo = @No AND StepSeq = @Seq AND BOPID <> @ID)
+                THROW 52090, 'BOP step number is already used for this item.', 1;
+            """;
+
+    /// <summary>한 품목 안에서 STEP 번호가 겹친 단계 묶음(품목·STEP·행 수) — MD-005 경고용.</summary>
+    public List<(string ItemNo, int StepSeq, int Count)> ListBopDuplicateSteps()
+    {
+        using var conn = _factory.OpenConnection();
+        using var cmd = new SqlCommand("""
+            SELECT ItemNo, StepSeq, COUNT(*) AS Cnt
+            FROM   dbo.MD_Bop
+            WHERE  ItemNo IS NOT NULL AND StepSeq IS NOT NULL
+            GROUP  BY ItemNo, StepSeq
+            HAVING COUNT(*) > 1
+            ORDER  BY ItemNo, StepSeq;
+            """, conn);
+        using var r = cmd.ExecuteReader();
+        var list = new List<(string, int, int)>();
+        while (r.Read()) list.Add((r.GetString(0), r.GetInt32(1), r.GetInt32(2)));
+        return list;
+    }
+
     public void InsertBopStep(string bopId, string itemNo, string? routingType,
         int stepSeq, string? stationCode,
         decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
         string? stepDesc, bool activeFlag, string createdBy)
-        => Exec("""
+    {
+        try { InsertBopStepCore(bopId, itemNo, routingType, stepSeq, stationCode, stdCycleTime, stdSetupTime, qcRequired, stepDesc, activeFlag, createdBy); }
+        catch (SqlException ex) when (ex.Number == 52090) { throw new BopStepDuplicateException(stepSeq); }
+    }
+
+    void InsertBopStepCore(string bopId, string itemNo, string? routingType,
+        int stepSeq, string? stationCode,
+        decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
+        string? stepDesc, bool activeFlag, string createdBy)
+        => Exec($"""
+            SET XACT_ABORT ON;
+            BEGIN TRAN;
+            {BopSeqGuardSql}
             INSERT INTO dbo.MD_Bop
                    (BOPID,ItemNo,RoutingType,StepSeq,StationCode,
                     StdCycleTime,StdSetupTime,QcRequiredFlag,StepDescription,
                     ActiveFlag,CreatedBy,CreatedTS)
             VALUES (@ID,@No,@RT,@Seq,@SC,
                     @CT,@ST,@QC,@Desc,
-                    @Active,@By,SYSDATETIME())
+                    @Active,@By,SYSDATETIME());
+            COMMIT;
             """,
             ("@ID", "MD_Bop.BOPID", bopId),       ("@No", "MD_Bop.ItemNo", itemNo),      ("@RT", "MD_Bop.RoutingType", routingType),
             ("@Seq", "MD_Bop.StepSeq", stepSeq),     ("@SC", "MD_Bop.StationCode", stationCode),
@@ -1212,13 +1257,27 @@ public sealed class MasterDataRepository
         int stepSeq, string? stationCode,
         decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
         string? stepDesc, bool activeFlag, string modifiedBy)
-        => Exec("""
+    {
+        try { UpdateBopStepCore(bopId, routingType, stepSeq, stationCode, stdCycleTime, stdSetupTime, qcRequired, stepDesc, activeFlag, modifiedBy); }
+        catch (SqlException ex) when (ex.Number == 52090) { throw new BopStepDuplicateException(stepSeq); }
+    }
+
+    void UpdateBopStepCore(string bopId, string? routingType,
+        int stepSeq, string? stationCode,
+        decimal? stdCycleTime, decimal? stdSetupTime, bool qcRequired,
+        string? stepDesc, bool activeFlag, string modifiedBy)
+        => Exec($"""
+            SET XACT_ABORT ON;
+            BEGIN TRAN;
+            DECLARE @No varchar(20) = (SELECT ItemNo FROM dbo.MD_Bop WITH (UPDLOCK) WHERE BOPID = @ID);
+            {BopSeqGuardSql}
             UPDATE dbo.MD_Bop
             SET    RoutingType=@RT, StepSeq=@Seq, StationCode=@SC,
                    StdCycleTime=@CT, StdSetupTime=@ST,
                    QcRequiredFlag=@QC, StepDescription=@Desc,
                    ActiveFlag=@Active, ModifiedBy=@By, ModifiedTS=SYSDATETIME()
-            WHERE  BOPID=@ID
+            WHERE  BOPID=@ID;
+            COMMIT;
             """,
             ("@ID", "MD_Bop.BOPID", bopId),       ("@RT", "MD_Bop.RoutingType", routingType), ("@Seq", "MD_Bop.StepSeq", stepSeq),
             ("@SC", "MD_Bop.StationCode", stationCode), ("@CT", "MD_Bop.StdCycleTime", stdCycleTime),

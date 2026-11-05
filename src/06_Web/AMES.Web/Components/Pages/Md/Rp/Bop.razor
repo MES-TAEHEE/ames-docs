@@ -42,6 +42,20 @@
     <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
 }
 
+@if (_dupItems.Count > 0)
+{
+    <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false">
+        <div>@string.Format(L["MD.Bop.Dup.ItemsBanner"].Value, _dupItems.Select(d => d.ItemNo).Distinct().Count())</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+            @foreach (var g in _dupItems.GroupBy(d => d.ItemNo))
+            {
+                var itemNo = g.Key;
+                <RadzenButton Text="@($"{itemNo} · STEP {string.Join(", ", g.Select(d => d.StepSeq))}")" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.ExtraSmall" Click="@(() => GoToDupItem(itemNo))" />
+            }
+        </div>
+    </RadzenAlert>
+}
+
 @* 높이 고정 분할 — 좌측 품목 목록 ItemPageSize 행이 스크롤 없이 다 보이는 높이로 고정해, 검색 결과 수와 무관하게 좌우 카드 높이가 같고 페이저는 카드 바닥 *@
 <div style="@($"display:flex;gap:14px;height:{ItemPanelHeight}px;")">
 
@@ -70,7 +84,7 @@
                             </Template>
                         </RadzenDataGridColumn>
                         <RadzenDataGridColumn TItem="MasterDataRepository.BopItemRow" Property="StepCount" Title="@L["Col.StepCount"]" Width="80px" MinWidth="80px" TextAlign="TextAlign.Center">
-                            <Template Context="item"><span class="pill info">@item.StepCount</span></Template>
+                            <Template Context="item"><span class="pill @(DupItem(item.ItemNo) ? "warn" : "info")" title="@(DupItem(item.ItemNo) ? L["MD.Bop.Dup.ItemTip"].Value : null)">@item.StepCount</span></Template>
                         </RadzenDataGridColumn>
                     </Columns>
                 </RadzenDataGrid>
@@ -120,6 +134,12 @@
                     </div>
                 </div>
 
+                @if (_dupSeqs.Count > 0)
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" AllowClose="false" Style="margin:6px 0;">
+                        @string.Format(L["MD.Bop.Dup.StepsBanner"].Value, string.Join(", ", _dupSeqs.OrderBy(x => x)))
+                    </RadzenAlert>
+                }
                 @* ─── 공정 단계 그리드 ─── *@
                 <div style="flex:1;min-height:0;overflow:hidden;">
                     @* 페이저 없음 — 단계·상하위 행이 많으면 카드 높이 안에서 본문만 스크롤 *@
@@ -162,7 +182,7 @@
                                 <Template Context="step"><span class="pill @Ui.RoutingClass(step.RoutingType)">@(Joined(step, s => s.RoutingType) ?? step.RoutingType ?? "—")</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StepSeq" Title="@L["Col.Seq"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center">
-                                <Template Context="step"><span class="code">@(Joined(step, s => s.StepSeq?.ToString()) ?? step.StepSeq?.ToString())</span></Template>
+                                <Template Context="step"><span class="code" style="@(IsDupStep(step) ? "color:var(--ames-tx-red-400);font-weight:700;" : null)" title="@(IsDupStep(step) ? L["MD.Bop.Dup.RowTip"].Value : null)">@(Joined(step, s => s.StepSeq?.ToString()) ?? step.StepSeq?.ToString())@(IsDupStep(step) ? " ⚠" : "")</span></Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="MasterDataRepository.BopRow" Property="StationCode" Title="@L["Col.Station"]" Width="250px" MinWidth="250px">
                                 <Template Context="step">
@@ -369,6 +389,36 @@
 
     StepForm _f = new();
 
+    List<(string ItemNo, int StepSeq, int Count)> _dupItems = new();   // STEP 이 겹친 품목(전체)
+    HashSet<int> _dupSeqs = new();                                      // 선택 품목에서 겹친 STEP
+
+    bool DupItem(string? itemNo) => _dupItems.Any(d => string.Equals(d.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
+    bool IsDupStep(MasterDataRepository.BopRow step)
+        => !_rel.ContainsKey(step.BOPID) && step.StepSeq is int q && _dupSeqs.Contains(q);
+
+    // 수정 중인 단계를 뺀 이 품목의 STEP 번호
+    IEnumerable<int> OtherSeqs => _steps.Where(s => s.BOPID != _f.BopId && s.StepSeq.HasValue).Select(s => s.StepSeq!.Value);
+    bool SeqTaken => _f.StepSeq > 0 && OtherSeqs.Contains(_f.StepSeq);
+    string UsedSeqs => string.Join(", ", OtherSeqs.Distinct().OrderBy(x => x));
+    int NextFreeSeq()
+    {
+        var used = OtherSeqs.ToHashSet();
+        int n = Math.Max(1, _f.StepSeq);
+        while (used.Contains(n)) n++;
+        return n;
+    }
+
+    void GoToDupItem(string itemNo)
+    {
+        var item = _items.FirstOrDefault(i => string.Equals(i.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
+        if (item is null)
+        {
+            _search = itemNo; _typeFilter = null; LoadItems();
+            item = _items.FirstOrDefault(i => string.Equals(i.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
+        }
+        if (item is not null) SelectItem(item);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
@@ -412,15 +462,19 @@
             _items = _items.Where(i => typeOf.TryGetValue(i.ItemNo, out var t) && t == _typeFilter).ToList();
         }
         try { _kpi = MD.BopKpi(); } catch { }
+        try { _dupItems = MD.ListBopDuplicateSteps(); } catch { _dupItems = new(); }
     }
 
     void LoadSteps()
     {
         _rel.Clear();
         _relSteps.Clear();
-        if (_selItem is null) { _steps = new(); _displaySteps = new(); return; }
+        try { _dupItems = MD.ListBopDuplicateSteps(); } catch { }
+        if (_selItem is null) { _steps = new(); _displaySteps = new(); _dupSeqs = new(); return; }
         try { _steps = MD.ListBopSteps(_selItem.ItemNo); }
         catch { _steps = new(); }
+        _dupSeqs = _steps.Where(s => s.StepSeq.HasValue).GroupBy(s => s.StepSeq!.Value)
+                         .Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
         _displaySteps = _steps.ToList();
         try { AddRelatedSteps(_selItem.ItemNo); } catch { }
         // 라우팅 순서(A-10 사출 → A-20 감싸기…) — 같은 순서 안에서는 선택 품목 먼저, 그다음 품목번호
@@ -490,6 +544,8 @@
         }
         if (!args.Attributes.TryGetValue("class", out var cls)) cls = "";
         args.Attributes["class"] = cls + " ames-row-link";
+        if (args.Data is not null && IsDupStep(args.Data))
+            args.Attributes["style"] = "box-shadow:inset 3px 0 0 var(--ames-tx-red-400);";
     }
 
     void OnItemRowSelect(MasterDataRepository.BopItemRow item) => SelectItem(item);
@@ -624,6 +680,7 @@
         if (string.IsNullOrWhiteSpace(_f.ItemNo))      { _modalErr = L["Err.ItemNoRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.RoutingType)) { _modalErr = L["Err.RoutingTypeRequired"]; return; }
         if (_f.StepSeq <= 0)                           { _modalErr = L["Err.StepSeqMin1"]; return; }
+        if (SeqTaken) { _modalErr = string.Format(L["MD.Bop.Dup.Taken"].Value, _f.StepSeq, NextFreeSeq()); return; }
         // 무결성: 선택 스테이션 공정이 품목 라우팅 시퀀스에 속하는지 서버측 검증
         if (!string.IsNullOrWhiteSpace(_f.StationCode) && _routingProcesses.Count > 0
             && !_routingProcesses.Contains(StationProcess(_f.StationCode)))
@@ -651,6 +708,11 @@
             await RestorePages();
             ShowMsg($"{newItemNo} Step {_f.StepSeq} {L["Msg.Created"]}", false);
         }
+        catch (MasterDataRepository.BopStepDuplicateException)
+        {
+            LoadSteps();
+            _modalErr = string.Format(L["MD.Bop.Dup.Taken"].Value, _f.StepSeq, NextFreeSeq());
+        }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -661,6 +723,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.RoutingType)) { _modalErr = L["Err.RoutingTypeRequired"]; return; }
         if (_f.StepSeq <= 0)                           { _modalErr = L["Err.StepSeqMin1"]; return; }
+        if (SeqTaken) { _modalErr = string.Format(L["MD.Bop.Dup.Taken"].Value, _f.StepSeq, NextFreeSeq()); return; }
         // 무결성: 선택 스테이션 공정이 품목 라우팅 시퀀스에 속하는지 서버측 검증
         if (!string.IsNullOrWhiteSpace(_f.StationCode) && _routingProcesses.Count > 0
             && !_routingProcesses.Contains(StationProcess(_f.StationCode)))
@@ -679,6 +742,11 @@
             LoadSteps(); CloseModal();
             await RestorePages();
             ShowMsg($"Step {_f.StepSeq} {L["Msg.Updated"]}", false);
+        }
+        catch (MasterDataRepository.BopStepDuplicateException)
+        {
+            LoadSteps();
+            _modalErr = string.Format(L["MD.Bop.Dup.Taken"].Value, _f.StepSeq, NextFreeSeq());
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -722,7 +790,15 @@
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenLabel Text='@($"{L["Col.StepSeq"]} *")' />
-                <RadzenNumeric TValue="int" @bind-Value="_f.StepSeq" Min="1" Step="10" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenNumeric TValue="int" @bind-Value="_f.StepSeq" Min="1" Step="1" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                @if (SeqTaken)
+                {
+                    <div style="font-size:.78em;margin-top:2px;color:var(--ames-tx-red-400);">@string.Format(L["MD.Bop.Dup.Taken"].Value, _f.StepSeq, NextFreeSeq())</div>
+                }
+                else if (UsedSeqs.Length > 0)
+                {
+                    <div class="dim" style="font-size:.78em;margin-top:2px;">@string.Format(L["MD.Bop.Dup.Used"].Value, UsedSeqs)</div>
+                }
             </RadzenColumn>
         </RadzenRow>
 

@@ -12931,4 +12931,22 @@
   <data name="PP.Recon.Col.PlanPo" xml:space="preserve">
     <value>구매계획 P/O</value>
   </data>
+  <data name="MD.Bop.Dup.ItemsBanner" xml:space="preserve">
+    <value>STEP 번호가 겹친 품목이 {0}개 있습니다. 품목을 눌러 빨간 표시 단계의 STEP 을 고쳐 주세요.</value>
+  </data>
+  <data name="MD.Bop.Dup.ItemTip" xml:space="preserve">
+    <value>STEP 번호가 겹친 단계가 있습니다</value>
+  </data>
+  <data name="MD.Bop.Dup.StepsBanner" xml:space="preserve">
+    <value>STEP {0} 이(가) 여러 단계에 겹쳐 있습니다. 빨간 표시 단계를 눌러 다른 STEP 번호로 고쳐 주세요.</value>
+  </data>
+  <data name="MD.Bop.Dup.RowTip" xml:space="preserve">
+    <value>다른 단계와 STEP 번호가 같습니다 — 눌러서 고치세요</value>
+  </data>
+  <data name="MD.Bop.Dup.Taken" xml:space="preserve">
+    <value>STEP {0} 은(는) 이 품목의 다른 단계가 쓰고 있습니다. 다른 번호(예: {1})를 넣어 주세요.</value>
+  </data>
+  <data name="MD.Bop.Dup.Used" xml:space="preserve">
+    <value>사용 중인 STEP: {0}</value>
+  </data>
 </root>

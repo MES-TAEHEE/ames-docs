@@ -12931,4 +12931,22 @@
   <data name="PP.Recon.Col.PlanPo" xml:space="preserve">
     <value>Plan P/O</value>
   </data>
+  <data name="MD.Bop.Dup.ItemsBanner" xml:space="preserve">
+    <value>{0} item(s) have duplicate STEP numbers. Click an item and fix the STEP of the steps marked in red.</value>
+  </data>
+  <data name="MD.Bop.Dup.ItemTip" xml:space="preserve">
+    <value>Some steps share the same STEP number</value>
+  </data>
+  <data name="MD.Bop.Dup.StepsBanner" xml:space="preserve">
+    <value>STEP {0} is used by more than one step. Click a step marked in red and change its STEP number.</value>
+  </data>
+  <data name="MD.Bop.Dup.RowTip" xml:space="preserve">
+    <value>Same STEP number as another step — click to fix</value>
+  </data>
+  <data name="MD.Bop.Dup.Taken" xml:space="preserve">
+    <value>STEP {0} is already used by another step of this item. Use another number (e.g. {1}).</value>
+  </data>
+  <data name="MD.Bop.Dup.Used" xml:space="preserve">
+    <value>STEPs in use: {0}</value>
+  </data>
 </root>
