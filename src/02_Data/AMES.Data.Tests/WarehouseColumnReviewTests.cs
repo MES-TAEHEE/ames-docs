@@ -30,7 +30,7 @@ public class WarehouseColumnReviewTests
     public void Warehouse_picking_excludes_finished_goods_lines_and_containers()
     {
         var rule=AMES.Data.Repositories.WarehouseRepository.WarehouseBoxPredicate;
-        Assert.Contains("W.UnitType='BOX'",rule);
+        Assert.Contains("W.UnitType IN('BOX','PART')",rule);
         Assert.Contains("NOT LIKE 'FG%'",rule);
         Assert.Contains("'FG','FG_AREA'",rule);
         Assert.Contains("ML.LotPrefix",rule);

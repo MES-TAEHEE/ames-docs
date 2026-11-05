@@ -1,0 +1,136 @@
+@page "/wh/picking-requests"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using static AMES.Data.Repositories.WarehouseRepository
+@inject WarehouseRepository WH
+@inject PermissionService Permissions
+@inject AuthenticationStateProvider Auth
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
+@inject ILogger<PickingRequests> Log
+@inject DialogService Dialog
+
+<PageTitle>@L["WH.Picking.Request.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="WH-05" TitleKey="WH.Picking.Request.Title" />
+@if (_error.Length>0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert> }
+@if (_message.Length>0) { <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat">@_message</RadzenAlert> }
+<section class="ames-card">
+    <div class="ames-card-h master-list-toolbar">
+        <span>@L["WH.Picking.Request.Title"] · @_rows.Count</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.Picking.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
+            <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Load" Disabled="@(_loading || _saving)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Create"].Value" Icon="add" Click="OpenRequest" Disabled="@(_loading || _saving || !Permissions.CanEdit(Href))" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
+    </div>
+    <RadzenDataGrid TItem="PickingSlipHeaderRow" Data="_rows" IsLoading="_loading" RowSelect="OpenOrder" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizes" PageSizeChanged="@(size=>_pageRows=size)" Style="@($"--ames-page-rows:{_pageRows}")" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
+        <Columns>
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="@L["WH.Picking.Col.OrderNo"].Value" Width="190px" MinWidth="190px" />
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="CreatedAt" Title="@L["WH.Picking.Col.CreatedDate"].Value" Width="160px" MinWidth="160px"><Template Context="row">@row.CreatedAt?.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="DueAt" Title="@L["WH.Picking.Col.DueDate"].Value" Width="130px" MinWidth="130px"><Template Context="row">@row.DueAt?.ToString(DateFmt.Date)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqLocation" Title="@L["Col.Destination"].Value" Width="160px" MinWidth="160px" />
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="FirstPartNo" Title="@L["Col.ItemNo"].Value" Width="180px" MinWidth="180px" />
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="FirstPartName" Title="@L["Col.ItemName"].Value" />
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqBoxQty" Title="@L["WH.Picking.Col.ReqQty"].Value" Width="140px" MinWidth="140px"><Template Context="row">@UomFmt.QtyUnit(row.ReqBoxQty,row.QuantityUnit)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickedQty" Title="@L["WH.Picking.Col.PickedQty"].Value" Width="140px" MinWidth="140px"><Template Context="row">@UomFmt.QtyUnit(row.PickedQty,row.QuantityUnit)</Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqUserId" Title="@L["PP.PurchaseReq.Col.CreatedBy"].Value" Width="130px" MinWidth="130px" />
+            <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="Status" Title="@L["Col.Status"].Value" Width="120px" MinWidth="120px" />
+        </Columns>
+    </RadzenDataGrid>
+</section>
+@if (_requestOpen)
+{
+    <div class="ames-modal-bg" @onclick="CloseRequest"><div class="ames-modal ames-modal-wide" role="dialog" aria-modal="true" @onclick:stopPropagation>
+        <div class="ames-modal-h">@L["WH.Picking.Request.Title"]</div>
+        <div class="ames-modal-body">
+            <RadzenStack Gap="1rem">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="@L["Col.Destination"].Value" Component="PickingRequestDestination" />
+                    <RadzenDropDown TValue="string" @bind-Value="_destination" Data="_destinations" TextProperty="Display" ValueProperty="Code" Name="PickingRequestDestination" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" Disabled="_saving" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="@L["Col.ItemNo"].Value" Component="PickingRequestPart" />
+                    <RadzenDropDown TValue="string" @bind-Value="_part" Data="_parts" TextProperty="Display" ValueProperty="Code" Name="PickingRequestPart" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%" Disabled="_saving" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" Gap="1rem" Wrap="FlexWrap.Wrap">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenLabel Text="@($"{L["WH.Picking.Col.ReqQty"]} ({UomFmt.Sym(Unit)})")" Component="PickingRequestQty" />
+                        <RadzenNumeric TValue="decimal" @bind-Value="_qty" Name="PickingRequestQty" Min="0.001m" Max="99999999999m" Step="0.001" Format="#,##0.###" InputSize="InputSize.Small" class="ames-rz-input" Disabled="_saving" />
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenLabel Text="@L["WH.Picking.Col.DueDate"].Value" Component="PickingRequestDue" />
+                        <RadzenDatePicker TValue="DateTime" @bind-Value="_due" Name="PickingRequestDue" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Disabled="_saving" />
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenStack>
+            @if (_requestError.Length>0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_requestError</RadzenAlert> }
+        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            <RadzenButton Text="@L["Btn.Create"].Value" Icon="save" Click="SaveRequest" IsBusy="_saving" Disabled="@(_saving || _qty<=0 || string.IsNullOrWhiteSpace(_part) || string.IsNullOrWhiteSpace(_destination))" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Close"].Value" Icon="close" Click="CloseRequest" Disabled="_saving" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
+    </div></div>
+}
+
+@code {
+    const string Href="wh/picking-requests";
+    List<PickingSlipHeaderRow> _rows=[];
+    List<PickingRequestOption> _parts=[],_destinations=[];
+    readonly IEnumerable<int> _pageSizes=[25,50,100];
+    int _pageRows=25;
+    bool _allowed,_loading,_saving,_requestOpen;
+    string _search="",_error="",_message="",_requestError="",_part="",_destination="";
+    decimal _qty=1;
+    DateTime _due;
+    string Unit=>_parts.FirstOrDefault(p=>p.Code==_part)?.Unit??"EA";
+    protected override async Task OnInitializedAsync()
+    {
+        await Permissions.EnsureAsync(Auth);
+        _allowed=Permissions.CanOpen(Href);
+        if(!_allowed){Nav.NavigateTo("/unauthorized",replace:true);return;}
+        await Load();
+    }
+    async Task Load()
+    {
+        if(!_allowed || _loading)return;
+        _loading=true;_error="";
+        try
+        {
+            var snapshot=await Task.Run(()=>(Rows:WH.ListPickingSlipHeaders(_search).Where(r=>r.GenerationSource=="REQUEST").OrderByDescending(r=>r.CreatedAt).ToList(),Parts:WH.ListPickingRequestParts(),Destinations:WH.ListPickingRequestDestinations()));
+            _rows=snapshot.Rows;_parts=snapshot.Parts;_destinations=snapshot.Destinations;
+        }
+        catch(Exception ex){Log.LogError(ex,"Unable to load picking requests");_error=L["WH.Picking.Err.Load"].Value;}
+        finally{_loading=false;}
+    }
+    void OpenRequest()
+    {
+        if(_saving || !Permissions.CanEdit(Href))return;
+        _requestError="";_message="";_part="";_destination="";_qty=1;_due=DbClock.Today;_requestOpen=true;
+    }
+    void CloseRequest(){if(!_saving)_requestOpen=false;}
+    async Task SaveRequest()
+    {
+        if(_saving || !_requestOpen)return;
+        _saving=true;_requestError="";
+        try
+        {
+            if(!await Permissions.RecheckEditAsync(Auth,Href)){_requestError=L["WH.Picking.Err.NoPermission"].Value;return;}
+            var actor=ActorCode.Of((await Auth.GetAuthenticationStateAsync()).User);
+            var input=new PickingRequestInput(_destination,_part,_qty,_due);
+            string slip;
+            try{slip=await Task.Run(()=>WH.CreatePickingRequest(input,actor));}
+            catch(AMES.Contracts.Exceptions.PickingRequestExistsException existing)
+            {
+                var details=string.Join("\n",existing.ExistingOrders.Select(o=>$"{o.PickSlipNo} · {o.Destination} · {o.PartNo} · Remaining: {UomFmt.QtyUnit(o.RemainingQty,o.Unit)}"));
+                if(await Dialog.Confirm($"{details}\n\nCreate an additional request?","Existing Picking Orders",new ConfirmOptions{OkButtonText="Yes",CancelButtonText="No"})!=true)return;
+                if(!await Permissions.RecheckEditAsync(Auth,Href)){_requestError=L["WH.Picking.Err.NoPermission"].Value;return;}
+                slip=await Task.Run(()=>WH.CreatePickingRequest(input with{ConfirmAdditional=true},actor));
+            }
+            _requestOpen=false;await Load();_message=L["WH.Picking.Request.Created",slip].Value;
+        }
+        catch(Exception ex){Log.LogError(ex,"Unable to create picking request");_requestError=ex.Message;}
+        finally{_saving=false;}
+    }
+    void OpenOrder(PickingSlipHeaderRow row)=>Nav.NavigateTo($"/wh/picking-orders?order={Uri.EscapeDataString(row.PickSlipNo)}");
+}

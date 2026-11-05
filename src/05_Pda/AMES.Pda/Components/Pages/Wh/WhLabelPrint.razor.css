@@ -2,9 +2,10 @@
 .label-search-row, .label-printer-row { display:flex; gap:8px; }
 .label-search-row input { flex:1; min-width:0; }
 .label-printer-row { align-items:center; justify-content:space-between; }
+.label-printer-row > label { display:flex; align-items:center; min-height:40px; margin:0; line-height:1; }
 .label-printer-actions { display:flex; gap:8px; }
 .label-printer-register { display:flex; flex-direction:column; gap:8px; padding:10px; border:1px solid #526079; }
-.label-action { border:1px solid #526079; background:#1b2436; color:#fff; padding:10px 14px; border-radius:0; font-weight:700; }
+.label-action { display:inline-flex; align-items:center; justify-content:center; line-height:1; border:1px solid #526079; background:#1b2436; color:#fff; padding:10px 14px; border-radius:0; font-weight:700; }
 .label-action:disabled, .label-lot-row:disabled { opacity:.45; }
 .label-list-count { color:#9caec6; font-size:12px; }
 .label-lot-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 12px; text-align:left; padding:14px; background:#141e32; color:#fff; border:1px solid #45516a; border-radius:0; }
@@ -21,7 +22,7 @@
 .label-content label { font-size:12px; color:#adbcd1; }
 .label-content small { color:#adbcd1; font-size:12px; }
 .label-printer-list { display:flex; flex-direction:column; gap:6px; max-height:210px; overflow-y:auto; flex-shrink:0; }
-.label-printer-choice { display:flex; flex-direction:column; gap:4px; flex-shrink:0; padding:10px 12px; min-height:58px; text-align:left; border:1px solid #526079; border-radius:0; background:#080e19; color:#fff; }
+.label-printer-choice { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:4px; flex-shrink:0; padding:10px 12px; min-height:58px; text-align:left; border:1px solid #526079; border-radius:0; background:#080e19; color:#fff; }
 .label-printer-choice strong { font-size:14px; overflow-wrap:anywhere; }
 .label-printer-choice small { font-size:11px; color:#adbcd1; }
 .label-printer-choice.selected { border-color:#34d399; background:#10382b; }

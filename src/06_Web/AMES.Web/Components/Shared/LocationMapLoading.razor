@@ -1,0 +1,7 @@
+@inject IStringLocalizer<SharedResources> L
+
+<div class="location-map-loading" role="status" aria-live="polite" aria-busy="true">
+    <RadzenProgressBarCircular Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Small"
+                               ShowValue="false" Style="width:24px;height:24px;flex:none;" aria-hidden="true" />
+    <span>@L["Lbl.Loading"]</span>
+</div>

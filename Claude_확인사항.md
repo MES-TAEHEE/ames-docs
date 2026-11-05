@@ -121,21 +121,19 @@
 
 - **원단 불출 +10%(추가 불출율) 반영**(10-23 이승욱 요청 — 고객 요구 10-14 "BOM 은 정량, 원단 불출 +10%"): MD-003 이 품목별 추가 불출율 `MD_Item.IssueAddPct`(%, NULL = 0)를 저장하지만 WH·PDA 는 BOM 을 읽지 않고(라인 보충은 라인 로케이션 최소 재고 기준) 이 값을 쓰는 곳이 없습니다. 정할 것: 작업지시·BOM 기준 자재 불출 기능을 새로 둘지, 라인 보충 수량에 비율을 더할지. BOM 자동 차감에 불출율을 넣을지는 김현진 보류(같은 이름 항목)와 함께 정합니다.
 
-### 2-3. 테이블 정리·삭제 승인 대기 (5묶음)
-
-아래는 즉시 삭제할 목록이 아닙니다. 행 수·연결 상태는 기록된 조회일 기준이며, 실제 삭제 전 사용처·외부 서비스·SQL Agent 작업·행 수를 다시 확인하고 승인을 받습니다.
+### 2-3. 유지 중인 구형 공급계획 (1묶음)
 
 | 테이블 | 상태 | 내용 |
 |---|---|---|
-| `PP_SupplyPlan`·`PP_SupplyPlanDetail` | 읽기만 | 구 공급 계획 API가 읽습니다. 외부 사용 여부 확인 전에는 엔드포인트·테이블을 삭제하지 않습니다. |
-| `WH_ReleaseSchedule` | 구형·삭제 승인 대기 | 10-23 개발 DB에서 0건, 현재 코드는 `WH_PickSlip` 사용, 이 테이블의 SQL 모듈·FK 참조 없음 확인. 신규 스키마·추출 대상에서 제외하고 구형 데모 시더는 DB 접근 전 중단하도록 폐기했습니다. `retire_wh_release_schedule.sql`은 기본 조회만 하며, 승인 후 빈 테이블·참조 유무를 재검사해 이 테이블만 삭제할 수 있습니다. 실제 DB에서는 아직 삭제하지 않았습니다. |
-| `TEST_SRM_PurchaseOrderResponse` | 모의 API 소스 별도 보관·제거 | 10-23 개발 DB 426건. 10-28 독립 모의 API와 초기 적재·검증 스크립트를 별도 보관하고 저장소에서 제거했습니다. 실제 DB 테이블·데이터는 변경하지 않았습니다. |
-| `TEST_SRM_Shipment`·`TEST_SRM_ShipmentItem` | 모의 API 소스 별도 보관·제거 | 10-23 개발 DB 각각 2건·4건. 10-28 모의 출하 저장·조회 API와 관련 스크립트를 별도 보관하고 저장소에서 제거했습니다. 업무 출하/입고 API는 유지하며 실제 DB 테이블·데이터는 변경하지 않았습니다. |
-| `PP_MaterialReservation` | 미사용 경로 | `ListPickingSlipCandidates` 호출처와 예약 생성 경로가 없습니다. 삭제 또는 예약 기능 설계 결정 대기입니다. |
+| `PP_SupplyPlan`·`PP_SupplyPlanDetail` | 조회 API 유지 | `/api/pp/supply-plans`가 조회합니다. 11-04 132번 `AMES_DEV`에서 각각 0건이지만, 외부 사용 여부가 확인되지 않아 엔드포인트·테이블은 유지합니다. |
 
-`TEST_SRM` 모의 API 보관 위치: `C:\Users\Young\Documents\AMES-Archives\TEST_SRM-20261028` (`RESTORE.md`, `test-api` 소스 15개, 원본과 SHA-256 일치 확인). 소스·샘플·테이블 생성 스크립트 보관본이며 실제 DB 데이터 백업은 아닙니다. 테이블 정리 대상은 기존 개발 DB `192.168.0.132/AMES_DEV`이고 이번에는 DB 삭제를 실행하지 않았습니다. AMES PO 수집 Worker와 연결 설정, 원격에서 실행 중일 수 있는 모의 서비스는 변경하지 않았습니다. 10-23 당시 `SW_POSYNC_URL/SEMS`가 모의 서버 `192.168.1.68:5220`을 가리켰으므로, 서비스·테이블을 종료/삭제하기 전에 현재 연결 설정과 실제 사용 여부를 확인해야 합니다.
+11-04 `192.168.0.132 / AMES_DEV`에서 사용자 승인으로 `WH_ReleaseSchedule`(0건), `PP_MaterialReservation`(0건), `TEST_SRM_PurchaseOrderResponse`(426건), `TEST_SRM_Shipment`(2건), `TEST_SRM_ShipmentItem`(4건)을 구조·데이터 백업 후 삭제했습니다. 모의 서버 `192.168.1.68:5220`를 가리키던 `SW_POSYNC_SOURCE/SEMS`만 비활성화했고 URL·인증 값과 업무 PO API는 유지했습니다. 재고·거래·피킹·출하·반품·팔렛·PO·SCM 업무 테이블 12개의 전후 행 수가 모두 같으며 `SYS_AuditLog`에 정리·설정 변경 기록을 남겼습니다. SQL Agent 작업 목록은 애플리케이션 계정의 조회 권한이 없어 확인하지 못했습니다.
 
-10-23 정리 실행 당시 개발 DB의 구형 PDA 업무 프로시저 삭제를 확인했습니다. 원본 복구 파일은 `publish/DB_Backup/PDA_BusinessProcedures_20261023_before_cleanup.sql`, 기본 조회용 정리 스크립트는 `dist/retire_pda_business_procedures.sql`입니다. 삭제 대상 27개가 0개 남았고, 재고·거래·출하·반품·팔렛 행 수는 전후 동일합니다. DB 모듈의 외부 참조는 없었으나 SQL Agent 작업은 조회 권한이 없어 확인하지 못했습니다. 로컬 복제 DB는 변경하지 않았습니다. `AMES_ERD_data.js`·`AMES_DB_Schema.html`은 통합 전 구 설계 문서로, 현재 테이블 판정 근거로 쓰지 않습니다.
+복구본: `C:\Users\Young\Documents\AMES-Archives\DB-Retirement-20261104-140623` — 테이블별 복구 SQL, 기존 모의 연동 플래그 복구 SQL, 행 수·SHA-256이 있는 `manifest.json`, 전후 비교 `cleanup-result.json`, `RESTORE.md`. 백업 INSERT 수는 원본 426·2·4건과 일치합니다. 삭제 SQL `dist/retire_unused_planning_mock_tables.sql`은 기본 미리보기이며 명시적 적용·백업 명세·대상 서버·행 수·DB 참조를 검사합니다. 전체 DB 재구축은 실행하지 않았고 Azure·로컬 복제 DB는 변경하지 않았습니다.
+
+`PP_MaterialReservation`의 미호출 `ListPickingSlipCandidates`·전용 DTO와 신규 스키마 정의·추출 대상·구형 테스트 초기화 참조도 제거했습니다. 라인 위치 최소수량 기반 피킹과 `WH_PickSlip`은 유지합니다. TEST_SRM 모의 API 소스 15개는 기존 보관 위치 `C:\Users\Young\Documents\AMES-Archives\TEST_SRM-20261028`에 유지합니다. 원격 모의 서비스 프로세스 자체는 변경하지 않았습니다.
+
+구형 PDA 업무 프로시저 27개는 11-04 132번 DB에서 계속 0개임을 재확인했습니다. 원본 복구 SQL은 `publish/DB_Backup/PDA_BusinessProcedures_20261023_before_cleanup.sql`입니다. `AMES_ERD_data.js`·`AMES_DB_Schema.html`은 통합 전 구 설계 문서로 현재 테이블 판정 근거로 쓰지 않습니다.
 
 
 ---

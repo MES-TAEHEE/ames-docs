@@ -70,6 +70,16 @@ public class BackflushRulesTests
     static readonly BackflushOwner Now = new(99, "NOW", 0m);
 
     [Fact]
+    public void Work_order_line_consumption_includes_subcomponents_but_never_consumes_the_scanned_core_twice()
+    {
+        BackflushBomRow[] rows=[Row("RESIN",qtyPer:2),Row("CLIP",type:"SUB",uom:"EA"),
+            new("CORE","SUB",1,0,"EA",true,true)];
+        var requirements=BackflushRules.Requirements(rows,exceptItems:["CORE"],allComponents:true);
+        Assert.Equal(new[]{"CLIP","RESIN"},requirements.Select(r=>r.PartNo));
+        Assert.Equal(2,requirements.Single(r=>r.PartNo=="RESIN").Qty);
+    }
+
+    [Fact]
     public void Netting_goes_to_the_oldest_shortage_owners_first_and_splits_across_them()
     {
         var nets   = new[] { new BackflushNet("L1", 4m), new BackflushNet("L2", 2m) };

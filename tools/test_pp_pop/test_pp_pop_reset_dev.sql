@@ -409,7 +409,6 @@ DELETE FROM dbo.MNT_FailureRegister WHERE FailureID IN (SELECT FailureID FROM #f
 -- 3-c) WO 와 자식 (슬롯은 WO·MC 만 — PM 은 보전 일정이라 남긴다)
 DELETE FROM dbo.PP_LineSchedule WHERE EntryType IN ('WO','MC');                    SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PP_LineSchedule (WO+MC): ', @n);
 DELETE FROM dbo.PR_WoAcceptance;                                                    SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PR_WoAcceptance: ', @n);
-DELETE FROM dbo.PP_MaterialReservation;                                             SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PP_MaterialReservation: ', @n);
 DELETE FROM dbo.PP_ApsRunWo;                                                        SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PP_ApsRunWo: ', @n);
 DELETE FROM dbo.PP_ApsPlanLineShift;                                                SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PP_ApsPlanLineShift: ', @n);
 DELETE FROM dbo.PP_ApsPlanLine;                                                     SET @n = @@ROWCOUNT; PRINT CONCAT(N'  PP_ApsPlanLine: ', @n);

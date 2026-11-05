@@ -69,13 +69,12 @@ public sealed class LocationStorageTests
         Assert.True(page.IndexOf("Name=\"EditTextBoxLocationName\"", StringComparison.Ordinal)
             < page.IndexOf("Name=\"EditCapacity\"", StringComparison.Ordinal));
         Assert.True(page.IndexOf("Name=\"EditCapacity\"", StringComparison.Ordinal)
-            < page.IndexOf("Name=\"EditMinimumQty\"", StringComparison.Ordinal));
-        Assert.True(page.IndexOf("Name=\"EditMinimumQty\"", StringComparison.Ordinal)
-            < page.IndexOf("Name=\"EditDropDownParent\"", StringComparison.Ordinal));
-        Assert.Contains("Name=\"EditMinimumQty\" TValue=\"decimal\" @bind-Value=\"_f.MinimumQty\"", page);
-        Assert.Contains("MinimumQty = r.MinimumQty ?? 0", page);
+            < page.IndexOf("Name=\"EditDropDownAssignedParts\"", StringComparison.Ordinal));
+        Assert.Contains("Multiple=\"true\"", page);
+        Assert.Contains("@bind-Value=\"p.MinimumQty\"", page);
+        Assert.Contains("PartsFor(r.LocationID)", page);
         Assert.Contains("PermSvc.RecheckEditAsync(AuthPrvd, \"md/fd/location\")", page);
-        Assert.Contains("_f.MinimumQty != (_sel.MinimumQty ?? 0) ? _f.MinimumQty : null", page);
+        Assert.Contains("assignedParts:IsPrimary(_sel)?null:_f.Parts", page);
         var repo = Read("src/02_Data/AMES.Data/Repositories/MasterDataRepository.cs");
         var update = repo[repo.IndexOf("public void UpdateLocation(", StringComparison.Ordinal)..repo.IndexOf("private static void AddLocationPart", StringComparison.Ordinal)];
         Assert.Contains("decimal? minimumQty = null", update);

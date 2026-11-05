@@ -23,6 +23,7 @@ public sealed partial class WarehouseRepository
                     COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) AS PickSlipNo,
                     RS.ItemNo,
                     RS.CreatedBy,
+                    RS.ReqLocation,
                     CASE
                         WHEN COALESCE(RS.DemandQty, 0) > COALESCE(RS.PickedQty, 0)
                             THEN COALESCE(RS.DemandQty, 0) - COALESCE(RS.PickedQty, 0)
@@ -34,7 +35,7 @@ public sealed partial class WarehouseRepository
             ),
             ReleaseDemand AS
             (
-                SELECT MIN(PickSlipID) AS PickSlipID,PickSlipNo,ItemNo,CreatedBy,SUM(RemainingQty) AS RemainingQty
+                SELECT MIN(PickSlipID) AS PickSlipID,PickSlipNo,ItemNo,CreatedBy,MIN(ReqLocation) ReqLocation,SUM(RemainingQty) AS RemainingQty
                 FROM ReleaseLines GROUP BY PickSlipNo,ItemNo,CreatedBy
             ),
             RankedLots AS
@@ -69,8 +70,9 @@ public sealed partial class WarehouseRepository
                     WHERE DB.BoxNumber COLLATE DATABASE_DEFAULT=W.LotNo COLLATE DATABASE_DEFAULT
                     ORDER BY DB.BoxID DESC) B
                 WHERE W.Qty > 0
+                  AND (COALESCE(R.CreatedBy,'')<>'WH-REQUEST' OR COALESCE(W.LocationNo,'')<>COALESCE(R.ReqLocation,''))
                   AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn CR WHERE CR.LotNo=W.LotNo AND CR.Status IN('Open','Inspecting'))
-                  AND (R.CreatedBy <> 'WH-AUTO' OR ({WarehouseRepository.WarehouseBoxPredicate}))
+                  AND (COALESCE(R.CreatedBy,'') NOT IN('WH-AUTO','WH-REQUEST') OR ({WarehouseRepository.WarehouseBoxPredicate}))
             )
             SELECT
                 PickSlipNo AS PICK_SLIPNO,
@@ -80,8 +82,8 @@ public sealed partial class WarehouseRepository
                 Qty AS QTY,
                 ProductionDate AS PROD_DATE
             FROM RankedLots
-            WHERE (CreatedBy='WH-AUTO' AND QtyBefore < RemainingQty)
-               OR (COALESCE(CreatedBy,'')<>'WH-AUTO' AND FifoSeq <= RemainingQty)
+            WHERE (CreatedBy IN('WH-AUTO','WH-REQUEST') AND QtyBefore < RemainingQty)
+               OR (COALESCE(CreatedBy,'') NOT IN('WH-AUTO','WH-REQUEST') AND FifoSeq <= RemainingQty)
             ORDER BY PickSlipID, FifoSeq;
             """, conn);
         ColumnParams.AddFilter(cmd, "@PickSlipNo", "WH_PickSlip.PickSlipID", pickSlipNo);
@@ -106,7 +108,7 @@ public sealed partial class WarehouseRepository
         var lines=Query($"""
             SELECT P.ItemNo,I.ItemName,COALESCE(NULLIF(P.PickSlipNo,''),CONCAT('RS-',P.PickSlipID)) Slip,
                 COALESCE(P.ReqLocation,'') Destination,COALESCE(P.DemandQty,0)-COALESCE(P.PickedQty,0) Remaining,
-                CASE WHEN P.CreatedBy='WH-AUTO' THEN COALESCE(NULLIF(I.DefaultUOM,''),'EA') ELSE 'BOX' END Unit,
+                CASE WHEN P.CreatedBy IN('WH-AUTO','WH-REQUEST') THEN COALESCE(NULLIF(I.DefaultUOM,''),'EA') ELSE 'BOX' END Unit,
                 (SELECT STRING_AGG(A.LocationNo,', ') FROM(SELECT DISTINCT W.LocationNo FROM dbo.WH_Inventory W
                     WHERE W.PartNo=P.ItemNo AND {WarehouseBoxPredicate}) A) Locations
             FROM dbo.WH_PickSlip P LEFT JOIN dbo.MD_Item I ON I.ItemNo=P.ItemNo
@@ -120,12 +122,16 @@ public sealed partial class WarehouseRepository
     }
     // W is the inventory alias; shared by FIFO suggestions, scan validation and completion.
     public const string WarehouseBoxPredicate = """
-        W.UnitType='BOX' AND W.Qty>0
+        W.UnitType IN('BOX','PART') AND W.Qty>0
         AND NOT EXISTS (SELECT 1 FROM dbo.FG_CustomerReturn CR WHERE CR.LotNo=W.LotNo AND CR.Status IN('Open','Inspecting'))
         AND COALESCE(W.LocationNo,'') NOT LIKE 'FG%'
         AND NOT EXISTS (SELECT 1 FROM dbo.MD_Line ML
                         WHERE NULLIF(ML.LotPrefix,'') COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT)
         AND NOT EXISTS (SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)
+        AND NOT EXISTS (SELECT 1 FROM (
+            SELECT TOP(1) T.TransactionType,T.SourceType FROM dbo.WH_InventoryTransaction T
+            WHERE T.LotNo=W.LotNo AND T.TransactionType IN('IN','OUT','MOVE') ORDER BY T.TransactionID DESC
+        ) T WHERE NULLIF(W.LocationNo,'') IS NULL AND T.TransactionType='OUT' AND T.SourceType='PICK_SLIP')
         AND NOT EXISTS (SELECT 1 FROM dbo.MD_Location L
                         WHERE L.LocationID COLLATE DATABASE_DEFAULT=W.LocationNo COLLATE DATABASE_DEFAULT
                           AND (L.LocationLevel=1 OR L.AreaCode IN ('FG','FG_AREA','MNT_AREA','SP_AREA') OR L.LineID IS NOT NULL OR L.LocationType IN('FG','LINE')))
@@ -160,19 +166,23 @@ public sealed partial class WarehouseRepository
 
     // Assigned line locations drive demand even at zero stock; container totals are not counted twice.
     private const string LineStockSql = """
-        WITH Demand AS
+        WITH Assignments AS ({Assignments}), Demand AS
         (
-            SELECT L.LocationID AS LocationNo,M.LineID,L.PartNo,COALESCE(S.Qty,0) AS Qty,COALESCE(L.MinimumQty,0) AS MinimumQty,
+            SELECT L.LocationID AS LocationNo,M.LineID,A.PartNo,COALESCE(S.Qty,0) AS Qty,COALESCE(A.MinimumQty,0) AS MinimumQty,
                 COALESCE(NULLIF(M.LineNameEn,''),M.LineID) AS LineName,
                 CONVERT(bit,CASE WHEN COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE' THEN 1 ELSE 0 END) AS IsActive
             FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID
+            LEFT JOIN Assignments A ON A.LocationID=L.LocationID
             OUTER APPLY(SELECT SUM(W.Qty) Qty FROM dbo.WH_Inventory W
-                WHERE W.LocationNo=L.LocationID AND W.PartNo=L.PartNo
+                WHERE (W.LocationNo=L.LocationID OR (W.LocationNo=M.LotPrefix AND NOT EXISTS(
+                    SELECT 1 FROM dbo.MD_Location Other JOIN Assignments OA ON OA.LocationID=Other.LocationID
+                    WHERE Other.LineID=L.LineID AND Other.LocationLevel=2 AND COALESCE(Other.ActiveFlag,1)=1
+                      AND OA.PartNo=A.PartNo AND Other.LocationID<L.LocationID))) AND W.PartNo=A.PartNo
                   AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn CR WHERE CR.LotNo=W.LotNo AND CR.Status IN('Open','Inspecting'))
                   AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)) S
             WHERE L.LocationLevel=2
               AND (@Overview=1 OR (COALESCE(L.ActiveFlag,1)=1 AND COALESCE(M.Status,'ACTIVE')='ACTIVE'
-                AND NULLIF(L.PartNo,'') IS NOT NULL AND L.MinimumQty>0))
+                AND NULLIF(A.PartNo,'') IS NOT NULL AND A.MinimumQty>0))
         )
         SELECT S.LocationNo,S.PartNo,I.ItemName,S.Qty,S.MinimumQty,
                CONVERT(bit,CASE WHEN EXISTS
@@ -183,7 +193,8 @@ public sealed partial class WarehouseRepository
                   AND UPPER(COALESCE(O.Status,'OPEN')) NOT IN ('CLOSED','CANCELED','CANCELLED','RELEASED'))
                THEN 1 ELSE 0 END),
                CONVERT(bit,CASE WHEN EXISTS(SELECT 1 FROM dbo.MD_Location L JOIN dbo.WH_Inventory W ON W.LocationNo=L.LocationID
-                    WHERE L.LocationID=S.LocationNo AND L.LineID IS NOT NULL AND W.Qty>0 AND W.PartNo<>S.PartNo) THEN 1 ELSE 0 END),
+                    WHERE L.LocationID=S.LocationNo AND L.LineID IS NOT NULL AND W.Qty>0
+                      AND NOT EXISTS(SELECT 1 FROM Assignments Assigned WHERE Assigned.LocationID=L.LocationID AND Assigned.PartNo=W.PartNo)) THEN 1 ELSE 0 END),
                S.LineID,COALESCE(NULLIF(I.DefaultUOM,''),'') AS Unit,S.LineName,
                CONVERT(bit,CASE WHEN S.IsActive=1 AND COALESCE(I.ActiveFlag,1)=1 THEN 1 ELSE 0 END) AS IsActive
         FROM Demand S
@@ -201,9 +212,9 @@ public sealed partial class WarehouseRepository
             .ThenBy(row => row.LineCode, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    private static List<LineStockRow> ReadLineStock(SqlConnection conn, SqlTransaction? tx, bool overview=false)
+    internal static List<LineStockRow> ReadLineStock(SqlConnection conn, SqlTransaction? tx, bool overview=false)
     {
-        using var cmd = new SqlCommand(LineStockSql, conn, tx);
+        using var cmd = new SqlCommand(LineStockSql.Replace("{Assignments}",LocationPartAssignmentsSql(conn,tx)), conn, tx);
         cmd.Parameters.Add("@Overview", SqlDbType.Bit).Value = overview;
         using var reader = cmd.ExecuteReader();
         var rows = new List<LineStockRow>();
@@ -216,51 +227,13 @@ public sealed partial class WarehouseRepository
 
     public sealed record ReplenishmentResult(int Orders, int Lines, int InvalidRequests);
 
-    internal static IEnumerable<IGrouping<string, LineStockRow>> PendingLineOrders(IEnumerable<LineStockRow> stock)
-        => stock.Where(x => x.State == "Pending").GroupBy(x => x.LineId ?? x.LineCode, StringComparer.OrdinalIgnoreCase);
-
     public ReplenishmentResult GenerateLinePickingOrders()
     {
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted);
-        // SQL transaction lock also serializes workers running on different API hosts.
-        using (var gate = new SqlCommand("""
-            DECLARE @Result int;
-            EXEC @Result=sys.sp_getapplock @Resource='WH_LINE_REPLENISHMENT',
-                 @LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=0;
-            SELECT @Result;
-            """, conn, tx))
-        {
-            if (Convert.ToInt32(gate.ExecuteScalar()) < 0) return new(0, 0, 0);
-        }
-        var stock = ReadLineStock(conn, tx);
-        var orders = 0;
-        var count = 0;
-        foreach (var line in PendingLineOrders(stock))
-        {
-            var slip = GeneratePickSlipNo(conn, tx, line.Key);
-            var seq = 0;
-            foreach (var item in line)
-            {
-                using var cmd = new SqlCommand("""
-                    INSERT dbo.WH_PickSlip
-                        (PickSlipNo,ReqLocation,ReqSeqNo,ReqUserId,ItemNo,DemandQty,PickedQty,
-                         RequiredAt,Priority,Status,CreatedBy,CreatedTS)
-                    VALUES (@Slip,@Line,@Seq,@Actor,@Part,@Qty,0,SYSDATETIME(),1,'Open',@Actor,SYSDATETIME());
-                    """, conn, tx);
-                cmd.Parameters.Add("@Slip", SqlDbType.NVarChar, 40).Value = slip;
-                cmd.Parameters.Add("@Line", SqlDbType.NVarChar, 40).Value = item.LineCode;
-                cmd.Parameters.Add("@Seq", SqlDbType.Int).Value = ++seq;
-                cmd.Parameters.Add("@Actor", SqlDbType.VarChar, 20).Value = ReplenishmentActor;
-                cmd.Parameters.Add("@Part", SqlDbType.VarChar, 20).Value = item.PartNo;
-                AddQtyDecimal(cmd, "@Qty", item.RequiredQty);
-                cmd.ExecuteNonQuery();
-                count++;
-            }
-            orders++;
-        }
+        var result = GenerateWorkOrderPicking(conn, tx);
         tx.Commit();
-        return new(orders, count, stock.Count(x => x.Shortage > 0 && x.State != "Pending" && !x.HasOpenOrder));
+        return result;
     }
 
 }

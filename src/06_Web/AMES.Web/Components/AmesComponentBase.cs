@@ -34,14 +34,20 @@ public abstract class AmesComponentBase : ComponentBase, IHandleEvent
         if (arg is not MouseEventArgs) return Dispatch(callback, arg);
 
         var method = (DelegateField?.GetValue(callback) as Delegate)?.Method;
-        // Portal dialog and input clicks must not be discarded after a database request.
+        // Navigation/dialog clicks must not be discarded after a database request.
         var path = new Uri(AmesNavigation.Uri).AbsolutePath;
-        if (!path.StartsWith("/portal", StringComparison.OrdinalIgnoreCase)
-            && !path.StartsWith("/scm/", StringComparison.OrdinalIgnoreCase)
-            && DateTime.UtcNow - _slowClickEndUtc < QueueWindow) { SignalClickDone(); return Task.CompletedTask; }
+        if (ShouldDiscardQueuedClick(path, DateTime.UtcNow - _slowClickEndUtc)) { SignalClickDone(); return Task.CompletedTask; }
         if (method is not null && _runningClicks.Contains(method)) { SignalClickDone(); return Task.CompletedTask; }
         return DispatchClick(callback, arg, method);
     }
+
+    internal static bool ShouldDiscardQueuedClick(string path, TimeSpan sinceSlowClick)
+        => sinceSlowClick < QueueWindow
+            && !path.StartsWith("/portal", StringComparison.OrdinalIgnoreCase)
+            && !path.StartsWith("/scm/", StringComparison.OrdinalIgnoreCase)
+            // Hierarchy navigation must not lose the next card click after a slow render/refresh.
+            && !path.Equals("/wh/location-map", StringComparison.OrdinalIgnoreCase)
+            && !path.Equals("/fg/location-map", StringComparison.OrdinalIgnoreCase);
 
     Task Dispatch(EventCallbackWorkItem callback, object? arg)
     {

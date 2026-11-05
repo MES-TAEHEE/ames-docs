@@ -206,6 +206,7 @@ public sealed class ReworkRepository
             CloseRow(conn, tx, defectId, LotDefectRules.DispositionReworked, causeCode, note, operatorId, employeeNo, occurredAt);
 
             tx.Commit();
+            WarehouseRepository.RecheckLinePicking(_factory);
             return ReworkOutcome.Done;
         }
         catch { tx.Rollback(); throw; }
@@ -266,6 +267,7 @@ public sealed class ReworkRepository
             unload = PalletStockRepository.Unload(conn, tx, lotId, ReadLotCode(conn, tx, lotId), itemNo,
                                                   PalletStockRepository.ScrapSourceType, $"SCRAP {causeCode}", operatorId, employeeNo);
             tx.Commit();
+            WarehouseRepository.RecheckLinePicking(_factory);
             return ReworkOutcome.Done;
         }
         catch { tx.Rollback(); throw; }

@@ -161,6 +161,7 @@ public sealed class MenuCatalog
         "portal/delivery-notes",
         "portal/receipts",
         "wh/locations",
+        "wh/picking-requests",
         "fg/history",
     };
 
@@ -170,6 +171,7 @@ public sealed class MenuCatalog
     {
         var path = href.Trim('/');
         return path.Equals("wh/inventory-setting", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("wh/picking-requests", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/history", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/location-map", StringComparison.OrdinalIgnoreCase)
             || path.Equals("fg/locations", StringComparison.OrdinalIgnoreCase)
@@ -287,6 +289,7 @@ public sealed class MenuCatalog
         // WH
         ["wh/location-map"] = "Mapa de Ubicaciones",
         ["wh/picking-orders"] = "Órdenes de Picking",
+        ["wh/picking-requests"] = "Solicitud de picking",
         ["wh/log-history"] = "Historial",
         ["fg/customer-returns"] = "Devoluciones de Clientes",
         ["fg/shipment-plan"] = "Plan de Envíos",

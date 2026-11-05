@@ -9,6 +9,22 @@ namespace AMES.Api.Tests;
 public sealed class WarehouseInboundLookupTests
 {
     [Fact]
+    public void Picking_line_keeps_old_payload_compatibility_and_adds_work_order_and_destination()
+    {
+        var json = """{"pickSlipNo":"PK1","itemNo":"PART-A","requestBoxQty":1,"quantityUnit":"G"}""";
+        var row = System.Text.Json.JsonSerializer.Deserialize<PdaApi.ReleasePickLineRow>(json,
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        Assert.Null(row.WorkOrderNumber);
+        Assert.Null(row.Destination);
+        var current = new WhEndpoints.ReleasePickLineRow("PK1", "PART-A", "A", 1.25m, 0, 0, null,
+            null, null, null, "Open", "G", "WO-1", "LI01A1F1");
+        var converted = System.Text.Json.JsonSerializer.Deserialize<PdaApi.ReleasePickLineRow>(
+            System.Text.Json.JsonSerializer.Serialize(current))!;
+        Assert.Equal("WO-1", converted.WorkOrderNumber);
+        Assert.Equal("LI01A1F1", converted.Destination);
+        Assert.Equal(1.25m, converted.RequestBoxQty);
+    }
+    [Fact]
     public void Same_part_at_different_line_positions_is_not_combined()
     {
         var first = WhEndpoints.ReleaseDestinationKey("part-a", "li01a1f1");

@@ -20,12 +20,16 @@ public sealed class WarehouseFailFixes1029Tests
             new WarehouseRepository.LineStockRow("LJ01A1F1", "A", "A", 0, 4, false, LineId:"LINE-2"),
             new WarehouseRepository.LineStockRow("LI03A1F1", "C", "C", 0, 9, true, LineId:"LINE-1"),
             new WarehouseRepository.LineStockRow("LI04A1F1", "D", "D", 3, 3, false, LineId:"LINE-1") };
-        var groups = WarehouseRepository.PendingLineOrders(rows).ToList();
+        var locations = rows.Select(r => new AMES.Data.Services.LinePickingPlanner.Location(
+            r.LineCode,r.LineId!,r.PartNo,r.MinimumQty,r.Qty)).ToList();
+        var plan = AMES.Data.Services.LinePickingPlanner.Plan([], [], locations,
+            [new("LI03A1F1","C",9)]);
+        var groups = plan.Requests.GroupBy(r => r.LineId).ToList();
         Assert.Equal(2, groups.Count);
-        Assert.Equal(new[] { "LI01A1F1", "LI02A1F1" }, groups.Single(x => x.Key == "LINE-1").Select(x => x.LineCode));
-        var source = Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.LineStock.cs");
-        Assert.Contains(".Value = item.LineCode;", source);
-        Assert.Contains("GeneratePickSlipNo(conn, tx, line.Key)", source);
+        Assert.Equal(new[] { "LI01A1F1", "LI02A1F1" }, groups.Single(x => x.Key == "LINE-1").Select(x => x.LocationId));
+        var source = Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.WorkOrderPicking.cs");
+        Assert.Contains(".Value = request.LocationId;", source);
+        Assert.Contains("GeneratePickSlipNo(conn, tx, group.Key.LineId)", source);
     }
 
     [Fact]
@@ -87,10 +91,9 @@ public sealed class WarehouseFailFixes1029Tests
         var query = api.Split("private static LocationRow? QueryDboLocation")[1].Split("private static LocationRow? QueryLineLocation")[0];
         Assert.True(query.IndexOf("THROW 51423", StringComparison.Ordinal) < query.IndexOf("SELECT TOP (1)", StringComparison.Ordinal));
         Assert.Contains("ex is SqlException { Number: 51423 } ? StatusCodes.Status400BadRequest", api);
-        var repo = Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.cs");
-        Assert.Contains("T.ReasonCode='INBOUND_CANCEL' THEN 'CANCEL_RECEIPT'", repo);
-        Assert.Contains("T.ReasonCode='INBOUND_CANCEL' THEN 'INBOUND'", repo);
-        Assert.Contains("T.ReasonCode='INBOUND_CANCEL' THEN 'WH002'", repo);
+        var repo = Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.History.cs");
+        Assert.Contains("T.ReasonCode='INBOUND_CANCEL' OR T.TransactionType='CANCEL' THEN 'CANCEL_RECEIPT'", repo);
+        Assert.Contains("T.ReasonCode='INBOUND_CANCEL' OR T.TransactionType='CANCEL' THEN 'INBOUND'", repo);
         var putAway = Read("src/05_Pda/AMES.Pda/Components/Pages/Wh/WhPutAway.razor");
         var scan = putAway.Split("private async Task ScanLocation()")[1].Split("private async Task Confirm()")[0];
         Assert.Contains("ShowAlert(\"Location Scan Failed\", ex.Message)", scan);

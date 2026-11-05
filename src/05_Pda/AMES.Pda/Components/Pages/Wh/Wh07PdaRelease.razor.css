@@ -4,3 +4,27 @@
 .wh07-part-row {padding:10px 8px;border-bottom:1px solid #38516e;color:#e5edf9;overflow-wrap:anywhere;font-size:12px;}
 .wh07-part-row summary {color:#9bc9ff;cursor:pointer;font-size:13px;margin-bottom:6px;}
 .wh07-part-order {display:block;width:100%;padding:10px 8px;margin-top:6px;border:1px solid #38516e;background:#142239;color:#e5edf9;text-align:left;}
+
+.wh07-order-head button.wh07-refresh {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 110px;
+    min-height: 34px;
+}
+.wh07-order-head button.wh07-refresh:active,
+.wh07-order-head button.wh07-refresh.refreshing {
+    background: #244b70;
+    border-color: #93c5fd;
+}
+.wh07-refresh-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(147,197,253,.3);
+    border-top-color: #93c5fd;
+    border-radius: 50%;
+    animation: wh07-refresh-spin .8s linear infinite;
+}
+.wh07-refresh-result { padding-top: 8px; color: #93c5fd; font-size: 11px; }
+@keyframes wh07-refresh-spin { to { transform: rotate(360deg); } }

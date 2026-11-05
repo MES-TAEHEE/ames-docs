@@ -12130,6 +12130,19 @@
   <data name="WH.Picking.Col.OrderNo" xml:space="preserve">
     <value>Picking Order</value>
   </data>
+  <data name="WH.Picking.Col.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="WH.Picking.Source.WorkOrder" xml:space="preserve"><value>Work Order</value></data>
+  <data name="WH.Picking.Source.Minimum" xml:space="preserve"><value>Minimum</value></data>
+  <data name="WH.Picking.Source.Both" xml:space="preserve"><value>WO + Minimum</value></data>
+  <data name="WH.Picking.Col.CreatedDate" xml:space="preserve">
+    <value>Created Date</value>
+  </data>
+  <data name="WH.Picking.Col.DueDate" xml:space="preserve">
+    <value>Due Date</value>
+  </data>
+  <data name="WH.Picking.Filter.IncludeOverdue" xml:space="preserve">
+    <value>Include overdue</value>
+  </data>
   <data name="WH.Picking.Col.Materials" xml:space="preserve">
     <value>Materials</value>
   </data>
@@ -12171,6 +12184,16 @@
   </data>
   <data name="WH.Picking.Err.Load" xml:space="preserve">
     <value>Unable to load line stock or picking orders. Check the database connection.</value>
+  </data>
+  <data name="WH.Picking.Err.Refresh" xml:space="preserve">
+    <value>Unable to recalculate picking orders. Try Refresh again. Existing orders have been preserved.</value>
+  </data>
+  <data name="WH.Picking.Btn.Cancel" xml:space="preserve"><value>Cancel Order</value></data>
+  <data name="WH.Picking.Confirm.Cancel" xml:space="preserve"><value>Cancel picking order {0}?</value></data>
+  <data name="WH.Picking.Msg.Cancelled" xml:space="preserve"><value>Picking order {0} was cancelled.</value></data>
+  <data name="WH.Picking.Err.Cancel" xml:space="preserve"><value>Unable to cancel this picking order. Refresh and check whether it is already completed or cancelled.</value></data>
+  <data name="WH.Picking.Err.NoPermission" xml:space="preserve">
+    <value>You do not have permission to change picking orders.</value>
   </data>
   <data name="WH.Picking.Err.LoadDetail" xml:space="preserve">
     <value>Unable to load picking order details.</value>
@@ -12955,4 +12978,14 @@
   <data name="MD.Rule.StorageLocLength" xml:space="preserve">
     <value>Storage location can be up to 20 characters.</value>
   </data>
+  <data name="WH.Picking.Col.WorkOrder" xml:space="preserve"><value>Work Order</value></data>
+  <data name="MD.Location.Hint.BomAssignment" xml:space="preserve"><value>Parts are loaded from the line BOP and effective BOM. Set a Minimum to replenish this location even without a work order.</value></data>
+  <data name="MD.Location.Lbl.AssignedParts" xml:space="preserve"><value>Assigned Parts</value></data>
+  <data name="MD.Location.Parts" xml:space="preserve"><value>parts</value></data>
+  <data name="MD.Location.PerPart" xml:space="preserve"><value>Per part</value></data>
+  <data name="MD.Location.Recommended" xml:space="preserve"><value>Recommended</value></data>
+  <data name="MD.Location.SelectParts" xml:space="preserve"><value>Select parts above and set the minimum quantity for each.</value></data>
+  <data name="WH.Picking.Request.Title" xml:space="preserve"><value>Picking Request</value></data>
+  <data name="WH.Picking.Source.Request" xml:space="preserve"><value>Manual Request</value></data>
+  <data name="WH.Picking.Request.Created" xml:space="preserve"><value>Picking order {0} created.</value></data>
 </root>

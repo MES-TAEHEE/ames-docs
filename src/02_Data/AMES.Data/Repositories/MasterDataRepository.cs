@@ -526,7 +526,10 @@ public sealed class MasterDataRepository
         INSERT @r SELECT DISTINCT 'MOLD',  MoldID FROM dbo.MD_MoldItem WHERE ItemNo = @K;
         INSERT @r SELECT DISTINCT 'RESIN', MoldID FROM dbo.MD_MoldItem WHERE ResinItemNo = @K;
         INSERT @r SELECT 'SO', SoNumber + ISNULL('-' + CAST(SoLineNo AS varchar(10)), '') FROM dbo.PP_CustomerOrder WHERE ItemNo = @K;
-        INSERT @r SELECT 'LOCATION',LocationID FROM dbo.MD_Location WHERE PartNo=@K;
+        IF OBJECT_ID(N'dbo.MD_LocationPart',N'U') IS NULL
+            INSERT @r SELECT 'LOCATION',LocationID FROM dbo.MD_Location WHERE PartNo=@K;
+        ELSE
+            INSERT @r EXEC sys.sp_executesql N'SELECT ''LOCATION'',LocationID FROM dbo.MD_LocationPart WHERE PartNo=@K',N'@K varchar(20)',@K;
         INSERT @r SELECT DISTINCT 'SHIPORDER',O.OrderNo FROM dbo.FG_ShippingOrder O JOIN dbo.FG_ShippingOrderLine L ON L.OrderID=O.OrderID WHERE L.PartNo=@K;
         INSERT @r SELECT 'LOT', ISNULL(LotCode, CAST(LotID AS varchar(20))) FROM dbo.tbl_Lot WHERE ItemNo = @K;
         INSERT @r SELECT DISTINCT 'STOCK', ISNULL(LocationNo, '-') FROM dbo.WH_Inventory
@@ -3662,11 +3665,14 @@ public sealed class MasterDataRepository
         string? aisle, string? bay, string? slot,
         decimal? capacity, string? locationType, string? plantCode,
         bool activeFlag, string modifiedBy, string? assignedPartNo = null,
-        bool setParent = false, string? parentLocationId = null, decimal? minimumQty = null)
+        bool setParent = false, string? parentLocationId = null, decimal? minimumQty = null,
+        IReadOnlyList<WarehouseRepository.LocationPartSetting>? assignedParts = null)
     {
         if (minimumQty is { } minimum && (minimum < 0 || minimum > 99999999999m || minimum != decimal.Truncate(minimum)))
             throw new ArgumentException("Minimum qty must be a whole number from 0 to 99,999,999,999.", nameof(minimumQty));
         using var conn = _factory.OpenConnection();
+        using var tx = assignedParts is null ? null : conn.BeginTransaction(IsolationLevel.Serializable);
+        if (tx is not null) WarehouseRepository.LockLinePicking(conn,tx);
         using var cmd = new SqlCommand(
             "IF @Min IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.MD_Location WITH(UPDLOCK,HOLDLOCK) " +
             "WHERE LocationID=@I AND LocationLevel=2) " +
@@ -3683,8 +3689,9 @@ public sealed class MasterDataRepository
             "Capacity=@CAP,LocationType=CASE WHEN UPPER(@AR)='FG_AREA' THEN 'FG' ELSE @LT END,PlantCode=@PL,ActiveFlag=@AF," +
             "ModifiedTS=SYSDATETIME(),ModifiedBy=@MB,PartNo=COALESCE(@Part,PartNo),MinimumQty=COALESCE(@Min,MinimumQty)," +
             "ParentLocationID=CASE WHEN @SetParent=1 THEN @Parent ELSE ParentLocationID END " +
-            "WHERE LocationID=@I;", conn);
-        AddLocationPart(cmd,assignedPartNo);
+            "WHERE LocationID=@I;", conn,tx);
+        if (assignedParts is null) AddLocationPart(cmd,assignedPartNo);
+        else cmd.Parameters.Add("@Part",SqlDbType.VarChar,20).Value=DBNull.Value;
         var minimumParameter = cmd.Parameters.Add("@Min", SqlDbType.Decimal);
         minimumParameter.Precision = 18; minimumParameter.Scale = 3;
         minimumParameter.Value = (object?)minimumQty ?? DBNull.Value;
@@ -3705,6 +3712,11 @@ public sealed class MasterDataRepository
         cmd.Parameters.Add("@AF",  SqlDbType.Bit).Value           = activeFlag;
         cmd.Parameters.Add("@MB",  SqlDbType.VarChar,   20).Value = modifiedBy;
         cmd.ExecuteNonQuery();
+        if (tx is not null)
+        {
+            WarehouseRepository.SaveLocationParts(conn,tx,locationId,assignedParts!,modifiedBy);
+            tx.Commit();
+        }
     }
 
     private static void AddLocationPart(SqlCommand command,string? partNo)
@@ -3726,19 +3738,24 @@ public sealed class MasterDataRepository
     public void DeleteLocation(string locationId)
     {
         using var conn = _factory.OpenConnection();
+        using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        WarehouseRepository.LockLinePicking(conn,tx);
         using var cmd = new SqlCommand("""
             IF EXISTS
             (
-                SELECT 1 FROM dbo.WH_Inventory
+                SELECT 1 FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK)
                 WHERE LocationNo COLLATE DATABASE_DEFAULT = @I COLLATE DATABASE_DEFAULT AND Qty<>0
             )
                 THROW 52071, 'The location cannot be deleted while inventory exists.', 1;
             IF EXISTS (SELECT 1 FROM dbo.MD_Location WHERE ParentLocationID = @I)
                 THROW 52076, 'The location cannot be deleted while detail locations belong to it.', 1;
-            DELETE FROM dbo.MD_Location WHERE LocationID=@I;
-            """, conn);
+            """, conn,tx);
         cmd.Parameters.Add("@I", SqlDbType.VarChar, 20).Value = locationId;
         cmd.ExecuteNonQuery();
+        WarehouseRepository.DeleteLocationParts(conn,tx,locationId);
+        cmd.CommandText="DELETE FROM dbo.MD_Location WHERE LocationID=@I;";
+        cmd.ExecuteNonQuery();
+        tx.Commit();
     }
 
     // ── MD_PaintFabric ───────────────────────────────────────────────

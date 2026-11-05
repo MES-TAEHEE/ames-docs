@@ -5,6 +5,55 @@ namespace AMES.Data.Tests;
 public sealed class LocationMapLineGroupTests
 {
     [Fact]
+    public void Initial_map_renders_loading_before_any_database_load_or_empty_cards()
+    {
+        foreach(var module in new[]{"Wh","Fg"})
+        {
+            var page=Read($"src/06_Web/AMES.Web/Components/Pages/{module}/LocationMap.razor");
+            Assert.Contains("private bool _loading = true;",page);
+            Assert.Contains("OnAfterRenderAsync(bool firstRender)",page);
+            Assert.Contains("if (!firstRender) return;",page);
+            Assert.Contains("finally { _loading = false; await InvokeAsync(StateHasChanged); }",page);
+            Assert.Contains("<LocationMapLoading />",page);
+            Assert.DoesNotContain("Msg.Loading",page);
+            Assert.True(page.IndexOf("@if (_loading)",StringComparison.Ordinal)<page.IndexOf("<LocationMapExplorer",StringComparison.Ordinal));
+            Assert.DoesNotContain("OnInitializedAsync",page);
+        }
+    }
+    [Fact]
+    public void Cards_wait_for_interactivity_show_loading_and_reject_duplicate_or_stale_clicks()
+    {
+        var page=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapExplorer.razor");
+        Assert.Contains("if (!_interactiveReady || _navigating)",page);
+        Assert.Contains("Disabled=\"@(!_interactiveReady || _navigating || _saving)\"",page);
+        Assert.Contains("<LocationMapLoading />",page);
+        Assert.DoesNotContain("Msg.Loading",page);
+        Assert.Contains("OpenStageRowAsync(row, cardScope)",page);
+        Assert.Contains("scope != SelectionScope",page);
+        Assert.Contains("if (firstRender || _navigationRendered)",page);
+        Assert.Contains("finally { _navigationRendered = true; }",page);
+        Assert.Contains("_dialog is not null || scope != SelectionScope",page);
+        foreach(var module in new[]{"Wh","Fg"})
+            Assert.Contains("await Task.Run(() => LocationMapDatabase.Load",Read($"src/06_Web/AMES.Web/Components/Pages/{module}/LocationMap.razor"));
+    }
+    [Fact]
+    public void Map_loading_uses_a_small_spinner_and_an_existing_translated_label_not_a_full_width_bar()
+    {
+        var loader=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapLoading.razor");
+        Assert.Contains("<RadzenProgressBarCircular",loader);
+        Assert.Contains("width:24px;height:24px;flex:none;",loader);
+        Assert.Contains("ProgressBarMode.Indeterminate",loader);
+        Assert.Contains("Lbl.Loading",loader);
+        Assert.DoesNotContain("Msg.Loading",loader);
+        Assert.DoesNotContain("<RadzenProgressBar ",loader);
+        foreach(var language in new[]{"",".en",".ko",".es"})
+        {
+            var resources=System.Xml.Linq.XDocument.Parse(Read($"src/06_Web/AMES.Web/Resources/SharedResources{language}.resx"));
+            var label=Assert.Single(resources.Root!.Elements("data"),entry=>(string?)entry.Attribute("name")=="Lbl.Loading");
+            Assert.False(string.IsNullOrWhiteSpace(label.Element("value")?.Value));
+        }
+    }
+    [Fact]
     public void Line_group_membership_uses_location_line_ID_and_the_selected_warehouse_not_display_names()
     {
         var load=Read("src/06_Web/AMES.Web/Components/Shared/LocationMapDatabase.cs");

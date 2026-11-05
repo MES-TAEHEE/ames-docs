@@ -3,6 +3,26 @@ namespace AMES.Data.Repositories;
 // Parameterized batches owned by the application; no database procedure installation is required.
 public static class PdaWarehouseSql
 {
+    public const string ReleasePickedLot = """
+        SET QUOTED_IDENTIFIER ON;
+        SET ANSI_NULLS ON;
+        UPDATE dbo.WH_Inventory
+           SET Qty=CASE WHEN @LineDestination IS NULL THEN 0 ELSE Qty END,
+               LocationNo=CASE WHEN @LineDestination IS NULL THEN LocationNo ELSE NULL END,
+               ParentLotNo=CASE WHEN @LineDestination IS NULL THEN ParentLotNo ELSE NULL END,
+               UpdatedAt=SYSDATETIME()
+         WHERE LotNo=@LotNo AND Qty=@Qty;
+        IF @@ROWCOUNT<>1 THROW 51620, 'LOT inventory changed before Release.', 1;
+        INSERT dbo.WH_InventoryTransaction
+            (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,
+             ReasonCode,SourceType,SourceID,OperatorID,Note,CreatedBy,CreatedTS)
+        VALUES (SYSDATETIME(),'OUT',@ItemNo,@LocationID,@LotNo,@Qty,-@Qty,0,
+            @ReasonCode,'PICK_SLIP',@ScheduleID,@User,CONCAT('Release ',@Slip,' / ',@ReasonCode),LEFT(@User,20),SYSDATETIME());
+        IF @LineDestination IS NOT NULL
+            UPDATE dbo.tbl_Lot SET CurrentLocationID=NULL,ModifiedBy=LEFT(@User,20),ModifiedTS=SYSDATETIME()
+            WHERE LotCode=@LotNo;
+        """;
+
     public const string PutAwayInventory = """
         SET QUOTED_IDENTIFIER ON;
         SET ANSI_NULLS ON;
@@ -916,6 +936,13 @@ public static class PdaWarehouseSql
             IF EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn WITH(UPDLOCK,HOLDLOCK) WHERE LotNo=@Barcode AND Status IN('Open','Inspecting'))
                 THROW 52614,'This customer return is awaiting inspection. Approve it in Customer Returns before setting a location.',1;
             IF @PartNo IS NULL THROW 51408, 'This barcode has not been received yet.', 1;
+            DECLARE @ExpectedLineLocation varchar(20)=(SELECT ReqLocation FROM (
+        """ + WarehouseRepository.LineTransfersInTransitSql + """
+            ) T WHERE T.LotNo=@Barcode);
+            IF @ExpectedLineLocation IS NOT NULL AND @ExpectedLineLocation<>@Location
+               AND NOT EXISTS(SELECT 1 FROM dbo.MD_Location E JOIN dbo.MD_Location D ON D.LineID=E.LineID
+                   WHERE E.LocationID=@ExpectedLineLocation AND D.LocationID=@Location AND NULLIF(E.LineID,'') IS NOT NULL)
+                THROW 51430,'This picking item must be delivered to its requested location or the same production line.',1;
             IF EXISTS(SELECT 1 FROM dbo.MD_Item WHERE ItemNo=@PartNo AND ItemType='ASSY')
             BEGIN
                 IF NOT EXISTS(SELECT 1 FROM dbo.MD_Location WHERE LocationID=@Location AND LocationType='FG'
@@ -938,14 +965,14 @@ public static class PdaWarehouseSql
                 (TransactionTime,TransactionType,PartNo,LocationNo,LotNo,QtyBefore,QtyChange,QtyAfter,ReasonCode,SourceType,OperatorID,Note,CreatedBy,CreatedTS)
             VALUES(SYSDATETIME(),'MOVE',@PartNo,@Location,@Barcode,@Qty,0,@Qty,'PUT_AWAY','LOT',@User,
                    CONCAT('Moved from ',COALESCE(@BeforeLocation,'(unassigned)'),' to ',@Location),LEFT(@User,20),SYSDATETIME());
+            SELECT @ReceiveMode RECEIVE_TYPE,'N' YN,W.LotNo LOTNO,W.LotNo BARCODE,'dbo.WH_Inventory' SOURCE_TABLE,
+                W.DeliveryNoteNo NOTENO,W.ParentLotNo CASE_BARCODE,W.PalletNo CASE_NO,W.InvoiceNo INVOICE_NO,
+                W.PartNo PARTNO,COALESCE(W.PartName,I.ItemName) PARTNM,W.Qty QTY,I.DefaultUOM UNIT,
+                W.LocationNo RECEIVED_LOCATION,'STORED' RECEIVED_STATUS
+            FROM dbo.WH_Inventory W LEFT JOIN dbo.MD_Item I ON I.ItemNo=W.PartNo WHERE W.LotNo=@Barcode;
             COMMIT TRANSACTION;
 
         END;
-        PdaInboundResult:
-        """ + InboundScanResult + """
-        SET QUOTED_IDENTIFIER ON;
-        SET ANSI_NULLS ON;
-
         """;
 
     public const string InboundCancel = """

@@ -6,6 +6,29 @@ namespace AMES.Pda.Services;
 public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi spareParts,
     FinishedGoodsApi fgApi) : PdaApi(http, auth)
 {
+    public Task<AMES.Contracts.Dto.PickingRequestOptionsDto> PickingRequestOptionsAsync()
+        => GetRequiredAsync<AMES.Contracts.Dto.PickingRequestOptionsDto>("/api/wh/picking-requests/options",
+            "Picking Request could not be loaded. Check the API connection and your permissions.");
+
+    public async Task<AMES.Contracts.Dto.PickingRequestCreatedDto> CreatePickingRequestAsync(AMES.Contracts.Dto.CreatePickingRequestDto request)
+    {
+        Authorize();
+        using var response=await _http.PostAsJsonAsync("/api/wh/picking-requests",request);
+        if(response.StatusCode==HttpStatusCode.Conflict)
+        {
+            var conflict=await response.Content.ReadFromJsonAsync<AMES.Contracts.Dto.PickingRequestConflictDto>();
+            if(conflict?.ExistingOrders is {Count:>0})throw new AMES.Contracts.Exceptions.PickingRequestExistsException(conflict.ExistingOrders);
+        }
+        if(!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(await ReadServiceErrorAsync(response,"Picking Request could not be created."));
+        return await response.Content.ReadFromJsonAsync<AMES.Contracts.Dto.PickingRequestCreatedDto>()
+            ?? throw new InvalidOperationException("No request number was returned. Check Picking Orders before retrying.");
+    }
+
+    public Task<List<AMES.Contracts.Dto.ExistingPickingRequestDto>> ExistingPickingRequestsAsync(string destination,string partNo)
+        =>GetRequiredAsync<List<AMES.Contracts.Dto.ExistingPickingRequestDto>>(
+            $"/api/wh/picking-requests/existing?destination={Uri.EscapeDataString(destination)}&partNo={Uri.EscapeDataString(partNo)}",
+            "Existing picking orders could not be checked. Please retry.");
     public Task<AMES.Contracts.Dto.PdaTransactionPageDto> TransactionPageAsync(string? search,DateTime? from,DateTime? to,
         string? worker=null,string? reason=null,string? direction=null,DateTime? beforeAt=null,long? beforeId=null,
         int? deliveryId=null,string? partNo=null)
@@ -239,6 +262,8 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         $"/api/wh/inventory/box-label/{Uri.EscapeDataString(lotNo)}", "Box label data is unavailable.");
     public Task<HttpResponseMessage> WhReleaseCompleteAsync(ReleaseCompleteReq body)
         => Post("/api/wh/release/complete", body);
+    public static Task<string> ReadReleaseErrorAsync(HttpResponseMessage response)
+        => ReadServiceErrorAsync(response, "Release could not be completed.");
     public Task<List<OutgoingVendorRow>> WhOutgoingVendorsAsync()
         => Get<List<OutgoingVendorRow>>("/api/wh/release/outgoing/vendors");
     public async Task<DirectOutgoingLotRow?> WhDirectOutgoingLotAsync(string lotNo, string? areaCode = null)

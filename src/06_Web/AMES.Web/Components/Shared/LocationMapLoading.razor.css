@@ -1,0 +1,11 @@
+.location-map-loading {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:24px 16px;
+    color:var(--ames-text);
+    font-size:14px;
+    letter-spacing:normal;
+    text-transform:none;
+}

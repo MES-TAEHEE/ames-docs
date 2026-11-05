@@ -25,6 +25,7 @@ var db = server.Databases[new SqlConnectionStringBuilder(cs).InitialCatalog];
 static bool Excluded(string name) =>
     name.StartsWith("TEST_", StringComparison.OrdinalIgnoreCase)
     || name.Equals("WH_ReleaseSchedule", StringComparison.OrdinalIgnoreCase)
+    || name.Equals("PP_MaterialReservation", StringComparison.OrdinalIgnoreCase)
     || name.Equals("sysdiagrams", StringComparison.OrdinalIgnoreCase);
 static bool DiagramObject(string name) =>
     name.Equals("fn_diagramobjects", StringComparison.OrdinalIgnoreCase) || name.Contains("diagram", StringComparison.OrdinalIgnoreCase) && name.StartsWith("sp_", StringComparison.OrdinalIgnoreCase);
@@ -64,7 +65,7 @@ var today = DateTime.Now.ToString("yyyy-MM-dd");
 var source = new SqlConnectionStringBuilder(cs).DataSource;
 L($"-- A-MES consolidated schema: {db.Name}, captured {today} from the development DB ({source}) with SMO.");
 L($"-- {tables.Count} tables / {tables.Sum(t => t.Columns.Count)} columns, {procs.Count} procedures, {views.Count} views, {funcs.Count} functions, {seqs.Count} sequences.");
-L("-- Excludes TEST_* tables, retired WH_ReleaseSchedule, 20 tables nobody reads or writes (10-29: PNT_DailyReport, PNT_LabelPrintJob, PNT_LabelScanLog, PNT_LotLabel, PNT_PartLossLog, PNT_QcQueue, PNT_SeqAllocator, PNT_ShiftReport, PNT_ShiftReportAudit, PNT_StationStatsCache, PR_AndonPush, PR_BondSetupAudit, PR_CycleAnomalyLog, PR_DashTileCache, PR_DefectAutoLink, PR_DefectRateCache, PR_PlcInterlock, PR_ShiftHandover, QC_Disposition, QC_NCR_Action) and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).");
+L("-- Excludes TEST_* tables, retired WH_ReleaseSchedule and PP_MaterialReservation, 20 tables nobody reads or writes (10-29: PNT_DailyReport, PNT_LabelPrintJob, PNT_LabelScanLog, PNT_LotLabel, PNT_PartLossLog, PNT_QcQueue, PNT_SeqAllocator, PNT_ShiftReport, PNT_ShiftReportAudit, PNT_StationStatsCache, PR_AndonPush, PR_BondSetupAudit, PR_CycleAnomalyLog, PR_DashTileCache, PR_DefectAutoLink, PR_DefectRateCache, PR_PlcInterlock, PR_ShiftHandover, QC_Disposition, QC_NCR_Action) and SSMS diagram objects (sysdiagrams, sp_*diagram*, fn_diagramobjects).");
 L("-- Foreign keys are scripted as they exist in the development DB (policy: new tables do not add FKs — production must never stop on FK errors).");
 L("-- Schema only from the live database; sample seeds below are retained from the repository.");
 L("-- Recreates the included objects: existing data in these tables will be deleted.");

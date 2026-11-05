@@ -68,6 +68,34 @@ public sealed class SparePartWebLabelTests
         Assert.Contains("class=\"spare-label-paper\"", dialog);
     }
 
+    [Fact]
+    public void Master_and_recent_transactions_use_shared_tabs_with_full_height_grids()
+    {
+        var page = Read("src/06_Web/AMES.Web/Components/Pages/Mnt/SpareParts.razor");
+        var tabsStart = page.IndexOf("<AmesTabs>", StringComparison.Ordinal);
+        var tabsEnd = page.IndexOf("</AmesTabs>", tabsStart, StringComparison.Ordinal);
+        var tabs = page[tabsStart..tabsEnd];
+        var masterEnd = tabs.IndexOf("</AmesTab>", StringComparison.Ordinal);
+        var master = tabs[..masterEnd];
+        var transactions = tabs[masterEnd..];
+        Assert.Contains("Title=\"@L[\"MNT.SpareParts.List\"].Value\"", master);
+        Assert.Contains("@ref=\"_partGrid\"", master);
+        Assert.Contains("Click=\"@SearchParts\"", master);
+        Assert.Contains("Click=\"@ExportParts\"", master);
+        Assert.Contains("RowClick=\"@OnPartRowClick\"", master);
+        Assert.Contains("Title=\"@L[\"MNT.SpareParts.TxnList\"].Value\"", transactions);
+        Assert.Contains("@ref=\"_txnGrid\"", transactions);
+        Assert.Contains("Click=\"@SearchTxn\"", transactions);
+        Assert.Contains("Click=\"@ExportTxn\"", transactions);
+        Assert.Contains("OpenLabel(t)", transactions);
+        Assert.DoesNotContain("ames-grid-top", tabs);
+        Assert.DoesNotContain("ames-grid-rest", tabs);
+        Assert.Contains("PageSize=\"@_partPageRows\"", master);
+        Assert.Contains("PageSize=\"@_txnPageRows\"", transactions);
+        Assert.DoesNotContain("SparePartLabelDialog", tabs);
+        Assert.Contains("<SparePartLabelDialog", page[tabsEnd..]);
+    }
+
     private static string Read(string path, [System.Runtime.CompilerServices.CallerFilePath] string current = "")
         => File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(current)!, "../../..", path)));
 }
