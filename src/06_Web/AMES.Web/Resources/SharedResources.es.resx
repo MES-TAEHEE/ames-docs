@@ -12988,4 +12988,6 @@
   <data name="WH.Picking.Request.Title" xml:space="preserve"><value>Solicitud de picking</value></data>
   <data name="WH.Picking.Source.Request" xml:space="preserve"><value>Solicitud manual</value></data>
   <data name="WH.Picking.Request.Created" xml:space="preserve"><value>Orden de picking {0} creada.</value></data>
+  <data name="WH.LogHistory.Lbl.PickingRequest" xml:space="preserve"><value>Solicitud de picking</value></data>
+  <data name="WH.LogHistory.Lbl.Release" xml:space="preserve"><value>Entrega a producción</value></data>
 </root>
