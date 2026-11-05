@@ -12931,4 +12931,10 @@
   <data name="PP.Recon.Col.PlanPo" xml:space="preserve">
     <value>P/O del plan</value>
   </data>
+  <data name="MD.Location.Hint.BomAssignment" xml:space="preserve"><value>Las piezas se cargan del BOP de la línea y la BOM vigente. Configure Minimum para reponer esta ubicación incluso sin orden de trabajo.</value></data>
+  <data name="MD.Location.Lbl.AssignedParts" xml:space="preserve"><value>Piezas asignadas</value></data>
+  <data name="MD.Location.Parts" xml:space="preserve"><value>piezas</value></data>
+  <data name="MD.Location.PerPart" xml:space="preserve"><value>Por pieza</value></data>
+  <data name="MD.Location.Recommended" xml:space="preserve"><value>Recomendado</value></data>
+  <data name="MD.Location.SelectParts" xml:space="preserve"><value>Seleccione piezas arriba e introduzca la cantidad mínima para cada una.</value></data>
 </root>

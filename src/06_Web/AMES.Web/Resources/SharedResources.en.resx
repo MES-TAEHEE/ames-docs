@@ -12931,4 +12931,10 @@
   <data name="PP.Recon.Col.PlanPo" xml:space="preserve">
     <value>Plan P/O</value>
   </data>
+  <data name="MD.Location.Hint.BomAssignment" xml:space="preserve"><value>Parts are loaded from the line BOP and effective BOM. Set a Minimum to replenish this location even without a work order.</value></data>
+  <data name="MD.Location.Lbl.AssignedParts" xml:space="preserve"><value>Assigned Parts</value></data>
+  <data name="MD.Location.Parts" xml:space="preserve"><value>parts</value></data>
+  <data name="MD.Location.PerPart" xml:space="preserve"><value>Per part</value></data>
+  <data name="MD.Location.Recommended" xml:space="preserve"><value>Recommended</value></data>
+  <data name="MD.Location.SelectParts" xml:space="preserve"><value>Select parts above and set the minimum quantity for each.</value></data>
 </root>

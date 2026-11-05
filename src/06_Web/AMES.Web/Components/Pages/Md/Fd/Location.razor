@@ -15,6 +15,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
 @inject DialogService Dialog
+@inject UomFormat UomFmt
 
 <PageTitle>MD-018 @L["MD.Location.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-018" TitleKey="MD.Location.Title" />
@@ -94,8 +95,12 @@
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="AreaCode" Title="@L["Col.Area"].Value" TextAlign="TextAlign.Center" Width="240px" MinWidth="240px">
                 <Template Context="r"><span class="pill">@CodeLabel(_areaCodes, r.AreaCode)</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="PartNo" Title="@L["MD.Location.Lbl.AssignedPart"]" Width="160px" MinWidth="160px" />
-            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="MinimumQty" Title="MINIMUM" Width="100px" MinWidth="100px" FormatString="{0:N0}" />
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Title="@L["MD.Location.Lbl.AssignedParts"]" Width="220px" MinWidth="220px">
+                <Template Context="r"><span title="@string.Join(", ", PartsFor(r.LocationID).Select(p=>p.PartNo))">@AssignedPartsText(r.LocationID)</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Title="@L["WH.Picking.Col.MinimumQty"]" Width="130px" MinWidth="130px">
+                <Template Context="r">@(PartsFor(r.LocationID) is {Count:1} parts ? UomFmt.QtyUnit(parts[0].MinimumQty,parts[0].Unit) : PartsFor(r.LocationID).Count>1 ? L["MD.Location.PerPart"].Value : "—")</Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="MasterDataRepository.LocationRow" Property="Aisle" Title="Y (Row)" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
                 <Template Context="r"><span class="dim">@CodeLabel(_aisleCodes, r.Aisle)</span></Template>
             </RadzenDataGridColumn>
@@ -127,7 +132,7 @@
 @if (_modal == "edit" && _sel is not null)
 {
     <div class="ames-modal-bg" @onmousedown="OnBgMouseDown" @onclick="OnBgClick">
-        <div class="ames-modal ames-modal-wide" @onmousedown:stopPropagation @onclick:stopPropagation>
+        <div class="ames-modal ames-modal-fullwide" @onmousedown:stopPropagation @onclick:stopPropagation>
             <div class="ames-modal-h">@L["MD.Location.Title"] — @L["Modal.Edit"] <span class="dim" style="font-weight:400;font-size:.9em;">@_sel.LocationID</span>@if (_sel.SAPFlag) { <span class="pill info" style="margin-left:6px;font-size:.72em;" title="@L["Lbl.SapData"]">SAP</span> }</div>
             @if (IsPrimary(_sel))
             {
@@ -147,20 +152,45 @@
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:8px;">
-                    <RadzenLabel Text="Minimum Qty" class="ames-rz-modal-label" Component="EditMinimumQty" />
-                    <RadzenNumeric Name="EditMinimumQty" TValue="decimal" @bind-Value="_f.MinimumQty" Min="0" Max="99999999999" Step="1" Format="N0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-                </RadzenStack>
-
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:8px;">
                     <RadzenLabel Text="@L["MD.Location.Col.Parent"]" class="ames-rz-modal-label" Component="EditDropDownParent" />
                     <RadzenDropDown Name="EditDropDownParent" TValue="string" @bind-Value="_f.ParentLocationID" Data="@ParentOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
                 <div class="dim" style="font-size:.85em;margin-top:2px;">@L["MD.Location.Hint.Parent"]</div>
 
+                @if (string.IsNullOrEmpty(_sel?.LineId))
+                {
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:8px;">
-                    <RadzenLabel Text="@L["MD.Location.Lbl.AssignedPart"]" class="ames-rz-modal-label" Component="EditDropDownAssignedPart" />
-                    <RadzenDropDown Name="EditDropDownAssignedPart" TValue="string" @bind-Value="_f.PartNo" Data="_parts" TextProperty="ItemNo" ValueProperty="ItemNo" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenLabel Text="@L["MD.Location.Lbl.AssignedParts"]" class="ames-rz-modal-label" Component="EditDropDownAssignedParts" />
+                    <RadzenDropDown Name="EditDropDownAssignedParts" TValue="IEnumerable<string>" @bind-Value="_selectedPartNumbers" Change="OnAssignedPartsChanged"
+                        Data="_assignedPartOptions" TextProperty="Display" ValueProperty="ItemNo" Multiple="true" Chips="false" MaxSelectedLabels="3" AllowSelectAll="false" AllowClear="true" AllowFiltering="true"
+                        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
+                }
+                @if (!string.IsNullOrEmpty(_sel?.LineId))
+                {
+                    <div class="dim" style="font-size:.85em;margin-top:2px;">@L["MD.Location.Hint.BomAssignment"]</div>
+                }
+                <section class="ames-card" style="margin-top:12px;">
+                    <div class="ames-card-h">@L["MD.Location.Lbl.AssignedParts"] · @_f.Parts.Count</div>
+                    <div style="max-height:360px;overflow:auto;">
+                        <RadzenDataGrid TItem="PartForm" Data="_f.Parts" AllowPaging="false" class="ames-rz-grid" EmptyText="@L["MD.Location.SelectParts"]">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="PartForm" Property="PartNo" Title="@L["Col.ItemNo"]" Width="190px" />
+                                <RadzenDataGridColumn TItem="PartForm" Property="PartName" Title="@L["Col.ItemName"]" />
+                                <RadzenDataGridColumn TItem="PartForm" Title="@L["Col.Unit"]" Width="90px"><Template Context="p">@UomFmt.Sym(p.Unit)</Template></RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="PartForm" Title="@L["WH.Picking.Col.MinimumQty"]" Width="190px">
+                                    <Template Context="p"><RadzenNumeric TValue="decimal" @bind-Value="p.MinimumQty" Min="0" Max="99999999999" Step="0.001" Format="#,##0.###" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /></Template>
+                                </RadzenDataGridColumn>
+                                @if (string.IsNullOrEmpty(_sel?.LineId))
+                                {
+                                <RadzenDataGridColumn TItem="PartForm" Width="60px">
+                                    <Template Context="p"><RadzenButton Icon="close" aria-label="@L["Btn.Remove"].Value" Click="@(()=>RemovePart(p.PartNo))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template>
+                                </RadzenDataGridColumn>
+                                }
+                            </Columns>
+                        </RadzenDataGrid>
+                    </div>
+                </section>
 
             }
 
@@ -184,6 +214,9 @@
     int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
     List<MasterDataRepository.LocationRow> _allRows = new();
     List<MasterDataRepository.ItemRow> _parts=[];
+    List<PartOption> _assignedPartOptions=[];
+    IEnumerable<string> _selectedPartNumbers=[];
+    Dictionary<string,List<WarehouseRepository.LocationPartRow>> _locationParts=new(StringComparer.OrdinalIgnoreCase);
     List<MasterDataRepository.LocationRow> _rows    = new();
     List<MasterDataRepository.LocationRow> _primaries = new();
     List<MasterDataRepository.CodeItemRow> _areaCodes = new();
@@ -264,6 +297,8 @@
     void Reload()
     {
         var all = MD.ListLocations();
+        _locationParts=Warehouse.ListLocationParts().GroupBy(p=>p.LocationId,StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g=>g.Key,g=>g.ToList(),StringComparer.OrdinalIgnoreCase);
         _primaries = all.Where(r => IsPrimary(r) && r.ActiveFlag).ToList();
         _allRows = all
             .Where(x => x.ActiveFlag && !string.Equals(x.AreaCode, "SPARE_PARTS_AREA", StringComparison.OrdinalIgnoreCase))
@@ -309,11 +344,41 @@
     void OpenBarcode(MasterDataRepository.LocationRow location) => _barcodeLocation = location;
     void CloseBarcode() => _barcodeLocation = null;
 
+    List<WarehouseRepository.LocationPartRow> PartsFor(string location) => _locationParts.GetValueOrDefault(location) ?? [];
+    string AssignedPartsText(string location) => PartsFor(location) switch
+    {
+        {Count:0} => "—",
+        {Count:1} parts => parts[0].PartNo,
+        var parts => $"{parts.Count} {L["MD.Location.Parts"]} · {parts[0].PartNo}…"
+    };
+    void OnAssignedPartsChanged(object value)
+    {
+        _selectedPartNumbers=(value as IEnumerable<string> ?? []).ToArray();
+        _f.Parts=_selectedPartNumbers.Select(part=>_f.Parts.FirstOrDefault(p=>p.PartNo==part) ?? NewPartForm(part)).ToList();
+    }
+    PartForm NewPartForm(string part)
+    {
+        var option=_assignedPartOptions.First(p=>p.ItemNo==part);
+        return new(){PartNo=part,PartName=option.PartName,Unit=option.Unit,Recommended=option.Recommended};
+    }
+    void RemovePart(string part) => OnAssignedPartsChanged(_selectedPartNumbers.Where(p=>p!=part).ToArray());
+
 
     void OpenEdit(MasterDataRepository.LocationRow r)
     {
         if (!_canEdit) return;
         _sel = r; _modalErr = "";
+        try
+        {
+            _locationParts[r.LocationID]=Warehouse.ListLocationParts(r.LocationID);
+            var suggested = string.IsNullOrWhiteSpace(r.LineId) ? [] : Warehouse.ListLineMaterialCandidates(r.LineId);
+            var suggestedParts = suggested.Select(x => x.ItemNo).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            _assignedPartOptions = _parts.Where(p=>p.ActiveFlag || PartsFor(r.LocationID).Any(s=>s.PartNo==p.ItemNo))
+                .Select(p=>new PartOption(p.ItemNo,p.ItemName??p.ItemNo,p.DefaultUOM??"EA",suggestedParts.Contains(p.ItemNo),
+                    $"{p.ItemNo} · {p.ItemName}"+(suggestedParts.Contains(p.ItemNo)?$" · {L["MD.Location.Recommended"]}":"")))
+                .OrderByDescending(p=>p.Recommended).ThenBy(p=>p.ItemNo).ToList();
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _assignedPartOptions = _parts.Select(p => new PartOption(p.ItemNo,p.ItemName??p.ItemNo,p.DefaultUOM??"EA",false,p.ItemNo)).ToList(); }
         _f = new()
         {
             LocationID   = r.LocationID,
@@ -324,10 +389,11 @@
             Bay          = r.Bay          ?? "",
             Slot         = r.Slot         ?? "",
             Capacity     = r.Capacity,
-            PartNo = r.PartNo??"",
-            MinimumQty = r.MinimumQty ?? 0,
+            Parts=PartsFor(r.LocationID).Select(p=>new PartForm{PartNo=p.PartNo,PartName=p.PartName??p.PartNo,Unit=p.Unit,
+                MinimumQty=p.MinimumQty,Recommended=_assignedPartOptions.Any(o=>o.ItemNo==p.PartNo&&o.Recommended)}).ToList(),
             ParentLocationID = r.ParentLocationID,
         };
+        _selectedPartNumbers=_f.Parts.Select(p=>p.PartNo).ToArray();
         _modal = "edit";
     }
 
@@ -355,9 +421,8 @@
         try
         {
             if (!await PermSvc.RecheckEditAsync(AuthPrvd, "md/fd/location")) throw new InvalidOperationException("You do not have permission to edit locations.");
-            if (!IsPrimary(_sel)
-                && (_f.MinimumQty < 0 || _f.MinimumQty > 99999999999m || _f.MinimumQty != decimal.Truncate(_f.MinimumQty)))
-                throw new InvalidOperationException("Minimum qty must be a whole number from 0 to 99,999,999,999.");
+            if (_f.Parts.Any(p=>p.MinimumQty<0 || p.MinimumQty>99999999999m || decimal.Round(p.MinimumQty,3)!=p.MinimumQty))
+                throw new InvalidOperationException("Enter a nonnegative minimum with up to three decimal places for each part.");
             if (_f.Capacity is not null && _f.Capacity != decimal.Truncate(_f.Capacity.Value)) throw new InvalidOperationException("Load Capacity must be a whole number.");
             var saveConfirmed = false;
             if (_f.Capacity != _sel.Capacity)
@@ -374,13 +439,13 @@
             }
             if (!saveConfirmed && await Dialog.Confirm($"Are you sure you want to save changes to location {_sel.LocationID}?",
                 "Confirm Changes", new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" }) != true) return;
-            // 지정 품번은 바꿨을 때만 보낸다 — 그대로 다시 보내면 품번 재지정 검사(51050)가 명칭만 고치는 저장도 막는다
             MD.UpdateLocation(_sel.LocationID, NE(_f.LocationName), _sel.WhCode, _sel.AreaCode, _sel.ZoneCode,
                 _sel.Aisle, _sel.Bay, _sel.Slot,
-                _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor, IsPrimary(_sel) || NE(_f.PartNo) == _sel.PartNo ? null : _f.PartNo,
+                _f.Capacity, _sel.LocationType, _sel.PlantCode, _sel.ActiveFlag, _actor,
                 setParent: !IsPrimary(_sel) && NE(_f.ParentLocationID) != _sel.ParentLocationID, parentLocationId: NE(_f.ParentLocationID),
-                minimumQty: !IsPrimary(_sel) && _f.MinimumQty != (_sel.MinimumQty ?? 0) ? _f.MinimumQty : null);
-            Audit.Updated("MD-018", "MD_Location", _sel.LocationID, _sel, _f);
+                assignedParts:IsPrimary(_sel)?null:_f.Parts.Where(p=>string.IsNullOrEmpty(_sel.LineId)||p.MinimumQty>0)
+                    .Select(p=>new WarehouseRepository.LocationPartSetting(p.PartNo,p.MinimumQty)).ToList());
+            Audit.Updated("MD-018", "MD_Location", _sel.LocationID, new{Location=_sel,Parts=PartsFor(_sel.LocationID)}, _f);
             var key = _sel.LocationID;   // CloseModal 이 _sel 을 비우므로 먼저 꺼내 둔다
             CloseModal(); await ReloadRestorePage();
             ShowMsg(string.Format(L["MD.Location.Ok.Updated"].Value, key), false);
@@ -408,8 +473,16 @@
         public string   Bay          { get; set; } = "";
         public string   Slot         { get; set; } = "";
         public decimal? Capacity     { get; set; }
-        public string   PartNo {get;set;}="";
-        public decimal  MinimumQty { get; set; }
+        public List<PartForm> Parts { get; set; }=[];
         public string?  ParentLocationID { get; set; }
+    }
+    record PartOption(string ItemNo,string PartName,string Unit,bool Recommended,string Display);
+    class PartForm
+    {
+        public string PartNo{get;set;}="";
+        public string PartName{get;set;}="";
+        public string Unit{get;set;}="EA";
+        public bool Recommended{get;set;}
+        public decimal MinimumQty{get;set;}
     }
 }

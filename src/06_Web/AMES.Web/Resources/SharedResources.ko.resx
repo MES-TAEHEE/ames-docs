@@ -12931,4 +12931,10 @@
   <data name="PP.Recon.Col.PlanPo" xml:space="preserve">
     <value>구매계획 P/O</value>
   </data>
+  <data name="MD.Location.Hint.BomAssignment" xml:space="preserve"><value>라인 BOP와 유효 BOM의 공급 파트를 자동 표시합니다. Minimum을 설정하면 작업지시가 없어도 이 위치의 부족분을 보충합니다.</value></data>
+  <data name="MD.Location.Lbl.AssignedParts" xml:space="preserve"><value>지정 파트</value></data>
+  <data name="MD.Location.Parts" xml:space="preserve"><value>개 파트</value></data>
+  <data name="MD.Location.PerPart" xml:space="preserve"><value>파트별 설정</value></data>
+  <data name="MD.Location.Recommended" xml:space="preserve"><value>추천</value></data>
+  <data name="MD.Location.SelectParts" xml:space="preserve"><value>위에서 파트를 선택한 뒤 파트별 최소수량을 입력하세요.</value></data>
 </root>
