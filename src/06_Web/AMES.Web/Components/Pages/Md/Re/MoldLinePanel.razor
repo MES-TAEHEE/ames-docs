@@ -291,7 +291,7 @@
         <RadzenRow Gap="8px">
             <RadzenColumn Size="12">
                 <RadzenLabel Text='@($"{L["Col.MoldId"]} *")' />
-                <RadzenDropDown TValue="string" @bind-Value="_f.MoldID" Data="@_moldList" ValueProperty="MoldID" AllowClear="true" AllowFiltering="true" Disabled="@editMode" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;">
+                <RadzenDropDown TValue="string" @bind-Value="_f.MoldID" Data="@_moldList" ValueProperty="MoldID" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Disabled="@editMode" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;">
                     <Template Context="m">@m.MoldID — @m.MoldName</Template>
                 </RadzenDropDown>
             </RadzenColumn>

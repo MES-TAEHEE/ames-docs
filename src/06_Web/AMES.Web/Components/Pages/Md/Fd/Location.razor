@@ -50,7 +50,7 @@
         <span style="white-space:nowrap;">▼ @L["MD.Location.List"] · @_rows.Count @L["Lbl.Items"]@(_rows.Count < _allRows.Count ? $" / {L["Lbl.TotalOf"]} {_allRows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["MD.Location.Col.Parent"]" Component="DropDownParentFilter" />
-            <RadzenDropDown Name="DropDownParentFilter" @bind-Value="_fParent" Data="@ParentOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:320px;" />
+            <RadzenDropDown Name="DropDownParentFilter" @bind-Value="_fParent" Data="@ParentOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:320px;" />
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Location.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Area"]" Component="DropDownAreaFilter" />
             <RadzenDropDown Name="DropDownAreaFilter" @bind-Value="_fArea" Data="@FilterAreaOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
@@ -153,7 +153,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top:8px;">
                     <RadzenLabel Text="@L["MD.Location.Col.Parent"]" class="ames-rz-modal-label" Component="EditDropDownParent" />
-                    <RadzenDropDown Name="EditDropDownParent" TValue="string" @bind-Value="_f.ParentLocationID" Data="@ParentOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown Name="EditDropDownParent" TValue="string" @bind-Value="_f.ParentLocationID" Data="@ParentOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
                 <div class="dim" style="font-size:.85em;margin-top:2px;">@L["MD.Location.Hint.Parent"]</div>
 

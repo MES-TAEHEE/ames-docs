@@ -34,7 +34,7 @@
         <span style="white-space:nowrap;">▼ @L["PP.SupplyPlanImport.Title"] · @_view.Count @L["Lbl.Items"]@(_view.Count < _rows.Count ? $" / {L["Lbl.TotalOf"]} {_rows.Count}" : "")</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Col.Customer"]" />
-            <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text='@($"{L["Col.Order"]} {L["PP.Forecast.Fld.Period"]}")' />

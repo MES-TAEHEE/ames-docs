@@ -154,12 +154,12 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Dept"]" class="ames-rz-modal-label" Component="CreateDropDownDepartment" />
-                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="CreateDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
                 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Plant"]" class="ames-rz-modal-label" Component="CreateDropDownPlantCode" />
-                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="CreateDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -169,7 +169,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="CreateDropDownRole" />
-                    <RadzenDropDown AllowFiltering="true" Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" Disabled="@(!_isAdmin)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" Disabled="@(!_isAdmin)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
                 @if (!_isAdmin)
                 {
@@ -214,12 +214,12 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Dept"]" class="ames-rz-modal-label" Component="EditDropDownDepartment" />
-                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="EditDropDownDepartment" @bind-Value="_f.Department" Data="@DeptOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Plant"]" class="ames-rz-modal-label" Component="EditDropDownPlantCode" />
-                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="EditDropDownPlantCode" @bind-Value="_f.PlantCode" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -242,7 +242,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="EditDropDownRole" />
-                    <RadzenDropDown AllowFiltering="true" Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.None"]" AllowClear="true" Disabled="@(!CanChangeRoleStatus)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.None"]" AllowClear="true" Disabled="@(!CanChangeRoleStatus)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 @if (_isAdmin)

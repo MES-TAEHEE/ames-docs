@@ -37,7 +37,7 @@
                                 {
                                     @* 기본 가동 시간 패턴 — 전역(LineID 없음) ACTIVE 패턴만 후보. 비우면 라인 지정 없는 사출 라인은 조회가 막힌다(2026-10-06) *@
                                     @if (!_canEdit) { <span class="@(string.IsNullOrEmpty(e.Row?.Attribute1) ? "pill warn" : "code")">@PatternLabel(e.Row?.Attribute1)</span> }
-                                    else { <RadzenDropDown TValue="string" @bind-Value="e.Value" Data="@_globalPatternOpts" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true"
+                                    else { <RadzenDropDown TValue="string" @bind-Value="e.Value" Data="@_globalPatternOpts" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                                                            Placeholder="@L["PP.Aps.Settings.Pattern.None"]" Disabled="@_busy" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" /> }
                                 }
                                 else if (!_canEdit) { @(e.Row?.Attribute1 ?? "—") }
@@ -129,7 +129,7 @@
                         @if (s.IsNew)
                         {
                             <RadzenDropDown TValue="string" Value="@s.LineId" ValueChanged="@((string v) => PickLine(s, v))" Data="@_lineOpts" TextProperty="Text" ValueProperty="Value"
-                                            AllowFiltering="true" Disabled="@_busy" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                                            AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Disabled="@_busy" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                         }
                         else
                         {
@@ -155,7 +155,7 @@
                     <EditTemplate Context="s">
                         @* 후보 = 그 라인 전용 + 전역 ACTIVE 패턴(PP-LSB PatternOptions 와 같은 범위). 비우면 기본 패턴(DEFAULT_PATTERN)을 따른다 *@
                         <RadzenDropDown TValue="string" @bind-Value="s.PatternId" Data="@PatternOptsFor(s.LineId)" TextProperty="Text" ValueProperty="Value"
-                                        AllowClear="true" AllowFiltering="true" Disabled="@_busy" Placeholder="@L["PP.Aps.Settings.Pattern.Default"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                                        AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Disabled="@_busy" Placeholder="@L["PP.Aps.Settings.Pattern.Default"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="StageEdit" MinWidth="170px" Title="@L["PP.Aps.Settings.Col.Note"]">

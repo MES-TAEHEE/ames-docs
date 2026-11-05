@@ -34,7 +34,7 @@
         <span class="dim" style="white-space:nowrap;font-size:.85em;">@L["PP.Forecast.Derived"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Col.Customer"]" />
-            <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                             @bind-Value="_fCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
@@ -110,7 +110,7 @@
         <span class="dim" style="white-space:nowrap;font-size:.85em;">@L["PP.Forecast.Effective.Note"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Col.Customer"]" />
-            <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                             @bind-Value="_dCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value"
                             InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
@@ -194,7 +194,7 @@
         <span style="white-space:nowrap;">▼ @L["PP.Forecast.Tab.Recon"] · @L["PP.Recon.Kpi.Issues"] @_recon.Count</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Col.Customer"]" />
-            <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                             @bind-Value="_rCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.Forecast.Fld.Period"]" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_rFrom" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
@@ -248,7 +248,7 @@
         <span style="white-space:nowrap;">▼ @L["PP.Forecast.Tab.History"] · @_history.Count @L["Lbl.Items"]</span>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["Col.Customer"]" />
-            <RadzenDropDown AllowFiltering="true" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data="_customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                             @bind-Value="_hCustomer" AllowClear="true" Placeholder="@L["Filter.All"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="SearchHistory" />
         </RadzenStack>

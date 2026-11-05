@@ -43,7 +43,7 @@
                             {
                                 <RadzenDropDown TValue="string" Data="vm.Step.Candidates"
                                                 TextProperty="Display" ValueProperty="LineId"
-                                                @bind-Value="vm.LineId" AllowClear="true" AllowFiltering="true"
+                                                @bind-Value="vm.LineId" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                                                 Placeholder="—" Style="width:100%" />
                             }
                             else

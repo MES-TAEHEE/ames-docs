@@ -248,7 +248,7 @@
             </div>
 
             <label style="margin-top:8px;">@L["SYS.Calendar.Lbl.Plant"]</label>
-            <RadzenDropDown AllowFiltering="true" @bind-Value="_genPlant" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_genPlant" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
 
             <div style="margin-top:12px;font-size:.84em;font-weight:600;color:var(--ames-tx-slate-400);letter-spacing:.05em;">@L["SYS.Calendar.Lbl.ShiftConfig"]</div>
             <table class="ames-table" style="margin-top:4px;">
@@ -351,7 +351,7 @@
                 </div>
                 <div style="flex:0 0 200px;">
                     <label>@L["Col.Plant"]</label>
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_selPlant" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_selPlant" Data="@PlantOptions" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 @if (_editDayType == "HOLIDAY")
                 {

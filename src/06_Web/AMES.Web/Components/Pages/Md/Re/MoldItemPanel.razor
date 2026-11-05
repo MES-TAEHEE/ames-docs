@@ -343,7 +343,7 @@
         <RadzenRow Gap="8px">
             <RadzenColumn Size="12">
                 <RadzenLabel Text='@($"{L["Col.ItemNo"]} *")' />
-                <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="@editMode" Placeholder="@L["Opt.SelectItem"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowClear="true" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="@editMode" Placeholder="@L["Opt.SelectItem"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
@@ -369,7 +369,7 @@
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["Col.ResinItemNo"]" />
-                <RadzenDropDown AllowFiltering="true" AllowClear="true" @bind-Value="_f.ResinItemNo" Data="@ResinOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.SelectItem"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowClear="true" @bind-Value="_f.ResinItemNo" Data="@ResinOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.SelectItem"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="4">
                 <RadzenLabel Text="@L["Col.ResinUsage"]" />

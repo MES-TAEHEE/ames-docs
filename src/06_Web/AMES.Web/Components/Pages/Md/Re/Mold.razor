@@ -52,7 +52,7 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                     <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder='@L["MD.Mold.Ph.Search"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
                     <RadzenLabel Text="@L["Col.StorageLoc"]" Component="DropDownStorageLoc" />
-                    <RadzenDropDown AllowFiltering="true" Name="DropDownStorageLoc" @bind-Value="_fLoc" Data="@LocFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="DropDownStorageLoc" @bind-Value="_fLoc" Data="@LocFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
                     <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
                     <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
 

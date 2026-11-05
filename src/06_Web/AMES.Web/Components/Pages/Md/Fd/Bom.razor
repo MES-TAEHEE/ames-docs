@@ -1152,7 +1152,7 @@
         <RadzenRow Gap="8px" Style="margin-top:6px;">
             <RadzenColumn Size="12">
                 <RadzenLabel Text='@($"{L["Col.RootItemNo"]} *")' />
-                <RadzenDropDown @bind-Value="_fv.RootItemNo" Change="@OnRootChanged" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="@editMode" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_fv.RootItemNo" Change="@OnRootChanged" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="@editMode" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 
@@ -1187,11 +1187,11 @@
         <RadzenRow Gap="8px">
             <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["Col.ParentItem"]" />
-                <RadzenDropDown @bind-Value="_fl.ParentItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.RootLevel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_fl.ParentItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.RootLevel"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenLabel Text='@($"{L["Col.CompItem"]} *")' />
-                <RadzenDropDown @bind-Value="_fl.CompItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_fl.CompItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 

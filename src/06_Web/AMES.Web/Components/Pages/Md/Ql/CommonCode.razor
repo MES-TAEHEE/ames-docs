@@ -285,7 +285,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="8">
                     <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.ParentCode"]} {L["MD.CommonCode.Lbl.ParentCodeOpt"]}")' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_fItem.ParentCodeId" Data="@(_items.Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_fItem.ParentCodeId" Data="@(_items.Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text='@L["MD.CommonCode.Lbl.SortOrder"]' />
@@ -362,7 +362,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="8">
                     <RadzenLabel Text='@($"{L["MD.CommonCode.Lbl.ParentCode"]} {L["MD.CommonCode.Lbl.ParentCodeOpt"]}")' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_fItem.ParentCodeId" Data="@(_items.Where(i => i.CodeID != _fItem.CodeId).Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_fItem.ParentCodeId" Data="@(_items.Where(i => i.CodeID != _fItem.CodeId).Select(p => new DropDownItem { Value = p.CodeID, Text = $"[{p.CodeValue}] {p.CodeName}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder='@L["MD.CommonCode.Opt.None"]' InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="4">
                     <RadzenLabel Text='@L["MD.CommonCode.Lbl.SortOrder"]' />

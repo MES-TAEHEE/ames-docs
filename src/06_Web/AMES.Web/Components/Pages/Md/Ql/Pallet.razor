@@ -54,7 +54,7 @@
             <RadzenLabel Text="@L["MD.Pallet.Col.Use"]" Component="DropDownUse" />
             <RadzenDropDown Name="DropDownUse" @bind-Value="_fUse" Data="UseOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px;" />
             <RadzenLabel Text="@L["Col.Customer"]" Component="DropDownCustomer" />
-            <RadzenDropDown Name="DropDownCustomer" @bind-Value="_fCustomer" Data="CustomerFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:320px;" />
+            <RadzenDropDown Name="DropDownCustomer" @bind-Value="_fCustomer" Data="CustomerFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:320px;" />
             <RadzenLabel Text="@L["MD.Pallet.Col.Shipped"]" Component="DropDownShipped" />
             <RadzenDropDown Name="DropDownShipped" @bind-Value="_fShipped" Data="ShippedOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
 
@@ -142,7 +142,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="12">
                     <RadzenLabel Text="@L["MD.Pallet.Col.Customer"]" Component="@(_modal == "create" ? "CreateDropDownCustomer" : "EditDropDownCustomer")" />
-                    <RadzenDropDown Name="@(_modal == "create" ? "CreateDropDownCustomer" : "EditDropDownCustomer")" @bind-Value="_f.CustomerID" Data="CustomerOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Disabled="@(_f.PalletUse != MasterDataRepository.PalletExternal)" Placeholder="@CustomerPlaceholder" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown Name="@(_modal == "create" ? "CreateDropDownCustomer" : "EditDropDownCustomer")" @bind-Value="_f.CustomerID" Data="CustomerOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Disabled="@(_f.PalletUse != MasterDataRepository.PalletExternal)" Placeholder="@CustomerPlaceholder" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -183,7 +183,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Pallet.Col.Customer"]" Component="@(_modal == "create" ? "CreateDropDownCustomer" : "EditDropDownCustomer")" />
-                    <RadzenDropDown Name="@(_modal == "create" ? "CreateDropDownCustomer" : "EditDropDownCustomer")" @bind-Value="_f.CustomerID" Data="CustomerOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Disabled="@(_f.PalletUse != MasterDataRepository.PalletExternal)" Placeholder="@CustomerPlaceholder" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown Name="@(_modal == "create" ? "CreateDropDownCustomer" : "EditDropDownCustomer")" @bind-Value="_f.CustomerID" Data="CustomerOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Disabled="@(_f.PalletUse != MasterDataRepository.PalletExternal)" Placeholder="@CustomerPlaceholder" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 

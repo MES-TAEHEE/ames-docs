@@ -31,7 +31,7 @@
             <RadzenDatePicker TValue="DateTime?" @bind-Value="_shipTo" @bind-Value:after="Load" Disabled="_loading"
                 NavigationMode="DatePickerNavigationMode.DropDown" DateFormat="@DateFmt.Date" AllowClear="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <RadzenDropDown TValue="string" Data="_customers" @bind-Value="_customer" @bind-Value:after="Filter" Disabled="_loading"
-                AllowClear="true" AllowFiltering="true" Placeholder="@L["FG.ShipPlan.Ph.Customer"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
+                AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["FG.ShipPlan.Ph.Customer"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:170px" />
             <RadzenTextBox @bind-Value="_search" @bind-Value:after="Filter" Disabled="_loading" Placeholder="@L["FG.ShipPlan.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Load" Disabled="_loading" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             <RadzenButton Text="@L["FG.ShipPlan.Btn.TrailerPreview"]" Icon="local_shipping" Click="OpenTrailerPreview" Disabled="@(_loading || _draft is null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />

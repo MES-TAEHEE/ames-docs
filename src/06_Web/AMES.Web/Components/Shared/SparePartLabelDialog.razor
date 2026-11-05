@@ -10,7 +10,7 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
                 <RadzenLabel Text="@L["Col.SerialNo"]" Component="SpareLabelSerial" />
                 <RadzenDropDown TValue="string" Name="SpareLabelSerial" Value="@SerialNo" Change="SelectSerial"
-                                Data="@Labels" TextProperty="SerialNo" ValueProperty="SerialNo" AllowFiltering="true"
+                                Data="@Labels" TextProperty="SerialNo" ValueProperty="SerialNo" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                                 Disabled="@Busy" InputSize="InputSize.Small" class="ames-rz-input" Style="min-width:240px;flex:1;" />
                 @if (CanCreate)
                 {

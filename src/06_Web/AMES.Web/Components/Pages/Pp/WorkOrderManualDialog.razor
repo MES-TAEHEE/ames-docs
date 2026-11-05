@@ -6,7 +6,7 @@
 <div style="display:flex;flex-direction:column;gap:6px;min-width:440px;">
     <label>① @L["PP.WorkOrder.Manual.Item"]</label>
     <RadzenDropDown Data="Items" TextProperty="Label" ValueProperty="ItemNo"
-                    @bind-Value="_item" Disabled="_busy" AllowFiltering="true" AllowClear="true"
+                    @bind-Value="_item" Disabled="_busy" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowClear="true"
                     Placeholder="—" Style="width:100%" />
 
     <label>② @L["PP.WorkOrder.Manual.Qty"]</label>

@@ -511,7 +511,7 @@
                 <RadzenRow Gap="8px">
                     <RadzenColumn Size="4">
                         <RadzenLabel Text='@L["Scm.Text.Supplier"]' />
-                        <RadzenDropDown Name="ScmEditDropDownVendor" @bind-Value="_edit.Vendor" @bind-Value:after="ChangeVendor" Data="@VendorEditOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Scm.Text.SelectVendor"]' AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDropDown Name="ScmEditDropDownVendor" @bind-Value="_edit.Vendor" @bind-Value:after="ChangeVendor" Data="@VendorEditOptions" TextProperty="Text" ValueProperty="Value" Placeholder='@L["Scm.Text.SelectVendor"]' AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                     <RadzenColumn Size="3">
                         <RadzenLabel Text='@L["Scm.Text.DueDate"]' />

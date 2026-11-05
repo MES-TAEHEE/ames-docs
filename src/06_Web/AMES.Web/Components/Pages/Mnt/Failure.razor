@@ -291,7 +291,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text='@($"{L["Col.Equip"]} *")' class="ames-rz-modal-label" Component="FailDropDownEquip" />
-                    <RadzenDropDown AllowFiltering="true" Name="FailDropDownEquip" @bind-Value="_f.EquipId" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="FailDropDownEquip" @bind-Value="_f.EquipId" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -331,7 +331,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["Col.ReportedBy"]" class="ames-rz-modal-label" Component="FailDropDownReporter" />
-                    <RadzenDropDown AllowFiltering="true" Name="FailDropDownReporter" @bind-Value="_f.ReportedBy" Data="@UserOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="FailDropDownReporter" @bind-Value="_f.ReportedBy" Data="@UserOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">

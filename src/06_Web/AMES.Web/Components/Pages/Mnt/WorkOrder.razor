@@ -394,7 +394,7 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text='@($"{L["MNT.WorkOrder.Lbl.Tech"]} *")' class="ames-rz-modal-label" Component="AssignDropDownTech" />
-                    <RadzenDropDown AllowFiltering="true" Name="AssignDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="AssignDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
             </RadzenStack>
 
@@ -448,7 +448,7 @@
                     <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Labor"]" class="ames-rz-modal-label" Component="CompleteNumericLabor" />
                     <RadzenNumeric TValue="int?" Name="CompleteNumericLabor" @bind-Value="_f.LaborMinutes" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Tech"]" class="ames-rz-modal-label" Component="CompleteDropDownTech" />
-                    <RadzenDropDown AllowFiltering="true" Name="CompleteDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="CompleteDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 @if (HasFailureSource(_sel))
@@ -496,7 +496,7 @@
             <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Start" Gap="1rem" Wrap="FlexWrap.Wrap" Style="width:100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text='@($"{L["Col.Equip"]} *")' class="ames-rz-modal-label" Component="IssueDropDownEquip" />
-                    <RadzenDropDown AllowFiltering="true" Name="IssueDropDownEquip" @bind-Value="_f.EquipId" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="IssueDropDownEquip" @bind-Value="_f.EquipId" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -508,7 +508,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Tech"]" class="ames-rz-modal-label" Component="IssueDropDownTech" />
-                    <RadzenDropDown AllowFiltering="true" Name="IssueDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="IssueDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Vertical" Gap="2px" Style="width:100%;">

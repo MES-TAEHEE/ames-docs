@@ -69,7 +69,7 @@
             <span class="dim">~</span>
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" Name="DatePickerTo" @bind-Value="_fTo" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenLabel Text="@L["Col.Customer"]" Component="DropDownCustomer" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownCustomer" @bind-Value="_fCustomer" Data="@CustomerFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="DropDownCustomer" @bind-Value="_fCustomer" Data="@CustomerFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
             <RadzenButton Text="@L["RPT.OnTime.Btn.Print"]" Icon="print" ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small" Click="@Print" class="ames-rz-btn" />

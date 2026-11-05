@@ -74,7 +74,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenButton Text="@L["PP.Calendar.Btn.Today"]" Icon="done" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@GoToday" class="ames-rz-btn" />
             <RadzenLabel Text="@L["Col.Equip"]" Component="DropDownEquip" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownEquip" @bind-Value="_fEquip" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:320px;" />
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="DropDownEquip" @bind-Value="_fEquip" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:320px;" />
             <RadzenLabel Text="@L["Col.Status"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
@@ -318,7 +318,7 @@
                     <RadzenLabel Text="@L["MNT.WorkOrder.Lbl.Labor"]" class="ames-rz-modal-label" Component="PmCompleteNumericLabor" />
                     <RadzenNumeric TValue="int?" Name="PmCompleteNumericLabor" @bind-Value="_c.LaborMinutes" Min="0" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                     <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Tech"]" class="ames-rz-modal-label" Component="PmCompleteDropDownTech" />
-                    <RadzenDropDown AllowFiltering="true" Name="PmCompleteDropDownTech" @bind-Value="_c.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="PmCompleteDropDownTech" @bind-Value="_c.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 @if (PmRules.NeedsManualNextDue(_cpm.CycleBasis, _cpm.CycleValue))
@@ -368,7 +368,7 @@
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text='@($"{L["Col.Equip"]} *")' class="ames-rz-modal-label" Component="PmDropDownEquip" />
-                    <RadzenDropDown TValue="string" AllowFiltering="true" Name="PmDropDownEquip" Value="@_f.EquipId" ValueChanged="@OnPmEquipChanged" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown TValue="string" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="PmDropDownEquip" Value="@_f.EquipId" ValueChanged="@OnPmEquipChanged" Data="@EquipOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
@@ -393,13 +393,13 @@
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Checklist"]" class="ames-rz-modal-label" Component="PmDropDownChecklist" />
                     @* 점검 템플릿 = 고른 설비와 설비 유형(EQUIP_TYPE)이 같은 활성 템플릿만 — 설비를 고르기 전에는 비활성 *@
-                    <RadzenDropDown AllowFiltering="true" Name="PmDropDownChecklist" @bind-Value="_f.ChecklistId" Data="@TemplateOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@(string.IsNullOrEmpty(_f.EquipId) ? L["MNT.PmSchedule.Ph.ChecklistEquipFirst"] : L["Opt.None"])" Disabled="@string.IsNullOrEmpty(_f.EquipId)" Open="@RefreshChecklistTemplates" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;min-width:0;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="PmDropDownChecklist" @bind-Value="_f.ChecklistId" Data="@TemplateOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@(string.IsNullOrEmpty(_f.EquipId) ? L["MNT.PmSchedule.Ph.ChecklistEquipFirst"] : L["Opt.None"])" Disabled="@string.IsNullOrEmpty(_f.EquipId)" Open="@RefreshChecklistTemplates" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;min-width:0;width:100%;" />
                     <RadzenButton Text="@L["MD.PmTemplate.Title"]" Icon="open_in_new" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@OpenTemplateManagement" Disabled="@(_busy || !PermSvc.IsVisible("md/rp/pm-template"))" class="ames-rz-btn" Style="flex-shrink:0;white-space:nowrap;" />
                 </RadzenStack>
 
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                     <RadzenLabel Text="@L["MNT.PmSchedule.Lbl.Tech"]" class="ames-rz-modal-label" Component="PmDropDownTech" />
-                    <RadzenDropDown AllowFiltering="true" Name="PmDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="PmDropDownTech" @bind-Value="_f.TechId" Data="@TechOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.None"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
 
                 @* 상태(정상·도래·지연)는 예정일로 계산한다(PmRules) — 손으로 정하는 것은 취소 여부뿐, 새 일정은 항상 사용 *@

@@ -98,7 +98,7 @@
                                 <RadzenDropDown TValue="string" Data="s.Step.Candidates"
                                                 TextProperty="Display" ValueProperty="LineId"
                                                 @bind-Value="s.LineId" @bind-Value:after="Recompute"
-                                                AllowClear="true" AllowFiltering="true" Disabled="_busy"
+                                                AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Disabled="_busy"
                                                 Placeholder="—" Style="width:100%" />
                             </td>
                             <td class="code">

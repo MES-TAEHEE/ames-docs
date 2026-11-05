@@ -333,7 +333,7 @@
                 }
                 else
                 {
-                    <RadzenDropDown Name="CopySourceDd" @bind-Value="_copySource" Data="@CopyOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    <RadzenDropDown Name="CopySourceDd" @bind-Value="_copySource" Data="@CopyOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 }
             </RadzenStack>
 
@@ -780,7 +780,7 @@
     @<div>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
             <RadzenLabel Text='@($"{L["Col.ItemNo"]} *")' class="ames-rz-modal-label" Component="StepFormItemNo" />
-            <RadzenDropDown AllowFiltering="true" Name="StepFormItemNo" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="StepFormItemNo" @bind-Value="_f.ItemNo" Data="@ItemOptions" TextProperty="Text" ValueProperty="Value" Disabled="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
         </RadzenStack>
 
         <RadzenRow Gap="8px" Style="margin-top:6px;">
@@ -809,7 +809,7 @@
             </RadzenColumn>
             <RadzenColumn Size="6">
                 <RadzenLabel Text="@L["Col.Station"]" />
-                <RadzenDropDown @bind-Value="_f.StationCode" Data="@StationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                <RadzenDropDown @bind-Value="_f.StationCode" Data="@StationOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
             </RadzenColumn>
         </RadzenRow>
 

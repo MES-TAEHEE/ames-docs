@@ -78,11 +78,11 @@
     <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <RadzenLabel Text="@L["Col.Line"]" />
-            <RadzenDropDown TValue="string" @bind-Value="_lineId" @bind-Value:after="LoadData" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Placeholder="@L["PP.LineSchedule.Ph.SelectLine"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
+            <RadzenDropDown TValue="string" @bind-Value="_lineId" @bind-Value:after="LoadData" Data="@LineOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["PP.LineSchedule.Ph.SelectLine"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:280px;" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_date" @bind-Value:after="LoadData" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["PP.LineSchedule.Lbl.Pattern"]" />
             @* 적용된 라인+일자는 패턴 변경 불가, 저장 스케줄이 없을 때만 선택 가능 *@
-            <RadzenDropDown TValue="string" @bind-Value="_patternId" @bind-Value:after="OnPatternChanged" Data="@PatternDdOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" AllowClear="true" Disabled="@(string.IsNullOrEmpty(_lineId) || _savedStatus != null)" Placeholder="@L["PP.LineSchedule.Ph.SelectPattern"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:400px;" />
+            <RadzenDropDown TValue="string" @bind-Value="_patternId" @bind-Value:after="OnPatternChanged" Data="@PatternDdOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowClear="true" Disabled="@(string.IsNullOrEmpty(_lineId) || _savedStatus != null)" Placeholder="@L["PP.LineSchedule.Ph.SelectPattern"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:400px;" />
             @* 초기화: 수정 권한 + 오늘 이후 날짜에서만 노출, 적용된 스케줄이 있을 때만 활성 → 저장 스케줄 삭제 *@
             @if (_canEdit && _date.Date >= ServerNow.Date)
             {
@@ -246,7 +246,7 @@
                     }
                     else
                     {
-                        <RadzenDropDown TValue="string" @bind-Value="_placeWoIdStr" @bind-Value:after="OnPlaceWoChanged" Data="@WoOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDropDown TValue="string" @bind-Value="_placeWoIdStr" @bind-Value:after="OnPlaceWoChanged" Data="@WoOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     }
                 </div>
                 <RadzenRow Gap="8px">
@@ -305,7 +305,7 @@
                 <div>
                     <RadzenLabel Text="@L["PP.LineSchedule.Pm.Ref"]" />
                     @* MNT_PMSchedule 도래 예정 PM 선택 시 명칭 자동 채움 + RefType/RefID 연계. 미선택 = 수동 밴드 *@
-                    <RadzenDropDown TValue="string" @bind-Value="_pmRefStr" @bind-Value:after="OnPmRefChanged" Data="@PmRefOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" AllowClear="true" Placeholder="@L["PP.LineSchedule.Pm.RefPh"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown TValue="string" @bind-Value="_pmRefStr" @bind-Value:after="OnPmRefChanged" Data="@PmRefOptions" TextProperty="Text" ValueProperty="Value" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowClear="true" Placeholder="@L["PP.LineSchedule.Pm.RefPh"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </div>
                 <div>
                     <RadzenLabel Text="@L["PP.LineSchedule.Pm.Name"]" />

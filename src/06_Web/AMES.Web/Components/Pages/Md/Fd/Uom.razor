@@ -49,7 +49,7 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.Uom.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCategory" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownCategory" @bind-Value="_fCat" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="DropDownCategory" @bind-Value="_fCat" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:120px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownStatus" />
             <RadzenDropDown Name="DropDownStatus" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100px;" />
 
@@ -127,7 +127,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomCategory"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOMCategory" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Change="@OnCategoryChanged" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.UOMCategory" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Change="@OnCategoryChanged" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomSymbol"]" />
@@ -144,7 +144,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.BaseUom"]" />
-                    <RadzenDropDown @bind-Value="_f.BaseUOM" Data="@BaseUomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@_f.BaseFlag" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.BaseUOM" Data="@BaseUomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@_f.BaseFlag" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -192,7 +192,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomCategory"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.UOMCategory" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Change="@OnCategoryChanged" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.UOMCategory" Data="@CategoryOptions" TextProperty="Text" ValueProperty="Value" Change="@OnCategoryChanged" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.UomSymbol"]" />
@@ -209,7 +209,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.BaseUom"]" />
-                    <RadzenDropDown @bind-Value="_f.BaseUOM" Data="@BaseUomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@_f.BaseFlag" AllowClear="true" AllowFiltering="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown @bind-Value="_f.BaseUOM" Data="@BaseUomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@_f.BaseFlag" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 

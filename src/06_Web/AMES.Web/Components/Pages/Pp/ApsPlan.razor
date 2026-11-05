@@ -82,14 +82,14 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="@L["PP.Aps.Lbl.Line"]" />
             <RadzenDropDown TValue="string" @bind-Value="_fLine" Data="@_lineOpts" TextProperty="Text" ValueProperty="Value"
-                            AllowFiltering="true" Placeholder="@L["PP.Aps.Ph.Line"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px" Disabled="@_busy" />
+                            AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["PP.Aps.Ph.Line"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px" Disabled="@_busy" />
             <RadzenLabel Text="@L["PP.Aps.Lbl.BaseDate"]" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime" @bind-Value="_fBase" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" Disabled="@_busy" />
             <RadzenLabel Text="@L["PP.Aps.Lbl.Days"]" />
             <RadzenNumeric TValue="int" @bind-Value="_fDays" Min="1" Max="30" Step="1" ShowUpDown="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:80px" Disabled="@_busy" />
             <RadzenLabel Text="@L["PP.Aps.Lbl.Customer"]" />
             <RadzenDropDown TValue="string" @bind-Value="_fCust" Data="@_custOpts" TextProperty="Text" ValueProperty="Value"
-                            AllowClear="true" AllowFiltering="true" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px" Disabled="@_busy" />
+                            AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Placeholder="@L["Filter.All"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:220px" Disabled="@_busy" />
             <RadzenCheckBox TValue="bool" @bind-Value="_fOpen" Name="ApsChkOpen" Disabled="@_busy" />
             <RadzenLabel Text="@L["PP.Aps.Lbl.IncludeOpen"]" Component="ApsChkOpen" />
             <RadzenCheckBox TValue="bool" @bind-Value="_fDaily" Name="ApsChkDaily" Disabled="@_busy" />

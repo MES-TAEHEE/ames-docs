@@ -48,9 +48,9 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
             <RadzenTextBox @bind-Value="_fSearch" Change="@OnSearchChanged" @onkeydown="OnSearchKeyDown" Immediate="true" Placeholder="@L["MD.DefectCause.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:300px;" />
             <RadzenLabel Text="@L["Col.Process"]" Component="DropDownProcess" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="DropDownProcess" @bind-Value="_fProcess" Data="@ProcessFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Category"]" Component="DropDownCategory" />
-            <RadzenDropDown AllowFiltering="true" Name="DropDownCategory" @bind-Value="_fCategory" Data="@CategoryFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="DropDownCategory" @bind-Value="_fCategory" Data="@CategoryFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px;" />
             <RadzenLabel Text="@L["Col.Active"]" Component="DropDownActive" />
             <RadzenDropDown Name="DropDownActive" @bind-Value="_fActive" Data="@ActiveFilterOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
 
@@ -156,11 +156,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Process"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="ProcessOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.ProcessCode" Data="ProcessOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Category"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.CauseCategory" Data="CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.CauseCategory" Data="CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -174,7 +174,7 @@
                 <RadzenRow Gap="8px" Style="margin-top:6px;">
                     <RadzenColumn Size="12">
                         <RadzenLabel Text="@L["Col.DefaultCause"]" />
-                        <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ParentCauseCode" Data="@(_allRows.Where(r => r.RootCauseFlag).OrderBy(r => r.CauseCode).Select(rc => new DropDownItem { Value = rc.CauseCode, Text = $"[{rc.CauseCode}] {(MasterDataRepository.LocalName(rc.CauseName, rc.CauseNameEn) is { Length: > 0 } nm ? nm : rc.CauseCode)}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.ParentCauseCode" Data="@(_allRows.Where(r => r.RootCauseFlag).OrderBy(r => r.CauseCode).Select(rc => new DropDownItem { Value = rc.CauseCode, Text = $"[{rc.CauseCode}] {(MasterDataRepository.LocalName(rc.CauseName, rc.CauseNameEn) is { Length: > 0 } nm ? nm : rc.CauseCode)}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                 </RadzenRow>
             }
@@ -182,7 +182,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Dept"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ResponsibleDept" Data="DeptOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.ResponsibleDept" Data="DeptOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.SortSeq"]" />
@@ -240,11 +240,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Process"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ProcessCode" Data="ProcessOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.ProcessCode" Data="ProcessOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Category"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.CauseCategory" Data="CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.CauseCategory" Data="CategoryOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -258,7 +258,7 @@
                 <RadzenRow Gap="8px" Style="margin-top:6px;">
                     <RadzenColumn Size="12">
                         <RadzenLabel Text="@L["Col.DefaultCause"]" />
-                        <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ParentCauseCode" Data="@(_allRows.Where(r => r.RootCauseFlag && r.CauseCode != _sel!.CauseCode).OrderBy(r => r.CauseCode).Select(rc => new DropDownItem { Value = rc.CauseCode, Text = $"[{rc.CauseCode}] {(MasterDataRepository.LocalName(rc.CauseName, rc.CauseNameEn) is { Length: > 0 } nm ? nm : rc.CauseCode)}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                        <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.ParentCauseCode" Data="@(_allRows.Where(r => r.RootCauseFlag && r.CauseCode != _sel!.CauseCode).OrderBy(r => r.CauseCode).Select(rc => new DropDownItem { Value = rc.CauseCode, Text = $"[{rc.CauseCode}] {(MasterDataRepository.LocalName(rc.CauseName, rc.CauseNameEn) is { Length: > 0 } nm ? nm : rc.CauseCode)}" }))" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.None"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     </RadzenColumn>
                 </RadzenRow>
             }
@@ -266,7 +266,7 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.Dept"]" />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.ResponsibleDept" Data="DeptOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.ResponsibleDept" Data="DeptOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.SortSeq"]" />

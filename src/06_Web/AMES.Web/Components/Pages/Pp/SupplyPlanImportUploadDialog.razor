@@ -10,7 +10,7 @@
 
 <div style="display:flex;flex-direction:column;gap:6px;min-width:440px;">
     <label>① @L["Col.Customer"]</label>
-    <RadzenDropDown AllowFiltering="true" Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
+    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data="Customers" TextProperty="CustomerName" ValueProperty="CustomerID"
                     @bind-Value="_upCustomer" Change="@(_ => RefreshVendorCheck())" Disabled="_busy" AllowClear="true"
                     Placeholder="—" Style="width:100%" />
 

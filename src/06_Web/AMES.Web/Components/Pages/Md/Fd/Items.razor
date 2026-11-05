@@ -177,7 +177,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                 </RadzenColumn>
             </RadzenRow>
 
@@ -210,7 +210,7 @@
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text='@(L["MD.Items.Lbl.Uom"] + " (UOM)")' />
-                    <RadzenDropDown AllowFiltering="true" @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@_uomInUse" title="@(_uomInUse ? L["MD.Items.Hint.UomLocked"].Value : "")" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_f.Uom" Data="@UomOptions" TextProperty="Text" ValueProperty="Value" Disabled="@_uomInUse" title="@(_uomInUse ? L["MD.Items.Hint.UomLocked"].Value : "")" Placeholder="@L["Opt.Select"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
                     @if (_uomInUse)
                     {
                         <div class="dim" style="font-size:.78em;margin-top:2px;">🔒 @L["MD.Items.Hint.UomLocked"]</div>

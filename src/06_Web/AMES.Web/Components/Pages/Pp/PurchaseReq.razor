@@ -46,7 +46,7 @@
                             Placeholder="@L["Filter.All"].Value" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
             <RadzenLabel Text="@L["Col.Vendor"]" />
             <RadzenDropDown @bind-Value="_fVendor" @bind-Value:after="ApplyFilter" Data="@VendorFilterOptions" TextProperty="Text" ValueProperty="Value"
-                            Placeholder="@L["Filter.All"].Value" AllowClear="true" AllowFiltering="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
+                            Placeholder="@L["Filter.All"].Value" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.PurchaseReq.Fld.RequiredFrom"]" />
             <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" @bind-Value="_fFrom" @bind-Value:after="ApplyFilter" DateFormat="@DateFmt.Date" AllowClear="true" Placeholder="—" InputSize="InputSize.Small" class="ames-rz-input" Style="width:150px" />
             <RadzenLabel Text='@($"{L["Col.PrNo"]} / {L["Col.ItemNo"]}")' />
@@ -143,7 +143,7 @@ else
 
             <div class="pr-drow">
                 <span class="pr-dl" style="width:110px;">@L["Col.Vendor"]</span>
-                <RadzenDropDown @bind-Value="_actVendor" Data="@VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true"
+                <RadzenDropDown @bind-Value="_actVendor" Data="@VendorOptions" TextProperty="Text" ValueProperty="Value" AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                                 Placeholder="—" Disabled="@(!_canEdit || !PrStatusRules.CanSend(_sel.Status) || _busy)" Style="width:260px" InputSize="InputSize.Small" class="ames-rz-input" />
                 @if (_canEdit && PrStatusRules.CanSend(_sel.Status))
                 {

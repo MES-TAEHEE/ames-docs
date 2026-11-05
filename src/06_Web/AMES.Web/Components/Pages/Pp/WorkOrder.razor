@@ -43,7 +43,7 @@
             <RadzenTextBox @bind-Value="_fText" @bind-Value:after="ApplyFilters"
                            Placeholder="@L["PP.WorkOrder.Ph.Search"]" InputSize="InputSize.Small" class="ames-rz-input" Style="width:200px" />
             <RadzenLabel Text="@L["PP.WorkOrder.Filter.ClosedDays"]" />
-            <RadzenDropDown AllowFiltering="true" Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" />
+            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Data="_dayOpts" @bind-Value="_recentDays" @bind-Value:after="Reload" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px" />
 
             <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reload" />
             <RadzenButton Text="@L["Btn.Reset"].Value" Icon="restart_alt" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="ames-rz-btn" Click="Reset" />
