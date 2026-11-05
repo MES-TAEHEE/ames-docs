@@ -122,13 +122,21 @@
                                 <div class="wh07-line-main">
                                     <strong>@line.ItemNo</strong>
                                     <span class="wh07-line-name">@Text(line.ItemName)</span>
+                                    @if (!string.IsNullOrWhiteSpace(line.WorkOrderNumber))
+                                    {
+                                        <span class="wh07-line-name">WO · @line.WorkOrderNumber</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(line.Destination))
+                                    {
+                                        <span class="wh07-line-name">TO · @line.Destination</span>
+                                    }
                                     <div class="wh07-pick-from">
                                         <span>PICK FROM</span>
                                         <strong>@PickingLocations(line.ItemNo)</strong>
                                     </div>
                                     <div class="wh07-line-qty">
-                                        <span>REQUESTED <strong>@line.RequestBoxQty.ToString("N0") @Uom.Symbol(line.QuantityUnit)</strong></span>
-                                        <span>PICKED <strong>@DisplayPickedQuantity(line).ToString("N0") @Uom.Symbol(line.QuantityUnit)</strong></span>
+                                        <span>REQUESTED <strong>@line.RequestBoxQty.ToString("#,##0.###") @Uom.Symbol(line.QuantityUnit)</strong></span>
+                                        <span>PICKED <strong>@DisplayPickedQuantity(line).ToString("#,##0.###") @Uom.Symbol(line.QuantityUnit)</strong></span>
                                     </div>
                                 </div>
                             </div>
@@ -839,8 +847,8 @@
             _pendingPicks.Add(_scan);
             var line = _lines.First(x => string.Equals(x.ItemNo, _scan.ItemNo, StringComparison.OrdinalIgnoreCase));
             var excess = DisplayPickedQuantity(line) - line.RequestBoxQty;
-            if (line.QuantityUnit == "EA" && excess > 0)
-                ShowModal("Extra Quantity", $"The full final box was added. Requested: {line.RequestBoxQty:N0} EA. Picked: {DisplayPickedQuantity(line):N0} EA. Extra: {excess:N0} EA.", "warn");
+            if (line.QuantityUnit != "BOX" && excess > 0)
+                ShowModal("Extra Quantity", $"The full final box was added. Requested: {line.RequestBoxQty:#,##0.###} {Uom.Symbol(line.QuantityUnit)}. Picked: {DisplayPickedQuantity(line):#,##0.###}. Extra: {excess:#,##0.###}.", "warn");
             if (CanCompleteRelease && string.IsNullOrWhiteSpace(_outgoingType))
             {
                 _highlightOutgoingType = true;
@@ -922,7 +930,7 @@
 
     private decimal DisplayPickedQuantity(PdaApi.ReleasePickLineRow line)
         => line.PickedBoxQty + _pendingPicks.Where(pick => string.Equals(pick.ItemNo, line.ItemNo, StringComparison.OrdinalIgnoreCase))
-            .Sum(pick => line.QuantityUnit == "EA" ? pick.Qty : 1);
+            .Sum(pick => line.QuantityUnit != "BOX" ? pick.Qty : 1);
 
     private bool IsPartAlreadySufficient(string? itemNo)
         => _lines.FirstOrDefault(line => string.Equals(line.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase)) is { } line
@@ -987,13 +995,18 @@
             var releaseLots = _pendingPicks
                 .Select(pick => new PdaApi.ReleasePickInput(pick.LotNo, pick.Qty))
                 .ToList();
-            var response = await Api.WhReleaseCompleteAsync(new PdaApi.ReleaseCompleteReq(
+            using var response = await Api.WhReleaseCompleteAsync(new PdaApi.ReleaseCompleteReq(
                 _loadedSlipNo, releaseLots, _outgoingType,
                 IsTestMode && CurrentTestScenario.No == 18 && _simulateReleaseApiFailure));
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowModal("Release Failed", await WarehouseApi.ReadReleaseErrorAsync(response), "fail");
+                return;
+            }
             var result = await response.Content.ReadFromJsonAsync<PdaApi.ReleaseCompleteResult>();
             if (response.IsSuccessStatusCode && result?.Success == true)
             {
-                var completedSlip = _loadedSlipNo;
+                var summary = PdaReleaseSummary.Picking(_pendingPicks, OutgoingReason, Uom.Symbol);
                 _loadedSlipNo = null;
                 _pickSlipNo = "";
                 _barcode = "";
@@ -1003,11 +1016,11 @@
                 _pendingPicks.Clear();
                 _highlightOutgoingType = false;
                 await LoadOpenPickingOrdersAsync();
-                ShowModal("BOX Release", $"{completedSlip}\n{result.Message}", "ok");
+                ShowModal("Release Successful", summary, "ok");
             }
             else
             {
-                ShowModal("Release Not Complete", result?.Message ?? "Release could not be completed.", "warn");
+                ShowModal("Release Failed", result?.Message ?? "Release could not be completed.", "fail");
             }
         }
         catch (Exception ex)
@@ -1027,22 +1040,28 @@
         _isBusy = true;
         try
         {
-            var response = await Api.WhDirectOutgoingAsync(new PdaApi.DirectOutgoingReq(
+            using var response = await Api.WhDirectOutgoingAsync(new PdaApi.DirectOutgoingReq(
                 _outgoingType, _directLot.LotNo, _directQty));
+            if (!response.IsSuccessStatusCode)
+            {
+                ShowModal("Release Failed", await WarehouseApi.ReadReleaseErrorAsync(response), "fail");
+                return;
+            }
             var result = await response.Content.ReadFromJsonAsync<PdaApi.DirectOutgoingResult>();
             if (response.IsSuccessStatusCode && result?.Success == true)
             {
-                var lotNo = _directLot.LotNo;
-                ShowModal("Outgoing Complete", $"{lotNo} has been released.", "ok", ResetDirectOutgoingAsync);
+                var summary = PdaReleaseSummary.Direct(_directLot.LotNo, _directLot.ItemNo,
+                    _directQty, Uom.Symbol(_directLot.Unit), OutgoingReason);
+                ShowModal("Release Successful", summary, "ok", ResetDirectOutgoingAsync);
             }
             else
             {
-                ShowModal("Outgoing Not Complete", result?.Message ?? "Outgoing could not be completed.", "warn");
+                ShowModal("Release Failed", result?.Message ?? "Release could not be completed.", "fail");
             }
         }
         catch (Exception ex)
         {
-            ShowModal("Outgoing Failed", ex.Message, "fail");
+            ShowModal("Release Failed", ex.Message, "fail");
         }
         finally
         {
@@ -1055,6 +1074,9 @@
         ClearRelease();
         return Task.CompletedTask;
     }
+
+    private string OutgoingReason => OutgoingTypes.FirstOrDefault(type =>
+        string.Equals(type.CodeValue, _outgoingType, StringComparison.OrdinalIgnoreCase))?.Name ?? _outgoingType;
 
     private void ChangeDirectQty(decimal change)
     {

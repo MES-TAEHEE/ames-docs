@@ -138,7 +138,7 @@ public abstract class PdaApi
     public sealed record ReleasePickLineRow(string PickSlipNo, string ItemNo, string? ItemName,
         decimal RequestBoxQty, decimal PickedBoxQty, decimal PickedQty, string? RequestUserId,
         string? SuggestedLocation1, string? SuggestedLocation2, string? SuggestedLocation3, string Status,
-        string QuantityUnit = "BOX");
+        string QuantityUnit = "BOX", string? WorkOrderNumber = null, string? Destination = null);
     public sealed record ReleaseLotRow(string PickSlipNo, string LotNo, string? ItemNo, string? ItemName,
         decimal Qty, string? Unit, string? LocationNo, string? LocationName, string? ZoneCode,
         string? InvStatus, string? ProdDate, string? RcvDate, bool IsFifoSuggested, bool IsValid,

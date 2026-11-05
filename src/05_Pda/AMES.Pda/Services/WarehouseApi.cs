@@ -239,6 +239,8 @@ public sealed class WarehouseApi(HttpClient http, AuthState auth, SparePartsApi 
         $"/api/wh/inventory/box-label/{Uri.EscapeDataString(lotNo)}", "Box label data is unavailable.");
     public Task<HttpResponseMessage> WhReleaseCompleteAsync(ReleaseCompleteReq body)
         => Post("/api/wh/release/complete", body);
+    public static Task<string> ReadReleaseErrorAsync(HttpResponseMessage response)
+        => ReadServiceErrorAsync(response, "Release could not be completed.");
     public Task<List<OutgoingVendorRow>> WhOutgoingVendorsAsync()
         => Get<List<OutgoingVendorRow>>("/api/wh/release/outgoing/vendors");
     public async Task<DirectOutgoingLotRow?> WhDirectOutgoingLotAsync(string lotNo, string? areaCode = null)
