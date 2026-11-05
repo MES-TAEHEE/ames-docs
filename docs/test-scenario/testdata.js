@@ -41,7 +41,7 @@ const TD_COMMON = [
 
 const TD_GROUP = {
   '0': [
-    ['품목 생성 입력', 'TST-A-001 · TST-CORE-A · TST-A-001-LH · TST-A-001-RH · TST-RESIN · TST-B-001 (항목별 값은 공통 기준 데이터)'],
+    ['품목 생성 입력', 'TST-A-001 · TST-CORE-A · TST-A-001-LH · TST-A-001-RH · TST-RESIN · TST2-B-001 · TST2-CORE-B (항목별 값은 공통 기준 데이터)'],
     ['중복 시험 입력', 'TST-A-001 을 두 번째로 등록'],
     ['잘못된 입력', '적입수량 -1 · 비율 101 · 사출품을 완제품에 체크'],
     ['사용 중 삭제 시험', 'TST-RESIN (BOM 사용 중)'],
@@ -92,7 +92,7 @@ const TD_GROUP = {
     ['불량 코드', 'INJ-D08 · 원인 RC-TST-01'],
     ['안돈', '원인 설비 이상 · 심각도 CRITICAL · 부서 MAINT'],
     ['IMG 코어', '사출 LOT 1개 (CONFIRMED 상태)'],
-    ['PNT 완제품', 'TST-B-001 · 라벨 1장'],
+    ['PNT 완제품', 'TST2-B-001 · 라벨 1장'],
   ],
   '7': [
     ['대기 LOT', 'DEFECT LOT 2개 — 수리용 1 · 폐기용 1'],
