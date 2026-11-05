@@ -29,3 +29,30 @@
     overflow-wrap: anywhere;
     line-height: 1.4;
 }
+
+.picking-overdue {
+    color: var(--ames-tx-red-400);
+    font-weight: 700;
+}
+
+.picking-orders-toolbar {
+    flex-wrap: wrap;
+    row-gap: 0.75rem;
+}
+
+.picking-orders-toolbar ::deep .picking-status-filters {
+    flex-basis: 100%;
+    width: 100%;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--ames-bd-white-a08);
+}
+
+/* Filtered rows must not resize the header; override the shared content-sized table only here. */
+.wh-pick-list ::deep .wh-picking-orders-grid .rz-data-grid-data > table {
+    table-layout: fixed !important;
+    min-width: 1400px;
+}
+
+.wh-pick-list ::deep .wh-picking-orders-grid .rz-data-grid-data {
+    scrollbar-gutter: stable;
+}

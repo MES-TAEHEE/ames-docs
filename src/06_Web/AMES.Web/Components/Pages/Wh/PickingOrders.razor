@@ -8,39 +8,66 @@
 @inject AuthenticationStateProvider Auth
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResources> L
+@inject ILogger<PickingOrders> Log
+@inject DialogService Dialog
+@inject AuditLogger Audit
 
 <PageTitle>WH-003 @L["WH.Picking.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="WH-003" TitleKey="WH.Picking.Title" />
 <div class="ames-kpis">
-    <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Picking.Title"]</div><div class="ames-kpi-v">@_orders.Count</div></div>
+    <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Picking.Title"]</div><div class="ames-kpi-v">@VisibleOrders.Count()</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["WH.Picking.Kpi.LineLocations"]</div><div class="ames-kpi-v">@_stock.Select(x=>x.LineCode).Distinct().Count()</div></div>
     <div class="ames-kpi warn"><div class="ames-kpi-l">@L["WH.Picking.Kpi.BelowMin"]</div><div class="ames-kpi-v">@_stock.Count(x=>x.DisplayRequiredQty>0)</div></div>
 </div>
 @if (_error.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert> }
+@if (_message.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat">@_message</RadzenAlert> }
 <AmesTabs>
     <AmesTab Title="@L["WH.Picking.Title"].Value">
     <section class="ames-card wh-pick-list">
-        <div class="ames-card-h master-list-toolbar">
+        <div class="ames-card-h master-list-toolbar picking-orders-toolbar">
             <span>@L["WH.Picking.Title"]</span>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
                 <RadzenTextBox @bind-Value="_search" Placeholder="@L["WH.Picking.Ph.Search"].Value" InputSize="InputSize.Small" class="ames-rz-input" Style="width:250px" />
                 <RadzenButton Text="@L["Btn.Search"].Value" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" Click="Refresh" Disabled="@(_refreshing || _cancelling || !Permissions.CanEdit("wh/picking-orders"))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="1rem" class="picking-status-filters">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                    <RadzenCheckBox TValue="bool" Value="_includeOverdue" Change="ToggleOverdue" Name="PickingIncludeOverdue" />
+                    <RadzenLabel Text="@L["WH.Picking.Filter.IncludeOverdue"].Value" Component="PickingIncludeOverdue" style="cursor:pointer" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                    <RadzenCheckBox TValue="bool" Value="_includeCancelled" Change="ToggleCancelled" Name="PickingIncludeCancelled" />
+                    <RadzenLabel Text="@L["SCM.Preview.Lbl.IncludeCancelled"].Value" Component="PickingIncludeCancelled" style="cursor:pointer" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                    <RadzenCheckBox TValue="bool" Value="_includeClosed" Change="ToggleClosed" Name="PickingIncludeClosed" />
+                    <RadzenLabel Text="@L["WH.Picking.IncludeClosed"].Value" Component="PickingIncludeClosed" style="cursor:pointer" />
+                </RadzenStack>
             </RadzenStack>
         </div>
-        <RadzenDataGrid TItem="PickingSlipHeaderRow" Data="_orders" RowSelect="SelectOrder"
-            AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_orderPageRows=s)" Style="@($"--ames-page-rows:{_orderPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
+        <RadzenDataGrid @ref="_ordersGrid" TItem="PickingSlipHeaderRow" Data="VisibleOrders" RowSelect="SelectOrder" AllowMultiColumnSorting="false"
+            AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_orderPageRows=s)" Style="@($"--ames-page-rows:{_orderPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed wh-picking-orders-grid">
             <Columns>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="@L["WH.Picking.Col.OrderNo"].Value" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqLocation" Title="@L["Col.Line"].Value" Width="100px" MinWidth="100px" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqDate" Title="@L["Col.Date"].Value" Width="115px" MinWidth="115px" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="LineCount" Title="@L["WH.Picking.Col.Materials"].Value" Width="110px" MinWidth="110px" />
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqBoxQty" Title="@L["WH.Picking.Col.ReqQty"].Value" Width="150px" MinWidth="150px">
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickSlipNo" Title="@L["WH.Picking.Col.OrderNo"].Value" Width="190px" MinWidth="190px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqLocation" Title="@L["Col.Destination"].Value" Width="150px" MinWidth="150px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="GenerationSource" Title="@L["WH.Picking.Col.Source"].Value" Width="190px" MinWidth="190px">
+                    <Template Context="row">@GenerationSourceText(row.GenerationSource)</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="CreatedAt" Title="@L["WH.Picking.Col.CreatedDate"].Value" Width="160px" MinWidth="160px">
+                    <Template Context="row">@(row.CreatedAt?.ToString(DateFmt.Date) ?? "—")</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="DueAt" SortProperty="DueSortDate" SortOrder="SortOrder.Ascending" Title="@L["WH.Picking.Col.DueDate"].Value" Width="130px" MinWidth="130px">
+                    <Template Context="row"><span class="@(row.IsOverdue(DbClock.Today) ? "picking-overdue" : null)">@(row.DueAt?.ToString(DateFmt.Date) ?? "—")</span></Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="LineCount" Title="@L["WH.Picking.Col.Materials"].Value" Width="130px" MinWidth="130px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="ReqBoxQty" Title="@L["WH.Picking.Col.ReqQty"].Value" Width="170px" MinWidth="170px">
                     <Template Context="row">@UomFmt.QtyUnit(row.ReqBoxQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickedQty" Title="@L["WH.Picking.Col.PickedQty"].Value" Width="140px" MinWidth="140px">
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="PickedQty" Title="@L["WH.Picking.Col.PickedQty"].Value" Width="160px" MinWidth="160px">
                     <Template Context="row">@UomFmt.QtyUnit(row.PickedQty, row.QuantityUnit)</Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="Status" Title="@L["Col.Status"].Value" Width="100px" MinWidth="100px" />
+                <RadzenDataGridColumn TItem="PickingSlipHeaderRow" Property="Status" Title="@L["Col.Status"].Value" Width="120px" MinWidth="120px" />
             </Columns>
         </RadzenDataGrid>
     </section>
@@ -49,7 +76,7 @@
         <section class="ames-card wh-pick-list">
             <div class="ames-card-h master-list-toolbar">
                 <span>@L["WH.Picking.Lbl.LineStockSafety"]</span>
-                <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Refresh"].Value" Icon="refresh" Click="Refresh" Disabled="@(_refreshing || _cancelling || !Permissions.CanEdit("wh/picking-orders"))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </div>
             <RadzenDataGrid TItem="LineStockRow" Data="_stock" AllowPaging="true" PageSize="25" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PagerHorizontalAlign="HorizontalAlign.Center" PageSizeChanged="@(s=>_stockPageRows=s)" Style="@($"--ames-page-rows:{_stockPageRows}")" AllowSorting="true" class="ames-rz-grid ames-grid-fixed">
                 <Columns>
@@ -73,11 +100,13 @@
     <div class="ames-modal-bg" @onclick="@(()=>_selected=null)"><div class="ames-modal ames-modal-fullwide" @onclick:stopPropagation>
     <section class="ames-card slip-detail-card">
         <div class="ames-modal-h master-list-toolbar">
-            <span>@_selected.PickSlipNo · @L["Col.Line"] @_selected.ReqLocation</span>
+            <span>@_selected.PickSlipNo · @L["Col.Destination"] @_selected.ReqLocation</span>
         </div>
+        @if (_cancelError.Length > 0) { <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_cancelError</RadzenAlert> }
         <RadzenDataGrid TItem="PickingSlipLineRow" Data="_details" AllowPaging="false" class="ames-rz-grid">
             <Columns>
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="SeqNo" Title="@L["Col.No"].Value" Width="60px" MinWidth="60px" />
+                <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="WorkOrderNumber" Title="@L["WH.Picking.Col.WorkOrder"].Value" Width="160px" MinWidth="160px" />
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PartNo" Title="@L["Col.ItemNo"].Value" Width="190px" MinWidth="190px" />
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="PartName" Title="@L["Col.ItemName"].Value" />
                 <RadzenDataGridColumn TItem="PickingSlipLineRow" Property="ReqBoxQty" Title="@L["WH.Picking.Col.ReqQty"].Value" Width="130px" MinWidth="130px">
@@ -93,18 +122,32 @@
             </Columns>
         </RadzenDataGrid>
     </section>
-    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["Btn.Close"].Value" Icon="close" Click="@(()=>_selected=null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+        <RadzenButton Text="@L["WH.Picking.Btn.Cancel"].Value" Icon="cancel" Click="CancelSelection" Disabled="@(_cancelling || _refreshing || !CanCancelSelection || !Permissions.CanEdit("wh/picking-orders"))" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+        <RadzenButton Text="@L["Btn.Close"].Value" Icon="close" Click="@(()=>_selected=null)" Disabled="_cancelling" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+    </RadzenStack>
     </div></div>
 }
 
 @code {
+    [SupplyParameterFromQuery(Name="order")] public string? RequestedOrder { get; set; }
     List<LineStockRow> _stock = [];
     List<PickingSlipHeaderRow> _orders = [];
     List<PickingSlipLineRow> _details = [];
     List<PickingSlipFifoLotRow> _sources = [];
     PickingSlipHeaderRow? _selected;
-    string _search = "", _error = "";
-    bool _allowed;
+    string _search = "", _error = "", _message = "", _cancelError = "";
+    bool _allowed, _refreshing, _cancelling, _includeOverdue = true;
+    bool _includeCancelled = false;
+    bool _includeClosed = false;
+    bool CanCancelSelection => _details.Any(row => row.ReqBoxQty > row.PickedBoxQty &&
+        !new[] { "CLOSED", "RELEASED", "PICKED", "CANCELLED", "CANCELED" }.Contains(row.Status.ToUpperInvariant()));
+    RadzenDataGrid<PickingSlipHeaderRow>? _ordersGrid;
+    IEnumerable<PickingSlipHeaderRow> VisibleOrders => _orders
+        .Where(row => _includeCancelled || !row.IsCancelled)
+        .Where(row => _includeClosed || !row.IsClosed)
+        .Where(row => _includeOverdue || !row.IsOverdue(DbClock.Today))
+        .OrderBy(row => row.DueSortDate).ThenByDescending(row => row.CreatedAt).ThenBy(row => row.PickSlipNo);
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _stockPageRows=25,_orderPageRows=25;
 
     protected override async Task OnInitializedAsync()
@@ -113,20 +156,92 @@
         _allowed = Permissions.CanOpen("wh/picking-orders");
         if (!_allowed) { Nav.NavigateTo("/unauthorized", replace: true); return; }
         Load();
+        if(!string.IsNullOrWhiteSpace(RequestedOrder) && _orders.FirstOrDefault(row=>row.PickSlipNo==RequestedOrder) is {} requested) SelectOrder(requested);
     }
     void Load()
     {
         if (!_allowed) return;
         _error = "";
+        _message = "";
         _selected = null;
         _details = [];
         _sources = [];
         try { _stock = WH.ListLineStock(); _orders = WH.ListPickingSlipHeaders(_search); }
         catch { _stock = []; _orders = []; _error = L["WH.Picking.Err.Load"].Value; }
     }
+    async Task ToggleOverdue(bool value)
+    {
+        _includeOverdue = value;
+        _selected = null;
+        if (_ordersGrid is not null) await _ordersGrid.FirstPage();
+    }
+    async Task ToggleCancelled(bool value)
+    {
+        _includeCancelled = value;
+        _selected = null;
+        if (_ordersGrid is not null) await _ordersGrid.FirstPage();
+    }
+    async Task ToggleClosed(bool value)
+    {
+        _includeClosed = value;
+        _selected = null;
+        if (_ordersGrid is not null) await _ordersGrid.FirstPage();
+    }
+    async Task Refresh()
+    {
+        if (!_allowed || _refreshing || _cancelling) return;
+        _refreshing = true;
+        _error = "";
+        try
+        {
+            if (!await Permissions.RecheckEditAsync(Auth, "wh/picking-orders"))
+            {
+                _error = L["WH.Picking.Err.NoPermission"].Value;
+                return;
+            }
+            await Task.Run(() => WH.GenerateLinePickingOrders());
+            Load();
+        }
+        catch (Exception ex)
+        {
+            Log.LogError(ex, "Unable to refresh line picking orders");
+            _error = L["WH.Picking.Err.Refresh"].Value;
+        }
+        finally { _refreshing = false; }
+    }
+    async Task CancelSelection()
+    {
+        if (!_allowed || _cancelling || _refreshing || _selected is null || !CanCancelSelection) return;
+        var slip = _selected.PickSlipNo;
+        _cancelling = true;
+        _cancelError = "";
+        try
+        {
+            if (await Dialog.Confirm(string.Format(L["WH.Picking.Confirm.Cancel"].Value, slip),
+                L["WH.Picking.Btn.Cancel"].Value, new ConfirmOptions {
+                    OkButtonText = L["WH.Picking.Btn.Cancel"].Value, CancelButtonText = L["Btn.Close"].Value }) != true) return;
+            if (!await Permissions.RecheckEditAsync(Auth, "wh/picking-orders"))
+            {
+                Audit.Denied("WH-003", "CANCEL", "WH_PickSlip", slip);
+                _cancelError = L["WH.Picking.Err.NoPermission"].Value;
+                return;
+            }
+            var actor = ActorCode.Of((await Auth.GetAuthenticationStateAsync()).User);
+            await Task.Run(() => WH.CancelPickingSlip(slip, actor));
+            Load();
+            _message = string.Format(L["WH.Picking.Msg.Cancelled"].Value, slip);
+        }
+        catch (Exception ex)
+        {
+            Log.LogError(ex, "Unable to cancel picking order {Slip}", slip);
+            _cancelError = L["WH.Picking.Err.Cancel"].Value;
+        }
+        finally { _cancelling = false; }
+    }
     void SelectOrder(PickingSlipHeaderRow row)
     {
         _error = "";
+        _cancelError = "";
         _selected = null;
         try
         {
@@ -136,14 +251,22 @@
         }
         catch { _details = []; _sources = []; _error = L["WH.Picking.Err.LoadDetail"].Value; }
     }
+    string GenerationSourceText(string source) => source switch
+    {
+        "WORK_ORDER" => L["WH.Picking.Source.WorkOrder"].Value,
+        "MINIMUM" => L["WH.Picking.Source.Minimum"].Value,
+        "BOTH" => L["WH.Picking.Source.Both"].Value,
+        "REQUEST" => L["WH.Picking.Source.Request"].Value,
+        _ => "—"
+    };
     string SourceText(PickingSlipLineRow row)
     {
         var remaining = Math.Max(0, row.ReqBoxQty - row.PickedBoxQty);
         if (remaining == 0) return L["WH.Picking.Msg.Picked"].Value;
         var boxes = _sources.Where(x => string.Equals(x.PartNo, row.PartNo, StringComparison.OrdinalIgnoreCase)).ToList();
         var locations = boxes.GroupBy(x => string.IsNullOrWhiteSpace(x.LocationNo) ? L["WH.Picking.Msg.NoLocation"].Value : x.LocationNo.Trim(), StringComparer.OrdinalIgnoreCase)
-            .Select(g => row.QuantityUnit == "EA" ? $"{g.Key} · {UomFmt.QtyUnit(g.Sum(x => x.Qty), "EA")}" : $"{g.Key} · {g.Count():N0} {UomFmt.Sym("BOX")}").ToList();
-        var available = row.QuantityUnit == "EA" ? boxes.Sum(x => x.Qty) : boxes.Count;
+            .Select(g => row.QuantityUnit != "BOX" ? $"{g.Key} · {UomFmt.QtyUnit(g.Sum(x => x.Qty), row.QuantityUnit)}" : $"{g.Key} · {g.Count():N0} {UomFmt.Sym("BOX")}").ToList();
+        var available = row.QuantityUnit != "BOX" ? boxes.Sum(x => x.Qty) : boxes.Count;
         if (available < remaining) locations.Add($"{L["WH.Picking.Msg.StockShortage"]} · {UomFmt.QtyUnit(remaining - available, row.QuantityUnit)}");
         return string.Join("\n", locations);
     }

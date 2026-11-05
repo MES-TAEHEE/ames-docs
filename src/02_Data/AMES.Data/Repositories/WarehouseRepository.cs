@@ -95,7 +95,16 @@ public sealed partial class WarehouseRepository
         decimal PickedQty,
         string? FirstPartNo,
         string? FirstPartName,
-        string QuantityUnit = "BOX");
+        string QuantityUnit = "BOX",
+        DateTime? CreatedAt = null,
+        DateTime? DueAt = null,
+        string GenerationSource = "OTHER")
+    {
+        public DateTime DueSortDate => DueAt?.Date ?? DateTime.MaxValue;
+        public bool IsOverdue(DateTime today) => DueAt is { } due && due.Date < today.Date;
+        public bool IsCancelled => Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) || Status.Equals("Canceled", StringComparison.OrdinalIgnoreCase);
+        public bool IsClosed => Status.Equals("Closed", StringComparison.OrdinalIgnoreCase);
+    }
 
     public record PickingSlipLineRow(
         string PickSlipNo,
@@ -1197,6 +1206,11 @@ public sealed partial class WarehouseRepository
                 SELECT
                     COALESCE(NULLIF(O.PickSlipNo, N''), CONCAT(N'RS-', O.PickSlipID)) AS PICK_SLIPNO,
                     CONVERT(varchar(10), O.RequiredAt, 23) AS REQ_DATE,
+                    O.CreatedTS AS CREATED_AT,
+                    CASE WHEN O.CreatedBy='WH-AUTO' THEN W.DueDate ELSE O.RequiredAt END AS DUE_AT,
+                    CASE WHEN O.WoID IS NOT NULL THEN 1 ELSE 0 END AS HAS_WORK_ORDER,
+                    CASE WHEN O.CreatedBy='WH-AUTO' AND O.WoID IS NULL THEN 1 ELSE 0 END AS HAS_MINIMUM,
+                    CASE WHEN O.CreatedBy='WH-REQUEST' THEN 1 ELSE 0 END AS HAS_REQUEST,
                     COALESCE(NULLIF(O.ReqLocation, N''), N'-') AS REQ_LOCATION,
                     COALESCE(NULLIF(O.ReqUserId, N''), O.CreatedBy) AS REQ_USERID,
                     CONVERT(varchar(8), CONVERT(time(0), COALESCE(O.CreatedTS, O.RequiredAt))) AS REQ_TIME,
@@ -1204,11 +1218,12 @@ public sealed partial class WarehouseRepository
                     O.PickSlipID,
                     O.ItemNo,
                     I.ItemName,
-                    CASE WHEN O.CreatedBy='WH-AUTO' THEN 'EA' ELSE 'BOX' END AS QUANTITY_UNIT,
+                    CASE WHEN O.CreatedBy IN('WH-AUTO','WH-REQUEST') THEN COALESCE(NULLIF(I.DefaultUOM,''),'EA') ELSE 'BOX' END AS QUANTITY_UNIT,
                     COALESCE(O.DemandQty, 0) AS REQ_BOX_QTY,
                     COALESCE(O.PickedQty, 0) AS PICKED_QTY,
                     CASE
-                        WHEN UPPER(COALESCE(O.Status, 'OPEN')) IN ('CLOSED', 'CANCELED') THEN N'Closed'
+                        WHEN UPPER(COALESCE(O.Status, 'OPEN')) IN ('CANCELED', 'CANCELLED') THEN N'Cancelled'
+                        WHEN UPPER(COALESCE(O.Status, 'OPEN')) = 'CLOSED' THEN N'Closed'
                         WHEN COALESCE(O.PickedQty, 0) >= COALESCE(O.DemandQty, 0) AND COALESCE(O.DemandQty, 0) > 0 THEN N'Picked'
                         WHEN COALESCE(O.PickedQty, 0) > 0 THEN N'Partial'
                         ELSE N'Open'
@@ -1216,19 +1231,26 @@ public sealed partial class WarehouseRepository
                 FROM dbo.WH_PickSlip O
                 LEFT JOIN dbo.MD_Item I
                        ON I.ItemNo = O.ItemNo
+                LEFT JOIN dbo.PP_WorkOrder W ON W.WoID=O.WoID
             ),
             Grouped AS
             (
                 SELECT
                     PICK_SLIPNO,
                     MAX(REQ_DATE) AS REQ_DATE,
+                    MIN(CREATED_AT) AS CREATED_AT,
+                    MIN(DUE_AT) AS DUE_AT,
+                    MAX(HAS_WORK_ORDER) AS HAS_WORK_ORDER,
+                    MAX(HAS_MINIMUM) AS HAS_MINIMUM,
+                    MAX(HAS_REQUEST) AS HAS_REQUEST,
                     MAX(REQ_USERID) AS REQ_USERID,
                     MAX(REQ_TIME) AS REQ_TIME,
                     MAX(PrintDate) AS PRINT_DATE,
                     COUNT(*) AS LINE_COUNT,
                     SUM(REQ_BOX_QTY) AS REQ_BOX_QTY,
                     SUM(PICKED_QTY) AS PICKED_QTY,
-                    SUM(CASE WHEN LINE_STATUS = N'Closed' THEN 1 ELSE 0 END) AS CLOSED_LINES,
+                    SUM(CASE WHEN LINE_STATUS IN (N'Closed',N'Cancelled') THEN 1 ELSE 0 END) AS CLOSED_LINES,
+                    SUM(CASE WHEN LINE_STATUS = N'Cancelled' THEN 1 ELSE 0 END) AS CANCELLED_LINES,
                     SUM(CASE WHEN LINE_STATUS = N'Picked' THEN 1 ELSE 0 END) AS PICKED_LINES,
                     SUM(CASE WHEN LINE_STATUS = N'Partial' THEN 1 ELSE 0 END) AS PARTIAL_LINES,
                     MIN(PickSlipID) AS FIRST_ID
@@ -1252,6 +1274,11 @@ public sealed partial class WarehouseRepository
             SELECT
                 G.PICK_SLIPNO,
                 G.REQ_DATE,
+                G.CREATED_AT,
+                G.DUE_AT,
+                CASE WHEN G.HAS_WORK_ORDER=1 AND G.HAS_MINIMUM=1 THEN 'BOTH'
+                     WHEN G.HAS_WORK_ORDER=1 THEN 'WORK_ORDER'
+                     WHEN G.HAS_MINIMUM=1 THEN 'MINIMUM' WHEN G.HAS_REQUEST=1 THEN 'REQUEST' ELSE 'OTHER' END AS GENERATION_SOURCE,
                 R.REQ_LOCATION,
                 G.REQ_USERID,
                 G.REQ_TIME,
@@ -1263,9 +1290,10 @@ public sealed partial class WarehouseRepository
                 L.ItemNo AS FIRST_PARTNO,
                 L.ItemName AS FIRST_PARTNM,
                 CASE
+                    WHEN G.CLOSED_LINES = G.LINE_COUNT AND G.CANCELLED_LINES > 0 THEN N'Cancelled'
                     WHEN G.CLOSED_LINES = G.LINE_COUNT THEN N'Closed'
                     WHEN G.PICKED_LINES = G.LINE_COUNT THEN N'Picked'
-                    WHEN G.PARTIAL_LINES > 0 OR G.PICKED_LINES > 0 THEN N'Partial'
+                    WHEN G.PARTIAL_LINES > 0 OR G.PICKED_LINES > 0 OR G.CLOSED_LINES > 0 THEN N'Partial'
                     ELSE N'Open'
                 END AS STATUS
             FROM Grouped G
@@ -1296,7 +1324,10 @@ public sealed partial class WarehouseRepository
                 GetDecimal(r, "PICKED_QTY"),
                 GetString(r, "FIRST_PARTNO"),
                 GetString(r, "FIRST_PARTNM"),
-                GetString(r, "QUANTITY_UNIT") ?? "BOX"),
+                GetString(r, "QUANTITY_UNIT") ?? "BOX",
+                GetDateTime(r, "CREATED_AT"),
+                GetDateTime(r, "DUE_AT"),
+                GetString(r, "GENERATION_SOURCE") ?? "OTHER"),
             ("@Search", null, like),
             ("@IncludeClosed", null, includeClosed));
     }
@@ -1323,6 +1354,7 @@ public sealed partial class WarehouseRepository
                 FROM dbo.WH_PickSlip RS
                 LEFT JOIN dbo.MD_Item I
                        ON I.ItemNo = RS.ItemNo
+                LEFT JOIN dbo.PP_WorkOrder W ON W.WoID=RS.WoID
                 LEFT JOIN dbo.MD_Line ML
                        ON ML.LineID = RS.ReqLocation
                 WHERE COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) = @PickSlipNo

@@ -193,6 +193,7 @@ FILES=(
   migrate_fg_lot_defect_permission.sql # Separate Warehouse inventory defect permission
   migrate_wh_pda_test_permission.sql # Hidden Web receipt test in the existing Permission Matrix
   migrate_wh_fg_history_screens.sql # Current WH/FG labels and order; unified history, preserve permission identities
+  migrate_wh_picking_refresh_permission.sql # Expose picking recalculation Edit in the Permission Matrix; no new grants
   migrate_drop_md_mold_color.sql     # MD_MoldColor 삭제 — 금형 제품 색상은 MD_MoldItem.Color 직접 입력(10-16)
   migrate_rfid_reader_status_maint.sql # RFID_READER_STATUS 에 MAINT(점검중) — MD-022 점검중 KPI(10-28), 순서 무관
   migrate_pp_downtime_reason_code.sql # 공통코드 DOWNTIME_REASON — PP-DTL 비가동 사유 콤보(10-29), 순서 무관
