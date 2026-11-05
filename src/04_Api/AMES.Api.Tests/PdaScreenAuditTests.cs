@@ -26,7 +26,7 @@ public sealed class PdaScreenAuditTests
         var source = Read("Components/Pages/Wh/Wh07PdaRelease.razor");
         var start = source.IndexOf("private async Task ProcessBarcodeAsync(", StringComparison.Ordinal);
         var end = source.IndexOf("_barcode = \"\";", start, StringComparison.Ordinal);
-        Assert.Contains("if (_isBusy || _modalOpen) return;", source[start..end]);
+        Assert.Matches(@"if\s*\(\s*_isBusy\s*\|\|\s*_loadingPickingOrders\s*\|\|\s*_modalOpen\s*\)\s*return;", source[start..end]);
     }
 
     [Fact]

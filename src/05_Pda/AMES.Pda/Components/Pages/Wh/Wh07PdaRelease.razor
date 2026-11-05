@@ -44,13 +44,22 @@
             <section class="wh07-order-panel">
                 <div class="wh07-order-head">
                     <div><strong>PICKING LIST</strong><span>OPEN / PARTIAL</span></div>
-                    <button type="button" @onclick="LoadOpenPickingOrdersAsync" disabled="@_isBusy">REFRESH</button>
+                    <button type="button" class="wh07-refresh @(_loadingPickingOrders ? "refreshing" : "")"
+                            @onclick="LoadOpenPickingOrdersAsync" disabled="@(_isBusy || _loadingPickingOrders)"
+                            aria-busy="@(_loadingPickingOrders ? "true" : "false")">
+                        @if (_loadingPickingOrders) { <span class="wh07-refresh-spinner" aria-hidden="true"></span> }
+                        @(_loadingPickingOrders ? "REFRESHING..." : "REFRESH")
+                    </button>
                 </div>
                 <div class="wh07-list-tabs">
                     <button class="@(!_byPart ? "active" : "")" @onclick="@(() => _byPart=false)">BY ORDER</button>
                     <button class="@(_byPart ? "active" : "")" @onclick="@(() => _byPart=true)">BY PART</button>
                 </div>
-                @if (!string.IsNullOrWhiteSpace(_pickingListError))
+                @if (_loadingPickingOrders)
+                {
+                    <div class="wh07-order-empty" role="status" aria-live="polite">Loading picking orders...</div>
+                }
+                else if (!string.IsNullOrWhiteSpace(_pickingListError))
                 {
                     <div class="wh07-order-empty error">@_pickingListError</div>
                 }
@@ -93,6 +102,10 @@
                             </button>
                         }
                     </div>
+                }
+                @if (!_loadingPickingOrders && _pickingListUpdated && string.IsNullOrWhiteSpace(_pickingListError))
+                {
+                    <div class="wh07-refresh-result" role="status" aria-live="polite">Picking list updated.</div>
                 }
             </section>
         }
@@ -425,6 +438,8 @@
     private bool _scrollOutgoingTypeAfterRender;
     private bool _highlightOutgoingType;
     private bool _isBusy;
+    private bool _loadingPickingOrders;
+    private bool _pickingListUpdated;
     private bool _initialized;
     private bool _modalOpen;
     private string _modalKind = "info";
@@ -520,14 +535,32 @@
 
     private async Task LoadOpenPickingOrdersAsync()
     {
+        if (_loadingPickingOrders) return;
+        _loadingPickingOrders = true;
+        _pickingListUpdated = false;
         _pickingListError = "";
-        try { _openPickingOrders = await Api.WhOpenPickingOrdersAsync();_pickingParts=await Api.WhOpenPickingPartsAsync(); }
-        catch (Exception ex) { _openPickingOrders.Clear(); _pickingListError = ex.Message; }
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            var orders = Api.WhOpenPickingOrdersAsync();
+            var parts = Api.WhOpenPickingPartsAsync();
+            await Task.WhenAll(orders, parts);
+            _openPickingOrders = await orders;
+            _pickingParts = await parts;
+            _pickingListUpdated = true;
+        }
+        catch (Exception ex)
+        {
+            _openPickingOrders.Clear();
+            _pickingParts.Clear();
+            _pickingListError = ex.Message;
+        }
+        finally { _loadingPickingOrders = false; }
     }
 
     private async Task SelectPickingOrderAsync(PdaApi.OpenPickingOrderRow order)
     {
-        if (_isBusy) return;
+        if (_isBusy || _loadingPickingOrders) return;
         ClearRelease();
         _pickSlipNo = order.PickSlipNo;
         await LoadSlip();
@@ -638,7 +671,7 @@
 
     private async Task ProcessBarcodeAsync(string barcode)
     {
-        if (_isBusy || _modalOpen) return;
+        if (_isBusy || _loadingPickingOrders || _modalOpen) return;
         _barcode = "";
         if (LooksLikePickSlip(barcode))
         {
