@@ -1,0 +1,19 @@
+.picking-request-body { overflow-y:auto; padding-bottom:16px; }
+.picking-request-shell ::deep .picking-request-form { display:flex; flex-direction:column; gap:16px; padding:12px; border:1px solid rgba(148,163,184,.34); background:#111a2e; box-shadow:none; }
+.picking-request-shell ::deep .request-qty,
+.picking-request-shell ::deep .request-qty .rz-inputtext {
+    width:100% !important; min-height:44px !important; border:1px solid rgba(147,197,253,.28) !important;
+    border-radius:0 !important; background:#071225 !important; color:#fff !important;
+    font-family:'JetBrains Mono',monospace; font-size:14px !important; font-weight:800;
+    letter-spacing:normal; text-align:left; box-shadow:none !important;
+}
+.picking-request-shell ::deep .request-qty .rz-inputtext { border:0 !important; }
+.picking-request-shell ::deep .request-qty .rz-numeric-btn { background:transparent !important; color:#93c5fd !important; border-radius:0 !important; }
+.picking-request-actions { flex:none; padding:12px; border-top:1px solid rgba(147,197,253,.18); background:#0f1d33; }
+.picking-request-actions ::deep .wh02-receive-btn { width:100%; }
+.picking-request-shell ::deep .request-existing-dialog { max-height:85dvh; display:flex; flex-direction:column; gap:12px; }
+.request-existing-orders { overflow-y:auto; min-height:0; max-height:35dvh; display:grid; gap:8px; text-align:left; }
+.request-existing-order { display:grid; gap:5px; border:1px solid #344e70; padding:10px; color:#e8eef7; font-size:12px; }
+.request-existing-order strong { color:#bfdbfe; overflow-wrap:anywhere; }
+.picking-request-shell ::deep .wh-modal-btn .rz-button-box,
+.picking-request-shell ::deep .wh-modal-btn .rz-button-text { display:flex; align-items:center; justify-content:center; height:100%; margin:0; padding:0; line-height:1; }

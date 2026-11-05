@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="..\..\06_Web\AMES.Web\Components\AmesComponentBase.cs" Link="Web\AmesComponentBase.cs" />
     <Compile Include="..\..\05_Pda\AMES.Pda\Services\PdaReleaseSummary.cs" Link="Pda\PdaReleaseSummary.cs" />
+    <Compile Include="..\..\05_Pda\AMES.Pda\Services\PickingRequestScan.cs" Link="Pda\PickingRequestScan.cs" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>

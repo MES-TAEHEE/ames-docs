@@ -12961,4 +12961,7 @@
   <data name="MD.Location.PerPart" xml:space="preserve"><value>파트별 설정</value></data>
   <data name="MD.Location.Recommended" xml:space="preserve"><value>추천</value></data>
   <data name="MD.Location.SelectParts" xml:space="preserve"><value>위에서 파트를 선택한 뒤 파트별 최소수량을 입력하세요.</value></data>
+  <data name="WH.Picking.Request.Title" xml:space="preserve"><value>피킹 요청</value></data>
+  <data name="WH.Picking.Source.Request" xml:space="preserve"><value>수동 요청</value></data>
+  <data name="WH.Picking.Request.Created" xml:space="preserve"><value>피킹오더 {0}이 생성되었습니다.</value></data>
 </root>

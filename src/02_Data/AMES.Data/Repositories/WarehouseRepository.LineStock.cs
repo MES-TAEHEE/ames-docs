@@ -23,6 +23,7 @@ public sealed partial class WarehouseRepository
                     COALESCE(NULLIF(RS.PickSlipNo, N''), CONCAT(N'RS-', RS.PickSlipID)) AS PickSlipNo,
                     RS.ItemNo,
                     RS.CreatedBy,
+                    RS.ReqLocation,
                     CASE
                         WHEN COALESCE(RS.DemandQty, 0) > COALESCE(RS.PickedQty, 0)
                             THEN COALESCE(RS.DemandQty, 0) - COALESCE(RS.PickedQty, 0)
@@ -34,7 +35,7 @@ public sealed partial class WarehouseRepository
             ),
             ReleaseDemand AS
             (
-                SELECT MIN(PickSlipID) AS PickSlipID,PickSlipNo,ItemNo,CreatedBy,SUM(RemainingQty) AS RemainingQty
+                SELECT MIN(PickSlipID) AS PickSlipID,PickSlipNo,ItemNo,CreatedBy,MIN(ReqLocation) ReqLocation,SUM(RemainingQty) AS RemainingQty
                 FROM ReleaseLines GROUP BY PickSlipNo,ItemNo,CreatedBy
             ),
             RankedLots AS
@@ -69,8 +70,9 @@ public sealed partial class WarehouseRepository
                     WHERE DB.BoxNumber COLLATE DATABASE_DEFAULT=W.LotNo COLLATE DATABASE_DEFAULT
                     ORDER BY DB.BoxID DESC) B
                 WHERE W.Qty > 0
+                  AND (COALESCE(R.CreatedBy,'')<>'WH-REQUEST' OR COALESCE(W.LocationNo,'')<>COALESCE(R.ReqLocation,''))
                   AND NOT EXISTS(SELECT 1 FROM dbo.FG_CustomerReturn CR WHERE CR.LotNo=W.LotNo AND CR.Status IN('Open','Inspecting'))
-                  AND (R.CreatedBy <> 'WH-AUTO' OR ({WarehouseRepository.WarehouseBoxPredicate}))
+                  AND (COALESCE(R.CreatedBy,'') NOT IN('WH-AUTO','WH-REQUEST') OR ({WarehouseRepository.WarehouseBoxPredicate}))
             )
             SELECT
                 PickSlipNo AS PICK_SLIPNO,
@@ -80,8 +82,8 @@ public sealed partial class WarehouseRepository
                 Qty AS QTY,
                 ProductionDate AS PROD_DATE
             FROM RankedLots
-            WHERE (CreatedBy='WH-AUTO' AND QtyBefore < RemainingQty)
-               OR (COALESCE(CreatedBy,'')<>'WH-AUTO' AND FifoSeq <= RemainingQty)
+            WHERE (CreatedBy IN('WH-AUTO','WH-REQUEST') AND QtyBefore < RemainingQty)
+               OR (COALESCE(CreatedBy,'') NOT IN('WH-AUTO','WH-REQUEST') AND FifoSeq <= RemainingQty)
             ORDER BY PickSlipID, FifoSeq;
             """, conn);
         ColumnParams.AddFilter(cmd, "@PickSlipNo", "WH_PickSlip.PickSlipID", pickSlipNo);
@@ -106,7 +108,7 @@ public sealed partial class WarehouseRepository
         var lines=Query($"""
             SELECT P.ItemNo,I.ItemName,COALESCE(NULLIF(P.PickSlipNo,''),CONCAT('RS-',P.PickSlipID)) Slip,
                 COALESCE(P.ReqLocation,'') Destination,COALESCE(P.DemandQty,0)-COALESCE(P.PickedQty,0) Remaining,
-                CASE WHEN P.CreatedBy='WH-AUTO' THEN COALESCE(NULLIF(I.DefaultUOM,''),'EA') ELSE 'BOX' END Unit,
+                CASE WHEN P.CreatedBy IN('WH-AUTO','WH-REQUEST') THEN COALESCE(NULLIF(I.DefaultUOM,''),'EA') ELSE 'BOX' END Unit,
                 (SELECT STRING_AGG(A.LocationNo,', ') FROM(SELECT DISTINCT W.LocationNo FROM dbo.WH_Inventory W
                     WHERE W.PartNo=P.ItemNo AND {WarehouseBoxPredicate}) A) Locations
             FROM dbo.WH_PickSlip P LEFT JOIN dbo.MD_Item I ON I.ItemNo=P.ItemNo

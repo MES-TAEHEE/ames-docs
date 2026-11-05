@@ -147,6 +147,7 @@ public static class WhEndpoints
         var maintenance = new MntRepository(factory);
         var g = app.MapGroup("/api/wh").WithTags("Warehouse");
         g.MapSupplierDeliveries(factory);
+        g.MapPickingRequests(factory);
         g.MapTransactionFeed(factory);
         g.MapAdjustmentLocation(factory, finishedGoods: false);
 
@@ -1026,7 +1027,7 @@ public static class WhEndpoints
             if (ctx.GetSession() is not { } s) return Results.Unauthorized();
 
             using var conn = factory.OpenConnection();
-            using (var auto = new SqlCommand("SELECT COUNT(*) FROM dbo.WH_PickSlip WHERE PickSlipNo=@Slip AND CreatedBy=@Actor", conn))
+            using (var auto = new SqlCommand("SELECT COUNT(*) FROM dbo.WH_PickSlip WHERE PickSlipNo=@Slip AND CreatedBy IN(@Actor,'WH-REQUEST')", conn))
             {
                 ColumnParams.AddFilter(auto, "@Slip", "WH_PickSlip.PickSlipNo", body.PickSlipNo);
                 ColumnParams.AddFilter(auto, "@Actor", "WH_PickSlip.CreatedBy", WarehouseRepository.ReplenishmentActor);
@@ -1495,7 +1496,7 @@ public static class WhEndpoints
         lotNo = lotNo.Trim();
 
         var autoReplenishment = ScalarDecimal(conn, tx,
-            "SELECT COUNT(*) FROM dbo.WH_PickSlip WHERE PickSlipNo=@Slip AND CreatedBy=@Actor;",
+            "SELECT COUNT(*) FROM dbo.WH_PickSlip WHERE PickSlipNo=@Slip AND CreatedBy IN(@Actor,'WH-REQUEST');",
             ("@Slip", "WH_PickSlip.PickSlipNo", pickSlipNo), ("@Actor", "WH_PickSlip.CreatedBy", WarehouseRepository.ReplenishmentActor)) > 0;
 
         if (string.IsNullOrWhiteSpace(pickSlipNo))
@@ -1578,6 +1579,10 @@ public static class WhEndpoints
         if (row.Qty <= 0)
             return row with { IsValid = false, Message = "LOT is not available for release." };
 
+        if (ScalarDecimal(conn,tx,"SELECT COUNT(*) FROM dbo.WH_PickSlip WHERE PickSlipNo=@Slip AND CreatedBy='WH-REQUEST' AND ReqLocation=@Location;",
+            ("@Slip","WH_PickSlip.PickSlipNo",slipKey),("@Location","WH_Inventory.LocationNo",row.LocationNo))>0)
+            return row with { IsValid=false,Message="This LOT is already stored at the requested destination." };
+
         var requestedBoxes = ScalarDecimal(conn, tx, """
             SELECT SUM(COALESCE(DemandQty,0)) FROM dbo.WH_PickSlip
             WHERE COALESCE(NULLIF(PickSlipNo,N''),CONCAT(N'RS-',PickSlipID))=@PickSlipNo
@@ -1600,8 +1605,9 @@ public static class WhEndpoints
             SELECT TOP (1) W.LotNo FROM dbo.WH_Inventory W
             WHERE W.PartNo=@PartNo AND W.Qty>0
               AND (@Auto=0 OR ({WarehouseRepository.WarehouseBoxPredicate}))
+              AND NOT EXISTS(SELECT 1 FROM dbo.WH_PickSlip P WHERE P.PickSlipNo=@Slip AND P.CreatedBy='WH-REQUEST' AND P.ReqLocation=W.LocationNo)
             ORDER BY W.ReceivedAt,W.CreatedAt,W.LotNo;
-            """, ("@PartNo", "WH_Inventory.PartNo", row.ItemNo ?? ""), ("@Auto", null, autoReplenishment));
+            """, ("@PartNo", "WH_Inventory.PartNo", row.ItemNo ?? ""), ("@Auto", null, autoReplenishment), ("@Slip","WH_PickSlip.PickSlipNo",slipKey));
 
         if (!string.IsNullOrWhiteSpace(oldestLot)
             && !oldestLot.Equals(row.LotNo, StringComparison.OrdinalIgnoreCase))
@@ -2260,7 +2266,7 @@ public static class WhEndpoints
             var lines = new Dictionary<(string PartNo, string Destination), (int ScheduleId, decimal Demand, decimal Picked, bool IsEa)>();
             using (var lineCmd = new SqlCommand("""
                 SELECT PickSlipID, ItemNo, COALESCE(DemandQty,0) AS DemandQty, COALESCE(PickedQty,0) AS PickedQty,
-                       CONVERT(bit,CASE WHEN CreatedBy='WH-AUTO' THEN 1 ELSE 0 END) AS IsEa,COALESCE(ReqLocation,'') AS Destination
+                       CONVERT(bit,CASE WHEN CreatedBy IN('WH-AUTO','WH-REQUEST') THEN 1 ELSE 0 END) AS IsEa,COALESCE(ReqLocation,'') AS Destination
                 FROM dbo.WH_PickSlip WITH (UPDLOCK, HOLDLOCK)
                 WHERE (PickSlipNo=@Slip OR NULLIF(PickSlipNo,N'') IS NULL AND CONCAT(N'RS-',PickSlipID)=@Slip)
                   AND (WoID IS NULL OR EXISTS(SELECT 1 FROM dbo.PP_WorkOrder W
@@ -2302,8 +2308,15 @@ public static class WhEndpoints
                     SELECT TOP (1)
                         RS.PickSlipID,W.LotNo,W.PartNo AS ItemNo,
                         W.LocationNo AS LocationID,W.Qty,W.ReceivedAt,W.CreatedAt,
-                        CASE WHEN RS.CreatedBy='WH-AUTO' THEN RS.ReqLocation END AS LineDestination,
-                        CONVERT(bit,CASE WHEN EXISTS
+                        CONVERT(bit,CASE WHEN RS.CreatedBy='WH-REQUEST' AND W.LocationNo=RS.ReqLocation THEN 1 ELSE 0 END) AS AlreadyAtDestination,
+                        CASE WHEN RS.CreatedBy IN('WH-AUTO','WH-REQUEST') THEN RS.ReqLocation END AS LineDestination,
+                        CONVERT(bit,CASE WHEN RS.CreatedBy='WH-REQUEST' AND EXISTS
+                            (SELECT 1 FROM dbo.MD_Location D LEFT JOIN dbo.MD_Line M ON M.LineID=D.LineID
+                             WHERE D.LocationID=RS.ReqLocation AND D.LocationLevel=2 AND COALESCE(D.ActiveFlag,1)=1
+                               AND (NULLIF(D.LineID,'') IS NULL OR COALESCE(M.Status,'ACTIVE')='ACTIVE')
+                               AND UPPER(COALESCE(D.LocationType,'')) NOT IN('FG','BLOCKED','HOLD','QUARANTINE','INACTIVE')
+                               AND COALESCE(D.AreaCode,'') NOT IN('FG','FG_AREA','MNT_AREA','SP_AREA')) THEN 1
+                            WHEN RS.CreatedBy<>'WH-REQUEST' AND EXISTS
                             (SELECT 1 FROM dbo.MD_Line ML WHERE LEN(ML.LotPrefix)=2
                              AND (ML.LotPrefix COLLATE DATABASE_DEFAULT=RS.ReqLocation COLLATE DATABASE_DEFAULT
                                OR ML.LineID=(SELECT L.LineID FROM dbo.MD_Location L WHERE L.LocationID=RS.ReqLocation
@@ -2318,7 +2331,7 @@ public static class WhEndpoints
                             ON RS.ItemNo COLLATE DATABASE_DEFAULT = W.PartNo COLLATE DATABASE_DEFAULT
                            AND (RS.PickSlipNo=@Slip OR NULLIF(RS.PickSlipNo,N'') IS NULL AND CONCAT(N'RS-',RS.PickSlipID)=@Slip)
                            AND COALESCE(RS.Status,'Open') NOT IN ('Released','Closed','Cancelled','Canceled')
-                           AND COALESCE(RS.PickedQty,0)+COALESCE((SELECT CASE WHEN RS.CreatedBy='WH-AUTO' THEN SUM(A.Qty) ELSE COUNT(*) END
+                           AND COALESCE(RS.PickedQty,0)+COALESCE((SELECT CASE WHEN RS.CreatedBy IN('WH-AUTO','WH-REQUEST') THEN SUM(A.Qty) ELSE COUNT(*) END
                                FROM OPENJSON(@BatchAllocations) WITH(PickSlipID int '$.PickSlipId',Qty decimal(18,3) '$.Qty') A
                                WHERE A.PickSlipID=RS.PickSlipID),0)<COALESCE(RS.DemandQty,0)
                     WHERE W.LotNo=@LotNo
@@ -2342,6 +2355,8 @@ public static class WhEndpoints
                     rdr.IsDBNull(rdr.GetOrdinal("ReceivedAt")) ? null : rdr.GetDateTime(rdr.GetOrdinal("ReceivedAt")),
                     rdr.IsDBNull(rdr.GetOrdinal("CreatedAt")) ? null : rdr.GetDateTime(rdr.GetOrdinal("CreatedAt")),
                     rdr["LineDestination"] as string);
+                if(rdr.GetBoolean(rdr.GetOrdinal("AlreadyAtDestination")))
+                    return new ReleaseCompleteResult(false,"This LOT is already stored at the requested destination.");
                 if (lot.LineDestination is not null
                     && (!rdr.GetBoolean(rdr.GetOrdinal("ValidLineDestination"))
                         || !rdr.GetBoolean(rdr.GetOrdinal("EligibleBox")) || input.Qty != lot.Qty))
@@ -2448,7 +2463,7 @@ public static class WhEndpoints
                 FROM dbo.WH_PickSlip RS
                 JOIN DemandRanges D ON D.PickSlipID=RS.PickSlipID
                 LEFT JOIN PickCounts P ON P.ItemNo=RS.ItemNo AND P.Destination=COALESCE(RS.ReqLocation,'')
-                CROSS APPLY (SELECT COALESCE(CASE WHEN RS.CreatedBy='WH-AUTO' THEN P.EaQty ELSE P.BoxQty END,0)-D.BeforeDemand AS Allocated) A
+                CROSS APPLY (SELECT COALESCE(CASE WHEN RS.CreatedBy IN('WH-AUTO','WH-REQUEST') THEN P.EaQty ELSE P.BoxQty END,0)-D.BeforeDemand AS Allocated) A
                 CROSS APPLY (SELECT CASE WHEN A.Allocated<0 THEN 0
                     WHEN D.LastLine<>1 AND A.Allocated>COALESCE(RS.DemandQty,0) THEN COALESCE(RS.DemandQty,0)
                     ELSE A.Allocated END AS PickedQty) Q;

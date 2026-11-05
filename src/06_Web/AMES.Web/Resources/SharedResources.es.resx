@@ -12961,4 +12961,7 @@
   <data name="MD.Location.PerPart" xml:space="preserve"><value>Por pieza</value></data>
   <data name="MD.Location.Recommended" xml:space="preserve"><value>Recomendado</value></data>
   <data name="MD.Location.SelectParts" xml:space="preserve"><value>Seleccione piezas arriba e introduzca la cantidad mínima para cada una.</value></data>
+  <data name="WH.Picking.Request.Title" xml:space="preserve"><value>Solicitud de picking</value></data>
+  <data name="WH.Picking.Source.Request" xml:space="preserve"><value>Solicitud manual</value></data>
+  <data name="WH.Picking.Request.Created" xml:space="preserve"><value>Orden de picking {0} creada.</value></data>
 </root>
