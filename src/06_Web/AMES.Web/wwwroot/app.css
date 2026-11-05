@@ -1347,6 +1347,17 @@ select.ames-input option { background: var(--ames-sf-0d1b2e); }
     font-weight: 700;
     letter-spacing: 1.5px;
 }
+/* 비활성 입력칸(숫자·날짜·콤보) — 안쪽 입력이 각진 배경을 칠해 둥근 모서리 밖으로 비어져 나와 양 끝이 깨져 보였다(11-05).
+   바깥 상자가 모서리를 자르고 안쪽은 투명, 숫자칸 올림/내림 버튼은 숨긴다. */
+.rz-numeric.rz-state-disabled,
+.rz-datepicker.rz-state-disabled,
+.rz-dropdown.rz-state-disabled { overflow: hidden; cursor: not-allowed; }
+.rz-numeric.rz-state-disabled .rz-numeric-input,
+.rz-datepicker.rz-state-disabled .rz-inputtext,
+.rz-datepicker.rz-state-disabled input,
+.rz-dropdown.rz-state-disabled .rz-dropdown-label { background: transparent !important; border-radius: inherit; }
+.rz-numeric.rz-state-disabled .rz-numeric-button { display: none; }
+.rz-numeric.rz-state-disabled .rz-numeric-input { padding-right: 6px; }
 select.ames-rz-input {
     padding: 0;
     font-size: 12px;
