@@ -12990,4 +12990,31 @@
   <data name="WH.Picking.Request.Created" xml:space="preserve"><value>Orden de picking {0} creada.</value></data>
   <data name="WH.LogHistory.Lbl.PickingRequest" xml:space="preserve"><value>Solicitud de picking</value></data>
   <data name="WH.LogHistory.Lbl.Release" xml:space="preserve"><value>Entrega a producción</value></data>
+  <data name="PP.Downtime.Quick.Now" xml:space="preserve">
+    <value>Ahora</value>
+  </data>
+  <data name="PP.Downtime.Quick.AgoMin" xml:space="preserve">
+    <value>Hace {0} min</value>
+  </data>
+  <data name="PP.Downtime.Quick.AgoHour" xml:space="preserve">
+    <value>Hace {0} h</value>
+  </data>
+  <data name="PP.Downtime.Quick.AfterMin" xml:space="preserve">
+    <value>Inicio +{0} min</value>
+  </data>
+  <data name="PP.Downtime.Quick.AfterHour" xml:space="preserve">
+    <value>Inicio +{0} h</value>
+  </data>
+  <data name="PP.Downtime.Dur" xml:space="preserve">
+    <value>→ {0} min</value>
+  </data>
+  <data name="PP.Downtime.Dur.Open" xml:space="preserve">
+    <value>→ Deje el fin vacío si sigue parado</value>
+  </data>
+  <data name="PP.Downtime.Ph.End" xml:space="preserve">
+    <value>Vacío = en curso</value>
+  </data>
+  <data name="PP.Downtime.Hint.TypeDate" xml:space="preserve">
+    <value>Elija en el calendario o escriba — p. ej. {0} · 14:30 (hoy) · 20261105 1430</value>
+  </data>
 </root>

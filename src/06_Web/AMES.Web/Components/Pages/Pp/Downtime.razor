@@ -163,12 +163,36 @@
             </RadzenStack>
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@(L["Col.Start"] + " *")' class="ames-rz-modal-label" Component="EditDateStart" />
-                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="EditDateStart" @bind-Value="_editStart" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" Disabled="@PopOnly" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="EditDateStart" @bind-Value="_editStart" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" Placeholder="@DateFmt.DateTime" ParseInput="@ParseTyped" Disabled="@PopOnly" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
             </RadzenStack>
+            @if (!PopOnly)
+            {
+                <div class="dtl-quick">
+                    <button type="button" class="dtl-chip" @onclick="() => SetStartAgo(0)">@L["PP.Downtime.Quick.Now"]</button>
+                    @foreach (var m in QuickAgo)
+                    {
+                        var min = m;
+                        <button type="button" class="dtl-chip" @onclick="() => SetStartAgo(min)">@QuickAgoText(min)</button>
+                    }
+                </div>
+            }
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text="@L["Col.End"]" class="ames-rz-modal-label" Component="EditDateEnd" />
-                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="EditDateEnd" @bind-Value="_editEnd" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" AllowClear="true" Disabled="@PopOnly" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                <RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" Name="EditDateEnd" @bind-Value="_editEnd" ShowTime="true" ShowTimeOkButton="false" HourFormat="24" DateFormat="@DateFmt.DateTime" Placeholder="@L["PP.Downtime.Ph.End"]" ParseInput="@ParseTyped" AllowClear="true" Disabled="@PopOnly" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
             </RadzenStack>
+            @if (!PopOnly)
+            {
+                <div class="dtl-quick">
+                    <button type="button" class="dtl-chip" @onclick="SetEndNow">@L["PP.Downtime.Quick.Now"]</button>
+                    @foreach (var m in QuickAfter)
+                    {
+                        var min = m;
+                        <button type="button" class="dtl-chip" disabled="@(EndAfter(min) is null)" @onclick="() => SetEndAfter(min)">@QuickAfterText(min)</button>
+                    }
+                    <span class="dtl-dur">@DurationText</span>
+                </div>
+                <div class="dtl-quick dim" style="font-size:var(--ames-fs-hint);">@string.Format(L["PP.Downtime.Hint.TypeDate"].Value, DbClock.Now.ToString(DateFmt.DateTime))</div>
+            }
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
                 <RadzenLabel Text='@(L["Col.Reason"] + " *")' class="ames-rz-modal-label" Component="EditDropDownReason" />
                 <RadzenDropDown Name="EditDropDownReason" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value="_editReason" Data="@ReasonEditOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["PP.Downtime.Ph.Reason"]" Disabled="@PopOnly" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
@@ -393,6 +417,22 @@
     void OnBgClick() { if (_bgMouseDownOnSelf) CloseModal(); _bgMouseDownOnSelf = false; }
 
     static DateTime TruncMinute(DateTime d) => new(d.Year, d.Month, d.Day, d.Hour, d.Minute, 0);
+
+    // ── 일시 입력 도우미 — 빠른 선택 버튼과 직접 입력 해석 ──────────────────
+    static readonly int[] QuickAgo   = [10, 30, 60];
+    static readonly int[] QuickAfter = [10, 30, 60];
+    DateTime? ParseTyped(string text) => AMES.Contracts.Formatting.DateTimeInput.Parse(text, DbClock.Today, DateFmt.DateTime);
+    string QuickAgoText(int m)   => m % 60 == 0 ? string.Format(L["PP.Downtime.Quick.AgoHour"].Value, m / 60)   : string.Format(L["PP.Downtime.Quick.AgoMin"].Value, m);
+    string QuickAfterText(int m) => m % 60 == 0 ? string.Format(L["PP.Downtime.Quick.AfterHour"].Value, m / 60) : string.Format(L["PP.Downtime.Quick.AfterMin"].Value, m);
+    void SetStartAgo(int m) => _editStart = TruncMinute(DbClock.Now).AddMinutes(-m);
+    void SetEndNow() => _editEnd = TruncMinute(DbClock.Now);
+    // 시작 + n분 이 미래면 고를 수 없다(저장 규칙과 같음)
+    DateTime? EndAfter(int m) => _editStart is { } s && TruncMinute(s).AddMinutes(m) <= DbClock.Now ? TruncMinute(s).AddMinutes(m) : null;
+    void SetEndAfter(int m) { if (EndAfter(m) is { } e) _editEnd = e; }
+    string DurationText =>
+        _editStart is { } s && _editEnd is { } e && e >= s
+            ? string.Format(L["PP.Downtime.Dur"].Value, (int)(TruncMinute(e) - TruncMinute(s)).TotalMinutes)
+            : _editStart is not null && _editEnd is null ? L["PP.Downtime.Dur.Open"].Value : "";
 
     void Save()
     {

@@ -12990,4 +12990,31 @@
   <data name="WH.Picking.Request.Created" xml:space="preserve"><value>피킹오더 {0}이 생성되었습니다.</value></data>
   <data name="WH.LogHistory.Lbl.PickingRequest" xml:space="preserve"><value>피킹 요청</value></data>
   <data name="WH.LogHistory.Lbl.Release" xml:space="preserve"><value>불출</value></data>
+  <data name="PP.Downtime.Quick.Now" xml:space="preserve">
+    <value>지금</value>
+  </data>
+  <data name="PP.Downtime.Quick.AgoMin" xml:space="preserve">
+    <value>{0}분 전</value>
+  </data>
+  <data name="PP.Downtime.Quick.AgoHour" xml:space="preserve">
+    <value>{0}시간 전</value>
+  </data>
+  <data name="PP.Downtime.Quick.AfterMin" xml:space="preserve">
+    <value>시작 +{0}분</value>
+  </data>
+  <data name="PP.Downtime.Quick.AfterHour" xml:space="preserve">
+    <value>시작 +{0}시간</value>
+  </data>
+  <data name="PP.Downtime.Dur" xml:space="preserve">
+    <value>→ {0}분</value>
+  </data>
+  <data name="PP.Downtime.Dur.Open" xml:space="preserve">
+    <value>→ 종료 비우면 진행 중</value>
+  </data>
+  <data name="PP.Downtime.Ph.End" xml:space="preserve">
+    <value>비우면 진행 중</value>
+  </data>
+  <data name="PP.Downtime.Hint.TypeDate" xml:space="preserve">
+    <value>달력에서 고르거나 직접 입력하세요 — 예: {0} · 14:30(오늘) · 20261105 1430</value>
+  </data>
 </root>

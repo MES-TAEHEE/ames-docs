@@ -1373,6 +1373,16 @@ select.ames-input option { background: var(--ames-sf-0d1b2e); }
 .rz-dropdown.rz-state-disabled .rz-dropdown-label { background: transparent !important; border-radius: inherit; }
 .rz-numeric.rz-state-disabled .rz-numeric-button { display: none; }
 .rz-numeric.rz-state-disabled .rz-numeric-input { padding-right: 6px; }
+/* 일시 입력칸 아래 빠른 선택 버튼(PP-DTL) — 라벨 폭(120px) + 간격만큼 들여 입력칸과 줄을 맞춘다 */
+.dtl-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 0 calc(120px + 0.5rem); }
+.dtl-chip {
+    font: 600 11px var(--ames-font-mono); padding: 2px 8px; border-radius: 999px; cursor: pointer;
+    background: transparent; color: var(--ames-tx-cyan-400); border: 1px solid var(--ames-bd-white-a15);
+}
+.dtl-chip:hover:not(:disabled) { border-color: var(--ames-tx-cyan-400); }
+.dtl-chip:disabled { opacity: .4; cursor: not-allowed; }
+.dtl-dur { font: 600 11px var(--ames-font-mono); margin-left: 4px; opacity: .8; }
+
 select.ames-rz-input {
     padding: 0;
     font-size: 12px;

@@ -12990,4 +12990,31 @@
   <data name="WH.Picking.Request.Created" xml:space="preserve"><value>Picking order {0} created.</value></data>
   <data name="WH.LogHistory.Lbl.PickingRequest" xml:space="preserve"><value>Picking Request</value></data>
   <data name="WH.LogHistory.Lbl.Release" xml:space="preserve"><value>Release</value></data>
+  <data name="PP.Downtime.Quick.Now" xml:space="preserve">
+    <value>Now</value>
+  </data>
+  <data name="PP.Downtime.Quick.AgoMin" xml:space="preserve">
+    <value>{0} min ago</value>
+  </data>
+  <data name="PP.Downtime.Quick.AgoHour" xml:space="preserve">
+    <value>{0} h ago</value>
+  </data>
+  <data name="PP.Downtime.Quick.AfterMin" xml:space="preserve">
+    <value>Start +{0} min</value>
+  </data>
+  <data name="PP.Downtime.Quick.AfterHour" xml:space="preserve">
+    <value>Start +{0} h</value>
+  </data>
+  <data name="PP.Downtime.Dur" xml:space="preserve">
+    <value>→ {0} min</value>
+  </data>
+  <data name="PP.Downtime.Dur.Open" xml:space="preserve">
+    <value>→ Leave end empty if still down</value>
+  </data>
+  <data name="PP.Downtime.Ph.End" xml:space="preserve">
+    <value>Empty = ongoing</value>
+  </data>
+  <data name="PP.Downtime.Hint.TypeDate" xml:space="preserve">
+    <value>Pick from the calendar or type — e.g. {0} · 14:30 (today) · 20261105 1430</value>
+  </data>
 </root>
