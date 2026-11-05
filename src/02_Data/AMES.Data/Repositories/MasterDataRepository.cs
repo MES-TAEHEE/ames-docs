@@ -1970,6 +1970,7 @@ public sealed class MasterDataRepository
         string? storageLoc, DateOnly? lastMaintDate, string? status, string createdBy,
         string? carType = null, string? refCode = null, bool assyInjResultFlag = false, int? moldChangeMin = null)
     {
+        MdValueRules.Throw(MdValueRules.MoldStorageLoc(storageLoc));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             INSERT INTO dbo.MD_Mold
@@ -2005,6 +2006,7 @@ public sealed class MasterDataRepository
         string? storageLoc, DateOnly? lastMaintDate, string? status, string modifiedBy,
         string? carType = null, string? refCode = null, bool assyInjResultFlag = false, int? moldChangeMin = null)
     {
+        MdValueRules.Throw(MdValueRules.MoldStorageLoc(storageLoc));
         using var conn = _factory.OpenConnection();
         using var cmd = new SqlCommand("""
             UPDATE dbo.MD_Mold SET

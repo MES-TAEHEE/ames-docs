@@ -52,6 +52,19 @@ public static class MdValueRules
     public static string? GroupCode(string? groupCode)
         => string.IsNullOrEmpty(groupCode) || GroupCodeRegex.IsMatch(groupCode.Trim().ToUpperInvariant()) ? null : "GroupCodeChars";
 
+    /// <summary>
+    /// 금형 보관위치(MD_Mold.StorageLoc varchar(20), Latin1) — 영문·숫자·기호(ASCII 출력 문자)만, 20자까지.
+    /// varchar 라 한글은 저장 때 ?? 로 깨진다(11-05 사용자 요청).
+    /// </summary>
+    public static string? MoldStorageLoc(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return null;
+        if (value.Any(c => c < 0x20 || c > 0x7E)) return "StorageLocAscii";
+        return value.Length > MoldStorageLocMax ? "StorageLocLength" : null;
+    }
+
+    public const int MoldStorageLocMax = 20;
+
     /// <summary>저장소가 규칙 위반을 받으면 던진다 — 화면이 먼저 같은 규칙으로 막으므로 정상 경로에서는 나오지 않는다.</summary>
     public static void Throw(string? rule)
     {

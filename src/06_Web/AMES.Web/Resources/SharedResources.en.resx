@@ -12949,4 +12949,10 @@
   <data name="MD.Bop.Dup.Used" xml:space="preserve">
     <value>STEPs in use: {0}</value>
   </data>
+  <data name="MD.Rule.StorageLocAscii" xml:space="preserve">
+    <value>Storage location accepts only English letters, digits and symbols (Korean is not allowed — it would be saved as broken characters).</value>
+  </data>
+  <data name="MD.Rule.StorageLocLength" xml:space="preserve">
+    <value>Storage location can be up to 20 characters.</value>
+  </data>
 </root>

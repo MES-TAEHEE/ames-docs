@@ -20,6 +20,20 @@ public class MdFailFixes1028Tests
     public void Inspection_spec_requires_lsl_nominal_usl_order(double? nominal, double? lsl, double? usl, string? expected)
         => Assert.Equal(expected, MdValueRules.InspectionSpec((decimal?)nominal, (decimal?)lsl, (decimal?)usl));
 
+    // 11-05 — 금형 보관위치는 varchar 라 한글이 ?? 로 깨진다: 영문·숫자·기호만, 20자까지
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("RACK A-3", null)]
+    [InlineData("WH-01/B#2 (TOP)", null)]
+    [InlineData("12345678901234567890", null)]
+    [InlineData("123456789012345678901", "StorageLocLength")]
+    [InlineData("금형창고 A-3", "StorageLocAscii")]
+    [InlineData("A-3 ㄱ", "StorageLocAscii")]
+    [InlineData("Almacén", "StorageLocAscii")]
+    public void Mold_storage_location_accepts_only_ascii(string? value, string? expected)
+        => Assert.Equal(expected, MdValueRules.MoldStorageLoc(value));
+
     [Fact]
     public void Ranges_follow_the_decided_limits()
     {

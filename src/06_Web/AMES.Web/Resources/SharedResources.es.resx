@@ -12949,4 +12949,10 @@
   <data name="MD.Bop.Dup.Used" xml:space="preserve">
     <value>STEP en uso: {0}</value>
   </data>
+  <data name="MD.Rule.StorageLocAscii" xml:space="preserve">
+    <value>La ubicación de almacenamiento solo admite letras inglesas, dígitos y símbolos (no se permite coreano: se guardaría con caracteres dañados).</value>
+  </data>
+  <data name="MD.Rule.StorageLocLength" xml:space="preserve">
+    <value>La ubicación de almacenamiento admite hasta 20 caracteres.</value>
+  </data>
 </root>

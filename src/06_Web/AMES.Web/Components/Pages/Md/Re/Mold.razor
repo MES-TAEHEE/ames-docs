@@ -3,6 +3,7 @@
 
 @using Microsoft.AspNetCore.Authorization
 @using AMES.Data.Repositories
+@using AMES.Data.Services
 @using AMES.Web.Services
 @using Radzen
 
@@ -181,7 +182,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Mold.StoreLoc"]" />
-                    <RadzenTextBox @bind-Value="_f.StorageLoc" Placeholder='@L["MD.Mold.Ph.StorageLoc"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.StorageLoc" Immediate="true" MaxLength="20" Placeholder='@L["MD.Mold.Ph.StorageLoc"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    @if (StorageLocRule is { } locRule)
+                    {
+                        <div style="color:var(--ames-tx-red-400);font-size:.8em;margin-top:2px;">⚠ @L[$"MD.Rule.{locRule}"]</div>
+                    }
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LastMaint"]" />
@@ -266,7 +271,11 @@
             <RadzenRow Gap="8px" Style="margin-top:6px;">
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["MD.Mold.StoreLoc"]" />
-                    <RadzenTextBox @bind-Value="_f.StorageLoc" AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    <RadzenTextBox @bind-Value="_f.StorageLoc" Immediate="true" MaxLength="20" Placeholder='@L["MD.Mold.Ph.StorageLoc"]' AutoComplete="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:100%;" />
+                    @if (StorageLocRule is { } locRule)
+                    {
+                        <div style="color:var(--ames-tx-red-400);font-size:.8em;margin-top:2px;">⚠ @L[$"MD.Rule.{locRule}"]</div>
+                    }
                 </RadzenColumn>
                 <RadzenColumn Size="6">
                     <RadzenLabel Text="@L["Col.LastMaint"]" />
@@ -436,6 +445,8 @@
         _modal = "edit";
     }
 
+    string? StorageLocRule => MdValueRules.MoldStorageLoc(_f.StorageLoc?.Trim());
+
     void CloseModal() { _modal = ""; _sel = null; _modalErr = ""; _confirmDelete = false; _deleteBlocked = ""; }
 
     void OnBgMouseDown() => _bgMouseDownOnSelf = true;
@@ -447,6 +458,7 @@
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.MoldID))   { _modalErr = L["Err.MoldIdRequired"]; return; }
         if (string.IsNullOrWhiteSpace(_f.MoldName))  { _modalErr = L["Err.MoldNameRequired"]; return; }
+        if (StorageLocRule is { } locRule) { _modalErr = L[$"MD.Rule.{locRule}"]; return; }
         var newId = _f.MoldID.Trim();
         var dupId = MD.FindMoldIdByCleanCode(newId);
         if (dupId is not null)
@@ -467,6 +479,7 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{_f.MoldName} {L["Msg.Created"]}", false);
         }
+        catch (MdValueRuleException ex) { _modalErr = L[$"MD.Rule.{ex.Rule}"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
@@ -477,6 +490,7 @@
         if (_sel is null) return;
         _modalErr = "";
         if (string.IsNullOrWhiteSpace(_f.MoldName)) { _modalErr = L["Err.MoldNameRequired"]; return; }
+        if (StorageLocRule is { } locRule) { _modalErr = L[$"MD.Rule.{locRule}"]; return; }
         _busy = true;
         try
         {
@@ -489,6 +503,7 @@
             CloseModal(); await ReloadRestorePage();
             ShowMsg($"{name} {L["Msg.Updated"]}", false);
         }
+        catch (MdValueRuleException ex) { _modalErr = L[$"MD.Rule.{ex.Rule}"]; }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
     }
