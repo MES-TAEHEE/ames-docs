@@ -3,7 +3,7 @@
    TD_GROUP : 그룹 번호별 입력 데이터 [항목, 값] (그룹 안에서 시나리오가 참조) */
 const TD_COMMON = [
   ['품목', '완제품 TST-A-001 (경로 A)', '품명 테스트 완제품 A · ASSY · DOOR · 차종 TST · INHOUSE · 적입수량 24 · 최대 적재 4 · 안전재고 100 EA · PGN TST · ALC A'],
-  ['품목', '완제품 TST2-B-001 (경로 B)', '품명 테스트 도장 완제품 B · ASSY · DOOR · 차종 TST · INHOUSE · 적입수량 24 · 최대 적재 4 · 안전재고 빈칸'],
+  ['품목', '완제품 TST2-B-001 (경로 B)', '품명 테스트 도장 완제품 B · ASSY · DOOR · 차종 TST · INHOUSE · 적입수량 24 · 최대 적재 4 · 안전재고 빈칸 · PGN TST · ALC B'],
   ['품목', '사출 코어 TST-CORE-A (경로 A)', '품명 CORE-TEST A · SUB · 사출품 체크 · 차종 TST · 적입수량 24'],
   ['품목', '사출 코어 TST2-CORE-B (경로 B)', '품명 CORE-TEST B · SUB · 사출품 체크 · 차종 TST · 적입수량 24'],
   ['품목', '사출 LH·RH TST-A-001-LH / -RH (경로 A)', '품명 CORE-TEST A LH / RH · SUB · 사출품 체크 · 적입수량 24'],
