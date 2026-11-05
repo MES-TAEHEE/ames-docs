@@ -1300,6 +1300,21 @@ html[data-theme="light"] .ames-user-av--none  { --av-bg: rgba(100,116,139,.10); 
     max-height: calc(100vh - 40px); overflow-y: auto;
 }
 .ames-modal.ames-modal-wide { max-width: 800px; }
+/* 작업지시 일괄 생성 팝업: 라인 목록이 메뉴 아래로 가려지지 않게 위·아래 여백을 두고, 긴 라인 이름은 줄바꿈 */
+.ames-batch-dlg .rz-dialog-content { max-height: calc(100vh - 110px); overflow-y: auto; }
+.ames-batch-dlg .rz-dropdown-panel { z-index: 10050; min-width: 320px; max-width: 520px; }
+.ames-batch-dlg .rz-dropdown-item { white-space: normal; line-height: 1.45; padding: 6px 10px; }
+.ames-batch-dlg .rz-dropdown-label { white-space: normal; overflow: visible; text-overflow: clip; }
+.ames-batch-dlg .ames-table td, .ames-batch-dlg .ames-table th { word-break: keep-all; white-space: normal; font-size: 13px; }
+/* 열 구분선: 머리글·본문 모두 세로 선을 두고, 머리글 경계에 조정 손잡이(드래그 가능) 표시 */
+.ames-batch-dlg .ames-table td + td { border-left: 1px solid var(--ames-bd-white-a12); }
+/* 머리글 선은 손잡이(.ames-col-grip)가 그린다 — 칸 테두리와 겹쳐 두 줄로 보이지 않게 머리글에는 테두리를 두지 않는다 */
+.ames-batch-dlg .ames-table th { padding-right: 14px; }
+/* 직접 입력 수량 칸: 증감 버튼을 빼고 셀 안에 맞는 작은 입력란만 둔다 */
+.ames-batch-dlg .ames-table td .rz-numeric input { text-align: right; min-width: 0; }
+.ames-col-grip { position: absolute; top: 0; right: -5px; width: 9px; height: 100%; cursor: col-resize; user-select: none; z-index: 2; }
+.ames-col-grip::after { content: ""; position: absolute; top: 18%; bottom: 18%; left: 4px; width: 1px; background: var(--ames-bd-white-a12); }
+.ames-col-grip:hover::after, .ames-col-grip.active::after { background: var(--ames-accent, #60a5fa); width: 2px; left: 3px; }
 .portal-shell input[type="date"].ames-input { width:160px; min-height:32px; color-scheme:dark; }
 html[data-theme="light"] .portal-shell input[type="date"].ames-input { color-scheme:light; }
 .ames-modal.ames-modal-fullwide { max-width: 1400px; }

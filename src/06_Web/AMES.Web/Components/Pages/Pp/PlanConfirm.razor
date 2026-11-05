@@ -248,7 +248,7 @@ else
         var result = await Dialog.OpenAsync<PlanConfirmBatchDialog>(
             L["PP.PlanConfirm.Dlg.Title"].Value,
             new Dictionary<string, object?> { ["Lines"] = lines },
-            new DialogOptions { Width = "1000px" });
+            new DialogOptions { Width = "min(1280px, 96vw)", CssClass = "ames-batch-dlg", Resizable = true });
 
         if (result is PlanConfirmBatchDialog.Result r)
         {

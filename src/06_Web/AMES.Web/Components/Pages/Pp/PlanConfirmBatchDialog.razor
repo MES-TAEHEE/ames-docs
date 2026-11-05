@@ -41,14 +41,14 @@
     </div>
 
     <div style="max-height:360px;overflow:auto;border:1px solid var(--ames-bd-white-a12);border-radius:8px;">
-        <table class="ames-table" style="width:100%;table-layout:fixed;">
+        <table class="ames-table" data-col-resize="pp-batch-lines" style="width:100%;table-layout:fixed;">
             <thead>
                 <tr>
                     <th>@L["Col.SoNo"] · @L["Col.PartNo"]</th>
-                    <th style="width:120px;text-align:right;">@L["Col.Qty"]</th>
+                    <th style="width:150px;text-align:right;">@L["Col.Qty"]</th>
                     <th style="width:28px;">#</th>
                     <th style="width:70px;">@L["PP.WoRelease.Dlg.Step"]</th>
-                    <th style="width:168px;">@L["Col.Line"]</th>
+                    <th style="width:270px;">@L["Col.Line"]</th>
                     <th style="width:120px;">@L["PP.PlanConfirm.Dlg.Span"]</th>
                     <th style="width:84px;text-align:right;">@L["PP.PlanConfirm.Dlg.LateQty"]</th>
                     <th style="width:84px;text-align:right;">@L["PP.PlanConfirm.Dlg.ShortQty"]</th>
@@ -99,7 +99,7 @@
                                                 TextProperty="Display" ValueProperty="LineId"
                                                 @bind-Value="s.LineId" @bind-Value:after="Recompute"
                                                 AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Disabled="_busy"
-                                                Placeholder="—" Style="width:100%" />
+                                                Placeholder="—" Style="width:100%;min-width:240px;" />
                             </td>
                             <td class="code">
                                 @Span(ps)
@@ -237,7 +237,8 @@
             __b.AddAttribute(9, "Disabled", _busy);
             __b.AddAttribute(10, "InputSize", InputSize.Small);
             __b.AddAttribute(11, "class", "ames-rz-input");
-            __b.AddAttribute(12, "Style", "width:100px;");
+            __b.AddAttribute(12, "Style", "width:130px;max-width:100%;");
+            __b.AddAttribute(24, "ShowUpDown", true);
             __b.CloseComponent();
         }
         else __b.AddContent(13, q.ToString("#,0"));
