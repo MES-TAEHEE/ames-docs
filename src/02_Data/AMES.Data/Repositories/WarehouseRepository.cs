@@ -115,7 +115,8 @@ public sealed partial class WarehouseRepository
         string? Loc03,
         decimal Loc03Qty,
         string Status,
-        string QuantityUnit = "BOX");
+        string QuantityUnit = "BOX",
+        string? WorkOrderNumber = null);
 
 
     public record CreatePickingSlipLine(string PartNo, string LineCode, decimal ReqBoxQty);
@@ -710,6 +711,7 @@ public sealed partial class WarehouseRepository
     {
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        LockLinePicking(conn,tx);
         using var cmd = new SqlCommand("""
             SET XACT_ABORT ON;
             SET QUOTED_IDENTIFIER ON;
@@ -768,6 +770,11 @@ public sealed partial class WarehouseRepository
                              AND parent.LocationNo NOT IN (SELECT LocationID FROM #Scope)))
                 THROW 51025,'Inventory is linked to a parent outside this scope.',1;
 
+            IF EXISTS(SELECT 1 FROM dbo.WH_PickSlip P JOIN #Scope S ON S.LocationID=P.ReqLocation
+                WHERE P.CloseDate IS NULL AND UPPER(COALESCE(P.Status,'OPEN')) NOT IN('CLOSED','RELEASED','CANCELLED','CANCELED'))
+                THROW 51050,'Close outstanding picking orders before deleting this scope.',1;
+            IF OBJECT_ID(N'dbo.MD_LocationPart',N'U') IS NOT NULL
+                EXEC(N'DELETE A FROM dbo.MD_LocationPart A JOIN #Scope S ON S.LocationID=A.LocationID');
             DELETE l
             FROM dbo.MD_Location l JOIN #Scope s ON s.LocationID=l.LocationID;
             IF @Floor IS NULL AND @Area IS NULL
@@ -876,12 +883,14 @@ public sealed partial class WarehouseRepository
     {
         using var conn = _factory.OpenConnection();
         using var tx = conn.BeginTransaction(IsolationLevel.Serializable);
+        LockLinePicking(conn,tx);
         using var check = new SqlCommand(
             "SELECT COUNT(1) FROM dbo.WH_Inventory WITH(UPDLOCK,HOLDLOCK) WHERE LocationNo=@LocationNo AND Qty<>0;", conn, tx);
         ColumnParams.AddFilter(check,"@LocationNo","WH_Inventory.LocationNo",locationNo);
         if (Convert.ToInt32(check.ExecuteScalar()) > 0)
             throw new InvalidOperationException("Location has inventory and cannot be deleted.");
 
+        DeleteLocationParts(conn,tx,locationNo);
         using var cmd = new SqlCommand("DELETE FROM dbo.MD_Location WHERE LocationID = @LocationNo;", conn, tx);
         ColumnParams.AddFilter(cmd,"@LocationNo","MD_Location.LocationID",locationNo);
         cmd.ExecuteNonQuery();
@@ -1092,6 +1101,11 @@ public sealed partial class WarehouseRepository
         var removing = existing.Where(x => x.Active && !wanted.Contains((x.Aisle, x.Bay))).Select(x => x.Id).ToList();
         foreach (var id in removing)
         {
+            using(var pending=new SqlCommand("SELECT COUNT(*) FROM dbo.WH_PickSlip WHERE ReqLocation=@Id AND CloseDate IS NULL AND UPPER(COALESCE(Status,'OPEN')) NOT IN('CLOSED','RELEASED','CANCELLED','CANCELED');",conn,tx))
+            {
+                pending.Parameters.Add("@Id",SqlDbType.VarChar,20).Value=id;
+                if(Convert.ToInt32(pending.ExecuteScalar())>0) throw new InvalidOperationException($"Cannot reduce the grid: location {id} has outstanding picking orders.");
+            }
             using var check = new SqlCommand("""
                 SELECT CASE WHEN EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LocationNo=@Id AND Qty<>0)
                     OR EXISTS(SELECT 1 FROM dbo.MNT_SparePartItem WHERE LocationID=@Id)
@@ -1107,7 +1121,11 @@ public sealed partial class WarehouseRepository
                 IF EXISTS(SELECT 1 FROM dbo.WH_Inventory WHERE LocationNo=@Id)
                    OR EXISTS(SELECT 1 FROM dbo.WH_InventoryTransaction WHERE LocationNo=@Id)
                     UPDATE dbo.MD_Location SET ActiveFlag=0 WHERE LocationID=@Id;
-                ELSE DELETE FROM dbo.MD_Location WHERE LocationID=@Id;
+                ELSE BEGIN
+                    IF OBJECT_ID(N'dbo.MD_LocationPart',N'U') IS NOT NULL
+                        EXEC sys.sp_executesql N'DELETE dbo.MD_LocationPart WHERE LocationID=@Id',N'@Id varchar(20)',@Id;
+                    DELETE FROM dbo.MD_Location WHERE LocationID=@Id;
+                END;
                 """, conn, tx);
             remove.Parameters.Add("@Id", SqlDbType.VarChar, 20).Value = id;
             remove.ExecuteNonQuery();
@@ -1300,7 +1318,8 @@ public sealed partial class WarehouseRepository
                     NULLIF(RS.ReqLocation, N'') AS LineCode,
                     COALESCE(ML.LineName, NULLIF(RS.ReqLocation, N'')) AS LineName,
                     RS.Status,
-                    CASE WHEN RS.CreatedBy='WH-AUTO' THEN 'EA' ELSE 'BOX' END AS QUANTITY_UNIT
+                    W.WoNumber,
+                    CASE WHEN RS.CreatedBy IN('WH-AUTO','WH-REQUEST') THEN COALESCE(NULLIF(I.DefaultUOM,''),'EA') ELSE 'BOX' END AS QUANTITY_UNIT
                 FROM dbo.WH_PickSlip RS
                 LEFT JOIN dbo.MD_Item I
                        ON I.ItemNo = RS.ItemNo
@@ -1322,6 +1341,7 @@ public sealed partial class WarehouseRepository
                 B.SEQNO,
                 B.ItemNo AS PARTNO,
                 B.ItemName AS PARTNM,
+                B.WoNumber,
                 B.QUANTITY_UNIT,
                 B.DemandQty AS REQ_BOX_QTY,
                 B.PickedQty AS PICKED_BOX_QTY,
@@ -1363,7 +1383,8 @@ public sealed partial class WarehouseRepository
                 GetString(r, "LOC_03"),
                 GetDecimal(r, "LOC_03_QTY"),
                 GetString(r, "STATUS") ?? "Open",
-                GetString(r, "QUANTITY_UNIT") ?? "BOX"),
+                GetString(r, "QUANTITY_UNIT") ?? "BOX",
+                GetString(r, "WoNumber")),
             ("@PickSlipNo", "WH_PickSlip.PickSlipID", pickSlipNo.Trim()));
     }
 
@@ -1416,6 +1437,7 @@ public sealed partial class WarehouseRepository
         using var tx = conn.BeginTransaction();
         try
         {
+            LockLinePicking(conn, tx);
             var pickSlipNo = string.IsNullOrWhiteSpace(requestedPickSlipNo)
                 ? GeneratePickSlipNo(conn, tx, cleanLines[0].LineCode)
                 : Truncate(requestedPickSlipNo.Trim().ToUpperInvariant(), 40);

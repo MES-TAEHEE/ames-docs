@@ -768,6 +768,7 @@ public sealed class InjLotRepository
             if (stepId is int step) WorkOrderRepository.BumpStepCompleted(conn, tx, step, 1m, operatorId);
 
             tx.Commit();
+            WarehouseRepository.RecheckLinePicking(_factory);
             return (InjConfirmOutcome.Confirmed, resultId, itemNo, woId ?? 0);
         }
         catch { tx.Rollback(); throw; }

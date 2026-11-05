@@ -189,6 +189,7 @@ FILES=(
   migrate_shipping_ui_line_defaults.sql # FG display order and registered production-line locations
   migrate_line_locations_eos.sql # Production line areas and locations belong to EOS
   migrate_md_location_parent.sql     # MD_Location.ParentLocationID·LocationLevel — 1차(SAP·MES)/상세 2단계 로케이션(10-22) — sap_flag_rename·line_locations 뒤
+  migrate_location_parts.sql        # Multiple assigned parts and per-part minimum at detail locations
   migrate_fg_lot_defect_permission.sql # Separate Warehouse inventory defect permission
   migrate_wh_pda_test_permission.sql # Hidden Web receipt test in the existing Permission Matrix
   migrate_wh_fg_history_screens.sql # Current WH/FG labels and order; unified history, preserve permission identities

@@ -513,6 +513,7 @@ public sealed class WorkOrderRepository
     /// </summary>
     internal static int ReleaseCore(SqlConnection conn, SqlTransaction tx, int woId, IReadOnlyList<StepLineChoice> steps, string actor)
     {
+        WarehouseRepository.LockLinePicking(conn, tx);
         string? status; string? routingType; string? woItem;
         // 헤더→단계 순서로 잠그는 유일한 경로. Draft/Planned 만 대상이라 단계 행·터미널이 없어 단계→헤더 경로와 교차하지 않는다.
         using (var cmd = new SqlCommand(
@@ -582,6 +583,7 @@ public sealed class WorkOrderRepository
             ins.Parameters.Add("@Actor",    SqlDbType.VarChar,   20).Value = actor;
             ins.ExecuteNonQuery();
         }
+        WarehouseRepository.GenerateWorkOrderPicking(conn, tx);
         return 1;
     }
     /// <summary>템플릿 단계 집합과 steps 가 1:1 이고, 라인 필수 단계는 그 공정의 활성 라인이 지정됐는지.</summary>
@@ -683,7 +685,9 @@ public sealed class WorkOrderRepository
             using var cmd = new SqlCommand(sql, conn, tx);
             cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value          = woId;
             cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
+            WarehouseRepository.LockLinePicking(conn, tx);
             var n = Convert.ToInt32(cmd.ExecuteScalar());
+            WarehouseRepository.CloseFinishedWorkOrderPicking(conn, tx);
             tx.Commit();
             return n;
         }
@@ -727,7 +731,9 @@ public sealed class WorkOrderRepository
             using var cmd = new SqlCommand(sql, conn, tx);
             cmd.Parameters.Add("@WoID",  SqlDbType.Int).Value          = woId;
             cmd.Parameters.Add("@Actor", SqlDbType.VarChar,   20).Value = actor;
+            WarehouseRepository.LockLinePicking(conn, tx);
             var r = Convert.ToInt32(cmd.ExecuteScalar());
+            WarehouseRepository.CloseFinishedWorkOrderPicking(conn, tx);
             tx.Commit();
             return r switch { 2 => ForceCloseResult.Closed, 1 => ForceCloseResult.NotAllowed, _ => ForceCloseResult.NotFound };
         }

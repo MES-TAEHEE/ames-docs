@@ -62,7 +62,8 @@ public static class BackflushRepository
             return new BackflushResult(Array.Empty<BackflushShortage>(), $"line {lineId} has no LotPrefix — no line stock location", false);
 
         var except = includeInjection ? ReadParentLotItem(conn, tx, lotId) is { } core ? new[] { core } : null : null;
-        var requirements = BackflushRules.Requirements(ReadBomRows(conn, tx, itemNo), includeInjection, except);
+        // Use the same direct BOM inputs as WO picking, including SUB components. A scanned core was already consumed.
+        var requirements = BackflushRules.Requirements(ReadBomRows(conn, tx, itemNo), includeInjection, except, allComponents: true);
         var shortages = new List<BackflushShortage>();
         var note = noteSuffix is null ? $"{lotCode} {itemNo}" : $"{lotCode} {itemNo} {noteSuffix}";
         foreach (var req in requirements)

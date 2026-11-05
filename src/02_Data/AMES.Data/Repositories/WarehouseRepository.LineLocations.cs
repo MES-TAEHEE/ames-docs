@@ -8,20 +8,26 @@ public sealed partial class WarehouseRepository
     public sealed record LineLocationRow(string LocationId,string LineId,string AreaName,string X,string Y,string Floor,
         string? PartNo,string? PartName,decimal MinimumQty,decimal Qty);
 
-    public List<LineLocationRow> ListLineLocations(string? lineId=null) => Query("""
+    public List<LineLocationRow> ListLineLocations(string? lineId=null)
+    {
+        using var connection=_factory.OpenConnection();
+        var assignments=LocationPartAssignmentsSql(connection);
+        return Query($"""
         SELECT L.LocationID,L.LineID,COALESCE(NULLIF(M.LineNameEn,''),M.LineID) AreaName,
-            L.Bay X,L.Aisle Y,L.Slot Floor,L.PartNo,I.ItemName,COALESCE(L.MinimumQty,0) MinimumQty,
+            L.Bay X,L.Aisle Y,L.Slot Floor,A.PartNo,I.ItemName,COALESCE(A.MinimumQty,0) MinimumQty,
             COALESCE(S.Qty,0) Qty
         FROM dbo.MD_Location L JOIN dbo.MD_Line M ON M.LineID=L.LineID
-        LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.PartNo
+        LEFT JOIN ({assignments}) A ON A.LocationID=L.LocationID
+        LEFT JOIN dbo.MD_Item I ON I.ItemNo=A.PartNo
         OUTER APPLY(SELECT SUM(W.Qty) Qty FROM dbo.WH_Inventory W
-            WHERE W.LocationNo=L.LocationID AND W.PartNo=L.PartNo
+            WHERE W.LocationNo=L.LocationID AND W.PartNo=A.PartNo
               AND NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)) S
         WHERE (@Line IS NULL OR L.LineID=@Line) AND COALESCE(L.ActiveFlag,1)=1
         ORDER BY L.LineID,L.Slot,L.Aisle,L.Bay;
         """,r=>new LineLocationRow(GetString(r,"LocationID")!,GetString(r,"LineID")!,GetString(r,"AreaName")!,
             GetString(r,"X")!,GetString(r,"Y")!,GetString(r,"Floor")!,GetString(r,"PartNo"),GetString(r,"ItemName"),
             GetDecimal(r,"MinimumQty"),GetDecimal(r,"Qty")),("@Line","MD_Line.LineID",NullIfBlank(lineId)));
+    }
 
     public static string LineLocationNo(string prefix,int x,int y,int floor)
     {
@@ -92,6 +98,10 @@ public sealed partial class WarehouseRepository
         cmd.Parameters.Add("@Y",SqlDbType.VarChar,5).Value=LocationMapNaming.YCode(y);
         cmd.Parameters.Add("@F",SqlDbType.VarChar,5).Value=$"F{floor}";
         var min=cmd.Parameters.Add("@Min",SqlDbType.Decimal); min.Precision=18;min.Scale=3;min.Value=minimum;
-        cmd.ExecuteNonQuery(); tx.Commit(); return id;
+        LockLinePicking(conn,tx);
+        cmd.ExecuteNonQuery();
+        using(var exists=new SqlCommand("SELECT OBJECT_ID(N'dbo.MD_LocationPart',N'U');",conn,tx))
+            if(exists.ExecuteScalar() is int) SaveLocationParts(conn,tx,id,[new(partNo,minimum)],actor);
+        tx.Commit(); return id;
     }
 }

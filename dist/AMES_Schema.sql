@@ -219,6 +219,7 @@ DROP TABLE IF EXISTS [dbo].[MD_Line];
 DROP TABLE IF EXISTS [dbo].[MD_LineSupervisor];
 DROP TABLE IF EXISTS [dbo].[MD_LineTimePattern];
 DROP TABLE IF EXISTS [dbo].[MD_LineTimeSegment];
+DROP TABLE IF EXISTS [dbo].[MD_LocationPart];
 DROP TABLE IF EXISTS [dbo].[MD_Location];
 DROP TABLE IF EXISTS [dbo].[MD_Mold];
 DROP TABLE IF EXISTS [dbo].[MD_MoldItem];
@@ -2003,6 +2004,20 @@ GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'최종 수정자 (로그인 사용자 User ID) · nvarchar(450)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location', @level2type=N'COLUMN',@level2name=N'ModifiedBy'
 GO
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'로케이션 (보조)' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'MD_Location'
+GO
+-- Table: dbo.MD_LocationPart (2026-11-04 multi-part assignments; no new foreign keys)
+CREATE TABLE dbo.MD_LocationPart
+(
+    LocationID varchar(20) COLLATE DATABASE_DEFAULT NOT NULL,
+    PartNo varchar(20) COLLATE DATABASE_DEFAULT NOT NULL,
+    MinimumQty decimal(18,3) NOT NULL CONSTRAINT DF_MD_LocationPart_MinimumQty DEFAULT(0),
+    CreatedBy varchar(20) COLLATE DATABASE_DEFAULT NOT NULL,
+    CreatedTS datetime2 NOT NULL CONSTRAINT DF_MD_LocationPart_CreatedTS DEFAULT(SYSDATETIME()),
+    ModifiedBy varchar(20) COLLATE DATABASE_DEFAULT NULL,
+    ModifiedTS datetime2 NULL,
+    CONSTRAINT PK_MD_LocationPart PRIMARY KEY(LocationID,PartNo),
+    CONSTRAINT CK_MD_LocationPart_MinimumQty CHECK(MinimumQty>=0 AND MinimumQty<=99999999999)
+);
 GO
 -- Table: dbo.MD_Mold
 SET ANSI_NULLS ON

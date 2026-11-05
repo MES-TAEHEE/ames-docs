@@ -16,7 +16,8 @@ public sealed record BackflushAllocation(IReadOnlyList<BackflushNet> Nets, IRead
                                          decimal PlaceholderTake, decimal Shortage);
 
 /// <summary>
-/// BOM 자동 차감 규칙(순수). 소요 = 유효 BOM 의 활성 MATERIAL 자식 × (1 + 스크랩%) × 1 EA,
+/// BOM 자동 차감 규칙(순수). 소요 = 유효 BOM 의 활성 자식 × (1 + 스크랩%) × 1 EA.
+/// 생산 확정은 allComponents로 WO 피킹과 같은 구성품을 차감하며, 이미 스캔 소비한 코어는 제외한다.
 /// 배분 = 라인 재고 FIFO → 모자라면 자리표시 LOT(음수 허용). 사용자 결정 2026-10-15.
 /// PNT·IMG 는 사출품 자식(InjFlag 1)도 뺀다(<see cref="IncludesInjection"/>) — PNT 는 코어 스캔이 없어 IMG 의 ConsumeCore 를 대신하고(2026-10-22),
 /// IMG 는 스캔한 코어 품번만 빼고(ConsumeCore 가 이미 지움) 레일 등 나머지 사출품을 뺀다(2026-10-27 — 전에는 레일 재고가 쌓이기만 했다).
@@ -37,7 +38,7 @@ public static class BackflushRules
 
     /// <param name="exceptItems">이미 다른 경로로 소모된 자식 품번(IMG 가 스캔한 코어) — 빼지 않는다.</param>
     public static IReadOnlyList<BackflushRequirement> Requirements(IEnumerable<BackflushBomRow> rows, bool includeInjection = false,
-                                                                   IReadOnlyCollection<string>? exceptItems = null)
+                                                                   IReadOnlyCollection<string>? exceptItems = null, bool allComponents = false)
     {
         var sum   = new Dictionary<string, (decimal Qty, string? Uom)>(StringComparer.OrdinalIgnoreCase);
         var order = new List<string>();
@@ -45,7 +46,7 @@ public static class BackflushRules
         {
             if (!r.Active || r.QtyPer <= 0m) continue;
             var material  = string.Equals(r.ItemType, MaterialType, StringComparison.OrdinalIgnoreCase);
-            if (!material && !(includeInjection && r.InjFlag)) continue;
+            if (!allComponents && !material && !(includeInjection && r.InjFlag)) continue;
             if (exceptItems is not null && exceptItems.Contains(r.CompItemNo, StringComparer.OrdinalIgnoreCase)) continue;
             var qty = r.QtyPer * (1m + r.ScrapPct / 100m);
             if (sum.TryGetValue(r.CompItemNo, out var cur)) sum[r.CompItemNo] = (cur.Qty + qty, cur.Uom ?? r.Uom);

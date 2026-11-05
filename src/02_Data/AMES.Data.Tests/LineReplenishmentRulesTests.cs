@@ -23,21 +23,23 @@ public sealed class LineReplenishmentRulesTests
     }
 
     [Fact]
-    public void Automatic_demand_uses_registered_detail_locations_not_legacy_prefix_or_item_safety_stock()
+    public void Automatic_demand_uses_detail_locations_and_counts_legacy_line_stock_once_not_item_safety_stock()
     {
         var source = Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.LineStock.cs");
         var demand = source[source.IndexOf("private const string LineStockSql", StringComparison.Ordinal)..source.IndexOf("public List<LineStockRow> ListLineStock", StringComparison.Ordinal)];
         Assert.Contains("JOIN dbo.MD_Line M ON M.LineID=L.LineID", demand);
         Assert.Contains("L.LocationLevel=2", demand);
-        Assert.Contains("L.MinimumQty>0", demand);
+        Assert.Contains("A.MinimumQty>0", demand);
         Assert.Contains("COALESCE(L.ActiveFlag,1)=1", demand);
         Assert.Contains("COALESCE(M.Status,'ACTIVE')='ACTIVE'", demand);
-        Assert.Contains("W.LocationNo=L.LocationID AND W.PartNo=L.PartNo", demand);
+        Assert.Contains("W.LocationNo=L.LocationID OR (W.LocationNo=M.LotPrefix", demand);
+        Assert.Contains("Other.LocationID<L.LocationID",demand);
+        Assert.Contains("AND W.PartNo=A.PartNo", demand);
         Assert.Contains("COALESCE(S.Qty,0) AS Qty", demand);
         Assert.Contains("NOT EXISTS(SELECT 1 FROM dbo.WH_Inventory C WHERE C.ParentLotNo=W.LotNo)", demand);
         Assert.Contains("O.CloseDate IS NULL", demand);
-        Assert.Contains("W.PartNo<>S.PartNo", demand);
-        foreach (var legacy in new[] { "LotPrefix", "I.SafetyStock", "MinStock", "UNION ALL" })
+        Assert.Contains("Assigned.PartNo=W.PartNo", demand);
+        foreach (var legacy in new[] { "I.SafetyStock", "MinStock", "UNION ALL" })
             Assert.DoesNotContain(legacy, demand);
         Assert.Contains("Property=\"MinimumQty\" Title=\"@L[\"WH.Picking.Col.MinimumQty\"].Value\"", Read("src/06_Web/AMES.Web/Components/Pages/Wh/PickingOrders.razor"));
     }
@@ -47,13 +49,14 @@ public sealed class LineReplenishmentRulesTests
     {
         var source = Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.LineStock.cs");
         Assert.Contains("@Overview=1 OR (COALESCE(L.ActiveFlag,1)=1", source);
-        Assert.Contains("AND NULLIF(L.PartNo,'') IS NOT NULL AND L.MinimumQty>0))", source);
+        Assert.Contains("AND NULLIF(A.PartNo,'') IS NOT NULL AND A.MinimumQty>0))", source);
         Assert.Contains("LEFT JOIN dbo.MD_Item I", source);
         Assert.Contains("WHERE @Overview=1 OR (I.ItemNo IS NOT NULL AND COALESCE(I.ActiveFlag,1)=1)", source);
         Assert.Contains("ReadLineStock(conn, null, overview:true)", source);
         Assert.Contains("SqlTransaction? tx, bool overview=false", source);
         Assert.Contains(".Value = overview", source);
-        Assert.Contains("var stock = ReadLineStock(conn, tx);", source);
+        Assert.Contains("GenerateWorkOrderPicking(conn, tx)", source);
+        Assert.Contains("ReadLineStock(conn, tx, overview: true)", Read("src/02_Data/AMES.Data/Repositories/WarehouseRepository.WorkOrderPicking.cs"));
         Assert.Contains(".OrderByDescending(row => row.DisplayRequiredQty)", source);
     }
 
@@ -79,7 +82,11 @@ public sealed class LineReplenishmentRulesTests
         Assert.Null(row.DisplayQty);
         Assert.Null(row.DisplayRequiredQty);
         Assert.Equal("Assign a part", row.State);
-        Assert.Empty(WarehouseRepository.PendingLineOrders([row]));
+        var plan = AMES.Data.Services.LinePickingPlanner.Plan(
+            [new(1, "WO-1", 10, "LINE-1", "PRODUCT", 10, null)],
+            [new("PRODUCT", "PART-A", 1, 0)], [], []);
+        Assert.Empty(plan.Requests);
+        Assert.Single(plan.Issues);
         Assert.Equal("Inactive", (row with { PartNo="PART-A", IsActive=false }).State);
     }
 
