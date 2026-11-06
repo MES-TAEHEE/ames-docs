@@ -68,4 +68,22 @@ public sealed class ShipmentOrderCreateUiTests
 
     private static string Read(string path, [System.Runtime.CompilerServices.CallerFilePath] string current = "")
         => File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(current)!, "../../..", path)));
+
+    [Fact]
+    public void Order_and_dcr_actions_share_the_list_footer_without_delivery_risk_ui()
+    {
+        var source = Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShippingOrders.razor");
+        var gridEnd = source.IndexOf("</RadzenDataGrid>", StringComparison.Ordinal);
+        var footerStart = source.IndexOf("<RadzenStack", gridEnd, StringComparison.Ordinal);
+        var footerEnd = source.IndexOf("</RadzenStack>", footerStart, StringComparison.Ordinal);
+        var footer = source[footerStart..footerEnd];
+        Assert.Contains("Orientation=\"Orientation.Horizontal\"", footer);
+        Assert.Contains("shipping-order-actions", footer);
+        Assert.Contains("FG.ShipOrders.Btn.CreateOrder", footer);
+        Assert.Contains("FG.ShipOrders.Btn.CreateDcr", footer);
+        Assert.Contains("Disabled=\"@(_selected.Count==0)\"", footer);
+        Assert.DoesNotContain("FG.ShipOrders.Btn.CreateOrder", source[..gridEnd]);
+        Assert.DoesNotContain("DueRisk", source);
+        Assert.DoesNotContain("DueRisk", Read("src/06_Web/AMES.Web/Components/Shared/ShipmentOrderCreate.razor"));
+    }
 }
