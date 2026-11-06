@@ -34,6 +34,36 @@ public sealed class ShipmentOrderCreateUiTests
         var label = Assert.Single(resource.Root!.Elements("data"),
             x => (string?)x.Attribute("name") == "FG.OrderCreate.Col.DueDate");
         Assert.Equal(expected, (string?)label.Element("value"));
+        foreach (var key in new[] { "TitleFmt" })
+        {
+            var previewLabel = Assert.Single(resource.Root.Elements("data"),
+                x => (string?)x.Attribute("name") == $"FG.OrderCreate.Preview.{key}");
+            Assert.False(string.IsNullOrWhiteSpace((string?)previewLabel.Element("value")));
+        }
+    }
+
+    [Fact]
+    public void Live_preview_uses_positive_quantities_and_the_same_customer_grouping_as_creation()
+    {
+        var source = Read("src/06_Web/AMES.Web/Components/Shared/ShipmentOrderCreate.razor");
+        Assert.Contains("Change=\"@(v=>_quantities[r.SoId]=v)\"", source);
+        Assert.Contains("Immediate=\"true\"", source);
+        Assert.Contains("_rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).OrderBy(r=>r.SoId).GroupBy(r=>r.CustomerId)", source);
+        Assert.Contains("<ShipmentOrderLines Lines=\"lines\" CompactPallets=\"true\" />", source);
+        Assert.Contains("@if(previewOrders.Count>0)", source);
+        Assert.DoesNotContain("FG.OrderCreate.Preview.Hint", source);
+        Assert.DoesNotContain("FG.OrderCreate.Preview.Empty", source);
+        var lines = Read("src/06_Web/AMES.Web/Components/Shared/ShipmentOrderLines.razor");
+        Assert.Contains("@if(CompactPallets)", lines);
+        Assert.Contains("PLT({UomFmt.Qty(line.Qty,null)}/{UomFmt.Qty(line.PalletQty.Value,null)})", lines);
+        Assert.Contains("[Parameter] public bool CompactPallets { get; set; }", lines);
+        Assert.Contains("_shipDate?.ToString(DateFmt.Date)", source);
+        Assert.Contains("item?.DefaultUOM,item?.PalletQty,item?.ToteFlag??false", source);
+        var repo = Read("src/02_Data/AMES.Data/Repositories/FinishedGoodsRepository.ShippingOrders.cs");
+        Assert.Contains("input.OrderBy(x=>x.SoId)", repo);
+        Assert.Contains("selected.GroupBy(x=>x.Customer)", repo);
+        var css = Read("src/06_Web/AMES.Web/Components/Shared/ShipmentOrderCreate.razor.css");
+        Assert.Contains("max-height:320px;overflow:auto", css);
     }
 
     private static string Read(string path, [System.Runtime.CompilerServices.CallerFilePath] string current = "")

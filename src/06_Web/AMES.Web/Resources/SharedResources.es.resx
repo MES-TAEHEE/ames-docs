@@ -12034,6 +12034,9 @@
   <data name="FG.OrderCreate.Col.DueDate" xml:space="preserve">
     <value>Fecha de vencimiento</value>
   </data>
+  <data name="FG.OrderCreate.Preview.TitleFmt" xml:space="preserve">
+    <value>Vista previa · {0} orden(es)</value>
+  </data>
   <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
     <value>Palés (Cant. / Palé)</value>
   </data>

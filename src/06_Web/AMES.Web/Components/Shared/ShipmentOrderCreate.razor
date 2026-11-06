@@ -44,6 +44,26 @@
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.DueRisk.Title"]" Width="140px" MinWidth="140px" Sortable="false"><Template Context="r"><ShippingDueRiskBadge Risk="@(DueRisks?.Rows.FirstOrDefault(x=>x.SoId==r.SoId)?.Risk??ShippingDueRiskLevel.Unknown)" /></Template></RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
+@{ var previewOrders = _rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).OrderBy(r=>r.SoId).GroupBy(r=>r.CustomerId).ToList(); }
+@if(previewOrders.Count>0)
+{
+<section class="ames-card order-create-preview" aria-live="polite">
+    <div class="ames-card-h">@L["FG.OrderCreate.Preview.TitleFmt",previewOrders.Count]</div>
+    <div class="order-preview-list">
+        @foreach(var order in previewOrders)
+        {
+            var lines=order.Select(PreviewLine).ToList();
+            <section class="ames-card" @key="order.Key">
+                <div class="ames-card-h">
+                    @L["Col.Customer"]: @(order.Key??"—") · @L["Col.ShipDate"]: @(_shipDate?.ToString(DateFmt.Date)??"—")
+                    · @string.Join(" · ",lines.GroupBy(x=>x.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(x=>x.Qty),g.Key)))
+                </div>
+                <ShipmentOrderLines Lines="lines" CompactPallets="true" />
+            </section>
+        }
+    </div>
+</section>
+}
 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="ames-modal-footer">
     @if(UnestimatedParts>0){<span class="dim">@L["FG.OrderCreate.Hint.UnestimatedFmt",UnestimatedParts]</span>}
     <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="save" Click="Create" Disabled="@(_busy || !_quantities.Any(x=>x.Value>0))" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -64,6 +84,12 @@
         ? FinishedGoodsRepository.EstimateShippingPallets(_quantities.GetValueOrDefault(row.SoId),item.PalletQty,item.ToteFlag) : null;
     decimal EstimatedPallets=>_rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).Sum(r=>Pallets(r)??0);
     int UnestimatedParts=>_rows.Count(r=>_quantities.GetValueOrDefault(r.SoId)>0 && Pallets(r) is null);
+    ShippingOrderLineDto PreviewLine(PpRepository.SoRow row)
+    {
+        _packing.TryGetValue(row.ItemNo,out var item);
+        return new(0,row.SoId,row.SoNumber??"—",row.ItemNo,row.ItemName,_quantities.GetValueOrDefault(row.SoId),
+            item?.DefaultUOM,item?.PalletQty,item?.ToteFlag??false,row.RequestedDeliveryDate);
+    }
     DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1),_shipDate=DbClock.Today;
     string _error="";bool _busy;
     protected override Task OnInitializedAsync()=>Load();

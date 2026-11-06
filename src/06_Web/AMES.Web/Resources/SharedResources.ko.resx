@@ -12034,6 +12034,9 @@
   <data name="FG.OrderCreate.Col.DueDate" xml:space="preserve">
     <value>납기일</value>
   </data>
+  <data name="FG.OrderCreate.Preview.TitleFmt" xml:space="preserve">
+    <value>오더 미리보기 · {0}건</value>
+  </data>
   <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
     <value>팔레트 (적입수량)</value>
   </data>
