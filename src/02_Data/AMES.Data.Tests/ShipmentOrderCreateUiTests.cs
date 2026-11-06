@@ -126,4 +126,22 @@ public sealed class ShipmentOrderCreateUiTests
         Assert.Contains("<ShippingDeliveryOrderSummary Orders=\"_detailDelivery.Orders\" ShipDate=\"_detailDelivery.ShipDate\" />", plan);
         Assert.Contains("@onclick:stopPropagation=\"true\"", plan);
     }
+
+    [Fact]
+    public void Print_preview_separates_DCR_and_each_SHU_without_changing_existing_order_barcodes()
+    {
+        var source = Read("src/06_Web/AMES.Web/Components/Shared/ShippingOrderPrintPreview.razor");
+        Assert.Contains("Text=\"DCR\" Click=\"@(()=>_showShu=false)\"", source);
+        Assert.Contains("Text=\"SHU\" Click=\"@(()=>_showShu=true)\"", source);
+        Assert.Contains("Orders.Select(order=>(IReadOnlyList<ShippingOrderDto>)new[]{order})", source);
+        Assert.Contains("var reference=_showShu?documentOrders[0].OrderNo:Delivery!.DeliveryNo;", source);
+        Assert.Contains("<Code128Barcode Value=\"@reference\"", source);
+        Assert.Contains("@foreach(var order in documentOrders)", source);
+        Assert.Contains("@line.PartNo", source);
+        Assert.Contains("@UomFmt.QtyUnit(line.Qty,line.Unit)", source);
+        Assert.DoesNotContain(".Replace(\"ORD", source);
+        var css = Read("src/06_Web/AMES.Web/Components/Shared/ShippingOrderPrintPreview.razor.css");
+        Assert.Contains("break-before:page", css);
+        Assert.Contains(".shipping-a4-toolbar { display:none !important; }", css);
+    }
 }
