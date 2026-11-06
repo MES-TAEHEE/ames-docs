@@ -48,6 +48,9 @@ public sealed class ShipmentOrderCreateUiTests
         var source = Read("src/06_Web/AMES.Web/Components/Shared/ShipmentOrderCreate.razor");
         Assert.Contains("Change=\"@(v=>_quantities[r.SoId]=v)\"", source);
         Assert.Contains("Immediate=\"true\"", source);
+        Assert.Contains("InputAttributes=\"_shipQtyInputAttributes\"", source);
+        Assert.Contains("[\"data-shipment-qty\"]", source);
+        Assert.Contains("js/shipment-quantity-input.js?v=20261106", Read("src/06_Web/AMES.Web/Components/App.razor"));
         Assert.Contains("_rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).OrderBy(r=>r.SoId).GroupBy(r=>r.CustomerId)", source);
         Assert.Contains("<ShipmentOrderLines Lines=\"lines\" CompactPallets=\"true\" />", source);
         Assert.Contains("@if(previewOrders.Count>0)", source);
