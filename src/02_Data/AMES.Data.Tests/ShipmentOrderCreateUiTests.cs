@@ -114,4 +114,16 @@ public sealed class ShipmentOrderCreateUiTests
             Assert.DoesNotContain("·", (string?)hint.Element("value") ?? "");
         }
     }
+
+    [Fact]
+    public void Dcr_creation_stays_on_orders_and_plan_rows_open_the_same_summary_in_a_popup()
+    {
+        var orders = Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShippingOrders.razor");
+        Assert.DoesNotContain("Nav.NavigateTo($\"/fg/shipment-plan", orders);
+        var plan = Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShipmentPlan.razor");
+        Assert.Contains("RowClick=\"OpenDeliveryDetails\"", plan);
+        Assert.DoesNotContain("class=\"shipment-plan-details\"", plan);
+        Assert.Contains("<ShippingDeliveryOrderSummary Orders=\"_detailDelivery.Orders\" ShipDate=\"_detailDelivery.ShipDate\" />", plan);
+        Assert.Contains("@onclick:stopPropagation=\"true\"", plan);
+    }
 }

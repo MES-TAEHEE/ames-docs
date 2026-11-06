@@ -114,13 +114,13 @@
     ShippingDeliveryDto? _printDelivery;
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
     DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1);
-    bool _canEdit,_canPlan,_creating,_createBusy,_deliveryModal,_busy,_allowed;
+    bool _canEdit,_creating,_createBusy,_deliveryModal,_busy,_allowed;
     string _actor="",_message="",_deliveryError="";
     protected override async Task OnInitializedAsync()
     {
         await PermSvc.EnsureAsync(AuthPrvd);_allowed=PermSvc.CanOpen("fg/shipping-orders");
         if(!_allowed){Nav.NavigateTo("/unauthorized");return;}
-        _canEdit=PermSvc.CanEdit("fg/shipping-orders");_canPlan=PermSvc.CanOpen("fg/shipment-plan");_actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);await Reload();
+        _canEdit=PermSvc.CanEdit("fg/shipping-orders");_actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);await Reload();
     }
     void OpenCreate(){if(_canEdit)_creating=true;}
     void CloseCreate(){if(!_createBusy)_creating=false;}
@@ -156,15 +156,10 @@
         await PermSvc.EnsureAsync(AuthPrvd);if(!PermSvc.CanEdit("fg/shipping-orders")||_busy)return;_busy=true;_deliveryError="";
         try
         {
-            var ids=_selected.ToList();var shipDate=SelectedDeliveryOrders.Min(o=>o.ShipDate).Date;
+            var ids=_selected.ToList();
             var no=await Task.Run(()=>Fg.CreateShippingDelivery(ids,null,_actor));
             _deliveryModal=false;_message=L["FG.ShipOrders.Ok.DcrCreatedFmt",no].Value;
-            if(_canPlan)
-            {
-                var date=shipDate.ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture);
-                Nav.NavigateTo($"/fg/shipment-plan?from={date}&to={date}&dcr={Uri.EscapeDataString(no)}");
-            }
-            else await Reload();
+            await Reload();
         }
         catch(Exception ex){_deliveryError=ex.Message;}finally{_busy=false;}
     }
