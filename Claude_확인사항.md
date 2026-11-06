@@ -29,8 +29,8 @@
 | 담당  | 미해결                  | 보류  | 테이블 | 문제점 | 가장 먼저 볼 것                                                                                                                   |
 | --- | -------------------- | --- | --- | --- | --------------------------------------------------------------------------------------------------------------------------- |
 | 김현진 | 0                   | 13  | 7묶음 | 4   | [중] BOM 자동 차감이 서브조립 아래 자재를 빼지 않음(문제점 28) · 팔레트 닫힘(문제점 38) · 생산/PLC/생산 요약 알림 기준(1-2) |
-| 안영훈 | 1(검증) | 1정책/환경 | 5묶음 | 0   | 재구축 통합 검증 미실행 |
-| 김현진(3절, 옛 이승욱) | 0                    | 5   | 1   | 1   | [하] MD varchar 컬럼 한글 `??` 저장 — 금형 보관 위치는 11-05 막음(문제점 1) · 보류 — 사이클 PM 샷 기준 자동 발행·금형 정비 등록(B7)·개발 완료 시 정리·개발 DB 이름 `AMES` 전환 |
+| 안영훈 | 0 | 1정책/환경 | 0 | 0   | 원단 불출 +10% 적용 기준 |
+| 김현진(3절) | 1(검증) | 5   | 1   | 1   | 재구축 통합 검증 · MD varchar 컬럼 한글 `??` 저장 · 사이클 PM·금형 정비·공통 설정 |
 | 오세영 | 3(앱 개발 참고)          | 1   | —   | —   | 알림 앱 개발 — 서버 발송기·앱 Api 준비됨(4-1 1 참고사항), Firebase 서비스 계정 키 전달                                                                                               |
 
 ---
@@ -49,7 +49,7 @@
 - **오프라인 LOT 번호 구간 방식 A**(10-27 김현진 결정, 10-26 의 "구간을 떼지 않는다"를 되돌림): 온라인일 때 `SYS_LotSeq` 에서 구간(POP 200 · InjAgent 500, 남은 번호가 모자랄 때만 다시 받음)을 확보해 두고 오프라인 번호는 그 구간에서만 받는다. POP 과 InjAgent 가 구간을 따로 받으므로 복구 순서와 관계없이 번호가 겹치지 않는다. 한계: 쓰지 않은 구간 번호는 결번이 된다. 구간을 다 쓰면 오프라인 번호가 없어 그 LOT 은 만들지 못한다(라벨은 DB 가 살아난 뒤 같은 방식으로 나온다). 자정을 넘긴 정전은 새 날짜 구간이 없어 그날 번호를 못 받는다.
 - **품목 추가 불출율·MRP 여유율을 차감·MRP 계산에 반영**(10-23 이승욱 요청 — 고객 요구 10-14 "BOM 은 정량, 원단 불출 +10%·MRP 품목별 여유율"): `MD_Item.IssueAddPct`(추가 불출율)·`MrpAllowPct`(MRP 여유율)(decimal(5,2) %, NULL = 0, 10-20)는 MD-003(화면·엑셀)에서 저장·표시만 하고 계산하는 코드가 없습니다 — BOM 을 읽는 곳은 `BackflushRepository`(자동 차감)·`PpRepository`(MRP·APS)뿐입니다. 정할 것: ① BOM 자동 차감을 정량으로 둘지 불출율을 포함할지(원단 불출 쪽 안영훈 보류와 같이) ② MRP(PP-005 `RunMrp`·`MrpCalculator`) 소요에 여유율만 더할지 불출율도 더할지 ③ 이미 차감·MRP 가 쓰는 BOM 불량률 `ScrapPct`(지금 전부 0)와 겹치지 않게 하는 관계. 같은 날 넣은 조달형태 `MD_Item.ProcureType`(공통코드 `PROCURE_TYPE` — 내작·매입·유상사급·무상사급)도 MRP·구매요청이 읽지 않습니다(SAP 는 공통 「SAP 마스터 수신」). 품목 분류별 기본값이 필요하면 MD 쪽(이승욱)에 요청합니다.
 
-- **생산·PLC·일일 생산 요약 알림 기준 — 김현진 담당**(10-26 사용자 담당 분리): 생산 마감일 경과·생산 미완료, InjAgent PLC 통신 끊김/샷 정지, 일일 생산 요약은 POP·PP 원본 데이터를 담당하는 김현진이 기준을 정합니다. 기존 이승욱 담당으로 제안했던 이 범위도 김현진으로 정정합니다. `ProdDeadline`·최종 완료수량·근무일 달력, 계획 가동/휴게/PM 제외, `SYS_Config.DAY_CUTOFF_TIME`·저장된 `PR_ProductionResult.ProdDate`와 LOT 불량을 함께 대조해야 합니다. 특정 분 수·사이클 배수·07:30 발송은 제안일 뿐 확정하지 않았습니다. 오프라인 지연 실적과 POP 자정 기준 문제(B3)도 고려합니다. 고객 미출하 잔량 판단은 안영훈 2-2, 앱·발송 경로는 오세영 4절과 연계하며 알림을 구현 완료로 표시하지 않습니다.
+- **생산·PLC·일일 생산 요약 알림 기준 — 김현진 담당**(10-26 사용자 담당 분리): 생산 마감일 경과·생산 미완료, InjAgent PLC 통신 끊김/샷 정지, 일일 생산 요약은 POP·PP 원본 데이터를 담당하는 김현진이 기준을 정합니다. `ProdDeadline`·최종 완료수량·근무일 달력, 계획 가동/휴게/PM 제외, `SYS_Config.DAY_CUTOFF_TIME`·저장된 `PR_ProductionResult.ProdDate`와 LOT 불량을 함께 대조해야 합니다. 특정 분 수·사이클 배수·07:30 발송은 제안일 뿐 확정하지 않았습니다. 오프라인 지연 실적과 POP 자정 기준 문제(B3)도 고려합니다. 고객 미출하 잔량은 안영훈의 WH·FG 출하 데이터와 대조하고, 앱·발송 경로는 오세영 4절과 연계하며 알림을 구현 완료로 표시하지 않습니다.
 
 - **PO 자동 수집 정합성**: 고객 SRM에서 취소·삭제된 PO 라인은 조회에서 사라질 뿐 AMES에는 Open으로 남습니다. 이미 Confirmed인 수주의 수량·납기 변경도 덮어씁니다. 누락을 취소로 간주할지, 확정분 변경을 승인 대기로 둘지 업무 규칙 결정이 필요합니다. 로컬 출하가 있는 수주의 ShippedQty 하향 덮어쓰기는 막았지만, SRM 수량과 로컬 출하의 전면 정산·수동 하향 보정 승인 절차는 별도 결정입니다.
 - **PO 자동 수집 실패 — 환경 확인 대기**: 고객 테스트 서버 복구·접속 정보 확인이 필요합니다. 10-23 조회 기록에서는 개발 DB `SW_POSYNC.INTERVAL`이 0으로 자동 수집이 꺼져 있었고 마지막 시도는 09-22 수동 실행의 연결 시간 초과였습니다. 일별 구매계획 수집 `DPSYNC-SEMS`는 자리표시 URL로 실패가 누적됐습니다(당시 RetryCount 423). 이 값과 상태를 현재값으로 단정하지 않으며, 사용자 지시대로 SRM 작업은 이번 범위에서 보류합니다.
@@ -63,12 +63,13 @@
 - **자재 LOT 추적 기준 — 공정 안정화 뒤 결정**(10-28 사용자 결정 — 지금은 장부 기준으로 쓰고, 안정화되면 투입 스캔을 만들지 장부를 정본으로 둘지 정한다): 지금은 자동 차감 장부(FIFO 로 고른 **장부상 LOT** — 현장이 순서를 바꿔 쓰면 실물과 다르다)가 기준이고, 부족분 메우기는 원래 완제품 LOT 으로 기록하며(10-28 구현), POP QC-TRC 가 생산 LOT → 자재 LOT·자재 LOT → 생산 LOT 을 보인다. 바꾸기 쉽게 추적은 뷰 `dbo.VW_MaterialLotUsage` 하나만 읽는다 — 투입 스캔을 만들면 스캔 기록 테이블을 두고 이 뷰를 그 기록으로 바꾸거나(스캔 정본) 장부와 UNION 하면(스캔 우선·없으면 장부) QC-TRC 프로시저·화면은 그대로다. 남은 것: ① 투입 스캔 여부(화면·스캔 시점·스캔한 LOT 과 FIFO 차감의 관계) ② 10-28 이전에 메운 행은 메운 LOT 쪽에 남아 있어 그 LOT 의 추적에 남의 자재 LOT 이 보이고 원래 LOT 에는 `MAT-SHORT` 로 남는다(개발·로컬 데이터만 — 재귀속 스크립트는 만들지 않음) ③ 문제점 28(서브조립 아래 자재 미차감)이 풀리기 전에는 그 자재들의 기록이 없다 ④ 웹 화면(QC·RPT)에는 아직 없다.
 
 ### 1-3. 테이블 (10-14 전수 조사)
-읽기만 있는 테이블입니다. POP 화면이 조회만 하고, 데이터는 시연 행뿐입니다.
+조회 경로만 있는 테이블입니다.
 
 | 테이블(행) | 용도 | 읽는 곳 | 상태 |
 |---|---|---|---|
 | `QC_InspectionStd`(3) | 검사 기준서(버전·AQL·항목) | POP QC-08(`QcRepository.cs:267-291` → `migrate_pop_stored_procedures.sql:1291`), 웹 MD 고객 삭제 사용처 | 등록·개정·승인 화면이 없음. QC-01~03 검사도 이 기준을 쓰지 않음 |
 | `QC_CAPA`(2)·`QC_CAPA_Action`(5) | 시정·예방 조치 | POP QC-06·QC-07(`QcRepository.cs:181-218·238-246` → `migrate_pop_stored_procedures.sql:1197-1227·1264`) | 등록·진행 기능 없음 |
+| `PP_SupplyPlan`·`PP_SupplyPlanDetail`(각 0, 11-04 조회) | 구형 공급계획 | `/api/pp/supply-plans` | 외부 사용 여부가 확인되지 않아 엔드포인트·테이블 유지 |
 
 읽기·쓰기 모두 없는 테이블입니다. 소스(src)에는 이름이 없고(`PR_BondSetupAudit` 만 `BondRepository.cs:10` 문서 주석에 남음), 시연 행은 `tools/seed_*` 프로그램이 넣은 것입니다.
 - **PNT_ 22개**: DailyPlan(2행), DailyReport, JigBindingLog, JigLoad(1행), JigUnload, LabelPrintJob, LabelScanLog, LineEvent(12행), LotLabel, OvenDeviationLog, OvenLog(1행), OvenSpikeLog, OvenTempSample(120행), PartLossLog, QcQueue, SeqAllocator, ShiftReport, ShiftReportAudit, ShiftReportLineItem, StationStatsCache, TagFailureLog, VirtualLot(7행). 구 도장 모듈(가상 LOT·지그·오븐)의 테이블 — **10-22 PNT-MAIN 전환으로 읽는 코드·프로시저가 없다**(PNT 실적은 `tbl_Lot`/`PR_PntLot`, QC-07 도 실적 테이블로 센다). 행은 시연 데이터뿐. DROP 여부 결정 대기.
@@ -112,33 +113,18 @@
 
 ## 2. 안영훈 — PDA·Api + Web WH·FG·SCM·Portal + 재구축 스크립트
 
-### 2-1. 검증 대기 (1)
-
-1. **재구축 통합 검증 — 미실행**
-   - 전체 스키마 재구축과 SQL Agent 작업 등록·실행의 통합 검증은 미실행입니다.
-
-### 2-2. 정책·환경 보류 (1)
+### 2-1. 정책·환경 보류 (1)
 
 - **원단 불출 +10%(추가 불출율) 반영**(10-23 이승욱 요청 — 고객 요구 10-14 "BOM 은 정량, 원단 불출 +10%"): MD-003 이 품목별 추가 불출율 `MD_Item.IssueAddPct`(%, NULL = 0)를 저장하지만 WH·PDA 는 BOM 을 읽지 않고(라인 보충은 라인 로케이션 최소 재고 기준) 이 값을 쓰는 곳이 없습니다. 정할 것: 작업지시·BOM 기준 자재 불출 기능을 새로 둘지, 라인 보충 수량에 비율을 더할지. BOM 자동 차감에 불출율을 넣을지는 김현진 보류(같은 이름 항목)와 함께 정합니다.
-
-### 2-3. 유지 중인 구형 공급계획 (1묶음)
-
-| 테이블 | 상태 | 내용 |
-|---|---|---|
-| `PP_SupplyPlan`·`PP_SupplyPlanDetail` | 조회 API 유지 | `/api/pp/supply-plans`가 조회합니다. 11-04 132번 `AMES_DEV`에서 각각 0건이지만, 외부 사용 여부가 확인되지 않아 엔드포인트·테이블은 유지합니다. |
-
-11-04 `192.168.0.132 / AMES_DEV`에서 사용자 승인으로 `WH_ReleaseSchedule`(0건), `PP_MaterialReservation`(0건), `TEST_SRM_PurchaseOrderResponse`(426건), `TEST_SRM_Shipment`(2건), `TEST_SRM_ShipmentItem`(4건)을 구조·데이터 백업 후 삭제했습니다. 모의 서버 `192.168.1.68:5220`를 가리키던 `SW_POSYNC_SOURCE/SEMS`만 비활성화했고 URL·인증 값과 업무 PO API는 유지했습니다. 재고·거래·피킹·출하·반품·팔렛·PO·SCM 업무 테이블 12개의 전후 행 수가 모두 같으며 `SYS_AuditLog`에 정리·설정 변경 기록을 남겼습니다. SQL Agent 작업 목록은 애플리케이션 계정의 조회 권한이 없어 확인하지 못했습니다.
-
-복구본: `C:\Users\Young\Documents\AMES-Archives\DB-Retirement-20261104-140623` — 테이블별 복구 SQL, 기존 모의 연동 플래그 복구 SQL, 행 수·SHA-256이 있는 `manifest.json`, 전후 비교 `cleanup-result.json`, `RESTORE.md`. 백업 INSERT 수는 원본 426·2·4건과 일치합니다. 삭제 SQL `dist/retire_unused_planning_mock_tables.sql`은 기본 미리보기이며 명시적 적용·백업 명세·대상 서버·행 수·DB 참조를 검사합니다. 전체 DB 재구축은 실행하지 않았고 Azure·로컬 복제 DB는 변경하지 않았습니다.
-
-`PP_MaterialReservation`의 미호출 `ListPickingSlipCandidates`·전용 DTO와 신규 스키마 정의·추출 대상·구형 테스트 초기화 참조도 제거했습니다. 라인 위치 최소수량 기반 피킹과 `WH_PickSlip`은 유지합니다. TEST_SRM 모의 API 소스 15개는 기존 보관 위치 `C:\Users\Young\Documents\AMES-Archives\TEST_SRM-20261028`에 유지합니다. 원격 모의 서비스 프로세스 자체는 변경하지 않았습니다.
-
-구형 PDA 업무 프로시저 27개는 11-04 132번 DB에서 계속 0개임을 재확인했습니다. 원본 복구 SQL은 `publish/DB_Backup/PDA_BusinessProcedures_20261023_before_cleanup.sql`입니다. `AMES_ERD_data.js`·`AMES_DB_Schema.html`은 통합 전 구 설계 문서로 현재 테이블 판정 근거로 쓰지 않습니다.
-
 
 ---
 
 ## 3. 김현진 — Web SYS·MD·MNT·RPT·PP-CAL/LSB/OEE/DTL/ODM·계정·공통 (11-05 이승욱에게서 인계)
+
+### 3-1. 검증 대기 (1)
+
+1. **재구축 통합 검증 — 미실행**
+   - 전체 스키마 재구축과 SQL Agent 작업 등록·실행의 통합 검증은 미실행입니다.
 
 ### 3-2. 보류 (5)
 - **스키마 파일에서 뺀 미사용 테이블 20개의 뒷정리**(10-29 사용자 지시로 `dist/AMES_Schema.sql` 에서만 뺌 — 읽기·쓰기 코드가 모두 없는 옛 `PNT_*` 10·`PR_*` 8·`QC_Disposition`·`QC_NCR_Action`, 목록은 파일 머리말): 개발·로컬 `AMES_DEV` 에는 그대로 있어 `tools/schema_from_db` 로 다시 뜨면 다시 들어간다. 정할 것 — 생성기 제외 목록에 넣을지, 두 DB 에서 DROP 할지(그때 `PR_AndonPush` 를 쓰는 옛 프로시저 `SP_POP_ANDON_RecordPush` 도 지울지). MD 삭제 사용처 검사는 옛 `PNT_*` 를 `OBJECT_ID` 로 있을 때만 보므로 지워도 깨지지 않는다.
@@ -179,7 +165,7 @@
    - **시험**: 개발서버 Swagger(`/swagger`, Notifications 그룹) — 개발서버 Api 에 10-24 게시본을 반영한 뒤부터 보입니다(DB 마이그레이션은 10-24 적용 완료). 개발 시드 작업자 W001~W004(PIN 1234)는 개발 DB 에만 있습니다. 발송기는 1분마다 돌고(`SW_NOTIFY.INTERVAL`), 고장·안돈·QC 홀드는 생긴 뒤 60분 안(`LOOKBACK_MIN`)에 등록된 기기에만 갑니다(그 전에 생긴 것은 보내지 않음).
 2. **[하] 서버에 아직 없는 것 — 감지 담당과 앱/발송 담당을 구분**
    - 반복 알림(SYS-009 `ALERT_REPEAT_MINUTES` 15분 — 해결 전 고장·안돈 다시 보내기)
-   - 생산 납기 위험·PLC 정지(`PLC_DOWN`)·일일 생산 요약(`DAILY_DIGEST`)의 감지 기준은 김현진 1-2, FG 고객 미출하 잔량의 납기 위험은 안영훈 2-2로 분리합니다. 기존 이승욱 담당으로 제안했던 이 감지 범위는 김현진으로 정정합니다. 감지 결과의 앱·발송 연결은 오세영과 협의합니다.
+   - 생산 납기 위험·PLC 정지(`PLC_DOWN`)·일일 생산 요약(`DAILY_DIGEST`)의 감지 기준은 김현진 1-2에서 정합니다. FG 고객 미출하 잔량은 안영훈의 WH·FG 출하 데이터와 대조하며, 감지 결과의 앱·발송 연결은 오세영과 협의합니다.
    - SAP 오류·복구 이력의 SYS-006 기록/조회는 공통 5의 추후 작업입니다(사용자 최종 지시로 공통 이동). `SAP_SYNC_FAIL` 이벤트 코드가 있다는 이유로 PUSH 감지·발송을 이번에 구현하지 않습니다.
 3. **지킬 규칙**: 사용 중인 채널로만 발송, 시각은 DB 서버 시각, 행위자는 20자(발송기 `PUSH-SVC`), 비밀값(FCM 키)은 서버 파일 — 공통코드·감사 로그·Git 에 넣지 않습니다. PUSH 기기(`SYS_NotificationChannel` 의 PUSH 행)는 앱의 `POST /api/notifications/devices` 로만 생깁니다 — SYS-008 은 PUSH 행을 만들거나 주소를 고치지 못하고 수신 여부·방해금지 시각만 고칩니다(10-24; 그 전에 웹에서 EMAIL 행을 PUSH 로 바꿔 메일 주소가 토큰 자리에 남은 개발 DB 행 1건은 지웠습니다 — 개발 DB 채널 행 0건).
 
@@ -188,7 +174,7 @@
 
 ### 4-3. 연계
 - POP 안돈의 알림 기록 고정값(`SUPERVISOR/PDA`·`LINE-LEAD/EMAIL`)을 정리하는 일은 김현진 미해결 8 입니다(안돈 PUSH 자체는 발송기가 `PR_AndonCall` 을 보고 보냅니다).
-- 발송기·앱 Api 는 AMES.Api 안에 있습니다(안영훈 2-1 알림).
+- 발송기·앱 Api 는 AMES.Api 안에 있습니다.
 
 ---
 
@@ -205,7 +191,7 @@
 - **[방향 확인] `AMES.Data` 의 SQL 위치**: CLAUDE.md 는 "inline SQL → `dbo.SP_*` 스토어드 프로시저 전환 예정" 입니다. 10-21 POP 은 그 방향으로 인라인 SQL 145개를 `dbo.SP_POP_*` 로 옮겼지만(김현진 c10a16ee, `dist/migrate_pop_stored_procedures.sql` — 개발 DB 적용, 로컬 DB 는 10-22 개발 DB 복제로 반영), 10-16 PDA 는 반대로 프로시저를 앱 SQL(`PdaWarehouseSql` 등)로 옮겼고, 같은 날 POP 팔레트 적재(`PalletStockRepository`, 김현진)와 웹·Api 저장소는 앱 SQL 입니다. 프로시저로 옮긴 SQL 은 마이그레이션 하나가 정본이라(스키마 파일에는 10-24 재생성 때 개발 DB 정의가 같이 들어감), 프로시저를 고칠 때는 그 파일을 고쳐 두 DB 에 다시 적용하고 스키마 파일도 다시 떠야 합니다. 어느 쪽으로 갈지(또는 POP 만 프로시저) 정한 뒤 CLAUDE.md 문구와 이 항목을 맞춥니다 — 공통
 - `AMES.Web`: 실제 데이터 바인딩 완성(일부 화면 scaffold 상태) — 각 화면 담당
 - `AMES.Pop`: 추가 공정 모듈(필요 시) — 김현진
-- **로컬 DB 이름 정리**(10-26, 10-28 정정): 로컬 비상 DB 인스턴스는 PC 마다 다릅니다 — 이승욱 PC 는 CLAUDE.md 대로 `localhost\MSSQLSERVER01`(AMES_DEV, 10-28 확인), 10-26 기록의 PC 는 `localhost\SQLEXPRESS`. CLAUDE.md 와 `dist` 주석을 「PC 별 로컬 인스턴스(예 MSSQLSERVER01·SQLEXPRESS) — 환경변수 `ConnectionStrings__AMES` 로 지정」으로 맞춘다 — 이승욱.
+- **로컬 DB 이름 정리**(10-26, 10-28 정정): 로컬 비상 DB 인스턴스는 PC 마다 다릅니다 — 이승욱 PC 는 CLAUDE.md 대로 `localhost\MSSQLSERVER01`(AMES_DEV, 10-28 확인), 10-26 기록의 PC 는 `localhost\SQLEXPRESS`. CLAUDE.md 와 `dist` 주석을 「PC 별 로컬 인스턴스(예 MSSQLSERVER01·SQLEXPRESS) — 환경변수 `ConnectionStrings__AMES` 로 지정」으로 맞춘다 — 김현진.
 - **SAP 마스터 수신**(10-21 회의 결정 — 이 마스터들은 MES 가 SAP 로 보내는 것이 아니라 **SAP 에서 받는** 데이터): `MD_Item`·`MD_Vendor`·`MD_Location`(상위 로케이션만 — 10-22 2단계, 하위는 MES 전용)·`MD_Customer`·`MD_BomVersion`·`MD_Uom`(10-22) 의 `SAPFlag`(구 `SAPTransFlag`, 1 = SAP 에서 받은 행)는 MES 화면이 표시만 하고(목록 「SAP」 열·수정 창 헤더 ID 옆 SAP 표시) 쓰지 않으며, 등록·수정 창 체크박스와 BOM 의 SAP 전송 규칙(변경 사유 필수·「SAP 전송 변경」·새 승인/만료 버전 자동 해제)은 10-21 삭제했다. 할 일: ① **SAP 에서 직접 받는 데이터(`SAPFlag` = 1 인 행)는 MES 에서 수정할 수 없도록 비활성화해야 한다** — 여섯 화면(MD-003·MD-004·MD-009·MD-010·MD-018·MD-019)의 수정 창 입력·저장·삭제(BOM 은 버전·라인 편집·승인 흐름 포함)와 엑셀 업로드·저장소 `Update*`/`Delete*` 를 함께 막을지, MES 만 쓰는 칸(예: 품목 적입수량·사출품 여부·불출율, 로케이션 적재 용량)은 열어 둘지 칸 단위로 정해야 한다 ② SAP 수신 기능(방식 SAP B1 Service Layer 등·주기·담당, 키 매칭과 새 행/변경/삭제 처리, 받은 시각·오류 기록 테이블, 순서: 단위 → 품목 → 고객사·협력업체·로케이션 → BOM) ③ 이미 MES 에서 만든 행과 SAP 행이 같은 키로 들어올 때의 처리(덮어쓰기·`SAPFlag` 1 로 전환 여부). 그 전까지 `SAPFlag` 는 SQL 로만 1 이 된다.
 
 ## 6. 참고 — 검증 기준선
