@@ -112,7 +112,7 @@
         var from=_shipFrom;var to=_shipTo;
         try
         {
-            _deliveries=ShipmentPlanRows.FromOrders(await Task.Run(()=>Fg.ListShippingOrders(from,to,onlyOpen:true)));
+            _deliveries=ShipmentPlanRows.FromOrders(await Task.Run(()=>Fg.ListShippingOrders(from,to,onlyOpen:true,byDeliveryDate:true)));
             _customers=_deliveries.Select(x=>x.CustomerId).Distinct().Order().ToList();
             if(_customer is not null&&!_customers.Contains(_customer))_customer=null;
             Filter();

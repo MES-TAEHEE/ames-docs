@@ -1,0 +1,21 @@
+@using AMES.Contracts.Dto
+@inject IStringLocalizer<SharedResources> L
+
+@if(Orders.Count>0)
+{
+    <p>@L["FG.ShipOrders.Hint.DcrSelectedFmt",Orders.Count] · @L["Col.Customer"]: @Orders[0].CustomerId
+        · @L["Col.ShipDate"]: @((ShipDate??Orders.Min(o=>o.ShipDate)).ToString(DateFmt.Date))</p>
+    <div class="dcr-order-preview">
+        @foreach(var order in Orders)
+        {
+            <section class="ames-card" @key="order.OrderId">
+                <div class="ames-card-h">@order.OrderNo · @order.ShipDate.ToString(DateFmt.Date)</div>
+                <ShipmentOrderLines Lines="order.Lines" CompactPallets="true" />
+            </section>
+        }
+    </div>
+}
+@code {
+    [Parameter,EditorRequired] public IReadOnlyList<ShippingOrderDto> Orders {get;set;}=[];
+    [Parameter] public DateTime? ShipDate {get;set;}
+}

@@ -11855,7 +11855,10 @@
     <value>Seleccione estas órdenes y cree un DCR para incluirlas en el plan de envío.</value>
   </data>
   <data name="FG.ShipOrders.Hint.DcrSelectedFmt" xml:space="preserve">
-    <value>{0} orden(es) de envío · mismo cliente y fecha de envío</value>
+    <value>{0} orden(es) de envío</value>
+  </data>
+  <data name="FG.ShipOrders.Err.MixedCustomers" xml:space="preserve">
+    <value>No se pueden combinar órdenes de distintos clientes en un DCR.</value>
   </data>
   <data name="FG.ShipOrders.Err.CreatedPartial" xml:space="preserve">
     <value>Las órdenes se guardaron, pero no se pudieron cargar algunos detalles. Actualice Órdenes de envío para verlas. No las cree de nuevo.</value>

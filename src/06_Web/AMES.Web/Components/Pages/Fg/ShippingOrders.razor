@@ -5,6 +5,7 @@
 @inject FinishedGoodsRepository Fg
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
+@inject DialogService Dialog
 @inject NavigationManager Nav
 @inject UomFormat UomFmt
 @inject IStringLocalizer<SharedResources> L
@@ -54,7 +55,7 @@
     {
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer shipping-order-actions">
             <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="@(()=>_deliveryModal=true)" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="OpenDelivery" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     }
 </section>
@@ -88,11 +89,11 @@
 }
 @if(_deliveryModal)
 {
-    <div class="ames-modal-bg" @onclick="@(()=>_deliveryModal=false)"><div class="ames-modal" @onclick:stopPropagation>
+    <div class="ames-modal-bg" @onclick="@(()=>_deliveryModal=false)"><div class="ames-modal ames-modal-wide" @onclick:stopPropagation>
         <div class="ames-modal-h">@L["FG.ShipOrders.Btn.CreateDcr"]</div>
-        <p>@L["FG.ShipOrders.Hint.DcrSelectedFmt",_selected.Count]</p>
+        <ShippingDeliveryOrderSummary Orders="SelectedDeliveryOrders" />
         @if(!string.IsNullOrEmpty(_deliveryError)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_deliveryError</RadzenAlert>}
-        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="save" Click="CreateDelivery" Disabled="_busy" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(()=>_deliveryModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="save" Click="CreateDelivery" Disabled="@(_busy||_selected.Count==0)" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(()=>_deliveryModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
     </div></div>
 }
 @if(_printOrders.Count>0)
@@ -105,6 +106,7 @@
     IEnumerable<ShippingOrderDto> VisibleOrders => _orders.Where(order=>_includeShipped || !string.Equals(order.Status,"Shipped",StringComparison.OrdinalIgnoreCase));
     async Task SetIncludeShipped(bool value){_includeShipped=value;_selected.Clear();if(_grid is not null)await _grid.FirstPage(true);}
     List<ShippingOrderDto> _orders=[],_printOrders=[];HashSet<int> _selected=[];
+    List<ShippingOrderDto> SelectedDeliveryOrders => _orders.Where(o=>_selected.Contains(o.OrderId)).OrderBy(o=>o.OrderId).ToList();
     List<ShippingOrderDto> _createdOrders=[];
     List<string> _createdNumbers=[];
     DateTime _createdShipDate;
@@ -138,12 +140,23 @@
         await Reload();
     }
     void CloseCreated(){_createdNumbers=[];_createdOrders=[];_createdError="";}
+    async Task OpenDelivery()
+    {
+        if(!_canEdit||_busy||_selected.Count==0)return;
+        if(SelectedDeliveryOrders.Select(o=>o.CustomerId.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count()>1)
+        {
+            await Dialog.Alert(L["FG.ShipOrders.Err.MixedCustomers"].Value,L["FG.ShipOrders.Btn.CreateDcr"].Value,
+                new AlertOptions { OkButtonText=L["Btn.Close"].Value });
+            return;
+        }
+        _deliveryError="";_deliveryModal=true;
+    }
     async Task CreateDelivery()
     {
         await PermSvc.EnsureAsync(AuthPrvd);if(!PermSvc.CanEdit("fg/shipping-orders")||_busy)return;_busy=true;_deliveryError="";
         try
         {
-            var ids=_selected.ToList();var shipDate=_orders.First(o=>ids.Contains(o.OrderId)).ShipDate;
+            var ids=_selected.ToList();var shipDate=SelectedDeliveryOrders.Min(o=>o.ShipDate).Date;
             var no=await Task.Run(()=>Fg.CreateShippingDelivery(ids,null,_actor));
             _deliveryModal=false;_message=L["FG.ShipOrders.Ok.DcrCreatedFmt",no].Value;
             if(_canPlan)
@@ -156,6 +169,6 @@
         catch(Exception ex){_deliveryError=ex.Message;}finally{_busy=false;}
     }
     void PrintOrder(ShippingOrderDto row){_printDelivery=null;_printOrders=[row];}
-    async Task PrintDelivery(string number){try{_printDelivery=await Task.Run(()=>Fg.GetShippingDelivery(number));_printOrders=_orders.Where(x=>x.DeliveryId==_printDelivery.DeliveryId).ToList();}catch(Exception ex){_message=ex.Message;}}
+    async Task PrintDelivery(string number){try{_printDelivery=await Task.Run(()=>Fg.GetShippingDelivery(number));_printOrders=(await Task.Run(()=>Fg.ListShippingOrders(_printDelivery.ShipDate,_printDelivery.ShipDate,byDeliveryDate:true))).Where(x=>x.DeliveryId==_printDelivery.DeliveryId).ToList();}catch(Exception ex){_message=ex.Message;}}
     void ClosePrint(){_printOrders=[];_printDelivery=null;}
 }

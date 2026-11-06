@@ -89,4 +89,29 @@ public sealed class ShipmentOrderCreateUiTests
         Assert.DoesNotContain("DueRisk", source);
         Assert.DoesNotContain("DueRisk", Read("src/06_Web/AMES.Web/Components/Shared/ShipmentOrderCreate.razor"));
     }
+
+    [Fact]
+    public void Dcr_preview_checks_only_customer_and_shows_selected_order_contents()
+    {
+        var source = Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShippingOrders.razor");
+        Assert.Contains("Click=\"OpenDelivery\"", source);
+        Assert.Contains("SelectedDeliveryOrders.Select(o=>o.CustomerId.Trim()).Distinct(StringComparer.OrdinalIgnoreCase)", source);
+        Assert.Contains("await Dialog.Alert(L[\"FG.ShipOrders.Err.MixedCustomers\"]", source);
+        Assert.Contains("<ShippingDeliveryOrderSummary Orders=\"SelectedDeliveryOrders\" />", source);
+        var summary = Read("src/06_Web/AMES.Web/Components/Shared/ShippingDeliveryOrderSummary.razor");
+        Assert.Contains("@foreach(var order in Orders)", summary);
+        Assert.Contains("<ShipmentOrderLines Lines=\"order.Lines\" CompactPallets=\"true\" />", summary);
+        var repo = Read("src/02_Data/AMES.Data/Repositories/FinishedGoodsRepository.ShippingOrders.cs");
+        Assert.Contains("var (customer,date)=ShippingDeliveryHeader(selected)", repo);
+        Assert.Contains("CASE WHEN @ByDeliveryDate=1 THEN COALESCE(D.ShipDate,O.ShipDate) ELSE O.ShipDate END", repo);
+        Assert.Contains("P.ShipDate>=@From", repo);
+        Assert.Contains("onlyOpen:true,byDeliveryDate:true", Read("src/06_Web/AMES.Web/Components/Pages/Fg/ShipmentPlan.razor"));
+        foreach (var culture in new[] { "", ".en", ".es", ".ko" })
+        {
+            var resource = XDocument.Parse(Read($"src/06_Web/AMES.Web/Resources/SharedResources{culture}.resx"));
+            var hint = Assert.Single(resource.Root!.Elements("data"),
+                x => (string?)x.Attribute("name") == "FG.ShipOrders.Hint.DcrSelectedFmt");
+            Assert.DoesNotContain("·", (string?)hint.Element("value") ?? "");
+        }
+    }
 }
