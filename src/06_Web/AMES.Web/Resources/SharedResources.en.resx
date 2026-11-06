@@ -12031,6 +12031,9 @@
   <data name="FG.OrderCreate.Hint.Remaining" xml:space="preserve">
     <value>Available after quantities already assigned to open shipment orders</value>
   </data>
+  <data name="FG.OrderCreate.Col.DueDate" xml:space="preserve">
+    <value>Due Date</value>
+  </data>
   <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
     <value>Pallets (Qty / Pallet)</value>
   </data>

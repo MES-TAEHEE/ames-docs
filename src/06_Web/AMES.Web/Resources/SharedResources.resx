@@ -12031,6 +12031,9 @@
   <data name="FG.OrderCreate.Hint.Remaining" xml:space="preserve">
     <value>열린 출하 오더에 이미 배정된 수량을 뺀 가능 수량</value>
   </data>
+  <data name="FG.OrderCreate.Col.DueDate" xml:space="preserve">
+    <value>납기일</value>
+  </data>
   <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
     <value>팔레트 (적입수량)</value>
   </data>

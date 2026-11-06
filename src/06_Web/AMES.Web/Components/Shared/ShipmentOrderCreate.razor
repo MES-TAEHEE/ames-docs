@@ -17,7 +17,7 @@
 <div class="ames-card-h master-list-toolbar">
     <span>▼ @L["FG.ShipOrders.Title.Create"] · @_rows.Count @L["Lbl.Items"]</span>
     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-        <RadzenLabel Text="@L["Col.Requested"]" Component="ShipmentRequestedFrom" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipmentRequestedFrom" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+        <RadzenLabel Text="@L["FG.OrderCreate.Col.DueDate"]" Component="ShipmentRequestedFrom" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipmentRequestedFrom" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
         <span>–</span><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
         <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         <RadzenLabel Text="@L["Col.ShipDate"]" Component="OrderShipDate" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="OrderShipDate" TValue="DateTime?" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
@@ -36,9 +36,11 @@
             else {<span class="dim">@(item?.ToteFlag==true ? L["FG.Ship.Lbl.ToteManual"] : L["FG.Ship.Lbl.NoPalletQty"])</span>}
         </Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoNumber" Title="SO" Width="130px" MinWidth="130px" />
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["FG.OrderCreate.Col.DueDate"]" Width="120px" MinWidth="120px">
+            <Template Context="r"><span class="@(r.RequestedDeliveryDate is {} due && due.Date < DbClock.Today ? "order-due-overdue" : null)">@(r.RequestedDeliveryDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
+        </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="CustomerId" Title="@L["Col.Customer"]" Width="110px" MinWidth="110px" />
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.ItemNo"]"><Template Context="r">@r.ItemNo <span class="dim">@r.ItemName</span></Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" Width="120px" MinWidth="120px" />
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.DueRisk.Title"]" Width="140px" MinWidth="140px" Sortable="false"><Template Context="r"><ShippingDueRiskBadge Risk="@(DueRisks?.Rows.FirstOrDefault(x=>x.SoId==r.SoId)?.Risk??ShippingDueRiskLevel.Unknown)" /></Template></RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>

@@ -12031,6 +12031,9 @@
   <data name="FG.OrderCreate.Hint.Remaining" xml:space="preserve">
     <value>Disponible tras restar lo ya asignado a órdenes de envío abiertas</value>
   </data>
+  <data name="FG.OrderCreate.Col.DueDate" xml:space="preserve">
+    <value>Fecha de vencimiento</value>
+  </data>
   <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
     <value>Palés (Cant. / Palé)</value>
   </data>
