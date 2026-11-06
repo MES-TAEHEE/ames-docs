@@ -37,19 +37,11 @@
             <RadzenButton Text="@L["FG.ShipPlan.Btn.TrailerPreview"]" Icon="local_shipping" Click="OpenTrailerPreview" Disabled="@(_loading || _draft is null)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         </RadzenStack>
     </div>
-    <RadzenDataGrid TItem="ShipmentPlanRows.Delivery" Data="_view" AllowPaging="true" PageSize="25" AllowSorting="true"
+    <RadzenDataGrid TItem="ShipmentPlanRows.Delivery" Data="_view" AllowPaging="true" PageSize="25" AllowSorting="true" RowClick="OpenDeliveryDetails" RowRender="DeliveryRowRender"
                     PagerHorizontalAlign="HorizontalAlign.Center" PageSizeOptions="_pageSizeOptions" ShowPagingSummary="true"
                     PagingSummaryFormat='@L["Pager.Summary"]' PageSizeText='@L["Pager.PageSize"]'
                     PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")"
                     EmptyText="@L["FG.ShipPlan.Empty"]" class="ames-rz-grid ames-grid-fixed">
-        <Template Context="delivery">
-            <div class="shipment-plan-details">
-                @foreach(var order in delivery.Orders)
-                {
-                    <section class="ames-card"><div class="ames-card-h">@order.OrderNo</div><ShipmentOrderLines Lines="order.Lines" /></section>
-                }
-            </div>
-        </Template>
         <Columns>
             <RadzenDataGridColumn Width="160px" MinWidth="160px" TItem="ShipmentPlanRows.Delivery" Property="DeliveryNo" Title="@L["FG.ShipPlan.Col.DcrNo"]" />
             <RadzenDataGridColumn Width="100px" MinWidth="100px" TItem="ShipmentPlanRows.Delivery" Property="CustomerId" Title="@L["Col.Customer"]" />
@@ -59,10 +51,21 @@
                 @delivery.Lines.Select(x=>x.PartNo).Distinct().Count() @L["FG.Ship.Lbl.Parts"] · @DeliveryQuantity(delivery)
             </Template></RadzenDataGridColumn>
             <RadzenDataGridColumn Width="80px" MinWidth="80px" TItem="ShipmentPlanRows.Delivery" Property="Status" Title="@L["Col.Status"]" />
-            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="@L["Btn.Print"]" Width="110px" MinWidth="110px"><Template Context="delivery"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintDelivery(delivery))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="ShipmentPlanRows.Delivery" Title="@L["Btn.Print"]" Width="110px" MinWidth="110px"><Template Context="delivery"><span @onclick:stopPropagation="true"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintDelivery(delivery))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></span></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
 </section>
+@if(_detailDelivery is not null)
+{
+    <div class="ames-modal-bg" data-no-busy @onclick="CloseDeliveryDetails"><div class="ames-modal ames-modal-wide" role="dialog" aria-modal="true" aria-label="@_detailDelivery.DeliveryNo" @onclick:stopPropagation>
+        <div class="ames-modal-h">@_detailDelivery.DeliveryNo</div>
+        <ShippingDeliveryOrderSummary Orders="_detailDelivery.Orders" ShipDate="_detailDelivery.ShipDate" />
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+            <RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="PrintDeliveryDetails" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="CloseDeliveryDetails" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
+    </div></div>
+}
 @if(_printDelivery is not null)
 {
     <ShippingOrderPrintPreview Orders="_printOrders" Delivery="_printDelivery" Closed="ClosePrint" />
@@ -74,6 +77,7 @@
     List<ShipmentPlanRows.Delivery> _deliveries=[],_view=[];
     List<ShippingOrderDto> _printOrders=[];
     ShippingDeliveryDto? _printDelivery;
+    ShipmentPlanRows.Delivery? _detailDelivery;
     List<string> _customers=[];
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];
     int _pageRows=25;
@@ -82,6 +86,15 @@
     string? _customer;
     DateTime? _shipFrom,_shipTo;
     bool _allowed,_loading;
+    void OpenDeliveryDetails(DataGridRowMouseEventArgs<ShipmentPlanRows.Delivery> args)=>_detailDelivery=args.Data;
+    void DeliveryRowRender(RowRenderEventArgs<ShipmentPlanRows.Delivery> args)=>args.Attributes["class"]="ames-row-link";
+    void CloseDeliveryDetails()=>_detailDelivery=null;
+    async Task PrintDeliveryDetails()
+    {
+        if(_detailDelivery is null)return;
+        await PrintDelivery(_detailDelivery);
+        if(_printDelivery is not null)CloseDeliveryDetails();
+    }
     async Task OpenTrailerPreview()
     {
         if(_draft is null || _shipFrom is null || _shipTo is null || _loading)return;
@@ -112,7 +125,7 @@
         var from=_shipFrom;var to=_shipTo;
         try
         {
-            _deliveries=ShipmentPlanRows.FromOrders(await Task.Run(()=>Fg.ListShippingOrders(from,to,onlyOpen:true)));
+            _deliveries=ShipmentPlanRows.FromOrders(await Task.Run(()=>Fg.ListShippingOrders(from,to,onlyOpen:true,byDeliveryDate:true)));
             _customers=_deliveries.Select(x=>x.CustomerId).Distinct().Order().ToList();
             if(_customer is not null&&!_customers.Contains(_customer))_customer=null;
             Filter();

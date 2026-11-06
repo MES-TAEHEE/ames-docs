@@ -9,8 +9,18 @@
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="SoNumber" Title="SO" Width="140px" MinWidth="140px" />
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartNo" Title="@L["Col.ItemNo"]" Width="160px" MinWidth="160px" />
             <RadzenDataGridColumn TItem="ShippingOrderLineDto" Property="PartName" Title="@L["Col.ItemName"]" />
-            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["FG.Ship.Col.PalletCalc"]" Width="310px" MinWidth="310px" Sortable="false">
+            <RadzenDataGridColumn TItem="ShippingOrderLineDto" Title="@L["FG.Ship.Col.PalletCalc"]" Width="@(CompactPallets ? "180px" : "310px")" MinWidth="@(CompactPallets ? "180px" : "310px")" Sortable="false">
                 <Template Context="line">
+                    @if(CompactPallets)
+                    {
+                        @if(!line.ToteFlag && line.PalletQty is > 0)
+                        {
+                            <strong>@($"{FinishedGoodsRepository.EstimateShippingPallets(line.Qty,line.PalletQty)!.Value:N0}PLT({UomFmt.Qty(line.Qty,null)}/{UomFmt.Qty(line.PalletQty.Value,null)})")</strong>
+                        }
+                        else {<span>@UomFmt.QtyUnit(line.Qty,line.Unit)</span>}
+                    }
+                    else
+                    {
                     <span>@UomFmt.QtyUnit(line.Qty,line.Unit)</span>
                     @if (!line.ToteFlag && line.PalletQty is > 0)
                     {
@@ -18,6 +28,7 @@
                         <strong>@FinishedGoodsRepository.EstimateShippingPallets(line.Qty,line.PalletQty)!.Value.ToString("N0") PLT</strong>
                     }
                     else { <span class="dim"> · @(line.ToteFlag ? L["FG.Ship.Lbl.ToteManual"] : L["FG.Ship.Lbl.NoPalletQty"])</span> }
+                    }
                 </Template>
             </RadzenDataGridColumn>
         </Columns>
@@ -25,4 +36,5 @@
 </div>
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<ShippingOrderLineDto> Lines { get; set; } = [];
+    [Parameter] public bool CompactPallets { get; set; }
 }

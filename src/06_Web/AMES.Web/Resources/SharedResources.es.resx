@@ -11855,7 +11855,10 @@
     <value>Seleccione estas órdenes y cree un DCR para incluirlas en el plan de envío.</value>
   </data>
   <data name="FG.ShipOrders.Hint.DcrSelectedFmt" xml:space="preserve">
-    <value>{0} orden(es) de envío · mismo cliente y fecha de envío</value>
+    <value>{0} orden(es) de envío</value>
+  </data>
+  <data name="FG.ShipOrders.Err.MixedCustomers" xml:space="preserve">
+    <value>No se pueden combinar órdenes de distintos clientes en un DCR.</value>
   </data>
   <data name="FG.ShipOrders.Err.CreatedPartial" xml:space="preserve">
     <value>Las órdenes se guardaron, pero no se pudieron cargar algunos detalles. Actualice Órdenes de envío para verlas. No las cree de nuevo.</value>
@@ -12030,6 +12033,12 @@
   </data>
   <data name="FG.OrderCreate.Hint.Remaining" xml:space="preserve">
     <value>Disponible tras restar lo ya asignado a órdenes de envío abiertas</value>
+  </data>
+  <data name="FG.OrderCreate.Col.DueDate" xml:space="preserve">
+    <value>Fecha de vencimiento</value>
+  </data>
+  <data name="FG.OrderCreate.Preview.TitleFmt" xml:space="preserve">
+    <value>Vista previa · {0} orden(es)</value>
   </data>
   <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
     <value>Palés (Cant. / Palé)</value>

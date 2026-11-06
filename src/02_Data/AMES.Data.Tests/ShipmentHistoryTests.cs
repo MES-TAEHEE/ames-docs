@@ -20,7 +20,7 @@ public sealed class ShipmentHistoryTests
         var source=File.ReadAllText(Path.Combine(Root(),"src/06_Web/AMES.Web/Components/Pages/Fg/ShippingOrders.razor"));
         Assert.Contains("Data=\"@VisibleOrders\"",source);
         Assert.Contains("!string.Equals(order.Status,\"Shipped\",StringComparison.OrdinalIgnoreCase)",source);
-        Assert.Contains("_printOrders=_orders.Where",source);
+        Assert.Contains("Fg.ListShippingOrders(_printDelivery.ShipDate,_printDelivery.ShipDate,byDeliveryDate:true)",source);
         Assert.Contains("FG.ShipOrders.Btn.CreateOrder",source);
         Assert.Contains("FG.ShipOrders.IncludeShipped",source);
     }

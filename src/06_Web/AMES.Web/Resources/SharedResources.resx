@@ -11855,7 +11855,10 @@
     <value>이 오더들을 선택해 DCR 을 만들면 출하 계획에 포함됩니다.</value>
   </data>
   <data name="FG.ShipOrders.Hint.DcrSelectedFmt" xml:space="preserve">
-    <value>출하 오더 {0}건 · 고객사와 출하일이 같아야 합니다</value>
+    <value>출하 오더 {0}건</value>
+  </data>
+  <data name="FG.ShipOrders.Err.MixedCustomers" xml:space="preserve">
+    <value>다른 고객사의 오더는 하나의 DCR로 묶을 수 없습니다.</value>
   </data>
   <data name="FG.ShipOrders.Err.CreatedPartial" xml:space="preserve">
     <value>오더는 저장됐지만 일부 상세를 불러오지 못했습니다. 출하 오더 목록을 새로고침해 확인하세요. 다시 등록하지 마세요.</value>
@@ -12030,6 +12033,12 @@
   </data>
   <data name="FG.OrderCreate.Hint.Remaining" xml:space="preserve">
     <value>열린 출하 오더에 이미 배정된 수량을 뺀 가능 수량</value>
+  </data>
+  <data name="FG.OrderCreate.Col.DueDate" xml:space="preserve">
+    <value>납기일</value>
+  </data>
+  <data name="FG.OrderCreate.Preview.TitleFmt" xml:space="preserve">
+    <value>오더 미리보기 · {0}건</value>
   </data>
   <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
     <value>팔레트 (적입수량)</value>

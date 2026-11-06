@@ -1,3 +1,6 @@
 .order-balance {display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap;}
 .order-pallet-count {font-weight:700;color:var(--ames-accent);}
+.order-due-overdue {color:var(--ames-tx-red-400);font-weight:700;}
 .shipment-order-create ::deep .rz-numeric-input {text-align:left;}
+.order-create-preview {margin-top:12px;}
+.order-preview-list {max-height:320px;overflow:auto;padding:0 12px 8px;}

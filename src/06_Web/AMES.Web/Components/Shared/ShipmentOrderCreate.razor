@@ -17,7 +17,7 @@
 <div class="ames-card-h master-list-toolbar">
     <span>▼ @L["FG.ShipOrders.Title.Create"] · @_rows.Count @L["Lbl.Items"]</span>
     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-        <RadzenLabel Text="@L["Col.Requested"]" Component="ShipmentRequestedFrom" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipmentRequestedFrom" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
+        <RadzenLabel Text="@L["FG.OrderCreate.Col.DueDate"]" Component="ShipmentRequestedFrom" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="ShipmentRequestedFrom" TValue="DateTime?" @bind-Value="_from" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
         <span>–</span><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" TValue="DateTime?" @bind-Value="_to" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
         <RadzenButton Text="@L["Btn.Search"]" Icon="search" Click="Load" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
         <RadzenLabel Text="@L["Col.ShipDate"]" Component="OrderShipDate" /><RadzenDatePicker NavigationMode="DatePickerNavigationMode.DropDown" Name="OrderShipDate" TValue="DateTime?" @bind-Value="_shipDate" DateFormat="@DateFmt.Date" InputSize="InputSize.Small" class="ames-rz-input" Style="width:140px" />
@@ -26,7 +26,7 @@
 @if(!string.IsNullOrEmpty(_error)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_error</RadzenAlert>}
 <RadzenDataGrid TItem="PpRepository.SoRow" Data="_rows" AllowPaging="true" PageSize="25" AllowSorting="true" PageSizeOptions="_pageSizeOptions" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" PageSizeChanged="@(s=>_pageRows=s)" Style="@($"--ames-page-rows:{_pageRows}")" class="ames-rz-grid ames-grid-fixed shipment-order-quantity-grid">
     <Columns>
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.Ship.Col.ShipQty"]" Width="140px" MinWidth="140px" Sortable="false"><Template Context="r"><RadzenNumeric TValue="decimal" Value="@_quantities.GetValueOrDefault(r.SoId)" Change="@(v=>_quantities[r.SoId]=v)" Min="0" Max="@Remaining(r)" Step="1" Format="N0" Immediate="true" ShowUpDown="false" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;text-align:left" /></Template></RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.Ship.Col.ShipQty"]" Width="140px" MinWidth="140px" Sortable="false"><Template Context="r"><RadzenNumeric TValue="decimal" Value="@_quantities.GetValueOrDefault(r.SoId)" Change="@(v=>_quantities[r.SoId]=v)" Min="0" Max="@Remaining(r)" Step="1" Format="N0" Immediate="true" ShowUpDown="false" InputAttributes="_shipQtyInputAttributes" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;text-align:left" /></Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Balance"]" Width="240px" MinWidth="240px" Sortable="false"><Template Context="r"><div class="order-balance"><span>@UomFmt.Qty(r.OrderQty,null)</span><span>/</span><span>@UomFmt.Qty(r.ShippedQty,null)</span><span>/</span><strong title="@L["FG.OrderCreate.Hint.Remaining"]">@UomFmt.Qty(Remaining(r),null)</strong></div></Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.OrderCreate.Col.Pallets"]" Width="200px" MinWidth="200px" Sortable="false"><Template Context="r">
             @if(_packing.TryGetValue(r.ItemNo,out var item) && !item.ToteFlag && item.PalletQty is > 0)
@@ -36,12 +36,33 @@
             else {<span class="dim">@(item?.ToteFlag==true ? L["FG.Ship.Lbl.ToteManual"] : L["FG.Ship.Lbl.NoPalletQty"])</span>}
         </Template></RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="SoNumber" Title="SO" Width="130px" MinWidth="130px" />
+        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["FG.OrderCreate.Col.DueDate"]" Width="120px" MinWidth="120px">
+            <Template Context="r"><span class="@(r.RequestedDeliveryDate is {} due && due.Date < DbClock.Today ? "order-due-overdue" : null)">@(r.RequestedDeliveryDate?.ToString(DateFmt.Date) ?? "—")</span></Template>
+        </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="CustomerId" Title="@L["Col.Customer"]" Width="110px" MinWidth="110px" />
         <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="ItemNo" Title="@L["Col.ItemNo"]"><Template Context="r">@r.ItemNo <span class="dim">@r.ItemName</span></Template></RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Property="RequestedDeliveryDate" Title="@L["Col.Requested"]" FormatString="@DateFmt.Fmt(DateFmt.Date)" Width="120px" MinWidth="120px" />
-        <RadzenDataGridColumn TItem="PpRepository.SoRow" Title="@L["FG.DueRisk.Title"]" Width="140px" MinWidth="140px" Sortable="false"><Template Context="r"><ShippingDueRiskBadge Risk="@(DueRisks?.Rows.FirstOrDefault(x=>x.SoId==r.SoId)?.Risk??ShippingDueRiskLevel.Unknown)" /></Template></RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
+@{ var previewOrders = _rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).OrderBy(r=>r.SoId).GroupBy(r=>r.CustomerId).ToList(); }
+@if(previewOrders.Count>0)
+{
+<section class="ames-card order-create-preview" aria-live="polite">
+    <div class="ames-card-h">@L["FG.OrderCreate.Preview.TitleFmt",previewOrders.Count]</div>
+    <div class="order-preview-list">
+        @foreach(var order in previewOrders)
+        {
+            var lines=order.Select(PreviewLine).ToList();
+            <section class="ames-card" @key="order.Key">
+                <div class="ames-card-h">
+                    @L["Col.Customer"]: @(order.Key??"—") · @L["Col.ShipDate"]: @(_shipDate?.ToString(DateFmt.Date)??"—")
+                    · @string.Join(" · ",lines.GroupBy(x=>x.Unit).Select(g=>UomFmt.QtyUnit(g.Sum(x=>x.Qty),g.Key)))
+                </div>
+                <ShipmentOrderLines Lines="lines" CompactPallets="true" />
+            </section>
+        }
+    </div>
+</section>
+}
 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap" Gap="0.5rem" class="ames-modal-footer">
     @if(UnestimatedParts>0){<span class="dim">@L["FG.OrderCreate.Hint.UnestimatedFmt",UnestimatedParts]</span>}
     <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="save" Click="Create" Disabled="@(_busy || !_quantities.Any(x=>x.Value>0))" Size="ButtonSize.Small" class="ames-rz-btn" />
@@ -53,15 +74,21 @@
     [Parameter]public EventCallback<CreatedOrders> Saved{get;set;}
     [Parameter]public EventCallback Closed{get;set;}
     [Parameter]public EventCallback<bool> BusyChanged{get;set;}
-    [Parameter]public ShippingDueRiskSnapshot? DueRisks{get;set;}
     List<PpRepository.SoRow> _rows=[];Dictionary<int,decimal> _quantities=[],_reserved=[];
     Dictionary<string,MasterDataRepository.ItemRow> _packing=[];
+    readonly Dictionary<string,object> _shipQtyInputAttributes = new() { ["data-shipment-qty"] = "" };
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
     decimal Remaining(PpRepository.SoRow row)=>Math.Max(0,row.OrderQty-row.ShippedQty-_reserved.GetValueOrDefault(row.SoId));
     decimal? Pallets(PpRepository.SoRow row)=>_packing.TryGetValue(row.ItemNo,out var item)
         ? FinishedGoodsRepository.EstimateShippingPallets(_quantities.GetValueOrDefault(row.SoId),item.PalletQty,item.ToteFlag) : null;
     decimal EstimatedPallets=>_rows.Where(r=>_quantities.GetValueOrDefault(r.SoId)>0).Sum(r=>Pallets(r)??0);
     int UnestimatedParts=>_rows.Count(r=>_quantities.GetValueOrDefault(r.SoId)>0 && Pallets(r) is null);
+    ShippingOrderLineDto PreviewLine(PpRepository.SoRow row)
+    {
+        _packing.TryGetValue(row.ItemNo,out var item);
+        return new(0,row.SoId,row.SoNumber??"—",row.ItemNo,row.ItemName,_quantities.GetValueOrDefault(row.SoId),
+            item?.DefaultUOM,item?.PalletQty,item?.ToteFlag??false,row.RequestedDeliveryDate);
+    }
     DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1),_shipDate=DbClock.Today;
     string _error="";bool _busy;
     protected override Task OnInitializedAsync()=>Load();

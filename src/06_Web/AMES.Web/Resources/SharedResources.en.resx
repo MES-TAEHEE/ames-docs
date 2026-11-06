@@ -11855,7 +11855,10 @@
     <value>Select these orders and create a DCR to include them in Shipment Plan.</value>
   </data>
   <data name="FG.ShipOrders.Hint.DcrSelectedFmt" xml:space="preserve">
-    <value>{0} shipment order(s) · same customer and ship date required</value>
+    <value>{0} shipment order(s)</value>
+  </data>
+  <data name="FG.ShipOrders.Err.MixedCustomers" xml:space="preserve">
+    <value>Orders for different customers cannot be combined in one DCR.</value>
   </data>
   <data name="FG.ShipOrders.Err.CreatedPartial" xml:space="preserve">
     <value>Orders were saved, but some details could not be loaded. Refresh Shipment Orders to view them. Do not create them again.</value>
@@ -12030,6 +12033,12 @@
   </data>
   <data name="FG.OrderCreate.Hint.Remaining" xml:space="preserve">
     <value>Available after quantities already assigned to open shipment orders</value>
+  </data>
+  <data name="FG.OrderCreate.Col.DueDate" xml:space="preserve">
+    <value>Due Date</value>
+  </data>
+  <data name="FG.OrderCreate.Preview.TitleFmt" xml:space="preserve">
+    <value>Order Preview · {0} order(s)</value>
   </data>
   <data name="FG.OrderCreate.Col.Pallets" xml:space="preserve">
     <value>Pallets (Qty / Pallet)</value>

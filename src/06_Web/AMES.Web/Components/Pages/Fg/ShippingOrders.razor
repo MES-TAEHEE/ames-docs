@@ -5,6 +5,7 @@
 @inject FinishedGoodsRepository Fg
 @inject AuthenticationStateProvider AuthPrvd
 @inject PermissionService PermSvc
+@inject DialogService Dialog
 @inject NavigationManager Nav
 @inject UomFormat UomFmt
 @inject IStringLocalizer<SharedResources> L
@@ -15,8 +16,6 @@
     <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Orders"]</div><div class="ames-kpi-v">@VisibleOrders.Count()</div></div>
     <div class="ames-kpi ok"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.Open"]</div><div class="ames-kpi-v">@VisibleOrders.Count(ShipmentPlanRows.IsUnshipped)</div></div>
     <div class="ames-kpi"><div class="ames-kpi-l">@L["FG.ShipOrders.Kpi.DcrAssigned"]</div><div class="ames-kpi-v">@VisibleOrders.Count(x=>x.DeliveryId is not null)</div></div>
-    <div class="ames-kpi bad"><div class="ames-kpi-l">@L["FG.DueRisk.Overdue"]</div><div class="ames-kpi-v">@RiskCount(ShippingDueRiskLevel.Overdue)</div></div>
-    <div class="ames-kpi warn"><div class="ames-kpi-l">@L["FG.DueRisk.DueSoon"]</div><div class="ames-kpi-v">@RiskCount(ShippingDueRiskLevel.DueSoon)</div></div>
 </div>
 <section class="ames-card shipping-orders-page">
     <div class="ames-card-h master-list-toolbar">
@@ -29,12 +28,6 @@
                 <RadzenLabel Component="includeShipped" Text="@L["FG.ShipOrders.IncludeShipped"]" />
             </RadzenStack>
             <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="Reload" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="@L["FG.DueRisk.Title"]" Icon="schedule" Click="OpenRisks" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            @if(_canEdit)
-            {
-                <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
-                <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="@(()=>_deliveryModal=true)" Size="ButtonSize.Small" class="ames-rz-btn" />
-            }
         </RadzenStack>
     </div>
     @if(!string.IsNullOrEmpty(_message)){<RadzenAlert AlertStyle="AlertStyle.Info">@_message</RadzenAlert>}
@@ -58,12 +51,19 @@
             <RadzenDataGridColumn TItem="ShippingOrderDto" Title="@L["Btn.Print"]" Width="110px" MinWidth="110px"><Template Context="r"><RadzenButton Text="@L["Btn.Print"]" Icon="print" Click="@(()=>PrintOrder(r))" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></Template></RadzenDataGridColumn>
         </Columns>
     </RadzenDataGrid>
+    @if(_canEdit)
+    {
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer shipping-order-actions">
+            <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateOrder"]" Icon="add" Click="OpenCreate" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+            <RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="local_shipping" Disabled="@(_selected.Count==0)" Click="OpenDelivery" Size="ButtonSize.Small" class="ames-rz-btn" />
+        </RadzenStack>
+    }
 </section>
 @if(_creating && _canEdit)
 {
     <div class="ames-modal-bg" data-no-busy @onclick="CloseCreate"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="@L["FG.ShipOrders.Title.Create"]" @onclick:stopPropagation>
         <div class="ames-modal-h">@L["FG.ShipOrders.Title.Create"]</div>
-        <ShipmentOrderCreate Saved="Created" Closed="CloseCreate" BusyChanged="@(busy=>_createBusy=busy)" DueRisks="_dueRisks" />
+        <ShipmentOrderCreate Saved="Created" Closed="CloseCreate" BusyChanged="@(busy=>_createBusy=busy)" />
     </div></div>
 }
 @if(_createdNumbers.Count>0)
@@ -89,47 +89,24 @@
 }
 @if(_deliveryModal)
 {
-    <div class="ames-modal-bg" @onclick="@(()=>_deliveryModal=false)"><div class="ames-modal" @onclick:stopPropagation>
+    <div class="ames-modal-bg" @onclick="@(()=>_deliveryModal=false)"><div class="ames-modal ames-modal-wide" @onclick:stopPropagation>
         <div class="ames-modal-h">@L["FG.ShipOrders.Btn.CreateDcr"]</div>
-        <p>@L["FG.ShipOrders.Hint.DcrSelectedFmt",_selected.Count]</p>
+        <ShippingDeliveryOrderSummary Orders="SelectedDeliveryOrders" />
         @if(!string.IsNullOrEmpty(_deliveryError)){<RadzenAlert AlertStyle="AlertStyle.Danger">@_deliveryError</RadzenAlert>}
-        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="save" Click="CreateDelivery" Disabled="_busy" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(()=>_deliveryModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer"><RadzenButton Text="@L["FG.ShipOrders.Btn.CreateDcr"]" Icon="save" Click="CreateDelivery" Disabled="@(_busy||_selected.Count==0)" Size="ButtonSize.Small" class="ames-rz-btn" /><RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(()=>_deliveryModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" /></RadzenStack>
     </div></div>
 }
 @if(_printOrders.Count>0)
 {
     <ShippingOrderPrintPreview Orders="_printOrders" Delivery="_printDelivery" Closed="ClosePrint" />
 }
-@if(_riskModal)
-{
-    <div class="ames-modal-bg" data-no-busy @onclick="@(()=>_riskModal=false)"><div class="ames-modal ames-modal-fullwide" role="dialog" aria-modal="true" aria-label="@L["FG.DueRisk.Title"]" @onclick:stopPropagation>
-        <div class="ames-modal-h">@L["FG.DueRisk.Title"]</div>
-        @if(_riskError.Length>0){<RadzenAlert AlertStyle="AlertStyle.Danger">@_riskError</RadzenAlert>}
-        @if(_dueRisks is not null){<ShippingDueRiskList Snapshot="_dueRisks" />}
-        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
-            <RadzenButton Text="@L["Btn.Refresh"]" Icon="refresh" Click="LoadRisks" Disabled="_riskBusy" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-            <RadzenButton Text="@L["Btn.Close"]" Icon="close" Click="@(()=>_riskModal=false)" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
-        </RadzenStack>
-    </div></div>
-}
 @code {
-    ShippingDueRiskSnapshot? _dueRisks;
-    bool _riskModal,_riskBusy;
-    string _riskError="";
-    string RiskCount(ShippingDueRiskLevel risk)=>_dueRisks is null?"—":_dueRisks.Rows.Count(x=>x.Risk==risk).ToString("N0");
-    async Task OpenRisks(){if(!_allowed)return;_riskModal=true;await LoadRisks();}
-    async Task LoadRisks()
-    {
-        if(!_allowed||_riskBusy)return;_riskBusy=true;
-        try{_dueRisks=await Task.Run(Fg.ListShippingDueRisks);_riskError="";}
-        catch{_dueRisks=null;_riskError=L["FG.DueRisk.LoadFailed"].Value;}
-        finally{_riskBusy=false;}
-    }
     bool _includeShipped=true;
     RadzenDataGrid<ShippingOrderDto>? _grid;
     IEnumerable<ShippingOrderDto> VisibleOrders => _orders.Where(order=>_includeShipped || !string.Equals(order.Status,"Shipped",StringComparison.OrdinalIgnoreCase));
     async Task SetIncludeShipped(bool value){_includeShipped=value;_selected.Clear();if(_grid is not null)await _grid.FirstPage(true);}
     List<ShippingOrderDto> _orders=[],_printOrders=[];HashSet<int> _selected=[];
+    List<ShippingOrderDto> SelectedDeliveryOrders => _orders.Where(o=>_selected.Contains(o.OrderId)).OrderBy(o=>o.OrderId).ToList();
     List<ShippingOrderDto> _createdOrders=[];
     List<string> _createdNumbers=[];
     DateTime _createdShipDate;
@@ -137,17 +114,17 @@
     ShippingDeliveryDto? _printDelivery;
     readonly IEnumerable<int> _pageSizeOptions=[25,50,100];int _pageRows=25;
     DateTime? _from=DbClock.Today.AddMonths(-1),_to=DbClock.Today.AddMonths(1);
-    bool _canEdit,_canPlan,_creating,_createBusy,_deliveryModal,_busy,_allowed;
+    bool _canEdit,_creating,_createBusy,_deliveryModal,_busy,_allowed;
     string _actor="",_message="",_deliveryError="";
     protected override async Task OnInitializedAsync()
     {
         await PermSvc.EnsureAsync(AuthPrvd);_allowed=PermSvc.CanOpen("fg/shipping-orders");
         if(!_allowed){Nav.NavigateTo("/unauthorized");return;}
-        _canEdit=PermSvc.CanEdit("fg/shipping-orders");_canPlan=PermSvc.CanOpen("fg/shipment-plan");_actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);await Reload();
+        _canEdit=PermSvc.CanEdit("fg/shipping-orders");_actor=ActorCode.Of((await AuthPrvd.GetAuthenticationStateAsync()).User);await Reload();
     }
     void OpenCreate(){if(_canEdit)_creating=true;}
     void CloseCreate(){if(!_createBusy)_creating=false;}
-    async Task Reload(){if(!_allowed)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();await LoadRisks();}catch(Exception ex){_message=ex.Message;}}
+    async Task Reload(){if(!_allowed)return;if(_from>_to){_message=L["Err.DateRange"].Value;return;}try{_orders=await Task.Run(()=>Fg.ListShippingOrders(_from,_to));_selected.Clear();}catch(Exception ex){_message=ex.Message;}}
     void Select(int id,bool value){if(value)_selected.Add(id);else _selected.Remove(id);}
     async Task Created(ShipmentOrderCreate.CreatedOrders result)
     {
@@ -163,24 +140,30 @@
         await Reload();
     }
     void CloseCreated(){_createdNumbers=[];_createdOrders=[];_createdError="";}
+    async Task OpenDelivery()
+    {
+        if(!_canEdit||_busy||_selected.Count==0)return;
+        if(SelectedDeliveryOrders.Select(o=>o.CustomerId.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count()>1)
+        {
+            await Dialog.Alert(L["FG.ShipOrders.Err.MixedCustomers"].Value,L["FG.ShipOrders.Btn.CreateDcr"].Value,
+                new AlertOptions { OkButtonText=L["Btn.Close"].Value });
+            return;
+        }
+        _deliveryError="";_deliveryModal=true;
+    }
     async Task CreateDelivery()
     {
         await PermSvc.EnsureAsync(AuthPrvd);if(!PermSvc.CanEdit("fg/shipping-orders")||_busy)return;_busy=true;_deliveryError="";
         try
         {
-            var ids=_selected.ToList();var shipDate=_orders.First(o=>ids.Contains(o.OrderId)).ShipDate;
+            var ids=_selected.ToList();
             var no=await Task.Run(()=>Fg.CreateShippingDelivery(ids,null,_actor));
             _deliveryModal=false;_message=L["FG.ShipOrders.Ok.DcrCreatedFmt",no].Value;
-            if(_canPlan)
-            {
-                var date=shipDate.ToString("yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture);
-                Nav.NavigateTo($"/fg/shipment-plan?from={date}&to={date}&dcr={Uri.EscapeDataString(no)}");
-            }
-            else await Reload();
+            await Reload();
         }
         catch(Exception ex){_deliveryError=ex.Message;}finally{_busy=false;}
     }
     void PrintOrder(ShippingOrderDto row){_printDelivery=null;_printOrders=[row];}
-    async Task PrintDelivery(string number){try{_printDelivery=await Task.Run(()=>Fg.GetShippingDelivery(number));_printOrders=_orders.Where(x=>x.DeliveryId==_printDelivery.DeliveryId).ToList();}catch(Exception ex){_message=ex.Message;}}
+    async Task PrintDelivery(string number){try{_printDelivery=await Task.Run(()=>Fg.GetShippingDelivery(number));_printOrders=(await Task.Run(()=>Fg.ListShippingOrders(_printDelivery.ShipDate,_printDelivery.ShipDate,byDeliveryDate:true))).Where(x=>x.DeliveryId==_printDelivery.DeliveryId).ToList();}catch(Exception ex){_message=ex.Message;}}
     void ClosePrint(){_printOrders=[];_printDelivery=null;}
 }

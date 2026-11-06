@@ -9,22 +9,24 @@ public sealed partial class FinishedGoodsRepository
     public static decimal? EstimateShippingPallets(decimal quantity,int? perPallet,bool tote=false) =>
         quantity <= 0 ? 0 : !tote && perPallet is > 0 ? decimal.Ceiling(quantity/perPallet.Value) : null;
 
-    public List<ShippingOrderDto> ListShippingOrders(DateTime? from=null,DateTime? to=null,bool onlyOpen=false)
+    public List<ShippingOrderDto> ListShippingOrders(DateTime? from=null,DateTime? to=null,bool onlyOpen=false,bool byDeliveryDate=false)
     {
         using var conn=_factory.OpenConnection();
         using var cmd=new SqlCommand("""
-            SELECT O.OrderID,O.OrderNo,O.CustomerID,O.ShipDate,O.Status,O.DeliveryID,D.DeliveryNo,
+            SELECT O.OrderID,O.OrderNo,O.CustomerID,P.ShipDate,O.Status,O.DeliveryID,D.DeliveryNo,
                 L.OrderLineID,L.SoID,S.SoNumber,L.PartNo,I.ItemName,L.Qty,I.DefaultUOM,I.PalletQty,COALESCE(I.ToteFlag,0) ToteFlag,S.RequestedDeliveryDate
             FROM dbo.FG_ShippingOrder O JOIN dbo.FG_ShippingOrderLine L ON L.OrderID=O.OrderID
             JOIN dbo.PP_CustomerOrder S ON S.SoID=L.SoID LEFT JOIN dbo.MD_Item I ON I.ItemNo=L.PartNo
             LEFT JOIN dbo.FG_Delivery D ON D.DeliveryID=O.DeliveryID
-            WHERE (@From IS NULL OR O.ShipDate>=@From) AND (@To IS NULL OR O.ShipDate<=@To)
+            CROSS APPLY(VALUES(CASE WHEN @ByDeliveryDate=1 THEN COALESCE(D.ShipDate,O.ShipDate) ELSE O.ShipDate END)) P(ShipDate)
+            WHERE (@From IS NULL OR P.ShipDate>=@From) AND (@To IS NULL OR P.ShipDate<=@To)
                 AND (@OnlyOpen=0 OR O.Status IN('Open','Loading'))
-            ORDER BY O.ShipDate,O.OrderID,L.OrderLineID;
+            ORDER BY P.ShipDate,O.OrderID,L.OrderLineID;
             """,conn);
         cmd.Parameters.Add("@From",SqlDbType.Date).Value=(object?)from?.Date??DBNull.Value;
         cmd.Parameters.Add("@To",SqlDbType.Date).Value=(object?)to?.Date??DBNull.Value;
         cmd.Parameters.Add("@OnlyOpen",SqlDbType.Bit).Value=onlyOpen;
+        cmd.Parameters.Add("@ByDeliveryDate",SqlDbType.Bit).Value=byDeliveryDate;
         using var r=cmd.ExecuteReader();var rows=new List<ShippingOrderDto>();
         while(r.Read())
         {
@@ -101,24 +103,32 @@ public sealed partial class FinishedGoodsRepository
         tx.Commit();return numbers;
     }
 
+    internal static (string CustomerId, DateTime ShipDate) ShippingDeliveryHeader(IReadOnlyList<(string CustomerId, DateTime ShipDate)> orders)
+    {
+        if(orders.Count==0)throw new ArgumentException("Select at least one shipment order.");
+        var customer=orders[0].CustomerId.Trim();
+        if(orders.Any(o=>!string.Equals(customer,o.CustomerId.Trim(),StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("Orders for different customers cannot be combined in one DCR.");
+        return (customer,orders.Min(o=>o.ShipDate).Date);
+    }
+
     public string CreateShippingDelivery(IReadOnlyList<int> orderIds,string? trailer,string actor)
     {
         CheckActor(actor);
         if(orderIds.Count is <1 or >100 || orderIds.Distinct().Count()!=orderIds.Count || trailer?.Length>50)throw new ArgumentException("Select 1–100 shipment orders and a trailer name within 50 characters.");
         using var conn=_factory.OpenConnection();using var tx=conn.BeginTransaction(IsolationLevel.Serializable);Gate(conn,tx);
-        string? customer=null;DateTime? date=null;
+        var selected=new List<(string CustomerId,DateTime ShipDate)>();
         foreach(var id in orderIds.Order())
         {
             using var read=new SqlCommand("SELECT CustomerID,ShipDate FROM dbo.FG_ShippingOrder WITH(UPDLOCK,HOLDLOCK) WHERE OrderID=@Id AND DeliveryID IS NULL AND Status='Open'",conn,tx);
             read.Parameters.Add("@Id",SqlDbType.Int).Value=id;using var r=read.ExecuteReader();
             if(!r.Read())throw new InvalidOperationException("An order is already assigned or no longer open. Refresh and retry.");
-            var c=r.GetString(0);var d=r.GetDateTime(1);
-            if(customer is not null && (customer!=c || date!=d))throw new InvalidOperationException("Select orders for the same customer and ship date.");
-            customer=c;date=d;
+            selected.Add((r.GetString(0),r.GetDateTime(1)));
         }
+        var (customer,date)=ShippingDeliveryHeader(selected);
         var number=NextNo(conn,tx,"DCR");int deliveryId;
         using(var cmd=new SqlCommand("INSERT dbo.FG_Delivery(DeliveryNo,CustomerID,ShipDate,TrailerNo,CreatedBy) OUTPUT inserted.DeliveryID VALUES(@No,@Customer,@Date,@Trailer,@Actor)",conn,tx))
-        { Add(cmd,"@No",SqlDbType.VarChar,30,number);Add(cmd,"@Customer",SqlDbType.VarChar,20,customer);Add(cmd,"@Actor",SqlDbType.VarChar,20,actor);Add(cmd,"@Trailer",SqlDbType.NVarChar,50,trailer);cmd.Parameters.Add("@Date",SqlDbType.Date).Value=date!.Value;deliveryId=(int)cmd.ExecuteScalar()!; }
+        { Add(cmd,"@No",SqlDbType.VarChar,30,number);Add(cmd,"@Customer",SqlDbType.VarChar,20,customer);Add(cmd,"@Actor",SqlDbType.VarChar,20,actor);Add(cmd,"@Trailer",SqlDbType.NVarChar,50,trailer);cmd.Parameters.Add("@Date",SqlDbType.Date).Value=date;deliveryId=(int)cmd.ExecuteScalar()!; }
         foreach(var id in orderIds)
         {
             using var cmd=new SqlCommand("UPDATE dbo.FG_ShippingOrder SET DeliveryID=@D,ModifiedBy=@Actor,ModifiedTS=SYSDATETIME() WHERE OrderID=@Id",conn,tx);

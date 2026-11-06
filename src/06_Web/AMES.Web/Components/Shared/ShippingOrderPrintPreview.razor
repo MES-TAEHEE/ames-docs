@@ -7,20 +7,35 @@
 {
     <div class="ames-modal-bg shipping-a4-modal-bg" data-no-busy @onclick="Close">
         <div class="ames-modal ames-modal-fullwide shipping-a4-modal" role="dialog" aria-modal="true" aria-label="@L["FG.OrderPrint.Title"]" @onclick:stopPropagation>
-            <div class="ames-modal-h shipping-a4-toolbar">@L["FG.OrderPrint.Title"] · A4 (210 × 297 mm)</div>
+            <div class="ames-modal-h shipping-a4-toolbar">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Gap="0.5rem">
+                    <span>@L["FG.OrderPrint.Title"] · A4 (210 × 297 mm)</span>
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                        @if(Delivery is not null)
+                        {
+                            <RadzenButton Text="DCR" Click="@(()=>_showShu=false)" ButtonStyle="@(_showShu ? ButtonStyle.Base : ButtonStyle.Primary)" Size="ButtonSize.Small" class="ames-rz-btn" />
+                        }
+                        <RadzenButton Text="SHU" Click="@(()=>_showShu=true)" ButtonStyle="@(_showShu ? ButtonStyle.Primary : ButtonStyle.Base)" Size="ButtonSize.Small" class="ames-rz-btn" />
+                    </RadzenStack>
+                </RadzenStack>
+            </div>
             <div class="ames-modal-body fg-document-preview shipping-a4-preview">
                 <div class="fg-print-area">
+                    @foreach(var documentOrders in PrintPages)
+                    {
+                    var reference=_showShu?documentOrders[0].OrderNo:Delivery!.DeliveryNo;
                     <article class="fg-dcr-paper shipping-a4-paper">
-                        <h1>@(Delivery is null?L["FG.OrderPrint.Lbl.Order"]:L["FG.OrderPrint.Lbl.Dcr"])</h1>
-                        <Code128Barcode Value="@(Delivery?.DeliveryNo??Orders[0].OrderNo)" Height="65" />
-                        <h2>@(Delivery?.DeliveryNo??Orders[0].OrderNo)</h2>
-                        <p>@L["Col.Customer"]: @(Delivery?.CustomerId??Orders[0].CustomerId) · @L["Col.ShipDate"]: @((Delivery?.ShipDate??Orders[0].ShipDate).ToString(DateFmt.Date))</p>
+                        <h1>@(_showShu?"SHU":L["FG.OrderPrint.Lbl.Dcr"])</h1>
+                        <Code128Barcode Value="@reference" Height="65" />
+                        <h2>@reference</h2>
+                        @if(_showShu && Delivery is not null){<p>DCR: @Delivery.DeliveryNo</p>}
+                        <p>@L["Col.Customer"]: @documentOrders[0].CustomerId · @L["Col.ShipDate"]: @((Delivery?.ShipDate??documentOrders[0].ShipDate).ToString(DateFmt.Date))</p>
                         @if(!string.IsNullOrWhiteSpace(Delivery?.TrailerNo)){<p>@L["FG.Trailer.Lbl.Trailer"]: @Delivery.TrailerNo</p>}
                         <table>
                             <colgroup><col style="width:20%" /><col style="width:17%" /><col style="width:20%" /><col style="width:30%" /><col style="width:13%" /></colgroup>
-                            <thead><tr><th>@L["FG.OrderPrint.Col.Order"]</th><th>SO</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ItemName"]</th><th class="quantity">@L["FG.OrderPrint.Col.RequiredQty"]</th></tr></thead>
+                            <thead><tr><th>SHU</th><th>SO</th><th>@L["Col.ItemNo"]</th><th>@L["Col.ItemName"]</th><th class="quantity">@L["FG.OrderPrint.Col.RequiredQty"]</th></tr></thead>
                             <tbody>
-                                @foreach(var order in Orders)
+                                @foreach(var order in documentOrders)
                                 {
                                     @foreach(var line in order.Lines)
                                     {
@@ -30,6 +45,7 @@
                             </tbody>
                         </table>
                     </article>
+                    }
                 </div>
             </div>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer shipping-a4-toolbar">
@@ -43,6 +59,11 @@
     [Parameter,EditorRequired] public IReadOnlyList<ShippingOrderDto> Orders {get;set;}=[];
     [Parameter] public ShippingDeliveryDto? Delivery {get;set;}
     [Parameter] public EventCallback Closed {get;set;}
+    bool _showShu;
+    IEnumerable<IReadOnlyList<ShippingOrderDto>> PrintPages => _showShu
+        ? Orders.Select(order=>(IReadOnlyList<ShippingOrderDto>)new[]{order})
+        : new[]{Orders};
+    protected override void OnParametersSet()=>_showShu=Delivery is null;
     Task Close()=>Closed.InvokeAsync();
     Task Print()=>JS.InvokeVoidAsync("window.print").AsTask();
 }
