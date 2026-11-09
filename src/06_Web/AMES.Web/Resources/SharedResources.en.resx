@@ -13167,4 +13167,58 @@
   <data name="MD.Pallet.Print.Err.PrinterGone" xml:space="preserve">
     <value>The selected printer was removed or deactivated — the list was reloaded</value>
   </data>
+  <data name="ItemPeek.Title" xml:space="preserve">
+    <value>Item BOM</value>
+  </data>
+  <data name="ItemPeek.Loading" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+  <data name="ItemPeek.NotFound" xml:space="preserve">
+    <value>This item is not in the item master.</value>
+  </data>
+  <data name="ItemPeek.NoBom" xml:space="preserve">
+    <value>No BOM is registered.</value>
+  </data>
+  <data name="ItemPeek.NoLines" xml:space="preserve">
+    <value>The BOM has no components.</value>
+  </data>
+  <data name="ItemPeek.Version" xml:space="preserve">
+    <value>BOM version</value>
+  </data>
+  <data name="ItemPeek.Period" xml:space="preserve">
+    <value>Effective</value>
+  </data>
+  <data name="ItemPeek.Children" xml:space="preserve">
+    <value>Components</value>
+  </data>
+  <data name="ItemPeek.Parents" xml:space="preserve">
+    <value>Used in (parents)</value>
+  </data>
+  <data name="ItemPeek.NoParents" xml:space="preserve">
+    <value>No parent item uses this item.</value>
+  </data>
+  <data name="ItemPeek.Col.Comp" xml:space="preserve">
+    <value>Component</value>
+  </data>
+  <data name="ItemPeek.Col.QtyPer" xml:space="preserve">
+    <value>Qty per</value>
+  </data>
+  <data name="ItemPeek.Col.Scrap" xml:space="preserve">
+    <value>Scrap %</value>
+  </data>
+  <data name="ItemPeek.Back" xml:space="preserve">
+    <value>Previous item</value>
+  </data>
+  <data name="ItemPeek.Cycle" xml:space="preserve">
+    <value>Circular BOM — not expanded further</value>
+  </data>
+  <data name="ItemPeek.ExpandAll" xml:space="preserve">
+    <value>Expand all</value>
+  </data>
+  <data name="ItemPeek.CollapseAll" xml:space="preserve">
+    <value>Collapse all</value>
+  </data>
+  <data name="ItemPeek.NewerVersion" xml:space="preserve">
+    <value>A newer version {0} [{1}] exists (starts {2}) — the list shows the version effective today.</value>
+  </data>
 </root>

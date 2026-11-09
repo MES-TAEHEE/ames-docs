@@ -72,7 +72,7 @@
                 <RadzenDataGridColumn TItem="ItemVm" MinWidth="250px" Property="ItemNo" Title="@L["Col.PartNo"].Value"
                                       Frozen="true" Width="250px">
                     <Template Context="it">
-                        <span class="code">@it.ItemNo</span>
+                        <span class="code" data-item="@(it.ItemExists ? it.ItemNo : null)">@it.ItemNo</span>
                         @if (!it.ItemExists)
                         {
                             <span class="badge-bad">@L["PP.Forecast.Badge.Unregistered"]</span>
@@ -155,7 +155,7 @@
                 <RadzenDataGridColumn TItem="DailyVm" MinWidth="250px" Property="ItemNo" Title="@L["Col.PartNo"].Value"
                                       Frozen="true" Width="250px">
                     <Template Context="it">
-                        <span class="code">@it.ItemNo</span>
+                        <span class="code" data-item="@(it.ItemExists ? it.ItemNo : null)">@it.ItemNo</span>
                         @if (!it.ItemExists)
                         {
                             <span class="badge-bad">@L["PP.Forecast.Badge.Unregistered"]</span>

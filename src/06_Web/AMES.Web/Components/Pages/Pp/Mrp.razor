@@ -92,7 +92,7 @@ else
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.MrpMaterialRow" MinWidth="400px" Property="ItemNo" Title="@L["PP.Mrp.Col.Material"].Value" Frozen="true" Width="400px">
                 <Template Context="r">
-                    <span class="code">@r.ItemNo</span>
+                    <span class="code" data-item="@r.ItemNo">@r.ItemNo</span>
                     @if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }
                 </Template>
             </RadzenDataGridColumn>

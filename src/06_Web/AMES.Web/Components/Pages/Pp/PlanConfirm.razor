@@ -88,7 +88,7 @@ else
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="120px" Property="CustomerId" Title="@L["Col.Customer"].Value" Width="120px" />
             <RadzenDataGridColumn TItem="PpRepository.PlanLineRow" MinWidth="240px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="240px">
                 <Template Context="r">
-                    <span class="code">@r.ItemNo</span>
+                    <span class="code" data-item="@(r.ItemExists ? r.ItemNo : null)">@r.ItemNo</span>
                     @if (!r.ItemExists)
                     {
                         <span class="badge-bad">@L["PP.Forecast.Badge.Unregistered"]</span>

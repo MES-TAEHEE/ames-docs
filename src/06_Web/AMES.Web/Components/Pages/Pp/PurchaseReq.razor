@@ -91,7 +91,7 @@ else
                 <Template Context="r">@if (r.SapDocNum is { Length: > 0 }) { <span class="code pr-pos">@r.SapDocNum</span> } else { <span class="dim">—</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="260px" Property="ItemNo" Title="@L["Col.Item"].Value">
-                <Template Context="r"><span class="code">@r.ItemNo</span>@if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }</Template>
+                <Template Context="r"><span class="code" data-item="@r.ItemNo">@r.ItemNo</span>@if (!string.IsNullOrEmpty(r.ItemName)) { <span class="dim"> · @r.ItemName</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="PpRepository.PrRow" MinWidth="110px" Property="RequiredQty" Title="@L["Col.Qty"].Value" TextAlign="TextAlign.Right" Width="110px">
                 <Template Context="r"><span style="font-weight:700;">@Q(r.RequiredQty, r.Uom)</span> <span class="dim">@UomFmt.Sym(r.Uom)</span></Template>

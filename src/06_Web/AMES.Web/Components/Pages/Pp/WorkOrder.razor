@@ -72,7 +72,7 @@ else
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="WorkOrderDto" MinWidth="470px" Property="ItemNo" Title="@L["Col.PartNo"].Value" Width="470px">
                 <Template Context="w">
-                    <span class="code">@w.ItemNo</span>
+                    <span class="code" data-item="@w.ItemNo">@w.ItemNo</span>
                     @{ var nm = w.ItemName; }
                     @if (!string.IsNullOrEmpty(nm)) { <span class="dim"> · @nm</span> }
                 </Template>

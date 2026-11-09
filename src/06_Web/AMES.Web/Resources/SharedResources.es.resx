@@ -13167,4 +13167,58 @@
   <data name="MD.Pallet.Print.Err.PrinterGone" xml:space="preserve">
     <value>La impresora elegida se eliminó o desactivó; se recargó la lista</value>
   </data>
+  <data name="ItemPeek.Title" xml:space="preserve">
+    <value>BOM del artículo</value>
+  </data>
+  <data name="ItemPeek.Loading" xml:space="preserve">
+    <value>Cargando…</value>
+  </data>
+  <data name="ItemPeek.NotFound" xml:space="preserve">
+    <value>Este artículo no está en el maestro de artículos.</value>
+  </data>
+  <data name="ItemPeek.NoBom" xml:space="preserve">
+    <value>No hay BOM registrada.</value>
+  </data>
+  <data name="ItemPeek.NoLines" xml:space="preserve">
+    <value>La BOM no tiene componentes.</value>
+  </data>
+  <data name="ItemPeek.Version" xml:space="preserve">
+    <value>Versión BOM</value>
+  </data>
+  <data name="ItemPeek.Period" xml:space="preserve">
+    <value>Vigencia</value>
+  </data>
+  <data name="ItemPeek.Children" xml:space="preserve">
+    <value>Componentes</value>
+  </data>
+  <data name="ItemPeek.Parents" xml:space="preserve">
+    <value>Usado en (superiores)</value>
+  </data>
+  <data name="ItemPeek.NoParents" xml:space="preserve">
+    <value>Ningún artículo superior usa este artículo.</value>
+  </data>
+  <data name="ItemPeek.Col.Comp" xml:space="preserve">
+    <value>Componente</value>
+  </data>
+  <data name="ItemPeek.Col.QtyPer" xml:space="preserve">
+    <value>Cant. por</value>
+  </data>
+  <data name="ItemPeek.Col.Scrap" xml:space="preserve">
+    <value>Merma %</value>
+  </data>
+  <data name="ItemPeek.Back" xml:space="preserve">
+    <value>Artículo anterior</value>
+  </data>
+  <data name="ItemPeek.Cycle" xml:space="preserve">
+    <value>BOM circular — no se expande más</value>
+  </data>
+  <data name="ItemPeek.ExpandAll" xml:space="preserve">
+    <value>Expandir todo</value>
+  </data>
+  <data name="ItemPeek.CollapseAll" xml:space="preserve">
+    <value>Contraer todo</value>
+  </data>
+  <data name="ItemPeek.NewerVersion" xml:space="preserve">
+    <value>Existe una versión más nueva {0} [{1}] (inicia {2}) — la lista muestra la versión vigente hoy.</value>
+  </data>
 </root>

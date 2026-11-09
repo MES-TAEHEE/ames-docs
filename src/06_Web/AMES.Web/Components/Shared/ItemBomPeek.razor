@@ -1,0 +1,361 @@
+@* 품번 BOM 미리보기 — MainLayout 에 한 번만 둔다. 화면은 품번 글자에 data-item="품번" 만 붙이면 되고(wwwroot/js/item-peek.js 가
+   클릭을 가로채 Open 을 부른다), 이 컴포넌트가 대표 BOM 버전(BomVersionRules.Representative — MD-005 BOP 상하위와 같은 기준)의
+   하위 구성품 트리와 그 품번을 쓰는 상위 품목을 보인다. 읽기 전용. *@
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject MasterDataRepository MD
+@inject IStringLocalizer<SharedResources> L
+@inject UomFormat UomFmt
+@inject AuthenticationStateProvider AuthPrvd
+
+@if (_show)
+{
+    <div class="ames-modal-bg ipk-bg" @onmousedown="() => _bgDown = true" @onclick="OnBgClick">
+        <div class="ames-modal ames-modal-wide ipk" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">
+                @if (_back.Count > 0)
+                {
+                    <button type="button" class="ipk-back" title="@L["ItemPeek.Back"]" @onclick="GoBack">←</button>
+                }
+                @L["ItemPeek.Title"] <span class="code" style="font-weight:400;font-size:.9em;">@_itemNo</span>
+                @if (_info is not null) { <span class="dim ipk-name">@_info.ItemName</span> }
+            </div>
+
+            @if (_loading)
+            {
+                <div class="dim">@L["ItemPeek.Loading"]</div>
+            }
+            else if (_err is not null)
+            {
+                <div class="ipk-msg neg">⚠ @_err</div>
+            }
+            else
+            {
+                @if (_info is null)
+                {
+                    <div class="ipk-msg warn">⚠ @L["ItemPeek.NotFound"]</div>
+                }
+                else
+                {
+                    <div class="ipk-tiles">
+                        <div class="ipk-tile"><div class="ipk-tl">@L["Col.Type"]</div><div class="ipk-tv">@(_info.ItemType ?? "—")</div></div>
+                        <div class="ipk-tile"><div class="ipk-tl">@L["Col.Category"]</div><div class="ipk-tv">@(_info.ItemCategory ?? "—")</div></div>
+                        <div class="ipk-tile"><div class="ipk-tl">@L["Col.Uom"]</div><div class="ipk-tv">@(_info.DefaultUOM is { } u ? UomFmt.Sym(u) : "—")</div></div>
+                        <div class="ipk-tile">
+                            <div class="ipk-tl">@L["ItemPeek.Version"]</div>
+                            <div class="ipk-tv">
+                                @if (_rep is null) { <span class="dim">—</span> }
+                                else
+                                {
+                                    <span class="code">@(_rep.VersionNo ?? _rep.VersionID)</span>
+                                    <span class="pill @StatusCss(_rep.Status)" style="margin-left:4px;">@StatusName(_rep.Status)</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    @if (_rep is not null)
+                    {
+                        <div class="dim ipk-period">@L["ItemPeek.Period"]: @(_rep.EffFrom?.ToString(DateFmt.Date) ?? "—") ~ @(_rep.EffTo?.ToString(DateFmt.Date) ?? "—")</div>
+                        @if (_newer is not null)
+                        {
+                            <div class="ipk-msg warn ipk-small">ⓘ @string.Format(L["ItemPeek.NewerVersion"].Value, _newer.VersionNo ?? _newer.VersionID, StatusName(_newer.Status), _newer.EffFrom?.ToString(DateFmt.Date) ?? "—")</div>
+                        }
+                    }
+                }
+
+                <div class="ipk-subrow">
+                    <div class="ipk-sub">@L["ItemPeek.Children"] · @_children.Count</div>
+                    @if (_children.Any(n => n.HasBom))
+                    {
+                        <span class="ipk-tools" data-no-busy>
+                            @{ var anyOpen = _children.Any(n => n.Open); }
+                            <button type="button" class="ipk-tool @(anyOpen ? "on" : "")" disabled="@_expanding" @onclick="ToggleAll">
+                                @(anyOpen ? "▸" : "▾") @(_expanding ? L["ItemPeek.Loading"] : anyOpen ? L["ItemPeek.CollapseAll"] : L["ItemPeek.ExpandAll"])
+                            </button>
+                        </span>
+                    }
+                </div>
+                @if (_rep is null)
+                {
+                    <span class="dim ipk-small">@L["ItemPeek.NoBom"]</span>
+                }
+                else if (_children.Count == 0)
+                {
+                    <span class="dim ipk-small">@L["ItemPeek.NoLines"]</span>
+                }
+                else
+                {
+                    <div class="ipk-tree">
+                        <div class="ipk-row ipk-head">
+                            <span>@L["ItemPeek.Col.Comp"]</span>
+                            <span class="r">@L["ItemPeek.Col.QtyPer"]</span>
+                            <span class="c">@L["Col.Uom"]</span>
+                            <span class="r">@L["ItemPeek.Col.Scrap"]</span>
+                        </div>
+                        @foreach (var n in Visible(_children))
+                        {
+                            <div class="ipk-row" @key="n">
+                                <span class="ipk-comp" style="padding-left:@((n.Depth - 1) * 16)px;">
+                                    @if (n.HasBom)
+                                    {
+                                        <button type="button" class="ipk-tog" disabled="@n.Busy" @onclick="() => Toggle(n)">@(n.Open ? "▾" : "▸")</button>
+                                    }
+                                    else
+                                    {
+                                        <span class="ipk-tog-none">·</span>
+                                    }
+                                    <span class="code" data-item="@n.ItemNo">@n.ItemNo</span>
+                                    @if (!string.IsNullOrEmpty(n.Name)) { <span class="dim"> · @n.Name</span> }
+                                    @if (n.Cycle) { <span class="ipk-cycle" title="@L["ItemPeek.Cycle"]">↻</span> }
+                                </span>
+                                <span class="r code">@(n.QtyPer is { } q ? UomFmt.Qty(q, n.Uom) : "—")</span>
+                                <span class="c dim">@(n.Uom is { } nu ? UomFmt.Sym(nu) : "—")</span>
+                                <span class="r dim">@(n.ScrapPct is { } s && s != 0 ? s.ToString("0.##") : "—")</span>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="ipk-sub" style="margin-top:10px;">@L["ItemPeek.Parents"] · @_parents.Count</div>
+                @if (_parents.Count == 0)
+                {
+                    <span class="dim ipk-small">@L["ItemPeek.NoParents"]</span>
+                }
+                else
+                {
+                    <div class="ipk-chips">
+                        @foreach (var p in _parents)
+                        {
+                            <span class="ipk-chip"><span class="code" data-item="@p.ItemNo">@p.ItemNo</span>@if (!string.IsNullOrEmpty(p.Name)) { <span class="dim"> · @p.Name</span> }</span>
+                        }
+                    </div>
+                }
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@L["Btn.Close"]" Click="@Close" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    sealed class Node
+    {
+        public required string ItemNo { get; init; }
+        public string? Name { get; init; }
+        public decimal? QtyPer { get; init; }
+        public string? Uom { get; init; }
+        public decimal? ScrapPct { get; init; }
+        public int Depth { get; init; }
+        public bool HasBom { get; init; }
+        public bool Cycle { get; init; }
+        public required HashSet<string> Path { get; init; }   // 루트부터 이 품번까지 — 순환 BOM 을 끝없이 펼치지 않게
+        public bool Open, Loaded, Busy;
+        public List<Node> Kids = new();
+    }
+
+    sealed record Parent(string ItemNo, string? Name);
+
+    const int MaxDepth = AMES.Data.Services.BomHierarchy.DefaultMaxDepth;
+
+    DotNetObjectReference<ItemBomPeek>? _ref;
+    readonly string _token = Guid.NewGuid().ToString("N");
+    bool _show, _loading, _bgDown;
+    string _itemNo = "";
+    string? _err;
+    MasterDataRepository.ItemRow? _info;
+    MasterDataRepository.BomVersionRow? _rep, _newer;
+    bool _expanding;
+    List<Node> _children = new();
+    List<Parent> _parents = new();
+    readonly Stack<string> _back = new();
+    List<AMES.Data.Services.BomVersionRules.VersionInfo> _versions = new();
+    List<MasterDataRepository.CodeItemRow> _statusItems = new();
+    DateOnly _today;
+    int _seq;   // 늦게 끝난 이전 조회가 새 조회 결과를 덮지 않게
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var user = (await AuthPrvd.GetAuthenticationStateAsync()).User;
+        if (!PortalAuth.IsInternalUser(user)) return;
+        _ref = DotNetObjectReference.Create(this);
+        try { await JS.InvokeVoidAsync("amesItemPeek.register", _ref, _token); } catch (JSException) { } catch (JSDisconnectedException) { }
+    }
+
+    [JSInvokable]
+    public async Task Open(string itemNo)
+    {
+        itemNo = itemNo.Trim();
+        if (itemNo.Length == 0) return;
+        if (_show && _itemNo.Length > 0 && !string.Equals(_itemNo, itemNo, StringComparison.OrdinalIgnoreCase)) _back.Push(_itemNo);
+        else if (!_show) _back.Clear();
+        await Show(itemNo);
+    }
+
+    async Task GoBack()
+    {
+        if (_back.Count > 0) await Show(_back.Pop());
+    }
+
+    async Task Show(string itemNo)
+    {
+        var seq = ++_seq;
+        _itemNo = itemNo; _show = true; _loading = true; _err = null;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var r = await Task.Run(() => Load(itemNo));
+            if (seq != _seq) return;
+            (_info, _rep, _newer, _children, _parents) = r;
+        }
+        catch (Exception ex)
+        {
+            if (seq != _seq) return;
+            _err = ex.Message; _info = null; _rep = null; _newer = null; _children = new(); _parents = new();
+        }
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    (MasterDataRepository.ItemRow?, MasterDataRepository.BomVersionRow?, MasterDataRepository.BomVersionRow?, List<Node>, List<Parent>) Load(string itemNo)
+    {
+        _today = DateOnly.FromDateTime(DbClock.Today);
+        if (_statusItems.Count == 0) { try { _statusItems = MD.ListCodeItems("BOM_STATUS"); } catch { } }
+        var info = MD.ListItems(itemNo).FirstOrDefault(i => string.Equals(i.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
+        var verRows = MD.ListBomVersions();
+        _versions = verRows.Select(MasterDataRepository.ToVersionInfo).ToList();
+
+        var repInfo = AMES.Data.Services.BomVersionRules.Representative(_versions, itemNo, _today);
+        var rep = repInfo is null ? null : verRows.FirstOrDefault(v => v.VersionID == repInfo.VersionId);
+        // 대표 버전은 "오늘 유효한 승인 버전"이라 그보다 뒤에 만든 초안·승인 대기·미래 시작 승인 버전이 있으면 따로 알린다
+        var newer = rep is null ? null : verRows
+            .Where(v => string.Equals(v.RootItemNo, itemNo, StringComparison.OrdinalIgnoreCase) && v.VersionID != rep.VersionID
+                        && v.Status is not ("REJECTED" or "EXPIRED")
+                        && ((v.CreatedTS ?? DateTime.MinValue) > (rep.CreatedTS ?? DateTime.MinValue) || (v.EffFrom ?? DateOnly.MinValue) > (rep.EffFrom ?? DateOnly.MinValue)))
+            .OrderByDescending(v => v.CreatedTS).FirstOrDefault();
+        var root = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { itemNo };
+        var children = rep is null ? new List<Node>() : LinesOf(rep.VersionID, 1, root);
+
+        var graph = AMES.Data.Services.BomHierarchy.Build(_versions, MD.ListBomEdges(), _today);
+        var names = verRows.Where(v => v.RootItemNo is not null)
+                           .GroupBy(v => v.RootItemNo!, StringComparer.OrdinalIgnoreCase)
+                           .ToDictionary(g => g.Key, g => g.First().RootItemName, StringComparer.OrdinalIgnoreCase);
+        var parents = AMES.Data.Services.BomHierarchy.Find(graph, itemNo, 1)
+            .Where(x => x.Depth < 0)
+            .Select(x => new Parent(x.ItemNo, names.GetValueOrDefault(x.ItemNo)))
+            .OrderBy(x => x.ItemNo, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return (info, rep, newer, children, parents);
+    }
+
+    List<Node> LinesOf(string versionId, int depth, HashSet<string> path)
+        => MD.ListBomLines(versionId)
+             .Where(l => l.ActiveFlag && !string.IsNullOrWhiteSpace(l.CompItemNo))
+             .Select(l =>
+             {
+                 var comp  = l.CompItemNo!.Trim();
+                 var cycle = path.Contains(comp);
+                 return new Node
+                 {
+                     ItemNo = comp, Name = l.CompItemName, QtyPer = l.QtyPer, Uom = l.UOM, ScrapPct = l.ScrapPct,
+                     Depth = depth, Cycle = cycle,
+                     HasBom = !cycle && depth < MaxDepth && AMES.Data.Services.BomVersionRules.Representative(_versions, comp, _today) is not null,
+                     Path = new HashSet<string>(path, StringComparer.OrdinalIgnoreCase) { comp },
+                 };
+             })
+             .ToList();
+
+    async Task Toggle(Node n)
+    {
+        if (n.Open) { n.Open = false; return; }
+        if (!n.Loaded)
+        {
+            n.Busy = true;
+            try
+            {
+                var rep = AMES.Data.Services.BomVersionRules.Representative(_versions, n.ItemNo, _today);
+                n.Kids = rep is null ? new() : await Task.Run(() => LinesOf(rep.VersionId, n.Depth + 1, n.Path));
+                n.Loaded = true;
+            }
+            catch (Exception ex) { _err = ex.Message; }
+            finally { n.Busy = false; }
+        }
+        n.Open = true;
+    }
+
+    async Task ExpandAll()
+    {
+        _expanding = true;
+        try { await Task.Run(() => OpenAll(_children)); }
+        catch (Exception ex) { _err = ex.Message; }
+        finally { _expanding = false; }
+    }
+
+    void OpenAll(List<Node> list)
+    {
+        foreach (var n in list)
+        {
+            if (!n.HasBom) continue;
+            if (!n.Loaded)
+            {
+                var rep = AMES.Data.Services.BomVersionRules.Representative(_versions, n.ItemNo, _today);
+                n.Kids = rep is null ? new() : LinesOf(rep.VersionId, n.Depth + 1, n.Path);
+                n.Loaded = true;
+            }
+            n.Open = true;
+            OpenAll(n.Kids);
+        }
+    }
+
+    static void CollapseAll(List<Node> list)
+    {
+        foreach (var n in list) { n.Open = false; CollapseAll(n.Kids); }
+    }
+
+    // 하나라도 펼쳐져 있으면 모두 접고, 모두 접혀 있으면 끝까지 펼친다
+    Task ToggleAll()
+    {
+        if (!_children.Any(n => n.Open)) return ExpandAll();
+        CollapseAll(_children);
+        return Task.CompletedTask;
+    }
+
+    static IEnumerable<Node> Visible(List<Node> list)
+    {
+        foreach (var n in list)
+        {
+            yield return n;
+            if (n.Open) foreach (var k in Visible(n.Kids)) yield return k;
+        }
+    }
+
+    string StatusName(string? code)
+    {
+        var item = _statusItems.FirstOrDefault(s => string.Equals(s.CodeValue, code, StringComparison.OrdinalIgnoreCase));
+        return item is null ? code ?? "" : MasterDataRepository.LocalName(item);
+    }
+
+    static string StatusCss(string? s) => s switch
+    {
+        "DRAFT"    => "info",
+        "PENDING"  => "warn",
+        "APPROVED" => "ok",
+        "REJECTED" => "bad",
+        "EXPIRED"  => "mute",
+        _          => "",
+    };
+
+    void OnBgClick() { if (_bgDown) Close(); _bgDown = false; }
+
+    void Close() { _show = false; _back.Clear(); _seq++; }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_ref is null) return;
+        try { await JS.InvokeVoidAsync("amesItemPeek.unregister", _token); } catch (JSException) { } catch (JSDisconnectedException) { }
+        _ref.Dispose();
+    }
+}

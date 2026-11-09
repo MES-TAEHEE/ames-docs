@@ -13167,4 +13167,58 @@
   <data name="MD.Pallet.Print.Err.PrinterGone" xml:space="preserve">
     <value>고른 프린터가 지워졌거나 사용 안 함입니다 — 목록을 다시 읽었습니다</value>
   </data>
+  <data name="ItemPeek.Title" xml:space="preserve">
+    <value>품번 BOM</value>
+  </data>
+  <data name="ItemPeek.Loading" xml:space="preserve">
+    <value>불러오는 중…</value>
+  </data>
+  <data name="ItemPeek.NotFound" xml:space="preserve">
+    <value>품목 마스터에 없는 품번입니다.</value>
+  </data>
+  <data name="ItemPeek.NoBom" xml:space="preserve">
+    <value>등록된 BOM 이 없습니다.</value>
+  </data>
+  <data name="ItemPeek.NoLines" xml:space="preserve">
+    <value>BOM 에 구성품이 없습니다.</value>
+  </data>
+  <data name="ItemPeek.Version" xml:space="preserve">
+    <value>BOM 버전</value>
+  </data>
+  <data name="ItemPeek.Period" xml:space="preserve">
+    <value>유효기간</value>
+  </data>
+  <data name="ItemPeek.Children" xml:space="preserve">
+    <value>하위 구성품</value>
+  </data>
+  <data name="ItemPeek.Parents" xml:space="preserve">
+    <value>사용처(상위 품목)</value>
+  </data>
+  <data name="ItemPeek.NoParents" xml:space="preserve">
+    <value>이 품번을 쓰는 상위 품목이 없습니다.</value>
+  </data>
+  <data name="ItemPeek.Col.Comp" xml:space="preserve">
+    <value>구성품</value>
+  </data>
+  <data name="ItemPeek.Col.QtyPer" xml:space="preserve">
+    <value>소요량</value>
+  </data>
+  <data name="ItemPeek.Col.Scrap" xml:space="preserve">
+    <value>스크랩%</value>
+  </data>
+  <data name="ItemPeek.Back" xml:space="preserve">
+    <value>이전 품번</value>
+  </data>
+  <data name="ItemPeek.Cycle" xml:space="preserve">
+    <value>순환 BOM — 더 펼치지 않습니다</value>
+  </data>
+  <data name="ItemPeek.ExpandAll" xml:space="preserve">
+    <value>모두 펼치기</value>
+  </data>
+  <data name="ItemPeek.CollapseAll" xml:space="preserve">
+    <value>모두 접기</value>
+  </data>
+  <data name="ItemPeek.NewerVersion" xml:space="preserve">
+    <value>더 새 버전 {0} [{1}] 이 있습니다(시작일 {2}) — 위 구성은 오늘 유효한 버전입니다.</value>
+  </data>
 </root>

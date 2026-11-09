@@ -5815,3 +5815,44 @@ input[data-ames-x] {
     background-position: right 6px center !important;
     background-size: 12px 12px !important;
 }
+
+/* ── 품번 BOM 미리보기(Shared/ItemBomPeek, js/item-peek.js) — 화면은 품번 글자에 data-item 만 붙인다 ── */
+[data-item] { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; text-decoration-color: var(--ames-bd-white-a12); }
+[data-item]:hover { color: var(--ames-tx-blue-300); text-decoration-color: currentColor; }
+.ipk-bg { z-index: 1100; }
+.ipk { gap: 8px; }
+.ipk-back { background: none; border: 1px solid var(--ames-bd-white-a12); color: inherit; border-radius: 6px; padding: 0 8px; margin-right: 6px; cursor: pointer; }
+.ipk-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ipk-tile { border: 1px solid var(--ames-bd-white-a08); border-radius: 8px; padding: 8px 10px; }
+.ipk-tl { font-size: calc(10px + var(--ames-fs-bump)); letter-spacing: .04em; text-transform: uppercase; color: var(--ames-tx-slate-500); margin-bottom: 4px; }
+.ipk-tv { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ipk-period, .ipk-small { font-size: calc(11px + var(--ames-fs-bump)); }
+.ipk-sub { font-size: calc(11px + var(--ames-fs-bump)); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ames-tx-slate-500); margin-top: 4px; }
+.ipk-tree { border: 1px solid var(--ames-bd-white-a08); border-radius: 8px; max-height: 340px; overflow-y: auto; }
+.ipk-row { display: grid; grid-template-columns: minmax(0, 1fr) 100px 60px 70px; gap: 8px; align-items: center; padding: 4px 10px; border-top: 1px solid var(--ames-bd-white-a05); font-size: 13px; }
+.ipk-row:first-child { border-top: 0; }
+.ipk-row .r { text-align: right; }
+.ipk-row .c { text-align: center; }
+.ipk-head { position: sticky; top: 0; background: var(--ames-sf-0d1b2e); font-size: calc(10px + var(--ames-fs-bump)); text-transform: uppercase; letter-spacing: .04em; color: var(--ames-tx-slate-500); }
+.ipk-comp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ipk-tog { background: none; border: 0; color: inherit; cursor: pointer; width: 18px; padding: 0; }
+.ipk-tog-none { display: inline-block; width: 18px; text-align: center; opacity: .4; }
+.ipk-cycle { margin-left: 4px; color: var(--ames-tx-amber-400); }
+.ipk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ipk-chip { border: 1px solid var(--ames-bd-white-a08); border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+.ipk-msg { font-size: 13px; }
+.ipk-msg.neg { color: var(--ames-tx-red-300); }
+.ipk-msg.warn { color: var(--ames-tx-amber-400); }
+@media (max-width: 640px) { .ipk-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ipk-subrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.ipk-subrow .ipk-sub { margin-top: 0; }
+.ipk-tools { display: inline-flex; gap: 6px; }
+.ipk-tool { background: none; border: 1px solid var(--ames-bd-white-a12); color: inherit; border-radius: 6px; padding: 2px 10px; font-size: 12px; cursor: pointer; }
+.ipk-tool:hover:not(:disabled) { color: var(--ames-tx-blue-300); border-color: currentColor; }
+.ipk-tool:disabled { opacity: .5; cursor: default; }
+.ipk-tool.on { color: var(--ames-tx-blue-300); border-color: currentColor; }
+.ipk-name { margin-left: 8px; font-weight: 400; font-size: .9em; }
+.ipk > .ames-modal-h { cursor: move; user-select: none; touch-action: none; }
+.ipk { will-change: transform; }
+.ipk.ipk-dragging { box-shadow: 0 12px 40px rgba(0,0,0,.45); }
+.ipk.ipk-dragging * { cursor: move !important; }

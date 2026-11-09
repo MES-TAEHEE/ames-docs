@@ -256,7 +256,7 @@
                 <div class="ames-detail-label">@L["Col.Item"]</div>
                 <div>
                     @(d.ItemName ?? d.ItemNo)
-                    <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));"> (@d.ItemNo)</span>
+                    <span class="dim" style="font-size:calc(11px + var(--ames-fs-bump));"> (<span class="code" data-item="@d.ItemNo">@d.ItemNo</span>)</span>
                 </div>
                 <div class="ames-detail-label">@L["Col.Line"]</div>
                 <div class="code">@(d.RouteLines ?? "—")</div>
