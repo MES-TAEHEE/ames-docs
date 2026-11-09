@@ -13026,4 +13026,145 @@
   <data name="PP.Downtime.Hint.TypeDate" xml:space="preserve">
     <value>달력에서 고르거나 직접 입력하세요 — 예: {0} · 14:30(오늘) · 20261105 1430</value>
   </data>
+  <data name="MD.Pallet.Btn.Print" xml:space="preserve">
+    <value>라벨 출력</value>
+  </data>
+  <data name="MD.Pallet.Btn.PrintN" xml:space="preserve">
+    <value>라벨 출력 ({0})</value>
+  </data>
+  <data name="MD.Pallet.Btn.DownloadZpl" xml:space="preserve">
+    <value>ZPL 내려받기</value>
+  </data>
+  <data name="MD.Pallet.Hint.PickToPrint" xml:space="preserve">
+    <value>목록 왼쪽 체크박스로 출력할 팔레트를 고르세요</value>
+  </data>
+  <data name="MD.Pallet.Print.Title" xml:space="preserve">
+    <value>팔레트 라벨 출력</value>
+  </data>
+  <data name="MD.Pallet.Print.Count" xml:space="preserve">
+    <value>{0}개</value>
+  </data>
+  <data name="MD.Pallet.Print.Copies" xml:space="preserve">
+    <value>장수(개당)</value>
+  </data>
+  <data name="MD.Pallet.Msg.PickedForPrint" xml:space="preserve">
+    <value>발행한 팔레트가 선택돼 있습니다 — 「라벨 출력」을 누르면 됩니다.</value>
+  </data>
+  <data name="MD.Pallet.Print.Pages" xml:space="preserve">
+    <value>총 {0}장</value>
+  </data>
+  <data name="MD.Pallet.Print.Err.TooMany" xml:space="preserve">
+    <value>한 번에 {0}장까지 인쇄할 수 있습니다 — 팔레트 수나 장수를 줄이세요</value>
+  </data>
+  <data name="MD.Pallet.Print.Printer" xml:space="preserve">
+    <value>프린터</value>
+  </data>
+  <data name="MD.Pallet.Print.Finding" xml:space="preserve">
+    <value>이 PC 의 Zebra 프린터를 찾는 중…</value>
+  </data>
+  <data name="MD.Pallet.Print.NoAgent" xml:space="preserve">
+    <value>Zebra Browser Print 연결 안 됨</value>
+  </data>
+  <data name="MD.Pallet.Btn.Retry" xml:space="preserve">
+    <value>다시 찾기</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Zebra" xml:space="preserve">
+    <value>ZPL 을 이 PC 의 Zebra 프린터로 바로 보냅니다(70×40mm, 드라이버 용지 설정과 무관). 미리보기는 화면용 그림이라 글꼴이 실제 출력과 조금 다릅니다.</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Install" xml:space="preserve">
+    <value>이 PC 에 Zebra Browser Print 를 설치·실행해야 출력됩니다(Zebra 홈페이지 무료 다운로드). 화면 주소가 https 면 https://127.0.0.1:9101 을 한 번 열어 인증서를 허용하세요. 설치 전에는 「ZPL 내려받기」로 파일을 받아 쓸 수 있습니다.</value>
+  </data>
+  <data name="MD.Pallet.Print.Printing" xml:space="preserve">
+    <value>출력 중…</value>
+  </data>
+  <data name="MD.Pallet.Print.Err.Failed" xml:space="preserve">
+    <value>프린터({0})로 보내지 못했습니다: {1}</value>
+  </data>
+  <data name="MD.Pallet.Msg.Printed" xml:space="preserve">
+    <value>라벨 {0}개 × {1}장을 프린터로 보냈습니다</value>
+  </data>
+  <data name="MD.Pallet.Print.NoPrinter" xml:space="preserve">
+    <value>Browser Print 는 연결됐지만 등록된 Zebra 프린터가 없습니다 — Browser Print 설정에서 프린터를 추가하세요</value>
+  </data>
+  <data name="MD.Pallet.Print.Method" xml:space="preserve">
+    <value>출력 방식</value>
+  </data>
+  <data name="MD.Pallet.Print.Method.Zebra" xml:space="preserve">
+    <value>Zebra 프린터 바로 출력</value>
+  </data>
+  <data name="MD.Pallet.Print.Method.Browser" xml:space="preserve">
+    <value>브라우저 인쇄</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Browser" xml:space="preserve">
+    <value>「라벨 출력」을 누르면 브라우저 인쇄 창이 뜹니다 — 라벨 프린터를 고르고 용지 70×40mm·여백 없음·배율 100% 로 인쇄하세요. 프린터 드라이버의 용지도 70×40mm 여야 줄거나 밀리지 않습니다. 바코드는 QR(내용 = 팔레트 번호)입니다.</value>
+  </data>
+  <data name="MD.Pallet.Print.Method.Server" xml:space="preserve">
+    <value>서버에서 네트워크 프린터로 출력</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Server" xml:space="preserve">
+    <value>웹 서버가 네트워크 프린터로 ZPL 을 바로 보냅니다 — 이 PC 에 설치할 것이 없고 드라이버 설정과도 무관합니다.</value>
+  </data>
+  <data name="SYS.Printer.Title" xml:space="preserve">
+    <value>라벨 프린터 관리</value>
+  </data>
+  <data name="SYS.Printer.List" xml:space="preserve">
+    <value>프린터 목록</value>
+  </data>
+  <data name="SYS.Printer.Empty" xml:space="preserve">
+    <value>등록된 프린터가 없습니다</value>
+  </data>
+  <data name="SYS.Printer.Hint" xml:space="preserve">
+    <value>웹 서버가 ZPL 을 바로 보내는 네트워크 라벨 프린터입니다 — 팔레트 관리(MD-034) 라벨 출력의 「서버에서 네트워크 프린터로 출력」에서 고릅니다. 사용 안 함으로 두면 목록에서 빠집니다.</value>
+  </data>
+  <data name="SYS.Printer.Col.Name" xml:space="preserve">
+    <value>프린터 이름</value>
+  </data>
+  <data name="SYS.Printer.Col.Address" xml:space="preserve">
+    <value>주소</value>
+  </data>
+  <data name="SYS.Printer.Col.Location" xml:space="preserve">
+    <value>설치 위치</value>
+  </data>
+  <data name="SYS.Printer.Col.Updated" xml:space="preserve">
+    <value>수정</value>
+  </data>
+  <data name="SYS.Printer.Hint.Address" xml:space="preserve">
+    <value>IP 또는 IP:포트(포트 생략 시 9100) · 웹 서버 PC 에 설치된 프린터는 Spooler:프린터 이름</value>
+  </data>
+  <data name="SYS.Printer.Btn.Test" xml:space="preserve">
+    <value>연결 확인</value>
+  </data>
+  <data name="SYS.Printer.Testing" xml:space="preserve">
+    <value>확인 중…</value>
+  </data>
+  <data name="SYS.Printer.Test.Ok" xml:space="preserve">
+    <value>웹 서버에서 {0} 에 연결됩니다(출력은 하지 않았습니다)</value>
+  </data>
+  <data name="SYS.Printer.Test.Fail" xml:space="preserve">
+    <value>웹 서버에서 {0} 에 연결하지 못했습니다: {1}</value>
+  </data>
+  <data name="SYS.Printer.Test.Spooler" xml:space="preserve">
+    <value>Spooler 프린터는 연결 확인 대상이 아닙니다 — 라벨을 한 장 뽑아 확인하세요</value>
+  </data>
+  <data name="SYS.Printer.Err.NameRequired" xml:space="preserve">
+    <value>프린터 이름을 넣으세요</value>
+  </data>
+  <data name="SYS.Printer.Err.Address" xml:space="preserve">
+    <value>주소 형식이 맞지 않습니다 — 예: 172.29.4.10, 172.29.4.10:9100, Spooler:ZDesigner ZD421</value>
+  </data>
+  <data name="SYS.Printer.Err.Duplicate" xml:space="preserve">
+    <value>같은 이름의 프린터가 이미 있습니다: {0}</value>
+  </data>
+  <data name="SYS.Printer.Err.Gone" xml:space="preserve">
+    <value>다른 사용자가 이 프린터를 지웠습니다 — 목록을 다시 읽었습니다</value>
+  </data>
+  <data name="MD.Pallet.Print.NoServerPrinter" xml:space="preserve">
+    <value>등록된 프린터 없음</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.ServerUnset" xml:space="preserve">
+    <value>사용 중인 네트워크 프린터가 없습니다 — 라벨 프린터 관리(SYS-011)에서 등록하세요.</value>
+  </data>
+  <data name="MD.Pallet.Print.Err.PrinterGone" xml:space="preserve">
+    <value>고른 프린터가 지워졌거나 사용 안 함입니다 — 목록을 다시 읽었습니다</value>
+  </data>
 </root>

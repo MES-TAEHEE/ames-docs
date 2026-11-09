@@ -12,6 +12,39 @@ public sealed class ZplPrinterOptions
     public string OutputDir   { get; set; } = "labels";
     /// <summary>Spooler 모드 전용 — Windows 에 등록된 프린터 이름.</summary>
     public string PrinterName { get; set; } = "";
+
+    /// <summary>
+    /// 한 줄 설정값을 출력 대상으로 바꾼다(웹 SYS_Config PALLET_LABEL_PRINTER) — <c>172.29.4.10</c>·<c>172.29.4.10:9100</c>·<c>Tcp:host:port</c> = 네트워크 프린터,
+    /// <c>Spooler:프린터 이름</c> = 웹 서버 PC 에 설치된 Windows 프린터. 비었거나 형식이 틀리면 false.
+    /// </summary>
+    public static bool TryParseTarget(string? value, out ZplPrinterOptions opt)
+    {
+        opt = new ZplPrinterOptions();
+        var v = value?.Trim();
+        if (string.IsNullOrEmpty(v)) return false;
+        if (v.StartsWith("Spooler:", StringComparison.OrdinalIgnoreCase))
+        {
+            var name = v["Spooler:".Length..].Trim();
+            if (name.Length == 0) return false;
+            opt.Mode = "Spooler"; opt.PrinterName = name;
+            return true;
+        }
+        if (v.StartsWith("Tcp:", StringComparison.OrdinalIgnoreCase)) v = v["Tcp:".Length..].Trim();
+        var host = v; var port = 9100;
+        var colon = v.LastIndexOf(':');
+        if (colon >= 0)
+        {
+            host = v[..colon].Trim();
+            if (!int.TryParse(v[(colon + 1)..].Trim(), out port) || port is < 1 or > 65535) return false;
+        }
+        if (host.Length == 0 || host.Any(c => char.IsWhiteSpace(c) || c == ':')) return false;
+        opt.Mode = "Tcp"; opt.Host = host; opt.Port = port;
+        return true;
+    }
+
+    /// <summary>화면 표시용 — 「172.29.4.10:9100」·「Spooler ZDesigner ZD421」.</summary>
+    public string Describe() => string.Equals(Mode, "Spooler", StringComparison.OrdinalIgnoreCase)
+        ? $"Spooler {PrinterName}" : string.Equals(Mode, "Tcp", StringComparison.OrdinalIgnoreCase) ? $"{Host}:{Port}" : $"File {OutputDir}";
 }
 
 /// <summary>ZPL 문자열을 설정된 대상으로 내보낸다. 실패 시 예외 — 호출자가 로깅.</summary>

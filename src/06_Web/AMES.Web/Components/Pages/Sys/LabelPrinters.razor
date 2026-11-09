@@ -1,0 +1,286 @@
+@page "/sys/label-printers"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using AMES.Data.Repositories
+@using AMES.Web.Services
+@using Radzen
+
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthPrvd
+@inject PermissionService PermSvc
+@inject SysRepository Sys
+@inject IStringLocalizer<SharedResources> L
+@inject AMES.Web.Services.AuditLogger Audit
+
+<PageTitle>SYS-011 @L["SYS.Printer.Title"] · AMES</PageTitle>
+<AmesPageHeader Code="SYS-011" TitleKey="SYS.Printer.Title" />
+
+<div class="ames-kpis">
+    <div class="ames-kpi">
+        <div class="ames-kpi-l">@L["Lbl.Total"]</div>
+        <div class="ames-kpi-v">@_rows.Count</div>
+    </div>
+    <div class="ames-kpi ok">
+        <div class="ames-kpi-l">@L["Lbl.Active"]</div>
+        <div class="ames-kpi-v">@_rows.Count(r => r.ActiveFlag)</div>
+    </div>
+    <div class="ames-kpi warn">
+        <div class="ames-kpi-l">@L["Lbl.Inactive"]</div>
+        <div class="ames-kpi-v">@_rows.Count(r => !r.ActiveFlag)</div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_msg))
+{
+    <RadzenAlert AlertStyle="@(_isErr ? AlertStyle.Danger : AlertStyle.Success)" Variant="Variant.Flat">@_msg</RadzenAlert>
+}
+
+<div class="ames-card">
+    <div class="ames-card-h" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="white-space:nowrap;">▼ @L["SYS.Printer.List"] · @_rows.Count @L["Lbl.Items"]</span>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@Reload" class="ames-rz-btn" />
+            @if (_canEdit)
+            {
+                <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
+            }
+        </RadzenStack>
+    </div>
+    <div class="dim" style="font-size:var(--ames-fs-hint);padding:0 0 6px;">@L["SYS.Printer.Hint"]</div>
+
+    <RadzenDataGrid TItem="SysRepository.LabelPrinterRow" Data="@_rows" AllowSorting="true" AllowPaging="true" PageSize="25"
+                    PagerHorizontalAlign="HorizontalAlign.Center" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]"
+                    RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["SYS.Printer.Empty"]" Class="ames-rz-grid">
+        <Columns>
+            <RadzenDataGridColumn TItem="SysRepository.LabelPrinterRow" Property="PrinterName" Title="@L["SYS.Printer.Col.Name"]" Width="220px" MinWidth="220px">
+                <Template Context="r"><b>@r.PrinterName</b></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.LabelPrinterRow" Property="Address" Title="@L["SYS.Printer.Col.Address"]" Width="220px" MinWidth="220px">
+                <Template Context="r"><span class="code">@r.Address</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.LabelPrinterRow" Property="Location" Title="@L["SYS.Printer.Col.Location"]" Width="220px" MinWidth="160px">
+                <Template Context="r"><span class="dim">@(r.Location ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.LabelPrinterRow" Property="Remark" Title="@L["Col.Note"]" MinWidth="140px">
+                <Template Context="r"><span class="dim">@(r.Remark ?? "—")</span></Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.LabelPrinterRow" Property="ActiveFlag" Title="@L["Col.Active"]" TextAlign="TextAlign.Center" Width="100px" MinWidth="100px">
+                <Template Context="r">
+                    @if (r.ActiveFlag) { <span class="pill ok">@L["Lbl.Active"]</span> }
+                    else { <span class="pill bad">@L["Lbl.Inactive"]</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.LabelPrinterRow" Property="ModifiedTS" Title="@L["SYS.Printer.Col.Updated"]" TextAlign="TextAlign.Center" Width="180px" MinWidth="180px">
+                <Template Context="r"><span class="dim">@((r.ModifiedTS ?? r.CreatedTS)?.ToString(DateFmt.DateTime) ?? "—") @Actors.Display(r.ModifiedBy ?? r.CreatedBy)</span></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@if (_modal is "create" or "edit")
+{
+    <div class="ames-modal-bg" @onmousedown="() => _bgDown = true" @onclick="OnBgClick">
+        <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["SYS.Printer.Title"] — @(_modal == "create" ? L["Modal.Create"] : L["Modal.Edit"])</div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;">
+                <RadzenLabel Text='@(L["SYS.Printer.Col.Name"] + " *")' class="ames-rz-modal-label" Component="PrnTextName" />
+                <RadzenTextBox Name="PrnTextName" @bind-Value="_f.Name" MaxLength="@SysRepository.PrinterNameMax" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text='@(L["SYS.Printer.Col.Address"] + " *")' class="ames-rz-modal-label" Component="PrnTextAddr" />
+                <RadzenTextBox Name="PrnTextAddr" @bind-Value="_f.Address" Immediate="true" MaxLength="@SysRepository.PrinterAddressMax" Placeholder="172.29.4.10:9100" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+                <RadzenButton Text="@(_testing ? L["SYS.Printer.Testing"] : L["SYS.Printer.Btn.Test"])" Click="@TestConnection" Disabled="@(_testing || AddressRule is not null)" Icon="lan" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+            <div class="dim" style="font-size:var(--ames-fs-hint);margin:2px 0 0 calc(120px + 0.5rem);">
+                @if (AddressRule is { } rule && !string.IsNullOrWhiteSpace(_f.Address)) { <span style="color:var(--ames-tx-red-400);">⚠ @rule</span> }
+                else { @L["SYS.Printer.Hint.Address"] }
+            </div>
+            @if (!string.IsNullOrEmpty(_testMsg))
+            {
+                <div style="font-size:var(--ames-fs-hint);margin:2px 0 0 calc(120px + 0.5rem);color:@(_testOk ? "var(--ames-tx-green-400)" : "var(--ames-tx-red-400)");">@_testMsg</div>
+            }
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["SYS.Printer.Col.Location"]" class="ames-rz-modal-label" Component="PrnTextLoc" />
+                <RadzenTextBox Name="PrnTextLoc" @bind-Value="_f.Location" MaxLength="@SysRepository.PrinterLocationMax" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["Col.Note"]" class="ames-rz-modal-label" Component="PrnTextRemark" />
+                <RadzenTextBox Name="PrnTextRemark" @bind-Value="_f.Remark" MaxLength="@SysRepository.PrinterRemarkMax" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" AutoCompleteType="AutoCompleteType.Off" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="margin-top:8px;">
+                <RadzenCheckBox TValue="bool" @bind-Value="_f.Active" Name="PrnChkActive" />
+                <RadzenLabel Text="@L["Lbl.Active"]" Component="PrnChkActive" style="cursor:pointer;" />
+            </RadzenStack>
+
+            @if (_confirmDelete)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" class="ames-delete-confirm">
+                    <span>@L["Msg.Confirm.Delete"]</span>
+                    <RadzenButton Text="@L["Msg.No"]" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click='() => _confirmDelete = false' class="ames-rz-btn" />
+                    <RadzenButton Text="@(_busy ? L["Msg.Deleting"] : L["Msg.Yes"])" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" Click="@SaveDelete" Disabled="@_busy" class="ames-rz-btn" />
+                </RadzenStack>
+            }
+
+            @if (!string.IsNullOrEmpty(_modalErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat">@_modalErr</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@Save" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                @if (_modal == "edit")
+                {
+                    <RadzenButton Text="@L["Btn.Delete"]" Click='() => { _confirmDelete = true; _modalErr = ""; }' Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+}
+
+@code {
+    [Inject] AMES.Web.Services.ActorNames Actors { get; set; } = default!;
+
+    List<SysRepository.LabelPrinterRow> _rows = [];
+    SysRepository.LabelPrinterRow? _sel;
+    FormModel _f = new();
+    string _modal = "", _modalErr = "", _msg = "", _testMsg = "";
+    bool _busy, _bgDown, _isErr, _confirmDelete, _canEdit, _testing, _testOk;
+    string _actor = "system";
+
+    // 주소 형식 — 출력 때 쓰는 해석(ZplPrinterOptions.TryParseTarget)과 같은 규칙
+    string? AddressRule => AMES.Devices.ZplPrinterOptions.TryParseTarget(_f.Address, out _) ? null : L["SYS.Printer.Err.Address"].Value;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthPrvd.GetAuthenticationStateAsync();
+        _actor = AMES.Web.Services.ActorCode.Of(auth.User, "system");
+        await PermSvc.EnsureAsync(AuthPrvd);
+        _canEdit = PermSvc.CanEdit("sys/label-printers");
+        Reload();
+    }
+
+    void Reload()
+    {
+        try { _rows = Sys.ListLabelPrinters(); }
+        catch (Exception ex) { _rows = []; ShowMsg(ex.Message, true); }
+    }
+
+    void RowRender(RowRenderEventArgs<SysRepository.LabelPrinterRow> args)
+    {
+        if (!_canEdit) return;
+        args.Attributes["class"] = args.Attributes.TryGetValue("class", out var c) ? c + " ames-row-link" : "ames-row-link";
+    }
+
+    void OnRowClick(DataGridRowMouseEventArgs<SysRepository.LabelPrinterRow> args)
+    {
+        if (!_canEdit || args.Data is not { } r) return;
+        _sel = r; ResetModal();
+        _f = new() { Id = r.PrinterId, Name = r.PrinterName, Address = r.Address, Location = r.Location ?? "", Remark = r.Remark ?? "", Active = r.ActiveFlag };
+        _modal = "edit";
+    }
+
+    void OpenCreate()
+    {
+        if (!_canEdit) return;
+        _sel = null; ResetModal();
+        _f = new();
+        _modal = "create";
+    }
+
+    void ResetModal() { _modalErr = ""; _testMsg = ""; _confirmDelete = false; }
+    void CloseModal() { _modal = ""; _sel = null; ResetModal(); }
+    void OnBgClick() { if (_bgDown) CloseModal(); _bgDown = false; }
+
+    // 연결 확인 — 프린터 포트에 연결만 해 보고 아무것도 보내지 않는다(웹 서버 기준)
+    async Task TestConnection()
+    {
+        if (!AMES.Devices.ZplPrinterOptions.TryParseTarget(_f.Address, out var o)) return;
+        _testing = true; _testMsg = "";
+        try
+        {
+            if (!string.Equals(o.Mode, "Tcp", StringComparison.OrdinalIgnoreCase))
+            {
+                _testOk = true; _testMsg = L["SYS.Printer.Test.Spooler"].Value;
+                return;
+            }
+            using var tcp = new System.Net.Sockets.TcpClient();
+            var connect = tcp.ConnectAsync(o.Host, o.Port);
+            _testOk = await Task.WhenAny(connect, Task.Delay(3000)) == connect && !connect.IsFaulted && tcp.Connected;
+            _testMsg = string.Format(_testOk ? L["SYS.Printer.Test.Ok"].Value : L["SYS.Printer.Test.Fail"].Value, o.Describe(),
+                connect.Exception?.InnerException?.Message ?? "timeout");
+        }
+        catch (Exception ex) { _testOk = false; _testMsg = string.Format(L["SYS.Printer.Test.Fail"].Value, _f.Address, ex.Message); }
+        finally { _testing = false; }
+    }
+
+    async Task Save()
+    {
+        if (!_canEdit) { Audit.Denied("SYS-011", _modal == "create" ? "CREATE" : "UPDATE", "SYS_LabelPrinter", _f.Id); return; }
+        _modalErr = "";
+        var name = _f.Name?.Trim() ?? "";
+        var addr = _f.Address?.Trim() ?? "";
+        if (name.Length == 0) { _modalErr = L["SYS.Printer.Err.NameRequired"]; return; }
+        if (AddressRule is { } rule) { _modalErr = rule; return; }
+        _busy = true;
+        try
+        {
+            var loc = NE(_f.Location); var rem = NE(_f.Remark);
+            if (_modal == "create")
+            {
+                var id = await Task.Run(() => Sys.InsertLabelPrinter(name, addr, loc, rem, _f.Active, _actor));
+                Audit.Created("SYS-011", "SYS_LabelPrinter", id, new { PrinterName = name, Address = addr, Location = loc, Remark = rem, _f.Active });
+                ShowMsg($"{name} {L["Msg.Created"]}", false);
+            }
+            else
+            {
+                var id = _f.Id;
+                if (!await Task.Run(() => Sys.UpdateLabelPrinter(id, name, addr, loc, rem, _f.Active, _actor)))
+                { _modalErr = L["SYS.Printer.Err.Gone"]; Reload(); return; }
+                Audit.Updated("SYS-011", "SYS_LabelPrinter", id, _sel, new { PrinterName = name, Address = addr, Location = loc, Remark = rem, _f.Active });
+                ShowMsg($"{name} {L["Msg.Updated"]}", false);
+            }
+            CloseModal(); Reload();
+        }
+        catch (SysRepository.DuplicatePrinterNameException) { _modalErr = string.Format(L["SYS.Printer.Err.Duplicate"].Value, name); }
+        catch (Exception ex) { _modalErr = ex.Message; Audit.Failed("SYS-011", _modal == "create" ? "CREATE" : "UPDATE", "SYS_LabelPrinter", _f.Id, _f, ex.Message); }
+        finally { _busy = false; }
+    }
+
+    async Task SaveDelete()
+    {
+        if (!_canEdit || _sel is null) { Audit.Denied("SYS-011", "DELETE", "SYS_LabelPrinter", _f.Id); return; }
+        _busy = true;
+        try
+        {
+            var r = _sel;
+            await Task.Run(() => Sys.DeleteLabelPrinter(r.PrinterId));
+            Audit.Deleted("SYS-011", "SYS_LabelPrinter", r.PrinterId, r);
+            CloseModal(); Reload();
+            ShowMsg($"{r.PrinterName} {L["Msg.Deleted"]}", false);
+        }
+        catch (Exception ex) { _modalErr = ex.Message; _confirmDelete = false; }
+        finally { _busy = false; }
+    }
+
+    void ShowMsg(string msg, bool isErr)
+    {
+        _msg = msg; _isErr = isErr;
+        _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    class FormModel
+    {
+        public int    Id       { get; set; }
+        public string Name     { get; set; } = "";
+        public string Address  { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string Remark   { get; set; } = "";
+        public bool   Active   { get; set; } = true;
+    }
+}

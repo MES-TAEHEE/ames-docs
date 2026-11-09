@@ -1,0 +1,15 @@
+@* MD-034 팔레트 라벨 한 장(현장 라벨지 70×40mm = 560×320 dot). 위치·크기는 ZPL(PalletLabelBuilder)과 같은 점 좌표 ÷ 8 = mm.
+   바코드 내용 = 팔레트 번호 *@
+<div class="pallet-label-paper">
+    <div class="pallet-label-qr">
+        <RadzenQRCode Value="@Label.PalletNo" Size="100%" Foreground="#000000" Background="#ffffff" Ecc="RadzenQREcc.Quartile" />
+    </div>
+    <div class="pallet-label-kind">PALLET</div>
+    <div class="pallet-label-use">@AMES.Devices.PalletLabelBuilder.UseLine(Label)</div>
+    <div class="pallet-label-date">@Label.PrintedAt.ToString("MM/dd/yyyy", System.Globalization.CultureInfo.InvariantCulture)</div>
+    <div class="pallet-label-no">@Label.PalletNo</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public AMES.Devices.PalletLabel Label { get; set; } = default!;
+}

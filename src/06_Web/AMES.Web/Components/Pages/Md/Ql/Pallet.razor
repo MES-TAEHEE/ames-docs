@@ -13,6 +13,8 @@
 @inject MasterDataRepository MD
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
+@inject IJSRuntime JS
+@inject SysRepository Sys
 
 <PageTitle>MD-034 @L["MD.Pallet.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="MD-034" TitleKey="MD.Pallet.Title" />
@@ -59,6 +61,7 @@
             <RadzenDropDown Name="DropDownShipped" @bind-Value="_fShipped" Data="ShippedOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["Filter.All"]" AllowClear="true" InputSize="InputSize.Small" class="ames-rz-input" Style="width:130px;" />
 
             <RadzenButton Text="@L["Btn.Search"]" Icon="search" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@ApplyFilter" class="ames-rz-btn" />
+            <RadzenButton Text="@(_picked.Count > 0 ? string.Format(L["MD.Pallet.Btn.PrintN"].Value, _picked.Count) : L["MD.Pallet.Btn.Print"].Value)" Icon="print" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" Click="@OpenPrintPicked" Disabled="@(_picked.Count == 0)" class="ames-rz-btn" title="@L["MD.Pallet.Hint.PickToPrint"]" />
             @if (_canEdit)
             {
                 <RadzenButton Text="@L["Btn.Create"]" Icon="add" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@OpenCreate" class="ames-rz-btn" />
@@ -69,6 +72,15 @@
     <RadzenDataGrid @ref="_pgGrid" Page="OnPgPage" TItem="MasterDataRepository.PalletRow" Data="@_rows" AllowPaging="true" PageSize="25" PagerHorizontalAlign="HorizontalAlign.Center" AllowSorting="true"
                     PageSizeOptions="@_pageSizeOptions" ShowPagingSummary="@_showPagerSummary" PagingSummaryFormat="@L["Pager.Summary"]" PageSizeText="@L["Pager.PageSize"]" RowClick="@OnRowClick" RowRender="@RowRender" EmptyText="@L["MD.Pallet.Empty"]" PageSizeChanged="@(s => _pageRows = s)" Style="@($"--ames-page-rows:{_pageRows}")" Class="ames-rz-grid ames-grid-fixed">
         <Columns>
+            @* 라벨 출력 대상 선택 — 머리글은 지금 걸러진 목록 전체 *@
+            <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Width="44px" MinWidth="44px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                <HeaderTemplate>
+                    <RadzenCheckBox TValue="bool?" Value="@PickAllState" Change="@((bool? v) => PickAll())" TriState="false" Name="ChkPickAll" />
+                </HeaderTemplate>
+                <Template Context="r">
+                    <span @onclick:stopPropagation="true"><RadzenCheckBox TValue="bool" Value="@_picked.Contains(r.PalletNo)" Change="@((bool v) => Pick(r.PalletNo, v))" /></span>
+                </Template>
+            </RadzenDataGridColumn>
             @* 행 번호 — 정렬·페이지를 반영한 화면상의 순번 *@
             <RadzenDataGridColumn TItem="MasterDataRepository.PalletRow" Title="@L["Col.RowNo"]" Width="60px" MinWidth="60px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
                 <Template Context="rn"><span class="dim">@GridRowNo.Of(_pgGrid, rn)</span></Template>
@@ -221,11 +233,112 @@
 
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
                 <RadzenButton Text="@(_busy ? L["Msg.Saving"] : L["Btn.Save"])" Click="@SaveEdit" Disabled="@_busy" Icon="save" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["MD.Pallet.Btn.Print"]" Click="@(() => OpenPrint([_sel.PalletNo]))" Disabled="@_busy" Icon="print" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Delete"]" Click="@AskDelete" Disabled="@_busy" Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" class="ames-rz-btn" />
                 <RadzenButton Text="@L["Btn.Cancel"]" Click="@CloseModal" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
             </RadzenStack>
         </div>
     </div>
+}
+
+@* ── 라벨 출력 — 방식 선택: 서버 → 네트워크 프린터(ZPL, PC 설치 없음) / Zebra Browser Print(ZPL 을 PC 의 Zebra 프린터로) / 브라우저 인쇄(PC 프린터 드라이버) ── *@
+@if (_printNos.Count > 0)
+{
+    <div class="ames-modal-bg" style="z-index:1100;" @onmousedown="() => _printBgDown = true" @onclick="OnPrintBgClick">
+        <div class="ames-modal" style="max-width:560px;" @onmousedown:stopPropagation @onclick:stopPropagation>
+            <div class="ames-modal-h">@L["MD.Pallet.Print.Title"] <span class="dim" style="font-weight:400;font-size:.9em;">@string.Format(L["MD.Pallet.Print.Count"].Value, _printNos.Count)</span></div>
+
+            <div class="code" style="max-height:72px;overflow:auto;font-size:.9em;line-height:1.5;">
+                @string.Join(" · ", _printNos.Take(30))@(_printNos.Count > 30 ? $" … (+{_printNos.Count - 30})" : "")
+            </div>
+
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:10px;">
+                <RadzenLabel Text="@L["MD.Pallet.Print.Copies"]" class="ames-rz-modal-label" Component="PrintNumericCopies" />
+                <RadzenNumeric Name="PrintNumericCopies" TValue="int" @bind-Value="_copies" Min="1" Max="@CopiesMax" InputSize="InputSize.Small" class="ames-rz-input" Style="width:110px;" />
+                <span class="dim">@string.Format(L["MD.Pallet.Print.Pages"].Value, _printNos.Count * _copies)</span>
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["MD.Pallet.Print.Method"]" class="ames-rz-modal-label" Component="PrintRadioMethod" />
+                <RadzenRadioButtonList Name="PrintRadioMethod" TValue="string" Value="@_printMethod" Change="@((string v) => SetMethod(v))" Orientation="Orientation.Vertical">
+                    <Items>
+                        <RadzenRadioButtonListItem Text="@L["MD.Pallet.Print.Method.Server"]" Value="@MethodServer" />
+                        @* <RadzenRadioButtonListItem Text="@L["MD.Pallet.Print.Method.Zebra"]" Value="@MethodZebra" /> *@
+                        <RadzenRadioButtonListItem Text="@L["MD.Pallet.Print.Method.Browser"]" Value="@MethodBrowser" />
+                    </Items>
+                </RadzenRadioButtonList>
+            </RadzenStack>
+            @if (_printMethod == MethodServer)
+            {
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                    <RadzenLabel Text="@L["MD.Pallet.Print.Printer"]" class="ames-rz-modal-label" Component="PrintDropDownServer" />
+                    @if (_serverPrinters.Count > 0)
+                    {
+                        <RadzenDropDown Name="PrintDropDownServer" TValue="int?" Value="@_serverPrinterId" Change="@(v => SetServerPrinter(v as int?))" Data="@_serverPrinters" TextProperty="Text" ValueProperty="Id" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                    }
+                    else { <span class="pill warn">@L["MD.Pallet.Print.NoServerPrinter"]</span> }
+                </RadzenStack>
+            }
+            @if (_printMethod == MethodZebra)
+            {
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="width:100%;margin-top:6px;">
+                <RadzenLabel Text="@L["MD.Pallet.Print.Printer"]" class="ames-rz-modal-label" Component="PrintDropDownPrinter" />
+                @if (_zebraLoading)
+                {
+                    <span class="dim">@L["MD.Pallet.Print.Finding"]</span>
+                }
+                else if (_zebraPrinters.Count > 0)
+                {
+                    <RadzenDropDown Name="PrintDropDownPrinter" @bind-Value="_zebraUid" Data="_zebraPrinters" TextProperty="Text" ValueProperty="Value" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                }
+                else
+                {
+                    <span class="pill warn">@L["MD.Pallet.Print.NoAgent"]</span>
+                    <RadzenButton Text="@L["MD.Pallet.Btn.Retry"]" Icon="refresh" Click="@LoadPrinters" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                }
+            </RadzenStack>
+            @if (!_zebraLoading && _zebraPrinters.Count == 0 && !string.IsNullOrEmpty(_zebraErr))
+            {
+                <div class="code dim" style="font-size:var(--ames-fs-hint);margin-top:4px;word-break:break-all;">@_zebraErr</div>
+            }
+            }
+
+            @* 미리보기 = 첫 장(화면용 그림). Zebra 방식은 같은 좌표의 ZPL 이 나가고, 브라우저 방식은 이 그림이 그대로 인쇄된다 *@
+            <div class="pallet-label-preview">
+                <PalletLabelPaper Label="@LabelOf(_printNos[0])" />
+            </div>
+            <div class="dim" style="font-size:var(--ames-fs-hint);">@(_printMethod == MethodServer ? (_serverPrinters.Count == 0 ? L["MD.Pallet.Print.Hint.ServerUnset"].Value : L["MD.Pallet.Print.Hint.Server"].Value) : _printMethod == MethodBrowser ? L["MD.Pallet.Print.Hint.Browser"].Value : !_zebraLoading && _zebraPrinters.Count == 0 ? L["MD.Pallet.Print.Hint.Install"].Value : L["MD.Pallet.Print.Hint.Zebra"].Value)</div>
+
+            @if (!string.IsNullOrEmpty(_printErr))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" AllowClose="false">@_printErr</RadzenAlert>
+            }
+            @if (_printNos.Count * _copies > PagesMax)
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" AllowClose="false">@string.Format(L["MD.Pallet.Print.Err.TooMany"].Value, PagesMax)</RadzenAlert>
+            }
+
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" class="ames-modal-footer">
+                <RadzenButton Text="@(_printing ? L["MD.Pallet.Print.Printing"] : L["MD.Pallet.Btn.Print"])" Click="@DoPrint" Disabled="@(_printing || (_printMethod == MethodZebra && string.IsNullOrEmpty(_zebraUid)) || (_printMethod == MethodServer && _serverPrinterId is null) || _printNos.Count * _copies > PagesMax)" Icon="print" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["MD.Pallet.Btn.DownloadZpl"]" Click="@DownloadZpl" Icon="download" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+                <RadzenButton Text="@L["Btn.Cancel"]" Click="@ClosePrint" Icon="close" ButtonStyle="ButtonStyle.Base" Size="ButtonSize.Small" class="ames-rz-btn" />
+            </RadzenStack>
+        </div>
+    </div>
+
+    @* 브라우저 인쇄분 — 화면에는 숨기고 label-print.js 가 인쇄 프레임으로 옮겨 인쇄한다 *@
+    @if (_printMethod == MethodBrowser && _printNos.Count * _copies <= PagesMax)
+    {
+        <div class="pallet-print-sheet">
+            @foreach (var no in _printNos)
+            {
+                var lbl = LabelOf(no);
+                for (var c = 0; c < _copies; c++)
+                {
+                    <PalletLabelPaper Label="@lbl" />
+                }
+            }
+        </div>
+    }
 }
 
 @code {
@@ -363,9 +476,11 @@
             var created = MD.InsertPallets(_f.Count, _f.PalletUse, _f.CustomerID, NE(_f.Remark), _f.ActiveFlag, _actor);
             foreach (var n in created) { _f.PalletNo = n; Audit.Created("MD-034", "MD_Pallet", n, _f); }
             CloseModal(); await ReloadRestorePage();
-            ShowMsg(created.Count == 1
+            // 새로 발행한 팔레트를 출력 대상으로 골라 둔다 — 바로 「라벨 출력」을 누르면 된다
+            _picked = new HashSet<string>(created, StringComparer.OrdinalIgnoreCase);
+            ShowMsg((created.Count == 1
                 ? $"{created[0]} {L["Msg.Created"]}"
-                : string.Format(L["MD.Pallet.Msg.CreatedMany"], created.Count, created[0], created[^1]), false);
+                : string.Format(L["MD.Pallet.Msg.CreatedMany"], created.Count, created[0], created[^1])) + " " + L["MD.Pallet.Msg.PickedForPrint"].Value, false);
         }
         catch (Exception ex) { _modalErr = ex.Message; }
         finally { _busy = false; }
@@ -429,6 +544,199 @@
     {
         _msg = msg; _isErr = isErr;
         _ = Task.Delay(4000).ContinueWith(_ => { _msg = ""; InvokeAsync(StateHasChanged); });
+    }
+
+    // ── 라벨 출력 ────────────────────────────────────────────────────────
+    const int CopiesMax = 10;
+    const int PagesMax  = 500;   // 한 번에 프린터로 보내는 장수 — 그 이상은 나눠 뽑는다
+    HashSet<string> _picked = new(StringComparer.OrdinalIgnoreCase);
+    List<string> _printNos = [];
+    int _copies = 1;
+    bool _printBgDown, _printing, _zebraLoading;
+    string _printErr = "", _zebraErr = "";
+    string? _zebraUid;
+    List<DropDownItem> _zebraPrinters = [];
+    sealed record ZebraPrinter(string Uid, string Name, string? Connection);
+    sealed record ZebraList(bool Ok, List<ZebraPrinter>? Printers, string? DefaultUid, string? Error);
+    sealed record ZebraResult(bool Ok, string? Error);
+    const string MethodServer = "server", MethodZebra = "zebra", MethodBrowser = "browser";
+    const string ServerPrinterPrefKey = "ames.md034.serverPrinter";
+    sealed class ServerPrinterItem { public int Id { get; set; } public string Text { get; set; } = ""; public string Address { get; set; } = ""; }
+    List<ServerPrinterItem> _serverPrinters = [];
+    int? _serverPrinterId;
+    const string MethodPrefKey = "ames.md034.labelMethod";
+    string _printMethod = MethodZebra;
+    bool _methodLoaded;
+
+    bool? PickAllState => _rows.Count > 0 && _rows.All(r => _picked.Contains(r.PalletNo)) ? true
+                        : _rows.Any(r => _picked.Contains(r.PalletNo)) ? null : false;
+    // 일부·전부 선택이면 모두 해제, 아무것도 없을 때만 모두 선택(SYS-004 일괄 선택과 같은 규칙)
+    void PickAll()
+    {
+        if (PickAllState == false) foreach (var r in _rows) _picked.Add(r.PalletNo);
+        else foreach (var r in _rows) _picked.Remove(r.PalletNo);
+    }
+    void Pick(string no, bool on) { if (on) _picked.Add(no); else _picked.Remove(no); }
+
+    Task OpenPrintPicked() => OpenPrint(_allRows.Where(r => _picked.Contains(r.PalletNo)).Select(r => r.PalletNo).OrderBy(n => n, StringComparer.Ordinal).ToList());
+
+    async Task OpenPrint(List<string> nos)
+    {
+        if (nos.Count == 0) return;
+        _copies = 1; _printErr = "";
+        _printNos = nos;
+        await LoadServerPrinters();
+        // 이 PC 에서 마지막에 고른 방식 — 처음이면 Zebra 를 찾아 보고 없으면 브라우저 인쇄로 시작한다
+        if (!_methodLoaded)
+        {
+            _methodLoaded = true;
+            string? saved = null;
+            try { saved = await JS.InvokeAsync<string?>("amesLabelPref.get", MethodPrefKey); } catch { }
+            if (saved is MethodServer or MethodZebra or MethodBrowser) _printMethod = saved;
+            else if (_serverPrinters.Count > 0) { _printMethod = MethodServer; return; }
+            else
+            {
+                await LoadPrinters();
+                _printMethod = _zebraPrinters.Count > 0 ? MethodZebra : MethodBrowser;
+                return;
+            }
+        }
+        if (_printMethod == MethodZebra) await LoadPrinters();
+    }
+
+    // 네트워크 프린터 목록(SYS-011, 사용 중)은 열 때마다 다시 읽는다 — 이 PC 가 마지막에 고른 프린터를 먼저 고른다
+    async Task LoadServerPrinters()
+    {
+        try
+        {
+            _serverPrinters = Sys.ListLabelPrinters(activeOnly: true)
+                .Where(p => AMES.Devices.ZplPrinterOptions.TryParseTarget(p.Address, out _))
+                .Select(p => new ServerPrinterItem
+                {
+                    Id = p.PrinterId, Address = p.Address,
+                    Text = string.IsNullOrWhiteSpace(p.Location) ? $"{p.PrinterName} ({p.Address})" : $"{p.PrinterName} · {p.Location} ({p.Address})",
+                }).ToList();
+        }
+        catch { _serverPrinters = []; }
+        if (_serverPrinterId is { } cur && _serverPrinters.Any(p => p.Id == cur)) return;
+        int? saved = null;
+        try { saved = int.TryParse(await JS.InvokeAsync<string?>("amesLabelPref.get", ServerPrinterPrefKey), out var n) ? n : null; } catch { }
+        _serverPrinterId = saved is { } s && _serverPrinters.Any(p => p.Id == s) ? s : _serverPrinters.FirstOrDefault()?.Id;
+    }
+
+    async Task SetServerPrinter(int? id)
+    {
+        _serverPrinterId = id; _printErr = "";
+        if (id is { } v) try { await JS.InvokeVoidAsync("amesLabelPref.set", ServerPrinterPrefKey, v.ToString()); } catch { }
+    }
+
+    async Task SetMethod(string method)
+    {
+        _printMethod = method; _printErr = "";
+        try { await JS.InvokeVoidAsync("amesLabelPref.set", MethodPrefKey, method); } catch { }
+        if (method == MethodZebra && _zebraPrinters.Count == 0) await LoadPrinters();
+    }
+
+    // Zebra Browser Print 에이전트에서 이 PC 의 Zebra 프린터 목록을 읽는다(기본 프린터 선택)
+    async Task LoadPrinters()
+    {
+        _zebraLoading = true; _printErr = ""; _zebraErr = "";
+        StateHasChanged();
+        try
+        {
+            var r = await JS.InvokeAsync<ZebraList>("amesZebraPrinters");
+            _zebraErr = r.Ok ? (r.Printers is { Count: > 0 } ? "" : L["MD.Pallet.Print.NoPrinter"].Value) : r.Error ?? "";
+            _zebraPrinters = (r.Printers ?? []).Select(p => new DropDownItem
+            {
+                Value = p.Uid,
+                Text = string.IsNullOrEmpty(p.Connection) ? p.Name : $"{p.Name} ({p.Connection})",
+            }).ToList();
+            if (_zebraUid is null || _zebraPrinters.All(p => p.Value != _zebraUid)) _zebraUid = r.DefaultUid ?? _zebraPrinters.FirstOrDefault()?.Value;
+        }
+        catch (Exception ex) { _zebraPrinters = []; _zebraErr = ex.Message; }
+        finally { _zebraLoading = false; }
+    }
+
+    void ClosePrint() { if (!_printing) _printNos = []; }
+    void OnPrintBgClick() { if (_printBgDown) ClosePrint(); _printBgDown = false; }
+
+    AMES.Devices.PalletLabel LabelOf(string no)
+    {
+        var r = _allRows.FirstOrDefault(x => x.PalletNo == no);
+        var ext = r?.PalletUse == MasterDataRepository.PalletExternal;
+        var cust = !ext ? null
+            : r?.CustomerID is { } cid ? (_customers.FirstOrDefault(c => c.CustomerID == cid)?.CustomerCode ?? cid) : "SHARED";
+        return new AMES.Devices.PalletLabel(no, r?.PalletUse ?? "", cust, DbClock.Today);
+    }
+
+    // Zebra Browser Print 로 ZPL 을 그대로 보낸다 — 드라이버 용지 설정을 거치지 않아 ^PW560/^LL320 그대로 나온다
+    async Task DoPrint()
+    {
+        if (_printMethod == MethodBrowser) { await DoBrowserPrint(); return; }
+        if (_printMethod == MethodServer) { await DoServerPrint(); return; }
+        if (_printNos.Count == 0 || _printNos.Count * _copies > PagesMax || string.IsNullOrEmpty(_zebraUid)) return;
+        _printErr = ""; _printing = true;
+        var nos = _printNos.ToList(); var copies = _copies;
+        var printer = _zebraPrinters.FirstOrDefault(p => p.Value == _zebraUid)?.Text ?? _zebraUid;
+        try
+        {
+            var r = await JS.InvokeAsync<ZebraResult>("amesZebraWrite", _zebraUid, BuildZpl());
+            if (!r.Ok) { _printErr = string.Format(L["MD.Pallet.Print.Err.Failed"].Value, printer, r.Error); return; }
+            Audit.Log("MD-034", "PRINT", "MD_Pallet", nos.Count == 1 ? nos[0] : $"{nos[0]}~{nos[^1]}", null,
+                new { Pallets = nos, Copies = copies, Printer = printer });
+            _printNos = [];
+            ShowMsg(string.Format(L["MD.Pallet.Msg.Printed"].Value, nos.Count, copies), false);
+        }
+        catch (Exception ex) { _printErr = string.Format(L["MD.Pallet.Print.Err.Failed"].Value, printer, ex.Message); }
+        finally { _printing = false; }
+    }
+
+    // 웹 서버가 고른 네트워크 프린터(SYS-011)로 ZPL 을 바로 보낸다 — PC 설치·드라이버 설정 없음
+    async Task DoServerPrint()
+    {
+        if (_printNos.Count == 0 || _printNos.Count * _copies > PagesMax || _serverPrinterId is not { } pid) return;
+        // 저장된 주소를 다시 읽어 보낸다 — 창을 연 사이 SYS-011 에서 바꾸거나 끈 프린터로 보내지 않게
+        var row = Sys.FindLabelPrinter(pid);
+        if (row is not { ActiveFlag: true } || !AMES.Devices.ZplPrinterOptions.TryParseTarget(row.Address, out var target))
+        { _printErr = L["MD.Pallet.Print.Err.PrinterGone"].Value; await LoadServerPrinters(); return; }
+        var printerName = row.PrinterName;
+        _printErr = ""; _printing = true;
+        var nos = _printNos.ToList(); var copies = _copies; var zpl = BuildZpl();
+        try
+        {
+            await Task.Run(() => new AMES.Devices.ZplPrinter(target).Print(zpl, "pallet-labels"));
+            Audit.Log("MD-034", "PRINT", "MD_Pallet", nos.Count == 1 ? nos[0] : $"{nos[0]}~{nos[^1]}", null,
+                new { Pallets = nos, Copies = copies, Printer = $"{printerName} {target.Describe()}" });
+            _printNos = [];
+            ShowMsg(string.Format(L["MD.Pallet.Msg.Printed"].Value, nos.Count, copies), false);
+        }
+        catch (Exception ex) { _printErr = string.Format(L["MD.Pallet.Print.Err.Failed"].Value, $"{printerName} {target.Describe()}", (ex as AggregateException)?.InnerException?.Message ?? ex.Message); }
+        finally { _printing = false; }
+    }
+
+    // 브라우저 인쇄 창 — 프린터·용지는 이 PC 의 드라이버 설정을 따른다(용지 70×40mm 여야 그대로 나온다)
+    async Task DoBrowserPrint()
+    {
+        if (_printNos.Count == 0 || _printNos.Count * _copies > PagesMax) return;
+        var nos = _printNos.ToList();
+        Audit.Log("MD-034", "PRINT", "MD_Pallet", nos.Count == 1 ? nos[0] : $"{nos[0]}~{nos[^1]}", null,
+            new { Pallets = nos, Copies = _copies, Printer = "BROWSER" });
+        await JS.InvokeAsync<bool>("amesPrintLabels", ".pallet-print-sheet", AMES.Devices.PalletLabelBuilder.PageSizeCss);
+    }
+
+    string BuildZpl()
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var no in _printNos) sb.AppendLine(AMES.Devices.PalletLabelBuilder.Build(LabelOf(no), _copies));
+        return sb.ToString();
+    }
+
+    async Task DownloadZpl()
+    {
+        if (_printNos.Count == 0) return;
+        var bytes = System.Text.Encoding.UTF8.GetBytes(BuildZpl());
+        var name = _printNos.Count == 1 ? $"{_printNos[0]}.zpl" : $"pallets_{DbClock.Now:yyyyMMdd_HHmmss}.zpl";
+        await JS.InvokeVoidAsync("amesDownload", name, Convert.ToBase64String(bytes), "text/plain");
     }
 
     static string? NE(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

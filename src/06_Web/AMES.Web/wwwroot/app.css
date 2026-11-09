@@ -5663,6 +5663,26 @@ html[data-theme="light"] .spare-label-preview { background: #e5e7eb; }
     #spare-part-label-print { position: absolute; inset: 0 auto auto 0; width: 100mm; margin: 0; padding: 0; }
 }
 
+/* ── MD-034 팔레트 라벨(현장 라벨지 70×40mm = 560×320 dot @203dpi — POP 라벨과 같은 라벨지) ──────────────
+   출력 방식은 출력 창에서 고른다 — Zebra 방식은 zebra-print.js 가 같은 좌표의 ZPL(PalletLabelBuilder)을 Zebra Browser Print 로 보내고,
+   브라우저 방식은 label-print.js 가 이 그림을 인쇄 프레임에 옮겨 인쇄한다(PC 드라이버 용지가 70×40mm 여야 줄거나 밀리지 않는다). */
+.pallet-label-preview { display: flex; justify-content: center; padding: 14px; margin: 10px 0 6px; background: var(--ames-sf-090f1d); border-radius: 8px; }
+html[data-theme="light"] .pallet-label-preview { background: #e5e7eb; }
+.pallet-label-paper {
+    position: relative; box-sizing: border-box; width: 70mm; height: 40mm; padding: 0;
+    overflow: hidden; background: #fff; color: #000; font-family: Arial, sans-serif; font-weight: 700; line-height: 1;
+}
+/* 좌표 = ZPL 점 ÷ 8(203dpi) — PalletLabelBuilder 와 같은 자리 */
+.pallet-label-paper > div { position: absolute; white-space: nowrap; }
+/* QR 은 화면 쪽 SVG 에 여백 4칸이 붙어 33칸(25 + 8) — 한 칸 0.75mm(^BQN 배율 6) × 33 = 24.75mm, 여백 3mm 만큼 당겨 ZPL ^FO40,25 자리에 맞춘다 */
+.pallet-label-qr   { left: 2mm;    top: .125mm;  width: 24.75mm; height: 24.75mm; }
+.pallet-label-kind { left: 27.5mm; top: 5mm;     font-size: 6mm; font-weight: 900; }
+.pallet-label-use  { left: 27.5mm; top: 12.5mm;  font-size: 3.75mm; max-width: 41mm; overflow: hidden; text-overflow: ellipsis; }
+.pallet-label-date { left: 27.5mm; top: 18.125mm; font-size: 3.25mm; }
+.pallet-label-no   { left: 5mm;    top: 28.5mm;  font-size: 5.5mm; font-weight: 900; max-width: 63mm; overflow: hidden; }
+.pallet-print-sheet { display: none; }
+
+
 /* ── 외부 포탈(/portal) 외부 사용자용 셸 — 내부 사용자는 MainLayout 안에서 같은 화면을 본다 ───────── */
 .portal-shell { min-height: 100vh; display: flex; flex-direction: column; background: var(--ames-bg, var(--ames-sf-0b1220)); color: var(--ames-fg, var(--ames-tx-gray-200)); }
 .portal-top { display: flex; align-items: center; gap: 24px; padding: 0 20px; height: 52px; border-bottom: 1px solid var(--ames-border, #1f2937); background: var(--ames-panel, var(--ames-sf-0f172a)); }

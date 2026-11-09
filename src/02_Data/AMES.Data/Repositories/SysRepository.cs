@@ -1582,6 +1582,78 @@ public sealed class SysRepository
         return (int)cmd.ExecuteScalar()! > 0;
     }
 
+    // ── 라벨 프린터 (SYS-011) ─────────────────────────────────────────────
+    // 웹 서버가 ZPL 을 바로 보내는 네트워크 라벨 프린터 — MD-034 팔레트 라벨 「서버에서 네트워크 프린터로 출력」이 목록으로 쓴다.
+    // 참조하는 테이블이 없어 삭제는 그대로 지운다(고른 프린터는 브라우저에만 기억).
+    public sealed record LabelPrinterRow(int PrinterId, string PrinterName, string Address, string? Location, string? Remark,
+        bool ActiveFlag, string? CreatedBy, DateTime? CreatedTS, string? ModifiedBy, DateTime? ModifiedTS);
+
+    public sealed class DuplicatePrinterNameException(string name) : Exception($"Printer name already exists: {name}")
+    {
+        public string PrinterName { get; } = name;
+    }
+
+    public const int PrinterNameMax = 50, PrinterAddressMax = 100, PrinterLocationMax = 100, PrinterRemarkMax = 200;
+
+    public List<LabelPrinterRow> ListLabelPrinters(bool activeOnly = false) => Query(
+        "SELECT PrinterID, PrinterName, Address, Location, Remark, ActiveFlag, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS " +
+        "FROM dbo.SYS_LabelPrinter" + (activeOnly ? " WHERE ActiveFlag = 1" : "") + " ORDER BY PrinterName;",
+        r => new LabelPrinterRow((int)r["PrinterID"], (string)r["PrinterName"], (string)r["Address"], r["Location"] as string,
+            r["Remark"] as string, (bool)r["ActiveFlag"], r["CreatedBy"] as string, r["CreatedTS"] as DateTime?,
+            r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?));
+
+    public LabelPrinterRow? FindLabelPrinter(int printerId) => Query(
+        "SELECT PrinterID, PrinterName, Address, Location, Remark, ActiveFlag, CreatedBy, CreatedTS, ModifiedBy, ModifiedTS " +
+        "FROM dbo.SYS_LabelPrinter WHERE PrinterID = @Id;",
+        r => new LabelPrinterRow((int)r["PrinterID"], (string)r["PrinterName"], (string)r["Address"], r["Location"] as string,
+            r["Remark"] as string, (bool)r["ActiveFlag"], r["CreatedBy"] as string, r["CreatedTS"] as DateTime?,
+            r["ModifiedBy"] as string, r["ModifiedTS"] as DateTime?),
+        ("@Id", "SYS_LabelPrinter.PrinterID", printerId)).FirstOrDefault();
+
+    /// <summary>등록 — 이름이 겹치면(대소문자 무시) <see cref="DuplicatePrinterNameException"/>. 새 PrinterID 를 돌려준다.</summary>
+    public int InsertLabelPrinter(string name, string address, string? location, string? remark, bool active, string actor)
+        => SaveLabelPrinter(null, name, address, location, remark, active, actor);
+
+    /// <summary>수정 — 없는 프린터면 false.</summary>
+    public bool UpdateLabelPrinter(int printerId, string name, string address, string? location, string? remark, bool active, string actor)
+        => SaveLabelPrinter(printerId, name, address, location, remark, active, actor) > 0;
+
+    int SaveLabelPrinter(int? printerId, string name, string address, string? location, string? remark, bool active, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx = conn.BeginTransaction();
+        using (var dup = new SqlCommand(
+            "SELECT COUNT(1) FROM dbo.SYS_LabelPrinter WITH (UPDLOCK, HOLDLOCK) WHERE PrinterName = @Name AND (@Id IS NULL OR PrinterID <> @Id);", conn, tx))
+        {
+            ColumnParams.AddFilter(dup, "@Name", "SYS_LabelPrinter.PrinterName", name);
+            ColumnParams.AddFilter(dup, "@Id", "SYS_LabelPrinter.PrinterID", printerId);
+            if ((int)dup.ExecuteScalar()! > 0) throw new DuplicatePrinterNameException(name);
+        }
+        using var cmd = new SqlCommand(printerId is null
+            ? "INSERT dbo.SYS_LabelPrinter (PrinterName, Address, Location, Remark, ActiveFlag, CreatedBy, CreatedTS) " +
+              "VALUES (@Name, @Addr, @Loc, @Rem, @Act, @By, SYSDATETIME()); SELECT CAST(SCOPE_IDENTITY() AS int);"
+            : "UPDATE dbo.SYS_LabelPrinter SET PrinterName = @Name, Address = @Addr, Location = @Loc, Remark = @Rem, ActiveFlag = @Act, " +
+              "ModifiedBy = @By, ModifiedTS = SYSDATETIME() WHERE PrinterID = @Id; SELECT @@ROWCOUNT;", conn, tx);
+        ColumnParams.Add(cmd, "@Name", "SYS_LabelPrinter.PrinterName", name);
+        ColumnParams.Add(cmd, "@Addr", "SYS_LabelPrinter.Address", address);
+        ColumnParams.Add(cmd, "@Loc", "SYS_LabelPrinter.Location", location);
+        ColumnParams.Add(cmd, "@Rem", "SYS_LabelPrinter.Remark", remark);
+        ColumnParams.Add(cmd, "@Act", "SYS_LabelPrinter.ActiveFlag", active);
+        ColumnParams.Add(cmd, "@By", printerId is null ? "SYS_LabelPrinter.CreatedBy" : "SYS_LabelPrinter.ModifiedBy", actor);
+        if (printerId is not null) ColumnParams.AddFilter(cmd, "@Id", "SYS_LabelPrinter.PrinterID", printerId);
+        var result = Convert.ToInt32(cmd.ExecuteScalar());
+        tx.Commit();
+        return result;
+    }
+
+    public bool DeleteLabelPrinter(int printerId)
+    {
+        using var conn = _f.OpenConnection();
+        using var cmd = new SqlCommand("DELETE dbo.SYS_LabelPrinter WHERE PrinterID = @Id;", conn);
+        ColumnParams.AddFilter(cmd, "@Id", "SYS_LabelPrinter.PrinterID", printerId);
+        return cmd.ExecuteNonQuery() > 0;
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────
     // 저장 매개변수는 값이 들어가는 컬럼("테이블.컬럼")을 함께 적는다 — 형식·길이를 DB 컬럼에서 정하고 저장 전에 길이를 검사한다(ColumnParams, 10-12)
     private void Exec(string sql, params (string Name, string Column, object? Value)[] pars)

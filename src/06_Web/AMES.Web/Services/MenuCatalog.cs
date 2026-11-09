@@ -154,6 +154,7 @@ public sealed class MenuCatalog
         new("sys", "sys/notifications", "SYS-008", "알림 관리",           "Notification Management"),
         new("sys", "sys/config",        "SYS-009", "시스템 설정",         "System Configuration"),
         new("sys", "sys/health",        "SYS-010", "시스템 상태",         "System Health"),
+        new("sys", "sys/label-printers", "SYS-011", "라벨 프린터 관리",    "Label Printer Management"),
     };
 
     static readonly HashSet<string> HiddenItems = new(StringComparer.OrdinalIgnoreCase)
@@ -377,6 +378,7 @@ public sealed class MenuCatalog
         ["sys/notifications"] = "Gestión de Notificaciones",
         ["sys/config"] = "Configuración del Sistema",
         ["sys/health"] = "Estado del Sistema",
+        ["sys/label-printers"] = "Gestión de Impresoras de Etiquetas",
     };
 
     // MD 서브그룹(SUBPROCESS 공통코드) 스페인어 표기 (CodeValue 키)

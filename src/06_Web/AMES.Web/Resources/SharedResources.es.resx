@@ -13026,4 +13026,145 @@
   <data name="PP.Downtime.Hint.TypeDate" xml:space="preserve">
     <value>Elija en el calendario o escriba — p. ej. {0} · 14:30 (hoy) · 20261105 1430</value>
   </data>
+  <data name="MD.Pallet.Btn.Print" xml:space="preserve">
+    <value>Imprimir etiqueta</value>
+  </data>
+  <data name="MD.Pallet.Btn.PrintN" xml:space="preserve">
+    <value>Imprimir etiquetas ({0})</value>
+  </data>
+  <data name="MD.Pallet.Btn.DownloadZpl" xml:space="preserve">
+    <value>Descargar ZPL</value>
+  </data>
+  <data name="MD.Pallet.Hint.PickToPrint" xml:space="preserve">
+    <value>Seleccione los palés con las casillas de la izquierda</value>
+  </data>
+  <data name="MD.Pallet.Print.Title" xml:space="preserve">
+    <value>Imprimir etiquetas de palé</value>
+  </data>
+  <data name="MD.Pallet.Print.Count" xml:space="preserve">
+    <value>{0} palé(s)</value>
+  </data>
+  <data name="MD.Pallet.Print.Copies" xml:space="preserve">
+    <value>Copias c/u</value>
+  </data>
+  <data name="MD.Pallet.Msg.PickedForPrint" xml:space="preserve">
+    <value>Los palés nuevos están seleccionados: pulse Imprimir etiquetas.</value>
+  </data>
+  <data name="MD.Pallet.Print.Pages" xml:space="preserve">
+    <value>{0} etiqueta(s) en total</value>
+  </data>
+  <data name="MD.Pallet.Print.Err.TooMany" xml:space="preserve">
+    <value>Hasta {0} etiquetas por impresión: reduzca palés o copias</value>
+  </data>
+  <data name="MD.Pallet.Print.Printer" xml:space="preserve">
+    <value>Impresora</value>
+  </data>
+  <data name="MD.Pallet.Print.Finding" xml:space="preserve">
+    <value>Buscando impresoras Zebra en este PC…</value>
+  </data>
+  <data name="MD.Pallet.Print.NoAgent" xml:space="preserve">
+    <value>Zebra Browser Print no disponible</value>
+  </data>
+  <data name="MD.Pallet.Btn.Retry" xml:space="preserve">
+    <value>Reintentar</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Zebra" xml:space="preserve">
+    <value>Envía ZPL directamente a la impresora Zebra de este PC (70×40 mm, sin depender del papel del controlador). La vista previa es un dibujo en pantalla; la fuente difiere un poco de la impresión.</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Install" xml:space="preserve">
+    <value>Instale y ejecute Zebra Browser Print en este PC para imprimir (descarga gratuita de Zebra). Si este sitio es https, abra https://127.0.0.1:9101 una vez y acepte el certificado. Mientras tanto, use Descargar ZPL.</value>
+  </data>
+  <data name="MD.Pallet.Print.Printing" xml:space="preserve">
+    <value>Imprimiendo…</value>
+  </data>
+  <data name="MD.Pallet.Print.Err.Failed" xml:space="preserve">
+    <value>No se pudo enviar a la impresora ({0}): {1}</value>
+  </data>
+  <data name="MD.Pallet.Msg.Printed" xml:space="preserve">
+    <value>Se enviaron {0} etiqueta(s) × {1} copia(s) a la impresora</value>
+  </data>
+  <data name="MD.Pallet.Print.NoPrinter" xml:space="preserve">
+    <value>Browser Print funciona pero no tiene impresora Zebra; agréguela en su configuración</value>
+  </data>
+  <data name="MD.Pallet.Print.Method" xml:space="preserve">
+    <value>Método</value>
+  </data>
+  <data name="MD.Pallet.Print.Method.Zebra" xml:space="preserve">
+    <value>Impresora Zebra (directa)</value>
+  </data>
+  <data name="MD.Pallet.Print.Method.Browser" xml:space="preserve">
+    <value>Imprimir desde el navegador</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Browser" xml:space="preserve">
+    <value>Imprimir etiqueta abre el diálogo del navegador: elija la impresora de etiquetas, papel 70×40 mm, sin márgenes, escala 100%. El papel del controlador también debe ser 70×40 mm o la etiqueta se reduce o se desplaza. El código es QR (contenido = número de palé).</value>
+  </data>
+  <data name="MD.Pallet.Print.Method.Server" xml:space="preserve">
+    <value>Impresora de red (desde el servidor)</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Server" xml:space="preserve">
+    <value>El servidor web envía ZPL directamente a la impresora de red; no hay nada que instalar en este PC y no depende del controlador.</value>
+  </data>
+  <data name="SYS.Printer.Title" xml:space="preserve">
+    <value>Gestión de Impresoras de Etiquetas</value>
+  </data>
+  <data name="SYS.Printer.List" xml:space="preserve">
+    <value>Impresoras</value>
+  </data>
+  <data name="SYS.Printer.Empty" xml:space="preserve">
+    <value>No hay impresoras registradas</value>
+  </data>
+  <data name="SYS.Printer.Hint" xml:space="preserve">
+    <value>Impresoras de etiquetas de red a las que el servidor web envía ZPL directamente; se eligen en Impresora de red (desde el servidor) al imprimir etiquetas en el Maestro de Pallets (MD-034). Las inactivas no aparecen.</value>
+  </data>
+  <data name="SYS.Printer.Col.Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="SYS.Printer.Col.Address" xml:space="preserve">
+    <value>Dirección</value>
+  </data>
+  <data name="SYS.Printer.Col.Location" xml:space="preserve">
+    <value>Ubicación</value>
+  </data>
+  <data name="SYS.Printer.Col.Updated" xml:space="preserve">
+    <value>Actualizado</value>
+  </data>
+  <data name="SYS.Printer.Hint.Address" xml:space="preserve">
+    <value>IP o IP:puerto (9100 si se omite) · impresora instalada en el servidor web: Spooler:nombre</value>
+  </data>
+  <data name="SYS.Printer.Btn.Test" xml:space="preserve">
+    <value>Probar conexión</value>
+  </data>
+  <data name="SYS.Printer.Testing" xml:space="preserve">
+    <value>Probando…</value>
+  </data>
+  <data name="SYS.Printer.Test.Ok" xml:space="preserve">
+    <value>El servidor web puede conectar con {0} (no se imprimió nada)</value>
+  </data>
+  <data name="SYS.Printer.Test.Fail" xml:space="preserve">
+    <value>El servidor web no pudo conectar con {0}: {1}</value>
+  </data>
+  <data name="SYS.Printer.Test.Spooler" xml:space="preserve">
+    <value>Las impresoras Spooler no se pueden probar aquí; imprima una etiqueta</value>
+  </data>
+  <data name="SYS.Printer.Err.NameRequired" xml:space="preserve">
+    <value>Indique el nombre</value>
+  </data>
+  <data name="SYS.Printer.Err.Address" xml:space="preserve">
+    <value>Dirección no válida; p. ej. 172.29.4.10, 172.29.4.10:9100, Spooler:ZDesigner ZD421</value>
+  </data>
+  <data name="SYS.Printer.Err.Duplicate" xml:space="preserve">
+    <value>Ya existe una impresora con este nombre: {0}</value>
+  </data>
+  <data name="SYS.Printer.Err.Gone" xml:space="preserve">
+    <value>Otro usuario eliminó esta impresora; se recargó la lista</value>
+  </data>
+  <data name="MD.Pallet.Print.NoServerPrinter" xml:space="preserve">
+    <value>Sin impresoras</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.ServerUnset" xml:space="preserve">
+    <value>No hay impresoras de red activas; regístrelas en Gestión de Impresoras de Etiquetas (SYS-011).</value>
+  </data>
+  <data name="MD.Pallet.Print.Err.PrinterGone" xml:space="preserve">
+    <value>La impresora elegida se eliminó o desactivó; se recargó la lista</value>
+  </data>
 </root>

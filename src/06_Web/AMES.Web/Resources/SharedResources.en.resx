@@ -13026,4 +13026,145 @@
   <data name="PP.Downtime.Hint.TypeDate" xml:space="preserve">
     <value>Pick from the calendar or type — e.g. {0} · 14:30 (today) · 20261105 1430</value>
   </data>
+  <data name="MD.Pallet.Btn.Print" xml:space="preserve">
+    <value>Print Label</value>
+  </data>
+  <data name="MD.Pallet.Btn.PrintN" xml:space="preserve">
+    <value>Print Labels ({0})</value>
+  </data>
+  <data name="MD.Pallet.Btn.DownloadZpl" xml:space="preserve">
+    <value>Download ZPL</value>
+  </data>
+  <data name="MD.Pallet.Hint.PickToPrint" xml:space="preserve">
+    <value>Select pallets with the checkboxes on the left</value>
+  </data>
+  <data name="MD.Pallet.Print.Title" xml:space="preserve">
+    <value>Print Pallet Labels</value>
+  </data>
+  <data name="MD.Pallet.Print.Count" xml:space="preserve">
+    <value>{0} pallet(s)</value>
+  </data>
+  <data name="MD.Pallet.Print.Copies" xml:space="preserve">
+    <value>Copies each</value>
+  </data>
+  <data name="MD.Pallet.Msg.PickedForPrint" xml:space="preserve">
+    <value>The new pallets are selected — press Print Labels.</value>
+  </data>
+  <data name="MD.Pallet.Print.Pages" xml:space="preserve">
+    <value>{0} label(s) total</value>
+  </data>
+  <data name="MD.Pallet.Print.Err.TooMany" xml:space="preserve">
+    <value>Up to {0} labels per print — select fewer pallets or copies</value>
+  </data>
+  <data name="MD.Pallet.Print.Printer" xml:space="preserve">
+    <value>Printer</value>
+  </data>
+  <data name="MD.Pallet.Print.Finding" xml:space="preserve">
+    <value>Looking for Zebra printers on this PC…</value>
+  </data>
+  <data name="MD.Pallet.Print.NoAgent" xml:space="preserve">
+    <value>Zebra Browser Print not reachable</value>
+  </data>
+  <data name="MD.Pallet.Btn.Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Zebra" xml:space="preserve">
+    <value>Sends ZPL straight to this PC's Zebra printer (70×40 mm, independent of the driver's paper setting). The preview is a screen drawing, so its font differs slightly from the printout.</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Install" xml:space="preserve">
+    <value>Install and run Zebra Browser Print on this PC to print (free download from Zebra). If this site is https, open https://127.0.0.1:9101 once and accept its certificate. Until then, use Download ZPL.</value>
+  </data>
+  <data name="MD.Pallet.Print.Printing" xml:space="preserve">
+    <value>Printing…</value>
+  </data>
+  <data name="MD.Pallet.Print.Err.Failed" xml:space="preserve">
+    <value>Could not send to the printer ({0}): {1}</value>
+  </data>
+  <data name="MD.Pallet.Msg.Printed" xml:space="preserve">
+    <value>Sent {0} label(s) × {1} copy(ies) to the printer</value>
+  </data>
+  <data name="MD.Pallet.Print.NoPrinter" xml:space="preserve">
+    <value>Browser Print is running but has no Zebra printer — add one in Browser Print settings</value>
+  </data>
+  <data name="MD.Pallet.Print.Method" xml:space="preserve">
+    <value>Print method</value>
+  </data>
+  <data name="MD.Pallet.Print.Method.Zebra" xml:space="preserve">
+    <value>Zebra printer (direct)</value>
+  </data>
+  <data name="MD.Pallet.Print.Method.Browser" xml:space="preserve">
+    <value>Browser print</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Browser" xml:space="preserve">
+    <value>Print Label opens the browser print dialog — choose the label printer, 70×40 mm paper, no margins, 100% scale. Set the printer driver's paper to 70×40 mm too, or the label shrinks or shifts. The barcode is a QR code (content = pallet number).</value>
+  </data>
+  <data name="MD.Pallet.Print.Method.Server" xml:space="preserve">
+    <value>Network printer (from server)</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.Server" xml:space="preserve">
+    <value>The web server sends ZPL straight to the network printer — nothing to install on this PC and independent of driver settings.</value>
+  </data>
+  <data name="SYS.Printer.Title" xml:space="preserve">
+    <value>Label Printer Management</value>
+  </data>
+  <data name="SYS.Printer.List" xml:space="preserve">
+    <value>Printers</value>
+  </data>
+  <data name="SYS.Printer.Empty" xml:space="preserve">
+    <value>No printers registered</value>
+  </data>
+  <data name="SYS.Printer.Hint" xml:space="preserve">
+    <value>Network label printers the web server sends ZPL to directly — chosen under Network printer (from server) in Pallet Master (MD-034) label printing. Inactive printers are hidden there.</value>
+  </data>
+  <data name="SYS.Printer.Col.Name" xml:space="preserve">
+    <value>Printer name</value>
+  </data>
+  <data name="SYS.Printer.Col.Address" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="SYS.Printer.Col.Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="SYS.Printer.Col.Updated" xml:space="preserve">
+    <value>Updated</value>
+  </data>
+  <data name="SYS.Printer.Hint.Address" xml:space="preserve">
+    <value>IP or IP:port (9100 if omitted) · a printer installed on the web server PC: Spooler:printer name</value>
+  </data>
+  <data name="SYS.Printer.Btn.Test" xml:space="preserve">
+    <value>Test connection</value>
+  </data>
+  <data name="SYS.Printer.Testing" xml:space="preserve">
+    <value>Testing…</value>
+  </data>
+  <data name="SYS.Printer.Test.Ok" xml:space="preserve">
+    <value>The web server can reach {0} (nothing was printed)</value>
+  </data>
+  <data name="SYS.Printer.Test.Fail" xml:space="preserve">
+    <value>The web server could not reach {0}: {1}</value>
+  </data>
+  <data name="SYS.Printer.Test.Spooler" xml:space="preserve">
+    <value>Spooler printers cannot be tested here — print one label to check</value>
+  </data>
+  <data name="SYS.Printer.Err.NameRequired" xml:space="preserve">
+    <value>Enter a printer name</value>
+  </data>
+  <data name="SYS.Printer.Err.Address" xml:space="preserve">
+    <value>Invalid address — e.g. 172.29.4.10, 172.29.4.10:9100, Spooler:ZDesigner ZD421</value>
+  </data>
+  <data name="SYS.Printer.Err.Duplicate" xml:space="preserve">
+    <value>A printer with this name already exists: {0}</value>
+  </data>
+  <data name="SYS.Printer.Err.Gone" xml:space="preserve">
+    <value>Another user deleted this printer — the list was reloaded</value>
+  </data>
+  <data name="MD.Pallet.Print.NoServerPrinter" xml:space="preserve">
+    <value>No printer registered</value>
+  </data>
+  <data name="MD.Pallet.Print.Hint.ServerUnset" xml:space="preserve">
+    <value>No active network printer — register one in Label Printer Management (SYS-011).</value>
+  </data>
+  <data name="MD.Pallet.Print.Err.PrinterGone" xml:space="preserve">
+    <value>The selected printer was removed or deactivated — the list was reloaded</value>
+  </data>
 </root>
