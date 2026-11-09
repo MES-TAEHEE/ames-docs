@@ -13221,4 +13221,55 @@
   <data name="ItemPeek.NewerVersion" xml:space="preserve">
     <value>A newer version {0} [{1}] exists (starts {2}) — the list shows the version effective today.</value>
   </data>
+  <data name="ItemPeek.Stock" xml:space="preserve">
+    <value>On hand</value>
+  </data>
+  <data name="ItemPeek.Safety" xml:space="preserve">
+    <value>Safety</value>
+  </data>
+  <data name="ItemPeek.Min" xml:space="preserve">
+    <value>Min</value>
+  </data>
+  <data name="ItemPeek.Max" xml:space="preserve">
+    <value>Max</value>
+  </data>
+  <data name="ItemPeek.Lots" xml:space="preserve">
+    <value>LOTs</value>
+  </data>
+  <data name="ItemPeek.Locs" xml:space="preserve">
+    <value>Locations</value>
+  </data>
+  <data name="ItemPeek.Unassigned" xml:space="preserve">
+    <value>Unassigned</value>
+  </data>
+  <data name="ItemPeek.Shortage" xml:space="preserve">
+    <value>Line backflush short</value>
+  </data>
+  <data name="ItemPeek.ShortageTip" xml:space="preserve">
+    <value>Quantity left negative on backflush placeholders (BF-) because line stock ran short — not subtracted from on hand</value>
+  </data>
+  <data name="ItemPeek.ByLocation" xml:space="preserve">
+    <value>By location</value>
+  </data>
+  <data name="ItemPeek.MoreLocs" xml:space="preserve">
+    <value>+{0} more</value>
+  </data>
+  <data name="ItemPeek.Procure" xml:space="preserve">
+    <value>Procurement</value>
+  </data>
+  <data name="ItemPeek.PalletQty" xml:space="preserve">
+    <value>Qty per pallet</value>
+  </data>
+  <data name="ItemPeek.Inj" xml:space="preserve">
+    <value>Injection part</value>
+  </data>
+  <data name="ItemPeek.Active" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="ItemPeek.ActiveOn" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="ItemPeek.ActiveOff" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
 </root>

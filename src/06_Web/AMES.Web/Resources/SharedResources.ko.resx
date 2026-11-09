@@ -13221,4 +13221,55 @@
   <data name="ItemPeek.NewerVersion" xml:space="preserve">
     <value>더 새 버전 {0} [{1}] 이 있습니다(시작일 {2}) — 위 구성은 오늘 유효한 버전입니다.</value>
   </data>
+  <data name="ItemPeek.Stock" xml:space="preserve">
+    <value>현재 재고</value>
+  </data>
+  <data name="ItemPeek.Safety" xml:space="preserve">
+    <value>안전</value>
+  </data>
+  <data name="ItemPeek.Min" xml:space="preserve">
+    <value>최소</value>
+  </data>
+  <data name="ItemPeek.Max" xml:space="preserve">
+    <value>최대</value>
+  </data>
+  <data name="ItemPeek.Lots" xml:space="preserve">
+    <value>LOT</value>
+  </data>
+  <data name="ItemPeek.Locs" xml:space="preserve">
+    <value>위치</value>
+  </data>
+  <data name="ItemPeek.Unassigned" xml:space="preserve">
+    <value>위치 미지정</value>
+  </data>
+  <data name="ItemPeek.Shortage" xml:space="preserve">
+    <value>라인 차감 부족</value>
+  </data>
+  <data name="ItemPeek.ShortageTip" xml:space="preserve">
+    <value>자동 차감할 때 라인 재고가 모자라 자리표시(BF-)에 음수로 남은 양 — 현재 재고에는 더하지 않았습니다</value>
+  </data>
+  <data name="ItemPeek.ByLocation" xml:space="preserve">
+    <value>위치별</value>
+  </data>
+  <data name="ItemPeek.MoreLocs" xml:space="preserve">
+    <value>외 {0}곳</value>
+  </data>
+  <data name="ItemPeek.Procure" xml:space="preserve">
+    <value>조달형태</value>
+  </data>
+  <data name="ItemPeek.PalletQty" xml:space="preserve">
+    <value>적입수량</value>
+  </data>
+  <data name="ItemPeek.Inj" xml:space="preserve">
+    <value>사출품</value>
+  </data>
+  <data name="ItemPeek.Active" xml:space="preserve">
+    <value>사용</value>
+  </data>
+  <data name="ItemPeek.ActiveOn" xml:space="preserve">
+    <value>사용</value>
+  </data>
+  <data name="ItemPeek.ActiveOff" xml:space="preserve">
+    <value>사용 안 함</value>
+  </data>
 </root>

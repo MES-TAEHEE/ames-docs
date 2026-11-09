@@ -8,6 +8,7 @@
 @inject IStringLocalizer<SharedResources> L
 @inject UomFormat UomFmt
 @inject AuthenticationStateProvider AuthPrvd
+@inject WarehouseRepository WH
 
 @if (_show)
 {
@@ -38,21 +39,68 @@
                 }
                 else
                 {
-                    <div class="ipk-tiles">
-                        <div class="ipk-tile"><div class="ipk-tl">@L["Col.Type"]</div><div class="ipk-tv">@(_info.ItemType ?? "—")</div></div>
-                        <div class="ipk-tile"><div class="ipk-tl">@L["Col.Category"]</div><div class="ipk-tv">@(_info.ItemCategory ?? "—")</div></div>
-                        <div class="ipk-tile"><div class="ipk-tl">@L["Col.Uom"]</div><div class="ipk-tv">@(_info.DefaultUOM is { } u ? UomFmt.Sym(u) : "—")</div></div>
-                        <div class="ipk-tile">
-                            <div class="ipk-tl">@L["ItemPeek.Version"]</div>
-                            <div class="ipk-tv">
-                                @if (_rep is null) { <span class="dim">—</span> }
-                                else
+                    <div class="ipk-top">
+                        <div class="ipk-stock @StockCss()">
+                            <div class="ipk-tl">@L["ItemPeek.Stock"]</div>
+                            @if (_stock is null)
+                            {
+                                <div class="ipk-big dim">—</div>
+                                @if (_stockErr is not null) { <div class="ipk-stock-sub neg">⚠ @_stockErr</div> }
+                            }
+                            else
+                            {
+                                <div class="ipk-big">@UomFmt.Qty(_stock.OnHand, _info.DefaultUOM)<span class="ipk-unit">@(_info.DefaultUOM is { } su ? UomFmt.Sym(su) : "")</span></div>
+                                <div class="ipk-stock-sub">
+                                    @L["ItemPeek.Safety"] @Num(_info.SafetyStock)
+                                    <span class="ipk-sep">·</span> @L["ItemPeek.Min"] @Num(_info.MinStock)
+                                    <span class="ipk-sep">·</span> @L["ItemPeek.Max"] @Num(_info.MaxStock)
+                                </div>
+                                <div class="ipk-stock-sub">
+                                    @L["ItemPeek.Lots"] @_stock.Lots.ToString("#,0")
+                                    <span class="ipk-sep">·</span> @L["ItemPeek.Locs"] @_stock.Locations.Count.ToString("#,0")
+                                    @if (_stock.Unassigned > 0) { <span class="ipk-sep">·</span> @L["ItemPeek.Unassigned"] @Num(_stock.Unassigned) }
+                                </div>
+                                @if (_stock.Shortage < 0)
                                 {
-                                    <span class="code">@(_rep.VersionNo ?? _rep.VersionID)</span>
-                                    <span class="pill @StatusCss(_rep.Status)" style="margin-left:4px;">@StatusName(_rep.Status)</span>
+                                    <div class="ipk-stock-sub neg" title="@L["ItemPeek.ShortageTip"]">⚠ @L["ItemPeek.Shortage"] @Num(_stock.Shortage)</div>
                                 }
-                            </div>
+                            }
                         </div>
+                        <div class="ipk-info">
+                            <div class="ipk-k">@L["Col.Type"]</div><div class="ipk-v">@CodeName("ITEM_TYPE", _info.ItemType)</div>
+                            <div class="ipk-k">@L["Col.Category"]</div><div class="ipk-v">@CodeName("ITEM_CATEGORY", _info.ItemCategory)</div>
+                            <div class="ipk-k">@L["Col.CarType"]</div><div class="ipk-v">@(_info.CarType ?? "—")</div>
+                            <div class="ipk-k">@L["Col.Uom"]</div><div class="ipk-v">@(_info.DefaultUOM is { } u ? UomFmt.Sym(u) : "—")</div>
+                            <div class="ipk-k">@L["Col.Routing"]</div><div class="ipk-v">@CodeName("ROUTING", _info.RoutingType)</div>
+                            <div class="ipk-k">@L["ItemPeek.Procure"]</div><div class="ipk-v">@CodeName(MasterDataRepository.ProcureTypeGroup, _info.ProcureType)</div>
+                            <div class="ipk-k">PGN / ALC</div><div class="ipk-v code">@(_info.PGN ?? "—") / @(_info.ALC ?? "—")</div>
+                            <div class="ipk-k">@L["ItemPeek.PalletQty"]</div><div class="ipk-v">@(_info.PalletQty is { } pq ? pq.ToString("#,0") : "—")</div>
+                            <div class="ipk-k">@L["ItemPeek.Inj"]</div><div class="ipk-v">@(_info.InjFlag ? "✓" : "—")</div>
+                            <div class="ipk-k">@L["ItemPeek.Active"]</div><div class="ipk-v">@if (_info.ActiveFlag) { <span class="pill ok">@L["ItemPeek.ActiveOn"]</span> } else { <span class="pill mute">@L["ItemPeek.ActiveOff"]</span> }</div>
+                        </div>
+                    </div>
+                    @if (_stock is { Locations.Count: > 0 })
+                    {
+                        <div class="ipk-locs">
+                            <span class="ipk-sub">@L["ItemPeek.ByLocation"]</span>
+                            @foreach (var (loc, q) in _stock.Locations.Take(LocShow))
+                            {
+                                <span class="ipk-chip"><span class="code">@loc</span> <b>@Num(q)</b></span>
+                            }
+                            @if (_stock.Locations.Count > LocShow)
+                            {
+                                <span class="dim ipk-small">@string.Format(L["ItemPeek.MoreLocs"].Value, _stock.Locations.Count - LocShow)</span>
+                            }
+                        </div>
+                    }
+                    <div class="ipk-ver">
+                        <span class="ipk-sub">@L["ItemPeek.Version"]</span>
+                        @if (_rep is null) { <span class="dim">—</span> }
+                        else
+                        {
+                            <span class="code">@(_rep.VersionNo ?? _rep.VersionID)</span>
+                            <span class="pill @StatusCss(_rep.Status)">@StatusName(_rep.Status)</span>
+                        }
                     </div>
                     @if (_rep is not null)
                     {
@@ -173,6 +221,10 @@
     readonly Stack<string> _back = new();
     List<AMES.Data.Services.BomVersionRules.VersionInfo> _versions = new();
     List<MasterDataRepository.CodeItemRow> _statusItems = new();
+    readonly Dictionary<string, List<MasterDataRepository.CodeItemRow>> _codes = new();
+    WarehouseRepository.ItemStockSummary? _stock;
+    string? _stockErr;
+    const int LocShow = 8;
     DateOnly _today;
     int _seq;   // 늦게 끝난 이전 조회가 새 조회 결과를 덮지 않게
 
@@ -203,8 +255,10 @@
     async Task Show(string itemNo)
     {
         var seq = ++_seq;
-        _itemNo = itemNo; _show = true; _loading = true; _err = null;
+        _itemNo = itemNo; _show = true; _loading = true; _err = null; _stock = null; _stockErr = null;
         await InvokeAsync(StateHasChanged);
+        // 재고는 BOM 과 따로 읽는다 — 재고 조회가 실패해도 BOM 은 보이게
+        var stockTask = Task.Run(() => WH.GetItemStockSummary(itemNo));
         try
         {
             var r = await Task.Run(() => Load(itemNo));
@@ -216,6 +270,8 @@
             if (seq != _seq) return;
             _err = ex.Message; _info = null; _rep = null; _newer = null; _children = new(); _parents = new();
         }
+        try { var st = await stockTask; if (seq != _seq) return; _stock = st; }
+        catch (Exception ex) { if (seq != _seq) return; _stockErr = ex.Message; }
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
@@ -224,6 +280,8 @@
     {
         _today = DateOnly.FromDateTime(DbClock.Today);
         if (_statusItems.Count == 0) { try { _statusItems = MD.ListCodeItems("BOM_STATUS"); } catch { } }
+        foreach (var g in new[] { "ITEM_TYPE", "ITEM_CATEGORY", "ROUTING", MasterDataRepository.ProcureTypeGroup })
+            if (!_codes.ContainsKey(g)) { try { _codes[g] = MD.ListCodeItems(g); } catch { } }
         var info = MD.ListItems(itemNo).FirstOrDefault(i => string.Equals(i.ItemNo, itemNo, StringComparison.OrdinalIgnoreCase));
         var verRows = MD.ListBomVersions();
         _versions = verRows.Select(MasterDataRepository.ToVersionInfo).ToList();
@@ -330,6 +388,24 @@
             yield return n;
             if (n.Open) foreach (var k in Visible(n.Kids)) yield return k;
         }
+    }
+
+    // 공통코드 이름 — 없는 값·못 읽은 그룹은 코드 그대로
+    string CodeName(string group, string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return "—";
+        var item = _codes.GetValueOrDefault(group)?.FirstOrDefault(c => string.Equals(c.CodeValue, code, StringComparison.OrdinalIgnoreCase));
+        return item is null ? code : MasterDataRepository.LocalName(item);
+    }
+
+    string Num(decimal? v) => v is { } d ? UomFmt.Qty(d, _info?.DefaultUOM) : "—";
+
+    // 안전재고보다 적으면 경고색, 재고가 없으면 흐리게
+    string StockCss()
+    {
+        if (_stock is null || _info is null) return "";
+        if (_stock.OnHand <= 0) return "empty";
+        return _info.SafetyStock is { } ss && ss > 0 && _stock.OnHand < ss ? "low" : "";
     }
 
     string StatusName(string? code)

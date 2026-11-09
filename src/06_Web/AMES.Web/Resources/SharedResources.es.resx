@@ -13221,4 +13221,55 @@
   <data name="ItemPeek.NewerVersion" xml:space="preserve">
     <value>Existe una versión más nueva {0} [{1}] (inicia {2}) — la lista muestra la versión vigente hoy.</value>
   </data>
+  <data name="ItemPeek.Stock" xml:space="preserve">
+    <value>Existencia actual</value>
+  </data>
+  <data name="ItemPeek.Safety" xml:space="preserve">
+    <value>Seguridad</value>
+  </data>
+  <data name="ItemPeek.Min" xml:space="preserve">
+    <value>Mín</value>
+  </data>
+  <data name="ItemPeek.Max" xml:space="preserve">
+    <value>Máx</value>
+  </data>
+  <data name="ItemPeek.Lots" xml:space="preserve">
+    <value>LOTs</value>
+  </data>
+  <data name="ItemPeek.Locs" xml:space="preserve">
+    <value>Ubicaciones</value>
+  </data>
+  <data name="ItemPeek.Unassigned" xml:space="preserve">
+    <value>Sin ubicación</value>
+  </data>
+  <data name="ItemPeek.Shortage" xml:space="preserve">
+    <value>Faltante de consumo en línea</value>
+  </data>
+  <data name="ItemPeek.ShortageTip" xml:space="preserve">
+    <value>Cantidad negativa en marcadores de consumo (BF-) por falta de existencia en línea — no se resta de la existencia</value>
+  </data>
+  <data name="ItemPeek.ByLocation" xml:space="preserve">
+    <value>Por ubicación</value>
+  </data>
+  <data name="ItemPeek.MoreLocs" xml:space="preserve">
+    <value>+{0} más</value>
+  </data>
+  <data name="ItemPeek.Procure" xml:space="preserve">
+    <value>Abastecimiento</value>
+  </data>
+  <data name="ItemPeek.PalletQty" xml:space="preserve">
+    <value>Cant. por pallet</value>
+  </data>
+  <data name="ItemPeek.Inj" xml:space="preserve">
+    <value>Pieza inyectada</value>
+  </data>
+  <data name="ItemPeek.Active" xml:space="preserve">
+    <value>Estado</value>
+  </data>
+  <data name="ItemPeek.ActiveOn" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="ItemPeek.ActiveOff" xml:space="preserve">
+    <value>Inactivo</value>
+  </data>
 </root>
