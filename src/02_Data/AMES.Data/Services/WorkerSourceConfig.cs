@@ -73,6 +73,11 @@ public static class WorkerSourceConfig
 
     public static WorkerSourceConfigResult Resolve(IReadOnlyList<WorkerCodeRow> rows, string code, int defaultIntervalMin,
         params string[] requiredParams)
+        => Resolve(rows, code, defaultIntervalMin, _ => requiredParams);
+
+    /// <param name="requiredFor">소스 설명란 파라미터 → 그 소스에 필요한 파라미터(소스 종류마다 다를 때 — PoSync 의 TYPE)</param>
+    public static WorkerSourceConfigResult Resolve(IReadOnlyList<WorkerCodeRow> rows, string code, int defaultIntervalMin,
+        Func<IReadOnlyDictionary<string, string>, IEnumerable<string>> requiredFor)
     {
         var groupGlobal = GroupGlobal(code);
         var groupSource = groupGlobal + "_SOURCE";
@@ -133,7 +138,7 @@ public static class WorkerSourceConfig
             if (dupAuthKeys.Contains(key)) problems.Add($"{groupAuth} 에 같은 키 행이 2개 이상입니다");
 
             var p = ParseParams(s.Description);
-            foreach (var req in requiredParams)
+            foreach (var req in requiredFor(p))
                 if (!p.TryGetValue(req, out var val) || val.Length == 0)
                     problems.Add($"파라미터 {req} 가 없습니다");
 

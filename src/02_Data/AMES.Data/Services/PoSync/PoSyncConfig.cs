@@ -16,7 +16,13 @@ public static class PoSyncConfig
     public const int DefaultWindowTo    = 0;
     /// <summary>모니터 행 접두어. Worker 의 Code 와 소스 행 InterfaceCode 가 모두 이 값을 쓴다 — 어긋나면 모니터 행이 갈라진다.</summary>
     public const string MonitorCode     = "POSYNC";
-    public const int MaxKeyLen          = 13;   // MonitorCode + "-" + key <= SYS_InterfaceMonitor.InterfaceCode VARCHAR(20)
+    public const int MaxKeyLen          = 13;
+    /// <summary>소스 종류(설명란 TYPE=). 없으면 SRM. EOS 는 CORCD·BIZCD·PURC_ORG 가 없고 VENDCD 로 응답을 거른다.</summary>
+    public const string TypeSrm         = "SRM";
+    public const string TypeEos         = "EOS";
+    public const string DefaultEosSql   = "SIS.EOS_GET_PO";
+    static readonly string[] SrmRequired = ["CORCD", "BIZCD", "VENDCD", "PURC_ORG"];
+    static readonly string[] EosRequired = ["VENDCD"];   // MonitorCode + "-" + key <= SYS_InterfaceMonitor.InterfaceCode VARCHAR(20)
 
     /// <summary>
     /// 공통코드 그룹. ScheduledWorker 설정 그룹은 모두 "SW_" + Worker Code 로 시작해 MD-26 에서 SW_ 로 한 번에 찾는다.
@@ -68,17 +74,29 @@ public static class PoSyncConfig
     public static PoSyncConfigResult Resolve(IReadOnlyList<CodeRow> rows)
     {
         var wrows = rows.Select(r => new WorkerCodeRow(r.Group, r.Value, r.Name, r.Attr1, r.Description, r.Use)).ToList();
-        var w = WorkerSourceConfig.Resolve(wrows, MonitorCode, DefaultIntervalMin, "CORCD", "BIZCD", "VENDCD", "PURC_ORG");
+        var w = WorkerSourceConfig.Resolve(wrows, MonitorCode, DefaultIntervalMin, p => TypeOf(p) switch
+        {
+            TypeSrm => SrmRequired,
+            TypeEos => EosRequired,
+            _       => ["TYPE(SRM|EOS)"],
+        });
         if (!TryParseWindow(w.Globals.GetValueOrDefault("WINDOW"), out int gFrom, out int gTo)) (gFrom, gTo) = (DefaultWindowFrom, DefaultWindowTo);
         var sources = w.Sources.Select(s =>
         {
             if (!TryParseWindow(s.Params.GetValueOrDefault("WINDOW"), out int from, out int to)) (from, to) = (gFrom, gTo);
+            var type = TypeOf(s.Params);
+            var sql  = s.Params.GetValueOrDefault("SQL") is { Length: > 0 } q ? q : DefaultEosSql;
             return new PoSyncSource(s.Key, s.Name, s.CustomerId, s.Url, s.AuthScheme, s.AuthValue,
-                s.Params["CORCD"], s.Params["BIZCD"], s.Params["VENDCD"], s.Params["PURC_ORG"], w.GlobalIntervalMin, from, to, w.TimeoutSec);
+                s.Params.GetValueOrDefault("CORCD") ?? "", s.Params.GetValueOrDefault("BIZCD") ?? "", s.Params["VENDCD"],
+                s.Params.GetValueOrDefault("PURC_ORG") ?? "", w.GlobalIntervalMin, from, to, w.TimeoutSec,
+                type, type == TypeEos ? sql : null);
         }).ToList();
         var errors = w.Errors.Select(e => new PoSyncConfigError(e.Key, e.Name, e.Message)).ToList();
         return new PoSyncConfigResult(sources, errors, w.GlobalIntervalMin, w.TickSec, w.StartupDelaySec, w.TimeoutSec);
     }
+
+    static string TypeOf(IReadOnlyDictionary<string, string> p)
+        => p.GetValueOrDefault("TYPE") is { Length: > 0 } t ? t.Trim().ToUpperInvariant() : TypeSrm;
 
     /// <summary>캐시하지 않는다 — MD-26 에서 키를 바꾸면 다음 요청부터 반영된다(수동 실행은 드물다).</summary>
     public static string? LoadServiceKey(SqlConnection conn)

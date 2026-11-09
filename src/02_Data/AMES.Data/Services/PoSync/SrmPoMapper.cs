@@ -9,7 +9,7 @@ public sealed record SrmPoMapResult(IReadOnlyList<PpRepository.CustomerOrderImpo
 /// <summary>
 /// INQUERY 커서 행 → <see cref="PpRepository.UpsertCustomerOrders"/> 입력. Excel 경로(Web PoListParser)와 같은 규칙:
 /// PONO 마지막 '-' 뒤가 정수면 SoLineNo, 음수 발주수량 제외. 자동화라 삭제표시(LOEKZ='L')·길이 초과도 조용히 제외하고 센다.
-/// 납품완료(ELIKZ='X')는 납품수량 갱신을 위해 포함한다.
+/// 납품완료(ELIKZ='X')는 납품수량 갱신을 위해 포함한다. 납품수량이 없으면(EOS 등) 기존 납품수량을 그대로 둔다.
 /// </summary>
 public static class SrmPoMapper
 {
@@ -44,7 +44,7 @@ public static class SrmPoMapper
             var key = (so, line);
             if (!byKey.ContainsKey(key)) order.Add(key);
             byKey[key] = new PpRepository.CustomerOrderImportRow(
-                so, line, item, qty, r.DELI_QTY ?? 0m,
+                so, line, item, qty, r.DELI_QTY,
                 ParseDate(r.PO_DATE), ParseDate(r.PO_DELI_DATE));
         }
 

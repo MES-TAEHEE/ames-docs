@@ -2398,7 +2398,7 @@
     <value>수집 완료 — 신규 {0}건, 갱신 {1}건.</value>
   </data>
   <data name="PP.SupplyPlanImport.Api.Detail" xml:space="preserve">
-    <value>발주일 {0} ~ {1} · 조회 {2} · 매핑 {3} · 제외 {4}</value>
+    <value>기간 {0} ~ {1} · 조회 {2} · 매핑 {3} · 제외 {4}</value>
   </data>
   <data name="PP.SupplyPlanImport.Api.Btn.Run" xml:space="preserve">
     <value>실행</value>

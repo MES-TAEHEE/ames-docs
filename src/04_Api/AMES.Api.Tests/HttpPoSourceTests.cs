@@ -121,4 +121,39 @@ public class HttpPoSourceTests
         Assert.Contains("400", ex.Message);
         Assert.Contains("지원하지 않는 검색 매개변수", ex.Message);
     }
+
+    static PoSyncSource Eos(string? scheme = null, string? value = null)
+        => new("SAV", "Savannah EOS", "CUS-SAV", "https://exapi.example/eos/api/data/Query", scheme, value, "", "", "310471", "",
+               30, -7, 60, null, PoSyncConfig.TypeEos, "SIS.EOS_GET_PO");
+
+    [Fact]
+    public async Task Eos_source_posts_the_json_query_without_auth()
+    {
+        using var req = HttpPoSource.BuildEosRequest(Eos(), From, To);
+
+        Assert.Equal(HttpMethod.Post, req.Method);
+        Assert.Equal("https://exapi.example/eos/api/data/Query", req.RequestUri!.ToString());
+        Assert.Null(req.Headers.Authorization);
+        Assert.Equal("application/json", req.Content!.Headers.ContentType!.MediaType);
+        using var doc = System.Text.Json.JsonDocument.Parse(await req.Content.ReadAsStringAsync());
+        Assert.Equal("SIS.EOS_GET_PO", doc.RootElement.GetProperty("SQL").GetString());
+        Assert.Equal("2026-07-19", doc.RootElement.GetProperty("Parameters").GetProperty("IN_DATE_FROM").GetProperty("Value").GetString());
+        Assert.Equal("2026-09-17", doc.RootElement.GetProperty("Parameters").GetProperty("IN_DATE_TO").GetProperty("Value").GetString());
+    }
+
+    [Fact]
+    public async Task Eos_fetch_keeps_only_our_vendor_rows()
+    {
+        var handler = new StubHandler(HttpStatusCode.OK, """
+            {"value":[{"PO_NO":"4100172428","PO_SEQ":10,"VENDOR_CODE":"701850","PART_NO":"A","PO_QTY":1,"DELIVERY_DATE":"2026-11-02","PO_DATE":"2026-09-01"},
+                      {"PO_NO":"4100181100","PO_SEQ":20,"VENDOR_CODE":"310471","PART_NO":"B","PO_QTY":2,"DELIVERY_DATE":"2026-11-05","PO_DATE":"2026-10-20"}],"count":2}
+            """);
+        var source = new HttpPoSource(new StubFactory(handler), new ConfigurationBuilder().Build());
+
+        // 7일 창 = 요청 1번(창이 길면 7일씩 나눠 여러 번 부른다)
+        var rows = await source.FetchAsync(Eos(), new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 8), CancellationToken.None);
+
+        Assert.Equal("4100181100-20", Assert.Single(rows).PONO);
+        Assert.Equal(HttpMethod.Post, handler.Last!.Method);
+    }
 }

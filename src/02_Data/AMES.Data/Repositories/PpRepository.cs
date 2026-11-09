@@ -53,7 +53,7 @@ public sealed partial class PpRepository
         string? WoNumber, string? WoStatus, bool ItemExists, int WoCount = 0);
 
     public sealed record CustomerOrderImportRow(string SoNumber, int? SoLineNo, string ItemNo,
-        decimal OrderQty, decimal ShippedQty, DateTime? OrderDate, DateTime? RequestedDeliveryDate);
+        decimal OrderQty, decimal? ShippedQty, DateTime? OrderDate, DateTime? RequestedDeliveryDate);   // ShippedQty null = 원천이 납품수량을 주지 않음(기존 값 유지, 새 행 0)
 
     public sealed record SupplyPlanRow(int PlanId, string? PlanCode, DateTime? PlanPeriod,
         string? Status, int LineCount, decimal TotalPlannedQty);
@@ -477,7 +477,8 @@ public sealed partial class PpRepository
         const string updSql = """
             UPDATE S
             SET    ItemNo = @Item, OrderQty = @OrderQty,
-                   ShippedQty = CASE WHEN @ShippedQty < COALESCE(S.ShippedQty,0)
+                   ShippedQty = CASE WHEN @ShippedQty IS NULL THEN S.ShippedQty
+                       WHEN @ShippedQty < COALESCE(S.ShippedQty,0)
                        AND EXISTS (SELECT 1 FROM dbo.FG_ShippingOrderLine L
                                    JOIN dbo.FG_ShippingOrder O ON O.OrderID=L.OrderID
                                    JOIN dbo.FG_Delivery D ON D.DeliveryID=O.DeliveryID
@@ -494,7 +495,7 @@ public sealed partial class PpRepository
             INSERT INTO dbo.PP_CustomerOrder
                    (SoNumber, SoLineNo, CustomerID, ItemNo, OrderQty, ShippedQty,
                     OrderDate, RequestedDeliveryDate, Status, SapSyncedAt, CreatedBy)
-            VALUES (@So, @Line, @Cust, @Item, @OrderQty, @ShippedQty,
+            VALUES (@So, @Line, @Cust, @Item, @OrderQty, COALESCE(@ShippedQty, 0),
                     @OrderDate, @ReqDate, @Status, SYSDATETIME(), @Actor);
             """;
 
@@ -538,7 +539,7 @@ public sealed partial class PpRepository
                     c.Parameters["@Line"].Value       = (object?)r.SoLineNo ?? DBNull.Value;
                     c.Parameters["@Item"].Value       = r.ItemNo;
                     c.Parameters["@OrderQty"].Value   = r.OrderQty;
-                    c.Parameters["@ShippedQty"].Value = r.ShippedQty;
+                    c.Parameters["@ShippedQty"].Value = (object?)r.ShippedQty ?? DBNull.Value;
                     c.Parameters["@OrderDate"].Value  = (object?)r.OrderDate ?? DBNull.Value;
                     c.Parameters["@ReqDate"].Value    = (object?)r.RequestedDeliveryDate ?? DBNull.Value;
                 }

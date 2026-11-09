@@ -2398,7 +2398,7 @@
     <value>Sync complete — {0} inserted, {1} updated.</value>
   </data>
   <data name="PP.SupplyPlanImport.Api.Detail" xml:space="preserve">
-    <value>PO date {0} ~ {1} · fetched {2} · mapped {3} · skipped {4}</value>
+    <value>Period {0} ~ {1} · fetched {2} · mapped {3} · skipped {4}</value>
   </data>
   <data name="PP.SupplyPlanImport.Api.Btn.Run" xml:space="preserve">
     <value>Run</value>

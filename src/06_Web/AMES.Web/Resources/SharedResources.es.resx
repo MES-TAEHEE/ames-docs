@@ -2395,7 +2395,7 @@
     <value>Sincronización completa — {0} insertados, {1} actualizados.</value>
   </data>
   <data name="PP.SupplyPlanImport.Api.Detail" xml:space="preserve">
-    <value>Fecha de OC {0} ~ {1} · obtenidos {2} · mapeados {3} · omitidos {4}</value>
+    <value>Período {0} ~ {1} · obtenidos {2} · mapeados {3} · omitidos {4}</value>
   </data>
   <data name="PP.SupplyPlanImport.Api.Btn.Run" xml:space="preserve">
     <value>Ejecutar</value>

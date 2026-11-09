@@ -83,11 +83,11 @@ public class SrmPoMapperTests
     }
 
     [Fact]
-    public void Map_treats_null_qty_as_zero()
+    public void Map_treats_null_order_qty_as_zero_and_null_delivered_as_unknown()
     {
         var m = Assert.Single(SrmPoMapper.Map([new SrmPoRow("1-1", null, null, "P", null, null, null, null)]).Rows);
         Assert.Equal(0m, m.OrderQty);
-        Assert.Equal(0m, m.ShippedQty);
+        Assert.Null(m.ShippedQty);   // 납품수량을 주지 않는 원천(EOS)은 기존 납품수량을 지우지 않는다
     }
 
     [Fact]
