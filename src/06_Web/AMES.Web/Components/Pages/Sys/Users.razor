@@ -111,9 +111,17 @@
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]" TextAlign="TextAlign.Center" Width="230px" MinWidth="230px">
                 <Template Context="u"><span class="dim">@(u.RolesCsv ?? "—")</span></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="PortalVendorId" Title="@L["SYS.Users.Col.Portal"]" TextAlign="TextAlign.Center" Width="150px" MinWidth="150px">
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="PortalVendorId" Title="@L["SYS.Users.Col.Portal"]" Width="230px" MinWidth="230px">
                 <Template Context="u">
-                    @if (u.PortalVendorId is { } pv) { <span class="pill info" title="@VendorName(pv)">@pv</span> }
+                    @* 업체 코드(진하게) + 업체명(흐리게) 한 줄 — 넘치면 업체명만 말줄임, 전체는 툴팁 *@
+                    @if (u.PortalVendorId is { } pv)
+                    {
+                        <div class="sys-portal-cell" title="[@pv] @VendorName(pv)">
+                            <RadzenIcon Icon="handshake" class="sys-portal-ic" />
+                            <span class="code">@pv</span>
+                            @if (VendorName(pv) != pv) { <span class="dim sys-portal-name">@VendorName(pv)</span> }
+                        </div>
+                    }
                     else { <span class="dim">—</span> }
                 </Template>
             </RadzenDataGridColumn>
@@ -203,14 +211,13 @@
                 {
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                         <RadzenLabel Text="@L["SYS.Users.Lbl.Portal"]" class="ames-rz-modal-label" Component="CreateCheckPortal" />
-                        <RadzenStack Orientation="Orientation.Vertical" Gap="0.4rem" Style="flex:1;width:100%;">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="width:100%;">
-                                <RadzenCheckBox TValue="bool" Name="CreateCheckPortal" @bind-Value="_f.PortalEnabled" />
-                                <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="CreateDropDownPortalVendor" @bind-Value="_f.PortalVendorId" Data="@PortalVendorOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["SYS.Users.Ph.PortalVendor"]" Disabled="@(!_f.PortalEnabled)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-                            </RadzenStack>
-                            <span class="dim" style="font-size:.85em;">ⓘ @L["SYS.Users.Hint.Portal"]</span>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="flex:1;width:100%;min-width:0;">
+                            <RadzenCheckBox TValue="bool" Name="CreateCheckPortal" @bind-Value="_f.PortalEnabled" />
+                            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="CreateDropDownPortalVendor" @bind-Value="_f.PortalVendorId" Data="@PortalVendorOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["SYS.Users.Ph.PortalVendor"]" Disabled="@(!_f.PortalEnabled)" InputSize="InputSize.Small" class="ames-rz-input" PopupStyle="max-width:520px;" Style="flex:1;width:100%;min-width:0;" title="@PortalVendorTitle" />
                         </RadzenStack>
                     </RadzenStack>
+                    @* 라벨은 체크·업체 줄과 같은 높이, 안내는 그 아래 입력칸 폭에 맞춘다 *@
+                    <div class="dim sys-portal-hint">ⓘ @L["SYS.Users.Hint.Portal"]</div>
                 }
                 @if (!_isAdmin)
                 {
@@ -290,14 +297,13 @@
                 {
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
                         <RadzenLabel Text="@L["SYS.Users.Lbl.Portal"]" class="ames-rz-modal-label" Component="EditCheckPortal" />
-                        <RadzenStack Orientation="Orientation.Vertical" Gap="0.4rem" Style="flex:1;width:100%;">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="width:100%;">
-                                <RadzenCheckBox TValue="bool" Name="EditCheckPortal" @bind-Value="_f.PortalEnabled" />
-                                <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="EditDropDownPortalVendor" @bind-Value="_f.PortalVendorId" Data="@PortalVendorOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["SYS.Users.Ph.PortalVendor"]" Disabled="@(!_f.PortalEnabled)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
-                            </RadzenStack>
-                            <span class="dim" style="font-size:.85em;">ⓘ @L["SYS.Users.Hint.Portal"]</span>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="flex:1;width:100%;min-width:0;">
+                            <RadzenCheckBox TValue="bool" Name="EditCheckPortal" @bind-Value="_f.PortalEnabled" />
+                            <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="EditDropDownPortalVendor" @bind-Value="_f.PortalVendorId" Data="@PortalVendorOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["SYS.Users.Ph.PortalVendor"]" Disabled="@(!_f.PortalEnabled)" InputSize="InputSize.Small" class="ames-rz-input" PopupStyle="max-width:520px;" Style="flex:1;width:100%;min-width:0;" title="@PortalVendorTitle" />
                         </RadzenStack>
                     </RadzenStack>
+                    @* 라벨은 체크·업체 줄과 같은 높이, 안내는 그 아래 입력칸 폭에 맞춘다 *@
+                    <div class="dim sys-portal-hint">ⓘ @L["SYS.Users.Hint.Portal"]</div>
                 }
 
                 @if (_isAdmin)
@@ -415,6 +421,8 @@
         .Where(v => v.ActiveFlag || v.VendorID == _f.PortalVendorId)
         .Select(v => new DropDownItem { Value = v.VendorID, Text = $"[{v.VendorID}] {v.VendorName}" });
     string VendorName(string id) => _vendors.FirstOrDefault(v => v.VendorID == id)?.VendorName ?? id;
+    // 콤보에 다 안 보이는 긴 업체명은 마우스를 올리면 전체로
+    string? PortalVendorTitle => string.IsNullOrEmpty(_f.PortalVendorId) ? null : $"[{_f.PortalVendorId}] {VendorName(_f.PortalVendorId)}";
 
     private IEnumerable<DropDownItem> DeptOptions  => _deptItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> PlantOptions => _plantItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });

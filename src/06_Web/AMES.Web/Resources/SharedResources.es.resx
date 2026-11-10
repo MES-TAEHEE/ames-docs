@@ -13297,7 +13297,7 @@
     <value>Portal externo</value>
   </data>
   <data name="SYS.Users.Lbl.Portal" xml:space="preserve">
-    <value>Portal externo</value>
+    <value>Acceso portal</value>
   </data>
   <data name="SYS.Users.Ph.PortalVendor" xml:space="preserve">
     <value>Seleccione proveedor</value>
