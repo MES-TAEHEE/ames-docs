@@ -23,7 +23,16 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             [FromForm] string returnUrl) =>
         {
             await signInManager.SignOutAsync();
-            return TypedResults.LocalRedirect($"~/{returnUrl}");
+            // 로그아웃은 항상 로그인 화면으로(11-10) — 전에는 보던 화면으로 되돌아가, 로그인 없이 열리는 화면(/unauthorized 등)에서
+            // 로그아웃하면 그 화면이 그대로 남았다. 보던 화면은 다시 로그인한 뒤 돌아갈 주소(ReturnUrl)로만 넘긴다.
+            var back = "/" + (returnUrl ?? "").TrimStart('/');
+            var path = back.Split('?', '#')[0];
+            bool keep = AMES.Web.Services.LocalUrl.IsLocal(back) && path != "/"
+                && !path.StartsWith("/Account", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/unauthorized", StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWith("/Error", StringComparison.OrdinalIgnoreCase)
+                && !AMES.Web.Services.PortalAuth.IsPortalPath(new PathString(path));
+            return TypedResults.LocalRedirect(keep ? $"~/Account/Login?ReturnUrl={Uri.EscapeDataString(back)}" : "~/Account/Login");
         });
 
         // 상단바 비밀번호 변경 직후 — 회로가 발급한 1회용 표로 새 로그인 쿠키를 준다(AMES.Web.Services.SignInRefreshTickets).
