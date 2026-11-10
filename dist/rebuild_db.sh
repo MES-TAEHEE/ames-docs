@@ -137,6 +137,7 @@ FILES=(
   migrate_scm_delivery_note.sql      # 딜리버리 노트 발행 스냅샷
   migrate_scm_delivery_note_batch.sql      # 복수 납품서 딜리버리 노트
   migrate_portal_legacy_cleanup.sql   # 구 외부 역할 ExternalCustomer·계정·포탈 RBAC 정리 (신규 DB 에서는 no-op)
+  migrate_scm_portal_internal_link.sql  # 내부 계정의 외부 포탈 사용 — SCM_PortalVendorUser.InternalUserID (11-10)
   pda/PDA_SEED.sql                    # WH/FG seed, Web screens and role permissions
   seed_portal_dev.sql                 # optional development user; requires the vendor from PDA_SEED
   cleanup_legacy_sis_test.sql

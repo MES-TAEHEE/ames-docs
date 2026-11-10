@@ -35,7 +35,7 @@ public sealed class SysRepository
         string? EmployeeNo, string? EmployeeName, string? Department,
         string? PlantCode, string? DefaultShift,
         string? AccountStatus, DateTime? LastLoginTs, string? RolesCsv,
-        int FailedLoginCount, bool HasProfile = true, bool IsAdmin = false)
+        int FailedLoginCount, bool HasProfile = true, bool IsAdmin = false, string? PortalVendorId = null)
     {
         // 등록된 계정 — 프로필이 있어야 로그인할 수 있다. 담당자·수신자 콤보는 이 계정만 고르게 한다(10-07)
         public bool IsApproved => HasProfile;
@@ -110,7 +110,8 @@ public sealed class SysRepository
                           WHERE  ur.UserId = u.Id
                           FOR XML PATH('')), 1, 2, '') AS RolesCsv,
                    CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.AspNetUserRoles ar WHERE ar.UserId = u.Id AND ar.RoleId = @AdminRole)
-                        THEN 1 ELSE 0 END AS BIT) AS IsAdmin
+                        THEN 1 ELSE 0 END AS BIT) AS IsAdmin,
+                   (SELECT TOP (1) pv.VendorID FROM dbo.SCM_PortalVendorUser pv WHERE pv.InternalUserID = u.Id) AS PortalVendorId
             FROM   dbo.AspNetUsers       u
             LEFT JOIN dbo.SYS_UserProfile p ON p.UserID = u.Id
             ORDER BY u.UserName;
@@ -123,7 +124,7 @@ public sealed class SysRepository
             r["AccountStatus"] as string, r["LastLoginTS"] as DateTime?,
             r["RolesCsv"] as string,
             Convert.ToInt32(r["FailedLoginCount"]),
-            (bool)r["HasProfile"], (bool)r["IsAdmin"]),
+            (bool)r["HasProfile"], (bool)r["IsAdmin"], r["PortalVendorId"] as string),
             ("@N", null, topN), ("@AdminRole", "AspNetUserRoles.RoleId", SystemRoles.AdminId));
     }
 
@@ -1453,6 +1454,7 @@ public sealed class SysRepository
             DELETE dbo.AspNetUserClaims WHERE UserId = @UserID;
             DELETE dbo.AspNetUserLogins WHERE UserId = @UserID;
             DELETE dbo.AspNetUserTokens WHERE UserId = @UserID;
+            DELETE dbo.SCM_PortalVendorUser WHERE InternalUserID = @UserID;
             DELETE dbo.SYS_UserProfile  WHERE UserID = @UserID;
             DELETE dbo.AspNetUsers      WHERE Id     = @UserID;
             SELECT @@ROWCOUNT;
@@ -1468,9 +1470,73 @@ public sealed class SysRepository
         string UserId, string EmployeeNo, string EmployeeName,
         string? Department, string? PlantCode, string? DefaultShift, string AccountStatus,
         bool ChangeRole, string? RoleName, string? PasswordHash, string? PinHash, bool RenewSecurityStamp,
-        string Actor);
+        string Actor, bool ChangePortal = false, string? PortalVendorId = null);
 
-    public enum UserEditResult { Ok, UserNotFound, RoleMissing }
+    /// <summary>PortalEmailTaken = 같은 이메일의 외부 사용자(SCM 외부 사용자 관리에서 등록)가 이미 있다 · PortalVendorInactive = 고른 협력업체가 없거나 사용 안 함.</summary>
+    public enum UserEditResult { Ok, UserNotFound, RoleMissing, PortalEmailTaken, PortalVendorInactive }
+
+    /// <summary>내부 계정에 연결한 외부 포탈 행의 비밀번호 칸 — 연결 행은 내부 계정 비밀번호로 로그인하므로 이 값은 검증에 쓰지 않는다.</summary>
+    public const string InternalPortalPasswordMarker = "INTERNAL-ACCOUNT";
+
+    /// <summary>
+    /// 내부 계정의 외부 포탈 사용(11-10 사용자 결정) — 협력업체 하나를 연결하면 그 계정 이메일로 SCM_PortalVendorUser 행을 두고
+    /// (InternalUserID = 계정 ID) 포탈의 업체 범위·화면은 외부 사용자와 똑같이 동작한다. vendorId 가 null 이면 연결을 지운다.
+    /// 같은 이메일의 진짜 외부 사용자가 있으면 PortalEmailTaken, 업체가 없거나 사용 안 함이면 PortalVendorInactive(아무것도 바꾸지 않음).
+    /// </summary>
+    static UserEditResult ApplyPortalLink(SqlConnection conn, SqlTransaction tx, string userId, string? vendorId, string actor)
+    {
+        using var cmd = new SqlCommand("""
+            SET NOCOUNT ON;
+            DECLARE @Email nvarchar(256) = (SELECT LOWER(LTRIM(RTRIM(Email))) FROM dbo.AspNetUsers WITH (UPDLOCK, HOLDLOCK) WHERE Id = @UserId);
+            IF @Vendor IS NULL
+            BEGIN
+                DELETE dbo.SCM_PortalVendorUser WHERE InternalUserID = @UserId;
+                SELECT 0; RETURN;
+            END
+            IF @Email IS NULL OR @Email = N'' BEGIN SELECT 1; RETURN; END
+            IF NOT EXISTS (SELECT 1 FROM dbo.MD_Vendor WITH (HOLDLOCK) WHERE VendorID = @Vendor AND ISNULL(ActiveFlag, 1) = 1) BEGIN SELECT 2; RETURN; END
+            IF EXISTS (SELECT 1 FROM dbo.SCM_PortalVendorUser WITH (UPDLOCK, HOLDLOCK)
+                       WHERE UserID = @Email AND (InternalUserID IS NULL OR InternalUserID <> @UserId)) BEGIN SELECT 3; RETURN; END
+            -- 이메일이 바뀐 계정의 옛 연결 행은 지우고 지금 이메일로 다시 둔다
+            DELETE dbo.SCM_PortalVendorUser WHERE InternalUserID = @UserId AND UserID <> @Email;
+            IF EXISTS (SELECT 1 FROM dbo.SCM_PortalVendorUser WHERE InternalUserID = @UserId)
+                UPDATE dbo.SCM_PortalVendorUser
+                SET    VendorID = @Vendor, ActiveFlag = 1, LockedFlag = 0, FailedLoginCount = 0,
+                       ModifiedBy = @Actor, ModifiedTS = SYSDATETIME()
+                WHERE  InternalUserID = @UserId AND VendorID <> @Vendor;
+            ELSE
+                INSERT dbo.SCM_PortalVendorUser
+                    (UserID, VendorID, UserName, PasswordHash, FailedLoginCount, LockedFlag, ActiveFlag, InternalUserID, CreatedBy, CreatedTS)
+                SELECT @Email, @Vendor, p.EmployeeName, @Marker, 0, 0, 1, @UserId, @Actor, SYSDATETIME()
+                FROM (SELECT 1 AS x) d LEFT JOIN dbo.SYS_UserProfile p ON p.UserID = @UserId;
+            SELECT 0;
+            """, conn, tx);
+        cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+        cmd.Parameters.Add("@Vendor", SqlDbType.VarChar, 20).Value   = string.IsNullOrWhiteSpace(vendorId) ? DBNull.Value : vendorId.Trim();
+        cmd.Parameters.Add("@Actor",  SqlDbType.VarChar, 20).Value   = actor;
+        cmd.Parameters.Add("@Marker", SqlDbType.NVarChar, 200).Value = InternalPortalPasswordMarker;
+        return Convert.ToInt32(cmd.ExecuteScalar()) switch
+        {
+            0 => UserEditResult.Ok,
+            1 => UserEditResult.UserNotFound,
+            2 => UserEditResult.PortalVendorInactive,
+            _ => UserEditResult.PortalEmailTaken,
+        };
+    }
+
+    /// <summary>등록 직후처럼 수정 저장과 따로 외부 포탈 연결만 바꿀 때 — <see cref="ApplyPortalLink"/> 한 트랜잭션.</summary>
+    public UserEditResult SetUserPortalLink(string userId, string? vendorId, string actor)
+    {
+        using var conn = _f.OpenConnection();
+        using var tx   = conn.BeginTransaction();
+        try
+        {
+            var r = ApplyPortalLink(conn, tx, userId, vendorId, actor);
+            if (r == UserEditResult.Ok) tx.Commit(); else tx.Rollback();
+            return r;
+        }
+        catch { tx.Rollback(); throw; }
+    }
 
     // 프로필 컬럼 길이(SYS_UserProfile) — 화면 입력칸 MaxLength 와 저장 전 검사가 같은 값을 쓴다
     public const int EmployeeNoMax = 20, EmployeeNameMax = 50;
@@ -1565,6 +1631,12 @@ public sealed class SysRepository
                 usr.Parameters.Add("@Stamp",  SqlDbType.NVarChar, -1).Value  =
                     Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(20));
                 usr.ExecuteNonQuery();
+            }
+
+            if (e.ChangePortal)
+            {
+                var portal = ApplyPortalLink(conn, tx, e.UserId, e.PortalVendorId, e.Actor);
+                if (portal != UserEditResult.Ok) { tx.Rollback(); return portal; }
             }
 
             tx.Commit();

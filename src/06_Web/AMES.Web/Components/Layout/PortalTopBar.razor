@@ -47,9 +47,13 @@
         <div class="ames-user-av ames-user-av--user"><RadzenIcon Icon="handshake" /></div>
         <div class="ames-user-info">
             <div class="ames-user-name">@_userName</div>
-            <div class="ames-user-role">@L["Portal.Role.External"] · @_vendor</div>
+            <div class="ames-user-role">@(_internal ? L["Portal.Role.Internal"] : L["Portal.Role.External"]) · @_vendor</div>
         </div>
-        <button type="button" class="ames-user-cred" title="@L["Portal.Cred.Button"]" aria-label="@L["Portal.Cred.Button"]" @onclick="() => _cred = true"><RadzenIcon Icon="key" /></button>
+        @* 내부 계정 연결(SYS-001 외부 포탈 사용)은 내부 계정 비밀번호로 들어온다 — 비밀번호는 내부 사이트 상단바에서 바꾼다 *@
+        @if (!_internal)
+        {
+            <button type="button" class="ames-user-cred" title="@L["Portal.Cred.Button"]" aria-label="@L["Portal.Cred.Button"]" @onclick="() => _cred = true"><RadzenIcon Icon="key" /></button>
+        }
         <form action="/portal/logout" method="post" style="display:inline"><AntiforgeryToken /><button type="submit" class="ames-user-out" title="@L["Portal.Logout"]">⏻</button></form>
     </div>
 </header>
@@ -59,13 +63,14 @@
 
 @code {
     string _userName = "", _vendor = "", _theme = "dark";
-    bool _cred;
+    bool _cred, _internal;
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthPrvd.GetAuthenticationStateAsync();
         _userName = state.User.Identity?.Name ?? "";
         _vendor = state.User.FindFirst(PortalAuth.VendorClaim)?.Value ?? "";
+        _internal = PortalAuth.IsInternalAccount(state.User);
         Header.OnChanged += OnHeaderChanged;
     }
 

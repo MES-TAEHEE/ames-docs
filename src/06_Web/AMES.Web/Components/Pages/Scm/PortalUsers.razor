@@ -77,7 +77,7 @@
                 <Template Context="u"><span class="dim">@GridRowNo.Of(_pgGrid, u)</span></Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="260px" Width="260px" Property="UserID" Title="@L["SCM.PortalUsers.Col.Email"]">
-                <Template Context="u"><span class="code">@u.UserID</span></Template>
+                <Template Context="u"><span class="code">@u.UserID</span>@if (u.IsInternal) { <span class="pill info" style="margin-left:6px;font-size:.72em;" title="@L["SCM.PortalUsers.Msg.ManagedInSys"]">@L["SCM.PortalUsers.Internal"]</span> }</Template>
             </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="ScmRepository.PortalUserRow" MinWidth="160px" Property="UserName" Title="@L["SCM.PortalUsers.Col.Name"]" TextAlign="TextAlign.Center">
                 <Template Context="u"><span class="dim">@(u.UserName ?? "—")</span></Template>
@@ -302,6 +302,8 @@
     void OpenEdit(ScmRepository.PortalUserRow u)
     {
         if (!_canEdit) return;
+        // 내부 계정 연결(11-10) — 비밀번호·잠금은 내부 계정 것이라 여기서 고치지 않고 SYS-001 사용자 관리에서 바꾼다
+        if (u.IsInternal) { ShowMsg(L["SCM.PortalUsers.Msg.ManagedInSys"], false); return; }
         _sel = u; _modalErr = ""; _confirmDelete = false;
         _f = new() { Email = u.UserID, VendorID = u.VendorID, UserName = u.UserName ?? "", ActiveFlag = u.ActiveFlag };
         _modal = "edit";

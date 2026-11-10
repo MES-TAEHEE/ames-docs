@@ -43,16 +43,47 @@ public static class PortalAuth
     public static bool PasswordVersionMatches(ClaimsPrincipal? principal, string passwordHash)
         => principal?.FindFirst(PasswordVersionClaim)?.Value is not { } v || v == PasswordVersion(passwordHash);
 
-    /// <summary>외부 사용자 로그인 쿠키의 사용자(로그인·비밀번호 변경 후 재발급 공용). 역할 클레임은 없다.</summary>
+    /// <summary>SYS-001 에서 외부 포탈 사용을 켠 내부 계정으로 로그인한 쿠키 표시(11-10) — 값 "1". 포탈 비밀번호 변경 버튼을 숨기는 데 쓴다.</summary>
+    public const string InternalAccountClaim = "ames:internal";
+
+    /// <summary>
+    /// 외부 사용자 로그인 쿠키의 사용자(로그인·비밀번호 변경 후 재발급 공용). 역할 클레임은 없다.
+    /// 내부 계정 연결 행은 행위자 = 내부 사번(없으면 이메일 앞부분), 비밀번호 버전 = 내부 계정 해시로 만든다(11-10 사용자 결정).
+    /// </summary>
     public static ClaimsPrincipal BuildPrincipal(AMES.Data.Repositories.ScmRepository.PortalUserRow user)
-        => new(new ClaimsIdentity(
-        [
-            new Claim(ClaimTypes.NameIdentifier, user.UserID),
-            new Claim(ClaimTypes.Name, user.UserID),
-            new Claim(ActorCode.ClaimType, ActorCode.Portal(user.UserID)),
-            new Claim(VendorClaim, user.VendorID),
-            new Claim(PasswordVersionClaim, PasswordVersion(user.PasswordHash)),
-        ], Scheme, ClaimTypes.Name, ClaimTypes.Role));
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.UserID),
+            new(ClaimTypes.Name, user.UserID),
+            new(ActorCode.ClaimType, ActorFor(user)),
+            new(VendorClaim, user.VendorID),
+            new(PasswordVersionClaim, PasswordVersion(user.EffectivePasswordHash)),
+        };
+        if (user.IsInternal) claims.Add(new(InternalAccountClaim, "1"));
+        return new(new ClaimsIdentity(claims, Scheme, ClaimTypes.Name, ClaimTypes.Role));
+    }
+
+    /// <summary>포탈에서 한 작업의 행위자 코드 — 외부 사용자는 이메일 해시(P…), 내부 계정 연결은 내부 사번.</summary>
+    public static string ActorFor(AMES.Data.Repositories.ScmRepository.PortalUserRow user)
+        => user.IsInternal ? ActorCode.Normalize(string.IsNullOrWhiteSpace(user.InternalEmployeeNo) ? user.UserID : user.InternalEmployeeNo) : ActorCode.Portal(user.UserID);
+
+    public static bool IsInternalAccount(ClaimsPrincipal? principal) => principal?.FindFirst(InternalAccountClaim)?.Value == "1";
+
+    /// <summary>
+    /// 이미 발급된 외부 쿠키를 유지할지(요청마다 쿠키 검증·회로 재검증 공용). 외부 사용자는 행 사용·잠금·업체 활성·업체 일치·비밀번호 버전,
+    /// 내부 계정 연결은 여기에 더해 내부 계정 상태(비활성·정지·프로필 없음이면 끊음 — 실패 잠금은 일하던 세션을 끊지 않는 내부 규칙과 같다).
+    /// </summary>
+    public static bool KeepsSession(AMES.Data.Repositories.ScmRepository.PortalUserRow? user, ClaimsPrincipal? principal)
+    {
+        if (user is null || !user.ActiveFlag || !user.VendorActive) return false;
+        var vendor = principal?.FindFirst(VendorClaim)?.Value;
+        if (!string.Equals(user.VendorID, vendor, StringComparison.OrdinalIgnoreCase)) return false;
+        if (!PasswordVersionMatches(principal, user.EffectivePasswordHash)) return false;
+        return user.IsInternal
+            ? user.InternalPasswordHash is not null && AuthRevalidation.KeepsSession(user.InternalStatus)
+            : !user.LockedFlag;
+    }
 
     public static bool IsPortalUser(ClaimsPrincipal? user)
         => user?.Identity?.IsAuthenticated == true

@@ -111,6 +111,12 @@
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="RolesCsv" Title="@L["SYS.Users.Col.Roles"]" TextAlign="TextAlign.Center" Width="230px" MinWidth="230px">
                 <Template Context="u"><span class="dim">@(u.RolesCsv ?? "—")</span></Template>
             </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="PortalVendorId" Title="@L["SYS.Users.Col.Portal"]" TextAlign="TextAlign.Center" Width="150px" MinWidth="150px">
+                <Template Context="u">
+                    @if (u.PortalVendorId is { } pv) { <span class="pill info" title="@VendorName(pv)">@pv</span> }
+                    else { <span class="dim">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Property="FailedLoginCount" Title="@L["SYS.Users.Col.FailCount"]" TextAlign="TextAlign.Right" Width="170px" MinWidth="170px" />
             <RadzenDataGridColumn TItem="SysRepository.UserRow" Title="@L["SYS.Users.Col.LastLogin"]" TextAlign="TextAlign.Center" Width="150px" MinWidth="150px">
                 <Template Context="u"><span class="dim">@(u.LastLoginTs?.ToString(DateFmt.DateTime) ?? "—")</span>
@@ -191,6 +197,21 @@
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="CreateDropDownRole" />
                     <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="CreateDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.Select"]" AllowClear="true" Disabled="@(!_isAdmin)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
+
+                @* 외부 포탈 사용(11-10 사용자 결정) — Admin 만. 켜면 협력업체 하나를 연결하고 이 계정 비밀번호로 /portal 에 로그인한다 *@
+                @if (_isAdmin)
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                        <RadzenLabel Text="@L["SYS.Users.Lbl.Portal"]" class="ames-rz-modal-label" Component="CreateCheckPortal" />
+                        <RadzenStack Orientation="Orientation.Vertical" Gap="0.4rem" Style="flex:1;width:100%;">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="width:100%;">
+                                <RadzenCheckBox TValue="bool" Name="CreateCheckPortal" @bind-Value="_f.PortalEnabled" />
+                                <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="CreateDropDownPortalVendor" @bind-Value="_f.PortalVendorId" Data="@PortalVendorOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["SYS.Users.Ph.PortalVendor"]" Disabled="@(!_f.PortalEnabled)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                            </RadzenStack>
+                            <span class="dim" style="font-size:.85em;">ⓘ @L["SYS.Users.Hint.Portal"]</span>
+                        </RadzenStack>
+                    </RadzenStack>
+                }
                 @if (!_isAdmin)
                 {
                     <span class="dim" style="font-size:.85em;">ⓘ @AdminMsg("SYS.Users.Hint.CreateInactive")</span>
@@ -264,6 +285,20 @@
                     <RadzenLabel Text="@L["SYS.Users.Lbl.Role"]" class="ames-rz-modal-label" Component="EditDropDownRole" />
                     <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="EditDropDownRole" @bind-Value="_f.Role" Data="@_roles" Placeholder="@L["Opt.None"]" AllowClear="true" Disabled="@(!CanChangeRoleStatus)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
                 </RadzenStack>
+                @* 외부 포탈 사용(11-10 사용자 결정) — Admin 만. 켜면 협력업체 하나를 연결하고 이 계정 비밀번호로 /portal 에 로그인한다 *@
+                @if (_isAdmin)
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="width:100%;">
+                        <RadzenLabel Text="@L["SYS.Users.Lbl.Portal"]" class="ames-rz-modal-label" Component="EditCheckPortal" />
+                        <RadzenStack Orientation="Orientation.Vertical" Gap="0.4rem" Style="flex:1;width:100%;">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Style="width:100%;">
+                                <RadzenCheckBox TValue="bool" Name="EditCheckPortal" @bind-Value="_f.PortalEnabled" />
+                                <RadzenDropDown AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Name="EditDropDownPortalVendor" @bind-Value="_f.PortalVendorId" Data="@PortalVendorOptions" TextProperty="Text" ValueProperty="Value" Placeholder="@L["SYS.Users.Ph.PortalVendor"]" Disabled="@(!_f.PortalEnabled)" InputSize="InputSize.Small" class="ames-rz-input" Style="flex:1;width:100%;" />
+                            </RadzenStack>
+                            <span class="dim" style="font-size:.85em;">ⓘ @L["SYS.Users.Hint.Portal"]</span>
+                        </RadzenStack>
+                    </RadzenStack>
+                }
 
                 @if (_isAdmin)
                 {
@@ -374,6 +409,13 @@
 
     public class DropDownItem { public string Text { get; set; } = ""; public string Value { get; set; } = ""; }
 
+    // 외부 포탈 연결 협력업체 — 사용 중 업체만, 이미 연결된 업체는 사용 안 함이어도 그 사용자를 고칠 때 남긴다
+    List<MasterDataRepository.VendorRow> _vendors = new();
+    private IEnumerable<DropDownItem> PortalVendorOptions => _vendors
+        .Where(v => v.ActiveFlag || v.VendorID == _f.PortalVendorId)
+        .Select(v => new DropDownItem { Value = v.VendorID, Text = $"[{v.VendorID}] {v.VendorName}" });
+    string VendorName(string id) => _vendors.FirstOrDefault(v => v.VendorID == id)?.VendorName ?? id;
+
     private IEnumerable<DropDownItem> DeptOptions  => _deptItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> PlantOptions => _plantItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
     private IEnumerable<DropDownItem> ShiftOptions => _shiftItems.Where(c => c.UseFlag).Select(c => new DropDownItem { Value = c.CodeValue ?? "", Text = $"[{c.CodeValue}] {MasterDataRepository.LocalName(c)}" });
@@ -405,6 +447,7 @@
         _plantItems  = MD.ListCodeItems("PLANT");
         _shiftItems  = MD.ListCodeItems("WORK_SHIFT");
         _statusItems = MD.ListCodeItems("USER_STATUS");
+        try { _vendors = MD.ListVendors(); } catch { }
         Reload();
     }
 
@@ -505,7 +548,9 @@
             PlantCode     = u.PlantCode     ?? "",
             DefaultShift  = u.DefaultShift  ?? "",
             AccountStatus = u.HasProfile ? (u.AccountStatus ?? "ACTIVE").ToUpperInvariant() : "ACTIVE",
-            Role          = u.RolesCsv?.Split(',').FirstOrDefault()?.Trim() ?? ""
+            Role          = u.RolesCsv?.Split(',').FirstOrDefault()?.Trim() ?? "",
+            PortalEnabled = u.PortalVendorId is not null,
+            PortalVendorId = u.PortalVendorId
         };
         _modal = "edit";
     }
@@ -539,6 +584,7 @@
         if (_f.EmployeeNo.Trim().Length > SysRepository.EmployeeNoMax || _f.EmployeeName.Trim().Length > SysRepository.EmployeeNameMax)
         { _modalErr = string.Format(L["SYS.Users.Err.TooLong"].Value, SysRepository.EmployeeNoMax, SysRepository.EmployeeNameMax); return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
+        if (_isAdmin && _f.PortalEnabled && string.IsNullOrWhiteSpace(_f.PortalVendorId)) { _modalErr = L["SYS.Users.Err.PortalVendorRequired"]; return; }
         // 사번은 행위자 코드·POP 로그인 키라 전사 유일해야 한다 — 다른 웹 사용자·현장 작업자와 겹치면 등록을 막는다
         if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: null)) return;
         // 로그인 ID(이메일)는 외부 사용자(SCM-004)와도 겹치면 안 된다 — 같으면 로그인 때 외부 계정이 먼저 잡힌다
@@ -572,6 +618,17 @@
 
                 if (_isAdmin && !string.IsNullOrEmpty(_f.Role))
                     roleMissing = Sys.SetUserRole(user.Id, _f.Role) != SysRepository.RoleChangeResult.Ok;
+
+                if (!roleMissing && _isAdmin && _f.PortalEnabled)
+                {
+                    var portal = Sys.SetUserPortalLink(user.Id, _f.PortalVendorId, _actorEmail);
+                    if (portal != SysRepository.UserEditResult.Ok)
+                    {
+                        Sys.DeleteUser(user.Id); ForgetIdentityUser(user.Id);
+                        PortalError(portal);
+                        return;
+                    }
+                }
             }
             catch
             {
@@ -607,6 +664,10 @@
         { _modalErr = string.Format(L["SYS.Users.Err.TooLong"].Value, SysRepository.EmployeeNoMax, SysRepository.EmployeeNameMax); return; }
         if (!string.IsNullOrWhiteSpace(_f.Pin) && !IsPin(_f.Pin)) { _modalErr = L["SYS.Users.Err.PinFormat"]; return; }
         if (!EmployeeNoIsFree(_f.EmployeeNo, excludeUserId: _sel.UserId)) return;
+        if (_isAdmin && _f.PortalEnabled && string.IsNullOrWhiteSpace(_f.PortalVendorId)) { _modalErr = L["SYS.Users.Err.PortalVendorRequired"]; return; }
+        // 외부 포탈 연결은 Admin 만 바꾼다 — 켜짐·업체가 달라졌을 때만 저장 트랜잭션에 싣는다
+        var portalVendor = _f.PortalEnabled ? _f.PortalVendorId : null;
+        var changePortal = _isAdmin && !string.Equals(portalVendor, _sel.PortalVendorId, StringComparison.OrdinalIgnoreCase);
 
         // Admin 이 아니거나 자기 계정이면 상태·역할은 그대로 둔다(화면이 막아도 서버에서 다시 본다).
         // 프로필 없는 계정은 Admin 이 아니면 INACTIVE 로 만든다 — 프로필 생성이 곧 사용 승인이다
@@ -652,8 +713,9 @@
                 PasswordHash: applyPassword ? UserMgr.PasswordHasher.HashPassword(iUser!, _f.Password) : null,
                 PinHash: setPin ? PinHasher.Hash(_f.Pin) : null,
                 RenewSecurityStamp: iUser is not null && (statusChanged || roleChanged || applyPassword),
-                Actor: _actorEmail));
+                Actor: _actorEmail, ChangePortal: changePortal, PortalVendorId: portalVendor));
             if (result == SysRepository.UserEditResult.RoleMissing) { RoleMissing(_f.Role); return; }
+            if (result is SysRepository.UserEditResult.PortalEmailTaken or SysRepository.UserEditResult.PortalVendorInactive) { PortalError(result); return; }
             if (result == SysRepository.UserEditResult.UserNotFound) { _modalErr = L["SYS.Users.Err.UserGone"]; return; }
 
             // 같은 회로의 Identity 가 들고 있는 옛 해시·스탬프를 버린다 — 그대로 두면 이어지는 삭제·잠금 해제가 동시성 오류로 실패한다
@@ -745,6 +807,12 @@
         _modalErr = string.Format(L["SYS.Users.Err.RoleMissing"].Value, role);
     }
 
+    void PortalError(SysRepository.UserEditResult r)
+    {
+        _modalErr = r == SysRepository.UserEditResult.PortalEmailTaken ? L["SYS.Users.Err.PortalEmailTaken"] : L["SYS.Users.Err.PortalVendorInactive"];
+        if (r == SysRepository.UserEditResult.PortalVendorInactive) { try { _vendors = MD.ListVendors(); } catch { } }
+    }
+
     void Fail(Exception ex)
     {
         if (_modal == "") ShowMsg(ex.Message, true);
@@ -769,6 +837,8 @@
         public string       DefaultShift  { get; set; } = "";
         public string       AccountStatus { get; set; } = "ACTIVE";
         public string       Role          { get; set; } = "";
+        public bool         PortalEnabled { get; set; }
+        public string?      PortalVendorId { get; set; }
     }
 
     // POP 키패드 제약과 동일: 정확히 숫자 4자리만 유효.

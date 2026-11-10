@@ -13284,4 +13284,34 @@
   <data name="ItemPeek.ActiveOff" xml:space="preserve">
     <value>Inactive</value>
   </data>
+  <data name="Portal.Role.Internal" xml:space="preserve">
+    <value>Internal user</value>
+  </data>
+  <data name="SCM.PortalUsers.Internal" xml:space="preserve">
+    <value>Internal account</value>
+  </data>
+  <data name="SCM.PortalUsers.Msg.ManagedInSys" xml:space="preserve">
+    <value>This portal user is linked to an internal account. Change it in SYS-001 User Management.</value>
+  </data>
+  <data name="SYS.Users.Col.Portal" xml:space="preserve">
+    <value>External Portal</value>
+  </data>
+  <data name="SYS.Users.Lbl.Portal" xml:space="preserve">
+    <value>External portal</value>
+  </data>
+  <data name="SYS.Users.Ph.PortalVendor" xml:space="preserve">
+    <value>Select supplier</value>
+  </data>
+  <data name="SYS.Users.Hint.Portal" xml:space="preserve">
+    <value>When on, this account signs in to the external portal with its own email and password and works as the selected supplier. Portal actions are recorded under this employee number.</value>
+  </data>
+  <data name="SYS.Users.Err.PortalVendorRequired" xml:space="preserve">
+    <value>Select a supplier to use the external portal.</value>
+  </data>
+  <data name="SYS.Users.Err.PortalEmailTaken" xml:space="preserve">
+    <value>An external user with the same email already exists. Remove it in SCM External Users first.</value>
+  </data>
+  <data name="SYS.Users.Err.PortalVendorInactive" xml:space="preserve">
+    <value>The selected supplier does not exist or is inactive. Select again.</value>
+  </data>
 </root>

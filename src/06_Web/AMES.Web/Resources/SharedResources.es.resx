@@ -13284,4 +13284,34 @@
   <data name="ItemPeek.ActiveOff" xml:space="preserve">
     <value>Inactivo</value>
   </data>
+  <data name="Portal.Role.Internal" xml:space="preserve">
+    <value>Usuario interno</value>
+  </data>
+  <data name="SCM.PortalUsers.Internal" xml:space="preserve">
+    <value>Cuenta interna</value>
+  </data>
+  <data name="SCM.PortalUsers.Msg.ManagedInSys" xml:space="preserve">
+    <value>Usuario del portal vinculado a una cuenta interna. Cámbielo en SYS-001 Gestión de usuarios.</value>
+  </data>
+  <data name="SYS.Users.Col.Portal" xml:space="preserve">
+    <value>Portal externo</value>
+  </data>
+  <data name="SYS.Users.Lbl.Portal" xml:space="preserve">
+    <value>Portal externo</value>
+  </data>
+  <data name="SYS.Users.Ph.PortalVendor" xml:space="preserve">
+    <value>Seleccione proveedor</value>
+  </data>
+  <data name="SYS.Users.Hint.Portal" xml:space="preserve">
+    <value>Si está activo, esta cuenta inicia sesión en el portal externo con su correo y contraseña y trabaja como el proveedor seleccionado. Las acciones se registran con este número de empleado.</value>
+  </data>
+  <data name="SYS.Users.Err.PortalVendorRequired" xml:space="preserve">
+    <value>Seleccione un proveedor para usar el portal externo.</value>
+  </data>
+  <data name="SYS.Users.Err.PortalEmailTaken" xml:space="preserve">
+    <value>Ya existe un usuario externo con el mismo correo. Elimínelo primero en Usuarios externos de SCM.</value>
+  </data>
+  <data name="SYS.Users.Err.PortalVendorInactive" xml:space="preserve">
+    <value>El proveedor seleccionado no existe o está inactivo. Seleccione de nuevo.</value>
+  </data>
 </root>

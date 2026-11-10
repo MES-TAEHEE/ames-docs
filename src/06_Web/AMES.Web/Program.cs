@@ -118,12 +118,11 @@ authBuilder
             var path = ctx.HttpContext.Request.Path.Value ?? "";
             if (Path.HasExtension(path) || path.StartsWith("/_framework", StringComparison.Ordinal) || path.StartsWith("/_content", StringComparison.Ordinal)) return;
             var id = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var vendor = ctx.Principal?.FindFirst(AMES.Web.Services.PortalAuth.VendorClaim)?.Value;
             AMES.Data.Repositories.ScmRepository.PortalUserRow? user = null;
             try { if (id is not null) user = ctx.HttpContext.RequestServices.GetRequiredService<AMES.Data.Repositories.ScmRepository>().FindPortalUser(id); }
             catch { return; }   // DB 장애로 로그인된 사용자를 전부 내보내지는 않는다
-            if (user is null || !user.ActiveFlag || user.LockedFlag || !user.VendorActive || !string.Equals(user.VendorID, vendor, StringComparison.OrdinalIgnoreCase)
-                || !AMES.Web.Services.PortalAuth.PasswordVersionMatches(ctx.Principal, user.PasswordHash))   // 비밀번호가 바뀌었으면(본인 변경·SCM-004 재설정) 끊는다
+            // 비활성·잠금·업체 변경·삭제·비밀번호 변경(본인·SCM-004·SYS-001), 내부 계정 연결은 내부 계정 비활성까지 — 규칙 PortalAuth.KeepsSession
+            if (!AMES.Web.Services.PortalAuth.KeepsSession(user, ctx.Principal))
             {
                 ctx.RejectPrincipal();
                 await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(ctx.HttpContext, AMES.Web.Services.PortalAuth.Scheme);
@@ -533,7 +532,7 @@ app.MapGet("/portal/refresh-signin", async (HttpContext ctx, string? t, string? 
 {
     var key = tickets.Redeem(t);
     var user = key is not null && key.StartsWith("portal:", StringComparison.Ordinal) ? scm.FindPortalUser(key["portal:".Length..]) : null;
-    if (user is null || !user.ActiveFlag || user.LockedFlag || !user.VendorActive)
+    if (user is null || user.IsInternal || !user.ActiveFlag || user.LockedFlag || !user.VendorActive)
         return Results.Redirect(AMES.Web.Services.PortalAuth.LoginPath);
     await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignInAsync(ctx, AMES.Web.Services.PortalAuth.Scheme,
         AMES.Web.Services.PortalAuth.BuildPrincipal(user), new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = false });

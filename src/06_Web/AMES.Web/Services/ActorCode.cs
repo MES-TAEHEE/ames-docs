@@ -17,8 +17,9 @@ public static class ActorCode
 
     public static string Of(ClaimsPrincipal? user, string fallback = "system")
     {
+        // 외부 쿠키는 로그인 때 정한 행위자 클레임(외부 사용자 = 이메일 해시, 내부 계정 연결 = 사번)을 그대로 쓴다
         if (user?.Identity?.AuthenticationType == PortalAuth.Scheme && !string.IsNullOrWhiteSpace(user.Identity.Name))
-            return Portal(user.Identity.Name);
+            return user.FindFirst(ClaimType)?.Value is { Length: > 0 } portalActor ? portalActor : Portal(user.Identity.Name);
         var claim = user?.FindFirst(ClaimType)?.Value;
         if (!string.IsNullOrWhiteSpace(claim)) return Normalize(claim, fallback);
         return Normalize(user?.Identity?.Name, fallback);

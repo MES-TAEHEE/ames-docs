@@ -121,6 +121,8 @@ public sealed class WebSignIn(
             return Error("Auth.Err.Invalid");
         }
 
+        if (user.IsInternal) return await SignInLinkedInternalAsync(ctx, user, password, returnUrl);
+
         // 내부 로그인과 같이 비밀번호를 먼저 본다 — 틀리면 상태와 관계없이 일반 실패(계정 존재·잠김 여부를 드러내지 않는다)
         bool usable = user.ActiveFlag && user.VendorActive;
         if (!PortalAuth.VerifyPassword(user.PasswordHash, password))
@@ -135,10 +137,15 @@ public sealed class WebSignIn(
 
         try { sys.RememberPortalActor(user.UserID, ActorCode.Portal(user.UserID)); }
         catch (Exception ex) { logger.LogWarning(ex, "Portal actor mapping could not be saved for {Email}", user.UserID); }
+        return await CompletePortalSignInAsync(ctx, user, returnUrl);
+    }
+
+    async Task<Result> CompletePortalSignInAsync(HttpContext ctx, ScmRepository.PortalUserRow user, string? returnUrl)
+    {
         await ctx.SignInAsync(PortalAuth.Scheme, PortalAuth.BuildPrincipal(user), new AuthenticationProperties { IsPersistent = false });
 
-        audit.Log("PORTAL", "LOGIN", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, user.VendorID }, actor: ActorCode.Portal(user.UserID));
-        logger.LogInformation("Portal user logged in: {Email} ({Vendor})", user.UserID, user.VendorID);
+        audit.Log("PORTAL", "LOGIN", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, user.VendorID, Internal = user.IsInternal }, actor: PortalAuth.ActorFor(user));
+        logger.LogInformation("Portal user logged in: {Email} ({Vendor}{Kind})", user.UserID, user.VendorID, user.IsInternal ? ", internal account" : "");
 
         // 같은 사이트의 외부 화면 경로만 — "/" 로 시작하지 않는 값은 PathString 이 예외를 내므로 먼저 거른다
         var target = LocalUrl.IsLocal(returnUrl) && PortalAuth.IsPortalPath(new PathString(returnUrl!.Split('?', '#')[0]))
@@ -147,9 +154,38 @@ public sealed class WebSignIn(
         return new(target, null);
     }
 
+    /// <summary>
+    /// SYS-001 에서 외부 포탈 사용을 켠 내부 계정(11-10 사용자 결정) — 내부 계정의 비밀번호·상태·실패 잠금 규칙으로 확인한다(내부 로그인과 같은 카운터).
+    /// 신뢰 기기 예외는 내부 로그인 화면에만 있다 — 포탈에서는 LOCKED 면 막는다.
+    /// </summary>
+    async Task<Result> SignInLinkedInternalAsync(HttpContext ctx, ScmRepository.PortalUserRow user, string password, string? returnUrl)
+    {
+        var account = await users.FindByIdAsync(user.InternalUserID!);
+        if (account is null)
+        {
+            users.PasswordHasher.VerifyHashedPassword(new ApplicationUser(), DummyHash, password ?? "");
+            return PortalFail(user, "InternalAccountMissing", "Auth.Err.Invalid");
+        }
+        var (status, _) = authRepo.GetProfileStatus(account.Id);
+        bool active = string.Equals(status, "ACTIVE", StringComparison.OrdinalIgnoreCase);
+        if (!await users.CheckPasswordAsync(account, password ?? ""))
+        {
+            // 내부 로그인과 같은 카운터 — ACTIVE 계정만 센다(5회째 LOCKED)
+            if (active && authRepo.IncrementFailedCount(account.Id))
+                LogAccount(ctx, "LOCK", account.Email ?? user.UserID, "FailedLogin5Portal");
+            return PortalFail(user, "InvalidPassword", "Auth.Err.Invalid");
+        }
+        if (string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase)) return PortalFail(user, "Locked", "Auth.Err.Locked");
+        if (!active || !user.ActiveFlag || !user.VendorActive) return PortalFail(user, "Inactive:" + (status ?? "NoProfile"), "Auth.Err.Inactive");
+
+        authRepo.RecordSuccessfulLogin(account.Id);
+        scm.RecordPortalLoginSuccess(user.UserID);
+        return await CompletePortalSignInAsync(ctx, user, returnUrl);
+    }
+
     Result PortalFail(ScmRepository.PortalUserRow user, string reason, string errorKey)
     {
-        try { audit.Log("PORTAL", "LOGIN_FAIL", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, reason }, actor: ActorCode.Portal(user.UserID), result: "FAIL"); } catch { }
+        try { audit.Log("PORTAL", "LOGIN_FAIL", "SCM_PortalVendorUser", user.UserID, null, new { user.UserID, reason }, actor: PortalAuth.ActorFor(user), result: "FAIL"); } catch { }
         return Error(errorKey);
     }
 
