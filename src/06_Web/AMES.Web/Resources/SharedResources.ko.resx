@@ -8448,6 +8448,9 @@
   <data name="Portal.Nav.Search" xml:space="preserve">
     <value>화면 검색…</value>
   </data>
+  <data name="Nav.Home" xml:space="preserve">
+    <value>홈</value>
+  </data>
   <data name="Portal.Nav.Home" xml:space="preserve">
     <value>포탈 홈</value>
   </data>

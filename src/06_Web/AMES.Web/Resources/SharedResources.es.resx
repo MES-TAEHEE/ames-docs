@@ -8448,6 +8448,9 @@
   <data name="Portal.Nav.Search" xml:space="preserve">
     <value>Buscar pantallas…</value>
   </data>
+  <data name="Nav.Home" xml:space="preserve">
+    <value>Inicio</value>
+  </data>
   <data name="Portal.Nav.Home" xml:space="preserve">
     <value>Inicio del portal</value>
   </data>

@@ -580,6 +580,8 @@ a:hover { color: var(--ames-tx-c4dafe); }
 }
 .ames-brand-row { display: flex; align-items: center; gap: 10px; }
 /* 회사 CI 로고(brand/eos-logo.png, 521×120 투명 PNG — 원본 1213×363 에서 흰 배경 제거·여백 트림). 브랜드 칸 330px 안에 로고 + A-MES + OFFICE WEB 이 한 줄에 들어가도록 36px 높이로 */
+.ames-brand-home { display: block; line-height: 0; border-radius: 4px; }
+.ames-brand-home:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
 .ames-brand-mark {
     display: block;
     height: 28px; width: auto;   /* 521×120 → 122×28: 로고 + A-MES + OFFICE WEB 합계가 330px 안에 들어가는 크기 */
