@@ -281,6 +281,8 @@ SEG APS(Seoyon E-Hwa Georgia 생산계획 웹앱, 재구축본 `Seg.Aps.Server`)
 `Users` / `Rbac` / `Audit` / `Health` / `Notifications`
 `Config` / `Interfaces` / `Calendar`
 
+**SYS-001 사용자 관리는 탭 3개다**(11-10 사용자 요청): 「웹 사용자」(종전 화면) · 「현장 작업자」(MD-032 `Md/Fd/Workers.razor` 를 `Embedded="true"` 로 그대로 넣음) · 「외부 사용자」(`Scm/PortalUsers.razor`, 같은 방식). 두 탭은 그 화면의 읽기 권한(`md/fd/workers`·`scm/portal-users`)이 있을 때만 보이고 수정·등록도 그 화면의 권한을 따른다. 원래 메뉴(MD-032·외부 사용자 관리)는 그대로 있다 — `Embedded` 는 화면 제목·머리글만 빼고, 외부 사용자 화면은 권한이 없을 때 `/unauthorized` 로 보내지 않는다.
+
 ---
 
 ### AMES.Api — REST API

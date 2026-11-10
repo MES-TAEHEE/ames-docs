@@ -24,6 +24,11 @@
 <PageTitle>SYS-001 @L["SYS.Users.Title"] · AMES</PageTitle>
 <AmesPageHeader Code="SYS-001" TitleKey="SYS.Users.Title" />
 
+@* 웹 사용자 · 현장 작업자(MD-032) · 외부 사용자(SCM 외부 사용자 관리) — 두 탭은 원래 화면을 그대로 넣고 각 화면 권한(읽기)이 있을 때만 보인다 *@
+@if (_permReady)
+{
+<AmesTabs PanelClass="sys-users-tabs">
+<AmesTab Title="@L["SYS.Users.Tab.Web"]">
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
     <div class="ames-kpi">
@@ -114,6 +119,21 @@
         </Columns>
     </RadzenDataGrid>
 </div>
+</AmesTab>
+@if (_showWorkers)
+{
+    <AmesTab Title="@L["SYS.Users.Tab.Workers"]">
+        <AMES.Web.Components.Pages.Md.Fd.Workers Embedded="true" />
+    </AmesTab>
+}
+@if (_showPortal)
+{
+    <AmesTab Title="@L["SYS.Users.Tab.Portal"]">
+        <AMES.Web.Components.Pages.Scm.PortalUsers Embedded="true" />
+    </AmesTab>
+}
+</AmesTabs>
+}
 
 @* ── Create Modal ─────────────────────────────────────────────────── *@
 @if (_modal == "create")
@@ -324,6 +344,7 @@
     SysRepository.UserRow? _sel;
 
     string _fSearch = "", _fStatus = "";
+    bool _permReady, _showWorkers, _showPortal;
 
     string _modal = "";   // "" | "create" | "edit"
     bool _busy;
@@ -370,6 +391,9 @@
         _actorEmail = AMES.Web.Services.ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
         _canEdit = PermSvc.CanEdit("sys/users");
+        _showWorkers = PermSvc.IsVisible("md/fd/workers");
+        _showPortal  = PermSvc.IsVisible("scm/portal-users");
+        _permReady = true;
         _myUserId = auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         _isAdmin = !string.IsNullOrEmpty(_myUserId) && Sys.UserHasRole(_myUserId, AMES.Data.Services.SystemRoles.AdminId);
         _adminRoleName = (await RoleMgr.FindByIdAsync(AMES.Data.Services.SystemRoles.AdminId))?.Name ?? _adminRoleName;

@@ -21,8 +21,11 @@
     이메일이 로그인 ID 이고 계정 하나가 협력업체 하나에 묶여, 포탈 화면은 그 업체의 발주만 보인다.
     로그인 5회 실패로 잠긴 계정은 여기서 해제한다. 비밀번호 규칙은 내부 사용자와 같은 Identity 검증기를 쓴다. *@
 
-<PageTitle>SCM-005 @L["SCM.PortalUsers.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="SCM-005" TitleKey="SCM.PortalUsers.Title" />
+@if (!Embedded)
+{
+    <PageTitle>SCM-005 @L["SCM.PortalUsers.Title"] · AMES</PageTitle>
+    <AmesPageHeader Code="SCM-005" TitleKey="SCM.PortalUsers.Title" />
+}
 
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
@@ -187,6 +190,9 @@
 
 @code {
     const string Href = "scm/portal-users";
+
+    /// <summary>SYS-001 사용자 관리의 「외부 사용자」 탭 안에 넣을 때 — 화면 제목·머리글을 그리지 않는다(권한은 이 화면 기준 그대로).</summary>
+    [Parameter] public bool Embedded { get; set; }
     IEnumerable<int> _pageSizeOptions = new int[] { 25, 50, 100 };
     bool _showPagerSummary = true;
     int  _pageRows = 25;   // 고정 페이저: 본문 높이 = 헤더 + 페이지 행 수 × 행 높이(.ames-grid-fixed)
@@ -225,7 +231,7 @@
         var auth = await AuthPrvd.GetAuthenticationStateAsync();
         _actor = ActorCode.Of(auth.User, "system");
         await PermSvc.EnsureAsync(AuthPrvd);
-        if (!PermSvc.IsVisible(Href)) { Nav.NavigateTo("/unauthorized", replace: true); return; }
+        if (!PermSvc.IsVisible(Href)) { if (!Embedded) Nav.NavigateTo("/unauthorized", replace: true); return; }
         _canEdit = PermSvc.CanEdit(Href);
         try { _vendors = await Task.Run(()=>MD.ListVendors()); } catch { ShowMsg(L["SCM.PortalUsers.Err.LoadVendors"],true); }
         await Reload();

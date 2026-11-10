@@ -459,6 +459,15 @@
   <data name="RPT.ReportBuilder.Title" xml:space="preserve">
     <value>Report Builder</value>
   </data>
+  <data name="SYS.Users.Tab.Web" xml:space="preserve">
+    <value>Web Users</value>
+  </data>
+  <data name="SYS.Users.Tab.Workers" xml:space="preserve">
+    <value>Field Workers</value>
+  </data>
+  <data name="SYS.Users.Tab.Portal" xml:space="preserve">
+    <value>External Users</value>
+  </data>
   <data name="SYS.Users.Title" xml:space="preserve">
     <value>User Management</value>
   </data>

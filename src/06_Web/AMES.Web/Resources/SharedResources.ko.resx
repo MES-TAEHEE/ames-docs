@@ -459,6 +459,15 @@
   <data name="RPT.ReportBuilder.Title" xml:space="preserve">
     <value>리포트 빌더</value>
   </data>
+  <data name="SYS.Users.Tab.Web" xml:space="preserve">
+    <value>웹 사용자</value>
+  </data>
+  <data name="SYS.Users.Tab.Workers" xml:space="preserve">
+    <value>현장 작업자</value>
+  </data>
+  <data name="SYS.Users.Tab.Portal" xml:space="preserve">
+    <value>외부 사용자</value>
+  </data>
   <data name="SYS.Users.Title" xml:space="preserve">
     <value>사용자 관리</value>
   </data>

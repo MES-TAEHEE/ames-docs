@@ -17,8 +17,11 @@
 @inject IStringLocalizer<SharedResources> L
 @inject AMES.Web.Services.AuditLogger Audit
 
-<PageTitle>MD-032 @L["MD.Workers.Title"] · AMES</PageTitle>
-<AmesPageHeader Code="MD-032" TitleKey="MD.Workers.Title" />
+@if (!Embedded)
+{
+    <PageTitle>MD-032 @L["MD.Workers.Title"] · AMES</PageTitle>
+    <AmesPageHeader Code="MD-032" TitleKey="MD.Workers.Title" />
+}
 
 @* ── KPI strip ──────────────────────────────────────────────────── *@
 <div class="ames-kpis">
@@ -248,6 +251,9 @@
 
     // POP 로그인 화면의 배지 스캔이 만든 행 (WorkerRepository.EnsureRegistered) — CreatedBy 가 본인 사번.
     // 구 버전이 남긴 행은 'POP-SCAN' 이다.
+    /// <summary>SYS-001 사용자 관리의 「현장 작업자」 탭 안에 넣을 때 — 화면 제목·머리글을 그리지 않는다(권한은 이 화면 기준 그대로).</summary>
+    [Parameter] public bool Embedded { get; set; }
+
     const string LegacyBadgeCreatedBy = "POP-SCAN";
     static bool IsBadgeCreated(WorkerRepository.WorkerRow w) =>
         string.Equals(w.CreatedBy, w.EmployeeNo, StringComparison.OrdinalIgnoreCase) ||
