@@ -11240,6 +11240,9 @@
   <data name="Portal.PackingQty.Hint" xml:space="preserve">
     <value>품목과 적입량은 EOS 의 협력업체-품목 연결에서 자동으로 불러옵니다.</value>
   </data>
+  <data name="Portal.PackingQty.Btn.Undo" xml:space="preserve">
+    <value>되돌리기</value>
+  </data>
   <data name="Portal.PackingQty.NotSetHint" xml:space="preserve">
     <value>적입량이 없습니다. 박스당 수량을 입력하고 저장하세요.</value>
   </data>

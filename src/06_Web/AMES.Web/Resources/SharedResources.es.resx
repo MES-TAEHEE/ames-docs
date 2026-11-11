@@ -11240,6 +11240,9 @@
   <data name="Portal.PackingQty.Hint" xml:space="preserve">
     <value>Los artículos y cantidades de empaque se cargan automáticamente de los vínculos proveedor-artículo de EOS.</value>
   </data>
+  <data name="Portal.PackingQty.Btn.Undo" xml:space="preserve">
+    <value>Deshacer</value>
+  </data>
   <data name="Portal.PackingQty.NotSetHint" xml:space="preserve">
     <value>Cantidad de empaque sin definir. Introduzca la cantidad por caja y guarde.</value>
   </data>

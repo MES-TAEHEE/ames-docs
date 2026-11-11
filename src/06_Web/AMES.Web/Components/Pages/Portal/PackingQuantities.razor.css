@@ -6,3 +6,6 @@
 /* 협력업체는 코드·이름을 한 줄로 */
 .ames-card ::deep td.packing-nowrap, .ames-card ::deep td.packing-nowrap .rz-cell-data { white-space:nowrap !important; overflow-wrap:normal; }
 .packing-issue { color:var(--ames-warning, #b87316); font-size:.85rem; margin-top:4px; overflow-wrap:anywhere; }
+/* 저장·되돌리기 — 글자를 붙이고, 꺼진 상태도 버튼이 있다는 것은 알아볼 수 있게 */
+.packing-actions { display:flex; gap:6px; align-items:center; white-space:nowrap; }
+.packing-actions ::deep .rz-button:disabled, .packing-actions ::deep .rz-button.rz-state-disabled { opacity:.45; }

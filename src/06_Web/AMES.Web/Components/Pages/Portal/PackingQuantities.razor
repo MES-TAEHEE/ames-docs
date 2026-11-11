@@ -41,10 +41,12 @@
             <RadzenDataGridColumn TItem="EditRow" Title='@L["Scm.Text.PackingQuantity"]' Width="240px" MinWidth="240px" Sortable="false">
                 <Template Context="r"><RadzenNumeric TValue="decimal?" @bind-Value="r.Quantity" Disabled="@(!r.Source.CanSave || r.Saving)" Format="@QtyFormat.Format(r.Source.Unit)" Min="0.001m" Max="999999999999999.999m" Step="0.001" ShowUpDown="false" Placeholder='@L["Portal.Text.NotSet"]' aria-label='@L["Portal.Accessibility.PackingQuantity", r.Source.ItemNo]' Style="width:100%;" class="ames-rz-input" /></Template>
             </RadzenDataGridColumn>
-            <RadzenDataGridColumn TItem="EditRow" Width="130px" MinWidth="130px" Title="" Sortable="false">
+            <RadzenDataGridColumn TItem="EditRow" Width="210px" MinWidth="210px" Title="" Sortable="false">
                 <Template Context="r">
-                    <RadzenButton Text='@L["Btn.Save"]' Icon="save" Click="@(()=>Save(r))" Disabled="@(!r.Dirty || !r.Source.CanSave || r.Saving)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
-                    <RadzenButton Icon="undo" aria-label='@L["Portal.Text.DiscardChanges"]' Click="@(()=>r.Quantity=r.Source.PackingQty)" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
+                    <div class="packing-actions">
+                        <RadzenButton Text='@L["Btn.Save"]' Icon="save" Click="@(()=>Save(r))" Disabled="@(!r.Dirty || !r.Source.CanSave || r.Saving)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
+                        <RadzenButton Text='@L["Portal.PackingQty.Btn.Undo"]' Icon="undo" title='@L["Portal.Text.DiscardChanges"]' Click="@(()=>r.Quantity=r.Source.PackingQty)" Disabled="@(!r.Dirty)" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Outlined" Size="ButtonSize.ExtraSmall" class="ames-rz-btn" />
+                    </div>
                 </Template>
             </RadzenDataGridColumn>
         </Columns>

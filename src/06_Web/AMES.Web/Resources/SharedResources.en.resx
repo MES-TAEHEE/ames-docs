@@ -11240,6 +11240,9 @@
   <data name="Portal.PackingQty.Hint" xml:space="preserve">
     <value>Items and packing quantities are loaded automatically from EOS supplier-item mappings.</value>
   </data>
+  <data name="Portal.PackingQty.Btn.Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
   <data name="Portal.PackingQty.NotSetHint" xml:space="preserve">
     <value>Packing quantity not set. Enter Qty / Box and save.</value>
   </data>
