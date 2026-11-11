@@ -125,7 +125,7 @@
                                             @if(row.Part.Issue is "Packing quantity missing" or "Vendor mapping missing")
                                             {
                                                 <div class="case-packing-editor">
-                                                    <input class="ames-input" type="number" min="1" step="1" @bind="row.NewPackingQty" placeholder='@L["Portal.Create.Ph.QtyPerBox"]' aria-label='@(L["Portal.Create.Ph.QtyPerBox"] + " " + row.Part.Item)' disabled="@_busy" />
+                                                    <input class="ames-input" type="number" min="1" step="1" @bind="row.NewPackingQty" @bind:event="oninput" placeholder='@L["Portal.Create.Ph.QtyPerBox"]' aria-label='@(L["Portal.Create.Ph.QtyPerBox"] + " " + row.Part.Item)' disabled="@_busy" />
                                                     <RadzenButton Text='@L["Portal.Create.Btn.SaveBoxSize"]' Size="ButtonSize.ExtraSmall" Click="()=>SavePacking(row)" Disabled="@_busy" />
                                                 </div>
                                             }
@@ -296,7 +296,9 @@
             {
                 Quantity=preserve&&previous.TryGetValue(p.Part.PoID,out var old)?old.Quantity:0,
                 QuantityText=preserve&&previous.TryGetValue(p.Part.PoID,out var text)?text.QuantityText:"",
-                InputValid=!preserve||!previous.TryGetValue(p.Part.PoID,out var valid)||valid.InputValid
+                InputValid=!preserve||!previous.TryGetValue(p.Part.PoID,out var valid)||valid.InputValid,
+                // 다른 행에 입력해 두고 아직 저장하지 않은 Unit Item당 수량은 다시 읽어도 남긴다(그 행이 이미 등록됐으면 버림)
+                NewPackingQty=preserve&&p.Part.PackingQty<=0&&previous.TryGetValue(p.Part.PoID,out var pending)?pending.NewPackingQty:null
             }).ToList();
         RebuildBoxes();
     }
@@ -309,6 +311,7 @@
     async Task SavePacking(PartEdit row)
     {
         if(_busy||!_allowed||row.Part.Unit=="BOX")return;
+        _error="";_message="";
         if(row.NewPackingQty is null or <=0 || decimal.Truncate(row.NewPackingQty.Value)!=row.NewPackingQty.Value)
         {_error=L["Portal.Create.Err.BoxQty"];return;}
         var order=_orders.FirstOrDefault(o=>o.Number==row.Order);
