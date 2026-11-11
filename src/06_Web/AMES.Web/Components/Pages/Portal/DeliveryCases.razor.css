@@ -58,3 +58,7 @@ summary.ames-card-h { cursor:pointer; }
 .case-part-unavailable input:disabled { opacity:.45; cursor:not-allowed; }
 .case-packing-editor { display:grid; gap:6px; margin-top:6px; min-width:105px; }
 .case-packing-editor input { width:100%; min-width:0; }
+/* 수량 입력칸 뒤에 품목 단위 — g·sh 처럼 낱개가 아닌 단위를 개수로 착각하지 않게 */
+.case-quantity-editor { display:inline-flex; align-items:center; gap:6px; }
+.case-packing-input { display:flex; align-items:center; gap:6px; }
+.case-unit { color:var(--ames-tx-slate-300); font-size:14px; font-weight:600; white-space:nowrap; }

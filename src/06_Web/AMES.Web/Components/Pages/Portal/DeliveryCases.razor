@@ -112,7 +112,7 @@
                                     </td>
                                     <td><label class="case-quantity-editor"><input class="ames-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="0"
                                         @bind:get="row.QuantityText" @bind:set="value=>ChangeQuantity(row,value)" @bind:event="oninput" disabled="@(_busy || Available(row)<=0)"
-                                        aria-invalid="@(!row.InputValid || row.Quantity>Available(row)?"true":"false")" aria-label='@(L["Portal.Create.Col.TotalQty"] + " " + row.Order + " " + row.Part.Item)' /></label>
+                                        aria-invalid="@(!row.InputValid || row.Quantity>Available(row)?"true":"false")" aria-label='@(L["Portal.Create.Col.TotalQty"] + " " + row.Order + " " + row.Part.Item)' /><span class="case-unit">@UomFmt.Sym(row.Part.Unit)</span></label>
                                         @if(Available(row)>0 && !CanPack(row)){<div class="case-input-message">@IssueText(row.Part.Issue)</div>}
                                         else if(!row.InputValid){<div class="case-input-message">@L["Portal.Create.Err.WholeNumber"]</div>}
                                     </td>
@@ -125,7 +125,7 @@
                                             @if(row.Part.Issue is "Packing quantity missing" or "Vendor mapping missing")
                                             {
                                                 <div class="case-packing-editor">
-                                                    <input class="ames-input" type="number" min="1" step="1" @bind="row.NewPackingQty" @bind:event="oninput" placeholder='@L["Portal.Create.Ph.QtyPerBox"]' aria-label='@(L["Portal.Create.Ph.QtyPerBox"] + " " + row.Part.Item)' disabled="@_busy" />
+                                                    <span class="case-packing-input"><input class="ames-input" type="number" min="1" step="1" @bind="row.NewPackingQty" @bind:event="oninput" placeholder='@L["Portal.Create.Ph.QtyPerBox"]' aria-label='@(L["Portal.Create.Ph.QtyPerBox"] + " " + row.Part.Item)' disabled="@_busy" /><span class="case-unit">@UomFmt.Sym(row.Part.Unit)</span></span>
                                                     <RadzenButton Text='@L["Portal.Create.Btn.SaveBoxSize"]' Size="ButtonSize.ExtraSmall" Click="()=>SavePacking(row)" Disabled="@_busy" />
                                                 </div>
                                             }
