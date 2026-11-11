@@ -98,14 +98,14 @@
                     <RadzenDataGridColumn TItem="MasterDataRepository.MoldRow" Title="@L["Col.UsagePct"]" TextAlign="TextAlign.Right" Width="90px" MinWidth="90px" Sortable="false">
                         <Template Context="r">
                             @{
-                                var pct = r.RatedShots.HasValue && r.RatedShots > 0 && r.CurrentShots.HasValue
-                                    ? (double)r.CurrentShots.Value / r.RatedShots.Value * 100
-                                    : (double?)null;
+                                // 소진율 계산·버림 표시·등급은 MNT 화면과 같은 규칙(MoldUsageRules)을 쓴다 — 반올림하면 69.99% 가 70.0% 로 보인다.
+                                var pct = MoldUsageRules.Usage(r.CurrentShots, r.RatedShots);
                             }
-                            @if (pct.HasValue)
+                            @if (pct is { } u)
                             {
-                                var cls = pct.Value >= 100 ? "bad" : pct.Value >= 80 ? "warn" : "ok";
-                                <span class="pill @cls">@pct.Value.ToString("N1")%</span>
+                                var grade = MoldUsageRules.GradeOf(u);
+                                var cls   = grade == MoldUsageRules.Critical ? "bad" : grade == MoldUsageRules.Warning ? "warn" : "ok";
+                                <span class="pill @cls">@MoldUsageRules.Shown(u).ToString("N2")%</span>
                             }
                             else { <span class="dim">—</span> }
                         </Template>
