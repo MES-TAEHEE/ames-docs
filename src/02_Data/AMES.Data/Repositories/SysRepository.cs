@@ -684,41 +684,96 @@ public sealed class SysRepository
 
     /// <summary>
     /// SYS-007 감사 로그 조회 — 조건을 DB 에서 걸고 건수 제한 없이 돌려준다(10-07 — 전에는 최근 200행 안에서만 화면이 걸렀다).
-    /// 검색어는 행위자·대상 ID·대상 엔티티·비고 부분 일치. 시각이 없는 행은 기간과 무관하게 포함한다(종전 화면 규칙).
+    /// 검색어는 행위자·화면 코드(MD-001 등)·동작(CREATED 등)·대상 ID·대상 엔티티·비고 부분 일치. 시각이 없는 행은 기간과 무관하게 포함한다(종전 화면 규칙).
     /// </summary>
-    public List<AuditRow> SearchAudit(AuditFilter f)
-    {
-        const string sql = """
-            SELECT LogID, EventTS, ActorUserID, ModuleCode, ScreenCode, ProcessCode,
-                   ActionType, TargetEntity, TargetID, Result, IPAddress, Note
-            FROM   dbo.SYS_AuditLog
-            WHERE  (EventTS IS NULL OR (EventTS >= @From AND EventTS < @To))
-              AND  (@Module  IS NULL OR ModuleCode  = @Module)
-              AND  (@Process IS NULL OR ProcessCode = @Process)
-              AND  (@Result  IS NULL OR Result      = @Result)
-              AND  (@SN IS NULL
-                    OR ActorUserID  LIKE @SN OR Note     LIKE @SN
-                    OR TargetEntity LIKE @SV OR TargetID LIKE @SV
-                    OR (@Actors IS NOT NULL AND ActorUserID IN (SELECT value FROM STRING_SPLIT(@Actors, NCHAR(31)))))
-            ORDER  BY LogID DESC;
-            """;
-        static object Opt(string? s) => string.IsNullOrWhiteSpace(s) ? DBNull.Value : s.Trim();
-        var like = string.IsNullOrWhiteSpace(f.Search) ? null
-                 : "%" + f.Search.Trim().Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]") + "%";
+    public List<AuditRow> SearchAudit(AuditFilter f) => SearchAuditPage(f, 0, int.MaxValue);
 
-        using var conn = _f.OpenConnection();
-        using var cmd  = new SqlCommand(sql, conn);
+    /// <summary>검색어 길이 상한(자) — 화면 입력칸과 같다. 넘는 부분은 잘라 조회한다(알림 없이 잘리지 않도록 화면이 먼저 막는다).</summary>
+    public const int AuditSearchMaxLength = 100;
+
+    /// <summary>SYS-007 조건 합계 — 건수·성공·실패. 조건이 바뀔 때만 한 번 센다(페이지 이동은 이 값을 다시 읽지 않는다).</summary>
+    public sealed record AuditSummary(int Total, int Ok, int Fail);
+
+    // 기간·모듈·공정·결과·검색어 조건 — 목록·합계가 같은 조건을 쓰도록 한 곳에 둔다.
+    // 검색어는 한 파라미터(@SN, nvarchar)로 모든 텍스트 컬럼과 비교한다 — varchar 파라미터로 넘기면 한글이 '?' 로 깨진다.
+    const string AuditWhere = """
+            (EventTS IS NULL OR (EventTS >= @From AND EventTS < @To))
+        AND (@Module  IS NULL OR ModuleCode  = @Module)
+        AND (@Process IS NULL OR ProcessCode = @Process)
+        AND (@Result  IS NULL OR Result      = @Result)
+        AND (@SN IS NULL
+             OR ActorUserID  LIKE @SN OR Note       LIKE @SN
+             OR ScreenCode   LIKE @SN OR ActionType LIKE @SN
+             OR TargetEntity LIKE @SN OR TargetID   LIKE @SN
+             OR (@SAct IS NOT NULL AND ActionType LIKE @SAct)
+             OR (@Actors IS NOT NULL AND ActorUserID IN (SELECT value FROM STRING_SPLIT(@Actors, NCHAR(31)))))
+        """;
+
+    // 동작 이름의 과거형·현재형을 같게 본다 — 저장은 CREATE/UPDATE/DELETE 이고, 사용자는 CREATED 등으로 찾기도 한다.
+    static readonly Dictionary<string, string> ActionAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["CREATED"] = "CREATE", ["UPDATED"] = "UPDATE", ["DELETED"] = "DELETE",
+    };
+
+    static void AddAuditFilter(SqlCommand cmd, AuditFilter f)
+    {
+        static object Opt(string? s) => string.IsNullOrWhiteSpace(s) ? DBNull.Value : s.Trim();
+        var term = f.Search?.Trim();
+        if (term is { Length: > AuditSearchMaxLength }) term = term[..AuditSearchMaxLength];
+        var like = string.IsNullOrWhiteSpace(term) ? null
+                 : "%" + term.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]") + "%";
         cmd.Parameters.Add("@From",    SqlDbType.DateTime2).Value = f.From.Date;
         cmd.Parameters.Add("@To",      SqlDbType.DateTime2).Value = f.To.Date.AddDays(1);
         cmd.Parameters.Add("@Module",  SqlDbType.VarChar, 10).Value = Opt(f.ModuleCode);
         cmd.Parameters.Add("@Process", SqlDbType.VarChar, 10).Value = Opt(f.ProcessCode);
         cmd.Parameters.Add("@Result",  SqlDbType.VarChar, 10).Value = Opt(f.Result);
-        // 행위자·비고는 nvarchar, 대상 엔티티·ID 는 varchar 컬럼 — 같은 검색어를 컬럼 형에 맞춰 두 번 넘긴다
-        cmd.Parameters.Add("@SN", SqlDbType.NVarChar, 600).Value = (object?)like ?? DBNull.Value;
-        cmd.Parameters.Add("@SV", SqlDbType.VarChar,  600).Value = (object?)like ?? DBNull.Value;
+        cmd.Parameters.Add("@SN", SqlDbType.NVarChar, AuditSearchMaxLength + 2).Value = (object?)like ?? DBNull.Value;
+        // 검색어가 CREATED 같은 과거형이면 저장 이름(CREATE)으로도 찾는다 — 반대로 CREATE 로 찾아도 같은 행이 나온다
+        string? aliasLike = term is not null && ActionAliases.TryGetValue(term, out var baseName)
+            ? "%" + baseName + "%" : null;
+        cmd.Parameters.Add("@SAct", SqlDbType.NVarChar, 20).Value = (object?)aliasLike ?? DBNull.Value;
         // 이름으로 찾은 사번 목록 — 구분자는 코드에 나올 수 없는 제어 문자(U+001F)
         var actors = f.ActorCodes is { Count: > 0 } ? string.Join('\u001f', f.ActorCodes) : null;
         cmd.Parameters.Add("@Actors", SqlDbType.NVarChar, -1).Value = (object?)actors ?? DBNull.Value;
+    }
+
+    /// <summary>SYS-007 합계 — 같은 조건의 건수·성공·실패를 한 번에 센다.</summary>
+    public AuditSummary SummarizeAudit(AuditFilter f)
+    {
+        var sql = $"""
+            SELECT COUNT(*) AS Total,
+                   ISNULL(SUM(CASE WHEN Result = 'OK' THEN 1 ELSE 0 END), 0) AS Ok,
+                   ISNULL(SUM(CASE WHEN Result <> 'OK' AND Result IS NOT NULL THEN 1 ELSE 0 END), 0) AS Fail
+            FROM   dbo.SYS_AuditLog
+            WHERE  {AuditWhere};
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        AddAuditFilter(cmd, f);
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? new AuditSummary(Convert.ToInt32(r["Total"]), Convert.ToInt32(r["Ok"]), Convert.ToInt32(r["Fail"]))
+                        : new AuditSummary(0, 0, 0);
+    }
+
+    /// <summary>
+    /// SYS-007 감사 로그 한 페이지 — 최신순(LogID 내림차순), skip 행을 건너뛰고 take 행을 돌려준다.
+    /// 시각이 없는 행은 기간과 무관하게 포함한다(종전 화면 규칙). 검색어는 행위자·화면 코드·동작·대상 ID·대상 엔티티·비고 부분 일치.
+    /// </summary>
+    public List<AuditRow> SearchAuditPage(AuditFilter f, int skip, int take)
+    {
+        var sql = $"""
+            SELECT LogID, EventTS, ActorUserID, ModuleCode, ScreenCode, ProcessCode,
+                   ActionType, TargetEntity, TargetID, Result, IPAddress, Note
+            FROM   dbo.SYS_AuditLog
+            WHERE  {AuditWhere}
+            ORDER  BY LogID DESC
+            OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;
+            """;
+        using var conn = _f.OpenConnection();
+        using var cmd  = new SqlCommand(sql, conn);
+        AddAuditFilter(cmd, f);
+        cmd.Parameters.Add("@Skip", SqlDbType.Int).Value = Math.Max(0, skip);
+        cmd.Parameters.Add("@Take", SqlDbType.Int).Value = Math.Max(1, take);
         using var r = cmd.ExecuteReader();
         var list = new List<AuditRow>();
         while (r.Read())

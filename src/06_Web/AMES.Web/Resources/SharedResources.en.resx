@@ -3708,6 +3708,12 @@
   <data name="SYS.Audit.Kpi.FailSub" xml:space="preserve">
     <value>Result FAIL</value>
   </data>
+  <data name="SYS.Audit.Err.Load" xml:space="preserve">
+    <value>Failed to load the audit log: {0}</value>
+  </data>
+  <data name="SYS.Audit.Msg.ActorCapped" xml:space="preserve">
+    <value>Name search covers up to 500 matching users. Add part of the employee number to narrow the search.</value>
+  </data>
   <data name="SYS.Audit.Ph.Search" xml:space="preserve">
     <value>User/Target ID/Note</value>
   </data>

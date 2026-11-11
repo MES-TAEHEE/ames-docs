@@ -3705,6 +3705,12 @@
   <data name="SYS.Audit.Kpi.FailSub" xml:space="preserve">
     <value>Resultado FALLO</value>
   </data>
+  <data name="SYS.Audit.Err.Load" xml:space="preserve">
+    <value>No se pudo cargar el registro de auditoría: {0}</value>
+  </data>
+  <data name="SYS.Audit.Msg.ActorCapped" xml:space="preserve">
+    <value>La búsqueda por nombre incluye hasta 500 usuarios. Añada parte del número de empleado para acotarla.</value>
+  </data>
   <data name="SYS.Audit.Ph.Search" xml:space="preserve">
     <value>Usuario/ID Objetivo/Nota</value>
   </data>

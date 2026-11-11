@@ -3708,6 +3708,12 @@
   <data name="SYS.Audit.Kpi.FailSub" xml:space="preserve">
     <value>결과 FAIL</value>
   </data>
+  <data name="SYS.Audit.Err.Load" xml:space="preserve">
+    <value>감사 로그를 불러오지 못했습니다: {0}</value>
+  </data>
+  <data name="SYS.Audit.Msg.ActorCapped" xml:space="preserve">
+    <value>사용자 이름 검색은 상위 500명까지만 반영됩니다. 사번 일부를 함께 입력해 주세요.</value>
+  </data>
   <data name="SYS.Audit.Ph.Search" xml:space="preserve">
     <value>사용자/대상ID/비고</value>
   </data>
